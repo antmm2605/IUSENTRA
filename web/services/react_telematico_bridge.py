@@ -37,7 +37,7 @@ PORTAL_DESCRIPTIONS = {
 }
 PORTAL_TONES = {"pst": "primary", "pdp": "danger", "pat": "success", "ptt": "warning"}
 PORTAL_HOME_ENDPOINTS = {"pst": "polisWeb_home", "pdp": "pdp_home", "pat": "pat_home", "ptt": "sigit_home"}
-PORTAL_HOME_FALLBACKS = {"pst": "/polisWeb", "pdp": "/pdp", "pat": "/pat", "ptt": "/sigit/ricerca"}
+PORTAL_HOME_FALLBACKS = {"pst": "/polisWeb", "pdp": "/pdp", "pat": "/pat", "ptt": "/app-v2/ptt"}
 PORTAL_SURFACE_IDS = {"pst": "polisweb", "pdp": "pdp", "pat": "pat", "ptt": "ptt"}
 PORTAL_IMPORT_FALLBACKS = {
     "pst": "/portali/pst/acquisizione",
@@ -272,8 +272,8 @@ def _build_channel(portal: str, stats: dict[str, Any], access_payload: dict[str,
         "pkcs11Mode": bool(access_payload.get("pkcs11_mode")),
         "badges": _channel_badges(access_payload),
         "quickActions": [
-            {"label": "Apri superficie", "href": home_href, "tone": PORTAL_TONES[portal]},
             {"label": PORTAL_IMPORT_LABELS.get(portal, "Importa da portale"), "href": import_href, "tone": "primary"},
+            {"label": "Apri superficie", "href": home_href, "tone": PORTAL_TONES[portal]},
             {"label": "Checklist", "href": f"{home_href}#checklist-operativa", "tone": "warning"},
         ],
     }
@@ -746,6 +746,8 @@ def build_react_telematico_surface_payload(
         "blocked": len(list(controls.get("blockedCases") or [])),
         "warnings": len(list(controls.get("warnings") or [])),
     }
+    offices, office_summary = _portal_office_rows(portal) if portal else ([], {})
+    local_signer_release = _local_signer_release_payload()
     return {
         "source": "repository_reali",
         "generatedAt": _iso_now(),
@@ -772,8 +774,26 @@ def build_react_telematico_surface_payload(
         "links": _surface_links(surface_id, portal),
         "notices": list(base.get("notices") or []),
         "lexSuggestions": list(base.get("lexSuggestions") or []),
-        "offices": [],
-        "officeSummary": {},
+        "offices": offices,
+        "officeSummary": office_summary,
+        "localSigner": local_signer_release,
+    }
+
+
+def _local_signer_release_payload() -> dict[str, str]:
+    try:
+        from web.services.local_signer_release import latest_local_signer_release
+
+        release = latest_local_signer_release()
+    except Exception:
+        release = {}
+    return {
+        "browserUrl": _text(release.get("browser_url") or "http://127.0.0.1:27272"),
+        "latestVersion": _text(release.get("version")),
+        "downloadPage": _text(release.get("download_page") or "/impostazioni?tab=firma"),
+        "windowsUrl": "/polisWeb/local-signer/setup/windows",
+        "macosUrl": "/polisWeb/local-signer/setup/macos",
+        "linuxUrl": "/polisWeb/local-signer/setup/linux",
     }
 
 
@@ -783,6 +803,67 @@ def _office_text(row: dict[str, Any], *keys: str) -> str:
         if value:
             return value
     return ""
+
+
+def _office_row_payload(row: dict[str, Any], index: int) -> dict[str, Any]:
+    return {
+        "id": _office_text(row, "codice", "codice_ministero") or f"ufficio-{index}",
+        "codice": _office_text(row, "codice"),
+        "codiceMinistero": _office_text(row, "codice_ministero"),
+        "nome": _office_text(row, "nome", "descrizione_ministero", "denominazione"),
+        "descrizione": _office_text(row, "descrizione_ministero", "denominazione"),
+        "tipo": _office_text(row, "tipo", "tipo_ministero_descrizione"),
+        "distretto": _office_text(row, "distretto", "distretto_ministero"),
+        "pec": _office_text(row, "pec", "email_pec", "pec_ministero"),
+        "regione": _office_text(row, "regione_ministero", "regione"),
+        "provincia": _office_text(row, "provincia_ministero", "provincia"),
+        "comune": _office_text(row, "comune_ministero", "comune"),
+        "servizioPst": _office_text(row, "servizio_pst_predefinito"),
+        "servizi": list(row.get("servizi_ministero") or []),
+    }
+
+
+def _portal_office_rows(portal: str) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Uffici reali disponibili nel wizard di acquisizione del portale."""
+
+    from collections import Counter
+
+    from pct.uffici_giudiziari import get_gestore
+
+    portal = (portal or "").strip().lower()
+    gestore = get_gestore()
+    uffici = list(gestore.carica())
+    stato = gestore.stato()
+    tipi_per_portale = {
+        "pst": {"TRIBUNALE", "CORTE_APPELLO", "CORTE_CASSAZIONE", "TM", "GDP"},
+        "pdp": {"PROCURA", "PROCURA_GENERALE", "TRIBUNALE", "SORVEGLIANZA", "CORTE_ASSISE"},
+        "pat": {"TAR", "CDS", "CGARS"},
+        "ptt": {"CGT", "CPT"},
+    }
+    ammessi = tipi_per_portale.get(portal, set())
+
+    def _supports_portal(row: dict[str, Any]) -> bool:
+        tipo = str(row.get("tipo") or "").strip().upper()
+        if not ammessi:
+            return True
+        if tipo not in ammessi:
+            return False
+        if portal == "pst":
+            servizi = {str(servizio or "").upper() for servizio in (row.get("servizi_ministero") or [])}
+            return bool(row.get("codice_ministero") and any(servizio.startswith("JPW_") for servizio in servizi))
+        return True
+
+    filtrati = [row for row in uffici if _supports_portal(row)]
+    per_tipo = Counter(str(row.get("tipo") or "ALTRO") for row in filtrati)
+    offices = [_office_row_payload(row, index) for index, row in enumerate(filtrati)]
+    offices.sort(key=lambda item: (item.get("nome", "").lower(), item.get("distretto", "").lower()))
+    return offices, {
+        "source": stato.get("sorgente", "bundle"),
+        "updatedAt": stato.get("aggiornato_il", ""),
+        "cachePath": stato.get("cache_path", ""),
+        "expired": bool(stato.get("scaduta")),
+        "perType": dict(sorted(per_tipo.items())),
+    }
 
 
 def build_react_tribunali_payload() -> dict[str, Any]:
@@ -798,23 +879,12 @@ def build_react_tribunali_payload() -> dict[str, Any]:
     per_tipo = Counter(str(row.get("tipo") or "ALTRO") for row in uffici)
     offices = []
     for index, row in enumerate(uffici):
-        offices.append(
-            {
-                "id": _office_text(row, "codice", "codice_ministero") or f"ufficio-{index}",
-                "codice": _office_text(row, "codice", "codice_ministero"),
-                "nome": _office_text(row, "nome", "descrizione_ministero", "denominazione"),
-                "tipo": _office_text(row, "tipo", "tipo_ministero_descrizione"),
-                "distretto": _office_text(row, "distretto", "distretto_ministero"),
-                "pec": _office_text(row, "pec", "email_pec"),
-                "regione": _office_text(row, "regione_ministero", "regione"),
-                "provincia": _office_text(row, "provincia_ministero", "provincia"),
-                "comune": _office_text(row, "comune_ministero", "comune"),
-                "indirizziTelematici": indirizzi_telematici_ufficio(
-                    row,
-                    data_rilevazione=str(stato.get("aggiornato_il") or ""),
-                ),
-            }
+        office = _office_row_payload(row, index)
+        office["indirizziTelematici"] = indirizzi_telematici_ufficio(
+            row,
+            data_rilevazione=str(stato.get("aggiornato_il") or ""),
         )
+        offices.append(office)
     pec_count = sum(1 for item in offices if item["pec"])
     return {
         "source": "repository_reali",

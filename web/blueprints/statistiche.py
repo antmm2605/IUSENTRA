@@ -13,7 +13,6 @@ from collections import defaultdict
 from flask import Blueprint, g, jsonify, redirect, render_template, request, url_for, current_app
 
 from web.helpers import get_agenda, get_clienti, get_fascicoli, get_fatturazione as _shared_get_fatturazione, get_scadenziario
-from web.blueprints.react_shell import render_react_shell_response
 
 statistiche = Blueprint("statistiche", __name__, url_prefix="/statistiche")
 
@@ -32,17 +31,11 @@ def _get_fatturazione():
     return _shared_get_fatturazione()
 
 
-def _richiede_vista_classica() -> bool:
-    return request.args.get("_legacy") == "1"
-
-
 # ================================================================ PAGINA PRINCIPALE
 
 @statistiche.route("/", methods=["GET"])
 @_richiedi_login
 def index():
-    if not _richiede_vista_classica():
-        return render_react_shell_response("statistiche")
     return render_template("statistiche/index.html", oggi=date.today())
 
 

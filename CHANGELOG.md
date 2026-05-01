@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.198.29 - 2026-05-01
+
+- Ripristinato il comportamento corretto dei tab operativi `Impostazioni -> Firma Digitale` e `Impostazioni -> PEC`: il gate React non li intercetta finche' download Local Signer, verifica browser-locale e test PEC locale non sono migrati integralmente in React.
+- Reso nuovamente intuitivo il flusso React PST/PolisWeb: l'acquisizione mostra un wizard progressivo a 7 step, un solo pannello operativo alla volta, riepilogo sempre visibile, lookup reale degli uffici giudiziari importati e niente card duplicate sopra al wizard.
+- Corretto il crash del campo "Ufficio giudiziario" nel wizard PST: la ricerca veloce ora accetta la digitazione, mostra i risultati del catalogo uffici e non manda piu' la shell React nella pagina di errore.
+- Sostituito il messaggio statico "usa il Local Signer dal browser" con una verifica reale browser-locale: ping a `127.0.0.1:27272`, tentativo di avvio protocollo `hacs-local-signer://restart`, link installer aggiornato e blocco del passaggio alla ricerca finche' il canale locale non e' pronto.
+- Le card "Accesso ai portali" danno priorita' all'azione operativa di acquisizione (`Importa pratica da PST/PDP/PAT/PTT`) invece di aprire prima superfici decorative o percorsi secondari.
+- Versionati anche gli asset CSS della React shell, evitando cache stale di `app.css` che poteva far esplodere graficamente Lex/logo e lasciare la pagina senza stili corretti dopo il deploy.
+- Rafforzato il profilo `deploy/hetzner` per CPX42: bootstrap con `zstd/unzip`, deploy con secrets produzione obbligatori, backup con verifica checksum e restore con controllo `.sha256` prima dell'estrazione.
+- Aggiunta la guida `docs/DEPLOY_HETZNER_CPX42.md` e riallineati README/documentazione release per rendere esplicito che Hetzner puo' sostituire Railway o restare fallback governato.
+
 ## 2.198.28 - 2026-05-01
 
 - Corretto il deep-link `/fascicoli/<id>/documenti/<id_doc>/firma`: la `GET` apre ora la shell React operativa invece di produrre `405 Method Not Allowed`, mentre la `POST` resta l'unica azione di firma/caricamento.

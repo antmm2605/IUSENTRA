@@ -1044,6 +1044,10 @@ function awLocalSignerReachable() {
 function awShouldUseLocalSigner() {
   const status = AW_STATE.status || {};
   if (status.demo_mode) return false;
+  if (AW_BOOT.portale === 'pst') {
+    const backend = String(status.backend_firma || status.auth_mode || '').toLowerCase();
+    return !!(status.browser_channel_required || status.pkcs11_mode || backend === 'pkcs11' || awLocalSignerReachable());
+  }
   return !!(status.browser_channel_required || status.pkcs11_mode || awLocalSignerReachable());
 }
 function awUsesGuidedBrowserAssistFlow() {

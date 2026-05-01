@@ -454,7 +454,7 @@ function FascicoliListPage() {
             <a href="/polisWeb">PolisWeb / PST</a>
             <a href="/pdp">PDP Penale</a>
             <a href="/pat">PAT Amministrativo</a>
-            <a href="/sigit/ricerca">PTT Tributario</a>
+            <a href="/app-v2/ptt">PTT Tributario</a>
           </div>
         </Panel>
       </section>

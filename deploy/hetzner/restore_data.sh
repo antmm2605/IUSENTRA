@@ -14,6 +14,10 @@ fi
 
 mkdir -p "$DATA_DIR"
 
+if [ -f "${ARCHIVE}.sha256" ]; then
+  sha256sum -c "${ARCHIVE}.sha256"
+fi
+
 if [ -d "$REPO_DIR/.git" ]; then
   cd "$REPO_DIR"
   docker compose --env-file "$ENV_FILE" -f deploy/hetzner/docker-compose.hetzner.yml down
@@ -27,7 +31,9 @@ case "$ARCHIVE" in
     tar -xzpf "$ARCHIVE" -C "$DATA_DIR"
     ;;
   *.zip)
-    command -v unzip >/dev/null 2>&1 || apt-get update && apt-get install -y unzip
+    if ! command -v unzip >/dev/null 2>&1; then
+      apt-get update && apt-get install -y unzip
+    fi
     unzip -o "$ARCHIVE" -d "$DATA_DIR"
     ;;
   *)

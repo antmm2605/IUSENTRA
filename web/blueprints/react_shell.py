@@ -9,10 +9,60 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import Any, Iterable
+from urllib.parse import urlencode
 
-from flask import Blueprint, current_app, make_response, render_template
+from flask import Blueprint, current_app, make_response, redirect, render_template, request
 
 react_shell = Blueprint("react_shell", __name__)
+
+
+_LEGACY_FIRST_PREFIXES = (
+    "/admin/database",
+    "/admin/osservabilita",
+    "/amministrazione",
+    "/applicazioni",
+    "/audit",
+    "/backup",
+    "/checklist",
+    "/compensi-forensi",
+    "/database",
+    "/deposito/checklist",
+    "/fatturazione",
+    "/giurisprudenza",
+    "/guida/firma-digitale",
+    "/impostazioni",
+    "/impostazioni-studio",
+    "/incassi-pagamenti",
+    "/legal-intelligence",
+    "/notifiche",
+    "/notifiche-whatsapp",
+    "/pat",
+    "/pdp",
+    "/polisweb",
+    "/portali",
+    "/preventivi",
+    "/privacy/registro",
+    "/profili",
+    "/redazione-atti",
+    "/registro-attivita",
+    "/registro-gdpr",
+    "/ricerca-legale",
+    "/servizi-telematici",
+    "/sigit",
+    "/sigp",
+    "/sigp-sync",
+    "/sincronizzazione-calendari",
+    "/sito-studio",
+    "/statistiche",
+    "/strumenti-legali",
+    "/strumenti-operativi",
+    "/studio",
+    "/tariffario",
+    "/telematico",
+    "/template-atti",
+    "/tribunali",
+    "/utenti",
+)
 
 
 def _react_static_dir() -> Path:
@@ -72,9 +122,16 @@ def react_app(spa_path: str = ""):
 def render_react_shell_response(spa_path: str = "", *, bootstrap_texts: Iterable[Any] | None = None):
     """Render condiviso per le superfici migrate a React.
 
-    Alcune route operative ufficiali, in GET, mostrano la shell React.
-    I POST continuano a passare dai servizi Flask già auditati.
+    La shell React resta sempre disponibile sotto ``/app-v2``. Fuori da
+    ``/app-v2`` le route operative storiche non vengono piu' promosse
+    implicitamente: questo evita che una card React sostituisca un wizard
+    completo non ancora ricostruito con parita' reale.
     """
+
+    if _deve_mantenere_vista_classica():
+        query = request.args.to_dict(flat=True)
+        query["_legacy"] = "1"
+        return redirect(f"{request.path}?{urlencode(query)}", code=302)
 
     response = make_response(render_template(
         "react_shell.html",
@@ -85,3 +142,25 @@ def render_react_shell_response(spa_path: str = "", *, bootstrap_texts: Iterable
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"
     return response
+
+
+def _deve_mantenere_vista_classica() -> bool:
+    """Blocca promozioni React non validate fuori dalla shell progressiva."""
+
+    path = (request.path or "").rstrip("/") or "/"
+    if path == "/app-v2" or path.startswith("/app-v2/"):
+        return False
+    forced_react = (request.args.get("_react") or "").strip().lower()
+    if forced_react in {"1", "true", "si", "yes", "on"}:
+        return False
+    enabled = current_app.config.get("REACT_PROMOTE_LEGACY_ROUTES", False)
+    if enabled:
+        return False
+    lower = path.lower()
+    if lower.startswith("/fascicoli/") and (
+        "/wizard/" in lower
+        or "/deposito/" in lower
+        or "/penale/pdp" in lower
+    ):
+        return True
+    return any(lower == prefix or lower.startswith(f"{prefix}/") for prefix in _LEGACY_FIRST_PREFIXES)

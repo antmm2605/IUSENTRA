@@ -438,23 +438,27 @@
 }
 .iu-tel-acquisition__steps{
   display:grid;
-  grid-template-columns:repeat(5,minmax(0,1fr));
+  grid-template-columns:repeat(7,minmax(0,1fr));
   gap:8px;
   margin-bottom:14px;
 }
 .iu-tel-acquisition__steps button{
-  min-height:44px;
+  min-height:62px;
   border:1px solid var(--iu-border);
   border-radius:999px;
   background:#fff;
-  display:flex;
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr);
+  grid-template-areas:"num label" "num help";
   align-items:center;
-  justify-content:center;
-  gap:8px;
+  gap:2px 8px;
+  text-align:left;
+  padding:8px 13px;
   color:var(--iu-slate-700);
   font-weight:900;
 }
 .iu-tel-acquisition__steps span{
+  grid-area:num;
   width:25px;
   height:25px;
   border-radius:999px;
@@ -462,10 +466,26 @@
   place-items:center;
   background:var(--iu-slate-100);
 }
+.iu-tel-acquisition__steps strong{
+  grid-area:label;
+  min-width:0;
+  font-size:13px;
+}
+.iu-tel-acquisition__steps small{
+  grid-area:help;
+  color:var(--iu-slate-500);
+  font-size:11px;
+  font-weight:700;
+  line-height:1.15;
+}
 .iu-tel-acquisition__steps .is-active{
   border-color:var(--iu-blue-500);
   color:var(--iu-blue-800);
   box-shadow:0 0 0 3px rgba(37,99,235,.12);
+}
+.iu-tel-acquisition__steps .is-done{
+  border-color:rgba(16,185,129,.32);
+  background:rgba(16,185,129,.08);
 }
 .iu-tel-acquisition__steps .is-active span,
 .iu-tel-acquisition__steps .is-done span{
@@ -530,6 +550,7 @@
 }
 .iu-tel-acq-status button,
 .iu-tel-acq-actions button,
+.iu-tel-acq-actions a,
 .iu-tel-acq-import-result a{
   min-height:44px;
   border:0;
@@ -549,9 +570,92 @@
   gap:10px;
   margin-top:12px;
 }
+.iu-tel-acq-actions a{
+  text-decoration:none;
+  background:#fff;
+  color:var(--iu-blue-700);
+  border:1px solid rgba(37,99,235,.24);
+}
 .iu-tel-acq-actions button:disabled,
 .iu-tel-acq-status button:disabled{
   opacity:.55;
+  cursor:not-allowed;
+}
+.iu-tel-local-signer-card{
+  margin-top:12px;
+  border:1px solid var(--iu-border);
+  border-radius:16px;
+  background:#fff;
+  padding:13px;
+  display:flex;
+  gap:12px;
+  align-items:flex-start;
+}
+.iu-tel-local-signer-card svg{flex:0 0 auto}
+.iu-tel-local-signer-card strong{
+  display:block;
+  color:var(--iu-slate-950);
+  font-weight:950;
+}
+.iu-tel-local-signer-card span{
+  display:block;
+  margin-top:3px;
+  color:var(--iu-slate-700);
+  font-size:13px;
+  font-weight:700;
+  line-height:1.45;
+}
+.iu-tel-local-signer-card small{
+  display:block;
+  margin-top:6px;
+  color:var(--iu-slate-500);
+  font-size:12px;
+  font-weight:750;
+  line-height:1.35;
+}
+.iu-tel-local-signer-card.is-ok{
+  border-color:rgba(16,185,129,.34);
+  background:rgba(16,185,129,.08);
+}
+.iu-tel-local-signer-card.is-ok svg{color:var(--iu-success-500)}
+.iu-tel-local-signer-card.is-warning{
+  border-color:rgba(245,158,11,.42);
+  background:rgba(245,158,11,.1);
+}
+.iu-tel-local-signer-card.is-warning svg{color:var(--iu-warning-500)}
+.iu-tel-local-signer-card.is-missing{
+  border-color:rgba(239,68,68,.22);
+  background:rgba(239,68,68,.06);
+}
+.iu-tel-local-signer-card.is-missing svg{color:var(--iu-danger-500)}
+.iu-tel-local-signer-inline{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:14px;
+  padding:12px 14px;
+  border:1px solid rgba(245,158,11,.32);
+  border-radius:16px;
+  background:rgba(255,251,235,.82);
+  color:var(--iu-slate-800);
+  font-size:14px;
+  font-weight:750;
+  line-height:1.4;
+}
+.iu-tel-local-signer-inline svg{flex:0 0 auto;color:var(--iu-warning-500)}
+.iu-tel-local-signer-inline span{flex:1 1 auto}
+.iu-tel-local-signer-inline button{
+  min-height:38px;
+  border:0;
+  border-radius:12px;
+  background:var(--iu-blue-700);
+  color:#fff;
+  padding:0 14px;
+  font-weight:900;
+}
+.iu-tel-local-signer-inline button:disabled{
+  opacity:.55;
+  cursor:not-allowed;
 }
 .iu-tel-acq-form label,
 .iu-tel-acq-file{
@@ -568,6 +672,43 @@
   background:#fff;
   color:var(--iu-slate-900);
   padding:0 12px;
+}
+.iu-tel-acq-office-search{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 210px;
+  gap:8px;
+}
+.iu-tel-acq-office-results{
+  display:grid;
+  gap:7px;
+  margin-top:2px;
+}
+.iu-tel-acq-office-results>span{
+  color:var(--iu-slate-500);
+  font-size:12px;
+}
+.iu-tel-acq-office-results button{
+  min-height:48px;
+  border:1px solid var(--iu-border);
+  border-radius:12px;
+  background:#fff;
+  text-align:left;
+  display:grid;
+  gap:3px;
+  padding:9px 12px;
+  color:var(--iu-slate-700);
+}
+.iu-tel-acq-office-results button:hover,
+.iu-tel-acq-office-results button.is-selected{
+  border-color:var(--iu-blue-500);
+  box-shadow:0 0 0 3px rgba(37,99,235,.12);
+}
+.iu-tel-acq-office-results strong{
+  color:var(--iu-slate-950);
+}
+.iu-tel-acq-office-results small{
+  color:var(--iu-slate-500);
+  font-weight:700;
 }
 .iu-tel-acq-form__wide{
   grid-column:span 3;
@@ -631,6 +772,41 @@
   gap:9px;
   color:var(--iu-slate-800);
   font-weight:850;
+}
+.iu-tel-acq-mapping-mode{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:12px;
+  margin-bottom:14px;
+}
+.iu-tel-acq-mapping-mode label{
+  min-height:104px;
+  border:1px solid var(--iu-border);
+  border-radius:15px;
+  background:#fff;
+  padding:14px;
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr);
+  align-content:start;
+  gap:6px 10px;
+  cursor:pointer;
+}
+.iu-tel-acq-mapping-mode label.is-selected{
+  border-color:var(--iu-blue-500);
+  box-shadow:0 0 0 3px rgba(37,99,235,.12);
+}
+.iu-tel-acq-mapping-mode input{
+  grid-row:span 2;
+  margin-top:3px;
+}
+.iu-tel-acq-mapping-mode strong{
+  color:var(--iu-slate-950);
+}
+.iu-tel-acq-mapping-mode span{
+  color:var(--iu-slate-600);
+  font-size:12px;
+  font-weight:650;
+  line-height:1.45;
 }
 .iu-tel-acq-note{
   margin:12px 0;
@@ -820,6 +996,7 @@
   .iu-tel-surface-grid aside{grid-template-columns:repeat(2,minmax(0,1fr))}
   .iu-tel-tribunali-side{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:auto}
   .iu-tel-tribunali-workspace .iu-tel-office-list{max-height:520px}
+  .iu-tel-acquisition__steps{grid-template-columns:repeat(4,minmax(0,1fr))}
 }
 @media(max-width:860px){
   .iu-tel-surface-hero{
@@ -838,9 +1015,11 @@
   .iu-tel-acquisition__grid,
   .iu-tel-acq-status,
   .iu-tel-acq-form,
+  .iu-tel-acq-office-search,
   .iu-tel-acq-preview,
   .iu-tel-acq-analysis,
   .iu-tel-acq-switches,
+  .iu-tel-acq-mapping-mode,
   .iu-tel-surface-grid aside,
   .iu-tel-tribunali-side,
   .iu-tel-surface-bottom,

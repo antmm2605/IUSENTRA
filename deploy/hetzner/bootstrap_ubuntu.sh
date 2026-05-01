@@ -18,7 +18,9 @@ apt-get install -y --no-install-recommends \
   opensc \
   pcscd \
   rsync \
-  ufw
+  unzip \
+  ufw \
+  zstd
 
 install -m 0755 -d /etc/apt/keyrings
 if [ ! -f /etc/apt/keyrings/docker.gpg ]; then

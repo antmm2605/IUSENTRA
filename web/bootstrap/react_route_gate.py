@@ -7,7 +7,7 @@ GET HTML di aree migrate, evitando API, download e allegati.
 
 from __future__ import annotations
 
-from flask import Flask, g, request
+from flask import Flask, g, has_request_context, request
 
 from web.blueprints.react_shell import render_react_shell_response
 
@@ -71,6 +71,7 @@ _REACT_PREFIXES = (
 
 _REACT_EXACT = {
     "/admin/database",
+    "/admin/osservabilita",
     "/admin/osservabilita",
     "/amministrazione",
     "/audit",
@@ -160,6 +161,54 @@ _EXCLUDED_SEGMENTS = {
     "visualizza",
 }
 
+_LEGACY_OPERATIONAL_PREFIXES = (
+    "/admin/database",
+    "/admin/osservabilita",
+    "/amministrazione",
+    "/applicazioni",
+    "/audit",
+    "/backup",
+    "/checklist",
+    "/compensi-forensi",
+    "/database",
+    "/deposito/checklist",
+    "/fatturazione",
+    "/giurisprudenza",
+    "/guida/firma-digitale",
+    "/impostazioni",
+    "/impostazioni-studio",
+    "/incassi-pagamenti",
+    "/legal-intelligence",
+    "/notifiche",
+    "/notifiche-whatsapp",
+    "/pat",
+    "/pdp",
+    "/polisweb",
+    "/portali",
+    "/preventivi",
+    "/privacy/registro",
+    "/profili",
+    "/redazione-atti",
+    "/registro-attivita",
+    "/registro-gdpr",
+    "/ricerca-legale",
+    "/servizi-telematici",
+    "/sigit",
+    "/sigp",
+    "/sigp-sync",
+    "/sincronizzazione-calendari",
+    "/sito-studio",
+    "/statistiche",
+    "/strumenti-legali",
+    "/strumenti-operativi",
+    "/studio",
+    "/tariffario",
+    "/telematico",
+    "/template-atti",
+    "/tribunali",
+    "/utenti",
+)
+
 
 def _legacy_requested() -> bool:
     return (request.args.get("_legacy") or "").strip().lower() in {"1", "true", "si", "yes", "on"}
@@ -177,9 +226,33 @@ def _normalise_path(path: str) -> str:
 
 def _excluded(path: str) -> bool:
     lower = path.lower()
+    if any(lower == prefix or lower.startswith(f"{prefix}/") for prefix in _LEGACY_OPERATIONAL_PREFIXES):
+        return True
+    # I preventivi hanno un wizard completo con tassonomia, sottobranche,
+    # fonti, calcolo D.M. 55 e generazione tramite POST auditati. La shell
+    # React riassuntiva non puo' sostituirlo finche' non replica l'intero
+    # flusso operativo end-to-end.
+    if lower == "/preventivi" or lower.startswith("/preventivi/"):
+        return True
+    # Il tariffario/compensi forensi contiene il motore di calcolo completo:
+    # non deve essere mascherato da una card React non equivalente.
+    if lower in {"/tariffario", "/compensi-forensi"}:
+        return True
+    if lower == "/impostazioni" and has_request_context():
+        tab = (request.args.get("tab") or "").strip().lower()
+        # Il tab Firma Digitale contiene ancora controlli browser-locali
+        # completi (download Local Signer e verifica 127.0.0.1) non replicati
+        # integralmente nella shell React: non va servito in React finche' il
+        # flusso non e' realmente completo end-to-end.
+        if tab in {"firma", "firma-digitale"}:
+            return True
     # I wizard deposito interni al fascicolo restano sui template operativi
     # finche' il relativo flusso React non copre l'intera procedura.
-    if lower.startswith("/fascicoli/") and "/wizard/" in lower:
+    if lower.startswith("/fascicoli/") and (
+        "/wizard/" in lower
+        or "/deposito/" in lower
+        or "/penale/pdp" in lower
+    ):
         return True
     if any(lower == prefix or lower.startswith(prefix) for prefix in _EXCLUDED_PREFIXES):
         return True

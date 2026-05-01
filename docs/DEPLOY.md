@@ -94,7 +94,7 @@ Quando il fix tocca deploy, storage, AI locale, Local Signer bridge, SMTP o port
 
 ## Produzione Hetzner
 
-Il profilo server dedicato vive in [deploy/hetzner](../deploy/hetzner/README.md) e copre il nodo CPX42 Ubuntu `116.203.45.57`.
+Il profilo server dedicato vive in [deploy/hetzner](../deploy/hetzner/README.md) e la guida operativa completa e' in [DEPLOY_HETZNER_CPX42.md](DEPLOY_HETZNER_CPX42.md). Copre il nodo CPX42 Ubuntu `116.203.45.57`.
 
 Componenti:
 

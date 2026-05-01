@@ -14,7 +14,6 @@ from flask import (Blueprint, abort, flash, g, redirect,
                    render_template, request, send_file, url_for, current_app)
 
 from web.helpers import get_clienti, get_fascicoli, get_fatturazione as _shared_get_fatturazione, get_preventivi as _shared_get_preventivi
-from web.blueprints.react_shell import render_react_shell_response
 from pct.economico_context import (
     carica_log_calcolo,
     dump_log_calcolo,
@@ -43,10 +42,6 @@ def _richiedi_login(f):
             return redirect(url_for("login"))
         return f(*args, **kwargs)
     return wrapper
-
-
-def _richiede_vista_classica() -> bool:
-    return request.args.get("_legacy") == "1"
 
 
 def _float_prefill(value, default=0.0):
@@ -125,8 +120,6 @@ def _prefill_base():
 @fatturazione.route("/", methods=["GET"])
 @_richiedi_login
 def lista():
-    if not _richiede_vista_classica():
-        return render_react_shell_response("fatturazione")
     gf = _get_gf()
     gf.aggiorna_scadute()
 
@@ -177,9 +170,6 @@ def lista():
 @fatturazione.route("/nuova/<id_cliente>", methods=["GET", "POST"])
 @_richiedi_login
 def nuova(id_cliente: str = ""):
-    if request.method == "GET" and not _richiede_vista_classica():
-        return render_react_shell_response("fatturazione/nuova")
-
     gc = get_clienti()
     gf_parc = _get_gf()
     gp_prev = _get_gp()

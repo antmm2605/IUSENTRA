@@ -10,8 +10,6 @@ from datetime import date, datetime
 
 from flask import Flask, Response, abort, flash, g, redirect, render_template, request, send_file, url_for
 
-from web.blueprints.react_shell import render_react_shell_response
-
 
 def register_privacy_routes(
     app: Flask,
@@ -24,16 +22,11 @@ def register_privacy_routes(
 ) -> None:
     """Register privacy register, GDPR export, and audit export routes."""
 
-    def _richiede_vista_classica() -> bool:
-        return request.args.get("_legacy") == "1"
-
     @app.route("/privacy/registro")
     def registro_trattamenti():
         utente = g.utente_corrente
         if not utente or not utente.ha_permesso("utenti.leggi"):
             abort(403)
-        if not _richiede_vista_classica():
-            return render_react_shell_response("registro-gdpr")
         return render_template("privacy/registro.html", trattamenti=get_trattamenti().tutti())
 
     @app.route("/privacy/registro/nuovo", methods=["GET", "POST"])
@@ -41,8 +34,6 @@ def register_privacy_routes(
         utente = g.utente_corrente
         if not utente or not utente.ha_permesso("utenti.leggi"):
             abort(403)
-        if request.method == "GET" and not _richiede_vista_classica():
-            return render_react_shell_response("privacy/registro/nuovo")
 
         if request.method == "POST":
             form = request.form

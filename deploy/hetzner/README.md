@@ -2,6 +2,8 @@
 
 Questa cartella contiene il profilo di produzione per spostare IUSENTRA su un server Hetzner Ubuntu, mantenendo Railway come sorgente dati solo durante la migrazione.
 
+Guida di release collegata: `docs/DEPLOY_HETZNER_CPX42.md`.
+
 Target validato per il server indicato:
 
 - server: `ubuntu-16gb-nbg1-1`
@@ -35,7 +37,7 @@ Oppure copiare lo script e lanciarlo localmente:
 bash deploy/hetzner/bootstrap_ubuntu.sh
 ```
 
-Lo script installa Docker, Compose plugin, Git, UFW, OpenSC/pcscd e apre solo SSH, 80 e 443.
+Lo script installa Docker, Compose plugin, Git, UFW, OpenSC/pcscd, `zstd`, `unzip` e apre solo SSH, 80 e 443.
 
 ## Ambiente
 
@@ -46,13 +48,15 @@ cp /opt/iusentra/repo/deploy/hetzner/env.hetzner.example /opt/iusentra/.env.hetz
 nano /opt/iusentra/.env.hetzner
 ```
 
-Valori obbligatori:
+Valori obbligatori per il deploy:
 
 - `IUSENTRA_DOMAIN`
 - `ACME_EMAIL`
 - `PCT_SECRET_KEY`
+- `SECRET_KEY`
+- `FERNET_PRIMARY_KEY`
+- `AUDIT_HMAC_KEY`
 - `PCT_DOC_KEY` se i documenti cifrati sono attivi
-- `FERNET_PRIMARY_KEY` e `AUDIT_HMAC_KEY` per hardening produzione
 
 Generazione chiavi:
 
@@ -118,7 +122,7 @@ Cron consigliato:
 15 2 * * * /opt/iusentra/repo/deploy/hetzner/backup.sh >/var/log/iusentra-backup.log 2>&1
 ```
 
-Il backup produce archivio e checksum in `/opt/iusentra/backups`.
+Il backup produce archivio e checksum in `/opt/iusentra/backups` e verifica subito il checksum generato. Il restore verifica il file `.sha256` quando presente prima di estrarre in `/opt/iusentra/data`.
 
 ## Note operative
 

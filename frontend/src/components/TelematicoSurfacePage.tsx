@@ -79,6 +79,8 @@ type JsonRecord = Record<string, unknown>
 
 type AcquisitionQuery = {
   ufficio: string
+  ufficioCodice: string
+  ufficioNome: string
   numero: string
   anno: string
   assistito: string
@@ -127,6 +129,16 @@ type AcquisitionMapping = {
   procedimento: string
   materia: string
   grado: string
+}
+
+type BrowserLocalSignerStatus = {
+  checked: boolean
+  checking: boolean
+  ok: boolean
+  outdated: boolean
+  version: string
+  tokenLabel: string
+  message: string
 }
 
 function surfaceFromCurrentPath(): TelematicoSurfaceId {
@@ -606,6 +618,32 @@ function portalLabel(portal: string): string {
   return labels[portal] || 'Portale'
 }
 
+function compareVersions(left: string, right: string): number {
+  const leftParts = left.split('.').map((part) => Number.parseInt(part, 10) || 0)
+  const rightParts = right.split('.').map((part) => Number.parseInt(part, 10) || 0)
+  const max = Math.max(leftParts.length, rightParts.length)
+  for (let index = 0; index < max; index += 1) {
+    const diff = (leftParts[index] || 0) - (rightParts[index] || 0)
+    if (diff !== 0) return diff
+  }
+  return 0
+}
+
+function localSignerInstallHref(data: TelematicoSurfaceData): string {
+  const platform = navigator.platform.toLowerCase()
+  if (platform.includes('mac')) return data.localSigner.macosUrl
+  if (platform.includes('linux')) return data.localSigner.linuxUrl
+  return data.localSigner.windowsUrl
+}
+
+function requestLocalSignerStart() {
+  const iframe = document.createElement('iframe')
+  iframe.hidden = true
+  iframe.src = 'hacs-local-signer://restart'
+  document.body.appendChild(iframe)
+  window.setTimeout(() => iframe.remove(), 3000)
+}
+
 function officialPortalHref(portal: string): string {
   const urls: Record<string, string> = {
     pst: 'https://pst.giustizia.it/PST/it/services.page',
@@ -744,12 +782,14 @@ function AcquisitionWizard({
 }) {
   const portal = portalFromSurface(surfaceId, data)
   const visible = isAcquisitionPath(portal)
-  const [step, setStep] = useState(1)
+  const [step, setStep] = useState(2)
   const [busy, setBusy] = useState('')
   const [message, setMessage] = useState('')
   const [status, setStatus] = useState<JsonRecord>({})
   const [query, setQuery] = useState<AcquisitionQuery>({
     ufficio: '',
+    ufficioCodice: '',
+    ufficioNome: '',
     numero: '',
     anno: String(new Date().getFullYear()),
     assistito: '',
@@ -777,6 +817,16 @@ function AcquisitionWizard({
     materia: '',
     grado: '',
   })
+  const [officeTypeFilter, setOfficeTypeFilter] = useState('tutti')
+  const [localSigner, setLocalSigner] = useState<BrowserLocalSignerStatus>({
+    checked: false,
+    checking: false,
+    ok: false,
+    outdated: false,
+    version: '',
+    tokenLabel: '',
+    message: 'Controllo Local Signer non ancora eseguito su questo PC.',
+  })
 
   useEffect(() => {
     if (!visible || !portal) return
@@ -792,15 +842,105 @@ function AcquisitionWizard({
     return () => { active = false }
   }, [portal, visible])
 
-  if (!visible || !portal) return null
+  const checkLocalSigner = async (tryStart = false) => {
+    if (tryStart) requestLocalSignerStart()
+    setLocalSigner((current) => ({
+      ...current,
+      checked: true,
+      checking: true,
+      message: tryStart ? 'Avvio Local Signer e verifico il servizio locale...' : 'Verifica Local Signer in corso...',
+    }))
+    const controller = new AbortController()
+    const timer = window.setTimeout(() => controller.abort(), 3500)
+    try {
+      const response = await fetch(`${data.localSigner.browserUrl}/ping?light=1`, {
+        method: 'GET',
+        cache: 'no-store',
+        signal: controller.signal,
+      })
+      const payload = asRecord(await response.json().catch(() => ({})))
+      const version = asText(payload.versione || payload.version || payload.local_signer_version)
+      const tokenList = asList(payload.token || payload.tokens)
+      const firstToken = asRecord(tokenList[0])
+      const tokenLabel = asText(firstToken.label || firstToken.manufacturer || firstToken.subject)
+      const outdated = Boolean(data.localSigner.latestVersion && version && compareVersions(version, data.localSigner.latestVersion) < 0)
+      setLocalSigner({
+        checked: true,
+        checking: false,
+        ok: response.ok && Boolean(payload.ok !== false) && !outdated,
+        outdated,
+        version,
+        tokenLabel,
+        message: outdated
+          ? `Local Signer da aggiornare: rilevata versione ${version || 'non indicata'}, richiesta ${data.localSigner.latestVersion}.`
+          : response.ok && payload.ok !== false
+            ? 'Local Signer rilevato su questo PC. La ricerca puo usare il canale locale autorizzato.'
+            : asText(payload.messaggio || payload.error, 'Local Signer raggiunto ma non pronto.'),
+      })
+    } catch {
+      setLocalSigner({
+        checked: true,
+        checking: false,
+        ok: false,
+        outdated: false,
+        version: '',
+        tokenLabel: '',
+        message: 'Local Signer non rilevato su questo PC. Avvialo o installa il pacchetto aggiornato, poi ripeti la verifica.',
+      })
+    } finally {
+      window.clearTimeout(timer)
+    }
+  }
 
   const updateQuery = (key: keyof AcquisitionQuery, value: string) => setQuery((current) => ({ ...current, [key]: value }))
   const updateOption = (key: keyof AcquisitionOptions, value: boolean) => setOptions((current) => ({ ...current, [key]: value }))
   const updateMapping = (key: keyof AcquisitionMapping, value: string) => setMapping((current) => ({ ...current, [key]: value }))
+  const requiresBrowserLocalSigner = ['pst', 'pdp', 'pat', 'ptt'].includes(portal)
+
+  const officeTypes = useMemo(() => ['tutti', ...Array.from(new Set(data.offices.map((office) => office.tipo).filter(Boolean))).sort()], [data.offices])
+  const officeMatches = useMemo(() => {
+    const needle = normaliseSearch(query.ufficio)
+    if (needle.length < 2) return []
+    return data.offices.filter((office) => {
+      if (officeTypeFilter !== 'tutti' && office.tipo !== officeTypeFilter) return false
+      const haystack = normaliseSearch([
+        office.nome,
+        office.descrizione,
+        office.codice,
+        office.codiceMinistero,
+        office.distretto,
+        office.comune,
+        office.provincia,
+        office.regione,
+        office.servizioPst,
+        ...office.servizi,
+      ].filter(Boolean).join(' '))
+      return haystack.includes(needle)
+    }).slice(0, 10)
+  }, [data.offices, officeTypeFilter, query.ufficio])
+
+  const selectOffice = (office: OfficeRow) => {
+    setQuery((current) => ({
+      ...current,
+      ufficio: office.nome,
+      ufficioCodice: office.codiceMinistero || office.codice,
+      ufficioNome: office.nome,
+    }))
+  }
+
+  const resolvedOfficeCode = () => {
+    if (query.ufficioCodice) return query.ufficioCodice
+    const typed = normaliseSearch(query.ufficio)
+    const exact = data.offices.find((office) => {
+      const code = office.codiceMinistero || office.codice
+      return normaliseSearch(office.nome) === typed || normaliseSearch(code) === typed
+    })
+    return exact?.codiceMinistero || exact?.codice || query.ufficio
+  }
 
   const searchPayload = () => ({
-    ufficio_codice: query.ufficio,
-    ufficio: query.ufficio,
+    ufficio_codice: resolvedOfficeCode(),
+    ufficio: query.ufficioNome || query.ufficio,
     numero: query.numero,
     anno: query.anno,
     assistito: query.assistito,
@@ -813,6 +953,12 @@ function AcquisitionWizard({
   })
 
   const runSearch = async () => {
+    if (requiresBrowserLocalSigner && !localSigner.ok) {
+      setStep(1)
+      setMessage('Local Signer non pronto sul PC: avvialo o aggiornalo, poi premi di nuovo Cerca fascicolo.')
+      await checkLocalSigner(false)
+      return
+    }
     setBusy('search')
     setMessage('')
     setImportResult({})
@@ -842,7 +988,7 @@ function AcquisitionWizard({
       if (payload.ok === false) throw new Error(asText(payload.errore, 'Anteprima non completata.'))
       setPreview(asRecord(payload.preview))
       setStep(3)
-      setMessage('Anteprima caricata: verifica dati, parti, eventi e documenti prima della mappatura.')
+      setMessage('Anteprima caricata: verifica dati, parti, eventi e documenti.')
     } catch (error: unknown) {
       setMessage(asText(error instanceof Error ? error.message : error, 'Anteprima non disponibile.'))
     } finally {
@@ -852,7 +998,7 @@ function AcquisitionWizard({
 
   const runAnalysis = async () => {
     if (!selection || !Object.keys(preview).length) {
-      setMessage('Carica prima l’anteprima del fascicolo.')
+      setMessage("Carica prima l'anteprima del fascicolo.")
       return
     }
     setBusy('analysis')
@@ -865,8 +1011,8 @@ function AcquisitionWizard({
       })
       if (payload.ok === false) throw new Error(asText(payload.errore, 'Analisi non completata.'))
       setAnalysis(asRecord(payload.analysis))
-      setStep(4)
-      setMessage('Analisi completata: controlla blocchi, warning e corrispondenze prima dell’importazione.')
+      setStep(6)
+      setMessage("Analisi completata: controlla blocchi, avvisi e corrispondenze prima dell'importazione.")
     } catch (error: unknown) {
       setMessage(asText(error instanceof Error ? error.message : error, 'Analisi non disponibile.'))
     } finally {
@@ -880,7 +1026,7 @@ function AcquisitionWizard({
     try {
       const collected = await collectAcquisitionFiles(event.currentTarget.files, options.scarica_originale_portale)
       setFiles(collected)
-      setMessage(collected.length ? `${collected.length} file pronti per l’importazione manuale.` : 'Nessun file selezionato.')
+      setMessage(collected.length ? `${collected.length} file pronti per l'importazione manuale.` : 'Nessun file selezionato.')
     } catch (error: unknown) {
       setFiles([])
       setMessage(asText(error instanceof Error ? error.message : error, 'File non leggibile.'))
@@ -915,7 +1061,7 @@ function AcquisitionWizard({
           })
       if (payload.ok === false) throw new Error(asText(payload.errore, 'Importazione non completata.'))
       setImportResult(payload)
-      setStep(5)
+      setStep(7)
       setMessage('Importazione completata o presa in carico dal backend operativo.')
     } catch (error: unknown) {
       setMessage(asText(error instanceof Error ? error.message : error, 'Importazione non disponibile.'))
@@ -924,32 +1070,52 @@ function AcquisitionWizard({
     }
   }
 
+  if (!visible || !portal) return null
+
   const identity = previewIdentity(preview)
   const blockers = issueRows(analysis, 'blockers')
   const warnings = issueRows(analysis, 'warnings')
   const oks = issueRows(analysis, 'ok')
   const summary = importSummary(importResult)
   const official = officialPortalHref(portal)
+  const steps = [
+    { id: 1, label: 'Accesso', help: 'Sorgente e connessione' },
+    { id: 2, label: 'Ricerca', help: 'Trova il fascicolo' },
+    { id: 3, label: 'Anteprima', help: 'Verifica dati trovati' },
+    { id: 4, label: 'Selezione', help: 'Scegli cosa importare' },
+    { id: 5, label: 'Mappatura', help: 'Collega al gestionale' },
+    { id: 6, label: 'Verifica', help: 'Conflitti e semafori' },
+    { id: 7, label: 'Importa', help: 'Acquisizione finale' },
+  ]
+  const currentStep = steps.find((item) => item.id === step) || steps[1]
 
   return (
     <section className="iu-tel-acquisition" id="wizard-acquisizione">
       <header className="iu-tel-acquisition__head">
         <div>
-          <span><Download size={16}/> Acquisizione guidata</span>
-          <h2>Importa fascicolo da {portalLabel(portal)}</h2>
-          <p>Ricerca, anteprima, analisi conflitti e import usano gli endpoint reali del gestionale. Le credenziali del portale restano sul canale ufficiale o sul Local Signer.</p>
+          <span><Download size={16}/> {portalLabel(portal)} · Acquisizione guidata</span>
+          <h2>Importa pratica da {portalLabel(portal)}</h2>
+          <p>Ricerca, verifica e acquisizione guidata del fascicolo telematico. Credenziali, token e sessione restano sul portale ufficiale o sul Local Signer del PC.</p>
         </div>
         <aside>
-          <strong>Step {step}/5</strong>
-          <span>{busy ? 'Operazione in corso...' : 'Pronto'}</span>
+          <strong>Step {step}/7</strong>
+          <span>{busy ? 'Operazione in corso...' : currentStep.help}</span>
           {official ? <a href={official} target="_blank" rel="noreferrer"><ExternalLink size={14}/> Portale ufficiale</a> : null}
         </aside>
       </header>
 
       <div className="iu-tel-acquisition__steps" aria-label="Passaggi acquisizione">
-        {['Accesso', 'Ricerca', 'Anteprima', 'Verifica', 'Import'].map((label, index) => (
-          <button type="button" className={step === index + 1 ? 'is-active' : step > index + 1 ? 'is-done' : ''} onClick={() => setStep(index + 1)} key={label}>
-            <span>{index + 1}</span>{label}
+        {steps.map((item) => (
+          <button
+            type="button"
+            className={step === item.id ? 'is-active' : step > item.id ? 'is-done' : ''}
+            onClick={() => setStep(item.id)}
+            key={item.id}
+            aria-current={step === item.id ? 'step' : undefined}
+          >
+            <span>{item.id}</span>
+            <strong>{item.label}</strong>
+            <small>{item.help}</small>
           </button>
         ))}
       </div>
@@ -958,122 +1124,225 @@ function AcquisitionWizard({
 
       <div className="iu-tel-acquisition__grid">
         <div className="iu-tel-acquisition__main">
-          <Panel title="1. Accesso e canale" subtitle="Stato tecnico del canale autorizzato" icon={<MonitorCheck size={17}/>}>
-            <div className="iu-tel-acq-status">
-              <span><strong>Canale</strong>{portalLabel(portal)}</span>
-              <span><strong>Stato</strong>{asText(status.status_text || status.label || status.mode, 'Da verificare')}</span>
-              <span><strong>Local Signer</strong>{status.pkcs11_mode || status.browser_channel_required ? 'Canale locale richiesto' : 'Non richiesto dal payload'}</span>
-              <button type="button" onClick={() => portalJson(portal, 'status').then((payload) => setStatus(asRecord(payload.status)))}>Aggiorna stato</button>
-            </div>
-          </Panel>
-
-          <Panel title="2. Ricerca fascicolo" subtitle="Filtri operativi del portale" icon={<Search size={17}/>}>
-            <div className="iu-tel-acq-form">
-              <label><span>Ufficio giudiziario</span><input value={query.ufficio} onChange={(event) => updateQuery('ufficio', event.currentTarget.value)} placeholder="Tribunale, ufficio o codice"/></label>
-              <label><span>Numero</span><input value={query.numero} onChange={(event) => updateQuery('numero', event.currentTarget.value)} placeholder="Es. 466"/></label>
-              <label><span>Anno</span><input value={query.anno} onChange={(event) => updateQuery('anno', event.currentTarget.value)} inputMode="numeric"/></label>
-              <label><span>Parte assistita</span><input value={query.assistito} onChange={(event) => updateQuery('assistito', event.currentTarget.value)} placeholder="Cliente, imputato, ricorrente..."/></label>
-              <label><span>Controparte</span><input value={query.controparte} onChange={(event) => updateQuery('controparte', event.currentTarget.value)} placeholder="Controparte, resistente, parte offesa..."/></label>
-              <label><span>CF / P.IVA</span><input value={query.cf} onChange={(event) => updateQuery('cf', event.currentTarget.value)} placeholder="Codice fiscale o partita IVA"/></label>
-              <label className="iu-tel-acq-form__wide"><span>Oggetto / materia</span><input value={query.oggetto} onChange={(event) => updateQuery('oggetto', event.currentTarget.value)} placeholder="Oggetto, materia, reato, rito..."/></label>
-            </div>
-            <div className="iu-tel-acq-actions">
-              <button type="button" disabled={busy === 'search'} onClick={runSearch}><Search size={15}/> Cerca fascicolo</button>
-              <button type="button" disabled={!selection || busy === 'preview'} onClick={runPreview}><FileText size={15}/> Carica anteprima</button>
-            </div>
-            <div className="iu-tel-acq-results">
-              {results.map((result) => (
-                <button type="button" className={selection?.id === result.id ? 'is-selected' : ''} onClick={() => setSelection(result)} key={result.id}>
-                  <strong>{result.title}</strong>
-                  <span>{result.subtitle}</span>
-                  <em>{result.badge} {result.meta ? `- ${result.meta}` : ''}</em>
+          {step === 1 ? (
+            <Panel title="Step 1 - Accesso" subtitle="Stato tecnico del canale autorizzato" icon={<MonitorCheck size={17}/>}>
+              <div className="iu-tel-acq-status">
+                <span><strong>Canale</strong>{portalLabel(portal)}</span>
+                <span><strong>Stato</strong>{asText(status.status_text || status.label || status.mode, 'Da verificare')}</span>
+                <span><strong>Local Signer</strong>{localSigner.ok ? 'Rilevato sul PC' : localSigner.outdated ? 'Da aggiornare' : 'Da verificare dal browser'}</span>
+                <button type="button" disabled={localSigner.checking} onClick={() => checkLocalSigner(false)}>
+                  <RefreshCw size={15}/> {localSigner.checking ? 'Verifica...' : 'Verifica Local Signer'}
                 </button>
+              </div>
+              <div className={`iu-tel-local-signer-card ${localSigner.ok ? 'is-ok' : localSigner.outdated ? 'is-warning' : 'is-missing'}`}>
+                <ShieldCheck size={18}/>
+                <div>
+                  <strong>{localSigner.ok ? 'Local Signer pronto' : localSigner.outdated ? 'Aggiornamento richiesto' : 'Controllo locale richiesto'}</strong>
+                  <span>{localSigner.message}</span>
+                  <small>
+                    Endpoint browser: {data.localSigner.browserUrl}
+                    {data.localSigner.latestVersion ? ` - ultima versione ${data.localSigner.latestVersion}` : ''}
+                    {localSigner.version ? ` - rilevata ${localSigner.version}` : ''}
+                    {localSigner.tokenLabel ? ` - token ${localSigner.tokenLabel}` : ''}
+                  </small>
+                </div>
+              </div>
+              <div className="iu-tel-acq-actions">
+                <button type="button" onClick={() => checkLocalSigner(true)}><RefreshCw size={15}/> Avvia e verifica</button>
+                <a href={localSignerInstallHref(data)}><Download size={15}/> Installa o aggiorna</a>
+                <button type="button" disabled={!localSigner.ok} onClick={() => setStep(2)}><ArrowRight size={15}/> Vai alla ricerca</button>
+              </div>
+            </Panel>
+          ) : null}
+
+          {step === 2 ? (
+            <Panel title="Step 2 - Ricerca fascicolo" subtitle="Cerca l'ufficio mentre scrivi e usa i filtri del portale" icon={<Search size={17}/>}>
+              {requiresBrowserLocalSigner && !localSigner.ok ? (
+                <div className="iu-tel-local-signer-inline">
+                  <ShieldCheck size={16}/>
+                  <span>Local Signer non pronto sul PC. Avvialo o aggiornalo, poi ripeti la ricerca.</span>
+                  <button type="button" disabled={localSigner.checking} onClick={() => checkLocalSigner(true)}>
+                    {localSigner.checking ? 'Verifica...' : 'Avvia e verifica'}
+                  </button>
+                </div>
+              ) : null}
+              <div className="iu-tel-acq-form">
+                <label className="iu-tel-acq-form__wide">
+                  <span>Ufficio giudiziario</span>
+                  <div className="iu-tel-acq-office-search">
+                    <input
+                      value={query.ufficio}
+                      onChange={(event) => {
+                        const nextOffice = event.currentTarget.value
+                        setQuery((current) => ({
+                          ...current,
+                          ufficio: nextOffice,
+                          ufficioCodice: '',
+                          ufficioNome: '',
+                        }))
+                      }}
+                      placeholder="Cerca mentre scrivi: es. Tribunale di Vibo Valentia"
+                      autoComplete="off"
+                    />
+                    <select value={officeTypeFilter} onChange={(event) => setOfficeTypeFilter(event.currentTarget.value)} aria-label="Filtra tipo ufficio">
+                      {officeTypes.map((type) => <option key={type} value={type}>{type === 'tutti' ? 'Tutti gli uffici' : type}</option>)}
+                    </select>
+                  </div>
+                  <div className="iu-tel-acq-office-results" aria-live="polite">
+                    {query.ufficio.trim().length < 2 ? (
+                      <span>Scrivi almeno 2 caratteri per cercare nel catalogo uffici importato.</span>
+                    ) : officeMatches.length ? (
+                      officeMatches.map((office) => (
+                        <button type="button" key={office.id} onClick={() => selectOffice(office)} className={(query.ufficioCodice && query.ufficioCodice === (office.codiceMinistero || office.codice)) ? 'is-selected' : ''}>
+                          <strong>{office.nome}</strong>
+                          <small>{[office.tipo, office.distretto, office.comune || office.provincia, office.codiceMinistero || office.codice, office.servizioPst].filter(Boolean).join(' - ')}</small>
+                        </button>
+                      ))
+                    ) : (
+                      <span>Nessun ufficio trovato nel catalogo importato. Prova con comune, distretto, codice o tipo ufficio.</span>
+                    )}
+                  </div>
+                </label>
+                <label><span>Numero</span><input value={query.numero} onChange={(event) => updateQuery('numero', event.currentTarget.value)} placeholder="Es. 466"/></label>
+                <label><span>Anno</span><input value={query.anno} onChange={(event) => updateQuery('anno', event.currentTarget.value)} inputMode="numeric"/></label>
+                <label><span>Parte assistita</span><input value={query.assistito} onChange={(event) => updateQuery('assistito', event.currentTarget.value)} placeholder="Cliente, imputato, ricorrente..."/></label>
+                <label><span>Controparte</span><input value={query.controparte} onChange={(event) => updateQuery('controparte', event.currentTarget.value)} placeholder="Controparte, resistente, parte offesa..."/></label>
+                <label><span>CF / P.IVA</span><input value={query.cf} onChange={(event) => updateQuery('cf', event.currentTarget.value)} placeholder="Codice fiscale o partita IVA"/></label>
+                <label className="iu-tel-acq-form__wide"><span>Oggetto / materia</span><input value={query.oggetto} onChange={(event) => updateQuery('oggetto', event.currentTarget.value)} placeholder="Oggetto, materia, reato, rito..."/></label>
+              </div>
+              <div className="iu-tel-acq-actions">
+                <button type="button" disabled={busy === 'search' || (requiresBrowserLocalSigner && !localSigner.ok)} onClick={runSearch}><Search size={15}/> Cerca fascicolo</button>
+                <button type="button" disabled={!selection || busy === 'preview'} onClick={runPreview}><FileText size={15}/> Carica anteprima</button>
+              </div>
+              <div className="iu-tel-acq-results">
+                {results.map((result) => (
+                  <button type="button" className={selection?.id === result.id ? 'is-selected' : ''} onClick={() => setSelection(result)} key={result.id}>
+                    <strong>{result.title}</strong>
+                    <span>{result.subtitle}</span>
+                    <em>{result.badge} {result.meta ? `- ${result.meta}` : ''}</em>
+                  </button>
+                ))}
+              </div>
+            </Panel>
+          ) : null}
+
+          {step === 3 ? (
+            <Panel title="Step 3 - Anteprima" subtitle="Verifica i dati trovati prima della selezione" icon={<FileCheck2 size={17}/>}>
+              {Object.keys(preview).length ? (
+                <div className="iu-tel-acq-preview">
+                  <article><span>Procedimento</span><strong>{asText(identity.numero_rg || identity.rg || identity.numero || selection?.title, 'n.d.')}</strong><small>{asText(identity.ufficio || identity.tribunale || identity.court, 'Ufficio non indicato')}</small></article>
+                  <article><span>Parti</span><strong>{previewCount(preview, 'parti')}</strong><small>Parti/anagrafiche rilevate</small></article>
+                  <article><span>Documenti</span><strong>{previewCount(preview, 'documenti') + previewCount(preview, 'depositi')}</strong><small>Documenti o buste disponibili</small></article>
+                  <article><span>Eventi</span><strong>{previewCount(preview, 'eventi')}</strong><small>Cronologia importabile</small></article>
+                </div>
+              ) : <p className="iu-empty">Carica l'anteprima dopo aver selezionato il fascicolo.</p>}
+              <div className="iu-tel-acq-actions">
+                <button type="button" disabled={!Object.keys(preview).length} onClick={() => setStep(4)}><ArrowRight size={15}/> Scegli cosa importare</button>
+              </div>
+            </Panel>
+          ) : null}
+
+          {step === 4 ? (
+            <Panel title="Step 4 - Selezione" subtitle="Scegli documenti, eventi, parti e file autorizzati" icon={<ClipboardCheck size={17}/>}>
+              <div className="iu-tel-acq-switches">
+                <label><input type="checkbox" checked={options.importa_documenti} onChange={(event) => updateOption('importa_documenti', event.currentTarget.checked)}/> Importa documenti</label>
+                <label><input type="checkbox" checked={options.importa_eventi} onChange={(event) => updateOption('importa_eventi', event.currentTarget.checked)}/> Importa eventi</label>
+                <label><input type="checkbox" checked={options.importa_parti} onChange={(event) => updateOption('importa_parti', event.currentTarget.checked)}/> Importa parti</label>
+                <label><input type="checkbox" checked={options.scarica_originale_portale} onChange={(event) => updateOption('scarica_originale_portale', event.currentTarget.checked)}/> Originale portale</label>
+                <label><input type="checkbox" checked={options.mantieni_albero_originale} onChange={(event) => updateOption('mantieni_albero_originale', event.currentTarget.checked)}/> Mantieni albero tecnico</label>
+              </div>
+              {portal === 'pst' ? <p className="iu-tel-acq-note">Default PST: copia di consultazione con annotazioni ministeriali. L'originale si usa solo se selezionato espressamente.</p> : null}
+              <label className="iu-tel-acq-file">
+                <span>File, ZIP o payload JSON autorizzato</span>
+                <input type="file" multiple accept=".zip,.pdf,.p7m,.eml,.msg,.xml,.json,.html,.htm,.txt" onChange={onFiles}/>
+              </label>
+              <div className="iu-tel-acq-results iu-tel-acq-results--compact">
+                {files.map((file) => <span key={`${file.nome}-${file.contenuto_b64.length}`}>{file.nome}{file.payload_json ? ' - payload JSON' : ''}</span>)}
+              </div>
+              <div className="iu-tel-acq-actions">
+                <button type="button" onClick={() => setStep(5)}><ArrowRight size={15}/> Vai alla mappatura</button>
+              </div>
+            </Panel>
+          ) : null}
+
+          {step === 5 ? (
+            <Panel title="Step 5 - Mappatura nel gestionale" subtitle="Decidi se creare, collegare o aggiornare una pratica esistente" icon={<FolderOpen size={17}/>}>
+              <div className="iu-tel-acq-mapping-mode">
+                {[
+                  ['create_new', 'Crea nuova pratica', 'Precompila area, procedimento, RG e parti dal portale.'],
+                  ['attach_existing', 'Collega a pratica esistente', "Mantieni il fascicolo locale come primario e collega l'origine telematica."],
+                  ['update_existing', 'Aggiorna pratica esistente', 'Aggiorna dati, eventi e sincronizzazione sul fascicolo locale.'],
+                ].map(([value, label, help]) => (
+                  <label key={value} className={mapping.mode === value ? 'is-selected' : ''}>
+                    <input type="radio" checked={mapping.mode === value} onChange={() => updateMapping('mode', value)} />
+                    <strong>{label}</strong>
+                    <span>{help}</span>
+                  </label>
+                ))}
+              </div>
+              <div className="iu-tel-acq-form iu-tel-acq-form--mapping">
+                <label><span>Fascicolo locale target</span><select value={mapping.target_fascicolo_id} onChange={(event) => updateMapping('target_fascicolo_id', event.currentTarget.value)}>
+                  <option value="">Seleziona se necessario</option>
+                  {data.recentCases.map((item) => <option value={item.id} key={item.id}>{item.title}</option>)}
+                </select></label>
+                <label><span>Procedimento</span><input value={mapping.procedimento} onChange={(event) => updateMapping('procedimento', event.currentTarget.value)}/></label>
+                <label><span>Materia</span><input value={mapping.materia} onChange={(event) => updateMapping('materia', event.currentTarget.value)}/></label>
+                <label><span>Grado</span><input value={mapping.grado} onChange={(event) => updateMapping('grado', event.currentTarget.value)}/></label>
+              </div>
+              <div className="iu-tel-acq-actions">
+                <button type="button" disabled={busy === 'analysis'} onClick={runAnalysis}><ShieldCheck size={15}/> Analizza conflitti</button>
+              </div>
+            </Panel>
+          ) : null}
+
+          {step === 6 ? (
+            <Panel title="Step 6 - Verifica" subtitle="Blocchi, avvisi e semafori prima dell'import" icon={<ShieldCheck size={17}/>}>
+              {Object.keys(analysis).length ? (
+                <div className="iu-tel-acq-analysis">
+                  <article><span>Punteggio</span><strong>{asText(analysis.score || analysis.punteggio, 'n.d.')}</strong></article>
+                  <article><span>Blocchi</span><strong>{blockers.length}</strong></article>
+                  <article><span>Avvisi</span><strong>{warnings.length}</strong></article>
+                  <article><span>OK</span><strong>{oks.length}</strong></article>
+                </div>
+              ) : <p className="iu-empty">Esegui l'analisi dalla mappatura per vedere conflitti, blocchi e avvisi.</p>}
+              {[...blockers, ...warnings].slice(0, 8).map((issue, index) => (
+                <p className="iu-tel-acq-issue" key={`${asText(issue.code, 'issue')}-${index}`}>
+                  <strong>{asText(issue.code || issue.title || issue.categoria, 'Controllo')}</strong>
+                  <span>{asText(issue.message || issue.human_message || issue.detail || issue.descrizione, 'Verifica richiesta')}</span>
+                </p>
               ))}
-            </div>
-          </Panel>
-
-          <Panel title="3. Anteprima e mappatura" subtitle="Dati che entreranno nel fascicolo interno" icon={<FileCheck2 size={17}/>}>
-            {Object.keys(preview).length ? (
-              <div className="iu-tel-acq-preview">
-                <article><span>Procedimento</span><strong>{asText(identity.numero_rg || identity.rg || identity.numero || selection?.title, 'n.d.')}</strong><small>{asText(identity.ufficio || identity.tribunale || identity.court, 'Ufficio non indicato')}</small></article>
-                <article><span>Parti</span><strong>{previewCount(preview, 'parti')}</strong><small>Parti/anagrafiche rilevate</small></article>
-                <article><span>Documenti</span><strong>{previewCount(preview, 'documenti') + previewCount(preview, 'depositi')}</strong><small>Documenti o buste disponibili</small></article>
-                <article><span>Eventi</span><strong>{previewCount(preview, 'eventi')}</strong><small>Cronologia importabile</small></article>
+              <div className="iu-tel-acq-actions">
+                <button type="button" disabled={!Object.keys(analysis).length || blockers.length > 0} onClick={() => setStep(7)}><ArrowRight size={15}/> Vai all'importazione</button>
+                <button type="button" disabled={busy === 'analysis'} onClick={runAnalysis}><ShieldCheck size={15}/> Rianalizza</button>
               </div>
-            ) : <p className="iu-empty">Carica l’anteprima dopo aver selezionato il fascicolo.</p>}
-            <div className="iu-tel-acq-form iu-tel-acq-form--mapping">
-              <label><span>Modalità</span><select value={mapping.mode} onChange={(event) => updateMapping('mode', event.currentTarget.value)}>
-                <option value="create_new">Crea nuova pratica</option>
-                <option value="attach_existing">Collega a pratica esistente</option>
-                <option value="update_existing">Aggiorna pratica esistente</option>
-              </select></label>
-              <label><span>Fascicolo locale target</span><select value={mapping.target_fascicolo_id} onChange={(event) => updateMapping('target_fascicolo_id', event.currentTarget.value)}>
-                <option value="">Seleziona se necessario</option>
-                {data.recentCases.map((item) => <option value={item.id} key={item.id}>{item.title}</option>)}
-              </select></label>
-              <label><span>Procedimento</span><input value={mapping.procedimento} onChange={(event) => updateMapping('procedimento', event.currentTarget.value)}/></label>
-              <label><span>Materia</span><input value={mapping.materia} onChange={(event) => updateMapping('materia', event.currentTarget.value)}/></label>
-              <label><span>Grado</span><input value={mapping.grado} onChange={(event) => updateMapping('grado', event.currentTarget.value)}/></label>
-            </div>
-            <div className="iu-tel-acq-actions">
-              <button type="button" disabled={busy === 'analysis'} onClick={runAnalysis}><ShieldCheck size={15}/> Analizza conflitti</button>
-            </div>
-          </Panel>
+            </Panel>
+          ) : null}
 
-          <Panel title="4. Controllo e file" subtitle="Opzioni, warning e upload autorizzato" icon={<ClipboardCheck size={17}/>}>
-            <div className="iu-tel-acq-switches">
-              <label><input type="checkbox" checked={options.importa_documenti} onChange={(event) => updateOption('importa_documenti', event.currentTarget.checked)}/> Importa documenti</label>
-              <label><input type="checkbox" checked={options.importa_eventi} onChange={(event) => updateOption('importa_eventi', event.currentTarget.checked)}/> Importa eventi</label>
-              <label><input type="checkbox" checked={options.importa_parti} onChange={(event) => updateOption('importa_parti', event.currentTarget.checked)}/> Importa parti</label>
-              <label><input type="checkbox" checked={options.scarica_originale_portale} onChange={(event) => updateOption('scarica_originale_portale', event.currentTarget.checked)}/> Originale portale</label>
-              <label><input type="checkbox" checked={options.mantieni_albero_originale} onChange={(event) => updateOption('mantieni_albero_originale', event.currentTarget.checked)}/> Mantieni albero tecnico</label>
-            </div>
-            {portal === 'pst' ? <p className="iu-tel-acq-note">Default PST: copia di consultazione con annotazioni ministeriali. L’originale si usa solo se selezionato espressamente.</p> : null}
-            <label className="iu-tel-acq-file">
-              <span>File, ZIP o payload JSON autorizzato</span>
-              <input type="file" multiple accept=".zip,.pdf,.p7m,.eml,.msg,.xml,.json,.html,.htm,.txt" onChange={onFiles}/>
-            </label>
-            <div className="iu-tel-acq-results iu-tel-acq-results--compact">
-              {files.map((file) => <span key={`${file.nome}-${file.contenuto_b64.length}`}>{file.nome}{file.payload_json ? ' - payload JSON' : ''}</span>)}
-            </div>
-            {Object.keys(analysis).length ? (
-              <div className="iu-tel-acq-analysis">
-                <article><span>Punteggio</span><strong>{asText(analysis.score || analysis.punteggio, 'n.d.')}</strong></article>
-                <article><span>Blocchi</span><strong>{blockers.length}</strong></article>
-                <article><span>Avvisi</span><strong>{warnings.length}</strong></article>
-                <article><span>OK</span><strong>{oks.length}</strong></article>
+          {step === 7 ? (
+            <Panel title="Step 7 - Importazione finale" subtitle="Scrittura nel gestionale tramite backend" icon={<UploadCloud size={17}/>}>
+              <p className="iu-tel-acq-note">L'importazione non scarica dati dai portali in modo nascosto: usa payload autorizzati, file selezionati dall'utente o canale Local Signer quando disponibile.</p>
+              <div className="iu-tel-acq-actions">
+                <button type="button" disabled={busy === 'import'} onClick={runImport}><UploadCloud size={15}/> Importa nel gestionale</button>
               </div>
-            ) : null}
-            {[...blockers, ...warnings].slice(0, 8).map((issue, index) => (
-              <p className="iu-tel-acq-issue" key={`${asText(issue.code, 'issue')}-${index}`}>
-                <strong>{asText(issue.code || issue.title || issue.categoria, 'Controllo')}</strong>
-                <span>{asText(issue.message || issue.human_message || issue.detail || issue.descrizione, 'Verifica richiesta')}</span>
-              </p>
-            ))}
-          </Panel>
-
-          <Panel title="5. Importazione finale" subtitle="Scrittura nel gestionale tramite backend" icon={<UploadCloud size={17}/>}>
-            <p className="iu-tel-acq-note">L’importazione non scarica dati dai portali in modo nascosto: usa payload autorizzati, file selezionati dall’utente o canale Local Signer quando disponibile.</p>
-            <div className="iu-tel-acq-actions">
-              <button type="button" disabled={busy === 'import'} onClick={runImport}><UploadCloud size={15}/> Importa nel gestionale</button>
-            </div>
-            {Object.keys(importResult).length ? (
-              <div className="iu-tel-acq-import-result">
-                <strong>Import completato</strong>
-                <span>{asText(summary.numero_pratica || summary.fascicolo_id || summary.id_fascicolo || summary.message, 'Risultato registrato dal backend.')}</span>
-                {asText(summary.fascicolo_url || summary.redirect_url || summary.url) ? <a href={asText(summary.fascicolo_url || summary.redirect_url || summary.url)}>Apri fascicolo importato</a> : null}
-              </div>
-            ) : null}
-          </Panel>
+              {Object.keys(importResult).length ? (
+                <div className="iu-tel-acq-import-result">
+                  <strong>Import completato</strong>
+                  <span>{asText(summary.numero_pratica || summary.fascicolo_id || summary.id_fascicolo || summary.message, 'Risultato registrato dal backend.')}</span>
+                  {asText(summary.fascicolo_url || summary.redirect_url || summary.url) ? <a href={asText(summary.fascicolo_url || summary.redirect_url || summary.url)}>Apri fascicolo importato</a> : null}
+                </div>
+              ) : null}
+            </Panel>
+          ) : null}
         </div>
 
         <aside className="iu-tel-acquisition__side">
-          <Panel title="Riepilogo" icon={<BadgeCheck size={17}/>} count={selection ? '1' : '0'}>
+          <Panel title="Riepilogo sempre visibile" icon={<BadgeCheck size={17}/>} count={selection ? '1' : '0'}>
             <div className="iu-tel-acq-summary">
               <span><strong>Portale</strong>{portalLabel(portal)}</span>
+              <span><strong>Ufficio</strong>{query.ufficioNome || query.ufficio || 'Non indicato'}</span>
               <span><strong>Selezione</strong>{selection?.title || 'Nessun fascicolo selezionato'}</span>
               <span><strong>File manuali</strong>{files.length}</span>
-              <span><strong>Mapping</strong>{mapping.mode.replace('_', ' ')}</span>
+              <span><strong>Mappatura</strong>{mapping.mode.replace('_', ' ')}</span>
               <span><strong>Documenti</strong>{previewCount(preview, 'documenti') + previewCount(preview, 'depositi')}</span>
               <span><strong>Eventi</strong>{previewCount(preview, 'eventi')}</span>
             </div>
@@ -1145,6 +1414,7 @@ export function TelematicoSurfacePage() {
   const title = data.surface.title || surfaceFallbacks[surfaceId].title
   const tone = data.surface.tone || 'primary'
   const generatedAt = formatGeneratedAt(data.generatedAt)
+  const acquisitionVisible = isAcquisitionPath(portalFromSurface(surfaceId, data))
   const selectedCard = data.operationCards.find((card) => card.id === activeOperation?.cardId) || data.operationCards[0]
   const selectedAction = selectedCard?.actions.find((action) => action.id === activeOperation?.actionId) || selectedCard?.actions[0]
 
@@ -1219,19 +1489,21 @@ export function TelematicoSurfacePage() {
         <Stat label="Avvisi" value={data.summary.warnings} tone={data.summary.warnings ? 'warning' : 'neutral'} icon={<FileCheck2 size={19}/>}/>
       </section>
 
-      <section id="acquisizione-portale" className="iu-tel-op-grid iu-tel-anchor-target">
-        {data.operationCards.map((card) => (
-          <OperationCard
-            card={card}
-            selected={selectedCard?.id === card.id}
-            onPost={postAction}
-            onNavigate={navigateAction}
-            key={card.id}
-          />
-        ))}
-      </section>
+      {!acquisitionVisible ? (
+        <section id="acquisizione-portale" className="iu-tel-op-grid iu-tel-anchor-target">
+          {data.operationCards.map((card) => (
+            <OperationCard
+              card={card}
+              selected={selectedCard?.id === card.id}
+              onPost={postAction}
+              onNavigate={navigateAction}
+              key={card.id}
+            />
+          ))}
+        </section>
+      ) : null}
 
-      {selectedCard && selectedAction ? (
+      {!acquisitionVisible && selectedCard && selectedAction ? (
         <ActiveOperationPanel
           surfaceId={data.surface.id}
           title={title}

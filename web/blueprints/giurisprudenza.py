@@ -12,7 +12,6 @@ from pct.giurisprudenza import (
     USI_NEL_SOFTWARE,
 )
 from web.helpers import get_giurisprudenza
-from web.blueprints.react_shell import render_react_shell_response
 from web.services.giurisprudenza_sync_runtime import (
     resolve_giurisprudenza_db_path,
     start_giurisprudenza_sync_job,
@@ -70,10 +69,6 @@ def _source_handoff(source_id: str) -> tuple[str, str]:
     return url_for(endpoint[0]), endpoint[1]
 
 
-def _richiede_vista_classica() -> bool:
-    return request.args.get("_legacy") == "1"
-
-
 def _decorate_sources(rows):
     out = []
     for row in rows:
@@ -121,8 +116,6 @@ def _form_context(record: dict):
 @giurisprudenza.route("/", methods=["GET"])
 @_richiedi_login
 def index():
-    if not _richiede_vista_classica():
-        return render_react_shell_response("giurisprudenza")
     gestore = get_giurisprudenza()
     fonti = _decorate_sources(gestore.catalogo_fonti())
     filters = {
@@ -158,9 +151,6 @@ def index():
 @giurisprudenza.route("/nuova", methods=["GET", "POST"])
 @_richiedi_login
 def nuova():
-    if request.method == "GET" and not _richiede_vista_classica():
-        return render_react_shell_response("giurisprudenza/nuova")
-
     gestore = get_giurisprudenza()
     if request.method == "POST":
         try:

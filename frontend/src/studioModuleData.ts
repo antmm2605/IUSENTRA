@@ -64,13 +64,13 @@ export const studioModules: StudioModuleConfig[] = [
       { label: 'Controlli', value: 'Attivi', note: 'audit e permessi collegati alle funzioni sensibili', tone: 'warning' },
     ],
     cards: [
-      { title: 'Dati studio', body: 'Anagrafica, titolare, recapiti, albo, coordinate e dati usati in atti, parcelle e depositi.', href: '/impostazioni-studio#dati-studio', action: 'Apri dati studio', icon: 'building', tone: 'primary', meta: 'Impostazioni' },
-      { title: 'Comunicazioni', body: 'Configura PEC, posta ordinaria, SMTP e canali WhatsApp senza perdere il presidio locale.', href: '/impostazioni-studio#pec-e-smtp', action: 'Apri canali', icon: 'mail', tone: 'success', meta: 'PEC / SMTP' },
+      { title: 'Dati studio', body: 'Anagrafica, titolare, recapiti, albo, coordinate e dati usati in atti, parcelle e depositi.', href: '/impostazioni#dati-studio', action: 'Apri dati studio', icon: 'building', tone: 'primary', meta: 'Impostazioni' },
+      { title: 'Comunicazioni', body: 'Configura PEC, posta ordinaria, SMTP e canali WhatsApp senza perdere il presidio locale.', href: '/impostazioni?tab=pec', action: 'Apri canali', icon: 'mail', tone: 'success', meta: 'PEC / SMTP' },
       { title: 'Sito Studio', body: 'Gestisci contenuti, richieste contatto, prenotazioni e anteprima pubblica dello studio.', href: '/sito-studio', action: 'Apri sito', icon: 'earth', tone: 'purple', meta: 'Presenza digitale' },
       { title: 'Backup e continuità', body: 'Verifica copie, integrità, ripristino tecnico e politica di conservazione dei dati.', href: '/backup', action: 'Apri backup', icon: 'backup', tone: 'warning', meta: 'Operativo' },
     ],
     workflow: ['Completa dati studio', 'Verifica canali PEC e SMTP', 'Aggiorna sito pubblico', 'Controlla backup e audit'],
-    links: [...commonStudioLinks, { label: 'Impostazioni Studio', href: '/impostazioni-studio' }, { label: 'Registro GDPR', href: '/registro-gdpr' }],
+    links: [...commonStudioLinks, { label: 'Impostazioni Studio', href: '/impostazioni' }, { label: 'Registro GDPR', href: '/privacy/registro' }],
   },
   {
     id: 'fatturazione',
@@ -88,7 +88,7 @@ export const studioModules: StudioModuleConfig[] = [
     cards: [
       { title: 'Elenco parcelle', body: 'Apri archivio completo, filtra per anno, stato, cliente o testo e genera PDF/XML.', href: '/fatturazione/', action: 'Apri archivio', icon: 'file', tone: 'primary', meta: 'Archivio operativo' },
       { title: 'Nuova parcella', body: 'Crea una parcella da cliente, fascicolo o preventivo con voci e calcoli fiscali.', href: '/fatturazione/nuova', action: 'Crea parcella', icon: 'plus', tone: 'success', meta: 'Nuovo documento' },
-      { title: 'Incassi e pagamenti', body: 'Gestisci provider, link di pagamento e stato operativo dei canali di incasso.', href: '/incassi-pagamenti', action: 'Apri pagamenti', icon: 'card', tone: 'orange', meta: 'Provider' },
+      { title: 'Incassi e pagamenti', body: 'Gestisci provider, link di pagamento e stato operativo dei canali di incasso.', href: '/impostazioni/pagamenti', action: 'Apri pagamenti', icon: 'card', tone: 'orange', meta: 'Provider' },
       { title: 'Esporta contabilita', body: 'Scarica dati contabili e prepara controlli di studio su fatturato e incassato.', href: '/export/fatturazione.csv', action: 'Esporta CSV', icon: 'download', tone: 'neutral', meta: 'CSV' },
     ],
     workflow: ['Crea o importa parcella', 'Verifica voci e imposte', 'Invia PDF o XML', 'Collega incasso e solleciti'],
@@ -176,10 +176,10 @@ export const studioModules: StudioModuleConfig[] = [
       { title: 'Acquisizione PST', body: 'Apri il wizard guidato del flusso PolisWeb / PST e verifica tutti i passaggi di import.', href: '/portali/pst/acquisizione', action: 'Apri acquisizione', icon: 'upload', tone: 'primary', meta: 'Wizard operativo' },
       { title: 'Checklist import PST', body: 'Controlla prerequisiti, mapping fascicolo e documenti prima dell importazione.', href: '/portali/pst/acquisizione#checklist-operativa', action: 'Verifica flusso', icon: 'briefcase', tone: 'success', meta: 'Presidio' },
       { title: 'Fascicoli', body: 'Controlla o crea la pratica locale prima di collegare documenti e buste.', href: '/fascicoli', action: 'Apri fascicoli', icon: 'folder', tone: 'warning', meta: 'Mapping' },
-      { title: 'Centro telematico', body: 'Rientra nel quadro generale di PST, PDP, PAT e PTT.', href: '/app-v2/telematico', action: 'Apri centro', icon: 'send', tone: 'purple', meta: 'Portali' },
+      { title: 'Centro telematico', body: 'Rientra nel quadro generale di PST, PDP, PAT e PTT.', href: '/telematico', action: 'Apri centro', icon: 'send', tone: 'purple', meta: 'Portali' },
     ],
     workflow: ['Verifica accesso locale', 'Seleziona fascicolo PST', 'Riconcilia documenti', 'Importa e controlla audit'],
-    links: [{ label: 'Panoramica PST', href: '/app-v2/polisweb' }, { label: 'Centro telematico', href: '/app-v2/telematico' }, { label: 'Acquisizione guidata', href: '/portali/pst/acquisizione' }],
+    links: [{ label: 'Panoramica PST', href: '/polisWeb' }, { label: 'Centro telematico', href: '/telematico' }, { label: 'Acquisizione guidata', href: '/portali/pst/acquisizione' }],
   },
   {
     id: 'statistiche',
@@ -306,7 +306,7 @@ export const studioModules: StudioModuleConfig[] = [
       { title: 'Registro attività', body: 'Controlla aperture, modifiche e condivisioni sensibili.', href: '/audit', action: 'Apri audit', icon: 'clipboard', tone: 'warning', meta: 'Audit' },
     ],
     workflow: ['Scegli cliente', 'Assegna collaboratore e ruolo', 'Imposta scadenza', 'Verifica audit e privacy'],
-    links: [{ label: 'Clienti', href: '/clienti' }, { label: 'Registro GDPR', href: '/registro-gdpr' }, { label: 'Registro attività', href: '/registro-attivita' }],
+    links: [{ label: 'Clienti', href: '/clienti' }, { label: 'Registro GDPR', href: '/privacy/registro' }, { label: 'Registro attività', href: '/audit' }],
   },
   {
     id: 'strumenti-operativi',
@@ -366,11 +366,11 @@ export const studioModules: StudioModuleConfig[] = [
     ],
     cards: [
       { title: 'Centro notifiche', body: 'Apri invio messaggi e promemoria collegati a clienti e scadenze.', href: '/notifiche/', action: 'Apri notifiche', icon: 'message', tone: 'success', meta: 'Invio' },
-      { title: 'Configura WhatsApp', body: 'Gestisci credenziali e numeri provider nelle impostazioni studio.', href: '/impostazioni-studio#whatsapp', action: 'Apri configurazione', icon: 'settings', tone: 'primary', meta: 'Provider' },
+      { title: 'Configura WhatsApp', body: 'Gestisci credenziali e numeri provider nelle impostazioni studio.', href: '/impostazioni#whatsapp', action: 'Apri configurazione', icon: 'settings', tone: 'primary', meta: 'Provider' },
       { title: 'Messaggi clienti', body: 'Controlla conversazioni e crea messaggi collegati al cliente.', href: '/messaggi', action: 'Apri messaggi', icon: 'mail', tone: 'purple', meta: 'Inbox' },
     ],
     workflow: ['Verifica configurazione', 'Scegli destinatario', 'Prepara testo', 'Invia e archivia esito'],
-    links: [{ label: 'Messaggi', href: '/messaggi' }, { label: 'Agenda', href: '/agenda' }, { label: 'Impostazioni', href: '/impostazioni-studio' }],
+    links: [{ label: 'Messaggi', href: '/messaggi' }, { label: 'Agenda', href: '/agenda' }, { label: 'Impostazioni', href: '/impostazioni' }],
   },
   {
     id: 'incassi-pagamenti',
@@ -408,11 +408,11 @@ export const studioModules: StudioModuleConfig[] = [
     ],
     cards: [
       { title: 'Archivio backup', body: 'Apri lista backup, stato, dimensione, verifica e download.', href: '/backup', action: 'Apri archivio', icon: 'backup', tone: 'primary', meta: 'Storage' },
-      { title: 'Scheduler backup', body: 'Configura orario backup e promemoria automatici dello studio.', href: '/impostazioni-studio#scheduler', action: 'Apri scheduler', icon: 'clock', tone: 'success', meta: 'Automazione' },
+      { title: 'Scheduler backup', body: 'Configura orario backup e promemoria automatici dello studio.', href: '/impostazioni#scheduler', action: 'Apri scheduler', icon: 'clock', tone: 'success', meta: 'Automazione' },
       { title: 'Database', body: 'Verifica storage, SQLite/PostgreSQL e snapshot tecnici.', href: '/admin/database', action: 'Apri database', icon: 'database', tone: 'purple', meta: 'Tecnico' },
     ],
     workflow: ['Verifica ultimo backup', 'Controlla integrità', 'Scarica se necessario', 'Documenta ripristino tecnico'],
-    links: [{ label: 'Database', href: '/admin/database' }, { label: 'Registro Attività', href: '/registro-attivita' }],
+    links: [{ label: 'Database', href: '/admin/database' }, { label: 'Registro Attività', href: '/audit' }],
   },
   {
     id: 'impostazioni-studio',
@@ -428,15 +428,15 @@ export const studioModules: StudioModuleConfig[] = [
       { label: 'Sicurezza', value: 'No cloud', note: 'password e token governati dalle policy esistenti', tone: 'warning' },
     ],
     cards: [
-      { title: 'Dati studio', body: 'Apri dati anagrafici, fiscali e recapiti usati nei documenti.', href: '/impostazioni-studio#dati-studio', action: 'Apri studio', icon: 'building', tone: 'primary', meta: 'Anagrafica' },
-      { title: 'PEC e SMTP', body: 'Verifica PEC, Local Signer e invio messaggi senza salvare password nel server.', href: '/impostazioni-studio#pec-e-smtp', action: 'Apri PEC', icon: 'mail', tone: 'success', meta: 'Posta' },
-      { title: 'Firma digitale', body: 'Controlla backend firma e canale Local Signer per token USB.', href: '/impostazioni-studio#firma-digitale', action: 'Apri firma', icon: 'shield', tone: 'warning', meta: 'PKCS#11' },
-      { title: 'AI locale', body: 'Configura runtime AI locale e reindicizzazione documenti.', href: '/impostazioni-studio#ai-locale', action: 'Apri AI', icon: 'spark', tone: 'purple', meta: 'Lex' },
-      { title: 'WhatsApp', body: 'Presidia provider, numeri e promemoria cliente collegati alle comunicazioni.', href: '/impostazioni-studio#whatsapp', action: 'Apri WhatsApp', icon: 'message', tone: 'success', meta: 'Canale' },
-      { title: 'Scheduler', body: 'Controlla automazioni, backup, sync e job pianificati dello studio.', href: '/impostazioni-studio#scheduler', action: 'Apri scheduler', icon: 'clock', tone: 'neutral', meta: 'Automazioni' },
+      { title: 'Dati studio', body: 'Apri dati anagrafici, fiscali e recapiti usati nei documenti.', href: '/impostazioni#dati-studio', action: 'Apri studio', icon: 'building', tone: 'primary', meta: 'Anagrafica' },
+      { title: 'PEC e SMTP', body: 'Verifica PEC, Local Signer e invio messaggi senza salvare password nel server.', href: '/impostazioni?tab=pec', action: 'Apri PEC', icon: 'mail', tone: 'success', meta: 'Posta' },
+      { title: 'Firma digitale', body: 'Controlla backend firma e canale Local Signer per token USB.', href: '/impostazioni?tab=firma', action: 'Apri firma', icon: 'shield', tone: 'warning', meta: 'PKCS#11' },
+      { title: 'AI locale', body: 'Configura runtime AI locale e reindicizzazione documenti.', href: '/impostazioni?tab=ai', action: 'Apri AI', icon: 'spark', tone: 'purple', meta: 'Lex' },
+      { title: 'WhatsApp', body: 'Presidia provider, numeri e promemoria cliente collegati alle comunicazioni.', href: '/impostazioni#whatsapp', action: 'Apri WhatsApp', icon: 'message', tone: 'success', meta: 'Canale' },
+      { title: 'Scheduler', body: 'Controlla automazioni, backup, sync e job pianificati dello studio.', href: '/impostazioni#scheduler', action: 'Apri scheduler', icon: 'clock', tone: 'neutral', meta: 'Automazioni' },
     ],
     workflow: ['Apri tab corretta', 'Verifica canale locale', 'Salva configurazione', 'Esegui test operativo'],
-    links: [{ label: 'Sincronizzazione Calendari', href: '/sincronizzazione-calendari' }, { label: 'Backup', href: '/backup' }],
+    links: [{ label: 'Sincronizzazione Calendari', href: '/impostazioni/calendario' }, { label: 'Backup', href: '/backup' }],
   },
   {
     id: 'sincronizzazione-calendari',
@@ -475,11 +475,11 @@ export const studioModules: StudioModuleConfig[] = [
     cards: [
       { title: 'Utenti', body: 'Gestisci operatori, ruoli, stato account e accessi.', href: '/utenti', action: 'Apri utenti', icon: 'users', tone: 'primary', meta: 'RBAC' },
       { title: 'Profili e permessi', body: 'Controlla matrice ruoli e override individuali.', href: '/profili', action: 'Apri permessi', icon: 'shield', tone: 'success', meta: 'Policy' },
-      { title: 'Registro attività', body: 'Consulta audit log e osservabilità operativa.', href: '/registro-attivita', action: 'Apri registro', icon: 'clipboard', tone: 'warning', meta: 'Audit' },
+      { title: 'Registro attività', body: 'Consulta audit log e osservabilità operativa.', href: '/audit', action: 'Apri registro', icon: 'clipboard', tone: 'warning', meta: 'Audit' },
       { title: 'Database e GDPR', body: 'Verifica storage e registro trattamenti.', href: '/admin/database', action: 'Apri database', icon: 'database', tone: 'purple', meta: 'Governance' },
     ],
     workflow: ['Controlla utenti', 'Verifica permessi', 'Leggi audit', 'Aggiorna compliance'],
-    links: [{ label: 'Database', href: '/admin/database' }, { label: 'Registro GDPR', href: '/registro-gdpr' }],
+    links: [{ label: 'Database', href: '/admin/database' }, { label: 'Registro GDPR', href: '/privacy/registro' }],
   },
   {
     id: 'utenti',
@@ -500,7 +500,7 @@ export const studioModules: StudioModuleConfig[] = [
       { title: 'Profili e permessi', body: 'Verifica matrice ruoli e policy operative.', href: '/profili', action: 'Apri profili', icon: 'shield', tone: 'warning', meta: 'RBAC' },
     ],
     workflow: ['Crea utente', 'Assegna ruolo', 'Verifica permessi', 'Controlla audit accessi'],
-    links: [{ label: 'Amministrazione', href: '/amministrazione' }, { label: 'Registro Attività', href: '/registro-attivita' }],
+    links: [{ label: 'Amministrazione', href: '/utenti' }, { label: 'Registro Attività', href: '/audit' }],
   },
   {
     id: 'profili',
@@ -518,10 +518,10 @@ export const studioModules: StudioModuleConfig[] = [
     cards: [
       { title: 'Matrice ruoli', body: 'Apri tabella profili e permessi per ruolo.', href: '/profili', action: 'Apri matrice', icon: 'table', tone: 'primary', meta: 'RBAC' },
       { title: 'Utenti', body: 'Seleziona utente e gestisci override autorizzativi.', href: '/utenti', action: 'Apri utenti', icon: 'users', tone: 'success', meta: 'Operatori' },
-      { title: 'Audit permessi', body: 'Controlla cambi ruoli e modifiche autorizzative.', href: '/registro-attivita', action: 'Apri audit', icon: 'clipboard', tone: 'warning', meta: 'Traccia' },
+      { title: 'Audit permessi', body: 'Controlla cambi ruoli e modifiche autorizzative.', href: '/audit', action: 'Apri audit', icon: 'clipboard', tone: 'warning', meta: 'Traccia' },
     ],
     workflow: ['Leggi matrice', 'Verifica ruolo utente', 'Applica override motivato', 'Controlla audit'],
-    links: [{ label: 'Utenti', href: '/utenti' }, { label: 'Amministrazione', href: '/amministrazione' }],
+    links: [{ label: 'Utenti', href: '/utenti' }, { label: 'Amministrazione', href: '/utenti' }],
   },
   {
     id: 'registro-attivita',
@@ -560,10 +560,10 @@ export const studioModules: StudioModuleConfig[] = [
     cards: [
       { title: 'Stato database', body: 'Apri verifica storage, statistiche e snapshot SQLite.', href: '/admin/database', action: 'Apri stato', icon: 'database', tone: 'primary', meta: 'Storage' },
       { title: 'Backup', body: 'Controlla copie prima di ogni migrazione o ripristino.', href: '/backup', action: 'Apri backup', icon: 'backup', tone: 'warning', meta: 'Protezione' },
-      { title: 'Registro attività', body: 'Verifica audit delle operazioni tecniche.', href: '/registro-attivita', action: 'Apri registro', icon: 'clipboard', tone: 'purple', meta: 'Audit' },
+      { title: 'Registro attività', body: 'Verifica audit delle operazioni tecniche.', href: '/audit', action: 'Apri registro', icon: 'clipboard', tone: 'purple', meta: 'Audit' },
     ],
     workflow: ['Verifica stato', 'Crea backup', 'Esegui migrazione se richiesta', 'Controlla audit e salute'],
-    links: [{ label: 'Backup', href: '/backup' }, { label: 'Amministrazione', href: '/amministrazione' }],
+    links: [{ label: 'Backup', href: '/backup' }, { label: 'Amministrazione', href: '/utenti' }],
   },
   {
     id: 'gdpr',
@@ -584,7 +584,7 @@ export const studioModules: StudioModuleConfig[] = [
       { title: 'Audit privacy', body: 'Esporta e verifica attività collegate a dati personali.', href: '/audit/esporta.csv', action: 'Esporta audit', icon: 'download', tone: 'warning', meta: 'CSV' },
     ],
     workflow: ['Censisci trattamento', 'Verifica base giuridica', 'Collega misure', 'Mantieni prova audit'],
-    links: [{ label: 'Clienti', href: '/clienti' }, { label: 'Registro Attività', href: '/registro-attivita' }],
+    links: [{ label: 'Clienti', href: '/clienti' }, { label: 'Registro Attività', href: '/audit' }],
   },
 ]
 

@@ -17,7 +17,6 @@ from web.helpers import (
     get_normative_tables,
     get_scadenziario,
 )
-from web.blueprints.react_shell import render_react_shell_response
 
 legal_intelligence = Blueprint("legal_intelligence", __name__, url_prefix="/legal-intelligence")
 
@@ -65,10 +64,6 @@ def _daily_engine() -> LegalIntelligenceDailyEngine:
     return LegalIntelligenceDailyEngine(_daily_db_path())
 
 
-def _richiede_vista_classica() -> bool:
-    return request.args.get("_legacy") == "1"
-
-
 def _daily_snapshot() -> dict:
     try:
         return _daily_engine().dashboard_snapshot()
@@ -80,8 +75,6 @@ def _daily_snapshot() -> dict:
 @legal_intelligence.route("/", methods=["GET"])
 @_richiedi_login
 def index():
-    if not _richiede_vista_classica():
-        return render_react_shell_response("ricerca-legale")
     return render_template(
         "legal_intelligence/index.html",
         snapshot=_snapshot(),
@@ -94,9 +87,6 @@ def index():
 @legal_intelligence.route("/news", methods=["GET"])
 @_richiedi_login
 def news():
-    if not _richiede_vista_classica():
-        return render_react_shell_response("legal-intelligence/news")
-
     pipeline = get_legal_update_pipeline()
     return render_template(
         "legal_intelligence/news.html",
@@ -131,9 +121,6 @@ def dettaglio_news(slug: str):
 @legal_intelligence.route("/mediazione", methods=["GET"])
 @_richiedi_login
 def registro_mediazione():
-    if not _richiede_vista_classica():
-        return render_react_shell_response("legal-intelligence/mediazione")
-
     return render_template(
         "legal_intelligence/mediazione.html",
         snapshot=_snapshot(),

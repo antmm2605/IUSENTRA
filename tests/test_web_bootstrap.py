@@ -383,6 +383,9 @@ def test_pwa_routes_and_error_handlers_restano_registrati(tmp_path: Path):
 
     assert service_worker.status_code == 200
     assert "javascript" in service_worker.content_type
+    service_worker_js = service_worker.get_data(as_text=True)
+    assert "IUSENTRA_SW_RESET" in service_worker_js
+    assert "self.registration.unregister()" in service_worker_js
     assert offline.status_code == 200
     assert missing.status_code == 404
 
@@ -408,13 +411,15 @@ def test_impostazioni_pec_espone_controllo_local_signer_e_password_salvata(tmp_p
     html = response.get_data(as_text=True)
     legacy_html = legacy.get_data(as_text=True)
     assert response.status_code == 200
-    assert "IUSENTRA - React Shell" in html
+    assert "IUSENTRA - React Shell" not in html
+    assert 'data-nav-surface="react-aligned-legacy"' in html
     assert 'id="iusentra-local-signer-monitor"' in html
     assert 'data-local-signer-url="http://127.0.0.1:27272"' in html
     assert 'data-latest-version="' in html
     assert "/static/js/local-signer-monitor.js?v=" in html
     assert legacy.status_code == 200
     assert "IUSENTRA - React Shell" not in legacy_html
+    assert 'data-nav-surface="react-aligned-legacy"' in legacy_html
     assert 'id="pec-local-signer-meta"' in legacy_html
     assert 'data-has-saved-password="1"' in legacy_html
     assert "Testa SMTP" in legacy_html

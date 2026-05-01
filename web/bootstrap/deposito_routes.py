@@ -9,7 +9,6 @@ from typing import Any
 
 from flask import Flask, flash, g, jsonify, redirect, render_template, request, send_file, url_for
 
-from web.blueprints.react_shell import render_react_shell_response
 from web.bootstrap.deposito_receipt_routes import register_deposito_receipt_routes
 from web.services.local_pec_runtime import (
     deposito_pec_subject,
@@ -81,15 +80,11 @@ def register_deposito_routes(
     @app.route("/deposito/checklist")
     def deposito_checklist():
         """Checklist operativa per il deposito telematico."""
-        if (request.args.get("_legacy") or "").strip().lower() not in {"1", "true", "si", "yes", "on"}:
-            return render_react_shell_response("deposito/checklist")
         return render_template("deposito_checklist.html")
 
     @app.route("/guida/firma-digitale")
     def guida_firma_digitale():
         """Guida interattiva per la firma digitale."""
-        if (request.args.get("_legacy") or "").strip().lower() not in {"1", "true", "si", "yes", "on"}:
-            return render_react_shell_response("guida/firma-digitale")
         return render_template("guida_firma_digitale.html")
 
     @app.route("/fascicoli/<id_fasc>/depositi/aggiungi", methods=["POST"])

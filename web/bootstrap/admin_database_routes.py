@@ -8,8 +8,6 @@ from datetime import date
 
 from flask import Flask, flash, g, jsonify, redirect, render_template, request, send_file, url_for
 
-from web.blueprints.react_shell import render_react_shell_response
-
 
 def register_admin_database_routes(
     app: Flask,
@@ -21,9 +19,6 @@ def register_admin_database_routes(
 ) -> None:
     """Register admin database inspection, optimization, export, and migration routes."""
 
-    def _richiede_vista_classica() -> bool:
-        return request.args.get("_legacy") == "1"
-
     @app.route("/admin/database")
     def admin_database():
         """Dashboard gestione database solo amministratori."""
@@ -31,8 +26,6 @@ def register_admin_database_routes(
         if not utente or not utente.ha_permesso("utenti.leggi"):
             flash("Accesso riservato agli amministratori.", "danger")
             return redirect(url_for("dashboard"))
-        if not _richiede_vista_classica():
-            return render_react_shell_response("database")
         database = get_database()
         statistiche = database.statistiche()
         uso = database.analisi_uso()

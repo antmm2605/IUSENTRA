@@ -20,8 +20,12 @@ set +a
 : "${IUSENTRA_DOMAIN:?Impostare IUSENTRA_DOMAIN in $ENV_FILE}"
 : "${ACME_EMAIL:?Impostare ACME_EMAIL in $ENV_FILE}"
 : "${PCT_SECRET_KEY:?Impostare PCT_SECRET_KEY in $ENV_FILE}"
+: "${SECRET_KEY:?Impostare SECRET_KEY in $ENV_FILE}"
+: "${FERNET_PRIMARY_KEY:?Impostare FERNET_PRIMARY_KEY in $ENV_FILE}"
+: "${AUDIT_HMAC_KEY:?Impostare AUDIT_HMAC_KEY in $ENV_FILE}"
 
-mkdir -p "$IUSENTRA_HOME/data" "$IUSENTRA_HOME/backups" "$IUSENTRA_HOME/caddy_data" "$IUSENTRA_HOME/caddy_config"
+mkdir -p "$IUSENTRA_HOME/data" "$IUSENTRA_HOME/backups" "$IUSENTRA_HOME/caddy_data" "$IUSENTRA_HOME/caddy_config" "$IUSENTRA_HOME/import"
+chmod 750 "$IUSENTRA_HOME/data" "$IUSENTRA_HOME/backups" "$IUSENTRA_HOME/import" || true
 
 if [ ! -d "$REPO_DIR/.git" ]; then
   git clone --branch "$BRANCH" "$REPO_URL" "$REPO_DIR"

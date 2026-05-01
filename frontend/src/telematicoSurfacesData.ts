@@ -50,13 +50,17 @@ export type ChecklistGroup = {
 export type OfficeRow = {
   id: string
   codice: string
+  codiceMinistero: string
   nome: string
+  descrizione: string
   tipo: string
   distretto: string
   pec: string
   regione: string
   provincia: string
   comune: string
+  servizioPst: string
+  servizi: string[]
 }
 
 export type TelematicoSurfaceData = {
@@ -103,6 +107,14 @@ export type TelematicoSurfaceData = {
     expired: boolean
     perType: Record<string, number>
   }
+  localSigner: {
+    browserUrl: string
+    latestVersion: string
+    downloadPage: string
+    windowsUrl: string
+    macosUrl: string
+    linuxUrl: string
+  }
 }
 
 const emptyControlTower: TelematicoControlTower = {
@@ -145,6 +157,14 @@ export const emptyTelematicoSurface: TelematicoSurfaceData = {
   lexSuggestions: [],
   offices: [],
   officeSummary: { source: '', updatedAt: '', cachePath: '', expired: false, perType: {} },
+  localSigner: {
+    browserUrl: 'http://127.0.0.1:27272',
+    latestVersion: '',
+    downloadPage: '/impostazioni?tab=firma',
+    windowsUrl: '/polisWeb/local-signer/setup/windows',
+    macosUrl: '/polisWeb/local-signer/setup/macos',
+    linuxUrl: '/polisWeb/local-signer/setup/linux',
+  },
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -241,13 +261,29 @@ function normaliseOffice(value: unknown, index: number): OfficeRow {
   return {
     id: text(item.id, `ufficio-${index}`),
     codice: text(item.codice),
+    codiceMinistero: text(item.codiceMinistero ?? item.codice_ministero),
     nome: text(item.nome, 'Ufficio giudiziario'),
+    descrizione: text(item.descrizione ?? item.descrizioneMinistero ?? item.descrizione_ministero),
     tipo: text(item.tipo, 'ALTRO'),
     distretto: text(item.distretto),
     pec: text(item.pec),
     regione: text(item.regione),
     provincia: text(item.provincia),
     comune: text(item.comune),
+    servizioPst: text(item.servizioPst ?? item.servizio_pst_predefinito),
+    servizi: asList(item.servizi ?? item.serviziMinistero ?? item.servizi_ministero).map((servizio) => text(servizio)).filter(Boolean),
+  }
+}
+
+function normaliseLocalSigner(value: unknown): TelematicoSurfaceData['localSigner'] {
+  const item = isRecord(value) ? value : {}
+  return {
+    browserUrl: text(item.browserUrl ?? item.browser_url, emptyTelematicoSurface.localSigner.browserUrl),
+    latestVersion: text(item.latestVersion ?? item.latest_version ?? item.version),
+    downloadPage: text(item.downloadPage ?? item.download_page, emptyTelematicoSurface.localSigner.downloadPage),
+    windowsUrl: text(item.windowsUrl ?? item.windows_url, emptyTelematicoSurface.localSigner.windowsUrl),
+    macosUrl: text(item.macosUrl ?? item.macos_url, emptyTelematicoSurface.localSigner.macosUrl),
+    linuxUrl: text(item.linuxUrl ?? item.linux_url, emptyTelematicoSurface.localSigner.linuxUrl),
   }
 }
 
@@ -365,6 +401,7 @@ function normaliseSurfacePayload(payload: unknown): TelematicoSurfaceData {
       expired: bool(officeSummary.expired),
       perType: Object.fromEntries(Object.entries(perType).map(([key, value]) => [key, number(value)])),
     },
+    localSigner: normaliseLocalSigner(payload.localSigner),
   }
 }
 

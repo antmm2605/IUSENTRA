@@ -145,7 +145,7 @@ const channelDefaults: Record<TelematicoChannelId, Omit<TelematicoChannel, 'case
     title: 'PTT Tributario',
     description: 'Telecontenzioso, SIGIT, fascicoli tributari e ricevute importate.',
     tone: 'warning',
-    homeHref: '/sigit/ricerca',
+    homeHref: '/app-v2/ptt',
     importHref: '/portali/ptt/acquisizione',
     presideHref: '/telematico?focus=ptt',
   },

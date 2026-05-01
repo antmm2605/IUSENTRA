@@ -2440,11 +2440,17 @@ def build_telematico_runtime(
         # I canali browser/Local Signer sono un percorso operativo previsto,
         # non un guasto runtime: non devono consumare il circuit breaker.
         if portale == "pst" and _portale_local_channel_enabled(portale):
-            raise ValueError("Per PST / PolisWeb la ricerca guidata usa il Local Signer dal browser.")
+            raise ValueError(
+                "Canale PST locale non inizializzato nel browser. "
+                "Verifica che Local Signer sia attivo su questo PC e ripeti la ricerca."
+            )
         if portale == "pdp" and _portale_browser_channel_required(portale):
             raise ValueError(_portale_browser_guided_message(portale))
         if portale == "pdp" and _portale_usa_local_signer(portale):
-            raise ValueError("Per PDP Penale la ricerca guidata usa il Local Signer dal browser.")
+            raise ValueError(
+                "Canale PDP locale non inizializzato nel browser. "
+                "Verifica Local Signer sul PC e ripeti la ricerca."
+            )
         if portale == "pat":
             raise ValueError(
                 "Per PAT l'acquisizione guidata non promette una ricerca live diretta da SIGA. "
@@ -2462,8 +2468,10 @@ def build_telematico_runtime(
             def _perform_search():
                 if portale == "pst":
                     from pct.polisWeb import crea_client
+                    from pct.uffici_giudiziari import risolvi_codice_ministero
 
-                    ufficio = str(query.get("ufficio_codice") or "").strip()
+                    ufficio_raw = str(query.get("ufficio_codice") or query.get("ufficio") or "").strip()
+                    ufficio = risolvi_codice_ministero(ufficio_raw) if ufficio_raw else ""
                     if not ufficio:
                         raise ValueError("Seleziona un ufficio giudiziario.")
                     return crea_client(demo=_portale_demo_mode(portale)).ricerca_fascicoli(
@@ -2475,8 +2483,10 @@ def build_telematico_runtime(
                     )
                 if portale == "pdp":
                     from pct.pdp import crea_client_pdp
+                    from pct.uffici_giudiziari import risolvi_codice_ministero
 
-                    ufficio = str(query.get("ufficio_codice") or "").strip()
+                    ufficio_raw = str(query.get("ufficio_codice") or query.get("ufficio") or "").strip()
+                    ufficio = risolvi_codice_ministero(ufficio_raw) if ufficio_raw else ""
                     if not ufficio:
                         raise ValueError("Seleziona un ufficio giudiziario.")
                     return crea_client_pdp(demo=_portale_demo_mode(portale)).ricerca_fascicoli(

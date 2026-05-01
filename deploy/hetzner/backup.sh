@@ -17,4 +17,5 @@ else
 fi
 
 sha256sum "$OUT" > "${OUT}.sha256"
+sha256sum -c "${OUT}.sha256"
 echo "$OUT"

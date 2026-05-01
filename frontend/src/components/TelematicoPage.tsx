@@ -91,6 +91,12 @@ function ChannelCard({
   onAction:(event:MouseEvent<HTMLAnchorElement>, channel:TelematicoChannel, actionIndex:number)=>void
 }) {
   const attention = channel.attentionNeeded > 0
+  const actionIcon = (action: { label: string; href: string }, index: number) => {
+    const text = `${action.label} ${action.href}`.toLowerCase()
+    if (text.includes('importa') || text.includes('/acquisizione')) return <UploadCloud size={15}/>
+    if (text.includes('checklist') || text.includes('controll')) return <FolderOpen size={15}/>
+    return index === 0 ? <ArrowRight size={15}/> : <ExternalLink size={15}/>
+  }
   return (
     <article
       className={`iu-tel-channel iu-tel-channel--${channel.tone} ${selected ? 'is-selected' : ''}`}
@@ -126,8 +132,8 @@ function ChannelCard({
       <small className="iu-tel-channel__sync">{channel.lastSyncAt ? `Ultimo allineamento: ${channel.lastSyncAt}` : channel.environmentLabel || 'Nessun allineamento ancora registrato.'}</small>
       <footer>
         {channel.quickActions.slice(0, 3).map((action, index) => (
-          <a className={index === 1 ? 'is-primary' : ''} href={action.href} onClick={(event) => onAction(event, channel, index)} key={`${channel.id}-${action.label}`}>
-            {index === 0 ? <ExternalLink size={15}/> : index === 1 ? <UploadCloud size={15}/> : <FolderOpen size={15}/>} {action.label}
+          <a className={index === 0 ? 'is-primary' : ''} href={action.href} onClick={(event) => onAction(event, channel, index)} key={`${channel.id}-${action.label}`}>
+            {actionIcon(action, index)} {action.label}
           </a>
         ))}
       </footer>
@@ -143,8 +149,9 @@ function ActiveChannelPanel({
   actionIndex:number
 }) {
   const action = channel.quickActions[actionIndex] || channel.quickActions[0]
-  const importAction = channel.quickActions[1] || action
-  const checkAction = channel.quickActions[2] || action
+  const importAction = channel.quickActions.find((item) => item.href.includes('/acquisizione') || item.label.toLowerCase().includes('importa')) || action
+  const surfaceAction = channel.quickActions.find((item) => item.label.toLowerCase().includes('superficie')) || channel.quickActions[1] || action
+  const checkAction = channel.quickActions.find((item) => item.label.toLowerCase().includes('checklist') || item.href.includes('checklist')) || action
   return (
     <section id="canale-attivo" className={`iu-tel-active-channel iu-tel-active-channel--${channel.tone}`}>
       <div className="iu-tel-active-channel__icon">{portalIcon[channel.id]}</div>
@@ -160,7 +167,7 @@ function ActiveChannelPanel({
       </div>
       <div className="iu-tel-active-channel__actions">
         <a href={importAction.href}>Importa pratica</a>
-        <a href={channel.homeHref}>Apri superficie</a>
+        <a href={surfaceAction.href || channel.homeHref}>Apri superficie</a>
         <a href={checkAction.href}>Controlli</a>
       </div>
     </section>

@@ -208,16 +208,16 @@ const navSections: NavSection[] = [
     label: 'Servizi Telematici',
     icon: Send,
     items: [
-      { label: 'Centro Servizi Telematici', icon: BriefcaseBusiness, href: '/app-v2/telematico' },
-      { label: 'PolisWeb / PST', icon: CloudUpload, href: '/app-v2/polisweb' },
-      { label: 'Panoramica PST', icon: FileText, href: '/app-v2/polisweb' },
-      { label: 'SIGP - Giudice di Pace', icon: Landmark, href: '/app-v2/polisweb?focus=sigp' },
-      { label: 'PDP Penale', icon: ShieldCheck, href: '/app-v2/pdp' },
-      { label: 'PAT Amministrativo', icon: FileText, href: '/app-v2/pat' },
-      { label: 'PTT Tributario', icon: FileText, href: '/app-v2/ptt' },
-      { label: 'Tribunali / PEC', icon: Landmark, href: '/app-v2/tribunali' },
-      { label: 'Checklist deposito', icon: ListChecks, href: '/app-v2/deposito/checklist' },
-      { label: 'Guida firma digitale', icon: BookOpen, href: '/app-v2/guida/firma-digitale' }
+      { label: 'Centro Servizi Telematici', icon: BriefcaseBusiness, href: '/telematico' },
+      { label: 'PolisWeb / PST', icon: CloudUpload, href: '/polisWeb' },
+      { label: 'Panoramica PST', icon: FileText, href: '/polisWeb' },
+      { label: 'SIGP - Giudice di Pace', icon: Landmark, href: '/sigp/' },
+      { label: 'PDP Penale', icon: ShieldCheck, href: '/pdp' },
+      { label: 'PAT Amministrativo', icon: FileText, href: '/pat' },
+      { label: 'PTT Tributario', icon: FileText, href: '/sigit' },
+      { label: 'Tribunali / PEC', icon: Landmark, href: '/tribunali' },
+      { label: 'Checklist deposito', icon: ListChecks, href: '/deposito/checklist' },
+      { label: 'Guida firma digitale', icon: BookOpen, href: '/guida/firma-digitale' }
     ]
   },
   {
@@ -236,11 +236,11 @@ const navSections: NavSection[] = [
       { label: 'Strumenti Forensi', icon: Wrench, href: '/strumenti-legali/' },
       { label: 'Strumenti Operativi', icon: Table, href: '/strumenti-operativi' },
       { label: 'Sito Studio', icon: Earth, href: '/sito-studio/' },
-      { label: 'Notifiche WhatsApp', icon: MessageCircle, href: '/notifiche-whatsapp' },
-      { label: 'Incassi e Pagamenti', icon: CreditCard, href: '/incassi-pagamenti' },
+      { label: 'Notifiche WhatsApp', icon: MessageCircle, href: '/notifiche/' },
+      { label: 'Incassi e Pagamenti', icon: CreditCard, href: '/impostazioni/pagamenti' },
       { label: 'Backup', icon: CloudUpload, href: '/backup' },
-      { label: 'Impostazioni Studio', icon: Settings2, href: '/impostazioni-studio' },
-      { label: 'Sincronizzazione Calendari', icon: CalendarSync, href: '/sincronizzazione-calendari' }
+      { label: 'Impostazioni Studio', icon: Settings2, href: '/impostazioni' },
+      { label: 'Sincronizzazione Calendari', icon: CalendarSync, href: '/impostazioni/calendario' }
     ]
   },
   {
@@ -251,9 +251,9 @@ const navSections: NavSection[] = [
     items: [
       { label: 'Utenti', icon: UsersRound, href: '/utenti' },
       { label: 'Profili e Permessi', icon: Table, href: '/profili' },
-      { label: 'Registro Attività', icon: ClipboardList, href: '/registro-attivita' },
+      { label: 'Registro Attività', icon: ClipboardList, href: '/audit' },
       { label: 'Database', icon: Database, href: '/admin/database' },
-      { label: 'Registro GDPR', icon: FileText, href: '/registro-gdpr' }
+      { label: 'Registro GDPR', icon: FileText, href: '/privacy/registro' }
     ]
   }
 ]
@@ -302,6 +302,34 @@ function isTelematicoSurfaceRoute(path: string): boolean {
     route.startsWith('/portali/ptt') ||
     route.startsWith('/portali/sigit')
   )
+}
+
+const legacyOperationalPrefixes = [
+  '/servizi-telematici',
+  '/telematico',
+  '/telematici',
+  '/polisweb',
+  '/pst',
+  '/sigp',
+  '/sigp-sync',
+  '/pdp',
+  '/pat',
+  '/ptt',
+  '/sigit',
+  '/tribunali',
+  '/deposito/checklist',
+  '/guida/firma-digitale',
+]
+
+function legacyOperationalRedirectHref(activePath: string): string | null {
+  const raw = activePath || '/'
+  const lowerRaw = raw.toLowerCase()
+  if (lowerRaw !== '/app-v2' && !lowerRaw.startsWith('/app-v2/')) return null
+  const route = normaliseRoutePath(raw)
+  const routeLower = route.toLowerCase()
+  const mustLeaveReact = legacyOperationalPrefixes.some((prefix) => routeLower === prefix || routeLower.startsWith(`${prefix}/`))
+  if (!mustLeaveReact) return null
+  return `${route}${window.location.search || ''}${window.location.hash || ''}`
 }
 
 type GlobalLexConfig = {
@@ -651,6 +679,11 @@ export default function App() {
   const activePath = window.location.pathname.replace(/\/+$/, '') || '/'
   const routePath = normaliseRoutePath(activePath)
   const routeKey = routePath.toLowerCase()
+  const forcedLegacyHref = legacyOperationalRedirectHref(activePath)
+  if (forcedLegacyHref) {
+    window.location.replace(forcedLegacyHref)
+    return <PageLoading/>
+  }
   const isSearchPage = routeKey === '/global-search' || routeKey === '/ricerca-studio' || routeKey === '/cerca'
   const isNewAppointmentPage = routeKey === '/agenda/nuovo' || routeKey.startsWith('/agenda/nuovo/')
   const isAppointmentEditPage = /^\/agenda\/[^/]+\/modifica$/.test(routeKey)

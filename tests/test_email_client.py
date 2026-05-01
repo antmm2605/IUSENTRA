@@ -310,14 +310,80 @@ def test_email_ordinaria_route_react_api_e_repository_separato_da_pec(tmp_path):
     assert react.status_code == 200
     assert '<html lang="it" class="react-shell-document">' in react.get_data(as_text=True)
     assert payload_response.status_code == 200
+    assert payload["actions"]["compose"] == "/email-ordinaria/scrivi"
     assert payload["actions"]["sync"] == "/email-ordinaria/sincronizza"
     assert payload["actions"]["settings"] == "/impostazioni?tab=smtp"
+    assert pec_payload["actions"]["compose"] == "/email/scrivi"
+    assert pec_payload["actions"]["sync"] == "/email/sincronizza"
+    assert payload["actions"]["compose"] != pec_payload["actions"]["compose"]
+    assert payload["actions"]["sync"] != pec_payload["actions"]["sync"]
     assert payload["summary"]["pst"] == 0
     assert payload["summary"]["autoLinked"] == 0
     assert payload["items"][0]["id"] == "MAIL-ORD-1"
     assert payload["items"][0]["isPst"] is False
     assert payload["items"][0]["pctStatus"] == ""
     assert pec_payload["items"][0]["id"] == "PEC-1"
+
+
+def test_email_ordinaria_scrivi_restera_separata_da_email_pec(tmp_path, monkeypatch):
+    from web.app import create_app
+    from pct.messaggi import GestioneMessaggi, StatoMessaggio
+
+    cfg = _cfg_web(tmp_path)
+    GestioneConfigStudio(cfg["STUDIO_CONFIG"]).aggiorna(
+        ConfigStudio(
+            smtp=ConfigSMTP(
+                host="smtp.example.it",
+                port=587,
+                username="studio@example.it",
+                password="segreta",
+                from_address="studio@example.it",
+                from_name="Studio",
+                use_tls=True,
+            )
+        )
+    )
+    inviati = {}
+
+    def _fake_invia_email(self, **kwargs):
+        inviati.update(kwargs)
+        return SimpleNamespace(stato=StatoMessaggio.INVIATO, errore="")
+
+    monkeypatch.setattr(GestioneMessaggi, "invia_email", _fake_invia_email)
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        _autentica_admin_session(app, client, cfg)
+        form = client.get("/email-ordinaria/scrivi")
+        invalid = client.post(
+            "/email-ordinaria/scrivi",
+            data={"a": "", "oggetto": ""},
+            follow_redirects=False,
+        )
+        sent = client.post(
+            "/email-ordinaria/scrivi",
+            data={"a": "cliente@example.it", "oggetto": "Prova", "corpo": "Testo"},
+            follow_redirects=False,
+        )
+
+    body = form.get_data(as_text=True)
+    assert form.status_code == 200
+    assert '<html lang="it" class="react-shell-document">' in body
+    app_source = Path("frontend/src/App.tsx").read_text(encoding="utf-8")
+    compose_source = Path("frontend/src/components/EmailPecPage.tsx").read_text(encoding="utf-8")
+    email_data_source = Path("frontend/src/emailData.ts").read_text(encoding="utf-8")
+    assert "isEmailOrdinariaComposePage?<EmailComposePage mode=\"ordinaria\"/>" in app_source
+    assert "const action = isOrdinary ? '/email-ordinaria/scrivi' : '/email/scrivi'" in compose_source
+    assert "const backHref = isOrdinary ? '/email-ordinaria/?cartella=INBOX' : '/email/?cartella=INBOX'" in compose_source
+    assert "compose: '/email-ordinaria/scrivi'" in email_data_source
+    assert "sync: '/email-ordinaria/sincronizza'" in email_data_source
+    assert "`${fallbackBasePath}/scrivi?oggetto=" in email_data_source
+    assert "/email/scrivi?oggetto=" not in email_data_source
+    assert invalid.status_code == 302
+    assert "/email-ordinaria/scrivi" in invalid.headers["Location"]
+    assert sent.status_code == 302
+    assert "/email-ordinaria/?cartella=INVIATI" in sent.headers["Location"]
+    assert inviati["destinatario"] == "cliente@example.it"
 
 
 def test_email_ordinaria_sincronizza_usa_imap_smtp_dalle_impostazioni(tmp_path, monkeypatch):

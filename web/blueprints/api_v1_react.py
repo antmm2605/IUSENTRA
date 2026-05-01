@@ -1000,7 +1000,7 @@ def email_ordinaria_react_list():
         db_path=_cfg_value("EMAIL_ORDINARIA_DB", "./email/ordinaria.json"),
         messaggi_db=_cfg_value("MESSAGGI_DB", "./messaggi/storico.json"),
         base_path="/email-ordinaria",
-        compose_path="/email/scrivi",
+        compose_path="/email-ordinaria/scrivi",
         settings_path="/impostazioni?tab=smtp",
         sync_path="/email-ordinaria/sincronizza",
         auto_esiti_path="",

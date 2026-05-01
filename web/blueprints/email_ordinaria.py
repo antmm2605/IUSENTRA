@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import mimetypes
 import os
+from datetime import date
 from functools import wraps
 from pathlib import Path
 
@@ -20,6 +21,7 @@ from flask import (
     g,
     jsonify,
     redirect,
+    render_template,
     request,
     send_file,
     url_for,
@@ -82,6 +84,48 @@ def _get_config_smtp():
         return None
 
 
+def _messaggi_config_da_smtp():
+    from pct.messaggi import ConfigEmail, ConfigMessaggistica
+
+    smtp = _get_config_smtp()
+    studio_nome = "Studio Legale"
+    try:
+        from pct.config_studio import GestioneConfigStudio
+
+        cfg = GestioneConfigStudio(config_path=_studio_config_path()).config
+        studio_nome = getattr(getattr(cfg, "studio", None), "nome", "") or studio_nome
+    except Exception:
+        pass
+    return ConfigMessaggistica(
+        email=ConfigEmail(
+            smtp_host=getattr(smtp, "host", "") if smtp else "",
+            smtp_port=int(getattr(smtp, "port", 587) or 587) if smtp else 587,
+            username=getattr(smtp, "username", "") if smtp else "",
+            password=getattr(smtp, "password", "") if smtp else "",
+            use_tls=bool(getattr(smtp, "use_tls", True)) if smtp else True,
+            mittente_email=getattr(smtp, "from_address", "") if smtp else "",
+            mittente_nome=getattr(smtp, "from_name", "") or studio_nome if smtp else studio_nome,
+        ),
+        studio_nome=studio_nome,
+    )
+
+
+def _audit(azione: str, dettagli: str = "") -> None:
+    try:
+        from pct.auth import GestioneUtenti
+
+        utente = g.get("utente_corrente")
+        if not utente:
+            return
+        GestioneUtenti(
+            db_path=_cfg_path("AUTH_DB", "./auth/utenti.json"),
+            audit_path=_cfg_path("AUDIT_DB", "./auth/audit.json"),
+            secret_key=current_app.secret_key,
+        ).registra_audit(utente.id, azione, dettagli=dettagli)
+    except Exception:
+        return
+
+
 def _sync_inviati(gestore) -> None:
     """Allinea la cartella inviati ordinaria con lo storico messaggi EMAIL."""
     try:
@@ -116,6 +160,68 @@ def casella():
     if not _legacy_requested():
         return render_react_shell_response("email-ordinaria")
     return redirect(url_for("email_client.casella", _legacy=1))
+
+
+@email_ordinaria.route("/scrivi", methods=["GET", "POST"])
+@_login_required
+def scrivi():
+    """Composizione email ordinaria separata dalla casella PEC."""
+    if request.method == "GET":
+        try:
+            from pct.clienti import GestioneClienti
+
+            clienti = GestioneClienti(
+                db_path=_cfg_path("CLIENTI_DB", "./clienti/anagrafica.json")
+            ).tutti()
+        except Exception:
+            clienti = []
+        return render_template(
+            "email/scrivi.html",
+            a=request.args.get("a", ""),
+            oggetto=request.args.get("oggetto", ""),
+            clienti=clienti,
+            oggi=date.today(),
+            compose_title="Componi email ordinaria",
+            compose_subtitle="Il messaggio verra' inviato tramite la configurazione SMTP ordinaria dello studio.",
+            compose_channel_label="Email ordinaria - SMTP",
+            compose_form_action=url_for("email_ordinaria.scrivi"),
+            compose_back_url=url_for("email_ordinaria.casella", cartella="INBOX"),
+            compose_settings_url="/impostazioni?tab=smtp",
+        )
+
+    form = request.form
+    destinatario = form.get("a", "").strip()
+    oggetto = form.get("oggetto", "").strip()
+    corpo_testo = form.get("corpo", "").strip()
+    id_cliente = form.get("id_cliente", "").strip()
+
+    if not destinatario or not oggetto:
+        flash("Compilare almeno destinatario e oggetto.", "danger")
+        return redirect(url_for("email_ordinaria.scrivi", a=destinatario, oggetto=oggetto))
+
+    try:
+        from pct.messaggi import StatoMessaggio, GestioneMessaggi
+
+        messaggi = GestioneMessaggi(
+            config=_messaggi_config_da_smtp(),
+            db_path=_cfg_path("MESSAGGI_DB", "./messaggi/storico.json"),
+        )
+        msg = messaggi.invia_email(
+            destinatario=destinatario,
+            oggetto=oggetto,
+            corpo_testo=corpo_testo,
+            id_cliente=id_cliente,
+        )
+        if getattr(msg, "stato", None) == StatoMessaggio.FALLITO:
+            raise RuntimeError(getattr(msg, "errore", "") or "invio non completato")
+        gestore = _get_gestore()
+        _sync_inviati(gestore)
+        flash("Email ordinaria inviata con successo.", "success")
+        _audit("email_ordinaria.inviata", f"A: {destinatario} | Ogg: {oggetto[:60]}")
+        return redirect(url_for("email_ordinaria.casella", cartella="INVIATI"))
+    except Exception as exc:
+        flash(f"Errore invio email ordinaria: {exc}", "danger")
+        return redirect(url_for("email_ordinaria.scrivi", a=destinatario, oggetto=oggetto))
 
 
 @email_ordinaria.route("/messaggio/<id_email>")

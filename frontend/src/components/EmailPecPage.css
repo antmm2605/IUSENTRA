@@ -678,6 +678,168 @@
 .iu-mail-checklist svg{
   color:var(--iu-success-500);
 }
+.iu-mail-compose-page{
+  display:grid;
+  gap:16px;
+}
+.iu-mail-compose-hero{
+  display:flex;
+  justify-content:space-between;
+  gap:18px;
+  padding:22px;
+  border:1px solid rgba(47,128,237,.22);
+  border-radius:22px;
+  background:linear-gradient(135deg,#eef6ff 0%,#ffffff 58%,#f8fbff 100%);
+  box-shadow:0 18px 46px rgba(15,23,42,.08);
+}
+.iu-mail-compose-hero h1{
+  margin:6px 0;
+  color:#0f172a;
+  font-size:30px;
+  letter-spacing:-.03em;
+}
+.iu-mail-compose-hero p{
+  max-width:780px;
+  margin:0;
+  color:var(--iu-slate-600);
+  font-weight:700;
+  line-height:1.55;
+}
+.iu-mail-compose-hero__actions{
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.iu-mail-compose-grid{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(320px,420px);
+  gap:16px;
+  align-items:start;
+}
+.iu-mail-compose-form{
+  display:grid;
+  gap:14px;
+  padding:18px;
+  border:1px solid var(--iu-slate-200);
+  border-radius:20px;
+  background:#fff;
+  box-shadow:0 18px 44px rgba(15,23,42,.08);
+}
+.iu-mail-compose-form label{
+  display:grid;
+  gap:7px;
+  margin:0;
+}
+.iu-mail-compose-form label span{
+  color:var(--iu-slate-600);
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.iu-mail-compose-form input,
+.iu-mail-compose-form textarea{
+  width:100%;
+  border:1px solid var(--iu-slate-200);
+  border-radius:14px;
+  background:#f8fafc;
+  color:#0f172a;
+  font:inherit;
+  font-weight:700;
+  outline:none;
+}
+.iu-mail-compose-form input{
+  min-height:48px;
+  padding:0 14px;
+}
+.iu-mail-compose-form textarea{
+  min-height:260px;
+  padding:14px;
+  line-height:1.55;
+  resize:vertical;
+}
+.iu-mail-compose-form input:focus,
+.iu-mail-compose-form textarea:focus{
+  border-color:var(--iu-blue-500);
+  box-shadow:0 0 0 4px rgba(47,128,237,.14);
+  background:#fff;
+}
+.iu-mail-compose-form footer{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.iu-mail-compose-form footer button,
+.iu-mail-compose-form footer a{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  min-height:44px;
+  padding:0 18px;
+  border-radius:13px;
+  font-size:13px;
+  font-weight:900;
+  text-decoration:none;
+}
+.iu-mail-compose-form footer button{
+  border:0;
+  background:var(--iu-blue-600);
+  color:#fff;
+  box-shadow:0 12px 24px rgba(37,99,235,.22);
+}
+.iu-mail-compose-form footer a{
+  border:1px solid var(--iu-slate-200);
+  background:#fff;
+  color:#0f172a;
+}
+.iu-mail-compose-side{
+  display:grid;
+  gap:14px;
+}
+.iu-mail-compose-checks,
+.iu-mail-compose-preview{
+  display:grid;
+  gap:10px;
+}
+.iu-mail-compose-checks span{
+  display:flex;
+  align-items:flex-start;
+  gap:8px;
+  color:var(--iu-slate-700);
+  font-size:13px;
+  font-weight:750;
+}
+.iu-mail-compose-checks svg{
+  color:var(--iu-success-500);
+  flex:0 0 auto;
+}
+.iu-mail-compose-preview span{
+  color:var(--iu-slate-500);
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.iu-mail-compose-preview strong{
+  color:#0f172a;
+  overflow-wrap:anywhere;
+}
+.iu-mail-compose-preview p{
+  min-height:150px;
+  margin:4px 0 0;
+  padding:12px;
+  border-radius:14px;
+  background:#f8fafc;
+  color:var(--iu-slate-600);
+  font-size:13px;
+  font-weight:650;
+  line-height:1.55;
+  white-space:pre-wrap;
+}
 
 @media(max-width:1540px){
   .iu-mail-stats{grid-template-columns:repeat(4,minmax(0,1fr))}
@@ -686,6 +848,8 @@
 }
 @media(max-width:1120px){
   .iu-mail-hero{flex-direction:column}
+  .iu-mail-compose-hero{flex-direction:column}
+  .iu-mail-compose-grid{grid-template-columns:1fr}
   .iu-mail-hero__actions{justify-content:flex-start}
   .iu-mail-toolbar{grid-template-columns:1fr auto auto}
   .iu-mail-folders{grid-column:1 / -1;overflow:auto}
@@ -695,11 +859,17 @@
 }
 @media(max-width:760px){
   .iu-email-page{gap:10px}
+  .iu-mail-compose-page{gap:10px}
   .iu-mail-hero{padding:14px;border-radius:16px}
+  .iu-mail-compose-hero{padding:14px;border-radius:16px}
   .iu-mail-hero h1{font-size:23px}
+  .iu-mail-compose-hero h1{font-size:23px}
   .iu-mail-hero p{font-size:12.5px}
+  .iu-mail-compose-hero p{font-size:12.5px}
   .iu-mail-hero__actions{display:grid;grid-template-columns:1fr 1fr;width:100%}
+  .iu-mail-compose-hero__actions{display:grid;grid-template-columns:1fr 1fr;width:100%}
   .iu-mail-hero__actions>a,.iu-mail-hero__actions>button{width:100%}
+  .iu-mail-compose-hero__actions>a,.iu-mail-compose-hero__actions>button{width:100%}
   .iu-mail-stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
   .iu-mail-stat{min-height:86px;padding:10px;border-radius:13px}
   .iu-mail-stat>div{width:32px;height:32px;border-radius:10px}
@@ -727,6 +897,9 @@
   .iu-mail-preview-card footer>a,.iu-mail-preview-card footer>button{width:100%}
   .iu-mail-inspector{grid-template-columns:1fr}
   .iu-mail-lower-grid{grid-template-columns:1fr}
+  .iu-mail-compose-form{padding:12px;border-radius:16px}
+  .iu-mail-compose-form footer{display:grid;grid-template-columns:1fr}
+  .iu-mail-compose-form footer button,.iu-mail-compose-form footer a{width:100%}
   .iu-mail-quick-actions,.iu-mail-integrations{grid-template-columns:1fr}
 }
 @media(prefers-reduced-motion:reduce){

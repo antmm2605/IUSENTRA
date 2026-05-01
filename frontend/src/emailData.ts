@@ -129,7 +129,7 @@ export const emptyEmailOrdinariaPage: EmailPecPageData = {
     pctStatuses: [{ value: '', label: 'Nessun esito telematico', count: 0 }],
   },
   actions: {
-    compose: '/email/scrivi',
+    compose: '/email-ordinaria/scrivi',
     settings: '/impostazioni?tab=smtp',
     sync: '/email-ordinaria/sincronizza',
     autoEsiti: '',
@@ -195,7 +195,10 @@ function rowFromPayload(value: unknown, index: number, fallbackBasePath = '/emai
     origin: text(item.origin ?? item.origine),
     detailHref: text(item.detailHref ?? item.detail_href, `${fallbackBasePath}/messaggio/${encodeURIComponent(id)}`),
     operationalHref: text(item.operationalHref ?? item.operational_href, `${fallbackBasePath}/?cartella=${folder}&id=${encodeURIComponent(id)}`),
-    replyHref: text(item.replyHref ?? item.reply_href, `/email/scrivi?oggetto=${encodeURIComponent(`Re: ${text(item.subject ?? item.oggetto)}`)}`),
+    replyHref: text(
+      item.replyHref ?? item.reply_href,
+      `${fallbackBasePath}/scrivi?oggetto=${encodeURIComponent(`Re: ${text(item.subject ?? item.oggetto)}`)}`,
+    ),
     trashHref: text(item.trashHref ?? item.trash_href, `${fallbackBasePath}/${encodeURIComponent(id)}/cestino`),
     restoreHref: text(item.restoreHref ?? item.restore_href, `${fallbackBasePath}/${encodeURIComponent(id)}/ripristina`),
     deleteHref: text(item.deleteHref ?? item.delete_href, `${fallbackBasePath}/${encodeURIComponent(id)}/elimina`),

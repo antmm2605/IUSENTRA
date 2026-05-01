@@ -632,3 +632,107 @@ export function EmailPecPage() {
 export function EmailOrdinariaPage() {
   return <EmailMailboxPage mode="ordinaria" />
 }
+
+export function EmailComposePage({ mode }: { mode: MailboxMode }) {
+  const copy = mailboxCopy[mode]
+  const params = new URLSearchParams(window.location.search)
+  const isOrdinary = mode === 'ordinaria'
+  const action = isOrdinary ? '/email-ordinaria/scrivi' : '/email/scrivi'
+  const backHref = isOrdinary ? '/email-ordinaria/?cartella=INBOX' : '/email/?cartella=INBOX'
+  const settingsHref = isOrdinary ? '/impostazioni?tab=smtp' : '/impostazioni?tab=pec'
+  const [recipient, setRecipient] = useState(params.get('a') || '')
+  const [subject, setSubject] = useState(params.get('oggetto') || '')
+  const [body, setBody] = useState('')
+
+  return (
+    <main className="iu-content iu-mail-compose-page">
+      <section className="iu-mail-compose-hero">
+        <div>
+          <span className="iu-mail-eyebrow">{isOrdinary ? <Mail size={16} /> : <ShieldCheck size={16} />} {copy.eyebrow}</span>
+          <h1>{isOrdinary ? 'Componi email ordinaria' : 'Componi PEC'}</h1>
+          <p>
+            {isOrdinary
+              ? 'Invia un messaggio tramite la configurazione SMTP ordinaria dello studio, mantenendolo separato dalla PEC.'
+              : 'Prepara un messaggio PEC usando il canale certificato configurato nello studio.'}
+          </p>
+        </div>
+        <div className="iu-mail-compose-hero__actions">
+          <Button href={backHref}><Archive size={15} /> Torna alla casella</Button>
+          <Button href={settingsHref}><Settings2 size={15} /> Impostazioni</Button>
+        </div>
+      </section>
+
+      <section className="iu-mail-compose-grid">
+        <form className="iu-mail-compose-form" method="post" action={action}>
+          <label>
+            <span>Destinatario</span>
+            <input
+              type="email"
+              name="a"
+              value={recipient}
+              onChange={(event) => setRecipient(event.target.value)}
+              placeholder="cliente@example.it"
+              autoComplete="email"
+              required
+            />
+          </label>
+          <input type="hidden" name="id_cliente" value="" />
+          <label>
+            <span>Oggetto</span>
+            <input
+              type="text"
+              name="oggetto"
+              value={subject}
+              onChange={(event) => setSubject(event.target.value)}
+              placeholder="Oggetto del messaggio"
+              required
+            />
+          </label>
+          <label>
+            <span>Messaggio</span>
+            <textarea
+              name="corpo"
+              value={body}
+              onChange={(event) => setBody(event.target.value)}
+              rows={14}
+              placeholder="Scrivi il messaggio..."
+            />
+          </label>
+          <footer>
+            <button type="submit"><Send size={16} /> Invia</button>
+            <a href={backHref}>Annulla</a>
+          </footer>
+        </form>
+
+        <aside className="iu-mail-compose-side">
+          <Panel title={isOrdinary ? 'Canale ordinario' : 'Canale PEC'} subtitle="Controllo operativo" icon={isOrdinary ? <Mail size={17} /> : <ShieldCheck size={17} />}>
+            <div className="iu-mail-compose-checks">
+              <span><CheckCircle2 size={16} /> Form collegato a <strong>{action}</strong>.</span>
+              <span><CheckCircle2 size={16} /> Rientro automatico in <strong>{isOrdinary ? 'Email ordinaria' : 'Email PEC'}</strong>.</span>
+              <span><Settings2 size={16} /> Configurazione da <a href={settingsHref}>{isOrdinary ? 'SMTP/IMAP ordinario' : 'PEC'}</a>.</span>
+            </div>
+          </Panel>
+          <Panel title="Anteprima rapida" subtitle="Controllo prima dell'invio" icon={<Eye size={17} />}>
+            <div className="iu-mail-compose-preview">
+              <span>A</span>
+              <strong>{recipient || 'Destinatario non indicato'}</strong>
+              <span>Oggetto</span>
+              <strong>{subject || 'Oggetto non indicato'}</strong>
+              <p>{body || 'Il testo comparirà qui mentre componi il messaggio.'}</p>
+            </div>
+          </Panel>
+        </aside>
+      </section>
+
+      <FloatingLex
+        context={copy.lexContext}
+        title={copy.lexTitle}
+        body={copy.lexBody}
+        primaryHref={isOrdinary ? '/lex?context=email-ordinaria' : '/lex?context=email-pec'}
+        primaryLabel={copy.lexPrimaryLabel}
+        secondaryHref={backHref}
+        secondaryLabel={copy.title}
+      />
+    </main>
+  )
+}

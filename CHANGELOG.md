@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.198.37 - 2026-05-01
+
+- Separata la composizione della posta ordinaria dalla PEC: il bottone `Componi email` usa ora `/email-ordinaria/scrivi`, con rientro nella casella ordinaria e invio tramite configurazione SMTP ordinaria dello studio.
+- Rafforzato il contratto API React di `Email ordinaria`: `compose`, `sync`, impostazioni e cartelle puntano ai percorsi ordinari, mentre `Email PEC` resta su `/email/*`.
+- Aggiunti test di regressione per impedire che `Componi email` o `Aggiorna` della posta ordinaria tornino a chiamare le route PEC.
+
 ## 2.198.36 - 2026-05-01
 
 - Migrato `GET /privacy/registro`, `GET /privacy/registro/nuovo` e alias `/registro-gdpr` nella shell React solo dopo contratto operativo completo: API reale `/api/v1/ui/privacy/registro`, dati dal repository privacy, form POST Flask auditato e cancellazione trattamento sulle route esistenti.

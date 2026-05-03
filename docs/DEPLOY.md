@@ -38,6 +38,25 @@ Vista live del workflow applicativo:
 Il lint resta bloccante solo sugli errori reali di sintassi e import.
 Il benchmark notturno gira in `.github/workflows/performance-nightly.yml` e usa `tools/performance_smoke.py`.
 
+## Codex Support Stack prima della release
+
+Quando una modifica nasce da Codex, MetaHarness, autoresearch-lite o Open Design support, prima di entrare nel flusso di release applicativa eseguire il gate dedicato:
+
+```powershell
+python tools/codex_harness/run_codex_quality_gate.py --mode dev-tooling
+```
+
+Per task UI/UX di supporto, usare invece:
+
+```powershell
+python tools/codex_harness/run_codex_quality_gate.py --mode ui-support
+```
+
+Il gate controlla scope, dipendenze runtime, guardrail di `AGENTS.md` e risorse Open Design support.
+Non sostituisce CI, test applicativi, Docker build o verifiche Railway/Hetzner quando il codice prodotto cambia.
+
+Se la tranche modifica solo documentazione operativa o strumenti sotto `tools/`, senza runtime applicativo, non avviare deploy applicativo: committare e sincronizzare i branch secondo le regole di repository.
+
 ## Verifica release locale
 
 Dopo ogni bump versione:

@@ -51,6 +51,15 @@ Non salvare chiavi reali nel repository.
 
 ## Deploy
 
+Prima di un deploy Hetzner che deriva da modifiche Codex, MetaHarness, autoresearch-lite o Open Design support, eseguire il gate di supporto dalla root locale della repository:
+
+```powershell
+python tools/codex_harness/run_codex_quality_gate.py --mode dev-tooling
+```
+
+Il gate non sostituisce backup, test applicativi, Docker build o verifiche del nodo remoto.
+Se la modifica e' solo documentale/tooling e non cambia il runtime, non eseguire il deploy Hetzner.
+
 ```bash
 cd /opt/iusentra/repo
 bash deploy/hetzner/deploy.sh

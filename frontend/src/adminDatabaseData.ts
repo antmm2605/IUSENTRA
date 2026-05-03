@@ -49,6 +49,7 @@ export type AdminDatabaseUsage = {
 export type AdminDatabaseActions = {
   refresh: string
   verify: string
+  repair: string
   optimize: string
   migrate: string
   activateSqlite: string
@@ -93,6 +94,7 @@ export type AdminDatabasePageData = {
 export type AdminDatabaseIntegrityResult = {
   ok: boolean
   n_problemi: number
+  n_riparazioni: number
   problemi: Array<{
     livello: string
     modulo: string
@@ -102,6 +104,20 @@ export type AdminDatabaseIntegrityResult = {
     campo: string
     suggerimento: string
   }>
+  riparazioni: Array<{
+    modulo: string
+    tipo: string
+    id_record: string
+    campo: string
+    azione: string
+    dettagli: string
+    riuscita: boolean
+    valore_precedente: string
+    valore_nuovo: string
+    backup_file: string
+  }>
+  backup_files?: string[]
+  errori?: string[]
   errore?: string
 }
 
@@ -139,6 +155,7 @@ export type AdminDatabaseMigrationResult = {
 const emptyActions: AdminDatabaseActions = {
   refresh: '/api/v1/ui/admin/database',
   verify: '/admin/database/verifica',
+  repair: '/admin/database/verifica-ripara',
   optimize: '/admin/database/ottimizza',
   migrate: '/admin/database/migra',
   activateSqlite: '/admin/database/attiva-sqlite',
@@ -331,6 +348,7 @@ function normalisePayload(payload: unknown): AdminDatabasePageData {
     actions: {
       refresh: text(actions.refresh, emptyActions.refresh),
       verify: text(actions.verify, emptyActions.verify),
+      repair: text(actions.repair, emptyActions.repair),
       optimize: text(actions.optimize, emptyActions.optimize),
       migrate: text(actions.migrate, emptyActions.migrate),
       activateSqlite: text(actions.activateSqlite, emptyActions.activateSqlite),

@@ -94,6 +94,23 @@ class RisultatoOttimizzazione:
 
 
 @dataclass
+class RiparazioneIntegrita:
+    modulo: str
+    tipo: str
+    id_record: str
+    campo: str
+    azione: str
+    dettagli: str = ""
+    riuscita: bool = True
+    valore_precedente: str = ""
+    valore_nuovo: str = ""
+    backup_file: str = ""
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+
+@dataclass
 class RisultatoMigrazione:
     riuscita: bool
     percorso_db: str
@@ -628,6 +645,37 @@ class GestioneDatabase:
         except Exception as e:
             return None, str(e)
 
+    def _scrivi_json_grezzo(self, chiave: str, payload: Any) -> None:
+        """Scrive un file JSON preservando la struttura lista/dizionario."""
+        p = self.percorsi.get(chiave)
+        if not p:
+            raise ValueError(f"Percorso non configurato per {chiave}")
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(json.dumps(payload, ensure_ascii=False, indent=2), "utf-8")
+
+    @staticmethod
+    def _records_from_raw(raw: Any) -> List[dict]:
+        if isinstance(raw, dict):
+            return [item for item in raw.values() if isinstance(item, dict)]
+        if isinstance(raw, list):
+            return [item for item in raw if isinstance(item, dict)]
+        return []
+
+    def _backup_json_prima_riparazione(self, chiave: str, ts: str) -> str:
+        p = self.percorsi.get(chiave)
+        if not p or not p.exists():
+            return ""
+        backup = p.with_name(f"{p.stem}.pre-riparazione-{ts}{p.suffix}.bak")
+        shutil.copy2(p, backup)
+        return str(backup)
+
+    @staticmethod
+    def _append_repair_note(record: dict, message: str) -> None:
+        note = str(record.get("note") or "").strip()
+        if message in note:
+            return
+        record["note"] = f"{note}\n{message}".strip() if note else message
+
     def _stat_file(self, p: Path) -> Tuple[int, str]:
         """(dimensione_bytes, ultima_modifica_iso)"""
         if not p.exists():
@@ -925,6 +973,310 @@ class GestioneDatabase:
         problemi.sort(key=lambda p: ordine.get(p.severita, 9))
         return problemi
 
+    def ripara_integrita(self) -> Dict[str, Any]:
+        """
+        Ripara automaticamente anomalie referenziali risolvibili senza inventare dati.
+
+        Quando il riferimento mancante non puo' essere ricollegato a un record
+        reale e univoco, il campo viene scollegato e l'identificativo originale
+        resta annotato sul record. Prima di ogni scrittura viene creata una copia
+        ``*.pre-riparazione-*.bak`` del file JSON coinvolto.
+        """
+        t0 = time.monotonic()
+        riparazioni: List[RiparazioneIntegrita] = []
+        errori: List[str] = []
+        backup_files: Dict[str, str] = {}
+        touched: set[str] = set()
+        ts_file = datetime.now().strftime("%Y%m%d_%H%M%S")
+        ts_label = datetime.now().isoformat(timespec="seconds")
+
+        raw_by_key: Dict[str, Any] = {}
+        records_by_key: Dict[str, List[dict]] = {}
+        for chiave in ("clienti", "fascicoli", "appuntamenti", "scadenze", "messaggi"):
+            raw, err = self._leggi_json_grezzo(chiave)
+            if err:
+                errori.append(f"{chiave}: {err}")
+                continue
+            raw_by_key[chiave] = raw
+            records_by_key[chiave] = self._records_from_raw(raw)
+
+        def _norm(value: Any) -> str:
+            return " ".join(str(value or "").strip().lower().split())
+
+        def _record_id(record: dict) -> str:
+            return str(record.get("id") or record.get("uuid") or "?")
+
+        def _unique_by(records: List[dict], *fields: str) -> Dict[str, dict]:
+            values: Dict[str, dict] = {}
+            duplicates: set[str] = set()
+            for record in records:
+                for field in fields:
+                    key = _norm(record.get(field))
+                    if not key:
+                        continue
+                    if key in values and values[key] is not record:
+                        duplicates.add(key)
+                    else:
+                        values[key] = record
+            return {key: record for key, record in values.items() if key not in duplicates}
+
+        def _cliente_label(record: dict) -> str:
+            nome_cognome = f"{record.get('nome', '')} {record.get('cognome', '')}".strip()
+            return _norm(record.get("nome_completo") or nome_cognome or record.get("ragione_sociale"))
+
+        def _mark_touched(chiave: str) -> str:
+            if chiave not in backup_files:
+                backup_files[chiave] = self._backup_json_prima_riparazione(chiave, ts_file)
+            touched.add(chiave)
+            return backup_files.get(chiave, "")
+
+        def _repair_metadata(record: dict, details: str) -> None:
+            history = record.setdefault("riparazioni_integrita", [])
+            if isinstance(history, list):
+                history.append({"timestamp": ts_label, "dettagli": details})
+
+        def _append_repair(
+            *,
+            chiave: str,
+            record: dict,
+            campo: str,
+            tipo: str,
+            azione: str,
+            dettagli: str,
+            old: Any,
+            new: Any = "",
+            backup_file: str = "",
+        ) -> None:
+            riparazioni.append(
+                RiparazioneIntegrita(
+                    modulo=chiave,
+                    tipo=tipo,
+                    id_record=_record_id(record),
+                    campo=campo,
+                    azione=azione,
+                    dettagli=dettagli,
+                    valore_precedente=str(old or ""),
+                    valore_nuovo=str(new or ""),
+                    backup_file=backup_file or backup_files.get(chiave, ""),
+                )
+            )
+
+        clienti = records_by_key.get("clienti", [])
+        fascicoli = records_by_key.get("fascicoli", [])
+        appuntamenti = records_by_key.get("appuntamenti", [])
+        scadenze = records_by_key.get("scadenze", [])
+        messaggi = records_by_key.get("messaggi", [])
+
+        id_clienti = {str(c.get("id")) for c in clienti if c.get("id")}
+        id_fascicoli = {str(f.get("id")) for f in fascicoli if f.get("id")}
+        id_appuntamenti = {str(a.get("id")) for a in appuntamenti if a.get("id")}
+        clienti_by_name: Dict[str, dict] = {}
+        duplicate_client_names: set[str] = set()
+        for cliente in clienti:
+            key = _cliente_label(cliente)
+            if not key:
+                continue
+            if key in clienti_by_name:
+                duplicate_client_names.add(key)
+            else:
+                clienti_by_name[key] = cliente
+        clienti_by_name = {k: v for k, v in clienti_by_name.items() if k not in duplicate_client_names}
+        clienti_by_email = _unique_by(clienti, "email")
+        fascicoli_by_alias = _unique_by(fascicoli, "numero", "id_pratica")
+
+        def _find_fascicolo(record: dict, missing_id: str) -> Optional[dict]:
+            direct = fascicoli_by_alias.get(_norm(missing_id))
+            if direct:
+                return direct
+            for field in ("numero_fascicolo", "fascicolo_numero", "numero", "id_pratica"):
+                candidate = fascicoli_by_alias.get(_norm(record.get(field)))
+                if candidate:
+                    return candidate
+            return None
+
+        # Fascicoli con cliente mancante: ricollega per nome cliente reale o scollega.
+        for fascicolo in fascicoli:
+            old = str(fascicolo.get("id_cliente") or "").strip()
+            if not old or old in id_clienti:
+                continue
+            backup = _mark_touched("fascicoli")
+            candidate = clienti_by_name.get(_norm(fascicolo.get("nome_cliente")))
+            if candidate and candidate.get("id"):
+                fascicolo["id_cliente"] = candidate["id"]
+                details = f"Ricollegato cliente reale da nome_cliente: {fascicolo.get('nome_cliente')!r}."
+                _repair_metadata(fascicolo, details)
+                _append_repair(
+                    chiave="fascicoli",
+                    record=fascicolo,
+                    campo="id_cliente",
+                    tipo="RIFERIMENTO_MANCANTE",
+                    azione="ricollegato_cliente",
+                    dettagli=details,
+                    old=old,
+                    new=candidate.get("id"),
+                )
+            else:
+                fascicolo["id_cliente"] = ""
+                details = f"Scollegato id_cliente inesistente {old!r}; nome_cliente conservato."
+                self._append_repair_note(fascicolo, f"Riparazione integrita {ts_label}: {details}")
+                _repair_metadata(fascicolo, details)
+                _append_repair(
+                    chiave="fascicoli",
+                    record=fascicolo,
+                    campo="id_cliente",
+                    tipo="RIFERIMENTO_MANCANTE",
+                    azione="scollegato_cliente_inesistente",
+                    dettagli=details,
+                    old=old,
+                    backup_file=backup,
+                )
+
+        # Scadenze: riferimenti orfani a fascicoli/appuntamenti non devono bloccare l'utente.
+        for scadenza in scadenze:
+            old_fascicolo = str(scadenza.get("id_fascicolo") or "").strip()
+            if old_fascicolo and old_fascicolo not in id_fascicoli:
+                backup = _mark_touched("scadenze")
+                candidate = _find_fascicolo(scadenza, old_fascicolo)
+                if candidate and candidate.get("id"):
+                    scadenza["id_fascicolo"] = candidate["id"]
+                    details = f"Ricollegato al fascicolo reale {candidate.get('numero') or candidate.get('id')}."
+                    _repair_metadata(scadenza, details)
+                    _append_repair(
+                        chiave="scadenze",
+                        record=scadenza,
+                        campo="id_fascicolo",
+                        tipo="RIFERIMENTO_MANCANTE",
+                        azione="ricollegato_fascicolo",
+                        dettagli=details,
+                        old=old_fascicolo,
+                        new=candidate.get("id"),
+                        backup_file=backup,
+                    )
+                else:
+                    scadenza["id_fascicolo"] = ""
+                    details = (
+                        f"Scollegato riferimento a fascicolo inesistente {old_fascicolo!r}; "
+                        "nessun fascicolo reale univoco trovato."
+                    )
+                    self._append_repair_note(scadenza, f"Riparazione integrita {ts_label}: {details}")
+                    _repair_metadata(scadenza, details)
+                    _append_repair(
+                        chiave="scadenze",
+                        record=scadenza,
+                        campo="id_fascicolo",
+                        tipo="RIFERIMENTO_MANCANTE",
+                        azione="scollegato_fascicolo_inesistente",
+                        dettagli=details,
+                        old=old_fascicolo,
+                        backup_file=backup,
+                    )
+
+            old_app = str(scadenza.get("id_appuntamento") or "").strip()
+            if old_app and old_app not in id_appuntamenti:
+                backup = _mark_touched("scadenze")
+                scadenza["id_appuntamento"] = ""
+                details = f"Scollegato riferimento ad appuntamento inesistente {old_app!r}."
+                self._append_repair_note(scadenza, f"Riparazione integrita {ts_label}: {details}")
+                _repair_metadata(scadenza, details)
+                _append_repair(
+                    chiave="scadenze",
+                    record=scadenza,
+                    campo="id_appuntamento",
+                    tipo="RIFERIMENTO_MANCANTE",
+                    azione="scollegato_appuntamento_inesistente",
+                    dettagli=details,
+                    old=old_app,
+                    backup_file=backup,
+                )
+
+        # Messaggi: se cliente/fascicolo non sono piu' presenti, conservare il messaggio.
+        for messaggio in messaggi:
+            old_cliente = str(messaggio.get("id_cliente") or "").strip()
+            if old_cliente and old_cliente not in id_clienti:
+                backup = _mark_touched("messaggi")
+                candidate = clienti_by_email.get(_norm(messaggio.get("email_destinatario")))
+                if candidate and candidate.get("id"):
+                    messaggio["id_cliente"] = candidate["id"]
+                    details = "Ricollegato cliente reale tramite email destinatario."
+                    _repair_metadata(messaggio, details)
+                    _append_repair(
+                        chiave="messaggi",
+                        record=messaggio,
+                        campo="id_cliente",
+                        tipo="RIFERIMENTO_MANCANTE",
+                        azione="ricollegato_cliente",
+                        dettagli=details,
+                        old=old_cliente,
+                        new=candidate.get("id"),
+                        backup_file=backup,
+                    )
+                else:
+                    messaggio["id_cliente"] = ""
+                    details = f"Scollegato riferimento a cliente inesistente {old_cliente!r}."
+                    _repair_metadata(messaggio, details)
+                    _append_repair(
+                        chiave="messaggi",
+                        record=messaggio,
+                        campo="id_cliente",
+                        tipo="RIFERIMENTO_MANCANTE",
+                        azione="scollegato_cliente_inesistente",
+                        dettagli=details,
+                        old=old_cliente,
+                        backup_file=backup,
+                    )
+
+            old_fascicolo = str(messaggio.get("id_fascicolo") or "").strip()
+            if old_fascicolo and old_fascicolo not in id_fascicoli:
+                backup = _mark_touched("messaggi")
+                candidate = _find_fascicolo(messaggio, old_fascicolo)
+                if candidate and candidate.get("id"):
+                    messaggio["id_fascicolo"] = candidate["id"]
+                    details = f"Ricollegato al fascicolo reale {candidate.get('numero') or candidate.get('id')}."
+                    _repair_metadata(messaggio, details)
+                    _append_repair(
+                        chiave="messaggi",
+                        record=messaggio,
+                        campo="id_fascicolo",
+                        tipo="RIFERIMENTO_MANCANTE",
+                        azione="ricollegato_fascicolo",
+                        dettagli=details,
+                        old=old_fascicolo,
+                        new=candidate.get("id"),
+                        backup_file=backup,
+                    )
+                else:
+                    messaggio["id_fascicolo"] = ""
+                    details = f"Scollegato riferimento a fascicolo inesistente {old_fascicolo!r}."
+                    _repair_metadata(messaggio, details)
+                    _append_repair(
+                        chiave="messaggi",
+                        record=messaggio,
+                        campo="id_fascicolo",
+                        tipo="RIFERIMENTO_MANCANTE",
+                        azione="scollegato_fascicolo_inesistente",
+                        dettagli=details,
+                        old=old_fascicolo,
+                        backup_file=backup,
+                    )
+
+        for chiave in sorted(touched):
+            try:
+                self._scrivi_json_grezzo(chiave, raw_by_key[chiave])
+            except Exception as exc:
+                errori.append(f"{chiave}: salvataggio riparazione non riuscito: {exc}")
+
+        problemi_residui = self.verifica_integrita()
+        return {
+            "ok": not errori,
+            "riparazioni": [riparazione.to_dict() for riparazione in riparazioni],
+            "n_riparazioni": len(riparazioni),
+            "backup_files": [path for path in backup_files.values() if path],
+            "problemi_residui": [problema.to_dict() for problema in problemi_residui],
+            "n_problemi_residui": len(problemi_residui),
+            "errori": errori,
+            "ms": int((time.monotonic() - t0) * 1000),
+        }
+
     # ---------------------------------------------------------------- Ottimizzazione
 
     def ottimizza(self) -> List[RisultatoOttimizzazione]:
@@ -973,14 +1325,23 @@ class GestioneDatabase:
             dim_pre = search_p.stat().st_size
             try:
                 conn = sqlite3.connect(str(search_p))
-                table_name = self._search_index_documenti_table(conn)
-                if not table_name:
-                    raise RuntimeError("Tabella documenti non trovata nell'indice di ricerca")
-                conn.execute(f"INSERT INTO {table_name}({table_name}) VALUES('optimize')")
-                conn.execute("VACUUM")
-                conn.execute("ANALYZE")
-                conn.commit()
-                conn.close()
+                try:
+                    table_name = self._search_index_documenti_table(conn)
+                    if not table_name:
+                        raise RuntimeError("Tabella documenti non trovata nell'indice di ricerca")
+                    conn.execute(f"INSERT INTO {table_name}({table_name}) VALUES('optimize')")
+                    conn.commit()
+                finally:
+                    conn.close()
+
+                # VACUUM richiede autocommit e non puo' essere eseguito nella
+                # transazione aperta dall'ottimizzazione FTS.
+                conn = sqlite3.connect(str(search_p), isolation_level=None)
+                try:
+                    conn.execute("VACUUM")
+                    conn.execute("ANALYZE")
+                finally:
+                    conn.close()
                 dim_post = search_p.stat().st_size
                 ms = int((time.monotonic() - t0) * 1000)
                 risultati.append(RisultatoOttimizzazione(

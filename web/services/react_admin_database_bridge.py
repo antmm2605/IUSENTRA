@@ -141,6 +141,7 @@ def _actions_payload() -> dict[str, str]:
     return {
         "refresh": "/api/v1/ui/admin/database",
         "verify": "/admin/database/verifica",
+        "repair": "/admin/database/verifica-ripara",
         "optimize": "/admin/database/ottimizza",
         "migrate": "/admin/database/migra",
         "activateSqlite": "/admin/database/attiva-sqlite",

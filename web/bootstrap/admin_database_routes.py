@@ -19,6 +19,17 @@ def register_admin_database_routes(
 ) -> None:
     """Register admin database inspection, optimization, export, and migration routes."""
 
+    def _problem_payload(problema) -> dict:
+        return {
+            "livello": problema.severita,
+            "modulo": problema.modulo,
+            "tipo": problema.tipo,
+            "descrizione": problema.messaggio,
+            "id_risorsa": problema.id_record,
+            "campo": problema.campo,
+            "suggerimento": problema.suggerimento,
+        }
+
     @app.route("/admin/database")
     def admin_database():
         """Dashboard gestione database solo amministratori."""
@@ -52,18 +63,38 @@ def register_admin_database_routes(
             {
                 "ok": True,
                 "n_problemi": len(problemi),
-                "problemi": [
-                    {
-                        "livello": problema.severita,
-                        "modulo": problema.modulo,
-                        "tipo": problema.tipo,
-                        "descrizione": problema.messaggio,
-                        "id_risorsa": problema.id_record,
-                        "campo": problema.campo,
-                        "suggerimento": problema.suggerimento,
-                    }
-                    for problema in problemi
-                ],
+                "n_riparazioni": 0,
+                "riparazioni": [],
+                "problemi": [_problem_payload(problema) for problema in problemi],
+            }
+        )
+
+    @app.route("/admin/database/verifica-ripara", methods=["POST"])
+    def admin_database_verifica_ripara():
+        """Verifica e ripara automaticamente i problemi risolvibili."""
+        utente = g.utente_corrente
+        if not utente or not utente.ha_permesso("utenti.leggi"):
+            return jsonify({"errore": "Non autorizzato"}), 403
+        database = get_database()
+        report = database.ripara_integrita()
+        problemi = database.verifica_integrita()
+        audit(
+            "database.verifica_ripara_integrita",
+            dettagli=(
+                f"riparazioni={report.get('n_riparazioni', 0)}; "
+                f"residui={len(problemi)}"
+            ),
+        )
+        return jsonify(
+            {
+                "ok": bool(report.get("ok", True)) and not problemi,
+                "n_problemi": len(problemi),
+                "problemi": [_problem_payload(problema) for problema in problemi],
+                "n_riparazioni": int(report.get("n_riparazioni", 0) or 0),
+                "riparazioni": report.get("riparazioni", []),
+                "backup_files": report.get("backup_files", []),
+                "errori": report.get("errori", []),
+                "durata_ms": report.get("ms", 0),
             }
         )
 

@@ -38,12 +38,15 @@
 .iu-db-operation-alert--info{border-color:rgba(37,99,235,.24);background:rgba(37,99,235,.08);color:var(--iu-blue-700)}
 .iu-db-operation-alert--warning{border-color:rgba(245,158,11,.28);background:rgba(245,158,11,.1);color:#92400e}
 .iu-db-operation-alert--danger{border-color:rgba(239,68,68,.24);background:rgba(239,68,68,.09);color:#b91c1c}
+.iu-db-integrity-result{display:grid;gap:10px}
 .iu-db-okline{display:flex;align-items:center;gap:8px;min-height:34px;padding:0 11px;border-radius:10px;background:rgba(16,185,129,.1);color:#047857;font-size:12px;font-weight:850}
-.iu-db-problems{display:grid;gap:8px}
-.iu-db-problems article{display:grid;gap:5px;padding:10px;border:1px solid var(--iu-border);border-radius:12px;background:#fff}
-.iu-db-problems strong{color:#0f172a;font-size:13px}
-.iu-db-problems span,.iu-db-problems small{color:var(--iu-slate-600);font-size:12px;font-weight:720;line-height:1.35}
+.iu-db-problems,.iu-db-repairs{display:grid;gap:8px}
+.iu-db-problems article,.iu-db-repairs article{display:grid;gap:5px;padding:10px;border:1px solid var(--iu-border);border-radius:12px;background:#fff}
+.iu-db-repairs article{border-color:rgba(16,185,129,.22);background:rgba(240,253,250,.72)}
+.iu-db-problems strong,.iu-db-repairs strong{color:#0f172a;font-size:13px}
+.iu-db-problems span,.iu-db-problems small,.iu-db-repairs span,.iu-db-repairs small{color:var(--iu-slate-600);font-size:12px;font-weight:720;line-height:1.35}
 .iu-db-problems small{color:#92400e}
+.iu-db-repairs small{color:#047857}
 .iu-db-mini-table{display:grid;gap:8px}
 .iu-db-mini-table>div{display:grid;grid-template-columns:minmax(120px,1.1fr) auto minmax(160px,2fr) auto;align-items:center;gap:9px;padding:9px;border:1px solid var(--iu-border);border-radius:12px;background:#fff}
 .iu-db-mini-table strong{display:block;color:#0f172a;font-size:13px}

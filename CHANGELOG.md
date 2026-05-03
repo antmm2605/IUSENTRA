@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.198.39 - 2026-05-03
+
+- Resa operativa la riparazione automatica da `/admin/database`: il pulsante React ora esegue `POST /admin/database/verifica-ripara`, crea backup JSON prima della scrittura e risolve i riferimenti orfani senza inventare fascicoli o clienti.
+- Le scadenze collegate a fascicoli inesistenti vengono scollegate in modo sicuro quando non esiste un fascicolo reale univoco, conservando l'identificativo originale in note e metadati di riparazione.
+- Corretto `VACUUM` sull'indice `search_index`: l'ottimizzazione SQLite ora esegue `VACUUM` fuori da transazioni aperte, evitando l'errore `cannot VACUUM from within a transaction`.
+
 ## 2.198.38 - 2026-05-03
 
 - Migrato `GET /admin/database` nella shell React con contratto operativo completo: payload reale `/api/v1/ui/admin/database`, statistiche repository, verifica integrita', ottimizzazione, migrazione SQLite, attivazione SQLite ed export ZIP collegati alle route Flask amministrative esistenti.

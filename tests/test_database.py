@@ -333,6 +333,43 @@ def test_verifica_integrita_fk_fascicolo_cliente_mancante(tmp_path):
     fk = [p for p in problemi if p.tipo == "RIFERIMENTO_MANCANTE"]
     assert len(fk) >= 1
 
+
+def test_ripara_integrita_scollega_scadenze_orfane_con_backup(tmp_path):
+    scadenze_path = tmp_path / "scadenze.json"
+    _scrivi_json(tmp_path / "clienti.json", [])
+    _scrivi_json(tmp_path / "fascicoli.json", [])
+    _scrivi_json(tmp_path / "agenda.json", [])
+    _scrivi_json(scadenze_path, [{
+        "id": "s_orfana",
+        "titolo": "Termine memoria",
+        "data_scadenza": "2026-05-10",
+        "id_fascicolo": "8946FCC7",
+    }])
+    _scrivi_json(tmp_path / "messaggi.json", [])
+
+    db2 = GestioneDatabase({
+        "clienti": str(tmp_path / "clienti.json"),
+        "fascicoli": str(tmp_path / "fascicoli.json"),
+        "appuntamenti": str(tmp_path / "agenda.json"),
+        "scadenze": str(scadenze_path),
+        "messaggi": str(tmp_path / "messaggi.json"),
+    })
+
+    assert any(p.modulo == "scadenze" and p.tipo == "RIFERIMENTO_MANCANTE" for p in db2.verifica_integrita())
+
+    report = db2.ripara_integrita()
+    scadenze = json.loads(scadenze_path.read_text(encoding="utf-8"))
+
+    assert report["ok"] is True
+    assert report["n_riparazioni"] == 1
+    assert report["backup_files"]
+    assert Path(report["backup_files"][0]).exists()
+    assert scadenze[0]["id_fascicolo"] == ""
+    assert "8946FCC7" in scadenze[0]["note"]
+    assert scadenze[0]["riparazioni_integrita"]
+    assert not [p for p in db2.verifica_integrita() if p.modulo == "scadenze" and p.tipo == "RIFERIMENTO_MANCANTE"]
+
+
 def test_verifica_integrita_ha_modulo(db):
     problemi = db.verifica_integrita()
     for p in problemi:
@@ -352,6 +389,16 @@ def test_ottimizza_elementi_sono_risultati(db):
         assert hasattr(r, "modulo")
         assert hasattr(r, "riuscita")
         assert hasattr(r, "operazione")
+
+
+def test_ottimizza_search_index_vacuum_fuori_transazione(db):
+    risultati = db.ottimizza()
+    indice = next(r for r in risultati if r.modulo == "search_index")
+
+    assert indice.riuscita is True
+    assert "cannot VACUUM" not in indice.dettagli
+    assert indice.operazione == "VACUUM + ANALYZE + FTS optimize"
+
 
 def test_ottimizza_json_non_rompe_file(tmp_path):
     p = tmp_path / "clienti.json"
@@ -948,6 +995,33 @@ def test_admin_database_verifica_json(client_admin):
     data = r.get_json()
     assert data["ok"] is True
     assert "problemi" in data
+
+
+def test_admin_database_verifica_ripara_json(client_admin):
+    scadenze_path = Path(client_admin.application.config["SCADENZIARIO_DB"])
+    fascicoli_path = Path(client_admin.application.config["FASCICOLI_DB"])
+    scadenze_path.parent.mkdir(parents=True, exist_ok=True)
+    fascicoli_path.parent.mkdir(parents=True, exist_ok=True)
+    _scrivi_json(fascicoli_path, [])
+    _scrivi_json(scadenze_path, [{
+        "id": "s_orfana",
+        "titolo": "Termine memoria",
+        "data_scadenza": "2026-05-10",
+        "id_fascicolo": "8946FCC7",
+    }])
+
+    r = client_admin.post("/admin/database/verifica-ripara")
+    assert r.status_code == 200
+    data = r.get_json()
+    riparata = json.loads(scadenze_path.read_text(encoding="utf-8"))[0]
+
+    assert data["ok"] is True
+    assert data["n_riparazioni"] == 1
+    assert data["n_problemi"] == 0
+    assert data["backup_files"]
+    assert riparata["id_fascicolo"] == ""
+    assert "8946FCC7" in riparata["note"]
+
 
 def test_admin_database_ottimizza_json(client_admin):
     r = client_admin.post("/admin/database/ottimizza")

@@ -167,19 +167,36 @@ function OperationAlert({ state, idleText }: { state: OperationState<unknown>; i
 
 function IntegrityResult({ result }: { result: AdminDatabaseIntegrityResult | null }) {
   if (!result) return null
-  if (!result.problemi.length) {
-    return <div className="iu-db-okline"><CheckCircle2 size={16}/>Nessuna anomalia referenziale rilevata.</div>
-  }
+  const repairs = result.riparazioni || []
+  const problems = result.problemi || []
   return (
-    <div className="iu-db-problems">
-      {result.problemi.map((problem, index) => (
-        <article key={`${problem.modulo}-${problem.tipo}-${index}`}>
-          <Badge tone={problemTone(problem.livello)}>{problem.livello || 'Avviso'}</Badge>
-          <strong>{problem.modulo} · {problem.tipo}</strong>
-          <span>{problem.descrizione}</span>
-          {problem.suggerimento ? <small>{problem.suggerimento}</small> : null}
-        </article>
-      ))}
+    <div className="iu-db-integrity-result">
+      {repairs.length ? (
+        <div className="iu-db-repairs">
+          {repairs.map((repair, index) => (
+            <article key={`${repair.modulo}-${repair.id_record}-${repair.campo}-${index}`}>
+              <Badge tone={repair.riuscita ? 'success' : 'danger'}>{repair.riuscita ? 'Riparato' : 'Errore'}</Badge>
+              <strong>{repair.modulo} · {repair.campo}</strong>
+              <span>{repair.dettagli || repair.azione}</span>
+              {repair.valore_precedente ? <small>Valore originale: {repair.valore_precedente}</small> : null}
+            </article>
+          ))}
+        </div>
+      ) : null}
+      {!problems.length ? (
+        <div className="iu-db-okline"><CheckCircle2 size={16}/>Nessuna anomalia referenziale residua.</div>
+      ) : (
+        <div className="iu-db-problems">
+          {problems.map((problem, index) => (
+            <article key={`${problem.modulo}-${problem.tipo}-${index}`}>
+              <Badge tone={problemTone(problem.livello)}>{problem.livello || 'Avviso'}</Badge>
+              <strong>{problem.modulo} · {problem.tipo}</strong>
+              <span>{problem.descrizione}</span>
+              {problem.suggerimento ? <small>{problem.suggerimento}</small> : null}
+            </article>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -309,16 +326,23 @@ export function AdminDatabasePage() {
   }, [data.summary.statusCounts])
 
   const runIntegrity = async () => {
-    setIntegrity({ status: 'loading', message: 'Verifica integrità in corso...', payload: null })
+    setIntegrity({ status: 'loading', message: 'Verifica e riparazione in corso...', payload: null })
     try {
-      const payload = await jsonRequest<AdminDatabaseIntegrityResult>(data.actions.verify)
+      const payload = await jsonRequest<AdminDatabaseIntegrityResult>(data.actions.repair || data.actions.verify, { method: 'POST' })
+      const repairs = payload.n_riparazioni || payload.riparazioni?.length || 0
+      const message = payload.n_problemi
+        ? `${repairs} problemi riparati, ${payload.n_problemi} anomalie residue da presidiare.`
+        : repairs
+          ? `${repairs} problemi riparati automaticamente. Integrità residua pulita.`
+          : 'Integrità verificata senza anomalie.'
       setIntegrity({
         status: payload.n_problemi ? 'error' : 'success',
-        message: payload.n_problemi ? `${payload.n_problemi} problemi rilevati.` : 'Integrità verificata senza anomalie.',
+        message,
         payload,
       })
+      await loadData()
     } catch (caught) {
-      setIntegrity({ status: 'error', message: caught instanceof Error ? caught.message : 'Verifica non completata.', payload: null })
+      setIntegrity({ status: 'error', message: caught instanceof Error ? caught.message : 'Riparazione non completata.', payload: null })
     }
   }
 
@@ -394,15 +418,15 @@ export function AdminDatabasePage() {
 
           <Panel
             title="Verifica integrità"
-            subtitle="Controllo referenziale sui moduli dati con audit amministrativo."
+            subtitle="Controllo referenziale con riparazione automatica dei problemi risolvibili."
             icon={<SearchCheck size={17}/>}
             action={(
               <button type="button" className="iu-button iu-button--primary" onClick={runIntegrity} disabled={integrity.status === 'loading'}>
-                <SearchCheck size={15}/>{integrity.status === 'loading' ? 'Verifico...' : 'Verifica'}
+                <SearchCheck size={15}/>{integrity.status === 'loading' ? 'Riparo...' : 'Verifica e ripara'}
               </button>
             )}
           >
-            <OperationAlert state={integrity as OperationState<unknown>} idleText="Avvia la verifica per leggere lo stato referenziale corrente."/>
+            <OperationAlert state={integrity as OperationState<unknown>} idleText="Avvia il controllo: i problemi referenziali risolvibili vengono corretti automaticamente."/>
             <IntegrityResult result={integrity.payload}/>
           </Panel>
 

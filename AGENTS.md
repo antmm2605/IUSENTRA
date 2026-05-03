@@ -115,6 +115,7 @@ Quando il lavoro riguarda persistenza, tenant, JSON, SQLite, SQL o PostgreSQL:
 - non salvare dati runtime in path repository;
 - usare percorsi scrivibili e tenant-aware;
 - mantenere parita' JSON / SQLite / PostgreSQL dove prevista;
+- i controlli di integrita' esposti all'utente devono riparare automaticamente i problemi risolvibili senza richiedere conoscenze tecniche: prima backup, poi correzione auditata; se manca un dato reale univoco, non inventare record ma scollegare/annotare il riferimento rotto e conservare l'identificativo originale;
 - aggiornare migrazioni, repository, test e documentazione.
 
 ### Regole per deploy e produzione

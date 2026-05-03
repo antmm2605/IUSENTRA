@@ -1564,6 +1564,7 @@ def test_react_admin_database_operativo_secondo_pattern_oss(tmp_path: Path):
     assert "/api/v1/ui/admin/database" in data_source
     assert "mock_fallback" in data_source
     assert "data.actions.verify" in page_source
+    assert "data.actions.repair" in page_source
     assert "data.actions.optimize" in page_source
     assert "data.actions.migrate" in page_source
     assert "data.actions.activateSqlite" in page_source
@@ -1583,9 +1584,11 @@ def test_react_admin_database_operativo_secondo_pattern_oss(tmp_path: Path):
         legacy = client.get("/admin/database?_legacy=1")
         payload_response = client.get("/api/v1/ui/admin/database")
         verify_response = client.get("/admin/database/verifica")
+        repair_response = client.post("/admin/database/verifica-ripara")
 
     payload = payload_response.get_json()
     verify_payload = verify_response.get_json()
+    repair_payload = repair_response.get_json()
     assert shell.status_code == 200
     assert "IUSENTRA - React Shell" in shell.get_data(as_text=True)
     assert "Operatore Test" in shell.get_data(as_text=True)
@@ -1596,6 +1599,7 @@ def test_react_admin_database_operativo_secondo_pattern_oss(tmp_path: Path):
     assert payload["contracts"]["mock_fallback"] is False
     assert payload["contracts"]["writes"] == "operational_routes"
     assert payload["actions"]["verify"] == "/admin/database/verifica"
+    assert payload["actions"]["repair"] == "/admin/database/verifica-ripara"
     assert payload["actions"]["optimize"] == "/admin/database/ottimizza"
     assert payload["actions"]["migrate"] == "/admin/database/migra"
     assert payload["actions"]["activateSqlite"] == "/admin/database/attiva-sqlite"
@@ -1605,6 +1609,8 @@ def test_react_admin_database_operativo_secondo_pattern_oss(tmp_path: Path):
     assert verify_response.status_code == 200
     assert verify_payload["ok"] is True
     assert "problemi" in verify_payload
+    assert repair_response.status_code == 200
+    assert "riparazioni" in repair_payload
 
 
 def test_pst_acquisizione_usa_lookup_uffici_reali_importati(tmp_path: Path):

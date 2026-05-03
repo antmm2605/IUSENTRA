@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.198.44 - 2026-05-03
+
+- Corretto `/admin/installazione-pack`: il servizio `Orchestratore Lex` viene valutato sulla presenza reale dei moduli Lex del Product Pack, senza ereditarne impropriamente lo stato di Ollama.
+- Aggiunta la sezione `Dipendenze runtime locali`, che espone separatamente lo stato reale del provider AI locale, endpoint configurato e chunk RAG pendenti.
+
 ## 2.198.43 - 2026-05-03
 
 - Corretto lo snapshot SQLite di `/admin/database`: un errore sulla tabella virtuale tecnica `search_documenti` non marca piu' l'intero database come assente.

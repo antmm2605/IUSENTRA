@@ -12,7 +12,11 @@ from pct.installation_packs import (
 from pct.tenant import GestioneTenant
 from tests.test_web_bootstrap import _cfg_web, _write_studio_config
 from web.app import create_app
-from web.services.installation_pack_surface import build_installation_pack_surface
+from web.services.installation_pack_surface import (
+    _runtime_dependency_cards,
+    _service_runtime_cards,
+    build_installation_pack_surface,
+)
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -116,8 +120,50 @@ def test_installation_pack_surface_e_route_admin_sono_accessibili_al_superadmin(
     assert "Il SUPERADMIN installa il prodotto" in html
     assert "Bootstrap macchina" in html
     assert "Update Pack e repository SQL" in html
+    assert "Dipendenze runtime locali" in html
 
     assert api.status_code == 200
     api_payload = api.get_json()
     assert api_payload["selected_studio_pack"]["studio_slug"] == studio.slug
     assert api_payload["headline"]["product_services"] >= 6
+    assert api_payload["runtime_dependencies"]
+
+
+def test_installation_pack_separa_lex_da_provider_ai_locale(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    cfg = _cfg_web(tmp_path)
+    app = create_app(cfg)
+    product_pack = {
+        "signature": "firma-test",
+        "services": list(SYSTEM_SERVICE_DEFINITIONS),
+    }
+    observability = {
+        "providers": {
+            "local_ai": {
+                "settings": {"enabled": True},
+                "runtime": {
+                    "status": "missing",
+                    "api_base_url": "http://127.0.0.1:11434/api",
+                    "last_error": "Ollama non raggiungibile",
+                },
+                "runtime_online": False,
+                "counts": {
+                    "chunks_total": 5,
+                    "chunks_pending": 5,
+                },
+            }
+        }
+    }
+
+    with app.app_context():
+        services = _service_runtime_cards(product_pack, observability)
+        dependencies = _runtime_dependency_cards(observability)
+
+    lex_card = next(item for item in services if item["service_id"] == "iusentra-lex")
+    local_ai_card = next(item for item in dependencies if item["dependency_id"] == "local_ai_provider")
+
+    assert lex_card["status"] == "ok"
+    assert "AI locale non ancora pronta" not in lex_card["detail"]
+    assert local_ai_card["status"] == "warning"
+    assert "Ollama non raggiungibile" in local_ai_card["detail"]
+    assert "Chunk RAG: 5 pendenti su 5" in local_ai_card["meta"]

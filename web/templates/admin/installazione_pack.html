@@ -220,8 +220,27 @@
               {% for item in payload.service_runtime %}
               <li>
                 <span class="fw-semibold">{{ item.label }}</span>
-                <span class="badge text-bg-{{ 'success' if item.status == 'ok' else 'warning' }} ms-1">{{ item.status|upper }}</span>
+                <span class="badge text-bg-{{ 'success' if item.status == 'ok' else ('danger' if item.status == 'danger' else 'warning') }} ms-1">{{ item.status|upper }}</span>
                 <div class="text-muted">{{ item.detail }}</div>
+              </li>
+              {% endfor %}
+            </ul>
+          </div>
+          <div class="admin-surface-item">
+            <div class="small text-muted">Dipendenze runtime locali</div>
+            <ul class="mb-0 small">
+              {% for item in payload.runtime_dependencies %}
+              <li>
+                <span class="fw-semibold">{{ item.label }}</span>
+                <span class="badge text-bg-{{ 'success' if item.status == 'ok' else ('danger' if item.status == 'danger' else 'warning') }} ms-1">{{ item.status|upper }}</span>
+                <div class="text-muted">{{ item.detail }}</div>
+                {% if item.meta %}
+                <ul class="mt-1 mb-0 text-muted">
+                  {% for meta in item.meta %}
+                  <li>{{ meta }}</li>
+                  {% endfor %}
+                </ul>
+                {% endif %}
               </li>
               {% endfor %}
             </ul>

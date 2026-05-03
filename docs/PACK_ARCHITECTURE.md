@@ -126,6 +126,8 @@ Il bootstrap applicativo inizializza in modo idempotente:
 
 La rigenerazione governata e manuale resta esposta dal `SUPERADMIN` nel pannello `Pack installazione`.
 
+Nel pannello `/admin/installazione-pack` i servizi del `Product Pack` indicano la presenza del prodotto distribuibile. Le dipendenze runtime locali, come il provider AI/Ollama, sono mostrate in una sezione separata: un provider locale non pronto non deve trasformare in warning il servizio `Orchestratore Lex` quando i moduli Lex del prodotto sono installati e importabili.
+
 ## Chiavi e identita'
 
 Per ogni installazione vengono inizializzate:

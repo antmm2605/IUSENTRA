@@ -31,6 +31,110 @@
 - Persistenza: file JSON per clienti, fascicoli, agenda, ecc.
 - Stack: Python 3, Flask, Bootstrap 5, Bootstrap Icons
 
+## Mappa documentale obbligatoria per agenti AI
+
+Prima di implementare qualunque modifica, l'agente deve consultare la documentazione interna della repository. Non e' ammesso lavorare solo sul singolo file richiesto senza verificare i documenti collegati al dominio interessato.
+
+`AGENTS.md` resta il file principale e canonico per le istruzioni operative degli agenti. Se esiste anche `agents.md` minuscolo, va trattato come mirror legacy o copia di compatibilita', non come fonte divergente.
+
+### Riferimenti obbligatori
+
+- `docs/` - fonte primaria per PRD, architettura, storage, sicurezza, pack architecture, roadmap, Lex AI, governance prodotto e documentazione tecnica/funzionale.
+- `docs/specs/ministero/` - fonte obbligatoria per specifiche ministeriali, deposito telematico, PCT/PST/PolisWeb, PDP, PAT/SIGA, PTT/SIGIT, SIGP/Giudice di Pace, DatiAtto.xml, busta telematica, firme, PEC, XML/XSD, allegati e vincoli ministeriali.
+- `deploy/hetzner/` - fonte obbligatoria per produzione su VPS, Docker, PostgreSQL, volumi `/data`, backup, restore, hardening, reverse proxy, HTTPS/TLS e verifiche server.
+- `.github/` - fonte obbligatoria per workflow, CI, lint, syntax check, test, coverage, quality gate, CodeQL, sicurezza supply-chain e automazioni GitHub.
+- `ops/` - fonte obbligatoria per runbook, procedure operative, manutenzione, deploy, incident response, troubleshooting, restore, monitoraggio e verifiche post-release.
+- `tools/CODEX_SUPPORT_STACK.md` - mappa operativa degli strumenti di supporto a Codex, MetaHarness, autoresearch-lite, Open Design support e quality gate.
+
+### Regola di consultazione
+
+Se una richiesta tocca piu' aree, l'agente deve consultare tutte le cartelle pertinenti.
+
+Esempio: una modifica al deposito telematico deve verificare almeno `AGENTS.md`, `docs/`, `docs/specs/ministero/`, codice interessato e test collegati.
+
+Una modifica al deploy deve verificare almeno `AGENTS.md`, `deploy/hetzner/`, `ops/`, `.github/` e i file Docker/CI collegati.
+
+### Ordine di priorita'
+
+Quando esistono indicazioni divergenti, seguire questo ordine:
+
+1. richiesta corrente dell'utente;
+2. `AGENTS.md`;
+3. documenti tecnici in `docs/`;
+4. specifiche in `docs/specs/ministero/`;
+5. procedure operative in `ops/`;
+6. deploy in `deploy/hetzner/`;
+7. CI e automazioni in `.github/`;
+8. codice esistente e test;
+9. fonti ufficiali esterne, solo quando il dato non e' gia' certo nella repository.
+
+### Regole per il telematico
+
+Quando il lavoro riguarda PCT, PST, PolisWeb, PDP, PAT, PTT, SIGP, buste, PEC, firme, XML/XSD o deposito telematico:
+
+- non inventare norme, endpoint, campi XML o vincoli ministeriali;
+- consultare sempre `docs/specs/ministero/`;
+- evitare scraping HTML non autorizzato dei portali;
+- non salvare PIN, credenziali CNS/CIE/SPID o sessioni portale nel cloud;
+- distinguere norma certa, specifica tecnica, prassi locale, fallback prudente e punto da verificare;
+- se un dato non e' certo, implementare warning professionali e configurabili, non blocchi arbitrari;
+- mantenere coerenza tra dominio, storage, route/API, UI, test, documentazione e deploy quando coinvolti.
+
+### Regole per Lex AI e RAG
+
+Quando il lavoro riguarda Lex AI, assistente fascicolo, RAG, retrieval o fonti:
+
+- consultare la documentazione AI/Lex in `docs/`;
+- non usare limiti fissi che tagliano documenti o sezioni del fascicolo senza inventario completo;
+- Lex deve conoscere l'inventario completo del fascicolo, anche quando il testo integrale viene selezionato con ranking;
+- distinguere fatti certi, inferenze, lacune e suggerimenti;
+- citare fonti interne o ufficiali quando richiesto;
+- non generare contenuti legali non verificati come se fossero certi.
+
+### Regole per UI e app-v2
+
+Quando il lavoro riguarda UI React, Flask, template, rotte o pagine app-v2:
+
+- consultare `docs/` e le pagine/componenti esistenti;
+- mantenere UI professionale, responsive desktop/tablet/mobile;
+- testo visibile sempre in italiano;
+- date e ore in formato italiano tramite filtri condivisi;
+- card operative con azioni reali, non placeholder;
+- Lex AI floating icon dove previsto;
+- nessuna pagina deve restare scollegata da menu, route o API necessarie.
+
+### Regole per storage e dati
+
+Quando il lavoro riguarda persistenza, tenant, JSON, SQLite, SQL o PostgreSQL:
+
+- consultare la storage matrix e l'architettura in `docs/`;
+- non introdurre fallback silenziosi;
+- non salvare dati runtime in path repository;
+- usare percorsi scrivibili e tenant-aware;
+- mantenere parita' JSON / SQLite / PostgreSQL dove prevista;
+- aggiornare migrazioni, repository, test e documentazione.
+
+### Regole per deploy e produzione
+
+Quando il lavoro riguarda Hetzner, Docker, PostgreSQL, volumi, backup, restore o produzione:
+
+- consultare `deploy/hetzner/` e `ops/`;
+- non salvare segreti nel repository;
+- non inserire dati studio nel Product Pack;
+- documentare rollback e verifiche post-deploy;
+- verificare log, stato servizi, route principali e persistenza;
+- mantenere separati Product Pack, Studio Local Pack e Update Pack.
+
+### Regole per CI e quality gate
+
+Quando il lavoro riguarda `.github/`, test, coverage o quality gate:
+
+- non disattivare workflow per far passare una patch;
+- non abbassare soglie coverage senza motivazione documentata;
+- non marcare test critici come `skip` per aggirare regressioni;
+- aggiornare test quando cambia comportamento reale;
+- distinguere gate minimo verde dal target utente del 100% coverage critica.
+
 ## Storage SQL obbligatorio — REGOLA OBBLIGATORIA
 
 - Ogni nuova funzionalita', refactor strutturale o nuovo dominio persistente deve avere una **struttura SQL esplicita**, non solo supporto PostgreSQL runtime.

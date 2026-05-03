@@ -115,7 +115,7 @@ def check_docs(files: list[str], policy: dict) -> list[str]:
     violations: list[str] = []
     protected_files = {normalize(item) for item in policy["protected_files"]}
     allowed_dirs = ["docs/", "tools/"]
-    allowed_files = {"README.md", "AGENTS.md", "CHANGELOG.md"}
+    allowed_files = {"README.md", "AGENTS.md", "agents.md", "CHANGELOG.md"}
     for path in files:
         if path in protected_files:
             violations.append(f"File protetto modificato: {path}")

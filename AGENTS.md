@@ -478,6 +478,7 @@ python -m pytest tests/ -v
   - dati persistenti: `/opt/iusentra/data`
   - backup: `/opt/iusentra/backups`
   - dominio pubblico: `https://app.iusentra.it`
+- Dopo ogni commit/push completato sui branch locali e remoti `claude/legal-electronic-filing-kIxcV` e `Codex/legal-electronic-filing-kIxcV`, aggiornare sempre anche Hetzner CPX42: il server remoto deve ricevere lo stesso commit tramite deploy reale, con backup prima del deploy e verifiche post-deploy. Non dichiarare concluso il lavoro se GitHub e' sincronizzato ma `/opt/iusentra/repo` su Hetzner CPX42 e' rimasto al commit precedente.
 - Prima di ogni deploy Hetzner reale creare un backup dati remoto:
   ```bash
   ssh iusentra-hetzner "bash /opt/iusentra/repo/deploy/hetzner/backup.sh"

@@ -2489,6 +2489,7 @@ class GestioneDatabase:
         p = Path(percorso_db)
         if not p.exists():
             return None
+        conn: Optional[sqlite3.Connection] = None
         try:
             conn = sqlite3.connect(str(p))
             tables = [r[0] for r in conn.execute(
@@ -2502,18 +2503,23 @@ class GestioneDatabase:
                 """
             ).fetchall()]
             stats = {}
+            table_errors: Dict[str, str] = {}
             for t in tables:
-                row = conn.execute(f"SELECT COUNT(*) FROM {t}").fetchone()
-                stats[t] = row[0] if row else 0
+                quoted = '"' + str(t).replace('"', '""') + '"'
+                try:
+                    row = conn.execute(f"SELECT COUNT(*) FROM {quoted}").fetchone()
+                    stats[t] = row[0] if row else 0
+                except Exception as exc:
+                    stats[t] = 0
+                    table_errors[str(t)] = str(exc)
 
             # Page info
             page_size = conn.execute("PRAGMA page_size").fetchone()[0]
             page_count = conn.execute("PRAGMA page_count").fetchone()[0]
             free_pages = conn.execute("PRAGMA freelist_count").fetchone()[0]
 
-            conn.close()
             size = p.stat().st_size
-            return {
+            payload = {
                 "tabelle": stats,
                 "dimensione": _fmt_bytes(size),
                 "dimensione_bytes": size,
@@ -2523,8 +2529,18 @@ class GestioneDatabase:
                 "page_size": page_size,
                 "esiste": True,
             }
+            if table_errors:
+                payload["errore"] = (
+                    "Snapshot presente con avvisi: alcune tabelle tecniche non sono "
+                    "conteggiabili e sono state escluse dal totale visibile."
+                )
+                payload["errori_tabelle"] = table_errors
+            return payload
         except Exception as e:
             return {"esiste": False, "errore": str(e)}
+        finally:
+            if conn is not None:
+                conn.close()
 
 
 # ================================================================ Utility

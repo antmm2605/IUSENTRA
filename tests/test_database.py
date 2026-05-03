@@ -959,6 +959,55 @@ def test_statistiche_sqlite_esistente(db, tmp_path):
     assert info["frammentazione_pct"] >= 0
 
 
+def test_statistiche_sqlite_non_marca_assente_se_vtable_search_fallisce(db, tmp_path, monkeypatch):
+    db_path = tmp_path / "snapshot.db"
+    db_path.write_bytes(b"sqlite placeholder")
+
+    class FakeCursor:
+        def __init__(self, rows):
+            self.rows = rows
+
+        def fetchall(self):
+            return self.rows
+
+        def fetchone(self):
+            return self.rows[0] if self.rows else None
+
+    class FakeConnection:
+        closed = False
+
+        def execute(self, sql: str):
+            if "FROM sqlite_master" in sql:
+                return FakeCursor([("clienti",), ("search_documenti",)])
+            if 'COUNT(*) FROM "clienti"' in sql:
+                return FakeCursor([(2,)])
+            if 'COUNT(*) FROM "search_documenti"' in sql:
+                raise sqlite3.DatabaseError("vtable constructor failed: search_documenti")
+            if sql == "PRAGMA page_size":
+                return FakeCursor([(4096,)])
+            if sql == "PRAGMA page_count":
+                return FakeCursor([(4,)])
+            if sql == "PRAGMA freelist_count":
+                return FakeCursor([(1,)])
+            raise AssertionError(sql)
+
+        def close(self):
+            self.closed = True
+
+    fake = FakeConnection()
+    monkeypatch.setattr(sqlite3, "connect", lambda *_args, **_kwargs: fake)
+
+    info = db.statistiche_sqlite(str(db_path))
+
+    assert info is not None
+    assert info["esiste"] is True
+    assert info["tabelle"]["clienti"] == 2
+    assert info["tabelle"]["search_documenti"] == 0
+    assert "Snapshot presente con avvisi" in info["errore"]
+    assert "search_documenti" in info["errori_tabelle"]
+    assert fake.closed is True
+
+
 # ================================================================ Route web admin/database
 
 def test_create_app_bootstrap_moduli_monitorati(tmp_path):

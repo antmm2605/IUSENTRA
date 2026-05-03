@@ -53,6 +53,7 @@ Legenda:
 - `Uffici giudiziari e PEC` resta runtime JSON-first per la cache storica degli uffici, ma ora ha schema SQLite/PostgreSQL esplicito e report di verifica con fonti PST/IPA distinte; il cutover R/W SQL richiede repository tenant-aware e job schedulato dedicato.
 - `admin/database` esegue la verifica referenziale con riparazione automatica dei problemi risolvibili: prima della scrittura crea backup JSON, non crea record fittizi e, quando non trova un collegamento reale univoco, scollega il riferimento orfano conservando l'ID originale in note/metadati.
 - I moduli JSON monitorati da `admin/database` che non hanno ancora una tabella verticale dedicata sono comunque migrabili con struttura esplicita SQLite/PostgreSQL: `moduli_dati` registra percorso, backend e metadati; `moduli_json_records` conserva i record normalizzati per modulo. Le tabelle dedicate restano il target preferito per i domini core, ma Calendar Sync, Email, Soggetti, Portale, Template, Wizard, Intelligence e moduli analoghi non devono risultare "non migrabili" solo perche' sono JSON runtime.
+- Lo snapshot SQLite mostrato da `admin/database` resta presente anche se una tabella tecnica derivata, come l'indice FTS `search_documenti`, non e' conteggiabile nel runtime corrente: la pagina mostra un avviso e conserva le statistiche delle altre tabelle invece di dichiarare assente l'intero database.
 
 ## Check di consistenza minimi
 

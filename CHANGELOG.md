@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.198.43 - 2026-05-03
+
+- Corretto lo snapshot SQLite di `/admin/database`: un errore sulla tabella virtuale tecnica `search_documenti` non marca piu' l'intero database come assente.
+- La lettura statistiche SQLite ora conteggia le tabelle una per una, mantiene lo snapshot presente e mostra un avviso governato quando una tabella tecnica non e' conteggiabile.
+
 ## 2.198.42 - 2026-05-03
 
 - Corretto il bootstrap dei moduli monitorati: `local_ai.db` e `telematico/workflow.db` restano database SQLite reali e non vengono piu' creati come JSON vuoti.

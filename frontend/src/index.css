@@ -132,7 +132,10 @@
   text-overflow:ellipsis;
   white-space:nowrap;
 }
-.iu-sidebar__user a{
+.iu-sidebar__user form{
+  margin:0;
+}
+.iu-sidebar__user a,.iu-sidebar__user button{
   width:30px;
   height:30px;
   flex:0 0 30px;
@@ -140,9 +143,10 @@
   place-items:center;
   border:1px solid rgba(255,255,255,.22);
   border-radius:7px;
+  background:transparent;
   color:#fff;
 }
-.iu-sidebar__user a:hover{
+.iu-sidebar__user a:hover,.iu-sidebar__user button:hover{
   background:rgba(255,255,255,.1);
 }
 .iu-sidebar--collapsed .iu-nav-primary{
@@ -164,7 +168,8 @@
   display:none;
 }
 .iu-sidebar--collapsed .iu-nav-badge,
-.iu-sidebar--collapsed .iu-sidebar__user a{
+.iu-sidebar--collapsed .iu-sidebar__user a,
+.iu-sidebar--collapsed .iu-sidebar__user form{
   display:none;
 }
 
@@ -195,7 +200,8 @@
   .iu-sidebar.iu-sidebar--mobile-open .iu-nav-section__head span{gap:9px}
   .iu-sidebar.iu-sidebar--mobile-open .iu-nav-section__head>svg{display:block}
   .iu-sidebar.iu-sidebar--mobile-open .iu-nav-badge,
-  .iu-sidebar.iu-sidebar--mobile-open .iu-sidebar__user a{display:grid}
+  .iu-sidebar.iu-sidebar--mobile-open .iu-sidebar__user a,
+  .iu-sidebar.iu-sidebar--mobile-open .iu-sidebar__user form{display:grid}
   .iu-sidebar-scrim{position:fixed;inset:0;z-index:60;display:block;border:0;background:rgba(15,23,42,.42);backdrop-filter:blur(2px)}
 }
 

@@ -3,7 +3,6 @@ import {
   AlertTriangle,
   Archive,
   Banknote,
-  Bell,
   BookOpen,
   BriefcaseBusiness,
   Building2,
@@ -13,7 +12,6 @@ import {
   CalendarSync,
   ChartColumn,
   ChevronDown,
-  CircleHelp,
   CirclePlus,
   ClipboardCheck,
   ClipboardList,
@@ -75,6 +73,7 @@ const TelematicoPage = lazy(() => import('./components/TelematicoPage').then((mo
 const TelematicoSurfacePage = lazy(() => import('./components/TelematicoSurfacePage').then((module) => ({ default: module.TelematicoSurfacePage })))
 const StudioModulePage = lazy(() => import('./components/StudioModulePage').then((module) => ({ default: module.StudioModulePage })))
 const PrivacyRegistroPage = lazy(() => import('./components/PrivacyRegistroPage').then((module) => ({ default: module.PrivacyRegistroPage })))
+const AdminDatabasePage = lazy(() => import('./components/AdminDatabasePage').then((module) => ({ default: module.AdminDatabasePage })))
 
 const toneColor: Record<Tone,string> = { danger:'var(--iu-danger-500)', warning:'var(--iu-warning-500)', primary:'var(--iu-blue-600)', success:'var(--iu-success-500)', info:'var(--iu-sky-500)', purple:'var(--iu-purple-500)', orange:'var(--iu-warning-500)', neutral:'var(--iu-slate-300)' }
 const metricIcon = { danger: AlertTriangle, primary: Mail, success: MessageCircle, purple: Clock3, orange: UsersRound, warning: AlertTriangle, info: Mail, neutral: Clock3 }
@@ -131,6 +130,64 @@ type NavSection = {
   tone?: 'admin'
 }
 
+type ShellUserProfile = {
+  id: string
+  username: string
+  displayName: string
+  role: string
+  initials: string
+}
+
+type ShellBootstrap = {
+  user: ShellUserProfile | null
+  actions: {
+    profile?: string
+    logout?: string
+  }
+}
+
+const emptyShellBootstrap: ShellBootstrap = { user: null, actions: {} }
+
+function textFromRecord(record: Record<string, unknown>, key: string): string {
+  return typeof record[key] === 'string' ? record[key].trim() : ''
+}
+
+function readShellBootstrap(): ShellBootstrap {
+  const element = document.getElementById('iusentra-react-bootstrap')
+  if (!element?.textContent) return emptyShellBootstrap
+  try {
+    const parsed = JSON.parse(element.textContent) as unknown
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return emptyShellBootstrap
+    const root = parsed as Record<string, unknown>
+    const userPayload = root.user && typeof root.user === 'object' && !Array.isArray(root.user)
+      ? root.user as Record<string, unknown>
+      : null
+    const actionsPayload = root.actions && typeof root.actions === 'object' && !Array.isArray(root.actions)
+      ? root.actions as Record<string, unknown>
+      : {}
+    const displayName = userPayload ? textFromRecord(userPayload, 'displayName') : ''
+    const username = userPayload ? textFromRecord(userPayload, 'username') : ''
+    const user = userPayload && (displayName || username)
+      ? {
+        id: textFromRecord(userPayload, 'id'),
+        username,
+        displayName: displayName || username,
+        role: textFromRecord(userPayload, 'role'),
+        initials: textFromRecord(userPayload, 'initials'),
+      }
+      : null
+    return {
+      user,
+      actions: {
+        profile: textFromRecord(actionsPayload, 'profile'),
+        logout: textFromRecord(actionsPayload, 'logout'),
+      },
+    }
+  } catch {
+    return emptyShellBootstrap
+  }
+}
+
 const primaryNav: NavItem[] = [
   { label: 'Panoramica', icon: LayoutDashboard, href: '/' },
   { label: 'Regia Operativa', icon: Sparkles, href: '/workspace-intelligente' },
@@ -142,9 +199,7 @@ const navSections: NavSection[] = [
     id: 'recenti',
     label: 'Recenti',
     icon: FolderOpen,
-    items: [
-      { label: '2026/004 - N.RG 139/2023 - ...', icon: FolderOpen, href: '/fascicoli' }
-    ]
+    items: []
   },
   {
     id: 'agenda',
@@ -494,6 +549,7 @@ function routePublishesLexContext(routePath: string): boolean {
   if (route.startsWith('/scadenziario') && !isNewDeadline && !isDeadlineEdit) return true
   if (route.startsWith('/wizard-pro')) return true
   if (route.startsWith('/privacy/registro') || route === '/registro-gdpr') return true
+  if (route === '/admin/database') return true
   return route === '/telematico' || route === '/telematici' || isTelematicoSurfaceRoute(route)
 }
 
@@ -509,7 +565,34 @@ function NavLink({ item, collapsed, activePath, onNavigate }:{item:NavItem; coll
   )
 }
 
-function Sidebar({ collapsed, mobileOpen, activePath, onToggle, onCloseMobile }:{collapsed:boolean; mobileOpen:boolean; activePath:string; onToggle:()=>void; onCloseMobile:()=>void}) {
+function csrfToken(): string {
+  return document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content || ''
+}
+
+function SidebarUser({ bootstrap }: { bootstrap: ShellBootstrap }) {
+  const profile = bootstrap.user
+  if (!profile) return null
+  const initials = profile.initials || profile.username.slice(0, 2).toUpperCase()
+  const logoutAction = bootstrap.actions.logout || ''
+  return (
+    <div className="iu-sidebar__user">
+      <span>{initials}</span>
+      <div>
+        <strong>{profile.displayName}</strong>
+        {profile.role ? <small>{profile.role}</small> : null}
+      </div>
+      {bootstrap.actions.profile ? <a href={bootstrap.actions.profile} aria-label="Profilo" title="Profilo"><UserRound size={16}/></a> : null}
+      {logoutAction ? (
+        <form method="post" action={logoutAction}>
+          <input type="hidden" name="_csrf_token" value={csrfToken()}/>
+          <button type="submit" aria-label="Esci" title="Esci"><LogOut size={16}/></button>
+        </form>
+      ) : null}
+    </div>
+  )
+}
+
+function Sidebar({ collapsed, mobileOpen, activePath, onToggle, onCloseMobile, bootstrap }:{collapsed:boolean; mobileOpen:boolean; activePath:string; onToggle:()=>void; onCloseMobile:()=>void; bootstrap:ShellBootstrap}) {
   const [openSections,setOpenSections]=useState<Record<string,boolean>>({})
   const toggleSection=(id:string)=>setOpenSections(current=>({...current,[id]:!current[id]}))
   const ToggleIcon = mobileOpen ? PanelLeftClose : collapsed ? PanelLeftOpen : PanelLeftClose
@@ -532,7 +615,7 @@ function Sidebar({ collapsed, mobileOpen, activePath, onToggle, onCloseMobile }:
         <div className="iu-nav-primary">
           {primaryNav.map(item=><NavLink key={item.label} item={item} collapsed={collapsed} activePath={activePath} onNavigate={onCloseMobile}/>)}
         </div>
-        {navSections.map(section=>{
+        {navSections.filter(section=>section.items.length > 0).map(section=>{
           const SectionIcon = section.icon || Folder
           const open = openSections[section.id] === true
           return (
@@ -546,14 +629,14 @@ function Sidebar({ collapsed, mobileOpen, activePath, onToggle, onCloseMobile }:
           )
         })}
       </nav>
-      <div className="iu-sidebar__user"><span>R</span><div><strong>Avv. Roberto Rossi</strong><small>AMMINISTRATORE</small></div><a href="/profilo" aria-label="Profilo" title="Profilo"><UserRound size={16}/></a><a href="/logout" aria-label="Esci" title="Esci"><LogOut size={16}/></a></div>
+      <SidebarUser bootstrap={bootstrap}/>
     </aside>
   )
 }
 
 function Topbar({ onOpenMenu }:{onOpenMenu:()=>void}) {
   const today = new Date().toLocaleDateString('it-IT')
-  return <header className="iu-topbar"><button className="iu-icon iu-menu-mobile" type="button" onClick={onOpenMenu} aria-label="Apri menu"><PanelLeftOpen size={18}/></button><label className="iu-search"><Search size={18}/><input placeholder="Cerca fascicolo, cliente, pratica, scadenza..." onKeyDown={(event)=>{if(event.key==='Enter'){const value=event.currentTarget.value.trim(); window.location.href=value?`/global-search?q=${encodeURIComponent(value)}`:'/global-search'}}}/></label><div className="iu-topbar__actions"><button className="iu-date">{today} <CalendarDays size={16}/></button><button className="iu-icon notify"><Bell size={18}/><span>8</span></button><button className="iu-icon"><Settings2 size={18}/></button><button className="iu-icon"><CircleHelp size={18}/></button><button className="iu-new"><Plus size={16}/>Nuovo</button></div></header>
+  return <header className="iu-topbar"><button className="iu-icon iu-menu-mobile" type="button" onClick={onOpenMenu} aria-label="Apri menu"><PanelLeftOpen size={18}/></button><label className="iu-search"><Search size={18}/><input placeholder="Cerca fascicolo, cliente, pratica, scadenza..." onKeyDown={(event)=>{if(event.key==='Enter'){const value=event.currentTarget.value.trim(); window.location.href=value?`/global-search?q=${encodeURIComponent(value)}`:'/global-search'}}}/></label><div className="iu-topbar__actions"><button className="iu-date">{today} <CalendarDays size={16}/></button><a className="iu-icon" href="/impostazioni" aria-label="Impostazioni" title="Impostazioni"><Settings2 size={18}/></a><a className="iu-new" href="/fascicoli/nuovo"><Plus size={16}/>Nuovo</a></div></header>
 }
 
 function Empty({ children='Nessun elemento da presidiare.' }:{children?:string}) {
@@ -715,12 +798,14 @@ export default function App() {
   const isTelematicoPage = routeKey === '/telematico' || routeKey === '/telematici' || routeKey === '/servizi-telematici'
   const isTelematicoSurfacePage = isTelematicoSurfaceRoute(routeKey)
   const isPrivacyRegistroPage = routeKey === '/privacy/registro' || routeKey === '/privacy/registro/nuovo' || routeKey === '/registro-gdpr'
-  const isStudioModulePage = isStudioModuleRoute(routeKey)
-  const isDashboardPage = !isSearchPage && !isAgendaPage && !isNewAppointmentPage && !isAppointmentEditPage && !isRegiaPage && !isFascicoliPage && !isClientiPage && !isClientFolderPage && !isClientEditPage && !isNewClientPage && !isSoggettiPage && !isNewSubjectPage && !isSubjectEditPage && !isEmailComposePage && !isEmailOrdinariaComposePage && !isEmailPage && !isEmailOrdinariaPage && !isMessagesPage && !isNewMessagePage && !isScadenziarioPage && !isNewDeadlinePage && !isDeadlineEditPage && !isWizardProPage && !isTelematicoPage && !isTelematicoSurfacePage && !isPrivacyRegistroPage && !isStudioModulePage
-  const isStandalonePage = isSearchPage || isAgendaPage || isNewAppointmentPage || isAppointmentEditPage || isFascicoliPage || isClientiPage || isClientFolderPage || isClientEditPage || isNewClientPage || isSoggettiPage || isNewSubjectPage || isSubjectEditPage || isEmailComposePage || isEmailOrdinariaComposePage || isEmailPage || isEmailOrdinariaPage || isMessagesPage || isNewMessagePage || isScadenziarioPage || isNewDeadlinePage || isDeadlineEditPage || isWizardProPage || isTelematicoPage || isTelematicoSurfacePage || isPrivacyRegistroPage || isStudioModulePage
+  const isAdminDatabasePage = routeKey === '/admin/database'
+  const isStudioModulePage = !isAdminDatabasePage && isStudioModuleRoute(routeKey)
+  const isDashboardPage = !isSearchPage && !isAgendaPage && !isNewAppointmentPage && !isAppointmentEditPage && !isRegiaPage && !isFascicoliPage && !isClientiPage && !isClientFolderPage && !isClientEditPage && !isNewClientPage && !isSoggettiPage && !isNewSubjectPage && !isSubjectEditPage && !isEmailComposePage && !isEmailOrdinariaComposePage && !isEmailPage && !isEmailOrdinariaPage && !isMessagesPage && !isNewMessagePage && !isScadenziarioPage && !isNewDeadlinePage && !isDeadlineEditPage && !isWizardProPage && !isTelematicoPage && !isTelematicoSurfacePage && !isPrivacyRegistroPage && !isAdminDatabasePage && !isStudioModulePage
+  const isStandalonePage = isSearchPage || isAgendaPage || isNewAppointmentPage || isAppointmentEditPage || isFascicoliPage || isClientiPage || isClientFolderPage || isClientEditPage || isNewClientPage || isSoggettiPage || isNewSubjectPage || isSubjectEditPage || isEmailComposePage || isEmailOrdinariaComposePage || isEmailPage || isEmailOrdinariaPage || isMessagesPage || isNewMessagePage || isScadenziarioPage || isNewDeadlinePage || isDeadlineEditPage || isWizardProPage || isTelematicoPage || isTelematicoSurfacePage || isPrivacyRegistroPage || isAdminDatabasePage || isStudioModulePage
   const initialSearchQuery = new URLSearchParams(window.location.search).get('q') ?? ''
   const lexConfig = resolveLexPageContext(routeKey)
   const needsShellLexContext = !routePublishesLexContext(routeKey)
+  const shellBootstrap = readShellBootstrap()
   const [data,setData]=useState<DashboardData>(emptyDashboard)
   const [loading,setLoading]=useState(!isStandalonePage)
   const [sidebarCollapsed,setSidebarCollapsed]=useState(false)
@@ -730,12 +815,12 @@ export default function App() {
   return (
     <AppErrorBoundary>
       <div className={`iu-shell ${sidebarCollapsed?'iu-shell--collapsed':''}`}>
-        <Sidebar collapsed={sidebarCollapsed} mobileOpen={mobileMenuOpen} activePath={activePath} onToggle={()=>setSidebarCollapsed(v=>!v)} onCloseMobile={()=>setMobileMenuOpen(false)}/>
+        <Sidebar collapsed={sidebarCollapsed} mobileOpen={mobileMenuOpen} activePath={activePath} onToggle={()=>setSidebarCollapsed(v=>!v)} onCloseMobile={()=>setMobileMenuOpen(false)} bootstrap={shellBootstrap}/>
         {mobileMenuOpen?<button className="iu-sidebar-scrim" type="button" aria-label="Chiudi menu" onClick={()=>setMobileMenuOpen(false)}/>:null}
         <div className="iu-main">
           <Topbar onOpenMenu={()=>setMobileMenuOpen(true)}/>
           <Suspense fallback={<PageLoading/>}>
-            {isSearchPage?<RicercaStudioPage initialQuery={initialSearchQuery}/>:isNewAppointmentPage||isAppointmentEditPage?<NuovoAppuntamentoPage/>:isAgendaPage?<AgendaPage/>:isRegiaPage?<RegiaOperativaPage data={data} loading={loading}/>:isFascicoliPage?<FascicoliPage/>:isNewClientPage||isNewSubjectPage||isClientEditPage||isSubjectEditPage?<NuovoClientePage/>:isClientFolderPage?<CartellaClientePage/>:isClientiPage?<AnagraficaClientiPage/>:isSoggettiPage?<SoggettiPage/>:isEmailOrdinariaComposePage?<EmailComposePage mode="ordinaria"/>:isEmailComposePage?<EmailComposePage mode="pec"/>:isEmailOrdinariaPage?<EmailOrdinariaPage/>:isEmailPage?<EmailPecPage/>:isNewMessagePage?<NuovoMessaggioPage/>:isMessagesPage?<MessaggiPage/>:isNewDeadlinePage||isDeadlineEditPage?<NuovaScadenzaPage/>:isScadenziarioPage?<ScadenziarioPage/>:isWizardProPage?<WizardProPage/>:isTelematicoPage?<TelematicoPage/>:isTelematicoSurfacePage?<TelematicoSurfacePage/>:isPrivacyRegistroPage?<PrivacyRegistroPage/>:isStudioModulePage?<StudioModulePage/>:<DashboardPage data={data} loading={loading}/>}
+            {isSearchPage?<RicercaStudioPage initialQuery={initialSearchQuery}/>:isNewAppointmentPage||isAppointmentEditPage?<NuovoAppuntamentoPage/>:isAgendaPage?<AgendaPage/>:isRegiaPage?<RegiaOperativaPage data={data} loading={loading}/>:isFascicoliPage?<FascicoliPage/>:isNewClientPage||isNewSubjectPage||isClientEditPage||isSubjectEditPage?<NuovoClientePage/>:isClientFolderPage?<CartellaClientePage/>:isClientiPage?<AnagraficaClientiPage/>:isSoggettiPage?<SoggettiPage/>:isEmailOrdinariaComposePage?<EmailComposePage mode="ordinaria"/>:isEmailComposePage?<EmailComposePage mode="pec"/>:isEmailOrdinariaPage?<EmailOrdinariaPage/>:isEmailPage?<EmailPecPage/>:isNewMessagePage?<NuovoMessaggioPage/>:isMessagesPage?<MessaggiPage/>:isNewDeadlinePage||isDeadlineEditPage?<NuovaScadenzaPage/>:isScadenziarioPage?<ScadenziarioPage/>:isWizardProPage?<WizardProPage/>:isTelematicoPage?<TelematicoPage/>:isTelematicoSurfacePage?<TelematicoSurfacePage/>:isPrivacyRegistroPage?<PrivacyRegistroPage/>:isAdminDatabasePage?<AdminDatabasePage/>:isStudioModulePage?<StudioModulePage/>:<DashboardPage data={data} loading={loading}/>}
           </Suspense>
         </div>
         <nav className={`iu-mobile ${mobileNavCollapsed?'is-collapsed':''}`} aria-label="Navigazione mobile">
@@ -746,7 +831,7 @@ export default function App() {
             <a className={isClientiPage||isClientFolderPage||isClientEditPage||isNewClientPage||isSoggettiPage||isNewSubjectPage||isSubjectEditPage?'active':''} href="/clienti"><UsersRound size={18}/>Clienti</a>
             <a className={isEmailPage||isEmailOrdinariaPage||isMessagesPage||isNewMessagePage?'active':''} href="/email/"><Mail size={18}/>Posta</a>
             <a className={isAgendaPage||isNewAppointmentPage||isAppointmentEditPage||isScadenziarioPage||isNewDeadlinePage||isDeadlineEditPage||isWizardProPage?'active':''} href="/agenda"><CalendarDays size={18}/>Agenda</a>
-            <a className={isRegiaPage||isPrivacyRegistroPage?'active':''} href="/workspace-intelligente"><Sparkles size={18}/>Regia</a>
+            <a className={isRegiaPage||isPrivacyRegistroPage||isAdminDatabasePage?'active':''} href="/workspace-intelligente"><Sparkles size={18}/>Regia</a>
           </div>
           <button
             type="button"

@@ -163,7 +163,6 @@ _EXCLUDED_SEGMENTS = {
 }
 
 _LEGACY_OPERATIONAL_PREFIXES = (
-    "/admin/database",
     "/admin/osservabilita",
     "/amministrazione",
     "/applicazioni",

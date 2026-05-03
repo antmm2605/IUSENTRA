@@ -97,6 +97,9 @@ Quando il lavoro riguarda UI React, Flask, template, rotte o pagine app-v2:
 
 - consultare `docs/` e le pagine/componenti esistenti;
 - mantenere UI professionale, responsive desktop/tablet/mobile;
+- **non mostrare mai dati inventati, demo o hardcoded come se fossero reali**: nomi utente, ruoli, fascicoli recenti, badge, conteggi, notifiche, scadenze, metriche, percorsi e stati devono provenire da repository, sessione, API, template context o configurazione reale;
+- se un dato reale non e' disponibile, la UI deve mostrare uno stato vuoto/neutro o nascondere quel dettaglio, non sostituirlo con esempi fittizi;
+- i dati del profilo utente nelle superfici React devono derivare da `g.utente_corrente` / profilo sessione o da API autenticata equivalente; vietati nomi come esempio, iniziali arbitrarie e ruoli di fallback non letti dal profilo;
 - testo visibile sempre in italiano;
 - date e ore in formato italiano tramite filtri condivisi;
 - card operative con azioni reali, non placeholder;

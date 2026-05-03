@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.198.38 - 2026-05-03
+
+- Migrato `GET /admin/database` nella shell React con contratto operativo completo: payload reale `/api/v1/ui/admin/database`, statistiche repository, verifica integrita', ottimizzazione, migrazione SQLite, attivazione SQLite ed export ZIP collegati alle route Flask amministrative esistenti.
+- Sostituiti i dati profilo hardcoded della shell React con il profilo reale di sessione (`g.utente_corrente`) e logout POST con CSRF; rimossi badge notifiche e fascicoli recenti fittizi dalla shell.
+- Formalizzata in `AGENTS.md` la regola zero dati inventati: UI React, template e bridge devono mostrare solo dati da repository, sessione, API, template context o configurazione reale, con test anti-regressione dedicati.
+
 ## 2.198.37 - 2026-05-01
 
 - Separata la composizione della posta ordinaria dalla PEC: il bottone `Componi email` usa ora `/email-ordinaria/scrivi`, con rientro nella casella ordinaria e invio tramite configurazione SMTP ordinaria dello studio.

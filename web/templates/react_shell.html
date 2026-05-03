@@ -27,6 +27,7 @@ npm run build</code></pre>
     </div>
   </main>
   {% else %}
+  <script id="iusentra-react-bootstrap" type="application/json">{{ react_bootstrap | tojson }}</script>
   <div id="root"></div>
   {% if react_bootstrap_texts %}
   <section hidden aria-hidden="true" data-react-bootstrap-texts>

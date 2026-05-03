@@ -75,6 +75,25 @@ Il flusso React espone:
 La rifirma non e' consentita in modo silenzioso: se il documento e' gia'
 firmato, frontend e backend richiedono conferma esplicita `confirm_resign=1`.
 
+### Amministrazione database
+
+La route `/admin/database` ora apre una pagina React operativa con payload
+reale da `GET /api/v1/ui/admin/database`.
+
+La pagina React legge statistiche, moduli monitorati, snapshot SQLite e analisi
+uso dal runtime database esistente. Le azioni restano sulle route Flask gia'
+protette da sessione, permessi e audit:
+
+- `GET /admin/database/verifica`
+- `POST /admin/database/ottimizza`
+- `POST /admin/database/migra`
+- `POST /admin/database/attiva-sqlite`
+- `GET /admin/database/export`
+
+La shell React usa il profilo reale di sessione per nome, username, ruolo e
+iniziali. Se un dato non arriva dal profilo, repository, API o configurazione
+reale, non viene mostrato come dato applicativo.
+
 ## Gate anti-regressione aggiunti
 
 Sono stati aggiunti test per impedire regressioni su:
@@ -86,6 +105,9 @@ Sono stati aggiunti test per impedire regressioni su:
 - passaggio di `path` e query string dal client React al bridge runtime.
 - deep-link firma documento, Local Signer locale, upload manuale e guardia
   anti-rifirma con conferma esplicita.
+- `/admin/database` React, payload reale, azioni database operative, profilo
+  utente da sessione e assenza di dati inventati in sidebar, notifiche e
+  recenti.
 
 ## Comandi di verifica
 

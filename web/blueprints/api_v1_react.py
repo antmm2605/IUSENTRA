@@ -29,6 +29,10 @@ from pct.termini_processuali import (
 from pct.timesheet import StatoTimesheet
 from pct.workspace_intelligente import WorkspaceIntelligenteService
 from web.services.react_agenda_bridge import build_react_agenda_payload
+from web.services.react_admin_database_bridge import (
+    build_react_admin_database_error_payload,
+    build_react_admin_database_payload,
+)
 from web.services.react_clienti_bridge import (
     build_react_cliente_cartella_payload,
     build_react_cliente_modifica_payload,
@@ -94,6 +98,13 @@ def _richiedi_auth(func: Callable[..., Any]) -> Callable[..., Any]:
     return wrapper
 
 
+def _puo_leggere_admin_database() -> bool:
+    if _api_key_valida():
+        return True
+    utente = g.get("utente_corrente")
+    return bool(utente and getattr(utente, "ha_permesso", lambda _permesso: False)("utenti.leggi"))
+
+
 def _studio_avvocato_titolare() -> str:
     core_runtime = current_app.extensions.get("core_runtime", {}) or {}
     config_loader = core_runtime.get("get_config_studio")
@@ -147,6 +158,11 @@ def _core_runtime_func(name: str) -> Callable[..., Any] | None:
 
 def _iso_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def _profile_initials(value: str) -> str:
+    parts = [part for part in str(value or "").replace(".", " ").split() if part]
+    return "".join(part[0] for part in parts[:2]).upper()
 
 
 def _cfg_value(key: str, default: str = "") -> str:
@@ -826,6 +842,9 @@ def _fascicoli_preview(limit: int = 5) -> list[dict[str, Any]]:
 def bootstrap():
     utente = g.get("utente_corrente")
     tenant = g.get("tenant")
+    display_name = str(getattr(utente, "nome_completo", "") or getattr(utente, "username", "") or "").strip() if utente else ""
+    username = str(getattr(utente, "username", "") or "").strip() if utente else ""
+    role = _enum_value(getattr(utente, "ruolo", "")) if utente else ""
     return jsonify(
         {
             "product": "IUSENTRA",
@@ -839,8 +858,10 @@ def bootstrap():
             },
             "user": {
                 "id": getattr(utente, "id", "") if utente else "",
-                "username": getattr(utente, "username", "") if utente else "",
-                "role": _enum_value(getattr(utente, "ruolo", "")) if utente else "api",
+                "username": username,
+                "displayName": display_name,
+                "role": role,
+                "initials": _profile_initials(username or display_name),
             },
             "route_flags": {
                 "replace_dashboard": True,
@@ -1319,6 +1340,30 @@ def privacy_registro_react_payload():
         get_trattamenti,
         path=request.args.get("path", "/privacy/registro"),
     ))
+
+
+@api_v1_react.get("/admin/database")
+@_richiedi_auth
+def admin_database_react_payload():
+    if not _puo_leggere_admin_database():
+        return jsonify({"errore": "Accesso riservato agli amministratori.", "codice": 403}), 403
+
+    core_runtime = current_app.extensions.get("core_runtime", {}) or {}
+    get_database = core_runtime.get("get_database")
+    latest_sqlite_snapshot_path = core_runtime.get("latest_sqlite_snapshot_path")
+    if not callable(get_database) or not callable(latest_sqlite_snapshot_path):
+        return jsonify(build_react_admin_database_error_payload("Runtime database non disponibile.")), 200
+
+    try:
+        return jsonify(build_react_admin_database_payload(
+            get_database,
+            latest_sqlite_snapshot_path,
+            backup_dir=str(current_app.config.get("BACKUP_DIR", "./backup")),
+            path=request.args.get("path", "/admin/database"),
+        ))
+    except Exception as exc:
+        current_app.logger.exception("Bridge React database non disponibile: %s", exc)
+        return jsonify(build_react_admin_database_error_payload(str(exc))), 200
 
 
 # IUSENTRA_REACT_FASCICOLI_ROUTES_START

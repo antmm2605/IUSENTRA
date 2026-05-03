@@ -36,8 +36,9 @@ Il primo blocco e' considerato operativo sulle seguenti superfici:
 - Comunicazioni: `GET /email/`, `GET /messaggi`, `GET /messaggi/nuovo`
 - Servizi Telematici: `GET /telematico` e `/app-v2/telematico`, con fallback tecnico `_legacy=1`
 - Superfici telematiche di secondo livello: `GET /polisWeb`, `GET /pdp`, `GET /pat`, `GET /sigit`, `GET /tribunali`, `GET /deposito/checklist` e `GET /guida/firma-digitale`, con fallback tecnico `_legacy=1`
+- Amministrazione database: `GET /admin/database`, con payload reale, azioni amministrative Flask e fallback tecnico `_legacy=1`
 
-Le pagine del blocco usano dati reali, API bridge sotto `/api/v1/ui/*`, testi visibili in italiano, stati vuoti espliciti e Lex AI contestuale dove previsto. Non sono ammessi mock operativi o copy che presenti la UI React come prototipo temporaneo.
+Le pagine del blocco usano dati reali, API bridge sotto `/api/v1/ui/*`, testi visibili in italiano, stati vuoti espliciti e Lex AI contestuale dove previsto. Non sono ammessi mock operativi, dati inventati, profili hardcoded, badge fittizi o copy che presenti la UI React come prototipo temporaneo.
 
 ## Contratti API attivi
 
@@ -54,6 +55,7 @@ Le pagine del blocco usano dati reali, API bridge sotto `/api/v1/ui/*`, testi vi
 - `GET /api/v1/ui/telematico`
 - `GET /api/v1/ui/telematico/surface/<surface>`
 - `GET /api/v1/ui/privacy/registro`
+- `GET /api/v1/ui/admin/database`
 
 I contratti devono dichiarare `mock_fallback=false`. Le superfici che inviano a servizi Flask esistenti dichiarano `writes=operational_routes`.
 
@@ -76,6 +78,16 @@ Le superfici telematiche React sono pagine operative reali, non mock:
 - L'eliminazione usa `POST /privacy/registro/<id>/elimina` e resta quindi protetta da sessione, permessi e audit.
 - La vista classica resta disponibile solo come fallback tecnico `?_legacy=1`, senza CTA visibili dalla UI React.
 - La pagina espone card operative reali verso audit, clienti, impostazioni e Lex contestuale, oltre a filtri e warning sui campi GDPR essenziali.
+
+## Amministrazione: Gestione Database
+
+`GET /admin/database` e' promosso a React con stato `react_operational_complete`.
+
+- I dati arrivano dal runtime database esistente tramite `GET /api/v1/ui/admin/database`.
+- Il contratto dichiara `mock_fallback=false` e `writes=operational_routes`.
+- Le azioni React chiamano le route amministrative reali: `GET /admin/database/verifica`, `POST /admin/database/ottimizza`, `POST /admin/database/migra`, `POST /admin/database/attiva-sqlite` e `GET /admin/database/export`.
+- Il profilo utente nella shell React deriva dal profilo reale di sessione (`g.utente_corrente`) e non puo' usare nomi, ruoli, iniziali o badge inventati.
+- La vista classica resta disponibile solo come fallback tecnico `?_legacy=1`, senza CTA visibili dalla UI React.
 
 ## Comunicazioni: Email PEC e Messaggi
 
@@ -127,7 +139,7 @@ Questa distinzione e' coperta da test per evitare regressioni sulla visibilita' 
 4. Lex AI avanzata.
 5. Sito Studio Builder.
 6. Firma digitale, Local Signer e portali avanzati.
-7. Admin e Impostazioni.
+7. Impostazioni residue e amministrazione avanzata.
 
 Firma digitale, Local Signer e automazioni avanzate dei portali restano in wave dedicate perche' hanno vincoli di compliance, audit, canali separati e conferma consapevole dell'avvocato.
 

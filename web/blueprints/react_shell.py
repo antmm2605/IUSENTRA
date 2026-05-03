@@ -11,13 +11,12 @@ from pathlib import Path
 from typing import Any, Iterable
 from urllib.parse import urlencode
 
-from flask import Blueprint, current_app, make_response, redirect, render_template, request
+from flask import Blueprint, current_app, g, make_response, redirect, render_template, request, url_for
 
 react_shell = Blueprint("react_shell", __name__)
 
 
 _LEGACY_FIRST_PREFIXES = (
-    "/admin/database",
     "/admin/osservabilita",
     "/amministrazione",
     "/applicazioni",
@@ -135,6 +134,7 @@ def render_react_shell_response(spa_path: str = "", *, bootstrap_texts: Iterable
         "react_shell.html",
         react_assets=_vite_entry(),
         react_spa_path=spa_path,
+        react_bootstrap=_react_bootstrap_payload(),
         react_bootstrap_texts=[str(item) for item in (bootstrap_texts or []) if str(item or "").strip()],
     ))
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
@@ -162,3 +162,34 @@ def _deve_mantenere_vista_classica() -> bool:
     ):
         return True
     return any(lower == prefix or lower.startswith(f"{prefix}/") for prefix in _LEGACY_FIRST_PREFIXES)
+
+
+def _initials(value: str) -> str:
+    parts = [part for part in str(value or "").replace(".", " ").split() if part]
+    return "".join(part[0] for part in parts[:2]).upper()
+
+
+def _react_bootstrap_payload() -> dict[str, Any]:
+    """Dati di sessione reali da usare nella shell React."""
+
+    utente = getattr(g, "utente_corrente", None)
+    if not utente:
+        return {"user": None, "actions": {}}
+
+    ruolo = getattr(getattr(utente, "ruolo", ""), "value", getattr(utente, "ruolo", ""))
+    nome = str(getattr(utente, "nome_completo", "") or getattr(utente, "username", "") or "").strip()
+    username = str(getattr(utente, "username", "") or "").strip()
+    source = username or nome
+    return {
+        "user": {
+            "id": str(getattr(utente, "id", "") or ""),
+            "username": username,
+            "displayName": nome,
+            "role": str(ruolo or "").strip(),
+            "initials": _initials(source),
+        },
+        "actions": {
+            "profile": url_for("profilo"),
+            "logout": url_for("logout"),
+        },
+    }

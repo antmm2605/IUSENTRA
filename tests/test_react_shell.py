@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+import re
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
@@ -44,6 +46,40 @@ def test_react_shell_primo_blocco_richiede_login(tmp_path: Path):
 
     assert response.status_code in {302, 303}
     assert "/login" in response.headers["Location"]
+
+
+def test_react_shell_sidebar_usa_profilo_reale_sessione(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+
+    with app.test_client() as client:
+        _login(client)
+        response = client.get("/admin/database")
+        api = client.get("/api/v1/ui/bootstrap")
+
+    html = response.get_data(as_text=True)
+    match = re.search(
+        r'<script id="iusentra-react-bootstrap" type="application/json">(.*?)</script>',
+        html,
+        flags=re.S,
+    )
+    assert response.status_code == 200
+    assert match
+    payload = json.loads(match.group(1))
+    assert payload["user"]["displayName"] == "Operatore Test"
+    assert payload["user"]["username"] == "operatore"
+    assert payload["user"]["role"] == "AMMINISTRATORE"
+    assert payload["user"]["initials"] == "O"
+    assert payload["actions"]["profile"] == "/profilo"
+    assert payload["actions"]["logout"] == "/logout"
+    assert "Avv. Roberto Rossi" not in html
+    assert "<span>8</span>" not in Path("frontend/src/App.tsx").read_text(encoding="utf-8")
+
+    api_payload = api.get_json()
+    assert api.status_code == 200
+    assert api_payload["user"]["displayName"] == "Operatore Test"
+    assert api_payload["user"]["username"] == "operatore"
+    assert api_payload["user"]["role"] == "AMMINISTRATORE"
 
 
 def test_react_shell_mobile_sblocca_scroll_e_compatta_card():
@@ -356,7 +392,6 @@ def test_react_blocco_finale_route_reali_e_vista_classica(tmp_path: Path):
             ("/utenti", "Utenti", False),
             ("/profili", "Profili", False),
             ("/registro-attivita", "Registro", True),
-            ("/admin/database", "Database", False),
         )
         for route, marker, follow_redirects in operational_routes:
             response = client.get(route, follow_redirects=True)
@@ -365,7 +400,7 @@ def test_react_blocco_finale_route_reali_e_vista_classica(tmp_path: Path):
             assert "IUSENTRA - React Shell" not in html
             assert marker in html
 
-        for route in ("/privacy/registro", "/privacy/registro/nuovo", "/registro-gdpr"):
+        for route in ("/privacy/registro", "/privacy/registro/nuovo", "/registro-gdpr", "/admin/database"):
             response = client.get(route, follow_redirects=True)
             assert response.status_code == 200, route
             html = response.get_data(as_text=True)
@@ -398,6 +433,7 @@ def test_react_blocco_finale_route_reali_e_vista_classica(tmp_path: Path):
             "/audit?_legacy=1",
             "/privacy/registro/nuovo?_legacy=1",
             "/backup?_legacy=1",
+            "/admin/database?_legacy=1",
         ):
             response = client.get(route)
             assert response.status_code == 200, route
@@ -462,7 +498,6 @@ def test_blocco_telematico_studio_admin_resta_legacy_first():
         "/profili",
         "/registro-attivita",
         "/database",
-        "/admin/database",
     )
 
     for prefix in legacy_first_prefixes:
@@ -1408,7 +1443,6 @@ def test_route_gate_non_promuove_moduli_studio_telematico_admin_incompleti():
         "/registro-attivita",
         "/audit",
         "/database",
-        "/admin/database",
         "/admin/osservabilita",
     }
 
@@ -1418,6 +1452,7 @@ def test_route_gate_non_promuove_moduli_studio_telematico_admin_incompleti():
 
     assert not _excluded(_normalise_path("/privacy/registro"))
     assert not _excluded(_normalise_path("/privacy/registro/nuovo"))
+    assert not _excluded(_normalise_path("/admin/database"))
     assert _excluded(_normalise_path("/privacy/registro/ABC123/elimina"))
 
 
@@ -1504,6 +1539,72 @@ def test_react_privacy_registro_operativo_secondo_pattern_oss(tmp_path: Path):
     assert payload["summary"]["warnings"] >= 1
     assert post_response.status_code in {302, 303}
     assert post_response.headers["Location"].endswith("/privacy/registro")
+
+
+def test_react_admin_database_operativo_secondo_pattern_oss(tmp_path: Path):
+    """La pagina database e' React solo con dati reali e azioni amministrative esistenti."""
+
+    app = _app(tmp_path)
+    _crea_operatore(app)
+
+    app_source = Path("frontend/src/App.tsx").read_text(encoding="utf-8")
+    data_source = Path("frontend/src/adminDatabaseData.ts").read_text(encoding="utf-8")
+    page_source = Path("frontend/src/components/AdminDatabasePage.tsx").read_text(encoding="utf-8")
+    css_source = Path("frontend/src/components/AdminDatabasePage.css").read_text(encoding="utf-8")
+    bridge_source = Path("web/services/react_admin_database_bridge.py").read_text(encoding="utf-8")
+    template_source = Path("web/templates/react_shell.html").read_text(encoding="utf-8")
+    agents_source = Path("AGENTS.md").read_text(encoding="utf-8")
+
+    assert "const AdminDatabasePage" in app_source
+    assert "isAdminDatabasePage?<AdminDatabasePage/>" in app_source
+    assert "readShellBootstrap" in app_source
+    assert "Avv. Roberto Rossi" not in app_source
+    assert "<span>8</span>" not in app_source
+    assert "2026/004 - N.RG" not in app_source
+    assert "/api/v1/ui/admin/database" in data_source
+    assert "mock_fallback" in data_source
+    assert "data.actions.verify" in page_source
+    assert "data.actions.optimize" in page_source
+    assert "data.actions.migrate" in page_source
+    assert "data.actions.activateSqlite" in page_source
+    assert "data.actions.exportZip" in page_source
+    assert "'X-CSRF-Token': csrfToken()" in page_source
+    assert "method=\"post\" action={logoutAction}" in app_source
+    assert ".iu-db-page" in css_source
+    assert "@media(max-width:900px)" in css_source
+    assert "build_react_admin_database_payload" in bridge_source
+    assert '"writes": "operational_routes"' in bridge_source
+    assert "iusentra-react-bootstrap" in template_source
+    assert "non mostrare mai dati inventati" in agents_source
+
+    with app.test_client() as client:
+        _login(client)
+        shell = client.get("/admin/database")
+        legacy = client.get("/admin/database?_legacy=1")
+        payload_response = client.get("/api/v1/ui/admin/database")
+        verify_response = client.get("/admin/database/verifica")
+
+    payload = payload_response.get_json()
+    verify_payload = verify_response.get_json()
+    assert shell.status_code == 200
+    assert "IUSENTRA - React Shell" in shell.get_data(as_text=True)
+    assert "Operatore Test" in shell.get_data(as_text=True)
+    assert legacy.status_code == 200
+    assert "IUSENTRA - React Shell" not in legacy.get_data(as_text=True)
+    assert payload_response.status_code == 200
+    assert payload["source"] == "repository_reali"
+    assert payload["contracts"]["mock_fallback"] is False
+    assert payload["contracts"]["writes"] == "operational_routes"
+    assert payload["actions"]["verify"] == "/admin/database/verifica"
+    assert payload["actions"]["optimize"] == "/admin/database/ottimizza"
+    assert payload["actions"]["migrate"] == "/admin/database/migra"
+    assert payload["actions"]["activateSqlite"] == "/admin/database/attiva-sqlite"
+    assert payload["actions"]["exportZip"] == "/admin/database/export"
+    assert payload["summary"]["modulesMonitored"] >= 1
+    assert payload["modules"]
+    assert verify_response.status_code == 200
+    assert verify_payload["ok"] is True
+    assert "problemi" in verify_payload
 
 
 def test_pst_acquisizione_usa_lookup_uffici_reali_importati(tmp_path: Path):
@@ -1793,7 +1894,6 @@ def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: P
         "Regia Operativa",
         "Ricerca Studio",
         "Recenti",
-        "2026/004 - N.RG 139/2023 - ...",
         "Calendario",
         "Nuovo Appuntamento",
         "Timesheet",
@@ -1848,6 +1948,7 @@ def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: P
     )
     for label in expected_visible_labels:
         assert label in app_source or label in studio_source, label
+    assert "2026/004 - N.RG" not in app_source
 
     app = _app(tmp_path)
     _crea_operatore(app)
@@ -1939,7 +2040,6 @@ def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: P
         "Utenti": "/utenti",
         "Profili e Permessi": "/profili",
         "Registro Attività": "/registro-attivita",
-        "Database": "/admin/database",
     }
 
     with app.test_client() as client:
@@ -1950,6 +2050,7 @@ def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: P
         _assert_react_shell(client, "Registro GDPR", "/privacy/registro")
         _assert_react_shell(client, "Nuovo trattamento GDPR", "/privacy/registro/nuovo")
         _assert_react_shell(client, "Alias Registro GDPR", "/registro-gdpr")
+        _assert_react_shell(client, "Database", "/admin/database")
 
         for label, path in {**telematico_routes, **studio_admin_routes}.items():
             response = client.get(path, follow_redirects=True)
@@ -1983,6 +2084,7 @@ def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: P
             "Tribunali / PEC": "/api/v1/ui/telematico/surface/tribunali",
             "Guida firma digitale": "/api/v1/ui/telematico/surface/firma",
             "Registro GDPR": "/api/v1/ui/privacy/registro",
+            "Database": "/api/v1/ui/admin/database",
             "Ricerca Studio": "/api/global-search?q=matrice&limit=5",
         }.items():
             _assert_payload_operativo(client, label, path, require_links=label != "Ricerca Studio")

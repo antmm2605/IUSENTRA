@@ -1,0 +1,4 @@
+results.tsv
+experiments/
+*.log
+*.tmp

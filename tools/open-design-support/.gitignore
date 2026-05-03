@@ -1,0 +1,5 @@
+generated/
+exports/
+.od/
+*.tmp
+*.log

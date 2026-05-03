@@ -1,0 +1,5 @@
+runs/
+logs/
+.metaharness/
+iusentra-codex-optimizer/runs/
+iusentra-codex-optimizer/logs/

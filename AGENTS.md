@@ -595,3 +595,48 @@ python -m pytest tests/ -v
   - I pulsanti (Visualizza, Scarica, Firma, Elimina) nelle card documento su mobile erano non cliccabili a causa di un overlay trasparente generato da un elemento parent con `pointer-events` errato.
   - Verificare sempre che i bottoni nelle card abbiano `position:relative;z-index` superiore a eventuali pseudo-elementi `::after` del container.
   - I titoli delle sezioni (es. "Atti") non devono sovrapporsi ai pulsanti: usare `d-flex align-items-center justify-content-between` per header sezione + pulsante "Aggiungi".
+
+## MetaHarness workflow — Regola di perimetro
+
+- MetaHarness e' ammesso solo come strumento esterno di sviluppo per ottimizzare harness, istruzioni Codex, script di test, script di validazione e documentazione operativa.
+- MetaHarness non e' una dipendenza runtime di IUSENTRA e non va aggiunto a `requirements.txt`, `requirements/base.txt`, `requirements/dev.txt`, `pyproject.toml` o `setup.py` senza autorizzazione esplicita.
+- Per questo repository, i run MetaHarness non devono modificare direttamente codice applicativo core (`pct/`, `web/`, `lex/`), storage, migrazioni, portali telematici, Lex AI o UI prodotto senza review manuale.
+- Ogni scaffold o run con provider reali deve essere autorizzato nel task corrente.
+- I risultati MetaHarness vanno trattati come proposte: prima review del diff, poi test pertinenti, poi eventuale integrazione.
+- E' vietato usare MetaHarness per indebolire CI, coverage, quality gates, workflow di sicurezza o regole gia' presenti in questo `AGENTS.md`.
+
+## Autoresearch-lite workflow — Regola di sicurezza
+
+- Autoresearch-lite e' solo un metodo di lavoro ispirato a `karpathy/autoresearch`, adattato a IUSENTRA.
+- Non e' consentito installare `karpathy/autoresearch`, aggiungere dipendenze ML/GPU o modificare dipendenze runtime per questo workflow.
+- Sono vietati loop infiniti, esperimenti notturni non presidiati, branch extra, reset distruttivi e run autonomi senza nuovo task esplicito.
+- Ogni esperimento deve avere obiettivo, baseline, file modificabili, file vietati, comandi di verifica e criteri `keep/discard`.
+- Ogni risultato va classificato come `keep`, `discard`, `crash`, `scope-violation` o `needs-review`.
+- Su IUSENTRA il ciclo sperimentale deve migliorare la qualita' di Codex senza indebolire storage, CI, coverage, portali telematici, Lex AI, multi-tenant, sicurezza o audit.
+
+## Open Design support — Regola UI/UX
+
+- Open Design support e' ammesso solo come supporto esterno per migliorare design system, skill UI/UX, prototipi e prompt grafici di Codex.
+- Non e' consentito installare `nexu-io/open-design` dentro IUSENTRA, aggiungere dipendenze Node/pnpm al gestionale o modificare package manager per questo workflow senza autorizzazione esplicita.
+- Le risorse ufficiali per Codex vivono in `tools/open-design-support/`.
+- Per ogni task UI/UX, Codex deve leggere `tools/open-design-support/IUSENTRA_DESIGN.md`, `tools/open-design-support/IUSENTRA_UI_RULES.md` e la skill pertinente prima di modificare template, React, CSS o SCSS.
+- Ogni modifica UI deve rispettare lingua italiana, date italiane, responsive desktop/tablet/mobile, stati vuoti, loading, errore, conferma, accessibilita' e coerenza con l'architettura esistente.
+- Open Design support non autorizza modifiche libere a `web/`, `web/templates/`, `web/static/`, `web/blueprints/`, `/app-v2`, route Flask, API o storage.
+- Ogni prototipo o artifact grafico va trattato come proposta: prima review, poi adattamento a Jinja/React/CSS, poi test o smoke pertinenti.
+
+## Codex quality gate — Regola pre-report
+
+- Per task di tooling, MetaHarness, autoresearch-lite o Open Design support, prima del report finale eseguire:
+
+```powershell
+python tools/codex_harness/run_codex_quality_gate.py --mode dev-tooling
+```
+
+- Per task UI/UX di supporto, eseguire:
+
+```powershell
+python tools/codex_harness/run_codex_quality_gate.py --mode ui-support
+```
+
+- Se il quality gate fallisce, non dichiarare il task completato: correggere la violazione oppure segnalarla chiaramente nel report finale.
+- Il quality gate non sostituisce i test applicativi quando si modifica codice prodotto.

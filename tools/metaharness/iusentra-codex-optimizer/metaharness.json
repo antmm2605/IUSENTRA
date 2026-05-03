@@ -1,0 +1,42 @@
+{
+  "objective": "Improve Codex support files for IUSENTRA without touching runtime application code.",
+  "constraints": [
+    "Keep the workflow deterministic.",
+    "Treat every generated change as a proposal requiring manual review.",
+    "Do not modify pct, web, lex, migrations, runtime dependencies, Dockerfile, railway.toml, or GitHub workflows.",
+    "Do not weaken CI, coverage, security workflows, AGENTS.md, storage rules, Lex AI rules, or Portale Servizi Telematici rules.",
+    "Do not run real providers without explicit authorization in the current task."
+  ],
+  "baseline_dir": "baseline",
+  "runs_dir": "runs",
+  "tasks_file": "tasks.json",
+  "required_files": [
+    "AGENTS.md",
+    "GEMINI.md",
+    "scripts/bootstrap.sh",
+    "scripts/validate.sh",
+    "scripts/test.sh"
+  ],
+  "allowed_write_paths": [
+    "AGENTS.md",
+    "GEMINI.md",
+    "scripts"
+  ],
+  "backends": {
+    "codex": {
+      "sandbox_mode": "workspace-write",
+      "approval_policy": "never",
+      "use_oss": false,
+      "local_provider": null,
+      "model": null,
+      "proposal_timeout_seconds": null,
+      "requires_explicit_task_authorization": true
+    }
+  },
+  "example_profile": "coding-tool-scaffold",
+  "default_budget": 1,
+  "search_mode": "hill-climb",
+  "proposal_batch_size": 1,
+  "selection_policy": "single",
+  "test_tasks_file": null
+}

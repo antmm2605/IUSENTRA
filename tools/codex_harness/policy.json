@@ -1,0 +1,54 @@
+{
+  "protected_files": [
+    "requirements.txt",
+    "requirements-dev.txt",
+    "requirements/base.txt",
+    "requirements/dev.txt",
+    "pyproject.toml",
+    "setup.py",
+    "pct/__init__.py",
+    "Dockerfile",
+    "railway.toml",
+    "package.json",
+    "pnpm-lock.yaml",
+    "package-lock.json"
+  ],
+  "protected_dirs": [
+    "pct/",
+    "web/",
+    "lex/",
+    "migrations/",
+    ".github/workflows/"
+  ],
+  "allowed_dev_tooling_dirs": [
+    "tools/metaharness/",
+    "tools/autoresearch-lite/",
+    "tools/open-design-support/",
+    "tools/codex_harness/"
+  ],
+  "allowed_dev_tooling_files": [
+    "AGENTS.md",
+    "tools/CODEX_SUPPORT_STACK.md"
+  ],
+  "agents_required_phrases": [
+    "Storage SQL obbligatorio",
+    "CI, coverage",
+    "Portale Servizi Telematici",
+    "Lex AI",
+    "MetaHarness",
+    "Autoresearch-lite",
+    "Open Design"
+  ],
+  "open_design_required_files": [
+    "tools/open-design-support/README.md",
+    "tools/open-design-support/IUSENTRA_DESIGN.md",
+    "tools/open-design-support/IUSENTRA_UI_RULES.md",
+    "tools/open-design-support/OPEN_DESIGN_EXTERNAL_SETUP.md",
+    "tools/open-design-support/ATTRIBUTION.md",
+    "tools/open-design-support/skills/iusentra-dashboard/SKILL.md",
+    "tools/open-design-support/skills/iusentra-fascicolo-cabina/SKILL.md",
+    "tools/open-design-support/skills/iusentra-form-professionale/SKILL.md",
+    "tools/open-design-support/skills/iusentra-table-workspace/SKILL.md",
+    "tools/open-design-support/skills/iusentra-lex-panel/SKILL.md"
+  ]
+}

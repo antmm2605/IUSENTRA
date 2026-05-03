@@ -1,0 +1,5 @@
+timestamp	experiment_id	scope	metric	status	files_changed	description
+2026-01-01T10:00:00Z	exp-001	AGENTS.md	chiarezza senza regole rimosse	keep	AGENTS.md	Riorganizzata sezione tooling senza indebolire CI
+2026-01-01T10:30:00Z	exp-002	tools/codex_harness	file vietati intercettati	keep	tools/codex_harness/check_codex_scope.py	Aggiunto controllo scope per task dev-tooling
+2026-01-01T11:00:00Z	exp-003	tools/open-design-support	UI rules presenti e coerenti	keep	tools/open-design-support/IUSENTRA_DESIGN.md	Aggiunto design system IUSENTRA per guidare Codex nelle UI
+2026-01-01T11:30:00Z	exp-004	requirements	runtime deps unchanged	scope-violation	requirements.txt	Esperimento scartato perche' ha modificato dipendenze runtime

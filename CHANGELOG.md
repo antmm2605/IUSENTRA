@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.198.49 - 2026-05-03
+
+- Semplificata la pagina React `Firma documento`: quando il token e' rilevato solo dal `token_probe_fresh`, la UI mostra `Riavvia e riverifica` e non chiede piu' il PIN finche' il Local Signer attivo non espone il token principale.
+- Ripristinato nel flusso React di firma documento il passaggio della posizione firma visibile (`laterale`, `basso_sinistra`, `basso_destra`) e del luogo firma al Local Signer.
+- Sostituita la coccarda vettoriale della firma visibile con l'immagine trasparente definitiva, mantenendo distanza dal testo nelle tre posizioni per evitare sovrapposizioni su "Firmato digitalmente da".
+- Verificato il flusso React reale con Local Signer mockato: le tre scelte di firma visibile inviano al signer la modalita' selezionata e ricaricano il file firmato sulla route del documento.
+
 ## 2.198.48 - 2026-05-03
 
 - Corretta la pagina React `Firma documento`: quando il Local Signer risponde ma il token appare solo in `token_probe_fresh`, la UI non mostra piu' "Local Signer non rilevato" e propone il riavvio/riverifica del servizio locale.

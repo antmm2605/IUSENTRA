@@ -15,6 +15,7 @@ from visible_signature import (
     _draw_visible_signature_bottom_left_text,
     _draw_visible_signature_bottom_right_text,
     _draw_visible_signature_seal,
+    _draw_visible_signature_side_mark,
     apply_visible_signature_stamp,
     compute_visible_signature_layout,
     format_visible_signature_datetime,
@@ -253,6 +254,31 @@ def test_bottom_right_signature_draws_colored_seal(monkeypatch):
     assert seal_calls[0]["scale"] >= 1.0
 
 
+def test_visible_signature_seal_uses_embedded_coccarda_png():
+    draw_calls = []
+
+    class _FakeOverlay:
+        def drawImage(self, image, x, y, *, width, height, preserveAspectRatio, mask):
+            draw_calls.append({
+                "image": image,
+                "x": x,
+                "y": y,
+                "width": width,
+                "height": height,
+                "preserveAspectRatio": preserveAspectRatio,
+                "mask": mask,
+            })
+
+    overlay = _FakeOverlay()
+    _draw_visible_signature_seal(overlay, anchor_x=32.0, anchor_y=32.0)
+
+    assert len(draw_calls) == 1
+    assert 18.0 <= draw_calls[0]["width"] <= 24.0
+    assert draw_calls[0]["height"] == 24.0
+    assert draw_calls[0]["preserveAspectRatio"] is True
+    assert draw_calls[0]["mask"] == "auto"
+
+
 def test_visible_signature_seal_uses_non_grayscale_colors():
     fill_colors = []
 
@@ -300,6 +326,56 @@ def test_visible_signature_seal_uses_non_grayscale_colors():
         or round(getattr(color, "green", 0), 3) != round(getattr(color, "blue", 0), 3)
         for color in fill_colors
     )
+
+
+def test_lateral_signature_leaves_gap_between_coccarda_and_text(monkeypatch):
+    seal_calls = []
+    translations = []
+
+    class _FakeOverlay:
+        def saveState(self):
+            return None
+
+        def restoreState(self):
+            return None
+
+        def setFillColor(self, _value):
+            return None
+
+        def setFont(self, _name, _size):
+            return None
+
+        def translate(self, x, y):
+            translations.append((x, y))
+
+        def rotate(self, _value):
+            return None
+
+        def drawString(self, _x, _y, _text):
+            return None
+
+        def stringWidth(self, text, _font_name, _font_size):
+            return float(len(text) * 5)
+
+    def _fake_draw_seal(_overlay, *, anchor_x, anchor_y, scale=1.0):
+        seal_calls.append({"anchor_x": anchor_x, "anchor_y": anchor_y, "scale": scale})
+
+    monkeypatch.setattr("visible_signature._draw_visible_signature_seal", _fake_draw_seal)
+
+    _draw_visible_signature_side_mark(
+        _FakeOverlay(),
+        width=595.0,
+        height=842.0,
+        color=None,
+        intestatario="Antonio Mammola",
+        data_firma="2026-04-14T09:32:00+00:00",
+        luogo="Reggio Calabria",
+        issuer="ArubaPEC EU Authentication Certificates CA G1",
+    )
+
+    assert translations
+    assert seal_calls
+    assert translations[0][1] - seal_calls[0]["anchor_y"] >= 20.0
 
 
 def test_resolve_visible_signature_place_prefers_city_from_impostazioni_studio():

@@ -665,6 +665,47 @@ function localSignerTokenLabel(token?: LocalSignerToken): string {
   return [token.label, token.manufacturer, token.model].filter(Boolean).join(' - ') || 'Token USB'
 }
 
+type VisibleSignatureMode = 'laterale' | 'basso_sinistra' | 'basso_destra'
+const visibleSignatureOptions: Array<{ value: VisibleSignatureMode; label: string }> = [
+  { value: 'laterale', label: 'Laterale verticale' },
+  { value: 'basso_sinistra', label: 'In basso a sinistra' },
+  { value: 'basso_destra', label: 'In basso a destra' },
+]
+const visibleSignatureStorageKey = 'hacs.firma_visibile.mode'
+
+declare global {
+  interface Window {
+    __IUSENTRA_LOCAL_SIGNER_URL__?: string
+  }
+}
+
+function localSignerBaseUrl(): string {
+  const configured = typeof window !== 'undefined' ? window.__IUSENTRA_LOCAL_SIGNER_URL__ : ''
+  return String(configured || 'http://127.0.0.1:27272').replace(/\/+$/, '')
+}
+
+function localSignerEndpoint(path: string): string {
+  const suffix = path.startsWith('/') ? path : `/${path}`
+  return `${localSignerBaseUrl()}${suffix}`
+}
+
+function normalizeVisibleSignatureMode(value?: string): VisibleSignatureMode {
+  const raw = String(value || '').trim().toLowerCase().replace(/[-\s]+/g, '_')
+  if (['bottom_left', 'left', 'sinistra', 'sx', 'basso_sx'].includes(raw)) return 'basso_sinistra'
+  if (['bottom_right', 'right', 'destra', 'dx', 'basso_dx'].includes(raw)) return 'basso_destra'
+  if (['laterale', 'side', 'verticale', 'margine', 'margine_destro', 'laterale_dx'].includes(raw)) return 'laterale'
+  return raw === 'basso_sinistra' || raw === 'basso_destra' ? raw : 'laterale'
+}
+
+function loadVisibleSignatureMode(defaultMode: string): VisibleSignatureMode {
+  try {
+    const stored = window.localStorage.getItem(visibleSignatureStorageKey)
+    return normalizeVisibleSignatureMode(stored || defaultMode)
+  } catch {
+    return normalizeVisibleSignatureMode(defaultMode)
+  }
+}
+
 function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
   const [data, setData] = useState<FascicoloDetailData>(emptyFascicoloDetail)
   const [loading, setLoading] = useState(true)
@@ -673,6 +714,8 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
   const [checkingSigner, setCheckingSigner] = useState(false)
   const [pin, setPin] = useState('')
   const [confirmResign, setConfirmResign] = useState(false)
+  const [visibleSignatureMode, setVisibleSignatureMode] = useState<VisibleSignatureMode>('laterale')
+  const [visibleSignaturePlace, setVisibleSignaturePlace] = useState('')
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
@@ -685,26 +728,37 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
   const doc = data.documents.find((item) => item.id === documentId)
   const primaryToken = localSigner?.token?.[0]
   const freshToken = localSigner?.token_probe_fresh?.[0]
-  const token = primaryToken || freshToken
+  const displayToken = primaryToken || freshToken
+  const signerRestartRequired = Boolean(freshToken && !primaryToken)
+  const localSignerCanSign = Boolean(primaryToken && !signerRestartRequired)
   const localSignerReachable = Boolean(localSigner && localSigner.ok !== false && (localSigner.versione || localSigner.version || localSigner.piattaforma || localSigner.token || localSigner.token_probe_fresh))
-  const restartSuggested = Boolean(localSigner?.riavvio_signer_consigliato || freshToken)
+  const restartSuggested = Boolean(signerRestartRequired || (localSigner?.riavvio_signer_consigliato && !primaryToken))
   const localSignerVersion = localSigner?.versione || localSigner?.version || ''
-  const localSignerStatusTitle = token
+  const localSignerStatusTitle = displayToken
     ? (freshToken && !primaryToken ? 'Token rilevato, riavvio consigliato' : 'Local Signer rilevato')
     : localSignerReachable
       ? 'Local Signer attivo senza token PKCS#11'
       : checkingSigner
         ? 'Verifica Local Signer...'
         : 'Local Signer non rilevato'
-  const localSignerStatusMessage = token
+  const localSignerStatusMessage = displayToken
     ? (restartSuggested
         ? localSigner?.nota_riavvio_signer || 'Il token e stato rilevato da un controllo fresco. Riavvia il Local Signer se la firma non parte.'
-        : `${localSignerTokenLabel(token)} - slot ${token.slot_id}`)
+        : `${localSignerTokenLabel(displayToken)} - slot ${displayToken.slot_id}`)
     : localSignerReachable
       ? localSigner?.errore_token || localSigner?.errore_libreria || localSigner?.messaggio || 'Servizio locale attivo, ma nessun token PKCS#11 disponibile.'
       : localSigner?.messaggio || localSigner?.error || 'Avvia Local Signer sul PC e riprova.'
   const signatureCount = info?.firme?.length || 0
   const alreadySigned = Boolean(doc?.signed || signatureCount > 0 || doc?.name.toLowerCase().match(/\.(p7m|sig|pkcs7)$/))
+  const setVisibleSignatureChoice = (mode: VisibleSignatureMode) => {
+    const normalized = normalizeVisibleSignatureMode(mode)
+    setVisibleSignatureMode(normalized)
+    try {
+      window.localStorage.setItem(visibleSignatureStorageKey, normalized)
+    } catch {
+      // La preferenza locale e' un aiuto UX, non deve bloccare la firma.
+    }
+  }
 
   const refreshInfo = () => {
     fetch(infoUrl, { credentials: 'same-origin', headers: { Accept: 'application/json' } })
@@ -724,7 +778,7 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
         const controller = new AbortController()
         const timeout = window.setTimeout(() => controller.abort(), 3500)
         try {
-          const response = await fetch('http://127.0.0.1:27272/ping', {
+          const response = await fetch(localSignerEndpoint('/ping'), {
             cache: 'no-store',
             signal: controller.signal,
           })
@@ -752,13 +806,23 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
   }, [id])
 
   useEffect(() => {
+    const settings = data.signature
+    setVisibleSignatureMode(loadVisibleSignatureMode(settings?.visibleSignatureMode || 'laterale'))
+    setVisibleSignaturePlace(settings?.visibleSignaturePlace || '')
+  }, [data.signature?.visibleSignatureMode, data.signature?.visibleSignaturePlace])
+
+  useEffect(() => {
     refreshInfo()
     checkLocalSigner()
   }, [infoUrl])
 
   const firmaConLocalSigner = async () => {
     if (!doc) return
-    if (!token?.slot_id && token?.slot_id !== 0) {
+    if (signerRestartRequired) {
+      setError('Prima riavvia e riverifica Local Signer: il PIN verra richiesto solo quando il token sara pronto per la firma.')
+      return
+    }
+    if (!primaryToken?.slot_id && primaryToken?.slot_id !== 0) {
       setError('Local Signer non ha restituito un token utilizzabile.')
       return
     }
@@ -773,15 +837,15 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
       const downloadResponse = await fetch(doc.actions.download, { credentials: 'same-origin' })
       if (!downloadResponse.ok) throw new Error(`Download documento non riuscito: HTTP ${downloadResponse.status}`)
       const sourceBuffer = await downloadResponse.arrayBuffer()
-      const signResponse = await fetch('http://127.0.0.1:27272/firma', {
+      const signResponse = await fetch(localSignerEndpoint('/firma'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           documento: arrayBufferToBase64(sourceBuffer),
           pin,
-          slot_id: token.slot_id,
-          visible_signature_mode: 'nessuna',
-          visible_signature_place: '',
+          slot_id: primaryToken.slot_id,
+          visible_signature_mode: visibleSignatureMode,
+          visible_signature_place: visibleSignaturePlace,
         }),
       })
       const signedPayload = await signResponse.json()
@@ -880,10 +944,10 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
 
         <Panel title="Firma con Local Signer" subtitle="Controllo e firma sul PC dell'avvocato" icon={<ShieldCheck size={17}/>} action={<button className="iu-fas-mini-action" type="button" onClick={() => checkLocalSigner(false)} disabled={checkingSigner}><RefreshCw size={14}/> Riverifica</button>}>
           <div className="iu-fas-signature-box">
-            <div className={`iu-fas-signer-status ${primaryToken ? 'is-ok' : 'is-warn'}`}>
+            <div className={`iu-fas-signer-status ${localSignerCanSign ? 'is-ok' : 'is-warn'}`}>
               <strong>{localSignerStatusTitle}</strong>
               <span>{localSignerStatusMessage}</span>
-              {token && (freshToken && !primaryToken) ? <small>{localSignerTokenLabel(token)} - slot {token.slot_id}</small> : null}
+              {displayToken && signerRestartRequired ? <small>{localSignerTokenLabel(displayToken)} - slot {displayToken.slot_id}</small> : null}
               {localSignerVersion ? <small>Versione {localSignerVersion}</small> : null}
             </div>
             {restartSuggested || !localSignerReachable ? (
@@ -891,9 +955,23 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
                 <button className="iu-fas-mini-action" type="button" onClick={() => checkLocalSigner(true)} disabled={checkingSigner}>
                   <RefreshCw size={14}/> Riavvia e riverifica
                 </button>
-                {localSignerReachable ? <a className="iu-fas-mini-action" href="http://127.0.0.1:27272/diagnosi" target="_blank" rel="noreferrer">Diagnosi locale</a> : null}
+                {localSignerReachable ? <a className="iu-fas-mini-action" href={localSignerEndpoint('/diagnosi')} target="_blank" rel="noreferrer">Diagnosi locale</a> : null}
               </div>
             ) : null}
+            {localSignerCanSign ? (
+              <>
+                <div className="iu-fas-visible-signature">
+                  <span>Posizione firma visibile</span>
+                  <div>
+                    {visibleSignatureOptions.map((option) => (
+                      <label key={option.value}>
+                        <input type="radio" name="firma_visibile_mode" value={option.value} checked={visibleSignatureMode === option.value} onChange={() => setVisibleSignatureChoice(option.value)}/>
+                        <span>{option.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                  {visibleSignaturePlace ? <small>Luogo: {visibleSignaturePlace}</small> : null}
+                </div>
             <label className="iu-fas-field">
               <span>PIN token <b>*</b></span>
               <input type="password" value={pin} onChange={(event) => setPin(event.target.value)} autoComplete="off" placeholder="Il PIN non viene salvato"/>
@@ -904,10 +982,17 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
                 <span>Ho verificato che il documento è già firmato e autorizzo una nuova firma/sostituzione del file.</span>
               </label>
             ) : null}
-            <button className="iu-fas-submit" type="button" disabled={busy || !token || (alreadySigned && !confirmResign)} onClick={firmaConLocalSigner}>
+            <button className="iu-fas-submit" type="button" disabled={busy || !localSignerCanSign || (alreadySigned && !confirmResign)} onClick={firmaConLocalSigner}>
               <ShieldCheck size={16}/> {busy ? 'Firma in corso...' : 'Firma tramite Local Signer'}
             </button>
-            <p className="iu-fas-signature-help">La firma integrata passa da <code>127.0.0.1:27272</code>. IUSENTRA non salva PIN, password o credenziali del token.</p>
+            <p className="iu-fas-signature-help">La firma integrata passa da <code>{localSignerBaseUrl().replace(/^https?:\/\//, '')}</code>. IUSENTRA non salva PIN, password o credenziali del token.</p>
+              </>
+            ) : (
+              <div className="iu-fas-signer-next-step">
+                <strong>{signerRestartRequired ? 'Prima riavvia e riverifica Local Signer.' : 'Token non pronto per la firma.'}</strong>
+                <span>{signerRestartRequired ? 'Il PIN comparira solo quando il token sara allineato e pronto.' : 'Inserisci il token, avvia Local Signer e premi Riverifica.'}</span>
+              </div>
+            )}
           </div>
         </Panel>
 

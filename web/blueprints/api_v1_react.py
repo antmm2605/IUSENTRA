@@ -1433,6 +1433,7 @@ def fascicolo_react_dettaglio(id_fasc: str):
         get_preventivi=get_preventivi,
         get_fatturazione=get_fatturazione,
         get_timesheet=get_timesheet,
+        get_config_studio=_core_runtime_func("get_config_studio"),
         id_fasc=id_fasc,
         studio_avvocato_titolare=_studio_avvocato_titolare(),
     ))

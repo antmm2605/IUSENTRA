@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import io
 import re
 from datetime import datetime
@@ -22,6 +23,52 @@ VISIBLE_SIGNATURE_MODES = {
 VISIBLE_SIGNATURE_PREFIX = "Firmato digitalmente da"
 VISIBLE_SIGNATURE_DATE_LABEL = "Data e ora firma:"
 VISIBLE_SIGNATURE_METADATA_KEY = "/HACSSignatureStamp"
+VISIBLE_SIGNATURE_COCCARDA_PNG_B64 = (
+    "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"
+    "B08rc+8PRMUAAAAASUVORK5CYII="
+)
 ITALY_TIMEZONE = ZoneInfo("Europe/Rome") if ZoneInfo else None
 
 
@@ -585,7 +632,8 @@ def _draw_visible_signature_side_mark(
         height=height,
         mode=VISIBLE_SIGNATURE_MODE_LATERALE,
     )
-    text_length = max(float(layout["box_height"]) - 24.0, 40.0)
+    seal_gap = 58.0
+    text_length = max(float(layout["box_height"]) - seal_gap, 40.0)
     font_name = "Helvetica"
     font_size = 10.0
     while font_size > 7.0 and overlay.stringWidth(side_text, font_name, font_size) > text_length:
@@ -599,7 +647,7 @@ def _draw_visible_signature_side_mark(
         max(float(layout["x"]) + float(layout["box_width"]) - 10.0, CM_TO_PT),
         max(width - 10.0, CM_TO_PT),
     )
-    translate_y = min(max(float(layout["y"]) + 10.0, 10.0), max(height - 10.0, 10.0))
+    translate_y = min(max(float(layout["y"]) + 42.0, 42.0), max(height - 10.0, 42.0))
     overlay.translate(translate_x, translate_y)
     overlay.rotate(90)
     overlay.drawString(0, 0, side_text)
@@ -607,7 +655,7 @@ def _draw_visible_signature_side_mark(
     _draw_visible_signature_seal(
         overlay,
         anchor_x=min(max(float(layout["x"]) + float(layout["box_width"]) - 14.0, 16.0), max(width - 16.0, 16.0)),
-        anchor_y=min(max(float(layout["y"]) + 16.0, 16.0), max(height - 16.0, 16.0)),
+        anchor_y=min(max(float(layout["y"]) + 17.0, 17.0), max(height - 17.0, 17.0)),
     )
 
 
@@ -670,7 +718,7 @@ def _draw_visible_signature_bottom_text(
         data_firma=data_firma,
         luogo=luogo,
     )
-    max_text_width = max(float(layout["box_width"]) - (42.0 if align == "left" else 8.0), 80.0)
+    max_text_width = max(float(layout["box_width"]) - 58.0, 80.0)
     while font_size > 8 and max(
         overlay.stringWidth(line_one, font_name, font_size),
         overlay.stringWidth(line_two, font_name, font_size) if line_two else 0,
@@ -683,7 +731,7 @@ def _draw_visible_signature_bottom_text(
     overlay.setFillColor(color)
     overlay.setFont(font_name, font_size)
     baseline_y = float(layout["y"]) + 14.0
-    x_left = float(layout["x"]) + 34.0
+    x_left = float(layout["x"]) + 48.0
     x_right = min(float(layout["x"]) + float(layout["box_width"]), width - CM_TO_PT)
     if align == "left":
         if line_two:
@@ -703,11 +751,11 @@ def _draw_visible_signature_bottom_text(
     line_two_width = overlay.stringWidth(line_two, font_name, font_size) if line_two else 0
     text_width = max(line_one_width, line_two_width)
     if align == "left":
-        seal_anchor_x = max(float(layout["x"]) + 14.0, 14.0)
+        seal_anchor_x = max(float(layout["x"]) + 18.0, 18.0)
     else:
-        seal_anchor_x = max(x_right - text_width - 18.0, float(layout["x"]) + 14.0)
+        seal_anchor_x = max(x_right - text_width - 28.0, float(layout["x"]) + 18.0)
     seal_anchor_x = min(seal_anchor_x, max(width - 16.0, 16.0))
-    seal_anchor_y = min(max(float(layout["y"]) + 8.0, 16.0), max(height - 16.0, 16.0))
+    seal_anchor_y = min(max(float(layout["y"]) + 17.0, 17.0), max(height - 17.0, 17.0))
     _draw_visible_signature_seal(
         overlay,
         anchor_x=seal_anchor_x,
@@ -770,6 +818,38 @@ def _draw_visible_signature_bottom_left_text(
     )
 
 
+def _draw_visible_signature_coccarda_image(
+    overlay,
+    *,
+    anchor_x: float,
+    anchor_y: float,
+    scale: float = 1.0,
+) -> bool:
+    try:
+        from reportlab.lib.utils import ImageReader
+    except Exception:
+        return False
+
+    try:
+        image_bytes = base64.b64decode(VISIBLE_SIGNATURE_COCCARDA_PNG_B64)
+        image = ImageReader(io.BytesIO(image_bytes))
+        original_width, original_height = image.getSize()
+        target_height = 24.0 * max(float(scale or 1.0), 0.5)
+        target_width = target_height * (float(original_width) / max(float(original_height), 1.0))
+        overlay.drawImage(
+            image,
+            float(anchor_x) - target_width / 2,
+            float(anchor_y) - target_height / 2,
+            width=target_width,
+            height=target_height,
+            preserveAspectRatio=True,
+            mask="auto",
+        )
+        return True
+    except Exception:
+        return False
+
+
 def _draw_visible_signature_seal(
     overlay,
     *,
@@ -777,6 +857,14 @@ def _draw_visible_signature_seal(
     anchor_y: float,
     scale: float = 1.0,
 ) -> None:
+    if _draw_visible_signature_coccarda_image(
+        overlay,
+        anchor_x=anchor_x,
+        anchor_y=anchor_y,
+        scale=scale,
+    ):
+        return
+
     try:
         from reportlab.lib.colors import Color
     except Exception:

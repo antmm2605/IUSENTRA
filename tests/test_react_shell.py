@@ -344,13 +344,21 @@ def test_react_firma_documento_profonda_non_degrada_a_dettaglio_generico():
     assert 'kind: \'signature\'' in source
     assert "parts[1] === 'documenti' && parts[3] === 'firma'" in source
     assert "return <SignaturePage id={route.id} documentId={route.documentId}/>" in source
-    assert "http://127.0.0.1:27272/ping" in source
-    assert "http://127.0.0.1:27272/firma" in source
+    assert "window.__IUSENTRA_LOCAL_SIGNER_URL__" in source
+    assert "http://127.0.0.1:27272" in source
+    assert "localSignerEndpoint('/ping')" in source
+    assert "localSignerEndpoint('/firma')" in source
     assert "token_probe_fresh" in source
     assert "riavvio_signer_consigliato" in source
     assert "Token rilevato, riavvio consigliato" in source
+    assert "localSignerCanSign" in source
+    assert "Il PIN comparira solo quando il token sara allineato e pronto." in source
     assert "iusentra-local-signer://restart" in source
-    assert "http://127.0.0.1:27272/diagnosi" in source
+    assert "localSignerEndpoint('/diagnosi')" in source
+    assert "visible_signature_mode: visibleSignatureMode" in source
+    assert "visible_signature_place: visibleSignaturePlace" in source
+    assert "basso_sinistra" in source
+    assert "basso_destra" in source
     assert "Attenzione: documento già firmato." in source
     assert "confirm_resign" in source
     assert "alreadySigned && !confirmResign" in source
@@ -2662,6 +2670,8 @@ def test_react_fascicoli_api_suite_usa_repository_reali(tmp_path: Path):
     assert row["editHref"] == f"/fascicoli/{fascicolo.id}/modifica"
     assert not row["href"].startswith("/app-v2/")
     assert detail["fascicolo"]["title"] == "Appello civile"
+    assert detail["signature"]["visibleSignatureMode"] == "laterale"
+    assert "visibleSignaturePlace" in detail["signature"]
     assert any(party["name"] == "Zurich Ass.ni" and party["role"] == "Controparte" for party in detail["parties"])
     assert any(party["name"] == "Moscato Marco" and party["role"] == "Cliente / assistito" for party in detail["parties"])
     assert any(item["label"] == "Parti" and item["value"] == f"{len(detail['parties'])} soggetti" for item in detail["quality"])

@@ -219,6 +219,7 @@ export type FascicoloDetailData = {
   workflow: Array<{ label: string; value: string; note: string; tone: Tone; href: string }>
   telematic: Array<{ label: string; value: string; note: string; href: string; tone: Tone }>
   quality: Array<{ label: string; value: string; ok: boolean; tone: Tone }>
+  signature: { visibleSignatureMode: string; visibleSignaturePlace: string }
   actions: {
     changeState: string
     define: string
@@ -333,6 +334,7 @@ export const emptyFascicoloDetail: FascicoloDetailData = {
   },
   quickCounts: {}, profile: [], documents: [], activities: [], deadlines: [], appointments: [], deposits: [], requests: [], parties: [], history: [],
   economics: [], workflow: [], telematic: [], quality: [],
+  signature: { visibleSignatureMode: 'laterale', visibleSignaturePlace: '' },
   actions: { changeState: '', define: '', archive: '', restore: '', delete: '', uploadDocument: '', importPortal: '', addActivity: '', complianceOn: '', complianceOff: '', exportPdf: '', archiveZip: '' },
   options: { states: [], documentTypes: [], activityTypes: [], activityResults: [] },
 }
@@ -638,6 +640,10 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
     workflow: asArray(payload.workflow).map((entry) => { const row = isRecord(entry) ? entry : {}; return { label: text(row.label), value: text(row.value), note: text(row.note), tone: text(row.tone, 'neutral') as Tone, href: text(row.href) } }),
     telematic: asArray(payload.telematic).map((entry) => { const row = isRecord(entry) ? entry : {}; return { label: text(row.label), value: text(row.value), note: text(row.note), tone: text(row.tone, 'neutral') as Tone, href: text(row.href) } }),
     quality: asArray(payload.quality).map((entry) => { const row = isRecord(entry) ? entry : {}; return { label: text(row.label), value: text(row.value), ok: bool(row.ok), tone: text(row.tone, 'neutral') as Tone } }),
+    signature: isRecord(payload.signature) ? {
+      visibleSignatureMode: text(payload.signature.visibleSignatureMode ?? payload.signature.visible_signature_mode, 'laterale'),
+      visibleSignaturePlace: text(payload.signature.visibleSignaturePlace ?? payload.signature.visible_signature_place),
+    } : emptyFascicoloDetail.signature,
     actions: isRecord(payload.actions) ? {
       changeState: text(payload.actions.changeState), define: text(payload.actions.define), archive: text(payload.actions.archive), restore: text(payload.actions.restore), delete: text(payload.actions.delete), uploadDocument: text(payload.actions.uploadDocument), importPortal: text(payload.actions.importPortal), addActivity: text(payload.actions.addActivity), complianceOn: text(payload.actions.complianceOn), complianceOff: text(payload.actions.complianceOff), exportPdf: text(payload.actions.exportPdf), archiveZip: text(payload.actions.archiveZip),
     } : emptyFascicoloDetail.actions,

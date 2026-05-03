@@ -452,10 +452,16 @@ python -m pytest tests/ -v
   - token rilevato da probe fresco;
   - riavvio/riverifica consigliato tramite `iusentra-local-signer://restart`;
   - eventuale errore reale solo se anche il probe fresco non trova token o il servizio non risponde.
+- In stato `token_probe_fresh[]` valorizzato ma `token[]` vuoto, la UI non deve chiedere il PIN e non deve abilitare la firma: deve mostrare solo l'azione `Riavvia e riverifica`. Il PIN va richiesto soltanto quando il token principale del Local Signer attivo e' presente in `token[]`.
+- Le pagine React di firma documento devono mantenere la preferenza di firma visibile (`laterale`, `basso_sinistra`, `basso_destra`) letta dalle impostazioni studio o dalla scelta locale della sessione, e devono passarla al Local Signer come `visible_signature_mode` insieme a `visible_signature_place`.
+- La coccarda della firma visibile deve restare l'immagine PNG trasparente incorporata nel renderer PDF, senza bordo opaco e senza coprire il testo nelle tre posizioni.
 - Ogni modifica a firma digitale, PST/polisWeb, PDP, PAT, PTT o pagina impostazioni firma deve includere **test di regressione espliciti** su:
   - scelta `pkcs11` senza libreria disponibile nel container;
   - assenza del falso messaggio `PKCS#11 selezionato ma libreria/token non disponibili` nella UI quando il canale corretto è `Local Signer`;
   - assenza del falso messaggio `Local Signer non rilevato` quando il ping locale espone `token_probe_fresh[]`;
+  - assenza della richiesta PIN quando il token e' solo in `token_probe_fresh[]`;
+  - passaggio della posizione firma visibile al Local Signer nelle pagine React;
+  - render PDF reale delle tre posizioni della firma visibile con coccarda trasparente non sovrapposta al testo;
   - script/browser che verificano il `Local Signer` locale e non il server remoto;
   - status telematico che resta `pkcs11/browser-guided` e non ricade in `demo` per errore.
 

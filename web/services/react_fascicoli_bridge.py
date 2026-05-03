@@ -28,6 +28,28 @@ def _safe(label: str, func: Callable[[], Any], fallback: Any) -> Any:
         return fallback
 
 
+def _signature_settings(get_config_studio: Callable[[], Any] | None) -> dict[str, str]:
+    mode = "laterale"
+    place = ""
+    if not callable(get_config_studio):
+        return {"visibleSignatureMode": mode, "visibleSignaturePlace": place}
+    try:
+        from visible_signature import normalize_visible_signature_mode, resolve_visible_signature_place
+
+        config = get_config_studio().config
+        firma_cfg = getattr(config, "firma", None)
+        studio_cfg = getattr(config, "studio", None)
+        mode = normalize_visible_signature_mode(getattr(firma_cfg, "visible_signature_mode", mode))
+        place = resolve_visible_signature_place(
+            city=getattr(studio_cfg, "city", "") if studio_cfg else "",
+            province=getattr(studio_cfg, "province", "") if studio_cfg else "",
+            address=getattr(studio_cfg, "indirizzo", "") if studio_cfg else "",
+        )
+    except Exception:
+        pass
+    return {"visibleSignatureMode": mode, "visibleSignaturePlace": place}
+
+
 def _enum_value(value: Any) -> str:
     return str(getattr(value, "value", value) or "")
 
@@ -1185,6 +1207,7 @@ def build_react_fascicolo_detail_payload(
     get_preventivi: Callable[[], Any],
     get_fatturazione: Callable[[], Any],
     get_timesheet: Callable[[], Any],
+    get_config_studio: Callable[[], Any] | None = None,
     id_fasc: str,
     studio_avvocato_titolare: str = "",
 ) -> dict[str, Any]:
@@ -1232,6 +1255,7 @@ def build_react_fascicolo_detail_payload(
         "workflow": _workflow(preventivi, conferimenti, parcelle, timesheet_entries, cliente),
         "telematic": _telematic(fascicolo),
         "quality": _quality(fascicolo, cliente, scadenze, parties),
+        "signature": _signature_settings(get_config_studio),
         "actions": {
             "changeState": f"/fascicoli/{fid}/stato",
             "define": f"/fascicoli/{fid}/definisci",

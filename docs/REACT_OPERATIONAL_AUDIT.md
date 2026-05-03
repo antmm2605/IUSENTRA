@@ -75,7 +75,17 @@ Il flusso React espone:
 Il pannello Local Signer distingue il servizio raggiungibile dal token PKCS#11:
 se `token[]` e' vuoto ma il ping espone `token_probe_fresh[]`, la UI mostra
 che il token e' stato rilevato dal probe fresco e propone il riavvio del
-Local Signer, invece di degradare a "Local Signer non rilevato".
+Local Signer, invece di degradare a "Local Signer non rilevato". In questo
+stato non viene chiesto il PIN e la firma non e' abilitata: il PIN compare solo
+quando il token principale e' presente in `token[]`.
+
+La pagina React mantiene anche la configurazione della firma visibile gia'
+disponibile nelle viste classiche: modalita' laterale, basso sinistra o basso
+destra, luogo firma ricavato dalle impostazioni studio e passaggio del payload
+`visible_signature_mode` / `visible_signature_place` al Local Signer.
+La coccarda usata nella firma visibile e' un PNG trasparente incorporato nel
+render PDF; i testi delle tre posizioni sono distanziati dal timbro e il flusso
+browser e' stato verificato selezionando realmente tutte le modalita'.
 
 La rifirma non e' consentita in modo silenzioso: se il documento e' gia'
 firmato, frontend e backend richiedono conferma esplicita `confirm_resign=1`.

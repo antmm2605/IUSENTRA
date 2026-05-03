@@ -652,12 +652,27 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => window.setTimeout(resolve, ms))
 }
 
-function requestLocalSignerStart() {
-  const iframe = document.createElement('iframe')
-  iframe.style.display = 'none'
-  iframe.src = 'iusentra-local-signer://restart'
-  document.body.appendChild(iframe)
-  window.setTimeout(() => iframe.remove(), 2500)
+const LOCAL_SIGNER_RESTART_URI = 'iusentra-local-signer://restart'
+
+function isDesktopLocalSignerHost(): boolean {
+  if (typeof navigator === 'undefined') return true
+  const userAgent = String(navigator.userAgent || '').toLowerCase()
+  const platformName = String(navigator.platform || '').toLowerCase()
+  const isMobileOrTablet = /android|iphone|ipad|ipod|mobile|tablet|silk|kindle/.test(userAgent)
+  const isIpadDesktopMode = platformName.includes('mac') && Number(navigator.maxTouchPoints || 0) > 1
+  return !isMobileOrTablet && !isIpadDesktopMode
+}
+
+function requestLocalSignerStart(): boolean {
+  if (!isDesktopLocalSignerHost()) return false
+  const link = document.createElement('a')
+  link.href = LOCAL_SIGNER_RESTART_URI
+  link.rel = 'noreferrer'
+  link.style.display = 'none'
+  document.body.appendChild(link)
+  link.click()
+  window.setTimeout(() => link.remove(), 1500)
+  return true
 }
 
 function localSignerTokenLabel(token?: LocalSignerToken): string {
@@ -757,6 +772,14 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
       window.localStorage.setItem(visibleSignatureStorageKey, normalized)
     } catch {
       // La preferenza locale e' un aiuto UX, non deve bloccare la firma.
+    }
+  }
+
+  const scheduleLocalSignerRestartCheck = () => {
+    setError('')
+    setMessage("Sto chiedendo a Windows di riavviare Local Signer. Se il browser chiede conferma, consenti l'apertura dell'app locale.")
+    for (const delay of [2500, 5000, 8500, 12000]) {
+      window.setTimeout(() => { void checkLocalSigner(false) }, delay)
     }
   }
 
@@ -952,8 +975,11 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
             </div>
             {restartSuggested || !localSignerReachable ? (
               <div className="iu-fas-signer-actions">
-                <button className="iu-fas-mini-action" type="button" onClick={() => checkLocalSigner(true)} disabled={checkingSigner}>
-                  <RefreshCw size={14}/> Riavvia e riverifica
+                <a className="iu-fas-mini-action iu-fas-mini-action--restart" href={LOCAL_SIGNER_RESTART_URI} onClick={scheduleLocalSignerRestartCheck}>
+                  <RefreshCw size={14}/> Riavvia Local Signer
+                </a>
+                <button className="iu-fas-mini-action" type="button" onClick={() => checkLocalSigner(false)} disabled={checkingSigner}>
+                  <RefreshCw size={14}/> Riverifica
                 </button>
                 {localSignerReachable ? <a className="iu-fas-mini-action" href={localSignerEndpoint('/diagnosi')} target="_blank" rel="noreferrer">Diagnosi locale</a> : null}
               </div>

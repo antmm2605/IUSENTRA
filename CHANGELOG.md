@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.198.50 - 2026-05-03
+
+- Corretto il riavvio del Local Signer nella pagina React `Firma documento`: quando il token e' visibile solo nel `token_probe_fresh`, la UI usa un link diretto `iusentra-local-signer://restart`, mostra un messaggio operativo e riverifica automaticamente piu' volte.
+- Verificato sul PC Windows dello studio che il riavvio forzato riallinea il processo Local Signer e fa tornare il token CNS in `token[]`, sbloccando la richiesta PIN.
+
 ## 2.198.49 - 2026-05-03
 
 - Semplificata la pagina React `Firma documento`: quando il token e' rilevato solo dal `token_probe_fresh`, la UI mostra `Riavvia e riverifica` e non chiede piu' il PIN finche' il Local Signer attivo non espone il token principale.

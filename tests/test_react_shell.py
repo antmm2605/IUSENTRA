@@ -353,7 +353,10 @@ def test_react_firma_documento_profonda_non_degrada_a_dettaglio_generico():
     assert "Token rilevato, riavvio consigliato" in source
     assert "localSignerCanSign" in source
     assert "Il PIN comparira solo quando il token sara allineato e pronto." in source
-    assert "iusentra-local-signer://restart" in source
+    assert "LOCAL_SIGNER_RESTART_URI = 'iusentra-local-signer://restart'" in source
+    assert "href={LOCAL_SIGNER_RESTART_URI}" in source
+    assert "Riavvia Local Signer" in source
+    assert "Se il browser chiede conferma" in source
     assert "localSignerEndpoint('/diagnosi')" in source
     assert "visible_signature_mode: visibleSignatureMode" in source
     assert "visible_signature_place: visibleSignaturePlace" in source

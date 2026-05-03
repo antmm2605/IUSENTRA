@@ -78,6 +78,9 @@ che il token e' stato rilevato dal probe fresco e propone il riavvio del
 Local Signer, invece di degradare a "Local Signer non rilevato". In questo
 stato non viene chiesto il PIN e la firma non e' abilitata: il PIN compare solo
 quando il token principale e' presente in `token[]`.
+L'azione di riavvio usa il protocollo registrato `iusentra-local-signer://restart`
+come link diretto, mostra all'utente la richiesta di conferma del browser e
+riverifica automaticamente lo stato per riallineare il processo locale.
 
 La pagina React mantiene anche la configurazione della firma visibile gia'
 disponibile nelle viste classiche: modalita' laterale, basso sinistra o basso

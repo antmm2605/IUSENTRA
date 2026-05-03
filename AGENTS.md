@@ -453,6 +453,7 @@ python -m pytest tests/ -v
   - riavvio/riverifica consigliato tramite `iusentra-local-signer://restart`;
   - eventuale errore reale solo se anche il probe fresco non trova token o il servizio non risponde.
 - In stato `token_probe_fresh[]` valorizzato ma `token[]` vuoto, la UI non deve chiedere il PIN e non deve abilitare la firma: deve mostrare solo l'azione `Riavvia e riverifica`. Il PIN va richiesto soltanto quando il token principale del Local Signer attivo e' presente in `token[]`.
+- L'azione di riavvio deve attivare direttamente il protocollo locale `iusentra-local-signer://restart` da un click utente e poi riverificare piu' volte lo stato; un iframe nascosto da solo non e' sufficiente per considerare risolto il flusso Windows.
 - Le pagine React di firma documento devono mantenere la preferenza di firma visibile (`laterale`, `basso_sinistra`, `basso_destra`) letta dalle impostazioni studio o dalla scelta locale della sessione, e devono passarla al Local Signer come `visible_signature_mode` insieme a `visible_signature_place`.
 - La coccarda della firma visibile deve restare l'immagine PNG trasparente incorporata nel renderer PDF, senza bordo opaco e senza coprire il testo nelle tre posizioni.
 - Ogni modifica a firma digitale, PST/polisWeb, PDP, PAT, PTT o pagina impostazioni firma deve includere **test di regressione espliciti** su:

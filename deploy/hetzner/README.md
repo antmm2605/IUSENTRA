@@ -76,6 +76,14 @@ docker run --rm iusentra-app python -c "from core.security.secrets_manager impor
 
 ## Deploy
 
+Regola operativa obbligatoria: dopo ogni aggiornamento completato, committato e pushato sui branch gemelli, eseguire sempre il deploy su Hetzner CPX42. Il lavoro non e' concluso finche' `/opt/iusentra/repo` non punta al commit pushato, i container non sono healthy e `/api/pronto` non risponde.
+
+Backup preventivo:
+
+```bash
+bash /opt/iusentra/repo/deploy/hetzner/backup.sh
+```
+
 ```bash
 cd /opt/iusentra/repo
 bash deploy/hetzner/deploy.sh
@@ -85,6 +93,7 @@ Verifiche:
 
 ```bash
 docker compose --env-file /opt/iusentra/.env.hetzner -f deploy/hetzner/docker-compose.hetzner.yml ps
+git rev-parse --short HEAD
 curl -fsS https://iusentra.tuodominio.it/api/pronto
 curl -I https://iusentra.tuodominio.it/app-v2/agenda/nuovo
 ```

@@ -58,7 +58,13 @@ python tools/codex_harness/run_codex_quality_gate.py --mode dev-tooling
 ```
 
 Il gate non sostituisce backup, test applicativi, Docker build o verifiche del nodo remoto.
-Se la modifica e' solo documentale/tooling e non cambia il runtime, non eseguire il deploy Hetzner.
+Ogni aggiornamento completato e pushato deve arrivare anche su Hetzner CPX42: non considerare chiuso il lavoro finche' il server non punta al commit pushato e i controlli sotto non sono verdi, anche quando la modifica e' documentale o operativa.
+
+Prima del deploy creare sempre un backup dei dati:
+
+```bash
+bash /opt/iusentra/repo/deploy/hetzner/backup.sh
+```
 
 ```bash
 cd /opt/iusentra/repo
@@ -69,6 +75,7 @@ Verifiche minime:
 
 ```bash
 docker compose --env-file /opt/iusentra/.env.hetzner -f deploy/hetzner/docker-compose.hetzner.yml ps
+git rev-parse --short HEAD
 curl -fsS https://<dominio>/api/pronto
 curl -I https://<dominio>/app-v2/fascicoli
 ```

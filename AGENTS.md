@@ -6,6 +6,7 @@
 - Commit, push, modifica file, creazione file: esegui direttamente.
 - Branch di sviluppo: `Codex/legal-electronic-filing-kIxcV`
 - **Branch remoto da sincronizzare sempre insieme al branch di sviluppo:** `claude/legal-electronic-filing-kIxcV`
+- **Deploy Hetzner CPX42 obbligatorio dopo ogni aggiornamento:** ogni modifica completata e pushata deve essere distribuita anche sul server Hetzner `ubuntu-16gb-nbg1-1` (`116.203.45.57`, alias SSH `iusentra-hetzner`) usando il profilo `deploy/hetzner`. Non dichiarare concluso il lavoro finche' il server non e' sul commit pushato, i container non sono healthy e `https://app.iusentra.it/api/pronto` non risponde correttamente.
 - **Arresto PC:** non eseguire mai `shutdown`, riavvio, sospensione o spegnimento del PC per memoria di richieste precedenti. Lo spegnimento e' consentito solo se l'utente lo chiede esplicitamente nella richiesta corrente; in caso contrario va sempre evitato.
 
 ## Igiene repository — Regola obbligatoria
@@ -123,6 +124,10 @@ Quando il lavoro riguarda persistenza, tenant, JSON, SQLite, SQL o PostgreSQL:
 Quando il lavoro riguarda Hetzner, Docker, PostgreSQL, volumi, backup, restore o produzione:
 
 - consultare `deploy/hetzner/` e `ops/`;
+- dopo ogni commit/push eseguire sempre il deploy su Hetzner CPX42 con backup preventivo:
+  - `ssh iusentra-hetzner "bash /opt/iusentra/repo/deploy/hetzner/backup.sh"`;
+  - `ssh iusentra-hetzner "bash /opt/iusentra/repo/deploy/hetzner/deploy.sh"`;
+  - verificare `git rev-parse --short HEAD`, `docker compose ... ps` e `curl -fsS https://app.iusentra.it/api/pronto`;
 - non salvare segreti nel repository;
 - non inserire dati studio nel Product Pack;
 - documentare rollback e verifiche post-deploy;
@@ -215,6 +220,7 @@ Checklist minima obbligatoria per dichiarare conclusa una feature:
 - **Deploy e verifica finale**
   - ricostruire Docker locale con `--no-cache`, riavviare i servizi e verificare stato `healthy`;
   - controllare log applicativi, route principali, pagine toccate, asset compilati e scheduler/worker correlati;
+  - eseguire sempre backup, deploy e verifica su Hetzner CPX42 (`iusentra-hetzner`) dopo il push dei branch gemelli;
   - se il caso riguarda differenze tra locale e produzione, includere anche controllo Railway.
 
 Regola finale: **non dichiarare mai conclusa una funzione se e' stata completata solo nel backend, solo nel database, solo nel template o solo nel prompt AI**. Una feature e' chiusa solo quando dominio, storage, route, UI, permessi, test, versione, documentazione e deploy risultano coerenti tra loro.

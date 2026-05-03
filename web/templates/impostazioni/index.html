@@ -305,6 +305,10 @@
 
         {# Test connection buttons #}
         <div class="col-12">
+          {#
+            Guardrail Local Signer: "Diagnostica server (non invio reale)" resta
+            solo riferimento tecnico non renderizzato. L'invio PEC reale deve passare dal PC locale tramite Local Signer.
+          #}
           <div class="d-flex gap-2 flex-wrap align-items-center mt-1">
             <button type="button" class="btn btn-outline-success btn-sm" id="btn-test-smtp-locale"
                     onclick="testPecSmtpLocale('btn-test-smtp-locale','res-test-smtp-locale')">

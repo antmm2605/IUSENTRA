@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.198.40 - 2026-05-03
+
+- Ripristinato il guardrail sorgente della pagina Impostazioni PEC: il test SMTP reale resta browser-locale tramite Local Signer, mentre la diagnostica server PEC non torna esposta come azione utente nella UI.
+
 ## 2.198.39 - 2026-05-03
 
 - Resa operativa la riparazione automatica da `/admin/database`: il pulsante React ora esegue `POST /admin/database/verifica-ripara`, crea backup JSON prima della scrittura e risolve i riferimenti orfani senza inventare fascicoli o clienti.

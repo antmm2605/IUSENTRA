@@ -87,6 +87,8 @@ Se il tenant usa `SQLite locale`, la dashboard lavora direttamente su `studio.db
 Se il tenant ha gia' PostgreSQL attivo, la dashboard non resta piu' bloccata su "Database coverage non raggiungibile" solo per mancanza delle variabili dedicate: usa il backend studio gia' disponibile e mostra la pipeline reale.
 Se il superadmin opera fuori impersonazione, la dashboard seleziona automaticamente il tenant unico attivo oppure permette di scegliere esplicitamente lo studio dalla UI, propagando lo stesso contesto a review, action forms e API.
 La UI mostra anche il nome studio configurato nel `config/studio.json` del tenant e il backend coverage effettivo (`PostgreSQL tenant-aware`, `SQLite locale`, `JSON locale`), cosi' il contesto operativo non resta ambiguo.
+Quando una sottobranca ha gia' una bozza `generated`, `validated`, `needs_review` o `approved`, la gap queue non la riapre come gap pendente: il lavoro resta nella coda review fino a rifiuto o publish SQL. La generazione draft evita inoltre duplicati su gap storici ancora aperti.
+Il publish da dashboard pubblica solo bozze approvate; se non esistono draft `approved`, la UI mostra un avviso operativo e invita ad aprire la coda revisioni invece di dichiarare un riallineamento SQL non avvenuto.
 La schermata review autoseleziona la prima bozza disponibile, spiega il flusso da seguire e rende visibile il contesto di retrieval usato per generare il draft.
 La review ora espone anche:
 

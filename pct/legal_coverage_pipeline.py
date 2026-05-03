@@ -16,6 +16,21 @@ from pct.legal_coverage_defaults import (
 from pct.legal_taxonomy_sql_generator import generate_sql, validate_spec
 
 
+PENDING_DRAFT_STATUSES = ("generated", "validated", "needs_review", "approved")
+
+
+def _pending_draft_subbranches(repository: Any) -> set[str]:
+    try:
+        drafts = repository.list_drafts(statuses=PENDING_DRAFT_STATUSES)
+    except TypeError:
+        drafts = repository.list_drafts()
+    return {
+        str(row.get("subbranch_code") or "").strip()
+        for row in drafts
+        if str(row.get("subbranch_code") or "").strip()
+    }
+
+
 def run_coverage_audit(repository: Any) -> dict[str, Any]:
     repository.ensure_schema()
     snapshots: list[dict[str, Any]] = []
@@ -51,16 +66,20 @@ def run_coverage_audit(repository: Any) -> dict[str, Any]:
 def build_gap_queue(repository: Any) -> dict[str, Any]:
     repository.ensure_schema()
     gaps: list[dict[str, Any]] = []
+    pending_subbranches = _pending_draft_subbranches(repository)
     for snapshot in repository.list_latest_snapshots():
+        subbranch_code = str(snapshot["subbranch_code"])
+        if subbranch_code in pending_subbranches:
+            continue
         missing_blocks = list(snapshot.get("missing_blocks_json") or [])
         procedure_count = int(snapshot.get("procedure_count") or 0)
         gap_type = gap_type_from_missing_blocks(procedure_count, missing_blocks)
         if int(snapshot.get("coverage_score") or 0) >= 100 and not missing_blocks:
             continue
-        metadata = repository.get_subbranch_metadata(str(snapshot["subbranch_code"]))
+        metadata = repository.get_subbranch_metadata(subbranch_code)
         gaps.append(
             {
-                "subbranch_code": snapshot["subbranch_code"],
+                "subbranch_code": subbranch_code,
                 "gap_type": gap_type,
                 "priority_score": priority_score_for_gap(
                     coverage_score=int(snapshot.get("coverage_score") or 0),
@@ -97,7 +116,14 @@ def generate_drafts(
     repository.ensure_schema()
     created = 0
     auto_approved = 0
+    skipped_pending_review = 0
+    pending_subbranches = _pending_draft_subbranches(repository)
     for gap in repository.list_open_gaps(limit=limit):
+        subbranch_code = str(gap["subbranch_code"])
+        if subbranch_code in pending_subbranches:
+            repository.set_gap_status(int(gap["id"]), "GENERATED")
+            skipped_pending_review += 1
+            continue
         generated = generator.generate_draft(repository, gap)
         spec_json = generated["spec_json"]
         validation = generated["validation_report_json"]
@@ -120,7 +146,7 @@ def generate_drafts(
 
         repository.create_draft(
             {
-                "subbranch_code": gap["subbranch_code"],
+                "subbranch_code": subbranch_code,
                 "procedure_code": generated.get("procedure_code"),
                 "draft_source": "AI",
                 "prompt_used": generated["prompt_used"],
@@ -132,10 +158,15 @@ def generate_drafts(
                 "auto_publish_eligible": auto_publish_eligible,
             }
         )
+        pending_subbranches.add(subbranch_code)
         repository.set_gap_status(int(gap["id"]), "GENERATED")
         created += 1
 
-    return {"draft_total": created, "auto_approved_total": auto_approved}
+    return {
+        "draft_total": created,
+        "auto_approved_total": auto_approved,
+        "skipped_pending_review_total": skipped_pending_review,
+    }
 
 
 def save_draft(

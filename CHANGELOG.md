@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.198.45 - 2026-05-03
+
+- Corretto `/admin/copertura-ai`: la gap queue non riapre piu' sottobranche che hanno gia' draft generati, validati o approvati in coda review.
+- La generazione draft evita duplicati su gap storici gia' presi in carico, mentre il publish dashboard avvisa quando non ci sono bozze approvate invece di mostrare un successo ambiguo.
+
 ## 2.198.44 - 2026-05-03
 
 - Corretto `/admin/installazione-pack`: il servizio `Orchestratore Lex` viene valutato sulla presenza reale dei moduli Lex del Product Pack, senza ereditarne impropriamente lo stato di Ollama.

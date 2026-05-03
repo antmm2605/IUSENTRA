@@ -396,6 +396,39 @@ def test_legal_coverage_pipeline_copre_il_flusso_end_to_end():
     assert dashboard["headline"]["subbranch_ready"] >= 1
 
 
+def test_gap_queue_non_riapre_sottobranca_con_draft_in_revisione():
+    repository = _FakeCoverageRepository()
+    run_coverage_audit(repository)
+    build_gap_queue(repository)
+
+    generated = generate_drafts(repository, _StubGenerator(), limit=1)
+    assert generated["draft_total"] == 1
+    pending_subbranch = repository.drafts[0]["subbranch_code"]
+
+    rebuilt = build_gap_queue(repository)
+
+    assert all(row["subbranch_code"] != pending_subbranch for row in repository.list_open_gaps())
+    assert rebuilt["gap_total"] == 1
+
+
+def test_generazione_draft_non_duplica_gap_storici_gia_in_review():
+    repository = _FakeCoverageRepository()
+    run_coverage_audit(repository)
+    build_gap_queue(repository)
+    generate_drafts(repository, _StubGenerator(), limit=1)
+
+    pending_subbranch = repository.drafts[0]["subbranch_code"]
+    stale_gap = next(row for row in repository.gaps if row["subbranch_code"] == pending_subbranch)
+    stale_gap["status"] = "OPEN"
+
+    generated = generate_drafts(repository, _StubGenerator(), limit=1)
+
+    assert generated["draft_total"] == 0
+    assert generated["skipped_pending_review_total"] == 1
+    assert len([row for row in repository.drafts if row["subbranch_code"] == pending_subbranch]) == 1
+    assert stale_gap["status"] == "GENERATED"
+
+
 def test_publish_single_draft_pubblica_il_draft_richiesto():
     repository = _FakeCoverageRepository()
     run_coverage_audit(repository)

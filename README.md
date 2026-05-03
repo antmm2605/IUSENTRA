@@ -26,7 +26,7 @@ La repo oggi non è più solo un tool CLI per il Processo Civile Telematico: con
 - Motore `Update Intelligence` per monitoraggio normativo, giurisprudenziale e di prassi con area di acquisizione, coda revisioni e pagina news giuridiche strutturate.
 - Pipeline `Coverage AI` per audit tassonomico, gap queue, draft v2, review e publish SQL con retrieval interno, funzionante sia su `SQLite locale` sia su `PostgreSQL tenant-aware`.
 - Review `Coverage AI` con audit forte: motivo decisione, firma reviewer, diff tra spec originale e corrente, storico revisioni e publish SQL tracciato.
-- La console `Copertura AI` aggancia automaticamente il backend SQL reale del tenant selezionato: `studio.db` per gli studi `SQLite` oppure PostgreSQL tenant-aware per gli studi cloud o legacy gia' configurati.
+- La console `Copertura AI` aggancia automaticamente il backend SQL reale del tenant selezionato: `studio.db` per gli studi `SQLite` oppure PostgreSQL tenant-aware per gli studi cloud o legacy gia' configurati; le sottobranche con draft gia' in review non vengono riaperte come gap e il publish segnala quando non ci sono bozze approvate.
 - `Crash test operativo` con simulazione di una giornata reale di studio, repair loop, ticket di riparazione, checklist finale `si/no`, backup blindato completo + incrementale e report persistiti per tenant.
 - Il preventivo guidato puo' creare subito il cliente minimale come `Cliente potenziale`, gestisce classificazioni tassonomiche ripetibili `area -> macro-area -> sottobranca`, le porta nei repository SQL/PostgreSQL e somma le relative voci di compenso nella bozza economica; il conferimento resta bloccato finche' l'anagrafica non e' completa.
 - Workspace/applicazioni, portali di acquisizione, privacy e audit.

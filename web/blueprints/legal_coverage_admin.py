@@ -90,13 +90,23 @@ def execute_action(action: str):
             limit=int(request.form.get("limit") or 20),
             tenant_slug=tenant_slug,
         )
-        labels = {
+        category = "success"
+        message = {
             "audit": "Audit copertura aggiornato.",
             "gaps": "Gap queue rigenerata.",
             "drafts": "Draft generati correttamente.",
             "publish": "Publisher eseguito e database riallineato.",
-        }
-        flash(labels.get(action, "Operazione completata."), "success")
+        }.get(action, "Operazione completata.")
+        if action == "drafts":
+            generated = int((result or {}).get("draft_total") or 0)
+            skipped = int((result or {}).get("skipped_pending_review_total") or 0)
+            if generated == 0 and skipped:
+                category = "warning"
+                message = "Le bozze erano gia' in revisione: nessuna duplicazione generata."
+        if action == "publish" and int((result or {}).get("published_total") or 0) == 0:
+            category = "warning"
+            message = "Nessuna bozza approvata da pubblicare. Apri la coda revisioni, approva una bozza e ripeti il publish."
+        flash(message, category)
         if result:
             current_app.logger.info("Coverage action %s -> %s", action, result)
     except Exception as exc:

@@ -28,6 +28,13 @@ def _estrai_pdf_da_raw(data: bytes) -> bytes | None:
     return data[idx:]
 
 
+def _wants_json_response() -> bool:
+    return (
+        request.headers.get("X-Requested-With") == "XMLHttpRequest"
+        or "application/json" in request.headers.get("Accept", "")
+    )
+
+
 def _preview_unavailable_html(nome_documento: str, scarica_url: str) -> tuple[str, int, dict[str, str]]:
     html = (
         '<!DOCTYPE html><html><head><meta charset="utf-8">'
@@ -125,7 +132,7 @@ def register_fascicoli_document_routes(
     nome_preview_documento: Callable[[str], str],
     mime_preview_documento: Callable[[str, bytes], tuple[str, str] | None],
     payload_preview_da_versioni_documento: Callable[[Any, Any], bytes | None],
-    applica_timbro_firma_visibile: Callable[[bytes, list[dict[str, Any]]], bytes],
+    applica_timbro_firma_visibile: Callable[[bytes, list[dict[str, Any]], Any], bytes],
 ) -> None:
     """Register fascicolo document upload, preview, import, and download routes."""
 
@@ -139,10 +146,14 @@ def register_fascicoli_document_routes(
     def carica_documento(id_fasc):
         gestore_fascicoli = get_fascicoli()
         if "file" not in request.files:
+            if _wants_json_response():
+                return jsonify({"ok": False, "messaggio": "Nessun file selezionato."}), 400
             flash("Nessun file selezionato.", "warning")
             return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
         file = request.files["file"]
         if not file.filename:
+            if _wants_json_response():
+                return jsonify({"ok": False, "messaggio": "Nome file non valido."}), 400
             flash("Nome file non valido.", "warning")
             return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
         form = request.form
@@ -150,7 +161,7 @@ def register_fascicoli_document_routes(
         try:
             raw = file.read()
             tipo_doc = TipoDocumento(form.get("tipo_doc", "ALTRO"))
-            salva_documento_fascicolo(
+            documento = salva_documento_fascicolo(
                 gf=gestore_fascicoli,
                 id_fasc=id_fasc,
                 nome_file=file.filename,
@@ -164,9 +175,21 @@ def register_fascicoli_document_routes(
                 fonte_documento="CARICAMENTO_STUDIO",
                 nome_originale=file.filename,
             )
-            flash(f"Documento '{file.filename}' caricato.", "success")
+            msg = f"Documento '{file.filename}' caricato."
+            flash(msg, "success")
             audit("fascicoli.documento.carica", "fascicolo", id_fasc, dettagli=f"file: {file.filename}")
+            if _wants_json_response():
+                return jsonify(
+                    {
+                        "ok": True,
+                        "messaggio": msg,
+                        "documento_id": getattr(documento, "id", ""),
+                        "redirect_url": url_for("dettaglio_fascicolo", id_fasc=id_fasc) + "#documenti",
+                    }
+                )
         except (ValueError, KeyError) as exc:
+            if _wants_json_response():
+                return jsonify({"ok": False, "messaggio": str(exc)}), 400
             flash(str(exc), "danger")
         return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
 
@@ -203,6 +226,8 @@ def register_fascicoli_document_routes(
         gestore_fascicoli = get_fascicoli()
         fascicolo = gestore_fascicoli.get(id_fasc)
         if not fascicolo:
+            if _wants_json_response():
+                return jsonify({"ok": False, "messaggio": "Fascicolo non trovato."}), 404
             flash("Fascicolo non trovato.", "warning")
             return redirect(url_for("lista_fascicoli"))
 
@@ -238,6 +263,13 @@ def register_fascicoli_document_routes(
             scarica_originale=scarica_originale_portale,
         )
         if not items:
+            if _wants_json_response():
+                return jsonify(
+                    {
+                        "ok": False,
+                        "messaggio": f"Nessun file ufficiale trovato. Seleziona i download del {fonte} oppure riprova dopo averli copiati nella inbox tecnica del fascicolo.",
+                    }
+                ), 400
             flash(
                 f"Nessun file ufficiale trovato. Seleziona i download del {fonte} oppure riprova dopo averli copiati nella inbox tecnica del fascicolo.",
                 "warning",
@@ -267,10 +299,24 @@ def register_fascicoli_document_routes(
             if albero_originale_salvato:
                 msg += " Albero tecnico originale archiviato."
             flash(msg, "success")
+            if _wants_json_response():
+                return jsonify(
+                    {
+                        "ok": True,
+                        "messaggio": msg,
+                        "documenti_importati": esito_import["documenti_importati"],
+                        "depositi_agganciati": agganciati,
+                        "redirect_url": url_for("dettaglio_fascicolo", id_fasc=id_fasc) + "#documenti",
+                    }
+                )
         except (ValueError, KeyError) as exc:
+            if _wants_json_response():
+                return jsonify({"ok": False, "messaggio": str(exc)}), 400
             flash(str(exc), "danger")
         except Exception as exc:
             app.logger.exception("Errore importa_documenti_portale %s: %s", id_fasc, exc)
+            if _wants_json_response():
+                return jsonify({"ok": False, "messaggio": str(exc)}), 500
             flash(f"Errore importazione file ufficiali: {exc}", "danger")
         return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
 
@@ -390,7 +436,7 @@ def register_fascicoli_document_routes(
                     firme = analizza_firma_documento(firma_payload, documento.nome)
                 except Exception:
                     firme = []
-                preview_payload = applica_timbro_firma_visibile(preview_payload, firme)
+                preview_payload = applica_timbro_firma_visibile(preview_payload, firme, documento)
 
             mime, nome_download = preview
             audit("fascicoli.documento.visualizza", "fascicolo", id_fasc, dettagli=f"doc {id_doc} — {documento.nome}")
@@ -451,8 +497,19 @@ def register_fascicoli_document_routes(
     def elimina_documento(id_fasc, id_doc):
         try:
             get_fascicoli().rimuovi_documento(id_fasc, id_doc)
-            flash("Documento eliminato dal fascicolo.", "success")
+            msg = "Documento eliminato dal fascicolo."
+            flash(msg, "success")
+            if _wants_json_response():
+                return jsonify(
+                    {
+                        "ok": True,
+                        "messaggio": msg,
+                        "redirect_url": url_for("dettaglio_fascicolo", id_fasc=id_fasc) + "#documenti",
+                    }
+                )
         except KeyError as exc:
+            if _wants_json_response():
+                return jsonify({"ok": False, "messaggio": str(exc)}), 404
             flash(str(exc), "danger")
         return _redirect_to_documenti_section(id_fasc)
 

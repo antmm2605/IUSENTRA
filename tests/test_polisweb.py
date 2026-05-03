@@ -2797,6 +2797,117 @@ def test_visualizza_documento_p7m_mostra_timbro_firma_visibile(tmp_path, monkeyp
     assert b"ROBERTO MONTAGNESE" in response.data
 
 
+@pytest.mark.parametrize(
+    ("mode", "label"),
+    [
+        ("laterale", "Laterale verticale"),
+        ("basso_sinistra", "In basso a sinistra"),
+        ("basso_destra", "In basso a destra"),
+    ],
+)
+def test_visualizza_documento_p7m_usa_posizione_firma_visibile_salvata_nel_pdf(tmp_path, monkeypatch, mode, label):
+    fitz = pytest.importorskip("fitz")
+    from asn1crypto import algos, cms
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from reportlab.lib.pagesizes import A4
+    from reportlab.pdfgen import canvas
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    ).crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+        nome_completo="Roberto Montagnese",
+    )
+    gestione_fascicoli = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gestione_fascicoli.nuovo(titolo="RG 910/2025", tipo=TipoFascicolo.CIVILE)
+    buf_pdf = io.BytesIO()
+    c = canvas.Canvas(buf_pdf, pagesize=A4)
+    c.drawString(90, 760, "Citazione di prova senza timbri in basso")
+    c.save()
+    doc = gestione_fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "citazione.pdf",
+        TipoDocumento.ATTO_GIUDIZIARIO,
+        buf_pdf.getvalue(),
+        caricato_da="avvocato",
+    )
+    signed = cms.SignedData(
+        {
+            "version": "v1",
+            "digest_algorithms": [algos.DigestAlgorithm({"algorithm": "sha256"})],
+            "encap_content_info": {"content_type": "data"},
+            "signer_infos": [],
+        }
+    )
+    gestione_fascicoli.sostituisci_documento(
+        fascicolo.id,
+        doc.id,
+        nome_file="citazione.pdf.p7m",
+        contenuto=cms.ContentInfo({"content_type": "signed_data", "content": signed}).dump(),
+        caricato_da="avvocato",
+        note=f"Versione firmata per deposito. Posizione firma visibile: {label}.",
+    )
+    gestione_fascicoli.segna_firmato(fascicolo.id, doc.id)
+    monkeypatch.setattr(
+        "pct.firma.analizza_firma_documento",
+        lambda data, nome_file="": [
+            {
+                "intestatario": "ROBERTO MONTAGNESE",
+                "data_firma": "2024-12-11T17:46:00",
+                "formato": "CAdES",
+                "scaduto": False,
+                "avviso_imminente": False,
+            }
+        ],
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post("/login", data={"username": "avvocato", "password": "Avv12345!"}, follow_redirects=True)
+        response = client.get(f"/fascicoli/{fascicolo.id}/documenti/{doc.id}/visualizza")
+
+    assert response.status_code == 200
+    assert response.mimetype == "application/pdf"
+    pdf_doc = fitz.open(stream=response.data, filetype="pdf")
+    page = pdf_doc[0]
+    width, height = page.rect.width, page.rect.height
+
+    def dark_ratio(rect):
+        pix = page.get_pixmap(matrix=fitz.Matrix(2, 2), clip=fitz.Rect(*rect), alpha=False)
+        channels = pix.n
+        samples = pix.samples
+        dark = 0
+        for index in range(0, len(samples), channels):
+            if min(samples[index], samples[index + 1], samples[index + 2]) < 245:
+                dark += 1
+        return dark / max(pix.width * pix.height, 1)
+
+    left_bottom = dark_ratio((18, height - 124, width / 2, height - 18))
+    right_bottom = dark_ratio((width / 2, height - 124, width - 18, height - 18))
+    right_side = dark_ratio((width - 96, 132, width - 2, height - 140))
+
+    if mode == "basso_sinistra":
+        assert left_bottom > 0.004
+        assert left_bottom > right_bottom * 1.7
+    elif mode == "basso_destra":
+        assert right_bottom > 0.004
+        assert right_bottom > left_bottom * 1.7
+    else:
+        assert right_side > 0.002
+        assert right_side > max(left_bottom, right_bottom) * 1.2
+
+
 def test_api_info_firma_documento_espone_stato_payload_p7m_detached(tmp_path):
     from asn1crypto import algos, cms
     from pct.auth import GestioneUtenti, RuoloUtente

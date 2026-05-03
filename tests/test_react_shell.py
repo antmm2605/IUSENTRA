@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import io
 import re
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -8,7 +9,7 @@ from pathlib import Path
 from pct.agenda import Agenda, TipoAppuntamento
 from pct.clienti import GestioneClienti, TipoCliente
 from pct.email_client import CartellaEmail, EmailRicevuta, GestioneEmailRicevute, StatoEmail
-from pct.fascicoli import GestioneFascicoli, StatoFascicolo, TipoAttivita, TipoFascicolo
+from pct.fascicoli import GestioneFascicoli, StatoFascicolo, TipoAttivita, TipoDocumento, TipoFascicolo
 from pct.messaggi import CanaleMsggio, ConfigMessaggistica, GestioneMessaggi, Messaggio, StatoMessaggio
 from pct.privacy import GestioneTrattamenti
 from pct.preventivi import GestionePreventivi, StatoPreventivo, VocePreventivo
@@ -360,6 +361,10 @@ def test_react_firma_documento_profonda_non_degrada_a_dettaglio_generico():
     assert "localSignerEndpoint('/diagnosi')" in source
     assert "visible_signature_mode: visibleSignatureMode" in source
     assert "visible_signature_place: visibleSignaturePlace" in source
+    assert "form.append('visible_signature_mode', visibleSignatureMode)" in source
+    assert "form.append('visible_signature_place', visibleSignaturePlace)" in source
+    assert 'name="visible_signature_mode" value={visibleSignatureMode}' in source
+    assert 'name="visible_signature_place" value={visibleSignaturePlace}' in source
     assert "basso_sinistra" in source
     assert "basso_destra" in source
     assert "Attenzione: documento già firmato." in source
@@ -2440,6 +2445,8 @@ def test_react_fascicoli_page_collegata_nav_api_e_lex():
     assert "rawPath.startsWith('/app-v2/fascicoli')" in page_source
     assert "FloatingLex" in page_source
     assert "context=\"fascicoli\"" in page_source
+    assert "/lex?context=fascicolo" not in page_source
+    assert "/lex?context=fascicoli" not in page_source
     assert "IUSENTRA_LEX_CONTEXT" in floating_lex
     assert "iusentra:lex-context" in floating_lex
     assert "return null" in floating_lex
@@ -2532,6 +2539,31 @@ def test_react_fascicoli_suite_completa_route_componenti_e_lex():
     assert "<details id={id}" in page_source
     assert 'className="iu-fas-detail-section" open' not in page_source
     assert "Quadro intelligente" in page_source
+    assert "Quadro intelligente AI" in page_source
+    assert "<a href={quadroHref}><Gauge size={15}/> Quadro completo</a>" in page_source
+    assert "<a href={editorWorkspaceHref}><PencilLine size={15}/><span>Editor professionale</span></a>" in page_source
+    assert "<a href={compilerHref}><ClipboardCheck size={15}/><span>Compilatore atti</span></a>" in page_source
+    assert "<a href={editorWorkspaceHref}><PencilLine size={15}/> Editor professionale</a>" not in page_source
+    assert "<span>Analisi Lex AI</span>" not in page_source
+    assert "Compilatore atti" in page_source
+    assert "Editor professionale" in page_source
+    assert "PdfPreviewModal" in page_source
+    assert "UploadDocumentForm" in page_source
+    assert "PortalImportForm" in page_source
+    assert "iu-fas-confirm-modal" in page_source
+    assert "window.confirm" not in page_source
+    assert "deleteHref" in data_source
+    assert '"deleteHref": f"/fascicoli/{fid}/elimina"' in bridge
+    assert 'title="Elimina fascicolo"' in page_source
+    assert "handleFascicoloDeleted" in page_source
+    assert "onDeleted={handleFascicoloDeleted}" in page_source
+    assert "Anteprima interna" in page_source
+    assert 'title="Firma digitale"' in page_source
+    assert 'title="Editor professionale"' in page_source
+    assert "onPreview={setPreviewDoc}" in page_source
+    assert "onDone={refreshDetail}" in page_source
+    assert "'X-Requested-With': 'XMLHttpRequest'" in page_source
+    assert "/template-atti/catalogo?id_fascicolo=" in page_source
     assert "Dati aggiornati - ${data.source}" not in page_source
     assert 'title="Soggetti e parti"' in page_source
     assert 'title="Cancelleria e istanze"' in page_source
@@ -2552,6 +2584,8 @@ def test_react_fascicoli_suite_completa_route_componenti_e_lex():
     assert "iu-fas-compliance-toggle" in page_source
     assert 'name="next"' in page_source
     assert "context=\"fascicoli\"" in page_source
+    assert "/lex?context=fascicolo" not in page_source
+    assert "/lex?context=fascicoli" not in page_source
     assert "IUSENTRA_LEX_CONTEXT" in floating_lex
     assert "iusentra:lex-context" in floating_lex
     assert "return null" in floating_lex
@@ -2562,6 +2596,10 @@ def test_react_fascicoli_suite_completa_route_componenti_e_lex():
     assert ".iu-fas-back-top" in css
     assert ".iu-fas-detail-section__summary" in css
     assert ".iu-fas-smart-board" in css
+    assert ".iu-fas-ai-board" in css
+    assert ".iu-fas-command-bar" in css
+    assert ".iu-fas-preview-modal" in css
+    assert ".iu-fas-editor-board" in css
     assert ".iu-fas-action-stack .iu-fas-post" in css
     assert ".iu-fas-compliance-toggle" in css
     assert ".iu-fascicolo-quadro-page" in css
@@ -2601,6 +2639,57 @@ def test_react_fascicoli_api_suite_richiede_auth(tmp_path: Path):
     assert client.get("/api/v1/ui/fascicoli/archivio").status_code == 401
     assert client.get("/api/v1/ui/fascicoli/nuovo").status_code == 401
     assert client.get("/api/v1/ui/fascicoli/export").status_code == 401
+
+
+def test_react_fascicolo_documenti_ajax_non_ricarica_e_cancella_senza_confirm_nativo(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicolo = fascicoli.nuovo("Opposizione decreto", TipoFascicolo.CIVILE)
+    documento = fascicoli.aggiungi_documento(
+        fascicolo.id,
+        "bozza.txt",
+        TipoDocumento.ATTO_GIUDIZIARIO,
+        b"bozza documento",
+    )
+
+    headers = {"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"}
+    with app.test_client() as client:
+        _login(client)
+        upload = client.post(
+            f"/fascicoli/{fascicolo.id}/documenti/carica",
+            data={
+                "file": (io.BytesIO(b"nuovo documento"), "nuovo-documento.txt"),
+                "tipo_doc": TipoDocumento.ATTO_GIUDIZIARIO.value,
+                "note": "caricamento ajax",
+            },
+            content_type="multipart/form-data",
+            headers=headers,
+        )
+        delete_doc = client.post(
+            f"/fascicoli/{fascicolo.id}/documenti/{documento.id}/elimina",
+            headers=headers,
+        )
+        delete_fascicolo = client.post(
+            f"/fascicoli/{fascicolo.id}/elimina",
+            headers=headers,
+        )
+
+    assert upload.status_code == 200
+    assert upload.is_json
+    assert upload.get_json()["ok"] is True
+    assert upload.get_json()["redirect_url"].endswith("#documenti")
+    assert delete_doc.status_code == 200
+    assert delete_doc.is_json
+    assert delete_doc.get_json()["ok"] is True
+    assert delete_fascicolo.status_code == 200
+    assert delete_fascicolo.is_json
+    assert delete_fascicolo.get_json()["ok"] is True
+    assert delete_fascicolo.get_json()["redirect_url"] == "/fascicoli"
 
 
 def test_react_fascicoli_api_suite_usa_repository_reali(tmp_path: Path):
@@ -2671,6 +2760,7 @@ def test_react_fascicoli_api_suite_usa_repository_reali(tmp_path: Path):
     row = next(item for item in payload["items"] if item["title"] == "Appello civile")
     assert row["href"] == f"/fascicoli/{fascicolo.id}"
     assert row["editHref"] == f"/fascicoli/{fascicolo.id}/modifica"
+    assert row["deleteHref"] == f"/fascicoli/{fascicolo.id}/elimina"
     assert not row["href"].startswith("/app-v2/")
     assert detail["fascicolo"]["title"] == "Appello civile"
     assert detail["signature"]["visibleSignatureMode"] == "laterale"

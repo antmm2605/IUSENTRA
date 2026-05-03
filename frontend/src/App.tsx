@@ -452,8 +452,8 @@ function resolveLexPageContext(routePath: string): GlobalLexConfig {
       context: 'fascicoli',
       title: 'Lex AI fascicoli',
       body: 'Legge il contesto del fascicolo, documenti, attività, scadenze e canali telematici collegati.',
-      primaryHref: '/lex?context=fascicoli',
-      primaryLabel: 'Apri Lex fascicoli',
+      primaryHref: '/global-search?tipo=fascicoli',
+      primaryLabel: 'Cerca fascicoli',
       secondaryHref: '/fascicoli',
       secondaryLabel: 'Fascicoli',
     }

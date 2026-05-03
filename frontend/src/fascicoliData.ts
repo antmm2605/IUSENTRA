@@ -32,6 +32,7 @@ export type FascicoloRow = {
   editHref: string
   operationalEditHref: string
   exportPdfHref: string
+  deleteHref: string
   archiveZipHref: string
   restoreAction: string
   tone: Tone
@@ -326,7 +327,7 @@ export const emptyFascicoloDetail: FascicoloDetailData = {
   fascicolo: {
     id: '', ref: 'n.d.', internalRef: 'n.d.', title: 'Fascicolo non trovato', subtitle: '', type: 'altro', client: 'n.d.', court: 'n.d.', rg: 'n.d.',
     nextDeadline: 'n.d.', nextDeadlineIso: '', status: 'aperto', documents: 0, unreadCommunications: 0, alerts: 0, openedAt: '', closedAt: '', updatedAt: '',
-    href: '/fascicoli', operationalHref: '/fascicoli', editHref: '/fascicoli', operationalEditHref: '/fascicoli', exportPdfHref: '', archiveZipHref: '', restoreAction: '', tone: 'neutral',
+    href: '/fascicoli', operationalHref: '/fascicoli', editHref: '/fascicoli', operationalEditHref: '/fascicoli', exportPdfHref: '', deleteHref: '', archiveZipHref: '', restoreAction: '', tone: 'neutral',
     object: '', counterparty: '', counterpartyTaxCode: '', judge: '', section: '', leadLawyer: '', dominus: '', value: '', quotedValue: '', agreedFee: '',
     procedureType: '', practiceId: '', practiceArea: '', firstHearing: '', citationNotification: '', nextHearing: '', notes: '', reservedNotes: '',
     source: '', sourceExternalId: '', lastSyncAt: '', syncStatus: '', importLogId: '', hasConflicts: false, documentSyncEnabled: false,
@@ -456,6 +457,7 @@ export function normalizeItem(value: unknown, index: number): FascicoloRow {
     editHref: text(item.editHref ?? item.edit_href, `/fascicoli/${encodeURIComponent(id)}/modifica`),
     operationalEditHref: text(item.operationalEditHref ?? item.operational_edit_href, `/fascicoli/${encodeURIComponent(id)}/modifica`),
     exportPdfHref: text(item.exportPdfHref ?? item.export_pdf_href, `/fascicoli/${encodeURIComponent(id)}/pdf`),
+    deleteHref: text(item.deleteHref ?? item.delete_href, `/fascicoli/${encodeURIComponent(id)}/elimina`),
     archiveZipHref: text(item.archiveZipHref ?? item.archive_zip_href, `/fascicoli/${encodeURIComponent(id)}/archivio/scarica`),
     restoreAction: text(item.restoreAction ?? item.restore_action, `/fascicoli/${encodeURIComponent(id)}/ripristina`),
     tone: (text(item.tone) as Tone) || statusTone(status),

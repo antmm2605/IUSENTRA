@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import {
   Archive,
   ArrowLeft,
@@ -160,27 +160,82 @@ function EmptyState({ icon, title, children, action }:{icon:ReactNode; title:str
   )
 }
 
-function PostAction({ action, children, tone = 'secondary', confirm }:{action:string; children:ReactNode; tone?:'primary'|'secondary'|'danger'|'ghost'; confirm?:string}) {
+type ActionPayload = {
+  ok?: boolean
+  messaggio?: string
+  message?: string
+  errore?: string
+  error?: string
+  redirect_url?: string
+}
+
+function PostAction({ action, children, tone = 'secondary', confirm, confirmTitle = 'Conferma operazione', onDone, onError, redirectTo, title, ariaLabel }:{action:string; children:ReactNode; tone?:'primary'|'secondary'|'danger'|'ghost'; confirm?:string; confirmTitle?:string; onDone?:(message?:string)=>void; onError?:(message:string)=>void; redirectTo?:string; title?:string; ariaLabel?:string}) {
+  const [confirming, setConfirming] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
   if (!action) return null
+  const run = async () => {
+    setBusy(true)
+    setError('')
+    try {
+      const response = await fetch(action, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+      })
+      const contentType = response.headers.get('content-type') || ''
+      const payload = contentType.includes('application/json') ? await response.json().catch(() => ({} as ActionPayload)) : {} as ActionPayload
+      if (!response.ok || payload.ok === false) throw new Error(String(payload.messaggio || payload.errore || payload.error || `Operazione non riuscita: HTTP ${response.status}`))
+      const message = String(payload.messaggio || payload.message || '')
+      setConfirming(false)
+      if (onDone) {
+        onDone(message)
+        return
+      }
+      const target = String(payload.redirect_url || redirectTo || response.url || '')
+      if (target) window.location.href = target
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Operazione non riuscita.'
+      setError(message)
+      onError?.(message)
+    } finally {
+      setBusy(false)
+    }
+  }
   return (
-    <form method="post" action={action} onSubmit={(event) => { if (confirm && !window.confirm(confirm)) event.preventDefault() }}>
-      <button className={`iu-fas-post iu-fas-post--${tone}`} type="submit">{children}</button>
-    </form>
+    <>
+      <button className={`iu-fas-post iu-fas-post--${tone}`} type="button" onClick={() => confirm ? setConfirming(true) : void run()} disabled={busy} title={title} aria-label={ariaLabel}>{children}</button>
+      {confirming ? (
+        <div className="iu-fas-confirm-modal" role="dialog" aria-modal="true" aria-label={confirmTitle}>
+          <div className="iu-fas-confirm-modal__box">
+            <strong>{confirmTitle}</strong>
+            <p>{confirm}</p>
+            {error ? <span className="iu-fas-inline-error">{error}</span> : null}
+            <footer>
+              <button type="button" onClick={() => setConfirming(false)} disabled={busy}>Annulla</button>
+              <button className="is-danger" type="button" onClick={run} disabled={busy}>{busy ? 'Operazione...' : 'Conferma'}</button>
+            </footer>
+          </div>
+        </div>
+      ) : null}
+    </>
   )
 }
 
-function RowActions({ item, archive = false }:{item:FascicoloRow; archive?:boolean}) {
+function RowActions({ item, archive = false, onDeleted, onError }:{item:FascicoloRow; archive?:boolean; onDeleted?:(id:string, message?:string)=>void; onError?:(message:string)=>void}) {
+  const deleteHref = item.deleteHref || `/fascicoli/${encodeURIComponent(item.id)}/elimina`
   return (
     <div className="iu-fas-actions" aria-label={`Azioni fascicolo ${item.ref}`}>
       <a href={item.href} aria-label="Apri fascicolo React" title="Apri"><Eye size={15}/></a>
       {!archive ? <a href={item.editHref} aria-label="Modifica fascicolo React" title="Modifica"><PencilLine size={15}/></a> : null}
       <a href={item.exportPdfHref} aria-label="Esporta PDF fascicolo" title="PDF"><FileDown size={15}/></a>
       {archive && item.archive?.zipAvailable ? <a href={item.archiveZipHref} aria-label="Scarica ZIP archivio" title="ZIP"><FileArchive size={15}/></a> : null}
+      <PostAction action={deleteHref} tone="danger" confirm={`Eliminare definitivamente il fascicolo ${item.ref}?`} confirmTitle="Elimina fascicolo" onDone={(message) => onDeleted?.(item.id, message)} onError={onError} title="Elimina fascicolo" ariaLabel={`Elimina fascicolo ${item.ref}`}><Trash2 size={15}/></PostAction>
     </div>
   )
 }
 
-function DossierMobileCard({ item, checked, onToggle, archive = false }:{item:FascicoloRow; checked:boolean; onToggle:()=>void; archive?:boolean}) {
+function DossierMobileCard({ item, checked, onToggle, archive = false, onDeleted, onError }:{item:FascicoloRow; checked:boolean; onToggle:()=>void; archive?:boolean; onDeleted?:(id:string, message?:string)=>void; onError?:(message:string)=>void}) {
   return (
     <article className="iu-fas-mobile-card">
       <header>
@@ -202,13 +257,13 @@ function DossierMobileCard({ item, checked, onToggle, archive = false }:{item:Fa
         <span><FileText size={14}/> {item.documents}</span>
         {item.unreadCommunications ? <span><Bell size={14}/> {item.unreadCommunications}</span> : null}
         {item.alerts ? <span><ShieldCheck size={14}/> {item.alerts}</span> : null}
-        <RowActions item={item} archive={archive}/>
+        <RowActions item={item} archive={archive} onDeleted={onDeleted} onError={onError}/>
       </footer>
     </article>
   )
 }
 
-function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = false }:{items:FascicoloRow[]; selected:Set<string>; onToggle:(id:string)=>void; onToggleAll:()=>void; archive?:boolean}) {
+function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = false, onDeleted, onError }:{items:FascicoloRow[]; selected:Set<string>; onToggle:(id:string)=>void; onToggleAll:()=>void; archive?:boolean; onDeleted?:(id:string, message?:string)=>void; onError?:(message:string)=>void}) {
   const allSelected = items.length > 0 && items.every((item) => selected.has(item.id))
   return (
     <section className="iu-fas-table-card" aria-label={archive ? 'Archivio fascicoli' : 'Elenco fascicoli'}>
@@ -247,14 +302,14 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
                 <td>{archive ? <span>{item.archive?.outcome || 'n.d.'}<small>{item.archive?.archivedAt || ''}</small></span> : item.nextDeadline || 'n.d.'}</td>
                 <td><Badge tone={item.tone}>{formatFascicoloStatus(item.status)}</Badge></td>
                 <td><span className="iu-fas-doc-count">{item.documents}</span></td>
-                <td><RowActions item={item} archive={archive}/></td>
+                <td><RowActions item={item} archive={archive} onDeleted={onDeleted} onError={onError}/></td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
       <div className="iu-fas-mobile-list">
-        {items.map((item) => <DossierMobileCard item={item} checked={selected.has(item.id)} onToggle={() => onToggle(item.id)} archive={archive} key={item.id}/>) }
+        {items.map((item) => <DossierMobileCard item={item} checked={selected.has(item.id)} onToggle={() => onToggle(item.id)} archive={archive} onDeleted={onDeleted} onError={onError} key={item.id}/>) }
       </div>
       {!items.length ? <p className="iu-empty">Nessun fascicolo corrisponde ai filtri impostati.</p> : null}
     </section>
@@ -324,7 +379,6 @@ function InsightPanel({ data, visible }:{data:FascicoliPageData; visible:Fascico
           <a href="/scadenziario/nuova"><CalendarDays size={15}/> Nuova scadenza</a>
           <a href="/redazione-atti"><FileCheck2 size={15}/> Redazione atti</a>
           <a href="/fascicoli/archivio"><Archive size={15}/> Archivio</a>
-          <a href="/lex?context=fascicoli"><Sparkles size={15}/> Chiedi a Lex</a>
         </div>
       </Panel>
     </aside>
@@ -342,6 +396,7 @@ function FascicoliListPage() {
   const [alertsOnly, setAlertsOnly] = useState(false)
   const [advancedOpen, setAdvancedOpen] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [toast, setToast] = useState<{ tone: 'success' | 'danger'; message: string } | null>(null)
 
   const refresh = () => {
     setLoading(true)
@@ -375,6 +430,12 @@ function FascicoliListPage() {
     if (allSelected) return new Set([...current].filter((id) => !visible.some((item) => item.id === id)))
     return new Set([...current, ...visible.map((item) => item.id)])
   })
+  const handleFascicoloDeleted = (id: string, message?: string) => {
+    setSelected((current) => { const next = new Set(current); next.delete(id); return next })
+    setToast({ tone: 'success', message: message || 'Fascicolo eliminato.' })
+    refresh()
+  }
+  const handleListError = (message: string) => setToast({ tone: 'danger', message })
 
   return (
     <main className="iu-content iu-fascicoli-page">
@@ -426,17 +487,18 @@ function FascicoliListPage() {
         {selectedVisible ? <small className="iu-fas-selected">{selectedVisible} selezionati</small> : null}
       </section>
 
+      {toast ? <section className={`iu-fas-toast iu-fas-toast--${toast.tone}`}><span>{toast.message}</span><button type="button" onClick={() => setToast(null)}>Chiudi</button></section> : null}
+
       <section className="iu-fas-layout">
         <div className="iu-fas-main-list">
           {selectedVisible ? (
             <div className="iu-fas-bulkbar">
               <strong>{selectedVisible} fascicoli selezionati</strong>
               <a href="/fascicoli/esporta"><Download size={14}/> Esporta selezione</a>
-              <a href="/lex?context=fascicoli"><Sparkles size={14}/> Sintesi Lex</a>
               <button type="button" onClick={() => setSelected(new Set())}>Annulla</button>
             </div>
           ) : null}
-          <FascicoliTable items={visible} selected={selected} onToggle={toggle} onToggleAll={toggleAll}/>
+          <FascicoliTable items={visible} selected={selected} onToggle={toggle} onToggleAll={toggleAll} onDeleted={handleFascicoloDeleted} onError={handleListError}/>
         </div>
         <InsightPanel data={data} visible={visible}/>
       </section>
@@ -459,7 +521,7 @@ function FascicoliListPage() {
         </Panel>
       </section>
 
-      <FloatingLex context="fascicoli" title="Lex AI fascicoli" body="Posso sintetizzare un fascicolo, evidenziare scadenze senza prossima azione, preparare una lista documenti e suggerire il percorso prima di deposito, udienza o archiviazione." primaryHref="/lex?context=fascicoli" primaryLabel="Apri Lex sui fascicoli" secondaryHref="/global-search?tipo=fascicoli" secondaryLabel="Cerca nello studio" />
+      <FloatingLex context="fascicoli" title="Lex AI fascicoli" body="Posso sintetizzare un fascicolo, evidenziare scadenze senza prossima azione, preparare una lista documenti e suggerire il percorso prima di deposito, udienza o archiviazione." primaryHref="/global-search?tipo=fascicoli" primaryLabel="Cerca fascicoli" secondaryHref="/fascicoli" secondaryLabel="Fascicoli" />
     </main>
   )
 }
@@ -473,10 +535,21 @@ function ArchivePage() {
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [toast, setToast] = useState<{ tone: 'success' | 'danger'; message: string } | null>(null)
   useEffect(() => { let active = true; getFascicoliArchive().then((payload) => { if (active) setData(payload) }).finally(() => { if (active) setLoading(false) }); return () => { active = false } }, [])
   const visible = useMemo(() => data.items.filter((item) => isInsideQuery(item, query)), [data.items, query])
   const toggle = (id: string) => setSelected((current) => { const next = new Set(current); next.has(id) ? next.delete(id) : next.add(id); return next })
   const toggleAll = () => setSelected((current) => visible.every((item) => current.has(item.id)) ? new Set<string>() : new Set(visible.map((item) => item.id)))
+  const refreshArchive = () => {
+    setLoading(true)
+    getFascicoliArchive().then(setData).finally(() => setLoading(false))
+  }
+  const handleArchiveDeleted = (id: string, message?: string) => {
+    setSelected((current) => { const next = new Set(current); next.delete(id); return next })
+    setToast({ tone: 'success', message: message || 'Fascicolo eliminato.' })
+    refreshArchive()
+  }
+  const handleArchiveError = (message: string) => setToast({ tone: 'danger', message })
   return (
     <main className="iu-content iu-fascicoli-page">
       <section className="iu-fas-hero iu-fas-hero--archive">
@@ -486,8 +559,9 @@ function ArchivePage() {
       <section className="iu-fas-stats"><StatCard icon={<Archive size={19}/>} label="Archiviati" value={data.summary.archived || data.items.length} note="in archivio" tone="neutral"/><StatCard icon={<FileArchive size={19}/>} label="ZIP" value={data.items.filter((item) => item.archive?.zipAvailable).length} note="archivi scaricabili" tone="primary"/><StatCard icon={<BadgeCheck size={19}/>} label="Esiti" value={data.items.filter((item) => item.archive?.outcome).length} note="con esito finale" tone="success"/></section>
       <section className="iu-fas-toolbar"><label className="iu-fas-search"><Search size={17}/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cerca per numero, titolo, cliente..."/></label></section>
       <section className="iu-fas-status-line"><span className={loading ? '' : 'is-ok'}>{loading ? 'Caricamento archivio...' : `Archivio aggiornato - ${data.source}`}</span><small><RotateCcw size={14}/> Il ripristino usa il servizio operativo con audit.</small></section>
-      <FascicoliTable items={visible} selected={selected} onToggle={toggle} onToggleAll={toggleAll} archive/>
-      <FloatingLex context="archivio-fascicoli" title="Lex AI archivio" body="Posso aiutarti a controllare fascicoli archiviati, ZIP mancanti, esiti finali e criteri di conservazione." primaryHref="/lex?context=archivio-fascicoli" primaryLabel="Apri Lex archivio" secondaryHref="/fascicoli" secondaryLabel="Fascicoli attivi" />
+      {toast ? <section className={`iu-fas-toast iu-fas-toast--${toast.tone}`}><span>{toast.message}</span><button type="button" onClick={() => setToast(null)}>Chiudi</button></section> : null}
+      <FascicoliTable items={visible} selected={selected} onToggle={toggle} onToggleAll={toggleAll} archive onDeleted={handleArchiveDeleted} onError={handleArchiveError}/>
+      <FloatingLex context="archivio-fascicoli" title="Lex AI archivio" body="Posso aiutarti a controllare fascicoli archiviati, ZIP mancanti, esiti finali e criteri di conservazione." primaryHref="/fascicoli/archivio" primaryLabel="Archivio fascicoli" secondaryHref="/fascicoli" secondaryLabel="Fascicoli attivi" />
     </main>
   )
 }
@@ -566,7 +640,7 @@ function FascicoloFormPage({ mode, id }:{mode:'new'|'edit'; id?:string}) {
           <Panel title="Prossimi passi" icon={<ListChecks size={17}/>}><div className="iu-fas-help"><p>Dopo il salvataggio potrai aggiungere documenti, scadenze processuali, attività, depositi telematici e note.</p></div></Panel>
         </aside>
       </section>
-      <FloatingLex context="fascicolo-form" title="Lex AI fascicolo" body="Posso aiutarti a completare oggetto, tipo procedimento, checklist iniziale, scadenze e dati mancanti prima della creazione o modifica." primaryHref="/lex?context=fascicolo-form" primaryLabel="Apri Lex" secondaryHref="/fascicoli" secondaryLabel="Torna ai fascicoli" />
+      <FloatingLex context="fascicolo-form" title="Lex AI fascicolo" body="Posso aiutarti a completare oggetto, tipo procedimento, checklist iniziale, scadenze e dati mancanti prima della creazione o modifica." primaryHref="/fascicoli" primaryLabel="Torna ai fascicoli" secondaryHref="/global-search?tipo=fascicoli" secondaryLabel="Cerca nello studio" />
     </main>
   )
 }
@@ -589,20 +663,119 @@ function DetailSection({ id, title, icon, count, children }:{id:string; title:st
   )
 }
 
-function DocumentRow({ doc }:{doc:FascicoloDocument}) {
+type PreviewDocument = { name: string; url: string; downloadUrl: string }
+
+function PdfPreviewModal({ preview, onClose }:{preview:PreviewDocument | null; onClose:()=>void}) {
+  if (!preview) return null
+  return (
+    <div className="iu-fas-preview-modal" role="dialog" aria-modal="true" aria-label={`Anteprima ${preview.name}`}>
+      <div className="iu-fas-preview-modal__box">
+        <header>
+          <div><Eye size={16}/><strong>{preview.name}</strong></div>
+          <nav>
+            <a href={preview.downloadUrl}><Download size={15}/> Scarica</a>
+            <button type="button" onClick={onClose} aria-label="Chiudi anteprima">Chiudi</button>
+          </nav>
+        </header>
+        <iframe src={preview.url} title={`Anteprima documento ${preview.name}`}/>
+      </div>
+    </div>
+  )
+}
+
+function UploadDocumentForm({ action, documentTypes, onDone, onError }:{action:string; documentTypes:SelectOption[]; onDone:(message?:string)=>void; onError:(message:string)=>void}) {
+  const [busy, setBusy] = useState(false)
+  if (!action) return null
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const form = event.currentTarget
+    const formData = new FormData(form)
+    const file = formData.get('file')
+    if (!(file instanceof File) || !file.name) {
+      onError('Seleziona un file da caricare.')
+      return
+    }
+    setBusy(true)
+    try {
+      const response = await fetch(action, {
+        method: 'POST',
+        credentials: 'same-origin',
+        body: formData,
+        headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+      })
+      const payload = await response.json().catch(() => ({} as ActionPayload))
+      if (!response.ok || payload.ok === false) throw new Error(String(payload.messaggio || payload.errore || 'Caricamento non riuscito.'))
+      form.reset()
+      onDone(String(payload.messaggio || payload.message || 'Documento caricato.'))
+    } catch (err) {
+      onError(err instanceof Error ? err.message : 'Caricamento non riuscito.')
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <form className="iu-fas-upload" onSubmit={submit} encType="multipart/form-data">
+      <input type="file" name="file"/>
+      <select name="tipo_doc" defaultValue="ALTRO">{documentTypes.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select>
+      <input type="date" name="data_documento"/>
+      <input name="tags" placeholder="tag separati da virgola"/>
+      <input name="note" placeholder="note documento"/>
+      <label><input type="checkbox" name="firmato" value="1"/> Firmato</label>
+      <button type="submit" disabled={busy}><UploadCloud size={15}/> {busy ? 'Carico...' : 'Carica'}</button>
+    </form>
+  )
+}
+
+function PortalImportForm({ action, onDone, onError }:{action:string; onDone:(message?:string)=>void; onError:(message:string)=>void}) {
+  const [busy, setBusy] = useState(false)
+  if (!action) return null
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const form = event.currentTarget
+    const formData = new FormData(form)
+    setBusy(true)
+    try {
+      const response = await fetch(action, {
+        method: 'POST',
+        credentials: 'same-origin',
+        body: formData,
+        headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+      })
+      const payload = await response.json().catch(() => ({} as ActionPayload))
+      if (!response.ok || payload.ok === false) throw new Error(String(payload.messaggio || payload.errore || 'Importazione non riuscita.'))
+      form.reset()
+      onDone(String(payload.messaggio || payload.message || 'Importazione completata.'))
+    } catch (err) {
+      onError(err instanceof Error ? err.message : 'Importazione non riuscita.')
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <form className="iu-fas-upload iu-fas-upload--portal" onSubmit={submit} encType="multipart/form-data">
+      <input type="file" name="files" multiple/>
+      <input name="note_importazione" placeholder="note importazione portale"/>
+      <label><input type="checkbox" name="mantieni_albero_originale" value="1"/> Mantieni albero originale</label>
+      <label><input type="checkbox" name="scarica_originale_portale" value="1"/> Originale portale</label>
+      <button type="submit" disabled={busy}><Download size={15}/> {busy ? 'Importo...' : 'Importa portale'}</button>
+    </form>
+  )
+}
+
+function DocumentRow({ doc, onPreview, onDone, onError }:{doc:FascicoloDocument; onPreview:(preview:PreviewDocument)=>void; onDone:(message?:string)=>void; onError:(message:string)=>void}) {
   return (
     <article className="iu-fas-doc-row">
       <div><FileText size={18}/></div>
       <div><strong>{doc.name}</strong><span>{doc.type} · {doc.size || 'dimensione n.d.'} · {doc.documentDate || doc.uploadedAt || 'data n.d.'}</span>{doc.notes ? <p>{doc.notes}</p> : null}{doc.tags.length ? <em>{doc.tags.join(', ')}</em> : null}</div>
       <div className="iu-fas-doc-badges"><Badge tone={doc.statusTone}>{doc.statusLabel || (doc.signed ? 'Firmato' : 'Da firmare')}</Badge>{doc.source ? <Badge tone="neutral">{doc.source}</Badge> : null}{doc.portalClass ? <Badge tone="info">{doc.portalClass}</Badge> : null}</div>
       <div className="iu-fas-actions iu-fas-actions--wrap">
-        {doc.actions.preview ? <a href={doc.actions.preview} title="Anteprima"><Eye size={15}/></a> : null}
+        {doc.actions.preview ? <button type="button" title="Anteprima interna" onClick={() => onPreview({ name: doc.name, url: doc.actions.preview, downloadUrl: doc.actions.download })}><Eye size={15}/></button> : null}
         {doc.actions.download ? <a href={doc.actions.download} title="Scarica"><Download size={15}/></a> : null}
-        {doc.actions.edit ? <a href={doc.actions.edit} title="Editor"><PencilLine size={15}/></a> : null}
-        {doc.actions.sign ? <a href={doc.actions.sign} title="Firma"><Edit3 size={15}/></a> : null}
-        {doc.actions.attest ? <PostAction action={doc.actions.attest} tone="secondary"><BadgeCheck size={14}/></PostAction> : null}
-        {doc.actions.pdfa ? <PostAction action={doc.actions.pdfa} tone="secondary" confirm="Convertire il documento in PDF/A-2B?"><FileCheck2 size={14}/></PostAction> : null}
-        {doc.actions.delete ? <PostAction action={doc.actions.delete} tone="danger" confirm="Eliminare il documento dal fascicolo?"><Trash2 size={14}/></PostAction> : null}
+        {doc.actions.edit ? <a href={doc.actions.edit} title="Editor professionale"><PencilLine size={15}/></a> : null}
+        {doc.actions.sign ? <a href={doc.actions.sign} title="Firma digitale"><ShieldCheck size={15}/></a> : null}
+        {doc.actions.attest ? <PostAction action={doc.actions.attest} tone="secondary" onDone={onDone} onError={onError}><BadgeCheck size={14}/></PostAction> : null}
+        {doc.actions.pdfa ? <PostAction action={doc.actions.pdfa} tone="secondary" confirm="Convertire il documento in PDF/A-2B?" confirmTitle="Conversione PDF/A" onDone={onDone} onError={onError}><FileCheck2 size={14}/></PostAction> : null}
+        {doc.actions.delete ? <PostAction action={doc.actions.delete} tone="danger" confirm="Eliminare il documento dal fascicolo?" confirmTitle="Elimina documento" onDone={onDone} onError={onError}><Trash2 size={14}/></PostAction> : null}
       </div>
     </article>
   )
@@ -883,6 +1056,8 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
       new Uint8Array(signedBuffer).set(signedBytes)
       form.append('file', new File([signedBuffer], signedName, { type: 'application/pkcs7-mime' }))
       form.append('note', 'Versione firmata tramite Local Signer')
+      form.append('visible_signature_mode', visibleSignatureMode)
+      form.append('visible_signature_place', visibleSignaturePlace)
       if (alreadySigned && confirmResign) form.append('confirm_resign', '1')
       const uploadResponse = await fetch(firmaUrl, {
         method: 'POST',
@@ -1033,6 +1208,8 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
               <span>Note operative</span>
               <input type="text" name="note" defaultValue="Versione firmata per deposito"/>
             </label>
+            <input type="hidden" name="visible_signature_mode" value={visibleSignatureMode}/>
+            <input type="hidden" name="visible_signature_place" value={visibleSignaturePlace}/>
             {alreadySigned ? (
               <label className="iu-fas-resign-confirm">
                 <input type="checkbox" checked={confirmResign} onChange={(event) => setConfirmResign(event.target.checked)}/>
@@ -1056,7 +1233,7 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
           </div>
         </Panel>
       </section>
-      <FloatingLex context="firma-documento" title="Lex AI firma" body="Posso spiegare differenze tra CAdES, PAdES, firma locale e controlli predeposito, senza sostituire la verifica tecnica." primaryHref={`/lex?context=firma-documento&id_fasc=${encodedId}&id_doc=${encodedDocId}`} primaryLabel="Chiedi a Lex" secondaryHref={detailUrl} secondaryLabel="Torna ai documenti" />
+      <FloatingLex context="firma-documento" title="Lex AI firma" body="Posso spiegare differenze tra CAdES, PAdES, firma locale e controlli predeposito, senza sostituire la verifica tecnica." primaryHref={detailUrl} primaryLabel="Torna ai documenti" secondaryHref={`/fascicoli/${encodedId}/documenti/${encodedDocId}/firma`} secondaryLabel="Firma documento" />
     </main>
   )
 }
@@ -1081,28 +1258,51 @@ function DeadlineRow({ deadline }:{deadline:FascicoloDeadline}) {
 function DetailPage({ id }:{id:string}) {
   const [data, setData] = useState<FascicoloDetailData>(emptyFascicoloDetail)
   const [loading, setLoading] = useState(true)
+  const [toast, setToast] = useState<{ tone: 'success' | 'danger'; message: string } | null>(null)
+  const [previewDoc, setPreviewDoc] = useState<PreviewDocument | null>(null)
   useEffect(() => { let active = true; getFascicoloDetail(id).then((payload) => { if (active) setData(payload) }).finally(() => { if (active) setLoading(false) }); return () => { active = false } }, [id])
   const f = data.fascicolo
-  const operationalHref = f.operationalHref || `/fascicoli/${encodeURIComponent(f.id || id)}`
-  const quadroHref = `/fascicoli/${encodeURIComponent(f.id || id)}/quadro`
+  const encodedId = encodeURIComponent(f.id || id)
+  const operationalHref = f.operationalHref || `/fascicoli/${encodedId}`
+  const quadroHref = `/fascicoli/${encodedId}/quadro`
+  const compilerHref = `/template-atti/catalogo?id_fascicolo=${encodedId}`
+  const editorWorkspaceHref = `${operationalHref}#documenti`
   const detailReturnHref = `/fascicoli/${encodeURIComponent(f.id || id)}#conformita`
   const signedDocuments = data.documents.filter((doc) => doc.signed).length
   const unsignedDocuments = Math.max(0, data.documents.length - signedDocuments)
+  const editableDocuments = data.documents.filter((doc) => doc.actions.edit)
   const qualityIssues = data.quality.filter((item) => !item.ok).length + (Number(f.alerts) || 0)
   const nextDeadline = data.deadlines[0]
   const nextAppointment = data.appointments[0]
   const preventivo = data.workflow.find((item) => /preventiv/i.test(item.label))
   const conferimento = data.workflow.find((item) => /conferiment|incaric/i.test(item.label))
   const prossimaAzione = nextDeadline?.title || nextAppointment?.title || (qualityIssues ? 'Controlli qualità da verificare' : 'Nessuna urgenza critica rilevata')
+  const refreshDetail = (message?: string) => {
+    if (message) setToast({ tone: 'success', message })
+    getFascicoloDetail(id).then(setData).catch((err) => setToast({ tone: 'danger', message: err instanceof Error ? err.message : 'Aggiornamento fascicolo non riuscito.' }))
+  }
+  const failDetail = (message: string) => setToast({ tone: 'danger', message })
   if (!loading && data.notFound) return <main className="iu-content iu-fascicoli-page"><EmptyState icon={<FolderOpen size={34}/>} title="Fascicolo non trovato" action={<Button href="/fascicoli">Torna ai fascicoli</Button>}>Il fascicolo non è disponibile o non hai i permessi per aprirlo.</EmptyState></main>
   return (
     <main id="fascicolo-top" className="iu-content iu-fascicoli-page iu-fascicolo-detail-page">
       <section className="iu-fas-hero iu-fas-detail-hero">
         <div><span className="iu-fas-eyebrow"><FolderOpen size={16}/> Fascicolo</span><h1>{f.title}</h1><p><Badge tone={f.tone}>{formatFascicoloStatus(f.status)}</Badge><Badge tone="neutral">{formatFascicoloType(f.type)}</Badge>{f.archiveReady ? <Badge tone="warning">Pronto per archivio</Badge> : null}<span>{f.object || f.subtitle}</span></p></div>
-        <div className="iu-fas-hero__actions"><Button href="/fascicoli"><ArrowLeft size={15}/> Fascicoli</Button><Button href={f.editHref}><Edit3 size={15}/> Modifica</Button><Button href={quadroHref}><Gauge size={15}/> Quadro</Button><Button href={`${operationalHref}/copertina`}><FileText size={15}/> Copertina</Button><Button variant="primary" href={data.actions.exportPdf || f.exportPdfHref}><FileDown size={15}/> PDF</Button></div>
+        <div className="iu-fas-hero__actions"><Button href="/fascicoli"><ArrowLeft size={15}/> Fascicoli</Button><Button href={f.editHref}><Edit3 size={15}/> Modifica</Button><Button href={quadroHref}><Gauge size={15}/> Quadro AI</Button><Button href={compilerHref}><ClipboardCheck size={15}/> Compilatore</Button><Button href={`${operationalHref}/copertina`}><FileText size={15}/> Copertina</Button><Button variant="primary" href={data.actions.exportPdf || f.exportPdfHref}><FileDown size={15}/> PDF</Button></div>
       </section>
       <section className="iu-fas-case-strip"><strong>{f.ref}</strong><span>Rif. interno {f.internalRef}</span><span>{f.client}</span><span>{f.court}</span><span>{loading ? 'Caricamento...' : 'Dati aggiornati'}</span></section>
-      <nav className="iu-fas-section-nav" aria-label="Sezioni fascicolo"><a href="#profilo">Profilo <b>{data.quickCounts.profilo || 0}</b></a><a href="#documenti">Documenti <b>{data.documents.length}</b></a><a href="#attivita">Attività <b>{data.activities.length}</b></a><a href="#udienze">Udienze / scadenze <b>{data.deadlines.length + data.appointments.length}</b></a><a href="#cancelleria">Cancelleria <b>{data.deposits.length}</b></a><a href="#istanze">Istanze <b>{data.requests.length}</b></a><a href="#gestione">Gestione</a><a href="#economia">Economia</a><a href="#conformita">Conformità</a><a href="#soggetti">Soggetti <b>{data.parties.length}</b></a></nav>
+      {toast ? <section className={`iu-fas-toast iu-fas-toast--${toast.tone}`}><span>{toast.message}</span><button type="button" onClick={() => setToast(null)}>Chiudi</button></section> : null}
+      <nav className="iu-fas-section-nav" aria-label="Sezioni fascicolo"><a href="#profilo">Profilo <b>{data.quickCounts.profilo || 0}</b></a><a href="#documenti">Documenti <b>{data.documents.length}</b></a><a href="#editor-professionale">Editor / compilatore</a><a href="#attivita">Attività <b>{data.activities.length}</b></a><a href="#udienze">Udienze / scadenze <b>{data.deadlines.length + data.appointments.length}</b></a><a href="#cancelleria">Cancelleria <b>{data.deposits.length}</b></a><a href="#istanze">Istanze <b>{data.requests.length}</b></a><a href="#gestione">Gestione</a><a href="#economia">Economia</a><a href="#conformita">Conformità</a><a href="#soggetti">Soggetti <b>{data.parties.length}</b></a></nav>
+      <section className="iu-fas-ai-board" aria-label="Quadro intelligente AI del fascicolo">
+        <div><span><Sparkles size={16}/> Quadro intelligente AI</span><strong>{prossimaAzione}</strong><p>Analisi del fascicolo, documenti, scadenze, attività e prossime azioni usando i dati reali della pratica.</p></div>
+        <div>
+          <a href={quadroHref}><Gauge size={15}/> Quadro completo</a>
+        </div>
+      </section>
+      <section className="iu-fas-command-bar" aria-label="Strumenti rapidi del fascicolo">
+        <a href={editorWorkspaceHref}><PencilLine size={15}/><span>Editor professionale</span></a>
+        <a href={compilerHref}><ClipboardCheck size={15}/><span>Compilatore atti</span></a>
+        <PostAction action={data.actions.delete} tone="danger" confirm="Eliminare definitivamente il fascicolo?" confirmTitle="Elimina fascicolo" redirectTo="/fascicoli"><Trash2 size={15}/> Elimina fascicolo</PostAction>
+      </section>
       <section className="iu-fas-smart-board" aria-label="Quadro intelligente del fascicolo">
         <header>
           <div><span><Gauge size={16}/> Quadro intelligente</span><strong>{prossimaAzione}</strong></div>
@@ -1120,9 +1320,20 @@ function DetailPage({ id }:{id:string}) {
           <section className="iu-fas-cockpit"><StatCard icon={<FileText size={19}/>} label="Documenti" value={data.documents.length} note="acquisiti o da portale" tone="primary" href="#documenti"/><StatCard icon={<CalendarDays size={19}/>} label="Scadenze" value={data.deadlines.length} note="aperte e concluse" tone="warning" href="#udienze"/><StatCard icon={<ListChecks size={19}/>} label="Attività" value={data.activities.length} note="timeline processuale" tone="success" href="#attivita"/><StatCard icon={<WalletCards size={19}/>} label="Economia" value={data.economics.length} note="preventivi, parcelle, tempo" tone="purple" href="#economia"/></section>
           <DetailSection id="profilo" title="Profilo fascicolo" icon={<BadgeCheck size={17}/>}><KvGrid items={data.profile}/>{f.notes ? <div className="iu-fas-note"><strong>Note</strong><p>{f.notes}</p></div> : null}</DetailSection>
           <DetailSection id="documenti" title="Documenti fascicolo" icon={<FileText size={17}/>} count={data.documents.length}>
-            <form className="iu-fas-upload" method="post" action={data.actions.uploadDocument} encType="multipart/form-data"><input type="file" name="file"/><select name="tipo_doc" defaultValue="ALTRO">{data.options.documentTypes.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select><input type="date" name="data_documento"/><input name="tags" placeholder="tag separati da virgola"/><input name="note" placeholder="note documento"/><label><input type="checkbox" name="firmato" value="1"/> Firmato</label><button type="submit"><UploadCloud size={15}/> Carica</button></form>
-            <form className="iu-fas-upload iu-fas-upload--portal" method="post" action={data.actions.importPortal} encType="multipart/form-data"><input type="file" name="files" multiple/><input name="note_importazione" placeholder="note importazione portale"/><label><input type="checkbox" name="mantieni_albero_originale" value="1"/> Mantieni albero originale</label><label><input type="checkbox" name="scarica_originale_portale" value="1"/> Originale portale</label><button type="submit"><Download size={15}/> Importa portale</button></form>
-            <div className="iu-fas-doc-list">{data.documents.map((doc) => <DocumentRow doc={doc} key={doc.id}/>)}{!data.documents.length ? <p className="iu-empty">Nessun documento caricato.</p> : null}</div>
+            <UploadDocumentForm action={data.actions.uploadDocument} documentTypes={data.options.documentTypes} onDone={refreshDetail} onError={failDetail}/>
+            <PortalImportForm action={data.actions.importPortal} onDone={refreshDetail} onError={failDetail}/>
+            <div className="iu-fas-doc-list">{data.documents.map((doc) => <DocumentRow doc={doc} key={doc.id} onPreview={setPreviewDoc} onDone={refreshDetail} onError={failDetail}/>)}{!data.documents.length ? <p className="iu-empty">Nessun documento caricato.</p> : null}</div>
+          </DetailSection>
+          <DetailSection id="editor-professionale" title="Editor professionale e compilatore atti" icon={<PencilLine size={17}/>} count={editableDocuments.length}>
+            <div className="iu-fas-editor-board">
+              <a href={compilerHref}><ClipboardCheck size={16}/><strong>Compilatore atti</strong><span>Catalogo modelli collegato a questo fascicolo.</span></a>
+              <a href={`/template-atti/nuovo?id_fascicolo=${encodedId}`}><Plus size={16}/><strong>Nuovo modello</strong><span>Crea un template di studio partendo dalla pratica.</span></a>
+              <a href={quadroHref}><Gauge size={16}/><strong>Quadro intelligente</strong><span>Sintesi e controlli sul fascicolo prima della redazione.</span></a>
+            </div>
+            <div className="iu-fas-editor-list">
+              {editableDocuments.map((doc) => <a href={doc.actions.edit} key={`editor-${doc.id}`}><PencilLine size={15}/><strong>{doc.name}</strong><span>Apri editor professionale</span></a>)}
+              {!editableDocuments.length ? <p className="iu-empty">Carica un documento o apri il compilatore atti per iniziare la redazione.</p> : null}
+            </div>
           </DetailSection>
           <DetailSection id="attivita" title="Attività processuali" icon={<ListChecks size={17}/>} count={data.activities.length}>
             <form className="iu-fas-add-activity" method="post" action={data.actions.addActivity}><select name="tipo" defaultValue="ALTRO">{data.options.activityTypes.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select><input type="date" name="data" required/><input name="titolo" placeholder="Titolo attività" required/><input name="luogo" placeholder="Luogo"/><select name="esito" defaultValue="IN_ATTESA">{data.options.activityResults.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select><input name="avvocato" placeholder="Avvocato"/><textarea name="descrizione" placeholder="Descrizione"/><button type="submit"><Plus size={15}/> Aggiungi</button></form>
@@ -1140,7 +1351,7 @@ function DetailPage({ id }:{id:string}) {
         <aside className="iu-fas-detail-side">
           <DetailSection id="gestione" title="Gestione fascicolo" icon={<Gauge size={17}/>}>
             <form className="iu-fas-side-form" method="post" action={data.actions.changeState}><label><span>Cambia stato</span><select name="stato" defaultValue={f.status.toUpperCase()}>{data.options.states.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label><input name="avvocato" placeholder="Avvocato"/><textarea name="note" placeholder="Note cambio stato"/><button type="submit"><RefreshCw size={15}/> Aggiorna stato</button></form>
-            <div className="iu-fas-action-stack"><form method="post" action={data.actions.define}><input name="esito_finale" placeholder="Esito finale"/><input name="motivo" placeholder="Motivo"/><input name="avvocato" placeholder="Avvocato"/><textarea name="note" placeholder="Note definizione"/><button type="submit"><CheckCircle2 size={15}/> Definisci</button></form><PostAction action={data.actions.archive} tone="primary" confirm="Archiviare il fascicolo?"><Archive size={15}/> Archivia con ZIP</PostAction><PostAction action={data.actions.restore} tone="secondary" confirm="Ripristinare il fascicolo?"><RotateCcw size={15}/> Ripristina</PostAction><a className="iu-fas-side-link" href={data.actions.exportPdf || f.exportPdfHref}><FileDown size={15}/> PDF fascicolo</a>{data.actions.archiveZip ? <a className="iu-fas-side-link" href={data.actions.archiveZip}><FileArchive size={15}/> Scarica ZIP</a> : null}<PostAction action={data.actions.delete} tone="danger" confirm="Eliminare definitivamente il fascicolo?"><Trash2 size={15}/> Elimina</PostAction></div>
+            <div className="iu-fas-action-stack"><form method="post" action={data.actions.define}><input name="esito_finale" placeholder="Esito finale"/><input name="motivo" placeholder="Motivo"/><input name="avvocato" placeholder="Avvocato"/><textarea name="note" placeholder="Note definizione"/><button type="submit"><CheckCircle2 size={15}/> Definisci</button></form><PostAction action={data.actions.archive} tone="primary" confirm="Archiviare il fascicolo?" confirmTitle="Archivia fascicolo"><Archive size={15}/> Archivia con ZIP</PostAction><PostAction action={data.actions.restore} tone="secondary" confirm="Ripristinare il fascicolo?" confirmTitle="Ripristina fascicolo"><RotateCcw size={15}/> Ripristina</PostAction><a className="iu-fas-side-link" href={data.actions.exportPdf || f.exportPdfHref}><FileDown size={15}/> PDF fascicolo</a>{data.actions.archiveZip ? <a className="iu-fas-side-link" href={data.actions.archiveZip}><FileArchive size={15}/> Scarica ZIP</a> : null}<PostAction action={data.actions.delete} tone="danger" confirm="Eliminare definitivamente il fascicolo?" confirmTitle="Elimina fascicolo" redirectTo="/fascicoli"><Trash2 size={15}/> Elimina</PostAction></div>
           </DetailSection>
           <DetailSection id="economia" title="Controllo economico" icon={<WalletCards size={17}/>} count={data.economics.length}><div className="iu-fas-side-cards">{data.economics.map((item) => <a href={item.href} key={item.id}><Badge tone={item.tone}>{item.label}</Badge><strong>{item.value}</strong><span>{item.note}</span></a>)}{!data.economics.length ? <p className="iu-empty">Nessun dato economico collegato.</p> : null}</div></DetailSection>
           <DetailSection id="workflow" title="Workflow cliente → incasso" icon={<Sparkles size={17}/>} count={data.workflow.length}><div className="iu-fas-side-cards">{data.workflow.map((item) => <a href={item.href || '#'} key={item.label}><Badge tone={item.tone}>{item.label}</Badge><strong>{item.value}</strong><span>{item.note}</span></a>)}</div></DetailSection>
@@ -1150,8 +1361,9 @@ function DetailPage({ id }:{id:string}) {
           <DetailSection id="soggetti" title="Soggetti e parti" icon={<UsersRound size={17}/>} count={data.parties.length}><div className="iu-fas-party-list">{data.parties.map((party) => <a href={party.href} key={party.id}><strong>{party.name}</strong><span>{party.role || 'Soggetto'} · {party.taxCode || 'C.F. n.d.'}</span><small>{party.email || party.pec || party.phone}</small></a>)}{!data.parties.length ? <p className="iu-empty">Nessun soggetto collegato.</p> : null}</div><a className="iu-fas-inline-link" href={`/soggetti/nuovo?id_fascicolo=${encodeURIComponent(f.id)}`}><Plus size={14}/> Nuovo soggetto</a></DetailSection>
         </aside>
       </section>
+      <PdfPreviewModal preview={previewDoc} onClose={() => setPreviewDoc(null)}/>
       <a className="iu-fas-back-top" href="#fascicolo-top" aria-label="Torna su" title="Torna su"><ChevronUp size={18}/></a>
-      <FloatingLex context="fascicolo-dettaglio" title="Lex AI fascicolo" body="Posso sintetizzare profilo, documenti, attività, scadenze, depositi, parti e prossime azioni del fascicolo aperto." primaryHref={`/lex?context=fascicolo&id_fasc=${encodeURIComponent(f.id)}`} primaryLabel="Apri Lex sul fascicolo" secondaryHref={`/global-search?q=${encodeURIComponent(f.ref)}`} secondaryLabel="Cerca collegati" />
+      <FloatingLex context="fascicolo-dettaglio" title="Lex AI fascicolo" body="Posso sintetizzare profilo, documenti, attività, scadenze, depositi, parti e prossime azioni del fascicolo aperto." primaryHref={quadroHref} primaryLabel="Quadro fascicolo" secondaryHref={`/global-search?q=${encodeURIComponent(f.ref)}`} secondaryLabel="Cerca collegati" />
     </main>
   )
 }
@@ -1233,7 +1445,7 @@ function QuadroPage({ id }:{id:string}) {
         <QuadroAxis id="telematico" title="Servizi telematici" icon={<Send size={18}/>} status={data.telematic.length ? 'Presidiati' : 'Da configurare'} tone={data.telematic.length ? 'primary' : 'warning'}><div className="iu-fas-quadro-flow">{data.telematic.slice(0, 3).map((item) => <QuadroMiniCard key={item.label} label={item.label} value={item.value} note={item.note} tone={item.tone} href={item.href}/>)}</div><a className="iu-fas-inline-link" href="/telematico"><Send size={14}/> Apri servizi telematici</a></QuadroAxis>
       </section>
       <a className="iu-fas-back-top" href="#fascicolo-quadro-top" aria-label="Torna su" title="Torna su"><ChevronUp size={18}/></a>
-      <FloatingLex context="fascicolo-quadro" title="Lex AI quadro" body="Posso leggere il quadro della pratica, riassumere commerciale, operativo, conformità, economico e documenti, e suggerire la prossima azione utile." primaryHref={`/lex?context=fascicolo-quadro&id_fasc=${encodedId}`} primaryLabel="Apri Lex sul quadro" secondaryHref={detailHref} secondaryLabel="Apri dettaglio" />
+      <FloatingLex context="fascicolo-quadro" title="Lex AI quadro" body="Posso leggere il quadro della pratica, riassumere commerciale, operativo, conformità, economico e documenti, e suggerire la prossima azione utile." primaryHref={detailHref} primaryLabel="Apri dettaglio" secondaryHref="/global-search?tipo=fascicoli" secondaryLabel="Cerca nello studio" />
     </main>
   )
 }
@@ -1257,7 +1469,7 @@ function ExportPage() {
       <section className="iu-fas-stats"><StatCard icon={<FolderOpen size={19}/>} label="Totali" value={data.summary.total} note="nel repository" tone="primary"/><StatCard icon={<Archive size={19}/>} label="Archiviati" value={data.summary.archived} note="da conservare" tone="neutral"/><StatCard icon={<FileText size={19}/>} label="Documenti" value={data.summary.documents} note="conteggio fascicoli" tone="purple"/></section>
       <section className="iu-fas-export-layout"><Panel title="Builder export" subtitle={loading ? 'Caricamento...' : `Sorgente ${data.source}`} icon={<FileDown size={17}/>}><div className="iu-fas-export-builder"><label><span>Formato</span><select value={format} onChange={(event) => setFormat(event.target.value)}><option value="pdf">PDF lista</option><option value="csv">CSV</option></select></label><label><span>Ricerca</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="numero, titolo, cliente..."/></label><label><span>Tipo</span><select value={type} onChange={(event) => setType(event.target.value as FascicoloTipo)}>{data.facets.types.map((facet) => <option value={facet.value} key={facet.value}>{facet.label}</option>)}</select></label><label><span>Stato</span><select value={status} onChange={(event) => setStatus(event.target.value as FascicoloStato)}>{data.facets.statuses.map((facet) => <option value={facet.value} key={facet.value}>{facet.label}</option>)}</select></label><a className="iu-fas-download-main" href={href}><Download size={16}/> Scarica export</a></div></Panel><Panel title="Campi inclusi" icon={<ListChecks size={17}/>}><div className="iu-fas-export-fields">{data.fields.map((field) => <label key={field.key}><input type="checkbox" defaultChecked={field.checked} readOnly/> {field.label}</label>)}</div></Panel><Panel title="Preset rapidi" icon={<Sparkles size={17}/>}><div className="iu-fas-side-cards">{data.presets.map((preset) => <a href={preset.href} key={preset.label}><Badge tone={preset.tone}>{preset.label}</Badge><span>{preset.description}</span></a>)}</div></Panel></section>
       <Panel title="Fascicoli recenti esportabili singolarmente" icon={<FolderOpen size={17}/>} count={data.recent.length}><div className="iu-fas-export-recent">{data.recent.map((item) => <a href={item.exportPdfHref} key={item.id}><FileDown size={15}/><strong>{item.ref}</strong><span>{item.title}</span></a>)}</div></Panel>
-      <FloatingLex context="export-fascicoli" title="Lex AI export" body="Posso suggerire quali campi esportare, preparare una sintesi per il cliente o controllare se mancano dati prima dell'archiviazione." primaryHref="/lex?context=export-fascicoli" primaryLabel="Apri Lex export" secondaryHref="/fascicoli" secondaryLabel="Torna ai fascicoli" />
+      <FloatingLex context="export-fascicoli" title="Lex AI export" body="Posso suggerire quali campi esportare, preparare una sintesi per il cliente o controllare se mancano dati prima dell'archiviazione." primaryHref="/fascicoli/esporta" primaryLabel="Esporta fascicoli" secondaryHref="/fascicoli" secondaryLabel="Torna ai fascicoli" />
     </main>
   )
 }

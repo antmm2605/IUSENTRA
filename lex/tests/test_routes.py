@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from flask import Flask
+from flask import Flask, g
 
 from lex.blueprint import create_lex_blueprint
 from lex.dependencies import LexDependencies
@@ -88,6 +88,11 @@ def make_app():
     app = Flask(__name__)
     app.config["TESTING"] = True
     app.config["SECRET_KEY"] = "test-secret"
+
+    @app.before_request
+    def _login_test_user():
+        g.utente_corrente = {"username": "test"}
+
     app.register_blueprint(
         create_lex_blueprint(
             dependency_factory=dependency_factory,
@@ -101,6 +106,7 @@ def test_lex_blueprint_registers_expected_routes():
     app = make_app()
     rules = {rule.rule for rule in app.url_map.iter_rules()}
 
+    assert "/lex" in rules
     assert "/api/assistente/stato" in rules
     assert "/api/assistente/context" in rules
     assert "/api/assistente/warmup" in rules
@@ -135,3 +141,14 @@ def test_assistente_attachments_endpoint_returns_prompt_block():
     assert payload["ok"] is True
     assert payload["attachments"] == [{"name": "atto.pdf"}]
     assert payload["prompt_block"] == "ALLEGATI"
+
+
+def test_lex_fascicolo_standalone_page_removed():
+    app = make_app()
+    client = app.test_client()
+
+    response = client.get("/lex?context=fascicolo&id_fasc=17A38FB6")
+
+    assert response.status_code == 410
+    assert "pagina Lex standalone dei fascicoli" in response.get_data(as_text=True)
+    assert "Ciao, sono Lex" not in response.get_data(as_text=True)

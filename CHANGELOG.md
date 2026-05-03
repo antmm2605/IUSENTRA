@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.198.51 - 2026-05-03
+
+- Ripristinata la superficie React completa del fascicolo: anteprima documento in modal interna, upload/import documenti via AJAX senza ricaricare la pratica, conferme React per eliminazione documenti/fascicoli e accesso visibile a Quadro intelligente AI, Editor professionale e Compilatore atti.
+- Distinte le icone documento: editor con matita, firma con scudo/firma digitale, anteprima con viewer interno; il pulsante `Elimina fascicolo` e' ora raggiungibile sia dagli strumenti rapidi della pratica sia dalla colonna `Azioni` della lista fascicoli e dell'archivio.
+- Rimossa la pagina standalone Lex dei fascicoli: i collegamenti React non puntano piu' a `/lex?context=fascicolo...` e il backend restituisce `410 Gone` per i vecchi contesti fascicolo, lasciando attivo il solo floating icon contestuale.
+- Ripulita la testata operativa del dettaglio fascicolo: il pannello `Quadro intelligente AI` non duplica piu' `Editor professionale` e `Compilatore atti`, che restano una sola volta nella barra strumenti.
+- Corretto il flusso firma visibile fino al PDF finale: la modalita' scelta in React viene salvata nel documento firmato, il preview di `.p7m` detached la rilegge dal documento e il test renderizza realmente il PDF per verificare laterale, basso sinistra e basso destra. La firma laterale e' stata avvicinata al margine destro e usa un font leggermente ridotto.
+- Aggiornato Local Signer a `1.6.23` includendo `reportlab` negli installer, cosi' la coccarda PNG trasparente e il timbro visibile vengono applicati davvero anche quando manca il fallback pyHanko.
+
 ## 2.198.50 - 2026-05-03
 
 - Corretto il riavvio del Local Signer nella pagina React `Firma documento`: quando il token e' visibile solo nel `token_probe_fresh`, la UI usa un link diretto `iusentra-local-signer://restart`, mostra un messaggio operativo e riverifica automaticamente piu' volte.

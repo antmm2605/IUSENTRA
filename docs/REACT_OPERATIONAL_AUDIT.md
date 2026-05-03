@@ -90,6 +90,48 @@ La coccarda usata nella firma visibile e' un PNG trasparente incorporato nel
 render PDF; i testi delle tre posizioni sono distanziati dal timbro e il flusso
 browser e' stato verificato selezionando realmente tutte le modalita'.
 
+Aggiornamento 2026-05-03: la verifica non si limita piu' al payload del browser.
+La posizione scelta nella UI React viene salvata sul documento firmato e la route
+di anteprima dei `.p7m` detached rilegge quella posizione prima di ristampare il
+PDF. Il test `test_visualizza_documento_p7m_usa_posizione_firma_visibile_salvata_nel_pdf`
+renderizza la pagina PDF finale e controlla pixel su laterale, basso sinistra e
+basso destra. Local Signer `1.6.23` include `reportlab`, necessario al timbro
+visibile con coccarda PNG trasparente.
+
+Aggiornamento successivo 2026-05-03: la modalita' laterale viene renderizzata
+quasi aderente al margine destro del PDF con font leggermente ridotto. La
+regressione e' presidiata da `test_lateral_signature_layout_sta_quasi_sul_margine_destro`
+e dalla verifica pixel della preview `.p7m`.
+
+### Fascicolo React: regressioni operative presidiate
+
+Sempre dal 2026-05-03 la pagina React del fascicolo espone nuovamente le
+funzioni professionali che erano gia' presenti nella vista classica:
+
+- anteprima documento in modal interna IUSENTRA, senza aprire Acrobat come
+  applicazione esterna;
+- caricamento documento e import portale via AJAX con refresh dei dati, senza
+  ricaricare tutta la pratica;
+- eliminazione documento e fascicolo con dialog React, non con conferma nativa
+  del browser;
+- eliminazione fascicolo disponibile anche nella colonna `Azioni` della lista
+  fascicoli e dell'archivio, tramite `deleteHref` reale e POST AJAX;
+- barra rapida con `Quadro intelligente AI`, `Editor professionale`,
+  `Compilatore atti` e `Elimina fascicolo`;
+- icone distinte per editor documento e firma digitale, cosi' i comandi non
+  risultano ambigui.
+
+La vecchia pagina standalone `/lex?context=fascicolo...` non e' piu' una
+superficie del fascicolo: i link React del modulo non puntano piu' a quella
+pagina e il backend risponde `410 Gone` ai vecchi contesti fascicolo. Il
+floating icon resta attivo come assistenza contestuale, senza riaprire la pagina
+di prova.
+
+La testata del dettaglio evita doppioni consecutivi: il pannello `Quadro
+intelligente AI` espone solo l'accesso al quadro completo, mentre
+`Editor professionale`, `Compilatore atti` ed `Elimina fascicolo` restano nella
+barra strumenti.
+
 La rifirma non e' consentita in modo silenzioso: se il documento e' gia'
 firmato, frontend e backend richiedono conferma esplicita `confirm_resign=1`.
 

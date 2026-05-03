@@ -340,7 +340,7 @@ curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici" -o "$DATA_DIR/uffic
 {_local_signer_mod_download_lines("$MOD_DIR")}
         python3 -m venv "$VENV"
         "$PY" -m pip install --quiet --upgrade pip
-        "$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep pdfplumber mammoth pypdf
+        "$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep pdfplumber mammoth pypdf reportlab
 
         cat > "$PLIST" <<PLISTEOF
         <?xml version="1.0" encoding="UTF-8"?>
@@ -413,7 +413,7 @@ curl -fsSL "$BASE_URL/polisWeb/local-signer/download/uffici" -o "$DATA_DIR/uffic
 {_local_signer_mod_download_lines("$MOD_DIR")}
         python3 -m venv "$VENV"
         "$PY" -m pip install --quiet --upgrade pip
-        "$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep pdfplumber mammoth pypdf
+        "$PY" -m pip install --quiet python-pkcs11 asn1crypto cryptography zeep pdfplumber mammoth pypdf reportlab
 
         cat > "$SERVICE" <<EOF
         [Unit]

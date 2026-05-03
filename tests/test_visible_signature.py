@@ -331,6 +331,7 @@ def test_visible_signature_seal_uses_non_grayscale_colors():
 def test_lateral_signature_leaves_gap_between_coccarda_and_text(monkeypatch):
     seal_calls = []
     translations = []
+    fonts = []
 
     class _FakeOverlay:
         def saveState(self):
@@ -342,8 +343,8 @@ def test_lateral_signature_leaves_gap_between_coccarda_and_text(monkeypatch):
         def setFillColor(self, _value):
             return None
 
-        def setFont(self, _name, _size):
-            return None
+        def setFont(self, name, size):
+            fonts.append((name, size))
 
         def translate(self, x, y):
             translations.append((x, y))
@@ -375,7 +376,19 @@ def test_lateral_signature_leaves_gap_between_coccarda_and_text(monkeypatch):
 
     assert translations
     assert seal_calls
+    assert fonts
+    assert translations[0][0] >= 595.0 - 3.0
     assert translations[0][1] - seal_calls[0]["anchor_y"] >= 20.0
+    assert seal_calls[0]["anchor_x"] >= 595.0 - 10.0
+    assert fonts[0][1] <= 9.5
+
+
+def test_lateral_signature_layout_sta_quasi_sul_margine_destro():
+    layout = compute_visible_signature_layout(width=595.0, height=842.0, mode=VISIBLE_SIGNATURE_MODE_LATERALE)
+
+    assert layout["mode"] == VISIBLE_SIGNATURE_MODE_LATERALE
+    assert layout["x"] + layout["box_width"] >= 595.0 - 2.0
+    assert layout["x"] + layout["box_width"] <= 595.0
 
 
 def test_resolve_visible_signature_place_prefers_city_from_impostazioni_studio():

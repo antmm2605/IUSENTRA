@@ -380,6 +380,7 @@ def _item(fascicolo: Any, *, scadenze_by_fasc: dict[str, list[Any]] | None = Non
         "editHref": f"/fascicoli/{fid}/modifica",
         "operationalEditHref": f"/fascicoli/{fid}/modifica",
         "exportPdfHref": f"/fascicoli/{fid}/pdf",
+        "deleteHref": f"/fascicoli/{fid}/elimina",
         "archiveZipHref": f"/fascicoli/{fid}/archivio/scarica",
         "restoreAction": f"/fascicoli/{fid}/ripristina",
         "tone": _status_tone(stato),

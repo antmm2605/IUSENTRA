@@ -531,8 +531,8 @@ if (-not (Invoke-Pip -Arguments @("install", "--quiet", "--no-cache-dir", "--upg
     exit 1
 }
 
-Write-Step "Installo dipendenze base (asn1crypto, cryptography, zeep, pdfplumber, mammoth, pypdf)..."
-if (-not (Invoke-Pip -Arguments @("install", "--quiet", "--no-cache-dir", "--no-warn-script-location", "asn1crypto>=1.5.0", "cryptography>=41.0.0", "zeep>=4.2.1", "pdfplumber>=0.10.0", "mammoth>=1.6.0", "pypdf>=6.0.0") -FailureMessage "impossibile installare le dipendenze base.")) {
+Write-Step "Installo dipendenze base (asn1crypto, cryptography, zeep, pdfplumber, mammoth, pypdf, reportlab)..."
+if (-not (Invoke-Pip -Arguments @("install", "--quiet", "--no-cache-dir", "--no-warn-script-location", "asn1crypto>=1.5.0", "cryptography>=41.0.0", "zeep>=4.2.1", "pdfplumber>=0.10.0", "mammoth>=1.6.0", "pypdf>=6.0.0", "reportlab>=4.0.0") -FailureMessage "impossibile installare le dipendenze base.")) {
     Write-Host "  Verificare la connessione internet e riprovare." -ForegroundColor Yellow
     if (-not $Quiet) { Read-Host "Premere Invio per chiudere" }
     exit 1

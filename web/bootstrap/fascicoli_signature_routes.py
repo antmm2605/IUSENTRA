@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import io
 import os
+import re
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -30,6 +31,29 @@ def _resolve_pkcs11_runtime_config(cfg_firma: Any, slot_raw: Any) -> Any:
     if label:
         cfg_runtime = _dc_replace(cfg_runtime, pkcs11_label=label)
     return cfg_runtime
+
+
+_FIRMA_VISIBILE_MODE_LABELS = {
+    "laterale": "Laterale verticale",
+    "basso_sinistra": "In basso a sinistra",
+    "basso_destra": "In basso a destra",
+}
+
+
+def _nota_con_firma_visibile(note: str, mode: str, place: str = "") -> str:
+    base = str(note or "Versione firmata per deposito").strip()
+    base = re.sub(
+        r"\s*\.?\s*Posizione firma visibile:\s*[^.;\n]+(?:[.;]\s*Luogo firma:\s*[^.;\n]+)?\.?\s*$",
+        "",
+        base,
+        flags=re.IGNORECASE,
+    ).strip()
+    label = _FIRMA_VISIBILE_MODE_LABELS.get(str(mode or "").strip(), _FIRMA_VISIBILE_MODE_LABELS["laterale"])
+    dettagli = [f"Posizione firma visibile: {label}"]
+    place = str(place or "").strip()
+    if place:
+        dettagli.append(f"Luogo firma: {place}")
+    return f"{base.rstrip('. ')}. {'; '.join(dettagli)}."
 
 
 def _attestazione_conformita_pdf(data_raw: bytes, testo: str) -> bytes:
@@ -261,7 +285,11 @@ def register_fascicoli_signature_routes(
                 nome_file=nome_firmato,
                 contenuto=encrypt_doc(contenuto_firmato),
                 caricato_da=utente.username if utente else "",
-                note="Versione firmata per deposito",
+                note=_nota_con_firma_visibile(
+                    "Versione firmata per deposito",
+                    visible_signature_mode,
+                    visible_signature_place,
+                ),
             )
             gestore_fascicoli.segna_firmato(id_fasc, id_doc)
             try:
@@ -429,7 +457,11 @@ def register_fascicoli_signature_routes(
                         nome_file=nome_firmato,
                         contenuto=encrypt_doc(contenuto_firmato),
                         caricato_da=utente.username if utente else "",
-                        note="Versione firmata per deposito",
+                        note=_nota_con_firma_visibile(
+                            "Versione firmata per deposito",
+                            visible_signature_mode,
+                            visible_signature_place,
+                        ),
                     )
                     gestore_fascicoli.segna_firmato(id_fasc, id_doc)
                     try:
@@ -539,6 +571,10 @@ def register_fascicoli_signature_routes(
 
                 file = request.files["file"]
                 cfg_firma = get_config_studio().config.firma
+                visible_signature_mode = normalizza_modalita_firma_visibile(
+                    str(request.form.get("visible_signature_mode") or getattr(cfg_firma, "visible_signature_mode", "laterale")).strip()
+                )
+                visible_signature_place = str(request.form.get("visible_signature_place") or luogo_timbro_firma_visibile()).strip()
                 payload_firmato = file.read()
                 if getattr(cfg_firma, "configurato", False):
                     est = Path(file.filename or "").suffix.lower()
@@ -555,7 +591,11 @@ def register_fascicoli_signature_routes(
                         raise ValueError(
                             "Il file .p7m caricato non contiene una firma CAdES valida. Non caricare PDF rinominati in .p7m: verifica prima il file in ArubaSign o Dike."
                         )
-                note = request.form.get("note", "Versione firmata per deposito").strip()
+                note = _nota_con_firma_visibile(
+                    request.form.get("note", "Versione firmata per deposito").strip(),
+                    visible_signature_mode,
+                    visible_signature_place,
+                )
                 avvisi_storage = salva_documento_firmato_resiliente(
                     gf=gestore_fascicoli,
                     id_fasc=id_fasc,

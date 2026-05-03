@@ -20,6 +20,13 @@ def _richiede_vista_classica() -> bool:
     return (request.args.get("_legacy") or "").strip().lower() in {"1", "true", "si", "yes", "on"}
 
 
+def _wants_json_response() -> bool:
+    return (
+        request.headers.get("X-Requested-With") == "XMLHttpRequest"
+        or "application/json" in request.headers.get("Accept", "")
+    )
+
+
 def register_fascicoli_management_routes(
     app: Flask,
     *,
@@ -266,9 +273,14 @@ def register_fascicoli_management_routes(
                 for item in session.get("recenti", [])
                 if not (item["tipo"] == "fascicolo" and item["id"] == id_fasc)
             ]
-            flash("Fascicolo eliminato.", "success")
+            msg = "Fascicolo eliminato."
+            flash(msg, "success")
             sync_pubblica("elimina", "fascicoli", id_fasc)
+            if _wants_json_response():
+                return jsonify({"ok": True, "messaggio": msg, "redirect_url": url_for("lista_fascicoli")})
         except KeyError as exc:
+            if _wants_json_response():
+                return jsonify({"ok": False, "messaggio": str(exc)}), 404
             flash(str(exc), "danger")
         return redirect(url_for("lista_fascicoli"))
 

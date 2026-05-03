@@ -15,6 +15,12 @@ Non contiene segreti, token, password, PIN, chiavi private o dati reali di studi
 - Non creare branch temporanei.
 - Prima di chiudere un lavoro, verificare che i due branch locali e remoti puntino allo stesso commit quando il task prevede commit/push.
 
+## Interprete Python locale e CI
+
+- Sul PC Windows di sviluppo verificato il 2026-05-03, `python --version` restituisce `Python 3.14.0`.
+- I workflow GitHub Actions in `.github/workflows/*.yml` usano `python-version: "3.12"`.
+- Quando un test, una coverage o un controllo qualità dipende dal runtime Python, non dichiarare il risultato equivalente alla CI senza segnalarlo. Se possibile, rieseguire con Python 3.12 o attendere GitHub Actions prima di chiudere la verifica.
+
 ## Ordine di priorita' delle fonti
 
 Quando piu' fonti danno indicazioni diverse, seguire questo ordine:

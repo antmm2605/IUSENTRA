@@ -10,6 +10,13 @@ from typing import Any
 from flask import Flask, flash, g, jsonify, redirect, render_template, request, send_file, url_for
 
 
+def _wants_json_response() -> bool:
+    return (
+        request.headers.get("X-Requested-With") == "XMLHttpRequest"
+        or "application/json" in request.headers.get("Accept", "")
+    )
+
+
 def register_fascicoli_editor_routes(
     app: Flask,
     *,
@@ -63,13 +70,24 @@ def register_fascicoli_editor_routes(
         try:
             fascicolo = gestore_fascicoli.get(id_fasc)
             if not fascicolo:
+                if _wants_json_response():
+                    return jsonify({"ok": False, "messaggio": "Fascicolo non trovato."}), 404
                 flash("Fascicolo non trovato.", "warning")
                 return redirect(url_for("lista_fascicoli"))
             documento = next((doc for doc in fascicolo.documenti if doc.id == id_doc), None)
             if not documento:
+                if _wants_json_response():
+                    return jsonify({"ok": False, "messaggio": "Documento non trovato."}), 404
                 flash("Documento non trovato.", "warning")
                 return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
             if not documento.nome.lower().endswith(".pdf"):
+                if _wants_json_response():
+                    return jsonify(
+                        {
+                            "ok": False,
+                            "messaggio": f"La conversione PDF/A e' disponibile solo per file PDF (file: {documento.nome}).",
+                        }
+                    ), 400
                 flash(
                     f"La conversione PDF/A è disponibile solo per file PDF (file: {documento.nome}).",
                     "warning",
@@ -78,12 +96,20 @@ def register_fascicoli_editor_routes(
             percorso = gestore_fascicoli.percorso_documento(id_fasc, id_doc)
             esito = converti_pdfa(str(percorso))
             if esito["ok"]:
-                flash(f"Documento convertito in PDF/A-2B con successo. {esito['messaggio']}", "success")
+                msg = f"Documento convertito in PDF/A-2B con successo. {esito['messaggio']}"
+                flash(msg, "success")
                 audit("documento.converti_pdfa", id_fasc=id_fasc, id_doc=id_doc, nome=documento.nome)
+                if _wants_json_response():
+                    return jsonify({"ok": True, "messaggio": msg})
             else:
-                flash(f"Conversione PDF/A non riuscita: {esito['messaggio']}", "danger")
+                msg = f"Conversione PDF/A non riuscita: {esito['messaggio']}"
+                if _wants_json_response():
+                    return jsonify({"ok": False, "messaggio": msg}), 400
+                flash(msg, "danger")
         except Exception as exc:
             app.logger.exception("Errore converti_documento_pdfa: %s", exc)
+            if _wants_json_response():
+                return jsonify({"ok": False, "messaggio": str(exc)}), 500
             flash(f"Errore durante la conversione: {exc}", "danger")
         return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
 

@@ -1620,6 +1620,43 @@ def build_fascicoli_runtime(
 
         return normalize_visible_signature_mode(valore)
 
+    def _modalita_firma_visibile_documento(documento: Documento | None) -> str:
+        if documento is None:
+            return ""
+        for attr in ("firma_visibile_mode", "visible_signature_mode"):
+            value = str(getattr(documento, attr, "") or "").strip()
+            if value:
+                return _normalizza_modalita_firma_visibile(value)
+
+        note = str(getattr(documento, "note", "") or "")
+        direct_match = re.search(r"\b(?:IUSENTRA_)?FIRMA_VISIBILE_MODE\s*[:=]\s*([a-zA-Z0-9_-]+)", note)
+        if direct_match:
+            return _normalizza_modalita_firma_visibile(direct_match.group(1))
+
+        label_match = re.search(r"Posizione firma visibile\s*:\s*([^.;\n]+)", note, flags=re.IGNORECASE)
+        if label_match:
+            label = (
+                label_match.group(1)
+                .strip()
+                .lower()
+                .replace("-", " ")
+                .replace("_", " ")
+            )
+            labels = {
+                "laterale verticale": "laterale",
+                "laterale": "laterale",
+                "in basso a sinistra": "basso_sinistra",
+                "basso a sinistra": "basso_sinistra",
+                "basso sinistra": "basso_sinistra",
+                "sinistra": "basso_sinistra",
+                "in basso a destra": "basso_destra",
+                "basso a destra": "basso_destra",
+                "basso destra": "basso_destra",
+                "destra": "basso_destra",
+            }
+            return _normalizza_modalita_firma_visibile(labels.get(label, label))
+        return ""
+
     def _testo_timbro_firma_visibile(firme: list[dict]) -> str:
         from visible_signature import build_visible_signature_text
 
@@ -1632,7 +1669,11 @@ def build_fascicoli_runtime(
             luogo=_luogo_timbro_firma_visibile(),
         )
 
-    def _applica_timbro_firma_visibile(pdf_data: bytes, firme: list[dict]) -> bytes:
+    def _applica_timbro_firma_visibile(
+        pdf_data: bytes,
+        firme: list[dict],
+        documento: Documento | None = None,
+    ) -> bytes:
         from visible_signature import (
             apply_visible_signature_stamp_from_firme,
             has_visible_signature_stamp,
@@ -1651,7 +1692,10 @@ def build_fascicoli_runtime(
             firme,
             city=getattr(studio_cfg, "city", "") if studio_cfg else "",
             address=getattr(studio_cfg, "indirizzo", "") if studio_cfg else "",
-            mode=getattr(firma_cfg, "visible_signature_mode", "laterale") if firma_cfg else "laterale",
+            mode=(
+                _modalita_firma_visibile_documento(documento)
+                or (getattr(firma_cfg, "visible_signature_mode", "laterale") if firma_cfg else "laterale")
+            ),
         )
         if stamped != pdf_data or has_visible_signature_stamp(pdf_data):
             return stamped

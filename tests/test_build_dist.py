@@ -43,6 +43,7 @@ def test_build_windows_ps1_include_versione_e_script_originale():
     assert "FORCE_RESTART" in contenuto
     assert "iusentra-local-signer://restart" in contenuto
     assert "/polisWeb/local-signer/download/local-signer-mod/" in contenuto
+    assert "reportlab" in contenuto
     assert "Get-NetTCPConnection -LocalAddress 127.0.0.1 -LocalPort 27272" in contenuto
 
 

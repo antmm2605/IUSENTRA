@@ -140,9 +140,10 @@ def compute_visible_signature_layout(
         }
 
     side_width = min(max(CM_TO_PT * 1.85, min(42.0, available_width)), available_width)
+    side_margin = min(safe_margin, 1.5)
     side_height = available_height
     return {
-        "x": max(safe_margin, page_width - side_width - safe_margin),
+        "x": max(0.0, page_width - side_width - side_margin),
         "y": safe_margin,
         "box_width": side_width,
         "box_height": side_height,
@@ -397,7 +398,9 @@ def apply_visible_signature_stamp(
             }
         except Exception:
             metadata = {}
-        metadata[VISIBLE_SIGNATURE_METADATA_KEY] = stamp_text
+        metadata[VISIBLE_SIGNATURE_METADATA_KEY] = (
+            f"{stamp_text}\nModalita firma visibile: {resolved_mode}"
+        )
         writer.add_metadata(metadata)
 
         output_buffer = io.BytesIO()
@@ -632,29 +635,29 @@ def _draw_visible_signature_side_mark(
         height=height,
         mode=VISIBLE_SIGNATURE_MODE_LATERALE,
     )
-    seal_gap = 58.0
+    seal_gap = 70.0
     text_length = max(float(layout["box_height"]) - seal_gap, 40.0)
     font_name = "Helvetica"
-    font_size = 10.0
-    while font_size > 7.0 and overlay.stringWidth(side_text, font_name, font_size) > text_length:
-        font_size -= 0.5
+    font_size = 9.25
+    while font_size > 6.75 and overlay.stringWidth(side_text, font_name, font_size) > text_length:
+        font_size -= 0.25
     side_text = _fit_text_for_width(overlay, side_text, font_name, font_size, text_length)
 
     overlay.setFillColor(color)
     overlay.setFont(font_name, font_size)
     overlay.saveState()
     translate_x = min(
-        max(float(layout["x"]) + float(layout["box_width"]) - 10.0, CM_TO_PT),
-        max(width - 10.0, CM_TO_PT),
+        max(float(layout["x"]) + float(layout["box_width"]) - 1.5, CM_TO_PT),
+        max(width - 2.0, CM_TO_PT),
     )
-    translate_y = min(max(float(layout["y"]) + 42.0, 42.0), max(height - 10.0, 42.0))
+    translate_y = min(max(float(layout["y"]) + 58.0, 58.0), max(height - 10.0, 58.0))
     overlay.translate(translate_x, translate_y)
     overlay.rotate(90)
     overlay.drawString(0, 0, side_text)
     overlay.restoreState()
     _draw_visible_signature_seal(
         overlay,
-        anchor_x=min(max(float(layout["x"]) + float(layout["box_width"]) - 14.0, 16.0), max(width - 16.0, 16.0)),
+        anchor_x=min(max(float(layout["x"]) + float(layout["box_width"]) - 7.0, 16.0), max(width - 7.0, 16.0)),
         anchor_y=min(max(float(layout["y"]) + 17.0, 17.0), max(height - 17.0, 17.0)),
     )
 

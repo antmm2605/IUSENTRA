@@ -216,6 +216,11 @@ Quando il task tocca `.github/`, test, coverage o quality gate:
 - aggiornare test quando cambia comportamento reale;
 - distinguere gate minimo verde dal target utente del 100% coverage critica;
 - confrontare ogni numero di qualita' con la baseline certa piu' recente.
+- dichiarare sempre quando l'ambiente locale non e' allineato alla CI: la
+  workstation Codex puo' usare Python 3.14, mentre `.github/workflows/ci.yml`
+  usa Python 3.12. In caso di differenze tra locale e CI, il verdetto finale
+  resta quello del workflow GitHub Actions o di un rilancio locale con Python
+  3.12.
 
 ## Checklist finale anti-regressione
 

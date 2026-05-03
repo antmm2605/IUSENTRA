@@ -38,6 +38,19 @@ Vista live del workflow applicativo:
 Il lint resta bloccante solo sugli errori reali di sintassi e import.
 Il benchmark notturno gira in `.github/workflows/performance-nightly.yml` e usa `tools/performance_smoke.py`.
 
+### Versione Python locale e CI
+
+La CI applicativa GitHub Actions usa Python `3.12` in tutti i job principali
+(`Lint + syntax`, smoke, `Pytest core`, `Coverage moduli critici`, E2E). Sulla
+workstation Codex locale di sviluppo puo' essere presente un interprete piu'
+recente, ad esempio Python `3.14`.
+
+Quando un gate locale viene eseguito con Python diverso da quello CI, il report
+deve dichiararlo esplicitamente. Il risultato locale resta utile come controllo
+preventivo, ma il verdetto di rilascio va letto contro il workflow CI su Python
+`3.12`; in caso di divergenza, rieseguire il controllo con interprete allineato
+alla CI oppure attendere GitHub Actions prima di trarre conclusioni definitive.
+
 ## Codex Support Stack prima della release
 
 Quando una modifica nasce da Codex, MetaHarness, autoresearch-lite o Open Design support, prima di entrare nel flusso di release applicativa eseguire il gate dedicato:

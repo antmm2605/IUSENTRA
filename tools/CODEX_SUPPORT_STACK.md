@@ -94,6 +94,13 @@ Serve a controllare:
 python tools/codex_harness/run_codex_quality_gate.py --mode dev-tooling
 ```
 
+Il gate Codex Harness controlla soprattutto modifiche a strumenti/supporto e puo'
+fallire correttamente su tranche applicative che toccano file protetti richiesti
+dalle regole di release, come version bump in `pct/__init__.py`, `setup.py`,
+`Dockerfile` e `railway.toml`. In questi casi non sostituisce i gate CI
+applicativi (`Lint + syntax`, `Pytest core`, `Coverage moduli critici`) eseguiti
+su Python 3.12 in GitHub Actions.
+
 ## Comando quality gate per supporto UI
 
 ```powershell

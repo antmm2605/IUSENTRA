@@ -72,6 +72,11 @@ Il flusso React espone:
 - caricamento manuale del file firmato verso `POST /fascicoli/<id>/documenti/<id_doc>/firma`;
 - avviso forte se il documento risulta gia' firmato.
 
+Il pannello Local Signer distingue il servizio raggiungibile dal token PKCS#11:
+se `token[]` e' vuoto ma il ping espone `token_probe_fresh[]`, la UI mostra
+che il token e' stato rilevato dal probe fresco e propone il riavvio del
+Local Signer, invece di degradare a "Local Signer non rilevato".
+
 La rifirma non e' consentita in modo silenzioso: se il documento e' gia'
 firmato, frontend e backend richiedono conferma esplicita `confirm_resign=1`.
 

@@ -608,8 +608,21 @@ function DocumentRow({ doc }:{doc:FascicoloDocument}) {
   )
 }
 
-type LocalSignerToken = { slot_id?: number | string; label?: string; manufacturer?: string }
-type LocalSignerStatus = { ok?: boolean; token?: LocalSignerToken[]; versione?: string; version?: string; messaggio?: string; error?: string }
+type LocalSignerToken = { slot_id?: number | string; label?: string; manufacturer?: string; model?: string; serial?: string }
+type LocalSignerStatus = {
+  ok?: boolean
+  token?: LocalSignerToken[]
+  token_probe_fresh?: LocalSignerToken[]
+  versione?: string
+  version?: string
+  piattaforma?: string
+  messaggio?: string
+  error?: string
+  errore_token?: string
+  errore_libreria?: string
+  riavvio_signer_consigliato?: boolean
+  nota_riavvio_signer?: string
+}
 type FirmaInfo = {
   firme?: unknown[]
   nome?: string
@@ -635,6 +648,23 @@ function base64ToUint8Array(value: string): Uint8Array {
   return bytes
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, ms))
+}
+
+function requestLocalSignerStart() {
+  const iframe = document.createElement('iframe')
+  iframe.style.display = 'none'
+  iframe.src = 'iusentra-local-signer://restart'
+  document.body.appendChild(iframe)
+  window.setTimeout(() => iframe.remove(), 2500)
+}
+
+function localSignerTokenLabel(token?: LocalSignerToken): string {
+  if (!token) return ''
+  return [token.label, token.manufacturer, token.model].filter(Boolean).join(' - ') || 'Token USB'
+}
+
 function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
   const [data, setData] = useState<FascicoloDetailData>(emptyFascicoloDetail)
   const [loading, setLoading] = useState(true)
@@ -653,7 +683,26 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
   const infoUrl = `/api/fascicoli/${encodedId}/documenti/${encodedDocId}/info-firma`
   const detailUrl = `/fascicoli/${encodedId}#documenti`
   const doc = data.documents.find((item) => item.id === documentId)
-  const token = localSigner?.token?.[0]
+  const primaryToken = localSigner?.token?.[0]
+  const freshToken = localSigner?.token_probe_fresh?.[0]
+  const token = primaryToken || freshToken
+  const localSignerReachable = Boolean(localSigner && localSigner.ok !== false && (localSigner.versione || localSigner.version || localSigner.piattaforma || localSigner.token || localSigner.token_probe_fresh))
+  const restartSuggested = Boolean(localSigner?.riavvio_signer_consigliato || freshToken)
+  const localSignerVersion = localSigner?.versione || localSigner?.version || ''
+  const localSignerStatusTitle = token
+    ? (freshToken && !primaryToken ? 'Token rilevato, riavvio consigliato' : 'Local Signer rilevato')
+    : localSignerReachable
+      ? 'Local Signer attivo senza token PKCS#11'
+      : checkingSigner
+        ? 'Verifica Local Signer...'
+        : 'Local Signer non rilevato'
+  const localSignerStatusMessage = token
+    ? (restartSuggested
+        ? localSigner?.nota_riavvio_signer || 'Il token e stato rilevato da un controllo fresco. Riavvia il Local Signer se la firma non parte.'
+        : `${localSignerTokenLabel(token)} - slot ${token.slot_id}`)
+    : localSignerReachable
+      ? localSigner?.errore_token || localSigner?.errore_libreria || localSigner?.messaggio || 'Servizio locale attivo, ma nessun token PKCS#11 disponibile.'
+      : localSigner?.messaggio || localSigner?.error || 'Avvia Local Signer sul PC e riprova.'
   const signatureCount = info?.firme?.length || 0
   const alreadySigned = Boolean(doc?.signed || signatureCount > 0 || doc?.name.toLowerCase().match(/\.(p7m|sig|pkcs7)$/))
 
@@ -664,18 +713,35 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
       .catch(() => setInfo({ errore: 'Stato firma non disponibile.' }))
   }
 
-  const checkLocalSigner = () => {
+  const checkLocalSigner = async (tryStart = false) => {
     setCheckingSigner(true)
-    const controller = new AbortController()
-    const timeout = window.setTimeout(() => controller.abort(), 2500)
-    fetch('http://127.0.0.1:27272/ping', { signal: controller.signal })
-      .then((response) => response.json())
-      .then((payload) => setLocalSigner(payload as LocalSignerStatus))
-      .catch(() => setLocalSigner({ ok: false, messaggio: 'Local Signer non rilevato su questo PC.' }))
-      .finally(() => {
-        window.clearTimeout(timeout)
-        setCheckingSigner(false)
-      })
+    setError('')
+    if (tryStart) requestLocalSignerStart()
+    const attempts = tryStart ? 10 : 1
+    try {
+      for (let attempt = 0; attempt < attempts; attempt += 1) {
+        if (attempt > 0) await sleep(900)
+        const controller = new AbortController()
+        const timeout = window.setTimeout(() => controller.abort(), 3500)
+        try {
+          const response = await fetch('http://127.0.0.1:27272/ping', {
+            cache: 'no-store',
+            signal: controller.signal,
+          })
+          const payload = await response.json().catch(() => ({}))
+          setLocalSigner(payload as LocalSignerStatus)
+          return
+        } catch {
+          if (attempt === attempts - 1) {
+            setLocalSigner({ ok: false, messaggio: 'Local Signer non rilevato su questo PC.' })
+          }
+        } finally {
+          window.clearTimeout(timeout)
+        }
+      }
+    } finally {
+      setCheckingSigner(false)
+    }
   }
 
   useEffect(() => {
@@ -812,13 +878,22 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
           ]}/>
         </Panel>
 
-        <Panel title="Firma con Local Signer" subtitle="Controllo e firma sul PC dell'avvocato" icon={<ShieldCheck size={17}/>} action={<button className="iu-fas-mini-action" type="button" onClick={checkLocalSigner} disabled={checkingSigner}><RefreshCw size={14}/> Riverifica</button>}>
+        <Panel title="Firma con Local Signer" subtitle="Controllo e firma sul PC dell'avvocato" icon={<ShieldCheck size={17}/>} action={<button className="iu-fas-mini-action" type="button" onClick={() => checkLocalSigner(false)} disabled={checkingSigner}><RefreshCw size={14}/> Riverifica</button>}>
           <div className="iu-fas-signature-box">
-            <div className={`iu-fas-signer-status ${token ? 'is-ok' : 'is-warn'}`}>
-              <strong>{token ? 'Local Signer rilevato' : checkingSigner ? 'Verifica Local Signer...' : 'Local Signer non rilevato'}</strong>
-              <span>{token ? `${token.label || token.manufacturer || 'Token USB'} - slot ${token.slot_id}` : localSigner?.messaggio || localSigner?.error || 'Avvia Local Signer sul PC e riprova.'}</span>
-              {localSigner?.versione || localSigner?.version ? <small>Versione {localSigner.versione || localSigner.version}</small> : null}
+            <div className={`iu-fas-signer-status ${primaryToken ? 'is-ok' : 'is-warn'}`}>
+              <strong>{localSignerStatusTitle}</strong>
+              <span>{localSignerStatusMessage}</span>
+              {token && (freshToken && !primaryToken) ? <small>{localSignerTokenLabel(token)} - slot {token.slot_id}</small> : null}
+              {localSignerVersion ? <small>Versione {localSignerVersion}</small> : null}
             </div>
+            {restartSuggested || !localSignerReachable ? (
+              <div className="iu-fas-signer-actions">
+                <button className="iu-fas-mini-action" type="button" onClick={() => checkLocalSigner(true)} disabled={checkingSigner}>
+                  <RefreshCw size={14}/> Riavvia e riverifica
+                </button>
+                {localSignerReachable ? <a className="iu-fas-mini-action" href="http://127.0.0.1:27272/diagnosi" target="_blank" rel="noreferrer">Diagnosi locale</a> : null}
+              </div>
+            ) : null}
             <label className="iu-fas-field">
               <span>PIN token <b>*</b></span>
               <input type="password" value={pin} onChange={(event) => setPin(event.target.value)} autoComplete="off" placeholder="Il PIN non viene salvato"/>

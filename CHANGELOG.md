@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.198.48 - 2026-05-03
+
+- Corretta la pagina React `Firma documento`: quando il Local Signer risponde ma il token appare solo in `token_probe_fresh`, la UI non mostra piu' "Local Signer non rilevato" e propone il riavvio/riverifica del servizio locale.
+- Il pannello firma distingue servizio attivo, token PKCS#11 principale, probe fresco e diagnostica locale, mantenendo il PIN solo nel browser e senza interrogare il token dal server cloud.
+
 ## 2.198.47 - 2026-05-03
 
 - Integrato Docling come parser opzionale per Lex AI dietro `LEX_DOCLING_ENABLED`, con import lazy e fallback automatico al parser legacy `pdfplumber`/`pypdf`/`pytesseract` quando Docling non e' installato o fallisce.

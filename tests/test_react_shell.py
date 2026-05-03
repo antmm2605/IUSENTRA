@@ -346,6 +346,11 @@ def test_react_firma_documento_profonda_non_degrada_a_dettaglio_generico():
     assert "return <SignaturePage id={route.id} documentId={route.documentId}/>" in source
     assert "http://127.0.0.1:27272/ping" in source
     assert "http://127.0.0.1:27272/firma" in source
+    assert "token_probe_fresh" in source
+    assert "riavvio_signer_consigliato" in source
+    assert "Token rilevato, riavvio consigliato" in source
+    assert "iusentra-local-signer://restart" in source
+    assert "http://127.0.0.1:27272/diagnosi" in source
     assert "Attenzione: documento già firmato." in source
     assert "confirm_resign" in source
     assert "alreadySigned && !confirmResign" in source
@@ -357,6 +362,7 @@ def test_react_firma_documento_profonda_non_degrada_a_dettaglio_generico():
     assert 'lower.startswith("/fascicoli/") and "/wizard/" in lower' in gate_source
     assert ".iu-fascicolo-signature-page" in css
     assert ".iu-fas-signature-grid" in css
+    assert ".iu-fas-signer-actions" in css
     assert ".iu-fas-resign-confirm" in css
 
 

@@ -447,9 +447,15 @@ python -m pytest tests/ -v
 - **Divieto di verificare il token USB interrogando il server remoto** quando il controllo corretto è lato client.
   - Il pulsante `Verifica token collegato` deve usare il `Local Signer` locale (`127.0.0.1:27272`) dal browser.
   - Gli endpoint server `/api/firma/pkcs11/*` restano validi solo per casi realmente server-side o per diagnostica specifica, non come fonte unica dello stato UI in produzione hosted.
+- **Ping Local Signer Windows con `token_probe_fresh`:** se il servizio locale risponde con `ok: true`, `token[]` vuoto e `token_probe_fresh[]` valorizzato, la UI non deve mostrare `Local Signer non rilevato`. Deve distinguere:
+  - servizio Local Signer raggiungibile;
+  - token rilevato da probe fresco;
+  - riavvio/riverifica consigliato tramite `iusentra-local-signer://restart`;
+  - eventuale errore reale solo se anche il probe fresco non trova token o il servizio non risponde.
 - Ogni modifica a firma digitale, PST/polisWeb, PDP, PAT, PTT o pagina impostazioni firma deve includere **test di regressione espliciti** su:
   - scelta `pkcs11` senza libreria disponibile nel container;
   - assenza del falso messaggio `PKCS#11 selezionato ma libreria/token non disponibili` nella UI quando il canale corretto è `Local Signer`;
+  - assenza del falso messaggio `Local Signer non rilevato` quando il ping locale espone `token_probe_fresh[]`;
   - script/browser che verificano il `Local Signer` locale e non il server remoto;
   - status telematico che resta `pkcs11/browser-guided` e non ricade in `demo` per errore.
 

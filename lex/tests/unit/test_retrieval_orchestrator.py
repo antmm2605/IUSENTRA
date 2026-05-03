@@ -216,7 +216,25 @@ def test_source_router_non_trascina_fonti_legali_su_preventivo_operativo():
     assert "NormativeSource" not in source_names
     assert "GiurisprudenzaSource" not in source_names
     assert "LegalIntelligenceSource" not in source_names
+    assert "LegalUpdatesSource" not in source_names
     assert "OfficialWebSource" not in source_names
+
+
+def test_source_router_include_update_intelligence_sql_su_ricerca_legale():
+    router = SourceRouter()
+    request = LexRequest(
+        tenant_id="tenant-1",
+        user_id="user-1",
+        session_id="session-1",
+        query="ultimi aggiornamenti legali della Cassazione",
+        workflow_hint="giurisprudenza",
+    )
+
+    sources = router.resolve(request, {"studio": {}}, "giurisprudenza")
+    source_names = [source.__class__.__name__ for source in sources]
+
+    assert "LegalUpdatesSource" in source_names
+    assert source_names.index("LegalUpdatesSource") < source_names.index("GiurisprudenzaSource")
 
 
 def test_retrieval_orchestrator_usa_contesto_studio_per_workflow_economico():

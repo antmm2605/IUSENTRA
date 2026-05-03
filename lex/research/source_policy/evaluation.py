@@ -19,7 +19,15 @@ from ..source_registry import get_source_registry
 
 LOGGER = logging.getLogger("lex.source_policy")
 
-_INTERNAL_HIGH_PRIORITY_TYPES = {"fonte_ufficiale", "web_ufficiale", "legal_source", "giurisprudenza"}
+_INTERNAL_HIGH_PRIORITY_TYPES = {
+    "fonte_ufficiale",
+    "web_ufficiale",
+    "legal_source",
+    "legal_updates",
+    "normativa",
+    "giurisprudenza",
+    "prassi",
+}
 _INTERNAL_CONTEXT_TYPES = {"fascicolo", "documento", "agenda", "scadenza", "scadenziario", "preventivo", "fattura", "telematico"}
 
 

@@ -70,8 +70,12 @@ Policy operative:
 
 Il motore usa un archivio SQLite dedicato, derivato da `LEGAL_INTELLIGENCE_DB`:
 
-- database: `legal_updates.db`
-- export runtime: `legal_updates_repository.json`
+- database operativo: `legal_updates.db`
+- export amministrativo opzionale: `legal_updates_repository.json`
+
+`legal_updates.db` e' la sorgente di verita' per fonti, documenti raw, analisi AI, review, news, normativa, giurisprudenza, prassi e audit. Lex AI legge questo repository SQL tramite `LegalUpdatesSource` e tramite la sezione di contesto `Aggiornamenti legali`; non usa `legal_updates_repository.json` come sorgente runtime.
+
+Il JSON resta solo un export manuale/diagnostico abilitabile esplicitamente. Anche il mirror legacy `giurisprudenza.json` e' disattivato di default: le pubblicazioni giurisprudenziali prodotte dal motore restano nella tabella SQL `jurisprudence` e vengono recuperate da Lex da li'.
 
 Moduli principali:
 
@@ -104,6 +108,18 @@ Pubblicazione automatica delle review gia approvate:
 
 ```bash
 iusentra aggiornamenti-legali --publish-approved
+```
+
+Export amministrativo opzionale:
+
+```bash
+iusentra aggiornamenti-legali --export-json
+```
+
+Mirror legacy opzionale, da usare solo per compatibilita' controllata:
+
+```bash
+iusentra aggiornamenti-legali --mirror-giurisprudenza-json
 ```
 
 ## Scheduler

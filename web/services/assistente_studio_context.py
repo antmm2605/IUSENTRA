@@ -53,6 +53,7 @@ from lex.guards.legal_reference_guard import (
 from web.services.assistente_live_web import build_live_official_web_context
 from lex.memory.web_execution import is_web_execution_request
 from lex.providers.local_ai_service import get_local_ai_service
+from web.services.legal_update_surface import build_legal_update_pipeline_runtime
 
 
 _DEFAULT_WEB_SOURCE_IDS: tuple[str, ...] = (
@@ -88,6 +89,7 @@ _SECTION_KEYWORDS: dict[str, tuple[str, ...]] = {
     "Tariffario": ("tariffa", "tariffario", "compenso", "onorario", "parametri", "parcella"),
     "Preventivi": ("preventivo", "preventivi", "offerta", "incarico"),
     "Fatturazione": ("fattura", "fatturazione", "parcella", "saldo", "pagamento"),
+    "Aggiornamenti legali": ("aggiornamento", "aggiornamenti", "novita", "news giuridiche", "gazzetta", "normattiva", "eur-lex", "cassazione", "corte costituzionale", "prassi"),
     "Ricerca legale e fonti web": ("norma", "normativa", "legge", "decreto", "articolo", "aggiornata", "fonte"),
     "Archivio sentenze": ("sentenza", "sentenze", "massima", "giurisprudenza", "cassazione", "tar", "cds"),
     "Strumenti legali": ("strumento", "strumenti", "interessi", "contributo", "pignoramento", "credito", "ctu"),
@@ -117,7 +119,7 @@ _LIVE_WEB_KEYWORDS: tuple[str, ...] = (
     "agenzia entrate",
 )
 
-_CONTEXT_CACHE_VERSION = "lex-context-v1"
+_CONTEXT_CACHE_VERSION = "lex-context-v2"
 _BASE_SECTION_TITLES: frozenset[str] = frozenset(
     {"Impostazioni studio", "PEC e canali email", "Quadro operativo"}
 )
@@ -135,6 +137,7 @@ _SECTION_CACHE_TTLS: dict[str, int] = {
     "Tariffario": 300,
     "Preventivi": 90,
     "Fatturazione": 90,
+    "Aggiornamenti legali": 120,
     "Ricerca legale e fonti web": 180,
     "Archivio sentenze": 120,
     "Strumenti legali": 180,
@@ -155,6 +158,7 @@ _SECTION_DEPENDENCY_KEYS: dict[str, tuple[str, ...]] = {
     "Template atti": ("TEMPLATE_ATTI_DB",),
     "Preventivi": ("PREVENTIVI_DB",),
     "Fatturazione": ("FATTURAZIONE_DB",),
+    "Aggiornamenti legali": ("LEGAL_UPDATES_DB", "LEGAL_INTELLIGENCE_DB"),
     "Ricerca legale e fonti web": ("LEGAL_INTELLIGENCE_DB", "NORMATIVE_TABLES_DB"),
     "Archivio sentenze": ("GIURISPRUDENZA_DB",),
     "Strumenti legali": ("NORMATIVE_TABLES_DB",),
@@ -1485,6 +1489,89 @@ def _ricerca_legale_lines(question: str) -> tuple[list[str], list[dict[str, Any]
     return lines, sources
 
 
+def _aggiornamenti_legali_lines(question: str) -> tuple[list[str], list[dict[str, Any]]]:
+    pipeline = build_legal_update_pipeline_runtime()
+    snapshot = pipeline.dashboard_snapshot()
+    headline = dict(snapshot.get("headline") or {})
+    sources_rows = list(snapshot.get("sources") or [])
+    lex_rows = pipeline.repository.search_lex_sources(question, limit=6)
+    structured_total = (
+        int(headline.get("published_normative") or 0)
+        + int(headline.get("published_jurisprudence") or 0)
+        + int(headline.get("published_prassi") or 0)
+    )
+    lines = [
+        (
+            "Aggiornamenti legali SQL tenant-aware: "
+            f"{headline.get('sources', 0)} fonti attive, "
+            f"{headline.get('raw_documents', 0)} documenti grezzi, "
+            f"{headline.get('analyses', 0)} analisi AI, "
+            f"{headline.get('review_pending', 0)} review pendenti, "
+            f"{headline.get('published_news', 0)} news pubblicate, "
+            f"{structured_total} elementi in archivio strutturato."
+        ),
+        "Lex AI legge gli aggiornamenti da legal_updates.db; export JSON e mirror legacy non sono fonte operativa del contesto.",
+    ]
+    if sources_rows:
+        lines.append(
+            "Fonti monitorate: "
+            + "; ".join(
+                _truncate(
+                    f"{row.get('name') or row.get('code')} ({row.get('category') or 'categoria n.d.'}, trust {row.get('trust_class') or 'n.d.'})",
+                    110,
+                )
+                for row in sources_rows[:5]
+            )
+            + "."
+        )
+    if lex_rows:
+        lines.append(
+            "Aggiornamenti pertinenti: "
+            + "; ".join(
+                _truncate(
+                    f"{row.get('title')} ({row.get('entity_type') or row.get('type')}, {row.get('published_at') or 'data n.d.'})",
+                    125,
+                )
+                for row in lex_rows
+            )
+            + "."
+        )
+    else:
+        lines.append("Nessun aggiornamento SQL pubblicato pertinente alla richiesta; Lex deve dichiarare la lacuna invece di inventare contenuti.")
+
+    sources = [
+        _source(
+            "Update Intelligence SQL",
+            (
+                f"Fonti attive: {headline.get('sources', 0)}. "
+                f"Documenti grezzi: {headline.get('raw_documents', 0)}. "
+                f"Analisi AI: {headline.get('analyses', 0)}. "
+                f"Review pendenti: {headline.get('review_pending', 0)}. "
+                f"News pubblicate: {headline.get('published_news', 0)}. "
+                f"Archivio strutturato: {structured_total}."
+            ),
+            source_id="legal-updates:dashboard",
+            title="Aggiornamenti legali SQL",
+        )
+    ]
+    sources[0]["type"] = "legal_updates"
+    sources[0]["repository"] = "legal_updates_sql"
+    sources[0]["db_path"] = pipeline.repository.db_path
+    sources[0]["trust_class"] = "B"
+    sources[0]["source_level"] = 2
+    for row in lex_rows:
+        source_row = _source(
+            f"Aggiornamento legale - {row.get('title')}",
+            row.get("excerpt") or row.get("content") or "",
+            source_id=str(row.get("id") or ""),
+            title=str(row.get("title") or "Aggiornamento legale"),
+        )
+        source_row.update(row)
+        source_row["text"] = row.get("excerpt") or row.get("content") or source_row.get("text") or ""
+        sources.append(source_row)
+    return lines, sources
+
+
 def _archivio_sentenze_lines(question: str) -> tuple[list[str], list[dict[str, Any]]]:
     gestore = get_giurisprudenza()
     stats = gestore.statistiche()
@@ -1906,8 +1993,10 @@ def build_lex_studio_context(
     selected_detail_titles = set(selected_detail_titles) | competence_section_titles
     if request_profile.intent == "normativa":
         selected_detail_titles.add("Ricerca legale e fonti web")
+        selected_detail_titles.add("Aggiornamenti legali")
     if request_profile.intent == "giurisprudenza":
         selected_detail_titles.add("Archivio sentenze")
+        selected_detail_titles.add("Aggiornamenti legali")
     if request_profile.intent in {"bozza_atto", "bozza_lettera"}:
         selected_detail_titles.add("Template atti")
     include_live_web = (
@@ -1935,6 +2024,7 @@ def build_lex_studio_context(
         ("Tariffario", lambda: _tariffario_lines(effective_question)),
         ("Preventivi", lambda: _preventivi_lines(effective_question)),
         ("Fatturazione", lambda: _fatturazione_lines(effective_question)),
+        ("Aggiornamenti legali", lambda: _aggiornamenti_legali_lines(effective_question)),
         ("Ricerca legale e fonti web", lambda: _ricerca_legale_lines(effective_question)),
         ("Archivio sentenze", lambda: _archivio_sentenze_lines(effective_question)),
         ("Strumenti legali", lambda: _strumenti_legali_lines(effective_question)),

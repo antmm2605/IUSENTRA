@@ -91,6 +91,95 @@ def _sha1(value: str) -> str:
     return hashlib.sha1((value or "").encode("utf-8")).hexdigest()
 
 
+_LEX_SEARCH_STOPWORDS = {
+    "aggiorn",
+    "aggiornamento",
+    "aggiornamenti",
+    "ultime",
+    "ultima",
+    "ultimo",
+    "recenti",
+    "recente",
+    "news",
+    "fonte",
+    "fonti",
+    "legale",
+    "legali",
+    "norma",
+    "norme",
+}
+
+
+def _lex_search_terms(value: Any) -> list[str]:
+    terms: list[str] = []
+    seen: set[str] = set()
+    for raw in re.findall(r"[a-zA-Z0-9_]+", _normalize_token(value)):
+        if len(raw) < 3 or raw in _LEX_SEARCH_STOPWORDS or raw in seen:
+            continue
+        seen.add(raw)
+        terms.append(raw)
+    return terms
+
+
+def _limit_value(value: Any, *, default: int = 12, maximum: int = 80) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        parsed = default
+    return max(1, min(parsed, maximum))
+
+
+def _first_text(*values: Any) -> str:
+    for value in values:
+        text = _clean_spaces(value)
+        if text:
+            return text
+    return ""
+
+
+def _lex_excerpt(*values: Any, limit: int = 520) -> str:
+    text = _first_text(*values)
+    if len(text) <= limit:
+        return text
+    return text[: limit - 3].rstrip() + "..."
+
+
+def _lex_candidate_score(row: dict[str, Any], terms: list[str]) -> float:
+    base = float(row.get("_base_score") or 0.62)
+    if not terms:
+        return round(base, 4)
+    haystack = _normalize_token(
+        " ".join(
+            str(row.get(field) or "")
+            for field in (
+                "title",
+                "excerpt",
+                "content",
+                "authority",
+                "matter_name",
+                "submatter_name",
+                "entity_type",
+            )
+        )
+    )
+    matches = sum(1 for term in terms if term in haystack)
+    if matches <= 0:
+        return round(max(0.2, base - 0.18), 4)
+    return round(min(0.98, base + (matches * 0.07)), 4)
+
+
+def _search_clause(fields: tuple[str, ...], terms: list[str], params: list[Any]) -> str:
+    if not terms:
+        return ""
+    clauses: list[str] = []
+    for term in terms:
+        like_value = f"%{term}%"
+        for field in fields:
+            clauses.append(f"LOWER(COALESCE({field}, '')) LIKE ?")
+            params.append(like_value)
+    return " AND (" + " OR ".join(clauses) + ")"
+
+
 def derive_legal_updates_db_path(intelligence_db_path: str) -> str:
     target = Path(intelligence_db_path).resolve()
     return str(target.with_name("legal_updates.db"))
@@ -1368,6 +1457,238 @@ class LegalUpdateRepository:
                 (int(limit),),
             ).fetchall()
         return [dict(row) for row in rows]
+
+    def _lex_fetch_rows(
+        self,
+        conn: Any,
+        sql: str,
+        params: list[Any],
+        *,
+        terms: list[str],
+        fields: tuple[str, ...],
+        limit: int,
+    ) -> list[dict[str, Any]]:
+        search_params = list(params)
+        statement = sql.replace("{search_clause}", _search_clause(fields, terms, search_params))
+        search_params.append(int(limit))
+        rows = conn.execute(statement, tuple(search_params)).fetchall()
+        return [dict(row) for row in rows]
+
+    def _lex_sql_candidates(self, conn: Any, *, terms: list[str], limit: int) -> list[dict[str, Any]]:
+        rows: list[dict[str, Any]] = []
+        rows.extend(
+            self._lex_fetch_rows(
+                conn,
+                """
+                SELECT 'news' AS entity_type, 'legal_updates' AS source_type, n.id AS entity_id,
+                       n.title, n.short_summary AS excerpt, n.content, n.news_type AS category,
+                       n.publication_status, n.source_url AS official_url, n.published_at,
+                       n.created_at, m.slug AS matter_slug, m.name AS matter_name,
+                       sm.slug AS submatter_slug, sm.name AS submatter_name,
+                       s.name AS authority, s.code AS source_code, s.trust_class, s.is_official,
+                       s.base_url AS source_base_url, 0.66 AS _base_score
+                FROM news n
+                LEFT JOIN source_documents_normalized nd ON nd.id = n.source_document_id
+                LEFT JOIN source_documents_raw rd ON rd.id = nd.raw_document_id
+                LEFT JOIN sources s ON s.id = rd.source_id
+                LEFT JOIN matters m ON m.id = n.matter_id
+                LEFT JOIN matters sm ON sm.id = n.submatter_id
+                WHERE n.publication_status = 'published'
+                {search_clause}
+                ORDER BY COALESCE(NULLIF(n.published_at, ''), n.created_at) DESC, n.id DESC
+                LIMIT ?
+                """,
+                [],
+                terms=terms,
+                fields=("n.title", "n.short_summary", "n.content", "n.news_type", "m.name", "sm.name"),
+                limit=limit,
+            )
+        )
+        rows.extend(
+            self._lex_fetch_rows(
+                conn,
+                """
+                SELECT 'normative' AS entity_type, 'normativa' AS source_type, n.id AS entity_id,
+                       n.title, n.summary AS excerpt, n.text_current AS content, n.norm_type AS category,
+                       n.status AS publication_status, n.source_url AS official_url,
+                       COALESCE(NULLIF(n.effective_date, ''), n.publication_date) AS published_at,
+                       n.created_at, m.slug AS matter_slug, m.name AS matter_name,
+                       sm.slug AS submatter_slug, sm.name AS submatter_name,
+                       n.issuer AS authority, s.code AS source_code,
+                       COALESCE(NULLIF(s.trust_class, ''), 'A') AS trust_class,
+                       COALESCE(s.is_official, 1) AS is_official,
+                       s.base_url AS source_base_url, 0.78 AS _base_score,
+                       n.norm_type, n.norm_number, n.norm_year, n.effective_date
+                FROM normative n
+                LEFT JOIN source_documents_normalized nd ON nd.id = n.source_document_id
+                LEFT JOIN source_documents_raw rd ON rd.id = nd.raw_document_id
+                LEFT JOIN sources s ON s.id = rd.source_id
+                LEFT JOIN matters m ON m.id = n.matter_id
+                LEFT JOIN matters sm ON sm.id = n.submatter_id
+                WHERE 1 = 1
+                {search_clause}
+                ORDER BY COALESCE(NULLIF(n.effective_date, ''), n.publication_date, n.created_at) DESC, n.id DESC
+                LIMIT ?
+                """,
+                [],
+                terms=terms,
+                fields=("n.title", "n.summary", "n.text_current", "n.notes", "n.issuer", "n.norm_type", "n.norm_number", "m.name", "sm.name"),
+                limit=limit,
+            )
+        )
+        rows.extend(
+            self._lex_fetch_rows(
+                conn,
+                """
+                SELECT 'jurisprudence' AS entity_type, 'giurisprudenza' AS source_type, j.id AS entity_id,
+                       j.title, j.summary AS excerpt, j.full_text AS content, 'giurisprudenza' AS category,
+                       'published' AS publication_status, j.source_url AS official_url,
+                       COALESCE(NULLIF(j.publication_date, ''), j.decision_date) AS published_at,
+                       j.created_at, m.slug AS matter_slug, m.name AS matter_name,
+                       sm.slug AS submatter_slug, sm.name AS submatter_name,
+                       j.court_name AS authority, s.code AS source_code,
+                       COALESCE(NULLIF(s.trust_class, ''), 'A') AS trust_class,
+                       COALESCE(s.is_official, 1) AS is_official,
+                       s.base_url AS source_base_url, 0.76 AS _base_score,
+                       j.court_name, j.section_name, j.decision_number, j.decision_year,
+                       j.decision_date, j.principle_of_law
+                FROM jurisprudence j
+                LEFT JOIN source_documents_normalized nd ON nd.id = j.source_document_id
+                LEFT JOIN source_documents_raw rd ON rd.id = nd.raw_document_id
+                LEFT JOIN sources s ON s.id = rd.source_id
+                LEFT JOIN matters m ON m.id = j.matter_id
+                LEFT JOIN matters sm ON sm.id = j.submatter_id
+                WHERE 1 = 1
+                {search_clause}
+                ORDER BY COALESCE(NULLIF(j.publication_date, ''), j.decision_date, j.created_at) DESC, j.id DESC
+                LIMIT ?
+                """,
+                [],
+                terms=terms,
+                fields=("j.title", "j.summary", "j.full_text", "j.principle_of_law", "j.court_name", "j.decision_number", "j.decision_year", "m.name", "sm.name"),
+                limit=limit,
+            )
+        )
+        rows.extend(
+            self._lex_fetch_rows(
+                conn,
+                """
+                SELECT 'prassi' AS entity_type, 'prassi' AS source_type, p.id AS entity_id,
+                       p.title, p.summary AS excerpt, p.full_text AS content, p.act_type AS category,
+                       'published' AS publication_status, p.source_url AS official_url,
+                       p.act_date AS published_at, p.created_at,
+                       m.slug AS matter_slug, m.name AS matter_name,
+                       sm.slug AS submatter_slug, sm.name AS submatter_name,
+                       p.issuing_body AS authority, s.code AS source_code,
+                       COALESCE(NULLIF(s.trust_class, ''), 'B') AS trust_class,
+                       COALESCE(s.is_official, 1) AS is_official,
+                       s.base_url AS source_base_url, 0.72 AS _base_score,
+                       p.issuing_body, p.act_type, p.act_number, p.act_year
+                FROM prassi p
+                LEFT JOIN source_documents_normalized nd ON nd.id = p.source_document_id
+                LEFT JOIN source_documents_raw rd ON rd.id = nd.raw_document_id
+                LEFT JOIN sources s ON s.id = rd.source_id
+                LEFT JOIN matters m ON m.id = p.matter_id
+                LEFT JOIN matters sm ON sm.id = p.submatter_id
+                WHERE 1 = 1
+                {search_clause}
+                ORDER BY COALESCE(NULLIF(p.act_date, ''), p.created_at) DESC, p.id DESC
+                LIMIT ?
+                """,
+                [],
+                terms=terms,
+                fields=("p.title", "p.summary", "p.full_text", "p.issuing_body", "p.act_type", "p.act_number", "p.act_year", "m.name", "sm.name"),
+                limit=limit,
+            )
+        )
+        return rows
+
+    def _lex_evidence_payload(self, row: dict[str, Any], terms: list[str]) -> dict[str, Any]:
+        entity_type = _normalize_token(row.get("entity_type"))
+        entity_id = _clean_spaces(row.get("entity_id"))
+        source_type = _normalize_token(row.get("source_type") or "legal_updates")
+        trust_class = _clean_spaces(row.get("trust_class")).upper()
+        is_official = bool(row.get("is_official", True))
+        if not trust_class:
+            trust_class = "A" if source_type in {"normativa", "giurisprudenza"} else "B"
+        source_level = 1 if trust_class == "A" and is_official else 2 if trust_class in {"A", "B"} else 3
+        official_url = _first_text(row.get("official_url"), row.get("source_base_url"))
+        authority = _first_text(row.get("authority"), row.get("source_code"), "Update Intelligence SQL")
+        excerpt = _lex_excerpt(row.get("excerpt"), row.get("principle_of_law"), row.get("content"))
+        content = _lex_excerpt(row.get("content"), row.get("excerpt"), row.get("principle_of_law"), limit=900)
+        payload = {
+            "type": source_type,
+            "id": f"legal-updates-{entity_type}:{entity_id}",
+            "title": _first_text(row.get("title"), authority, "Aggiornamento legale"),
+            "excerpt": excerpt or content,
+            "content": content or excerpt,
+            "score": _lex_candidate_score(row, terms),
+            "authority": authority,
+            "official_url": official_url,
+            "published_at": _first_text(row.get("published_at"), row.get("created_at")),
+            "trust_class": trust_class,
+            "source_level": source_level,
+            "verified_reference": bool(official_url and source_level <= 2),
+            "source_policy_tier": "tier_1" if source_level == 1 else "tier_2" if source_level == 2 else "tier_3",
+            "repository": "legal_updates_sql",
+            "db_path": self.db_path,
+            "entity_type": entity_type,
+            "entity_id": entity_id,
+            "publication_status": _clean_spaces(row.get("publication_status")),
+            "category": _clean_spaces(row.get("category")),
+            "matter_slug": _clean_spaces(row.get("matter_slug")),
+            "matter_name": _clean_spaces(row.get("matter_name")),
+            "submatter_slug": _clean_spaces(row.get("submatter_slug")),
+            "submatter_name": _clean_spaces(row.get("submatter_name")),
+            "source_code": _clean_spaces(row.get("source_code")),
+        }
+        for field in (
+            "norm_type",
+            "norm_number",
+            "norm_year",
+            "effective_date",
+            "court_name",
+            "section_name",
+            "decision_number",
+            "decision_year",
+            "decision_date",
+            "principle_of_law",
+            "issuing_body",
+            "act_type",
+            "act_number",
+            "act_year",
+        ):
+            if _clean_spaces(row.get(field)):
+                payload[field] = _clean_spaces(row.get(field))
+        return payload
+
+    def search_lex_sources(self, query: str, *, limit: int = 12) -> list[dict[str, Any]]:
+        result_limit = _limit_value(limit, default=12, maximum=80)
+        candidate_limit = max(result_limit * 6, 40)
+        terms = _lex_search_terms(query)
+        with self._connect() as conn:
+            candidates = self._lex_sql_candidates(conn, terms=terms, limit=candidate_limit)
+            if terms and not candidates:
+                candidates = self._lex_sql_candidates(conn, terms=[], limit=candidate_limit)
+        payloads = [self._lex_evidence_payload(row, terms) for row in candidates]
+        payloads.sort(
+            key=lambda row: (
+                float(row.get("score") or 0.0),
+                _clean_spaces(row.get("published_at")),
+            ),
+            reverse=True,
+        )
+        seen: set[tuple[str, str]] = set()
+        deduped: list[dict[str, Any]] = []
+        for row in payloads:
+            key = (_clean_spaces(row.get("type")), _clean_spaces(row.get("id")))
+            if key in seen:
+                continue
+            seen.add(key)
+            deduped.append(row)
+            if len(deduped) >= result_limit:
+                break
+        return deduped
 
     def list_audit(self, *, entity_type: str = "", limit: int = 100) -> list[dict[str, Any]]:
         clauses = []

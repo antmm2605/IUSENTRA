@@ -166,6 +166,10 @@ def _backend_label(cfg_source: dict[str, Any], studio: Any = None) -> str:
     return normalized_mode or "n.d."
 
 
+def _flag_enabled(value: Any) -> bool:
+    return str(value or "").strip().lower() in {"1", "true", "yes", "on", "si"}
+
+
 def _tenant_choices_payload(cfg_source: dict[str, Any]) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     manager = _tenant_manager(cfg_source)
@@ -300,6 +304,10 @@ def build_legal_update_pipeline_runtime(
             or "mistral"
         ).strip(),
         postgres_dsn=postgres_dsn,
+        export_json_enabled=_flag_enabled(cfg_source.get("LEGAL_UPDATES_EXPORT_JSON_ENABLED")),
+        mirror_giurisprudenza_json_enabled=_flag_enabled(
+            cfg_source.get("LEGAL_UPDATES_MIRROR_GIURISPRUDENZA_JSON_ENABLED")
+        ),
     )
 
 
@@ -325,6 +333,11 @@ def build_legal_update_surface(
         "backend_kind": getattr(pipeline.repository, "backend_kind", "sqlite"),
         "db_backend_label": _backend_label(cfg_source, studio),
         "postgres_enabled": bool(getattr(pipeline, "postgres_dsn", "")),
+        "lex_reads_sql": True,
+        "json_export_enabled": bool(getattr(pipeline, "export_json_enabled", False)),
+        "giurisprudenza_json_mirror_enabled": bool(
+            getattr(pipeline, "mirror_giurisprudenza_json_enabled", False)
+        ),
         "ollama_url": pipeline.ai_base_url,
         "ollama_model": pipeline.ai_model,
         "giurisprudenza_db_path": pipeline.giurisprudenza_db_path,

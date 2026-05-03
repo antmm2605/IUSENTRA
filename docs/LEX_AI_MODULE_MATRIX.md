@@ -1,6 +1,6 @@
 # Lex AI - Matrice Moduli
 
-Data di aggiornamento: 23 aprile 2026
+Data di aggiornamento: 3 maggio 2026
 
 ## Regola architetturale
 
@@ -41,6 +41,7 @@ Regola operativa: queste sezioni non vanno ricostruite con prompt o deduzioni se
 - `build_fascicolo_compliance_summary(...)` per controllo conformita', documenti mancanti, gate e prossimo passo
 - moduli economici (`preventivi`, `conferimenti`, `fatturazione`) per stato economico della pratica e dello studio
 - anagrafiche reali (`clienti`, `soggetti`, `parti_fascicolo`) per cliente, assistiti, controparti e soggetti collegati
+- `Update Intelligence` tramite `legal_updates.db` per fonti monitorate, news pubblicate, normativa, giurisprudenza, prassi e audit, senza passare da export JSON runtime
 
 Regola finale: se un evento o un dato e' gia' strutturato nel gestionale, Lex deve riceverlo nel proprio `structured_context` e nel retrieval dedicato, non cercarlo solo nel testo libero dei documenti.
 
@@ -59,7 +60,7 @@ Regola finale: se un evento o un dato e' gia' strutturato nel gestionale, Lex de
 | Fatture e Pagamenti | Emissione documenti economici e monitoraggio incassi | Deterministico amministrativo | fatture emesse, incassato, insoluti, residui | alert economici, pratiche mature per fatturazione, saldo aperto | `fatture_snapshot_loaded`, fattura emessa, pagamento registrato | preventivi, tariffario, fascicolo | Media |
 | Anagrafiche | Clienti, controparti, difensori, uffici, riferimenti fiscali | Deterministico | profili soggetti, collegamenti cross-fascicolo, recapiti | disambiguazione, vista relazionale, collegamenti soggetti/pratiche | `anagrafica_context_loaded`, soggetto aggiornato | fascicolo, documenti, agenda | Media |
 | Strumenti Operativi | Utility di lavoro e controlli tecnici | Ibrido | verifiche allegati, PDF-A, firma, comparazione, estrazione dati | scelta strumento, precompilazione input, interpretazione esiti | `strumenti_snapshot_loaded`, check eseguito | documenti, telematico, compliance | Media |
-| Ricerca Legale / Lex Research | Normativa, giurisprudenza, prassi, fonti esterne verificate | AI-first con guardrail forti | query contestualizzate, fonti trusted, fonti ufficiali, evidence pack | citazioni, pacchetto fonti, riferimenti aggiornati, freshness | `evidence_pack_built`, query pianificata | fascicolo, atto, udienza, telematico, cabina | Alta |
+| Ricerca Legale / Lex Research | Normativa, giurisprudenza, prassi, Update Intelligence SQL e fonti esterne verificate | AI-first con guardrail forti | query contestualizzate, `legal_updates.db`, fonti trusted, fonti ufficiali, evidence pack | citazioni, pacchetto fonti, riferimenti aggiornati, freshness | `evidence_pack_built`, query pianificata | fascicolo, atto, udienza, telematico, cabina | Alta |
 | Lex Core | Orchestrazione, retrieval, memoria, reasoning, explainability | AI-first con guardrail forti | eventi, facts, metadata, result pack, evidence pack | working memory, insight, contesto riusabile, risposta consultiva | persistenza memory, telemetry request | tutti i moduli specialistici | Alta |
 | Assistente Fascicolo | Interfaccia contestuale della pratica | AI-first con guardrail forti | working memory, facts fascicolo, documenti, agenda, telematico | sintesi pratica, fase, rischi, prossime mosse | richiesta contesto fascicolo | fascicoli, documenti, agenda, telematico, ricerca | Alta |
 | Assistente Redazione Atti | Supporto alla costruzione dell'atto | AI-first con guardrail forti | facts pratica, documenti rilevanti, compliance, fonti | struttura suggerita, lacune, allegati, richiami normativi | richiesta contesto atto | documenti, ricerca, compliance, strumenti | Media |

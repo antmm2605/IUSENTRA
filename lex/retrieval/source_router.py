@@ -7,6 +7,7 @@ from .sources.documenti import DocumentiSource
 from .sources.fascicoli import FascicoliSource
 from .sources.giurisprudenza import GiurisprudenzaSource
 from .sources.legal_intelligence import LegalIntelligenceSource
+from .sources.legal_updates import LegalUpdatesSource
 from .sources.normative import NormativeSource
 from .sources.official_web import OfficialWebSource
 from .sources.operational import OperationalSource
@@ -24,6 +25,8 @@ _LEGAL_RESEARCH_HINTS = (
     "art.",
     "gazzetta",
     "normattiva",
+    "aggiornamenti legali",
+    "aggiornamento legale",
     "sentenza",
     "giurisprudenza",
     "cassazione",
@@ -67,7 +70,7 @@ class SourceRouter:
             local_sources.extend([FascicoliSource(), DocumentiSource()])
 
         if _should_include_legal_sources(request, workflow):
-            legal_sources.extend([LegalIntelligenceSource(), NormativeSource(), GiurisprudenzaSource()])
+            legal_sources.extend([LegalUpdatesSource(), LegalIntelligenceSource(), NormativeSource(), GiurisprudenzaSource()])
 
         if workflow in {"telematico", "telematico_status"}:
             workflow_sources.extend([TelematicoSource(), ComplianceSource()])

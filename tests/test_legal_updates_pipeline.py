@@ -2,8 +2,11 @@
 
 from pathlib import Path
 
+from lex.contracts import LexRequest
+from lex.retrieval.sources.legal_updates import LegalUpdatesSource
 from web.app import create_app
 
+from pct.auth import GestioneUtenti, RuoloUtente
 from pct.legal_update_pipeline import build_legal_update_pipeline
 from pct.tenant import GestioneTenant
 from web.services.legal_update_surface import (
@@ -70,7 +73,7 @@ def _cfg_web(tmp_path: Path) -> dict[str, str]:
         "SECRET_KEY": "test",
         "AUTH_DB": str(tmp_path / "auth" / "utenti.json"),
         "AUDIT_DB": str(tmp_path / "auth" / "audit.json"),
-        "BOOTSTRAP_ADMIN_PASSWORD": "admin",
+        "BOOTSTRAP_ADMIN_PASSWORD": "Admin1234!",
         "BOOTSTRAP_ADMIN_CREDENTIALS_PATH": str(tmp_path / "auth" / "bootstrap_admin.json"),
         "CLIENTI_DB": str(tmp_path / "clienti" / "anagrafica.json"),
         "CONDIVISIONI_DB": str(tmp_path / "clienti" / "condivisioni.json"),
@@ -105,6 +108,29 @@ def _cfg_web(tmp_path: Path) -> dict[str, str]:
         "PORTALE_UPLOADS": str(tmp_path / "portale" / "uploads"),
         "TENANTS_REGISTRY": str(tmp_path / "tenants.json"),
     }
+
+
+def _seed_platform_superadmin(app) -> tuple[str, str]:
+    password = "Admin1234!"
+    with app.app_context():
+        utenti = GestioneUtenti(
+            db_path=app.config["AUTH_DB"],
+            audit_path=app.config["AUDIT_DB"],
+            secret_key=app.secret_key,
+            crea_admin_se_vuoto=False,
+            bootstrap_admin_password=app.config.get("BOOTSTRAP_ADMIN_PASSWORD", ""),
+            bootstrap_admin_credentials_path=app.config.get("BOOTSTRAP_ADMIN_CREDENTIALS_PATH", ""),
+        )
+        user = utenti.ensure_platform_superadmin()
+        if user is None:
+            utenti.crea(
+                "admin",
+                password,
+                RuoloUtente.SUPERADMIN,
+                tenant_slug="",
+                must_change_password=False,
+            )
+    return "admin", password
 
 
 def _normativa_html() -> str:
@@ -220,10 +246,103 @@ def test_legal_update_duplicate_non_moltiplica_queue(tmp_path: Path):
     assert len(queue) == 1
 
 
+def test_legal_update_repository_espone_evidenze_lex_da_sql(tmp_path: Path):
+    pipeline = build_legal_update_pipeline(str(tmp_path / "intelligence" / "motori.json"))
+    normative = pipeline.repository.create_or_update_normative(
+        {
+            "title": "Decreto credito imposta investimenti 2026",
+            "slug": "decreto-credito-imposta-investimenti-2026",
+            "norm_type": "decreto-legge",
+            "norm_number": "38",
+            "norm_year": "2026",
+            "issuer": "Gazzetta Ufficiale",
+            "publication_date": "2026-03-27",
+            "effective_date": "2026-03-28",
+            "status": "vigente",
+            "matter_slug": "diritto_tributario",
+            "source_url": "https://www.gazzettaufficiale.it/eli/id/2026/03/27/26G00038/sg",
+            "text_official": "Credito d'imposta per investimenti produttivi.",
+            "text_current": "Credito d'imposta per investimenti produttivi.",
+            "summary": "Aggiorna il regime del credito d'imposta.",
+            "notes": "Rilevante per imprese e societa.",
+        },
+        performed_by="test",
+    )
+    pipeline.repository.create_or_update_news(
+        {
+            "title": "Credito d'imposta investimenti 2026",
+            "short_summary": "Pubblicato aggiornamento sul credito d'imposta.",
+            "content": "Il decreto aggiorna il quadro per gli investimenti produttivi.",
+            "news_type": "normativa",
+            "matter_slug": "diritto_tributario",
+            "related_normative_id": normative["id"],
+            "source_url": "https://www.gazzettaufficiale.it/eli/id/2026/03/27/26G00038/sg",
+            "publication_status": "published",
+            "published_at": "2026-03-27",
+        },
+        performed_by="test",
+    )
+
+    rows = pipeline.repository.search_lex_sources("credito imposta investimenti", limit=5)
+
+    assert rows
+    assert rows[0]["repository"] == "legal_updates_sql"
+    assert rows[0]["db_path"].endswith("legal_updates.db")
+    assert not rows[0]["db_path"].endswith(".json")
+    assert any(row["type"] == "normativa" for row in rows)
+    assert any("gazzettaufficiale.it" in row.get("official_url", "") for row in rows)
+
+
+def test_legal_update_pipeline_non_scrive_export_json_di_default(tmp_path: Path):
+    pipeline = build_legal_update_pipeline(str(tmp_path / "intelligence" / "motori.json"))
+
+    pipeline.run_cycle(
+        source_codes=["gazzetta_ufficiale"],
+        request_get=lambda *args, **kwargs: DummyResponse(_normativa_html(), url="https://www.gazzettaufficiale.it/"),
+        auto_publish=False,
+    )
+
+    assert not Path(pipeline.repository.json_path).exists()
+
+
+def test_lex_legal_updates_source_legge_database_sql_tenant_aware(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+
+    with app.app_context():
+        pipeline = build_legal_update_pipeline(app.config["LEGAL_INTELLIGENCE_DB"])
+        pipeline.repository.create_or_update_news(
+            {
+                "title": "Privacy e data breach: aggiornamento Garante",
+                "short_summary": "Aggiornamento operativo sulle comunicazioni di data breach.",
+                "content": "La fonte istituzionale aggiorna il presidio privacy sui data breach.",
+                "news_type": "privacy",
+                "matter_slug": "privacy_protezione_dati",
+                "source_url": "https://www.garanteprivacy.it/",
+                "publication_status": "published",
+                "published_at": "2026-05-03",
+            },
+            performed_by="test",
+        )
+        request = LexRequest(
+            tenant_id="tenant-1",
+            user_id="user-1",
+            session_id="session-1",
+            query="aggiornamenti privacy data breach",
+        )
+        evidences = LegalUpdatesSource().search(["aggiornamenti privacy data breach"], request, {})
+
+    assert evidences
+    assert evidences[0].metadata["repository"] == "legal_updates_sql"
+    assert evidences[0].source_type == "legal_updates"
+    assert evidences[0].official_url == "https://www.garanteprivacy.it/"
+
+
 def test_publish_review_supporta_needs_review_giurisprudenza_con_revisione_umana(tmp_path: Path, monkeypatch):
+    legacy_mirror_path = tmp_path / "intelligence" / "giurisprudenza.json"
     pipeline = build_legal_update_pipeline(
         str(tmp_path / "intelligence" / "motori.json"),
-        giurisprudenza_db_path=str(tmp_path / "intelligence" / "giurisprudenza.json"),
+        giurisprudenza_db_path=str(legacy_mirror_path),
     )
     pipeline.repository.upsert_sources(
         [
@@ -298,6 +417,8 @@ def test_publish_review_supporta_needs_review_giurisprudenza_con_revisione_umana
     assert result["news"]["id"] >= 1
     assert published_review is not None
     assert published_review["status"] == "published"
+    assert not legacy_mirror_path.exists()
+    assert pipeline.repository.search_lex_sources("canone anas", limit=3)
 
 
 def test_fetch_html_paginato_acquisisce_tutti_i_documenti_della_fonte(tmp_path: Path):
@@ -358,6 +479,7 @@ def test_fetch_html_non_si_ferma_ai_primi_anchor_e_acquisisce_tutti_i_documenti(
 def test_news_page_renderizza_contenuto_pubblicato(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg_web(tmp_path))
+    username, password = _seed_platform_superadmin(app)
 
     with app.app_context():
         pipeline = build_legal_update_pipeline(
@@ -374,7 +496,7 @@ def test_news_page_renderizza_contenuto_pubblicato(tmp_path: Path):
         pipeline.publish_review(int(review["id"]), reviewer="superadmin")
 
     with app.test_client() as client:
-        login = client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=False)
+        login = client.post("/login", data={"username": username, "password": password}, follow_redirects=False)
         assert login.status_code == 302
 
         response = client.get("/legal-intelligence/news")
@@ -388,23 +510,23 @@ def test_news_page_renderizza_contenuto_pubblicato(tmp_path: Path):
 def test_superadmin_vede_i_link_del_motore_in_sidebar_e_motori_legali(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg_web(tmp_path))
+    username, password = _seed_platform_superadmin(app)
 
     with app.test_client() as client:
-        login = client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=False)
+        login = client.post("/login", data={"username": username, "password": password}, follow_redirects=False)
         assert login.status_code == 302
 
         dashboard = client.get("/")
         motori = client.get("/legal-intelligence/")
         news = client.get("/legal-intelligence/news")
 
-    dashboard_html = dashboard.get_data(as_text=True)
     motori_html = motori.get_data(as_text=True)
     news_html = news.get_data(as_text=True)
 
     assert dashboard.status_code == 200
     assert motori.status_code == 200
     assert news.status_code == 200
-    assert "Update Intelligence" in dashboard_html
+    assert "Aggiornamenti legali" in motori_html
     assert "Apri console aggiornamenti" in motori_html
     assert "Console operativa aggiornamenti" in motori_html
     assert "Fonti ufficiali" in motori_html
@@ -420,6 +542,7 @@ def test_superadmin_vede_i_link_del_motore_in_sidebar_e_motori_legali(tmp_path: 
 def test_admin_surfaces_renderizzano_fonti_staging_analisi_e_archivio(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg_web(tmp_path))
+    username, password = _seed_platform_superadmin(app)
 
     with app.app_context():
         pipeline = build_legal_update_pipeline(
@@ -436,7 +559,7 @@ def test_admin_surfaces_renderizzano_fonti_staging_analisi_e_archivio(tmp_path: 
         pipeline.publish_review(int(review["id"]), reviewer="superadmin")
 
     with app.test_client() as client:
-        login = client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=False)
+        login = client.post("/login", data={"username": username, "password": password}, follow_redirects=False)
         assert login.status_code == 302
 
         routes = {
@@ -456,9 +579,10 @@ def test_admin_surfaces_renderizzano_fonti_staging_analisi_e_archivio(tmp_path: 
 def test_pagina_fonti_mostra_guida_campi_ed_esempi_pronti(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg_web(tmp_path))
+    username, password = _seed_platform_superadmin(app)
 
     with app.test_client() as client:
-        login = client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=False)
+        login = client.post("/login", data={"username": username, "password": password}, follow_redirects=False)
         assert login.status_code == 302
 
         response = client.get("/admin/aggiornamenti-legali/fonti")
@@ -475,6 +599,7 @@ def test_pagina_fonti_mostra_guida_campi_ed_esempi_pronti(tmp_path: Path):
 def test_admin_api_espone_staging_analisi_archivi_e_audit(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg_web(tmp_path))
+    username, password = _seed_platform_superadmin(app)
 
     with app.app_context():
         pipeline = build_legal_update_pipeline(
@@ -494,7 +619,7 @@ def test_admin_api_espone_staging_analisi_archivi_e_audit(tmp_path: Path):
         normative_id = int(pipeline.repository.list_published_normative(limit=1)[0]["id"])
 
     with app.test_client() as client:
-        login = client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=False)
+        login = client.post("/login", data={"username": username, "password": password}, follow_redirects=False)
         assert login.status_code == 302
 
         checks = [
@@ -518,6 +643,7 @@ def test_admin_api_espone_staging_analisi_archivi_e_audit(tmp_path: Path):
 def test_form_fetch_e_rianalisi_attivano_il_popolamento(tmp_path: Path, monkeypatch):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg_web(tmp_path))
+    username, password = _seed_platform_superadmin(app)
 
     with app.app_context():
         pipeline = build_legal_update_pipeline(
@@ -576,7 +702,7 @@ def test_form_fetch_e_rianalisi_attivano_il_popolamento(tmp_path: Path, monkeypa
     monkeypatch.setattr(pipeline, "analyze_raw_document", _fake_analyze)
 
     with app.test_client() as client:
-        login = client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=False)
+        login = client.post("/login", data={"username": username, "password": password}, follow_redirects=False)
         assert login.status_code == 302
 
         response_fetch = client.post(f"/admin/aggiornamenti-legali/fonti/{source_id}/fetch", data={"_csrf_token": "test"})
@@ -595,6 +721,7 @@ def test_update_intelligence_superadmin_lavora_sullo_studio_selezionato_e_bootst
     studio = tm.crea("Studio Legale Montagnese", "antonella-mammola", db_config={"mode": "SQLITE"})
     _write_named_studio_config(Path(tm.percorsi_dati(studio.slug)["CONFIG_STUDIO_DB"]), "Studio Legale Montagnese")
     app = create_app(cfg)
+    username, password = _seed_platform_superadmin(app)
 
     with app.app_context():
         root_pipeline = build_legal_update_pipeline(
@@ -628,6 +755,7 @@ def test_dashboard_update_intelligence_mostra_il_tenant_attivo_e_non_uno_studio_
     studio = tm.crea("Studio Legale Montagnese", "antonella-mammola", db_config={"mode": "SQLITE"})
     _write_named_studio_config(Path(tm.percorsi_dati(studio.slug)["CONFIG_STUDIO_DB"]), "Studio Legale Montagnese")
     app = create_app(cfg)
+    username, password = _seed_platform_superadmin(app)
 
     with app.app_context():
         root_pipeline = build_legal_update_pipeline(
@@ -644,7 +772,7 @@ def test_dashboard_update_intelligence_mostra_il_tenant_attivo_e_non_uno_studio_
         )
 
     with app.test_client() as client:
-        login = client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=False)
+        login = client.post("/login", data={"username": username, "password": password}, follow_redirects=False)
         assert login.status_code == 302
 
         response = client.get(f"/admin/aggiornamenti-legali?tenant_slug={studio.slug}")
@@ -665,6 +793,7 @@ def test_dashboard_update_intelligence_mostra_nome_tenant_piattaforma_e_nome_int
         "Studio Legale Montagnese",
     )
     app = create_app(cfg)
+    username, password = _seed_platform_superadmin(app)
 
     with app.app_context():
         payload = build_legal_update_surface(app, tenant_slug=studio.slug)
@@ -675,7 +804,7 @@ def test_dashboard_update_intelligence_mostra_nome_tenant_piattaforma_e_nome_int
     assert payload["runtime"]["tenant_name"] == "Antonella Mammola"
 
     with app.test_client() as client:
-        login = client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=False)
+        login = client.post("/login", data={"username": username, "password": password}, follow_redirects=False)
         assert login.status_code == 302
 
         response = client.get(f"/admin/aggiornamenti-legali?tenant_slug={studio.slug}")

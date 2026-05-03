@@ -311,12 +311,16 @@ class LegalUpdatePipeline:
         ai_base_url: str = "",
         ai_model: str = "",
         postgres_dsn: str = "",
+        export_json_enabled: bool = False,
+        mirror_giurisprudenza_json_enabled: bool = False,
     ) -> None:
         self.intelligence_db_path = str(intelligence_db_path or "").strip()
         self.giurisprudenza_db_path = str(giurisprudenza_db_path or "").strip()
         self.ai_base_url = str(ai_base_url or "").strip()
         self.ai_model = str(ai_model or "").strip() or "mistral"
         self.postgres_dsn = resolve_runtime_postgres_dsn(postgres_dsn)
+        self.export_json_enabled = bool(export_json_enabled)
+        self.mirror_giurisprudenza_json_enabled = bool(mirror_giurisprudenza_json_enabled)
         cfg = LegalUpdateDbConfig.from_anchor(self.intelligence_db_path)
         self.repository = LegalUpdateRepository(
             cfg.db_path,
@@ -324,6 +328,11 @@ class LegalUpdatePipeline:
             postgres_dsn=self.postgres_dsn,
         )
         self.repository.upsert_sources(list(DEFAULT_SOURCE_ROWS))
+
+    def _export_repository_json_if_enabled(self) -> str:
+        if not self.export_json_enabled:
+            return ""
+        return self.repository.export_repository_json()
 
     def list_sources(self, *, enabled_only: bool = True) -> list[dict[str, Any]]:
         return self.repository.list_sources(enabled_only=enabled_only)
@@ -604,7 +613,7 @@ class LegalUpdatePipeline:
         autopublished = {"count": 0, "items": []}
         if auto_publish:
             autopublished = self.publish_auto_news(limit=20)
-        self.repository.export_repository_json()
+        self._export_repository_json_if_enabled()
         return {
             "source": source_code,
             "documents_found": len(documents),
@@ -634,7 +643,7 @@ class LegalUpdatePipeline:
             except Exception as exc:
                 reports.append({"source": source_code, "error": str(exc), "documents_found": 0, "processed": 0})
         autopublished = self.publish_auto_news(limit=40) if auto_publish else {"count": 0, "items": []}
-        self.repository.export_repository_json()
+        self._export_repository_json_if_enabled()
         return {
             "ok": True,
             "sources": selected,
@@ -838,7 +847,7 @@ class LegalUpdatePipeline:
                 },
                 performed_by=reviewer,
             )
-            if self.giurisprudenza_db_path:
+            if self.mirror_giurisprudenza_json_enabled and self.giurisprudenza_db_path:
                 try:
                     GestioneGiurisprudenza(db_path=self.giurisprudenza_db_path).salva(
                         {
@@ -913,7 +922,7 @@ class LegalUpdatePipeline:
         else:
             raise ValueError(f"Azione di pubblicazione non supportata: {proposed_action}")
 
-        self.repository.export_repository_json()
+        self._export_repository_json_if_enabled()
         return result
 
     def publish_auto_news(self, *, limit: int = 20) -> dict[str, Any]:
@@ -944,6 +953,8 @@ def build_legal_update_pipeline(
     ai_base_url: str = "",
     ai_model: str = "",
     postgres_dsn: str = "",
+    export_json_enabled: bool = False,
+    mirror_giurisprudenza_json_enabled: bool = False,
 ) -> LegalUpdatePipeline:
     return LegalUpdatePipeline(
         intelligence_db_path,
@@ -951,4 +962,6 @@ def build_legal_update_pipeline(
         ai_base_url=ai_base_url,
         ai_model=ai_model,
         postgres_dsn=postgres_dsn,
+        export_json_enabled=export_json_enabled,
+        mirror_giurisprudenza_json_enabled=mirror_giurisprudenza_json_enabled,
     )

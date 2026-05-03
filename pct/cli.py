@@ -2667,19 +2667,23 @@ def cmd_demo_check(tenant_slug, registry):
 
 @cli.command("aggiornamenti-legali")
 @click.option("--intelligence-db", default=lambda: os.getenv("PCT_LEGAL_INTELLIGENCE_DB", "./intelligence/motori.json"), show_default="PCT_LEGAL_INTELLIGENCE_DB o ./intelligence/motori.json", help="Anchor del motore legale")
-@click.option("--giurisprudenza-db", default=lambda: os.getenv("PCT_GIURISPRUDENZA_DB", "./intelligence/giurisprudenza.json"), show_default="PCT_GIURISPRUDENZA_DB o ./intelligence/giurisprudenza.json", help="Archivio giurisprudenza per mirror pubblicazioni")
+@click.option("--giurisprudenza-db", default=lambda: os.getenv("PCT_GIURISPRUDENZA_DB", "./intelligence/giurisprudenza.json"), show_default="PCT_GIURISPRUDENZA_DB o ./intelligence/giurisprudenza.json", help="Archivio legacy usato solo se il mirror JSON viene abilitato esplicitamente")
 @click.option("--source", "source_codes", multiple=True, help="Codice fonte da scansionare. Ripetibile")
 @click.option("--no-auto-publish", is_flag=True, default=False, help="Disattiva l'autopubblicazione delle sole news a basso rischio")
 @click.option("--publish-approved", is_flag=True, default=False, help="Dopo la scansione pubblica tutte le review gia approvate")
 @click.option("--local-ai-url", default=lambda: os.getenv("LOCAL_AI_BASE_URL", ""), help="Endpoint Ollama locale")
 @click.option("--local-ai-model", default=lambda: os.getenv("LOCAL_AI_CHAT_MODEL", os.getenv("OLLAMA_MODEL", "mistral")), show_default="LOCAL_AI_CHAT_MODEL o OLLAMA_MODEL o mistral", help="Modello locale per arricchimento AI")
-def cmd_aggiornamenti_legali(intelligence_db, giurisprudenza_db, source_codes, no_auto_publish, publish_approved, local_ai_url, local_ai_model):
+@click.option("--export-json/--no-export-json", default=False, show_default=True, help="Scrive un export JSON amministrativo dopo il ciclo")
+@click.option("--mirror-giurisprudenza-json/--no-mirror-giurisprudenza-json", default=False, show_default=True, help="Replica anche nel vecchio archivio giurisprudenza JSON")
+def cmd_aggiornamenti_legali(intelligence_db, giurisprudenza_db, source_codes, no_auto_publish, publish_approved, local_ai_url, local_ai_model, export_json, mirror_giurisprudenza_json):
     """Esegue la pipeline del motore di aggiornamento normativo, giurisprudenziale e di prassi."""
     pipeline = build_legal_update_pipeline(
         intelligence_db,
         giurisprudenza_db_path=giurisprudenza_db,
         ai_base_url=local_ai_url,
         ai_model=local_ai_model,
+        export_json_enabled=export_json,
+        mirror_giurisprudenza_json_enabled=mirror_giurisprudenza_json,
     )
     report = pipeline.run_cycle(
         source_codes=list(source_codes) or None,

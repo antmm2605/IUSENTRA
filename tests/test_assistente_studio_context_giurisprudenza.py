@@ -1,4 +1,4 @@
-from web.services.assistente_studio_context import _archivio_sentenze_lines
+from web.services.assistente_studio_context import _aggiornamenti_legali_lines, _archivio_sentenze_lines
 
 
 class _DummyGiurisprudenza:
@@ -110,6 +110,72 @@ class _DummyGiurisprudenza:
             "corpus_rows": self.cerca_corpus_professionale(q=question),
             "archive_rows": self.cerca(q=question),
         }
+
+
+class _DummyLegalUpdatesRepository:
+    db_path = "/data/tenants/studio/intelligence/legal_updates.db"
+
+    def search_lex_sources(self, question, limit=6):
+        return [
+            {
+                "type": "giurisprudenza",
+                "id": "legal-updates-jurisprudence:1",
+                "title": "Cassazione su responsabilita medica",
+                "excerpt": "Principio SQL pubblicato.",
+                "content": "Principio SQL pubblicato.",
+                "score": 0.91,
+                "authority": "Corte di Cassazione",
+                "official_url": "https://www.cortedicassazione.it/sentenza-1",
+                "published_at": "2026-05-03",
+                "trust_class": "A",
+                "source_level": 1,
+                "verified_reference": True,
+                "repository": "legal_updates_sql",
+                "entity_type": "jurisprudence",
+            }
+        ]
+
+
+class _DummyLegalUpdatesPipeline:
+    repository = _DummyLegalUpdatesRepository()
+
+    def dashboard_snapshot(self):
+        return {
+            "headline": {
+                "sources": 11,
+                "raw_documents": 794,
+                "analyses": 794,
+                "review_pending": 207,
+                "published_news": 323,
+                "published_normative": 12,
+                "published_jurisprudence": 40,
+                "published_prassi": 2,
+            },
+            "sources": [
+                {
+                    "name": "Cassazione Massimario",
+                    "code": "cassazione_massimario",
+                    "category": "giurisprudenza",
+                    "trust_class": "A",
+                }
+            ],
+        }
+
+
+def test_aggiornamenti_legali_lines_usa_repository_sql_per_lex(monkeypatch):
+    monkeypatch.setattr(
+        "web.services.assistente_studio_context.build_legal_update_pipeline_runtime",
+        lambda: _DummyLegalUpdatesPipeline(),
+    )
+
+    lines, sources = _aggiornamenti_legali_lines("ultimi aggiornamenti Cassazione")
+
+    assert any("Aggiornamenti legali SQL tenant-aware" in line for line in lines)
+    assert any("Lex AI legge gli aggiornamenti da legal_updates.db" in line for line in lines)
+    assert any("Cassazione su responsabilita medica" in line for line in lines)
+    assert any(source["id"] == "legal-updates:dashboard" for source in sources)
+    assert any(source.get("repository") == "legal_updates_sql" for source in sources)
+    assert not any(str(source.get("db_path", "")).endswith(".json") for source in sources)
 
 
 def test_archivio_sentenze_lines_integra_corpus_professionale(monkeypatch):

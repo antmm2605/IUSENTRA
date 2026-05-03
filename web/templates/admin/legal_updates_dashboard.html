@@ -160,7 +160,7 @@
         <div class="li-card__body">
           <div class="li-section-head">
             <div class="li-section-title"><i class="bi bi-shield-check me-2 text-primary"></i>Runtime</div>
-            <span class="badge text-bg-light">AI + archivio</span>
+            <span class="badge text-bg-light">AI + archivio SQL</span>
           </div>
           <div class="li-soft-stack">
             <div class="li-soft-card">
@@ -179,8 +179,18 @@
               <div class="fw-semibold text-break">{{ payload.runtime.db_path }}</div>
             </div>
             <div class="li-soft-card">
-              <div class="small text-muted">Export JSON</div>
-              <div class="fw-semibold text-break">{{ payload.runtime.json_path or 'non configurato' }}</div>
+              <div class="small text-muted">Lettura Lex AI</div>
+              <div class="fw-semibold">Attiva su database SQL tenant-aware</div>
+            </div>
+            <div class="li-soft-card">
+              <div class="small text-muted">Export JSON amministrativo</div>
+              <div class="fw-semibold text-break">
+                {% if payload.runtime.json_export_enabled %}
+                  {{ payload.runtime.json_path or 'non configurato' }}
+                {% else %}
+                  disattivato nel ciclo operativo
+                {% endif %}
+              </div>
             </div>
             <div class="li-soft-card">
               <div class="small text-muted">Runtime AI locale</div>
@@ -188,8 +198,14 @@
               <div class="small text-muted text-break">{{ payload.runtime.ollama_url or 'Nessun endpoint Ollama configurato' }}</div>
             </div>
             <div class="li-soft-card">
-              <div class="small text-muted">Mirror giurisprudenza</div>
-              <div class="fw-semibold text-break">{{ payload.runtime.giurisprudenza_db_path or 'disattivato' }}</div>
+              <div class="small text-muted">Mirror giurisprudenza JSON</div>
+              <div class="fw-semibold text-break">
+                {% if payload.runtime.giurisprudenza_json_mirror_enabled %}
+                  {{ payload.runtime.giurisprudenza_db_path or 'non configurato' }}
+                {% else %}
+                  disattivato: le pubblicazioni restano in legal_updates.db
+                {% endif %}
+              </div>
             </div>
           </div>
         </div>
@@ -305,6 +321,5 @@
   </div>
 </div>
 {% endblock %}
-
 
 

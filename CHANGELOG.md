@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.198.46 - 2026-05-03
+
+- Agganciato Lex AI agli `Aggiornamenti legali` tramite repository SQL tenant-aware `legal_updates.db`: il retrieval usa `LegalUpdatesSource`, il contesto studio espone conteggi ed evidenze SQL, e le fonti vengono marcate con trust/source level per l'evidence pack.
+- Disattivate di default le scritture operative su `legal_updates_repository.json` e sul mirror legacy `giurisprudenza.json`; restano abilitate solo con flag espliciti di export/mirror amministrativo.
+- Aggiornata la dashboard admin per mostrare chiaramente che Lex legge il database SQL e non JSON, con regressioni dedicate su repository, source router, contesto Lex e pubblicazione giurisprudenza.
+
 ## 2.198.45 - 2026-05-03
 
 - Corretto `/admin/copertura-ai`: la gap queue non riapre piu' sottobranche che hanno gia' draft generati, validati o approvati in coda review.

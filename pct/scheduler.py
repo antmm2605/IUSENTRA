@@ -228,6 +228,10 @@ def start_scheduler(app):
                     giurisprudenza_db_path=app.config.get("GIURISPRUDENZA_DB", "./intelligence/giurisprudenza.json"),
                     ai_base_url=app.config.get("LOCAL_AI_BASE_URL", "") or app.config.get("PCT_LOCAL_AI_BASE_URL", ""),
                     ai_model=app.config.get("LOCAL_AI_CHAT_MODEL", "") or app.config.get("OLLAMA_MODEL", "mistral"),
+                    export_json_enabled=_flag_enabled(app.config.get("LEGAL_UPDATES_EXPORT_JSON_ENABLED")),
+                    mirror_giurisprudenza_json_enabled=_flag_enabled(
+                        app.config.get("LEGAL_UPDATES_MIRROR_GIURISPRUDENZA_JSON_ENABLED")
+                    ),
                 )
                 report = pipeline.run_cycle(source_codes=source_ids, auto_publish=auto_publish)
                 logger.info(

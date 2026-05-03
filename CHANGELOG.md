@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.198.42 - 2026-05-03
+
+- Corretto il bootstrap dei moduli monitorati: `local_ai.db` e `telematico/workflow.db` restano database SQLite reali e non vengono piu' creati come JSON vuoti.
+- Aggiunto un test di regressione per impedire che percorsi `.db` vengano inizializzati dal bootstrap JSON dei moduli estesi.
+
 ## 2.198.41 - 2026-05-03
 
 - Spostati gli accessi `Salute sistema` e `Governance prodotto` nella navigazione Piattaforma riservata al superadmin e rimossi i collegamenti dalla pagina tenant `/admin/database`, evitando azioni admin che terminano in `403`.

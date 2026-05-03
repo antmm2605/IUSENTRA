@@ -286,6 +286,8 @@ def test_bootstrap_moduli_monitorati_crea_file_mancanti(tmp_path):
         "template_atti": str(tmp_path / "template_atti" / "templates.json"),
         "template_atti_prefs": str(tmp_path / "template_atti" / "editor_layout.json"),
         "redaction_assistant": str(tmp_path / "intelligence" / "assistente_redazionale.json"),
+        "local_ai": str(tmp_path / "intelligence" / "local_ai.db"),
+        "telematico": str(tmp_path / "telematico" / "workflow.db"),
     }
 
     creati = bootstrap_moduli_monitorati(paths)
@@ -327,6 +329,10 @@ def test_bootstrap_moduli_monitorati_crea_file_mancanti(tmp_path):
     assert "normative_tables" in creati
     assert "privacy" in creati
     assert "search_index" in creati
+    assert "local_ai" not in creati
+    assert "telematico" not in creati
+    assert not Path(paths["local_ai"]).exists()
+    assert not Path(paths["telematico"]).exists()
 
 
 # ================================================================ verifica_integrita()

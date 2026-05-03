@@ -2596,15 +2596,15 @@ def bootstrap_moduli_monitorati(moduli: Dict[str, Optional[str]]) -> Dict[str, s
         "validation_runs": {"runs": []},
         "redaction_assistant": [],
         "workspace_intelligence": {},
-        "local_ai": {},
         "giurisprudenza": {"storage_version": 2, "judgments": [], "ingestion_runs": []},
-        "telematico": {},
         "wizard_pro": [],
     }
 
     for nome, payload in simple_payloads.items():
         path = normalized.get(nome)
         if not path:
+            continue
+        if Path(path).suffix.lower() != ".json":
             continue
         _mark(nome, path, _bootstrap_json_file(path, payload))
 

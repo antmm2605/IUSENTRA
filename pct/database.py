@@ -459,6 +459,18 @@ CREATE TABLE IF NOT EXISTS moduli_dati (
     payload_json      TEXT DEFAULT '{}'
 );
 
+-- ---- Mirror SQL governato dei moduli JSON estesi
+CREATE TABLE IF NOT EXISTS moduli_json_records (
+    modulo        TEXT NOT NULL,
+    record_key    TEXT NOT NULL,
+    record_index  INTEGER NOT NULL DEFAULT 0,
+    record_kind   TEXT NOT NULL DEFAULT 'dict',
+    payload_json  TEXT NOT NULL DEFAULT '{}',
+    PRIMARY KEY (modulo, record_key),
+    FOREIGN KEY (modulo) REFERENCES moduli_dati(nome) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_moduli_json_records_modulo ON moduli_json_records(modulo);
+
 -- ---- Privacy (registro trattamenti GDPR)
 CREATE TABLE IF NOT EXISTS privacy_trattamenti (
     id                        TEXT PRIMARY KEY,
@@ -567,12 +579,24 @@ class GestioneDatabase:
     """
 
     MODULI_SQLITE = [
-        "clienti", "fascicoli", "appuntamenti",
-        "scadenze", "timesheet", "preventivi", "conferimenti",
-        "fatturazione", "pagamenti_links", "pagamenti_config",
-        "messaggi", "utenti", "audit",
-        "privacy", "notifiche", "backup",
+        "clienti", "condivisioni", "note_faldone", "fascicoli",
+        "appuntamenti", "calendar_sync", "scadenze", "timesheet",
+        "preventivi", "conferimenti", "fatturazione",
+        "pagamenti_links", "pagamenti_config", "messaggi",
+        "email_casella", "email_ordinaria", "utenti", "audit",
+        "privacy", "notifiche", "backup", "portale", "soggetti",
+        "soggetti_parti", "wizard_pro", "legal_intelligence",
+        "normative_tables", "giurisprudenza", "workspace_intelligence",
+        "local_ai", "validation_runs", "template_atti",
+        "template_atti_prefs", "redaction_assistant", "telematico",
     ]
+
+    MODULI_SQLITE_STRUTTURATI = {
+        "clienti", "fascicoli", "appuntamenti", "scadenze",
+        "timesheet", "preventivi", "conferimenti", "fatturazione",
+        "pagamenti_links", "pagamenti_config", "messaggi", "utenti",
+        "audit", "privacy", "notifiche", "backup",
+    }
 
     def __init__(self, percorsi: Dict[str, str]):
         """
@@ -660,6 +684,90 @@ class GestioneDatabase:
         if isinstance(raw, list):
             return [item for item in raw if isinstance(item, dict)]
         return []
+
+    @staticmethod
+    def _payload_json(payload: Any) -> str:
+        return json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+
+    @classmethod
+    def _json_record_entries(cls, raw: Any) -> List[Tuple[str, int, str, Any]]:
+        """Normalizza qualunque JSON monitorato in record SQL ordinati."""
+        if raw is None:
+            return []
+        if isinstance(raw, dict):
+            return [
+                (str(key), index, type(value).__name__, value)
+                for index, (key, value) in enumerate(raw.items())
+            ]
+        if isinstance(raw, list):
+            entries: List[Tuple[str, int, str, Any]] = []
+            for index, value in enumerate(raw):
+                candidate = ""
+                if isinstance(value, dict):
+                    for field_name in ("id", "uuid", "slug", "codice", "numero", "msg_id", "message_id"):
+                        if value.get(field_name):
+                            candidate = str(value.get(field_name))
+                            break
+                record_key = f"{index:06d}:{candidate}" if candidate else f"idx_{index:06d}"
+                entries.append((record_key, index, type(value).__name__, value))
+            return entries
+        return [("__root__", 0, type(raw).__name__, raw)]
+
+    @classmethod
+    def _json_record_payload(cls, value: Any) -> str:
+        if isinstance(value, (dict, list)):
+            return cls._payload_json(value)
+        return cls._payload_json({"value": value})
+
+    @classmethod
+    def _modulo_payload_metadata(cls, path: Path, raw: Any, errore: Optional[str]) -> str:
+        payload = {
+            "root_type": type(raw).__name__ if raw is not None else "missing",
+            "record_entries": len(cls._json_record_entries(raw)),
+            "dimensione_bytes": int(path.stat().st_size) if path.exists() else 0,
+        }
+        if errore:
+            payload["errore"] = errore
+        return cls._payload_json(payload)
+
+    def _migra_moduli_json_estesi(
+        self,
+        conn: sqlite3.Connection,
+        migrati: Dict[str, int],
+        errori: List[str],
+    ) -> None:
+        """Migra i moduli JSON senza tabella verticale dedicata in un mirror SQL governato."""
+        totale = 0
+        for chiave in self._moduli_monitorati():
+            if chiave in self.MODULI_SQLITE_STRUTTURATI or chiave not in self.MODULI_SQLITE:
+                continue
+            raw, err = self._leggi_json_grezzo(chiave)
+            if err:
+                errori.append(f"{chiave}: {err}")
+                continue
+            if raw is None:
+                continue
+            count = 0
+            conn.execute("DELETE FROM moduli_json_records WHERE modulo = ?", (chiave,))
+            for record_key, record_index, record_kind, payload in self._json_record_entries(raw):
+                conn.execute(
+                    """
+                    INSERT OR REPLACE INTO moduli_json_records
+                    (modulo, record_key, record_index, record_kind, payload_json)
+                    VALUES (?,?,?,?,?)
+                    """,
+                    (
+                        chiave,
+                        record_key,
+                        record_index,
+                        record_kind,
+                        self._json_record_payload(payload),
+                    ),
+                )
+                count += 1
+            migrati[chiave] = count
+            totale += count
+        migrati["moduli_json_records"] = totale
 
     def _backup_json_prima_riparazione(self, chiave: str, ts: str) -> str:
         p = self.percorsi.get(chiave)
@@ -1462,13 +1570,17 @@ class GestioneDatabase:
             )
             for chiave, percorso in sorted(self.percorsi.items()):
                 storage_kind = "sqlite" if chiave == "search_index" else "json"
+                payload_json = "{}"
+                if percorso.suffix.lower() == ".json":
+                    raw_payload, payload_error = self._leggi_json_grezzo(chiave)
+                    payload_json = self._modulo_payload_metadata(percorso, raw_payload, payload_error)
                 conn.execute(
                     """
                     INSERT OR REPLACE INTO moduli_dati
-                    (nome, percorso, storage_kind, inizializzato_il)
-                    VALUES (?,?,?,?)
+                    (nome, percorso, storage_kind, inizializzato_il, payload_json)
+                    VALUES (?,?,?,?,?)
                     """,
-                    (chiave, str(percorso), storage_kind, datetime.now().isoformat()),
+                    (chiave, str(percorso), storage_kind, datetime.now().isoformat(), payload_json),
                 )
             migrati["moduli_dati"] = len(self.percorsi)
 
@@ -2193,6 +2305,9 @@ class GestioneDatabase:
                     except Exception as ex:
                         errori.append(f"backup_config: {ex}")
 
+            # ---- Moduli JSON estesi
+            self._migra_moduli_json_estesi(conn, migrati, errori)
+
             # ---- Search index
             search_path = self.percorsi.get("search_index")
             if search_path and search_path.exists():
@@ -2466,6 +2581,7 @@ def bootstrap_moduli_monitorati(moduli: Dict[str, Optional[str]]) -> Dict[str, s
         "note_faldone": {},
         "notifiche": [],
         "email_casella": {},
+        "email_ordinaria": [],
         "fatturazione": {},
         "pagamenti_config": {},
         "pagamenti_links": {},
@@ -2479,6 +2595,10 @@ def bootstrap_moduli_monitorati(moduli: Dict[str, Optional[str]]) -> Dict[str, s
         "utenti": {},
         "validation_runs": {"runs": []},
         "redaction_assistant": [],
+        "workspace_intelligence": {},
+        "local_ai": {},
+        "giurisprudenza": {"storage_version": 2, "judgments": [], "ingestion_runs": []},
+        "telematico": {},
         "wizard_pro": [],
     }
 

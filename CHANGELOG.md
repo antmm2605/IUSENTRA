@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.198.41 - 2026-05-03
+
+- Spostati gli accessi `Salute sistema` e `Governance prodotto` nella navigazione Piattaforma riservata al superadmin e rimossi i collegamenti dalla pagina tenant `/admin/database`, evitando azioni admin che terminano in `403`.
+- Resi migrabili i moduli JSON monitorati da `/admin/database` con struttura esplicita sia SQLite sia PostgreSQL: `moduli_dati` conserva percorso/metadati e `moduli_json_records` normalizza i record di Calendar Sync, Email, Soggetti, Portale, Template, Wizard, Intelligence e moduli analoghi.
+
 ## 2.198.40 - 2026-05-03
 
 - Ripristinato il guardrail sorgente della pagina Impostazioni PEC: il test SMTP reale resta browser-locale tramite Local Signer, mentre la diagnostica server PEC non torna esposta come azione utente nella UI.

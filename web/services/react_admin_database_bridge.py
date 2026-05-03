@@ -148,8 +148,6 @@ def _actions_payload() -> dict[str, str]:
         "exportZip": "/admin/database/export",
         "backup": "/backup",
         "audit": "/audit",
-        "governance": "/admin/governance",
-        "systemHealth": "/admin/salute-sistema",
     }
 
 

@@ -361,6 +361,14 @@
          class="nav-link sb-link {% if request.blueprint == 'admin' %}active{% endif %}">
         <i class="bi bi-building-gear"></i><span class="sb-txt">Pannello Admin</span>
       </a>
+      <a href="{{ url_for('admin.salute_sistema') }}"
+         class="nav-link sb-link {% if request.endpoint == 'admin.salute_sistema' %}active{% endif %}">
+        <i class="bi bi-heart-pulse"></i><span class="sb-txt">Salute sistema</span>
+      </a>
+      <a href="{{ url_for('admin.governance') }}"
+         class="nav-link sb-link {% if request.endpoint == 'admin.governance' %}active{% endif %}">
+        <i class="bi bi-diagram-3"></i><span class="sb-txt">Governance prodotto</span>
+      </a>
       <a href="{{ url_for('legal_updates_admin.dashboard') }}"
          class="nav-link sb-link {% if request.blueprint == 'legal_updates_admin' %}active{% endif %}">
         <i class="bi bi-newspaper"></i><span class="sb-txt">Update Intelligence</span>

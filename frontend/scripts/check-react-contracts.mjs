@@ -320,6 +320,10 @@ assertContains(adminDatabaseCss, '@media(max-width:900px)', 'responsive database
 assertContains(adminDatabaseBridge, 'build_react_admin_database_payload', 'bridge database amministrativo')
 assertContains(adminDatabaseBridge, '/admin/database/verifica-ripara', 'endpoint verifica e ripara database')
 assertContains(adminDatabaseBridge, '"writes": "operational_routes"', 'scritture database su route operative')
+assertNotContains(adminDatabaseBridge, 'governance', 'governance piattaforma non esposta nel contratto admin database')
+assertNotContains(adminDatabaseBridge, 'systemHealth', 'salute sistema non esposta nel contratto admin database')
+assertNotContains(adminDatabase, 'Governance', 'governance resta fuori dagli accessi tenant admin')
+assertNotContains(adminDatabase, 'Salute sistema', 'salute sistema resta fuori dagli accessi tenant admin')
 assertNotContains(adminDatabase, '_legacy=1', 'database amministrativo senza fallback visibile')
 
 assertContains(css, '.iu-search-page', 'stili ricerca studio')

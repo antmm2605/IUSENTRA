@@ -14,10 +14,10 @@ Osservabilita' non significa solo metriche runtime. Nel prodotto devono esistere
 | Capability | Superficie | Output |
 | --- | --- | --- |
 | Metriche runtime HTTP e Lex | `admin/osservabilita` | latenze, p95, bucket endpoint, first token |
-| Storage parity e migrazione | `admin/governance` | matrice R/W, fallback, wave di cutover |
-| Audit accessi e ruoli | `admin/governance` | eventi audit, superfici presidiate, ruoli ammessi |
+| Storage parity e migrazione | Piattaforma superadmin: `admin/governance` | matrice R/W, fallback, wave di cutover |
+| Audit accessi e ruoli | Piattaforma superadmin: `admin/governance` | eventi audit, superfici presidiate, ruoli ammessi |
 | Capability telematiche | Centro Servizi Telematici / Motori Legali | stato canali, fonti, warning, catalogo capability |
-| Salute sistema | `admin/salute-sistema`, `admin/system-health` | backup, OCR, provider locali, readiness deploy |
+| Salute sistema | Piattaforma superadmin: `admin/salute-sistema`, `admin/system-health` | backup, OCR, provider locali, readiness deploy |
 | Crash test operativo | `admin/crash-test-operativo` | checklist finale `si/no`, ticket di riparazione, backup blindato, esito per fase |
 
 ## Regole

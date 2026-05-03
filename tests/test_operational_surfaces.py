@@ -293,6 +293,8 @@ def test_superadmin_product_surfaces_renderizzano(tmp_path: Path):
     assert "Assistente migrazione dati" in migrazione.get_data(as_text=True)
     assert salute.status_code == 200
     assert "Salute sistema" in salute.get_data(as_text=True)
+    assert 'href="/admin/salute-sistema"' in salute.get_data(as_text=True)
+    assert 'href="/admin/governance"' in salute.get_data(as_text=True)
     assert scorecard.status_code == 200
     assert "Eval suite e scorecard Lex" in scorecard.get_data(as_text=True)
     assert osservabilita.status_code == 200

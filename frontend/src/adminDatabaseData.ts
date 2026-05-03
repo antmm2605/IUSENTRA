@@ -56,8 +56,6 @@ export type AdminDatabaseActions = {
   exportZip: string
   backup: string
   audit: string
-  governance: string
-  systemHealth: string
 }
 
 export type AdminDatabasePageData = {
@@ -162,8 +160,6 @@ const emptyActions: AdminDatabaseActions = {
   exportZip: '/admin/database/export',
   backup: '/backup',
   audit: '/audit',
-  governance: '/admin/governance',
-  systemHealth: '/admin/salute-sistema',
 }
 
 const emptySqlite: AdminDatabaseSqliteInfo = {
@@ -355,8 +351,6 @@ function normalisePayload(payload: unknown): AdminDatabasePageData {
       exportZip: text(actions.exportZip, emptyActions.exportZip),
       backup: text(actions.backup, emptyActions.backup),
       audit: text(actions.audit, emptyActions.audit),
-      governance: text(actions.governance, emptyActions.governance),
-      systemHealth: text(actions.systemHealth, emptyActions.systemHealth),
     },
     contracts: {
       mock_fallback: bool(contracts.mock_fallback),

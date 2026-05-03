@@ -228,6 +228,41 @@ def test_statistiche_include_modulo_extra_monitorato(tmp_path):
     assert modulo["migrabile_sqlite"] is True
 
 
+def test_statistiche_moduli_json_estesi_sono_migrabili(tmp_path):
+    payloads = {
+        "calendar_sync": {"profiles": [{"id": "cal-1", "provider": "google"}]},
+        "condivisioni": {"link": {"lnk-1": {"id": "lnk-1"}}},
+        "email_casella": {"inbox": [{"id": "msg-1", "oggetto": "PEC"}]},
+        "email_ordinaria": [{"id": "mail-1", "oggetto": "Ordinaria"}],
+        "giurisprudenza": [{"id": "g-1", "massima": "Massima interna"}],
+        "legal_intelligence": {"monitor_runs": [{"id": "run-1"}]},
+        "normative_tables": {"tables": [{"id": "tab-1"}]},
+        "note_faldone": {},
+        "portale": {"pst": {"attivo": True}},
+        "redaction_assistant": [],
+        "soggetti": [{"id": "sogg-1", "nome": "Mario Rossi"}],
+        "soggetti_parti": {"parti": [{"id": "parte-1"}]},
+        "template_atti": {"tpl-1": {"id": "tpl-1", "titolo": "Atto"}},
+        "template_atti_prefs": {"editor_layout": {"tema": "chiaro"}},
+        "validation_runs": {"runs": [{"id": "val-1"}]},
+        "wizard_pro": [{"id": "wiz-1"}],
+        "workspace_intelligence": {"snapshot": {"moduli": 2}},
+    }
+    paths = {}
+    for module, payload in payloads.items():
+        path = tmp_path / f"{module}.json"
+        _scrivi_json(path, payload)
+        paths[module] = str(path)
+
+    db2 = GestioneDatabase(paths)
+    stats = db2.statistiche()
+    modules = {module["nome"]: module for module in stats["moduli"]}
+
+    assert set(payloads).issubset(modules)
+    for module in payloads:
+        assert modules[module]["migrabile_sqlite"] is True
+
+
 def test_bootstrap_moduli_monitorati_crea_file_mancanti(tmp_path):
     paths = {
         "appuntamenti": str(tmp_path / "agenda" / "appuntamenti.json"),
@@ -444,6 +479,7 @@ def test_migra_verso_sqlite_tabelle(db, tmp_path):
     conn.close()
     assert "clienti" in tables
     assert "moduli_dati" in tables
+    assert "moduli_json_records" in tables
     assert "privacy_trattamenti" in tables
     assert "notifiche_log" in tables
     assert "backup_records" in tables
@@ -481,6 +517,80 @@ def test_migra_verso_sqlite_migra_servizi_operativi_aggiuntivi(db, tmp_path):
     assert counts is not None
     assert counts[0] >= 11
     assert counts[1:] == (1, 1, 1, 4, 1, 1, 1)
+
+
+def test_migra_verso_sqlite_migra_moduli_json_estesi(tmp_path):
+    payloads = {
+        "calendar_sync": {"profiles": [{"id": "cal-1", "provider": "google"}]},
+        "email_ordinaria": [
+            {"id": "mail-1", "oggetto": "Primo messaggio"},
+            {"id": "mail-2", "oggetto": "Secondo messaggio"},
+        ],
+        "giurisprudenza": [{"id": "g-1", "massima": "Massima interna"}],
+        "normative_tables": {"tables": [{"id": "tab-1"}]},
+        "soggetti": [{"id": "sogg-1", "nome": "Mario Rossi"}],
+        "template_atti_prefs": {"editor_layout": {"tema": "chiaro"}},
+        "workspace_intelligence": {"snapshot": {"moduli": 2}},
+    }
+    paths = {}
+    for module, payload in payloads.items():
+        path = tmp_path / f"{module}.json"
+        _scrivi_json(path, payload)
+        paths[module] = str(path)
+
+    dest = str(tmp_path / "migrato.db")
+    risultato = GestioneDatabase(paths).migra_verso_sqlite(dest)
+
+    assert risultato.riuscita is True
+    assert risultato.record_migrati["email_ordinaria"] == 2
+    assert risultato.record_migrati["calendar_sync"] == 1
+    assert risultato.record_migrati["moduli_json_records"] == 8
+
+    conn = sqlite3.connect(dest)
+    rows = dict(
+        conn.execute(
+            """
+            SELECT modulo, COUNT(*)
+            FROM moduli_json_records
+            GROUP BY modulo
+            """
+        ).fetchall()
+    )
+    email_meta = conn.execute(
+        "SELECT payload_json FROM moduli_dati WHERE nome = ?",
+        ("email_ordinaria",),
+    ).fetchone()
+    email_payload = conn.execute(
+        """
+        SELECT payload_json
+        FROM moduli_json_records
+        WHERE modulo = ?
+        ORDER BY record_index
+        LIMIT 1
+        """,
+        ("email_ordinaria",),
+    ).fetchone()
+    conn.close()
+
+    assert rows["email_ordinaria"] == 2
+    assert rows["template_atti_prefs"] == 1
+    assert json.loads(email_meta[0])["root_type"] == "list"
+    assert json.loads(email_meta[0])["record_entries"] == 2
+    assert json.loads(email_payload[0])["id"] == "mail-1"
+
+
+def test_schema_moduli_json_records_presente_per_sqlite_e_postgresql():
+    root = Path(__file__).resolve().parents[1]
+    sqlite_sql = (root / "pct" / "sql" / "20260503_moduli_json_records.sql").read_text(encoding="utf-8")
+    postgres_sql = (
+        root / "pct" / "sql" / "20260503_moduli_json_records_postgres.sql"
+    ).read_text(encoding="utf-8")
+
+    for script in (sqlite_sql, postgres_sql):
+        assert "CREATE TABLE IF NOT EXISTS moduli_dati" in script
+        assert "CREATE TABLE IF NOT EXISTS moduli_json_records" in script
+        assert "FOREIGN KEY (modulo) REFERENCES moduli_dati(nome) ON DELETE CASCADE" in script
+        assert "idx_moduli_json_records_modulo" in script
 
 
 def test_migra_verso_sqlite_crea_base_strutturale_procedurale_e_forense(db, tmp_path):

@@ -485,12 +485,10 @@ export function AdminDatabasePage() {
 
           <Panel title="Accessi collegati" subtitle="Superfici amministrative reali" icon={<ExternalLink size={17}/>}>
             <div className="iu-db-links">
-              <Button href={data.actions.backup}><CloudUpload size={15}/>Backup</Button>
-              <Button href={data.actions.audit}><ShieldCheck size={15}/>Registro attività</Button>
-              <Button href={data.actions.governance}><Table size={15}/>Governance</Button>
-              <Button href={data.actions.systemHealth}><Gauge size={15}/>Salute sistema</Button>
-            </div>
-          </Panel>
+                <Button href={data.actions.backup}><CloudUpload size={15}/>Backup</Button>
+                <Button href={data.actions.audit}><ShieldCheck size={15}/>Registro attività</Button>
+              </div>
+            </Panel>
         </aside>
       </section>
 

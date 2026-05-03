@@ -77,6 +77,8 @@ _CORE_TABLES = {
     "privacy": "privacy_trattamenti",
     "notifiche": "notifiche_log",
     "backup": "backup_records",
+    "moduli_dati": "moduli_dati",
+    "moduli_json_records": "moduli_json_records",
 }
 
 _LEGAL_UPDATE_COPY_TABLES = (
@@ -353,7 +355,10 @@ def _copy_legal_updates_to_postgres(db_path: str, postgres_repo: LegalUpdateRepo
 
 def _base_sqlite_sources(paths: dict[str, str]) -> dict[str, str]:
     return {
+        "calendar_sync": paths.get("CALENDAR_SYNC_DB", ""),
         "clienti": paths.get("CLIENTI_DB", ""),
+        "condivisioni": paths.get("CONDIVISIONI_DB", ""),
+        "note_faldone": paths.get("NOTE_FALDONE_DB", ""),
         "fascicoli": paths.get("FASCICOLI_DB", ""),
         "appuntamenti": paths.get("AGENDA_DB", ""),
         "scadenze": paths.get("SCADENZIARIO_DB", ""),
@@ -361,9 +366,25 @@ def _base_sqlite_sources(paths: dict[str, str]) -> dict[str, str]:
         "messaggi": paths.get("MESSAGGI_DB", ""),
         "utenti": paths.get("AUTH_DB", ""),
         "audit": paths.get("AUDIT_DB", ""),
+        "email_casella": paths.get("EMAIL_CASELLA_DB", ""),
+        "email_ordinaria": paths.get("EMAIL_ORDINARIA_DB", ""),
         "privacy": paths.get("PRIVACY_DB", ""),
         "notifiche": paths.get("NOTIFICHE_LOG", ""),
         "backup": str(Path(paths.get("BACKUP_DIR", "./backup")) / "registro.json"),
+        "portale": paths.get("PORTALE_DB", ""),
+        "soggetti": paths.get("SOGGETTI_DB", ""),
+        "soggetti_parti": paths.get("SOGGETTI_PARTI_DB", ""),
+        "wizard_pro": paths.get("WIZARD_PRO_DB", ""),
+        "legal_intelligence": paths.get("LEGAL_INTELLIGENCE_DB", ""),
+        "normative_tables": paths.get("NORMATIVE_TABLES_DB", ""),
+        "giurisprudenza": paths.get("GIURISPRUDENZA_DB", ""),
+        "workspace_intelligence": paths.get("WORKSPACE_INTELLIGENCE_DB", ""),
+        "local_ai": paths.get("LOCAL_AI_DB", ""),
+        "validation_runs": paths.get("VALIDATION_RUNS_DB", ""),
+        "template_atti": paths.get("TEMPLATE_ATTI_DB", ""),
+        "template_atti_prefs": paths.get("TEMPLATE_ATTI_PREFS_DB", ""),
+        "redaction_assistant": paths.get("REDACTION_ASSISTANT_DB", ""),
+        "telematico": paths.get("TELEMATICO_DB", ""),
         "search_index": paths.get("SEARCH_INDEX", ""),
     }
 

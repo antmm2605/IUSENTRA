@@ -127,7 +127,11 @@ def _tenant_paths(tmp_path: Path) -> dict[str, str]:
         "AGENDA_DB": str(root / "agenda" / "appuntamenti.json"),
         "CALENDAR_SYNC_DB": str(root / "agenda" / "calendar_sync.json"),
         "SCADENZIARIO_DB": str(root / "scadenziario" / "scadenze.json"),
+        "CONDIVISIONI_DB": str(root / "clienti" / "condivisioni.json"),
+        "NOTE_FALDONE_DB": str(root / "clienti" / "note_faldone.json"),
         "MESSAGGI_DB": str(root / "messaggi" / "storico.json"),
+        "EMAIL_CASELLA_DB": str(root / "email" / "casella.json"),
+        "EMAIL_ORDINARIA_DB": str(root / "email" / "ordinaria.json"),
         "AUTH_DB": str(root / "auth" / "utenti.json"),
         "AUDIT_DB": str(root / "auth" / "audit.json"),
         "PRIVACY_DB": str(root / "privacy" / "registro.json"),
@@ -138,12 +142,20 @@ def _tenant_paths(tmp_path: Path) -> dict[str, str]:
         "PREVENTIVI_DB": str(root / "preventivi" / "preventivi.json"),
         "FATTURAZIONE_DB": str(root / "fatturazione" / "parcelle.json"),
         "PAGAMENTI_DIR": str(root / "pagamenti"),
+        "PORTALE_DB": str(root / "portale" / "portali.json"),
+        "SOGGETTI_DB": str(root / "soggetti" / "anagrafica.json"),
+        "SOGGETTI_PARTI_DB": str(root / "soggetti" / "parti.json"),
         "TEMPLATE_ATTI_DB": str(root / "template_atti" / "templates.json"),
         "TEMPLATE_ATTI_PREFS_DB": str(root / "template_atti" / "editor_layout.json"),
         "LEGAL_INTELLIGENCE_DB": str(root / "intelligence" / "motori.json"),
         "NORMATIVE_TABLES_DB": str(root / "intelligence" / "tabelle_normative.json"),
         "GIURISPRUDENZA_DB": str(root / "intelligence" / "giurisprudenza.json"),
         "WORKSPACE_INTELLIGENCE_DB": str(root / "intelligence" / "workspace_intelligence.json"),
+        "VALIDATION_RUNS_DB": str(root / "intelligence" / "validation_runs.json"),
+        "REDACTION_ASSISTANT_DB": str(root / "intelligence" / "assistente_redazionale.json"),
+        "LOCAL_AI_DB": str(root / "intelligence" / "local_ai.json"),
+        "WIZARD_PRO_DB": str(root / "wizard_pro" / "sessioni.json"),
+        "TELEMATICO_DB": str(root / "telematico" / "runtime.json"),
         "STUDIO_DB": str(root / "studio.db"),
     }
 
@@ -325,13 +337,26 @@ def _seed_core_json(paths: dict[str, str]) -> None:
     _write_json(Path(paths["MESSAGGI_DB"]), [])
     _write_json(Path(paths["PRIVACY_DB"]), [])
     _write_json(Path(paths["NOTIFICHE_LOG"]), [])
-    _write_json(Path(paths["CALENDAR_SYNC_DB"]), {"profiles": []})
+    _write_json(Path(paths["CALENDAR_SYNC_DB"]), {"profiles": [{"id": "cal-1", "provider": "google"}]})
+    _write_json(Path(paths["CONDIVISIONI_DB"]), {"link": {"lnk-1": {"id": "lnk-1"}}})
+    _write_json(Path(paths["NOTE_FALDONE_DB"]), {"nf-1": {"id": "nf-1", "titolo": "Nota"}})
+    _write_json(Path(paths["EMAIL_CASELLA_DB"]), {"account": {"indirizzo": "studio@example.it"}})
+    _write_json(Path(paths["EMAIL_ORDINARIA_DB"]), [{"id": "mail-1", "oggetto": "Messaggio"}])
+    _write_json(Path(paths["PORTALE_DB"]), {"pst": {"attivo": True}})
+    _write_json(Path(paths["SOGGETTI_DB"]), [{"id": "sogg-1", "nome": "Mario Rossi"}])
+    _write_json(Path(paths["SOGGETTI_PARTI_DB"]), {"parti": [{"id": "parte-1"}]})
+    _write_json(Path(paths["WIZARD_PRO_DB"]), [{"id": "wiz-1"}])
     _write_json(Path(paths["TEMPLATE_ATTI_DB"]), {})
     _write_json(Path(paths["TEMPLATE_ATTI_PREFS_DB"]), {"editor_layout": {}})
     _write_json(Path(paths["LEGAL_INTELLIGENCE_DB"]), {})
     _write_json(Path(paths["NORMATIVE_TABLES_DB"]), [])
     _write_json(Path(paths["GIURISPRUDENZA_DB"]), {})
     _write_json(Path(paths["WORKSPACE_INTELLIGENCE_DB"]), {})
+    _write_json(Path(paths["VALIDATION_RUNS_DB"]), {"runs": [{"id": "val-1"}]})
+    _write_json(Path(paths["REDACTION_ASSISTANT_DB"]), [])
+    _write_json(Path(paths["LOCAL_AI_DB"]), {"runtime": {"enabled": False}})
+    if paths.get("TELEMATICO_DB"):
+        _write_json(Path(paths["TELEMATICO_DB"]), {"stato": "configurato"})
 
 
 def test_migrate_full_storage_to_sqlite_copre_repository_estesi(tmp_path: Path):
@@ -427,6 +452,16 @@ def test_migrate_core_storage_to_postgres_produce_report_consistente(tmp_path: P
     assert report["counts"]["postgres"]["conferimenti"] == 1
     assert report["counts"]["postgres"]["fatturazione"] == 1
     assert report["counts"]["postgres"]["pagamenti_links"] == 1
+    assert report["counts"]["sqlite"]["moduli_json_records"] >= 10
+    assert report["counts"]["postgres"]["moduli_json_records"] == report["counts"]["sqlite"]["moduli_json_records"]
+
+    moduli_estesi = {
+        row[0]
+        for row in target_backend.conn.execute(
+            "SELECT DISTINCT modulo FROM moduli_json_records"
+        ).fetchall()
+    }
+    assert {"calendar_sync", "email_ordinaria", "soggetti_parti", "telematico"}.issubset(moduli_estesi)
     assert Path(report["report_path"]).exists()
 
 

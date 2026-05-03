@@ -11,7 +11,8 @@ Attivazione (due modalità):
 Lo schema completo (15 tabelle) è definito in pct.database.SCHEMA_SQL e include:
     clienti, fascicoli, appuntamenti, scadenze, messaggi, utenti, audit_log,
     privacy_trattamenti, notifiche_log, backup_records, backup_config,
-    search_documenti (FTS5), search_meta_indice, search_ocr_cache, _meta, moduli_dati
+    search_documenti (FTS5), search_meta_indice, search_ocr_cache, _meta,
+    moduli_dati, moduli_json_records
 
 Pattern di accesso nei moduli:
     - _carica_sqlite() → SELECT dati_json FROM table → deserializza

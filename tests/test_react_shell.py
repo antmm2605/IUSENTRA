@@ -1569,6 +1569,10 @@ def test_react_admin_database_operativo_secondo_pattern_oss(tmp_path: Path):
     assert "data.actions.migrate" in page_source
     assert "data.actions.activateSqlite" in page_source
     assert "data.actions.exportZip" in page_source
+    assert "data.actions.governance" not in page_source
+    assert "data.actions.systemHealth" not in page_source
+    assert "Governance" not in page_source
+    assert "Salute sistema" not in page_source
     assert "'X-CSRF-Token': csrfToken()" in page_source
     assert "method=\"post\" action={logoutAction}" in app_source
     assert ".iu-db-page" in css_source
@@ -1604,6 +1608,8 @@ def test_react_admin_database_operativo_secondo_pattern_oss(tmp_path: Path):
     assert payload["actions"]["migrate"] == "/admin/database/migra"
     assert payload["actions"]["activateSqlite"] == "/admin/database/attiva-sqlite"
     assert payload["actions"]["exportZip"] == "/admin/database/export"
+    assert "governance" not in payload["actions"]
+    assert "systemHealth" not in payload["actions"]
     assert payload["summary"]["modulesMonitored"] >= 1
     assert payload["modules"]
     assert verify_response.status_code == 200

@@ -52,6 +52,7 @@ Legenda:
 - `Sito Studio` usa un repository SQL dedicato per tenant, mentre immagini e asset restano su filesystem tenant-aware; `strumenti legali`, `applicazioni` e `news giuridiche strutturate` vengono pubblicati solo quando il flag amministrativo del sito e' attivo.
 - `Uffici giudiziari e PEC` resta runtime JSON-first per la cache storica degli uffici, ma ora ha schema SQLite/PostgreSQL esplicito e report di verifica con fonti PST/IPA distinte; il cutover R/W SQL richiede repository tenant-aware e job schedulato dedicato.
 - `admin/database` esegue la verifica referenziale con riparazione automatica dei problemi risolvibili: prima della scrittura crea backup JSON, non crea record fittizi e, quando non trova un collegamento reale univoco, scollega il riferimento orfano conservando l'ID originale in note/metadati.
+- I moduli JSON monitorati da `admin/database` che non hanno ancora una tabella verticale dedicata sono comunque migrabili con struttura esplicita SQLite/PostgreSQL: `moduli_dati` registra percorso, backend e metadati; `moduli_json_records` conserva i record normalizzati per modulo. Le tabelle dedicate restano il target preferito per i domini core, ma Calendar Sync, Email, Soggetti, Portale, Template, Wizard, Intelligence e moduli analoghi non devono risultare "non migrabili" solo perche' sono JSON runtime.
 
 ## Check di consistenza minimi
 

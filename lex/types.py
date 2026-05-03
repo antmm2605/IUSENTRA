@@ -54,6 +54,7 @@ ProviderType = Literal["ollama", "openai", "mock", "deterministic"]
 SourceType = Literal[
     "fascicolo",
     "documento",
+    "documento_chunk",
     "anagrafica",
     "agenda",
     "scadenziario",

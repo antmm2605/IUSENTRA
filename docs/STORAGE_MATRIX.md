@@ -46,6 +46,7 @@ Legenda:
 - `effective_runtime_kind = sqlite` significa che i dati strutturati tenant-aware dello studio stanno lavorando davvero su SQL locale tenant-aware.
 - non esiste fallback silenzioso da PostgreSQL attivo a JSON: il runtime blocca l'operazione e lascia traccia nel log applicativo.
 - documenti, buste telematiche e modelli locali AI restano filesystem-first anche dopo il cutover SQL.
+- L'adapter Docling di Lex e' un parser opzionale in-memory attivato da `LEX_DOCLING_ENABLED=1`: produce metadati citabili per evidence pack e, quando si persiste RAG, deve confluire nelle tabelle `rag_documents`/`rag_chunks` del dominio `AI locale` senza creare fallback invisibili o sorgenti parallele.
 - i moduli economici condividono lo stesso percorso ufficiale di migrazione `JSON -> SQLite -> PostgreSQL` con report di consistenza; il compenso a tempo ex art. 22-bis D.M. 55/2014 e' persistito su preventivi, conferimenti, log economico e fatturazione con migrazioni SQLite/PostgreSQL dedicate.
 - anche `Update Intelligence` e `Coverage AI` rientrano nello stesso programma ufficiale di migrazione, con repository SQL locale e replica PostgreSQL tenant-aware.
 - Lex AI consuma `Update Intelligence` dal repository SQL/PostgreSQL `legal_updates.db`; `legal_updates_repository.json` e `giurisprudenza.json` non sono sorgenti runtime e restano solo export/mirror espliciti.

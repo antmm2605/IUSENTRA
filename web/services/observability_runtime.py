@@ -414,11 +414,13 @@ def _build_observability_alerts(payload: dict[str, Any]) -> list[dict[str, Any]]
                 "threshold": str((thresholds.get("local_ai_runtime") or {}).get("label") or ""),
                 "operator_message": "AI locale non disponibile: il prodotto resta operativo, ma Lex e i motori assistiti vanno usati solo dopo il ripristino del runtime.",
                 "remediation": (
-                    "Controlla la schermata impostazioni AI, verifica il runtime Ollama sullo "
-                    "stesso host dell'app e riesegui il bootstrap prima di usare Lex o i motori assistiti."
+                    "Controlla la schermata impostazioni AI, verifica il runtime Ollama locale "
+                    "sullo stesso host dell'app o sul bridge Docker locale e riesegui il bootstrap "
+                    "prima di usare Lex o i motori assistiti."
                 ),
                 "remediation_steps": [
-                    "Verifica che Ollama o il provider locale sia realmente avviato sullo stesso host dell'app.",
+                    "Verifica che Ollama o il provider locale sia realmente avviato sulla stessa macchina dell'app, senza provider cloud.",
+                    "Se l'app gira in Docker e Ollama gira sull'host, usa l'URL locale http://host.docker.internal:11434/api invece di 127.0.0.1.",
                     "Controlla modello, porta e URL del runtime AI configurato.",
                     "Riesegui il bootstrap AI e riprova prima di usare Lex o Coverage AI.",
                 ],
@@ -454,7 +456,7 @@ def _build_observability_alerts(payload: dict[str, Any]) -> list[dict[str, Any]]
             }
         )
 
-    portal_breakers = dict((((payload.get("providers") or {}).get("telematico_portali") or {}).get("circuit_breakers") or {}))
+    portal_breakers = dict(((payload.get("providers") or {}).get("telematico_portali") or {}).get("circuit_breakers") or {})
     open_portal_breakers = [
         (name, dict(snapshot or {}))
         for name, snapshot in portal_breakers.items()

@@ -394,6 +394,7 @@ jobs:
         run: |
           pytest -q \
             lex/tests \
+            tests/test_lex_docling_parser.py \
             tests/test_auth.py \
             tests/test_storage_strategy.py \
             tests/test_storage_governance.py \

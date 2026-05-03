@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from .document_parser_docling import is_docling_enabled
+
 
 class RetrievalContextBuilder:
     def build(self, request, context, workflow: str, queries, sources):
@@ -23,6 +25,7 @@ class RetrievalContextBuilder:
             "source_registry_restricted": list(source_registry.get("restricted_sources") or []),
             "source_registry_partner": list(source_registry.get("partner_sources") or []),
             "source_registry_credentialed": list(source_registry.get("credentialed_sources") or []),
+            "docling_enabled": is_docling_enabled(),
             "legal_dashboard_headline": dict(studio.get("legal_dashboard_headline") or {}),
             "focus_label": str(studio.get("focus_label") or ""),
             "queries": list(queries or []),

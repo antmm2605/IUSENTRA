@@ -38,7 +38,7 @@ def _context_fit(item: Any, request, workflow: str) -> float:
     fascicolo_id = str(getattr(request, "fascicolo_id", "") or "")
     if fascicolo_id and str(metadata.get("fascicolo_id") or metadata.get("scope_id") or "") == fascicolo_id:
         score = max(score, 1.0)
-    if workflow in {"fascicolo", "udienza", "telematico_status"} and str(_get(item, "source_type", "")) in {"fascicolo", "documento", "agenda", "scadenziario", "telematico"}:
+    if workflow in {"fascicolo", "udienza", "telematico_status"} and str(_get(item, "source_type", "")) in {"fascicolo", "documento", "documento_chunk", "agenda", "scadenziario", "telematico"}:
         score = min(1.0, score + 0.25)
     return round(score, 4)
 

@@ -16,6 +16,7 @@ pdfplumber<1
 pytesseract<0.4
 python-docx<2
 mammoth<2
+docling<3
 PyYAML<7
 click<9
 jinja2<4

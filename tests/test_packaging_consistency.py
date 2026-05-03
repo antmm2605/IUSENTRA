@@ -61,6 +61,9 @@ def test_manifest_runtime_ed_extra_coprono_i_backend_e_gli_extra_ufficiali():
         "python-docx>=1.1.0",
         "reportlab>=4.0.0",
     ]
+    assert extras["lex-docling"] == [
+        "docling>=2.92.0",
+    ]
     assert extras["pades"] == [
         "pyhanko>=0.20.0",
         "pyhanko-certvalidator>=0.26.0",

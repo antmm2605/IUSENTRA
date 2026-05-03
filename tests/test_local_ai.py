@@ -16,7 +16,6 @@ from pct.runtime_resilience import CircuitBreakerOpenError, clear_runtime_circui
 from web.app import create_app
 from web.services.storage_runtime import get_request_studio_db
 
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -953,7 +952,7 @@ def test_api_assistente_attachments_parse_documenti_locali(tmp_path: Path):
         "name": "memo.txt",
         "mime_type": "text/plain",
         "content_base64": "data:text/plain;base64," + base64.b64encode(
-            "Promemoria udienza e deposito memoria ex art. 183".encode("utf-8")
+            b"Promemoria udienza e deposito memoria ex art. 183"
         ).decode("ascii"),
     }
 
@@ -1159,6 +1158,54 @@ def test_local_ai_settings_env_override_runtime_url(tmp_path: Path, monkeypatch)
     assert settings.base_url == "http://ollama:11434/api"
 
 
+def test_local_ai_monitoring_snapshot_usa_runtime_locale_live_se_db_stale(tmp_path: Path, monkeypatch):
+    clear_runtime_circuit_breakers()
+    service = _service(tmp_path)
+
+    with service._connect() as conn:
+        conn.execute(
+            """
+            UPDATE local_ai_runtime
+            SET status = ?, api_base_url = ?, last_error = ?, updated_at = ?
+            WHERE id = 1
+            """,
+            (
+                "missing",
+                "http://127.0.0.1:11434/api",
+                "Ollama non raggiungibile",
+                "2026-04-13T12:43:59",
+            ),
+        )
+        conn.commit()
+
+    class DummyClient:
+        pass
+
+    observed: dict[str, float] = {}
+
+    def _resolve_live_runtime(settings, *, version_timeout=5.0, use_circuit_breaker=True):
+        observed["timeout"] = version_timeout
+        observed["use_circuit_breaker"] = use_circuit_breaker
+        return DummyClient(), "0.20.5", "http://host.docker.internal:11434/api"
+
+    monkeypatch.setattr(service, "_resolve_live_runtime", _resolve_live_runtime)
+
+    snapshot = service.monitoring_snapshot()
+
+    assert observed["timeout"] == 1.0
+    assert observed["use_circuit_breaker"] is False
+    assert snapshot["runtime_online"] is True
+    assert snapshot["runtime"]["status"] == "ready"
+    assert snapshot["runtime"]["api_base_url"] == "http://host.docker.internal:11434/api"
+    assert snapshot["runtime"]["api_base_url_live"] == "http://host.docker.internal:11434/api"
+    assert snapshot["runtime"]["runtime_version_live"] == "0.20.5"
+    assert snapshot["runtime"]["stored_status"] == "missing"
+    assert snapshot["runtime"]["stored_api_base_url"] == "http://127.0.0.1:11434/api"
+    assert snapshot["runtime"]["last_error"] == ""
+    assert snapshot["settings"]["base_url"] == "http://127.0.0.1:11434/api"
+    assert "host.docker.internal:11434" in snapshot["circuit_breaker"]["name"]
+
+
 def test_local_ai_connect_fallback_su_journal_delete_quando_wal_non_disponibile(tmp_path: Path, monkeypatch):
     service = _service(tmp_path)
 
@@ -1200,13 +1247,13 @@ def test_get_local_ai_service_riusa_singleton_applicativo_su_richieste_multiple(
 
 
 def test_resolved_ollama_runtime_cache_evita_health_snapshot_ripetuti(tmp_path: Path, monkeypatch):
+    from lex.providers.local_ai_service import get_local_ai_service
     from lex.providers.ollama_runtime import (
         clear_ollama_runtime_resolution_cache,
         resolved_ollama_api_base_url,
         resolved_ollama_chat_model,
         resolved_ollama_keep_alive,
     )
-    from lex.providers.local_ai_service import get_local_ai_service
 
     _write_studio_config(tmp_path / "config" / "studio.json", enabled=True)
     app = create_app(_cfg_web(tmp_path))

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.198.47 - 2026-05-03
+
+- Integrato Docling come parser opzionale per Lex AI dietro `LEX_DOCLING_ENABLED`, con import lazy e fallback automatico al parser legacy `pdfplumber`/`pypdf`/`pytesseract` quando Docling non e' installato o fallisce.
+- Aggiunto l'adapter `lex/retrieval/document_parser_docling.py`, che produce Markdown, JSON strutturato, tabelle, chunk e metadati citabili per pagina, sezione e indice chunk senza chiamate cloud.
+- Estesi retrieval, citazioni ed evidence pack per conservare parser, versione, hash sorgente, pagina, sezione, chunk index, OCR e confidence; aggiunto l'extra opzionale `lex-docling` con vincolo `docling<3`.
+- Corretto lo snapshot `/admin/osservabilita`: il runtime Ollama viene verificato live sugli URL locali raggiungibili dall'app senza aprire il circuit breaker, distinguendo `127.0.0.1`, bridge Docker locale e stato DB storico.
+
 ## 2.198.46 - 2026-05-03
 
 - Agganciato Lex AI agli `Aggiornamenti legali` tramite repository SQL tenant-aware `legal_updates.db`: il retrieval usa `LegalUpdatesSource`, il contesto studio espone conteggi ed evidenze SQL, e le fonti vengono marcate con trust/source level per l'evidence pack.

@@ -36,6 +36,12 @@ risposta ed evidenze, piu' metadati del provider e riferimenti sorgente. Se e'
 configurata `LEX_PROVENANCE_HMAC_KEY` oppure `AUDIT_HMAC_KEY`, l'envelope viene
 firmato con HMAC-SHA256.
 
+Quando `LEX_DOCLING_ENABLED=1`, il retrieval documentale puo' aggiungere alle
+evidenze metadati prodotti localmente da Docling: parser/versione, hash sorgente,
+pagina, sezione, indice chunk, OCR e confidence. Questi valori servono per
+rendere le citazioni piu' verificabili; non autorizzano Lex a dedurre dati
+processuali non presenti negli atti o nei moduli specialistici.
+
 L'envelope contiene:
 
 - schema version;

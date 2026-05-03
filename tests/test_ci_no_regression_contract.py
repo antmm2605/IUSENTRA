@@ -3,7 +3,6 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -18,6 +17,7 @@ def test_ci_keeps_core_and_coverage_gates() -> None:
         "name: Governance repo",
         "name: Pytest core",
         "name: Coverage moduli critici",
+        "tests/test_lex_docling_parser.py",
         "tests/test_storage_strategy.py",
         "--cov-config=config/coverage-critical.ini",
         "name: Gate anti-regressione CI 100%",

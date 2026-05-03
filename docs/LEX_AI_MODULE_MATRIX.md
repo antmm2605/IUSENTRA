@@ -26,6 +26,19 @@ Sul dominio `Fascicoli` Lex deve leggere la stessa struttura che l'utente vede n
 
 Regola operativa: sui fascicoli aperti non sono ammessi cap rigidi come `limit=8` sul caricamento documentale del RAG. Se servono limiti per ranking o presentazione, devono vivere a valle dell'indicizzazione completa e non nel caricamento del contesto.
 
+## Parser documentale opzionale Docling
+
+Docling e' integrato come adapter locale opzionale del retrieval documentale Lex, non come nuovo orchestratore. Si attiva solo con `LEX_DOCLING_ENABLED=1` e richiede l'extra Python `lex-docling`; in assenza della libreria, o in caso di errore di conversione, il flusso torna al parser esistente senza bloccare l'utente.
+
+Contratto dati prodotto dall'adapter:
+
+- `parser`, `parser_version`, `source_hash` e `source_path` per tracciabilita';
+- `markdown` e JSON strutturato quando disponibili;
+- chunk con `page_no`, `section_path`, `chunk_index`, `bbox_json`, `table_json`, `ocr_used` e `confidence`;
+- metadati trasferiti in `EvidenceItem`, `Citation` ed evidence pack, cosi' Lex puo' citare pagina/sezione/chunk senza inventare riferimenti.
+
+La feature non crea una nuova fonte di verita' persistente: arricchisce il retrieval e si appoggia alla pipeline RAG/AI locale esistente quando il documento viene indicizzato. Eventuali evoluzioni verso storage dedicato devono mantenere parita' SQLite/PostgreSQL e aggiornare `docs/STORAGE_MATRIX.md`.
+
 ## Presidio studio e RAG per compiti
 
 Lex non deve lavorare su un unico indice indistinto dello studio. Il contesto strutturato deve essere separato per compito e alimentato dai moduli deterministici originali del gestionale:

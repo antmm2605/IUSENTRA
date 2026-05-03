@@ -26,6 +26,7 @@ Lex vive fuori da `web/app.py` e fuori dal vecchio blueprint monolitico:
 - `lex/providers/local_ai_service.py` possiede il servizio AI locale applicativo
 - `lex/providers/ollama_runtime.py` possiede la risoluzione runtime Ollama e il warmup del modello
 - `lex/providers/` isola il runtime LLM e i bridge provider
+- `lex/retrieval/document_parser_docling.py` contiene l'adapter opzionale Docling per parsing locale di documenti complessi, attivo solo con `LEX_DOCLING_ENABLED=1` e fallback automatico al parser legacy
 
 ## Compatibilita'
 

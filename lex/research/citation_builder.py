@@ -5,6 +5,15 @@ from __future__ import annotations
 from lex.contracts import Citation
 
 
+def _int_or_none(value):
+    if value in (None, ""):
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
 class ResearchCitationBuilder:
     def build(self, rows, citations):
         if citations:
@@ -26,6 +35,9 @@ class ResearchCitationBuilder:
                     verified_reference=bool(row.get("verified_reference") or metadata.get("verified_reference")),
                     published_at=row.get("published_at") or metadata.get("published_at"),
                     freshness_score=float(row.get("freshness_score") or metadata.get("freshness_score") or 0.0),
+                    page_no=_int_or_none(metadata.get("page_no") or metadata.get("page_from") or metadata.get("page")),
+                    section_path=str(metadata.get("section_path") or ""),
+                    chunk_index=_int_or_none(metadata.get("chunk_index")),
                 )
             )
         return rebuilt

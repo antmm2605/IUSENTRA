@@ -47,6 +47,9 @@ class Citation:
     verified_reference: bool = False
     published_at: str | None = None
     freshness_score: float = 0.0
+    page_no: int | None = None
+    section_path: str = ""
+    chunk_index: int | None = None
 
 
 @dataclass(slots=True)

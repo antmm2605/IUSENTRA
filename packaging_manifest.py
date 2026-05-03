@@ -51,6 +51,7 @@ def dev_requirements() -> list[str]:
 def extras_requirements() -> dict[str, list[str]]:
     return {
         "pdf": read_requirements("requirements/pdf.txt"),
+        "lex-docling": read_requirements("requirements/lex-docling.txt"),
         "pades": read_requirements("requirements/pades.txt"),
         "pkcs11": read_requirements("requirements/pkcs11.txt"),
     }

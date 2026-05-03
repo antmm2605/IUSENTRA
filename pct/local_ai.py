@@ -17,19 +17,24 @@ import time
 import uuid
 import xml.etree.ElementTree as ET
 import zipfile
+from collections.abc import Iterable
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from threading import Lock
-from typing import Any, Iterable
+from typing import Any
 
 import pdfplumber
 import requests
 
 from pct.firme_cades import (
     inner_signed_path as cades_inner_signed_path,
+)
+from pct.firme_cades import (
     inspect_signed_document_bytes,
+)
+from pct.firme_cades import (
     payload_mime_from_bytes as cades_payload_mime_from_bytes,
 )
 from pct.local_ai_runtime import OllamaRuntimeProvisioner
@@ -149,7 +154,7 @@ def _estimate_tokens(text: str) -> int:
 def _cosine_similarity(left: list[float], right: list[float]) -> float:
     if not left or not right or len(left) != len(right):
         return 0.0
-    dot = sum(a * b for a, b in zip(left, right))
+    dot = sum(a * b for a, b in zip(left, right, strict=False))
     left_norm = math.sqrt(sum(a * a for a in left))
     right_norm = math.sqrt(sum(b * b for b in right))
     if left_norm == 0 or right_norm == 0:
@@ -356,6 +361,7 @@ class OllamaHttpClient:
         path: str,
         payload: dict[str, Any] | None = None,
         timeout: float | None = None,
+        use_circuit_breaker: bool = True,
     ) -> dict[str, Any]:
         def _perform_request() -> dict[str, Any]:
             response = requests.request(
@@ -367,11 +373,24 @@ class OllamaHttpClient:
             response.raise_for_status()
             return response.json()
 
+        if not use_circuit_breaker:
+            return _perform_request()
         return get_ollama_circuit_breaker(self.base_url).call(_perform_request)
 
-    def get_version(self) -> str | None:
+    def get_version(self, timeout: float = 5.0, use_circuit_breaker: bool = True) -> str | None:
         try:
-            return str(self._request("GET", "/version", timeout=5).get("version") or "").strip() or None
+            return (
+                str(
+                    self._request(
+                        "GET",
+                        "/version",
+                        timeout=timeout,
+                        use_circuit_breaker=use_circuit_breaker,
+                    ).get("version")
+                    or ""
+                ).strip()
+                or None
+            )
         except Exception:
             return None
 
@@ -683,12 +702,18 @@ class LocalAIService:
     def _resolve_live_runtime(
         self,
         settings: LocalAiSettings,
+        *,
+        version_timeout: float = 5.0,
+        use_circuit_breaker: bool = True,
     ) -> tuple[OllamaHttpClient, str | None, str]:
         last_client = self._ollama_client(settings)
         last_base_url = settings.base_url
         for base_url in self._candidate_base_urls(settings):
             client = OllamaHttpClient(base_url)
-            version = client.get_version()
+            version = client.get_version(
+                timeout=version_timeout,
+                use_circuit_breaker=use_circuit_breaker,
+            )
             last_client = client
             last_base_url = base_url
             if version:
@@ -1304,25 +1329,48 @@ class LocalAIService:
                 if str(row["role"] or "").strip()
             }
 
-        runtime_status = str(runtime.get("status") or "").strip().lower()
+        stored_status = str(runtime.get("status") or "").strip()
+        stored_error = str(runtime.get("last_error") or "").strip()
+        live_version = ""
+        live_base_url = ""
+        if settings.enabled:
+            try:
+                _, resolved_version, resolved_base_url = self._resolve_live_runtime(
+                    settings,
+                    version_timeout=1.0,
+                    use_circuit_breaker=False,
+                )
+                live_version = str(resolved_version or "").strip()
+                live_base_url = str(resolved_base_url or "").strip()
+            except Exception as exc:
+                stored_error = stored_error or str(exc)
+        effective_online = bool(live_version)
+        effective_status = "ready" if effective_online else stored_status
+        effective_base_url = live_base_url if effective_online else str(runtime.get("api_base_url") or settings.base_url)
+        effective_error = "" if effective_online else stored_error
         breaker = get_ollama_circuit_breaker(
-            str(runtime.get("api_base_url") or settings.base_url or "http://127.0.0.1:11434/api")
+            effective_base_url or settings.base_url or "http://127.0.0.1:11434/api"
         ).snapshot()
         return {
             "settings": {
                 "enabled": settings.enabled,
+                "base_url": settings.base_url,
                 "auto_bootstrap": settings.auto_bootstrap,
                 "keep_alive": settings.keep_alive,
             },
             "runtime": {
-                "status": str(runtime.get("status") or ""),
-                "api_base_url": str(runtime.get("api_base_url") or ""),
+                "status": effective_status,
+                "api_base_url": effective_base_url,
+                "stored_status": stored_status,
+                "stored_api_base_url": str(runtime.get("api_base_url") or ""),
+                "runtime_version_live": live_version,
+                "api_base_url_live": live_base_url if effective_online else "",
                 "chat_model": str(runtime.get("chat_model") or ""),
                 "embed_model": str(runtime.get("embed_model") or ""),
-                "last_error": str(runtime.get("last_error") or ""),
+                "last_error": effective_error,
                 "updated_at": str(runtime.get("updated_at") or ""),
             },
-            "runtime_online": runtime_status == "ready",
+            "runtime_online": effective_online,
             "resolved_models": {
                 "chat": active_models.get("chat") or settings.chat_model,
                 "embed": active_models.get("embed") or settings.embed_model,

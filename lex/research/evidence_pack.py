@@ -36,6 +36,13 @@ def _to_dict(item: Any) -> dict[str, Any]:
         "source_requires_credentials": bool(metadata.get("source_requires_credentials")),
         "source_restricted": bool(metadata.get("source_restricted")),
         "source_supports_web_search": bool(metadata.get("source_supports_web_search", False)),
+        "document_id": metadata.get("document_id") or "",
+        "parser": metadata.get("parser") or "",
+        "parser_version": metadata.get("parser_version") or "",
+        "source_hash": metadata.get("source_hash") or "",
+        "page_no": metadata.get("page_no"),
+        "section_path": metadata.get("section_path") or "",
+        "chunk_index": metadata.get("chunk_index"),
         "metadata": metadata,
     }
 
@@ -67,6 +74,13 @@ class EvidencePackBuilder:
                 "source_requires_credentials": bool(row.get("source_requires_credentials")),
                 "source_restricted": bool(row.get("source_restricted")),
                 "source_supports_web_search": bool(row.get("source_supports_web_search")),
+                "document_id": str(row.get("document_id") or ""),
+                "parser": str(row.get("parser") or ""),
+                "parser_version": str(row.get("parser_version") or ""),
+                "source_hash": str(row.get("source_hash") or ""),
+                "page_no": row.get("page_no"),
+                "section_path": str(row.get("section_path") or ""),
+                "chunk_index": row.get("chunk_index"),
             }
             for row in rows
         ]

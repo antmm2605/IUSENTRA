@@ -10,6 +10,11 @@ from pathlib import Path
 from typing import Any
 
 from lex.contracts import EvidenceItem
+from lex.retrieval.document_parser_docling import (
+    DocumentParseResult,
+    is_docling_enabled,
+    parse_document_with_docling,
+)
 
 _MAX_EXCERPT = 1200   # caratteri massimi per singola evidenza
 
@@ -23,18 +28,42 @@ def _tipo_val(doc: Any) -> str:
     return getattr(tipo, "value", "") if tipo is not None else ""
 
 
-def _extract_text(doc: Any, documents_dir: Path) -> str:
+def _document_path(doc: Any, documents_dir: Path) -> Path | None:
     percorso = _clean(getattr(doc, "percorso", ""))
     if not percorso:
-        return ""
+        return None
     full_path = documents_dir / percorso
     if not full_path.exists():
-        return ""
+        return None
+    return full_path
+
+
+def _extract_text_from_path(full_path: Path) -> str:
     try:
         from lex.tools._doc_extractor import extract_text_from_file
         return extract_text_from_file(full_path)
     except Exception:
         return ""
+
+
+def _extract_text(doc: Any, documents_dir: Path) -> str:
+    full_path = _document_path(doc, documents_dir)
+    if full_path is None:
+        return ""
+    return _extract_text_from_path(full_path)
+
+
+def _extract_docling_result(doc: Any, documents_dir: Path) -> tuple[DocumentParseResult | None, str]:
+    if not is_docling_enabled():
+        return None, ""
+    full_path = _document_path(doc, documents_dir)
+    if full_path is None:
+        return None, "Documento non disponibile su filesystem per parsing Docling."
+    doc_id = _clean(getattr(doc, "id", ""))
+    try:
+        return parse_document_with_docling(full_path, document_id=doc_id), ""
+    except Exception as exc:
+        return None, _clean(exc)
 
 
 def _build_excerpt(doc: Any, text: str, tipo: str) -> str:
@@ -43,18 +72,106 @@ def _build_excerpt(doc: Any, text: str, tipo: str) -> str:
     data_doc = _clean(getattr(doc, "data_documento", "")) or "n.d."
     da_portale = _clean(getattr(doc, "id_deposito_pct", ""))
 
-    header = (
-        f"[{tipo or 'ALTRO'}] {nome} — data: {data_doc}, firmato: {firmato}"
-    )
+    header = f"[{tipo or 'ALTRO'}] {nome} - data: {data_doc}, firmato: {firmato}"
     if da_portale:
         header += f", deposito portale: {da_portale}"
 
     if text:
         body = text[:_MAX_EXCERPT].rstrip()
         if len(text) > _MAX_EXCERPT:
-            body += "…"
+            body += "..."
         return f"{header}\n\n{body}"
     return header
+
+
+def _docling_metadata(result: DocumentParseResult | None, warning: str) -> dict[str, Any]:
+    if result is None:
+        if warning:
+            return {
+                "parser": "legacy",
+                "docling_enabled": True,
+                "docling_fallback": True,
+                "docling_error": warning,
+            }
+        return {"parser": "legacy", "docling_enabled": is_docling_enabled()}
+    return {
+        "parser": result.parser,
+        "parser_version": result.parser_version,
+        "source_hash": result.source_hash,
+        "source_path": result.source_path,
+        "docling_enabled": True,
+        "docling_fallback": False,
+        "docling_tables_count": len(result.tables),
+        "docling_pages_count": len(result.pages),
+        "docling_chunks_count": len(result.chunks),
+        "docling_warnings": list(result.warnings),
+    }
+
+
+def _chunk_title(nome: str, chunk) -> str:
+    section = _clean(getattr(chunk, "section_path", ""))
+    page_no = getattr(chunk, "page_no", None)
+    suffix: list[str] = []
+    if section:
+        suffix.append(section)
+    if page_no:
+        suffix.append(f"p. {page_no}")
+    return f"{nome or 'Documento'} - {' - '.join(suffix)}" if suffix else nome or "Documento"
+
+
+def _docling_chunk_items(
+    *,
+    doc: Any,
+    nome: str,
+    tipo: str,
+    result: DocumentParseResult | None,
+) -> list[EvidenceItem]:
+    if result is None:
+        return []
+
+    items: list[EvidenceItem] = []
+    doc_id = _clean(getattr(doc, "id", "")) or result.document_id
+    data_documento = _clean(getattr(doc, "data_documento", ""))
+    deposito = _clean(getattr(doc, "id_deposito_pct", ""))
+    for chunk in result.chunks:
+        text = _clean(chunk.text)
+        if not text:
+            continue
+        metadata = {
+            "document_id": doc_id,
+            "source_hash": result.source_hash,
+            "source_path": result.source_path,
+            "parser": result.parser,
+            "parser_version": result.parser_version,
+            "page_no": chunk.page_no,
+            "section_path": chunk.section_path,
+            "chunk_index": chunk.chunk_index,
+            "markdown": chunk.markdown,
+            "bbox_json": chunk.bbox_json,
+            "table_json": chunk.table_json,
+            "ocr_used": chunk.ocr_used,
+            "confidence": chunk.confidence,
+            "tipo": tipo,
+            "data_documento": data_documento,
+            "id_deposito_pct": deposito,
+            "authority": "internal_fascicolo_documents",
+            "has_text": True,
+        }
+        items.append(
+            EvidenceItem(
+                source_type="documento_chunk",
+                source_id=f"{doc_id}:docling:{chunk.chunk_index}",
+                title=_chunk_title(nome, chunk),
+                content=text,
+                score=0.88 if tipo in _HIGH_PRIORITY_TYPES else 0.72,
+                metadata=metadata,
+                authority="internal_fascicolo_documents",
+                trust_class="B",
+                source_level=3,
+                verified_reference=True,
+            )
+        )
+    return items
 
 
 _HIGH_PRIORITY_TYPES = {
@@ -177,7 +294,8 @@ def search_document_sources(
             ]
         )
         metadata_match = _matches_tokens(metadata_text, tokens)
-        text = _extract_text(doc, documents_dir)
+        docling_result, docling_warning = _extract_docling_result(doc, documents_dir)
+        text = docling_result.markdown if docling_result and docling_result.markdown else _extract_text(doc, documents_dir)
         text_match = _matches_tokens(text, tokens)
 
         doc_id = _clean(getattr(doc, "id", ""))
@@ -189,6 +307,15 @@ def search_document_sources(
         elif not generic_query and tipo not in _HIGH_PRIORITY_TYPES:
             score = max(score - 0.18, 0.45)
 
+        metadata = {
+            "tipo": tipo,
+            "firmato": bool(getattr(doc, "firmato_digitalmente", False)),
+            "data_documento": _clean(getattr(doc, "data_documento", "")),
+            "id_deposito_pct": _clean(getattr(doc, "id_deposito_pct", "")),
+            "has_text": bool(text),
+        }
+        metadata.update(_docling_metadata(docling_result, docling_warning))
+
         items.append(
             EvidenceItem(
                 source_type="documento",
@@ -196,13 +323,8 @@ def search_document_sources(
                 title=nome or tipo or "Documento",
                 content=_build_excerpt(doc, text, tipo),
                 score=score,
-                metadata={
-                    "tipo": tipo,
-                    "firmato": bool(getattr(doc, "firmato_digitalmente", False)),
-                    "data_documento": _clean(getattr(doc, "data_documento", "")),
-                    "id_deposito_pct": _clean(getattr(doc, "id_deposito_pct", "")),
-                    "has_text": bool(text),
-                },
+                metadata=metadata,
             )
         )
+        items.extend(_docling_chunk_items(doc=doc, nome=nome, tipo=tipo, result=docling_result))
     return items

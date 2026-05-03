@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.198.52 - 2026-05-03
+
+- Precisata la geometria della firma visibile laterale: il bordo destro del timbro PDF resta a 4 mm dal margine pagina, mantenendo invariato il testo verticale generato nella prova `firma_visibile_laterale.pdf`.
+- Aggiornato Local Signer a `1.6.24` e rigenerati i pacchetti con lo stesso motore `visible_signature.py`, cosi' la UI e il firmatore locale applicano la stessa posizione reale al PDF finale.
+- Confermato il luogo firma dal profilo studio: con indirizzo `TAURIANOVA (RC)` e campi citta/provincia vuoti il timbro usa `Taurianova`, non `Reggio Calabria`.
+
 ## 2.198.51 - 2026-05-03
 
 - Ripristinata la superficie React completa del fascicolo: anteprima documento in modal interna, upload/import documenti via AJAX senza ricaricare la pratica, conferme React per eliminazione documenti/fascicoli e accesso visibile a Quadro intelligente AI, Editor professionale e Compilatore atti.

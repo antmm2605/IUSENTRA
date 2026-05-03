@@ -8,6 +8,8 @@ from reportlab.pdfgen import canvas
 
 from visible_signature import (
     VISIBLE_SIGNATURE_METADATA_KEY,
+    VISIBLE_SIGNATURE_LATERAL_RIGHT_MARGIN_PT,
+    VISIBLE_SIGNATURE_LATERAL_TEXT_INSET_PT,
     VISIBLE_SIGNATURE_MODE_BASSO_DESTRA,
     VISIBLE_SIGNATURE_MODE_BASSO_SINISTRA,
     VISIBLE_SIGNATURE_MODE_LATERALE,
@@ -89,7 +91,7 @@ def test_apply_visible_signature_stamp_adds_vertical_mark_and_metadata():
         _make_pdf_bytes(),
         intestatario="Avv. Antonio Mammola",
         data_firma="2026-04-14T11:32:00+02:00",
-        luogo="Reggio Calabria",
+        luogo="Taurianova",
         issuer="ArubaPEC per firma qualificata",
         serial="123ABC",
         mode=VISIBLE_SIGNATURE_MODE_LATERALE,
@@ -104,7 +106,7 @@ def test_apply_visible_signature_stamp_adds_vertical_mark_and_metadata():
 
     assert "Firmato Da: AVV. ANTONIO MAMMOLA" in text
     assert "Data e ora firma: 14/04/2026 alle ore 11:32" in text
-    assert "Luogo firma: REGGIO CALABRIA" in text
+    assert "Luogo firma: TAURIANOVA" in text
     assert "Emesso Da: ArubaPEC per firma qualificata" in text
     # il seriale può essere troncato nel testo laterale stretto; verificato nei metadati
     assert "ArubaPEC per firma qualificata" in str(metadata.get(VISIBLE_SIGNATURE_METADATA_KEY, ""))
@@ -116,7 +118,7 @@ def test_apply_visible_signature_stamp_supporta_modalita_basso_destra():
         _make_pdf_bytes(),
         intestatario="Avv. Antonio Mammola",
         data_firma="2026-04-14T11:32:00+02:00",
-        luogo="Reggio Calabria",
+        luogo="Taurianova",
         mode=VISIBLE_SIGNATURE_MODE_BASSO_DESTRA,
     )
 
@@ -126,7 +128,7 @@ def test_apply_visible_signature_stamp_supporta_modalita_basso_destra():
     assert "Per autentica e sottoscrizione" in text
     assert "Firmato Da: AVV. ANTONIO MAMMOLA" in text
     assert "in data 14/04/2026 ore 11:32" in text
-    assert "Luogo: Reggio Calabria" in text
+    assert "Luogo: Taurianova" in text
 
 
 def test_apply_visible_signature_stamp_supporta_modalita_basso_sinistra():
@@ -134,7 +136,7 @@ def test_apply_visible_signature_stamp_supporta_modalita_basso_sinistra():
         _make_pdf_bytes(),
         intestatario="Avv. Antonio Mammola",
         data_firma="2026-04-14T11:32:00+02:00",
-        luogo="Reggio Calabria",
+        luogo="Taurianova",
         mode=VISIBLE_SIGNATURE_MODE_BASSO_SINISTRA,
     )
 
@@ -154,7 +156,7 @@ def test_apply_visible_signature_stamp_modalita_laterale_aggiunge_prefisso_avv()
         _make_pdf_bytes(),
         intestatario="Antonio Mammola",
         data_firma="2026-04-14T11:32:00+02:00",
-        luogo="Reggio Calabria",
+        luogo="Taurianova",
         mode=VISIBLE_SIGNATURE_MODE_LATERALE,
     )
 
@@ -168,14 +170,14 @@ def test_visible_signature_side_text_espone_tutto_su_unica_riga_verticale():
     side_text = _build_visible_signature_side_text(
         intestatario="Antonio Mammola",
         data_firma="2026-04-14T09:32:00+00:00",
-        luogo="Reggio Calabria",
+        luogo="Taurianova",
         issuer="ArubaPEC EU Authentication Certificates CA G1",
     )
 
     assert side_text == (
         "Firmato Da: AVV. ANTONIO MAMMOLA | "
         "Data e ora firma: 14/04/2026 alle ore 11:32 | "
-        "Luogo firma: REGGIO CALABRIA | "
+        "Luogo firma: TAURIANOVA | "
         "Emesso Da: ArubaPEC EU Authentication Certificates CA G1"
     )
 
@@ -185,14 +187,14 @@ def test_apply_visible_signature_stamp_non_duplica_timbro_se_gia_presente():
         _make_pdf_bytes(),
         intestatario="Avv. Antonio Mammola",
         data_firma="2026-04-14T11:32:00+02:00",
-        luogo="Reggio Calabria",
+        luogo="Taurianova",
         mode=VISIBLE_SIGNATURE_MODE_LATERALE,
     )
     second = apply_visible_signature_stamp(
         first,
         intestatario="Avv. Antonio Mammola",
         data_firma="2026-04-14T11:32:00+02:00",
-        luogo="Reggio Calabria",
+        luogo="Taurianova",
         mode=VISIBLE_SIGNATURE_MODE_BASSO_DESTRA,
     )
 
@@ -242,7 +244,7 @@ def test_bottom_right_signature_draws_colored_seal(monkeypatch):
         color=None,
         intestatario="Antonio Mammola",
         data_firma="2026-04-14T09:32:00+00:00",
-        luogo="Reggio Calabria",
+        luogo="Taurianova",
     )
 
     assert len(overlay.drawn) >= 2
@@ -370,25 +372,27 @@ def test_lateral_signature_leaves_gap_between_coccarda_and_text(monkeypatch):
         color=None,
         intestatario="Antonio Mammola",
         data_firma="2026-04-14T09:32:00+00:00",
-        luogo="Reggio Calabria",
+        luogo="Taurianova",
         issuer="ArubaPEC EU Authentication Certificates CA G1",
     )
 
+    expected_right_edge = 595.0 - VISIBLE_SIGNATURE_LATERAL_RIGHT_MARGIN_PT
     assert translations
     assert seal_calls
     assert fonts
-    assert translations[0][0] >= 595.0 - 3.0
+    assert abs(translations[0][0] - (expected_right_edge - VISIBLE_SIGNATURE_LATERAL_TEXT_INSET_PT)) <= 0.75
     assert translations[0][1] - seal_calls[0]["anchor_y"] >= 20.0
-    assert seal_calls[0]["anchor_x"] >= 595.0 - 10.0
+    assert seal_calls[0]["anchor_x"] <= expected_right_edge
+    assert seal_calls[0]["anchor_x"] >= expected_right_edge - 13.0
     assert fonts[0][1] <= 9.5
 
 
-def test_lateral_signature_layout_sta_quasi_sul_margine_destro():
+def test_lateral_signature_layout_usa_margine_destro_di_quattro_millimetri():
     layout = compute_visible_signature_layout(width=595.0, height=842.0, mode=VISIBLE_SIGNATURE_MODE_LATERALE)
+    expected_right_edge = 595.0 - VISIBLE_SIGNATURE_LATERAL_RIGHT_MARGIN_PT
 
     assert layout["mode"] == VISIBLE_SIGNATURE_MODE_LATERALE
-    assert layout["x"] + layout["box_width"] >= 595.0 - 2.0
-    assert layout["x"] + layout["box_width"] <= 595.0
+    assert abs((layout["x"] + layout["box_width"]) - expected_right_edge) <= 0.25
 
 
 def test_resolve_visible_signature_place_prefers_city_from_impostazioni_studio():
@@ -483,7 +487,7 @@ def test_apply_visible_signature_stamp_supporta_modalita_basso_sinistra():
         _make_pdf_bytes(),
         intestatario="Avv. Antonio Mammola",
         data_firma="2026-04-14T11:32:00+02:00",
-        luogo="Reggio Calabria",
+        luogo="Taurianova",
         mode=VISIBLE_SIGNATURE_MODE_BASSO_SINISTRA,
     )
 
@@ -493,7 +497,7 @@ def test_apply_visible_signature_stamp_supporta_modalita_basso_sinistra():
     assert "Per autentica e sottoscrizione" in text
     assert "Firmato Da: AVV. ANTONIO MAMMOLA" in text
     assert "in data 14/04/2026 ore 11:32" in text
-    assert "Luogo: Reggio Calabria" in text
+    assert "Luogo: Taurianova" in text
 
 
 def test_apply_visible_signature_stamp_no_duplicazione_stampa_successiva():
@@ -501,14 +505,14 @@ def test_apply_visible_signature_stamp_no_duplicazione_stampa_successiva():
         _make_pdf_bytes(),
         intestatario="Avv. Antonio Mammola",
         data_firma="2026-04-14T11:32:00+02:00",
-        luogo="Reggio Calabria",
+        luogo="Taurianova",
         mode=VISIBLE_SIGNATURE_MODE_BASSO_SINISTRA,
     )
     second = apply_visible_signature_stamp(
         first,
         intestatario="Avv. Antonio Mammola",
         data_firma="2026-04-14T11:32:00+02:00",
-        luogo="Reggio Calabria",
+        luogo="Taurianova",
         mode=VISIBLE_SIGNATURE_MODE_BASSO_SINISTRA,
     )
 
@@ -555,7 +559,7 @@ def test_bottom_left_signature_draws_on_left_side(monkeypatch):
         color=None,
         intestatario="Antonio Mammola",
         data_firma="2026-04-14T09:32:00+00:00",
-        luogo="Reggio Calabria",
+        luogo="Taurianova",
     )
 
     assert len(overlay.drawn) >= 2

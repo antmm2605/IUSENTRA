@@ -12,6 +12,12 @@ except Exception:  # pragma: no cover - fallback difensivo
     ZoneInfo = None  # type: ignore[assignment]
 
 CM_TO_PT = 28.35
+MM_TO_PT = 72.0 / 25.4
+VISIBLE_SIGNATURE_LATERAL_RIGHT_MARGIN_MM = 4.0
+VISIBLE_SIGNATURE_LATERAL_RIGHT_MARGIN_PT = VISIBLE_SIGNATURE_LATERAL_RIGHT_MARGIN_MM * MM_TO_PT
+VISIBLE_SIGNATURE_LATERAL_TEXT_INSET_PT = 2.0
+VISIBLE_SIGNATURE_COCCARDA_HEIGHT_PT = 24.0
+VISIBLE_SIGNATURE_COCCARDA_HALF_WIDTH_PT = 12.0
 VISIBLE_SIGNATURE_MODE_LATERALE = "laterale"
 VISIBLE_SIGNATURE_MODE_BASSO_SINISTRA = "basso_sinistra"
 VISIBLE_SIGNATURE_MODE_BASSO_DESTRA = "basso_destra"
@@ -140,7 +146,7 @@ def compute_visible_signature_layout(
         }
 
     side_width = min(max(CM_TO_PT * 1.85, min(42.0, available_width)), available_width)
-    side_margin = min(safe_margin, 1.5)
+    side_margin = min(safe_margin, VISIBLE_SIGNATURE_LATERAL_RIGHT_MARGIN_PT)
     side_height = available_height
     return {
         "x": max(0.0, page_width - side_width - side_margin),
@@ -635,6 +641,10 @@ def _draw_visible_signature_side_mark(
         height=height,
         mode=VISIBLE_SIGNATURE_MODE_LATERALE,
     )
+    right_edge = min(
+        max(float(layout["x"]) + float(layout["box_width"]), CM_TO_PT),
+        max(width - VISIBLE_SIGNATURE_LATERAL_RIGHT_MARGIN_PT, CM_TO_PT),
+    )
     seal_gap = 70.0
     text_length = max(float(layout["box_height"]) - seal_gap, 40.0)
     font_name = "Helvetica"
@@ -646,10 +656,7 @@ def _draw_visible_signature_side_mark(
     overlay.setFillColor(color)
     overlay.setFont(font_name, font_size)
     overlay.saveState()
-    translate_x = min(
-        max(float(layout["x"]) + float(layout["box_width"]) - 1.5, CM_TO_PT),
-        max(width - 2.0, CM_TO_PT),
-    )
+    translate_x = max(right_edge - VISIBLE_SIGNATURE_LATERAL_TEXT_INSET_PT, CM_TO_PT)
     translate_y = min(max(float(layout["y"]) + 58.0, 58.0), max(height - 10.0, 58.0))
     overlay.translate(translate_x, translate_y)
     overlay.rotate(90)
@@ -657,7 +664,15 @@ def _draw_visible_signature_side_mark(
     overlay.restoreState()
     _draw_visible_signature_seal(
         overlay,
-        anchor_x=min(max(float(layout["x"]) + float(layout["box_width"]) - 7.0, 16.0), max(width - 7.0, 16.0)),
+        anchor_x=min(
+            max(right_edge - VISIBLE_SIGNATURE_COCCARDA_HALF_WIDTH_PT, 16.0),
+            max(
+                width
+                - VISIBLE_SIGNATURE_LATERAL_RIGHT_MARGIN_PT
+                - VISIBLE_SIGNATURE_COCCARDA_HALF_WIDTH_PT,
+                16.0,
+            ),
+        ),
         anchor_y=min(max(float(layout["y"]) + 17.0, 17.0), max(height - 17.0, 17.0)),
     )
 
@@ -837,7 +852,7 @@ def _draw_visible_signature_coccarda_image(
         image_bytes = base64.b64decode(VISIBLE_SIGNATURE_COCCARDA_PNG_B64)
         image = ImageReader(io.BytesIO(image_bytes))
         original_width, original_height = image.getSize()
-        target_height = 24.0 * max(float(scale or 1.0), 0.5)
+        target_height = VISIBLE_SIGNATURE_COCCARDA_HEIGHT_PT * max(float(scale or 1.0), 0.5)
         target_width = target_height * (float(original_width) / max(float(original_height), 1.0))
         overlay.drawImage(
             image,

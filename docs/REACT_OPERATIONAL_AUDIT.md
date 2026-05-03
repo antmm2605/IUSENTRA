@@ -95,12 +95,13 @@ La posizione scelta nella UI React viene salvata sul documento firmato e la rout
 di anteprima dei `.p7m` detached rilegge quella posizione prima di ristampare il
 PDF. Il test `test_visualizza_documento_p7m_usa_posizione_firma_visibile_salvata_nel_pdf`
 renderizza la pagina PDF finale e controlla pixel su laterale, basso sinistra e
-basso destra. Local Signer `1.6.23` include `reportlab`, necessario al timbro
+basso destra. Local Signer `1.6.24` include `reportlab`, necessario al timbro
 visibile con coccarda PNG trasparente.
 
 Aggiornamento successivo 2026-05-03: la modalita' laterale viene renderizzata
-quasi aderente al margine destro del PDF con font leggermente ridotto. La
-regressione e' presidiata da `test_lateral_signature_layout_sta_quasi_sul_margine_destro`
+con bordo destro a 4 mm dal margine pagina e font leggermente ridotto, mantenendo
+invariato il testo verticale generato per la prova `firma_visibile_laterale.pdf`.
+La regressione e' presidiata da `test_lateral_signature_layout_usa_margine_destro_di_quattro_millimetri`
 e dalla verifica pixel della preview `.p7m`.
 
 ### Fascicolo React: regressioni operative presidiate

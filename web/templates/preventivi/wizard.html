@@ -3828,9 +3828,27 @@ function upsertVocePrincipale(desc, importo) {
   upsertVocePerRuolo('main-compenso', desc, importo, 'Onorario');
 }
 
+function speseGeneraliLabel(data, suffix = '') {
+  const perc = parseLocaleNumber(firstDefined(data?.perc_spese_generali, 0));
+  const percentuale = perc > 0 ? `${perc.toLocaleString('it-IT')}%` : '15%';
+  const extra = suffix ? ` - ${suffix}` : '';
+  return `Spese generali ${percentuale}${extra}`;
+}
+
+function syncSpeseGeneraliRow(role, data, suffix = '') {
+  const importo = parseLocaleNumber(firstDefined(data?.spese_generali_bozza, data?.spese_generali, 0));
+  setAnticipazioniExtra(role, 0);
+  if (importo > 0) {
+    upsertVocePerRuolo(role, speseGeneraliLabel(data, suffix), importo, 'Spesa forfettaria');
+  } else {
+    removeVocePerRuolo(role);
+  }
+}
+
 function clearAccessorioRows() {
   document.querySelectorAll('tr[data-role^="accessorio-"]').forEach((row) => row.remove());
   document.querySelectorAll('tr[data-role^="mediazione-odm-accessorio-"]').forEach((row) => row.remove());
+  document.querySelectorAll('tr[data-role^="spese-generali-accessorio-"]').forEach((row) => row.remove());
   Array.from(wizardAnticipazioniExtra.keys()).forEach((key) => {
     if (key.startsWith('spese-generali-accessorio-')) wizardAnticipazioniExtra.delete(key);
   });
@@ -3839,6 +3857,7 @@ function clearAccessorioRows() {
 function clearClassificazioneRows() {
   document.querySelectorAll('tr[data-role^="classificazione-"]').forEach((row) => row.remove());
   document.querySelectorAll('tr[data-role^="mediazione-odm-classificazione-"]').forEach((row) => row.remove());
+  document.querySelectorAll('tr[data-role^="spese-generali-classificazione-"]').forEach((row) => row.remove());
   Array.from(wizardAnticipazioniExtra.keys()).forEach((key) => {
     if (key.startsWith('spese-generali-classificazione-')) wizardAnticipazioniExtra.delete(key);
   });
@@ -4072,7 +4091,6 @@ function renderRisultato(data) {
     data.onorario_selezionato,
     0
   );
-  setAnticipazioniExtra('spese-generali-main', firstDefined(data.spese_generali_bozza, data.spese_generali, 0));
   document.getElementById('kpiCompenso').textContent = money(compensoBozza);
   document.getElementById('kpiTotale').textContent = money(firstDefined(data.totale_bozza, data.totale, 0));
   if (compensoBozza > 0 || Object.keys(data.fasi || {}).length) {
@@ -4080,6 +4098,7 @@ function renderRisultato(data) {
   } else {
     removeVocePerRuolo('main-compenso');
   }
+  syncSpeseGeneraliRow('spese-generali-main', data);
   syncMediazioneOdmMainRow(data);
   recalcTotals();
 }
@@ -4089,6 +4108,7 @@ function renderRisultatoOrario() {
   const tariffa = payload.tariffa_oraria;
   const ore = payload.ore_fatturabili;
   const imponibile = payload.compenso_base;
+  removeVocePerRuolo('spese-generali-main');
   setAnticipazioniExtra('spese-generali-main', 0);
   ultimoCalcolo = {
     onorario_base: imponibile,
@@ -4107,6 +4127,7 @@ function renderRisultatoOrario() {
 async function applicaAccessoriCalcolo() {
   const accessori = accessoriCalcoloSelezionati();
   const ruoliAttivi = new Set();
+  const speseRuoliAttivi = new Set();
   const odmRuoliAttivi = new Set();
   for (const accessorio of accessori) {
     const data = await fetchWizardCalculation(
@@ -4125,7 +4146,8 @@ async function applicaAccessoriCalcolo() {
       firstDefined(data.compenso_bozza, data.totale_base, data.onorario_base, data.onorario_selezionato, 0),
       'Onorario'
     );
-    setAnticipazioniExtra(anticipazioniRole, firstDefined(data.spese_generali_bozza, data.spese_generali, 0));
+    speseRuoliAttivi.add(anticipazioniRole);
+    syncSpeseGeneraliRow(anticipazioniRole, data, accessorio.label || data.tipo_pratica?.label || accessorio.id);
     if (data.mediazione_odm) {
       const odmRole = `mediazione-odm-accessorio-${accessorio.id}`;
       odmRuoliAttivi.add(odmRole);
@@ -4145,6 +4167,9 @@ async function applicaAccessoriCalcolo() {
     const accessorioId = key.replace('spese-generali-accessorio-', '');
     if (!ruoliAttivi.has(`accessorio-${accessorioId}`)) wizardAnticipazioniExtra.delete(key);
   });
+  document.querySelectorAll('tr[data-role^="spese-generali-accessorio-"]').forEach((row) => {
+    if (!speseRuoliAttivi.has(row.getAttribute('data-role'))) row.remove();
+  });
   document.querySelectorAll('tr[data-role^="mediazione-odm-accessorio-"]').forEach((row) => {
     if (!odmRuoliAttivi.has(row.getAttribute('data-role'))) row.remove();
   });
@@ -4155,6 +4180,7 @@ async function applicaAccessoriCalcolo() {
 async function applicaClassificazioniAggiuntiveCalcolo() {
   const rows = classificazioniAggiuntiveSelezionate();
   const ruoliAttivi = new Set();
+  const speseRuoliAttivi = new Set();
   const odmRuoliAttivi = new Set();
   for (const row of rows) {
     if (!row.tipologia_pratica_id) continue;
@@ -4175,7 +4201,8 @@ async function applicaClassificazioniAggiuntiveCalcolo() {
       firstDefined(data.compenso_bozza, data.totale_base, data.onorario_base, data.onorario_selezionato, 0),
       'Onorario'
     );
-    setAnticipazioniExtra(anticipazioniRole, firstDefined(data.spese_generali_bozza, data.spese_generali, 0));
+    speseRuoliAttivi.add(anticipazioniRole);
+    syncSpeseGeneraliRow(anticipazioniRole, data, row.tipologia_pratica_label || data.tipo_pratica?.label || row.tipologia_pratica_id);
     if (data.mediazione_odm) {
       const odmRole = `mediazione-odm-classificazione-${row.uid}`;
       odmRuoliAttivi.add(odmRole);
@@ -4194,6 +4221,9 @@ async function applicaClassificazioniAggiuntiveCalcolo() {
     if (!key.startsWith('spese-generali-classificazione-')) return;
     const uid = key.replace('spese-generali-classificazione-', '');
     if (!ruoliAttivi.has(`classificazione-${uid}`)) wizardAnticipazioniExtra.delete(key);
+  });
+  document.querySelectorAll('tr[data-role^="spese-generali-classificazione-"]').forEach((row) => {
+    if (!speseRuoliAttivi.has(row.getAttribute('data-role'))) row.remove();
   });
   document.querySelectorAll('tr[data-role^="mediazione-odm-classificazione-"]').forEach((row) => {
     if (!odmRuoliAttivi.has(row.getAttribute('data-role'))) row.remove();

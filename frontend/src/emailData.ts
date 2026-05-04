@@ -113,7 +113,7 @@ export const emptyEmailPecPage: EmailPecPageData = {
     autoEsiti: '/email/auto-esiti',
     operationalInbox: '/email/',
     localPecTest: '/email/impostazioni',
-    lex: '/lex?context=email-pec',
+    lex: '/global-search?tipo=comunicazioni',
   },
 }
 
@@ -135,7 +135,7 @@ export const emptyEmailOrdinariaPage: EmailPecPageData = {
     autoEsiti: '',
     operationalInbox: '/email-ordinaria/',
     localPecTest: '/impostazioni?tab=smtp',
-    lex: '/lex?context=email-ordinaria',
+    lex: '/global-search?tipo=comunicazioni',
   },
 }
 

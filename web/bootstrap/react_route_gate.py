@@ -224,6 +224,8 @@ def _normalise_path(path: str) -> str:
 
 def _excluded(path: str) -> bool:
     lower = path.lower()
+    if lower.startswith("/email/messaggio/") or lower.startswith("/email-ordinaria/messaggio/"):
+        return True
     if any(lower == prefix or lower.startswith(f"{prefix}/") for prefix in _LEGACY_OPERATIONAL_PREFIXES):
         return True
     # I preventivi hanno un wizard completo con tassonomia, sottobranche,

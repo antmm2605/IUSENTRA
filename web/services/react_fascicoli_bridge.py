@@ -10,6 +10,7 @@ from collections import Counter
 from datetime import date, datetime, timedelta, timezone
 import re
 from typing import Any, Callable, Iterable
+from urllib.parse import quote
 
 from pct.fascicoli import EsitoAttivita, StatoFascicolo, TipoAttivita, TipoDocumento, TipoFascicolo
 from pct.fascicolo_workspace import build_fascicolo_workspace
@@ -66,6 +67,38 @@ def _enum_value(value: Any) -> str:
 def _text(value: Any, default: str = "") -> str:
     text = str(value if value is not None else default).strip()
     return text if text else default
+
+
+def _fascicolo_lookup_keys(fascicolo: Any) -> set[str]:
+    fields = (
+        "id",
+        "id_pratica",
+        "numero",
+        "numero_interno",
+        "numero_rg",
+        "riferimento",
+        "reference",
+        "codice",
+        "codice_fascicolo",
+        "source_external_id",
+        "import_log_id",
+    )
+    keys = {_text(getattr(fascicolo, field, "")) for field in fields}
+    keys.update({_text(getattr(fascicolo, "id", "")).upper(), _text(getattr(fascicolo, "id", "")).lower()})
+    return {key for key in keys if key}
+
+
+def _resolve_fascicolo(repo: Any, requested_id: str) -> Any:
+    direct = repo.get(requested_id)
+    if direct:
+        return direct
+    wanted = _text(requested_id).casefold()
+    if not wanted:
+        return None
+    for fascicolo in repo.tutti():
+        if wanted in {key.casefold() for key in _fascicolo_lookup_keys(fascicolo)}:
+            return fascicolo
+    return None
 
 
 def _looks_like_technical_user_label(value: str) -> bool:
@@ -1103,6 +1136,30 @@ def _history(fascicolo: Any) -> list[dict[str, str]]:
     return out
 
 
+def _fatturapa_item(parcelle: list[Any], fascicolo: Any) -> dict[str, Any]:
+    fid = quote(_text(getattr(fascicolo, "id", "")), safe="")
+    ultima = parcelle[0] if parcelle else None
+    if ultima:
+        parcella_id = quote(_text(getattr(ultima, "id", "")), safe="")
+        numero = _text(getattr(ultima, "numero", ""), "XML")
+        return {
+            "id": "fatturapa",
+            "label": "FatturaPA / SDI",
+            "value": numero,
+            "note": "XML per invio a SdI / Agenzia Entrate",
+            "href": f"/fatturazione/{parcella_id}/xml",
+            "tone": "primary",
+        }
+    return {
+        "id": "fatturapa",
+        "label": "FatturaPA / SDI",
+        "value": "Da creare",
+        "note": "genera parcella e XML per Agenzia Entrate",
+        "href": f"/fatturazione/nuova?id_fascicolo={fid}",
+        "tone": "warning",
+    }
+
+
 def _economics(preventivi: list[Any], conferimenti: list[Any], parcelle: list[Any], timesheet_entries: list[Any], fascicolo: Any) -> list[dict[str, Any]]:
     minutes = sum(int(getattr(item, "minuti", 0) or 0) for item in timesheet_entries)
     parcelle_total = sum(float(getattr(item, "totale", 0.0) or getattr(item, "netto_a_pagare", 0.0) or 0.0) for item in parcelle)
@@ -1110,6 +1167,7 @@ def _economics(preventivi: list[Any], conferimenti: list[Any], parcelle: list[An
         {"id": "valore", "label": "Valore causa", "value": _euro(getattr(fascicolo, "valore_causa", 0)), "note": "dato fascicolo", "href": "#profilo", "tone": "primary"},
         {"id": "compenso", "label": "Compenso pattuito", "value": _euro(getattr(fascicolo, "compenso_pattuito", 0)), "note": f"{len(conferimenti)} conferimenti", "href": "/preventivi", "tone": "purple"},
         {"id": "parcelle", "label": "Parcelle", "value": _euro(parcelle_total), "note": f"{len(parcelle)} documenti economici", "href": "/fatturazione/", "tone": "success"},
+        _fatturapa_item(parcelle, fascicolo),
         {"id": "tempo", "label": "Tempo", "value": f"{round(minutes/60, 1)} h".replace(".", ","), "note": f"{len(timesheet_entries)} voci timesheet", "href": "/timesheet", "tone": "info"},
         {"id": "preventivi", "label": "Preventivi", "value": str(len(preventivi)), "note": "collegati al fascicolo", "href": "/preventivi/", "tone": "orange"},
     ]
@@ -1222,19 +1280,21 @@ def build_react_fascicolo_detail_payload(
     id_fasc: str,
     studio_avvocato_titolare: str = "",
 ) -> dict[str, Any]:
-    fascicolo = _safe("fascicolo", lambda: get_fascicoli().get(id_fasc), None)
+    fascicoli_repo = get_fascicoli()
+    fascicolo = _safe("fascicolo", lambda: _resolve_fascicolo(fascicoli_repo, id_fasc), None)
     if not fascicolo:
         return {"source": "repository_reali", "generatedAt": _now(), "contracts": _contracts(), "notFound": True, "fascicolo": {"id": id_fasc}}
+    fid = _text(getattr(fascicolo, "id", id_fasc))
     cliente = _safe("cliente", lambda: get_clienti().get(getattr(fascicolo, "id_cliente", "")), None) if getattr(fascicolo, "id_cliente", "") else None
     apps = _safe("agenda", lambda: get_agenda().cerca(testo=getattr(fascicolo, "numero_rg", "")) if getattr(fascicolo, "numero_rg", "") else [], [])
-    scadenze = _safe("scadenziario", lambda: get_scadenziario().tutte(id_fascicolo=id_fasc, solo_aperte=False), [])
-    parti = _safe("soggetti", lambda: get_soggetti().parti_fascicolo(id_fasc), [])
+    scadenze = _safe("scadenziario", lambda: get_scadenziario().tutte(id_fascicolo=fid, solo_aperte=False), [])
+    parti = _safe("soggetti", lambda: get_soggetti().parti_fascicolo(fid), [])
     parties = _parties(parti, fascicolo=fascicolo, cliente=cliente)
     preventivi_repo = _safe("preventivi_repo", lambda: get_preventivi(), None)
-    preventivi = _safe("preventivi", lambda: preventivi_repo.preventivi_per_fascicolo(id_fasc), []) if preventivi_repo else []
-    conferimenti = _safe("conferimenti", lambda: preventivi_repo.conferimenti_per_fascicolo(id_fasc), []) if preventivi_repo else []
-    parcelle = _safe("parcelle", lambda: get_fatturazione().per_fascicolo(id_fasc), [])
-    timesheet_entries = _safe("timesheet", lambda: get_timesheet().per_fascicolo(id_fasc), [])
+    preventivi = _safe("preventivi", lambda: preventivi_repo.preventivi_per_fascicolo(fid), []) if preventivi_repo else []
+    conferimenti = _safe("conferimenti", lambda: preventivi_repo.conferimenti_per_fascicolo(fid), []) if preventivi_repo else []
+    parcelle = _safe("parcelle", lambda: get_fatturazione().per_fascicolo(fid), [])
+    timesheet_entries = _safe("timesheet", lambda: get_timesheet().per_fascicolo(fid), [])
     activities = _activities(fascicolo)
     requests = [item for item in activities if "ISTAN" in item["type"].upper() or "ISTAN" in item["title"].upper()]
     quick_counts = {
@@ -1245,7 +1305,6 @@ def build_react_fascicolo_detail_payload(
         "comunicazioni": len(getattr(fascicolo, "depositi_pct", []) or []),
         "istanze": len(requests),
     }
-    fid = _text(getattr(fascicolo, "id", id_fasc))
     regia_payload = (
         build_react_practice_engine_payload(
             fascicolo_id=fid,

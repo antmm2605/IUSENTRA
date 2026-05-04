@@ -227,9 +227,21 @@ def scrivi():
 @email_ordinaria.route("/messaggio/<id_email>")
 @_login_required
 def dettaglio(id_email: str):
-    if not _legacy_requested():
-        return render_react_shell_response(f"email-ordinaria/messaggio/{id_email}")
-    return redirect(url_for("email_client.dettaglio", id_email=id_email))
+    gestore = _get_gestore()
+    em = gestore.get(id_email)
+    if not em:
+        flash("Email ordinaria non trovata.", "warning")
+        return redirect(url_for("email_ordinaria.casella"))
+    if em.stato == "NON_LETTA":
+        gestore.marca_letta(id_email)
+        em.stato = "LETTA"
+    return render_template(
+        "email/dettaglio.html",
+        em=em,
+        oggi=date.today(),
+        email_route_prefix="email_ordinaria",
+        email_back_endpoint="email_ordinaria.casella",
+    )
 
 
 @email_ordinaria.route("/messaggio/<id_email>/allegato/<int:indice_allegato>")

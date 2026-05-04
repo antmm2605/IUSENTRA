@@ -182,6 +182,16 @@ def test_template_wizard_non_mischia_nullish_e_or_nelle_espressioni_js():
     assert "data.compenso_bozza ?? data.totale_base ?? data.onorario_base ?? data.onorario_selezionato || 0" not in template
 
 
+def test_template_wizard_spese_generali_voce_separata_non_art15():
+    template = Path("web/templates/preventivi/wizard.html").read_text(encoding="utf-8")
+
+    assert "function syncSpeseGeneraliRow" in template
+    assert "Spese generali ${percentuale}" in template
+    assert "upsertVocePerRuolo(role, speseGeneraliLabel(data, suffix), importo, 'Spesa forfettaria')" in template
+    assert "syncSpeseGeneraliRow('spese-generali-main', data)" in template
+    assert "setAnticipazioniExtra('spese-generali-main', firstDefined(data.spese_generali_bozza" not in template
+
+
 def test_template_wizard_allinea_clausola_controversie_al_form_classico():
     template = Path("web/templates/preventivi/wizard.html").read_text(encoding="utf-8")
 
@@ -532,12 +542,13 @@ def test_wizard_calcola_sincronizza_complessita_con_colonne_tariffario_gdp(tmp_p
         assert payload["spese_generali"] == spese_generali
         assert payload["totale_con_spese"] == totale_compenso
         assert payload["onorario_base"] == totale_compenso
-        assert payload["compenso_bozza"] == totale_compenso
+        assert payload["compenso_bozza"] == subtotale
+        assert payload["imponibile_bozza"] == totale_compenso
         assert payload["totale_bozza"] == totale_compenso
         assert payload["totale"] == totale_compenso
         assert payload["anticipazioni_bozza"] == 0
-        assert payload["spese_generali_bozza"] == 0
-        assert payload["spese_generali_in_compenso_bozza"] is True
+        assert payload["spese_generali_bozza"] == spese_generali
+        assert payload["spese_generali_in_compenso_bozza"] is False
         colonna = {"minimo": "min", "base": "base", "massimo": "max"}[livello]
         assert sum(v[colonna] for v in payload["fasi"].values()) == subtotale
 
@@ -604,10 +615,11 @@ def test_wizard_calcola_usa_totale_tariffario_nella_bozza_preventivo(tmp_path):
     payload = response.get_json()
 
     assert response.status_code == 200
-    assert payload["spese_generali_bozza"] == 0
-    assert payload["spese_generali_in_compenso_bozza"] is True
-    assert payload["compenso_bozza"] == payload["totale_con_spese"]
-    assert payload["compenso_bozza"] > payload["totale_base"]
+    assert payload["spese_generali_bozza"] == payload["spese_generali"]
+    assert payload["spese_generali_in_compenso_bozza"] is False
+    assert payload["compenso_bozza"] == payload["totale_base"]
+    assert payload["imponibile_bozza"] == payload["totale_con_spese"]
+    assert payload["compenso_bozza"] < payload["totale_con_spese"]
     assert payload["anticipazioni_bozza"] == 43.5
     assert payload["totale_bozza"] == payload["totale"]
 

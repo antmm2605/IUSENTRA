@@ -532,8 +532,10 @@ def test_email_dettaglio_visualizza_e_scarica_allegato_salvato(tmp_path):
     with app.test_client() as client:
         _autentica_admin_session(app, client, cfg)
 
-        dettaglio = client.get("/email/messaggio/MAIL-ATT-1?_legacy=1", follow_redirects=True)
+        dettaglio = client.get("/email/messaggio/MAIL-ATT-1", follow_redirects=True)
         body = dettaglio.get_data(as_text=True)
+        assert '<html lang="it" class="react-shell-document">' not in body
+        assert "Contiene una ricevuta allegata." in body
         assert "Visualizza" in body
         assert "Scarica" in body
 
@@ -545,6 +547,51 @@ def test_email_dettaglio_visualizza_e_scarica_allegato_salvato(tmp_path):
         download = client.get("/email/messaggio/MAIL-ATT-1/allegato/0?download=1")
         assert download.status_code == 200
         assert "attachment" in download.headers.get("Content-Disposition", "").lower()
+
+
+def test_email_ordinaria_dettaglio_usa_repository_smtp_e_allegati_ordinari(tmp_path):
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    ge = GestioneEmailRicevute(cfg["EMAIL_ORDINARIA_DB"])
+    em = EmailRicevuta(
+        id="MAIL-ORD-ATT-1",
+        cartella="INBOX",
+        stato=StatoEmail.NON_LETTA,
+        mittente="cliente@example.it",
+        oggetto="Email ordinaria con allegato",
+        data="2026-04-10T09:30:00",
+        corpo_testo="Messaggio ordinario con documento.",
+        allegati=[{
+            "nome": "documento.pdf",
+            "mime": "application/octet-stream",
+            "size": 18,
+            "percorso_rel": "MAIL-ORD-ATT-1/documento.pdf",
+            "nome_file": "documento.pdf",
+        }],
+    )
+    ge.aggiungi(em)
+    allegato_dir = Path(cfg["EMAIL_ORDINARIA_DB"]).parent / "allegati" / "MAIL-ORD-ATT-1"
+    allegato_dir.mkdir(parents=True, exist_ok=True)
+    contenuto = b"%PDF-1.4 ordinaria\n"
+    (allegato_dir / "documento.pdf").write_bytes(contenuto)
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        _autentica_admin_session(app, client, cfg)
+
+        dettaglio = client.get("/email-ordinaria/messaggio/MAIL-ORD-ATT-1", follow_redirects=True)
+        body = dettaglio.get_data(as_text=True)
+        assert dettaglio.status_code == 200
+        assert '<html lang="it" class="react-shell-document">' not in body
+        assert "Messaggio ordinario con documento." in body
+        assert "/email-ordinaria/messaggio/MAIL-ORD-ATT-1/allegato/0" in body
+        assert "/email/messaggio/MAIL-ORD-ATT-1/allegato/0" not in body
+
+        inline = client.get("/email-ordinaria/messaggio/MAIL-ORD-ATT-1/allegato/0")
+        assert inline.status_code == 200
+        assert inline.data == contenuto
+        assert inline.headers.get("Content-Type", "").lower().startswith("application/pdf")
 
 
 def test_sincronizza_imap_ripara_allegati_storici_senza_file(tmp_path, monkeypatch):

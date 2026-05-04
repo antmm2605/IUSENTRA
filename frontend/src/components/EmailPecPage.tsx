@@ -98,7 +98,7 @@ const mailboxCopy: Record<MailboxMode, {
     lexContext: 'email-pec',
     lexTitle: 'Lex AI PEC',
     lexBody: 'Posso leggere il contesto della PEC selezionata, preparare risposta, estrarre RG, suggerire fascicolo e verificare esito PCT o comunicazione di cancelleria.',
-    lexPrimaryLabel: 'Apri Lex sulla PEC',
+    lexPrimaryLabel: 'Cerca comunicazioni',
   },
   ordinaria: {
     mode: 'ordinaria',
@@ -124,7 +124,7 @@ const mailboxCopy: Record<MailboxMode, {
     lexContext: 'email-ordinaria',
     lexTitle: 'Lex AI Email',
     lexBody: 'Posso aiutarti a preparare risposta, estrarre riferimenti cliente o fascicolo, riassumere il messaggio e proporre la prossima azione.',
-    lexPrimaryLabel: 'Apri Lex sulla email',
+    lexPrimaryLabel: 'Cerca comunicazioni',
   },
 }
 
@@ -366,7 +366,6 @@ function PecInspector({ data, rows }: { data: EmailPecPageData; rows: EmailPecRo
           <a href={data.actions.compose}><Send size={15} /> Nuova PEC</a>
           <a href={data.actions.settings}><Settings2 size={15} /> Parametri PEC</a>
           <a href={data.actions.localPecTest}><Wrench size={15} /> Test SMTP dal PC</a>
-          <a href={data.actions.lex}><Sparkles size={15} /> Chiedi a Lex</a>
         </div>
       </Panel>
     </aside>
@@ -423,7 +422,6 @@ function OrdinaryInspector({ data, rows }: { data: EmailPecPageData; rows: Email
           <a href={data.actions.compose}><Send size={15} /> Nuova email</a>
           <a href={data.actions.settings}><Settings2 size={15} /> Parametri SMTP/IMAP</a>
           <a href={data.actions.sync}><RefreshCw size={15} /> Aggiorna casella</a>
-          <a href={data.actions.lex}><Sparkles size={15} /> Chiedi a Lex</a>
         </div>
       </Panel>
     </aside>
@@ -602,12 +600,11 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
             <span><Paperclip size={16} /> Allegati e anteprima restano accessibili dalla vista rapida.</span>
           </div>
         </Panel>
-        <Panel title="Integrazioni operative" subtitle="Fascicoli, comunicazioni e Lex" icon={<Sparkles size={17} />}>
+        <Panel title="Integrazioni operative" subtitle="Fascicoli e comunicazioni" icon={<Sparkles size={17} />}>
           <div className="iu-mail-integrations">
             <a href="/fascicoli">Fascicoli</a>
             <a href={mode === 'pec' ? '/telematico' : '/messaggi'}>{mode === 'pec' ? 'Servizi telematici' : 'Messaggi'}</a>
             <a href={mode === 'pec' ? '/deposito/checklist' : '/clienti'}>{mode === 'pec' ? 'Checklist deposito' : 'Clienti'}</a>
-            <a href={data.actions.lex}>Lex su {mode === 'pec' ? 'PEC' : 'email'}</a>
           </div>
         </Panel>
       </section>
@@ -728,7 +725,7 @@ export function EmailComposePage({ mode }: { mode: MailboxMode }) {
         context={copy.lexContext}
         title={copy.lexTitle}
         body={copy.lexBody}
-        primaryHref={isOrdinary ? '/lex?context=email-ordinaria' : '/lex?context=email-pec'}
+        primaryHref="/global-search?tipo=comunicazioni"
         primaryLabel={copy.lexPrimaryLabel}
         secondaryHref={backHref}
         secondaryLabel={copy.title}

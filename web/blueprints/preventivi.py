@@ -1845,10 +1845,12 @@ def wizard_calcola():
         bonus_telematico_livello = round(float(riepilogo_livello.get("bonus_telematico", 0.0)), 2)
         spese_generali_livello = round(float(riepilogo_livello.get("spese_generali", 0.0)), 2)
         totale_compenso_livello = round(float(riepilogo_livello.get("totale_compenso", ris.onorario_selezionato)), 2)
-        compenso_bozza = totale_compenso_livello
+        compenso_bozza = round(float(riepilogo_livello.get("subtotale", ris.onorario_selezionato)), 2)
+        compenso_bozza = round(compenso_bozza + bonus_telematico_livello, 2)
+        imponibile_bozza = round(compenso_bozza + spese_generali_livello, 2)
         anticipazioni_bozza = round(anticipazioni, 2)
-        cpa_bozza = round(compenso_bozza * 0.04, 2) if applica_cpa else 0.0
-        base_iva_bozza = round(compenso_bozza + cpa_bozza, 2)
+        cpa_bozza = round(imponibile_bozza * 0.04, 2) if applica_cpa else 0.0
+        base_iva_bozza = round(imponibile_bozza + cpa_bozza, 2)
         iva_bozza = round(base_iva_bozza * 0.22, 2) if applica_iva else 0.0
         totale_bozza = round(base_iva_bozza + iva_bozza + anticipazioni_bozza, 2)
 
@@ -1891,8 +1893,9 @@ def wizard_calcola():
             "anticipazioni":         ris.anticipazioni,
             "totale":                ris.totale,
             "compenso_bozza":        compenso_bozza,
-            "spese_generali_bozza":  0.0,
-            "spese_generali_in_compenso_bozza": True,
+            "spese_generali_bozza":  spese_generali_livello,
+            "spese_generali_in_compenso_bozza": False,
+            "imponibile_bozza":       imponibile_bozza,
             "anticipazioni_bozza":   anticipazioni_bozza,
             "cpa_bozza":             cpa_bozza,
             "base_iva_bozza":        base_iva_bozza,

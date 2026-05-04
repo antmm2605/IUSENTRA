@@ -2,6 +2,9 @@
    Email detail panel — usato in dettaglio.html
    ════════════════════════════════════════════════════════════ #}
 {% set em = em or email_sel %}
+{% set email_route_prefix = email_route_prefix|default('email_client') %}
+{% set email_allegato_endpoint = email_route_prefix ~ '.allegato' %}
+{% set email_scrivi_endpoint = email_route_prefix ~ '.scrivi' %}
 {% if em %}
 
 {% set _sname   = em.mittente_nome or em.mittente or em.destinatari or '?' %}
@@ -123,14 +126,14 @@
         </div>
         <div class="d-flex gap-1 flex-wrap">
           {% if previewable %}
-          <a href="{{ url_for('email_client.allegato', id_email=em.id, indice_allegato=loop.index0) }}"
+          <a href="{{ url_for(email_allegato_endpoint, id_email=em.id, indice_allegato=loop.index0) }}"
              target="_blank"
              class="btn btn-sm btn-outline-primary">
             <i class="bi bi-eye me-1"></i>Visualizza
           </a>
           {% endif %}
           {% if has_file %}
-          <a href="{{ url_for('email_client.allegato', id_email=em.id, indice_allegato=loop.index0, download=1) }}"
+          <a href="{{ url_for(email_allegato_endpoint, id_email=em.id, indice_allegato=loop.index0, download=1) }}"
              class="btn btn-sm btn-outline-secondary">
             <i class="bi bi-download me-1"></i>Scarica
           </a>
@@ -153,7 +156,7 @@
 {# ── Rispondi ── #}
 <a class="d-flex align-items-center gap-2 px-3 py-2 border rounded text-muted text-decoration-none mb-3"
    style="background:#fff;font-size:.88rem;transition:border-color .15s"
-   href="{{ url_for('email_client.scrivi', a=em.mittente, oggetto='Re: ' ~ em.oggetto) }}">
+   href="{{ url_for(email_scrivi_endpoint, a=em.mittente, oggetto='Re: ' ~ em.oggetto) }}">
   <i class="bi bi-reply text-primary fs-5"></i>
   Rispondi a <strong class="ms-1 text-dark">{{ em.mittente_nome or em.mittente }}</strong>…
 </a>

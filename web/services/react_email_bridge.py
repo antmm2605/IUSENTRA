@@ -110,7 +110,13 @@ def _sync_inviati_da_messaggi(gestore: GestioneEmailRicevute, messaggi_db: str) 
         return
 
 
-def _email_row(email_obj: Any, *, base_path: str = "/email", include_telematic: bool = True) -> dict[str, Any]:
+def _email_row(
+    email_obj: Any,
+    *,
+    base_path: str = "/email",
+    compose_path: str = "/email/scrivi",
+    include_telematic: bool = True,
+) -> dict[str, Any]:
     email_id = str(getattr(email_obj, "id", "") or "")
     folder = _normalise_folder(getattr(email_obj, "cartella", ""))
     timestamp = str(getattr(email_obj, "timestamp", "") or getattr(email_obj, "data", "") or getattr(email_obj, "ricevuta_il", "") or "")
@@ -121,6 +127,7 @@ def _email_row(email_obj: Any, *, base_path: str = "/email", include_telematic: 
     status = _enum_value(getattr(email_obj, "stato", ""))
     encoded_id = quote(email_id, safe="")
     base = "/" + str(base_path or "/email").strip("/")
+    compose_base = "/" + str(compose_path or "/email/scrivi").strip("/")
     is_pst = bool(getattr(email_obj, "e_pst", False)) if include_telematic else False
     pct_status = _safe_text(getattr(email_obj, "stato_pct", "")) if include_telematic else ""
     return {
@@ -141,7 +148,7 @@ def _email_row(email_obj: Any, *, base_path: str = "/email", include_telematic: 
         "origin": _safe_text(getattr(email_obj, "origine", "")),
         "detailHref": f"{base}/messaggio/{encoded_id}",
         "operationalHref": f"{base}/?cartella={folder}&id={encoded_id}",
-        "replyHref": f"/email/scrivi?a={quote(sender, safe='')}&oggetto={quote('Re: ' + subject, safe='')}",
+        "replyHref": f"{compose_base}?a={quote(sender, safe='')}&oggetto={quote('Re: ' + subject, safe='')}",
         "trashHref": f"{base}/{encoded_id}/cestino",
         "restoreHref": f"{base}/{encoded_id}/ripristina",
         "deleteHref": f"{base}/{encoded_id}/elimina",
@@ -197,7 +204,15 @@ def build_react_email_payload(
     )
     all_emails = list(gestore._carica().values())  # noqa: SLF001 - bridge read-only su repository operativa
     stats = gestore.statistiche()
-    rows = [_email_row(email_obj, base_path=base, include_telematic=include_telematic) for email_obj in emails]
+    rows = [
+        _email_row(
+            email_obj,
+            base_path=base,
+            compose_path=compose_path,
+            include_telematic=include_telematic,
+        )
+        for email_obj in emails
+    ]
     pct_counts = Counter(
         str(getattr(email_obj, "stato_pct", "") or "")
         for email_obj in all_emails
@@ -253,6 +268,6 @@ def build_react_email_payload(
             "autoEsiti": auto_esiti_path if include_telematic else "",
             "operationalInbox": f"{base}/",
             "localPecTest": local_test_path,
-            "lex": f"/lex?context={quote(lex_context, safe='')}",
+            "lex": "/global-search?tipo=comunicazioni",
         },
     }

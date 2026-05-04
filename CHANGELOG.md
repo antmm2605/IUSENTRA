@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.198.60 - 2026-05-04
+
+- Corretto il `Wizard preventivi`: le spese generali tabellari restano una voce separata `Spese generali 15%` di tipo `Spesa forfettaria`, entrano nell'imponibile fiscale e non vengono piu' riversate nelle `Anticipazioni art. 15`.
+- Ripristinata l'apertura diretta dei dettagli PEC/email ordinaria con corpo e allegati visualizzabili o scaricabili, escludendo le route `/email*/messaggio/...` dalla shell React riepilogativa.
+- Rimosso dalle pagine email il vecchio ingresso `/lex?context=email-*`; le integrazioni operative restano su fascicoli, messaggi, servizi telematici e ricerca comunicazioni.
+- Rafforzata la cabina fascicolo: `Documenti fascicolo` ed `Editor professionale` sono aperti e raggiungibili, il dettaglio risolve anche identificativi alias/case-insensitive e il quadro economico espone `FatturaPA / SDI` per XML destinato a SdI / Agenzia Entrate.
+
 ## 2.198.59 - 2026-05-04
 
 - Sincronizzato il `Wizard preventivi` con il riepilogo operativo del tariffario: `Complessita stimata` bassa/media/alta alimenta la bozza dalla colonna minimo/base/massimo della regola tariffaria realmente selezionata.

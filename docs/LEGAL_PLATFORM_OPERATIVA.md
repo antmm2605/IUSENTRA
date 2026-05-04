@@ -43,7 +43,7 @@ Il catalogo interno `pct/legal_platform_seed.py` contiene **22 procedure operati
 Con questa struttura la piattaforma puo':
 
 - usare la stessa procedura lungo preventivo, conferimento, fascicolo e fatturazione;
-- usare nel preventivo guidato lo stesso riepilogo tariffario della console economica: pratica, grado, scaglione, fasi e complessita bassa/media/alta determinano rispettivamente minimo/base/massimo, con spese generali e bonus telematico calcolati sul livello selezionato;
+- usare nel preventivo guidato lo stesso riepilogo tariffario della console economica: pratica, grado, scaglione, fasi e complessita bassa/media/alta determinano rispettivamente minimo/base/massimo, con bonus telematico calcolato sul livello selezionato e spese generali rese come voce forfettaria separata con percentuale applicata;
 - mantenere coerenza tra canale operativo, registro e workflow;
 - fornire a Lex e ai repository strutturati un quadro unico e non frammentato;
 - evitare che ogni modulo reinveti una propria classificazione locale.

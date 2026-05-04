@@ -896,6 +896,11 @@ def test_react_comunicazioni_email_messaggi_collegate_nav_e_shell():
     assert "getEmailOrdinariaPage" in email_data
     assert "/api/v1/ui/email" in email_data
     assert "/api/v1/ui/email-ordinaria" in email_data
+    assert "/lex?context=email-pec" not in email_page
+    assert "/lex?context=email-ordinaria" not in email_page
+    assert "/lex?context=email-pec" not in email_data
+    assert "/lex?context=email-ordinaria" not in email_data
+    assert "Chiedi a Lex" not in email_page
     assert "cache: 'no-store'" in email_data
     assert "query.set('_ts', String(Date.now()))" in email_data
     assert "/api/v1/ui/dashboard?" in Path("frontend/src/data.ts").read_text(encoding="utf-8")
@@ -918,7 +923,7 @@ def test_route_ufficiali_email_messaggi_servono_react_con_vista_classica_tecnica
     with app.test_client() as client:
         _login(client)
 
-        for path in ("/email/", "/email-ordinaria/", "/email-ordinaria/messaggio/test-ordinaria", "/messaggi", "/messaggi/nuovo"):
+        for path in ("/email/", "/email-ordinaria/", "/messaggi", "/messaggi/nuovo"):
             response = client.get(path)
             html = response.get_data(as_text=True)
             assert response.status_code == 200, path
@@ -1365,8 +1370,6 @@ def test_react_route_gate_copre_rotte_profonde_e_preserva_contratti_operativi(tm
             f"/scadenziario/{scadenza.id}",
             f"/scadenziario/{scadenza.id}/modifica",
             f"/soggetti/{soggetto.id}",
-            "/email/messaggio/test-pec",
-            "/email-ordinaria/messaggio/test-ordinaria",
         ):
             response = client.get(path)
             html = response.get_data(as_text=True)
@@ -2546,6 +2549,12 @@ def test_react_fascicoli_suite_completa_route_componenti_e_lex():
     assert "Quadro intelligente" in page_source
     assert "Quadro intelligente AI" in page_source
     assert "<a href={quadroHref}><Gauge size={15}/> Quadro completo</a>" in page_source
+    assert "`${operationalHref}#editor-professionale`" in page_source
+    assert 'id="documenti" title="Documenti fascicolo"' in page_source
+    assert 'id="editor-professionale" title="Editor professionale e compilatore atti"' in page_source
+    assert "_fatturapa_item" in bridge
+    assert "FatturaPA / SDI" in bridge
+    assert "Agenzia Entrate" in bridge
     assert "<a href={editorWorkspaceHref}><PencilLine size={15}/><span>Editor professionale</span></a>" in page_source
     assert "<a href={compilerHref}><ClipboardCheck size={15}/><span>Compilatore atti</span></a>" in page_source
     assert "<a href={editorWorkspaceHref}><PencilLine size={15}/> Editor professionale</a>" not in page_source
@@ -2738,6 +2747,7 @@ def test_react_fascicoli_api_suite_usa_repository_reali(tmp_path: Path):
 
     list_response = client.get("/api/v1/ui/fascicoli", headers={"X-API-Key": "react-test-key"})
     detail_response = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}", headers={"X-API-Key": "react-test-key"})
+    alias_detail_response = client.get("/api/v1/ui/fascicoli/001", headers={"X-API-Key": "react-test-key"})
     form_response = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}/modifica", headers={"X-API-Key": "react-test-key"})
     new_form_response = client.get(
         "/api/v1/ui/fascicoli/nuovo",
@@ -2748,12 +2758,14 @@ def test_react_fascicoli_api_suite_usa_repository_reali(tmp_path: Path):
 
     payload = list_response.get_json()
     detail = detail_response.get_json()
+    alias_detail = alias_detail_response.get_json()
     form = form_response.get_json()
     new_form = new_form_response.get_json()
     export_payload = export_response.get_json()
 
     assert list_response.status_code == 200
     assert detail_response.status_code == 200
+    assert alias_detail_response.status_code == 200
     assert form_response.status_code == 200
     assert new_form_response.status_code == 200
     assert export_response.status_code == 200
@@ -2768,12 +2780,17 @@ def test_react_fascicoli_api_suite_usa_repository_reali(tmp_path: Path):
     assert row["deleteHref"] == f"/fascicoli/{fascicolo.id}/elimina"
     assert not row["href"].startswith("/app-v2/")
     assert detail["fascicolo"]["title"] == "Appello civile"
+    assert alias_detail["fascicolo"]["id"] == fascicolo.id
     assert detail["signature"]["visibleSignatureMode"] == "laterale"
     assert "visibleSignaturePlace" in detail["signature"]
     assert detail["signature"]["visibleSignatureDatetimeMode"] == "data_ora"
     assert any(party["name"] == "Zurich Ass.ni" and party["role"] == "Controparte" for party in detail["parties"])
     assert any(party["name"] == "Moscato Marco" and party["role"] == "Cliente / assistito" for party in detail["parties"])
     assert any(item["label"] == "Parti" and item["value"] == f"{len(detail['parties'])} soggetti" for item in detail["quality"])
+    fatturapa = next(item for item in detail["economics"] if item["id"] == "fatturapa")
+    assert fatturapa["value"] == "Da creare"
+    assert fatturapa["href"] == f"/fatturazione/nuova?id_fascicolo={fascicolo.id}"
+    assert "Agenzia Entrate" in fatturapa["note"]
     assert detail["actions"]["uploadDocument"].endswith("/documenti/carica")
     assert form["mode"] == "edit"
     assert form["detailHref"] == f"/fascicoli/{fascicolo.id}"

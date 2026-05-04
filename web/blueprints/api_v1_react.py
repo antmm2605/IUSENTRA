@@ -13,14 +13,20 @@ from functools import wraps
 from pathlib import Path
 from typing import Any, Callable, Iterable
 
-from flask import Blueprint, current_app, g, jsonify, request
+from flask import Blueprint, current_app, g, jsonify, request, send_file
 
 from pct import __version__ as APP_VERSION
 from pct.email_client import CartellaEmail, GestioneEmailRicevute, StatoEmail
 from pct.fatturazione import StatoParcella
 from pct.messaggi import CanaleMsggio, ConfigMessaggistica, GestioneMessaggi, Messaggio, StatoMessaggio
 from pct.preventivi import StatoPreventivo
-from pct.scadenziario import PrioritaTermine, StatoTermine, TipoTermine
+from pct.practice_engine.deposit_orchestrator import prepare_deposit, send_deposit
+from pct.practice_engine.deposit_readiness import run_predeposit_check
+from pct.practice_engine.evaluator import build_regia_payload, ensure_evidence_pack, ensure_profile_for_fascicolo
+from pct.practice_engine.profiles import get_profile
+from pct.practice_engine.receipt_tracker import import_receipt
+from pct.practice_engine.validators import ValidationContext, validate_slot
+from pct.scadenziario import PrioritaTermine, TipoTermine
 from pct.termini_processuali import (
     DeadlinePracticeRepository,
     LEGAL_SOURCES,
@@ -28,6 +34,7 @@ from pct.termini_processuali import (
 )
 from pct.timesheet import StatoTimesheet
 from pct.workspace_intelligente import WorkspaceIntelligenteService
+from pct.workflow_commerciale import apri_fascicolo_automatico
 from web.services.react_agenda_bridge import build_react_agenda_payload
 from web.services.react_admin_database_bridge import (
     build_react_admin_database_error_payload,
@@ -50,6 +57,7 @@ from web.services.react_fascicoli_bridge import (
     build_react_fascicolo_form_payload,
 )
 from web.services.react_messaggi_bridge import build_react_messaggi_nuovo_payload, build_react_messaggi_payload
+from web.services.react_practice_engine_bridge import build_react_practice_engine_payload
 from web.services.react_privacy_bridge import build_react_privacy_registro_payload
 from web.services.react_scadenziario_bridge import (
     build_react_scadenziario_nuova_payload,
@@ -69,6 +77,7 @@ from web.helpers import (
     get_clienti,
     get_fascicoli,
     get_fatturazione,
+    get_practice_engine,
     get_giurisprudenza,
     get_preventivi,
     get_scadenziario,
@@ -154,6 +163,54 @@ def _core_runtime_func(name: str) -> Callable[..., Any] | None:
     core_runtime = current_app.extensions.get("core_runtime", {}) or {}
     func = core_runtime.get(name)
     return func if callable(func) else None
+
+
+def _actor_label() -> str:
+    utente = g.get("utente_corrente")
+    return str(
+        getattr(utente, "nome_completo", "")
+        or getattr(utente, "username", "")
+        or getattr(utente, "email", "")
+        or "operatore"
+    )
+
+
+def _request_payload() -> dict[str, Any]:
+    if request.is_json:
+        raw = request.get_json(silent=True)
+        return raw if isinstance(raw, dict) else {}
+    return {key: value for key, value in request.form.items()}
+
+
+def _regia_context(id_fasc: str) -> dict[str, Any]:
+    gf = get_fascicoli()
+    fascicolo = gf.get(id_fasc)
+    if not fascicolo:
+        return {"error": jsonify({"errore": "Fascicolo non trovato.", "codice": 404}), "status": 404}
+    gp = get_preventivi()
+    preventivi = gp.preventivi_per_fascicolo(id_fasc)
+    conferimenti = gp.conferimenti_per_fascicolo(id_fasc)
+    parcelle = get_fatturazione().per_fascicolo(id_fasc)
+    cliente = get_clienti().get(getattr(fascicolo, "id_cliente", "")) if getattr(fascicolo, "id_cliente", "") else None
+    repo = get_practice_engine()
+    profile, resolver_payload = ensure_profile_for_fascicolo(
+        repo,
+        fascicolo=fascicolo,
+        preventivo=preventivi[0] if preventivi else None,
+        conferimento=conferimenti[0] if conferimenti else None,
+        actor=_actor_label(),
+    )
+    return {
+        "gf": gf,
+        "repo": repo,
+        "fascicolo": fascicolo,
+        "cliente": cliente,
+        "preventivi": preventivi,
+        "conferimenti": conferimenti,
+        "parcelle": parcelle,
+        "profile": profile,
+        "resolver_payload": resolver_payload,
+    }
 
 
 def _iso_now() -> str:
@@ -1433,10 +1490,347 @@ def fascicolo_react_dettaglio(id_fasc: str):
         get_preventivi=get_preventivi,
         get_fatturazione=get_fatturazione,
         get_timesheet=get_timesheet,
+        get_practice_engine=get_practice_engine,
         get_config_studio=_core_runtime_func("get_config_studio"),
         id_fasc=id_fasc,
         studio_avvocato_titolare=_studio_avvocato_titolare(),
     ))
+
+
+@api_v1_react.get("/fascicoli/<id_fasc>/regia")
+@_richiedi_auth
+def fascicolo_regia_operativa(id_fasc: str):
+    return jsonify(build_react_practice_engine_payload(
+        fascicolo_id=id_fasc,
+        get_fascicoli=get_fascicoli,
+        get_clienti=get_clienti,
+        get_preventivi=get_preventivi,
+        get_fatturazione=get_fatturazione,
+        get_practice_engine=get_practice_engine,
+        actor=_actor_label(),
+    ))
+
+
+@api_v1_react.post("/fascicoli/<id_fasc>/regia/applica-profilo")
+@_richiedi_auth
+def fascicolo_regia_applica_profilo(id_fasc: str):
+    ctx = _regia_context(id_fasc)
+    if "error" in ctx:
+        return ctx["error"], ctx["status"]
+    payload = _request_payload()
+    code = str(payload.get("profile_code") or payload.get("code") or payload.get("procedura_operativa_codice") or "").strip()
+    profile = get_profile(code)
+    if not profile:
+        return jsonify({"errore": "Profilo pratica non trovato.", "codice": 404, "mock_fallback": False}), 404
+    reason = str(payload.get("reason") or payload.get("motivo") or "Applicazione manuale profilo Regia Operativa.").strip()
+    ctx["repo"].apply_profile(id_fasc, profile, actor=_actor_label(), reason=reason, reset=True)
+    result = build_regia_payload(
+        ctx["repo"],
+        fascicolo=ctx["fascicolo"],
+        cliente=ctx["cliente"],
+        preventivi=ctx["preventivi"],
+        conferimenti=ctx["conferimenti"],
+        parcelle=ctx["parcelle"],
+        fascicoli_manager=ctx["gf"],
+        actor=_actor_label(),
+    )
+    return jsonify({"ok": True, "mock_fallback": False, "message": "Profilo pratica applicato e checklist rigenerata.", "regia": result})
+
+
+@api_v1_react.post("/fascicoli/<id_fasc>/regia/ricalcola")
+@_richiedi_auth
+def fascicolo_regia_ricalcola(id_fasc: str):
+    ctx = _regia_context(id_fasc)
+    if "error" in ctx:
+        return ctx["error"], ctx["status"]
+    if not ctx["profile"]:
+        return jsonify({"errore": "Profilo pratica da confermare prima del ricalcolo.", "mock_fallback": False}), 409
+    ctx["repo"].audit(id_fasc, "REGIA_RECALCULATED", actor=_actor_label(), message="Regia Operativa ricalcolata.")
+    result = build_regia_payload(
+        ctx["repo"],
+        fascicolo=ctx["fascicolo"],
+        cliente=ctx["cliente"],
+        preventivi=ctx["preventivi"],
+        conferimenti=ctx["conferimenti"],
+        parcelle=ctx["parcelle"],
+        fascicoli_manager=ctx["gf"],
+        actor=_actor_label(),
+    )
+    return jsonify({"ok": True, "mock_fallback": False, "regia": result})
+
+
+@api_v1_react.get("/fascicoli/<id_fasc>/checklist")
+@_richiedi_auth
+def fascicolo_regia_checklist(id_fasc: str):
+    payload = build_react_practice_engine_payload(
+        fascicolo_id=id_fasc,
+        get_fascicoli=get_fascicoli,
+        get_clienti=get_clienti,
+        get_preventivi=get_preventivi,
+        get_fatturazione=get_fatturazione,
+        get_practice_engine=get_practice_engine,
+        actor=_actor_label(),
+    )
+    return jsonify({"source": "repository reale", "mock_fallback": False, "checklist": payload.get("checklist", [])})
+
+
+@api_v1_react.get("/fascicoli/<id_fasc>/document-slots")
+@_richiedi_auth
+def fascicolo_regia_document_slots(id_fasc: str):
+    payload = build_react_practice_engine_payload(
+        fascicolo_id=id_fasc,
+        get_fascicoli=get_fascicoli,
+        get_clienti=get_clienti,
+        get_preventivi=get_preventivi,
+        get_fatturazione=get_fatturazione,
+        get_practice_engine=get_practice_engine,
+        actor=_actor_label(),
+    )
+    return jsonify({"source": "repository reale", "mock_fallback": False, "documentSlots": payload.get("documentSlots", [])})
+
+
+@api_v1_react.post("/fascicoli/<id_fasc>/document-slots/<slot_key>/link")
+@_richiedi_auth
+def fascicolo_regia_link_slot(id_fasc: str, slot_key: str):
+    ctx = _regia_context(id_fasc)
+    if "error" in ctx:
+        return ctx["error"], ctx["status"]
+    payload = _request_payload()
+    document_id = str(payload.get("document_id") or payload.get("documentId") or "").strip()
+    if not document_id:
+        return jsonify({"errore": "Documento non indicato.", "mock_fallback": False}), 400
+    if not any(getattr(doc, "id", "") == document_id for doc in getattr(ctx["fascicolo"], "documenti", []) or []):
+        return jsonify({"errore": "Documento reale non trovato nel fascicolo.", "mock_fallback": False}), 404
+    slot = ctx["repo"].link_slot(id_fasc, slot_key, document_id, actor=_actor_label())
+    return jsonify({"ok": True, "mock_fallback": False, "slot": slot.__dict__, "message": "Documento collegato allo slot."})
+
+
+@api_v1_react.post("/fascicoli/<id_fasc>/document-slots/<slot_key>/validate")
+@_richiedi_auth
+def fascicolo_regia_validate_slot(id_fasc: str, slot_key: str):
+    ctx = _regia_context(id_fasc)
+    if "error" in ctx:
+        return ctx["error"], ctx["status"]
+    slot = ctx["repo"].get_slot(id_fasc, slot_key)
+    if not slot:
+        return jsonify({"errore": "Slot documentale non trovato.", "mock_fallback": False}), 404
+    validation_ctx = ValidationContext(
+        fascicolo=ctx["fascicolo"],
+        cliente=ctx["cliente"],
+        preventivo=ctx["preventivi"][0] if ctx["preventivi"] else None,
+        conferimento=ctx["conferimenti"][0] if ctx["conferimenti"] else None,
+        parcelle=ctx["parcelle"],
+        slots=ctx["repo"].list_slots(id_fasc),
+        fascicoli_manager=ctx["gf"],
+        profile=ctx["profile"],
+        audit_events=ctx["repo"].list_audit(id_fasc),
+    )
+    updated, results = validate_slot(slot, validation_ctx)
+    ctx["repo"].upsert_slot(updated)
+    ctx["repo"].save_validation_results(id_fasc, results, scope="slot", slot_key=slot_key)
+    return jsonify({"ok": True, "mock_fallback": False, "slot": updated.__dict__, "results": [item.__dict__ for item in results]})
+
+
+@api_v1_react.post("/fascicoli/<id_fasc>/predeposito/check")
+@_richiedi_auth
+def fascicolo_regia_predeposito(id_fasc: str):
+    ctx = _regia_context(id_fasc)
+    if "error" in ctx:
+        return ctx["error"], ctx["status"]
+    if not ctx["profile"]:
+        return jsonify({"errore": "Profilo pratica da confermare prima del predeposito.", "mock_fallback": False}), 409
+    readiness = run_predeposit_check(
+        ctx["repo"],
+        fascicolo=ctx["fascicolo"],
+        profile=ctx["profile"],
+        cliente=ctx["cliente"],
+        preventivo=ctx["preventivi"][0] if ctx["preventivi"] else None,
+        conferimento=ctx["conferimenti"][0] if ctx["conferimenti"] else None,
+        parcelle=ctx["parcelle"],
+        fascicoli_manager=ctx["gf"],
+    )
+    ctx["repo"].audit(id_fasc, "PREDEPOSIT_CHECK", actor=_actor_label(), message="Check predeposito eseguito.", payload={"status": readiness["status"]})
+    return jsonify({
+        "ok": True,
+        "mock_fallback": False,
+        "status": readiness["status"],
+        "ready": readiness["ready"],
+        "blockers": [item.__dict__ for item in readiness["blockers"]],
+        "warnings": [item.__dict__ for item in readiness["warnings"]],
+        "results": [item.__dict__ for item in readiness["results"]],
+    })
+
+
+@api_v1_react.post("/fascicoli/<id_fasc>/depositi/prepara")
+@_richiedi_auth
+def fascicolo_regia_deposito_prepara(id_fasc: str):
+    ctx = _regia_context(id_fasc)
+    if "error" in ctx:
+        return ctx["error"], ctx["status"]
+    if not ctx["profile"]:
+        return jsonify({"errore": "Profilo pratica da confermare prima del deposito.", "mock_fallback": False}), 409
+    result = prepare_deposit(
+        ctx["repo"],
+        fascicolo=ctx["fascicolo"],
+        profile=ctx["profile"],
+        cliente=ctx["cliente"],
+        preventivo=ctx["preventivi"][0] if ctx["preventivi"] else None,
+        conferimento=ctx["conferimenti"][0] if ctx["conferimenti"] else None,
+        parcelle=ctx["parcelle"],
+        fascicoli_manager=ctx["gf"],
+    )
+    return jsonify({"ok": True, "mock_fallback": False, "session": result["session"].__dict__, "ready": result["readiness"]["ready"]})
+
+
+@api_v1_react.post("/fascicoli/<id_fasc>/depositi/invia")
+@_richiedi_auth
+def fascicolo_regia_deposito_invia(id_fasc: str):
+    ctx = _regia_context(id_fasc)
+    if "error" in ctx:
+        return ctx["error"], ctx["status"]
+    payload = _request_payload()
+    session_id = str(payload.get("deposito_id") or payload.get("depositoId") or payload.get("session_id") or "").strip()
+    if not session_id:
+        sessions = ctx["repo"].list_deposit_sessions(id_fasc)
+        session_id = sessions[0].id if sessions else ""
+    if not session_id:
+        return jsonify({"errore": "Sessione deposito non preparata.", "mock_fallback": False}), 409
+    result = send_deposit(
+        ctx["repo"],
+        session_id=session_id,
+        fascicolo=ctx["fascicolo"],
+        profile=ctx["profile"],
+        cliente=ctx["cliente"],
+        preventivo=ctx["preventivi"][0] if ctx["preventivi"] else None,
+        conferimento=ctx["conferimenti"][0] if ctx["conferimenti"] else None,
+        parcelle=ctx["parcelle"],
+        fascicoli_manager=ctx["gf"],
+        adapter=None,
+        accept_warnings=bool(payload.get("accept_warnings") or payload.get("accetta_warning")),
+    )
+    status = 200 if result["sent"] else 409
+    return jsonify({"ok": result["sent"], "mock_fallback": False, "session": result["session"].__dict__, "message": result["message"]}), status
+
+
+@api_v1_react.get("/fascicoli/<id_fasc>/depositi/<deposito_id>/timeline")
+@_richiedi_auth
+def fascicolo_regia_deposito_timeline(id_fasc: str, deposito_id: str):
+    ctx = _regia_context(id_fasc)
+    if "error" in ctx:
+        return ctx["error"], ctx["status"]
+    events = ctx["repo"].list_timeline(deposito_id)
+    return jsonify({"source": "repository reale", "mock_fallback": False, "timeline": [event.__dict__ for event in events]})
+
+
+@api_v1_react.post("/fascicoli/<id_fasc>/depositi/<deposito_id>/importa-ricevuta")
+@_richiedi_auth
+def fascicolo_regia_importa_ricevuta(id_fasc: str, deposito_id: str):
+    ctx = _regia_context(id_fasc)
+    if "error" in ctx:
+        return ctx["error"], ctx["status"]
+    payload = _request_payload()
+    original_bytes = None
+    original_name = "ricevuta.json"
+    if request.files:
+        uploaded = next(iter(request.files.values()))
+        original_name = uploaded.filename or "ricevuta.bin"
+        original_bytes = uploaded.read()
+    result = import_receipt(
+        ctx["repo"],
+        deposito_id=deposito_id,
+        fascicolo_id=id_fasc,
+        channel=getattr(ctx["profile"], "channel", ""),
+        payload=payload,
+        original_bytes=original_bytes,
+        original_name=original_name,
+        source="import_guidato_api",
+    )
+    return jsonify({"ok": True, "mock_fallback": False, "receipt": result["receipt"].__dict__, "session": result["session"].__dict__ if result["session"] else None})
+
+
+@api_v1_react.get("/fascicoli/<id_fasc>/depositi/<deposito_id>/evidence-pack")
+@_richiedi_auth
+def fascicolo_regia_evidence_pack(id_fasc: str, deposito_id: str):
+    ctx = _regia_context(id_fasc)
+    if "error" in ctx:
+        return ctx["error"], ctx["status"]
+    existing = ctx["repo"].get_evidence_pack(deposito_id)
+    if not existing:
+        existing = ensure_evidence_pack(ctx["repo"], fascicolo=ctx["fascicolo"], profile=ctx["profile"], deposito_id=deposito_id)
+    path = Path(existing.path)
+    if not path.exists():
+        return jsonify({"errore": "Evidence pack non disponibile.", "mock_fallback": False}), 404
+    return send_file(path, as_attachment=True, download_name=path.name, mimetype="application/zip")
+
+
+@api_v1_react.post("/preventivi/<preventivo_id>/apri-fascicolo")
+@_richiedi_auth
+def regia_apri_fascicolo_da_preventivo(preventivo_id: str):
+    gp = get_preventivi()
+    preventivo = gp.get_preventivo(preventivo_id)
+    if not preventivo:
+        return jsonify({"errore": "Preventivo non trovato.", "mock_fallback": False}), 404
+    cliente = get_clienti().get(getattr(preventivo, "id_cliente", ""))
+    conferimento = gp.get_conferimento_principale_preventivo(preventivo_id)
+    payload = _request_payload()
+    parcelle = [item for item in get_fatturazione().tutte() if getattr(item, "id_preventivo", "") == preventivo_id]
+    has_payment = any(_enum_value(getattr(item, "stato", "")).upper() in {"PAGATA", "SALDATA"} or getattr(item, "data_pagamento", "") for item in parcelle)
+    if not has_payment and not str(payload.get("override_reason") or payload.get("motivo_override") or "").strip():
+        return jsonify({"errore": "Impossibile aprire il fascicolo: manca pagamento o acconto. Registra l'incasso oppure inserisci un override motivato.", "mock_fallback": False}), 409
+    result = apri_fascicolo_automatico(
+        gp=gp,
+        gf=get_fascicoli(),
+        gs=get_scadenziario(),
+        cliente=cliente,
+        preventivo=preventivo,
+        conferimento=conferimento,
+        avvocato=_actor_label(),
+    )
+    fascicolo = result["fascicolo"]
+    if not has_payment:
+        get_practice_engine().audit(
+            getattr(fascicolo, "id", ""),
+            "ECONOMIC_OVERRIDE",
+            actor=_actor_label(),
+            message="Apertura fascicolo autorizzata con override economico.",
+            reason=str(payload.get("override_reason") or payload.get("motivo_override") or ""),
+        )
+    return jsonify({"ok": True, "mock_fallback": False, "created": result["created"], "fascicolo_id": getattr(fascicolo, "id", ""), "practice_engine_profile": result.get("practice_engine_profile", "")})
+
+
+@api_v1_react.post("/conferimenti/<conferimento_id>/apri-fascicolo")
+@_richiedi_auth
+def regia_apri_fascicolo_da_conferimento(conferimento_id: str):
+    gp = get_preventivi()
+    conferimento = gp.get_conferimento(conferimento_id)
+    if not conferimento:
+        return jsonify({"errore": "Conferimento non trovato.", "mock_fallback": False}), 404
+    preventivo = gp.get_preventivo(getattr(conferimento, "id_preventivo", ""))
+    cliente = get_clienti().get(getattr(conferimento, "id_cliente", "") or getattr(preventivo, "id_cliente", ""))
+    payload = _request_payload()
+    parcelle = [item for item in get_fatturazione().tutte() if getattr(item, "id_preventivo", "") == getattr(conferimento, "id_preventivo", "")]
+    has_payment = any(_enum_value(getattr(item, "stato", "")).upper() in {"PAGATA", "SALDATA"} or getattr(item, "data_pagamento", "") for item in parcelle)
+    if not has_payment and not str(payload.get("override_reason") or payload.get("motivo_override") or "").strip():
+        return jsonify({"errore": "Impossibile aprire il fascicolo: manca pagamento o acconto. Registra l'incasso oppure inserisci un override motivato.", "mock_fallback": False}), 409
+    result = apri_fascicolo_automatico(
+        gp=gp,
+        gf=get_fascicoli(),
+        gs=get_scadenziario(),
+        cliente=cliente,
+        preventivo=preventivo,
+        conferimento=conferimento,
+        avvocato=_actor_label(),
+    )
+    fascicolo = result["fascicolo"]
+    if not has_payment:
+        get_practice_engine().audit(
+            getattr(fascicolo, "id", ""),
+            "ECONOMIC_OVERRIDE",
+            actor=_actor_label(),
+            message="Apertura fascicolo autorizzata con override economico.",
+            reason=str(payload.get("override_reason") or payload.get("motivo_override") or ""),
+        )
+    return jsonify({"ok": True, "mock_fallback": False, "created": result["created"], "fascicolo_id": getattr(fascicolo, "id", ""), "practice_engine_profile": result.get("practice_engine_profile", "")})
 # IUSENTRA_REACT_FASCICOLI_ROUTES_END
 
 

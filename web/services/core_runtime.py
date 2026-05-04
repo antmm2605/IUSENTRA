@@ -91,6 +91,10 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
     app.config["FASCICOLI_ARCH"] = cfg.get(
         "FASCICOLI_ARCH", os.getenv("PCT_FASCICOLI_ARCH", "./fascicoli/archivio")
     )
+    app.config["PRACTICE_ENGINE_DB"] = cfg.get(
+        "PRACTICE_ENGINE_DB",
+        os.getenv("PCT_PRACTICE_ENGINE_DB", "./fascicoli/practice_engine/practice_engine.json"),
+    )
     app.config["PST_IMPORT_DIR"] = cfg.get(
         "PST_IMPORT_DIR",
         os.getenv(
@@ -333,6 +337,7 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
             "condivisioni": _cfg_data_path("CONDIVISIONI_DB"),
             "note_faldone": _cfg_data_path("NOTE_FALDONE_DB"),
             "fascicoli": _cfg_data_path("FASCICOLI_DB"),
+            "practice_engine": _cfg_data_path("PRACTICE_ENGINE_DB"),
             "appuntamenti": _cfg_data_path("AGENDA_DB"),
             "scadenze": _cfg_data_path("SCADENZIARIO_DB"),
             "timesheet": _cfg_data_path("TIMESHEET_DB"),
@@ -420,6 +425,13 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
                 studio_db=get_studio_db("FASCICOLI_DB"),
             )
         return g._fascicoli
+
+    def get_practice_engine():
+        if not hasattr(g, "_practice_engine"):
+            from pct.practice_engine import PracticeEngineRepository
+
+            g._practice_engine = PracticeEngineRepository(_cfg_data_path("PRACTICE_ENGINE_DB"))
+        return g._practice_engine
 
     def get_pdp_penale() -> PDPPenaleWorkflowRepository:
         if not hasattr(g, "_pdp_penale_repo"):
@@ -858,6 +870,7 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
         "get_giurisprudenza": get_giurisprudenza,
         "get_clienti": get_clienti,
         "get_fascicoli": get_fascicoli,
+        "get_practice_engine": get_practice_engine,
         "get_pdp_penale": get_pdp_penale,
         "get_telematico": get_telematico,
         "get_deposito_guidato": get_deposito_guidato,

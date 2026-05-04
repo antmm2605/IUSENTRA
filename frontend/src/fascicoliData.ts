@@ -199,6 +199,39 @@ export type FascicoloFull = FascicoloRow & {
   archiveReady: boolean
 }
 
+export type RegiaOperativaData = {
+  source: string
+  mock_fallback: boolean
+  page_state: string
+  header: {
+    title: string
+    practiceType: string
+    area: string
+    channel: string
+    registry: string
+    workflow: string
+    operationalState: string
+    completion: number
+    nextAction: string
+  }
+  profile: Record<string, unknown>
+  economics: Record<string, unknown>
+  checklist: Array<Record<string, unknown>>
+  documentSlots: Array<Record<string, unknown>>
+  validation: {
+    status: string
+    ready: boolean
+    lastCheck: string
+    blockers: Array<Record<string, unknown>>
+    warnings: Array<Record<string, unknown>>
+    results: Array<Record<string, unknown>>
+  }
+  deposit: Record<string, unknown>
+  timeline: Array<Record<string, unknown>>
+  evidencePack: Record<string, unknown>
+  actions: Record<string, unknown>
+}
+
 export type FascicoloDetailData = {
   source: string
   generatedAt: string
@@ -218,6 +251,7 @@ export type FascicoloDetailData = {
   client?: FascicoloPerson
   economics: FascicoloMoney[]
   workflow: Array<{ label: string; value: string; note: string; tone: Tone; href: string }>
+  regia: RegiaOperativaData
   telematic: Array<{ label: string; value: string; note: string; href: string; tone: Tone }>
   quality: Array<{ label: string; value: string; ok: boolean; tone: Tone }>
   signature: { visibleSignatureMode: string; visibleSignaturePlace: string; visibleSignatureDatetimeMode: string }
@@ -320,6 +354,32 @@ export const emptyFascicoliPage: FascicoliPageData = {
   deadlines: [],
 }
 
+export const emptyRegiaOperativa: RegiaOperativaData = {
+  source: 'repository reale',
+  mock_fallback: false,
+  page_state: 'vuoto',
+  header: {
+    title: '',
+    practiceType: '',
+    area: '',
+    channel: '',
+    registry: '',
+    workflow: '',
+    operationalState: '',
+    completion: 0,
+    nextAction: '',
+  },
+  profile: {},
+  economics: {},
+  checklist: [],
+  documentSlots: [],
+  validation: { status: '', ready: false, lastCheck: '', blockers: [], warnings: [], results: [] },
+  deposit: {},
+  timeline: [],
+  evidencePack: {},
+  actions: {},
+}
+
 export const emptyFascicoloDetail: FascicoloDetailData = {
   source: 'vuoto',
   generatedAt: '',
@@ -335,6 +395,7 @@ export const emptyFascicoloDetail: FascicoloDetailData = {
   },
   quickCounts: {}, profile: [], documents: [], activities: [], deadlines: [], appointments: [], deposits: [], requests: [], parties: [], history: [],
   economics: [], workflow: [], telematic: [], quality: [],
+  regia: emptyRegiaOperativa,
   signature: { visibleSignatureMode: 'laterale', visibleSignaturePlace: '', visibleSignatureDatetimeMode: 'data_ora' },
   actions: { changeState: '', define: '', archive: '', restore: '', delete: '', uploadDocument: '', importPortal: '', addActivity: '', complianceOn: '', complianceOff: '', exportPdf: '', archiveZip: '' },
   options: { states: [], documentTypes: [], activityTypes: [], activityResults: [] },
@@ -557,6 +618,44 @@ function normalizeOptions(value: unknown): SelectOption[] {
   }).filter((row) => row.value)
 }
 
+function normalizeRegia(value: unknown): RegiaOperativaData {
+  if (!isRecord(value)) return emptyRegiaOperativa
+  const header = isRecord(value.header) ? value.header : {}
+  const validation = isRecord(value.validation) ? value.validation : {}
+  return {
+    source: text(value.source, 'repository reale'),
+    mock_fallback: bool(value.mock_fallback),
+    page_state: text(value.page_state, 'operativa'),
+    header: {
+      title: text(header.title),
+      practiceType: text(header.practiceType),
+      area: text(header.area),
+      channel: text(header.channel),
+      registry: text(header.registry),
+      workflow: text(header.workflow),
+      operationalState: text(header.operationalState),
+      completion: number(header.completion),
+      nextAction: text(header.nextAction),
+    },
+    profile: isRecord(value.profile) ? value.profile : {},
+    economics: isRecord(value.economics) ? value.economics : {},
+    checklist: asArray(value.checklist).map((entry) => isRecord(entry) ? entry : {}),
+    documentSlots: asArray(value.documentSlots).map((entry) => isRecord(entry) ? entry : {}),
+    validation: {
+      status: text(validation.status),
+      ready: bool(validation.ready),
+      lastCheck: text(validation.lastCheck),
+      blockers: asArray(validation.blockers).map((entry) => isRecord(entry) ? entry : {}),
+      warnings: asArray(validation.warnings).map((entry) => isRecord(entry) ? entry : {}),
+      results: asArray(validation.results).map((entry) => isRecord(entry) ? entry : {}),
+    },
+    deposit: isRecord(value.deposit) ? value.deposit : {},
+    timeline: asArray(value.timeline).map((entry) => isRecord(entry) ? entry : {}),
+    evidencePack: isRecord(value.evidencePack) ? value.evidencePack : {},
+    actions: isRecord(value.actions) ? value.actions : {},
+  }
+}
+
 function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
   if (!isRecord(payload)) return emptyFascicoloDetail
   const base = normalizeItem(payload.fascicolo ?? {}, 0)
@@ -640,6 +739,7 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
     client: isRecord(payload.client) ? { id: text(payload.client.id), name: text(payload.client.name ?? payload.client.nome, 'Cliente'), taxCode: text(payload.client.taxCode ?? payload.client.codice_fiscale), vat: text(payload.client.vat ?? payload.client.partita_iva), email: text(payload.client.email), pec: text(payload.client.pec), phone: text(payload.client.phone ?? payload.client.telefono), address: text(payload.client.address ?? payload.client.indirizzo), href: text(payload.client.href, '/clienti') } : undefined,
     economics: asArray(payload.economics).map((entry, index) => { const row = isRecord(entry) ? entry : {}; return { id: text(row.id, `money-${index}`), label: text(row.label), value: text(row.value), note: text(row.note), href: text(row.href, '/fatturazione'), tone: text(row.tone, 'neutral') as Tone } }),
     workflow: asArray(payload.workflow).map((entry) => { const row = isRecord(entry) ? entry : {}; return { label: text(row.label), value: text(row.value), note: text(row.note), tone: text(row.tone, 'neutral') as Tone, href: text(row.href) } }),
+    regia: normalizeRegia(payload.regia),
     telematic: asArray(payload.telematic).map((entry) => { const row = isRecord(entry) ? entry : {}; return { label: text(row.label), value: text(row.value), note: text(row.note), tone: text(row.tone, 'neutral') as Tone, href: text(row.href) } }),
     quality: asArray(payload.quality).map((entry) => { const row = isRecord(entry) ? entry : {}; return { label: text(row.label), value: text(row.value), ok: bool(row.ok), tone: text(row.tone, 'neutral') as Tone } }),
     signature: isRecord(payload.signature) ? {

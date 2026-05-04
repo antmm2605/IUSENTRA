@@ -13,6 +13,7 @@ from typing import Any, Callable, Iterable
 
 from pct.fascicoli import EsitoAttivita, StatoFascicolo, TipoAttivita, TipoDocumento, TipoFascicolo
 from pct.fascicolo_workspace import build_fascicolo_workspace
+from web.services.react_practice_engine_bridge import build_react_practice_engine_payload
 
 MONTHS_SHORT = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"]
 
@@ -1216,6 +1217,7 @@ def build_react_fascicolo_detail_payload(
     get_preventivi: Callable[[], Any],
     get_fatturazione: Callable[[], Any],
     get_timesheet: Callable[[], Any],
+    get_practice_engine: Callable[[], Any] | None = None,
     get_config_studio: Callable[[], Any] | None = None,
     id_fasc: str,
     studio_avvocato_titolare: str = "",
@@ -1244,6 +1246,18 @@ def build_react_fascicolo_detail_payload(
         "istanze": len(requests),
     }
     fid = _text(getattr(fascicolo, "id", id_fasc))
+    regia_payload = (
+        build_react_practice_engine_payload(
+            fascicolo_id=fid,
+            get_fascicoli=get_fascicoli,
+            get_clienti=get_clienti,
+            get_preventivi=get_preventivi,
+            get_fatturazione=get_fatturazione,
+            get_practice_engine=get_practice_engine,
+        )
+        if callable(get_practice_engine)
+        else {"source": "repository reale", "mock_fallback": False, "page_state": "runtime_non_configurato"}
+    )
     return {
         "source": "repository_reali",
         "generatedAt": _now(),
@@ -1262,6 +1276,7 @@ def build_react_fascicolo_detail_payload(
         "client": _client_payload(cliente),
         "economics": _economics(preventivi, conferimenti, parcelle, timesheet_entries, fascicolo),
         "workflow": _workflow(preventivi, conferimenti, parcelle, timesheet_entries, cliente),
+        "regia": regia_payload,
         "telematic": _telematic(fascicolo),
         "quality": _quality(fascicolo, cliente, scadenze, parties),
         "signature": _signature_settings(get_config_studio),

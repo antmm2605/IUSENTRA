@@ -1,5 +1,20 @@
 # Migrazione progressiva Flask + React
 
+## Regia Operativa nel dettaglio fascicolo
+
+La sezione React `Regia Operativa` e' integrata nel dettaglio fascicolo e legge il payload reale `regia` esposto da `/api/v1/ui/fascicoli/<fascicolo_id>`.
+
+Contratti UI:
+
+- nessun dato demo o hardcoded;
+- `mock_fallback=false` nei payload Regia;
+- pulsante deposito disabilitato quando il predeposito espone blocchi;
+- timeline ricevute visibile solo da repository;
+- evidence pack visibile solo quando il repository lo rende disponibile;
+- nessuna CTA con `href="#"`.
+
+Le API operative dedicate sono sotto `/api/v1/ui/fascicoli/<fascicolo_id>/regia`, `/checklist`, `/document-slots`, `/predeposito` e `/depositi`.
+
 ## Principio operativo
 
 React diventa la superficie operativa progressiva dell'applicativo, mentre Flask resta backend, source of truth, motore di permessi, tenant, audit e repository. Le scritture sensibili continuano a passare dai servizi Flask gia' auditati fino a quando non esiste una API React equivalente, testata e governata.

@@ -89,6 +89,7 @@ def _cfg_web(tmp_path: Path) -> dict:
         "FASCICOLI_DB": str(tmp_path / "fascicoli" / "fascicoli.json"),
         "FASCICOLI_DOCS": str(tmp_path / "fascicoli" / "documenti"),
         "FASCICOLI_ARCH": str(tmp_path / "fascicoli" / "archivio"),
+        "PRACTICE_ENGINE_DB": str(tmp_path / "fascicoli" / "practice_engine" / "practice_engine.json"),
         "AGENDA_DB": str(tmp_path / "agenda" / "appuntamenti.json"),
         "SCADENZIARIO_DB": str(tmp_path / "scadenziario" / "scadenze.json"),
         "MESSAGGI_DB": str(tmp_path / "messaggi" / "storico.json"),

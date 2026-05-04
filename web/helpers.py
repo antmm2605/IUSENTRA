@@ -29,6 +29,7 @@ from pct.applicazioni_repository import get_runtime_applicazioni_repository
 from pct.fatturazione import GestioneFatturazione
 from pct.pagamenti import GestionePagamenti
 from pct.preventivi import GestionePreventivi
+from pct.practice_engine import PracticeEngineRepository
 from pct.legal_update_pipeline import LegalUpdatePipeline, build_legal_update_pipeline
 from pct.postgres_runtime_support import resolve_runtime_postgres_dsn
 from web.services.storage_runtime import get_request_storage_runtime, get_request_studio_db
@@ -77,6 +78,10 @@ def get_fascicoli() -> GestioneFascicoli:
         archive_dir=_cfg("FASCICOLI_ARCH"),
         studio_db=_studio_db(),
     )
+
+
+def get_practice_engine() -> PracticeEngineRepository:
+    return PracticeEngineRepository(_cfg("PRACTICE_ENGINE_DB"))
 
 
 def get_scadenziario() -> GestioneScadenziario:

@@ -4,12 +4,14 @@ preventivo -> conferimento -> fascicolo operativo.
 """
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from typing import Any, Dict, Optional
 
 from pct.economico_context import riepilogo_contesto_economico
 from pct.fascicoli import GestioneFascicoli, TipoAttivita, TipoFascicolo
 from pct.motore_preventivo import get_tipo_pratica
+from pct.practice_engine import PracticeEngineRepository
+from pct.practice_engine.evaluator import ensure_profile_for_fascicolo
 from pct.practice_profiles import get_practice_profile
 from pct.preventivi import GestionePreventivi
 from pct.scadenziario import GestioneScadenziario, TipoTermine
@@ -408,11 +410,27 @@ def apri_fascicolo_automatico(
         checklist=checklist,
         practice_label=prefill.get("oggetto") or prefill.get("titolo") or "",
     )
+    pe_repo = PracticeEngineRepository.from_fascicoli_db(str(gf.db_path))
+    practice_engine_profile, _resolver = ensure_profile_for_fascicolo(
+        pe_repo,
+        fascicolo=gf.get(fasc.id) or fasc,
+        preventivo=gp.get_preventivo(getattr(preventivo, "id", "")) if preventivo else None,
+        conferimento=gp.get_conferimento(getattr(conferimento, "id", "")) if conferimento else None,
+        actor=avvocato or prefill.get("avvocato_referente", ""),
+    )
+    pe_repo.audit(
+        fasc.id,
+        "FASCICOLO_OPENED_FROM_COMMERCIAL_WORKFLOW",
+        actor=avvocato or prefill.get("avvocato_referente", ""),
+        message="Fascicolo aperto con Regia Operativa applicata.",
+        payload={"profile_code": getattr(practice_engine_profile, "code", "")},
+    )
     return {
         "fascicolo": gf.get(fasc.id) or fasc,
         "created": True,
         "attivita_create": attivita_create,
         "scadenze_create": scadenze_create,
+        "practice_engine_profile": getattr(practice_engine_profile, "code", ""),
         "workflow_summary": build_workflow_summary(
             cliente=cliente,
             preventivo=gp.get_preventivo(getattr(preventivo, "id", "")) if preventivo else None,

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.198.54 - 2026-05-04
+
+- Introdotta la Regia Operativa Fascicolo / Practice Engine: profili pratica derivati dal catalogo operativo, checklist dinamiche, slot documentali, validatori, stato operativo, predeposito, sessioni deposito, ricevute, timeline, evidence pack e audit.
+- Agganciate le API React reali sotto `/api/v1/ui/fascicoli/<id>/regia`, con apertura fascicolo da preventivo/conferimento, ricalcolo, collegamento slot, predeposito, deposito fail-closed e import ricevute autorizzate.
+- Integrato il dettaglio fascicolo React con la sezione `Regia Operativa`, senza dati demo o fallback mock, mostrando blocchi, economia, documenti richiesti, stato deposito e evidence pack solo quando disponibile.
+- Aggiunte le migrazioni SQLite/PostgreSQL `20260504_practice_engine*` e la documentazione `docs/REGIA_OPERATIVA_FASCICOLO.md`.
+
 ## 2.198.53 - 2026-05-04
 
 - Chiusa la firma visibile laterale dei documenti PDF: il timbro viene applicato su tutte le pagine, con coccarda in basso a destra, testo verticale a 8 pt e campi `Firmato Da`, `Emesso Da` e `Serial#`.

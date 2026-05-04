@@ -683,6 +683,117 @@ function PdfPreviewModal({ preview, onClose }:{preview:PreviewDocument | null; o
   )
 }
 
+function recordText(row: Record<string, unknown> | undefined, key: string, fallback = '') {
+  const value = row?.[key]
+  return String(value ?? fallback).trim()
+}
+
+function recordBool(row: Record<string, unknown> | undefined, key: string) {
+  const value = row?.[key]
+  return value === true || value === 'true' || value === '1' || value === 1
+}
+
+function RegiaOperativaSection({ data, onDone, onError }:{data:FascicoloDetailData; onDone:(message?:string)=>void; onError:(message:string)=>void}) {
+  const regia = data.regia
+  const h = regia.header
+  const economics = regia.economics
+  const deposit = regia.deposit
+  const evidence = regia.evidencePack
+  const blocked = recordBool(deposit, 'blocked')
+  const ready = recordBool(deposit, 'ready')
+  const sendAction = recordText(deposit, 'sendAction')
+  const prepareAction = recordText(deposit, 'prepareAction')
+  const predepositAction = recordText(regia.actions, 'predepositCheck')
+  const evidenceHref = recordText(evidence, 'href')
+  const blockReasons = Array.isArray(deposit.blockReasons) ? deposit.blockReasons.map((item) => String(item || '').trim()).filter(Boolean) : []
+  const statusTone: FascicoloRow['tone'] = regia.validation.ready ? 'success' : regia.validation.blockers.length ? 'danger' : 'warning'
+  return (
+    <DetailSection id="regia-operativa" title="Regia Operativa" icon={<ClipboardCheck size={17}/>} count={regia.checklist.length + regia.documentSlots.length}>
+      <div className="iu-fas-regia">
+        <header className="iu-fas-regia__header">
+          <div>
+            <Badge tone={statusTone}>{h.operationalState || 'Da verificare'}</Badge>
+            <h3>{h.practiceType || fLabel(data.fascicolo.title)}</h3>
+            <p>{h.nextAction || 'Completa i controlli operativi del fascicolo.'}</p>
+          </div>
+          <div className="iu-fas-regia__progress" aria-label="Completamento Regia Operativa">
+            <strong>{h.completion}%</strong>
+            <span>completamento</span>
+          </div>
+        </header>
+        <div className="iu-fas-regia__meta">
+          <span><strong>Area</strong>{h.area || 'n.d.'}</span>
+          <span><strong>Canale</strong>{h.channel || 'n.d.'}</span>
+          <span><strong>Registro</strong>{h.registry || 'n.d.'}</span>
+          <span><strong>Workflow</strong>{h.workflow || 'n.d.'}</span>
+        </div>
+        <div className="iu-fas-regia__grid">
+          <article>
+            <h4>Economia e incarico</h4>
+            <ul className="iu-fas-regia__facts">
+              <li><span>Preventivo accettato</span><strong>{recordBool(economics, 'preventivoAccepted') ? 'Si' : 'No'}</strong></li>
+              <li><span>Conferimento firmato</span><strong>{recordBool(economics, 'conferimentoSigned') ? 'Si' : 'No'}</strong></li>
+              <li><span>Avviso / parcella</span><strong>{recordBool(economics, 'proformaIssued') ? 'Emesso' : 'Non emesso'}</strong></li>
+              <li><span>Pagamento</span><strong>{recordBool(economics, 'paymentRegistered') ? 'Registrato' : 'Da registrare'}</strong></li>
+              <li><span>Compenso pattuito</span><strong>{recordText(economics, 'agreedFee', 'EUR 0,00')}</strong></li>
+              <li><span>Spese vive / anticipazioni</span><strong>{recordText(economics, 'expenses', 'EUR 0,00')}</strong></li>
+            </ul>
+            {Array.isArray(economics.overrides) && economics.overrides.length ? <p className="iu-fas-regia__warn">Override economico presente e auditato.</p> : null}
+          </article>
+          <article>
+            <h4>Validazione</h4>
+            <Badge tone={statusTone}>{regia.validation.status || 'Da eseguire'}</Badge>
+            <p>{regia.validation.blockers[0] ? recordText(regia.validation.blockers[0], 'message') : regia.validation.warnings[0] ? recordText(regia.validation.warnings[0], 'message') : 'Nessun blocco critico rilevato.'}</p>
+            <div className="iu-fas-regia__actions">
+              {predepositAction ? <PostAction action={predepositAction} tone="secondary" onDone={onDone} onError={onError}><RefreshCw size={15}/> Verifica di nuovo</PostAction> : null}
+              {prepareAction ? <PostAction action={prepareAction} tone="secondary" onDone={onDone} onError={onError}><ClipboardCheck size={15}/> Prepara deposito</PostAction> : null}
+            </div>
+          </article>
+        </div>
+        <div className="iu-fas-regia__columns">
+          <section>
+            <h4>Checklist dinamica</h4>
+            <div className="iu-fas-regia-list">
+              {regia.checklist.map((item) => <article key={recordText(item, 'id') || recordText(item, 'key')}><Badge tone={recordText(item, 'status') === 'BLOCCATO' ? 'danger' : recordText(item, 'status') === 'COMPLETATO' ? 'success' : 'warning'}>{recordText(item, 'status', 'Da completare')}</Badge><strong>{recordText(item, 'label')}</strong><span>{recordText(item, 'message')}</span><small>{recordText(item, 'suggestedAction')}</small></article>)}
+              {!regia.checklist.length ? <p className="iu-empty">Checklist non ancora generata.</p> : null}
+            </div>
+          </section>
+          <section>
+            <h4>Slot documentali</h4>
+            <div className="iu-fas-regia-list">
+              {regia.documentSlots.map((slot) => <article key={recordText(slot, 'slotKey')}><Badge tone={recordText(slot, 'status') === 'VALIDO' ? 'success' : recordText(slot, 'status') === 'WARNING' ? 'warning' : recordText(slot, 'status') === 'NON_APPLICABILE' ? 'neutral' : 'danger'}>{recordText(slot, 'status')}</Badge><strong>{recordText(slot, 'label')}</strong><span>{recordText(slot, 'documentId') ? `Documento ${recordText(slot, 'documentId')}` : recordText(slot, 'message', 'Documento non collegato')}</span><small>{recordText(slot, 'suggestedAction')}</small></article>)}
+              {!regia.documentSlots.length ? <p className="iu-empty">Nessuno slot documentale generato.</p> : null}
+            </div>
+          </section>
+        </div>
+        <div className="iu-fas-regia__deposit">
+          <div>
+            <Badge tone={recordText(deposit, 'status') === 'ACQUISITO' ? 'success' : blocked ? 'danger' : ready ? 'success' : 'warning'}>{recordText(deposit, 'status', 'NON_INVIATO')}</Badge>
+            <strong>{recordText(deposit, 'label', 'Deposito')}</strong>
+            <p>{recordText(deposit, 'message') || blockReasons[0] || 'Stato deposito non avviato.'}</p>
+            {blockReasons.length ? <ul>{blockReasons.map((reason) => <li key={reason}>{reason}</li>)}</ul> : null}
+          </div>
+          <div className="iu-fas-regia__actions">
+            {ready && sendAction ? <PostAction action={sendAction} tone="primary" onDone={onDone} onError={onError} confirm="Inviare il deposito con il canale configurato?" confirmTitle="Invia deposito"><Send size={15}/> Invia deposito</PostAction> : <button type="button" disabled><Send size={15}/> Deposito non disponibile</button>}
+            {evidenceHref ? <a className="iu-fas-side-link" href={evidenceHref}><FileArchive size={15}/> Evidence pack</a> : null}
+          </div>
+        </div>
+        <section>
+          <h4>Timeline ricevute</h4>
+          <div className="iu-fas-timeline">
+            {regia.timeline.map((event) => <article key={recordText(event, 'id')}><time>{recordText(event, 'createdAt')}</time><strong>{recordText(event, 'status')}</strong><p>{recordText(event, 'message')}</p></article>)}
+            {!regia.timeline.length ? <p className="iu-empty">Nessuna ricevuta o esito importato.</p> : null}
+          </div>
+        </section>
+      </div>
+    </DetailSection>
+  )
+}
+
+function fLabel(value: string) {
+  return value || 'Fascicolo'
+}
+
 function UploadDocumentForm({ action, documentTypes, onDone, onError }:{action:string; documentTypes:SelectOption[]; onDone:(message?:string)=>void; onError:(message:string)=>void}) {
   const [busy, setBusy] = useState(false)
   if (!action) return null
@@ -1341,7 +1452,7 @@ function DetailPage({ id }:{id:string}) {
       </section>
       <section className="iu-fas-case-strip"><strong>{f.ref}</strong><span>Rif. interno {f.internalRef}</span><span>{f.client}</span><span>{f.court}</span><span>{loading ? 'Caricamento...' : 'Dati aggiornati'}</span></section>
       {toast ? <section className={`iu-fas-toast iu-fas-toast--${toast.tone}`}><span>{toast.message}</span><button type="button" onClick={() => setToast(null)}>Chiudi</button></section> : null}
-      <nav className="iu-fas-section-nav" aria-label="Sezioni fascicolo"><a href="#profilo">Profilo <b>{data.quickCounts.profilo || 0}</b></a><a href="#documenti">Documenti <b>{data.documents.length}</b></a><a href="#editor-professionale">Editor / compilatore</a><a href="#attivita">Attività <b>{data.activities.length}</b></a><a href="#udienze">Udienze / scadenze <b>{data.deadlines.length + data.appointments.length}</b></a><a href="#cancelleria">Cancelleria <b>{data.deposits.length}</b></a><a href="#istanze">Istanze <b>{data.requests.length}</b></a><a href="#gestione">Gestione</a><a href="#economia">Economia</a><a href="#conformita">Conformità</a><a href="#soggetti">Soggetti <b>{data.parties.length}</b></a></nav>
+      <nav className="iu-fas-section-nav" aria-label="Sezioni fascicolo"><a href="#profilo">Profilo <b>{data.quickCounts.profilo || 0}</b></a><a href="#regia-operativa">Regia Operativa <b>{data.regia.documentSlots.length}</b></a><a href="#documenti">Documenti <b>{data.documents.length}</b></a><a href="#editor-professionale">Editor / compilatore</a><a href="#attivita">Attività <b>{data.activities.length}</b></a><a href="#udienze">Udienze / scadenze <b>{data.deadlines.length + data.appointments.length}</b></a><a href="#cancelleria">Cancelleria <b>{data.deposits.length}</b></a><a href="#istanze">Istanze <b>{data.requests.length}</b></a><a href="#gestione">Gestione</a><a href="#economia">Economia</a><a href="#conformita">Conformità</a><a href="#soggetti">Soggetti <b>{data.parties.length}</b></a></nav>
       <section className="iu-fas-ai-board" aria-label="Quadro intelligente AI del fascicolo">
         <div><span><Sparkles size={16}/> Quadro intelligente AI</span><strong>{prossimaAzione}</strong><p>Analisi del fascicolo, documenti, scadenze, attività e prossime azioni usando i dati reali della pratica.</p></div>
         <div>
@@ -1367,8 +1478,9 @@ function DetailPage({ id }:{id:string}) {
       </section>
       <section className="iu-fas-detail-grid">
         <div className="iu-fas-detail-main">
-          <section className="iu-fas-cockpit"><StatCard icon={<FileText size={19}/>} label="Documenti" value={data.documents.length} note="acquisiti o da portale" tone="primary" href="#documenti"/><StatCard icon={<CalendarDays size={19}/>} label="Scadenze" value={data.deadlines.length} note="aperte e concluse" tone="warning" href="#udienze"/><StatCard icon={<ListChecks size={19}/>} label="Attività" value={data.activities.length} note="timeline processuale" tone="success" href="#attivita"/><StatCard icon={<WalletCards size={19}/>} label="Economia" value={data.economics.length} note="preventivi, parcelle, tempo" tone="purple" href="#economia"/></section>
+          <section className="iu-fas-cockpit"><StatCard icon={<ClipboardCheck size={19}/>} label="Regia" value={`${data.regia.header.completion}%`} note={data.regia.header.operationalState || 'da verificare'} tone={data.regia.validation.ready ? 'success' : data.regia.validation.blockers.length ? 'danger' : 'warning'} href="#regia-operativa"/><StatCard icon={<FileText size={19}/>} label="Documenti" value={data.documents.length} note="acquisiti o da portale" tone="primary" href="#documenti"/><StatCard icon={<CalendarDays size={19}/>} label="Scadenze" value={data.deadlines.length} note="aperte e concluse" tone="warning" href="#udienze"/><StatCard icon={<ListChecks size={19}/>} label="Attività" value={data.activities.length} note="timeline processuale" tone="success" href="#attivita"/><StatCard icon={<WalletCards size={19}/>} label="Economia" value={data.economics.length} note="preventivi, parcelle, tempo" tone="purple" href="#economia"/></section>
           <DetailSection id="profilo" title="Profilo fascicolo" icon={<BadgeCheck size={17}/>}><KvGrid items={data.profile}/>{f.notes ? <div className="iu-fas-note"><strong>Note</strong><p>{f.notes}</p></div> : null}</DetailSection>
+          <RegiaOperativaSection data={data} onDone={refreshDetail} onError={failDetail}/>
           <DetailSection id="documenti" title="Documenti fascicolo" icon={<FileText size={17}/>} count={data.documents.length}>
             <UploadDocumentForm action={data.actions.uploadDocument} documentTypes={data.options.documentTypes} onDone={refreshDetail} onError={failDetail}/>
             <PortalImportForm action={data.actions.importPortal} onDone={refreshDetail} onError={failDetail}/>
@@ -1404,7 +1516,7 @@ function DetailPage({ id }:{id:string}) {
             <div className="iu-fas-action-stack"><form method="post" action={data.actions.define}><input name="esito_finale" placeholder="Esito finale"/><input name="motivo" placeholder="Motivo"/><input name="avvocato" placeholder="Avvocato"/><textarea name="note" placeholder="Note definizione"/><button type="submit"><CheckCircle2 size={15}/> Definisci</button></form><PostAction action={data.actions.archive} tone="primary" confirm="Archiviare il fascicolo?" confirmTitle="Archivia fascicolo"><Archive size={15}/> Archivia con ZIP</PostAction><PostAction action={data.actions.restore} tone="secondary" confirm="Ripristinare il fascicolo?" confirmTitle="Ripristina fascicolo"><RotateCcw size={15}/> Ripristina</PostAction><a className="iu-fas-side-link" href={data.actions.exportPdf || f.exportPdfHref}><FileDown size={15}/> PDF fascicolo</a>{data.actions.archiveZip ? <a className="iu-fas-side-link" href={data.actions.archiveZip}><FileArchive size={15}/> Scarica ZIP</a> : null}<PostAction action={data.actions.delete} tone="danger" confirm="Eliminare definitivamente il fascicolo?" confirmTitle="Elimina fascicolo" redirectTo="/fascicoli"><Trash2 size={15}/> Elimina</PostAction></div>
           </DetailSection>
           <DetailSection id="economia" title="Controllo economico" icon={<WalletCards size={17}/>} count={data.economics.length}><div className="iu-fas-side-cards">{data.economics.map((item) => <a href={item.href} key={item.id}><Badge tone={item.tone}>{item.label}</Badge><strong>{item.value}</strong><span>{item.note}</span></a>)}{!data.economics.length ? <p className="iu-empty">Nessun dato economico collegato.</p> : null}</div></DetailSection>
-          <DetailSection id="workflow" title="Workflow cliente → incasso" icon={<Sparkles size={17}/>} count={data.workflow.length}><div className="iu-fas-side-cards">{data.workflow.map((item) => <a href={item.href || '#'} key={item.label}><Badge tone={item.tone}>{item.label}</Badge><strong>{item.value}</strong><span>{item.note}</span></a>)}</div></DetailSection>
+          <DetailSection id="workflow" title="Workflow cliente → incasso" icon={<Sparkles size={17}/>} count={data.workflow.length}><div className="iu-fas-side-cards">{data.workflow.map((item) => item.href ? <a href={item.href} key={item.label}><Badge tone={item.tone}>{item.label}</Badge><strong>{item.value}</strong><span>{item.note}</span></a> : <article key={item.label}><Badge tone={item.tone}>{item.label}</Badge><strong>{item.value}</strong><span>{item.note}</span></article>)}</div></DetailSection>
           <DetailSection id="conformita" title="Conformità e qualità" icon={<ShieldCheck size={17}/>} count={data.quality.length}><div className="iu-fas-quality-list">{data.quality.map((item) => <span key={item.label}><Badge tone={item.tone}>{item.ok ? 'OK' : 'Verifica'}</Badge><strong>{item.label}</strong><small>{item.value}</small></span>)}</div><form className={`iu-fas-compliance-toggle ${f.complianceControlsEnabled ? 'is-on' : 'is-off'}`} method="post" action={f.complianceControlsEnabled ? data.actions.complianceOff : data.actions.complianceOn}><input type="hidden" name="enabled" value={f.complianceControlsEnabled ? '0' : '1'}/><input type="hidden" name="next" value={detailReturnHref}/><button type="submit" aria-pressed={f.complianceControlsEnabled}><span className="iu-fas-compliance-toggle__switch" aria-hidden="true"><i/></span><span><strong>{f.complianceControlsEnabled ? 'Controlli automatici attivi' : 'Controlli automatici disattivati'}</strong><small>{f.complianceControlsEnabled ? 'Disattiva i controlli qualità sul fascicolo' : 'Riattiva i controlli qualità sul fascicolo'}</small></span></button></form></DetailSection>
           <DetailSection id="telematico" title="Servizi telematici" icon={<Send size={17}/>} count={data.telematic.length}><div className="iu-fas-side-cards">{data.telematic.map((item) => <a href={item.href} key={item.label}><Badge tone={item.tone}>{item.label}</Badge><strong>{item.value}</strong><span>{item.note}</span></a>)}</div></DetailSection>
           <DetailSection id="cliente" title="Cliente" icon={<UserRound size={17}/>} count={data.client ? 1 : 0}>{data.client ? <KvGrid items={[{ label: 'Nome', value: data.client.name, href: data.client.href }, { label: 'Codice fiscale', value: data.client.taxCode, mono: true }, { label: 'P. IVA', value: data.client.vat, mono: true }, { label: 'Email', value: data.client.email }, { label: 'PEC', value: data.client.pec }, { label: 'Telefono', value: data.client.phone }, { label: 'Indirizzo', value: data.client.address }]}/> : <p className="iu-empty">Cliente non collegato.</p>}</DetailSection>
@@ -1423,7 +1535,7 @@ function moneyFrom(data: FascicoloDetailData, id: string, fallback = 'EUR 0,00')
 }
 
 function workflowFrom(data: FascicoloDetailData, matcher: RegExp, fallbackLabel: string) {
-  return data.workflow.find((item) => matcher.test(item.label)) || { label: fallbackLabel, value: 'Non collegato', note: 'Collega la fase operativa auditata quando serve.', tone: 'neutral' as const, href: '#' }
+  return data.workflow.find((item) => matcher.test(item.label)) || { label: fallbackLabel, value: 'Non collegato', note: 'Collega la fase operativa auditata quando serve.', tone: 'neutral' as const, href: '/preventivi/' }
 }
 
 function QuadroMiniCard({ label, value, note, tone = 'neutral', href }:{label:string; value:string|number; note?:string; tone?:FascicoloRow['tone']; href?:string}) {

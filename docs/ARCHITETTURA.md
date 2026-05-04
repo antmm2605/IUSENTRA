@@ -1,5 +1,20 @@
 # Architettura IUSENTRA
 
+## Regia Operativa Fascicolo
+
+Il modulo `pct/practice_engine/` aggiunge un livello deterministico sopra fascicoli, preventivi, conferimenti, fatturazione e telematico. Non sostituisce `StatoFascicolo`: mantiene uno stato operativo separato per sapere cosa serve, cosa manca, cosa blocca, cosa e' stato inviato e cosa e' stato realmente acquisito.
+
+Il profilo pratica viene risolto dal catalogo operativo (`pct/legal_platform_catalog.py`, `pct/legal_platform_seed.py`) con fallback manuale esplicito e auditato. La UI React del dettaglio fascicolo consuma payload reali da `/api/v1/ui/fascicoli/<id>/regia`; `mock_fallback` deve restare `false`.
+
+Persistenza runtime:
+
+- JSON tenant-aware: `fascicoli/practice_engine/practice_engine.json`;
+- ricevute originali: `fascicoli/practice_engine/receipts/`;
+- evidence pack: `fascicoli/practice_engine/evidence_packs/`;
+- SQL governato: `pct/sql/20260504_practice_engine.sql` e `pct/sql/20260504_practice_engine_postgres.sql`.
+
+Il predeposito e' separato dall'invio. L'invio reale fallisce chiuso se non sono configurati canali, certificati o adapter autorizzati. `ACQUISITO` richiede sempre esito finale positivo del canale corretto.
+
 ## Obiettivo
 
 IUSENTRA è un gestionale web per studi legali con specializzazioni verticali su:

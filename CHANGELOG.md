@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.198.59 - 2026-05-04
+
+- Sincronizzato il `Wizard preventivi` con il riepilogo operativo del tariffario: `Complessita stimata` bassa/media/alta alimenta la bozza dalla colonna minimo/base/massimo della regola tariffaria realmente selezionata.
+- Corretto il trasferimento in bozza di spese generali e bonus telematico: il preventivo usa `totale_compenso_livello(...)` del tariffario, evitando il ritorno fisso al valore base e il doppio conteggio delle spese generali.
+- Rimossa dalla nota visibile del tariffario la dicitura tecnica `snapshot QuickOrganizer`, mantenendo un riferimento pulito ai valori tabellari ufficiali DM 147/2022.
+- Aggiunti test di regressione su fasi ordinarie, `Compenso unico`, Giudice di Pace e bonus telematico per garantire che pratica, grado, scaglione, fasi e complessita restino collegati alle tabelle gia' definite.
+
 ## 2.198.58 - 2026-05-04
 
 - Corretto il `Wizard preventivi` sui profili a `Compenso unico`: flag acceso calcola la voce unica tabellare, flag spento calcola le fasi tabellari selezionate e solo tutte le fasi spente producono importo zero.

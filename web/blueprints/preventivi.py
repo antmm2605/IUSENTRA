@@ -1841,8 +1841,12 @@ def wizard_calcola():
             else None
         )
         dm = ris.calcolo_dm55
-        compenso_bozza = round(dm.totale_base, 2)
-        anticipazioni_bozza = round(anticipazioni + dm.spese_generali, 2)
+        riepilogo_livello = dm.riepilogo_livello(livello)
+        bonus_telematico_livello = round(float(riepilogo_livello.get("bonus_telematico", 0.0)), 2)
+        spese_generali_livello = round(float(riepilogo_livello.get("spese_generali", 0.0)), 2)
+        totale_compenso_livello = round(float(riepilogo_livello.get("totale_compenso", ris.onorario_selezionato)), 2)
+        compenso_bozza = totale_compenso_livello
+        anticipazioni_bozza = round(anticipazioni, 2)
         cpa_bozza = round(compenso_bozza * 0.04, 2) if applica_cpa else 0.0
         base_iva_bozza = round(compenso_bozza + cpa_bozza, 2)
         iva_bozza = round(base_iva_bozza * 0.22, 2) if applica_iva else 0.0
@@ -1875,9 +1879,10 @@ def wizard_calcola():
             "totale_minimo":         dm.totale_minimo,
             "totale_base":           dm.totale_base,
             "totale_massimo":        dm.totale_massimo,
-            "bonus_telematico":      dm.bonus_telematico,
-            "spese_generali":        dm.spese_generali,
+            "bonus_telematico":      bonus_telematico_livello,
+            "spese_generali":        spese_generali_livello,
             "perc_spese_generali":   int(round(dm.perc_spese_generali * 100)),
+            "totale_con_spese":      totale_compenso_livello,
             "onorario_base":         ris.onorario_base,
             "onorario_selezionato":  ris.onorario_selezionato,
             "cpa":                   ris.cpa,
@@ -1886,7 +1891,8 @@ def wizard_calcola():
             "anticipazioni":         ris.anticipazioni,
             "totale":                ris.totale,
             "compenso_bozza":        compenso_bozza,
-            "spese_generali_bozza":  dm.spese_generali,
+            "spese_generali_bozza":  0.0,
+            "spese_generali_in_compenso_bozza": True,
             "anticipazioni_bozza":   anticipazioni_bozza,
             "cpa_bozza":             cpa_bozza,
             "base_iva_bozza":        base_iva_bozza,

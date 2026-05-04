@@ -1199,7 +1199,7 @@ def calcola_compenso(
         note_parts.append(f"Spese generali art. 2 DM 55/2014: {int(perc_sg*100)}% sul compenso base.")
     if esatto:
         note_parts.append(
-            f"Valori tabellari ufficiali letti dal riferimento DM 147/2022 (snapshot QuickOrganizer, tabella {tabella_codice[1:] if tabella_codice.startswith('A') else tabella_codice})."
+            "Valori tabellari ufficiali letti dal riferimento DM 147/2022."
         )
     else:
         note_parts.append("Valori non completamente distinguibili con l'attuale UI IUSENTRA: applicata ricostruzione esplicita e tracciata nelle note.")

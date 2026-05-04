@@ -10,6 +10,13 @@ from pct.tariffario_catalogo import (
 )
 
 
+def _assert_note_ufficiale_senza_snapshot(note: str) -> None:
+    note_lower = note.lower()
+    assert "valori tabellari ufficiali letti dal riferimento dm 147/2022." in note_lower
+    assert "quickorganizer" not in note_lower
+    assert "(snapshot" not in note_lower
+
+
 def test_tabella_civile_primo_grado_legge_valori_dm147_snapshot():
     risultato = calcola_compenso(
         Materia.CIVILE_COGN,
@@ -23,7 +30,7 @@ def test_tabella_civile_primo_grado_legge_valori_dm147_snapshot():
     assert risultato.dettaglio["Istruttoria / Istruzione"] == (840.0, 1680.0, 2520.0)
     assert risultato.dettaglio["Decisionale"] == (850.5, 1701.0, 2551.5)
     assert risultato.totale_base == 5077.0
-    assert "tabella 2" in risultato.note.lower()
+    _assert_note_ufficiale_senza_snapshot(risultato.note)
 
 
 def test_tabella_tributario_secondo_grado_usa_snapshot_dm147():
@@ -38,7 +45,7 @@ def test_tabella_tributario_secondo_grado_usa_snapshot_dm147():
     assert risultato.dettaglio["Introduttiva"] == (317.5, 635.0, 952.5)
     assert risultato.dettaglio["Istruttoria / Istruzione"] == (388.5, 777.0, 1165.5)
     assert risultato.dettaglio["Decisionale"] == (709.0, 1418.0, 2127.0)
-    assert "tabella 24" in risultato.note.lower()
+    _assert_note_ufficiale_senza_snapshot(risultato.note)
 
 
 def test_stragiudiziale_forza_compenso_unico():
@@ -51,7 +58,7 @@ def test_stragiudiziale_forza_compenso_unico():
 
     assert risultato.fasi_selezionate == ["Compenso unico"]
     assert risultato.dettaglio["Compenso unico"] == (638.0, 1276.0, 1914.0)
-    assert "tabella 25" in risultato.note.lower()
+    _assert_note_ufficiale_senza_snapshot(risultato.note)
 
 
 def test_compenso_unico_lista_fasi_vuota_non_calcola_importo():
@@ -84,7 +91,7 @@ def test_mediazione_tabella_27_usa_snapshot_ufficiale_e_spese_generali_art2():
     assert risultato.totale_base == 3043.0
     assert risultato.spese_generali == 456.45
     assert risultato.totale_con_spese == 3499.45
-    assert "tabella 27" in risultato.note.lower()
+    _assert_note_ufficiale_senza_snapshot(risultato.note)
     assert "spese generali art. 2 dm 55/2014: 15% sul compenso base." in risultato.note.lower()
 
 
@@ -158,7 +165,7 @@ def test_penale_appello_applica_coefficiente_ricostruttivo():
     assert primo_grado.totale_base == 3592.0
     assert appello.totale_base == 4254.0
     assert "tabella 15 per appello penale" in appello.note.lower()
-    assert "tabella 15-10" in appello.note.lower()
+    _assert_note_ufficiale_senza_snapshot(appello.note)
 
 
 def test_tributario_cassazione_applica_coefficiente_ricostruttivo():
@@ -482,4 +489,4 @@ def test_calcolo_crisi_impresa_passivo_legge_tabella_20bis_ufficiale():
     assert risultato.dettaglio["Introduttiva"] == (310.0, 620.0, 930.0)
     assert risultato.dettaglio["Istruttoria / Istruzione"] == (672.0, 1344.0, 2016.0)
     assert risultato.dettaglio["Decisionale"] == (672.0, 1344.0, 2016.0)
-    assert "tabella 20-bis" in risultato.note.lower()
+    _assert_note_ufficiale_senza_snapshot(risultato.note)

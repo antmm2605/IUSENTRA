@@ -441,11 +441,15 @@ def test_wizard_calcola_compenso_unico_e_fasi_rispettano_complessita(tmp_path):
     for complessita, (livello, importo) in expected_unico.items():
         assert payloads_unico[complessita]["livello_compenso"] == livello
         assert payloads_unico[complessita]["onorario_base"] == importo
+        assert payloads_unico[complessita]["compenso_bozza"] == importo
+        assert payloads_unico[complessita]["totale_bozza"] == importo
         assert set(payloads_unico[complessita]["fasi"]) == {"Compenso unico"}
 
     for complessita, (livello, importo) in expected_fasi.items():
         assert payloads_fasi[complessita]["livello_compenso"] == livello
         assert payloads_fasi[complessita]["onorario_base"] == importo
+        assert payloads_fasi[complessita]["compenso_bozza"] == importo
+        assert payloads_fasi[complessita]["totale_bozza"] == importo
         assert set(payloads_fasi[complessita]["fasi"]) == {"Studio", "Introduttiva", "Decisionale"}
 
     assert payloads_unico["bassa"]["onorario_base"] < payloads_unico["media"]["onorario_base"]
@@ -486,7 +490,97 @@ def test_wizard_calcola_ignora_regola_non_ammissibile_per_pratica_target(tmp_pat
     }
 
 
-def test_wizard_calcola_sposta_spese_generali_nella_bozza_anticipazioni(tmp_path):
+def test_wizard_calcola_sincronizza_complessita_con_colonne_tariffario_gdp(tmp_path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+    _crea_admin(app)
+
+    expected = {
+        "bassa": ("minimo", 632.5, 94.88, 727.38),
+        "media": ("base", 1265.0, 189.75, 1454.75),
+        "alta": ("massimo", 1897.5, 284.62, 2182.12),
+    }
+
+    with app.test_client() as client:
+        _login(client)
+        payloads = {}
+        for complessita in expected:
+            response = client.get(
+                "/preventivi/wizard/calcola",
+                query_string={
+                    "id_pratica": "atto_citazione",
+                    "valore": "5000",
+                    "grado": "Giudice di Pace",
+                    "regola_tariffaria": "civile_gdp",
+                    "complessita": complessita,
+                    "fasi": "studio,introduttiva,istruttoria,decisionale",
+                    "spese_generali": "1",
+                    "perc_spese_generali": "15",
+                    "applica_cpa": "0",
+                    "applica_iva": "0",
+                },
+            )
+            assert response.status_code == 200
+            payloads[complessita] = response.get_json()
+
+    for complessita, (livello, subtotale, spese_generali, totale_compenso) in expected.items():
+        payload = payloads[complessita]
+        assert payload["livello_compenso"] == livello
+        assert payload["totale_minimo"] == 632.5
+        assert payload["totale_base"] == 1265.0
+        assert payload["totale_massimo"] == 1897.5
+        assert payload["spese_generali"] == spese_generali
+        assert payload["totale_con_spese"] == totale_compenso
+        assert payload["onorario_base"] == totale_compenso
+        assert payload["compenso_bozza"] == totale_compenso
+        assert payload["totale_bozza"] == totale_compenso
+        assert payload["totale"] == totale_compenso
+        assert payload["anticipazioni_bozza"] == 0
+        assert payload["spese_generali_bozza"] == 0
+        assert payload["spese_generali_in_compenso_bozza"] is True
+        colonna = {"minimo": "min", "base": "base", "massimo": "max"}[livello]
+        assert sum(v[colonna] for v in payload["fasi"].values()) == subtotale
+
+
+def test_wizard_calcola_bonus_telematico_usa_livello_tariffario_selezionato(tmp_path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+    _crea_admin(app)
+
+    expected = {
+        "bassa": ("minimo", 189.75, 822.25),
+        "media": ("base", 379.5, 1644.5),
+        "alta": ("massimo", 569.25, 2466.75),
+    }
+
+    with app.test_client() as client:
+        _login(client)
+        for complessita, (livello, bonus, totale_compenso) in expected.items():
+            response = client.get(
+                "/preventivi/wizard/calcola",
+                query_string={
+                    "id_pratica": "atto_citazione",
+                    "valore": "5000",
+                    "grado": "Giudice di Pace",
+                    "regola_tariffaria": "civile_gdp",
+                    "complessita": complessita,
+                    "fasi": "studio,introduttiva,istruttoria,decisionale",
+                    "bonus_telematico": "1",
+                    "spese_generali": "0",
+                    "applica_cpa": "0",
+                    "applica_iva": "0",
+                },
+            )
+            payload = response.get_json()
+
+            assert response.status_code == 200
+            assert payload["livello_compenso"] == livello
+            assert payload["bonus_telematico"] == bonus
+            assert payload["compenso_bozza"] == totale_compenso
+            assert payload["totale"] == totale_compenso
+
+
+def test_wizard_calcola_usa_totale_tariffario_nella_bozza_preventivo(tmp_path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg_web(tmp_path))
     _crea_admin(app)
@@ -510,10 +604,12 @@ def test_wizard_calcola_sposta_spese_generali_nella_bozza_anticipazioni(tmp_path
     payload = response.get_json()
 
     assert response.status_code == 200
-    assert payload["spese_generali_bozza"] == payload["spese_generali"]
-    assert payload["compenso_bozza"] == payload["totale_base"]
-    assert payload["anticipazioni_bozza"] == round(payload["spese_generali"] + 43.5, 2)
-    assert payload["totale_bozza"] < payload["totale"]
+    assert payload["spese_generali_bozza"] == 0
+    assert payload["spese_generali_in_compenso_bozza"] is True
+    assert payload["compenso_bozza"] == payload["totale_con_spese"]
+    assert payload["compenso_bozza"] > payload["totale_base"]
+    assert payload["anticipazioni_bozza"] == 43.5
+    assert payload["totale_bozza"] == payload["totale"]
 
 
 def test_wizard_calcola_mediazione_odm_restituisce_costi_organismo_dm150(tmp_path):

@@ -205,6 +205,7 @@ def test_template_wizard_espone_compenso_unico_come_flag_calcolabile():
     assert "return ['compenso_unico']" not in template
     assert "defaultPhaseSet.add('compenso_unico')" in template
     assert "le fasi operative restano visibili" in template
+    assert "con il flag spento il wizard usa le fasi tabellari selezionate" in template
     assert "Fasi tabellari, compenso unico, complessita stimata, spese generali e bonus." in template
     assert "Include anche il flag compenso unico quando previsto." in template
     assert "Il motore applica anche CPA, IVA, anticipazioni ex art. 15 e compenso orario." in template
@@ -353,16 +354,104 @@ def test_wizard_calcola_compenso_unico_rispetta_flag_attivo_disattivo(tmp_path):
                 "spese_generali": "0",
             },
         )
+        tutto_disattivo = client.get(
+            "/preventivi/wizard/calcola",
+            query_string={
+                "id_pratica": "decreto_ingiuntivo",
+                "valore": "10000",
+                "grado": "Tribunale",
+                "regola_tariffaria": "civile_monitorio",
+                "complessita": "media",
+                "fasi": "",
+                "spese_generali": "0",
+            },
+        )
 
     payload_attivo = flag_attivo.get_json()
     payload_disattivo = flag_disattivo.get_json()
+    payload_tutto_disattivo = tutto_disattivo.get_json()
 
     assert flag_attivo.status_code == 200
     assert flag_disattivo.status_code == 200
+    assert tutto_disattivo.status_code == 200
     assert payload_attivo["onorario_base"] > 0
     assert "Compenso unico" in payload_attivo["fasi"]
-    assert payload_disattivo["onorario_base"] == 0
-    assert payload_disattivo["fasi"] == {}
+    assert payload_disattivo["onorario_base"] > 0
+    assert "Compenso unico" not in payload_disattivo["fasi"]
+    assert set(payload_disattivo["fasi"]) == {"Studio", "Introduttiva", "Decisionale"}
+    assert payload_disattivo["onorario_base"] > payload_attivo["onorario_base"]
+    assert payload_tutto_disattivo["onorario_base"] == 0
+    assert payload_tutto_disattivo["fasi"] == {}
+
+
+def test_wizard_calcola_compenso_unico_e_fasi_rispettano_complessita(tmp_path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+    _crea_admin(app)
+
+    expected_unico = {
+        "bassa": ("minimo", 685.0),
+        "media": ("base", 1370.0),
+        "alta": ("massimo", 2055.0),
+    }
+    expected_fasi = {
+        "bassa": ("minimo", 1698.5),
+        "media": ("base", 3397.0),
+        "alta": ("massimo", 5095.5),
+    }
+
+    with app.test_client() as client:
+        _login(client)
+        payloads_unico = {}
+        payloads_fasi = {}
+        for complessita in ("bassa", "media", "alta"):
+            response_unico = client.get(
+                "/preventivi/wizard/calcola",
+                query_string={
+                    "id_pratica": "decreto_ingiuntivo",
+                    "valore": "10000",
+                    "grado": "Tribunale",
+                    "regola_tariffaria": "civile_monitorio",
+                    "complessita": complessita,
+                    "fasi": "studio,introduttiva,decisionale,compenso_unico",
+                    "spese_generali": "0",
+                    "applica_cpa": "0",
+                    "applica_iva": "0",
+                },
+            )
+            response_fasi = client.get(
+                "/preventivi/wizard/calcola",
+                query_string={
+                    "id_pratica": "decreto_ingiuntivo",
+                    "valore": "10000",
+                    "grado": "Tribunale",
+                    "regola_tariffaria": "civile_monitorio",
+                    "complessita": complessita,
+                    "fasi": "studio,introduttiva,decisionale",
+                    "spese_generali": "0",
+                    "applica_cpa": "0",
+                    "applica_iva": "0",
+                },
+            )
+            assert response_unico.status_code == 200
+            assert response_fasi.status_code == 200
+            payloads_unico[complessita] = response_unico.get_json()
+            payloads_fasi[complessita] = response_fasi.get_json()
+
+    for complessita, (livello, importo) in expected_unico.items():
+        assert payloads_unico[complessita]["livello_compenso"] == livello
+        assert payloads_unico[complessita]["onorario_base"] == importo
+        assert set(payloads_unico[complessita]["fasi"]) == {"Compenso unico"}
+
+    for complessita, (livello, importo) in expected_fasi.items():
+        assert payloads_fasi[complessita]["livello_compenso"] == livello
+        assert payloads_fasi[complessita]["onorario_base"] == importo
+        assert set(payloads_fasi[complessita]["fasi"]) == {"Studio", "Introduttiva", "Decisionale"}
+
+    assert payloads_unico["bassa"]["onorario_base"] < payloads_unico["media"]["onorario_base"]
+    assert payloads_unico["media"]["onorario_base"] < payloads_unico["alta"]["onorario_base"]
+    assert payloads_fasi["bassa"]["onorario_base"] < payloads_fasi["media"]["onorario_base"]
+    assert payloads_fasi["media"]["onorario_base"] < payloads_fasi["alta"]["onorario_base"]
 
 
 def test_wizard_calcola_ignora_regola_non_ammissibile_per_pratica_target(tmp_path):

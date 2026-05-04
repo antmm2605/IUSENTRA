@@ -5,7 +5,7 @@ from pct.motore_preventivo import (
     motore_calcola,
     redattore_preventivo_iniziale,
 )
-from pct.tariffario import Grado
+from pct.tariffario import Fase, Grado
 
 
 def test_atto_citazione_ha_metadata_professionali_e_riferimenti():
@@ -170,6 +170,31 @@ def test_motore_preventivo_usa_la_complessita_come_driver_del_livello_compenso()
     assert medio.livello_compenso == "base"
     assert alto.livello_compenso == "massimo"
     assert basso.onorario_selezionato < medio.onorario_selezionato < alto.onorario_selezionato
+
+
+def test_motore_preventivo_permette_fasi_tabellari_senza_voce_unica_monitorio():
+    fasi = [Fase.STUDIO, Fase.INTRODUTTIVA, Fase.DECISIONALE]
+    compenso_unico = motore_calcola(
+        "decreto_ingiuntivo",
+        valore_controversia=10000,
+        grado=Grado.TRIBUNALE,
+        regola_tariffaria="civile_monitorio",
+        fasi=fasi,
+        includi_spese_generali=False,
+    )
+    per_fasi = motore_calcola(
+        "decreto_ingiuntivo",
+        valore_controversia=10000,
+        grado=Grado.TRIBUNALE,
+        regola_tariffaria="civile_monitorio",
+        profile_code_override="",
+        fasi=fasi,
+        includi_spese_generali=False,
+    )
+
+    assert "Compenso unico" in compenso_unico.calcolo_dm55.dettaglio
+    assert set(per_fasi.calcolo_dm55.dettaglio) == {"Studio", "Introduttiva", "Decisionale"}
+    assert per_fasi.onorario_base > compenso_unico.onorario_base
 
 
 def test_appello_civile_espone_base_normativa_sdoppiata_per_competenza():

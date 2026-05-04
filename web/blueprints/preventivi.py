@@ -1766,14 +1766,19 @@ def wizard_calcola():
         }
         fasi_tokens = [k.strip() for k in fasi_raw.split(",") if k.strip()]
         fasi_parsed = [_mappa_fase[k] for k in fasi_tokens if k in _mappa_fase]
-        if "fasi" in request.args and profilo_compenso_unico:
-            fasi = [Fase.STUDIO] if "compenso_unico" in fasi_tokens else []
+        fasi_esplicite = "fasi" in request.args
+        compenso_unico_attivo = "compenso_unico" in fasi_tokens
+        if profilo_compenso_unico and compenso_unico_attivo:
+            fasi = fasi_parsed or [Fase.STUDIO]
         elif fasi_parsed:
             fasi = fasi_parsed
-        elif "fasi" in request.args:
+        elif fasi_esplicite:
             fasi = []
         else:
             fasi = None
+        profile_code_override = None
+        if fasi_esplicite and profilo_compenso_unico and not compenso_unico_attivo and fasi_parsed:
+            profile_code_override = ""
 
         _mappa_var_fasi = {
             "attivazione": Fase.ATTIVAZIONE.value,
@@ -1817,6 +1822,7 @@ def wizard_calcola():
             valore_controversia=valore,
             grado=grado,
             regola_tariffaria=regola_tariffaria,
+            profile_code_override=profile_code_override,
             fasi=fasi,
             livello_compenso=livello,
             complessita=complessita,

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.198.58 - 2026-05-04
+
+- Corretto il `Wizard preventivi` sui profili a `Compenso unico`: flag acceso calcola la voce unica tabellare, flag spento calcola le fasi tabellari selezionate e solo tutte le fasi spente producono importo zero.
+- Aggiunto un override governato nel motore preventivo per consentire al wizard di passare dal profilo unico alla modalita' per fasi senza alterare la regola tariffaria scelta ne' il comportamento della console tariffario.
+- Estesi i test di regressione su wizard e motore per coprire compenso unico attivo, compenso unico disattivo con fasi selezionate, nessuna fase selezionata e forbice `bassa / media / alta` della complessita stimata.
+
 ## 2.198.57 - 2026-05-04
 
 - Ripristinata nel `Wizard preventivi` la griglia completa delle fasi operative anche per i profili a `Compenso unico`: il flag unico e' aggiuntivo, non sostituisce Studio, Introduttiva, Istruttoria / istruzione e Decisionale quando sono previste.

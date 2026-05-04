@@ -2992,6 +2992,7 @@ def motore_calcola(
     valore_controversia: float = 0.0,
     grado: Optional[Grado] = None,
     regola_tariffaria: str = "",
+    profile_code_override: Optional[str] = None,
     fasi: Optional[List[Fase]] = None,
     livello_compenso: LivelloCompenso | str | None = None,
     complessita: str = "",
@@ -3010,6 +3011,8 @@ def motore_calcola(
         id_pratica: identificatore nel CATALOGO
         valore_controversia: valore in €
         grado: override grado (default: grado_default del tipo pratica)
+        profile_code_override: profilo tariffario esplicito, anche vuoto, per
+            bypassare la regola quando una UI deve calcolare fasi alternative
         fasi: override fasi (default: fasi_default del tipo pratica)
         livello_compenso: minimo / base / massimo da usare come livello operativo
         complessita: bassa / media / alta per pratiche a valore indeterminabile
@@ -3027,10 +3030,13 @@ def motore_calcola(
 
     _grado = grado if grado is not None else tp.grado_default
     _fasi  = fasi  if fasi  is not None else tp.fasi_default
-    regola_attiva = rule_lookup(regola_tariffaria) if regola_tariffaria else None
-    if not regola_attiva:
-        regola_attiva = default_rule_for_practice(id_pratica)
-    profile_code = str((regola_attiva or {}).get("profile_code", "") or "")
+    if profile_code_override is None:
+        regola_attiva = rule_lookup(regola_tariffaria) if regola_tariffaria else None
+        if not regola_attiva:
+            regola_attiva = default_rule_for_practice(id_pratica)
+        profile_code = str((regola_attiva or {}).get("profile_code", "") or "")
+    else:
+        profile_code = profile_code_override
 
     calcolo = calcola_compenso(
         materia=tp.materia,

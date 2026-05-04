@@ -13,11 +13,19 @@ except Exception:  # pragma: no cover - fallback difensivo
 
 CM_TO_PT = 28.35
 MM_TO_PT = 72.0 / 25.4
-VISIBLE_SIGNATURE_LATERAL_RIGHT_MARGIN_MM = 4.0
+VISIBLE_SIGNATURE_LATERAL_RIGHT_MARGIN_MM = 3.0
 VISIBLE_SIGNATURE_LATERAL_RIGHT_MARGIN_PT = VISIBLE_SIGNATURE_LATERAL_RIGHT_MARGIN_MM * MM_TO_PT
-VISIBLE_SIGNATURE_LATERAL_TEXT_INSET_PT = 2.0
+VISIBLE_SIGNATURE_LATERAL_SEAL_RIGHT_MARGIN_MM = 1.0
+VISIBLE_SIGNATURE_LATERAL_SEAL_RIGHT_MARGIN_PT = VISIBLE_SIGNATURE_LATERAL_SEAL_RIGHT_MARGIN_MM * MM_TO_PT
+VISIBLE_SIGNATURE_LATERAL_SEAL_BOTTOM_MARGIN_MM = 1.0
+VISIBLE_SIGNATURE_LATERAL_SEAL_BOTTOM_MARGIN_PT = VISIBLE_SIGNATURE_LATERAL_SEAL_BOTTOM_MARGIN_MM * MM_TO_PT
+VISIBLE_SIGNATURE_LATERAL_SEAL_TEXT_GAP_MM = 2.0
+VISIBLE_SIGNATURE_LATERAL_SEAL_TEXT_GAP_PT = VISIBLE_SIGNATURE_LATERAL_SEAL_TEXT_GAP_MM * MM_TO_PT
+VISIBLE_SIGNATURE_LATERAL_TEXT_INSET_PT = 0.0
+VISIBLE_SIGNATURE_LATERAL_FONT_SIZE_PT = 8.0
 VISIBLE_SIGNATURE_COCCARDA_HEIGHT_PT = 24.0
-VISIBLE_SIGNATURE_COCCARDA_HALF_WIDTH_PT = 12.0
+VISIBLE_SIGNATURE_COCCARDA_WIDTH_PT = VISIBLE_SIGNATURE_COCCARDA_HEIGHT_PT * (43.0 / 45.0)
+VISIBLE_SIGNATURE_COCCARDA_HALF_WIDTH_PT = VISIBLE_SIGNATURE_COCCARDA_WIDTH_PT / 2.0
 VISIBLE_SIGNATURE_MODE_LATERALE = "laterale"
 VISIBLE_SIGNATURE_MODE_BASSO_SINISTRA = "basso_sinistra"
 VISIBLE_SIGNATURE_MODE_BASSO_DESTRA = "basso_destra"
@@ -25,6 +33,14 @@ VISIBLE_SIGNATURE_MODES = {
     VISIBLE_SIGNATURE_MODE_LATERALE,
     VISIBLE_SIGNATURE_MODE_BASSO_SINISTRA,
     VISIBLE_SIGNATURE_MODE_BASSO_DESTRA,
+}
+VISIBLE_SIGNATURE_DATETIME_MODE_DATE_TIME = "data_ora"
+VISIBLE_SIGNATURE_DATETIME_MODE_DATE = "solo_data"
+VISIBLE_SIGNATURE_DATETIME_MODE_NONE = "nessuna"
+VISIBLE_SIGNATURE_DATETIME_MODES = {
+    VISIBLE_SIGNATURE_DATETIME_MODE_DATE_TIME,
+    VISIBLE_SIGNATURE_DATETIME_MODE_DATE,
+    VISIBLE_SIGNATURE_DATETIME_MODE_NONE,
 }
 VISIBLE_SIGNATURE_PREFIX = "Firmato digitalmente da"
 VISIBLE_SIGNATURE_DATE_LABEL = "Data e ora firma:"
@@ -112,6 +128,41 @@ def normalize_visible_signature_mode(value: Any) -> str:
     return VISIBLE_SIGNATURE_MODE_LATERALE
 
 
+def normalize_visible_signature_datetime_mode(value: Any) -> str:
+    mode = str(value or "").strip().lower().replace("-", "_").replace(" ", "_")
+    aliases = {
+        VISIBLE_SIGNATURE_DATETIME_MODE_DATE_TIME: {
+            "",
+            "data_ora",
+            "data_e_ora",
+            "date_time",
+            "datetime",
+            "ora",
+            "orario",
+            "time",
+            "full",
+        },
+        VISIBLE_SIGNATURE_DATETIME_MODE_DATE: {
+            "solo_data",
+            "data",
+            "date",
+            "giorno",
+        },
+        VISIBLE_SIGNATURE_DATETIME_MODE_NONE: {
+            "nessuna",
+            "nessuno",
+            "no",
+            "none",
+            "off",
+            "senza_data",
+        },
+    }
+    for normalized, values in aliases.items():
+        if mode in values:
+            return normalized
+    return VISIBLE_SIGNATURE_DATETIME_MODE_DATE_TIME
+
+
 def compute_visible_signature_layout(
     *,
     width: float,
@@ -147,10 +198,10 @@ def compute_visible_signature_layout(
 
     side_width = min(max(CM_TO_PT * 1.85, min(42.0, available_width)), available_width)
     side_margin = min(safe_margin, VISIBLE_SIGNATURE_LATERAL_RIGHT_MARGIN_PT)
-    side_height = available_height
+    side_height = page_height
     return {
         "x": max(0.0, page_width - side_width - side_margin),
-        "y": safe_margin,
+        "y": 0.0,
         "box_width": side_width,
         "box_height": side_height,
         "align": "left",
@@ -200,7 +251,15 @@ def resolve_visible_signature_place(*, city: str = "", province: str = "", addre
     return ""
 
 
-def format_visible_signature_datetime(value: Any) -> str:
+def format_visible_signature_datetime(
+    value: Any,
+    *,
+    datetime_mode: str = VISIBLE_SIGNATURE_DATETIME_MODE_DATE_TIME,
+) -> str:
+    resolved_mode = normalize_visible_signature_datetime_mode(datetime_mode)
+    if resolved_mode == VISIBLE_SIGNATURE_DATETIME_MODE_NONE:
+        return ""
+
     if value is None:
         return ""
 
@@ -235,7 +294,7 @@ def format_visible_signature_datetime(value: Any) -> str:
     except Exception:
         pass
 
-    if has_time:
+    if has_time and resolved_mode == VISIBLE_SIGNATURE_DATETIME_MODE_DATE_TIME:
         return dt.strftime("%d/%m/%Y alle ore %H:%M")
     return dt.strftime("%d/%m/%Y")
 
@@ -247,9 +306,13 @@ def build_visible_signature_text(
     luogo: str = "",
     issuer: str = "",
     serial: str = "",
+    datetime_mode: str = VISIBLE_SIGNATURE_DATETIME_MODE_DATE_TIME,
 ) -> str:
     signer_name = str(intestatario or "").strip()
-    signature_time = format_visible_signature_datetime(data_firma)
+    signature_time = format_visible_signature_datetime(
+        data_firma,
+        datetime_mode=datetime_mode,
+    )
     signature_place = str(luogo or "").strip()
     issuer_value = str(issuer or "").strip()
     serial_value = str(serial or "").strip()
@@ -262,9 +325,9 @@ def build_visible_signature_text(
     if signature_place:
         lines.append(f"Luogo firma: {signature_place}")
     if issuer_value:
-        lines.append(f"Emesso da: {issuer_value}")
+        lines.append(f"Emesso Da: {issuer_value}")
     if serial_value:
-        lines.append(f"Seriale: {serial_value}")
+        lines.append(f"Serial#: {serial_value}")
     return "\n".join(line for line in lines if line.strip())
 
 
@@ -309,6 +372,7 @@ def apply_visible_signature_stamp(
     issuer: str = "",
     serial: str = "",
     mode: str = VISIBLE_SIGNATURE_MODE_LATERALE,
+    datetime_mode: str = VISIBLE_SIGNATURE_DATETIME_MODE_DATE_TIME,
 ) -> bytes:
     if not pdf_data.startswith(b"%PDF"):
         return pdf_data
@@ -322,6 +386,7 @@ def apply_visible_signature_stamp(
         luogo=luogo,
         issuer=issuer,
         serial=serial,
+        datetime_mode=datetime_mode,
     )
     resolved_mode = normalize_visible_signature_mode(mode)
     if not stamp_text:
@@ -345,54 +410,55 @@ def apply_visible_signature_stamp(
         if page_count == 0:
             return pdf_data
 
-        last_page_index = page_count - 1
         signer_name = str(intestatario or "").strip()
         signature_place = str(luogo or "").strip()
 
         for index in range(page_count):
             page = writer.pages[index]
-            if index == last_page_index:
-                page_box = getattr(page, "cropbox", None) or page.mediabox
-                width = float(page_box.width)
-                height = float(page_box.height)
-                layout = compute_visible_signature_layout(
+            page_box = getattr(page, "cropbox", None) or page.mediabox
+            width = float(page_box.width)
+            height = float(page_box.height)
+            layout = compute_visible_signature_layout(
+                width=width,
+                height=height,
+                mode=resolved_mode,
+            )
+
+            overlay_buffer = io.BytesIO()
+            overlay = canvas.Canvas(overlay_buffer, pagesize=(width, height))
+
+            muted = Color(0.23, 0.23, 0.23)
+            if resolved_mode in {VISIBLE_SIGNATURE_MODE_BASSO_SINISTRA, VISIBLE_SIGNATURE_MODE_BASSO_DESTRA}:
+                _draw_visible_signature_bottom_text(
+                    overlay,
                     width=width,
                     height=height,
-                    mode=resolved_mode,
+                    layout=layout,
+                    color=muted,
+                    intestatario=signer_name,
+                    data_firma=data_firma,
+                    luogo=signature_place,
+                    datetime_mode=datetime_mode,
+                )
+            else:
+                _draw_visible_signature_side_mark(
+                    overlay,
+                    width=width,
+                    height=height,
+                    layout=layout,
+                    color=muted,
+                    intestatario=signer_name,
+                    data_firma=data_firma,
+                    luogo=signature_place,
+                    issuer=issuer,
+                    serial=serial,
+                    datetime_mode=datetime_mode,
                 )
 
-                overlay_buffer = io.BytesIO()
-                overlay = canvas.Canvas(overlay_buffer, pagesize=(width, height))
-
-                muted = Color(0.23, 0.23, 0.23)
-                if resolved_mode in {VISIBLE_SIGNATURE_MODE_BASSO_SINISTRA, VISIBLE_SIGNATURE_MODE_BASSO_DESTRA}:
-                    _draw_visible_signature_bottom_text(
-                        overlay,
-                        width=width,
-                        height=height,
-                        layout=layout,
-                        color=muted,
-                        intestatario=signer_name,
-                        data_firma=data_firma,
-                        luogo=signature_place,
-                    )
-                else:
-                    _draw_visible_signature_side_mark(
-                        overlay,
-                        width=width,
-                        height=height,
-                        layout=layout,
-                        color=muted,
-                        intestatario=signer_name,
-                        data_firma=data_firma,
-                        luogo=signature_place,
-                        issuer=issuer,
-                    )
-
-                overlay.save()
-                overlay_buffer.seek(0)
-                overlay_page = PdfReader(overlay_buffer).pages[0]
-                page.merge_page(overlay_page)
+            overlay.save()
+            overlay_buffer.seek(0)
+            overlay_page = PdfReader(overlay_buffer).pages[0]
+            page.merge_page(overlay_page)
 
         metadata = {}
         try:
@@ -405,7 +471,7 @@ def apply_visible_signature_stamp(
         except Exception:
             metadata = {}
         metadata[VISIBLE_SIGNATURE_METADATA_KEY] = (
-            f"{stamp_text}\nModalita firma visibile: {resolved_mode}"
+            f"{stamp_text}\nModalita firma visibile: {resolved_mode}\nPagine timbrate: {page_count}"
         )
         writer.add_metadata(metadata)
 
@@ -444,41 +510,47 @@ def _apply_visible_signature_stamp_fallback(
         except Exception:
             page_count = 1
 
-        dest_page = page_count - 1
         resolved_mode = normalize_visible_signature_mode(mode)
-        page_width = 595.0
-        page_height = 842.0
-        try:
-            page_ref, _ = writer.find_page_for_modification(dest_page)
-            media_box = page_ref.get_object().get("/MediaBox")
-            if media_box and len(media_box) >= 4:
-                page_width = float(media_box[2]) - float(media_box[0])
-                page_height = float(media_box[3]) - float(media_box[1])
-        except Exception:
-            page_width = 595.0
-            page_height = 842.0
-
-        layout = compute_visible_signature_layout(
-            width=page_width,
-            height=page_height,
-            mode=resolved_mode,
-        )
-        box_width = int(float(layout["box_width"]))
-        box_height = int(float(layout["box_height"]))
-        x = int(float(layout["x"]))
-        y = int(float(layout["y"]))
         style = TextStampStyle(
             stamp_text=stamp_text,
             border_width=1,
             border_color=(0.12, 0.31, 0.55),
             text_box_style=TextBoxStyle(
-                font_size=11 if resolved_mode in {VISIBLE_SIGNATURE_MODE_BASSO_SINISTRA, VISIBLE_SIGNATURE_MODE_BASSO_DESTRA} else 9,
-                leading=13 if resolved_mode in {VISIBLE_SIGNATURE_MODE_BASSO_SINISTRA, VISIBLE_SIGNATURE_MODE_BASSO_DESTRA} else 11,
+                font_size=(
+                    11
+                    if resolved_mode in {VISIBLE_SIGNATURE_MODE_BASSO_SINISTRA, VISIBLE_SIGNATURE_MODE_BASSO_DESTRA}
+                    else VISIBLE_SIGNATURE_LATERAL_FONT_SIZE_PT
+                ),
+                leading=13
+                if resolved_mode in {VISIBLE_SIGNATURE_MODE_BASSO_SINISTRA, VISIBLE_SIGNATURE_MODE_BASSO_DESTRA}
+                else 10,
                 text_color=(0.11, 0.16, 0.24),
             ),
         )
-        stamp = TextStamp(writer, style, box=BoxConstraints(width=box_width, height=box_height))
-        stamp.apply(dest_page, x, y)
+        for dest_page in range(page_count):
+            page_width = 595.0
+            page_height = 842.0
+            try:
+                page_ref, _ = writer.find_page_for_modification(dest_page)
+                media_box = page_ref.get_object().get("/MediaBox")
+                if media_box and len(media_box) >= 4:
+                    page_width = float(media_box[2]) - float(media_box[0])
+                    page_height = float(media_box[3]) - float(media_box[1])
+            except Exception:
+                page_width = 595.0
+                page_height = 842.0
+
+            layout = compute_visible_signature_layout(
+                width=page_width,
+                height=page_height,
+                mode=resolved_mode,
+            )
+            box_width = int(float(layout["box_width"]))
+            box_height = int(float(layout["box_height"]))
+            x = int(float(layout["x"]))
+            y = int(float(layout["y"]))
+            stamp = TextStamp(writer, style, box=BoxConstraints(width=box_width, height=box_height))
+            stamp.apply(dest_page, x, y)
 
         buf_out = io.BytesIO()
         writer.write(buf_out)
@@ -496,6 +568,7 @@ def prepare_document_for_signature(
     issuer: str = "",
     serial: str = "",
     mode: str = VISIBLE_SIGNATURE_MODE_LATERALE,
+    datetime_mode: str = VISIBLE_SIGNATURE_DATETIME_MODE_DATE_TIME,
 ) -> bytes:
     if not document_data.startswith(b"%PDF"):
         return document_data
@@ -507,6 +580,7 @@ def prepare_document_for_signature(
         issuer=issuer,
         serial=serial,
         mode=mode,
+        datetime_mode=datetime_mode,
     )
 
 
@@ -517,6 +591,7 @@ def apply_visible_signature_stamp_from_firme(
     city: str = "",
     address: str = "",
     mode: str = VISIBLE_SIGNATURE_MODE_LATERALE,
+    datetime_mode: str = VISIBLE_SIGNATURE_DATETIME_MODE_DATE_TIME,
 ) -> bytes:
     if not firme:
         return pdf_data
@@ -530,12 +605,18 @@ def apply_visible_signature_stamp_from_firme(
         issuer=str(signature.get("emittente_cn") or signature.get("emittente") or "").strip(),
         serial=str(signature.get("seriale") or "").strip(),
         mode=mode,
+        datetime_mode=datetime_mode,
     )
 
 
-def _build_visible_signature_location_line(*, luogo: str = "", data_firma: Any = None) -> str:
+def _build_visible_signature_location_line(
+    *,
+    luogo: str = "",
+    data_firma: Any = None,
+    datetime_mode: str = VISIBLE_SIGNATURE_DATETIME_MODE_DATE_TIME,
+) -> str:
     luogo_value = str(luogo or "").strip()
-    data_value = format_visible_signature_datetime(data_firma)
+    data_value = format_visible_signature_datetime(data_firma, datetime_mode=datetime_mode)
     if luogo_value and data_value:
         return f"{luogo_value} {data_value}"
     return luogo_value or data_value
@@ -548,6 +629,7 @@ def _build_visible_signature_side_text(
     luogo: str = "",
     issuer: str = "",
     serial: str = "",
+    datetime_mode: str = VISIBLE_SIGNATURE_DATETIME_MODE_DATE_TIME,
 ) -> str:
     segments: list[str] = []
     signer_name = _normalize_visible_signature_name(
@@ -555,7 +637,7 @@ def _build_visible_signature_side_text(
         uppercase=True,
         force_avv_prefix=True,
     )
-    date_value = format_visible_signature_datetime(data_firma)
+    date_value = format_visible_signature_datetime(data_firma, datetime_mode=datetime_mode)
     place_value = str(luogo or "").strip()
 
     issuer_value = str(issuer or "").strip()
@@ -570,8 +652,8 @@ def _build_visible_signature_side_text(
     if issuer_value:
         segments.append(f"Emesso Da: {issuer_value}")
     if serial_value:
-        segments.append(f"Seriale: {serial_value}")
-    return " | ".join(segment for segment in segments if segment.strip())
+        segments.append(f"Serial#: {serial_value}")
+    return ", ".join(segment for segment in segments if segment.strip())
 
 
 def _build_visible_signature_bottom_lines(
@@ -579,6 +661,7 @@ def _build_visible_signature_bottom_lines(
     intestatario: str = "",
     data_firma: Any = None,
     luogo: str = "",
+    datetime_mode: str = VISIBLE_SIGNATURE_DATETIME_MODE_DATE_TIME,
 ) -> tuple[str, str]:
     signer_name = _normalize_visible_signature_name(
         intestatario,
@@ -586,7 +669,7 @@ def _build_visible_signature_bottom_lines(
         force_avv_prefix=True,
     )
     place_value = str(luogo or "").strip()
-    date_value = format_visible_signature_datetime(data_firma)
+    date_value = format_visible_signature_datetime(data_firma, datetime_mode=datetime_mode)
     if date_value:
         date_value = date_value.replace(" alle ore ", " ore ")
 
@@ -629,51 +712,64 @@ def _draw_visible_signature_side_mark(
     data_firma: Any = None,
     luogo: str = "",
     issuer: str = "",
+    serial: str = "",
+    datetime_mode: str = VISIBLE_SIGNATURE_DATETIME_MODE_DATE_TIME,
 ) -> None:
     side_text = _build_visible_signature_side_text(
         intestatario=intestatario,
         data_firma=data_firma,
         luogo=luogo,
         issuer=issuer,
+        serial=serial,
+        datetime_mode=datetime_mode,
     )
     layout = layout or compute_visible_signature_layout(
         width=width,
         height=height,
         mode=VISIBLE_SIGNATURE_MODE_LATERALE,
     )
-    right_edge = min(
+    text_right_edge = min(
         max(float(layout["x"]) + float(layout["box_width"]), CM_TO_PT),
         max(width - VISIBLE_SIGNATURE_LATERAL_RIGHT_MARGIN_PT, CM_TO_PT),
     )
-    seal_gap = 70.0
-    text_length = max(float(layout["box_height"]) - seal_gap, 40.0)
+    seal_anchor_x = min(
+        max(width - VISIBLE_SIGNATURE_LATERAL_SEAL_RIGHT_MARGIN_PT - VISIBLE_SIGNATURE_COCCARDA_HALF_WIDTH_PT, 16.0),
+        max(width - VISIBLE_SIGNATURE_COCCARDA_HALF_WIDTH_PT, 16.0),
+    )
+    seal_anchor_y = min(
+        max(
+            VISIBLE_SIGNATURE_LATERAL_SEAL_BOTTOM_MARGIN_PT + (VISIBLE_SIGNATURE_COCCARDA_HEIGHT_PT / 2.0),
+            VISIBLE_SIGNATURE_COCCARDA_HEIGHT_PT / 2.0,
+        ),
+        max(height - (VISIBLE_SIGNATURE_COCCARDA_HEIGHT_PT / 2.0), VISIBLE_SIGNATURE_COCCARDA_HEIGHT_PT / 2.0),
+    )
+    text_start_y = min(
+        max(
+            seal_anchor_y
+            + (VISIBLE_SIGNATURE_COCCARDA_HEIGHT_PT / 2.0)
+            + VISIBLE_SIGNATURE_LATERAL_SEAL_TEXT_GAP_PT,
+            0.0,
+        ),
+        max(height - 10.0, 0.0),
+    )
+    text_length = max(height - text_start_y - VISIBLE_SIGNATURE_LATERAL_RIGHT_MARGIN_PT, 40.0)
     font_name = "Helvetica"
-    font_size = 9.25
-    while font_size > 6.75 and overlay.stringWidth(side_text, font_name, font_size) > text_length:
-        font_size -= 0.25
+    font_size = VISIBLE_SIGNATURE_LATERAL_FONT_SIZE_PT
     side_text = _fit_text_for_width(overlay, side_text, font_name, font_size, text_length)
 
     overlay.setFillColor(color)
     overlay.setFont(font_name, font_size)
     overlay.saveState()
-    translate_x = max(right_edge - VISIBLE_SIGNATURE_LATERAL_TEXT_INSET_PT, CM_TO_PT)
-    translate_y = min(max(float(layout["y"]) + 58.0, 58.0), max(height - 10.0, 58.0))
+    translate_x = max(text_right_edge - VISIBLE_SIGNATURE_LATERAL_TEXT_INSET_PT, CM_TO_PT)
+    translate_y = text_start_y
     overlay.translate(translate_x, translate_y)
     overlay.rotate(90)
     overlay.drawString(0, 0, side_text)
     overlay.restoreState()
     _draw_visible_signature_seal(
         overlay,
-        anchor_x=min(
-            max(right_edge - VISIBLE_SIGNATURE_COCCARDA_HALF_WIDTH_PT, 16.0),
-            max(
-                width
-                - VISIBLE_SIGNATURE_LATERAL_RIGHT_MARGIN_PT
-                - VISIBLE_SIGNATURE_COCCARDA_HALF_WIDTH_PT,
-                16.0,
-            ),
-        ),
-        anchor_y=min(max(float(layout["y"]) + 17.0, 17.0), max(height - 17.0, 17.0)),
+        anchor_x=seal_anchor_x,
+        anchor_y=seal_anchor_y,
     )
 
 
@@ -722,6 +818,7 @@ def _draw_visible_signature_bottom_text(
     intestatario: str = "",
     data_firma: Any = None,
     luogo: str = "",
+    datetime_mode: str = VISIBLE_SIGNATURE_DATETIME_MODE_DATE_TIME,
 ) -> None:
     layout = layout or compute_visible_signature_layout(
         width=width,
@@ -735,6 +832,7 @@ def _draw_visible_signature_bottom_text(
         intestatario=intestatario,
         data_firma=data_firma,
         luogo=luogo,
+        datetime_mode=datetime_mode,
     )
     max_text_width = max(float(layout["box_width"]) - 58.0, 80.0)
     while font_size > 8 and max(

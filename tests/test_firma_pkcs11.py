@@ -161,10 +161,21 @@ def test_prepare_pdf_usa_get_cert_non_self_cert(monkeypatch):
 
     captured = {}
 
-    def _fake_prepare(doc, *, intestatario="", data_firma=None, luogo="", issuer="", serial="", mode="laterale"):
+    def _fake_prepare(
+        doc,
+        *,
+        intestatario="",
+        data_firma=None,
+        luogo="",
+        issuer="",
+        serial="",
+        mode="laterale",
+        datetime_mode="data_ora",
+    ):
         captured["called"] = True
         captured["issuer"] = issuer
         captured["serial"] = serial
+        captured["datetime_mode"] = datetime_mode
         return doc
 
     monkeypatch.setattr("visible_signature.prepare_document_for_signature", _fake_prepare)

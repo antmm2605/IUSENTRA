@@ -859,7 +859,14 @@ const visibleSignatureOptions: Array<{ value: VisibleSignatureMode; label: strin
   { value: 'basso_sinistra', label: 'In basso a sinistra' },
   { value: 'basso_destra', label: 'In basso a destra' },
 ]
+type VisibleSignatureDatetimeMode = 'data_ora' | 'solo_data' | 'nessuna'
+const visibleSignatureDatetimeOptions: Array<{ value: VisibleSignatureDatetimeMode; label: string }> = [
+  { value: 'data_ora', label: 'Data e ora' },
+  { value: 'solo_data', label: 'Solo data' },
+  { value: 'nessuna', label: 'Senza data' },
+]
 const visibleSignatureStorageKey = 'hacs.firma_visibile.mode'
+const visibleSignatureDatetimeStorageKey = 'hacs.firma_visibile.data_ora'
 
 declare global {
   interface Window {
@@ -885,12 +892,28 @@ function normalizeVisibleSignatureMode(value?: string): VisibleSignatureMode {
   return raw === 'basso_sinistra' || raw === 'basso_destra' ? raw : 'laterale'
 }
 
+function normalizeVisibleSignatureDatetimeMode(value?: string): VisibleSignatureDatetimeMode {
+  const raw = String(value || '').trim().toLowerCase().replace(/[-\s]+/g, '_')
+  if (['solo_data', 'data', 'date', 'giorno'].includes(raw)) return 'solo_data'
+  if (['nessuna', 'nessuno', 'none', 'off', 'senza_data', 'no'].includes(raw)) return 'nessuna'
+  return 'data_ora'
+}
+
 function loadVisibleSignatureMode(defaultMode: string): VisibleSignatureMode {
   try {
     const stored = window.localStorage.getItem(visibleSignatureStorageKey)
     return normalizeVisibleSignatureMode(stored || defaultMode)
   } catch {
     return normalizeVisibleSignatureMode(defaultMode)
+  }
+}
+
+function loadVisibleSignatureDatetimeMode(defaultMode: string): VisibleSignatureDatetimeMode {
+  try {
+    const stored = window.localStorage.getItem(visibleSignatureDatetimeStorageKey)
+    return normalizeVisibleSignatureDatetimeMode(stored || defaultMode)
+  } catch {
+    return normalizeVisibleSignatureDatetimeMode(defaultMode)
   }
 }
 
@@ -904,6 +927,7 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
   const [confirmResign, setConfirmResign] = useState(false)
   const [visibleSignatureMode, setVisibleSignatureMode] = useState<VisibleSignatureMode>('laterale')
   const [visibleSignaturePlace, setVisibleSignaturePlace] = useState('')
+  const [visibleSignatureDatetimeMode, setVisibleSignatureDatetimeMode] = useState<VisibleSignatureDatetimeMode>('data_ora')
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
@@ -943,6 +967,16 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
     setVisibleSignatureMode(normalized)
     try {
       window.localStorage.setItem(visibleSignatureStorageKey, normalized)
+    } catch {
+      // La preferenza locale e' un aiuto UX, non deve bloccare la firma.
+    }
+  }
+
+  const setVisibleSignatureDatetimeChoice = (mode: VisibleSignatureDatetimeMode) => {
+    const normalized = normalizeVisibleSignatureDatetimeMode(mode)
+    setVisibleSignatureDatetimeMode(normalized)
+    try {
+      window.localStorage.setItem(visibleSignatureDatetimeStorageKey, normalized)
     } catch {
       // La preferenza locale e' un aiuto UX, non deve bloccare la firma.
     }
@@ -1005,7 +1039,8 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
     const settings = data.signature
     setVisibleSignatureMode(loadVisibleSignatureMode(settings?.visibleSignatureMode || 'laterale'))
     setVisibleSignaturePlace(settings?.visibleSignaturePlace || '')
-  }, [data.signature?.visibleSignatureMode, data.signature?.visibleSignaturePlace])
+    setVisibleSignatureDatetimeMode(loadVisibleSignatureDatetimeMode(settings?.visibleSignatureDatetimeMode || 'data_ora'))
+  }, [data.signature?.visibleSignatureMode, data.signature?.visibleSignaturePlace, data.signature?.visibleSignatureDatetimeMode])
 
   useEffect(() => {
     refreshInfo()
@@ -1042,6 +1077,7 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
           slot_id: primaryToken.slot_id,
           visible_signature_mode: visibleSignatureMode,
           visible_signature_place: visibleSignaturePlace,
+          visible_signature_datetime_mode: visibleSignatureDatetimeMode,
         }),
       })
       const signedPayload = await signResponse.json()
@@ -1058,6 +1094,7 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
       form.append('note', 'Versione firmata tramite Local Signer')
       form.append('visible_signature_mode', visibleSignatureMode)
       form.append('visible_signature_place', visibleSignaturePlace)
+      form.append('visible_signature_datetime_mode', visibleSignatureDatetimeMode)
       if (alreadySigned && confirmResign) form.append('confirm_resign', '1')
       const uploadResponse = await fetch(firmaUrl, {
         method: 'POST',
@@ -1171,7 +1208,19 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
                       </label>
                     ))}
                   </div>
-                  {visibleSignaturePlace ? <small>Luogo: {visibleSignaturePlace}</small> : null}
+                  <label className="iu-fas-field iu-fas-visible-signature-field">
+                    <span>Luogo firma</span>
+                    <input type="text" value={visibleSignaturePlace} onChange={(event) => setVisibleSignaturePlace(event.target.value)} placeholder="Luogo da mostrare nel timbro" maxLength={48}/>
+                  </label>
+                  <span>Data e orario nel timbro</span>
+                  <div>
+                    {visibleSignatureDatetimeOptions.map((option) => (
+                      <label key={option.value}>
+                        <input type="radio" name="firma_visibile_data_ora" value={option.value} checked={visibleSignatureDatetimeMode === option.value} onChange={() => setVisibleSignatureDatetimeChoice(option.value)}/>
+                        <span>{option.label}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
             <label className="iu-fas-field">
               <span>PIN token <b>*</b></span>
@@ -1210,6 +1259,7 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
             </label>
             <input type="hidden" name="visible_signature_mode" value={visibleSignatureMode}/>
             <input type="hidden" name="visible_signature_place" value={visibleSignaturePlace}/>
+            <input type="hidden" name="visible_signature_datetime_mode" value={visibleSignatureDatetimeMode}/>
             {alreadySigned ? (
               <label className="iu-fas-resign-confirm">
                 <input type="checkbox" checked={confirmResign} onChange={(event) => setConfirmResign(event.target.checked)}/>

@@ -361,10 +361,15 @@ def test_react_firma_documento_profonda_non_degrada_a_dettaglio_generico():
     assert "localSignerEndpoint('/diagnosi')" in source
     assert "visible_signature_mode: visibleSignatureMode" in source
     assert "visible_signature_place: visibleSignaturePlace" in source
+    assert "visible_signature_datetime_mode: visibleSignatureDatetimeMode" in source
     assert "form.append('visible_signature_mode', visibleSignatureMode)" in source
     assert "form.append('visible_signature_place', visibleSignaturePlace)" in source
+    assert "form.append('visible_signature_datetime_mode', visibleSignatureDatetimeMode)" in source
     assert 'name="visible_signature_mode" value={visibleSignatureMode}' in source
     assert 'name="visible_signature_place" value={visibleSignaturePlace}' in source
+    assert 'name="visible_signature_datetime_mode" value={visibleSignatureDatetimeMode}' in source
+    assert "Data e orario nel timbro" in source
+    assert "Luogo firma" in source
     assert "basso_sinistra" in source
     assert "basso_destra" in source
     assert "Attenzione: documento già firmato." in source
@@ -2765,6 +2770,7 @@ def test_react_fascicoli_api_suite_usa_repository_reali(tmp_path: Path):
     assert detail["fascicolo"]["title"] == "Appello civile"
     assert detail["signature"]["visibleSignatureMode"] == "laterale"
     assert "visibleSignaturePlace" in detail["signature"]
+    assert detail["signature"]["visibleSignatureDatetimeMode"] == "data_ora"
     assert any(party["name"] == "Zurich Ass.ni" and party["role"] == "Controparte" for party in detail["parties"])
     assert any(party["name"] == "Moscato Marco" and party["role"] == "Cliente / assistito" for party in detail["parties"])
     assert any(item["label"] == "Parti" and item["value"] == f"{len(detail['parties'])} soggetti" for item in detail["quality"])

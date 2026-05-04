@@ -4,8 +4,10 @@
   id="{{ prefix }}VisibleSignatureRoot"
   data-firma-visibile-root="true"
   data-signature-mode-name="{{ prefix }}_firma_visibile_mode"
+  data-signature-datetime-mode-name="{{ prefix }}_firma_visibile_datetime_mode"
   data-signature-place="{{ place }}"
   data-signature-default-mode="{{ mode }}"
+  data-signature-default-datetime-mode="data_ora"
 >
   <div class="fw-semibold mb-1">Modalità firma visibile nel PDF</div>
   <div class="text-muted mb-2">
@@ -52,6 +54,55 @@
         <span class="text-muted">
           Testo orizzontale su due righe in basso a destra, mantenendo il comportamento precedente.
         </span>
+      </span>
+    </label>
+  </div>
+  <label class="form-label fw-semibold mt-3 mb-1" for="{{ prefix }}FirmaVisibilePlace">Luogo firma</label>
+  <input
+    id="{{ prefix }}FirmaVisibilePlace"
+    class="form-control form-control-sm"
+    data-firma-visibile-place-input="true"
+    type="text"
+    value="{{ place }}"
+    maxlength="48"
+    placeholder="Luogo da mostrare nel timbro"
+  >
+  <div class="fw-semibold mt-3 mb-2">Data e orario nel timbro</div>
+  <div class="d-grid gap-2">
+    <label class="border rounded px-3 py-2 d-flex gap-2 align-items-start">
+      <input
+        class="form-check-input mt-1"
+        type="radio"
+        name="{{ prefix }}_firma_visibile_datetime_mode"
+        value="data_ora"
+      >
+      <span>
+        <span class="fw-semibold d-block">Data e ora</span>
+        <span class="text-muted">Mostra giorno e orario di firma in formato italiano.</span>
+      </span>
+    </label>
+    <label class="border rounded px-3 py-2 d-flex gap-2 align-items-start">
+      <input
+        class="form-check-input mt-1"
+        type="radio"
+        name="{{ prefix }}_firma_visibile_datetime_mode"
+        value="solo_data"
+      >
+      <span>
+        <span class="fw-semibold d-block">Solo data</span>
+        <span class="text-muted">Mostra soltanto il giorno di firma.</span>
+      </span>
+    </label>
+    <label class="border rounded px-3 py-2 d-flex gap-2 align-items-start">
+      <input
+        class="form-check-input mt-1"
+        type="radio"
+        name="{{ prefix }}_firma_visibile_datetime_mode"
+        value="nessuna"
+      >
+      <span>
+        <span class="fw-semibold d-block">Senza data</span>
+        <span class="text-muted">Nasconde data e orario dalla dicitura visibile.</span>
       </span>
     </label>
   </div>

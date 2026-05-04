@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.198.53 - 2026-05-04
+
+- Chiusa la firma visibile laterale dei documenti PDF: il timbro viene applicato su tutte le pagine, con coccarda in basso a destra, testo verticale a 8 pt e campi `Firmato Da`, `Emesso Da` e `Serial#`.
+- Allineata la geometria alla vista ministeriale allegata: testo con margine destro di 3 mm, coccarda con margine destro di 1 mm e distanza di 2 mm dal testo.
+- Aggiunte nelle superfici React e Jinja le opzioni operative per `Luogo firma` e per mostrare data e ora, solo data oppure nessuna data nel timbro visibile.
+- Aggiornato Local Signer a `1.6.25` e rigenerati gli installer con lo stesso motore di firma visibile usato dal server.
+
 ## 2.198.52 - 2026-05-03
 
 - Precisata la geometria della firma visibile laterale: il bordo destro del timbro PDF resta a 4 mm dal margine pagina, mantenendo invariato il testo verticale generato nella prova `firma_visibile_laterale.pdf`.

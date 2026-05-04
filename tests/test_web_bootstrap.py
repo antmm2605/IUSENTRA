@@ -1635,9 +1635,15 @@ def test_modal_firma_deposito_prevede_riavvio_local_signer():
     assert "In basso a destra" in selector
     assert 'data-signature-place="{{ place }}"' in selector
     assert 'data-signature-default-mode="{{ mode }}"' in selector
+    assert 'data-signature-datetime-mode-name="{{ prefix }}_firma_visibile_datetime_mode"' in selector
+    assert "Luogo firma" in selector
+    assert "Data e orario nel timbro" in selector
+    assert "visible_signature_datetime_mode: _detFFirmaVisibleDatetimeMode()" in dettaglio
+    assert "visible_signature_datetime_mode: _depositoFirmaVisibleDatetimeMode()" in deposito
     assert "window.HacsFirmaVisibileMode" in helper_js
     assert "getSelectedMode" in helper_js
     assert "getSignaturePlace" in helper_js
+    assert "getSelectedDatetimeMode" in helper_js
 
 
 def test_cockpit_fascicolo_unifica_quadro_workflow_e_controlli_operativi():

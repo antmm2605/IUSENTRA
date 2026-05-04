@@ -4,56 +4,17 @@ from __future__ import annotations
 
 import io
 import os
-import re
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
 from flask import Flask, flash, g, jsonify, redirect, request, send_file, url_for
 
-
-def _resolve_pkcs11_runtime_config(cfg_firma: Any, slot_raw: Any) -> Any:
-    from dataclasses import replace as _dc_replace
-
-    slot = None
-    if slot_raw is not None:
-        try:
-            slot = int(slot_raw)
-        except (ValueError, TypeError):
-            slot = None
-    elif cfg_firma:
-        slot_cfg = getattr(cfg_firma, "pkcs11_slot", "")
-        if str(slot_cfg).strip().isdigit():
-            slot = int(slot_cfg)
-    label = getattr(cfg_firma, "pkcs11_label", "") if cfg_firma else None
-
-    cfg_runtime = _dc_replace(cfg_firma, pkcs11_slot=str(slot)) if slot is not None else cfg_firma
-    if label:
-        cfg_runtime = _dc_replace(cfg_runtime, pkcs11_label=label)
-    return cfg_runtime
-
-
-_FIRMA_VISIBILE_MODE_LABELS = {
-    "laterale": "Laterale verticale",
-    "basso_sinistra": "In basso a sinistra",
-    "basso_destra": "In basso a destra",
-}
-
-
-def _nota_con_firma_visibile(note: str, mode: str, place: str = "") -> str:
-    base = str(note or "Versione firmata per deposito").strip()
-    base = re.sub(
-        r"\s*\.?\s*Posizione firma visibile:\s*[^.;\n]+(?:[.;]\s*Luogo firma:\s*[^.;\n]+)?\.?\s*$",
-        "",
-        base,
-        flags=re.IGNORECASE,
-    ).strip()
-    label = _FIRMA_VISIBILE_MODE_LABELS.get(str(mode or "").strip(), _FIRMA_VISIBILE_MODE_LABELS["laterale"])
-    dettagli = [f"Posizione firma visibile: {label}"]
-    place = str(place or "").strip()
-    if place:
-        dettagli.append(f"Luogo firma: {place}")
-    return f"{base.rstrip('. ')}. {'; '.join(dettagli)}."
+from web.services.fascicoli_signature_options import (
+    normalizza_data_ora_firma_visibile,
+    nota_con_firma_visibile,
+    resolve_pkcs11_runtime_config,
+)
 
 
 def _attestazione_conformita_pdf(data_raw: bytes, testo: str) -> bytes:
@@ -124,6 +85,7 @@ def register_fascicoli_signature_routes(
         formato: str,
         visible_signature_mode: str,
         visible_signature_place: str,
+        visible_signature_datetime_mode: str = "data_ora",
     ):
         try:
             return firma.salva_documento_firmato(
@@ -132,9 +94,14 @@ def register_fascicoli_signature_routes(
                 formato=formato,
                 visible_signature_mode=visible_signature_mode,
                 visible_signature_place=visible_signature_place,
+                visible_signature_datetime_mode=visible_signature_datetime_mode,
             )
         except TypeError as exc:
-            if "visible_signature_mode" not in str(exc) and "visible_signature_place" not in str(exc):
+            if (
+                "visible_signature_mode" not in str(exc)
+                and "visible_signature_place" not in str(exc)
+                and "visible_signature_datetime_mode" not in str(exc)
+            ):
                 raise
             return firma.salva_documento_firmato(
                 contenuto,
@@ -199,6 +166,9 @@ def register_fascicoli_signature_routes(
                 str(data.get("visible_signature_mode") or getattr(cfg_firma, "visible_signature_mode", "laterale")).strip()
             )
             visible_signature_place = str(data.get("visible_signature_place") or luogo_timbro_firma_visibile()).strip()
+            visible_signature_datetime_mode = normalizza_data_ora_firma_visibile(
+                data.get("visible_signature_datetime_mode")
+            )
 
             if not id_fasc or not id_doc:
                 return jsonify({"ok": False, "messaggio": "fascicolo_id e documento_id obbligatori."}), 400
@@ -246,7 +216,7 @@ def register_fascicoli_signature_routes(
             with open(doc_path, "rb") as fh:
                 contenuto = fh.read()
 
-            cfg_firma_runtime = _resolve_pkcs11_runtime_config(cfg_firma, data.get("slot_id"))
+            cfg_firma_runtime = resolve_pkcs11_runtime_config(cfg_firma, data.get("slot_id"))
             with crea_signer_da_config(cfg_firma_runtime, pin=pin) as firma:
                 stato_cert = firma.verifica_scadenza()
                 if stato_cert["scaduto"]:
@@ -260,6 +230,7 @@ def register_fascicoli_signature_routes(
                     formato="cades",
                     visible_signature_mode=visible_signature_mode,
                     visible_signature_place=visible_signature_place,
+                    visible_signature_datetime_mode=visible_signature_datetime_mode,
                 )
                 firmato_path = output_path if output_path.endswith(".p7m") else str(doc_path) + ".p7m"
                 intestatario = firma.intestatario
@@ -285,10 +256,11 @@ def register_fascicoli_signature_routes(
                 nome_file=nome_firmato,
                 contenuto=encrypt_doc(contenuto_firmato),
                 caricato_da=utente.username if utente else "",
-                note=_nota_con_firma_visibile(
+                note=nota_con_firma_visibile(
                     "Versione firmata per deposito",
                     visible_signature_mode,
                     visible_signature_place,
+                    visible_signature_datetime_mode,
                 ),
             )
             gestore_fascicoli.segna_firmato(id_fasc, id_doc)
@@ -320,6 +292,7 @@ def register_fascicoli_signature_routes(
                     "warning": bool(warning_codes),
                     "warning_codes": warning_codes,
                     "visible_signature_mode": visible_signature_mode,
+                    "visible_signature_datetime_mode": visible_signature_datetime_mode,
                 }
             )
         except Exception as exc:
@@ -343,6 +316,9 @@ def register_fascicoli_signature_routes(
                 str(data.get("visible_signature_mode") or getattr(cfg_firma, "visible_signature_mode", "laterale")).strip()
             )
             visible_signature_place = str(data.get("visible_signature_place") or luogo_timbro_firma_visibile()).strip()
+            visible_signature_datetime_mode = normalizza_data_ora_firma_visibile(
+                data.get("visible_signature_datetime_mode")
+            )
 
             if not id_fasc or not documento_ids:
                 return jsonify({"ok": False, "messaggio": "fascicolo_id e documento_ids obbligatori."}), 400
@@ -378,7 +354,7 @@ def register_fascicoli_signature_routes(
             if not fascicolo:
                 return jsonify({"ok": False, "messaggio": "Fascicolo non trovato."}), 404
 
-            cfg_firma_runtime = _resolve_pkcs11_runtime_config(cfg_firma, data.get("slot_id"))
+            cfg_firma_runtime = resolve_pkcs11_runtime_config(cfg_firma, data.get("slot_id"))
             risultati = []
             firmati = 0
             saltati = 0
@@ -425,6 +401,7 @@ def register_fascicoli_signature_routes(
                         formato="cades",
                         visible_signature_mode=visible_signature_mode,
                         visible_signature_place=visible_signature_place,
+                        visible_signature_datetime_mode=visible_signature_datetime_mode,
                     )
                     firmato_path = str(doc_path) + ".p7m"
                     nome_firmato = documento.nome if documento.nome.endswith(".p7m") else f"{documento.nome}.p7m"
@@ -457,10 +434,11 @@ def register_fascicoli_signature_routes(
                         nome_file=nome_firmato,
                         contenuto=encrypt_doc(contenuto_firmato),
                         caricato_da=utente.username if utente else "",
-                        note=_nota_con_firma_visibile(
+                        note=nota_con_firma_visibile(
                             "Versione firmata per deposito",
                             visible_signature_mode,
                             visible_signature_place,
+                            visible_signature_datetime_mode,
                         ),
                     )
                     gestore_fascicoli.segna_firmato(id_fasc, id_doc)
@@ -508,6 +486,7 @@ def register_fascicoli_signature_routes(
                     "warning": bool(warning_codes),
                     "warning_codes": warning_codes,
                     "visible_signature_mode": visible_signature_mode,
+                    "visible_signature_datetime_mode": visible_signature_datetime_mode,
                     "messaggio": f"Firma batch completata: {firmati} firmati, {saltati} già firmati, {errori} errori.",
                 }
             )
@@ -575,6 +554,9 @@ def register_fascicoli_signature_routes(
                     str(request.form.get("visible_signature_mode") or getattr(cfg_firma, "visible_signature_mode", "laterale")).strip()
                 )
                 visible_signature_place = str(request.form.get("visible_signature_place") or luogo_timbro_firma_visibile()).strip()
+                visible_signature_datetime_mode = normalizza_data_ora_firma_visibile(
+                    request.form.get("visible_signature_datetime_mode")
+                )
                 payload_firmato = file.read()
                 if getattr(cfg_firma, "configurato", False):
                     est = Path(file.filename or "").suffix.lower()
@@ -591,10 +573,11 @@ def register_fascicoli_signature_routes(
                         raise ValueError(
                             "Il file .p7m caricato non contiene una firma CAdES valida. Non caricare PDF rinominati in .p7m: verifica prima il file in ArubaSign o Dike."
                         )
-                note = _nota_con_firma_visibile(
+                note = nota_con_firma_visibile(
                     request.form.get("note", "Versione firmata per deposito").strip(),
                     visible_signature_mode,
                     visible_signature_place,
+                    visible_signature_datetime_mode,
                 )
                 avvisi_storage = salva_documento_firmato_resiliente(
                     gf=gestore_fascicoli,

@@ -237,6 +237,7 @@ class FirmaDigitale:
         *,
         visible_signature_mode: str = "laterale",
         visible_signature_place: str = "",
+        visible_signature_datetime_mode: str = "data_ora",
     ) -> bytes:
         luogo = resolve_visible_signature_place(
             city=visible_signature_place or os.getenv("PCT_STUDIO_CITY", ""),
@@ -258,6 +259,7 @@ class FirmaDigitale:
             issuer=issuer_cn,
             serial=format(getattr(self._certificate, "serial_number", 0), "X"),
             mode=visible_signature_mode,
+            datetime_mode=visible_signature_datetime_mode,
         )
 
     def firma_cades(
@@ -267,6 +269,7 @@ class FirmaDigitale:
         *,
         visible_signature_mode: str = "laterale",
         visible_signature_place: str = "",
+        visible_signature_datetime_mode: str = "data_ora",
     ) -> bytes:
         """
         Firma un documento in formato CAdES (.p7m).
@@ -283,6 +286,7 @@ class FirmaDigitale:
                 documento,
                 visible_signature_mode=visible_signature_mode,
                 visible_signature_place=visible_signature_place,
+                visible_signature_datetime_mode=visible_signature_datetime_mode,
             )
         builder = pkcs7.PKCS7SignatureBuilder()
         builder = builder.set_data(documento)
@@ -305,6 +309,7 @@ class FirmaDigitale:
         *,
         visible_signature_mode: str = "laterale",
         visible_signature_place: str = "",
+        visible_signature_datetime_mode: str = "data_ora",
     ) -> str:
         """
         Firma un PDF in formato PAdES (firma incorporata nel PDF).
@@ -328,6 +333,7 @@ class FirmaDigitale:
                 original_pdf,
                 visible_signature_mode=visible_signature_mode,
                 visible_signature_place=visible_signature_place,
+                visible_signature_datetime_mode=visible_signature_datetime_mode,
             )
             if prepared_pdf != original_pdf:
                 with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_visible:
@@ -366,6 +372,7 @@ class FirmaDigitale:
         *,
         visible_signature_mode: str = "laterale",
         visible_signature_place: str = "",
+        visible_signature_datetime_mode: str = "data_ora",
     ) -> str:
         """
         Firma e salva un documento.
@@ -380,12 +387,23 @@ class FirmaDigitale:
         """
         if formato == "cades":
             detached = not documento.startswith(b"%PDF")
-            firmato = self.firma_cades(
-                documento,
-                detached=detached,
-                visible_signature_mode=visible_signature_mode,
-                visible_signature_place=visible_signature_place,
-            )
+            try:
+                firmato = self.firma_cades(
+                    documento,
+                    detached=detached,
+                    visible_signature_mode=visible_signature_mode,
+                    visible_signature_place=visible_signature_place,
+                    visible_signature_datetime_mode=visible_signature_datetime_mode,
+                )
+            except TypeError as exc:
+                if "visible_signature_datetime_mode" not in str(exc):
+                    raise
+                firmato = self.firma_cades(
+                    documento,
+                    detached=detached,
+                    visible_signature_mode=visible_signature_mode,
+                    visible_signature_place=visible_signature_place,
+                )
             out = output_path if output_path.endswith(".p7m") else output_path + ".p7m"
             with open(out, "wb") as f:
                 f.write(firmato)
@@ -402,9 +420,14 @@ class FirmaDigitale:
                         output_path,
                         visible_signature_mode=visible_signature_mode,
                         visible_signature_place=visible_signature_place,
+                        visible_signature_datetime_mode=visible_signature_datetime_mode,
                     )
                 except TypeError as exc:
-                    if "visible_signature_mode" not in str(exc) and "visible_signature_place" not in str(exc):
+                    if (
+                        "visible_signature_mode" not in str(exc)
+                        and "visible_signature_place" not in str(exc)
+                        and "visible_signature_datetime_mode" not in str(exc)
+                    ):
                         raise
                     return self.firma_pades(tmp_path, output_path)
             finally:

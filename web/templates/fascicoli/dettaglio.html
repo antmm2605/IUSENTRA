@@ -4456,6 +4456,15 @@ function _detFFirmaVisiblePlace() {
     : '';
 }
 
+function _detFFirmaVisibleDatetimeMode() {
+  return window.HacsFirmaVisibileMode
+    ? window.HacsFirmaVisibileMode.getSelectedDatetimeMode(
+        'dettaglioFirma_firma_visibile_datetime_mode',
+        '#dettaglioFirmaVisibleSignatureRoot',
+      )
+    : 'data_ora';
+}
+
 function _detFUploadWarningText(payload) {
   if (!payload || !payload.warning) return '';
   const codes = Array.isArray(payload.warning_codes) ? payload.warning_codes : [];
@@ -4678,6 +4687,7 @@ function _detFAvviaLS() {
           slot_id: _detFLsSlot,
           visible_signature_mode: _detFFirmaVisibleMode(),
           visible_signature_place: _detFFirmaVisiblePlace(),
+          visible_signature_datetime_mode: _detFFirmaVisibleDatetimeMode(),
         }),
       });
     })
@@ -4745,6 +4755,7 @@ function _detFAvviaPkcs11() {
       slot_id: _detFPkcsSlot,
       visible_signature_mode: _detFFirmaVisibleMode(),
       visible_signature_place: _detFFirmaVisiblePlace(),
+      visible_signature_datetime_mode: _detFFirmaVisibleDatetimeMode(),
     }),
   })
   .then(r => r.json())

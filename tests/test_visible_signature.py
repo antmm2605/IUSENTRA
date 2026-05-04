@@ -8,7 +8,13 @@ from reportlab.pdfgen import canvas
 
 from visible_signature import (
     VISIBLE_SIGNATURE_METADATA_KEY,
+    VISIBLE_SIGNATURE_COCCARDA_HALF_WIDTH_PT,
+    VISIBLE_SIGNATURE_COCCARDA_HEIGHT_PT,
+    VISIBLE_SIGNATURE_LATERAL_FONT_SIZE_PT,
     VISIBLE_SIGNATURE_LATERAL_RIGHT_MARGIN_PT,
+    VISIBLE_SIGNATURE_LATERAL_SEAL_BOTTOM_MARGIN_PT,
+    VISIBLE_SIGNATURE_LATERAL_SEAL_RIGHT_MARGIN_PT,
+    VISIBLE_SIGNATURE_LATERAL_SEAL_TEXT_GAP_PT,
     VISIBLE_SIGNATURE_LATERAL_TEXT_INSET_PT,
     VISIBLE_SIGNATURE_MODE_BASSO_DESTRA,
     VISIBLE_SIGNATURE_MODE_BASSO_SINISTRA,
@@ -22,17 +28,22 @@ from visible_signature import (
     compute_visible_signature_layout,
     format_visible_signature_datetime,
     has_visible_signature_stamp,
+    normalize_visible_signature_datetime_mode,
     normalize_visible_signature_mode,
     resolve_visible_signature_place,
 )
 
 
-def _make_pdf_bytes() -> bytes:
+def _make_pdf_bytes(pages: int = 1) -> bytes:
     buffer = io.BytesIO()
     pdf = canvas.Canvas(buffer, pagesize=A4)
-    pdf.setFont("Times-Roman", 12)
-    pdf.drawString(72, 780, "R.G.N. 191/2023")
-    pdf.drawString(72, 540, "Contenuto di prova per la firma visibile.")
+    page_count = max(int(pages or 1), 1)
+    for page in range(page_count):
+        pdf.setFont("Times-Roman", 12)
+        pdf.drawString(72, 780, f"R.G.N. 191/2023 - pagina {page + 1}")
+        pdf.drawString(72, 540, "Contenuto di prova per la firma visibile.")
+        if page < page_count - 1:
+            pdf.showPage()
     pdf.save()
     return buffer.getvalue()
 
@@ -68,6 +79,24 @@ def test_normalize_visible_signature_mode_aliases():
 
     for raw, expected in cases.items():
         assert normalize_visible_signature_mode(raw) == expected
+
+
+def test_normalize_visible_signature_datetime_mode_aliases():
+    assert normalize_visible_signature_datetime_mode("data e ora") == "data_ora"
+    assert normalize_visible_signature_datetime_mode("solo-data") == "solo_data"
+    assert normalize_visible_signature_datetime_mode("senza_data") == "nessuna"
+    assert normalize_visible_signature_datetime_mode("valore") == "data_ora"
+
+
+def test_format_visible_signature_datetime_supporta_solo_data_e_nessuna():
+    assert (
+        format_visible_signature_datetime("2026-04-14T11:32:00+02:00", datetime_mode="solo_data")
+        == "14/04/2026"
+    )
+    assert (
+        format_visible_signature_datetime("2026-04-14T11:32:00+02:00", datetime_mode="nessuna")
+        == ""
+    )
 
 
 def test_compute_visible_signature_layout_non_usa_coordinate_fisse_a4():
@@ -108,6 +137,7 @@ def test_apply_visible_signature_stamp_adds_vertical_mark_and_metadata():
     assert "Data e ora firma: 14/04/2026 alle ore 11:32" in text
     assert "Luogo firma: TAURIANOVA" in text
     assert "Emesso Da: ArubaPEC per firma qualificata" in text
+    assert "Serial#: 123ABC" in text
     # il seriale può essere troncato nel testo laterale stretto; verificato nei metadati
     assert "ArubaPEC per firma qualificata" in str(metadata.get(VISIBLE_SIGNATURE_METADATA_KEY, ""))
     assert "123ABC" in str(metadata.get(VISIBLE_SIGNATURE_METADATA_KEY, ""))
@@ -172,14 +202,34 @@ def test_visible_signature_side_text_espone_tutto_su_unica_riga_verticale():
         data_firma="2026-04-14T09:32:00+00:00",
         luogo="Taurianova",
         issuer="ArubaPEC EU Authentication Certificates CA G1",
+        serial="5334A39896de22a7",
     )
 
     assert side_text == (
-        "Firmato Da: AVV. ANTONIO MAMMOLA | "
-        "Data e ora firma: 14/04/2026 alle ore 11:32 | "
-        "Luogo firma: TAURIANOVA | "
-        "Emesso Da: ArubaPEC EU Authentication Certificates CA G1"
+        "Firmato Da: AVV. ANTONIO MAMMOLA, "
+        "Data e ora firma: 14/04/2026 alle ore 11:32, "
+        "Luogo firma: TAURIANOVA, "
+        "Emesso Da: ArubaPEC EU Authentication Certificates CA G1, "
+        "Serial#: 5334A39896de22a7"
     )
+
+
+def test_apply_visible_signature_stamp_applica_timbro_su_tutte_le_pagine():
+    stamped = apply_visible_signature_stamp(
+        _make_pdf_bytes(pages=3),
+        intestatario="Avv. Antonio Mammola",
+        data_firma="2026-04-14T11:32:00+02:00",
+        luogo="Taurianova",
+        issuer="ArubaPEC per firma qualificata",
+        serial="123ABC",
+        mode=VISIBLE_SIGNATURE_MODE_LATERALE,
+    )
+
+    reader = PdfReader(io.BytesIO(stamped))
+    assert len(reader.pages) == 3
+    for page in reader.pages:
+        assert "Firmato Da: AVV. ANTONIO MAMMOLA" in (page.extract_text() or "")
+    assert "Pagine timbrate: 3" in str((reader.metadata or {}).get(VISIBLE_SIGNATURE_METADATA_KEY, ""))
 
 
 def test_apply_visible_signature_stamp_non_duplica_timbro_se_gia_presente():
@@ -381,13 +431,16 @@ def test_lateral_signature_leaves_gap_between_coccarda_and_text(monkeypatch):
     assert seal_calls
     assert fonts
     assert abs(translations[0][0] - (expected_right_edge - VISIBLE_SIGNATURE_LATERAL_TEXT_INSET_PT)) <= 0.75
-    assert translations[0][1] - seal_calls[0]["anchor_y"] >= 20.0
-    assert seal_calls[0]["anchor_x"] <= expected_right_edge
-    assert seal_calls[0]["anchor_x"] >= expected_right_edge - 13.0
-    assert fonts[0][1] <= 9.5
+    expected_gap = (VISIBLE_SIGNATURE_COCCARDA_HEIGHT_PT / 2.0) + VISIBLE_SIGNATURE_LATERAL_SEAL_TEXT_GAP_PT
+    assert abs((translations[0][1] - seal_calls[0]["anchor_y"]) - expected_gap) <= 0.75
+    expected_seal_anchor_x = 595.0 - VISIBLE_SIGNATURE_LATERAL_SEAL_RIGHT_MARGIN_PT - VISIBLE_SIGNATURE_COCCARDA_HALF_WIDTH_PT
+    assert abs(seal_calls[0]["anchor_x"] - expected_seal_anchor_x) <= 0.75
+    expected_seal_anchor_y = VISIBLE_SIGNATURE_LATERAL_SEAL_BOTTOM_MARGIN_PT + (VISIBLE_SIGNATURE_COCCARDA_HEIGHT_PT / 2.0)
+    assert abs(seal_calls[0]["anchor_y"] - expected_seal_anchor_y) <= 0.75
+    assert fonts[0][1] == VISIBLE_SIGNATURE_LATERAL_FONT_SIZE_PT
 
 
-def test_lateral_signature_layout_usa_margine_destro_di_quattro_millimetri():
+def test_lateral_signature_layout_usa_margine_destro_testo_di_tre_millimetri():
     layout = compute_visible_signature_layout(width=595.0, height=842.0, mode=VISIBLE_SIGNATURE_MODE_LATERALE)
     expected_right_edge = 595.0 - VISIBLE_SIGNATURE_LATERAL_RIGHT_MARGIN_PT
 

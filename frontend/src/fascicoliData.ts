@@ -220,7 +220,7 @@ export type FascicoloDetailData = {
   workflow: Array<{ label: string; value: string; note: string; tone: Tone; href: string }>
   telematic: Array<{ label: string; value: string; note: string; href: string; tone: Tone }>
   quality: Array<{ label: string; value: string; ok: boolean; tone: Tone }>
-  signature: { visibleSignatureMode: string; visibleSignaturePlace: string }
+  signature: { visibleSignatureMode: string; visibleSignaturePlace: string; visibleSignatureDatetimeMode: string }
   actions: {
     changeState: string
     define: string
@@ -335,7 +335,7 @@ export const emptyFascicoloDetail: FascicoloDetailData = {
   },
   quickCounts: {}, profile: [], documents: [], activities: [], deadlines: [], appointments: [], deposits: [], requests: [], parties: [], history: [],
   economics: [], workflow: [], telematic: [], quality: [],
-  signature: { visibleSignatureMode: 'laterale', visibleSignaturePlace: '' },
+  signature: { visibleSignatureMode: 'laterale', visibleSignaturePlace: '', visibleSignatureDatetimeMode: 'data_ora' },
   actions: { changeState: '', define: '', archive: '', restore: '', delete: '', uploadDocument: '', importPortal: '', addActivity: '', complianceOn: '', complianceOff: '', exportPdf: '', archiveZip: '' },
   options: { states: [], documentTypes: [], activityTypes: [], activityResults: [] },
 }
@@ -645,6 +645,7 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
     signature: isRecord(payload.signature) ? {
       visibleSignatureMode: text(payload.signature.visibleSignatureMode ?? payload.signature.visible_signature_mode, 'laterale'),
       visibleSignaturePlace: text(payload.signature.visibleSignaturePlace ?? payload.signature.visible_signature_place),
+      visibleSignatureDatetimeMode: text(payload.signature.visibleSignatureDatetimeMode ?? payload.signature.visible_signature_datetime_mode, 'data_ora'),
     } : emptyFascicoloDetail.signature,
     actions: isRecord(payload.actions) ? {
       changeState: text(payload.actions.changeState), define: text(payload.actions.define), archive: text(payload.actions.archive), restore: text(payload.actions.restore), delete: text(payload.actions.delete), uploadDocument: text(payload.actions.uploadDocument), importPortal: text(payload.actions.importPortal), addActivity: text(payload.actions.addActivity), complianceOn: text(payload.actions.complianceOn), complianceOff: text(payload.actions.complianceOff), exportPdf: text(payload.actions.exportPdf), archiveZip: text(payload.actions.archiveZip),

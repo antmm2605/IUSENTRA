@@ -32,7 +32,11 @@ def _signature_settings(get_config_studio: Callable[[], Any] | None) -> dict[str
     mode = "laterale"
     place = ""
     if not callable(get_config_studio):
-        return {"visibleSignatureMode": mode, "visibleSignaturePlace": place}
+        return {
+            "visibleSignatureMode": mode,
+            "visibleSignaturePlace": place,
+            "visibleSignatureDatetimeMode": "data_ora",
+        }
     try:
         from visible_signature import normalize_visible_signature_mode, resolve_visible_signature_place
 
@@ -47,7 +51,11 @@ def _signature_settings(get_config_studio: Callable[[], Any] | None) -> dict[str
         )
     except Exception:
         pass
-    return {"visibleSignatureMode": mode, "visibleSignaturePlace": place}
+    return {
+        "visibleSignatureMode": mode,
+        "visibleSignaturePlace": place,
+        "visibleSignatureDatetimeMode": "data_ora",
+    }
 
 
 def _enum_value(value: Any) -> str:

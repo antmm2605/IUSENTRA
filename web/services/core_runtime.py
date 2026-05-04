@@ -91,9 +91,12 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
     app.config["FASCICOLI_ARCH"] = cfg.get(
         "FASCICOLI_ARCH", os.getenv("PCT_FASCICOLI_ARCH", "./fascicoli/archivio")
     )
+    default_practice_engine_db = os.getenv("PCT_PRACTICE_ENGINE_DB") or str(
+        Path(app.config["FASCICOLI_DB"]).parent / "practice_engine" / "practice_engine.json"
+    )
     app.config["PRACTICE_ENGINE_DB"] = cfg.get(
         "PRACTICE_ENGINE_DB",
-        os.getenv("PCT_PRACTICE_ENGINE_DB", "./fascicoli/practice_engine/practice_engine.json"),
+        default_practice_engine_db,
     )
     app.config["PST_IMPORT_DIR"] = cfg.get(
         "PST_IMPORT_DIR",

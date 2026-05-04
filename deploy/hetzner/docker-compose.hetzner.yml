@@ -23,6 +23,7 @@ x-iusentra-env: &iusentra-env
   PCT_FASCICOLI_DB: /data/fascicoli/fascicoli.json
   PCT_FASCICOLI_DOCS: /data/fascicoli/documenti
   PCT_FASCICOLI_ARCH: /data/fascicoli/archivio
+  PCT_PRACTICE_ENGINE_DB: /data/fascicoli/practice_engine/practice_engine.json
   PCT_MESSAGGI_DB: /data/messaggi/storico.json
   PCT_EMAIL_DB: /data/email/casella.json
   PCT_EMAIL_ORDINARIA_DB: /data/email/ordinaria.json

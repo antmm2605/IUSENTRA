@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.198.55 - 2026-05-04
+
+- Corretto il runtime tenant-aware della Regia Operativa Fascicolo: `PRACTICE_ENGINE_DB` viene ora risolto sotto il data root dello studio (`fascicoli/practice_engine/practice_engine.json`) invece di ricadere sul path relativo `./fascicoli/...` dentro il container.
+- Allineati provisioning tenant, bootstrap legacy, profilo Hetzner, Dockerfile e test anti-regressione per impedire il ritorno del `Permission denied` che faceva fallire l'API dettaglio fascicolo React e mostrava "Fascicolo non trovato".
+
 ## 2.198.54 - 2026-05-04
 
 - Introdotta la Regia Operativa Fascicolo / Practice Engine: profili pratica derivati dal catalogo operativo, checklist dinamiche, slot documentali, validatori, stato operativo, predeposito, sessioni deposito, ricevute, timeline, evidence pack e audit.

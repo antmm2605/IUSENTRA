@@ -112,6 +112,43 @@ def test_gestione_tenant_provision_storage_backend_creates_sqlite_and_manifest(t
     assert manifest["activation_state"] == "active"
 
 
+def test_practice_engine_default_follows_fascicoli_data_root(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg(tmp_path))
+
+    assert Path(app.config["PRACTICE_ENGINE_DB"]) == (
+        tmp_path / "fascicoli" / "practice_engine" / "practice_engine.json"
+    )
+
+
+def test_tenant_paths_include_practice_engine_storage(tmp_path: Path):
+    registry = tmp_path / "tenants.json"
+    tm = GestioneTenant(str(registry))
+    studio = tm.crea("Studio Regia", "studio-regia", db_config={"mode": "SQLITE"})
+
+    paths = tm.percorsi_dati(studio.slug)
+
+    assert Path(paths["PRACTICE_ENGINE_DB"]) == (
+        tmp_path / "tenants" / "studio-regia" / "fascicoli" / "practice_engine" / "practice_engine.json"
+    )
+    assert Path(paths["PRACTICE_ENGINE_DB"]).parent.exists()
+
+
+def test_core_runtime_uses_tenant_practice_engine_path(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg(tmp_path))
+    tm = GestioneTenant(app.config["TENANTS_REGISTRY"])
+    studio = tm.crea("Studio Regia", "studio-regia", db_config={"mode": "SQLITE"})
+    paths = tm.percorsi_dati(studio.slug)
+
+    with app.test_request_context("/"):
+        g.data_paths = paths
+        repo = app.extensions["core_runtime"]["get_practice_engine"]()
+
+    assert repo.db_path == Path(paths["PRACTICE_ENGINE_DB"])
+    assert repo.root_dir == Path(paths["PRACTICE_ENGINE_DB"]).parent
+
+
 def test_superadmin_can_create_studio_with_sqlite_strategy(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg(tmp_path))

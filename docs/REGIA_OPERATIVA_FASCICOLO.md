@@ -18,11 +18,13 @@ Lex AI puo' spiegare o assistere, ma la validita' della pratica e del deposito r
 
 ## Storage
 
-Runtime JSON tenant-aware:
+Runtime JSON tenant-aware sotto il data root scrivibile dello studio:
 
 - `fascicoli/practice_engine/practice_engine.json`
 - `fascicoli/practice_engine/receipts/`
 - `fascicoli/practice_engine/evidence_packs/`
+
+Nei runtime Docker/Hetzner e multi-tenant il percorso deve essere risolto tramite `PRACTICE_ENGINE_DB` / `g.data_paths`, mai tramite path relativo al repository come `./fascicoli/...`.
 
 Migrazioni governate:
 

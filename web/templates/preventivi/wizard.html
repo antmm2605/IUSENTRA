@@ -1003,8 +1003,8 @@
           <button class="accordion-button collapsed border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#wizardStep3Collapse" aria-expanded="false" aria-controls="wizardStep3Collapse">
             <span class="prev-step-number">3</span>
             <span class="prev-step-copy">
-              <span class="prev-step-title">Parametri di calcolo e struttura del preventivo</span>
-              <span class="prev-step-sub">Raggruppa il calcolo in blocchi chiari: economico, fasi e opzioni operative.</span>
+              <span class="prev-step-title">Compenso base e fasi</span>
+              <span class="prev-step-sub">Fasi tabellari, compenso unico, complessita stimata, spese generali e bonus.</span>
             </span>
             <span class="prev-step-meta">Calcolo</span>
           </button>
@@ -1109,22 +1109,25 @@
 
           <div class="prev-subsection">
             <div class="prev-subsection-head">
-              <h3 class="prev-subsection-title">Fasi incluse e opzioni di calcolo</h3>
-              <div class="prev-inline-note">Le fasi guidano il compenso, le opzioni fiscali e operative restano raccolte in un unico blocco.</div>
+              <h3 class="prev-subsection-title">Compenso base e fasi</h3>
+              <div class="prev-inline-note">Fasi tabellari, compenso unico, complessita stimata, spese generali e bonus.</div>
             </div>
             <div class="row g-3">
               <div class="col-lg-7">
-                <div class="prev-section-label mb-2">Fasi incluse nel compenso</div>
+                <div class="prev-section-label mb-1">Fasi da includere</div>
+                <div class="small text-muted mb-2">Include anche il flag compenso unico quando previsto.</div>
                 <div id="fasiGrid" class="row g-2"></div>
               </div>
               <div class="col-lg-5">
-                <div class="prev-section-label mb-2">Opzioni di calcolo</div>
+                <div class="prev-section-label mb-1">Opzioni compenso</div>
+                <div class="small text-muted mb-2">Compresso in un unico pannello operativo.</div>
                 <div class="row g-2">
-                  <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" id="chkBonusTelematico"><label class="form-check-label" for="chkBonusTelematico">Applica bonus telematico</label></div></div>
-                  <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" id="chkSpeseGenerali" checked><label class="form-check-label" for="chkSpeseGenerali">Spese generali ex art. 2 D.M. 55/2014</label></div></div>
-                  <div class="col-md-6"><label class="form-label fw-semibold">Perc. spese generali</label><input type="number" id="inpPercSpese" class="form-control" value="15" min="0" max="30" step="1"></div>
+                  <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" id="chkBonusTelematico"><label class="form-check-label" for="chkBonusTelematico">Bonus telematico 30%</label></div></div>
+                  <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" id="chkSpeseGenerali" checked><label class="form-check-label" for="chkSpeseGenerali">Spese generali 15%</label></div></div>
+                  <div class="col-md-6"><label class="form-label fw-semibold">Percentuale spese generali</label><input type="number" id="inpPercSpese" class="form-control" value="15" min="0" max="30" step="1"></div>
                   <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" name="applica_cassa" id="chkCassa" checked><label class="form-check-label" for="chkCassa">Applica CPA 4%</label></div></div>
                   <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" name="applica_iva" id="chkIva" checked><label class="form-check-label" for="chkIva">Applica IVA 22%</label></div></div>
+                  <div class="col-12"><div class="small text-muted">Il motore applica anche CPA, IVA, anticipazioni ex art. 15 e compenso orario.</div></div>
                 </div>
               </div>
             </div>
@@ -2527,16 +2530,48 @@ function currentCalcMode() {
   return String(currentCalcProfile().calc_mode || '').trim().toLowerCase();
 }
 
+function selectedRegolaTariffariaForPractice(practice) {
+  if (!practice) return '';
+  if (tipologiaCorrente && practice.id === tipologiaCorrente.id) {
+    return document.getElementById('selRegolaTariffaria').value || practice.regola_tariffaria_default || '';
+  }
+  return practice.regola_tariffaria_default || '';
+}
+
+function calcProfileForPractice(practice, ruleCode = '') {
+  if (!practice) return {};
+  const rows = practice.regole_tariffarie || [];
+  const target = (ruleCode && rows.find((row) => row.rule_code === ruleCode))
+    || rows.find((row) => row.rule_code === practice.regola_tariffaria_default)
+    || rows[0]
+    || null;
+  return target?.profile || {};
+}
+
+function isCompensoUnicoProfile(profile) {
+  const phaseKeys = Array.isArray(profile?.phase_keys) ? profile.phase_keys : [];
+  return String(profile?.calc_mode || '').trim().toLowerCase() === 'compenso_unico'
+    || phaseKeys.includes('compenso_unico');
+}
+
 function defaultPhaseKeysForPractice(practice) {
   return Array.isArray(practice?.fasi_default_keys)
     ? practice.fasi_default_keys.filter((key) => String(key || '').trim() !== '')
     : [];
 }
 
-function availablePhaseKeysForPractice(practice) {
-  if (currentCalcMode() === 'compenso_unico') {
-    return ['compenso_unico'];
+function defaultCalculationPhaseKeysForPractice(practice, ruleCode = '') {
+  const keys = defaultPhaseKeysForPractice(practice);
+  const profile = practice && tipologiaCorrente && practice.id === tipologiaCorrente.id
+    ? currentCalcProfile()
+    : calcProfileForPractice(practice, ruleCode);
+  if (isCompensoUnicoProfile(profile) && !keys.includes('compenso_unico')) {
+    return [...keys, 'compenso_unico'];
   }
+  return keys;
+}
+
+function availablePhaseKeysForPractice(practice) {
   const profile = currentCalcProfile();
   const profileKeys = Array.isArray(profile.phase_keys)
     ? profile.phase_keys.filter((key) => String(key || '').trim() !== '')
@@ -3267,14 +3302,28 @@ function renderFasi() {
   const calcMode = currentCalcMode();
   const phaseNodes = Array.from(document.querySelectorAll('.fase-check'));
   const activePhaseSet = new Set(phaseNodes.filter((node) => node.checked).map((node) => node.value));
+  const defaultPhaseKeys = defaultPhaseKeysForPractice(tipologiaCorrente);
+  const defaultPhaseSet = new Set(defaultPhaseKeys);
+  if (calcMode === 'compenso_unico' && phases.includes('compenso_unico')) {
+    defaultPhaseSet.add('compenso_unico');
+  }
   const prefillPhaseSet = Array.isArray(WIZARD_PREFILL.fasi) && WIZARD_PREFILL.fasi.length
     ? new Set(WIZARD_PREFILL.fasi)
-    : new Set(calcMode === 'compenso_unico' ? ['compenso_unico'] : defaultPhaseKeysForPractice(tipologiaCorrente));
+    : defaultPhaseSet;
   const previousPhaseValues = new Set(phaseNodes.map((node) => node.value));
   const canReusePhaseSelection = phaseNodes.length
     && phases.length === previousPhaseValues.size
     && phases.every((key) => previousPhaseValues.has(key));
   const selectedPhaseSet = canReusePhaseSelection ? activePhaseSet : prefillPhaseSet;
+  const uniqueProfileHint = calcMode === 'compenso_unico' && phases.includes('compenso_unico')
+    ? `
+      <div class="col-12">
+        <div class="alert alert-info small mb-2">
+          Il profilo tariffario attivo usa una tabella a <strong>compenso unico</strong>: le fasi operative restano visibili
+          per continuita del preventivo, mentre l'importo tabellare viene calcolato solo se il flag Compenso unico e attivo.
+        </div>
+      </div>`
+    : '';
   const phaseMarkup = phases.map((key) => `
     <div class="col-md-6">
       <label class="border rounded-3 p-2 d-flex align-items-center gap-2 ${key === 'compenso_unico' ? 'bg-light' : ''}">
@@ -3292,7 +3341,7 @@ function renderFasi() {
         </span>
       </label>
     </div>`).join('');
-  grid.innerHTML = phaseMarkup || '<div class="col-12 text-muted small">Nessuna fase configurata per questa tipologia.</div>';
+  grid.innerHTML = (uniqueProfileHint + phaseMarkup) || '<div class="col-12 text-muted small">Nessuna fase configurata per questa tipologia.</div>';
   if (accessoriGrid) {
     accessoriGrid.innerHTML = accessoriMarkup || '<div class="col-12 text-muted small">Nessuna integrazione selezionabile per questa tipologia.</div>';
   }
@@ -3958,7 +4007,8 @@ function buildQuery(idPratica = '', fasiOverride = null) {
   params.set('id_pratica', idPratica || tipologiaCorrente.id);
   params.set('valore', String(parseLocaleNumber(document.getElementById('inpValore').value || 0)));
   params.set('grado', document.getElementById('selGrado').value || '');
-  params.set('regola_tariffaria', document.getElementById('selRegolaTariffaria').value || '');
+  const practice = getTipologiaById(idPratica || tipologiaCorrente?.id || '') || tipologiaCorrente;
+  params.set('regola_tariffaria', selectedRegolaTariffariaForPractice(practice));
   params.set('complessita', document.getElementById('selComplessita').value || 'media');
   params.set('bonus_telematico', document.getElementById('chkBonusTelematico').checked ? '1' : '0');
   params.set('spese_generali', document.getElementById('chkSpeseGenerali').checked ? '1' : '0');
@@ -3966,7 +4016,6 @@ function buildQuery(idPratica = '', fasiOverride = null) {
   params.set('applica_cpa', document.getElementById('chkCassa').checked ? '1' : '0');
   params.set('applica_iva', document.getElementById('chkIva').checked ? '1' : '0');
   params.set('anticipazioni', String(parseLocaleNumber(document.getElementById('inpAnticipazioni').value || 0)));
-  const practice = getTipologiaById(idPratica || tipologiaCorrente?.id || '') || tipologiaCorrente;
   const fasi = Array.isArray(fasiOverride)
     ? fasiOverride
     : (() => {
@@ -4003,9 +4052,14 @@ function buildWizardCalculationUrl(idPratica = '', fasiOverride = null) {
 
 function buildPracticeCalculationUrl(practiceId = '', fasiOverride = null) {
   const practice = getTipologiaById(practiceId) || tipologiaCorrente;
+  const ruleCode = selectedRegolaTariffariaForPractice(practice);
   const effectiveFasi = Array.isArray(fasiOverride) && fasiOverride.length
-    ? fasiOverride
-    : defaultPhaseKeysForPractice(practice);
+    ? [...fasiOverride]
+    : defaultCalculationPhaseKeysForPractice(practice, ruleCode);
+  const profile = calcProfileForPractice(practice, ruleCode);
+  if (isCompensoUnicoProfile(profile) && !effectiveFasi.includes('compenso_unico')) {
+    effectiveFasi.push('compenso_unico');
+  }
   return buildWizardCalculationUrl(practiceId, effectiveFasi);
 }
 

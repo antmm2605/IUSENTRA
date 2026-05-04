@@ -202,6 +202,14 @@ def test_template_wizard_espone_compenso_unico_come_flag_calcolabile():
     assert "Fasi accorpate dal motore" not in template
     assert "compenso_unico: 'Compenso unico'" in template
     assert "availablePhaseKeysForPractice" in template
+    assert "return ['compenso_unico']" not in template
+    assert "defaultPhaseSet.add('compenso_unico')" in template
+    assert "le fasi operative restano visibili" in template
+    assert "Fasi tabellari, compenso unico, complessita stimata, spese generali e bonus." in template
+    assert "Include anche il flag compenso unico quando previsto." in template
+    assert "Il motore applica anche CPA, IVA, anticipazioni ex art. 15 e compenso orario." in template
+    assert "selectedRegolaTariffariaForPractice" in template
+    assert "defaultCalculationPhaseKeysForPractice" in template
     assert "phaseInputs.length) return checked" in template
 
 
@@ -329,7 +337,7 @@ def test_wizard_calcola_compenso_unico_rispetta_flag_attivo_disattivo(tmp_path):
                 "grado": "Tribunale",
                 "regola_tariffaria": "civile_monitorio",
                 "complessita": "media",
-                "fasi": "compenso_unico",
+                "fasi": "studio,introduttiva,decisionale,compenso_unico",
                 "spese_generali": "0",
             },
         )
@@ -341,7 +349,7 @@ def test_wizard_calcola_compenso_unico_rispetta_flag_attivo_disattivo(tmp_path):
                 "grado": "Tribunale",
                 "regola_tariffaria": "civile_monitorio",
                 "complessita": "media",
-                "fasi": "",
+                "fasi": "studio,introduttiva,decisionale",
                 "spese_generali": "0",
             },
         )
@@ -355,6 +363,38 @@ def test_wizard_calcola_compenso_unico_rispetta_flag_attivo_disattivo(tmp_path):
     assert "Compenso unico" in payload_attivo["fasi"]
     assert payload_disattivo["onorario_base"] == 0
     assert payload_disattivo["fasi"] == {}
+
+
+def test_wizard_calcola_ignora_regola_non_ammissibile_per_pratica_target(tmp_path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+    _crea_admin(app)
+
+    with app.test_client() as client:
+        _login(client)
+        response = client.get(
+            "/preventivi/wizard/calcola",
+            query_string={
+                "id_pratica": "mediazione",
+                "valore": "10000",
+                "grado": "Procedura ADR",
+                "regola_tariffaria": "civile_monitorio",
+                "complessita": "media",
+                "fasi": "attivazione,rivitalizzazione,conciliazione",
+                "spese_generali": "0",
+            },
+        )
+
+    payload = response.get_json()
+
+    assert response.status_code == 200
+    assert payload["onorario_base"] > 0
+    assert "Compenso unico" not in payload["fasi"]
+    assert set(payload["fasi"]) == {
+        "Fase di attivazione",
+        "Fase di rivitalizzazione",
+        "Fase di conciliazione",
+    }
 
 
 def test_wizard_calcola_sposta_spese_generali_nella_bozza_anticipazioni(tmp_path):

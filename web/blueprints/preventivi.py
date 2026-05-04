@@ -1688,7 +1688,7 @@ def wizard_calcola():
     from flask import jsonify
     from pct.motore_preventivo import get_tipo_pratica, motore_calcola
     from pct.tariffario import Fase, Grado, livello_compenso_da_complessita
-    from pct.tariffario_catalogo import default_rule_for_practice, rule_lookup
+    from pct.tariffario_catalogo import default_rule_for_practice, rule_lookup, rules_for_practice
 
     try:
         id_pratica = request.args.get("id_pratica", "")
@@ -1714,6 +1714,13 @@ def wizard_calcola():
         tp = get_tipo_pratica(id_pratica)
         if not tp:
             return jsonify({"errore": f"Tipologia non trovata: {id_pratica}"}), 200
+        if regola_tariffaria:
+            regole_ammissibili = {
+                str(row.get("rule_code", "") or "")
+                for row in rules_for_practice(id_pratica)
+            }
+            if regola_tariffaria not in regole_ammissibili:
+                regola_tariffaria = ""
 
         _mappa_grado = {
             "Giudice di Pace": Grado.GIUDICE_DI_PACE,
@@ -1759,10 +1766,12 @@ def wizard_calcola():
         }
         fasi_tokens = [k.strip() for k in fasi_raw.split(",") if k.strip()]
         fasi_parsed = [_mappa_fase[k] for k in fasi_tokens if k in _mappa_fase]
-        if fasi_parsed:
+        if "fasi" in request.args and profilo_compenso_unico:
+            fasi = [Fase.STUDIO] if "compenso_unico" in fasi_tokens else []
+        elif fasi_parsed:
             fasi = fasi_parsed
         elif "fasi" in request.args:
-            fasi = [Fase.STUDIO] if profilo_compenso_unico and "compenso_unico" in fasi_tokens else []
+            fasi = []
         else:
             fasi = None
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.198.57 - 2026-05-04
+
+- Ripristinata nel `Wizard preventivi` la griglia completa delle fasi operative anche per i profili a `Compenso unico`: il flag unico e' aggiuntivo, non sostituisce Studio, Introduttiva, Istruttoria / istruzione e Decisionale quando sono previste.
+- Corretto l'adattatore di calcolo del wizard: nei profili a compenso unico l'importo tabellare nasce solo se il flag `Compenso unico` e' attivo; se il flag e' disattivo, le fasi operative restano visibili ma non forzano il calcolo della voce unica.
+- Allineati testi e opzioni del pannello preventivi alla console tariffario per fasi, complessita stimata, spese generali 15%, bonus telematico, CPA, IVA, anticipazioni art. 15 e compenso orario.
+
 ## 2.198.56 - 2026-05-04
 
 - Ripulito il `Wizard preventivi` dalla seconda sezione duplicata della clausola controversie: resta il blocco catalogato, modificabile e trasferito al conferimento di incarico.

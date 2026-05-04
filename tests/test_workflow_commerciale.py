@@ -76,6 +76,8 @@ def test_prepara_clausola_controversie_genera_testo_standard_e_pulisce_quando_di
     assert "arbitrato" in payload["testo"].lower()
     assert payload["trattativa_individuale"] is True
     assert payload["fonte"]
+    assert "Studio Cataldi" not in payload["fonte"]
+    assert "Primavera Forense" not in payload["testo"]
 
     payload_off = prepara_clausola_controversie(
         attiva=False,
@@ -92,6 +94,20 @@ def test_prepara_clausola_controversie_genera_testo_standard_e_pulisce_quando_di
         "trattativa_individuale": False,
         "fonte": "",
     }
+
+
+def test_prepara_clausola_controversie_sostituisce_fonti_legacy_non_affidabili():
+    payload = prepara_clausola_controversie(
+        attiva=True,
+        modello=CLAUSOLA_CONTROVERSIE_MULTISTEP,
+        testo="Regolamento Arbitrale di Primavera Forense",
+        trattativa_individuale=False,
+        fonte="Fac-simile conferimento incarico + Studio Cataldi / Primavera Forense (2026)",
+    )
+
+    assert "Studio Cataldi" not in payload["fonte"]
+    assert "Primavera Forense" not in payload["testo"]
+    assert "organismo iscritto" in payload["testo"]
 
 
 def test_prepara_clausola_tutela_cliente_presidia_il_consumatore():

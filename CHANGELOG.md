@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.198.56 - 2026-05-04
+
+- Ripulito il `Wizard preventivi` dalla seconda sezione duplicata della clausola controversie: resta il blocco catalogato, modificabile e trasferito al conferimento di incarico.
+- Aggiornata la clausola multistep con un testo generico e verificabile su mediazione/arbitrato, senza riferimenti hardcoded a fac-simile esterni o organismi privati, e normalizzate le vecchie fonti legacy in lettura.
+- Allineato il `Compenso unico` del wizard a un flag calcolabile: se attivo genera l'importo tabellare, se disattivo non produce compenso, mantenendo invariati fasi ordinarie, spese generali e calcolo live.
+
 ## 2.198.55 - 2026-05-04
 
 - Corretto il runtime tenant-aware della Regia Operativa Fascicolo: `PRACTICE_ENGINE_DB` viene ora risolto sotto il data root dello studio (`fascicoli/practice_engine/practice_engine.json`) invece di ricadere sul path relativo `./fascicoli/...` dentro il container.

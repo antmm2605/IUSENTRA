@@ -151,31 +151,42 @@ _CLAUSOLA_CONTROVERSIE_MODELLI: Dict[str, Dict[str, str]] = {
     CLAUSOLA_CONTROVERSIE_MULTISTEP: {
         "label": "Clausola multistep (mediazione + arbitrato)",
         "source": (
-            "Fac-simile conferimento incarico + Studio Cataldi / Primavera Forense "
-            "(articolo del 2026 sulla clausola per la risoluzione delle controversie)"
+            "Modello IUSENTRA per conferimento di incarico: mediazione ex d.lgs. "
+            "28/2010, D.M. 150/2023 e arbitrato rituale ex artt. 806 ss. c.p.c.; "
+            "verificare organismo, regolamento applicabile e trattativa individuale "
+            "quando il cliente opera come consumatore."
         ),
         "default_text": (
             "Le parti concordano espressamente che, in caso di controversia nascente "
-            "dall'interpretazione ed esecuzione del presente contratto, le stesse daranno "
-            "corso a un tentativo di mediazione secondo le disposizioni contenute nel d.lgs. "
-            "4 marzo 2010 n. 28 e D.M. 24 ottobre 2023 n. 150 e, in caso di esito negativo "
-            "della mediazione, convengono che tale controversia sara risolta mediante arbitrato "
-            "rituale di diritto ai sensi degli artt. 806 e seguenti del c.p.c. e secondo il "
-            "Regolamento Arbitrale di Primavera Forense, reperibile sul sito dell'organismo, "
-            "che le parti dichiarano di conoscere e accettare interamente.\n\n"
-            "Il Collegio Arbitrale sara composto da un arbitro unico nominato in conformita a "
-            "tale Regolamento. All'uopo le parti dichiarano di conoscere gli effetti della presente "
-            "clausola e, sin d'ora di comune accordo, designano quale soggetto incaricato di espletare "
-            'la procedura di mediazione e/o la procedura di arbitrato "Primavera Forense", organismo '
-            "iscritto al n. 322 del Registro tenuto dal Ministero della Giustizia, eleggendo domicilio "
-            "per la ricezione delle convocazioni di rito presso gli indirizzi riportati nell'epigrafe del "
-            "presente contratto. L'Arbitro Unico, su domanda di parte, potra concedere tutte le misure "
-            "cautelari che non siano vietate da norme inderogabili applicabili al procedimento. Sia la "
-            "procedura di mediazione civile che il giudizio arbitrale si svolgeranno a Roma, in presenza "
-            "o in modalita telematica."
+            "dall'interpretazione, esecuzione o validita del presente conferimento di "
+            "incarico, le stesse valuteranno in via preventiva un tentativo di "
+            "composizione stragiudiziale e, ove la materia lo consenta, daranno corso a "
+            "un tentativo di mediazione secondo le disposizioni del d.lgs. 4 marzo 2010 "
+            "n. 28 e del D.M. 24 ottobre 2023 n. 150 presso un organismo iscritto nel "
+            "Registro tenuto dal Ministero della Giustizia, da indicare nel conferimento "
+            "o concordare per iscritto tra le parti.\n\n"
+            "In caso di esito negativo della mediazione, e salvo diverso accordo scritto, "
+            "le parti potranno convenire che la controversia sia definita mediante "
+            "arbitrato rituale di diritto ai sensi degli artt. 806 e seguenti del c.p.c., "
+            "secondo il regolamento dell'organismo o della camera arbitrale indicata nel "
+            "conferimento. L'arbitro unico, o il collegio arbitrale se espressamente "
+            "previsto, sara nominato secondo tale regolamento e potra adottare le misure "
+            "consentite dalla legge e non vietate da norme inderogabili applicabili al "
+            "procedimento. La sede e le modalita di svolgimento, anche telematiche, "
+            "saranno definite nel conferimento o in separato accordo scritto."
         ),
     },
 }
+
+_LEGACY_MULTISTEP_FONTE_MARKERS = (
+    "Studio Cataldi",
+    "Primavera Forense",
+)
+
+
+def _is_legacy_clausola_multistep(value: str | None) -> bool:
+    text = str(value or "")
+    return any(marker in text for marker in _LEGACY_MULTISTEP_FONTE_MARKERS)
 
 
 def normalizza_modello_clausola_controversie(value: str | None) -> str:
@@ -210,6 +221,22 @@ def testo_predefinito_clausola_controversie(value: str | None) -> str:
     return _CLAUSOLA_CONTROVERSIE_MODELLI[modello]["default_text"]
 
 
+def normalizza_fonte_clausola_controversie(modello: str | None, fonte: str | None) -> str:
+    fonte_norm = str(fonte or "").strip()
+    modello_norm = normalizza_modello_clausola_controversie(modello)
+    if modello_norm == CLAUSOLA_CONTROVERSIE_MULTISTEP and _is_legacy_clausola_multistep(fonte_norm):
+        return fonte_modello_clausola_controversie(modello_norm)
+    return fonte_norm
+
+
+def normalizza_testo_clausola_controversie(modello: str | None, testo: str | None) -> str:
+    testo_norm = str(testo or "").strip()
+    modello_norm = normalizza_modello_clausola_controversie(modello)
+    if modello_norm == CLAUSOLA_CONTROVERSIE_MULTISTEP and _is_legacy_clausola_multistep(testo_norm):
+        return testo_predefinito_clausola_controversie(modello_norm)
+    return testo_norm
+
+
 def prepara_clausola_controversie(
     *,
     attiva: bool | None,
@@ -228,13 +255,18 @@ def prepara_clausola_controversie(
             "trattativa_individuale": False,
             "fonte": "",
         }
-    testo_norm = (testo or "").strip() or testo_predefinito_clausola_controversie(modello_norm)
+    testo_norm = normalizza_testo_clausola_controversie(
+        modello_norm, testo
+    ) or testo_predefinito_clausola_controversie(modello_norm)
     return {
         "attiva": True,
         "modello": modello_norm,
         "testo": testo_norm,
         "trattativa_individuale": bool(trattativa_individuale),
-        "fonte": (fonte or fonte_modello_clausola_controversie(modello_norm)).strip(),
+        "fonte": normalizza_fonte_clausola_controversie(
+            modello_norm,
+            fonte or fonte_modello_clausola_controversie(modello_norm),
+        ),
     }
 
 
@@ -460,6 +492,14 @@ class Preventivo:
         d["clausola_controversie_modello"] = normalizza_modello_clausola_controversie(
             d.get("clausola_controversie_modello")
         )
+        d["clausola_controversie_testo"] = normalizza_testo_clausola_controversie(
+            d["clausola_controversie_modello"],
+            d.get("clausola_controversie_testo", ""),
+        )
+        d["clausola_controversie_fonte"] = normalizza_fonte_clausola_controversie(
+            d["clausola_controversie_modello"],
+            d.get("clausola_controversie_fonte", ""),
+        )
         d["classificazioni_tassonomiche"] = _normalizza_classificazioni_tassonomiche(
             d.get("classificazioni_tassonomiche")
         )
@@ -564,6 +604,14 @@ class ConferimentoIncarico:
             d["warning_compenso_orario"] = []
         d["clausola_controversie_modello"] = normalizza_modello_clausola_controversie(
             d.get("clausola_controversie_modello")
+        )
+        d["clausola_controversie_testo"] = normalizza_testo_clausola_controversie(
+            d["clausola_controversie_modello"],
+            d.get("clausola_controversie_testo", ""),
+        )
+        d["clausola_controversie_fonte"] = normalizza_fonte_clausola_controversie(
+            d["clausola_controversie_modello"],
+            d.get("clausola_controversie_fonte", ""),
         )
         d["classificazioni_tassonomiche"] = _normalizza_classificazioni_tassonomiche(
             d.get("classificazioni_tassonomiche")

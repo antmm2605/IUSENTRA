@@ -54,6 +54,19 @@ def test_stragiudiziale_forza_compenso_unico():
     assert "tabella 25" in risultato.note.lower()
 
 
+def test_compenso_unico_lista_fasi_vuota_non_calcola_importo():
+    risultato = calcola_compenso(
+        Materia.STRAGIUD,
+        Grado.FUORI_GIUDIZIO,
+        3000,
+        [],
+    )
+
+    assert risultato.fasi_selezionate == []
+    assert risultato.dettaglio == {}
+    assert risultato.totale_base == 0
+
+
 def test_mediazione_tabella_27_usa_snapshot_ufficiale_e_spese_generali_art2():
     risultato = calcola_compenso(
         Materia.MEDIAZIONE,

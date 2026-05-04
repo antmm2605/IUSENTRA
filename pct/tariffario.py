@@ -1105,9 +1105,12 @@ def calcola_compenso(
     valore_calcolo = valore_input
     complessita_norm = _parse_complessita(complessita)
     force_compenso_unico = bool(_PROFILE_TABLE_OVERRIDES.get(profile_code or "", {}).get("force_compenso_unico"))
+    fasi_esplicitamente_vuote = fasi == []
 
     _mediaz = {Materia.MEDIAZIONE, Materia.NEGOZIAZIONE_ASSISTITA}
-    if materia in {Materia.STRAGIUD, Materia.ARBITRATO} or force_compenso_unico:
+    if fasi_esplicitamente_vuote:
+        fasi_richieste = []
+    elif materia in {Materia.STRAGIUD, Materia.ARBITRATO} or force_compenso_unico:
         fasi_richieste = ["Compenso unico"]
     elif materia in _mediaz:
         # Per mediazione/negoziazione usa tutte le fasi della tabella nell'ordine

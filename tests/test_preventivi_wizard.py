@@ -186,12 +186,23 @@ def test_template_wizard_allinea_clausola_controversie_al_form_classico():
     template = Path("web/templates/preventivi/wizard.html").read_text(encoding="utf-8")
 
     assert "Clausola per la risoluzione delle controversie" in template
-    assert "Proponi una clausola contrattuale da riportare poi nel conferimento" in template
+    assert template.count("Includi clausola per la risoluzione delle controversie") == 1
     assert "Tutela cliente / consumatore" in template
     assert "Testo da adattare" in template
     assert "Ripristina testo standard" in template
     assert "Fonte modello: nessuna fonte impostata" in template
     assert "ripristinaClausolaControversie" in template
+    assert "chkClausolaContAttiva" not in template
+    assert "Fac-simile conferimento incarico + Studio Cataldi / Primavera Forense" not in template
+
+
+def test_template_wizard_espone_compenso_unico_come_flag_calcolabile():
+    template = Path("web/templates/preventivi/wizard.html").read_text(encoding="utf-8")
+
+    assert "Fasi accorpate dal motore" not in template
+    assert "compenso_unico: 'Compenso unico'" in template
+    assert "availablePhaseKeysForPractice" in template
+    assert "phaseInputs.length) return checked" in template
 
 
 def _crea_admin(app) -> None:
@@ -301,6 +312,49 @@ def test_wizard_calcola_rispetta_fasi_e_spese_generali(tmp_path):
     assert payload_tutte_fasi["spese_generali"] == 0
     assert payload_con_spese["spese_generali"] > 0
     assert payload_con_spese["totale"] > payload_tutte_fasi["totale"]
+
+
+def test_wizard_calcola_compenso_unico_rispetta_flag_attivo_disattivo(tmp_path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+    _crea_admin(app)
+
+    with app.test_client() as client:
+        _login(client)
+        flag_attivo = client.get(
+            "/preventivi/wizard/calcola",
+            query_string={
+                "id_pratica": "decreto_ingiuntivo",
+                "valore": "10000",
+                "grado": "Tribunale",
+                "regola_tariffaria": "civile_monitorio",
+                "complessita": "media",
+                "fasi": "compenso_unico",
+                "spese_generali": "0",
+            },
+        )
+        flag_disattivo = client.get(
+            "/preventivi/wizard/calcola",
+            query_string={
+                "id_pratica": "decreto_ingiuntivo",
+                "valore": "10000",
+                "grado": "Tribunale",
+                "regola_tariffaria": "civile_monitorio",
+                "complessita": "media",
+                "fasi": "",
+                "spese_generali": "0",
+            },
+        )
+
+    payload_attivo = flag_attivo.get_json()
+    payload_disattivo = flag_disattivo.get_json()
+
+    assert flag_attivo.status_code == 200
+    assert flag_disattivo.status_code == 200
+    assert payload_attivo["onorario_base"] > 0
+    assert "Compenso unico" in payload_attivo["fasi"]
+    assert payload_disattivo["onorario_base"] == 0
+    assert payload_disattivo["fasi"] == {}
 
 
 def test_wizard_calcola_sposta_spese_generali_nella_bozza_anticipazioni(tmp_path):

@@ -1688,6 +1688,7 @@ def wizard_calcola():
     from flask import jsonify
     from pct.motore_preventivo import get_tipo_pratica, motore_calcola
     from pct.tariffario import Fase, Grado, livello_compenso_da_complessita
+    from pct.tariffario_catalogo import default_rule_for_practice, rule_lookup
 
     try:
         id_pratica = request.args.get("id_pratica", "")
@@ -1736,6 +1737,15 @@ def wizard_calcola():
         grado = _mappa_grado.get(grado_raw) if grado_raw else None
         livello = livello_compenso_da_complessita(complessita)
 
+        regola_per_fasi = rule_lookup(regola_tariffaria) if regola_tariffaria else None
+        if not regola_per_fasi:
+            regola_per_fasi = default_rule_for_practice(id_pratica)
+        profile_fasi = (regola_per_fasi or {}).get("profile", {}) or {}
+        profilo_compenso_unico = (
+            profile_fasi.get("calc_mode") == "compenso_unico"
+            or "compenso_unico" in (profile_fasi.get("phase_keys") or [])
+        )
+
         _mappa_fase = {
             "studio": Fase.STUDIO,
             "introduttiva": Fase.INTRODUTTIVA,
@@ -1747,7 +1757,14 @@ def wizard_calcola():
             "negoziazione": Fase.NEGOZIAZIONE_TRATTAZIONE,
             "conciliazione": Fase.CONCILIAZIONE,
         }
-        fasi = [_mappa_fase[k] for k in fasi_raw.split(",") if k.strip() in _mappa_fase] or None
+        fasi_tokens = [k.strip() for k in fasi_raw.split(",") if k.strip()]
+        fasi_parsed = [_mappa_fase[k] for k in fasi_tokens if k in _mappa_fase]
+        if fasi_parsed:
+            fasi = fasi_parsed
+        elif "fasi" in request.args:
+            fasi = [Fase.STUDIO] if profilo_compenso_unico and "compenso_unico" in fasi_tokens else []
+        else:
+            fasi = None
 
         _mappa_var_fasi = {
             "attivazione": Fase.ATTIVAZIONE.value,

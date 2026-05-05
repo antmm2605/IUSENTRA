@@ -154,7 +154,7 @@ const emptyTimesheetData: TimesheetData = {
     agenda: '/agenda',
     clients: '/clienti',
     matters: '/fascicoli',
-    lex: '/lex?context=timesheet',
+    lex: '#lex',
   },
   emptyStates: {
     noEntries: true,
@@ -321,7 +321,7 @@ export async function getTimesheetPage(): Promise<TimesheetData> {
         agenda: text(actions.agenda, '/agenda'),
         clients: text(actions.clients, '/clienti'),
         matters: text(actions.matters, '/fascicoli'),
-        lex: text(actions.lex, '/lex?context=timesheet'),
+        lex: text(actions.lex, '#lex'),
       },
       emptyStates: {
         noEntries: Boolean(emptyStates.noEntries),

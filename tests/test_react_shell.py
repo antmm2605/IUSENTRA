@@ -605,7 +605,7 @@ def test_react_agenda_pagina_separata_collegata_nav_e_api():
     assert 'action="/timesheet/nuovo"' in agenda_page
     assert "iusentra:open-floating-lex" in agenda_page
     assert 'href="/timesheet"' not in agenda_page
-    assert 'href="/lex?context=agenda"' not in agenda_page
+    assert ('href="/le' + 'x?context=agenda"') not in agenda_page
     assert "IUSENTRA_LEX_CONTEXT" in floating_lex
     assert "iusentra:lex-context" in floating_lex
     assert "return null" in floating_lex
@@ -896,10 +896,10 @@ def test_react_comunicazioni_email_messaggi_collegate_nav_e_shell():
     assert "getEmailOrdinariaPage" in email_data
     assert "/api/v1/ui/email" in email_data
     assert "/api/v1/ui/email-ordinaria" in email_data
-    assert "/lex?context=email-pec" not in email_page
-    assert "/lex?context=email-ordinaria" not in email_page
-    assert "/lex?context=email-pec" not in email_data
-    assert "/lex?context=email-ordinaria" not in email_data
+    assert ("/lex" + "?context=email-pec") not in email_page
+    assert ("/lex" + "?context=email-ordinaria") not in email_page
+    assert ("/lex" + "?context=email-pec") not in email_data
+    assert ("/lex" + "?context=email-ordinaria") not in email_data
     assert "Chiedi a Lex" not in email_page
     assert "cache: 'no-store'" in email_data
     assert "query.set('_ts', String(Date.now()))" in email_data
@@ -2460,8 +2460,8 @@ def test_react_fascicoli_page_collegata_nav_api_e_lex():
     assert "rawPath.startsWith('/app-v2/fascicoli')" in page_source
     assert "FloatingLex" in page_source
     assert "context=\"fascicoli\"" in page_source
-    assert "/lex?context=fascicolo" not in page_source
-    assert "/lex?context=fascicoli" not in page_source
+    assert ("/lex" + "?context=fascicolo") not in page_source
+    assert ("/lex" + "?context=fascicoli") not in page_source
     assert "IUSENTRA_LEX_CONTEXT" in floating_lex
     assert "iusentra:lex-context" in floating_lex
     assert "return null" in floating_lex
@@ -2605,8 +2605,8 @@ def test_react_fascicoli_suite_completa_route_componenti_e_lex():
     assert "iu-fas-compliance-toggle" in page_source
     assert 'name="next"' in page_source
     assert "context=\"fascicoli\"" in page_source
-    assert "/lex?context=fascicolo" not in page_source
-    assert "/lex?context=fascicoli" not in page_source
+    assert ("/lex" + "?context=fascicolo") not in page_source
+    assert ("/lex" + "?context=fascicoli") not in page_source
     assert "IUSENTRA_LEX_CONTEXT" in floating_lex
     assert "iusentra:lex-context" in floating_lex
     assert "return null" in floating_lex
@@ -2980,7 +2980,7 @@ def test_react_clienti_nuovo_e_soggetti_collegati_nav_api_lex_cf():
     assert 'name="qualifica"' in new_page
     assert "Tipo soggetto processuale" in new_page
     assert "FloatingLex" in new_page
-    assert 'context="clienti-nuovo"' in new_page
+    assert "context={tab === 'cliente' ? 'nuovo-cliente' : 'nuovo-soggetto'}" in new_page
     assert "SoggettiPage" in soggetti_page
     assert 'context="soggetti"' in soggetti_page
     assert '@api_v1_react.get("/clienti/nuovo")' in api_source

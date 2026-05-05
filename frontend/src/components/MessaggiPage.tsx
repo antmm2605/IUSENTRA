@@ -174,7 +174,7 @@ function MessageFocus({ item }:{item: MessageItem}) {
         <a href={`/messaggi/nuovo?canale=${encodeURIComponent(item.channel)}&destinatario=${encodeURIComponent(item.destination)}&oggetto=${encodeURIComponent(`Re: ${item.subject || ''}`)}`}><Send size={15}/>Rispondi</a>
         {item.clientHref ? <a href={item.clientHref}><UsersRound size={15}/>Apri cliente</a> : null}
         {item.manualWhatsapp && item.whatsappLink ? <a href={item.whatsappLink} target="_blank" rel="noreferrer"><ExternalLink size={15}/>WhatsApp Web</a> : null}
-        <a href={`/lex?context=messaggi&id=${encodeURIComponent(item.id)}`}><Sparkles size={15}/>Chiedi a Lex</a>
+        <a href="#lex" data-lex-open data-lex-context="messaggi" data-lex-label={`Contesto messaggio: ${item.subject || item.recipient}`}><Sparkles size={15}/>Chiedi a Lex</a>
         <form method="post" action={`/messaggi/${encodeURIComponent(item.id)}/elimina`} onSubmit={(event) => { if (!window.confirm('Eliminare il messaggio?')) event.preventDefault() }}>
           <button type="submit"><Trash2 size={15}/>Elimina</button>
         </form>
@@ -281,7 +281,7 @@ export function MessaggiPage() {
         context="messaggi"
         title="Lex AI messaggi"
         body="Posso controllare tono, dati mancanti, canale corretto e rischio di inviare una comunicazione incompleta al cliente."
-        primaryHref="/lex?context=messaggi"
+        primaryHref="#lex"
         secondaryHref="/messaggi/nuovo"
         secondaryLabel="Nuovo messaggio"
       />
@@ -467,7 +467,7 @@ export function NuovoMessaggioPage() {
         context="nuovo-messaggio"
         title="Lex AI invio messaggio"
         body="Posso aiutarti a rendere il testo pi? chiaro, professionale e coerente con cliente, canale e pratica."
-        primaryHref="/lex?context=nuovo-messaggio"
+        primaryHref="#lex"
         secondaryHref="/messaggi"
         secondaryLabel="Storico messaggi"
       />

@@ -280,7 +280,7 @@ def build_react_timesheet_payload(
             "agenda": "/agenda",
             "clients": "/clienti",
             "matters": "/fascicoli",
-            "lex": "/lex?context=timesheet",
+            "lex": "#lex",
         },
         "emptyStates": {
             "noEntries": not all_entries,

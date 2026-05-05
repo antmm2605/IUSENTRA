@@ -110,7 +110,7 @@ export const emptyPrivacyRegistroPage: PrivacyRegistroPageData = {
     exportAuditCsv: '/audit/esporta.csv',
     clienti: '/clienti',
     settings: '/impostazioni',
-    lex: '/lex?context=registro-gdpr',
+    lex: '#lex',
   },
   contracts: {
     mock_fallback: false,

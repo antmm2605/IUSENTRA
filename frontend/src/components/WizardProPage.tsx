@@ -94,7 +94,7 @@ function SelectedPanel({ item, actions }: { item: WizardProCase | null; actions:
         )}
         <a className="iu-wiz-btn" href={item.agendaHref}>Apri udienza</a>
         <a className="iu-wiz-btn" href={item.deadlineHref}>Termini collegati</a>
-        <a className="iu-wiz-btn" href={actions.lex}>Chiedi a Lex</a>
+        <a className="iu-wiz-btn" href={actions.lex} data-lex-open data-lex-context="preparazione-udienza">Chiedi a Lex</a>
       </div>
     </aside>
   )

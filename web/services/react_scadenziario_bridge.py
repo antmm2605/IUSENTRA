@@ -484,7 +484,7 @@ def _operative_cards(summary: dict[str, int]) -> list[dict[str, Any]]:
             "lex",
             kind="lex",
             label="Apri Lex",
-            href="/lex?context=scadenziario",
+            href="#lex",
         ),
     ]
 
@@ -552,7 +552,7 @@ def build_react_scadenziario_payload(
             "exportIcs": "/scadenziario/export.ics",
             "agenda": "/app-v2/agenda",
             "calendarSettings": "/impostazioni/calendario",
-            "lex": "/lex?context=scadenziario",
+            "lex": "#lex",
             "bulkComplete": "/scadenziario/bulk-completa",
         },
     }

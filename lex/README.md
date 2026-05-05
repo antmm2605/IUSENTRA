@@ -34,7 +34,8 @@ Il blueprint continua a chiamarsi `assistente`, quindi:
 
 - le route `/api/assistente/*` restano invariate
 - `url_for('assistente.assistente_chat')` continua a funzionare
-- il widget esistente non richiede modifiche lato template o JavaScript
+- il widget flottante e' l'unica superficie chat supportata e invia le risposte finali a `/api/assistente/chat`
+- la route `/lex` resta registrata solo come tombstone `410 Gone` per bookmark storici
 - i moduli legacy in `web/services/assistente_*.py` restano solo come facciate compatibili
 
 ## Architettura operativa aggiornata

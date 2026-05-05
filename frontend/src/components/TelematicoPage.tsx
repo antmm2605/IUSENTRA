@@ -429,7 +429,7 @@ export function TelematicoPage() {
               <a href={data.actions.connectionStatusHref}><RefreshCw size={15}/> Stato connessioni</a>
               <a href={data.actions.localSignerHref}><ShieldCheck size={15}/> Local Signer</a>
               <a href={data.actions.emailHref}><FileText size={15}/> PEC ed esiti</a>
-              <a href={data.actions.lexHref}><Sparkles size={15}/> Lex telematico</a>
+              <a href={data.actions.lexHref} data-lex-open data-lex-context="telematico"><Sparkles size={15}/> Lex telematico</a>
             </div>
           </Panel>
         </aside>

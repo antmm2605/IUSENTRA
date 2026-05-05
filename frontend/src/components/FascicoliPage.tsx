@@ -541,7 +541,7 @@ function FascicoliListPage() {
         </Panel>
       </section>
 
-      <FloatingLex context="fascicoli" title="Lex AI fascicoli" body="Posso sintetizzare un fascicolo, evidenziare scadenze senza prossima azione, preparare una lista documenti e suggerire il percorso prima di deposito, udienza o archiviazione." primaryHref="/global-search?tipo=fascicoli" primaryLabel="Cerca fascicoli" secondaryHref="/fascicoli" secondaryLabel="Fascicoli" />
+      <FloatingLex context="fascicoli" title="Lex AI fascicoli" body="Posso sintetizzare un fascicolo, evidenziare scadenze senza prossima azione, preparare una lista documenti e suggerire il percorso prima di deposito, udienza o archiviazione." primaryHref="#lex" primaryLabel="Apri Lex fascicoli" secondaryHref="/global-search?tipo=fascicoli" secondaryLabel="Cerca fascicoli" />
     </main>
   )
 }
@@ -581,7 +581,7 @@ function ArchivePage() {
       <section className="iu-fas-status-line"><span className={loading ? '' : 'is-ok'}>{loading ? 'Caricamento archivio...' : `Archivio aggiornato - ${data.source}`}</span><small><RotateCcw size={14}/> Il ripristino usa il servizio operativo con audit.</small></section>
       {toast ? <section className={`iu-fas-toast iu-fas-toast--${toast.tone}`}><span>{toast.message}</span><button type="button" onClick={() => setToast(null)}>Chiudi</button></section> : null}
       <FascicoliTable items={visible} selected={selected} onToggle={toggle} onToggleAll={toggleAll} archive onDeleted={handleArchiveDeleted} onError={handleArchiveError}/>
-      <FloatingLex context="archivio-fascicoli" title="Lex AI archivio" body="Posso aiutarti a controllare fascicoli archiviati, ZIP mancanti, esiti finali e criteri di conservazione." primaryHref="/fascicoli/archivio" primaryLabel="Archivio fascicoli" secondaryHref="/fascicoli" secondaryLabel="Fascicoli attivi" />
+      <FloatingLex context="archivio-fascicoli" title="Lex AI archivio" body="Posso aiutarti a controllare fascicoli archiviati, ZIP mancanti, esiti finali e criteri di conservazione." primaryHref="#lex" primaryLabel="Apri Lex archivio" secondaryHref="/fascicoli/archivio" secondaryLabel="Archivio fascicoli" />
     </main>
   )
 }
@@ -660,7 +660,7 @@ function FascicoloFormPage({ mode, id }:{mode:'new'|'edit'; id?:string}) {
           <Panel title="Prossimi passi" icon={<ListChecks size={17}/>}><div className="iu-fas-help"><p>Dopo il salvataggio potrai aggiungere documenti, scadenze processuali, attività, depositi telematici e note.</p></div></Panel>
         </aside>
       </section>
-      <FloatingLex context="fascicolo-form" title="Lex AI fascicolo" body="Posso aiutarti a completare oggetto, tipo procedimento, checklist iniziale, scadenze e dati mancanti prima della creazione o modifica." primaryHref="/fascicoli" primaryLabel="Torna ai fascicoli" secondaryHref="/global-search?tipo=fascicoli" secondaryLabel="Cerca nello studio" />
+      <FloatingLex context="fascicolo-form" title="Lex AI fascicolo" body="Posso aiutarti a completare oggetto, tipo procedimento, checklist iniziale, scadenze e dati mancanti prima della creazione o modifica." primaryHref="#lex" primaryLabel="Apri Lex fascicolo" secondaryHref="/fascicoli" secondaryLabel="Torna ai fascicoli" />
     </main>
   )
 }
@@ -1424,7 +1424,7 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
           </div>
         </Panel>
       </section>
-      <FloatingLex context="firma-documento" title="Lex AI firma" body="Posso spiegare differenze tra CAdES, PAdES, firma locale e controlli predeposito, senza sostituire la verifica tecnica." primaryHref={detailUrl} primaryLabel="Torna ai documenti" secondaryHref={`/fascicoli/${encodedId}/documenti/${encodedDocId}/firma`} secondaryLabel="Firma documento" />
+      <FloatingLex context="firma-documento" title="Lex AI firma" body="Posso spiegare differenze tra CAdES, PAdES, firma locale e controlli predeposito, senza sostituire la verifica tecnica." primaryHref="#lex" primaryLabel="Apri Lex firma" secondaryHref={detailUrl} secondaryLabel="Torna ai documenti" />
     </main>
   )
 }
@@ -1592,7 +1592,7 @@ function DetailPage({ id }:{id:string}) {
       </section>
       <PdfPreviewModal preview={previewDoc} onClose={() => setPreviewDoc(null)}/>
       <a className="iu-fas-back-top" href="#fascicolo-top" aria-label="Torna su" title="Torna su"><ChevronUp size={18}/></a>
-      <FloatingLex context="fascicolo-dettaglio" title="Lex AI fascicolo" body="Posso sintetizzare profilo, documenti, attività, scadenze, depositi, parti e prossime azioni del fascicolo aperto." primaryHref={quadroHref} primaryLabel="Quadro fascicolo" secondaryHref={`/global-search?q=${encodeURIComponent(f.ref)}`} secondaryLabel="Cerca collegati" />
+      <FloatingLex context="fascicolo-dettaglio" title="Lex AI fascicolo" body="Posso sintetizzare profilo, documenti, attività, scadenze, depositi, parti e prossime azioni del fascicolo aperto." primaryHref="#lex" primaryLabel="Apri Lex fascicolo" secondaryHref={quadroHref} secondaryLabel="Quadro fascicolo" />
     </main>
   )
 }
@@ -1675,7 +1675,7 @@ function QuadroPage({ id }:{id:string}) {
         <QuadroAxis id="telematico" title="Servizi telematici" icon={<Send size={18}/>} status={data.telematic.length ? 'Presidiati' : 'Da configurare'} tone={data.telematic.length ? 'primary' : 'warning'}><div className="iu-fas-quadro-flow">{data.telematic.slice(0, 3).map((item) => <QuadroMiniCard key={item.label} label={item.label} value={item.value} note={item.note} tone={item.tone} href={item.href}/>)}</div><a className="iu-fas-inline-link" href="/telematico"><Send size={14}/> Apri servizi telematici</a></QuadroAxis>
       </section>
       <a className="iu-fas-back-top" href="#fascicolo-quadro-top" aria-label="Torna su" title="Torna su"><ChevronUp size={18}/></a>
-      <FloatingLex context="fascicolo-quadro" title="Lex AI quadro" body="Posso leggere il quadro della pratica, riassumere commerciale, operativo, conformità, economico e documenti, e suggerire la prossima azione utile." primaryHref={detailHref} primaryLabel="Apri dettaglio" secondaryHref="/global-search?tipo=fascicoli" secondaryLabel="Cerca nello studio" />
+      <FloatingLex context="fascicolo-quadro" title="Lex AI quadro" body="Posso leggere il quadro della pratica, riassumere commerciale, operativo, conformità, economico e documenti, e suggerire la prossima azione utile." primaryHref="#lex" primaryLabel="Apri Lex quadro" secondaryHref={detailHref} secondaryLabel="Apri dettaglio" />
     </main>
   )
 }
@@ -1699,7 +1699,7 @@ function ExportPage() {
       <section className="iu-fas-stats"><StatCard icon={<FolderOpen size={19}/>} label="Totali" value={data.summary.total} note="nel repository" tone="primary"/><StatCard icon={<Archive size={19}/>} label="Archiviati" value={data.summary.archived} note="da conservare" tone="neutral"/><StatCard icon={<FileText size={19}/>} label="Documenti" value={data.summary.documents} note="conteggio fascicoli" tone="purple"/></section>
       <section className="iu-fas-export-layout"><Panel title="Builder export" subtitle={loading ? 'Caricamento...' : `Sorgente ${data.source}`} icon={<FileDown size={17}/>}><div className="iu-fas-export-builder"><label><span>Formato</span><select value={format} onChange={(event) => setFormat(event.target.value)}><option value="pdf">PDF lista</option><option value="csv">CSV</option></select></label><label><span>Ricerca</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="numero, titolo, cliente..."/></label><label><span>Tipo</span><select value={type} onChange={(event) => setType(event.target.value as FascicoloTipo)}>{data.facets.types.map((facet) => <option value={facet.value} key={facet.value}>{facet.label}</option>)}</select></label><label><span>Stato</span><select value={status} onChange={(event) => setStatus(event.target.value as FascicoloStato)}>{data.facets.statuses.map((facet) => <option value={facet.value} key={facet.value}>{facet.label}</option>)}</select></label><a className="iu-fas-download-main" href={href}><Download size={16}/> Scarica export</a></div></Panel><Panel title="Campi inclusi" icon={<ListChecks size={17}/>}><div className="iu-fas-export-fields">{data.fields.map((field) => <label key={field.key}><input type="checkbox" defaultChecked={field.checked} readOnly/> {field.label}</label>)}</div></Panel><Panel title="Preset rapidi" icon={<Sparkles size={17}/>}><div className="iu-fas-side-cards">{data.presets.map((preset) => <a href={preset.href} key={preset.label}><Badge tone={preset.tone}>{preset.label}</Badge><span>{preset.description}</span></a>)}</div></Panel></section>
       <Panel title="Fascicoli recenti esportabili singolarmente" icon={<FolderOpen size={17}/>} count={data.recent.length}><div className="iu-fas-export-recent">{data.recent.map((item) => <a href={item.exportPdfHref} key={item.id}><FileDown size={15}/><strong>{item.ref}</strong><span>{item.title}</span></a>)}</div></Panel>
-      <FloatingLex context="export-fascicoli" title="Lex AI export" body="Posso suggerire quali campi esportare, preparare una sintesi per il cliente o controllare se mancano dati prima dell'archiviazione." primaryHref="/fascicoli/esporta" primaryLabel="Esporta fascicoli" secondaryHref="/fascicoli" secondaryLabel="Torna ai fascicoli" />
+      <FloatingLex context="export-fascicoli" title="Lex AI export" body="Posso suggerire quali campi esportare, preparare una sintesi per il cliente o controllare se mancano dati prima dell'archiviazione." primaryHref="#lex" primaryLabel="Apri Lex export" secondaryHref="/fascicoli/esporta" secondaryLabel="Esporta fascicoli" />
     </main>
   )
 }

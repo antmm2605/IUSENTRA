@@ -1496,7 +1496,7 @@ def privacy_registro_react_payload():
                 "exportAuditCsv": "/audit/esporta.csv",
                 "clienti": "/clienti",
                 "settings": "/impostazioni",
-                "lex": "/lex?context=registro-gdpr",
+                "lex": "#lex",
             },
             "contracts": {
                 "mock_fallback": False,
@@ -2234,20 +2234,3 @@ def agenda():
         selected_id=request.args.get("selected_id", "").strip(),
     )
     return jsonify(payload)
-
-
-
-@api_v1_react.post("/lex/chat")
-@_richiedi_auth
-def lex_chat():
-    return jsonify(
-        {
-            "answer": (
-                "La conversazione Lex dentro la shell React e' in migrazione controllata. "
-                "Per attivita operative usa ancora il pannello Lex della UI attuale, cosi restano "
-                "attivi retrieval, fonti, guardrail e audit completi."
-            ),
-            "source": "react_migration_guard",
-            "generated_at": _iso_now(),
-        }
-    )

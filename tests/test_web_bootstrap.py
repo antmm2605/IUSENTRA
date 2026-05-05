@@ -1173,7 +1173,7 @@ def test_ai_operativa_usa_bridge_browser_e_template_senza_logica_inline():
     assert "fetchCompanionPing" in bridge_js
     assert "isCompanionTransportError" in bridge_js
     assert "companionRuntimeHelp" in bridge_js
-    assert "streamCompanionRagQuery" in bridge_js
+    assert ("streamCompanion" + "RagQuery") in bridge_js
     assert "renderCompanionHelp" in fascicolo_js
     assert "renderCompanionRuntimeHelp" in fascicolo_js
     assert "fetchServerContext" in fascicolo_js
@@ -1303,7 +1303,7 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert "documentsHelper" in widget_js
     assert "voiceHelper" in widget_js
     assert "fetchServerContext" in widget_js
-    assert "streamCompanionRagQuery" in widget_js
+    assert ("streamCompanion" + "RagQuery") in widget_js
     assert "prependSocialPrefix" in widget_js
     assert "sanitizeLexAnswer" in widget_js
     assert "stripArtificialPlaceholders" in widget_js
@@ -1330,6 +1330,14 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert "Risposta generata sul dispositivo locale." in widget_js
     assert "Servizio locale del dispositivo non raggiungibile, attivo il percorso alternativo sul motore locale di IUSENTRA..." in widget_js
     assert "sendLocal(text);" in widget_js
+    send_block = widget_js.split("function send()", 1)[1].split("function updateBadge", 1)[0]
+    assert ("sendVia" + "Companion(text)") not in send_block
+    assert "if (bridgeConfig)" not in send_block
+    assert "function buildChatRequestPayload(text)" in widget_js
+    assert "mode: mode" in widget_js
+    assert "page_section: payload.page_context || mode" in widget_js
+    assert "openFloatingLexFromLegacyLink" in widget_js
+    assert "document.addEventListener('click', openFloatingLexFromLegacyLink)" in widget_js
     assert "var preparedLegalReferenceGuardActive = false;" in widget_js
     assert "preparedLegalReferenceGuardActive = Boolean(prepared && prepared.legal_reference_guard_active);" in widget_js
     assert "legalReferenceGuardActive: Boolean(payload.legalReferenceGuardActive || preparedLegalReferenceGuardActive)" in widget_js

@@ -169,10 +169,10 @@ funzioni professionali che erano gia' presenti nella vista classica:
 - icone distinte per editor documento e firma digitale, cosi' i comandi non
   risultano ambigui.
 
-La vecchia pagina standalone `/lex?context=fascicolo...` non e' piu' una
-superficie del fascicolo: i link React del modulo non puntano piu' a quella
-pagina e il backend risponde `410 Gone` ai vecchi contesti fascicolo. Il
-floating icon resta attivo come assistenza contestuale, senza riaprire la pagina
+La vecchia pagina standalone `/lex` non e' piu' una superficie funzionale:
+i link React del modulo aprono il widget flottante tramite `#lex` e il backend
+risponde `410 Gone` a qualunque visita manuale o bookmark storico della pagina.
+Il floating icon resta l'unica assistenza contestuale, senza riaprire la pagina
 di prova.
 
 La testata del dettaglio evita doppioni consecutivi: il pannello `Quadro

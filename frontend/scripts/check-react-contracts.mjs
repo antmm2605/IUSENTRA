@@ -25,6 +25,7 @@ const agenda = read('src/components/AgendaPage.tsx')
 const agendaData = read('src/agendaData.ts')
 const appointment = read('src/components/NuovoAppuntamentoPage.tsx')
 const floatingLex = read('src/components/FloatingLex.tsx')
+const widgetJs = read('../web/static/js/pct-lex-assistant.js')
 const search = read('src/components/RicercaStudioPage.tsx')
 const searchData = read('src/searchData.ts')
 const email = read('src/components/EmailPecPage.tsx')
@@ -78,6 +79,28 @@ const topbarRecent = read('src/components/layout/TopBarRecentItems.tsx')
 const topbarTimer = read('src/components/layout/TopBarTimeTracker.tsx')
 const topbarApi = read('src/services/topbarApi.ts')
 const topbarTypes = read('src/types/topbar.ts')
+const lexUiSources = [
+  app,
+  agenda,
+  search,
+  email,
+  emailData,
+  messaggi,
+  fascicoli,
+  documentEditor,
+  scadenziario,
+  nuovaScadenza,
+  telematico,
+  telematicoSurface,
+  timesheet,
+  timesheetData,
+  cartelleCondivise,
+  cartelleCondiviseData,
+  wizardPro,
+  wizardProData,
+  wizardProBridge,
+  apiBridge,
+].join('\n')
 
 assertContains(app, '/global-search', 'nav ricerca studio')
 assertContains(app, '/agenda', 'nav agenda')
@@ -108,6 +131,11 @@ assertContains(app, "readShellBootstrap", 'bootstrap profilo reale shell react')
 assertContains(app, "profile.displayName", 'nome profilo reale in sidebar react')
 assertContains(app, 'method="post" action={logoutAction}', 'logout react via POST reale')
 assertContains(app, "findStudioModule(route)", 'contesto lex blocco finale')
+assertContains(app, "const OPEN_LEX_WIDGET_HREF = '#lex'", 'cta lex usa widget flottante')
+assertNotContains(app, '/lex?context=', 'shell react senza link funzionali /lex')
+assertNotContains(app, 'href="/lex"', 'shell react senza pagina lex standalone')
+assertNotContains(lexUiSources, '/lex?context=', 'sorgenti react/bridge senza pagina lex standalone')
+assertNotContains(lexUiSources, 'href="/lex"', 'sorgenti react/bridge senza href lex standalone')
 assertContains(app, "isSearchPage?<RicercaStudioPage", 'route ricerca studio')
 assertContains(app, "isNewAppointmentPage||isAppointmentEditPage?<NuovoAppuntamentoPage", 'route nuovo/modifica appuntamento')
 assertContains(app, "isAgendaPage?<AgendaPage/>", 'route agenda')
@@ -236,6 +264,14 @@ assertContains(appointment, 'Contesto appuntamento pronto per Lex', 'contesto ap
 assertContains(floatingLex, 'IUSENTRA_LEX_CONTEXT', 'bridge contesto lex globale')
 assertContains(floatingLex, 'iusentra:lex-context', 'evento contesto lex globale')
 assertContains(floatingLex, 'return null', 'bridge react senza secondo widget lex')
+assertContains(widgetJs, 'function buildChatRequestPayload(text)', 'payload chat lex centralizzato')
+assertContains(widgetJs, "fetch(widget.dataset.chatUrl || '/api/assistente/chat'", 'widget invia alla rotta chat canonica')
+assertContains(widgetJs, 'mode: mode', 'widget conserva mode lex')
+assertContains(widgetJs, 'page_section: payload.page_context || mode', 'widget conserva page_section compatibile')
+assertContains(widgetJs, "document.addEventListener('click', openFloatingLexFromLegacyLink)", 'intercettazione link legacy lex')
+assertContains(widgetJs, "url.origin !== window.location.origin || url.pathname !== '/lex'", 'link lex legacy solo same-origin')
+assertContains(widgetJs, "applyLexPageContext(detail, { open: true })", 'click legacy apre widget lex')
+assertNotContains(widgetJs, 'sendVia' + 'Companion(text);', 'send non usa companion come risposta finale')
 
 assertContains(email, 'Casella PEC dello studio', 'pagina email pec')
 assertContains(email, 'Cartelle PEC', 'tab cartelle pec')

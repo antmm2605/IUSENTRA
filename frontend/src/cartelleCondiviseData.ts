@@ -134,7 +134,7 @@ const emptyData: CartelleCondiviseData = {
     gdpr: '/privacy/registro',
     cleanupExpired: '/api/v1/condivisioni/pulizia-scaduti',
     statistics: '/api/v1/condivisioni/statistiche',
-    lex: '/lex?context=cartelle-condivise',
+    lex: '#lex',
   },
   emptyStates: { noManagedFolders: true, noReceivedFolders: true, noExpiringAccesses: true },
 }
@@ -305,7 +305,7 @@ export async function getCartelleCondivisePage(): Promise<CartelleCondiviseData>
         gdpr: text(actions.gdpr, '/privacy/registro'),
         cleanupExpired: text(actions.cleanupExpired ?? actions.cleanup_expired, '/api/v1/condivisioni/pulizia-scaduti'),
         statistics: text(actions.statistics, '/api/v1/condivisioni/statistiche'),
-        lex: text(actions.lex, '/lex?context=cartelle-condivise'),
+        lex: text(actions.lex, '#lex'),
       },
       emptyStates: {
         noManagedFolders: Boolean(emptyStates.noManagedFolders),

@@ -744,10 +744,10 @@ export function NuovoClientePage() {
       <div className="iu-cln-ocr-note"><Camera size={15}/>Hook OCR/MRZ pronto: quando collegheremo il parser documento potra popolare CF, documento e scadenze.</div>
 
       <FloatingLex
-        context="clienti-nuovo"
+        context={tab === 'cliente' ? 'nuovo-cliente' : 'nuovo-soggetto'}
         title="Lex AI anagrafiche"
         body="Posso controllare dati minimi, suggerire ruolo processuale, verificare recapiti mancanti e preparare il passaggio a preventivo, fascicolo o conferimento."
-        primaryHref={`/lex?context=${tab === 'cliente' ? 'nuovo-cliente' : 'nuovo-soggetto'}`}
+        primaryHref="#lex"
         primaryLabel="Apri Lex anagrafica"
         secondaryHref="/global-search?tipo=clienti"
         secondaryLabel="Cerca duplicati"

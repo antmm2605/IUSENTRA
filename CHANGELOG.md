@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.198.69 - 2026-05-05
+
+- Lex standalone page removed; floating Lex widget is the single supported UI surface and routes all assistant responses through /api/assistente/chat.
+- La route `/lex` resta registrata solo come tombstone `410 Gone` con `Cache-Control: no-store`, mentre i vecchi link same-origin `/lex` e `#lex` vengono intercettati dal widget flottante senza navigazione.
+- Il payload del widget Lex e' centralizzato e conserva `session_id`, `messages`, `fascicolo_id`, `context_label`, `page_context`, `page_path`, `attachments`, `mode` e `page_section`.
+
 ## 2.198.68 - 2026-05-05
 
 - Ottimizzata la Panoramica React: `getDashboard()` usa la cache backend ordinaria, espone `refresh=1` solo su richiesta esplicita e avvia la sincronizzazione PEC/email ordinaria dopo il primo render senza bloccare la UI.

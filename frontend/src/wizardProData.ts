@@ -286,7 +286,7 @@ const dashboardEmpty: WizardProData = {
     deadlines: '/scadenziario',
     newDeadline: '/scadenziario/nuova',
     newAppointment: '/agenda/nuovo',
-    lex: '/lex?context=preparazione-udienza',
+    lex: '#lex',
   },
 }
 
@@ -317,7 +317,7 @@ const stepEmpty: WizardProStepData = {
     deadlines: '/scadenziario',
     signature: '/guida/firma-digitale',
     timesheet: '/timesheet',
-    lex: '/lex?context=preparazione-udienza',
+    lex: '#lex',
   },
   emptyStates: { noDocuments: true, noMissingDocuments: true, noActivities: true, noDeadlines: true },
 }
@@ -352,7 +352,7 @@ const completeEmpty: WizardProCompleteData = {
     timesheet: '/timesheet',
     archive: '/wizard-pro/',
     delete: '/wizard-pro/',
-    lex: '/lex?context=preparazione-udienza-riepilogo',
+    lex: '#lex',
   },
 }
 
@@ -616,7 +616,7 @@ export async function getWizardProPage(): Promise<WizardProData> {
         deadlines: text(actions.deadlines, '/scadenziario'),
         newDeadline: text(actions.newDeadline ?? actions.new_deadline, '/scadenziario/nuova'),
         newAppointment: text(actions.newAppointment ?? actions.new_appointment, '/agenda/nuovo'),
-        lex: text(actions.lex, '/lex?context=preparazione-udienza'),
+        lex: text(actions.lex, '#lex'),
       },
     }
   } catch {
@@ -672,7 +672,7 @@ export async function getWizardProStepPage(): Promise<WizardProStepData> {
         deadlines: text(actions.deadlines, '/scadenziario'),
         signature: text(actions.signature, '/guida/firma-digitale'),
         timesheet: text(actions.timesheet, '/timesheet'),
-        lex: text(actions.lex, '/lex?context=preparazione-udienza'),
+        lex: text(actions.lex, '#lex'),
       },
       emptyStates: {
         noDocuments: Boolean(emptyStates.noDocuments),
@@ -730,7 +730,7 @@ export async function getWizardProCompletePage(): Promise<WizardProCompleteData>
         timesheet: text(actions.timesheet, '/timesheet'),
         archive: text(actions.archive, '/wizard-pro/'),
         delete: text(actions.delete, '/wizard-pro/'),
-        lex: text(actions.lex, '/lex?context=preparazione-udienza-riepilogo'),
+        lex: text(actions.lex, '#lex'),
       },
     }
   } catch {

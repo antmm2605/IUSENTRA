@@ -1584,7 +1584,7 @@ export function TelematicoSurfacePage() {
         context={surfaceFallbacks[data.surface.id]?.context || surfaceFallbacks[surfaceId].context}
         title={`Lex AI - ${title}`}
         body="Posso aiutarti a leggere stato canale, checklist, uffici, documenti, ricevute e prossima azione senza uscire dalla nuova UI."
-        primaryHref="/lex?context=telematico"
+        primaryHref="#lex"
         primaryLabel="Apri Lex"
         secondaryHref="/app-v2/telematico"
         secondaryLabel="Centro telematico"

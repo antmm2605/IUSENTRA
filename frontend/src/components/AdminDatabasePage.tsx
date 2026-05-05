@@ -496,8 +496,8 @@ export function AdminDatabasePage() {
         context="database"
         title="Lex AI Database"
         body="Lex riceve il contesto della gestione database: moduli dati, migrazione SQLite, audit, export e controlli di integrità."
-        primaryHref="/admin/database"
-        primaryLabel="Contesto database"
+        primaryHref="#lex"
+        primaryLabel="Apri Lex database"
         secondaryHref={data.actions.audit}
         secondaryLabel="Registro attività"
       />

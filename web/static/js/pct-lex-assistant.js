@@ -1214,6 +1214,7 @@
       context: contextKey || cleanRoutePath(pagePath).replace(/^\//, '') || 'pagina',
       label: label,
       pagePath: pagePath,
+      mode: String(config.mode || '').trim(),
     };
     if (widget && widget.dataset) {
       widget.dataset.lexContext = state.pageContext.context;
@@ -1476,6 +1477,9 @@
 
   function payloadBase() {
     trimHistory();
+    if (!state.sessionId) {
+      state.sessionId = generateSessionId();
+    }
     var chatMessages = state.history.slice(-HISTORY_LIMIT).map(function (entry) {
       return {
         role: entry.role,
@@ -1484,12 +1488,65 @@
     });
     var pageContext = currentPageContextPayload();
     return {
-      session_id: state.sessionId || generateSessionId(),
+      session_id: state.sessionId,
       messages: chatMessages,
       fascicolo_id: state.fascId || '',
       context_label: pageContext.context_label,
       page_context: pageContext.page_context,
       page_path: pageContext.page_path,
+    };
+  }
+
+  function chatModeFromPageContext(pageContext) {
+    var context = String(pageContext || '').toLowerCase();
+    if (
+      context.indexOf('fascicol') !== -1 ||
+      context.indexOf('document') !== -1 ||
+      context.indexOf('editor') !== -1
+    ) {
+      return 'fascicolo';
+    }
+    if (
+      context.indexOf('udienza') !== -1 ||
+      context.indexOf('agenda') !== -1 ||
+      context.indexOf('scaden') !== -1 ||
+      context.indexOf('termine') !== -1
+    ) {
+      return 'udienza';
+    }
+    if (
+      context.indexOf('telematico') !== -1 ||
+      context.indexOf('polisweb') !== -1 ||
+      context.indexOf('pdp') !== -1 ||
+      context.indexOf('pat') !== -1 ||
+      context.indexOf('pct') !== -1
+    ) {
+      return 'telematico';
+    }
+    return 'general';
+  }
+
+  function buildChatRequestPayload(text) {
+    var payload = payloadBase();
+    var messagesPayload = payload.messages.slice(-HISTORY_LIMIT);
+    var currentText = String(text || '').trim();
+    var lastMessage = messagesPayload.length ? messagesPayload[messagesPayload.length - 1] : null;
+    if (currentText && !(lastMessage && lastMessage.role === 'user' && String(lastMessage.content || '') === currentText)) {
+      messagesPayload.push({ role: 'user', content: currentText });
+      messagesPayload = messagesPayload.slice(-HISTORY_LIMIT);
+    }
+    var explicitMode = String(state.pageContext && state.pageContext.mode || '').trim();
+    var mode = explicitMode || chatModeFromPageContext(payload.page_context);
+    return {
+      session_id: payload.session_id,
+      messages: messagesPayload,
+      fascicolo_id: payload.fascicolo_id,
+      context_label: payload.context_label,
+      page_context: payload.page_context,
+      page_path: payload.page_path,
+      attachments: state.attachments.slice(),
+      mode: mode,
+      page_section: payload.page_context || mode,
     };
   }
 
@@ -1558,21 +1615,23 @@
   }
 
   function sendLocal(text) {
-    var payload = payloadBase();
+    var payload = buildChatRequestPayload(text);
     var referenceLabel = state.pendingFocus && state.pendingFocus.focusLabel ? String(state.pendingFocus.focusLabel) : '';
     fetch(widget.dataset.chatUrl || '/api/assistente/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        session_id: payload.session_id,
-        messages: payload.messages,
-        fascicolo_id: payload.fascicolo_id,
-        context_label: payload.context_label,
-        page_context: payload.page_context,
-        page_path: payload.page_path,
-        attachments: state.attachments.slice(),
-      }),
+      body: JSON.stringify(payload),
     }).then(function (response) {
+      if (!response.ok) {
+        return response.text().then(function (body) {
+          var message = body || ('HTTP ' + response.status);
+          try {
+            var parsed = JSON.parse(body || '{}');
+            message = parsed.message || parsed.errore || parsed.error || message;
+          } catch (_error) {}
+          throw new Error(message);
+        });
+      }
       if (!response.body) {
         throw new Error('Il browser non supporta lo streaming della risposta.');
       }
@@ -1581,6 +1640,20 @@
       var decoder = new TextDecoder();
       var buffer = '';
       var full = '';
+      var finished = false;
+
+      function finish(finalPayload, ok) {
+        if (finished) {
+          return;
+        }
+        finished = true;
+        setAnswerPayload(state.currentBubble, finalPayload);
+        state.history.push({ role: 'assistant', content: finalPayload.answer, meta: { topic: state.pendingFocus && state.pendingFocus.topic || '', referenceLabel: referenceLabel } });
+        saveConversationMemory();
+        speakAnswer(finalPayload.answer);
+        finalizeThinkingFeedback(ok !== false);
+        finalizeRequest(ok === false ? 'Assistente momentaneamente non disponibile.' : undefined);
+      }
 
       function readChunk() {
         return reader.read().then(function (result) {
@@ -1589,12 +1662,7 @@
               { answer: full, citations: [], question: text, referenceLabel: referenceLabel },
               { question: text }
             );
-            setAnswerPayload(state.currentBubble, finalPayload);
-            state.history.push({ role: 'assistant', content: finalPayload.answer, meta: { topic: state.pendingFocus && state.pendingFocus.topic || '', referenceLabel: referenceLabel } });
-            saveConversationMemory();
-            speakAnswer(finalPayload.answer);
-            finalizeThinkingFeedback(true);
-            finalizeRequest();
+            finish(finalPayload, true);
             return;
           }
 
@@ -1613,12 +1681,7 @@
                   { answer: full, citations: [], question: text, referenceLabel: referenceLabel },
                   { question: text }
                 );
-                setAnswerPayload(state.currentBubble, donePayload);
-                state.history.push({ role: 'assistant', content: donePayload.answer, meta: { topic: state.pendingFocus && state.pendingFocus.topic || '', referenceLabel: referenceLabel } });
-                saveConversationMemory();
-                speakAnswer(donePayload.answer);
-                finalizeThinkingFeedback(true);
-                finalizeRequest();
+                finish(donePayload, true);
                 return;
               }
 
@@ -1639,9 +1702,13 @@
                 scrollBottom();
               }
             } catch (error) {
-              setBubbleContent(state.currentBubble, 'Risposta non leggibile ricevuta dal servizio.');
-              finalizeThinkingFeedback(false);
-              finalizeRequest('Assistente momentaneamente non disponibile.');
+              finish(
+                normalizeAssistantPayload(
+                  { answer: 'Risposta non leggibile ricevuta dal servizio.', citations: [], question: text, referenceLabel: referenceLabel },
+                  { question: text }
+                ),
+                false
+              );
             }
           });
 
@@ -1655,9 +1722,9 @@
 
       return readChunk();
     }).catch(function (error) {
-      setBubbleContent(state.currentBubble, 'Errore di connessione: ' + escapeHtml(error.message));
+      setBubbleContent(state.currentBubble, 'Errore di connessione: ' + escapeHtml(error.message || 'servizio non raggiungibile'));
       finalizeThinkingFeedback(false);
-      finalizeRequest('Connessione al motore locale non riuscita.');
+      finalizeRequest('Connessione a Lex non riuscita.');
     });
   }
 
@@ -1872,11 +1939,6 @@
     startThinkingFeedback(text);
     if (sendButton) {
       sendButton.disabled = true;
-    }
-
-    if (bridgeConfig) {
-      sendViaCompanion(text);
-      return;
     }
 
     sendLocal(text);
@@ -2233,6 +2295,85 @@
     window.addEventListener('pointercancel', endResize);
   }
 
+  function closestLegacyLexTrigger(target) {
+    var node = target;
+    while (node && node !== document) {
+      if (node.matches && node.matches('[data-lex-open], a[href]')) {
+        return node;
+      }
+      node = node.parentElement;
+    }
+    return null;
+  }
+
+  function contextDetailFromLegacyLink(trigger, href) {
+    var detail = Object.assign({}, readExternalLexContext() || {});
+    var dataset = trigger.dataset || {};
+    var isExplicitTrigger = trigger.hasAttribute('data-lex-open');
+    if (dataset.lexContext) {
+      detail.context = dataset.lexContext;
+    }
+    if (dataset.lexLabel) {
+      detail.contextLabel = dataset.lexLabel;
+    }
+    if (dataset.lexTitle) {
+      detail.title = dataset.lexTitle;
+    }
+    if (dataset.lexBody) {
+      detail.body = dataset.lexBody;
+    }
+    if (dataset.lexPagePath) {
+      detail.pagePath = dataset.lexPagePath;
+    }
+    if (href && href !== '#lex') {
+      try {
+        var url = new URL(href, window.location.origin);
+        if (url.origin !== window.location.origin || url.pathname !== '/lex') {
+          return isExplicitTrigger ? detail : null;
+        }
+        var context = url.searchParams.get('context');
+        if (context) {
+          detail.context = context;
+        }
+        var query = url.searchParams.get('q') || url.searchParams.get('evento') || url.searchParams.get('id');
+        if (query && !detail.body) {
+          detail.body = 'Contesto selezionato: ' + query;
+        }
+        detail.pagePath = window.location.pathname || detail.pagePath || '/';
+      } catch (_error) {
+        detail.pagePath = window.location.pathname || detail.pagePath || '/';
+      }
+    }
+    return detail;
+  }
+
+  function openFloatingLexFromLegacyLink(event) {
+    var trigger = closestLegacyLexTrigger(event.target);
+    if (!trigger) {
+      return;
+    }
+    var href = String(trigger.getAttribute('href') || '').trim();
+    var isExplicitTrigger = trigger.hasAttribute('data-lex-open');
+    var shouldOpen = isExplicitTrigger || href === '#lex';
+    if (!shouldOpen && href) {
+      try {
+        var url = new URL(href, window.location.origin);
+        shouldOpen = url.origin === window.location.origin && url.pathname === '/lex';
+      } catch (_error) {
+        shouldOpen = href.indexOf('/lex') === 0;
+      }
+    }
+    if (!shouldOpen) {
+      return;
+    }
+    var detail = contextDetailFromLegacyLink(trigger, href);
+    if (detail === null) {
+      return;
+    }
+    event.preventDefault();
+    applyLexPageContext(detail, { open: true });
+  }
+
   function bindEvents() {
     fab.addEventListener('click', toggle);
     window.addEventListener('iusentra:lex-context', function (event) {
@@ -2241,6 +2382,7 @@
     window.addEventListener('iusentra:open-floating-lex', function (event) {
       applyLexPageContext(event && event.detail ? event.detail : readExternalLexContext() || {}, { open: true });
     });
+    document.addEventListener('click', openFloatingLexFromLegacyLink);
     sendButton.addEventListener('click', send);
     query('pct-ai-close').addEventListener('click', closeAssistant);
     query('pct-ai-clear').addEventListener('click', clearHistory);

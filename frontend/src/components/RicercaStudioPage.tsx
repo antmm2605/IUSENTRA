@@ -487,7 +487,7 @@ function PreviewPanel({
           <a className="iu-search-primary is-disabled" aria-disabled={!hasQuery}>
             Apri
           </a>
-          <a className="iu-search-outline" href="/lex">
+          <a className="iu-search-outline" href="#lex" data-lex-open data-lex-context="ricerca-studio">
             <Sparkles size={15} />
             Chiedi a Lex
           </a>
@@ -526,7 +526,7 @@ function PreviewPanel({
 
       <div className="iu-search-preview__actions">
         <a className="iu-search-primary" href={result.href}>Apri</a>
-        <a className="iu-search-outline" href={`/lex?q=${encodeURIComponent(result.title)}`}>
+        <a className="iu-search-outline" href="#lex" data-lex-open data-lex-context="ricerca-studio" data-lex-label={`Contesto ricerca: ${result.title}`}>
           <Sparkles size={15} />
           Chiedi a Lex
         </a>

@@ -2,23 +2,11 @@
 
 from __future__ import annotations
 
-from datetime import date
 from typing import Callable
 
-from flask import Blueprint, g, redirect, render_template, request, url_for
+from flask import Blueprint, g, redirect, request, url_for
 
 from .service import LexService
-
-_FASCICOLO_LEX_PAGE_REMOVED_CONTEXTS = {
-    "fascicolo",
-    "fascicoli",
-    "fascicolo-dettaglio",
-    "fascicolo-quadro",
-    "fascicolo-form",
-    "firma-documento",
-    "archivio-fascicoli",
-    "export-fascicoli",
-}
 
 
 def register_routes(
@@ -34,16 +22,14 @@ def register_routes(
         user = g.get("utente_corrente")
         if not user:
             return redirect(url_for("auth.login"))
-        context = str(request.args.get("context") or "").strip().lower()
-        if context in _FASCICOLO_LEX_PAGE_REMOVED_CONTEXTS:
-            return (
-                "La pagina Lex standalone dei fascicoli e' stata rimossa. "
-                "Usa il floating icon contestuale nel fascicolo.",
-                410,
-            )
-        return render_template(
-            "lex_chat.html",
-            oggi=date.today(),
+        return (
+            {
+                "ok": False,
+                "code": "LEX_STANDALONE_REMOVED",
+                "message": "La pagina Lex standalone e' stata rimossa. Usa l'icona Lex flottante nell'applicazione.",
+            },
+            410,
+            {"Cache-Control": "no-store"},
         )
 
     @guard

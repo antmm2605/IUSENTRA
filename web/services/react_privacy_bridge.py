@@ -156,7 +156,7 @@ def build_react_privacy_registro_payload(
             "exportAuditCsv": "/audit/esporta.csv",
             "clienti": "/clienti",
             "settings": "/impostazioni",
-            "lex": "/lex?context=registro-gdpr",
+            "lex": "#lex",
         },
         "contracts": {
             "mock_fallback": False,

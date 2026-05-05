@@ -221,7 +221,7 @@ def build_react_condivisioni_payload(
             "gdpr": "/privacy/registro",
             "cleanupExpired": "/api/v1/condivisioni/pulizia-scaduti",
             "statistics": "/api/v1/condivisioni/statistiche",
-            "lex": "/lex?context=cartelle-condivise",
+            "lex": "#lex",
         },
         "emptyStates": {
             "noManagedFolders": not managed_folders,

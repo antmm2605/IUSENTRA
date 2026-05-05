@@ -986,7 +986,7 @@ export function NuovaScadenzaPage() {
               />
               <OperationalCard icon={<CalendarDays size={18} />} title="Esporta calendario" text="Feed iCal scadenziario per calendari esterni" href="/scadenziario/export.ics" />
               <OperationalCard icon={<ListChecks size={18} />} title="Controlli atti" text="Checklist deposito e controlli preliminari" href="/deposito/checklist" />
-              <OperationalCard icon={<Sparkles size={18} />} title="Chiedi a Lex" text="Analisi operativa della scadenza e prossima azione" href={`/lex?context=scadenziario-nuova&draft=${encodeURIComponent(form.titolo || form.tipo)}`} />
+              <OperationalCard icon={<Sparkles size={18} />} title="Chiedi a Lex" text="Analisi operativa della scadenza e prossima azione" href="#lex" />
             </div>
           </section>
 

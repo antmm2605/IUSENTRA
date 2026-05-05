@@ -203,7 +203,7 @@ export const emptyTelematicoPage: TelematicoPageData = {
     firmaDigitaleHref: '/guida/firma-digitale',
     localSignerHref: '/local-signer',
     connectionStatusHref: '/api/telematico/connection-status',
-    lexHref: '/lex?context=telematico',
+    lexHref: '#lex',
     emailHref: '/email/',
   },
   lexSuggestions: [],

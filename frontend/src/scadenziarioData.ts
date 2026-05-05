@@ -280,7 +280,7 @@ export const emptyScadenziarioPage: ScadenziarioPageData = {
     exportIcs: '/scadenziario/export.ics',
     agenda: '/app-v2/agenda',
     calendarSettings: '/impostazioni/calendario',
-    lex: '/lex?context=scadenziario',
+    lex: '#lex',
     bulkComplete: '/scadenziario/bulk-completa',
   },
 }

@@ -312,7 +312,7 @@ function AgendaFocus({ event }:{event:AgendaEvent}) {
         <a href={editHref}><Settings2 size={15}/>Modifica</a>
         <a href={event.href || '/agenda'}><CalendarDays size={15}/>Apri origine</a>
         <a href={`/messaggi/nuovo?oggetto=${encodeURIComponent(event.title)}`}><MessageCircleIcon/>Avvisa cliente</a>
-        <a href={`/lex?context=agenda&evento=${encodeURIComponent(event.title)}`}><Sparkles size={15}/>Chiedi a Lex</a>
+        <a href="#lex" data-lex-open data-lex-context="agenda" data-lex-label={`Contesto agenda: ${event.title}`}><Sparkles size={15}/>Chiedi a Lex</a>
         {!isDeadline ? (
           <form method="post" action={completeHref}>
             <input type="hidden" name="stato" value="COMPLETATO"/>

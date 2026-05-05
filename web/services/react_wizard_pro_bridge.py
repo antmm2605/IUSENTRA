@@ -355,7 +355,7 @@ def build_react_wizard_pro_payload(selected_fascicolo_id: str = "") -> dict[str,
             "deadlines": "/scadenziario",
             "newDeadline": "/scadenziario/nuova",
             "newAppointment": "/agenda/nuovo",
-            "lex": "/lex?context=preparazione-udienza",
+            "lex": "#lex",
         },
     }
 
@@ -400,7 +400,7 @@ def build_react_wizard_pro_step_payload(id_sessione: str, n: int) -> dict[str, A
             "deadlines": f"/scadenziario?fascicolo={case_id}" if case_id else "/scadenziario",
             "signature": "/guida/firma-digitale",
             "timesheet": f"/timesheet?id_fascicolo={case_id}" if case_id else "/timesheet",
-            "lex": f"/lex?context=preparazione-udienza-step-{n}",
+            "lex": "#lex",
         },
         "emptyStates": {
             "noDocuments": not documents,
@@ -449,6 +449,6 @@ def build_react_wizard_pro_complete_payload(id_sessione: str) -> dict[str, Any] 
             "timesheet": f"/timesheet?id_fascicolo={case_id}" if case_id else "/timesheet",
             "archive": f"/wizard-pro/{id_sessione}/archivia",
             "delete": f"/wizard-pro/{id_sessione}/elimina",
-            "lex": "/lex?context=preparazione-udienza-riepilogo",
+            "lex": "#lex",
         },
     }

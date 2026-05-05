@@ -1079,7 +1079,7 @@ def build_react_telematico_payload(
             "firmaDigitaleHref": "/guida/firma-digitale",
             "localSignerHref": "/local-signer",
             "connectionStatusHref": "/api/telematico/connection-status",
-            "lexHref": "/lex?context=telematico",
+            "lexHref": "#lex",
             "emailHref": "/email/",
         },
         "lexSuggestions": _lex_suggestions(summary, channels),

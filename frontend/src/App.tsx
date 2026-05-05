@@ -407,6 +407,8 @@ type GlobalLexConfig = {
   secondaryLabel: string
 }
 
+const OPEN_LEX_WIDGET_HREF = '#lex'
+
 function resolveLexPageContext(routePath: string): GlobalLexConfig {
   const route = normaliseRoutePath(routePath).toLowerCase()
   if (route === '/global-search' || route === '/ricerca-studio' || route === '/cerca') {
@@ -414,7 +416,7 @@ function resolveLexPageContext(routePath: string): GlobalLexConfig {
       context: 'ricerca-studio',
       title: 'Lex AI ricerca',
       body: 'Legge il contesto della ricerca e collega fascicoli, clienti, scadenze, PEC e documenti pertinenti.',
-      primaryHref: '/lex?context=ricerca-studio',
+      primaryHref: OPEN_LEX_WIDGET_HREF,
       primaryLabel: 'Apri Lex ricerca',
       secondaryHref: '/global-search',
       secondaryLabel: 'Ricerca Studio',
@@ -425,7 +427,7 @@ function resolveLexPageContext(routePath: string): GlobalLexConfig {
       context: 'regia-operativa',
       title: 'Lex AI regia',
       body: 'Legge priorità, PEC, scadenze e fascicoli da presidiare per suggerire il prossimo passo operativo.',
-      primaryHref: '/lex?context=regia-operativa',
+      primaryHref: OPEN_LEX_WIDGET_HREF,
       primaryLabel: 'Apri Lex regia',
       secondaryHref: '/workspace-intelligente',
       secondaryLabel: 'Regia operativa',
@@ -436,7 +438,7 @@ function resolveLexPageContext(routePath: string): GlobalLexConfig {
       context: 'agenda-appuntamento',
       title: 'Lex AI appuntamento',
       body: 'Legge cliente, fascicolo, orario e note per aiutarti a preparare agenda, promemoria e attività collegate.',
-      primaryHref: '/lex?context=agenda-appuntamento',
+      primaryHref: OPEN_LEX_WIDGET_HREF,
       primaryLabel: 'Apri Lex agenda',
       secondaryHref: '/agenda',
       secondaryLabel: 'Agenda',
@@ -447,7 +449,7 @@ function resolveLexPageContext(routePath: string): GlobalLexConfig {
       context: 'scadenza-form',
       title: 'Lex AI scadenza',
       body: 'Legge materia, fascicolo e termine indicato per aiutarti a controllare decorrenza, avvisi e prossima azione.',
-      primaryHref: '/lex?context=scadenza-form',
+      primaryHref: OPEN_LEX_WIDGET_HREF,
       primaryLabel: 'Apri Lex termini',
       secondaryHref: '/scadenziario',
       secondaryLabel: 'Scadenziario',
@@ -458,10 +460,10 @@ function resolveLexPageContext(routePath: string): GlobalLexConfig {
       context: 'editor-documento',
       title: 'Lex AI editor',
       body: 'Legge il documento aperto, il fascicolo collegato e gli avvisi di conversione per aiutare nella revisione professionale.',
-      primaryHref: '/global-search?tipo=documenti',
-      primaryLabel: 'Cerca documenti',
-      secondaryHref: '/fascicoli',
-      secondaryLabel: 'Fascicoli',
+      primaryHref: OPEN_LEX_WIDGET_HREF,
+      primaryLabel: 'Apri Lex editor',
+      secondaryHref: '/global-search?tipo=documenti',
+      secondaryLabel: 'Cerca documenti',
     }
   }
   if (route.startsWith('/fascicoli')) {
@@ -469,10 +471,10 @@ function resolveLexPageContext(routePath: string): GlobalLexConfig {
       context: 'fascicoli',
       title: 'Lex AI fascicoli',
       body: 'Legge il contesto del fascicolo, documenti, attività, scadenze e canali telematici collegati.',
-      primaryHref: '/global-search?tipo=fascicoli',
-      primaryLabel: 'Cerca fascicoli',
-      secondaryHref: '/fascicoli',
-      secondaryLabel: 'Fascicoli',
+      primaryHref: OPEN_LEX_WIDGET_HREF,
+      primaryLabel: 'Apri Lex fascicoli',
+      secondaryHref: '/global-search?tipo=fascicoli',
+      secondaryLabel: 'Cerca fascicoli',
     }
   }
   if (route.startsWith('/clienti') || route.startsWith('/soggetti')) {
@@ -480,7 +482,7 @@ function resolveLexPageContext(routePath: string): GlobalLexConfig {
       context: 'anagrafiche',
       title: 'Lex AI anagrafiche',
       body: 'Legge anagrafiche, parti, recapiti, fascicoli collegati e dati mancanti da completare.',
-      primaryHref: '/lex?context=anagrafiche',
+      primaryHref: OPEN_LEX_WIDGET_HREF,
       primaryLabel: 'Apri Lex anagrafiche',
       secondaryHref: '/clienti',
       secondaryLabel: 'Clienti',
@@ -491,7 +493,7 @@ function resolveLexPageContext(routePath: string): GlobalLexConfig {
       context: 'comunicazioni',
       title: 'Lex AI comunicazioni',
       body: 'Legge PEC, email ordinarie, messaggi, mittenti, allegati ed esiti per aiutarti a collegare comunicazioni e fascicoli.',
-      primaryHref: '/lex?context=comunicazioni',
+      primaryHref: OPEN_LEX_WIDGET_HREF,
       primaryLabel: 'Apri Lex comunicazioni',
       secondaryHref: route === '/email-ordinaria' ? '/email-ordinaria/' : '/email/',
       secondaryLabel: route === '/email-ordinaria' ? 'Email ordinaria' : 'Casella PEC',
@@ -502,7 +504,7 @@ function resolveLexPageContext(routePath: string): GlobalLexConfig {
       context: 'scadenziario',
       title: 'Lex AI scadenziario',
       body: 'Legge scadenze, termini, urgenze e blocchi operativi per presidiare il calendario processuale.',
-      primaryHref: '/lex?context=scadenziario',
+      primaryHref: OPEN_LEX_WIDGET_HREF,
       primaryLabel: 'Apri Lex termini',
       secondaryHref: '/scadenziario',
       secondaryLabel: 'Scadenziario',
@@ -521,7 +523,7 @@ function resolveLexPageContext(routePath: string): GlobalLexConfig {
       context: contexts[wizardStepMatch[1]] || 'preparazione-udienza',
       title: 'Lex AI udienza',
       body: 'Legge lo step corrente della preparazione udienza e collega fascicolo, documenti, strategia ed esito.',
-      primaryHref: `/lex?context=${contexts[wizardStepMatch[1]] || 'preparazione-udienza'}`,
+      primaryHref: OPEN_LEX_WIDGET_HREF,
       primaryLabel: 'Apri Lex udienza',
       secondaryHref: '/wizard-pro/',
       secondaryLabel: 'Wizard udienza',
@@ -532,7 +534,7 @@ function resolveLexPageContext(routePath: string): GlobalLexConfig {
       context: 'preparazione-udienza-riepilogo',
       title: 'Lex AI riepilogo',
       body: 'Legge esito, azioni successive e checklist della preparazione udienza.',
-      primaryHref: '/lex?context=preparazione-udienza-riepilogo',
+      primaryHref: OPEN_LEX_WIDGET_HREF,
       primaryLabel: 'Apri Lex riepilogo',
       secondaryHref: '/wizard-pro/',
       secondaryLabel: 'Wizard udienza',
@@ -543,7 +545,7 @@ function resolveLexPageContext(routePath: string): GlobalLexConfig {
       context: 'preparazione-udienza',
       title: 'Lex AI udienza',
       body: 'Legge attività, documenti, parti e udienza per preparare checklist, note e prossime azioni.',
-      primaryHref: '/lex?context=preparazione-udienza',
+      primaryHref: OPEN_LEX_WIDGET_HREF,
       primaryLabel: 'Apri Lex udienza',
       secondaryHref: '/wizard-pro/',
       secondaryLabel: 'Wizard udienza',
@@ -554,7 +556,7 @@ function resolveLexPageContext(routePath: string): GlobalLexConfig {
       context: 'timesheet',
       title: 'Lex AI timesheet',
       body: 'Legge voci, stati, clienti e fascicoli per aiutarti a presidiare tempi e fatturazione.',
-      primaryHref: '/lex?context=timesheet',
+      primaryHref: OPEN_LEX_WIDGET_HREF,
       primaryLabel: 'Apri Lex timesheet',
       secondaryHref: '/fatturazione/',
       secondaryLabel: 'Fatturazione',
@@ -565,7 +567,7 @@ function resolveLexPageContext(routePath: string): GlobalLexConfig {
       context: 'cartelle-condivise',
       title: 'Lex AI condivisioni',
       body: 'Legge accessi, ruoli, scadenze e presidi privacy delle cartelle condivise.',
-      primaryHref: '/lex?context=cartelle-condivise',
+      primaryHref: OPEN_LEX_WIDGET_HREF,
       primaryLabel: 'Apri Lex condivisioni',
       secondaryHref: '/privacy/registro',
       secondaryLabel: 'Registro GDPR',
@@ -576,7 +578,7 @@ function resolveLexPageContext(routePath: string): GlobalLexConfig {
       context: 'telematico',
       title: 'Lex AI telematico',
       body: 'Legge canale, uffici, checklist, ricevute, import e stato del deposito nella pagina telematica aperta.',
-      primaryHref: '/lex?context=telematico',
+      primaryHref: OPEN_LEX_WIDGET_HREF,
       primaryLabel: 'Apri Lex telematico',
       secondaryHref: '/telematico',
       secondaryLabel: 'Centro telematico',
@@ -588,7 +590,7 @@ function resolveLexPageContext(routePath: string): GlobalLexConfig {
       context: studioModule.lexContext,
       title: `Lex AI ${studioModule.title}`,
       body: studioModule.lexLabel,
-      primaryHref: `/lex?context=${encodeURIComponent(studioModule.lexContext)}`,
+      primaryHref: OPEN_LEX_WIDGET_HREF,
       primaryLabel: 'Apri Lex',
       secondaryHref: studioModule.routes[0],
       secondaryLabel: studioModule.title,
@@ -598,7 +600,7 @@ function resolveLexPageContext(routePath: string): GlobalLexConfig {
     context: 'panoramica',
     title: 'Lex AI',
     body: 'Legge il contesto della pagina e collega dati di studio, scadenze, fascicoli e comunicazioni.',
-    primaryHref: '/lex?context=panoramica',
+    primaryHref: OPEN_LEX_WIDGET_HREF,
     primaryLabel: 'Apri Lex',
     secondaryHref: '/workspace-intelligente',
     secondaryLabel: 'Regia operativa',
@@ -763,7 +765,7 @@ function Economic({ data }:{data:DashboardData}) {
 }
 
 function Lex({ data }:{data:DashboardData}) {
-  return <Panel title="Suggerimenti Lex AI" icon={<Sparkles size={17}/>} count={data.lex.length}>{data.lex.length?<div className="iu-lex">{data.lex.map(s=><div key={s}><Sparkles size={15}/><span>{s}</span></div>)}</div>:<Empty>Nessun suggerimento prioritario.</Empty>}<a className="iu-link" href="/lex">Apri Lex AI -&gt;</a></Panel>
+  return <Panel title="Suggerimenti Lex AI" icon={<Sparkles size={17}/>} count={data.lex.length}>{data.lex.length?<div className="iu-lex">{data.lex.map(s=><div key={s}><Sparkles size={15}/><span>{s}</span></div>)}</div>:<Empty>Nessun suggerimento prioritario.</Empty>}<a className="iu-link" href={OPEN_LEX_WIDGET_HREF} data-lex-open data-lex-context="panoramica">Apri Lex AI -&gt;</a></Panel>
 }
 
 function Dossiers({ data }:{data:DashboardData}) {

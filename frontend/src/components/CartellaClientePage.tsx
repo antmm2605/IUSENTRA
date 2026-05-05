@@ -270,7 +270,7 @@ export function CartellaClientePage() {
         context="cartella-cliente"
         title="Lex sulla cartella"
         body={`Analizza la cartella cliente ${data.cliente.name} e segnala fascicoli, scadenze e azioni da presidiare.`}
-        primaryHref={`/lex?context=cartella-cliente&id_cliente=${encodeURIComponent(data.cliente.id)}`}
+        primaryHref="#lex"
         primaryLabel="Apri Lex sulla cartella"
         secondaryHref={data.cliente.folderHref}
         secondaryLabel="Resta nella cartella"

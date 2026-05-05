@@ -4,6 +4,8 @@
 
 Lex AI non espone una seconda chat separata: la risposta professionale e' innestata nel flusso reale `LexOrchestrator -> AnswerBuilder`, quindi vale per UI, API e assistente fascicolo.
 
+Dal 2.198.69 la pagina standalone `/lex` e' rimossa come superficie funzionale. L'unica UI supportata e' il widget/icona flottante, che invia tutte le risposte finali a `POST /api/assistente/chat` con payload canonico di sessione, messaggi, contesto pagina, fascicolo e allegati.
+
 Ogni risposta finale viene ora organizzata in sezioni leggibili:
 
 - `Sintesi operativa` o `Risposta professionale`

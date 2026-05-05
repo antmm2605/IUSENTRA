@@ -311,7 +311,7 @@ export function SoggettiPage() {
         context="soggetti"
         title="Lex AI soggetti"
         body="Posso aiutarti a individuare duplicati, ruoli processuali incoerenti, soggetti senza cliente collegato e dati fiscali mancanti."
-        primaryHref="/lex?context=soggetti"
+        primaryHref="#lex"
         primaryLabel="Apri Lex soggetti"
         secondaryHref="/soggetti/nuovo"
         secondaryLabel="Nuovo soggetto"

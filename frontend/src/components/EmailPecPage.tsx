@@ -725,7 +725,7 @@ export function EmailComposePage({ mode }: { mode: MailboxMode }) {
         context={copy.lexContext}
         title={copy.lexTitle}
         body={copy.lexBody}
-        primaryHref="/global-search?tipo=comunicazioni"
+        primaryHref="#lex"
         primaryLabel={copy.lexPrimaryLabel}
         secondaryHref={backHref}
         secondaryLabel={copy.title}

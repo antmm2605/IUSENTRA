@@ -280,7 +280,7 @@ function InsightPanel({ data, visible }:{data: ClientiPageData; visible: Cliente
           <a href="/clienti/nuovo"><UserPlus size={15}/> Nuovo cliente</a>
           <a href="/soggetti/nuovo"><UsersRound size={15}/> Nuovo soggetto</a>
           <a href="/preventivi/"><FileText size={15}/> Preventivi e incarichi</a>
-          <a href="/lex?context=clienti"><Sparkles size={15}/> Chiedi a Lex</a>
+          <a href="#lex" data-lex-open data-lex-context="clienti"><Sparkles size={15}/> Chiedi a Lex</a>
         </div>
       </Panel>
     </aside>
@@ -400,7 +400,7 @@ export function AnagraficaClientiPage() {
             <div className="iu-cli-bulkbar">
               <strong>{selectedVisible} clienti selezionati</strong>
               <a href="/clienti/esporta"><Download size={14}/> Esporta selezione</a>
-              <a href="/lex?context=clienti"><Sparkles size={14}/> Chiedi controllo a Lex</a>
+              <a href="#lex" data-lex-open data-lex-context="clienti"><Sparkles size={14}/> Chiedi controllo a Lex</a>
               <button type="button" onClick={() => setSelected(new Set())}>Annulla</button>
             </div>
           ) : null}
@@ -431,7 +431,7 @@ export function AnagraficaClientiPage() {
         context="clienti"
         title="Lex AI anagrafiche"
         body="Posso controllare quali clienti bloccano conferimento, privacy, preventivo o fascicolo, e preparare una checklist di completamento senza modificare i dati."
-        primaryHref="/lex?context=clienti"
+        primaryHref="#lex"
         primaryLabel="Apri Lex sui clienti"
         secondaryHref="/global-search?tipo=clienti"
         secondaryLabel="Cerca nello studio"

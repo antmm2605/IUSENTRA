@@ -740,10 +740,10 @@ export function DocumentEditorPage() {
         context="editor-documento"
         title="Lex AI editor"
         body="Posso aiutarti a controllare coerenza dell atto, punti mancanti, stile professionale e collegamenti con il fascicolo aperto."
-        primaryHref={data.fascicolo.detailHref}
-        primaryLabel="Fascicolo"
-        secondaryHref={`/global-search?q=${encodeURIComponent(doc.name || data.fascicolo.ref)}`}
-        secondaryLabel="Cerca collegati"
+        primaryHref="#lex"
+        primaryLabel="Apri Lex editor"
+        secondaryHref={data.fascicolo.detailHref}
+        secondaryLabel="Fascicolo"
       />
     </main>
   )

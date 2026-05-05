@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from flask import Flask, g
+from flask import Blueprint, Flask, g
 
 from lex.blueprint import create_lex_blueprint
 from lex.dependencies import LexDependencies
@@ -84,14 +84,23 @@ def dependency_factory() -> LexDependencies:
     )
 
 
-def make_app():
+def make_app(*, authenticated: bool = True):
     app = Flask(__name__)
     app.config["TESTING"] = True
     app.config["SECRET_KEY"] = "test-secret"
 
+    auth_bp = Blueprint("auth", __name__)
+
+    @auth_bp.route("/login")
+    def login():
+        return "login", 200
+
+    app.register_blueprint(auth_bp)
+
     @app.before_request
     def _login_test_user():
-        g.utente_corrente = {"username": "test"}
+        if authenticated:
+            g.utente_corrente = {"username": "test"}
 
     app.register_blueprint(
         create_lex_blueprint(
@@ -144,12 +153,61 @@ def test_assistente_attachments_endpoint_returns_attachment_evidence_metadata():
     assert payload["evidence_mode"] == "attachment_evidence"
 
 
-def test_lex_fascicolo_standalone_page_removed():
+def assert_lex_standalone_removed(response):
+    assert response.status_code == 410
+    assert response.headers["Cache-Control"] == "no-store"
+    payload = response.get_json()
+    assert payload == {
+        "ok": False,
+        "code": "LEX_STANDALONE_REMOVED",
+        "message": "La pagina Lex standalone e' stata rimossa. Usa l'icona Lex flottante nell'applicazione.",
+    }
+    assert "Ciao, sono Lex" not in response.get_data(as_text=True)
+
+
+def test_lex_standalone_page_removed_for_authenticated_user():
     app = make_app()
     client = app.test_client()
 
-    response = client.get("/lex?context=fascicolo&id_fasc=17A38FB6")
+    response = client.get("/lex")
 
-    assert response.status_code == 410
-    assert "pagina Lex standalone dei fascicoli" in response.get_data(as_text=True)
-    assert "Ciao, sono Lex" not in response.get_data(as_text=True)
+    assert_lex_standalone_removed(response)
+
+
+def test_lex_standalone_page_removed_for_panoramica_context():
+    app = make_app()
+    client = app.test_client()
+
+    response = client.get("/lex" + "?context=panoramica")
+
+    assert_lex_standalone_removed(response)
+
+
+def test_lex_standalone_page_removed_for_fascicoli_context():
+    app = make_app()
+    client = app.test_client()
+
+    response = client.get("/lex" + "?context=fascicolo&id_fasc=17A38FB6")
+
+    assert_lex_standalone_removed(response)
+
+
+def test_lex_standalone_page_redirects_login_for_unauthenticated_user():
+    app = make_app(authenticated=False)
+    client = app.test_client()
+
+    response = client.get("/lex")
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/login")
+
+
+def test_assistente_chat_endpoint_remains_registered_for_post():
+    app = make_app()
+    rules = {
+        rule.rule: sorted(rule.methods)
+        for rule in app.url_map.iter_rules()
+        if rule.rule == "/api/assistente/chat"
+    }
+
+    assert rules["/api/assistente/chat"] == ["OPTIONS", "POST"]

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.198.72 - 2026-05-05
+
+- Rafforzata la Fase 2 backend di `Documenti AI Fascicolo` con API di dominio esplicite per upload result, validazione size/hash/type, path tenant-aware versionati e risultato estrazione file-based.
+- Allineati service e repository alle interfacce richieste dalla tranche backend, mantenendo storage filtrato per tenant/fascicolo, audit senza contenuto documentale e testi estratti su percorso relativo governato.
+- Aggiunti test dedicati per extraction e versioning, oltre a coperture security/service su dimensione file, path traversal, query vuota e documento inesistente.
+
 ## 2.198.71 - 2026-05-05
 
 - Introdotto l'MVP 1 di `Documenti AI Fascicolo`: dominio nativo `pct/document_intelligence`, upload PDF/DOCX/DOC tenant-aware, hash SHA-256, versione 1, estrazione testo best-effort, stato `ready/error` e audit dedicato.

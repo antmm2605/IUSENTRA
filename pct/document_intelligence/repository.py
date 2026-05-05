@@ -183,6 +183,9 @@ class DocumentAIRepository:
             self._save_json()
         return record
 
+    def create_document(self, record: DocumentAIRecord) -> DocumentAIRecord:
+        return self.create_document_record(record)
+
     def create_version(self, version: DocumentAIVersion) -> DocumentAIVersion:
         existing = self.list_versions(version.tenant_id, version.fascicolo_id, version.document_id)
         if any(row.version_number == version.version_number for row in existing):
@@ -419,6 +422,16 @@ class DocumentAIRepository:
             page_count=document.page_count if document else None,
         )
 
+    def update_document_status(
+        self,
+        tenant_id: str,
+        fascicolo_id: str,
+        document_id: str,
+        status: str,
+        error_message: str | None = None,
+    ) -> None:
+        self.mark_status(tenant_id, fascicolo_id, document_id, status)
+
     def append_audit_event(self, event: dict[str, Any]) -> None:
         clean = dict(event or {})
         clean.pop("text", None)
@@ -497,11 +510,15 @@ def _pages_from_json(raw: Any) -> list[DocumentAIPageText]:
             raw = []
     if not isinstance(raw, list):
         return []
-    return [
-        dataclass_from_dict(DocumentAIPageText, page)
-        for page in raw
-        if isinstance(page, dict) and str(page.get("page_number") or "").isdigit()
-    ]
+    pages: list[DocumentAIPageText] = []
+    for page in raw:
+        if not isinstance(page, dict):
+            continue
+        page_number = page.get("page_number")
+        if page_number is not None and not str(page_number).isdigit():
+            continue
+        pages.append(dataclass_from_dict(DocumentAIPageText, page))
+    return pages
 
 
 def _list_from_json(raw: Any) -> list[str]:
@@ -548,3 +565,6 @@ def _search_in_text(
         )
         start = end
     return results
+
+
+DocumentIntelligenceRepository = DocumentAIRepository

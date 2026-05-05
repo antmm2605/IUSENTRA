@@ -157,9 +157,10 @@ def upload_documento_ai(fascicolo_id: str):
         if uploaded is None:
             raise DocumentAIValidationError("File mancante.")
         service = build_document_ai_service()
-        document = service.upload_document_for_fascicolo(_tenant_id(), fascicolo_id, uploaded, _user_context())
+        upload_outcome = service.upload_document_for_fascicolo(_tenant_id(), fascicolo_id, uploaded, _user_context())
+        document = upload_outcome.document
         upload_result = service.last_upload_result or {}
-        version = upload_result.get("version")
+        version = upload_result.get("version") or upload_outcome.version
         extraction = upload_result.get("extraction") or {}
         return (
             jsonify(

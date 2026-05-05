@@ -6,7 +6,7 @@ import pytest
 from pct.document_intelligence.extraction import ExtractionResult
 from pct.document_intelligence.models import DocumentAIPageText
 from pct.document_intelligence.repository import DocumentAIRepository
-from pct.document_intelligence.security import DocumentAIPermissionDenied
+from pct.document_intelligence.security import DocumentAINotFound, DocumentAIPermissionDenied, DocumentAIValidationError
 from pct.document_intelligence.service import DocumentAIService
 
 
@@ -64,10 +64,14 @@ def test_document_ai_service_upload_successo_crea_record_versione_testo_audit(tm
         ),
     )
 
-    record = service.upload_document_for_fascicolo("tenant-a", "fas-1", FakeUpload(), _context())
+    result = service.upload_document_for_fascicolo("tenant-a", "fas-1", FakeUpload(), _context())
+    record = result.document
 
     assert record.status == "ready"
     assert record.current_version_id
+    assert result.version.version_number == 1
+    assert result.text is not None
+    assert result.extraction_status == "completed"
     assert record.sha256
     assert service.repository.get_extracted_text("tenant-a", "fas-1", record.id) is not None
     assert any(event["event_type"] == "document_ai.upload.completed" for event in service.repository._data["audit_events"])
@@ -88,10 +92,13 @@ def test_document_ai_service_upload_fallimento_estrazione_conserva_originale(tmp
         ),
     )
 
-    record = service.upload_document_for_fascicolo("tenant-a", "fas-1", FakeUpload(b"contenuto"), _context())
+    result = service.upload_document_for_fascicolo("tenant-a", "fas-1", FakeUpload(b"contenuto"), _context())
+    record = result.document
 
     assert record.status == "error"
     assert record.current_version_id
+    assert result.text is None
+    assert result.extraction_status == "failed"
     stored_files = list((tmp_path / "storage").rglob("*.docx"))
     assert stored_files, "Il file originale deve restare su storage tenant-aware"
     assert service.repository.get_extracted_text("tenant-a", "fas-1", record.id) is None
@@ -116,9 +123,35 @@ def test_document_ai_service_ricerca_registra_audit(tmp_path: Path, monkeypatch)
             extraction_engine="test-engine",
         ),
     )
-    record = service.upload_document_for_fascicolo("tenant-a", "fas-1", FakeUpload(), _context())
+    record = service.upload_document_for_fascicolo("tenant-a", "fas-1", FakeUpload(), _context()).document
 
     results = service.search_fascicolo_document("tenant-a", "fas-1", record.id, "clausola", _context())
 
     assert results
     assert any(event["event_type"] == "document_ai.search" for event in service.repository._data["audit_events"])
+
+
+def test_document_ai_service_query_vuota_fallisce(tmp_path: Path):
+    service = _service(tmp_path)
+
+    with pytest.raises(DocumentAIValidationError):
+        service.search_fascicolo_document("tenant-a", "fas-1", "doc-missing", " ", _context())
+
+
+def test_document_ai_service_get_documento_inesistente_fallisce(tmp_path: Path):
+    service = _service(tmp_path)
+
+    with pytest.raises(DocumentAINotFound):
+        service.get_fascicolo_document("tenant-a", "fas-1", "doc-missing", _context())
+
+
+def test_document_ai_service_list_filtra_tenant_fascicolo(tmp_path: Path, monkeypatch):
+    service = _service(tmp_path)
+    monkeypatch.setattr(
+        "pct.document_intelligence.service.extract_text_from_document",
+        lambda *_args: ExtractionResult(ok=True, text="Documento", pages=[], extraction_engine="test-engine"),
+    )
+    service.upload_document_for_fascicolo("tenant-a", "fas-1", FakeUpload(), _context())
+
+    assert len(service.list_fascicolo_documents("tenant-a", "fas-1", _context())) == 1
+    assert service.repository.list_documents("tenant-a", "fas-2") == []

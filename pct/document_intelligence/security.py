@@ -20,6 +20,10 @@ class DocumentAIValidationError(DocumentAIError):
     code = "validation_error"
 
 
+class DocumentAISecurityError(DocumentAIValidationError):
+    code = "security_error"
+
+
 class DocumentAIPermissionDenied(DocumentAIError):
     code = "permission_denied"
 
@@ -33,9 +37,16 @@ def _extension(filename: str) -> str:
     return suffix
 
 
-def validate_document_file_type(filename: str, mime_type: str | None = None) -> str:
+def detect_file_type(filename: str) -> str:
     safe_name = sanitize_filename(filename)
     file_type = _extension(safe_name)
+    if not file_type:
+        raise DocumentAIValidationError("Estensione file mancante.")
+    return file_type
+
+
+def validate_document_file_type(filename: str, mime_type: str | None = None) -> str:
+    file_type = detect_file_type(filename)
     assert_allowed_document_ai_extension(file_type)
     return file_type
 
@@ -74,13 +85,25 @@ def compute_sha256(content: bytes) -> str:
     return hashlib.sha256(content).hexdigest()
 
 
+def compute_sha256_bytes(content: bytes) -> str:
+    return compute_sha256(content)
+
+
+def ensure_allowed_size(size_bytes: int, max_size_bytes: int | None = None) -> None:
+    limit = int(max_size_bytes or DEFAULT_MAX_DOCUMENT_AI_BYTES)
+    if int(size_bytes or 0) <= 0:
+        raise DocumentAIValidationError("File vuoto o non leggibile.")
+    if int(size_bytes) > limit:
+        raise DocumentAIValidationError("File superiore al limite configurato per i documenti AI.")
+
+
 def safe_join_under_root(root: str | Path, *parts: str) -> Path:
     root_path = Path(root).resolve()
     candidate = root_path.joinpath(*[str(part) for part in parts]).resolve()
     try:
         candidate.relative_to(root_path)
     except ValueError as exc:
-        raise DocumentAIValidationError("Percorso documento non valido.") from exc
+        raise DocumentAISecurityError("Percorso documento non valido.") from exc
     return candidate
 
 

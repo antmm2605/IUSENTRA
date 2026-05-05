@@ -79,7 +79,7 @@ class DocumentAIVersion(SerializableDataclass):
 
 @dataclass(slots=True)
 class DocumentAIPageText(SerializableDataclass):
-    page_number: int
+    page_number: int | None
     text: str
 
 
@@ -118,3 +118,21 @@ class DocumentAICitation(SerializableDataclass):
     page_number: int | None
     quote: str
     sha256: str
+
+
+@dataclass(slots=True)
+class DocumentAIUploadResult(SerializableDataclass):
+    document: DocumentAIRecord
+    version: DocumentAIVersion
+    text: DocumentAIText | None
+    extraction_status: str
+    warnings: list[str] = field(default_factory=list)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "document": self.document.to_dict(),
+            "version": self.version.to_dict(),
+            "text": self.text.to_dict() if self.text else None,
+            "extraction_status": self.extraction_status,
+            "warnings": list(self.warnings),
+        }

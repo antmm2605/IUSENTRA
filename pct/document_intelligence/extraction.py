@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from io import BytesIO
+from pathlib import Path
 from shutil import which
 from typing import Any
 
@@ -19,6 +20,39 @@ class ExtractionResult:
     warnings: list[str] = field(default_factory=list)
     error_code: str = ""
     error_message: str = ""
+
+
+@dataclass(slots=True)
+class DocumentAITextExtractionResult:
+    text: str
+    pages: list[DocumentAIPageText]
+    extraction_engine: str
+    page_count: int | None
+    warnings: list[str] = field(default_factory=list)
+    error: str | None = None
+
+
+def extract_document_text(file_path: str | Path, file_type: str) -> DocumentAITextExtractionResult:
+    try:
+        content = Path(file_path).read_bytes()
+    except OSError as exc:
+        return DocumentAITextExtractionResult(
+            text="",
+            pages=[],
+            extraction_engine="read_failed",
+            page_count=None,
+            warnings=["File non leggibile per l'estrazione testo."],
+            error=str(exc),
+        )
+    result = extract_text_from_document(content, Path(file_path).name, file_type)
+    return DocumentAITextExtractionResult(
+        text=result.text,
+        pages=result.pages,
+        extraction_engine=result.extraction_engine,
+        page_count=len(result.pages) if result.pages else None,
+        warnings=list(result.warnings),
+        error=None if result.ok else result.error_message or result.error_code or "Estrazione non completata.",
+    )
 
 
 def extract_text_from_document(content: bytes, filename: str, file_type: str) -> ExtractionResult:
@@ -135,7 +169,10 @@ def _extract_doc(_content: bytes) -> ExtractionResult:
             text="",
             pages=[],
             extraction_engine="doc_legacy_requires_conversion_adapter",
-            warnings=["DOC legacy rilevato: conversione LibreOffice non cablata in questa tranche."],
+            warnings=[
+                "Estrazione DOC non disponibile nel runtime corrente.",
+                "DOC legacy rilevato: conversione LibreOffice non cablata in questa tranche.",
+            ],
             error_code="doc_legacy_conversion_not_configured",
             error_message="Formato DOC legacy ammesso in upload ma richiede un adattatore di conversione locale.",
         )
@@ -144,7 +181,7 @@ def _extract_doc(_content: bytes) -> ExtractionResult:
         text="",
         pages=[],
         extraction_engine="doc_legacy_unavailable",
-        warnings=["DOC legacy non estraibile nell'ambiente corrente."],
+        warnings=["Estrazione DOC non disponibile nel runtime corrente."],
         error_code="doc_legacy_extraction_unavailable",
         error_message="Formato DOC legacy ammesso in upload; estrazione testo non disponibile senza conversione locale.",
     )

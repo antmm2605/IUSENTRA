@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+import json
 from typing import Any
 
 from .audit import record_document_ai_event
@@ -12,6 +12,7 @@ from .models import (
     DocumentAIRecord,
     DocumentAISearchResult,
     DocumentAIText,
+    DocumentAIUploadResult,
     new_id,
     utc_now,
 )
@@ -22,12 +23,13 @@ from .security import (
     DocumentAIValidationError,
     assert_user_can_read,
     assert_user_can_write,
-    compute_sha256,
+    compute_sha256_bytes,
+    ensure_allowed_size,
     sanitize_filename,
     user_id_from_context,
     validate_document_file_type,
 )
-from .versioning import build_initial_version
+from .versioning import build_document_storage_relative_path, build_extracted_text_relative_path, build_initial_version
 
 
 class DocumentAIService:
@@ -49,7 +51,7 @@ class DocumentAIService:
         fascicolo_id: str,
         uploaded_file: Any,
         user_context: object,
-    ) -> DocumentAIRecord:
+    ) -> DocumentAIUploadResult:
         assert_user_can_write(user_context)
         self._assert_fascicolo_access(fascicolo_id)
         original_filename = str(getattr(uploaded_file, "filename", "") or "").strip()
@@ -57,15 +59,12 @@ class DocumentAIService:
         mime_type = str(getattr(uploaded_file, "content_type", "") or "").strip() or None
         file_type = validate_document_file_type(safe_filename, mime_type)
         content = _read_uploaded_file(uploaded_file)
-        if not content:
-            raise DocumentAIValidationError("File vuoto o non leggibile.")
-        if len(content) > self.max_size_bytes:
-            raise DocumentAIValidationError("File superiore al limite configurato per i documenti AI.")
+        ensure_allowed_size(len(content), self.max_size_bytes)
 
         now = utc_now()
         actor = user_id_from_context(user_context)
         document_id = new_id("docai")
-        sha256 = compute_sha256(content)
+        sha256 = compute_sha256_bytes(content)
         record = DocumentAIRecord(
             id=document_id,
             tenant_id=tenant_id,
@@ -96,7 +95,7 @@ class DocumentAIService:
             status="processing",
         )
 
-        storage_rel = str(Path(tenant_id) / fascicolo_id / document_id / f"v1-{safe_filename}").replace("\\", "/")
+        storage_rel = build_document_storage_relative_path(tenant_id, fascicolo_id, document_id, 1, safe_filename)
         self.repository.write_blob(storage_rel, content)
         version = build_initial_version(
             tenant_id=tenant_id,
@@ -122,10 +121,10 @@ class DocumentAIService:
         )
 
         extraction = extract_text_from_document(content, safe_filename, file_type)
+        extracted_text: DocumentAIText | None = None
         if extraction.ok:
-            extracted_text_path = str(Path(tenant_id) / fascicolo_id / document_id / f"{version.id}.txt").replace("\\", "/")
-            self.repository.write_text_blob(extracted_text_path, extraction.text)
-            text = DocumentAIText(
+            extracted_text_path = build_extracted_text_relative_path(tenant_id, fascicolo_id, document_id, version.version_number)
+            extracted_text = DocumentAIText(
                 document_id=document_id,
                 version_id=version.id,
                 tenant_id=tenant_id,
@@ -136,7 +135,11 @@ class DocumentAIService:
                 created_at=utc_now(),
                 warnings=list(extraction.warnings),
             )
-            self.repository.save_extracted_text(text, extracted_text_path=extracted_text_path)
+            self.repository.write_text_blob(
+                extracted_text_path,
+                json.dumps(extracted_text.to_dict(), ensure_ascii=False, indent=2),
+            )
+            self.repository.save_extracted_text(extracted_text, extracted_text_path=extracted_text_path)
             page_count = len(extraction.pages) if extraction.pages else None
             self.repository.set_current_version(
                 tenant_id,
@@ -171,7 +174,7 @@ class DocumentAIService:
                 filename=original_filename,
                 status="ready",
             )
-            self.last_upload_result = _upload_result(version, extraction, status="completed")
+            extraction_status = "completed"
         else:
             self.repository.set_current_version(
                 tenant_id,
@@ -210,11 +213,19 @@ class DocumentAIService:
                 error_code=extraction.error_code,
                 error_message=extraction.error_message,
             )
-            self.last_upload_result = _upload_result(version, extraction, status="failed")
+            extraction_status = "failed"
 
         refreshed = self.get_fascicolo_document(tenant_id, fascicolo_id, document_id, user_context)
         assert refreshed.status in DOCUMENT_AI_STATUSES
-        return refreshed
+        upload_result = DocumentAIUploadResult(
+            document=refreshed,
+            version=version,
+            text=extracted_text,
+            extraction_status=extraction_status,
+            warnings=list(extraction.warnings),
+        )
+        self.last_upload_result = _upload_result(version, extraction, status=extraction_status)
+        return upload_result
 
     def list_fascicolo_documents(
         self,
@@ -351,3 +362,6 @@ def _upload_result(version: Any, extraction: ExtractionResult, *, status: str) -
             "warnings": list(extraction.warnings),
         },
     }
+
+
+DocumentIntelligenceService = DocumentAIService

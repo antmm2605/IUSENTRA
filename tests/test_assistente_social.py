@@ -157,7 +157,9 @@ def test_assistente_chat_bypassa_ollama_per_messaggio_sociale(monkeypatch, tmp_p
     assert "Prego." in body
 
 
-def test_assistente_context_messaggio_misto_restituisce_prefix_e_domanda_effettiva(tmp_path: Path):
+def test_assistente_context_messaggio_misto_restituisce_prefix_e_domanda_effettiva(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("LEX_GOVERNED_ONLY", "0")
+    monkeypatch.setenv("LEX_RAW_CHAT_ENABLED", "1")
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg_web(tmp_path))
 
@@ -165,7 +167,10 @@ def test_assistente_context_messaggio_misto_restituisce_prefix_e_domanda_effetti
         client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
         response = client.post(
             "/api/assistente/context",
-            json={"question": "Buongiorno, mi controlli le udienze di oggi?"},
+            json={
+                "question": "Buongiorno, mi controlli le udienze di oggi?",
+                "allow_unbounded_generation": True,
+            },
         )
 
     payload = response.get_json()

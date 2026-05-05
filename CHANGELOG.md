@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.198.77 - 2026-05-05
+
+- Allineati i contratti di test core Lex alla modalita' `LEX_GOVERNED_ONLY=1`: il companion legacy richiede ora consenso esplicito a chat non governata, mentre gli allegati restano evidenze governate e non prompt libero.
+
 ## 2.198.76 - 2026-05-05
 
 - Introdotto il dominio nativo `pct/editor_ai` per generazione atti con Lex nell'editor professionale IUSENTRA: template resolver, piano bozza, renderer verso documento editor reale, versioni, fonti, proposte modifica e audit.

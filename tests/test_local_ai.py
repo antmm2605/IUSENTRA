@@ -783,7 +783,9 @@ def test_api_local_ai_context_endpoints_prepare_payloads(tmp_path: Path, monkeyp
     assert workspace_response.get_json()["citations"] == ["Fonte workspace"]
 
 
-def test_api_assistente_context_prepara_prompt_per_companion_locale(tmp_path: Path):
+def test_api_assistente_context_prepara_prompt_per_companion_locale(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("LEX_GOVERNED_ONLY", "0")
+    monkeypatch.setenv("LEX_RAW_CHAT_ENABLED", "1")
     _write_studio_config(tmp_path / "config" / "studio.json", enabled=True)
     cfg = _cfg_web(tmp_path)
     app = create_app(cfg)
@@ -797,6 +799,7 @@ def test_api_assistente_context_prepara_prompt_per_companion_locale(tmp_path: Pa
             "/api/assistente/context",
             json={
                 "question": "Qual e' la prossima attivita' operativa?",
+                "allow_unbounded_generation": True,
                 "fascicolo_id": fascicolo.id,
                 "messages": [
                     {"role": "user", "content": "Ho appena aperto il fascicolo."},
@@ -964,7 +967,9 @@ def test_api_assistente_attachments_parse_documenti_locali(tmp_path: Path):
     assert response.status_code == 200
     assert payload["ok"] is True
     assert payload["attachments"][0]["name"] == "memo.txt"
-    assert "DOCUMENTI CARICATI DALL'UTENTE" in payload["prompt_block"]
+    assert "Promemoria udienza" in payload["attachments"][0]["text_excerpt"]
+    assert payload["prompt_block"] == ""
+    assert payload["evidence_mode"] == "attachment_evidence"
 
 
 def test_api_assistente_documento_esporta_docx(tmp_path: Path):
@@ -994,7 +999,8 @@ def test_api_assistente_documento_esporta_docx(tmp_path: Path):
     assert "Contesto fascicolo attivo" in xml
 
 
-def test_api_assistente_context_integra_documenti_caricati(tmp_path: Path):
+def test_api_assistente_context_integra_documenti_caricati(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("LEX_GOVERNED_ONLY", "1")
     _write_studio_config(tmp_path / "config" / "studio.json", enabled=True)
     app = create_app(_cfg_web(tmp_path))
 
@@ -1020,8 +1026,10 @@ def test_api_assistente_context_integra_documenti_caricati(tmp_path: Path):
     payload = response.get_json()
     assert response.status_code == 200
     assert payload["ok"] is True
-    assert "DOCUMENTI CARICATI DALL'UTENTE" in payload["prompt"]
-    assert "Promemoria per controllare procura" in payload["prompt"]
+    assert payload["query_type"] == "workflow_answer"
+    assert "DOCUMENTI CARICATI DALL'UTENTE" not in payload["prompt"]
+    assert any("Allegato caricato: memo.txt" in citation for citation in payload["citations"])
+    assert payload["evidence_summary"]["evidence_count"] >= 1
 
 
 def test_impostazioni_template_contains_ai_locale_tab():
@@ -1366,6 +1374,8 @@ def test_ollama_http_client_apre_circuit_breaker_dopo_errori_ripetuti(monkeypatc
 
 
 def test_assistente_chat_non_duplica_cronologia_nel_system_prompt_e_usa_keep_alive(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("LEX_GOVERNED_ONLY", "0")
+    monkeypatch.setenv("LEX_RAW_CHAT_ENABLED", "1")
     _write_studio_config(tmp_path / "config" / "studio.json", enabled=True)
     app = create_app(_cfg_web(tmp_path))
 
@@ -1402,7 +1412,10 @@ def test_assistente_chat_non_duplica_cronologia_nel_system_prompt_e_usa_keep_ali
 
     with app.test_client() as client:
         client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
-        response = client.post("/api/assistente/chat", json={"messages": messages})
+        response = client.post(
+            "/api/assistente/chat",
+            json={"messages": messages, "allow_unbounded_generation": True},
+        )
 
     payload = captured["json"]
     system_prompt = payload["messages"][0]["content"]

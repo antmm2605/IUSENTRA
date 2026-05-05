@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { Badge } from './dashboard'
 import { FloatingLex } from './FloatingLex'
+import { csrfToken } from './WizardProShared'
 import { getWizardProPage, type WizardProCase, type WizardProData } from '../wizardProData'
 import './WizardProPage.css'
 
@@ -39,11 +40,14 @@ function CaseCard({ item, selected, onSelect }: { item: WizardProCase; selected:
       <div className="iu-wiz-case__actions">
         {session ? <a href={session.stepHref}><PlayCircle size={15}/> Riprendi</a> : (
           <form method="post" action={item.startHref}>
+            <input type="hidden" name="_csrf_token" value={csrfToken()} />
             <input type="hidden" name="id_fascicolo" value={item.startPayload.id_fascicolo} />
             <input type="hidden" name="id_appuntamento" value={item.startPayload.id_appuntamento} />
+            <input type="hidden" name="titolo" value="" />
             <button type="submit"><PlayCircle size={15}/> Avvia</button>
           </form>
         )}
+        {item.completedSession ? <a href={item.completedSession.summaryHref}><CheckCircle2 size={15}/> Riepilogo</a> : null}
         <a href={item.folderHref}><FileText size={15}/> Fascicolo</a>
       </div>
     </article>
@@ -81,8 +85,10 @@ function SelectedPanel({ item, actions }: { item: WizardProCase | null; actions:
       <div className="iu-wiz-selected__actions">
         {session ? <a className="iu-wiz-btn primary" href={session.stepHref}>Riprendi step {session.step}</a> : (
           <form method="post" action={item.startHref}>
+            <input type="hidden" name="_csrf_token" value={csrfToken()} />
             <input type="hidden" name="id_fascicolo" value={item.startPayload.id_fascicolo} />
             <input type="hidden" name="id_appuntamento" value={item.startPayload.id_appuntamento} />
+            <input type="hidden" name="titolo" value="" />
             <button className="iu-wiz-btn primary" type="submit">Avvia preparazione</button>
           </form>
         )}
@@ -98,6 +104,9 @@ export function WizardProPage() {
   const [data, setData] = useState<WizardProData | null>(null)
   const [selected, setSelected] = useState<WizardProCase | null>(null)
   const [query, setQuery] = useState('')
+  const [stateFilter, setStateFilter] = useState('tutti')
+  const [onlyUpcoming, setOnlyUpcoming] = useState(false)
+  const [onlyMissingDocs, setOnlyMissingDocs] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -112,9 +121,16 @@ export function WizardProPage() {
   const filtered = useMemo(() => {
     const rows = data?.cases ?? []
     const q = query.trim().toLowerCase()
-    if (!q) return rows
-    return rows.filter((item) => [item.title, item.client, item.opponent, item.court, item.rg].join(' ').toLowerCase().includes(q))
-  }, [data, query])
+    return rows.filter((item) => {
+      if (q && ![item.title, item.client, item.opponent, item.court, item.rg].join(' ').toLowerCase().includes(q)) return false
+      if (stateFilter === 'bozze' && !item.activeSession) return false
+      if (stateFilter === 'complete' && !item.completedSession) return false
+      if (stateFilter === 'senza-sessione' && (item.activeSession || item.completedSession)) return false
+      if (onlyUpcoming && !(item.hearingDays !== null && item.hearingDays <= 7)) return false
+      if (onlyMissingDocs && item.documentsMissing <= 0) return false
+      return true
+    })
+  }, [data, query, stateFilter, onlyUpcoming, onlyMissingDocs])
 
   if (!data) {
     return <main className="iu-wiz-page"><div className="iu-wiz-loading">Caricamento preparazioni udienza...</div></main>
@@ -131,7 +147,6 @@ export function WizardProPage() {
         <div className="iu-wiz-hero__actions">
           <a href={data.actions.newAppointment}>Nuova udienza</a>
           <a href={data.actions.newDeadline}>Nuova scadenza</a>
-          <a href={data.actions.legacy}>Vista classica tecnica</a>
         </div>
       </section>
 
@@ -140,6 +155,8 @@ export function WizardProPage() {
         <article><strong>{data.summary.activeDrafts}</strong><span>Bozze attive</span></article>
         <article><strong>{data.summary.completed}</strong><span>Completate</span></article>
         <article><strong>{data.summary.upcomingHearings}</strong><span>Udienze imminenti</span></article>
+        <article><strong>{data.summary.documentsMissing}</strong><span>Documenti mancanti</span></article>
+        <article><strong>{data.summary.linkedDeadlines}</strong><span>Scadenze collegate</span></article>
       </section>
 
       <section className="iu-wiz-steps" aria-label="Fasi della preparazione">
@@ -152,6 +169,25 @@ export function WizardProPage() {
             <Search size={17}/>
             <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cerca fascicolo, cliente, RG o ufficio..." />
           </label>
+          <div className="iu-wiz-filterbar" aria-label="Filtri preparazione udienza">
+            <label>
+              <span>Stato preparazione</span>
+              <select value={stateFilter} onChange={(event) => setStateFilter(event.target.value)}>
+                <option value="tutti">Tutti</option>
+                <option value="bozze">Bozze attive</option>
+                <option value="complete">Completate</option>
+                <option value="senza-sessione">Da avviare</option>
+              </select>
+            </label>
+            <label className="iu-wiz-toggle">
+              <input type="checkbox" checked={onlyUpcoming} onChange={(event) => setOnlyUpcoming(event.target.checked)} />
+              <span>Udienze imminenti</span>
+            </label>
+            <label className="iu-wiz-toggle">
+              <input type="checkbox" checked={onlyMissingDocs} onChange={(event) => setOnlyMissingDocs(event.target.checked)} />
+              <span>Documenti mancanti</span>
+            </label>
+          </div>
           {filtered.length ? filtered.map((item) => (
             <CaseCard key={item.id} item={item} selected={selected?.id === item.id} onSelect={setSelected} />
           )) : (

@@ -300,6 +300,9 @@ def step(id_sessione: str, n: int):
         return redirect(url_for("wizard_pro.completo", id_sessione=id_sessione))
 
     # ── GET: mostra step ──────────────────────────────────────────────
+    if not _richiede_vista_classica():
+        return render_react_shell_response(f"wizard-pro/{id_sessione}/step/{n}")
+
     return render_template(
         "wizard_pro/step.html",
         sessione=sessione,
@@ -335,6 +338,9 @@ def completo(id_sessione: str):
             appuntamento = ga.get(sessione.id_appuntamento)
         except Exception:
             pass
+
+    if not _richiede_vista_classica():
+        return render_react_shell_response(f"wizard-pro/{id_sessione}/completo")
 
     return render_template(
         "wizard_pro/completo.html",

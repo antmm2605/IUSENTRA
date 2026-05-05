@@ -3061,18 +3061,27 @@ def test_react_wizard_pro_nav_route_api_e_card_operative(tmp_path: Path):
     route_source = Path("web/blueprints/wizard_pro.py").read_text(encoding="utf-8")
 
     assert "{ label: 'Preparazione Udienza Guidata', icon: Building2, href: '/wizard-pro/' }" in app_source
-    assert "isWizardProPage?<WizardProPage/>" in app_source
+    assert "isWizardProDashboard?<WizardProPage/>" in app_source
+    assert "isWizardProStep?<WizardProStepPage/>" in app_source
+    assert "isWizardProComplete?<WizardProCompletePage/>" in app_source
     assert "WizardProPage" in app_source
+    assert "WizardProStepPage" in app_source
+    assert "WizardProCompletePage" in app_source
     assert "getWizardProPage" in data_source
+    assert "getWizardProStepPage" in data_source
+    assert "getWizardProCompletePage" in data_source
     assert "/api/v1/ui/wizard-pro" in data_source
     assert '@api_v1_react.get("/wizard-pro")' in api_source
+    assert '@api_v1_react.get("/wizard-pro/session/<id_sessione>/step/<int:n>")' in api_source
+    assert '@api_v1_react.get("/wizard-pro/session/<id_sessione>/completo")' in api_source
     assert "build_react_wizard_pro_payload" in api_source
     assert "render_react_shell_response(\"wizard-pro\")" in route_source
-    assert "Vista classica tecnica" in page_source
+    assert "Vista classica" not in page_source
+    assert "_legacy=1" not in page_source
     assert 'method="post"' in page_source
     assert "item.startHref" in page_source
     assert "Termini collegati" in page_source
-    assert "Chiedi a Lex" in page_source
+    assert "data.actions.lex" in page_source
     assert ".iu-wiz-page" in css
     assert "@media(max-width:980px)" in css
 

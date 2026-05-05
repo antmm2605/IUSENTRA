@@ -47,6 +47,7 @@ from web.services.react_clienti_bridge import (
     build_react_clienti_payload,
     build_react_soggetto_modifica_payload,
 )
+from web.services.react_condivisioni_bridge import build_react_condivisioni_payload
 from web.services.react_dashboard_cache import get_dashboard_payload_cached
 from web.services.react_document_editor_bridge import build_react_document_editor_payload
 from web.services.react_email_bridge import build_react_email_payload
@@ -71,7 +72,12 @@ from web.services.react_telematico_bridge import (
     build_react_telematico_surface_payload,
     build_react_tribunali_payload,
 )
-from web.services.react_wizard_pro_bridge import build_react_wizard_pro_payload
+from web.services.react_timesheet_bridge import build_react_timesheet_payload
+from web.services.react_wizard_pro_bridge import (
+    build_react_wizard_pro_complete_payload,
+    build_react_wizard_pro_payload,
+    build_react_wizard_pro_step_payload,
+)
 from web.helpers import (
     get_agenda,
     get_calendar_sync,
@@ -1313,6 +1319,74 @@ def scadenziario_termini_crea_scadenza():
 def wizard_pro_react_dashboard():
     return jsonify(build_react_wizard_pro_payload(
         selected_fascicolo_id=request.args.get("id_fascicolo", "").strip(),
+    ))
+
+
+@api_v1_react.get("/wizard-pro/session/<id_sessione>/step/<int:n>")
+@_richiedi_auth
+def wizard_pro_react_step(id_sessione: str, n: int):
+    payload = build_react_wizard_pro_step_payload(id_sessione, n)
+    if payload is None:
+        return jsonify({
+            "errore": "Preparazione udienza non trovata.",
+            "codice": 404,
+            "contracts": {
+                "mock_fallback": False,
+                "writes": "operational_routes",
+                "route_owner": "react_shell",
+            },
+        }), 404
+    return jsonify(payload)
+
+
+@api_v1_react.get("/wizard-pro/session/<id_sessione>/completo")
+@_richiedi_auth
+def wizard_pro_react_complete(id_sessione: str):
+    payload = build_react_wizard_pro_complete_payload(id_sessione)
+    if payload is None:
+        return jsonify({
+            "errore": "Preparazione udienza non trovata.",
+            "codice": 404,
+            "contracts": {
+                "mock_fallback": False,
+                "writes": "operational_routes",
+                "route_owner": "react_shell",
+            },
+        }), 404
+    return jsonify(payload)
+
+
+@api_v1_react.get("/timesheet")
+@_richiedi_auth
+def timesheet_react_payload():
+    return jsonify(build_react_timesheet_payload(
+        get_timesheet=get_timesheet,
+        get_clienti=get_clienti,
+        get_fascicoli=get_fascicoli,
+        query=dict(request.args),
+    ))
+
+
+@api_v1_react.get("/cartelle-condivise")
+@_richiedi_auth
+def cartelle_condivise_react_payload():
+    get_condivisioni = _core_runtime_func("get_condivisioni")
+    if not callable(get_condivisioni):
+        return jsonify({
+            "source": "errore_controllato",
+            "generatedAt": _iso_now(),
+            "contracts": {
+                "mock_fallback": False,
+                "writes": "operational_routes",
+                "route_owner": "react_shell",
+            },
+            "errore": "Runtime condivisioni non disponibile.",
+        }), 503
+    return jsonify(build_react_condivisioni_payload(
+        get_condivisioni=get_condivisioni,
+        get_clienti=get_clienti,
+        get_fascicoli=get_fascicoli,
+        current_user=g.get("utente_corrente"),
     ))
 
 

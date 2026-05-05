@@ -240,6 +240,10 @@ def _excluded(path: str) -> bool:
         return True
     if lower.startswith("/privacy/registro/") and lower != "/privacy/registro/nuovo":
         return True
+    if lower.startswith("/clienti/") and lower.endswith("/collaboratori"):
+        return True
+    if lower.startswith("/wizard-pro/fascicolo/"):
+        return True
     if lower == "/impostazioni" and has_request_context():
         tab = (request.args.get("tab") or "").strip().lower()
         # Il tab Firma Digitale contiene ancora controlli browser-locali

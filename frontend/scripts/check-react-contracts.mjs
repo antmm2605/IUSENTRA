@@ -52,6 +52,19 @@ const adminDatabase = read('src/components/AdminDatabasePage.tsx')
 const adminDatabaseData = read('src/adminDatabaseData.ts')
 const adminDatabaseCss = read('src/components/AdminDatabasePage.css')
 const adminDatabaseBridge = read('../web/services/react_admin_database_bridge.py')
+const apiBridge = read('../web/blueprints/api_v1_react.py')
+const timesheet = read('src/components/TimesheetPage.tsx')
+const timesheetData = read('src/timesheetData.ts')
+const timesheetBridge = read('../web/services/react_timesheet_bridge.py')
+const cartelleCondivise = read('src/components/CartelleCondivisePage.tsx')
+const cartelleCondiviseData = read('src/cartelleCondiviseData.ts')
+const cartelleCondiviseBridge = read('../web/services/react_condivisioni_bridge.py')
+const wizardPro = read('src/components/WizardProPage.tsx')
+const wizardProStep = read('src/components/WizardProStepPage.tsx')
+const wizardProComplete = read('src/components/WizardProCompletePage.tsx')
+const wizardProShared = read('src/components/WizardProShared.tsx')
+const wizardProData = read('src/wizardProData.ts')
+const wizardProBridge = read('../web/services/react_wizard_pro_bridge.py')
 const css = read('src/index.css')
 const reactShell = read('../web/templates/react_shell.html')
 
@@ -68,6 +81,10 @@ assertContains(app, "/telematico", 'nav telematico')
 assertContains(app, "CartellaClientePage", 'route cartella cliente')
 assertContains(app, "ScadenziarioPage", 'route scadenziario')
 assertContains(app, "NuovaScadenzaPage", 'route nuova scadenza')
+assertContains(app, "TimesheetPage", 'route timesheet react')
+assertContains(app, "CartelleCondivisePage", 'route cartelle condivise react')
+assertContains(app, "WizardProStepPage", 'route step wizard pro react')
+assertContains(app, "WizardProCompletePage", 'route completo wizard pro react')
 assertContains(app, "TelematicoPage", 'route telematico')
 assertContains(app, "StudioModulePage", 'route blocco finale studio')
 assertContains(app, "isStudioModulePage?<StudioModulePage/>", 'render blocco finale studio')
@@ -90,7 +107,18 @@ assertContains(app, "isNewMessagePage?<NuovoMessaggioPage/>", 'route nuovo messa
 assertContains(app, "isClientFolderPage?<CartellaClientePage/>", 'route cartella cliente')
 assertContains(app, "isNewDeadlinePage||isDeadlineEditPage?<NuovaScadenzaPage/>", 'route nuova/modifica scadenza')
 assertContains(app, "isScadenziarioPage?<ScadenziarioPage/>", 'route scadenziario')
+assertContains(app, "isTimesheetPage?<TimesheetPage/>", 'render timesheet react')
+assertContains(app, "isCartelleCondivisePage?<CartelleCondivisePage/>", 'render cartelle condivise react')
+assertContains(app, "isWizardProStep?<WizardProStepPage/>", 'render step wizard pro react')
+assertContains(app, "isWizardProComplete?<WizardProCompletePage/>", 'render completo wizard pro react')
+assertContains(app, "isWizardProDashboard?<WizardProPage/>", 'render dashboard wizard pro react')
 assertContains(app, "isTelematicoPage?<TelematicoPage/>", 'route telematico')
+assertContains(app, "preparazione-udienza-briefing", 'contesto lex wizard briefing')
+assertContains(app, "preparazione-udienza-documenti", 'contesto lex wizard documenti')
+assertContains(app, "preparazione-udienza-strategia", 'contesto lex wizard strategia')
+assertContains(app, "preparazione-udienza-precheck", 'contesto lex wizard precheck')
+assertContains(app, "preparazione-udienza-esito", 'contesto lex wizard esito')
+assertContains(app, "preparazione-udienza-riepilogo", 'contesto lex wizard riepilogo')
 assertContains(app, "route === '/admin/database'", 'contesto lex database amministrativo')
 assertContains(app, 'AppErrorBoundary', 'barriera errore shell react')
 assertContains(app, 'openSections[section.id] === true', 'nav sezioni chiuse')
@@ -358,5 +386,84 @@ assertContains(reactShell, 'pct-lex-assistant.js', 'runtime lex unico nella shel
 assertContains(reactShell, 'iusentra-react-bootstrap', 'bootstrap JSON profilo reale')
 assertContains(css, '@media(max-width:760px)', 'responsive agenda')
 assertContains(css, 'prefers-reduced-motion', 'motion agenda')
+
+const wizardBundle = [wizardPro, wizardProStep, wizardProComplete, wizardProShared, wizardProData].join('\n')
+const newReactBundle = [timesheet, timesheetData, cartelleCondivise, cartelleCondiviseData, wizardBundle].join('\n')
+
+assertContains(timesheet, 'TimesheetPage', 'TimesheetPage presente')
+assertContains(timesheetData, 'TimesheetData', 'timesheetData tipizzato')
+assertContains(timesheetBridge, 'build_react_timesheet_payload', 'bridge backend timesheet')
+assertContains(apiBridge, '@api_v1_react.get("/timesheet")', 'endpoint /api/v1/ui/timesheet')
+assertContains(timesheetBridge, '"mock_fallback": False', 'timesheet mock_fallback false')
+assertContains(timesheetBridge, '"writes": "operational_routes"', 'timesheet writes operational_routes')
+assertContains(timesheetBridge, '"route_owner": "react_shell"', 'timesheet route_owner react_shell')
+assertContains(timesheet, 'method="post" action={data.actions.create}', 'form POST timesheet nuovo')
+assertContains(timesheetData, "create: '/timesheet/nuovo'", 'azione /timesheet/nuovo')
+assertContains(timesheet, 'method="post" action={entry.stateAction}', 'form POST stato timesheet')
+assertContains(timesheetBridge, 'f"/timesheet/{entry_id}/stato"', 'azione /timesheet/<id>/stato')
+assertContains(timesheet, 'method="post" action={data.billing.action}', 'form POST genera parcella')
+assertContains(timesheetData, "action: '/timesheet/genera-parcella'", 'azione /timesheet/genera-parcella')
+assertNotContains(timesheet, 'href="#"', 'timesheet senza href vuoto')
+assertNotContains(timesheetData, '_legacy=1', 'timesheet data senza route tecnica')
+
+assertContains(cartelleCondivise, 'CartelleCondivisePage', 'CartelleCondivisePage presente')
+assertContains(cartelleCondiviseData, 'CartelleCondiviseData', 'cartelleCondiviseData tipizzato')
+assertContains(cartelleCondiviseBridge, 'build_react_condivisioni_payload', 'bridge backend cartelle condivise')
+assertContains(apiBridge, '@api_v1_react.get("/cartelle-condivise")', 'endpoint /api/v1/ui/cartelle-condivise')
+assertContains(cartelleCondiviseBridge, '"mock_fallback": False', 'cartelle condivise mock_fallback false')
+assertContains(cartelleCondiviseBridge, '"writes": "operational_routes"', 'cartelle condivise writes operational_routes')
+assertContains(cartelleCondiviseBridge, '"route_owner": "react_shell"', 'cartelle condivise route_owner react_shell')
+assertContains(cartelleCondivise, 'data.actions.cleanupExpired', 'pulizia scaduti via endpoint reale')
+assertContains(cartelleCondiviseData, "'/api/v1/condivisioni/pulizia-scaduti'", 'endpoint pulizia scaduti')
+assertContains(cartelleCondiviseData, "'/api/v1/condivisioni/statistiche'", 'endpoint statistiche condivisioni')
+assertNotContains(cartelleCondivise, 'href="#"', 'cartelle condivise senza href vuoto')
+assertNotContains(cartelleCondiviseData, '_legacy=1', 'cartelle condivise data senza route tecnica')
+
+assertContains(wizardPro, 'WizardProPage', 'WizardProPage presente')
+assertContains(wizardProStep, 'WizardProStepPage', 'WizardProStepPage presente')
+assertContains(wizardProComplete, 'WizardProCompletePage', 'WizardProCompletePage presente')
+assertContains(wizardProData, 'WizardProStepData', 'wizardProData step tipizzato')
+assertContains(wizardProData, 'WizardProCompleteData', 'wizardProData completo tipizzato')
+assertContains(apiBridge, '@api_v1_react.get("/wizard-pro")', 'endpoint /api/v1/ui/wizard-pro')
+assertContains(apiBridge, '@api_v1_react.get("/wizard-pro/session/<id_sessione>/step/<int:n>")', 'endpoint step wizard pro')
+assertContains(apiBridge, '@api_v1_react.get("/wizard-pro/session/<id_sessione>/completo")', 'endpoint completo wizard pro')
+assertContains(wizardProBridge, '"mock_fallback": False', 'wizard pro mock_fallback false')
+assertContains(wizardProBridge, '"writes": "operational_routes"', 'wizard pro writes operational_routes')
+assertContains(wizardProBridge, '"route_owner": "react_shell"', 'wizard pro route_owner react_shell')
+assertNotContains(wizardBundle, 'actions.legacy', 'wizard pro senza actions.legacy')
+assertNotContains(wizardBundle, 'Vista classica', 'wizard pro senza vista classica')
+assertNotContains(wizardBundle, '_legacy=1', 'wizard pro senza link tecnico')
+assertNotContains(wizardBundle, 'legacy', 'wizard pro componenti/data senza stringa legacy')
+assertNotContains(wizardBundle, 'href="#"', 'wizard pro senza href vuoto')
+assertContains(wizardPro, 'method="post" action={item.startHref}', 'form POST wizard pro nuovo')
+assertContains(wizardProData, "start: '/wizard-pro/nuovo'", 'azione /wizard-pro/nuovo')
+assertContains(wizardProBridge, 'f"/wizard-pro/{id_sessione}/step/{n}"', 'form /wizard-pro/<id>/step/<n>')
+assertContains(wizardProComplete, 'method="post" action={data.actions.archive}', 'form POST wizard pro archivia')
+assertContains(wizardProComplete, 'method="post" action={data.actions.delete}', 'form POST wizard pro elimina')
+for (const field of [
+  'step1_note',
+  'doc_stato_',
+  'doc_note_',
+  'doc_extra_label',
+  'note_preparazione',
+  'argomenti_principali',
+  'richieste_giudice',
+  'eccezioni_da_sollevare',
+  'precheck_firma_ok',
+  'precheck_docs_pronti',
+  'precheck_cliente_notificato',
+  'precheck_trasporto_ok',
+  'precheck_note',
+  'esito',
+  'esito_rinvio_data',
+  'esito_note_verbale',
+  'esito_azioni',
+  'esito_aggiorna_fascicolo',
+]) {
+  assertContains(wizardBundle, field, `campo wizard pro ${field}`)
+}
+assertNotContains(newReactBundle, 'href="#"', 'nuove superfici senza href vuoto')
+assertNotContains(newReactBundle, '_legacy=1', 'nuove superfici senza route tecnica visibile')
+assertNotContains(newReactBundle, 'Vista classica', 'nuove superfici senza vista classica')
 
 console.log('Contratti React verificati.')

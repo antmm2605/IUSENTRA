@@ -70,6 +70,10 @@ const NuovoMessaggioPage = lazy(() => import('./components/MessaggiPage').then((
 const ScadenziarioPage = lazy(() => import('./components/ScadenziarioPage').then((module) => ({ default: module.ScadenziarioPage })))
 const NuovaScadenzaPage = lazy(() => import('./components/NuovaScadenzaPage').then((module) => ({ default: module.NuovaScadenzaPage })))
 const WizardProPage = lazy(() => import('./components/WizardProPage').then((module) => ({ default: module.WizardProPage })))
+const WizardProStepPage = lazy(() => import('./components/WizardProStepPage').then((module) => ({ default: module.WizardProStepPage })))
+const WizardProCompletePage = lazy(() => import('./components/WizardProCompletePage').then((module) => ({ default: module.WizardProCompletePage })))
+const TimesheetPage = lazy(() => import('./components/TimesheetPage').then((module) => ({ default: module.TimesheetPage })))
+const CartelleCondivisePage = lazy(() => import('./components/CartelleCondivisePage').then((module) => ({ default: module.CartelleCondivisePage })))
 const TelematicoPage = lazy(() => import('./components/TelematicoPage').then((module) => ({ default: module.TelematicoPage })))
 const TelematicoSurfacePage = lazy(() => import('./components/TelematicoSurfacePage').then((module) => ({ default: module.TelematicoSurfacePage })))
 const StudioModulePage = lazy(() => import('./components/StudioModulePage').then((module) => ({ default: module.StudioModulePage })))
@@ -503,6 +507,36 @@ function resolveLexPageContext(routePath: string): GlobalLexConfig {
       secondaryLabel: 'Scadenziario',
     }
   }
+  const wizardStepMatch = route.match(/^\/wizard-pro\/[^/]+\/step\/([1-5])$/)
+  if (wizardStepMatch) {
+    const contexts: Record<string,string> = {
+      '1': 'preparazione-udienza-briefing',
+      '2': 'preparazione-udienza-documenti',
+      '3': 'preparazione-udienza-strategia',
+      '4': 'preparazione-udienza-precheck',
+      '5': 'preparazione-udienza-esito',
+    }
+    return {
+      context: contexts[wizardStepMatch[1]] || 'preparazione-udienza',
+      title: 'Lex AI udienza',
+      body: 'Legge lo step corrente della preparazione udienza e collega fascicolo, documenti, strategia ed esito.',
+      primaryHref: `/lex?context=${contexts[wizardStepMatch[1]] || 'preparazione-udienza'}`,
+      primaryLabel: 'Apri Lex udienza',
+      secondaryHref: '/wizard-pro/',
+      secondaryLabel: 'Wizard udienza',
+    }
+  }
+  if (/^\/wizard-pro\/[^/]+\/completo$/.test(route)) {
+    return {
+      context: 'preparazione-udienza-riepilogo',
+      title: 'Lex AI riepilogo',
+      body: 'Legge esito, azioni successive e checklist della preparazione udienza.',
+      primaryHref: '/lex?context=preparazione-udienza-riepilogo',
+      primaryLabel: 'Apri Lex riepilogo',
+      secondaryHref: '/wizard-pro/',
+      secondaryLabel: 'Wizard udienza',
+    }
+  }
   if (route.startsWith('/wizard-pro')) {
     return {
       context: 'preparazione-udienza',
@@ -512,6 +546,28 @@ function resolveLexPageContext(routePath: string): GlobalLexConfig {
       primaryLabel: 'Apri Lex udienza',
       secondaryHref: '/wizard-pro/',
       secondaryLabel: 'Wizard udienza',
+    }
+  }
+  if (route === '/timesheet') {
+    return {
+      context: 'timesheet',
+      title: 'Lex AI timesheet',
+      body: 'Legge voci, stati, clienti e fascicoli per aiutarti a presidiare tempi e fatturazione.',
+      primaryHref: '/lex?context=timesheet',
+      primaryLabel: 'Apri Lex timesheet',
+      secondaryHref: '/fatturazione/',
+      secondaryLabel: 'Fatturazione',
+    }
+  }
+  if (route === '/cartelle-condivise') {
+    return {
+      context: 'cartelle-condivise',
+      title: 'Lex AI condivisioni',
+      body: 'Legge accessi, ruoli, scadenze e presidi privacy delle cartelle condivise.',
+      primaryHref: '/lex?context=cartelle-condivise',
+      primaryLabel: 'Apri Lex condivisioni',
+      secondaryHref: '/privacy/registro',
+      secondaryLabel: 'Registro GDPR',
     }
   }
   if (route === '/telematico' || route === '/telematici' || route === '/servizi-telematici' || isTelematicoSurfaceRoute(route)) {
@@ -560,6 +616,7 @@ function routePublishesLexContext(routePath: string): boolean {
   if (route === '/email' || route === '/email-ordinaria' || route.startsWith('/messaggi')) return true
   if (route.startsWith('/scadenziario') && !isNewDeadline && !isDeadlineEdit) return true
   if (route.startsWith('/wizard-pro')) return true
+  if (route === '/timesheet' || route === '/cartelle-condivise') return true
   if (route.startsWith('/privacy/registro') || route === '/registro-gdpr') return true
   if (route === '/admin/database') return true
   return route === '/telematico' || route === '/telematici' || isTelematicoSurfaceRoute(route)
@@ -807,14 +864,19 @@ export default function App() {
   const isNewDeadlinePage = routeKey === '/scadenziario/nuova'
   const isDeadlineEditPage = /^\/scadenziario\/[^/]+\/modifica$/.test(routeKey)
   const isScadenziarioPage = !isNewDeadlinePage && !isDeadlineEditPage && (routeKey === '/scadenziario' || routeKey.startsWith('/scadenziario/'))
-  const isWizardProPage = routeKey === '/wizard-pro' || routeKey.startsWith('/wizard-pro/')
+  const isTimesheetPage = routeKey === '/timesheet'
+  const isCartelleCondivisePage = routeKey === '/cartelle-condivise'
+  const isWizardProDashboard = routeKey === '/wizard-pro' || routeKey === '/wizard-pro/nuovo'
+  const isWizardProStep = /^\/wizard-pro\/[^/]+\/step\/[1-5]$/.test(routeKey)
+  const isWizardProComplete = /^\/wizard-pro\/[^/]+\/completo$/.test(routeKey)
+  const isWizardProPage = isWizardProDashboard || isWizardProStep || isWizardProComplete
   const isTelematicoPage = routeKey === '/telematico' || routeKey === '/telematici' || routeKey === '/servizi-telematici'
   const isTelematicoSurfacePage = isTelematicoSurfaceRoute(routeKey)
   const isPrivacyRegistroPage = routeKey === '/privacy/registro' || routeKey === '/privacy/registro/nuovo' || routeKey === '/registro-gdpr'
   const isAdminDatabasePage = routeKey === '/admin/database'
-  const isStudioModulePage = !isAdminDatabasePage && isStudioModuleRoute(routeKey)
-  const isDashboardPage = !isSearchPage && !isAgendaPage && !isNewAppointmentPage && !isAppointmentEditPage && !isRegiaPage && !isDocumentEditorPage && !isFascicoliPage && !isClientiPage && !isClientFolderPage && !isClientEditPage && !isNewClientPage && !isSoggettiPage && !isNewSubjectPage && !isSubjectEditPage && !isEmailComposePage && !isEmailOrdinariaComposePage && !isEmailPage && !isEmailOrdinariaPage && !isMessagesPage && !isNewMessagePage && !isScadenziarioPage && !isNewDeadlinePage && !isDeadlineEditPage && !isWizardProPage && !isTelematicoPage && !isTelematicoSurfacePage && !isPrivacyRegistroPage && !isAdminDatabasePage && !isStudioModulePage
-  const isStandalonePage = isSearchPage || isAgendaPage || isNewAppointmentPage || isAppointmentEditPage || isDocumentEditorPage || isFascicoliPage || isClientiPage || isClientFolderPage || isClientEditPage || isNewClientPage || isSoggettiPage || isNewSubjectPage || isSubjectEditPage || isEmailComposePage || isEmailOrdinariaComposePage || isEmailPage || isEmailOrdinariaPage || isMessagesPage || isNewMessagePage || isScadenziarioPage || isNewDeadlinePage || isDeadlineEditPage || isWizardProPage || isTelematicoPage || isTelematicoSurfacePage || isPrivacyRegistroPage || isAdminDatabasePage || isStudioModulePage
+  const isStudioModulePage = !isAdminDatabasePage && !isTimesheetPage && !isCartelleCondivisePage && !isWizardProPage && isStudioModuleRoute(routeKey)
+  const isDashboardPage = !isSearchPage && !isAgendaPage && !isNewAppointmentPage && !isAppointmentEditPage && !isRegiaPage && !isDocumentEditorPage && !isFascicoliPage && !isClientiPage && !isClientFolderPage && !isClientEditPage && !isNewClientPage && !isSoggettiPage && !isNewSubjectPage && !isSubjectEditPage && !isEmailComposePage && !isEmailOrdinariaComposePage && !isEmailPage && !isEmailOrdinariaPage && !isMessagesPage && !isNewMessagePage && !isScadenziarioPage && !isNewDeadlinePage && !isDeadlineEditPage && !isTimesheetPage && !isCartelleCondivisePage && !isWizardProPage && !isTelematicoPage && !isTelematicoSurfacePage && !isPrivacyRegistroPage && !isAdminDatabasePage && !isStudioModulePage
+  const isStandalonePage = isSearchPage || isAgendaPage || isNewAppointmentPage || isAppointmentEditPage || isDocumentEditorPage || isFascicoliPage || isClientiPage || isClientFolderPage || isClientEditPage || isNewClientPage || isSoggettiPage || isNewSubjectPage || isSubjectEditPage || isEmailComposePage || isEmailOrdinariaComposePage || isEmailPage || isEmailOrdinariaPage || isMessagesPage || isNewMessagePage || isScadenziarioPage || isNewDeadlinePage || isDeadlineEditPage || isTimesheetPage || isCartelleCondivisePage || isWizardProPage || isTelematicoPage || isTelematicoSurfacePage || isPrivacyRegistroPage || isAdminDatabasePage || isStudioModulePage
   const initialSearchQuery = new URLSearchParams(window.location.search).get('q') ?? ''
   const lexConfig = resolveLexPageContext(routeKey)
   const needsShellLexContext = !routePublishesLexContext(routeKey)
@@ -833,7 +895,7 @@ export default function App() {
         <div className="iu-main">
           <Topbar onOpenMenu={()=>setMobileMenuOpen(true)}/>
           <Suspense fallback={<PageLoading/>}>
-            {isSearchPage?<RicercaStudioPage initialQuery={initialSearchQuery}/>:isNewAppointmentPage||isAppointmentEditPage?<NuovoAppuntamentoPage/>:isAgendaPage?<AgendaPage/>:isRegiaPage?<RegiaOperativaPage data={data} loading={loading}/>:isDocumentEditorPage?<DocumentEditorPage/>:isFascicoliPage?<FascicoliPage/>:isNewClientPage||isNewSubjectPage||isClientEditPage||isSubjectEditPage?<NuovoClientePage/>:isClientFolderPage?<CartellaClientePage/>:isClientiPage?<AnagraficaClientiPage/>:isSoggettiPage?<SoggettiPage/>:isEmailOrdinariaComposePage?<EmailComposePage mode="ordinaria"/>:isEmailComposePage?<EmailComposePage mode="pec"/>:isEmailOrdinariaPage?<EmailOrdinariaPage/>:isEmailPage?<EmailPecPage/>:isNewMessagePage?<NuovoMessaggioPage/>:isMessagesPage?<MessaggiPage/>:isNewDeadlinePage||isDeadlineEditPage?<NuovaScadenzaPage/>:isScadenziarioPage?<ScadenziarioPage/>:isWizardProPage?<WizardProPage/>:isTelematicoPage?<TelematicoPage/>:isTelematicoSurfacePage?<TelematicoSurfacePage/>:isPrivacyRegistroPage?<PrivacyRegistroPage/>:isAdminDatabasePage?<AdminDatabasePage/>:isStudioModulePage?<StudioModulePage/>:<DashboardPage data={data} loading={loading}/>}
+            {isSearchPage?<RicercaStudioPage initialQuery={initialSearchQuery}/>:isNewAppointmentPage||isAppointmentEditPage?<NuovoAppuntamentoPage/>:isAgendaPage?<AgendaPage/>:isRegiaPage?<RegiaOperativaPage data={data} loading={loading}/>:isDocumentEditorPage?<DocumentEditorPage/>:isFascicoliPage?<FascicoliPage/>:isNewClientPage||isNewSubjectPage||isClientEditPage||isSubjectEditPage?<NuovoClientePage/>:isClientFolderPage?<CartellaClientePage/>:isClientiPage?<AnagraficaClientiPage/>:isSoggettiPage?<SoggettiPage/>:isEmailOrdinariaComposePage?<EmailComposePage mode="ordinaria"/>:isEmailComposePage?<EmailComposePage mode="pec"/>:isEmailOrdinariaPage?<EmailOrdinariaPage/>:isEmailPage?<EmailPecPage/>:isNewMessagePage?<NuovoMessaggioPage/>:isMessagesPage?<MessaggiPage/>:isNewDeadlinePage||isDeadlineEditPage?<NuovaScadenzaPage/>:isScadenziarioPage?<ScadenziarioPage/>:isTimesheetPage?<TimesheetPage/>:isCartelleCondivisePage?<CartelleCondivisePage/>:isWizardProStep?<WizardProStepPage/>:isWizardProComplete?<WizardProCompletePage/>:isWizardProDashboard?<WizardProPage/>:isTelematicoPage?<TelematicoPage/>:isTelematicoSurfacePage?<TelematicoSurfacePage/>:isPrivacyRegistroPage?<PrivacyRegistroPage/>:isAdminDatabasePage?<AdminDatabasePage/>:isStudioModulePage?<StudioModulePage/>:<DashboardPage data={data} loading={loading}/>}
           </Suspense>
         </div>
         <nav className={`iu-mobile ${mobileNavCollapsed?'is-collapsed':''}`} aria-label="Navigazione mobile">
@@ -841,9 +903,9 @@ export default function App() {
             <a className={isDashboardPage?'active':''} href="/"><LayoutDashboard size={18}/>Panoramica</a>
             <a className={isSearchPage?'active':''} href="/global-search"><Search size={18}/>Ricerca</a>
             <a className={isFascicoliPage?'active':''} href="/fascicoli"><BriefcaseBusiness size={18}/>Fascicoli</a>
-            <a className={isClientiPage||isClientFolderPage||isClientEditPage||isNewClientPage||isSoggettiPage||isNewSubjectPage||isSubjectEditPage?'active':''} href="/clienti"><UsersRound size={18}/>Clienti</a>
+            <a className={isClientiPage||isClientFolderPage||isClientEditPage||isNewClientPage||isCartelleCondivisePage||isSoggettiPage||isNewSubjectPage||isSubjectEditPage?'active':''} href="/clienti"><UsersRound size={18}/>Clienti</a>
             <a className={isEmailPage||isEmailOrdinariaPage||isMessagesPage||isNewMessagePage?'active':''} href="/email/"><Mail size={18}/>Posta</a>
-            <a className={isAgendaPage||isNewAppointmentPage||isAppointmentEditPage||isScadenziarioPage||isNewDeadlinePage||isDeadlineEditPage||isWizardProPage?'active':''} href="/agenda"><CalendarDays size={18}/>Agenda</a>
+            <a className={isAgendaPage||isNewAppointmentPage||isAppointmentEditPage||isTimesheetPage||isScadenziarioPage||isNewDeadlinePage||isDeadlineEditPage||isWizardProPage?'active':''} href="/agenda"><CalendarDays size={18}/>Agenda</a>
             <a className={isRegiaPage||isPrivacyRegistroPage||isAdminDatabasePage?'active':''} href="/workspace-intelligente"><Sparkles size={18}/>Regia</a>
           </div>
           <button

@@ -19,6 +19,7 @@ La repo oggi non è più solo un tool CLI per il Processo Civile Telematico: con
 - Nei casi di mediazione civile / commerciale il preventivo e il tariffario possono includere anche i costi organismo ex `D.M. 24 ottobre 2023, n. 150` (artt. 28, 30, 31 e Tabella A), distinguendo volontaria / obbligatoria-demandata, esito del primo incontro o degli incontri successivi e maggiorazione art. 31, comma 3.
 - Le superfici economiche finali usano ora microcopy coerente, ricalcolo guidato inline e log applicativi leggibili come una storia operativa, senza `alert()` ambigui o stati poco spiegabili.
 - Timesheet operativo con valorizzazione del tempo e generazione parcella dalle attivita' validate.
+- Le superfici ufficiali `/timesheet`, `/cartelle-condivise` e `/wizard-pro/` sono servite da React con dati reali, API bridge tenant-aware, fallback tecnico solo `?_legacy=1` e scritture mantenute sulle route Flask operative.
 - Fatturazione, pagamenti, saldo cliente e KPI economici per studio, cliente e fascicolo.
 - Fascicolo con `cabina operativa` a tab: quadro intelligente, workflow `fascicolo -> incasso`, controllo economico con `FatturaPA / SDI` per XML Agenzia Entrate, governo documentale e conformita' deposito nella stessa vista.
 - Il `Quadro intelligente fascicolo` non usa piu' avanzamenti statici: valuta davvero documenti, classificazioni portale, scadenze rispetto a oggi, provvedimenti presenti e coerenza dello stato, mentre la PEC/auto-esiti associa i messaggi usando `RG + nominativo cliente/controparte + tribunale`.

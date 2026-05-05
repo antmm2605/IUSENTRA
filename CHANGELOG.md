@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.198.64 - 2026-05-05
+
+- Promosse a superfici React operative `/timesheet` e `/cartelle-condivise`, con payload reali `/api/v1/ui/timesheet` e `/api/v1/ui/cartelle-condivise`, contratti `mock_fallback=false`, KPI, filtri, stati vuoti e azioni su route Flask auditabili.
+- Completato `Wizard Pro` in React end-to-end per dashboard, step profondi `/wizard-pro/<id>/step/<n>` e riepilogo `/wizard-pro/<id>/completo`, mantenendo i POST su Flask e la vista classica solo tramite `?_legacy=1`.
+- Aggiunti bridge backend dedicati, routing React esplicito, contesti Lex per dashboard/step/riepilogo e gate contrattuali contro link tecnici, `href="#"`, dati demo e CTA non operative.
+- Estesi i test React/Python su shell, API, POST timesheet, permessi condivisioni e ciclo completo del wizard udienza.
+
 ## 2.198.63 - 2026-05-05
 
 - Corretta la visualizzazione nell'editor professionale dei PDF giudiziari con layout complesso: stemmi, timbri, riquadri, intestazioni laterali e testo verticale non vengono piu' ricostruiti come HTML editabile.

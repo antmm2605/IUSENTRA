@@ -10,6 +10,7 @@
   var MIN_WIDGET_HEIGHT = 520;
   var MAX_WIDGET_WIDTH = 720;
   var MAX_WIDGET_HEIGHT = 860;
+  var DRAG_CLICK_THRESHOLD = 4;
   var state = {
     open: false,
     streaming: false,
@@ -30,6 +31,7 @@
     runtimeStatusPromise: null,
     contextPrimed: false,
     pageContext: null,
+    suppressFabClick: false,
   };
 
   var widget;
@@ -65,6 +67,21 @@
 
   function clamp(value, min, max) {
     return Math.min(Math.max(value, min), max);
+  }
+
+  function finiteNumber(value) {
+    var number = Number(value);
+    return isFinite(number) ? number : null;
+  }
+
+  function boundedDimension(value, min, max, fallback) {
+    var safeMax = Math.max(1, Number(max) || 1);
+    var safeMin = Math.min(Number(min) || 1, safeMax);
+    var candidate = finiteNumber(value);
+    if (candidate === null) {
+      candidate = finiteNumber(fallback);
+    }
+    return clamp(candidate === null ? safeMin : candidate, safeMin, safeMax);
   }
 
   function escapeHtml(value) {
@@ -1438,7 +1455,9 @@
 
     panel.hidden = !state.open;
     fab.classList.toggle('pct-ai-fab--active', state.open);
+    fab.setAttribute('aria-expanded', state.open ? 'true' : 'false');
     widget.classList.toggle('pct-ai-widget--open', state.open);
+    restorePosition();
 
     if (state.open) {
       ensureAssistantReady();
@@ -1452,7 +1471,15 @@
     }
   }
 
-  function toggle() {
+  function toggle(event) {
+    if (state.suppressFabClick) {
+      state.suppressFabClick = false;
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      return;
+    }
     setOpen(!state.open);
   }
 
@@ -2024,7 +2051,17 @@
   function saveLayout(layoutPatch) {
     try {
       var current = getSavedLayout() || {};
-      window.localStorage.setItem(storageKey, JSON.stringify(Object.assign({}, current, layoutPatch || {})));
+      var nextLayout = Object.assign({}, current, layoutPatch || {});
+      Object.keys(nextLayout).forEach(function (key) {
+        if (
+          typeof nextLayout[key] === 'undefined' ||
+          nextLayout[key] === null ||
+          (typeof nextLayout[key] === 'number' && isNaN(nextLayout[key]))
+        ) {
+          delete nextLayout[key];
+        }
+      });
+      window.localStorage.setItem(storageKey, JSON.stringify(nextLayout));
     } catch (error) {
       return;
     }
@@ -2048,6 +2085,7 @@
     widget.style.bottom = '';
     widget.style.width = '';
     widget.style.height = '';
+    widget.classList.remove('pct-ai-widget--fab-only');
   }
 
   function applyFullscreenState() {
@@ -2088,13 +2126,77 @@
     setFullscreen(!state.fullscreen);
   }
 
+  function fabDimensions() {
+    if (!fab) {
+      return { width: 58, height: 58 };
+    }
+    var rect = fab.getBoundingClientRect();
+    var fallback = window.innerWidth <= 768 ? 65 : 58;
+    return {
+      width: boundedDimension(rect.width, 44, Math.max(44, window.innerWidth - DRAG_MARGIN * 2), fallback),
+      height: boundedDimension(rect.height, 44, Math.max(44, window.innerHeight - DRAG_MARGIN * 2), fallback),
+    };
+  }
+
+  function savedHasFabPosition(layout) {
+    return Boolean(layout && finiteNumber(layout.fabLeft) !== null && finiteNumber(layout.fabTop) !== null);
+  }
+
+  function currentFabPositionFromWidget() {
+    if (!widget) {
+      return {};
+    }
+    var rect = widget.getBoundingClientRect();
+    var size = fabDimensions();
+    return {
+      fabLeft: clamp(rect.right - size.width, DRAG_MARGIN, Math.max(DRAG_MARGIN, window.innerWidth - size.width - DRAG_MARGIN)),
+      fabTop: clamp(rect.bottom - size.height, DRAG_MARGIN, Math.max(DRAG_MARGIN, window.innerHeight - size.height - DRAG_MARGIN)),
+    };
+  }
+
+  function applyFabLayout(layout) {
+    if (!widget || !layout || !savedHasFabPosition(layout)) {
+      return false;
+    }
+    var size = fabDimensions();
+    var left = clamp(
+      finiteNumber(layout.fabLeft) || 0,
+      DRAG_MARGIN,
+      Math.max(DRAG_MARGIN, window.innerWidth - size.width - DRAG_MARGIN)
+    );
+    var top = clamp(
+      finiteNumber(layout.fabTop) || 0,
+      DRAG_MARGIN,
+      Math.max(DRAG_MARGIN, window.innerHeight - size.height - DRAG_MARGIN)
+    );
+
+    widget.classList.add('pct-ai-widget--custom', 'pct-ai-widget--fab-only');
+    widget.style.left = left + 'px';
+    widget.style.top = top + 'px';
+    widget.style.right = 'auto';
+    widget.style.bottom = 'auto';
+    widget.style.width = size.width + 'px';
+    widget.style.height = size.height + 'px';
+    return true;
+  }
+
   function applyCustomLayout(layout) {
-    if (!widget || !layout || !isDesktop()) {
+    if (!widget || !layout) {
       return;
     }
 
-    var targetWidth = clamp(Number(layout.width || widget.offsetWidth || 392), MIN_WIDGET_WIDTH, Math.min(MAX_WIDGET_WIDTH, window.innerWidth - DRAG_MARGIN * 2));
-    var targetHeight = clamp(Number(layout.height || widget.offsetHeight || 640), MIN_WIDGET_HEIGHT, Math.min(MAX_WIDGET_HEIGHT, window.innerHeight - DRAG_MARGIN * 2));
+    var targetWidth = boundedDimension(
+      layout.width,
+      MIN_WIDGET_WIDTH,
+      Math.min(MAX_WIDGET_WIDTH, window.innerWidth - DRAG_MARGIN * 2),
+      widget.offsetWidth || 392
+    );
+    var targetHeight = boundedDimension(
+      layout.height,
+      MIN_WIDGET_HEIGHT,
+      Math.min(MAX_WIDGET_HEIGHT, window.innerHeight - DRAG_MARGIN * 2),
+      widget.offsetHeight || 640
+    );
     widget.style.width = targetWidth + 'px';
     widget.style.height = targetHeight + 'px';
 
@@ -2102,10 +2204,18 @@
     var height = targetHeight;
     var maxLeft = Math.max(DRAG_MARGIN, window.innerWidth - width - DRAG_MARGIN);
     var maxTop = Math.max(DRAG_MARGIN, window.innerHeight - height - DRAG_MARGIN);
-    var left = clamp(Number(layout.left || 0), DRAG_MARGIN, maxLeft);
-    var top = clamp(Number(layout.top || 0), DRAG_MARGIN, maxTop);
+    var left = finiteNumber(layout.left);
+    var top = finiteNumber(layout.top);
+    if ((left === null || top === null) && savedHasFabPosition(layout)) {
+      var size = fabDimensions();
+      left = finiteNumber(layout.fabLeft) + size.width - width;
+      top = finiteNumber(layout.fabTop) + size.height - height;
+    }
+    left = clamp(left === null ? 0 : left, DRAG_MARGIN, maxLeft);
+    top = clamp(top === null ? 0 : top, DRAG_MARGIN, maxTop);
 
     widget.classList.add('pct-ai-widget--custom');
+    widget.classList.remove('pct-ai-widget--fab-only');
     widget.style.left = left + 'px';
     widget.style.top = top + 'px';
     widget.style.right = 'auto';
@@ -2147,13 +2257,11 @@
       return;
     }
 
-    if (!isDesktop()) {
-      widget.classList.remove('pct-ai-widget--custom');
-      clearInlineLayoutStyles();
+    if (!state.open && applyFabLayout(saved)) {
       return;
     }
 
-    if (saved && (saved.width || saved.height || saved.left || saved.top)) {
+    if (saved && (saved.width || saved.height || saved.left || saved.top || savedHasFabPosition(saved))) {
       applyCustomLayout(saved);
     } else {
       widget.classList.remove('pct-ai-widget--custom');
@@ -2166,17 +2274,27 @@
       return;
     }
 
-    var width = widget.offsetWidth || 392;
-    var height = widget.offsetHeight || 640;
+    var width = state.drag.width || widget.offsetWidth || 392;
+    var height = state.drag.height || widget.offsetHeight || 640;
     var nextLeft = clamp(event.clientX - state.drag.offsetX, DRAG_MARGIN, Math.max(DRAG_MARGIN, window.innerWidth - width - DRAG_MARGIN));
     var nextTop = clamp(event.clientY - state.drag.offsetY, DRAG_MARGIN, Math.max(DRAG_MARGIN, window.innerHeight - height - DRAG_MARGIN));
 
     widget.classList.add('pct-ai-widget--custom', 'pct-ai-widget--dragging');
+    widget.classList.toggle('pct-ai-widget--fab-only', state.drag.kind === 'fab');
+    if (state.drag.kind === 'fab') {
+      widget.style.width = width + 'px';
+      widget.style.height = height + 'px';
+    }
     widget.style.left = nextLeft + 'px';
     widget.style.top = nextTop + 'px';
     widget.style.right = 'auto';
     widget.style.bottom = 'auto';
-    state.drag.moved = true;
+    if (
+      Math.abs(event.clientX - state.drag.startX) > DRAG_CLICK_THRESHOLD ||
+      Math.abs(event.clientY - state.drag.startY) > DRAG_CLICK_THRESHOLD
+    ) {
+      state.drag.moved = true;
+    }
   }
 
   function endDrag() {
@@ -2184,13 +2302,40 @@
       return;
     }
 
+    var dragKind = state.drag.kind;
+    var moved = state.drag.moved;
+    var dragStartedFromFab = state.drag.fromFab;
     widget.classList.remove('pct-ai-widget--dragging');
-    if (state.drag.moved) {
-      saveLayout({
-        left: parseFloat(widget.style.left || '0'),
-        top: parseFloat(widget.style.top || '0'),
-      });
-      setStatus('Posizione aggiornata sul browser corrente.');
+    if (moved) {
+      if (dragKind === 'fab') {
+        saveLayout({
+          fabLeft: parseFloat(widget.style.left || '0'),
+          fabTop: parseFloat(widget.style.top || '0'),
+          left: null,
+          top: null,
+          fullscreen: false,
+        });
+        state.suppressFabClick = true;
+        window.setTimeout(function () {
+          state.suppressFabClick = false;
+        }, 350);
+        setStatus('Icona Lex spostata sul browser corrente.');
+      } else {
+        saveLayout(Object.assign({
+          left: parseFloat(widget.style.left || '0'),
+          top: parseFloat(widget.style.top || '0'),
+        }, currentFabPositionFromWidget()));
+        if (dragStartedFromFab) {
+          state.suppressFabClick = true;
+          window.setTimeout(function () {
+            state.suppressFabClick = false;
+          }, 350);
+        }
+        setStatus('Posizione aggiornata sul browser corrente.');
+      }
+    }
+    if (dragKind !== 'fab') {
+      widget.classList.remove('pct-ai-widget--fab-only');
     }
 
     window.removeEventListener('pointermove', handlePointerMove);
@@ -2198,6 +2343,81 @@
     window.removeEventListener('pointercancel', endDrag);
     document.body.classList.remove('pct-ai-no-select');
     state.drag = null;
+  }
+
+  function beginWidgetDrag(event, rect, options) {
+    options = options || {};
+    if (!widget || event.button !== 0 || state.fullscreen) {
+      return;
+    }
+
+    var width = options.width || rect.width || widget.offsetWidth || 392;
+    var height = options.height || rect.height || widget.offsetHeight || 640;
+    widget.classList.add('pct-ai-widget--custom');
+    widget.classList.toggle('pct-ai-widget--fab-only', options.kind === 'fab');
+    widget.style.left = rect.left + 'px';
+    widget.style.top = rect.top + 'px';
+    widget.style.right = 'auto';
+    widget.style.bottom = 'auto';
+    if (options.kind === 'fab') {
+      widget.style.width = width + 'px';
+      widget.style.height = height + 'px';
+    }
+
+    state.drag = {
+      kind: options.kind || 'panel',
+      offsetX: event.clientX - rect.left,
+      offsetY: event.clientY - rect.top,
+      startX: event.clientX,
+      startY: event.clientY,
+      width: width,
+      height: height,
+      fromFab: Boolean(options.fromFab),
+      moved: false,
+    };
+
+    if (event.currentTarget && event.currentTarget.setPointerCapture && event.pointerId !== undefined) {
+      try {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      } catch (_error) {}
+    }
+    if (options.preventDefault !== false) {
+      event.preventDefault();
+    }
+    document.body.classList.add('pct-ai-no-select');
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', endDrag);
+    window.addEventListener('pointercancel', endDrag);
+  }
+
+  function startFabDrag(event) {
+    if (!widget || !fab || event.button !== 0 || state.fullscreen) {
+      return;
+    }
+
+    if (state.open) {
+      beginWidgetDrag(event, widget.getBoundingClientRect(), {
+        kind: 'panel',
+        fromFab: true,
+        preventDefault: false,
+      });
+      return;
+    }
+
+    var rect = fab.getBoundingClientRect();
+    var size = fabDimensions();
+    beginWidgetDrag(event, {
+      left: rect.left,
+      top: rect.top,
+      width: size.width,
+      height: size.height,
+    }, {
+      kind: 'fab',
+      width: size.width,
+      height: size.height,
+      fromFab: true,
+      preventDefault: false,
+    });
   }
 
   function startDrag(event) {
@@ -2210,23 +2430,7 @@
       return;
     }
 
-    var rect = widget.getBoundingClientRect();
-    widget.classList.add('pct-ai-widget--custom');
-    widget.style.left = rect.left + 'px';
-    widget.style.top = rect.top + 'px';
-    widget.style.right = 'auto';
-    widget.style.bottom = 'auto';
-
-    state.drag = {
-      offsetX: event.clientX - rect.left,
-      offsetY: event.clientY - rect.top,
-      moved: false,
-    };
-
-    document.body.classList.add('pct-ai-no-select');
-    window.addEventListener('pointermove', handlePointerMove);
-    window.addEventListener('pointerup', endDrag);
-    window.addEventListener('pointercancel', endDrag);
+    beginWidgetDrag(event, widget.getBoundingClientRect(), { kind: 'panel' });
   }
 
   function handleResizeMove(event) {
@@ -2255,12 +2459,12 @@
     }
     widget.classList.remove('pct-ai-widget--dragging');
     if (state.resize.moved) {
-      saveLayout({
+      saveLayout(Object.assign({
         width: parseFloat(widget.style.width || '0'),
         height: parseFloat(widget.style.height || '0'),
         left: parseFloat(widget.style.left || '0') || undefined,
         top: parseFloat(widget.style.top || '0') || undefined,
-      });
+      }, currentFabPositionFromWidget()));
       setStatus('Dimensioni di Lex aggiornate sul browser corrente.');
     }
     window.removeEventListener('pointermove', handleResizeMove);
@@ -2376,6 +2580,7 @@
 
   function bindEvents() {
     fab.addEventListener('click', toggle);
+    fab.addEventListener('pointerdown', startFabDrag);
     window.addEventListener('iusentra:lex-context', function (event) {
       applyLexPageContext(event && event.detail ? event.detail : {}, { open: false });
     });

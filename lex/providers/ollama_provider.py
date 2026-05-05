@@ -168,6 +168,20 @@ def _call_ollama(payload: dict[str, Any], api_base_url: str, timeout: int = 120)
     return str(((response.get("message") or {}).get("content") or "")).strip()
 
 
+def _deterministic_runtime_fallback(request, context, evidence, workflow, metadata: dict[str, Any]):
+    from .deterministic_provider import DeterministicProvider
+
+    draft = DeterministicProvider().generate(request, context, evidence, workflow or "chat")
+    draft.metadata = {
+        **dict(getattr(draft, "metadata", {}) or {}),
+        **metadata,
+        "provider": "ollama",
+        "fallback_provider": "deterministic",
+        "status": "fallback_runtime_unavailable",
+    }
+    return draft
+
+
 def _looks_like_meta_response(text: str) -> bool:
     normalized = " ".join(str(text or "").split()).strip().lower()
     if not normalized:
@@ -314,11 +328,38 @@ class OllamaProvider(BaseProvider):
             metadata["status"] = "ok"
             return ProviderDraft(text=text, metadata=metadata)
         except Exception as exc:
-            metadata["status"] = "fallback"
-            metadata["error"] = str(exc)
-            fallback = (
-                "Il runtime Ollama non ha risposto correttamente. "
-                f"Dettaglio: {exc}. "
-                "Riprovare dopo aver verificato che il servizio locale sia attivo."
+            metadata["runtime_error_type"] = exc.__class__.__name__
+            try:
+                from lex.providers.ollama_runtime import refresh_live_ollama_runtime
+
+                refreshed = dict(refresh_live_ollama_runtime() or {})
+                retry_api_base_url = str(refreshed.get("api_base_url") or "").strip()
+                retry_model = str(refreshed.get("chat_model") or model).strip() or model
+                retry_keep_alive = str(refreshed.get("keep_alive") or keep_alive).strip() or keep_alive
+                if retry_api_base_url and retry_api_base_url != api_base_url:
+                    retry_payload = {
+                        **payload,
+                        "model": retry_model,
+                        "keep_alive": retry_keep_alive,
+                    }
+                    text = _call_ollama(retry_payload, retry_api_base_url)
+                    if text:
+                        metadata.update(
+                            {
+                                "status": "ok",
+                                "runtime_refreshed_after_error": True,
+                                "model": retry_model,
+                            }
+                        )
+                        return ProviderDraft(text=text, metadata=metadata)
+            except Exception as retry_exc:
+                metadata["runtime_retry_error_type"] = retry_exc.__class__.__name__
+
+            metadata["runtime_unavailable"] = True
+            return _deterministic_runtime_fallback(
+                request,
+                context,
+                evidence,
+                workflow,
+                metadata,
             )
-            return ProviderDraft(text=fallback, metadata=metadata)

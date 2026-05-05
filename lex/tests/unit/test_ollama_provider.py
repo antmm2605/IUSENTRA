@@ -77,6 +77,43 @@ def test_ollama_provider_filtra_risposte_meta_su_fascicolo(monkeypatch):
     assert draft.metadata["fallback_provider"] == "deterministic"
 
 
+def test_ollama_provider_non_mostra_errore_dns_runtime_all_utente(monkeypatch):
+    provider = OllamaProvider()
+
+    monkeypatch.setattr(
+        "lex.providers.ollama_provider._resolve_runtime",
+        lambda: {
+            "api_base_url": "http://ollama:11434/api",
+            "chat_model": "gemma3:1b",
+            "keep_alive": "10m",
+        },
+    )
+    monkeypatch.setattr(
+        "lex.providers.ollama_provider._call_ollama",
+        lambda payload, api_base_url, timeout=120: (_ for _ in ()).throw(RuntimeError("Failed to resolve 'ollama'")),
+    )
+    monkeypatch.setattr(
+        "lex.providers.ollama_runtime.refresh_live_ollama_runtime",
+        lambda: {
+            "api_base_url": "http://ollama:11434/api",
+            "chat_model": "gemma3:1b",
+            "keep_alive": "10m",
+        },
+    )
+
+    draft = provider.generate(
+        request=SimpleNamespace(query="scrivi diffida"),
+        context={"focus": "redazione"},
+        evidence={"items": [], "citations": [], "official_sources": []},
+        workflow="atto",
+    )
+
+    assert "Failed to resolve" not in draft.text
+    assert "ollama" not in draft.text.lower()
+    assert draft.metadata["status"] == "fallback_runtime_unavailable"
+    assert draft.metadata["fallback_provider"] == "deterministic"
+
+
 def test_ollama_provider_filtra_risposte_meta_su_giurisprudenza(monkeypatch):
     provider = OllamaProvider()
 

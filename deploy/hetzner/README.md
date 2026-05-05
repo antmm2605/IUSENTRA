@@ -9,7 +9,7 @@ Target validato per il server indicato:
 - server: `ubuntu-16gb-nbg1-1`
 - IP: `116.203.45.57`
 - taglio: CPX42, 8 vCPU, 16 GB RAM, 320 GB disco locale
-- runtime: Docker Compose, Caddy HTTPS, Redis, worker scheduler, worker OCR
+- runtime: Docker Compose, Caddy HTTPS, Redis, worker scheduler, worker OCR, sidecar Ollama per Lex
 - persistenza: `/opt/iusentra/data`
 
 ## Prerequisiti DNS
@@ -137,5 +137,6 @@ Il backup produce archivio e checksum in `/opt/iusentra/backups` e verifica subi
 
 - Il server CPX42 e' adeguato per app, Redis, OCR, scheduler e monitoring leggero.
 - Lex/Ollama puo' girare sullo stesso host solo per modelli piccoli CPU; per carichi AI pesanti serve nodo dedicato o runtime locale dello studio.
+- Il profilo Hetzner avvia il servizio Docker `ollama` e `deploy.sh` verifica/scarica `PCT_LOCAL_AI_CHAT_MODEL` (default `gemma3:1b`), cosi' il widget Lex usa una sola pipeline backend senza dipendere dal companion browser per la risposta finale.
 - Il Local Signer resta sul PC dell'avvocato e dialoga con `127.0.0.1`; non va spostato nel cloud.
 - Gli artefatti PST/PDP/PAT runtime restano sotto `/opt/iusentra/data`, mai nel path del repository.

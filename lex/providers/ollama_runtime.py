@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from threading import Lock
-from typing import Any
+from typing import Any, cast
 
 from flask import current_app
 
@@ -11,6 +11,10 @@ from pct.local_ai import OllamaHttpClient, strip_api_suffix
 from pct.runtime_env import is_managed_cloud_runtime
 
 from .local_ai_service import get_local_ai_service
+
+
+def _flask_app() -> Any:
+    return cast(Any, current_app)._get_current_object()
 
 
 def normalize_ollama_api_base_url(value: str) -> str:
@@ -45,7 +49,7 @@ def _fallback_runtime_payload(default_model: str = "mistral") -> dict[str, str]:
 
 
 def _cache_lock() -> Lock:
-    app = current_app._get_current_object()
+    app = _flask_app()
     lock = app.extensions.get("ollama_runtime_lock")
     if lock is None:
         lock = Lock()
@@ -93,7 +97,7 @@ def _load_active_chat_model(service) -> str:
 def _cache_payload(
     *, cache_name: str, fingerprint: tuple[Any, ...], payload: dict[str, str]
 ) -> dict[str, str]:
-    app = current_app._get_current_object()
+    app = _flask_app()
     cached = dict(payload)
     app.extensions[cache_name] = {
         "fingerprint": fingerprint,
@@ -103,7 +107,7 @@ def _cache_payload(
 
 
 def clear_ollama_runtime_resolution_cache() -> None:
-    app = current_app._get_current_object()
+    app = _flask_app()
     app.extensions.pop("ollama_runtime_resolution", None)
     app.extensions.pop("ollama_live_runtime_resolution", None)
 
@@ -122,8 +126,9 @@ def _compute_local_chat_runtime(
         payload["api_base_url"] = normalize_ollama_api_base_url(configured_base_url)
         payload["base_url"] = strip_api_suffix(payload["api_base_url"])
 
+    row_status = str(runtime_row.get("status") or "").strip().lower()
     row_base_url = str(runtime_row.get("api_base_url") or "").strip()
-    if row_base_url:
+    if row_base_url and row_status == "ready":
         payload["api_base_url"] = normalize_ollama_api_base_url(row_base_url)
         payload["base_url"] = strip_api_suffix(payload["api_base_url"])
 
@@ -162,9 +167,10 @@ def _live_chat_runtime(
     settings = service._load_settings()
     payload = _fallback_runtime_payload(default_model)
     runtime_row = _load_runtime_row(service)
-    row_base_url = str(
-        runtime_row.get("api_base_url") or settings.base_url or payload["api_base_url"]
-    ).strip()
+    row_status = str(runtime_row.get("status") or "").strip().lower()
+    row_base_url = str(runtime_row.get("api_base_url") if row_status == "ready" else "").strip()
+    if not row_base_url:
+        row_base_url = str(settings.base_url or payload["api_base_url"]).strip()
     payload["api_base_url"] = normalize_ollama_api_base_url(row_base_url)
     payload["base_url"] = strip_api_suffix(payload["api_base_url"])
     payload["keep_alive"] = (
@@ -210,7 +216,7 @@ def resolved_ollama_runtime(
     *,
     force_refresh: bool = False,
 ) -> dict[str, str]:
-    app = current_app._get_current_object()
+    app = _flask_app()
     cache_name = "ollama_runtime_resolution"
     cache_entry = app.extensions.get(cache_name) or {}
     cache_key = _chat_runtime_cache_key(default_model)

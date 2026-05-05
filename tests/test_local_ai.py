@@ -1307,6 +1307,38 @@ def test_resolved_ollama_runtime_cache_evita_health_snapshot_ripetuti(tmp_path: 
         assert resolved_ollama_keep_alive("7m") == "10m"
 
 
+def test_resolved_ollama_runtime_ignora_runtime_db_non_ready(tmp_path: Path, monkeypatch):
+    from lex.providers.local_ai_service import get_local_ai_service
+    from lex.providers.ollama_runtime import (
+        clear_ollama_runtime_resolution_cache,
+        resolved_ollama_api_base_url,
+        resolved_ollama_chat_model,
+    )
+
+    monkeypatch.setenv("PCT_LOCAL_AI_BASE_URL", "http://ollama:11434/api")
+    monkeypatch.setenv("PCT_LOCAL_AI_CHAT_MODEL", "gemma3:1b")
+    _write_studio_config(tmp_path / "config" / "studio.json", enabled=True)
+    app = create_app(_cfg_web(tmp_path))
+
+    with app.app_context():
+        service = get_local_ai_service()
+        with service._connect() as conn:
+            conn.execute(
+                """
+                UPDATE local_ai_runtime
+                SET api_base_url = ?, updated_at = ?, status = ?
+                WHERE id = 1
+                """,
+                ("http://127.0.0.1:11434/api", "2026-05-05T12:00:00Z", "missing"),
+            )
+            conn.commit()
+
+        clear_ollama_runtime_resolution_cache()
+
+        assert resolved_ollama_api_base_url() == "http://ollama:11434/api"
+        assert resolved_ollama_chat_model("mistral") == "gemma3:1b"
+
+
 def test_ollama_http_client_apre_circuit_breaker_dopo_errori_ripetuti(monkeypatch):
     from pct.local_ai import OllamaHttpClient
 

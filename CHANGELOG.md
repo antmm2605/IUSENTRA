@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.198.70 - 2026-05-05
+
+- Allineato il deploy Hetzner di Lex alla pipeline unica del widget: il profilo produzione avvia il sidecar Docker `ollama`, usa `http://ollama:11434/api` come runtime AI interno e scarica automaticamente il modello chat configurato.
+- Documentata la dipendenza produttiva da Ollama locale governato, evitando che il backend Lex finisca su host `ollama` non risolvibili dopo la rimozione del companion come generatore finale.
+- Resa trascinabile anche l'icona flottante Lex su tutto il viewport, con posizione salvata nel browser e rimozione dei vecchi residui legacy non registrati (`web/base.html`, `web/cartella.html`, `web/export_csv.py`).
+
 ## 2.198.69 - 2026-05-05
 
 - Lex standalone page removed; floating Lex widget is the single supported UI surface and routes all assistant responses through /api/assistente/chat.

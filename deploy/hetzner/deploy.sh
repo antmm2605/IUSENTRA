@@ -42,6 +42,17 @@ docker compose \
   -f deploy/hetzner/docker-compose.hetzner.yml \
   up -d --build --remove-orphans
 
+if [ "${PCT_LOCAL_AI_ENABLED:-1}" != "0" ] && [ "${PCT_LOCAL_AI_ENABLED:-1}" != "false" ]; then
+  OLLAMA_CHAT_MODEL="${PCT_LOCAL_AI_CHAT_MODEL:-gemma3:1b}"
+  if [ -n "$OLLAMA_CHAT_MODEL" ]; then
+    echo "Verifico modello Ollama locale: $OLLAMA_CHAT_MODEL"
+    docker compose \
+      --env-file "$ENV_FILE" \
+      -f deploy/hetzner/docker-compose.hetzner.yml \
+      exec -T ollama ollama pull "$OLLAMA_CHAT_MODEL"
+  fi
+fi
+
 docker compose \
   --env-file "$ENV_FILE" \
   -f deploy/hetzner/docker-compose.hetzner.yml \

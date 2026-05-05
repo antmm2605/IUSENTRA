@@ -11,6 +11,10 @@ def _widget_js() -> str:
     return (REPO_ROOT / "web/static/js/pct-lex-assistant.js").read_text(encoding="utf-8")
 
 
+def _lex_widget_scss() -> str:
+    return (REPO_ROOT / "web/static/scss/components/_pct-lex-assistant.scss").read_text(encoding="utf-8")
+
+
 def test_widget_send_uses_canonical_backend_even_with_bridge_config_present():
     widget_js = _widget_js()
     send_match = re.search(r"function send\(\) \{(?P<body>.*?)\n  function updateBadge", widget_js, re.S)
@@ -94,6 +98,36 @@ def test_legacy_lex_links_open_floating_widget_without_navigation():
     assert "url.searchParams.get('context')" in widget_js
     assert "event.preventDefault()" in widget_js
     assert "applyLexPageContext(detail, { open: true })" in widget_js
+
+
+def test_floating_lex_icon_is_draggable_across_the_viewport():
+    widget_js = _widget_js()
+    widget_scss = _lex_widget_scss()
+
+    assert "function startFabDrag(event)" in widget_js
+    assert "fab.addEventListener('pointerdown', startFabDrag)" in widget_js
+    assert "pct-ai-widget--fab-only" in widget_js
+    assert "fabLeft" in widget_js
+    assert "fabTop" in widget_js
+    assert "state.suppressFabClick = true" in widget_js
+    assert "Icona Lex spostata sul browser corrente." in widget_js
+    assert "touch-action: none" in widget_scss
+    assert "cursor: grab" in widget_scss
+    assert "display: none !important" not in widget_scss
+
+
+def test_base_template_no_longer_contains_disabled_legacy_lex_chat():
+    base_template = (REPO_ROOT / "web/templates/base.html").read_text(encoding="utf-8")
+
+    assert "__legacy_lex_disabled__" not in base_template
+    assert "onclick=\"pctAI.send()\"" not in base_template
+    assert "window.pctAI = {" not in base_template
+    assert '{% include "components/pct_ai_widget.html" %}' in base_template
+
+
+def test_unregistered_legacy_lex_files_removed():
+    for legacy_path in ("web/base.html", "web/cartella.html", "web/export_csv.py"):
+        assert not (REPO_ROOT / legacy_path).exists()
 
 
 def test_lex_standalone_template_removed_from_repository():

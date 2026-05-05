@@ -23,6 +23,11 @@
   bottom: auto;
 }
 
+.pct-ai-widget--fab-only {
+  width: 3.6rem;
+  height: 3.6rem;
+}
+
 .pct-ai-widget--fullscreen {
   top: 0.75rem;
   right: 0.75rem;
@@ -61,7 +66,21 @@
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
+  cursor: grab;
+  touch-action: none;
   transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.pct-ai-widget--fab-only .pct-ai-fab {
+  top: 0;
+  right: auto;
+  bottom: auto;
+  left: 0;
+}
+
+.pct-ai-widget--dragging .pct-ai-fab {
+  cursor: grabbing;
+  transform: none !important;
 }
 
 .pct-ai-widget .pct-ai-fab:hover {
@@ -751,12 +770,6 @@
   }
   50% {
     opacity: 0.56;
-  }
-}
-
-@media (max-width: 1180px) {
-  .pct-ai-widget {
-    display: none !important;
   }
 }
 

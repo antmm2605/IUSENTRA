@@ -782,10 +782,16 @@ def test_docker_compose_prevede_runtime_ollama_sulla_stessa_macchina():
 
 def test_docker_compose_hetzner_allinea_email_ordinaria_e_ai_locale():
     compose = (REPO_ROOT / "deploy/hetzner/docker-compose.hetzner.yml").read_text(encoding="utf-8")
+    deploy_script = (REPO_ROOT / "deploy/hetzner/deploy.sh").read_text(encoding="utf-8")
 
     assert "PCT_EMAIL_DB: /data/email/casella.json" in compose
     assert "PCT_EMAIL_ORDINARIA_DB: /data/email/ordinaria.json" in compose
-    assert "PCT_LOCAL_AI_BASE_URL: ${PCT_LOCAL_AI_BASE_URL:-http://host.docker.internal:11434/api/version}" in compose
+    assert "PCT_LOCAL_AI_BASE_URL: ${PCT_LOCAL_AI_BASE_URL:-http://ollama:11434/api/version}" in compose
+    assert "PCT_LOCAL_AI_CHAT_MODEL: ${PCT_LOCAL_AI_CHAT_MODEL:-gemma3:1b}" in compose
+    assert "ollama:" in compose
+    assert "image: ollama/ollama:latest" in compose
+    assert "condition: service_healthy" in compose
+    assert "exec -T ollama ollama pull" in deploy_script
     assert "${IUSENTRA_DATA_DIR:-/opt/iusentra/data}:/data" in compose
 
 
@@ -1354,8 +1360,11 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert ".pct-ai-action-pill" in widget_scss
 
     assert ".pct-ai-widget" in widget_scss
-    assert "@media (max-width: 1180px)" in widget_scss
-    assert "display: none !important;" in widget_scss
+    assert ".pct-ai-widget--fab-only" in widget_scss
+    assert "touch-action: none" in widget_scss
+    assert "cursor: grab" in widget_scss
+    assert "@media (max-width: 1180px)" not in widget_scss
+    assert "display: none !important;" not in widget_scss
     assert ".pct-ai-brand-mark" in widget_scss
     assert ".pct-ai-widget--custom" in widget_scss
     assert ".pct-ai-drag-hint" in widget_scss
@@ -1773,10 +1782,6 @@ def test_assistente_chat_usa_runtime_ollama_risolto(monkeypatch, tmp_path: Path)
         },
     )
     monkeypatch.setattr("lex.runtime_dependencies.requests.post", fake_post)
-    monkeypatch.setattr("web.export_csv.resolved_ollama_api_base_url", lambda: "http://host.docker.internal:11434/api")
-    monkeypatch.setattr("web.export_csv.resolved_ollama_chat_model", lambda default="mistral": "gemma3:1b")
-    monkeypatch.setattr("web.export_csv.resolved_ollama_keep_alive", lambda default="10m": "12m")
-    monkeypatch.setattr("web.export_csv.requests.post", fake_post)
     monkeypatch.setenv("LEX_RAW_CHAT_ENABLED", "1")
     monkeypatch.setattr("lex.orchestrator_http.build_bounded_http_payload", lambda **_kwargs: None)
 

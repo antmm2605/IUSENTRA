@@ -13,7 +13,8 @@ x-iusentra-env: &iusentra-env
   WEB_CONCURRENCY: ${WEB_CONCURRENCY:-4}
   GUNICORN_THREADS: ${GUNICORN_THREADS:-2}
   GUNICORN_TIMEOUT: ${GUNICORN_TIMEOUT:-180}
-  PCT_LOCAL_AI_BASE_URL: ${PCT_LOCAL_AI_BASE_URL:-http://host.docker.internal:11434/api/version}
+  PCT_LOCAL_AI_BASE_URL: ${PCT_LOCAL_AI_BASE_URL:-http://ollama:11434/api/version}
+  PCT_LOCAL_AI_CHAT_MODEL: ${PCT_LOCAL_AI_CHAT_MODEL:-gemma3:1b}
   PCT_STUDIO_NOME: ${PCT_STUDIO_NOME:-IUSENTRA}
   PCT_AGENDA_DB: /data/agenda/appuntamenti.json
   PCT_CLIENTI_DB: /data/clienti/anagrafica.json
@@ -75,6 +76,8 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+      ollama:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/api/pronto', timeout=5)"]
       interval: 30s
@@ -132,6 +135,18 @@ services:
       interval: 15s
       timeout: 5s
       retries: 5
+
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    volumes:
+      - ${IUSENTRA_DATA_DIR:-/opt/iusentra/data}/ollama:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
 
   caddy:
     image: caddy:2.8-alpine

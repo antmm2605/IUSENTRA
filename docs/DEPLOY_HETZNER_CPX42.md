@@ -16,10 +16,10 @@ Railway puo' restare fase transitoria, ambiente di fallback o riferimento durant
 ## File del profilo
 
 - `deploy/hetzner/bootstrap_ubuntu.sh`: prepara Ubuntu con Docker, Compose plugin, firewall, OpenSC/pcscd, zstd e cartelle runtime.
-- `deploy/hetzner/docker-compose.hetzner.yml`: avvia `app`, `redis`, `scheduler-worker`, `ocr-worker`, `caddy` e profilo opzionale monitoring.
+- `deploy/hetzner/docker-compose.hetzner.yml`: avvia `app`, `redis`, `scheduler-worker`, `ocr-worker`, sidecar `ollama`, `caddy` e profilo opzionale monitoring.
 - `deploy/hetzner/Caddyfile`: termina HTTPS, imposta header di sicurezza e inoltra verso l'app Flask.
 - `deploy/hetzner/env.hetzner.example`: template delle variabili ambiente di produzione.
-- `deploy/hetzner/deploy.sh`: sincronizza il branch e ricrea i servizi.
+- `deploy/hetzner/deploy.sh`: sincronizza il branch, ricrea i servizi e verifica/scarica il modello chat Ollama configurato.
 - `deploy/hetzner/backup.sh`: crea archivio dati e checksum.
 - `deploy/hetzner/restore_data.sh`: verifica checksum se presente, ferma i servizi e ripristina i dati.
 

@@ -7,6 +7,8 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
+from pct.postgres_runtime_support import PostgresRepositoryBackend
+
 from .models import (
     DocumentAIPageText,
     DocumentAIRecord,
@@ -20,6 +22,26 @@ from .security import DocumentAIValidationError, safe_join_under_root
 
 
 STORE_KEYS = ("documents", "versions", "texts", "audit_events")
+SQLITE_SCHEMA_DOCUMENTI_AI = Path(__file__).resolve().parents[1] / "sql" / "20260505_documenti_ai.sql"
+POSTGRES_SCHEMA_DOCUMENTI_AI = Path(__file__).resolve().parents[1] / "sql" / "20260505_documenti_ai_postgres.sql"
+
+
+class _ManagedSqliteBackend:
+    backend_kind = "sqlite"
+
+    def __init__(self, db_path: str | Path) -> None:
+        self.db_path = Path(db_path)
+        self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self._conn = sqlite3.connect(str(self.db_path), check_same_thread=False)
+        self._conn.row_factory = sqlite3.Row
+        self._conn.execute("PRAGMA foreign_keys=ON")
+
+    @property
+    def conn(self) -> sqlite3.Connection:
+        return self._conn
+
+    def close(self) -> None:
+        self._conn.close()
 
 
 class DocumentAIRepository:
@@ -40,6 +62,10 @@ class DocumentAIRepository:
             self._ensure_sql_schema()
         self._data = self._load_json()
 
+    @property
+    def backend_kind(self) -> str:
+        return self._backend or "json"
+
     @classmethod
     def from_fascicoli_db(
         cls,
@@ -50,18 +76,48 @@ class DocumentAIRepository:
         base = Path(fascicoli_db_path).resolve().parent / "documenti_ai"
         return cls(base / "documenti_ai.json", base, structured_db=structured_db)
 
+    @classmethod
+    def from_sqlite_db(
+        cls,
+        db_path: str | Path,
+        *,
+        storage_root: str | Path | None = None,
+    ) -> "DocumentAIRepository":
+        db = Path(db_path)
+        root = Path(storage_root) if storage_root is not None else db.resolve().parent / "documenti_ai"
+        backend = _ManagedSqliteBackend(db)
+        return cls(root / "documenti_ai.json", root, structured_db=backend)
+
+    @classmethod
+    def from_postgres_dsn(
+        cls,
+        dsn: str,
+        *,
+        storage_root: str | Path,
+        schema_path: str | Path | None = None,
+    ) -> "DocumentAIRepository":
+        backend = PostgresRepositoryBackend(str(dsn or "").strip(), schema_path or POSTGRES_SCHEMA_DOCUMENTI_AI)
+        root = Path(storage_root)
+        return cls(root / "documenti_ai.json", root, structured_db=backend)
+
     def _detect_backend(self, structured_db: Any) -> str:
         if structured_db is None:
             return ""
+        if isinstance(structured_db, PostgresRepositoryBackend):
+            return "postgresql"
         kind = str(getattr(structured_db, "backend_kind", "") or "").lower()
         if kind == "postgresql":
             return "postgresql"
         if hasattr(structured_db, "conn"):
             return "sqlite"
+        if hasattr(structured_db, "connection") and hasattr(structured_db, "raw_conn"):
+            return "postgresql"
         return ""
 
     def _migration_sql(self, filename: str) -> str:
-        return (Path(__file__).resolve().parents[1] / "sql" / filename).read_text(encoding="utf-8")
+        if filename.endswith("_postgres.sql"):
+            return POSTGRES_SCHEMA_DOCUMENTI_AI.read_text(encoding="utf-8")
+        return SQLITE_SCHEMA_DOCUMENTI_AI.read_text(encoding="utf-8")
 
     def _ensure_sql_schema(self) -> None:
         if self._backend == "sqlite":
@@ -70,11 +126,17 @@ class DocumentAIRepository:
             conn.commit()
         elif self._backend == "postgresql":
             raw_conn = getattr(self.structured_db, "raw_conn", None)
-            if raw_conn is None:
+            if raw_conn is not None:
+                with raw_conn.cursor() as cur:
+                    cur.execute(self._migration_sql("20260505_documenti_ai_postgres.sql"))
+                raw_conn.commit()
                 return
-            with raw_conn.cursor() as cur:
-                cur.execute(self._migration_sql("20260505_documenti_ai_postgres.sql"))
-            raw_conn.commit()
+            connection = getattr(self.structured_db, "connection", None)
+            if not callable(connection):
+                return
+            conn = connection()
+            conn.executescript(self._migration_sql("20260505_documenti_ai_postgres.sql"))
+            conn.commit()
 
     def _empty(self) -> dict[str, Any]:
         return {key: [] for key in STORE_KEYS}
@@ -99,11 +161,20 @@ class DocumentAIRepository:
         self.json_path.write_text(json.dumps(self._data, ensure_ascii=False, indent=2), encoding="utf-8")
 
     def _conn(self):
+        if self._backend == "postgresql" and isinstance(self.structured_db, PostgresRepositoryBackend):
+            return self.structured_db.connection()
+        connection = getattr(self.structured_db, "connection", None)
+        if self._backend == "postgresql" and callable(connection) and not hasattr(self.structured_db, "conn"):
+            return connection()
         return self.structured_db.conn
 
     def _commit(self) -> None:
         if self._backend == "postgresql":
-            self.structured_db.raw_conn.commit()
+            raw_conn = getattr(self.structured_db, "raw_conn", None)
+            if raw_conn is not None:
+                raw_conn.commit()
+            else:
+                self._conn().commit()
         else:
             self._conn().commit()
 
@@ -501,6 +572,42 @@ class DocumentAIRepository:
         target.write_text(text, encoding="utf-8")
         return relative_path
 
+    def storage_stats(self, tenant_id: str | None = None, fascicolo_id: str | None = None) -> dict[str, Any]:
+        if self._backend:
+            where = []
+            params: list[Any] = []
+            if tenant_id:
+                where.append("tenant_id = ?")
+                params.append(tenant_id)
+            if fascicolo_id:
+                where.append("fascicolo_id = ?")
+                params.append(fascicolo_id)
+            suffix = f" WHERE {' AND '.join(where)}" if where else ""
+            conn = self._conn()
+            return {
+                "backend_kind": self.backend_kind,
+                "documents": _count_sql(conn, f"SELECT COUNT(*) FROM fascicolo_documenti_ai{suffix}", params),
+                "versions": _count_sql(conn, f"SELECT COUNT(*) FROM fascicolo_documenti_ai_versioni{suffix}", params),
+                "texts": _count_sql(conn, f"SELECT COUNT(*) FROM fascicolo_documenti_ai_testi{suffix}", params),
+                "audit_events": _count_sql(conn, f"SELECT COUNT(*) FROM fascicolo_documenti_ai_audit{suffix}", params),
+            }
+        rows = {
+            "documents": self._data["documents"],
+            "versions": self._data["versions"],
+            "texts": self._data["texts"],
+            "audit_events": self._data["audit_events"],
+        }
+        if tenant_id:
+            rows = {key: [row for row in value if row.get("tenant_id") == tenant_id] for key, value in rows.items()}
+        if fascicolo_id:
+            rows = {key: [row for row in value if row.get("fascicolo_id") == fascicolo_id] for key, value in rows.items()}
+        return {"backend_kind": self.backend_kind, **{key: len(value) for key, value in rows.items()}}
+
+    def close(self) -> None:
+        closer = getattr(self.structured_db, "close", None)
+        if callable(closer):
+            closer()
+
 
 def _pages_from_json(raw: Any) -> list[DocumentAIPageText]:
     if isinstance(raw, str):
@@ -530,6 +637,17 @@ def _list_from_json(raw: Any) -> list[str]:
     if not isinstance(raw, list):
         return []
     return [str(item) for item in raw]
+
+
+def _count_sql(conn: Any, sql: str, params: list[Any]) -> int:
+    row = conn.execute(sql, tuple(params)).fetchone()
+    if row is None:
+        return 0
+    if isinstance(row, sqlite3.Row):
+        return int(row[0] or 0)
+    if isinstance(row, dict):
+        return int(next(iter(row.values()), 0) or 0)
+    return int(row[0] or 0)
 
 
 def _search_in_text(

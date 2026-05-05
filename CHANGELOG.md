@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.198.74 - 2026-05-05
+
+- Completata la Fase 3 backend di `Documenti AI Fascicolo` con repository persistente SQLite/PostgreSQL, factory esplicite per DB strutturati e statistiche storage filtrate per tenant/fascicolo.
+- Verificate le migrazioni reali `pct/sql/20260505_documenti_ai*.sql` con applicazione su SQLite temporaneo e guardrail sullo schema PostgreSQL, inclusi JSONB, FK, check e indici.
+- Aggiunti test repository con database temporaneo per persistenza, isolamento tenant/fascicolo, versioni univoche, testo estratto, audit senza contenuto documentale e service su repository SQLite.
+
 ## 2.198.73 - 2026-05-05
 
 - Eliminato il warning non funzionale di pytest su Windows durante il cleanup di `pytest-current`, usando un adapter di test che gestisce correttamente i reparse point directory senza nascondere fallimenti dei test.

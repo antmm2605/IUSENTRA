@@ -52,6 +52,8 @@ Componenti introdotti nell'MVP 1:
 
 Il runtime scrive i file originali e il testo estratto sotto `documenti_ai/<tenant>/<fascicolo>/<documento>/` nel data root dello studio. I payload API non restituiscono path filesystem assoluti.
 
+La Fase 3 rende il repository persistente su storage strutturato: quando e' attivo SQLite o PostgreSQL tenant-aware, `DocumentAIRepository` applica le migrazioni governate e legge/scrive le tabelle `fascicolo_documenti_ai*`; il JSON resta solo fallback esplicito per runtime non ancora migrati.
+
 ## Payload API
 
 ### GET `/api/v1/ui/fascicoli/<fascicolo_id>/documenti-ai`

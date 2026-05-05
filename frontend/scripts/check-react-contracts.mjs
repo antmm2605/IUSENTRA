@@ -33,6 +33,15 @@ const emailData = read('src/emailData.ts')
 const messaggi = read('src/components/MessaggiPage.tsx')
 const messaggiData = read('src/messaggiData.ts')
 const fascicoli = read('src/components/FascicoliPage.tsx')
+const documentiAiPage = read('src/components/DocumentiAIPage.tsx')
+const documentiAiData = read('src/documentiAiData.ts')
+const documentUploadPanel = read('src/components/DocumentUploadPanel.tsx')
+const documentListPanel = read('src/components/DocumentListPanel.tsx')
+const documentDetailPanel = read('src/components/DocumentDetailPanel.tsx')
+const documentTextPanel = read('src/components/DocumentTextPanel.tsx')
+const documentSearchPanel = read('src/components/DocumentSearchPanel.tsx')
+const documentStatusBadge = read('src/components/DocumentStatusBadge.tsx')
+const documentAiEmptyState = read('src/components/DocumentAIEmptyState.tsx')
 const documentEditor = read('src/components/DocumentEditorPage.tsx')
 const documentEditorData = read('src/documentEditorData.ts')
 const documentEditorBridge = read('../web/services/react_document_editor_bridge.py')
@@ -87,6 +96,8 @@ const lexUiSources = [
   emailData,
   messaggi,
   fascicoli,
+  documentiAiPage,
+  documentiAiData,
   documentEditor,
   scadenziario,
   nuovaScadenza,
@@ -130,6 +141,31 @@ assertContains(app, "isAdminDatabasePage?<AdminDatabasePage/>", 'render database
 assertContains(app, "DocumentEditorPage", 'route editor documento react')
 assertContains(app, "isDocumentEditorPage?<DocumentEditorPage/>", 'render editor documento react')
 assertContains(app, "/^\\/fascicoli\\/[^/]+\\/documenti\\/[^/]+\\/editor$/.test(routeKey)", 'match route profonda editor documento')
+assertContains(fascicoli, 'DocumentiAIPage', 'sezione Documenti AI integrata nel fascicolo')
+assertContains(fascicoli, 'id="documenti-ai"', 'ancora Documenti AI nel dettaglio fascicolo')
+assertContains(documentiAiPage, 'react_operational_partial', 'stato operativo Documenti AI')
+assertContains(documentiAiPage, 'fetchDocumentAIList', 'pagina Documenti AI usa API reali')
+assertContains(documentiAiData, '/api/v1/ui/fascicoli/', 'client API Documenti AI')
+assertContains(documentiAiData, 'documenti-ai/upload', 'endpoint upload Documenti AI')
+assertContains(documentiAiData, 'mock_fallback: false', 'contratto mock_fallback=false Documenti AI')
+assertContains(documentUploadPanel, 'PDF, DOCX o DOC', 'upload formati Documenti AI')
+assertContains(documentListPanel, 'SHA-256', 'lista mostra hash Documenti AI')
+assertContains(documentDetailPanel, 'Versioni', 'dettaglio versioni Documenti AI')
+assertContains(documentTextPanel, 'Testo estratto', 'testo estratto Documenti AI')
+assertContains(documentSearchPanel, 'Nessun risultato nel documento selezionato.', 'empty state ricerca Documenti AI')
+assertContains(documentStatusBadge, 'Pronto', 'badge stato Documenti AI')
+assertContains(documentAiEmptyState, 'Nessun documento AI nel fascicolo', 'empty state Documenti AI')
+for (const [label, source] of [
+  ['DocumentiAIPage', documentiAiPage],
+  ['DocumentUploadPanel', documentUploadPanel],
+  ['DocumentListPanel', documentListPanel],
+  ['DocumentDetailPanel', documentDetailPanel],
+  ['DocumentTextPanel', documentTextPanel],
+  ['DocumentSearchPanel', documentSearchPanel],
+  ['DocumentAIEmptyState', documentAiEmptyState],
+]) {
+  assertNotContains(source, 'href="#"', `${label} senza href placeholder`)
+}
 assertContains(app, "readShellBootstrap", 'bootstrap profilo reale shell react')
 assertContains(app, "profile.displayName", 'nome profilo reale in sidebar react')
 assertContains(app, 'method="post" action={logoutAction}', 'logout react via POST reale')

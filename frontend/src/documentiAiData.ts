@@ -1,0 +1,190 @@
+export type DocumentAIStatus =
+  | 'uploaded'
+  | 'processing'
+  | 'ready'
+  | 'error'
+  | 'archived'
+
+export type DocumentAIRecord = {
+  id: string
+  original_filename: string
+  safe_filename: string
+  file_type: 'pdf' | 'docx' | 'doc'
+  mime_type: string | null
+  size_bytes: number
+  sha256: string
+  status: DocumentAIStatus
+  current_version_id: string | null
+  page_count: number | null
+  created_by: string
+  created_at: string
+  updated_at: string
+}
+
+export type DocumentAIVersion = {
+  id: string
+  version_number: number
+  source: string
+  sha256: string
+  created_at: string
+}
+
+export type DocumentAIListPayload = {
+  mock_fallback: false
+  fascicolo_id: string
+  documents: DocumentAIRecord[]
+  capabilities: {
+    upload: boolean
+    read: boolean
+    search: boolean
+    lex_tools: boolean
+    generate_docx: boolean
+    propose_edits: boolean
+    compare: boolean
+  }
+}
+
+export type DocumentAIDetailPayload = {
+  mock_fallback: false
+  document: DocumentAIRecord
+  versions: DocumentAIVersion[]
+  audit_summary: {
+    last_event: string | null
+    last_event_at: string | null
+  }
+}
+
+export type DocumentAIUploadPayload = {
+  mock_fallback: false
+  document: DocumentAIRecord
+  version: DocumentAIVersion | null
+  extraction: {
+    status: 'completed' | 'failed'
+    engine: string
+    page_count: number | null
+    warnings: string[]
+  }
+}
+
+export type DocumentAITextPayload = {
+  mock_fallback: false
+  document_id: string
+  version_id: string
+  status: 'ready'
+  extraction_engine: string
+  page_count: number | null
+  text: string
+  pages: Array<{
+    page_number: number
+    text: string
+  }>
+  warnings: string[]
+}
+
+export type DocumentAISearchPayload = {
+  mock_fallback: false
+  document_id: string
+  query: string
+  results: Array<{
+    page_number: number | null
+    snippet: string
+    start_offset: number | null
+    end_offset: number | null
+  }>
+}
+
+function csrfToken(): string {
+  return document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content || ''
+}
+
+async function readApiError(response: Response): Promise<string> {
+  const contentType = response.headers.get('content-type') || ''
+  if (contentType.includes('application/json')) {
+    const payload = await response.json().catch(() => ({}))
+    return String(payload.detail || payload.errore || payload.error || 'Operazione non completata.')
+  }
+  return response.text().catch(() => 'Operazione non completata.')
+}
+
+async function jsonRequest<T>(url: string, init: RequestInit = {}): Promise<T> {
+  const method = String(init.method || 'GET').toUpperCase()
+  const response = await fetch(url, {
+    credentials: 'same-origin',
+    cache: 'no-store',
+    ...init,
+    headers: {
+      Accept: 'application/json',
+      ...(method === 'GET' ? {} : { 'X-CSRF-Token': csrfToken() }),
+      ...(init.headers || {}),
+    },
+  })
+  if (!response.ok) throw new Error(await readApiError(response))
+  return response.json() as Promise<T>
+}
+
+export function fetchDocumentAIList(fascicoloId: string): Promise<DocumentAIListPayload> {
+  return jsonRequest<DocumentAIListPayload>(`/api/v1/ui/fascicoli/${encodeURIComponent(fascicoloId)}/documenti-ai`)
+}
+
+export function fetchDocumentAIDetail(fascicoloId: string, documentId: string): Promise<DocumentAIDetailPayload> {
+  return jsonRequest<DocumentAIDetailPayload>(
+    `/api/v1/ui/fascicoli/${encodeURIComponent(fascicoloId)}/documenti-ai/${encodeURIComponent(documentId)}`,
+  )
+}
+
+export function fetchDocumentAIText(fascicoloId: string, documentId: string): Promise<DocumentAITextPayload> {
+  return jsonRequest<DocumentAITextPayload>(
+    `/api/v1/ui/fascicoli/${encodeURIComponent(fascicoloId)}/documenti-ai/${encodeURIComponent(documentId)}/testo`,
+  )
+}
+
+export function searchDocumentAI(
+  fascicoloId: string,
+  documentId: string,
+  query: string,
+  maxResults = 20,
+): Promise<DocumentAISearchPayload> {
+  return jsonRequest<DocumentAISearchPayload>(
+    `/api/v1/ui/fascicoli/${encodeURIComponent(fascicoloId)}/documenti-ai/${encodeURIComponent(documentId)}/cerca`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, max_results: maxResults }),
+    },
+  )
+}
+
+export function uploadDocumentAI(fascicoloId: string, file: File): Promise<DocumentAIUploadPayload> {
+  const form = new FormData()
+  form.append('file', file)
+  return jsonRequest<DocumentAIUploadPayload>(
+    `/api/v1/ui/fascicoli/${encodeURIComponent(fascicoloId)}/documenti-ai/upload`,
+    {
+      method: 'POST',
+      body: form,
+    },
+  )
+}
+
+export function formatDocumentAISize(sizeBytes: number): string {
+  if (!Number.isFinite(sizeBytes) || sizeBytes <= 0) return '0 B'
+  const units = ['B', 'KB', 'MB', 'GB']
+  let value = sizeBytes
+  let index = 0
+  while (value >= 1024 && index < units.length - 1) {
+    value /= 1024
+    index += 1
+  }
+  return `${new Intl.NumberFormat('it-IT', { maximumFractionDigits: index ? 1 : 0 }).format(value)} ${units[index]}`
+}
+
+export function formatDocumentAIDate(value: string): string {
+  if (!value) return 'n.d.'
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return value
+  return new Intl.DateTimeFormat('it-IT', { dateStyle: 'short', timeStyle: 'short' }).format(parsed)
+}
+
+export function shortSha(value: string): string {
+  return value ? value.slice(0, 12) : 'n.d.'
+}

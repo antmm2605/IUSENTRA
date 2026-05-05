@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.198.71 - 2026-05-05
+
+- Introdotto l'MVP 1 di `Documenti AI Fascicolo`: dominio nativo `pct/document_intelligence`, upload PDF/DOCX/DOC tenant-aware, hash SHA-256, versione 1, estrazione testo best-effort, stato `ready/error` e audit dedicato.
+- Aggiunte API React `/api/v1/ui/fascicoli/<id>/documenti-ai*`, tool Lex `list_fascicolo_documents`, `read_fascicolo_document`, `find_in_fascicolo_document` e sezione React `Documenti AI` nel dettaglio fascicolo con soli dati reali e `mock_fallback=false`.
+- Aggiunte migrazioni SQLite/PostgreSQL `pct/sql/20260505_documenti_ai*.sql` e documentazione strategica [docs/DOCUMENTI_AI_FASCICOLO.md](docs/DOCUMENTI_AI_FASCICOLO.md), mantenendo Mike solo come riferimento funzionale senza codice AGPL.
+
 ## 2.198.70 - 2026-05-05
 
 - Allineato il deploy Hetzner di Lex alla pipeline unica del widget: il profilo produzione avvia il sidecar Docker `ollama`, usa `http://ollama:11434/api` come runtime AI interno e scarica automaticamente il modello chat configurato.

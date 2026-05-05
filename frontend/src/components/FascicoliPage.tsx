@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   BadgeCheck,
   Bell,
+  BrainCircuit,
   BriefcaseBusiness,
   Building2,
   CalendarDays,
@@ -42,6 +43,7 @@ import {
   WalletCards,
 } from 'lucide-react'
 import { Badge, Button, Panel } from './dashboard'
+import { DocumentiAIPage } from './DocumentiAIPage'
 import { FloatingLex } from './FloatingLex'
 import {
   emptyFascicoliPage,
@@ -1525,6 +1527,7 @@ function DetailPage({ id }:{id:string}) {
       <section className="iu-fas-command-bar" aria-label="Strumenti rapidi del fascicolo">
         <a href={editorWorkspaceHref}><PencilLine size={15}/><span>Editor professionale</span></a>
         <a href={compilerHref}><ClipboardCheck size={15}/><span>Compilatore atti</span></a>
+        <a href="#documenti-ai"><BrainCircuit size={15}/><span>Documenti AI</span></a>
         <PostAction action={data.actions.delete} tone="danger" confirm="Eliminare definitivamente il fascicolo?" confirmTitle="Elimina fascicolo" redirectTo="/fascicoli"><Trash2 size={15}/> Elimina fascicolo</PostAction>
       </section>
       <section className="iu-fas-smart-board" aria-label="Quadro intelligente del fascicolo">
@@ -1548,6 +1551,9 @@ function DetailPage({ id }:{id:string}) {
             <UploadDocumentForm action={data.actions.uploadDocument} documentTypes={data.options.documentTypes} onDone={refreshDetail} onError={failDetail}/>
             <PortalImportForm action={data.actions.importPortal} onDone={refreshDetail} onError={failDetail}/>
             <div className="iu-fas-doc-list">{lazyStatus.documenti === 'loading' ? <p className="iu-empty">Caricamento documenti...</p> : null}{data.documents.map((doc) => <DocumentRow doc={doc} key={doc.id} onPreview={setPreviewDoc} onDone={refreshDetail} onError={failDetail}/>)}{lazyStatus.documenti === 'loaded' && !data.documents.length ? <p className="iu-empty">Nessun documento caricato.</p> : null}{lazyStatus.documenti === 'idle' ? <p className="iu-empty">Apri la sezione per caricare i documenti del fascicolo.</p> : null}</div>
+          </DetailSection>
+          <DetailSection id="documenti-ai" title="Documenti AI" icon={<BrainCircuit size={17}/>}>
+            <DocumentiAIPage fascicoloId={f.id || id} />
           </DetailSection>
           <DetailSection id="editor-professionale" title="Editor professionale e compilatore atti" icon={<PencilLine size={17}/>} count={data.quickCounts.documenti || 0} onOpen={() => loadLazySection('documenti')}>
             <div className="iu-fas-editor-board">

@@ -1,0 +1,287 @@
+.iu-docai-page {
+  display: grid;
+  gap: 1rem;
+}
+
+.iu-docai-header,
+.iu-docai-upload,
+.iu-docai-list article,
+.iu-docai-detail,
+.iu-docai-empty {
+  border: 1px solid var(--iu-border, #d8e1ef);
+  border-radius: 8px;
+  background: var(--iu-surface, #fff);
+}
+
+.iu-docai-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.iu-docai-header h3 {
+  margin: .2rem 0;
+}
+
+.iu-docai-header p,
+.iu-docai-muted,
+.iu-docai-list small,
+.iu-docai-list span,
+.iu-docai-detail small,
+.iu-docai-kv dd {
+  color: var(--iu-muted, #65758b);
+}
+
+.iu-docai-header > div:first-child > span,
+.iu-docai-header__badges,
+.iu-docai-list__actions,
+.iu-docai-list__meta,
+.iu-docai-detail > header,
+.iu-docai-versions h4,
+.iu-docai-search form > div,
+.iu-docai-message,
+.iu-docai-empty button {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+
+.iu-docai-header__badges {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.iu-docai-header button,
+.iu-docai-upload button,
+.iu-docai-list button,
+.iu-docai-search button,
+.iu-docai-empty button {
+  min-height: 40px;
+  border: 1px solid var(--iu-border, #d8e1ef);
+  border-radius: 8px;
+  background: var(--iu-button-bg, #fff);
+  color: var(--iu-text, #172033);
+  padding: .55rem .8rem;
+  font-weight: 700;
+}
+
+.iu-docai-upload {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: .8rem;
+  padding: 1rem;
+}
+
+.iu-docai-upload label,
+.iu-docai-search label {
+  display: block;
+  font-weight: 700;
+  margin-bottom: .35rem;
+}
+
+.iu-docai-upload input,
+.iu-docai-search input {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid var(--iu-border, #d8e1ef);
+  border-radius: 8px;
+  padding: .5rem .65rem;
+}
+
+.iu-docai-upload small {
+  display: block;
+  margin-top: .35rem;
+  color: var(--iu-muted, #65758b);
+}
+
+.iu-docai-message {
+  grid-column: 1 / -1;
+  border-radius: 8px;
+  padding: .65rem .8rem;
+}
+
+.iu-docai-message--error {
+  background: #fff2f2;
+  color: #8a1f1f;
+}
+
+.iu-docai-message--success {
+  background: #eefbf2;
+  color: #196b38;
+}
+
+.iu-docai-message--loading {
+  background: #eef6ff;
+  color: #234f7a;
+}
+
+.iu-docai-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 38%) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.iu-docai-list {
+  display: grid;
+  gap: .7rem;
+}
+
+.iu-docai-list article {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: .7rem;
+  padding: .85rem;
+}
+
+.iu-docai-list article.is-selected {
+  border-color: var(--iu-blue-600, #2563eb);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, .12);
+}
+
+.iu-docai-list__main strong,
+.iu-docai-detail strong {
+  overflow-wrap: anywhere;
+}
+
+.iu-docai-list__actions {
+  flex-wrap: wrap;
+}
+
+.iu-docai-detail {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.iu-docai-detail > header {
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.iu-docai-detail > header > div {
+  display: flex;
+  gap: .55rem;
+}
+
+.iu-docai-kv {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .7rem;
+  margin: 0;
+}
+
+.iu-docai-kv div {
+  min-width: 0;
+}
+
+.iu-docai-kv dt {
+  font-size: .78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.iu-docai-kv dd {
+  margin: .2rem 0 0;
+  overflow-wrap: anywhere;
+}
+
+.iu-docai-versions {
+  display: grid;
+  gap: .35rem;
+}
+
+.iu-docai-versions h4 {
+  margin: 0;
+}
+
+.iu-docai-versions span {
+  border: 1px solid var(--iu-border, #d8e1ef);
+  border-radius: 8px;
+  padding: .45rem .55rem;
+}
+
+.iu-docai-search {
+  display: grid;
+  gap: .65rem;
+}
+
+.iu-docai-search form > div {
+  align-items: stretch;
+}
+
+.iu-docai-results {
+  display: grid;
+  gap: .55rem;
+}
+
+.iu-docai-results article,
+.iu-docai-text article {
+  border: 1px solid var(--iu-border, #d8e1ef);
+  border-radius: 8px;
+  padding: .7rem;
+}
+
+.iu-docai-results span {
+  font-size: .82rem;
+  font-weight: 700;
+  color: var(--iu-blue-700, #1d4ed8);
+}
+
+.iu-docai-text {
+  display: grid;
+  gap: .7rem;
+}
+
+.iu-docai-text header {
+  display: flex;
+  justify-content: space-between;
+  gap: .8rem;
+}
+
+.iu-docai-text pre {
+  max-height: 28rem;
+  overflow: auto;
+  white-space: pre-wrap;
+  margin: .4rem 0 0;
+  font-family: inherit;
+  line-height: 1.55;
+}
+
+.iu-docai-warning-list {
+  display: grid;
+  gap: .35rem;
+}
+
+.iu-docai-warning-list span {
+  border-radius: 8px;
+  background: #fff8e6;
+  color: #6f4b00;
+  padding: .45rem .6rem;
+}
+
+.iu-docai-empty {
+  display: grid;
+  justify-items: start;
+  gap: .55rem;
+  padding: 1.1rem;
+}
+
+@media (max-width: 900px) {
+  .iu-docai-header,
+  .iu-docai-upload,
+  .iu-docai-layout,
+  .iu-docai-kv {
+    grid-template-columns: 1fr;
+  }
+
+  .iu-docai-header {
+    display: grid;
+  }
+
+  .iu-docai-header__badges {
+    justify-content: flex-start;
+  }
+}

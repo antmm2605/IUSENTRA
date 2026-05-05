@@ -31,6 +31,8 @@ _CSRF_PROTECTED_ENDPOINTS = {
     "elimina_utente",
     "permessi_utente",
     "admin.esci_impersonazione",
+    "api_v1_documenti_ai.upload_documento_ai",
+    "api_v1_documenti_ai.cerca_documento_ai",
 }
 
 _UNSAFE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}

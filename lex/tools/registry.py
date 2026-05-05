@@ -5,6 +5,11 @@ from __future__ import annotations
 from .agenda_tool import AgendaTool
 from .compliance_tool import ComplianceTool
 from .document_tool import DocumentTool
+from .fascicolo_documents import (
+    FindInFascicoloDocumentTool,
+    ListFascicoloDocumentsTool,
+    ReadFascicoloDocumentTool,
+)
 from .fascicolo_tool import FascicoloTool
 from .giurisprudenza_tool import GiurisprudenzaTool
 from .legal_intelligence_tool import LegalIntelligenceTool
@@ -19,6 +24,9 @@ class LexToolRegistry:
         self.tools = {
             "fascicolo": FascicoloTool(),
             "documento": DocumentTool(),
+            "list_fascicolo_documents": ListFascicoloDocumentsTool(),
+            "read_fascicolo_document": ReadFascicoloDocumentTool(),
+            "find_in_fascicolo_document": FindInFascicoloDocumentTool(),
             "telematico": TelematicoTool(),
             "agenda": AgendaTool(),
             "scadenziario": ScadenziarioTool(),

@@ -34,6 +34,12 @@ Contratti UI:
 
 Le API operative dedicate sono sotto `/api/v1/ui/fascicoli/<fascicolo_id>/regia`, `/checklist`, `/document-slots`, `/predeposito` e `/depositi`.
 
+## Wave Documenti AI Fascicolo
+
+La sezione `Documenti AI` entra nella suite fascicoli come tranche `react_operational_partial`: legge e scrive solo payload reali sotto `/api/v1/ui/fascicoli/<fascicolo_id>/documenti-ai`, usa `mock_fallback=false`, espone upload PDF/DOCX/DOC, stato estrazione, hash SHA-256, versioni e ricerca sul testo estratto.
+
+La UI non mostra documenti demo e non introduce una seconda source of truth: upload, storage, estrazione, audit e permessi restano nel dominio backend `pct/document_intelligence`. Le capability avanzate `generate_docx`, `propose_edits` e `compare` restano `false` fino alle tranche MVP 2/3/4 documentate in [DOCUMENTI_AI_FASCICOLO.md](DOCUMENTI_AI_FASCICOLO.md).
+
 ## Principio operativo
 
 React diventa la superficie operativa progressiva dell'applicativo, mentre Flask resta backend, source of truth, motore di permessi, tenant, audit e repository. Le scritture sensibili continuano a passare dai servizi Flask gia' auditati fino a quando non esiste una API React equivalente, testata e governata.

@@ -34,7 +34,6 @@ import {
   MessageCircle,
   PanelLeftClose,
   PanelLeftOpen,
-  Plus,
   Search,
   Send,
   Settings2,
@@ -50,8 +49,10 @@ import {
 import { DashboardData, Row, Tone, emptyDashboard, getDashboard } from './data'
 import { Badge, DossierCard, KpiCard, Panel, SourceCard } from './components/dashboard'
 import { FloatingLex } from './components/FloatingLex'
+import { TopBar } from './components/layout/TopBar'
 import { findStudioModule, isStudioModuleRoute } from './studioModuleData'
 import './index.css'
+import './components/layout/TopBar.css'
 
 const AgendaPage = lazy(() => import('./components/AgendaPage').then((module) => ({ default: module.AgendaPage })))
 const NuovoAppuntamentoPage = lazy(() => import('./components/NuovoAppuntamentoPage').then((module) => ({ default: module.NuovoAppuntamentoPage })))
@@ -703,11 +704,6 @@ function Sidebar({ collapsed, mobileOpen, activePath, onToggle, onCloseMobile, b
   )
 }
 
-function Topbar({ onOpenMenu }:{onOpenMenu:()=>void}) {
-  const today = new Date().toLocaleDateString('it-IT')
-  return <header className="iu-topbar"><button className="iu-icon iu-menu-mobile" type="button" onClick={onOpenMenu} aria-label="Apri menu"><PanelLeftOpen size={18}/></button><label className="iu-search"><Search size={18}/><input placeholder="Cerca fascicolo, cliente, pratica, scadenza..." onKeyDown={(event)=>{if(event.key==='Enter'){const value=event.currentTarget.value.trim(); window.location.href=value?`/global-search?q=${encodeURIComponent(value)}`:'/global-search'}}}/></label><div className="iu-topbar__actions"><button className="iu-date">{today} <CalendarDays size={16}/></button><a className="iu-icon" href="/impostazioni" aria-label="Impostazioni" title="Impostazioni"><Settings2 size={18}/></a><a className="iu-new" href="/fascicoli/nuovo"><Plus size={16}/>Nuovo</a></div></header>
-}
-
 function Empty({ children='Nessun elemento da presidiare.' }:{children?:string}) {
   return <p className="iu-empty">{children}</p>
 }
@@ -893,7 +889,7 @@ export default function App() {
         <Sidebar collapsed={sidebarCollapsed} mobileOpen={mobileMenuOpen} activePath={activePath} onToggle={()=>setSidebarCollapsed(v=>!v)} onCloseMobile={()=>setMobileMenuOpen(false)} bootstrap={shellBootstrap}/>
         {mobileMenuOpen?<button className="iu-sidebar-scrim" type="button" aria-label="Chiudi menu" onClick={()=>setMobileMenuOpen(false)}/>:null}
         <div className="iu-main">
-          <Topbar onOpenMenu={()=>setMobileMenuOpen(true)}/>
+          <TopBar onOpenMenu={()=>setMobileMenuOpen(true)} activePath={routeKey}/>
           <Suspense fallback={<PageLoading/>}>
             {isSearchPage?<RicercaStudioPage initialQuery={initialSearchQuery}/>:isNewAppointmentPage||isAppointmentEditPage?<NuovoAppuntamentoPage/>:isAgendaPage?<AgendaPage/>:isRegiaPage?<RegiaOperativaPage data={data} loading={loading}/>:isDocumentEditorPage?<DocumentEditorPage/>:isFascicoliPage?<FascicoliPage/>:isNewClientPage||isNewSubjectPage||isClientEditPage||isSubjectEditPage?<NuovoClientePage/>:isClientFolderPage?<CartellaClientePage/>:isClientiPage?<AnagraficaClientiPage/>:isSoggettiPage?<SoggettiPage/>:isEmailOrdinariaComposePage?<EmailComposePage mode="ordinaria"/>:isEmailComposePage?<EmailComposePage mode="pec"/>:isEmailOrdinariaPage?<EmailOrdinariaPage/>:isEmailPage?<EmailPecPage/>:isNewMessagePage?<NuovoMessaggioPage/>:isMessagesPage?<MessaggiPage/>:isNewDeadlinePage||isDeadlineEditPage?<NuovaScadenzaPage/>:isScadenziarioPage?<ScadenziarioPage/>:isTimesheetPage?<TimesheetPage/>:isCartelleCondivisePage?<CartelleCondivisePage/>:isWizardProStep?<WizardProStepPage/>:isWizardProComplete?<WizardProCompletePage/>:isWizardProDashboard?<WizardProPage/>:isTelematicoPage?<TelematicoPage/>:isTelematicoSurfacePage?<TelematicoSurfacePage/>:isPrivacyRegistroPage?<PrivacyRegistroPage/>:isAdminDatabasePage?<AdminDatabasePage/>:isStudioModulePage?<StudioModulePage/>:<DashboardPage data={data} loading={loading}/>}
           </Suspense>

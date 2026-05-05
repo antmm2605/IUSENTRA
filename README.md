@@ -20,6 +20,7 @@ La repo oggi non è più solo un tool CLI per il Processo Civile Telematico: con
 - Le superfici economiche finali usano ora microcopy coerente, ricalcolo guidato inline e log applicativi leggibili come una storia operativa, senza `alert()` ambigui o stati poco spiegabili.
 - Timesheet operativo con valorizzazione del tempo e generazione parcella dalle attivita' validate.
 - Le superfici ufficiali `/timesheet`, `/cartelle-condivise` e `/wizard-pro/` sono servite da React con dati reali, API bridge tenant-aware, fallback tecnico solo `?_legacy=1` e scritture mantenute sulle route Flask operative.
+- La top bar desktop React e' un centro operativo rapido: command palette `Ctrl+K`/`Cmd+K`, ricerca globale reale, menu `+ Nuovo` contestuale, widget Oggi, notifiche, scadenze, recenti e timer attivita salvato sul backend.
 - Fatturazione, pagamenti, saldo cliente e KPI economici per studio, cliente e fascicolo.
 - Fascicolo con `cabina operativa` a tab: quadro intelligente, workflow `fascicolo -> incasso`, controllo economico con `FatturaPA / SDI` per XML Agenzia Entrate, governo documentale e conformita' deposito nella stessa vista.
 - Il `Quadro intelligente fascicolo` non usa piu' avanzamenti statici: valuta davvero documenti, classificazioni portale, scadenze rispetto a oggi, provvedimenti presenti e coerenza dello stato, mentre la PEC/auto-esiti associa i messaggi usando `RG + nominativo cliente/controparte + tribunale`.
@@ -85,6 +86,7 @@ Per l'assistenza remota cliente vedi [docs/ASSISTENZA_REMOTA.md](docs/ASSISTENZA
 Per il modulo `Sito Studio` vedi [docs/SITO_STUDIO.md](docs/SITO_STUDIO.md).
 Per il ponte PEC locale tramite Local Signer vedi [docs/LOCAL_PEC_CONNECTOR.md](docs/LOCAL_PEC_CONNECTOR.md).
 Per la `Ricerca Studio` globale vedi [docs/RICERCA_STUDIO.md](docs/RICERCA_STUDIO.md).
+Per la top bar operativa React vedi [docs/TOPBAR_OPERATIVA.md](docs/TOPBAR_OPERATIVA.md).
 Per il catalogo master dei template atti vedi [docs/TEMPLATE_ATTI_CATALOGO_MASTER.md](docs/TEMPLATE_ATTI_CATALOGO_MASTER.md).
 Per la Suite professionale integrata nel catalogo template atti vedi [docs/template_atti_catalogo_professionale.md](docs/template_atti_catalogo_professionale.md).
 Per il modulo SIGP Giudice di Pace vedi [docs/SIGP_GIUDICE_DI_PACE.md](docs/SIGP_GIUDICE_DI_PACE.md).

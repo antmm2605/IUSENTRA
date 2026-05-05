@@ -157,6 +157,10 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
         "TIMESHEET_DB",
         os.getenv("PCT_TIMESHEET_DB", "./timesheet/entries.json"),
     )
+    app.config["TIME_TRACKING_DB"] = cfg.get(
+        "TIME_TRACKING_DB",
+        os.getenv("PCT_TIME_TRACKING_DB", "./timesheet/time_tracking.json"),
+    )
     app.config["SEARCH_INDEX"] = cfg.get(
         "SEARCH_INDEX", os.getenv("PCT_SEARCH_INDEX", "./search/index.db")
     )
@@ -344,6 +348,7 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
             "appuntamenti": _cfg_data_path("AGENDA_DB"),
             "scadenze": _cfg_data_path("SCADENZIARIO_DB"),
             "timesheet": _cfg_data_path("TIMESHEET_DB"),
+            "time_tracking": _cfg_data_path("TIME_TRACKING_DB"),
             "messaggi": _cfg_data_path("MESSAGGI_DB"),
             "notifiche": _cfg_data_path("NOTIFICHE_LOG"),
             "email_casella": _cfg_data_path("EMAIL_CASELLA_DB"),

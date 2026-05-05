@@ -25,6 +25,7 @@ from pct.normative_tables import GestioneTabelleNormative
 from pct.calendar_sync import GestioneCalendarSync
 from pct.soggetti import GestioneSoggetti
 from pct.timesheet import GestioneTimesheet
+from pct.time_tracking import GestioneTimeTracking
 from pct.applicazioni_repository import get_runtime_applicazioni_repository
 from pct.fatturazione import GestioneFatturazione
 from pct.pagamenti import GestionePagamenti
@@ -90,6 +91,10 @@ def get_scadenziario() -> GestioneScadenziario:
 
 def get_timesheet() -> GestioneTimesheet:
     return GestioneTimesheet(db_path=_cfg("TIMESHEET_DB"), studio_db=_studio_db())
+
+
+def get_time_tracking() -> GestioneTimeTracking:
+    return GestioneTimeTracking(db_path=_cfg("TIME_TRACKING_DB"), studio_db=_studio_db())
 
 
 def get_preventivi() -> GestionePreventivi:

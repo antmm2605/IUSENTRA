@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.198.65 - 2026-05-05
+
+- Trasformata la top bar desktop React in centro operativo rapido con command palette `Ctrl+K`/`Cmd+K`, ricerca globale reale, menu contestuale `+ Nuovo`, pannelli Oggi, Notifiche, Scadenze, Recenti e timer attivita.
+- Aggiunte API protette `/api/search/global`, `/api/dashboard/today`, `/api/notifications`, `/api/deadlines/quick-summary`, `/api/recent` e `/api/time-tracking/*`, con payload validati, permessi, tenant/sessione e soli dati reali dei repository.
+- Introdotto il dominio `time_tracking_timers` su JSON/SQLite/PostgreSQL, con vincolo su un solo timer attivo per utente e salvataggio finale nel timesheet reale.
+- Estesi i contratti React e i test API top bar su ricerca, permessi, widget Oggi, notifiche, scadenze, recenti e ciclo start/pause/resume/stop del timer.
+
 ## 2.198.64 - 2026-05-05
 
 - Promosse a superfici React operative `/timesheet` e `/cartelle-condivise`, con payload reali `/api/v1/ui/timesheet` e `/api/v1/ui/cartelle-condivise`, contratti `mock_fallback=false`, KPI, filtri, stati vuoti e azioni su route Flask auditabili.

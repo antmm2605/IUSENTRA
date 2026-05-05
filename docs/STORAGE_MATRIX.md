@@ -22,6 +22,7 @@ Legenda:
 | Programmazione | Calcolatore termini processuali e audit | R/W | R/W | R/W | parita' completa | Wave 2 - core operativo | template, audit SHA-256, calendario e promemoria PEC hanno schema JSON/SQLite/PostgreSQL; JSON solo bootstrap controllato |
 | Produzione atti | Template atti e preferenze editor | R/W | R/W | R/W | parita' completa | Wave 3 - workspace professionali | JSON come export/bootstrap controllato dei layout editor |
 | Operativita' | Timesheet e valorizzazione attivita' | R/W | R/W | R/W | parita' completa | Wave 4 - economico | JSON solo come bootstrap o import storico |
+| Operativita' | Timer attivita top bar | R/W | R/W | R/W | schema governato | Wave 4 - economico | JSON tenant-aware in `timesheet/time_tracking.json`; SQLite/PostgreSQL predisposti in `pct/sql/20260505_topbar_time_tracking*.sql`; allo stop crea voce timesheet reale |
 | Commerciale | Preventivi e workflow commerciale | R/W | R/W | R/W | parita' completa | Wave 4 - economico | SQLite/PostgreSQL tenant-aware; JSON solo come ponte di migrazione |
 | Economico | Fatturazione, pagamenti e saldo cliente | R/W | R/W | R/W | parita' completa | Wave 4 - economico | cutover ufficiale con report di consistenza e nessun fallback invisibile |
 | Operativita' fascicolo | Regia Operativa / Practice Engine | R/W | R/W | R/W | schema governato | Wave 3 - workspace professionali | JSON tenant-aware in `fascicoli/practice_engine/practice_engine.json`; SQLite/PostgreSQL predisposti in `pct/sql/20260504_practice_engine*.sql`; ricevute ed evidence pack su filesystem tenant |

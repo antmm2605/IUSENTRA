@@ -1556,7 +1556,7 @@ def test_email_sync_route_espone_warning_e_sync_errore(tmp_path, monkeypatch):
     from web.app import create_app
 
     cfg = _cfg_web(tmp_path)
-    pec_cfg = SimpleNamespace(
+    pec_cfg = ConfigPEC(
         imap_host="imaps.pec.aruba.it",
         imap_port=993,
         indirizzo="studio@example.pec.it",
@@ -1564,9 +1564,7 @@ def test_email_sync_route_espone_warning_e_sync_errore(tmp_path, monkeypatch):
         use_ssl=True,
     )
     osservato = {}
-
-    monkeypatch.setattr("web.blueprints.email_client._get_config_pec", lambda: pec_cfg)
-    monkeypatch.setattr("web.blueprints.email_client._get_config_email", lambda: None)
+    GestioneConfigStudio(cfg["STUDIO_CONFIG"]).aggiorna(ConfigStudio(pec=pec_cfg))
 
     def _fake_sync_workflow(gestione_email, gestione_fascicoli, config_pec, **kwargs):
         osservato["db_path"] = str(gestione_fascicoli.db_path)

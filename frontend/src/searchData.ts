@@ -211,8 +211,13 @@ export async function searchStudio(query: string, type: SearchType, limit = 40):
 }
 
 export async function loadStudioSearchStats(): Promise<StudioSearchStats> {
-  const payload = await searchStudio('', 'all', 1)
-  return payload.stats
+  const response = await fetch('/api/global-search/stats', {
+    credentials: 'same-origin',
+    headers: { Accept: 'application/json' },
+  })
+  if (!response.ok) return emptyStats
+  const payload = asRecord(await response.json())
+  return mapStats(payload.stats)
 }
 
 export async function reindexStudioSearch(): Promise<StudioSearchStats> {

@@ -27,6 +27,7 @@ from lex.providers.ollama_runtime import (
     resolved_ollama_api_base_url,
     resolved_ollama_base_url,
     resolved_ollama_chat_model,
+    resolved_ollama_keep_alive,
 )
 
 assistente = Blueprint("assistente", __name__)
@@ -266,6 +267,7 @@ def assistente_chat():
         "model": _ollama_model(),
         "messages": [{"role": "system", "content": system_content}] + messages,
         "stream": True,
+        "keep_alive": resolved_ollama_keep_alive("10m"),
         "options": {
             "temperature": 0.3,   # risposte più precise/deterministiche
             "num_ctx": 4096,

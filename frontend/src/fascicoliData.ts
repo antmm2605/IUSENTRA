@@ -61,12 +61,31 @@ export type FascicoliSummary = {
   unreadCommunications: number
 }
 
+export type FascicoliPagination = {
+  page: number
+  pageSize: number
+  total: number
+  pages: number
+}
+
+export type FascicoliPageParams = {
+  page?: number
+  pageSize?: number
+  q?: string
+  type?: FascicoloTipo
+  status?: FascicoloStato
+  court?: string
+  sort?: string
+  alertsOnly?: boolean
+}
+
 export type FascicoliPageData = {
   source: string
   generatedAt: string
   contracts: { mock_fallback: boolean; read_only: boolean; writes: 'operational_routes' | 'api' }
   summary: FascicoliSummary
   items: FascicoloRow[]
+  pagination: FascicoliPagination
   facets: {
     types: Array<Facet<FascicoloTipo>>
     statuses: Array<Facet<FascicoloStato>>
@@ -277,6 +296,8 @@ export type FascicoloDetailData = {
   }
 }
 
+export type FascicoloDetailSection = 'documenti' | 'attivita' | 'scadenze' | 'depositi' | 'regia'
+
 export type FascicoloFormGuardrailIssue = {
   code: string
   message: string
@@ -347,6 +368,7 @@ export const emptyFascicoliPage: FascicoliPageData = {
   contracts: { mock_fallback: false, read_only: true, writes: 'operational_routes' },
   summary: emptySummary,
   items: [],
+  pagination: { page: 1, pageSize: 25, total: 0, pages: 0 },
   facets: {
     types: [{ value: 'tutti', label: 'Tutti i tipi', count: 0 }],
     statuses: [{ value: 'tutti', label: 'Tutti gli stati', count: 0 }],
@@ -573,10 +595,24 @@ function normalizeFacets(value: unknown, items: FascicoloRow[]): FascicoliPageDa
   }
 }
 
+function normalizePagination(value: unknown, items: FascicoloRow[], summary: FascicoliSummary): FascicoliPagination {
+  if (isRecord(value)) {
+    const pageSize = Math.max(1, number(value.pageSize ?? value.page_size) || 25)
+    const total = Math.max(0, number(value.total ?? summary.total ?? items.length))
+    const pages = Math.max(0, number(value.pages) || (total ? Math.ceil(total / pageSize) : 0))
+    const page = Math.min(Math.max(1, number(value.page) || 1), Math.max(1, pages || 1))
+    return { page, pageSize, total, pages }
+  }
+  const total = Math.max(0, summary.total || items.length)
+  const pageSize = items.length || 25
+  return { page: 1, pageSize, total, pages: total ? Math.ceil(total / pageSize) : 0 }
+}
+
 function normalizePagePayload(payload: unknown): FascicoliPageData {
   if (!isRecord(payload)) return emptyFascicoliPage
   const rawItems = Array.isArray(payload.items) ? payload.items : Array.isArray(payload.fascicoli) ? payload.fascicoli : []
   const items = rawItems.map(normalizeItem)
+  const summary = normalizeSummary(payload.summary, items)
   return {
     source: text(payload.source, 'repository_reali'),
     generatedAt: text(payload.generatedAt ?? payload.generated_at, ''),
@@ -585,8 +621,9 @@ function normalizePagePayload(payload: unknown): FascicoliPageData {
       read_only: payload.contracts.read_only !== false,
       writes: text(payload.contracts.writes, 'operational_routes') as 'operational_routes' | 'api',
     } : { mock_fallback: false, read_only: true, writes: 'operational_routes' },
-    summary: normalizeSummary(payload.summary, items),
+    summary,
     items,
+    pagination: normalizePagination(payload.pagination, items, summary),
     facets: normalizeFacets(payload.facets, items),
     deadlines: asArray(payload.deadlines).map((entry, index) => {
       const row = isRecord(entry) ? entry : {}
@@ -821,16 +858,45 @@ async function safeFetch<T>(url: string, normalizer: (payload: unknown) => T, fa
   }
 }
 
-export function getFascicoliPage(): Promise<FascicoliPageData> {
-  return safeFetch('/api/v1/ui/fascicoli', normalizePagePayload, emptyFascicoliPage)
+function buildFascicoliQuery(params: FascicoliPageParams = {}): string {
+  const query = new URLSearchParams()
+  if (params.page) query.set('page', String(params.page))
+  if (params.pageSize) query.set('page_size', String(params.pageSize))
+  if (params.q?.trim()) query.set('q', params.q.trim())
+  if (params.type && params.type !== 'tutti') query.set('type', params.type)
+  if (params.status && params.status !== 'tutti') query.set('status', params.status)
+  if (params.court?.trim()) query.set('court', params.court.trim())
+  if (params.sort) query.set('sort', params.sort)
+  if (params.alertsOnly) query.set('alerts_only', '1')
+  const suffix = query.toString()
+  return suffix ? `?${suffix}` : ''
+}
+
+export function getFascicoliPage(params: FascicoliPageParams = {}): Promise<FascicoliPageData> {
+  return safeFetch(`/api/v1/ui/fascicoli${buildFascicoliQuery(params)}`, normalizePagePayload, emptyFascicoliPage)
 }
 
 export function getFascicoliArchive(): Promise<FascicoliPageData> {
   return safeFetch('/api/v1/ui/fascicoli/archivio', normalizePagePayload, emptyFascicoliPage)
 }
 
-export function getFascicoloDetail(id: string): Promise<FascicoloDetailData> {
-  return safeFetch(`/api/v1/ui/fascicoli/${encodeURIComponent(id)}`, normalizeDetailPayload, emptyFascicoloDetail)
+export function getFascicoloDetail(id: string, options: { include?: 'all' | FascicoloDetailSection[] } = {}): Promise<FascicoloDetailData> {
+  const query = new URLSearchParams()
+  if (options.include === 'all') query.set('include', 'all')
+  else if (Array.isArray(options.include) && options.include.length) query.set('include', options.include.join(','))
+  const suffix = query.toString() ? `?${query.toString()}` : ''
+  return safeFetch(`/api/v1/ui/fascicoli/${encodeURIComponent(id)}${suffix}`, normalizeDetailPayload, emptyFascicoloDetail)
+}
+
+export function getFascicoloDetailSection(id: string, section: FascicoloDetailSection): Promise<FascicoloDetailData> {
+  if (section === 'regia') {
+    return safeFetch(
+      `/api/v1/ui/fascicoli/${encodeURIComponent(id)}/regia`,
+      (payload) => ({ ...emptyFascicoloDetail, regia: normalizeRegia(payload) }),
+      emptyFascicoloDetail,
+    )
+  }
+  return safeFetch(`/api/v1/ui/fascicoli/${encodeURIComponent(id)}/${section}`, normalizeDetailPayload, emptyFascicoloDetail)
 }
 
 export function getFascicoloForm(id?: string, query = ''): Promise<FascicoloFormData> {

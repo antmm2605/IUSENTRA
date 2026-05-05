@@ -28,6 +28,7 @@ from flask import (
 )
 
 from web.blueprints.react_shell import render_react_shell_response
+from web.services.mailbox_sync_runtime import run_ordinary_mailbox_sync
 
 email_ordinaria = Blueprint("email_ordinaria", __name__, url_prefix="/email-ordinaria")
 
@@ -328,44 +329,4 @@ def stats_json():
 @_login_required
 def sincronizza():
     """Sincronizza la casella ordinaria usando i parametri IMAP del tab SMTP."""
-    gestore = _get_gestore()
-    cfg = _get_config_smtp()
-    if not cfg or not getattr(cfg, "imap_host", "") or not getattr(cfg, "username", ""):
-        return jsonify(
-            {
-                "ok": False,
-                "errore": (
-                    "IMAP email ordinaria non configurato. Apri Impostazioni -> Email SMTP "
-                    "e compila server IMAP, username e password."
-                ),
-            }
-        )
-    try:
-        from pct.email_client import cartelle_imap_standard
-
-        report = gestore.sincronizza_imap(
-            imap_host=getattr(cfg, "imap_host", ""),
-            imap_port=int(getattr(cfg, "imap_port", 993) or 993),
-            username=getattr(cfg, "username", ""),
-            password=getattr(cfg, "password", ""),
-            use_ssl=bool(getattr(cfg, "imap_use_ssl", True)),
-            cartelle_imap=cartelle_imap_standard(),
-            limite=500,
-            timeout_seconds=15,
-        )
-        _sync_inviati(gestore)
-        errore = str(report.get("errore", "") or "").strip()
-        return jsonify(
-            {
-                "ok": True,
-                "warning": bool(errore),
-                "messaggio": "Sincronizzazione email ordinaria completata con avvisi." if errore else "Sincronizzazione email ordinaria completata.",
-                "nuove": report.get("nuove", 0),
-                "allegati_salvati": report.get("allegati_salvati", 0),
-                "errore": errore,
-                "sync_errore": errore,
-                "stats": gestore.statistiche(),
-            }
-        )
-    except Exception as exc:
-        return jsonify({"ok": False, "errore": str(exc)})
+    return jsonify(run_ordinary_mailbox_sync())

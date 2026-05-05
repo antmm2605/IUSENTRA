@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.198.68 - 2026-05-05
+
+- Ottimizzata la Panoramica React: `getDashboard()` usa la cache backend ordinaria, espone `refresh=1` solo su richiesta esplicita e avvia la sincronizzazione PEC/email ordinaria dopo il primo render senza bloccare la UI.
+- Introdotto il servizio tenant-aware `mailbox_sync_runtime` con lock per casella, cooldown, route manuali PEC/email ordinaria preservate, endpoint React `/api/v1/ui/dashboard/sync-mailboxes` e job scheduler riusabile.
+- Alleggerita Ricerca Studio con `GET /api/global-search/stats` e rimosso il reindex sincrono nascosto quando l'indice e' vuoto: la reindicizzazione resta manuale e auditabile.
+- Resa reale la paginazione server-side dei fascicoli, con filtri/sort backend, payload `pagination`, dettaglio fascicolo a tab lazy e Regia Operativa caricata con query scoped quando disponibili.
+
 ## 2.198.67 - 2026-05-05
 
 - Introdotta la modalita' `LEX_GOVERNED_ONLY=1` come default professionale: le richieste non sociali passano dal bounded workflow e la raw chat resta disabilitata salvo `LEX_RAW_CHAT_ENABLED=1` piu' `allow_unbounded_generation=true`.

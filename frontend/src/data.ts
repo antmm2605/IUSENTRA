@@ -172,13 +172,13 @@ function asSources(payload: Record<string, unknown>, dashboard: Omit<DashboardDa
   ]
 }
 
-export async function getDashboard(): Promise<DashboardData> {
+export async function getDashboard(options: { refresh?: boolean } = {}): Promise<DashboardData> {
   try {
     const query = new URLSearchParams()
-    query.set('_ts', String(Date.now()))
-    const res = await fetch(`/api/v1/ui/dashboard?${query.toString()}`, {
+    if (options.refresh) query.set('refresh', '1')
+    const suffix = query.toString() ? `?${query.toString()}` : ''
+    const res = await fetch(`/api/v1/ui/dashboard${suffix}`, {
       credentials:'same-origin',
-      cache:'no-store',
       headers:{Accept:'application/json'}
     })
     if (!res.ok) return emptyDashboard
@@ -204,5 +204,18 @@ export async function getDashboard(): Promise<DashboardData> {
     }
   } catch {
     return emptyDashboard
+  }
+}
+
+export async function syncDashboardMailboxes(): Promise<boolean> {
+  try {
+    const res = await fetch('/api/v1/ui/dashboard/sync-mailboxes', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json' },
+    })
+    return res.ok
+  } catch {
+    return false
   }
 }

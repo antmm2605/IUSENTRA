@@ -395,6 +395,36 @@ def start_scheduler(app):
             "local_ai_models_dir": app.config.get("LOCAL_AI_MODELS_DIR", "./intelligence/models"),
         }
 
+    def _mailbox_sync_targets():
+        if app.config.get("MULTI_TENANT"):
+            try:
+                from pct.tenant import GestioneTenant, StatoTenant
+
+                tm = GestioneTenant(registry_path=app.config["TENANTS_REGISTRY"])
+                found = False
+                for studio in tm.lista():
+                    if studio.stato == StatoTenant.SOSPESO:
+                        continue
+                    paths = tm.percorsi_dati(studio.slug)
+                    found = True
+                    yield str(studio.slug or "tenant"), paths
+                if found:
+                    return
+            except Exception as e:
+                logger.warning("[scheduler] Mailbox sync multi-tenant non disponibile: %s", e)
+        yield "default", {
+            "EMAIL_CASELLA_DB": app.config.get("EMAIL_CASELLA_DB", "./email/casella.json"),
+            "EMAIL_ORDINARIA_DB": app.config.get("EMAIL_ORDINARIA_DB", "./email_ordinaria/casella.json"),
+            "STUDIO_CONFIG": app.config.get("STUDIO_CONFIG") or app.config.get("CONFIG_STUDIO_DB", "./config/studio.json"),
+            "CONFIG_STUDIO_DB": app.config.get("CONFIG_STUDIO_DB", app.config.get("STUDIO_CONFIG", "./config/studio.json")),
+            "FASCICOLI_DB": app.config.get("FASCICOLI_DB", "./fascicoli/fascicoli.json"),
+            "FASCICOLI_DOCS": app.config.get("FASCICOLI_DOCS", "./fascicoli/documenti"),
+            "FASCICOLI_ARCH": app.config.get("FASCICOLI_ARCH", "./fascicoli/archivio"),
+            "AUTH_DB": app.config.get("AUTH_DB", "./auth/utenti.json"),
+            "AUDIT_DB": app.config.get("AUDIT_DB", "./audit/audit.json"),
+            "MESSAGGI_DB": app.config.get("MESSAGGI_DB", "./messaggi/messaggi.json"),
+        }
+
     @scheduler.scheduled_job(CronTrigger(minute=12), id="calendar_sync_hourly")
     def _calendar_sync_hourly():
         with app.app_context():
@@ -427,6 +457,31 @@ def start_scheduler(app):
                     )
             except Exception as e:
                 logger.error("[scheduler] Calendar sync fallito: %s", e)
+
+    @scheduler.scheduled_job(CronTrigger(minute="*/15"), id="mailbox_sync_runtime")
+    def _mailbox_sync_runtime():
+        with app.app_context():
+            try:
+                from web.services.mailbox_sync_runtime import sync_mailboxes_for_paths
+
+                processed_targets = 0
+                for label, paths in _mailbox_sync_targets():
+                    report = sync_mailboxes_for_paths(paths, tenant_label=label, cooldown_seconds=180.0)
+                    processed_targets += 1
+                    pec = report.get("pec") or {}
+                    ordinary = report.get("ordinary") or {}
+                    logger.info(
+                        "[scheduler] Mailbox sync %s: pec=%s/%s ordinary=%s/%s",
+                        label,
+                        "skipped" if pec.get("skipped") else "run",
+                        pec.get("reason") or "ok",
+                        "skipped" if ordinary.get("skipped") else "run",
+                        ordinary.get("reason") or "ok",
+                    )
+                if processed_targets:
+                    logger.info("[scheduler] Mailbox sync completata per %d target", processed_targets)
+            except Exception as e:
+                logger.error("[scheduler] Mailbox sync fallita: %s", e)
 
     @scheduler.scheduled_job(CronTrigger(minute="*/20"), id="workspace_intelligence_snapshot")
     def _workspace_intelligence_snapshot():

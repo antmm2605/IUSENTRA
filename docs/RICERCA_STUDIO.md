@@ -7,10 +7,17 @@ Obiettivo: trovare rapidamente fascicoli, clienti, soggetti, documenti, scadenze
 ## Superfici
 
 - pagina UI: `/global-search`
+- statistiche leggere: `/api/global-search/stats`
 - ricerca JSON: `/api/global-search?q=...&type=...&limit=...`
 - suggerimenti: `/api/global-search/suggest?q=...`
 - reindicizzazione completa: `POST /api/global-search/reindex`
 - reindicizzazione singola entita': `POST /api/global-search/reindex/entity`
+
+## Caricamento leggero
+
+La pagina React usa `GET /api/global-search/stats` per aprire il quadro statistiche senza costruire il contesto completo dei repository applicativi.
+
+`GET /api/global-search` non esegue piu' un reindex sincrono nascosto quando l'indice e' vuoto. Se arriva una query e `stats.total == 0`, la risposta resta `ok: true`, contiene `indexing_required: true`, `results: []` e le statistiche correnti. L'utente puo' avviare la ricostruzione con `POST /api/global-search/reindex`, che resta la sola operazione di reindicizzazione completa.
 
 ## Storage
 

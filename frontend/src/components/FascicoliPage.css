@@ -41,6 +41,11 @@
 .iu-fas-table-head{min-height:48px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 15px;border-bottom:1px solid var(--iu-border)}
 .iu-fas-table-head strong{font-size:13px;color:#0f172a}
 .iu-fas-table-head label{display:inline-flex;align-items:center;gap:8px;min-height:32px;padding:0 10px;border:1px solid var(--iu-border);border-radius:9px;background:#fff;color:#0f172a;font-size:12px;font-weight:850}
+.iu-fas-table-head select{border:0;background:transparent;color:#0f172a;font:inherit;font-weight:900}
+.iu-fas-pagination{display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:12px 15px;border-top:1px solid var(--iu-border);background:#fff}
+.iu-fas-pagination span{color:var(--iu-slate-600);font-size:12px;font-weight:850}
+.iu-fas-pagination button{min-height:32px;padding:0 12px;border:1px solid var(--iu-border);border-radius:9px;background:#fff;color:#0f172a;font-size:12px;font-weight:900}
+.iu-fas-pagination button:disabled{opacity:.45;cursor:not-allowed}
 .iu-fas-table-wrap{overflow:auto}
 .iu-fas-table{width:100%;min-width:1060px;border-collapse:collapse;background:#fff}
 .iu-fas-table th{height:36px;padding:0 12px;border-bottom:1px solid var(--iu-border);background:#f8fafc;color:var(--iu-slate-600);font-size:11px;font-weight:900;text-align:left;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}

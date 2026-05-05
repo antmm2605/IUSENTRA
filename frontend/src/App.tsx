@@ -46,7 +46,7 @@ import {
   Wrench,
   type LucideIcon
 } from 'lucide-react'
-import { DashboardData, Row, Tone, emptyDashboard, getDashboard } from './data'
+import { DashboardData, Row, Tone, emptyDashboard, getDashboard, syncDashboardMailboxes } from './data'
 import { Badge, DossierCard, KpiCard, Panel, SourceCard } from './components/dashboard'
 import { FloatingLex } from './components/FloatingLex'
 import { TopBar } from './components/layout/TopBar'
@@ -799,7 +799,7 @@ function RegiaOperativaPage({ data, loading }:{data:DashboardData; loading:boole
   )
 }
 
-function DashboardPage({ data, loading }:{data:DashboardData; loading:boolean}) {
+function DashboardPage({ data, loading, mailSyncing = false }:{data:DashboardData; loading:boolean; mailSyncing?:boolean}) {
   return (
     <main className="iu-content">
       <div className="iu-page-heading">
@@ -807,7 +807,7 @@ function DashboardPage({ data, loading }:{data:DashboardData; loading:boolean}) 
           <h1>Panoramica</h1>
           <p>Centro operativo dello studio</p>
         </div>
-        <span className={`iu-sync ${loading?'':'ok'}`}>{loading?'Sincronizzazione dati...':'Dati aggiornati'}</span>
+        <span className={`iu-sync ${loading || mailSyncing?'':'ok'}`}>{loading?'Sincronizzazione dati...':mailSyncing?'Sincronizzazione comunicazioni...':'Dati aggiornati'}</span>
       </div>
       <section className="iu-metrics">{data.metrics.map(m=><KpiCard item={m} icon={metricIcon[m.tone] || AlertTriangle} key={m.id}/>)}</section>
       <section className="iu-grid">
@@ -879,10 +879,30 @@ export default function App() {
   const shellBootstrap = readShellBootstrap()
   const [data,setData]=useState<DashboardData>(emptyDashboard)
   const [loading,setLoading]=useState(!isStandalonePage)
+  const [mailSyncing,setMailSyncing]=useState(false)
   const [sidebarCollapsed,setSidebarCollapsed]=useState(false)
   const [mobileMenuOpen,setMobileMenuOpen]=useState(false)
   const [mobileNavCollapsed,setMobileNavCollapsed]=useState(false)
-  useEffect(()=>{if(isStandalonePage)return; let ok=true; getDashboard().then(d=>{if(ok)setData(d)}).finally(()=>{if(ok)setLoading(false)}); return()=>{ok=false}},[isStandalonePage])
+  useEffect(()=>{
+    if(isStandalonePage)return
+    let ok=true
+    getDashboard()
+      .then(d=>{
+        if(ok)setData(d)
+        if(ok && isDashboardPage){
+          window.setTimeout(()=>{
+            if(!ok)return
+            setMailSyncing(true)
+            syncDashboardMailboxes()
+              .then(()=>getDashboard({refresh:true}))
+              .then((fresh)=>{if(ok)setData(fresh)})
+              .finally(()=>{if(ok)setMailSyncing(false)})
+          },0)
+        }
+      })
+      .finally(()=>{if(ok)setLoading(false)})
+    return()=>{ok=false}
+  },[isDashboardPage,isStandalonePage])
   return (
     <AppErrorBoundary>
       <div className={`iu-shell ${sidebarCollapsed?'iu-shell--collapsed':''}`}>
@@ -891,7 +911,7 @@ export default function App() {
         <div className="iu-main">
           <TopBar onOpenMenu={()=>setMobileMenuOpen(true)} activePath={routeKey}/>
           <Suspense fallback={<PageLoading/>}>
-            {isSearchPage?<RicercaStudioPage initialQuery={initialSearchQuery}/>:isNewAppointmentPage||isAppointmentEditPage?<NuovoAppuntamentoPage/>:isAgendaPage?<AgendaPage/>:isRegiaPage?<RegiaOperativaPage data={data} loading={loading}/>:isDocumentEditorPage?<DocumentEditorPage/>:isFascicoliPage?<FascicoliPage/>:isNewClientPage||isNewSubjectPage||isClientEditPage||isSubjectEditPage?<NuovoClientePage/>:isClientFolderPage?<CartellaClientePage/>:isClientiPage?<AnagraficaClientiPage/>:isSoggettiPage?<SoggettiPage/>:isEmailOrdinariaComposePage?<EmailComposePage mode="ordinaria"/>:isEmailComposePage?<EmailComposePage mode="pec"/>:isEmailOrdinariaPage?<EmailOrdinariaPage/>:isEmailPage?<EmailPecPage/>:isNewMessagePage?<NuovoMessaggioPage/>:isMessagesPage?<MessaggiPage/>:isNewDeadlinePage||isDeadlineEditPage?<NuovaScadenzaPage/>:isScadenziarioPage?<ScadenziarioPage/>:isTimesheetPage?<TimesheetPage/>:isCartelleCondivisePage?<CartelleCondivisePage/>:isWizardProStep?<WizardProStepPage/>:isWizardProComplete?<WizardProCompletePage/>:isWizardProDashboard?<WizardProPage/>:isTelematicoPage?<TelematicoPage/>:isTelematicoSurfacePage?<TelematicoSurfacePage/>:isPrivacyRegistroPage?<PrivacyRegistroPage/>:isAdminDatabasePage?<AdminDatabasePage/>:isStudioModulePage?<StudioModulePage/>:<DashboardPage data={data} loading={loading}/>}
+            {isSearchPage?<RicercaStudioPage initialQuery={initialSearchQuery}/>:isNewAppointmentPage||isAppointmentEditPage?<NuovoAppuntamentoPage/>:isAgendaPage?<AgendaPage/>:isRegiaPage?<RegiaOperativaPage data={data} loading={loading}/>:isDocumentEditorPage?<DocumentEditorPage/>:isFascicoliPage?<FascicoliPage/>:isNewClientPage||isNewSubjectPage||isClientEditPage||isSubjectEditPage?<NuovoClientePage/>:isClientFolderPage?<CartellaClientePage/>:isClientiPage?<AnagraficaClientiPage/>:isSoggettiPage?<SoggettiPage/>:isEmailOrdinariaComposePage?<EmailComposePage mode="ordinaria"/>:isEmailComposePage?<EmailComposePage mode="pec"/>:isEmailOrdinariaPage?<EmailOrdinariaPage/>:isEmailPage?<EmailPecPage/>:isNewMessagePage?<NuovoMessaggioPage/>:isMessagesPage?<MessaggiPage/>:isNewDeadlinePage||isDeadlineEditPage?<NuovaScadenzaPage/>:isScadenziarioPage?<ScadenziarioPage/>:isTimesheetPage?<TimesheetPage/>:isCartelleCondivisePage?<CartelleCondivisePage/>:isWizardProStep?<WizardProStepPage/>:isWizardProComplete?<WizardProCompletePage/>:isWizardProDashboard?<WizardProPage/>:isTelematicoPage?<TelematicoPage/>:isTelematicoSurfacePage?<TelematicoSurfacePage/>:isPrivacyRegistroPage?<PrivacyRegistroPage/>:isAdminDatabasePage?<AdminDatabasePage/>:isStudioModulePage?<StudioModulePage/>:<DashboardPage data={data} loading={loading} mailSyncing={mailSyncing}/>}
           </Suspense>
         </div>
         <nav className={`iu-mobile ${mobileNavCollapsed?'is-collapsed':''}`} aria-label="Navigazione mobile">

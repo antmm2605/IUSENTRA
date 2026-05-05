@@ -152,10 +152,19 @@ def api_search():
     limit = min(max(int(request.args.get("limit", 20)), 1), 100)
     service = _service()
     try:
-        ctx = _context()
+        ctx = {"tenant_id": _tenant_id()}
         stats = service.stats(ctx)
         if q and stats.get("total", 0) == 0:
-            service.reindex(ctx)
+            return jsonify({
+                "ok": True,
+                "query": q,
+                "tenant_id": ctx["tenant_id"],
+                "took_ms": 0,
+                "total": 0,
+                "results": [],
+                "stats": stats,
+                "indexing_required": True,
+            })
         payload = service.search(
             ctx,
             q,
@@ -168,6 +177,16 @@ def api_search():
     except Exception as exc:
         current_app.logger.exception("Errore Ricerca Studio API: %s", exc)
         return jsonify({"ok": False, "error": str(exc), "results": []}), 200
+    finally:
+        service.repository.close()
+
+
+@global_search.get("/api/global-search/stats")
+@_richiedi_login
+def api_stats():
+    service = _service()
+    try:
+        return jsonify({"ok": True, "stats": service.stats({"tenant_id": _tenant_id()})})
     finally:
         service.repository.close()
 
@@ -189,7 +208,10 @@ def api_reindex():
     service = _service()
     try:
         payload = service.reindex(_context())
-        return jsonify(payload)
+        response_payload = dict(payload or {})
+        response_payload["ok"] = True
+        response_payload["stats"] = payload
+        return jsonify(response_payload)
     finally:
         service.repository.close()
 

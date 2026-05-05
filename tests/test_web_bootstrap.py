@@ -1765,6 +1765,12 @@ def test_assistente_chat_usa_runtime_ollama_risolto(monkeypatch, tmp_path: Path)
         },
     )
     monkeypatch.setattr("lex.runtime_dependencies.requests.post", fake_post)
+    monkeypatch.setattr("web.export_csv.resolved_ollama_api_base_url", lambda: "http://host.docker.internal:11434/api")
+    monkeypatch.setattr("web.export_csv.resolved_ollama_chat_model", lambda default="mistral": "gemma3:1b")
+    monkeypatch.setattr("web.export_csv.resolved_ollama_keep_alive", lambda default="10m": "12m")
+    monkeypatch.setattr("web.export_csv.requests.post", fake_post)
+    monkeypatch.setenv("LEX_RAW_CHAT_ENABLED", "1")
+    monkeypatch.setattr("lex.orchestrator_http.build_bounded_http_payload", lambda **_kwargs: None)
 
     with app.test_client() as client:
         client.post(
@@ -1778,7 +1784,10 @@ def test_assistente_chat_usa_runtime_ollama_risolto(monkeypatch, tmp_path: Path)
         )
         response = client.post(
             "/api/assistente/chat",
-            json={"messages": [{"role": "user", "content": "Preparami una bozza di memoria per la pratica"}]},
+            json={
+                "allow_unbounded_generation": True,
+                "messages": [{"role": "user", "content": "Preparami una bozza di memoria per la pratica"}],
+            },
         )
 
     body = response.get_data(as_text=True)

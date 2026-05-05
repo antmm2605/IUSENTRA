@@ -2,6 +2,20 @@
 
 Da IUSENTRA 2.195.24 il Local Signer include anche un ponte PEC locale.
 
+## Sincronizzazione dashboard
+
+Da IUSENTRA 2.198.68 la Panoramica React avvia una sincronizzazione non bloccante di PEC ed email ordinaria dopo il primo render, tramite `POST /api/v1/ui/dashboard/sync-mailboxes`.
+
+Il servizio backend `web.services.mailbox_sync_runtime`:
+
+- riusa la stessa logica delle route manuali `/email/sincronizza` e `/email-ordinaria/sincronizza`;
+- mantiene separati i database `EMAIL_CASELLA_DB` e `EMAIL_ORDINARIA_DB`;
+- applica lock per evitare sync concorrenti sulla stessa casella/tenant;
+- applica cooldown di default pari a 180 secondi, bypassabile solo con `force=true` sui percorsi esplicitamente autorizzati;
+- svuota la cache della dashboard dopo il tentativo di sync, cosi' un refresh esplicito legge i dati aggiornati.
+
+La Panoramica non esegue mai IMAP nel builder sincrono del payload: si apre con dati locali/cache e aggiorna le card comunicazioni quando il job termina.
+
 ## Perche esiste
 
 Alcuni provider PEC, in particolare in ambienti server cloud o dedicati, possono non accettare connessioni SMTP dall'IP del server. In questi casi la ricezione IMAP puo funzionare, mentre l'invio SMTP resta in timeout anche con host, porta e credenziali corretti.

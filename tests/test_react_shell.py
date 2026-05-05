@@ -903,8 +903,14 @@ def test_react_comunicazioni_email_messaggi_collegate_nav_e_shell():
     assert "Chiedi a Lex" not in email_page
     assert "cache: 'no-store'" in email_data
     assert "query.set('_ts', String(Date.now()))" in email_data
-    assert "/api/v1/ui/dashboard?" in Path("frontend/src/data.ts").read_text(encoding="utf-8")
-    assert "cache:'no-store'" in Path("frontend/src/data.ts").read_text(encoding="utf-8")
+    dashboard_data = Path("frontend/src/data.ts").read_text(encoding="utf-8")
+    assert "getDashboard(options: { refresh?: boolean } = {})" in dashboard_data
+    assert "query.set('refresh', '1')" in dashboard_data
+    assert "/api/v1/ui/dashboard${suffix}" in dashboard_data
+    assert "syncDashboardMailboxes" in dashboard_data
+    assert "query.set('_ts', String(Date.now()))" not in dashboard_data
+    assert "cache:'no-store'" not in dashboard_data
+    assert "cache: 'no-store'" not in dashboard_data
     assert "Nuovo messaggio" in messaggi_page
     assert "getMessaggiData" in messaggi_data
     assert "sendEndpoint" in messaggi_data
@@ -2296,6 +2302,7 @@ def test_react_dashboard_cache_breve_e_email_recenti_ordinarie_separate_da_pec(t
     assert first.headers["X-IUSENTRA-Cache"] == "MISS"
     assert second.headers["X-IUSENTRA-Cache"] == "HIT"
     assert refreshed.headers["X-IUSENTRA-Cache"] == "MISS"
+    assert payload["cache"] == {"hit": False, "ttl_seconds": 60}
     assert payload["pec"][0]["id"] == "pec-dashboard"
     assert payload["emails"][0]["id"] == "mail-ordinaria-dashboard"
     assert payload["emails"][0]["href"] == "/email-ordinaria/"
@@ -2835,17 +2842,24 @@ def test_react_fascicolo_dettaglio_normalizza_referente_udienza_e_chiusura(tmp_p
         f"/api/v1/ui/fascicoli/{fascicolo.id}",
         headers={"X-API-Key": "react-test-key"},
     )
+    attivita_response = client.get(
+        f"/api/v1/ui/fascicoli/{fascicolo.id}/attivita",
+        headers={"X-API-Key": "react-test-key"},
+    )
     payload = response.get_json()
+    attivita_payload = attivita_response.get_json()
     profile = {item["label"]: item["value"] for item in payload["profile"]}
 
     assert response.status_code == 200
+    assert attivita_response.status_code == 200
     assert payload["fascicolo"]["leadLawyer"] == "Avv. Refactor"
     assert profile["Avv. referente"] == "Avv. Refactor"
     assert profile["Prossima udienza"] != "n.d."
     assert profile["Chiusura"] != "n.d."
     assert profile["Ultimo sync"] == imported_at_it
     assert payload["fascicolo"]["notes"] == f"Importato da PolisWeb il {imported_at_it}"
-    assert payload["activities"][0]["notes"] == f"Evento acquisito il {imported_at_it}"
+    assert payload["activities"] == []
+    assert attivita_payload["activities"][0]["notes"] == f"Evento acquisito il {imported_at_it}"
     assert imported_at not in str(payload)
 
 

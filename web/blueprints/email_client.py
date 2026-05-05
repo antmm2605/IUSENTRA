@@ -27,6 +27,7 @@ from flask import (
 )
 from pct.config_studio import _SMTPv4, _SMTP_SSLv4
 from web.blueprints.react_shell import render_react_shell_response
+from web.services.mailbox_sync_runtime import run_pec_mailbox_sync
 
 email_client = Blueprint("email_client", __name__, url_prefix="/email")
 
@@ -377,96 +378,7 @@ def stats_json():
 @_login_required
 def sincronizza():
     """AJAX — sincronizza la casella IMAP e aggiorna gli esiti PCT."""
-    ge = _get_gestore()
-
-    # Determina config IMAP: preferisci PEC, fallback su email ordinaria
-    pec_cfg   = _get_config_pec()
-    email_cfg = _get_config_email()
-
-    imap_host = imap_port = username = password = use_ssl = None
-
-    if pec_cfg and getattr(pec_cfg, "imap_host", ""):
-        imap_host = pec_cfg.imap_host
-        imap_port = getattr(pec_cfg, "imap_port", 993)
-        username  = pec_cfg.indirizzo
-        password  = pec_cfg.password
-        use_ssl   = getattr(pec_cfg, "use_ssl", True)
-    elif email_cfg and getattr(email_cfg, "imap_host", ""):
-        imap_host = email_cfg.imap_host
-        imap_port = getattr(email_cfg, "imap_port", 993)
-        username  = email_cfg.username
-        password  = email_cfg.password
-        use_ssl   = getattr(email_cfg, "use_ssl", True)
-
-    if not imap_host or not username:
-        return jsonify({
-            "ok": False,
-            "errore": "IMAP non configurato. Configura le credenziali in Impostazioni → Email.",
-        })
-
-    try:
-        poll_report = {"trovati": 0, "associati": 0, "duplicati": 0, "errori": 0}
-        log_esiti = []
-        auto_summary = {"aggiornati": 0, "non_abbinati": 0, "errori": 0, "totale": 0, "pst_in_attesa": 0}
-        if pec_cfg and getattr(pec_cfg, "imap_host", ""):
-            from pct.email_client import sincronizza_pec_e_fascicoli
-
-            gf = _get_fascicoli()
-            workflow = sincronizza_pec_e_fascicoli(
-                gestione_email=ge,
-                gestione_fascicoli=gf,
-                config_pec=pec_cfg,
-                state_path=_pec_state_path(),
-                limite=500,
-            )
-            ris = workflow.get("sync", {})
-            log_esiti = workflow.get("auto_esiti", []) or []
-            auto_summary = _riassunto_auto_esiti_route(ge, log_esiti)
-            poll_report = workflow.get("poll", {}) or poll_report
-        else:
-            from pct.email_client import cartelle_imap_standard
-
-            ris = ge.sincronizza_imap(
-                imap_host=imap_host,
-                imap_port=int(imap_port or 993),
-                username=username,
-                password=password,
-                use_ssl=bool(use_ssl),
-                cartelle_imap=cartelle_imap_standard(),
-                limite=500,
-                timeout_seconds=15,
-            )
-            if ris.get("pst_trovate", 0) > 0:
-                log_esiti = _auto_esiti(ge)
-                auto_summary = _riassunto_auto_esiti_route(ge, log_esiti)
-
-        _sync_inviati(ge)
-
-        _audit("email.sincronizzata", f"Nuove: {ris.get('nuove', 0)}, PST: {ris.get('pst_trovate', 0)}")
-        sync_errore = str(ris.get("errore", "") or "").strip()
-        warning = bool(sync_errore)
-        messaggio = "Sincronizzazione completata."
-        if warning:
-            messaggio = "Sincronizzazione completata con avvisi. Sincronizzazione IMAP non completata."
-
-        return jsonify({
-            "ok": True,
-            "warning": warning,
-            "messaggio": messaggio,
-            "nuove": ris.get("nuove", 0),
-            "pst_trovate": ris.get("pst_trovate", 0),
-            "allegati_salvati": ris.get("allegati_salvati", 0),
-            "esiti_aggiornati": auto_summary["aggiornati"],
-            "non_abbinati": auto_summary["non_abbinati"],
-            "pst_in_attesa": auto_summary["pst_in_attesa"],
-            "comunicazioni_cancelleria": poll_report.get("associati", 0),
-            "report": poll_report,
-            "errore": sync_errore,
-            "sync_errore": sync_errore,
-            "stats": ge.statistiche(),
-        })
-    except Exception as exc:
-        return jsonify({"ok": False, "errore": str(exc)})
+    return jsonify(run_pec_mailbox_sync())
 
 
 @email_client.route("/auto-esiti", methods=["POST"])

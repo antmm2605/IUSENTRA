@@ -20,6 +20,13 @@ def _all_conferimenti(preventivi_manager: Any) -> list[Any]:
     return []
 
 
+def _call_scoped(manager: Any, method_name: str, fascicolo_id: str, fallback: Callable[[], Any]) -> list[Any]:
+    method = getattr(manager, method_name, None)
+    if callable(method):
+        return list(method(fascicolo_id) or [])
+    return list(fallback() or [])
+
+
 def build_react_practice_engine_payload(
     *,
     fascicolo_id: str,
@@ -42,9 +49,22 @@ def build_react_practice_engine_payload(
         }
     cliente = _safe("cliente", lambda: get_clienti().get(getattr(fascicolo, "id_cliente", "")), None)
     gp = get_preventivi()
-    preventivi = _safe("preventivi", lambda: gp.tutti_preventivi(), [])
-    conferimenti = _safe("conferimenti", lambda: _all_conferimenti(gp), [])
-    parcelle = _safe("fatturazione", lambda: get_fatturazione().tutte(), [])
+    preventivi = _safe(
+        "preventivi",
+        lambda: _call_scoped(gp, "preventivi_per_fascicolo", fascicolo_id, lambda: gp.tutti_preventivi()),
+        [],
+    )
+    conferimenti = _safe(
+        "conferimenti",
+        lambda: _call_scoped(gp, "conferimenti_per_fascicolo", fascicolo_id, lambda: _all_conferimenti(gp)),
+        [],
+    )
+    fatturazione = get_fatturazione()
+    parcelle = _safe(
+        "fatturazione",
+        lambda: _call_scoped(fatturazione, "per_fascicolo", fascicolo_id, lambda: fatturazione.tutte()),
+        [],
+    )
     return build_regia_payload(
         get_practice_engine(),
         fascicolo=fascicolo,

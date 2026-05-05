@@ -20,6 +20,7 @@ function assertNotContains(source, unexpected, label) {
 }
 
 const app = read('src/App.tsx')
+const dashboardData = read('src/data.ts')
 const agenda = read('src/components/AgendaPage.tsx')
 const agendaData = read('src/agendaData.ts')
 const appointment = read('src/components/NuovoAppuntamentoPage.tsx')
@@ -144,6 +145,14 @@ assertNotContains(app, '<span>8</span>', 'badge notifiche senza conteggio invent
 assertNotContains(app, '2026/004 - N.RG', 'recenti senza fascicolo inventato')
 assertContains(app, "TopBar onOpenMenu", 'top bar operativa modulare')
 assertNotContains(app, 'Cerca fascicolo, cliente, pratica, scadenza...', 'top bar senza placeholder legacy')
+assertContains(dashboardData, 'getDashboard(options: { refresh?: boolean } = {})', 'dashboard refresh esplicito')
+assertContains(dashboardData, "query.set('refresh', '1')", 'dashboard usa refresh=1 solo esplicito')
+assertContains(dashboardData, 'syncDashboardMailboxes', 'sync mailbox panoramica non bloccante')
+assertContains(app, 'syncDashboardMailboxes()', 'panoramica avvia sync mailbox dopo primo payload')
+assertContains(app, "getDashboard({refresh:true})", 'panoramica ricarica cache dopo sync')
+assertNotContains(dashboardData, "query.set('_ts', String(Date.now()))", 'dashboard senza timestamp anti-cache')
+assertNotContains(dashboardData, "cache:'no-store'", 'dashboard senza no-store fetch compatto')
+assertNotContains(dashboardData, "cache: 'no-store'", 'dashboard senza no-store fetch')
 
 assertContains(topbar, 'TopBarSearch', 'top bar ricerca modulare')
 assertContains(topbar, 'TopBarCreateMenu', 'top bar menu nuovo')
@@ -185,6 +194,7 @@ assertContains(topbarTypes, 'TimeTrackingTimer', 'tipi timer top bar')
 
 assertNotContains(search, 'mockResults', 'ricerca studio')
 assertContains(searchData, '/api/global-search', 'api ricerca studio')
+assertContains(searchData, '/api/global-search/stats', 'stats ricerca studio endpoint leggero')
 assertContains(searchData, 'reindexStudioSearch', 'reindicizzazione ricerca studio')
 
 assertContains(agenda, 'AgendaPage', 'pagina agenda')
@@ -248,6 +258,12 @@ assertContains(fascicoliData, 'FascicoloFormGuardrails', 'tipo guardrail form fa
 assertContains(fascicoliData, 'guardrails: guardrails ?', 'normalizzazione guardrail form fascicolo')
 assertContains(fascicoliData, 'statusLabel: string', 'stato documento fascicolo normalizzato')
 assertContains(fascicoliData, 'statusTone: Tone', 'tono documento fascicolo normalizzato')
+assertContains(fascicoliData, 'FascicoliPagination', 'paginazione fascicoli tipizzata')
+assertContains(fascicoliData, "query.set('page_size'", 'query page_size fascicoli')
+assertContains(fascicoliData, 'getFascicoloDetailSection', 'caricamento lazy sezioni fascicolo')
+assertContains(fascicoli, "loadLazySection('regia')", 'regia fascicolo lazy')
+assertContains(fascicoliBridge, 'include_sections', 'payload dettaglio fascicolo con sezioni lazy')
+assertContains(fascicoliBridge, '_item_light', 'lista fascicoli item light')
 assertContains(fascicoli, 'doc.statusLabel', 'badge documento da payload backend')
 assertNotContains(fascicoli, 'className="iu-fas-detail-section" open', 'sezioni dettaglio chiuse di default')
 assertContains(fascicoliBridge, '"href": f"/fascicoli/{fid}"', 'link ufficiale dettaglio fascicolo')

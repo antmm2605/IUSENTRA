@@ -48,7 +48,12 @@ from web.services.react_clienti_bridge import (
     build_react_soggetto_modifica_payload,
 )
 from web.services.react_condivisioni_bridge import build_react_condivisioni_payload
-from web.services.react_dashboard_cache import get_dashboard_payload_cached
+from web.services.mailbox_sync_runtime import sync_mailboxes_for_current_context
+from web.services.react_dashboard_cache import (
+    DASHBOARD_CACHE_TTL_SECONDS,
+    clear_dashboard_payload_cache,
+    get_dashboard_payload_cached,
+)
 from web.services.react_document_editor_bridge import build_react_document_editor_payload
 from web.services.react_email_bridge import build_react_email_payload
 from web.services.react_fascicoli_bridge import (
@@ -192,6 +197,33 @@ def _request_payload() -> dict[str, Any]:
         raw = request.get_json(silent=True)
         return raw if isinstance(raw, dict) else {}
     return {key: value for key, value in request.form.items()}
+
+
+def _request_bool(name: str, default: bool = False) -> bool:
+    raw = request.args.get(name)
+    if raw is None:
+        return default
+    return str(raw).strip().lower() in {"1", "true", "si", "yes", "on"}
+
+
+def _request_int(*names: str, default: int) -> int:
+    for name in names:
+        raw = request.args.get(name)
+        if raw is None:
+            continue
+        try:
+            return int(str(raw).strip())
+        except (TypeError, ValueError):
+            return default
+    return default
+
+
+def _detail_include_sections(default: Iterable[str] | None = None) -> set[str]:
+    sections: set[str] = set(default or [])
+    raw = str(request.args.get("include") or "").strip()
+    if raw:
+        sections.update(part.strip().lower() for part in raw.replace(";", ",").replace(" ", ",").split(",") if part.strip())
+    return sections
 
 
 def _regia_context(id_fasc: str) -> dict[str, Any]:
@@ -1510,6 +1542,14 @@ def fascicoli_react_list():
     return jsonify(build_react_fascicoli_payload(
         get_fascicoli=get_fascicoli,
         get_scadenziario=get_scadenziario,
+        page=_request_int("page", default=1),
+        page_size=_request_int("page_size", "pageSize", default=25),
+        query=request.args.get("q", ""),
+        type_filter=request.args.get("type", ""),
+        status_filter=request.args.get("status", ""),
+        court=request.args.get("court", ""),
+        sort=request.args.get("sort", "recenti"),
+        alerts_only=_request_bool("alerts_only") or _request_bool("alertsOnly"),
     ))
 
 
@@ -1584,6 +1624,87 @@ def fascicolo_react_dettaglio(id_fasc: str):
         get_config_studio=_core_runtime_func("get_config_studio"),
         id_fasc=id_fasc,
         studio_avvocato_titolare=_studio_avvocato_titolare(),
+        include_sections=_detail_include_sections(),
+    ))
+
+
+@api_v1_react.get("/fascicoli/<id_fasc>/documenti")
+@_richiedi_auth
+def fascicolo_react_documenti(id_fasc: str):
+    return jsonify(build_react_fascicolo_detail_payload(
+        get_fascicoli=get_fascicoli,
+        get_clienti=get_clienti,
+        get_agenda=get_agenda,
+        get_scadenziario=get_scadenziario,
+        get_soggetti=get_soggetti,
+        get_preventivi=get_preventivi,
+        get_fatturazione=get_fatturazione,
+        get_timesheet=get_timesheet,
+        get_practice_engine=get_practice_engine,
+        get_config_studio=_core_runtime_func("get_config_studio"),
+        id_fasc=id_fasc,
+        studio_avvocato_titolare=_studio_avvocato_titolare(),
+        include_sections={"documenti"},
+    ))
+
+
+@api_v1_react.get("/fascicoli/<id_fasc>/attivita")
+@_richiedi_auth
+def fascicolo_react_attivita(id_fasc: str):
+    return jsonify(build_react_fascicolo_detail_payload(
+        get_fascicoli=get_fascicoli,
+        get_clienti=get_clienti,
+        get_agenda=get_agenda,
+        get_scadenziario=get_scadenziario,
+        get_soggetti=get_soggetti,
+        get_preventivi=get_preventivi,
+        get_fatturazione=get_fatturazione,
+        get_timesheet=get_timesheet,
+        get_practice_engine=get_practice_engine,
+        get_config_studio=_core_runtime_func("get_config_studio"),
+        id_fasc=id_fasc,
+        studio_avvocato_titolare=_studio_avvocato_titolare(),
+        include_sections={"attivita"},
+    ))
+
+
+@api_v1_react.get("/fascicoli/<id_fasc>/scadenze")
+@_richiedi_auth
+def fascicolo_react_scadenze(id_fasc: str):
+    return jsonify(build_react_fascicolo_detail_payload(
+        get_fascicoli=get_fascicoli,
+        get_clienti=get_clienti,
+        get_agenda=get_agenda,
+        get_scadenziario=get_scadenziario,
+        get_soggetti=get_soggetti,
+        get_preventivi=get_preventivi,
+        get_fatturazione=get_fatturazione,
+        get_timesheet=get_timesheet,
+        get_practice_engine=get_practice_engine,
+        get_config_studio=_core_runtime_func("get_config_studio"),
+        id_fasc=id_fasc,
+        studio_avvocato_titolare=_studio_avvocato_titolare(),
+        include_sections={"scadenze"},
+    ))
+
+
+@api_v1_react.get("/fascicoli/<id_fasc>/depositi")
+@_richiedi_auth
+def fascicolo_react_depositi(id_fasc: str):
+    return jsonify(build_react_fascicolo_detail_payload(
+        get_fascicoli=get_fascicoli,
+        get_clienti=get_clienti,
+        get_agenda=get_agenda,
+        get_scadenziario=get_scadenziario,
+        get_soggetti=get_soggetti,
+        get_preventivi=get_preventivi,
+        get_fatturazione=get_fatturazione,
+        get_timesheet=get_timesheet,
+        get_practice_engine=get_practice_engine,
+        get_config_studio=_core_runtime_func("get_config_studio"),
+        id_fasc=id_fasc,
+        studio_avvocato_titolare=_studio_avvocato_titolare(),
+        include_sections={"depositi"},
     ))
 
 
@@ -2072,6 +2193,11 @@ def dashboard():
             _build_dashboard_payload,
             refresh=refresh,
         )
+        payload = dict(payload)
+        payload["cache"] = {
+            "hit": bool(cache_hit),
+            "ttl_seconds": int(DASHBOARD_CACHE_TTL_SECONDS),
+        }
         response = jsonify(payload)
         response.headers["X-IUSENTRA-Cache"] = "HIT" if cache_hit else "MISS"
         response.headers["Cache-Control"] = "no-store, max-age=0"
@@ -2082,6 +2208,19 @@ def dashboard():
         response.headers["X-IUSENTRA-Cache"] = "BYPASS"
         response.headers["Cache-Control"] = "no-store, max-age=0"
         return response, 200
+
+
+@api_v1_react.post("/dashboard/sync-mailboxes")
+@_richiedi_auth
+def dashboard_sync_mailboxes():
+    payload = _request_payload()
+    force = str(payload.get("force") or request.args.get("force") or "").strip().lower() in {"1", "true", "si", "yes", "on"}
+    try:
+        result = sync_mailboxes_for_current_context(force=force)
+        result["ok"] = bool(result.get("ok", True))
+        return jsonify(result)
+    finally:
+        clear_dashboard_payload_cache()
 
 
 @api_v1_react.get("/agenda")

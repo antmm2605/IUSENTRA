@@ -83,6 +83,7 @@ services:
       PCT_NOTIFICHE_LOG:    /data/notifiche/log.json
       PCT_TEMPLATE_ATTI_DB: /data/template_atti/templates.json
       PCT_PAGAMENTI_DIR:    /data/pagamenti
+      PCT_TIME_TRACKING_DB: /data/timesheet/time_tracking.json
       PCT_TENANTS_REGISTRY: /data/tenants.json
       PCT_STUDIO_CONFIG:    /data/config/studio.json
       PCT_MULTI_TENANT:     "1"
@@ -147,6 +148,7 @@ services:
       PCT_MULTI_TENANT: "1"
       PCT_STORAGE_MODE: "SQLITE"
       PCT_SQLITE_MODE: "1"
+      PCT_TIME_TRACKING_DB: /data/timesheet/time_tracking.json
       PCT_LOCAL_AI_BASE_URL: ${PCT_LOCAL_AI_BASE_URL:-http://host.docker.internal:11434/api/version}
       PCT_HOST_PLATFORM: ${OS:-}
       PCT_HOST_MACHINE: ${PROCESSOR_ARCHITECTURE:-}

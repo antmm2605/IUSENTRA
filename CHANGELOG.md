@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.198.66 - 2026-05-05
+
+- Allineati Dockerfile, compose locale e profilo Hetzner al nuovo `PCT_TIME_TRACKING_DB=/data/timesheet/time_tracking.json`, evitando fallback runtime su path repository non scrivibili nei container non-root.
+
 ## 2.198.65 - 2026-05-05
 
 - Trasformata la top bar desktop React in centro operativo rapido con command palette `Ctrl+K`/`Cmd+K`, ricerca globale reale, menu contestuale `+ Nuovo`, pannelli Oggi, Notifiche, Scadenze, Recenti e timer attivita.

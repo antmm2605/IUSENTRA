@@ -1,9 +1,10 @@
 from types import SimpleNamespace
 
+from lex.contracts import EvidenceItem
 from lex.providers.ollama_provider import OllamaProvider
 
 
-def test_ollama_provider_non_si_rompe_con_payload_senza_evidenze(monkeypatch):
+def test_ollama_provider_non_chiama_modello_su_strict_senza_evidenze(monkeypatch):
     provider = OllamaProvider()
 
     monkeypatch.setattr(
@@ -16,7 +17,7 @@ def test_ollama_provider_non_si_rompe_con_payload_senza_evidenze(monkeypatch):
     )
     monkeypatch.setattr(
         "lex.providers.ollama_provider._call_ollama",
-        lambda payload, api_base_url, timeout=120: "Risposta con fallback web gestito correttamente.",
+        lambda payload, api_base_url, timeout=120: (_ for _ in ()).throw(AssertionError("Ollama non deve essere chiamato")),
     )
 
     draft = provider.generate(
@@ -26,11 +27,10 @@ def test_ollama_provider_non_si_rompe_con_payload_senza_evidenze(monkeypatch):
         workflow="giurisprudenza",
     )
 
-    assert "Pronuncia individuata" in draft.text
-    assert "Nessuna fonte giurisprudenziale strutturata disponibile" in draft.text
-    assert draft.metadata["status"] == "ok"
+    assert "base verificata sufficiente" in draft.text
+    assert draft.metadata["status"] == "skipped"
+    assert draft.metadata["skipped_generation_reason"] == "strict_workflow_without_evidence"
     assert draft.metadata["evidence_count"] == 0
-    assert draft.metadata["case_law_fallback_used"] is True
 
 
 def test_ollama_provider_filtra_risposte_meta_su_fascicolo(monkeypatch):
@@ -98,12 +98,26 @@ def test_ollama_provider_filtra_risposte_meta_su_giurisprudenza(monkeypatch):
     draft = provider.generate(
         request=SimpleNamespace(query="Sentenza n. 8785 del 08/04/2026"),
         context={"focus": "ricerca_legale"},
-        evidence={"items": [], "citations": [], "official_sources": []},
+        evidence={
+            "items": [
+                EvidenceItem(
+                    source_type="giurisprudenza",
+                    source_id="cass-8785-2026",
+                    title="Sentenza Cassazione n. 8785/2026",
+                    content="Pronuncia verificata in estratto.",
+                    score=0.9,
+                    metadata={"organo": "Cassazione", "numero_sentenza": "8785", "anno_sentenza": "2026"},
+                    verified_reference=True,
+                )
+            ],
+            "citations": [],
+            "official_sources": [],
+        },
         workflow="giurisprudenza",
     )
 
     assert "Pronuncia individuata" in draft.text
-    assert "Nessuna fonte giurisprudenziale strutturata disponibile" in draft.text
+    assert "Sentenza Cassazione n. 8785/2026" in draft.text
     assert draft.metadata["status"] == "fallback_meta"
     assert draft.metadata["meta_response_filtered"] is True
     assert draft.metadata["case_law_fallback_used"] is True

@@ -95,6 +95,8 @@ class AnswerBuilder:
                 confidence = max(confidence, 0.82 if workflow == "economico" else 0.72)
             elif evidence_count:
                 confidence = max(confidence, 0.62)
+        if not evidence_sufficient:
+            confidence = min(confidence, 0.54)
         confidence = max(0.0, min(0.99, round(confidence, 4)))
         answer_mode = "grounded" if evidence_sufficient else "needs_review"
         next_actions: list[str] = []
@@ -110,6 +112,8 @@ class AnswerBuilder:
             next_actions.append("Verifica le fonti esterne ufficiali utilizzate nel fallback")
         if missing_evidence and "Colma i gap di evidenza prima di chiudere la risposta" not in next_actions:
             next_actions.append("Colma i gap di evidenza prima di chiudere la risposta")
+        if not evidence_sufficient and not missing_evidence:
+            next_actions.append("Aggancia evidenze, fonti o contesto di fascicolo prima di usare la risposta.")
         if restricted_registry_sources:
             next_actions.append("Se serve una fonte riservata, usa le credenziali o il portale dedicato dello studio")
         elif partner_registry_sources or credentialed_registry_sources:
@@ -139,6 +143,7 @@ class AnswerBuilder:
                 *case_law_warnings,
                 *legal_quality_warnings,
                 *professional.warnings,
+                *([] if evidence_sufficient else ["Evidenze insufficienti: risposta in modalita' needs_review."]),
             ]
         )
         try:
@@ -203,6 +208,7 @@ class AnswerBuilder:
                 "partner_sources": partner_registry_sources,
                 "credentialed_sources": credentialed_registry_sources,
                 "confidence": confidence,
+                "confidence_label": self._confidence_label(confidence),
                 "answer_mode": answer_mode,
                 "professional_answer": professional.metadata,
                 "provenance": provenance_envelope,
@@ -251,3 +257,10 @@ class AnswerBuilder:
             seen.add(key)
             result.append(clean)
         return result
+
+    def _confidence_label(self, value: float) -> str:
+        if value >= 0.8:
+            return "alta"
+        if value >= 0.55:
+            return "media"
+        return "bassa"

@@ -127,7 +127,7 @@ def test_assistente_stato_endpoint_returns_200():
     assert payload["modello_attivo"] == "mistral"
 
 
-def test_assistente_attachments_endpoint_returns_prompt_block():
+def test_assistente_attachments_endpoint_returns_attachment_evidence_metadata():
     app = make_app()
     client = app.test_client()
 
@@ -140,7 +140,8 @@ def test_assistente_attachments_endpoint_returns_prompt_block():
     payload = response.get_json()
     assert payload["ok"] is True
     assert payload["attachments"] == [{"name": "atto.pdf"}]
-    assert payload["prompt_block"] == "ALLEGATI"
+    assert payload["prompt_block"] == ""
+    assert payload["evidence_mode"] == "attachment_evidence"
 
 
 def test_lex_fascicolo_standalone_page_removed():

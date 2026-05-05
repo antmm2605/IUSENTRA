@@ -93,6 +93,5 @@ def test_risposta_normativa_incompleta_richiede_revisione_professionale():
     assert "Manca una fonte ufficiale verificata." in response.answer
     assert "Revisione professionale richiesta" in response.answer
     assert response.metadata["professional_answer"]["human_review_required"] is True
-    assert response.warnings == [
-        "Risposta da revisionare: rischio elevato o fonti non ancora complete."
-    ]
+    assert "Risposta da revisionare: rischio elevato o fonti non ancora complete." in response.warnings
+    assert "Evidenze insufficienti: risposta in modalita' needs_review." in response.warnings

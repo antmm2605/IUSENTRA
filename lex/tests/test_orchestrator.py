@@ -139,7 +139,7 @@ def test_warmup_response_returns_sources_ready_and_runtime():
     assert payload["runtime"] == {"ok": True, "chat_model": "mistral"}
 
 
-def test_attachments_response_returns_prompt_block():
+def test_attachments_response_returns_attachment_evidence_metadata():
     orch = make_orchestrator()
 
     payload, status = orch.attachments_response(
@@ -150,7 +150,8 @@ def test_attachments_response_returns_prompt_block():
     assert payload["ok"] is True
     assert payload["attachments"] == [{"name": "atto.pdf"}, {"name": "allegato.pdf"}]
     assert payload["errors"] == []
-    assert payload["prompt_block"] == "ALLEGATI:2"
+    assert payload["prompt_block"] == ""
+    assert payload["evidence_mode"] == "attachment_evidence"
 
 
 def test_document_response_rejects_missing_answer():

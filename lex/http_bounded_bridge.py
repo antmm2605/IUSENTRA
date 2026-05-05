@@ -1,10 +1,15 @@
 from __future__ import annotations
 
+import os
 from functools import lru_cache
 from typing import Any
 
 from .contracts import Citation, LexRequest, LexResponse
 from .formatting.ui_payloads import direct_answer_payload
+from .retrieval.attachment_evidence import (
+    attachment_evidence_source_rows,
+    build_attachment_evidence,
+)
 
 _BOUNDED_FOCUS_TOPICS = {
     "economico",
@@ -27,10 +32,30 @@ _STRICT_OFFICIAL_INTENTS = {"giurisprudenza", "normativa", "pratica_procedura"}
 _STRICT_SOURCE_WORKFLOWS = {"normativa", "giurisprudenza", "prassi", "research", "fonti"}
 _LEGAL_BOUNDED_PROFILE_INTENTS = {"giurisprudenza", "normativa"}
 _LEGAL_BOUNDED_FOCUS_TOPICS = {"ricerca_legale", "archivio_sentenze", "sentenze_civili", "sentenze_web"}
+_FALSE_VALUES = {"0", "false", "falso", "no", "off", "disabled", "disabilitato"}
+_TRUE_VALUES = {"1", "true", "vero", "yes", "si", "on", "enabled", "abilitato"}
 
 
 def _clean_spaces(value: Any) -> str:
     return " ".join(str(value or "").split()).strip()
+
+
+def _env_flag(name: str, *, default: bool) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    value = _clean_spaces(raw).lower()
+    if value in _FALSE_VALUES:
+        return False
+    if value in _TRUE_VALUES:
+        return True
+    return default
+
+
+def _governed_only_enabled() -> bool:
+    """Ritorna True quando Lex deve usare solo workflow governati."""
+
+    return _env_flag("LEX_GOVERNED_ONLY", default=True)
 
 
 def _user_id(user: Any) -> str:
@@ -113,14 +138,22 @@ def _should_use_bounded_workflow(
     attachments: list[dict[str, Any]] | None,
     studio_context: dict[str, Any],
 ) -> bool:
-    if list(attachments or []):
-        return False
     request_profile = dict(studio_context.get("request_profile") or {})
-    if bool(request_profile.get("drafting_mode")):
-        return False
     profile_intent = _clean_spaces(request_profile.get("intent"))
     focus_topic = _clean_spaces(studio_context.get("focus_topic"))
     source_mode = _clean_spaces(studio_context.get("source_mode") or request_profile.get("source_mode"))
+
+    if list(attachments or []):
+        return True
+
+    if _governed_only_enabled():
+        return True
+
+    # Modalita' legacy: disponibile solo quando LEX_GOVERNED_ONLY=0.
+    if list(attachments or []):
+        return False
+    if bool(request_profile.get("drafting_mode")):
+        return False
     legal_request = profile_intent in _LEGAL_BOUNDED_PROFILE_INTENTS or focus_topic in _LEGAL_BOUNDED_FOCUS_TOPICS
     legal_bounded_request = (
         legal_request
@@ -242,6 +275,70 @@ def _confidence_reason(response: LexResponse) -> str:
     return "Risposta costruita sul contesto disponibile; conviene comunque verificare i dati operativi prima dell'azione finale."
 
 
+def _attachment_needs_indexing_payload(
+    *,
+    current_user_message: str,
+    resolved_effective_question: str,
+    studio_context: dict[str, Any],
+    attachments: list[dict[str, Any]],
+) -> dict[str, Any]:
+    reply = (
+        "Non posso usare gli allegati come semplice testo libero nel prompt. "
+        "Serve prima una lettura governata o un'indicizzazione riuscita del documento, "
+        "cosi' Lex possa trasformarlo in evidenze verificabili."
+    )
+    payload = direct_answer_payload(
+        current_user_message,
+        reply,
+        query_type="workflow_answer",
+        sources=[],
+        citations=[],
+        legal_reference_guard_active=True,
+    )
+    payload.update(
+        {
+            "question": current_user_message,
+            "effective_question": resolved_effective_question,
+            "answer": reply,
+            "warnings": [
+                "Allegati presenti ma non trasformati in evidenze governate.",
+                "Lex non riversa documenti nel prompt libero del modello.",
+            ],
+            "next_actions": [
+                "Ricarica il documento con testo estraibile oppure abilita il parser/OCR governato.",
+                "Se il documento appartiene a un fascicolo, indicizzalo nel fascicolo prima di chiedere una sintesi.",
+            ],
+            "risk_level": "medium",
+            "confidence": 0.18,
+            "confidence_label": "bassa",
+            "confidence_reason": "Gli allegati non sono ancora evidenze citabili.",
+            "answer_mode": "needs_review",
+            "reference_label": _clean_spaces(studio_context.get("focus_label")),
+            "focus_label": _clean_spaces(studio_context.get("focus_label")),
+            "focus_topic": _clean_spaces(studio_context.get("focus_topic")),
+            "disable_exports": True,
+            "request_profile": dict(studio_context.get("request_profile") or {}),
+            "source_policy_summary": dict(studio_context.get("source_policy_summary") or {}),
+            "source_mode": _clean_spaces(studio_context.get("source_mode")),
+            "workflow": "attachment_evidence",
+            "provider": "guardrail",
+            "considered_sources": [],
+            "compared_sources": [],
+            "missing_evidence": [
+                "Testo allegato non disponibile come EvidenceItem.",
+                f"Allegati ricevuti: {len(list(attachments or []))}.",
+            ],
+            "evidence_summary": {
+                "evidence_count": 0,
+                "attachment_count": len(list(attachments or [])),
+                "attachment_evidence_count": 0,
+                "evidence_sufficient": False,
+            },
+        }
+    )
+    return payload
+
+
 def build_bounded_http_payload(
     *,
     user: Any,
@@ -310,6 +407,25 @@ def build_bounded_http_payload(
             or _clean_spaces(studio_context.get("focus_topic")) in {"ricerca_legale", "archivio_sentenze", "sentenze_civili", "sentenze_web", "telematico"}
         ),
     )
+
+    attachment_evidence = build_attachment_evidence(attachments, request=request, context=studio_context)
+    if list(attachments or []) and not attachment_evidence:
+        return _attachment_needs_indexing_payload(
+            current_user_message=current_user_message,
+            resolved_effective_question=resolved_effective_question,
+            studio_context=studio_context,
+            attachments=list(attachments or []),
+        )
+    if attachment_evidence:
+        seed = dict(metadata.get("studio_context_seed") or {})
+        seed_sources = list(seed.get("sources") or [])
+        seed_sources.extend(attachment_evidence_source_rows(attachment_evidence))
+        seed["sources"] = seed_sources
+        seed.setdefault("attachment_evidence", attachment_evidence_source_rows(attachment_evidence))
+        metadata["studio_context_seed"] = seed
+        metadata["attachment_evidence_count"] = len(attachment_evidence)
+        metadata["attachment_count"] = len(list(attachments or []))
+        request.metadata = metadata
 
     response = _application_lex_service().ask(request)
     if not isinstance(response, LexResponse):

@@ -89,6 +89,15 @@ Esempi coperti:
 - `balanced`: combina fonti interne e secondarie affidabili con prudenza.
 - `broad`: utile per drafting e ricerca larga, ma con warning espliciti.
 
+## Modalita' governed-only
+
+La modalita' professionale raccomandata e' `LEX_GOVERNED_ONLY=1`, attiva di default.
+In questa modalita' ogni richiesta non sociale passa dal bounded workflow e la chat libera resta bloccata.
+La raw chat puo' essere riattivata solo con doppio consenso tecnico: `LEX_RAW_CHAT_ENABLED=1` e `allow_unbounded_generation=true` nella singola richiesta.
+
+Gli allegati caricati dall'utente non vengono piu' riversati come blocco prompt: devono diventare evidenze governate oppure Lex si ferma chiedendo parsing, OCR o indicizzazione.
+Il comportamento operativo completo e' documentato in `docs/LEX_GOVERNED_ONLY.md`.
+
 ## Regole di prodotto
 
 - Lex non inventa norme, sentenze o PDF ufficiali.

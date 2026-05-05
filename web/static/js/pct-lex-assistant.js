@@ -1690,6 +1690,7 @@
         context_label: currentPageContextPayload().context_label,
         page_context: currentPageContextPayload().page_context,
         page_path: currentPageContextPayload().page_path,
+        attachments: state.attachments.slice(),
       })
       .then(function (prepared) {
         if (prepared && Object.prototype.hasOwnProperty.call(prepared, 'focus_label')) {
@@ -1702,7 +1703,7 @@
         preparedConfidenceValue = Number(prepared && prepared.confidence || 0);
         preparedSources = Array.isArray(prepared && prepared.sources) ? prepared.sources.slice() : [];
         preparedCitations = Array.isArray(prepared && prepared.citations) ? prepared.citations.slice() : [];
-        if ((String(prepared && prepared.query_type || '').trim() === 'social_only' || String(prepared && prepared.query_type || '').trim() === 'direct_answer' || String(prepared && prepared.query_type || '').trim() === 'workflow_answer') && prepared && prepared.answer) {
+        if ((String(prepared && prepared.query_type || '').trim() === 'social_only' || String(prepared && prepared.query_type || '').trim() === 'direct_answer' || String(prepared && prepared.query_type || '').trim() === 'workflow_answer' || String(prepared && prepared.query_type || '').trim() === 'governed_chat_blocked') && prepared && prepared.answer) {
           return {
             answer: String(prepared.answer || '').trim(),
             citations: preparedCitations,
@@ -1715,11 +1716,6 @@
             disableExports: Boolean(prepared.disable_exports),
             legalReferenceGuardActive: preparedLegalReferenceGuardActive,
           };
-        }
-        var docs = documentsHelper();
-        var docsBlock = docs ? docs.buildPromptBlock(state.attachments) : '';
-        if (docsBlock) {
-          prepared.prompt = String(prepared.prompt || '').trim() + '\n\n' + docsBlock;
         }
         var partial = '';
         return browserBridge()

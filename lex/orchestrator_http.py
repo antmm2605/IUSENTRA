@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from io import BytesIO
 import json
+import os
 from time import monotonic
 from typing import Any
 
@@ -19,8 +20,82 @@ from .http_bounded_bridge import build_bounded_http_payload
 from .telemetry.audit import audit_trace
 
 
+_TRUE_VALUES = {"1", "true", "vero", "yes", "si", "on", "enabled", "abilitato"}
+
+
 def clean_spaces(value: Any) -> str:
     return " ".join(str(value or "").split()).strip()
+
+
+def _raw_chat_enabled() -> bool:
+    return clean_spaces(os.getenv("LEX_RAW_CHAT_ENABLED")).lower() in _TRUE_VALUES
+
+
+def _allow_unbounded_generation(data: dict[str, Any]) -> bool:
+    raw = data.get("allow_unbounded_generation")
+    if raw is True:
+        return True
+    return clean_spaces(raw).lower() in _TRUE_VALUES
+
+
+def _raw_chat_allowed(data: dict[str, Any]) -> bool:
+    return _raw_chat_enabled() and _allow_unbounded_generation(data)
+
+
+def _raw_chat_blocked_message() -> str:
+    return (
+        "Non posso rispondere in modalita' chat libera senza evidenze governate. "
+        "Serve agganciare contesto, fonti o workflow prima di produrre una risposta affidabile."
+    )
+
+
+def _raw_chat_blocked_payload(
+    *,
+    question: str,
+    effective_question: str,
+    studio_context: dict[str, Any],
+    allow_unbounded_generation: bool,
+) -> dict[str, Any]:
+    reply = _raw_chat_blocked_message()
+    payload = direct_answer_payload(
+        question,
+        reply,
+        query_type="governed_chat_blocked",
+        sources=[],
+        citations=[],
+        legal_reference_guard_active=True,
+    )
+    payload.update(
+        {
+            "answer": reply,
+            "effective_question": effective_question,
+            "warnings": ["Chat libera disattivata: Lex richiede evidenze o workflow governato."],
+            "next_actions": [
+                "Seleziona un fascicolo, un documento, una fonte ufficiale o un flusso operativo prima di chiedere la risposta.",
+            ],
+            "risk_level": "medium",
+            "confidence": 0.12,
+            "confidence_label": "bassa",
+            "confidence_reason": "La richiesta non ha prodotto un payload bounded e la generazione libera non e' abilitata.",
+            "answer_mode": "needs_review",
+            "disable_exports": True,
+            "request_profile": studio_context.get("request_profile") or {},
+            "source_policy_summary": studio_context.get("source_policy_summary") or {},
+            "source_mode": clean_spaces(studio_context.get("source_mode")),
+            "considered_sources": [],
+            "compared_sources": [],
+            "missing_evidence": ["Nessun payload bounded disponibile per questa richiesta."],
+            "evidence_summary": {
+                "evidence_count": 0,
+                "evidence_sufficient": False,
+                "raw_chat_enabled": _raw_chat_enabled(),
+                "allow_unbounded_generation": allow_unbounded_generation,
+            },
+            "provider": "guardrail",
+            "workflow": "governed_chat_blocked",
+        }
+    )
+    return payload
 
 
 def page_context_prompt_block(data: dict[str, Any]) -> str:
@@ -253,8 +328,6 @@ def build_context_response(
         social_kind=routing.social_kind,
         opening_line=opening_line,
     )
-    if attachments:
-        prompt += "\n\n" + orchestrator.dependencies.build_attachment_prompt_block(attachments)
 
     bounded_payload = build_bounded_http_payload(
         user=user,
@@ -290,6 +363,20 @@ def build_context_response(
         bounded_payload["structured_context"] = studio_context.get("structured_context") or {}
         bounded_payload["retrieval_sources"] = bounded_payload.get("retrieval_sources") or []
         return bounded_payload, 200
+
+    if not _raw_chat_allowed(data):
+        payload = _raw_chat_blocked_payload(
+            question=current_user_message,
+            effective_question=resolved_effective_question,
+            studio_context=studio_context,
+            allow_unbounded_generation=_allow_unbounded_generation(data),
+        )
+        payload["routing"] = routing_payload(routing)
+        payload["followup_resolution"] = followup_resolution_payload(followup)
+        payload["focus_label"] = str(studio_context.get("focus_label") or "").strip()
+        payload["focus_topic"] = str(studio_context.get("focus_topic") or "").strip()
+        payload["structured_context"] = studio_context.get("structured_context") or {}
+        return payload, 200
 
     retrieval_sources = orchestrator.search_ranker.collect_and_rank(
         pratica_id=str(data.get("pratica_id") or ""),
@@ -372,7 +459,9 @@ def attachments_response(orchestrator, *, files: list[dict[str, Any]]) -> tuple[
         "ok": True,
         "attachments": attachments,
         "errors": errors,
-        "prompt_block": orchestrator.dependencies.build_attachment_prompt_block(attachments),
+        "prompt_block": "",
+        "evidence_mode": "attachment_evidence",
+        "evidence_count": len([item for item in attachments if clean_spaces(item.get("text_excerpt"))]),
     }, 200
 
 
@@ -513,6 +602,23 @@ def chat_response(
             },
         )
 
+    if not _raw_chat_allowed(data):
+        direct_answer = _raw_chat_blocked_message()
+
+        def generate_blocked():
+            yield f"data: {json.dumps({'token': direct_answer})}\n\n"
+            yield "data: [DONE]\n\n"
+
+        return Response(
+            stream_with_context(generate_blocked()),
+            mimetype="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "X-Accel-Buffering": "no",
+                "Connection": "keep-alive",
+            },
+        )
+
     allow_web_search = bool(data.get("allow_web_search")) or bool(data.get("web_search"))
     language_guidance = orchestrator.dependencies.build_language_guidance(
         question=resolved_effective_question,
@@ -554,8 +660,6 @@ def chat_response(
         social_kind=routing.social_kind,
         opening_line="",
     )
-    if attachments:
-        system_content += "\n\n" + orchestrator.dependencies.build_attachment_prompt_block(attachments)
 
     payload = orchestrator.llm_provider.build_chat_payload(
         runtime=runtime,

@@ -45,6 +45,7 @@ _META_RESPONSE_MARKERS = (
     "[nome/dipartimento]",
     "simulazione di un sistema di chatbot",
 )
+_STRICT_WORKFLOWS = {"normativa", "giurisprudenza", "prassi", "research", "fonti"}
 
 
 def _safe_import_prompt_builder():
@@ -199,6 +200,25 @@ class OllamaProvider(BaseProvider):
         evidence_text = _format_evidence(evidence)
         context_text = _format_context(context)
         evidence_items = _evidence_items(evidence)
+        runtime = _resolve_runtime()
+        model = str(runtime.get("chat_model") or "mistral").strip() or "mistral"
+        api_base_url = str(runtime.get("api_base_url") or "http://127.0.0.1:11434/api").strip()
+        keep_alive = str(runtime.get("keep_alive") or "10m").strip() or "10m"
+        metadata: dict[str, Any] = {
+            "provider": self.provider_name,
+            "model": model,
+            "workflow": workflow or "chat",
+            "evidence_count": len(evidence_items),
+        }
+        if (workflow or "") in _STRICT_WORKFLOWS and not evidence_items:
+            metadata.update(
+                {
+                    "status": "skipped",
+                    "skipped_generation_reason": "strict_workflow_without_evidence",
+                }
+            )
+            return ProviderDraft(text=_strict_legal_fallback(workflow or "chat"), metadata=metadata)
+
         case_law_rows: list[Any] = []
         case_law_block = ""
         if (workflow or "") == "giurisprudenza":
@@ -227,27 +247,17 @@ class OllamaProvider(BaseProvider):
 
         user_message = "\n\n".join(user_sections) or query or ""
 
-        runtime = _resolve_runtime()
-        model = str(runtime.get("chat_model") or "mistral").strip() or "mistral"
-        api_base_url = str(runtime.get("api_base_url") or "http://127.0.0.1:11434/api").strip()
-        keep_alive = str(runtime.get("keep_alive") or "10m").strip() or "10m"
-
         payload = {
             "model": model,
             "keep_alive": keep_alive,
-            "options": {"temperature": 0.2, "num_ctx": 4096},
+            "options": {"temperature": 0.1, "num_ctx": 4096},
             "messages": [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_message},
             ],
         }
-
-        metadata: dict[str, Any] = {
-            "provider": self.provider_name,
-            "model": model,
-            "workflow": workflow or "chat",
-            "evidence_count": len(_evidence_items(evidence)),
-        }
+        if isinstance(evidence, dict) and "evidence_sufficient" in evidence:
+            metadata["evidence_sufficient"] = bool(evidence.get("evidence_sufficient"))
 
         try:
             text = _call_ollama(payload, api_base_url)

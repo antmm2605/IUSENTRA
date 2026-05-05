@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.198.67 - 2026-05-05
+
+- Introdotta la modalita' `LEX_GOVERNED_ONLY=1` come default professionale: le richieste non sociali passano dal bounded workflow e la raw chat resta disabilitata salvo `LEX_RAW_CHAT_ENABLED=1` piu' `allow_unbounded_generation=true`.
+- Rafforzati `CitationGuard`, `LegalReferenceGuard` e `HallucinationGuard` per bloccare o degradare workflow strict senza evidenze, fonti ufficiali, PDF/riferimenti verificati o estremi normativi/giurisprudenziali non fondati.
+- Gli allegati Lex vengono trasformati in `EvidenceItem` governati oppure bloccati con richiesta di parsing/OCR/indicizzazione, senza piu' inserirli come blocchi prompt nel modello o nel companion.
+- Aggiornati provider routing, `OllamaProvider`, payload professionale, documentazione `docs/LEX_GOVERNED_ONLY.md` e test anti-regressione su governed-only, raw chat, guardrail, Ollama e `needs_review`.
+
 ## 2.198.66 - 2026-05-05
 
 - Allineati Dockerfile, compose locale e profilo Hetzner al nuovo `PCT_TIME_TRACKING_DB=/data/timesheet/time_tracking.json`, evitando fallback runtime su path repository non scrivibili nei container non-root.

@@ -34,6 +34,8 @@ _EXACT_REFERENCE_PATTERNS: tuple[str, ...] = (
     r"\bsez\.\s*[ivx0-9]+",
     r"\becli\b",
     r"\bmassimario\b",
+    r"\blink ufficiale\b",
+    r"\burl ufficiale\b",
 )
 
 _STRICT_WORKFLOWS = {"normativa", "giurisprudenza", "prassi", "research", "fonti"}
@@ -60,6 +62,27 @@ def is_pdf_download_request(text: str) -> bool:
 def is_exact_reference_request(text: str) -> bool:
     haystack = _normalize_text(text)
     return bool(haystack) and any(re.search(pattern, haystack) for pattern in _EXACT_REFERENCE_PATTERNS)
+
+
+def contains_specific_unverified_reference(text: str) -> bool:
+    haystack = _normalize_text(text)
+    if not haystack:
+        return False
+    return any(
+        re.search(pattern, haystack)
+        for pattern in (
+            r"\bsentenza\s+n\.\s*\d+",
+            r"\bcassazione\b[^.\n]{0,80}\bn\.\s*\d+",
+            r"\bcorte costituzionale\b[^.\n]{0,80}\bn\.\s*\d+",
+            r"\bconsiglio di stato\b[^.\n]{0,80}\bn\.\s*\d+",
+            r"\btar\b[^.\n]{0,80}\bn\.\s*\d+",
+            r"\becli:[a-z0-9:.]+",
+            r"\bsez\.\s*[ivx0-9]+",
+            r"\blink ufficiale\b",
+            r"\burl ufficiale\b",
+            r"\bpdf ufficiale\b",
+        )
+    )
 
 
 def _evidence_items(evidence: Any) -> list[dict[str, Any]]:
@@ -277,11 +300,19 @@ class LegalReferenceGuard:
             )
 
         draft_text = _normalize_text(getattr(draft, "text", "") or "")
-        if "sentenza" in draft_text and is_case_law_lookup(question) and not verified:
+        if workflow in _STRICT_WORKFLOWS and contains_specific_unverified_reference(f"{question}\n{draft_text}") and not verified:
             return GuardVerdict(
                 allowed=False,
-                warnings=["La bozza cita giurisprudenza ma le fonti non sono verificate."],
-                reasons=["La risposta va degradata o rigenerata con retrieval migliore."],
+                warnings=["La risposta contiene riferimenti giuridici puntuali non verificati."],
+                reasons=["Sentenze, sezioni, numeri, ECLI, PDF o link ufficiali richiedono una fonte verificata."],
+                risk_level="high",
+            )
+
+        if contract.require_official_sources and workflow in _STRICT_WORKFLOWS and not verified:
+            return GuardVerdict(
+                allowed=False,
+                warnings=warnings,
+                reasons=reasons,
                 risk_level="high",
             )
 

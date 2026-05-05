@@ -157,7 +157,19 @@ def test_ollama_provider_inietta_contratto_qualita(monkeypatch) -> None:
     OllamaProvider().generate(
         request=SimpleNamespace(query="Spiega una norma"),
         context={},
-        evidence={"items": [], "citations": []},
+        evidence={
+            "items": [
+                EvidenceItem(
+                    source_type="normativa",
+                    source_id="norm-1",
+                    title="Fonte normativa verificata",
+                    content="Estratto normativo disponibile per il test.",
+                    score=0.9,
+                    verified_reference=True,
+                )
+            ],
+            "citations": [],
+        },
         workflow="normativa",
     )
 

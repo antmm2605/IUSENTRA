@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.198.73 - 2026-05-05
+
+- Eliminato il warning non funzionale di pytest su Windows durante il cleanup di `pytest-current`, usando un adapter di test che gestisce correttamente i reparse point directory senza nascondere fallimenti dei test.
+- Verificata la suite `Documenti AI Fascicolo` anche con esecuzioni pytest parallele locali, mantenendo verdi extraction, security, service, API e tool compatibility.
+
 ## 2.198.72 - 2026-05-05
 
 - Rafforzata la Fase 2 backend di `Documenti AI Fascicolo` con API di dominio esplicite per upload result, validazione size/hash/type, path tenant-aware versionati e risultato estrazione file-based.

@@ -98,6 +98,24 @@ renderizza la pagina PDF finale e controlla pixel su laterale, basso sinistra e
 basso destra. Local Signer include `reportlab`, necessario al timbro visibile
 con coccarda PNG trasparente.
 
+### Editor documento fascicolo
+
+Aggiornamento 2026-05-05: la route profonda
+`/fascicoli/<id>/documenti/<id_doc>/editor` apre una pagina React dedicata e non
+cade piu' sul dettaglio fascicolo generico.
+
+Il payload operativo e' `GET /api/v1/ui/fascicoli/<id>/documenti/<id_doc>/editor`
+e contiene metadati reali, capability, endpoint dell'editor esistente e
+`mock_fallback=false`. Il contenuto viene letto da
+`GET /api/editor/<id>/<id_doc>/html`; salvataggio, export PDF ed export DOCX
+restano sulle route Flask gia' protette e auditabili.
+
+La pagina React monta toolbar, area `contentEditable`, autosave, import locale,
+ricerca/sostituzione, statistiche, pannelli metadati e Lex contestuale dal
+bundle locale Vite. Il vecchio editor Jinja e' rimasto solo come fallback
+tecnico `?_legacy=1` e non e' piu' necessario caricare librerie da `https://esm.sh`
+per visualizzare l'editor nella route ufficiale.
+
 Aggiornamento successivo 2026-05-03: la modalita' laterale viene renderizzata
 con bordo destro controllato e testo verticale generato per la prova
 `firma_visibile_laterale.pdf`. La regressione e' presidiata dai test di layout

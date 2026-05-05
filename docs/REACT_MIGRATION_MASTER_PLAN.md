@@ -45,7 +45,7 @@ Il primo blocco e' considerato operativo sulle seguenti superfici:
 - Regia Operativa: `/app-v2/regia-operativa`
 - Ricerca Studio: `/app-v2/ricerca-studio`
 - Agenda: `/app-v2/agenda` e `/app-v2/agenda/nuovo`
-- Fascicoli: `/app-v2/fascicoli`, archivio, nuovo/modifica, dettaglio, quadro ed export
+- Fascicoli: `/app-v2/fascicoli`, archivio, nuovo/modifica, dettaglio, quadro, editor documento profondo ed export
 - Clienti e Anagrafiche: `GET /clienti` e `GET /clienti/nuovo`
 - Soggetti e Parti: `GET /soggetti` e `GET /soggetti/nuovo`
 - Comunicazioni: `GET /email/`, `GET /messaggi`, `GET /messaggi/nuovo`
@@ -61,6 +61,7 @@ Le pagine del blocco usano dati reali, API bridge sotto `/api/v1/ui/*`, testi vi
 - `GET /api/v1/ui/dashboard`
 - `GET /api/v1/ui/agenda`
 - `GET /api/v1/ui/fascicoli*`
+- `GET /api/v1/ui/fascicoli/<id>/documenti/<id_doc>/editor`
 - `GET /api/v1/ui/clienti`
 - `GET /api/v1/ui/clienti/nuovo`
 - `GET /api/v1/ui/soggetti`
@@ -73,6 +74,16 @@ Le pagine del blocco usano dati reali, API bridge sotto `/api/v1/ui/*`, testi vi
 - `GET /api/v1/ui/admin/database`
 
 I contratti devono dichiarare `mock_fallback=false`. Le superfici che inviano a servizi Flask esistenti dichiarano `writes=operational_routes`.
+
+## Fascicoli: editor documento React
+
+`GET /fascicoli/<id>/documenti/<id_doc>/editor` e' promosso a React con stato `react_operational_complete` per il flusso editor documentale.
+
+- Il payload arriva da `GET /api/v1/ui/fascicoli/<id>/documenti/<id_doc>/editor` e include solo dati reali del fascicolo/documento, capability, endpoint operativi e warning professionali.
+- Il contratto dichiara `mock_fallback=false`, `localBundle=true` e `writes=operational_routes`.
+- Il contenuto viene letto da `GET /api/editor/<id>/<id_doc>/html`; salvataggio, PDF e DOCX restano sulle route Flask storiche `/salva`, `/pdf` e `/docx`.
+- La pagina React non carica TipTap o Mammoth da CDN esterni: toolbar, import locale, ricerca/sostituzione, autosave e stati di salvataggio sono nel bundle Vite.
+- La vista Jinja classica resta disponibile solo come fallback tecnico `?_legacy=1`, senza link visibili nella UI utente.
 
 ## Servizi telematici: superfici di secondo livello
 

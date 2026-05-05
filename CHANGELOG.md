@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.198.61 - 2026-05-05
+
+- Promossa la route profonda `/fascicoli/<id>/documenti/<id_doc>/editor` a pagina React operativa: non degrada piu' al dettaglio fascicolo generico e non dipende da CDN esterni per montare l'editor.
+- Aggiunto il payload reale `/api/v1/ui/fascicoli/<id>/documenti/<id_doc>/editor`, con metadati fascicolo/documento, capability, warning professionali, `mock_fallback=false` e scritture sulle route Flask gia' operative dell'editor.
+- Introdotto un editor documentale React con toolbar professionale, autosave, stati di salvataggio, ricerca/sostituzione, import locale, export PDF/DOCX, pannelli metadati e Lex AI contestuale, usando solo documenti reali del fascicolo.
+- Aggiunti contratti frontend e test backend sulla route profonda, sul payload reale e sull'assenza del vecchio caricamento TipTap da `https://esm.sh`.
+
 ## 2.198.60 - 2026-05-04
 
 - Corretto il `Wizard preventivi`: le spese generali tabellari restano una voce separata `Spese generali 15%` di tipo `Spesa forfettaria`, entrano nell'imponibile fiscale e non vengono piu' riversate nelle `Anticipazioni art. 15`.

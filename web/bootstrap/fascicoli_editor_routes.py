@@ -17,6 +17,10 @@ def _wants_json_response() -> bool:
     )
 
 
+def _richiede_vista_classica() -> bool:
+    return (request.args.get("_legacy") or "").strip().lower() in {"1", "true", "si", "yes", "on"}
+
+
 def register_fascicoli_editor_routes(
     app: Flask,
     *,
@@ -31,6 +35,11 @@ def register_fascicoli_editor_routes(
     @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/editor")
     def editor_documento(id_fasc, id_doc):
         from pct.editor import estensione_editabile
+
+        if not _richiede_vista_classica():
+            from web.blueprints.react_shell import render_react_shell_response
+
+            return render_react_shell_response(f"fascicoli/{id_fasc}/documenti/{id_doc}/editor")
 
         gestore_fascicoli = get_fascicoli()
         try:

@@ -48,6 +48,7 @@ from web.services.react_clienti_bridge import (
     build_react_soggetto_modifica_payload,
 )
 from web.services.react_dashboard_cache import get_dashboard_payload_cached
+from web.services.react_document_editor_bridge import build_react_document_editor_payload
 from web.services.react_email_bridge import build_react_email_payload
 from web.services.react_fascicoli_bridge import (
     build_react_archivio_payload,
@@ -143,6 +144,11 @@ def _telematico_loader() -> Callable[[], Any]:
         raise RuntimeError("Runtime telematico non disponibile")
 
     return _missing_telematico
+
+
+def _fascicoli_loader() -> Callable[[], Any]:
+    loader = _core_runtime_func("get_fascicoli")
+    return loader if callable(loader) else get_fascicoli
 
 
 def _telematico_runtime_func(name: str) -> Callable[..., Any]:
@@ -1475,6 +1481,16 @@ def fascicolo_react_modifica(id_fasc: str):
         query=dict(request.args),
         correction_context={"active": False, "title": "", "help": "", "highlight": ""},
         studio_avvocato_titolare=_studio_avvocato_titolare(),
+    ))
+
+
+@api_v1_react.get("/fascicoli/<id_fasc>/documenti/<id_doc>/editor")
+@_richiedi_auth
+def fascicolo_react_documento_editor(id_fasc: str, id_doc: str):
+    return jsonify(build_react_document_editor_payload(
+        get_fascicoli=_fascicoli_loader(),
+        id_fasc=id_fasc,
+        id_doc=id_doc,
     ))
 
 

@@ -57,6 +57,7 @@ const AgendaPage = lazy(() => import('./components/AgendaPage').then((module) =>
 const NuovoAppuntamentoPage = lazy(() => import('./components/NuovoAppuntamentoPage').then((module) => ({ default: module.NuovoAppuntamentoPage })))
 const RicercaStudioPage = lazy(() => import('./components/RicercaStudioPage').then((module) => ({ default: module.RicercaStudioPage })))
 const FascicoliPage = lazy(() => import('./components/FascicoliPage').then((module) => ({ default: module.FascicoliPage })))
+const DocumentEditorPage = lazy(() => import('./components/DocumentEditorPage').then((module) => ({ default: module.DocumentEditorPage })))
 const AnagraficaClientiPage = lazy(() => import('./components/AnagraficaClientiPage').then((module) => ({ default: module.AnagraficaClientiPage })))
 const CartellaClientePage = lazy(() => import('./components/CartellaClientePage').then((module) => ({ default: module.CartellaClientePage })))
 const NuovoClientePage = lazy(() => import('./components/NuovoClientePage').then((module) => ({ default: module.NuovoClientePage })))
@@ -447,6 +448,17 @@ function resolveLexPageContext(routePath: string): GlobalLexConfig {
       secondaryLabel: 'Scadenziario',
     }
   }
+  if (/^\/fascicoli\/[^/]+\/documenti\/[^/]+\/editor$/.test(route)) {
+    return {
+      context: 'editor-documento',
+      title: 'Lex AI editor',
+      body: 'Legge il documento aperto, il fascicolo collegato e gli avvisi di conversione per aiutare nella revisione professionale.',
+      primaryHref: '/global-search?tipo=documenti',
+      primaryLabel: 'Cerca documenti',
+      secondaryHref: '/fascicoli',
+      secondaryLabel: 'Fascicoli',
+    }
+  }
   if (route.startsWith('/fascicoli')) {
     return {
       context: 'fascicoli',
@@ -777,7 +789,8 @@ export default function App() {
   const isAppointmentEditPage = /^\/agenda\/[^/]+\/modifica$/.test(routeKey)
   const isAgendaPage = !isNewAppointmentPage && !isAppointmentEditPage && (routeKey === '/agenda' || routeKey.startsWith('/agenda/'))
   const isRegiaPage = routeKey === '/workspace-intelligente' || routeKey === '/regia-operativa' || routeKey.startsWith('/regia-operativa/')
-  const isFascicoliPage = routeKey === '/fascicoli' || routeKey.startsWith('/fascicoli/')
+  const isDocumentEditorPage = /^\/fascicoli\/[^/]+\/documenti\/[^/]+\/editor$/.test(routeKey)
+  const isFascicoliPage = !isDocumentEditorPage && (routeKey === '/fascicoli' || routeKey.startsWith('/fascicoli/'))
   const isNewClientPage = routeKey === '/clienti/nuovo'
   const isNewSubjectPage = routeKey === '/soggetti/nuovo'
   const isClientEditPage = /^\/clienti\/[^/]+\/modifica$/.test(routeKey)
@@ -800,8 +813,8 @@ export default function App() {
   const isPrivacyRegistroPage = routeKey === '/privacy/registro' || routeKey === '/privacy/registro/nuovo' || routeKey === '/registro-gdpr'
   const isAdminDatabasePage = routeKey === '/admin/database'
   const isStudioModulePage = !isAdminDatabasePage && isStudioModuleRoute(routeKey)
-  const isDashboardPage = !isSearchPage && !isAgendaPage && !isNewAppointmentPage && !isAppointmentEditPage && !isRegiaPage && !isFascicoliPage && !isClientiPage && !isClientFolderPage && !isClientEditPage && !isNewClientPage && !isSoggettiPage && !isNewSubjectPage && !isSubjectEditPage && !isEmailComposePage && !isEmailOrdinariaComposePage && !isEmailPage && !isEmailOrdinariaPage && !isMessagesPage && !isNewMessagePage && !isScadenziarioPage && !isNewDeadlinePage && !isDeadlineEditPage && !isWizardProPage && !isTelematicoPage && !isTelematicoSurfacePage && !isPrivacyRegistroPage && !isAdminDatabasePage && !isStudioModulePage
-  const isStandalonePage = isSearchPage || isAgendaPage || isNewAppointmentPage || isAppointmentEditPage || isFascicoliPage || isClientiPage || isClientFolderPage || isClientEditPage || isNewClientPage || isSoggettiPage || isNewSubjectPage || isSubjectEditPage || isEmailComposePage || isEmailOrdinariaComposePage || isEmailPage || isEmailOrdinariaPage || isMessagesPage || isNewMessagePage || isScadenziarioPage || isNewDeadlinePage || isDeadlineEditPage || isWizardProPage || isTelematicoPage || isTelematicoSurfacePage || isPrivacyRegistroPage || isAdminDatabasePage || isStudioModulePage
+  const isDashboardPage = !isSearchPage && !isAgendaPage && !isNewAppointmentPage && !isAppointmentEditPage && !isRegiaPage && !isDocumentEditorPage && !isFascicoliPage && !isClientiPage && !isClientFolderPage && !isClientEditPage && !isNewClientPage && !isSoggettiPage && !isNewSubjectPage && !isSubjectEditPage && !isEmailComposePage && !isEmailOrdinariaComposePage && !isEmailPage && !isEmailOrdinariaPage && !isMessagesPage && !isNewMessagePage && !isScadenziarioPage && !isNewDeadlinePage && !isDeadlineEditPage && !isWizardProPage && !isTelematicoPage && !isTelematicoSurfacePage && !isPrivacyRegistroPage && !isAdminDatabasePage && !isStudioModulePage
+  const isStandalonePage = isSearchPage || isAgendaPage || isNewAppointmentPage || isAppointmentEditPage || isDocumentEditorPage || isFascicoliPage || isClientiPage || isClientFolderPage || isClientEditPage || isNewClientPage || isSoggettiPage || isNewSubjectPage || isSubjectEditPage || isEmailComposePage || isEmailOrdinariaComposePage || isEmailPage || isEmailOrdinariaPage || isMessagesPage || isNewMessagePage || isScadenziarioPage || isNewDeadlinePage || isDeadlineEditPage || isWizardProPage || isTelematicoPage || isTelematicoSurfacePage || isPrivacyRegistroPage || isAdminDatabasePage || isStudioModulePage
   const initialSearchQuery = new URLSearchParams(window.location.search).get('q') ?? ''
   const lexConfig = resolveLexPageContext(routeKey)
   const needsShellLexContext = !routePublishesLexContext(routeKey)
@@ -820,7 +833,7 @@ export default function App() {
         <div className="iu-main">
           <Topbar onOpenMenu={()=>setMobileMenuOpen(true)}/>
           <Suspense fallback={<PageLoading/>}>
-            {isSearchPage?<RicercaStudioPage initialQuery={initialSearchQuery}/>:isNewAppointmentPage||isAppointmentEditPage?<NuovoAppuntamentoPage/>:isAgendaPage?<AgendaPage/>:isRegiaPage?<RegiaOperativaPage data={data} loading={loading}/>:isFascicoliPage?<FascicoliPage/>:isNewClientPage||isNewSubjectPage||isClientEditPage||isSubjectEditPage?<NuovoClientePage/>:isClientFolderPage?<CartellaClientePage/>:isClientiPage?<AnagraficaClientiPage/>:isSoggettiPage?<SoggettiPage/>:isEmailOrdinariaComposePage?<EmailComposePage mode="ordinaria"/>:isEmailComposePage?<EmailComposePage mode="pec"/>:isEmailOrdinariaPage?<EmailOrdinariaPage/>:isEmailPage?<EmailPecPage/>:isNewMessagePage?<NuovoMessaggioPage/>:isMessagesPage?<MessaggiPage/>:isNewDeadlinePage||isDeadlineEditPage?<NuovaScadenzaPage/>:isScadenziarioPage?<ScadenziarioPage/>:isWizardProPage?<WizardProPage/>:isTelematicoPage?<TelematicoPage/>:isTelematicoSurfacePage?<TelematicoSurfacePage/>:isPrivacyRegistroPage?<PrivacyRegistroPage/>:isAdminDatabasePage?<AdminDatabasePage/>:isStudioModulePage?<StudioModulePage/>:<DashboardPage data={data} loading={loading}/>}
+            {isSearchPage?<RicercaStudioPage initialQuery={initialSearchQuery}/>:isNewAppointmentPage||isAppointmentEditPage?<NuovoAppuntamentoPage/>:isAgendaPage?<AgendaPage/>:isRegiaPage?<RegiaOperativaPage data={data} loading={loading}/>:isDocumentEditorPage?<DocumentEditorPage/>:isFascicoliPage?<FascicoliPage/>:isNewClientPage||isNewSubjectPage||isClientEditPage||isSubjectEditPage?<NuovoClientePage/>:isClientFolderPage?<CartellaClientePage/>:isClientiPage?<AnagraficaClientiPage/>:isSoggettiPage?<SoggettiPage/>:isEmailOrdinariaComposePage?<EmailComposePage mode="ordinaria"/>:isEmailComposePage?<EmailComposePage mode="pec"/>:isEmailOrdinariaPage?<EmailOrdinariaPage/>:isEmailPage?<EmailPecPage/>:isNewMessagePage?<NuovoMessaggioPage/>:isMessagesPage?<MessaggiPage/>:isNewDeadlinePage||isDeadlineEditPage?<NuovaScadenzaPage/>:isScadenziarioPage?<ScadenziarioPage/>:isWizardProPage?<WizardProPage/>:isTelematicoPage?<TelematicoPage/>:isTelematicoSurfacePage?<TelematicoSurfacePage/>:isPrivacyRegistroPage?<PrivacyRegistroPage/>:isAdminDatabasePage?<AdminDatabasePage/>:isStudioModulePage?<StudioModulePage/>:<DashboardPage data={data} loading={loading}/>}
           </Suspense>
         </div>
         <nav className={`iu-mobile ${mobileNavCollapsed?'is-collapsed':''}`} aria-label="Navigazione mobile">

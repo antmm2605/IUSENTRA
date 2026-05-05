@@ -87,7 +87,12 @@ def test_editor_documento_react_contract_statico():
     assert "DocumentEditorPage" in app_source
     assert "isDocumentEditorPage?<DocumentEditorPage/>" in app_source
     assert "Editor professionale" in page_source
-    assert "contentEditable" in page_source
+    assert "Font testo" in page_source
+    assert "Dimensione testo" in page_source
+    assert "Interlinea" in page_source
+    assert "Dati reali" in page_source
+    assert "contentEditable={editorEnabled}" in page_source
+    assert "Payload reale" not in page_source
     assert "https://esm.sh" not in page_source
     assert "/api/v1/ui/fascicoli/${encodeURIComponent(idFascicolo)}/documenti/${encodeURIComponent(idDocumento)}/editor" in data_source
     assert "build_react_document_editor_payload" in bridge_source

@@ -28,6 +28,7 @@ from typing import Optional
 
 # Estensioni supportate dall'editor
 ESTENSIONI_EDITABILI = {".docx", ".txt", ".html", ".htm", ".pdf"}
+_CID_TOKEN_RE = re.compile(r"\(cid:\s*\d+\)", re.IGNORECASE)
 
 
 def estensione_editabile(nome_file: str) -> bool:
@@ -115,15 +116,38 @@ def pdf_to_html(data: bytes) -> tuple[str, list[str], bool, int]:
                 chars = pagina.chars
                 testo_plain = pagina.extract_text() or ""
 
-                if not testo_plain.strip():
-                    # Pagina scansionata → OCR
-                    testo_ocr = _ocr_pagina(pagina)
-                    if testo_ocr:
-                        is_scanned = True
-                        # OCR produce solo testo piano: wrap in paragrafi
-                        for blocco in _splitta_paragrafi(testo_ocr):
+                if not testo_plain.strip() or not _testo_pdf_affidabile(testo_plain):
+                    motivo = (
+                        "font CID senza mappa Unicode"
+                        if testo_plain.strip()
+                        else "pagina priva di testo nativo"
+                    )
+                    testo_fallback = ""
+                    if testo_plain.strip():
+                        testo_alternativo = _estrai_testo_pymupdf(data, i)
+                        if _testo_pdf_affidabile(testo_alternativo):
+                            testo_fallback = testo_alternativo
+                            avvisi.append(
+                                f"Pagina {i+1}: testo nativo non affidabile ({motivo}), "
+                                "estratto con motore PDF alternativo."
+                            )
+                    if not testo_fallback:
+                        testo_ocr = _ocr_pagina(data, i, pagina)
+                        if _testo_pdf_affidabile(testo_ocr):
+                            testo_fallback = testo_ocr
+                            is_scanned = True
+                            avvisi.append(
+                                f"Pagina {i+1}: testo nativo non affidabile ({motivo}), estratto via OCR."
+                            )
+                    if testo_fallback:
+                        for blocco in _splitta_paragrafi(testo_fallback):
                             html_parti.append(f"<p>{_escape_html(blocco)}</p>")
-                    avvisi.append(f"Pagina {i+1}: testo estratto via OCR")
+                    else:
+                        html_parti.append(_html_pdf_non_modificabile(i + 1, motivo))
+                        avvisi.append(
+                            f"Pagina {i+1}: testo PDF non leggibile automaticamente. "
+                            "Apri l'anteprima originale o importa una versione DOCX/testo prima di modificare."
+                        )
                     if n_pagine > 1 and i < n_pagine - 1:
                         html_parti.append('<hr class="page-break">')
                     continue
@@ -172,14 +196,91 @@ def _estrai_tabella_html(tabella: list) -> str:
     return html
 
 
-def _ocr_pagina(pagina) -> str:
-    """OCR su pagina PDF via pytesseract."""
+def _testo_pdf_affidabile(testo: str) -> bool:
+    """Riconosce estrazioni PDF inutilizzabili, in particolare token CID."""
+    pulito = (testo or "").strip()
+    if not pulito:
+        return False
+    cid_count = len(_CID_TOKEN_RE.findall(pulito))
+    if cid_count >= 3:
+        return False
+    senza_cid = _CID_TOKEN_RE.sub("", pulito)
+    lettere = len(re.findall(r"[A-Za-zÀ-ÖØ-öø-ÿ0-9]", senza_cid))
+    if lettere < 8 and len(pulito) > 40:
+        return False
+    return True
+
+
+def _estrai_testo_pymupdf(data: bytes, page_index: int) -> str:
+    """Secondo motore di estrazione testo, utile su alcuni PDF con font embedded."""
     try:
-        import pytesseract
-        img = pagina.to_image(resolution=200).original
-        return pytesseract.image_to_string(img, lang="ita").strip()
+        import fitz
+    except ImportError:
+        return ""
+    doc = None
+    try:
+        doc = fitz.open(stream=data, filetype="pdf")
+        if page_index >= len(doc):
+            return ""
+        return (doc[page_index].get_text("text") or "").strip()
     except Exception:
         return ""
+    finally:
+        if doc is not None:
+            try:
+                doc.close()
+            except Exception:
+                pass
+
+
+def _ocr_pagina(data: bytes, page_index: int, pagina=None) -> str:
+    """OCR su pagina PDF via pytesseract, con renderer PDF robusto."""
+    try:
+        import pytesseract
+    except ImportError:
+        return ""
+
+    if pagina is not None:
+        try:
+            img = pagina.to_image(resolution=220).original
+            testo = pytesseract.image_to_string(img, lang="ita").strip()
+            if testo:
+                return testo
+        except Exception:
+            pass
+
+    try:
+        import pypdfium2 as pdfium
+        pdf = pdfium.PdfDocument(data)
+        page = pdf[page_index]
+        bitmap = page.render(scale=2.3)
+        try:
+            img = bitmap.to_pil()
+            return pytesseract.image_to_string(img, lang="ita").strip()
+        finally:
+            for obj in (bitmap, page, pdf):
+                close = getattr(obj, "close", None)
+                if callable(close):
+                    try:
+                        close()
+                    except Exception:
+                        pass
+    except Exception:
+        return ""
+
+
+def _html_pdf_non_modificabile(numero_pagina: int, motivo: str) -> str:
+    testo = (
+        f"Pagina {numero_pagina}: il testo del PDF non e' modificabile automaticamente "
+        f"perche' l'estrazione ha restituito {motivo}. Apri l'anteprima originale, "
+        "oppure importa una versione DOCX/testo verificata prima di salvare modifiche."
+    )
+    return (
+        '<section data-editor-disabled="true">'
+        "<p><strong>Testo PDF non modificabile automaticamente.</strong></p>"
+        f"<p>{_escape_html(testo)}</p>"
+        "</section>"
+    )
 
 
 def _estrai_righe_con_font(chars: list, lines_raw: list) -> list[dict]:
@@ -345,12 +446,15 @@ def documento_to_html(data: bytes, nome_file: str) -> tuple[str, list[str], dict
 
     if ext == ".pdf":
         html, avvisi, is_scanned, n_pagine = pdf_to_html(data)
+        editor_disabled = 'data-editor-disabled="true"' in html
         return html, avvisi, {
             "tipo_originale": "pdf",
             "is_scanned": is_scanned,
             "n_pagine": n_pagine,
             "n_caratteri": len(html),
-            "layout_preservato": not is_scanned
+            "layout_preservato": not is_scanned and not editor_disabled,
+            "testo_affidabile": not editor_disabled and "(cid:" not in html.lower(),
+            "editor_disabled": editor_disabled,
         }
 
     if ext in (".txt",):

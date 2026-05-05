@@ -116,6 +116,19 @@ bundle locale Vite. Il vecchio editor Jinja e' rimasto solo come fallback
 tecnico `?_legacy=1` e non e' piu' necessario caricare librerie da `https://esm.sh`
 per visualizzare l'editor nella route ufficiale.
 
+Aggiornamento 2026-05-05, versione 2.198.62: la toolbar dell'editor espone
+font, dimensione testo, interlinea, formato pagina e zoom con controlli
+governati dal bundle React. Le scelte di font/dimensione/interlinea vengono
+applicate al testo selezionato oppure, se non c'e' selezione, al documento
+intero e quindi entrano nell'HTML salvato dalle route Flask operative.
+
+Lo stesso aggiornamento impedisce di mostrare in editor estrazioni PDF
+inaffidabili con token `(cid:...)`: il backend prova PyMuPDF/OCR e, se il testo
+resta non affidabile, restituisce `editor_disabled=true`; la UI apre uno stato
+bloccato con anteprima originale e senza salvataggio inline. La visualizzazione
+dei documenti firmati `.pdf.p7m`, incluso `attoACQ.pdf.p7m`, usa l'estrazione
+CAdES condivisa e mantiene l'anteprima PDF inline.
+
 Aggiornamento successivo 2026-05-03: la modalita' laterale viene renderizzata
 con bordo destro controllato e testo verticale generato per la prova
 `firma_visibile_laterale.pdf`. La regressione e' presidiata dai test di layout

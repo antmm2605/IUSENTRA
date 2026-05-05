@@ -1534,6 +1534,15 @@ def build_fascicoli_runtime(
 
     def _estrai_contenuto_p7m_per_preview(data: bytes) -> bytes | None:
         try:
+            from pct.firme_cades import extract_signed_payload
+
+            payload = extract_signed_payload(data)
+            if payload:
+                return payload
+        except Exception:
+            pass
+
+        try:
             from asn1crypto import cms
         except Exception:
             return None

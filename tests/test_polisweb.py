@@ -2551,7 +2551,7 @@ def test_editor_documento_firmato_reindirizza_a_visualizzazione(tmp_path):
     p7m_bytes = cms.ContentInfo({"content_type": "signed_data", "content": signed}).dump()
     doc = gestione_fascicoli.aggiungi_documento(
         fascicolo.id,
-        "atto.pdf.p7m",
+        "attoACQ.pdf.p7m",
         TipoDocumento.ATTO_GIUDIZIARIO,
         p7m_bytes,
         firmato=True,
@@ -2615,7 +2615,7 @@ def test_visualizza_documento_estrae_pdf_da_p7m(tmp_path):
     p7m_bytes = cms.ContentInfo({"content_type": "signed_data", "content": signed}).dump()
     doc = gestione_fascicoli.aggiungi_documento(
         fascicolo.id,
-        "atto.pdf.p7m",
+        "attoACQ.pdf.p7m",
         TipoDocumento.ATTO_GIUDIZIARIO,
         p7m_bytes,
         firmato=True,
@@ -2634,6 +2634,7 @@ def test_visualizza_documento_estrae_pdf_da_p7m(tmp_path):
     assert response.status_code == 200
     assert response.mimetype == "application/pdf"
     assert response.data.startswith(b"%PDF-")
+    assert "attoACQ.pdf" in response.headers.get("Content-Disposition", "")
 
 
 def test_visualizza_documento_p7m_detached_usa_pdf_originale_da_storico(tmp_path):

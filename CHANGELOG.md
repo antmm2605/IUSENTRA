@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.198.62 - 2026-05-05
+
+- Rafforzato l'editor professionale React con controlli stile tipo Word: font, dimensione testo, interlinea, formato pagina, zoom e salvataggio degli stili applicati al testo selezionato o all'intero documento.
+- Corretto il caricamento dei PDF con font CID senza mappa Unicode: l'editor non mostra piu' token `(cid:...)`, tenta motore PDF alternativo e OCR, e blocca il salvataggio quando il testo non e' affidabile mostrando l'anteprima originale.
+- Estesa la visualizzazione dei documenti firmati `.pdf.p7m`, incluso il caso `attoACQ.pdf.p7m`, usando l'estrazione CAdES condivisa e mantenendo l'anteprima PDF inline con nome interno corretto.
+- Aggiornati i contratti frontend e i test di regressione su editor React, PDF CID e anteprima `.p7m`.
+
 ## 2.198.61 - 2026-05-05
 
 - Promossa la route profonda `/fascicoli/<id>/documenti/<id_doc>/editor` a pagina React operativa: non degrada piu' al dettaglio fascicolo generico e non dipende da CDN esterni per montare l'editor.

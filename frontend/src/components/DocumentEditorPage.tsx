@@ -44,8 +44,29 @@ import './DocumentEditorPage.css'
 type EditorRoute = { idFascicolo: string; idDocumento: string } | null
 type EditorStatus = { tone: 'loading' | 'saving' | 'success' | 'warning' | 'danger' | 'neutral'; label: string }
 type EditorStats = { words: number; chars: number; readingMinutes: number }
+type InlineStylePatch = { fontFamily?: string; fontSize?: string; lineHeight?: string }
 
 const defaultStats: EditorStats = { words: 0, chars: 0, readingMinutes: 1 }
+const FONT_FAMILY_OPTIONS = [
+  { label: 'Times New Roman', value: '"Times New Roman", Times, serif' },
+  { label: 'Arial', value: 'Arial, Helvetica, sans-serif' },
+  { label: 'Calibri', value: 'Calibri, "Segoe UI", sans-serif' },
+  { label: 'Garamond', value: 'Garamond, "Times New Roman", serif' },
+  { label: 'Georgia', value: 'Georgia, "Times New Roman", serif' },
+  { label: 'Courier New', value: '"Courier New", Courier, monospace' },
+] as const
+const FONT_SIZE_OPTIONS = ['10pt', '11pt', '12pt', '13pt', '14pt', '16pt', '18pt', '20pt', '24pt'] as const
+const LINE_HEIGHT_OPTIONS = [
+  { label: '1,15', value: '1.15' },
+  { label: '1,5', value: '1.5' },
+  { label: '1,6', value: '1.6' },
+  { label: 'Doppia', value: '2' },
+] as const
+const PAGE_PRESETS = [
+  { id: 'a4', label: 'A4', width: '840px', minHeight: '1120px', paddingX: '82px', paddingY: '76px' },
+  { id: 'a4-compact', label: 'A4 compatto', width: '840px', minHeight: '1120px', paddingX: '58px', paddingY: '54px' },
+  { id: 'legal-wide', label: 'Uso studio', width: '900px', minHeight: '1120px', paddingX: '72px', paddingY: '66px' },
+] as const
 
 function parseEditorRoute(): EditorRoute {
   const rawPath = window.location.pathname.replace(/\/+$/, '') || '/'
@@ -97,6 +118,24 @@ function sanitizeHtml(html: string): string {
     })
   })
   return template.innerHTML || '<p><br></p>'
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value))
+}
+
+function boolLike(value: unknown): boolean {
+  return value === true || value === 'true' || value === '1' || value === 1
+}
+
+function uniqueMessages(values: string[]): string[] {
+  const seen = new Set<string>()
+  return values.filter((value) => {
+    const text = value.trim()
+    if (!text || seen.has(text)) return false
+    seen.add(text)
+    return true
+  })
 }
 
 function fileNameWithoutExtension(value: string): string {
@@ -186,10 +225,15 @@ export function DocumentEditorPage() {
   const [stats, setStats] = useState<EditorStats>(defaultStats)
   const [dirty, setDirty] = useState(false)
   const [lastSavedAt, setLastSavedAt] = useState('')
+  const [conversionLocked, setConversionLocked] = useState(false)
+  const [conversionLockedReason, setConversionLockedReason] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [replaceTerm, setReplaceTerm] = useState('')
+  const [fontFamily, setFontFamily] = useState<string>(FONT_FAMILY_OPTIONS[0].value)
   const [fontSize, setFontSize] = useState('12pt')
+  const [lineHeight, setLineHeight] = useState('1.6')
+  const [pagePreset, setPagePreset] = useState<string>('a4')
   const [zoom, setZoom] = useState('100')
 
   const updateStats = useCallback(() => {
@@ -199,7 +243,7 @@ export function DocumentEditorPage() {
   }, [])
 
   const saveDocument = useCallback(async (auto = false) => {
-    if (!data.endpoints.save || !editorRef.current || !data.document.editable) return
+    if (!data.endpoints.save || !editorRef.current || !data.document.editable || conversionLocked) return
     if (autosaveRef.current) window.clearTimeout(autosaveRef.current)
     setStatus({ tone: 'saving', label: auto ? 'Salvataggio automatico' : 'Salvataggio in corso' })
     try {
@@ -223,15 +267,15 @@ export function DocumentEditorPage() {
     } catch (error) {
       setStatus({ tone: 'danger', label: error instanceof Error ? error.message : 'Errore di salvataggio' })
     }
-  }, [data.document.editable, data.endpoints.save])
+  }, [conversionLocked, data.document.editable, data.endpoints.save])
 
   const scheduleAutosave = useCallback(() => {
-    if (!data.document.editable) return
+    if (!data.document.editable || conversionLocked) return
     setDirty(true)
     setStatus({ tone: 'warning', label: 'Modifiche non salvate' })
     if (autosaveRef.current) window.clearTimeout(autosaveRef.current)
     autosaveRef.current = window.setTimeout(() => void saveDocument(true), Math.max(8, data.capabilities.autosaveSeconds) * 1000)
-  }, [data.capabilities.autosaveSeconds, data.document.editable, saveDocument])
+  }, [conversionLocked, data.capabilities.autosaveSeconds, data.document.editable, saveDocument])
 
   const markChanged = useCallback(() => {
     updateStats()
@@ -239,13 +283,73 @@ export function DocumentEditorPage() {
   }, [scheduleAutosave, updateStats])
 
   const runCommand = useCallback((command: string, value?: string) => {
+    if (conversionLocked) return
     editorRef.current?.focus()
     document.execCommand(command, false, value)
     markChanged()
-  }, [markChanged])
+  }, [conversionLocked, markChanged])
+
+  const applyInlineStyle = useCallback((style: InlineStylePatch, label: string) => {
+    if (conversionLocked || !editorRef.current) return
+    const root = editorRef.current
+    const applyStyle = (element: HTMLElement) => {
+      if (style.fontFamily) element.style.fontFamily = style.fontFamily
+      if (style.fontSize) element.style.fontSize = style.fontSize
+      if (style.lineHeight) element.style.lineHeight = style.lineHeight
+    }
+    const selection = window.getSelection()
+    const selectionInEditor = Boolean(
+      selection
+      && selection.rangeCount
+      && selection.anchorNode
+      && selection.focusNode
+      && root.contains(selection.anchorNode)
+      && root.contains(selection.focusNode),
+    )
+    if (!selection || !selectionInEditor || selection.isCollapsed) {
+      const targets = root.children.length ? Array.from(root.children) : [root]
+      targets.forEach((node) => applyStyle(node as HTMLElement))
+      markChanged()
+      setStatus({ tone: 'warning', label: `${label} applicato al documento` })
+      return
+    }
+    const range = selection.getRangeAt(0)
+    const span = document.createElement('span')
+    applyStyle(span)
+    try {
+      range.surroundContents(span)
+    } catch {
+      const fragment = range.extractContents()
+      span.appendChild(fragment)
+      range.insertNode(span)
+    }
+    selection.removeAllRanges()
+    const nextRange = document.createRange()
+    nextRange.selectNodeContents(span)
+    selection.addRange(nextRange)
+    markChanged()
+    setStatus({ tone: 'warning', label: `${label} da salvare` })
+  }, [conversionLocked, markChanged])
+
+  const changeFontFamily = useCallback((value: string) => {
+    setFontFamily(value)
+    applyInlineStyle({ fontFamily: value }, 'Font')
+  }, [applyInlineStyle])
+
+  const changeFontSize = useCallback((value: string) => {
+    setFontSize(value)
+    applyInlineStyle({ fontSize: value }, 'Dimensione testo')
+  }, [applyInlineStyle])
+
+  const changeLineHeight = useCallback((value: string) => {
+    setLineHeight(value)
+    applyInlineStyle({ lineHeight: value }, 'Interlinea')
+  }, [applyInlineStyle])
 
   const loadDocument = useCallback(async (payload: DocumentEditorPayload) => {
     if (!payload.endpoints.loadHtml || !payload.document.editable) return
+    setConversionLocked(false)
+    setConversionLockedReason('')
     setDocumentLoading(true)
     setStatus({ tone: 'loading', label: 'Caricamento contenuto' })
     try {
@@ -256,10 +360,23 @@ export function DocumentEditorPage() {
       })
       const body = await response.json().catch(() => ({} as Record<string, unknown>))
       const html = String(body.html || '<p><br></p>')
-      if (editorRef.current) editorRef.current.innerHTML = sanitizeHtml(html)
+      const sanitizedHtml = sanitizeHtml(html)
+      if (editorRef.current) editorRef.current.innerHTML = sanitizedHtml
       const rawAvvisi = Array.isArray(body.avvisi) ? body.avvisi : []
       const avvisi = rawAvvisi.map((item: unknown) => String(item || '').trim()).filter(Boolean)
-      setWarnings([...payload.warnings, ...avvisi])
+      const meta = isRecord(body.meta) ? body.meta : {}
+      const editorDisabled = boolLike(meta.editor_disabled) || sanitizedHtml.includes('data-editor-disabled="true"')
+      if (editorDisabled) {
+        const reason = 'Il PDF non espone testo modificabile affidabile: uso l\'anteprima originale e blocco il salvataggio per evitare testo corrotto.'
+        setConversionLocked(true)
+        setConversionLockedReason(reason)
+        setWarnings(uniqueMessages([...payload.warnings, ...avvisi, reason]))
+        updateStats()
+        setDirty(false)
+        setStatus({ tone: 'warning', label: 'Anteprima consigliata' })
+        return
+      }
+      setWarnings(uniqueMessages([...payload.warnings, ...avvisi]))
       updateStats()
       setDirty(false)
       setStatus({ tone: 'neutral', label: 'Pronto' })
@@ -281,6 +398,8 @@ export function DocumentEditorPage() {
     getDocumentEditorPayload(route.idFascicolo, route.idDocumento)
       .then((payload) => {
         if (!active) return
+        setConversionLocked(false)
+        setConversionLockedReason('')
         setData(payload)
         setWarnings(payload.warnings)
         if (!payload.notFound && payload.document.editable) void loadDocument(payload)
@@ -288,7 +407,7 @@ export function DocumentEditorPage() {
       })
       .catch((error) => {
         if (!active) return
-        setStatus({ tone: 'danger', label: error instanceof Error ? error.message : 'Payload editor non disponibile' })
+        setStatus({ tone: 'danger', label: error instanceof Error ? error.message : 'Dati editor non disponibili' })
       })
       .finally(() => {
         if (active) setPayloadLoading(false)
@@ -325,7 +444,7 @@ export function DocumentEditorPage() {
   }, [saveDocument])
 
   const exportFile = async (endpoint: string, extension: 'pdf' | 'docx') => {
-    if (!endpoint || !editorRef.current) return
+    if (!endpoint || !editorRef.current || conversionLocked) return
     setStatus({ tone: 'saving', label: extension === 'pdf' ? 'Genero PDF' : 'Genero DOCX' })
     try {
       const response = await fetch(endpoint, {
@@ -347,7 +466,7 @@ export function DocumentEditorPage() {
   }
 
   const importFile = async (file?: File) => {
-    if (!file || !editorRef.current) return
+    if (!file || !editorRef.current || conversionLocked) return
     if (!window.confirm(`Sostituire il contenuto editor con "${file.name}"? Il salvataggio resta manuale o automatico.`)) return
     const lower = file.name.toLowerCase()
     const content = await file.text()
@@ -406,6 +525,7 @@ export function DocumentEditorPage() {
   }
 
   const handlePaste = (event: ClipboardEvent<HTMLDivElement>) => {
+    if (conversionLocked) return
     const html = event.clipboardData.getData('text/html')
     const plain = event.clipboardData.getData('text/plain')
     if (!html && !plain) return
@@ -420,7 +540,7 @@ export function DocumentEditorPage() {
   if (payloadLoading && !data.document.id) {
     return (
       <main className="iu-content iu-doc-editor-page">
-        <section className="iu-de-empty"><LoaderCircle className="iu-spin" size={28}/><h1>Caricamento editor</h1><p>Sto preparando il payload reale del documento.</p></section>
+        <section className="iu-de-empty"><LoaderCircle className="iu-spin" size={28}/><h1>Caricamento editor</h1><p>Sto preparando i dati reali del documento.</p></section>
       </main>
     )
   }
@@ -429,8 +549,22 @@ export function DocumentEditorPage() {
   }
 
   const doc = data.document
+  const editorEnabled = doc.editable && !conversionLocked
+  const lockedReason = conversionLocked
+    ? conversionLockedReason || 'Il documento non espone testo affidabile per la modifica inline.'
+    : doc.lockedReason
   const statusClass = `iu-de-status iu-de-status--${status.tone}`
-  const paperStyle = { '--iu-de-font-size': fontSize, '--iu-de-zoom': `${Number(zoom || 100) / 100}` } as React.CSSProperties
+  const selectedPage = PAGE_PRESETS.find((preset) => preset.id === pagePreset) || PAGE_PRESETS[0]
+  const paperStyle = {
+    '--iu-de-font-family': fontFamily,
+    '--iu-de-font-size': fontSize,
+    '--iu-de-line-height': lineHeight,
+    '--iu-de-paper-width': selectedPage.width,
+    '--iu-de-paper-min-height': selectedPage.minHeight,
+    '--iu-de-paper-padding-x': selectedPage.paddingX,
+    '--iu-de-paper-padding-y': selectedPage.paddingY,
+    '--iu-de-zoom': `${Number(zoom || 100) / 100}`,
+  } as React.CSSProperties
 
   return (
     <main className="iu-content iu-doc-editor-page">
@@ -439,7 +573,7 @@ export function DocumentEditorPage() {
           <span className="iu-de-eyebrow"><FileText size={16}/> Editor professionale</span>
           <h1>{doc.name}</h1>
           <p>
-            <Badge tone={doc.editable ? 'success' : 'warning'}>{doc.editable ? 'Modificabile' : 'Bloccato'}</Badge>
+            <Badge tone={editorEnabled ? 'success' : 'warning'}>{editorEnabled ? 'Modificabile' : 'Bloccato'}</Badge>
             <span>{data.fascicolo.ref || data.fascicolo.id} - {data.fascicolo.client || data.fascicolo.title}</span>
           </p>
         </div>
@@ -448,7 +582,7 @@ export function DocumentEditorPage() {
           {doc.actions.preview ? <a href={doc.actions.preview}><Eye size={15}/> Anteprima</a> : null}
           {doc.actions.sign ? <a href={doc.actions.sign}><ShieldCheck size={15}/> Firma</a> : null}
           {doc.actions.download ? <a href={doc.actions.download}><Download size={15}/> Scarica</a> : null}
-          <button type="button" onClick={() => void saveDocument(false)} disabled={!doc.editable}><Save size={15}/> Salva</button>
+          <button type="button" onClick={() => void saveDocument(false)} disabled={!editorEnabled}><Save size={15}/> Salva</button>
         </nav>
       </section>
 
@@ -458,25 +592,60 @@ export function DocumentEditorPage() {
         </section>
       ) : null}
 
-      {!doc.editable ? (
-        <section className="iu-de-locked" role="alert">
-          <ShieldCheck size={24}/>
-          <div>
-            <h2>Documento non modificabile in editor</h2>
-            <p>{doc.lockedReason || 'Apri il documento in anteprima o scaricalo per lavorarlo con un applicativo esterno.'}</p>
-            <a href={doc.actions.preview || data.fascicolo.detailHref}>Apri anteprima</a>
-          </div>
-        </section>
+      {!editorEnabled ? (
+        <>
+          <section className="iu-de-locked" role="alert">
+            <ShieldCheck size={24}/>
+            <div>
+              <h2>Documento non modificabile in editor</h2>
+              <p>{lockedReason || 'Apri il documento in anteprima o scaricalo per lavorarlo con un applicativo esterno.'}</p>
+              <a href={doc.actions.preview || data.fascicolo.detailHref}><Eye size={15}/>Apri anteprima</a>
+            </div>
+          </section>
+          {doc.actions.preview ? (
+            <section className="iu-de-workbench iu-de-workbench--preview">
+              <DocumentFacts data={data}/>
+              <section className="iu-de-preview-shell">
+                <div className="iu-de-paper-head">
+                  <span>Anteprima consultazione</span>
+                  <Badge tone={doc.signed || doc.extension === 'p7m' ? 'warning' : 'neutral'}>{doc.signed || doc.extension === 'p7m' ? 'Documento firmato' : 'Sola lettura'}</Badge>
+                </div>
+                <iframe
+                  className="iu-de-preview-frame"
+                  src={doc.actions.preview}
+                  title={`Anteprima ${doc.name}`}
+                />
+              </section>
+            </section>
+          ) : null}
+        </>
       ) : (
         <>
           <section className="iu-de-toolbar" aria-label="Barra strumenti editor">
-            <select aria-label="Stile paragrafo" onChange={(event) => runCommand('formatBlock', event.target.value)} defaultValue="p">
-              <option value="p">Normale</option>
-              <option value="h1">Titolo 1</option>
-              <option value="h2">Titolo 2</option>
-              <option value="h3">Titolo 3</option>
-              <option value="blockquote">Citazione</option>
-            </select>
+            <label className="iu-de-field iu-de-field--style"><span>Stile</span>
+              <select aria-label="Stile paragrafo" onChange={(event) => runCommand('formatBlock', event.target.value)} defaultValue="p">
+                <option value="p">Normale</option>
+                <option value="h1">Titolo 1</option>
+                <option value="h2">Titolo 2</option>
+                <option value="h3">Titolo 3</option>
+                <option value="blockquote">Citazione</option>
+              </select>
+            </label>
+            <label className="iu-de-field iu-de-field--font"><span>Font</span>
+              <select aria-label="Font testo" value={fontFamily} onChange={(event) => changeFontFamily(event.target.value)}>
+                {FONT_FAMILY_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+              </select>
+            </label>
+            <label className="iu-de-field iu-de-field--size"><span>Dimensione</span>
+              <select aria-label="Dimensione testo" value={fontSize} onChange={(event) => changeFontSize(event.target.value)}>
+                {FONT_SIZE_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
+              </select>
+            </label>
+            <label className="iu-de-field iu-de-field--line"><span>Interlinea</span>
+              <select aria-label="Interlinea" value={lineHeight} onChange={(event) => changeLineHeight(event.target.value)}>
+                {LINE_HEIGHT_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+              </select>
+            </label>
             <ToolbarButton title="Grassetto" onClick={() => runCommand('bold')}><Bold size={16}/></ToolbarButton>
             <ToolbarButton title="Corsivo" onClick={() => runCommand('italic')}><Italic size={16}/></ToolbarButton>
             <ToolbarButton title="Sottolineato" onClick={() => runCommand('underline')}><Underline size={16}/></ToolbarButton>
@@ -506,7 +675,7 @@ export function DocumentEditorPage() {
           <section className="iu-de-meta-row" aria-label="Stato editor">
             <span className={statusClass}>{status.tone === 'success' ? <CheckCircle2 size={15}/> : status.tone === 'loading' || status.tone === 'saving' ? <LoaderCircle className="iu-spin" size={15}/> : <Pilcrow size={15}/>} {status.label}</span>
             <span>{stats.words} parole - {stats.chars} caratteri - {stats.readingMinutes} min</span>
-            <label><Heading1 size={14}/> <select value={fontSize} onChange={(event) => setFontSize(event.target.value)}><option value="11pt">11 pt</option><option value="12pt">12 pt</option><option value="13pt">13 pt</option><option value="14pt">14 pt</option></select></label>
+            <label><Heading1 size={14}/> <select value={pagePreset} onChange={(event) => setPagePreset(event.target.value)}>{PAGE_PRESETS.map((preset) => <option key={preset.id} value={preset.id}>{preset.label}</option>)}</select></label>
             <label><Eye size={14}/> <select value={zoom} onChange={(event) => setZoom(event.target.value)}><option value="90">90%</option><option value="100">100%</option><option value="110">110%</option><option value="125">125%</option></select></label>
             <span>{lastSavedAt ? `Ultimo salvataggio ${lastSavedAt}` : dirty ? 'Salvataggio pendente' : 'Nessuna modifica pendente'}</span>
           </section>
@@ -525,14 +694,14 @@ export function DocumentEditorPage() {
             <section className="iu-de-paper-shell" style={paperStyle}>
               <div className="iu-de-paper-head">
                 <span>{doc.name}</span>
-                <Badge tone={data.contracts.mock_fallback ? 'danger' : 'success'}>{data.contracts.mock_fallback ? 'Payload non reale' : 'Payload reale'}</Badge>
+                <Badge tone={data.contracts.mock_fallback ? 'danger' : 'success'}>{data.contracts.mock_fallback ? 'Dati non reali' : 'Dati reali'}</Badge>
               </div>
               <div className="iu-de-paper">
                 {documentLoading ? <div className="iu-de-loader"><LoaderCircle className="iu-spin" size={24}/><span>Caricamento contenuto...</span></div> : null}
                 <div
                   ref={editorRef}
                   className="iu-de-editable"
-                  contentEditable
+                  contentEditable={editorEnabled}
                   suppressContentEditableWarning
                   role="textbox"
                   aria-multiline="true"

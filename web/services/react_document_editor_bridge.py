@@ -97,10 +97,17 @@ def _document_payload(fascicolo_id: str, doc: Any) -> dict[str, Any]:
     name = _text(getattr(doc, "nome", ""), "Documento")
     suffix = Path(name).suffix.lower()
     signed = bool(getattr(doc, "firmato", False) or getattr(doc, "firmato_digitalmente", False) or name.lower().endswith(".p7m"))
-    editable = bool(estensione_editabile(name) and not signed)
+    pdf_preview_native = suffix == ".pdf"
+    editable = bool(estensione_editabile(name) and not signed and not pdf_preview_native)
     locked_reason = ""
     if signed:
         locked_reason = "Il documento risulta firmato digitalmente: aprilo in anteprima o usa la pagina firma per sostituirlo consapevolmente."
+    elif pdf_preview_native:
+        locked_reason = (
+            "Il PDF viene visualizzato con anteprima nativa per preservare impaginazione, "
+            "stemmi, timbri, firme e testo verticale. Per modificare il contenuto importa "
+            "una versione DOCX, HTML o testo verificata."
+        )
     elif not estensione_editabile(name):
         locked_reason = f"Formato {suffix.upper() or 'non riconosciuto'} non supportato dall'editor."
 
@@ -182,7 +189,7 @@ def build_react_document_editor_payload(
     warnings: list[str] = []
     if document["extension"] == "pdf":
         warnings.append(
-            "Il PDF viene trasformato in contenuto modificabile: prima del deposito verifica impaginazione e PDF/A."
+            "Anteprima PDF nativa attiva: l'editor non ricostruisce il layout in HTML, cosi' il documento resta uguale all'originale."
         )
     if not document["editable"] and document["lockedReason"]:
         warnings.append(document["lockedReason"])

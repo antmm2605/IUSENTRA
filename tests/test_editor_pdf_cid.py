@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import io
 import sys
 from types import SimpleNamespace
 
@@ -71,3 +72,56 @@ def test_documento_to_html_blocca_pdf_cid_senza_fallback_affidabile(monkeypatch)
     assert meta["editor_disabled"] is True
     assert meta["testo_affidabile"] is False
     assert any("testo PDF non leggibile" in avviso for avviso in avvisi)
+
+
+def _pdf_reportlab(*, layout_complesso: bool) -> bytes:
+    from reportlab.pdfgen import canvas
+
+    buffer = io.BytesIO()
+    c = canvas.Canvas(buffer, pagesize=(595, 842))
+    c.setFont("Helvetica-Bold", 12)
+    c.drawCentredString(297, 680, "REPUBBLICA ITALIANA")
+    c.drawCentredString(297, 660, "IN NOME DEL POPOLO ITALIANO")
+    c.setFont("Helvetica", 11)
+    c.drawString(85, 590, "Composta dagli Ill.mi Sigg.ri Magistrati:")
+    if layout_complesso:
+        c.drawRightString(545, 805, "Numero registro generale 14732/2025")
+        c.rect(420, 420, 110, 54)
+        c.saveState()
+        c.translate(575, 80)
+        c.rotate(90)
+        c.drawString(0, 0, "Firmato digitalmente da magistrato")
+        c.restoreState()
+    c.showPage()
+    c.save()
+    return buffer.getvalue()
+
+
+def test_documento_to_html_blocca_pdf_con_layout_grafico_non_fedele():
+    html, avvisi, meta = editor.documento_to_html(
+        _pdf_reportlab(layout_complesso=True),
+        "sentenza_cassazione.pdf",
+    )
+
+    assert meta["tipo_originale"] == "pdf"
+    assert meta["editor_disabled"] is True
+    assert meta["layout_preservato"] is False
+    assert meta["anteprima_originale_obbligatoria"] is True
+    assert meta["editor_disabled_reason"] == "layout PDF complesso"
+    assert 'data-editor-disabled="true"' in html
+    assert "REPUBBLICA ITALIANA" not in html
+    assert any("anteprima originale" in avviso for avviso in avvisi)
+
+
+def test_documento_to_html_lascia_editabile_pdf_testuale_lineare():
+    html, avvisi, meta = editor.documento_to_html(
+        _pdf_reportlab(layout_complesso=False),
+        "bozza_lineare.pdf",
+    )
+
+    assert meta["tipo_originale"] == "pdf"
+    assert meta["editor_disabled"] is False
+    assert meta["layout_preservato"] is True
+    assert meta["anteprima_originale_obbligatoria"] is False
+    assert "REPUBBLICA ITALIANA" in html
+    assert not avvisi

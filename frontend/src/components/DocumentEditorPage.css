@@ -36,7 +36,7 @@
 .iu-de-search-panel input{min-height:38px;border:1px solid var(--iu-border);border-radius:8px;background:#fff;padding:0 11px;color:#111827;text-transform:none;letter-spacing:0}
 .iu-de-search-panel button{min-height:38px;display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid var(--iu-border);border-radius:8px;background:#fff;color:#0f172a;font-size:12px;font-weight:900;cursor:pointer}
 .iu-de-workbench{display:grid;grid-template-columns:310px minmax(0,1fr);gap:14px;align-items:start}
-.iu-de-workbench--preview{margin-top:0}
+.iu-de-workbench--preview{grid-template-columns:minmax(230px,270px) minmax(0,1fr);margin-top:0}
 .iu-de-side{display:grid;gap:12px;position:sticky;top:148px}
 .iu-de-side section{border:1px solid var(--iu-border);border-radius:8px;background:var(--iu-bg-card);box-shadow:var(--iu-shadow-soft);overflow:hidden}
 .iu-de-side header{min-height:44px;display:flex;align-items:center;gap:9px;padding:0 13px;border-bottom:1px solid var(--iu-border);color:#0f172a}
@@ -63,7 +63,7 @@
 .iu-de-editable th{background:#f1f5f9}
 .iu-de-loader{position:absolute;inset:0;z-index:3;display:grid;place-items:center;align-content:center;gap:10px;background:rgba(232,237,245,.74);color:var(--iu-blue-700);font-size:13px;font-weight:900}
 .iu-de-preview-shell{min-width:0;display:grid;gap:8px}
-.iu-de-preview-frame{width:100%;min-height:calc(100vh - 330px);border:1px solid var(--iu-border);border-radius:8px;background:#fff;box-shadow:var(--iu-shadow-soft)}
+.iu-de-preview-frame{width:100%;min-height:calc(100vh - 250px);border:1px solid var(--iu-border);border-radius:8px;background:#fff;box-shadow:var(--iu-shadow-soft)}
 .iu-de-empty,.iu-de-locked{display:grid;gap:11px;justify-items:start;padding:20px;border:1px solid var(--iu-border);border-radius:8px;background:#fff;box-shadow:var(--iu-shadow-soft)}
 .iu-de-empty h1,.iu-de-locked h2{margin:0;color:#0f172a;font-size:22px;font-weight:950;letter-spacing:0}
 .iu-de-empty p,.iu-de-locked p{max-width:720px;margin:0;color:var(--iu-slate-600);font-size:13px;font-weight:760;line-height:1.45}

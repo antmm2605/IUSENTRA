@@ -142,6 +142,12 @@ function fileNameWithoutExtension(value: string): string {
   return value.replace(/\.[^.]+$/, '') || 'documento'
 }
 
+function isPdfLikeDocument(name: string, extension: string): boolean {
+  const lowerName = name.toLowerCase()
+  const lowerExtension = extension.toLowerCase()
+  return lowerExtension === 'pdf' || lowerExtension === 'p7m' || lowerName.endsWith('.pdf.p7m')
+}
+
 function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
@@ -367,7 +373,10 @@ export function DocumentEditorPage() {
       const meta = isRecord(body.meta) ? body.meta : {}
       const editorDisabled = boolLike(meta.editor_disabled) || sanitizedHtml.includes('data-editor-disabled="true"')
       if (editorDisabled) {
-        const reason = 'Il PDF non espone testo modificabile affidabile: uso l\'anteprima originale e blocco il salvataggio per evitare testo corrotto.'
+        const metaReason = String(meta.editor_disabled_reason || '').trim()
+        const reason = metaReason === 'layout PDF complesso'
+          ? 'Il PDF contiene impaginazione complessa: uso l\'anteprima originale e blocco il salvataggio per evitare una ricostruzione diversa dal documento.'
+          : 'Il PDF non espone testo modificabile affidabile: uso l\'anteprima originale e blocco il salvataggio per evitare testo corrotto.'
         setConversionLocked(true)
         setConversionLockedReason(reason)
         setWarnings(uniqueMessages([...payload.warnings, ...avvisi, reason]))
@@ -549,6 +558,7 @@ export function DocumentEditorPage() {
   }
 
   const doc = data.document
+  const pdfPreviewMode = isPdfLikeDocument(doc.name, doc.extension)
   const editorEnabled = doc.editable && !conversionLocked
   const lockedReason = conversionLocked
     ? conversionLockedReason || 'Il documento non espone testo affidabile per la modifica inline.'
@@ -573,7 +583,7 @@ export function DocumentEditorPage() {
           <span className="iu-de-eyebrow"><FileText size={16}/> Editor professionale</span>
           <h1>{doc.name}</h1>
           <p>
-            <Badge tone={editorEnabled ? 'success' : 'warning'}>{editorEnabled ? 'Modificabile' : 'Bloccato'}</Badge>
+            <Badge tone={editorEnabled ? 'success' : 'warning'}>{editorEnabled ? 'Modificabile' : pdfPreviewMode ? 'Anteprima nativa' : 'Bloccato'}</Badge>
             <span>{data.fascicolo.ref || data.fascicolo.id} - {data.fascicolo.client || data.fascicolo.title}</span>
           </p>
         </div>
@@ -597,9 +607,9 @@ export function DocumentEditorPage() {
           <section className="iu-de-locked" role="alert">
             <ShieldCheck size={24}/>
             <div>
-              <h2>Documento non modificabile in editor</h2>
+              <h2>{pdfPreviewMode ? 'Anteprima PDF fedele all\'originale' : 'Documento non modificabile in editor'}</h2>
               <p>{lockedReason || 'Apri il documento in anteprima o scaricalo per lavorarlo con un applicativo esterno.'}</p>
-              <a href={doc.actions.preview || data.fascicolo.detailHref}><Eye size={15}/>Apri anteprima</a>
+              <a href={doc.actions.preview || data.fascicolo.detailHref}><Eye size={15}/>{pdfPreviewMode ? 'Apri PDF originale' : 'Apri anteprima'}</a>
             </div>
           </section>
           {doc.actions.preview ? (
@@ -607,8 +617,8 @@ export function DocumentEditorPage() {
               <DocumentFacts data={data}/>
               <section className="iu-de-preview-shell">
                 <div className="iu-de-paper-head">
-                  <span>Anteprima consultazione</span>
-                  <Badge tone={doc.signed || doc.extension === 'p7m' ? 'warning' : 'neutral'}>{doc.signed || doc.extension === 'p7m' ? 'Documento firmato' : 'Sola lettura'}</Badge>
+                  <span>{pdfPreviewMode ? 'Anteprima originale del PDF' : 'Anteprima consultazione'}</span>
+                  <Badge tone={doc.signed || doc.extension === 'p7m' ? 'warning' : 'neutral'}>{doc.signed || doc.extension === 'p7m' ? 'Documento firmato' : pdfPreviewMode ? 'PDF nativo' : 'Sola lettura'}</Badge>
                 </div>
                 <iframe
                   className="iu-de-preview-frame"

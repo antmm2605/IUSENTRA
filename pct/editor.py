@@ -102,6 +102,18 @@ def pdf_to_html(data: bytes) -> tuple[str, list[str], bool, int]:
     try:
         with pdfplumber.open(io.BytesIO(data)) as pdf:
             n_pagine = len(pdf.pages)
+            motivi_layout = _motivi_layout_pdf_non_fedele(pdf.pages)
+            if motivi_layout:
+                motivo = "; ".join(motivi_layout[:3])
+                if len(motivi_layout) > 3:
+                    motivo += f"; altre {len(motivi_layout) - 3} pagine con layout complesso"
+                avvisi.append(
+                    "Il PDF contiene elementi grafici o impaginazione non lineare "
+                    f"({motivo}). L'editor usa l'anteprima originale per preservare "
+                    "la resa del documento."
+                )
+                html_parti.append(_html_pdf_non_modificabile(1, "layout PDF complesso", visuale=True))
+                return "\n".join(html_parti), avvisi, is_scanned, n_pagine
             
             for i, pagina in enumerate(pdf.pages):
                 # ── Estrae tabelle con formattazione ──────────────
@@ -211,6 +223,37 @@ def _testo_pdf_affidabile(testo: str) -> bool:
     return True
 
 
+def _motivi_layout_pdf_non_fedele(pagine: list) -> list[str]:
+    """Identifica pagine PDF che non possono essere rese fedelmente come HTML editabile."""
+    motivi: list[str] = []
+    for indice, pagina in enumerate(pagine, start=1):
+        motivo = _motivo_layout_pagina_non_fedele(pagina)
+        if motivo:
+            motivi.append(f"pagina {indice}: {motivo}")
+    return motivi
+
+
+def _motivo_layout_pagina_non_fedele(pagina) -> str:
+    """Rileva immagini, timbri, testo ruotato e disegni che richiedono preview nativa."""
+    chars = list(getattr(pagina, "chars", []) or [])
+    testo_chars = [c for c in chars if str(c.get("text", "")).strip()]
+    non_upright = sum(1 for c in testo_chars if not c.get("upright", True))
+    immagini = len(getattr(pagina, "images", []) or [])
+    rects = len(getattr(pagina, "rects", []) or [])
+    curves = len(getattr(pagina, "curves", []) or [])
+    lines = len(getattr(pagina, "lines", []) or [])
+    elementi_vettoriali = rects + curves + lines
+
+    ragioni: list[str] = []
+    if immagini:
+        ragioni.append("immagini/stemmi")
+    if non_upright >= 12 or (testo_chars and non_upright / max(1, len(testo_chars)) >= 0.03):
+        ragioni.append("testo ruotato o laterale")
+    if elementi_vettoriali >= 12:
+        ragioni.append("riquadri, timbri o segni grafici")
+    return ", ".join(ragioni)
+
+
 def _estrai_testo_pymupdf(data: bytes, page_index: int) -> str:
     """Secondo motore di estrazione testo, utile su alcuni PDF con font embedded."""
     try:
@@ -269,14 +312,22 @@ def _ocr_pagina(data: bytes, page_index: int, pagina=None) -> str:
         return ""
 
 
-def _html_pdf_non_modificabile(numero_pagina: int, motivo: str) -> str:
-    testo = (
-        f"Pagina {numero_pagina}: il testo del PDF non e' modificabile automaticamente "
-        f"perche' l'estrazione ha restituito {motivo}. Apri l'anteprima originale, "
-        "oppure importa una versione DOCX/testo verificata prima di salvare modifiche."
-    )
+def _html_pdf_non_modificabile(numero_pagina: int, motivo: str, *, visuale: bool = False) -> str:
+    if visuale:
+        testo = (
+            f"Pagina {numero_pagina}: il PDF contiene {motivo}. Per non alterare "
+            "intestazioni, stemmi, timbri, testo verticale o spaziature, l'editor "
+            "mostra l'anteprima originale e blocca il salvataggio inline. Per "
+            "modificare il contenuto importa una versione DOCX/testo verificata."
+        )
+    else:
+        testo = (
+            f"Pagina {numero_pagina}: il testo del PDF non e' modificabile automaticamente "
+            f"perche' l'estrazione ha restituito {motivo}. Apri l'anteprima originale, "
+            "oppure importa una versione DOCX/testo verificata prima di salvare modifiche."
+        )
     return (
-        '<section data-editor-disabled="true">'
+        f'<section data-editor-disabled="true" data-editor-disabled-reason="{_escape_html(motivo)}">'
         "<p><strong>Testo PDF non modificabile automaticamente.</strong></p>"
         f"<p>{_escape_html(testo)}</p>"
         "</section>"
@@ -447,6 +498,10 @@ def documento_to_html(data: bytes, nome_file: str) -> tuple[str, list[str], dict
     if ext == ".pdf":
         html, avvisi, is_scanned, n_pagine = pdf_to_html(data)
         editor_disabled = 'data-editor-disabled="true"' in html
+        disabled_reason = ""
+        if editor_disabled:
+            match = re.search(r'data-editor-disabled-reason="([^"]*)"', html)
+            disabled_reason = match.group(1) if match else ""
         return html, avvisi, {
             "tipo_originale": "pdf",
             "is_scanned": is_scanned,
@@ -455,6 +510,8 @@ def documento_to_html(data: bytes, nome_file: str) -> tuple[str, list[str], dict
             "layout_preservato": not is_scanned and not editor_disabled,
             "testo_affidabile": not editor_disabled and "(cid:" not in html.lower(),
             "editor_disabled": editor_disabled,
+            "editor_disabled_reason": disabled_reason,
+            "anteprima_originale_obbligatoria": editor_disabled,
         }
 
     if ext in (".txt",):

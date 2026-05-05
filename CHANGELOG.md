@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.198.63 - 2026-05-05
+
+- Corretta la visualizzazione nell'editor professionale dei PDF giudiziari con layout complesso: stemmi, timbri, riquadri, intestazioni laterali e testo verticale non vengono piu' ricostruiti come HTML editabile.
+- I PDF aperti dalla route `/fascicoli/<id>/documenti/<id_doc>/editor` usano ora anteprima nativa fedele all'originale, con modifica inline bloccata e messaggio professionale che invita a importare DOCX/HTML/testo per lavorare sul contenuto.
+- Rafforzato il backend di conversione PDF con un controllo di fedelta visuale (`editor_disabled_reason=layout PDF complesso`) e test di regressione su layout tipo sentenza Cassazione.
+- Aggiornati contratti React, documentazione e test per garantire che il PDF reale `8785_03_2026_civ_noindex` non venga piu' mostrato come trascrizione diversa dall'originale.
+
 ## 2.198.62 - 2026-05-05
 
 - Rafforzato l'editor professionale React con controlli stile tipo Word: font, dimensione testo, interlinea, formato pagina, zoom e salvataggio degli stili applicati al testo selezionato o all'intero documento.

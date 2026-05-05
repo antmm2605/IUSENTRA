@@ -129,6 +129,15 @@ bloccato con anteprima originale e senza salvataggio inline. La visualizzazione
 dei documenti firmati `.pdf.p7m`, incluso `attoACQ.pdf.p7m`, usa l'estrazione
 CAdES condivisa e mantiene l'anteprima PDF inline.
 
+Aggiornamento 2026-05-05, versione 2.198.63: i PDF giudiziari con layout
+complesso non vengono piu' trattati come testo editabile. Se il backend rileva
+stemmi, immagini, riquadri, timbri, testo ruotato/laterale o altri elementi che
+rendono non fedele la ricostruzione HTML, restituisce
+`editor_disabled_reason=layout PDF complesso`; la route React mostra l'anteprima
+nativa del PDF dentro l'editor e blocca il salvataggio inline. Anche il payload
+React marca i PDF come `editable=false`, cosi' il documento resta uguale
+all'originale e l'editing resta riservato a DOCX, HTML e testo.
+
 Aggiornamento successivo 2026-05-03: la modalita' laterale viene renderizzata
 con bordo destro controllato e testo verticale generato per la prova
 `firma_visibile_laterale.pdf`. La regressione e' presidiata dai test di layout

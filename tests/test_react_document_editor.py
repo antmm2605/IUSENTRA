@@ -39,6 +39,29 @@ def _seed_documento_editabile(app):
     return fascicolo, documento
 
 
+def _seed_documento_pdf(app):
+    with app.test_request_context("/"):
+        core_loader = (app.extensions.get("core_runtime") or {}).get("get_fascicoli")
+        fascicoli = core_loader() if callable(core_loader) else get_fascicoli()
+        fascicolo = fascicoli.nuovo(
+            "Ricorso per cassazione",
+            TipoFascicolo.CIVILE,
+            nome_cliente="Cliente Reale",
+            tribunale="Corte Suprema di Cassazione",
+            numero_rg="14732/2025",
+        )
+        documento = fascicoli.aggiungi_documento(
+            fascicolo.id,
+            "sentenza_cassazione.pdf",
+            TipoDocumento.SENTENZA,
+            b"%PDF-1.4\n% test\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF",
+            note="Documento PDF originale",
+            tags=["sentenza"],
+            caricato_da="operatore",
+        )
+    return fascicolo, documento
+
+
 def test_editor_documento_route_profonda_serve_shell_react(tmp_path: Path):
     app = _app(tmp_path)
     _crea_operatore(app)
@@ -77,6 +100,24 @@ def test_editor_documento_payload_react_usa_dati_reali(tmp_path: Path):
     assert payload["endpoints"]["save"] == f"/api/editor/{fascicolo.id}/{documento.id}/salva"
 
 
+def test_editor_documento_payload_pdf_usa_anteprima_nativa(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    fascicolo, documento = _seed_documento_pdf(app)
+
+    with app.test_client() as client:
+        _login(client)
+        response = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}/documenti/{documento.id}/editor")
+
+    payload = response.get_json()
+    assert response.status_code == 200
+    assert payload["document"]["name"] == "sentenza_cassazione.pdf"
+    assert payload["document"]["editable"] is False
+    assert "anteprima nativa" in payload["document"]["lockedReason"]
+    assert payload["document"]["actions"]["preview"] == f"/fascicoli/{fascicolo.id}/documenti/{documento.id}/visualizza"
+    assert any("Anteprima PDF nativa" in warning for warning in payload["warnings"])
+
+
 def test_editor_documento_react_contract_statico():
     app_source = Path("frontend/src/App.tsx").read_text(encoding="utf-8")
     page_source = Path("frontend/src/components/DocumentEditorPage.tsx").read_text(encoding="utf-8")
@@ -90,6 +131,8 @@ def test_editor_documento_react_contract_statico():
     assert "Font testo" in page_source
     assert "Dimensione testo" in page_source
     assert "Interlinea" in page_source
+    assert "Anteprima PDF fedele all\\'originale" in page_source
+    assert "PDF nativo" in page_source
     assert "Dati reali" in page_source
     assert "contentEditable={editorEnabled}" in page_source
     assert "Payload reale" not in page_source

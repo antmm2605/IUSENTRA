@@ -101,6 +101,9 @@ const lexUiSources = [
   wizardProBridge,
   apiBridge,
 ].join('\n')
+const legacyLexContextHref = '/lex' + '?context='
+const legacyLexHrefAttribute = 'href=' + '"/lex'
+const legacyAgendaLexHref = 'href=' + '"/lex' + '?context=agenda"'
 
 assertContains(app, '/global-search', 'nav ricerca studio')
 assertContains(app, '/agenda', 'nav agenda')
@@ -132,10 +135,10 @@ assertContains(app, "profile.displayName", 'nome profilo reale in sidebar react'
 assertContains(app, 'method="post" action={logoutAction}', 'logout react via POST reale')
 assertContains(app, "findStudioModule(route)", 'contesto lex blocco finale')
 assertContains(app, "const OPEN_LEX_WIDGET_HREF = '#lex'", 'cta lex usa widget flottante')
-assertNotContains(app, '/lex?context=', 'shell react senza link funzionali /lex')
-assertNotContains(app, 'href="/lex"', 'shell react senza pagina lex standalone')
-assertNotContains(lexUiSources, '/lex?context=', 'sorgenti react/bridge senza pagina lex standalone')
-assertNotContains(lexUiSources, 'href="/lex"', 'sorgenti react/bridge senza href lex standalone')
+assertNotContains(app, legacyLexContextHref, 'shell react senza link funzionali /lex')
+assertNotContains(app, legacyLexHrefAttribute, 'shell react senza pagina lex standalone')
+assertNotContains(lexUiSources, legacyLexContextHref, 'sorgenti react/bridge senza pagina lex standalone')
+assertNotContains(lexUiSources, legacyLexHrefAttribute, 'sorgenti react/bridge senza href lex standalone')
 assertContains(app, "isSearchPage?<RicercaStudioPage", 'route ricerca studio')
 assertContains(app, "isNewAppointmentPage||isAppointmentEditPage?<NuovoAppuntamentoPage", 'route nuovo/modifica appuntamento')
 assertContains(app, "isAgendaPage?<AgendaPage/>", 'route agenda')
@@ -237,7 +240,7 @@ assertContains(agenda, 'linkedDeadlineHref', 'automazioni agenda scadenza react'
 assertContains(agenda, 'action="/timesheet/nuovo"', 'automazione timesheet operativa')
 assertContains(agenda, 'iusentra:open-floating-lex', 'automazione lex in pagina')
 assertNotContains(agenda, 'href="/timesheet"', 'agenda senza link timesheet legacy')
-assertNotContains(agenda, 'href="/lex?context=agenda"', 'agenda senza link lex legacy')
+assertNotContains(agenda, legacyAgendaLexHref, 'agenda senza link lex legacy')
 assertContains(agendaData, '/api/v1/ui/agenda', 'api agenda react')
 assertContains(agendaData, '/api/v1/agenda', 'api agenda operativo')
 assertContains(agendaData, 'moveEventToDay', 'spostamento agenda')

@@ -36,9 +36,11 @@ Le API operative dedicate sono sotto `/api/v1/ui/fascicoli/<fascicolo_id>/regia`
 
 ## Wave Documenti AI Fascicolo
 
-La sezione `Documenti AI` entra nella suite fascicoli come tranche `react_operational_partial`: legge e scrive solo payload reali sotto `/api/v1/ui/fascicoli/<fascicolo_id>/documenti-ai`, usa `mock_fallback=false`, espone upload PDF/DOCX/DOC, stato estrazione, hash SHA-256, versioni e ricerca sul testo estratto.
+`Documenti AI` e' stato ricondotto a motore interno di indicizzazione Lex: non compare piu' come sezione operativa autonoma nel dettaglio fascicolo e non crea un secondo archivio documentale.
 
-La UI non mostra documenti demo e non introduce una seconda source of truth: upload, storage, estrazione, audit e permessi restano nel dominio backend `pct/document_intelligence`. Le capability avanzate `generate_docx`, `propose_edits` e `compare` restano `false` fino alle tranche MVP 2/3/4 documentate in [DOCUMENTI_AI_FASCICOLO.md](DOCUMENTI_AI_FASCICOLO.md).
+La suite fascicoli mostra invece un box compatto `Indicizzazione Lex` dentro `Documenti fascicolo`: usa payload reali `/api/v1/ui/fascicoli/<fascicolo_id>/lex-indexing`, mantiene `mock_fallback=false`, espone conteggi `ready/queued/indexing/error/stale` e azioni autorizzate `Aggiorna indice` / `Riprova errori`. Upload, import portale e salvataggio editor restano flussi documentali reali del fascicolo e accodano o processano l'indice automatico.
+
+La UI non mostra documenti demo e non introduce una seconda source of truth: storage, estrazione, audit e permessi restano nel dominio backend `pct/document_intelligence`. Le capability avanzate `generate_docx`, `propose_edits` e `compare` restano `false` fino alle tranche MVP 2/3/4 documentate in [DOCUMENTI_AI_FASCICOLO.md](DOCUMENTI_AI_FASCICOLO.md).
 
 ## Principio operativo
 

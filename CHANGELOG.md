@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.198.75 - 2026-05-05
+
+- Ricondotto `Documenti AI Fascicolo` a motore interno: rimossa la sezione autonoma dalla navigazione standard del fascicolo e integrato il box `Indicizzazione Lex` dentro `Documenti fascicolo`, con payload reali `lex-indexing`, conteggi ready/queued/indexing/error/stale e azioni autorizzate di aggiornamento/riprova.
+- Aggiunta indicizzazione automatica da documenti reali del fascicolo, import portale e salvataggio editor professionale, con sorgenti tenant-aware, rilevazione stale su hash e tool Lex `list/read/find` basati solo su documenti `ready`.
+- Rafforzato Lex con guard italiano sistemico, prompt anti-inglese, retrieval fascicolo-first e uso di fonti esterne solo con ragione pertinente; riparati i segnaposto PDF `(cid:NN)` quando convertibili in caratteri sicuri.
+- Aggiunti test anti-regressione su UI nascosta, auto-indexing, qualita' PDF CID, guard italiano, retrieval fascicolo-first e tool Lex su indice automatico.
+
 ## 2.198.74 - 2026-05-05
 
 - Completata la Fase 3 backend di `Documenti AI Fascicolo` con repository persistente SQLite/PostgreSQL, factory esplicite per DB strutturati e statistiche storage filtrate per tenant/fascicolo.

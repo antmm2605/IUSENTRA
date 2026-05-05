@@ -33,6 +33,8 @@ _CSRF_PROTECTED_ENDPOINTS = {
     "admin.esci_impersonazione",
     "api_v1_documenti_ai.upload_documento_ai",
     "api_v1_documenti_ai.cerca_documento_ai",
+    "api_v1_documenti_ai.aggiorna_indice_lex",
+    "api_v1_documenti_ai.riprova_errori_indice_lex",
 }
 
 _UNSAFE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}

@@ -62,6 +62,7 @@ _LEGAL_LOOKUP_TOKENS: tuple[str, ...] = (
     "orientamento",
     "motivazione",
 )
+_FASCICOLO_FIRST_WORKFLOWS = {"fascicolo", "documento", "udienza"}
 
 
 def _clean_spaces(value) -> str:
@@ -77,6 +78,26 @@ def _metadata_flag(request, *keys: str) -> bool:
 
 
 def _should_search_official_web(request, workflow: str) -> bool:
+    metadata = getattr(request, "metadata", {}) or {}
+    text = _clean_spaces(getattr(request, "query", "")).lower()
+    has_legal_lookup = any(token in text for token in _LEGAL_LOOKUP_TOKENS)
+    external_reason = _clean_spaces(metadata.get("external_sources_reason"))
+
+    if workflow in _FASCICOLO_FIRST_WORKFLOWS and bool(getattr(request, "fascicolo_id", None)):
+        if not bool(getattr(request, "allow_external_research", False)):
+            return False
+        if external_reason and has_legal_lookup:
+            return True
+        if _metadata_flag(
+            request,
+            "allow_web_search",
+            "needs_web_search",
+            "web_execution_requested",
+            "force_official_web_search",
+        ) and has_legal_lookup:
+            return True
+        return False
+
     if _metadata_flag(
         request,
         "allow_web_search",
@@ -86,13 +107,11 @@ def _should_search_official_web(request, workflow: str) -> bool:
     ):
         return True
 
-    text = _clean_spaces(getattr(request, "query", "")).lower()
     if not text:
         return False
     if is_web_execution_request(text):
         return True
 
-    has_legal_lookup = any(token in text for token in _LEGAL_LOOKUP_TOKENS)
     has_recency = any(token in text for token in _RECENCY_TOKENS)
     if workflow in {"economico", "cabina", "next_action", "compliance"} and not has_legal_lookup:
         return False

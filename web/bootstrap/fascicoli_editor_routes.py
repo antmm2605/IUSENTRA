@@ -32,6 +32,35 @@ def register_fascicoli_editor_routes(
 ) -> None:
     """Register inline editor and conversion routes for fascicolo documents."""
 
+    def _indicizza_salvataggio_editor(*, id_fasc: str, document_id: str, filename: str, content: bytes) -> None:
+        try:
+            from pct.document_intelligence.sources import source_from_uploaded_document
+            from web.services.document_intelligence_runtime import (
+                build_document_ai_service,
+                document_ai_tenant_id,
+                document_ai_user_context,
+            )
+
+            tenant_id = document_ai_tenant_id()
+            source = source_from_uploaded_document(
+                tenant_id=tenant_id,
+                fascicolo_id=id_fasc,
+                document_id=document_id,
+                filename=filename,
+                content=content,
+                source_type="editor_professionale",
+                metadata={"trigger": "editor_salva"},
+            )
+            build_document_ai_service().process_lex_indexing_sources(
+                tenant_id,
+                id_fasc,
+                [source],
+                document_ai_user_context(),
+                retry_errors=True,
+            )
+        except Exception as exc:
+            app.logger.warning("Indicizzazione Lex editor non completata per %s/%s: %s", id_fasc, filename, exc)
+
     @app.route("/fascicoli/<id_fasc>/documenti/<id_doc>/editor")
     def editor_documento(id_fasc, id_doc):
         from pct.editor import estensione_editabile
@@ -180,6 +209,12 @@ def register_fascicoli_editor_routes(
                 nome_doc=doc_salvato.nome,
                 tipo_doc=doc_salvato.tipo.value,
                 index_path=app.config["SEARCH_INDEX"],
+            )
+            _indicizza_salvataggio_editor(
+                id_fasc=id_fasc,
+                document_id=doc_salvato.id,
+                filename=nome_salvato,
+                content=contenuto_raw,
             )
             audit("fascicoli.documento.editor_salva", "fascicolo", id_fasc, dettagli=f"doc {id_doc} — {nome}")
             return jsonify({"ok": True, "auto": auto})

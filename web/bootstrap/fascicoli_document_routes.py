@@ -10,6 +10,7 @@ from typing import Any
 from flask import Flask, flash, g, jsonify, redirect, request, send_file, url_for
 
 from pct.document_management import normalize_document_tags
+from pct.document_intelligence.sources import source_from_uploaded_document
 from pct.fascicoli import TipoDocumento
 from web.services.signed_document_runtime import (
     build_document_signed_snapshot_from_bytes,
@@ -142,6 +143,53 @@ def register_fascicoli_document_routes(
             section = "sezione-documenti-fascicolo"
         return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc) + f"#{section}")
 
+    def _indicizza_documento_lex(
+        *,
+        id_fasc: str,
+        document_id: str,
+        filename: str,
+        content: bytes,
+        source_type: str,
+        metadata: dict[str, Any] | None = None,
+    ) -> None:
+        try:
+            from web.services.document_intelligence_runtime import (
+                build_document_ai_service,
+                document_ai_tenant_id,
+                document_ai_user_context,
+            )
+
+            tenant_id = document_ai_tenant_id()
+            source = source_from_uploaded_document(
+                tenant_id=tenant_id,
+                fascicolo_id=id_fasc,
+                document_id=document_id,
+                filename=filename,
+                content=content,
+                source_type=source_type,
+                metadata=metadata or {},
+            )
+            service = build_document_ai_service()
+            service.process_lex_indexing_sources(
+                tenant_id,
+                id_fasc,
+                [source],
+                document_ai_user_context(),
+                retry_errors=True,
+            )
+        except Exception as exc:
+            app.logger.warning("Indicizzazione Lex non completata per %s/%s: %s", id_fasc, filename, exc)
+
+    def _contenuto_portale_bytes(item: dict) -> bytes:
+        raw = item.get("contenuto") or b""
+        if isinstance(raw, bytes):
+            return raw
+        if isinstance(raw, bytearray):
+            return bytes(raw)
+        if isinstance(raw, str):
+            return raw.encode("utf-8")
+        return b""
+
     @app.route("/fascicoli/<id_fasc>/documenti/carica", methods=["POST"])
     def carica_documento(id_fasc):
         gestore_fascicoli = get_fascicoli()
@@ -178,6 +226,14 @@ def register_fascicoli_document_routes(
             msg = f"Documento '{file.filename}' caricato."
             flash(msg, "success")
             audit("fascicoli.documento.carica", "fascicolo", id_fasc, dettagli=f"file: {file.filename}")
+            _indicizza_documento_lex(
+                id_fasc=id_fasc,
+                document_id=getattr(documento, "id", "") or file.filename,
+                filename=file.filename,
+                content=raw,
+                source_type="documenti_fascicolo",
+                metadata={"trigger": "upload_documenti_fascicolo"},
+            )
             if _wants_json_response():
                 return jsonify(
                     {
@@ -288,6 +344,15 @@ def register_fascicoli_document_routes(
                 usa_staging=usa_staging,
                 staging_dir=staging_dir if usa_staging else None,
             )
+            for index, item in enumerate(items):
+                _indicizza_documento_lex(
+                    id_fasc=id_fasc,
+                    document_id=str(item.get("id_documento_portale") or item.get("id_documento") or item.get("origine") or index),
+                    filename=str(item.get("nome") or item.get("nome_file_originale") or f"documento-portale-{index}.pdf"),
+                    content=_contenuto_portale_bytes(item),
+                    source_type="portale_telematico",
+                    metadata={"trigger": "import_portale", "id_deposito_esterno": str(item.get("id_deposito_esterno") or "")},
+                )
             agganciati = len(esito_import["depositi_agganciati"])
             msg = f"Importati {esito_import['documenti_importati']} file ufficiali da {fonte}."
             if agganciati:
@@ -350,6 +415,15 @@ def register_fascicoli_document_routes(
                 items=items,
                 note_importazione=note_importazione,
             )
+            for index, item in enumerate(items):
+                _indicizza_documento_lex(
+                    id_fasc=id_fasc,
+                    document_id=str(item.get("id_documento_portale") or item.get("id_documento") or item.get("origine") or index),
+                    filename=str(item.get("nome") or item.get("nome_file_originale") or f"documento-portale-{index}.pdf"),
+                    content=_contenuto_portale_bytes(item),
+                    source_type="portale_telematico",
+                    metadata={"trigger": "api_import_portale", "id_deposito_esterno": str(item.get("id_deposito_esterno") or "")},
+                )
             return (
                 jsonify(
                     {

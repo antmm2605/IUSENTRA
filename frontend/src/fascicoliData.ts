@@ -251,6 +251,17 @@ export type RegiaOperativaData = {
   actions: Record<string, unknown>
 }
 
+export type LexIndexingSummary = {
+  total_documents: number
+  ready: number
+  queued: number
+  indexing: number
+  errors: number
+  stale: number
+  last_indexed_at: string | null
+  status: 'ready' | 'partial' | 'working' | 'error' | 'stale'
+}
+
 export type FascicoloDetailData = {
   source: string
   generatedAt: string
@@ -258,6 +269,7 @@ export type FascicoloDetailData = {
   notFound?: boolean
   fascicolo: FascicoloFull
   quickCounts: Record<string, number>
+  lexIndexing: LexIndexingSummary
   profile: KeyValue[]
   documents: FascicoloDocument[]
   activities: FascicoloActivity[]
@@ -287,6 +299,8 @@ export type FascicoloDetailData = {
     complianceOff: string
     exportPdf: string
     archiveZip: string
+    refreshLexIndex: string
+    retryLexIndexErrors: string
   }
   options: {
     states: SelectOption[]
@@ -415,11 +429,11 @@ export const emptyFascicoloDetail: FascicoloDetailData = {
     source: '', sourceExternalId: '', lastSyncAt: '', syncStatus: '', importLogId: '', hasConflicts: false, documentSyncEnabled: false,
     eventsSyncEnabled: false, complianceControlsEnabled: true, archiveReady: false,
   },
-  quickCounts: {}, profile: [], documents: [], activities: [], deadlines: [], appointments: [], deposits: [], requests: [], parties: [], history: [],
+  quickCounts: {}, lexIndexing: { total_documents: 0, ready: 0, queued: 0, indexing: 0, errors: 0, stale: 0, last_indexed_at: null, status: 'ready' }, profile: [], documents: [], activities: [], deadlines: [], appointments: [], deposits: [], requests: [], parties: [], history: [],
   economics: [], workflow: [], telematic: [], quality: [],
   regia: emptyRegiaOperativa,
   signature: { visibleSignatureMode: 'laterale', visibleSignaturePlace: '', visibleSignatureDatetimeMode: 'data_ora' },
-  actions: { changeState: '', define: '', archive: '', restore: '', delete: '', uploadDocument: '', importPortal: '', addActivity: '', complianceOn: '', complianceOff: '', exportPdf: '', archiveZip: '' },
+  actions: { changeState: '', define: '', archive: '', restore: '', delete: '', uploadDocument: '', importPortal: '', addActivity: '', complianceOn: '', complianceOff: '', exportPdf: '', archiveZip: '', refreshLexIndex: '', retryLexIndexErrors: '' },
   options: { states: [], documentTypes: [], activityTypes: [], activityResults: [] },
 }
 
@@ -730,6 +744,8 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
     archiveReady: bool(fullPayload.archiveReady ?? fullPayload.archivio_pronto),
   }
   const options = isRecord(payload.options) ? payload.options : {}
+  const lexIndexingRaw = payload.lexIndexing ?? payload.lex_indexing
+  const lexIndexingSource = isRecord(lexIndexingRaw) ? lexIndexingRaw : {}
   return {
     source: text(payload.source, 'repository_reali'),
     generatedAt: text(payload.generatedAt ?? payload.generated_at),
@@ -739,6 +755,16 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
     notFound: bool(payload.notFound ?? payload.not_found),
     fascicolo: full,
     quickCounts: isRecord(payload.quickCounts ?? payload.quick_counts) ? payload.quickCounts as Record<string, number> : {},
+    lexIndexing: {
+      total_documents: number(lexIndexingSource.total_documents ?? lexIndexingSource.totalDocuments),
+      ready: number(lexIndexingSource.ready),
+      queued: number(lexIndexingSource.queued),
+      indexing: number(lexIndexingSource.indexing),
+      errors: number(lexIndexingSource.errors),
+      stale: number(lexIndexingSource.stale),
+      last_indexed_at: text(lexIndexingSource.last_indexed_at ?? lexIndexingSource.lastIndexedAt) || null,
+      status: text(lexIndexingSource.status, 'ready') as LexIndexingSummary['status'],
+    },
     profile: normalizeKeyValues(payload.profile),
     documents: asArray(payload.documents).map((entry, index) => {
       const row = isRecord(entry) ? entry : {}
@@ -785,7 +811,7 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
       visibleSignatureDatetimeMode: text(payload.signature.visibleSignatureDatetimeMode ?? payload.signature.visible_signature_datetime_mode, 'data_ora'),
     } : emptyFascicoloDetail.signature,
     actions: isRecord(payload.actions) ? {
-      changeState: text(payload.actions.changeState), define: text(payload.actions.define), archive: text(payload.actions.archive), restore: text(payload.actions.restore), delete: text(payload.actions.delete), uploadDocument: text(payload.actions.uploadDocument), importPortal: text(payload.actions.importPortal), addActivity: text(payload.actions.addActivity), complianceOn: text(payload.actions.complianceOn), complianceOff: text(payload.actions.complianceOff), exportPdf: text(payload.actions.exportPdf), archiveZip: text(payload.actions.archiveZip),
+      changeState: text(payload.actions.changeState), define: text(payload.actions.define), archive: text(payload.actions.archive), restore: text(payload.actions.restore), delete: text(payload.actions.delete), uploadDocument: text(payload.actions.uploadDocument), importPortal: text(payload.actions.importPortal), addActivity: text(payload.actions.addActivity), complianceOn: text(payload.actions.complianceOn), complianceOff: text(payload.actions.complianceOff), exportPdf: text(payload.actions.exportPdf), archiveZip: text(payload.actions.archiveZip), refreshLexIndex: text(payload.actions.refreshLexIndex), retryLexIndexErrors: text(payload.actions.retryLexIndexErrors),
     } : emptyFascicoloDetail.actions,
     options: { states: normalizeOptions(options.states), documentTypes: normalizeOptions(options.documentTypes), activityTypes: normalizeOptions(options.activityTypes), activityResults: normalizeOptions(options.activityResults) },
   }

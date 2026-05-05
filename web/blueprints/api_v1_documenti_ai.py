@@ -3,19 +3,23 @@
 from __future__ import annotations
 
 from functools import wraps
-from pathlib import Path
 from typing import Any, Callable
 
-from flask import Blueprint, current_app, g, jsonify, request, session
+from flask import Blueprint, current_app, g, jsonify, request
 
-from pct.document_intelligence import DocumentAIRecord, DocumentAIRepository, DocumentAIService
+from pct.document_intelligence import DocumentAIRecord
 from pct.document_intelligence.security import (
     DocumentAIPermissionDenied,
     DocumentAINotFound,
     DocumentAIValidationError,
 )
-from web.helpers import get_fascicoli
-from web.services.storage_runtime import get_request_studio_db, get_request_storage_runtime
+from web.services.document_intelligence_runtime import (
+    build_document_ai_service,
+    build_lex_indexing_summary_payload,
+    document_ai_tenant_id,
+    document_ai_user_context,
+    fascicoli_db_path,
+)
 
 
 api_v1_documenti_ai = Blueprint("api_v1_documenti_ai", __name__, url_prefix="/api/v1/ui")
@@ -37,39 +41,15 @@ def _richiedi_auth(func: Callable[..., Any]) -> Callable[..., Any]:
 
 
 def _tenant_id() -> str:
-    tenant = getattr(g, "tenant", None)
-    slug = str(getattr(tenant, "slug", "") or "").strip()
-    if slug:
-        return slug
-    user = g.get("utente_corrente")
-    user_slug = str(getattr(user, "tenant_slug", "") or session.get("tenant_slug") or "").strip()
-    if user_slug:
-        return user_slug
-    profile = get_request_storage_runtime(_fascicoli_db_path())
-    return profile.tenant_slug or "single-studio"
+    return document_ai_tenant_id()
 
 
 def _fascicoli_db_path() -> str:
-    return str(
-        current_app.config.get("FASCICOLI_DB")
-        or current_app.config.get("FASCICOLI_DB_PATH")
-        or Path(current_app.instance_path) / "fascicoli" / "fascicoli.json"
-    )
-
-
-def build_document_ai_service() -> DocumentAIService:
-    anchor = _fascicoli_db_path()
-    structured_db = get_request_studio_db(anchor)
-    repository = DocumentAIRepository.from_fascicoli_db(anchor, structured_db=structured_db)
-    max_size = int(current_app.config.get("DOCUMENT_AI_MAX_UPLOAD_BYTES") or 25 * 1024 * 1024)
-    return DocumentAIService(repository, get_fascicoli(), max_size_bytes=max_size)
+    return fascicoli_db_path()
 
 
 def _user_context() -> dict[str, Any]:
-    return {
-        "user": g.get("utente_corrente"),
-        "user_id": str(getattr(g.get("utente_corrente"), "id", "") or ""),
-    }
+    return document_ai_user_context()
 
 
 def _errore(detail: str, code: str, status: int):
@@ -121,13 +101,26 @@ def _serialize_version(version: Any) -> dict[str, Any]:
 
 def _capabilities() -> dict[str, bool]:
     return {
-        "upload": True,
+        "upload": False,
         "read": True,
         "search": True,
         "lex_tools": True,
         "generate_docx": False,
         "propose_edits": False,
         "compare": False,
+    }
+
+
+def _serialize_lex_indexing(summary: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "total_documents": int(summary.get("total_documents") or 0),
+        "ready": int(summary.get("ready") or 0),
+        "queued": int(summary.get("queued") or 0),
+        "indexing": int(summary.get("indexing") or 0),
+        "errors": int(summary.get("errors") or 0),
+        "stale": int(summary.get("stale") or 0),
+        "last_indexed_at": summary.get("last_indexed_at") or None,
+        "status": str(summary.get("status") or "ready"),
     }
 
 
@@ -145,6 +138,36 @@ def lista_documenti_ai(fascicolo_id: str):
                 "capabilities": _capabilities(),
             }
         )
+    except Exception as exc:
+        return _handle_error(exc)
+
+
+@api_v1_documenti_ai.get("/fascicoli/<fascicolo_id>/lex-indexing")
+@_richiedi_auth
+def stato_indicizzazione_lex(fascicolo_id: str):
+    try:
+        summary = build_lex_indexing_summary_payload(fascicolo_id, process=False)
+        return jsonify({"mock_fallback": False, "fascicolo_id": fascicolo_id, "lex_indexing": _serialize_lex_indexing(summary)})
+    except Exception as exc:
+        return _handle_error(exc)
+
+
+@api_v1_documenti_ai.post("/fascicoli/<fascicolo_id>/lex-indexing/aggiorna")
+@_richiedi_auth
+def aggiorna_indice_lex(fascicolo_id: str):
+    try:
+        summary = build_lex_indexing_summary_payload(fascicolo_id, process=True)
+        return jsonify({"mock_fallback": False, "fascicolo_id": fascicolo_id, "lex_indexing": _serialize_lex_indexing(summary)})
+    except Exception as exc:
+        return _handle_error(exc)
+
+
+@api_v1_documenti_ai.post("/fascicoli/<fascicolo_id>/lex-indexing/riprova-errori")
+@_richiedi_auth
+def riprova_errori_indice_lex(fascicolo_id: str):
+    try:
+        summary = build_lex_indexing_summary_payload(fascicolo_id, process=True, retry_errors=True)
+        return jsonify({"mock_fallback": False, "fascicolo_id": fascicolo_id, "lex_indexing": _serialize_lex_indexing(summary)})
     except Exception as exc:
         return _handle_error(exc)
 

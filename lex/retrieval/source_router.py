@@ -36,6 +36,7 @@ _LEGAL_RESEARCH_HINTS = (
     "d.m. 150",
     "dm 150",
 )
+_FASCICOLO_FIRST_WORKFLOWS = {"fascicolo", "documento", "udienza"}
 
 
 def _clean_spaces(value: object) -> str:
@@ -45,18 +46,26 @@ def _clean_spaces(value: object) -> str:
 def _should_include_legal_sources(request, workflow: str) -> bool:
     if workflow in {"normativa", "giurisprudenza", "prassi", "research", "fonti"}:
         return True
-    if workflow not in {"economico", "cabina", "next_action"}:
-        return True
+
+    metadata = dict(getattr(request, "metadata", {}) or {})
+    profile = dict(metadata.get("request_profile") or {})
+    source_mode = _clean_spaces(profile.get("source_mode") or metadata.get("source_mode")).lower()
+    external_reason = _clean_spaces(metadata.get("external_sources_reason"))
+
+    if workflow in _FASCICOLO_FIRST_WORKFLOWS and bool(getattr(request, "fascicolo_id", None)):
+        return bool(external_reason or source_mode == "strict" or getattr(request, "require_official_sources", False))
 
     if bool(getattr(request, "require_official_sources", False)):
         return True
 
-    metadata = dict(getattr(request, "metadata", {}) or {})
-    profile = dict(metadata.get("request_profile") or {})
-    if _clean_spaces(profile.get("source_mode")).lower() == "strict":
+    if source_mode == "strict":
         return True
 
     haystack = _clean_spaces(getattr(request, "query", "") or "").lower()
+    if workflow in {"economico", "cabina", "next_action", "compliance", "telematico_status"}:
+        return any(token in haystack for token in _LEGAL_RESEARCH_HINTS)
+    if workflow in _FASCICOLO_FIRST_WORKFLOWS:
+        return False
     return any(token in haystack for token in _LEGAL_RESEARCH_HINTS)
 
 

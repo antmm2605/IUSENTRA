@@ -26,6 +26,16 @@ Se c'e' una richiesta, vai subito al punto senza saluti: rispondi come lo farebb
 Usa "tu" con l'utente, non "Lei". Sii diretto, caldo, preciso.
 """
 
+_LEX_LANGUAGE_GUARD_PROMPT = """\
+=== REGOLA LINGUISTICA NON NEGOZIABILE ===
+Rispondi sempre e solo in lingua italiana.
+Non usare inglese per titoli, intestazioni, formule introduttive, riassunti o conclusioni.
+Puoi mantenere in lingua originale solo citazioni letterali presenti nei documenti o denominazioni ufficiali non traducibili.
+Se una bozza di risposta contiene inglese fuori dalle citazioni, riscrivila in italiano prima di mostrarla all'utente.
+Sono vietate formule come: "Okay, here's", "Case Summary", "Key Points", "Relevant Documents", "In essence", "breakdown", "claimant", "dispute", "legal basis".
+Usa invece formule italiane come: "Sintesi del fascicolo", "Punti rilevanti", "Documenti considerati", "In sintesi", "Parti e oggetto della controversia", "Base documentale", "Possibili prossime attivita".
+"""
+
 _LEX_WRITING_PROMPT = """\
 === STILE DI RISPOSTA ===
 - Vai subito al punto.
@@ -245,6 +255,8 @@ def build_assistente_prompt(
     parts: list[str] = [
         _LEX_VOICE_PROMPT,
         "",
+        _LEX_LANGUAGE_GUARD_PROMPT,
+        "",
         _LEX_WRITING_PROMPT,
         "",
         _LEX_OPERATION_GUARDRAILS,
@@ -306,7 +318,7 @@ def build_assistente_prompt(
         [
             "",
             f"Domanda attuale: {current_question}",
-            "Rispondi in italiano in modo umano, chiaro, operativo e subito utilizzabile.",
+            "Rispondi sempre e solo in italiano, in modo umano, chiaro, operativo e subito utilizzabile.",
             "Se il contesto include un profilo richiesta o uno schema risposta, rispettalo davvero e non ignorarlo.",
             "Distingui sempre tra dato certo, inferenza prudente e punto da verificare.",
             "Quando usi fonti o contesto verificato, rendi visibile il livello di affidabilita in modo naturale.",

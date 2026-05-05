@@ -193,6 +193,14 @@ class RetrievalOrchestrator:
         metadata = dict(evidence_pack.get("metadata") or {})
         metadata["retrieval_cache_hit"] = False
         metadata["retrieval_cache_ttl_seconds"] = self.retrieval_cache.ttl_seconds
+        request_metadata = dict(getattr(request, "metadata", {}) or {})
+        external_sources_used = bool(
+            "OfficialWebSource" in used_sources
+            or any(str(getattr(item, "source_type", "")).lower() == "web_ufficiale" for item in selected)
+        )
+        metadata["fascicolo_first"] = bool(request_metadata.get("fascicolo_first"))
+        metadata["external_sources_used"] = external_sources_used
+        metadata["external_sources_reason"] = request_metadata.get("external_sources_reason") or None
         evidence_pack["metadata"] = metadata
         payload = {
             "queries": list(evidence_pack_obj.queries or queries),
@@ -206,6 +214,9 @@ class RetrievalOrchestrator:
             "coverage_gaps": list(getattr(evidence_pack_obj, "coverage_gaps", []) or []),
             "conflicting_items": list(getattr(evidence_pack_obj, "conflicting_items", []) or []),
             "fallback_triggered": fallback_triggered,
+            "fascicolo_first": bool(request_metadata.get("fascicolo_first")),
+            "external_sources_used": external_sources_used,
+            "external_sources_reason": request_metadata.get("external_sources_reason") or None,
             "evidence_sufficient": sufficient,
             "used_sources": used_sources,
             "cache": {

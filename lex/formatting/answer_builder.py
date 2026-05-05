@@ -6,6 +6,7 @@ from typing import Any
 
 from lex.contracts import LexResponse as WorkflowLexResponse
 from lex.domain.confidence import compute_confidence
+from lex.guards.italian_response_guard import rewrite_or_reject_non_italian_response
 from lex.schemas import LexGroundingResult
 
 from .citations import build_citations
@@ -136,6 +137,11 @@ class AnswerBuilder:
             fallback_triggered=fallback_triggered,
             existing_next_actions=next_actions,
         )
+        final_answer = rewrite_or_reject_non_italian_response(
+            professional.answer,
+            {"workflow": workflow, "request": request},
+        )
+        italian_guard_applied = final_answer != professional.answer
         next_actions = self._unique_strings([*next_actions, *professional.next_actions])
         warnings = self._unique_strings(
             [
@@ -143,6 +149,7 @@ class AnswerBuilder:
                 *case_law_warnings,
                 *legal_quality_warnings,
                 *professional.warnings,
+                *(["Risposta normalizzata in italiano dal guard linguistico Lex."] if italian_guard_applied else []),
                 *([] if evidence_sufficient else ["Evidenze insufficienti: risposta in modalita' needs_review."]),
             ]
         )
@@ -151,7 +158,7 @@ class AnswerBuilder:
 
             provenance_envelope = build_provenance_envelope(
                 query=str(getattr(request, "query", "") or ""),
-                answer=professional.answer,
+                answer=final_answer,
                 workflow=workflow,
                 provider_metadata=draft_metadata,
                 evidence_items=list((evidence or {}).get("items") or []),
@@ -166,7 +173,7 @@ class AnswerBuilder:
             provenance_envelope = {}
 
         return WorkflowLexResponse(
-            answer=professional.answer,
+            answer=final_answer,
             citations=citations,
             warnings=warnings,
             next_actions=next_actions,
@@ -195,11 +202,26 @@ class AnswerBuilder:
                 "case_law_warnings": case_law_warnings,
                 "legal_quality_guard_applied": bool(draft_metadata.get("legal_quality_guard_applied")),
                 "legal_quality_warnings": legal_quality_warnings,
+                "italian_response_guard_applied": italian_guard_applied,
                 "evidence_count": evidence_count,
                 "official_sources": official_sources,
                 "trusted_sources": trusted_sources,
                 "coverage_gaps": missing_evidence,
                 "fallback_triggered": fallback_triggered,
+                "fascicolo_first": bool(
+                    dict(getattr(request, "metadata", {}) or {}).get("fascicolo_first")
+                    or evidence_pack.get("metadata", {}).get("fascicolo_first")
+                ),
+                "external_sources_used": bool(
+                    evidence_pack.get("metadata", {}).get("external_sources_used")
+                    or fallback_triggered
+                    or official_sources
+                ),
+                "external_sources_reason": (
+                    dict(getattr(request, "metadata", {}) or {}).get("external_sources_reason")
+                    or evidence_pack.get("metadata", {}).get("external_sources_reason")
+                    or None
+                ),
                 "evidence_sufficient": evidence_sufficient,
                 "compared_sources": compared_sources,
                 "retrieval_cache": retrieval_cache,
@@ -229,7 +251,8 @@ class AnswerBuilder:
             {"key": "bozza", "label": "Prepara bozza"},
             {"key": "fonti", "label": "Mostra fonti"},
         ]
-        sections = build_sections(answer, grounding.warnings, actions)
+        clean_answer = rewrite_or_reject_non_italian_response(answer, {"mode": mode})
+        sections = build_sections(clean_answer, grounding.warnings, actions)
         return {
             "ok": True,
             "mode": mode,

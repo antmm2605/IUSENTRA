@@ -9,6 +9,7 @@ from shutil import which
 from typing import Any
 
 from .models import DocumentAIPageText
+from .pdf_quality import repair_pdf_cid_placeholders, score_extracted_text_quality
 
 
 @dataclass(slots=True)
@@ -83,7 +84,8 @@ def _extract_pdf(content: bytes) -> ExtractionResult:
             for index, page in enumerate(pdf.pages, start=1):
                 text = page.extract_text() or ""
                 pages.append(DocumentAIPageText(page_number=index, text=text))
-        full_text = "\n\n".join(page.text for page in pages if page.text)
+        pages, full_text, repair_warnings = _repair_pdf_text(pages)
+        warnings.extend(repair_warnings)
         if not full_text.strip():
             warnings.append("Il PDF non contiene testo estraibile: potrebbe essere una scansione.")
         return ExtractionResult(
@@ -102,8 +104,9 @@ def _extract_pdf(content: bytes) -> ExtractionResult:
                 DocumentAIPageText(page_number=index, text=page.extract_text() or "")
                 for index, page in enumerate(reader.pages, start=1)
             ]
-            full_text = "\n\n".join(page.text for page in pages if page.text)
+            pages, full_text, repair_warnings = _repair_pdf_text(pages)
             warnings.append("Estrattore PDF primario non disponibile; usato parser alternativo.")
+            warnings.extend(repair_warnings)
             if not full_text.strip():
                 warnings.append("Il PDF non contiene testo estraibile: potrebbe essere una scansione.")
             return ExtractionResult(
@@ -185,3 +188,31 @@ def _extract_doc(_content: bytes) -> ExtractionResult:
         error_code="doc_legacy_extraction_unavailable",
         error_message="Formato DOC legacy ammesso in upload; estrazione testo non disponibile senza conversione locale.",
     )
+
+
+def _repair_pdf_text(pages: list[DocumentAIPageText]) -> tuple[list[DocumentAIPageText], str, list[str]]:
+    repaired_pages: list[DocumentAIPageText] = []
+    warnings: list[str] = []
+    for page in pages:
+        repaired, page_warnings = repair_pdf_cid_placeholders(page.text)
+        repaired_pages.append(DocumentAIPageText(page_number=page.page_number, text=repaired))
+        warnings.extend(page_warnings)
+    full_text = "\n\n".join(page.text for page in repaired_pages if page.text)
+    original_text = "\n\n".join(page.text for page in pages if page.text)
+    original_score = score_extracted_text_quality(original_text)
+    repaired_score = score_extracted_text_quality(full_text)
+    if repaired_score.score >= original_score.score and warnings:
+        return repaired_pages, full_text, _unique_warnings(warnings)
+    return pages, original_text, []
+
+
+def _unique_warnings(values: list[str]) -> list[str]:
+    seen: set[str] = set()
+    out: list[str] = []
+    for value in values:
+        clean = str(value or "").strip()
+        if not clean or clean in seen:
+            continue
+        seen.add(clean)
+        out.append(clean)
+    return out

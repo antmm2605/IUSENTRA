@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from pct.document_intelligence.security import DocumentAIValidationError
+
 from .base import BaseLexTool
 
 
@@ -40,6 +42,7 @@ def list_fascicolo_documents(
     tenant = tenant_id or _runtime_tenant_id()
     context = user_context if user_context is not None else _runtime_user_context()
     documents = svc.list_fascicolo_documents(tenant, fascicolo_id, context)
+    ready_documents = [document for document in documents if str(document.status or "").lower() == "ready"]
     return {
         "documents": [
             {
@@ -50,8 +53,9 @@ def list_fascicolo_documents(
                 "page_count": document.page_count,
                 "sha256": document.sha256,
             }
-            for document in documents
-        ]
+            for document in ready_documents
+        ],
+        "not_ready_count": max(0, len(documents) - len(ready_documents)),
     }
 
 
@@ -67,6 +71,8 @@ def read_fascicolo_document(
     tenant = tenant_id or _runtime_tenant_id()
     context = user_context if user_context is not None else _runtime_user_context()
     document = svc.get_fascicolo_document(tenant, fascicolo_id, document_id, context)
+    if str(document.status or "").lower() != "ready":
+        raise DocumentAIValidationError("Documento non indicizzato o non pronto per Lex.")
     text = svc.get_fascicolo_document_text(tenant, fascicolo_id, document_id, context)
     return {
         "document_id": document.id,
@@ -91,6 +97,9 @@ def find_in_fascicolo_document(
     svc = service or _runtime_service()
     tenant = tenant_id or _runtime_tenant_id()
     context = user_context if user_context is not None else _runtime_user_context()
+    document = svc.get_fascicolo_document(tenant, fascicolo_id, document_id, context)
+    if str(document.status or "").lower() != "ready":
+        raise DocumentAIValidationError("Documento non indicizzato o non pronto per Lex.")
     results = svc.search_fascicolo_document(tenant, fascicolo_id, document_id, query, context, max_results=max_results)
     return {
         "document_id": document_id,

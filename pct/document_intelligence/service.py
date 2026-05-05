@@ -13,6 +13,7 @@ from .models import (
     DocumentAISearchResult,
     DocumentAIText,
     DocumentAIUploadResult,
+    LexIndexingSummary,
     new_id,
     utc_now,
 )
@@ -227,6 +228,58 @@ class DocumentAIService:
         self.last_upload_result = _upload_result(version, extraction, status=extraction_status)
         return upload_result
 
+    def upload_document_bytes_for_fascicolo(
+        self,
+        *,
+        tenant_id: str,
+        fascicolo_id: str,
+        filename: str,
+        content: bytes,
+        mime_type: str | None,
+        user_context: object,
+        source_metadata: dict[str, Any] | None = None,
+    ) -> DocumentAIUploadResult:
+        upload = _BytesUpload(filename=filename, content=content, content_type=mime_type)
+        result = self.upload_document_for_fascicolo(tenant_id, fascicolo_id, upload, user_context)
+        if source_metadata and self.last_upload_result is not None:
+            self.last_upload_result["source_metadata"] = dict(source_metadata)
+        return result
+
+    def build_lex_indexing_summary(
+        self,
+        tenant_id: str,
+        fascicolo_id: str,
+        sources: list[Any],
+        user_context: object,
+    ) -> LexIndexingSummary:
+        from .indexer import DocumentAIIndexer
+
+        return DocumentAIIndexer(self).summarize(
+            tenant_id=tenant_id,
+            fascicolo_id=fascicolo_id,
+            sources=list(sources or []),
+            user_context=user_context,
+        )
+
+    def process_lex_indexing_sources(
+        self,
+        tenant_id: str,
+        fascicolo_id: str,
+        sources: list[Any],
+        user_context: object,
+        *,
+        retry_errors: bool = False,
+    ):
+        from .indexer import DocumentAIIndexer
+
+        return DocumentAIIndexer(self).process(
+            tenant_id=tenant_id,
+            fascicolo_id=fascicolo_id,
+            sources=list(sources or []),
+            user_context=user_context,
+            retry_errors=retry_errors,
+        )
+
     def list_fascicolo_documents(
         self,
         tenant_id: str,
@@ -303,6 +356,8 @@ class DocumentAIService:
         if not clean_query:
             raise DocumentAIValidationError("Query di ricerca mancante.")
         document = self.get_fascicolo_document(tenant_id, fascicolo_id, document_id, user_context)
+        if document.status != "ready":
+            raise DocumentAIValidationError("Documento non indicizzato o non pronto per la ricerca.")
         results = self.repository.search_extracted_text(
             tenant_id,
             fascicolo_id,
@@ -350,6 +405,19 @@ def _read_uploaded_file(uploaded_file: Any) -> bytes:
     if not isinstance(content, (bytes, bytearray)):
         raise DocumentAIValidationError("File non leggibile.")
     return bytes(content)
+
+
+class _BytesUpload:
+    def __init__(self, *, filename: str, content: bytes, content_type: str | None) -> None:
+        self.filename = filename
+        self.content_type = content_type
+        self._content = bytes(content)
+
+    def read(self) -> bytes:
+        return self._content
+
+    def seek(self, _index: int) -> None:
+        return None
 
 
 def _upload_result(version: Any, extraction: ExtractionResult, *, status: str) -> dict[str, Any]:

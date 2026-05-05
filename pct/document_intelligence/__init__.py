@@ -6,6 +6,7 @@ filesystem ai tool Lex o alla UI.
 
 from .extraction import DocumentAITextExtractionResult
 from .models import (
+    DOCUMENT_AI_INDEX_STATUSES,
     DOCUMENT_AI_SOURCES,
     DOCUMENT_AI_STATUSES,
     DocumentAICitation,
@@ -15,13 +16,16 @@ from .models import (
     DocumentAIText,
     DocumentAIUploadResult,
     DocumentAIVersion,
+    LexIndexingSummary,
 )
+from .sources import DocumentAISource
 from .repository import DocumentAIRepository, DocumentIntelligenceRepository
 from .service import DocumentAIService, DocumentIntelligenceService
 
 __all__ = [
     "DOCUMENT_AI_SOURCES",
     "DOCUMENT_AI_STATUSES",
+    "DOCUMENT_AI_INDEX_STATUSES",
     "DocumentAICitation",
     "DocumentAITextExtractionResult",
     "DocumentAIPageText",
@@ -31,6 +35,8 @@ __all__ = [
     "DocumentAIText",
     "DocumentAIUploadResult",
     "DocumentAIVersion",
+    "DocumentAISource",
+    "LexIndexingSummary",
     "DocumentAIRepository",
     "DocumentIntelligenceRepository",
     "DocumentIntelligenceService",

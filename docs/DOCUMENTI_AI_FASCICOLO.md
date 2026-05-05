@@ -44,11 +44,16 @@ Non fanno parte dell'implementazione:
 Componenti introdotti nell'MVP 1:
 
 - `pct/document_intelligence/`: dominio Documenti AI Fascicolo, con modelli, repository, service, estrazione, citazioni, audit, sicurezza e versioning.
+- `pct/document_intelligence/sources.py` e `pct/document_intelligence/indexer.py`: adattatori sorgenti reali del fascicolo e indicizzazione automatica per Lex.
+- `pct/document_intelligence/pdf_quality.py`: scoring qualita' testo e riparazione conservativa dei segnaposto PDF `(cid:NN)`.
 - `pct/sql/20260505_documenti_ai.sql`: schema SQLite.
 - `pct/sql/20260505_documenti_ai_postgres.sql`: schema PostgreSQL.
-- `web/blueprints/api_v1_documenti_ai.py`: API v1 UI sotto `/api/v1/ui`.
-- `lex/tools/fascicolo_documents.py`: tool Lex deterministici `list`, `read`, `find`.
-- `frontend/src/components/DocumentiAIPage.tsx` e componenti collegati: sezione React nel dettaglio fascicolo.
+- `web/blueprints/api_v1_documenti_ai.py`: API v1 UI sotto `/api/v1/ui`, incluse le azioni interne `lex-indexing`.
+- `web/services/document_intelligence_runtime.py`: wiring runtime Flask tenant-aware per service, sorgenti e stato indicizzazione.
+- `lex/tools/fascicolo_documents.py`: tool Lex deterministici `list`, `read`, `find` basati sull'indice automatico.
+- Area fascicoli React: box compatto `Indicizzazione Lex` dentro i documenti del fascicolo.
+
+Scelta prodotto aggiornata: `Documenti AI` non e' una sezione operativa visibile all'utente e non deve sembrare un secondo archivio documentale. L'utente continua a usare i `Documenti fascicolo`; il dominio `pct/document_intelligence` indicizza automaticamente quei documenti per Lex. Eventuali componenti diagnostici o API legacy restano superfici tecniche, non CTA dell'avvocato.
 
 Il runtime scrive i file originali e il testo estratto sotto `documenti_ai/<tenant>/<fascicolo>/<documento>/` nel data root dello studio. I payload API non restituiscono path filesystem assoluti.
 
@@ -80,7 +85,7 @@ La Fase 3 rende il repository persistente su storage strutturato: quando e' atti
     }
   ],
   "capabilities": {
-    "upload": true,
+    "upload": false,
     "read": true,
     "search": true,
     "lex_tools": true,
@@ -91,7 +96,38 @@ La Fase 3 rende il repository persistente su storage strutturato: quando e' atti
 }
 ```
 
+Nota prodotto: la capability `upload` e' `false` nella superficie utente standard. I documenti entrano dall'archivio reale del fascicolo, dagli import portale o dall'editor professionale; il motore Document Intelligence li indicizza senza chiedere un secondo caricamento.
+
+### GET `/api/v1/ui/fascicoli/<fascicolo_id>/lex-indexing`
+
+```json
+{
+  "mock_fallback": false,
+  "fascicolo_id": "string",
+  "lex_indexing": {
+    "total_documents": 16,
+    "ready": 16,
+    "queued": 0,
+    "indexing": 0,
+    "errors": 0,
+    "stale": 0,
+    "last_indexed_at": "ISO string|null",
+    "status": "ready|partial|working|error|stale"
+  }
+}
+```
+
+### POST `/api/v1/ui/fascicoli/<fascicolo_id>/lex-indexing/aggiorna`
+
+Aggiorna o processa i documenti pendenti/stale usando solo sorgenti reali del fascicolo. Risposta identica a `GET /lex-indexing`.
+
+### POST `/api/v1/ui/fascicoli/<fascicolo_id>/lex-indexing/riprova-errori`
+
+Riprova documenti in errore quando l'utente e' autorizzato. Risposta identica a `GET /lex-indexing`.
+
 ### POST `/api/v1/ui/fascicoli/<fascicolo_id>/documenti-ai/upload`
+
+Endpoint interno/legacy per compatibilita' tecnica. Non e' esposto come CTA standard: il flusso prodotto corretto salva prima il documento nel fascicolo reale e poi indicizza la sorgente.
 
 Richiesta `multipart/form-data`, campo `file`.
 
@@ -217,11 +253,18 @@ I tool MVP 1 sono:
 - `read_fascicolo_document`
 - `find_in_fascicolo_document`
 
-Input e output sono JSON stabili, in italiano lato messaggi applicativi, con hash SHA-256 e pagina quando disponibile. Ogni lettura o ricerca passa dal service e produce audit senza loggare testo integrale.
+Input e output sono JSON stabili, in italiano lato messaggi applicativi, con hash SHA-256 e pagina quando disponibile. Ogni lettura o ricerca passa dal service e produce audit senza loggare testo integrale. I tool leggono solo documenti `ready` dell'indice automatico; i documenti non indicizzati vengono segnalati come non disponibili, senza inventarne il contenuto.
+
+## Regole Lex
+
+- Lex risponde sempre in italiano, salvo citazioni letterali o denominazioni ufficiali non traducibili.
+- Le risposte su fascicolo usano prima documenti indicizzati, dati strutturati, attivita', scadenze, comunicazioni e depositi.
+- Fonti ufficiali esterne sono ammesse solo quando la domanda le richiede davvero; in quel caso il payload espone `external_sources_used=true` e una `external_sources_reason`.
+- Se un'informazione non risulta dall'indice/documenti disponibili, Lex deve scrivere: `Non risulta dai documenti disponibili nel fascicolo.`
 
 ## Roadmap
 
-- MVP 1: upload PDF/DOCX/DOC, hash SHA-256, versione 1, estrazione testo best-effort, lettura Lex, ricerca e citazioni base.
+- MVP 1: indicizzazione automatica di PDF/DOCX/DOC gia' presenti nel fascicolo, hash SHA-256, versione 1, estrazione testo best-effort, lettura Lex, ricerca, stato indicizzazione nel fascicolo e citazioni base.
 - MVP 2: generazione DOCX governata da template e repository IUSENTRA.
 - MVP 3: modifiche proposte, accetta/rifiuta, audit e diff.
 - MVP 4: comparazione documenti e tabular review.
@@ -232,11 +275,13 @@ Input e output sono JSON stabili, in italiano lato messaggi applicativi, con has
 - `mock_fallback=false` in tutte le risposte API;
 - tenant-aware e nessun accesso cross-tenant;
 - RBAC e sessione utente rispettati;
-- audit su upload, versione, estrazione, lettura e ricerca;
+- audit su upload/import fascicolo, versione, estrazione, lettura e ricerca;
 - CSRF sulle scritture browser;
 - test backend e contratti frontend;
 - nessun codice AGPL copiato;
 - UI italiana;
+- nessuna sezione utente standard `Documenti AI` separata;
+- Lex sempre in italiano e fascicolo-first;
 - nessun path filesystem assoluto nei payload;
 - nessun provider esterno per contenuti documentali senza policy Lex.
 
@@ -245,3 +290,5 @@ Input e output sono JSON stabili, in italiano lato messaggi applicativi, con has
 Il formato `.doc` e' ammesso in upload per preservare il file originale e calcolarne l'hash, ma l'estrazione testo richiede un adattatore locale di conversione governato. Se non disponibile, il documento resta in `error` con audit leggibile e file originale conservato.
 
 Le citazioni sono predisposte a livello dominio; la generazione di atti, le modifiche proposte e la comparazione documentale restano capability esplicitamente false.
+
+Gli adapter sorgente maturi in questa tranche sono `Documenti fascicolo`, import portale e salvataggio editor professionale. Attivita', udienze, scadenze, comunicazioni e istanze restano disponibili a Lex tramite i bounded context esistenti; l'eventuale trasformazione in documenti indicizzati separati sara' una tranche successiva solo quando esiste un artefatto documentale reale.

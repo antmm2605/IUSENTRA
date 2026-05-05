@@ -64,6 +64,21 @@ def test_document_ai_api_lista_mock_fallback_false(tmp_path: Path):
     assert payload["capabilities"]["generate_docx"] is False
 
 
+def test_document_ai_api_stato_indicizzazione_lex(tmp_path: Path):
+    app = _app(tmp_path)
+    fascicolo_id = _crea_fascicolo(app)
+
+    with app.test_client() as client:
+        _login(client)
+        response = client.get(f"/api/v1/ui/fascicoli/{fascicolo_id}/lex-indexing")
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["mock_fallback"] is False
+    assert payload["lex_indexing"]["total_documents"] == 0
+    assert payload["lex_indexing"]["status"] == "ready"
+
+
 def test_document_ai_api_upload_validazioni(tmp_path: Path):
     app = _app(tmp_path)
     fascicolo_id = _crea_fascicolo(app)

@@ -5,6 +5,7 @@ from .case_law_answer_guard import CaseLawAnswerGuard
 from .citation_guard import CitationGuard
 from .grounding import GroundingGuard
 from .hallucination_guard import HallucinationGuard
+from .italian_response_guard import detect_non_italian_response, rewrite_or_reject_non_italian_response
 from .legal_reference_guard import LegalReferenceGuard
 from .legal_answer_quality_guard import LegalAnswerQualityGuard
 from .orchestrator import GuardOrchestrator
@@ -23,6 +24,8 @@ __all__ = [
     "GuardOrchestrator",
     "GroundingGuard",
     "HallucinationGuard",
+    "detect_non_italian_response",
+    "rewrite_or_reject_non_italian_response",
     "LegalReferenceGuard",
     "LegalAnswerQualityGuard",
     "OutputGuard",

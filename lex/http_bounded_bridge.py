@@ -32,6 +32,43 @@ _STRICT_OFFICIAL_INTENTS = {"giurisprudenza", "normativa", "pratica_procedura"}
 _STRICT_SOURCE_WORKFLOWS = {"normativa", "giurisprudenza", "prassi", "research", "fonti"}
 _LEGAL_BOUNDED_PROFILE_INTENTS = {"giurisprudenza", "normativa"}
 _LEGAL_BOUNDED_FOCUS_TOPICS = {"ricerca_legale", "archivio_sentenze", "sentenze_civili", "sentenze_web"}
+_FASCICOLO_FIRST_TOPICS = {"fascicoli"}
+_EXTERNAL_LEGAL_TOKENS = (
+    "norma",
+    "normativa",
+    "legge",
+    "decreto",
+    "art.",
+    "articolo",
+    "codice civile",
+    "codice penale",
+    "cassazione",
+    "sentenza",
+    "giurisprudenza",
+    "fonte ufficiale",
+    "fonti ufficiali",
+    "verifica normativa",
+    "web",
+    "cerca",
+    "controlla",
+    "aggiornata",
+    "vigente",
+)
+_NORMATIVE_EXTERNAL_TOKENS = (
+    "norma",
+    "normativa",
+    "legge",
+    "decreto",
+    "art.",
+    "articolo",
+    "codice civile",
+    "codice penale",
+    "cassazione",
+    "sentenza",
+    "giurisprudenza",
+    "fonte ufficiale",
+    "fonti ufficiali",
+)
 _FALSE_VALUES = {"0", "false", "falso", "no", "off", "disabled", "disabilitato"}
 _TRUE_VALUES = {"1", "true", "vero", "yes", "si", "on", "enabled", "abilitato"}
 
@@ -104,6 +141,50 @@ def _resolve_workflow_hint(studio_context: dict[str, Any], request_profile: dict
     if focus_topic in {"ricerca_legale", "archivio_sentenze", "sentenze_civili", "sentenze_web"}:
         return "giurisprudenza"
     return ""
+
+
+def _is_fascicolo_first_request(data: dict[str, Any], studio_context: dict[str, Any], workflow_hint: str) -> bool:
+    return bool(
+        _clean_spaces(data.get("fascicolo_id"))
+        or workflow_hint == "fascicolo"
+        or _clean_spaces(studio_context.get("focus_topic")) in _FASCICOLO_FIRST_TOPICS
+    )
+
+
+def _external_sources_reason(
+    question: str,
+    studio_context: dict[str, Any],
+    request_profile: dict[str, Any],
+    *,
+    fascicolo_first: bool,
+) -> str | None:
+    source_mode = _clean_spaces(studio_context.get("source_mode") or request_profile.get("source_mode")).lower()
+    profile_intent = _clean_spaces(request_profile.get("intent")).lower()
+    focus_topic = _clean_spaces(studio_context.get("focus_topic")).lower()
+    text = _clean_spaces(question).lower()
+    explicit_web = bool(studio_context.get("web_execution_requested") or studio_context.get("web_fallback_used"))
+    explicit_research = (
+        source_mode == "strict"
+        or profile_intent in _LEGAL_BOUNDED_PROFILE_INTENTS
+        or focus_topic in _LEGAL_BOUNDED_FOCUS_TOPICS
+        or bool(request_profile.get("needs_external_validation"))
+        or explicit_web
+    )
+    has_legal_token = any(token in text for token in _EXTERNAL_LEGAL_TOKENS)
+    has_normative_token = any(token in text for token in _NORMATIVE_EXTERNAL_TOKENS)
+
+    if not fascicolo_first:
+        if explicit_research or has_legal_token:
+            return "La domanda richiede una verifica su fonti ufficiali o normative."
+        return None
+
+    if has_normative_token:
+        return "La domanda richiede una verifica normativa o una fonte ufficiale pertinente."
+    if explicit_research and has_legal_token:
+        return "La domanda sul fascicolo richiede anche una verifica normativa o una fonte ufficiale pertinente."
+    if explicit_web and has_legal_token:
+        return "L'utente ha chiesto una verifica esterna pertinente alla domanda sul fascicolo."
+    return None
 
 
 def _resolve_intent(question: str, studio_context: dict[str, Any], request_profile: dict[str, Any]) -> str:
@@ -354,6 +435,20 @@ def build_bounded_http_payload(
 
     request_profile = dict(studio_context.get("request_profile") or {})
     metadata = dict(data or {})
+    workflow_hint = _resolve_workflow_hint(studio_context, request_profile)
+    fascicolo_first = _is_fascicolo_first_request(data, studio_context, workflow_hint)
+    external_reason = _external_sources_reason(
+        resolved_effective_question,
+        studio_context,
+        request_profile,
+        fascicolo_first=fascicolo_first,
+    )
+    allow_external_research = bool(external_reason) if fascicolo_first else bool(
+        studio_context.get("web_execution_requested")
+        or studio_context.get("web_fallback_used")
+        or request_profile.get("needs_external_validation")
+        or not _has_internal_context(studio_context)
+    )
     metadata.update(
         {
             "mode": _clean_spaces(data.get("mode")) or "general",
@@ -368,6 +463,8 @@ def build_bounded_http_payload(
             "source_mode": _clean_spaces(studio_context.get("source_mode")),
             "web_fallback_used": bool(studio_context.get("web_fallback_used")),
             "web_execution_requested": bool(studio_context.get("web_execution_requested")),
+            "fascicolo_first": fascicolo_first,
+            "external_sources_reason": external_reason,
             "studio_context_seed": {
                 "sources": list(studio_context.get("sources") or []),
                 "structured_context": dict(studio_context.get("structured_context") or {}),
@@ -379,6 +476,8 @@ def build_bounded_http_payload(
                 "source_mode": _clean_spaces(studio_context.get("source_mode")),
                 "web_fallback_used": bool(studio_context.get("web_fallback_used")),
                 "web_execution_requested": bool(studio_context.get("web_execution_requested")),
+                "fascicolo_first": fascicolo_first,
+                "external_sources_reason": external_reason,
             },
         }
     )
@@ -390,20 +489,16 @@ def build_bounded_http_payload(
         intent=_resolve_intent(resolved_effective_question, studio_context, request_profile),  # type: ignore[arg-type]
         fascicolo_id=_clean_spaces(data.get("fascicolo_id")) or None,
         document_id=_clean_spaces(data.get("document_id")) or None,
-        workflow_hint=_resolve_workflow_hint(studio_context, request_profile) or None,
+        workflow_hint=workflow_hint or None,
         metadata=metadata,
-        allow_external_research=bool(
-            studio_context.get("web_execution_requested")
-            or studio_context.get("web_fallback_used")
-            or request_profile.get("needs_external_validation")
-            or not _has_internal_context(studio_context)
-        ),
+        allow_external_research=allow_external_research,
         require_citations=bool(
             request_profile.get("source_mode") == "strict"
             or _clean_spaces(studio_context.get("focus_topic")) in {"ricerca_legale", "archivio_sentenze", "sentenze_civili", "sentenze_web"}
         ),
         require_official_sources=bool(
-            _clean_spaces(request_profile.get("intent")) in _STRICT_OFFICIAL_INTENTS
+            bool(external_reason)
+            or _clean_spaces(request_profile.get("intent")) in _STRICT_OFFICIAL_INTENTS
             or _clean_spaces(studio_context.get("focus_topic")) in {"ricerca_legale", "archivio_sentenze", "sentenze_civili", "sentenze_web", "telematico"}
         ),
     )
@@ -433,6 +528,14 @@ def build_bounded_http_payload(
 
     citations = [_citation_label(item) for item in list(response.citations or []) if _citation_label(item)]
     sources = _source_rows(response)
+    external_sources_used = bool(
+        response.metadata.get("external_sources_used")
+        or response.metadata.get("fallback_triggered")
+        or any(str(row.get("authority") or "").lower() in {"official_web", "fonte ufficiale"} for row in sources)
+    )
+    external_reason_payload = response.metadata.get("external_sources_reason") or external_reason
+    if external_sources_used and not external_reason_payload:
+        external_reason_payload = "La risposta ha usato una fonte esterna governata per integrare il contesto interno."
     payload = direct_answer_payload(
         current_user_message,
         response.answer,
@@ -460,6 +563,9 @@ def build_bounded_http_payload(
                 response.metadata.get("fallback_triggered") or studio_context.get("web_fallback_used")
             ),
             "web_execution_requested": bool(studio_context.get("web_execution_requested")),
+            "fascicolo_first": fascicolo_first,
+            "external_sources_used": external_sources_used,
+            "external_sources_reason": external_reason_payload,
             "disable_exports": bool(
                 response.answer_mode != "grounded" or str(response.risk_level or "low") in {"high", "critical"}
             ),

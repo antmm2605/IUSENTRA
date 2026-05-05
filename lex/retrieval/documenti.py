@@ -236,6 +236,180 @@ def _document_manifest_item(pratica_id: str, documenti: list[Any]) -> EvidenceIt
     )
 
 
+def _resolve_index_runtime(context: dict[str, Any]) -> tuple[Any, str, Any] | None:
+    service = (context or {}).get("document_ai_service")
+    tenant_id = _clean((context or {}).get("document_ai_tenant_id"))
+    user_context = (context or {}).get("document_ai_user_context")
+    if service is not None:
+        return service, tenant_id or "tenant", user_context or {"user_id": "lex"}
+
+    try:
+        from flask import has_request_context
+
+        if not has_request_context():
+            return None
+        from web.services.document_intelligence_runtime import (
+            build_document_ai_service,
+            document_ai_tenant_id,
+            document_ai_user_context,
+        )
+
+        return build_document_ai_service(), document_ai_tenant_id(), document_ai_user_context()
+    except Exception:
+        return None
+
+
+def _indexed_manifest(pratica_id: str, documents: list[Any], not_ready_count: int) -> EvidenceItem | None:
+    if not documents and not not_ready_count:
+        return None
+    rows: list[str] = []
+    for index, document in enumerate(documents, start=1):
+        filename = _clean(getattr(document, "original_filename", "")) or "Documento"
+        file_type = _clean(getattr(document, "file_type", "")) or "file"
+        pages = getattr(document, "page_count", None)
+        page_label = f", {pages} pagine" if pages else ""
+        rows.append(f"{index}. [{file_type.upper()}] {filename}{page_label}")
+    if not_ready_count:
+        rows.append(f"Documenti presenti ma non ancora leggibili da Lex: {not_ready_count}.")
+    return EvidenceItem(
+        source_type="documento_manifesto",
+        source_id=f"{pratica_id}:documenti-ai:manifesto",
+        title=f"Inventario indice Lex documenti fascicolo ({len(documents)} pronti)",
+        content="Documenti indicizzati pronti per Lex: " + " ".join(rows),
+        score=0.99,
+        metadata={
+            "count": len(documents),
+            "not_ready_count": not_ready_count,
+            "authority": "internal_document_intelligence_index",
+            "parser": "document_intelligence_index",
+        },
+        authority="internal_document_intelligence_index",
+        trust_class="B",
+        source_level=3,
+        verified_reference=True,
+    )
+
+
+def _not_ready_index_item(pratica_id: str, count: int) -> EvidenceItem:
+    return EvidenceItem(
+        source_type="documento_indice_stato",
+        source_id=f"{pratica_id}:documenti-ai:not-ready",
+        title="Documenti presenti ma non indicizzati",
+        content=(
+            f"Nel fascicolo risultano {count} documenti non ancora indicizzati o non pronti. "
+            "Lex non ne puo' inventare il contenuto: Non risulta dai documenti disponibili nel fascicolo."
+        ),
+        score=0.72,
+        metadata={
+            "not_ready_count": count,
+            "authority": "internal_document_intelligence_index",
+            "parser": "document_intelligence_index",
+        },
+        authority="internal_document_intelligence_index",
+        trust_class="B",
+        source_level=3,
+        verified_reference=True,
+    )
+
+
+def _indexed_document_items(pratica_id: str, message: str, context: dict[str, Any]) -> list[EvidenceItem] | None:
+    runtime = _resolve_index_runtime(context)
+    if runtime is None:
+        return None
+    service, tenant_id, user_context = runtime
+    try:
+        documents = list(service.list_fascicolo_documents(tenant_id, pratica_id, user_context) or [])
+    except Exception:
+        return None
+
+    ready = [document for document in documents if _clean(getattr(document, "status", "")).lower() == "ready"]
+    not_ready_count = max(0, len(documents) - len(ready))
+    if not documents:
+        pending_count = _pending_index_count_from_context(pratica_id, context)
+        if pending_count:
+            return [_not_ready_index_item(pratica_id, pending_count)]
+    query = _clean(message).lower()
+    tokens = _query_tokens(query)
+    generic_query = _is_generic_document_query(tokens)
+
+    items: list[EvidenceItem] = []
+    manifest = _indexed_manifest(pratica_id, ready, not_ready_count)
+    if manifest is not None:
+        items.append(manifest)
+    if not ready and not_ready_count:
+        items.append(_not_ready_index_item(pratica_id, not_ready_count))
+        return items
+
+    for document in ready:
+        try:
+            text_record = service.get_fascicolo_document_text(tenant_id, pratica_id, document.id, user_context)
+        except Exception:
+            not_ready_count += 1
+            continue
+        text = _clean(text_record.text)
+        filename = _clean(getattr(document, "original_filename", "")) or "Documento"
+        file_type = _clean(getattr(document, "file_type", "")) or "file"
+        metadata_match = _matches_tokens(filename, tokens)
+        text_match = _matches_tokens(text, tokens)
+        score = 0.78
+        if metadata_match or text_match:
+            score = 0.94
+        elif not generic_query:
+            score = 0.62
+        body = text[:_MAX_EXCERPT].rstrip()
+        if len(text) > _MAX_EXCERPT:
+            body += "..."
+        content = f"[{file_type.upper()}] {filename}\n\n{body}" if body else f"[{file_type.upper()}] {filename}"
+        items.append(
+            EvidenceItem(
+                source_type="documento_indicizzato",
+                source_id=str(document.id),
+                title=filename,
+                content=content,
+                score=score,
+                metadata={
+                    "document_id": document.id,
+                    "version_id": text_record.version_id,
+                    "sha256": getattr(document, "sha256", ""),
+                    "page_count": getattr(document, "page_count", None),
+                    "parser": text_record.extraction_engine,
+                    "authority": "internal_document_intelligence_index",
+                    "has_text": bool(text),
+                    "warnings": list(getattr(text_record, "warnings", []) or []),
+                },
+                authority="internal_document_intelligence_index",
+                trust_class="B",
+                source_level=3,
+                verified_reference=True,
+            )
+        )
+    if not_ready_count:
+        items.append(_not_ready_index_item(pratica_id, not_ready_count))
+    return items
+
+
+def _pending_index_count_from_context(pratica_id: str, context: dict[str, Any]) -> int:
+    summary = (context or {}).get("lex_indexing") or (context or {}).get("document_ai_indexing_summary") or {}
+    if isinstance(summary, dict):
+        total = int(summary.get("total_documents") or 0)
+        ready = int(summary.get("ready") or 0)
+        if total > ready:
+            return total - ready
+    try:
+        from flask import has_request_context
+
+        if not has_request_context():
+            return 0
+        from web.services.document_intelligence_runtime import build_lex_indexing_summary_payload
+
+        payload = build_lex_indexing_summary_payload(pratica_id, process=False)
+        total = int(payload.get("total_documents") or 0)
+        ready = int(payload.get("ready") or 0)
+        return max(0, total - ready)
+    except Exception:
+        return 0
+
+
 def search_document_sources(
     pratica_id: str,
     message: str,
@@ -244,6 +418,10 @@ def search_document_sources(
     """Cerca documenti nel fascicolo ed estrae il contenuto testuale."""
     if not pratica_id:
         return []
+
+    indexed_items = _indexed_document_items(pratica_id, message, context or {})
+    if indexed_items is not None:
+        return indexed_items
 
     store = None
     try:

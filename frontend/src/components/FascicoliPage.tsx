@@ -43,7 +43,6 @@ import {
   WalletCards,
 } from 'lucide-react'
 import { Badge, Button, Panel } from './dashboard'
-import { DocumentiAIPage } from './DocumentiAIPage'
 import { FloatingLex } from './FloatingLex'
 import {
   emptyFascicoliPage,
@@ -65,6 +64,7 @@ import {
   type FascicoloDetailData,
   type FascicoloDocument,
   type FascicoloDetailSection,
+  type LexIndexingSummary,
   type FascicoloFormData,
   type FascicoloRow,
   type FascicoloStato,
@@ -215,6 +215,45 @@ function PostAction({ action, children, tone = 'secondary', confirm, confirmTitl
         </div>
       ) : null}
     </>
+  )
+}
+
+function LexIndexingPanel({ summary, refreshAction, retryAction, onDone, onError }:{summary:LexIndexingSummary; refreshAction:string; retryAction:string; onDone:(message?:string)=>void; onError:(message:string)=>void}) {
+  const working = summary.queued + summary.indexing
+  const tone = summary.status === 'ready' ? 'success' : summary.status === 'error' ? 'danger' : summary.status === 'stale' ? 'warning' : 'info'
+  const statusLabel: Record<LexIndexingSummary['status'], string> = { ready: 'Pronto', partial: 'Parziale', working: 'In corso', error: 'Errore', stale: 'Da aggiornare' }
+  const message = summary.errors > 0
+    ? 'Alcuni documenti non sono stati indicizzati. Apri la diagnostica tecnica o riprova l’indicizzazione.'
+    : working > 0
+      ? 'Alcuni documenti sono in indicizzazione. Lex li userà appena pronti.'
+      : summary.stale > 0
+        ? 'Alcuni documenti sono cambiati: aggiorna l’indice prima di usarli con Lex.'
+        : 'Lex può leggere i documenti del fascicolo.'
+  return (
+    <section className="iu-fas-lex-indexing" aria-label="Indicizzazione Lex">
+      <header>
+        <div>
+          <span><BrainCircuit size={16}/> Indicizzazione Lex</span>
+          <strong>{message}</strong>
+        </div>
+        <Badge tone={tone}>{statusLabel[summary.status] || summary.status}</Badge>
+      </header>
+      <dl>
+        <div><dt>Totali</dt><dd>{summary.total_documents}</dd></div>
+        <div><dt>Pronti</dt><dd>{summary.ready}</dd></div>
+        <div><dt>In coda</dt><dd>{summary.queued}</dd></div>
+        <div><dt>In corso</dt><dd>{summary.indexing}</dd></div>
+        <div><dt>Errori</dt><dd>{summary.errors}</dd></div>
+        <div><dt>Da aggiornare</dt><dd>{summary.stale}</dd></div>
+      </dl>
+      <footer>
+        <span>Ultimo indice: {summary.last_indexed_at ? new Intl.DateTimeFormat('it-IT', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(summary.last_indexed_at)) : 'mai'}</span>
+        <div>
+          {refreshAction ? <PostAction action={refreshAction} tone="secondary" onDone={onDone} onError={onError}><RefreshCw size={15}/> Aggiorna indice</PostAction> : null}
+          {retryAction && summary.errors > 0 ? <PostAction action={retryAction} tone="secondary" onDone={onDone} onError={onError}><RotateCcw size={15}/> Riprova errori</PostAction> : null}
+        </div>
+      </footer>
+    </section>
   )
 }
 
@@ -1527,7 +1566,7 @@ function DetailPage({ id }:{id:string}) {
       <section className="iu-fas-command-bar" aria-label="Strumenti rapidi del fascicolo">
         <a href={editorWorkspaceHref}><PencilLine size={15}/><span>Editor professionale</span></a>
         <a href={compilerHref}><ClipboardCheck size={15}/><span>Compilatore atti</span></a>
-        <a href="#documenti-ai"><BrainCircuit size={15}/><span>Documenti AI</span></a>
+        <a href="#documenti"><BrainCircuit size={15}/><span>Indice Lex</span></a>
         <PostAction action={data.actions.delete} tone="danger" confirm="Eliminare definitivamente il fascicolo?" confirmTitle="Elimina fascicolo" redirectTo="/fascicoli"><Trash2 size={15}/> Elimina fascicolo</PostAction>
       </section>
       <section className="iu-fas-smart-board" aria-label="Quadro intelligente del fascicolo">
@@ -1550,10 +1589,8 @@ function DetailPage({ id }:{id:string}) {
           <DetailSection id="documenti" title="Documenti fascicolo" icon={<FileText size={17}/>} count={data.quickCounts.documenti || 0} onOpen={() => loadLazySection('documenti')}>
             <UploadDocumentForm action={data.actions.uploadDocument} documentTypes={data.options.documentTypes} onDone={refreshDetail} onError={failDetail}/>
             <PortalImportForm action={data.actions.importPortal} onDone={refreshDetail} onError={failDetail}/>
+            <LexIndexingPanel summary={data.lexIndexing} refreshAction={data.actions.refreshLexIndex} retryAction={data.actions.retryLexIndexErrors} onDone={refreshDetail} onError={failDetail}/>
             <div className="iu-fas-doc-list">{lazyStatus.documenti === 'loading' ? <p className="iu-empty">Caricamento documenti...</p> : null}{data.documents.map((doc) => <DocumentRow doc={doc} key={doc.id} onPreview={setPreviewDoc} onDone={refreshDetail} onError={failDetail}/>)}{lazyStatus.documenti === 'loaded' && !data.documents.length ? <p className="iu-empty">Nessun documento caricato.</p> : null}{lazyStatus.documenti === 'idle' ? <p className="iu-empty">Apri la sezione per caricare i documenti del fascicolo.</p> : null}</div>
-          </DetailSection>
-          <DetailSection id="documenti-ai" title="Documenti AI" icon={<BrainCircuit size={17}/>}>
-            <DocumentiAIPage fascicoloId={f.id || id} />
           </DetailSection>
           <DetailSection id="editor-professionale" title="Editor professionale e compilatore atti" icon={<PencilLine size={17}/>} count={data.quickCounts.documenti || 0} onOpen={() => loadLazySection('documenti')}>
             <div className="iu-fas-editor-board">

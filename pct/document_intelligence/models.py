@@ -9,6 +9,15 @@ from uuid import uuid4
 
 
 DOCUMENT_AI_STATUSES = ("uploaded", "processing", "ready", "error", "archived")
+DOCUMENT_AI_INDEX_STATUSES = (
+    "not_indexed",
+    "queued",
+    "indexing",
+    "ready",
+    "error",
+    "stale",
+    "archived",
+)
 DOCUMENT_AI_SOURCES = (
     "upload",
     "generated",
@@ -136,3 +145,18 @@ class DocumentAIUploadResult(SerializableDataclass):
             "extraction_status": self.extraction_status,
             "warnings": list(self.warnings),
         }
+
+
+@dataclass(slots=True)
+class LexIndexingSummary(SerializableDataclass):
+    total_documents: int
+    ready: int
+    queued: int
+    indexing: int
+    errors: int
+    stale: int
+    last_indexed_at: str | None
+    status: str
+    not_indexed: int = 0
+    archived: int = 0
+    warnings: list[str] = field(default_factory=list)

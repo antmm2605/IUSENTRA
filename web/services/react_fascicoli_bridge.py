@@ -1462,6 +1462,20 @@ def build_react_fascicolo_detail_payload(
         "comunicazioni": len(getattr(fascicolo, "depositi_pct", []) or []),
         "istanze": requests_count,
     }
+    lex_indexing = _safe(
+        "lex_indexing",
+        lambda: _lex_indexing_summary(fid),
+        {
+            "total_documents": 0,
+            "ready": 0,
+            "queued": 0,
+            "indexing": 0,
+            "errors": 0,
+            "stale": 0,
+            "last_indexed_at": None,
+            "status": "ready",
+        },
+    )
     regia_payload = (
         build_react_practice_engine_payload(
             fascicolo_id=fid,
@@ -1504,6 +1518,7 @@ def build_react_fascicolo_detail_payload(
         "contracts": _contracts(),
         "fascicolo": _full_fascicolo(fascicolo, apps=apps, studio_avvocato_titolare=studio_avvocato_titolare),
         "quickCounts": quick_counts,
+        "lex_indexing": lex_indexing,
         "profile": _profile(fascicolo, apps=apps, studio_avvocato_titolare=studio_avvocato_titolare),
         "documents": _documents(fascicolo) if load_documents else [],
         "activities": activities,
@@ -1533,8 +1548,26 @@ def build_react_fascicolo_detail_payload(
             "complianceOff": f"/fascicoli/{fid}/conformita/controlli?enabled=0",
             "exportPdf": f"/fascicoli/{fid}/pdf",
             "archiveZip": f"/fascicoli/{fid}/archivio/scarica",
+            "refreshLexIndex": f"/api/v1/ui/fascicoli/{fid}/lex-indexing/aggiorna",
+            "retryLexIndexErrors": f"/api/v1/ui/fascicoli/{fid}/lex-indexing/riprova-errori",
         },
         "options": _options(),
+    }
+
+
+def _lex_indexing_summary(fid: str) -> dict[str, Any]:
+    from web.services.document_intelligence_runtime import build_lex_indexing_summary_payload
+
+    payload = build_lex_indexing_summary_payload(fid, process=False)
+    return {
+        "total_documents": int(payload.get("total_documents") or 0),
+        "ready": int(payload.get("ready") or 0),
+        "queued": int(payload.get("queued") or 0),
+        "indexing": int(payload.get("indexing") or 0),
+        "errors": int(payload.get("errors") or 0),
+        "stale": int(payload.get("stale") or 0),
+        "last_indexed_at": payload.get("last_indexed_at") or None,
+        "status": str(payload.get("status") or "ready"),
     }
 
 

@@ -46,6 +46,23 @@ export type EditorDocument = {
   }
 }
 
+export type EditorAICurrent = {
+  atto_ai_id: string
+  status: string
+  title: string
+  detail: string
+  proposeEdits: string
+  export: string
+}
+
+export type EditorAIEndpointPayload = {
+  enabled: boolean
+  bootstrap: string
+  generate: string
+  current: EditorAICurrent | null
+  warning: string
+}
+
 export type DocumentEditorPayload = {
   source: string
   generatedAt: string
@@ -65,12 +82,20 @@ export type DocumentEditorPayload = {
     autosaveSeconds: number
     localBundle: boolean
   }
+  editorAI: EditorAIEndpointPayload
   warnings: string[]
 }
 
 export type EditorStatusTone = Tone | 'saving' | 'loading'
 
 const emptyContracts: EditorContracts = { mock_fallback: false, read_only: false, writes: 'operational_routes' }
+const emptyEditorAI: EditorAIEndpointPayload = {
+  enabled: false,
+  bootstrap: '',
+  generate: '',
+  current: null,
+  warning: '',
+}
 
 export const emptyDocumentEditorPayload: DocumentEditorPayload = {
   source: 'vuoto',
@@ -108,6 +133,7 @@ export const emptyDocumentEditorPayload: DocumentEditorPayload = {
   },
   endpoints: { loadHtml: '', save: '', exportPdf: '', exportDocx: '' },
   capabilities: { formats: [], autosaveSeconds: 30, localBundle: true },
+  editorAI: emptyEditorAI,
   warnings: [],
 }
 
@@ -203,6 +229,27 @@ function normalizeCapabilities(value: unknown): DocumentEditorPayload['capabilit
   }
 }
 
+function normalizeEditorAI(value: unknown): EditorAIEndpointPayload {
+  if (!isRecord(value)) return emptyEditorAI
+  const current = isRecord(value.current) ? value.current : null
+  return {
+    enabled: value.enabled !== false,
+    bootstrap: text(value.bootstrap),
+    generate: text(value.generate),
+    current: current
+      ? {
+        atto_ai_id: text(current.atto_ai_id),
+        status: text(current.status),
+        title: text(current.title),
+        detail: text(current.detail),
+        proposeEdits: text(current.proposeEdits),
+        export: text(current.export),
+      }
+      : null,
+    warning: text(value.warning),
+  }
+}
+
 export function normalizeDocumentEditorPayload(payload: unknown): DocumentEditorPayload {
   if (!isRecord(payload)) return emptyDocumentEditorPayload
   return {
@@ -215,6 +262,7 @@ export function normalizeDocumentEditorPayload(payload: unknown): DocumentEditor
     document: normalizeDocument(payload.document),
     endpoints: normalizeEndpoints(payload.endpoints),
     capabilities: normalizeCapabilities(payload.capabilities),
+    editorAI: normalizeEditorAI(payload.editorAI),
     warnings: asArray(payload.warnings).map((item) => text(item)).filter(Boolean),
   }
 }

@@ -68,6 +68,16 @@ _LEX_OPERATION_GUARDRAILS = """\
 - Se il contesto studio non basta, dillo chiaramente e usa la ricerca web ufficiale quando e' consentita dalla policy.
 """
 
+_LEX_EDITOR_AI_PROMPT = """\
+=== GENERAZIONE ATTI NELL'EDITOR PROFESSIONALE ===
+- Se l'utente chiede di generare, redigere o preparare un atto collegato a un fascicolo, Lex deve usare il tool `generate_editor_draft`.
+- Non rispondere con una bozza lunga in chat: Lex deve creare il documento editor e poi sintetizzare in italiano cosa e' stato salvato.
+- La bozza deve essere salvata come documento reale del fascicolo, apribile nell'editor professionale IUSENTRA.
+- Se l'utente chiede modifiche su un atto gia' generato, Lex deve usare `propose_editor_edits` e proporre modifiche puntuali da accettare o rifiutare.
+- Dopo la generazione, Lex deve rileggere il documento creato con `read_editor_document` prima di descrivere cosa e' stato salvato.
+- Le fonti devono venire dai documenti indicizzati del fascicolo e dai dati strutturati disponibili. Non inventare dati mancanti.
+"""
+
 _LEX_EXECUTION_ARCHITECTURE_PROMPT = """\
 === ARCHITETTURA DECISIONALE DI LEX ===
 - Il LLM serve per tono umano, scrittura, sintesi, follow-up, riformulazione e spiegazioni operative.
@@ -260,6 +270,8 @@ def build_assistente_prompt(
         _LEX_WRITING_PROMPT,
         "",
         _LEX_OPERATION_GUARDRAILS,
+        "",
+        _LEX_EDITOR_AI_PROMPT,
         "",
         _LEX_EXECUTION_ARCHITECTURE_PROMPT,
         "",

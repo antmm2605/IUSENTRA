@@ -21,6 +21,7 @@ Legenda:
 | Programmazione | Scadenziario | R/W | R/W | R/W | parita' completa | Wave 2 - core operativo | JSON solo in bootstrap o fallback locale dichiarato |
 | Programmazione | Calcolatore termini processuali e audit | R/W | R/W | R/W | parita' completa | Wave 2 - core operativo | template, audit SHA-256, calendario e promemoria PEC hanno schema JSON/SQLite/PostgreSQL; JSON solo bootstrap controllato |
 | Produzione atti | Template atti e preferenze editor | R/W | R/W | R/W | parita' completa | Wave 3 - workspace professionali | JSON come export/bootstrap controllato dei layout editor |
+| Produzione atti | Editor AI e generazione atti Lex | R/W | R/W | R/W | schema governato | Wave 3 - workspace professionali | JSON tenant-aware in `editor_ai/editor_ai.json` come fallback esplicito; metadati, versioni, fonti, proposte e audit su SQLite/PostgreSQL con `pct/sql/20260505_editor_ai*.sql`; documento finale sempre nel repository fascicolo |
 | Operativita' | Timesheet e valorizzazione attivita' | R/W | R/W | R/W | parita' completa | Wave 4 - economico | JSON solo come bootstrap o import storico |
 | Operativita' | Timer attivita top bar | R/W | R/W | R/W | schema governato | Wave 4 - economico | JSON tenant-aware in `timesheet/time_tracking.json`; SQLite/PostgreSQL predisposti in `pct/sql/20260505_topbar_time_tracking*.sql`; allo stop crea voce timesheet reale |
 | Commerciale | Preventivi e workflow commerciale | R/W | R/W | R/W | parita' completa | Wave 4 - economico | SQLite/PostgreSQL tenant-aware; JSON solo come ponte di migrazione |

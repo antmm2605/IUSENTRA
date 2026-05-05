@@ -5,6 +5,15 @@ from __future__ import annotations
 from .agenda_tool import AgendaTool
 from .compliance_tool import ComplianceTool
 from .document_tool import DocumentTool
+from .editor_ai import (
+    CollectFascicoloContextTool,
+    ExportEditorDocumentTool,
+    GenerateEditorDraftTool,
+    ListTemplateAttiTool,
+    ProposeEditorEditsTool,
+    ReadEditorDocumentTool,
+    ReadTemplateAttoTool,
+)
 from .fascicolo_documents import (
     FindInFascicoloDocumentTool,
     ListFascicoloDocumentsTool,
@@ -35,4 +44,11 @@ class LexToolRegistry:
             "template_atti": TemplateAttiTool(),
             "preventivi": PreventiviTool(),
             "compliance": ComplianceTool(),
+            "list_template_atti": ListTemplateAttiTool(),
+            "read_template_atto": ReadTemplateAttoTool(),
+            "collect_fascicolo_context": CollectFascicoloContextTool(),
+            "generate_editor_draft": GenerateEditorDraftTool(),
+            "read_editor_document": ReadEditorDocumentTool(),
+            "propose_editor_edits": ProposeEditorEditsTool(),
+            "export_editor_document": ExportEditorDocumentTool(),
         }

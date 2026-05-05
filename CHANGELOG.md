@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.198.76 - 2026-05-05
+
+- Introdotto il dominio nativo `pct/editor_ai` per generazione atti con Lex nell'editor professionale IUSENTRA: template resolver, piano bozza, renderer verso documento editor reale, versioni, fonti, proposte modifica e audit.
+- Aggiunte API `/api/v1/ui/fascicoli/<id>/editor-ai*`, migrazioni SQLite/PostgreSQL `pct/sql/20260505_editor_ai*.sql` e tool Lex `list/read template`, `collect_fascicolo_context`, `generate_editor_draft`, `read_editor_document`, `propose_editor_edits`, `export_editor_document`.
+- Integrato il pannello `Nuovo atto con Lex` dentro l'editor React esistente, senza creare una sezione separata: la bozza viene salvata nel fascicolo, riletta dall'editor e aperta come documento modificabile/versionato.
+- Aggiunti test backend e contratti React su template, generazione, renderer, repository SQLite, proposte modifica, API, tool Lex e validatore italiano.
+
 ## 2.198.75 - 2026-05-05
 
 - Ricondotto `Documenti AI Fascicolo` a motore interno: rimossa la sezione autonoma dalla navigazione standard del fascicolo e integrato il box `Indicizzazione Lex` dentro `Documenti fascicolo`, con payload reali `lex-indexing`, conteggi ready/queued/indexing/error/stale e azioni autorizzate di aggiornamento/riprova.

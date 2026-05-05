@@ -6,6 +6,8 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
+from flask import has_app_context
+
 from pct.editor import estensione_editabile
 
 
@@ -57,6 +59,34 @@ def _contracts() -> dict[str, Any]:
         "read_only": False,
         "writes": "operational_routes",
     }
+
+
+def _editor_ai_payload(fascicolo_id: str, document_id: str) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "enabled": True,
+        "bootstrap": f"/api/v1/ui/fascicoli/{fascicolo_id}/editor-ai/bootstrap",
+        "generate": f"/api/v1/ui/fascicoli/{fascicolo_id}/editor-ai/genera",
+        "current": None,
+    }
+    if not has_app_context():
+        return payload
+    try:
+        from web.services.editor_ai_runtime import build_editor_ai_service, editor_ai_tenant_id
+
+        service = build_editor_ai_service()
+        record = service.repository.get_record_by_editor_document(editor_ai_tenant_id(), fascicolo_id, document_id)
+        if record:
+            payload["current"] = {
+                "atto_ai_id": record.id,
+                "status": record.status,
+                "title": record.title,
+                "detail": f"/api/v1/ui/fascicoli/{fascicolo_id}/editor-ai/{record.id}",
+                "proposeEdits": f"/api/v1/ui/fascicoli/{fascicolo_id}/editor-ai/{record.id}/modifiche/proponi",
+                "export": f"/api/v1/ui/fascicoli/{fascicolo_id}/editor-ai/{record.id}/export",
+            }
+    except Exception:
+        payload["warning"] = "Stato Editor AI non disponibile in questo momento."
+    return payload
 
 
 def _fascicolo_lookup_keys(fascicolo: Any) -> set[str]:
@@ -216,6 +246,7 @@ def build_react_document_editor_payload(
             "exportPdf": f"/api/editor/{fid}/{document['id']}/pdf",
             "exportDocx": f"/api/editor/{fid}/{document['id']}/docx",
         },
+        "editorAI": _editor_ai_payload(fid, document["id"]),
         "capabilities": {
             "formats": [".docx", ".pdf", ".txt", ".html", ".htm"],
             "autosaveSeconds": 30,

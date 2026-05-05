@@ -37,6 +37,7 @@ BLUEPRINT_REGISTRY: tuple[BlueprintRegistration, ...] = (
     BlueprintRegistration("api_v1", "web.blueprints.api_v1", "api_v1", "/api/v1"),
     BlueprintRegistration("api_v1_react", "web.blueprints.api_v1_react", "api_v1_react", "/api/v1/ui"),
     BlueprintRegistration("api_v1_documenti_ai", "web.blueprints.api_v1_documenti_ai", "api_v1_documenti_ai", "/api/v1/ui"),
+    BlueprintRegistration("api_v1_editor_ai", "web.blueprints.api_v1_editor_ai", "api_v1_editor_ai", "/api/v1/ui"),
     BlueprintRegistration("react_shell", "web.blueprints.react_shell", "react_shell", ""),
     BlueprintRegistration("portale", "web.blueprints.portale", "portale", "/portale"),
     BlueprintRegistration("fatturazione", "web.blueprints.fatturazione", "fatturazione", "/fatturazione"),

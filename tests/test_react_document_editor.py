@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
+from pct.fascicoli import TipoDocumento, TipoFascicolo
 from tests.test_applicazioni import _crea_operatore, _login
 from tests.test_web_bootstrap import _cfg_web, _write_studio_config
 from web.app import create_app
@@ -98,6 +98,9 @@ def test_editor_documento_payload_react_usa_dati_reali(tmp_path: Path):
     assert payload["document"]["editable"] is True
     assert payload["endpoints"]["loadHtml"] == f"/api/editor/{fascicolo.id}/{documento.id}/html"
     assert payload["endpoints"]["save"] == f"/api/editor/{fascicolo.id}/{documento.id}/salva"
+    assert payload["editorAI"]["enabled"] is True
+    assert payload["editorAI"]["bootstrap"] == f"/api/v1/ui/fascicoli/{fascicolo.id}/editor-ai/bootstrap"
+    assert payload["editorAI"]["generate"] == f"/api/v1/ui/fascicoli/{fascicolo.id}/editor-ai/genera"
 
 
 def test_editor_documento_payload_pdf_usa_anteprima_nativa(tmp_path: Path):
@@ -134,9 +137,17 @@ def test_editor_documento_react_contract_statico():
     assert "Anteprima PDF fedele all\\'originale" in page_source
     assert "PDF nativo" in page_source
     assert "Dati reali" in page_source
+    assert "Nuovo atto con Lex" in page_source
+    assert "Fonti usate" in page_source
+    assert "Dati da completare" in page_source
+    assert "Modifiche proposte da Lex" in page_source
+    assert "href=\"#\"" not in page_source
+    assert "#lex" not in page_source
     assert "contentEditable={editorEnabled}" in page_source
     assert "Payload reale" not in page_source
     assert "https://esm.sh" not in page_source
+    assert "editorAI" in data_source
     assert "/api/v1/ui/fascicoli/${encodeURIComponent(idFascicolo)}/documenti/${encodeURIComponent(idDocumento)}/editor" in data_source
     assert "build_react_document_editor_payload" in bridge_source
+    assert "editorAI" in bridge_source
     assert 'render_react_shell_response(f"fascicoli/{id_fasc}/documenti/{id_doc}/editor")' in route_source

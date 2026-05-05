@@ -7,6 +7,7 @@ import {
   AlertTriangle,
   ArrowLeft,
   Bold,
+  Check,
   CheckCircle2,
   Download,
   Eye,
@@ -17,6 +18,7 @@ import {
   Italic,
   Link,
   List,
+  ListChecks,
   ListOrdered,
   LoaderCircle,
   Palette,
@@ -26,11 +28,14 @@ import {
   Save,
   Search,
   ShieldCheck,
+  Sparkles,
   Strikethrough,
   Table,
   Underline,
   Undo2,
   UploadCloud,
+  Wand2,
+  XCircle,
 } from 'lucide-react'
 import { Badge } from './dashboard'
 import { FloatingLex } from './FloatingLex'
@@ -45,6 +50,28 @@ type EditorRoute = { idFascicolo: string; idDocumento: string } | null
 type EditorStatus = { tone: 'loading' | 'saving' | 'success' | 'warning' | 'danger' | 'neutral'; label: string }
 type EditorStats = { words: number; chars: number; readingMinutes: number }
 type InlineStylePatch = { fontFamily?: string; fontSize?: string; lineHeight?: string }
+type EditorAITemplate = { id: string; titolo: string; area: string; canale_telematico: string }
+type EditorAIDocument = { document_id: string; filename: string; status: string; page_count: number | null; sha256: string }
+type EditorAISource = { id: string; source_type: string; source_id: string; document_id: string; page_number: number | null; quote: string; sha256: string; reason: string }
+type EditorAIProposal = {
+  id: string
+  status: string
+  operation_type: string
+  find_text: string
+  replace_text: string
+  insert_text: string
+  reason: string
+}
+type EditorAIBootstrap = {
+  templates: EditorAITemplate[]
+  documents: EditorAIDocument[]
+  missing_fields: string[]
+}
+type EditorAIDetail = {
+  sources: EditorAISource[]
+  edit_proposals: EditorAIProposal[]
+  versions: Array<{ id: string; version_number: number; source: string; created_at: string }>
+}
 
 const defaultStats: EditorStats = { words: 0, chars: 0, readingMinutes: 1 }
 const FONT_FAMILY_OPTIONS = [
@@ -124,8 +151,108 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === 'object' && !Array.isArray(value))
 }
 
+function text(value: unknown, fallback = ''): string {
+  return String(value ?? fallback).trim()
+}
+
 function boolLike(value: unknown): boolean {
   return value === true || value === 'true' || value === '1' || value === 1
+}
+
+function numberOrNull(value: unknown): number | null {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+function shortHash(value: string): string {
+  const clean = value.trim()
+  return clean.length > 12 ? clean.slice(0, 12) : clean
+}
+
+function jsonHeaders(): HeadersInit {
+  return {
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+    'X-Requested-With': 'XMLHttpRequest',
+  }
+}
+
+async function fetchEditorAIJson(endpoint: string, init?: RequestInit): Promise<Record<string, unknown>> {
+  const extraHeaders = init?.headers instanceof Headers
+    ? Object.fromEntries(init.headers.entries())
+    : Array.isArray(init?.headers)
+      ? Object.fromEntries(init.headers)
+      : (init?.headers || {})
+  const response = await fetch(endpoint, {
+    credentials: 'same-origin',
+    cache: 'no-store',
+    ...init,
+    headers: { ...jsonHeaders(), ...extraHeaders },
+  })
+  const body = await response.json().catch(() => ({} as Record<string, unknown>))
+  if (!response.ok) throw new Error(text(body.detail || body.errore || body.message, `Operazione non riuscita: HTTP ${response.status}`))
+  return isRecord(body) ? body : {}
+}
+
+function normalizeEditorAIBootstrap(payload: Record<string, unknown>): EditorAIBootstrap {
+  const templates = Array.isArray(payload.templates) ? payload.templates : []
+  const documents = Array.isArray(payload.documents) ? payload.documents : []
+  const missingFields = Array.isArray(payload.missing_fields) ? payload.missing_fields : []
+  return {
+    templates: templates
+      .filter(isRecord)
+      .map((item) => ({
+        id: text(item.id),
+        titolo: text(item.titolo, text(item.id, 'Template atto')),
+        area: text(item.area),
+        canale_telematico: text(item.canale_telematico),
+      }))
+      .filter((item) => item.id),
+    documents: documents
+      .filter(isRecord)
+      .map((item) => ({
+        document_id: text(item.document_id),
+        filename: text(item.filename, 'Documento fascicolo'),
+        status: text(item.status),
+        page_count: numberOrNull(item.page_count),
+        sha256: text(item.sha256),
+      }))
+      .filter((item) => item.document_id),
+    missing_fields: missingFields.map((item) => text(item)).filter(Boolean),
+  }
+}
+
+function normalizeEditorAIDetail(payload: Record<string, unknown>): EditorAIDetail {
+  const sources = Array.isArray(payload.sources) ? payload.sources : []
+  const proposals = Array.isArray(payload.edit_proposals) ? payload.edit_proposals : Array.isArray(payload.proposals) ? payload.proposals : []
+  const versions = Array.isArray(payload.versions) ? payload.versions : []
+  return {
+    sources: sources.filter(isRecord).map((item) => ({
+      id: text(item.id),
+      source_type: text(item.source_type),
+      source_id: text(item.source_id),
+      document_id: text(item.document_id),
+      page_number: numberOrNull(item.page_number),
+      quote: text(item.quote),
+      sha256: text(item.sha256),
+      reason: text(item.reason),
+    })),
+    edit_proposals: proposals.filter(isRecord).map((item) => ({
+      id: text(item.id),
+      status: text(item.status),
+      operation_type: text(item.operation_type),
+      find_text: text(item.find_text),
+      replace_text: text(item.replace_text),
+      insert_text: text(item.insert_text),
+      reason: text(item.reason),
+    })).filter((item) => item.id),
+    versions: versions.filter(isRecord).map((item) => ({
+      id: text(item.id),
+      version_number: Number(item.version_number || 0),
+      source: text(item.source),
+      created_at: text(item.created_at),
+    })),
+  }
 }
 
 function uniqueMessages(values: string[]): string[] {
@@ -241,6 +368,17 @@ export function DocumentEditorPage() {
   const [lineHeight, setLineHeight] = useState('1.6')
   const [pagePreset, setPagePreset] = useState<string>('a4')
   const [zoom, setZoom] = useState('100')
+  const [editorAiOpen, setEditorAiOpen] = useState(false)
+  const [editorAiBootstrapped, setEditorAiBootstrapped] = useState(false)
+  const [editorAiLoading, setEditorAiLoading] = useState(false)
+  const [editorAiError, setEditorAiError] = useState('')
+  const [editorAiBootstrap, setEditorAiBootstrap] = useState<EditorAIBootstrap>({ templates: [], documents: [], missing_fields: [] })
+  const [editorAiDetail, setEditorAiDetail] = useState<EditorAIDetail>({ sources: [], edit_proposals: [], versions: [] })
+  const [editorAiTemplateId, setEditorAiTemplateId] = useState('')
+  const [editorAiTipoAtto, setEditorAiTipoAtto] = useState('')
+  const [editorAiInstructions, setEditorAiInstructions] = useState('')
+  const [editorAiDocumentIds, setEditorAiDocumentIds] = useState<string[]>([])
+  const [editorAiEditInstructions, setEditorAiEditInstructions] = useState('')
 
   const updateStats = useCallback(() => {
     const text = editorRef.current?.innerText.trim() || ''
@@ -397,6 +535,121 @@ export function DocumentEditorPage() {
     }
   }, [updateStats])
 
+  const loadEditorAIDetail = useCallback(async () => {
+    const endpoint = data.editorAI.current?.detail
+    if (!endpoint) {
+      setEditorAiDetail({ sources: [], edit_proposals: [], versions: [] })
+      return
+    }
+    const detail = normalizeEditorAIDetail(await fetchEditorAIJson(endpoint))
+    setEditorAiDetail(detail)
+  }, [data.editorAI.current?.detail])
+
+  const loadEditorAIBootstrap = useCallback(async () => {
+    if (!data.editorAI.bootstrap) return
+    setEditorAiLoading(true)
+    setEditorAiError('')
+    try {
+      const bootstrap = normalizeEditorAIBootstrap(await fetchEditorAIJson(data.editorAI.bootstrap))
+      setEditorAiBootstrap(bootstrap)
+      setEditorAiTemplateId((current) => current || bootstrap.templates[0]?.id || '')
+      setEditorAiTipoAtto((current) => current || bootstrap.templates[0]?.titolo || 'Atto')
+      setEditorAiDocumentIds((current) => current.length ? current : bootstrap.documents.filter((item) => item.status === 'ready').map((item) => item.document_id))
+      await loadEditorAIDetail()
+    } catch (error) {
+      setEditorAiError(error instanceof Error ? error.message : 'Lex non disponibile per la generazione atti.')
+    } finally {
+      setEditorAiBootstrapped(true)
+      setEditorAiLoading(false)
+    }
+  }, [data.editorAI.bootstrap, loadEditorAIDetail])
+
+  useEffect(() => {
+    if (editorAiOpen && data.editorAI.enabled && data.editorAI.bootstrap && !editorAiBootstrapped && !editorAiLoading) {
+      void loadEditorAIBootstrap()
+    }
+  }, [data.editorAI.bootstrap, data.editorAI.enabled, editorAiBootstrapped, editorAiLoading, editorAiOpen, loadEditorAIBootstrap])
+
+  const toggleEditorAIDocument = (documentId: string) => {
+    setEditorAiDocumentIds((current) => (
+      current.includes(documentId)
+        ? current.filter((item) => item !== documentId)
+        : [...current, documentId]
+    ))
+  }
+
+  const generateAttoWithLex = async () => {
+    const selectedTemplate = editorAiBootstrap.templates.find((item) => item.id === editorAiTemplateId)
+    const tipoAtto = editorAiTipoAtto || selectedTemplate?.titolo || 'Atto'
+    if (!data.editorAI.generate || !editorAiTemplateId) {
+      setEditorAiError('Seleziona un template atto prima di generare la bozza.')
+      return
+    }
+    setEditorAiLoading(true)
+    setEditorAiError('')
+    try {
+      const payload = await fetchEditorAIJson(data.editorAI.generate, {
+        method: 'POST',
+        body: JSON.stringify({
+          template_id: editorAiTemplateId,
+          tipo_atto: tipoAtto,
+          istruzioni_utente: editorAiInstructions,
+          document_ids: editorAiDocumentIds,
+          use_fascicolo_context: true,
+          language: 'it',
+        }),
+      })
+      const missing = Array.isArray(payload.missing_fields) ? payload.missing_fields.map((item) => text(item)).filter(Boolean) : []
+      setEditorAiBootstrap((current) => ({ ...current, missing_fields: missing }))
+      const openUrl = text(payload.open_url)
+      if (openUrl) window.location.assign(openUrl)
+    } catch (error) {
+      setEditorAiError(error instanceof Error ? error.message : 'Generazione atto non riuscita.')
+    } finally {
+      setEditorAiLoading(false)
+    }
+  }
+
+  const proposeEditorAIEdit = async () => {
+    const endpoint = data.editorAI.current?.proposeEdits
+    if (!endpoint || !editorAiEditInstructions.trim()) {
+      setEditorAiError("Scrivi le modifiche da proporre sull'atto aperto.")
+      return
+    }
+    setEditorAiLoading(true)
+    setEditorAiError('')
+    try {
+      const payload = await fetchEditorAIJson(endpoint, {
+        method: 'POST',
+        body: JSON.stringify({ istruzioni: editorAiEditInstructions }),
+      })
+      const detail = normalizeEditorAIDetail({ ...payload, versions: editorAiDetail.versions, sources: editorAiDetail.sources })
+      setEditorAiDetail((current) => ({ ...current, edit_proposals: detail.edit_proposals }))
+      setEditorAiEditInstructions('')
+    } catch (error) {
+      setEditorAiError(error instanceof Error ? error.message : 'Proposte modifica non create.')
+    } finally {
+      setEditorAiLoading(false)
+    }
+  }
+
+  const resolveEditorAIProposal = async (proposalId: string, action: 'accetta' | 'rifiuta') => {
+    const base = data.editorAI.current?.proposeEdits
+    if (!base) return
+    const endpoint = base.replace(/\/proponi$/, `/${encodeURIComponent(proposalId)}/${action}`)
+    setEditorAiLoading(true)
+    setEditorAiError('')
+    try {
+      await fetchEditorAIJson(endpoint, { method: 'POST', body: JSON.stringify({}) })
+      await loadEditorAIDetail()
+      if (action === 'accetta') void loadDocument(data)
+    } catch (error) {
+      setEditorAiError(error instanceof Error ? error.message : 'Aggiornamento proposta non riuscito.')
+    } finally {
+      setEditorAiLoading(false)
+    }
+  }
+
   useEffect(() => {
     if (!route) {
       setPayloadLoading(false)
@@ -409,6 +662,8 @@ export function DocumentEditorPage() {
         if (!active) return
         setConversionLocked(false)
         setConversionLockedReason('')
+        setEditorAiBootstrapped(false)
+        setEditorAiDetail({ sources: [], edit_proposals: [], versions: [] })
         setData(payload)
         setWarnings(payload.warnings)
         if (!payload.notFound && payload.document.editable) void loadDocument(payload)
@@ -565,6 +820,9 @@ export function DocumentEditorPage() {
     : doc.lockedReason
   const statusClass = `iu-de-status iu-de-status--${status.tone}`
   const selectedPage = PAGE_PRESETS.find((preset) => preset.id === pagePreset) || PAGE_PRESETS[0]
+  const currentAttoAI = data.editorAI.current
+  const editorAiReadyDocuments = editorAiBootstrap.documents.filter((item) => item.status === 'ready')
+  const editorAiPendingProposals = editorAiDetail.edit_proposals.filter((item) => item.status === 'pending')
   const paperStyle = {
     '--iu-de-font-family': fontFamily,
     '--iu-de-font-size': fontSize,
@@ -592,6 +850,7 @@ export function DocumentEditorPage() {
           {doc.actions.preview ? <a href={doc.actions.preview}><Eye size={15}/> Anteprima</a> : null}
           {doc.actions.sign ? <a href={doc.actions.sign}><ShieldCheck size={15}/> Firma</a> : null}
           {doc.actions.download ? <a href={doc.actions.download}><Download size={15}/> Scarica</a> : null}
+          <button type="button" onClick={() => setEditorAiOpen((value) => !value)} disabled={!data.editorAI.enabled}><Sparkles size={15}/> Nuovo atto con Lex</button>
           <button type="button" onClick={() => void saveDocument(false)} disabled={!editorEnabled}><Save size={15}/> Salva</button>
         </nav>
       </section>
@@ -599,6 +858,127 @@ export function DocumentEditorPage() {
       {warnings.length ? (
         <section className="iu-de-warnings" aria-label="Avvisi editor">
           {warnings.map((warning) => <span key={warning}><AlertTriangle size={15}/>{warning}</span>)}
+        </section>
+      ) : null}
+
+      {editorAiOpen && data.editorAI.enabled ? (
+        <section className="iu-de-ai-panel" aria-label="Generazione atti con Lex">
+          <div className="iu-de-ai-head">
+            <div>
+              <span className="iu-de-eyebrow"><Sparkles size={15}/> Lex nell'editor</span>
+              <h2>Nuovo atto con Lex</h2>
+              <p>La bozza viene creata come documento reale dell'editor, collegato al fascicolo e versionato.</p>
+            </div>
+            <div className="iu-de-ai-actions">
+              <button type="button" onClick={() => void loadEditorAIBootstrap()} disabled={editorAiLoading}><ListChecks size={15}/> Aggiorna dati</button>
+              <button type="button" onClick={() => setEditorAiOpen(false)}><XCircle size={15}/> Chiudi</button>
+            </div>
+          </div>
+          {editorAiError ? <p className="iu-de-ai-error"><AlertTriangle size={15}/>{editorAiError}</p> : null}
+          {data.editorAI.warning ? <p className="iu-de-ai-warning"><AlertTriangle size={15}/>{data.editorAI.warning}</p> : null}
+          <div className="iu-de-ai-grid">
+            <form className="iu-de-ai-form" onSubmit={(event) => { event.preventDefault(); void generateAttoWithLex() }}>
+              <label>
+                <span>Template atto</span>
+                <select value={editorAiTemplateId} onChange={(event) => {
+                  const next = event.target.value
+                  const template = editorAiBootstrap.templates.find((item) => item.id === next)
+                  setEditorAiTemplateId(next)
+                  if (template?.titolo) setEditorAiTipoAtto(template.titolo)
+                }}>
+                  <option value="">Seleziona template</option>
+                  {editorAiBootstrap.templates.map((template) => (
+                    <option key={template.id} value={template.id}>{template.titolo}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span>Tipo atto</span>
+                <input value={editorAiTipoAtto} onChange={(event) => setEditorAiTipoAtto(event.target.value)} placeholder="Es. memoria difensiva"/>
+              </label>
+              <label className="iu-de-ai-span">
+                <span>Istruzioni per Lex</span>
+                <textarea
+                  value={editorAiInstructions}
+                  onChange={(event) => setEditorAiInstructions(event.target.value)}
+                  rows={4}
+                  placeholder="Indica obiettivo, tono, questioni da trattare e dati da verificare nei documenti del fascicolo."
+                />
+              </label>
+              <fieldset className="iu-de-ai-span">
+                <legend>Documenti indicizzati del fascicolo</legend>
+                {editorAiReadyDocuments.length ? (
+                  <div className="iu-de-ai-docs">
+                    {editorAiReadyDocuments.map((documentItem) => (
+                      <label key={documentItem.document_id}>
+                        <input
+                          type="checkbox"
+                          checked={editorAiDocumentIds.includes(documentItem.document_id)}
+                          onChange={() => toggleEditorAIDocument(documentItem.document_id)}
+                        />
+                        <span>{documentItem.filename}</span>
+                        <small>{documentItem.page_count ? `${documentItem.page_count} pag.` : 'pagine n.d.'} - SHA {shortHash(documentItem.sha256) || 'n.d.'}</small>
+                      </label>
+                    ))}
+                  </div>
+                ) : <p>Nessun documento indicizzato pronto. Lex userà solo i dati strutturati del fascicolo disponibili.</p>}
+              </fieldset>
+              <button className="iu-de-ai-primary" type="submit" disabled={editorAiLoading || !editorAiTemplateId}>
+                {editorAiLoading ? <LoaderCircle className="iu-spin" size={15}/> : <Wand2 size={15}/>} Genera bozza
+              </button>
+            </form>
+            <aside className="iu-de-ai-summary" aria-label="Stato atto AI">
+              <section>
+                <h3>Dati da completare</h3>
+                {editorAiBootstrap.missing_fields.length ? (
+                  <ul>{editorAiBootstrap.missing_fields.map((field) => <li key={field}>{field}</li>)}</ul>
+                ) : <p>Nessun campo obbligatorio mancante rilevato nel bootstrap.</p>}
+              </section>
+              <section>
+                <h3>Fonti usate</h3>
+                {editorAiDetail.sources.length ? (
+                  <ul>{editorAiDetail.sources.map((source) => <li key={source.id}>{source.document_id || source.source_id}{source.page_number ? `, pag. ${source.page_number}` : ''}{source.quote ? ` - ${source.quote}` : ''}</li>)}</ul>
+                ) : <p>Le fonti saranno registrate dopo la generazione o la rilettura dell'atto.</p>}
+              </section>
+              {currentAttoAI ? (
+                <section>
+                  <h3>Modifiche proposte da Lex</h3>
+                  <label>
+                    <span>Istruzioni modifica</span>
+                    <textarea
+                      value={editorAiEditInstructions}
+                      onChange={(event) => setEditorAiEditInstructions(event.target.value)}
+                      rows={3}
+                      placeholder="Descrivi la modifica puntuale da proporre sull'atto aperto."
+                    />
+                  </label>
+                  <button type="button" onClick={() => void proposeEditorAIEdit()} disabled={editorAiLoading || !editorAiEditInstructions.trim()}><Sparkles size={15}/> Proponi modifiche</button>
+                  {editorAiPendingProposals.length ? (
+                    <div className="iu-de-ai-proposals">
+                      {editorAiPendingProposals.map((proposal) => (
+                        <article key={proposal.id}>
+                          <strong>{proposal.operation_type || 'Modifica puntuale'}</strong>
+                          <p>{proposal.reason || proposal.replace_text || proposal.insert_text || 'Proposta da verificare.'}</p>
+                          <div>
+                            <button type="button" onClick={() => void resolveEditorAIProposal(proposal.id, 'accetta')}><Check size={14}/> Accetta</button>
+                            <button type="button" onClick={() => void resolveEditorAIProposal(proposal.id, 'rifiuta')}><XCircle size={14}/> Rifiuta</button>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  ) : <p>Nessuna proposta pendente.</p>}
+                </section>
+              ) : null}
+              <section>
+                <h3>Export</h3>
+                <p>DOCX e PDF vengono generati dal documento reale aperto nell'editor.</p>
+                <div className="iu-de-ai-export">
+                  <button type="button" onClick={() => void exportFile(data.endpoints.exportDocx, 'docx')} disabled={!editorEnabled}><FileDown size={15}/> DOCX</button>
+                  <button type="button" onClick={() => void exportFile(data.endpoints.exportPdf, 'pdf')} disabled={!editorEnabled}><FileDown size={15}/> PDF</button>
+                </div>
+              </section>
+            </aside>
+          </div>
         </section>
       ) : null}
 
@@ -739,8 +1119,8 @@ export function DocumentEditorPage() {
       <FloatingLex
         context="editor-documento"
         title="Lex AI editor"
-        body="Posso aiutarti a controllare coerenza dell atto, punti mancanti, stile professionale e collegamenti con il fascicolo aperto."
-        primaryHref="#lex"
+        body="Posso aiutarti a controllare coerenza dell'atto, punti mancanti, stile professionale e collegamenti con il fascicolo aperto."
+        primaryHref={data.fascicolo.detailHref || '/fascicoli'}
         primaryLabel="Apri Lex editor"
         secondaryHref={data.fascicolo.detailHref}
         secondaryLabel="Fascicolo"

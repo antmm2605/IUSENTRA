@@ -7,6 +7,7 @@ from flask import Blueprint, current_app, flash, jsonify, redirect, render_templ
 from web.blueprints.admin import superadmin_required
 from web.services.server_maintenance_surface import (
     build_server_maintenance_surface,
+    run_backup_retention,
     run_storage_compaction,
 )
 
@@ -22,7 +23,12 @@ server_maintenance_admin = Blueprint(
 @superadmin_required
 def dashboard():
     payload = build_server_maintenance_surface()
-    return render_template("admin/server_manutenzione.html", payload=payload, compaction=None)
+    return render_template(
+        "admin/server_manutenzione.html",
+        payload=payload,
+        compaction=None,
+        backup_retention=None,
+    )
 
 
 @server_maintenance_admin.get("/api")
@@ -48,6 +54,7 @@ def analizza_compattazione():
             "admin/server_manutenzione.html",
             payload=build_server_maintenance_surface(),
             compaction=compaction,
+            backup_retention=None,
         )
     except Exception as exc:
         current_app.logger.exception("Errore analisi compattazione storage: %s", exc)
@@ -72,8 +79,56 @@ def compatta():
             "admin/server_manutenzione.html",
             payload=build_server_maintenance_surface(),
             compaction=compaction,
+            backup_retention=None,
         )
     except Exception as exc:
         current_app.logger.exception("Errore compattazione storage: %s", exc)
         flash("Errore durante la compattazione storage.", "danger")
+        return redirect(url_for("server_maintenance_admin.dashboard"))
+
+
+@server_maintenance_admin.post("/analizza-retention-backup")
+@superadmin_required
+def analizza_retention_backup():
+    try:
+        backup_retention = run_backup_retention(apply=False)
+        flash(
+            "Analisi retention backup completata: "
+            f"{backup_retention['archives_to_delete']} archivi eliminabili, "
+            f"spazio recuperabile {backup_retention['bytes_reclaimable_label']}.",
+            "info",
+        )
+        return render_template(
+            "admin/server_manutenzione.html",
+            payload=build_server_maintenance_surface(),
+            compaction=None,
+            backup_retention=backup_retention,
+        )
+    except Exception as exc:
+        current_app.logger.exception("Errore analisi retention backup: %s", exc)
+        flash("Errore durante l'analisi retention backup.", "danger")
+        return redirect(url_for("server_maintenance_admin.dashboard"))
+
+
+@server_maintenance_admin.post("/applica-retention-backup")
+@superadmin_required
+def applica_retention_backup():
+    try:
+        backup_retention = run_backup_retention(apply=True)
+        level = "warning" if backup_retention.get("errors") else "success"
+        flash(
+            "Retention backup applicata: "
+            f"{backup_retention['archives_deleted']} archivi rimossi, "
+            f"recuperati {backup_retention['bytes_reclaimed_label']}.",
+            level,
+        )
+        return render_template(
+            "admin/server_manutenzione.html",
+            payload=build_server_maintenance_surface(),
+            compaction=None,
+            backup_retention=backup_retention,
+        )
+    except Exception as exc:
+        current_app.logger.exception("Errore retention backup: %s", exc)
+        flash("Errore durante la retention backup.", "danger")
         return redirect(url_for("server_maintenance_admin.dashboard"))

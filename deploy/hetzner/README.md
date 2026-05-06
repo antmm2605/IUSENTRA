@@ -132,8 +132,8 @@ Cron consigliato:
 ```
 
 Il backup produce archivio e checksum in `/opt/iusentra/backups` e verifica subito il checksum generato. Il restore verifica il file `.sha256` quando presente prima di estrarre in `/opt/iusentra/data`.
-La retention e' applicata dallo script: per default conserva al massimo 7 backup applicativi, almeno 2 copie, rimuove quelli piu' vecchi di 30 giorni e mantiene la directory backup entro 24 GiB quando possibile. I valori sono configurabili con `IUSENTRA_BACKUP_RETENTION_COUNT`, `IUSENTRA_BACKUP_RETENTION_MIN_COUNT`, `IUSENTRA_BACKUP_RETENTION_DAYS` e `IUSENTRA_BACKUP_RETENTION_MAX_GIB`.
-I backup `.tar.zst` sono prodotti con zstd ad alta compressione (`IUSENTRA_BACKUP_ZSTD_LEVEL=19`, long window 27) per ridurre l'impatto disco senza cambiare il formato di restore.
+La retention e' applicata dallo script: per default conserva al massimo 3 backup applicativi, almeno 2 copie, rimuove quelli piu' vecchi di 14 giorni e mantiene la directory backup entro 8 GiB quando possibile. I valori sono configurabili con `IUSENTRA_BACKUP_RETENTION_COUNT`, `IUSENTRA_BACKUP_RETENTION_MIN_COUNT`, `IUSENTRA_BACKUP_RETENTION_DAYS` e `IUSENTRA_BACKUP_RETENTION_MAX_GIB`.
+I backup `.tar.zst` sono prodotti con zstd ad alta compressione (`IUSENTRA_BACKUP_ZSTD_LEVEL=19`, long window 27) per ridurre l'impatto disco senza cambiare il formato di restore. I modelli Ollama locali sono esclusi di default con `IUSENTRA_BACKUP_EXCLUDE_PATHS=./ollama`, perche' sono rigenerabili dal deploy.
 
 ## Note operative
 

@@ -82,6 +82,18 @@
               <i class="bi bi-hdd-stack"></i> Compatta tutto in sicurezza
             </button>
           </form>
+          <form method="post" action="{{ url_for('server_maintenance_admin.analizza_retention_backup') }}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <button class="btn btn-outline-secondary" type="submit">
+              <i class="bi bi-archive"></i> Analizza retention backup
+            </button>
+          </form>
+          <form method="post" action="{{ url_for('server_maintenance_admin.applica_retention_backup') }}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <button class="btn btn-warning" type="submit">
+              <i class="bi bi-trash3"></i> Applica retention backup
+            </button>
+          </form>
         </div>
       </div>
     </div>
@@ -105,6 +117,36 @@
         I duplicati identici indicati sono gia' hardlinkati: restano piu' percorsi applicativi,
         ma non occupano spazio disco aggiuntivo.
       </div>
+      {% endif %}
+    </div>
+    {% endif %}
+    {% if backup_retention %}
+    <div class="alert alert-{{ 'success' if backup_retention.applied and not backup_retention.errors else ('warning' if backup_retention.errors else 'info') }} mt-3 mb-0">
+      <div class="fw-semibold">
+        {{ 'Retention backup applicata' if backup_retention.applied else 'Analisi retention backup' }}
+      </div>
+      <div class="small">
+        Directory: {{ backup_retention.backup_dir }} -
+        archivi analizzati: {{ backup_retention.backup_archives_scanned }} -
+        archivi eliminabili: {{ backup_retention.archives_to_delete }} -
+        archivi rimossi: {{ backup_retention.archives_deleted }} -
+        prima: {{ backup_retention.bytes_total_before_label }} -
+        dopo: {{ backup_retention.bytes_total_after_label }} -
+        recuperabile: {{ backup_retention.bytes_reclaimable_label }} -
+        recuperato: {{ backup_retention.bytes_reclaimed_label }}
+      </div>
+      <div class="small mt-1">
+        Policy: conserva almeno {{ backup_retention.retention.min_count }} copie,
+        massimo {{ backup_retention.retention.count }} copie,
+        {{ backup_retention.retention.days }} giorni,
+        tetto {{ backup_retention.retention.max_gib }} GiB.
+      </div>
+      {% if backup_retention.errors %}
+      <ul class="small mt-2 mb-0">
+        {% for error in backup_retention.errors %}
+        <li>{{ error }}</li>
+        {% endfor %}
+      </ul>
       {% endif %}
     </div>
     {% endif %}

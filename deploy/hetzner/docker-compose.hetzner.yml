@@ -16,6 +16,7 @@ x-iusentra-env: &iusentra-env
   PCT_LOCAL_AI_BASE_URL: ${PCT_LOCAL_AI_BASE_URL:-http://ollama:11434/api/version}
   PCT_LOCAL_AI_CHAT_MODEL: ${PCT_LOCAL_AI_CHAT_MODEL:-gemma3:1b}
   PCT_STUDIO_NOME: ${PCT_STUDIO_NOME:-IUSENTRA}
+  IUSENTRA_BACKUP_DIR: /opt/iusentra/backups
   PCT_AGENDA_DB: /data/agenda/appuntamenti.json
   PCT_CLIENTI_DB: /data/clienti/anagrafica.json
   PCT_CONDIVISIONI_DB: /data/clienti/condivisioni.json
@@ -70,6 +71,7 @@ services:
       <<: *iusentra-env
     volumes:
       - ${IUSENTRA_DATA_DIR:-/opt/iusentra/data}:/data
+      - ${IUSENTRA_BACKUP_DIR:-/opt/iusentra/backups}:/opt/iusentra/backups
       - /run/pcscd:/run/pcscd
     extra_hosts:
       - "host.docker.internal:host-gateway"

@@ -811,6 +811,7 @@ def test_docker_compose_hetzner_allinea_email_ordinaria_e_ai_locale():
     assert "condition: service_healthy" in compose
     assert "exec -T ollama ollama pull" in deploy_script
     assert "${IUSENTRA_DATA_DIR:-/opt/iusentra/data}:/data" in compose
+    assert "${IUSENTRA_BACKUP_DIR:-/opt/iusentra/backups}:/opt/iusentra/backups" in compose
 
 
 def test_bootstrap_pubblico_resta_allineato_a_password_temporanee_e_ci_reale():

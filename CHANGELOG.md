@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.198.84 - 2026-05-06
+
+- Rafforzata la manutenzione storage Superadmin con retention governata dei backup esterni: analisi/applicazione sicura sugli archivi `iusentra-data-*`, copie minime preservate e spazio recuperabile mostrato in modo esplicito.
+- Reso visibile al container app il percorso `/opt/iusentra/backups`, cosi' il pannello mostra il peso reale dei backup esterni invece di `0 B`.
+- Stretta la policy Hetzner di backup a 3 copie, minimo 2, 14 giorni e 8 GiB, escludendo dai backup futuri i modelli Ollama rigenerabili dal deploy.
+
 ## 2.198.83 - 2026-05-06
 
 - Reso hardlink-aware il calcolo delle dimensioni nel pannello `Server e manutenzione`, evitando di sommare due volte file gia' compattati.

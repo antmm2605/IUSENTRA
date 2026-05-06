@@ -94,9 +94,9 @@ Cron consigliato:
 15 2 * * * /opt/iusentra/repo/deploy/hetzner/backup.sh >/var/log/iusentra-backup.log 2>&1
 ```
 
-Lo script applica anche la retention: per default conserva al massimo 7 backup applicativi, almeno 2 copie, rimuove quelli piu' vecchi di 30 giorni e mantiene la directory backup entro 24 GiB quando possibile. In produzione i valori sono governati da `IUSENTRA_BACKUP_RETENTION_COUNT`, `IUSENTRA_BACKUP_RETENTION_MIN_COUNT`, `IUSENTRA_BACKUP_RETENTION_DAYS` e `IUSENTRA_BACKUP_RETENTION_MAX_GIB` in `/opt/iusentra/.env.hetzner`.
+Lo script applica anche la retention: per default conserva al massimo 3 backup applicativi, almeno 2 copie, rimuove quelli piu' vecchi di 14 giorni e mantiene la directory backup entro 8 GiB quando possibile. In produzione i valori sono governati da `IUSENTRA_BACKUP_RETENTION_COUNT`, `IUSENTRA_BACKUP_RETENTION_MIN_COUNT`, `IUSENTRA_BACKUP_RETENTION_DAYS` e `IUSENTRA_BACKUP_RETENTION_MAX_GIB` in `/opt/iusentra/.env.hetzner`.
 
-I backup `.tar.zst` usano zstd ad alta compressione (`IUSENTRA_BACKUP_ZSTD_LEVEL=19`, `IUSENTRA_BACKUP_ZSTD_LONG_WINDOW=27` di default). Se una singola copia supera il tetto configurato, lo script conserva comunque il numero minimo di copie e stampa un avviso esplicito invece di cancellare l'ultimo backup valido.
+I backup `.tar.zst` usano zstd ad alta compressione (`IUSENTRA_BACKUP_ZSTD_LEVEL=19`, `IUSENTRA_BACKUP_ZSTD_LONG_WINDOW=27` di default). I modelli locali Ollama sono esclusi di default tramite `IUSENTRA_BACKUP_EXCLUDE_PATHS=./ollama`, perche' sono rigenerabili dal deploy e non devono gonfiare ogni archivio dati. Se una singola copia supera il tetto configurato, lo script conserva comunque il numero minimo di copie e stampa un avviso esplicito invece di cancellare l'ultimo backup valido.
 
 Per compattare lo storage live senza cambiare i path applicativi:
 
@@ -106,7 +106,7 @@ python3 /opt/iusentra/repo/scripts/compact_iusentra_storage.py --data-root /opt/
 ```
 
 Il comando usa hardlink per deduplicare allegati email e mirror backup identici nello stesso filesystem; i riferimenti salvati nei JSON restano invariati.
-Il pannello Superadmin `Server e manutenzione` mostra dimensioni hardlink-aware: i file gia' compattati restano percorsi distinti per l'applicazione, ma non vengono trattati come spazio ancora recuperabile.
+Il pannello Superadmin `Server e manutenzione` mostra dimensioni hardlink-aware: i file gia' compattati restano percorsi distinti per l'applicazione, ma non vengono trattati come spazio ancora recuperabile. Il profilo Docker monta anche `/opt/iusentra/backups` nel container app, cosi' il pannello puo' misurare i backup esterni reali e applicare la retention governata solo sugli archivi `iusentra-data-*.tar.zst`/`.tar.gz`, preservando sempre le copie minime configurate.
 
 ## Restore
 

@@ -13,16 +13,28 @@ fi
 IUSENTRA_HOME="${IUSENTRA_HOME:-/opt/iusentra}"
 DATA_DIR="${IUSENTRA_DATA_DIR:-${IUSENTRA_HOME}/data}"
 BACKUP_DIR="${IUSENTRA_BACKUP_DIR:-${IUSENTRA_HOME}/backups}"
-RETENTION_DAYS="${IUSENTRA_BACKUP_RETENTION_DAYS:-${BACKUP_RETENTION_DAYS:-30}}"
-RETENTION_COUNT="${IUSENTRA_BACKUP_RETENTION_COUNT:-${BACKUP_RETENTION_COUNT:-7}}"
+RETENTION_DAYS="${IUSENTRA_BACKUP_RETENTION_DAYS:-${BACKUP_RETENTION_DAYS:-14}}"
+RETENTION_COUNT="${IUSENTRA_BACKUP_RETENTION_COUNT:-${BACKUP_RETENTION_COUNT:-3}}"
 RETENTION_MIN_COUNT="${IUSENTRA_BACKUP_RETENTION_MIN_COUNT:-${BACKUP_RETENTION_MIN_COUNT:-2}}"
-RETENTION_MAX_GIB="${IUSENTRA_BACKUP_RETENTION_MAX_GIB:-${BACKUP_RETENTION_MAX_GIB:-24}}"
+RETENTION_MAX_GIB="${IUSENTRA_BACKUP_RETENTION_MAX_GIB:-${BACKUP_RETENTION_MAX_GIB:-8}}"
 ZSTD_LEVEL="${IUSENTRA_BACKUP_ZSTD_LEVEL:-${BACKUP_ZSTD_LEVEL:-19}}"
 ZSTD_LONG_WINDOW="${IUSENTRA_BACKUP_ZSTD_LONG_WINDOW:-${BACKUP_ZSTD_LONG_WINDOW:-27}}"
+BACKUP_EXCLUDE_PATHS="${IUSENTRA_BACKUP_EXCLUDE_PATHS:-${BACKUP_EXCLUDE_PATHS:-./ollama}}"
 STAMP="$(date -u +%Y%m%d_%H%M%S)"
 OUT="${BACKUP_DIR}/iusentra-data-${STAMP}.tar.zst"
 
 mkdir -p "$BACKUP_DIR"
+
+tar_exclude_args=()
+if [[ -n "$BACKUP_EXCLUDE_PATHS" ]]; then
+  IFS=',' read -r -a configured_excludes <<< "$BACKUP_EXCLUDE_PATHS"
+  for exclude_path in "${configured_excludes[@]}"; do
+    exclude_path="$(echo "$exclude_path" | xargs)"
+    if [[ -n "$exclude_path" ]]; then
+      tar_exclude_args+=("--exclude=${exclude_path}")
+    fi
+  done
+fi
 
 backup_find_args=(
   "$BACKUP_DIR"
@@ -77,10 +89,10 @@ if command -v zstd >/dev/null 2>&1; then
   if ! [[ "$ZSTD_LONG_WINDOW" =~ ^[0-9]+$ ]] || (( ZSTD_LONG_WINDOW < 20 || ZSTD_LONG_WINDOW > 31 )); then
     ZSTD_LONG_WINDOW=27
   fi
-  tar -cpf - -C "$DATA_DIR" . | zstd -T0 "-${ZSTD_LEVEL}" "--long=${ZSTD_LONG_WINDOW}" -o "$OUT"
+  tar "${tar_exclude_args[@]}" -cpf - -C "$DATA_DIR" . | zstd -T0 "-${ZSTD_LEVEL}" "--long=${ZSTD_LONG_WINDOW}" -o "$OUT"
 else
   OUT="${BACKUP_DIR}/iusentra-data-${STAMP}.tar.gz"
-  tar -czpf "$OUT" -C "$DATA_DIR" .
+  tar "${tar_exclude_args[@]}" -czpf "$OUT" -C "$DATA_DIR" .
 fi
 
 sha256sum "$OUT" > "${OUT}.sha256"
@@ -106,4 +118,7 @@ fi
 prune_by_total_size
 
 echo "Retention backup applicata: giorni=${RETENTION_DAYS}, copie=${RETENTION_COUNT}, minimo=${RETENTION_MIN_COUNT}, spazio_max_gib=${RETENTION_MAX_GIB}"
+if [[ -n "$BACKUP_EXCLUDE_PATHS" ]]; then
+  echo "Esclusioni backup rigenerabili: ${BACKUP_EXCLUDE_PATHS}"
+fi
 echo "$OUT"

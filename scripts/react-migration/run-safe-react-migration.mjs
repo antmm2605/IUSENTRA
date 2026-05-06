@@ -1,5 +1,5 @@
 import { execSync } from 'node:child_process'
-import { mkdirSync } from 'node:fs'
+import { mkdirSync, writeFileSync } from 'node:fs'
 
 mkdirSync('artifacts/react-migration/patches', { recursive: true })
 
@@ -38,6 +38,13 @@ function cleanRequired() {
   }
 }
 
+function textArtifact(cmd) {
+  return execSync(cmd, { encoding: 'utf8' })
+    .split(/\r?\n/)
+    .map((line) => line.trimEnd())
+    .join('\n')
+}
+
 cleanRequired()
 
 run('node scripts/react-migration/audit-react-migration.mjs')
@@ -46,7 +53,15 @@ run('node scripts/react-migration/check-ui-consistency.mjs')
 run('cd frontend && npm run test')
 run('cd frontend && npm run typecheck')
 run('cd frontend && npm run build')
-run(`git diff --binary -- ${migrationPaths.join(' ')} > artifacts/react-migration/patches/working-tree.patch`)
-run(`git status --short -- ${migrationPaths.join(' ')} > artifacts/react-migration/patches/status.txt`)
+writeFileSync(
+  'artifacts/react-migration/patches/working-tree.patch',
+  textArtifact(`git diff --binary -- ${migrationPaths.join(' ')}`),
+  'utf8',
+)
+writeFileSync(
+  'artifacts/react-migration/patches/status.txt',
+  textArtifact(`git status --short -- ${migrationPaths.join(' ')}`),
+  'utf8',
+)
 run('git diff --stat')
 run('git status --short')

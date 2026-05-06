@@ -38,13 +38,21 @@ def _sum_report_int(reports: list[dict[str, Any]], key: str) -> int:
     return sum(int(report.get(key, 0) or 0) for report in reports)
 
 
-def directory_size(path: str | Path) -> int:
+def directory_size(path: str | Path, *, seen_inodes: set[tuple[int, int]] | None = None) -> int:
+    """Stima la dimensione senza contare due volte hardlink nello stesso ambito."""
+
     root = Path(path)
+    seen = seen_inodes if seen_inodes is not None else set()
     if not root.exists():
         return 0
     if root.is_file():
         try:
-            return int(root.stat().st_size)
+            stat = root.stat()
+            inode_key = (stat.st_dev, stat.st_ino)
+            if inode_key in seen:
+                return 0
+            seen.add(inode_key)
+            return int(stat.st_size)
         except OSError:
             return 0
     total = 0
@@ -52,10 +60,20 @@ def directory_size(path: str | Path) -> int:
         for filename in files:
             try:
                 file_path = Path(current_root) / filename
-                total += int(file_path.stat().st_size)
+                stat = file_path.stat()
+                inode_key = (stat.st_dev, stat.st_ino)
+                if inode_key in seen:
+                    continue
+                seen.add(inode_key)
+                total += int(stat.st_size)
             except OSError:
                 continue
     return total
+
+
+def directory_size_many(paths: list[Path]) -> int:
+    seen: set[tuple[int, int]] = set()
+    return sum(directory_size(path, seen_inodes=seen) for path in paths)
 
 
 def resolve_data_root(config: dict[str, Any] | None = None) -> Path:
@@ -113,7 +131,9 @@ def _tenant_rows(data_root: Path) -> list[dict[str, Any]]:
         total_size = directory_size(tenant_dir)
         recommendations = []
         if backup_size > 256 * 1024**2:
-            recommendations.append("Compattare backup mirror dello studio.")
+            recommendations.append(
+                "Backup mirror sopra 256 MiB: verificare retention; compattare solo se l'analisi segnala file da compattare."
+            )
         if email_size > 256 * 1024**2:
             recommendations.append("Verificare deduplica allegati email.")
         if db_size > 128 * 1024**2:
@@ -144,8 +164,8 @@ def build_server_maintenance_surface(config: dict[str, Any] | None = None) -> di
     disk = shutil.disk_usage(data_root if data_root.exists() else Path("/"))
     email_roots = discover_email_attachment_roots(data_root)
     backup_roots = discover_backup_roots(data_root)
-    email_size = sum(directory_size(path) for path in email_roots)
-    backup_mirror_size = sum(directory_size(path) for path in backup_roots)
+    email_size = directory_size_many(email_roots)
+    backup_mirror_size = directory_size_many(backup_roots)
     backup_external_size = directory_size(backup_dir) if backup_dir.exists() else 0
     retention_max_gib = int(str(os.getenv("IUSENTRA_BACKUP_RETENTION_MAX_GIB") or "24").strip() or 24)
 
@@ -166,7 +186,9 @@ def build_server_maintenance_surface(config: dict[str, Any] | None = None) -> di
     if backup_external_size > retention_max_gib * 1024**3:
         recommendations.append("Backup esterni oltre il tetto configurato: applicare retention e compressione alta.")
     if backup_mirror_size > 512 * 1024**2:
-        recommendations.append("Backup mirror interni sopra 512 MiB: eseguire compattazione hardlink.")
+        recommendations.append(
+            "Backup mirror interni sopra 512 MiB: verificare retention; la compattazione e' utile solo se l'analisi segnala file da compattare."
+        )
     if not recommendations:
         recommendations.append("Nessuna azione urgente: mantenere backup e compattazione nel ciclo di manutenzione.")
 

@@ -106,6 +106,7 @@ python3 /opt/iusentra/repo/scripts/compact_iusentra_storage.py --data-root /opt/
 ```
 
 Il comando usa hardlink per deduplicare allegati email e mirror backup identici nello stesso filesystem; i riferimenti salvati nei JSON restano invariati.
+Il pannello Superadmin `Server e manutenzione` mostra dimensioni hardlink-aware: i file gia' compattati restano percorsi distinti per l'applicazione, ma non vengono trattati come spazio ancora recuperabile.
 
 ## Restore
 

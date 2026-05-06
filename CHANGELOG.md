@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.198.83 - 2026-05-06
+
+- Reso hardlink-aware il calcolo delle dimensioni nel pannello `Server e manutenzione`, evitando di sommare due volte file gia' compattati.
+- Ammorbidite le raccomandazioni sui backup mirror: il pannello ora suggerisce retention/verifica e non una compattazione quando l'analisi segnala `da compattare = 0`.
+- Aggiunto test per impedire regressioni sul conteggio spazio di file hardlinkati.
+
 ## 2.198.82 - 2026-05-06
 
 - Chiarito il report Superadmin di compattazione storage distinguendo duplicati identici, duplicati fisici ancora da compattare e file gia' hardlinkati.

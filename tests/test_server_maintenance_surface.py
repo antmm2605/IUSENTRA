@@ -4,7 +4,21 @@ from pathlib import Path
 
 from tests.test_operational_surfaces import _cfg_web, _seed_runtime, _write_studio_config
 from web.app import create_app
-from web.services.server_maintenance_surface import build_server_maintenance_surface, run_storage_compaction
+from web.services.server_maintenance_surface import (
+    build_server_maintenance_surface,
+    directory_size,
+    run_storage_compaction,
+)
+
+
+def test_directory_size_non_conta_due_volte_hardlink(tmp_path: Path):
+    first = tmp_path / "a.bin"
+    second = tmp_path / "nested" / "b.bin"
+    second.parent.mkdir()
+    first.write_bytes(b"x" * 8192)
+    second.hardlink_to(first)
+
+    assert directory_size(tmp_path) == 8192
 
 
 def test_server_maintenance_surface_mostra_consumi_per_studio(tmp_path: Path):

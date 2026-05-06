@@ -106,6 +106,14 @@ from web.services.react_preventivi_bridge import (
     build_react_preventivi_error_payload,
     build_react_preventivi_payload,
 )
+from web.services.react_preventivo_wizard_bridge import (
+    WizardPayloadForm,
+    build_react_preventivo_wizard_calculation_payload,
+    build_react_preventivo_wizard_error_payload,
+    build_react_preventivo_wizard_payload,
+    default_clause_payload,
+    detail_url_for_preventivo,
+)
 from web.services.react_template_atti_bridge import (
     build_react_template_atti_error_payload,
     build_react_template_atti_payload,
@@ -299,6 +307,10 @@ def _request_payload() -> dict[str, Any]:
         raw = request.get_json(silent=True)
         return raw if isinstance(raw, dict) else {}
     return {key: value for key, value in request.form.items()}
+
+
+def _warning(code: str, message: str) -> dict[str, str]:
+    return {"code": code, "message": message}
 
 
 def _request_bool(name: str, default: bool = False) -> bool:
@@ -2750,6 +2762,380 @@ def preventivi_nuovo_page():
 @_richiedi_auth
 def preventivi_conferimento_nuovo_page():
     return _preventivi_ui_payload("/preventivi/conferimento/nuovo")
+
+
+@api_v1_react.get("/preventivi/wizard")
+@_richiedi_auth
+def preventivi_wizard_page():
+    utente = g.get("utente_corrente")
+    if not utente:
+        return jsonify(build_react_preventivo_wizard_error_payload("Sessione utente richiesta.")), 403
+    try:
+        return jsonify(
+            build_react_preventivo_wizard_payload(
+                get_clienti=get_clienti,
+                get_fascicoli=get_fascicoli,
+                get_normative_tables=get_normative_tables,
+                query=dict(request.args),
+            )
+        )
+    except Exception as exc:
+        current_app.logger.exception("Errore wizard preventivi React bridge: %s", exc)
+        return jsonify(
+            build_react_preventivo_wizard_error_payload(
+                "Preventivo guidato non disponibile dal runtime corrente."
+            )
+        ), 200
+
+
+@api_v1_react.get("/preventivi/wizard/bootstrap")
+@_richiedi_auth
+def preventivi_wizard_bootstrap_page():
+    return preventivi_wizard_page()
+
+
+@api_v1_react.post("/preventivi/wizard/calculate")
+@_richiedi_auth
+def preventivi_wizard_calculate_page():
+    utente = g.get("utente_corrente")
+    if not utente:
+        return jsonify(build_react_preventivo_wizard_error_payload("Sessione utente richiesta.")), 403
+    try:
+        return jsonify(build_react_preventivo_wizard_calculation_payload(_request_payload()))
+    except Exception as exc:
+        current_app.logger.exception("Errore calcolo wizard preventivi React bridge: %s", exc)
+        return jsonify(
+            {
+                "ok": False,
+                "warnings": [
+                    {
+                        "code": "preventivo_wizard_calcolo_errore",
+                        "message": "Calcolo non disponibile dal runtime corrente.",
+                    }
+                ],
+            }
+        ), 200
+
+
+def _wizard_react_form_payload(payload: dict[str, Any], calculation: dict[str, Any] | None = None) -> dict[str, Any]:
+    calculation = calculation or {}
+    profile = calculation.get("profile") if isinstance(calculation.get("profile"), dict) else {}
+    rows = payload.get("rows") if isinstance(payload.get("rows"), list) else calculation.get("rows")
+    rows = rows if isinstance(rows, list) else []
+    taxable_rows = [
+        row for row in rows
+        if isinstance(row, dict)
+        and str(row.get("fiscale") or "imponibile").strip() != "anticipazione_art15"
+    ]
+    economic = calculation.get("economic") if isinstance(calculation.get("economic"), dict) else {}
+    clause = payload.get("clausola") if isinstance(payload.get("clausola"), dict) else {}
+    final = payload.get("opzioni_finali") if isinstance(payload.get("opzioni_finali"), dict) else {}
+    quick = payload.get("cliente_rapido") if isinstance(payload.get("cliente_rapido"), dict) else {}
+    metadata = payload.get("metadata") if isinstance(payload.get("metadata"), dict) else {}
+    classifications = payload.get("classificazioni_tassonomiche")
+    sources = payload.get("fonti_tassonomia")
+    if not isinstance(classifications, list):
+        classifications = []
+    if not isinstance(sources, list):
+        sources = profile.get("tassonomia_sources") if isinstance(profile.get("tassonomia_sources"), list) else []
+    return {
+        **payload,
+        "id_cliente": str(payload.get("id_cliente") or payload.get("customerId") or "").strip(),
+        "id_fascicolo": str(payload.get("id_fascicolo") or payload.get("caseId") or "").strip(),
+        "cliente_rapido_attivo": "1" if bool(payload.get("cliente_rapido_attivo")) else "",
+        "cliente_rapido_tipo": str(quick.get("tipo") or "PERSONA_FISICA").strip(),
+        "cliente_rapido_nome": str(quick.get("nome") or "").strip(),
+        "cliente_rapido_cognome": str(quick.get("cognome") or "").strip(),
+        "cliente_rapido_ragione_sociale": str(quick.get("ragione_sociale") or "").strip(),
+        "cliente_rapido_codice_fiscale": str(quick.get("codice_fiscale") or "").strip(),
+        "cliente_rapido_codice_fiscale_pg": str(quick.get("codice_fiscale") or "").strip(),
+        "cliente_rapido_partita_iva": str(quick.get("partita_iva") or "").strip(),
+        "oggetto": str(payload.get("oggetto") or "").strip(),
+        "data_emissione": str(payload.get("data_emissione") or date.today().isoformat()).strip(),
+        "data_scadenza": str(payload.get("data_scadenza") or "").strip(),
+        "id_pratica": str(payload.get("id_pratica") or profile.get("id") or "").strip(),
+        "area_pratica": str(payload.get("area_pratica") or profile.get("area") or "").strip(),
+        "area_tassonomica": str(payload.get("area_tassonomica") or profile.get("area_tassonomica") or "").strip(),
+        "macro_area_tassonomica": str(payload.get("macro_area_tassonomica") or profile.get("macro_area_tassonomica") or "").strip(),
+        "sottobranca_tassonomica": str(payload.get("sottobranca_tassonomica") or profile.get("sottobranca_tassonomica") or "").strip(),
+        "tassonomia_codice": str(payload.get("tassonomia_codice") or profile.get("tassonomia_codice") or "").strip(),
+        "procedura_operativa_codice": str(payload.get("procedura_operativa_codice") or profile.get("procedura_operativa_codice") or "").strip(),
+        "procedura_operativa_nome": str(payload.get("procedura_operativa_nome") or profile.get("procedura_operativa_nome") or "").strip(),
+        "subbranch_operativa_codice": str(payload.get("subbranch_operativa_codice") or profile.get("subbranch_operativa_codice") or "").strip(),
+        "workflow_operativo_codice": str(payload.get("workflow_operativo_codice") or profile.get("workflow_operativo_codice") or "").strip(),
+        "copertura_operativa": str(payload.get("copertura_operativa") or profile.get("copertura_operativa") or "").strip(),
+        "canale_operativo": str(payload.get("canale_operativo") or profile.get("canale_operativo") or "").strip(),
+        "registro_operativo": str(payload.get("registro_operativo") or profile.get("registro_operativo") or "").strip(),
+        "tipo_compenso": str(payload.get("tipo_compenso") or profile.get("tipo_compenso_default") or "").strip(),
+        "tipo_procedimento": str(payload.get("tipo_procedimento") or profile.get("label") or "").strip(),
+        "grado_sede": str(payload.get("grado") or profile.get("grado_default") or "").strip(),
+        "regola_tariffaria": str(payload.get("regola_tariffaria") or profile.get("regola_tariffaria_default") or "").strip(),
+        "complessita": str(payload.get("complessita") or "media").strip(),
+        "valore_controversia": str(payload.get("valore") or payload.get("valore_controversia") or "0").strip(),
+        "tariffa_oraria": str(payload.get("tariffa_oraria") or "0").strip(),
+        "ore_stimate": str(payload.get("ore_stimate") or "0").strip(),
+        "anticipazioni_art15": str(payload.get("anticipazioni") or "0").strip(),
+        "anticipazioni_art15_totali": str(economic.get("anticipazioni_art15") or payload.get("anticipazioni_art15_totali") or "0").strip(),
+        "applica_cassa": "1" if bool(payload.get("applica_cpa", True)) else "0",
+        "applica_iva": "1" if bool(payload.get("applica_iva", True)) else "0",
+        "bonus_telematico": "1" if bool(payload.get("bonus_telematico")) else "0",
+        "spese_generali": "1" if bool(payload.get("spese_generali", True)) else "0",
+        "perc_spese_generali": str(payload.get("perc_spese_generali") or "15").strip(),
+        "voce_descr": [str(row.get("descrizione") or "").strip() for row in taxable_rows],
+        "voce_importo": [str(row.get("importo") or "0").strip() for row in taxable_rows],
+        "voce_tipo": [str(row.get("tipo") or "Onorario").strip() for row in taxable_rows],
+        "note": str(payload.get("note") or calculation.get("note") or "").strip(),
+        "log_calcolo": str((calculation.get("audit") or {}).get("log_calcolo") or payload.get("log_calcolo") or "").strip(),
+        "fonti_tassonomia_json": json.dumps(sources, ensure_ascii=False),
+        "classificazioni_tassonomiche_json": json.dumps(classifications, ensure_ascii=False),
+        "genera_conferimento": "1" if bool(final.get("genera_conferimento")) else "",
+        "apri_fascicolo_guidato": "1" if bool(final.get("apri_fascicolo_guidato")) else "",
+        "informativa_art13_resa": "1" if bool(final.get("informativa_art13_resa", True)) else "",
+        "clausola_adr_resa": "1" if bool(clause.get("attiva")) else "",
+        "clausola_controversie_attiva": "1" if bool(clause.get("attiva")) else "",
+        "clausola_controversie_modello": str(clause.get("modello") or default_clause_payload()["model"]).strip(),
+        "clausola_controversie_testo": str(clause.get("testo") or "").strip(),
+        "clausola_controversie_trattativa_individuale": "1" if bool(clause.get("trattativa_individuale")) else "",
+        "clausola_controversie_fonte": str(clause.get("fonte") or "").strip(),
+        "avvocato_referente": str(payload.get("avvocato_referente") or metadata.get("avvocato_referente") or "").strip(),
+        "from_page": str(payload.get("from_page") or "wizard").strip(),
+    }
+
+
+@api_v1_react.post("/preventivi/wizard/create")
+@_richiedi_auth
+def preventivi_wizard_create_page():
+    utente = g.get("utente_corrente")
+    if not utente:
+        return jsonify({"ok": False, "warnings": [_warning("auth", "Sessione utente richiesta.")]}), 403
+    try:
+        from pct.preventivi import TipoVoce, VocePreventivo
+        from web.blueprints.preventivi import (
+            _aggiungi_voce_compenso_a_tempo,
+            _arricchisci_log_cliente_anagrafico,
+            _campi_cliente_mancanti,
+            _cliente_da_completare,
+            _compenso_a_tempo_da_form,
+            _contesto_log_wizard_da_form,
+            _crea_cliente_rapido_da_wizard,
+            _flag_from_form,
+            _parse_intero,
+            _parse_numero,
+            _url_completa_cliente,
+            _url_onboarding_fascicolo,
+        )
+
+        payload = _request_payload()
+        calculation = build_react_preventivo_wizard_calculation_payload(payload)
+        if not calculation.get("ok"):
+            return jsonify({"ok": False, "warnings": calculation.get("warnings") or []}), 200
+        form_payload = _wizard_react_form_payload(payload, calculation)
+        form = WizardPayloadForm(form_payload)
+        gp = get_preventivi()
+        id_cliente = form.get("id_cliente", "").strip()
+        messages: list[dict[str, str]] = []
+        if not id_cliente:
+            if _flag_from_form(form, "cliente_rapido_attivo"):
+                id_cliente, msg_cliente = _crea_cliente_rapido_da_wizard(form)
+                form_payload["id_cliente"] = id_cliente
+                form = WizardPayloadForm(form_payload)
+                messages.append({"tone": "success", "message": msg_cliente})
+            else:
+                return jsonify(
+                    {
+                        "ok": False,
+                        "warnings": [
+                            _warning("cliente_richiesto", "Seleziona un cliente oppure inseriscine uno rapido.")
+                        ],
+                    }
+                ), 200
+        oggetto = form.get("oggetto", "").strip()
+        if not oggetto:
+            return jsonify({"ok": False, "warnings": [_warning("oggetto_richiesto", "Inserisci l'oggetto del preventivo.")]}), 200
+
+        voci = []
+        for desc, amount, kind in zip(form.getlist("voce_descr[]"), form.getlist("voce_importo[]"), form.getlist("voce_tipo[]")):
+            desc = desc.strip()
+            if not desc:
+                continue
+            try:
+                tipo_voce = TipoVoce(kind) if kind else TipoVoce.ONORARIO
+            except ValueError:
+                tipo_voce = TipoVoce.ONORARIO
+            try:
+                voci.append(
+                    VocePreventivo(
+                        descrizione=desc,
+                        importo=_parse_numero(amount, 0.0),
+                        tipo=tipo_voce,
+                    )
+                )
+            except (TypeError, ValueError):
+                continue
+        tipo_compenso, compenso_a_tempo = _compenso_a_tempo_da_form(form)
+        if compenso_a_tempo.get("errors"):
+            return jsonify({"ok": False, "warnings": [_warning("compenso_a_tempo", " ".join(compenso_a_tempo["errors"]))]}), 200
+        _aggiungi_voce_compenso_a_tempo(voci, compenso_a_tempo)
+        if not voci:
+            return jsonify({"ok": False, "warnings": [_warning("voci_richieste", "Aggiungi almeno una voce al preventivo.")]}), 200
+
+        cfg = current_app.config
+        log_calcolo = _contesto_log_wizard_da_form(form, compenso_a_tempo)
+        log_calcolo = _arricchisci_log_cliente_anagrafico(log_calcolo, get_clienti().get(id_cliente))
+        try:
+            fonti_tassonomia = json.loads(form.get("fonti_tassonomia_json", "") or "[]")
+        except (TypeError, ValueError, json.JSONDecodeError):
+            fonti_tassonomia = []
+        try:
+            classificazioni = json.loads(form.get("classificazioni_tassonomiche_json", "") or "[]")
+        except (TypeError, ValueError, json.JSONDecodeError):
+            classificazioni = []
+        p = gp.crea_preventivo(
+            id_cliente=id_cliente,
+            oggetto=oggetto,
+            voci=voci,
+            creato_da=getattr(utente, "username", ""),
+            id_fascicolo=form.get("id_fascicolo", "").strip() or None,
+            data_emissione=form.get("data_emissione") or date.today().isoformat(),
+            data_scadenza=form.get("data_scadenza", "").strip() or None,
+            applica_cassa=_flag_from_form(form, "applica_cassa", default=True),
+            applica_iva=_flag_from_form(form, "applica_iva", default=True),
+            anticipazioni_art15=_parse_numero(form.get("anticipazioni_art15_totali"), 0.0),
+            note=form.get("note", "").strip(),
+            id_pratica=form.get("id_pratica", "").strip(),
+            area_pratica=form.get("area_pratica", "").strip(),
+            area_tassonomica=form.get("area_tassonomica", "").strip(),
+            macro_area_tassonomica=form.get("macro_area_tassonomica", "").strip(),
+            sottobranca_tassonomica=form.get("sottobranca_tassonomica", "").strip(),
+            tassonomia_codice=form.get("tassonomia_codice", "").strip(),
+            procedura_operativa_codice=form.get("procedura_operativa_codice", "").strip(),
+            fonti_tassonomia=fonti_tassonomia if isinstance(fonti_tassonomia, list) else [],
+            classificazioni_tassonomiche=classificazioni if isinstance(classificazioni, list) else [],
+            tipo_compenso=tipo_compenso,
+            tipo_procedimento=form.get("tipo_procedimento", "").strip(),
+            valore_controversia=_parse_numero(form.get("valore_controversia"), 0.0),
+            tariffa_oraria=_parse_numero(form.get("tariffa_oraria"), 0.0),
+            ore_stimate=_parse_numero(form.get("ore_stimate"), 0.0),
+            criterio_arrotondamento_orario=form.get("criterio_arrotondamento_orario", "").strip() or "ora_frazione_oltre_30",
+            minuti_stimati=_parse_intero(form.get("minuti_stimati"), 0),
+            ore_fatturabili_calcolate=float(compenso_a_tempo.get("ore_fatturabili") or 0.0),
+            compenso_orario_base=float(compenso_a_tempo.get("compenso_base") or 0.0),
+            massimale_ore=_parse_numero(form.get("massimale_ore"), 0.0),
+            soglia_preapprovazione_ore=_parse_numero(form.get("soglia_preapprovazione_ore"), 0.0),
+            richiede_consenso_superamento_soglia=True,
+            attivita_orarie_incluse=form.get("attivita_orarie_incluse", "").strip(),
+            attivita_orarie_escluse=form.get("attivita_orarie_escluse", "").strip(),
+            warning_compenso_orario=list(compenso_a_tempo.get("warnings") or []),
+            complessita=form.get("complessita", "").strip(),
+            log_calcolo=log_calcolo,
+            studio_piva=cfg.get("STUDIO_PIVA", ""),
+            studio_cf=cfg.get("STUDIO_CF", ""),
+            studio_indirizzo=cfg.get("STUDIO_INDIRIZZO", ""),
+            clausola_controversie_attiva=_flag_from_form(form, "clausola_controversie_attiva"),
+            clausola_controversie_modello=form.get("clausola_controversie_modello", "").strip(),
+            clausola_controversie_testo=form.get("clausola_controversie_testo", "").strip(),
+            clausola_controversie_trattativa_individuale=_flag_from_form(form, "clausola_controversie_trattativa_individuale"),
+            clausola_controversie_fonte=form.get("clausola_controversie_fonte", "").strip(),
+        )
+
+        conferimento_id = ""
+        fascicolo_id = ""
+        redirect_url = detail_url_for_preventivo(p.id)
+        if _flag_from_form(form, "genera_conferimento"):
+            cliente_corrente = get_clienti().get(id_cliente)
+            if _cliente_da_completare(cliente_corrente):
+                missing = ", ".join(_campi_cliente_mancanti(cliente_corrente))
+                return jsonify(
+                    {
+                        "ok": True,
+                        "id_preventivo": p.id,
+                        "redirect_url": _url_completa_cliente(
+                            id_cliente,
+                            next_url=url_for(
+                                "preventivi.nuovo_conferimento",
+                                id_cliente=id_cliente,
+                                id_preventivo=p.id,
+                                from_page="preventivo",
+                            ),
+                        ),
+                        "warnings": [
+                            _warning("cliente_da_completare", f"Preventivo creato. Completa l'anagrafica cliente prima del conferimento: {missing}.")
+                        ],
+                        "messages": messages,
+                    }
+                ), 200
+            avvocato = form.get("avvocato_referente", "").strip() or cfg.get("STUDIO_NOME", "Studio Legale")
+            conferimento = gp.crea_conferimento(
+                id_cliente=id_cliente,
+                oggetto=oggetto,
+                avvocato_referente=avvocato,
+                creato_da=getattr(utente, "username", ""),
+                id_preventivo=p.id,
+                id_fascicolo=form.get("id_fascicolo", "").strip() or None,
+                compenso_pattuito=_parse_numero(form.get("compenso_pattuito"), p.totale),
+                id_pratica=form.get("id_pratica", "").strip(),
+                area_pratica=form.get("area_pratica", "").strip(),
+                area_tassonomica=form.get("area_tassonomica", "").strip(),
+                macro_area_tassonomica=form.get("macro_area_tassonomica", "").strip(),
+                sottobranca_tassonomica=form.get("sottobranca_tassonomica", "").strip(),
+                tassonomia_codice=form.get("tassonomia_codice", "").strip(),
+                procedura_operativa_codice=form.get("procedura_operativa_codice", "").strip(),
+                fonti_tassonomia=fonti_tassonomia if isinstance(fonti_tassonomia, list) else [],
+                classificazioni_tassonomiche=classificazioni if isinstance(classificazioni, list) else [],
+                tipo_compenso=tipo_compenso,
+                tipo_procedimento=form.get("tipo_procedimento", "").strip(),
+                tariffa_oraria=_parse_numero(form.get("tariffa_oraria"), 0.0),
+                criterio_arrotondamento_orario=form.get("criterio_arrotondamento_orario", "").strip() or "ora_frazione_oltre_30",
+                massimale_ore=_parse_numero(form.get("massimale_ore"), 0.0),
+                soglia_preapprovazione_ore=_parse_numero(form.get("soglia_preapprovazione_ore"), 0.0),
+                richiede_consenso_superamento_soglia=True,
+                attivita_orarie_incluse=form.get("attivita_orarie_incluse", "").strip(),
+                attivita_orarie_escluse=form.get("attivita_orarie_escluse", "").strip(),
+                warning_compenso_orario=list(compenso_a_tempo.get("warnings") or []),
+                informativa_art13_resa=_flag_from_form(form, "informativa_art13_resa"),
+                clausola_adr_resa=_flag_from_form(form, "clausola_adr_resa"),
+                clausola_controversie_attiva=_flag_from_form(form, "clausola_controversie_attiva"),
+                clausola_controversie_modello=form.get("clausola_controversie_modello", "").strip(),
+                clausola_controversie_testo=form.get("clausola_controversie_testo", "").strip(),
+                clausola_controversie_trattativa_individuale=_flag_from_form(form, "clausola_controversie_trattativa_individuale"),
+                studio_piva=cfg.get("STUDIO_PIVA", ""),
+                studio_cf=cfg.get("STUDIO_CF", ""),
+                studio_indirizzo=cfg.get("STUDIO_INDIRIZZO", ""),
+            )
+            gp.aggiorna_preventivo(p.id, stato=StatoPreventivo.CONVERTITO)
+            conferimento_id = getattr(conferimento, "id", "")
+            if _flag_from_form(form, "apri_fascicolo_guidato") and not p.id_fascicolo:
+                redirect_url = _url_onboarding_fascicolo(
+                    id_cliente,
+                    id_preventivo=p.id,
+                    id_conferimento=conferimento_id,
+                    from_page=form.get("from_page", "").strip() or "wizard",
+                )
+        return jsonify(
+            {
+                "ok": True,
+                "id_preventivo": p.id,
+                "id_conferimento": conferimento_id,
+                "id_fascicolo": fascicolo_id,
+                "detail_url": detail_url_for_preventivo(p.id),
+                "redirect_url": redirect_url,
+                "messages": messages + [{"tone": "success", "message": f"Preventivo {p.numero} creato."}],
+                "warnings": [],
+            }
+        ), 200
+    except Exception as exc:
+        current_app.logger.exception("Errore creazione wizard preventivi React bridge: %s", exc)
+        return jsonify(
+            {
+                "ok": False,
+                "warnings": [
+                    {
+                        "code": "preventivo_wizard_creazione_errore",
+                        "message": "Creazione non disponibile dal runtime corrente.",
+                    }
+                ],
+            }
+        ), 200
 
 
 @api_v1_react.get("/agenda")

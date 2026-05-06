@@ -172,6 +172,10 @@ const incassiPagamentiBridge = read('../web/services/react_incassi_pagamenti_bri
 const preventiviPage = read('src/components/PreventiviPage.tsx')
 const preventiviData = read('src/preventiviData.ts')
 const preventiviBridge = read('../web/services/react_preventivi_bridge.py')
+const preventivoWizardPage = read('src/components/PreventivoWizardPage.tsx')
+const preventivoWizardData = read('src/preventivoWizardData.ts')
+const preventivoWizardUtils = read('src/preventivoWizardUtils.ts')
+const preventivoWizardBridge = read('../web/services/react_preventivo_wizard_bridge.py')
 const compensiForensiPage = read('src/components/CompensiForensiPage.tsx')
 const compensiForensiData = read('src/compensiForensiData.ts')
 const compensiForensiBridge = read('../web/services/react_compensi_forensi_bridge.py')
@@ -366,7 +370,7 @@ assertContains(tranche8aOpenDesignReport, 'Token creati', 'report Open Design 8A
 if (routeManifest.policy?.currentReleaseUnlocksRoutes !== true) {
   throw new Error('route manifest: currentReleaseUnlocksRoutes deve essere true nelle tranche di promozione')
 }
-const allowedGovernedUnlocks = new Set(['/statistiche', '/audit', '/registro-attivita', '/utenti', '/profili', '/backup', '/sito-studio', '/sito-studio/contatti', '/studio', '/amministrazione', '/fatturazione', '/fatturazione/nuova', '/incassi-pagamenti', '/preventivi', '/preventivi/nuovo', '/preventivi/conferimento/nuovo', '/compensi-forensi', '/tariffario', '/template-atti', '/template-atti/catalogo', '/redazione-atti'])
+const allowedGovernedUnlocks = new Set(['/statistiche', '/audit', '/registro-attivita', '/utenti', '/profili', '/backup', '/sito-studio', '/sito-studio/contatti', '/studio', '/amministrazione', '/fatturazione', '/fatturazione/nuova', '/incassi-pagamenti', '/preventivi', '/preventivi/nuovo', '/preventivi/wizard', '/preventivi/conferimento/nuovo', '/compensi-forensi', '/tariffario', '/template-atti', '/template-atti/catalogo', '/redazione-atti'])
 for (const entry of routeManifest.routes ?? []) {
   if (entry.unlockFromGate === true && !allowedGovernedUnlocks.has(entry.route)) {
     throw new Error(`route manifest: ${entry.route} non puo essere sbloccata nelle tranche governate`)
@@ -411,7 +415,7 @@ for (const route of ['/sito-studio/builder', '/impostazioni', '/impostazioni-stu
     throw new Error(`route manifest: ${route} deve restare legacy_operational con unlockFromGate=false`)
   }
 }
-for (const route of ['/fatturazione/*', '/preventivi/*', '/preventivi/wizard', '/compensi-forensi/*', '/tariffario/*', '/template-atti/nuovo', '/template-atti/*', '/redazione-atti/*', '/giurisprudenza', '/legal-intelligence', '/deposito/checklist', '/impostazioni/pagamenti']) {
+for (const route of ['/fatturazione/*', '/preventivi/*', '/compensi-forensi/*', '/tariffario/*', '/template-atti/nuovo', '/template-atti/*', '/redazione-atti/*', '/giurisprudenza', '/legal-intelligence', '/deposito/checklist', '/impostazioni/pagamenti']) {
   const entry = (routeManifest.routes ?? []).find((item) => item.route === route)
   if (!entry || entry.status !== 'legacy_operational' || entry.unlockFromGate !== false) {
     throw new Error(`route manifest: ${route} deve restare legacy_operational con unlockFromGate=false`)
@@ -476,6 +480,7 @@ assertContains(app, "AmministrazionePage", 'route amministrazione react')
 assertContains(app, "FatturazionePage", 'route fatturazione react')
 assertContains(app, "IncassiPagamentiPage", 'route incassi pagamenti react')
 assertContains(app, "PreventiviPage", 'route preventivi react')
+assertContains(app, "PreventivoWizardPage", 'route preventivo guidato react')
 assertContains(app, "CompensiForensiPage", 'route compensi forensi react')
 assertContains(app, "TariffarioPage", 'route tariffario react')
 assertContains(app, "TemplateAttiPage", 'route template atti react')
@@ -492,6 +497,7 @@ assertContains(app, "isAmministrazionePage", 'detection amministrazione react')
 assertContains(app, "isFatturazionePage", 'detection fatturazione react')
 assertContains(app, "isIncassiPagamentiPage", 'detection incassi pagamenti react')
 assertContains(app, "isPreventiviPage", 'detection preventivi react')
+assertContains(app, "isPreventivoWizardPage", 'detection preventivo guidato react')
 assertContains(app, "isCompensiForensiPage", 'detection compensi forensi react')
 assertContains(app, "isTariffarioPage", 'detection tariffario react')
 assertContains(app, "isTemplateAttiPage", 'detection template atti react')
@@ -506,6 +512,7 @@ assertContains(app, "isStudioPage?<StudioPage/>", 'render studio prima dello stu
 assertContains(app, "isAmministrazionePage?<AmministrazionePage/>", 'render amministrazione prima dello studio module')
 assertContains(app, "isFatturazionePage?<FatturazionePage/>", 'render fatturazione prima dello studio module')
 assertContains(app, "isIncassiPagamentiPage?<IncassiPagamentiPage/>", 'render incassi prima dello studio module')
+assertContains(app, "isPreventivoWizardPage?<PreventivoWizardPage/>", 'render preventivo guidato prima della lista preventivi')
 assertContains(app, "isPreventiviPage?<PreventiviPage/>", 'render preventivi prima dello studio module')
 assertContains(app, "isCompensiForensiPage?<CompensiForensiPage/>", 'render compensi prima dello studio module')
 assertContains(app, "isTariffarioPage?<TariffarioPage/>", 'render tariffario prima dello studio module')
@@ -526,6 +533,13 @@ assertContains(incassiPagamentiPage, 'getIncassiPagamentiPage', 'IncassiPagament
 assertContains(preventiviPage, 'getPreventiviPage', 'PreventiviPage usa getPreventiviPage')
 assertContains(preventiviPage, 'getNuovoPreventivoPage', 'PreventiviPage usa getNuovoPreventivoPage')
 assertContains(preventiviPage, 'getNuovoConferimentoPage', 'PreventiviPage usa getNuovoConferimentoPage')
+assertContains(preventivoWizardPage, 'getPreventivoWizardPage', 'PreventivoWizardPage usa getPreventivoWizardPage')
+assertContains(preventivoWizardPage, 'runPreventivoWizardCalculation', 'PreventivoWizardPage usa calcolo wizard reale')
+assertContains(preventivoWizardPage, 'createPreventivoWizard', 'PreventivoWizardPage usa creazione wizard reale')
+assertContains(preventivoWizardPage, 'Cliente e contesto', 'PreventivoWizardPage espone step cliente')
+assertContains(preventivoWizardPage, 'Tipologia e motore preventivo', 'PreventivoWizardPage espone step tipologia')
+assertContains(preventivoWizardPage, 'Compenso base e fasi', 'PreventivoWizardPage espone step calcolo')
+assertContains(preventivoWizardPage, 'Bozza del preventivo', 'PreventivoWizardPage espone step bozza')
 assertContains(compensiForensiPage, 'getCompensiForensiPage', 'CompensiForensiPage usa getCompensiForensiPage')
 assertContains(tariffarioPage, 'getTariffarioPage', 'TariffarioPage usa getTariffarioPage')
 assertContains(templateAttiPage, 'getTemplateAttiPage', 'TemplateAttiPage usa getTemplateAttiPage')
@@ -555,6 +569,9 @@ assertContains(incassiPagamentiData, '/api/v1/ui/incassi-pagamenti', 'incassiPag
 assertContains(preventiviData, '/api/v1/ui/preventivi', 'preventiviData usa endpoint preventivi')
 assertContains(preventiviData, '/api/v1/ui/preventivi/nuovo', 'preventiviData usa endpoint nuovo preventivo')
 assertContains(preventiviData, '/api/v1/ui/preventivi/conferimento/nuovo', 'preventiviData usa endpoint nuovo conferimento')
+assertContains(preventivoWizardData, '/api/v1/ui/preventivi/wizard', 'preventivoWizardData usa endpoint bootstrap wizard')
+assertContains(preventivoWizardData, '/api/v1/ui/preventivi/wizard/calculate', 'preventivoWizardData usa endpoint calcolo wizard')
+assertContains(preventivoWizardData, '/api/v1/ui/preventivi/wizard/create', 'preventivoWizardData usa endpoint creazione wizard')
 assertContains(compensiForensiData, '/api/v1/ui/compensi-forensi', 'compensiForensiData usa endpoint compensi forensi')
 assertContains(tariffarioData, '/api/v1/ui/tariffario', 'tariffarioData usa endpoint tariffario')
 assertContains(templateAttiData, '/api/v1/ui/template-atti', 'templateAttiData usa endpoint template atti')
@@ -569,6 +586,10 @@ assertContains(sitoStudioBridge, '"route_owner": "react_shell"', 'bridge sito st
 assertContains(fatturazioneBridge, '"route_owner": "react_shell"', 'bridge fatturazione route_owner react_shell')
 assertContains(incassiPagamentiBridge, '"route_owner": "react_shell"', 'bridge incassi pagamenti route_owner react_shell')
 assertContains(preventiviBridge, '"route_owner": "react_shell"', 'bridge preventivi route_owner react_shell')
+assertContains(preventivoWizardBridge, '"route_owner": "react_shell"', 'bridge preventivo guidato route_owner react_shell')
+assertContains(preventivoWizardBridge, '"writes": "operational_routes"', 'bridge preventivo guidato scritture operative')
+assertContains(preventivoWizardBridge, '"mock_fallback": False', 'bridge preventivo guidato senza mock fallback')
+assertContains(preventivoWizardBridge, 'motore_calcola', 'bridge preventivo guidato riusa motore tariffario')
 assertContains(compensiForensiBridge, '"route_owner": "react_shell"', 'bridge compensi route_owner react_shell')
 assertContains(tariffarioBridge, '"route_owner": "react_shell"', 'bridge tariffario route_owner react_shell')
 assertContains(templateAttiBridge, '"route_owner": "react_shell"', 'bridge template atti route_owner react_shell')
@@ -589,6 +610,9 @@ assertContains(apiBridge, '@api_v1_react.get("/incassi-pagamenti")', 'endpoint U
 assertContains(apiBridge, '@api_v1_react.get("/preventivi")', 'endpoint UI preventivi')
 assertContains(apiBridge, '@api_v1_react.get("/preventivi/nuovo")', 'endpoint UI nuovo preventivo')
 assertContains(apiBridge, '@api_v1_react.get("/preventivi/conferimento/nuovo")', 'endpoint UI nuovo conferimento')
+assertContains(apiBridge, '@api_v1_react.get("/preventivi/wizard")', 'endpoint UI preventivo guidato')
+assertContains(apiBridge, '@api_v1_react.post("/preventivi/wizard/calculate")', 'endpoint calcolo preventivo guidato')
+assertContains(apiBridge, '@api_v1_react.post("/preventivi/wizard/create")', 'endpoint creazione preventivo guidato')
 assertContains(apiBridge, '@api_v1_react.get("/compensi-forensi")', 'endpoint UI compensi forensi')
 assertContains(apiBridge, '@api_v1_react.get("/tariffario")', 'endpoint UI tariffario')
 assertContains(apiBridge, '@api_v1_react.get("/template-atti")', 'endpoint UI template atti')
@@ -631,6 +655,7 @@ assertContains(reactRouteGate, 'lower == "/impostazioni-studio" or lower.startsw
 assertContains(reactRouteGate, 'lower == "/sincronizzazione-calendari" or lower.startswith("/sincronizzazione-calendari/")', 'gate protegge sincronizzazione calendari legacy')
 assertContains(reactRouteGate, 'lower.startswith("/preventivi/") and lower not in {', 'gate protegge nested preventivi non migrati')
 assertContains(reactRouteGate, '"/preventivi/nuovo"', 'gate consente nuovo preventivo')
+assertContains(reactRouteGate, '"/preventivi/wizard"', 'gate consente preventivo guidato react')
 assertContains(reactRouteGate, '"/preventivi/conferimento/nuovo"', 'gate consente nuovo conferimento')
 assertNotContains(reactRouteGate, 'lower == "/compensi-forensi" or lower.startswith("/compensi-forensi/")', 'gate non blocca exact compensi forensi')
 assertNotContains(reactRouteGate, 'lower == "/tariffario" or lower.startswith("/tariffario/")', 'gate non blocca exact tariffario')
@@ -676,6 +701,7 @@ assertContains(reactShellBlueprint, 'lower == "/impostazioni" or lower.startswit
 assertContains(reactShellBlueprint, 'lower == "/impostazioni-studio" or lower.startswith("/impostazioni-studio/")', 'shell protegge impostazioni studio legacy')
 assertContains(reactShellBlueprint, 'lower == "/sincronizzazione-calendari" or lower.startswith("/sincronizzazione-calendari/")', 'shell protegge sincronizzazione calendari legacy')
 assertContains(reactShellBlueprint, 'lower.startswith("/preventivi/") and lower not in {', 'shell protegge nested preventivi non migrati')
+assertContains(reactShellBlueprint, '"/preventivi/wizard"', 'shell consente preventivo guidato react')
 assertNotContains(reactShellBlueprint, 'lower == "/compensi-forensi" or lower.startswith("/compensi-forensi/")', 'shell non blocca exact compensi forensi')
 assertNotContains(reactShellBlueprint, 'lower == "/tariffario" or lower.startswith("/tariffario/")', 'shell non blocca exact tariffario')
 assertContains(reactShellBlueprint, 'lower.startswith("/compensi-forensi/")', 'shell protegge nested compensi forensi')
@@ -708,6 +734,14 @@ for (const [label, source] of [
   assertNoPasswordUseState(source, `${label} senza password in useState`)
   assertNoClientStorage(source, `${label} senza storage client per dati amministrativi`)
 }
+assertNoBootstrapClass(preventivoWizardPage, 'PreventivoWizardPage senza classi Bootstrap')
+assertNotContains(preventivoWizardPage, 'href="#"', 'PreventivoWizardPage senza href placeholder')
+assertNotContains(preventivoWizardPage, 'mockResults', 'PreventivoWizardPage senza mockResults')
+assertNotContains(preventivoWizardPage, 'mock_fallback: true', 'PreventivoWizardPage senza mock fallback true')
+assertNotContains(preventivoWizardPage, 'alert(', 'PreventivoWizardPage senza alert')
+assertNoFetchPost(preventivoWizardPage, 'PreventivoWizardPage senza fetch POST')
+assertNoPasswordUseState(preventivoWizardPage, 'PreventivoWizardPage senza password in useState')
+assertNoSensitivePayloadWords(preventivoWizardPage, 'PreventivoWizardPage senza campi riservati')
 for (const [label, source] of [
   ['statisticheData', statisticheData],
   ['auditData', auditData],
@@ -728,6 +762,7 @@ for (const [label, source] of [
   ['react_fatturazione_bridge', fatturazioneBridge],
   ['react_incassi_pagamenti_bridge', incassiPagamentiBridge],
   ['react_preventivi_bridge', preventiviBridge],
+  ['react_preventivo_wizard_bridge', preventivoWizardBridge],
   ['react_compensi_forensi_bridge', compensiForensiBridge],
   ['react_tariffario_bridge', tariffarioBridge],
   ['react_template_atti_bridge', templateAttiBridge],
@@ -735,6 +770,8 @@ for (const [label, source] of [
   ['fatturazioneData', fatturazioneData],
   ['incassiPagamentiData', incassiPagamentiData],
   ['preventiviData', preventiviData],
+  ['preventivoWizardData', preventivoWizardData],
+  ['preventivoWizardUtils', preventivoWizardUtils],
   ['compensiForensiData', compensiForensiData],
   ['tariffarioData', tariffarioData],
   ['templateAttiData', templateAttiData],
@@ -752,11 +789,13 @@ assertNoFetchPost(amministrazioneData, 'amministrazioneData senza fetch POST')
 assertNoFetchPost(fatturazionePage, 'FatturazionePage senza fetch POST')
 assertNoFetchPost(incassiPagamentiPage, 'IncassiPagamentiPage senza fetch POST')
 assertNoFetchPost(preventiviPage, 'PreventiviPage senza fetch POST')
+assertNoFetchPost(preventivoWizardPage, 'PreventivoWizardPage senza fetch POST')
 assertNoFetchPost(templateAttiPage, 'TemplateAttiPage senza fetch POST')
 assertNoFetchPost(redazioneAttiPage, 'RedazioneAttiPage senza fetch POST')
 assertNoFetchPost(fatturazioneData, 'fatturazioneData senza fetch POST')
 assertNoFetchPost(incassiPagamentiData, 'incassiPagamentiData senza fetch POST')
 assertNoFetchPost(preventiviData, 'preventiviData senza fetch POST')
+assertNoFetchPost(preventivoWizardData, 'preventivoWizardData senza fetch POST')
 assertNoFetchPost(templateAttiData, 'templateAttiData senza fetch POST')
 assertNoFetchPost(redazioneAttiData, 'redazioneAttiData senza fetch POST')
 for (const [label, source] of [
@@ -767,6 +806,7 @@ for (const [label, source] of [
   ['react_fatturazione_bridge', fatturazioneBridge],
   ['react_incassi_pagamenti_bridge', incassiPagamentiBridge],
   ['react_preventivi_bridge', preventiviBridge],
+  ['react_preventivo_wizard_bridge', preventivoWizardBridge],
   ['react_compensi_forensi_bridge', compensiForensiBridge],
   ['react_tariffario_bridge', tariffarioBridge],
   ['react_template_atti_bridge', templateAttiBridge],
@@ -778,6 +818,8 @@ for (const [label, source] of [
   ['fatturazioneData', fatturazioneData],
   ['incassiPagamentiData', incassiPagamentiData],
   ['preventiviData', preventiviData],
+  ['preventivoWizardData', preventivoWizardData],
+  ['preventivoWizardUtils', preventivoWizardUtils],
   ['compensiForensiData', compensiForensiData],
   ['tariffarioData', tariffarioData],
   ['templateAttiData', templateAttiData],

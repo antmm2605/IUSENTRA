@@ -171,6 +171,7 @@ def _deve_mantenere_vista_classica() -> bool:
         return True
     if lower.startswith("/preventivi/") and lower not in {
         "/preventivi/nuovo",
+        "/preventivi/wizard",
         "/preventivi/conferimento/nuovo",
     }:
         return True

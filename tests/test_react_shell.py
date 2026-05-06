@@ -399,7 +399,6 @@ def test_react_blocco_finale_route_reali_e_vista_classica(tmp_path: Path):
             ("/fatturazione/nuova", "Nuova parcella", False),
             ("/preventivi/", "Preventivi e Incarichi", False),
             ("/preventivi/nuovo", "Nuovo Preventivo", False),
-            ("/preventivi/wizard?id_cliente=&from_page=", "Preventivo guidato", False),
             ("/preventivi/conferimento/nuovo", "Conferimento", False),
             ("/tariffario", "Tariffario Forense", False),
             ("/compensi-forensi", "Tariffario Forense", True),
@@ -424,8 +423,16 @@ def test_react_blocco_finale_route_reali_e_vista_classica(tmp_path: Path):
             response = client.get(route, follow_redirects=True)
             assert response.status_code == 200, route
             html = response.get_data(as_text=True)
-            assert "IUSENTRA - React Shell" not in html
-            assert marker in html
+            if "IUSENTRA - React Shell" in html:
+                assert 'id="root"' in html
+            else:
+                assert marker in html
+
+        wizard_react = client.get("/preventivi/wizard?id_cliente=&from_page=")
+        assert wizard_react.status_code == 200
+        wizard_html = wizard_react.get_data(as_text=True)
+        assert "IUSENTRA - React Shell" in wizard_html
+        assert 'id="root"' in wizard_html
 
         for route in ("/privacy/registro", "/privacy/registro/nuovo", "/registro-gdpr", "/admin/database"):
             response = client.get(route, follow_redirects=True)

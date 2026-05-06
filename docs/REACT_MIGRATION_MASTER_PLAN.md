@@ -60,7 +60,7 @@ produzione documentale o workflow mandato fuori dalle route Flask legacy:
   `GET /api/v1/ui/tariffario` per consultare profili, regole, riferimenti,
   audit e form HTML `method="post"` verso la route Flask esistente; il calcolo
   resta nel backend storico.
-- `/compensi-forensi/*`, `/tariffario/*`, `/preventivi/wizard`,
+- `/compensi-forensi/*`, `/tariffario/*`,
   `/preventivi/*`, `/fatturazione/*`, `/template-atti` e `/redazione-atti`
   restano legacy con protezioni esplicite nel gate e nella shell.
 - I token `frontend/src/theme/impeccable-open-design.css` e il contratto
@@ -91,7 +91,7 @@ fuori dalle route Flask legacy:
   `GET /api/v1/ui/tariffario` per aree tariffarie, voci/regole provenienti dal
   backend e un form React che invia con submit HTML standard alla route Flask
   `/tariffario`.
-- `/compensi-forensi/*`, `/tariffario/*`, `/preventivi/wizard`,
+- `/compensi-forensi/*`, `/tariffario/*`,
   `/preventivi/*`, `/fatturazione/*`, `/template-atti` e `/redazione-atti`
   restano legacy con protezioni esplicite nel gate e nella shell.
 - `frontend/src/theme/impeccable-open-design.css` e
@@ -127,8 +127,10 @@ legacy:
   `GET /api/v1/ui/preventivi/conferimento/nuovo`, con form React verso il POST
   legacy; firme, stati, produzione documenti e apertura fascicolo restano nel
   workflow Flask.
-- `/preventivi/wizard`, `/preventivi/*`, `/compensi-forensi` e `/tariffario`
-  restano legacy con protezioni esplicite nel gate e nella shell.
+- `/preventivi/wizard` e' promosso in React full tramite
+  `web/services/react_preventivo_wizard_bridge.py` e gli endpoint
+  `/api/v1/ui/preventivi/wizard`, `/calculate` e `/create`; i dettagli
+  `/preventivi/*` restano legacy con protezioni esplicite nel gate e nella shell.
 - `scripts/react-migration/check-tranche-7a-secrets.mjs`,
   `scripts/react-migration/check-tranche-7a-no-compensi-logic.mjs` e
   `scripts/react-migration/check-tranche-7a-no-document-generation.mjs`

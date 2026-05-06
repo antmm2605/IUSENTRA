@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.198.98 - 2026-05-06
+
+- Promossa `/preventivi/wizard` in React full come console guidata operativa: hero, 4 step, classificazione operativa, tassonomia, fasi/compenso unico, bozza editabile, note, clausola controversie, sidebar riepilogo e sticky footer.
+- Aggiunti bridge e API `/api/v1/ui/preventivi/wizard`, `/calculate` e `/create`, riusando catalogo, motore preventivo, D.M. 55/2014, mediazione D.M. 150/2023, spese vive, voci manuali, clausola e creazione preventivo reale senza duplicare formule in frontend.
+- Preservato il fallback tecnico `/preventivi/wizard?_legacy=1` e rafforzati manifest, contratti React, smoke shell/API e regressioni su cliente potenziale, calcolo ADS, righe manuali, clausola e salvataggio reale del preventivo.
+
 ## 2.198.97 - 2026-05-06
 
 - Trasformata `/tariffario` in console React operativa: hero, KPI reali, parametri controllati, pannelli collassabili, risultato tabellare, voci incluse, riepilogo economico e sidebar profilo/supporto normativo.

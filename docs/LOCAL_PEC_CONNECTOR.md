@@ -16,6 +16,19 @@ Il servizio backend `web.services.mailbox_sync_runtime`:
 
 La Panoramica non esegue mai IMAP nel builder sincrono del payload: si apre con dati locali/cache e aggiorna le card comunicazioni quando il job termina.
 
+## Deduplica allegati email
+
+Gli allegati PEC/email sono conservati sotto il data root tenant-aware (`email/allegati` o `tenants/<tenant>/email/allegati`). Il salvataggio e' content-aware: se un messaggio viene riprocessato e un allegato con stesso nome e stesso SHA-256 esiste gia', IUSENTRA riusa il file esistente invece di creare copie numerate.
+
+Per bonificare duplicati storici si usa:
+
+```bash
+python scripts/deduplicate_email_attachments.py --data-root /data
+python scripts/deduplicate_email_attachments.py --data-root /data --apply
+```
+
+Il primo comando e' un dry-run. Il secondo applica hardlink sullo stesso filesystem, mantenendo invariati i path gia' salvati nei JSON e producendo un report in `email/dedup_reports/`. Non cancella allegati reali e non introduce uno storage condiviso tra tenant.
+
 ## Perche esiste
 
 Alcuni provider PEC, in particolare in ambienti server cloud o dedicati, possono non accettare connessioni SMTP dall'IP del server. In questi casi la ricezione IMAP puo funzionare, mentre l'invio SMTP resta in timeout anche con host, porta e credenziali corretti.

@@ -26,6 +26,7 @@ from pathlib import Path
 from typing import Optional, List, Dict, Any
 from dataclasses import dataclass, field, asdict
 
+from pct.email_attachments import content_sha256, files_are_same_content
 from pct.imap_runtime import (
     describe_imap_connection_error,
     resolve_imap_timeout_seconds,
@@ -258,11 +259,18 @@ class GestioneEmailRicevute:
         cartella_email.mkdir(parents=True, exist_ok=True)
 
         nome_pulito = self._sanifica_nome_allegato(nome)
+        sha256 = content_sha256(contenuto)
         target = cartella_email / nome_pulito
         stem = target.stem
         suffix = target.suffix
         idx = 1
         while target.exists():
+            if files_are_same_content(target, contenuto, expected_sha256=sha256):
+                return {
+                    "percorso_rel": str(target.relative_to(self.attachments_dir)).replace("\\", "/"),
+                    "nome_file": target.name,
+                    "sha256": sha256,
+                }
             target = cartella_email / f"{stem}_{idx}{suffix}"
             idx += 1
 
@@ -270,6 +278,7 @@ class GestioneEmailRicevute:
         return {
             "percorso_rel": str(target.relative_to(self.attachments_dir)).replace("\\", "/"),
             "nome_file": target.name,
+            "sha256": sha256,
         }
 
     def percorso_allegato(self, em: EmailRicevuta, indice_allegato: int) -> Path | None:
@@ -912,8 +921,6 @@ class GestioneEmailRicevute:
         Popola em.stato_pct se riconosciuta.
         """
         sogg = em.oggetto.upper()
-        corpo = (em.corpo_testo + em.corpo_html).upper()
-
         e_pst = any(p.search(sogg) for p in _PATTERN_PST)
         if not e_pst:
             # Controlla il mittente: PST invia da @giustiziapec.it

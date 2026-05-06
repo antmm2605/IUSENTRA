@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.198.79 - 2026-05-06
+
+- Reso content-aware il salvataggio degli allegati PEC/email: se un allegato identico e' gia' presente nella cartella del messaggio, viene riusato senza creare copie numerate.
+- Aggiunto `scripts/deduplicate_email_attachments.py` per analisi e deduplica storica tenant-aware degli allegati email tramite hardlink, con manifest JSON e dry-run obbligatorio di default.
+- Documentata la procedura di bonifica allegati email e aggiunti test su SHA-256, riuso file identici, suffix per contenuti diversi e deduplica applicata.
+
 ## 2.198.78 - 2026-05-06
 
 - Ripristinata la disponibilita' produzione dopo saturazione disco su Hetzner: i backup applicativi avevano riempito `/`, Redis non riusciva piu' a persistere e Flask-Limiter generava 500 globali prima delle route.

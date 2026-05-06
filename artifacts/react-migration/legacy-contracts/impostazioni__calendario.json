@@ -1,0 +1,14 @@
+{
+  "route": "/impostazioni/calendario",
+  "legacyUrl": "/impostazioni/calendario?_legacy=1",
+  "status": 302,
+  "redirectLocation": "/login?next=/impostazioni/calendario?_legacy%3D1",
+  "forms": [],
+  "links": [
+    "/login?next=/impostazioni/calendario?_legacy%3D1"
+  ],
+  "linksCount": 1,
+  "downloads": [],
+  "hasBootstrapClass": false,
+  "hasReactRoot": false
+}

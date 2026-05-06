@@ -1,0 +1,650 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 2002a591..928513e4 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -1,5 +1,11 @@
+ # Changelog
+
++## 2.198.91 - 2026-05-06
++
++- Promosse in React full le route `/studio` e `/amministrazione`, con hub dedicati, bridge backend reali, endpoint UI GET e gate aggiornato senza sbloccare subpath o impostazioni.
++- Mantenute legacy le impostazioni sensibili: `/impostazioni`, `/impostazioni-studio`, `/impostazioni/calendario`, `/impostazioni/pagamenti` e `/sincronizzazione-calendari` restano protette anche nella shell.
++- Aggiunti check Tranche 5A per gate Flask, UI consistency, anti-segreti, contratti React, runner sicuro e patch rollback separate.
++
+ ## 2.198.89 - 2026-05-06
+
+ - Promosse in React full le route `/backup`, `/sito-studio` e `/sito-studio/contatti`, con bridge backend reali, endpoint UI dedicati e gate aggiornato senza sbloccare builder, studio o impostazioni.
+diff --git a/Dockerfile b/Dockerfile
+index 0dbe64f5..961a7b82 100644
+--- a/Dockerfile
++++ b/Dockerfile
+@@ -1,4 +1,4 @@
+-#  version: 2.198.90
++#  version: 2.198.91
+ #  IUSENTRA | Dockerfile produzione
+
+ #  Build multi-stage:
+@@ -75,7 +75,7 @@ RUN mkdir -p /out && /tmp/dart-sass/sass --no-source-map --style=compressed \
+ FROM python:3.12-slim
+
+ LABEL org.opencontainers.image.title="IUSENTRA" \
+-      org.opencontainers.image.version="2.198.90" \
++      org.opencontainers.image.version="2.198.91" \
+       org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
+       org.opencontainers.image.created="2026-03-18"
+
+diff --git a/README.md b/README.md
+index 2265a3e6..b736a6f2 100644
+--- a/README.md
++++ b/README.md
+@@ -54,7 +54,7 @@ La repo oggi non è più solo un tool CLI per il Processo Civile Telematico: con
+ - `Sito Studio` nativo per ogni tenant: pagine a blocchi, articoli, servizi, professionisti, sedi, contatti, agenda appuntamenti pubblica e sito web pubblicabile senza WordPress esterno.
+ - Le sezioni pubbliche `Strumenti legali`, `Applicazioni` e `News giuridiche strutturate` non sono esposte in automatico: compaiono sul sito dello studio solo se l'amministratore del sito attiva i flag dedicati da `Sito Studio -> Impostazioni`.
+ - Migrazione React progressiva: la shell `/app-v2` convive con la UI Jinja attuale e usa API Flask reali; `Clienti e Anagrafiche`, `Soggetti e Parti`, `Comunicazioni`, `Servizi Telematici`, `Gestione Database` (`/admin/database`), `Statistiche`, `Audit`, `Registro attivita`, `Utenti` e `Profili e permessi` sono ora servite in React sui GET ufficiali, con salvataggi ancora sulle route Flask storiche dove presenti e fallback tecnico `_legacy=1`. Le superfici telematiche `PolisWeb / PST`, `PDP`, `PAT`, `PTT`, `Tribunali / PEC`, `Checklist deposito` e `Guida firma digitale` restano governate dai vincoli specifici di portale e non vengono promosse da questa tranche. `Regia Operativa`, `Ricerca Studio`, `Agenda`, `Nuovo Appuntamento` e la suite `Fascicoli` vivono rispettivamente in `/app-v2/regia-operativa`, `/app-v2/ricerca-studio`, `/app-v2/agenda`, `/app-v2/agenda/nuovo` e `/app-v2/fascicoli`. La suite fascicoli include lista, nuovo/modifica, archivio, dettaglio cabina fascicolo, quadro intelligente AI, editor professionale anche sulla route profonda `/fascicoli/<id>/documenti/<id_doc>/editor` con font/dimensioni/interlinea in stile studio, anteprima PDF nativa fedele all'originale per documenti impaginati con stemmi/timbri/firme e blocco professionale delle conversioni non affidabili, compilatore atti, anteprima documento interna anche per `.pdf.p7m`, upload senza reload ed export, con scritture ancora sulle route storiche per rollback immediato. Ogni pagina migrata viene collegata alla nav React, usa solo dati reali da repository/sessione/API/configurazione e nessuna pagina React viene annidata dentro un'altra durante la migrazione pagina per pagina.
+-- La migrazione React residua e' governata da `tools/react-migration/route-manifest.json` e dagli script `scripts/react-migration/*`: audit route, cattura contratti legacy, controllo gate, consistency UI e runner sicuro. La Tranche 4A abilita `/backup`, `/sito-studio` e `/sito-studio/contatti` in React full mantenendo operazioni tecniche, builder, studio, impostazioni, economico, mandato, documentale e telematico sui percorsi legacy fino a parita' dimostrata.
++- La migrazione React residua e' governata da `tools/react-migration/route-manifest.json` e dagli script `scripts/react-migration/*`: audit route, cattura contratti legacy, controllo gate, consistency UI e runner sicuro. La Tranche 5A abilita `/studio` e `/amministrazione` in React full come hub sicuri, mantenendo impostazioni, calendari, pagamenti, economico, mandato, documentale e telematico sui percorsi legacy fino a parita' dimostrata.
+ - La pagina `Gestione Database` non si limita a segnalare anomalie referenziali: `Verifica e ripara` chiama una route Flask auditata, crea backup prima di scrivere e corregge automaticamente i riferimenti orfani risolvibili senza inventare dati.
+ - La superficie `Tribunali / PEC` distingue le PEC di deposito telematico dalle PEC amministrative/protocollo: PST e' fonte primaria per il deposito, IPA Open Data fonte secondaria per indirizzi amministrativi, e i siti ufficiali restano fallback/verifica manuale.
+ - Deploy Hetzner CPX42: il profilo [deploy/hetzner](deploy/hetzner/README.md), documentato anche in [docs/DEPLOY_HETZNER_CPX42.md](docs/DEPLOY_HETZNER_CPX42.md), prepara un server Ubuntu con Docker Compose, Caddy HTTPS, Redis, worker scheduler/OCR, backup e restore su `/opt/iusentra/data`, con retention backup governata e pannello Superadmin `Server e manutenzione` per consumi, hardlink e manutenzioni sicure.
+diff --git a/artifacts/react-migration/audit.md b/artifacts/react-migration/audit.md
+index ddd2a02d..07701d86 100644
+--- a/artifacts/react-migration/audit.md
++++ b/artifacts/react-migration/audit.md
+@@ -1,6 +1,6 @@
+ # Audit migrazione React
+
+-Generato: 2026-05-06T12:36:09.471Z
++Generato: 2026-05-06T13:51:20.730Z
+
+ ## Frontend
+
+@@ -12,12 +12,12 @@ Script disponibili: dev, test, typecheck, build, preview
+ Route React prefixes: 55
+ Route React exact: 43
+ Excluded prefixes: 14
+-Legacy operational prefixes: 35
++Legacy operational prefixes: 33
+
+ ## App React
+
+-Lazy components: 32
+-Route checks: 47
++Lazy components: 34
++Route checks: 49
+ Studio module routes: 52
+
+ ## Nota operativa
+diff --git a/artifacts/react-migration/route-gate.md b/artifacts/react-migration/route-gate.md
+index 7909356c..2282750d 100644
+--- a/artifacts/react-migration/route-gate.md
++++ b/artifacts/react-migration/route-gate.md
+@@ -1,6 +1,6 @@
+ # Route gate report
+
+-Route nel manifest: 27
+-Route con unlockFromGate=true: 8
+-Route governate consentite: /statistiche, /audit, /registro-attivita, /utenti, /profili, /backup, /sito-studio, /sito-studio/contatti
++Route nel manifest: 32
++Route con unlockFromGate=true: 10
++Route governate consentite: /statistiche, /audit, /registro-attivita, /utenti, /profili, /backup, /sito-studio, /sito-studio/contatti, /studio, /amministrazione
+ Violazioni: 0
+diff --git a/artifacts/react-migration/route-inventory.json b/artifacts/react-migration/route-inventory.json
+index a126c53a..c8ba3a25 100644
+--- a/artifacts/react-migration/route-inventory.json
++++ b/artifacts/react-migration/route-inventory.json
+@@ -1,5 +1,5 @@
+ {
+-  "generatedAt": "2026-05-06T12:36:09.471Z",
++  "generatedAt": "2026-05-06T13:51:20.730Z",
+   "react": {
+     "dependencies": {
+       "@vitejs/plugin-react": "^5.0.0",
+@@ -145,7 +145,6 @@
+     ],
+     "legacyOperationalPrefixes": [
+       "/admin/osservabilita",
+-      "/amministrazione",
+       "/applicazioni",
+       "/checklist",
+       "/compensi-forensi",
+@@ -174,7 +173,6 @@
+       "/sincronizzazione-calendari",
+       "/strumenti-legali",
+       "/strumenti-operativi",
+-      "/studio",
+       "/tariffario",
+       "/telematico",
+       "/template-atti",
+@@ -310,6 +308,14 @@
+       {
+         "name": "SitoStudioPage",
+         "importPath": "./components/SitoStudioPage"
++      },
++      {
++        "name": "StudioPage",
++        "importPath": "./components/StudioPage"
++      },
++      {
++        "name": "AmministrazionePage",
++        "importPath": "./components/AmministrazionePage"
+       }
+     ],
+     "routeChecks": [
+@@ -357,6 +363,8 @@
+       "isProfiliPage",
+       "isBackupPage",
+       "isSitoStudioPage",
++      "isStudioPage",
++      "isAmministrazionePage",
+       "isStudioModulePage",
+       "isDashboardPage",
+       "isStandalonePage"
+diff --git a/artifacts/react-migration/ui-consistency.md b/artifacts/react-migration/ui-consistency.md
+index 0b984a2a..fd02f28f 100644
+--- a/artifacts/react-migration/ui-consistency.md
++++ b/artifacts/react-migration/ui-consistency.md
+@@ -1,4 +1,4 @@
+ # UI consistency report
+
+-File scansionati: 134
++File scansionati: 140
+ Violazioni: 0
+diff --git a/pct/__init__.py b/pct/__init__.py
+index ee41e176..871847c2 100644
+--- a/pct/__init__.py
++++ b/pct/__init__.py
+@@ -2,5 +2,5 @@
+ PCT - Processo Civile Telematico
+ Sistema per l'invio telematico negli studi legali italiani.
+ """
+-__version__ = "2.198.90"
++__version__ = "2.198.91"
+ __author__ = "IUSENTRA"
+diff --git a/railway.toml b/railway.toml
+index 226d9020..5690d9dc 100644
+--- a/railway.toml
++++ b/railway.toml
+@@ -1,7 +1,7 @@
+ #  Railway - Configurazione deploy
+ #  Docs: https://docs.railway.app
+-#  version: 2.198.90
+-#  redeploy: 06/05/2026 15:06:40
++#  version: 2.198.91
++#  redeploy: 06/05/2026 15:49:00
+
+ [build]
+ builder = "DOCKERFILE"
+diff --git a/setup.py b/setup.py
+index b4038881..1aeb0a55 100644
+--- a/setup.py
++++ b/setup.py
+@@ -10,7 +10,7 @@ from packaging_manifest import extras_requirements, read_version, runtime_requir
+
+ setup(
+     name="pct-studio-legale",
+-    # Versione applicativa 2.198.90, letta dalla source of truth pct.__init__
++    # Versione applicativa 2.198.91, letta dalla source of truth pct.__init__
+     version=read_version(),
+     description="IUSENTRA: gestionale web modulare per studi legali con PCT, Lex locale e servizi telematici",
+     packages=find_packages(),
+
+diff --git a/artifacts/react-migration/legacy-contracts/amministrazione.json b/artifacts/react-migration/legacy-contracts/amministrazione.json
+new file mode 100644
+index 00000000..08510f08
+--- /dev/null
++++ b/artifacts/react-migration/legacy-contracts/amministrazione.json
+@@ -0,0 +1,14 @@
++{
++  "route": "/amministrazione",
++  "legacyUrl": "/amministrazione?_legacy=1",
++  "status": 302,
++  "redirectLocation": "/login?next=/amministrazione?_legacy%3D1",
++  "forms": [],
++  "links": [
++    "/login?next=/amministrazione?_legacy%3D1"
++  ],
++  "linksCount": 1,
++  "downloads": [],
++  "hasBootstrapClass": false,
++  "hasReactRoot": false
++}
+\ No newline at end of file
+warning: in the working copy of 'artifacts/react-migration/legacy-contracts/amministrazione.json', CRLF will be replaced by LF the next time Git touches it
+
+diff --git a/artifacts/react-migration/legacy-contracts/impostazioni-studio.json b/artifacts/react-migration/legacy-contracts/impostazioni-studio.json
+new file mode 100644
+index 00000000..93ecbf11
+--- /dev/null
++++ b/artifacts/react-migration/legacy-contracts/impostazioni-studio.json
+@@ -0,0 +1,14 @@
++{
++  "route": "/impostazioni-studio",
++  "legacyUrl": "/impostazioni-studio?_legacy=1",
++  "status": 302,
++  "redirectLocation": "/login?next=/impostazioni-studio?_legacy%3D1",
++  "forms": [],
++  "links": [
++    "/login?next=/impostazioni-studio?_legacy%3D1"
++  ],
++  "linksCount": 1,
++  "downloads": [],
++  "hasBootstrapClass": false,
++  "hasReactRoot": false
++}
+\ No newline at end of file
+warning: in the working copy of 'artifacts/react-migration/legacy-contracts/impostazioni-studio.json', CRLF will be replaced by LF the next time Git touches it
+
+diff --git a/artifacts/react-migration/legacy-contracts/impostazioni__calendario.json b/artifacts/react-migration/legacy-contracts/impostazioni__calendario.json
+new file mode 100644
+index 00000000..5b8b8694
+--- /dev/null
++++ b/artifacts/react-migration/legacy-contracts/impostazioni__calendario.json
+@@ -0,0 +1,14 @@
++{
++  "route": "/impostazioni/calendario",
++  "legacyUrl": "/impostazioni/calendario?_legacy=1",
++  "status": 302,
++  "redirectLocation": "/login?next=/impostazioni/calendario?_legacy%3D1",
++  "forms": [],
++  "links": [
++    "/login?next=/impostazioni/calendario?_legacy%3D1"
++  ],
++  "linksCount": 1,
++  "downloads": [],
++  "hasBootstrapClass": false,
++  "hasReactRoot": false
++}
+\ No newline at end of file
+warning: in the working copy of 'artifacts/react-migration/legacy-contracts/impostazioni__calendario.json', CRLF will be replaced by LF the next time Git touches it
+
+diff --git a/artifacts/react-migration/legacy-contracts/impostazioni__pagamenti.json b/artifacts/react-migration/legacy-contracts/impostazioni__pagamenti.json
+new file mode 100644
+index 00000000..a07f7c8f
+--- /dev/null
++++ b/artifacts/react-migration/legacy-contracts/impostazioni__pagamenti.json
+@@ -0,0 +1,14 @@
++{
++  "route": "/impostazioni/pagamenti",
++  "legacyUrl": "/impostazioni/pagamenti?_legacy=1",
++  "status": 302,
++  "redirectLocation": "/login?next=/impostazioni/pagamenti?_legacy%3D1",
++  "forms": [],
++  "links": [
++    "/login?next=/impostazioni/pagamenti?_legacy%3D1"
++  ],
++  "linksCount": 1,
++  "downloads": [],
++  "hasBootstrapClass": false,
++  "hasReactRoot": false
++}
+\ No newline at end of file
+warning: in the working copy of 'artifacts/react-migration/legacy-contracts/impostazioni__pagamenti.json', CRLF will be replaced by LF the next time Git touches it
+
+diff --git a/artifacts/react-migration/legacy-contracts/sincronizzazione-calendari.json b/artifacts/react-migration/legacy-contracts/sincronizzazione-calendari.json
+new file mode 100644
+index 00000000..6a80304b
+--- /dev/null
++++ b/artifacts/react-migration/legacy-contracts/sincronizzazione-calendari.json
+@@ -0,0 +1,14 @@
++{
++  "route": "/sincronizzazione-calendari",
++  "legacyUrl": "/sincronizzazione-calendari?_legacy=1",
++  "status": 302,
++  "redirectLocation": "/login?next=/sincronizzazione-calendari?_legacy%3D1",
++  "forms": [],
++  "links": [
++    "/login?next=/sincronizzazione-calendari?_legacy%3D1"
++  ],
++  "linksCount": 1,
++  "downloads": [],
++  "hasBootstrapClass": false,
++  "hasReactRoot": false
++}
+\ No newline at end of file
+warning: in the working copy of 'artifacts/react-migration/legacy-contracts/sincronizzazione-calendari.json', CRLF will be replaced by LF the next time Git touches it
+
+diff --git a/artifacts/react-migration/tranche-5a-gate.md b/artifacts/react-migration/tranche-5a-gate.md
+new file mode 100644
+index 00000000..c4d9f456
+--- /dev/null
++++ b/artifacts/react-migration/tranche-5a-gate.md
+@@ -0,0 +1,22 @@
++# Tranche 5A gate check
++
++- [OK] login tenant (status=302)
++- [OK] React shell /studio (status=200)
++- [OK] React shell /amministrazione (status=200)
++- [OK] Ancora legacy /studio?_legacy=1 (status=302)
++- [OK] Ancora legacy /studio/qualunque (status=404)
++- [OK] Ancora legacy /amministrazione?_legacy=1 (status=302)
++- [OK] Ancora legacy /amministrazione/qualunque (status=404)
++- [OK] Ancora legacy /impostazioni (status=200)
++- [OK] Ancora legacy /impostazioni?_legacy=1 (status=200)
++- [OK] Ancora legacy /impostazioni?tab=firma (status=200)
++- [OK] Ancora legacy /impostazioni-studio (status=302)
++- [OK] Ancora legacy /impostazioni/calendario (status=200)
++- [OK] Ancora legacy /impostazioni/pagamenti (status=200)
++- [OK] Ancora legacy /sincronizzazione-calendari (status=302)
++- [OK] JSON /api/v1/ui/studio (status=200)
++- [OK] JSON /api/v1/ui/amministrazione (status=200)
++- [OK] POST non intercettato /studio (status=405)
++- [OK] POST non intercettato /amministrazione (status=405)
++- [OK] POST non intercettato /impostazioni (status=302)
++- [OK] POST non intercettato /sincronizzazione-calendari (status=405)
+warning: in the working copy of 'artifacts/react-migration/tranche-5a-gate.md', CRLF will be replaced by LF the next time Git touches it
+
+diff --git a/artifacts/react-migration/tranche-5a-report.md b/artifacts/react-migration/tranche-5a-report.md
+new file mode 100644
+index 00000000..c1ae9d75
+--- /dev/null
++++ b/artifacts/react-migration/tranche-5a-report.md
+@@ -0,0 +1,141 @@
++# Tranche 5A - Report finale
++
++Data/ora: 2026-05-06 15:55 Europe/Rome
++Branch base: claude/legal-electronic-filing-kIxcV
++
++## Route migrate
++
++- `/studio` React full exact.
++- `/amministrazione` React full exact.
++
++## Route preparate ma lasciate legacy
++
++- `/impostazioni`
++- `/impostazioni-studio`
++- `/impostazioni/calendario`
++- `/impostazioni/pagamenti`
++- `/sincronizzazione-calendari`
++
++## File creati
++
++- `web/services/react_studio_bridge.py`
++- `web/services/react_amministrazione_bridge.py`
++- `frontend/src/studioData.ts`
++- `frontend/src/amministrazioneData.ts`
++- `frontend/src/components/StudioPage.tsx`
++- `frontend/src/components/StudioPage.css`
++- `frontend/src/components/AmministrazionePage.tsx`
++- `frontend/src/components/AmministrazionePage.css`
++- `scripts/react-migration/check-tranche-5a-gate.py`
++- `scripts/react-migration/check-tranche-5a-secrets.mjs`
++- `artifacts/react-migration/tranche-5a-route-map.md`
++- `artifacts/react-migration/tranche-5a-report.md`
++
++## File modificati
++
++- `web/blueprints/api_v1_react.py`
++- `web/bootstrap/react_route_gate.py`
++- `web/blueprints/react_shell.py`
++- `frontend/src/App.tsx`
++- `frontend/scripts/check-react-contracts.mjs`
++- `scripts/react-migration/check-route-gate.mjs`
++- `scripts/react-migration/run-safe-react-migration.mjs`
++- `tools/react-migration/route-manifest.json`
++- `CHANGELOG.md`
++- `README.md`
++- `docs/REACT_MIGRATION_MASTER_PLAN.md`
++- `pct/__init__.py`
++- `setup.py`
++- `Dockerfile`
++- `railway.toml`
++- `frontend/package.json`
++- `frontend/package-lock.json`
++
++## Endpoint aggiunti
++
++- `GET /api/v1/ui/studio`
++- `GET /api/v1/ui/amministrazione`
++
++## Gate modificato
++
++- Sbloccati solo `/studio` exact e `/amministrazione` exact.
++- Protetti `/studio/*` e `/amministrazione/*`.
++- Confermati legacy `/impostazioni`, `/impostazioni-studio`, `/impostazioni/calendario`, `/impostazioni/pagamenti`, `/impostazioni?tab=firma`, `/sincronizzazione-calendari`.
++
++## Route ancora bloccate
++
++- Impostazioni e sottoroute sensibili.
++- Calendari e sincronizzazione calendari.
++- Pagamenti e provider.
++- Economico, mandato, documentale e telematico non toccati da questa tranche.
++
++## Contratti legacy catturati
++
++- `artifacts/react-migration/legacy-contracts/studio.json`
++- `artifacts/react-migration/legacy-contracts/amministrazione.json`
++- `artifacts/react-migration/legacy-contracts/impostazioni.json`
++- `artifacts/react-migration/legacy-contracts/impostazioni-studio.json`
++- `artifacts/react-migration/legacy-contracts/impostazioni__calendario.json`
++- `artifacts/react-migration/legacy-contracts/impostazioni__pagamenti.json`
++- `artifacts/react-migration/legacy-contracts/sincronizzazione-calendari.json`
++
++## Permessi verificati
++
++- `/studio`: stesso perimetro dell'alias legacy, sessione Flask richiesta.
++- `/amministrazione`: vincolo legacy `utenti.leggi`, senza bypass amministrativo via API key.
++
++## POST legacy preservati
++
++- Nessun POST legacy modificato.
++- Nessun nuovo endpoint POST creato.
++- Nessun fetch POST introdotto.
++
++## Impostazioni, calendari e pagamenti
++
++- Impostazioni lasciate legacy.
++- Calendari lasciati legacy.
++- Pagamenti lasciati legacy.
++- Nessun bridge operativo impostazioni creato.
++- Nessuna configurazione riservata serializzata nel payload React.
++
++## Controlli
++
++- Anti-segreti: OK (`node scripts/react-migration/check-tranche-5a-secrets.mjs`).
++- UI consistency: OK (`node scripts/react-migration/check-ui-consistency.mjs`).
++- Route gate: OK (`node scripts/react-migration/check-route-gate.mjs`).
++- Gate Flask 5A: OK (`python scripts/react-migration/check-tranche-5a-gate.py`).
++- Contratti React: OK (`node frontend/scripts/check-react-contracts.mjs`).
++- Runner 5A: OK (`ALLOW_DIRTY=1 node scripts/react-migration/run-safe-react-migration.mjs --tranche=5a`, usato per non toccare modifiche runtime non pertinenti gia' presenti nel worktree).
++
++## Test frontend
++
++- `npm run test`: OK.
++- `npm run typecheck`: OK.
++- `npm run build`: OK.
++
++## Limiti test Flask
++
++- Il test harness ha consentito autenticazione con tenant admin seeded.
++- Verificati shell React, bypass `?_legacy=1`, subpath legacy, impostazioni legacy, endpoint JSON e POST non intercettati.
++
++## Rischi residui
++
++- Le route impostazioni restano volutamente legacy per preservare configurazioni riservate e flussi locali.
++- Il worktree locale contiene modifiche dati/runtime non pertinenti alla tranche, non incluse nelle patch 5A.
++
++## Patch generate
++
++- `artifacts/react-migration/patches/tranche-5a.backend.patch`
++- `artifacts/react-migration/patches/tranche-5a.frontend.patch`
++- `artifacts/react-migration/patches/tranche-5a.gate.patch`
++- `artifacts/react-migration/patches/tranche-5a.tests.patch`
++- `artifacts/react-migration/patches/tranche-5a.reports.patch`
++
++## Rollback
++
++```bash
++git apply -R artifacts/react-migration/patches/tranche-5a.backend.patch
++git apply -R artifacts/react-migration/patches/tranche-5a.frontend.patch
++git apply -R artifacts/react-migration/patches/tranche-5a.gate.patch
++git apply -R artifacts/react-migration/patches/tranche-5a.tests.patch
++```
+
+diff --git a/artifacts/react-migration/tranche-5a-route-map.md b/artifacts/react-migration/tranche-5a-route-map.md
+new file mode 100644
+index 00000000..bf8df647
+--- /dev/null
++++ b/artifacts/react-migration/tranche-5a-route-map.md
+@@ -0,0 +1,149 @@
++# Tranche 5A - Mappa route legacy
++
++Data analisi: 2026-05-06
++Branch base: claude/legal-electronic-filing-kIxcV
++
++## Metodo
++
++Comandi richiesti eseguiti prima degli edit:
++
++```bash
++git status --short
++node scripts/react-migration/audit-react-migration.mjs
++python scripts/react-migration/capture-legacy-contracts.py /studio /amministrazione /impostazioni /impostazioni-studio /impostazioni/calendario /impostazioni/pagamenti /sincronizzazione-calendari
++```
++
++`rg.exe` non era eseguibile sul workspace Windows (`Accesso negato`). La ricerca e' stata ripetuta con `Get-ChildItem` e `Select-String` sugli stessi perimetri `web`, `pct`, `tests`, usando i pattern richiesti.
++
++## /studio
++
++- Handler legacy: `web/blueprints/terminology_aliases.py`
++- Funzione: `studio`
++- Decorator: `@terminology_aliases.get("/studio")`
++- Template usato: nessuno diretto; redirect 302 a `telematico_dashboard`, che rende `web/templates/telematico_dashboard.html`
++- Repository/manager usati: alias senza repository diretto; il target usa `get_telematico`, `get_fascicoli`, backfill e status runtime telematico
++- Permessi richiesti: nessun controllo RBAC diretto sull'alias; accesso autenticato tramite stack Flask/gate
++- Form presenti: nessuno sull'alias
++- POST presenti: nessuno sull'alias
++- Action dei form: non applicabile
++- Method dei form: non applicabile
++- CSRF: non applicabile sull'alias
++- Download/export presenti: nessuno sull'alias
++- Azioni distruttive presenti: nessuna sull'alias
++- Dati sensibili presenti: il target telematico mostra stato canali e import, per questo la 5A non replica il target
++- Configurazioni sensibili presenti: potenziali configurazioni telematiche nel target, non lette dal bridge 5A
++- Decisione: sbloccabile solo come hub React sicuro exact `/studio`, senza scritture e senza sostituire la cabina telematica; ogni subpath `/studio/*` resta legacy
++
++## /amministrazione
++
++- Handler legacy: `web/blueprints/terminology_aliases.py`
++- Funzione: `amministrazione`
++- Decorator: `@terminology_aliases.get("/amministrazione")`
++- Template usato: nessuno diretto; redirect 302 a `/utenti`, che rende `web/templates/auth/utenti.html`
++- Repository/manager usati: alias senza repository diretto; il target usa `get_utenti()` / `GestioneUtenti`
++- Permessi richiesti: il target `/utenti` richiede `utenti.leggi`
++- Form presenti: nessuno sull'alias
++- POST presenti: nessuno sull'alias
++- Action dei form: non applicabile
++- Method dei form: non applicabile
++- CSRF: non applicabile sull'alias
++- Download/export presenti: nessuno sull'alias
++- Azioni distruttive presenti: nessuna sull'alias; le route utente di dettaglio restano legacy
++- Dati sensibili presenti: gestione utenti e permessi; la 5A espone solo metriche aggregate e link operativi
++- Configurazioni sensibili presenti: nessuna configurazione tecnica
++- Decisione: sbloccabile come hub React exact `/amministrazione`, vincolato a `utenti.leggi`; ogni subpath `/amministrazione/*` resta legacy
++
++## /impostazioni
++
++- Handler legacy: `web/blueprints/impostazioni.py`
++- Funzione: `index`
++- Decorator: `@impostazioni.route("/impostazioni", methods=["GET", "POST"])`
++- Template usato: `web/templates/impostazioni/index.html`
++- Repository/manager usati: `pct.config_studio.GestioneConfigStudio`, runtime Flask config, scheduler, runtime AI locale
++- Permessi richiesti: login richiesto da `_richiedi_login`; nessun unlock React in questa tranche
++- Form presenti: dati studio, PEC, firma digitale, SMTP, WhatsApp, scheduler, AI locale
++- POST presenti: si', POST `/impostazioni`
++- Action dei form: `/impostazioni` con tab di configurazione
++- Method dei form: POST
++- CSRF: template legacy protetto dal flusso Flask esistente
++- Download/export presenti: pagina download Local Signer nel tab firma
++- Azioni distruttive presenti: sovrascrittura configurazioni tecniche e credenziali
++- Dati sensibili presenti: credenziali PEC/SMTP, chiavi firma, credenziali WhatsApp, configurazione AI e scheduler
++- Configurazioni sensibili presenti: PEC, SMTP, firma digitale, AI locale, scheduler, canali comunicazione
++- Decisione: resta legacy; React non espone endpoint, bridge operativo o salvataggi
++
++## /impostazioni-studio
++
++- Handler legacy: `web/blueprints/terminology_aliases.py`
++- Funzione: `impostazioni_studio`
++- Decorator: `@terminology_aliases.get("/impostazioni-studio")`
++- Template usato: nessuno diretto; redirect a `/impostazioni`
++- Repository/manager usati: nessuno diretto; target `GestioneConfigStudio`
++- Permessi richiesti: login tramite target
++- Form presenti: quelli di `/impostazioni`
++- POST presenti: nessuno sull'alias; target POST legacy
++- Action dei form: `/impostazioni`
++- Method dei form: POST nel target
++- CSRF: target legacy
++- Download/export presenti: target firma
++- Azioni distruttive presenti: target salva configurazioni tecniche
++- Dati sensibili presenti: quelli del target impostazioni
++- Configurazioni sensibili presenti: PEC, SMTP, firma digitale, AI locale, scheduler
++- Decisione: resta legacy
++
++## /impostazioni/calendario
++
++- Handler legacy: `web/bootstrap/calendar_routes.py`
++- Funzione: `impostazioni_calendario`
++- Decorator: `@app.route("/impostazioni/calendario")`
++- Template usato: `web/templates/impostazioni/calendario.html`
++- Repository/manager usati: `get_calendar_sync()`, `get_agenda()`, `pct.cal_token`
++- Permessi richiesti: route registrata nel runtime Flask autenticato; nessun unlock React in questa tranche
++- Form presenti: rigenerazione collegamento, profili calendario esterno, sync/toggle/elimina profili
++- POST presenti: `/impostazioni/calendario/rigenera`, `/impostazioni/calendario/profili`, `/impostazioni/calendario/profili/<id>/sync`, `/toggle`, `/elimina`
++- Action dei form: route calendario legacy sopra elencate
++- Method dei form: POST
++- CSRF: gestito dal template legacy
++- Download/export presenti: feed `.ics` agenda/scadenze/completo
++- Azioni distruttive presenti: rigenera collegamento, elimina profilo, toggle profilo
++- Dati sensibili presenti: collegamenti feed e sorgenti calendario esterno
++- Configurazioni sensibili presenti: sincronizzazione calendari e sorgenti esterne
++- Decisione: resta legacy
++
++## /impostazioni/pagamenti
++
++- Handler legacy: `web/blueprints/pagamenti.py`
++- Funzione: `impostazioni_pagamenti`
++- Decorator: `@pagamenti.route("/impostazioni/pagamenti", methods=["GET", "POST"])`
++- Template usato: `web/templates/pagamenti/impostazioni.html`
++- Repository/manager usati: `web.helpers.get_pagamenti()` / `pct.pagamenti.GestionePagamenti`
++- Permessi richiesti: login richiesto da `_richiedi_login`
++- Form presenti: Stripe, PayPal, Satispay, SumUp, bonifico
++- POST presenti: si', POST `/impostazioni/pagamenti`
++- Action dei form: `/impostazioni/pagamenti`
++- Method dei form: POST
++- CSRF: gestito dal template legacy
++- Download/export presenti: nessuno nella pagina impostazioni
++- Azioni distruttive presenti: modifica provider e webhook di pagamento
++- Dati sensibili presenti: chiavi provider, credenziali webhook, dati bancari riservati
++- Configurazioni sensibili presenti: provider pagamento e bonifico
++- Decisione: resta legacy
++
++## /sincronizzazione-calendari
++
++- Handler legacy: `web/blueprints/terminology_aliases.py`
++- Funzione: `sincronizzazione_calendari`
++- Decorator: `@terminology_aliases.get("/sincronizzazione-calendari")`
++- Template usato: nessuno diretto; redirect a `/impostazioni/calendario`
++- Repository/manager usati: nessuno diretto; target `get_calendar_sync()`
++- Permessi richiesti: login tramite target
++- Form presenti: quelli di `/impostazioni/calendario`
++- POST presenti: nessuno sull'alias; target POST legacy
++- Action dei form: route calendario legacy
++- Method dei form: POST nel target
++- CSRF: target legacy
++- Download/export presenti: feed `.ics` nel target
++- Azioni distruttive presenti: rigenerazione collegamento, toggle/elimina profili nel target
++- Dati sensibili presenti: collegamenti feed e sorgenti calendario esterno
++- Configurazioni sensibili presenti: sincronizzazione calendari
++- Decisione: resta legacy
+
+diff --git a/artifacts/react-migration/tranche-5a-secrets.md b/artifacts/react-migration/tranche-5a-secrets.md
+new file mode 100644
+index 00000000..22e74d25
+--- /dev/null
++++ b/artifacts/react-migration/tranche-5a-secrets.md
+@@ -0,0 +1,5 @@
++# Tranche 5A anti-segreti
++
++File controllati: 6
++
++Esito: OK, nessun pattern vietato nei nuovi file 5A.

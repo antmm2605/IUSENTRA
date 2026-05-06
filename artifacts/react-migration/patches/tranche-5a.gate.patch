@@ -1,0 +1,204 @@
+diff --git a/tools/react-migration/route-manifest.json b/tools/react-migration/route-manifest.json
+index 8655e505..d4b233f5 100644
+--- a/tools/react-migration/route-manifest.json
++++ b/tools/react-migration/route-manifest.json
+@@ -88,19 +88,37 @@
+     {
+       "route": "/studio",
+       "family": "studio",
+-      "status": "legacy_operational",
++      "status": "react_full",
+       "risk": "medium",
+       "targetComponent": "frontend/src/components/StudioPage.tsx",
+       "targetData": "frontend/src/studioData.ts",
+       "targetBridge": "web/services/react_studio_bridge.py",
+       "legacyContract": "artifacts/react-migration/legacy-contracts/studio.json",
+-      "unlockFromGate": false,
++      "unlockFromGate": true,
+       "mustPreserve": [
+-        "dati studio reali",
+-        "canali operativi",
+-        "configurazioni sensibili",
+-        "azioni amministrative reali",
+-        "profilo sessione"
++        "hub studio sicuro",
++        "dati reali aggregati",
++        "link backup",
++        "link sito studio",
++        "nessuna scrittura diretta"
++      ]
++    },
++    {
++      "route": "/amministrazione",
++      "family": "amministrazione",
++      "status": "react_full",
++      "risk": "medium",
++      "targetComponent": "frontend/src/components/AmministrazionePage.tsx",
++      "targetData": "frontend/src/amministrazioneData.ts",
++      "targetBridge": "web/services/react_amministrazione_bridge.py",
++      "legacyContract": "artifacts/react-migration/legacy-contracts/amministrazione.json",
++      "unlockFromGate": true,
++      "mustPreserve": [
++        "hub amministrativo",
++        "link utenti",
++        "link profili",
++        "link audit",
++        "nessuna scrittura diretta"
+       ]
+     },
+     {
+@@ -121,6 +139,78 @@
+         "segreti non esposti"
+       ]
+     },
++    {
++      "route": "/impostazioni-studio",
++      "family": "studio",
++      "status": "legacy_operational",
++      "risk": "high",
++      "targetComponent": "frontend/src/components/ImpostazioniPage.tsx",
++      "targetData": "frontend/src/impostazioniData.ts",
++      "targetBridge": "web/services/react_impostazioni_bridge.py",
++      "legacyContract": "artifacts/react-migration/legacy-contracts/impostazioni-studio.json",
++      "unlockFromGate": false,
++      "mustPreserve": [
++        "configurazioni sensibili",
++        "POST legacy auditati",
++        "segreti non esposti",
++        "firma digitale",
++        "PEC e SMTP"
++      ]
++    },
++    {
++      "route": "/impostazioni/calendario",
++      "family": "studio",
++      "status": "legacy_operational",
++      "risk": "high",
++      "targetComponent": "frontend/src/components/ImpostazioniPage.tsx",
++      "targetData": "frontend/src/impostazioniData.ts",
++      "targetBridge": "web/services/react_impostazioni_bridge.py",
++      "legacyContract": "artifacts/react-migration/legacy-contracts/impostazioni__calendario.json",
++      "unlockFromGate": false,
++      "mustPreserve": [
++        "OAuth calendario",
++        "token non esposti",
++        "sincronizzazione controllata",
++        "POST legacy auditati",
++        "revoca autorizzazioni"
++      ]
++    },
++    {
++      "route": "/impostazioni/pagamenti",
++      "family": "studio",
++      "status": "legacy_operational",
++      "risk": "high",
++      "targetComponent": "frontend/src/components/ImpostazioniPage.tsx",
++      "targetData": "frontend/src/impostazioniData.ts",
++      "targetBridge": "web/services/react_impostazioni_bridge.py",
++      "legacyContract": "artifacts/react-migration/legacy-contracts/impostazioni__pagamenti.json",
++      "unlockFromGate": false,
++      "mustPreserve": [
++        "provider pagamento",
++        "segreti provider non esposti",
++        "webhook",
++        "link pagamento",
++        "POST legacy auditati"
++      ]
++    },
++    {
++      "route": "/sincronizzazione-calendari",
++      "family": "studio",
++      "status": "legacy_operational",
++      "risk": "high",
++      "targetComponent": "frontend/src/components/ImpostazioniPage.tsx",
++      "targetData": "frontend/src/impostazioniData.ts",
++      "targetBridge": "web/services/react_impostazioni_bridge.py",
++      "legacyContract": "artifacts/react-migration/legacy-contracts/sincronizzazione-calendari.json",
++      "unlockFromGate": false,
++      "mustPreserve": [
++        "sincronizzazione calendari",
++        "token non esposti",
++        "scheduler",
++        "audit",
++        "rollback legacy"
++      ]
++    },
+     {
+       "route": "/backup",
+       "family": "studio",
+diff --git a/web/blueprints/react_shell.py b/web/blueprints/react_shell.py
+index 8c8b90de..1953edd3 100644
+--- a/web/blueprints/react_shell.py
++++ b/web/blueprints/react_shell.py
+@@ -18,7 +18,6 @@ react_shell = Blueprint("react_shell", __name__)
+
+ _LEGACY_FIRST_PREFIXES = (
+     "/admin/osservabilita",
+-    "/amministrazione",
+     "/applicazioni",
+     "/checklist",
+     "/compensi-forensi",
+@@ -47,7 +46,6 @@ _LEGACY_FIRST_PREFIXES = (
+     "/sincronizzazione-calendari",
+     "/strumenti-legali",
+     "/strumenti-operativi",
+-    "/studio",
+     "/tariffario",
+     "/telematico",
+     "/template-atti",
+@@ -162,10 +160,16 @@ def _deve_mantenere_vista_classica() -> bool:
+         return True
+     if lower.startswith("/sito-studio/") and lower not in {"/sito-studio/contatti"}:
+         return True
+-    if lower == "/studio" or lower.startswith("/studio/"):
++    if lower.startswith("/studio/"):
++        return True
++    if lower.startswith("/amministrazione/"):
+         return True
+     if lower == "/impostazioni" or lower.startswith("/impostazioni/"):
+         return True
++    if lower == "/impostazioni-studio" or lower.startswith("/impostazioni-studio/"):
++        return True
++    if lower == "/sincronizzazione-calendari" or lower.startswith("/sincronizzazione-calendari/"):
++        return True
+     return any(lower == prefix or lower.startswith(f"{prefix}/") for prefix in _LEGACY_FIRST_PREFIXES)
+
+
+diff --git a/web/bootstrap/react_route_gate.py b/web/bootstrap/react_route_gate.py
+index 1eeaa98b..bcb649d8 100644
+--- a/web/bootstrap/react_route_gate.py
++++ b/web/bootstrap/react_route_gate.py
+@@ -164,7 +164,6 @@ _EXCLUDED_SEGMENTS = {
+
+ _LEGACY_OPERATIONAL_PREFIXES = (
+     "/admin/osservabilita",
+-    "/amministrazione",
+     "/applicazioni",
+     "/checklist",
+     "/compensi-forensi",
+@@ -193,7 +192,6 @@ _LEGACY_OPERATIONAL_PREFIXES = (
+     "/sincronizzazione-calendari",
+     "/strumenti-legali",
+     "/strumenti-operativi",
+-    "/studio",
+     "/tariffario",
+     "/telematico",
+     "/template-atti",
+@@ -227,10 +225,16 @@ def _excluded(path: str) -> bool:
+         return True
+     if lower.startswith("/sito-studio/") and lower not in {"/sito-studio/contatti"}:
+         return True
+-    if lower == "/studio" or lower.startswith("/studio/"):
++    if lower.startswith("/studio/"):
++        return True
++    if lower.startswith("/amministrazione/"):
+         return True
+     if lower == "/impostazioni" or lower.startswith("/impostazioni/"):
+         return True
++    if lower == "/impostazioni-studio" or lower.startswith("/impostazioni-studio/"):
++        return True
++    if lower == "/sincronizzazione-calendari" or lower.startswith("/sincronizzazione-calendari/"):
++        return True
+     if any(lower == prefix or lower.startswith(f"{prefix}/") for prefix in _LEGACY_OPERATIONAL_PREFIXES):
+         return True
+     # I preventivi hanno un wizard completo con tassonomia, sottobranche,

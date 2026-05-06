@@ -1,5 +1,30 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-06 - Tranche 5A hub studio e amministrazione
+
+La quarta promozione governata abilita due hub direzionali React exact senza
+sbloccare configurazioni o route operative ad alto rischio:
+
+- `/studio` usa `web/services/react_studio_bridge.py` e
+  `GET /api/v1/ui/studio` per KPI sicuri, profilo sessione, stato moduli gia'
+  migrati e collegamenti a backup, sito studio, statistiche, utenti, profili,
+  audit e impostazioni legacy.
+- `/amministrazione` usa `web/services/react_amministrazione_bridge.py` e
+  `GET /api/v1/ui/amministrazione`, mantenendo il vincolo legacy
+  `utenti.leggi` e mostrando solo metriche aggregate, stato permessi,
+  collegamenti amministrativi e warning.
+- `/studio/*` e `/amministrazione/*` restano legacy; `/impostazioni`,
+  `/impostazioni-studio`, `/impostazioni/calendario`,
+  `/impostazioni/pagamenti`, `/impostazioni?tab=firma` e
+  `/sincronizzazione-calendari` restano bloccate nel gate e nella shell.
+- `scripts/react-migration/check-tranche-5a-secrets.mjs` verifica che bridge,
+  data client e pagine della tranche non serializzino campi riservati nel
+  payload React.
+- `run-safe-react-migration.mjs --tranche=5a` cattura i contratti legacy,
+  rilancia gate/UI/anti-segreti, verifica shell e bypass legacy con Flask
+  `test_client`, esegue test/typecheck/build frontend e genera patch separate
+  di rollback.
+
 ## Stato tranche 2026-05-06 - Tranche 4A studio e backup
 
 La terza promozione governata abilita in React full le superfici studio a

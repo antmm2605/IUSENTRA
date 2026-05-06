@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.198.91 - 2026-05-06
+
+- Promosse in React full le route `/studio` e `/amministrazione`, con hub dedicati, bridge backend reali, endpoint UI GET e gate aggiornato senza sbloccare subpath o impostazioni.
+- Mantenute legacy le impostazioni sensibili: `/impostazioni`, `/impostazioni-studio`, `/impostazioni/calendario`, `/impostazioni/pagamenti` e `/sincronizzazione-calendari` restano protette anche nella shell.
+- Aggiunti check Tranche 5A per gate Flask, UI consistency, anti-segreti, contratti React, runner sicuro e patch rollback separate.
+
 ## 2.198.89 - 2026-05-06
 
 - Promosse in React full le route `/backup`, `/sito-studio` e `/sito-studio/contatti`, con bridge backend reali, endpoint UI dedicati e gate aggiornato senza sbloccare builder, studio o impostazioni.

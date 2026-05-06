@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-06T12:36:09.471Z",
+  "generatedAt": "2026-05-06T13:51:20.730Z",
   "react": {
     "dependencies": {
       "@vitejs/plugin-react": "^5.0.0",
@@ -145,7 +145,6 @@
     ],
     "legacyOperationalPrefixes": [
       "/admin/osservabilita",
-      "/amministrazione",
       "/applicazioni",
       "/checklist",
       "/compensi-forensi",
@@ -174,7 +173,6 @@
       "/sincronizzazione-calendari",
       "/strumenti-legali",
       "/strumenti-operativi",
-      "/studio",
       "/tariffario",
       "/telematico",
       "/template-atti",
@@ -310,6 +308,14 @@
       {
         "name": "SitoStudioPage",
         "importPath": "./components/SitoStudioPage"
+      },
+      {
+        "name": "StudioPage",
+        "importPath": "./components/StudioPage"
+      },
+      {
+        "name": "AmministrazionePage",
+        "importPath": "./components/AmministrazionePage"
       }
     ],
     "routeChecks": [
@@ -357,6 +363,8 @@
       "isProfiliPage",
       "isBackupPage",
       "isSitoStudioPage",
+      "isStudioPage",
+      "isAmministrazionePage",
       "isStudioModulePage",
       "isDashboardPage",
       "isStandalonePage"

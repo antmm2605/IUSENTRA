@@ -88,19 +88,37 @@
     {
       "route": "/studio",
       "family": "studio",
-      "status": "legacy_operational",
+      "status": "react_full",
       "risk": "medium",
       "targetComponent": "frontend/src/components/StudioPage.tsx",
       "targetData": "frontend/src/studioData.ts",
       "targetBridge": "web/services/react_studio_bridge.py",
       "legacyContract": "artifacts/react-migration/legacy-contracts/studio.json",
-      "unlockFromGate": false,
+      "unlockFromGate": true,
       "mustPreserve": [
-        "dati studio reali",
-        "canali operativi",
-        "configurazioni sensibili",
-        "azioni amministrative reali",
-        "profilo sessione"
+        "hub studio sicuro",
+        "dati reali aggregati",
+        "link backup",
+        "link sito studio",
+        "nessuna scrittura diretta"
+      ]
+    },
+    {
+      "route": "/amministrazione",
+      "family": "amministrazione",
+      "status": "react_full",
+      "risk": "medium",
+      "targetComponent": "frontend/src/components/AmministrazionePage.tsx",
+      "targetData": "frontend/src/amministrazioneData.ts",
+      "targetBridge": "web/services/react_amministrazione_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/amministrazione.json",
+      "unlockFromGate": true,
+      "mustPreserve": [
+        "hub amministrativo",
+        "link utenti",
+        "link profili",
+        "link audit",
+        "nessuna scrittura diretta"
       ]
     },
     {
@@ -119,6 +137,78 @@
         "AI locale",
         "scheduler",
         "segreti non esposti"
+      ]
+    },
+    {
+      "route": "/impostazioni-studio",
+      "family": "studio",
+      "status": "legacy_operational",
+      "risk": "high",
+      "targetComponent": "frontend/src/components/ImpostazioniPage.tsx",
+      "targetData": "frontend/src/impostazioniData.ts",
+      "targetBridge": "web/services/react_impostazioni_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/impostazioni-studio.json",
+      "unlockFromGate": false,
+      "mustPreserve": [
+        "configurazioni sensibili",
+        "POST legacy auditati",
+        "segreti non esposti",
+        "firma digitale",
+        "PEC e SMTP"
+      ]
+    },
+    {
+      "route": "/impostazioni/calendario",
+      "family": "studio",
+      "status": "legacy_operational",
+      "risk": "high",
+      "targetComponent": "frontend/src/components/ImpostazioniPage.tsx",
+      "targetData": "frontend/src/impostazioniData.ts",
+      "targetBridge": "web/services/react_impostazioni_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/impostazioni__calendario.json",
+      "unlockFromGate": false,
+      "mustPreserve": [
+        "OAuth calendario",
+        "token non esposti",
+        "sincronizzazione controllata",
+        "POST legacy auditati",
+        "revoca autorizzazioni"
+      ]
+    },
+    {
+      "route": "/impostazioni/pagamenti",
+      "family": "studio",
+      "status": "legacy_operational",
+      "risk": "high",
+      "targetComponent": "frontend/src/components/ImpostazioniPage.tsx",
+      "targetData": "frontend/src/impostazioniData.ts",
+      "targetBridge": "web/services/react_impostazioni_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/impostazioni__pagamenti.json",
+      "unlockFromGate": false,
+      "mustPreserve": [
+        "provider pagamento",
+        "segreti provider non esposti",
+        "webhook",
+        "link pagamento",
+        "POST legacy auditati"
+      ]
+    },
+    {
+      "route": "/sincronizzazione-calendari",
+      "family": "studio",
+      "status": "legacy_operational",
+      "risk": "high",
+      "targetComponent": "frontend/src/components/ImpostazioniPage.tsx",
+      "targetData": "frontend/src/impostazioniData.ts",
+      "targetBridge": "web/services/react_impostazioni_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/sincronizzazione-calendari.json",
+      "unlockFromGate": false,
+      "mustPreserve": [
+        "sincronizzazione calendari",
+        "token non esposti",
+        "scheduler",
+        "audit",
+        "rollback legacy"
       ]
     },
     {

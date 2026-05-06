@@ -84,6 +84,11 @@ from web.services.react_sito_studio_bridge import (
     build_react_sito_studio_error_payload,
     build_react_sito_studio_payload,
 )
+from web.services.react_studio_bridge import build_react_studio_error_payload, build_react_studio_payload
+from web.services.react_amministrazione_bridge import (
+    build_react_amministrazione_error_payload,
+    build_react_amministrazione_payload,
+)
 from web.services.react_studio_module_bridge import build_react_studio_module_payload
 from web.services.react_telematico_bridge import (
     build_react_telematico_payload,
@@ -152,6 +157,11 @@ def _puo_leggere_utenti() -> bool:
         return True
     utente = g.get("utente_corrente")
     return bool(utente and getattr(utente, "ha_permesso", lambda _permesso: False)("utenti.leggi"))
+
+
+def _session_user_can(permission: str) -> bool:
+    utente = g.get("utente_corrente")
+    return bool(utente and getattr(utente, "ha_permesso", lambda _permesso: False)(permission))
 
 
 def _puo_leggere_backup() -> bool:
@@ -2401,6 +2411,52 @@ def sito_studio_contatti_page():
     except Exception as exc:
         current_app.logger.exception("Errore contatti Sito Studio React bridge: %s", exc)
         return jsonify(build_react_sito_studio_error_payload("Contatti Sito Studio non disponibili dal runtime corrente.")), 200
+
+
+@api_v1_react.get("/studio")
+@_richiedi_auth
+def studio_page():
+    utente = g.get("utente_corrente")
+    if not utente:
+        return jsonify(build_react_studio_error_payload("Sessione utente richiesta.")), 403
+    try:
+        return jsonify(
+            build_react_studio_payload(
+                current_user=utente,
+                studio_label=studio_nome(),
+                get_utenti=get_utenti,
+                get_clienti=get_clienti,
+                get_fascicoli=get_fascicoli,
+                get_scadenziario=get_scadenziario,
+            )
+        )
+    except Exception as exc:
+        current_app.logger.exception("Errore Studio React bridge: %s", exc)
+        return jsonify(build_react_studio_error_payload("Studio non disponibile dal runtime corrente.")), 200
+
+
+@api_v1_react.get("/amministrazione")
+@_richiedi_auth
+def amministrazione_page():
+    utente = g.get("utente_corrente")
+    if not utente:
+        return jsonify(build_react_amministrazione_error_payload("Sessione utente richiesta.")), 403
+    if not _session_user_can("utenti.leggi"):
+        return jsonify(build_react_amministrazione_error_payload("Permesso utenti.leggi richiesto.")), 403
+    try:
+        return jsonify(
+            build_react_amministrazione_payload(
+                get_utenti=get_utenti,
+                current_user=utente,
+            )
+        )
+    except Exception as exc:
+        current_app.logger.exception("Errore Amministrazione React bridge: %s", exc)
+        return jsonify(
+            build_react_amministrazione_error_payload(
+                "Amministrazione non disponibile dal runtime corrente."
+            )
+        ), 200
 
 
 @api_v1_react.get("/agenda")

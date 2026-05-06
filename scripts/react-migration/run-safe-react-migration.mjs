@@ -7,6 +7,7 @@ const args = process.argv.slice(2)
 const TRANCHE_2A_FLAG = '--tranche=2a'
 const TRANCHE_3A_FLAG = '--tranche=3a'
 const TRANCHE_4A_FLAG = '--tranche=4a'
+const TRANCHE_5A_FLAG = '--tranche=5a'
 const tranche = args.find((arg) => arg.startsWith('--tranche='))?.split('=')[1] || ''
 const EXEC_BUFFER = 1024 * 1024 * 200
 
@@ -55,6 +56,16 @@ const tranche4aContracts = [
   '/sito-studio/builder',
   '/studio',
   '/impostazioni',
+]
+
+const tranche5aContracts = [
+  '/studio',
+  '/amministrazione',
+  '/impostazioni',
+  '/impostazioni-studio',
+  '/impostazioni/calendario',
+  '/impostazioni/pagamenti',
+  '/sincronizzazione-calendari',
 ]
 
 const tranche2aPatchGroups = {
@@ -224,6 +235,60 @@ const tranche4aPatchGroups = {
   ],
 }
 
+const tranche5aPatchGroups = {
+  backend: [
+    'web/services/react_studio_bridge.py',
+    'web/services/react_amministrazione_bridge.py',
+    'web/blueprints/api_v1_react.py',
+  ],
+  frontend: [
+    'frontend/package.json',
+    'frontend/package-lock.json',
+    'frontend/src/studioData.ts',
+    'frontend/src/amministrazioneData.ts',
+    'frontend/src/components/StudioPage.tsx',
+    'frontend/src/components/StudioPage.css',
+    'frontend/src/components/AmministrazionePage.tsx',
+    'frontend/src/components/AmministrazionePage.css',
+    'frontend/src/App.tsx',
+    'web/static/react',
+  ],
+  gate: [
+    'web/bootstrap/react_route_gate.py',
+    'web/blueprints/react_shell.py',
+    'tools/react-migration/route-manifest.json',
+  ],
+  tests: [
+    'frontend/scripts/check-react-contracts.mjs',
+    'scripts/react-migration/check-tranche-5a-gate.py',
+    'scripts/react-migration/check-tranche-5a-secrets.mjs',
+    'scripts/react-migration/run-safe-react-migration.mjs',
+  ],
+  reports: [
+    'CHANGELOG.md',
+    'Dockerfile',
+    'README.md',
+    'pct/__init__.py',
+    'railway.toml',
+    'setup.py',
+    'artifacts/react-migration/audit.md',
+    'artifacts/react-migration/route-inventory.json',
+    'artifacts/react-migration/route-gate.md',
+    'artifacts/react-migration/ui-consistency.md',
+    'artifacts/react-migration/tranche-5a-route-map.md',
+    'artifacts/react-migration/tranche-5a-gate.md',
+    'artifacts/react-migration/tranche-5a-secrets.md',
+    'artifacts/react-migration/tranche-5a-report.md',
+    'artifacts/react-migration/legacy-contracts/studio.json',
+    'artifacts/react-migration/legacy-contracts/amministrazione.json',
+    'artifacts/react-migration/legacy-contracts/impostazioni.json',
+    'artifacts/react-migration/legacy-contracts/impostazioni-studio.json',
+    'artifacts/react-migration/legacy-contracts/impostazioni__calendario.json',
+    'artifacts/react-migration/legacy-contracts/impostazioni__pagamenti.json',
+    'artifacts/react-migration/legacy-contracts/sincronizzazione-calendari.json',
+  ],
+}
+
 function run(cmd, options = {}) {
   console.log(`\n> ${cmd}`)
   execSync(cmd, { stdio: 'inherit', ...options })
@@ -311,6 +376,12 @@ function writeTranche4aPatches() {
   }
 }
 
+function writeTranche5aPatches() {
+  for (const [name, paths] of Object.entries(tranche5aPatchGroups)) {
+    writePatch('5a', name, paths)
+  }
+}
+
 function runDefault() {
   cleanRequired()
   run('node scripts/react-migration/audit-react-migration.mjs')
@@ -381,12 +452,31 @@ function runTranche4a() {
   run('git status --short')
 }
 
+function runTranche5a() {
+  cleanRequired()
+  run('git status --short')
+  run('node scripts/react-migration/audit-react-migration.mjs')
+  run(`python scripts/react-migration/capture-legacy-contracts.py ${tranche5aContracts.join(' ')}`)
+  run('node scripts/react-migration/check-route-gate.mjs')
+  run('node scripts/react-migration/check-ui-consistency.mjs')
+  run('node scripts/react-migration/check-tranche-5a-secrets.mjs')
+  run('python scripts/react-migration/check-tranche-5a-gate.py')
+  run('cd frontend && npm run test')
+  run('cd frontend && npm run typecheck')
+  run('cd frontend && npm run build')
+  writeTranche5aPatches()
+  run('git diff --stat')
+  run('git status --short')
+}
+
 if (tranche === '2a') {
   runTranche2a()
 } else if (tranche === '3a') {
   runTranche3a()
 } else if (tranche === '4a') {
   runTranche4a()
+} else if (tranche === '5a') {
+  runTranche5a()
 } else {
   runDefault()
 }

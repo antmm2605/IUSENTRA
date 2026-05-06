@@ -18,7 +18,6 @@ react_shell = Blueprint("react_shell", __name__)
 
 _LEGACY_FIRST_PREFIXES = (
     "/admin/osservabilita",
-    "/amministrazione",
     "/applicazioni",
     "/checklist",
     "/compensi-forensi",
@@ -47,7 +46,6 @@ _LEGACY_FIRST_PREFIXES = (
     "/sincronizzazione-calendari",
     "/strumenti-legali",
     "/strumenti-operativi",
-    "/studio",
     "/tariffario",
     "/telematico",
     "/template-atti",
@@ -162,9 +160,15 @@ def _deve_mantenere_vista_classica() -> bool:
         return True
     if lower.startswith("/sito-studio/") and lower not in {"/sito-studio/contatti"}:
         return True
-    if lower == "/studio" or lower.startswith("/studio/"):
+    if lower.startswith("/studio/"):
+        return True
+    if lower.startswith("/amministrazione/"):
         return True
     if lower == "/impostazioni" or lower.startswith("/impostazioni/"):
+        return True
+    if lower == "/impostazioni-studio" or lower.startswith("/impostazioni-studio/"):
+        return True
+    if lower == "/sincronizzazione-calendari" or lower.startswith("/sincronizzazione-calendari/"):
         return True
     return any(lower == prefix or lower.startswith(f"{prefix}/") for prefix in _LEGACY_FIRST_PREFIXES)
 

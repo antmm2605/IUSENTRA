@@ -55,10 +55,14 @@ function isBlockedBySpecialRule(path) {
   return (
     path.startsWith('/backup/') ||
     (path.startsWith('/sito-studio/') && path !== '/sito-studio/contatti') ||
-    path === '/studio' ||
     path.startsWith('/studio/') ||
+    path.startsWith('/amministrazione/') ||
     path === '/impostazioni' ||
-    path.startsWith('/impostazioni/')
+    path.startsWith('/impostazioni/') ||
+    path === '/impostazioni-studio' ||
+    path.startsWith('/impostazioni-studio/') ||
+    path === '/sincronizzazione-calendari' ||
+    path.startsWith('/sincronizzazione-calendari/')
   )
 }
 
@@ -72,7 +76,7 @@ const reactExact = new Set(extractSet(gate, '_REACT_EXACT').map(normaliseRoute))
 const legacyOperationalPrefixes = extractTuple(gate, '_LEGACY_OPERATIONAL_PREFIXES')
 const excludedPrefixes = extractTuple(gate, '_EXCLUDED_PREFIXES')
 const shellLegacyFirstPrefixes = extractTuple(reactShell, '_LEGACY_FIRST_PREFIXES')
-const allowedReactUnlocks = new Set(['/statistiche', '/audit', '/registro-attivita', '/utenti', '/profili', '/backup', '/sito-studio', '/sito-studio/contatti'])
+const allowedReactUnlocks = new Set(['/statistiche', '/audit', '/registro-attivita', '/utenti', '/profili', '/backup', '/sito-studio', '/sito-studio/contatti', '/studio', '/amministrazione'])
 
 const violations = []
 for (const entry of manifest.routes ?? []) {
@@ -89,7 +93,7 @@ for (const entry of manifest.routes ?? []) {
 
   if (entry.unlockFromGate === true) {
     if (!allowedReactUnlocks.has(route)) {
-      violations.push(`${entry.route}: unlockFromGate=true non consentito nelle tranche governate 2A/3A/4A`)
+      violations.push(`${entry.route}: unlockFromGate=true non consentito nelle tranche governate`)
     }
     if (entry.status !== 'react_full') {
       violations.push(`${entry.route}: unlockFromGate=true richiede status react_full`)
@@ -140,18 +144,33 @@ for (const route of ['/utenti', '/profili']) {
   }
 }
 
-for (const route of ['/studio', '/impostazioni', '/sito-studio/builder']) {
+for (const route of ['/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/sincronizzazione-calendari', '/sito-studio/builder']) {
   const entry = (manifest.routes ?? []).find((item) => normaliseRoute(item.route) === route)
   if (!entry || entry.status !== 'legacy_operational' || entry.unlockFromGate !== false) {
-    violations.push(`${route}: deve restare legacy_operational con unlockFromGate=false nella Tranche 4A`)
+    violations.push(`${route}: deve restare legacy_operational con unlockFromGate=false`)
+  }
+}
+
+for (const route of ['/studio', '/amministrazione']) {
+  const entry = (manifest.routes ?? []).find((item) => normaliseRoute(item.route) === route)
+  if (!entry || entry.status !== 'react_full' || entry.unlockFromGate !== true) {
+    violations.push(`${route}: deve essere react_full con unlockFromGate=true nella Tranche 5A`)
+  }
+  const stillBlocked = legacyOperationalPrefixes.some((prefix) => isPrefixMatch(route, prefix))
+  const stillShellBlocked = isBlockedBySpecialRule(route) || shellLegacyFirstPrefixes.some((prefix) => isPrefixMatch(route, prefix))
+  if (stillBlocked || stillShellBlocked) {
+    violations.push(`${route}: non deve restare bloccata da gate o shell legacy`)
   }
 }
 
 for (const snippet of [
   'lower.startswith("/backup/")',
   'lower.startswith("/sito-studio/") and lower not in {"/sito-studio/contatti"}',
-  'lower == "/studio" or lower.startswith("/studio/")',
+  'lower.startswith("/studio/")',
+  'lower.startswith("/amministrazione/")',
   'lower == "/impostazioni" or lower.startswith("/impostazioni/")',
+  'lower == "/impostazioni-studio" or lower.startswith("/impostazioni-studio/")',
+  'lower == "/sincronizzazione-calendari" or lower.startswith("/sincronizzazione-calendari/")',
 ]) {
   if (!gate.includes(snippet)) {
     violations.push(`react_route_gate.py: manca protezione ${snippet}`)
@@ -179,4 +198,4 @@ if (violations.length) {
   process.exit(1)
 }
 
-console.log('Route gate OK: Tranche 4A coerente.')
+console.log('Route gate OK: Tranche 5A coerente.')

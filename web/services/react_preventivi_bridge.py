@@ -439,7 +439,7 @@ def build_react_preventivi_payload(
                 [
                     _item("dettaglio", "Dettagli e workflow", "legacy", "Stati, firme e azioni sensibili restano Flask", "warning"),
                     _item("wizard", "Wizard compensi", "legacy", "Parametri forensi e log economico restano nel motore esistente", "warning"),
-                    _item("tariffario", "Tariffario e compensi", "legacy", "La consultazione economica avanzata non viene sbloccata", "warning"),
+                    _item("tariffario", "Tariffario e compensi", "react", "Consultazione exact in React; calcolo e wizard restano backend", "info"),
                 ],
                 "Nessuna funzione legacy rilevata.",
             ),
@@ -449,8 +449,8 @@ def build_react_preventivi_payload(
             _action("nuovo_preventivo", "Nuovo preventivo", "/preventivi/nuovo", "primary"),
             _action("nuovo_conferimento", "Nuovo conferimento", "/preventivi/conferimento/nuovo", "primary"),
             _action("wizard", "Wizard legacy", "/preventivi/wizard?_legacy=1", "neutral"),
-            _action("compensi", "Compensi forensi legacy", "/compensi-forensi?_legacy=1", "neutral"),
-            _action("tariffario", "Tariffario legacy", "/tariffario?_legacy=1", "neutral"),
+            _action("compensi", "Compensi forensi", "/compensi-forensi", "neutral"),
+            _action("tariffario", "Tariffario", "/tariffario", "neutral"),
             _action("legacy", "Archivio legacy", "/preventivi?_legacy=1", "warning"),
         ],
         "forms": [

@@ -257,10 +257,9 @@
   gap:18px;
   align-items:start;
   padding:20px;
-  border:1px solid rgba(37,99,235,.18);
-  border-left:5px solid var(--iu-blue-600);
+  border:1px solid rgba(37,99,235,.22);
   border-radius:var(--iu-radius-xl);
-  background:linear-gradient(135deg,#fff 0%,#eff6ff 100%);
+  background:linear-gradient(135deg,rgba(255,255,255,.98) 0%,rgba(239,246,255,.96) 100%);
   box-shadow:var(--iu-shadow-md);
 }
 .iu-scad-focus-card h2{margin:10px 0 8px;color:var(--iu-slate-950);font-size:clamp(22px,3vw,32px)}

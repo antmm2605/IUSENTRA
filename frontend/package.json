@@ -1,7 +1,7 @@
 {
   "name": "iusentra-react-token-ui",
   "private": true,
-  "version": "2.198.94",
+  "version": "2.198.95",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 5173",

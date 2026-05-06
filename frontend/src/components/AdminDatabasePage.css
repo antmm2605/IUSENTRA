@@ -24,8 +24,8 @@
 .iu-db-table{width:100%;border-collapse:separate;border-spacing:0 8px;min-width:780px}
 .iu-db-table th{padding:0 10px 2px;color:var(--iu-slate-500);font-size:11px;font-weight:900;text-align:left;text-transform:uppercase;letter-spacing:.06em}
 .iu-db-table td{padding:10px;border-top:1px solid var(--iu-border);border-bottom:1px solid var(--iu-border);background:#fff;color:#0f172a;font-size:12px;font-weight:780;vertical-align:middle}
-.iu-db-table td:first-child{border-left:1px solid var(--iu-border);border-radius:12px 0 0 12px}
-.iu-db-table td:last-child{border-right:1px solid var(--iu-border);border-radius:0 12px 12px 0}
+.iu-db-table td:first-child{border-radius:12px 0 0 12px;box-shadow:inset 1px 0 0 var(--iu-border)}
+.iu-db-table td:last-child{border-radius:0 12px 12px 0;box-shadow:inset -1px 0 0 var(--iu-border)}
 .iu-db-table td strong{display:block;color:#0f172a;font-size:13px;font-weight:900}
 .iu-db-table td span{display:block;max-width:360px;overflow:hidden;text-overflow:ellipsis;color:var(--iu-slate-500);font-size:11px;font-weight:700;white-space:nowrap}
 .iu-db-table .iu-badge{margin-right:6px}

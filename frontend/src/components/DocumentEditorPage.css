@@ -57,7 +57,7 @@
 .iu-de-editable h1,.iu-de-editable h2,.iu-de-editable h3{line-height:1.25;color:#111827;letter-spacing:0}
 .iu-de-editable h1{font-size:1.72em}.iu-de-editable h2{font-size:1.38em}.iu-de-editable h3{font-size:1.16em}
 .iu-de-editable p{margin:0 0 12px}
-.iu-de-editable blockquote{margin:14px 0;padding:10px 14px;border-left:4px solid var(--iu-blue-600);background:#f8fafc;color:#334155}
+.iu-de-editable blockquote{margin:14px 0;padding:10px 14px;border:1px solid rgba(37,99,235,.22);border-radius:8px;background:rgba(37,99,235,.06);color:#334155}
 .iu-de-editable table{width:100%;border-collapse:collapse;margin:14px 0}
 .iu-de-editable th,.iu-de-editable td{border:1px solid #cbd5e1;padding:7px 8px;vertical-align:top}
 .iu-de-editable th{background:#f1f5f9}

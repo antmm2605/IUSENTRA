@@ -10,6 +10,7 @@ const TRANCHE_4A_FLAG = '--tranche=4a'
 const TRANCHE_5A_FLAG = '--tranche=5a'
 const TRANCHE_6A_FLAG = '--tranche=6a'
 const TRANCHE_7A_FLAG = '--tranche=7a'
+const TRANCHE_8A_FLAG = '--tranche=8a'
 const tranche = args.find((arg) => arg.startsWith('--tranche='))?.split('=')[1] || ''
 const EXEC_BUFFER = 1024 * 1024 * 200
 
@@ -87,6 +88,16 @@ const tranche7aContracts = [
   '/preventivi/wizard',
   '/compensi-forensi',
   '/tariffario',
+]
+
+const tranche8aContracts = [
+  '/compensi-forensi',
+  '/tariffario',
+  '/preventivi/wizard',
+  '/preventivi',
+  '/fatturazione',
+  '/template-atti',
+  '/redazione-atti',
 ]
 
 const tranche2aPatchGroups = {
@@ -425,6 +436,74 @@ const tranche7aPatchGroups = {
   ],
 }
 
+const tranche8aPatchGroups = {
+  backend: [
+    'web/services/react_compensi_forensi_bridge.py',
+    'web/services/react_tariffario_bridge.py',
+    'web/services/react_preventivi_bridge.py',
+    'web/blueprints/api_v1_react.py',
+  ],
+  frontend: [
+    'frontend/package.json',
+    'frontend/package-lock.json',
+    'frontend/src/compensiForensiData.ts',
+    'frontend/src/tariffarioData.ts',
+    'frontend/src/components/CompensiForensiPage.tsx',
+    'frontend/src/components/CompensiForensiPage.css',
+    'frontend/src/components/TariffarioPage.tsx',
+    'frontend/src/components/TariffarioPage.css',
+    'frontend/src/App.tsx',
+    'web/static/react',
+  ],
+  gate: [
+    'web/bootstrap/react_route_gate.py',
+    'web/blueprints/react_shell.py',
+    'tools/react-migration/route-manifest.json',
+  ],
+  design: [
+    'frontend/src/theme/impeccable-open-design.css',
+    'frontend/src/ui/openDesign.ts',
+    'artifacts/react-migration/tranche-8a-open-design.md',
+  ],
+  tests: [
+    'frontend/scripts/check-react-contracts.mjs',
+    'scripts/react-migration/check-route-gate.mjs',
+    'scripts/react-migration/check-tranche-8a-gate.py',
+    'scripts/react-migration/check-tranche-8a-secrets.mjs',
+    'scripts/react-migration/check-tranche-8a-no-compensi-logic.mjs',
+    'scripts/react-migration/check-tranche-8a-no-document-generation.mjs',
+    'scripts/react-migration/check-tranche-8a-open-design.mjs',
+    'scripts/react-migration/run-safe-react-migration.mjs',
+  ],
+  reports: [
+    'CHANGELOG.md',
+    'Dockerfile',
+    'README.md',
+    'docs/REACT_MIGRATION_MASTER_PLAN.md',
+    'pct/__init__.py',
+    'railway.toml',
+    'setup.py',
+    'artifacts/react-migration/audit.md',
+    'artifacts/react-migration/route-inventory.json',
+    'artifacts/react-migration/route-gate.md',
+    'artifacts/react-migration/ui-consistency.md',
+    'artifacts/react-migration/tranche-8a-route-map.md',
+    'artifacts/react-migration/tranche-8a-gate.md',
+    'artifacts/react-migration/tranche-8a-secrets.md',
+    'artifacts/react-migration/tranche-8a-no-compensi-logic.md',
+    'artifacts/react-migration/tranche-8a-no-document-generation.md',
+    'artifacts/react-migration/tranche-8a-open-design-check.md',
+    'artifacts/react-migration/tranche-8a-report.md',
+    'artifacts/react-migration/legacy-contracts/compensi-forensi.json',
+    'artifacts/react-migration/legacy-contracts/tariffario.json',
+    'artifacts/react-migration/legacy-contracts/preventivi__wizard.json',
+    'artifacts/react-migration/legacy-contracts/preventivi.json',
+    'artifacts/react-migration/legacy-contracts/fatturazione.json',
+    'artifacts/react-migration/legacy-contracts/template-atti.json',
+    'artifacts/react-migration/legacy-contracts/redazione-atti.json',
+  ],
+}
+
 function run(cmd, options = {}) {
   console.log(`\n> ${cmd}`)
   execSync(cmd, { stdio: 'inherit', ...options })
@@ -527,6 +606,12 @@ function writeTranche6aPatches() {
 function writeTranche7aPatches() {
   for (const [name, paths] of Object.entries(tranche7aPatchGroups)) {
     writePatch('7a', name, paths)
+  }
+}
+
+function writeTranche8aPatches() {
+  for (const [name, paths] of Object.entries(tranche8aPatchGroups)) {
+    writePatch('8a', name, paths)
   }
 }
 
@@ -656,6 +741,28 @@ function runTranche7a() {
   run('git status --short')
 }
 
+function runTranche8a() {
+  cleanRequired()
+  run('git status --short')
+  run('node scripts/react-migration/audit-react-migration.mjs')
+  run(`python scripts/react-migration/capture-legacy-contracts.py ${tranche8aContracts.join(' ')}`)
+  run('node scripts/react-migration/check-route-gate.mjs')
+  run('node scripts/react-migration/check-ui-consistency.mjs')
+  run('node scripts/react-migration/check-tranche-8a-secrets.mjs')
+  run('node scripts/react-migration/check-tranche-8a-no-compensi-logic.mjs')
+  run('node scripts/react-migration/check-tranche-8a-no-document-generation.mjs')
+  run('node scripts/react-migration/check-tranche-8a-open-design.mjs')
+  if (existsSync('scripts/react-migration/check-tranche-8a-gate.py')) {
+    run('python scripts/react-migration/check-tranche-8a-gate.py')
+  }
+  run('cd frontend && npm run test')
+  run('cd frontend && npm run typecheck')
+  run('cd frontend && npm run build')
+  writeTranche8aPatches()
+  run('git diff --stat')
+  run('git status --short')
+}
+
 if (tranche === '2a') {
   runTranche2a()
 } else if (tranche === '3a') {
@@ -668,6 +775,8 @@ if (tranche === '2a') {
   runTranche6a()
 } else if (tranche === '7a') {
   runTranche7a()
+} else if (tranche === '8a') {
+  runTranche8a()
 } else {
   runDefault()
 }

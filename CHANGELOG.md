@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.198.95 - 2026-05-06
+
+- Promosse in React full le route exact `/compensi-forensi` e `/tariffario`, con bridge backend read-only, endpoint UI GET, KPI reali quando disponibili, aree tariffarie, form HTML verso POST Flask legacy e link operativi sicuri.
+- Mantenuti legacy sottopercorsi compensi/tariffario, wizard preventivi, calcoli DM55, formule, log economici, generazione preventivo, PDF/DOCX, `/preventivi/*`, `/fatturazione/*`, `/template-atti` e `/redazione-atti`.
+- Introdotta la disciplina grafica interna Impeccable / Open Design come token CSS e contratto auditabile `iu-*`, senza nuove dipendenze o design system esterni, con check dedicati per classi, colori, inline style e regressioni UI.
+
 ## 2.198.94 - 2026-05-06
 
 - Promosse in React full le route mandato exact `/preventivi`, `/preventivi/nuovo` e `/preventivi/conferimento/nuovo`, con bridge backend read-only, endpoint UI GET, KPI reali, archivio preventivi/conferimenti e form HTML verso POST Flask legacy.

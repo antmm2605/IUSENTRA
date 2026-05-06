@@ -56,8 +56,8 @@ export function Panel({
 }
 
 export function KpiCard({ item, icon: Icon }:{item:Metric; icon:LucideIcon}) {
-  return (
-    <a href={item.href||'#'} className={`iu-metric iu-metric--${item.tone}`}>
+  const content = (
+    <>
       <div className="iu-metric__icon"><Icon size={25}/></div>
       <div className="iu-metric__content">
         <div className="iu-metric__top">
@@ -65,8 +65,16 @@ export function KpiCard({ item, icon: Icon }:{item:Metric; icon:LucideIcon}) {
           {item.tag?<Badge tone={item.tone}>{item.tag}</Badge>:null}
         </div>
         <div className="iu-metric__label">{item.label}</div>
-        <div className="iu-link">{item.actionLabel||'Apri'} -&gt;</div>
+        <span className="iu-link">{item.actionLabel || 'Apri'} <ArrowRight size={14}/></span>
       </div>
+    </>
+  )
+  if (!item.href) {
+    return <article className={`iu-metric iu-metric--${item.tone}`} aria-label={item.label}>{content}</article>
+  }
+  return (
+    <a href={item.href} className={`iu-metric iu-metric--${item.tone}`}>
+      {content}
     </a>
   )
 }

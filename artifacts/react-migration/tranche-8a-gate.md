@@ -1,0 +1,17 @@
+# Tranche 8A gate check
+
+- [OK] login tenant (status=302)
+- [OK] React shell /compensi-forensi (status=200)
+- [OK] React shell /tariffario (status=200)
+- [OK] Ancora legacy /compensi-forensi?_legacy=1 (status=302)
+- [OK] Ancora legacy /tariffario?_legacy=1 (status=200)
+- [OK] Ancora legacy /compensi-forensi/dettaglio (status=404)
+- [OK] Ancora legacy /tariffario/dettaglio (status=404)
+- [OK] Ancora legacy /preventivi/wizard (status=200)
+- [OK] Ancora legacy /preventivi/qualunque (status=404)
+- [OK] Ancora legacy /template-atti (status=308)
+- [OK] Ancora legacy /redazione-atti (status=302)
+- [OK] JSON /api/v1/ui/compensi-forensi (status=200)
+- [OK] JSON /api/v1/ui/tariffario (status=200)
+- [OK] POST non intercettato /compensi-forensi (status=405)
+- [OK] POST non intercettato /tariffario (status=200)

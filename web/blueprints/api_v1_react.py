@@ -93,6 +93,14 @@ from web.services.react_fatturazione_bridge import (
     build_react_fatturazione_error_payload,
     build_react_fatturazione_payload,
 )
+from web.services.react_compensi_forensi_bridge import (
+    build_react_compensi_forensi_error_payload,
+    build_react_compensi_forensi_payload,
+)
+from web.services.react_tariffario_bridge import (
+    build_react_tariffario_error_payload,
+    build_react_tariffario_payload,
+)
 from web.services.react_preventivi_bridge import (
     build_react_preventivi_error_payload,
     build_react_preventivi_payload,
@@ -120,6 +128,7 @@ from web.helpers import (
     get_clienti,
     get_fascicoli,
     get_fatturazione,
+    get_normative_tables,
     get_pagamenti,
     get_practice_engine,
     get_giurisprudenza,
@@ -2541,6 +2550,50 @@ def incassi_pagamenti_page():
         return jsonify(
             build_react_incassi_pagamenti_error_payload(
                 "Incassi e pagamenti non disponibili dal runtime corrente."
+            )
+        ), 200
+
+
+@api_v1_react.get("/compensi-forensi")
+@_richiedi_auth
+def compensi_forensi_page():
+    utente = g.get("utente_corrente")
+    if not utente:
+        return jsonify(build_react_compensi_forensi_error_payload("Sessione utente richiesta.")), 403
+    try:
+        return jsonify(
+            build_react_compensi_forensi_payload(
+                get_normative_tables=get_normative_tables,
+                get_preventivi=get_preventivi,
+            )
+        )
+    except Exception as exc:
+        current_app.logger.exception("Errore Compensi Forensi React bridge: %s", exc)
+        return jsonify(
+            build_react_compensi_forensi_error_payload(
+                "Compensi forensi non disponibili dal runtime corrente."
+            )
+        ), 200
+
+
+@api_v1_react.get("/tariffario")
+@_richiedi_auth
+def tariffario_page():
+    utente = g.get("utente_corrente")
+    if not utente:
+        return jsonify(build_react_tariffario_error_payload("Sessione utente richiesta.")), 403
+    try:
+        return jsonify(
+            build_react_tariffario_payload(
+                get_normative_tables=get_normative_tables,
+                query=dict(request.args),
+            )
+        )
+    except Exception as exc:
+        current_app.logger.exception("Errore Tariffario React bridge: %s", exc)
+        return jsonify(
+            build_react_tariffario_error_payload(
+                "Tariffario non disponibile dal runtime corrente."
             )
         ), 200
 

@@ -1,5 +1,68 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-06 - Tranche 8A compensi e tariffario sicuri
+
+La settima promozione governata abilita le superfici economiche exact di
+consultazione compensi/tariffario in React senza spostare formule forensi,
+produzione documentale o workflow mandato fuori dalle route Flask legacy:
+
+- `/compensi-forensi` usa `web/services/react_compensi_forensi_bridge.py` e
+  `GET /api/v1/ui/compensi-forensi` per KPI reali, aree disponibili, profili e
+  regole lette dal backend, link sicuri verso tariffario, preventivi e vista
+  legacy tecnica.
+- `/tariffario` usa `web/services/react_tariffario_bridge.py` e
+  `GET /api/v1/ui/tariffario` per consultare profili, regole, riferimenti,
+  audit e form HTML `method="post"` verso la route Flask esistente; il calcolo
+  resta nel backend storico.
+- `/compensi-forensi/*`, `/tariffario/*`, `/preventivi/wizard`,
+  `/preventivi/*`, `/fatturazione/*`, `/template-atti` e `/redazione-atti`
+  restano legacy con protezioni esplicite nel gate e nella shell.
+- I token `frontend/src/theme/impeccable-open-design.css` e il contratto
+  `frontend/src/ui/openDesign.ts` applicano una disciplina Open Design
+  auditabile senza dipendenze runtime, CDN o design system esterni.
+- `scripts/react-migration/check-tranche-8a-secrets.mjs`,
+  `scripts/react-migration/check-tranche-8a-no-compensi-logic.mjs`,
+  `scripts/react-migration/check-tranche-8a-no-document-generation.mjs` e
+  `scripts/react-migration/check-tranche-8a-open-design.mjs` bloccano
+  serializzazione di campi riservati, logica compensi frontend, generazione
+  documentale e regressioni visuali fuori dai token `iu-*`.
+- `run-safe-react-migration.mjs --tranche=8a` cattura i contratti legacy,
+  rilancia gate/UI/anti-segreti/anti-calcolo/anti-documenti/Open Design,
+  verifica shell e bypass legacy con Flask `test_client`, esegue
+  test/typecheck/build frontend e genera patch separate di rollback.
+
+## Stato tranche 2026-05-06 - Tranche 8A compensi e tariffario sicuri
+
+La settima promozione governata abilita due superfici economiche exact in
+React senza spostare formule, wizard, log economici o produzione documentale
+fuori dalle route Flask legacy:
+
+- `/compensi-forensi` usa `web/services/react_compensi_forensi_bridge.py` e
+  `GET /api/v1/ui/compensi-forensi` per KPI reali quando disponibili, aree di
+  calcolo lette dal backend, profili/regole sicuri e link a tariffario,
+  preventivi e wizard legacy.
+- `/tariffario` usa `web/services/react_tariffario_bridge.py` e
+  `GET /api/v1/ui/tariffario` per aree tariffarie, voci/regole provenienti dal
+  backend e un form React che invia con submit HTML standard alla route Flask
+  `/tariffario`.
+- `/compensi-forensi/*`, `/tariffario/*`, `/preventivi/wizard`,
+  `/preventivi/*`, `/fatturazione/*`, `/template-atti` e `/redazione-atti`
+  restano legacy con protezioni esplicite nel gate e nella shell.
+- `frontend/src/theme/impeccable-open-design.css` e
+  `frontend/src/ui/openDesign.ts` introducono solo token/contratto interno
+  Impeccable / Open Design, senza dipendenze nuove, CDN, classi Bootstrap o
+  colori hardcoded nei TSX.
+- `scripts/react-migration/check-tranche-8a-secrets.mjs`,
+  `scripts/react-migration/check-tranche-8a-no-compensi-logic.mjs`,
+  `scripts/react-migration/check-tranche-8a-no-document-generation.mjs` e
+  `scripts/react-migration/check-tranche-8a-open-design.mjs` bloccano
+  serializzazione di campi riservati, logica compensi frontend, generazione
+  documentale e regressioni grafiche della tranche.
+- `run-safe-react-migration.mjs --tranche=8a` cattura i contratti legacy,
+  rilancia gate/UI/anti-segreti/anti-calcolo/anti-documenti/Open Design,
+  verifica shell e bypass legacy con Flask `test_client`, esegue
+  test/typecheck/build frontend e genera patch separate di rollback.
+
 ## Stato tranche 2026-05-06 - Tranche 7A mandato sicuro
 
 La sesta promozione governata abilita il blocco mandato exact in React senza

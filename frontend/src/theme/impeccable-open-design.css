@@ -1,0 +1,58 @@
+:root {
+  --iu-od-space-1: var(--iu-space-1, 0.25rem);
+  --iu-od-space-2: var(--iu-space-2, 0.5rem);
+  --iu-od-space-3: var(--iu-space-3, 0.75rem);
+  --iu-od-space-4: var(--iu-space-4, 1rem);
+  --iu-od-space-5: var(--iu-space-5, 1.25rem);
+  --iu-od-space-6: var(--iu-space-6, 1.5rem);
+  --iu-od-radius-1: var(--iu-radius-sm, 0.375rem);
+  --iu-od-radius-2: var(--iu-radius-md, 0.5rem);
+  --iu-od-radius-3: var(--iu-radius-lg, 0.75rem);
+  --iu-od-shadow-1: 0 1px 2px oklch(0.18 0.01 250 / 0.08);
+  --iu-od-shadow-2: 0 14px 32px oklch(0.22 0.012 250 / 0.1);
+  --iu-od-border: var(--iu-border, oklch(0.88 0.018 92));
+  --iu-od-surface: var(--iu-surface, oklch(0.99 0.008 96));
+  --iu-od-surface-soft: var(--iu-surface-soft, oklch(0.965 0.014 96));
+  --iu-od-text: var(--iu-text, oklch(0.25 0.022 255));
+  --iu-od-muted: var(--iu-muted, oklch(0.47 0.02 255));
+  --iu-od-focus: var(--iu-focus, oklch(0.56 0.13 250));
+  --iu-od-transition: 160ms ease;
+}
+
+.iu-od-stack {
+  display: grid;
+  gap: var(--iu-od-space-4);
+}
+
+.iu-od-stack--tight {
+  gap: var(--iu-od-space-3);
+}
+
+.iu-od-grid {
+  display: grid;
+  gap: var(--iu-od-space-4);
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+}
+
+.iu-od-split {
+  align-items: start;
+  display: flex;
+  gap: var(--iu-od-space-3);
+  justify-content: space-between;
+}
+
+.iu-od-muted {
+  color: var(--iu-od-muted);
+}
+
+.iu-od-focus-ring:focus-visible {
+  outline: 3px solid var(--iu-od-focus);
+  outline-offset: 3px;
+}
+
+.iu-od-surface {
+  background: var(--iu-od-surface);
+  border: 1px solid var(--iu-od-border);
+  border-radius: var(--iu-od-radius-2);
+  box-shadow: var(--iu-od-shadow-1);
+}

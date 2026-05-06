@@ -1,0 +1,23 @@
+diff --git a/artifacts/react-migration/audit.md b/artifacts/react-migration/audit.md
+index 5e4c7201..2f87f858 100644
+--- a/artifacts/react-migration/audit.md
++++ b/artifacts/react-migration/audit.md
+@@ -1,6 +1,6 @@
+ # Audit migrazione React
+
+-Generato: 2026-05-06T16:24:13.710Z
++Generato: 2026-05-06T16:26:52.701Z
+
+ ## Frontend
+
+diff --git a/artifacts/react-migration/route-inventory.json b/artifacts/react-migration/route-inventory.json
+index f4cbf184..76ccacd3 100644
+--- a/artifacts/react-migration/route-inventory.json
++++ b/artifacts/react-migration/route-inventory.json
+@@ -1,5 +1,5 @@
+ {
+-  "generatedAt": "2026-05-06T16:24:13.710Z",
++  "generatedAt": "2026-05-06T16:26:52.701Z",
+   "react": {
+     "dependencies": {
+       "@vitejs/plugin-react": "^5.0.0",

@@ -166,7 +166,6 @@ _LEGACY_OPERATIONAL_PREFIXES = (
     "/admin/osservabilita",
     "/applicazioni",
     "/checklist",
-    "/compensi-forensi",
     "/database",
     "/deposito/checklist",
     "/giurisprudenza",
@@ -189,7 +188,6 @@ _LEGACY_OPERATIONAL_PREFIXES = (
     "/sincronizzazione-calendari",
     "/strumenti-legali",
     "/strumenti-operativi",
-    "/tariffario",
     "/telematico",
     "/template-atti",
     "/tribunali",
@@ -245,9 +243,9 @@ def _excluded(path: str) -> bool:
         "/preventivi/conferimento/nuovo",
     }:
         return True
-    if lower == "/compensi-forensi" or lower.startswith("/compensi-forensi/"):
+    if lower.startswith("/compensi-forensi/"):
         return True
-    if lower == "/tariffario" or lower.startswith("/tariffario/"):
+    if lower.startswith("/tariffario/"):
         return True
     if lower.startswith("/privacy/registro/") and lower != "/privacy/registro/nuovo":
         return True

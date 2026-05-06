@@ -20,7 +20,6 @@ _LEGACY_FIRST_PREFIXES = (
     "/admin/osservabilita",
     "/applicazioni",
     "/checklist",
-    "/compensi-forensi",
     "/database",
     "/deposito/checklist",
     "/giurisprudenza",
@@ -43,7 +42,6 @@ _LEGACY_FIRST_PREFIXES = (
     "/sincronizzazione-calendari",
     "/strumenti-legali",
     "/strumenti-operativi",
-    "/tariffario",
     "/telematico",
     "/template-atti",
     "/tribunali",
@@ -178,9 +176,9 @@ def _deve_mantenere_vista_classica() -> bool:
         "/preventivi/conferimento/nuovo",
     }:
         return True
-    if lower == "/compensi-forensi" or lower.startswith("/compensi-forensi/"):
+    if lower.startswith("/compensi-forensi/"):
         return True
-    if lower == "/tariffario" or lower.startswith("/tariffario/"):
+    if lower.startswith("/tariffario/"):
         return True
     return any(lower == prefix or lower.startswith(f"{prefix}/") for prefix in _LEGACY_FIRST_PREFIXES)
 

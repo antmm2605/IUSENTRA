@@ -466,35 +466,71 @@
     {
       "route": "/compensi-forensi",
       "family": "mandato",
-      "status": "legacy_operational",
+      "status": "react_full",
       "risk": "high",
       "targetComponent": "frontend/src/components/CompensiForensiPage.tsx",
       "targetData": "frontend/src/compensiForensiData.ts",
       "targetBridge": "web/services/react_compensi_forensi_bridge.py",
       "legacyContract": "artifacts/react-migration/legacy-contracts/compensi-forensi.json",
-      "unlockFromGate": false,
+      "unlockFromGate": true,
       "mustPreserve": [
         "parametri forensi",
         "fasi e valore controversia",
-        "calcolo deterministico",
+        "calcolo backend",
+        "log compensi legacy",
+        "nessuna generazione preventivo React"
+      ]
+    },
+    {
+      "route": "/compensi-forensi/*",
+      "family": "mandato",
+      "status": "legacy_operational",
+      "risk": "high",
+      "targetComponent": "frontend/src/components/CompensiForensiPage.tsx",
+      "targetData": "frontend/src/compensiForensiData.ts",
+      "targetBridge": "web/services/react_compensi_forensi_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/compensi-forensi__detail.json",
+      "unlockFromGate": false,
+      "mustPreserve": [
+        "calcolo dettagliato",
         "log compensi",
-        "generazione preventivo"
+        "generazione preventivo",
+        "download/export legacy",
+        "audit"
       ]
     },
     {
       "route": "/tariffario",
+      "family": "mandato",
+      "status": "react_full",
+      "risk": "high",
+      "targetComponent": "frontend/src/components/TariffarioPage.tsx",
+      "targetData": "frontend/src/tariffarioData.ts",
+      "targetBridge": "web/services/react_tariffario_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/tariffario.json",
+      "unlockFromGate": true,
+      "mustPreserve": [
+        "motore DM 55",
+        "voci tariffarie",
+        "calcolo backend",
+        "audit",
+        "integrazione preventivi"
+      ]
+    },
+    {
+      "route": "/tariffario/*",
       "family": "mandato",
       "status": "legacy_operational",
       "risk": "high",
       "targetComponent": "frontend/src/components/TariffarioPage.tsx",
       "targetData": "frontend/src/tariffarioData.ts",
       "targetBridge": "web/services/react_tariffario_bridge.py",
-      "legacyContract": "artifacts/react-migration/legacy-contracts/tariffario.json",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/tariffario__detail.json",
       "unlockFromGate": false,
       "mustPreserve": [
         "motore DM 55",
-        "voci tariffarie",
         "calcolo backend",
+        "voci tariffarie canoniche",
         "audit",
         "integrazione preventivi"
       ]

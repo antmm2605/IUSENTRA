@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-06T15:47:11.854Z",
+  "generatedAt": "2026-05-06T16:26:52.701Z",
   "react": {
     "dependencies": {
       "@vitejs/plugin-react": "^5.0.0",
@@ -147,7 +147,6 @@
       "/admin/osservabilita",
       "/applicazioni",
       "/checklist",
-      "/compensi-forensi",
       "/database",
       "/deposito/checklist",
       "/giurisprudenza",
@@ -170,7 +169,6 @@
       "/sincronizzazione-calendari",
       "/strumenti-legali",
       "/strumenti-operativi",
-      "/tariffario",
       "/telematico",
       "/template-atti",
       "/tribunali"
@@ -325,6 +323,14 @@
       {
         "name": "PreventiviPage",
         "importPath": "./components/PreventiviPage"
+      },
+      {
+        "name": "CompensiForensiPage",
+        "importPath": "./components/CompensiForensiPage"
+      },
+      {
+        "name": "TariffarioPage",
+        "importPath": "./components/TariffarioPage"
       }
     ],
     "routeChecks": [
@@ -377,6 +383,8 @@
       "isFatturazionePage",
       "isIncassiPagamentiPage",
       "isPreventiviPage",
+      "isCompensiForensiPage",
+      "isTariffarioPage",
       "isStudioModulePage",
       "isDashboardPage",
       "isStandalonePage"

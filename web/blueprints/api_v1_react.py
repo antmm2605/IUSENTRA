@@ -100,6 +100,7 @@ from web.services.react_compensi_forensi_bridge import (
 from web.services.react_tariffario_bridge import (
     build_react_tariffario_error_payload,
     build_react_tariffario_payload,
+    build_react_tariffario_run_payload,
 )
 from web.services.react_preventivi_bridge import (
     build_react_preventivi_error_payload,
@@ -2611,6 +2612,35 @@ def tariffario_page():
             build_react_tariffario_error_payload(
                 "Tariffario non disponibile dal runtime corrente."
             )
+        ), 200
+
+
+@api_v1_react.post("/tariffario/calcola")
+@_richiedi_auth
+def tariffario_calcola_page():
+    utente = g.get("utente_corrente")
+    if not utente:
+        return jsonify(build_react_tariffario_error_payload("Sessione utente richiesta.")), 403
+    try:
+        payload = _request_payload()
+        return jsonify(
+            build_react_tariffario_run_payload(
+                payload,
+                get_normative_tables=get_normative_tables,
+            )
+        )
+    except Exception as exc:
+        current_app.logger.exception("Errore calcolo Tariffario React bridge: %s", exc)
+        return jsonify(
+            {
+                "ok": False,
+                "warnings": [
+                    {
+                        "code": "tariffario_calcolo_errore",
+                        "message": "Calcolo non disponibile dal runtime corrente.",
+                    }
+                ],
+            }
         ), 200
 
 

@@ -8,6 +8,13 @@ from flask import Flask, render_template, send_file
 def register_pwa_routes(app: Flask) -> None:
     """Register service worker and offline fallback routes."""
 
+    @app.route("/favicon.ico")
+    def favicon():
+        return send_file(
+            app.root_path + "/static/img/logo-iusentra.png",
+            mimetype="image/png",
+        )
+
     @app.route("/sw.js")
     def service_worker():
         return send_file(

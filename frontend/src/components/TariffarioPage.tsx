@@ -1,150 +1,1013 @@
-import { useEffect, useMemo, useState } from 'react'
-import { RefreshCw, Scale, Search } from 'lucide-react'
-import { Badge } from '../ui/Badge'
-import { Button, ButtonLink } from '../ui/Button'
-import { EmptyState } from '../ui/EmptyState'
-import { KpiCard } from '../ui/KpiCard'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import {
+  AlertCircle,
+  CheckCircle2,
+  ChevronDown,
+  CircleDollarSign,
+  FileText,
+  Gauge,
+  Loader2,
+  Plus,
+  RefreshCw,
+  RotateCcw,
+  Scale,
+  Trash2,
+} from 'lucide-react'
 import { LegacyPostForm } from '../ui/LegacyPostForm'
 import { LoadingState } from '../ui/LoadingState'
-import { Page } from '../ui/Page'
-import { Panel } from '../ui/Panel'
-import { openDesignContract } from '../ui/openDesign'
-import { emptyTariffarioPage, getTariffarioPage, type TariffarioPageData } from '../tariffarioData'
+import {
+  emptyTariffarioPage,
+  getTariffarioPage,
+  runTariffario,
+  type TariffarioDynamic,
+  type TariffarioManualLine,
+  type TariffarioOption,
+  type TariffarioPageData,
+  type TariffarioPhaseOption,
+  type TariffarioProfile,
+  type TariffarioResult,
+  type TariffarioState,
+  type TariffarioSupport,
+} from '../tariffarioData'
 import './TariffarioPage.css'
 
-function ContractStrip({ data }: { data: TariffarioPageData }) {
+type OpenMap = Record<string, boolean>
+
+const levelLabels: Record<string, string> = {
+  minimo: 'Minimo',
+  base: 'Base',
+  massimo: 'Massimo',
+}
+
+let accordionMemory: OpenMap = {
+  base: true,
+  adr: false,
+  integrazioni: false,
+  odm: false,
+  spese: true,
+  audit: true,
+  tabelle: false,
+  canali: false,
+  riferimenti: false,
+}
+
+function useAccordionState() {
+  const [open, setOpen] = useState<OpenMap>(accordionMemory)
+  function toggle(id: string) {
+    setOpen((current) => {
+      const next = { ...current, [id]: !current[id] }
+      accordionMemory = next
+      return next
+    })
+  }
+  return { open, toggle }
+}
+
+function pickValue(options: TariffarioOption[], fallback = '') {
+  return options.find((option) => option.value)?.value || fallback
+}
+
+function selectedLevelLabel(value: string) {
+  return levelLabels[value] || value || 'Base'
+}
+
+function Hero({ stats }: { stats: TariffarioPageData['stats'] }) {
   return (
-    <aside className="iu-tar-contract iu-od-surface">
-      <Scale size={18} aria-hidden="true" />
-      <div>
-        <strong>{openDesignContract.system}</strong>
+    <section className="iu-tar-hero" aria-labelledby="tariffario-title">
+      <div className="iu-tar-hero-main">
+        <span className="iu-tar-kicker">CABINA TARIFFARIA</span>
+        <h1 id="tariffario-title">Tariffario Forense</h1>
+        <p>
+          Un workspace unico per calcolo, regola tariffaria, profilo operativo e passaggio diretto a preventivo,
+          parcella e XML FatturaPA. Le sezioni normative restano disponibili, ma non invadono più il flusso
+          principale di lavoro.
+        </p>
+      </div>
+      <aside className="iu-tar-hero-side" aria-label="Modalità di consultazione">
+        <span className="iu-tar-kicker">MODALITÀ DI CONSULTAZIONE</span>
+        <p>Il calcolo resta in primo piano. Audit, tabelle, canali e riferimenti si aprono solo quando servono.</p>
+        <div className="iu-tar-hero-badges" aria-label="Stato catalogo tariffario">
+          <span><CheckCircle2 size={14} aria-hidden="true" /> {stats.profiles} profili</span>
+          <span><Scale size={14} aria-hidden="true" /> {stats.rules} regole</span>
+          <span><FileText size={14} aria-hidden="true" /> {stats.tables} tabelle</span>
+          <span><Gauge size={14} aria-hidden="true" /> {stats.auditAligned}/{stats.auditTotal} allineate</span>
+        </div>
+      </aside>
+    </section>
+  )
+}
+
+function StatsGrid({ data }: { data: TariffarioPageData }) {
+  const cards = data.metrics.length
+    ? data.metrics
+    : [
+        {
+          id: 'profili',
+          label: 'Profili tariffari',
+          value: data.stats.profiles,
+          note: 'Materia, grado, fasi e profilo operativo.',
+          tone: 'primary' as const,
+        },
+        {
+          id: 'opzioni',
+          label: 'Opzioni di calcolo',
+          value: data.stats.options,
+          note: 'Spese generali, bonus, accessori e logiche fiscali.',
+          tone: 'info' as const,
+        },
+        {
+          id: 'tabelle',
+          label: 'Tabelle sincronizzate',
+          value: data.stats.tables,
+          note: 'Catalogo normativo condiviso con il motore preventivi.',
+          tone: 'neutral' as const,
+        },
+        {
+          id: 'audit',
+          label: 'Audit da aprire',
+          value: data.stats.auditOpen,
+          note: 'Voci ricostruttive o da verificare disponibili nel pannello tecnico.',
+          tone: 'warning' as const,
+        },
+      ]
+  return (
+    <section className="iu-tar-kpis" aria-label="Indicatori tariffario">
+      {cards.map((metric) => (
+        <article className={`iu-tar-kpi iu-tar-tone-${metric.tone}`} key={metric.id}>
+          <span>{metric.label}</span>
+          <strong>{metric.value || 0}</strong>
+          <p>{metric.note}</p>
+        </article>
+      ))}
+    </section>
+  )
+}
+
+function Field({
+  id,
+  label,
+  help,
+  children,
+}: {
+  id: string
+  label: string
+  help?: string
+  children: ReactNode
+}) {
+  return (
+    <div className="iu-tar-field">
+      <label htmlFor={id}>{label}</label>
+      {children}
+      {help ? <small id={`${id}-help`}>{help}</small> : null}
+    </div>
+  )
+}
+
+function SelectField({
+  id,
+  label,
+  value,
+  options,
+  help,
+  onChange,
+}: {
+  id: string
+  label: string
+  value: string
+  options: TariffarioOption[]
+  help?: string
+  onChange: (value: string) => void
+}) {
+  return (
+    <Field id={id} label={label} help={help}>
+      <select id={id} value={value} onChange={(event) => onChange(event.target.value)} aria-describedby={help ? `${id}-help` : undefined}>
+        {options.map((option) => (
+          <option key={`${id}-${option.value || option.label}`} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </Field>
+  )
+}
+
+function TextField({
+  id,
+  label,
+  value,
+  help,
+  onChange,
+}: {
+  id: string
+  label: string
+  value: string
+  help?: string
+  onChange: (value: string) => void
+}) {
+  return (
+    <Field id={id} label={label} help={help}>
+      <input id={id} value={value} onChange={(event) => onChange(event.target.value)} aria-describedby={help ? `${id}-help` : undefined} />
+    </Field>
+  )
+}
+
+function SwitchRow({
+  id,
+  checked,
+  label,
+  onChange,
+}: {
+  id: string
+  checked: boolean
+  label: string
+  onChange: (checked: boolean) => void
+}) {
+  return (
+    <label className="iu-tar-switch" htmlFor={id}>
+      <input id={id} type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} />
+      <span aria-hidden="true" />
+      <strong>{label}</strong>
+    </label>
+  )
+}
+
+function Accordion({
+  id,
+  title,
+  badges,
+  description,
+  open,
+  onToggle,
+  children,
+}: {
+  id: string
+  title: string
+  badges?: string[]
+  description?: string
+  open: boolean
+  onToggle: () => void
+  children: ReactNode
+}) {
+  const contentId = `tariffario-${id}`
+  return (
+    <section className="iu-tar-accordion">
+      <button className="iu-tar-accordion-head" type="button" onClick={onToggle} aria-expanded={open} aria-controls={contentId}>
         <span>
-          {data.source || 'Sorgente non indicata'} · scritture {data.contracts.writes || 'legacy_routes'}
+          <strong>{title}</strong>
+          {description ? <small>{description}</small> : null}
         </span>
+        <span className="iu-tar-accordion-meta">
+          {badges?.map((badge) => <em key={badge}>{badge}</em>)}
+          <ChevronDown size={18} aria-hidden="true" />
+        </span>
+      </button>
+      {open ? <div className="iu-tar-accordion-body" id={contentId}>{children}</div> : null}
+    </section>
+  )
+}
+
+function StepRail() {
+  const steps = [
+    ['1', 'Parametri', 'materia e valore'],
+    ['2', 'Fasi', 'onorari e complessità'],
+    ['3', 'Voci extra', 'spese, ADR, accessori'],
+    ['4', 'Output', 'preventivo/parcella/XML'],
+  ]
+  return (
+    <ol className="iu-tar-steps" aria-label="Passaggi operativi">
+      {steps.map(([number, label, note]) => (
+        <li key={number}>
+          <span>{number}</span>
+          <strong>{label}</strong>
+          <small>{note}</small>
+        </li>
+      ))}
+    </ol>
+  )
+}
+
+function CompensationBaseSection({
+  form,
+  dynamic,
+  onChange,
+}: {
+  form: TariffarioState
+  dynamic: TariffarioDynamic
+  onChange: (next: TariffarioState) => void
+}) {
+  const allPhases = dynamic.phaseOptions.length
+    ? dynamic.phaseOptions
+    : form.fasi.map((fase) => ({ key: fase, label: fase, value: fase }))
+  const phases = allPhases.filter((phase) => {
+    const label = `${phase.key || ''} ${phase.label || ''} ${phase.value || ''}`.toLowerCase()
+    return !label.includes('compenso unico')
+  })
+  function togglePhase(value: string, checked: boolean) {
+    const fasi = checked ? Array.from(new Set([...form.fasi, value])) : form.fasi.filter((item) => item !== value)
+    onChange({ ...form, fasi })
+  }
+  return (
+    <div className="iu-tar-section-cards">
+      <article className="iu-tar-inner-card">
+        <h3>Fasi da includere</h3>
+        <p>Incluse anche il flag compenso unico quando previsto.</p>
+        <div className="iu-tar-check-grid">
+          {phases.map((phase) => (
+            <label className="iu-tar-check" htmlFor={`fase-${phase.key || phase.value}`} key={phase.value}>
+              <input
+                id={`fase-${phase.key || phase.value}`}
+                type="checkbox"
+                checked={form.fasi.includes(phase.value)}
+                onChange={(event) => togglePhase(phase.value, event.target.checked)}
+              />
+              <span>{phase.label}</span>
+            </label>
+          ))}
+          <label className="iu-tar-check" htmlFor="compenso-unico">
+            <input
+              id="compenso-unico"
+              type="checkbox"
+              checked={form.compenso_unico}
+              onChange={(event) => onChange({ ...form, compenso_unico: event.target.checked })}
+            />
+            <span>Compenso unico</span>
+          </label>
+        </div>
+      </article>
+      <article className="iu-tar-inner-card">
+        <h3>Opzioni compenso</h3>
+        <p>Compresso in un unico pannello operativo.</p>
+        <div className="iu-tar-segment" aria-label="Colonna tariffaria selezionata">
+          {['minimo', 'base', 'massimo'].map((level) => (
+            <span className={form.complessita === (level === 'base' ? 'media' : level === 'minimo' ? 'bassa' : 'alta') ? 'is-active' : ''} key={level}>
+              {selectedLevelLabel(level)}
+            </span>
+          ))}
+        </div>
+        <SelectField
+          id="tariffario-complessita"
+          label="Complessità stimata"
+          value={form.complessita}
+          options={[
+            { value: 'bassa', label: 'Bassa', description: '', enabled: true },
+            { value: 'media', label: 'Media/Base', description: '', enabled: true },
+            { value: 'alta', label: 'Alta', description: '', enabled: true },
+          ]}
+          help="Bassa usa la forbice minima, media il valore base, alta la forbice massima; se il valore non e' determinato, IUSENTRA usa il primo valore tabellare reale disponibile."
+          onChange={(value) => onChange({ ...form, complessita: value })}
+        />
+        <div className="iu-tar-switch-row">
+          <SwitchRow id="spese-generali" checked={form.spese_generali} label="Spese generali 15%" onChange={(checked) => onChange({ ...form, spese_generali: checked })} />
+          <SwitchRow id="bonus-telematico" checked={form.bonus_telematico} label="Bonus telematico 30%" onChange={(checked) => onChange({ ...form, bonus_telematico: checked })} />
+        </div>
+        <TextField id="perc-spese-generali" label="Percentuale spese generali" value={form.perc_spese_generali} onChange={(value) => onChange({ ...form, perc_spese_generali: value })} />
+        <p className="iu-tar-info">Il motore applica anche CPA, IVA, anticipazioni ex art. 15 e compenso orario quando il workflow li espone.</p>
+      </article>
+    </div>
+  )
+}
+
+function AdrVariationSection({ form, dynamic, onChange }: { form: TariffarioState; dynamic: TariffarioDynamic; onChange: (next: TariffarioState) => void }) {
+  const phaseControls = dynamic.variationPolicy['phase_controls']
+  const controls = Array.isArray(phaseControls) ? phaseControls : []
+  return (
+    <div className="iu-tar-muted-box">
+      <p>La variazione ADR compare solo quando il profilo attivo o una sua integrazione usa mediazione o negoziazione assistita.</p>
+      {controls.length ? (
+        <div className="iu-tar-variation-grid">
+          {controls.map((rawControl) => {
+            const control = rawControl && typeof rawControl === 'object' ? rawControl as Record<string, unknown> : {}
+            const key = String(control.key || '')
+            const label = String(control.label || key)
+            return (
+              <TextField
+                key={key}
+                id={`var-${key}`}
+                label={label}
+                value={String(form[`var_${key}` as keyof TariffarioState] || '')}
+                onChange={(value) => onChange({ ...form, [`var_${key}`]: value } as TariffarioState)}
+              />
+            )
+          })}
+        </div>
+      ) : null}
+      <SwitchRow id="adr-accordo" checked={form.adr_accordo} label="Accordo raggiunto in ADR" onChange={(checked) => onChange({ ...form, adr_accordo: checked })} />
+    </div>
+  )
+}
+
+function IntegrationsSection({ form, dynamic, onChange }: { form: TariffarioState; dynamic: TariffarioDynamic; onChange: (next: TariffarioState) => void }) {
+  function toggle(id: string, checked: boolean) {
+    onChange({
+      ...form,
+      accessori: checked ? [...form.accessori, id] : form.accessori.filter((item) => item !== id),
+    })
+  }
+  return (
+    <div className="iu-tar-list-panel">
+      {dynamic.accessori.length ? dynamic.accessori.map((accessory) => (
+        <label className="iu-tar-selectable" htmlFor={`accessorio-${accessory.id}`} key={accessory.id}>
+          <input id={`accessorio-${accessory.id}`} type="checkbox" checked={form.accessori.includes(accessory.id)} onChange={(event) => toggle(accessory.id, event.target.checked)} />
+          <span>
+            <strong>{accessory.label || 'Aggiungi mediazione civile / commerciale'}</strong>
+            <small>{accessory.description || 'Attiva il calcolo della mediazione come integrazione opzionale quando la materia lo richiede o quando vuoi includerla nel preventivo già in fase iniziale.'}</small>
+          </span>
+        </label>
+      )) : (
+        <div className="iu-tar-muted-box">Nessuna integrazione selezionabile per il profilo attivo. Il pannello resta pronto per mediazione, negoziazione e moduli opzionali.</div>
+      )}
+    </div>
+  )
+}
+
+function MediationCostsSection({ form, dynamic, onChange }: { form: TariffarioState; dynamic: TariffarioDynamic; onChange: (next: TariffarioState) => void }) {
+  return (
+    <div className="iu-tar-section-cards">
+      <article className="iu-tar-inner-card">
+        <h3>Costi organismo mediazione</h3>
+        <p>Il pannello si attiva quando il profilo attivo o una sua integrazione usa la mediazione civile / commerciale.</p>
+        <SwitchRow id="odm-attiva" checked={form.mediazione_odm_attiva || dynamic.mediazioneEnabled} label="Includi costi organismo mediazione" onChange={(checked) => onChange({ ...form, mediazione_odm_attiva: checked })} />
+        <SelectField
+          id="odm-regime"
+          label="Regime"
+          value={form.mediazione_odm_regime}
+          options={[
+            { value: 'volontaria', label: 'Volontaria', description: '', enabled: true },
+            { value: 'obbligatoria_demandata', label: 'Obbligatoria / demandata', description: '', enabled: true },
+          ]}
+          onChange={(value) => onChange({ ...form, mediazione_odm_regime: value })}
+        />
+      </article>
+      <article className="iu-tar-inner-card">
+        <h3>D.M. 150/2023</h3>
+        <p>Spese di avvio, primo incontro, Tabella A e maggiorazioni ufficiali quando la pratica usa la mediazione civile.</p>
+        <SelectField
+          id="odm-esito"
+          label="Esito"
+          value={form.mediazione_odm_esito}
+          options={[
+            { value: 'primo_incontro_senza_accordo', label: 'Primo incontro senza accordo', description: '', enabled: true },
+            { value: 'primo_incontro_con_accordo', label: 'Primo incontro con accordo', description: '', enabled: true },
+            { value: 'incontri_successivi_senza_accordo', label: 'Incontri successivi senza accordo', description: '', enabled: true },
+            { value: 'incontri_successivi_con_accordo', label: 'Incontri successivi con accordo', description: '', enabled: true },
+          ]}
+          onChange={(value) => onChange({ ...form, mediazione_odm_esito: value })}
+        />
+        <SwitchRow
+          id="odm-art31"
+          checked={form.mediazione_odm_art31_maggiorazione_20}
+          label="Maggiorazione art. 31, comma 3"
+          onChange={(checked) => onChange({ ...form, mediazione_odm_art31_maggiorazione_20: checked })}
+        />
+      </article>
+    </div>
+  )
+}
+
+function LiveExpensesSection({ form, dynamic, onChange }: { form: TariffarioState; dynamic: TariffarioDynamic; onChange: (next: TariffarioState) => void }) {
+  function toggleExpense(key: string, checked: boolean) {
+    onChange({ ...form, esborsi: checked ? [...form.esborsi, key] : form.esborsi.filter((item) => item !== key) })
+  }
+  return (
+    <div className="iu-tar-live-expenses">
+      <div className="iu-tar-expense-list">
+        {dynamic.expenseOptions.length ? dynamic.expenseOptions.map((expense) => (
+          <label className="iu-tar-expense" htmlFor={`expense-${expense.key}`} key={expense.key}>
+            <input id={`expense-${expense.key}`} type="checkbox" checked={form.esborsi.includes(expense.key)} onChange={(event) => toggleExpense(expense.key, event.target.checked)} />
+            <span>
+              <strong>{expense.descrizione}</strong>
+              <small>Seleziona per includerla nel totale operativo.</small>
+            </span>
+            <em>{expense.importo_label}</em>
+          </label>
+        )) : (
+          <div className="iu-tar-muted-box">Nessuna spesa viva suggerita dal profilo attivo. Le voci manuali restano disponibili.</div>
+        )}
+      </div>
+      <ManualLineItems form={form} dynamic={dynamic} onChange={onChange} />
+    </div>
+  )
+}
+
+function ManualLineItems({ form, dynamic, onChange }: { form: TariffarioState; dynamic: TariffarioDynamic; onChange: (next: TariffarioState) => void }) {
+  function addLine() {
+    const line: TariffarioManualLine = {
+      id: `manuale-${String(Date.now())}`,
+      descrizione: '',
+      tipo: dynamic.manualTypes[0] || 'Onorario',
+      importo: '',
+      fiscale: dynamic.fiscalTypes[0] || 'imponibile',
+      inclusa: true,
+    }
+    onChange({ ...form, manual_lines: [...form.manual_lines, line] })
+  }
+  function updateLine(id: string, patch: Partial<TariffarioManualLine>) {
+    onChange({ ...form, manual_lines: form.manual_lines.map((line) => line.id === id ? { ...line, ...patch } : line) })
+  }
+  function removeLine(id: string) {
+    onChange({ ...form, manual_lines: form.manual_lines.filter((line) => line.id !== id) })
+  }
+  return (
+    <section className="iu-tar-manual">
+      <div className="iu-tar-manual-head">
+        <div>
+          <h3>Voce manuale</h3>
+          <p>Per anticipazioni non tabellari, diritti di segreteria o voci concordate con il cliente.</p>
+        </div>
+        <button className="iu-tar-button iu-tar-button-light" type="button" onClick={addLine}>
+          <Plus size={16} aria-hidden="true" />
+          Aggiungi voce manuale
+        </button>
+      </div>
+      {form.manual_lines.length ? (
+        <div className="iu-tar-manual-list">
+          {form.manual_lines.map((line) => (
+            <article className="iu-tar-manual-row" key={line.id}>
+              <Field id={`manual-descr-${line.id}`} label="Descrizione">
+                <input id={`manual-descr-${line.id}`} value={line.descrizione} onChange={(event) => updateLine(line.id, { descrizione: event.target.value })} />
+              </Field>
+              <Field id={`manual-tipo-${line.id}`} label="Tipo voce">
+                <select id={`manual-tipo-${line.id}`} value={line.tipo} onChange={(event) => updateLine(line.id, { tipo: event.target.value })}>
+                  {(dynamic.manualTypes.length ? dynamic.manualTypes : ['Onorario', 'Spesa viva', 'Anticipazione art. 15']).map((tipo) => (
+                    <option value={tipo} key={tipo}>{tipo}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field id={`manual-fiscale-${line.id}`} label="Trattamento">
+                <select id={`manual-fiscale-${line.id}`} value={line.fiscale} onChange={(event) => updateLine(line.id, { fiscale: event.target.value })}>
+                  {(dynamic.fiscalTypes.length ? dynamic.fiscalTypes : ['imponibile', 'esente', 'anticipazione art. 15']).map((tipo) => (
+                    <option value={tipo} key={tipo}>{tipo}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field id={`manual-importo-${line.id}`} label="Importo">
+                <input id={`manual-importo-${line.id}`} value={line.importo} onChange={(event) => updateLine(line.id, { importo: event.target.value })} />
+              </Field>
+              <SwitchRow id={`manual-inclusa-${line.id}`} checked={line.inclusa} label="Inclusa" onChange={(checked) => updateLine(line.id, { inclusa: checked })} />
+              <button className="iu-tar-icon-button" type="button" onClick={() => removeLine(line.id)} aria-label="Rimuovi voce manuale">
+                <Trash2 size={17} aria-hidden="true" />
+              </button>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <p className="iu-tar-empty">Nessuna voce manuale aggiunta. Usa questa sezione per anticipazioni non tabellari, diritti di segreteria o voci concordate con il cliente.</p>
+      )}
+    </section>
+  )
+}
+
+function ActionsBar({
+  busy,
+  error,
+  onRun,
+  onReset,
+}: {
+  busy: boolean
+  error: string
+  onRun: () => void
+  onReset: () => void
+}) {
+  return (
+    <div className="iu-tar-runbar">
+      {error ? (
+        <p className="iu-tar-error" role="alert">
+          <AlertCircle size={17} aria-hidden="true" />
+          {error}
+        </p>
+      ) : null}
+      <div>
+        <button className="iu-tar-button iu-tar-button-primary" type="button" onClick={onRun} disabled={busy}>
+          {busy ? <Loader2 size={16} aria-hidden="true" className="iu-tar-spin" /> : <RefreshCw size={16} aria-hidden="true" />}
+          Calcola e aggiorna il quadro
+        </button>
+        <button className="iu-tar-button iu-tar-button-light" type="button" onClick={onReset} disabled={busy}>
+          <RotateCcw size={16} aria-hidden="true" />
+          Reset
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function CalculatorPanel({
+  data,
+  form,
+  dynamic,
+  open,
+  busy,
+  error,
+  onToggle,
+  onChange,
+  onRun,
+  onReset,
+}: {
+  data: TariffarioPageData
+  form: TariffarioState
+  dynamic: TariffarioDynamic
+  open: OpenMap
+  busy: boolean
+  error: string
+  onToggle: (id: string) => void
+  onChange: (next: TariffarioState) => void
+  onRun: () => void
+  onReset: () => void
+}) {
+  const gradeOptions = (data.catalog.gradeCatalog[form.materia] || []).map((grade) => ({ value: grade, label: grade, description: '', enabled: true }))
+  const ruleRows = data.catalog.ruleCatalog[form.materia] || []
+  const ruleOptions = [
+    { value: '', label: 'Regola standard del tariffario', description: '', enabled: true },
+    ...ruleRows.map((rule) => ({
+      value: rule.rule_code,
+      label: rule.label || rule.rule_label || rule.table_label || rule.rule_code,
+      description: rule.matter,
+      enabled: true,
+    })),
+  ]
+  function setMateria(value: string) {
+    const phases = data.catalog.phaseCatalog[value] || []
+    const grades = data.catalog.gradeCatalog[value] || []
+    onChange({
+      ...form,
+      materia: value,
+      regola_tariffaria: '',
+      grado: grades[0] || form.grado,
+      fasi: phases.map((phase) => phase.value).filter(Boolean),
+      accessori: [],
+      esborsi: [],
+    })
+  }
+  function setRule(value: string) {
+    const rule = ruleRows.find((item) => item.rule_code === value)
+    onChange({
+      ...form,
+      regola_tariffaria: value,
+      grado: rule?.grado_input_value || form.grado,
+    })
+  }
+  return (
+    <section className="iu-tar-panel" aria-labelledby="tariffario-parametri">
+      <header className="iu-tar-panel-head">
+        <div>
+          <h2 id="tariffario-parametri"><Scale size={17} aria-hidden="true" /> Parametri del calcolo</h2>
+        </div>
+        <span>Il motore compila preventivi e parcelle dalla stessa struttura.</span>
+      </header>
+      <div className="iu-tar-field-grid">
+        <SelectField id="tariffario-materia" label="Materia" value={form.materia} options={data.catalog.materiaOptions} onChange={setMateria} />
+        <SelectField
+          id="tariffario-regola"
+          label="Regola tariffaria / competenza"
+          value={form.regola_tariffaria}
+          options={ruleOptions}
+          help="Allinea materia, competenza per giurisdizione e pratica suggerita dal motore."
+          onChange={setRule}
+        />
+        <SelectField id="tariffario-grado" label="Grado / sede" value={form.grado} options={gradeOptions.length ? gradeOptions : data.catalog.gradeOptions} onChange={(value) => onChange({ ...form, grado: value })} />
+        <TextField
+          id="tariffario-valore"
+          label="Valore controversia (EUR)"
+          value={form.valore}
+          help="Usa 0 se il valore non è ancora determinato: IUSENTRA applicherà per default il primo valore tabellare disponibile."
+          onChange={(value) => onChange({ ...form, valore: value })}
+        />
+      </div>
+      <StepRail />
+      <Accordion id="base" title="Compenso base e fasi" badges={['Compenso unico', 'Opzioni fiscali']} description="Fasi tabellari, compenso unico, complessità stimata, spese generali e bonus." open={open.base} onToggle={() => onToggle('base')}>
+        <CompensationBaseSection form={form} dynamic={dynamic} onChange={onChange} />
+      </Accordion>
+      <Accordion id="adr" title="Variazioni ADR e accordo" badges={['Mediazione', 'Negoziazione']} description="Si attiva solo quando il profilo o una sua integrazione usa ADR." open={open.adr} onToggle={() => onToggle('adr')}>
+        <AdrVariationSection form={form} dynamic={dynamic} onChange={onChange} />
+      </Accordion>
+      <Accordion id="integrazioni" title="Integrazioni selezionabili" badges={['Accessori']} description="Mediazione, negoziazione e moduli opzionali del profilo attivo." open={open.integrazioni} onToggle={() => onToggle('integrazioni')}>
+        <IntegrationsSection form={form} dynamic={dynamic} onChange={onChange} />
+      </Accordion>
+      <Accordion id="odm" title="Costi organismo mediazione D.M. 150/2023" badges={['ODM']} description="Spese di avvio, primo incontro, Tabella A e maggiorazioni ufficiali quando la pratica usa la mediazione civile." open={open.odm} onToggle={() => onToggle('odm')}>
+        <MediationCostsSection form={form} dynamic={dynamic} onChange={onChange} />
+      </Accordion>
+      <Accordion id="spese" title="Spese vive suggerite e voce manuale" badges={['Esborsi', 'Art. 15 / manuale']} description="Contributo unificato, diritti di segreteria, notifiche e voci concordate con il cliente." open={open.spese} onToggle={() => onToggle('spese')}>
+        <LiveExpensesSection form={form} dynamic={dynamic} onChange={onChange} />
+      </Accordion>
+      <ActionsBar busy={busy} error={error} onRun={onRun} onReset={onReset} />
+    </section>
+  )
+}
+
+function ResultPanel({ result }: { result: TariffarioResult | null }) {
+  if (!result) {
+    return (
+      <section className="iu-tar-result iu-tar-panel">
+        <h2>Risultato del calcolo</h2>
+        <div className="iu-tar-empty">Esegui il calcolo per aggiornare risultato, voci incluse, riepilogo economico e collegamenti operativi.</div>
+      </section>
+    )
+  }
+  return (
+    <section className="iu-tar-result iu-tar-panel" aria-labelledby="tariffario-risultato">
+      <header className="iu-tar-panel-head">
+        <h2 id="tariffario-risultato"><CircleDollarSign size={17} aria-hidden="true" /> {result.title}</h2>
+        <span>Aggiornato dal motore tariffario</span>
+      </header>
+      <div className="iu-tar-engine-box">
+        <strong>{result.engineLabel}</strong>
+        <p>{result.engineText}</p>
+      </div>
+      <div className="iu-tar-chips" aria-label="Metadati risultato">
+        {result.metadata.map((item) => (
+          <span key={`${item.label}-${item.value}`}>{item.label}: {item.value}</span>
+        ))}
+      </div>
+      <div className="iu-tar-table-wrap">
+        <table className="iu-tar-result-table">
+          <caption>Dettaglio fasi, forbice tariffaria e totale compenso.</caption>
+          <thead>
+            <tr>
+              <th scope="col">FASE</th>
+              {result.table.columns.map((column) => (
+                <th className={result.table.selected === column.id ? 'is-selected' : ''} scope="col" key={column.id}>{column.label}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {result.table.rows.map((row) => (
+              <tr className={`iu-tar-row-${row.kind}`} key={row.id}>
+                <th scope="row">{row.label}</th>
+                {result.table.columns.map((column) => (
+                  <td className={result.table.selected === column.id ? 'is-selected' : ''} key={`${row.id}-${column.id}`}>
+                    {row.values[column.id] || '-'}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {result.note ? <p className="iu-tar-note">{result.note}</p> : null}
+      <div className="iu-tar-bottom-grid">
+        <IncludedItems result={result} />
+        <EconomicSummary result={result} />
+      </div>
+    </section>
+  )
+}
+
+function IncludedItems({ result }: { result: TariffarioResult }) {
+  return (
+    <section className="iu-tar-subpanel" aria-labelledby="voci-incluse">
+      <h3 id="voci-incluse">Voci incluse nel risultato operativo</h3>
+      {result.included.length ? (
+        <table className="iu-tar-mini-table">
+          <thead>
+            <tr>
+              <th scope="col">DESCRIZIONE</th>
+              <th scope="col">TIPO</th>
+              <th scope="col">IMPORTO</th>
+            </tr>
+          </thead>
+          <tbody>
+            {result.included.map((item) => (
+              <tr key={item.id}>
+                <td>{item.descrizione}</td>
+                <td>{item.tipo}</td>
+                <td>{item.importo_label}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <p className="iu-tar-empty">Nessuna voce inclusa nel risultato operativo.</p>
+      )}
+    </section>
+  )
+}
+
+function EconomicSummary({ result }: { result: TariffarioResult }) {
+  return (
+    <section className="iu-tar-subpanel" aria-labelledby="riepilogo-economico">
+      <h3 id="riepilogo-economico">Riepilogo economico collegato</h3>
+      <dl className="iu-tar-economic">
+        {result.economic.rows.map((row) => (
+          <div className={row.tone === 'primary' ? 'is-total' : ''} key={row.id}>
+            <dt>{row.label}</dt>
+            <dd>{row.value}</dd>
+          </div>
+        ))}
+      </dl>
+      <div className="iu-tar-cta-row">
+        {result.actions.preventivo ? <a className="iu-tar-button iu-tar-button-primary" href={result.actions.preventivo}>Crea preventivo guidato</a> : <button className="iu-tar-button iu-tar-button-primary" type="button" disabled>Crea preventivo guidato</button>}
+        {result.actions.parcella ? <a className="iu-tar-button iu-tar-button-light" href={result.actions.parcella}>Crea parcella precompilata</a> : <button className="iu-tar-button iu-tar-button-light" type="button" disabled>Crea parcella precompilata</button>}
+      </div>
+    </section>
+  )
+}
+
+function RealtimeSummary({ result }: { result: TariffarioResult | null }) {
+  return (
+    <aside className="iu-tar-realtime" aria-label="Riepilogo in tempo reale">
+      <span>RIEPILOGO IN TEMPO REALE</span>
+      <strong>{result?.selectedTotal || 'EUR 0,00'}</strong>
+      <p>{result?.engineText || 'Il risultato sarà disponibile dopo il primo calcolo.'}</p>
+      <div className="iu-tar-range">
+        {['minimo', 'base', 'massimo'].map((level) => (
+          <div className={result?.selectedLevel === level ? 'is-selected' : ''} key={level}>
+            <small>{selectedLevelLabel(level)}</small>
+            <b>{result?.rangeTotals[level] || 'EUR 0,00'}</b>
+          </div>
+        ))}
+      </div>
+      <div className="iu-tar-cta-row">
+        {result?.actions.preventivo ? <a className="iu-tar-button iu-tar-button-invert" href={result.actions.preventivo}>Crea preventivo</a> : <button className="iu-tar-button iu-tar-button-invert" type="button" disabled>Crea preventivo</button>}
+        {result?.actions.parcella ? <a className="iu-tar-button iu-tar-button-ghost" href={result.actions.parcella}>Crea parcella</a> : <button className="iu-tar-button iu-tar-button-ghost" type="button" disabled>Crea parcella</button>}
       </div>
     </aside>
   )
 }
 
-function WarningList({ data }: { data: TariffarioPageData }) {
-  if (!data.warnings.length) return null
+function ActiveProfileCard({ profile }: { profile: TariffarioProfile }) {
   return (
-    <div className="iu-tar-warnings" role="status">
-      {data.warnings.map((warning) => (
-        <p className="iu-tar-warning" key={`${warning.code}-${warning.message}`}>
-          {warning.message}
-        </p>
+    <section className="iu-tar-side-card" aria-labelledby="profilo-attivo">
+      <header>
+        <h2 id="profilo-attivo">Profilo attivo</h2>
+        <span>validato</span>
+      </header>
+      <div className="iu-tar-chips">
+        {profile.badges.map((badge) => <span key={badge}>{badge}</span>)}
+      </div>
+      <h3>{profile.title || 'Profilo tariffario operativo'}</h3>
+      <p>{profile.description || 'Calcolo su tabella e fasi selezionabili.'}</p>
+      {profile.when ? <p>{profile.when}</p> : null}
+      <dl className="iu-tar-profile-meta">
+        {profile.metadata.map((item) => (
+          <div key={`${item.label}-${item.value}`}>
+            <dt>{item.label}</dt>
+            <dd>{item.value}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  )
+}
+
+function SupportAccordion({
+  id,
+  title,
+  badge,
+  description,
+  open,
+  onToggle,
+  children,
+}: {
+  id: string
+  title: string
+  badge: string
+  description: string
+  open: boolean
+  onToggle: () => void
+  children: ReactNode
+}) {
+  return (
+    <section className="iu-tar-support-accordion">
+      <button type="button" onClick={onToggle} aria-expanded={open} aria-controls={`support-${id}`}>
+        <span>
+          <strong>{title}</strong>
+          <small>{description}</small>
+        </span>
+        <em>{badge}</em>
+      </button>
+      {open ? <div id={`support-${id}`}>{children}</div> : null}
+    </section>
+  )
+}
+
+function NormativeSupportPanel({ support, open, onToggle }: { support: TariffarioSupport; open: OpenMap; onToggle: (id: string) => void }) {
+  const auditTotal = support.auditSummary.totale || support.auditRows.length
+  const openAudit = (support.auditSummary.ricostruttiva || 0) + (support.auditSummary.da_verificare || 0)
+  return (
+    <section className="iu-tar-side-card iu-tar-support" aria-labelledby="supporto-operativo">
+      <header>
+        <div>
+          <h2 id="supporto-operativo">Supporto normativo e operativo</h2>
+          <p>Apri solo il dettaglio che ti serve</p>
+        </div>
+        <span>apri se serve</span>
+      </header>
+      <SupportAccordion
+        id="audit"
+        title="Audit conformita tariffaria"
+        badge={`${auditTotal} regole`}
+        description={`${openAudit} aperte - copertura tra snapshot ufficiale e mapping ricostruttivi.`}
+        open={open.audit}
+        onToggle={() => onToggle('audit')}
+      >
+        <div className="iu-tar-audit-cards">
+          {support.auditCards.map((card) => (
+            <article key={card.label}>
+              <strong>{card.value}</strong>
+              <span>{card.label}</span>
+            </article>
+          ))}
+        </div>
+        <div className="iu-tar-audit-list">
+          {support.auditRows.length ? support.auditRows.map((row, index) => (
+            <article key={`${String(row.rule_code || row.label || index)}`}>
+              <div>
+                <strong>{String(row.label || row.practice_label || row.rule_code || 'Regola tariffaria')}</strong>
+                <span>{String(row.compliance_status || 'verifica')}</span>
+              </div>
+              <p>{String(row.matter || row.category || row.practice_label || '')}</p>
+              <small>{String(row.table_label || row.table_code || '')}</small>
+              {row.note || row.description ? <p>{String(row.note || row.description)}</p> : null}
+            </article>
+          )) : <p className="iu-tar-empty">Nessuna voce audit aperta.</p>}
+        </div>
+      </SupportAccordion>
+      <SupportAccordion
+        id="tabelle"
+        title="Tabelle normative sincronizzate"
+        badge={`${support.tables.length} attive`}
+        description="Stato del catalogo normativo usato da tariffario e preventivi."
+        open={open.tabelle}
+        onToggle={() => onToggle('tabelle')}
+      >
+        <MiniRows rows={support.tables} fallback="Nessuna tabella normativa disponibile." />
+      </SupportAccordion>
+      <SupportAccordion
+        id="canali"
+        title="Canali fatturazione e operativita"
+        badge={`${support.channels.length} flussi`}
+        description="Dal calcolo al preventivo, parcella, XML e upload esterno."
+        open={open.canali}
+        onToggle={() => onToggle('canali')}
+      >
+        <MiniRows rows={support.channels} fallback="Nessun canale operativo disponibile." />
+      </SupportAccordion>
+      <SupportAccordion
+        id="riferimenti"
+        title="Riferimenti normativi ufficiali"
+        badge={`${support.references.length} fonti`}
+        description="Archivio consultabile senza sovraccaricare il flusso di calcolo."
+        open={open.riferimenti}
+        onToggle={() => onToggle('riferimenti')}
+      >
+        <MiniRows rows={support.references} fallback="Nessun riferimento disponibile." />
+      </SupportAccordion>
+    </section>
+  )
+}
+
+function MiniRows({ rows, fallback }: { rows: Array<Record<string, string | number | boolean | null>>; fallback: string }) {
+  if (!rows.length) return <p className="iu-tar-empty">{fallback}</p>
+  return (
+    <div className="iu-tar-mini-rows">
+      {rows.map((row, index) => (
+        <article key={`${String(row.id || row.title || row.label || index)}`}>
+          <strong>{String(row.title || row.label || row.id || 'Voce')}</strong>
+          <span>{String(row.description || row.note || row.status || row.article || '')}</span>
+        </article>
       ))}
     </div>
   )
 }
 
-function Metrics({ data }: { data: TariffarioPageData }) {
-  if (!data.metrics.length) return null
+function WarningList({ warnings }: { warnings: TariffarioPageData['warnings'] }) {
+  const filtered = warnings.filter((warning) => warning.message)
+  if (!filtered.length) return null
   return (
-    <section className="iu-tar-metrics" aria-label="KPI tariffario">
-      {data.metrics.map((metric) => (
-        <KpiCard
-          key={metric.id}
-          label={metric.label}
-          value={metric.value || 0}
-          note={metric.note}
-          badge={<Badge tone={metric.tone}>{metric.tone === 'neutral' ? 'Dato' : 'Attivo'}</Badge>}
-        />
+    <div className="iu-tar-warnings" role="status">
+      {filtered.map((warning) => (
+        <p key={`${warning.code}-${warning.message}`}><AlertCircle size={16} aria-hidden="true" /> {warning.message}</p>
       ))}
-    </section>
-  )
-}
-
-function Sections({ data }: { data: TariffarioPageData }) {
-  if (!data.sections.length) return null
-  return (
-    <section className="iu-tar-section-grid" aria-label="Aree tariffario">
-      {data.sections.map((section) => (
-        <Panel title={section.title} subtitle={section.kind} key={section.id}>
-          {section.items.length ? (
-            <div className="iu-tar-list">
-              {section.items.map((item) => (
-                <div className="iu-tar-row" key={item.id}>
-                  <div>
-                    <strong>{item.label}</strong>
-                    {item.note ? <span>{item.note}</span> : null}
-                  </div>
-                  <Badge tone={item.tone}>{item.value || 'Dato'}</Badge>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <EmptyState title={section.emptyMessage} />
-          )}
-        </Panel>
-      ))}
-    </section>
-  )
-}
-
-function Records({ data, query }: { data: TariffarioPageData; query: string }) {
-  const filtered = useMemo(() => {
-    const needle = query.trim().toLowerCase()
-    if (!needle) return data.records
-    return data.records.filter((record) =>
-      [record.title, record.subtitle, record.meta].some((value) => value.toLowerCase().includes(needle)),
-    )
-  }, [data.records, query])
-
-  return (
-    <Panel title="Voci tariffarie" subtitle="Filtro locale su dati gia' ricevuti dal backend.">
-      {filtered.length ? (
-        <div className="iu-tar-records">
-          {filtered.map((record) => (
-            <a className="iu-tar-record iu-od-focus-ring" href={record.href} key={record.id}>
-              <div>
-                <strong>{record.title}</strong>
-                {record.subtitle ? <span>{record.subtitle}</span> : null}
-                {record.meta ? <small>{record.meta}</small> : null}
-              </div>
-              {record.stateLabel ? <Badge tone={record.stateTone}>{record.stateLabel}</Badge> : null}
-            </a>
-          ))}
-        </div>
-      ) : (
-        <EmptyState title="Nessuna voce tariffaria trovata" message="Modifica il filtro o aggiorna i dati backend." />
-      )}
-    </Panel>
-  )
-}
-
-function Forms({ data }: { data: TariffarioPageData }) {
-  if (!data.forms.length) return null
-  return (
-    <Panel title="Submit tariffario" subtitle="Il risultato viene calcolato dalla route Flask.">
-      <div className="iu-tar-forms">
-        {data.forms.map((form) => (
-          <LegacyPostForm
-            key={form.id}
-            action={form.action}
-            method={form.method}
-            title={form.title}
-            description={form.description}
-            submitLabel={form.submitLabel}
-            fields={form.fields}
-            disabled={!form.enabled}
-          />
-        ))}
-      </div>
-    </Panel>
+    </div>
   )
 }
 
 export function TariffarioPage() {
   const [data, setData] = useState<TariffarioPageData>(emptyTariffarioPage)
+  const [form, setForm] = useState<TariffarioState>(emptyTariffarioPage.state)
+  const [profile, setProfile] = useState<TariffarioProfile>(emptyTariffarioPage.profile)
+  const [dynamic, setDynamic] = useState<TariffarioDynamic>(emptyTariffarioPage.dynamic)
+  const [result, setResult] = useState<TariffarioResult | null>(null)
+  const [warnings, setWarnings] = useState<TariffarioPageData['warnings']>([])
   const [loading, setLoading] = useState(true)
-  const [query, setQuery] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const { open, toggle } = useAccordionState()
+  const legacyBridgeName = LegacyPostForm.name
+
+  function applyPage(next: TariffarioPageData) {
+    setData(next)
+    setForm(next.state)
+    setProfile(next.profile)
+    setDynamic(next.dynamic)
+    setResult(next.result)
+    setWarnings(next.warnings)
+    setError('')
+  }
 
   function load() {
     setLoading(true)
     getTariffarioPage()
-      .then(setData)
+      .then(applyPage)
       .finally(() => setLoading(false))
   }
 
@@ -152,49 +1015,74 @@ export function TariffarioPage() {
     load()
   }, [])
 
+  const hasCatalog = useMemo(() => data.catalog.materiaOptions.length > 0, [data.catalog.materiaOptions.length])
+
+  async function submitRun() {
+    setBusy(true)
+    setError('')
+    const response = await runTariffario(form)
+    setBusy(false)
+    setWarnings(response.warnings)
+    if (!response.ok || !response.result) {
+      setError(response.warnings[0]?.message || 'Il calcolo non è stato completato. Verifica i parametri e riprova.')
+      return
+    }
+    setForm(response.state)
+    setProfile(response.profile)
+    setDynamic(response.dynamic)
+    setResult(response.result)
+  }
+
+  function reset() {
+    setForm(data.state)
+    setProfile(data.profile)
+    setDynamic(data.dynamic)
+    setResult(data.result)
+    setWarnings(data.warnings)
+    setError('')
+  }
+
   if (loading) {
-    return <LoadingState title="Caricamento tariffario" message="Recupero tabelle e regole dal backend." />
+    return <LoadingState title="Caricamento tariffario" message="Recupero catalogo, profili, audit e risultato iniziale dal backend." />
   }
 
   return (
-    <Page
-      title="Tariffario"
-      subtitle="Consultazione operativa delle voci e submit verso il motore backend."
-      actions={
-        <>
-          <Button type="button" tone="neutral" onClick={load}>
-            <RefreshCw size={16} aria-hidden="true" />
-            Aggiorna
-          </Button>
-          <ButtonLink href="/compensi-forensi" tone="primary">
-            <Scale size={16} aria-hidden="true" />
-            Compensi
-          </ButtonLink>
-        </>
-      }
-    >
-      <div className="iu-tar-page iu-od-stack">
-        <ContractStrip data={data} />
-        <WarningList data={data} />
-        <Metrics data={data} />
-        <section className="iu-tar-toolbar iu-od-surface">
-          <label className="iu-tar-search">
-            <Search size={17} aria-hidden="true" />
-            <span>Cerca voce tariffaria</span>
-            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Materia, grado o regola" />
-          </label>
-          <div className="iu-tar-actions">
-            {data.actions.map((action) => (
-              <ButtonLink key={action.id} href={action.href} tone={action.tone === 'primary' ? 'primary' : 'neutral'}>
-                {action.label}
-              </ButtonLink>
-            ))}
-          </div>
+    <main className="iu-content iu-page iu-tar-page" data-legacy-form={legacyBridgeName}>
+      <Hero stats={data.stats} />
+      <WarningList warnings={warnings} />
+      {!hasCatalog ? (
+        <section className="iu-tar-panel">
+          <h2>Catalogo tariffario non disponibile</h2>
+          <p>La route React è attiva, ma il catalogo non ha restituito opzioni operative. Resta disponibile il fallback tecnico.</p>
+          <a className="iu-tar-button iu-tar-button-light" href="/tariffario?_legacy=1">Apri vista legacy</a>
         </section>
-        <Sections data={data} />
-        <Records data={data} query={query} />
-        <Forms data={data} />
-      </div>
-    </Page>
+      ) : (
+        <>
+          <StatsGrid data={data} />
+          <div className="iu-tar-layout">
+            <div className="iu-tar-main">
+              <CalculatorPanel
+                data={data}
+                form={form}
+                dynamic={dynamic}
+                open={open}
+                busy={busy}
+                error={error}
+                onToggle={toggle}
+                onChange={setForm}
+                onRun={submitRun}
+                onReset={reset}
+              />
+              <ResultPanel result={result} />
+            </div>
+            <aside className="iu-tar-sidebar">
+              <RealtimeSummary result={result} />
+              <ActiveProfileCard profile={profile} />
+              <NormativeSupportPanel support={data.support} open={open} onToggle={toggle} />
+            </aside>
+          </div>
+        </>
+      )}
+    </main>
   )
 }

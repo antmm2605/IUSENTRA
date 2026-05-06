@@ -1,5 +1,24 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-06 - Tariffario console operativa 2.198.97
+
+La superficie exact `/tariffario` resta React sui GET ufficiali e mantiene il
+fallback tecnico `?_legacy=1`, ma non e' piu' una semplice consultazione:
+
+- `web/services/react_tariffario_bridge.py` espone catalogo, stato iniziale,
+  risultato, profilo attivo, audit, tabelle, riferimenti, canali fatturazione e
+  CTA precompilate usando dati reali da repository e servizi esistenti.
+- `POST /api/v1/ui/tariffario/calcola` aggiorna il quadro operativo con il
+  motore Python (`calcola_compenso`, `motore_preventivo`, mediazione D.M.
+  150/2023, spese vive e voci manuali), senza spostare formule o valori
+  normativi nel frontend.
+- `frontend/src/components/TariffarioPage.tsx` organizza la pagina come console
+  a due colonne con hero, KPI, parametri, accordion, risultato tabellare,
+  riepilogo economico, profilo attivo e supporto normativo collassabile.
+- I gate Tranche 8A anti-segreti, anti-calcolo compensi e anti-produzione
+  documentale restano attivi: React invia parametri e riceve risultati, ma non
+  contiene formule tariffarie, fiscali o documentali canoniche.
+
 ## Stato tranche 2026-05-06 - Tranche 9A template e redazione atti
 
 La promozione governata abilita le superfici documentali di ingresso in React

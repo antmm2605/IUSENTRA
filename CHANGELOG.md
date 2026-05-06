@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.198.97 - 2026-05-06
+
+- Trasformata `/tariffario` in console React operativa: hero, KPI reali, parametri controllati, pannelli collassabili, risultato tabellare, voci incluse, riepilogo economico e sidebar profilo/supporto normativo.
+- Aggiunto il bridge `POST /api/v1/ui/tariffario/calcola`, che riusa motore tariffario Python, catalogo, mediazione D.M. 150/2023, spese vive, voci manuali e CTA precompilate verso preventivo guidato e parcella senza duplicare formule nel frontend.
+- Mantenuti fallback `?_legacy=1`, route storiche, audit tariffario, tabelle, riferimenti normativi, canali fatturazione e gate anti-regressione React; aggiunti test dedicati per payload console, calcolo Giudice di Pace valore zero e inclusione di spese/manuale/mediazione.
+- Allineati favicon React Shell e healthcheck Docker locale a `127.0.0.1`, coerente con il profilo Hetzner, per evitare falsi errori console e falsi unhealthy locali.
+
 ## 2.198.96 - 2026-05-06
 
 - Promosse in React full le route documentali di ingresso `/template-atti`, `/template-atti/catalogo` e `/redazione-atti`, con bridge backend read-only, endpoint UI GET, catalogo template reale, metadati, variabili come soli nomi e azioni legacy sicure.

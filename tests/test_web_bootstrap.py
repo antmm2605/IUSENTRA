@@ -654,7 +654,13 @@ def test_i_moduli_bootstrap_restano_governabili():
 
 def test_template_principali_usano_copy_italiana_e_date_localizzate():
     template_checks = {
-        "web/templates/base.html": ["Panoramica", "Operazione completata", "Preparazione Udienza Guidata", "Aggiornamenti legali"],
+        "web/templates/base.html": [
+            "Panoramica",
+            "Operazione completata",
+            "Preparazione Udienza Guidata",
+            "Aggiornamenti legali",
+            "Server e manutenzione",
+        ],
         "web/templates/admin/base.html": [
             "Esci",
             "Piattaforma",

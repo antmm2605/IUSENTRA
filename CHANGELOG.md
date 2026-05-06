@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.198.81 - 2026-05-06
+
+- Collegato il pannello `Server e manutenzione` anche alla navigazione piattaforma principale visibile al SUPERADMIN e alla card della Panoramica piattaforma.
+- Autorizzato esplicitamente il blueprint `server_maintenance_admin` nel guard multi-tenant del SUPERADMIN, evitando redirect impropri verso la dashboard.
+- Rafforzati i test per verificare accesso diretto alla pagina manutenzione server e presenza del link nelle superfici amministrative.
+
 ## 2.198.80 - 2026-05-06
 
 - Rafforzata la retention dei backup Hetzner con tetto di spazio totale configurabile (`IUSENTRA_BACKUP_RETENTION_MAX_GIB`), numero minimo di copie e caricamento esplicito di `/opt/iusentra/.env.hetzner`.

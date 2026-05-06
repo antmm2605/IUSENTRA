@@ -350,7 +350,7 @@
 
     {# ---- Piattaforma (superadmin) ---- #}
     {% if governo_piattaforma %}
-    {% set _adm = request.blueprint in ('admin', 'legal_coverage_admin', 'legal_updates_admin') %}
+    {% set _adm = request.blueprint in ('admin', 'legal_coverage_admin', 'legal_updates_admin', 'server_maintenance_admin') %}
     <button class="sb-toggle sb-admin {% if _adm %}open{% endif %}"
             data-bs-toggle="collapse" data-bs-target="#sb-piattaforma" aria-expanded="{{ 'true' if _adm else 'false' }}">
       <span><i class="bi bi-building-gear"></i>Piattaforma</span>
@@ -364,6 +364,10 @@
       <a href="{{ url_for('admin.salute_sistema') }}"
          class="nav-link sb-link {% if request.endpoint == 'admin.salute_sistema' %}active{% endif %}">
         <i class="bi bi-heart-pulse"></i><span class="sb-txt">Salute sistema</span>
+      </a>
+      <a href="{{ url_for('server_maintenance_admin.dashboard') }}"
+         class="nav-link sb-link {% if request.blueprint == 'server_maintenance_admin' %}active{% endif %}">
+        <i class="bi bi-hdd-network"></i><span class="sb-txt">Server e manutenzione</span>
       </a>
       <a href="{{ url_for('admin.governance') }}"
          class="nav-link sb-link {% if request.endpoint == 'admin.governance' %}active{% endif %}">

@@ -279,7 +279,7 @@ def test_superadmin_product_surfaces_renderizzano(tmp_path: Path):
         salute = client.get("/admin/salute-sistema", follow_redirects=True)
         scorecard = client.get("/admin/lex-scorecard", follow_redirects=True)
         osservabilita = client.get("/admin/osservabilita", follow_redirects=True)
-        server_manutenzione = client.get("/admin/server-manutenzione", follow_redirects=True)
+        server_manutenzione = client.get("/admin/server-manutenzione", follow_redirects=False)
         crash_test = client.get("/admin/crash-test-operativo", follow_redirects=True)
         coverage = client.get("/admin/copertura-ai", follow_redirects=True)
         coverage_review = client.get("/admin/copertura-ai/review", follow_redirects=True)
@@ -304,6 +304,7 @@ def test_superadmin_product_surfaces_renderizzano(tmp_path: Path):
     assert server_manutenzione.status_code == 200
     assert "Server e manutenzione" in server_manutenzione.get_data(as_text=True)
     assert "Consumi per studio" in server_manutenzione.get_data(as_text=True)
+    assert 'href="/admin/server-manutenzione"' in stato.get_data(as_text=True)
     assert crash_test.status_code == 200
     assert "Crash test operativo" in crash_test.get_data(as_text=True)
     assert "Esegui crash test adesso" in crash_test.get_data(as_text=True)

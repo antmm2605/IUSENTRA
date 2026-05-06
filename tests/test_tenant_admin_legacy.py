@@ -810,9 +810,14 @@ def test_superadmin_piattaforma_viene_reindirizzato_al_pannello_admin_fuori_dall
     assert login.status_code == 302
 
     response = client.get("/", follow_redirects=False)
+    manutenzione = client.get("/admin/server-manutenzione", follow_redirects=False)
 
     assert response.status_code == 302
     assert response.headers["Location"].endswith("/admin/")
+    assert manutenzione.status_code == 200
+    html = manutenzione.get_data(as_text=True)
+    assert "Server e manutenzione" in html
+    assert "Consumi per studio" in html
 
 
 def test_superadmin_puo_spostare_un_utente_globale_dentro_uno_studio(tmp_path):

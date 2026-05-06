@@ -374,6 +374,7 @@ def register_auth_runtime(
             "legal_coverage_admin",
             "legal_updates_admin",
             "operational_resilience_admin",
+            "server_maintenance_admin",
             "legal_intelligence",
             "support_remote",
             "studio_site_admin",

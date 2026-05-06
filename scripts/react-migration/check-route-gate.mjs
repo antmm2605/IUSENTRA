@@ -27,7 +27,8 @@ function extractSet(source, name) {
 }
 
 function normaliseRoute(route) {
-  const pathOnly = String(route || '/').split('?')[0].replace(/\*$/, '')
+  const raw = String(route || '/').split('?')[0]
+  const pathOnly = raw.endsWith('/*') ? `${raw.slice(0, -1)}__wildcard__` : raw.replace(/\*$/, '')
   const clean = pathOnly.replace(/\/+$/, '') || '/'
   return clean.toLowerCase()
 }
@@ -57,6 +58,10 @@ function isBlockedBySpecialRule(path) {
     (path.startsWith('/sito-studio/') && path !== '/sito-studio/contatti') ||
     path.startsWith('/studio/') ||
     path.startsWith('/amministrazione/') ||
+    (path.startsWith('/fatturazione/') && path !== '/fatturazione/nuova') ||
+    path.startsWith('/incassi-pagamenti/') ||
+    path === '/impostazioni/pagamenti' ||
+    path.startsWith('/impostazioni/pagamenti/') ||
     path === '/impostazioni' ||
     path.startsWith('/impostazioni/') ||
     path === '/impostazioni-studio' ||
@@ -76,7 +81,7 @@ const reactExact = new Set(extractSet(gate, '_REACT_EXACT').map(normaliseRoute))
 const legacyOperationalPrefixes = extractTuple(gate, '_LEGACY_OPERATIONAL_PREFIXES')
 const excludedPrefixes = extractTuple(gate, '_EXCLUDED_PREFIXES')
 const shellLegacyFirstPrefixes = extractTuple(reactShell, '_LEGACY_FIRST_PREFIXES')
-const allowedReactUnlocks = new Set(['/statistiche', '/audit', '/registro-attivita', '/utenti', '/profili', '/backup', '/sito-studio', '/sito-studio/contatti', '/studio', '/amministrazione'])
+const allowedReactUnlocks = new Set(['/statistiche', '/audit', '/registro-attivita', '/utenti', '/profili', '/backup', '/sito-studio', '/sito-studio/contatti', '/studio', '/amministrazione', '/fatturazione', '/fatturazione/nuova', '/incassi-pagamenti'])
 
 const violations = []
 for (const entry of manifest.routes ?? []) {
@@ -163,11 +168,33 @@ for (const route of ['/studio', '/amministrazione']) {
   }
 }
 
+for (const route of ['/fatturazione', '/fatturazione/nuova', '/incassi-pagamenti']) {
+  const entry = (manifest.routes ?? []).find((item) => normaliseRoute(item.route) === route)
+  if (!entry || entry.status !== 'react_full' || entry.unlockFromGate !== true) {
+    violations.push(`${route}: deve essere react_full con unlockFromGate=true nella Tranche 6A`)
+  }
+  const stillBlocked = legacyOperationalPrefixes.some((prefix) => isPrefixMatch(route, prefix))
+  const stillShellBlocked = isBlockedBySpecialRule(route) || shellLegacyFirstPrefixes.some((prefix) => isPrefixMatch(route, prefix))
+  if (stillBlocked || stillShellBlocked) {
+    violations.push(`${route}: non deve restare bloccata da gate o shell legacy`)
+  }
+}
+
+for (const route of ['/fatturazione/*', '/impostazioni/pagamenti', '/preventivi', '/compensi-forensi', '/tariffario']) {
+  const entry = (manifest.routes ?? []).find((item) => item.route === route)
+  if (!entry || entry.status !== 'legacy_operational' || entry.unlockFromGate !== false) {
+    violations.push(`${route}: deve restare legacy_operational con unlockFromGate=false nella Tranche 6A`)
+  }
+}
+
 for (const snippet of [
   'lower.startswith("/backup/")',
   'lower.startswith("/sito-studio/") and lower not in {"/sito-studio/contatti"}',
   'lower.startswith("/studio/")',
   'lower.startswith("/amministrazione/")',
+  'lower.startswith("/fatturazione/") and lower != "/fatturazione/nuova"',
+  'lower.startswith("/incassi-pagamenti/")',
+  'lower == "/impostazioni/pagamenti" or lower.startswith("/impostazioni/pagamenti/")',
   'lower == "/impostazioni" or lower.startswith("/impostazioni/")',
   'lower == "/impostazioni-studio" or lower.startswith("/impostazioni-studio/")',
   'lower == "/sincronizzazione-calendari" or lower.startswith("/sincronizzazione-calendari/")',
@@ -186,6 +213,7 @@ const report = [
   `Route nel manifest: ${(manifest.routes ?? []).length}`,
   `Route con unlockFromGate=true: ${unlocked.length}`,
   `Route governate consentite: ${[...allowedReactUnlocks].join(', ')}`,
+  'Tranche 6A: promozione economica exact senza sottopercorsi sensibili.',
   `Violazioni: ${violations.length}`,
   '',
   ...violations.map((item) => `- ${item}`),
@@ -198,4 +226,4 @@ if (violations.length) {
   process.exit(1)
 }
 
-console.log('Route gate OK: Tranche 5A coerente.')
+console.log('Route gate OK: Tranche 6A coerente.')

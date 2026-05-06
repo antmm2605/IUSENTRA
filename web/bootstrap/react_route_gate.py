@@ -169,12 +169,10 @@ _LEGACY_OPERATIONAL_PREFIXES = (
     "/compensi-forensi",
     "/database",
     "/deposito/checklist",
-    "/fatturazione",
     "/giurisprudenza",
     "/guida/firma-digitale",
     "/impostazioni",
     "/impostazioni-studio",
-    "/incassi-pagamenti",
     "/legal-intelligence",
     "/notifiche",
     "/notifiche-whatsapp",
@@ -228,6 +226,12 @@ def _excluded(path: str) -> bool:
     if lower.startswith("/studio/"):
         return True
     if lower.startswith("/amministrazione/"):
+        return True
+    if lower.startswith("/fatturazione/") and lower != "/fatturazione/nuova":
+        return True
+    if lower.startswith("/incassi-pagamenti/"):
+        return True
+    if lower == "/impostazioni/pagamenti" or lower.startswith("/impostazioni/pagamenti/"):
         return True
     if lower == "/impostazioni" or lower.startswith("/impostazioni/"):
         return True

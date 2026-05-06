@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.198.92 - 2026-05-06
+
+- Promosse in React full le route economiche exact `/fatturazione`, `/fatturazione/nuova` e `/incassi-pagamenti`, con bridge backend read-only, endpoint UI GET e form React che invia al POST Flask legacy per la nuova parcella.
+- Mantenuti legacy dettagli, modifica, PDF, XML, export CSV, configurazione provider pagamenti, preventivi, compensi forensi e tariffario, senza nuovi fetch POST o calcoli fiscali canonici nel frontend.
+- Aggiunti check Tranche 6A per gate Flask, anti-segreti economici, anti-calcolo fiscale frontend, contratti React, runner sicuro e patch rollback separate.
+
 ## 2.198.91 - 2026-05-06
 
 - Promosse in React full le route `/studio` e `/amministrazione`, con hub dedicati, bridge backend reali, endpoint UI GET e gate aggiornato senza sbloccare subpath o impostazioni.

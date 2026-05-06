@@ -304,37 +304,73 @@
     {
       "route": "/fatturazione",
       "family": "economico",
-      "status": "legacy_operational",
+      "status": "react_full",
       "risk": "high",
       "targetComponent": "frontend/src/components/FatturazionePage.tsx",
       "targetData": "frontend/src/fatturazioneData.ts",
       "targetBridge": "web/services/react_fatturazione_bridge.py",
       "legacyContract": "artifacts/react-migration/legacy-contracts/fatturazione.json",
+      "unlockFromGate": true,
+      "mustPreserve": [
+        "archivio parcelle reale",
+        "KPI backend",
+        "dettagli legacy",
+        "PDF XML export legacy",
+        "nessuna scrittura diretta"
+      ]
+    },
+    {
+      "route": "/fatturazione/nuova",
+      "family": "economico",
+      "status": "react_full",
+      "risk": "high",
+      "targetComponent": "frontend/src/components/FatturazionePage.tsx",
+      "targetData": "frontend/src/fatturazioneData.ts",
+      "targetBridge": "web/services/react_fatturazione_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/fatturazione__nuova.json",
+      "unlockFromGate": true,
+      "mustPreserve": [
+        "POST legacy auditato",
+        "calcolo backend",
+        "CSRF e sessione Flask",
+        "nessun calcolo fiscale canonico React",
+        "nessun PDF/XML React"
+      ]
+    },
+    {
+      "route": "/fatturazione/*",
+      "family": "economico",
+      "status": "legacy_operational",
+      "risk": "high",
+      "targetComponent": "frontend/src/components/FatturazionePage.tsx",
+      "targetData": "frontend/src/fatturazioneData.ts",
+      "targetBridge": "web/services/react_fatturazione_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/fatturazione__detail.json",
       "unlockFromGate": false,
       "mustPreserve": [
-        "POST legacy auditati",
-        "download PDF",
-        "export CSV/XML",
-        "stati pagamento",
-        "link pagamento"
+        "dettaglio parcella",
+        "modifica",
+        "PDF",
+        "XML",
+        "download/export legacy"
       ]
     },
     {
       "route": "/incassi-pagamenti",
       "family": "economico",
-      "status": "legacy_operational",
+      "status": "react_full",
       "risk": "high",
       "targetComponent": "frontend/src/components/IncassiPagamentiPage.tsx",
       "targetData": "frontend/src/incassiPagamentiData.ts",
       "targetBridge": "web/services/react_incassi_pagamenti_bridge.py",
       "legacyContract": "artifacts/react-migration/legacy-contracts/incassi-pagamenti.json",
-      "unlockFromGate": false,
+      "unlockFromGate": true,
       "mustPreserve": [
-        "provider configurati",
-        "link incasso",
-        "webhook pagamento",
-        "stato parcella",
-        "segreti fuori dal payload UI"
+        "dashboard incassi sicura",
+        "stato provider aggregato",
+        "link fatturazione",
+        "configurazione provider legacy",
+        "nessuna scrittura diretta"
       ]
     },
     {

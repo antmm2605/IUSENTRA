@@ -1,0 +1,13 @@
+{
+  "path": "/fatturazione/*",
+  "captured_at": "2026-05-06T16:30:00+02:00",
+  "status": "legacy_operational",
+  "source": "tranche-6a-route-map",
+  "forms": [],
+  "downloads": [
+    "/fatturazione/<id>/pdf",
+    "/fatturazione/<id>/xml",
+    "/export/fatturazione.csv"
+  ],
+  "reason": "Dettagli, modifica, PDF, XML, export e azioni operative restano legacy; la tranche 6A consente in React solo /fatturazione e /fatturazione/nuova exact."
+}

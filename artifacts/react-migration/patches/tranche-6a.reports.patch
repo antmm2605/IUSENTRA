@@ -1,0 +1,699 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 928513e4..92ba7b7e 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -1,5 +1,11 @@
+ # Changelog
+
++## 2.198.92 - 2026-05-06
++
++- Promosse in React full le route economiche exact `/fatturazione`, `/fatturazione/nuova` e `/incassi-pagamenti`, con bridge backend read-only, endpoint UI GET e form React che invia al POST Flask legacy per la nuova parcella.
++- Mantenuti legacy dettagli, modifica, PDF, XML, export CSV, configurazione provider pagamenti, preventivi, compensi forensi e tariffario, senza nuovi fetch POST o calcoli fiscali canonici nel frontend.
++- Aggiunti check Tranche 6A per gate Flask, anti-segreti economici, anti-calcolo fiscale frontend, contratti React, runner sicuro e patch rollback separate.
++
+ ## 2.198.91 - 2026-05-06
+
+ - Promosse in React full le route `/studio` e `/amministrazione`, con hub dedicati, bridge backend reali, endpoint UI GET e gate aggiornato senza sbloccare subpath o impostazioni.
+diff --git a/Dockerfile b/Dockerfile
+index 961a7b82..c04106dc 100644
+--- a/Dockerfile
++++ b/Dockerfile
+@@ -1,4 +1,4 @@
+-#  version: 2.198.91
++#  version: 2.198.92
+ #  IUSENTRA | Dockerfile produzione
+
+ #  Build multi-stage:
+@@ -75,7 +75,7 @@ RUN mkdir -p /out && /tmp/dart-sass/sass --no-source-map --style=compressed \
+ FROM python:3.12-slim
+
+ LABEL org.opencontainers.image.title="IUSENTRA" \
+-      org.opencontainers.image.version="2.198.91" \
++      org.opencontainers.image.version="2.198.92" \
+       org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
+       org.opencontainers.image.created="2026-03-18"
+
+diff --git a/README.md b/README.md
+index b736a6f2..745d24b6 100644
+--- a/README.md
++++ b/README.md
+@@ -53,8 +53,8 @@ La repo oggi non è più solo un tool CLI per il Processo Civile Telematico: con
+ - Assistenza remota cliente sempre da `SUPERADMIN`, con schermo WebRTC, microfono opzionale, chat tecnica, audit, consensi ed escalation governata al controllo remoto avanzato esterno.
+ - `Sito Studio` nativo per ogni tenant: pagine a blocchi, articoli, servizi, professionisti, sedi, contatti, agenda appuntamenti pubblica e sito web pubblicabile senza WordPress esterno.
+ - Le sezioni pubbliche `Strumenti legali`, `Applicazioni` e `News giuridiche strutturate` non sono esposte in automatico: compaiono sul sito dello studio solo se l'amministratore del sito attiva i flag dedicati da `Sito Studio -> Impostazioni`.
+-- Migrazione React progressiva: la shell `/app-v2` convive con la UI Jinja attuale e usa API Flask reali; `Clienti e Anagrafiche`, `Soggetti e Parti`, `Comunicazioni`, `Servizi Telematici`, `Gestione Database` (`/admin/database`), `Statistiche`, `Audit`, `Registro attivita`, `Utenti` e `Profili e permessi` sono ora servite in React sui GET ufficiali, con salvataggi ancora sulle route Flask storiche dove presenti e fallback tecnico `_legacy=1`. Le superfici telematiche `PolisWeb / PST`, `PDP`, `PAT`, `PTT`, `Tribunali / PEC`, `Checklist deposito` e `Guida firma digitale` restano governate dai vincoli specifici di portale e non vengono promosse da questa tranche. `Regia Operativa`, `Ricerca Studio`, `Agenda`, `Nuovo Appuntamento` e la suite `Fascicoli` vivono rispettivamente in `/app-v2/regia-operativa`, `/app-v2/ricerca-studio`, `/app-v2/agenda`, `/app-v2/agenda/nuovo` e `/app-v2/fascicoli`. La suite fascicoli include lista, nuovo/modifica, archivio, dettaglio cabina fascicolo, quadro intelligente AI, editor professionale anche sulla route profonda `/fascicoli/<id>/documenti/<id_doc>/editor` con font/dimensioni/interlinea in stile studio, anteprima PDF nativa fedele all'originale per documenti impaginati con stemmi/timbri/firme e blocco professionale delle conversioni non affidabili, compilatore atti, anteprima documento interna anche per `.pdf.p7m`, upload senza reload ed export, con scritture ancora sulle route storiche per rollback immediato. Ogni pagina migrata viene collegata alla nav React, usa solo dati reali da repository/sessione/API/configurazione e nessuna pagina React viene annidata dentro un'altra durante la migrazione pagina per pagina.
+-- La migrazione React residua e' governata da `tools/react-migration/route-manifest.json` e dagli script `scripts/react-migration/*`: audit route, cattura contratti legacy, controllo gate, consistency UI e runner sicuro. La Tranche 5A abilita `/studio` e `/amministrazione` in React full come hub sicuri, mantenendo impostazioni, calendari, pagamenti, economico, mandato, documentale e telematico sui percorsi legacy fino a parita' dimostrata.
++- Migrazione React progressiva: la shell `/app-v2` convive con la UI Jinja attuale e usa API Flask reali; `Clienti e Anagrafiche`, `Soggetti e Parti`, `Comunicazioni`, `Servizi Telematici`, `Gestione Database` (`/admin/database`), `Statistiche`, `Audit`, `Registro attivita`, `Utenti`, `Profili e permessi`, `Studio`, `Amministrazione`, `Fatturazione`, `Nuova parcella` e `Incassi e pagamenti` sono ora servite in React sui GET ufficiali, con salvataggi ancora sulle route Flask storiche dove presenti e fallback tecnico `_legacy=1`. Le superfici telematiche `PolisWeb / PST`, `PDP`, `PAT`, `PTT`, `Tribunali / PEC`, `Checklist deposito` e `Guida firma digitale` restano governate dai vincoli specifici di portale e non vengono promosse da questa tranche. `Regia Operativa`, `Ricerca Studio`, `Agenda`, `Nuovo Appuntamento` e la suite `Fascicoli` vivono rispettivamente in `/app-v2/regia-operativa`, `/app-v2/ricerca-studio`, `/app-v2/agenda`, `/app-v2/agenda/nuovo` e `/app-v2/fascicoli`. La suite fascicoli include lista, nuovo/modifica, archivio, dettaglio cabina fascicolo, quadro intelligente AI, editor professionale anche sulla route profonda `/fascicoli/<id>/documenti/<id_doc>/editor` con font/dimensioni/interlinea in stile studio, anteprima PDF nativa fedele all'originale per documenti impaginati con stemmi/timbri/firme e blocco professionale delle conversioni non affidabili, compilatore atti, anteprima documento interna anche per `.pdf.p7m`, upload senza reload ed export, con scritture ancora sulle route storiche per rollback immediato. Ogni pagina migrata viene collegata alla nav React, usa solo dati reali da repository/sessione/API/configurazione e nessuna pagina React viene annidata dentro un'altra durante la migrazione pagina per pagina.
++- La migrazione React residua e' governata da `tools/react-migration/route-manifest.json` e dagli script `scripts/react-migration/*`: audit route, cattura contratti legacy, controllo gate, consistency UI e runner sicuro. La Tranche 6A abilita `/fatturazione`, `/fatturazione/nuova` e `/incassi-pagamenti` in React full come superfici economiche sicure, mantenendo dettagli fatture, modifica, PDF, XML, export CSV, provider pagamenti, preventivi, compensi forensi, tariffario, impostazioni, documentale e telematico sui percorsi legacy fino a parita' dimostrata.
+ - La pagina `Gestione Database` non si limita a segnalare anomalie referenziali: `Verifica e ripara` chiama una route Flask auditata, crea backup prima di scrivere e corregge automaticamente i riferimenti orfani risolvibili senza inventare dati.
+ - La superficie `Tribunali / PEC` distingue le PEC di deposito telematico dalle PEC amministrative/protocollo: PST e' fonte primaria per il deposito, IPA Open Data fonte secondaria per indirizzi amministrativi, e i siti ufficiali restano fallback/verifica manuale.
+ - Deploy Hetzner CPX42: il profilo [deploy/hetzner](deploy/hetzner/README.md), documentato anche in [docs/DEPLOY_HETZNER_CPX42.md](docs/DEPLOY_HETZNER_CPX42.md), prepara un server Ubuntu con Docker Compose, Caddy HTTPS, Redis, worker scheduler/OCR, backup e restore su `/opt/iusentra/data`, con retention backup governata e pannello Superadmin `Server e manutenzione` per consumi, hardlink e manutenzioni sicure.
+diff --git a/artifacts/react-migration/audit.md b/artifacts/react-migration/audit.md
+index 07701d86..e9a68e33 100644
+--- a/artifacts/react-migration/audit.md
++++ b/artifacts/react-migration/audit.md
+@@ -1,6 +1,6 @@
+ # Audit migrazione React
+
+-Generato: 2026-05-06T13:51:20.730Z
++Generato: 2026-05-06T14:31:03.242Z
+
+ ## Frontend
+
+@@ -12,12 +12,12 @@ Script disponibili: dev, test, typecheck, build, preview
+ Route React prefixes: 55
+ Route React exact: 43
+ Excluded prefixes: 14
+-Legacy operational prefixes: 33
++Legacy operational prefixes: 31
+
+ ## App React
+
+-Lazy components: 34
+-Route checks: 49
++Lazy components: 36
++Route checks: 51
+ Studio module routes: 52
+
+ ## Nota operativa
+diff --git a/artifacts/react-migration/route-gate.md b/artifacts/react-migration/route-gate.md
+index 2282750d..389dab83 100644
+--- a/artifacts/react-migration/route-gate.md
++++ b/artifacts/react-migration/route-gate.md
+@@ -1,6 +1,7 @@
+ # Route gate report
+
+-Route nel manifest: 32
+-Route con unlockFromGate=true: 10
+-Route governate consentite: /statistiche, /audit, /registro-attivita, /utenti, /profili, /backup, /sito-studio, /sito-studio/contatti, /studio, /amministrazione
++Route nel manifest: 34
++Route con unlockFromGate=true: 13
++Route governate consentite: /statistiche, /audit, /registro-attivita, /utenti, /profili, /backup, /sito-studio, /sito-studio/contatti, /studio, /amministrazione, /fatturazione, /fatturazione/nuova, /incassi-pagamenti
++Tranche 6A: promozione economica exact senza sottopercorsi sensibili.
+ Violazioni: 0
+diff --git a/artifacts/react-migration/route-inventory.json b/artifacts/react-migration/route-inventory.json
+index c8ba3a25..de43f01a 100644
+--- a/artifacts/react-migration/route-inventory.json
++++ b/artifacts/react-migration/route-inventory.json
+@@ -1,5 +1,5 @@
+ {
+-  "generatedAt": "2026-05-06T13:51:20.730Z",
++  "generatedAt": "2026-05-06T14:31:03.242Z",
+   "react": {
+     "dependencies": {
+       "@vitejs/plugin-react": "^5.0.0",
+@@ -150,12 +150,10 @@
+       "/compensi-forensi",
+       "/database",
+       "/deposito/checklist",
+-      "/fatturazione",
+       "/giurisprudenza",
+       "/guida/firma-digitale",
+       "/impostazioni",
+       "/impostazioni-studio",
+-      "/incassi-pagamenti",
+       "/legal-intelligence",
+       "/notifiche",
+       "/notifiche-whatsapp",
+@@ -316,6 +314,14 @@
+       {
+         "name": "AmministrazionePage",
+         "importPath": "./components/AmministrazionePage"
++      },
++      {
++        "name": "FatturazionePage",
++        "importPath": "./components/FatturazionePage"
++      },
++      {
++        "name": "IncassiPagamentiPage",
++        "importPath": "./components/IncassiPagamentiPage"
+       }
+     ],
+     "routeChecks": [
+@@ -365,6 +371,8 @@
+       "isSitoStudioPage",
+       "isStudioPage",
+       "isAmministrazionePage",
++      "isFatturazionePage",
++      "isIncassiPagamentiPage",
+       "isStudioModulePage",
+       "isDashboardPage",
+       "isStandalonePage"
+diff --git a/artifacts/react-migration/ui-consistency.md b/artifacts/react-migration/ui-consistency.md
+index fd02f28f..303a8f3f 100644
+--- a/artifacts/react-migration/ui-consistency.md
++++ b/artifacts/react-migration/ui-consistency.md
+@@ -1,4 +1,4 @@
+ # UI consistency report
+
+-File scansionati: 140
++File scansionati: 146
+ Violazioni: 0
+diff --git a/docs/REACT_MIGRATION_MASTER_PLAN.md b/docs/REACT_MIGRATION_MASTER_PLAN.md
+index bec1fe7d..cf7d3dde 100644
+--- a/docs/REACT_MIGRATION_MASTER_PLAN.md
++++ b/docs/REACT_MIGRATION_MASTER_PLAN.md
+@@ -1,5 +1,32 @@
+ # Migrazione progressiva Flask + React
+
++## Stato tranche 2026-05-06 - Tranche 6A economico sicuro
++
++La quinta promozione governata abilita il primo blocco economico exact in React
++senza spostare calcoli fiscali, documenti o provider fuori dalle route Flask
++legacy:
++
++- `/fatturazione` usa `web/services/react_fatturazione_bridge.py` e
++  `GET /api/v1/ui/fatturazione` per KPI reali, archivio parcelle/fatture,
++  stati, clienti, importi gia' presenti nel modello e link legacy sicuri.
++- `/fatturazione/nuova` usa lo stesso bridge e
++  `GET /api/v1/ui/fatturazione/nuova`, ma il submit resta un form HTML
++  `method="post"` verso la route legacy auditata; il calcolo finale resta nel
++  backend storico.
++- `/incassi-pagamenti` usa `web/services/react_incassi_pagamenti_bridge.py` e
++  `GET /api/v1/ui/incassi-pagamenti` per importi aggregati, stato provider in
++  forma sicura e collegamenti a configurazione provider legacy.
++- `/fatturazione/*`, PDF, XML, export CSV, `/impostazioni/pagamenti`,
++  `/preventivi`, `/compensi-forensi` e `/tariffario` restano legacy con
++  protezioni esplicite nel gate e nella shell.
++- `scripts/react-migration/check-tranche-6a-secrets.mjs` e
++  `scripts/react-migration/check-tranche-6a-no-fiscal-logic.mjs` bloccano
++  serializzazione di campi riservati e logica fiscale canonica nel frontend.
++- `run-safe-react-migration.mjs --tranche=6a` cattura i contratti legacy,
++  rilancia gate/UI/anti-segreti/anti-calcolo, verifica shell e bypass legacy
++  con Flask `test_client`, esegue test/typecheck/build frontend e genera patch
++  separate di rollback.
++
+ ## Stato tranche 2026-05-06 - Tranche 5A hub studio e amministrazione
+
+ La quarta promozione governata abilita due hub direzionali React exact senza
+diff --git a/pct/__init__.py b/pct/__init__.py
+index 871847c2..ab33c4a4 100644
+--- a/pct/__init__.py
++++ b/pct/__init__.py
+@@ -2,5 +2,5 @@
+ PCT - Processo Civile Telematico
+ Sistema per l'invio telematico negli studi legali italiani.
+ """
+-__version__ = "2.198.91"
++__version__ = "2.198.92"
+ __author__ = "IUSENTRA"
+diff --git a/railway.toml b/railway.toml
+index 5690d9dc..86fc99b0 100644
+--- a/railway.toml
++++ b/railway.toml
+@@ -1,6 +1,6 @@
+ #  Railway - Configurazione deploy
+ #  Docs: https://docs.railway.app
+-#  version: 2.198.91
++#  version: 2.198.92
+ #  redeploy: 06/05/2026 15:49:00
+
+ [build]
+diff --git a/setup.py b/setup.py
+index 1aeb0a55..f0f71412 100644
+--- a/setup.py
++++ b/setup.py
+@@ -10,7 +10,7 @@ from packaging_manifest import extras_requirements, read_version, runtime_requir
+
+ setup(
+     name="pct-studio-legale",
+-    # Versione applicativa 2.198.91, letta dalla source of truth pct.__init__
++    # Versione applicativa 2.198.92, letta dalla source of truth pct.__init__
+     version=read_version(),
+     description="IUSENTRA: gestionale web modulare per studi legali con PCT, Lex locale e servizi telematici",
+     packages=find_packages(),
+
+diff --git a/artifacts/react-migration/legacy-contracts/fatturazione__detail.json b/artifacts/react-migration/legacy-contracts/fatturazione__detail.json
+new file mode 100644
+index 00000000..8aaab007
+--- /dev/null
++++ b/artifacts/react-migration/legacy-contracts/fatturazione__detail.json
+@@ -0,0 +1,13 @@
++{
++  "path": "/fatturazione/*",
++  "captured_at": "2026-05-06T16:30:00+02:00",
++  "status": "legacy_operational",
++  "source": "tranche-6a-route-map",
++  "forms": [],
++  "downloads": [
++    "/fatturazione/<id>/pdf",
++    "/fatturazione/<id>/xml",
++    "/export/fatturazione.csv"
++  ],
++  "reason": "Dettagli, modifica, PDF, XML, export e azioni operative restano legacy; la tranche 6A consente in React solo /fatturazione e /fatturazione/nuova exact."
++}
+
+diff --git a/artifacts/react-migration/legacy-contracts/fatturazione__nuova.json b/artifacts/react-migration/legacy-contracts/fatturazione__nuova.json
+new file mode 100644
+index 00000000..b7cc7139
+--- /dev/null
++++ b/artifacts/react-migration/legacy-contracts/fatturazione__nuova.json
+@@ -0,0 +1,14 @@
++{
++  "route": "/fatturazione/nuova",
++  "legacyUrl": "/fatturazione/nuova?_legacy=1",
++  "status": 302,
++  "redirectLocation": "/login?next=/fatturazione/nuova?_legacy%3D1",
++  "forms": [],
++  "links": [
++    "/login?next=/fatturazione/nuova?_legacy%3D1"
++  ],
++  "linksCount": 1,
++  "downloads": [],
++  "hasBootstrapClass": false,
++  "hasReactRoot": false
++}
+\ No newline at end of file
+warning: in the working copy of 'artifacts/react-migration/legacy-contracts/fatturazione__nuova.json', CRLF will be replaced by LF the next time Git touches it
+
+diff --git a/artifacts/react-migration/tranche-6a-gate.md b/artifacts/react-migration/tranche-6a-gate.md
+new file mode 100644
+index 00000000..12d4c3d0
+--- /dev/null
++++ b/artifacts/react-migration/tranche-6a-gate.md
+@@ -0,0 +1,24 @@
++# Tranche 6A gate check
++
++- [OK] login tenant (status=302)
++- [OK] React shell /fatturazione (status=200)
++- [OK] React shell /fatturazione/nuova (status=200)
++- [OK] React shell /incassi-pagamenti (status=200)
++- [OK] Ancora legacy /fatturazione?_legacy=1 (status=308)
++- [OK] Ancora legacy /fatturazione/nuova?_legacy=1 (status=200)
++- [OK] Ancora legacy /fatturazione/qualunque (status=404)
++- [OK] Ancora legacy /fatturazione/qualunque/pdf (status=404)
++- [OK] Ancora legacy /fatturazione/qualunque/xml (status=404)
++- [OK] Ancora legacy /incassi-pagamenti?_legacy=1 (status=302)
++- [OK] Ancora legacy /incassi-pagamenti/qualunque (status=404)
++- [OK] Ancora legacy /impostazioni/pagamenti (status=200)
++- [OK] Ancora legacy /preventivi (status=308)
++- [OK] Ancora legacy /compensi-forensi (status=302)
++- [OK] Ancora legacy /tariffario (status=200)
++- [OK] JSON /api/v1/ui/fatturazione (status=200)
++- [OK] JSON /api/v1/ui/fatturazione/nuova (status=200)
++- [OK] JSON /api/v1/ui/incassi-pagamenti (status=200)
++- [OK] POST non intercettato /fatturazione/nuova (status=302)
++- [OK] POST non intercettato /fatturazione (status=404)
++- [OK] POST non intercettato /incassi-pagamenti (status=405)
++- [OK] POST non intercettato /impostazioni/pagamenti (status=302)
+warning: in the working copy of 'artifacts/react-migration/tranche-6a-gate.md', CRLF will be replaced by LF the next time Git touches it
+
+diff --git a/artifacts/react-migration/tranche-6a-no-fiscal-logic.md b/artifacts/react-migration/tranche-6a-no-fiscal-logic.md
+new file mode 100644
+index 00000000..e7e34461
+--- /dev/null
++++ b/artifacts/react-migration/tranche-6a-no-fiscal-logic.md
+@@ -0,0 +1,5 @@
++# Tranche 6A anti-calcolo frontend
++
++File controllati: 4
++
++Esito: OK, nessuna logica fiscale canonica nei nuovi file React 6A.
+
+diff --git a/artifacts/react-migration/tranche-6a-report.md b/artifacts/react-migration/tranche-6a-report.md
+new file mode 100644
+index 00000000..5a77b99d
+--- /dev/null
++++ b/artifacts/react-migration/tranche-6a-report.md
+@@ -0,0 +1,178 @@
++# Tranche 6A - Report finale
++
++Data/ora: 2026-05-06 16:30:14 +02:00
++
++Branch base richiesto: `claude/legal-electronic-filing-kIxcV`
++
++Branch locale: `Codex/legal-electronic-filing-kIxcV`
++
++## Route migrate
++
++- `/fatturazione` React full.
++- `/fatturazione/nuova` React full su GET, submit HTML verso POST legacy.
++- `/incassi-pagamenti` React full.
++
++## Route preparate ma lasciate legacy
++
++- `/fatturazione/*`
++- `/fatturazione/*/modifica`
++- `/fatturazione/*/pdf`
++- `/fatturazione/*/xml`
++- `/export/fatturazione.csv`
++- `/impostazioni/pagamenti`
++- `/preventivi`
++- `/compensi-forensi`
++- `/tariffario`
++
++## File creati
++
++- `web/services/react_fatturazione_bridge.py`
++- `web/services/react_incassi_pagamenti_bridge.py`
++- `frontend/src/fatturazioneData.ts`
++- `frontend/src/incassiPagamentiData.ts`
++- `frontend/src/components/FatturazionePage.tsx`
++- `frontend/src/components/FatturazionePage.css`
++- `frontend/src/components/IncassiPagamentiPage.tsx`
++- `frontend/src/components/IncassiPagamentiPage.css`
++- `scripts/react-migration/check-tranche-6a-gate.py`
++- `scripts/react-migration/check-tranche-6a-secrets.mjs`
++- `scripts/react-migration/check-tranche-6a-no-fiscal-logic.mjs`
++- `artifacts/react-migration/tranche-6a-route-map.md`
++- `artifacts/react-migration/tranche-6a-gate.md`
++- `artifacts/react-migration/tranche-6a-secrets.md`
++- `artifacts/react-migration/tranche-6a-no-fiscal-logic.md`
++- `artifacts/react-migration/legacy-contracts/fatturazione__detail.json`
++- `artifacts/react-migration/legacy-contracts/fatturazione__nuova.json`
++
++## File modificati
++
++- `web/blueprints/api_v1_react.py`
++- `web/bootstrap/react_route_gate.py`
++- `web/blueprints/react_shell.py`
++- `frontend/src/App.tsx`
++- `frontend/scripts/check-react-contracts.mjs`
++- `scripts/react-migration/check-route-gate.mjs`
++- `scripts/react-migration/run-safe-react-migration.mjs`
++- `tools/react-migration/route-manifest.json`
++- `CHANGELOG.md`
++- `README.md`
++- `docs/REACT_MIGRATION_MASTER_PLAN.md`
++- `pct/__init__.py`
++- `setup.py`
++- `Dockerfile`
++- `railway.toml`
++- `frontend/package.json`
++- `frontend/package-lock.json`
++- `web/static/react/*`
++
++## Endpoint aggiunti
++
++- `GET /api/v1/ui/fatturazione`
++- `GET /api/v1/ui/fatturazione/nuova`
++- `GET /api/v1/ui/incassi-pagamenti`
++
++## Gate modificato
++
++- Sbloccate solo le exact React `/fatturazione`, `/fatturazione/nuova` e `/incassi-pagamenti`.
++- Aggiunte protezioni per `/fatturazione/*` diverso da `/fatturazione/nuova`.
++- Aggiunte protezioni per `/incassi-pagamenti/*`.
++- Confermate legacy `/impostazioni/pagamenti`, `/preventivi`, `/compensi-forensi` e `/tariffario`.
++- Conservato supporto `?_legacy=1`.
++
++## Route ancora bloccate
++
++- Dettagli, modifica, PDF, XML ed export di fatturazione.
++- Configurazione provider pagamenti.
++- Preventivi, compensi forensi e tariffario.
++- Route documentali, impostazioni e telematiche non appartenenti alla tranche.
++
++## Contratti legacy catturati
++
++- `artifacts/react-migration/legacy-contracts/fatturazione.json`
++- `artifacts/react-migration/legacy-contracts/fatturazione__nuova.json`
++- `artifacts/react-migration/legacy-contracts/fatturazione__detail.json`
++- `artifacts/react-migration/legacy-contracts/incassi-pagamenti.json`
++- `artifacts/react-migration/legacy-contracts/impostazioni__pagamenti.json`
++- `artifacts/react-migration/legacy-contracts/preventivi.json`
++- `artifacts/react-migration/legacy-contracts/compensi-forensi.json`
++- `artifacts/react-migration/legacy-contracts/tariffario.json`
++
++## Permessi verificati
++
++- Le route legacy economiche risultano protette da sessione Flask.
++- Gli endpoint React richiedono `_richiedi_auth` e sessione utente corrente, senza accesso economico via API key.
++- Non sono stati modificati RBAC, permessi o helper legacy.
++
++## POST legacy preservati
++
++- `POST /fatturazione/nuova` resta nel blueprint Flask legacy.
++- I form React usano submit HTML verso route legacy, non fetch POST.
++- Nessun endpoint POST, delete o update nuovo e' stato creato.
++
++## PDF/XML/export lasciati legacy
++
++- Generazione e download PDF restano legacy.
++- Generazione e download XML restano legacy.
++- Export CSV resta legacy.
++- La UI React mostra solo link legacy se esposti dal bridge.
++
++## Provider pagamento lasciati legacy
++
++- La configurazione provider resta su `/impostazioni/pagamenti?_legacy=1`.
++- Lo stato provider e' esposto solo come label sicura.
++- Nessun dato riservato provider viene serializzato nel payload React.
++
++## Preventivi/compensi/tariffario lasciati legacy
++
++- `/preventivi` resta `legacy_operational`.
++- `/compensi-forensi` resta `legacy_operational`.
++- `/tariffario` resta `legacy_operational`.
++
++## Esito controllo anti-segreti
++
++- `node scripts/react-migration/check-tranche-6a-secrets.mjs`: PASS.
++- Report: `artifacts/react-migration/tranche-6a-secrets.md`.
++
++## Esito controllo anti-calcolo frontend
++
++- `node scripts/react-migration/check-tranche-6a-no-fiscal-logic.mjs`: PASS.
++- Report: `artifacts/react-migration/tranche-6a-no-fiscal-logic.md`.
++
++## Test eseguiti
++
++- `node scripts/react-migration/check-route-gate.mjs`: PASS.
++- `node scripts/react-migration/check-ui-consistency.mjs`: PASS.
++- `node scripts/react-migration/check-tranche-6a-secrets.mjs`: PASS.
++- `node scripts/react-migration/check-tranche-6a-no-fiscal-logic.mjs`: PASS.
++- `python scripts/react-migration/check-tranche-6a-gate.py`: PASS.
++- `cd frontend && npm run test`: PASS.
++- `cd frontend && npm run typecheck`: PASS.
++- `cd frontend && npm run build`: PASS.
++
++## Esiti richiesti
++
++- `npm run test`: PASS.
++- `npm run typecheck`: PASS.
++- `npm run build`: PASS.
++- `check-ui-consistency`: PASS.
++- `check-route-gate`: PASS.
++- `check-tranche-6a-gate`: PASS.
++
++## Limiti test Flask
++
++- Il test harness ha consentito autenticazione con `test_client`, quindi non sono stati applicati bypass o skip.
++
++## Rischi residui
++
++- La lista React non invoca la scrittura legacy `aggiorna_scadute()` eseguita dal GET storico di `/fatturazione`; gli stati mostrati sono quelli gia' persistiti dal repository.
++- Le operazioni avanzate economiche restano volutamente in legacy fino a parita' funzionale completa.
++- Il runner finale viene eseguito con `ALLOW_DIRTY=1` per la presenza di modifiche runtime preesistenti fuori perimetro nei JSON di `data/`, non incluse nella tranche.
++
++## Rollback
++
++```bash
++git apply -R artifacts/react-migration/patches/tranche-6a.backend.patch
++git apply -R artifacts/react-migration/patches/tranche-6a.frontend.patch
++git apply -R artifacts/react-migration/patches/tranche-6a.gate.patch
++git apply -R artifacts/react-migration/patches/tranche-6a.tests.patch
++```
+
+diff --git a/artifacts/react-migration/tranche-6a-route-map.md b/artifacts/react-migration/tranche-6a-route-map.md
+new file mode 100644
+index 00000000..6a05da3d
+--- /dev/null
++++ b/artifacts/react-migration/tranche-6a-route-map.md
+@@ -0,0 +1,184 @@
++# Tranche 6A route map
++
++Data: 2026-05-06
++Branch base: claude/legal-electronic-filing-kIxcV
++
++## /fatturazione
++
++- Handler legacy: `web/blueprints/fatturazione.py`
++- Funzione: `lista`
++- Template: `web/templates/fatturazione/lista.html`
++- Repository/manager: `web.helpers.get_fatturazione`, `web.helpers.get_clienti`
++- Permessi: sessione Flask richiesta tramite `_richiedi_login`; nessun `ha_permesso` specifico nel legacy.
++- Form presenti: filtro GET per anno, stato, cliente, ricerca testuale.
++- POST presenti: nessun POST sulla lista.
++- Action form: `/fatturazione` con query string.
++- Method form: `get`.
++- CSRF: non richiesto per filtro GET.
++- Download/export: link operativi verso PDF dettaglio e voce export legacy.
++- PDF/XML: non generati dalla lista, solo link a route legacy.
++- Calcoli fiscali: KPI da `GestioneFatturazione.statistiche(anno)`; nessun calcolo React canonico.
++- Provider pagamento: nessuna configurazione provider nella lista.
++- Webhook: assenti.
++- Dati sensibili: non esposti dal bridge; dati studio fiscali non serializzati.
++- Esito: sbloccabile come archivio React read-only con link legacy per dettagli, PDF, XML, export e stati.
++
++## /fatturazione/nuova
++
++- Handler legacy: `web/blueprints/fatturazione.py`
++- Funzione: `nuova`
++- Template: `web/templates/fatturazione/form.html`
++- Repository/manager: `get_clienti`, `get_fascicoli`, `get_fatturazione`, `get_preventivi`
++- Permessi: sessione Flask richiesta tramite `_richiedi_login`; nessun `ha_permesso` specifico nel legacy.
++- Form presenti: form parcella con cliente, pratica, date, voci, opzioni fiscali, note e campi di contesto.
++- POST presenti: `POST /fatturazione/nuova` crea parcella con `GestioneFatturazione.crea`.
++- Action form: `/fatturazione/nuova`.
++- Method form: `post`.
++- CSRF: gestito dal form HTML standard e dal meta CSRF della shell React se presente.
++- Download/export: assenti nel GET.
++- PDF/XML: assenti nel GET; produzione documentale dopo creazione resta su route legacy.
++- Calcoli fiscali: legacy esegue calcolo nel modello `pct.fatturazione.Parcella`; React non replica anteprima o formule.
++- Provider pagamento: assenti.
++- Webhook: assenti.
++- Dati sensibili: il legacy legge dati studio fiscali da config durante il POST; il bridge React non li espone.
++- Esito: sbloccabile solo come GET React con `LegacyPostForm` verso il POST legacy.
++
++## /fatturazione/*
++
++- Handler legacy: `web/blueprints/fatturazione.py`
++- Funzioni: `da_preventivo`, `dettaglio`, `cambia_stato`, `elimina`, `pdf`, `xml_fattura_pa`, `ajax_fascicoli`
++- Template: `fatturazione/dettaglio.html`, output PDF/XML, JSON AJAX.
++- Repository/manager: `get_fatturazione`, `get_clienti`, `get_fascicoli`, `get_pagamenti`, `get_preventivi`
++- Permessi: sessione Flask richiesta.
++- Form presenti: cambio stato, eliminazione, creazione link pagamento e azioni dettaglio.
++- POST presenti: stato parcella, eliminazione, creazione link pagamento.
++- Action form: `/fatturazione/<id>/stato`, `/fatturazione/<id>/elimina`, `/fatturazione/<id>/link-pagamento`.
++- Method form: `post`.
++- CSRF: preservato dal legacy.
++- Download/export: PDF e XML via route dedicate; CSV su blueprint export.
++- PDF/XML: presenti e generati dal legacy.
++- Calcoli fiscali: dettaglio e documenti usano il modello backend e generatori esistenti.
++- Provider pagamento: link pagamento legacy collegato al pannello provider.
++- Webhook: non su dettaglio, ma correlato al dominio pagamenti.
++- Dati sensibili: documenti fiscali e dati studio completi restano nel legacy.
++- Esito: deve restare legacy; il gate blocca ogni sottopercorso diverso da `/fatturazione/nuova`.
++
++## /incassi-pagamenti
++
++- Handler legacy: `web/blueprints/terminology_aliases.py`
++- Funzione: `incassi_pagamenti`
++- Template: nessuno; redirect a `/impostazioni/pagamenti`.
++- Repository/manager: nel nuovo bridge read-only `get_fatturazione`, `get_pagamenti`, `get_clienti`.
++- Permessi: sessione Flask richiesta come legacy.
++- Form presenti: nessuno nella route alias.
++- POST presenti: nessuno sulla route exact.
++- Action form: non applicabile.
++- Method form: non applicabile.
++- CSRF: non applicabile.
++- Download/export: assenti.
++- PDF/XML: assenti.
++- Calcoli fiscali: KPI incassi letti da statistiche backend; nessuna formula React.
++- Provider pagamento: stato aggregato enabled/disabled/label, senza configurazioni.
++- Webhook: restano sulle route `/webhooks/*` legacy.
++- Dati sensibili: non serializzati; link checkout pubblici non esposti.
++- Esito: sbloccabile come dashboard React sicura senza form provider.
++
++## /impostazioni/pagamenti
++
++- Handler legacy: `web/blueprints/pagamenti.py`
++- Funzione: `impostazioni_pagamenti`
++- Template: `web/templates/pagamenti/impostazioni.html`
++- Repository/manager: `web.helpers.get_pagamenti`
++- Permessi: sessione Flask richiesta.
++- Form presenti: configurazione provider Stripe, PayPal, Satispay, SumUp e bonifico.
++- POST presenti: `POST /impostazioni/pagamenti` salva configurazione provider.
++- Action form: `/impostazioni/pagamenti`.
++- Method form: `post`.
++- CSRF: preservato dal legacy.
++- Download/export: assenti.
++- PDF/XML: assenti.
++- Calcoli fiscali: assenti.
++- Provider pagamento: configurazioni complete e credenziali operative.
++- Webhook: configurazione collegata a `/webhooks/stripe`, `/webhooks/paypal`, `/webhooks/satispay`, `/webhooks/sumup`.
++- Dati sensibili: provider, chiavi, credenziali bancarie e webhook.
++- Esito: deve restare legacy; React mostra solo link a `/impostazioni/pagamenti?_legacy=1`.
++
++## /preventivi
++
++- Handler legacy: `web/blueprints/preventivi.py`
++- Funzione principale: `lista`
++- Template: template preventivi e wizard dedicati.
++- Repository/manager: `get_preventivi`, `get_clienti`, `get_fascicoli`, servizi workflow commerciale.
++- Permessi: sessione Flask richiesta.
++- Form presenti: nuovo preventivo, wizard, stati, conferimento, eliminazione e workflow.
++- POST presenti: molteplici POST auditati per preventivo e mandato.
++- Action form: route sotto `/preventivi/*`.
++- Method form: `post`.
++- CSRF: preservato dal legacy.
++- Download/export: PDF preventivo e documenti collegati.
++- PDF/XML: PDF presenti.
++- Calcoli fiscali: tariffario, compensi, fasi e conferimento incarico.
++- Provider pagamento: collegamenti indiretti al ciclo incasso.
++- Webhook: assenti.
++- Dati sensibili: dati mandato e preventivi completi.
++- Esito: deve restare legacy in questa tranche.
++
++## /compensi-forensi
++
++- Handler legacy: `web/blueprints/terminology_aliases.py`
++- Funzione: `compensi_forensi`
++- Template: nessuno; redirect a `/tariffario`.
++- Repository/manager: motore tariffario tramite route `/tariffario`.
++- Permessi: eredita il legacy tariffario.
++- Form presenti: sul tariffario.
++- POST presenti: sul tariffario.
++- Action form: `/tariffario`.
++- Method form: `post`.
++- CSRF: preservato dal legacy.
++- Download/export: generazione preventivo collegata.
++- PDF/XML: non direct.
++- Calcoli fiscali: motore compensi forensi completo.
++- Provider pagamento: assenti.
++- Webhook: assenti.
++- Dati sensibili: contesto pratica e valori economici.
++- Esito: deve restare legacy.
++
++## /tariffario
++
++- Handler legacy: `web/bootstrap/tariffario_routes.py`
++- Funzione: `tariffario`
++- Template: `web/templates/tariffario.html`
++- Repository/manager: `pct.tariffario`, `pct.tariffario_catalogo`, `web.services.tariffario_runtime`
++- Permessi: sessione Flask e route legacy.
++- Form presenti: calcolo compensi, fasi, valore controversia, parametri e integrazione preventivo.
++- POST presenti: calcolo tariffario e generazione flussi collegati.
++- Action form: `/tariffario`.
++- Method form: `post`.
++- CSRF: preservato dal legacy.
++- Download/export: collegamenti a preventivo/documenti generati.
++- PDF/XML: non direct nella route base.
++- Calcoli fiscali: motore D.M. 55 e tabelle normative.
++- Provider pagamento: assenti.
++- Webhook: assenti.
++- Dati sensibili: valori causa, contesto pratica e log calcolo.
++- Esito: deve restare legacy; non sostituibile da dashboard React.
++
++## /export/fatturazione.csv
++
++- Handler legacy: `web/blueprints/export_csv.py`
++- Funzione: `fatturazione_csv`
++- Template: nessuno, response CSV.
++- Repository/manager: `get_fatturazione`, `get_clienti`.
++- Permessi: sessione Flask richiesta.
++- Form presenti: assenti.
++- POST presenti: assenti.
++- Action form: non applicabile.
++- Method form: GET download.
++- CSRF: non richiesto.
++- Download/export: CSV legacy.
++- PDF/XML: assenti.
++- Calcoli fiscali: importi gia' presenti nel modello.
++- Provider pagamento: assenti.
++- Webhook: assenti.
++- Dati sensibili: esportazione economica completa.
++- Esito: deve restare legacy; il gate non intercetta file `.csv`.
+
+diff --git a/artifacts/react-migration/tranche-6a-secrets.md b/artifacts/react-migration/tranche-6a-secrets.md
+new file mode 100644
+index 00000000..d6143084
+--- /dev/null
++++ b/artifacts/react-migration/tranche-6a-secrets.md
+@@ -0,0 +1,5 @@
++# Tranche 6A anti-segreti economici
++
++File controllati: 6
++
++Esito: OK, nessun pattern vietato nei nuovi file 6A.

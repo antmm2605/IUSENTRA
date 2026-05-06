@@ -89,6 +89,14 @@ from web.services.react_amministrazione_bridge import (
     build_react_amministrazione_error_payload,
     build_react_amministrazione_payload,
 )
+from web.services.react_fatturazione_bridge import (
+    build_react_fatturazione_error_payload,
+    build_react_fatturazione_payload,
+)
+from web.services.react_incassi_pagamenti_bridge import (
+    build_react_incassi_pagamenti_error_payload,
+    build_react_incassi_pagamenti_payload,
+)
 from web.services.react_studio_module_bridge import build_react_studio_module_payload
 from web.services.react_telematico_bridge import (
     build_react_telematico_payload,
@@ -108,6 +116,7 @@ from web.helpers import (
     get_clienti,
     get_fascicoli,
     get_fatturazione,
+    get_pagamenti,
     get_practice_engine,
     get_giurisprudenza,
     get_preventivi,
@@ -2455,6 +2464,79 @@ def amministrazione_page():
         return jsonify(
             build_react_amministrazione_error_payload(
                 "Amministrazione non disponibile dal runtime corrente."
+            )
+        ), 200
+
+
+@api_v1_react.get("/fatturazione")
+@_richiedi_auth
+def fatturazione_page():
+    utente = g.get("utente_corrente")
+    if not utente:
+        return jsonify(build_react_fatturazione_error_payload("Sessione utente richiesta.")), 403
+    try:
+        return jsonify(
+            build_react_fatturazione_payload(
+                get_fatturazione=get_fatturazione,
+                get_clienti=get_clienti,
+                get_fascicoli=get_fascicoli,
+                query=dict(request.args),
+                route="/fatturazione",
+            )
+        )
+    except Exception as exc:
+        current_app.logger.exception("Errore Fatturazione React bridge: %s", exc)
+        return jsonify(
+            build_react_fatturazione_error_payload(
+                "Fatturazione non disponibile dal runtime corrente."
+            )
+        ), 200
+
+
+@api_v1_react.get("/fatturazione/nuova")
+@_richiedi_auth
+def fatturazione_nuova_page():
+    utente = g.get("utente_corrente")
+    if not utente:
+        return jsonify(build_react_fatturazione_error_payload("Sessione utente richiesta.")), 403
+    try:
+        return jsonify(
+            build_react_fatturazione_payload(
+                get_fatturazione=get_fatturazione,
+                get_clienti=get_clienti,
+                get_fascicoli=get_fascicoli,
+                query=dict(request.args),
+                route="/fatturazione/nuova",
+            )
+        )
+    except Exception as exc:
+        current_app.logger.exception("Errore Nuova Fatturazione React bridge: %s", exc)
+        return jsonify(
+            build_react_fatturazione_error_payload(
+                "Form parcella non disponibile dal runtime corrente."
+            )
+        ), 200
+
+
+@api_v1_react.get("/incassi-pagamenti")
+@_richiedi_auth
+def incassi_pagamenti_page():
+    utente = g.get("utente_corrente")
+    if not utente:
+        return jsonify(build_react_incassi_pagamenti_error_payload("Sessione utente richiesta.")), 403
+    try:
+        return jsonify(
+            build_react_incassi_pagamenti_payload(
+                get_fatturazione=get_fatturazione,
+                get_pagamenti=get_pagamenti,
+                get_clienti=get_clienti,
+            )
+        )
+    except Exception as exc:
+        current_app.logger.exception("Errore Incassi Pagamenti React bridge: %s", exc)
+        return jsonify(
+            build_react_incassi_pagamenti_error_payload(
+                "Incassi e pagamenti non disponibili dal runtime corrente."
             )
         ), 200
 

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-06T13:51:20.730Z",
+  "generatedAt": "2026-05-06T14:31:03.242Z",
   "react": {
     "dependencies": {
       "@vitejs/plugin-react": "^5.0.0",
@@ -150,12 +150,10 @@
       "/compensi-forensi",
       "/database",
       "/deposito/checklist",
-      "/fatturazione",
       "/giurisprudenza",
       "/guida/firma-digitale",
       "/impostazioni",
       "/impostazioni-studio",
-      "/incassi-pagamenti",
       "/legal-intelligence",
       "/notifiche",
       "/notifiche-whatsapp",
@@ -316,6 +314,14 @@
       {
         "name": "AmministrazionePage",
         "importPath": "./components/AmministrazionePage"
+      },
+      {
+        "name": "FatturazionePage",
+        "importPath": "./components/FatturazionePage"
+      },
+      {
+        "name": "IncassiPagamentiPage",
+        "importPath": "./components/IncassiPagamentiPage"
       }
     ],
     "routeChecks": [
@@ -365,6 +371,8 @@
       "isSitoStudioPage",
       "isStudioPage",
       "isAmministrazionePage",
+      "isFatturazionePage",
+      "isIncassiPagamentiPage",
       "isStudioModulePage",
       "isDashboardPage",
       "isStandalonePage"

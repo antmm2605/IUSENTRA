@@ -1,0 +1,679 @@
+diff --git a/web/blueprints/api_v1_react.py b/web/blueprints/api_v1_react.py
+index a47d3a0d..79ffb29a 100644
+--- a/web/blueprints/api_v1_react.py
++++ b/web/blueprints/api_v1_react.py
+@@ -89,6 +89,14 @@ from web.services.react_amministrazione_bridge import (
+     build_react_amministrazione_error_payload,
+     build_react_amministrazione_payload,
+ )
++from web.services.react_fatturazione_bridge import (
++    build_react_fatturazione_error_payload,
++    build_react_fatturazione_payload,
++)
++from web.services.react_incassi_pagamenti_bridge import (
++    build_react_incassi_pagamenti_error_payload,
++    build_react_incassi_pagamenti_payload,
++)
+ from web.services.react_studio_module_bridge import build_react_studio_module_payload
+ from web.services.react_telematico_bridge import (
+     build_react_telematico_payload,
+@@ -108,6 +116,7 @@ from web.helpers import (
+     get_clienti,
+     get_fascicoli,
+     get_fatturazione,
++    get_pagamenti,
+     get_practice_engine,
+     get_giurisprudenza,
+     get_preventivi,
+@@ -2459,6 +2468,79 @@ def amministrazione_page():
+         ), 200
+
+
++@api_v1_react.get("/fatturazione")
++@_richiedi_auth
++def fatturazione_page():
++    utente = g.get("utente_corrente")
++    if not utente:
++        return jsonify(build_react_fatturazione_error_payload("Sessione utente richiesta.")), 403
++    try:
++        return jsonify(
++            build_react_fatturazione_payload(
++                get_fatturazione=get_fatturazione,
++                get_clienti=get_clienti,
++                get_fascicoli=get_fascicoli,
++                query=dict(request.args),
++                route="/fatturazione",
++            )
++        )
++    except Exception as exc:
++        current_app.logger.exception("Errore Fatturazione React bridge: %s", exc)
++        return jsonify(
++            build_react_fatturazione_error_payload(
++                "Fatturazione non disponibile dal runtime corrente."
++            )
++        ), 200
++
++
++@api_v1_react.get("/fatturazione/nuova")
++@_richiedi_auth
++def fatturazione_nuova_page():
++    utente = g.get("utente_corrente")
++    if not utente:
++        return jsonify(build_react_fatturazione_error_payload("Sessione utente richiesta.")), 403
++    try:
++        return jsonify(
++            build_react_fatturazione_payload(
++                get_fatturazione=get_fatturazione,
++                get_clienti=get_clienti,
++                get_fascicoli=get_fascicoli,
++                query=dict(request.args),
++                route="/fatturazione/nuova",
++            )
++        )
++    except Exception as exc:
++        current_app.logger.exception("Errore Nuova Fatturazione React bridge: %s", exc)
++        return jsonify(
++            build_react_fatturazione_error_payload(
++                "Form parcella non disponibile dal runtime corrente."
++            )
++        ), 200
++
++
++@api_v1_react.get("/incassi-pagamenti")
++@_richiedi_auth
++def incassi_pagamenti_page():
++    utente = g.get("utente_corrente")
++    if not utente:
++        return jsonify(build_react_incassi_pagamenti_error_payload("Sessione utente richiesta.")), 403
++    try:
++        return jsonify(
++            build_react_incassi_pagamenti_payload(
++                get_fatturazione=get_fatturazione,
++                get_pagamenti=get_pagamenti,
++                get_clienti=get_clienti,
++            )
++        )
++    except Exception as exc:
++        current_app.logger.exception("Errore Incassi Pagamenti React bridge: %s", exc)
++        return jsonify(
++            build_react_incassi_pagamenti_error_payload(
++                "Incassi e pagamenti non disponibili dal runtime corrente."
++            )
++        ), 200
++
++
+ @api_v1_react.get("/agenda")
+ @_richiedi_auth
+ def agenda():
+
+diff --git a/web/services/react_fatturazione_bridge.py b/web/services/react_fatturazione_bridge.py
+new file mode 100644
+index 00000000..01987223
+--- /dev/null
++++ b/web/services/react_fatturazione_bridge.py
+@@ -0,0 +1,313 @@
++"""Bridge read-only per le superfici React di fatturazione."""
++
++from __future__ import annotations
++
++from datetime import date, datetime, timedelta, timezone
++from typing import Any, Callable
++
++
++def _iso_now() -> str:
++    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
++
++
++def _text(value: Any) -> str:
++    return str(value or "").strip()
++
++
++def _enum(value: Any) -> str:
++    return _text(getattr(value, "value", value))
++
++
++def _money(value: Any) -> str:
++    try:
++        amount = float(value or 0)
++    except (TypeError, ValueError):
++        amount = 0.0
++    return f"EUR {amount:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
++
++
++def _date_label(value: Any) -> str:
++    raw = _text(value)
++    if not raw:
++        return ""
++    try:
++        parsed = date.fromisoformat(raw[:10])
++        return parsed.strftime("%d/%m/%Y")
++    except ValueError:
++        return raw[:10]
++
++
++def _status_tone(status: str) -> str:
++    return {
++        "PAGATA": "success",
++        "EMESSA": "primary",
++        "SCADUTA": "danger",
++        "ANNULLATA": "neutral",
++        "BOZZA": "warning",
++    }.get(status.upper(), "neutral")
++
++
++def _status_label(status: str) -> str:
++    return {
++        "PAGATA": "Pagata",
++        "EMESSA": "Emessa",
++        "SCADUTA": "Scaduta",
++        "ANNULLATA": "Annullata",
++        "BOZZA": "Bozza",
++    }.get(status.upper(), status or "Non indicato")
++
++
++def _metric(mid: str, label: str, value: Any, note: str, tone: str) -> dict[str, Any]:
++    return {"id": mid, "label": label, "value": value, "note": note, "tone": tone}
++
++
++def _item(iid: str, label: str, value: Any, note: str = "", tone: str = "neutral") -> dict[str, Any]:
++    return {"id": iid, "label": label, "value": value, "note": note, "tone": tone}
++
++
++def _section(sid: str, title: str, kind: str, items: list[dict[str, Any]], empty: str) -> dict[str, Any]:
++    return {"id": sid, "title": title, "kind": kind, "items": items, "emptyMessage": empty}
++
++
++def _action(aid: str, label: str, href: str, tone: str = "neutral") -> dict[str, Any]:
++    return {"id": aid, "label": label, "href": href, "method": "GET", "tone": tone}
++
++
++def _option(value: Any, label: str, description: str = "") -> dict[str, Any]:
++    return {
++        "value": _text(value),
++        "label": label,
++        "description": description,
++        "enabled": True,
++    }
++
++
++def _safe_all(loader: Callable[[], Any], method: str, warnings: list[dict[str, str]], label: str) -> list[Any]:
++    try:
++        manager = loader()
++        func = getattr(manager, method, None)
++        if callable(func):
++            return list(func())
++    except Exception as exc:
++        warnings.append({
++            "code": f"{label}_non_disponibile",
++            "message": f"Sorgente {label} non disponibile: {type(exc).__name__}.",
++        })
++    return []
++
++
++def _client_label(cliente: Any) -> str:
++    return (
++        _text(getattr(cliente, "nome_completo", ""))
++        or _text(getattr(cliente, "denominazione", ""))
++        or _text(getattr(cliente, "nome", ""))
++        or "Cliente non indicato"
++    )
++
++
++def _case_label(fascicolo: Any) -> str:
++    title = _text(getattr(fascicolo, "titolo", "")) or _text(getattr(fascicolo, "oggetto", ""))
++    rg = _text(getattr(fascicolo, "numero_rg", ""))
++    if title and rg:
++        return f"{title} - RG {rg}"
++    return title or rg or "Pratica senza titolo"
++
++
++def _invoice_record(parcella: Any, clienti: dict[str, Any], fascicoli: dict[str, Any]) -> dict[str, Any]:
++    pid = _text(getattr(parcella, "id", ""))
++    status = _enum(getattr(parcella, "stato", ""))
++    id_cliente = _text(getattr(parcella, "id_cliente", ""))
++    id_fascicolo = _text(getattr(parcella, "id_fascicolo", ""))
++    return {
++        "id": pid,
++        "number": _text(getattr(parcella, "numero", "")) or pid,
++        "customerName": _client_label(clienti.get(id_cliente)),
++        "caseTitle": _case_label(fascicoli.get(id_fascicolo)) if id_fascicolo else "",
++        "amountDisplay": _money(getattr(parcella, "totale", 0)),
++        "issuedAt": _date_label(getattr(parcella, "data_emissione", "")),
++        "dueAt": _date_label(getattr(parcella, "data_scadenza", "")),
++        "paidAt": _date_label(getattr(parcella, "data_pagamento", "")),
++        "state": status,
++        "stateLabel": _status_label(status),
++        "stateTone": _status_tone(status),
++        "paymentMethod": _text(getattr(parcella, "metodo_pagamento", "")),
++        "detailHref": f"/fatturazione/{pid}?_legacy=1" if pid else "",
++        "pdfHref": f"/fatturazione/{pid}/pdf?_legacy=1" if pid else "",
++        "xmlHref": f"/fatturazione/{pid}/xml?_legacy=1" if pid else "",
++    }
++
++
++def _form_payload(clienti: list[Any], fascicoli: list[Any], query: dict[str, Any] | None) -> dict[str, Any]:
++    args = query or {}
++    today = date.today()
++    due = today + timedelta(days=30)
++    customer_options = [_option("", "Seleziona cliente")]
++    customer_options.extend(_option(getattr(cliente, "id", ""), _client_label(cliente)) for cliente in clienti)
++    case_options = [_option("", "Nessuna pratica")]
++    case_options.extend(_option(getattr(fascicolo, "id", ""), _case_label(fascicolo)) for fascicolo in fascicoli)
++
++    hidden_fields = [
++        "from_cliente",
++        "origine",
++        "id_preventivo",
++        "id_pratica",
++        "area_pratica",
++        "tipo_compenso",
++        "tipo_procedimento",
++        "valore_controversia",
++        "complessita",
++        "log_calcolo",
++    ]
++
++    fields: list[dict[str, Any]] = [
++        {
++            "name": "id_cliente",
++            "label": "Cliente",
++            "type": "select",
++            "required": True,
++            "value": _text(args.get("id_cliente") or args.get("from_cliente")),
++            "options": customer_options,
++        },
++        {
++            "name": "id_fascicolo",
++            "label": "Pratica",
++            "type": "select",
++            "required": False,
++            "value": _text(args.get("id_fascicolo")),
++            "options": case_options,
++        },
++    ]
++    fields.extend({
++        "name": name,
++        "label": name,
++        "type": "hidden",
++        "value": _text(args.get(name)),
++    } for name in hidden_fields)
++
++    amount_prefill = _text(args.get("importo"))
++    return {
++        "id": "nuova_parcella",
++        "title": "Nuova parcella",
++        "description": "Il form invia al POST legacy: importi finali, imposte, PDF e XML restano calcolati dal backend.",
++        "action": "/fatturazione/nuova",
++        "method": "POST",
++        "submitLabel": "Crea parcella",
++        "enabled": True,
++        "fields": fields,
++        "defaults": {
++            "issuedAt": today.isoformat(),
++            "dueAt": due.isoformat(),
++            "description": _text(args.get("descrizione")),
++            "quantity": _text(args.get("quantita")) or "1",
++            "unitAmount": amount_prefill,
++            "notes": _text(args.get("note")),
++            "withFund": _text(args.get("applica_cassa") or "1") != "0",
++            "withVat": _text(args.get("applica_iva") or "1") != "0",
++            "withWithholding": _text(args.get("applica_ritenuta")) == "1",
++            "withStamp": _text(args.get("applica_bollo")) == "1",
++        },
++    }
++
++
++def build_react_fatturazione_payload(
++    *,
++    get_fatturazione: Callable[[], Any],
++    get_clienti: Callable[[], Any],
++    get_fascicoli: Callable[[], Any],
++    query: dict[str, Any] | None = None,
++    route: str = "/fatturazione",
++) -> dict[str, Any]:
++    warnings: list[dict[str, str]] = [
++        {
++            "code": "documenti_legacy",
++            "message": "PDF, XML, export, dettagli avanzati e variazioni di stato restano sulle route legacy auditabili.",
++        },
++        {
++            "code": "calcolo_backend",
++            "message": "La shell React non calcola importi fiscali: il risultato canonico resta nel modulo Flask.",
++        },
++    ]
++    anno = date.today().year
++    stats: dict[str, Any] = {}
++    parcelle: list[Any] = []
++    try:
++        manager = get_fatturazione()
++        stats = manager.statistiche(anno) if callable(getattr(manager, "statistiche", None)) else {}
++        parcelle = list(manager.tutte()) if callable(getattr(manager, "tutte", None)) else []
++    except Exception as exc:
++        warnings.append({
++            "code": "fatturazione_non_disponibile",
++            "message": f"Archivio fatturazione non disponibile: {type(exc).__name__}.",
++        })
++
++    clienti_list = _safe_all(get_clienti, "tutti", warnings, "clienti")
++    fascicoli_list = _safe_all(get_fascicoli, "tutti", warnings, "fascicoli")
++    clienti = {_text(getattr(cliente, "id", "")): cliente for cliente in clienti_list}
++    fascicoli = {_text(getattr(fascicolo, "id", "")): fascicolo for fascicolo in fascicoli_list}
++    records = [_invoice_record(item, clienti, fascicoli) for item in parcelle[:120]]
++    state_items: list[dict[str, Any]] = []
++    for code in ("BOZZA", "EMESSA", "PAGATA", "SCADUTA", "ANNULLATA"):
++        count = len([record for record in records if record["state"] == code])
++        state_items.append(_item(code.lower(), _status_label(code), count, "Conteggio archivio corrente", _status_tone(code)))
++
++    payload = {
++        "source": "repository_reali",
++        "generated_at": _iso_now(),
++        "contracts": {
++            "mock_fallback": False,
++            "writes": "legacy_routes",
++            "route_owner": "react_shell",
++            "legacy_contract": "artifacts/react-migration/legacy-contracts/fatturazione.json",
++        },
++        "metrics": [
++            _metric("fatturato", "Fatturato anno", _money(stats.get("fatturato_lordo", 0)), f"Anno {stats.get('anno', anno)}", "primary"),
++            _metric("incassato", "Incassato", _money(stats.get("incassato", 0)), "Valori dal servizio fatturazione", "success"),
++            _metric("da_incassare", "Da incassare", _money(stats.get("da_incassare", 0)), "Parcelle emesse non saldate", "warning"),
++            _metric("scaduto", "Scaduto", _money(stats.get("scaduto", 0)), "Parcelle gia' marcate scadute dal backend", "danger" if stats.get("scaduto", 0) else "neutral"),
++        ],
++        "sections": [
++            _section("stati", "Stato parcelle", "distribution", state_items, "Nessuna parcella nell'archivio."),
++            _section(
++                "funzioni_legacy",
++                "Funzioni conservate",
++                "legacy-routes",
++                [
++                    _item("dettaglio", "Dettaglio parcella", "legacy", "Aperto con parametro tecnico di bypass React", "warning"),
++                    _item("pdf", "PDF", "legacy", "Generazione e download restano Flask", "warning"),
++                    _item("xml", "XML FatturaPA", "legacy", "Produzione XML fuori dalla shell React", "warning"),
++                    _item("export", "Export CSV", "legacy", "Download servito dal blueprint export esistente", "warning"),
++                ],
++                "Nessuna funzione legacy rilevata.",
++            ),
++        ],
++        "records": records,
++        "actions": [
++            _action("nuova", "Nuova parcella", "/fatturazione/nuova", "primary"),
++            _action("export", "Export CSV legacy", "/export/fatturazione.csv?_legacy=1", "neutral"),
++            _action("legacy", "Archivio legacy", "/fatturazione?_legacy=1", "warning"),
++        ],
++        "forms": [_form_payload(clienti_list, fascicoli_list, query)],
++        "warnings": warnings,
++    }
++    if route == "/fatturazione/nuova":
++        payload["contracts"]["legacy_contract"] = "artifacts/react-migration/legacy-contracts/fatturazione__nuova.json"
++    return payload
++
++
++def build_react_fatturazione_error_payload(message: str = "Fatturazione non disponibile.") -> dict[str, Any]:
++    return {
++        "source": "errore_controllato",
++        "generated_at": _iso_now(),
++        "contracts": {
++            "mock_fallback": False,
++            "writes": "legacy_routes",
++            "route_owner": "react_shell",
++            "legacy_contract": "artifacts/react-migration/legacy-contracts/fatturazione.json",
++        },
++        "metrics": [],
++        "sections": [],
++        "records": [],
++        "actions": [_action("legacy", "Archivio legacy", "/fatturazione?_legacy=1", "warning")],
++        "forms": [],
++        "warnings": [{"code": "fatturazione_errore_controllato", "message": message}],
++    }
+
+diff --git a/web/services/react_incassi_pagamenti_bridge.py b/web/services/react_incassi_pagamenti_bridge.py
+new file mode 100644
+index 00000000..de013dc4
+--- /dev/null
++++ b/web/services/react_incassi_pagamenti_bridge.py
+@@ -0,0 +1,245 @@
++"""Bridge read-only per la dashboard React incassi e pagamenti."""
++
++from __future__ import annotations
++
++from datetime import date, datetime, timezone
++from typing import Any, Callable
++
++
++def _iso_now() -> str:
++    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
++
++
++def _text(value: Any) -> str:
++    return str(value or "").strip()
++
++
++def _enum(value: Any) -> str:
++    return _text(getattr(value, "value", value))
++
++
++def _money(value: Any) -> str:
++    try:
++        amount = float(value or 0)
++    except (TypeError, ValueError):
++        amount = 0.0
++    return f"EUR {amount:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
++
++
++def _date_label(value: Any) -> str:
++    raw = _text(value)
++    if not raw:
++        return ""
++    try:
++        parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
++        return parsed.strftime("%d/%m/%Y %H:%M")
++    except ValueError:
++        try:
++            return date.fromisoformat(raw[:10]).strftime("%d/%m/%Y")
++        except ValueError:
++            return raw[:16]
++
++
++def _tone(status: str) -> str:
++    return {
++        "PAGATO": "success",
++        "ATTESO": "warning",
++        "SCADUTO": "danger",
++        "FALLITO": "danger",
++        "ANNULLATO": "neutral",
++    }.get(status.upper(), "neutral")
++
++
++def _label(status: str) -> str:
++    return {
++        "PAGATO": "Pagato",
++        "ATTESO": "Atteso",
++        "SCADUTO": "Scaduto",
++        "FALLITO": "Fallito",
++        "ANNULLATO": "Annullato",
++    }.get(status.upper(), status or "Non indicato")
++
++
++def _metric(mid: str, label: str, value: Any, note: str, tone: str) -> dict[str, Any]:
++    return {"id": mid, "label": label, "value": value, "note": note, "tone": tone}
++
++
++def _item(iid: str, label: str, value: Any, note: str = "", tone: str = "neutral") -> dict[str, Any]:
++    return {"id": iid, "label": label, "value": value, "note": note, "tone": tone}
++
++
++def _section(sid: str, title: str, kind: str, items: list[dict[str, Any]], empty: str) -> dict[str, Any]:
++    return {"id": sid, "title": title, "kind": kind, "items": items, "emptyMessage": empty}
++
++
++def _action(aid: str, label: str, href: str, tone: str = "neutral") -> dict[str, Any]:
++    return {"id": aid, "label": label, "href": href, "method": "GET", "tone": tone}
++
++
++def _client_label(cliente: Any) -> str:
++    return (
++        _text(getattr(cliente, "nome_completo", ""))
++        or _text(getattr(cliente, "denominazione", ""))
++        or _text(getattr(cliente, "nome", ""))
++        or "Cliente non indicato"
++    )
++
++
++def _provider_state(config: Any) -> list[dict[str, Any]]:
++    rows: list[dict[str, Any]] = []
++    for code, label in (
++        ("stripe", "Stripe"),
++        ("paypal", "PayPal"),
++        ("satispay", "Satispay"),
++        ("sumup", "SumUp"),
++        ("bonifico", "Bonifico"),
++    ):
++        section = getattr(config, code, None)
++        enabled = bool(getattr(section, "abilitato", False))
++        mode = _text(getattr(section, "modo", ""))
++        note = f"Modalita {mode}" if mode else "Stato configurazione senza dettagli riservati"
++        rows.append(_item(code, label, "abilitato" if enabled else "non abilitato", note, "success" if enabled else "neutral"))
++    return rows
++
++
++def _invoice_lookup(parcelle: list[Any]) -> dict[str, Any]:
++    return {_text(getattr(item, "id", "")): item for item in parcelle}
++
++
++def _payment_record(row: Any, parcelle: dict[str, Any], clienti: dict[str, Any]) -> dict[str, Any]:
++    row_id = _text(getattr(row, "id", ""))
++    id_parcella = _text(getattr(row, "id_parcella", ""))
++    id_cliente = _text(getattr(row, "id_cliente", ""))
++    parcella = parcelle.get(id_parcella)
++    customer = clienti.get(id_cliente)
++    state = _enum(getattr(row, "stato", ""))
++    return {
++        "id": row_id,
++        "invoiceId": id_parcella,
++        "invoiceNumber": _text(getattr(parcella, "numero", "")) or id_parcella,
++        "customerName": _client_label(customer),
++        "amountDisplay": _money(getattr(row, "importo", 0)),
++        "state": state,
++        "stateLabel": _label(state),
++        "stateTone": _tone(state),
++        "providerLabel": _text(getattr(row, "provider_usato", "")) or "non indicato",
++        "createdAt": _date_label(getattr(row, "creato_il", "")),
++        "dueAt": _date_label(getattr(row, "scade_il", "")),
++        "paidAt": _date_label(getattr(row, "pagato_il", "")),
++        "invoiceHref": f"/fatturazione/{id_parcella}?_legacy=1" if id_parcella else "",
++    }
++
++
++def build_react_incassi_pagamenti_payload(
++    *,
++    get_fatturazione: Callable[[], Any],
++    get_pagamenti: Callable[[], Any],
++    get_clienti: Callable[[], Any],
++) -> dict[str, Any]:
++    warnings: list[dict[str, str]] = [
++        {
++            "code": "provider_legacy",
++            "message": "Configurazione provider, webhook e credenziali restano nel pannello legacy pagamenti.",
++        },
++        {
++            "code": "scritture_legacy",
++            "message": "Creazione link, avvio incasso e aggiornamenti di stato restano sulle route Flask esistenti.",
++        },
++    ]
++    anno = date.today().year
++    fatt_stats: dict[str, Any] = {}
++    parcelle: list[Any] = []
++    try:
++        fatturazione = get_fatturazione()
++        fatt_stats = fatturazione.statistiche(anno) if callable(getattr(fatturazione, "statistiche", None)) else {}
++        parcelle = list(fatturazione.tutte()) if callable(getattr(fatturazione, "tutte", None)) else []
++    except Exception as exc:
++        warnings.append({
++            "code": "fatturazione_non_disponibile",
++            "message": f"Archivio fatturazione non disponibile: {type(exc).__name__}.",
++        })
++
++    pay_stats: dict[str, Any] = {}
++    payment_rows: list[Any] = []
++    provider_items: list[dict[str, Any]] = []
++    try:
++        payments = get_pagamenti()
++        pay_stats = payments.statistiche() if callable(getattr(payments, "statistiche", None)) else {}
++        payment_rows = list(payments.tutti_link()) if callable(getattr(payments, "tutti_link", None)) else []
++        provider_items = _provider_state(getattr(payments, "config", None))
++    except Exception as exc:
++        warnings.append({
++            "code": "pagamenti_non_disponibili",
++            "message": f"Archivio pagamenti non disponibile: {type(exc).__name__}.",
++        })
++
++    try:
++        clienti = {_text(getattr(cliente, "id", "")): cliente for cliente in get_clienti().tutti()}
++    except Exception as exc:
++        warnings.append({
++            "code": "clienti_non_disponibili",
++            "message": f"Anagrafica clienti non disponibile: {type(exc).__name__}.",
++        })
++        clienti = {}
++
++    parcelle_map = _invoice_lookup(parcelle)
++    records = [_payment_record(row, parcelle_map, clienti) for row in payment_rows[:80]]
++
++    return {
++        "source": "repository_reali",
++        "generated_at": _iso_now(),
++        "contracts": {
++            "mock_fallback": False,
++            "writes": "legacy_routes",
++            "route_owner": "react_shell",
++            "legacy_contract": "artifacts/react-migration/legacy-contracts/incassi-pagamenti.json",
++        },
++        "metrics": [
++            _metric("incassato", "Incassato anno", _money(fatt_stats.get("incassato", 0)), f"Anno {fatt_stats.get('anno', anno)}", "success"),
++            _metric("da_incassare", "Da incassare", _money(fatt_stats.get("da_incassare", 0)), "Parcelle emesse non saldate", "warning"),
++            _metric("scaduto", "Scaduto", _money(fatt_stats.get("scaduto", 0)), "Parcelle gia' marcate scadute dal backend", "danger" if fatt_stats.get("scaduto", 0) else "neutral"),
++            _metric("link_attesi", "Link attesi", pay_stats.get("attesi", 0), "Collegamenti di pagamento aperti", "primary"),
++        ],
++        "sections": [
++            _section("provider", "Stato provider", "safe-status", provider_items, "Nessun provider abilitato."),
++            _section(
++                "link",
++                "Riepilogo link pagamento",
++                "distribution",
++                [
++                    _item("totale", "Totale link", pay_stats.get("totale_link", 0), "Archivio collegamenti", "primary"),
++                    _item("pagati", "Pagati", pay_stats.get("pagati", 0), _money(pay_stats.get("importo_pagato", 0)), "success"),
++                    _item("attesi", "Attesi", pay_stats.get("attesi", 0), _money(pay_stats.get("importo_atteso", 0)), "warning"),
++                    _item("falliti", "Falliti", pay_stats.get("falliti", 0), "Da verificare in legacy", "danger" if pay_stats.get("falliti", 0) else "neutral"),
++                ],
++                "Nessun collegamento pagamento disponibile.",
++            ),
++        ],
++        "records": records,
++        "actions": [
++            _action("fatturazione", "Apri fatturazione", "/fatturazione", "primary"),
++            _action("nuova", "Nuova parcella", "/fatturazione/nuova", "neutral"),
++            _action("config", "Configura provider legacy", "/impostazioni/pagamenti?_legacy=1", "warning"),
++        ],
++        "forms": [],
++        "warnings": warnings,
++    }
++
++
++def build_react_incassi_pagamenti_error_payload(message: str = "Incassi e pagamenti non disponibili.") -> dict[str, Any]:
++    return {
++        "source": "errore_controllato",
++        "generated_at": _iso_now(),
++        "contracts": {
++            "mock_fallback": False,
++            "writes": "legacy_routes",
++            "route_owner": "react_shell",
++            "legacy_contract": "artifacts/react-migration/legacy-contracts/incassi-pagamenti.json",
++        },
++        "metrics": [],
++        "sections": [],
++        "records": [],
++        "actions": [_action("config", "Configura provider legacy", "/impostazioni/pagamenti?_legacy=1", "warning")],
++        "forms": [],
++        "warnings": [{"code": "incassi_pagamenti_errore_controllato", "message": message}],
++    }

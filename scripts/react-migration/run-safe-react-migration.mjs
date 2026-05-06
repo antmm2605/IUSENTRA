@@ -8,6 +8,7 @@ const TRANCHE_2A_FLAG = '--tranche=2a'
 const TRANCHE_3A_FLAG = '--tranche=3a'
 const TRANCHE_4A_FLAG = '--tranche=4a'
 const TRANCHE_5A_FLAG = '--tranche=5a'
+const TRANCHE_6A_FLAG = '--tranche=6a'
 const tranche = args.find((arg) => arg.startsWith('--tranche='))?.split('=')[1] || ''
 const EXEC_BUFFER = 1024 * 1024 * 200
 
@@ -66,6 +67,16 @@ const tranche5aContracts = [
   '/impostazioni/calendario',
   '/impostazioni/pagamenti',
   '/sincronizzazione-calendari',
+]
+
+const tranche6aContracts = [
+  '/fatturazione',
+  '/fatturazione/nuova',
+  '/incassi-pagamenti',
+  '/impostazioni/pagamenti',
+  '/preventivi',
+  '/compensi-forensi',
+  '/tariffario',
 ]
 
 const tranche2aPatchGroups = {
@@ -289,6 +300,65 @@ const tranche5aPatchGroups = {
   ],
 }
 
+const tranche6aPatchGroups = {
+  backend: [
+    'web/services/react_fatturazione_bridge.py',
+    'web/services/react_incassi_pagamenti_bridge.py',
+    'web/blueprints/api_v1_react.py',
+  ],
+  frontend: [
+    'frontend/package.json',
+    'frontend/package-lock.json',
+    'frontend/src/fatturazioneData.ts',
+    'frontend/src/incassiPagamentiData.ts',
+    'frontend/src/components/FatturazionePage.tsx',
+    'frontend/src/components/FatturazionePage.css',
+    'frontend/src/components/IncassiPagamentiPage.tsx',
+    'frontend/src/components/IncassiPagamentiPage.css',
+    'frontend/src/App.tsx',
+    'web/static/react',
+  ],
+  gate: [
+    'web/bootstrap/react_route_gate.py',
+    'web/blueprints/react_shell.py',
+    'tools/react-migration/route-manifest.json',
+  ],
+  tests: [
+    'frontend/scripts/check-react-contracts.mjs',
+    'scripts/react-migration/check-route-gate.mjs',
+    'scripts/react-migration/check-tranche-6a-gate.py',
+    'scripts/react-migration/check-tranche-6a-secrets.mjs',
+    'scripts/react-migration/check-tranche-6a-no-fiscal-logic.mjs',
+    'scripts/react-migration/run-safe-react-migration.mjs',
+  ],
+  reports: [
+    'CHANGELOG.md',
+    'Dockerfile',
+    'README.md',
+    'docs/REACT_MIGRATION_MASTER_PLAN.md',
+    'pct/__init__.py',
+    'railway.toml',
+    'setup.py',
+    'artifacts/react-migration/audit.md',
+    'artifacts/react-migration/route-inventory.json',
+    'artifacts/react-migration/route-gate.md',
+    'artifacts/react-migration/ui-consistency.md',
+    'artifacts/react-migration/tranche-6a-route-map.md',
+    'artifacts/react-migration/tranche-6a-gate.md',
+    'artifacts/react-migration/tranche-6a-secrets.md',
+    'artifacts/react-migration/tranche-6a-no-fiscal-logic.md',
+    'artifacts/react-migration/tranche-6a-report.md',
+    'artifacts/react-migration/legacy-contracts/fatturazione.json',
+    'artifacts/react-migration/legacy-contracts/fatturazione__nuova.json',
+    'artifacts/react-migration/legacy-contracts/fatturazione__detail.json',
+    'artifacts/react-migration/legacy-contracts/incassi-pagamenti.json',
+    'artifacts/react-migration/legacy-contracts/impostazioni__pagamenti.json',
+    'artifacts/react-migration/legacy-contracts/preventivi.json',
+    'artifacts/react-migration/legacy-contracts/compensi-forensi.json',
+    'artifacts/react-migration/legacy-contracts/tariffario.json',
+  ],
+}
+
 function run(cmd, options = {}) {
   console.log(`\n> ${cmd}`)
   execSync(cmd, { stdio: 'inherit', ...options })
@@ -382,6 +452,12 @@ function writeTranche5aPatches() {
   }
 }
 
+function writeTranche6aPatches() {
+  for (const [name, paths] of Object.entries(tranche6aPatchGroups)) {
+    writePatch('6a', name, paths)
+  }
+}
+
 function runDefault() {
   cleanRequired()
   run('node scripts/react-migration/audit-react-migration.mjs')
@@ -469,6 +545,24 @@ function runTranche5a() {
   run('git status --short')
 }
 
+function runTranche6a() {
+  cleanRequired()
+  run('git status --short')
+  run('node scripts/react-migration/audit-react-migration.mjs')
+  run(`python scripts/react-migration/capture-legacy-contracts.py ${tranche6aContracts.join(' ')}`)
+  run('node scripts/react-migration/check-route-gate.mjs')
+  run('node scripts/react-migration/check-ui-consistency.mjs')
+  run('node scripts/react-migration/check-tranche-6a-secrets.mjs')
+  run('node scripts/react-migration/check-tranche-6a-no-fiscal-logic.mjs')
+  run('python scripts/react-migration/check-tranche-6a-gate.py')
+  run('cd frontend && npm run test')
+  run('cd frontend && npm run typecheck')
+  run('cd frontend && npm run build')
+  writeTranche6aPatches()
+  run('git diff --stat')
+  run('git status --short')
+}
+
 if (tranche === '2a') {
   runTranche2a()
 } else if (tranche === '3a') {
@@ -477,6 +571,8 @@ if (tranche === '2a') {
   runTranche4a()
 } else if (tranche === '5a') {
   runTranche5a()
+} else if (tranche === '6a') {
+  runTranche6a()
 } else {
   runDefault()
 }

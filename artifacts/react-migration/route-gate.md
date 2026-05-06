@@ -1,6 +1,7 @@
 # Route gate report
 
-Route nel manifest: 32
-Route con unlockFromGate=true: 10
-Route governate consentite: /statistiche, /audit, /registro-attivita, /utenti, /profili, /backup, /sito-studio, /sito-studio/contatti, /studio, /amministrazione
+Route nel manifest: 34
+Route con unlockFromGate=true: 13
+Route governate consentite: /statistiche, /audit, /registro-attivita, /utenti, /profili, /backup, /sito-studio, /sito-studio/contatti, /studio, /amministrazione, /fatturazione, /fatturazione/nuova, /incassi-pagamenti
+Tranche 6A: promozione economica exact senza sottopercorsi sensibili.
 Violazioni: 0

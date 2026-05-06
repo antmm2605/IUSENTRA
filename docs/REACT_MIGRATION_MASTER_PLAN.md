@@ -1,5 +1,32 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-06 - Tranche 6A economico sicuro
+
+La quinta promozione governata abilita il primo blocco economico exact in React
+senza spostare calcoli fiscali, documenti o provider fuori dalle route Flask
+legacy:
+
+- `/fatturazione` usa `web/services/react_fatturazione_bridge.py` e
+  `GET /api/v1/ui/fatturazione` per KPI reali, archivio parcelle/fatture,
+  stati, clienti, importi gia' presenti nel modello e link legacy sicuri.
+- `/fatturazione/nuova` usa lo stesso bridge e
+  `GET /api/v1/ui/fatturazione/nuova`, ma il submit resta un form HTML
+  `method="post"` verso la route legacy auditata; il calcolo finale resta nel
+  backend storico.
+- `/incassi-pagamenti` usa `web/services/react_incassi_pagamenti_bridge.py` e
+  `GET /api/v1/ui/incassi-pagamenti` per importi aggregati, stato provider in
+  forma sicura e collegamenti a configurazione provider legacy.
+- `/fatturazione/*`, PDF, XML, export CSV, `/impostazioni/pagamenti`,
+  `/preventivi`, `/compensi-forensi` e `/tariffario` restano legacy con
+  protezioni esplicite nel gate e nella shell.
+- `scripts/react-migration/check-tranche-6a-secrets.mjs` e
+  `scripts/react-migration/check-tranche-6a-no-fiscal-logic.mjs` bloccano
+  serializzazione di campi riservati e logica fiscale canonica nel frontend.
+- `run-safe-react-migration.mjs --tranche=6a` cattura i contratti legacy,
+  rilancia gate/UI/anti-segreti/anti-calcolo, verifica shell e bypass legacy
+  con Flask `test_client`, esegue test/typecheck/build frontend e genera patch
+  separate di rollback.
+
 ## Stato tranche 2026-05-06 - Tranche 5A hub studio e amministrazione
 
 La quarta promozione governata abilita due hub direzionali React exact senza

@@ -15,6 +15,9 @@ def test_backup_script_applica_tetto_spazio_e_compressione_alta():
     assert "IUSENTRA_BACKUP_ZSTD_LEVEL" in script
     assert "IUSENTRA_BACKUP_EXCLUDE_PATHS" in script
     assert "BACKUP_EXCLUDE_PATHS:-./ollama" in script
+    assert "cleanup_incomplete_backup" in script
+    assert 'OUT="${FINAL_OUT}.tmp"' in script
+    assert "mv -f -- \"$OUT\" \"$FINAL_OUT\"" in script
     assert "zstd -T0" in script
     assert "--long=" in script
     assert "source \"$ENV_FILE\"" in script

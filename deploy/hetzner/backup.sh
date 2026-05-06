@@ -21,9 +21,18 @@ ZSTD_LEVEL="${IUSENTRA_BACKUP_ZSTD_LEVEL:-${BACKUP_ZSTD_LEVEL:-19}}"
 ZSTD_LONG_WINDOW="${IUSENTRA_BACKUP_ZSTD_LONG_WINDOW:-${BACKUP_ZSTD_LONG_WINDOW:-27}}"
 BACKUP_EXCLUDE_PATHS="${IUSENTRA_BACKUP_EXCLUDE_PATHS:-${BACKUP_EXCLUDE_PATHS:-./ollama}}"
 STAMP="$(date -u +%Y%m%d_%H%M%S)"
-OUT="${BACKUP_DIR}/iusentra-data-${STAMP}.tar.zst"
+FINAL_OUT="${BACKUP_DIR}/iusentra-data-${STAMP}.tar.zst"
+OUT="${FINAL_OUT}.tmp"
+BACKUP_COMPLETED=0
 
 mkdir -p "$BACKUP_DIR"
+
+cleanup_incomplete_backup() {
+  if [[ "$BACKUP_COMPLETED" != "1" ]]; then
+    rm -f -- "$OUT" "$FINAL_OUT" "${OUT}.sha256" "${FINAL_OUT}.sha256"
+  fi
+}
+trap cleanup_incomplete_backup EXIT
 
 tar_exclude_args=()
 if [[ -n "$BACKUP_EXCLUDE_PATHS" ]]; then
@@ -91,10 +100,13 @@ if command -v zstd >/dev/null 2>&1; then
   fi
   tar "${tar_exclude_args[@]}" -cpf - -C "$DATA_DIR" . | zstd -T0 "-${ZSTD_LEVEL}" "--long=${ZSTD_LONG_WINDOW}" -o "$OUT"
 else
-  OUT="${BACKUP_DIR}/iusentra-data-${STAMP}.tar.gz"
+  FINAL_OUT="${BACKUP_DIR}/iusentra-data-${STAMP}.tar.gz"
+  OUT="${FINAL_OUT}.tmp"
   tar "${tar_exclude_args[@]}" -czpf "$OUT" -C "$DATA_DIR" .
 fi
 
+mv -f -- "$OUT" "$FINAL_OUT"
+OUT="$FINAL_OUT"
 sha256sum "$OUT" > "${OUT}.sha256"
 sha256sum -c "${OUT}.sha256"
 
@@ -122,3 +134,5 @@ if [[ -n "$BACKUP_EXCLUDE_PATHS" ]]; then
   echo "Esclusioni backup rigenerabili: ${BACKUP_EXCLUDE_PATHS}"
 fi
 echo "$OUT"
+BACKUP_COMPLETED=1
+trap - EXIT

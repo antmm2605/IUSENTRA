@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.198.85 - 2026-05-06
+
+- Reso atomico il backup Hetzner: gli archivi vengono scritti prima come `.tmp` e pubblicati solo dopo una generazione riuscita, evitando file `.tar.zst` senza checksum che occupano spazio ma non sono ripristinabili.
+- Aggiunta pulizia automatica degli archivi temporanei/incompleti in caso di errore durante `tar` o compressione.
+
 ## 2.198.84 - 2026-05-06
 
 - Rafforzata la manutenzione storage Superadmin con retention governata dei backup esterni: analisi/applicazione sicura sugli archivi `iusentra-data-*`, copie minime preservate e spazio recuperabile mostrato in modo esplicito.

@@ -1,0 +1,149 @@
+diff --git a/tools/react-migration/route-manifest.json b/tools/react-migration/route-manifest.json
+index 284a80fb..8655e505 100644
+--- a/tools/react-migration/route-manifest.json
++++ b/tools/react-migration/route-manifest.json
+@@ -124,13 +124,13 @@
+     {
+       "route": "/backup",
+       "family": "studio",
+-      "status": "react_readonly",
++      "status": "react_full",
+       "risk": "medium",
+       "targetComponent": "frontend/src/components/BackupPage.tsx",
+       "targetData": "frontend/src/backupData.ts",
+       "targetBridge": "web/services/react_backup_bridge.py",
+       "legacyContract": "artifacts/react-migration/legacy-contracts/backup.json",
+-      "unlockFromGate": false,
++      "unlockFromGate": true,
+       "mustPreserve": [
+         "backup preventivo",
+         "verifica integrita",
+@@ -142,13 +142,13 @@
+     {
+       "route": "/sito-studio",
+       "family": "studio",
+-      "status": "legacy_operational",
++      "status": "react_full",
+       "risk": "medium",
+       "targetComponent": "frontend/src/components/SitoStudioPage.tsx",
+       "targetData": "frontend/src/sitoStudioData.ts",
+       "targetBridge": "web/services/react_sito_studio_bridge.py",
+       "legacyContract": "artifacts/react-migration/legacy-contracts/sito-studio.json",
+-      "unlockFromGate": false,
++      "unlockFromGate": true,
+       "mustPreserve": [
+         "contenuti CMS reali",
+         "richieste contatto",
+@@ -157,6 +157,42 @@
+         "nessun testo demo"
+       ]
+     },
++    {
++      "route": "/sito-studio/contatti",
++      "family": "studio",
++      "status": "react_full",
++      "risk": "medium",
++      "targetComponent": "frontend/src/components/SitoStudioPage.tsx",
++      "targetData": "frontend/src/sitoStudioData.ts",
++      "targetBridge": "web/services/react_sito_studio_bridge.py",
++      "legacyContract": "artifacts/react-migration/legacy-contracts/sito-studio__contatti.json",
++      "unlockFromGate": true,
++      "mustPreserve": [
++        "richieste contatto reali",
++        "prenotazioni reali",
++        "gestione legacy auditata",
++        "nessun dato demo",
++        "privacy contatti"
++      ]
++    },
++    {
++      "route": "/sito-studio/builder",
++      "family": "studio",
++      "status": "legacy_operational",
++      "risk": "high",
++      "targetComponent": "frontend/src/components/SitoStudioPage.tsx",
++      "targetData": "frontend/src/sitoStudioData.ts",
++      "targetBridge": "web/services/react_sito_studio_bridge.py",
++      "legacyContract": "artifacts/react-migration/legacy-contracts/sito-studio__builder.json",
++      "unlockFromGate": false,
++      "mustPreserve": [
++        "editor contenuti",
++        "pubblicazione controllata",
++        "anteprima",
++        "POST legacy auditati",
++        "nessun contenuto demo"
++      ]
++    },
+     {
+       "route": "/statistiche",
+       "family": "studio",
+diff --git a/web/blueprints/react_shell.py b/web/blueprints/react_shell.py
+index e174ac32..8c8b90de 100644
+--- a/web/blueprints/react_shell.py
++++ b/web/blueprints/react_shell.py
+@@ -20,7 +20,6 @@ _LEGACY_FIRST_PREFIXES = (
+     "/admin/osservabilita",
+     "/amministrazione",
+     "/applicazioni",
+-    "/backup",
+     "/checklist",
+     "/compensi-forensi",
+     "/database",
+@@ -46,7 +45,6 @@ _LEGACY_FIRST_PREFIXES = (
+     "/sigp",
+     "/sigp-sync",
+     "/sincronizzazione-calendari",
+-    "/sito-studio",
+     "/strumenti-legali",
+     "/strumenti-operativi",
+     "/studio",
+@@ -160,7 +158,13 @@ def _deve_mantenere_vista_classica() -> bool:
+         return True
+     if lower.startswith("/profili/"):
+         return True
+-    if lower == "/backup" or lower.startswith("/backup/"):
++    if lower.startswith("/backup/"):
++        return True
++    if lower.startswith("/sito-studio/") and lower not in {"/sito-studio/contatti"}:
++        return True
++    if lower == "/studio" or lower.startswith("/studio/"):
++        return True
++    if lower == "/impostazioni" or lower.startswith("/impostazioni/"):
+         return True
+     return any(lower == prefix or lower.startswith(f"{prefix}/") for prefix in _LEGACY_FIRST_PREFIXES)
+
+diff --git a/web/bootstrap/react_route_gate.py b/web/bootstrap/react_route_gate.py
+index 555c7fca..1eeaa98b 100644
+--- a/web/bootstrap/react_route_gate.py
++++ b/web/bootstrap/react_route_gate.py
+@@ -166,7 +166,6 @@ _LEGACY_OPERATIONAL_PREFIXES = (
+     "/admin/osservabilita",
+     "/amministrazione",
+     "/applicazioni",
+-    "/backup",
+     "/checklist",
+     "/compensi-forensi",
+     "/database",
+@@ -192,7 +191,6 @@ _LEGACY_OPERATIONAL_PREFIXES = (
+     "/sigp",
+     "/sigp-sync",
+     "/sincronizzazione-calendari",
+-    "/sito-studio",
+     "/strumenti-legali",
+     "/strumenti-operativi",
+     "/studio",
+@@ -225,7 +223,13 @@ def _excluded(path: str) -> bool:
+         return True
+     if lower.startswith("/profili/"):
+         return True
+-    if lower == "/backup" or lower.startswith("/backup/"):
++    if lower.startswith("/backup/"):
++        return True
++    if lower.startswith("/sito-studio/") and lower not in {"/sito-studio/contatti"}:
++        return True
++    if lower == "/studio" or lower.startswith("/studio/"):
++        return True
++    if lower == "/impostazioni" or lower.startswith("/impostazioni/"):
+         return True
+     if any(lower == prefix or lower.startswith(f"{prefix}/") for prefix in _LEGACY_OPERATIONAL_PREFIXES):
+         return True

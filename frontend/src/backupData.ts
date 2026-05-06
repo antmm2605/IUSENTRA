@@ -39,7 +39,7 @@ export const emptyBackupPage: BackupPageData = {
   contracts: {
     mock_fallback: false,
     writes: 'legacy_routes',
-    route_owner: 'legacy_locked',
+    route_owner: 'react_shell',
   },
   metrics: [],
   sections: [],
@@ -138,7 +138,7 @@ function normaliseRecord(raw: unknown): BackupRecord {
 
 function normaliseField(raw: unknown): LegacyPostField {
   const item = asRecord(raw)
-  const fieldType = ['text', 'email', 'password', 'select', 'checkbox', 'hidden'].includes(String(item.type))
+  const fieldType = ['text', 'email', 'select', 'checkbox', 'hidden'].includes(String(item.type))
     ? String(item.type) as LegacyPostField['type']
     : 'text'
   return {
@@ -166,7 +166,7 @@ function normaliseForm(raw: unknown): LegacyFormDefinition {
     description: text(item.description),
     action: text(item.action),
     method: 'POST',
-    csrfField: text(item.csrfField) || '_csrf_token',
+    csrfField: text(item.csrfField),
     submitLabel: text(item.submitLabel) || 'Invia',
     enabled: item.enabled === false ? false : true,
     fields: list(item.fields).map(normaliseField).filter((field) => field.name),
@@ -201,7 +201,7 @@ function normalisePage(raw: unknown): BackupPageData {
     contracts: {
       mock_fallback: contracts.mock_fallback === true ? true : false,
       writes: text(contracts.writes) || 'legacy_routes',
-      route_owner: text(contracts.route_owner) || 'legacy_locked',
+      route_owner: text(contracts.route_owner) || 'react_shell',
       legacy_contract: text(contracts.legacy_contract),
     },
     metrics: list(page.metrics).map(normaliseMetric),

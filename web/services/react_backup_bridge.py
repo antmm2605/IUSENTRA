@@ -1,8 +1,4 @@
-"""Bridge preparatorio read-only per backup React.
-
-La route `/backup` resta servita dal gate legacy in questa tranche. Il payload
-sanitizza i record e non espone password, path assoluti o segreti operativi.
-"""
+"""Bridge read-only per la pagina React dei backup."""
 
 from __future__ import annotations
 
@@ -95,7 +91,7 @@ def build_react_backup_payload(
         "contracts": {
             "mock_fallback": False,
             "writes": "legacy_routes",
-            "route_owner": "legacy_locked",
+            "route_owner": "react_shell",
             "legacy_contract": "artifacts/react-migration/legacy-contracts/backup.json",
         },
         "metrics": [
@@ -136,10 +132,9 @@ def build_react_backup_payload(
             {
                 "id": "esegui_backup",
                 "title": "Avvia backup legacy",
-                "description": "Form standard verso POST /backup/esegui. La route resta legacy-locked.",
+                "description": "Form standard verso POST /backup/esegui. Le operazioni tecniche restano sulle route Flask auditabili.",
                 "action": "/backup/esegui",
                 "method": "POST",
-                "csrfField": "_csrf_token",
                 "submitLabel": "Avvia backup legacy",
                 "enabled": can_execute,
                 "fields": [
@@ -160,8 +155,8 @@ def build_react_backup_payload(
         ],
         "warnings": [
             {
-                "code": "backup_legacy_locked",
-                "message": "Backup ancora servito da legacy gate in questa tranche; React espone solo lettura preparatoria.",
+                "code": "backup_operazioni_legacy",
+                "message": "Creazione, verifica, download e ripristino usano ancora le route legacy esistenti.",
             }
         ],
     }
@@ -174,7 +169,7 @@ def build_react_backup_error_payload(message: str = "Backup non disponibile.") -
         "contracts": {
             "mock_fallback": False,
             "writes": "legacy_routes",
-            "route_owner": "legacy_locked",
+            "route_owner": "react_shell",
             "legacy_contract": "artifacts/react-migration/legacy-contracts/backup.json",
         },
         "metrics": [],
@@ -184,6 +179,6 @@ def build_react_backup_error_payload(message: str = "Backup non disponibile.") -
         "forms": [],
         "warnings": [
             {"code": "backup_errore_controllato", "message": message},
-            {"code": "backup_legacy_locked", "message": "La route /backup resta bloccata dal gate legacy."},
+            {"code": "backup_operazioni_legacy", "message": "Le operazioni tecniche restano sulle route Flask esistenti."},
         ],
     }

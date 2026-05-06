@@ -50,7 +50,7 @@ function BackupRecordItem({ record }: { record: BackupRecord }) {
       <div className="iu-backup-record__main">
         <time>{formatDate(record.timestamp)}</time>
         <strong>{record.fileName || record.id}</strong>
-        <span>{record.type} · {record.filesCount} file · {record.sizeMb} MB</span>
+        <span>{record.type} - {record.filesCount} file - {record.sizeMb} MB</span>
         {record.note ? <small>{record.note}</small> : null}
         {record.error ? <small>{record.error}</small> : null}
       </div>
@@ -98,16 +98,16 @@ export function BackupPage() {
   return (
     <Page
       title="Backup"
-      subtitle="Superficie preparatoria read-only: la route ufficiale resta servita dal legacy gate."
+      subtitle="Controllo React delle copie di sicurezza con operazioni tecniche ancora sui flussi legacy."
       actions={
         <>
           <ButtonLink href="/backup?_legacy=1" tone="primary">
             <Archive size={16} />
-            Apri backup legacy
+            Pannello legacy
           </ButtonLink>
           <ButtonLink href="/backup?_legacy=1" tone="neutral">
             <RefreshCw size={16} />
-            Aggiorna legacy
+            Aggiorna registro
           </ButtonLink>
         </>
       }
@@ -123,8 +123,8 @@ export function BackupPage() {
       {!loading && hasData ? (
         <>
           <section className="iu-backup-banner" aria-label="Stato migrazione backup">
-            <strong>Backup ancora servito da legacy gate in questa tranche</strong>
-            <span>React espone API e pagina preparatoria, ma operazioni tecniche, restore e download restano sui flussi legacy.</span>
+            <strong>Backup servito dalla shell React</strong>
+            <span>Creazione, verifica, download e ripristino restano form o link verso route legacy auditabili.</span>
           </section>
           <Warnings data={data} />
           <section className="iu-backup-kpis" aria-label="KPI backup">
@@ -161,7 +161,7 @@ export function BackupPage() {
             {backupForm ? (
               <LegacyPostForm
                 action={backupForm.action}
-                csrfField={backupForm.csrfField}
+                csrfField={backupForm.csrfField || undefined}
                 submitLabel={backupForm.submitLabel}
                 title={backupForm.title}
                 description={backupForm.description}
@@ -181,7 +181,7 @@ export function BackupPage() {
               <EmptyState title="Nessuna copia nello storico" />
             )}
           </Panel>
-          <Panel title="Contratto dati" subtitle="Route bloccata dal gate legacy in questa tranche.">
+          <Panel title="Contratto dati" subtitle="Route GET servita dalla shell React, scritture conservate sui percorsi legacy.">
             <div className="iu-backup-contract">
               <span>Fonte: {data.source || 'non indicata'}</span>
               <span>Generato: {data.generated_at || 'non disponibile'}</span>

@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any, Callable, Iterable
 
 from flask import Blueprint, current_app, g, jsonify, request, send_file
+from werkzeug.exceptions import HTTPException
 
 from pct import __version__ as APP_VERSION
 from pct.email_client import CartellaEmail, GestioneEmailRicevute, StatoEmail
@@ -79,6 +80,10 @@ from web.services.react_statistiche_bridge import (
 from web.services.react_utenti_bridge import build_react_utenti_error_payload, build_react_utenti_payload
 from web.services.react_profili_bridge import build_react_profili_error_payload, build_react_profili_payload
 from web.services.react_backup_bridge import build_react_backup_error_payload, build_react_backup_payload
+from web.services.react_sito_studio_bridge import (
+    build_react_sito_studio_error_payload,
+    build_react_sito_studio_payload,
+)
 from web.services.react_studio_module_bridge import build_react_studio_module_payload
 from web.services.react_telematico_bridge import (
     build_react_telematico_payload,
@@ -91,6 +96,7 @@ from web.services.react_wizard_pro_bridge import (
     build_react_wizard_pro_payload,
     build_react_wizard_pro_step_payload,
 )
+from web.services.studio_site_runtime import site_admin_identity_or_403
 from web.helpers import (
     get_agenda,
     get_calendar_sync,
@@ -149,10 +155,17 @@ def _puo_leggere_utenti() -> bool:
 
 
 def _puo_leggere_backup() -> bool:
-    if _api_key_valida():
-        return True
     utente = g.get("utente_corrente")
     return bool(utente and getattr(utente, "ha_permesso", lambda _permesso: False)("backup.leggi"))
+
+
+def _richiedi_admin_sito_studio_api():
+    try:
+        site_admin_identity_or_403()
+        return None
+    except HTTPException as exc:
+        description = str(getattr(exc, "description", "") or "Permesso admin.configura richiesto.")
+        return jsonify(build_react_sito_studio_error_payload(description)), int(getattr(exc, "code", 403) or 403)
 
 
 def _studio_avvocato_titolare() -> str:
@@ -2362,6 +2375,32 @@ def backup_page():
     except Exception as exc:
         current_app.logger.exception("Errore backup React bridge: %s", exc)
         return jsonify(build_react_backup_error_payload("Backup non disponibile dal runtime corrente.")), 200
+
+
+@api_v1_react.get("/sito-studio")
+@_richiedi_auth
+def sito_studio_page():
+    denied = _richiedi_admin_sito_studio_api()
+    if denied is not None:
+        return denied
+    try:
+        return jsonify(build_react_sito_studio_payload())
+    except Exception as exc:
+        current_app.logger.exception("Errore Sito Studio React bridge: %s", exc)
+        return jsonify(build_react_sito_studio_error_payload("Sito Studio non disponibile dal runtime corrente.")), 200
+
+
+@api_v1_react.get("/sito-studio/contatti")
+@_richiedi_auth
+def sito_studio_contatti_page():
+    denied = _richiedi_admin_sito_studio_api()
+    if denied is not None:
+        return denied
+    try:
+        return jsonify(build_react_sito_studio_payload(contacts_only=True))
+    except Exception as exc:
+        current_app.logger.exception("Errore contatti Sito Studio React bridge: %s", exc)
+        return jsonify(build_react_sito_studio_error_payload("Contatti Sito Studio non disponibili dal runtime corrente.")), 200
 
 
 @api_v1_react.get("/agenda")

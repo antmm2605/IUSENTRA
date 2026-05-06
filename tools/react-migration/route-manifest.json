@@ -124,13 +124,13 @@
     {
       "route": "/backup",
       "family": "studio",
-      "status": "react_readonly",
+      "status": "react_full",
       "risk": "medium",
       "targetComponent": "frontend/src/components/BackupPage.tsx",
       "targetData": "frontend/src/backupData.ts",
       "targetBridge": "web/services/react_backup_bridge.py",
       "legacyContract": "artifacts/react-migration/legacy-contracts/backup.json",
-      "unlockFromGate": false,
+      "unlockFromGate": true,
       "mustPreserve": [
         "backup preventivo",
         "verifica integrita",
@@ -142,19 +142,55 @@
     {
       "route": "/sito-studio",
       "family": "studio",
-      "status": "legacy_operational",
+      "status": "react_full",
       "risk": "medium",
       "targetComponent": "frontend/src/components/SitoStudioPage.tsx",
       "targetData": "frontend/src/sitoStudioData.ts",
       "targetBridge": "web/services/react_sito_studio_bridge.py",
       "legacyContract": "artifacts/react-migration/legacy-contracts/sito-studio.json",
-      "unlockFromGate": false,
+      "unlockFromGate": true,
       "mustPreserve": [
         "contenuti CMS reali",
         "richieste contatto",
         "prenotazioni",
         "anteprima pubblica",
         "nessun testo demo"
+      ]
+    },
+    {
+      "route": "/sito-studio/contatti",
+      "family": "studio",
+      "status": "react_full",
+      "risk": "medium",
+      "targetComponent": "frontend/src/components/SitoStudioPage.tsx",
+      "targetData": "frontend/src/sitoStudioData.ts",
+      "targetBridge": "web/services/react_sito_studio_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/sito-studio__contatti.json",
+      "unlockFromGate": true,
+      "mustPreserve": [
+        "richieste contatto reali",
+        "prenotazioni reali",
+        "gestione legacy auditata",
+        "nessun dato demo",
+        "privacy contatti"
+      ]
+    },
+    {
+      "route": "/sito-studio/builder",
+      "family": "studio",
+      "status": "legacy_operational",
+      "risk": "high",
+      "targetComponent": "frontend/src/components/SitoStudioPage.tsx",
+      "targetData": "frontend/src/sitoStudioData.ts",
+      "targetBridge": "web/services/react_sito_studio_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/sito-studio__builder.json",
+      "unlockFromGate": false,
+      "mustPreserve": [
+        "editor contenuti",
+        "pubblicazione controllata",
+        "anteprima",
+        "POST legacy auditati",
+        "nessun contenuto demo"
       ]
     },
     {

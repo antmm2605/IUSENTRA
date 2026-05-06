@@ -1,0 +1,578 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 3639f55c..2002a591 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -1,5 +1,11 @@
+ # Changelog
+
++## 2.198.89 - 2026-05-06
++
++- Promosse in React full le route `/backup`, `/sito-studio` e `/sito-studio/contatti`, con bridge backend reali, endpoint UI dedicati e gate aggiornato senza sbloccare builder, studio o impostazioni.
++- Mantenute le operazioni tecniche su form/link legacy auditabili: creazione/verifica/download/ripristino backup, conversione contatti, prenotazioni e pubblicazione Sito Studio non usano fetch POST React.
++- Aggiunti check Tranche 4A per gate Flask, UI consistency, anti-segreti, contratti React, runner sicuro e patch rollback separate.
++
+ ## 2.198.88 - 2026-05-06
+
+ - Promosse in React full le route amministrative `/utenti`, `GET /utenti/nuovo` e `/profili`, con bridge backend reali, endpoint UI dedicati e gate aggiornato; le scritture restano form POST verso le route legacy auditabili.
+diff --git a/Dockerfile b/Dockerfile
+index ace58576..b9d4ced3 100644
+--- a/Dockerfile
++++ b/Dockerfile
+@@ -1,4 +1,4 @@
+-#  version: 2.198.88
++#  version: 2.198.89
+ #  IUSENTRA | Dockerfile produzione
+
+ #  Build multi-stage:
+@@ -75,7 +75,7 @@ RUN mkdir -p /out && /tmp/dart-sass/sass --no-source-map --style=compressed \
+ FROM python:3.12-slim
+
+ LABEL org.opencontainers.image.title="IUSENTRA" \
+-    org.opencontainers.image.version="2.198.88" \
++      org.opencontainers.image.version="2.198.89" \
+       org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
+       org.opencontainers.image.created="2026-03-18"
+
+diff --git a/README.md b/README.md
+index 0523025d..2265a3e6 100644
+--- a/README.md
++++ b/README.md
+@@ -54,7 +54,7 @@ La repo oggi non è più solo un tool CLI per il Processo Civile Telematico: con
+ - `Sito Studio` nativo per ogni tenant: pagine a blocchi, articoli, servizi, professionisti, sedi, contatti, agenda appuntamenti pubblica e sito web pubblicabile senza WordPress esterno.
+ - Le sezioni pubbliche `Strumenti legali`, `Applicazioni` e `News giuridiche strutturate` non sono esposte in automatico: compaiono sul sito dello studio solo se l'amministratore del sito attiva i flag dedicati da `Sito Studio -> Impostazioni`.
+ - Migrazione React progressiva: la shell `/app-v2` convive con la UI Jinja attuale e usa API Flask reali; `Clienti e Anagrafiche`, `Soggetti e Parti`, `Comunicazioni`, `Servizi Telematici`, `Gestione Database` (`/admin/database`), `Statistiche`, `Audit`, `Registro attivita`, `Utenti` e `Profili e permessi` sono ora servite in React sui GET ufficiali, con salvataggi ancora sulle route Flask storiche dove presenti e fallback tecnico `_legacy=1`. Le superfici telematiche `PolisWeb / PST`, `PDP`, `PAT`, `PTT`, `Tribunali / PEC`, `Checklist deposito` e `Guida firma digitale` restano governate dai vincoli specifici di portale e non vengono promosse da questa tranche. `Regia Operativa`, `Ricerca Studio`, `Agenda`, `Nuovo Appuntamento` e la suite `Fascicoli` vivono rispettivamente in `/app-v2/regia-operativa`, `/app-v2/ricerca-studio`, `/app-v2/agenda`, `/app-v2/agenda/nuovo` e `/app-v2/fascicoli`. La suite fascicoli include lista, nuovo/modifica, archivio, dettaglio cabina fascicolo, quadro intelligente AI, editor professionale anche sulla route profonda `/fascicoli/<id>/documenti/<id_doc>/editor` con font/dimensioni/interlinea in stile studio, anteprima PDF nativa fedele all'originale per documenti impaginati con stemmi/timbri/firme e blocco professionale delle conversioni non affidabili, compilatore atti, anteprima documento interna anche per `.pdf.p7m`, upload senza reload ed export, con scritture ancora sulle route storiche per rollback immediato. Ogni pagina migrata viene collegata alla nav React, usa solo dati reali da repository/sessione/API/configurazione e nessuna pagina React viene annidata dentro un'altra durante la migrazione pagina per pagina.
+-- La migrazione React residua e' governata da `tools/react-migration/route-manifest.json` e dagli script `scripts/react-migration/*`: audit route, cattura contratti legacy, controllo gate, consistency UI e runner sicuro. La Tranche 3A abilita `/utenti`, `GET /utenti/nuovo` e `/profili`; `/backup` dispone di API/pagina preparatoria read-only ma resta bloccata nel gate, mentre le aree economiche, mandato, documentali e telematiche restano legacy fino a parita' dimostrata.
++- La migrazione React residua e' governata da `tools/react-migration/route-manifest.json` e dagli script `scripts/react-migration/*`: audit route, cattura contratti legacy, controllo gate, consistency UI e runner sicuro. La Tranche 4A abilita `/backup`, `/sito-studio` e `/sito-studio/contatti` in React full mantenendo operazioni tecniche, builder, studio, impostazioni, economico, mandato, documentale e telematico sui percorsi legacy fino a parita' dimostrata.
+ - La pagina `Gestione Database` non si limita a segnalare anomalie referenziali: `Verifica e ripara` chiama una route Flask auditata, crea backup prima di scrivere e corregge automaticamente i riferimenti orfani risolvibili senza inventare dati.
+ - La superficie `Tribunali / PEC` distingue le PEC di deposito telematico dalle PEC amministrative/protocollo: PST e' fonte primaria per il deposito, IPA Open Data fonte secondaria per indirizzi amministrativi, e i siti ufficiali restano fallback/verifica manuale.
+ - Deploy Hetzner CPX42: il profilo [deploy/hetzner](deploy/hetzner/README.md), documentato anche in [docs/DEPLOY_HETZNER_CPX42.md](docs/DEPLOY_HETZNER_CPX42.md), prepara un server Ubuntu con Docker Compose, Caddy HTTPS, Redis, worker scheduler/OCR, backup e restore su `/opt/iusentra/data`, con retention backup governata e pannello Superadmin `Server e manutenzione` per consumi, hardlink e manutenzioni sicure.
+diff --git a/artifacts/react-migration/audit.md b/artifacts/react-migration/audit.md
+index 48128399..ddd2a02d 100644
+--- a/artifacts/react-migration/audit.md
++++ b/artifacts/react-migration/audit.md
+@@ -1,6 +1,6 @@
+ # Audit migrazione React
+
+-Generato: 2026-05-06T11:53:08.273Z
++Generato: 2026-05-06T12:36:09.471Z
+
+ ## Frontend
+
+@@ -12,12 +12,12 @@ Script disponibili: dev, test, typecheck, build, preview
+ Route React prefixes: 55
+ Route React exact: 43
+ Excluded prefixes: 14
+-Legacy operational prefixes: 37
++Legacy operational prefixes: 35
+
+ ## App React
+
+-Lazy components: 31
+-Route checks: 46
++Lazy components: 32
++Route checks: 47
+ Studio module routes: 52
+
+ ## Nota operativa
+diff --git a/artifacts/react-migration/route-gate.md b/artifacts/react-migration/route-gate.md
+index e6e7c04d..7909356c 100644
+--- a/artifacts/react-migration/route-gate.md
++++ b/artifacts/react-migration/route-gate.md
+@@ -1,6 +1,6 @@
+ # Route gate report
+
+-Route nel manifest: 25
+-Route con unlockFromGate=true: 5
+-Route governate consentite: /statistiche, /audit, /registro-attivita, /utenti, /profili
++Route nel manifest: 27
++Route con unlockFromGate=true: 8
++Route governate consentite: /statistiche, /audit, /registro-attivita, /utenti, /profili, /backup, /sito-studio, /sito-studio/contatti
+ Violazioni: 0
+diff --git a/artifacts/react-migration/route-inventory.json b/artifacts/react-migration/route-inventory.json
+index 73a686b5..a126c53a 100644
+--- a/artifacts/react-migration/route-inventory.json
++++ b/artifacts/react-migration/route-inventory.json
+@@ -1,5 +1,5 @@
+ {
+-  "generatedAt": "2026-05-06T11:53:08.273Z",
++  "generatedAt": "2026-05-06T12:36:09.471Z",
+   "react": {
+     "dependencies": {
+       "@vitejs/plugin-react": "^5.0.0",
+@@ -147,7 +147,6 @@
+       "/admin/osservabilita",
+       "/amministrazione",
+       "/applicazioni",
+-      "/backup",
+       "/checklist",
+       "/compensi-forensi",
+       "/database",
+@@ -173,7 +172,6 @@
+       "/sigp",
+       "/sigp-sync",
+       "/sincronizzazione-calendari",
+-      "/sito-studio",
+       "/strumenti-legali",
+       "/strumenti-operativi",
+       "/studio",
+@@ -308,6 +306,10 @@
+       {
+         "name": "BackupPage",
+         "importPath": "./components/BackupPage"
++      },
++      {
++        "name": "SitoStudioPage",
++        "importPath": "./components/SitoStudioPage"
+       }
+     ],
+     "routeChecks": [
+@@ -354,6 +356,7 @@
+       "isUtentiPage",
+       "isProfiliPage",
+       "isBackupPage",
++      "isSitoStudioPage",
+       "isStudioModulePage",
+       "isDashboardPage",
+       "isStandalonePage"
+diff --git a/artifacts/react-migration/ui-consistency.md b/artifacts/react-migration/ui-consistency.md
+index a8405904..0b984a2a 100644
+--- a/artifacts/react-migration/ui-consistency.md
++++ b/artifacts/react-migration/ui-consistency.md
+@@ -1,4 +1,4 @@
+ # UI consistency report
+
+-File scansionati: 131
++File scansionati: 134
+ Violazioni: 0
+diff --git a/docs/REACT_MIGRATION_MASTER_PLAN.md b/docs/REACT_MIGRATION_MASTER_PLAN.md
+index 52ea2a40..4e6c1327 100644
+--- a/docs/REACT_MIGRATION_MASTER_PLAN.md
++++ b/docs/REACT_MIGRATION_MASTER_PLAN.md
+@@ -1,5 +1,31 @@
+ # Migrazione progressiva Flask + React
+
++## Stato tranche 2026-05-06 - Tranche 4A studio e backup
++
++La terza promozione governata abilita in React full le superfici studio a
++rischio medio, mantenendo scritture e operazioni tecniche sui percorsi Flask
++legacy:
++
++- `/backup` usa `web/services/react_backup_bridge.py` e
++  `GET /api/v1/ui/backup` per KPI, stato ultima copia, storico sicuro e azioni
++  legacy; creazione, verifica, download, delete e ripristino restano sulle route
++  Flask esistenti.
++- `/sito-studio` e `/sito-studio/contatti` usano
++  `web/services/react_sito_studio_bridge.py` e gli endpoint
++  `GET /api/v1/ui/sito-studio` e
++  `GET /api/v1/ui/sito-studio/contatti`, mostrando contenuti, richieste e
++  prenotazioni reali senza scritture via fetch.
++- `/sito-studio/builder`, `/studio`, `/impostazioni` e
++  `/impostazioni?tab=firma` restano legacy, con protezioni esplicite nel gate e
++  nella shell.
++- `scripts/react-migration/check-tranche-4a-secrets.mjs` verifica che bridge,
++  data client e pagine della tranche non serializzino campi riservati nel
++  payload React.
++- `run-safe-react-migration.mjs --tranche=4a` cattura i contratti legacy,
++  rilancia gate/UI/anti-segreti, verifica shell e bypass legacy con Flask
++  `test_client`, esegue test/typecheck/build frontend e genera patch separate
++  di rollback.
++
+ ## Stato tranche 2026-05-06 - Tranche 3A amministrazione base
+
+ La seconda promozione governata abilita in React full la gestione
+diff --git a/pct/__init__.py b/pct/__init__.py
+index 0a4175a6..72ae3077 100644
+--- a/pct/__init__.py
++++ b/pct/__init__.py
+@@ -2,5 +2,5 @@
+ PCT - Processo Civile Telematico
+ Sistema per l'invio telematico negli studi legali italiani.
+ """
+-__version__ = "2.198.88"
++__version__ = "2.198.89"
+ __author__ = "IUSENTRA"
+diff --git a/railway.toml b/railway.toml
+index a8783f8e..cf3b8449 100644
+--- a/railway.toml
++++ b/railway.toml
+@@ -1,7 +1,7 @@
+ #  Railway - Configurazione deploy
+ #  Docs: https://docs.railway.app
+-#  version: 2.198.88
+-#  redeploy: 06/05/2026 13:55:00
++#  version: 2.198.89
++#  redeploy: 06/05/2026 14:35:00
+
+ [build]
+ builder = "DOCKERFILE"
+diff --git a/setup.py b/setup.py
+index 2a3ae86c..0944bace 100644
+--- a/setup.py
++++ b/setup.py
+@@ -10,7 +10,7 @@ from packaging_manifest import extras_requirements, read_version, runtime_requir
+
+ setup(
+     name="pct-studio-legale",
+-    # Versione applicativa 2.198.88, letta dalla source of truth pct.__init__
++    # Versione applicativa 2.198.89, letta dalla source of truth pct.__init__
+     version=read_version(),
+     description="IUSENTRA: gestionale web modulare per studi legali con PCT, Lex locale e servizi telematici",
+     packages=find_packages(),
+
+diff --git a/artifacts/react-migration/legacy-contracts/sito-studio__builder.json b/artifacts/react-migration/legacy-contracts/sito-studio__builder.json
+new file mode 100644
+index 00000000..dc88280e
+--- /dev/null
++++ b/artifacts/react-migration/legacy-contracts/sito-studio__builder.json
+@@ -0,0 +1,14 @@
++{
++  "route": "/sito-studio/builder",
++  "legacyUrl": "/sito-studio/builder?_legacy=1",
++  "status": 302,
++  "redirectLocation": "/login?next=/sito-studio/builder?_legacy%3D1",
++  "forms": [],
++  "links": [
++    "/login?next=/sito-studio/builder?_legacy%3D1"
++  ],
++  "linksCount": 1,
++  "downloads": [],
++  "hasBootstrapClass": false,
++  "hasReactRoot": false
++}
+\ No newline at end of file
+warning: in the working copy of 'artifacts/react-migration/legacy-contracts/sito-studio__builder.json', CRLF will be replaced by LF the next time Git touches it
+
+diff --git a/artifacts/react-migration/legacy-contracts/sito-studio__contatti.json b/artifacts/react-migration/legacy-contracts/sito-studio__contatti.json
+new file mode 100644
+index 00000000..93c67c6e
+--- /dev/null
++++ b/artifacts/react-migration/legacy-contracts/sito-studio__contatti.json
+@@ -0,0 +1,14 @@
++{
++  "route": "/sito-studio/contatti",
++  "legacyUrl": "/sito-studio/contatti?_legacy=1",
++  "status": 302,
++  "redirectLocation": "/login?next=/sito-studio/contatti?_legacy%3D1",
++  "forms": [],
++  "links": [
++    "/login?next=/sito-studio/contatti?_legacy%3D1"
++  ],
++  "linksCount": 1,
++  "downloads": [],
++  "hasBootstrapClass": false,
++  "hasReactRoot": false
++}
+\ No newline at end of file
+warning: in the working copy of 'artifacts/react-migration/legacy-contracts/sito-studio__contatti.json', CRLF will be replaced by LF the next time Git touches it
+
+diff --git a/artifacts/react-migration/tranche-4a-gate.md b/artifacts/react-migration/tranche-4a-gate.md
+new file mode 100644
+index 00000000..bd580fdc
+--- /dev/null
++++ b/artifacts/react-migration/tranche-4a-gate.md
+@@ -0,0 +1,21 @@
++# Tranche 4A gate check
++
++- [OK] login tenant (status=302)
++- [OK] React shell /backup (status=200)
++- [OK] React shell /sito-studio (status=200)
++- [OK] React shell /sito-studio/contatti (status=200)
++- [OK] Ancora legacy /backup?_legacy=1 (status=200)
++- [OK] Ancora legacy /sito-studio?_legacy=1 (status=308)
++- [OK] Ancora legacy /sito-studio/contatti?_legacy=1 (status=200)
++- [OK] Ancora legacy /backup/qualunque (status=404)
++- [OK] Ancora legacy /sito-studio/builder (status=200)
++- [OK] Ancora legacy /sito-studio/builder?_legacy=1 (status=200)
++- [OK] Ancora legacy /studio (status=302)
++- [OK] Ancora legacy /impostazioni (status=200)
++- [OK] Ancora legacy /impostazioni?tab=firma (status=200)
++- [OK] JSON /api/v1/ui/backup (status=200)
++- [OK] JSON /api/v1/ui/sito-studio (status=200)
++- [OK] JSON /api/v1/ui/sito-studio/contatti (status=200)
++- [OK] POST non intercettato /backup (status=405)
++- [OK] POST non intercettato /sito-studio (status=404)
++- [OK] POST non intercettato /sito-studio/builder (status=405)
+warning: in the working copy of 'artifacts/react-migration/tranche-4a-gate.md', CRLF will be replaced by LF the next time Git touches it
+
+diff --git a/artifacts/react-migration/tranche-4a-report.md b/artifacts/react-migration/tranche-4a-report.md
+new file mode 100644
+index 00000000..ac3f0415
+--- /dev/null
++++ b/artifacts/react-migration/tranche-4a-report.md
+@@ -0,0 +1,150 @@
++# Tranche 4A - report finale
++
++Data/ora: 2026-05-06 14:35 Europe/Rome
++
++Branch base: `claude/legal-electronic-filing-kIxcV`
++
++## Route migrate
++
++- `/backup` React full su GET, con operazioni tecniche conservate sui percorsi legacy.
++- `/sito-studio` React full su GET, con builder e pubblicazione avanzata legacy.
++- `/sito-studio/contatti` React full su GET, con conversione contatti e gestione prenotazioni via form legacy.
++
++## Route preparate ma lasciate legacy
++
++- `/studio`
++- `/impostazioni`
++- `/sito-studio/builder`
++
++## File creati
++
++- `web/services/react_sito_studio_bridge.py`
++- `frontend/src/sitoStudioData.ts`
++- `frontend/src/components/SitoStudioPage.tsx`
++- `frontend/src/components/SitoStudioPage.css`
++- `scripts/react-migration/check-tranche-4a-gate.py`
++- `scripts/react-migration/check-tranche-4a-secrets.mjs`
++- `artifacts/react-migration/tranche-4a-route-map.md`
++- `artifacts/react-migration/tranche-4a-gate.md`
++- `artifacts/react-migration/tranche-4a-secrets.md`
++- `artifacts/react-migration/tranche-4a-report.md`
++- `artifacts/react-migration/patches/tranche-4a.backend.patch`
++- `artifacts/react-migration/patches/tranche-4a.frontend.patch`
++- `artifacts/react-migration/patches/tranche-4a.gate.patch`
++- `artifacts/react-migration/patches/tranche-4a.tests.patch`
++- `artifacts/react-migration/patches/tranche-4a.reports.patch`
++- `artifacts/react-migration/legacy-contracts/sito-studio__contatti.json`
++- `artifacts/react-migration/legacy-contracts/sito-studio__builder.json`
++
++## File modificati
++
++- `web/services/react_backup_bridge.py`
++- `web/blueprints/api_v1_react.py`
++- `web/bootstrap/react_route_gate.py`
++- `web/blueprints/react_shell.py`
++- `frontend/src/backupData.ts`
++- `frontend/src/components/BackupPage.tsx`
++- `frontend/src/App.tsx`
++- `frontend/scripts/check-react-contracts.mjs`
++- `scripts/react-migration/check-route-gate.mjs`
++- `scripts/react-migration/run-safe-react-migration.mjs`
++- `tools/react-migration/route-manifest.json`
++- `artifacts/react-migration/audit.md`, `artifacts/react-migration/route-inventory.json`
++- `artifacts/react-migration/route-gate.md`, `artifacts/react-migration/ui-consistency.md`
++- `artifacts/react-migration/legacy-contracts/backup.json`, `artifacts/react-migration/legacy-contracts/sito-studio.json`
++- `artifacts/react-migration/legacy-contracts/studio.json`, `artifacts/react-migration/legacy-contracts/impostazioni.json`
++- `web/static/react/*`
++- `CHANGELOG.md`, `README.md`, `docs/REACT_MIGRATION_MASTER_PLAN.md`
++- `pct/__init__.py`, `setup.py`, `Dockerfile`, `railway.toml`, `frontend/package.json`, `frontend/package-lock.json`
++
++## Endpoint aggiunti
++
++- `GET /api/v1/ui/sito-studio`
++- `GET /api/v1/ui/sito-studio/contatti`
++
++Endpoint completato/promosso:
++
++- `GET /api/v1/ui/backup`
++
++## Gate modificato
++
++- Rimossi da `_LEGACY_OPERATIONAL_PREFIXES`: `/backup`, `/sito-studio`.
++- Aggiunte protezioni nested per `/backup/*`, `/sito-studio/*` non migrati, `/studio*`, `/impostazioni*`.
++- Preservato `?_legacy=1`.
++
++## Route ancora bloccate
++
++- `/backup/*`
++- `/sito-studio/builder` e ogni altro subpath `/sito-studio/*` non esplicitamente migrato
++- `/studio`
++- `/impostazioni` e `/impostazioni?tab=firma`
++- tutte le route economiche, mandato, documentali e telematiche non oggetto della tranche
++
++## Contratti legacy catturati
++
++- `artifacts/react-migration/legacy-contracts/backup.json`
++- `artifacts/react-migration/legacy-contracts/sito-studio.json`
++- `artifacts/react-migration/legacy-contracts/sito-studio__contatti.json`
++- `artifacts/react-migration/legacy-contracts/sito-studio__builder.json`
++- `artifacts/react-migration/legacy-contracts/studio.json`
++- `artifacts/react-migration/legacy-contracts/impostazioni.json`
++
++## Permessi verificati
++
++- `/backup` API React richiede `backup.leggi`.
++- `/sito-studio` e `/sito-studio/contatti` riusano `site_admin_identity_or_403` e quindi `admin.configura`, senza bypass amministrativo con chiavi API.
++
++## POST legacy preservati
++
++- Backup: `/backup/esegui`, `/backup/<id>/verifica`, `/backup/<id>/elimina`, `/backup/<id>/ripristina`.
++- Sito Studio: gestione contenuti, contatti, prenotazioni, builder, asset e pubblicazione restano route legacy.
++- Nessun fetch POST React introdotto.
++
++## Azioni backup lasciate legacy
++
++- Creazione backup.
++- Verifica integrita.
++- Download copia.
++- Ripristino.
++- Eliminazione.
++
++## Builder/studio/impostazioni
++
++- Builder Sito Studio lasciato legacy.
++- `/studio` lasciata legacy.
++- `/impostazioni` lasciata legacy, incluso tab firma.
++
++## Controllo anti-segreti
++
++- `node scripts/react-migration/check-tranche-4a-secrets.mjs`: OK.
++- Report: `artifacts/react-migration/tranche-4a-secrets.md`.
++
++## Test eseguiti
++
++- `node scripts/react-migration/check-route-gate.mjs`: OK.
++- `node scripts/react-migration/check-ui-consistency.mjs`: OK.
++- `node scripts/react-migration/check-tranche-4a-secrets.mjs`: OK.
++- `python scripts/react-migration/check-tranche-4a-gate.py`: OK.
++- `cd frontend && npm run test`: OK.
++- `cd frontend && npm run typecheck`: OK.
++- `cd frontend && npm run build`: OK.
++- `node scripts/react-migration/run-safe-react-migration.mjs --tranche=4a`: OK nella validazione finale con `ALLOW_DIRTY=1` per dirty runtime preesistente.
++
++## Limiti test Flask
++
++- Il test Flask usa tenant admin simulato e verifica gate, bypass legacy e JSON API. Non esegue operazioni tecniche di backup o pubblicazione builder, che restano volutamente legacy.
++
++## Rischi residui
++
++- Le azioni tecniche legacy restano dipendenti dai template e dai POST Flask esistenti.
++- `/sito-studio/builder` contiene pubblicazione, upload asset e ripristino revisioni: resta bloccato nel gate fino a migrazione dedicata.
++- `/impostazioni` contiene PEC/SMTP/firma/Local Signer e non viene esposto a React in questa tranche.
++
++## Rollback
++
++```bash
++git apply -R artifacts/react-migration/patches/tranche-4a.backend.patch
++git apply -R artifacts/react-migration/patches/tranche-4a.frontend.patch
++git apply -R artifacts/react-migration/patches/tranche-4a.gate.patch
++git apply -R artifacts/react-migration/patches/tranche-4a.tests.patch
++```
+
+diff --git a/artifacts/react-migration/tranche-4a-route-map.md b/artifacts/react-migration/tranche-4a-route-map.md
+new file mode 100644
+index 00000000..45bfb507
+--- /dev/null
++++ b/artifacts/react-migration/tranche-4a-route-map.md
+@@ -0,0 +1,108 @@
++# Tranche 4A - mappa route legacy
++
++Generato: 2026-05-06
++
++Nota operativa: il comando richiesto con `rg` ha restituito `rg.exe: Accesso negato` su questa workstation; l'analisi e' stata completata con `Select-String` PowerShell sui percorsi `web`, `pct` e `tests`, piu' ispezione diretta di `app.url_map`.
++
++## /backup
++
++- Handler legacy: [web/bootstrap/backup_routes.py](../../web/bootstrap/backup_routes.py)
++- Funzione GET: `lista_backup`
++- Template: `web/templates/backup/lista.html`
++- Repository/manager: `pct.backup.GestioneBackup` tramite `get_backup()`
++- Permessi: gate API React richiede `backup.leggi`; il POST legacy conserva la policy esistente.
++- Form presenti:
++  - `POST /backup/esegui`
++  - `POST /backup/<id_bk>/verifica`
++  - `POST /backup/<id_bk>/elimina`
++  - `GET/POST /backup/<id_bk>/ripristina`
++- Token CSRF: i template legacy usano form standard; React invia form HTML tramite `LegacyPostForm` e lascia il valore al runtime condiviso se presente nella meta.
++- Download/export: `GET /backup/<id_bk>/scarica`
++- Azioni distruttive: elimina backup e ripristina backup restano legacy.
++- Dati sensibili: il record legacy contiene percorso file server-side; il bridge React espone solo nome file, dimensione, stato, data e link legacy.
++- Decisione: sbloccabile come GET React full per `/backup`; ogni subpath `/backup/*`, download, verifica, elimina e ripristina resta legacy.
++
++## /sito-studio
++
++- Handler legacy: [web/blueprints/studio_site.py](../../web/blueprints/studio_site.py)
++- Funzione GET: `dashboard`
++- Template: `web/templates/studio_site/dashboard.html`
++- Repository/manager: `web.services.studio_site_runtime.build_studio_site_dashboard_payload`, `StudioSiteRepository`
++- Permessi: `site_admin_identity_or_403`, permesso `admin.configura`
++- Form presenti nel dashboard:
++  - eliminazione pagine/articoli/servizi/professionisti/sedi/regole agenda via POST legacy
++  - link a builder, impostazioni sito, redazione AI, anteprima e prenotazioni
++- Token CSRF: form legacy standard dove previsto dai template.
++- Download/export: non emersi nella dashboard.
++- Azioni distruttive: eliminazioni contenuti e pubblicazione restano legacy o builder legacy.
++- Dati sensibili: la dashboard mostra contenuti pubblici, stato sito, contatti e prenotazioni; il bridge seleziona solo campi pubblici o gia' visibili e non serializza configurazioni riservate.
++- Decisione: sbloccabile come dashboard React full per GET `/sito-studio`, con scritture e builder lasciati ai percorsi legacy.
++
++## /sito-studio/contatti
++
++- Handler legacy: [web/blueprints/studio_site.py](../../web/blueprints/studio_site.py)
++- Funzione GET: `contact_submissions`
++- Template: `web/templates/studio_site/contact_submissions.html`
++- Repository/manager: `StudioSiteRepository.list_contact_submissions`, payload dashboard Sito Studio
++- Permessi: `site_admin_identity_or_403`, permesso `admin.configura`
++- Form presenti:
++  - `POST /sito-studio/contatti/<submission_id>/crea-cliente`
++- Token CSRF: form legacy standard; React usa `LegacyPostForm` e non intercetta il submit.
++- Download/export: non presenti.
++- Azioni distruttive: nessuna distruzione diretta; conversione contatto in cliente potenziale resta POST legacy auditato.
++- Dati sensibili: richieste contatto e recapiti reali, gia' visibili nel template legacy; accesso riservato ad admin configurazione.
++- Decisione: sbloccabile come React full per GET `/sito-studio/contatti`; gestione lead resta legacy.
++
++## /sito-studio/builder
++
++- Handler legacy: [web/blueprints/studio_site_builder.py](../../web/blueprints/studio_site_builder.py)
++- Funzione GET: `builder`
++- Template: `web/templates/studio_site/builder.html`
++- Repository/manager: `build_builder_payload`, `save_design_settings`, `publish_page_blocks`, `restore_design_revision`, asset runtime
++- Permessi: `site_admin_identity_or_403`, permesso `admin.configura`
++- Form/azioni presenti:
++  - `POST /sito-studio/builder/applica-template`
++  - `POST /sito-studio/builder/salva-design`
++  - `POST /sito-studio/builder/genera-automaticamente`
++  - `POST /sito-studio/builder/valida`
++  - `POST /sito-studio/api/pages/<page_id>/blocks`
++  - `POST /sito-studio/api/pages/<page_id>/publish`
++  - `POST /sito-studio/api/revisions/<revision_id>/restore`
++  - upload asset e delete asset
++- Token CSRF: form legacy/API builder esistenti.
++- Download/export: anteprima e asset; nessun nuovo download React.
++- Azioni distruttive: restore revisione e delete asset.
++- Dati sensibili: impostazioni editor, asset e pubblicazione tecnica.
++- Decisione: deve restare legacy in 4A.
++
++## /studio
++
++- Handler legacy: [web/blueprints/terminology_aliases.py](../../web/blueprints/terminology_aliases.py)
++- Funzione GET: `studio`
++- Template: nessuno diretto; redirect a `telematico_dashboard`
++- Repository/manager: superficie operativa telematica gia' esistente
++- Permessi: ereditati dal target legacy
++- Form/POST/download: non diretti sull'alias; il target contiene flussi operativi non oggetto della tranche.
++- Dati sensibili: puo' aprire aree operative studio/telematico.
++- Decisione: resta legacy; non si migra in questa PR.
++
++## /impostazioni
++
++- Handler legacy: [web/blueprints/impostazioni.py](../../web/blueprints/impostazioni.py)
++- Funzione GET/POST: `index`
++- Template: `web/templates/impostazioni/index.html`
++- Repository/manager: `pct.config_studio.GestioneConfigStudio`, runtime locale AI, PEC/SMTP/firma/scheduler
++- Permessi: login richiesto; sezioni sensibili gestite dai template legacy
++- Form presenti:
++  - `POST /impostazioni` per tab studio, PEC, firma, SMTP, WhatsApp, scheduler, AI
++  - `POST /impostazioni/test/pec-smtp`
++  - `POST /impostazioni/test/pec-imap`
++  - `POST /impostazioni/test/smtp`
++  - `POST /impostazioni/test/smtp-imap`
++  - `POST /impostazioni/test/whatsapp`
++  - `POST /impostazioni/pec/local-smtp-payload`
++- Token CSRF: form standard legacy.
++- Download/export: setup Local Signer per Windows/macOS/Linux e guide firma.
++- Azioni distruttive: aggiornamento configurazioni e test canali sensibili.
++- Dati sensibili: PEC, SMTP, firma digitale, WhatsApp, AI locale e Local Signer.
++- Decisione: resta legacy, incluso `?tab=firma`.
+
+diff --git a/artifacts/react-migration/tranche-4a-secrets.md b/artifacts/react-migration/tranche-4a-secrets.md
+new file mode 100644
+index 00000000..bfe476f0
+--- /dev/null
++++ b/artifacts/react-migration/tranche-4a-secrets.md
+@@ -0,0 +1,4 @@
++# Tranche 4A anti-segreti
++
++File scansionati: 6
++Violazioni: 0

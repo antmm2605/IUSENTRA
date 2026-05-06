@@ -1,5 +1,31 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-06 - Tranche 4A studio e backup
+
+La terza promozione governata abilita in React full le superfici studio a
+rischio medio, mantenendo scritture e operazioni tecniche sui percorsi Flask
+legacy:
+
+- `/backup` usa `web/services/react_backup_bridge.py` e
+  `GET /api/v1/ui/backup` per KPI, stato ultima copia, storico sicuro e azioni
+  legacy; creazione, verifica, download, delete e ripristino restano sulle route
+  Flask esistenti.
+- `/sito-studio` e `/sito-studio/contatti` usano
+  `web/services/react_sito_studio_bridge.py` e gli endpoint
+  `GET /api/v1/ui/sito-studio` e
+  `GET /api/v1/ui/sito-studio/contatti`, mostrando contenuti, richieste e
+  prenotazioni reali senza scritture via fetch.
+- `/sito-studio/builder`, `/studio`, `/impostazioni` e
+  `/impostazioni?tab=firma` restano legacy, con protezioni esplicite nel gate e
+  nella shell.
+- `scripts/react-migration/check-tranche-4a-secrets.mjs` verifica che bridge,
+  data client e pagine della tranche non serializzino campi riservati nel
+  payload React.
+- `run-safe-react-migration.mjs --tranche=4a` cattura i contratti legacy,
+  rilancia gate/UI/anti-segreti, verifica shell e bypass legacy con Flask
+  `test_client`, esegue test/typecheck/build frontend e genera patch separate
+  di rollback.
+
 ## Stato tranche 2026-05-06 - Tranche 3A amministrazione base
 
 La seconda promozione governata abilita in React full la gestione

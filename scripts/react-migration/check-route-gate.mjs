@@ -45,8 +45,20 @@ function isReactRoute(path, reactExact, reactPrefixes) {
 
 function isBlockedByGate(path, legacyPrefixes, excludedPrefixes) {
   return (
+    isBlockedBySpecialRule(path) ||
     legacyPrefixes.some((prefix) => isPrefixMatch(path, prefix)) ||
     excludedPrefixes.some((prefix) => isPrefixMatch(path, prefix))
+  )
+}
+
+function isBlockedBySpecialRule(path) {
+  return (
+    path.startsWith('/backup/') ||
+    (path.startsWith('/sito-studio/') && path !== '/sito-studio/contatti') ||
+    path === '/studio' ||
+    path.startsWith('/studio/') ||
+    path === '/impostazioni' ||
+    path.startsWith('/impostazioni/')
   )
 }
 
@@ -60,14 +72,14 @@ const reactExact = new Set(extractSet(gate, '_REACT_EXACT').map(normaliseRoute))
 const legacyOperationalPrefixes = extractTuple(gate, '_LEGACY_OPERATIONAL_PREFIXES')
 const excludedPrefixes = extractTuple(gate, '_EXCLUDED_PREFIXES')
 const shellLegacyFirstPrefixes = extractTuple(reactShell, '_LEGACY_FIRST_PREFIXES')
-const allowedReactUnlocks = new Set(['/statistiche', '/audit', '/registro-attivita', '/utenti', '/profili'])
+const allowedReactUnlocks = new Set(['/statistiche', '/audit', '/registro-attivita', '/utenti', '/profili', '/backup', '/sito-studio', '/sito-studio/contatti'])
 
 const violations = []
 for (const entry of manifest.routes ?? []) {
   const route = normaliseRoute(entry.route)
   const routeIsReact = isReactRoute(route, reactExact, reactPrefixes)
   const blocked = isBlockedByGate(route, legacyOperationalPrefixes, excludedPrefixes)
-  const blockedByShell = shellLegacyFirstPrefixes.some((prefix) => isPrefixMatch(route, prefix))
+  const blockedByShell = isBlockedBySpecialRule(route) || shellLegacyFirstPrefixes.some((prefix) => isPrefixMatch(route, prefix))
   const unlockedByGate = routeIsReact && !blocked
   const unlockedByShell = unlockedByGate && !blockedByShell
 
@@ -77,7 +89,7 @@ for (const entry of manifest.routes ?? []) {
 
   if (entry.unlockFromGate === true) {
     if (!allowedReactUnlocks.has(route)) {
-      violations.push(`${entry.route}: unlockFromGate=true non consentito nelle tranche governate 2A/3A`)
+      violations.push(`${entry.route}: unlockFromGate=true non consentito nelle tranche governate 2A/3A/4A`)
     }
     if (entry.status !== 'react_full') {
       violations.push(`${entry.route}: unlockFromGate=true richiede status react_full`)
@@ -104,15 +116,15 @@ for (const entry of manifest.routes ?? []) {
 }
 
 const unlocked = (manifest.routes ?? []).filter((entry) => entry.unlockFromGate === true)
-for (const route of ['/backup']) {
+for (const route of ['/backup', '/sito-studio', '/sito-studio/contatti']) {
   const entry = (manifest.routes ?? []).find((item) => normaliseRoute(item.route) === route)
-  if (!entry || entry.status !== 'react_readonly' || entry.unlockFromGate !== false) {
-    violations.push(`${route}: deve restare react_readonly con unlockFromGate=false nella Tranche 3A`)
+  if (!entry || entry.status !== 'react_full' || entry.unlockFromGate !== true) {
+    violations.push(`${route}: deve essere react_full con unlockFromGate=true nella Tranche 4A`)
   }
   const stillBlocked = legacyOperationalPrefixes.some((prefix) => isPrefixMatch(route, prefix))
-  const stillShellBlocked = shellLegacyFirstPrefixes.some((prefix) => isPrefixMatch(route, prefix))
-  if (!stillBlocked || !stillShellBlocked) {
-    violations.push(`${route}: deve restare bloccata da gate e shell legacy`)
+  const stillShellBlocked = isBlockedBySpecialRule(route) || shellLegacyFirstPrefixes.some((prefix) => isPrefixMatch(route, prefix))
+  if (stillBlocked || stillShellBlocked) {
+    violations.push(`${route}: non deve restare bloccata da gate o shell legacy`)
   }
 }
 
@@ -122,9 +134,30 @@ for (const route of ['/utenti', '/profili']) {
     violations.push(`${route}: deve essere react_full con unlockFromGate=true nella Tranche 3A`)
   }
   const stillBlocked = legacyOperationalPrefixes.some((prefix) => isPrefixMatch(route, prefix))
-  const stillShellBlocked = shellLegacyFirstPrefixes.some((prefix) => isPrefixMatch(route, prefix))
+  const stillShellBlocked = isBlockedBySpecialRule(route) || shellLegacyFirstPrefixes.some((prefix) => isPrefixMatch(route, prefix))
   if (stillBlocked || stillShellBlocked) {
     violations.push(`${route}: non deve restare bloccata da gate o shell legacy`)
+  }
+}
+
+for (const route of ['/studio', '/impostazioni', '/sito-studio/builder']) {
+  const entry = (manifest.routes ?? []).find((item) => normaliseRoute(item.route) === route)
+  if (!entry || entry.status !== 'legacy_operational' || entry.unlockFromGate !== false) {
+    violations.push(`${route}: deve restare legacy_operational con unlockFromGate=false nella Tranche 4A`)
+  }
+}
+
+for (const snippet of [
+  'lower.startswith("/backup/")',
+  'lower.startswith("/sito-studio/") and lower not in {"/sito-studio/contatti"}',
+  'lower == "/studio" or lower.startswith("/studio/")',
+  'lower == "/impostazioni" or lower.startswith("/impostazioni/")',
+]) {
+  if (!gate.includes(snippet)) {
+    violations.push(`react_route_gate.py: manca protezione ${snippet}`)
+  }
+  if (!reactShell.includes(snippet)) {
+    violations.push(`react_shell.py: manca protezione ${snippet}`)
   }
 }
 
@@ -146,4 +179,4 @@ if (violations.length) {
   process.exit(1)
 }
 
-console.log('Route gate OK: Tranche 3A coerente.')
+console.log('Route gate OK: Tranche 4A coerente.')

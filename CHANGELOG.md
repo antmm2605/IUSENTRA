@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.198.89 - 2026-05-06
+
+- Promosse in React full le route `/backup`, `/sito-studio` e `/sito-studio/contatti`, con bridge backend reali, endpoint UI dedicati e gate aggiornato senza sbloccare builder, studio o impostazioni.
+- Mantenute le operazioni tecniche su form/link legacy auditabili: creazione/verifica/download/ripristino backup, conversione contatti, prenotazioni e pubblicazione Sito Studio non usano fetch POST React.
+- Aggiunti check Tranche 4A per gate Flask, UI consistency, anti-segreti, contratti React, runner sicuro e patch rollback separate.
+
 ## 2.198.88 - 2026-05-06
 
 - Promosse in React full le route amministrative `/utenti`, `GET /utenti/nuovo` e `/profili`, con bridge backend reali, endpoint UI dedicati e gate aggiornato; le scritture restano form POST verso le route legacy auditabili.

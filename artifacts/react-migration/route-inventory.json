@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-06T11:53:08.273Z",
+  "generatedAt": "2026-05-06T12:36:09.471Z",
   "react": {
     "dependencies": {
       "@vitejs/plugin-react": "^5.0.0",
@@ -147,7 +147,6 @@
       "/admin/osservabilita",
       "/amministrazione",
       "/applicazioni",
-      "/backup",
       "/checklist",
       "/compensi-forensi",
       "/database",
@@ -173,7 +172,6 @@
       "/sigp",
       "/sigp-sync",
       "/sincronizzazione-calendari",
-      "/sito-studio",
       "/strumenti-legali",
       "/strumenti-operativi",
       "/studio",
@@ -308,6 +306,10 @@
       {
         "name": "BackupPage",
         "importPath": "./components/BackupPage"
+      },
+      {
+        "name": "SitoStudioPage",
+        "importPath": "./components/SitoStudioPage"
       }
     ],
     "routeChecks": [
@@ -354,6 +356,7 @@
       "isUtentiPage",
       "isProfiliPage",
       "isBackupPage",
+      "isSitoStudioPage",
       "isStudioModulePage",
       "isDashboardPage",
       "isStandalonePage"

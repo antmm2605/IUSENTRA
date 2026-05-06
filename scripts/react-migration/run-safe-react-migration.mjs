@@ -6,7 +6,9 @@ mkdirSync('artifacts/react-migration/patches', { recursive: true })
 const args = process.argv.slice(2)
 const TRANCHE_2A_FLAG = '--tranche=2a'
 const TRANCHE_3A_FLAG = '--tranche=3a'
+const TRANCHE_4A_FLAG = '--tranche=4a'
 const tranche = args.find((arg) => arg.startsWith('--tranche='))?.split('=')[1] || ''
+const EXEC_BUFFER = 1024 * 1024 * 200
 
 const migrationPaths = [
   'CHANGELOG.md',
@@ -44,6 +46,15 @@ const tranche3aContracts = [
   '/utenti/nuovo',
   '/profili',
   '/backup',
+]
+
+const tranche4aContracts = [
+  '/backup',
+  '/sito-studio',
+  '/sito-studio/contatti',
+  '/sito-studio/builder',
+  '/studio',
+  '/impostazioni',
 ]
 
 const tranche2aPatchGroups = {
@@ -158,6 +169,61 @@ const tranche3aPatchGroups = {
   ],
 }
 
+const tranche4aPatchGroups = {
+  backend: [
+    'web/services/react_backup_bridge.py',
+    'web/services/react_sito_studio_bridge.py',
+    'web/blueprints/api_v1_react.py',
+  ],
+  frontend: [
+    'frontend/package.json',
+    'frontend/package-lock.json',
+    'frontend/src/backupData.ts',
+    'frontend/src/sitoStudioData.ts',
+    'frontend/src/components/BackupPage.tsx',
+    'frontend/src/components/BackupPage.css',
+    'frontend/src/components/SitoStudioPage.tsx',
+    'frontend/src/components/SitoStudioPage.css',
+    'frontend/src/App.tsx',
+    'web/static/react',
+  ],
+  gate: [
+    'web/bootstrap/react_route_gate.py',
+    'web/blueprints/react_shell.py',
+    'tools/react-migration/route-manifest.json',
+  ],
+  tests: [
+    'frontend/scripts/check-react-contracts.mjs',
+    'scripts/react-migration/check-route-gate.mjs',
+    'scripts/react-migration/check-tranche-4a-gate.py',
+    'scripts/react-migration/check-tranche-4a-secrets.mjs',
+    'scripts/react-migration/run-safe-react-migration.mjs',
+  ],
+  reports: [
+    'CHANGELOG.md',
+    'Dockerfile',
+    'README.md',
+    'docs/REACT_MIGRATION_MASTER_PLAN.md',
+    'pct/__init__.py',
+    'railway.toml',
+    'setup.py',
+    'artifacts/react-migration/audit.md',
+    'artifacts/react-migration/route-inventory.json',
+    'artifacts/react-migration/route-gate.md',
+    'artifacts/react-migration/ui-consistency.md',
+    'artifacts/react-migration/tranche-4a-route-map.md',
+    'artifacts/react-migration/tranche-4a-gate.md',
+    'artifacts/react-migration/tranche-4a-secrets.md',
+    'artifacts/react-migration/tranche-4a-report.md',
+    'artifacts/react-migration/legacy-contracts/backup.json',
+    'artifacts/react-migration/legacy-contracts/sito-studio.json',
+    'artifacts/react-migration/legacy-contracts/sito-studio__contatti.json',
+    'artifacts/react-migration/legacy-contracts/sito-studio__builder.json',
+    'artifacts/react-migration/legacy-contracts/studio.json',
+    'artifacts/react-migration/legacy-contracts/impostazioni.json',
+  ],
+}
+
 function run(cmd, options = {}) {
   console.log(`\n> ${cmd}`)
   execSync(cmd, { stdio: 'inherit', ...options })
@@ -172,7 +238,7 @@ function cleanRequired() {
 }
 
 function textArtifact(cmd) {
-  return execSync(cmd, { encoding: 'utf8' })
+  return execSync(cmd, { encoding: 'utf8', maxBuffer: EXEC_BUFFER })
     .split(/\r?\n/)
     .map((line) => line.trimEnd())
     .join('\n')
@@ -180,7 +246,11 @@ function textArtifact(cmd) {
 
 function diffOutput(cmd) {
   try {
-    return execSync(cmd, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
+    return execSync(cmd, {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+      maxBuffer: EXEC_BUFFER,
+    })
   } catch (error) {
     return `${error.stdout || ''}${error.stderr || ''}`
   }
@@ -199,14 +269,24 @@ function untrackedPaths(paths) {
     .filter(Boolean)
 }
 
+function trackedPaths(paths) {
+  const candidates = existingPaths(paths)
+  if (!candidates.length) return []
+  return textArtifact(`git ls-files -- ${candidates.join(' ')}`)
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+}
+
 function patchForPaths(paths) {
   const existing = existingPaths(paths)
   if (!existing.length) return ''
-  const tracked = textArtifact(`git diff --binary -- ${existing.join(' ')}`)
+  const tracked = trackedPaths(existing)
+  const trackedPatch = tracked.length ? textArtifact(`git diff --binary -- ${tracked.join(' ')}`) : ''
   const untracked = untrackedPaths(existing)
     .map((path) => diffOutput(`git diff --binary --no-index -- /dev/null ${path}`))
     .join('\n')
-  return [tracked, untracked].filter((part) => part.trim()).join('\n').trimEnd() + '\n'
+  return [trackedPatch, untracked].filter((part) => part.trim()).join('\n').trimEnd() + '\n'
 }
 
 function writePatch(trancheName, name, paths) {
@@ -222,6 +302,12 @@ function writeTranche2aPatches() {
 function writeTranche3aPatches() {
   for (const [name, paths] of Object.entries(tranche3aPatchGroups)) {
     writePatch('3a', name, paths)
+  }
+}
+
+function writeTranche4aPatches() {
+  for (const [name, paths] of Object.entries(tranche4aPatchGroups)) {
+    writePatch('4a', name, paths)
   }
 }
 
@@ -278,10 +364,29 @@ function runTranche3a() {
   run('git status --short')
 }
 
+function runTranche4a() {
+  cleanRequired()
+  run('git status --short')
+  run('node scripts/react-migration/audit-react-migration.mjs')
+  run(`python scripts/react-migration/capture-legacy-contracts.py ${tranche4aContracts.join(' ')}`)
+  run('node scripts/react-migration/check-route-gate.mjs')
+  run('node scripts/react-migration/check-ui-consistency.mjs')
+  run('node scripts/react-migration/check-tranche-4a-secrets.mjs')
+  run('python scripts/react-migration/check-tranche-4a-gate.py')
+  run('cd frontend && npm run test')
+  run('cd frontend && npm run typecheck')
+  run('cd frontend && npm run build')
+  writeTranche4aPatches()
+  run('git diff --stat')
+  run('git status --short')
+}
+
 if (tranche === '2a') {
   runTranche2a()
 } else if (tranche === '3a') {
   runTranche3a()
+} else if (tranche === '4a') {
+  runTranche4a()
 } else {
   runDefault()
 }

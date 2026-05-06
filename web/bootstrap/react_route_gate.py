@@ -166,7 +166,6 @@ _LEGACY_OPERATIONAL_PREFIXES = (
     "/admin/osservabilita",
     "/amministrazione",
     "/applicazioni",
-    "/backup",
     "/checklist",
     "/compensi-forensi",
     "/database",
@@ -192,7 +191,6 @@ _LEGACY_OPERATIONAL_PREFIXES = (
     "/sigp",
     "/sigp-sync",
     "/sincronizzazione-calendari",
-    "/sito-studio",
     "/strumenti-legali",
     "/strumenti-operativi",
     "/studio",
@@ -225,7 +223,13 @@ def _excluded(path: str) -> bool:
         return True
     if lower.startswith("/profili/"):
         return True
-    if lower == "/backup" or lower.startswith("/backup/"):
+    if lower.startswith("/backup/"):
+        return True
+    if lower.startswith("/sito-studio/") and lower not in {"/sito-studio/contatti"}:
+        return True
+    if lower == "/studio" or lower.startswith("/studio/"):
+        return True
+    if lower == "/impostazioni" or lower.startswith("/impostazioni/"):
         return True
     if any(lower == prefix or lower.startswith(f"{prefix}/") for prefix in _LEGACY_OPERATIONAL_PREFIXES):
         return True

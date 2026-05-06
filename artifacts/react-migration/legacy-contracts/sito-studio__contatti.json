@@ -1,0 +1,14 @@
+{
+  "route": "/sito-studio/contatti",
+  "legacyUrl": "/sito-studio/contatti?_legacy=1",
+  "status": 302,
+  "redirectLocation": "/login?next=/sito-studio/contatti?_legacy%3D1",
+  "forms": [],
+  "links": [
+    "/login?next=/sito-studio/contatti?_legacy%3D1"
+  ],
+  "linksCount": 1,
+  "downloads": [],
+  "hasBootstrapClass": false,
+  "hasReactRoot": false
+}

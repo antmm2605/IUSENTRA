@@ -1,0 +1,397 @@
+{
+  "generatedAt": "2026-05-06T10:20:22.944Z",
+  "react": {
+    "dependencies": {
+      "@vitejs/plugin-react": "^5.0.0",
+      "vite": "^6.4.1",
+      "typescript": "^5.6.3",
+      "react": "^19.0.0",
+      "react-dom": "^19.0.0",
+      "lucide-react": "^0.468.0"
+    },
+    "devDependencies": {
+      "tailwindcss": "^3.4.17",
+      "postcss": "^8.4.49",
+      "autoprefixer": "^10.4.20",
+      "@types/react": "^19.0.0",
+      "@types/react-dom": "^19.0.0"
+    },
+    "scripts": {
+      "dev": "vite --host 0.0.0.0 --port 5173",
+      "test": "node scripts/check-react-contracts.mjs",
+      "typecheck": "tsc --noEmit",
+      "build": "tsc --noEmit && vite build",
+      "preview": "vite preview --host 0.0.0.0 --port 4173"
+    }
+  },
+  "gate": {
+    "reactPrefixes": [
+      "/",
+      "/agenda",
+      "/applicazioni",
+      "/cartelle-condivise",
+      "/checklist",
+      "/clienti",
+      "/deposito/checklist",
+      "/email",
+      "/email-ordinaria",
+      "/fatturazione",
+      "/fascicoli",
+      "/giurisprudenza",
+      "/global-search",
+      "/guida/firma-digitale",
+      "/impostazioni",
+      "/legal-intelligence",
+      "/messaggi",
+      "/notifiche",
+      "/pat",
+      "/pdp",
+      "/polisWeb",
+      "/portali",
+      "/portali/pat",
+      "/portali/pdp",
+      "/portali/pst",
+      "/portali/ptt",
+      "/portali/sigit",
+      "/preventivi",
+      "/privacy/registro",
+      "/profili",
+      "/redazione-atti",
+      "/regia-operativa",
+      "/registro-attivita",
+      "/registro-gdpr",
+      "/ricerca-studio",
+      "/scadenziario",
+      "/servizi-telematici",
+      "/sigit",
+      "/sigp",
+      "/sigp-sync",
+      "/sincronizzazione-calendari",
+      "/soggetti",
+      "/sito-studio",
+      "/statistiche",
+      "/strumenti-legali",
+      "/strumenti-operativi",
+      "/studio",
+      "/tariffario",
+      "/telematico",
+      "/template-atti",
+      "/timesheet",
+      "/tribunali",
+      "/utenti",
+      "/wizard-pro",
+      "/workspace-intelligente"
+    ],
+    "reactExact": [
+      "/admin/database",
+      "/admin/osservabilita",
+      "/admin/osservabilita",
+      "/amministrazione",
+      "/audit",
+      "/backup",
+      "/cerca",
+      "/compensi-forensi",
+      "/database",
+      "/fatturazione",
+      "/fatturazione/nuova",
+      "/giurisprudenza",
+      "/giurisprudenza/nuova",
+      "/impostazioni/calendario",
+      "/impostazioni/pagamenti",
+      "/impostazioni",
+      "/impostazioni-studio",
+      "/incassi-pagamenti",
+      "/legal-intelligence",
+      "/legal-intelligence/mediazione",
+      "/legal-intelligence/news",
+      "/notifiche",
+      "/notifiche-whatsapp",
+      "/privacy/registro",
+      "/privacy/registro/nuovo",
+      "/profili",
+      "/redazione-atti",
+      "/registro-attivita",
+      "/ricerca-legale",
+      "/servizi-telematici",
+      "/sincronizzazione-calendari",
+      "/sito-studio",
+      "/sito-studio/builder",
+      "/sito-studio/contatti",
+      "/statistiche",
+      "/studio",
+      "/strumenti-legali",
+      "/strumenti-operativi",
+      "/template-atti",
+      "/template-atti/catalogo",
+      "/template-atti/nuovo",
+      "/utenti",
+      "/utenti/nuovo"
+    ],
+    "excludedPrefixes": [
+      "/api",
+      "/app-v2",
+      "/cal/",
+      "/email/api",
+      "/email-ordinaria/api",
+      "/health",
+      "/paga/",
+      "/portale/",
+      "/preventivi/ajax",
+      "/static/",
+      "/support/",
+      "/sw.js",
+      "/web/",
+      "/webhooks/"
+    ],
+    "legacyOperationalPrefixes": [
+      "/admin/osservabilita",
+      "/amministrazione",
+      "/applicazioni",
+      "/audit",
+      "/backup",
+      "/checklist",
+      "/compensi-forensi",
+      "/database",
+      "/deposito/checklist",
+      "/fatturazione",
+      "/giurisprudenza",
+      "/guida/firma-digitale",
+      "/impostazioni",
+      "/impostazioni-studio",
+      "/incassi-pagamenti",
+      "/legal-intelligence",
+      "/notifiche",
+      "/notifiche-whatsapp",
+      "/pat",
+      "/pdp",
+      "/polisweb",
+      "/portali",
+      "/preventivi",
+      "/profili",
+      "/redazione-atti",
+      "/registro-attivita",
+      "/ricerca-legale",
+      "/servizi-telematici",
+      "/sigit",
+      "/sigp",
+      "/sigp-sync",
+      "/sincronizzazione-calendari",
+      "/sito-studio",
+      "/statistiche",
+      "/strumenti-legali",
+      "/strumenti-operativi",
+      "/studio",
+      "/tariffario",
+      "/telematico",
+      "/template-atti",
+      "/tribunali",
+      "/utenti"
+    ]
+  },
+  "app": {
+    "lazyComponents": [
+      {
+        "name": "AgendaPage",
+        "importPath": "./components/AgendaPage"
+      },
+      {
+        "name": "NuovoAppuntamentoPage",
+        "importPath": "./components/NuovoAppuntamentoPage"
+      },
+      {
+        "name": "RicercaStudioPage",
+        "importPath": "./components/RicercaStudioPage"
+      },
+      {
+        "name": "FascicoliPage",
+        "importPath": "./components/FascicoliPage"
+      },
+      {
+        "name": "DocumentEditorPage",
+        "importPath": "./components/DocumentEditorPage"
+      },
+      {
+        "name": "AnagraficaClientiPage",
+        "importPath": "./components/AnagraficaClientiPage"
+      },
+      {
+        "name": "CartellaClientePage",
+        "importPath": "./components/CartellaClientePage"
+      },
+      {
+        "name": "NuovoClientePage",
+        "importPath": "./components/NuovoClientePage"
+      },
+      {
+        "name": "SoggettiPage",
+        "importPath": "./components/SoggettiPage"
+      },
+      {
+        "name": "EmailPecPage",
+        "importPath": "./components/EmailPecPage"
+      },
+      {
+        "name": "EmailOrdinariaPage",
+        "importPath": "./components/EmailPecPage"
+      },
+      {
+        "name": "EmailComposePage",
+        "importPath": "./components/EmailPecPage"
+      },
+      {
+        "name": "MessaggiPage",
+        "importPath": "./components/MessaggiPage"
+      },
+      {
+        "name": "NuovoMessaggioPage",
+        "importPath": "./components/MessaggiPage"
+      },
+      {
+        "name": "ScadenziarioPage",
+        "importPath": "./components/ScadenziarioPage"
+      },
+      {
+        "name": "NuovaScadenzaPage",
+        "importPath": "./components/NuovaScadenzaPage"
+      },
+      {
+        "name": "WizardProPage",
+        "importPath": "./components/WizardProPage"
+      },
+      {
+        "name": "WizardProStepPage",
+        "importPath": "./components/WizardProStepPage"
+      },
+      {
+        "name": "WizardProCompletePage",
+        "importPath": "./components/WizardProCompletePage"
+      },
+      {
+        "name": "TimesheetPage",
+        "importPath": "./components/TimesheetPage"
+      },
+      {
+        "name": "CartelleCondivisePage",
+        "importPath": "./components/CartelleCondivisePage"
+      },
+      {
+        "name": "TelematicoPage",
+        "importPath": "./components/TelematicoPage"
+      },
+      {
+        "name": "TelematicoSurfacePage",
+        "importPath": "./components/TelematicoSurfacePage"
+      },
+      {
+        "name": "StudioModulePage",
+        "importPath": "./components/StudioModulePage"
+      },
+      {
+        "name": "PrivacyRegistroPage",
+        "importPath": "./components/PrivacyRegistroPage"
+      },
+      {
+        "name": "AdminDatabasePage",
+        "importPath": "./components/AdminDatabasePage"
+      }
+    ],
+    "routeChecks": [
+      "isNewAppointment",
+      "isAppointmentEdit",
+      "isNewDeadline",
+      "isDeadlineEdit",
+      "isSearchPage",
+      "isNewAppointmentPage",
+      "isAppointmentEditPage",
+      "isAgendaPage",
+      "isRegiaPage",
+      "isDocumentEditorPage",
+      "isFascicoliPage",
+      "isNewClientPage",
+      "isNewSubjectPage",
+      "isClientEditPage",
+      "isSubjectEditPage",
+      "isClientFolderPage",
+      "isClientiPage",
+      "isSoggettiPage",
+      "isEmailComposePage",
+      "isEmailOrdinariaComposePage",
+      "isEmailPage",
+      "isEmailOrdinariaPage",
+      "isNewMessagePage",
+      "isMessagesPage",
+      "isNewDeadlinePage",
+      "isDeadlineEditPage",
+      "isScadenziarioPage",
+      "isTimesheetPage",
+      "isCartelleCondivisePage",
+      "isWizardProDashboard",
+      "isWizardProStep",
+      "isWizardProComplete",
+      "isWizardProPage",
+      "isTelematicoPage",
+      "isTelematicoSurfacePage",
+      "isPrivacyRegistroPage",
+      "isAdminDatabasePage",
+      "isStudioModulePage",
+      "isDashboardPage",
+      "isStandalonePage"
+    ]
+  },
+  "studioModules": {
+    "routes": [
+      "/admin/database",
+      "/admin/osservabilita",
+      "/amministrazione",
+      "/applicazioni",
+      "/audit",
+      "/backup",
+      "/cartelle-condivise",
+      "/checklist",
+      "/compensi-forensi",
+      "/database",
+      "/fatturazione",
+      "/fatturazione/nuova",
+      "/giurisprudenza",
+      "/giurisprudenza/nuova",
+      "/impostazioni",
+      "/impostazioni-studio",
+      "/impostazioni/calendario",
+      "/impostazioni/pagamenti",
+      "/incassi-pagamenti",
+      "/legal-intelligence",
+      "/legal-intelligence/mediazione",
+      "/legal-intelligence/news",
+      "/notifiche",
+      "/notifiche-whatsapp",
+      "/polisweb/acquisizione",
+      "/portali/pst/acquisizione",
+      "/preventivi",
+      "/preventivi/conferimento/nuovo",
+      "/preventivi/nuovo",
+      "/preventivi/wizard",
+      "/privacy/registro",
+      "/privacy/registro/nuovo",
+      "/profili",
+      "/redazione-atti",
+      "/registro-attivita",
+      "/registro-gdpr",
+      "/ricerca-legale",
+      "/sincronizzazione-calendari",
+      "/sito-studio",
+      "/sito-studio/builder",
+      "/sito-studio/contatti",
+      "/statistiche",
+      "/strumenti-legali",
+      "/strumenti-operativi",
+      "/studio",
+      "/tariffario",
+      "/template-atti",
+      "/template-atti/catalogo",
+      "/template-atti/nuovo",
+      "/timesheet",
+      "/utenti",
+      "/utenti/nuovo"
+    ]
+  }
+}

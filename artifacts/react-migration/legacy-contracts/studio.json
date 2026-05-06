@@ -1,0 +1,14 @@
+{
+  "route": "/studio",
+  "legacyUrl": "/studio?_legacy=1",
+  "status": 302,
+  "redirectLocation": "/login?next=/studio?_legacy%3D1",
+  "forms": [],
+  "links": [
+    "/login?next=/studio?_legacy%3D1"
+  ],
+  "linksCount": 1,
+  "downloads": [],
+  "hasBootstrapClass": false,
+  "hasReactRoot": false
+}

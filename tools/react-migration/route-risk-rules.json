@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "risks": {
+    "medium": {
+      "requiresLegacyContract": true,
+      "requiresFrontendTest": true,
+      "requiresBackendSmoke": true,
+      "notes": "CRUD, dashboard e superfici amministrative senza flussi telematici completi."
+    },
+    "high": {
+      "requiresLegacyContract": true,
+      "requiresFrontendTest": true,
+      "requiresBackendSmoke": true,
+      "requiresRouteParity": true,
+      "requiresExportChecks": true,
+      "notes": "Calcoli, PDF/XML, editor, fonti legali, import/export e POST auditati."
+    },
+    "critical": {
+      "requiresLegacyContract": true,
+      "requiresFrontendTest": true,
+      "requiresBackendSmoke": true,
+      "requiresRouteParity": true,
+      "requiresManualRollbackPatch": true,
+      "requiresTelematicoComplianceReview": true,
+      "notes": "Portali, deposito, firma, Local Signer, download/upload e canali ministeriali autorizzati."
+    }
+  }
+}

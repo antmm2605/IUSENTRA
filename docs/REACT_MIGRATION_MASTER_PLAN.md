@@ -1,5 +1,35 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-06 - macchina di migrazione governata
+
+La migrazione delle route legacy residue viene governata da una macchina dedicata,
+senza sbloccare nuove route nel `react_route_gate` in questa tranche.
+
+- `tools/react-migration/route-manifest.json` censisce le famiglie residue
+  amministrazione, studio, economico, mandato, documenti e telematico con stato,
+  rischio, target React futuri, bridge/API attesi, contratto legacy e
+  `unlockFromGate=false`.
+- `scripts/react-migration/audit-react-migration.mjs` legge gate, `App.tsx`,
+  `studioModuleData.ts` e `frontend/package.json`, poi produce
+  `artifacts/react-migration/route-inventory.json` e `audit.md`.
+- `scripts/react-migration/capture-legacy-contracts.py` fotografa il contratto
+  HTML legacy con Flask `test_client` su `?_legacy=1`, catturando status, form,
+  link, download, Bootstrap e redirect.
+- `scripts/react-migration/check-route-gate.mjs` impedisce di dichiarare una
+  route sbloccata senza `react_full`, componente dedicato, data client, bridge e
+  contratto legacy.
+- `scripts/react-migration/check-ui-consistency.mjs` blocca classi Bootstrap nei
+  nuovi componenti React, `href="#"`, CDN non consentiti e mock visibili.
+- `scripts/react-migration/run-safe-react-migration.mjs` esegue audit, gate,
+  consistency, `npm run test`, `npm run typecheck`, `npm run build` e scrive
+  report/patch sotto `artifacts/react-migration/`.
+
+Il nuovo kit `frontend/src/ui` fornisce primitive `Page`, `PageHeader`,
+`Button`, `Badge`, `Panel`, `KpiCard`, `DataTable`, `FormField`, `EmptyState`,
+`LoadingState`, `ActionBar` e `Tabs`, usando solo token `--iu-*` gia' presenti.
+Non sostituisce Bootstrap nella shell e non migra route operative: serve a
+rendere uniformi le prossime pagine verticali prima della promozione nel gate.
+
 ## Stato tranche 2026-05-05 - caricamento progressivo e sincronizzazione
 
 - La Panoramica React legge `/api/v1/ui/dashboard` senza cache busting client-side: il refresh forzato usa solo `refresh=1`, mentre il payload espone metadati tecnici di cache non invasivi.

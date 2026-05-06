@@ -1,0 +1,10 @@
+.iu-theme-root {
+  color: var(--iu-slate-700);
+  background: var(--iu-bg-app);
+}
+
+.iu-theme-surface {
+  color: #111827;
+  background: var(--iu-bg-card);
+  border-color: var(--iu-border);
+}

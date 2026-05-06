@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "allowedPrefix": "iu-",
+  "forbiddenBootstrapTokens": [
+    "btn",
+    "card",
+    "container",
+    "row"
+  ],
+  "forbiddenBootstrapPrefixes": [
+    "col-"
+  ],
+  "notes": [
+    "I nuovi componenti React devono usare classi governate con prefisso iu-.",
+    "Il controllo blocca token Bootstrap esatti nei className, non parole interne a classi IUSENTRA come iu-panel-card."
+  ]
+}

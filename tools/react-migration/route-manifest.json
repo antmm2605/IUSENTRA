@@ -1,0 +1,467 @@
+{
+  "schemaVersion": 1,
+  "policy": {
+    "description": "Manifest governato per la migrazione progressiva delle route legacy residue verso React.",
+    "allowedStatuses": [
+      "legacy_operational",
+      "react_bridge",
+      "react_readonly",
+      "react_operational_partial",
+      "react_full"
+    ],
+    "unlockRule": "unlockFromGate puo' diventare true solo con status react_full, componente dedicato, data client, bridge/API, contratto legacy e test di parita'.",
+    "currentReleaseUnlocksRoutes": false
+  },
+  "routes": [
+    {
+      "route": "/utenti",
+      "family": "amministrazione",
+      "status": "legacy_operational",
+      "risk": "medium",
+      "targetComponent": "frontend/src/components/UtentiPage.tsx",
+      "targetData": "frontend/src/utentiData.ts",
+      "targetBridge": "web/services/react_utenti_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/utenti.json",
+      "unlockFromGate": false,
+      "mustPreserve": [
+        "gestione operatori reali",
+        "creazione utente auditata",
+        "ruoli e stato account",
+        "permessi RBAC",
+        "CSRF e sessione Flask"
+      ]
+    },
+    {
+      "route": "/profili",
+      "family": "amministrazione",
+      "status": "legacy_operational",
+      "risk": "medium",
+      "targetComponent": "frontend/src/components/ProfiliPage.tsx",
+      "targetData": "frontend/src/profiliData.ts",
+      "targetBridge": "web/services/react_profili_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/profili.json",
+      "unlockFromGate": false,
+      "mustPreserve": [
+        "matrice ruoli",
+        "override utente",
+        "permessi negati o extra",
+        "audit modifiche permessi",
+        "RBAC esistente"
+      ]
+    },
+    {
+      "route": "/audit",
+      "family": "amministrazione",
+      "status": "legacy_operational",
+      "risk": "medium",
+      "targetComponent": "frontend/src/components/RegistroAttivitaPage.tsx",
+      "targetData": "frontend/src/registroAttivitaData.ts",
+      "targetBridge": "web/services/react_registro_attivita_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/audit.json",
+      "unlockFromGate": false,
+      "mustPreserve": [
+        "filtro eventi reali",
+        "export CSV",
+        "dettaglio attore e risorsa",
+        "osservabilita amministrativa",
+        "assenza di dati inventati"
+      ]
+    },
+    {
+      "route": "/registro-attivita",
+      "family": "amministrazione",
+      "status": "legacy_operational",
+      "risk": "medium",
+      "targetComponent": "frontend/src/components/RegistroAttivitaPage.tsx",
+      "targetData": "frontend/src/registroAttivitaData.ts",
+      "targetBridge": "web/services/react_registro_attivita_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/registro-attivita.json",
+      "unlockFromGate": false,
+      "mustPreserve": [
+        "registro audit",
+        "export tracciato",
+        "filtri per utente e azione",
+        "link a utenti e database",
+        "permessi amministrativi"
+      ]
+    },
+    {
+      "route": "/studio",
+      "family": "studio",
+      "status": "legacy_operational",
+      "risk": "medium",
+      "targetComponent": "frontend/src/components/StudioPage.tsx",
+      "targetData": "frontend/src/studioData.ts",
+      "targetBridge": "web/services/react_studio_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/studio.json",
+      "unlockFromGate": false,
+      "mustPreserve": [
+        "dati studio reali",
+        "canali operativi",
+        "configurazioni sensibili",
+        "azioni amministrative reali",
+        "profilo sessione"
+      ]
+    },
+    {
+      "route": "/impostazioni",
+      "family": "studio",
+      "status": "legacy_operational",
+      "risk": "high",
+      "targetComponent": "frontend/src/components/ImpostazioniPage.tsx",
+      "targetData": "frontend/src/impostazioniData.ts",
+      "targetBridge": "web/services/react_impostazioni_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/impostazioni.json",
+      "unlockFromGate": false,
+      "mustPreserve": [
+        "PEC e SMTP",
+        "firma digitale e Local Signer",
+        "AI locale",
+        "scheduler",
+        "segreti non esposti"
+      ]
+    },
+    {
+      "route": "/backup",
+      "family": "studio",
+      "status": "legacy_operational",
+      "risk": "medium",
+      "targetComponent": "frontend/src/components/BackupPage.tsx",
+      "targetData": "frontend/src/backupData.ts",
+      "targetBridge": "web/services/react_backup_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/backup.json",
+      "unlockFromGate": false,
+      "mustPreserve": [
+        "backup preventivo",
+        "verifica integrita",
+        "download copie",
+        "restore guidato",
+        "audit operazioni tecniche"
+      ]
+    },
+    {
+      "route": "/sito-studio",
+      "family": "studio",
+      "status": "legacy_operational",
+      "risk": "medium",
+      "targetComponent": "frontend/src/components/SitoStudioPage.tsx",
+      "targetData": "frontend/src/sitoStudioData.ts",
+      "targetBridge": "web/services/react_sito_studio_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/sito-studio.json",
+      "unlockFromGate": false,
+      "mustPreserve": [
+        "contenuti CMS reali",
+        "richieste contatto",
+        "prenotazioni",
+        "anteprima pubblica",
+        "nessun testo demo"
+      ]
+    },
+    {
+      "route": "/statistiche",
+      "family": "studio",
+      "status": "legacy_operational",
+      "risk": "medium",
+      "targetComponent": "frontend/src/components/StatistichePage.tsx",
+      "targetData": "frontend/src/statisticheData.ts",
+      "targetBridge": "web/services/react_statistiche_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/statistiche.json",
+      "unlockFromGate": false,
+      "mustPreserve": [
+        "KPI reali",
+        "grafici da repository",
+        "filtri periodo",
+        "export ove presente",
+        "link a moduli operativi"
+      ]
+    },
+    {
+      "route": "/fatturazione",
+      "family": "economico",
+      "status": "legacy_operational",
+      "risk": "high",
+      "targetComponent": "frontend/src/components/FatturazionePage.tsx",
+      "targetData": "frontend/src/fatturazioneData.ts",
+      "targetBridge": "web/services/react_fatturazione_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/fatturazione.json",
+      "unlockFromGate": false,
+      "mustPreserve": [
+        "POST legacy auditati",
+        "download PDF",
+        "export CSV/XML",
+        "stati pagamento",
+        "link pagamento"
+      ]
+    },
+    {
+      "route": "/incassi-pagamenti",
+      "family": "economico",
+      "status": "legacy_operational",
+      "risk": "high",
+      "targetComponent": "frontend/src/components/IncassiPagamentiPage.tsx",
+      "targetData": "frontend/src/incassiPagamentiData.ts",
+      "targetBridge": "web/services/react_incassi_pagamenti_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/incassi-pagamenti.json",
+      "unlockFromGate": false,
+      "mustPreserve": [
+        "provider configurati",
+        "link incasso",
+        "webhook pagamento",
+        "stato parcella",
+        "segreti fuori dal payload UI"
+      ]
+    },
+    {
+      "route": "/preventivi",
+      "family": "mandato",
+      "status": "legacy_operational",
+      "risk": "high",
+      "targetComponent": "frontend/src/components/PreventiviPage.tsx",
+      "targetData": "frontend/src/preventiviData.ts",
+      "targetBridge": "web/services/react_preventivi_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/preventivi.json",
+      "unlockFromGate": false,
+      "mustPreserve": [
+        "preventivo",
+        "conferimento incarico",
+        "wizard compensi",
+        "calcolo backend",
+        "POST auditati"
+      ]
+    },
+    {
+      "route": "/compensi-forensi",
+      "family": "mandato",
+      "status": "legacy_operational",
+      "risk": "high",
+      "targetComponent": "frontend/src/components/CompensiForensiPage.tsx",
+      "targetData": "frontend/src/compensiForensiData.ts",
+      "targetBridge": "web/services/react_compensi_forensi_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/compensi-forensi.json",
+      "unlockFromGate": false,
+      "mustPreserve": [
+        "parametri forensi",
+        "fasi e valore controversia",
+        "calcolo deterministico",
+        "log compensi",
+        "generazione preventivo"
+      ]
+    },
+    {
+      "route": "/tariffario",
+      "family": "mandato",
+      "status": "legacy_operational",
+      "risk": "high",
+      "targetComponent": "frontend/src/components/TariffarioPage.tsx",
+      "targetData": "frontend/src/tariffarioData.ts",
+      "targetBridge": "web/services/react_tariffario_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/tariffario.json",
+      "unlockFromGate": false,
+      "mustPreserve": [
+        "motore DM 55",
+        "voci tariffarie",
+        "calcolo backend",
+        "audit",
+        "integrazione preventivi"
+      ]
+    },
+    {
+      "route": "/template-atti",
+      "family": "documenti",
+      "status": "legacy_operational",
+      "risk": "high",
+      "targetComponent": "frontend/src/components/TemplateAttiPage.tsx",
+      "targetData": "frontend/src/templateAttiData.ts",
+      "targetBridge": "web/services/react_template_atti_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/template-atti.json",
+      "unlockFromGate": false,
+      "mustPreserve": [
+        "catalogo template",
+        "variabili studio e fascicolo",
+        "editor template",
+        "export documento",
+        "compliance deposito"
+      ]
+    },
+    {
+      "route": "/redazione-atti",
+      "family": "documenti",
+      "status": "legacy_operational",
+      "risk": "high",
+      "targetComponent": "frontend/src/components/RedazioneAttiPage.tsx",
+      "targetData": "frontend/src/redazioneAttiData.ts",
+      "targetBridge": "web/services/react_redazione_atti_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/redazione-atti.json",
+      "unlockFromGate": false,
+      "mustPreserve": [
+        "redazione guidata",
+        "fonti fascicolo",
+        "template reali",
+        "Lex con revisione umana",
+        "nessun testo legale non verificato"
+      ]
+    },
+    {
+      "route": "/giurisprudenza",
+      "family": "documenti",
+      "status": "legacy_operational",
+      "risk": "high",
+      "targetComponent": "frontend/src/components/GiurisprudenzaPage.tsx",
+      "targetData": "frontend/src/giurisprudenzaData.ts",
+      "targetBridge": "web/services/react_giurisprudenza_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/giurisprudenza.json",
+      "unlockFromGate": false,
+      "mustPreserve": [
+        "fonti ufficiali",
+        "import sentenze",
+        "classificazione",
+        "collegamento fascicoli",
+        "guardrail citabilita"
+      ]
+    },
+    {
+      "route": "/legal-intelligence",
+      "family": "documenti",
+      "status": "legacy_operational",
+      "risk": "high",
+      "targetComponent": "frontend/src/components/LegalIntelligencePage.tsx",
+      "targetData": "frontend/src/legalIntelligenceData.ts",
+      "targetBridge": "web/services/react_legal_intelligence_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/legal-intelligence.json",
+      "unlockFromGate": false,
+      "mustPreserve": [
+        "monitor fonti",
+        "news legali",
+        "mediazione",
+        "approvazione contenuti",
+        "distinzione fonte e inferenza"
+      ]
+    },
+    {
+      "route": "/deposito/checklist",
+      "family": "telematico",
+      "status": "legacy_operational",
+      "risk": "critical",
+      "targetComponent": "frontend/src/components/DepositoChecklistPage.tsx",
+      "targetData": "frontend/src/depositoChecklistData.ts",
+      "targetBridge": "web/services/react_deposito_checklist_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/deposito__checklist.json",
+      "unlockFromGate": false,
+      "mustPreserve": [
+        "deposito end-to-end",
+        "allegati",
+        "download",
+        "Local Signer",
+        "audit"
+      ]
+    },
+    {
+      "route": "/polisWeb",
+      "family": "telematico",
+      "status": "legacy_operational",
+      "risk": "critical",
+      "targetComponent": "frontend/src/components/PolisWebPage.tsx",
+      "targetData": "frontend/src/polisWebData.ts",
+      "targetBridge": "web/services/react_telematico_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/polisWeb.json",
+      "unlockFromGate": false,
+      "mustPreserve": [
+        "consultazione autorizzata",
+        "no scraping HTML",
+        "vista documenti a buste",
+        "copia consultazione default",
+        "import file utente"
+      ]
+    },
+    {
+      "route": "/pdp",
+      "family": "telematico",
+      "status": "legacy_operational",
+      "risk": "critical",
+      "targetComponent": "frontend/src/components/PdpPage.tsx",
+      "targetData": "frontend/src/pdpData.ts",
+      "targetBridge": "web/services/react_telematico_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/pdp.json",
+      "unlockFromGate": false,
+      "mustPreserve": [
+        "workflow penale",
+        "CNS/CIE tramite canale autorizzato",
+        "payload import autorizzato",
+        "documenti per deposito",
+        "audit"
+      ]
+    },
+    {
+      "route": "/pat",
+      "family": "telematico",
+      "status": "legacy_operational",
+      "risk": "critical",
+      "targetComponent": "frontend/src/components/PatPage.tsx",
+      "targetData": "frontend/src/patData.ts",
+      "targetBridge": "web/services/react_telematico_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/pat.json",
+      "unlockFromGate": false,
+      "mustPreserve": [
+        "workflow amministrativo",
+        "upload guidato",
+        "documenti a buste",
+        "accesso portale ufficiale",
+        "nessun download autonomo"
+      ]
+    },
+    {
+      "route": "/sigit",
+      "family": "telematico",
+      "status": "legacy_operational",
+      "risk": "critical",
+      "targetComponent": "frontend/src/components/SigitPage.tsx",
+      "targetData": "frontend/src/sigitData.ts",
+      "targetBridge": "web/services/react_telematico_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/sigit.json",
+      "unlockFromGate": false,
+      "mustPreserve": [
+        "workflow tributario",
+        "upload guidato",
+        "import autorizzato",
+        "stato buste",
+        "audit"
+      ]
+    },
+    {
+      "route": "/sigp",
+      "family": "telematico",
+      "status": "legacy_operational",
+      "risk": "critical",
+      "targetComponent": "frontend/src/components/SigpPage.tsx",
+      "targetData": "frontend/src/sigpData.ts",
+      "targetBridge": "web/services/react_telematico_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/sigp.json",
+      "unlockFromGate": false,
+      "mustPreserve": [
+        "sincronizzazione fascicolo telematico",
+        "servizi consultazione fascicolo",
+        "Local Connector",
+        "normalizzazione documenti",
+        "divieto scraping HTML"
+      ]
+    },
+    {
+      "route": "/portali/*",
+      "family": "telematico",
+      "status": "legacy_operational",
+      "risk": "critical",
+      "targetComponent": "frontend/src/components/PortaliPage.tsx",
+      "targetData": "frontend/src/portaliData.ts",
+      "targetBridge": "web/services/react_telematico_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/portali.json",
+      "unlockFromGate": false,
+      "mustPreserve": [
+        "apertura portali ufficiali",
+        "import file/payload autorizzati",
+        "nessun salvataggio PIN",
+        "artefatti in data root",
+        "rollback tecnico"
+      ]
+    }
+  ]
+}

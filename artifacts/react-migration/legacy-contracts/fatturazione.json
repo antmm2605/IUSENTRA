@@ -1,0 +1,14 @@
+{
+  "route": "/fatturazione",
+  "legacyUrl": "/fatturazione?_legacy=1",
+  "status": 302,
+  "redirectLocation": "/login?next=/fatturazione?_legacy%3D1",
+  "forms": [],
+  "links": [
+    "/login?next=/fatturazione?_legacy%3D1"
+  ],
+  "linksCount": 1,
+  "downloads": [],
+  "hasBootstrapClass": false,
+  "hasReactRoot": false
+}

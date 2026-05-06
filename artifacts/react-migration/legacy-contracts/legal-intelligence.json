@@ -1,0 +1,14 @@
+{
+  "route": "/legal-intelligence",
+  "legacyUrl": "/legal-intelligence?_legacy=1",
+  "status": 302,
+  "redirectLocation": "/login?next=/legal-intelligence?_legacy%3D1",
+  "forms": [],
+  "links": [
+    "/login?next=/legal-intelligence?_legacy%3D1"
+  ],
+  "linksCount": 1,
+  "downloads": [],
+  "hasBootstrapClass": false,
+  "hasReactRoot": false
+}

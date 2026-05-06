@@ -20,6 +20,7 @@ function assertNotContains(source, unexpected, label) {
 }
 
 const app = read('src/App.tsx')
+const packageJson = JSON.parse(read('package.json'))
 const dashboardData = read('src/data.ts')
 const agenda = read('src/components/AgendaPage.tsx')
 const agendaData = read('src/agendaData.ts')
@@ -88,6 +89,29 @@ const topbarRecent = read('src/components/layout/TopBarRecentItems.tsx')
 const topbarTimer = read('src/components/layout/TopBarTimeTracker.tsx')
 const topbarApi = read('src/services/topbarApi.ts')
 const topbarTypes = read('src/types/topbar.ts')
+const routeManifest = JSON.parse(read('../tools/react-migration/route-manifest.json'))
+const auditMigration = read('../scripts/react-migration/audit-react-migration.mjs')
+const captureLegacyContracts = read('../scripts/react-migration/capture-legacy-contracts.py')
+const checkRouteGate = read('../scripts/react-migration/check-route-gate.mjs')
+const checkUiConsistency = read('../scripts/react-migration/check-ui-consistency.mjs')
+const runSafeReactMigration = read('../scripts/react-migration/run-safe-react-migration.mjs')
+const uiAllowedClasses = read('../tools/react-migration/ui-allowed-classes.json')
+const routeRiskRules = read('../tools/react-migration/route-risk-rules.json')
+const uiPage = read('src/ui/Page.tsx')
+const uiPageHeader = read('src/ui/PageHeader.tsx')
+const uiButton = read('src/ui/Button.tsx')
+const uiBadge = read('src/ui/Badge.tsx')
+const uiPanel = read('src/ui/Panel.tsx')
+const uiEmptyState = read('src/ui/EmptyState.tsx')
+const uiLoadingState = read('src/ui/LoadingState.tsx')
+const uiKpiCard = read('src/ui/KpiCard.tsx')
+const uiDataTable = read('src/ui/DataTable.tsx')
+const uiFormField = read('src/ui/FormField.tsx')
+const uiActionBar = read('src/ui/ActionBar.tsx')
+const uiTabs = read('src/ui/Tabs.tsx')
+const uiCss = read('src/ui/ui.css')
+const uiTokens = read('src/theme/tokens.css')
+const uiLayout = read('src/theme/layout.css')
 const lexUiSources = [
   app,
   agenda,
@@ -115,6 +139,60 @@ const lexUiSources = [
 const legacyLexContextHref = '/lex' + '?context='
 const legacyLexHrefAttribute = 'href=' + '"/lex'
 const legacyAgendaLexHref = 'href=' + '"/lex' + '?context=agenda"'
+
+for (const dependency of ['@mui/material', '@mui/icons-material', '@reduxjs/toolkit', 'redux', '@tanstack/react-query', 'react-router', 'react-router-dom']) {
+  if (packageJson.dependencies?.[dependency] || packageJson.devDependencies?.[dependency]) {
+    throw new Error(`dipendenze frontend: non deve comparire ${dependency}`)
+  }
+}
+
+assertContains(auditMigration, 'route-inventory.json', 'script audit produce inventario route')
+assertContains(auditMigration, '_REACT_PREFIXES', 'script audit legge prefissi React')
+assertContains(auditMigration, '_LEGACY_OPERATIONAL_PREFIXES', 'script audit legge prefissi legacy')
+assertContains(captureLegacyContracts, 'create_app', 'contract capture usa Flask test_client')
+assertContains(captureLegacyContracts, '_legacy=1', 'contract capture usa fallback legacy')
+assertContains(checkRouteGate, 'unlockFromGate=true richiede status react_full', 'route gate blocca unlock non completi')
+assertContains(checkRouteGate, 'Questa tranche non deve sbloccare route', 'route gate blocca sblocchi in PR macchina')
+assertContains(checkUiConsistency, 'ui-allowed-classes.json', 'UI consistency usa policy classi')
+assertContains(checkUiConsistency, 'href placeholder #', 'UI consistency blocca href placeholder')
+assertContains(runSafeReactMigration, 'cleanRequired()', 'runner richiede working tree pulito')
+assertContains(runSafeReactMigration, 'npm run test', 'runner esegue test frontend')
+assertContains(runSafeReactMigration, 'npm run typecheck', 'runner esegue typecheck frontend')
+assertContains(runSafeReactMigration, 'npm run build', 'runner esegue build frontend')
+assertContains(uiAllowedClasses, '"allowedPrefix": "iu-"', 'policy classi UI prefisso iu')
+assertContains(routeRiskRules, '"critical"', 'regole rischio route critical')
+if (routeManifest.policy?.currentReleaseUnlocksRoutes !== false) {
+  throw new Error('route manifest: currentReleaseUnlocksRoutes deve restare false in questa tranche')
+}
+for (const entry of routeManifest.routes ?? []) {
+  if (entry.unlockFromGate !== false) {
+    throw new Error(`route manifest: ${entry.route} non deve essere sbloccata in questa tranche`)
+  }
+  if (!entry.route || !entry.family || !entry.status || !entry.risk || !entry.targetComponent || !entry.targetData || !entry.targetBridge || !entry.legacyContract) {
+    throw new Error(`route manifest: entry incompleta per ${entry.route || 'route senza nome'}`)
+  }
+}
+for (const route of ['/utenti', '/profili', '/audit', '/registro-attivita', '/studio', '/impostazioni', '/backup', '/sito-studio', '/statistiche', '/fatturazione', '/incassi-pagamenti', '/preventivi', '/compensi-forensi', '/tariffario', '/template-atti', '/redazione-atti', '/giurisprudenza', '/legal-intelligence', '/deposito/checklist', '/polisWeb', '/pdp', '/pat', '/sigit', '/sigp', '/portali/*']) {
+  if (!(routeManifest.routes ?? []).some((entry) => entry.route === route)) {
+    throw new Error(`route manifest: manca ${route}`)
+  }
+}
+assertContains(uiPage, 'PageHeader', 'UI kit Page usa PageHeader')
+assertContains(uiPageHeader, 'iu-page-heading', 'UI kit PageHeader presente')
+assertContains(uiButton, 'iu-btn--${tone}', 'UI kit Button presente')
+assertContains(uiBadge, 'iu-badge--', 'UI kit Badge presente')
+assertContains(uiPanel, 'iu-panel__header', 'UI kit Panel presente')
+assertContains(uiEmptyState, 'iu-empty-state', 'UI kit EmptyState presente')
+assertContains(uiLoadingState, 'Caricamento in corso', 'UI kit LoadingState italiano')
+assertContains(uiKpiCard, 'iu-kpi-card', 'UI kit KpiCard presente')
+assertContains(uiDataTable, 'iu-data-table', 'UI kit DataTable presente')
+assertContains(uiFormField, 'iu-form-field', 'UI kit FormField presente')
+assertContains(uiActionBar, 'iu-action-bar', 'UI kit ActionBar presente')
+assertContains(uiTabs, 'role="tablist"', 'UI kit Tabs accessibile')
+assertContains(uiCss, '--iu-border', 'UI kit CSS usa token IUSENTRA')
+assertContains(uiCss, 'prefers-reduced-motion', 'UI kit rispetta motion ridotta')
+assertContains(uiTokens, 'var(--iu-bg-app)', 'theme tokens usa token esistenti')
+assertContains(uiLayout, '.iu-layout-stack', 'theme layout presente')
 
 assertContains(app, '/global-search', 'nav ricerca studio')
 assertContains(app, '/agenda', 'nav agenda')

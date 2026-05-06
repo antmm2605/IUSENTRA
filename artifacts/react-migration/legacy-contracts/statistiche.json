@@ -1,0 +1,14 @@
+{
+  "route": "/statistiche",
+  "legacyUrl": "/statistiche?_legacy=1",
+  "status": 302,
+  "redirectLocation": "/login?next=/statistiche?_legacy%3D1",
+  "forms": [],
+  "links": [
+    "/login?next=/statistiche?_legacy%3D1"
+  ],
+  "linksCount": 1,
+  "downloads": [],
+  "hasBootstrapClass": false,
+  "hasReactRoot": false
+}

@@ -1,0 +1,24 @@
+.iu-layout-stack {
+  display: grid;
+  gap: 16px;
+}
+
+.iu-layout-cluster {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.iu-layout-split {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+@media (max-width: 760px) {
+  .iu-layout-split {
+    flex-direction: column;
+  }
+}

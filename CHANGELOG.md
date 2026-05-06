@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.198.86 - 2026-05-06
+
+- Aggiunta la macchina governata di migrazione React: manifest route residue, audit inventario, cattura contratti legacy, controllo `react_route_gate`, report UI consistency e runner unico senza sbloccare route operative.
+- Introdotto un UI kit React base in `frontend/src/ui` e `frontend/src/theme`, fondato sui token `--iu-*` esistenti e senza nuove dipendenze frontend.
+- Estesi i contratti React per bloccare nuove dipendenze MUI/Redux/TanStack/React Router, verificare manifest/script/UI kit e impedire unlock legacy nella tranche corrente.
+
 ## 2.198.85 - 2026-05-06
 
 - Reso atomico il backup Hetzner: gli archivi vengono scritti prima come `.tmp` e pubblicati solo dopo una generazione riuscita, evitando file `.tar.zst` senza checksum che occupano spazio ma non sono ripristinabili.

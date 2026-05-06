@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.198.99 - 2026-05-06
+
+- Allineato il profilo Hetzner alla verifica container end-to-end: i worker scheduler e OCR hanno healthcheck espliciti, così il deploy può attestare `healthy` anche per i processi asincroni.
+
 ## 2.198.98 - 2026-05-06
 
 - Promossa `/preventivi/wizard` in React full come console guidata operativa: hero, 4 step, classificazione operativa, tassonomia, fasi/compenso unico, bozza editabile, note, clausola controversie, sidebar riepilogo e sticky footer.

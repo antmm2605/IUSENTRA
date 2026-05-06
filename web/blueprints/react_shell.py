@@ -34,7 +34,6 @@ _LEGACY_FIRST_PREFIXES = (
     "/pdp",
     "/polisweb",
     "/portali",
-    "/preventivi",
     "/redazione-atti",
     "/ricerca-legale",
     "/servizi-telematici",
@@ -173,6 +172,15 @@ def _deve_mantenere_vista_classica() -> bool:
     if lower == "/impostazioni-studio" or lower.startswith("/impostazioni-studio/"):
         return True
     if lower == "/sincronizzazione-calendari" or lower.startswith("/sincronizzazione-calendari/"):
+        return True
+    if lower.startswith("/preventivi/") and lower not in {
+        "/preventivi/nuovo",
+        "/preventivi/conferimento/nuovo",
+    }:
+        return True
+    if lower == "/compensi-forensi" or lower.startswith("/compensi-forensi/"):
+        return True
+    if lower == "/tariffario" or lower.startswith("/tariffario/"):
         return True
     return any(lower == prefix or lower.startswith(f"{prefix}/") for prefix in _LEGACY_FIRST_PREFIXES)
 

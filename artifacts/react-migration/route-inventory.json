@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-06T14:31:03.242Z",
+  "generatedAt": "2026-05-06T15:47:11.854Z",
   "react": {
     "dependencies": {
       "@vitejs/plugin-react": "^5.0.0",
@@ -161,7 +161,6 @@
       "/pdp",
       "/polisweb",
       "/portali",
-      "/preventivi",
       "/redazione-atti",
       "/ricerca-legale",
       "/servizi-telematici",
@@ -322,6 +321,10 @@
       {
         "name": "IncassiPagamentiPage",
         "importPath": "./components/IncassiPagamentiPage"
+      },
+      {
+        "name": "PreventiviPage",
+        "importPath": "./components/PreventiviPage"
       }
     ],
     "routeChecks": [
@@ -373,6 +376,7 @@
       "isAmministrazionePage",
       "isFatturazionePage",
       "isIncassiPagamentiPage",
+      "isPreventiviPage",
       "isStudioModulePage",
       "isDashboardPage",
       "isStandalonePage"

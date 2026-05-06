@@ -1,0 +1,833 @@
+diff --git a/frontend/scripts/check-react-contracts.mjs b/frontend/scripts/check-react-contracts.mjs
+index d5baff0b..fc16363b 100644
+--- a/frontend/scripts/check-react-contracts.mjs
++++ b/frontend/scripts/check-react-contracts.mjs
+@@ -169,6 +169,9 @@ const fatturazioneBridge = read('../web/services/react_fatturazione_bridge.py')
+ const incassiPagamentiPage = read('src/components/IncassiPagamentiPage.tsx')
+ const incassiPagamentiData = read('src/incassiPagamentiData.ts')
+ const incassiPagamentiBridge = read('../web/services/react_incassi_pagamenti_bridge.py')
++const preventiviPage = read('src/components/PreventiviPage.tsx')
++const preventiviData = read('src/preventiviData.ts')
++const preventiviBridge = read('../web/services/react_preventivi_bridge.py')
+ const reactRouteGate = read('../web/bootstrap/react_route_gate.py')
+ const reactShellBlueprint = read('../web/blueprints/react_shell.py')
+ const timesheet = read('src/components/TimesheetPage.tsx')
+@@ -210,6 +213,10 @@ const tranche5aSecrets = read('../scripts/react-migration/check-tranche-5a-secre
+ const tranche6aGate = read('../scripts/react-migration/check-tranche-6a-gate.py')
+ const tranche6aSecrets = read('../scripts/react-migration/check-tranche-6a-secrets.mjs')
+ const tranche6aNoFiscalLogic = read('../scripts/react-migration/check-tranche-6a-no-fiscal-logic.mjs')
++const tranche7aGate = read('../scripts/react-migration/check-tranche-7a-gate.py')
++const tranche7aSecrets = read('../scripts/react-migration/check-tranche-7a-secrets.mjs')
++const tranche7aNoCompensiLogic = read('../scripts/react-migration/check-tranche-7a-no-compensi-logic.mjs')
++const tranche7aNoDocumentGeneration = read('../scripts/react-migration/check-tranche-7a-no-document-generation.mjs')
+ const uiAllowedClasses = read('../tools/react-migration/ui-allowed-classes.json')
+ const routeRiskRules = read('../tools/react-migration/route-risk-rules.json')
+ const uiPage = read('src/ui/Page.tsx')
+@@ -274,6 +281,7 @@ assertContains(checkRouteGate, 'unlockFromGate=true richiede status react_full',
+ assertContains(checkRouteGate, 'Tranche 4A', 'route gate limita gli sblocchi della Tranche 4A')
+ assertContains(checkRouteGate, 'Tranche 5A', 'route gate include gli sblocchi della Tranche 5A')
+ assertContains(checkRouteGate, 'Tranche 6A', 'route gate include gli sblocchi della Tranche 6A')
++assertContains(checkRouteGate, 'Tranche 7A', 'route gate include gli sblocchi della Tranche 7A')
+ assertContains(checkUiConsistency, 'ui-allowed-classes.json', 'UI consistency usa policy classi')
+ assertContains(checkUiConsistency, 'href placeholder #', 'UI consistency blocca href placeholder')
+ assertContains(runSafeReactMigration, 'cleanRequired()', 'runner richiede working tree pulito')
+@@ -282,6 +290,7 @@ assertContains(runSafeReactMigration, '--tranche=3a', 'runner supporta Tranche 3
+ assertContains(runSafeReactMigration, '--tranche=4a', 'runner supporta Tranche 4A')
+ assertContains(runSafeReactMigration, '--tranche=5a', 'runner supporta Tranche 5A')
+ assertContains(runSafeReactMigration, '--tranche=6a', 'runner supporta Tranche 6A')
++assertContains(runSafeReactMigration, '--tranche=7a', 'runner supporta Tranche 7A')
+ assertContains(runSafeReactMigration, 'npm run test', 'runner esegue test frontend')
+ assertContains(runSafeReactMigration, 'npm run typecheck', 'runner esegue typecheck frontend')
+ assertContains(runSafeReactMigration, 'npm run build', 'runner esegue build frontend')
+@@ -297,12 +306,16 @@ assertContains(tranche5aSecrets, 'react_amministrazione_bridge.py', 'check Tranc
+ assertContains(tranche6aGate, '/fatturazione/qualunque/pdf', 'check Tranche 6A verifica PDF legacy')
+ assertContains(tranche6aSecrets, 'react_fatturazione_bridge.py', 'check Tranche 6A anti-segreti scansiona bridge fatturazione')
+ assertContains(tranche6aNoFiscalLogic, 'calculateIva', 'check Tranche 6A blocca calcolo fiscale frontend')
++assertContains(tranche7aGate, '/preventivi/conferimento/nuovo', 'check Tranche 7A verifica nuovo conferimento')
++assertContains(tranche7aSecrets, 'react_preventivi_bridge.py', 'check Tranche 7A anti-segreti scansiona bridge preventivi')
++assertContains(tranche7aNoCompensiLogic, 'calculateCompenso', 'check Tranche 7A blocca logica compensi frontend')
++assertContains(tranche7aNoDocumentGeneration, 'generatePdf', 'check Tranche 7A blocca generazione documenti')
+ assertContains(uiAllowedClasses, '"allowedPrefix": "iu-"', 'policy classi UI prefisso iu')
+ assertContains(routeRiskRules, '"critical"', 'regole rischio route critical')
+ if (routeManifest.policy?.currentReleaseUnlocksRoutes !== true) {
+   throw new Error('route manifest: currentReleaseUnlocksRoutes deve essere true nelle tranche di promozione')
+ }
+-const allowedGovernedUnlocks = new Set(['/statistiche', '/audit', '/registro-attivita', '/utenti', '/profili', '/backup', '/sito-studio', '/sito-studio/contatti', '/studio', '/amministrazione', '/fatturazione', '/fatturazione/nuova', '/incassi-pagamenti'])
++const allowedGovernedUnlocks = new Set(['/statistiche', '/audit', '/registro-attivita', '/utenti', '/profili', '/backup', '/sito-studio', '/sito-studio/contatti', '/studio', '/amministrazione', '/fatturazione', '/fatturazione/nuova', '/incassi-pagamenti', '/preventivi', '/preventivi/nuovo', '/preventivi/conferimento/nuovo'])
+ for (const entry of routeManifest.routes ?? []) {
+   if (entry.unlockFromGate === true && !allowedGovernedUnlocks.has(entry.route)) {
+     throw new Error(`route manifest: ${entry.route} non puo essere sbloccata nelle tranche governate`)
+@@ -335,13 +348,13 @@ for (const route of ['/sito-studio/builder', '/impostazioni', '/impostazioni-stu
+     throw new Error(`route manifest: ${route} deve restare legacy_operational con unlockFromGate=false`)
+   }
+ }
+-for (const route of ['/fatturazione/*', '/preventivi', '/compensi-forensi', '/tariffario', '/impostazioni/pagamenti']) {
++for (const route of ['/fatturazione/*', '/preventivi/*', '/preventivi/wizard', '/compensi-forensi', '/tariffario', '/impostazioni/pagamenti']) {
+   const entry = (routeManifest.routes ?? []).find((item) => item.route === route)
+   if (!entry || entry.status !== 'legacy_operational' || entry.unlockFromGate !== false) {
+     throw new Error(`route manifest: ${route} deve restare legacy_operational con unlockFromGate=false`)
+   }
+ }
+-for (const route of ['/utenti', '/profili', '/audit', '/registro-attivita', '/studio', '/amministrazione', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/sincronizzazione-calendari', '/backup', '/sito-studio', '/sito-studio/contatti', '/sito-studio/builder', '/statistiche', '/fatturazione', '/fatturazione/nuova', '/fatturazione/*', '/incassi-pagamenti', '/preventivi', '/compensi-forensi', '/tariffario', '/template-atti', '/redazione-atti', '/giurisprudenza', '/legal-intelligence', '/deposito/checklist', '/polisWeb', '/pdp', '/pat', '/sigit', '/sigp', '/portali/*']) {
++for (const route of ['/utenti', '/profili', '/audit', '/registro-attivita', '/studio', '/amministrazione', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/sincronizzazione-calendari', '/backup', '/sito-studio', '/sito-studio/contatti', '/sito-studio/builder', '/statistiche', '/fatturazione', '/fatturazione/nuova', '/fatturazione/*', '/incassi-pagamenti', '/preventivi', '/preventivi/nuovo', '/preventivi/conferimento/nuovo', '/preventivi/*', '/preventivi/wizard', '/compensi-forensi', '/tariffario', '/template-atti', '/redazione-atti', '/giurisprudenza', '/legal-intelligence', '/deposito/checklist', '/polisWeb', '/pdp', '/pat', '/sigit', '/sigp', '/portali/*']) {
+   if (!(routeManifest.routes ?? []).some((entry) => entry.route === route)) {
+     throw new Error(`route manifest: manca ${route}`)
+   }
+@@ -399,6 +412,7 @@ assertContains(app, "StudioPage", 'route studio react')
+ assertContains(app, "AmministrazionePage", 'route amministrazione react')
+ assertContains(app, "FatturazionePage", 'route fatturazione react')
+ assertContains(app, "IncassiPagamentiPage", 'route incassi pagamenti react')
++assertContains(app, "PreventiviPage", 'route preventivi react')
+ assertContains(app, "isStatistichePage", 'detection statistiche react')
+ assertContains(app, "isAuditPage", 'detection audit react')
+ assertContains(app, "isRegistroAttivitaPage", 'detection registro attivita react')
+@@ -410,6 +424,7 @@ assertContains(app, "isStudioPage", 'detection studio react')
+ assertContains(app, "isAmministrazionePage", 'detection amministrazione react')
+ assertContains(app, "isFatturazionePage", 'detection fatturazione react')
+ assertContains(app, "isIncassiPagamentiPage", 'detection incassi pagamenti react')
++assertContains(app, "isPreventiviPage", 'detection preventivi react')
+ assertContains(app, "isStatistichePage?<StatistichePage/>", 'render statistiche prima dello studio module')
+ assertContains(app, "isAuditPage||isRegistroAttivitaPage?<AuditPage/>", 'render audit e registro attivita')
+ assertContains(app, "isUtentiPage?<UtentiPage/>", 'render utenti prima dello studio module')
+@@ -420,6 +435,7 @@ assertContains(app, "isStudioPage?<StudioPage/>", 'render studio prima dello stu
+ assertContains(app, "isAmministrazionePage?<AmministrazionePage/>", 'render amministrazione prima dello studio module')
+ assertContains(app, "isFatturazionePage?<FatturazionePage/>", 'render fatturazione prima dello studio module')
+ assertContains(app, "isIncassiPagamentiPage?<IncassiPagamentiPage/>", 'render incassi prima dello studio module')
++assertContains(app, "isPreventiviPage?<PreventiviPage/>", 'render preventivi prima dello studio module')
+ assertContains(statistiche, 'getStatistichePage', 'StatistichePage usa getStatistichePage')
+ assertContains(auditPage, 'getAuditPage', 'AuditPage usa getAuditPage')
+ assertContains(utentiPage, 'getUtentiPage', 'UtentiPage usa getUtentiPage')
+@@ -432,11 +448,15 @@ assertContains(amministrazionePage, 'getAmministrazionePage', 'AmministrazionePa
+ assertContains(fatturazionePage, 'getFatturazionePage', 'FatturazionePage usa getFatturazionePage')
+ assertContains(fatturazionePage, 'getNuovaFatturaPage', 'FatturazionePage usa getNuovaFatturaPage')
+ assertContains(incassiPagamentiPage, 'getIncassiPagamentiPage', 'IncassiPagamentiPage usa getIncassiPagamentiPage')
++assertContains(preventiviPage, 'getPreventiviPage', 'PreventiviPage usa getPreventiviPage')
++assertContains(preventiviPage, 'getNuovoPreventivoPage', 'PreventiviPage usa getNuovoPreventivoPage')
++assertContains(preventiviPage, 'getNuovoConferimentoPage', 'PreventiviPage usa getNuovoConferimentoPage')
+ assertContains(utentiPage, 'LegacyPostForm', 'UtentiPage usa LegacyPostForm')
+ assertContains(profiliPage, 'LegacyPostForm', 'ProfiliPage usa LegacyPostForm per scritture legacy')
+ assertContains(backupPage, 'LegacyPostForm', 'BackupPage usa LegacyPostForm per azioni legacy')
+ assertContains(sitoStudioPage, 'LegacyPostForm', 'SitoStudioPage usa LegacyPostForm per azioni legacy')
+ assertContains(fatturazionePage, 'LegacyPostForm', 'FatturazionePage usa LegacyPostForm')
++assertContains(preventiviPage, 'LegacyPostForm', 'PreventiviPage usa LegacyPostForm')
+ assertContains(statisticheData, '/api/v1/ui/statistiche', 'statisticheData usa endpoint statistiche')
+ assertContains(auditData, '/api/v1/ui/audit', 'auditData usa endpoint audit')
+ assertContains(auditData, '/api/v1/ui/registro-attivita', 'auditData usa endpoint registro attivita')
+@@ -450,6 +470,9 @@ assertContains(amministrazioneData, '/api/v1/ui/amministrazione', 'amministrazio
+ assertContains(fatturazioneData, '/api/v1/ui/fatturazione', 'fatturazioneData usa endpoint fatturazione')
+ assertContains(fatturazioneData, '/api/v1/ui/fatturazione/nuova', 'fatturazioneData usa endpoint nuova parcella')
+ assertContains(incassiPagamentiData, '/api/v1/ui/incassi-pagamenti', 'incassiPagamentiData usa endpoint incassi pagamenti')
++assertContains(preventiviData, '/api/v1/ui/preventivi', 'preventiviData usa endpoint preventivi')
++assertContains(preventiviData, '/api/v1/ui/preventivi/nuovo', 'preventiviData usa endpoint nuovo preventivo')
++assertContains(preventiviData, '/api/v1/ui/preventivi/conferimento/nuovo', 'preventiviData usa endpoint nuovo conferimento')
+ assertContains(statisticheBridge, '"route_owner": "react_shell"', 'bridge statistiche route_owner react_shell')
+ assertContains(auditBridge, '"route_owner": "react_shell"', 'bridge audit route_owner react_shell')
+ assertContains(utentiBridge, '"route_owner": "react_shell"', 'bridge utenti route_owner react_shell')
+@@ -458,6 +481,7 @@ assertContains(backupBridge, '"route_owner": "react_shell"', 'bridge backup rout
+ assertContains(sitoStudioBridge, '"route_owner": "react_shell"', 'bridge sito studio route_owner react_shell')
+ assertContains(fatturazioneBridge, '"route_owner": "react_shell"', 'bridge fatturazione route_owner react_shell')
+ assertContains(incassiPagamentiBridge, '"route_owner": "react_shell"', 'bridge incassi pagamenti route_owner react_shell')
++assertContains(preventiviBridge, '"route_owner": "react_shell"', 'bridge preventivi route_owner react_shell')
+ assertContains(apiBridge, '@api_v1_react.get("/statistiche")', 'endpoint UI statistiche')
+ assertContains(apiBridge, '@api_v1_react.get("/audit")', 'endpoint UI audit')
+ assertContains(apiBridge, '@api_v1_react.get("/registro-attivita")', 'endpoint UI registro attivita')
+@@ -471,6 +495,9 @@ assertContains(apiBridge, '@api_v1_react.get("/amministrazione")', 'endpoint UI
+ assertContains(apiBridge, '@api_v1_react.get("/fatturazione")', 'endpoint UI fatturazione')
+ assertContains(apiBridge, '@api_v1_react.get("/fatturazione/nuova")', 'endpoint UI nuova parcella')
+ assertContains(apiBridge, '@api_v1_react.get("/incassi-pagamenti")', 'endpoint UI incassi pagamenti')
++assertContains(apiBridge, '@api_v1_react.get("/preventivi")', 'endpoint UI preventivi')
++assertContains(apiBridge, '@api_v1_react.get("/preventivi/nuovo")', 'endpoint UI nuovo preventivo')
++assertContains(apiBridge, '@api_v1_react.get("/preventivi/conferimento/nuovo")', 'endpoint UI nuovo conferimento')
+ assertNotContains(legacyOperationalTuple, '"/statistiche"', 'gate legacy senza statistiche')
+ assertNotContains(legacyOperationalTuple, '"/audit"', 'gate legacy senza audit')
+ assertNotContains(legacyOperationalTuple, '"/registro-attivita"', 'gate legacy senza registro attivita')
+@@ -482,10 +509,10 @@ assertNotContains(legacyOperationalTuple, '"/studio"', 'gate legacy senza studio
+ assertNotContains(legacyOperationalTuple, '"/amministrazione"', 'gate legacy senza amministrazione exact')
+ assertNotContains(legacyOperationalTuple, '"/fatturazione"', 'gate legacy senza fatturazione exact')
+ assertNotContains(legacyOperationalTuple, '"/incassi-pagamenti"', 'gate legacy senza incassi pagamenti exact')
++assertNotContains(legacyOperationalTuple, '"/preventivi"', 'gate legacy senza preventivi exact')
+ assertContains(legacyOperationalTuple, '"/impostazioni"', 'gate legacy mantiene impostazioni')
+ assertContains(legacyOperationalTuple, '"/impostazioni-studio"', 'gate legacy mantiene impostazioni studio')
+ assertContains(legacyOperationalTuple, '"/sincronizzazione-calendari"', 'gate legacy mantiene sincronizzazione calendari')
+-assertContains(legacyOperationalTuple, '"/preventivi"', 'gate legacy mantiene preventivi')
+ assertContains(legacyOperationalTuple, '"/compensi-forensi"', 'gate legacy mantiene compensi forensi')
+ assertContains(legacyOperationalTuple, '"/tariffario"', 'gate legacy mantiene tariffario')
+ assertContains(reactRouteGate, 'lower.startswith("/utenti/") and lower != "/utenti/nuovo"', 'gate protegge nested utenti non migrati')
+@@ -500,6 +527,11 @@ assertContains(reactRouteGate, 'lower == "/impostazioni/pagamenti" or lower.star
+ assertContains(reactRouteGate, 'lower == "/impostazioni" or lower.startswith("/impostazioni/")', 'gate protegge impostazioni legacy')
+ assertContains(reactRouteGate, 'lower == "/impostazioni-studio" or lower.startswith("/impostazioni-studio/")', 'gate protegge impostazioni studio legacy')
+ assertContains(reactRouteGate, 'lower == "/sincronizzazione-calendari" or lower.startswith("/sincronizzazione-calendari/")', 'gate protegge sincronizzazione calendari legacy')
++assertContains(reactRouteGate, 'lower.startswith("/preventivi/") and lower not in {', 'gate protegge nested preventivi non migrati')
++assertContains(reactRouteGate, '"/preventivi/nuovo"', 'gate consente nuovo preventivo')
++assertContains(reactRouteGate, '"/preventivi/conferimento/nuovo"', 'gate consente nuovo conferimento')
++assertContains(reactRouteGate, 'lower == "/compensi-forensi" or lower.startswith("/compensi-forensi/")', 'gate protegge compensi forensi')
++assertContains(reactRouteGate, 'lower == "/tariffario" or lower.startswith("/tariffario/")', 'gate protegge tariffario')
+ assertNotContains(shellLegacyFirstTuple, '"/statistiche"', 'shell legacy-first senza statistiche')
+ assertNotContains(shellLegacyFirstTuple, '"/audit"', 'shell legacy-first senza audit')
+ assertNotContains(shellLegacyFirstTuple, '"/registro-attivita"', 'shell legacy-first senza registro attivita')
+@@ -511,10 +543,10 @@ assertNotContains(shellLegacyFirstTuple, '"/studio"', 'shell legacy-first senza
+ assertNotContains(shellLegacyFirstTuple, '"/amministrazione"', 'shell legacy-first senza amministrazione exact')
+ assertNotContains(shellLegacyFirstTuple, '"/fatturazione"', 'shell legacy-first senza fatturazione exact')
+ assertNotContains(shellLegacyFirstTuple, '"/incassi-pagamenti"', 'shell legacy-first senza incassi exact')
++assertNotContains(shellLegacyFirstTuple, '"/preventivi"', 'shell legacy-first senza preventivi exact')
+ assertContains(shellLegacyFirstTuple, '"/impostazioni"', 'shell legacy-first mantiene impostazioni')
+ assertContains(shellLegacyFirstTuple, '"/impostazioni-studio"', 'shell legacy-first mantiene impostazioni studio')
+ assertContains(shellLegacyFirstTuple, '"/sincronizzazione-calendari"', 'shell legacy-first mantiene sincronizzazione calendari')
+-assertContains(shellLegacyFirstTuple, '"/preventivi"', 'shell legacy-first mantiene preventivi')
+ assertContains(shellLegacyFirstTuple, '"/compensi-forensi"', 'shell legacy-first mantiene compensi')
+ assertContains(shellLegacyFirstTuple, '"/tariffario"', 'shell legacy-first mantiene tariffario')
+ assertContains(reactShellBlueprint, 'lower.startswith("/utenti/") and lower != "/utenti/nuovo"', 'shell protegge nested utenti non migrati')
+@@ -529,6 +561,9 @@ assertContains(reactShellBlueprint, 'lower == "/impostazioni/pagamenti" or lower
+ assertContains(reactShellBlueprint, 'lower == "/impostazioni" or lower.startswith("/impostazioni/")', 'shell protegge impostazioni legacy')
+ assertContains(reactShellBlueprint, 'lower == "/impostazioni-studio" or lower.startswith("/impostazioni-studio/")', 'shell protegge impostazioni studio legacy')
+ assertContains(reactShellBlueprint, 'lower == "/sincronizzazione-calendari" or lower.startswith("/sincronizzazione-calendari/")', 'shell protegge sincronizzazione calendari legacy')
++assertContains(reactShellBlueprint, 'lower.startswith("/preventivi/") and lower not in {', 'shell protegge nested preventivi non migrati')
++assertContains(reactShellBlueprint, 'lower == "/compensi-forensi" or lower.startswith("/compensi-forensi/")', 'shell protegge compensi forensi')
++assertContains(reactShellBlueprint, 'lower == "/tariffario" or lower.startswith("/tariffario/")', 'shell protegge tariffario')
+ for (const [label, source] of [
+   ['StatistichePage', statistiche],
+   ['AuditPage', auditPage],
+@@ -540,6 +575,7 @@ for (const [label, source] of [
+   ['AmministrazionePage', amministrazionePage],
+   ['FatturazionePage', fatturazionePage],
+   ['IncassiPagamentiPage', incassiPagamentiPage],
++  ['PreventiviPage', preventiviPage],
+ ]) {
+   assertNoBootstrapClass(source, `${label} senza classi Bootstrap`)
+   assertNotContains(source, 'href="#"', `${label} senza href placeholder`)
+@@ -568,8 +604,10 @@ for (const [label, source] of [
+   ['react_amministrazione_bridge', amministrazioneBridge],
+   ['react_fatturazione_bridge', fatturazioneBridge],
+   ['react_incassi_pagamenti_bridge', incassiPagamentiBridge],
++  ['react_preventivi_bridge', preventiviBridge],
+   ['fatturazioneData', fatturazioneData],
+   ['incassiPagamentiData', incassiPagamentiData],
++  ['preventiviData', preventiviData],
+ ]) {
+   assertNotContains(source, 'mockResults', `${label} senza mockResults`)
+   assertNotContains(source, 'mock_fallback: true', `${label} senza mock fallback true`)
+@@ -582,8 +620,10 @@ assertNoFetchPost(studioData, 'studioData senza fetch POST')
+ assertNoFetchPost(amministrazioneData, 'amministrazioneData senza fetch POST')
+ assertNoFetchPost(fatturazionePage, 'FatturazionePage senza fetch POST')
+ assertNoFetchPost(incassiPagamentiPage, 'IncassiPagamentiPage senza fetch POST')
++assertNoFetchPost(preventiviPage, 'PreventiviPage senza fetch POST')
+ assertNoFetchPost(fatturazioneData, 'fatturazioneData senza fetch POST')
+ assertNoFetchPost(incassiPagamentiData, 'incassiPagamentiData senza fetch POST')
++assertNoFetchPost(preventiviData, 'preventiviData senza fetch POST')
+ for (const [label, source] of [
+   ['react_backup_bridge', backupBridge],
+   ['react_sito_studio_bridge', sitoStudioBridge],
+@@ -591,18 +631,21 @@ for (const [label, source] of [
+   ['react_amministrazione_bridge', amministrazioneBridge],
+   ['react_fatturazione_bridge', fatturazioneBridge],
+   ['react_incassi_pagamenti_bridge', incassiPagamentiBridge],
++  ['react_preventivi_bridge', preventiviBridge],
+   ['backupData', backupData],
+   ['sitoStudioData', sitoStudioData],
+   ['studioData', studioData],
+   ['amministrazioneData', amministrazioneData],
+   ['fatturazioneData', fatturazioneData],
+   ['incassiPagamentiData', incassiPagamentiData],
++  ['preventiviData', preventiviData],
+   ['BackupPage', backupPage],
+   ['SitoStudioPage', sitoStudioPage],
+   ['StudioPage', studioPage],
+   ['AmministrazionePage', amministrazionePage],
+   ['FatturazionePage', fatturazionePage],
+   ['IncassiPagamentiPage', incassiPagamentiPage],
++  ['PreventiviPage', preventiviPage],
+ ]) {
+   assertNoSensitivePayloadWords(source, `${label} senza campi riservati`)
+   assertNoClientStorage(source, `${label} senza storage client`)
+@@ -615,12 +658,24 @@ for (const source of [backupPage, sitoStudioPage, backupData, sitoStudioData]) {
+ for (const [label, source] of [
+   ['FatturazionePage', fatturazionePage],
+   ['IncassiPagamentiPage', incassiPagamentiPage],
++  ['PreventiviPage', preventiviPage],
+   ['fatturazioneData', fatturazioneData],
+   ['incassiPagamentiData', incassiPagamentiData],
++  ['preventiviData', preventiviData],
+ ]) {
+   assertNoFetchBlob(source, `${label} senza fetch blob`)
+   assertNoFiscalLogic(source, `${label} senza calcolo fiscale canonico`)
+ }
++for (const [label, source] of [
++  ['PreventiviPage', preventiviPage],
++  ['preventiviData', preventiviData],
++]) {
++  assertNotContains(source, 'calculate', `${label} senza calculate frontend`)
++  assertNotContains(source, 'DM55', `${label} senza DM55 frontend`)
++  assertNotContains(source, 'dm55', `${label} senza dm55 frontend`)
++  assertNotContains(source, 'Math.round', `${label} senza arrotondamenti economici`)
++  assertNotContains(source, '.toFixed(', `${label} senza formattazioni economiche calcolate`)
++}
+ assertNotContains(utentiBridge, 'password_hash', 'bridge utenti non serializza hash password')
+ assertNotContains(utentiBridge, 'totp_secret', 'bridge utenti non serializza segreti TOTP')
+ assertNotContains(utentiBridge, 'reset_token', 'bridge utenti non serializza reset token')
+diff --git a/scripts/react-migration/check-route-gate.mjs b/scripts/react-migration/check-route-gate.mjs
+index 94201c47..83bba4d9 100644
+--- a/scripts/react-migration/check-route-gate.mjs
++++ b/scripts/react-migration/check-route-gate.mjs
+@@ -67,7 +67,12 @@ function isBlockedBySpecialRule(path) {
+     path === '/impostazioni-studio' ||
+     path.startsWith('/impostazioni-studio/') ||
+     path === '/sincronizzazione-calendari' ||
+-    path.startsWith('/sincronizzazione-calendari/')
++    path.startsWith('/sincronizzazione-calendari/') ||
++    (path.startsWith('/preventivi/') && path !== '/preventivi/nuovo' && path !== '/preventivi/conferimento/nuovo') ||
++    path === '/compensi-forensi' ||
++    path.startsWith('/compensi-forensi/') ||
++    path === '/tariffario' ||
++    path.startsWith('/tariffario/')
+   )
+ }
+
+@@ -81,7 +86,7 @@ const reactExact = new Set(extractSet(gate, '_REACT_EXACT').map(normaliseRoute))
+ const legacyOperationalPrefixes = extractTuple(gate, '_LEGACY_OPERATIONAL_PREFIXES')
+ const excludedPrefixes = extractTuple(gate, '_EXCLUDED_PREFIXES')
+ const shellLegacyFirstPrefixes = extractTuple(reactShell, '_LEGACY_FIRST_PREFIXES')
+-const allowedReactUnlocks = new Set(['/statistiche', '/audit', '/registro-attivita', '/utenti', '/profili', '/backup', '/sito-studio', '/sito-studio/contatti', '/studio', '/amministrazione', '/fatturazione', '/fatturazione/nuova', '/incassi-pagamenti'])
++const allowedReactUnlocks = new Set(['/statistiche', '/audit', '/registro-attivita', '/utenti', '/profili', '/backup', '/sito-studio', '/sito-studio/contatti', '/studio', '/amministrazione', '/fatturazione', '/fatturazione/nuova', '/incassi-pagamenti', '/preventivi', '/preventivi/nuovo', '/preventivi/conferimento/nuovo'])
+
+ const violations = []
+ for (const entry of manifest.routes ?? []) {
+@@ -180,10 +185,22 @@ for (const route of ['/fatturazione', '/fatturazione/nuova', '/incassi-pagamenti
+   }
+ }
+
+-for (const route of ['/fatturazione/*', '/impostazioni/pagamenti', '/preventivi', '/compensi-forensi', '/tariffario']) {
++for (const route of ['/preventivi', '/preventivi/nuovo', '/preventivi/conferimento/nuovo']) {
++  const entry = (manifest.routes ?? []).find((item) => normaliseRoute(item.route) === route)
++  if (!entry || entry.status !== 'react_full' || entry.unlockFromGate !== true) {
++    violations.push(`${route}: deve essere react_full con unlockFromGate=true nella Tranche 7A`)
++  }
++  const stillBlocked = legacyOperationalPrefixes.some((prefix) => isPrefixMatch(route, prefix))
++  const stillShellBlocked = isBlockedBySpecialRule(route) || shellLegacyFirstPrefixes.some((prefix) => isPrefixMatch(route, prefix))
++  if (stillBlocked || stillShellBlocked) {
++    violations.push(`${route}: non deve restare bloccata da gate o shell legacy`)
++  }
++}
++
++for (const route of ['/fatturazione/*', '/impostazioni/pagamenti', '/preventivi/*', '/preventivi/wizard', '/compensi-forensi', '/tariffario']) {
+   const entry = (manifest.routes ?? []).find((item) => item.route === route)
+   if (!entry || entry.status !== 'legacy_operational' || entry.unlockFromGate !== false) {
+-    violations.push(`${route}: deve restare legacy_operational con unlockFromGate=false nella Tranche 6A`)
++    violations.push(`${route}: deve restare legacy_operational con unlockFromGate=false nella Tranche 7A`)
+   }
+ }
+
+@@ -198,6 +215,11 @@ for (const snippet of [
+   'lower == "/impostazioni" or lower.startswith("/impostazioni/")',
+   'lower == "/impostazioni-studio" or lower.startswith("/impostazioni-studio/")',
+   'lower == "/sincronizzazione-calendari" or lower.startswith("/sincronizzazione-calendari/")',
++  'lower.startswith("/preventivi/") and lower not in {',
++  '"/preventivi/nuovo",',
++  '"/preventivi/conferimento/nuovo",',
++  'lower == "/compensi-forensi" or lower.startswith("/compensi-forensi/")',
++  'lower == "/tariffario" or lower.startswith("/tariffario/")',
+ ]) {
+   if (!gate.includes(snippet)) {
+     violations.push(`react_route_gate.py: manca protezione ${snippet}`)
+@@ -213,7 +235,7 @@ const report = [
+   `Route nel manifest: ${(manifest.routes ?? []).length}`,
+   `Route con unlockFromGate=true: ${unlocked.length}`,
+   `Route governate consentite: ${[...allowedReactUnlocks].join(', ')}`,
+-  'Tranche 6A: promozione economica exact senza sottopercorsi sensibili.',
++  'Tranche 7A: promozione mandato exact e form GET, sottopercorsi sensibili legacy.',
+   `Violazioni: ${violations.length}`,
+   '',
+   ...violations.map((item) => `- ${item}`),
+@@ -226,4 +248,4 @@ if (violations.length) {
+   process.exit(1)
+ }
+
+-console.log('Route gate OK: Tranche 6A coerente.')
++console.log('Route gate OK: Tranche 7A coerente.')
+diff --git a/scripts/react-migration/run-safe-react-migration.mjs b/scripts/react-migration/run-safe-react-migration.mjs
+index 8ba0ca28..27747206 100644
+--- a/scripts/react-migration/run-safe-react-migration.mjs
++++ b/scripts/react-migration/run-safe-react-migration.mjs
+@@ -9,6 +9,7 @@ const TRANCHE_3A_FLAG = '--tranche=3a'
+ const TRANCHE_4A_FLAG = '--tranche=4a'
+ const TRANCHE_5A_FLAG = '--tranche=5a'
+ const TRANCHE_6A_FLAG = '--tranche=6a'
++const TRANCHE_7A_FLAG = '--tranche=7a'
+ const tranche = args.find((arg) => arg.startsWith('--tranche='))?.split('=')[1] || ''
+ const EXEC_BUFFER = 1024 * 1024 * 200
+
+@@ -79,6 +80,15 @@ const tranche6aContracts = [
+   '/tariffario',
+ ]
+
++const tranche7aContracts = [
++  '/preventivi',
++  '/preventivi/nuovo',
++  '/preventivi/conferimento/nuovo',
++  '/preventivi/wizard',
++  '/compensi-forensi',
++  '/tariffario',
++]
++
+ const tranche2aPatchGroups = {
+   backend: [
+     'web/services/react_statistiche_bridge.py',
+@@ -359,6 +369,62 @@ const tranche6aPatchGroups = {
+   ],
+ }
+
++const tranche7aPatchGroups = {
++  backend: [
++    'web/services/react_preventivi_bridge.py',
++    'web/blueprints/api_v1_react.py',
++  ],
++  frontend: [
++    'frontend/package.json',
++    'frontend/package-lock.json',
++    'frontend/src/preventiviData.ts',
++    'frontend/src/components/PreventiviPage.tsx',
++    'frontend/src/components/PreventiviPage.css',
++    'frontend/src/App.tsx',
++    'web/static/react',
++  ],
++  gate: [
++    'web/bootstrap/react_route_gate.py',
++    'web/blueprints/react_shell.py',
++    'tools/react-migration/route-manifest.json',
++  ],
++  tests: [
++    'frontend/scripts/check-react-contracts.mjs',
++    'scripts/react-migration/check-route-gate.mjs',
++    'scripts/react-migration/check-tranche-7a-gate.py',
++    'scripts/react-migration/check-tranche-7a-secrets.mjs',
++    'scripts/react-migration/check-tranche-7a-no-compensi-logic.mjs',
++    'scripts/react-migration/check-tranche-7a-no-document-generation.mjs',
++    'scripts/react-migration/run-safe-react-migration.mjs',
++  ],
++  reports: [
++    'CHANGELOG.md',
++    'Dockerfile',
++    'README.md',
++    'docs/REACT_MIGRATION_MASTER_PLAN.md',
++    'pct/__init__.py',
++    'railway.toml',
++    'setup.py',
++    'artifacts/react-migration/audit.md',
++    'artifacts/react-migration/route-inventory.json',
++    'artifacts/react-migration/route-gate.md',
++    'artifacts/react-migration/ui-consistency.md',
++    'artifacts/react-migration/tranche-7a-route-map.md',
++    'artifacts/react-migration/tranche-7a-gate.md',
++    'artifacts/react-migration/tranche-7a-secrets.md',
++    'artifacts/react-migration/tranche-7a-no-compensi-logic.md',
++    'artifacts/react-migration/tranche-7a-no-document-generation.md',
++    'artifacts/react-migration/tranche-7a-report.md',
++    'artifacts/react-migration/legacy-contracts/preventivi.json',
++    'artifacts/react-migration/legacy-contracts/preventivi__nuovo.json',
++    'artifacts/react-migration/legacy-contracts/preventivi__conferimento__nuovo.json',
++    'artifacts/react-migration/legacy-contracts/preventivi__wizard.json',
++    'artifacts/react-migration/legacy-contracts/preventivi__detail.json',
++    'artifacts/react-migration/legacy-contracts/compensi-forensi.json',
++    'artifacts/react-migration/legacy-contracts/tariffario.json',
++  ],
++}
++
+ function run(cmd, options = {}) {
+   console.log(`\n> ${cmd}`)
+   execSync(cmd, { stdio: 'inherit', ...options })
+@@ -458,6 +524,12 @@ function writeTranche6aPatches() {
+   }
+ }
+
++function writeTranche7aPatches() {
++  for (const [name, paths] of Object.entries(tranche7aPatchGroups)) {
++    writePatch('7a', name, paths)
++  }
++}
++
+ function runDefault() {
+   cleanRequired()
+   run('node scripts/react-migration/audit-react-migration.mjs')
+@@ -563,6 +635,27 @@ function runTranche6a() {
+   run('git status --short')
+ }
+
++function runTranche7a() {
++  cleanRequired()
++  run('git status --short')
++  run('node scripts/react-migration/audit-react-migration.mjs')
++  run(`python scripts/react-migration/capture-legacy-contracts.py ${tranche7aContracts.join(' ')}`)
++  run('node scripts/react-migration/check-route-gate.mjs')
++  run('node scripts/react-migration/check-ui-consistency.mjs')
++  run('node scripts/react-migration/check-tranche-7a-secrets.mjs')
++  run('node scripts/react-migration/check-tranche-7a-no-compensi-logic.mjs')
++  run('node scripts/react-migration/check-tranche-7a-no-document-generation.mjs')
++  if (existsSync('scripts/react-migration/check-tranche-7a-gate.py')) {
++    run('python scripts/react-migration/check-tranche-7a-gate.py')
++  }
++  run('cd frontend && npm run test')
++  run('cd frontend && npm run typecheck')
++  run('cd frontend && npm run build')
++  writeTranche7aPatches()
++  run('git diff --stat')
++  run('git status --short')
++}
++
+ if (tranche === '2a') {
+   runTranche2a()
+ } else if (tranche === '3a') {
+@@ -573,6 +666,8 @@ if (tranche === '2a') {
+   runTranche5a()
+ } else if (tranche === '6a') {
+   runTranche6a()
++} else if (tranche === '7a') {
++  runTranche7a()
+ } else {
+   runDefault()
+ }
+
+diff --git a/scripts/react-migration/check-tranche-7a-gate.py b/scripts/react-migration/check-tranche-7a-gate.py
+new file mode 100644
+index 00000000..68fdb600
+--- /dev/null
++++ b/scripts/react-migration/check-tranche-7a-gate.py
+@@ -0,0 +1,128 @@
++from __future__ import annotations
++
++import json
++import sys
++import tempfile
++from pathlib import Path
++
++ROOT = Path(__file__).resolve().parents[2]
++if str(ROOT) not in sys.path:
++    sys.path.insert(0, str(ROOT))
++
++from tests.test_web_bootstrap import _cfg_web, _seed_tenant_admin, _write_studio_config  # noqa: E402
++from web.app import create_app  # noqa: E402
++
++
++REPORT = ROOT / "artifacts/react-migration/tranche-7a-gate.md"
++
++
++def _is_react_shell(response) -> bool:
++    html = response.get_data(as_text=True)
++    return 'id="root"' in html and "iusentra-react-bootstrap" in html and "IUSENTRA - React Shell" in html
++
++
++def _is_json(response) -> bool:
++    return bool(response.is_json and isinstance(response.get_json(silent=True), dict))
++
++
++def _record(results: list[dict], name: str, ok: bool, detail: str) -> None:
++    results.append({"name": name, "ok": bool(ok), "detail": detail})
++
++
++def main() -> int:
++    results: list[dict] = []
++    with tempfile.TemporaryDirectory(prefix="iusentra-tranche-7a-", ignore_cleanup_errors=True) as tmp:
++        tmp_path = Path(tmp)
++        _write_studio_config(tmp_path / "config" / "studio.json")
++        app = create_app(_cfg_web(tmp_path))
++        studio, tenant_admin = _seed_tenant_admin(app)
++
++        with app.test_client() as client:
++            login = client.post(
++                "/login",
++                data={
++                    "username": tenant_admin.username,
++                    "password": "PasswordSicura!123",
++                    "studio_slug": studio.slug,
++                },
++                follow_redirects=False,
++            )
++            _record(results, "login tenant", login.status_code == 302, f"status={login.status_code}")
++
++            for path in ("/preventivi", "/preventivi/nuovo", "/preventivi/conferimento/nuovo"):
++                response = client.get(path, headers={"Accept": "text/html"})
++                _record(
++                    results,
++                    f"React shell {path}",
++                    response.status_code == 200 and _is_react_shell(response),
++                    f"status={response.status_code}",
++                )
++
++            for path in (
++                "/preventivi?_legacy=1",
++                "/preventivi/nuovo?_legacy=1",
++                "/preventivi/conferimento/nuovo?_legacy=1",
++                "/preventivi/wizard",
++                "/preventivi/p/qualunque",
++                "/preventivi/conferimento/qualunque",
++                "/preventivi/qualunque",
++                "/compensi-forensi",
++                "/tariffario",
++            ):
++                response = client.get(path, headers={"Accept": "text/html"}, follow_redirects=False)
++                _record(
++                    results,
++                    f"Ancora legacy {path}",
++                    not _is_react_shell(response),
++                    f"status={response.status_code}",
++                )
++
++            for path in (
++                "/api/v1/ui/preventivi",
++                "/api/v1/ui/preventivi/nuovo",
++                "/api/v1/ui/preventivi/conferimento/nuovo",
++            ):
++                response = client.get(path, headers={"Accept": "application/json"})
++                _record(
++                    results,
++                    f"JSON {path}",
++                    response.status_code == 200 and _is_json(response),
++                    f"status={response.status_code}",
++                )
++
++            for path in (
++                "/preventivi/nuovo",
++                "/preventivi/conferimento/nuovo",
++                "/preventivi",
++                "/compensi-forensi",
++                "/tariffario",
++            ):
++                response = client.post(path, data={}, headers={"Accept": "text/html"}, follow_redirects=False)
++                _record(
++                    results,
++                    f"POST non intercettato {path}",
++                    not _is_react_shell(response),
++                    f"status={response.status_code}",
++                )
++
++    REPORT.parent.mkdir(parents=True, exist_ok=True)
++    lines = [
++        "# Tranche 7A gate check",
++        "",
++        *[
++            f"- [{'OK' if item['ok'] else 'KO'}] {item['name']} ({item['detail']})"
++            for item in results
++        ],
++        "",
++    ]
++    REPORT.write_text("\n".join(lines), encoding="utf-8")
++    failures = [item for item in results if not item["ok"]]
++    if failures:
++        print(json.dumps({"ok": False, "failures": failures}, ensure_ascii=False, indent=2))
++        return 1
++    print("Tranche 7A gate OK")
++    return 0
++
++
++if __name__ == "__main__":
++    raise SystemExit(main())
+
+diff --git a/scripts/react-migration/check-tranche-7a-no-compensi-logic.mjs b/scripts/react-migration/check-tranche-7a-no-compensi-logic.mjs
+new file mode 100644
+index 00000000..3509855b
+--- /dev/null
++++ b/scripts/react-migration/check-tranche-7a-no-compensi-logic.mjs
+@@ -0,0 +1,70 @@
++import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
++import { resolve } from 'node:path'
++
++const root = resolve(import.meta.dirname, '../..')
++const reportPath = resolve(root, 'artifacts/react-migration/tranche-7a-no-compensi-logic.md')
++
++const files = [
++  'frontend/src/preventiviData.ts',
++  'frontend/src/components/PreventiviPage.tsx',
++]
++
++const denied = [
++  /DM55/,
++  /dm55/,
++  /scaglione/i,
++  /faseStudio/,
++  /faseIntroduttiva/,
++  /faseIstruttoria/,
++  /faseDecisionale/,
++  /valoreControversia/,
++  /coefficiente/i,
++  /moltiplicatore/i,
++  /calculateCompenso/,
++  /calculateFees/,
++  /calculateOnorari/,
++  /calculatePreventivo/,
++  /aliquota/i,
++  /cassaRate/,
++  /ivaRate/,
++  /ritenutaRate/,
++  /Math\.round/,
++  /\.toFixed\s*\(/,
++  /importo\s*\*/,
++  /totale\s*=\s*importo/,
++  /compenso\s*=/,
++]
++
++const violations = []
++
++for (const file of files) {
++  const source = readFileSync(resolve(root, file), 'utf8')
++  const lines = source.split(/\r?\n/)
++  lines.forEach((line, index) => {
++    for (const pattern of denied) {
++      if (pattern.test(line)) {
++        violations.push(`${file}:${index + 1}: contiene pattern di logica compensi "${pattern}"`)
++      }
++    }
++  })
++}
++
++const report = [
++  '# Tranche 7A anti-calcolo compensi frontend',
++  '',
++  `File scansionati: ${files.length}`,
++  `Violazioni: ${violations.length}`,
++  '',
++  ...violations.map((item) => `- ${item}`),
++  '',
++].join('\n')
++
++mkdirSync(resolve(root, 'artifacts/react-migration'), { recursive: true })
++writeFileSync(reportPath, report, 'utf8')
++
++if (violations.length) {
++  console.error(report)
++  process.exit(1)
++}
++
++console.log('Tranche 7A anti-calcolo compensi OK')
+
+diff --git a/scripts/react-migration/check-tranche-7a-no-document-generation.mjs b/scripts/react-migration/check-tranche-7a-no-document-generation.mjs
+new file mode 100644
+index 00000000..440a4883
+--- /dev/null
++++ b/scripts/react-migration/check-tranche-7a-no-document-generation.mjs
+@@ -0,0 +1,59 @@
++import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
++import { resolve } from 'node:path'
++
++const root = resolve(import.meta.dirname, '../..')
++const reportPath = resolve(root, 'artifacts/react-migration/tranche-7a-no-document-generation.md')
++
++const files = [
++  'frontend/src/preventiviData.ts',
++  'frontend/src/components/PreventiviPage.tsx',
++  'web/services/react_preventivi_bridge.py',
++]
++
++const denied = [
++  /docx/i,
++  /pdf/i,
++  /generateDocument/,
++  /generatePdf/,
++  /generateDocx/,
++  /exportPdf/,
++  /exportDocx/,
++  /blob/i,
++  /URL\.createObjectURL/,
++  /application\/pdf/i,
++  /application\/vnd\.openxmlformats-officedocument\.wordprocessingml\.document/i,
++]
++
++const violations = []
++
++for (const file of files) {
++  const source = readFileSync(resolve(root, file), 'utf8')
++  const lines = source.split(/\r?\n/)
++  lines.forEach((line, index) => {
++    for (const pattern of denied) {
++      if (pattern.test(line)) {
++        violations.push(`${file}:${index + 1}: contiene pattern documentale non ammesso "${pattern}"`)
++      }
++    }
++  })
++}
++
++const report = [
++  '# Tranche 7A anti-generazione documenti',
++  '',
++  `File scansionati: ${files.length}`,
++  `Violazioni: ${violations.length}`,
++  '',
++  ...violations.map((item) => `- ${item}`),
++  '',
++].join('\n')
++
++mkdirSync(resolve(root, 'artifacts/react-migration'), { recursive: true })
++writeFileSync(reportPath, report, 'utf8')
++
++if (violations.length) {
++  console.error(report)
++  process.exit(1)
++}
++
++console.log('Tranche 7A anti-generazione documenti OK')
+
+diff --git a/scripts/react-migration/check-tranche-7a-secrets.mjs b/scripts/react-migration/check-tranche-7a-secrets.mjs
+new file mode 100644
+index 00000000..8fbc10ab
+--- /dev/null
++++ b/scripts/react-migration/check-tranche-7a-secrets.mjs
+@@ -0,0 +1,62 @@
++import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
++import { resolve } from 'node:path'
++
++const root = resolve(import.meta.dirname, '../..')
++const reportPath = resolve(root, 'artifacts/react-migration/tranche-7a-secrets.md')
++
++const files = [
++  'web/services/react_preventivi_bridge.py',
++  'frontend/src/preventiviData.ts',
++  'frontend/src/components/PreventiviPage.tsx',
++]
++
++const denied = [
++  'api_key',
++  'apikey',
++  'secret',
++  'password',
++  'token',
++  'private_key',
++  'access_key',
++  'refresh_token',
++  'client_secret',
++  'bearer',
++  'fiscal_formula_secret',
++  'document_template_raw',
++  'docx_raw',
++  'pdf_raw',
++]
++
++const violations = []
++
++for (const file of files) {
++  const source = readFileSync(resolve(root, file), 'utf8')
++  const lines = source.split(/\r?\n/)
++  lines.forEach((line, index) => {
++    for (const word of denied) {
++      if (new RegExp(word, 'i').test(line)) {
++        violations.push(`${file}:${index + 1}: contiene pattern non ammesso "${word}"`)
++      }
++    }
++  })
++}
++
++const report = [
++  '# Tranche 7A anti-segreti',
++  '',
++  `File scansionati: ${files.length}`,
++  `Violazioni: ${violations.length}`,
++  '',
++  ...violations.map((item) => `- ${item}`),
++  '',
++].join('\n')
++
++mkdirSync(resolve(root, 'artifacts/react-migration'), { recursive: true })
++writeFileSync(reportPath, report, 'utf8')
++
++if (violations.length) {
++  console.error(report)
++  process.exit(1)
++}
++
++console.log('Tranche 7A anti-segreti OK')

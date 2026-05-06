@@ -1,0 +1,681 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 92ba7b7e..19a87395 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -1,5 +1,17 @@
+ # Changelog
+
++## 2.198.94 - 2026-05-06
++
++- Promosse in React full le route mandato exact `/preventivi`, `/preventivi/nuovo` e `/preventivi/conferimento/nuovo`, con bridge backend read-only, endpoint UI GET, KPI reali, archivio preventivi/conferimenti e form HTML verso POST Flask legacy.
++- Mantenuti legacy wizard compensi, dettagli, stati, workflow, PDF/DOCX, conversione parcella, apertura fascicolo, `/preventivi/*`, `/compensi-forensi` e `/tariffario`, senza fetch POST o logica compensi nel frontend.
++- Aggiunti check Tranche 7A per gate Flask, anti-segreti mandato, anti-calcolo compensi frontend, anti-generazione documenti, contratti React, runner sicuro e patch rollback separate.
++
++## 2.198.93 - 2026-05-06
++
++- Installata la skill Codex locale Impeccable in `.agents/skills/impeccable` con contesto prodotto `PRODUCT.md` per audit UI/UX governato.
++- Aggiunto `docs/open-design-brief.md` e applicato un polish React mirato su token, primitive condivise, stati interattivi e anti-pattern visuali.
++- Rimossi side-stripe spesse e fallback `href="#"` dalle superfici React toccate, mantenendo stack Vite/React/Tailwind e dati reali.
++
+ ## 2.198.92 - 2026-05-06
+
+ - Promosse in React full le route economiche exact `/fatturazione`, `/fatturazione/nuova` e `/incassi-pagamenti`, con bridge backend read-only, endpoint UI GET e form React che invia al POST Flask legacy per la nuova parcella.
+diff --git a/Dockerfile b/Dockerfile
+index c04106dc..9073b7ee 100644
+--- a/Dockerfile
++++ b/Dockerfile
+@@ -1,4 +1,4 @@
+-#  version: 2.198.92
++#  version: 2.198.94
+ #  IUSENTRA | Dockerfile produzione
+
+ #  Build multi-stage:
+@@ -75,7 +75,7 @@ RUN mkdir -p /out && /tmp/dart-sass/sass --no-source-map --style=compressed \
+ FROM python:3.12-slim
+
+ LABEL org.opencontainers.image.title="IUSENTRA" \
+-      org.opencontainers.image.version="2.198.92" \
++      org.opencontainers.image.version="2.198.94" \
+       org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
+       org.opencontainers.image.created="2026-03-18"
+
+diff --git a/README.md b/README.md
+index 745d24b6..683f5005 100644
+--- a/README.md
++++ b/README.md
+@@ -53,8 +53,8 @@ La repo oggi non è più solo un tool CLI per il Processo Civile Telematico: con
+ - Assistenza remota cliente sempre da `SUPERADMIN`, con schermo WebRTC, microfono opzionale, chat tecnica, audit, consensi ed escalation governata al controllo remoto avanzato esterno.
+ - `Sito Studio` nativo per ogni tenant: pagine a blocchi, articoli, servizi, professionisti, sedi, contatti, agenda appuntamenti pubblica e sito web pubblicabile senza WordPress esterno.
+ - Le sezioni pubbliche `Strumenti legali`, `Applicazioni` e `News giuridiche strutturate` non sono esposte in automatico: compaiono sul sito dello studio solo se l'amministratore del sito attiva i flag dedicati da `Sito Studio -> Impostazioni`.
+-- Migrazione React progressiva: la shell `/app-v2` convive con la UI Jinja attuale e usa API Flask reali; `Clienti e Anagrafiche`, `Soggetti e Parti`, `Comunicazioni`, `Servizi Telematici`, `Gestione Database` (`/admin/database`), `Statistiche`, `Audit`, `Registro attivita`, `Utenti`, `Profili e permessi`, `Studio`, `Amministrazione`, `Fatturazione`, `Nuova parcella` e `Incassi e pagamenti` sono ora servite in React sui GET ufficiali, con salvataggi ancora sulle route Flask storiche dove presenti e fallback tecnico `_legacy=1`. Le superfici telematiche `PolisWeb / PST`, `PDP`, `PAT`, `PTT`, `Tribunali / PEC`, `Checklist deposito` e `Guida firma digitale` restano governate dai vincoli specifici di portale e non vengono promosse da questa tranche. `Regia Operativa`, `Ricerca Studio`, `Agenda`, `Nuovo Appuntamento` e la suite `Fascicoli` vivono rispettivamente in `/app-v2/regia-operativa`, `/app-v2/ricerca-studio`, `/app-v2/agenda`, `/app-v2/agenda/nuovo` e `/app-v2/fascicoli`. La suite fascicoli include lista, nuovo/modifica, archivio, dettaglio cabina fascicolo, quadro intelligente AI, editor professionale anche sulla route profonda `/fascicoli/<id>/documenti/<id_doc>/editor` con font/dimensioni/interlinea in stile studio, anteprima PDF nativa fedele all'originale per documenti impaginati con stemmi/timbri/firme e blocco professionale delle conversioni non affidabili, compilatore atti, anteprima documento interna anche per `.pdf.p7m`, upload senza reload ed export, con scritture ancora sulle route storiche per rollback immediato. Ogni pagina migrata viene collegata alla nav React, usa solo dati reali da repository/sessione/API/configurazione e nessuna pagina React viene annidata dentro un'altra durante la migrazione pagina per pagina.
+-- La migrazione React residua e' governata da `tools/react-migration/route-manifest.json` e dagli script `scripts/react-migration/*`: audit route, cattura contratti legacy, controllo gate, consistency UI e runner sicuro. La Tranche 6A abilita `/fatturazione`, `/fatturazione/nuova` e `/incassi-pagamenti` in React full come superfici economiche sicure, mantenendo dettagli fatture, modifica, PDF, XML, export CSV, provider pagamenti, preventivi, compensi forensi, tariffario, impostazioni, documentale e telematico sui percorsi legacy fino a parita' dimostrata.
++- Migrazione React progressiva: la shell `/app-v2` convive con la UI Jinja attuale e usa API Flask reali; `Clienti e Anagrafiche`, `Soggetti e Parti`, `Comunicazioni`, `Servizi Telematici`, `Gestione Database` (`/admin/database`), `Statistiche`, `Audit`, `Registro attivita`, `Utenti`, `Profili e permessi`, `Studio`, `Amministrazione`, `Fatturazione`, `Nuova parcella`, `Incassi e pagamenti`, `Preventivi e Incarichi`, `Nuovo preventivo` e `Nuovo conferimento incarico` sono ora servite in React sui GET ufficiali, con salvataggi ancora sulle route Flask storiche dove presenti e fallback tecnico `_legacy=1`. Le superfici telematiche `PolisWeb / PST`, `PDP`, `PAT`, `PTT`, `Tribunali / PEC`, `Checklist deposito` e `Guida firma digitale` restano governate dai vincoli specifici di portale e non vengono promosse da questa tranche. `Regia Operativa`, `Ricerca Studio`, `Agenda`, `Nuovo Appuntamento` e la suite `Fascicoli` vivono rispettivamente in `/app-v2/regia-operativa`, `/app-v2/ricerca-studio`, `/app-v2/agenda`, `/app-v2/agenda/nuovo` e `/app-v2/fascicoli`. La suite fascicoli include lista, nuovo/modifica, archivio, dettaglio cabina fascicolo, quadro intelligente AI, editor professionale anche sulla route profonda `/fascicoli/<id>/documenti/<id_doc>/editor` con font/dimensioni/interlinea in stile studio, anteprima PDF nativa fedele all'originale per documenti impaginati con stemmi/timbri/firme e blocco professionale delle conversioni non affidabili, compilatore atti, anteprima documento interna anche per `.pdf.p7m`, upload senza reload ed export, con scritture ancora sulle route storiche per rollback immediato. Ogni pagina migrata viene collegata alla nav React, usa solo dati reali da repository/sessione/API/configurazione e nessuna pagina React viene annidata dentro un'altra durante la migrazione pagina per pagina.
++- La migrazione React residua e' governata da `tools/react-migration/route-manifest.json` e dagli script `scripts/react-migration/*`: audit route, cattura contratti legacy, controllo gate, consistency UI e runner sicuro. La Tranche 7A abilita `/preventivi`, `/preventivi/nuovo` e `/preventivi/conferimento/nuovo` in React full come superfici mandato sicure, mantenendo wizard compensi, dettagli/stati, PDF/DOCX, conversione, apertura fascicolo, `/preventivi/*`, `/compensi-forensi`, `/tariffario`, impostazioni, documentale e telematico sui percorsi legacy fino a parita' dimostrata.
+ - La pagina `Gestione Database` non si limita a segnalare anomalie referenziali: `Verifica e ripara` chiama una route Flask auditata, crea backup prima di scrivere e corregge automaticamente i riferimenti orfani risolvibili senza inventare dati.
+ - La superficie `Tribunali / PEC` distingue le PEC di deposito telematico dalle PEC amministrative/protocollo: PST e' fonte primaria per il deposito, IPA Open Data fonte secondaria per indirizzi amministrativi, e i siti ufficiali restano fallback/verifica manuale.
+ - Deploy Hetzner CPX42: il profilo [deploy/hetzner](deploy/hetzner/README.md), documentato anche in [docs/DEPLOY_HETZNER_CPX42.md](docs/DEPLOY_HETZNER_CPX42.md), prepara un server Ubuntu con Docker Compose, Caddy HTTPS, Redis, worker scheduler/OCR, backup e restore su `/opt/iusentra/data`, con retention backup governata e pannello Superadmin `Server e manutenzione` per consumi, hardlink e manutenzioni sicure.
+diff --git a/artifacts/react-migration/audit.md b/artifacts/react-migration/audit.md
+index e9a68e33..8277ae31 100644
+--- a/artifacts/react-migration/audit.md
++++ b/artifacts/react-migration/audit.md
+@@ -1,6 +1,6 @@
+ # Audit migrazione React
+
+-Generato: 2026-05-06T14:31:03.242Z
++Generato: 2026-05-06T15:47:11.854Z
+
+ ## Frontend
+
+@@ -12,12 +12,12 @@ Script disponibili: dev, test, typecheck, build, preview
+ Route React prefixes: 55
+ Route React exact: 43
+ Excluded prefixes: 14
+-Legacy operational prefixes: 31
++Legacy operational prefixes: 30
+
+ ## App React
+
+-Lazy components: 36
+-Route checks: 51
++Lazy components: 37
++Route checks: 52
+ Studio module routes: 52
+
+ ## Nota operativa
+diff --git a/artifacts/react-migration/route-gate.md b/artifacts/react-migration/route-gate.md
+index 389dab83..600c946b 100644
+--- a/artifacts/react-migration/route-gate.md
++++ b/artifacts/react-migration/route-gate.md
+@@ -1,7 +1,7 @@
+ # Route gate report
+
+-Route nel manifest: 34
+-Route con unlockFromGate=true: 13
+-Route governate consentite: /statistiche, /audit, /registro-attivita, /utenti, /profili, /backup, /sito-studio, /sito-studio/contatti, /studio, /amministrazione, /fatturazione, /fatturazione/nuova, /incassi-pagamenti
+-Tranche 6A: promozione economica exact senza sottopercorsi sensibili.
++Route nel manifest: 38
++Route con unlockFromGate=true: 16
++Route governate consentite: /statistiche, /audit, /registro-attivita, /utenti, /profili, /backup, /sito-studio, /sito-studio/contatti, /studio, /amministrazione, /fatturazione, /fatturazione/nuova, /incassi-pagamenti, /preventivi, /preventivi/nuovo, /preventivi/conferimento/nuovo
++Tranche 7A: promozione mandato exact e form GET, sottopercorsi sensibili legacy.
+ Violazioni: 0
+diff --git a/artifacts/react-migration/route-inventory.json b/artifacts/react-migration/route-inventory.json
+index de43f01a..2ba203be 100644
+--- a/artifacts/react-migration/route-inventory.json
++++ b/artifacts/react-migration/route-inventory.json
+@@ -1,5 +1,5 @@
+ {
+-  "generatedAt": "2026-05-06T14:31:03.242Z",
++  "generatedAt": "2026-05-06T15:47:11.854Z",
+   "react": {
+     "dependencies": {
+       "@vitejs/plugin-react": "^5.0.0",
+@@ -161,7 +161,6 @@
+       "/pdp",
+       "/polisweb",
+       "/portali",
+-      "/preventivi",
+       "/redazione-atti",
+       "/ricerca-legale",
+       "/servizi-telematici",
+@@ -322,6 +321,10 @@
+       {
+         "name": "IncassiPagamentiPage",
+         "importPath": "./components/IncassiPagamentiPage"
++      },
++      {
++        "name": "PreventiviPage",
++        "importPath": "./components/PreventiviPage"
+       }
+     ],
+     "routeChecks": [
+@@ -373,6 +376,7 @@
+       "isAmministrazionePage",
+       "isFatturazionePage",
+       "isIncassiPagamentiPage",
++      "isPreventiviPage",
+       "isStudioModulePage",
+       "isDashboardPage",
+       "isStandalonePage"
+diff --git a/artifacts/react-migration/ui-consistency.md b/artifacts/react-migration/ui-consistency.md
+index 303a8f3f..81ea7ff8 100644
+--- a/artifacts/react-migration/ui-consistency.md
++++ b/artifacts/react-migration/ui-consistency.md
+@@ -1,4 +1,4 @@
+ # UI consistency report
+
+-File scansionati: 146
++File scansionati: 149
+ Violazioni: 0
+diff --git a/docs/REACT_MIGRATION_MASTER_PLAN.md b/docs/REACT_MIGRATION_MASTER_PLAN.md
+index cf7d3dde..0ec3ec42 100644
+--- a/docs/REACT_MIGRATION_MASTER_PLAN.md
++++ b/docs/REACT_MIGRATION_MASTER_PLAN.md
+@@ -1,5 +1,35 @@
+ # Migrazione progressiva Flask + React
+
++## Stato tranche 2026-05-06 - Tranche 7A mandato sicuro
++
++La sesta promozione governata abilita il blocco mandato exact in React senza
++spostare calcoli, wizard, documenti o cambi di stato fuori dalle route Flask
++legacy:
++
++- `/preventivi` usa `web/services/react_preventivi_bridge.py` e
++  `GET /api/v1/ui/preventivi` per KPI reali, archivio preventivi/conferimenti,
++  stati, cliente, fascicolo, importi gia' presenti nel modello e link legacy
++  sicuri.
++- `/preventivi/nuovo` usa lo stesso bridge e
++  `GET /api/v1/ui/preventivi/nuovo`, ma il submit resta un form HTML
++  `method="post"` verso la route legacy auditata; il motore economico resta nel
++  backend storico.
++- `/preventivi/conferimento/nuovo` usa
++  `GET /api/v1/ui/preventivi/conferimento/nuovo`, con form React verso il POST
++  legacy; firme, stati, produzione documenti e apertura fascicolo restano nel
++  workflow Flask.
++- `/preventivi/wizard`, `/preventivi/*`, `/compensi-forensi` e `/tariffario`
++  restano legacy con protezioni esplicite nel gate e nella shell.
++- `scripts/react-migration/check-tranche-7a-secrets.mjs`,
++  `scripts/react-migration/check-tranche-7a-no-compensi-logic.mjs` e
++  `scripts/react-migration/check-tranche-7a-no-document-generation.mjs`
++  bloccano serializzazione di campi riservati, logica compensi frontend e
++  produzione documentale nella nuova superficie.
++- `run-safe-react-migration.mjs --tranche=7a` cattura i contratti legacy,
++  rilancia gate/UI/anti-segreti/anti-calcolo/anti-documenti, verifica shell e
++  bypass legacy con Flask `test_client`, esegue test/typecheck/build frontend e
++  genera patch separate di rollback.
++
+ ## Stato tranche 2026-05-06 - Tranche 6A economico sicuro
+
+ La quinta promozione governata abilita il primo blocco economico exact in React
+diff --git a/pct/__init__.py b/pct/__init__.py
+index ab33c4a4..eef3f6c6 100644
+--- a/pct/__init__.py
++++ b/pct/__init__.py
+@@ -2,5 +2,5 @@
+ PCT - Processo Civile Telematico
+ Sistema per l'invio telematico negli studi legali italiani.
+ """
+-__version__ = "2.198.92"
++__version__ = "2.198.94"
+ __author__ = "IUSENTRA"
+diff --git a/railway.toml b/railway.toml
+index 86fc99b0..d25146d3 100644
+--- a/railway.toml
++++ b/railway.toml
+@@ -1,6 +1,6 @@
+ #  Railway - Configurazione deploy
+ #  Docs: https://docs.railway.app
+-#  version: 2.198.92
++#  version: 2.198.94
+ #  redeploy: 06/05/2026 15:49:00
+
+ [build]
+diff --git a/setup.py b/setup.py
+index f0f71412..fa664086 100644
+--- a/setup.py
++++ b/setup.py
+@@ -10,7 +10,7 @@ from packaging_manifest import extras_requirements, read_version, runtime_requir
+
+ setup(
+     name="pct-studio-legale",
+-    # Versione applicativa 2.198.92, letta dalla source of truth pct.__init__
++    # Versione applicativa 2.198.94, letta dalla source of truth pct.__init__
+     version=read_version(),
+     description="IUSENTRA: gestionale web modulare per studi legali con PCT, Lex locale e servizi telematici",
+     packages=find_packages(),
+
+diff --git a/artifacts/react-migration/legacy-contracts/preventivi__conferimento__nuovo.json b/artifacts/react-migration/legacy-contracts/preventivi__conferimento__nuovo.json
+new file mode 100644
+index 00000000..969a62b0
+--- /dev/null
++++ b/artifacts/react-migration/legacy-contracts/preventivi__conferimento__nuovo.json
+@@ -0,0 +1,14 @@
++{
++  "route": "/preventivi/conferimento/nuovo",
++  "legacyUrl": "/preventivi/conferimento/nuovo?_legacy=1",
++  "status": 302,
++  "redirectLocation": "/login?next=/preventivi/conferimento/nuovo?_legacy%3D1",
++  "forms": [],
++  "links": [
++    "/login?next=/preventivi/conferimento/nuovo?_legacy%3D1"
++  ],
++  "linksCount": 1,
++  "downloads": [],
++  "hasBootstrapClass": false,
++  "hasReactRoot": false
++}
+\ No newline at end of file
+warning: in the working copy of 'artifacts/react-migration/legacy-contracts/preventivi__conferimento__nuovo.json', CRLF will be replaced by LF the next time Git touches it
+
+diff --git a/artifacts/react-migration/legacy-contracts/preventivi__detail.json b/artifacts/react-migration/legacy-contracts/preventivi__detail.json
+new file mode 100644
+index 00000000..297afacc
+--- /dev/null
++++ b/artifacts/react-migration/legacy-contracts/preventivi__detail.json
+@@ -0,0 +1,14 @@
++{
++  "route": "/preventivi/*",
++  "legacyUrl": "/preventivi/p/__detail__?_legacy=1",
++  "status": 302,
++  "redirectLocation": "/login?next=/preventivi/p/__detail__?_legacy%3D1",
++  "forms": [],
++  "links": [
++    "/login?next=/preventivi/p/__detail__?_legacy%3D1"
++  ],
++  "linksCount": 1,
++  "downloads": [],
++  "hasBootstrapClass": false,
++  "hasReactRoot": false
++}
+
+diff --git a/artifacts/react-migration/legacy-contracts/preventivi__nuovo.json b/artifacts/react-migration/legacy-contracts/preventivi__nuovo.json
+new file mode 100644
+index 00000000..abe76822
+--- /dev/null
++++ b/artifacts/react-migration/legacy-contracts/preventivi__nuovo.json
+@@ -0,0 +1,14 @@
++{
++  "route": "/preventivi/nuovo",
++  "legacyUrl": "/preventivi/nuovo?_legacy=1",
++  "status": 302,
++  "redirectLocation": "/login?next=/preventivi/nuovo?_legacy%3D1",
++  "forms": [],
++  "links": [
++    "/login?next=/preventivi/nuovo?_legacy%3D1"
++  ],
++  "linksCount": 1,
++  "downloads": [],
++  "hasBootstrapClass": false,
++  "hasReactRoot": false
++}
+\ No newline at end of file
+warning: in the working copy of 'artifacts/react-migration/legacy-contracts/preventivi__nuovo.json', CRLF will be replaced by LF the next time Git touches it
+
+diff --git a/artifacts/react-migration/legacy-contracts/preventivi__wizard.json b/artifacts/react-migration/legacy-contracts/preventivi__wizard.json
+new file mode 100644
+index 00000000..48a01c3a
+--- /dev/null
++++ b/artifacts/react-migration/legacy-contracts/preventivi__wizard.json
+@@ -0,0 +1,14 @@
++{
++  "route": "/preventivi/wizard",
++  "legacyUrl": "/preventivi/wizard?_legacy=1",
++  "status": 302,
++  "redirectLocation": "/login?next=/preventivi/wizard?_legacy%3D1",
++  "forms": [],
++  "links": [
++    "/login?next=/preventivi/wizard?_legacy%3D1"
++  ],
++  "linksCount": 1,
++  "downloads": [],
++  "hasBootstrapClass": false,
++  "hasReactRoot": false
++}
+\ No newline at end of file
+warning: in the working copy of 'artifacts/react-migration/legacy-contracts/preventivi__wizard.json', CRLF will be replaced by LF the next time Git touches it
+
+diff --git a/artifacts/react-migration/tranche-7a-gate.md b/artifacts/react-migration/tranche-7a-gate.md
+new file mode 100644
+index 00000000..31f7ec58
+--- /dev/null
++++ b/artifacts/react-migration/tranche-7a-gate.md
+@@ -0,0 +1,23 @@
++# Tranche 7A gate check
++
++- [OK] login tenant (status=302)
++- [OK] React shell /preventivi (status=200)
++- [OK] React shell /preventivi/nuovo (status=200)
++- [OK] React shell /preventivi/conferimento/nuovo (status=200)
++- [OK] Ancora legacy /preventivi?_legacy=1 (status=308)
++- [OK] Ancora legacy /preventivi/nuovo?_legacy=1 (status=200)
++- [OK] Ancora legacy /preventivi/conferimento/nuovo?_legacy=1 (status=200)
++- [OK] Ancora legacy /preventivi/wizard (status=200)
++- [OK] Ancora legacy /preventivi/p/qualunque (status=302)
++- [OK] Ancora legacy /preventivi/conferimento/qualunque (status=404)
++- [OK] Ancora legacy /preventivi/qualunque (status=404)
++- [OK] Ancora legacy /compensi-forensi (status=302)
++- [OK] Ancora legacy /tariffario (status=200)
++- [OK] JSON /api/v1/ui/preventivi (status=200)
++- [OK] JSON /api/v1/ui/preventivi/nuovo (status=200)
++- [OK] JSON /api/v1/ui/preventivi/conferimento/nuovo (status=200)
++- [OK] POST non intercettato /preventivi/nuovo (status=302)
++- [OK] POST non intercettato /preventivi/conferimento/nuovo (status=302)
++- [OK] POST non intercettato /preventivi (status=404)
++- [OK] POST non intercettato /compensi-forensi (status=405)
++- [OK] POST non intercettato /tariffario (status=200)
+warning: in the working copy of 'artifacts/react-migration/tranche-7a-gate.md', CRLF will be replaced by LF the next time Git touches it
+
+diff --git a/artifacts/react-migration/tranche-7a-no-compensi-logic.md b/artifacts/react-migration/tranche-7a-no-compensi-logic.md
+new file mode 100644
+index 00000000..1e4691fc
+--- /dev/null
++++ b/artifacts/react-migration/tranche-7a-no-compensi-logic.md
+@@ -0,0 +1,5 @@
++# Tranche 7A anti-calcolo compensi frontend
++
++File scansionati: 2
++Violazioni: 0
++
+
+diff --git a/artifacts/react-migration/tranche-7a-no-document-generation.md b/artifacts/react-migration/tranche-7a-no-document-generation.md
+new file mode 100644
+index 00000000..4bf06bb9
+--- /dev/null
++++ b/artifacts/react-migration/tranche-7a-no-document-generation.md
+@@ -0,0 +1,5 @@
++# Tranche 7A anti-generazione documenti
++
++File scansionati: 3
++Violazioni: 0
++
+
+diff --git a/artifacts/react-migration/tranche-7a-report.md b/artifacts/react-migration/tranche-7a-report.md
+new file mode 100644
+index 00000000..f6d2432d
+--- /dev/null
++++ b/artifacts/react-migration/tranche-7a-report.md
+@@ -0,0 +1,159 @@
++# Tranche 7A - Preventivi React full
++
++Data/ora: 2026-05-06 17:46:23 +02:00
++
++Branch base: `claude/legal-electronic-filing-kIxcV`
++
++## Route migrate
++
++- `/preventivi`
++- `/preventivi/nuovo`
++- `/preventivi/conferimento/nuovo`
++
++## Route preparate ma lasciate legacy
++
++- `/preventivi/wizard`
++- `/preventivi/*`
++- `/preventivi/p/*`
++- `/preventivi/conferimento/*` diverso da `/preventivi/conferimento/nuovo`
++- `/compensi-forensi`
++- `/tariffario`
++
++## File creati
++
++- `web/services/react_preventivi_bridge.py`
++- `frontend/src/preventiviData.ts`
++- `frontend/src/components/PreventiviPage.tsx`
++- `frontend/src/components/PreventiviPage.css`
++- `scripts/react-migration/check-tranche-7a-gate.py`
++- `scripts/react-migration/check-tranche-7a-secrets.mjs`
++- `scripts/react-migration/check-tranche-7a-no-compensi-logic.mjs`
++- `scripts/react-migration/check-tranche-7a-no-document-generation.mjs`
++- `artifacts/react-migration/tranche-7a-route-map.md`
++- `artifacts/react-migration/tranche-7a-report.md`
++
++## File modificati
++
++- `web/blueprints/api_v1_react.py`
++- `web/bootstrap/react_route_gate.py`
++- `web/blueprints/react_shell.py`
++- `frontend/src/App.tsx`
++- `frontend/scripts/check-react-contracts.mjs`
++- `scripts/react-migration/check-route-gate.mjs`
++- `scripts/react-migration/run-safe-react-migration.mjs`
++- `tools/react-migration/route-manifest.json`
++- `README.md`
++- `docs/REACT_MIGRATION_MASTER_PLAN.md`
++- `CHANGELOG.md`
++- `pct/__init__.py`
++- `setup.py`
++- `Dockerfile`
++- `railway.toml`
++- `frontend/package.json`
++- `frontend/package-lock.json`
++- `web/static/react/.vite/manifest.json`
++- `web/static/react/index.html`
++- `web/static/react/assets/*`
++
++## Endpoint aggiunti
++
++- `GET /api/v1/ui/preventivi`
++- `GET /api/v1/ui/preventivi/nuovo`
++- `GET /api/v1/ui/preventivi/conferimento/nuovo`
++
++## Gate modificato
++
++- `/preventivi` exact ora puo servire la shell React.
++- `/preventivi/nuovo` ora puo servire la shell React.
++- `/preventivi/conferimento/nuovo` ora puo servire la shell React.
++- `?_legacy=1` resta supportato.
++- I POST restano fuori dal gate React.
++
++## Route ancora bloccate
++
++- `/preventivi/wizard`
++- `/preventivi/p/*`
++- `/preventivi/conferimento/*` diverso da `/preventivi/conferimento/nuovo`
++- ogni altro `/preventivi/*`
++- `/compensi-forensi`
++- `/tariffario`
++- route documentali, telematiche, impostazioni e fatturazione wildcard gia bloccate.
++
++## Contratti legacy catturati
++
++- `artifacts/react-migration/legacy-contracts/preventivi.json`
++- `artifacts/react-migration/legacy-contracts/preventivi__nuovo.json`
++- `artifacts/react-migration/legacy-contracts/preventivi__conferimento__nuovo.json`
++- `artifacts/react-migration/legacy-contracts/preventivi__wizard.json`
++- `artifacts/react-migration/legacy-contracts/preventivi__detail.json`
++- `artifacts/react-migration/legacy-contracts/compensi-forensi.json`
++- `artifacts/react-migration/legacy-contracts/tariffario.json`
++
++## Permessi verificati
++
++- I route handler legacy usano `_richiedi_login`.
++- Gli endpoint React usano `_richiedi_auth` e richiedono un utente Flask in sessione.
++- Non e stato rilevato un permesso granulare aggiuntivo nei tre handler GET/POST migrati.
++- API key senza sessione non sblocca i dati mandato.
++
++## Preservazioni legacy
++
++- POST `/preventivi/nuovo` preservato sul legacy.
++- POST `/preventivi/conferimento/nuovo` preservato sul legacy.
++- POST `/preventivi` non intercettato dal gate React.
++- Wizard compensi lasciato legacy.
++- Compensi forensi lasciato legacy.
++- Tariffario lasciato legacy.
++- PDF/DOCX lasciati legacy.
++- Conversione parcella lasciata legacy.
++- Apertura fascicolo da incarico lasciata legacy.
++
++## Controlli
++
++- Anti-segreti: OK (`artifacts/react-migration/tranche-7a-secrets.md`).
++- Anti-calcolo compensi frontend: OK (`artifacts/react-migration/tranche-7a-no-compensi-logic.md`).
++- Anti-generazione documenti: OK (`artifacts/react-migration/tranche-7a-no-document-generation.md`).
++- `check-ui-consistency`: OK (`artifacts/react-migration/ui-consistency.md`).
++- `check-route-gate`: OK (`artifacts/react-migration/route-gate.md`).
++- `check-tranche-7a-gate`: OK (`artifacts/react-migration/tranche-7a-gate.md`).
++
++## Test eseguiti
++
++- `node scripts/react-migration/run-safe-react-migration.mjs --tranche=7a` con `ALLOW_DIRTY=1`: OK. Il working tree era gia sporco prima della tranche.
++- `cd frontend && npm run test`: OK.
++- `cd frontend && npm run typecheck`: OK.
++- `cd frontend && npm run build`: OK.
++- `node scripts/react-migration/check-ui-consistency.mjs`: OK.
++- `node scripts/react-migration/check-tranche-7a-secrets.mjs`: OK.
++- `node scripts/react-migration/check-tranche-7a-no-compensi-logic.mjs`: OK.
++- `node scripts/react-migration/check-tranche-7a-no-document-generation.mjs`: OK.
++- `python scripts/react-migration/check-tranche-7a-gate.py`: OK.
++
++## Limiti dei test Flask
++
++- Il test harness ha verificato il gate con sessione autenticata sintetica.
++- La cattura dei contratti legacy non autentica l'utente e quindi registra redirect/login quando il legacy lo richiede.
++- Non sono stati inventati bypass di autenticazione.
++
++## Rischi residui
++
++- Il working tree conteneva modifiche non correlate prima della tranche; non sono state revertite.
++- La build React aggiorna gli asset hashati in `web/static/react/assets`.
++- `rg.exe` non era eseguibile nell'ambiente locale per `Accesso negato`; l'analisi route e stata completata con `Select-String`.
++
++## Patch generate
++
++- `artifacts/react-migration/patches/tranche-7a.backend.patch`
++- `artifacts/react-migration/patches/tranche-7a.frontend.patch`
++- `artifacts/react-migration/patches/tranche-7a.gate.patch`
++- `artifacts/react-migration/patches/tranche-7a.tests.patch`
++- `artifacts/react-migration/patches/tranche-7a.reports.patch`
++
++## Rollback
++
++```bash
++git apply -R artifacts/react-migration/patches/tranche-7a.backend.patch
++git apply -R artifacts/react-migration/patches/tranche-7a.frontend.patch
++git apply -R artifacts/react-migration/patches/tranche-7a.gate.patch
++git apply -R artifacts/react-migration/patches/tranche-7a.tests.patch
++```
+
+diff --git a/artifacts/react-migration/tranche-7a-route-map.md b/artifacts/react-migration/tranche-7a-route-map.md
+new file mode 100644
+index 00000000..009fedcb
+--- /dev/null
++++ b/artifacts/react-migration/tranche-7a-route-map.md
+@@ -0,0 +1,127 @@
++# Tranche 7A - Route map preventivi e incarichi
++
++Data: 2026-05-06
++
++Nota preflight: `rg.exe` non e' eseguibile nell'ambiente locale per errore `Accesso negato`; la ricerca richiesta e' stata eseguita con `Select-String` su `web`, `pct` e `tests`.
++
++## Superficie
++
++- Tipo superficie: archivio economico/mandato, app UI operativa.
++- Target React 7A: `/preventivi`, `/preventivi/nuovo`, `/preventivi/conferimento/nuovo`.
++- Skill/direzione UI: prodotto gestionale per studio legale, densita operativa, dati reali, nessun template SaaS generico, nessun dato demo.
++- Fonte primaria: route legacy Flask e repository reali; React resta un layer GET/read-only e form HTML standard verso POST legacy.
++
++## /preventivi
++
++- Handler legacy: `web/blueprints/preventivi.py`
++- Funzione: `lista`
++- Decorator: `@preventivi.route("/", methods=["GET"])`, `@_richiedi_login`
++- Template: `web/templates/preventivi/lista.html`
++- Manager/repository: `_get_gp()` / `web.helpers.get_preventivi`, `get_clienti()`
++- Permessi: login richiesto; nessun permesso granulare aggiuntivo rilevato nel handler.
++- Form presenti: filtro archivio, `method="get"`.
++- POST presenti: no.
++- Action form: query corrente.
++- CSRF: non richiesto per GET.
++- Download/export: non nella lista; link a dettagli e wizard.
++- Documenti: non generati nella lista.
++- Calcoli compensi: no, ma il legacy chiama `gp.aggiorna_scaduti()` e aggiorna stati scaduti.
++- Wizard: link a `/preventivi/wizard`.
++- Generazione fascicolo/parcella: no.
++- Dati sensibili: cliente, fascicolo, importi e stati; nessun dato bancario o credenziale.
++- Decisione: sbloccabile come archivio/lista React read-only. Il bridge non deve chiamare `aggiorna_scaduti()` per non modificare stati.
++
++## /preventivi/nuovo
++
++- Handler legacy: `web/blueprints/preventivi.py`
++- Funzione: `nuovo_preventivo`
++- Decorator: `@preventivi.route("/nuovo", methods=["GET", "POST"])`, `@preventivi.route("/nuovo/<id_cliente>", methods=["GET", "POST"])`, `@_richiedi_login`
++- Template GET: `web/templates/preventivi/form_preventivo.html`
++- Manager/repository: `get_clienti()`, `_get_gp()`, `get_fascicoli()`, `gp.crea_preventivo(...)`
++- Permessi: login richiesto; nessun permesso granulare aggiuntivo rilevato nel handler.
++- Form presenti: `id="formPreventivo"`, `method="post"`, senza action esplicita.
++- POST presenti: si, legacy.
++- Action form: route corrente; per React usare `/preventivi/nuovo`.
++- CSRF: nessun campo CSRF esplicito rilevato nel template; `LegacyPostForm` aggiunge il token meta se disponibile.
++- Campi POST principali: `id_cliente`, `oggetto`, `voce_descr[]`, `voce_importo[]`, `voce_tipo[]`, `valore_controversia`, `tipo_compenso`, `tariffa_oraria`, `ore_stimate`, `fasi_incluse[]`, `applica_cassa`, `applica_iva`, `anticipazioni_art15`, `note`, `id_fascicolo`, `data_emissione`, `data_scadenza`, `complessita`, campi compenso a tempo e clausole.
++- Download/export: no nel GET form.
++- Documenti: no nel GET form.
++- Calcoli compensi: il POST delega al backend; il template contiene JavaScript di supporto non canonico.
++- Wizard: link a `/preventivi/wizard`.
++- Generazione fascicolo/parcella: no nel POST di nuovo preventivo.
++- Dati sensibili: importi e riferimenti pratica; nessun segreto.
++- Decisione: sbloccabile solo come GET React con form HTML standard verso POST legacy. Nessun fetch POST, nessun calcolo React.
++
++## /preventivi/conferimento/nuovo
++
++- Handler legacy: `web/blueprints/preventivi.py`
++- Funzione: `nuovo_conferimento`
++- Decorator: `@preventivi.route("/conferimento/nuovo", methods=["GET", "POST"])`, `@preventivi.route("/conferimento/nuovo/<id_cliente>", methods=["GET", "POST"])`, `@_richiedi_login`
++- Template GET: `web/templates/preventivi/form_conferimento.html`
++- Manager/repository: `get_clienti()`, `_get_gp()`, `get_fascicoli()`, `gp.crea_conferimento(...)`
++- Permessi: login richiesto; nessun permesso granulare aggiuntivo rilevato nel handler.
++- Form presenti: `id="formConferimento"`, `method="post"`, senza action esplicita.
++- POST presenti: si, legacy.
++- Action form: route corrente; per React usare `/preventivi/conferimento/nuovo`.
++- CSRF: nessun campo CSRF esplicito rilevato nel template; `LegacyPostForm` aggiunge il token meta se disponibile.
++- Campi POST principali: `id_cliente`, `oggetto`, `avvocato_referente`, `compenso_pattuito`, `tariffa_oraria`, `quota_palmario_pct`, `id_preventivo`, `id_fascicolo`, `apri_fascicolo_guidato`, tipo pratica, compenso a tempo e clausole.
++- Download/export: no nel GET form.
++- Documenti: no nel GET form.
++- Calcoli compensi: no in React; eventuali importi sono letti o inviati al POST legacy.
++- Wizard: no, ma puo derivare da preventivo generato da wizard legacy.
++- Generazione fascicolo/parcella: il POST puo aprire flusso guidato fascicolo; resta legacy.
++- Dati sensibili: incarico, cliente, fascicolo e importi; nessun segreto.
++- Decisione: sbloccabile solo come GET React con form HTML standard verso POST legacy.
++
++## /preventivi/wizard
++
++- Handler legacy: `web/blueprints/preventivi.py`
++- Funzioni: `wizard`, `wizard_calcola`, `wizard_genera`
++- Template: `web/templates/preventivi/wizard.html`
++- Manager/repository: `pct.motore_preventivo`, `pct.tariffario`, `get_clienti()`, `get_fascicoli()`, `get_preventivi()`
++- Permessi: login richiesto.
++- Form presenti: `method="post" action="{{ url_for('preventivi.wizard_genera') }}"`.
++- POST presenti: si, `/preventivi/wizard/genera`.
++- Download/export: no diretto; genera oggetti che possono produrre documenti su dettagli legacy.
++- Calcoli compensi: si, via `/preventivi/wizard/calcola` e motore backend.
++- Wizard: si, completo.
++- Generazione fascicolo/parcella: generazione preventivo/conferimento e apertura fascicolo guidata.
++- Dati sensibili: dati pratica, cliente, importi e log economico.
++- Decisione: resta legacy operational.
++
++## /preventivi/p/* e /preventivi/conferimento/*
++
++- Handler legacy: `web/blueprints/preventivi.py`
++- Funzioni principali: `dettaglio_preventivo`, `cambia_stato_preventivo`, `workflow_invia_cliente`, `workflow_accetta_studio`, `elimina_preventivo`, `pdf_preventivo`, `dettaglio_conferimento`, `cambia_stato_conferimento`, `workflow_firma_conferimento_studio`, `elimina_conferimento`, `pdf_conferimento`
++- Template: `preventivi/dettaglio_preventivo.html`, `preventivi/dettaglio_conferimento.html`
++- POST presenti: stati, workflow, eliminazione.
++- Action POST: route legacy specifiche.
++- CSRF: non rilevato nei template dettaglio; resta competenza legacy.
++- Download/export: si.
++- Documenti: stampe e documenti prodotti da route legacy.
++- Calcoli compensi: log e tracciabilita presenti nel dettaglio.
++- Generazione fascicolo/parcella: collegamenti e conversioni presenti.
++- Decisione: resta legacy operational; React 7A puo solo linkare i dettagli con `?_legacy=1`.
++
++## /compensi-forensi
++
++- Handler legacy: `web/blueprints/terminology_aliases.py`
++- Funzione: `compensi_forensi`
++- Comportamento: redirect a `/tariffario`.
++- Permessi: eredita il flusso legacy target.
++- Decisione: resta legacy operational; nessun bridge React operativo.
++
++## /tariffario
++
++- Handler legacy: `web/bootstrap/tariffario_routes.py`
++- Funzione: `tariffario`
++- Decorator: `@app.route("/tariffario", methods=["GET", "POST"])`
++- Template: `web/templates/tariffario.html`
++- Manager/repository: `pct.tariffario`, `pct.tariffario_catalogo`, `web.services.tariffario_runtime`, tabelle normative.
++- Permessi: route legacy non intercettata da React; accesso come da app storica.
++- Form presenti: form POST calcolo.
++- POST presenti: si.
++- Download/export: non target 7A.
++- Documenti: puo preparare link verso wizard/precompilazioni, non sostituito.
++- Calcoli compensi: si, motore completo.
++- Decisione: resta legacy operational.
+
+diff --git a/artifacts/react-migration/tranche-7a-secrets.md b/artifacts/react-migration/tranche-7a-secrets.md
+new file mode 100644
+index 00000000..1e31dfb0
+--- /dev/null
++++ b/artifacts/react-migration/tranche-7a-secrets.md
+@@ -0,0 +1,5 @@
++# Tranche 7A anti-segreti
++
++File scansionati: 3
++Violazioni: 0
++

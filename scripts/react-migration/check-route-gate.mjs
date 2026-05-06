@@ -67,7 +67,12 @@ function isBlockedBySpecialRule(path) {
     path === '/impostazioni-studio' ||
     path.startsWith('/impostazioni-studio/') ||
     path === '/sincronizzazione-calendari' ||
-    path.startsWith('/sincronizzazione-calendari/')
+    path.startsWith('/sincronizzazione-calendari/') ||
+    (path.startsWith('/preventivi/') && path !== '/preventivi/nuovo' && path !== '/preventivi/conferimento/nuovo') ||
+    path === '/compensi-forensi' ||
+    path.startsWith('/compensi-forensi/') ||
+    path === '/tariffario' ||
+    path.startsWith('/tariffario/')
   )
 }
 
@@ -81,7 +86,7 @@ const reactExact = new Set(extractSet(gate, '_REACT_EXACT').map(normaliseRoute))
 const legacyOperationalPrefixes = extractTuple(gate, '_LEGACY_OPERATIONAL_PREFIXES')
 const excludedPrefixes = extractTuple(gate, '_EXCLUDED_PREFIXES')
 const shellLegacyFirstPrefixes = extractTuple(reactShell, '_LEGACY_FIRST_PREFIXES')
-const allowedReactUnlocks = new Set(['/statistiche', '/audit', '/registro-attivita', '/utenti', '/profili', '/backup', '/sito-studio', '/sito-studio/contatti', '/studio', '/amministrazione', '/fatturazione', '/fatturazione/nuova', '/incassi-pagamenti'])
+const allowedReactUnlocks = new Set(['/statistiche', '/audit', '/registro-attivita', '/utenti', '/profili', '/backup', '/sito-studio', '/sito-studio/contatti', '/studio', '/amministrazione', '/fatturazione', '/fatturazione/nuova', '/incassi-pagamenti', '/preventivi', '/preventivi/nuovo', '/preventivi/conferimento/nuovo'])
 
 const violations = []
 for (const entry of manifest.routes ?? []) {
@@ -180,10 +185,22 @@ for (const route of ['/fatturazione', '/fatturazione/nuova', '/incassi-pagamenti
   }
 }
 
-for (const route of ['/fatturazione/*', '/impostazioni/pagamenti', '/preventivi', '/compensi-forensi', '/tariffario']) {
+for (const route of ['/preventivi', '/preventivi/nuovo', '/preventivi/conferimento/nuovo']) {
+  const entry = (manifest.routes ?? []).find((item) => normaliseRoute(item.route) === route)
+  if (!entry || entry.status !== 'react_full' || entry.unlockFromGate !== true) {
+    violations.push(`${route}: deve essere react_full con unlockFromGate=true nella Tranche 7A`)
+  }
+  const stillBlocked = legacyOperationalPrefixes.some((prefix) => isPrefixMatch(route, prefix))
+  const stillShellBlocked = isBlockedBySpecialRule(route) || shellLegacyFirstPrefixes.some((prefix) => isPrefixMatch(route, prefix))
+  if (stillBlocked || stillShellBlocked) {
+    violations.push(`${route}: non deve restare bloccata da gate o shell legacy`)
+  }
+}
+
+for (const route of ['/fatturazione/*', '/impostazioni/pagamenti', '/preventivi/*', '/preventivi/wizard', '/compensi-forensi', '/tariffario']) {
   const entry = (manifest.routes ?? []).find((item) => item.route === route)
   if (!entry || entry.status !== 'legacy_operational' || entry.unlockFromGate !== false) {
-    violations.push(`${route}: deve restare legacy_operational con unlockFromGate=false nella Tranche 6A`)
+    violations.push(`${route}: deve restare legacy_operational con unlockFromGate=false nella Tranche 7A`)
   }
 }
 
@@ -198,6 +215,11 @@ for (const snippet of [
   'lower == "/impostazioni" or lower.startswith("/impostazioni/")',
   'lower == "/impostazioni-studio" or lower.startswith("/impostazioni-studio/")',
   'lower == "/sincronizzazione-calendari" or lower.startswith("/sincronizzazione-calendari/")',
+  'lower.startswith("/preventivi/") and lower not in {',
+  '"/preventivi/nuovo",',
+  '"/preventivi/conferimento/nuovo",',
+  'lower == "/compensi-forensi" or lower.startswith("/compensi-forensi/")',
+  'lower == "/tariffario" or lower.startswith("/tariffario/")',
 ]) {
   if (!gate.includes(snippet)) {
     violations.push(`react_route_gate.py: manca protezione ${snippet}`)
@@ -213,7 +235,7 @@ const report = [
   `Route nel manifest: ${(manifest.routes ?? []).length}`,
   `Route con unlockFromGate=true: ${unlocked.length}`,
   `Route governate consentite: ${[...allowedReactUnlocks].join(', ')}`,
-  'Tranche 6A: promozione economica exact senza sottopercorsi sensibili.',
+  'Tranche 7A: promozione mandato exact e form GET, sottopercorsi sensibili legacy.',
   `Violazioni: ${violations.length}`,
   '',
   ...violations.map((item) => `- ${item}`),
@@ -226,4 +248,4 @@ if (violations.length) {
   process.exit(1)
 }
 
-console.log('Route gate OK: Tranche 6A coerente.')
+console.log('Route gate OK: Tranche 7A coerente.')

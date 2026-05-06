@@ -1,5 +1,35 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-06 - Tranche 7A mandato sicuro
+
+La sesta promozione governata abilita il blocco mandato exact in React senza
+spostare calcoli, wizard, documenti o cambi di stato fuori dalle route Flask
+legacy:
+
+- `/preventivi` usa `web/services/react_preventivi_bridge.py` e
+  `GET /api/v1/ui/preventivi` per KPI reali, archivio preventivi/conferimenti,
+  stati, cliente, fascicolo, importi gia' presenti nel modello e link legacy
+  sicuri.
+- `/preventivi/nuovo` usa lo stesso bridge e
+  `GET /api/v1/ui/preventivi/nuovo`, ma il submit resta un form HTML
+  `method="post"` verso la route legacy auditata; il motore economico resta nel
+  backend storico.
+- `/preventivi/conferimento/nuovo` usa
+  `GET /api/v1/ui/preventivi/conferimento/nuovo`, con form React verso il POST
+  legacy; firme, stati, produzione documenti e apertura fascicolo restano nel
+  workflow Flask.
+- `/preventivi/wizard`, `/preventivi/*`, `/compensi-forensi` e `/tariffario`
+  restano legacy con protezioni esplicite nel gate e nella shell.
+- `scripts/react-migration/check-tranche-7a-secrets.mjs`,
+  `scripts/react-migration/check-tranche-7a-no-compensi-logic.mjs` e
+  `scripts/react-migration/check-tranche-7a-no-document-generation.mjs`
+  bloccano serializzazione di campi riservati, logica compensi frontend e
+  produzione documentale nella nuova superficie.
+- `run-safe-react-migration.mjs --tranche=7a` cattura i contratti legacy,
+  rilancia gate/UI/anti-segreti/anti-calcolo/anti-documenti, verifica shell e
+  bypass legacy con Flask `test_client`, esegue test/typecheck/build frontend e
+  genera patch separate di rollback.
+
 ## Stato tranche 2026-05-06 - Tranche 6A economico sicuro
 
 La quinta promozione governata abilita il primo blocco economico exact in React

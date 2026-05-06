@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.198.94 - 2026-05-06
+
+- Promosse in React full le route mandato exact `/preventivi`, `/preventivi/nuovo` e `/preventivi/conferimento/nuovo`, con bridge backend read-only, endpoint UI GET, KPI reali, archivio preventivi/conferimenti e form HTML verso POST Flask legacy.
+- Mantenuti legacy wizard compensi, dettagli, stati, workflow, PDF/DOCX, conversione parcella, apertura fascicolo, `/preventivi/*`, `/compensi-forensi` e `/tariffario`, senza fetch POST o logica compensi nel frontend.
+- Aggiunti check Tranche 7A per gate Flask, anti-segreti mandato, anti-calcolo compensi frontend, anti-generazione documenti, contratti React, runner sicuro e patch rollback separate.
+
+## 2.198.93 - 2026-05-06
+
+- Installata la skill Codex locale Impeccable in `.agents/skills/impeccable` con contesto prodotto `PRODUCT.md` per audit UI/UX governato.
+- Aggiunto `docs/open-design-brief.md` e applicato un polish React mirato su token, primitive condivise, stati interattivi e anti-pattern visuali.
+- Rimossi side-stripe spesse e fallback `href="#"` dalle superfici React toccate, mantenendo stack Vite/React/Tailwind e dati reali.
+
 ## 2.198.92 - 2026-05-06
 
 - Promosse in React full le route economiche exact `/fatturazione`, `/fatturazione/nuova` e `/incassi-pagamenti`, con bridge backend read-only, endpoint UI GET e form React che invia al POST Flask legacy per la nuova parcella.

@@ -1,0 +1,14 @@
+{
+  "route": "/preventivi/conferimento/nuovo",
+  "legacyUrl": "/preventivi/conferimento/nuovo?_legacy=1",
+  "status": 302,
+  "redirectLocation": "/login?next=/preventivi/conferimento/nuovo?_legacy%3D1",
+  "forms": [],
+  "links": [
+    "/login?next=/preventivi/conferimento/nuovo?_legacy%3D1"
+  ],
+  "linksCount": 1,
+  "downloads": [],
+  "hasBootstrapClass": false,
+  "hasReactRoot": false
+}

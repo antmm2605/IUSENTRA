@@ -180,7 +180,6 @@ _LEGACY_OPERATIONAL_PREFIXES = (
     "/pdp",
     "/polisweb",
     "/portali",
-    "/preventivi",
     "/redazione-atti",
     "/ricerca-legale",
     "/servizi-telematici",
@@ -241,15 +240,14 @@ def _excluded(path: str) -> bool:
         return True
     if any(lower == prefix or lower.startswith(f"{prefix}/") for prefix in _LEGACY_OPERATIONAL_PREFIXES):
         return True
-    # I preventivi hanno un wizard completo con tassonomia, sottobranche,
-    # fonti, calcolo D.M. 55 e generazione tramite POST auditati. La shell
-    # React riassuntiva non puo' sostituirlo finche' non replica l'intero
-    # flusso operativo end-to-end.
-    if lower == "/preventivi" or lower.startswith("/preventivi/"):
+    if lower.startswith("/preventivi/") and lower not in {
+        "/preventivi/nuovo",
+        "/preventivi/conferimento/nuovo",
+    }:
         return True
-    # Il tariffario/compensi forensi contiene il motore di calcolo completo:
-    # non deve essere mascherato da una card React non equivalente.
-    if lower in {"/tariffario", "/compensi-forensi"}:
+    if lower == "/compensi-forensi" or lower.startswith("/compensi-forensi/"):
+        return True
+    if lower == "/tariffario" or lower.startswith("/tariffario/"):
         return True
     if lower.startswith("/privacy/registro/") and lower != "/privacy/registro/nuovo":
         return True

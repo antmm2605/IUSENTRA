@@ -93,6 +93,10 @@ from web.services.react_fatturazione_bridge import (
     build_react_fatturazione_error_payload,
     build_react_fatturazione_payload,
 )
+from web.services.react_preventivi_bridge import (
+    build_react_preventivi_error_payload,
+    build_react_preventivi_payload,
+)
 from web.services.react_incassi_pagamenti_bridge import (
     build_react_incassi_pagamenti_error_payload,
     build_react_incassi_pagamenti_payload,
@@ -2539,6 +2543,47 @@ def incassi_pagamenti_page():
                 "Incassi e pagamenti non disponibili dal runtime corrente."
             )
         ), 200
+
+
+def _preventivi_ui_payload(route: str):
+    utente = g.get("utente_corrente")
+    if not utente:
+        return jsonify(build_react_preventivi_error_payload("Sessione utente richiesta.")), 403
+    try:
+        return jsonify(
+            build_react_preventivi_payload(
+                get_preventivi=get_preventivi,
+                get_clienti=get_clienti,
+                get_fascicoli=get_fascicoli,
+                query=dict(request.args),
+                route=route,
+            )
+        )
+    except Exception as exc:
+        current_app.logger.exception("Errore Preventivi React bridge: %s", exc)
+        return jsonify(
+            build_react_preventivi_error_payload(
+                "Preventivi e conferimenti non disponibili dal runtime corrente."
+            )
+        ), 200
+
+
+@api_v1_react.get("/preventivi")
+@_richiedi_auth
+def preventivi_page():
+    return _preventivi_ui_payload("/preventivi")
+
+
+@api_v1_react.get("/preventivi/nuovo")
+@_richiedi_auth
+def preventivi_nuovo_page():
+    return _preventivi_ui_payload("/preventivi/nuovo")
+
+
+@api_v1_react.get("/preventivi/conferimento/nuovo")
+@_richiedi_auth
+def preventivi_conferimento_nuovo_page():
+    return _preventivi_ui_payload("/preventivi/conferimento/nuovo")
 
 
 @api_v1_react.get("/agenda")

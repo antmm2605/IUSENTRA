@@ -1,0 +1,163 @@
+diff --git a/tools/react-migration/route-manifest.json b/tools/react-migration/route-manifest.json
+index 7207d983..5bb070b1 100644
+--- a/tools/react-migration/route-manifest.json
++++ b/tools/react-migration/route-manifest.json
+@@ -376,19 +376,91 @@
+     {
+       "route": "/preventivi",
+       "family": "mandato",
+-      "status": "legacy_operational",
++      "status": "react_full",
+       "risk": "high",
+       "targetComponent": "frontend/src/components/PreventiviPage.tsx",
+       "targetData": "frontend/src/preventiviData.ts",
+       "targetBridge": "web/services/react_preventivi_bridge.py",
+       "legacyContract": "artifacts/react-migration/legacy-contracts/preventivi.json",
++      "unlockFromGate": true,
++      "mustPreserve": [
++        "archivio preventivi reale",
++        "KPI backend",
++        "stati preventivo e conferimento",
++        "cliente e fascicolo collegati",
++        "nessuna scrittura diretta"
++      ]
++    },
++    {
++      "route": "/preventivi/nuovo",
++      "family": "mandato",
++      "status": "react_full",
++      "risk": "high",
++      "targetComponent": "frontend/src/components/PreventiviPage.tsx",
++      "targetData": "frontend/src/preventiviData.ts",
++      "targetBridge": "web/services/react_preventivi_bridge.py",
++      "legacyContract": "artifacts/react-migration/legacy-contracts/preventivi__nuovo.json",
++      "unlockFromGate": true,
++      "mustPreserve": [
++        "POST legacy auditato",
++        "calcolo backend",
++        "CSRF e sessione Flask",
++        "nessun calcolo DM55 React",
++        "nessuna generazione documento React"
++      ]
++    },
++    {
++      "route": "/preventivi/conferimento/nuovo",
++      "family": "mandato",
++      "status": "react_full",
++      "risk": "high",
++      "targetComponent": "frontend/src/components/PreventiviPage.tsx",
++      "targetData": "frontend/src/preventiviData.ts",
++      "targetBridge": "web/services/react_preventivi_bridge.py",
++      "legacyContract": "artifacts/react-migration/legacy-contracts/preventivi__conferimento__nuovo.json",
++      "unlockFromGate": true,
++      "mustPreserve": [
++        "POST legacy auditato",
++        "dati incarico reali",
++        "CSRF e sessione Flask",
++        "nessuna generazione incarico React",
++        "nessuna apertura fascicolo React"
++      ]
++    },
++    {
++      "route": "/preventivi/*",
++      "family": "mandato",
++      "status": "legacy_operational",
++      "risk": "high",
++      "targetComponent": "frontend/src/components/PreventiviPage.tsx",
++      "targetData": "frontend/src/preventiviData.ts",
++      "targetBridge": "web/services/react_preventivi_bridge.py",
++      "legacyContract": "artifacts/react-migration/legacy-contracts/preventivi__detail.json",
++      "unlockFromGate": false,
++      "mustPreserve": [
++        "dettaglio preventivo",
++        "modifica",
++        "PDF/DOCX",
++        "conversione",
++        "download/export legacy"
++      ]
++    },
++    {
++      "route": "/preventivi/wizard",
++      "family": "mandato",
++      "status": "legacy_operational",
++      "risk": "high",
++      "targetComponent": "frontend/src/components/PreventiviPage.tsx",
++      "targetData": "frontend/src/preventiviData.ts",
++      "targetBridge": "web/services/react_preventivi_bridge.py",
++      "legacyContract": "artifacts/react-migration/legacy-contracts/preventivi__wizard.json",
+       "unlockFromGate": false,
+       "mustPreserve": [
+-        "preventivo",
+-        "conferimento incarico",
+         "wizard compensi",
++        "parametri DM55",
+         "calcolo backend",
+-        "POST auditati"
++        "generazione preventivo",
++        "audit calcolo"
+       ]
+     },
+     {
+diff --git a/web/blueprints/react_shell.py b/web/blueprints/react_shell.py
+index 6c61c8d9..5984f5e4 100644
+--- a/web/blueprints/react_shell.py
++++ b/web/blueprints/react_shell.py
+@@ -34,7 +34,6 @@ _LEGACY_FIRST_PREFIXES = (
+     "/pdp",
+     "/polisweb",
+     "/portali",
+-    "/preventivi",
+     "/redazione-atti",
+     "/ricerca-legale",
+     "/servizi-telematici",
+@@ -174,6 +173,15 @@ def _deve_mantenere_vista_classica() -> bool:
+         return True
+     if lower == "/sincronizzazione-calendari" or lower.startswith("/sincronizzazione-calendari/"):
+         return True
++    if lower.startswith("/preventivi/") and lower not in {
++        "/preventivi/nuovo",
++        "/preventivi/conferimento/nuovo",
++    }:
++        return True
++    if lower == "/compensi-forensi" or lower.startswith("/compensi-forensi/"):
++        return True
++    if lower == "/tariffario" or lower.startswith("/tariffario/"):
++        return True
+     return any(lower == prefix or lower.startswith(f"{prefix}/") for prefix in _LEGACY_FIRST_PREFIXES)
+
+
+diff --git a/web/bootstrap/react_route_gate.py b/web/bootstrap/react_route_gate.py
+index 274eeb5c..a1fefccb 100644
+--- a/web/bootstrap/react_route_gate.py
++++ b/web/bootstrap/react_route_gate.py
+@@ -180,7 +180,6 @@ _LEGACY_OPERATIONAL_PREFIXES = (
+     "/pdp",
+     "/polisweb",
+     "/portali",
+-    "/preventivi",
+     "/redazione-atti",
+     "/ricerca-legale",
+     "/servizi-telematici",
+@@ -241,15 +240,14 @@ def _excluded(path: str) -> bool:
+         return True
+     if any(lower == prefix or lower.startswith(f"{prefix}/") for prefix in _LEGACY_OPERATIONAL_PREFIXES):
+         return True
+-    # I preventivi hanno un wizard completo con tassonomia, sottobranche,
+-    # fonti, calcolo D.M. 55 e generazione tramite POST auditati. La shell
+-    # React riassuntiva non puo' sostituirlo finche' non replica l'intero
+-    # flusso operativo end-to-end.
+-    if lower == "/preventivi" or lower.startswith("/preventivi/"):
++    if lower.startswith("/preventivi/") and lower not in {
++        "/preventivi/nuovo",
++        "/preventivi/conferimento/nuovo",
++    }:
++        return True
++    if lower == "/compensi-forensi" or lower.startswith("/compensi-forensi/"):
+         return True
+-    # Il tariffario/compensi forensi contiene il motore di calcolo completo:
+-    # non deve essere mascherato da una card React non equivalente.
+-    if lower in {"/tariffario", "/compensi-forensi"}:
++    if lower == "/tariffario" or lower.startswith("/tariffario/"):
+         return True
+     if lower.startswith("/privacy/registro/") and lower != "/privacy/registro/nuovo":
+         return True

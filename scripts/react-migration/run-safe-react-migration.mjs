@@ -9,6 +9,7 @@ const TRANCHE_3A_FLAG = '--tranche=3a'
 const TRANCHE_4A_FLAG = '--tranche=4a'
 const TRANCHE_5A_FLAG = '--tranche=5a'
 const TRANCHE_6A_FLAG = '--tranche=6a'
+const TRANCHE_7A_FLAG = '--tranche=7a'
 const tranche = args.find((arg) => arg.startsWith('--tranche='))?.split('=')[1] || ''
 const EXEC_BUFFER = 1024 * 1024 * 200
 
@@ -75,6 +76,15 @@ const tranche6aContracts = [
   '/incassi-pagamenti',
   '/impostazioni/pagamenti',
   '/preventivi',
+  '/compensi-forensi',
+  '/tariffario',
+]
+
+const tranche7aContracts = [
+  '/preventivi',
+  '/preventivi/nuovo',
+  '/preventivi/conferimento/nuovo',
+  '/preventivi/wizard',
   '/compensi-forensi',
   '/tariffario',
 ]
@@ -359,6 +369,62 @@ const tranche6aPatchGroups = {
   ],
 }
 
+const tranche7aPatchGroups = {
+  backend: [
+    'web/services/react_preventivi_bridge.py',
+    'web/blueprints/api_v1_react.py',
+  ],
+  frontend: [
+    'frontend/package.json',
+    'frontend/package-lock.json',
+    'frontend/src/preventiviData.ts',
+    'frontend/src/components/PreventiviPage.tsx',
+    'frontend/src/components/PreventiviPage.css',
+    'frontend/src/App.tsx',
+    'web/static/react',
+  ],
+  gate: [
+    'web/bootstrap/react_route_gate.py',
+    'web/blueprints/react_shell.py',
+    'tools/react-migration/route-manifest.json',
+  ],
+  tests: [
+    'frontend/scripts/check-react-contracts.mjs',
+    'scripts/react-migration/check-route-gate.mjs',
+    'scripts/react-migration/check-tranche-7a-gate.py',
+    'scripts/react-migration/check-tranche-7a-secrets.mjs',
+    'scripts/react-migration/check-tranche-7a-no-compensi-logic.mjs',
+    'scripts/react-migration/check-tranche-7a-no-document-generation.mjs',
+    'scripts/react-migration/run-safe-react-migration.mjs',
+  ],
+  reports: [
+    'CHANGELOG.md',
+    'Dockerfile',
+    'README.md',
+    'docs/REACT_MIGRATION_MASTER_PLAN.md',
+    'pct/__init__.py',
+    'railway.toml',
+    'setup.py',
+    'artifacts/react-migration/audit.md',
+    'artifacts/react-migration/route-inventory.json',
+    'artifacts/react-migration/route-gate.md',
+    'artifacts/react-migration/ui-consistency.md',
+    'artifacts/react-migration/tranche-7a-route-map.md',
+    'artifacts/react-migration/tranche-7a-gate.md',
+    'artifacts/react-migration/tranche-7a-secrets.md',
+    'artifacts/react-migration/tranche-7a-no-compensi-logic.md',
+    'artifacts/react-migration/tranche-7a-no-document-generation.md',
+    'artifacts/react-migration/tranche-7a-report.md',
+    'artifacts/react-migration/legacy-contracts/preventivi.json',
+    'artifacts/react-migration/legacy-contracts/preventivi__nuovo.json',
+    'artifacts/react-migration/legacy-contracts/preventivi__conferimento__nuovo.json',
+    'artifacts/react-migration/legacy-contracts/preventivi__wizard.json',
+    'artifacts/react-migration/legacy-contracts/preventivi__detail.json',
+    'artifacts/react-migration/legacy-contracts/compensi-forensi.json',
+    'artifacts/react-migration/legacy-contracts/tariffario.json',
+  ],
+}
+
 function run(cmd, options = {}) {
   console.log(`\n> ${cmd}`)
   execSync(cmd, { stdio: 'inherit', ...options })
@@ -455,6 +521,12 @@ function writeTranche5aPatches() {
 function writeTranche6aPatches() {
   for (const [name, paths] of Object.entries(tranche6aPatchGroups)) {
     writePatch('6a', name, paths)
+  }
+}
+
+function writeTranche7aPatches() {
+  for (const [name, paths] of Object.entries(tranche7aPatchGroups)) {
+    writePatch('7a', name, paths)
   }
 }
 
@@ -563,6 +635,27 @@ function runTranche6a() {
   run('git status --short')
 }
 
+function runTranche7a() {
+  cleanRequired()
+  run('git status --short')
+  run('node scripts/react-migration/audit-react-migration.mjs')
+  run(`python scripts/react-migration/capture-legacy-contracts.py ${tranche7aContracts.join(' ')}`)
+  run('node scripts/react-migration/check-route-gate.mjs')
+  run('node scripts/react-migration/check-ui-consistency.mjs')
+  run('node scripts/react-migration/check-tranche-7a-secrets.mjs')
+  run('node scripts/react-migration/check-tranche-7a-no-compensi-logic.mjs')
+  run('node scripts/react-migration/check-tranche-7a-no-document-generation.mjs')
+  if (existsSync('scripts/react-migration/check-tranche-7a-gate.py')) {
+    run('python scripts/react-migration/check-tranche-7a-gate.py')
+  }
+  run('cd frontend && npm run test')
+  run('cd frontend && npm run typecheck')
+  run('cd frontend && npm run build')
+  writeTranche7aPatches()
+  run('git diff --stat')
+  run('git status --short')
+}
+
 if (tranche === '2a') {
   runTranche2a()
 } else if (tranche === '3a') {
@@ -573,6 +666,8 @@ if (tranche === '2a') {
   runTranche5a()
 } else if (tranche === '6a') {
   runTranche6a()
+} else if (tranche === '7a') {
+  runTranche7a()
 } else {
   runDefault()
 }

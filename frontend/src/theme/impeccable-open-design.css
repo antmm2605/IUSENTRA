@@ -17,6 +17,11 @@
   --iu-od-muted: var(--iu-muted, oklch(0.47 0.02 255));
   --iu-od-focus: var(--iu-focus, oklch(0.56 0.13 250));
   --iu-od-transition: 160ms ease;
+  --iu-od-doc-gap: var(--iu-od-space-4);
+  --iu-od-doc-card-radius: var(--iu-od-radius-2);
+  --iu-od-doc-section-gap: var(--iu-od-space-5);
+  --iu-od-doc-meta-size: 0.86rem;
+  --iu-od-doc-focus-ring: 0 0 0 3px color-mix(in oklch, var(--iu-od-focus) 32%, transparent);
 }
 
 .iu-od-stack {
@@ -55,4 +60,31 @@
   border: 1px solid var(--iu-od-border);
   border-radius: var(--iu-od-radius-2);
   box-shadow: var(--iu-od-shadow-1);
+}
+
+.iu-od-card {
+  background: var(--iu-od-surface);
+  border: 1px solid var(--iu-od-border);
+  border-radius: var(--iu-od-doc-card-radius);
+  box-shadow: var(--iu-od-shadow-1);
+}
+
+.iu-od-meta {
+  color: var(--iu-od-muted);
+  font-size: var(--iu-od-doc-meta-size);
+  line-height: 1.45;
+}
+
+.iu-od-warning {
+  background: var(--iu-od-surface-soft);
+  border: 1px solid var(--iu-od-border);
+  border-radius: var(--iu-od-doc-card-radius);
+  color: var(--iu-od-text);
+}
+
+.iu-od-action-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--iu-od-space-2);
 }

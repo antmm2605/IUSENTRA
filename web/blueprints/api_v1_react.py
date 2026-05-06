@@ -105,6 +105,14 @@ from web.services.react_preventivi_bridge import (
     build_react_preventivi_error_payload,
     build_react_preventivi_payload,
 )
+from web.services.react_template_atti_bridge import (
+    build_react_template_atti_error_payload,
+    build_react_template_atti_payload,
+)
+from web.services.react_redazione_atti_bridge import (
+    build_react_redazione_atti_error_payload,
+    build_react_redazione_atti_payload,
+)
 from web.services.react_incassi_pagamenti_bridge import (
     build_react_incassi_pagamenti_error_payload,
     build_react_incassi_pagamenti_payload,
@@ -245,6 +253,14 @@ def _backup_loader() -> Callable[[], Any]:
         raise RuntimeError("Runtime backup non disponibile")
 
     return _missing_backup
+
+
+def _template_atti_loader() -> Any:
+    from pct.template_atti import GestioneTemplateAtti
+
+    return GestioneTemplateAtti(
+        db_path=str(current_app.config.get("TEMPLATE_ATTI_DB", "./template_atti/templates.json") or "./template_atti/templates.json")
+    )
 
 
 def _telematico_runtime_func(name: str) -> Callable[..., Any]:
@@ -2594,6 +2610,73 @@ def tariffario_page():
         return jsonify(
             build_react_tariffario_error_payload(
                 "Tariffario non disponibile dal runtime corrente."
+            )
+        ), 200
+
+
+@api_v1_react.get("/template-atti")
+@_richiedi_auth
+def template_atti_page():
+    utente = g.get("utente_corrente")
+    if not utente:
+        return jsonify(build_react_template_atti_error_payload("Sessione utente richiesta.")), 403
+    try:
+        return jsonify(
+            build_react_template_atti_payload(
+                get_template_manager=_template_atti_loader,
+                page="dashboard",
+            )
+        )
+    except Exception as exc:
+        current_app.logger.exception("Errore Template Atti React bridge: %s", exc)
+        return jsonify(
+            build_react_template_atti_error_payload(
+                "Template atti non disponibili dal runtime corrente."
+            )
+        ), 200
+
+
+@api_v1_react.get("/template-atti/catalogo")
+@_richiedi_auth
+def template_atti_catalogo_page():
+    utente = g.get("utente_corrente")
+    if not utente:
+        return jsonify(build_react_template_atti_error_payload("Sessione utente richiesta.")), 403
+    try:
+        return jsonify(
+            build_react_template_atti_payload(
+                get_template_manager=_template_atti_loader,
+                page="catalogo",
+            )
+        )
+    except Exception as exc:
+        current_app.logger.exception("Errore Catalogo Template Atti React bridge: %s", exc)
+        return jsonify(
+            build_react_template_atti_error_payload(
+                "Catalogo template atti non disponibile dal runtime corrente."
+            )
+        ), 200
+
+
+@api_v1_react.get("/redazione-atti")
+@_richiedi_auth
+def redazione_atti_page():
+    utente = g.get("utente_corrente")
+    if not utente:
+        return jsonify(build_react_redazione_atti_error_payload("Sessione utente richiesta.")), 403
+    try:
+        return jsonify(
+            build_react_redazione_atti_payload(
+                get_template_manager=_template_atti_loader,
+                get_fascicoli=get_fascicoli,
+                get_preventivi=get_preventivi,
+            )
+        )
+    except Exception as exc:
+        current_app.logger.exception("Errore Redazione Atti React bridge: %s", exc)
+        return jsonify(
+            build_react_redazione_atti_error_payload(
+                "Redazione atti non disponibile dal runtime corrente."
             )
         ), 200
 

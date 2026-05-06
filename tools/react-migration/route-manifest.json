@@ -538,37 +538,127 @@
     {
       "route": "/template-atti",
       "family": "documenti",
-      "status": "legacy_operational",
+      "status": "react_full",
       "risk": "high",
       "targetComponent": "frontend/src/components/TemplateAttiPage.tsx",
       "targetData": "frontend/src/templateAttiData.ts",
       "targetBridge": "web/services/react_template_atti_bridge.py",
       "legacyContract": "artifacts/react-migration/legacy-contracts/template-atti.json",
-      "unlockFromGate": false,
+      "unlockFromGate": true,
       "mustPreserve": [
-        "catalogo template",
-        "variabili studio e fascicolo",
-        "editor template",
-        "export documento",
+        "dashboard template atti",
+        "metadati template",
+        "variabili solo come metadata",
+        "nessun template raw",
         "compliance deposito"
       ]
     },
     {
+      "route": "/template-atti/catalogo",
+      "family": "documenti",
+      "status": "react_full",
+      "risk": "high",
+      "targetComponent": "frontend/src/components/TemplateAttiPage.tsx",
+      "targetData": "frontend/src/templateAttiData.ts",
+      "targetBridge": "web/services/react_template_atti_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/template-atti__catalogo.json",
+      "unlockFromGate": true,
+      "mustPreserve": [
+        "catalogo template reale",
+        "metadati template",
+        "variabili solo come metadata",
+        "nessun template raw",
+        "editor legacy"
+      ]
+    },
+    {
+      "route": "/template-atti/nuovo",
+      "family": "documenti",
+      "status": "legacy_operational",
+      "risk": "high",
+      "targetComponent": "frontend/src/components/TemplateAttiPage.tsx",
+      "targetData": "frontend/src/templateAttiData.ts",
+      "targetBridge": "web/services/react_template_atti_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/template-atti__nuovo.json",
+      "unlockFromGate": false,
+      "mustPreserve": [
+        "editor template",
+        "POST legacy auditato",
+        "variabili studio e fascicolo",
+        "export documento",
+        "nessun editor React"
+      ]
+    },
+    {
+      "route": "/template-atti/*",
+      "family": "documenti",
+      "status": "legacy_operational",
+      "risk": "high",
+      "targetComponent": "frontend/src/components/TemplateAttiPage.tsx",
+      "targetData": "frontend/src/templateAttiData.ts",
+      "targetBridge": "web/services/react_template_atti_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/template-atti__detail.json",
+      "unlockFromGate": false,
+      "mustPreserve": [
+        "dettaglio template",
+        "editor",
+        "export",
+        "download",
+        "POST legacy"
+      ]
+    },
+    {
       "route": "/redazione-atti",
+      "family": "documenti",
+      "status": "react_full",
+      "risk": "high",
+      "targetComponent": "frontend/src/components/RedazioneAttiPage.tsx",
+      "targetData": "frontend/src/redazioneAttiData.ts",
+      "targetBridge": "web/services/react_redazione_atti_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/redazione-atti.json",
+      "unlockFromGate": true,
+      "mustPreserve": [
+        "superficie operativa controllata",
+        "workflow come metadati",
+        "template suggeriti solo come riferimento",
+        "azioni legacy sicure",
+        "nessuna redazione guidata React"
+      ]
+    },
+    {
+      "route": "/redazione-atti/*",
       "family": "documenti",
       "status": "legacy_operational",
       "risk": "high",
       "targetComponent": "frontend/src/components/RedazioneAttiPage.tsx",
       "targetData": "frontend/src/redazioneAttiData.ts",
       "targetBridge": "web/services/react_redazione_atti_bridge.py",
-      "legacyContract": "artifacts/react-migration/legacy-contracts/redazione-atti.json",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/redazione-atti__detail.json",
       "unlockFromGate": false,
       "mustPreserve": [
         "redazione guidata",
-        "fonti fascicolo",
-        "template reali",
-        "Lex con revisione umana",
-        "nessun testo legale non verificato"
+        "AI controllata",
+        "generazione documento",
+        "download/export",
+        "audit"
+      ]
+    },
+    {
+      "route": "/checklist",
+      "family": "documenti",
+      "status": "legacy_operational",
+      "risk": "high",
+      "targetComponent": "frontend/src/components/ChecklistPage.tsx",
+      "targetData": "frontend/src/checklistData.ts",
+      "targetBridge": "web/services/react_checklist_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/checklist.json",
+      "unlockFromGate": false,
+      "mustPreserve": [
+        "catalogo checklist",
+        "wizard fascicolo",
+        "upload documenti",
+        "POST legacy",
+        "nessun workflow React"
       ]
     },
     {

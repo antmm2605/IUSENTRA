@@ -1,5 +1,32 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-06 - Tranche 9A template e redazione atti
+
+La promozione governata abilita le superfici documentali di ingresso in React
+senza spostare editor, redazione guidata, produzione file o workflow AI fuori
+dalle route Flask legacy:
+
+- `/template-atti` usa `web/services/react_template_atti_bridge.py` e
+  `GET /api/v1/ui/template-atti` per dashboard catalogo, KPI reali,
+  categorie, materie, canali e link sicuri.
+- `/template-atti/catalogo` usa lo stesso bridge e
+  `GET /api/v1/ui/template-atti/catalogo` per consultare il catalogo reale,
+  metadati template, compliance e variabili solo come nomi/metadati.
+- `/redazione-atti` usa `web/services/react_redazione_atti_bridge.py` e
+  `GET /api/v1/ui/redazione-atti` per quadro operativo, workflow disponibili,
+  fonti collegate come metadati e azioni verso template, fascicoli, preventivi
+  e checklist legacy.
+- `/template-atti/nuovo`, `/template-atti/*`, `/redazione-atti/*`,
+  `/checklist`, `/deposito/checklist`, `/giurisprudenza`,
+  `/legal-intelligence` e `/ricerca-legale` restano legacy con protezioni
+  esplicite nel gate e nella shell.
+- Impeccable / Open Design resta interno: token CSS documentali `--iu-od-doc-*`,
+  utility `iu-*`, nessuna dipendenza grafica, nessun CDN e check dedicato.
+- `run-safe-react-migration.mjs --tranche=9a` cattura i contratti legacy,
+  rilancia gate/UI, anti-segreti, anti-contenuto integrale, anti-redazione
+  automatica, anti-produzione file, Open Design, test Flask,
+  test/typecheck/build frontend e patch separate di rollback.
+
 ## Stato tranche 2026-05-06 - Tranche 8A compensi e tariffario sicuri
 
 La settima promozione governata abilita le superfici economiche exact di

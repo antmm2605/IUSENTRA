@@ -1,0 +1,728 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index d6f4f4ad..971f59f3 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -1,5 +1,11 @@
+ # Changelog
+
++## 2.198.96 - 2026-05-06
++
++- Promosse in React full le route documentali di ingresso `/template-atti`, `/template-atti/catalogo` e `/redazione-atti`, con bridge backend read-only, endpoint UI GET, catalogo template reale, metadati, variabili come soli nomi e azioni legacy sicure.
++- Mantenuti legacy `/template-atti/nuovo`, `/template-atti/*`, `/redazione-atti/*`, `/checklist`, `/deposito/checklist`, `/giurisprudenza`, `/legal-intelligence`, editor, redazione guidata, produzione file, export e workflow AI governati.
++- Rafforzati Impeccable / Open Design con token e utility documentali `iu-*`, check anti-segreti, anti-contenuto integrale, anti-redazione automatica, anti-produzione file, gate Flask e patch rollback separate per la Tranche 9A.
++
+ ## 2.198.95 - 2026-05-06
+
+ - Promosse in React full le route exact `/compensi-forensi` e `/tariffario`, con bridge backend read-only, endpoint UI GET, KPI reali quando disponibili, aree tariffarie, form HTML verso POST Flask legacy e link operativi sicuri.
+diff --git a/Dockerfile b/Dockerfile
+index 81c49617..d760d305 100644
+--- a/Dockerfile
++++ b/Dockerfile
+@@ -1,4 +1,4 @@
+-#  version: 2.198.95
++#  version: 2.198.96
+ #  IUSENTRA | Dockerfile produzione
+
+ #  Build multi-stage:
+@@ -75,7 +75,7 @@ RUN mkdir -p /out && /tmp/dart-sass/sass --no-source-map --style=compressed \
+ FROM python:3.12-slim
+
+ LABEL org.opencontainers.image.title="IUSENTRA" \
+-      org.opencontainers.image.version="2.198.95" \
++      org.opencontainers.image.version="2.198.96" \
+       org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
+       org.opencontainers.image.created="2026-03-18"
+
+diff --git a/README.md b/README.md
+index 53291fc8..75015583 100644
+--- a/README.md
++++ b/README.md
+@@ -55,6 +55,7 @@ La repo oggi non è più solo un tool CLI per il Processo Civile Telematico: con
+ - Le sezioni pubbliche `Strumenti legali`, `Applicazioni` e `News giuridiche strutturate` non sono esposte in automatico: compaiono sul sito dello studio solo se l'amministratore del sito attiva i flag dedicati da `Sito Studio -> Impostazioni`.
+ - Migrazione React progressiva: la shell `/app-v2` convive con la UI Jinja attuale e usa API Flask reali; `Clienti e Anagrafiche`, `Soggetti e Parti`, `Comunicazioni`, `Servizi Telematici`, `Gestione Database` (`/admin/database`), `Statistiche`, `Audit`, `Registro attivita`, `Utenti`, `Profili e permessi`, `Studio`, `Amministrazione`, `Fatturazione`, `Nuova parcella`, `Incassi e pagamenti`, `Preventivi e Incarichi`, `Nuovo preventivo`, `Nuovo conferimento incarico`, `Compensi forensi` e `Tariffario` sono ora servite in React sui GET ufficiali, con salvataggi ancora sulle route Flask storiche dove presenti e fallback tecnico `_legacy=1`. Le superfici telematiche `PolisWeb / PST`, `PDP`, `PAT`, `PTT`, `Tribunali / PEC`, `Checklist deposito` e `Guida firma digitale` restano governate dai vincoli specifici di portale e non vengono promosse da questa tranche. `Regia Operativa`, `Ricerca Studio`, `Agenda`, `Nuovo Appuntamento` e la suite `Fascicoli` vivono rispettivamente in `/app-v2/regia-operativa`, `/app-v2/ricerca-studio`, `/app-v2/agenda`, `/app-v2/agenda/nuovo` e `/app-v2/fascicoli`. La suite fascicoli include lista, nuovo/modifica, archivio, dettaglio cabina fascicolo, quadro intelligente AI, editor professionale anche sulla route profonda `/fascicoli/<id>/documenti/<id_doc>/editor` con font/dimensioni/interlinea in stile studio, anteprima PDF nativa fedele all'originale per documenti impaginati con stemmi/timbri/firme e blocco professionale delle conversioni non affidabili, compilatore atti, anteprima documento interna anche per `.pdf.p7m`, upload senza reload ed export, con scritture ancora sulle route storiche per rollback immediato. Ogni pagina migrata viene collegata alla nav React, usa solo dati reali da repository/sessione/API/configurazione e nessuna pagina React viene annidata dentro un'altra durante la migrazione pagina per pagina.
+ - La migrazione React residua e' governata da `tools/react-migration/route-manifest.json` e dagli script `scripts/react-migration/*`: audit route, cattura contratti legacy, controllo gate, consistency UI e runner sicuro. La Tranche 8A abilita `/compensi-forensi` e `/tariffario` in React full come superfici economiche read-only/form legacy, mantenendo wizard preventivi, sottopercorsi compensi/tariffario, calcoli DM55, formule, log economici, generazione documenti, `/preventivi/*`, `/fatturazione/*`, impostazioni, documentale e telematico sui percorsi legacy fino a parita' dimostrata.
++- La Tranche 9A abilita `/template-atti`, `/template-atti/catalogo` e `/redazione-atti` in React full come superfici documentali di ingresso read-only: catalogo reale, metadati template, variabili come soli nomi e link operativi sicuri. Restano legacy `/template-atti/nuovo`, sottopercorsi template/redazione, checklist, deposito, giurisprudenza, legal intelligence, editor, produzione file e AI redazionale.
+ - La pagina `Gestione Database` non si limita a segnalare anomalie referenziali: `Verifica e ripara` chiama una route Flask auditata, crea backup prima di scrivere e corregge automaticamente i riferimenti orfani risolvibili senza inventare dati.
+ - La superficie `Tribunali / PEC` distingue le PEC di deposito telematico dalle PEC amministrative/protocollo: PST e' fonte primaria per il deposito, IPA Open Data fonte secondaria per indirizzi amministrativi, e i siti ufficiali restano fallback/verifica manuale.
+ - Deploy Hetzner CPX42: il profilo [deploy/hetzner](deploy/hetzner/README.md), documentato anche in [docs/DEPLOY_HETZNER_CPX42.md](docs/DEPLOY_HETZNER_CPX42.md), prepara un server Ubuntu con Docker Compose, Caddy HTTPS, Redis, worker scheduler/OCR, backup e restore su `/opt/iusentra/data`, con retention backup governata e pannello Superadmin `Server e manutenzione` per consumi, hardlink e manutenzioni sicure.
+diff --git a/artifacts/react-migration/audit.md b/artifacts/react-migration/audit.md
+index 2f87f858..374f5193 100644
+--- a/artifacts/react-migration/audit.md
++++ b/artifacts/react-migration/audit.md
+@@ -1,6 +1,6 @@
+ # Audit migrazione React
+
+-Generato: 2026-05-06T16:26:52.701Z
++Generato: 2026-05-06T17:08:09.954Z
+
+ ## Frontend
+
+@@ -12,12 +12,12 @@ Script disponibili: dev, test, typecheck, build, preview
+ Route React prefixes: 55
+ Route React exact: 43
+ Excluded prefixes: 14
+-Legacy operational prefixes: 28
++Legacy operational prefixes: 26
+
+ ## App React
+
+-Lazy components: 39
+-Route checks: 54
++Lazy components: 41
++Route checks: 56
+ Studio module routes: 52
+
+ ## Nota operativa
+diff --git a/artifacts/react-migration/route-gate.md b/artifacts/react-migration/route-gate.md
+index 59f2c042..1d96e0a8 100644
+--- a/artifacts/react-migration/route-gate.md
++++ b/artifacts/react-migration/route-gate.md
+@@ -1,7 +1,8 @@
+ # Route gate report
+
+-Route nel manifest: 40
+-Route con unlockFromGate=true: 18
+-Route governate consentite: /statistiche, /audit, /registro-attivita, /utenti, /profili, /backup, /sito-studio, /sito-studio/contatti, /studio, /amministrazione, /fatturazione, /fatturazione/nuova, /incassi-pagamenti, /preventivi, /preventivi/nuovo, /preventivi/conferimento/nuovo, /compensi-forensi, /tariffario
++Route nel manifest: 45
++Route con unlockFromGate=true: 21
++Route governate consentite: /statistiche, /audit, /registro-attivita, /utenti, /profili, /backup, /sito-studio, /sito-studio/contatti, /studio, /amministrazione, /fatturazione, /fatturazione/nuova, /incassi-pagamenti, /preventivi, /preventivi/nuovo, /preventivi/conferimento/nuovo, /compensi-forensi, /tariffario, /template-atti, /template-atti/catalogo, /redazione-atti
+ Tranche 8A: promozione compensi/tariffario exact, sottopercorsi sensibili legacy.
++Tranche 9A: promozione template atti/redazione exact, sottopercorsi documentali sensibili legacy.
+ Violazioni: 0
+diff --git a/artifacts/react-migration/route-inventory.json b/artifacts/react-migration/route-inventory.json
+index 76ccacd3..c288ee80 100644
+--- a/artifacts/react-migration/route-inventory.json
++++ b/artifacts/react-migration/route-inventory.json
+@@ -1,5 +1,5 @@
+ {
+-  "generatedAt": "2026-05-06T16:26:52.701Z",
++  "generatedAt": "2026-05-06T17:08:09.954Z",
+   "react": {
+     "dependencies": {
+       "@vitejs/plugin-react": "^5.0.0",
+@@ -160,7 +160,6 @@
+       "/pdp",
+       "/polisweb",
+       "/portali",
+-      "/redazione-atti",
+       "/ricerca-legale",
+       "/servizi-telematici",
+       "/sigit",
+@@ -170,7 +169,6 @@
+       "/strumenti-legali",
+       "/strumenti-operativi",
+       "/telematico",
+-      "/template-atti",
+       "/tribunali"
+     ]
+   },
+@@ -331,6 +329,14 @@
+       {
+         "name": "TariffarioPage",
+         "importPath": "./components/TariffarioPage"
++      },
++      {
++        "name": "TemplateAttiPage",
++        "importPath": "./components/TemplateAttiPage"
++      },
++      {
++        "name": "RedazioneAttiPage",
++        "importPath": "./components/RedazioneAttiPage"
+       }
+     ],
+     "routeChecks": [
+@@ -385,6 +391,8 @@
+       "isPreventiviPage",
+       "isCompensiForensiPage",
+       "isTariffarioPage",
++      "isTemplateAttiPage",
++      "isRedazioneAttiPage",
+       "isStudioModulePage",
+       "isDashboardPage",
+       "isStandalonePage"
+diff --git a/artifacts/react-migration/ui-consistency.md b/artifacts/react-migration/ui-consistency.md
+index 3014f3c9..ed115ceb 100644
+--- a/artifacts/react-migration/ui-consistency.md
++++ b/artifacts/react-migration/ui-consistency.md
+@@ -1,4 +1,4 @@
+ # UI consistency report
+
+-File scansionati: 157
++File scansionati: 163
+ Violazioni: 0
+diff --git a/docs/REACT_MIGRATION_MASTER_PLAN.md b/docs/REACT_MIGRATION_MASTER_PLAN.md
+index 86cab221..3b535747 100644
+--- a/docs/REACT_MIGRATION_MASTER_PLAN.md
++++ b/docs/REACT_MIGRATION_MASTER_PLAN.md
+@@ -1,5 +1,32 @@
+ # Migrazione progressiva Flask + React
+
++## Stato tranche 2026-05-06 - Tranche 9A template e redazione atti
++
++La promozione governata abilita le superfici documentali di ingresso in React
++senza spostare editor, redazione guidata, produzione file o workflow AI fuori
++dalle route Flask legacy:
++
++- `/template-atti` usa `web/services/react_template_atti_bridge.py` e
++  `GET /api/v1/ui/template-atti` per dashboard catalogo, KPI reali,
++  categorie, materie, canali e link sicuri.
++- `/template-atti/catalogo` usa lo stesso bridge e
++  `GET /api/v1/ui/template-atti/catalogo` per consultare il catalogo reale,
++  metadati template, compliance e variabili solo come nomi/metadati.
++- `/redazione-atti` usa `web/services/react_redazione_atti_bridge.py` e
++  `GET /api/v1/ui/redazione-atti` per quadro operativo, workflow disponibili,
++  fonti collegate come metadati e azioni verso template, fascicoli, preventivi
++  e checklist legacy.
++- `/template-atti/nuovo`, `/template-atti/*`, `/redazione-atti/*`,
++  `/checklist`, `/deposito/checklist`, `/giurisprudenza`,
++  `/legal-intelligence` e `/ricerca-legale` restano legacy con protezioni
++  esplicite nel gate e nella shell.
++- Impeccable / Open Design resta interno: token CSS documentali `--iu-od-doc-*`,
++  utility `iu-*`, nessuna dipendenza grafica, nessun CDN e check dedicato.
++- `run-safe-react-migration.mjs --tranche=9a` cattura i contratti legacy,
++  rilancia gate/UI, anti-segreti, anti-contenuto integrale, anti-redazione
++  automatica, anti-produzione file, Open Design, test Flask,
++  test/typecheck/build frontend e patch separate di rollback.
++
+ ## Stato tranche 2026-05-06 - Tranche 8A compensi e tariffario sicuri
+
+ La settima promozione governata abilita le superfici economiche exact di
+diff --git a/pct/__init__.py b/pct/__init__.py
+index cf1c24a2..f15b5f47 100644
+--- a/pct/__init__.py
++++ b/pct/__init__.py
+@@ -2,5 +2,5 @@
+ PCT - Processo Civile Telematico
+ Sistema per l'invio telematico negli studi legali italiani.
+ """
+-__version__ = "2.198.95"
++__version__ = "2.198.96"
+ __author__ = "IUSENTRA"
+diff --git a/railway.toml b/railway.toml
+index 7b58c863..21bb9c16 100644
+--- a/railway.toml
++++ b/railway.toml
+@@ -1,7 +1,7 @@
+ #  Railway - Configurazione deploy
+ #  Docs: https://docs.railway.app
+-#  version: 2.198.95
+-#  redeploy: 06/05/2026 15:49:00
++#  version: 2.198.96
++#  redeploy: 06/05/2026 19:05:00
+
+ [build]
+ builder = "DOCKERFILE"
+diff --git a/setup.py b/setup.py
+index 15d6e716..26162cbb 100644
+--- a/setup.py
++++ b/setup.py
+@@ -10,7 +10,7 @@ from packaging_manifest import extras_requirements, read_version, runtime_requir
+
+ setup(
+     name="pct-studio-legale",
+-    # Versione applicativa 2.198.95, letta dalla source of truth pct.__init__
++    # Versione applicativa 2.198.96, letta dalla source of truth pct.__init__
+     version=read_version(),
+     description="IUSENTRA: gestionale web modulare per studi legali con PCT, Lex locale e servizi telematici",
+     packages=find_packages(),
+
+diff --git a/artifacts/react-migration/legacy-contracts/checklist.json b/artifacts/react-migration/legacy-contracts/checklist.json
+new file mode 100644
+index 00000000..6e879b96
+--- /dev/null
++++ b/artifacts/react-migration/legacy-contracts/checklist.json
+@@ -0,0 +1,14 @@
++{
++  "route": "/checklist",
++  "legacyUrl": "/checklist?_legacy=1",
++  "status": 302,
++  "redirectLocation": "/login?next=/checklist?_legacy%3D1",
++  "forms": [],
++  "links": [
++    "/login?next=/checklist?_legacy%3D1"
++  ],
++  "linksCount": 1,
++  "downloads": [],
++  "hasBootstrapClass": false,
++  "hasReactRoot": false
++}
+\ No newline at end of file
+warning: in the working copy of 'artifacts/react-migration/legacy-contracts/checklist.json', CRLF will be replaced by LF the next time Git touches it
+
+diff --git a/artifacts/react-migration/legacy-contracts/template-atti__catalogo.json b/artifacts/react-migration/legacy-contracts/template-atti__catalogo.json
+new file mode 100644
+index 00000000..fadfb2be
+--- /dev/null
++++ b/artifacts/react-migration/legacy-contracts/template-atti__catalogo.json
+@@ -0,0 +1,14 @@
++{
++  "route": "/template-atti/catalogo",
++  "legacyUrl": "/template-atti/catalogo?_legacy=1",
++  "status": 302,
++  "redirectLocation": "/login?next=/template-atti/catalogo?_legacy%3D1",
++  "forms": [],
++  "links": [
++    "/login?next=/template-atti/catalogo?_legacy%3D1"
++  ],
++  "linksCount": 1,
++  "downloads": [],
++  "hasBootstrapClass": false,
++  "hasReactRoot": false
++}
+\ No newline at end of file
+warning: in the working copy of 'artifacts/react-migration/legacy-contracts/template-atti__catalogo.json', CRLF will be replaced by LF the next time Git touches it
+
+diff --git a/artifacts/react-migration/legacy-contracts/template-atti__nuovo.json b/artifacts/react-migration/legacy-contracts/template-atti__nuovo.json
+new file mode 100644
+index 00000000..0beca95b
+--- /dev/null
++++ b/artifacts/react-migration/legacy-contracts/template-atti__nuovo.json
+@@ -0,0 +1,14 @@
++{
++  "route": "/template-atti/nuovo",
++  "legacyUrl": "/template-atti/nuovo?_legacy=1",
++  "status": 302,
++  "redirectLocation": "/login?next=/template-atti/nuovo?_legacy%3D1",
++  "forms": [],
++  "links": [
++    "/login?next=/template-atti/nuovo?_legacy%3D1"
++  ],
++  "linksCount": 1,
++  "downloads": [],
++  "hasBootstrapClass": false,
++  "hasReactRoot": false
++}
+\ No newline at end of file
+warning: in the working copy of 'artifacts/react-migration/legacy-contracts/template-atti__nuovo.json', CRLF will be replaced by LF the next time Git touches it
+
+diff --git a/artifacts/react-migration/tranche-9a-gate.md b/artifacts/react-migration/tranche-9a-gate.md
+new file mode 100644
+index 00000000..8c2249bd
+--- /dev/null
++++ b/artifacts/react-migration/tranche-9a-gate.md
+@@ -0,0 +1,23 @@
++# Tranche 9A gate check
++
++- [OK] login tenant (status=302)
++- [OK] React shell /template-atti (status=200)
++- [OK] React shell /template-atti/catalogo (status=200)
++- [OK] React shell /redazione-atti (status=200)
++- [OK] Ancora legacy /template-atti?_legacy=1 (status=308)
++- [OK] Ancora legacy /template-atti/catalogo?_legacy=1 (status=200)
++- [OK] Ancora legacy /template-atti/nuovo (status=200)
++- [OK] Ancora legacy /template-atti/qualunque (status=404)
++- [OK] Ancora legacy /redazione-atti?_legacy=1 (status=302)
++- [OK] Ancora legacy /redazione-atti/qualunque (status=404)
++- [OK] Ancora legacy /checklist (status=200)
++- [OK] Ancora legacy /deposito/checklist (status=200)
++- [OK] Ancora legacy /giurisprudenza (status=308)
++- [OK] Ancora legacy /legal-intelligence (status=308)
++- [OK] JSON /api/v1/ui/template-atti (status=200)
++- [OK] JSON /api/v1/ui/template-atti/catalogo (status=200)
++- [OK] JSON /api/v1/ui/redazione-atti (status=200)
++- [OK] POST non intercettato /template-atti (status=404)
++- [OK] POST non intercettato /template-atti/nuovo (status=200)
++- [OK] POST non intercettato /redazione-atti (status=405)
++- [OK] POST non intercettato /deposito/checklist (status=405)
+warning: in the working copy of 'artifacts/react-migration/tranche-9a-gate.md', CRLF will be replaced by LF the next time Git touches it
+
+diff --git a/artifacts/react-migration/tranche-9a-no-document-generation.md b/artifacts/react-migration/tranche-9a-no-document-generation.md
+new file mode 100644
+index 00000000..081ffdeb
+--- /dev/null
++++ b/artifacts/react-migration/tranche-9a-no-document-generation.md
+@@ -0,0 +1,4 @@
++# Tranche 9A anti-generazione documenti
++
++File scansionati: 6
++Violazioni: 0
+
+diff --git a/artifacts/react-migration/tranche-9a-no-document-raw.md b/artifacts/react-migration/tranche-9a-no-document-raw.md
+new file mode 100644
+index 00000000..6643cc24
+--- /dev/null
++++ b/artifacts/react-migration/tranche-9a-no-document-raw.md
+@@ -0,0 +1,4 @@
++# Tranche 9A anti-document raw
++
++File scansionati: 6
++Violazioni: 0
+
+diff --git a/artifacts/react-migration/tranche-9a-no-legal-generation.md b/artifacts/react-migration/tranche-9a-no-legal-generation.md
+new file mode 100644
+index 00000000..dc4f7626
+--- /dev/null
++++ b/artifacts/react-migration/tranche-9a-no-legal-generation.md
+@@ -0,0 +1,4 @@
++# Tranche 9A anti-legal-generation
++
++File scansionati: 6
++Violazioni: 0
+
+diff --git a/artifacts/react-migration/tranche-9a-open-design-check.md b/artifacts/react-migration/tranche-9a-open-design-check.md
+new file mode 100644
+index 00000000..03180baf
+--- /dev/null
++++ b/artifacts/react-migration/tranche-9a-open-design-check.md
+@@ -0,0 +1,4 @@
++# Tranche 9A Open Design check
++
++File scansionati: 6
++Violazioni: 0
+
+diff --git a/artifacts/react-migration/tranche-9a-report.md b/artifacts/react-migration/tranche-9a-report.md
+new file mode 100644
+index 00000000..af9223c4
+--- /dev/null
++++ b/artifacts/react-migration/tranche-9a-report.md
+@@ -0,0 +1,160 @@
++# Tranche 9A - Report finale
++
++- Data/ora: 2026-05-06 19:07:11 +02:00
++- Branch base dichiarato: `claude/legal-electronic-filing-kIxcV`
++- Branch di lavoro: `Codex/legal-electronic-filing-kIxcV`
++- Versione applicativa: `2.198.96`
++
++## 1. Route migrate
++
++- `/template-atti`: React full come dashboard/catalogo documentale.
++- `/template-atti/catalogo`: React full come catalogo template con soli metadati.
++- `/redazione-atti`: React full come superficie operativa controllata.
++
++## 2. Route preparate ma lasciate legacy
++
++- `/template-atti/nuovo`: legacy operational, editor/POST legacy preservati.
++- `/template-atti/*`: legacy operational salvo `/template-atti/catalogo`.
++- `/redazione-atti/*`: legacy operational.
++- `/checklist`: legacy operational.
++- `/deposito/checklist`: legacy operational.
++- `/giurisprudenza`: legacy operational.
++- `/legal-intelligence`: legacy operational.
++- `/ricerca-legale`, route telematiche, impostazioni e famiglie gia' bloccate: nessuno sblocco aggiuntivo.
++
++## 3. File creati
++
++- `web/services/react_template_atti_bridge.py`
++- `web/services/react_redazione_atti_bridge.py`
++- `frontend/src/templateAttiData.ts`
++- `frontend/src/redazioneAttiData.ts`
++- `frontend/src/components/TemplateAttiPage.tsx`
++- `frontend/src/components/TemplateAttiPage.css`
++- `frontend/src/components/RedazioneAttiPage.tsx`
++- `frontend/src/components/RedazioneAttiPage.css`
++- `scripts/react-migration/check-tranche-9a-gate.py`
++- `scripts/react-migration/check-tranche-9a-secrets.mjs`
++- `scripts/react-migration/check-tranche-9a-no-document-raw.mjs`
++- `scripts/react-migration/check-tranche-9a-no-legal-generation.mjs`
++- `scripts/react-migration/check-tranche-9a-no-document-generation.mjs`
++- `scripts/react-migration/check-tranche-9a-open-design.mjs`
++- `artifacts/react-migration/tranche-9a-route-map.md`
++- `artifacts/react-migration/tranche-9a-open-design.md`
++- `artifacts/react-migration/tranche-9a-report.md`
++
++## 4. File modificati
++
++- `web/blueprints/api_v1_react.py`
++- `web/bootstrap/react_route_gate.py`
++- `web/blueprints/react_shell.py`
++- `tools/react-migration/route-manifest.json`
++- `frontend/src/App.tsx`
++- `frontend/scripts/check-react-contracts.mjs`
++- `frontend/src/theme/impeccable-open-design.css`
++- `frontend/src/ui/openDesign.ts`
++- `scripts/react-migration/check-route-gate.mjs`
++- `scripts/react-migration/run-safe-react-migration.mjs`
++- `frontend/package.json`
++- `frontend/package-lock.json`
++- `web/static/react/**`
++- `README.md`
++- `CHANGELOG.md`
++- `docs/REACT_MIGRATION_MASTER_PLAN.md`
++- `pct/__init__.py`
++- `setup.py`
++- `Dockerfile`
++- `railway.toml`
++
++## 5. Endpoint aggiunti
++
++- `GET /api/v1/ui/template-atti`
++- `GET /api/v1/ui/template-atti/catalogo`
++- `GET /api/v1/ui/redazione-atti`
++
++Tutti gli endpoint usano `_richiedi_auth`, richiedono sessione utente (`g.utente_corrente`) e riusano bridge read-only. Non sono stati creati POST, upload, export, PDF, DOCX, editor o endpoint AI.
++
++## 6. Gate modificato
++
++- `/template-atti` exact e `/template-atti/catalogo` servono shell React.
++- `/template-atti/nuovo` e ogni altro `/template-atti/*` restano legacy.
++- `/redazione-atti` exact serve shell React.
++- Ogni `/redazione-atti/*` resta legacy.
++- `/checklist`, `/deposito/checklist`, `/giurisprudenza`, `/legal-intelligence`, `/ricerca-legale` restano legacy.
++- `_EXCLUDED_PREFIXES`, `_EXCLUDED_SUFFIXES`, `_EXCLUDED_SEGMENTS`, `_legacy_requested()`, `_accepts_html()` e supporto `?_legacy=1` non sono stati cambiati.
++
++## 7. Contratti legacy catturati
++
++- `artifacts/react-migration/legacy-contracts/template-atti.json`
++- `artifacts/react-migration/legacy-contracts/template-atti__catalogo.json`
++- `artifacts/react-migration/legacy-contracts/template-atti__nuovo.json`
++- `artifacts/react-migration/legacy-contracts/redazione-atti.json`
++- `artifacts/react-migration/legacy-contracts/checklist.json`
++- `artifacts/react-migration/legacy-contracts/deposito__checklist.json`
++- `artifacts/react-migration/legacy-contracts/giurisprudenza.json`
++- `artifacts/react-migration/legacy-contracts/legal-intelligence.json`
++
++## 8. Permessi e POST legacy
++
++- Permessi legacy verificati nella route map: le superfici legacy richiedono login; gli endpoint React aggiunti non consentono bypass con API key perche' richiedono utente in sessione.
++- POST legacy preservati: `/template-atti/nuovo`, `/template-atti/*`, `/redazione-atti/*`, `/deposito/checklist` e route operative collegate non sono stati modificati.
++- I form legacy, token CSRF, upload, download/export e workflow editor restano sui percorsi legacy.
++
++## 9. Legacy preservato
++
++- Editor template: lasciato legacy.
++- Redazione guidata completa: lasciata legacy.
++- Checklist deposito: lasciata legacy.
++- Giurisprudenza e legal-intelligence: lasciate legacy.
++- PDF/DOCX/export/download: lasciati legacy.
++- Generazione testo legale e prompt AI: lasciati legacy; nessun nuovo prompt o output AI e' stato introdotto.
++
++## 10. Impeccable / Open Design
++
++- Impeccable in questa PR significa gerarchia compatta, spacing coerente, azioni distinguibili, stati vuoti leggibili, warning chiari e densita' adatta a cataloghi/documenti.
++- Open Design in questa PR significa token CSS interni, classi `iu-*`, componenti riusabili, nessun CDN, nessun lock-in grafico e nessuna dipendenza esterna.
++- Token creati/rafforzati: `--iu-od-doc-gap`, `--iu-od-doc-card-radius`, `--iu-od-doc-section-gap`, `--iu-od-doc-meta-size`, `--iu-od-doc-focus-ring`.
++- Utility create/rafforzate: `.iu-od-surface`, `.iu-od-grid`, `.iu-od-card`, `.iu-od-meta`, `.iu-od-warning`, `.iu-od-action-row`.
++- Componenti interessati: `TemplateAttiPage`, `RedazioneAttiPage`, data client e bridge documentali.
++
++## 11. Esito controlli
++
++- `node scripts/react-migration/run-safe-react-migration.mjs --tranche=9a`: OK con `ALLOW_DIRTY=1` per file runtime locali preesistenti.
++- `npm run test`: OK.
++- `npm run typecheck`: OK.
++- `npm run build`: OK.
++- `node scripts/react-migration/check-route-gate.mjs`: OK.
++- `node scripts/react-migration/check-ui-consistency.mjs`: OK.
++- `node scripts/react-migration/check-tranche-9a-secrets.mjs`: OK.
++- `node scripts/react-migration/check-tranche-9a-no-document-raw.mjs`: OK.
++- `node scripts/react-migration/check-tranche-9a-no-legal-generation.mjs`: OK.
++- `node scripts/react-migration/check-tranche-9a-no-document-generation.mjs`: OK.
++- `node scripts/react-migration/check-tranche-9a-open-design.mjs`: OK.
++- `python scripts/react-migration/check-tranche-9a-gate.py`: OK.
++
++## 12. Limiti test Flask
++
++- Il test harness Flask ha consentito autenticazione di test controllata; nessun bypass e nessun limite residuo di autenticazione da dichiarare.
++
++## 13. Rischi residui
++
++- I dati reali esposti dipendono dai repository JSON/tenant gia' disponibili: quando mancano dati reali, la UI mostra stati vuoti e warning invece di mock.
++- Il working tree locale contiene file runtime/data non correlati alla tranche e non inclusi nelle patch 9A ne' nel commit.
++
++## 14. Patch generate
++
++- `artifacts/react-migration/patches/tranche-9a.backend.patch`
++- `artifacts/react-migration/patches/tranche-9a.frontend.patch`
++- `artifacts/react-migration/patches/tranche-9a.gate.patch`
++- `artifacts/react-migration/patches/tranche-9a.design.patch`
++- `artifacts/react-migration/patches/tranche-9a.tests.patch`
++- `artifacts/react-migration/patches/tranche-9a.reports.patch`
++
++## 15. Rollback
++
++```bash
++git apply -R artifacts/react-migration/patches/tranche-9a.backend.patch
++git apply -R artifacts/react-migration/patches/tranche-9a.frontend.patch
++git apply -R artifacts/react-migration/patches/tranche-9a.gate.patch
++git apply -R artifacts/react-migration/patches/tranche-9a.design.patch
++git apply -R artifacts/react-migration/patches/tranche-9a.tests.patch
++```
+
+diff --git a/artifacts/react-migration/tranche-9a-route-map.md b/artifacts/react-migration/tranche-9a-route-map.md
+new file mode 100644
+index 00000000..0f0e7c63
+--- /dev/null
++++ b/artifacts/react-migration/tranche-9a-route-map.md
+@@ -0,0 +1,172 @@
++# Tranche 9A - Mappa route documentali
++
++Data analisi: 2026-05-06.
++
++Nota operativa: `rg.exe` non era eseguibile nell'ambiente WindowsApps locale (`Accesso negato`), quindi le ricerche richieste sono state replicate con `Get-ChildItem ... | Select-String` sugli stessi perimetri `web`, `pct` e `tests`.
++
++## /template-atti
++
++- Handler legacy: `web/blueprints/template_atti.py::lista`
++- Template: `web/templates/template_atti/lista.html`
++- Repository/manager: `GestioneTemplateAtti` tramite `_get_gt()`, `pct.template_atti.CATEGORIE`, `pct.compilatore_atti.modelli_per_area`
++- Permessi: login Flask tramite `_richiedi_login`; nessun permesso granulare aggiuntivo rilevato
++- Form presenti: form POST per copia e cancellazione su card legacy
++- POST presenti: si, su `/<id_template>/clona` e `/<id_template>/elimina`
++- Action form: `url_for('template_atti.clona', ...)`, `url_for('template_atti.elimina', ...)`
++- Method form: `post`
++- CSRF: non rilevato token esplicito nel template
++- Upload: no nella lista exact
++- Download/export/PDF/DOCX: no nella lista exact
++- Editor/contentEditable: no nella lista exact
++- Template raw/testo atto: non renderizza `corpo`; mostra metadati e descrizioni/note
++- AI/Lex/generazione: no nella lista exact
++- Checklist deposito: solo collegamenti indiretti di dominio, nessun flusso checklist operativo
++- Dati sensibili: metadati template studio; niente segreti o contenuti integrali
++- Decisione: sbloccabile solo come dashboard/catalogo React read-only con azioni legacy sicure.
++
++## /template-atti/catalogo
++
++- Handler legacy: `web/blueprints/template_atti.py::catalogo`
++- Template: `web/templates/template_atti/catalogo.html`
++- Repository/manager: `pct.template_catalog_service.build_template_catalog_page_context`, `pct.compilatore_atti.MODELS`, `get_essential_docs`
++- Permessi: login Flask tramite `_richiedi_login`
++- Form presenti: copia nel mio studio
++- POST presenti: si, form `template_atti.clona`
++- Action form: `url_for('template_atti.clona', id_template=t.codice)`
++- Method form: `post`
++- CSRF: non rilevato token esplicito nel template
++- Upload: no
++- Download/export/PDF/DOCX: solo metadati di requisito; nessuna produzione file nella route catalogo
++- Editor/contentEditable: no
++- Template raw/testo atto: no, il catalogo espone metadati, compliance e dati obbligatori
++- AI/Lex/generazione: no
++- Checklist deposito: solo compliance e controlli deposito come metadati
++- Dati sensibili: metadati catalogo, nessun segreto
++- Decisione: sbloccabile come catalogo React read-only; copia/editor restano su route legacy.
++
++## /template-atti/nuovo
++
++- Handler legacy: `web/blueprints/template_atti.py::nuovo`
++- Template: `web/templates/template_atti/form.html`
++- Repository/manager: `GestioneTemplateAtti`
++- Permessi: login Flask tramite `_richiedi_login`
++- Form presenti: form principale di creazione modello
++- POST presenti: si, creazione template con `titolo`, `categoria`, `corpo`, `note`
++- Action form: route corrente `/template-atti/nuovo`
++- Method form: `post`
++- CSRF: non rilevato token esplicito nel template
++- Upload: si, import documento verso `/template-atti/api/importa-documento`
++- Download/export/PDF/DOCX: importa DOCX/PDF/TXT/HTML e prepara successivi output legacy
++- Editor/contentEditable: si, macro editor professionale e preview import con `contenteditable="true"`
++- Template raw/testo atto: si, campo `corpo`
++- AI/Lex/generazione: no diretto nella route nuovo, ma collegata al sistema editor/generazione legacy
++- Checklist deposito: no
++- Dati sensibili: contenuto integrale del modello
++- Decisione: deve restare legacy.
++
++## /template-atti/*
++
++- Handler legacy: `web/blueprints/template_atti.py` (`scheda`, `modifica`, `clona`, `elimina`, `usa`, `compila`, API editor/import, PDF e assistente)
++- Template: `scheda.html`, `form.html`, `usa.html`, `compilatore.html`, `anteprima.html`, `anteprima_compilatore.html`
++- Repository/manager: `GestioneTemplateAtti`, `pct.compilatore_atti`, assistente redazionale, servizi PDF/import
++- Permessi: login Flask tramite `_richiedi_login`
++- Form presenti: modifica, uso template, compilatore guidato, preview PDF, clone/delete
++- POST presenti: si, modifica, clone, delete, usa, compila, layout editor, import documento, PDF, assistente
++- Action form: route legacy dedicate del blueprint `template_atti`
++- Method form: `post`
++- CSRF: non rilevato token esplicito nei template analizzati
++- Upload: si, import documento e acquisizione immagini
++- Download/export/PDF/DOCX: si, PDF e import DOCX/PDF
++- Editor/contentEditable: si
++- Template raw/testo atto: si, `t.corpo`, testo compilato e anteprime editor
++- AI/Lex/generazione: si, assistente redazionale e compilatore
++- Checklist deposito: compliance e verifica deposito
++- Dati sensibili: contenuti integrali di modelli/atti e dati pratica
++- Decisione: ogni sottoroute diversa da `/template-atti/catalogo` resta legacy.
++
++## /redazione-atti
++
++- Handler legacy: `web/blueprints/terminology_aliases.py::redazione_atti`
++- Template: nessuno diretto, redirect a `template_atti.lista`
++- Repository/manager: indiretti di `/template-atti`
++- Permessi: eredita la route destinazione con login Flask
++- Form presenti: nessun form nel redirect; la destinazione legacy contiene form clone/delete
++- POST presenti: no sulla route alias exact
++- Action form: non applicabile sulla route alias
++- Method form: non applicabile
++- CSRF: non applicabile
++- Upload/download/export/editor/contentEditable: no sulla route alias exact
++- Template raw/testo atto: no sulla route alias exact
++- AI/Lex/generazione: no sulla route alias exact
++- Checklist deposito: no sulla route alias exact
++- Dati sensibili: no payload proprio
++- Decisione: sbloccabile come superficie operativa React controllata che richiama solo metadati e route legacy sicure.
++
++## /redazione-atti/*
++
++- Handler legacy: `web/blueprints/terminology_aliases.py::redazione_atti_catalogo`, `redazione_atti_redigi`
++- Template: redirect verso catalogo o compilatore template atti
++- Repository/manager: indiretti di `template_atti.catalogo` e `template_atti.compila`
++- Permessi: eredita login Flask della destinazione
++- Form/POST/editor/generazione: presenti nelle destinazioni legacy, soprattutto compilatore e assistente
++- Upload/download/export/PDF/DOCX: presenti nei flussi template/redazione legacy
++- Template raw/testo atto: possibile nelle destinazioni
++- AI/Lex/generazione: possibile nella redazione guidata legacy
++- Decisione: deve restare legacy.
++
++## /checklist
++
++- Handler legacy: `web/bootstrap/checklist_routes.py::checklist_atti`
++- Template: `web/templates/checklist/lista.html`
++- Repository/manager: `pct.checklist_atti` e helper fascicoli nel wizard collegato
++- Permessi: route registrata su app, con superfici operative collegate a fascicolo/sessione
++- Form/POST: la dashboard exact e le sottoroute wizard includono upload e POST su `/fascicoli/<id>/wizard/...`
++- Upload/download/export: upload documenti nel wizard fascicolo
++- Editor/contentEditable/template raw: no sulla dashboard exact
++- AI/Lex/generazione/checklist deposito: checklist operative e wizard fascicolo
++- Dati sensibili: dati fascicolo e allegati nei flussi collegati
++- Decisione: resta legacy.
++
++## /deposito/checklist
++
++- Handler legacy: `web/bootstrap/deposito_routes.py::deposito_checklist`
++- Template: `web/templates/deposito_checklist.html`
++- Repository/manager: procedure deposito collegate, `get_fascicoli`, validatori deposito e flussi PEC/busta
++- Permessi: superficie operativa del deposito telematico
++- Form/POST: le route deposito collegate hanno POST su esiti, validazione, generazione busta e invio
++- Upload/download/export/PDF/DOCX: generazione/download busta e allegati nei flussi correlati
++- Editor/contentEditable: no sulla checklist exact
++- AI/Lex/generazione: no diretto, ma collegata a deposito end-to-end
++- Checklist deposito: si, route primaria
++- Dati sensibili: fascicoli, atti, allegati e dati deposito
++- Decisione: resta legacy.
++
++## /giurisprudenza
++
++- Handler legacy: `web/blueprints/giurisprudenza.py::index`
++- Template: `web/templates/giurisprudenza/index.html`
++- Repository/manager: `get_giurisprudenza`, sync runtime giurisprudenza, tassonomie e fonti
++- Permessi: login Flask tramite `_richiedi_login`
++- Form/POST: sottoroute `nuova`, `modifica`, `sync`, classificazione e import
++- Upload/download/export: raw documents e import nelle sottoroute
++- Editor/contentEditable: no sulla index, ma form di scheda sentenza nelle sottoroute
++- Template raw/testo atto: testi sentenze/documenti nelle viste dettaglio
++- AI/Lex/generazione: classificazione suggerita e workflow fonti
++- Checklist deposito: no
++- Dati sensibili: fonti, collegamenti pratica e documenti raw
++- Decisione: resta legacy.
++
++## /legal-intelligence
++
++- Handler legacy: `web/blueprints/legal_intelligence.py::index`
++- Template: `web/templates/legal_intelligence/index.html`
++- Repository/manager: `get_legal_intelligence`, `LegalIntelligenceDailyEngine`, pipeline aggiornamenti normativi
++- Permessi: login Flask tramite `_richiedi_login`
++- Form/POST: monitor, daily sync, approvazione update, rigenerazione indice AI, sync normativo e import mediazione
++- Upload/download/export: import registro mediazione e snapshot
++- Editor/contentEditable: no sulla index
++- Template raw/testo atto: no sulla index, ma diff/news/update nelle sottoroute
++- AI/Lex/generazione: indice AI e workflow legal intelligence
++- Checklist deposito: no
++- Dati sensibili: snapshot studio, portali, agenda, scadenze e aggiornamenti in revisione
++- Decisione: resta legacy.
+
+diff --git a/artifacts/react-migration/tranche-9a-secrets.md b/artifacts/react-migration/tranche-9a-secrets.md
+new file mode 100644
+index 00000000..f4c12e04
+--- /dev/null
++++ b/artifacts/react-migration/tranche-9a-secrets.md
+@@ -0,0 +1,4 @@
++# Tranche 9A anti-segreti documentali
++
++File scansionati: 6
++Violazioni: 0

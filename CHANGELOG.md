@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.198.96 - 2026-05-06
+
+- Promosse in React full le route documentali di ingresso `/template-atti`, `/template-atti/catalogo` e `/redazione-atti`, con bridge backend read-only, endpoint UI GET, catalogo template reale, metadati, variabili come soli nomi e azioni legacy sicure.
+- Mantenuti legacy `/template-atti/nuovo`, `/template-atti/*`, `/redazione-atti/*`, `/checklist`, `/deposito/checklist`, `/giurisprudenza`, `/legal-intelligence`, editor, redazione guidata, produzione file, export e workflow AI governati.
+- Rafforzati Impeccable / Open Design con token e utility documentali `iu-*`, check anti-segreti, anti-contenuto integrale, anti-redazione automatica, anti-produzione file, gate Flask e patch rollback separate per la Tranche 9A.
+
 ## 2.198.95 - 2026-05-06
 
 - Promosse in React full le route exact `/compensi-forensi` e `/tariffario`, con bridge backend read-only, endpoint UI GET, KPI reali quando disponibili, aree tariffarie, form HTML verso POST Flask legacy e link operativi sicuri.

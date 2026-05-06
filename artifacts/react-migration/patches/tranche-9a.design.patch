@@ -1,0 +1,131 @@
+diff --git a/frontend/src/theme/impeccable-open-design.css b/frontend/src/theme/impeccable-open-design.css
+index 531074b5..f3304920 100644
+--- a/frontend/src/theme/impeccable-open-design.css
++++ b/frontend/src/theme/impeccable-open-design.css
+@@ -17,6 +17,11 @@
+   --iu-od-muted: var(--iu-muted, oklch(0.47 0.02 255));
+   --iu-od-focus: var(--iu-focus, oklch(0.56 0.13 250));
+   --iu-od-transition: 160ms ease;
++  --iu-od-doc-gap: var(--iu-od-space-4);
++  --iu-od-doc-card-radius: var(--iu-od-radius-2);
++  --iu-od-doc-section-gap: var(--iu-od-space-5);
++  --iu-od-doc-meta-size: 0.86rem;
++  --iu-od-doc-focus-ring: 0 0 0 3px color-mix(in oklch, var(--iu-od-focus) 32%, transparent);
+ }
+
+ .iu-od-stack {
+@@ -56,3 +61,30 @@
+   border-radius: var(--iu-od-radius-2);
+   box-shadow: var(--iu-od-shadow-1);
+ }
++
++.iu-od-card {
++  background: var(--iu-od-surface);
++  border: 1px solid var(--iu-od-border);
++  border-radius: var(--iu-od-doc-card-radius);
++  box-shadow: var(--iu-od-shadow-1);
++}
++
++.iu-od-meta {
++  color: var(--iu-od-muted);
++  font-size: var(--iu-od-doc-meta-size);
++  line-height: 1.45;
++}
++
++.iu-od-warning {
++  background: var(--iu-od-surface-soft);
++  border: 1px solid var(--iu-od-border);
++  border-radius: var(--iu-od-doc-card-radius);
++  color: var(--iu-od-text);
++}
++
++.iu-od-action-row {
++  align-items: center;
++  display: flex;
++  flex-wrap: wrap;
++  gap: var(--iu-od-space-2);
++}
+diff --git a/frontend/src/ui/openDesign.ts b/frontend/src/ui/openDesign.ts
+index 5ab84c9b..67477b55 100644
+--- a/frontend/src/ui/openDesign.ts
++++ b/frontend/src/ui/openDesign.ts
+@@ -11,3 +11,13 @@ export const openDesignContract = {
+     'effetti decorativi non funzionali',
+   ],
+ } as const
++
++export const openDesignDocumentSurface = {
++  surface: 'iu-od-surface',
++  grid: 'iu-od-grid',
++  card: 'iu-od-card',
++  meta: 'iu-od-meta',
++  warning: 'iu-od-warning',
++  actionRow: 'iu-od-action-row',
++  focusRing: 'iu-od-focus-ring',
++} as const
+
+diff --git a/artifacts/react-migration/tranche-9a-open-design.md b/artifacts/react-migration/tranche-9a-open-design.md
+new file mode 100644
+index 00000000..612269c6
+--- /dev/null
++++ b/artifacts/react-migration/tranche-9a-open-design.md
+@@ -0,0 +1,59 @@
++# Tranche 9A - Impeccable / Open Design
++
++## Principi usati
++
++- Gerarchia compatta per superfici documentali: intestazione chiara, KPI essenziali, catalogo scansionabile e warning separati dalle azioni.
++- Spacing coerente basato sui token `--iu-*` gia' presenti.
++- Classi auditabili con prefisso `iu-`, senza Bootstrap nei nuovi TSX.
++- Focus ring accessibile, hover leggibile e stati vuoti professionali.
++- Nessun elemento decorativo non funzionale e nessun dato demo.
++
++## File toccati
++
++- `frontend/src/theme/impeccable-open-design.css`
++- `frontend/src/ui/openDesign.ts`
++- `frontend/src/components/TemplateAttiPage.tsx`
++- `frontend/src/components/TemplateAttiPage.css`
++- `frontend/src/components/RedazioneAttiPage.tsx`
++- `frontend/src/components/RedazioneAttiPage.css`
++
++## Token creati
++
++- `--iu-od-doc-gap`
++- `--iu-od-doc-card-radius`
++- `--iu-od-doc-section-gap`
++- `--iu-od-doc-meta-size`
++- `--iu-od-doc-focus-ring`
++
++## Utility create
++
++- `.iu-od-card`
++- `.iu-od-meta`
++- `.iu-od-warning`
++- `.iu-od-action-row`
++
++Le utility riusano le superfici gia' introdotte in 8A: `.iu-od-surface`, `.iu-od-grid`, `.iu-od-stack` e `.iu-od-focus-ring`.
++
++## Componenti interessati
++
++- `TemplateAttiPage` usa i token documentali per dashboard e catalogo template.
++- `RedazioneAttiPage` usa gli stessi pattern per workflow, azioni legacy e fonti collegate come metadati.
++
++## Cosa resta escluso
++
++- Editor template.
++- Editor documento.
++- Redazione guidata completa.
++- Produzione PDF/DOCX/export.
++- Legal intelligence, giurisprudenza e checklist deposito.
++
++## Verifica regressioni
++
++- `node scripts/react-migration/check-ui-consistency.mjs`
++- `node scripts/react-migration/check-tranche-9a-open-design.mjs`
++- `cd frontend && npm run typecheck`
++- `cd frontend && npm run build`
++
++## Nessuna libreria grafica
++
++Impeccable e Open Design restano un contratto interno: token CSS, classi `iu-*`, componenti riusabili e report auditabile. Non sono state aggiunte dipendenze, CDN, font esterni o framework di design.

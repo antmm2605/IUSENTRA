@@ -11,3 +11,13 @@ export const openDesignContract = {
     'effetti decorativi non funzionali',
   ],
 } as const
+
+export const openDesignDocumentSurface = {
+  surface: 'iu-od-surface',
+  grid: 'iu-od-grid',
+  card: 'iu-od-card',
+  meta: 'iu-od-meta',
+  warning: 'iu-od-warning',
+  actionRow: 'iu-od-action-row',
+  focusRing: 'iu-od-focus-ring',
+} as const

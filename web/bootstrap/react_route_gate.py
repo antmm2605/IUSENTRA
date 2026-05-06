@@ -179,7 +179,6 @@ _LEGACY_OPERATIONAL_PREFIXES = (
     "/pdp",
     "/polisweb",
     "/portali",
-    "/redazione-atti",
     "/ricerca-legale",
     "/servizi-telematici",
     "/sigit",
@@ -189,7 +188,6 @@ _LEGACY_OPERATIONAL_PREFIXES = (
     "/strumenti-legali",
     "/strumenti-operativi",
     "/telematico",
-    "/template-atti",
     "/tribunali",
 )
 
@@ -235,6 +233,22 @@ def _excluded(path: str) -> bool:
     if lower == "/impostazioni-studio" or lower.startswith("/impostazioni-studio/"):
         return True
     if lower == "/sincronizzazione-calendari" or lower.startswith("/sincronizzazione-calendari/"):
+        return True
+    if lower == "/template-atti/nuovo":
+        return True
+    if lower.startswith("/template-atti/") and lower != "/template-atti/catalogo":
+        return True
+    if lower.startswith("/redazione-atti/"):
+        return True
+    if lower == "/checklist" or lower.startswith("/checklist/"):
+        return True
+    if lower == "/deposito/checklist" or lower.startswith("/deposito/checklist/"):
+        return True
+    if lower == "/giurisprudenza" or lower.startswith("/giurisprudenza/"):
+        return True
+    if lower == "/legal-intelligence" or lower.startswith("/legal-intelligence/"):
+        return True
+    if lower == "/ricerca-legale" or lower.startswith("/ricerca-legale/"):
         return True
     if any(lower == prefix or lower.startswith(f"{prefix}/") for prefix in _LEGACY_OPERATIONAL_PREFIXES):
         return True

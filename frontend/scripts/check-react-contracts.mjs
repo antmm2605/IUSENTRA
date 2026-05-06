@@ -178,6 +178,12 @@ const compensiForensiBridge = read('../web/services/react_compensi_forensi_bridg
 const tariffarioPage = read('src/components/TariffarioPage.tsx')
 const tariffarioData = read('src/tariffarioData.ts')
 const tariffarioBridge = read('../web/services/react_tariffario_bridge.py')
+const templateAttiPage = read('src/components/TemplateAttiPage.tsx')
+const templateAttiData = read('src/templateAttiData.ts')
+const templateAttiBridge = read('../web/services/react_template_atti_bridge.py')
+const redazioneAttiPage = read('src/components/RedazioneAttiPage.tsx')
+const redazioneAttiData = read('src/redazioneAttiData.ts')
+const redazioneAttiBridge = read('../web/services/react_redazione_atti_bridge.py')
 const impeccableOpenDesignCss = read('src/theme/impeccable-open-design.css')
 const openDesign = read('src/ui/openDesign.ts')
 const tranche8aOpenDesignReport = read('../artifacts/react-migration/tranche-8a-open-design.md')
@@ -231,6 +237,12 @@ const tranche8aSecrets = read('../scripts/react-migration/check-tranche-8a-secre
 const tranche8aNoCompensiLogic = read('../scripts/react-migration/check-tranche-8a-no-compensi-logic.mjs')
 const tranche8aNoDocumentGeneration = read('../scripts/react-migration/check-tranche-8a-no-document-generation.mjs')
 const tranche8aOpenDesign = read('../scripts/react-migration/check-tranche-8a-open-design.mjs')
+const tranche9aGate = read('../scripts/react-migration/check-tranche-9a-gate.py')
+const tranche9aSecrets = read('../scripts/react-migration/check-tranche-9a-secrets.mjs')
+const tranche9aNoDocumentRaw = read('../scripts/react-migration/check-tranche-9a-no-document-raw.mjs')
+const tranche9aNoLegalGeneration = read('../scripts/react-migration/check-tranche-9a-no-legal-generation.mjs')
+const tranche9aNoDocumentGeneration = read('../scripts/react-migration/check-tranche-9a-no-document-generation.mjs')
+const tranche9aOpenDesign = read('../scripts/react-migration/check-tranche-9a-open-design.mjs')
 const uiAllowedClasses = read('../tools/react-migration/ui-allowed-classes.json')
 const routeRiskRules = read('../tools/react-migration/route-risk-rules.json')
 const uiPage = read('src/ui/Page.tsx')
@@ -297,6 +309,7 @@ assertContains(checkRouteGate, 'Tranche 5A', 'route gate include gli sblocchi de
 assertContains(checkRouteGate, 'Tranche 6A', 'route gate include gli sblocchi della Tranche 6A')
 assertContains(checkRouteGate, 'Tranche 7A', 'route gate include gli sblocchi della Tranche 7A')
 assertContains(checkRouteGate, 'Tranche 8A', 'route gate include gli sblocchi della Tranche 8A')
+assertContains(checkRouteGate, 'Tranche 9A', 'route gate include gli sblocchi della Tranche 9A')
 assertContains(checkUiConsistency, 'ui-allowed-classes.json', 'UI consistency usa policy classi')
 assertContains(checkUiConsistency, 'href placeholder #', 'UI consistency blocca href placeholder')
 assertContains(runSafeReactMigration, 'cleanRequired()', 'runner richiede working tree pulito')
@@ -307,6 +320,7 @@ assertContains(runSafeReactMigration, '--tranche=5a', 'runner supporta Tranche 5
 assertContains(runSafeReactMigration, '--tranche=6a', 'runner supporta Tranche 6A')
 assertContains(runSafeReactMigration, '--tranche=7a', 'runner supporta Tranche 7A')
 assertContains(runSafeReactMigration, '--tranche=8a', 'runner supporta Tranche 8A')
+assertContains(runSafeReactMigration, '--tranche=9a', 'runner supporta Tranche 9A')
 assertContains(runSafeReactMigration, 'npm run test', 'runner esegue test frontend')
 assertContains(runSafeReactMigration, 'npm run typecheck', 'runner esegue typecheck frontend')
 assertContains(runSafeReactMigration, 'npm run build', 'runner esegue build frontend')
@@ -332,17 +346,27 @@ assertContains(tranche8aSecrets, 'react_compensi_forensi_bridge.py', 'check Tran
 assertContains(tranche8aNoCompensiLogic, 'calculateCompenso', 'check Tranche 8A blocca logica compensi frontend')
 assertContains(tranche8aNoDocumentGeneration, 'generatePdf', 'check Tranche 8A blocca generazione documenti')
 assertContains(tranche8aOpenDesign, 'impeccable-open-design.css', 'check Tranche 8A verifica token Open Design')
+assertContains(tranche9aGate, '/template-atti/catalogo', 'check Tranche 9A verifica catalogo template')
+assertContains(tranche9aGate, '/redazione-atti', 'check Tranche 9A verifica redazione atti')
+assertContains(tranche9aSecrets, 'react_template_atti_bridge.py', 'check Tranche 9A anti-segreti scansiona bridge template')
+assertContains(tranche9aNoDocumentRaw, 'dangerouslySetInnerHTML', 'check Tranche 9A blocca document raw')
+assertContains(tranche9aNoLegalGeneration, 'generateAtto', 'check Tranche 9A blocca redazione automatica')
+assertContains(tranche9aNoDocumentGeneration, 'generatePdf', 'check Tranche 9A blocca produzione file')
+assertContains(tranche9aOpenDesign, 'openDesignDocumentSurface', 'check Tranche 9A verifica Open Design documentale')
 assertContains(uiAllowedClasses, '"allowedPrefix": "iu-"', 'policy classi UI prefisso iu')
 assertContains(routeRiskRules, '"critical"', 'regole rischio route critical')
 assertContains(impeccableOpenDesignCss, '--iu-od-space-', 'token Open Design spazio')
 assertContains(impeccableOpenDesignCss, '--iu-od-focus', 'token Open Design focus')
+assertContains(impeccableOpenDesignCss, '--iu-od-doc-gap', 'token Open Design documentale gap')
+assertContains(impeccableOpenDesignCss, '.iu-od-action-row', 'utility Open Design azioni documentali')
 assertContains(openDesign, 'Impeccable / Open Design', 'contratto Open Design interno')
 assertContains(openDesign, "classPrefix: 'iu-'", 'contratto Open Design prefisso classi')
+assertContains(openDesign, 'openDesignDocumentSurface', 'contratto Open Design superficie documentale')
 assertContains(tranche8aOpenDesignReport, 'Token creati', 'report Open Design 8A')
 if (routeManifest.policy?.currentReleaseUnlocksRoutes !== true) {
   throw new Error('route manifest: currentReleaseUnlocksRoutes deve essere true nelle tranche di promozione')
 }
-const allowedGovernedUnlocks = new Set(['/statistiche', '/audit', '/registro-attivita', '/utenti', '/profili', '/backup', '/sito-studio', '/sito-studio/contatti', '/studio', '/amministrazione', '/fatturazione', '/fatturazione/nuova', '/incassi-pagamenti', '/preventivi', '/preventivi/nuovo', '/preventivi/conferimento/nuovo', '/compensi-forensi', '/tariffario'])
+const allowedGovernedUnlocks = new Set(['/statistiche', '/audit', '/registro-attivita', '/utenti', '/profili', '/backup', '/sito-studio', '/sito-studio/contatti', '/studio', '/amministrazione', '/fatturazione', '/fatturazione/nuova', '/incassi-pagamenti', '/preventivi', '/preventivi/nuovo', '/preventivi/conferimento/nuovo', '/compensi-forensi', '/tariffario', '/template-atti', '/template-atti/catalogo', '/redazione-atti'])
 for (const entry of routeManifest.routes ?? []) {
   if (entry.unlockFromGate === true && !allowedGovernedUnlocks.has(entry.route)) {
     throw new Error(`route manifest: ${entry.route} non puo essere sbloccata nelle tranche governate`)
@@ -363,6 +387,12 @@ for (const route of ['/compensi-forensi', '/tariffario']) {
     throw new Error(`route manifest: ${route} deve essere react_full con unlockFromGate=true nella Tranche 8A`)
   }
 }
+for (const route of ['/template-atti', '/template-atti/catalogo', '/redazione-atti']) {
+  const entry = (routeManifest.routes ?? []).find((item) => item.route === route)
+  if (!entry || entry.status !== 'react_full' || entry.unlockFromGate !== true) {
+    throw new Error(`route manifest: ${route} deve essere react_full con unlockFromGate=true nella Tranche 9A`)
+  }
+}
 {
   const entry = (routeManifest.routes ?? []).find((item) => item.route === '/backup')
   if (!entry || entry.status !== 'react_full' || entry.unlockFromGate !== true) {
@@ -381,13 +411,13 @@ for (const route of ['/sito-studio/builder', '/impostazioni', '/impostazioni-stu
     throw new Error(`route manifest: ${route} deve restare legacy_operational con unlockFromGate=false`)
   }
 }
-for (const route of ['/fatturazione/*', '/preventivi/*', '/preventivi/wizard', '/compensi-forensi/*', '/tariffario/*', '/impostazioni/pagamenti']) {
+for (const route of ['/fatturazione/*', '/preventivi/*', '/preventivi/wizard', '/compensi-forensi/*', '/tariffario/*', '/template-atti/nuovo', '/template-atti/*', '/redazione-atti/*', '/giurisprudenza', '/legal-intelligence', '/deposito/checklist', '/impostazioni/pagamenti']) {
   const entry = (routeManifest.routes ?? []).find((item) => item.route === route)
   if (!entry || entry.status !== 'legacy_operational' || entry.unlockFromGate !== false) {
     throw new Error(`route manifest: ${route} deve restare legacy_operational con unlockFromGate=false`)
   }
 }
-for (const route of ['/utenti', '/profili', '/audit', '/registro-attivita', '/studio', '/amministrazione', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/sincronizzazione-calendari', '/backup', '/sito-studio', '/sito-studio/contatti', '/sito-studio/builder', '/statistiche', '/fatturazione', '/fatturazione/nuova', '/fatturazione/*', '/incassi-pagamenti', '/preventivi', '/preventivi/nuovo', '/preventivi/conferimento/nuovo', '/preventivi/*', '/preventivi/wizard', '/compensi-forensi', '/compensi-forensi/*', '/tariffario', '/tariffario/*', '/template-atti', '/redazione-atti', '/giurisprudenza', '/legal-intelligence', '/deposito/checklist', '/polisWeb', '/pdp', '/pat', '/sigit', '/sigp', '/portali/*']) {
+for (const route of ['/utenti', '/profili', '/audit', '/registro-attivita', '/studio', '/amministrazione', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/sincronizzazione-calendari', '/backup', '/sito-studio', '/sito-studio/contatti', '/sito-studio/builder', '/statistiche', '/fatturazione', '/fatturazione/nuova', '/fatturazione/*', '/incassi-pagamenti', '/preventivi', '/preventivi/nuovo', '/preventivi/conferimento/nuovo', '/preventivi/*', '/preventivi/wizard', '/compensi-forensi', '/compensi-forensi/*', '/tariffario', '/tariffario/*', '/template-atti', '/template-atti/catalogo', '/template-atti/nuovo', '/template-atti/*', '/redazione-atti', '/redazione-atti/*', '/checklist', '/giurisprudenza', '/legal-intelligence', '/deposito/checklist', '/polisWeb', '/pdp', '/pat', '/sigit', '/sigp', '/portali/*']) {
   if (!(routeManifest.routes ?? []).some((entry) => entry.route === route)) {
     throw new Error(`route manifest: manca ${route}`)
   }
@@ -448,6 +478,8 @@ assertContains(app, "IncassiPagamentiPage", 'route incassi pagamenti react')
 assertContains(app, "PreventiviPage", 'route preventivi react')
 assertContains(app, "CompensiForensiPage", 'route compensi forensi react')
 assertContains(app, "TariffarioPage", 'route tariffario react')
+assertContains(app, "TemplateAttiPage", 'route template atti react')
+assertContains(app, "RedazioneAttiPage", 'route redazione atti react')
 assertContains(app, "isStatistichePage", 'detection statistiche react')
 assertContains(app, "isAuditPage", 'detection audit react')
 assertContains(app, "isRegistroAttivitaPage", 'detection registro attivita react')
@@ -462,6 +494,8 @@ assertContains(app, "isIncassiPagamentiPage", 'detection incassi pagamenti react
 assertContains(app, "isPreventiviPage", 'detection preventivi react')
 assertContains(app, "isCompensiForensiPage", 'detection compensi forensi react')
 assertContains(app, "isTariffarioPage", 'detection tariffario react')
+assertContains(app, "isTemplateAttiPage", 'detection template atti react')
+assertContains(app, "isRedazioneAttiPage", 'detection redazione atti react')
 assertContains(app, "isStatistichePage?<StatistichePage/>", 'render statistiche prima dello studio module')
 assertContains(app, "isAuditPage||isRegistroAttivitaPage?<AuditPage/>", 'render audit e registro attivita')
 assertContains(app, "isUtentiPage?<UtentiPage/>", 'render utenti prima dello studio module')
@@ -475,6 +509,8 @@ assertContains(app, "isIncassiPagamentiPage?<IncassiPagamentiPage/>", 'render in
 assertContains(app, "isPreventiviPage?<PreventiviPage/>", 'render preventivi prima dello studio module')
 assertContains(app, "isCompensiForensiPage?<CompensiForensiPage/>", 'render compensi prima dello studio module')
 assertContains(app, "isTariffarioPage?<TariffarioPage/>", 'render tariffario prima dello studio module')
+assertContains(app, "isTemplateAttiPage?<TemplateAttiPage/>", 'render template atti prima dello studio module')
+assertContains(app, "isRedazioneAttiPage?<RedazioneAttiPage/>", 'render redazione atti prima dello studio module')
 assertContains(statistiche, 'getStatistichePage', 'StatistichePage usa getStatistichePage')
 assertContains(auditPage, 'getAuditPage', 'AuditPage usa getAuditPage')
 assertContains(utentiPage, 'getUtentiPage', 'UtentiPage usa getUtentiPage')
@@ -492,6 +528,9 @@ assertContains(preventiviPage, 'getNuovoPreventivoPage', 'PreventiviPage usa get
 assertContains(preventiviPage, 'getNuovoConferimentoPage', 'PreventiviPage usa getNuovoConferimentoPage')
 assertContains(compensiForensiPage, 'getCompensiForensiPage', 'CompensiForensiPage usa getCompensiForensiPage')
 assertContains(tariffarioPage, 'getTariffarioPage', 'TariffarioPage usa getTariffarioPage')
+assertContains(templateAttiPage, 'getTemplateAttiPage', 'TemplateAttiPage usa getTemplateAttiPage')
+assertContains(templateAttiPage, 'getTemplateAttiCatalogoPage', 'TemplateAttiPage usa getTemplateAttiCatalogoPage')
+assertContains(redazioneAttiPage, 'getRedazioneAttiPage', 'RedazioneAttiPage usa getRedazioneAttiPage')
 assertContains(utentiPage, 'LegacyPostForm', 'UtentiPage usa LegacyPostForm')
 assertContains(profiliPage, 'LegacyPostForm', 'ProfiliPage usa LegacyPostForm per scritture legacy')
 assertContains(backupPage, 'LegacyPostForm', 'BackupPage usa LegacyPostForm per azioni legacy')
@@ -518,6 +557,9 @@ assertContains(preventiviData, '/api/v1/ui/preventivi/nuovo', 'preventiviData us
 assertContains(preventiviData, '/api/v1/ui/preventivi/conferimento/nuovo', 'preventiviData usa endpoint nuovo conferimento')
 assertContains(compensiForensiData, '/api/v1/ui/compensi-forensi', 'compensiForensiData usa endpoint compensi forensi')
 assertContains(tariffarioData, '/api/v1/ui/tariffario', 'tariffarioData usa endpoint tariffario')
+assertContains(templateAttiData, '/api/v1/ui/template-atti', 'templateAttiData usa endpoint template atti')
+assertContains(templateAttiData, '/api/v1/ui/template-atti/catalogo', 'templateAttiData usa endpoint catalogo template atti')
+assertContains(redazioneAttiData, '/api/v1/ui/redazione-atti', 'redazioneAttiData usa endpoint redazione atti')
 assertContains(statisticheBridge, '"route_owner": "react_shell"', 'bridge statistiche route_owner react_shell')
 assertContains(auditBridge, '"route_owner": "react_shell"', 'bridge audit route_owner react_shell')
 assertContains(utentiBridge, '"route_owner": "react_shell"', 'bridge utenti route_owner react_shell')
@@ -529,6 +571,8 @@ assertContains(incassiPagamentiBridge, '"route_owner": "react_shell"', 'bridge i
 assertContains(preventiviBridge, '"route_owner": "react_shell"', 'bridge preventivi route_owner react_shell')
 assertContains(compensiForensiBridge, '"route_owner": "react_shell"', 'bridge compensi route_owner react_shell')
 assertContains(tariffarioBridge, '"route_owner": "react_shell"', 'bridge tariffario route_owner react_shell')
+assertContains(templateAttiBridge, '"route_owner": "react_shell"', 'bridge template atti route_owner react_shell')
+assertContains(redazioneAttiBridge, '"route_owner": "react_shell"', 'bridge redazione atti route_owner react_shell')
 assertContains(apiBridge, '@api_v1_react.get("/statistiche")', 'endpoint UI statistiche')
 assertContains(apiBridge, '@api_v1_react.get("/audit")', 'endpoint UI audit')
 assertContains(apiBridge, '@api_v1_react.get("/registro-attivita")', 'endpoint UI registro attivita')
@@ -547,6 +591,9 @@ assertContains(apiBridge, '@api_v1_react.get("/preventivi/nuovo")', 'endpoint UI
 assertContains(apiBridge, '@api_v1_react.get("/preventivi/conferimento/nuovo")', 'endpoint UI nuovo conferimento')
 assertContains(apiBridge, '@api_v1_react.get("/compensi-forensi")', 'endpoint UI compensi forensi')
 assertContains(apiBridge, '@api_v1_react.get("/tariffario")', 'endpoint UI tariffario')
+assertContains(apiBridge, '@api_v1_react.get("/template-atti")', 'endpoint UI template atti')
+assertContains(apiBridge, '@api_v1_react.get("/template-atti/catalogo")', 'endpoint UI catalogo template atti')
+assertContains(apiBridge, '@api_v1_react.get("/redazione-atti")', 'endpoint UI redazione atti')
 assertNotContains(legacyOperationalTuple, '"/statistiche"', 'gate legacy senza statistiche')
 assertNotContains(legacyOperationalTuple, '"/audit"', 'gate legacy senza audit')
 assertNotContains(legacyOperationalTuple, '"/registro-attivita"', 'gate legacy senza registro attivita')
@@ -561,9 +608,15 @@ assertNotContains(legacyOperationalTuple, '"/incassi-pagamenti"', 'gate legacy s
 assertNotContains(legacyOperationalTuple, '"/preventivi"', 'gate legacy senza preventivi exact')
 assertNotContains(legacyOperationalTuple, '"/compensi-forensi"', 'gate legacy senza compensi forensi exact')
 assertNotContains(legacyOperationalTuple, '"/tariffario"', 'gate legacy senza tariffario exact')
+assertNotContains(legacyOperationalTuple, '"/template-atti"', 'gate legacy senza template atti exact')
+assertNotContains(legacyOperationalTuple, '"/redazione-atti"', 'gate legacy senza redazione atti exact')
 assertContains(legacyOperationalTuple, '"/impostazioni"', 'gate legacy mantiene impostazioni')
 assertContains(legacyOperationalTuple, '"/impostazioni-studio"', 'gate legacy mantiene impostazioni studio')
 assertContains(legacyOperationalTuple, '"/sincronizzazione-calendari"', 'gate legacy mantiene sincronizzazione calendari')
+assertContains(legacyOperationalTuple, '"/checklist"', 'gate legacy mantiene checklist')
+assertContains(legacyOperationalTuple, '"/deposito/checklist"', 'gate legacy mantiene deposito checklist')
+assertContains(legacyOperationalTuple, '"/giurisprudenza"', 'gate legacy mantiene giurisprudenza')
+assertContains(legacyOperationalTuple, '"/legal-intelligence"', 'gate legacy mantiene legal intelligence')
 assertContains(reactRouteGate, 'lower.startswith("/utenti/") and lower != "/utenti/nuovo"', 'gate protegge nested utenti non migrati')
 assertContains(reactRouteGate, 'lower.startswith("/profili/")', 'gate protegge nested profili non migrati')
 assertContains(reactRouteGate, 'lower.startswith("/backup/")', 'gate protegge subpath backup legacy')
@@ -583,6 +636,14 @@ assertNotContains(reactRouteGate, 'lower == "/compensi-forensi" or lower.startsw
 assertNotContains(reactRouteGate, 'lower == "/tariffario" or lower.startswith("/tariffario/")', 'gate non blocca exact tariffario')
 assertContains(reactRouteGate, 'lower.startswith("/compensi-forensi/")', 'gate protegge nested compensi forensi')
 assertContains(reactRouteGate, 'lower.startswith("/tariffario/")', 'gate protegge nested tariffario')
+assertContains(reactRouteGate, 'lower == "/template-atti/nuovo"', 'gate protegge nuovo template atti legacy')
+assertContains(reactRouteGate, 'lower.startswith("/template-atti/") and lower != "/template-atti/catalogo"', 'gate protegge nested template atti legacy')
+assertContains(reactRouteGate, 'lower.startswith("/redazione-atti/")', 'gate protegge nested redazione atti legacy')
+assertContains(reactRouteGate, 'lower == "/checklist" or lower.startswith("/checklist/")', 'gate protegge checklist legacy')
+assertContains(reactRouteGate, 'lower == "/deposito/checklist" or lower.startswith("/deposito/checklist/")', 'gate protegge deposito checklist legacy')
+assertContains(reactRouteGate, 'lower == "/giurisprudenza" or lower.startswith("/giurisprudenza/")', 'gate protegge giurisprudenza legacy')
+assertContains(reactRouteGate, 'lower == "/legal-intelligence" or lower.startswith("/legal-intelligence/")', 'gate protegge legal intelligence legacy')
+assertContains(reactRouteGate, 'lower == "/ricerca-legale" or lower.startswith("/ricerca-legale/")', 'gate protegge ricerca legale legacy')
 assertNotContains(shellLegacyFirstTuple, '"/statistiche"', 'shell legacy-first senza statistiche')
 assertNotContains(shellLegacyFirstTuple, '"/audit"', 'shell legacy-first senza audit')
 assertNotContains(shellLegacyFirstTuple, '"/registro-attivita"', 'shell legacy-first senza registro attivita')
@@ -597,6 +658,8 @@ assertNotContains(shellLegacyFirstTuple, '"/incassi-pagamenti"', 'shell legacy-f
 assertNotContains(shellLegacyFirstTuple, '"/preventivi"', 'shell legacy-first senza preventivi exact')
 assertNotContains(shellLegacyFirstTuple, '"/compensi-forensi"', 'shell legacy-first senza compensi exact')
 assertNotContains(shellLegacyFirstTuple, '"/tariffario"', 'shell legacy-first senza tariffario exact')
+assertNotContains(shellLegacyFirstTuple, '"/template-atti"', 'shell legacy-first senza template atti exact')
+assertNotContains(shellLegacyFirstTuple, '"/redazione-atti"', 'shell legacy-first senza redazione atti exact')
 assertContains(shellLegacyFirstTuple, '"/impostazioni"', 'shell legacy-first mantiene impostazioni')
 assertContains(shellLegacyFirstTuple, '"/impostazioni-studio"', 'shell legacy-first mantiene impostazioni studio')
 assertContains(shellLegacyFirstTuple, '"/sincronizzazione-calendari"', 'shell legacy-first mantiene sincronizzazione calendari')
@@ -617,6 +680,9 @@ assertNotContains(reactShellBlueprint, 'lower == "/compensi-forensi" or lower.st
 assertNotContains(reactShellBlueprint, 'lower == "/tariffario" or lower.startswith("/tariffario/")', 'shell non blocca exact tariffario')
 assertContains(reactShellBlueprint, 'lower.startswith("/compensi-forensi/")', 'shell protegge nested compensi forensi')
 assertContains(reactShellBlueprint, 'lower.startswith("/tariffario/")', 'shell protegge nested tariffario')
+assertContains(reactShellBlueprint, 'lower == "/template-atti/nuovo"', 'shell protegge nuovo template atti legacy')
+assertContains(reactShellBlueprint, 'lower.startswith("/template-atti/") and lower != "/template-atti/catalogo"', 'shell protegge nested template atti legacy')
+assertContains(reactShellBlueprint, 'lower.startswith("/redazione-atti/")', 'shell protegge nested redazione atti legacy')
 for (const [label, source] of [
   ['StatistichePage', statistiche],
   ['AuditPage', auditPage],
@@ -631,6 +697,8 @@ for (const [label, source] of [
   ['PreventiviPage', preventiviPage],
   ['CompensiForensiPage', compensiForensiPage],
   ['TariffarioPage', tariffarioPage],
+  ['TemplateAttiPage', templateAttiPage],
+  ['RedazioneAttiPage', redazioneAttiPage],
 ]) {
   assertNoBootstrapClass(source, `${label} senza classi Bootstrap`)
   assertNotContains(source, 'href="#"', `${label} senza href placeholder`)
@@ -662,11 +730,15 @@ for (const [label, source] of [
   ['react_preventivi_bridge', preventiviBridge],
   ['react_compensi_forensi_bridge', compensiForensiBridge],
   ['react_tariffario_bridge', tariffarioBridge],
+  ['react_template_atti_bridge', templateAttiBridge],
+  ['react_redazione_atti_bridge', redazioneAttiBridge],
   ['fatturazioneData', fatturazioneData],
   ['incassiPagamentiData', incassiPagamentiData],
   ['preventiviData', preventiviData],
   ['compensiForensiData', compensiForensiData],
   ['tariffarioData', tariffarioData],
+  ['templateAttiData', templateAttiData],
+  ['redazioneAttiData', redazioneAttiData],
 ]) {
   assertNotContains(source, 'mockResults', `${label} senza mockResults`)
   assertNotContains(source, 'mock_fallback: true', `${label} senza mock fallback true`)
@@ -680,9 +752,13 @@ assertNoFetchPost(amministrazioneData, 'amministrazioneData senza fetch POST')
 assertNoFetchPost(fatturazionePage, 'FatturazionePage senza fetch POST')
 assertNoFetchPost(incassiPagamentiPage, 'IncassiPagamentiPage senza fetch POST')
 assertNoFetchPost(preventiviPage, 'PreventiviPage senza fetch POST')
+assertNoFetchPost(templateAttiPage, 'TemplateAttiPage senza fetch POST')
+assertNoFetchPost(redazioneAttiPage, 'RedazioneAttiPage senza fetch POST')
 assertNoFetchPost(fatturazioneData, 'fatturazioneData senza fetch POST')
 assertNoFetchPost(incassiPagamentiData, 'incassiPagamentiData senza fetch POST')
 assertNoFetchPost(preventiviData, 'preventiviData senza fetch POST')
+assertNoFetchPost(templateAttiData, 'templateAttiData senza fetch POST')
+assertNoFetchPost(redazioneAttiData, 'redazioneAttiData senza fetch POST')
 for (const [label, source] of [
   ['react_backup_bridge', backupBridge],
   ['react_sito_studio_bridge', sitoStudioBridge],
@@ -693,6 +769,8 @@ for (const [label, source] of [
   ['react_preventivi_bridge', preventiviBridge],
   ['react_compensi_forensi_bridge', compensiForensiBridge],
   ['react_tariffario_bridge', tariffarioBridge],
+  ['react_template_atti_bridge', templateAttiBridge],
+  ['react_redazione_atti_bridge', redazioneAttiBridge],
   ['backupData', backupData],
   ['sitoStudioData', sitoStudioData],
   ['studioData', studioData],
@@ -702,6 +780,8 @@ for (const [label, source] of [
   ['preventiviData', preventiviData],
   ['compensiForensiData', compensiForensiData],
   ['tariffarioData', tariffarioData],
+  ['templateAttiData', templateAttiData],
+  ['redazioneAttiData', redazioneAttiData],
   ['BackupPage', backupPage],
   ['SitoStudioPage', sitoStudioPage],
   ['StudioPage', studioPage],
@@ -711,6 +791,8 @@ for (const [label, source] of [
   ['PreventiviPage', preventiviPage],
   ['CompensiForensiPage', compensiForensiPage],
   ['TariffarioPage', tariffarioPage],
+  ['TemplateAttiPage', templateAttiPage],
+  ['RedazioneAttiPage', redazioneAttiPage],
 ]) {
   assertNoSensitivePayloadWords(source, `${label} senza campi riservati`)
   assertNoClientStorage(source, `${label} senza storage client`)
@@ -731,9 +813,15 @@ for (const [label, source] of [
   ['preventiviData', preventiviData],
   ['compensiForensiData', compensiForensiData],
   ['tariffarioData', tariffarioData],
+  ['TemplateAttiPage', templateAttiPage],
+  ['RedazioneAttiPage', redazioneAttiPage],
+  ['templateAttiData', templateAttiData],
+  ['redazioneAttiData', redazioneAttiData],
 ]) {
   assertNoFetchBlob(source, `${label} senza fetch blob`)
-  assertNoFiscalLogic(source, `${label} senza calcolo fiscale canonico`)
+  if (!label.includes('Template') && !label.includes('Redazione') && !label.includes('templateAtti') && !label.includes('redazioneAtti')) {
+    assertNoFiscalLogic(source, `${label} senza calcolo fiscale canonico`)
+  }
 }
 for (const [label, source] of [
   ['PreventiviPage', preventiviPage],
@@ -752,9 +840,38 @@ for (const [label, source] of [
 for (const [label, source] of [
   ['CompensiForensiPage', compensiForensiPage],
   ['TariffarioPage', tariffarioPage],
+  ['TemplateAttiPage', templateAttiPage],
+  ['RedazioneAttiPage', redazioneAttiPage],
 ]) {
   assertNotContains(source, 'style={{', `${label} senza inline style`)
   assertNotContains(source, '#', `${label} senza colori hardcoded`)
+  assertNotContains(source, 'dangerouslySetInnerHTML', `${label} senza HTML pericoloso`)
+  assertNotContains(source, 'contentEditable', `${label} senza editor inline`)
+}
+for (const [label, source] of [
+  ['TemplateAttiPage', templateAttiPage],
+  ['RedazioneAttiPage', redazioneAttiPage],
+  ['templateAttiData', templateAttiData],
+  ['redazioneAttiData', redazioneAttiData],
+  ['react_template_atti_bridge', templateAttiBridge],
+  ['react_redazione_atti_bridge', redazioneAttiBridge],
+]) {
+  assertNotContains(source, 'template_raw', `${label} senza template raw`)
+  assertNotContains(source, 'document_raw', `${label} senza document raw`)
+  assertNotContains(source, 'html_raw', `${label} senza html raw`)
+  assertNotContains(source, 'pdf_raw', `${label} senza pdf raw`)
+  assertNotContains(source, 'docx_raw', `${label} senza docx raw`)
+  assertNotContains(source, 'templateBody', `${label} senza corpo template React`)
+  assertNotContains(source, 'templateHtml', `${label} senza HTML template React`)
+  assertNotContains(source, 'documentText', `${label} senza testo documento React`)
+  assertNotContains(source, 'generatedText', `${label} senza testo generato React`)
+  assertNotContains(source, 'promptAI', `${label} senza prompt AI`)
+  assertNotContains(source, 'promptLex', `${label} senza prompt Lex`)
+  assertNotContains(source, 'generatePdf', `${label} senza produzione PDF`)
+  assertNotContains(source, 'generateDocx', `${label} senza produzione DOCX`)
+  assertNotContains(source, 'generateAtto', `${label} senza generazione atto`)
+  assertNotContains(source, 'OpenAI', `${label} senza chiamate OpenAI`)
+  assertNotContains(source, 'ChatCompletion', `${label} senza chat completion`)
 }
 assertNotContains(utentiBridge, 'password_hash', 'bridge utenti non serializza hash password')
 assertNotContains(utentiBridge, 'totp_secret', 'bridge utenti non serializza segreti TOTP')

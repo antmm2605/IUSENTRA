@@ -70,7 +70,20 @@ function isBlockedBySpecialRule(path) {
     path.startsWith('/sincronizzazione-calendari/') ||
     (path.startsWith('/preventivi/') && path !== '/preventivi/nuovo' && path !== '/preventivi/conferimento/nuovo') ||
     path.startsWith('/compensi-forensi/') ||
-    path.startsWith('/tariffario/')
+    path.startsWith('/tariffario/') ||
+    path === '/template-atti/nuovo' ||
+    (path.startsWith('/template-atti/') && path !== '/template-atti/catalogo') ||
+    path.startsWith('/redazione-atti/') ||
+    path === '/checklist' ||
+    path.startsWith('/checklist/') ||
+    path === '/deposito/checklist' ||
+    path.startsWith('/deposito/checklist/') ||
+    path === '/giurisprudenza' ||
+    path.startsWith('/giurisprudenza/') ||
+    path === '/legal-intelligence' ||
+    path.startsWith('/legal-intelligence/') ||
+    path === '/ricerca-legale' ||
+    path.startsWith('/ricerca-legale/')
   )
 }
 
@@ -84,7 +97,7 @@ const reactExact = new Set(extractSet(gate, '_REACT_EXACT').map(normaliseRoute))
 const legacyOperationalPrefixes = extractTuple(gate, '_LEGACY_OPERATIONAL_PREFIXES')
 const excludedPrefixes = extractTuple(gate, '_EXCLUDED_PREFIXES')
 const shellLegacyFirstPrefixes = extractTuple(reactShell, '_LEGACY_FIRST_PREFIXES')
-const allowedReactUnlocks = new Set(['/statistiche', '/audit', '/registro-attivita', '/utenti', '/profili', '/backup', '/sito-studio', '/sito-studio/contatti', '/studio', '/amministrazione', '/fatturazione', '/fatturazione/nuova', '/incassi-pagamenti', '/preventivi', '/preventivi/nuovo', '/preventivi/conferimento/nuovo', '/compensi-forensi', '/tariffario'])
+const allowedReactUnlocks = new Set(['/statistiche', '/audit', '/registro-attivita', '/utenti', '/profili', '/backup', '/sito-studio', '/sito-studio/contatti', '/studio', '/amministrazione', '/fatturazione', '/fatturazione/nuova', '/incassi-pagamenti', '/preventivi', '/preventivi/nuovo', '/preventivi/conferimento/nuovo', '/compensi-forensi', '/tariffario', '/template-atti', '/template-atti/catalogo', '/redazione-atti'])
 
 const violations = []
 for (const entry of manifest.routes ?? []) {
@@ -195,10 +208,22 @@ for (const route of ['/preventivi', '/preventivi/nuovo', '/preventivi/conferimen
   }
 }
 
-for (const route of ['/fatturazione/*', '/impostazioni/pagamenti', '/preventivi/*', '/preventivi/wizard', '/compensi-forensi/*', '/tariffario/*']) {
+for (const route of ['/template-atti', '/template-atti/catalogo', '/redazione-atti']) {
+  const entry = (manifest.routes ?? []).find((item) => normaliseRoute(item.route) === route)
+  if (!entry || entry.status !== 'react_full' || entry.unlockFromGate !== true) {
+    violations.push(`${route}: deve essere react_full con unlockFromGate=true nella Tranche 9A`)
+  }
+  const stillBlocked = legacyOperationalPrefixes.some((prefix) => isPrefixMatch(route, prefix))
+  const stillShellBlocked = isBlockedBySpecialRule(route) || shellLegacyFirstPrefixes.some((prefix) => isPrefixMatch(route, prefix))
+  if (stillBlocked || stillShellBlocked) {
+    violations.push(`${route}: non deve restare bloccata da gate o shell legacy`)
+  }
+}
+
+for (const route of ['/fatturazione/*', '/impostazioni/pagamenti', '/preventivi/*', '/preventivi/wizard', '/compensi-forensi/*', '/tariffario/*', '/template-atti/nuovo', '/template-atti/*', '/redazione-atti/*', '/checklist', '/giurisprudenza', '/legal-intelligence', '/deposito/checklist']) {
   const entry = (manifest.routes ?? []).find((item) => item.route === route)
   if (!entry || entry.status !== 'legacy_operational' || entry.unlockFromGate !== false) {
-    violations.push(`${route}: deve restare legacy_operational con unlockFromGate=false nella Tranche 7A`)
+    violations.push(`${route}: deve restare legacy_operational con unlockFromGate=false nelle tranche governate`)
   }
 }
 
@@ -218,6 +243,14 @@ for (const snippet of [
   '"/preventivi/conferimento/nuovo",',
   'lower.startswith("/compensi-forensi/")',
   'lower.startswith("/tariffario/")',
+  'lower == "/template-atti/nuovo"',
+  'lower.startswith("/template-atti/") and lower != "/template-atti/catalogo"',
+  'lower.startswith("/redazione-atti/")',
+  'lower == "/checklist" or lower.startswith("/checklist/")',
+  'lower == "/deposito/checklist" or lower.startswith("/deposito/checklist/")',
+  'lower == "/giurisprudenza" or lower.startswith("/giurisprudenza/")',
+  'lower == "/legal-intelligence" or lower.startswith("/legal-intelligence/")',
+  'lower == "/ricerca-legale" or lower.startswith("/ricerca-legale/")',
 ]) {
   if (!gate.includes(snippet)) {
     violations.push(`react_route_gate.py: manca protezione ${snippet}`)
@@ -234,6 +267,7 @@ const report = [
   `Route con unlockFromGate=true: ${unlocked.length}`,
   `Route governate consentite: ${[...allowedReactUnlocks].join(', ')}`,
   'Tranche 8A: promozione compensi/tariffario exact, sottopercorsi sensibili legacy.',
+  'Tranche 9A: promozione template atti/redazione exact, sottopercorsi documentali sensibili legacy.',
   `Violazioni: ${violations.length}`,
   '',
   ...violations.map((item) => `- ${item}`),
@@ -246,4 +280,4 @@ if (violations.length) {
   process.exit(1)
 }
 
-console.log('Route gate OK: Tranche 8A coerente.')
+console.log('Route gate OK: Tranche 9A coerente.')

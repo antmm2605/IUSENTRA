@@ -1,0 +1,227 @@
+diff --git a/tools/react-migration/route-manifest.json b/tools/react-migration/route-manifest.json
+index e4631065..dcf957aa 100644
+--- a/tools/react-migration/route-manifest.json
++++ b/tools/react-migration/route-manifest.json
+@@ -538,37 +538,127 @@
+     {
+       "route": "/template-atti",
+       "family": "documenti",
+-      "status": "legacy_operational",
++      "status": "react_full",
+       "risk": "high",
+       "targetComponent": "frontend/src/components/TemplateAttiPage.tsx",
+       "targetData": "frontend/src/templateAttiData.ts",
+       "targetBridge": "web/services/react_template_atti_bridge.py",
+       "legacyContract": "artifacts/react-migration/legacy-contracts/template-atti.json",
++      "unlockFromGate": true,
++      "mustPreserve": [
++        "dashboard template atti",
++        "metadati template",
++        "variabili solo come metadata",
++        "nessun template raw",
++        "compliance deposito"
++      ]
++    },
++    {
++      "route": "/template-atti/catalogo",
++      "family": "documenti",
++      "status": "react_full",
++      "risk": "high",
++      "targetComponent": "frontend/src/components/TemplateAttiPage.tsx",
++      "targetData": "frontend/src/templateAttiData.ts",
++      "targetBridge": "web/services/react_template_atti_bridge.py",
++      "legacyContract": "artifacts/react-migration/legacy-contracts/template-atti__catalogo.json",
++      "unlockFromGate": true,
++      "mustPreserve": [
++        "catalogo template reale",
++        "metadati template",
++        "variabili solo come metadata",
++        "nessun template raw",
++        "editor legacy"
++      ]
++    },
++    {
++      "route": "/template-atti/nuovo",
++      "family": "documenti",
++      "status": "legacy_operational",
++      "risk": "high",
++      "targetComponent": "frontend/src/components/TemplateAttiPage.tsx",
++      "targetData": "frontend/src/templateAttiData.ts",
++      "targetBridge": "web/services/react_template_atti_bridge.py",
++      "legacyContract": "artifacts/react-migration/legacy-contracts/template-atti__nuovo.json",
+       "unlockFromGate": false,
+       "mustPreserve": [
+-        "catalogo template",
+-        "variabili studio e fascicolo",
+         "editor template",
++        "POST legacy auditato",
++        "variabili studio e fascicolo",
+         "export documento",
+-        "compliance deposito"
++        "nessun editor React"
+       ]
+     },
+     {
+-      "route": "/redazione-atti",
++      "route": "/template-atti/*",
+       "family": "documenti",
+       "status": "legacy_operational",
+       "risk": "high",
++      "targetComponent": "frontend/src/components/TemplateAttiPage.tsx",
++      "targetData": "frontend/src/templateAttiData.ts",
++      "targetBridge": "web/services/react_template_atti_bridge.py",
++      "legacyContract": "artifacts/react-migration/legacy-contracts/template-atti__detail.json",
++      "unlockFromGate": false,
++      "mustPreserve": [
++        "dettaglio template",
++        "editor",
++        "export",
++        "download",
++        "POST legacy"
++      ]
++    },
++    {
++      "route": "/redazione-atti",
++      "family": "documenti",
++      "status": "react_full",
++      "risk": "high",
+       "targetComponent": "frontend/src/components/RedazioneAttiPage.tsx",
+       "targetData": "frontend/src/redazioneAttiData.ts",
+       "targetBridge": "web/services/react_redazione_atti_bridge.py",
+       "legacyContract": "artifacts/react-migration/legacy-contracts/redazione-atti.json",
++      "unlockFromGate": true,
++      "mustPreserve": [
++        "superficie operativa controllata",
++        "workflow come metadati",
++        "template suggeriti solo come riferimento",
++        "azioni legacy sicure",
++        "nessuna redazione guidata React"
++      ]
++    },
++    {
++      "route": "/redazione-atti/*",
++      "family": "documenti",
++      "status": "legacy_operational",
++      "risk": "high",
++      "targetComponent": "frontend/src/components/RedazioneAttiPage.tsx",
++      "targetData": "frontend/src/redazioneAttiData.ts",
++      "targetBridge": "web/services/react_redazione_atti_bridge.py",
++      "legacyContract": "artifacts/react-migration/legacy-contracts/redazione-atti__detail.json",
+       "unlockFromGate": false,
+       "mustPreserve": [
+         "redazione guidata",
+-        "fonti fascicolo",
+-        "template reali",
+-        "Lex con revisione umana",
+-        "nessun testo legale non verificato"
++        "AI controllata",
++        "generazione documento",
++        "download/export",
++        "audit"
++      ]
++    },
++    {
++      "route": "/checklist",
++      "family": "documenti",
++      "status": "legacy_operational",
++      "risk": "high",
++      "targetComponent": "frontend/src/components/ChecklistPage.tsx",
++      "targetData": "frontend/src/checklistData.ts",
++      "targetBridge": "web/services/react_checklist_bridge.py",
++      "legacyContract": "artifacts/react-migration/legacy-contracts/checklist.json",
++      "unlockFromGate": false,
++      "mustPreserve": [
++        "catalogo checklist",
++        "wizard fascicolo",
++        "upload documenti",
++        "POST legacy",
++        "nessun workflow React"
+       ]
+     },
+     {
+diff --git a/web/blueprints/react_shell.py b/web/blueprints/react_shell.py
+index fe756288..6c67dc23 100644
+--- a/web/blueprints/react_shell.py
++++ b/web/blueprints/react_shell.py
+@@ -33,7 +33,6 @@ _LEGACY_FIRST_PREFIXES = (
+     "/pdp",
+     "/polisweb",
+     "/portali",
+-    "/redazione-atti",
+     "/ricerca-legale",
+     "/servizi-telematici",
+     "/sigit",
+@@ -43,7 +42,6 @@ _LEGACY_FIRST_PREFIXES = (
+     "/strumenti-legali",
+     "/strumenti-operativi",
+     "/telematico",
+-    "/template-atti",
+     "/tribunali",
+ )
+
+@@ -180,6 +178,22 @@ def _deve_mantenere_vista_classica() -> bool:
+         return True
+     if lower.startswith("/tariffario/"):
+         return True
++    if lower == "/template-atti/nuovo":
++        return True
++    if lower.startswith("/template-atti/") and lower != "/template-atti/catalogo":
++        return True
++    if lower.startswith("/redazione-atti/"):
++        return True
++    if lower == "/checklist" or lower.startswith("/checklist/"):
++        return True
++    if lower == "/deposito/checklist" or lower.startswith("/deposito/checklist/"):
++        return True
++    if lower == "/giurisprudenza" or lower.startswith("/giurisprudenza/"):
++        return True
++    if lower == "/legal-intelligence" or lower.startswith("/legal-intelligence/"):
++        return True
++    if lower == "/ricerca-legale" or lower.startswith("/ricerca-legale/"):
++        return True
+     return any(lower == prefix or lower.startswith(f"{prefix}/") for prefix in _LEGACY_FIRST_PREFIXES)
+
+
+diff --git a/web/bootstrap/react_route_gate.py b/web/bootstrap/react_route_gate.py
+index 3f1d49d9..6b91b215 100644
+--- a/web/bootstrap/react_route_gate.py
++++ b/web/bootstrap/react_route_gate.py
+@@ -179,7 +179,6 @@ _LEGACY_OPERATIONAL_PREFIXES = (
+     "/pdp",
+     "/polisweb",
+     "/portali",
+-    "/redazione-atti",
+     "/ricerca-legale",
+     "/servizi-telematici",
+     "/sigit",
+@@ -189,7 +188,6 @@ _LEGACY_OPERATIONAL_PREFIXES = (
+     "/strumenti-legali",
+     "/strumenti-operativi",
+     "/telematico",
+-    "/template-atti",
+     "/tribunali",
+ )
+
+@@ -236,6 +234,22 @@ def _excluded(path: str) -> bool:
+         return True
+     if lower == "/sincronizzazione-calendari" or lower.startswith("/sincronizzazione-calendari/"):
+         return True
++    if lower == "/template-atti/nuovo":
++        return True
++    if lower.startswith("/template-atti/") and lower != "/template-atti/catalogo":
++        return True
++    if lower.startswith("/redazione-atti/"):
++        return True
++    if lower == "/checklist" or lower.startswith("/checklist/"):
++        return True
++    if lower == "/deposito/checklist" or lower.startswith("/deposito/checklist/"):
++        return True
++    if lower == "/giurisprudenza" or lower.startswith("/giurisprudenza/"):
++        return True
++    if lower == "/legal-intelligence" or lower.startswith("/legal-intelligence/"):
++        return True
++    if lower == "/ricerca-legale" or lower.startswith("/ricerca-legale/"):
++        return True
+     if any(lower == prefix or lower.startswith(f"{prefix}/") for prefix in _LEGACY_OPERATIONAL_PREFIXES):
+         return True
+     if lower.startswith("/preventivi/") and lower not in {

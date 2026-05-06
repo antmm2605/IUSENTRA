@@ -34,6 +34,10 @@ def human_bytes(value: int | float) -> str:
     return f"{size:.1f} TiB"
 
 
+def _sum_report_int(reports: list[dict[str, Any]], key: str) -> int:
+    return sum(int(report.get(key, 0) or 0) for report in reports)
+
+
 def directory_size(path: str | Path) -> int:
     root = Path(path)
     if not root.exists():
@@ -228,16 +232,24 @@ def run_storage_compaction(
                 write_manifest=False,
             ).to_dict(include_duplicates=False)
         )
+    physical_duplicates = _sum_report_int(reports, "physical_duplicate_files")
+    already_hardlinked = _sum_report_int(reports, "already_hardlinked_files")
+    hardlinked_now = _sum_report_int(reports, "hardlinked_files")
+    bytes_reclaimable = _sum_report_int(reports, "bytes_reclaimable")
+    bytes_reclaimed = _sum_report_int(reports, "bytes_reclaimed")
     return {
         "mock_fallback": False,
         "applied": apply,
         "tenant_slug": slug,
         "roots_scanned": len(reports),
-        "files_scanned": sum(int(report["files_scanned"]) for report in reports),
-        "duplicate_files": sum(int(report["duplicate_files"]) for report in reports),
-        "bytes_reclaimable": sum(int(report["bytes_reclaimable"]) for report in reports),
-        "bytes_reclaimed": sum(int(report["bytes_reclaimed"]) for report in reports),
-        "bytes_reclaimable_label": human_bytes(sum(int(report["bytes_reclaimable"]) for report in reports)),
-        "bytes_reclaimed_label": human_bytes(sum(int(report["bytes_reclaimed"]) for report in reports)),
+        "files_scanned": _sum_report_int(reports, "files_scanned"),
+        "duplicate_files": _sum_report_int(reports, "duplicate_files"),
+        "physical_duplicate_files": physical_duplicates,
+        "already_hardlinked_files": already_hardlinked,
+        "hardlinked_files": hardlinked_now,
+        "bytes_reclaimable": bytes_reclaimable,
+        "bytes_reclaimed": bytes_reclaimed,
+        "bytes_reclaimable_label": human_bytes(bytes_reclaimable),
+        "bytes_reclaimed_label": human_bytes(bytes_reclaimed),
         "reports": reports,
     }

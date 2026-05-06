@@ -32,5 +32,17 @@ def test_compact_storage_deduplica_backup_mirror(tmp_path: Path, capsys):
 
     captured = json.loads(capsys.readouterr().out)
     assert exit_code == 0
+    assert captured["physical_duplicate_files"] == 1
+    assert captured["hardlinked_files"] == 1
+    assert captured["already_hardlinked_files"] == 0
     assert captured["bytes_reclaimed"] == len(content)
     assert primary.samefile(duplicate)
+
+    exit_code = main(["--data-root", str(tmp_path), "--min-size-bytes", "1"])
+    captured = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert captured["duplicate_files"] == 1
+    assert captured["physical_duplicate_files"] == 0
+    assert captured["already_hardlinked_files"] == 1
+    assert captured["bytes_reclaimable"] == 0

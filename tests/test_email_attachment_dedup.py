@@ -58,6 +58,8 @@ def test_deduplicate_attachment_tree_dry_run_non_modifica_file(tmp_path: Path) -
     assert report.files_scanned == 2
     assert report.duplicate_groups == 1
     assert report.duplicate_files == 1
+    assert report.physical_duplicate_files == 1
+    assert report.already_hardlinked_files == 0
     assert report.bytes_reclaimable == 4096
     assert report.bytes_reclaimed == 0
     assert _disk_usage(root) == before
@@ -76,10 +78,18 @@ def test_deduplicate_attachment_tree_apply_hardlinka_file_identici(tmp_path: Pat
 
     report = deduplicate_attachment_tree(root, dry_run=False)
 
+    assert report.physical_duplicate_files == 1
     assert report.hardlinked_files == 1
     assert report.bytes_reclaimed == 4096
     assert duplicate.read_bytes() == b"x" * 4096
     assert os.path.samefile(canonical, duplicate)
+
+    post_report = deduplicate_attachment_tree(root, dry_run=True, write_manifest=False)
+
+    assert post_report.duplicate_files == 1
+    assert post_report.physical_duplicate_files == 0
+    assert post_report.already_hardlinked_files == 1
+    assert post_report.bytes_reclaimable == 0
 
 
 def test_discover_email_attachment_roots_trova_globali_e_tenant(tmp_path: Path) -> None:

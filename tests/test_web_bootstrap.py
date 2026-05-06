@@ -690,6 +690,7 @@ def test_template_principali_usano_copy_italiana_e_date_localizzate():
             "Server e manutenzione",
             "Consumi per studio",
             "Compatta tutto in sicurezza",
+            "gia' compattati",
         ],
         "web/templates/admin/legal_coverage_dashboard.html": [
             "Copertura AI e autopubblicazione controllata",

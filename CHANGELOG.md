@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.198.82 - 2026-05-06
+
+- Chiarito il report Superadmin di compattazione storage distinguendo duplicati identici, duplicati fisici ancora da compattare e file gia' hardlinkati.
+- Esteso il payload di deduplica con `physical_duplicate_files`, `already_hardlinked_files` e `hardlinked_files`, evitando che duplicati gia' compattati sembrino ancora spazio sprecato.
+- Aggiornati script, pannello e test per mostrare lo spazio realmente recuperabile/recuperato invece del solo conteggio grezzo dei file uguali.
+
 ## 2.198.81 - 2026-05-06
 
 - Collegato il pannello `Server e manutenzione` anche alla navigazione piattaforma principale visibile al SUPERADMIN e alla card della Panoramica piattaforma.

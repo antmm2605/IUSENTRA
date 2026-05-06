@@ -37,8 +37,11 @@ def analizza_compattazione():
     try:
         tenant_slug = str(request.form.get("tenant_slug", "") or "").strip()
         compaction = run_storage_compaction(apply=False, tenant_slug=tenant_slug)
+        physical_duplicates = int(compaction.get("physical_duplicate_files", 0) or 0)
         flash(
-            f"Analisi compattazione completata: recuperabili {compaction['bytes_reclaimable_label']}.",
+            "Analisi compattazione completata: "
+            f"{physical_duplicates} file da compattare, "
+            f"spazio recuperabile {compaction['bytes_reclaimable_label']}.",
             "info",
         )
         return render_template(
@@ -58,8 +61,11 @@ def compatta():
     try:
         tenant_slug = str(request.form.get("tenant_slug", "") or "").strip()
         compaction = run_storage_compaction(apply=True, tenant_slug=tenant_slug)
+        hardlinked_files = int(compaction.get("hardlinked_files", 0) or 0)
         flash(
-            f"Compattazione completata: recuperati {compaction['bytes_reclaimed_label']}.",
+            "Compattazione completata: "
+            f"{hardlinked_files} file compattati ora, "
+            f"recuperati {compaction['bytes_reclaimed_label']}.",
             "success",
         )
         return render_template(

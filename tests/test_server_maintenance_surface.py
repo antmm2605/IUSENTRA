@@ -33,8 +33,17 @@ def test_server_maintenance_compatta_singolo_studio(tmp_path: Path):
     result = run_storage_compaction(apply=True, data_root=tmp_path, tenant_slug="studio-a")
 
     assert result["tenant_slug"] == "studio-a"
+    assert result["physical_duplicate_files"] == 1
+    assert result["hardlinked_files"] == 1
     assert result["bytes_reclaimed"] == 8192
     assert (tenant_root / "snapshot.zip").samefile(mirror_root / "snapshot.zip")
+
+    post_result = run_storage_compaction(apply=False, data_root=tmp_path, tenant_slug="studio-a")
+
+    assert post_result["duplicate_files"] == 1
+    assert post_result["physical_duplicate_files"] == 0
+    assert post_result["already_hardlinked_files"] == 1
+    assert post_result["bytes_reclaimable"] == 0
 
 
 def test_superadmin_server_manutenzione_renderizza(tmp_path: Path):

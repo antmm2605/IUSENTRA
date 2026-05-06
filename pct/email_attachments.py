@@ -30,6 +30,7 @@ class DeduplicationReport:
     files_scanned: int = 0
     duplicate_groups: int = 0
     duplicate_files: int = 0
+    physical_duplicate_files: int = 0
     bytes_reclaimable: int = 0
     bytes_reclaimed: int = 0
     hardlinked_files: int = 0
@@ -167,6 +168,7 @@ def deduplicate_attachment_tree(
                 if _same_inode(canonical, duplicate):
                     report.already_hardlinked_files += 1
                     continue
+                report.physical_duplicate_files += 1
                 report.bytes_reclaimable += size
                 if dry_run:
                     continue

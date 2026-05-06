@@ -1,0 +1,137 @@
+.iu-stat-kpis {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.iu-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.iu-stat-rows,
+.iu-stat-warnings,
+.iu-stat-records,
+.iu-stat-contract {
+  display: grid;
+  gap: 10px;
+}
+
+.iu-stat-row {
+  display: grid;
+  gap: 7px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--iu-border);
+}
+
+.iu-stat-row:last-child {
+  border-bottom: 0;
+}
+
+.iu-stat-row__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.iu-stat-row__head strong,
+.iu-stat-record span {
+  color: #111827;
+  font-size: 13px;
+  line-height: 1.35;
+  font-weight: 850;
+}
+
+.iu-stat-row__head span,
+.iu-stat-record strong {
+  color: #111827;
+  font-size: 18px;
+  line-height: 1;
+  font-weight: 900;
+}
+
+.iu-stat-row small,
+.iu-stat-record small,
+.iu-stat-contract span {
+  color: var(--iu-slate-500);
+  font-size: 12px;
+  line-height: 1.45;
+  font-weight: 650;
+}
+
+.iu-stat-row__bar {
+  height: 7px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: var(--iu-slate-100);
+}
+
+.iu-stat-row__bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--iu-blue-600), var(--iu-sky-500));
+}
+
+.iu-stat-warning {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(245, 158, 11, .24);
+  border-radius: 12px;
+  background: rgba(245, 158, 11, .08);
+  color: #92400e;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.iu-stat-records {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.iu-stat-record {
+  display: grid;
+  gap: 8px;
+  min-height: 110px;
+  padding: 14px;
+  border: 1px solid var(--iu-border);
+  border-radius: 14px;
+  background: #fff;
+  text-decoration: none;
+}
+
+.iu-stat-record:hover {
+  border-color: rgba(37, 99, 235, .25);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, .08);
+}
+
+.iu-stat-contract {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  padding: 2px;
+}
+
+@media (max-width: 1100px) {
+  .iu-stat-kpis,
+  .iu-stat-records,
+  .iu-stat-contract {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .iu-stat-kpis,
+  .iu-stat-grid,
+  .iu-stat-records,
+  .iu-stat-contract {
+    grid-template-columns: 1fr;
+  }
+
+  .iu-stat-warning,
+  .iu-stat-row__head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

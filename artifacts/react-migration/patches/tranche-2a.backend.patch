@@ -1,0 +1,689 @@
+diff --git a/web/blueprints/api_v1_react.py b/web/blueprints/api_v1_react.py
+index ae9a421b..85380542 100644
+--- a/web/blueprints/api_v1_react.py
++++ b/web/blueprints/api_v1_react.py
+@@ -40,6 +40,7 @@ from web.services.react_admin_database_bridge import (
+     build_react_admin_database_error_payload,
+     build_react_admin_database_payload,
+ )
++from web.services.react_audit_bridge import build_react_audit_error_payload, build_react_audit_payload
+ from web.services.react_clienti_bridge import (
+     build_react_cliente_cartella_payload,
+     build_react_cliente_modifica_payload,
+@@ -71,6 +72,10 @@ from web.services.react_scadenziario_bridge import (
+     build_react_scadenziario_payload,
+ )
+ from web.services.react_soggetti_bridge import build_react_soggetti_payload
++from web.services.react_statistiche_bridge import (
++    build_react_statistiche_error_payload,
++    build_react_statistiche_payload,
++)
+ from web.services.react_studio_module_bridge import build_react_studio_module_payload
+ from web.services.react_telematico_bridge import (
+     build_react_telematico_payload,
+@@ -126,6 +131,13 @@ def _puo_leggere_admin_database() -> bool:
+     return bool(utente and getattr(utente, "ha_permesso", lambda _permesso: False)("utenti.leggi"))
+
+
++def _puo_leggere_audit() -> bool:
++    if _api_key_valida():
++        return True
++    utente = g.get("utente_corrente")
++    return bool(utente and getattr(utente, "ha_permesso", lambda _permesso: False)("audit.leggi"))
++
++
+ def _studio_avvocato_titolare() -> str:
+     core_runtime = current_app.extensions.get("core_runtime", {}) or {}
+     config_loader = core_runtime.get("get_config_studio")
+@@ -2223,6 +2235,55 @@ def dashboard_sync_mailboxes():
+         clear_dashboard_payload_cache()
+
+
++@api_v1_react.get("/statistiche")
++@_richiedi_auth
++def statistiche_page():
++    try:
++        return jsonify(
++            build_react_statistiche_payload(
++                get_agenda=get_agenda,
++                get_clienti=get_clienti,
++                get_fascicoli=get_fascicoli,
++                get_fatturazione=get_fatturazione,
++                get_scadenziario=get_scadenziario,
++            )
++        )
++    except Exception as exc:
++        current_app.logger.exception("Errore statistiche React bridge: %s", exc)
++        return jsonify(build_react_statistiche_error_payload("Statistiche non disponibili dal runtime corrente.")), 200
++
++
++@api_v1_react.get("/audit")
++@_richiedi_auth
++def audit_page():
++    if not _puo_leggere_audit():
++        return jsonify(build_react_audit_error_payload("Permesso audit.leggi richiesto.", route="/audit")), 403
++    try:
++        return jsonify(build_react_audit_payload(get_utenti=get_utenti, query=request.args, route="/audit"))
++    except Exception as exc:
++        current_app.logger.exception("Errore audit React bridge: %s", exc)
++        return jsonify(build_react_audit_error_payload("Registro audit non disponibile dal runtime corrente.", route="/audit")), 200
++
++
++@api_v1_react.get("/registro-attivita")
++@_richiedi_auth
++def registro_attivita_page():
++    if not _puo_leggere_audit():
++        return jsonify(
++            build_react_audit_error_payload("Permesso audit.leggi richiesto.", route="/registro-attivita")
++        ), 403
++    try:
++        return jsonify(build_react_audit_payload(get_utenti=get_utenti, query=request.args, route="/registro-attivita"))
++    except Exception as exc:
++        current_app.logger.exception("Errore registro attivita React bridge: %s", exc)
++        return jsonify(
++            build_react_audit_error_payload(
++                "Registro attivita non disponibile dal runtime corrente.",
++                route="/registro-attivita",
++            )
++        ), 200
++
++
+ @api_v1_react.get("/agenda")
+ @_richiedi_auth
+ def agenda():
+
+diff --git a/web/services/react_audit_bridge.py b/web/services/react_audit_bridge.py
+new file mode 100644
+index 00000000..09249424
+--- /dev/null
++++ b/web/services/react_audit_bridge.py
+@@ -0,0 +1,223 @@
++"""Bridge read-only per audit e registro attivita React."""
++
++from __future__ import annotations
++
++from collections import Counter
++from datetime import datetime, timezone
++from typing import Any, Callable
++
++from web.services.audit_surface import build_audit_view
++
++
++def _iso_now() -> str:
++    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
++
++
++def _text(value: Any) -> str:
++    return str(value or "").strip()
++
++
++def _tone_for_result(value: str) -> str:
++    result = value.strip().upper()
++    if result == "OK":
++        return "success"
++    if result == "NEGATO":
++        return "warning"
++    if result == "ERRORE":
++        return "danger"
++    return "neutral"
++
++
++def _resource_tone(value: str) -> str:
++    state = value.strip().lower()
++    if state == "attivo":
++        return "success"
++    if state == "riconciliato":
++        return "info"
++    if state == "storico":
++        return "warning"
++    return "neutral"
++
++
++def _safe_user_label(user: Any) -> str:
++    return (
++        _text(getattr(user, "nome_completo", ""))
++        or _text(getattr(user, "username", ""))
++        or _text(getattr(user, "email", ""))
++        or _text(getattr(user, "id", ""))
++    )
++
++
++def _filters_from_query(query: Any) -> dict[str, str]:
++    getter = getattr(query, "get", None)
++    if not callable(getter):
++        return {"id_utente": "", "azione": ""}
++    return {
++        "id_utente": _text(getter("id_utente", "")),
++        "azione": _text(getter("azione", "")),
++    }
++
++
++def _normalise_record(row: dict[str, Any]) -> dict[str, Any]:
++    result = _text(row.get("esito") or "OK").upper()
++    resource_state = _text(row.get("resource_state"))
++    return {
++        "id": _text(row.get("id") or row.get("timestamp") or row.get("azione")),
++        "timestamp": _text(row.get("timestamp")),
++        "userId": _text(row.get("id_utente")),
++        "username": _text(row.get("username")) or "Utente non indicato",
++        "action": _text(row.get("azione")) or "azione non indicata",
++        "resourceType": _text(row.get("risorsa_tipo")),
++        "resourceId": _text(row.get("risorsa_id")),
++        "details": _text(row.get("dettagli")),
++        "ip": _text(row.get("ip")),
++        "result": result,
++        "resultTone": _tone_for_result(result),
++        "resourceState": resource_state,
++        "resourceTone": _resource_tone(resource_state),
++        "resourceLabel": _text(row.get("resource_label")),
++        "resourceNote": _text(row.get("resource_note")),
++        "resourceUrl": _text(row.get("resource_url")),
++        "resourceBadgeLabel": _text(row.get("resource_badge_label")),
++    }
++
++
++def build_react_audit_payload(
++    *,
++    get_utenti: Callable[[], Any],
++    query: Any = None,
++    route: str = "/audit",
++) -> dict[str, Any]:
++    warnings: list[dict[str, str]] = []
++    filters = _filters_from_query(query)
++    manager = get_utenti()
++
++    eventi = manager.audit_log(
++        id_utente=filters["id_utente"],
++        azione=filters["azione"],
++        limit=200,
++    )
++    try:
++        audit_view = build_audit_view(eventi)
++    except Exception as exc:
++        warnings.append({
++            "code": "audit_arricchimento_non_disponibile",
++            "message": f"Arricchimento audit non disponibile: {type(exc).__name__}.",
++        })
++        audit_view = {"eventi": [evento.to_dict() for evento in eventi], "summary": {}}
++
++    raw_rows = [row for row in audit_view.get("eventi", []) if isinstance(row, dict)]
++    records = [_normalise_record(row) for row in raw_rows]
++    users = list(manager.tutti())
++
++    by_result = Counter(record["result"] for record in records)
++    by_action = Counter(record["action"] for record in records)
++    by_user = Counter(record["username"] for record in records)
++    summary = audit_view.get("summary") if isinstance(audit_view.get("summary"), dict) else {}
++
++    metrics = [
++        {"id": "eventi", "label": "Eventi visualizzati", "value": len(records), "note": "Ultimi 200 eventi filtrati", "tone": "primary"},
++        {"id": "ok", "label": "Esito OK", "value": by_result.get("OK", 0), "note": "Operazioni completate", "tone": "success"},
++        {"id": "negati", "label": "Negati", "value": by_result.get("NEGATO", 0), "note": "Tentativi non autorizzati", "tone": "warning"},
++        {"id": "errori", "label": "Errori", "value": by_result.get("ERRORE", 0), "note": "Eventi con errore", "tone": "danger"},
++        {"id": "attivi", "label": "Risorse attive", "value": int(summary.get("attivi", 0) or 0), "note": "Riconosciute nel database", "tone": "success"},
++        {"id": "storici", "label": "Risorse storiche", "value": int(summary.get("storici", 0) or 0), "note": "Non piu presenti con lo stesso ID", "tone": "warning"},
++    ]
++
++    sections = [
++        {
++            "id": "filtri",
++            "title": "Filtri applicati",
++            "kind": "filters",
++            "items": [
++                {"id": "utente", "label": "Utente", "value": filters["id_utente"] or "Tutti", "note": "", "tone": "neutral"},
++                {"id": "azione", "label": "Azione", "value": filters["azione"] or "Tutte", "note": "", "tone": "neutral"},
++            ],
++            "emptyMessage": "",
++        },
++        {
++            "id": "azioni_frequenti",
++            "title": "Azioni piu frequenti",
++            "kind": "distribution",
++            "items": [
++                {"id": f"azione-{index}", "label": label, "value": count, "note": "", "tone": "primary"}
++                for index, (label, count) in enumerate(by_action.most_common(8))
++            ],
++            "emptyMessage": "Nessuna azione audit nel filtro corrente.",
++        },
++        {
++            "id": "utenti_attivi",
++            "title": "Utenti nel registro",
++            "kind": "distribution",
++            "items": [
++                {"id": f"utente-{index}", "label": label, "value": count, "note": "", "tone": "info"}
++                for index, (label, count) in enumerate(by_user.most_common(8))
++            ],
++            "emptyMessage": "Nessun utente nel filtro corrente.",
++        },
++        {
++            "id": "utenti_filtro",
++            "title": "Utenti disponibili per filtro",
++            "kind": "users",
++            "items": [
++                {
++                    "id": _text(getattr(user, "id", "")),
++                    "label": _safe_user_label(user),
++                    "value": _text(getattr(getattr(user, "ruolo", ""), "value", getattr(user, "ruolo", ""))),
++                    "note": _text(getattr(user, "email", "")),
++                    "tone": "success" if bool(getattr(user, "attivo", False)) else "neutral",
++                }
++                for user in users
++            ],
++            "emptyMessage": "Nessun utente disponibile.",
++        },
++    ]
++
++    actions = [
++        {"id": "refresh", "label": "Aggiorna registro", "href": route, "method": "GET", "tone": "primary"},
++        {"id": "export_csv", "label": "Esporta CSV", "href": "/audit/esporta.csv", "method": "GET", "tone": "neutral"},
++        {"id": "audit", "label": "Apri audit", "href": "/audit", "method": "GET", "tone": "neutral"},
++        {"id": "registro", "label": "Apri registro attivita", "href": "/registro-attivita", "method": "GET", "tone": "neutral"},
++    ]
++
++    return {
++        "source": "repository_reali",
++        "generated_at": _iso_now(),
++        "contracts": {
++            "mock_fallback": False,
++            "writes": "none",
++            "route_owner": "react_shell",
++            "legacy_contract": (
++                "artifacts/react-migration/legacy-contracts/registro-attivita.json"
++                if route == "/registro-attivita"
++                else "artifacts/react-migration/legacy-contracts/audit.json"
++            ),
++        },
++        "metrics": metrics,
++        "sections": sections,
++        "records": records,
++        "actions": actions,
++        "warnings": warnings,
++    }
++
++
++def build_react_audit_error_payload(message: str = "Registro audit non disponibile.", *, route: str = "/audit") -> dict[str, Any]:
++    return {
++        "source": "errore_controllato",
++        "generated_at": _iso_now(),
++        "contracts": {
++            "mock_fallback": False,
++            "writes": "none",
++            "route_owner": "react_shell",
++            "legacy_contract": (
++                "artifacts/react-migration/legacy-contracts/registro-attivita.json"
++                if route == "/registro-attivita"
++                else "artifacts/react-migration/legacy-contracts/audit.json"
++            ),
++        },
++        "metrics": [],
++        "sections": [],
++        "records": [],
++        "actions": [{"id": "legacy", "label": "Apri modulo legacy", "href": f"{route}?_legacy=1", "method": "GET", "tone": "neutral"}],
++        "warnings": [{"code": "audit_errore_controllato", "message": message}],
++    }
+
+diff --git a/web/services/react_statistiche_bridge.py b/web/services/react_statistiche_bridge.py
+new file mode 100644
+index 00000000..db50a775
+--- /dev/null
++++ b/web/services/react_statistiche_bridge.py
+@@ -0,0 +1,359 @@
++"""Bridge read-only per la pagina React delle statistiche."""
++
++from __future__ import annotations
++
++from collections import Counter, defaultdict
++from datetime import date, datetime, timezone
++from typing import Any, Callable
++
++
++MONTH_LABELS = ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "Ott", "Nov", "Dic"]
++
++
++def _iso_now() -> str:
++    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
++
++
++def _enum_value(value: Any) -> str:
++    return str(getattr(value, "value", value) or "").strip()
++
++
++def _to_number(value: Any) -> float:
++    try:
++        return round(float(value or 0), 2)
++    except (TypeError, ValueError):
++        return 0.0
++
++
++def _parse_date(value: Any) -> date | None:
++    if isinstance(value, datetime):
++        return value.date()
++    if isinstance(value, date):
++        return value
++    raw = str(value or "").strip()
++    if not raw:
++        return None
++    for sample in (raw[:10], raw.replace("Z", "+00:00")):
++        try:
++            return datetime.fromisoformat(sample).date()
++        except ValueError:
++            continue
++    return None
++
++
++def _safe(label: str, warnings: list[dict[str, str]], loader: Callable[[], Any], fallback: Any) -> Any:
++    try:
++        return loader()
++    except Exception as exc:
++        warnings.append({
++            "code": f"{label}_non_disponibile",
++            "message": f"Sorgente {label} non disponibile: {type(exc).__name__}.",
++        })
++        return fallback
++
++
++def _stats_dict(manager: Any) -> dict[str, Any]:
++    func = getattr(manager, "statistiche", None)
++    if not callable(func):
++        return {}
++    value = func()
++    return value if isinstance(value, dict) else {}
++
++
++def _all(manager: Any, *, include_archived: bool = False, open_only: bool | None = None) -> list[Any]:
++    if manager is None:
++        return []
++    if include_archived:
++        try:
++            return list(manager.tutti(archiviati=True))
++        except TypeError:
++            pass
++    if open_only is not None:
++        try:
++            return list(manager.tutte(solo_aperte=open_only))
++        except TypeError:
++            pass
++    for name in ("tutti", "tutte"):
++        func = getattr(manager, name, None)
++        if callable(func):
++            try:
++                return list(func())
++            except TypeError:
++                return list(func(False))
++    return []
++
++
++def _monthly_billing(parcelle: list[Any]) -> list[dict[str, Any]]:
++    year = date.today().year
++    fatturato: defaultdict[int, float] = defaultdict(float)
++    incassato: defaultdict[int, float] = defaultdict(float)
++    for parcella in parcelle:
++        issued = str(getattr(parcella, "data_emissione", "") or "")
++        if not issued.startswith(str(year)):
++            continue
++        try:
++            month = int(issued[5:7])
++        except (ValueError, IndexError):
++            continue
++        stato = _enum_value(getattr(parcella, "stato", "")).upper()
++        total = _to_number(getattr(parcella, "totale", 0))
++        if stato != "ANNULLATA":
++            fatturato[month] += total
++        if stato == "PAGATA":
++            incassato[month] += total
++    return [
++        {
++            "id": f"fatturato-{index + 1}",
++            "label": label,
++            "value": round(fatturato.get(index + 1, 0), 2),
++            "secondaryValue": round(incassato.get(index + 1, 0), 2),
++            "note": "Fatturato / incassato",
++            "tone": "primary" if fatturato.get(index + 1, 0) else "neutral",
++        }
++        for index, label in enumerate(MONTH_LABELS)
++    ]
++
++
++def _counter_section(section_id: str, title: str, counter: Counter[str], empty_note: str) -> dict[str, Any]:
++    items = [
++        {
++            "id": f"{section_id}-{index}",
++            "label": label,
++            "value": count,
++            "note": "",
++            "tone": "primary" if count else "neutral",
++        }
++        for index, (label, count) in enumerate(counter.most_common())
++    ]
++    return {
++        "id": section_id,
++        "title": title,
++        "kind": "distribution",
++        "items": items,
++        "emptyMessage": empty_note,
++    }
++
++
++def _depositi_records(fascicoli: list[Any]) -> list[dict[str, Any]]:
++    year = date.today().year
++    records: defaultdict[int, dict[str, int]] = defaultdict(lambda: {"depositi": 0, "accettati": 0, "rifiutati": 0})
++    for fascicolo in fascicoli:
++        for attivita in getattr(fascicolo, "attivita", []) or []:
++            data_attivita = attivita.get("data", "") if isinstance(attivita, dict) else getattr(attivita, "data", "")
++            parsed = _parse_date(data_attivita)
++            if not parsed or parsed.year != year:
++                continue
++            tipo = str(attivita.get("tipo", "") if isinstance(attivita, dict) else getattr(attivita, "tipo", "")).lower()
++            if "deposito" in tipo or "deposita" in tipo:
++                records[parsed.month]["depositi"] += 1
++            if "accettat" in tipo:
++                records[parsed.month]["accettati"] += 1
++            if "rifiutat" in tipo:
++                records[parsed.month]["rifiutati"] += 1
++    return [
++        {
++            "id": f"depositi-{index + 1}",
++            "label": label,
++            "value": records[index + 1]["depositi"],
++            "secondaryValue": records[index + 1]["accettati"],
++            "note": f"Rifiutati: {records[index + 1]['rifiutati']}",
++            "tone": "success" if records[index + 1]["accettati"] else "neutral",
++        }
++        for index, label in enumerate(MONTH_LABELS)
++    ]
++
++
++def _productivity(fascicoli: list[Any], scadenze: list[Any]) -> dict[str, Any]:
++    today = date.today()
++    chiusi = 0
++    durate: list[int] = []
++    for fascicolo in fascicoli:
++        stato = _enum_value(getattr(fascicolo, "stato", "")).upper()
++        if stato not in {"CHIUSO", "DEFINITO", "ARCHIVIATO"}:
++            continue
++        chiusi += 1
++        opened = _parse_date(getattr(fascicolo, "data_apertura", "") or getattr(fascicolo, "creato_il", ""))
++        closed = _parse_date(getattr(fascicolo, "data_chiusura", "") or getattr(fascicolo, "aggiornato_il", ""))
++        if opened and closed:
++            durate.append(max((closed - opened).days, 0))
++
++    completed = 0
++    respected = 0
++    expired = 0
++    for scadenza in scadenze:
++        stato = _enum_value(getattr(scadenza, "stato", "")).upper()
++        due = _parse_date(getattr(scadenza, "data_scadenza", ""))
++        if stato == "COMPLETATO":
++            completed += 1
++            completed_at = _parse_date(getattr(scadenza, "completata_il", "") or getattr(scadenza, "data_completamento", ""))
++            if not completed_at or not due or completed_at <= due:
++                respected += 1
++        elif due and due < today:
++            expired += 1
++
++    total_matters = len(fascicoli)
++    return {
++        "durata_media_gg": round(sum(durate) / len(durate)) if durate else 0,
++        "tasso_chiusura_pct": round(chiusi / total_matters * 100) if total_matters else 0,
++        "fascicoli_chiusi": chiusi,
++        "fascicoli_totali": total_matters,
++        "tasso_scadenze_rispettate_pct": round(respected / completed * 100) if completed else 0,
++        "scadenze_completate": completed,
++        "scadenze_totali": len(scadenze),
++        "scadenze_scadute": expired,
++    }
++
++
++def build_react_statistiche_payload(
++    *,
++    get_agenda: Callable[[], Any],
++    get_clienti: Callable[[], Any],
++    get_fascicoli: Callable[[], Any],
++    get_fatturazione: Callable[[], Any],
++    get_scadenziario: Callable[[], Any],
++) -> dict[str, Any]:
++    warnings: list[dict[str, str]] = []
++    today = date.today()
++
++    agenda = _safe("agenda", warnings, get_agenda, None)
++    clienti = _safe("clienti", warnings, get_clienti, None)
++    fascicoli_manager = _safe("fascicoli", warnings, get_fascicoli, None)
++    fatturazione = _safe("fatturazione", warnings, get_fatturazione, None)
++    scadenziario = _safe("scadenziario", warnings, get_scadenziario, None)
++
++    clienti_stats = _safe("clienti_statistiche", warnings, lambda: _stats_dict(clienti), {})
++    fascicoli_stats = _safe("fascicoli_statistiche", warnings, lambda: _stats_dict(fascicoli_manager), {})
++    scadenze_stats = _safe("scadenziario_statistiche", warnings, lambda: _stats_dict(scadenziario), {})
++    fatturazione_stats = _safe("fatturazione_statistiche", warnings, lambda: _stats_dict(fatturazione), {})
++
++    appuntamenti_oggi = _safe("agenda_oggi", warnings, lambda: len(agenda.per_giorno(today)) if agenda else 0, 0)
++    scadenze = _safe("scadenze_lista", warnings, lambda: _all(scadenziario, open_only=False), [])
++    fascicoli = _safe("fascicoli_lista", warnings, lambda: _all(fascicoli_manager, include_archived=True), [])
++    parcelle = _safe("fatturazione_lista", warnings, lambda: _all(fatturazione), [])
++    clienti_lista = _safe("clienti_lista", warnings, lambda: _all(clienti), [])
++    agenda_lista = _safe("agenda_lista", warnings, lambda: _all(agenda), [])
++
++    scadenze_oggi = sum(1 for item in scadenze if _parse_date(getattr(item, "data_scadenza", "")) == today)
++    productivity = _productivity(fascicoli, scadenze)
++
++    metrics = [
++        {
++            "id": "clienti",
++            "label": "Clienti",
++            "value": clienti_stats.get("totale", clienti_stats.get("totale_clienti", len(clienti_lista))),
++            "note": "Anagrafiche reali in archivio",
++            "tone": "primary",
++        },
++        {
++            "id": "fascicoli",
++            "label": "Fascicoli attivi",
++            "value": fascicoli_stats.get("attivi", fascicoli_stats.get("aperti", len([f for f in fascicoli if _enum_value(getattr(f, "stato", "")).upper() not in {"CHIUSO", "DEFINITO", "ARCHIVIATO"}]))),
++            "note": f"Totale fascicoli: {fascicoli_stats.get('totale', len(fascicoli))}",
++            "tone": "success",
++        },
++        {
++            "id": "scadenze",
++            "label": "Scadenze aperte",
++            "value": scadenze_stats.get("aperte", scadenze_stats.get("totale", len(scadenze))),
++            "note": f"Oggi: {scadenze_oggi}",
++            "tone": "warning" if scadenze_oggi else "neutral",
++        },
++        {
++            "id": "agenda",
++            "label": "Appuntamenti oggi",
++            "value": appuntamenti_oggi,
++            "note": today.strftime("%d/%m/%Y"),
++            "tone": "info",
++        },
++        {
++            "id": "incassi",
++            "label": "Da incassare",
++            "value": fatturazione_stats.get("da_incassare", 0),
++            "note": "Valore da fatturazione reale",
++            "tone": "primary",
++        },
++        {
++            "id": "produttivita",
++            "label": "Scadenze rispettate",
++            "value": f"{productivity['tasso_scadenze_rispettate_pct']}%",
++            "note": f"Completate: {productivity['scadenze_completate']}",
++            "tone": "success",
++        },
++    ]
++
++    tipo_counter = Counter(_enum_value(getattr(item, "tipo", "")) or "Non indicato" for item in fascicoli)
++    stato_counter = Counter(_enum_value(getattr(item, "stato", "")) or "Non indicato" for item in fascicoli)
++    priorita_counter = Counter(_enum_value(getattr(item, "priorita", "")) or "Non indicata" for item in scadenze)
++    agenda_counter = Counter(_enum_value(getattr(item, "tipo", "")) or "Non indicato" for item in agenda_lista)
++
++    sections = [
++        _counter_section("fascicoli_tipo", "Fascicoli per tipo", tipo_counter, "Nessun fascicolo presente."),
++        _counter_section("fascicoli_stato", "Fascicoli per stato", stato_counter, "Nessuno stato fascicolo disponibile."),
++        _counter_section("scadenze_priorita", "Scadenze per priorita", priorita_counter, "Nessuna scadenza disponibile."),
++        _counter_section("agenda_tipo", "Appuntamenti per tipo", agenda_counter, "Nessun appuntamento disponibile."),
++        {
++            "id": "fatturato_mensile",
++            "title": "Fatturato mensile",
++            "kind": "monthly",
++            "items": _monthly_billing(parcelle),
++            "emptyMessage": "Nessuna parcella emessa nell'anno corrente.",
++        },
++        {
++            "id": "depositi_trend",
++            "title": "Trend depositi",
++            "kind": "monthly",
++            "items": _depositi_records(fascicoli),
++            "emptyMessage": "Nessuna attivita di deposito nell'anno corrente.",
++        },
++    ]
++
++    records = [
++        {"id": "clienti", "label": "Clienti registrati", "value": len(clienti_lista), "note": "Anagrafica clienti", "href": "/clienti"},
++        {"id": "fascicoli", "label": "Fascicoli totali", "value": len(fascicoli), "note": "Archivio fascicoli", "href": "/fascicoli"},
++        {"id": "parcelle", "label": "Parcelle", "value": len(parcelle), "note": "Fatturazione legacy", "href": "/fatturazione"},
++        {"id": "scadenze", "label": "Scadenze", "value": len(scadenze), "note": "Scadenziario", "href": "/scadenziario"},
++        {"id": "durata_media", "label": "Durata media fascicoli", "value": productivity["durata_media_gg"], "note": "Giorni", "href": "/fascicoli"},
++        {"id": "tasso_chiusura", "label": "Tasso chiusura fascicoli", "value": f"{productivity['tasso_chiusura_pct']}%", "note": f"Chiusi: {productivity['fascicoli_chiusi']}", "href": "/fascicoli"},
++    ]
++
++    actions = [
++        {"id": "refresh", "label": "Aggiorna dati", "href": "/statistiche", "method": "GET", "tone": "primary"},
++        {"id": "clienti_csv", "label": "Esporta clienti", "href": "/export/clienti.csv", "method": "GET", "tone": "neutral"},
++        {"id": "fascicoli_csv", "label": "Esporta fascicoli", "href": "/export/fascicoli.csv", "method": "GET", "tone": "neutral"},
++        {"id": "agenda_ics", "label": "Esporta agenda", "href": "/agenda/export.ics", "method": "GET", "tone": "neutral"},
++        {"id": "scadenziario_ics", "label": "Esporta scadenziario", "href": "/scadenziario/export.ics", "method": "GET", "tone": "neutral"},
++    ]
++
++    return {
++        "source": "repository_reali",
++        "generated_at": _iso_now(),
++        "contracts": {
++            "mock_fallback": False,
++            "writes": "none",
++            "route_owner": "react_shell",
++            "legacy_contract": "artifacts/react-migration/legacy-contracts/statistiche.json",
++        },
++        "metrics": metrics,
++        "sections": sections,
++        "records": records,
++        "actions": actions,
++        "warnings": warnings,
++    }
++
++
++def build_react_statistiche_error_payload(message: str = "Statistiche non disponibili.") -> dict[str, Any]:
++    return {
++        "source": "errore_controllato",
++        "generated_at": _iso_now(),
++        "contracts": {
++            "mock_fallback": False,
++            "writes": "none",
++            "route_owner": "react_shell",
++            "legacy_contract": "artifacts/react-migration/legacy-contracts/statistiche.json",
++        },
++        "metrics": [],
++        "sections": [],
++        "records": [],
++        "actions": [{"id": "legacy", "label": "Apri modulo legacy", "href": "/statistiche?_legacy=1", "method": "GET", "tone": "neutral"}],
++        "warnings": [{"code": "statistiche_errore_controllato", "message": message}],
++    }

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-06T10:38:14.964Z",
+  "generatedAt": "2026-05-06T11:13:52.497Z",
   "react": {
     "dependencies": {
       "@vitejs/plugin-react": "^5.0.0",
@@ -147,7 +147,6 @@
       "/admin/osservabilita",
       "/amministrazione",
       "/applicazioni",
-      "/audit",
       "/backup",
       "/checklist",
       "/compensi-forensi",
@@ -169,7 +168,6 @@
       "/preventivi",
       "/profili",
       "/redazione-atti",
-      "/registro-attivita",
       "/ricerca-legale",
       "/servizi-telematici",
       "/sigit",
@@ -177,7 +175,6 @@
       "/sigp-sync",
       "/sincronizzazione-calendari",
       "/sito-studio",
-      "/statistiche",
       "/strumenti-legali",
       "/strumenti-operativi",
       "/studio",
@@ -293,6 +290,14 @@
       {
         "name": "AdminDatabasePage",
         "importPath": "./components/AdminDatabasePage"
+      },
+      {
+        "name": "StatistichePage",
+        "importPath": "./components/StatistichePage"
+      },
+      {
+        "name": "AuditPage",
+        "importPath": "./components/AuditPage"
       }
     ],
     "routeChecks": [
@@ -333,6 +338,9 @@
       "isTelematicoSurfacePage",
       "isPrivacyRegistroPage",
       "isAdminDatabasePage",
+      "isStatistichePage",
+      "isAuditPage",
+      "isRegistroAttivitaPage",
       "isStudioModulePage",
       "isDashboardPage",
       "isStandalonePage"

@@ -51,27 +51,45 @@ function isBlockedByGate(path, legacyPrefixes, excludedPrefixes) {
 }
 
 const gate = read('web/bootstrap/react_route_gate.py')
+const reactShell = read('web/blueprints/react_shell.py')
+const checkReactContracts = read('frontend/scripts/check-react-contracts.mjs')
 const manifest = JSON.parse(read('tools/react-migration/route-manifest.json'))
 
 const reactPrefixes = extractTuple(gate, '_REACT_PREFIXES')
 const reactExact = new Set(extractSet(gate, '_REACT_EXACT').map(normaliseRoute))
 const legacyOperationalPrefixes = extractTuple(gate, '_LEGACY_OPERATIONAL_PREFIXES')
 const excludedPrefixes = extractTuple(gate, '_EXCLUDED_PREFIXES')
+const shellLegacyFirstPrefixes = extractTuple(reactShell, '_LEGACY_FIRST_PREFIXES')
+const allowedTranche2aUnlocks = new Set(['/statistiche', '/audit', '/registro-attivita'])
 
 const violations = []
 for (const entry of manifest.routes ?? []) {
   const route = normaliseRoute(entry.route)
   const routeIsReact = isReactRoute(route, reactExact, reactPrefixes)
   const blocked = isBlockedByGate(route, legacyOperationalPrefixes, excludedPrefixes)
+  const blockedByShell = shellLegacyFirstPrefixes.some((prefix) => isPrefixMatch(route, prefix))
   const unlockedByGate = routeIsReact && !blocked
+  const unlockedByShell = unlockedByGate && !blockedByShell
 
-  if (unlockedByGate && entry.status !== 'react_full') {
+  if (unlockedByShell && entry.status !== 'react_full') {
     violations.push(`${entry.route}: risulta servibile dal gate ma status=${entry.status}`)
   }
 
   if (entry.unlockFromGate === true) {
+    if (!allowedTranche2aUnlocks.has(route)) {
+      violations.push(`${entry.route}: unlockFromGate=true non consentito nella Tranche 2A`)
+    }
     if (entry.status !== 'react_full') {
       violations.push(`${entry.route}: unlockFromGate=true richiede status react_full`)
+    }
+    if (!routeIsReact) {
+      violations.push(`${entry.route}: unlockFromGate=true ma la route non e' in _REACT_PREFIXES/_REACT_EXACT`)
+    }
+    if (blocked) {
+      violations.push(`${entry.route}: unlockFromGate=true ma resta in _LEGACY_OPERATIONAL_PREFIXES o esclusioni`)
+    }
+    if (blockedByShell) {
+      violations.push(`${entry.route}: unlockFromGate=true ma resta in _LEGACY_FIRST_PREFIXES`)
     }
     for (const field of ['targetComponent', 'targetData', 'targetBridge', 'legacyContract']) {
       const value = entry[field]
@@ -79,12 +97,23 @@ for (const entry of manifest.routes ?? []) {
         violations.push(`${entry.route}: manca ${field} (${value || 'non indicato'})`)
       }
     }
+    if (!checkReactContracts.includes(entry.route)) {
+      violations.push(`${entry.route}: non citata in frontend/scripts/check-react-contracts.mjs`)
+    }
   }
 }
 
 const unlocked = (manifest.routes ?? []).filter((entry) => entry.unlockFromGate === true)
-if (unlocked.length) {
-  violations.push(`Questa tranche non deve sbloccare route: ${unlocked.map((entry) => entry.route).join(', ')}`)
+for (const route of ['/utenti', '/profili', '/backup']) {
+  const entry = (manifest.routes ?? []).find((item) => normaliseRoute(item.route) === route)
+  if (!entry || entry.status !== 'legacy_operational' || entry.unlockFromGate !== false) {
+    violations.push(`${route}: deve restare legacy_operational con unlockFromGate=false nella Tranche 2A`)
+  }
+  const stillBlocked = legacyOperationalPrefixes.some((prefix) => isPrefixMatch(route, prefix))
+  const stillShellBlocked = shellLegacyFirstPrefixes.some((prefix) => isPrefixMatch(route, prefix))
+  if (!stillBlocked || !stillShellBlocked) {
+    violations.push(`${route}: deve restare bloccata da gate e shell legacy`)
+  }
 }
 
 const report = [
@@ -92,6 +121,7 @@ const report = [
   '',
   `Route nel manifest: ${(manifest.routes ?? []).length}`,
   `Route con unlockFromGate=true: ${unlocked.length}`,
+  `Route Tranche 2A consentite: ${[...allowedTranche2aUnlocks].join(', ')}`,
   `Violazioni: ${violations.length}`,
   '',
   ...violations.map((item) => `- ${item}`),
@@ -104,4 +134,4 @@ if (violations.length) {
   process.exit(1)
 }
 
-console.log('Route gate OK: nessuna route legacy sbloccata.')
+console.log('Route gate OK: Tranche 2A coerente.')

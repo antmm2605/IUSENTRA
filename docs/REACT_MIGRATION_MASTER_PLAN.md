@@ -1,5 +1,27 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-06 - Tranche 2A read-only
+
+La prima promozione governata abilita in React full solo superfici read-only o a
+rischio basso:
+
+- `/statistiche` usa `web/services/react_statistiche_bridge.py` e
+  `GET /api/v1/ui/statistiche`, riutilizzando agenda, clienti, fascicoli,
+  fatturazione e scadenziario senza introdurre POST nuovi.
+- `/audit` e `/registro-attivita` usano `web/services/react_audit_bridge.py`
+  e gli endpoint distinti `GET /api/v1/ui/audit` e
+  `GET /api/v1/ui/registro-attivita`, mantenendo il permesso legacy
+  `audit.leggi`.
+- Le pagine dedicate `StatistichePage` e `AuditPage` vivono prima di
+  `StudioModulePage`, usano il kit `frontend/src/ui`, stati loading/empty,
+  warning tecnici e dati reali, senza Bootstrap nei nuovi TSX e senza mock.
+- Il gate rimuove solo `/statistiche`, `/audit` e `/registro-attivita` dai
+  blocchi legacy; `?_legacy=1` resta operativo. `/utenti`, `/profili`,
+  `/backup`, le aree economiche e quelle telematiche restano bloccate.
+- `run-safe-react-migration.mjs --tranche=2a` cattura i contratti legacy,
+  rilancia gate/UI checks, verifica la shell con Flask `test_client`, esegue
+  test/typecheck/build frontend e genera patch separate di rollback.
+
 ## Stato tranche 2026-05-06 - macchina di migrazione governata
 
 La migrazione delle route legacy residue viene governata da una macchina dedicata,

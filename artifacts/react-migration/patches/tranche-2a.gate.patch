@@ -1,0 +1,123 @@
+diff --git a/tools/react-migration/route-manifest.json b/tools/react-migration/route-manifest.json
+index 51efa8bd..629d7833 100644
+--- a/tools/react-migration/route-manifest.json
++++ b/tools/react-migration/route-manifest.json
+@@ -10,7 +10,7 @@
+       "react_full"
+     ],
+     "unlockRule": "unlockFromGate puo' diventare true solo con status react_full, componente dedicato, data client, bridge/API, contratto legacy e test di parita'.",
+-    "currentReleaseUnlocksRoutes": false
++    "currentReleaseUnlocksRoutes": true
+   },
+   "routes": [
+     {
+@@ -52,13 +52,13 @@
+     {
+       "route": "/audit",
+       "family": "amministrazione",
+-      "status": "legacy_operational",
++      "status": "react_full",
+       "risk": "medium",
+-      "targetComponent": "frontend/src/components/RegistroAttivitaPage.tsx",
+-      "targetData": "frontend/src/registroAttivitaData.ts",
+-      "targetBridge": "web/services/react_registro_attivita_bridge.py",
++      "targetComponent": "frontend/src/components/AuditPage.tsx",
++      "targetData": "frontend/src/auditData.ts",
++      "targetBridge": "web/services/react_audit_bridge.py",
+       "legacyContract": "artifacts/react-migration/legacy-contracts/audit.json",
+-      "unlockFromGate": false,
++      "unlockFromGate": true,
+       "mustPreserve": [
+         "filtro eventi reali",
+         "export CSV",
+@@ -70,13 +70,13 @@
+     {
+       "route": "/registro-attivita",
+       "family": "amministrazione",
+-      "status": "legacy_operational",
++      "status": "react_full",
+       "risk": "medium",
+-      "targetComponent": "frontend/src/components/RegistroAttivitaPage.tsx",
+-      "targetData": "frontend/src/registroAttivitaData.ts",
+-      "targetBridge": "web/services/react_registro_attivita_bridge.py",
++      "targetComponent": "frontend/src/components/AuditPage.tsx",
++      "targetData": "frontend/src/auditData.ts",
++      "targetBridge": "web/services/react_audit_bridge.py",
+       "legacyContract": "artifacts/react-migration/legacy-contracts/registro-attivita.json",
+-      "unlockFromGate": false,
++      "unlockFromGate": true,
+       "mustPreserve": [
+         "registro audit",
+         "export tracciato",
+@@ -160,13 +160,13 @@
+     {
+       "route": "/statistiche",
+       "family": "studio",
+-      "status": "legacy_operational",
++      "status": "react_full",
+       "risk": "medium",
+       "targetComponent": "frontend/src/components/StatistichePage.tsx",
+       "targetData": "frontend/src/statisticheData.ts",
+       "targetBridge": "web/services/react_statistiche_bridge.py",
+       "legacyContract": "artifacts/react-migration/legacy-contracts/statistiche.json",
+-      "unlockFromGate": false,
++      "unlockFromGate": true,
+       "mustPreserve": [
+         "KPI reali",
+         "grafici da repository",
+diff --git a/web/blueprints/react_shell.py b/web/blueprints/react_shell.py
+index 232ece47..32857c78 100644
+--- a/web/blueprints/react_shell.py
++++ b/web/blueprints/react_shell.py
+@@ -20,7 +20,6 @@ _LEGACY_FIRST_PREFIXES = (
+     "/admin/osservabilita",
+     "/amministrazione",
+     "/applicazioni",
+-    "/audit",
+     "/backup",
+     "/checklist",
+     "/compensi-forensi",
+@@ -42,7 +41,6 @@ _LEGACY_FIRST_PREFIXES = (
+     "/preventivi",
+     "/profili",
+     "/redazione-atti",
+-    "/registro-attivita",
+     "/ricerca-legale",
+     "/servizi-telematici",
+     "/sigit",
+@@ -50,7 +48,6 @@ _LEGACY_FIRST_PREFIXES = (
+     "/sigp-sync",
+     "/sincronizzazione-calendari",
+     "/sito-studio",
+-    "/statistiche",
+     "/strumenti-legali",
+     "/strumenti-operativi",
+     "/studio",
+diff --git a/web/bootstrap/react_route_gate.py b/web/bootstrap/react_route_gate.py
+index 6067d83e..14627701 100644
+--- a/web/bootstrap/react_route_gate.py
++++ b/web/bootstrap/react_route_gate.py
+@@ -166,7 +166,6 @@ _LEGACY_OPERATIONAL_PREFIXES = (
+     "/admin/osservabilita",
+     "/amministrazione",
+     "/applicazioni",
+-    "/audit",
+     "/backup",
+     "/checklist",
+     "/compensi-forensi",
+@@ -188,7 +187,6 @@ _LEGACY_OPERATIONAL_PREFIXES = (
+     "/preventivi",
+     "/profili",
+     "/redazione-atti",
+-    "/registro-attivita",
+     "/ricerca-legale",
+     "/servizi-telematici",
+     "/sigit",
+@@ -196,7 +194,6 @@ _LEGACY_OPERATIONAL_PREFIXES = (
+     "/sigp-sync",
+     "/sincronizzazione-calendari",
+     "/sito-studio",
+-    "/statistiche",
+     "/strumenti-legali",
+     "/strumenti-operativi",
+     "/studio",

@@ -19,6 +19,22 @@ function assertNotContains(source, unexpected, label) {
   }
 }
 
+function assertNoBootstrapClass(source, label) {
+  const classRegex = /className\s*=\s*["']([^"']+)["']/g
+  for (const match of source.matchAll(classRegex)) {
+    const tokens = match[1].split(/\s+/).filter(Boolean)
+    const forbidden = tokens.find((token) => ['btn', 'card', 'container', 'row'].includes(token) || token.startsWith('col-'))
+    if (forbidden) {
+      throw new Error(`${label}: contiene classe Bootstrap vietata "${forbidden}"`)
+    }
+  }
+}
+
+function pythonTupleSource(source, name) {
+  const match = source.match(new RegExp(`${name}\\s*=\\s*\\(([^]*?)\\)`, 'm'))
+  return match ? match[1] : ''
+}
+
 const app = read('src/App.tsx')
 const packageJson = JSON.parse(read('package.json'))
 const dashboardData = read('src/data.ts')
@@ -65,6 +81,14 @@ const adminDatabaseData = read('src/adminDatabaseData.ts')
 const adminDatabaseCss = read('src/components/AdminDatabasePage.css')
 const adminDatabaseBridge = read('../web/services/react_admin_database_bridge.py')
 const apiBridge = read('../web/blueprints/api_v1_react.py')
+const statistiche = read('src/components/StatistichePage.tsx')
+const statisticheData = read('src/statisticheData.ts')
+const statisticheBridge = read('../web/services/react_statistiche_bridge.py')
+const auditPage = read('src/components/AuditPage.tsx')
+const auditData = read('src/auditData.ts')
+const auditBridge = read('../web/services/react_audit_bridge.py')
+const reactRouteGate = read('../web/bootstrap/react_route_gate.py')
+const reactShellBlueprint = read('../web/blueprints/react_shell.py')
 const timesheet = read('src/components/TimesheetPage.tsx')
 const timesheetData = read('src/timesheetData.ts')
 const timesheetBridge = read('../web/services/react_timesheet_bridge.py')
@@ -95,6 +119,7 @@ const captureLegacyContracts = read('../scripts/react-migration/capture-legacy-c
 const checkRouteGate = read('../scripts/react-migration/check-route-gate.mjs')
 const checkUiConsistency = read('../scripts/react-migration/check-ui-consistency.mjs')
 const runSafeReactMigration = read('../scripts/react-migration/run-safe-react-migration.mjs')
+const tranche2aGate = read('../scripts/react-migration/check-tranche-2a-gate.py')
 const uiAllowedClasses = read('../tools/react-migration/ui-allowed-classes.json')
 const routeRiskRules = read('../tools/react-migration/route-risk-rules.json')
 const uiPage = read('src/ui/Page.tsx')
@@ -140,7 +165,10 @@ const legacyLexContextHref = '/lex' + '?context='
 const legacyLexHrefAttribute = 'href=' + '"/lex'
 const legacyAgendaLexHref = 'href=' + '"/lex' + '?context=agenda"'
 
-for (const dependency of ['@mui/material', '@mui/icons-material', '@reduxjs/toolkit', 'redux', '@tanstack/react-query', 'react-router', 'react-router-dom']) {
+const legacyOperationalTuple = pythonTupleSource(reactRouteGate, '_LEGACY_OPERATIONAL_PREFIXES')
+const shellLegacyFirstTuple = pythonTupleSource(reactShellBlueprint, '_LEGACY_FIRST_PREFIXES')
+
+for (const dependency of ['@mui/material', '@mui/icons-material', '@reduxjs/toolkit', 'redux', '@tanstack/react-query', 'zustand', 'react-router', 'react-router-dom']) {
   if (packageJson.dependencies?.[dependency] || packageJson.devDependencies?.[dependency]) {
     throw new Error(`dipendenze frontend: non deve comparire ${dependency}`)
   }
@@ -152,24 +180,40 @@ assertContains(auditMigration, '_LEGACY_OPERATIONAL_PREFIXES', 'script audit leg
 assertContains(captureLegacyContracts, 'create_app', 'contract capture usa Flask test_client')
 assertContains(captureLegacyContracts, '_legacy=1', 'contract capture usa fallback legacy')
 assertContains(checkRouteGate, 'unlockFromGate=true richiede status react_full', 'route gate blocca unlock non completi')
-assertContains(checkRouteGate, 'Questa tranche non deve sbloccare route', 'route gate blocca sblocchi in PR macchina')
+assertContains(checkRouteGate, 'Tranche 2A', 'route gate limita gli sblocchi della Tranche 2A')
 assertContains(checkUiConsistency, 'ui-allowed-classes.json', 'UI consistency usa policy classi')
 assertContains(checkUiConsistency, 'href placeholder #', 'UI consistency blocca href placeholder')
 assertContains(runSafeReactMigration, 'cleanRequired()', 'runner richiede working tree pulito')
+assertContains(runSafeReactMigration, '--tranche=2a', 'runner supporta Tranche 2A')
 assertContains(runSafeReactMigration, 'npm run test', 'runner esegue test frontend')
 assertContains(runSafeReactMigration, 'npm run typecheck', 'runner esegue typecheck frontend')
 assertContains(runSafeReactMigration, 'npm run build', 'runner esegue build frontend')
+assertContains(tranche2aGate, '/statistiche', 'check Tranche 2A verifica statistiche')
+assertContains(tranche2aGate, '/registro-attivita', 'check Tranche 2A verifica registro attivita')
 assertContains(uiAllowedClasses, '"allowedPrefix": "iu-"', 'policy classi UI prefisso iu')
 assertContains(routeRiskRules, '"critical"', 'regole rischio route critical')
-if (routeManifest.policy?.currentReleaseUnlocksRoutes !== false) {
-  throw new Error('route manifest: currentReleaseUnlocksRoutes deve restare false in questa tranche')
+if (routeManifest.policy?.currentReleaseUnlocksRoutes !== true) {
+  throw new Error('route manifest: currentReleaseUnlocksRoutes deve essere true in Tranche 2A')
 }
+const allowedTranche2aUnlocks = new Set(['/statistiche', '/audit', '/registro-attivita'])
 for (const entry of routeManifest.routes ?? []) {
-  if (entry.unlockFromGate !== false) {
-    throw new Error(`route manifest: ${entry.route} non deve essere sbloccata in questa tranche`)
+  if (entry.unlockFromGate === true && !allowedTranche2aUnlocks.has(entry.route)) {
+    throw new Error(`route manifest: ${entry.route} non puo essere sbloccata in Tranche 2A`)
   }
   if (!entry.route || !entry.family || !entry.status || !entry.risk || !entry.targetComponent || !entry.targetData || !entry.targetBridge || !entry.legacyContract) {
     throw new Error(`route manifest: entry incompleta per ${entry.route || 'route senza nome'}`)
+  }
+}
+for (const route of allowedTranche2aUnlocks) {
+  const entry = (routeManifest.routes ?? []).find((item) => item.route === route)
+  if (!entry || entry.status !== 'react_full' || entry.unlockFromGate !== true) {
+    throw new Error(`route manifest: ${route} deve essere react_full con unlockFromGate=true`)
+  }
+}
+for (const route of ['/utenti', '/profili', '/backup']) {
+  const entry = (routeManifest.routes ?? []).find((item) => item.route === route)
+  if (!entry || entry.status !== 'legacy_operational' || entry.unlockFromGate !== false) {
+    throw new Error(`route manifest: ${route} deve restare legacy_operational`)
   }
 }
 for (const route of ['/utenti', '/profili', '/audit', '/registro-attivita', '/studio', '/impostazioni', '/backup', '/sito-studio', '/statistiche', '/fatturazione', '/incassi-pagamenti', '/preventivi', '/compensi-forensi', '/tariffario', '/template-atti', '/redazione-atti', '/giurisprudenza', '/legal-intelligence', '/deposito/checklist', '/polisWeb', '/pdp', '/pat', '/sigit', '/sigp', '/portali/*']) {
@@ -216,6 +260,53 @@ assertContains(app, "StudioModulePage", 'route blocco finale studio')
 assertContains(app, "isStudioModulePage?<StudioModulePage/>", 'render blocco finale studio')
 assertContains(app, "AdminDatabasePage", 'route database amministrativo')
 assertContains(app, "isAdminDatabasePage?<AdminDatabasePage/>", 'render database amministrativo')
+assertContains(app, "StatistichePage", 'route statistiche react')
+assertContains(app, "AuditPage", 'route audit react')
+assertContains(app, "isStatistichePage", 'detection statistiche react')
+assertContains(app, "isAuditPage", 'detection audit react')
+assertContains(app, "isRegistroAttivitaPage", 'detection registro attivita react')
+assertContains(app, "isStatistichePage?<StatistichePage/>", 'render statistiche prima dello studio module')
+assertContains(app, "isAuditPage||isRegistroAttivitaPage?<AuditPage/>", 'render audit e registro attivita')
+assertContains(statistiche, 'getStatistichePage', 'StatistichePage usa getStatistichePage')
+assertContains(auditPage, 'getAuditPage', 'AuditPage usa getAuditPage')
+assertContains(statisticheData, '/api/v1/ui/statistiche', 'statisticheData usa endpoint statistiche')
+assertContains(auditData, '/api/v1/ui/audit', 'auditData usa endpoint audit')
+assertContains(auditData, '/api/v1/ui/registro-attivita', 'auditData usa endpoint registro attivita')
+assertContains(statisticheBridge, '"route_owner": "react_shell"', 'bridge statistiche route_owner react_shell')
+assertContains(auditBridge, '"route_owner": "react_shell"', 'bridge audit route_owner react_shell')
+assertContains(apiBridge, '@api_v1_react.get("/statistiche")', 'endpoint UI statistiche')
+assertContains(apiBridge, '@api_v1_react.get("/audit")', 'endpoint UI audit')
+assertContains(apiBridge, '@api_v1_react.get("/registro-attivita")', 'endpoint UI registro attivita')
+assertNotContains(legacyOperationalTuple, '"/statistiche"', 'gate legacy senza statistiche')
+assertNotContains(legacyOperationalTuple, '"/audit"', 'gate legacy senza audit')
+assertNotContains(legacyOperationalTuple, '"/registro-attivita"', 'gate legacy senza registro attivita')
+assertContains(legacyOperationalTuple, '"/utenti"', 'gate legacy mantiene utenti')
+assertContains(legacyOperationalTuple, '"/profili"', 'gate legacy mantiene profili')
+assertContains(legacyOperationalTuple, '"/backup"', 'gate legacy mantiene backup')
+assertNotContains(shellLegacyFirstTuple, '"/statistiche"', 'shell legacy-first senza statistiche')
+assertNotContains(shellLegacyFirstTuple, '"/audit"', 'shell legacy-first senza audit')
+assertNotContains(shellLegacyFirstTuple, '"/registro-attivita"', 'shell legacy-first senza registro attivita')
+assertContains(shellLegacyFirstTuple, '"/utenti"', 'shell legacy-first mantiene utenti')
+assertContains(shellLegacyFirstTuple, '"/profili"', 'shell legacy-first mantiene profili')
+assertContains(shellLegacyFirstTuple, '"/backup"', 'shell legacy-first mantiene backup')
+for (const [label, source] of [
+  ['StatistichePage', statistiche],
+  ['AuditPage', auditPage],
+]) {
+  assertNoBootstrapClass(source, `${label} senza classi Bootstrap`)
+  assertNotContains(source, 'href="#"', `${label} senza href placeholder`)
+  assertNotContains(source, 'mockResults', `${label} senza mockResults`)
+  assertNotContains(source, 'mock_fallback: true', `${label} senza mock fallback true`)
+}
+for (const [label, source] of [
+  ['statisticheData', statisticheData],
+  ['auditData', auditData],
+  ['react_statistiche_bridge', statisticheBridge],
+  ['react_audit_bridge', auditBridge],
+]) {
+  assertNotContains(source, 'mockResults', `${label} senza mockResults`)
+  assertNotContains(source, 'mock_fallback: true', `${label} senza mock fallback true`)
+}
 assertContains(app, "DocumentEditorPage", 'route editor documento react')
 assertContains(app, "isDocumentEditorPage?<DocumentEditorPage/>", 'render editor documento react')
 assertContains(app, "/^\\/fascicoli\\/[^/]+\\/documenti\\/[^/]+\\/editor$/.test(routeKey)", 'match route profonda editor documento')

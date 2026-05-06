@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.198.87 - 2026-05-06
+
+- Promosse in React full le route read-only `/statistiche`, `/audit` e `/registro-attivita`, con bridge backend reali, endpoint `/api/v1/ui/*`, pagine React dedicate, fallback tecnico `?_legacy=1` e gate aggiornato senza sbloccare utenti, profili, backup, economico o telematico.
+- Catturati i contratti legacy Tranche 2A anche per `/utenti`, `/profili` e `/backup`, mantenendole esplicitamente in `legacy_operational`.
+- Estesi runner, gate check, contratti React, report e patch di rollback separati per la prima promozione governata della migrazione React.
+
 ## 2.198.86 - 2026-05-06
 
 - Aggiunta la macchina governata di migrazione React: manifest route residue, audit inventario, cattura contratti legacy, controllo `react_route_gate`, report UI consistency e runner unico senza sbloccare route operative.

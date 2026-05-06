@@ -1,0 +1,15 @@
+# Tranche 2A gate check
+
+- [OK] login tenant (status=302)
+- [OK] React shell /statistiche (status=200)
+- [OK] React shell /audit (status=200)
+- [OK] React shell /registro-attivita (status=200)
+- [OK] Legacy bypass /statistiche?_legacy=1 (status=308)
+- [OK] Legacy bypass /audit?_legacy=1 (status=200)
+- [OK] Legacy bypass /registro-attivita?_legacy=1 (status=302)
+- [OK] Ancora legacy /utenti (status=200)
+- [OK] Ancora legacy /profili (status=200)
+- [OK] Ancora legacy /backup (status=200)
+- [OK] JSON /api/v1/ui/statistiche (status=200)
+- [OK] JSON /api/v1/ui/audit (status=200)
+- [OK] JSON /api/v1/ui/registro-attivita (status=200)

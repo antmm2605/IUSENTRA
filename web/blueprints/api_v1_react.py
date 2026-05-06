@@ -40,6 +40,7 @@ from web.services.react_admin_database_bridge import (
     build_react_admin_database_error_payload,
     build_react_admin_database_payload,
 )
+from web.services.react_audit_bridge import build_react_audit_error_payload, build_react_audit_payload
 from web.services.react_clienti_bridge import (
     build_react_cliente_cartella_payload,
     build_react_cliente_modifica_payload,
@@ -71,6 +72,10 @@ from web.services.react_scadenziario_bridge import (
     build_react_scadenziario_payload,
 )
 from web.services.react_soggetti_bridge import build_react_soggetti_payload
+from web.services.react_statistiche_bridge import (
+    build_react_statistiche_error_payload,
+    build_react_statistiche_payload,
+)
 from web.services.react_studio_module_bridge import build_react_studio_module_payload
 from web.services.react_telematico_bridge import (
     build_react_telematico_payload,
@@ -124,6 +129,13 @@ def _puo_leggere_admin_database() -> bool:
         return True
     utente = g.get("utente_corrente")
     return bool(utente and getattr(utente, "ha_permesso", lambda _permesso: False)("utenti.leggi"))
+
+
+def _puo_leggere_audit() -> bool:
+    if _api_key_valida():
+        return True
+    utente = g.get("utente_corrente")
+    return bool(utente and getattr(utente, "ha_permesso", lambda _permesso: False)("audit.leggi"))
 
 
 def _studio_avvocato_titolare() -> str:
@@ -2221,6 +2233,55 @@ def dashboard_sync_mailboxes():
         return jsonify(result)
     finally:
         clear_dashboard_payload_cache()
+
+
+@api_v1_react.get("/statistiche")
+@_richiedi_auth
+def statistiche_page():
+    try:
+        return jsonify(
+            build_react_statistiche_payload(
+                get_agenda=get_agenda,
+                get_clienti=get_clienti,
+                get_fascicoli=get_fascicoli,
+                get_fatturazione=get_fatturazione,
+                get_scadenziario=get_scadenziario,
+            )
+        )
+    except Exception as exc:
+        current_app.logger.exception("Errore statistiche React bridge: %s", exc)
+        return jsonify(build_react_statistiche_error_payload("Statistiche non disponibili dal runtime corrente.")), 200
+
+
+@api_v1_react.get("/audit")
+@_richiedi_auth
+def audit_page():
+    if not _puo_leggere_audit():
+        return jsonify(build_react_audit_error_payload("Permesso audit.leggi richiesto.", route="/audit")), 403
+    try:
+        return jsonify(build_react_audit_payload(get_utenti=get_utenti, query=request.args, route="/audit"))
+    except Exception as exc:
+        current_app.logger.exception("Errore audit React bridge: %s", exc)
+        return jsonify(build_react_audit_error_payload("Registro audit non disponibile dal runtime corrente.", route="/audit")), 200
+
+
+@api_v1_react.get("/registro-attivita")
+@_richiedi_auth
+def registro_attivita_page():
+    if not _puo_leggere_audit():
+        return jsonify(
+            build_react_audit_error_payload("Permesso audit.leggi richiesto.", route="/registro-attivita")
+        ), 403
+    try:
+        return jsonify(build_react_audit_payload(get_utenti=get_utenti, query=request.args, route="/registro-attivita"))
+    except Exception as exc:
+        current_app.logger.exception("Errore registro attivita React bridge: %s", exc)
+        return jsonify(
+            build_react_audit_error_payload(
+                "Registro attivita non disponibile dal runtime corrente.",
+                route="/registro-attivita",
+            )
+        ), 200
 
 
 @api_v1_react.get("/agenda")

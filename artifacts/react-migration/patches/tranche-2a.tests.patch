@@ -1,0 +1,566 @@
+diff --git a/frontend/scripts/check-react-contracts.mjs b/frontend/scripts/check-react-contracts.mjs
+index 50a2e52f..8158e241 100644
+--- a/frontend/scripts/check-react-contracts.mjs
++++ b/frontend/scripts/check-react-contracts.mjs
+@@ -19,6 +19,22 @@ function assertNotContains(source, unexpected, label) {
+   }
+ }
+
++function assertNoBootstrapClass(source, label) {
++  const classRegex = /className\s*=\s*["']([^"']+)["']/g
++  for (const match of source.matchAll(classRegex)) {
++    const tokens = match[1].split(/\s+/).filter(Boolean)
++    const forbidden = tokens.find((token) => ['btn', 'card', 'container', 'row'].includes(token) || token.startsWith('col-'))
++    if (forbidden) {
++      throw new Error(`${label}: contiene classe Bootstrap vietata "${forbidden}"`)
++    }
++  }
++}
++
++function pythonTupleSource(source, name) {
++  const match = source.match(new RegExp(`${name}\\s*=\\s*\\(([^]*?)\\)`, 'm'))
++  return match ? match[1] : ''
++}
++
+ const app = read('src/App.tsx')
+ const packageJson = JSON.parse(read('package.json'))
+ const dashboardData = read('src/data.ts')
+@@ -65,6 +81,14 @@ const adminDatabaseData = read('src/adminDatabaseData.ts')
+ const adminDatabaseCss = read('src/components/AdminDatabasePage.css')
+ const adminDatabaseBridge = read('../web/services/react_admin_database_bridge.py')
+ const apiBridge = read('../web/blueprints/api_v1_react.py')
++const statistiche = read('src/components/StatistichePage.tsx')
++const statisticheData = read('src/statisticheData.ts')
++const statisticheBridge = read('../web/services/react_statistiche_bridge.py')
++const auditPage = read('src/components/AuditPage.tsx')
++const auditData = read('src/auditData.ts')
++const auditBridge = read('../web/services/react_audit_bridge.py')
++const reactRouteGate = read('../web/bootstrap/react_route_gate.py')
++const reactShellBlueprint = read('../web/blueprints/react_shell.py')
+ const timesheet = read('src/components/TimesheetPage.tsx')
+ const timesheetData = read('src/timesheetData.ts')
+ const timesheetBridge = read('../web/services/react_timesheet_bridge.py')
+@@ -95,6 +119,7 @@ const captureLegacyContracts = read('../scripts/react-migration/capture-legacy-c
+ const checkRouteGate = read('../scripts/react-migration/check-route-gate.mjs')
+ const checkUiConsistency = read('../scripts/react-migration/check-ui-consistency.mjs')
+ const runSafeReactMigration = read('../scripts/react-migration/run-safe-react-migration.mjs')
++const tranche2aGate = read('../scripts/react-migration/check-tranche-2a-gate.py')
+ const uiAllowedClasses = read('../tools/react-migration/ui-allowed-classes.json')
+ const routeRiskRules = read('../tools/react-migration/route-risk-rules.json')
+ const uiPage = read('src/ui/Page.tsx')
+@@ -140,7 +165,10 @@ const legacyLexContextHref = '/lex' + '?context='
+ const legacyLexHrefAttribute = 'href=' + '"/lex'
+ const legacyAgendaLexHref = 'href=' + '"/lex' + '?context=agenda"'
+
+-for (const dependency of ['@mui/material', '@mui/icons-material', '@reduxjs/toolkit', 'redux', '@tanstack/react-query', 'react-router', 'react-router-dom']) {
++const legacyOperationalTuple = pythonTupleSource(reactRouteGate, '_LEGACY_OPERATIONAL_PREFIXES')
++const shellLegacyFirstTuple = pythonTupleSource(reactShellBlueprint, '_LEGACY_FIRST_PREFIXES')
++
++for (const dependency of ['@mui/material', '@mui/icons-material', '@reduxjs/toolkit', 'redux', '@tanstack/react-query', 'zustand', 'react-router', 'react-router-dom']) {
+   if (packageJson.dependencies?.[dependency] || packageJson.devDependencies?.[dependency]) {
+     throw new Error(`dipendenze frontend: non deve comparire ${dependency}`)
+   }
+@@ -152,26 +180,42 @@ assertContains(auditMigration, '_LEGACY_OPERATIONAL_PREFIXES', 'script audit leg
+ assertContains(captureLegacyContracts, 'create_app', 'contract capture usa Flask test_client')
+ assertContains(captureLegacyContracts, '_legacy=1', 'contract capture usa fallback legacy')
+ assertContains(checkRouteGate, 'unlockFromGate=true richiede status react_full', 'route gate blocca unlock non completi')
+-assertContains(checkRouteGate, 'Questa tranche non deve sbloccare route', 'route gate blocca sblocchi in PR macchina')
++assertContains(checkRouteGate, 'Tranche 2A', 'route gate limita gli sblocchi della Tranche 2A')
+ assertContains(checkUiConsistency, 'ui-allowed-classes.json', 'UI consistency usa policy classi')
+ assertContains(checkUiConsistency, 'href placeholder #', 'UI consistency blocca href placeholder')
+ assertContains(runSafeReactMigration, 'cleanRequired()', 'runner richiede working tree pulito')
++assertContains(runSafeReactMigration, '--tranche=2a', 'runner supporta Tranche 2A')
+ assertContains(runSafeReactMigration, 'npm run test', 'runner esegue test frontend')
+ assertContains(runSafeReactMigration, 'npm run typecheck', 'runner esegue typecheck frontend')
+ assertContains(runSafeReactMigration, 'npm run build', 'runner esegue build frontend')
++assertContains(tranche2aGate, '/statistiche', 'check Tranche 2A verifica statistiche')
++assertContains(tranche2aGate, '/registro-attivita', 'check Tranche 2A verifica registro attivita')
+ assertContains(uiAllowedClasses, '"allowedPrefix": "iu-"', 'policy classi UI prefisso iu')
+ assertContains(routeRiskRules, '"critical"', 'regole rischio route critical')
+-if (routeManifest.policy?.currentReleaseUnlocksRoutes !== false) {
+-  throw new Error('route manifest: currentReleaseUnlocksRoutes deve restare false in questa tranche')
++if (routeManifest.policy?.currentReleaseUnlocksRoutes !== true) {
++  throw new Error('route manifest: currentReleaseUnlocksRoutes deve essere true in Tranche 2A')
+ }
++const allowedTranche2aUnlocks = new Set(['/statistiche', '/audit', '/registro-attivita'])
+ for (const entry of routeManifest.routes ?? []) {
+-  if (entry.unlockFromGate !== false) {
+-    throw new Error(`route manifest: ${entry.route} non deve essere sbloccata in questa tranche`)
++  if (entry.unlockFromGate === true && !allowedTranche2aUnlocks.has(entry.route)) {
++    throw new Error(`route manifest: ${entry.route} non puo essere sbloccata in Tranche 2A`)
+   }
+   if (!entry.route || !entry.family || !entry.status || !entry.risk || !entry.targetComponent || !entry.targetData || !entry.targetBridge || !entry.legacyContract) {
+     throw new Error(`route manifest: entry incompleta per ${entry.route || 'route senza nome'}`)
+   }
+ }
++for (const route of allowedTranche2aUnlocks) {
++  const entry = (routeManifest.routes ?? []).find((item) => item.route === route)
++  if (!entry || entry.status !== 'react_full' || entry.unlockFromGate !== true) {
++    throw new Error(`route manifest: ${route} deve essere react_full con unlockFromGate=true`)
++  }
++}
++for (const route of ['/utenti', '/profili', '/backup']) {
++  const entry = (routeManifest.routes ?? []).find((item) => item.route === route)
++  if (!entry || entry.status !== 'legacy_operational' || entry.unlockFromGate !== false) {
++    throw new Error(`route manifest: ${route} deve restare legacy_operational`)
++  }
++}
+ for (const route of ['/utenti', '/profili', '/audit', '/registro-attivita', '/studio', '/impostazioni', '/backup', '/sito-studio', '/statistiche', '/fatturazione', '/incassi-pagamenti', '/preventivi', '/compensi-forensi', '/tariffario', '/template-atti', '/redazione-atti', '/giurisprudenza', '/legal-intelligence', '/deposito/checklist', '/polisWeb', '/pdp', '/pat', '/sigit', '/sigp', '/portali/*']) {
+   if (!(routeManifest.routes ?? []).some((entry) => entry.route === route)) {
+     throw new Error(`route manifest: manca ${route}`)
+@@ -216,6 +260,53 @@ assertContains(app, "StudioModulePage", 'route blocco finale studio')
+ assertContains(app, "isStudioModulePage?<StudioModulePage/>", 'render blocco finale studio')
+ assertContains(app, "AdminDatabasePage", 'route database amministrativo')
+ assertContains(app, "isAdminDatabasePage?<AdminDatabasePage/>", 'render database amministrativo')
++assertContains(app, "StatistichePage", 'route statistiche react')
++assertContains(app, "AuditPage", 'route audit react')
++assertContains(app, "isStatistichePage", 'detection statistiche react')
++assertContains(app, "isAuditPage", 'detection audit react')
++assertContains(app, "isRegistroAttivitaPage", 'detection registro attivita react')
++assertContains(app, "isStatistichePage?<StatistichePage/>", 'render statistiche prima dello studio module')
++assertContains(app, "isAuditPage||isRegistroAttivitaPage?<AuditPage/>", 'render audit e registro attivita')
++assertContains(statistiche, 'getStatistichePage', 'StatistichePage usa getStatistichePage')
++assertContains(auditPage, 'getAuditPage', 'AuditPage usa getAuditPage')
++assertContains(statisticheData, '/api/v1/ui/statistiche', 'statisticheData usa endpoint statistiche')
++assertContains(auditData, '/api/v1/ui/audit', 'auditData usa endpoint audit')
++assertContains(auditData, '/api/v1/ui/registro-attivita', 'auditData usa endpoint registro attivita')
++assertContains(statisticheBridge, '"route_owner": "react_shell"', 'bridge statistiche route_owner react_shell')
++assertContains(auditBridge, '"route_owner": "react_shell"', 'bridge audit route_owner react_shell')
++assertContains(apiBridge, '@api_v1_react.get("/statistiche")', 'endpoint UI statistiche')
++assertContains(apiBridge, '@api_v1_react.get("/audit")', 'endpoint UI audit')
++assertContains(apiBridge, '@api_v1_react.get("/registro-attivita")', 'endpoint UI registro attivita')
++assertNotContains(legacyOperationalTuple, '"/statistiche"', 'gate legacy senza statistiche')
++assertNotContains(legacyOperationalTuple, '"/audit"', 'gate legacy senza audit')
++assertNotContains(legacyOperationalTuple, '"/registro-attivita"', 'gate legacy senza registro attivita')
++assertContains(legacyOperationalTuple, '"/utenti"', 'gate legacy mantiene utenti')
++assertContains(legacyOperationalTuple, '"/profili"', 'gate legacy mantiene profili')
++assertContains(legacyOperationalTuple, '"/backup"', 'gate legacy mantiene backup')
++assertNotContains(shellLegacyFirstTuple, '"/statistiche"', 'shell legacy-first senza statistiche')
++assertNotContains(shellLegacyFirstTuple, '"/audit"', 'shell legacy-first senza audit')
++assertNotContains(shellLegacyFirstTuple, '"/registro-attivita"', 'shell legacy-first senza registro attivita')
++assertContains(shellLegacyFirstTuple, '"/utenti"', 'shell legacy-first mantiene utenti')
++assertContains(shellLegacyFirstTuple, '"/profili"', 'shell legacy-first mantiene profili')
++assertContains(shellLegacyFirstTuple, '"/backup"', 'shell legacy-first mantiene backup')
++for (const [label, source] of [
++  ['StatistichePage', statistiche],
++  ['AuditPage', auditPage],
++]) {
++  assertNoBootstrapClass(source, `${label} senza classi Bootstrap`)
++  assertNotContains(source, 'href="#"', `${label} senza href placeholder`)
++  assertNotContains(source, 'mockResults', `${label} senza mockResults`)
++  assertNotContains(source, 'mock_fallback: true', `${label} senza mock fallback true`)
++}
++for (const [label, source] of [
++  ['statisticheData', statisticheData],
++  ['auditData', auditData],
++  ['react_statistiche_bridge', statisticheBridge],
++  ['react_audit_bridge', auditBridge],
++]) {
++  assertNotContains(source, 'mockResults', `${label} senza mockResults`)
++  assertNotContains(source, 'mock_fallback: true', `${label} senza mock fallback true`)
++}
+ assertContains(app, "DocumentEditorPage", 'route editor documento react')
+ assertContains(app, "isDocumentEditorPage?<DocumentEditorPage/>", 'render editor documento react')
+ assertContains(app, "/^\\/fascicoli\\/[^/]+\\/documenti\\/[^/]+\\/editor$/.test(routeKey)", 'match route profonda editor documento')
+diff --git a/scripts/react-migration/check-route-gate.mjs b/scripts/react-migration/check-route-gate.mjs
+index 66db7e7a..6c0c161e 100644
+--- a/scripts/react-migration/check-route-gate.mjs
++++ b/scripts/react-migration/check-route-gate.mjs
+@@ -51,40 +51,69 @@ function isBlockedByGate(path, legacyPrefixes, excludedPrefixes) {
+ }
+
+ const gate = read('web/bootstrap/react_route_gate.py')
++const reactShell = read('web/blueprints/react_shell.py')
++const checkReactContracts = read('frontend/scripts/check-react-contracts.mjs')
+ const manifest = JSON.parse(read('tools/react-migration/route-manifest.json'))
+
+ const reactPrefixes = extractTuple(gate, '_REACT_PREFIXES')
+ const reactExact = new Set(extractSet(gate, '_REACT_EXACT').map(normaliseRoute))
+ const legacyOperationalPrefixes = extractTuple(gate, '_LEGACY_OPERATIONAL_PREFIXES')
+ const excludedPrefixes = extractTuple(gate, '_EXCLUDED_PREFIXES')
++const shellLegacyFirstPrefixes = extractTuple(reactShell, '_LEGACY_FIRST_PREFIXES')
++const allowedTranche2aUnlocks = new Set(['/statistiche', '/audit', '/registro-attivita'])
+
+ const violations = []
+ for (const entry of manifest.routes ?? []) {
+   const route = normaliseRoute(entry.route)
+   const routeIsReact = isReactRoute(route, reactExact, reactPrefixes)
+   const blocked = isBlockedByGate(route, legacyOperationalPrefixes, excludedPrefixes)
++  const blockedByShell = shellLegacyFirstPrefixes.some((prefix) => isPrefixMatch(route, prefix))
+   const unlockedByGate = routeIsReact && !blocked
++  const unlockedByShell = unlockedByGate && !blockedByShell
+
+-  if (unlockedByGate && entry.status !== 'react_full') {
++  if (unlockedByShell && entry.status !== 'react_full') {
+     violations.push(`${entry.route}: risulta servibile dal gate ma status=${entry.status}`)
+   }
+
+   if (entry.unlockFromGate === true) {
++    if (!allowedTranche2aUnlocks.has(route)) {
++      violations.push(`${entry.route}: unlockFromGate=true non consentito nella Tranche 2A`)
++    }
+     if (entry.status !== 'react_full') {
+       violations.push(`${entry.route}: unlockFromGate=true richiede status react_full`)
+     }
++    if (!routeIsReact) {
++      violations.push(`${entry.route}: unlockFromGate=true ma la route non e' in _REACT_PREFIXES/_REACT_EXACT`)
++    }
++    if (blocked) {
++      violations.push(`${entry.route}: unlockFromGate=true ma resta in _LEGACY_OPERATIONAL_PREFIXES o esclusioni`)
++    }
++    if (blockedByShell) {
++      violations.push(`${entry.route}: unlockFromGate=true ma resta in _LEGACY_FIRST_PREFIXES`)
++    }
+     for (const field of ['targetComponent', 'targetData', 'targetBridge', 'legacyContract']) {
+       const value = entry[field]
+       if (!value || !existsSync(resolve(root, value))) {
+         violations.push(`${entry.route}: manca ${field} (${value || 'non indicato'})`)
+       }
+     }
++    if (!checkReactContracts.includes(entry.route)) {
++      violations.push(`${entry.route}: non citata in frontend/scripts/check-react-contracts.mjs`)
++    }
+   }
+ }
+
+ const unlocked = (manifest.routes ?? []).filter((entry) => entry.unlockFromGate === true)
+-if (unlocked.length) {
+-  violations.push(`Questa tranche non deve sbloccare route: ${unlocked.map((entry) => entry.route).join(', ')}`)
++for (const route of ['/utenti', '/profili', '/backup']) {
++  const entry = (manifest.routes ?? []).find((item) => normaliseRoute(item.route) === route)
++  if (!entry || entry.status !== 'legacy_operational' || entry.unlockFromGate !== false) {
++    violations.push(`${route}: deve restare legacy_operational con unlockFromGate=false nella Tranche 2A`)
++  }
++  const stillBlocked = legacyOperationalPrefixes.some((prefix) => isPrefixMatch(route, prefix))
++  const stillShellBlocked = shellLegacyFirstPrefixes.some((prefix) => isPrefixMatch(route, prefix))
++  if (!stillBlocked || !stillShellBlocked) {
++    violations.push(`${route}: deve restare bloccata da gate e shell legacy`)
++  }
+ }
+
+ const report = [
+@@ -92,6 +121,7 @@ const report = [
+   '',
+   `Route nel manifest: ${(manifest.routes ?? []).length}`,
+   `Route con unlockFromGate=true: ${unlocked.length}`,
++  `Route Tranche 2A consentite: ${[...allowedTranche2aUnlocks].join(', ')}`,
+   `Violazioni: ${violations.length}`,
+   '',
+   ...violations.map((item) => `- ${item}`),
+@@ -104,4 +134,4 @@ if (violations.length) {
+   process.exit(1)
+ }
+
+-console.log('Route gate OK: nessuna route legacy sbloccata.')
++console.log('Route gate OK: Tranche 2A coerente.')
+diff --git a/scripts/react-migration/run-safe-react-migration.mjs b/scripts/react-migration/run-safe-react-migration.mjs
+index 7e1ab1be..a5a9ee69 100644
+--- a/scripts/react-migration/run-safe-react-migration.mjs
++++ b/scripts/react-migration/run-safe-react-migration.mjs
+@@ -1,8 +1,12 @@
+ import { execSync } from 'node:child_process'
+-import { mkdirSync, writeFileSync } from 'node:fs'
++import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
+
+ mkdirSync('artifacts/react-migration/patches', { recursive: true })
+
++const args = process.argv.slice(2)
++const TRANCHE_2A_FLAG = '--tranche=2a'
++const tranche = args.find((arg) => arg.startsWith('--tranche='))?.split('=')[1] || ''
++
+ const migrationPaths = [
+   'CHANGELOG.md',
+   'Dockerfile',
+@@ -25,6 +29,70 @@ const migrationPaths = [
+   'artifacts/react-migration/ui-consistency.md',
+ ]
+
++const tranche2aContracts = [
++  '/statistiche',
++  '/audit',
++  '/registro-attivita',
++  '/utenti',
++  '/profili',
++  '/backup',
++]
++
++const tranche2aPatchGroups = {
++  backend: [
++    'web/services/react_statistiche_bridge.py',
++    'web/services/react_audit_bridge.py',
++    'web/blueprints/api_v1_react.py',
++  ],
++  frontend: [
++    'frontend/package.json',
++    'frontend/package-lock.json',
++    'frontend/src/lib/apiClient.ts',
++    'frontend/src/statisticheData.ts',
++    'frontend/src/auditData.ts',
++    'frontend/src/components/StatistichePage.tsx',
++    'frontend/src/components/StatistichePage.css',
++    'frontend/src/components/AuditPage.tsx',
++    'frontend/src/components/AuditPage.css',
++    'frontend/src/App.tsx',
++    'web/static/react',
++  ],
++  gate: [
++    'web/bootstrap/react_route_gate.py',
++    'web/blueprints/react_shell.py',
++    'tools/react-migration/route-manifest.json',
++  ],
++  tests: [
++    'frontend/scripts/check-react-contracts.mjs',
++    'scripts/react-migration/check-route-gate.mjs',
++    'scripts/react-migration/check-tranche-2a-gate.py',
++    'scripts/react-migration/run-safe-react-migration.mjs',
++  ],
++  reports: [
++    'CHANGELOG.md',
++    'Dockerfile',
++    'README.md',
++    'docs/REACT_MIGRATION_MASTER_PLAN.md',
++    'pct/__init__.py',
++    'railway.toml',
++    'setup.py',
++    'artifacts/react-migration/audit.md',
++    'artifacts/react-migration/route-inventory.json',
++    'artifacts/react-migration/route-gate.md',
++    'artifacts/react-migration/ui-consistency.md',
++    'artifacts/react-migration/tranche-2a-preflight.md',
++    'artifacts/react-migration/tranche-2a-route-map.md',
++    'artifacts/react-migration/tranche-2a-gate.md',
++    'artifacts/react-migration/tranche-2a-report.md',
++    'artifacts/react-migration/legacy-contracts/statistiche.json',
++    'artifacts/react-migration/legacy-contracts/audit.json',
++    'artifacts/react-migration/legacy-contracts/registro-attivita.json',
++    'artifacts/react-migration/legacy-contracts/utenti.json',
++    'artifacts/react-migration/legacy-contracts/profili.json',
++    'artifacts/react-migration/legacy-contracts/backup.json',
++  ],
++}
++
+ function run(cmd, options = {}) {
+   console.log(`\n> ${cmd}`)
+   execSync(cmd, { stdio: 'inherit', ...options })
+@@ -45,23 +113,86 @@ function textArtifact(cmd) {
+     .join('\n')
+ }
+
+-cleanRequired()
+-
+-run('node scripts/react-migration/audit-react-migration.mjs')
+-run('node scripts/react-migration/check-route-gate.mjs')
+-run('node scripts/react-migration/check-ui-consistency.mjs')
+-run('cd frontend && npm run test')
+-run('cd frontend && npm run typecheck')
+-run('cd frontend && npm run build')
+-writeFileSync(
+-  'artifacts/react-migration/patches/working-tree.patch',
+-  textArtifact(`git diff --binary -- ${migrationPaths.join(' ')}`),
+-  'utf8',
+-)
+-writeFileSync(
+-  'artifacts/react-migration/patches/status.txt',
+-  textArtifact(`git status --short -- ${migrationPaths.join(' ')}`),
+-  'utf8',
+-)
+-run('git diff --stat')
+-run('git status --short')
++function diffOutput(cmd) {
++  try {
++    return execSync(cmd, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
++  } catch (error) {
++    return `${error.stdout || ''}${error.stderr || ''}`
++  }
++}
++
++function existingPaths(paths) {
++  return paths.filter((path) => existsSync(path))
++}
++
++function untrackedPaths(paths) {
++  const candidates = existingPaths(paths)
++  if (!candidates.length) return []
++  return textArtifact(`git ls-files --others --exclude-standard -- ${candidates.join(' ')}`)
++    .split('\n')
++    .map((line) => line.trim())
++    .filter(Boolean)
++}
++
++function patchForPaths(paths) {
++  const existing = existingPaths(paths)
++  if (!existing.length) return ''
++  const tracked = textArtifact(`git diff --binary -- ${existing.join(' ')}`)
++  const untracked = untrackedPaths(existing)
++    .map((path) => diffOutput(`git diff --binary --no-index -- /dev/null ${path}`))
++    .join('\n')
++  return [tracked, untracked].filter((part) => part.trim()).join('\n').trimEnd() + '\n'
++}
++
++function writePatch(name, paths) {
++  writeFileSync(`artifacts/react-migration/patches/tranche-2a.${name}.patch`, patchForPaths(paths), 'utf8')
++}
++
++function writeTranche2aPatches() {
++  for (const [name, paths] of Object.entries(tranche2aPatchGroups)) {
++    writePatch(name, paths)
++  }
++}
++
++function runDefault() {
++  cleanRequired()
++  run('node scripts/react-migration/audit-react-migration.mjs')
++  run('node scripts/react-migration/check-route-gate.mjs')
++  run('node scripts/react-migration/check-ui-consistency.mjs')
++  run('cd frontend && npm run test')
++  run('cd frontend && npm run typecheck')
++  run('cd frontend && npm run build')
++  writeFileSync(
++    'artifacts/react-migration/patches/working-tree.patch',
++    textArtifact(`git diff --binary -- ${migrationPaths.join(' ')}`),
++    'utf8',
++  )
++  writeFileSync(
++    'artifacts/react-migration/patches/status.txt',
++    textArtifact(`git status --short -- ${migrationPaths.join(' ')}`),
++    'utf8',
++  )
++  run('git diff --stat')
++  run('git status --short')
++}
++
++function runTranche2a() {
++  run('git status --short')
++  run('node scripts/react-migration/audit-react-migration.mjs')
++  run(`python scripts/react-migration/capture-legacy-contracts.py ${tranche2aContracts.join(' ')}`)
++  run('node scripts/react-migration/check-route-gate.mjs')
++  run('node scripts/react-migration/check-ui-consistency.mjs')
++  run('python scripts/react-migration/check-tranche-2a-gate.py')
++  run('cd frontend && npm run test')
++  run('cd frontend && npm run typecheck')
++  run('cd frontend && npm run build')
++  writeTranche2aPatches()
++  run('git diff --stat')
++  run('git status --short')
++}
++
++if (tranche === '2a') {
++  runTranche2a()
++} else {
++  runDefault()
++}
+
+diff --git a/scripts/react-migration/check-tranche-2a-gate.py b/scripts/react-migration/check-tranche-2a-gate.py
+new file mode 100644
+index 00000000..4bf0e8ca
+--- /dev/null
++++ b/scripts/react-migration/check-tranche-2a-gate.py
+@@ -0,0 +1,108 @@
++from __future__ import annotations
++
++import json
++import sys
++import tempfile
++from pathlib import Path
++
++ROOT = Path(__file__).resolve().parents[2]
++if str(ROOT) not in sys.path:
++    sys.path.insert(0, str(ROOT))
++
++from tests.test_web_bootstrap import _cfg_web, _seed_tenant_admin, _write_studio_config  # noqa: E402
++from web.app import create_app  # noqa: E402
++
++
++REPORT = ROOT / "artifacts/react-migration/tranche-2a-gate.md"
++
++
++def _is_react_shell(response) -> bool:
++    html = response.get_data(as_text=True)
++    return 'id="root"' in html and "iusentra-react-bootstrap" in html and "IUSENTRA - React Shell" in html
++
++
++def _is_json(response) -> bool:
++    return bool(response.is_json and isinstance(response.get_json(silent=True), dict))
++
++
++def _record(results: list[dict], name: str, ok: bool, detail: str) -> None:
++    results.append({"name": name, "ok": bool(ok), "detail": detail})
++
++
++def main() -> int:
++    results: list[dict] = []
++    with tempfile.TemporaryDirectory(prefix="iusentra-tranche-2a-", ignore_cleanup_errors=True) as tmp:
++        tmp_path = Path(tmp)
++        _write_studio_config(tmp_path / "config" / "studio.json")
++        app = create_app(_cfg_web(tmp_path))
++        studio, tenant_admin = _seed_tenant_admin(app)
++
++        with app.test_client() as client:
++            login = client.post(
++                "/login",
++                data={
++                    "username": tenant_admin.username,
++                    "password": "PasswordSicura!123",
++                    "studio_slug": studio.slug,
++                },
++                follow_redirects=False,
++            )
++            _record(results, "login tenant", login.status_code == 302, f"status={login.status_code}")
++
++            for path in ("/statistiche", "/audit", "/registro-attivita"):
++                response = client.get(path, headers={"Accept": "text/html"})
++                _record(
++                    results,
++                    f"React shell {path}",
++                    response.status_code == 200 and _is_react_shell(response),
++                    f"status={response.status_code}",
++                )
++
++            for path in ("/statistiche?_legacy=1", "/audit?_legacy=1", "/registro-attivita?_legacy=1"):
++                response = client.get(path, headers={"Accept": "text/html"}, follow_redirects=False)
++                _record(
++                    results,
++                    f"Legacy bypass {path}",
++                    not _is_react_shell(response),
++                    f"status={response.status_code}",
++                )
++
++            for path in ("/utenti", "/profili", "/backup"):
++                response = client.get(path, headers={"Accept": "text/html"})
++                _record(
++                    results,
++                    f"Ancora legacy {path}",
++                    response.status_code == 200 and not _is_react_shell(response),
++                    f"status={response.status_code}",
++                )
++
++            for path in ("/api/v1/ui/statistiche", "/api/v1/ui/audit", "/api/v1/ui/registro-attivita"):
++                response = client.get(path, headers={"Accept": "application/json"})
++                _record(
++                    results,
++                    f"JSON {path}",
++                    response.status_code == 200 and _is_json(response),
++                    f"status={response.status_code}",
++                )
++
++    REPORT.parent.mkdir(parents=True, exist_ok=True)
++    lines = [
++        "# Tranche 2A gate check",
++        "",
++        *[
++            f"- [{'OK' if item['ok'] else 'KO'}] {item['name']} ({item['detail']})"
++            for item in results
++        ],
++        "",
++    ]
++    REPORT.write_text("\n".join(lines), encoding="utf-8")
++    failures = [item for item in results if not item["ok"]]
++    if failures:
++        print(json.dumps({"ok": False, "failures": failures}, ensure_ascii=False, indent=2))
++        return 1
++    print("Tranche 2A gate OK")
++    return 0
++
++
++if __name__ == "__main__":
++    raise SystemExit(main())

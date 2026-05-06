@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from pct.backup import GestioneBackup
@@ -98,6 +99,11 @@ def test_run_operational_backup_plan_salva_report_e_copie(tmp_path: Path):
     assert len(report["runs"]) == 2
     assert all(Path(run["local_copy_path"]).exists() for run in report["runs"])
     assert all(Path(run["secondary_copy_path"]).exists() for run in report["runs"])
+    for run in report["runs"]:
+        primary = Path(run["primary_path"])
+        local_copy = Path(run["local_copy_path"])
+        if primary.exists() and local_copy.exists():
+            assert os.path.samefile(primary, local_copy)
 
     latest_backup = repository.latest_backup_run(tenant_slug="studio-test")
     assert latest_backup is not None

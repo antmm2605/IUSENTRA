@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.198.80 - 2026-05-06
+
+- Rafforzata la retention dei backup Hetzner con tetto di spazio totale configurabile (`IUSENTRA_BACKUP_RETENTION_MAX_GIB`), numero minimo di copie e caricamento esplicito di `/opt/iusentra/.env.hetzner`.
+- Portati i backup `.tar.zst` a compressione zstd alta e configurabile, con long window, mantenendo checksum SHA-256 e compatibilita' restore.
+- Aggiunto `scripts/compact_iusentra_storage.py` per compattare allegati email e mirror backup tenant-aware tramite hardlink, e reso il mirror operativo dei backup basato su hardlink quando resta nello stesso filesystem.
+
 ## 2.198.79 - 2026-05-06
 
 - Reso content-aware il salvataggio degli allegati PEC/email: se un allegato identico e' gia' presente nella cartella del messaggio, viene riusato senza creare copie numerate.

@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 import importlib.util
 import json
+import os
 from pathlib import Path
 import shutil
 import sqlite3
@@ -1143,7 +1144,10 @@ def _copy_backup_artifact(source_path: str, target_root: str, *, tenant_slug: st
     target_dir = Path(str(target_root or "")).expanduser() / str(tenant_slug or "single-studio") / stamp
     target_dir.mkdir(parents=True, exist_ok=True)
     target = target_dir / source.name
-    shutil.copy2(source, target)
+    try:
+        os.link(source, target)
+    except OSError:
+        shutil.copy2(source, target)
     return str(target)
 
 

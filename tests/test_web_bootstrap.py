@@ -655,7 +655,13 @@ def test_i_moduli_bootstrap_restano_governabili():
 def test_template_principali_usano_copy_italiana_e_date_localizzate():
     template_checks = {
         "web/templates/base.html": ["Panoramica", "Operazione completata", "Preparazione Udienza Guidata", "Aggiornamenti legali"],
-        "web/templates/admin/base.html": ["Esci", "Piattaforma", "Aggiornamenti legali", "Pack installazione"],
+        "web/templates/admin/base.html": [
+            "Esci",
+            "Piattaforma",
+            "Aggiornamenti legali",
+            "Pack installazione",
+            "Server e manutenzione",
+        ],
         "web/templates/admin/installazione_pack.html": [
             "Product Pack, Studio Local Pack e Update Pack",
             "Rigenera bootstrap e manifest",
@@ -673,6 +679,11 @@ def test_template_principali_usano_copy_italiana_e_date_localizzate():
             "Osservabilita runtime",
             "Segnali di degrado",
             "Come intervenire",
+        ],
+        "web/templates/admin/server_manutenzione.html": [
+            "Server e manutenzione",
+            "Consumi per studio",
+            "Compatta tutto in sicurezza",
         ],
         "web/templates/admin/legal_coverage_dashboard.html": [
             "Copertura AI e autopubblicazione controllata",

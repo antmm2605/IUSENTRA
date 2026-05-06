@@ -61,6 +61,12 @@ BLUEPRINT_REGISTRY: tuple[BlueprintRegistration, ...] = (
         "operational_resilience_admin",
         "",
     ),
+    BlueprintRegistration(
+        "server_maintenance_admin",
+        "web.blueprints.server_maintenance_admin",
+        "server_maintenance_admin",
+        "",
+    ),
     BlueprintRegistration("support_remote", "web.blueprints.support_remote", "support_remote", ""),
     BlueprintRegistration("studio_site_admin", "web.blueprints.studio_site_admin", "studio_site_admin", ""),
     BlueprintRegistration("studio_site", "web.blueprints.studio_site", "studio_site", ""),

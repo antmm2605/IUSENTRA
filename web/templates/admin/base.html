@@ -68,6 +68,10 @@
        class="nav-link {% if request.endpoint == 'admin.osservabilita' %}active{% endif %}">
       <i class="bi bi-activity"></i> Osservabilità
     </a>
+    <a href="{{ url_for('server_maintenance_admin.dashboard') }}"
+       class="nav-link {% if request.blueprint == 'server_maintenance_admin' %}active{% endif %}">
+      <i class="bi bi-hdd-network"></i> Server e manutenzione
+    </a>
     <a href="{{ url_for('admin.governance') }}"
        class="nav-link {% if request.endpoint == 'admin.governance' %}active{% endif %}">
       <i class="bi bi-diagram-3"></i> Governance prodotto

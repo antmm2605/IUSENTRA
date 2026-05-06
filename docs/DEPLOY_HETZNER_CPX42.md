@@ -94,7 +94,18 @@ Cron consigliato:
 15 2 * * * /opt/iusentra/repo/deploy/hetzner/backup.sh >/var/log/iusentra-backup.log 2>&1
 ```
 
-Lo script applica anche la retention: per default conserva al massimo 7 backup applicativi e rimuove quelli piu' vecchi di 30 giorni. In produzione i valori sono governati da `IUSENTRA_BACKUP_RETENTION_COUNT` e `IUSENTRA_BACKUP_RETENTION_DAYS` in `/opt/iusentra/.env.hetzner`.
+Lo script applica anche la retention: per default conserva al massimo 7 backup applicativi, almeno 2 copie, rimuove quelli piu' vecchi di 30 giorni e mantiene la directory backup entro 24 GiB quando possibile. In produzione i valori sono governati da `IUSENTRA_BACKUP_RETENTION_COUNT`, `IUSENTRA_BACKUP_RETENTION_MIN_COUNT`, `IUSENTRA_BACKUP_RETENTION_DAYS` e `IUSENTRA_BACKUP_RETENTION_MAX_GIB` in `/opt/iusentra/.env.hetzner`.
+
+I backup `.tar.zst` usano zstd ad alta compressione (`IUSENTRA_BACKUP_ZSTD_LEVEL=19`, `IUSENTRA_BACKUP_ZSTD_LONG_WINDOW=27` di default). Se una singola copia supera il tetto configurato, lo script conserva comunque il numero minimo di copie e stampa un avviso esplicito invece di cancellare l'ultimo backup valido.
+
+Per compattare lo storage live senza cambiare i path applicativi:
+
+```bash
+python3 /opt/iusentra/repo/scripts/compact_iusentra_storage.py --data-root /opt/iusentra/data
+python3 /opt/iusentra/repo/scripts/compact_iusentra_storage.py --data-root /opt/iusentra/data --apply
+```
+
+Il comando usa hardlink per deduplicare allegati email e mirror backup identici nello stesso filesystem; i riferimenti salvati nei JSON restano invariati.
 
 ## Restore
 

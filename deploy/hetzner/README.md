@@ -132,6 +132,7 @@ Cron consigliato:
 ```
 
 Il backup produce archivio e checksum in `/opt/iusentra/backups` e verifica subito il checksum generato. Il restore verifica il file `.sha256` quando presente prima di estrarre in `/opt/iusentra/data`.
+La retention e' applicata dallo script: per default conserva al massimo 7 backup applicativi e rimuove quelli piu' vecchi di 30 giorni. I valori sono configurabili con `IUSENTRA_BACKUP_RETENTION_COUNT` e `IUSENTRA_BACKUP_RETENTION_DAYS`.
 
 ## Note operative
 

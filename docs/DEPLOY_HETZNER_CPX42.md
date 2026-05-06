@@ -94,6 +94,8 @@ Cron consigliato:
 15 2 * * * /opt/iusentra/repo/deploy/hetzner/backup.sh >/var/log/iusentra-backup.log 2>&1
 ```
 
+Lo script applica anche la retention: per default conserva al massimo 7 backup applicativi e rimuove quelli piu' vecchi di 30 giorni. In produzione i valori sono governati da `IUSENTRA_BACKUP_RETENTION_COUNT` e `IUSENTRA_BACKUP_RETENTION_DAYS` in `/opt/iusentra/.env.hetzner`.
+
 ## Restore
 
 Caricare l'archivio su `/opt/iusentra/import`, poi:

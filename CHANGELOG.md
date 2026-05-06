@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.198.78 - 2026-05-06
+
+- Ripristinata la disponibilita' produzione dopo saturazione disco su Hetzner: i backup applicativi avevano riempito `/`, Redis non riusciva piu' a persistere e Flask-Limiter generava 500 globali prima delle route.
+- Rafforzato il rate limiter: il probe Redis verifica anche una scrittura breve, Flask-Limiter e' configurato con fallback in memoria e `swallow_errors=True`, cosi' un guasto Redis non blocca tutte le pagine.
+- Aggiunta retention governata per `deploy/hetzner/backup.sh`, con massimo 7 backup applicativi e 30 giorni di default, configurabili da ambiente produzione.
+
 ## 2.198.77 - 2026-05-05
 
 - Allineati i contratti di test core Lex alla modalita' `LEX_GOVERNED_ONLY=1`: il companion legacy richiede ora consenso esplicito a chat non governata, mentre gli allegati restano evidenze governate e non prompt libero.

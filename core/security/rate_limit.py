@@ -50,6 +50,7 @@ def _redis_storage_available(storage_uri: str) -> bool:
         client = redis.Redis.from_url(storage_uri, socket_connect_timeout=0.25, socket_timeout=0.25)
         try:
             client.ping()
+            client.set("iusentra:rate-limit:healthcheck", "1", ex=5)
         finally:
             try:
                 client.close()
@@ -86,6 +87,9 @@ def register_rate_limiter(app: Flask) -> None:
             app=app,
             default_limits=[str(app.config.get("RATELIMIT_DEFAULT") or "120/minute")],
             storage_uri=storage_uri,
+            swallow_errors=True,
+            in_memory_fallback=[str(app.config.get("RATELIMIT_DEFAULT") or "120/minute")],
+            in_memory_fallback_enabled=True,
         )
         app.extensions["iusentra_rate_limiter_backend"] = f"flask-limiter:{storage_uri}"
         return

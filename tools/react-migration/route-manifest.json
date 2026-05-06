@@ -16,13 +16,13 @@
     {
       "route": "/utenti",
       "family": "amministrazione",
-      "status": "legacy_operational",
+      "status": "react_full",
       "risk": "medium",
       "targetComponent": "frontend/src/components/UtentiPage.tsx",
       "targetData": "frontend/src/utentiData.ts",
       "targetBridge": "web/services/react_utenti_bridge.py",
       "legacyContract": "artifacts/react-migration/legacy-contracts/utenti.json",
-      "unlockFromGate": false,
+      "unlockFromGate": true,
       "mustPreserve": [
         "gestione operatori reali",
         "creazione utente auditata",
@@ -34,13 +34,13 @@
     {
       "route": "/profili",
       "family": "amministrazione",
-      "status": "legacy_operational",
+      "status": "react_full",
       "risk": "medium",
       "targetComponent": "frontend/src/components/ProfiliPage.tsx",
       "targetData": "frontend/src/profiliData.ts",
       "targetBridge": "web/services/react_profili_bridge.py",
       "legacyContract": "artifacts/react-migration/legacy-contracts/profili.json",
-      "unlockFromGate": false,
+      "unlockFromGate": true,
       "mustPreserve": [
         "matrice ruoli",
         "override utente",
@@ -124,7 +124,7 @@
     {
       "route": "/backup",
       "family": "studio",
-      "status": "legacy_operational",
+      "status": "react_readonly",
       "risk": "medium",
       "targetComponent": "frontend/src/components/BackupPage.tsx",
       "targetData": "frontend/src/backupData.ts",

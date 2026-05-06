@@ -39,7 +39,6 @@ _LEGACY_FIRST_PREFIXES = (
     "/polisweb",
     "/portali",
     "/preventivi",
-    "/profili",
     "/redazione-atti",
     "/ricerca-legale",
     "/servizi-telematici",
@@ -55,7 +54,6 @@ _LEGACY_FIRST_PREFIXES = (
     "/telematico",
     "/template-atti",
     "/tribunali",
-    "/utenti",
 )
 
 
@@ -157,6 +155,12 @@ def _deve_mantenere_vista_classica() -> bool:
         or "/deposito/" in lower
         or "/penale/pdp" in lower
     ):
+        return True
+    if lower.startswith("/utenti/") and lower != "/utenti/nuovo":
+        return True
+    if lower.startswith("/profili/"):
+        return True
+    if lower == "/backup" or lower.startswith("/backup/"):
         return True
     return any(lower == prefix or lower.startswith(f"{prefix}/") for prefix in _LEGACY_FIRST_PREFIXES)
 

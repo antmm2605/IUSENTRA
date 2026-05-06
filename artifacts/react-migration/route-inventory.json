@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-06T11:13:52.497Z",
+  "generatedAt": "2026-05-06T11:53:08.273Z",
   "react": {
     "dependencies": {
       "@vitejs/plugin-react": "^5.0.0",
@@ -166,7 +166,6 @@
       "/polisweb",
       "/portali",
       "/preventivi",
-      "/profili",
       "/redazione-atti",
       "/ricerca-legale",
       "/servizi-telematici",
@@ -181,8 +180,7 @@
       "/tariffario",
       "/telematico",
       "/template-atti",
-      "/tribunali",
-      "/utenti"
+      "/tribunali"
     ]
   },
   "app": {
@@ -298,6 +296,18 @@
       {
         "name": "AuditPage",
         "importPath": "./components/AuditPage"
+      },
+      {
+        "name": "UtentiPage",
+        "importPath": "./components/UtentiPage"
+      },
+      {
+        "name": "ProfiliPage",
+        "importPath": "./components/ProfiliPage"
+      },
+      {
+        "name": "BackupPage",
+        "importPath": "./components/BackupPage"
       }
     ],
     "routeChecks": [
@@ -341,6 +351,9 @@
       "isStatistichePage",
       "isAuditPage",
       "isRegistroAttivitaPage",
+      "isUtentiPage",
+      "isProfiliPage",
+      "isBackupPage",
       "isStudioModulePage",
       "isDashboardPage",
       "isStandalonePage"

@@ -5,6 +5,7 @@ mkdirSync('artifacts/react-migration/patches', { recursive: true })
 
 const args = process.argv.slice(2)
 const TRANCHE_2A_FLAG = '--tranche=2a'
+const TRANCHE_3A_FLAG = '--tranche=3a'
 const tranche = args.find((arg) => arg.startsWith('--tranche='))?.split('=')[1] || ''
 
 const migrationPaths = [
@@ -34,6 +35,13 @@ const tranche2aContracts = [
   '/audit',
   '/registro-attivita',
   '/utenti',
+  '/profili',
+  '/backup',
+]
+
+const tranche3aContracts = [
+  '/utenti',
+  '/utenti/nuovo',
   '/profili',
   '/backup',
 ]
@@ -93,6 +101,63 @@ const tranche2aPatchGroups = {
   ],
 }
 
+const tranche3aPatchGroups = {
+  backend: [
+    'web/services/react_utenti_bridge.py',
+    'web/services/react_profili_bridge.py',
+    'web/services/react_backup_bridge.py',
+    'web/blueprints/api_v1_react.py',
+  ],
+  frontend: [
+    'frontend/package.json',
+    'frontend/package-lock.json',
+    'frontend/src/utentiData.ts',
+    'frontend/src/profiliData.ts',
+    'frontend/src/backupData.ts',
+    'frontend/src/components/UtentiPage.tsx',
+    'frontend/src/components/UtentiPage.css',
+    'frontend/src/components/ProfiliPage.tsx',
+    'frontend/src/components/ProfiliPage.css',
+    'frontend/src/components/BackupPage.tsx',
+    'frontend/src/components/BackupPage.css',
+    'frontend/src/ui/LegacyPostForm.tsx',
+    'frontend/src/ui/ui.css',
+    'frontend/src/App.tsx',
+    'web/static/react',
+  ],
+  gate: [
+    'web/bootstrap/react_route_gate.py',
+    'web/blueprints/react_shell.py',
+    'tools/react-migration/route-manifest.json',
+  ],
+  tests: [
+    'frontend/scripts/check-react-contracts.mjs',
+    'scripts/react-migration/check-route-gate.mjs',
+    'scripts/react-migration/check-tranche-3a-gate.py',
+    'scripts/react-migration/run-safe-react-migration.mjs',
+  ],
+  reports: [
+    'CHANGELOG.md',
+    'Dockerfile',
+    'README.md',
+    'docs/REACT_MIGRATION_MASTER_PLAN.md',
+    'pct/__init__.py',
+    'railway.toml',
+    'setup.py',
+    'artifacts/react-migration/audit.md',
+    'artifacts/react-migration/route-inventory.json',
+    'artifacts/react-migration/route-gate.md',
+    'artifacts/react-migration/ui-consistency.md',
+    'artifacts/react-migration/tranche-3a-route-map.md',
+    'artifacts/react-migration/tranche-3a-gate.md',
+    'artifacts/react-migration/tranche-3a-report.md',
+    'artifacts/react-migration/legacy-contracts/utenti.json',
+    'artifacts/react-migration/legacy-contracts/utenti__nuovo.json',
+    'artifacts/react-migration/legacy-contracts/profili.json',
+    'artifacts/react-migration/legacy-contracts/backup.json',
+  ],
+}
+
 function run(cmd, options = {}) {
   console.log(`\n> ${cmd}`)
   execSync(cmd, { stdio: 'inherit', ...options })
@@ -144,13 +209,19 @@ function patchForPaths(paths) {
   return [tracked, untracked].filter((part) => part.trim()).join('\n').trimEnd() + '\n'
 }
 
-function writePatch(name, paths) {
-  writeFileSync(`artifacts/react-migration/patches/tranche-2a.${name}.patch`, patchForPaths(paths), 'utf8')
+function writePatch(trancheName, name, paths) {
+  writeFileSync(`artifacts/react-migration/patches/tranche-${trancheName}.${name}.patch`, patchForPaths(paths), 'utf8')
 }
 
 function writeTranche2aPatches() {
   for (const [name, paths] of Object.entries(tranche2aPatchGroups)) {
-    writePatch(name, paths)
+    writePatch('2a', name, paths)
+  }
+}
+
+function writeTranche3aPatches() {
+  for (const [name, paths] of Object.entries(tranche3aPatchGroups)) {
+    writePatch('3a', name, paths)
   }
 }
 
@@ -191,8 +262,26 @@ function runTranche2a() {
   run('git status --short')
 }
 
+function runTranche3a() {
+  cleanRequired()
+  run('git status --short')
+  run('node scripts/react-migration/audit-react-migration.mjs')
+  run(`python scripts/react-migration/capture-legacy-contracts.py ${tranche3aContracts.join(' ')}`)
+  run('node scripts/react-migration/check-route-gate.mjs')
+  run('node scripts/react-migration/check-ui-consistency.mjs')
+  run('python scripts/react-migration/check-tranche-3a-gate.py')
+  run('cd frontend && npm run test')
+  run('cd frontend && npm run typecheck')
+  run('cd frontend && npm run build')
+  writeTranche3aPatches()
+  run('git diff --stat')
+  run('git status --short')
+}
+
 if (tranche === '2a') {
   runTranche2a()
+} else if (tranche === '3a') {
+  runTranche3a()
 } else {
   runDefault()
 }

@@ -30,6 +30,18 @@ function assertNoBootstrapClass(source, label) {
   }
 }
 
+function assertNoPasswordUseState(source, label) {
+  if (/useState\s*(?:<[^>]*>)?\s*\([^)]*password/i.test(source)) {
+    throw new Error(`${label}: non deve salvare password nello state React`)
+  }
+}
+
+function assertNoFetchPost(source, label) {
+  if (/fetch\s*\([^)]*method\s*:\s*['"]POST['"]/is.test(source) || /method\s*:\s*['"]POST['"][^)]*fetch\s*\(/is.test(source)) {
+    throw new Error(`${label}: non deve usare fetch POST`)
+  }
+}
+
 function pythonTupleSource(source, name) {
   const match = source.match(new RegExp(`${name}\\s*=\\s*\\(([^]*?)\\)`, 'm'))
   return match ? match[1] : ''
@@ -87,6 +99,15 @@ const statisticheBridge = read('../web/services/react_statistiche_bridge.py')
 const auditPage = read('src/components/AuditPage.tsx')
 const auditData = read('src/auditData.ts')
 const auditBridge = read('../web/services/react_audit_bridge.py')
+const utentiPage = read('src/components/UtentiPage.tsx')
+const utentiData = read('src/utentiData.ts')
+const utentiBridge = read('../web/services/react_utenti_bridge.py')
+const profiliPage = read('src/components/ProfiliPage.tsx')
+const profiliData = read('src/profiliData.ts')
+const profiliBridge = read('../web/services/react_profili_bridge.py')
+const backupPage = read('src/components/BackupPage.tsx')
+const backupData = read('src/backupData.ts')
+const backupBridge = read('../web/services/react_backup_bridge.py')
 const reactRouteGate = read('../web/bootstrap/react_route_gate.py')
 const reactShellBlueprint = read('../web/blueprints/react_shell.py')
 const timesheet = read('src/components/TimesheetPage.tsx')
@@ -120,6 +141,7 @@ const checkRouteGate = read('../scripts/react-migration/check-route-gate.mjs')
 const checkUiConsistency = read('../scripts/react-migration/check-ui-consistency.mjs')
 const runSafeReactMigration = read('../scripts/react-migration/run-safe-react-migration.mjs')
 const tranche2aGate = read('../scripts/react-migration/check-tranche-2a-gate.py')
+const tranche3aGate = read('../scripts/react-migration/check-tranche-3a-gate.py')
 const uiAllowedClasses = read('../tools/react-migration/ui-allowed-classes.json')
 const routeRiskRules = read('../tools/react-migration/route-risk-rules.json')
 const uiPage = read('src/ui/Page.tsx')
@@ -134,6 +156,7 @@ const uiDataTable = read('src/ui/DataTable.tsx')
 const uiFormField = read('src/ui/FormField.tsx')
 const uiActionBar = read('src/ui/ActionBar.tsx')
 const uiTabs = read('src/ui/Tabs.tsx')
+const uiLegacyPostForm = read('src/ui/LegacyPostForm.tsx')
 const uiCss = read('src/ui/ui.css')
 const uiTokens = read('src/theme/tokens.css')
 const uiLayout = read('src/theme/layout.css')
@@ -180,40 +203,43 @@ assertContains(auditMigration, '_LEGACY_OPERATIONAL_PREFIXES', 'script audit leg
 assertContains(captureLegacyContracts, 'create_app', 'contract capture usa Flask test_client')
 assertContains(captureLegacyContracts, '_legacy=1', 'contract capture usa fallback legacy')
 assertContains(checkRouteGate, 'unlockFromGate=true richiede status react_full', 'route gate blocca unlock non completi')
-assertContains(checkRouteGate, 'Tranche 2A', 'route gate limita gli sblocchi della Tranche 2A')
+assertContains(checkRouteGate, 'Tranche 3A', 'route gate limita gli sblocchi della Tranche 3A')
 assertContains(checkUiConsistency, 'ui-allowed-classes.json', 'UI consistency usa policy classi')
 assertContains(checkUiConsistency, 'href placeholder #', 'UI consistency blocca href placeholder')
 assertContains(runSafeReactMigration, 'cleanRequired()', 'runner richiede working tree pulito')
 assertContains(runSafeReactMigration, '--tranche=2a', 'runner supporta Tranche 2A')
+assertContains(runSafeReactMigration, '--tranche=3a', 'runner supporta Tranche 3A')
 assertContains(runSafeReactMigration, 'npm run test', 'runner esegue test frontend')
 assertContains(runSafeReactMigration, 'npm run typecheck', 'runner esegue typecheck frontend')
 assertContains(runSafeReactMigration, 'npm run build', 'runner esegue build frontend')
 assertContains(tranche2aGate, '/statistiche', 'check Tranche 2A verifica statistiche')
 assertContains(tranche2aGate, '/registro-attivita', 'check Tranche 2A verifica registro attivita')
+assertContains(tranche3aGate, '/utenti/nuovo', 'check Tranche 3A verifica nuovo utente')
+assertContains(tranche3aGate, '/backup', 'check Tranche 3A verifica backup legacy')
 assertContains(uiAllowedClasses, '"allowedPrefix": "iu-"', 'policy classi UI prefisso iu')
 assertContains(routeRiskRules, '"critical"', 'regole rischio route critical')
 if (routeManifest.policy?.currentReleaseUnlocksRoutes !== true) {
-  throw new Error('route manifest: currentReleaseUnlocksRoutes deve essere true in Tranche 2A')
+  throw new Error('route manifest: currentReleaseUnlocksRoutes deve essere true nelle tranche di promozione')
 }
-const allowedTranche2aUnlocks = new Set(['/statistiche', '/audit', '/registro-attivita'])
+const allowedGovernedUnlocks = new Set(['/statistiche', '/audit', '/registro-attivita', '/utenti', '/profili'])
 for (const entry of routeManifest.routes ?? []) {
-  if (entry.unlockFromGate === true && !allowedTranche2aUnlocks.has(entry.route)) {
-    throw new Error(`route manifest: ${entry.route} non puo essere sbloccata in Tranche 2A`)
+  if (entry.unlockFromGate === true && !allowedGovernedUnlocks.has(entry.route)) {
+    throw new Error(`route manifest: ${entry.route} non puo essere sbloccata nelle tranche 2A/3A`)
   }
   if (!entry.route || !entry.family || !entry.status || !entry.risk || !entry.targetComponent || !entry.targetData || !entry.targetBridge || !entry.legacyContract) {
     throw new Error(`route manifest: entry incompleta per ${entry.route || 'route senza nome'}`)
   }
 }
-for (const route of allowedTranche2aUnlocks) {
+for (const route of allowedGovernedUnlocks) {
   const entry = (routeManifest.routes ?? []).find((item) => item.route === route)
   if (!entry || entry.status !== 'react_full' || entry.unlockFromGate !== true) {
     throw new Error(`route manifest: ${route} deve essere react_full con unlockFromGate=true`)
   }
 }
-for (const route of ['/utenti', '/profili', '/backup']) {
-  const entry = (routeManifest.routes ?? []).find((item) => item.route === route)
-  if (!entry || entry.status !== 'legacy_operational' || entry.unlockFromGate !== false) {
-    throw new Error(`route manifest: ${route} deve restare legacy_operational`)
+{
+  const entry = (routeManifest.routes ?? []).find((item) => item.route === '/backup')
+  if (!entry || entry.status !== 'react_readonly' || entry.unlockFromGate !== false) {
+    throw new Error('route manifest: /backup deve restare react_readonly con unlockFromGate=false')
   }
 }
 for (const route of ['/utenti', '/profili', '/audit', '/registro-attivita', '/studio', '/impostazioni', '/backup', '/sito-studio', '/statistiche', '/fatturazione', '/incassi-pagamenti', '/preventivi', '/compensi-forensi', '/tariffario', '/template-atti', '/redazione-atti', '/giurisprudenza', '/legal-intelligence', '/deposito/checklist', '/polisWeb', '/pdp', '/pat', '/sigit', '/sigp', '/portali/*']) {
@@ -233,6 +259,10 @@ assertContains(uiDataTable, 'iu-data-table', 'UI kit DataTable presente')
 assertContains(uiFormField, 'iu-form-field', 'UI kit FormField presente')
 assertContains(uiActionBar, 'iu-action-bar', 'UI kit ActionBar presente')
 assertContains(uiTabs, 'role="tablist"', 'UI kit Tabs accessibile')
+assertContains(uiLegacyPostForm, 'document.querySelector(\'meta[name="csrf-token"]\')', 'LegacyPostForm legge CSRF da meta')
+assertContains(uiLegacyPostForm, 'method={method.toLowerCase()}', 'LegacyPostForm usa form HTML standard')
+assertNotContains(uiLegacyPostForm, 'fetch(', 'LegacyPostForm non usa fetch')
+assertNotContains(uiLegacyPostForm, 'dangerouslySetInnerHTML', 'LegacyPostForm non usa HTML pericoloso')
 assertContains(uiCss, '--iu-border', 'UI kit CSS usa token IUSENTRA')
 assertContains(uiCss, 'prefers-reduced-motion', 'UI kit rispetta motion ridotta')
 assertContains(uiTokens, 'var(--iu-bg-app)', 'theme tokens usa token esistenti')
@@ -262,51 +292,99 @@ assertContains(app, "AdminDatabasePage", 'route database amministrativo')
 assertContains(app, "isAdminDatabasePage?<AdminDatabasePage/>", 'render database amministrativo')
 assertContains(app, "StatistichePage", 'route statistiche react')
 assertContains(app, "AuditPage", 'route audit react')
+assertContains(app, "UtentiPage", 'route utenti react')
+assertContains(app, "ProfiliPage", 'route profili react')
+assertContains(app, "BackupPage", 'route backup react preparatoria')
 assertContains(app, "isStatistichePage", 'detection statistiche react')
 assertContains(app, "isAuditPage", 'detection audit react')
 assertContains(app, "isRegistroAttivitaPage", 'detection registro attivita react')
+assertContains(app, "isUtentiPage", 'detection utenti react')
+assertContains(app, "isProfiliPage", 'detection profili react')
+assertContains(app, "isBackupPage", 'detection backup react preparatoria')
 assertContains(app, "isStatistichePage?<StatistichePage/>", 'render statistiche prima dello studio module')
 assertContains(app, "isAuditPage||isRegistroAttivitaPage?<AuditPage/>", 'render audit e registro attivita')
+assertContains(app, "isUtentiPage?<UtentiPage/>", 'render utenti prima dello studio module')
+assertContains(app, "isProfiliPage?<ProfiliPage/>", 'render profili prima dello studio module')
+assertContains(app, "isBackupPage?<BackupPage/>", 'render backup prima dello studio module')
 assertContains(statistiche, 'getStatistichePage', 'StatistichePage usa getStatistichePage')
 assertContains(auditPage, 'getAuditPage', 'AuditPage usa getAuditPage')
+assertContains(utentiPage, 'getUtentiPage', 'UtentiPage usa getUtentiPage')
+assertContains(profiliPage, 'getProfiliPage', 'ProfiliPage usa getProfiliPage')
+assertContains(backupPage, 'getBackupPage', 'BackupPage usa getBackupPage')
+assertContains(utentiPage, 'LegacyPostForm', 'UtentiPage usa LegacyPostForm')
+assertContains(profiliPage, 'LegacyPostForm', 'ProfiliPage usa LegacyPostForm per scritture legacy')
+assertContains(backupPage, 'LegacyPostForm', 'BackupPage usa LegacyPostForm per azioni legacy')
 assertContains(statisticheData, '/api/v1/ui/statistiche', 'statisticheData usa endpoint statistiche')
 assertContains(auditData, '/api/v1/ui/audit', 'auditData usa endpoint audit')
 assertContains(auditData, '/api/v1/ui/registro-attivita', 'auditData usa endpoint registro attivita')
+assertContains(utentiData, '/api/v1/ui/utenti', 'utentiData usa endpoint utenti')
+assertContains(profiliData, '/api/v1/ui/profili', 'profiliData usa endpoint profili')
+assertContains(backupData, '/api/v1/ui/backup', 'backupData usa endpoint backup')
 assertContains(statisticheBridge, '"route_owner": "react_shell"', 'bridge statistiche route_owner react_shell')
 assertContains(auditBridge, '"route_owner": "react_shell"', 'bridge audit route_owner react_shell')
+assertContains(utentiBridge, '"route_owner": "react_shell"', 'bridge utenti route_owner react_shell')
+assertContains(profiliBridge, '"route_owner": "react_shell"', 'bridge profili route_owner react_shell')
+assertContains(backupBridge, '"route_owner": "legacy_locked"', 'bridge backup route_owner legacy_locked')
 assertContains(apiBridge, '@api_v1_react.get("/statistiche")', 'endpoint UI statistiche')
 assertContains(apiBridge, '@api_v1_react.get("/audit")', 'endpoint UI audit')
 assertContains(apiBridge, '@api_v1_react.get("/registro-attivita")', 'endpoint UI registro attivita')
+assertContains(apiBridge, '@api_v1_react.get("/utenti")', 'endpoint UI utenti')
+assertContains(apiBridge, '@api_v1_react.get("/profili")', 'endpoint UI profili')
+assertContains(apiBridge, '@api_v1_react.get("/backup")', 'endpoint UI backup')
 assertNotContains(legacyOperationalTuple, '"/statistiche"', 'gate legacy senza statistiche')
 assertNotContains(legacyOperationalTuple, '"/audit"', 'gate legacy senza audit')
 assertNotContains(legacyOperationalTuple, '"/registro-attivita"', 'gate legacy senza registro attivita')
-assertContains(legacyOperationalTuple, '"/utenti"', 'gate legacy mantiene utenti')
-assertContains(legacyOperationalTuple, '"/profili"', 'gate legacy mantiene profili')
+assertNotContains(legacyOperationalTuple, '"/utenti"', 'gate legacy senza utenti')
+assertNotContains(legacyOperationalTuple, '"/profili"', 'gate legacy senza profili')
 assertContains(legacyOperationalTuple, '"/backup"', 'gate legacy mantiene backup')
+assertContains(reactRouteGate, 'lower.startswith("/utenti/") and lower != "/utenti/nuovo"', 'gate protegge nested utenti non migrati')
+assertContains(reactRouteGate, 'lower.startswith("/profili/")', 'gate protegge nested profili non migrati')
+assertContains(reactRouteGate, 'lower == "/backup" or lower.startswith("/backup/")', 'gate protegge backup legacy')
 assertNotContains(shellLegacyFirstTuple, '"/statistiche"', 'shell legacy-first senza statistiche')
 assertNotContains(shellLegacyFirstTuple, '"/audit"', 'shell legacy-first senza audit')
 assertNotContains(shellLegacyFirstTuple, '"/registro-attivita"', 'shell legacy-first senza registro attivita')
-assertContains(shellLegacyFirstTuple, '"/utenti"', 'shell legacy-first mantiene utenti')
-assertContains(shellLegacyFirstTuple, '"/profili"', 'shell legacy-first mantiene profili')
+assertNotContains(shellLegacyFirstTuple, '"/utenti"', 'shell legacy-first senza utenti')
+assertNotContains(shellLegacyFirstTuple, '"/profili"', 'shell legacy-first senza profili')
 assertContains(shellLegacyFirstTuple, '"/backup"', 'shell legacy-first mantiene backup')
+assertContains(reactShellBlueprint, 'lower.startswith("/utenti/") and lower != "/utenti/nuovo"', 'shell protegge nested utenti non migrati')
+assertContains(reactShellBlueprint, 'lower.startswith("/profili/")', 'shell protegge nested profili non migrati')
+assertContains(reactShellBlueprint, 'lower == "/backup" or lower.startswith("/backup/")', 'shell protegge backup legacy')
 for (const [label, source] of [
   ['StatistichePage', statistiche],
   ['AuditPage', auditPage],
+  ['UtentiPage', utentiPage],
+  ['ProfiliPage', profiliPage],
+  ['BackupPage', backupPage],
 ]) {
   assertNoBootstrapClass(source, `${label} senza classi Bootstrap`)
   assertNotContains(source, 'href="#"', `${label} senza href placeholder`)
   assertNotContains(source, 'mockResults', `${label} senza mockResults`)
   assertNotContains(source, 'mock_fallback: true', `${label} senza mock fallback true`)
+  assertNoFetchPost(source, `${label} senza fetch POST`)
+  assertNoPasswordUseState(source, `${label} senza password in useState`)
+  assertNotContains(source, 'localStorage', `${label} senza localStorage per dati amministrativi`)
 }
 for (const [label, source] of [
   ['statisticheData', statisticheData],
   ['auditData', auditData],
+  ['utentiData', utentiData],
+  ['profiliData', profiliData],
+  ['backupData', backupData],
   ['react_statistiche_bridge', statisticheBridge],
   ['react_audit_bridge', auditBridge],
+  ['react_utenti_bridge', utentiBridge],
+  ['react_profili_bridge', profiliBridge],
+  ['react_backup_bridge', backupBridge],
 ]) {
   assertNotContains(source, 'mockResults', `${label} senza mockResults`)
   assertNotContains(source, 'mock_fallback: true', `${label} senza mock fallback true`)
 }
+assertNoFetchPost(utentiData, 'utentiData senza fetch POST')
+assertNoFetchPost(profiliData, 'profiliData senza fetch POST')
+assertNoFetchPost(backupData, 'backupData senza fetch POST')
+assertNotContains(utentiBridge, 'password_hash', 'bridge utenti non serializza hash password')
+assertNotContains(utentiBridge, 'totp_secret', 'bridge utenti non serializza segreti TOTP')
+assertNotContains(utentiBridge, 'reset_token', 'bridge utenti non serializza reset token')
 assertContains(app, "DocumentEditorPage", 'route editor documento react')
 assertContains(app, "isDocumentEditorPage?<DocumentEditorPage/>", 'render editor documento react')
 assertContains(app, "/^\\/fascicoli\\/[^/]+\\/documenti\\/[^/]+\\/editor$/.test(routeKey)", 'match route profonda editor documento')

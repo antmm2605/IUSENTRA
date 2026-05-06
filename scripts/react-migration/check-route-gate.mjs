@@ -60,7 +60,7 @@ const reactExact = new Set(extractSet(gate, '_REACT_EXACT').map(normaliseRoute))
 const legacyOperationalPrefixes = extractTuple(gate, '_LEGACY_OPERATIONAL_PREFIXES')
 const excludedPrefixes = extractTuple(gate, '_EXCLUDED_PREFIXES')
 const shellLegacyFirstPrefixes = extractTuple(reactShell, '_LEGACY_FIRST_PREFIXES')
-const allowedTranche2aUnlocks = new Set(['/statistiche', '/audit', '/registro-attivita'])
+const allowedReactUnlocks = new Set(['/statistiche', '/audit', '/registro-attivita', '/utenti', '/profili'])
 
 const violations = []
 for (const entry of manifest.routes ?? []) {
@@ -76,8 +76,8 @@ for (const entry of manifest.routes ?? []) {
   }
 
   if (entry.unlockFromGate === true) {
-    if (!allowedTranche2aUnlocks.has(route)) {
-      violations.push(`${entry.route}: unlockFromGate=true non consentito nella Tranche 2A`)
+    if (!allowedReactUnlocks.has(route)) {
+      violations.push(`${entry.route}: unlockFromGate=true non consentito nelle tranche governate 2A/3A`)
     }
     if (entry.status !== 'react_full') {
       violations.push(`${entry.route}: unlockFromGate=true richiede status react_full`)
@@ -104,10 +104,10 @@ for (const entry of manifest.routes ?? []) {
 }
 
 const unlocked = (manifest.routes ?? []).filter((entry) => entry.unlockFromGate === true)
-for (const route of ['/utenti', '/profili', '/backup']) {
+for (const route of ['/backup']) {
   const entry = (manifest.routes ?? []).find((item) => normaliseRoute(item.route) === route)
-  if (!entry || entry.status !== 'legacy_operational' || entry.unlockFromGate !== false) {
-    violations.push(`${route}: deve restare legacy_operational con unlockFromGate=false nella Tranche 2A`)
+  if (!entry || entry.status !== 'react_readonly' || entry.unlockFromGate !== false) {
+    violations.push(`${route}: deve restare react_readonly con unlockFromGate=false nella Tranche 3A`)
   }
   const stillBlocked = legacyOperationalPrefixes.some((prefix) => isPrefixMatch(route, prefix))
   const stillShellBlocked = shellLegacyFirstPrefixes.some((prefix) => isPrefixMatch(route, prefix))
@@ -116,12 +116,24 @@ for (const route of ['/utenti', '/profili', '/backup']) {
   }
 }
 
+for (const route of ['/utenti', '/profili']) {
+  const entry = (manifest.routes ?? []).find((item) => normaliseRoute(item.route) === route)
+  if (!entry || entry.status !== 'react_full' || entry.unlockFromGate !== true) {
+    violations.push(`${route}: deve essere react_full con unlockFromGate=true nella Tranche 3A`)
+  }
+  const stillBlocked = legacyOperationalPrefixes.some((prefix) => isPrefixMatch(route, prefix))
+  const stillShellBlocked = shellLegacyFirstPrefixes.some((prefix) => isPrefixMatch(route, prefix))
+  if (stillBlocked || stillShellBlocked) {
+    violations.push(`${route}: non deve restare bloccata da gate o shell legacy`)
+  }
+}
+
 const report = [
   '# Route gate report',
   '',
   `Route nel manifest: ${(manifest.routes ?? []).length}`,
   `Route con unlockFromGate=true: ${unlocked.length}`,
-  `Route Tranche 2A consentite: ${[...allowedTranche2aUnlocks].join(', ')}`,
+  `Route governate consentite: ${[...allowedReactUnlocks].join(', ')}`,
   `Violazioni: ${violations.length}`,
   '',
   ...violations.map((item) => `- ${item}`),
@@ -134,4 +146,4 @@ if (violations.length) {
   process.exit(1)
 }
 
-console.log('Route gate OK: Tranche 2A coerente.')
+console.log('Route gate OK: Tranche 3A coerente.')

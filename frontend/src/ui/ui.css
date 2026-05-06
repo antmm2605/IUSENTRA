@@ -383,6 +383,129 @@
   box-shadow: 0 3px 12px rgba(15, 23, 42, .08);
 }
 
+.iu-legacy-form {
+  display: grid;
+  gap: 14px;
+}
+
+.iu-legacy-form__header {
+  display: grid;
+  gap: 4px;
+}
+
+.iu-legacy-form__header h3 {
+  margin: 0;
+  color: #111827;
+  font-size: 16px;
+  line-height: 1.25;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.iu-legacy-form__header p {
+  margin: 0;
+  color: var(--iu-slate-500);
+  font-size: 13px;
+  line-height: 1.45;
+  font-weight: 650;
+}
+
+.iu-legacy-form__fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.iu-legacy-form__field {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+}
+
+.iu-legacy-form__field span,
+.iu-legacy-form__checks legend,
+.iu-legacy-form__check span {
+  color: #111827;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.iu-legacy-form__field input,
+.iu-legacy-form__field select {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--iu-border);
+  border-radius: 12px;
+  background: #fff;
+  color: #111827;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.iu-legacy-form__field input:focus,
+.iu-legacy-form__field select:focus {
+  outline: 2px solid rgba(37, 99, 235, .22);
+  outline-offset: 2px;
+}
+
+.iu-legacy-form__checks {
+  min-width: 0;
+  display: grid;
+  gap: 9px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.iu-legacy-form__check-grid {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.iu-legacy-form__check {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.iu-legacy-form__check input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--iu-blue-600);
+}
+
+.iu-legacy-form__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.iu-legacy-form__submit {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 14px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--iu-navy-900), var(--iu-navy-800));
+  color: #fff;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.iu-legacy-form__submit:disabled {
+  cursor: not-allowed;
+  opacity: .58;
+}
+
 @keyframes iu-spin {
   to {
     transform: rotate(360deg);
@@ -407,5 +530,13 @@
 
   .iu-btn {
     width: 100%;
+  }
+
+  .iu-legacy-form__submit {
+    width: 100%;
+  }
+
+  .iu-legacy-form__fields {
+    grid-template-columns: 1fr;
   }
 }

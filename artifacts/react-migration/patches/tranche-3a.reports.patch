@@ -1,0 +1,522 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 2966cb87..3639f55c 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -1,5 +1,11 @@
+ # Changelog
+
++## 2.198.88 - 2026-05-06
++
++- Promosse in React full le route amministrative `/utenti`, `GET /utenti/nuovo` e `/profili`, con bridge backend reali, endpoint UI dedicati e gate aggiornato; le scritture restano form POST verso le route legacy auditabili.
++- Preparata `/backup` come superficie React read-only con API e pagina dedicata, mantenendola esplicitamente bloccata nel gate legacy insieme a restore, verifica, download ed esecuzione backup.
++- Estesi runner, controlli gate/UI, contratti React, check Flask e patch rollback separate per la Tranche 3A senza sbloccare route economiche, mandato, documentali o telematiche.
++
+ ## 2.198.87 - 2026-05-06
+
+ - Promosse in React full le route read-only `/statistiche`, `/audit` e `/registro-attivita`, con bridge backend reali, endpoint `/api/v1/ui/*`, pagine React dedicate, fallback tecnico `?_legacy=1` e gate aggiornato senza sbloccare utenti, profili, backup, economico o telematico.
+diff --git a/Dockerfile b/Dockerfile
+index 54455eb6..ace58576 100644
+--- a/Dockerfile
++++ b/Dockerfile
+@@ -1,4 +1,4 @@
+-#  version: 2.198.87
++#  version: 2.198.88
+ #  IUSENTRA | Dockerfile produzione
+
+ #  Build multi-stage:
+@@ -75,7 +75,7 @@ RUN mkdir -p /out && /tmp/dart-sass/sass --no-source-map --style=compressed \
+ FROM python:3.12-slim
+
+ LABEL org.opencontainers.image.title="IUSENTRA" \
+-    org.opencontainers.image.version="2.198.87" \
++    org.opencontainers.image.version="2.198.88" \
+       org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
+       org.opencontainers.image.created="2026-03-18"
+
+diff --git a/README.md b/README.md
+index 3c0124f3..0523025d 100644
+--- a/README.md
++++ b/README.md
+@@ -53,8 +53,8 @@ La repo oggi non è più solo un tool CLI per il Processo Civile Telematico: con
+ - Assistenza remota cliente sempre da `SUPERADMIN`, con schermo WebRTC, microfono opzionale, chat tecnica, audit, consensi ed escalation governata al controllo remoto avanzato esterno.
+ - `Sito Studio` nativo per ogni tenant: pagine a blocchi, articoli, servizi, professionisti, sedi, contatti, agenda appuntamenti pubblica e sito web pubblicabile senza WordPress esterno.
+ - Le sezioni pubbliche `Strumenti legali`, `Applicazioni` e `News giuridiche strutturate` non sono esposte in automatico: compaiono sul sito dello studio solo se l'amministratore del sito attiva i flag dedicati da `Sito Studio -> Impostazioni`.
+-- Migrazione React progressiva: la shell `/app-v2` convive con la UI Jinja attuale e usa API Flask reali; `Clienti e Anagrafiche`, `Soggetti e Parti`, `Comunicazioni`, `Servizi Telematici`, `Gestione Database` (`/admin/database`), `Statistiche`, `Audit` e `Registro attivita` sono ora servite in React sui GET ufficiali, con salvataggi ancora sulle route Flask storiche dove presenti e fallback tecnico `_legacy=1`. Le superfici telematiche `PolisWeb / PST`, `PDP`, `PAT`, `PTT`, `Tribunali / PEC`, `Checklist deposito` e `Guida firma digitale` restano governate dai vincoli specifici di portale e non vengono promosse da questa tranche. `Regia Operativa`, `Ricerca Studio`, `Agenda`, `Nuovo Appuntamento` e la suite `Fascicoli` vivono rispettivamente in `/app-v2/regia-operativa`, `/app-v2/ricerca-studio`, `/app-v2/agenda`, `/app-v2/agenda/nuovo` e `/app-v2/fascicoli`. La suite fascicoli include lista, nuovo/modifica, archivio, dettaglio cabina fascicolo, quadro intelligente AI, editor professionale anche sulla route profonda `/fascicoli/<id>/documenti/<id_doc>/editor` con font/dimensioni/interlinea in stile studio, anteprima PDF nativa fedele all'originale per documenti impaginati con stemmi/timbri/firme e blocco professionale delle conversioni non affidabili, compilatore atti, anteprima documento interna anche per `.pdf.p7m`, upload senza reload ed export, con scritture ancora sulle route storiche per rollback immediato. Ogni pagina migrata viene collegata alla nav React, usa solo dati reali da repository/sessione/API/configurazione e nessuna pagina React viene annidata dentro un'altra durante la migrazione pagina per pagina.
+-- La migrazione React residua e' governata da `tools/react-migration/route-manifest.json` e dagli script `scripts/react-migration/*`: audit route, cattura contratti legacy, controllo gate, consistency UI e runner sicuro. La Tranche 2A abilita solo `/statistiche`, `/audit` e `/registro-attivita`; `/utenti`, `/profili`, `/backup`, le aree economiche e quelle telematiche restano bloccate fino a parita' dimostrata.
++- Migrazione React progressiva: la shell `/app-v2` convive con la UI Jinja attuale e usa API Flask reali; `Clienti e Anagrafiche`, `Soggetti e Parti`, `Comunicazioni`, `Servizi Telematici`, `Gestione Database` (`/admin/database`), `Statistiche`, `Audit`, `Registro attivita`, `Utenti` e `Profili e permessi` sono ora servite in React sui GET ufficiali, con salvataggi ancora sulle route Flask storiche dove presenti e fallback tecnico `_legacy=1`. Le superfici telematiche `PolisWeb / PST`, `PDP`, `PAT`, `PTT`, `Tribunali / PEC`, `Checklist deposito` e `Guida firma digitale` restano governate dai vincoli specifici di portale e non vengono promosse da questa tranche. `Regia Operativa`, `Ricerca Studio`, `Agenda`, `Nuovo Appuntamento` e la suite `Fascicoli` vivono rispettivamente in `/app-v2/regia-operativa`, `/app-v2/ricerca-studio`, `/app-v2/agenda`, `/app-v2/agenda/nuovo` e `/app-v2/fascicoli`. La suite fascicoli include lista, nuovo/modifica, archivio, dettaglio cabina fascicolo, quadro intelligente AI, editor professionale anche sulla route profonda `/fascicoli/<id>/documenti/<id_doc>/editor` con font/dimensioni/interlinea in stile studio, anteprima PDF nativa fedele all'originale per documenti impaginati con stemmi/timbri/firme e blocco professionale delle conversioni non affidabili, compilatore atti, anteprima documento interna anche per `.pdf.p7m`, upload senza reload ed export, con scritture ancora sulle route storiche per rollback immediato. Ogni pagina migrata viene collegata alla nav React, usa solo dati reali da repository/sessione/API/configurazione e nessuna pagina React viene annidata dentro un'altra durante la migrazione pagina per pagina.
++- La migrazione React residua e' governata da `tools/react-migration/route-manifest.json` e dagli script `scripts/react-migration/*`: audit route, cattura contratti legacy, controllo gate, consistency UI e runner sicuro. La Tranche 3A abilita `/utenti`, `GET /utenti/nuovo` e `/profili`; `/backup` dispone di API/pagina preparatoria read-only ma resta bloccata nel gate, mentre le aree economiche, mandato, documentali e telematiche restano legacy fino a parita' dimostrata.
+ - La pagina `Gestione Database` non si limita a segnalare anomalie referenziali: `Verifica e ripara` chiama una route Flask auditata, crea backup prima di scrivere e corregge automaticamente i riferimenti orfani risolvibili senza inventare dati.
+ - La superficie `Tribunali / PEC` distingue le PEC di deposito telematico dalle PEC amministrative/protocollo: PST e' fonte primaria per il deposito, IPA Open Data fonte secondaria per indirizzi amministrativi, e i siti ufficiali restano fallback/verifica manuale.
+ - Deploy Hetzner CPX42: il profilo [deploy/hetzner](deploy/hetzner/README.md), documentato anche in [docs/DEPLOY_HETZNER_CPX42.md](docs/DEPLOY_HETZNER_CPX42.md), prepara un server Ubuntu con Docker Compose, Caddy HTTPS, Redis, worker scheduler/OCR, backup e restore su `/opt/iusentra/data`, con retention backup governata e pannello Superadmin `Server e manutenzione` per consumi, hardlink e manutenzioni sicure.
+diff --git a/artifacts/react-migration/audit.md b/artifacts/react-migration/audit.md
+index c47cd913..48128399 100644
+--- a/artifacts/react-migration/audit.md
++++ b/artifacts/react-migration/audit.md
+@@ -1,6 +1,6 @@
+ # Audit migrazione React
+
+-Generato: 2026-05-06T11:13:52.497Z
++Generato: 2026-05-06T11:53:08.273Z
+
+ ## Frontend
+
+@@ -12,12 +12,12 @@ Script disponibili: dev, test, typecheck, build, preview
+ Route React prefixes: 55
+ Route React exact: 43
+ Excluded prefixes: 14
+-Legacy operational prefixes: 39
++Legacy operational prefixes: 37
+
+ ## App React
+
+-Lazy components: 28
+-Route checks: 43
++Lazy components: 31
++Route checks: 46
+ Studio module routes: 52
+
+ ## Nota operativa
+diff --git a/artifacts/react-migration/route-gate.md b/artifacts/react-migration/route-gate.md
+index 79775ce0..e6e7c04d 100644
+--- a/artifacts/react-migration/route-gate.md
++++ b/artifacts/react-migration/route-gate.md
+@@ -1,6 +1,6 @@
+ # Route gate report
+
+ Route nel manifest: 25
+-Route con unlockFromGate=true: 3
+-Route Tranche 2A consentite: /statistiche, /audit, /registro-attivita
++Route con unlockFromGate=true: 5
++Route governate consentite: /statistiche, /audit, /registro-attivita, /utenti, /profili
+ Violazioni: 0
+diff --git a/artifacts/react-migration/route-inventory.json b/artifacts/react-migration/route-inventory.json
+index 58b64af4..73a686b5 100644
+--- a/artifacts/react-migration/route-inventory.json
++++ b/artifacts/react-migration/route-inventory.json
+@@ -1,5 +1,5 @@
+ {
+-  "generatedAt": "2026-05-06T11:13:52.497Z",
++  "generatedAt": "2026-05-06T11:53:08.273Z",
+   "react": {
+     "dependencies": {
+       "@vitejs/plugin-react": "^5.0.0",
+@@ -166,7 +166,6 @@
+       "/polisweb",
+       "/portali",
+       "/preventivi",
+-      "/profili",
+       "/redazione-atti",
+       "/ricerca-legale",
+       "/servizi-telematici",
+@@ -181,8 +180,7 @@
+       "/tariffario",
+       "/telematico",
+       "/template-atti",
+-      "/tribunali",
+-      "/utenti"
++      "/tribunali"
+     ]
+   },
+   "app": {
+@@ -298,6 +296,18 @@
+       {
+         "name": "AuditPage",
+         "importPath": "./components/AuditPage"
++      },
++      {
++        "name": "UtentiPage",
++        "importPath": "./components/UtentiPage"
++      },
++      {
++        "name": "ProfiliPage",
++        "importPath": "./components/ProfiliPage"
++      },
++      {
++        "name": "BackupPage",
++        "importPath": "./components/BackupPage"
+       }
+     ],
+     "routeChecks": [
+@@ -341,6 +351,9 @@
+       "isStatistichePage",
+       "isAuditPage",
+       "isRegistroAttivitaPage",
++      "isUtentiPage",
++      "isProfiliPage",
++      "isBackupPage",
+       "isStudioModulePage",
+       "isDashboardPage",
+       "isStandalonePage"
+diff --git a/artifacts/react-migration/ui-consistency.md b/artifacts/react-migration/ui-consistency.md
+index f2037acc..a8405904 100644
+--- a/artifacts/react-migration/ui-consistency.md
++++ b/artifacts/react-migration/ui-consistency.md
+@@ -1,4 +1,4 @@
+ # UI consistency report
+
+-File scansionati: 121
++File scansionati: 131
+ Violazioni: 0
+diff --git a/docs/REACT_MIGRATION_MASTER_PLAN.md b/docs/REACT_MIGRATION_MASTER_PLAN.md
+index 213c695a..52ea2a40 100644
+--- a/docs/REACT_MIGRATION_MASTER_PLAN.md
++++ b/docs/REACT_MIGRATION_MASTER_PLAN.md
+@@ -1,5 +1,30 @@
+ # Migrazione progressiva Flask + React
+
++## Stato tranche 2026-05-06 - Tranche 3A amministrazione base
++
++La seconda promozione governata abilita in React full la gestione
++amministrativa base, lasciando le scritture sensibili sui POST Flask legacy:
++
++- `/utenti` usa `web/services/react_utenti_bridge.py` e
++  `GET /api/v1/ui/utenti` per lista utenti, ruoli, stati, KPI e azioni GET
++  sicure; le modifiche e le eliminazioni restano route legacy con
++  `?_legacy=1`.
++- `GET /utenti/nuovo` viene servita da React con un form standard
++  `method="post"` verso `/utenti/nuovo`; non esistono fetch POST o API di
++  scrittura nuove, e la password temporanea non viene salvata nello stato
++  React.
++- `/profili` usa `web/services/react_profili_bridge.py` e
++  `GET /api/v1/ui/profili` per matrice ruoli/permessi, override e form legacy
++  auditati dove disponibili.
++- `/backup` usa `web/services/react_backup_bridge.py` e
++  `GET /api/v1/ui/backup` solo come preparazione read-only; il gate mantiene
++  `/backup` e tutte le sottoroute in legacy, incluse esecuzione, verifica,
++  download, delete e restore.
++- `run-safe-react-migration.mjs --tranche=3a` cattura i contratti legacy,
++  rilancia gate/UI checks, verifica shell e bypass legacy con Flask
++  `test_client`, esegue test/typecheck/build frontend e genera patch separate
++  di rollback.
++
+ ## Stato tranche 2026-05-06 - Tranche 2A read-only
+
+ La prima promozione governata abilita in React full solo superfici read-only o a
+diff --git a/pct/__init__.py b/pct/__init__.py
+index bc992de4..0a4175a6 100644
+--- a/pct/__init__.py
++++ b/pct/__init__.py
+@@ -2,5 +2,5 @@
+ PCT - Processo Civile Telematico
+ Sistema per l'invio telematico negli studi legali italiani.
+ """
+-__version__ = "2.198.87"
++__version__ = "2.198.88"
+ __author__ = "IUSENTRA"
+diff --git a/railway.toml b/railway.toml
+index eb332d63..a8783f8e 100644
+--- a/railway.toml
++++ b/railway.toml
+@@ -1,7 +1,7 @@
+ #  Railway - Configurazione deploy
+ #  Docs: https://docs.railway.app
+-#  version: 2.198.87
+-#  redeploy: 06/05/2026 09:25:00
++#  version: 2.198.88
++#  redeploy: 06/05/2026 13:55:00
+
+ [build]
+ builder = "DOCKERFILE"
+diff --git a/setup.py b/setup.py
+index a1b37a29..2a3ae86c 100644
+--- a/setup.py
++++ b/setup.py
+@@ -10,7 +10,7 @@ from packaging_manifest import extras_requirements, read_version, runtime_requir
+
+ setup(
+     name="pct-studio-legale",
+-    # Versione applicativa 2.198.87, letta dalla source of truth pct.__init__
++    # Versione applicativa 2.198.88, letta dalla source of truth pct.__init__
+     version=read_version(),
+     description="IUSENTRA: gestionale web modulare per studi legali con PCT, Lex locale e servizi telematici",
+     packages=find_packages(),
+
+diff --git a/artifacts/react-migration/legacy-contracts/utenti__nuovo.json b/artifacts/react-migration/legacy-contracts/utenti__nuovo.json
+new file mode 100644
+index 00000000..140440c9
+--- /dev/null
++++ b/artifacts/react-migration/legacy-contracts/utenti__nuovo.json
+@@ -0,0 +1,14 @@
++{
++  "route": "/utenti/nuovo",
++  "legacyUrl": "/utenti/nuovo?_legacy=1",
++  "status": 302,
++  "redirectLocation": "/login?next=/utenti/nuovo?_legacy%3D1",
++  "forms": [],
++  "links": [
++    "/login?next=/utenti/nuovo?_legacy%3D1"
++  ],
++  "linksCount": 1,
++  "downloads": [],
++  "hasBootstrapClass": false,
++  "hasReactRoot": false
++}
+\ No newline at end of file
+warning: in the working copy of 'artifacts/react-migration/legacy-contracts/utenti__nuovo.json', CRLF will be replaced by LF the next time Git touches it
+
+diff --git a/artifacts/react-migration/tranche-3a-gate.md b/artifacts/react-migration/tranche-3a-gate.md
+new file mode 100644
+index 00000000..6ef0ee63
+--- /dev/null
++++ b/artifacts/react-migration/tranche-3a-gate.md
+@@ -0,0 +1,19 @@
++# Tranche 3A gate check
++
++- [OK] login tenant (status=302)
++- [OK] React shell /utenti (status=200)
++- [OK] React shell /utenti/nuovo (status=200)
++- [OK] React shell /profili (status=200)
++- [OK] Legacy bypass /utenti?_legacy=1 (status=200)
++- [OK] Legacy bypass /utenti/nuovo?_legacy=1 (status=200)
++- [OK] Legacy bypass /profili?_legacy=1 (status=200)
++- [OK] Ancora legacy /utenti/qualunque/modifica (status=302)
++- [OK] Ancora legacy /profili/qualunque (status=404)
++- [OK] Ancora legacy /backup (status=200)
++- [OK] Ancora legacy /backup?_legacy=1 (status=200)
++- [OK] JSON /api/v1/ui/utenti (status=200)
++- [OK] JSON /api/v1/ui/profili (status=200)
++- [OK] JSON /api/v1/ui/backup (status=200)
++- [OK] POST non intercettato /utenti/nuovo (status=400)
++- [OK] POST non intercettato /profili (status=405)
++- [OK] POST non intercettato /backup (status=405)
+warning: in the working copy of 'artifacts/react-migration/tranche-3a-gate.md', CRLF will be replaced by LF the next time Git touches it
+
+diff --git a/artifacts/react-migration/tranche-3a-report.md b/artifacts/react-migration/tranche-3a-report.md
+new file mode 100644
+index 00000000..cfb6a859
+--- /dev/null
++++ b/artifacts/react-migration/tranche-3a-report.md
+@@ -0,0 +1,149 @@
++# Report Tranche 3A migrazione React
++
++Data/ora: 2026-05-06T13:55:00+02:00
++Branch base: claude/legal-electronic-filing-kIxcV
++Branch locale: Codex/legal-electronic-filing-kIxcV
++
++## Route migrate
++
++- `/utenti`: React full sul GET ufficiale.
++- `/utenti/nuovo`: React sul GET ufficiale; il submit resta `POST /utenti/nuovo` legacy.
++- `/profili`: React full sul GET ufficiale.
++
++## Route preparate ma lasciate legacy
++
++- `/backup`: bridge/API/pagina React read-only preparatoria, ma gate ancora legacy per `/backup` e sottoroute.
++
++## File creati
++
++- `web/services/react_utenti_bridge.py`
++- `web/services/react_profili_bridge.py`
++- `web/services/react_backup_bridge.py`
++- `frontend/src/utentiData.ts`
++- `frontend/src/profiliData.ts`
++- `frontend/src/backupData.ts`
++- `frontend/src/components/UtentiPage.tsx`
++- `frontend/src/components/UtentiPage.css`
++- `frontend/src/components/ProfiliPage.tsx`
++- `frontend/src/components/ProfiliPage.css`
++- `frontend/src/components/BackupPage.tsx`
++- `frontend/src/components/BackupPage.css`
++- `frontend/src/ui/LegacyPostForm.tsx`
++- `scripts/react-migration/check-tranche-3a-gate.py`
++- `artifacts/react-migration/legacy-contracts/utenti__nuovo.json`
++- `artifacts/react-migration/tranche-3a-route-map.md`
++- `artifacts/react-migration/tranche-3a-gate.md`
++
++## File modificati
++
++- `web/blueprints/api_v1_react.py`
++- `web/bootstrap/react_route_gate.py`
++- `web/blueprints/react_shell.py`
++- `frontend/src/App.tsx`
++- `frontend/src/ui/ui.css`
++- `frontend/scripts/check-react-contracts.mjs`
++- `scripts/react-migration/check-route-gate.mjs`
++- `scripts/react-migration/run-safe-react-migration.mjs`
++- `tools/react-migration/route-manifest.json`
++- `frontend/package.json`
++- `frontend/package-lock.json`
++- `pct/__init__.py`
++- `setup.py`
++- `Dockerfile`
++- `railway.toml`
++- `README.md`
++- `CHANGELOG.md`
++- `docs/REACT_MIGRATION_MASTER_PLAN.md`
++- `web/static/react/*`
++
++## Endpoint aggiunti
++
++- `GET /api/v1/ui/utenti`
++- `GET /api/v1/ui/profili`
++- `GET /api/v1/ui/backup`
++
++## Gate modificato
++
++- Rimossi solo `/utenti` e `/profili` dai blocchi legacy operativi.
++- Aggiunta protezione nested per `/utenti/*` eccetto `/utenti/nuovo`.
++- Aggiunta protezione nested per `/profili/*`.
++- Confermata protezione legacy per `/backup` e `/backup/*`.
++- `?_legacy=1` resta invariato.
++
++## Route ancora bloccate
++
++- `/backup`
++- `/fatturazione`
++- `/incassi-pagamenti`
++- `/preventivi`
++- `/compensi-forensi`
++- `/tariffario`
++- `/deposito/checklist`
++- `/impostazioni`
++- route telematiche e portali.
++
++## Contratti legacy catturati
++
++- `artifacts/react-migration/legacy-contracts/utenti.json`
++- `artifacts/react-migration/legacy-contracts/utenti__nuovo.json`
++- `artifacts/react-migration/legacy-contracts/profili.json`
++- `artifacts/react-migration/legacy-contracts/backup.json`
++
++## Permessi verificati
++
++- `/utenti` e `/profili`: permesso legacy `utenti.leggi`.
++- `/utenti/nuovo`: permesso legacy di scrittura preservato sul POST Flask.
++- `/backup`: endpoint React read-only protetto con `backup.leggi`; operazioni tecniche restano legacy.
++
++## POST legacy preservati
++
++- `POST /utenti/nuovo` resta form HTML verso legacy, senza fetch POST.
++- POST annidati utenti/profili restano legacy.
++- POST backup restano legacy e non vengono intercettati dal gate React.
++
++## Azioni backup lasciate legacy
++
++- Esecuzione backup.
++- Verifica integrita.
++- Download.
++- Eliminazione.
++- Ripristino.
++
++## Test eseguiti
++
++- `node scripts/react-migration/run-safe-react-migration.mjs --tranche=3a` con `ALLOW_DIRTY=1` per baseline runtime sporca preesistente.
++- `node scripts/react-migration/check-route-gate.mjs`
++- `node scripts/react-migration/check-ui-consistency.mjs`
++- `python scripts/react-migration/check-tranche-3a-gate.py`
++- `cd frontend && npm run test`
++- `cd frontend && npm run typecheck`
++- `cd frontend && npm run build`
++
++## Esiti
++
++- `npm run test`: OK.
++- `npm run typecheck`: OK.
++- `npm run build`: OK.
++- `check-ui-consistency`: OK, 0 violazioni.
++- `check-route-gate`: OK, 0 violazioni.
++- `check-tranche-3a-gate`: OK.
++
++## Limiti test Flask
++
++- Il test harness consente autenticazione tramite tenant admin simulato; non sono stati necessari bypass inventati.
++- I POST sono verificati come non intercettati dal gate React; la validazione business resta dei route handler legacy esistenti.
++
++## Rischi residui
++
++- `/backup` e tutte le azioni tecniche restano volutamente legacy fino a una tranche dedicata.
++- Le route annidate utenti/profili restano legacy per evitare di duplicare scritture RBAC.
++- La working tree contiene file runtime/data sporchi preesistenti non correlati, non inclusi nelle patch di tranche.
++
++## Rollback
++
++```bash
++git apply -R artifacts/react-migration/patches/tranche-3a.backend.patch
++git apply -R artifacts/react-migration/patches/tranche-3a.frontend.patch
++git apply -R artifacts/react-migration/patches/tranche-3a.gate.patch
++git apply -R artifacts/react-migration/patches/tranche-3a.tests.patch
++```
+
+diff --git a/artifacts/react-migration/tranche-3a-route-map.md b/artifacts/react-migration/tranche-3a-route-map.md
+new file mode 100644
+index 00000000..5cac06bf
+--- /dev/null
++++ b/artifacts/react-migration/tranche-3a-route-map.md
+@@ -0,0 +1,77 @@
++# Route map Tranche 3A
++
++Data/ora: 2026-05-06T13:25:14+02:00
++
++Nota operativa: `rg.exe` non e' eseguibile in questa sessione locale (`Accesso negato`), quindi la ricerca richiesta e' stata eseguita con `Select-String` su `web`, `pct` e `tests`.
++
++## Pre-flight
++
++- `git status --short`: presente baseline sporca runtime non correlata sotto `data/`, `backup/`, `intelligence`, `privacy`, `email`, `output`; non ripristinata e non usata per nascondere modifiche.
++- `node scripts/react-migration/audit-react-migration.mjs`: eseguito, aggiornati `artifacts/react-migration/audit.md` e `route-inventory.json`.
++- `python scripts/react-migration/capture-legacy-contracts.py /utenti /utenti/nuovo /profili /backup`: eseguito.
++- Contratti presenti: `utenti.json`, `utenti__nuovo.json`, `profili.json`, `backup.json`.
++- Prerequisiti Parte 2A verificati: `/statistiche`, `/audit`, `/registro-attivita` sono `react_full` e `unlockFromGate=true`; non sono piu' bloccate in `_LEGACY_OPERATIONAL_PREFIXES`; `App.tsx` contiene `StatistichePage` e `AuditPage`.
++
++## /utenti
++
++- Handler legacy: `web/bootstrap/auth_management_routes.py`
++- Funzione: `lista_utenti`
++- Template: `web/templates/auth/utenti.html`
++- Repository/manager: `GestioneUtenti` tramite `_auth_manager()` / `get_utenti()`.
++- Permessi richiesti: `utenti.leggi`; in multi-tenant il `SUPERADMIN` viene reindirizzato al pannello piattaforma.
++- Form presenti: form POST eliminazione utente dentro la lista.
++- POST presenti: non sulla route `/utenti`; la lista espone POST verso `/utenti/<id_utente>/elimina`.
++- Action form: `/utenti/<id_utente>/elimina`.
++- Method form: `POST`.
++- CSRF: campo legacy `_csrf_token` presente nei form.
++- Download/export: nessuno.
++- Azioni distruttive: eliminazione utente via POST legacy.
++- Esito 3A: sbloccabile solo come lista React e navigazione verso GET `/utenti/nuovo`; le modifiche, i permessi personalizzati e l'eliminazione restano sulle route legacy annidate con `?_legacy=1` o POST legacy.
++
++## /utenti/nuovo
++
++- Handler legacy: `web/bootstrap/auth_management_routes.py`
++- Funzione: `nuovo_utente`
++- Template: `web/templates/auth/form_utente.html`
++- Repository/manager: `GestioneUtenti` tramite `_auth_manager()` / `get_utenti()`.
++- Permessi richiesti: `utenti.scrivi`; in multi-tenant il `SUPERADMIN` viene reindirizzato al pannello piattaforma.
++- Form presenti: form creazione utente.
++- POST presenti: `POST /utenti/nuovo`.
++- Action form: action implicita sullo stesso URL nel template legacy; React usa action esplicita `/utenti/nuovo`.
++- Method form: `POST`.
++- CSRF: campo legacy `_csrf_token`.
++- Download/export: nessuno.
++- Azioni distruttive: nessuna; crea utente e genera hash password lato legacy.
++- Esito 3A: GET sbloccabile in React; il submit resta form HTML standard verso `POST /utenti/nuovo`, senza fetch POST e senza password nello state React.
++
++## /profili
++
++- Handler legacy: `web/bootstrap/auth_management_routes.py`
++- Funzione: `profili`
++- Template: `web/templates/auth/profili.html`
++- Repository/manager: `GestioneUtenti`, `RuoloUtente`, `PERMESSI`, `TUTTI_PERMESSI`, `DESCRIZIONI_RUOLI`.
++- Permessi richiesti: `utenti.leggi`; in multi-tenant il `SUPERADMIN` viene reindirizzato al pannello piattaforma.
++- Form presenti: nessun form nella matrice profili.
++- POST presenti: non sulla route `/profili`; le scritture permessi sono in `/utenti/<id_utente>/permessi`.
++- Action form: non presenti in `/profili`; override gestiti da `/utenti/<id_utente>/permessi`.
++- Method form: non applicabile.
++- CSRF: la route `/profili` non ha form; gli override legacy usano `_csrf_token` in `web/templates/auth/permessi_utente.html`.
++- Download/export: nessuno.
++- Azioni distruttive: nessuna sulla route `/profili`; reset override possibile solo via POST legacy permessi utente.
++- Esito 3A: sbloccabile come lettura matrice ruoli/permessi e come form standard opzionale verso POST legacy per ripristino override.
++
++## /backup
++
++- Handler legacy: `web/bootstrap/backup_routes.py`
++- Funzione: `lista_backup`
++- Template: `web/templates/backup/lista.html`
++- Repository/manager: `GestioneBackup` tramite `get_backup()`.
++- Permessi richiesti: nessun check esplicito nel route handler; dominio permessi disponibile come `backup.leggi` / `backup.esegui`.
++- Form presenti: esecuzione backup, verifica integrita, eliminazione backup.
++- POST presenti: `/backup/esegui`, `/backup/<id_bk>/verifica`, `/backup/<id_bk>/elimina`, `/backup/<id_bk>/ripristina`.
++- Action form: route legacy elencate sopra.
++- Method form: `POST`.
++- CSRF: il template attuale non dichiara `_csrf_token` nei form backup.
++- Download/export: `GET /backup/<id_bk>/scarica`.
++- Azioni distruttive: eliminazione backup e ripristino dati.
++- Esito 3A: non sbloccabile in questa PR. Viene preparato un bridge/API/pagina React read-only con banner operativo; il gate continua a servire la vista legacy per `/backup` e sottoroute.

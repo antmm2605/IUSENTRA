@@ -1,5 +1,30 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-06 - Tranche 3A amministrazione base
+
+La seconda promozione governata abilita in React full la gestione
+amministrativa base, lasciando le scritture sensibili sui POST Flask legacy:
+
+- `/utenti` usa `web/services/react_utenti_bridge.py` e
+  `GET /api/v1/ui/utenti` per lista utenti, ruoli, stati, KPI e azioni GET
+  sicure; le modifiche e le eliminazioni restano route legacy con
+  `?_legacy=1`.
+- `GET /utenti/nuovo` viene servita da React con un form standard
+  `method="post"` verso `/utenti/nuovo`; non esistono fetch POST o API di
+  scrittura nuove, e la password temporanea non viene salvata nello stato
+  React.
+- `/profili` usa `web/services/react_profili_bridge.py` e
+  `GET /api/v1/ui/profili` per matrice ruoli/permessi, override e form legacy
+  auditati dove disponibili.
+- `/backup` usa `web/services/react_backup_bridge.py` e
+  `GET /api/v1/ui/backup` solo come preparazione read-only; il gate mantiene
+  `/backup` e tutte le sottoroute in legacy, incluse esecuzione, verifica,
+  download, delete e restore.
+- `run-safe-react-migration.mjs --tranche=3a` cattura i contratti legacy,
+  rilancia gate/UI checks, verifica shell e bypass legacy con Flask
+  `test_client`, esegue test/typecheck/build frontend e genera patch separate
+  di rollback.
+
 ## Stato tranche 2026-05-06 - Tranche 2A read-only
 
 La prima promozione governata abilita in React full solo superfici read-only o a

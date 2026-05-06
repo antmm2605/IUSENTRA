@@ -76,6 +76,9 @@ from web.services.react_statistiche_bridge import (
     build_react_statistiche_error_payload,
     build_react_statistiche_payload,
 )
+from web.services.react_utenti_bridge import build_react_utenti_error_payload, build_react_utenti_payload
+from web.services.react_profili_bridge import build_react_profili_error_payload, build_react_profili_payload
+from web.services.react_backup_bridge import build_react_backup_error_payload, build_react_backup_payload
 from web.services.react_studio_module_bridge import build_react_studio_module_payload
 from web.services.react_telematico_bridge import (
     build_react_telematico_payload,
@@ -138,6 +141,20 @@ def _puo_leggere_audit() -> bool:
     return bool(utente and getattr(utente, "ha_permesso", lambda _permesso: False)("audit.leggi"))
 
 
+def _puo_leggere_utenti() -> bool:
+    if _api_key_valida():
+        return True
+    utente = g.get("utente_corrente")
+    return bool(utente and getattr(utente, "ha_permesso", lambda _permesso: False)("utenti.leggi"))
+
+
+def _puo_leggere_backup() -> bool:
+    if _api_key_valida():
+        return True
+    utente = g.get("utente_corrente")
+    return bool(utente and getattr(utente, "ha_permesso", lambda _permesso: False)("backup.leggi"))
+
+
 def _studio_avvocato_titolare() -> str:
     core_runtime = current_app.extensions.get("core_runtime", {}) or {}
     config_loader = core_runtime.get("get_config_studio")
@@ -172,6 +189,17 @@ def _telematico_loader() -> Callable[[], Any]:
 def _fascicoli_loader() -> Callable[[], Any]:
     loader = _core_runtime_func("get_fascicoli")
     return loader if callable(loader) else get_fascicoli
+
+
+def _backup_loader() -> Callable[[], Any]:
+    loader = _core_runtime_func("get_backup")
+    if callable(loader):
+        return loader
+
+    def _missing_backup() -> Any:
+        raise RuntimeError("Runtime backup non disponibile")
+
+    return _missing_backup
 
 
 def _telematico_runtime_func(name: str) -> Callable[..., Any]:
@@ -2282,6 +2310,58 @@ def registro_attivita_page():
                 route="/registro-attivita",
             )
         ), 200
+
+
+@api_v1_react.get("/utenti")
+@_richiedi_auth
+def utenti_page():
+    if not _puo_leggere_utenti():
+        return jsonify(build_react_utenti_error_payload("Permesso utenti.leggi richiesto.")), 403
+    try:
+        return jsonify(
+            build_react_utenti_payload(
+                get_utenti=get_utenti,
+                current_user=g.get("utente_corrente"),
+                query=request.args,
+            )
+        )
+    except Exception as exc:
+        current_app.logger.exception("Errore utenti React bridge: %s", exc)
+        return jsonify(build_react_utenti_error_payload("Gestione utenti non disponibile dal runtime corrente.")), 200
+
+
+@api_v1_react.get("/profili")
+@_richiedi_auth
+def profili_page():
+    if not _puo_leggere_utenti():
+        return jsonify(build_react_profili_error_payload("Permesso utenti.leggi richiesto.")), 403
+    try:
+        return jsonify(
+            build_react_profili_payload(
+                get_utenti=get_utenti,
+                current_user=g.get("utente_corrente"),
+            )
+        )
+    except Exception as exc:
+        current_app.logger.exception("Errore profili React bridge: %s", exc)
+        return jsonify(build_react_profili_error_payload("Profili non disponibili dal runtime corrente.")), 200
+
+
+@api_v1_react.get("/backup")
+@_richiedi_auth
+def backup_page():
+    if not _puo_leggere_backup():
+        return jsonify(build_react_backup_error_payload("Permesso backup.leggi richiesto.")), 403
+    try:
+        return jsonify(
+            build_react_backup_payload(
+                get_backup=_backup_loader(),
+                current_user=g.get("utente_corrente"),
+            )
+        )
+    except Exception as exc:
+        current_app.logger.exception("Errore backup React bridge: %s", exc)
+        return jsonify(build_react_backup_error_payload("Backup non disponibile dal runtime corrente.")), 200
 
 
 @api_v1_react.get("/agenda")

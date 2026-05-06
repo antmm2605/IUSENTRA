@@ -1,0 +1,111 @@
+diff --git a/tools/react-migration/route-manifest.json b/tools/react-migration/route-manifest.json
+index 629d7833..284a80fb 100644
+--- a/tools/react-migration/route-manifest.json
++++ b/tools/react-migration/route-manifest.json
+@@ -16,13 +16,13 @@
+     {
+       "route": "/utenti",
+       "family": "amministrazione",
+-      "status": "legacy_operational",
++      "status": "react_full",
+       "risk": "medium",
+       "targetComponent": "frontend/src/components/UtentiPage.tsx",
+       "targetData": "frontend/src/utentiData.ts",
+       "targetBridge": "web/services/react_utenti_bridge.py",
+       "legacyContract": "artifacts/react-migration/legacy-contracts/utenti.json",
+-      "unlockFromGate": false,
++      "unlockFromGate": true,
+       "mustPreserve": [
+         "gestione operatori reali",
+         "creazione utente auditata",
+@@ -34,13 +34,13 @@
+     {
+       "route": "/profili",
+       "family": "amministrazione",
+-      "status": "legacy_operational",
++      "status": "react_full",
+       "risk": "medium",
+       "targetComponent": "frontend/src/components/ProfiliPage.tsx",
+       "targetData": "frontend/src/profiliData.ts",
+       "targetBridge": "web/services/react_profili_bridge.py",
+       "legacyContract": "artifacts/react-migration/legacy-contracts/profili.json",
+-      "unlockFromGate": false,
++      "unlockFromGate": true,
+       "mustPreserve": [
+         "matrice ruoli",
+         "override utente",
+@@ -124,7 +124,7 @@
+     {
+       "route": "/backup",
+       "family": "studio",
+-      "status": "legacy_operational",
++      "status": "react_readonly",
+       "risk": "medium",
+       "targetComponent": "frontend/src/components/BackupPage.tsx",
+       "targetData": "frontend/src/backupData.ts",
+diff --git a/web/blueprints/react_shell.py b/web/blueprints/react_shell.py
+index 32857c78..e174ac32 100644
+--- a/web/blueprints/react_shell.py
++++ b/web/blueprints/react_shell.py
+@@ -39,7 +39,6 @@ _LEGACY_FIRST_PREFIXES = (
+     "/polisweb",
+     "/portali",
+     "/preventivi",
+-    "/profili",
+     "/redazione-atti",
+     "/ricerca-legale",
+     "/servizi-telematici",
+@@ -55,7 +54,6 @@ _LEGACY_FIRST_PREFIXES = (
+     "/telematico",
+     "/template-atti",
+     "/tribunali",
+-    "/utenti",
+ )
+
+
+@@ -158,6 +156,12 @@ def _deve_mantenere_vista_classica() -> bool:
+         or "/penale/pdp" in lower
+     ):
+         return True
++    if lower.startswith("/utenti/") and lower != "/utenti/nuovo":
++        return True
++    if lower.startswith("/profili/"):
++        return True
++    if lower == "/backup" or lower.startswith("/backup/"):
++        return True
+     return any(lower == prefix or lower.startswith(f"{prefix}/") for prefix in _LEGACY_FIRST_PREFIXES)
+
+
+diff --git a/web/bootstrap/react_route_gate.py b/web/bootstrap/react_route_gate.py
+index 14627701..555c7fca 100644
+--- a/web/bootstrap/react_route_gate.py
++++ b/web/bootstrap/react_route_gate.py
+@@ -185,7 +185,6 @@ _LEGACY_OPERATIONAL_PREFIXES = (
+     "/polisweb",
+     "/portali",
+     "/preventivi",
+-    "/profili",
+     "/redazione-atti",
+     "/ricerca-legale",
+     "/servizi-telematici",
+@@ -201,7 +200,6 @@ _LEGACY_OPERATIONAL_PREFIXES = (
+     "/telematico",
+     "/template-atti",
+     "/tribunali",
+-    "/utenti",
+ )
+
+
+@@ -223,6 +221,12 @@ def _excluded(path: str) -> bool:
+     lower = path.lower()
+     if lower.startswith("/email/messaggio/") or lower.startswith("/email-ordinaria/messaggio/"):
+         return True
++    if lower.startswith("/utenti/") and lower != "/utenti/nuovo":
++        return True
++    if lower.startswith("/profili/"):
++        return True
++    if lower == "/backup" or lower.startswith("/backup/"):
++        return True
+     if any(lower == prefix or lower.startswith(f"{prefix}/") for prefix in _LEGACY_OPERATIONAL_PREFIXES):
+         return True
+     # I preventivi hanno un wizard completo con tassonomia, sottobranche,

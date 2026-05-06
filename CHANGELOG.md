@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.198.88 - 2026-05-06
+
+- Promosse in React full le route amministrative `/utenti`, `GET /utenti/nuovo` e `/profili`, con bridge backend reali, endpoint UI dedicati e gate aggiornato; le scritture restano form POST verso le route legacy auditabili.
+- Preparata `/backup` come superficie React read-only con API e pagina dedicata, mantenendola esplicitamente bloccata nel gate legacy insieme a restore, verifica, download ed esecuzione backup.
+- Estesi runner, controlli gate/UI, contratti React, check Flask e patch rollback separate per la Tranche 3A senza sbloccare route economiche, mandato, documentali o telematiche.
+
 ## 2.198.87 - 2026-05-06
 
 - Promosse in React full le route read-only `/statistiche`, `/audit` e `/registro-attivita`, con bridge backend reali, endpoint `/api/v1/ui/*`, pagine React dedicate, fallback tecnico `?_legacy=1` e gate aggiornato senza sbloccare utenti, profili, backup, economico o telematico.

@@ -185,7 +185,6 @@ _LEGACY_OPERATIONAL_PREFIXES = (
     "/polisweb",
     "/portali",
     "/preventivi",
-    "/profili",
     "/redazione-atti",
     "/ricerca-legale",
     "/servizi-telematici",
@@ -201,7 +200,6 @@ _LEGACY_OPERATIONAL_PREFIXES = (
     "/telematico",
     "/template-atti",
     "/tribunali",
-    "/utenti",
 )
 
 
@@ -222,6 +220,12 @@ def _normalise_path(path: str) -> str:
 def _excluded(path: str) -> bool:
     lower = path.lower()
     if lower.startswith("/email/messaggio/") or lower.startswith("/email-ordinaria/messaggio/"):
+        return True
+    if lower.startswith("/utenti/") and lower != "/utenti/nuovo":
+        return True
+    if lower.startswith("/profili/"):
+        return True
+    if lower == "/backup" or lower.startswith("/backup/"):
         return True
     if any(lower == prefix or lower.startswith(f"{prefix}/") for prefix in _LEGACY_OPERATIONAL_PREFIXES):
         return True

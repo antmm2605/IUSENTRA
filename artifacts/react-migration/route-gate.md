@@ -1,6 +1,6 @@
 # Route gate report
 
 Route nel manifest: 25
-Route con unlockFromGate=true: 3
-Route Tranche 2A consentite: /statistiche, /audit, /registro-attivita
+Route con unlockFromGate=true: 5
+Route governate consentite: /statistiche, /audit, /registro-attivita, /utenti, /profili
 Violazioni: 0

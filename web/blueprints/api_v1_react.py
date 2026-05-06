@@ -13,7 +13,7 @@ from functools import wraps
 from pathlib import Path
 from typing import Any, Callable, Iterable
 
-from flask import Blueprint, current_app, g, jsonify, request, send_file
+from flask import Blueprint, current_app, g, jsonify, request, send_file, url_for
 from werkzeug.exceptions import HTTPException
 
 from pct import __version__ as APP_VERSION

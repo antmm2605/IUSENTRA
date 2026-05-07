@@ -31,6 +31,43 @@ def test_ci_keeps_core_and_coverage_gates() -> None:
     assert any(value >= 71 for value in thresholds)
 
 
+def test_pytest_core_timeout_covers_full_suite_without_removing_tests() -> None:
+    workflow = _read(".github/workflows/ci.yml")
+    section = workflow.split("tests-core:", 1)[1].split("coverage-critical:", 1)[0]
+    timeout = re.search(r"timeout-minutes:\s*(\d+)", section)
+    assert timeout
+    assert int(timeout.group(1)) >= 45
+
+    required_core_tests = (
+        "lex/tests",
+        "tests/test_auth.py",
+        "tests/test_scheduler.py",
+        "tests/test_scheduler_worker.py",
+        "tests/test_storage_strategy.py",
+        "tests/test_observability_runtime.py",
+        "tests/test_ocr_worker.py",
+        "tests/test_assistente_followup.py",
+        "tests/test_assistente_language_guidance.py",
+        "tests/test_assistente_social.py",
+        "tests/test_assistente_social_intent.py",
+        "tests/test_assistente_legal_reference_guard.py",
+        "tests/test_web_bootstrap.py",
+        "tests/test_web_security.py",
+        "tests/test_database.py",
+        "tests/test_local_ai.py",
+        "tests/test_pst_catalog.py",
+        "tests/test_giurisprudenza_repository.py",
+        "tests/test_legal_intelligence_repository.py",
+        "tests/test_telematico_repository.py",
+        "tests/test_template_atti_repository.py",
+        "tests/test_preventivi_repository.py",
+        "tests/test_applicazioni_repository.py",
+        "tests/test_lex_module.py",
+    )
+    for snippet in required_core_tests:
+        assert snippet in section
+
+
 def test_agents_documents_ci_no_regression_rule() -> None:
     agents = _read("AGENTS.md")
     required = (

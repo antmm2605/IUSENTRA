@@ -5,6 +5,7 @@
 - Avviata la Parte 12A anti-mascheramento: `react_full` e' deprecato nel manifest e sostituito dagli stati `react_shell`, `react_bridge`, `react_operational_partial`, `react_operational_full` e `legacy_operational`.
 - Convertito il modulo pilota `/utenti/nuovo` in flusso React operativo con `POST /api/v1/ui/utenti/nuovo`, CSRF/sessione, permesso `utenti.scrivi`, validazione JSON, audit e risposta senza dati sensibili.
 - Aggiunti audit e gate anti fake React full con report in `artifacts/react-migration/`, declassando le superfici che usano ancora CTA legacy, `LegacyPostForm` o scritture su route Flask storiche.
+- Allineato il job CI `Pytest core` al tempo reale della suite completa: timeout portato a 45 minuti senza rimuovere test, con contratto anti-regressione dedicato sull'elenco dei file core.
 
 ## 2.198.105 - 2026-05-07
 

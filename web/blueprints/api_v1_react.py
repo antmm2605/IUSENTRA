@@ -79,7 +79,11 @@ from web.services.react_statistiche_bridge import (
     build_react_statistiche_payload,
 )
 from web.services.react_utenti_bridge import build_react_utenti_error_payload, build_react_utenti_payload
-from web.services.react_profili_bridge import build_react_profili_error_payload, build_react_profili_payload
+from web.services.react_profili_bridge import (
+    build_react_profili_error_payload,
+    build_react_profili_payload,
+    update_react_profili_payload,
+)
 from web.services.react_backup_bridge import build_react_backup_error_payload, build_react_backup_payload
 from web.services.react_sito_studio_bridge import (
     build_react_sito_studio_error_payload,
@@ -2534,6 +2538,48 @@ def profili_page():
     except Exception as exc:
         current_app.logger.exception("Errore profili React bridge: %s", exc)
         return jsonify(build_react_profili_error_payload("Profili non disponibili dal runtime corrente.")), 200
+
+
+@api_v1_react.post("/profili")
+@_richiedi_auth
+def profili_page_update():
+    if not _puo_scrivere_utenti():
+        return jsonify(
+            {
+                "ok": False,
+                "message": "Permesso utenti.scrivi richiesto.",
+                "errors": {"permission": "Operazione non autorizzata."},
+                "updated": None,
+            }
+        ), 403
+    if not request.is_json:
+        return _json_validation_error(
+            "Payload JSON richiesto.",
+            {"payload": "Invia Content-Type application/json."},
+            status=400,
+        )
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return _json_validation_error(
+            "Payload JSON non valido.",
+            {"payload": "Il corpo della richiesta deve essere un oggetto JSON."},
+            status=400,
+        )
+    try:
+        result = update_react_profili_payload(
+            get_utenti=get_utenti,
+            current_user=g.get("utente_corrente"),
+            payload=payload,
+            ip=request.remote_addr or "",
+        )
+        return jsonify(result), 200 if result.get("ok") else 400
+    except Exception as exc:
+        current_app.logger.exception("Errore salvataggio profili React JSON: %s", exc)
+        return _json_validation_error(
+            "Salvataggio profili non disponibile dal runtime corrente.",
+            {"_form": "Errore server controllato. Riprova o usa il rollback tecnico."},
+            status=500,
+        )
 
 
 @api_v1_react.get("/backup")

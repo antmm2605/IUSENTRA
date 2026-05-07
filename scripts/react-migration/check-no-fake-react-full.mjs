@@ -50,6 +50,31 @@ for (const row of rows) {
   }
 }
 
+const apiSource = readFileSync(resolve(root, 'web/blueprints/api_v1_react.py'), 'utf8')
+const profiliRow = rows.find((row) => row.route === '/profili')
+if (profiliRow?.manifestStatus === 'react_operational_full') {
+  const profiliComponent = readFileSync(resolve(root, 'frontend/src/components/ProfiliPage.tsx'), 'utf8')
+  const profiliData = readFileSync(resolve(root, 'frontend/src/profiliData.ts'), 'utf8')
+  const profiliBridge = readFileSync(resolve(root, 'web/services/react_profili_bridge.py'), 'utf8')
+  const profiliCombined = `${profiliComponent}\n${profiliData}\n${profiliBridge}`
+
+  if (/\bLegacyPostForm\b/.test(profiliComponent)) {
+    violations.push('/profili: react_operational_full non puo contenere LegacyPostForm nel componente principale.')
+  }
+  if (/\?_legacy=1/.test(profiliCombined) && !/Rollback tecnico/.test(profiliCombined)) {
+    violations.push('/profili: react_operational_full puo mantenere ?_legacy=1 solo come Rollback tecnico.')
+  }
+  if (!/\bapiPostJson\b/.test(profiliData) && !/\bapiPostJson\b/.test(profiliComponent)) {
+    violations.push('/profili: react_operational_full deve salvare tramite apiPostJson centralizzato.')
+  }
+  if (!/["']writes["']\s*:\s*["']json_api["']/.test(profiliBridge)) {
+    violations.push('/profili: bridge operativo deve dichiarare writes json_api.')
+  }
+  if (!apiSource.includes('@api_v1_react.post("/profili")')) {
+    violations.push('/profili: manca endpoint POST JSON /api/v1/ui/profili.')
+  }
+}
+
 const md = [
   '# Check no fake React full',
   '',

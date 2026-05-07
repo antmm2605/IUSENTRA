@@ -1,5 +1,24 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-07 - Parte 13A profili operativi 2.198.107
+
+La Parte 13A promuove `/profili` da `react_bridge` a
+`react_operational_full` senza modificare il modello RBAC esistente:
+
+- `GET /api/v1/ui/profili` espone ruoli gestibili, catalogo permessi, matrice
+  ruolo-permesso e override utente reali, senza password, hash o dati di
+  sessione.
+- `POST /api/v1/ui/profili` salva gli override utente tramite
+  `GestioneUtenti.aggiorna_permessi`, con `_richiedi_auth`, CSRF browser,
+  permesso `utenti.scrivi`, validazione JSON, blocco SUPERADMIN tenant e audit
+  `utenti.aggiorna_permessi`.
+- `frontend/src/components/ProfiliPage.tsx` non usa piu' `LegacyPostForm` nel
+  flusso principale: la UI mostra loading, dirty state, saving, success,
+  errori di validazione, permesso negato, stato vuoto, matrice reale e rollback
+  legacy solo nel pannello `Rollback tecnico`.
+- Il manifest dichiara `/profili` come `react_operational_full` con
+  `writes=json_api`; `?_legacy=1` resta disponibile solo come fallback tecnico.
+
 ## Stato tranche 2026-05-07 - Parte 12A anti-mascheramento 2.198.106
 
 La Parte 12A cambia la definizione di migrazione React: una pagina non puo'

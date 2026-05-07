@@ -236,7 +236,7 @@
     {
       "route": "/backup",
       "family": "studio",
-      "status": "react_bridge",
+      "status": "react_operational_full",
       "risk": "medium",
       "targetComponent": "frontend/src/components/BackupPage.tsx",
       "targetData": "frontend/src/backupData.ts",
@@ -244,11 +244,16 @@
       "legacyContract": "artifacts/react-migration/legacy-contracts/backup.json",
       "unlockFromGate": true,
       "mustPreserve": [
-        "backup preventivo",
-        "verifica integrita",
-        "download copie",
-        "restore guidato",
-        "audit operazioni tecniche"
+        "stato backup reale",
+        "lista copie reale",
+        "creazione backup JSON",
+        "verifica integrita JSON",
+        "download backend sicuro",
+        "restore non migrato",
+        "audit operazioni",
+        "permessi backend",
+        "nessuna CTA legacy primaria",
+        "rollback legacy tecnico"
       ]
     },
     {

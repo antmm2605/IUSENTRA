@@ -1,5 +1,29 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-07 - Parte 16A backup operativo 2.198.109
+
+La Parte 16A promuove `/backup` da `react_bridge` a
+`react_operational_full` mantenendo protette tutte le sottoroute `/backup/*`:
+
+- `GET /api/v1/ui/backup` espone stato backup reale, lista copie, stato
+  integrita, permessi operativi e contratto `writes=json_api`,
+  `operational=true`, `restore_migrated=false`, senza path assoluti,
+  contenuto file, stack trace o segreti.
+- `POST /api/v1/ui/backup/crea` crea una copia tramite `GestioneBackup`,
+  non accetta destinazioni o path dal frontend, richiede CSRF/sessione e
+  permesso `backup.esegui`, registra audit `backup.crea` e restituisce solo
+  metadati sicuri.
+- `POST /api/v1/ui/backup/verifica` richiama la verifica integrita del
+  repository legacy, richiede CSRF/sessione e `backup.esegui`, registra audit
+  `backup.verifica` e non restituisce hash o percorsi file.
+- `BackupPage` rimuove `LegacyPostForm` dal flusso principale, usa
+  `createBackup()` e `verifyBackupIntegrity()`, mostra loading, saving,
+  success, error, validazione, empty state, permessi e filtri locali sui dati
+  gia ricevuti.
+- Il download resta un link backend sicuro verso la route esistente; restore
+  e delete non sono migrati in React e il fallback `/backup?_legacy=1` resta
+  solo nel pannello `Rollback tecnico`.
+
 ## Stato tranche 2026-05-07 - Parte 14A utenti operativi 2.198.108
 
 La Parte 14A promuove `/utenti` da `react_operational_partial` a

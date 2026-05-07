@@ -113,6 +113,48 @@ if (utentiRow?.manifestStatus === 'react_operational_full') {
   }
 }
 
+const backupRow = rows.find((row) => row.route === '/backup')
+if (backupRow?.manifestStatus === 'react_operational_full') {
+  const backupComponent = readFileSync(resolve(root, 'frontend/src/components/BackupPage.tsx'), 'utf8')
+  const backupData = readFileSync(resolve(root, 'frontend/src/backupData.ts'), 'utf8')
+  const backupBridge = readFileSync(resolve(root, 'web/services/react_backup_bridge.py'), 'utf8')
+  const backupCombined = `${backupComponent}\n${backupData}\n${backupBridge}`
+  const backupPostEndpoints = [
+    '@api_v1_react.post("/backup/crea")',
+    '@api_v1_react.post("/backup/verifica")',
+  ]
+
+  if (/\bLegacyPostForm\b/.test(backupComponent)) {
+    violations.push('/backup: react_operational_full non puo contenere LegacyPostForm nel componente principale.')
+  }
+  if (/\?_legacy=1/.test(backupComponent) && !/Rollback tecnico/.test(backupComponent)) {
+    violations.push('/backup: react_operational_full puo mantenere ?_legacy=1 solo come Rollback tecnico.')
+  }
+  if (!/\bapiPostJson\b/.test(backupData)) {
+    violations.push('/backup: react_operational_full deve usare apiPostJson centralizzato per crea/verifica.')
+  }
+  if (!/["']writes["']\s*:\s*["']json_api["']/.test(backupBridge)) {
+    violations.push('/backup: bridge operativo deve dichiarare writes json_api.')
+  }
+  for (const endpoint of backupPostEndpoints) {
+    if (!apiSource.includes(endpoint)) {
+      violations.push(`/backup: manca endpoint POST JSON ${endpoint}.`)
+    }
+  }
+  if (/localStorage|sessionStorage/.test(backupCombined)) {
+    violations.push('/backup: react_operational_full non deve usare localStorage o sessionStorage.')
+  }
+  if (/response\.blob|new Blob|URL\.createObjectURL/.test(backupCombined)) {
+    violations.push('/backup: download backup non deve essere gestito con blob React.')
+  }
+  if (/\brestoreBackup\b|\bdeleteBackup\b|ripristinaBackup|eliminaBackup/.test(backupCombined)) {
+    violations.push('/backup: restore/delete non devono essere implementati nel flusso React.')
+  }
+  if (/"(token|api_key|secret|stack_trace|traceback|absolute_path|full_path)"\s*:/i.test(backupBridge)) {
+    violations.push('/backup: bridge React non deve serializzare token, API key, secret, stack trace o path sensibili.')
+  }
+}
+
 const md = [
   '# Check no fake React full',
   '',

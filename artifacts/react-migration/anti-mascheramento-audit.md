@@ -1,6 +1,6 @@
 # Audit anti-mascheramento React
 
-Generato: 2026-05-07T18:53:20.043Z
+Generato: 2026-05-07T19:15:24.497Z
 
 ## Regole operative Parte 12A
 
@@ -13,12 +13,12 @@ Generato: 2026-05-07T18:53:20.043Z
 ## Sintesi
 
 - Route censite: 53
-- Link `?_legacy=1`: 242
-- LegacyPostForm: 13
+- Link `?_legacy=1`: 238
+- LegacyPostForm: 12
 - Form POST HTML React: 0
-- Bridge con scritture legacy: 31
+- Bridge con scritture legacy: 30
 - Status react_full deprecati: 0
-- API JSON di salvataggio mancanti: 6
+- API JSON di salvataggio mancanti: 5
 
 ## Tabella route
 
@@ -36,7 +36,7 @@ Generato: 2026-05-07T18:53:20.043Z
 | /impostazioni/calendario | frontend/src/components/ImpostazioniPage.tsx | frontend/src/impostazioniData.ts | web/services/react_impostazioni_bridge.py | legacy_operational | 0 | 0 | no | nessuno | legacy_operational |
 | /impostazioni/pagamenti | frontend/src/components/ImpostazioniPage.tsx | frontend/src/impostazioniData.ts | web/services/react_impostazioni_bridge.py | legacy_operational | 0 | 0 | no | nessuno | legacy_operational |
 | /sincronizzazione-calendari | frontend/src/components/ImpostazioniPage.tsx | frontend/src/impostazioniData.ts | web/services/react_impostazioni_bridge.py | legacy_operational | 0 | 0 | no | nessuno | legacy_operational |
-| /backup | frontend/src/components/BackupPage.tsx | frontend/src/backupData.ts | web/services/react_backup_bridge.py | react_bridge | 9 | 1 | no | 9 link ?_legacy=1 primari o non governati; LegacyPostForm presente; bridge writes=legacy_routes; API JSON di salvataggio mancante; gestione successo non rilevata | react_bridge |
+| /backup | frontend/src/components/BackupPage.tsx | frontend/src/backupData.ts | web/services/react_backup_bridge.py | react_operational_full | 5 | 0 | si | fallback legacy tecnico non primario | react_operational_full |
 | /sito-studio | frontend/src/components/SitoStudioPage.tsx | frontend/src/sitoStudioData.ts | web/services/react_sito_studio_bridge.py | react_bridge | 16 | 1 | no | 16 link ?_legacy=1 primari o non governati; LegacyPostForm presente; bridge writes=legacy_routes | react_bridge |
 | /sito-studio/contatti | frontend/src/components/SitoStudioPage.tsx | frontend/src/sitoStudioData.ts | web/services/react_sito_studio_bridge.py | react_bridge | 16 | 1 | no | 16 link ?_legacy=1 primari o non governati; LegacyPostForm presente; bridge writes=legacy_routes; API JSON di salvataggio mancante | react_bridge |
 | /sito-studio/builder | frontend/src/components/SitoStudioPage.tsx | frontend/src/sitoStudioData.ts | web/services/react_sito_studio_bridge.py | legacy_operational | 16 | 1 | no | 16 link ?_legacy=1 primari o non governati; LegacyPostForm presente; bridge writes=legacy_routes | legacy_operational |

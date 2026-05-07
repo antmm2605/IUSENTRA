@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.198.109 - 2026-05-07
+
+- Promossa `/backup` a `react_operational_full`: la pagina React legge stato, lista copie, configurazione e integrita da `GET /api/v1/ui/backup`.
+- Aggiunti `POST /api/v1/ui/backup/crea` e `POST /api/v1/ui/backup/verifica` con CSRF/sessione, permesso `backup.esegui`, validazione JSON, audit `backup.crea`/`backup.verifica` e payload senza path sensibili o stack trace.
+- Rimossi `LegacyPostForm` e CTA legacy dal flusso principale backup: download resta link backend sicuro, restore/delete restano legacy/protetti e `/backup?_legacy=1` resta solo rollback tecnico.
+
 ## 2.198.108 - 2026-05-07
 
 - Promossa `/utenti` a `react_operational_full`: la lista legge utenti, ruoli, stato account e permessi operativi da `GET /api/v1/ui/utenti`.

@@ -91,7 +91,12 @@ from web.services.react_profili_bridge import (
     build_react_profili_payload,
     update_react_profili_payload,
 )
-from web.services.react_backup_bridge import build_react_backup_error_payload, build_react_backup_payload
+from web.services.react_backup_bridge import (
+    build_react_backup_error_payload,
+    build_react_backup_payload,
+    create_react_backup,
+    verify_react_backup_integrity,
+)
 from web.services.react_sito_studio_bridge import (
     build_react_sito_studio_error_payload,
     build_react_sito_studio_payload,
@@ -233,6 +238,11 @@ def _session_user_can(permission: str) -> bool:
 def _puo_leggere_backup() -> bool:
     utente = g.get("utente_corrente")
     return bool(utente and getattr(utente, "ha_permesso", lambda _permesso: False)("backup.leggi"))
+
+
+def _puo_eseguire_backup() -> bool:
+    utente = g.get("utente_corrente")
+    return bool(utente and getattr(utente, "ha_permesso", lambda _permesso: False)("backup.esegui"))
 
 
 def _richiedi_admin_sito_studio_api():
@@ -2743,6 +2753,77 @@ def backup_page():
     except Exception as exc:
         current_app.logger.exception("Errore backup React bridge: %s", exc)
         return jsonify(build_react_backup_error_payload("Backup non disponibile dal runtime corrente.")), 200
+
+
+def _backup_permission_response():
+    return jsonify(
+        {
+            "ok": False,
+            "message": "Permesso backup.esegui richiesto.",
+            "errors": {"permission": "Operazione non autorizzata."},
+            "backup": None,
+            "integrity": None,
+        }
+    ), 403
+
+
+def _backup_result_status(result: dict[str, Any]) -> int:
+    if result.get("ok"):
+        return 200
+    errors = result.get("errors") if isinstance(result.get("errors"), dict) else {}
+    return 403 if "permission" in errors else 400
+
+
+@api_v1_react.post("/backup/crea")
+@_richiedi_auth
+def backup_crea():
+    if not _puo_eseguire_backup():
+        return _backup_permission_response()
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    try:
+        result = create_react_backup(
+            get_backup=_backup_loader(),
+            get_utenti=get_utenti,
+            current_user=g.get("utente_corrente"),
+            payload=payload or {},
+            ip=request.remote_addr or "",
+        )
+        return jsonify(result), _backup_result_status(result)
+    except Exception as exc:
+        current_app.logger.exception("Errore creazione backup React JSON: %s", exc)
+        return _json_validation_error(
+            "Creazione backup non disponibile dal runtime corrente.",
+            {"_form": "Errore server controllato. Riprova o usa il rollback tecnico."},
+            status=500,
+        )
+
+
+@api_v1_react.post("/backup/verifica")
+@_richiedi_auth
+def backup_verifica():
+    if not _puo_eseguire_backup():
+        return _backup_permission_response()
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    try:
+        result = verify_react_backup_integrity(
+            get_backup=_backup_loader(),
+            get_utenti=get_utenti,
+            current_user=g.get("utente_corrente"),
+            payload=payload or {},
+            ip=request.remote_addr or "",
+        )
+        return jsonify(result), _backup_result_status(result)
+    except Exception as exc:
+        current_app.logger.exception("Errore verifica backup React JSON: %s", exc)
+        return _json_validation_error(
+            "Verifica backup non disponibile dal runtime corrente.",
+            {"_form": "Errore server controllato. Riprova o usa il rollback tecnico."},
+            status=500,
+        )
 
 
 @api_v1_react.get("/sito-studio")

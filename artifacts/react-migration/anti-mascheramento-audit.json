@@ -1,6 +1,6 @@
 {
   "summary": {
-    "generatedAt": "2026-05-07T18:53:20.043Z",
+    "generatedAt": "2026-05-07T19:15:24.497Z",
     "scannedFiles": [
       "frontend/src/adminDatabaseData.ts",
       "frontend/src/agendaData.ts",
@@ -171,16 +171,16 @@
     ],
     "totals": {
       "routes": 53,
-      "legacyLinks": 242,
-      "legacyPostForms": 13,
+      "legacyLinks": 238,
+      "legacyPostForms": 12,
       "reactPostForms": 0,
-      "bridgeLegacyWrites": 31,
+      "bridgeLegacyWrites": 30,
       "deprecatedReactFull": 0,
-      "missingWriteApi": 6
+      "missingWriteApi": 5
     },
     "levels": {
-      "react_operational_full": 6,
-      "react_bridge": 21,
+      "react_operational_full": 7,
+      "react_bridge": 20,
       "legacy_operational": 25,
       "react_operational_partial": 1
     }
@@ -472,28 +472,24 @@
       "component": "frontend/src/components/BackupPage.tsx",
       "dataClient": "frontend/src/backupData.ts",
       "bridge": "web/services/react_backup_bridge.py",
-      "manifestStatus": "react_bridge",
+      "manifestStatus": "react_operational_full",
       "unlockFromGate": true,
-      "legacyLinks": 9,
-      "legacyButtons": 3,
-      "legacyPostForms": 1,
+      "legacyLinks": 5,
+      "legacyButtons": 1,
+      "legacyPostForms": 0,
       "reactPostForms": 0,
-      "jsonWrites": false,
+      "jsonWrites": true,
       "jsonReads": true,
-      "bridgeWritesLegacy": true,
-      "blockingLegacyLinks": 9,
-      "technicalRollback": false,
-      "missingWriteApi": true,
+      "bridgeWritesLegacy": false,
+      "blockingLegacyLinks": 0,
+      "technicalRollback": true,
+      "missingWriteApi": false,
       "missingErrorHandling": false,
-      "missingSuccessHandling": true,
+      "missingSuccessHandling": false,
       "problems": [
-        "9 link ?_legacy=1 primari o non governati",
-        "LegacyPostForm presente",
-        "bridge writes=legacy_routes",
-        "API JSON di salvataggio mancante",
-        "gestione successo non rilevata"
+        "fallback legacy tecnico non primario"
       ],
-      "realLevel": "react_bridge"
+      "realLevel": "react_operational_full"
     },
     {
       "route": "/sito-studio",

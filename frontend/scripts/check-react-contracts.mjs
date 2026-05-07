@@ -422,7 +422,7 @@ for (const [route, status] of [
   ['/utenti/nuovo', 'react_operational_full'],
   ['/utenti', 'react_operational_full'],
   ['/profili', 'react_operational_full'],
-  ['/backup', 'react_bridge'],
+  ['/backup', 'react_operational_full'],
   ['/sito-studio', 'react_bridge'],
   ['/sito-studio/contatti', 'react_bridge'],
   ['/preventivi/wizard', 'react_operational_partial'],
@@ -605,7 +605,9 @@ assertNotContains(utentiPage, 'localStorage', 'UtentiPage non usa localStorage')
 assertNotContains(utentiPage, 'sessionStorage', 'UtentiPage non usa sessionStorage')
 assertNotContains(profiliPage, 'LegacyPostForm', 'ProfiliPage non usa LegacyPostForm nel flusso principale')
 assertContains(profiliPage, 'saveProfiliPermissions', 'ProfiliPage salva profili via JSON')
-assertContains(backupPage, 'LegacyPostForm', 'BackupPage usa LegacyPostForm per azioni legacy')
+assertNotContains(backupPage, 'LegacyPostForm', 'BackupPage non usa LegacyPostForm nel flusso principale')
+assertContains(backupPage, 'createBackup', 'BackupPage crea backup via data client JSON')
+assertContains(backupPage, 'verifyBackupIntegrity', 'BackupPage verifica integrita via data client JSON')
 assertContains(sitoStudioPage, 'LegacyPostForm', 'SitoStudioPage usa LegacyPostForm per azioni legacy')
 assertContains(fatturazionePage, 'LegacyPostForm', 'FatturazionePage usa LegacyPostForm')
 assertContains(preventiviPage, 'LegacyPostForm', 'PreventiviPage usa LegacyPostForm')
@@ -633,6 +635,7 @@ assertContains(utentiData, '/api/v1/ui/utenti', 'utentiData usa endpoint utenti'
 assertContains(profiliData, '/api/v1/ui/profili', 'profiliData usa endpoint profili')
 assertContains(profiliData, 'apiPostJson<SaveProfiliResult>', 'profiliData usa apiPostJson per salvataggio profili')
 assertContains(backupData, '/api/v1/ui/backup', 'backupData usa endpoint backup')
+assertContains(backupData, 'apiPostJson', 'backupData usa apiPostJson per azioni backup')
 assertContains(sitoStudioData, '/api/v1/ui/sito-studio', 'sitoStudioData usa endpoint sito studio')
 assertContains(sitoStudioData, '/api/v1/ui/sito-studio/contatti', 'sitoStudioData usa endpoint contatti sito studio')
 assertContains(studioData, '/api/v1/ui/studio', 'studioData usa endpoint studio')
@@ -656,6 +659,8 @@ assertContains(auditBridge, '"route_owner": "react_shell"', 'bridge audit route_
 assertContains(utentiBridge, '"route_owner": "react_shell"', 'bridge utenti route_owner react_shell')
 assertContains(profiliBridge, '"route_owner": "react_shell"', 'bridge profili route_owner react_shell')
 assertContains(backupBridge, '"route_owner": "react_shell"', 'bridge backup route_owner react_shell')
+assertContains(backupBridge, '"writes": "json_api"', 'bridge backup scritture JSON operative')
+assertContains(backupBridge, '"restore_migrated": False', 'bridge backup restore non migrato')
 assertContains(sitoStudioBridge, '"route_owner": "react_shell"', 'bridge sito studio route_owner react_shell')
 assertContains(fatturazioneBridge, '"route_owner": "react_shell"', 'bridge fatturazione route_owner react_shell')
 assertContains(incassiPagamentiBridge, '"route_owner": "react_shell"', 'bridge incassi pagamenti route_owner react_shell')
@@ -681,6 +686,8 @@ assertNotContains(apiBridge, '"password":', 'API React non restituisce password'
 assertContains(apiBridge, '@api_v1_react.get("/profili")', 'endpoint UI profili')
 assertContains(apiBridge, '@api_v1_react.post("/profili")', 'endpoint JSON scrittura profili')
 assertContains(apiBridge, '@api_v1_react.get("/backup")', 'endpoint UI backup')
+assertContains(apiBridge, '@api_v1_react.post("/backup/crea")', 'endpoint JSON crea backup')
+assertContains(apiBridge, '@api_v1_react.post("/backup/verifica")', 'endpoint JSON verifica backup')
 assertContains(apiBridge, '@api_v1_react.get("/sito-studio")', 'endpoint UI sito studio')
 assertContains(apiBridge, '@api_v1_react.get("/sito-studio/contatti")', 'endpoint UI contatti sito studio')
 assertContains(apiBridge, '@api_v1_react.get("/studio")', 'endpoint UI studio')

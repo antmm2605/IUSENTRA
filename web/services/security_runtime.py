@@ -46,6 +46,8 @@ _CSRF_PROTECTED_ENDPOINTS = {
     "api_v1_react.utenti_reset_password",
     "api_v1_react.utenti_aggiorna_profilo",
     "api_v1_react.profili_page_update",
+    "api_v1_react.backup_crea",
+    "api_v1_react.backup_verifica",
 }
 
 _UNSAFE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}

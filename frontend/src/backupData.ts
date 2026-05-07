@@ -1,13 +1,43 @@
-import { apiJson } from './lib/apiClient'
-import type { AdminAction, AdminContract, AdminMetric, AdminSection, AdminTone, AdminWarning, LegacyFormDefinition } from './utentiData'
-import type { LegacyPostField } from './ui/LegacyPostForm'
+import { apiJson, apiPostJson } from './lib/apiClient'
 
-export type BackupRecord = {
+export type BackupTone = 'primary' | 'neutral' | 'danger' | 'success' | 'warning' | 'info'
+
+export type BackupContracts = {
+  mock_fallback: boolean
+  writes: string
+  route_owner: string
+  operational: boolean
+  restore_migrated: boolean
+}
+
+export type BackupComponentOption = {
   id: string
-  timestamp: string
+  label: string
+  available: boolean
+  enabled: boolean
+}
+
+export type BackupStatus = {
+  total: number
+  completed: number
+  failed: number
+  corrupted: number
+  totalSizeMb: number
+  lastBackupAt: string
+  automaticEnabled: boolean
+  frequency: string
+  scheduledTime: string
+  maxBackups: number
+  configuredComponents: BackupComponentOption[]
+}
+
+export type BackupRow = {
+  id: string
+  createdAt: string
   type: string
-  status: string
-  statusTone: AdminTone
+  state: string
+  stateLabel: string
+  stateTone: BackupTone
   fileName: string
   sizeMb: number
   filesCount: number
@@ -16,37 +46,120 @@ export type BackupRecord = {
   note: string
   error: string
   downloadHref: string
-  verifyAction: string
   restoreHref: string
-  deleteAction: string
+}
+
+export type BackupIntegrity = {
+  available: boolean
+  state: string
+  label: string
+  lastCheckedAt: string
+  checkedBackupId: string
+  corruptedCount: number
+}
+
+export type BackupPermissions = {
+  canCreate: boolean
+  canVerify: boolean
+  canDownload: boolean
+  canRestore: boolean
+  createEndpoint: string
+  verifyEndpoint: string
+  legacyHref: string
+}
+
+export type BackupWarning = {
+  code: string
+  message: string
 }
 
 export type BackupPageData = {
+  ok: boolean
   source: string
   generated_at: string
-  contracts: AdminContract
-  metrics: AdminMetric[]
-  sections: AdminSection[]
-  records: BackupRecord[]
-  actions: AdminAction[]
-  forms: LegacyFormDefinition[]
-  warnings: AdminWarning[]
+  contracts: BackupContracts
+  status: BackupStatus
+  backups: BackupRow[]
+  integrity: BackupIntegrity
+  actions: BackupPermissions
+  warnings: BackupWarning[]
+}
+
+export type CreateBackupPayload = {
+  type: string
+  components: string[]
+  note: string
+  confirm: boolean
+}
+
+export type VerifyBackupPayload = {
+  backupId: string
+  confirm: boolean
+}
+
+export type BackupMutationResult = {
+  ok: boolean
+  message: string
+  errors: Record<string, string>
+  backup: BackupRow | null
+  integrity: BackupIntegrity | null
+}
+
+const emptyStatus: BackupStatus = {
+  total: 0,
+  completed: 0,
+  failed: 0,
+  corrupted: 0,
+  totalSizeMb: 0,
+  lastBackupAt: '',
+  automaticEnabled: false,
+  frequency: '',
+  scheduledTime: '',
+  maxBackups: 0,
+  configuredComponents: [],
+}
+
+const emptyIntegrity: BackupIntegrity = {
+  available: false,
+  state: 'empty',
+  label: '',
+  lastCheckedAt: '',
+  checkedBackupId: '',
+  corruptedCount: 0,
 }
 
 export const emptyBackupPage: BackupPageData = {
+  ok: false,
   source: '',
   generated_at: '',
   contracts: {
     mock_fallback: false,
-    writes: 'legacy_routes',
+    writes: 'json_api',
     route_owner: 'react_shell',
+    operational: true,
+    restore_migrated: false,
   },
-  metrics: [],
-  sections: [],
-  records: [],
-  actions: [],
-  forms: [],
+  status: emptyStatus,
+  backups: [],
+  integrity: emptyIntegrity,
+  actions: {
+    canCreate: false,
+    canVerify: false,
+    canDownload: false,
+    canRestore: false,
+    createEndpoint: '/api/v1/ui/backup/crea',
+    verifyEndpoint: '/api/v1/ui/backup/verifica',
+    legacyHref: '/backup?_legacy=1',
+  },
   warnings: [],
+}
+
+const emptyMutationResult: BackupMutationResult = {
+  ok: false,
+  message: 'Operazione non completata.',
+  errors: { _form: 'Errore di rete o risposta non valida.' },
+  backup: null,
+  integrity: null,
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -69,59 +182,49 @@ function number(value: unknown): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : 0
 }
 
-function value(value: unknown): string | number {
-  if (typeof value === 'number' && Number.isFinite(value)) return value
-  if (typeof value === 'string') return value.trim()
-  return ''
-}
-
-function tone(value: unknown): AdminTone {
+function tone(value: unknown): BackupTone {
   return ['primary', 'neutral', 'danger', 'success', 'warning', 'info'].includes(String(value))
-    ? String(value) as AdminTone
+    ? String(value) as BackupTone
     : 'neutral'
 }
 
-function normaliseMetric(raw: unknown): AdminMetric {
+function normaliseComponent(raw: unknown): BackupComponentOption {
   const item = asRecord(raw)
+  const id = text(item.id)
   return {
-    id: text(item.id) || text(item.label) || 'metrica',
-    label: text(item.label) || 'Metrica',
-    value: value(item.value),
-    note: text(item.note),
-    tone: tone(item.tone),
+    id,
+    label: text(item.label) || id,
+    available: item.available === false ? false : true,
+    enabled: item.enabled === false ? false : true,
   }
 }
 
-function normaliseSectionItem(raw: unknown) {
+function normaliseStatus(raw: unknown): BackupStatus {
   const item = asRecord(raw)
   return {
-    id: text(item.id) || text(item.label) || 'voce',
-    label: text(item.label) || 'Voce',
-    value: value(item.value),
-    note: text(item.note),
-    tone: tone(item.tone),
+    total: number(item.total),
+    completed: number(item.completed),
+    failed: number(item.failed),
+    corrupted: number(item.corrupted),
+    totalSizeMb: number(item.totalSizeMb),
+    lastBackupAt: text(item.lastBackupAt),
+    automaticEnabled: bool(item.automaticEnabled),
+    frequency: text(item.frequency),
+    scheduledTime: text(item.scheduledTime),
+    maxBackups: number(item.maxBackups),
+    configuredComponents: list(item.configuredComponents).map(normaliseComponent).filter((component) => component.id),
   }
 }
 
-function normaliseSection(raw: unknown): AdminSection {
-  const item = asRecord(raw)
-  return {
-    id: text(item.id) || text(item.title) || 'sezione',
-    title: text(item.title) || 'Sezione',
-    kind: text(item.kind) || 'distribution',
-    items: list(item.items).map(normaliseSectionItem),
-    emptyMessage: text(item.emptyMessage) || 'Nessun dato disponibile.',
-  }
-}
-
-function normaliseRecord(raw: unknown): BackupRecord {
+function normaliseBackup(raw: unknown): BackupRow {
   const item = asRecord(raw)
   return {
     id: text(item.id),
-    timestamp: text(item.timestamp),
+    createdAt: text(item.createdAt),
     type: text(item.type),
-    status: text(item.status),
-    statusTone: tone(item.statusTone),
+    state: text(item.state),
+    stateLabel: text(item.stateLabel),
+    stateTone: tone(item.stateTone),
     fileName: text(item.fileName),
     sizeMb: number(item.sizeMb),
     filesCount: number(item.filesCount),
@@ -130,65 +233,40 @@ function normaliseRecord(raw: unknown): BackupRecord {
     note: text(item.note),
     error: text(item.error),
     downloadHref: text(item.downloadHref),
-    verifyAction: text(item.verifyAction),
     restoreHref: text(item.restoreHref),
-    deleteAction: text(item.deleteAction),
   }
 }
 
-function normaliseField(raw: unknown): LegacyPostField {
+function normaliseIntegrity(raw: unknown): BackupIntegrity {
   const item = asRecord(raw)
-  const fieldType = ['text', 'email', 'select', 'checkbox', 'hidden'].includes(String(item.type))
-    ? String(item.type) as LegacyPostField['type']
-    : 'text'
   return {
-    name: text(item.name),
+    available: bool(item.available),
+    state: text(item.state),
     label: text(item.label),
-    type: fieldType,
-    required: bool(item.required),
-    value: text(item.value),
-    options: list(item.options).map((option) => {
-      const record = asRecord(option)
-      return {
-        value: text(record.value) || text(record.id),
-        label: text(record.label),
-        enabled: record.enabled === false ? false : true,
-      }
-    }),
+    lastCheckedAt: text(item.lastCheckedAt),
+    checkedBackupId: text(item.checkedBackupId),
+    corruptedCount: number(item.corruptedCount),
   }
 }
 
-function normaliseForm(raw: unknown): LegacyFormDefinition {
+function normaliseActions(raw: unknown): BackupPermissions {
   const item = asRecord(raw)
   return {
-    id: text(item.id) || text(item.title) || 'form',
-    title: text(item.title),
-    description: text(item.description),
-    action: text(item.action),
-    method: 'POST',
-    csrfField: text(item.csrfField),
-    submitLabel: text(item.submitLabel) || 'Invia',
-    enabled: item.enabled === false ? false : true,
-    fields: list(item.fields).map(normaliseField).filter((field) => field.name),
+    canCreate: bool(item.canCreate),
+    canVerify: bool(item.canVerify),
+    canDownload: bool(item.canDownload),
+    canRestore: bool(item.canRestore),
+    createEndpoint: text(item.createEndpoint) || '/api/v1/ui/backup/crea',
+    verifyEndpoint: text(item.verifyEndpoint) || '/api/v1/ui/backup/verifica',
+    legacyHref: text(item.legacyHref) || '/backup?_legacy=1',
   }
 }
 
-function normaliseAction(raw: unknown): AdminAction {
+function normaliseWarning(raw: unknown): BackupWarning {
   const item = asRecord(raw)
   return {
-    id: text(item.id) || text(item.label) || 'azione',
-    label: text(item.label) || 'Apri',
-    href: text(item.href) || '/backup?_legacy=1',
-    method: 'GET',
-    tone: tone(item.tone),
-  }
-}
-
-function normaliseWarning(raw: unknown): AdminWarning {
-  const item = asRecord(raw)
-  return {
-    code: text(item.code) || 'warning',
-    message: text(item.message) || 'Avviso tecnico disponibile.',
+    code: text(item.code) || 'avviso',
+    message: text(item.message) || 'Avviso operativo disponibile.',
   }
 }
 
@@ -196,24 +274,58 @@ function normalisePage(raw: unknown): BackupPageData {
   const page = asRecord(raw)
   const contracts = asRecord(page.contracts)
   return {
+    ok: bool(page.ok),
     source: text(page.source),
     generated_at: text(page.generated_at),
     contracts: {
-      mock_fallback: contracts.mock_fallback === true ? true : false,
-      writes: text(contracts.writes) || 'legacy_routes',
+      mock_fallback: bool(contracts.mock_fallback),
+      writes: text(contracts.writes) || 'json_api',
       route_owner: text(contracts.route_owner) || 'react_shell',
-      legacy_contract: text(contracts.legacy_contract),
+      operational: contracts.operational === false ? false : true,
+      restore_migrated: bool(contracts.restore_migrated),
     },
-    metrics: list(page.metrics).map(normaliseMetric),
-    sections: list(page.sections).map(normaliseSection),
-    records: list(page.records).map(normaliseRecord),
-    actions: list(page.actions).map(normaliseAction).filter((action) => action.method === 'GET' && action.href),
-    forms: list(page.forms).map(normaliseForm).filter((form) => form.action),
+    status: normaliseStatus(page.status),
+    backups: list(page.backups).map(normaliseBackup).filter((backup) => backup.id),
+    integrity: normaliseIntegrity(page.integrity),
+    actions: normaliseActions(page.actions),
     warnings: list(page.warnings).map(normaliseWarning),
+  }
+}
+
+function normaliseMutation(raw: unknown): BackupMutationResult {
+  const item = asRecord(raw)
+  const rawErrors = asRecord(item.errors)
+  const errors = Object.fromEntries(
+    Object.entries(rawErrors).map(([key, value]) => [key, text(value)]).filter(([, value]) => value),
+  )
+  const backup = item.backup ? normaliseBackup(item.backup) : null
+  const integrity = item.integrity ? normaliseIntegrity(item.integrity) : null
+  return {
+    ok: bool(item.ok),
+    message: text(item.message) || emptyMutationResult.message,
+    errors,
+    backup: backup && backup.id ? backup : null,
+    integrity,
   }
 }
 
 export async function getBackupPage(): Promise<BackupPageData> {
   const payload = await apiJson<unknown>('/api/v1/ui/backup', emptyBackupPage)
   return normalisePage(payload)
+}
+
+export async function createBackup(
+  payload: CreateBackupPayload,
+  endpoint = '/api/v1/ui/backup/crea',
+): Promise<BackupMutationResult> {
+  const result = await apiPostJson<unknown>(endpoint, payload, emptyMutationResult)
+  return normaliseMutation(result)
+}
+
+export async function verifyBackupIntegrity(
+  payload: VerifyBackupPayload,
+  endpoint = '/api/v1/ui/backup/verifica',
+): Promise<BackupMutationResult> {
+  const result = await apiPostJson<unknown>(endpoint, payload, emptyMutationResult)
+  return normaliseMutation(result)
 }

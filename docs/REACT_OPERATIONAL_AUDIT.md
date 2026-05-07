@@ -14,6 +14,22 @@ essere dichiarata operativa deve avere:
 - test di regressione su route, API e card;
 - nessun link visibile verso `?_legacy=1`.
 
+## Aggiornamento 2026-05-07 - Backup operativo
+
+La route `/backup` e' stata promossa a `react_operational_full` con contratto
+anti-mascheramento dedicato:
+
+- `GET /api/v1/ui/backup` legge stato, lista copie, configurazione e integrita
+  dal manager backup reale.
+- `POST /api/v1/ui/backup/crea` e `POST /api/v1/ui/backup/verifica` usano API
+  JSON con CSRF/sessione, permesso `backup.esegui`, validazione e audit.
+- `BackupPage` usa `createBackup()` e `verifyBackupIntegrity()`; non usa
+  `LegacyPostForm`, non fa fetch blob e non usa `URL.createObjectURL`.
+- Il download resta link backend sicuro su route esistente; restore e delete
+  restano legacy/protetti e non vengono esposti come flussi React.
+- Il manifest dichiara `/backup` `react_operational_full`, mentre il gate
+  continua a proteggere `/backup/*`.
+
 ## Verticale chiusa in questa tranche
 
 ### Portali telematici: acquisizione guidata

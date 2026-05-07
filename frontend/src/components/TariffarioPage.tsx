@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   AlertCircle,
   CheckCircle2,
@@ -93,52 +93,6 @@ function Hero({ stats }: { stats: TariffarioPageData['stats'] }) {
           <span><Gauge size={14} aria-hidden="true" /> {stats.auditAligned}/{stats.auditTotal} allineate</span>
         </div>
       </aside>
-    </section>
-  )
-}
-
-function StatsGrid({ data }: { data: TariffarioPageData }) {
-  const cards = data.metrics.length
-    ? data.metrics
-    : [
-        {
-          id: 'profili',
-          label: 'Profili tariffari',
-          value: data.stats.profiles,
-          note: 'Materia, grado, fasi e profilo operativo.',
-          tone: 'primary' as const,
-        },
-        {
-          id: 'opzioni',
-          label: 'Opzioni di calcolo',
-          value: data.stats.options,
-          note: 'Spese generali, bonus, accessori e logiche fiscali.',
-          tone: 'info' as const,
-        },
-        {
-          id: 'tabelle',
-          label: 'Tabelle sincronizzate',
-          value: data.stats.tables,
-          note: 'Catalogo normativo condiviso con il motore preventivi.',
-          tone: 'neutral' as const,
-        },
-        {
-          id: 'audit',
-          label: 'Audit da aprire',
-          value: data.stats.auditOpen,
-          note: 'Voci ricostruttive o da verificare disponibili nel pannello tecnico.',
-          tone: 'warning' as const,
-        },
-      ]
-  return (
-    <section className="iu-tar-kpis" aria-label="Indicatori tariffario">
-      {cards.map((metric) => (
-        <article className={`iu-tar-kpi iu-tar-tone-${metric.tone}`} key={metric.id}>
-          <span>{metric.label}</span>
-          <strong>{metric.value || 0}</strong>
-          <p>{metric.note}</p>
-        </article>
-      ))}
     </section>
   )
 }
@@ -557,61 +511,20 @@ function ManualLineItems({ form, dynamic, onChange }: { form: TariffarioState; d
   )
 }
 
-function ActionsBar({
-  busy,
-  error,
-  onRun,
-  onReset,
-}: {
-  busy: boolean
-  error: string
-  onRun: () => void
-  onReset: () => void
-}) {
-  return (
-    <div className="iu-tar-runbar">
-      {error ? (
-        <p className="iu-tar-error" role="alert">
-          <AlertCircle size={17} aria-hidden="true" />
-          {error}
-        </p>
-      ) : null}
-      <div>
-        <button className="iu-tar-button iu-tar-button-primary" type="button" onClick={onRun} disabled={busy}>
-          {busy ? <Loader2 size={16} aria-hidden="true" className="iu-tar-spin" /> : <RefreshCw size={16} aria-hidden="true" />}
-          Calcola e aggiorna il quadro
-        </button>
-        <button className="iu-tar-button iu-tar-button-light" type="button" onClick={onReset} disabled={busy}>
-          <RotateCcw size={16} aria-hidden="true" />
-          Reset
-        </button>
-      </div>
-    </div>
-  )
-}
-
 function CalculatorPanel({
   data,
   form,
   dynamic,
   open,
-  busy,
-  error,
   onToggle,
   onChange,
-  onRun,
-  onReset,
 }: {
   data: TariffarioPageData
   form: TariffarioState
   dynamic: TariffarioDynamic
   open: OpenMap
-  busy: boolean
-  error: string
   onToggle: (id: string) => void
   onChange: (next: TariffarioState) => void
-  onRun: () => void
-  onReset: () => void
 }) {
   const gradeOptions = (data.catalog.gradeCatalog[form.materia] || []).map((grade) => ({ value: grade, label: grade, description: '', enabled: true }))
   const ruleRows = data.catalog.ruleCatalog[form.materia] || []
@@ -688,7 +601,6 @@ function CalculatorPanel({
       <Accordion id="spese" title="Spese vive suggerite e voce manuale" badges={['Esborsi', 'Art. 15 / manuale']} description="Contributo unificato, diritti di segreteria, notifiche e voci concordate con il cliente." open={open.spese} onToggle={() => onToggle('spese')}>
         <LiveExpensesSection form={form} dynamic={dynamic} onChange={onChange} />
       </Accordion>
-      <ActionsBar busy={busy} error={error} onRun={onRun} onReset={onReset} />
     </section>
   )
 }
@@ -801,11 +713,35 @@ function EconomicSummary({ result }: { result: TariffarioResult }) {
   )
 }
 
-function RealtimeSummary({ result }: { result: TariffarioResult | null }) {
+function RealtimeSummary({
+  result,
+  busy,
+  error,
+  onRun,
+  onReset,
+}: {
+  result: TariffarioResult | null
+  busy: boolean
+  error: string
+  onRun: () => void
+  onReset: () => void
+}) {
   return (
-    <aside className="iu-tar-realtime" aria-label="Riepilogo in tempo reale">
-      <span>RIEPILOGO IN TEMPO REALE</span>
+    <aside className="iu-tar-realtime iu-tar-summary-sticky" aria-label="Riepilogo in tempo reale" aria-live="polite">
+      <div className="iu-tar-realtime-head">
+        <span>RIEPILOGO IN TEMPO REALE</span>
+        <button className="iu-tar-summary-refresh" type="button" onClick={onRun} disabled={busy}>
+          {busy ? <Loader2 size={16} aria-hidden="true" className="iu-tar-spin" /> : <RefreshCw size={16} aria-hidden="true" />}
+          Calcola e aggiorna il quadro
+        </button>
+      </div>
       <strong>{result?.selectedTotal || 'EUR 0,00'}</strong>
+      {error ? (
+        <p className="iu-tar-summary-error" role="alert">
+          <AlertCircle size={16} aria-hidden="true" />
+          {error}
+        </p>
+      ) : null}
       <p>{result?.engineText || 'Il risultato sarà disponibile dopo il primo calcolo.'}</p>
       <div className="iu-tar-range">
         {['minimo', 'base', 'massimo'].map((level) => (
@@ -818,6 +754,10 @@ function RealtimeSummary({ result }: { result: TariffarioResult | null }) {
       <div className="iu-tar-cta-row">
         {result?.actions.preventivo ? <a className="iu-tar-button iu-tar-button-invert" href={result.actions.preventivo}>Crea preventivo</a> : <button className="iu-tar-button iu-tar-button-invert" type="button" disabled>Crea preventivo</button>}
         {result?.actions.parcella ? <a className="iu-tar-button iu-tar-button-ghost" href={result.actions.parcella}>Crea parcella</a> : <button className="iu-tar-button iu-tar-button-ghost" type="button" disabled>Crea parcella</button>}
+        <button className="iu-tar-summary-reset" type="button" onClick={onReset} disabled={busy}>
+          <RotateCcw size={15} aria-hidden="true" />
+          Reset
+        </button>
       </div>
     </aside>
   )
@@ -969,38 +909,27 @@ function MiniRows({ rows, fallback }: { rows: Array<Record<string, string | numb
   )
 }
 
-function WarningList({ warnings }: { warnings: TariffarioPageData['warnings'] }) {
-  const filtered = warnings.filter((warning) => warning.message)
-  if (!filtered.length) return null
-  return (
-    <div className="iu-tar-warnings" role="status">
-      {filtered.map((warning) => (
-        <p key={`${warning.code}-${warning.message}`}><AlertCircle size={16} aria-hidden="true" /> {warning.message}</p>
-      ))}
-    </div>
-  )
-}
-
 export function TariffarioPage() {
   const [data, setData] = useState<TariffarioPageData>(emptyTariffarioPage)
   const [form, setForm] = useState<TariffarioState>(emptyTariffarioPage.state)
   const [profile, setProfile] = useState<TariffarioProfile>(emptyTariffarioPage.profile)
   const [dynamic, setDynamic] = useState<TariffarioDynamic>(emptyTariffarioPage.dynamic)
   const [result, setResult] = useState<TariffarioResult | null>(null)
-  const [warnings, setWarnings] = useState<TariffarioPageData['warnings']>([])
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const latestRun = useRef(0)
+  const syncedPayload = useRef('')
   const { open, toggle } = useAccordionState()
   const legacyBridgeName = LegacyPostForm.name
 
   function applyPage(next: TariffarioPageData) {
+    syncedPayload.current = JSON.stringify(next.state)
     setData(next)
     setForm(next.state)
     setProfile(next.profile)
     setDynamic(next.dynamic)
     setResult(next.result)
-    setWarnings(next.warnings)
     setError('')
   }
 
@@ -1016,17 +945,26 @@ export function TariffarioPage() {
   }, [])
 
   const hasCatalog = useMemo(() => data.catalog.materiaOptions.length > 0, [data.catalog.materiaOptions.length])
+  const fallbackRunError = 'Il calcolo non è stato completato. Verifica i parametri e riprova.'
+
+  function updateForm(next: TariffarioState) {
+    latestRun.current += 1
+    setForm(next)
+  }
 
   async function submitRun() {
+    const runId = latestRun.current + 1
+    latestRun.current = runId
     setBusy(true)
     setError('')
     const response = await runTariffario(form)
+    if (runId !== latestRun.current) return
     setBusy(false)
-    setWarnings(response.warnings)
     if (!response.ok || !response.result) {
-      setError(response.warnings[0]?.message || 'Il calcolo non è stato completato. Verifica i parametri e riprova.')
+      setError(response.warnings[0]?.message || fallbackRunError)
       return
     }
+    syncedPayload.current = JSON.stringify(response.state)
     setForm(response.state)
     setProfile(response.profile)
     setDynamic(response.dynamic)
@@ -1034,13 +972,40 @@ export function TariffarioPage() {
   }
 
   function reset() {
+    latestRun.current += 1
+    syncedPayload.current = JSON.stringify(data.state)
     setForm(data.state)
     setProfile(data.profile)
     setDynamic(data.dynamic)
     setResult(data.result)
-    setWarnings(data.warnings)
     setError('')
   }
+
+  useEffect(() => {
+    if (loading || !hasCatalog) return
+    const payload = JSON.stringify(form)
+    if (payload === syncedPayload.current) return
+    const runId = latestRun.current + 1
+    latestRun.current = runId
+    const timer = window.setTimeout(async () => {
+      setBusy(true)
+      setError('')
+      const response = await runTariffario(form)
+      if (runId !== latestRun.current) return
+      setBusy(false)
+      if (!response.ok || !response.result) {
+        setError(response.warnings[0]?.message || fallbackRunError)
+        return
+      }
+      syncedPayload.current = JSON.stringify(response.state)
+      setForm(response.state)
+      setProfile(response.profile)
+      setDynamic(response.dynamic)
+      setResult(response.result)
+      setError('')
+    }, 450)
+    return () => window.clearTimeout(timer)
+  }, [form, hasCatalog, loading])
 
   if (loading) {
     return <LoadingState title="Caricamento tariffario" message="Recupero catalogo, profili, audit e risultato iniziale dal backend." />
@@ -1049,7 +1014,6 @@ export function TariffarioPage() {
   return (
     <main className="iu-content iu-page iu-tar-page" data-legacy-form={legacyBridgeName}>
       <Hero stats={data.stats} />
-      <WarningList warnings={warnings} />
       {!hasCatalog ? (
         <section className="iu-tar-panel">
           <h2>Catalogo tariffario non disponibile</h2>
@@ -1058,7 +1022,6 @@ export function TariffarioPage() {
         </section>
       ) : (
         <>
-          <StatsGrid data={data} />
           <div className="iu-tar-layout">
             <div className="iu-tar-main">
               <CalculatorPanel
@@ -1066,17 +1029,13 @@ export function TariffarioPage() {
                 form={form}
                 dynamic={dynamic}
                 open={open}
-                busy={busy}
-                error={error}
                 onToggle={toggle}
-                onChange={setForm}
-                onRun={submitRun}
-                onReset={reset}
+                onChange={updateForm}
               />
               <ResultPanel result={result} />
             </div>
             <aside className="iu-tar-sidebar">
-              <RealtimeSummary result={result} />
+              <RealtimeSummary result={result} busy={busy} error={error} onRun={submitRun} onReset={reset} />
               <ActiveProfileCard profile={profile} />
               <NormativeSupportPanel support={data.support} open={open} onToggle={toggle} />
             </aside>

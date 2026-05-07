@@ -1,5 +1,19 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-07 - Tariffario console operativa 2.198.102
+
+La tranche `2.198.102` rifinisce `/tariffario` come console economica
+professionale:
+
+- gli avvisi tecnici di bootstrap e le KPI statistiche non vengono piu'
+  renderizzati sopra il workspace operativo;
+- il `Riepilogo in tempo reale` diventa il pannello sticky dedicato su desktop,
+  con totale, forbice minimo/base/massimo e azioni principali nello stesso
+  punto di lavoro;
+- il risultato viene aggiornato automaticamente con debounce tramite
+  `POST /api/v1/ui/tariffario/calcola`, continuando a usare solo il motore
+  Python canonico per formule, importi e logica tariffaria.
+
 ## Stato tranche 2026-05-06 - Tariffario console operativa 2.198.97
 
 La superficie exact `/tariffario` resta React sui GET ufficiali e mantiene il

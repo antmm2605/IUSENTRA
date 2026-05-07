@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.198.102 - 2026-05-07
+
+- Rifinita `/tariffario`: rimossi dalla pagina gli avvisi tecnici di bootstrap e le KPI statistiche sopra il workspace, lasciando il flusso operativo centrato su parametri, risultato e supporto apribile.
+- Promosso il `Riepilogo in tempo reale` a pannello sticky dedicato: segue lo scroll su desktop, mostra totale e forbice minimo/base/massimo, porta le azioni `Calcola e aggiorna il quadro`, `Reset`, `Crea preventivo` e `Crea parcella` nello stesso punto operativo.
+- Aggiunto aggiornamento automatico con debounce del risultato tariffario tramite il bridge backend Python, senza spostare formule economiche nel frontend, e introdotta la regola di prodotto per preferire riepiloghi sticky in tempo reale quando la pagina lo consente.
+
 ## 2.198.101 - 2026-05-07
 
 - Reso professionale il comportamento `Fasi da includere` nel preventivo guidato: il flag `Compenso unico` calcola la voce unica tabellare, mentre a flag spento il wizard calcola solo le fasi selezionate dall'avvocato; se la tabella ministeriale espone solo un importo unico, l'importo viene ripartito in quote operative tracciate senza inventare nuovi valori ministeriali.

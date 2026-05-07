@@ -35,6 +35,9 @@ def test_tariffario_react_payload_console_operativa(tmp_path: Path):
     assert payload["result"]["economic"]["rows"]
     assert payload["result"]["actions"]["preventivo"].startswith("/preventivi/wizard")
     assert payload["result"]["actions"]["parcella"].startswith("/fatturazione/nuova")
+    warning_messages = {warning["message"] for warning in payload["warnings"]}
+    assert "Creazione preventivo, parcella e flussi fiscali restano sulle route Flask esistenti." not in warning_messages
+    assert "Il motore tariffario canonico resta nel backend Python." not in warning_messages
     assert payload["support"]["auditRows"]
     assert payload["support"]["tables"]
     assert payload["support"]["references"]

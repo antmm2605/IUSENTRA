@@ -288,10 +288,7 @@ def build_react_tariffario_payload(
     get_normative_tables: Callable[[], Any],
     query: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    warnings: list[dict[str, str]] = [
-        _warning("scritture_legacy", "Creazione preventivo, parcella e flussi fiscali restano sulle route Flask esistenti."),
-        _warning("motore_backend", "Il motore tariffario canonico resta nel backend Python."),
-    ]
+    warnings: list[dict[str, str]] = []
     profili = _table_rows(get_normative_tables, "tariffario_profili", warnings, "profili")
     regole = _table_rows(get_normative_tables, "tariffario_regole", warnings, "regole")
     riferimenti = _table_rows(get_normative_tables, "tariffario_riferimenti", warnings, "riferimenti")

@@ -104,6 +104,7 @@ Quando il lavoro riguarda UI React, Flask, template, rotte o pagine app-v2:
 - testo visibile sempre in italiano;
 - date e ore in formato italiano tramite filtri condivisi;
 - card operative con azioni reali, non placeholder;
+- quando una pagina contiene calcoli, configurazioni o composizioni guidate, se viewport e contenuto lo consentono usare un riepilogo in tempo reale affiancato/sticky che segua lo scroll e mostri stato, importi e azioni principali; su mobile deve degradare a riepilogo compatto non sticky;
 - Lex AI floating icon dove previsto;
 - nessuna pagina deve restare scollegata da menu, route o API necessarie.
 

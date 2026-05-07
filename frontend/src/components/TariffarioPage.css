@@ -144,7 +144,7 @@
 }
 
 .iu-tar-layout {
-  align-items: start;
+  align-items: stretch;
   display: grid;
   gap: 1rem;
   grid-template-columns: minmax(0, 1fr) minmax(19rem, 25rem);
@@ -157,8 +157,9 @@
 }
 
 .iu-tar-sidebar {
-  position: sticky;
-  top: 1rem;
+  align-content: start;
+  align-self: stretch;
+  min-height: 100%;
 }
 
 .iu-tar-panel,
@@ -767,11 +768,62 @@
   padding: 1.2rem;
 }
 
-.iu-tar-realtime > span {
+.iu-tar-summary-sticky {
+  position: sticky;
+  top: 1rem;
+  z-index: 2;
+}
+
+.iu-tar-realtime-head {
+  align-items: start;
+  display: grid;
+  gap: 0.9rem;
+  grid-template-columns: minmax(0, 1fr) minmax(7rem, 8.8rem);
+}
+
+.iu-tar-realtime-head > span {
   color: #b7c5dc;
   font-size: 0.78rem;
   font-weight: 900;
   letter-spacing: 0.14em;
+}
+
+.iu-tar-summary-refresh,
+.iu-tar-summary-reset {
+  align-items: center;
+  border: 1px solid transparent;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-weight: 850;
+  gap: 0.36rem;
+  justify-content: center;
+  text-decoration: none;
+}
+
+.iu-tar-summary-refresh {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
+  color: #ffffff;
+  font-size: 0.82rem;
+  line-height: 1.2;
+  min-height: 2.8rem;
+  padding: 0.44rem 0.55rem;
+  white-space: normal;
+}
+
+.iu-tar-summary-reset {
+  background: transparent;
+  color: #ffffff;
+  min-height: 2.55rem;
+  padding: 0 0.2rem;
+}
+
+.iu-tar-summary-refresh:disabled,
+.iu-tar-summary-reset:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .iu-tar-realtime > strong {
@@ -781,8 +833,15 @@
   margin: 0.45rem 0 0.55rem;
 }
 
-.iu-tar-realtime p {
+.iu-tar-realtime p,
+.iu-tar-summary-error {
   color: #d6e0f0;
+}
+
+.iu-tar-summary-error {
+  align-items: center;
+  display: flex;
+  gap: 0.45rem;
 }
 
 .iu-tar-range {
@@ -948,7 +1007,7 @@
     grid-template-columns: 1fr;
   }
 
-  .iu-tar-sidebar {
+  .iu-tar-summary-sticky {
     position: static;
   }
 }
@@ -986,7 +1045,16 @@
     flex-direction: column;
   }
 
+  .iu-tar-realtime-head {
+    grid-template-columns: 1fr;
+  }
+
   .iu-tar-button {
+    width: 100%;
+  }
+
+  .iu-tar-summary-refresh,
+  .iu-tar-summary-reset {
     width: 100%;
   }
 }

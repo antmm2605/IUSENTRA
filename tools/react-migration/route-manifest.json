@@ -349,7 +349,7 @@
     {
       "route": "/fatturazione/nuova",
       "family": "economico",
-      "status": "react_bridge",
+      "status": "react_operational_full",
       "risk": "high",
       "targetComponent": "frontend/src/components/FatturazionePage.tsx",
       "targetData": "frontend/src/fatturazioneData.ts",
@@ -357,10 +357,14 @@
       "legacyContract": "artifacts/react-migration/legacy-contracts/fatturazione__nuova.json",
       "unlockFromGate": true,
       "mustPreserve": [
-        "POST legacy auditato",
-        "calcolo backend",
-        "CSRF e sessione Flask",
-        "nessun calcolo fiscale canonico React",
+        "POST JSON backend",
+        "calcolo canonico backend",
+        "validazione backend",
+        "audit",
+        "CSRF/sessione",
+        "permessi backend",
+        "nessuna CTA legacy primaria",
+        "rollback legacy tecnico",
         "nessun PDF/XML React"
       ]
     },

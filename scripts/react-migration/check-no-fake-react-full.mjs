@@ -155,6 +155,52 @@ if (backupRow?.manifestStatus === 'react_operational_full') {
   }
 }
 
+const fatturazioneNuovaRow = rows.find((row) => row.route === '/fatturazione/nuova')
+if (fatturazioneNuovaRow?.manifestStatus === 'react_operational_full') {
+  const page = readFileSync(resolve(root, 'frontend/src/components/FatturazionePage.tsx'), 'utf8')
+  const data = readFileSync(resolve(root, 'frontend/src/fatturazioneData.ts'), 'utf8')
+  const bridge = readFileSync(resolve(root, 'web/services/react_fatturazione_bridge.py'), 'utf8')
+  const gate = readFileSync(resolve(root, 'web/bootstrap/react_route_gate.py'), 'utf8')
+  const combined = `${page}\n${data}\n${bridge}`
+
+  if (/\bLegacyPostForm\b/.test(page)) {
+    violations.push('/fatturazione/nuova: react_operational_full non puo contenere LegacyPostForm nel flusso principale.')
+  }
+  if (/\?_legacy=1/.test(combined) && !/Rollback tecnico/.test(combined)) {
+    violations.push('/fatturazione/nuova: eventuale ?_legacy=1 deve restare solo rollback tecnico.')
+  }
+  if (!/\bapiPostJson\b/.test(data)) {
+    violations.push('/fatturazione/nuova: il salvataggio deve usare apiPostJson centralizzato.')
+  }
+  if (!/createFattura|createParcella/.test(page)) {
+    violations.push('/fatturazione/nuova: il componente deve usare la funzione JSON di creazione.')
+  }
+  if (!/["']writes["']\s*:\s*["']json_api["']/.test(bridge)) {
+    violations.push('/fatturazione/nuova: bridge operativo deve dichiarare writes json_api.')
+  }
+  if (!/"canonical_calculation"\s*:\s*"backend"/.test(bridge)) {
+    violations.push('/fatturazione/nuova: il contratto deve dichiarare calcolo canonico backend.')
+  }
+  if (!apiSource.includes('@api_v1_react.post("/fatturazione/nuova")')) {
+    violations.push('/fatturazione/nuova: manca endpoint POST JSON /api/v1/ui/fatturazione/nuova.')
+  }
+  if (/localStorage|sessionStorage/.test(combined)) {
+    violations.push('/fatturazione/nuova: non deve usare localStorage o sessionStorage.')
+  }
+  if (/response\.blob|URL\.createObjectURL|new Blob/.test(combined)) {
+    violations.push('/fatturazione/nuova: React non deve gestire PDF/XML/export con blob.')
+  }
+  if (/calculateVat|calculateIva|calculateTax|calculateTotal|ivaRate|aliquotaIva|cassaRate|aliquotaCassa|ritenutaRate|Math\.round|\.toFixed\s*\(/i.test(`${page}\n${data}`)) {
+    violations.push('/fatturazione/nuova: il frontend non deve contenere calcolo fiscale canonico.')
+  }
+  if (/generatePdf|generatePDF|generateXml|generateXML|fetch\s*\([^)]*blob/i.test(`${page}\n${data}`)) {
+    violations.push('/fatturazione/nuova: React non deve generare documenti o export.')
+  }
+  if (!gate.includes('lower.startswith("/fatturazione/") and lower != "/fatturazione/nuova"')) {
+    violations.push('/fatturazione/nuova: il gate deve continuare a proteggere gli altri subpath fatturazione.')
+  }
+}
+
 const md = [
   '# Check no fake React full',
   '',

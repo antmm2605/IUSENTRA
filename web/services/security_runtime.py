@@ -48,6 +48,7 @@ _CSRF_PROTECTED_ENDPOINTS = {
     "api_v1_react.profili_page_update",
     "api_v1_react.backup_crea",
     "api_v1_react.backup_verifica",
+    "api_v1_react.fatturazione_nuova_crea",
 }
 
 _UNSAFE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}

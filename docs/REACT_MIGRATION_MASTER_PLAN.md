@@ -1,5 +1,25 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-07 - Parte 17A fatturazione nuova operativa 2.198.110
+
+La Parte 17A promuove `/fatturazione/nuova` da `react_bridge` a
+`react_operational_full` senza sbloccare dettagli, modifica, PDF, XML, export,
+provider pagamenti o webhook:
+
+- `GET /api/v1/ui/fatturazione/nuova` espone clienti, fascicoli, default del
+  form, opzioni fiscali e contratto `writes=json_api`,
+  `canonical_calculation=backend`, `operational=true`, senza mock fallback.
+- `POST /api/v1/ui/fatturazione/nuova` accetta solo JSON, usa
+  CSRF/sessione, permesso `fatturazione.scrivi`, validazione backend,
+  rifiuto di campi ignoti e degli importi canonici inviati dal frontend.
+- Il salvataggio riusa `GestioneFatturazione.crea()` e `VoceParcella`; React
+  invia solo voci/opzioni e non calcola totali fiscali, PDF, XML o export.
+- `LegacyPostForm` e CTA legacy primarie sono rimossi dal flusso principale;
+  `/fatturazione/nuova?_legacy=1` resta solo nel pannello `Rollback tecnico`.
+- `/fatturazione` puo' restare `react_bridge`, mentre `/fatturazione/*` resta
+  `legacy_operational` e protetto dal gate con eccezione solo per
+  `/fatturazione/nuova`.
+
 ## Stato tranche 2026-05-07 - Parte 16A backup operativo 2.198.109
 
 La Parte 16A promuove `/backup` da `react_bridge` a
@@ -288,13 +308,14 @@ legacy:
   `GET /api/v1/ui/fatturazione` per KPI reali, archivio parcelle/fatture,
   stati, clienti, importi gia' presenti nel modello e link legacy sicuri.
 - `/fatturazione/nuova` usa lo stesso bridge e
-  `GET /api/v1/ui/fatturazione/nuova`, ma il submit resta un form HTML
-  `method="post"` verso la route legacy auditata; il calcolo finale resta nel
-  backend storico.
+  `GET /api/v1/ui/fatturazione/nuova` piu'
+  `POST /api/v1/ui/fatturazione/nuova`: il submit React e' JSON-only,
+  validato dal backend e salvato tramite il manager fatturazione esistente.
+  Il calcolo canonico resta nel backend storico.
 - `/incassi-pagamenti` usa `web/services/react_incassi_pagamenti_bridge.py` e
   `GET /api/v1/ui/incassi-pagamenti` per importi aggregati, stato provider in
   forma sicura e collegamenti a configurazione provider legacy.
-- `/fatturazione/*`, PDF, XML, export CSV, `/impostazioni/pagamenti`,
+- `/fatturazione/*` diverso da `/fatturazione/nuova`, PDF, XML, export CSV, `/impostazioni/pagamenti`,
   `/preventivi`, `/compensi-forensi` e `/tariffario` restano legacy con
   protezioni esplicite nel gate e nella shell.
 - `scripts/react-migration/check-tranche-6a-secrets.mjs` e

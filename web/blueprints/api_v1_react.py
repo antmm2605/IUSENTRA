@@ -109,6 +109,7 @@ from web.services.react_amministrazione_bridge import (
 from web.services.react_fatturazione_bridge import (
     build_react_fatturazione_error_payload,
     build_react_fatturazione_payload,
+    create_react_fattura,
 )
 from web.services.react_compensi_forensi_bridge import (
     build_react_compensi_forensi_error_payload,
@@ -243,6 +244,16 @@ def _puo_leggere_backup() -> bool:
 def _puo_eseguire_backup() -> bool:
     utente = g.get("utente_corrente")
     return bool(utente and getattr(utente, "ha_permesso", lambda _permesso: False)("backup.esegui"))
+
+
+def _puo_leggere_fatturazione() -> bool:
+    utente = g.get("utente_corrente")
+    return bool(utente and getattr(utente, "ha_permesso", lambda _permesso: False)("fatturazione.leggi"))
+
+
+def _puo_scrivere_fatturazione() -> bool:
+    utente = g.get("utente_corrente")
+    return bool(utente and getattr(utente, "ha_permesso", lambda _permesso: False)("fatturazione.scrivi"))
 
 
 def _richiedi_admin_sito_studio_api():
@@ -2903,13 +2914,17 @@ def amministrazione_page():
 def fatturazione_page():
     utente = g.get("utente_corrente")
     if not utente:
-        return jsonify(build_react_fatturazione_error_payload("Sessione utente richiesta.")), 403
+        return jsonify(build_react_fatturazione_error_payload("Sessione utente richiesta.", route="/fatturazione")), 403
+    if not _puo_leggere_fatturazione():
+        return jsonify(build_react_fatturazione_error_payload("Permesso fatturazione.leggi richiesto.", route="/fatturazione")), 403
     try:
         return jsonify(
             build_react_fatturazione_payload(
                 get_fatturazione=get_fatturazione,
                 get_clienti=get_clienti,
                 get_fascicoli=get_fascicoli,
+                get_preventivi=get_preventivi,
+                current_user=utente,
                 query=dict(request.args),
                 route="/fatturazione",
             )
@@ -2918,7 +2933,8 @@ def fatturazione_page():
         current_app.logger.exception("Errore Fatturazione React bridge: %s", exc)
         return jsonify(
             build_react_fatturazione_error_payload(
-                "Fatturazione non disponibile dal runtime corrente."
+                "Fatturazione non disponibile dal runtime corrente.",
+                route="/fatturazione",
             )
         ), 200
 
@@ -2928,13 +2944,17 @@ def fatturazione_page():
 def fatturazione_nuova_page():
     utente = g.get("utente_corrente")
     if not utente:
-        return jsonify(build_react_fatturazione_error_payload("Sessione utente richiesta.")), 403
+        return jsonify(build_react_fatturazione_error_payload("Sessione utente richiesta.", route="/fatturazione/nuova")), 403
+    if not _puo_leggere_fatturazione():
+        return jsonify(build_react_fatturazione_error_payload("Permesso fatturazione.leggi richiesto.", route="/fatturazione/nuova")), 403
     try:
         return jsonify(
             build_react_fatturazione_payload(
                 get_fatturazione=get_fatturazione,
                 get_clienti=get_clienti,
                 get_fascicoli=get_fascicoli,
+                get_preventivi=get_preventivi,
+                current_user=utente,
                 query=dict(request.args),
                 route="/fatturazione/nuova",
             )
@@ -2943,9 +2963,56 @@ def fatturazione_nuova_page():
         current_app.logger.exception("Errore Nuova Fatturazione React bridge: %s", exc)
         return jsonify(
             build_react_fatturazione_error_payload(
-                "Form parcella non disponibile dal runtime corrente."
+                "Form parcella non disponibile dal runtime corrente.",
+                route="/fatturazione/nuova",
             )
         ), 200
+
+
+@api_v1_react.post("/fatturazione/nuova")
+@_richiedi_auth
+def fatturazione_nuova_crea():
+    utente = g.get("utente_corrente")
+    if not utente:
+        return jsonify({
+            "ok": False,
+            "message": "Sessione utente richiesta.",
+            "errors": {"session": "Accedi per creare una parcella."},
+            "item": None,
+        }), 403
+    if not _puo_scrivere_fatturazione():
+        return jsonify({
+            "ok": False,
+            "message": "Permesso fatturazione.scrivi richiesto.",
+            "errors": {"permission": "Operazione non autorizzata."},
+            "item": None,
+        }), 403
+
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+
+    try:
+        result, status = create_react_fattura(
+            get_fatturazione=get_fatturazione,
+            get_clienti=get_clienti,
+            get_fascicoli=get_fascicoli,
+            get_utenti=get_utenti,
+            get_preventivi=get_preventivi,
+            current_user=utente,
+            payload=payload,
+            config=current_app.config,
+            ip_address=request.remote_addr or "",
+        )
+        return jsonify(result), status
+    except Exception as exc:
+        current_app.logger.exception("Errore creazione parcella React JSON: %s", exc)
+        return jsonify({
+            "ok": False,
+            "message": "Creazione parcella non disponibile dal runtime corrente.",
+            "errors": {"server": "Errore applicativo controllato."},
+            "item": None,
+        }), 500
 
 
 @api_v1_react.get("/incassi-pagamenti")

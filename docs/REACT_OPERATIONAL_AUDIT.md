@@ -14,6 +14,21 @@ essere dichiarata operativa deve avere:
 - test di regressione su route, API e card;
 - nessun link visibile verso `?_legacy=1`.
 
+## Aggiornamento 2026-05-07 - Nuova fatturazione operativa
+
+La route `/fatturazione/nuova` e' stata promossa a
+`react_operational_full` con contratto anti-mascheramento dedicato:
+
+- `GET /api/v1/ui/fatturazione/nuova` legge clienti, fascicoli, default,
+  opzioni fiscali e azioni dal backend reale.
+- `POST /api/v1/ui/fatturazione/nuova` e' JSON-only, protetto da
+  CSRF/sessione e permesso `fatturazione.scrivi`, con validazione backend e
+  audit `fatturazione.crea`.
+- Il salvataggio usa `GestioneFatturazione.crea()`; il frontend non determina
+  importi fiscali canonici e non genera PDF, XML o export.
+- Il fallback `?_legacy=1` resta solo nella sezione `Rollback tecnico`;
+  `/fatturazione/*` diverso da `/fatturazione/nuova` resta legacy operativo.
+
 ## Aggiornamento 2026-05-07 - Backup operativo
 
 La route `/backup` e' stata promossa a `react_operational_full` con contratto

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.198.110 - 2026-05-07
+
+- Promossa `/fatturazione/nuova` a `react_operational_full`: la pagina React legge clienti, fascicoli, default e opzioni fiscali da `GET /api/v1/ui/fatturazione/nuova`.
+- Aggiunto `POST /api/v1/ui/fatturazione/nuova` con JSON-only, CSRF/sessione, permesso `fatturazione.scrivi`, validazione campi consentiti, rifiuto degli importi canonici dal frontend e audit `fatturazione.crea`.
+- Rimosso `LegacyPostForm` dal flusso principale della nuova parcella: il salvataggio riusa `GestioneFatturazione.crea`, il calcolo canonico resta backend e PDF/XML/export restano sulle route legacy/backend protette.
+
 ## 2.198.109 - 2026-05-07
 
 - Promossa `/backup` a `react_operational_full`: la pagina React legge stato, lista copie, configurazione e integrita da `GET /api/v1/ui/backup`.

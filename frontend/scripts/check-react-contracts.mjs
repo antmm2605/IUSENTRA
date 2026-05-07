@@ -258,6 +258,9 @@ const tranche10aNoExternalFetch = read('../scripts/react-migration/check-tranche
 const tranche10aNoAiGeneration = read('../scripts/react-migration/check-tranche-10a-no-ai-generation.mjs')
 const tranche10aNoDocumentRaw = read('../scripts/react-migration/check-tranche-10a-no-document-raw.mjs')
 const tranche10aOpenDesign = read('../scripts/react-migration/check-tranche-10a-open-design.mjs')
+const tranche17aOperational = read('../scripts/react-migration/check-tranche-17a-fatturazione-nuova-operational.mjs')
+const tranche17aApi = read('../scripts/react-migration/check-tranche-17a-fatturazione-nuova-api.py')
+const tranche17aNoFiscalLogic = read('../scripts/react-migration/check-tranche-17a-no-fiscal-logic.mjs')
 const uiAllowedClasses = read('../tools/react-migration/ui-allowed-classes.json')
 const routeRiskRules = read('../tools/react-migration/route-risk-rules.json')
 const uiPage = read('src/ui/Page.tsx')
@@ -368,6 +371,11 @@ assertContains(tranche5aSecrets, 'react_amministrazione_bridge.py', 'check Tranc
 assertContains(tranche6aGate, '/fatturazione/qualunque/pdf', 'check Tranche 6A verifica PDF legacy')
 assertContains(tranche6aSecrets, 'react_fatturazione_bridge.py', 'check Tranche 6A anti-segreti scansiona bridge fatturazione')
 assertContains(tranche6aNoFiscalLogic, 'calculateIva', 'check Tranche 6A blocca calcolo fiscale frontend')
+assertContains(tranche17aOperational, '@api_v1_react.post("/fatturazione/nuova")', 'check Tranche 17A presidia POST JSON nuova fatturazione')
+assertContains(tranche17aOperational, 'Rollback tecnico', 'check Tranche 17A presidia rollback tecnico')
+assertContains(tranche17aApi, 'manager.crea(', 'check Tranche 17A API presidia riuso GestioneFatturazione')
+assertContains(tranche17aApi, 'fatturazione.scrivi', 'check Tranche 17A API presidia permessi backend')
+assertContains(tranche17aNoFiscalLogic, 'calculateIva', 'check Tranche 17A blocca calcolo fiscale frontend')
 assertContains(tranche7aGate, '/preventivi/conferimento/nuovo', 'check Tranche 7A verifica nuovo conferimento')
 assertContains(tranche7aSecrets, 'react_preventivi_bridge.py', 'check Tranche 7A anti-segreti scansiona bridge preventivi')
 assertContains(tranche7aNoCompensiLogic, 'calculateCompenso', 'check Tranche 7A blocca logica compensi frontend')
@@ -425,6 +433,7 @@ for (const [route, status] of [
   ['/backup', 'react_operational_full'],
   ['/sito-studio', 'react_bridge'],
   ['/sito-studio/contatti', 'react_bridge'],
+  ['/fatturazione/nuova', 'react_operational_full'],
   ['/preventivi/wizard', 'react_operational_partial'],
   ['/tariffario', 'react_operational_partial'],
   ['/giurisprudenza', 'react_bridge'],
@@ -609,7 +618,15 @@ assertNotContains(backupPage, 'LegacyPostForm', 'BackupPage non usa LegacyPostFo
 assertContains(backupPage, 'createBackup', 'BackupPage crea backup via data client JSON')
 assertContains(backupPage, 'verifyBackupIntegrity', 'BackupPage verifica integrita via data client JSON')
 assertContains(sitoStudioPage, 'LegacyPostForm', 'SitoStudioPage usa LegacyPostForm per azioni legacy')
-assertContains(fatturazionePage, 'LegacyPostForm', 'FatturazionePage usa LegacyPostForm')
+assertNotContains(fatturazionePage, 'LegacyPostForm', 'FatturazionePage non usa LegacyPostForm nel flusso nuova fatturazione')
+assertContains(fatturazionePage, 'createFattura', 'FatturazionePage salva nuova parcella via JSON')
+assertContains(fatturazionePage, 'saveStatus', 'FatturazionePage gestisce saving/success/error')
+assertContains(fatturazionePage, 'Rollback tecnico', 'FatturazionePage confina il fallback legacy in sezione tecnica')
+assertContains(fatturazioneData, 'apiPostJson<CreateFatturaResult>', 'fatturazioneData usa apiPostJson per nuova parcella')
+assertContains(fatturazioneBridge, '"writes": "json_api"', 'bridge nuova fatturazione dichiara scrittura JSON')
+assertContains(fatturazioneBridge, '"canonical_calculation": "backend"', 'bridge nuova fatturazione dichiara calcolo canonico backend')
+assertContains(apiBridge, '@api_v1_react.post("/fatturazione/nuova")', 'endpoint JSON crea nuova parcella')
+assertContains(apiBridge, '_puo_scrivere_fatturazione()', 'nuova parcella controlla permesso scrittura fatturazione')
 assertContains(preventiviPage, 'LegacyPostForm', 'PreventiviPage usa LegacyPostForm')
 assertContains(compensiForensiPage, 'LegacyPostForm', 'CompensiForensiPage usa LegacyPostForm se presente')
 assertContains(tariffarioPage, 'LegacyPostForm', 'TariffarioPage usa LegacyPostForm se presente')

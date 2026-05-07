@@ -1,6 +1,6 @@
 {
   "summary": {
-    "generatedAt": "2026-05-07T19:15:24.497Z",
+    "generatedAt": "2026-05-07T19:41:41.776Z",
     "scannedFiles": [
       "frontend/src/adminDatabaseData.ts",
       "frontend/src/agendaData.ts",
@@ -171,16 +171,16 @@
     ],
     "totals": {
       "routes": 53,
-      "legacyLinks": 238,
-      "legacyPostForms": 12,
+      "legacyLinks": 241,
+      "legacyPostForms": 9,
       "reactPostForms": 0,
-      "bridgeLegacyWrites": 30,
+      "bridgeLegacyWrites": 27,
       "deprecatedReactFull": 0,
-      "missingWriteApi": 5
+      "missingWriteApi": 4
     },
     "levels": {
-      "react_operational_full": 7,
-      "react_bridge": 20,
+      "react_operational_full": 9,
+      "react_bridge": 18,
       "legacy_operational": 25,
       "react_operational_partial": 1
     }
@@ -601,53 +601,46 @@
       "bridge": "web/services/react_fatturazione_bridge.py",
       "manifestStatus": "react_bridge",
       "unlockFromGate": true,
-      "legacyLinks": 7,
+      "legacyLinks": 8,
       "legacyButtons": 1,
-      "legacyPostForms": 1,
+      "legacyPostForms": 0,
       "reactPostForms": 0,
-      "jsonWrites": false,
+      "jsonWrites": true,
       "jsonReads": true,
-      "bridgeWritesLegacy": true,
-      "blockingLegacyLinks": 7,
-      "technicalRollback": false,
+      "bridgeWritesLegacy": false,
+      "blockingLegacyLinks": 0,
+      "technicalRollback": true,
       "missingWriteApi": false,
       "missingErrorHandling": false,
-      "missingSuccessHandling": true,
+      "missingSuccessHandling": false,
       "problems": [
-        "7 link ?_legacy=1 primari o non governati",
-        "LegacyPostForm presente",
-        "bridge writes=legacy_routes",
-        "gestione successo non rilevata"
+        "fallback legacy tecnico non primario"
       ],
-      "realLevel": "react_bridge"
+      "realLevel": "react_operational_full"
     },
     {
       "route": "/fatturazione/nuova",
       "component": "frontend/src/components/FatturazionePage.tsx",
       "dataClient": "frontend/src/fatturazioneData.ts",
       "bridge": "web/services/react_fatturazione_bridge.py",
-      "manifestStatus": "react_bridge",
+      "manifestStatus": "react_operational_full",
       "unlockFromGate": true,
-      "legacyLinks": 7,
+      "legacyLinks": 8,
       "legacyButtons": 1,
-      "legacyPostForms": 1,
+      "legacyPostForms": 0,
       "reactPostForms": 0,
-      "jsonWrites": false,
+      "jsonWrites": true,
       "jsonReads": true,
-      "bridgeWritesLegacy": true,
-      "blockingLegacyLinks": 7,
-      "technicalRollback": false,
-      "missingWriteApi": true,
+      "bridgeWritesLegacy": false,
+      "blockingLegacyLinks": 0,
+      "technicalRollback": true,
+      "missingWriteApi": false,
       "missingErrorHandling": false,
-      "missingSuccessHandling": true,
+      "missingSuccessHandling": false,
       "problems": [
-        "7 link ?_legacy=1 primari o non governati",
-        "LegacyPostForm presente",
-        "bridge writes=legacy_routes",
-        "API JSON di salvataggio mancante",
-        "gestione successo non rilevata"
+        "fallback legacy tecnico non primario"
       ],
-      "realLevel": "react_bridge"
+      "realLevel": "react_operational_full"
     },
     {
       "route": "/fatturazione/*",
@@ -656,23 +649,20 @@
       "bridge": "web/services/react_fatturazione_bridge.py",
       "manifestStatus": "legacy_operational",
       "unlockFromGate": false,
-      "legacyLinks": 7,
+      "legacyLinks": 8,
       "legacyButtons": 1,
-      "legacyPostForms": 1,
+      "legacyPostForms": 0,
       "reactPostForms": 0,
-      "jsonWrites": false,
+      "jsonWrites": true,
       "jsonReads": true,
-      "bridgeWritesLegacy": true,
-      "blockingLegacyLinks": 7,
-      "technicalRollback": false,
+      "bridgeWritesLegacy": false,
+      "blockingLegacyLinks": 0,
+      "technicalRollback": true,
       "missingWriteApi": false,
       "missingErrorHandling": false,
-      "missingSuccessHandling": true,
+      "missingSuccessHandling": false,
       "problems": [
-        "7 link ?_legacy=1 primari o non governati",
-        "LegacyPostForm presente",
-        "bridge writes=legacy_routes",
-        "gestione successo non rilevata"
+        "fallback legacy tecnico non primario"
       ],
       "realLevel": "legacy_operational"
     },

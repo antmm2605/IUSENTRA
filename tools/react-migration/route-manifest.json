@@ -52,7 +52,7 @@
     {
       "route": "/profili",
       "family": "amministrazione",
-      "status": "react_operational_full",
+      "status": "react_bridge",
       "risk": "medium",
       "targetComponent": "frontend/src/components/ProfiliPage.tsx",
       "targetData": "frontend/src/profiliData.ts",
@@ -60,12 +60,11 @@
       "legacyContract": "artifacts/react-migration/legacy-contracts/profili.json",
       "unlockFromGate": true,
       "mustPreserve": [
-        "matrice ruoli reale",
-        "permessi reali",
-        "salvataggio JSON",
-        "audit modifiche",
-        "nessuna CTA legacy primaria",
-        "rollback legacy tecnico"
+        "matrice ruoli",
+        "override utente",
+        "permessi negati o extra",
+        "audit modifiche permessi",
+        "RBAC esistente"
       ]
     },
     {

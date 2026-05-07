@@ -1,6 +1,6 @@
 {
   "summary": {
-    "generatedAt": "2026-05-07T18:25:39.013Z",
+    "generatedAt": "2026-05-07T17:23:57.865Z",
     "scannedFiles": [
       "frontend/src/adminDatabaseData.ts",
       "frontend/src/agendaData.ts",
@@ -171,17 +171,17 @@
     ],
     "totals": {
       "routes": 53,
-      "legacyLinks": 248,
-      "legacyPostForms": 13,
+      "legacyLinks": 249,
+      "legacyPostForms": 14,
       "reactPostForms": 0,
-      "bridgeLegacyWrites": 32,
+      "bridgeLegacyWrites": 33,
       "deprecatedReactFull": 0,
       "missingWriteApi": 6
     },
     "levels": {
       "react_operational_partial": 2,
-      "react_operational_full": 5,
-      "react_bridge": 21,
+      "react_operational_full": 4,
+      "react_bridge": 22,
       "legacy_operational": 25
     }
   },
@@ -240,24 +240,26 @@
       "component": "frontend/src/components/ProfiliPage.tsx",
       "dataClient": "frontend/src/profiliData.ts",
       "bridge": "web/services/react_profili_bridge.py",
-      "manifestStatus": "react_operational_full",
+      "manifestStatus": "react_bridge",
       "unlockFromGate": true,
-      "legacyLinks": 2,
+      "legacyLinks": 3,
       "legacyButtons": 0,
-      "legacyPostForms": 0,
+      "legacyPostForms": 1,
       "reactPostForms": 0,
-      "jsonWrites": true,
+      "jsonWrites": false,
       "jsonReads": true,
-      "bridgeWritesLegacy": false,
-      "blockingLegacyLinks": 0,
-      "technicalRollback": true,
+      "bridgeWritesLegacy": true,
+      "blockingLegacyLinks": 3,
+      "technicalRollback": false,
       "missingWriteApi": false,
       "missingErrorHandling": false,
       "missingSuccessHandling": false,
       "problems": [
-        "fallback legacy tecnico non primario"
+        "3 link ?_legacy=1 primari o non governati",
+        "LegacyPostForm presente",
+        "bridge writes=legacy_routes"
       ],
-      "realLevel": "react_operational_full"
+      "realLevel": "react_bridge"
     },
     {
       "route": "/audit",

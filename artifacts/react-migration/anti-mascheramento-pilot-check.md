@@ -1,6 +1,6 @@
 # Check pilota anti-mascheramento
 
-Generato: 2026-05-07T18:09:21.537Z
+Generato: 2026-05-07T17:24:03.564Z
 
 Esito: OK
 

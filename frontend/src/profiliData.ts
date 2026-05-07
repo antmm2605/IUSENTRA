@@ -1,41 +1,25 @@
-import { apiJson, apiPostJson } from './lib/apiClient'
-
-export type ProfiloTone = 'primary' | 'neutral' | 'danger' | 'success' | 'warning' | 'info'
-
-export type ProfiloContract = {
-  mock_fallback: boolean
-  writes: string
-  route_owner: string
-  operational: boolean
-  legacy_contract?: string
-}
+import { apiJson } from './lib/apiClient'
+import type { AdminAction, AdminContract, AdminMetric, AdminSection, AdminTone, AdminWarning, LegacyFormDefinition } from './utentiData'
+import type { LegacyPostField } from './ui/LegacyPostForm'
 
 export type ProfiloRoleUser = {
   id: string
   username: string
   label: string
-  role: string
   active: boolean
   hasOverride: boolean
+  permissionsHref: string
 }
 
-export type ProfiloRole = {
+export type ProfiloRoleRecord = {
   id: string
   role: string
   label: string
   description: string
-  tone: ProfiloTone
+  tone: AdminTone
   usersCount: number
   permissionsCount: number
-  permissions: string[]
   users: ProfiloRoleUser[]
-}
-
-export type ProfiloPermission = {
-  id: string
-  category: string
-  permission: string
-  label: string
 }
 
 export type ProfiloPermissionGrant = {
@@ -43,7 +27,7 @@ export type ProfiloPermissionGrant = {
   granted: boolean
 }
 
-export type ProfiloMatrixRow = {
+export type ProfiloPermissionRecord = {
   id: string
   category: string
   permission: string
@@ -51,107 +35,48 @@ export type ProfiloMatrixRow = {
   grants: ProfiloPermissionGrant[]
 }
 
-export type ProfiloOverride = {
+export type ProfiloOverrideRecord = {
   id: string
   username: string
   label: string
   role: string
-  active: boolean
-  hasOverride: boolean
   extraPermissions: string[]
   deniedPermissions: string[]
-  effectivePermissions: string[]
+  permissionsHref: string
 }
 
-export type ProfiloMetric = {
-  id: string
-  label: string
-  value: string | number
-  note: string
-  tone: ProfiloTone
-}
-
-export type ProfiloWarning = {
-  code: string
-  message: string
-}
-
-export type ProfiloRollbackAction = {
-  label: string
-  href: string
-  method: 'GET'
-}
-
-export type ProfiloActions = {
-  canWrite: boolean
-  read: string
-  save: string
-  users: string
-  rollback: ProfiloRollbackAction | null
+export type ProfiliRecords = {
+  roles: ProfiloRoleRecord[]
+  permissions: ProfiloPermissionRecord[]
+  overrides: ProfiloOverrideRecord[]
 }
 
 export type ProfiliPageData = {
-  ok: boolean
   source: string
   generated_at: string
-  contracts: ProfiloContract
-  roles: ProfiloRole[]
-  permissions: ProfiloPermission[]
-  matrix: ProfiloMatrixRow[]
-  overrides: ProfiloOverride[]
-  actions: ProfiloActions
-  warnings: ProfiloWarning[]
-  metrics: ProfiloMetric[]
-}
-
-export type SaveProfiliPayload = {
-  action: 'update_user_override'
-  userId: string
-  extraPermissions: string[]
-  deniedPermissions: string[]
-}
-
-export type SaveProfiliResult = {
-  ok: boolean
-  message: string
-  errors: Record<string, string>
-  updated: ProfiloOverride | null
-  payload?: ProfiliPageData
-  status?: number
-}
-
-const emptyActions: ProfiloActions = {
-  canWrite: false,
-  read: '/api/v1/ui/profili',
-  save: '/api/v1/ui/profili',
-  users: '/utenti',
-  rollback: null,
+  contracts: AdminContract
+  metrics: AdminMetric[]
+  sections: AdminSection[]
+  records: ProfiliRecords
+  actions: AdminAction[]
+  forms: LegacyFormDefinition[]
+  warnings: AdminWarning[]
 }
 
 export const emptyProfiliPage: ProfiliPageData = {
-  ok: false,
   source: '',
   generated_at: '',
   contracts: {
     mock_fallback: false,
-    writes: 'json_api',
+    writes: 'legacy_routes',
     route_owner: 'react_shell',
-    operational: true,
   },
-  roles: [],
-  permissions: [],
-  matrix: [],
-  overrides: [],
-  actions: emptyActions,
-  warnings: [],
   metrics: [],
-}
-
-const emptySaveResult: SaveProfiliResult = {
-  ok: false,
-  message: 'Salvataggio non completato.',
-  errors: { _form: 'Risposta non disponibile dal server.' },
-  updated: null,
+  sections: [],
+  records: { roles: [], permissions: [], overrides: [] },
+  actions: [],
+  forms: [],
+  warnings: [],
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -180,17 +105,13 @@ function value(value: unknown): string | number {
   return ''
 }
 
-function stringList(value: unknown): string[] {
-  return list(value).map((item) => text(item)).filter(Boolean)
-}
-
-function tone(value: unknown): ProfiloTone {
+function tone(value: unknown): AdminTone {
   return ['primary', 'neutral', 'danger', 'success', 'warning', 'info'].includes(String(value))
-    ? String(value) as ProfiloTone
+    ? String(value) as AdminTone
     : 'neutral'
 }
 
-function normaliseMetric(raw: unknown): ProfiloMetric {
+function normaliseMetric(raw: unknown): AdminMetric {
   const item = asRecord(raw)
   return {
     id: text(item.id) || text(item.label) || 'metrica',
@@ -201,19 +122,41 @@ function normaliseMetric(raw: unknown): ProfiloMetric {
   }
 }
 
+function normaliseSectionItem(raw: unknown) {
+  const item = asRecord(raw)
+  return {
+    id: text(item.id) || text(item.label) || 'voce',
+    label: text(item.label) || 'Voce',
+    value: value(item.value),
+    note: text(item.note),
+    tone: tone(item.tone),
+  }
+}
+
+function normaliseSection(raw: unknown): AdminSection {
+  const item = asRecord(raw)
+  return {
+    id: text(item.id) || text(item.title) || 'sezione',
+    title: text(item.title) || 'Sezione',
+    kind: text(item.kind) || 'distribution',
+    items: list(item.items).map(normaliseSectionItem),
+    emptyMessage: text(item.emptyMessage) || 'Nessun dato disponibile.',
+  }
+}
+
 function normaliseRoleUser(raw: unknown): ProfiloRoleUser {
   const item = asRecord(raw)
   return {
     id: text(item.id),
     username: text(item.username),
     label: text(item.label),
-    role: text(item.role),
     active: bool(item.active),
     hasOverride: bool(item.hasOverride),
+    permissionsHref: text(item.permissionsHref),
   }
 }
 
-function normaliseRole(raw: unknown): ProfiloRole {
+function normaliseRole(raw: unknown): ProfiloRoleRecord {
   const item = asRecord(raw)
   return {
     id: text(item.id) || text(item.role),
@@ -223,22 +166,11 @@ function normaliseRole(raw: unknown): ProfiloRole {
     tone: tone(item.tone),
     usersCount: number(item.usersCount),
     permissionsCount: number(item.permissionsCount),
-    permissions: stringList(item.permissions),
     users: list(item.users).map(normaliseRoleUser),
   }
 }
 
-function normalisePermission(raw: unknown): ProfiloPermission {
-  const item = asRecord(raw)
-  return {
-    id: text(item.id) || text(item.permission),
-    category: text(item.category),
-    permission: text(item.permission),
-    label: text(item.label),
-  }
-}
-
-function normaliseMatrixRow(raw: unknown): ProfiloMatrixRow {
+function normalisePermission(raw: unknown): ProfiloPermissionRecord {
   const item = asRecord(raw)
   return {
     id: text(item.id) || text(item.permission),
@@ -252,132 +184,94 @@ function normaliseMatrixRow(raw: unknown): ProfiloMatrixRow {
   }
 }
 
-function normaliseOverride(raw: unknown): ProfiloOverride {
+function normaliseOverride(raw: unknown): ProfiloOverrideRecord {
   const item = asRecord(raw)
   return {
     id: text(item.id),
     username: text(item.username),
     label: text(item.label),
     role: text(item.role),
-    active: bool(item.active),
-    hasOverride: bool(item.hasOverride),
-    extraPermissions: stringList(item.extraPermissions),
-    deniedPermissions: stringList(item.deniedPermissions),
-    effectivePermissions: stringList(item.effectivePermissions),
+    extraPermissions: list(item.extraPermissions).map((entry) => text(entry)).filter(Boolean),
+    deniedPermissions: list(item.deniedPermissions).map((entry) => text(entry)).filter(Boolean),
+    permissionsHref: text(item.permissionsHref),
   }
 }
 
-function normaliseWarning(raw: unknown): ProfiloWarning {
+function normaliseField(raw: unknown): LegacyPostField {
+  const item = asRecord(raw)
+  const fieldType = ['text', 'email', 'password', 'select', 'checkbox', 'hidden'].includes(String(item.type))
+    ? String(item.type) as LegacyPostField['type']
+    : 'hidden'
+  return {
+    name: text(item.name),
+    label: text(item.label),
+    type: fieldType,
+    required: bool(item.required),
+    value: text(item.value),
+  }
+}
+
+function normaliseForm(raw: unknown): LegacyFormDefinition {
+  const item = asRecord(raw)
+  return {
+    id: text(item.id) || text(item.title) || 'form',
+    title: text(item.title),
+    description: text(item.description),
+    action: text(item.action),
+    method: 'POST',
+    csrfField: text(item.csrfField) || '_csrf_token',
+    submitLabel: text(item.submitLabel) || 'Invia',
+    enabled: item.enabled === false ? false : true,
+    fields: list(item.fields).map(normaliseField).filter((field) => field.name),
+  }
+}
+
+function normaliseAction(raw: unknown): AdminAction {
+  const item = asRecord(raw)
+  return {
+    id: text(item.id) || text(item.label) || 'azione',
+    label: text(item.label) || 'Apri',
+    href: text(item.href) || '/profili',
+    method: 'GET',
+    tone: tone(item.tone),
+  }
+}
+
+function normaliseWarning(raw: unknown): AdminWarning {
   const item = asRecord(raw)
   return {
     code: text(item.code) || 'warning',
-    message: text(item.message) || 'Avviso operativo disponibile.',
+    message: text(item.message) || 'Avviso tecnico disponibile.',
   }
-}
-
-function normaliseActions(raw: unknown): ProfiloActions {
-  const item = asRecord(raw)
-  const rollback = asRecord(item.rollback)
-  const rollbackHref = text(rollback.href)
-  return {
-    canWrite: bool(item.canWrite),
-    read: text(item.read) || emptyActions.read,
-    save: text(item.save) || emptyActions.save,
-    users: text(item.users) || emptyActions.users,
-    rollback: rollbackHref
-      ? {
-        label: text(rollback.label) || 'Rollback tecnico',
-        href: rollbackHref,
-        method: 'GET',
-      }
-      : null,
-  }
-}
-
-function normaliseContracts(raw: unknown): ProfiloContract {
-  const contracts = asRecord(raw)
-  return {
-    mock_fallback: bool(contracts.mock_fallback),
-    writes: text(contracts.writes) || 'json_api',
-    route_owner: text(contracts.route_owner) || 'react_shell',
-    operational: contracts.operational === false ? false : true,
-    legacy_contract: text(contracts.legacy_contract),
-  }
-}
-
-function errors(raw: unknown): Record<string, string> {
-  const item = asRecord(raw)
-  const output: Record<string, string> = {}
-  for (const [key, val] of Object.entries(item)) {
-    const message = text(val)
-    if (message) output[key] = message
-  }
-  return output
 }
 
 function normalisePage(raw: unknown): ProfiliPageData {
   const page = asRecord(raw)
-  const legacyRecords = asRecord(page.records)
-  const roles = list(page.roles).length ? list(page.roles) : list(legacyRecords.roles)
-  const matrix = list(page.matrix).length ? list(page.matrix) : list(legacyRecords.permissions)
-  const permissions = list(page.permissions).length ? list(page.permissions) : matrix
-  const overrides = list(page.overrides).length ? list(page.overrides) : list(legacyRecords.overrides)
+  const contracts = asRecord(page.contracts)
+  const records = asRecord(page.records)
   return {
-    ok: page.ok === true,
     source: text(page.source),
     generated_at: text(page.generated_at),
-    contracts: normaliseContracts(page.contracts),
-    roles: roles.map(normaliseRole),
-    permissions: permissions.map(normalisePermission),
-    matrix: matrix.map(normaliseMatrixRow),
-    overrides: overrides.map(normaliseOverride),
-    actions: normaliseActions(page.actions),
-    warnings: list(page.warnings).map(normaliseWarning),
+    contracts: {
+      mock_fallback: contracts.mock_fallback === true ? true : false,
+      writes: text(contracts.writes) || 'legacy_routes',
+      route_owner: text(contracts.route_owner) || 'react_shell',
+      legacy_contract: text(contracts.legacy_contract),
+    },
     metrics: list(page.metrics).map(normaliseMetric),
+    sections: list(page.sections).map(normaliseSection),
+    records: {
+      roles: list(records.roles).map(normaliseRole),
+      permissions: list(records.permissions).map(normalisePermission),
+      overrides: list(records.overrides).map(normaliseOverride),
+    },
+    actions: list(page.actions).map(normaliseAction).filter((action) => action.method === 'GET' && action.href),
+    forms: list(page.forms).map(normaliseForm).filter((form) => form.action),
+    warnings: list(page.warnings).map(normaliseWarning),
   }
-}
-
-function normaliseSaveResult(raw: unknown): SaveProfiliResult {
-  const item = asRecord(raw)
-  const payload = item.payload ? normalisePage(item.payload) : undefined
-  return {
-    ok: bool(item.ok),
-    message: text(item.message) || emptySaveResult.message,
-    errors: errors(item.errors),
-    updated: item.updated ? normaliseOverride(item.updated) : null,
-    payload,
-    status: number(item.status) || undefined,
-  }
-}
-
-export function allProfiloUsers(data: ProfiliPageData): ProfiloRoleUser[] {
-  const seen = new Set<string>()
-  const users: ProfiloRoleUser[] = []
-  for (const role of data.roles) {
-    for (const user of role.users) {
-      const key = user.id || user.username
-      if (!key || seen.has(key)) continue
-      seen.add(key)
-      users.push({ ...user, role: user.role || role.role })
-    }
-  }
-  return users.sort((a, b) => (a.label || a.username).localeCompare(b.label || b.username, 'it'))
 }
 
 export async function getProfiliPage(): Promise<ProfiliPageData> {
   const payload = await apiJson<unknown>('/api/v1/ui/profili', emptyProfiliPage)
   return normalisePage(payload)
-}
-
-export async function saveProfiliPermissions(payload: SaveProfiliPayload): Promise<SaveProfiliResult> {
-  const response = await apiPostJson<SaveProfiliResult>('/api/v1/ui/profili', payload, emptySaveResult)
-  return normaliseSaveResult(response)
-}
-
-export async function saveUserPermissionOverride(payload: SaveProfiliPayload): Promise<SaveProfiliResult> {
-  return saveProfiliPermissions(payload)
-}
-
-export async function saveProfiloRole(payload: SaveProfiliPayload): Promise<SaveProfiliResult> {
-  return saveProfiliPermissions(payload)
 }

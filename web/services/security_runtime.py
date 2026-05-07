@@ -41,7 +41,6 @@ _CSRF_PROTECTED_ENDPOINTS = {
     "api_v1_editor_ai.editor_ai_rifiuta_modifica",
     "api_v1_editor_ai.editor_ai_export",
     "api_v1_react.utenti_nuovo_crea",
-    "api_v1_react.profili_page_update",
 }
 
 _UNSAFE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}

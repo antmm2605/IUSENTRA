@@ -1,11 +1,5 @@
 # Changelog
 
-## 2.198.107 - 2026-05-07
-
-- Promossa `/profili` a `react_operational_full`: la pagina React legge ruoli, permessi, matrice e override reali da `GET /api/v1/ui/profili`.
-- Aggiunto `POST /api/v1/ui/profili` per salvare override utente con CSRF/sessione, permesso `utenti.scrivi`, validazione JSON, audit `utenti.aggiorna_permessi` e risposta senza campi sensibili.
-- Rimosso `LegacyPostForm` dal flusso principale profili: il fallback `/profili?_legacy=1` resta solo nel pannello `Rollback tecnico`, con guardrail e report Tranche 13A dedicati.
-
 ## 2.198.106 - 2026-05-07
 
 - Avviata la Parte 12A anti-mascheramento: `react_full` e' deprecato nel manifest e sostituito dagli stati `react_shell`, `react_bridge`, `react_operational_partial`, `react_operational_full` e `legacy_operational`.

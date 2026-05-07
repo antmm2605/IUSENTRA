@@ -1,0 +1,46 @@
+# Tranche 10A - Report finale
+
+- Data/ora: 2026-05-07 19:45 Europe/Rome.
+- Branch base: `claude/legal-electronic-filing-kIxcV`; branch di lavoro: `Codex/legal-electronic-filing-kIxcV`.
+- Route migrate: `/giurisprudenza`, `/legal-intelligence`, `/legal-intelligence/news`, `/legal-intelligence/mediazione`, `/ricerca-legale`.
+- Route preparate ma legacy: `/giurisprudenza/nuova`, `/giurisprudenza/*`, `/legal-intelligence/*` diverso da news/mediazione, `/ricerca-legale/*`, `/checklist`, `/deposito/checklist`.
+- File creati: bridge `web/services/react_giurisprudenza_bridge.py`, `web/services/react_legal_intelligence_bridge.py`; data client e pagine React/CSS; check 10A; contratti wildcard sicuri; report route-map/open-design.
+- File modificati: `frontend/src/App.tsx`, `web/blueprints/api_v1_react.py`, `web/bootstrap/react_route_gate.py`, `web/blueprints/react_shell.py`, manifest, runner, contratti React, token Open Design, versioni e documentazione.
+- Endpoint aggiunti: GET `/api/v1/ui/giurisprudenza`, `/api/v1/ui/legal-intelligence`, `/api/v1/ui/legal-intelligence/news`, `/api/v1/ui/legal-intelligence/mediazione`, `/api/v1/ui/ricerca-legale`.
+- Gate modificato: exact path React; sottopercorsi operativi restano legacy; `?_legacy=1` preservato.
+- Route ancora bloccate: checklist, deposito checklist, telematiche, impostazioni, template/redazione profonde, compensi/tariffario profondi, fatturazione/preventivi profondi.
+- Contratti legacy catturati: giurisprudenza, giurisprudenza nuova, legal intelligence, news, mediazione, ricerca legale, checklist, deposito checklist; aggiunti contratti wildcard sicuri per detail.
+- Permessi verificati: endpoint UI richiedono `_richiedi_auth` e utente di sessione, coerenti con le route legacy login-only.
+- POST legacy preservati: nessun POST legacy modificato; nessun nuovo POST React/API introdotto.
+- Import giurisprudenza: lasciato legacy.
+- Classificazione: lasciata legacy.
+- Testo integrale: lasciato legacy e non serializzato nei bridge React.
+- Scraping/crawling: non introdotti.
+- AI/generazione: non introdotte; workflow AI/approvazione restano legacy.
+- Checklist deposito: lasciata legacy.
+- Distinzione fonte/inferenza: applicata con badge fonte, pannelli evidenza, warning inferenza e contratti payload.
+- Impeccable in questa PR: gerarchia compatta, spacing coerente, focus/hover accessibili e densita professionale per fonti, metadati, news e orientamenti.
+- Open Design in questa PR: token CSS `--iu-*`, classi `iu-*`, nessuna dipendenza grafica, nessun CDN, CSS auditabile.
+- Token creati/aggiornati: `--iu-od-source-gap`, `--iu-od-source-card-radius`, `--iu-od-source-meta-size`, `--iu-od-source-focus-ring`, `--iu-od-evidence-border`, `--iu-od-evidence-surface`.
+- Componenti UI interessati: `GiurisprudenzaPage`, `LegalIntelligencePage`, utility `openDesignLegalKnowledgeSurface`.
+- Anti-segreti: OK.
+- Anti-external-fetch: OK.
+- Anti-AI-generation: OK.
+- Anti-document-raw: OK.
+- Open Design check: OK.
+- Test eseguiti: contratti React, gate route, UI consistency, check 10A, gate Flask 10A, `npm run test`, `npm run typecheck`, `npm run build`.
+- `npm run test`: OK.
+- `npm run typecheck`: OK.
+- `npm run build`: OK.
+- `check-ui-consistency`: OK.
+- `check-route-gate`: OK.
+- `check-tranche-10a-gate`: OK con Flask `test_client` autenticato.
+- Limiti test Flask: nessun bypass inventato; il test usa harness tenant/admin temporaneo.
+- Rischi residui: le scritture e i workflow sensibili restano sulle route legacy; la UI React dipende dai payload sicuri dei bridge.
+- Runner finale: OK con `ALLOW_DIRTY=1` per working tree preesistente non pulito; eseguiti audit, cattura contratti, gate, UI consistency, check 10A, gate Flask, test, typecheck, build e generazione patch.
+- Rollback:
+  - `git apply -R artifacts/react-migration/patches/tranche-10a.backend.patch`
+  - `git apply -R artifacts/react-migration/patches/tranche-10a.frontend.patch`
+  - `git apply -R artifacts/react-migration/patches/tranche-10a.gate.patch`
+  - `git apply -R artifacts/react-migration/patches/tranche-10a.design.patch`
+  - `git apply -R artifacts/react-migration/patches/tranche-10a.tests.patch`

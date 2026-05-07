@@ -17,6 +17,7 @@ from flask import Blueprint, current_app, g, jsonify, request, send_file, url_fo
 from werkzeug.exceptions import HTTPException
 
 from pct import __version__ as APP_VERSION
+from pct.auth import RuoloUtente
 from pct.email_client import CartellaEmail, GestioneEmailRicevute, StatoEmail
 from pct.fatturazione import StatoParcella
 from pct.messaggi import CanaleMsggio, ConfigMessaggistica, GestioneMessaggi, Messaggio, StatoMessaggio
@@ -122,6 +123,14 @@ from web.services.react_redazione_atti_bridge import (
     build_react_redazione_atti_error_payload,
     build_react_redazione_atti_payload,
 )
+from web.services.react_giurisprudenza_bridge import (
+    build_react_giurisprudenza_error_payload,
+    build_react_giurisprudenza_payload,
+)
+from web.services.react_legal_intelligence_bridge import (
+    build_react_legal_intelligence_error_payload,
+    build_react_legal_intelligence_payload,
+)
 from web.services.react_incassi_pagamenti_bridge import (
     build_react_incassi_pagamenti_error_payload,
     build_react_incassi_pagamenti_payload,
@@ -145,6 +154,8 @@ from web.helpers import (
     get_clienti,
     get_fascicoli,
     get_fatturazione,
+    get_legal_intelligence,
+    get_legal_update_pipeline,
     get_normative_tables,
     get_pagamenti,
     get_practice_engine,
@@ -196,6 +207,11 @@ def _puo_leggere_utenti() -> bool:
         return True
     utente = g.get("utente_corrente")
     return bool(utente and getattr(utente, "ha_permesso", lambda _permesso: False)("utenti.leggi"))
+
+
+def _puo_scrivere_utenti() -> bool:
+    utente = g.get("utente_corrente")
+    return bool(utente and getattr(utente, "ha_permesso", lambda _permesso: False)("utenti.scrivi"))
 
 
 def _session_user_can(permission: str) -> bool:
@@ -307,6 +323,10 @@ def _request_payload() -> dict[str, Any]:
         raw = request.get_json(silent=True)
         return raw if isinstance(raw, dict) else {}
     return {key: value for key, value in request.form.items()}
+
+
+def _json_validation_error(message: str, errors: dict[str, str], *, status: int = 200):
+    return jsonify({"ok": False, "message": message, "errors": errors}), status
 
 
 def _warning(code: str, message: str) -> dict[str, str]:
@@ -2404,6 +2424,101 @@ def utenti_page():
         return jsonify(build_react_utenti_error_payload("Gestione utenti non disponibile dal runtime corrente.")), 200
 
 
+@api_v1_react.post("/utenti/nuovo")
+@_richiedi_auth
+def utenti_nuovo_crea():
+    utente = g.get("utente_corrente")
+    if not _puo_scrivere_utenti():
+        return _json_validation_error(
+            "Permesso utenti.scrivi richiesto.",
+            {"_form": "Non hai i permessi necessari per creare utenti."},
+            status=403,
+        )
+    if current_app.config.get("MULTI_TENANT") and getattr(utente, "is_superadmin", False):
+        return _json_validation_error(
+            "Il ruolo SUPERADMIN si gestisce solo dal pannello piattaforma dedicato.",
+            {"ruolo": "SUPERADMIN non e' assegnabile agli utenti di studio."},
+            status=403,
+        )
+
+    payload = _request_payload()
+    errors: dict[str, str] = {}
+    username = str(payload.get("username") or "").strip().lower()
+    password = str(payload.get("password") or "")
+    ruolo_raw = str(payload.get("ruolo") or "").strip()
+    nome_completo = str(payload.get("nome_completo") or "").strip()
+    email = str(payload.get("email") or "").strip()
+
+    if not username:
+        errors["username"] = "Inserisci lo username."
+    if len(password) < 8:
+        errors["password"] = "La password temporanea deve avere almeno 8 caratteri."
+    try:
+        ruolo = RuoloUtente(ruolo_raw)
+        if ruolo == RuoloUtente.SUPERADMIN:
+            errors["ruolo"] = "Il ruolo SUPERADMIN si gestisce solo dal pannello piattaforma."
+    except ValueError:
+        ruolo = None
+        errors["ruolo"] = "Seleziona un ruolo valido."
+
+    if errors:
+        return _json_validation_error("Controlla i campi evidenziati.", errors)
+
+    manager = get_utenti()
+    try:
+        nuovo = manager.crea(
+            username=username,
+            password=password,
+            ruolo=ruolo,
+            email=email,
+            nome_completo=nome_completo,
+        )
+    except ValueError as exc:
+        message = str(exc)
+        field = "username" if "username" in message.lower() else "_form"
+        return _json_validation_error(message, {field: message})
+    except Exception as exc:
+        current_app.logger.exception("Errore creazione utente React JSON: %s", exc)
+        return _json_validation_error(
+            "Creazione utente non disponibile dal runtime corrente.",
+            {"_form": "Errore server controllato. Riprova o usa il fallback tecnico."},
+            status=500,
+        )
+
+    actor_id = str(getattr(utente, "id", "") or "")
+    actor_username = str(getattr(utente, "username", "") or "")
+    try:
+        manager.registra_evento(
+            "utenti.crea",
+            id_utente=actor_id,
+            username=actor_username,
+            risorsa_tipo="utente",
+            risorsa_id=nuovo.id,
+            dettagli=f"username={nuovo.username}",
+            ip=request.remote_addr or "",
+        )
+    except Exception as exc:
+        current_app.logger.warning("Audit creazione utente React non registrato: %s", exc)
+
+    role_value = str(getattr(getattr(nuovo, "ruolo", ""), "value", getattr(nuovo, "ruolo", "")) or "")
+    return jsonify(
+        {
+            "ok": True,
+            "message": f"Utente '{nuovo.username}' creato. Al primo accesso dovra' cambiare la credenziale temporanea.",
+            "errors": {},
+            "item": {
+                "id": nuovo.id,
+                "username": nuovo.username,
+                "name": getattr(nuovo, "nome_completo", ""),
+                "email": getattr(nuovo, "email", ""),
+                "role": role_value,
+                "roleLabel": role_value.replace("_", " ").title(),
+                "active": bool(getattr(nuovo, "attivo", False)),
+            },
+        }
+    )
+
+
 @api_v1_react.get("/profili")
 @_richiedi_auth
 def profili_page():
@@ -2721,6 +2836,91 @@ def redazione_atti_page():
                 "Redazione atti non disponibile dal runtime corrente."
             )
         ), 200
+
+
+@api_v1_react.get("/giurisprudenza")
+@_richiedi_auth
+def giurisprudenza_page():
+    utente = g.get("utente_corrente")
+    if not utente:
+        return jsonify(build_react_giurisprudenza_error_payload("Sessione utente richiesta.")), 403
+    try:
+        return jsonify(build_react_giurisprudenza_payload(get_giurisprudenza=get_giurisprudenza, query=dict(request.args)))
+    except Exception as exc:
+        current_app.logger.exception("Errore Giurisprudenza React bridge: %s", exc)
+        return jsonify(
+            build_react_giurisprudenza_error_payload(
+                "Archivio giurisprudenza non disponibile dal runtime corrente."
+            )
+        ), 200
+
+
+def _legal_intelligence_ui_payload(page: str, legacy_contract: str):
+    utente = g.get("utente_corrente")
+    if not utente:
+        return jsonify(
+            build_react_legal_intelligence_error_payload(
+                "Sessione utente richiesta.",
+                legacy_contract=legacy_contract,
+            )
+        ), 403
+    try:
+        return jsonify(
+            build_react_legal_intelligence_payload(
+                get_legal_intelligence=get_legal_intelligence,
+                get_legal_update_pipeline=get_legal_update_pipeline,
+                get_fascicoli=get_fascicoli,
+                get_clienti=get_clienti,
+                get_agenda=get_agenda,
+                get_scadenziario=get_scadenziario,
+                page=page,
+                query=dict(request.args),
+            )
+        )
+    except Exception as exc:
+        current_app.logger.exception("Errore Legal Intelligence React bridge: %s", exc)
+        return jsonify(
+            build_react_legal_intelligence_error_payload(
+                "Legal Intelligence non disponibile dal runtime corrente.",
+                legacy_contract=legacy_contract,
+            )
+        ), 200
+
+
+@api_v1_react.get("/legal-intelligence")
+@_richiedi_auth
+def legal_intelligence_page():
+    return _legal_intelligence_ui_payload(
+        "dashboard",
+        "artifacts/react-migration/legacy-contracts/legal-intelligence.json",
+    )
+
+
+@api_v1_react.get("/legal-intelligence/news")
+@_richiedi_auth
+def legal_intelligence_news_page():
+    return _legal_intelligence_ui_payload(
+        "news",
+        "artifacts/react-migration/legacy-contracts/legal-intelligence__news.json",
+    )
+
+
+@api_v1_react.get("/legal-intelligence/mediazione")
+@_richiedi_auth
+def legal_intelligence_mediazione_page():
+    return _legal_intelligence_ui_payload(
+        "mediazione",
+        "artifacts/react-migration/legacy-contracts/legal-intelligence__mediazione.json",
+    )
+
+
+@api_v1_react.get("/ricerca-legale")
+@_richiedi_auth
+def ricerca_legale_page():
+    return _legal_intelligence_ui_payload(
+        "ricerca-legale",
+        "artifacts/react-migration/legacy-contracts/ricerca-legale.json",
+    )
 
 
 def _preventivi_ui_payload(route: str):

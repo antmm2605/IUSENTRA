@@ -1,17 +1,18 @@
-import { useEffect, useMemo, useState } from 'react'
-import { RefreshCw, ShieldCheck, UserPlus } from 'lucide-react'
+import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react'
+import { AlertTriangle, CheckCircle2, RefreshCw, ShieldCheck, UserPlus } from 'lucide-react'
+import { apiPostJson } from '../lib/apiClient'
 import {
   emptyUtentiPage,
   getUtentiPage,
   type AdminAction,
+  type RoleOption,
   type UtentiPageData,
   type UtenteRecord,
 } from '../utentiData'
 import { Badge } from '../ui/Badge'
-import { ButtonLink } from '../ui/Button'
+import { Button, ButtonLink } from '../ui/Button'
 import { EmptyState } from '../ui/EmptyState'
 import { KpiCard } from '../ui/KpiCard'
-import { LegacyPostForm } from '../ui/LegacyPostForm'
 import { LoadingState } from '../ui/LoadingState'
 import { Page } from '../ui/Page'
 import { Panel } from '../ui/Panel'
@@ -84,28 +85,199 @@ function UserRecord({ record }: { record: UtenteRecord }) {
   )
 }
 
-function NewUserView({ data }: { data: UtentiPageData }) {
-  const form = data.forms.find((item) => item.id === 'nuovo_utente')
+type NewUserFormState = {
+  username: string
+  ruolo: string
+  nome_completo: string
+  email: string
+}
+
+type CreateUserResponse = {
+  ok: boolean
+  message: string
+  errors: Record<string, string>
+  item?: {
+    id: string
+    username: string
+    name: string
+    email: string
+    role: string
+    roleLabel: string
+    active: boolean
+  }
+  status?: number
+}
+
+const emptyCreateResponse: CreateUserResponse = {
+  ok: false,
+  message: 'Creazione utente non completata.',
+  errors: { _form: 'Il server non ha restituito una risposta valida.' },
+}
+
+function firstRole(roles: RoleOption[]): string {
+  return roles[0]?.value || ''
+}
+
+function NewUserView({ data, onCreated }: { data: UtentiPageData; onCreated: () => Promise<void> }) {
+  const passwordRef = useRef<HTMLInputElement>(null)
+  const [form, setForm] = useState<NewUserFormState>({
+    username: '',
+    ruolo: firstRole(data.roles),
+    nome_completo: '',
+    email: '',
+  })
+  const [submitting, setSubmitting] = useState(false)
+  const [result, setResult] = useState<CreateUserResponse | null>(null)
+  const roleOptions = data.roles
+  const endpoint = data.createEndpoint || '/api/v1/ui/utenti/nuovo'
+
+  useEffect(() => {
+    setForm((current) => current.ruolo ? current : { ...current, ruolo: firstRole(roleOptions) })
+  }, [roleOptions])
+
+  const updateField = (field: keyof NewUserFormState, value: string) => {
+    setForm((current) => ({ ...current, [field]: value }))
+    setResult(null)
+  }
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const password = passwordRef.current?.value || ''
+    setSubmitting(true)
+    setResult(null)
+    const response = await apiPostJson<CreateUserResponse>(
+      endpoint,
+      { ...form, password },
+      emptyCreateResponse,
+    )
+    if (passwordRef.current) passwordRef.current.value = ''
+    setResult(response)
+    if (response.ok) {
+      setForm({
+        username: '',
+        ruolo: firstRole(roleOptions),
+        nome_completo: '',
+        email: '',
+      })
+      await onCreated()
+    }
+    setSubmitting(false)
+  }
+
+  const errors = result?.errors || {}
+  const permissionDenied = result?.status === 403
+  const serverError = result && !result.ok && !permissionDenied && !Object.keys(errors).some((key) => key !== '_form')
+  const errorAlertClass = permissionDenied
+    ? 'iu-users-form-alert--permission'
+    : serverError
+      ? 'iu-users-form-alert--server'
+      : 'iu-users-form-alert--validation'
+
   return (
     <section className="iu-users-new">
       <Panel
         title="Crea utente"
-        subtitle="Il submit usa il POST legacy /utenti/nuovo con sessione, CSRF e audit esistenti."
+        subtitle="Salvataggio JSON protetto da sessione, CSRF, permessi e audit amministrativo."
       >
-        {form ? (
-          <LegacyPostForm
-            action={form.action}
-            csrfField={form.csrfField}
-            submitLabel={form.submitLabel}
-            title={form.title}
-            description={form.description}
-            fields={form.fields}
-            disabled={form.enabled === false}
-          />
+        {data.createEndpoint ? (
+          <form className="iu-users-create-form" onSubmit={submit} noValidate>
+            {result?.ok ? (
+              <div className="iu-users-form-alert iu-users-form-alert--success" role="status">
+                <CheckCircle2 size={18} />
+                <span>{result.message}</span>
+                <ButtonLink href="/utenti" tone="success">Vai alla lista utenti</ButtonLink>
+              </div>
+            ) : null}
+            {result && !result.ok ? (
+              <div
+                className={`iu-users-form-alert ${errorAlertClass}`}
+                role="alert"
+              >
+                <AlertTriangle size={18} />
+                <span>{result.message || errors._form || 'Controlla i campi evidenziati.'}</span>
+              </div>
+            ) : null}
+            <div className="iu-users-form-grid">
+              <label className="iu-users-field">
+                <span>Username</span>
+                <input
+                  autoComplete="username"
+                  aria-invalid={Boolean(errors.username)}
+                  aria-describedby={errors.username ? 'nuovo-utente-username-errore' : undefined}
+                  value={form.username}
+                  onChange={(event) => updateField('username', event.target.value)}
+                  disabled={submitting}
+                  required
+                />
+                {errors.username ? <small id="nuovo-utente-username-errore">{errors.username}</small> : null}
+              </label>
+              <label className="iu-users-field">
+                <span>Ruolo</span>
+                <select
+                  aria-invalid={Boolean(errors.ruolo)}
+                  aria-describedby={errors.ruolo ? 'nuovo-utente-ruolo-errore' : undefined}
+                  value={form.ruolo}
+                  onChange={(event) => updateField('ruolo', event.target.value)}
+                  disabled={submitting}
+                  required
+                >
+                  {roleOptions.map((role) => (
+                    <option value={role.value} key={role.value}>{role.label}</option>
+                  ))}
+                </select>
+                {errors.ruolo ? <small id="nuovo-utente-ruolo-errore">{errors.ruolo}</small> : null}
+              </label>
+              <label className="iu-users-field">
+                <span>Nome completo</span>
+                <input
+                  autoComplete="name"
+                  value={form.nome_completo}
+                  onChange={(event) => updateField('nome_completo', event.target.value)}
+                  disabled={submitting}
+                />
+              </label>
+              <label className="iu-users-field">
+                <span>Email</span>
+                <input
+                  type="email"
+                  autoComplete="email"
+                  aria-invalid={Boolean(errors.email)}
+                  aria-describedby={errors.email ? 'nuovo-utente-email-errore' : undefined}
+                  value={form.email}
+                  onChange={(event) => updateField('email', event.target.value)}
+                  disabled={submitting}
+                />
+                {errors.email ? <small id="nuovo-utente-email-errore">{errors.email}</small> : null}
+              </label>
+              <label className="iu-users-field iu-users-field--wide">
+                <span>Password temporanea</span>
+                <input
+                  ref={passwordRef}
+                  type="password"
+                  autoComplete="new-password"
+                  minLength={8}
+                  aria-invalid={Boolean(errors.password)}
+                  aria-describedby={errors.password ? 'nuovo-utente-password-errore' : undefined}
+                  disabled={submitting}
+                  required
+                />
+                {errors.password ? <small id="nuovo-utente-password-errore">{errors.password}</small> : (
+                  <small>Non viene salvata nello stato persistente del browser.</small>
+                )}
+              </label>
+            </div>
+            <div className="iu-users-form-actions">
+              <Button type="submit" tone="primary" disabled={submitting}>
+                <UserPlus size={16} />
+                {submitting ? 'Creazione in corso' : 'Crea utente'}
+              </Button>
+              <ButtonLink href="/utenti" tone="neutral">Annulla</ButtonLink>
+            </div>
+          </form>
         ) : (
           <EmptyState
             title="Permesso di creazione non disponibile"
-            message="La creazione richiede il permesso utenti.scrivi. Le scritture restano sulle route legacy."
+            message="La creazione richiede il permesso utenti.scrivi."
           />
         )}
       </Panel>
@@ -120,6 +292,13 @@ function NewUserView({ data }: { data: UtentiPageData }) {
               <Badge tone={item.tone}>{formatValue(item.value)}</Badge>
             </div>
           ))}
+        </div>
+      </Panel>
+      <Panel title="Rollback tecnico" subtitle="Fallback nascosto dal flusso principale e riservato al presidio amministrativo.">
+        <div className="iu-users-rollback">
+          <AlertTriangle size={18} />
+          <span>La vista Flask resta disponibile solo come recupero tecnico controllato.</span>
+          <ButtonLink href="/utenti/nuovo?_legacy=1" tone="neutral">Apri fallback legacy</ButtonLink>
         </div>
       </Panel>
     </section>
@@ -144,6 +323,11 @@ export function UtentiPage() {
       active = false
     }
   }, [])
+
+  const refreshData = async () => {
+    const payload = await getUtentiPage()
+    setData(payload)
+  }
 
   const hasData = useMemo(
     () => data.metrics.length > 0 || data.records.length > 0 || data.forms.length > 0,
@@ -192,7 +376,7 @@ export function UtentiPage() {
             ))}
           </section>
           {isNewUser ? (
-            <NewUserView data={data} />
+            <NewUserView data={data} onCreated={refreshData} />
           ) : (
             <>
               <Panel title="Utenti reali" subtitle={`${data.records.length} account visualizzati`}>

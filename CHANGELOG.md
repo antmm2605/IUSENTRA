@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.198.105 - 2026-05-07
+
+- Promosse in React le superfici exact `/giurisprudenza`, `/legal-intelligence`, `/legal-intelligence/news`, `/legal-intelligence/mediazione` e `/ricerca-legale` come consultazione read-only di fonti, metadati, news e registro mediazione gia presenti nel backend.
+- Mantenuti legacy import, classificazione, dettagli, testo integrale, download/export, approvazione contenuti, AI, scraping/crawling, `/giurisprudenza/nuova`, sottopercorsi giurisprudenza/legal intelligence/ricerca legale, `/checklist` e `/deposito/checklist`.
+- Rafforzati bridge, endpoint GET `/api/v1/ui/*`, token Impeccable / Open Design per legal knowledge, gate Flask, runner sicuro e check 10A anti-segreti, anti-fetch esterno, anti-generazione AI, anti-documento raw e Open Design.
+
 ## 2.198.104 - 2026-05-07
 
 - Integrato Local Deep Research come sidecar Docker opzionale con profilo `ldr`, SearXNG dedicato, data root governato e bridge Lex configurabile tramite `.env.ldr`.

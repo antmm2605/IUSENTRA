@@ -1,0 +1,14 @@
+{
+  "route": "/ricerca-legale",
+  "legacyUrl": "/ricerca-legale?_legacy=1",
+  "status": 302,
+  "redirectLocation": "/login?next=/ricerca-legale?_legacy%3D1",
+  "forms": [],
+  "links": [
+    "/login?next=/ricerca-legale?_legacy%3D1"
+  ],
+  "linksCount": 1,
+  "downloads": [],
+  "hasBootstrapClass": false,
+  "hasReactRoot": false
+}

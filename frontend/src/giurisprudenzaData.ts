@@ -1,0 +1,321 @@
+import { apiJson } from './lib/apiClient'
+
+export type LegalTone = 'primary' | 'neutral' | 'danger' | 'success' | 'warning' | 'info'
+
+export type LegalUiContract = {
+  mock_fallback: boolean
+  writes: string
+  route_owner: string
+  external_fetch: boolean
+  ai_generation: boolean
+  canonical_source: string
+  legacy_contract?: string
+}
+
+export type LegalMetric = {
+  id: string
+  label: string
+  value: string | number
+  note: string
+  tone: LegalTone
+}
+
+export type LegalSectionItem = {
+  id: string
+  label: string
+  value: string | number
+  note: string
+  tone: LegalTone
+}
+
+export type LegalSection = {
+  id: string
+  title: string
+  kind: string
+  items: LegalSectionItem[]
+  emptyMessage: string
+}
+
+export type LegalAction = {
+  id: string
+  label: string
+  href: string
+  method: 'GET'
+  tone: LegalTone
+}
+
+export type LegalWarning = {
+  code: string
+  message: string
+}
+
+export type GiurisprudenzaSource = {
+  id: string
+  label: string
+  kind: string
+  coverage: string
+  accessMode: string
+  sourceHref: string
+  legacyHref: string
+  lastRunAt: string
+  stateLabel: string
+  stateTone: LegalTone
+  count: number
+  evidenceType: string
+}
+
+export type PracticeLink = {
+  id: string
+  label: string
+  href: string
+}
+
+export type GiurisprudenzaRecord = {
+  id: string
+  title: string
+  subtitle: string
+  sourceId: string
+  sourceLabel: string
+  sourceKind: string
+  authority: string
+  office: string
+  date: string
+  area: string
+  branch: string
+  subbranch: string
+  grade: string
+  jurisdiction: string
+  caseNumber: string
+  ecli: string
+  orientation: string
+  orientationKind: string
+  verificationLabel: string
+  verificationTone: LegalTone
+  citationLabel: string
+  tags: string[]
+  legacyHref: string
+  practiceLinks: PracticeLink[]
+  evidenceType: string
+}
+
+export type GiurisprudenzaPageData = {
+  source: string
+  generated_at: string
+  contracts: LegalUiContract
+  metrics: LegalMetric[]
+  sections: LegalSection[]
+  records: GiurisprudenzaRecord[]
+  actions: LegalAction[]
+  forms: []
+  warnings: LegalWarning[]
+  sources: GiurisprudenzaSource[]
+  filters: Record<string, string>
+}
+
+export const emptyGiurisprudenzaPage: GiurisprudenzaPageData = {
+  source: '',
+  generated_at: '',
+  contracts: {
+    mock_fallback: false,
+    writes: 'legacy_routes',
+    route_owner: 'react_shell',
+    external_fetch: false,
+    ai_generation: false,
+    canonical_source: 'backend_legacy',
+  },
+  metrics: [],
+  sections: [],
+  records: [],
+  actions: [],
+  forms: [],
+  warnings: [],
+  sources: [],
+  filters: {},
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
+}
+
+function list(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : []
+}
+
+function text(value: unknown, fallback = ''): string {
+  return typeof value === 'string' ? value.trim() : fallback
+}
+
+function scalar(value: unknown): string | number {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value === 'string') return value.trim()
+  return ''
+}
+
+function integer(value: unknown): number {
+  if (typeof value === 'number' && Number.isFinite(value)) return Math.trunc(value)
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = Number.parseInt(value, 10)
+    return Number.isFinite(parsed) ? parsed : 0
+  }
+  return 0
+}
+
+function tone(value: unknown): LegalTone {
+  return ['primary', 'neutral', 'danger', 'success', 'warning', 'info'].includes(String(value))
+    ? String(value) as LegalTone
+    : 'neutral'
+}
+
+function safeHref(value: unknown, fallback = ''): string {
+  const href = text(value)
+  if (href.startsWith('/') && href !== '#') return href
+  if (href.startsWith('https://') || href.startsWith('http://')) return href
+  return fallback
+}
+
+function normaliseMetric(input: unknown): LegalMetric {
+  const item = asRecord(input)
+  return {
+    id: text(item.id) || text(item.label) || 'metrica',
+    label: text(item.label) || 'Metrica',
+    value: scalar(item.value),
+    note: text(item.note),
+    tone: tone(item.tone),
+  }
+}
+
+function normaliseSectionItem(input: unknown): LegalSectionItem {
+  const item = asRecord(input)
+  return {
+    id: text(item.id) || text(item.label) || 'voce',
+    label: text(item.label) || 'Voce',
+    value: scalar(item.value),
+    note: text(item.note),
+    tone: tone(item.tone),
+  }
+}
+
+function normaliseSection(input: unknown): LegalSection {
+  const item = asRecord(input)
+  return {
+    id: text(item.id) || text(item.title) || 'sezione',
+    title: text(item.title) || 'Sezione',
+    kind: text(item.kind) || 'metadata',
+    items: list(item.items).map(normaliseSectionItem),
+    emptyMessage: text(item.emptyMessage) || 'Nessun dato disponibile.',
+  }
+}
+
+function normaliseAction(input: unknown): LegalAction {
+  const item = asRecord(input)
+  return {
+    id: text(item.id) || text(item.label) || 'azione',
+    label: text(item.label) || 'Apri',
+    href: safeHref(item.href, '/giurisprudenza'),
+    method: 'GET',
+    tone: tone(item.tone),
+  }
+}
+
+function normaliseWarning(input: unknown): LegalWarning {
+  const item = asRecord(input)
+  return {
+    code: text(item.code) || 'warning',
+    message: text(item.message) || 'Avviso disponibile.',
+  }
+}
+
+function normalisePracticeLink(input: unknown): PracticeLink {
+  const item = asRecord(input)
+  return {
+    id: text(item.id) || text(item.label) || 'collegamento',
+    label: text(item.label) || 'Fascicolo collegato',
+    href: safeHref(item.href),
+  }
+}
+
+function normaliseSource(input: unknown): GiurisprudenzaSource {
+  const item = asRecord(input)
+  return {
+    id: text(item.id) || text(item.label) || 'fonte',
+    label: text(item.label) || 'Fonte',
+    kind: text(item.kind),
+    coverage: text(item.coverage),
+    accessMode: text(item.accessMode),
+    sourceHref: safeHref(item.sourceHref),
+    legacyHref: safeHref(item.legacyHref),
+    lastRunAt: text(item.lastRunAt),
+    stateLabel: text(item.stateLabel),
+    stateTone: tone(item.stateTone),
+    count: integer(item.count),
+    evidenceType: text(item.evidenceType) || 'fonte',
+  }
+}
+
+function normaliseRecord(input: unknown): GiurisprudenzaRecord {
+  const item = asRecord(input)
+  return {
+    id: text(item.id) || text(item.title) || 'provvedimento',
+    title: text(item.title) || 'Provvedimento',
+    subtitle: text(item.subtitle),
+    sourceId: text(item.sourceId),
+    sourceLabel: text(item.sourceLabel) || 'Fonte',
+    sourceKind: text(item.sourceKind),
+    authority: text(item.authority),
+    office: text(item.office),
+    date: text(item.date),
+    area: text(item.area),
+    branch: text(item.branch),
+    subbranch: text(item.subbranch),
+    grade: text(item.grade),
+    jurisdiction: text(item.jurisdiction),
+    caseNumber: text(item.caseNumber),
+    ecli: text(item.ecli),
+    orientation: text(item.orientation),
+    orientationKind: text(item.orientationKind),
+    verificationLabel: text(item.verificationLabel),
+    verificationTone: tone(item.verificationTone),
+    citationLabel: text(item.citationLabel),
+    tags: list(item.tags).map((tag) => text(tag)).filter(Boolean),
+    legacyHref: safeHref(item.legacyHref, '/giurisprudenza?_legacy=1'),
+    practiceLinks: list(item.practiceLinks).map(normalisePracticeLink).filter((link) => link.href || link.label),
+    evidenceType: text(item.evidenceType) || 'metadato',
+  }
+}
+
+function normalisePage(input: unknown): GiurisprudenzaPageData {
+  const page = asRecord(input)
+  const contracts = asRecord(page.contracts)
+  const filtersPayload = asRecord(page.filters)
+  const filters: Record<string, string> = {}
+  for (const [key, value] of Object.entries(filtersPayload)) {
+    const cleaned = text(value)
+    if (cleaned) filters[key] = cleaned
+  }
+  return {
+    source: text(page.source),
+    generated_at: text(page.generated_at),
+    contracts: {
+      mock_fallback: contracts.mock_fallback === true,
+      writes: text(contracts.writes) || 'legacy_routes',
+      route_owner: text(contracts.route_owner) || 'react_shell',
+      external_fetch: contracts.external_fetch === true,
+      ai_generation: contracts.ai_generation === true,
+      canonical_source: text(contracts.canonical_source) || 'backend_legacy',
+      legacy_contract: text(contracts.legacy_contract),
+    },
+    metrics: list(page.metrics).map(normaliseMetric),
+    sections: list(page.sections).map(normaliseSection),
+    records: list(page.records).map(normaliseRecord).filter((record) => record.id),
+    actions: list(page.actions).map(normaliseAction).filter((action) => action.href),
+    forms: [],
+    warnings: list(page.warnings).map(normaliseWarning),
+    sources: list(page.sources).map(normaliseSource).filter((source) => source.id),
+    filters,
+  }
+}
+
+export async function getGiurisprudenzaPage(): Promise<GiurisprudenzaPageData> {
+  const payload = await apiJson<unknown>('/api/v1/ui/giurisprudenza', emptyGiurisprudenzaPage)
+  return normalisePage(payload)
+}

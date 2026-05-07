@@ -12,6 +12,7 @@ const TRANCHE_6A_FLAG = '--tranche=6a'
 const TRANCHE_7A_FLAG = '--tranche=7a'
 const TRANCHE_8A_FLAG = '--tranche=8a'
 const TRANCHE_9A_FLAG = '--tranche=9a'
+const TRANCHE_10A_FLAG = '--tranche=10a'
 const tranche = args.find((arg) => arg.startsWith('--tranche='))?.split('=')[1] || ''
 const EXEC_BUFFER = 1024 * 1024 * 200
 
@@ -110,6 +111,17 @@ const tranche9aContracts = [
   '/deposito/checklist',
   '/giurisprudenza',
   '/legal-intelligence',
+]
+
+const tranche10aContracts = [
+  '/giurisprudenza',
+  '/giurisprudenza/nuova',
+  '/legal-intelligence',
+  '/legal-intelligence/news',
+  '/legal-intelligence/mediazione',
+  '/ricerca-legale',
+  '/checklist',
+  '/deposito/checklist',
 ]
 
 const tranche2aPatchGroups = {
@@ -586,6 +598,78 @@ const tranche9aPatchGroups = {
   ],
 }
 
+const tranche10aPatchGroups = {
+  backend: [
+    'web/services/react_giurisprudenza_bridge.py',
+    'web/services/react_legal_intelligence_bridge.py',
+    'web/blueprints/api_v1_react.py',
+  ],
+  frontend: [
+    'frontend/src/giurisprudenzaData.ts',
+    'frontend/src/legalIntelligenceData.ts',
+    'frontend/src/components/GiurisprudenzaPage.tsx',
+    'frontend/src/components/GiurisprudenzaPage.css',
+    'frontend/src/components/LegalIntelligencePage.tsx',
+    'frontend/src/components/LegalIntelligencePage.css',
+    'frontend/src/App.tsx',
+    'web/static/react',
+  ],
+  gate: [
+    'web/bootstrap/react_route_gate.py',
+    'web/blueprints/react_shell.py',
+    'tools/react-migration/route-manifest.json',
+  ],
+  design: [
+    'frontend/src/theme/impeccable-open-design.css',
+    'frontend/src/ui/openDesign.ts',
+    'artifacts/react-migration/tranche-10a-open-design.md',
+  ],
+  tests: [
+    'frontend/scripts/check-react-contracts.mjs',
+    'scripts/react-migration/check-route-gate.mjs',
+    'scripts/react-migration/check-tranche-10a-gate.py',
+    'scripts/react-migration/check-tranche-10a-secrets.mjs',
+    'scripts/react-migration/check-tranche-10a-no-external-fetch.mjs',
+    'scripts/react-migration/check-tranche-10a-no-ai-generation.mjs',
+    'scripts/react-migration/check-tranche-10a-no-document-raw.mjs',
+    'scripts/react-migration/check-tranche-10a-open-design.mjs',
+    'scripts/react-migration/run-safe-react-migration.mjs',
+  ],
+  reports: [
+    'CHANGELOG.md',
+    'Dockerfile',
+    'README.md',
+    'docs/REACT_MIGRATION_MASTER_PLAN.md',
+    'pct/__init__.py',
+    'railway.toml',
+    'setup.py',
+    'artifacts/react-migration/audit.md',
+    'artifacts/react-migration/route-inventory.json',
+    'artifacts/react-migration/route-gate.md',
+    'artifacts/react-migration/ui-consistency.md',
+    'artifacts/react-migration/tranche-10a-route-map.md',
+    'artifacts/react-migration/tranche-10a-open-design.md',
+    'artifacts/react-migration/tranche-10a-gate.md',
+    'artifacts/react-migration/tranche-10a-secrets.md',
+    'artifacts/react-migration/tranche-10a-no-external-fetch.md',
+    'artifacts/react-migration/tranche-10a-no-ai-generation.md',
+    'artifacts/react-migration/tranche-10a-no-document-raw.md',
+    'artifacts/react-migration/tranche-10a-open-design-check.md',
+    'artifacts/react-migration/tranche-10a-report.md',
+    'artifacts/react-migration/legacy-contracts/giurisprudenza.json',
+    'artifacts/react-migration/legacy-contracts/giurisprudenza__nuova.json',
+    'artifacts/react-migration/legacy-contracts/giurisprudenza__detail.json',
+    'artifacts/react-migration/legacy-contracts/legal-intelligence.json',
+    'artifacts/react-migration/legacy-contracts/legal-intelligence__news.json',
+    'artifacts/react-migration/legacy-contracts/legal-intelligence__mediazione.json',
+    'artifacts/react-migration/legacy-contracts/legal-intelligence__detail.json',
+    'artifacts/react-migration/legacy-contracts/ricerca-legale.json',
+    'artifacts/react-migration/legacy-contracts/ricerca-legale__detail.json',
+    'artifacts/react-migration/legacy-contracts/checklist.json',
+    'artifacts/react-migration/legacy-contracts/deposito__checklist.json',
+  ],
+}
+
 function run(cmd, options = {}) {
   console.log(`\n> ${cmd}`)
   execSync(cmd, { stdio: 'inherit', ...options })
@@ -700,6 +784,12 @@ function writeTranche8aPatches() {
 function writeTranche9aPatches() {
   for (const [name, paths] of Object.entries(tranche9aPatchGroups)) {
     writePatch('9a', name, paths)
+  }
+}
+
+function writeTranche10aPatches() {
+  for (const [name, paths] of Object.entries(tranche10aPatchGroups)) {
+    writePatch('10a', name, paths)
   }
 }
 
@@ -874,6 +964,29 @@ function runTranche9a() {
   run('git status --short')
 }
 
+function runTranche10a() {
+  cleanRequired()
+  run('git status --short')
+  run('node scripts/react-migration/audit-react-migration.mjs')
+  run(`python scripts/react-migration/capture-legacy-contracts.py ${tranche10aContracts.join(' ')}`)
+  run('node scripts/react-migration/check-route-gate.mjs')
+  run('node scripts/react-migration/check-ui-consistency.mjs')
+  run('node scripts/react-migration/check-tranche-10a-secrets.mjs')
+  run('node scripts/react-migration/check-tranche-10a-no-external-fetch.mjs')
+  run('node scripts/react-migration/check-tranche-10a-no-ai-generation.mjs')
+  run('node scripts/react-migration/check-tranche-10a-no-document-raw.mjs')
+  run('node scripts/react-migration/check-tranche-10a-open-design.mjs')
+  if (existsSync('scripts/react-migration/check-tranche-10a-gate.py')) {
+    run('python scripts/react-migration/check-tranche-10a-gate.py')
+  }
+  run('cd frontend && npm run test')
+  run('cd frontend && npm run typecheck')
+  run('cd frontend && npm run build')
+  writeTranche10aPatches()
+  run('git diff --stat')
+  run('git status --short')
+}
+
 if (tranche === '2a') {
   runTranche2a()
 } else if (tranche === '3a') {
@@ -890,6 +1003,8 @@ if (tranche === '2a') {
   runTranche8a()
 } else if (tranche === '9a') {
   runTranche9a()
+} else if (tranche === '10a') {
+  runTranche10a()
 } else {
   runDefault()
 }

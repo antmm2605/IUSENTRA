@@ -1,0 +1,1381 @@
+diff --git a/frontend/scripts/check-react-contracts.mjs b/frontend/scripts/check-react-contracts.mjs
+index 421bffde..6ad7aedc 100644
+--- a/frontend/scripts/check-react-contracts.mjs
++++ b/frontend/scripts/check-react-contracts.mjs
+@@ -221,8 +221,11 @@ const topbarApi = read('src/services/topbarApi.ts')
+ const topbarTypes = read('src/types/topbar.ts')
+ const routeManifest = JSON.parse(read('../tools/react-migration/route-manifest.json'))
+ const auditMigration = read('../scripts/react-migration/audit-react-migration.mjs')
++const auditAntiMascheramento = read('../scripts/react-migration/audit-anti-mascheramento.mjs')
+ const captureLegacyContracts = read('../scripts/react-migration/capture-legacy-contracts.py')
+ const checkRouteGate = read('../scripts/react-migration/check-route-gate.mjs')
++const checkNoFakeReactFull = read('../scripts/react-migration/check-no-fake-react-full.mjs')
++const checkAntiMascheramentoPilot = read('../scripts/react-migration/check-anti-mascheramento-pilot.mjs')
+ const checkUiConsistency = read('../scripts/react-migration/check-ui-consistency.mjs')
+ const runSafeReactMigration = read('../scripts/react-migration/run-safe-react-migration.mjs')
+ const tranche2aGate = read('../scripts/react-migration/check-tranche-2a-gate.py')
+@@ -249,6 +252,12 @@ const tranche9aNoDocumentRaw = read('../scripts/react-migration/check-tranche-9a
+ const tranche9aNoLegalGeneration = read('../scripts/react-migration/check-tranche-9a-no-legal-generation.mjs')
+ const tranche9aNoDocumentGeneration = read('../scripts/react-migration/check-tranche-9a-no-document-generation.mjs')
+ const tranche9aOpenDesign = read('../scripts/react-migration/check-tranche-9a-open-design.mjs')
++const tranche10aGate = read('../scripts/react-migration/check-tranche-10a-gate.py')
++const tranche10aSecrets = read('../scripts/react-migration/check-tranche-10a-secrets.mjs')
++const tranche10aNoExternalFetch = read('../scripts/react-migration/check-tranche-10a-no-external-fetch.mjs')
++const tranche10aNoAiGeneration = read('../scripts/react-migration/check-tranche-10a-no-ai-generation.mjs')
++const tranche10aNoDocumentRaw = read('../scripts/react-migration/check-tranche-10a-no-document-raw.mjs')
++const tranche10aOpenDesign = read('../scripts/react-migration/check-tranche-10a-open-design.mjs')
+ const uiAllowedClasses = read('../tools/react-migration/ui-allowed-classes.json')
+ const routeRiskRules = read('../tools/react-migration/route-risk-rules.json')
+ const uiPage = read('src/ui/Page.tsx')
+@@ -267,6 +276,14 @@ const uiLegacyPostForm = read('src/ui/LegacyPostForm.tsx')
+ const uiCss = read('src/ui/ui.css')
+ const uiTokens = read('src/theme/tokens.css')
+ const uiLayout = read('src/theme/layout.css')
++const giurisprudenzaPage = read('src/components/GiurisprudenzaPage.tsx')
++const giurisprudenzaCss = read('src/components/GiurisprudenzaPage.css')
++const giurisprudenzaData = read('src/giurisprudenzaData.ts')
++const giurisprudenzaBridge = read('../web/services/react_giurisprudenza_bridge.py')
++const legalIntelligencePage = read('src/components/LegalIntelligencePage.tsx')
++const legalIntelligenceCss = read('src/components/LegalIntelligencePage.css')
++const legalIntelligenceData = read('src/legalIntelligenceData.ts')
++const legalIntelligenceBridge = read('../web/services/react_legal_intelligence_bridge.py')
+ const lexUiSources = [
+   app,
+   agenda,
+@@ -307,15 +324,24 @@ for (const dependency of ['@mui/material', '@mui/icons-material', '@reduxjs/tool
+ assertContains(auditMigration, 'route-inventory.json', 'script audit produce inventario route')
+ assertContains(auditMigration, '_REACT_PREFIXES', 'script audit legge prefissi React')
+ assertContains(auditMigration, '_LEGACY_OPERATIONAL_PREFIXES', 'script audit legge prefissi legacy')
++assertContains(auditAntiMascheramento, 'anti-mascheramento-audit.json', 'audit anti-mascheramento produce JSON')
++assertContains(auditAntiMascheramento, 'anti-mascheramento-audit.md', 'audit anti-mascheramento produce Markdown')
++assertContains(auditAntiMascheramento, 'LegacyPostForm', 'audit anti-mascheramento censisce LegacyPostForm')
++assertContains(auditAntiMascheramento, '?_legacy=1', 'audit anti-mascheramento censisce fallback legacy')
++assertContains(checkNoFakeReactFull, 'no-fake-react-full-report.md', 'check no fake React full produce report')
++assertContains(checkNoFakeReactFull, 'react_operational_full', 'check no fake React full presidia full operativi')
++assertContains(checkAntiMascheramentoPilot, '@api_v1_react.post("/utenti/nuovo")', 'check pilota presidia endpoint nuovo utente')
++assertContains(checkAntiMascheramentoPilot, 'localStorage', 'check pilota blocca storage browser')
+ assertContains(captureLegacyContracts, 'create_app', 'contract capture usa Flask test_client')
+ assertContains(captureLegacyContracts, '_legacy=1', 'contract capture usa fallback legacy')
+-assertContains(checkRouteGate, 'unlockFromGate=true richiede status react_full', 'route gate blocca unlock non completi')
++assertContains(checkRouteGate, 'unlockFromGate=true richiede status react_bridge/react_operational_partial/react_operational_full', 'route gate blocca unlock non classificati')
+ assertContains(checkRouteGate, 'Tranche 4A', 'route gate limita gli sblocchi della Tranche 4A')
+ assertContains(checkRouteGate, 'Tranche 5A', 'route gate include gli sblocchi della Tranche 5A')
+ assertContains(checkRouteGate, 'Tranche 6A', 'route gate include gli sblocchi della Tranche 6A')
+ assertContains(checkRouteGate, 'Tranche 7A', 'route gate include gli sblocchi della Tranche 7A')
+ assertContains(checkRouteGate, 'Tranche 8A', 'route gate include gli sblocchi della Tranche 8A')
+ assertContains(checkRouteGate, 'Tranche 9A', 'route gate include gli sblocchi della Tranche 9A')
++assertContains(checkRouteGate, 'Tranche 10A', 'route gate include gli sblocchi della Tranche 10A')
+ assertContains(checkUiConsistency, 'ui-allowed-classes.json', 'UI consistency usa policy classi')
+ assertContains(checkUiConsistency, 'href placeholder #', 'UI consistency blocca href placeholder')
+ assertContains(runSafeReactMigration, 'cleanRequired()', 'runner richiede working tree pulito')
+@@ -372,43 +398,44 @@ assertContains(tranche8aOpenDesignReport, 'Token creati', 'report Open Design 8A
+ if (routeManifest.policy?.currentReleaseUnlocksRoutes !== true) {
+   throw new Error('route manifest: currentReleaseUnlocksRoutes deve essere true nelle tranche di promozione')
+ }
+-const allowedGovernedUnlocks = new Set(['/statistiche', '/audit', '/registro-attivita', '/utenti', '/profili', '/backup', '/sito-studio', '/sito-studio/contatti', '/studio', '/amministrazione', '/fatturazione', '/fatturazione/nuova', '/incassi-pagamenti', '/preventivi', '/preventivi/nuovo', '/preventivi/wizard', '/preventivi/conferimento/nuovo', '/compensi-forensi', '/tariffario', '/template-atti', '/template-atti/catalogo', '/redazione-atti'])
++const allowedGovernedUnlocks = new Set(['/statistiche', '/audit', '/registro-attivita', '/utenti', '/utenti/nuovo', '/profili', '/backup', '/sito-studio', '/sito-studio/contatti', '/studio', '/amministrazione', '/fatturazione', '/fatturazione/nuova', '/incassi-pagamenti', '/preventivi', '/preventivi/nuovo', '/preventivi/wizard', '/preventivi/conferimento/nuovo', '/compensi-forensi', '/tariffario', '/template-atti', '/template-atti/catalogo', '/redazione-atti', '/giurisprudenza', '/legal-intelligence', '/legal-intelligence/news', '/legal-intelligence/mediazione', '/ricerca-legale'])
++const allowedManifestStatuses = new Set(['legacy_operational', 'react_shell', 'react_bridge', 'react_operational_partial', 'react_operational_full'])
++const unlockStatuses = new Set(['react_bridge', 'react_operational_partial', 'react_operational_full'])
+ for (const entry of routeManifest.routes ?? []) {
+   if (entry.unlockFromGate === true && !allowedGovernedUnlocks.has(entry.route)) {
+     throw new Error(`route manifest: ${entry.route} non puo essere sbloccata nelle tranche governate`)
+   }
+-  if (!entry.route || !entry.family || !entry.status || !entry.risk || !entry.targetComponent || !entry.targetData || !entry.targetBridge || !entry.legacyContract) {
+-    throw new Error(`route manifest: entry incompleta per ${entry.route || 'route senza nome'}`)
++  if (!allowedManifestStatuses.has(entry.status)) {
++    throw new Error(`route manifest: ${entry.route} ha status non ammesso ${entry.status}`)
+   }
+-}
+-for (const route of allowedGovernedUnlocks) {
+-  const entry = (routeManifest.routes ?? []).find((item) => item.route === route)
+-  if (!entry || entry.status !== 'react_full' || entry.unlockFromGate !== true) {
+-    throw new Error(`route manifest: ${route} deve essere react_full con unlockFromGate=true`)
++  if (entry.status === 'react_full') {
++    throw new Error(`route manifest: ${entry.route} usa react_full deprecato`)
+   }
+-}
+-for (const route of ['/compensi-forensi', '/tariffario']) {
+-  const entry = (routeManifest.routes ?? []).find((item) => item.route === route)
+-  if (!entry || entry.status !== 'react_full' || entry.unlockFromGate !== true) {
+-    throw new Error(`route manifest: ${route} deve essere react_full con unlockFromGate=true nella Tranche 8A`)
+-  }
+-}
+-for (const route of ['/template-atti', '/template-atti/catalogo', '/redazione-atti']) {
+-  const entry = (routeManifest.routes ?? []).find((item) => item.route === route)
+-  if (!entry || entry.status !== 'react_full' || entry.unlockFromGate !== true) {
+-    throw new Error(`route manifest: ${route} deve essere react_full con unlockFromGate=true nella Tranche 9A`)
++  if (entry.unlockFromGate === true && !unlockStatuses.has(entry.status)) {
++    throw new Error(`route manifest: ${entry.route} sbloccata con status non operativo ${entry.status}`)
+   }
+-}
+-{
+-  const entry = (routeManifest.routes ?? []).find((item) => item.route === '/backup')
+-  if (!entry || entry.status !== 'react_full' || entry.unlockFromGate !== true) {
+-    throw new Error('route manifest: /backup deve essere react_full con unlockFromGate=true')
++  if (!entry.route || !entry.family || !entry.status || !entry.risk || !entry.targetComponent || !entry.targetData || !entry.targetBridge || !entry.legacyContract) {
++    throw new Error(`route manifest: entry incompleta per ${entry.route || 'route senza nome'}`)
+   }
+ }
+-for (const route of ['/sito-studio', '/sito-studio/contatti']) {
++for (const [route, status] of [
++  ['/utenti/nuovo', 'react_operational_full'],
++  ['/utenti', 'react_operational_partial'],
++  ['/profili', 'react_bridge'],
++  ['/backup', 'react_bridge'],
++  ['/sito-studio', 'react_bridge'],
++  ['/sito-studio/contatti', 'react_bridge'],
++  ['/preventivi/wizard', 'react_operational_partial'],
++  ['/tariffario', 'react_operational_partial'],
++  ['/giurisprudenza', 'react_bridge'],
++  ['/legal-intelligence', 'react_bridge'],
++  ['/legal-intelligence/news', 'react_bridge'],
++  ['/legal-intelligence/mediazione', 'react_bridge'],
++  ['/ricerca-legale', 'react_bridge'],
++]) {
+   const entry = (routeManifest.routes ?? []).find((item) => item.route === route)
+-  if (!entry || entry.status !== 'react_full' || entry.unlockFromGate !== true) {
+-    throw new Error(`route manifest: ${route} deve essere react_full con unlockFromGate=true`)
++  if (!entry || entry.status !== status || entry.unlockFromGate !== true) {
++    throw new Error(`route manifest: ${route} deve essere ${status} con unlockFromGate=true`)
+   }
+ }
+ for (const route of ['/sito-studio/builder', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/sincronizzazione-calendari']) {
+@@ -417,13 +444,13 @@ for (const route of ['/sito-studio/builder', '/impostazioni', '/impostazioni-stu
+     throw new Error(`route manifest: ${route} deve restare legacy_operational con unlockFromGate=false`)
+   }
+ }
+-for (const route of ['/fatturazione/*', '/preventivi/*', '/compensi-forensi/*', '/tariffario/*', '/template-atti/nuovo', '/template-atti/*', '/redazione-atti/*', '/giurisprudenza', '/legal-intelligence', '/deposito/checklist', '/impostazioni/pagamenti']) {
++for (const route of ['/fatturazione/*', '/preventivi/*', '/compensi-forensi/*', '/tariffario/*', '/template-atti/nuovo', '/template-atti/*', '/redazione-atti/*', '/giurisprudenza/nuova', '/giurisprudenza/*', '/legal-intelligence/*', '/ricerca-legale/*', '/deposito/checklist', '/impostazioni/pagamenti']) {
+   const entry = (routeManifest.routes ?? []).find((item) => item.route === route)
+   if (!entry || entry.status !== 'legacy_operational' || entry.unlockFromGate !== false) {
+     throw new Error(`route manifest: ${route} deve restare legacy_operational con unlockFromGate=false`)
+   }
+ }
+-for (const route of ['/utenti', '/profili', '/audit', '/registro-attivita', '/studio', '/amministrazione', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/sincronizzazione-calendari', '/backup', '/sito-studio', '/sito-studio/contatti', '/sito-studio/builder', '/statistiche', '/fatturazione', '/fatturazione/nuova', '/fatturazione/*', '/incassi-pagamenti', '/preventivi', '/preventivi/nuovo', '/preventivi/conferimento/nuovo', '/preventivi/*', '/preventivi/wizard', '/compensi-forensi', '/compensi-forensi/*', '/tariffario', '/tariffario/*', '/template-atti', '/template-atti/catalogo', '/template-atti/nuovo', '/template-atti/*', '/redazione-atti', '/redazione-atti/*', '/checklist', '/giurisprudenza', '/legal-intelligence', '/deposito/checklist', '/polisWeb', '/pdp', '/pat', '/sigit', '/sigp', '/portali/*']) {
++for (const route of ['/utenti', '/profili', '/audit', '/registro-attivita', '/studio', '/amministrazione', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/sincronizzazione-calendari', '/backup', '/sito-studio', '/sito-studio/contatti', '/sito-studio/builder', '/statistiche', '/fatturazione', '/fatturazione/nuova', '/fatturazione/*', '/incassi-pagamenti', '/preventivi', '/preventivi/nuovo', '/preventivi/conferimento/nuovo', '/preventivi/*', '/preventivi/wizard', '/compensi-forensi', '/compensi-forensi/*', '/tariffario', '/tariffario/*', '/template-atti', '/template-atti/catalogo', '/template-atti/nuovo', '/template-atti/*', '/redazione-atti', '/redazione-atti/*', '/checklist', '/giurisprudenza', '/giurisprudenza/nuova', '/giurisprudenza/*', '/legal-intelligence', '/legal-intelligence/news', '/legal-intelligence/mediazione', '/legal-intelligence/*', '/ricerca-legale', '/ricerca-legale/*', '/deposito/checklist', '/polisWeb', '/pdp', '/pat', '/sigit', '/sigp', '/portali/*']) {
+   if (!(routeManifest.routes ?? []).some((entry) => entry.route === route)) {
+     throw new Error(`route manifest: manca ${route}`)
+   }
+@@ -563,7 +590,15 @@ assertContains(tariffarioPage, 'getTariffarioPage', 'TariffarioPage usa getTarif
+ assertContains(templateAttiPage, 'getTemplateAttiPage', 'TemplateAttiPage usa getTemplateAttiPage')
+ assertContains(templateAttiPage, 'getTemplateAttiCatalogoPage', 'TemplateAttiPage usa getTemplateAttiCatalogoPage')
+ assertContains(redazioneAttiPage, 'getRedazioneAttiPage', 'RedazioneAttiPage usa getRedazioneAttiPage')
+-assertContains(utentiPage, 'LegacyPostForm', 'UtentiPage usa LegacyPostForm')
++assertNotContains(utentiPage, 'LegacyPostForm', 'UtentiPage non usa LegacyPostForm nel flusso principale')
++assertContains(utentiPage, 'apiPostJson<CreateUserResponse>', 'UtentiPage usa apiPostJson per creazione utente')
++assertContains(utentiPage, 'iu-users-form-alert--success', 'UtentiPage gestisce success creazione')
++assertContains(utentiPage, 'iu-users-form-alert--validation', 'UtentiPage gestisce errori validazione')
++assertContains(utentiPage, 'iu-users-form-alert--permission', 'UtentiPage gestisce errore permesso')
++assertContains(utentiPage, 'iu-users-form-alert--server', 'UtentiPage gestisce errore server')
++assertContains(utentiPage, 'passwordRef', 'UtentiPage non conserva password nello stato React')
++assertNotContains(utentiPage, 'localStorage', 'UtentiPage non usa localStorage')
++assertNotContains(utentiPage, 'sessionStorage', 'UtentiPage non usa sessionStorage')
+ assertContains(profiliPage, 'LegacyPostForm', 'ProfiliPage usa LegacyPostForm per scritture legacy')
+ assertContains(backupPage, 'LegacyPostForm', 'BackupPage usa LegacyPostForm per azioni legacy')
+ assertContains(sitoStudioPage, 'LegacyPostForm', 'SitoStudioPage usa LegacyPostForm per azioni legacy')
+@@ -578,7 +613,11 @@ assertContains(tariffarioPage, 'aria-live="polite"', 'TariffarioPage aggiorna il
+ assertNotContains(tariffarioPage, '<StatsGrid', 'TariffarioPage senza KPI tecniche sopra il workspace')
+ assertNotContains(tariffarioPage, '<WarningList', 'TariffarioPage senza avvisi tecnici bootstrap in pagina')
+ assertContains(tariffarioCss, '.iu-tar-summary-sticky', 'TariffarioPage CSS sticky dedicato al riepilogo')
+-assertContains(tariffarioCss, 'position: sticky;', 'TariffarioPage riepilogo segue lo scroll desktop')
++if (tariffarioCss.includes('position: sticky;')) {
++  assertContains(tariffarioCss, 'position: sticky;', 'TariffarioPage riepilogo segue lo scroll desktop')
++} else {
++  assertContains(tariffarioPage, "position: 'fixed'", 'TariffarioPage riepilogo flottante segue lo scroll desktop')
++}
+ assertContains(tariffarioCss, '.iu-tar-realtime-head', 'TariffarioPage azioni compatte nel riepilogo')
+ assertNotContains(tariffarioBridge, 'Creazione preventivo, parcella e flussi fiscali restano sulle route Flask esistenti.', 'Bridge tariffario senza avviso scritture legacy visibile')
+ assertNotContains(tariffarioBridge, 'Il motore tariffario canonico resta nel backend Python.', 'Bridge tariffario senza avviso motore backend visibile')
+@@ -627,6 +666,12 @@ assertContains(apiBridge, '@api_v1_react.get("/statistiche")', 'endpoint UI stat
+ assertContains(apiBridge, '@api_v1_react.get("/audit")', 'endpoint UI audit')
+ assertContains(apiBridge, '@api_v1_react.get("/registro-attivita")', 'endpoint UI registro attivita')
+ assertContains(apiBridge, '@api_v1_react.get("/utenti")', 'endpoint UI utenti')
++assertContains(apiBridge, '@api_v1_react.post("/utenti/nuovo")', 'endpoint UI nuovo utente JSON')
++assertContains(apiBridge, 'def utenti_nuovo_crea', 'handler JSON nuovo utente')
++assertContains(apiBridge, '_puo_scrivere_utenti()', 'nuovo utente controlla permesso scrittura')
++assertContains(apiBridge, 'manager.crea(', 'nuovo utente riusa manager utenti')
++assertContains(apiBridge, 'manager.registra_evento(', 'nuovo utente registra audit')
++assertNotContains(apiBridge, '"password":', 'API React non restituisce password')
+ assertContains(apiBridge, '@api_v1_react.get("/profili")', 'endpoint UI profili')
+ assertContains(apiBridge, '@api_v1_react.get("/backup")', 'endpoint UI backup')
+ assertContains(apiBridge, '@api_v1_react.get("/sito-studio")', 'endpoint UI sito studio')
+@@ -668,8 +713,9 @@ assertContains(legacyOperationalTuple, '"/impostazioni-studio"', 'gate legacy ma
+ assertContains(legacyOperationalTuple, '"/sincronizzazione-calendari"', 'gate legacy mantiene sincronizzazione calendari')
+ assertContains(legacyOperationalTuple, '"/checklist"', 'gate legacy mantiene checklist')
+ assertContains(legacyOperationalTuple, '"/deposito/checklist"', 'gate legacy mantiene deposito checklist')
+-assertContains(legacyOperationalTuple, '"/giurisprudenza"', 'gate legacy mantiene giurisprudenza')
+-assertContains(legacyOperationalTuple, '"/legal-intelligence"', 'gate legacy mantiene legal intelligence')
++assertNotContains(legacyOperationalTuple, '"/giurisprudenza"', 'gate legacy senza giurisprudenza exact')
++assertNotContains(legacyOperationalTuple, '"/legal-intelligence"', 'gate legacy senza legal intelligence exact')
++assertNotContains(legacyOperationalTuple, '"/ricerca-legale"', 'gate legacy senza ricerca legale exact')
+ assertContains(reactRouteGate, 'lower.startswith("/utenti/") and lower != "/utenti/nuovo"', 'gate protegge nested utenti non migrati')
+ assertContains(reactRouteGate, 'lower.startswith("/profili/")', 'gate protegge nested profili non migrati')
+ assertContains(reactRouteGate, 'lower.startswith("/backup/")', 'gate protegge subpath backup legacy')
+@@ -695,9 +741,11 @@ assertContains(reactRouteGate, 'lower.startswith("/template-atti/") and lower !=
+ assertContains(reactRouteGate, 'lower.startswith("/redazione-atti/")', 'gate protegge nested redazione atti legacy')
+ assertContains(reactRouteGate, 'lower == "/checklist" or lower.startswith("/checklist/")', 'gate protegge checklist legacy')
+ assertContains(reactRouteGate, 'lower == "/deposito/checklist" or lower.startswith("/deposito/checklist/")', 'gate protegge deposito checklist legacy')
+-assertContains(reactRouteGate, 'lower == "/giurisprudenza" or lower.startswith("/giurisprudenza/")', 'gate protegge giurisprudenza legacy')
+-assertContains(reactRouteGate, 'lower == "/legal-intelligence" or lower.startswith("/legal-intelligence/")', 'gate protegge legal intelligence legacy')
+-assertContains(reactRouteGate, 'lower == "/ricerca-legale" or lower.startswith("/ricerca-legale/")', 'gate protegge ricerca legale legacy')
++assertContains(reactRouteGate, 'lower.startswith("/giurisprudenza/")', 'gate protegge nested giurisprudenza legacy')
++assertContains(reactRouteGate, 'lower.startswith("/legal-intelligence/") and lower not in {', 'gate protegge nested legal intelligence legacy')
++assertContains(reactRouteGate, '"/legal-intelligence/news"', 'gate consente legal intelligence news')
++assertContains(reactRouteGate, '"/legal-intelligence/mediazione"', 'gate consente legal intelligence mediazione')
++assertContains(reactRouteGate, 'lower.startswith("/ricerca-legale/")', 'gate protegge nested ricerca legale legacy')
+ assertNotContains(shellLegacyFirstTuple, '"/statistiche"', 'shell legacy-first senza statistiche')
+ assertNotContains(shellLegacyFirstTuple, '"/audit"', 'shell legacy-first senza audit')
+ assertNotContains(shellLegacyFirstTuple, '"/registro-attivita"', 'shell legacy-first senza registro attivita')
+@@ -717,6 +765,9 @@ assertNotContains(shellLegacyFirstTuple, '"/redazione-atti"', 'shell legacy-firs
+ assertContains(shellLegacyFirstTuple, '"/impostazioni"', 'shell legacy-first mantiene impostazioni')
+ assertContains(shellLegacyFirstTuple, '"/impostazioni-studio"', 'shell legacy-first mantiene impostazioni studio')
+ assertContains(shellLegacyFirstTuple, '"/sincronizzazione-calendari"', 'shell legacy-first mantiene sincronizzazione calendari')
++assertNotContains(shellLegacyFirstTuple, '"/giurisprudenza"', 'shell legacy-first senza giurisprudenza exact')
++assertNotContains(shellLegacyFirstTuple, '"/legal-intelligence"', 'shell legacy-first senza legal intelligence exact')
++assertNotContains(shellLegacyFirstTuple, '"/ricerca-legale"', 'shell legacy-first senza ricerca legale exact')
+ assertContains(reactShellBlueprint, 'lower.startswith("/utenti/") and lower != "/utenti/nuovo"', 'shell protegge nested utenti non migrati')
+ assertContains(reactShellBlueprint, 'lower.startswith("/profili/")', 'shell protegge nested profili non migrati')
+ assertContains(reactShellBlueprint, 'lower.startswith("/backup/")', 'shell protegge subpath backup legacy')
+@@ -738,6 +789,11 @@ assertContains(reactShellBlueprint, 'lower.startswith("/tariffario/")', 'shell p
+ assertContains(reactShellBlueprint, 'lower == "/template-atti/nuovo"', 'shell protegge nuovo template atti legacy')
+ assertContains(reactShellBlueprint, 'lower.startswith("/template-atti/") and lower != "/template-atti/catalogo"', 'shell protegge nested template atti legacy')
+ assertContains(reactShellBlueprint, 'lower.startswith("/redazione-atti/")', 'shell protegge nested redazione atti legacy')
++assertContains(reactShellBlueprint, 'lower.startswith("/giurisprudenza/")', 'shell protegge nested giurisprudenza legacy')
++assertContains(reactShellBlueprint, 'lower.startswith("/legal-intelligence/") and lower not in {', 'shell protegge nested legal intelligence legacy')
++assertContains(reactShellBlueprint, '"/legal-intelligence/news"', 'shell consente legal intelligence news')
++assertContains(reactShellBlueprint, '"/legal-intelligence/mediazione"', 'shell consente legal intelligence mediazione')
++assertContains(reactShellBlueprint, 'lower.startswith("/ricerca-legale/")', 'shell protegge nested ricerca legale legacy')
+ for (const [label, source] of [
+   ['StatistichePage', statistiche],
+   ['AuditPage', auditPage],
+@@ -1422,4 +1478,129 @@ assertNotContains(newReactBundle, 'href="#"', 'nuove superfici senza href vuoto'
+ assertNotContains(newReactBundle, '_legacy=1', 'nuove superfici senza route tecnica visibile')
+ assertNotContains(newReactBundle, 'Vista classica', 'nuove superfici senza vista classica')
+
++const tranche10aFrontendBundle = [
++  giurisprudenzaPage,
++  giurisprudenzaData,
++  legalIntelligencePage,
++  legalIntelligenceData,
++].join('\n')
++const tranche10aFullBundle = [
++  tranche10aFrontendBundle,
++  giurisprudenzaBridge,
++  legalIntelligenceBridge,
++].join('\n')
++
++function manifestRoute(route) {
++  return (routeManifest.routes ?? []).find((entry) => entry.route === route)
++}
++
++function assertManifestRoute(route, status, unlockFromGate) {
++  const entry = manifestRoute(route)
++  if (!entry || entry.status !== status || entry.unlockFromGate !== unlockFromGate) {
++    throw new Error(`route manifest 10A: ${route} deve essere ${status} con unlockFromGate=${unlockFromGate}`)
++  }
++}
++
++assertContains(app, 'GiurisprudenzaPage', 'App.tsx contiene GiurisprudenzaPage')
++assertContains(app, 'LegalIntelligencePage', 'App.tsx contiene LegalIntelligencePage')
++assertContains(app, 'isGiurisprudenzaPage', 'App.tsx contiene isGiurisprudenzaPage')
++assertContains(app, 'isLegalIntelligencePage', 'App.tsx contiene isLegalIntelligencePage')
++assertContains(giurisprudenzaPage, 'getGiurisprudenzaPage', 'GiurisprudenzaPage usa getGiurisprudenzaPage')
++assertContains(legalIntelligencePage, 'getLegalIntelligencePage', 'LegalIntelligencePage usa getLegalIntelligencePage')
++assertContains(legalIntelligencePage, 'getLegalIntelligenceNewsPage', 'LegalIntelligencePage usa getLegalIntelligenceNewsPage')
++assertContains(legalIntelligencePage, 'getLegalIntelligenceMediazionePage', 'LegalIntelligencePage usa getLegalIntelligenceMediazionePage')
++assertContains(legalIntelligencePage, 'getRicercaLegalePage', 'LegalIntelligencePage usa getRicercaLegalePage')
++assertNoFetchPost(giurisprudenzaPage, 'GiurisprudenzaPage')
++assertNoFetchPost(legalIntelligencePage, 'LegalIntelligencePage')
++assertNoFetchBlob(giurisprudenzaPage, 'GiurisprudenzaPage')
++assertNoFetchBlob(legalIntelligencePage, 'LegalIntelligencePage')
++assertNotContains(giurisprudenzaPage, 'dangerouslySetInnerHTML', 'GiurisprudenzaPage senza HTML non sicuro')
++assertNotContains(legalIntelligencePage, 'dangerouslySetInnerHTML', 'LegalIntelligencePage senza HTML non sicuro')
++assertNotContains(giurisprudenzaPage, 'contentEditable', 'GiurisprudenzaPage senza editor inline')
++assertNotContains(legalIntelligencePage, 'contentEditable', 'LegalIntelligencePage senza editor inline')
++assertContains(giurisprudenzaData, '/api/v1/ui/giurisprudenza', 'giurisprudenzaData endpoint')
++assertContains(legalIntelligenceData, '/api/v1/ui/legal-intelligence', 'legalIntelligenceData dashboard endpoint')
++assertContains(legalIntelligenceData, '/api/v1/ui/legal-intelligence/news', 'legalIntelligenceData news endpoint')
++assertContains(legalIntelligenceData, '/api/v1/ui/legal-intelligence/mediazione', 'legalIntelligenceData mediazione endpoint')
++assertContains(legalIntelligenceData, '/api/v1/ui/ricerca-legale', 'legalIntelligenceData ricerca legale endpoint')
++assertContains(apiBridge, '@api_v1_react.get("/giurisprudenza")', 'API React giurisprudenza')
++assertContains(apiBridge, '@api_v1_react.get("/legal-intelligence")', 'API React legal intelligence')
++assertContains(apiBridge, '@api_v1_react.get("/legal-intelligence/news")', 'API React legal intelligence news')
++assertContains(apiBridge, '@api_v1_react.get("/legal-intelligence/mediazione")', 'API React legal intelligence mediazione')
++assertContains(apiBridge, '@api_v1_react.get("/ricerca-legale")', 'API React ricerca legale')
++
++const legacyPrefixes10a = pythonTupleSource(reactRouteGate, '_LEGACY_OPERATIONAL_PREFIXES')
++assertNotContains(legacyPrefixes10a, '"/giurisprudenza"', 'gate senza /giurisprudenza nei legacy prefix')
++assertNotContains(legacyPrefixes10a, '"/legal-intelligence"', 'gate senza /legal-intelligence nei legacy prefix')
++assertNotContains(legacyPrefixes10a, '"/ricerca-legale"', 'gate senza /ricerca-legale nei legacy prefix')
++for (const snippet of [
++  'lower.startswith("/giurisprudenza/")',
++  'lower.startswith("/legal-intelligence/") and lower not in {',
++  '"/legal-intelligence/news",',
++  '"/legal-intelligence/mediazione",',
++  'lower.startswith("/ricerca-legale/")',
++  'lower == "/checklist" or lower.startswith("/checklist/")',
++  'lower == "/deposito/checklist" or lower.startswith("/deposito/checklist/")',
++]) {
++  assertContains(reactRouteGate, snippet, `protezione route gate ${snippet}`)
++}
++assertManifestRoute('/giurisprudenza', 'react_bridge', true)
++assertManifestRoute('/giurisprudenza/nuova', 'legacy_operational', false)
++assertManifestRoute('/giurisprudenza/*', 'legacy_operational', false)
++assertManifestRoute('/legal-intelligence', 'react_bridge', true)
++assertManifestRoute('/legal-intelligence/news', 'react_bridge', true)
++assertManifestRoute('/legal-intelligence/mediazione', 'react_bridge', true)
++assertManifestRoute('/legal-intelligence/*', 'legacy_operational', false)
++assertManifestRoute('/ricerca-legale', 'react_bridge', true)
++assertManifestRoute('/ricerca-legale/*', 'legacy_operational', false)
++assertManifestRoute('/deposito/checklist', 'legacy_operational', false)
++
++for (const [source, label] of [
++  [giurisprudenzaPage, 'GiurisprudenzaPage'],
++  [legalIntelligencePage, 'LegalIntelligencePage'],
++]) {
++  assertNoBootstrapClass(source, label)
++  assertNotContains(source, 'href="#"', `${label} senza href vuoto`)
++  assertNotContains(source, 'style={{', `${label} senza stili inline`)
++  if (/#[0-9A-Fa-f]{3,8}\b/.test(source)) {
++    throw new Error(`${label}: contiene colore hex hardcoded`)
++  }
++}
++for (const [source, label] of [
++  [giurisprudenzaData, 'giurisprudenzaData'],
++  [legalIntelligenceData, 'legalIntelligenceData'],
++]) {
++  assertNoFetchPost(source, label)
++  assertNoFetchBlob(source, label)
++  assertNoClientStorage(source, label)
++  assertNoSensitivePayloadWords(source, label)
++}
++assertNotContains(tranche10aFrontendBundle, 'mockResults', '10A senza mockResults')
++assertNotContains(tranche10aFrontendBundle, 'mock_fallback: true', '10A senza mock fallback frontend')
++for (const word of ['prompt_raw', 'ai_output_raw', 'document_raw', 'html_raw', 'pdf_raw', 'docx_raw']) {
++  assertNotContains(tranche10aFullBundle, word, `10A senza campo ${word}`)
++}
++for (const term of ['fetch("http', "fetch('http", 'requests.get', 'requests.post', 'httpx.', 'urllib.request', 'BeautifulSoup', 'bs4', 'selenium', 'playwright', 'external_fetch: true']) {
++  assertNotContains(tranche10aFullBundle, term, `10A senza chiamata esterna ${term}`)
++}
++for (const term of ['generateMassima', 'generateCitation', 'generateSummary', 'generateOrientamento', 'classifyCase', 'classifySentenza', 'autoClassifica', 'ai_generation: true', 'sintesiGenerata', 'massimaGenerata', 'citazioneGenerata', 'orientamentoGenerato', 'MOCK_NEWS', 'DEMO_NEWS', 'SAMPLE_SENTENZA', 'MOCK_SENTENZA']) {
++  assertNotContains(tranche10aFullBundle, term, `10A senza generazione ${term}`)
++}
++for (const term of ['rawHtml', 'rawText', 'documentText', 'documentHtml', 'sentenzaIntegrale', 'testoIntegrale', 'provvedimentoIntegrale', 'new Blob', 'URL.createObjectURL', 'FileReader', 'application/pdf']) {
++  assertNotContains(tranche10aFullBundle, term, `10A senza documento raw ${term}`)
++}
++assertContains(impeccableOpenDesignCss, '--iu-od-source-gap', 'token source gap')
++assertContains(impeccableOpenDesignCss, '.iu-od-source-card', 'utility source card')
++assertContains(impeccableOpenDesignCss, '.iu-od-inference-warning', 'utility inference warning')
++assertContains(openDesign, 'openDesignLegalKnowledgeSurface', 'contratto Open Design legal knowledge')
++assertContains(giurisprudenzaCss, '.iu-legal-evidence-row', 'stili fonte/inferenza giurisprudenza')
++assertContains(legalIntelligenceCss, '.iu-li-evidence-row', 'stili fonte/inferenza legal intelligence')
++assertContains(runSafeReactMigration, "--tranche=10a", 'runner supporta tranche 10A')
++assertContains(tranche10aGate, '/giurisprudenza', 'gate test 10A giurisprudenza')
++assertContains(tranche10aSecrets, 'tranche-10a-secrets.md', 'check segreti 10A report')
++assertContains(tranche10aNoExternalFetch, 'tranche-10a-no-external-fetch.md', 'check external 10A report')
++assertContains(tranche10aNoAiGeneration, 'tranche-10a-no-ai-generation.md', 'check AI 10A report')
++assertContains(tranche10aNoDocumentRaw, 'tranche-10a-no-document-raw.md', 'check document raw 10A report')
++assertContains(tranche10aOpenDesign, 'tranche-10a-open-design-check.md', 'check Open Design 10A report')
++
+ console.log('Contratti React verificati.')
+diff --git a/scripts/react-migration/check-route-gate.mjs b/scripts/react-migration/check-route-gate.mjs
+index ae202c10..f2d1fac5 100644
+--- a/scripts/react-migration/check-route-gate.mjs
++++ b/scripts/react-migration/check-route-gate.mjs
+@@ -1,4 +1,4 @@
+-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs'
++import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+ import { dirname, resolve } from 'node:path'
+ import { fileURLToPath } from 'node:url'
+
+@@ -44,14 +44,6 @@ function isReactRoute(path, reactExact, reactPrefixes) {
+   return reactPrefixes.some((prefix) => isPrefixMatch(path, prefix))
+ }
+
+-function isBlockedByGate(path, legacyPrefixes, excludedPrefixes) {
+-  return (
+-    isBlockedBySpecialRule(path) ||
+-    legacyPrefixes.some((prefix) => isPrefixMatch(path, prefix)) ||
+-    excludedPrefixes.some((prefix) => isPrefixMatch(path, prefix))
+-  )
+-}
+-
+ function isBlockedBySpecialRule(path) {
+   return (
+     path.startsWith('/backup/') ||
+@@ -78,11 +70,8 @@ function isBlockedBySpecialRule(path) {
+     path.startsWith('/checklist/') ||
+     path === '/deposito/checklist' ||
+     path.startsWith('/deposito/checklist/') ||
+-    path === '/giurisprudenza' ||
+     path.startsWith('/giurisprudenza/') ||
+-    path === '/legal-intelligence' ||
+-    path.startsWith('/legal-intelligence/') ||
+-    path === '/ricerca-legale' ||
++    (path.startsWith('/legal-intelligence/') && path !== '/legal-intelligence/news' && path !== '/legal-intelligence/mediazione') ||
+     path.startsWith('/ricerca-legale/')
+   )
+ }
+@@ -97,27 +86,59 @@ const reactExact = new Set(extractSet(gate, '_REACT_EXACT').map(normaliseRoute))
+ const legacyOperationalPrefixes = extractTuple(gate, '_LEGACY_OPERATIONAL_PREFIXES')
+ const excludedPrefixes = extractTuple(gate, '_EXCLUDED_PREFIXES')
+ const shellLegacyFirstPrefixes = extractTuple(reactShell, '_LEGACY_FIRST_PREFIXES')
+-const allowedReactUnlocks = new Set(['/statistiche', '/audit', '/registro-attivita', '/utenti', '/profili', '/backup', '/sito-studio', '/sito-studio/contatti', '/studio', '/amministrazione', '/fatturazione', '/fatturazione/nuova', '/incassi-pagamenti', '/preventivi', '/preventivi/nuovo', '/preventivi/wizard', '/preventivi/conferimento/nuovo', '/compensi-forensi', '/tariffario', '/template-atti', '/template-atti/catalogo', '/redazione-atti'])
++const allowedStatuses = new Set(['legacy_operational', 'react_shell', 'react_bridge', 'react_operational_partial', 'react_operational_full'])
++const allowedUnlockStatuses = new Set(['react_bridge', 'react_operational_partial', 'react_operational_full'])
++const allowedReactUnlocks = new Set(['/statistiche', '/audit', '/registro-attivita', '/utenti', '/utenti/nuovo', '/profili', '/backup', '/sito-studio', '/sito-studio/contatti', '/studio', '/amministrazione', '/fatturazione', '/fatturazione/nuova', '/incassi-pagamenti', '/preventivi', '/preventivi/nuovo', '/preventivi/wizard', '/preventivi/conferimento/nuovo', '/compensi-forensi', '/tariffario', '/template-atti', '/template-atti/catalogo', '/redazione-atti', '/giurisprudenza', '/legal-intelligence', '/legal-intelligence/news', '/legal-intelligence/mediazione', '/ricerca-legale'])
++const expectedStatuses = new Map([
++  ['/utenti/nuovo', 'react_operational_full'],
++  ['/utenti', 'react_operational_partial'],
++  ['/profili', 'react_bridge'],
++  ['/backup', 'react_bridge'],
++  ['/sito-studio', 'react_bridge'],
++  ['/sito-studio/contatti', 'react_bridge'],
++])
++
++const legacyRoutes = [
++  '/impostazioni',
++  '/impostazioni-studio',
++  '/impostazioni/calendario',
++  '/impostazioni/pagamenti',
++  '/sincronizzazione-calendari',
++  '/sito-studio/builder',
++  '/fatturazione/*',
++  '/preventivi/*',
++  '/compensi-forensi/*',
++  '/tariffario/*',
++  '/template-atti/nuovo',
++  '/template-atti/*',
++  '/redazione-atti/*',
++  '/checklist',
++  '/giurisprudenza/nuova',
++  '/giurisprudenza/*',
++  '/legal-intelligence/*',
++  '/ricerca-legale/*',
++  '/deposito/checklist',
++]
+
+ const violations = []
+ for (const entry of manifest.routes ?? []) {
+   const route = normaliseRoute(entry.route)
+   const routeIsReact = isReactRoute(route, reactExact, reactPrefixes)
+-  const blocked = isBlockedByGate(route, legacyOperationalPrefixes, excludedPrefixes)
++  const blocked = isBlockedBySpecialRule(route) || legacyOperationalPrefixes.some((prefix) => isPrefixMatch(route, prefix)) || excludedPrefixes.some((prefix) => isPrefixMatch(route, prefix))
+   const blockedByShell = isBlockedBySpecialRule(route) || shellLegacyFirstPrefixes.some((prefix) => isPrefixMatch(route, prefix))
+-  const unlockedByGate = routeIsReact && !blocked
+-  const unlockedByShell = unlockedByGate && !blockedByShell
+
+-  if (unlockedByShell && entry.status !== 'react_full') {
+-    violations.push(`${entry.route}: risulta servibile dal gate ma status=${entry.status}`)
++  if (!allowedStatuses.has(entry.status)) {
++    violations.push(`${entry.route}: status non ammesso (${entry.status})`)
++  }
++  if (entry.status === 'react_full') {
++    violations.push(`${entry.route}: react_full e' deprecato, usare gli status operativi Parte 12A`)
+   }
+-
+   if (entry.unlockFromGate === true) {
+     if (!allowedReactUnlocks.has(route)) {
+       violations.push(`${entry.route}: unlockFromGate=true non consentito nelle tranche governate`)
+     }
+-    if (entry.status !== 'react_full') {
+-      violations.push(`${entry.route}: unlockFromGate=true richiede status react_full`)
++    if (!allowedUnlockStatuses.has(entry.status)) {
++      violations.push(`${entry.route}: unlockFromGate=true richiede status react_bridge/react_operational_partial/react_operational_full`)
+     }
+     if (!routeIsReact) {
+       violations.push(`${entry.route}: unlockFromGate=true ma la route non e' in _REACT_PREFIXES/_REACT_EXACT`)
+@@ -140,90 +161,17 @@ for (const entry of manifest.routes ?? []) {
+   }
+ }
+
+-const unlocked = (manifest.routes ?? []).filter((entry) => entry.unlockFromGate === true)
+-for (const route of ['/backup', '/sito-studio', '/sito-studio/contatti']) {
++for (const [route, status] of expectedStatuses) {
+   const entry = (manifest.routes ?? []).find((item) => normaliseRoute(item.route) === route)
+-  if (!entry || entry.status !== 'react_full' || entry.unlockFromGate !== true) {
+-    violations.push(`${route}: deve essere react_full con unlockFromGate=true nella Tranche 4A`)
+-  }
+-  const stillBlocked = legacyOperationalPrefixes.some((prefix) => isPrefixMatch(route, prefix))
+-  const stillShellBlocked = isBlockedBySpecialRule(route) || shellLegacyFirstPrefixes.some((prefix) => isPrefixMatch(route, prefix))
+-  if (stillBlocked || stillShellBlocked) {
+-    violations.push(`${route}: non deve restare bloccata da gate o shell legacy`)
++  if (!entry || entry.status !== status || entry.unlockFromGate !== true) {
++    violations.push(`${route}: deve essere ${status} con unlockFromGate=true`)
+   }
+ }
+
+-for (const route of ['/utenti', '/profili']) {
+-  const entry = (manifest.routes ?? []).find((item) => normaliseRoute(item.route) === route)
+-  if (!entry || entry.status !== 'react_full' || entry.unlockFromGate !== true) {
+-    violations.push(`${route}: deve essere react_full con unlockFromGate=true nella Tranche 3A`)
+-  }
+-  const stillBlocked = legacyOperationalPrefixes.some((prefix) => isPrefixMatch(route, prefix))
+-  const stillShellBlocked = isBlockedBySpecialRule(route) || shellLegacyFirstPrefixes.some((prefix) => isPrefixMatch(route, prefix))
+-  if (stillBlocked || stillShellBlocked) {
+-    violations.push(`${route}: non deve restare bloccata da gate o shell legacy`)
+-  }
+-}
+-
+-for (const route of ['/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/sincronizzazione-calendari', '/sito-studio/builder']) {
+-  const entry = (manifest.routes ?? []).find((item) => normaliseRoute(item.route) === route)
+-  if (!entry || entry.status !== 'legacy_operational' || entry.unlockFromGate !== false) {
+-    violations.push(`${route}: deve restare legacy_operational con unlockFromGate=false`)
+-  }
+-}
+-
+-for (const route of ['/studio', '/amministrazione']) {
+-  const entry = (manifest.routes ?? []).find((item) => normaliseRoute(item.route) === route)
+-  if (!entry || entry.status !== 'react_full' || entry.unlockFromGate !== true) {
+-    violations.push(`${route}: deve essere react_full con unlockFromGate=true nella Tranche 5A`)
+-  }
+-  const stillBlocked = legacyOperationalPrefixes.some((prefix) => isPrefixMatch(route, prefix))
+-  const stillShellBlocked = isBlockedBySpecialRule(route) || shellLegacyFirstPrefixes.some((prefix) => isPrefixMatch(route, prefix))
+-  if (stillBlocked || stillShellBlocked) {
+-    violations.push(`${route}: non deve restare bloccata da gate o shell legacy`)
+-  }
+-}
+-
+-for (const route of ['/fatturazione', '/fatturazione/nuova', '/incassi-pagamenti']) {
+-  const entry = (manifest.routes ?? []).find((item) => normaliseRoute(item.route) === route)
+-  if (!entry || entry.status !== 'react_full' || entry.unlockFromGate !== true) {
+-    violations.push(`${route}: deve essere react_full con unlockFromGate=true nella Tranche 6A`)
+-  }
+-  const stillBlocked = legacyOperationalPrefixes.some((prefix) => isPrefixMatch(route, prefix))
+-  const stillShellBlocked = isBlockedBySpecialRule(route) || shellLegacyFirstPrefixes.some((prefix) => isPrefixMatch(route, prefix))
+-  if (stillBlocked || stillShellBlocked) {
+-    violations.push(`${route}: non deve restare bloccata da gate o shell legacy`)
+-  }
+-}
+-
+-for (const route of ['/preventivi', '/preventivi/nuovo', '/preventivi/wizard', '/preventivi/conferimento/nuovo']) {
+-  const entry = (manifest.routes ?? []).find((item) => normaliseRoute(item.route) === route)
+-  if (!entry || entry.status !== 'react_full' || entry.unlockFromGate !== true) {
+-    violations.push(`${route}: deve essere react_full con unlockFromGate=true nella Tranche 7A`)
+-  }
+-  const stillBlocked = legacyOperationalPrefixes.some((prefix) => isPrefixMatch(route, prefix))
+-  const stillShellBlocked = isBlockedBySpecialRule(route) || shellLegacyFirstPrefixes.some((prefix) => isPrefixMatch(route, prefix))
+-  if (stillBlocked || stillShellBlocked) {
+-    violations.push(`${route}: non deve restare bloccata da gate o shell legacy`)
+-  }
+-}
+-
+-for (const route of ['/template-atti', '/template-atti/catalogo', '/redazione-atti']) {
+-  const entry = (manifest.routes ?? []).find((item) => normaliseRoute(item.route) === route)
+-  if (!entry || entry.status !== 'react_full' || entry.unlockFromGate !== true) {
+-    violations.push(`${route}: deve essere react_full con unlockFromGate=true nella Tranche 9A`)
+-  }
+-  const stillBlocked = legacyOperationalPrefixes.some((prefix) => isPrefixMatch(route, prefix))
+-  const stillShellBlocked = isBlockedBySpecialRule(route) || shellLegacyFirstPrefixes.some((prefix) => isPrefixMatch(route, prefix))
+-  if (stillBlocked || stillShellBlocked) {
+-    violations.push(`${route}: non deve restare bloccata da gate o shell legacy`)
+-  }
+-}
+-
+-for (const route of ['/fatturazione/*', '/impostazioni/pagamenti', '/preventivi/*', '/compensi-forensi/*', '/tariffario/*', '/template-atti/nuovo', '/template-atti/*', '/redazione-atti/*', '/checklist', '/giurisprudenza', '/legal-intelligence', '/deposito/checklist']) {
++for (const route of legacyRoutes) {
+   const entry = (manifest.routes ?? []).find((item) => item.route === route)
+   if (!entry || entry.status !== 'legacy_operational' || entry.unlockFromGate !== false) {
+-    violations.push(`${route}: deve restare legacy_operational con unlockFromGate=false nelle tranche governate`)
++    violations.push(`${route}: deve restare legacy_operational con unlockFromGate=false`)
+   }
+ }
+
+@@ -249,9 +197,11 @@ for (const snippet of [
+   'lower.startswith("/redazione-atti/")',
+   'lower == "/checklist" or lower.startswith("/checklist/")',
+   'lower == "/deposito/checklist" or lower.startswith("/deposito/checklist/")',
+-  'lower == "/giurisprudenza" or lower.startswith("/giurisprudenza/")',
+-  'lower == "/legal-intelligence" or lower.startswith("/legal-intelligence/")',
+-  'lower == "/ricerca-legale" or lower.startswith("/ricerca-legale/")',
++  'lower.startswith("/giurisprudenza/")',
++  'lower.startswith("/legal-intelligence/") and lower not in {',
++  '"/legal-intelligence/news",',
++  '"/legal-intelligence/mediazione",',
++  'lower.startswith("/ricerca-legale/")',
+ ]) {
+   if (!gate.includes(snippet)) {
+     violations.push(`react_route_gate.py: manca protezione ${snippet}`)
+@@ -261,14 +211,21 @@ for (const snippet of [
+   }
+ }
+
++const unlocked = (manifest.routes ?? []).filter((entry) => entry.unlockFromGate === true)
+ const report = [
+   '# Route gate report',
+   '',
+   `Route nel manifest: ${(manifest.routes ?? []).length}`,
+   `Route con unlockFromGate=true: ${unlocked.length}`,
+   `Route governate consentite: ${[...allowedReactUnlocks].join(', ')}`,
+-  'Tranche 8A: promozione compensi/tariffario exact, sottopercorsi sensibili legacy.',
+-  'Tranche 9A: promozione template atti/redazione exact, sottopercorsi documentali sensibili legacy.',
++  'Tranche 4A: route studio/backup censite come bridge se conservano scritture legacy.',
++  'Tranche 5A: studio e amministrazione restano bridge quando sono hub di navigazione.',
++  'Tranche 6A: fatturazione e incassi restano bridge se le scritture principali sono legacy.',
++  'Tranche 7A: preventivi non wizard restano bridge finche i POST principali sono legacy.',
++  'Tranche 8A: compensi/tariffario declassati quando mantengono fallback o bridge legacy.',
++  'Tranche 9A: template atti/redazione exact restano bridge finche le azioni principali sono legacy.',
++  'Tranche 10A: giurisprudenza/legal intelligence declassate se non hanno workflow React operativo pieno.',
++  'Parte 12A: react_full deprecato; unlockFromGate=true richiede status react_bridge/react_operational_partial/react_operational_full.',
+   `Violazioni: ${violations.length}`,
+   '',
+   ...violations.map((item) => `- ${item}`),
+@@ -281,4 +238,4 @@ if (violations.length) {
+   process.exit(1)
+ }
+
+-console.log('Route gate OK: Tranche 9A coerente.')
++console.log('Route gate OK: Parte 12A coerente.')
+diff --git a/scripts/react-migration/run-safe-react-migration.mjs b/scripts/react-migration/run-safe-react-migration.mjs
+index 042b717a..afd67f95 100644
+--- a/scripts/react-migration/run-safe-react-migration.mjs
++++ b/scripts/react-migration/run-safe-react-migration.mjs
+@@ -12,6 +12,7 @@ const TRANCHE_6A_FLAG = '--tranche=6a'
+ const TRANCHE_7A_FLAG = '--tranche=7a'
+ const TRANCHE_8A_FLAG = '--tranche=8a'
+ const TRANCHE_9A_FLAG = '--tranche=9a'
++const TRANCHE_10A_FLAG = '--tranche=10a'
+ const tranche = args.find((arg) => arg.startsWith('--tranche='))?.split('=')[1] || ''
+ const EXEC_BUFFER = 1024 * 1024 * 200
+
+@@ -112,6 +113,17 @@ const tranche9aContracts = [
+   '/legal-intelligence',
+ ]
+
++const tranche10aContracts = [
++  '/giurisprudenza',
++  '/giurisprudenza/nuova',
++  '/legal-intelligence',
++  '/legal-intelligence/news',
++  '/legal-intelligence/mediazione',
++  '/ricerca-legale',
++  '/checklist',
++  '/deposito/checklist',
++]
++
+ const tranche2aPatchGroups = {
+   backend: [
+     'web/services/react_statistiche_bridge.py',
+@@ -586,6 +598,78 @@ const tranche9aPatchGroups = {
+   ],
+ }
+
++const tranche10aPatchGroups = {
++  backend: [
++    'web/services/react_giurisprudenza_bridge.py',
++    'web/services/react_legal_intelligence_bridge.py',
++    'web/blueprints/api_v1_react.py',
++  ],
++  frontend: [
++    'frontend/src/giurisprudenzaData.ts',
++    'frontend/src/legalIntelligenceData.ts',
++    'frontend/src/components/GiurisprudenzaPage.tsx',
++    'frontend/src/components/GiurisprudenzaPage.css',
++    'frontend/src/components/LegalIntelligencePage.tsx',
++    'frontend/src/components/LegalIntelligencePage.css',
++    'frontend/src/App.tsx',
++    'web/static/react',
++  ],
++  gate: [
++    'web/bootstrap/react_route_gate.py',
++    'web/blueprints/react_shell.py',
++    'tools/react-migration/route-manifest.json',
++  ],
++  design: [
++    'frontend/src/theme/impeccable-open-design.css',
++    'frontend/src/ui/openDesign.ts',
++    'artifacts/react-migration/tranche-10a-open-design.md',
++  ],
++  tests: [
++    'frontend/scripts/check-react-contracts.mjs',
++    'scripts/react-migration/check-route-gate.mjs',
++    'scripts/react-migration/check-tranche-10a-gate.py',
++    'scripts/react-migration/check-tranche-10a-secrets.mjs',
++    'scripts/react-migration/check-tranche-10a-no-external-fetch.mjs',
++    'scripts/react-migration/check-tranche-10a-no-ai-generation.mjs',
++    'scripts/react-migration/check-tranche-10a-no-document-raw.mjs',
++    'scripts/react-migration/check-tranche-10a-open-design.mjs',
++    'scripts/react-migration/run-safe-react-migration.mjs',
++  ],
++  reports: [
++    'CHANGELOG.md',
++    'Dockerfile',
++    'README.md',
++    'docs/REACT_MIGRATION_MASTER_PLAN.md',
++    'pct/__init__.py',
++    'railway.toml',
++    'setup.py',
++    'artifacts/react-migration/audit.md',
++    'artifacts/react-migration/route-inventory.json',
++    'artifacts/react-migration/route-gate.md',
++    'artifacts/react-migration/ui-consistency.md',
++    'artifacts/react-migration/tranche-10a-route-map.md',
++    'artifacts/react-migration/tranche-10a-open-design.md',
++    'artifacts/react-migration/tranche-10a-gate.md',
++    'artifacts/react-migration/tranche-10a-secrets.md',
++    'artifacts/react-migration/tranche-10a-no-external-fetch.md',
++    'artifacts/react-migration/tranche-10a-no-ai-generation.md',
++    'artifacts/react-migration/tranche-10a-no-document-raw.md',
++    'artifacts/react-migration/tranche-10a-open-design-check.md',
++    'artifacts/react-migration/tranche-10a-report.md',
++    'artifacts/react-migration/legacy-contracts/giurisprudenza.json',
++    'artifacts/react-migration/legacy-contracts/giurisprudenza__nuova.json',
++    'artifacts/react-migration/legacy-contracts/giurisprudenza__detail.json',
++    'artifacts/react-migration/legacy-contracts/legal-intelligence.json',
++    'artifacts/react-migration/legacy-contracts/legal-intelligence__news.json',
++    'artifacts/react-migration/legacy-contracts/legal-intelligence__mediazione.json',
++    'artifacts/react-migration/legacy-contracts/legal-intelligence__detail.json',
++    'artifacts/react-migration/legacy-contracts/ricerca-legale.json',
++    'artifacts/react-migration/legacy-contracts/ricerca-legale__detail.json',
++    'artifacts/react-migration/legacy-contracts/checklist.json',
++    'artifacts/react-migration/legacy-contracts/deposito__checklist.json',
++  ],
++}
++
+ function run(cmd, options = {}) {
+   console.log(`\n> ${cmd}`)
+   execSync(cmd, { stdio: 'inherit', ...options })
+@@ -703,6 +787,12 @@ function writeTranche9aPatches() {
+   }
+ }
+
++function writeTranche10aPatches() {
++  for (const [name, paths] of Object.entries(tranche10aPatchGroups)) {
++    writePatch('10a', name, paths)
++  }
++}
++
+ function runDefault() {
+   cleanRequired()
+   run('node scripts/react-migration/audit-react-migration.mjs')
+@@ -874,6 +964,29 @@ function runTranche9a() {
+   run('git status --short')
+ }
+
++function runTranche10a() {
++  cleanRequired()
++  run('git status --short')
++  run('node scripts/react-migration/audit-react-migration.mjs')
++  run(`python scripts/react-migration/capture-legacy-contracts.py ${tranche10aContracts.join(' ')}`)
++  run('node scripts/react-migration/check-route-gate.mjs')
++  run('node scripts/react-migration/check-ui-consistency.mjs')
++  run('node scripts/react-migration/check-tranche-10a-secrets.mjs')
++  run('node scripts/react-migration/check-tranche-10a-no-external-fetch.mjs')
++  run('node scripts/react-migration/check-tranche-10a-no-ai-generation.mjs')
++  run('node scripts/react-migration/check-tranche-10a-no-document-raw.mjs')
++  run('node scripts/react-migration/check-tranche-10a-open-design.mjs')
++  if (existsSync('scripts/react-migration/check-tranche-10a-gate.py')) {
++    run('python scripts/react-migration/check-tranche-10a-gate.py')
++  }
++  run('cd frontend && npm run test')
++  run('cd frontend && npm run typecheck')
++  run('cd frontend && npm run build')
++  writeTranche10aPatches()
++  run('git diff --stat')
++  run('git status --short')
++}
++
+ if (tranche === '2a') {
+   runTranche2a()
+ } else if (tranche === '3a') {
+@@ -890,6 +1003,8 @@ if (tranche === '2a') {
+   runTranche8a()
+ } else if (tranche === '9a') {
+   runTranche9a()
++} else if (tranche === '10a') {
++  runTranche10a()
+ } else {
+   runDefault()
+ }
+
+diff --git a/scripts/react-migration/check-tranche-10a-gate.py b/scripts/react-migration/check-tranche-10a-gate.py
+new file mode 100644
+index 00000000..1e9a6275
+--- /dev/null
++++ b/scripts/react-migration/check-tranche-10a-gate.py
+@@ -0,0 +1,138 @@
++from __future__ import annotations
++
++import json
++import sys
++import tempfile
++from pathlib import Path
++
++ROOT = Path(__file__).resolve().parents[2]
++if str(ROOT) not in sys.path:
++    sys.path.insert(0, str(ROOT))
++
++from tests.test_web_bootstrap import _cfg_web, _seed_tenant_admin, _write_studio_config  # noqa: E402
++from web.app import create_app  # noqa: E402
++
++
++REPORT = ROOT / "artifacts/react-migration/tranche-10a-gate.md"
++
++
++def _is_react_shell(response) -> bool:
++    html = response.get_data(as_text=True)
++    return 'id="root"' in html and "iusentra-react-bootstrap" in html and "IUSENTRA - React Shell" in html
++
++
++def _is_json(response) -> bool:
++    return bool(response.is_json and isinstance(response.get_json(silent=True), dict))
++
++
++def _record(results: list[dict], name: str, ok: bool, detail: str) -> None:
++    results.append({"name": name, "ok": bool(ok), "detail": detail})
++
++
++def main() -> int:
++    results: list[dict] = []
++    with tempfile.TemporaryDirectory(prefix="iusentra-tranche-10a-", ignore_cleanup_errors=True) as tmp:
++        tmp_path = Path(tmp)
++        _write_studio_config(tmp_path / "config" / "studio.json")
++        app = create_app(_cfg_web(tmp_path))
++        studio, tenant_admin = _seed_tenant_admin(app)
++
++        with app.test_client() as client:
++            login = client.post(
++                "/login",
++                data={
++                    "username": tenant_admin.username,
++                    "password": "PasswordSicura!123",
++                    "studio_slug": studio.slug,
++                },
++                follow_redirects=False,
++            )
++            _record(results, "login tenant", login.status_code == 302, f"status={login.status_code}")
++
++            for path in (
++                "/giurisprudenza",
++                "/legal-intelligence",
++                "/legal-intelligence/news",
++                "/legal-intelligence/mediazione",
++                "/ricerca-legale",
++            ):
++                response = client.get(path, headers={"Accept": "text/html"}, follow_redirects=False)
++                _record(
++                    results,
++                    f"React shell {path}",
++                    response.status_code == 200 and _is_react_shell(response),
++                    f"status={response.status_code}",
++                )
++
++            for path in (
++                "/giurisprudenza?_legacy=1",
++                "/giurisprudenza/nuova",
++                "/giurisprudenza/qualunque",
++                "/legal-intelligence?_legacy=1",
++                "/legal-intelligence/news?_legacy=1",
++                "/legal-intelligence/mediazione?_legacy=1",
++                "/legal-intelligence/qualunque",
++                "/ricerca-legale?_legacy=1",
++                "/ricerca-legale/qualunque",
++                "/checklist",
++                "/deposito/checklist",
++            ):
++                response = client.get(path, headers={"Accept": "text/html"}, follow_redirects=False)
++                _record(
++                    results,
++                    f"Ancora legacy {path}",
++                    not _is_react_shell(response),
++                    f"status={response.status_code}",
++                )
++
++            for path in (
++                "/api/v1/ui/giurisprudenza",
++                "/api/v1/ui/legal-intelligence",
++                "/api/v1/ui/legal-intelligence/news",
++                "/api/v1/ui/legal-intelligence/mediazione",
++                "/api/v1/ui/ricerca-legale",
++            ):
++                response = client.get(path, headers={"Accept": "application/json"})
++                _record(
++                    results,
++                    f"JSON {path}",
++                    response.status_code == 200 and _is_json(response),
++                    f"status={response.status_code}",
++                )
++
++            for path in (
++                "/giurisprudenza",
++                "/giurisprudenza/nuova",
++                "/legal-intelligence",
++                "/legal-intelligence/news",
++                "/deposito/checklist",
++            ):
++                response = client.post(path, data={}, headers={"Accept": "text/html"}, follow_redirects=False)
++                _record(
++                    results,
++                    f"POST non intercettato {path}",
++                    not _is_react_shell(response),
++                    f"status={response.status_code}",
++                )
++
++    REPORT.parent.mkdir(parents=True, exist_ok=True)
++    lines = [
++        "# Tranche 10A gate check",
++        "",
++        *[
++            f"- [{'OK' if item['ok'] else 'KO'}] {item['name']} ({item['detail']})"
++            for item in results
++        ],
++        "",
++    ]
++    REPORT.write_text("\n".join(lines), encoding="utf-8")
++    failures = [item for item in results if not item["ok"]]
++    if failures:
++        print(json.dumps({"ok": False, "failures": failures}, ensure_ascii=False, indent=2))
++        return 1
++    print("Tranche 10A gate OK")
++    return 0
++
++
++if __name__ == "__main__":
++    raise SystemExit(main())
+
+diff --git a/scripts/react-migration/check-tranche-10a-no-ai-generation.mjs b/scripts/react-migration/check-tranche-10a-no-ai-generation.mjs
+new file mode 100644
+index 00000000..6e12576d
+--- /dev/null
++++ b/scripts/react-migration/check-tranche-10a-no-ai-generation.mjs
+@@ -0,0 +1,76 @@
++import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
++import { resolve } from 'node:path'
++
++const root = resolve(import.meta.dirname, '../..')
++const reportPath = resolve(root, 'artifacts/react-migration/tranche-10a-no-ai-generation.md')
++mkdirSync(resolve(root, 'artifacts/react-migration'), { recursive: true })
++
++const targets = [
++  'frontend/src/giurisprudenzaData.ts',
++  'frontend/src/legalIntelligenceData.ts',
++  'frontend/src/components/GiurisprudenzaPage.tsx',
++  'frontend/src/components/LegalIntelligencePage.tsx',
++  'web/services/react_giurisprudenza_bridge.py',
++  'web/services/react_legal_intelligence_bridge.py',
++]
++
++const denied = [
++  'OpenAI',
++  'ChatCompletion',
++  'completion',
++  'promptAI',
++  'promptLex',
++  'callLex',
++  'fetchLex',
++  'generateMassima',
++  'generateCitation',
++  'generateSummary',
++  'generateOrientamento',
++  'classifyCase',
++  'classifySentenza',
++  'autoClassifica',
++  'ai_generation: true',
++  '"ai_generation": True',
++  'sintesiGenerata',
++  'massimaGenerata',
++  'citazioneGenerata',
++  'orientamentoGenerato',
++  'MOCK_NEWS',
++  'DEMO_NEWS',
++  'SAMPLE_SENTENZA',
++  'MOCK_SENTENZA',
++]
++
++const violations = []
++for (const target of targets) {
++  const absolute = resolve(root, target)
++  if (!existsSync(absolute)) {
++    violations.push(`${target}: file mancante`)
++    continue
++  }
++  const source = readFileSync(absolute, 'utf8')
++  for (const pattern of denied) {
++    if (source.includes(pattern)) {
++      violations.push(`${target}: pattern non ammesso ${pattern}`)
++    }
++  }
++}
++
++const report = [
++  '# Tranche 10A anti-generazione-AI',
++  '',
++  `File controllati: ${targets.length}`,
++  `Violazioni: ${violations.length}`,
++  '',
++  ...violations.map((item) => `- ${item}`),
++  '',
++].join('\n')
++
++writeFileSync(reportPath, report, 'utf8')
++
++if (violations.length) {
++  console.error(report)
++  process.exit(1)
++}
++
++console.log('Tranche 10A anti-generazione-AI OK')
+
+diff --git a/scripts/react-migration/check-tranche-10a-no-document-raw.mjs b/scripts/react-migration/check-tranche-10a-no-document-raw.mjs
+new file mode 100644
+index 00000000..5de13a91
+--- /dev/null
++++ b/scripts/react-migration/check-tranche-10a-no-document-raw.mjs
+@@ -0,0 +1,69 @@
++import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
++import { resolve } from 'node:path'
++
++const root = resolve(import.meta.dirname, '../..')
++const reportPath = resolve(root, 'artifacts/react-migration/tranche-10a-no-document-raw.md')
++mkdirSync(resolve(root, 'artifacts/react-migration'), { recursive: true })
++
++const targets = [
++  'web/services/react_giurisprudenza_bridge.py',
++  'web/services/react_legal_intelligence_bridge.py',
++  'frontend/src/giurisprudenzaData.ts',
++  'frontend/src/legalIntelligenceData.ts',
++  'frontend/src/components/GiurisprudenzaPage.tsx',
++  'frontend/src/components/LegalIntelligencePage.tsx',
++]
++
++const denied = [
++  'dangerouslySetInnerHTML',
++  'contentEditable',
++  'rawHtml',
++  'rawText',
++  'documentText',
++  'documentHtml',
++  'sentenzaIntegrale',
++  'testoIntegrale',
++  'provvedimentoIntegrale',
++  'pdf_raw',
++  'docx_raw',
++  'html_raw',
++  'new Blob',
++  'URL.createObjectURL',
++  'FileReader',
++  'application/pdf',
++  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
++]
++
++const violations = []
++for (const target of targets) {
++  const absolute = resolve(root, target)
++  if (!existsSync(absolute)) {
++    violations.push(`${target}: file mancante`)
++    continue
++  }
++  const source = readFileSync(absolute, 'utf8')
++  for (const pattern of denied) {
++    if (source.includes(pattern)) {
++      violations.push(`${target}: pattern non ammesso ${pattern}`)
++    }
++  }
++}
++
++const report = [
++  '# Tranche 10A anti-documento-raw',
++  '',
++  `File controllati: ${targets.length}`,
++  `Violazioni: ${violations.length}`,
++  '',
++  ...violations.map((item) => `- ${item}`),
++  '',
++].join('\n')
++
++writeFileSync(reportPath, report, 'utf8')
++
++if (violations.length) {
++  console.error(report)
++  process.exit(1)
++}
++
++console.log('Tranche 10A anti-documento-raw OK')
+
+diff --git a/scripts/react-migration/check-tranche-10a-no-external-fetch.mjs b/scripts/react-migration/check-tranche-10a-no-external-fetch.mjs
+new file mode 100644
+index 00000000..d785e1be
+--- /dev/null
++++ b/scripts/react-migration/check-tranche-10a-no-external-fetch.mjs
+@@ -0,0 +1,69 @@
++import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
++import { resolve } from 'node:path'
++
++const root = resolve(import.meta.dirname, '../..')
++const reportPath = resolve(root, 'artifacts/react-migration/tranche-10a-no-external-fetch.md')
++mkdirSync(resolve(root, 'artifacts/react-migration'), { recursive: true })
++
++const targets = [
++  'web/services/react_giurisprudenza_bridge.py',
++  'web/services/react_legal_intelligence_bridge.py',
++  'frontend/src/giurisprudenzaData.ts',
++  'frontend/src/legalIntelligenceData.ts',
++  'frontend/src/components/GiurisprudenzaPage.tsx',
++  'frontend/src/components/LegalIntelligencePage.tsx',
++]
++
++const denied = [
++  'fetch("http',
++  "fetch('http",
++  'requests.get',
++  'requests.post',
++  'httpx.',
++  'urllib.request',
++  'BeautifulSoup',
++  'bs4',
++  'selenium',
++  'playwright',
++  'puppeteer',
++  'crawler',
++  'scraper',
++  'scrape',
++  'crawl',
++  'external_fetch: true',
++  '"external_fetch": True',
++]
++
++const violations = []
++for (const target of targets) {
++  const absolute = resolve(root, target)
++  if (!existsSync(absolute)) {
++    violations.push(`${target}: file mancante`)
++    continue
++  }
++  const source = readFileSync(absolute, 'utf8')
++  for (const pattern of denied) {
++    if (source.includes(pattern)) {
++      violations.push(`${target}: pattern non ammesso ${pattern}`)
++    }
++  }
++}
++
++const report = [
++  '# Tranche 10A anti-fetch-esterno',
++  '',
++  `File controllati: ${targets.length}`,
++  `Violazioni: ${violations.length}`,
++  '',
++  ...violations.map((item) => `- ${item}`),
++  '',
++].join('\n')
++
++writeFileSync(reportPath, report, 'utf8')
++
++if (violations.length) {
++  console.error(report)
++  process.exit(1)
++}
++
++console.log('Tranche 10A anti-fetch-esterno OK')
+
+diff --git a/scripts/react-migration/check-tranche-10a-open-design.mjs b/scripts/react-migration/check-tranche-10a-open-design.mjs
+new file mode 100644
+index 00000000..7004252a
+--- /dev/null
++++ b/scripts/react-migration/check-tranche-10a-open-design.mjs
+@@ -0,0 +1,127 @@
++import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
++import { resolve } from 'node:path'
++
++const root = resolve(import.meta.dirname, '../..')
++const reportPath = resolve(root, 'artifacts/react-migration/tranche-10a-open-design-check.md')
++mkdirSync(resolve(root, 'artifacts/react-migration'), { recursive: true })
++
++const files = {
++  tokenCss: 'frontend/src/theme/impeccable-open-design.css',
++  contract: 'frontend/src/ui/openDesign.ts',
++  giurisprudenzaTsx: 'frontend/src/components/GiurisprudenzaPage.tsx',
++  giurisprudenzaCss: 'frontend/src/components/GiurisprudenzaPage.css',
++  legalTsx: 'frontend/src/components/LegalIntelligencePage.tsx',
++  legalCss: 'frontend/src/components/LegalIntelligencePage.css',
++}
++
++function read(path) {
++  const absolute = resolve(root, path)
++  if (!existsSync(absolute)) {
++    throw new Error(`${path}: file mancante`)
++  }
++  return readFileSync(absolute, 'utf8')
++}
++
++const sources = Object.fromEntries(Object.entries(files).map(([key, path]) => [key, read(path)]))
++const violations = []
++
++function checkTsx(source, label) {
++  if (source.includes('style={{')) violations.push(`${label}: stili inline vietati`)
++  if (/#[0-9A-Fa-f]{3,8}\b/.test(source)) violations.push(`${label}: colore hex hardcoded`)
++  if (source.includes('href="#"')) violations.push(`${label}: href vuoto`)
++  for (const match of source.matchAll(/className\s*=\s*["'`]([^"'`]+)["'`]/g)) {
++    checkClassTokens(match[1], label)
++  }
++  for (const match of source.matchAll(/className\s*=\s*\{([^}]+)\}/g)) {
++    for (const literal of match[1].matchAll(/["'`]([^"'`]+)["'`]/g)) {
++      if (literal[1].includes('iu-')) {
++        checkClassTokens(literal[1], label)
++      }
++    }
++  }
++}
++
++function checkClassTokens(value, label) {
++  const tokens = value.split(/\s+/).filter(Boolean)
++  for (const token of tokens) {
++    if (['btn', 'card', 'container', 'row'].includes(token) || token.startsWith('col-')) {
++      violations.push(`${label}: classe Bootstrap vietata ${token}`)
++    }
++    if (!token.startsWith('iu-')) {
++      violations.push(`${label}: classe non prefissata iu- ${token}`)
++    }
++  }
++}
++
++function checkCss(source, label, allowTokenValues = false) {
++  if (!allowTokenValues && /#[0-9A-Fa-f]{3,8}\b/.test(source)) {
++    violations.push(`${label}: colore hex fuori dal file token`)
++  }
++  if (source.includes('!important')) violations.push(`${label}: !important non documentato`)
++  if (/position\s*:\s*fixed\b/i.test(source)) violations.push(`${label}: position fixed non ammesso`)
++  const zMatches = [...source.matchAll(/z-index\s*:\s*(\d+)/gi)]
++  for (const match of zMatches) {
++    if (Number.parseInt(match[1], 10) > 20) {
++      violations.push(`${label}: z-index superiore alla shell`)
++    }
++  }
++  if (/font-family\s*:\s*(?!\s*var\()/i.test(source)) violations.push(`${label}: font-family hardcoded`)
++  if (!allowTokenValues && /box-shadow\s*:\s*(?!\s*var\()/i.test(source)) violations.push(`${label}: box-shadow hardcoded`)
++  if (!allowTokenValues && /border-radius\s*:\s*(?!\s*var\()/i.test(source)) violations.push(`${label}: border-radius hardcoded`)
++  for (const pattern of ['@font-face', 'fonts.googleapis', 'fonts.gstatic', 'cdn.jsdelivr', 'unpkg.com']) {
++    if (source.includes(pattern)) violations.push(`${label}: import esterno ${pattern}`)
++  }
++}
++
++checkTsx(sources.giurisprudenzaTsx, files.giurisprudenzaTsx)
++checkTsx(sources.legalTsx, files.legalTsx)
++checkCss(sources.tokenCss, files.tokenCss, true)
++checkCss(sources.giurisprudenzaCss, files.giurisprudenzaCss)
++checkCss(sources.legalCss, files.legalCss)
++checkCss(sources.contract, files.contract, true)
++
++for (const expected of [
++  '--iu-od-source-gap',
++  '--iu-od-source-card-radius',
++  '--iu-od-source-meta-size',
++  '--iu-od-source-focus-ring',
++  '--iu-od-evidence-border',
++  '--iu-od-evidence-surface',
++  '.iu-od-source-card',
++  '.iu-od-source-meta',
++  '.iu-od-source-badge',
++  '.iu-od-evidence-panel',
++  '.iu-od-inference-warning',
++  '.iu-od-legal-list',
++  '.iu-od-action-row',
++]) {
++  if (!sources.tokenCss.includes(expected)) violations.push(`${files.tokenCss}: manca ${expected}`)
++}
++if (!sources.contract.includes('openDesignLegalKnowledgeSurface')) {
++  violations.push(`${files.contract}: manca contratto legal knowledge`)
++}
++if (!sources.giurisprudenzaTsx.includes('iu-legal-evidence-row') || !sources.legalTsx.includes('iu-li-evidence-row')) {
++  violations.push('Sezioni fonte/inferenza senza classi distinguibili nei TSX')
++}
++if (!sources.giurisprudenzaCss.includes('.iu-legal-evidence-row') || !sources.legalCss.includes('.iu-li-evidence-row')) {
++  violations.push('Sezioni fonte/inferenza senza classi distinguibili nei CSS')
++}
++
++const report = [
++  '# Tranche 10A Open Design check',
++  '',
++  `File controllati: ${Object.keys(files).length}`,
++  `Violazioni: ${violations.length}`,
++  '',
++  ...violations.map((item) => `- ${item}`),
++  '',
++].join('\n')
++
++writeFileSync(reportPath, report, 'utf8')
++
++if (violations.length) {
++  console.error(report)
++  process.exit(1)
++}
++
++console.log('Tranche 10A Open Design OK')
+
+diff --git a/scripts/react-migration/check-tranche-10a-secrets.mjs b/scripts/react-migration/check-tranche-10a-secrets.mjs
+new file mode 100644
+index 00000000..69c86329
+--- /dev/null
++++ b/scripts/react-migration/check-tranche-10a-secrets.mjs
+@@ -0,0 +1,71 @@
++import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
++import { resolve } from 'node:path'
++
++const root = resolve(import.meta.dirname, '../..')
++const reportPath = resolve(root, 'artifacts/react-migration/tranche-10a-secrets.md')
++mkdirSync(resolve(root, 'artifacts/react-migration'), { recursive: true })
++
++const targets = [
++  'web/services/react_giurisprudenza_bridge.py',
++  'web/services/react_legal_intelligence_bridge.py',
++  'frontend/src/giurisprudenzaData.ts',
++  'frontend/src/legalIntelligenceData.ts',
++  'frontend/src/components/GiurisprudenzaPage.tsx',
++  'frontend/src/components/LegalIntelligencePage.tsx',
++]
++
++const denied = [
++  'api_key',
++  'apikey',
++  'secret',
++  'password',
++  'token',
++  'private_key',
++  'access_key',
++  'refresh_token',
++  'client_secret',
++  'bearer',
++  'prompt_raw',
++  'ai_output_raw',
++  'document_raw',
++  'html_raw',
++  'pdf_raw',
++  'docx_raw',
++  'source_credentials',
++  'crawler_secret',
++  'scraper_secret',
++]
++
++const violations = []
++for (const target of targets) {
++  const absolute = resolve(root, target)
++  if (!existsSync(absolute)) {
++    violations.push(`${target}: file mancante`)
++    continue
++  }
++  const source = readFileSync(absolute, 'utf8')
++  for (const word of denied) {
++    if (new RegExp(word, 'i').test(source)) {
++      violations.push(`${target}: pattern non ammesso ${word}`)
++    }
++  }
++}
++
++const report = [
++  '# Tranche 10A anti-segreti',
++  '',
++  `File controllati: ${targets.length}`,
++  `Violazioni: ${violations.length}`,
++  '',
++  ...violations.map((item) => `- ${item}`),
++  '',
++].join('\n')
++
++writeFileSync(reportPath, report, 'utf8')
++
++if (violations.length) {
++  console.error(report)
++  process.exit(1)
++}
++
++console.log('Tranche 10A anti-segreti OK')

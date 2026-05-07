@@ -4,19 +4,19 @@
     "description": "Manifest governato per la migrazione progressiva delle route legacy residue verso React.",
     "allowedStatuses": [
       "legacy_operational",
+      "react_shell",
       "react_bridge",
-      "react_readonly",
       "react_operational_partial",
-      "react_full"
+      "react_operational_full"
     ],
-    "unlockRule": "unlockFromGate puo' diventare true solo con status react_full, componente dedicato, data client, bridge/API, contratto legacy e test di parita'.",
+    "unlockRule": "unlockFromGate puo' diventare true solo per route censite e servite dalla shell; react_operational_full richiede dati JSON, azioni principali JSON, permessi/CSRF/sessione, stati UI e nessuna CTA legacy primaria. react_full e' deprecato.",
     "currentReleaseUnlocksRoutes": true
   },
   "routes": [
     {
       "route": "/utenti",
       "family": "amministrazione",
-      "status": "react_full",
+      "status": "react_operational_partial",
       "risk": "medium",
       "targetComponent": "frontend/src/components/UtentiPage.tsx",
       "targetData": "frontend/src/utentiData.ts",
@@ -32,9 +32,27 @@
       ]
     },
     {
+      "route": "/utenti/nuovo",
+      "family": "amministrazione",
+      "status": "react_operational_full",
+      "risk": "medium",
+      "targetComponent": "frontend/src/components/UtentiPage.tsx",
+      "targetData": "frontend/src/utentiData.ts",
+      "targetBridge": "web/services/react_utenti_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/utenti.json",
+      "unlockFromGate": true,
+      "mustPreserve": [
+        "creazione utente auditata",
+        "permesso utenti.scrivi",
+        "CSRF e sessione Flask",
+        "password temporanea non restituita",
+        "fallback legacy tecnico non primario"
+      ]
+    },
+    {
       "route": "/profili",
       "family": "amministrazione",
-      "status": "react_full",
+      "status": "react_bridge",
       "risk": "medium",
       "targetComponent": "frontend/src/components/ProfiliPage.tsx",
       "targetData": "frontend/src/profiliData.ts",
@@ -52,7 +70,7 @@
     {
       "route": "/audit",
       "family": "amministrazione",
-      "status": "react_full",
+      "status": "react_operational_partial",
       "risk": "medium",
       "targetComponent": "frontend/src/components/AuditPage.tsx",
       "targetData": "frontend/src/auditData.ts",
@@ -70,7 +88,7 @@
     {
       "route": "/registro-attivita",
       "family": "amministrazione",
-      "status": "react_full",
+      "status": "react_operational_partial",
       "risk": "medium",
       "targetComponent": "frontend/src/components/AuditPage.tsx",
       "targetData": "frontend/src/auditData.ts",
@@ -88,7 +106,7 @@
     {
       "route": "/studio",
       "family": "studio",
-      "status": "react_full",
+      "status": "react_bridge",
       "risk": "medium",
       "targetComponent": "frontend/src/components/StudioPage.tsx",
       "targetData": "frontend/src/studioData.ts",
@@ -106,7 +124,7 @@
     {
       "route": "/amministrazione",
       "family": "amministrazione",
-      "status": "react_full",
+      "status": "react_bridge",
       "risk": "medium",
       "targetComponent": "frontend/src/components/AmministrazionePage.tsx",
       "targetData": "frontend/src/amministrazioneData.ts",
@@ -214,7 +232,7 @@
     {
       "route": "/backup",
       "family": "studio",
-      "status": "react_full",
+      "status": "react_bridge",
       "risk": "medium",
       "targetComponent": "frontend/src/components/BackupPage.tsx",
       "targetData": "frontend/src/backupData.ts",
@@ -232,7 +250,7 @@
     {
       "route": "/sito-studio",
       "family": "studio",
-      "status": "react_full",
+      "status": "react_bridge",
       "risk": "medium",
       "targetComponent": "frontend/src/components/SitoStudioPage.tsx",
       "targetData": "frontend/src/sitoStudioData.ts",
@@ -250,7 +268,7 @@
     {
       "route": "/sito-studio/contatti",
       "family": "studio",
-      "status": "react_full",
+      "status": "react_bridge",
       "risk": "medium",
       "targetComponent": "frontend/src/components/SitoStudioPage.tsx",
       "targetData": "frontend/src/sitoStudioData.ts",
@@ -286,7 +304,7 @@
     {
       "route": "/statistiche",
       "family": "studio",
-      "status": "react_full",
+      "status": "react_operational_partial",
       "risk": "medium",
       "targetComponent": "frontend/src/components/StatistichePage.tsx",
       "targetData": "frontend/src/statisticheData.ts",
@@ -304,7 +322,7 @@
     {
       "route": "/fatturazione",
       "family": "economico",
-      "status": "react_full",
+      "status": "react_bridge",
       "risk": "high",
       "targetComponent": "frontend/src/components/FatturazionePage.tsx",
       "targetData": "frontend/src/fatturazioneData.ts",
@@ -322,7 +340,7 @@
     {
       "route": "/fatturazione/nuova",
       "family": "economico",
-      "status": "react_full",
+      "status": "react_bridge",
       "risk": "high",
       "targetComponent": "frontend/src/components/FatturazionePage.tsx",
       "targetData": "frontend/src/fatturazioneData.ts",
@@ -358,7 +376,7 @@
     {
       "route": "/incassi-pagamenti",
       "family": "economico",
-      "status": "react_full",
+      "status": "react_bridge",
       "risk": "high",
       "targetComponent": "frontend/src/components/IncassiPagamentiPage.tsx",
       "targetData": "frontend/src/incassiPagamentiData.ts",
@@ -376,7 +394,7 @@
     {
       "route": "/preventivi",
       "family": "mandato",
-      "status": "react_full",
+      "status": "react_bridge",
       "risk": "high",
       "targetComponent": "frontend/src/components/PreventivoWizardPage.tsx",
       "targetData": "frontend/src/preventivoWizardData.ts",
@@ -394,7 +412,7 @@
     {
       "route": "/preventivi/nuovo",
       "family": "mandato",
-      "status": "react_full",
+      "status": "react_bridge",
       "risk": "high",
       "targetComponent": "frontend/src/components/PreventivoWizardPage.tsx",
       "targetData": "frontend/src/preventivoWizardData.ts",
@@ -412,7 +430,7 @@
     {
       "route": "/preventivi/conferimento/nuovo",
       "family": "mandato",
-      "status": "react_full",
+      "status": "react_bridge",
       "risk": "high",
       "targetComponent": "frontend/src/components/PreventiviPage.tsx",
       "targetData": "frontend/src/preventiviData.ts",
@@ -448,7 +466,7 @@
     {
       "route": "/preventivi/wizard",
       "family": "mandato",
-      "status": "react_full",
+      "status": "react_operational_partial",
       "risk": "high",
       "targetComponent": "frontend/src/components/PreventivoWizardPage.tsx",
       "targetData": "frontend/src/preventivoWizardData.ts",
@@ -466,7 +484,7 @@
     {
       "route": "/compensi-forensi",
       "family": "mandato",
-      "status": "react_full",
+      "status": "react_bridge",
       "risk": "high",
       "targetComponent": "frontend/src/components/CompensiForensiPage.tsx",
       "targetData": "frontend/src/compensiForensiData.ts",
@@ -502,7 +520,7 @@
     {
       "route": "/tariffario",
       "family": "mandato",
-      "status": "react_full",
+      "status": "react_operational_partial",
       "risk": "high",
       "targetComponent": "frontend/src/components/TariffarioPage.tsx",
       "targetData": "frontend/src/tariffarioData.ts",
@@ -538,7 +556,7 @@
     {
       "route": "/template-atti",
       "family": "documenti",
-      "status": "react_full",
+      "status": "react_bridge",
       "risk": "high",
       "targetComponent": "frontend/src/components/TemplateAttiPage.tsx",
       "targetData": "frontend/src/templateAttiData.ts",
@@ -556,7 +574,7 @@
     {
       "route": "/template-atti/catalogo",
       "family": "documenti",
-      "status": "react_full",
+      "status": "react_bridge",
       "risk": "high",
       "targetComponent": "frontend/src/components/TemplateAttiPage.tsx",
       "targetData": "frontend/src/templateAttiData.ts",
@@ -610,7 +628,7 @@
     {
       "route": "/redazione-atti",
       "family": "documenti",
-      "status": "react_full",
+      "status": "react_bridge",
       "risk": "high",
       "targetComponent": "frontend/src/components/RedazioneAttiPage.tsx",
       "targetData": "frontend/src/redazioneAttiData.ts",
@@ -664,37 +682,163 @@
     {
       "route": "/giurisprudenza",
       "family": "documenti",
-      "status": "legacy_operational",
+      "status": "react_bridge",
       "risk": "high",
       "targetComponent": "frontend/src/components/GiurisprudenzaPage.tsx",
       "targetData": "frontend/src/giurisprudenzaData.ts",
       "targetBridge": "web/services/react_giurisprudenza_bridge.py",
       "legacyContract": "artifacts/react-migration/legacy-contracts/giurisprudenza.json",
+      "unlockFromGate": true,
+      "mustPreserve": [
+        "archivio metadati",
+        "fonti gia presenti",
+        "nessun import React",
+        "nessuna classificazione React",
+        "dettaglio legacy"
+      ]
+    },
+    {
+      "route": "/giurisprudenza/nuova",
+      "family": "documenti",
+      "status": "legacy_operational",
+      "risk": "high",
+      "targetComponent": "frontend/src/components/GiurisprudenzaPage.tsx",
+      "targetData": "frontend/src/giurisprudenzaData.ts",
+      "targetBridge": "web/services/react_giurisprudenza_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/giurisprudenza__nuova.json",
       "unlockFromGate": false,
       "mustPreserve": [
-        "fonti ufficiali",
-        "import sentenze",
+        "inserimento scheda",
+        "import fonte",
         "classificazione",
-        "collegamento fascicoli",
-        "guardrail citabilita"
+        "POST legacy auditato",
+        "nessuna classificazione React"
+      ]
+    },
+    {
+      "route": "/giurisprudenza/*",
+      "family": "documenti",
+      "status": "legacy_operational",
+      "risk": "high",
+      "targetComponent": "frontend/src/components/GiurisprudenzaPage.tsx",
+      "targetData": "frontend/src/giurisprudenzaData.ts",
+      "targetBridge": "web/services/react_giurisprudenza_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/giurisprudenza__detail.json",
+      "unlockFromGate": false,
+      "mustPreserve": [
+        "dettaglio sentenza",
+        "testo integrale",
+        "download/export",
+        "classificazione",
+        "audit"
       ]
     },
     {
       "route": "/legal-intelligence",
+      "family": "documenti",
+      "status": "react_bridge",
+      "risk": "high",
+      "targetComponent": "frontend/src/components/LegalIntelligencePage.tsx",
+      "targetData": "frontend/src/legalIntelligenceData.ts",
+      "targetBridge": "web/services/react_legal_intelligence_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/legal-intelligence.json",
+      "unlockFromGate": true,
+      "mustPreserve": [
+        "monitor fonti",
+        "dashboard read-only",
+        "approvazione legacy",
+        "nessun fetch esterno",
+        "distinzione fonte e inferenza"
+      ]
+    },
+    {
+      "route": "/legal-intelligence/news",
+      "family": "documenti",
+      "status": "react_bridge",
+      "risk": "high",
+      "targetComponent": "frontend/src/components/LegalIntelligencePage.tsx",
+      "targetData": "frontend/src/legalIntelligenceData.ts",
+      "targetBridge": "web/services/react_legal_intelligence_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/legal-intelligence__news.json",
+      "unlockFromGate": true,
+      "mustPreserve": [
+        "news gia presenti",
+        "fonte",
+        "stato approvazione",
+        "nessuna sintesi generata",
+        "nessun fetch esterno"
+      ]
+    },
+    {
+      "route": "/legal-intelligence/mediazione",
+      "family": "documenti",
+      "status": "react_bridge",
+      "risk": "high",
+      "targetComponent": "frontend/src/components/LegalIntelligencePage.tsx",
+      "targetData": "frontend/src/legalIntelligenceData.ts",
+      "targetBridge": "web/services/react_legal_intelligence_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/legal-intelligence__mediazione.json",
+      "unlockFromGate": true,
+      "mustPreserve": [
+        "registro mediazione",
+        "fonte",
+        "stato aggiornamento",
+        "nessun import React",
+        "nessun fetch esterno"
+      ]
+    },
+    {
+      "route": "/legal-intelligence/*",
       "family": "documenti",
       "status": "legacy_operational",
       "risk": "high",
       "targetComponent": "frontend/src/components/LegalIntelligencePage.tsx",
       "targetData": "frontend/src/legalIntelligenceData.ts",
       "targetBridge": "web/services/react_legal_intelligence_bridge.py",
-      "legacyContract": "artifacts/react-migration/legacy-contracts/legal-intelligence.json",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/legal-intelligence__detail.json",
       "unlockFromGate": false,
       "mustPreserve": [
-        "monitor fonti",
-        "news legali",
-        "mediazione",
+        "sincronizzazione fonti",
         "approvazione contenuti",
-        "distinzione fonte e inferenza"
+        "pipeline legacy",
+        "AI controllata",
+        "audit"
+      ]
+    },
+    {
+      "route": "/ricerca-legale",
+      "family": "documenti",
+      "status": "react_bridge",
+      "risk": "high",
+      "targetComponent": "frontend/src/components/LegalIntelligencePage.tsx",
+      "targetData": "frontend/src/legalIntelligenceData.ts",
+      "targetBridge": "web/services/react_legal_intelligence_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/ricerca-legale.json",
+      "unlockFromGate": true,
+      "mustPreserve": [
+        "alias legal intelligence",
+        "fonti gia presenti",
+        "nessun fetch esterno",
+        "nessuna sintesi generata",
+        "nessuna pipeline nuova"
+      ]
+    },
+    {
+      "route": "/ricerca-legale/*",
+      "family": "documenti",
+      "status": "legacy_operational",
+      "risk": "high",
+      "targetComponent": "frontend/src/components/LegalIntelligencePage.tsx",
+      "targetData": "frontend/src/legalIntelligenceData.ts",
+      "targetBridge": "web/services/react_legal_intelligence_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/ricerca-legale__detail.json",
+      "unlockFromGate": false,
+      "mustPreserve": [
+        "pipeline legacy",
+        "dettaglio fonti",
+        "approvazione",
+        "AI controllata",
+        "audit"
       ]
     },
     {

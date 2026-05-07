@@ -1,5 +1,32 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-07 - Legal knowledge React read-only 2.198.105
+
+La decima promozione governata abilita le superfici di consultazione giuridica
+senza spostare import, classificazione, testo integrale, approvazione contenuti
+o AI fuori dalle route Flask legacy:
+
+- `/giurisprudenza` usa `web/services/react_giurisprudenza_bridge.py` e
+  `GET /api/v1/ui/giurisprudenza` per KPI, fonti, filtri e metadati di
+  provvedimenti/sentenze gia presenti nel repository.
+- `/legal-intelligence`, `/legal-intelligence/news`,
+  `/legal-intelligence/mediazione` e `/ricerca-legale` usano
+  `web/services/react_legal_intelligence_bridge.py` e endpoint GET dedicati
+  per dashboard monitor, news pubblicate, registro mediazione e hub di ricerca
+  legale, senza fetch esterno o pipeline nuova.
+- Restano legacy `/giurisprudenza/nuova`, `/giurisprudenza/*`,
+  `/legal-intelligence/*` diverso da news/mediazione, `/ricerca-legale/*`,
+  `/checklist` e `/deposito/checklist`.
+- Impeccable / Open Design aggiunge token legal knowledge `--iu-od-source-*`
+  e utility `iu-od-source-card`, `iu-od-source-badge`,
+  `iu-od-evidence-panel`, `iu-od-inference-warning` e
+  `iu-od-legal-list`, distinguendo fonte, metadato, warning, inferenza e
+  azioni legacy senza dipendenze grafiche.
+- `run-safe-react-migration.mjs --tranche=10a` cattura contratti legacy,
+  rilancia gate/UI, anti-segreti, anti-fetch esterno, anti-generazione AI,
+  anti-documento raw, Open Design, test Flask, `npm run test`, typecheck e
+  build, poi genera patch di rollback separate.
+
 ## Stato tranche 2026-05-07 - Tariffario console operativa 2.198.102
 
 La tranche `2.198.102` rifinisce `/tariffario` come console economica

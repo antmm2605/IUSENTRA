@@ -1,0 +1,12 @@
+{
+  "route": "/legal-intelligence/*",
+  "legacyUrl": "/legal-intelligence/qualunque?_legacy=1",
+  "status": "legacy_operational",
+  "forms": [],
+  "links": [],
+  "linksCount": 0,
+  "downloads": [],
+  "hasBootstrapClass": false,
+  "hasReactRoot": false,
+  "note": "Contratto wildcard sicuro: sincronizzazione fonti, approvazione contenuti, pipeline legacy, indice assistito e audit restano legacy."
+}

@@ -1,0 +1,930 @@
+diff --git a/web/blueprints/api_v1_react.py b/web/blueprints/api_v1_react.py
+index 28b67b4f..40bf8a03 100644
+--- a/web/blueprints/api_v1_react.py
++++ b/web/blueprints/api_v1_react.py
+@@ -17,6 +17,7 @@ from flask import Blueprint, current_app, g, jsonify, request, send_file, url_fo
+ from werkzeug.exceptions import HTTPException
+
+ from pct import __version__ as APP_VERSION
++from pct.auth import RuoloUtente
+ from pct.email_client import CartellaEmail, GestioneEmailRicevute, StatoEmail
+ from pct.fatturazione import StatoParcella
+ from pct.messaggi import CanaleMsggio, ConfigMessaggistica, GestioneMessaggi, Messaggio, StatoMessaggio
+@@ -122,6 +123,14 @@ from web.services.react_redazione_atti_bridge import (
+     build_react_redazione_atti_error_payload,
+     build_react_redazione_atti_payload,
+ )
++from web.services.react_giurisprudenza_bridge import (
++    build_react_giurisprudenza_error_payload,
++    build_react_giurisprudenza_payload,
++)
++from web.services.react_legal_intelligence_bridge import (
++    build_react_legal_intelligence_error_payload,
++    build_react_legal_intelligence_payload,
++)
+ from web.services.react_incassi_pagamenti_bridge import (
+     build_react_incassi_pagamenti_error_payload,
+     build_react_incassi_pagamenti_payload,
+@@ -145,6 +154,8 @@ from web.helpers import (
+     get_clienti,
+     get_fascicoli,
+     get_fatturazione,
++    get_legal_intelligence,
++    get_legal_update_pipeline,
+     get_normative_tables,
+     get_pagamenti,
+     get_practice_engine,
+@@ -198,6 +209,11 @@ def _puo_leggere_utenti() -> bool:
+     return bool(utente and getattr(utente, "ha_permesso", lambda _permesso: False)("utenti.leggi"))
+
+
++def _puo_scrivere_utenti() -> bool:
++    utente = g.get("utente_corrente")
++    return bool(utente and getattr(utente, "ha_permesso", lambda _permesso: False)("utenti.scrivi"))
++
++
+ def _session_user_can(permission: str) -> bool:
+     utente = g.get("utente_corrente")
+     return bool(utente and getattr(utente, "ha_permesso", lambda _permesso: False)(permission))
+@@ -309,6 +325,10 @@ def _request_payload() -> dict[str, Any]:
+     return {key: value for key, value in request.form.items()}
+
+
++def _json_validation_error(message: str, errors: dict[str, str], *, status: int = 200):
++    return jsonify({"ok": False, "message": message, "errors": errors}), status
++
++
+ def _warning(code: str, message: str) -> dict[str, str]:
+     return {"code": code, "message": message}
+
+@@ -2404,6 +2424,101 @@ def utenti_page():
+         return jsonify(build_react_utenti_error_payload("Gestione utenti non disponibile dal runtime corrente.")), 200
+
+
++@api_v1_react.post("/utenti/nuovo")
++@_richiedi_auth
++def utenti_nuovo_crea():
++    utente = g.get("utente_corrente")
++    if not _puo_scrivere_utenti():
++        return _json_validation_error(
++            "Permesso utenti.scrivi richiesto.",
++            {"_form": "Non hai i permessi necessari per creare utenti."},
++            status=403,
++        )
++    if current_app.config.get("MULTI_TENANT") and getattr(utente, "is_superadmin", False):
++        return _json_validation_error(
++            "Il ruolo SUPERADMIN si gestisce solo dal pannello piattaforma dedicato.",
++            {"ruolo": "SUPERADMIN non e' assegnabile agli utenti di studio."},
++            status=403,
++        )
++
++    payload = _request_payload()
++    errors: dict[str, str] = {}
++    username = str(payload.get("username") or "").strip().lower()
++    password = str(payload.get("password") or "")
++    ruolo_raw = str(payload.get("ruolo") or "").strip()
++    nome_completo = str(payload.get("nome_completo") or "").strip()
++    email = str(payload.get("email") or "").strip()
++
++    if not username:
++        errors["username"] = "Inserisci lo username."
++    if len(password) < 8:
++        errors["password"] = "La password temporanea deve avere almeno 8 caratteri."
++    try:
++        ruolo = RuoloUtente(ruolo_raw)
++        if ruolo == RuoloUtente.SUPERADMIN:
++            errors["ruolo"] = "Il ruolo SUPERADMIN si gestisce solo dal pannello piattaforma."
++    except ValueError:
++        ruolo = None
++        errors["ruolo"] = "Seleziona un ruolo valido."
++
++    if errors:
++        return _json_validation_error("Controlla i campi evidenziati.", errors)
++
++    manager = get_utenti()
++    try:
++        nuovo = manager.crea(
++            username=username,
++            password=password,
++            ruolo=ruolo,
++            email=email,
++            nome_completo=nome_completo,
++        )
++    except ValueError as exc:
++        message = str(exc)
++        field = "username" if "username" in message.lower() else "_form"
++        return _json_validation_error(message, {field: message})
++    except Exception as exc:
++        current_app.logger.exception("Errore creazione utente React JSON: %s", exc)
++        return _json_validation_error(
++            "Creazione utente non disponibile dal runtime corrente.",
++            {"_form": "Errore server controllato. Riprova o usa il fallback tecnico."},
++            status=500,
++        )
++
++    actor_id = str(getattr(utente, "id", "") or "")
++    actor_username = str(getattr(utente, "username", "") or "")
++    try:
++        manager.registra_evento(
++            "utenti.crea",
++            id_utente=actor_id,
++            username=actor_username,
++            risorsa_tipo="utente",
++            risorsa_id=nuovo.id,
++            dettagli=f"username={nuovo.username}",
++            ip=request.remote_addr or "",
++        )
++    except Exception as exc:
++        current_app.logger.warning("Audit creazione utente React non registrato: %s", exc)
++
++    role_value = str(getattr(getattr(nuovo, "ruolo", ""), "value", getattr(nuovo, "ruolo", "")) or "")
++    return jsonify(
++        {
++            "ok": True,
++            "message": f"Utente '{nuovo.username}' creato. Al primo accesso dovra' cambiare la credenziale temporanea.",
++            "errors": {},
++            "item": {
++                "id": nuovo.id,
++                "username": nuovo.username,
++                "name": getattr(nuovo, "nome_completo", ""),
++                "email": getattr(nuovo, "email", ""),
++                "role": role_value,
++                "roleLabel": role_value.replace("_", " ").title(),
++                "active": bool(getattr(nuovo, "attivo", False)),
++            },
++        }
++    )
++
++
+ @api_v1_react.get("/profili")
+ @_richiedi_auth
+ def profili_page():
+@@ -2723,6 +2838,91 @@ def redazione_atti_page():
+         ), 200
+
+
++@api_v1_react.get("/giurisprudenza")
++@_richiedi_auth
++def giurisprudenza_page():
++    utente = g.get("utente_corrente")
++    if not utente:
++        return jsonify(build_react_giurisprudenza_error_payload("Sessione utente richiesta.")), 403
++    try:
++        return jsonify(build_react_giurisprudenza_payload(get_giurisprudenza=get_giurisprudenza, query=dict(request.args)))
++    except Exception as exc:
++        current_app.logger.exception("Errore Giurisprudenza React bridge: %s", exc)
++        return jsonify(
++            build_react_giurisprudenza_error_payload(
++                "Archivio giurisprudenza non disponibile dal runtime corrente."
++            )
++        ), 200
++
++
++def _legal_intelligence_ui_payload(page: str, legacy_contract: str):
++    utente = g.get("utente_corrente")
++    if not utente:
++        return jsonify(
++            build_react_legal_intelligence_error_payload(
++                "Sessione utente richiesta.",
++                legacy_contract=legacy_contract,
++            )
++        ), 403
++    try:
++        return jsonify(
++            build_react_legal_intelligence_payload(
++                get_legal_intelligence=get_legal_intelligence,
++                get_legal_update_pipeline=get_legal_update_pipeline,
++                get_fascicoli=get_fascicoli,
++                get_clienti=get_clienti,
++                get_agenda=get_agenda,
++                get_scadenziario=get_scadenziario,
++                page=page,
++                query=dict(request.args),
++            )
++        )
++    except Exception as exc:
++        current_app.logger.exception("Errore Legal Intelligence React bridge: %s", exc)
++        return jsonify(
++            build_react_legal_intelligence_error_payload(
++                "Legal Intelligence non disponibile dal runtime corrente.",
++                legacy_contract=legacy_contract,
++            )
++        ), 200
++
++
++@api_v1_react.get("/legal-intelligence")
++@_richiedi_auth
++def legal_intelligence_page():
++    return _legal_intelligence_ui_payload(
++        "dashboard",
++        "artifacts/react-migration/legacy-contracts/legal-intelligence.json",
++    )
++
++
++@api_v1_react.get("/legal-intelligence/news")
++@_richiedi_auth
++def legal_intelligence_news_page():
++    return _legal_intelligence_ui_payload(
++        "news",
++        "artifacts/react-migration/legacy-contracts/legal-intelligence__news.json",
++    )
++
++
++@api_v1_react.get("/legal-intelligence/mediazione")
++@_richiedi_auth
++def legal_intelligence_mediazione_page():
++    return _legal_intelligence_ui_payload(
++        "mediazione",
++        "artifacts/react-migration/legacy-contracts/legal-intelligence__mediazione.json",
++    )
++
++
++@api_v1_react.get("/ricerca-legale")
++@_richiedi_auth
++def ricerca_legale_page():
++    return _legal_intelligence_ui_payload(
++        "ricerca-legale",
++        "artifacts/react-migration/legacy-contracts/ricerca-legale.json",
++    )
++
++
+ def _preventivi_ui_payload(route: str):
+     utente = g.get("utente_corrente")
+     if not utente:
+
+diff --git a/web/services/react_giurisprudenza_bridge.py b/web/services/react_giurisprudenza_bridge.py
+new file mode 100644
+index 00000000..f6f66791
+--- /dev/null
++++ b/web/services/react_giurisprudenza_bridge.py
+@@ -0,0 +1,281 @@
++"""Bridge read-only per la superficie React Giurisprudenza."""
++
++from __future__ import annotations
++
++from collections import Counter
++from datetime import datetime, timezone
++from typing import Any, Callable, Mapping
++
++
++def _iso_now() -> str:
++    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
++
++
++def _text(value: Any) -> str:
++    return " ".join(str(value or "").split())
++
++
++def _short(value: Any, limit: int = 220) -> str:
++    text = _text(value)
++    if len(text) <= limit:
++        return text
++    return text[: limit - 1].rstrip() + "..."
++
++
++def _list(value: Any) -> list[Any]:
++    return value if isinstance(value, list) else []
++
++
++def _safe_href(value: Any, fallback: str = "") -> str:
++    href = _text(value)
++    if href.startswith("/") and href != "#":
++        return href
++    if href.startswith("https://") or href.startswith("http://"):
++        return href
++    return fallback
++
++
++def _metric(mid: str, label: str, value: Any, note: str, tone: str = "neutral") -> dict[str, Any]:
++    return {"id": mid, "label": label, "value": value, "note": note, "tone": tone}
++
++
++def _item(iid: str, label: str, value: Any, note: str = "", tone: str = "neutral") -> dict[str, Any]:
++    return {"id": iid, "label": label, "value": value, "note": note, "tone": tone}
++
++
++def _section(sid: str, title: str, kind: str, items: list[dict[str, Any]], empty: str) -> dict[str, Any]:
++    return {"id": sid, "title": title, "kind": kind, "items": items, "emptyMessage": empty}
++
++
++def _action(aid: str, label: str, href: str, tone: str = "neutral") -> dict[str, Any]:
++    return {"id": aid, "label": label, "href": href, "method": "GET", "tone": tone}
++
++
++def _warning(code: str, message: str) -> dict[str, str]:
++    return {"code": code, "message": message}
++
++
++def _tone_from_status(value: Any) -> str:
++    status = _text(value).lower().replace("_", " ")
++    if not status:
++        return "neutral"
++    if status in {"verificata", "verificato", "citabile", "sincronizzata", "pubblicata"}:
++        return "success"
++    if status in {"da verificare", "parziale", "parzialmente verificata", "in revisione"}:
++        return "warning"
++    if status in {"non citabile", "errore", "scaduta", "bloccata"}:
++        return "danger"
++    return "info"
++
++
++def _count_section(sid: str, title: str, kind: str, values: list[str], empty: str) -> dict[str, Any]:
++    counter = Counter(value for value in values if value)
++    items = [
++        _item(_text(key).lower().replace(" ", "_") or f"{sid}_{index}", key, count)
++        for index, (key, count) in enumerate(counter.most_common(), start=1)
++    ]
++    return _section(sid, title, kind, items, empty)
++
++
++def _safe_source(row: Mapping[str, Any]) -> dict[str, Any]:
++    source_id = _text(row.get("id") or row.get("source_system") or row.get("nome"))
++    last_run = row.get("last_run") if isinstance(row.get("last_run"), dict) else {}
++    last_status = _text(last_run.get("status") or row.get("sync_status") or row.get("access_mode"))
++    return {
++        "id": source_id,
++        "label": _text(row.get("nome") or row.get("name") or source_id) or "Fonte",
++        "kind": _text(row.get("giurisdizione") or row.get("badge") or row.get("access_mode")),
++        "coverage": _text(row.get("coverage")),
++        "accessMode": _text(row.get("access_mode") or row.get("sync_mode")),
++        "sourceHref": _safe_href(row.get("official_url") or row.get("search_url")),
++        "legacyHref": _safe_href(row.get("handoff_url")),
++        "lastRunAt": _text(last_run.get("ended_at") or last_run.get("checked_at") or last_run.get("started_at")),
++        "stateLabel": last_status or "Fonte censita",
++        "stateTone": _tone_from_status(last_status),
++        "count": int(row.get("judgment_count") or 0),
++        "evidenceType": "fonte",
++    }
++
++
++def _safe_links(links: Any) -> list[dict[str, str]]:
++    out: list[dict[str, str]] = []
++    for index, link in enumerate(_list(links), start=1):
++        if not isinstance(link, dict):
++            continue
++        fascicolo_id = _text(link.get("fascicolo_id") or link.get("practice_id") or link.get("id"))
++        label = _text(link.get("fascicolo_titolo") or link.get("titolo") or link.get("nome") or fascicolo_id)
++        href = _safe_href(link.get("href") or (f"/fascicoli/{fascicolo_id}" if fascicolo_id else ""))
++        if not label and not href:
++            continue
++        out.append({"id": fascicolo_id or f"collegamento_{index}", "label": label or "Fascicolo collegato", "href": href})
++    return out
++
++
++def _safe_record(row: Mapping[str, Any], sources: Mapping[str, dict[str, Any]], index: int) -> dict[str, Any]:
++    record_id = _text(row.get("id")) or f"provvedimento_{index}"
++    source_id = _text(row.get("source_system") or row.get("fonte") or "manuale_interno")
++    source = sources.get(source_id, {})
++    date_value = _text(row.get("data_deposito") or row.get("data_decisione") or row.get("published_at") or row.get("updated_at"))
++    verification = _text(row.get("stato_verifica") or row.get("stato_citabilita") or row.get("verifica") or row.get("citabilita"))
++    orientation = _text(row.get("orientamento"))
++    title = _text(row.get("titolo")) or _text(row.get("tipo_provvedimento")) or "Provvedimento"
++    return {
++        "id": record_id,
++        "title": title,
++        "subtitle": _short(row.get("microtema") or row.get("materia") or row.get("rito") or row.get("esito"), 180),
++        "sourceId": source_id,
++        "sourceLabel": _text(source.get("label") or row.get("source_label") or source_id),
++        "sourceKind": _text(source.get("kind") or row.get("giurisdizione")),
++        "authority": _text(row.get("organo_giudicante") or row.get("ufficio")),
++        "office": _text(row.get("ufficio") or row.get("sezione")),
++        "date": date_value,
++        "area": _text(row.get("area")),
++        "branch": _text(row.get("branca")),
++        "subbranch": _text(row.get("sottobranca")),
++        "grade": _text(row.get("grado")),
++        "jurisdiction": _text(row.get("giurisdizione")),
++        "caseNumber": _text(row.get("numero_provvedimento") or row.get("numero_rg") or row.get("riferimento_causa")),
++        "ecli": _text(row.get("ecli")),
++        "orientation": orientation,
++        "orientationKind": "inferenza_backend" if orientation else "",
++        "verificationLabel": verification,
++        "verificationTone": _tone_from_status(verification),
++        "citationLabel": _text(row.get("stato_citabilita") or row.get("citabilita")),
++        "tags": [_text(item) for item in _list(row.get("parole_chiave") or row.get("tags")) if _text(item)][:12],
++        "legacyHref": f"/giurisprudenza/{record_id}?_legacy=1",
++        "practiceLinks": _safe_links(row.get("practice_links") or row.get("fascicoli_collegati")),
++        "evidenceType": "metadato",
++    }
++
++
++def _empty_payload(source: str, message: str) -> dict[str, Any]:
++    return {
++        "source": source,
++        "generated_at": _iso_now(),
++        "contracts": {
++            "mock_fallback": False,
++            "writes": "legacy_routes",
++            "route_owner": "react_shell",
++            "external_fetch": False,
++            "ai_generation": False,
++            "canonical_source": "backend_legacy",
++            "legacy_contract": "artifacts/react-migration/legacy-contracts/giurisprudenza.json",
++        },
++        "metrics": [],
++        "sections": [],
++        "records": [],
++        "actions": [
++            _action("nuova_legacy", "Nuova scheda legacy", "/giurisprudenza/nuova?_legacy=1", "neutral"),
++        ],
++        "forms": [],
++        "warnings": [_warning("giurisprudenza_non_disponibile", message)],
++    }
++
++
++def build_react_giurisprudenza_payload(
++    *,
++    get_giurisprudenza: Callable[[], Any],
++    query: Mapping[str, Any] | None = None,
++) -> dict[str, Any]:
++    """Costruisce il payload React usando solo metadati gia presenti nel backend."""
++
++    query = query or {}
++    warnings: list[dict[str, str]] = [
++        _warning("workflow_legacy", "Import, classificazione, scheda di dettaglio e contenuto completo restano nelle route legacy."),
++        _warning("metadati_sicuri", "La shell React riceve solo fonte, metadati, stato verifica e collegamenti operativi sicuri."),
++    ]
++    manager = get_giurisprudenza()
++    sources = [_safe_source(row) for row in _list(manager.catalogo_fonti()) if isinstance(row, dict)]
++    source_lookup = {source["id"]: source for source in sources if source.get("id")}
++    filters = {
++        "q": _text(query.get("q")),
++        "source_system": _text(query.get("source_system")),
++        "area": _text(query.get("area")),
++        "branca": _text(query.get("branca")),
++        "sottobranca": _text(query.get("sottobranca")),
++        "grado": _text(query.get("grado")),
++        "giurisdizione": _text(query.get("giurisdizione")),
++        "orientamento": _text(query.get("orientamento")),
++        "uso_nel_software": _text(query.get("uso_nel_software")),
++    }
++    raw_records = manager.cerca(**filters)
++    records = [
++        _safe_record(row, source_lookup, index)
++        for index, row in enumerate(_list(raw_records), start=1)
++        if isinstance(row, dict)
++    ]
++    stats = manager.statistiche()
++    storage_stats = manager.storage_stats()
++    catalog_filters = manager.filtri()
++    run_log = [
++        _item(
++            f"run_{index}",
++            _text(row.get("source_id") or row.get("source_system") or "Fonte"),
++            _text(row.get("status") or row.get("ended_at") or row.get("checked_at")),
++            _text(row.get("message") or row.get("warning")),
++            _tone_from_status(row.get("status")),
++        )
++        for index, row in enumerate(_list(manager.recent_sync_runs()), start=1)
++        if isinstance(row, dict)
++    ]
++
++    return {
++        "source": "repository_reali",
++        "generated_at": _iso_now(),
++        "contracts": {
++            "mock_fallback": False,
++            "writes": "legacy_routes",
++            "route_owner": "react_shell",
++            "external_fetch": False,
++            "ai_generation": False,
++            "canonical_source": "backend_legacy",
++            "legacy_contract": "artifacts/react-migration/legacy-contracts/giurisprudenza.json",
++        },
++        "metrics": [
++            _metric("provvedimenti", "Provvedimenti", int(stats.get("totale_sentenze") or len(records)), "Archivio interno", "primary"),
++            _metric("fonti", "Fonti censite", int(stats.get("fonti_attive") or len(sources)), "Repository giurisprudenza", "info"),
++            _metric("aree", "Aree coperte", int(stats.get("aree_coperte") or 0), "Metadati tassonomici", "neutral"),
++            _metric("da_verificare", "Da verificare", int(stats.get("bozze_da_classificare") or 0), "Gestione legacy", "warning"),
++            _metric("collegamenti", "Fascicoli collegati", int(stats.get("fascicoli_collegati") or 0), "Solo metadati", "success" if stats.get("fascicoli_collegati") else "neutral"),
++        ],
++        "sections": [
++            _section(
++                "fonti",
++                "Fonti disponibili",
++                "source-cards",
++                [
++                    _item(source["id"], source["label"], source["count"], source.get("coverage") or source.get("stateLabel", ""), source.get("stateTone", "neutral"))
++                    for source in sources
++                ],
++                "Nessuna fonte censita nel repository.",
++            ),
++            _count_section("aree", "Aree", "distribution", [record["area"] for record in records], "Nessuna area disponibile."),
++            _count_section("gradi", "Gradi", "distribution", [record["grade"] for record in records], "Nessun grado disponibile."),
++            _count_section("orientamenti", "Orientamenti", "inference", [record["orientation"] for record in records], "Nessun orientamento presente nei metadati."),
++            _section("sync_recenti", "Aggiornamenti registrati", "metadata", run_log, "Nessun aggiornamento registrato."),
++            _section(
++                "filtri",
++                "Filtri disponibili",
++                "metadata",
++                [
++                    _item("fonti", "Fonti", len(_list(catalog_filters.get("fonti"))), "Catalogo backend"),
++                    _item("aree", "Aree", len(_list(catalog_filters.get("aree"))), "Tassonomia backend"),
++                    _item("storage", "Versione storage", storage_stats.get("storage_version", ""), "Matrice repository"),
++                ],
++                "Nessun filtro disponibile.",
++            ),
++        ],
++        "records": records,
++        "actions": [
++            _action("nuova_legacy", "Nuova scheda legacy", "/giurisprudenza/nuova?_legacy=1", "neutral"),
++            _action("legal_intelligence", "Legal Intelligence", "/legal-intelligence", "primary"),
++        ],
++        "forms": [],
++        "warnings": warnings,
++        "sources": sources,
++        "filters": filters,
++    }
++
++
++def build_react_giurisprudenza_error_payload(message: str = "Archivio giurisprudenza non disponibile.") -> dict[str, Any]:
++    return _empty_payload("errore_controllato", message)
+
+diff --git a/web/services/react_legal_intelligence_bridge.py b/web/services/react_legal_intelligence_bridge.py
+new file mode 100644
+index 00000000..dccc30be
+--- /dev/null
++++ b/web/services/react_legal_intelligence_bridge.py
+@@ -0,0 +1,382 @@
++"""Bridge read-only per le superfici React Legal Intelligence."""
++
++from __future__ import annotations
++
++from datetime import datetime, timezone
++from typing import Any, Callable, Mapping
++
++
++def _iso_now() -> str:
++    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
++
++
++def _text(value: Any) -> str:
++    return " ".join(str(value or "").split())
++
++
++def _short(value: Any, limit: int = 220) -> str:
++    text = _text(value)
++    if len(text) <= limit:
++        return text
++    return text[: limit - 1].rstrip() + "..."
++
++
++def _list(value: Any) -> list[Any]:
++    return value if isinstance(value, list) else []
++
++
++def _dict(value: Any) -> dict[str, Any]:
++    return dict(value) if isinstance(value, dict) else {}
++
++
++def _safe_href(value: Any, fallback: str = "") -> str:
++    href = _text(value)
++    if href.startswith("/") and href != "#":
++        return href
++    if href.startswith("https://") or href.startswith("http://"):
++        return href
++    return fallback
++
++
++def _metric(mid: str, label: str, value: Any, note: str, tone: str = "neutral") -> dict[str, Any]:
++    return {"id": mid, "label": label, "value": value, "note": note, "tone": tone}
++
++
++def _item(iid: str, label: str, value: Any, note: str = "", tone: str = "neutral") -> dict[str, Any]:
++    return {"id": iid, "label": label, "value": value, "note": note, "tone": tone}
++
++
++def _section(sid: str, title: str, kind: str, items: list[dict[str, Any]], empty: str) -> dict[str, Any]:
++    return {"id": sid, "title": title, "kind": kind, "items": items, "emptyMessage": empty}
++
++
++def _action(aid: str, label: str, href: str, tone: str = "neutral") -> dict[str, Any]:
++    return {"id": aid, "label": label, "href": href, "method": "GET", "tone": tone}
++
++
++def _warning(code: str, message: str) -> dict[str, str]:
++    return {"code": code, "message": message}
++
++
++def _tone(value: Any) -> str:
++    text = _text(value).lower().replace("_", " ")
++    if not text:
++        return "neutral"
++    if text in {"published", "pubblicata", "approved", "approvata", "sincronizzata", "aggiornata", "ok"}:
++        return "success"
++    if text in {"pending", "pending review", "in revisione", "verifica richiesta", "da verificare"}:
++        return "warning"
++    if text in {"error", "errore", "fallita", "non aggiornata"}:
++        return "danger"
++    return "info"
++
++
++def _safe_call(loader: Callable[[], Any], warnings: list[dict[str, str]], code: str, label: str) -> list[Any]:
++    try:
++        value = loader()
++        return list(value or [])
++    except Exception as exc:
++        warnings.append(_warning(code, f"{label} non disponibili: {type(exc).__name__}."))
++        return []
++
++
++def _dashboard_snapshot(
++    manager: Any,
++    warnings: list[dict[str, str]],
++    *,
++    get_fascicoli: Callable[[], Any],
++    get_clienti: Callable[[], Any],
++    get_agenda: Callable[[], Any],
++    get_scadenziario: Callable[[], Any],
++) -> dict[str, Any]:
++    try:
++        return manager.build_dashboard_snapshot(
++            fascicoli=_safe_call(lambda: get_fascicoli().tutti(archiviati=True), warnings, "fascicoli_non_disponibili", "Fascicoli"),
++            clienti=_safe_call(lambda: get_clienti().tutti(), warnings, "clienti_non_disponibili", "Clienti"),
++            appuntamenti=_safe_call(lambda: get_agenda().tutti(), warnings, "agenda_non_disponibile", "Agenda"),
++            scadenze=_safe_call(lambda: get_scadenziario().tutte(), warnings, "scadenze_non_disponibili", "Scadenze"),
++            portali=[],
++        )
++    except Exception as exc:
++        warnings.append(_warning("snapshot_non_disponibile", f"Snapshot Legal Intelligence non disponibile: {type(exc).__name__}."))
++        return {}
++
++
++def _pipeline_snapshot(pipeline: Any, warnings: list[dict[str, str]]) -> dict[str, Any]:
++    try:
++        return _dict(pipeline.dashboard_snapshot())
++    except Exception as exc:
++        warnings.append(_warning("pipeline_non_disponibile", f"Repository aggiornamenti non disponibile: {type(exc).__name__}."))
++        return {}
++
++
++def _news_rows(pipeline: Any, warnings: list[dict[str, str]], query: Mapping[str, Any] | None) -> list[dict[str, Any]]:
++    query = query or {}
++    try:
++        return list(
++            pipeline.repository.list_news(
++                matter_slug=_text(query.get("materia")),
++                news_type=_text(query.get("tipo")),
++                limit=80,
++            )
++        )
++    except Exception as exc:
++        warnings.append(_warning("news_non_disponibili", f"News giuridiche non disponibili: {type(exc).__name__}."))
++        return []
++
++
++def _matters(pipeline: Any, warnings: list[dict[str, str]]) -> list[dict[str, Any]]:
++    try:
++        return list(pipeline.repository.list_matters())
++    except Exception as exc:
++        warnings.append(_warning("materie_non_disponibili", f"Materie non disponibili: {type(exc).__name__}."))
++        return []
++
++
++def _mediazione_snapshot(manager: Any, warnings: list[dict[str, str]], query: Mapping[str, Any] | None) -> dict[str, Any]:
++    query = query or {}
++    try:
++        return _dict(
++            manager.mediazione_registry_snapshot(
++                q=_text(query.get("q")),
++                city=_text(query.get("city")),
++                registry_number=_text(query.get("registry_number")),
++                organismo_type=_text(query.get("organismo_type")),
++            )
++        )
++    except Exception as exc:
++        warnings.append(_warning("mediazione_non_disponibile", f"Registro mediazione non disponibile: {type(exc).__name__}."))
++        return {}
++
++
++def _safe_news_record(row: Mapping[str, Any], index: int) -> dict[str, Any]:
++    news_id = _text(row.get("id") or row.get("slug")) or f"news_{index}"
++    slug = _text(row.get("slug"))
++    status = _text(row.get("publication_status") or row.get("review_status") or row.get("status"))
++    source_label = _text(row.get("source_name") or row.get("source_code") or row.get("authority") or "Fonte interna")
++    return {
++        "id": news_id,
++        "kind": "news",
++        "title": _text(row.get("title") or row.get("headline")) or "News",
++        "subtitle": _short(row.get("short_summary") or row.get("lead") or row.get("description"), 220),
++        "sourceLabel": source_label,
++        "sourceKind": "fonte ufficiale" if row.get("is_official") else "contenuto interno",
++        "sourceHref": _safe_href(row.get("source_url") or row.get("official_url")),
++        "date": _text(row.get("published_at") or row.get("created_at") or row.get("updated_at")),
++        "area": _text(row.get("matter_name") or row.get("matter_slug")),
++        "branch": _text(row.get("submatter_name") or row.get("submatter_slug")),
++        "approvalLabel": status or "pubblicata",
++        "approvalTone": _tone(status or "published"),
++        "legacyHref": f"/legal-intelligence/news/{slug}?_legacy=1" if slug else "/legal-intelligence/news?_legacy=1",
++        "evidenceType": "fonte",
++    }
++
++
++def _safe_mediazione_record(row: Mapping[str, Any], index: int) -> dict[str, Any]:
++    registration = _text(row.get("registration_number") or row.get("numero_iscrizione") or index)
++    city = _text(row.get("city") or row.get("comune"))
++    province = _text(row.get("province") or row.get("provincia"))
++    return {
++        "id": registration or f"organismo_{index}",
++        "kind": "mediazione",
++        "title": _text(row.get("name") or row.get("denominazione")) or "Organismo di mediazione",
++        "subtitle": _short(row.get("type") or row.get("tipologia") or row.get("address"), 180),
++        "sourceLabel": "Registro mediazione",
++        "sourceKind": "fonte ufficiale" if row.get("official") or row.get("source") == "ministero" else "contenuto interno",
++        "date": _text(row.get("registration_date") or row.get("updated_at")),
++        "area": city,
++        "branch": province,
++        "territory": " - ".join(part for part in (city, province) if part),
++        "stateLabel": _text(row.get("status") or row.get("state") or "presente"),
++        "stateTone": _tone(row.get("status") or row.get("state") or "ok"),
++        "registryNumber": registration,
++        "legacyHref": "/legal-intelligence/mediazione?_legacy=1",
++        "evidenceType": "fonte",
++    }
++
++
++def _source_items(snapshot: Mapping[str, Any], update_snapshot: Mapping[str, Any]) -> list[dict[str, Any]]:
++    items: list[dict[str, Any]] = []
++    for index, row in enumerate(_list(snapshot.get("source_rows")), start=1):
++        if not isinstance(row, dict):
++            continue
++        label = _text(row.get("title") or row.get("name") or row.get("source_id") or row.get("id"))
++        state = _text(row.get("freshness") or row.get("sync_status") or row.get("status"))
++        items.append(_item(f"fonte_{index}", label or "Fonte", state or "censita", _text(row.get("last_checked_at") or row.get("last_synced_at")), _tone(state)))
++    for index, row in enumerate(_list(update_snapshot.get("sources")), start=1):
++        if not isinstance(row, dict):
++            continue
++        label = _text(row.get("name") or row.get("code"))
++        state = "ufficiale" if row.get("is_official") else _text(row.get("trust_class") or "interna")
++        items.append(_item(f"update_source_{index}", label or "Fonte aggiornamenti", state, _text(row.get("category")), "success" if row.get("is_official") else "neutral"))
++    return items
++
++
++def _mediazione_section(snapshot: Mapping[str, Any]) -> dict[str, Any]:
++    registry = _dict(snapshot.get("mediazione_registry"))
++    table = _dict(registry.get("table"))
++    return _section(
++        "mediazione",
++        "Registro mediazione",
++        "source-cards",
++        [
++            _item("totale", "Organismi", registry.get("total_rows", 0), _text(registry.get("data_origin_label") or "repository interno"), "primary"),
++            _item("filtrati", "Risultati filtrati", registry.get("filtered_rows", 0), _text(table.get("sync_status") or registry.get("data_origin")), _tone(table.get("sync_status"))),
++            _item("aggiornamento", "Ultimo aggiornamento", _text(table.get("last_synced_at") or registry.get("last_successful_sync_at") or "n/d"), _text(registry.get("technical_notice")), "neutral"),
++        ],
++        "Registro mediazione non disponibile.",
++    )
++
++
++def _empty_payload(source: str, message: str, legacy_contract: str) -> dict[str, Any]:
++    return {
++        "source": source,
++        "generated_at": _iso_now(),
++        "contracts": {
++            "mock_fallback": False,
++            "writes": "legacy_routes",
++            "route_owner": "react_shell",
++            "external_fetch": False,
++            "ai_generation": False,
++            "canonical_source": "backend_legacy",
++            "legacy_contract": legacy_contract,
++        },
++        "metrics": [],
++        "sections": [],
++        "records": [],
++        "actions": [
++            _action("dashboard", "Legal Intelligence", "/legal-intelligence", "primary"),
++            _action("news", "News legali", "/legal-intelligence/news", "neutral"),
++            _action("mediazione", "Registro mediazione", "/legal-intelligence/mediazione", "neutral"),
++        ],
++        "forms": [],
++        "warnings": [_warning("legal_intelligence_non_disponibile", message)],
++    }
++
++
++def build_react_legal_intelligence_payload(
++    *,
++    get_legal_intelligence: Callable[[], Any],
++    get_legal_update_pipeline: Callable[[], Any],
++    get_fascicoli: Callable[[], Any],
++    get_clienti: Callable[[], Any],
++    get_agenda: Callable[[], Any],
++    get_scadenziario: Callable[[], Any],
++    page: str = "dashboard",
++    query: Mapping[str, Any] | None = None,
++) -> dict[str, Any]:
++    warnings: list[dict[str, str]] = [
++        _warning("workflow_legacy", "Sincronizzazione fonti, approvazione contenuti, indice assistito e import restano nelle route legacy."),
++        _warning("metadati_sicuri", "La shell React espone solo fonte, stato, date, aree e metadati gia presenti nel backend."),
++    ]
++    manager = get_legal_intelligence()
++    pipeline = get_legal_update_pipeline()
++    snapshot = _dashboard_snapshot(
++        manager,
++        warnings,
++        get_fascicoli=get_fascicoli,
++        get_clienti=get_clienti,
++        get_agenda=get_agenda,
++        get_scadenziario=get_scadenziario,
++    )
++    update_snapshot = _pipeline_snapshot(pipeline, warnings)
++    headline = _dict(snapshot.get("headline"))
++    update_headline = _dict(update_snapshot.get("headline"))
++    mediazione = _mediazione_snapshot(manager, warnings, query)
++    news_rows = _news_rows(pipeline, warnings, query)
++    news_records = [_safe_news_record(row, index) for index, row in enumerate(news_rows, start=1) if isinstance(row, dict)]
++    mediazione_records = [
++        _safe_mediazione_record(row, index)
++        for index, row in enumerate(_list(mediazione.get("rows")), start=1)
++        if isinstance(row, dict)
++    ]
++    matters = _matters(pipeline, warnings)
++    source_items = _source_items(snapshot, update_snapshot)
++
++    if page == "news":
++        records = news_records
++        legacy_contract = "artifacts/react-migration/legacy-contracts/legal-intelligence__news.json"
++    elif page == "mediazione":
++        records = mediazione_records
++        legacy_contract = "artifacts/react-migration/legacy-contracts/legal-intelligence__mediazione.json"
++    elif page == "ricerca-legale":
++        records = news_records + mediazione_records
++        legacy_contract = "artifacts/react-migration/legacy-contracts/ricerca-legale.json"
++    else:
++        records = news_records[:8] + mediazione_records[:8]
++        legacy_contract = "artifacts/react-migration/legacy-contracts/legal-intelligence.json"
++
++    return {
++        "source": "repository_reali",
++        "generated_at": _iso_now(),
++        "contracts": {
++            "mock_fallback": False,
++            "writes": "legacy_routes",
++            "route_owner": "react_shell",
++            "external_fetch": False,
++            "ai_generation": False,
++            "canonical_source": "backend_legacy",
++            "legacy_contract": legacy_contract,
++        },
++        "metrics": [
++            _metric("fonti_monitorate", "Fonti monitorate", int(headline.get("fonti_monitorate") or update_headline.get("sources") or 0), "Repository e monitor legacy", "primary"),
++            _metric("news_pubblicate", "News pubblicate", int(update_headline.get("published_news") or len(news_records)), "Gia presenti nel backend", "info"),
++            _metric("review", "In revisione", int(update_headline.get("review_pending") or headline.get("tabelle_da_validare") or 0), "Workflow legacy", "warning"),
++            _metric("mediazione", "Organismi mediazione", int(mediazione.get("total_rows") or 0), "Registro consultabile", "success" if mediazione.get("total_rows") else "neutral"),
++            _metric("fascicoli", "Fascicoli nel monitor", int(headline.get("fascicoli") or 0), "Metadati studio", "neutral"),
++        ],
++        "sections": [
++            _section("fonti", "Stato fonti", "source-cards", source_items, "Nessuna fonte disponibile."),
++            _section(
++                "news",
++                "News legali",
++                "metadata",
++                [
++                    _item(record["id"], record["title"], record["date"], record["sourceLabel"], record["approvalTone"])
++                    for record in news_records[:8]
++                ],
++                "Nessuna news pubblicata nel backend.",
++            ),
++            _mediazione_section({"mediazione_registry": mediazione}),
++            _section(
++                "materie",
++                "Materie",
++                "metadata",
++                [
++                    _item(_text(row.get("slug") or row.get("name")), _text(row.get("name")), _text(row.get("level") or ""), _text(row.get("parent_slug")), "neutral")
++                    for row in matters
++                    if isinstance(row, dict)
++                ],
++                "Nessuna materia disponibile.",
++            ),
++            _section(
++                "distinzione",
++                "Fonte, metadato e inferenza",
++                "evidence",
++                [
++                    _item("fonte", "Fonte", "ufficiale o interna", "Etichetta visibile su ogni riga", "success"),
++                    _item("metadato", "Metadato", "data, area, stato", "Letto dal backend legacy", "info"),
++                    _item("inferenza", "Inferenza", "solo se gia esposta", "Nessuna generazione in React", "warning"),
++                ],
++                "Nessuna distinzione disponibile.",
++            ),
++        ],
++        "records": records,
++        "actions": [
++            _action("dashboard", "Legal Intelligence", "/legal-intelligence", "primary"),
++            _action("news", "News legali", "/legal-intelligence/news", "primary"),
++            _action("mediazione", "Registro mediazione", "/legal-intelligence/mediazione", "neutral"),
++            _action("giurisprudenza", "Archivio giurisprudenza", "/giurisprudenza", "neutral"),
++        ],
++        "forms": [],
++        "warnings": warnings,
++        "filters": dict(query or {}),
++    }
++
++
++def build_react_legal_intelligence_error_payload(
++    message: str = "Legal Intelligence non disponibile.",
++    *,
++    legacy_contract: str = "artifacts/react-migration/legacy-contracts/legal-intelligence.json",
++) -> dict[str, Any]:
++    return _empty_payload("errore_controllato", message, legacy_contract)

@@ -1,7 +1,8 @@
-"""Bridge read-only per gestione utenti React.
+"""Bridge per gestione utenti React.
 
-Il bridge espone solo dati amministrativi non segreti. Le scritture restano
-form HTML verso le route Flask legacy gia' auditabili.
+Il bridge espone solo dati amministrativi non segreti. La creazione utente
+passa dall'API JSON React; modifica, permessi ed eliminazione restano sui
+percorsi Flask legacy finche' non saranno convertiti con parita' reale.
 """
 
 from __future__ import annotations
@@ -97,29 +98,6 @@ def _safe_user(user: Any) -> dict[str, Any]:
     }
 
 
-def _create_form(can_write: bool) -> list[dict[str, Any]]:
-    if not can_write:
-        return []
-    return [
-        {
-            "id": "nuovo_utente",
-            "title": "Nuovo utente",
-            "description": "Invio standard verso la route legacy auditata.",
-            "action": "/utenti/nuovo",
-            "method": "POST",
-            "csrfField": "_csrf_token",
-            "submitLabel": "Crea utente",
-            "fields": [
-                {"name": "username", "label": "Username", "type": "text", "required": True, "autocomplete": "username"},
-                {"name": "ruolo", "label": "Ruolo", "type": "select", "required": True, "options": _manageable_roles()},
-                {"name": "nome_completo", "label": "Nome completo", "type": "text", "required": False, "autocomplete": "name"},
-                {"name": "email", "label": "Email", "type": "email", "required": False, "autocomplete": "email"},
-                {"name": "password", "label": "Password temporanea", "type": "password", "required": True, "minLength": 8, "autocomplete": "new-password"},
-            ],
-        }
-    ]
-
-
 def build_react_utenti_payload(
     *,
     get_utenti: Callable[[], Any],
@@ -135,10 +113,11 @@ def build_react_utenti_payload(
     can_write = _can(current_user, "utenti.scrivi")
     view = _text(getattr(query, "get", lambda *_args, **_kwargs: "")("view", "")) if query is not None else ""
 
-    if view == "nuovo" and not can_write:
+    create_view = view == "nuovo"
+    if create_view and not can_write:
         warnings.append({
             "code": "permesso_scrittura_richiesto",
-            "message": "La creazione utente richiede il permesso utenti.scrivi; il POST resta sulla route legacy.",
+            "message": "La creazione utente richiede il permesso utenti.scrivi.",
         })
 
     return {
@@ -146,7 +125,7 @@ def build_react_utenti_payload(
         "generated_at": _iso_now(),
         "contracts": {
             "mock_fallback": False,
-            "writes": "legacy_routes",
+            "writes": "operational_routes" if create_view else "legacy_routes",
             "route_owner": "react_shell",
             "legacy_contract": "artifacts/react-migration/legacy-contracts/utenti.json",
         },
@@ -185,7 +164,9 @@ def build_react_utenti_payload(
             {"id": "nuovo", "label": "Nuovo utente", "href": "/utenti/nuovo", "method": "GET", "tone": "success"},
             {"id": "profili", "label": "Ruoli e permessi", "href": "/profili", "method": "GET", "tone": "neutral"},
         ],
-        "forms": _create_form(can_write),
+        "createEndpoint": "/api/v1/ui/utenti/nuovo" if can_write else "",
+        "roles": _manageable_roles(),
+        "forms": [],
         "warnings": warnings,
     }
 
@@ -204,6 +185,8 @@ def build_react_utenti_error_payload(message: str = "Gestione utenti non disponi
         "sections": [],
         "records": [],
         "actions": [{"id": "legacy", "label": "Apri gestione utenti legacy", "href": "/utenti?_legacy=1", "method": "GET", "tone": "neutral"}],
+        "createEndpoint": "",
+        "roles": [],
         "forms": [],
         "warnings": [{"code": "utenti_errore_controllato", "message": message}],
     }

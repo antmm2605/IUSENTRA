@@ -1,0 +1,773 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index f92a17a8..890c1a48 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -1,5 +1,11 @@
+ # Changelog
+
++## 2.198.105 - 2026-05-07
++
++- Promosse in React le superfici exact `/giurisprudenza`, `/legal-intelligence`, `/legal-intelligence/news`, `/legal-intelligence/mediazione` e `/ricerca-legale` come consultazione read-only di fonti, metadati, news e registro mediazione gia presenti nel backend.
++- Mantenuti legacy import, classificazione, dettagli, testo integrale, download/export, approvazione contenuti, AI, scraping/crawling, `/giurisprudenza/nuova`, sottopercorsi giurisprudenza/legal intelligence/ricerca legale, `/checklist` e `/deposito/checklist`.
++- Rafforzati bridge, endpoint GET `/api/v1/ui/*`, token Impeccable / Open Design per legal knowledge, gate Flask, runner sicuro e check 10A anti-segreti, anti-fetch esterno, anti-generazione AI, anti-documento raw e Open Design.
++
+ ## 2.198.104 - 2026-05-07
+
+ - Integrato Local Deep Research come sidecar Docker opzionale con profilo `ldr`, SearXNG dedicato, data root governato e bridge Lex configurabile tramite `.env.ldr`.
+diff --git a/Dockerfile b/Dockerfile
+index f24b2e5b..88942c99 100644
+--- a/Dockerfile
++++ b/Dockerfile
+@@ -1,4 +1,4 @@
+-#  version: 2.198.104
++#  version: 2.198.105
+ #  IUSENTRA | Dockerfile produzione
+
+ #  Build multi-stage:
+@@ -75,7 +75,7 @@ RUN mkdir -p /out && /tmp/dart-sass/sass --no-source-map --style=compressed \
+ FROM python:3.12-slim
+
+ LABEL org.opencontainers.image.title="IUSENTRA" \
+-      org.opencontainers.image.version="2.198.104" \
++      org.opencontainers.image.version="2.198.105" \
+       org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
+       org.opencontainers.image.created="2026-03-18"
+
+diff --git a/README.md b/README.md
+index 6d8e4843..5f2025b6 100644
+--- a/README.md
++++ b/README.md
+@@ -59,7 +59,8 @@ La repo oggi non è più solo un tool CLI per il Processo Civile Telematico: con
+ - Le sezioni pubbliche `Strumenti legali`, `Applicazioni` e `News giuridiche strutturate` non sono esposte in automatico: compaiono sul sito dello studio solo se l'amministratore del sito attiva i flag dedicati da `Sito Studio -> Impostazioni`.
+ - Migrazione React progressiva: la shell `/app-v2` convive con la UI Jinja attuale e usa API Flask reali; `Clienti e Anagrafiche`, `Soggetti e Parti`, `Comunicazioni`, `Servizi Telematici`, `Gestione Database` (`/admin/database`), `Statistiche`, `Audit`, `Registro attivita`, `Utenti`, `Profili e permessi`, `Studio`, `Amministrazione`, `Fatturazione`, `Nuova parcella`, `Incassi e pagamenti`, `Preventivi e Incarichi`, `Nuovo preventivo`, `Preventivo guidato`, `Nuovo conferimento incarico`, `Compensi forensi` e `Tariffario` sono ora servite in React sui GET ufficiali, con salvataggi ancora sulle route Flask storiche dove presenti e fallback tecnico `_legacy=1`. `/tariffario` usa anche `POST /api/v1/ui/tariffario/calcola`; `/preventivi/wizard` usa `/api/v1/ui/preventivi/wizard`, `/calculate` e `/create`, riusando il motore Python senza duplicare logiche economiche in frontend. Le superfici telematiche `PolisWeb / PST`, `PDP`, `PAT`, `PTT`, `Tribunali / PEC`, `Checklist deposito` e `Guida firma digitale` restano governate dai vincoli specifici di portale e non vengono promosse da questa tranche. `Regia Operativa`, `Ricerca Studio`, `Agenda`, `Nuovo Appuntamento` e la suite `Fascicoli` vivono rispettivamente in `/app-v2/regia-operativa`, `/app-v2/ricerca-studio`, `/app-v2/agenda`, `/app-v2/agenda/nuovo` e `/app-v2/fascicoli`. La suite fascicoli include lista, nuovo/modifica, archivio, dettaglio cabina fascicolo, quadro intelligente AI, editor professionale anche sulla route profonda `/fascicoli/<id>/documenti/<id_doc>/editor` con font/dimensioni/interlinea in stile studio, anteprima PDF nativa fedele all'originale per documenti impaginati con stemmi/timbri/firme e blocco professionale delle conversioni non affidabili, compilatore atti, anteprima documento interna anche per `.pdf.p7m`, upload senza reload ed export, con scritture ancora sulle route storiche per rollback immediato. Ogni pagina migrata viene collegata alla nav React, usa solo dati reali da repository/sessione/API/configurazione e nessuna pagina React viene annidata dentro un'altra durante la migrazione pagina per pagina.
+ - La migrazione React residua e' governata da `tools/react-migration/route-manifest.json` e dagli script `scripts/react-migration/*`: audit route, cattura contratti legacy, controllo gate, consistency UI e runner sicuro. La tranche corrente abilita anche `/preventivi/wizard` in React full come console economica operativa con fallback `?_legacy=1`; `/tariffario` resta React full con riepilogo economico in tempo reale sticky su desktop e calcolo sempre delegato al motore Python, mantenendo sottopercorsi compensi/tariffario, dettagli `/preventivi/*`, formule, log economici, generazione documenti, `/fatturazione/*`, impostazioni, documentale e telematico sui percorsi legacy fino a parita' dimostrata.
+-- La Tranche 9A abilita `/template-atti`, `/template-atti/catalogo` e `/redazione-atti` in React full come superfici documentali di ingresso read-only: catalogo reale, metadati template, variabili come soli nomi e link operativi sicuri. Restano legacy `/template-atti/nuovo`, sottopercorsi template/redazione, checklist, deposito, giurisprudenza, legal intelligence, editor, produzione file e AI redazionale.
++- La Tranche 9A abilita `/template-atti`, `/template-atti/catalogo` e `/redazione-atti` in React full come superfici documentali di ingresso read-only: catalogo reale, metadati template, variabili come soli nomi e link operativi sicuri. Restano legacy `/template-atti/nuovo`, sottopercorsi template/redazione, checklist, deposito, editor, produzione file e AI redazionale.
++- La Tranche 10A abilita `/giurisprudenza`, `/legal-intelligence`, `/legal-intelligence/news`, `/legal-intelligence/mediazione` e `/ricerca-legale` come superfici React di consultazione read-only: fonti, metadati, stato verifica, news e registro mediazione arrivano da bridge backend sicuri; import, classificazione, dettagli, testo integrale, approvazione contenuti, AI, scraping/crawling, `/giurisprudenza/nuova`, sottopercorsi, `/checklist` e `/deposito/checklist` restano legacy.
+ - La pagina `Gestione Database` non si limita a segnalare anomalie referenziali: `Verifica e ripara` chiama una route Flask auditata, crea backup prima di scrivere e corregge automaticamente i riferimenti orfani risolvibili senza inventare dati.
+ - La superficie `Tribunali / PEC` distingue le PEC di deposito telematico dalle PEC amministrative/protocollo: PST e' fonte primaria per il deposito, IPA Open Data fonte secondaria per indirizzi amministrativi, e i siti ufficiali restano fallback/verifica manuale.
+ - Deploy Hetzner CPX42: il profilo [deploy/hetzner](deploy/hetzner/README.md), documentato anche in [docs/DEPLOY_HETZNER_CPX42.md](docs/DEPLOY_HETZNER_CPX42.md), prepara un server Ubuntu con Docker Compose, Caddy HTTPS, Redis, worker scheduler/OCR, backup e restore su `/opt/iusentra/data`, con retention backup governata e pannello Superadmin `Server e manutenzione` per consumi, hardlink e manutenzioni sicure.
+diff --git a/artifacts/react-migration/audit.md b/artifacts/react-migration/audit.md
+index 374f5193..f83f1bd0 100644
+--- a/artifacts/react-migration/audit.md
++++ b/artifacts/react-migration/audit.md
+@@ -1,6 +1,6 @@
+ # Audit migrazione React
+
+-Generato: 2026-05-06T17:08:09.954Z
++Generato: 2026-05-07T17:20:26.285Z
+
+ ## Frontend
+
+@@ -12,12 +12,12 @@ Script disponibili: dev, test, typecheck, build, preview
+ Route React prefixes: 55
+ Route React exact: 43
+ Excluded prefixes: 14
+-Legacy operational prefixes: 26
++Legacy operational prefixes: 23
+
+ ## App React
+
+-Lazy components: 41
+-Route checks: 56
++Lazy components: 44
++Route checks: 59
+ Studio module routes: 52
+
+ ## Nota operativa
+diff --git a/artifacts/react-migration/route-gate.md b/artifacts/react-migration/route-gate.md
+index 44ecc20b..4f214296 100644
+--- a/artifacts/react-migration/route-gate.md
++++ b/artifacts/react-migration/route-gate.md
+@@ -1,8 +1,14 @@
+ # Route gate report
+
+-Route nel manifest: 45
+-Route con unlockFromGate=true: 22
+-Route governate consentite: /statistiche, /audit, /registro-attivita, /utenti, /profili, /backup, /sito-studio, /sito-studio/contatti, /studio, /amministrazione, /fatturazione, /fatturazione/nuova, /incassi-pagamenti, /preventivi, /preventivi/nuovo, /preventivi/wizard, /preventivi/conferimento/nuovo, /compensi-forensi, /tariffario, /template-atti, /template-atti/catalogo, /redazione-atti
+-Tranche 8A: promozione compensi/tariffario exact, sottopercorsi sensibili legacy.
+-Tranche 9A: promozione template atti/redazione exact, sottopercorsi documentali sensibili legacy.
++Route nel manifest: 53
++Route con unlockFromGate=true: 28
++Route governate consentite: /statistiche, /audit, /registro-attivita, /utenti, /utenti/nuovo, /profili, /backup, /sito-studio, /sito-studio/contatti, /studio, /amministrazione, /fatturazione, /fatturazione/nuova, /incassi-pagamenti, /preventivi, /preventivi/nuovo, /preventivi/wizard, /preventivi/conferimento/nuovo, /compensi-forensi, /tariffario, /template-atti, /template-atti/catalogo, /redazione-atti, /giurisprudenza, /legal-intelligence, /legal-intelligence/news, /legal-intelligence/mediazione, /ricerca-legale
++Tranche 4A: route studio/backup censite come bridge se conservano scritture legacy.
++Tranche 5A: studio e amministrazione restano bridge quando sono hub di navigazione.
++Tranche 6A: fatturazione e incassi restano bridge se le scritture principali sono legacy.
++Tranche 7A: preventivi non wizard restano bridge finche i POST principali sono legacy.
++Tranche 8A: compensi/tariffario declassati quando mantengono fallback o bridge legacy.
++Tranche 9A: template atti/redazione exact restano bridge finche le azioni principali sono legacy.
++Tranche 10A: giurisprudenza/legal intelligence declassate se non hanno workflow React operativo pieno.
++Parte 12A: react_full deprecato; unlockFromGate=true richiede status react_bridge/react_operational_partial/react_operational_full.
+ Violazioni: 0
+diff --git a/artifacts/react-migration/route-inventory.json b/artifacts/react-migration/route-inventory.json
+index c288ee80..45966a94 100644
+--- a/artifacts/react-migration/route-inventory.json
++++ b/artifacts/react-migration/route-inventory.json
+@@ -1,5 +1,5 @@
+ {
+-  "generatedAt": "2026-05-06T17:08:09.954Z",
++  "generatedAt": "2026-05-07T17:20:26.285Z",
+   "react": {
+     "dependencies": {
+       "@vitejs/plugin-react": "^5.0.0",
+@@ -149,18 +149,15 @@
+       "/checklist",
+       "/database",
+       "/deposito/checklist",
+-      "/giurisprudenza",
+       "/guida/firma-digitale",
+       "/impostazioni",
+       "/impostazioni-studio",
+-      "/legal-intelligence",
+       "/notifiche",
+       "/notifiche-whatsapp",
+       "/pat",
+       "/pdp",
+       "/polisweb",
+       "/portali",
+-      "/ricerca-legale",
+       "/servizi-telematici",
+       "/sigit",
+       "/sigp",
+@@ -322,6 +319,10 @@
+         "name": "PreventiviPage",
+         "importPath": "./components/PreventiviPage"
+       },
++      {
++        "name": "PreventivoWizardPage",
++        "importPath": "./components/PreventivoWizardPage"
++      },
+       {
+         "name": "CompensiForensiPage",
+         "importPath": "./components/CompensiForensiPage"
+@@ -337,6 +338,14 @@
+       {
+         "name": "RedazioneAttiPage",
+         "importPath": "./components/RedazioneAttiPage"
++      },
++      {
++        "name": "GiurisprudenzaPage",
++        "importPath": "./components/GiurisprudenzaPage"
++      },
++      {
++        "name": "LegalIntelligencePage",
++        "importPath": "./components/LegalIntelligencePage"
+       }
+     ],
+     "routeChecks": [
+@@ -388,11 +397,14 @@
+       "isAmministrazionePage",
+       "isFatturazionePage",
+       "isIncassiPagamentiPage",
++      "isPreventivoWizardPage",
+       "isPreventiviPage",
+       "isCompensiForensiPage",
+       "isTariffarioPage",
+       "isTemplateAttiPage",
+       "isRedazioneAttiPage",
++      "isGiurisprudenzaPage",
++      "isLegalIntelligencePage",
+       "isStudioModulePage",
+       "isDashboardPage",
+       "isStandalonePage"
+diff --git a/artifacts/react-migration/ui-consistency.md b/artifacts/react-migration/ui-consistency.md
+index ed115ceb..3630f27b 100644
+--- a/artifacts/react-migration/ui-consistency.md
++++ b/artifacts/react-migration/ui-consistency.md
+@@ -1,4 +1,4 @@
+ # UI consistency report
+
+-File scansionati: 163
++File scansionati: 173
+ Violazioni: 0
+diff --git a/docs/REACT_MIGRATION_MASTER_PLAN.md b/docs/REACT_MIGRATION_MASTER_PLAN.md
+index 8b4be4a9..d76bcafe 100644
+--- a/docs/REACT_MIGRATION_MASTER_PLAN.md
++++ b/docs/REACT_MIGRATION_MASTER_PLAN.md
+@@ -1,5 +1,32 @@
+ # Migrazione progressiva Flask + React
+
++## Stato tranche 2026-05-07 - Legal knowledge React read-only 2.198.105
++
++La decima promozione governata abilita le superfici di consultazione giuridica
++senza spostare import, classificazione, testo integrale, approvazione contenuti
++o AI fuori dalle route Flask legacy:
++
++- `/giurisprudenza` usa `web/services/react_giurisprudenza_bridge.py` e
++  `GET /api/v1/ui/giurisprudenza` per KPI, fonti, filtri e metadati di
++  provvedimenti/sentenze gia presenti nel repository.
++- `/legal-intelligence`, `/legal-intelligence/news`,
++  `/legal-intelligence/mediazione` e `/ricerca-legale` usano
++  `web/services/react_legal_intelligence_bridge.py` e endpoint GET dedicati
++  per dashboard monitor, news pubblicate, registro mediazione e hub di ricerca
++  legale, senza fetch esterno o pipeline nuova.
++- Restano legacy `/giurisprudenza/nuova`, `/giurisprudenza/*`,
++  `/legal-intelligence/*` diverso da news/mediazione, `/ricerca-legale/*`,
++  `/checklist` e `/deposito/checklist`.
++- Impeccable / Open Design aggiunge token legal knowledge `--iu-od-source-*`
++  e utility `iu-od-source-card`, `iu-od-source-badge`,
++  `iu-od-evidence-panel`, `iu-od-inference-warning` e
++  `iu-od-legal-list`, distinguendo fonte, metadato, warning, inferenza e
++  azioni legacy senza dipendenze grafiche.
++- `run-safe-react-migration.mjs --tranche=10a` cattura contratti legacy,
++  rilancia gate/UI, anti-segreti, anti-fetch esterno, anti-generazione AI,
++  anti-documento raw, Open Design, test Flask, `npm run test`, typecheck e
++  build, poi genera patch di rollback separate.
++
+ ## Stato tranche 2026-05-07 - Tariffario console operativa 2.198.102
+
+ La tranche `2.198.102` rifinisce `/tariffario` come console economica
+diff --git a/pct/__init__.py b/pct/__init__.py
+index d601d7a4..389e9d43 100644
+--- a/pct/__init__.py
++++ b/pct/__init__.py
+@@ -2,5 +2,5 @@
+ PCT - Processo Civile Telematico
+ Sistema per l'invio telematico negli studi legali italiani.
+ """
+-__version__ = "2.198.104"
++__version__ = "2.198.105"
+ __author__ = "IUSENTRA"
+diff --git a/railway.toml b/railway.toml
+index a6ef62f3..1eee4292 100644
+--- a/railway.toml
++++ b/railway.toml
+@@ -1,6 +1,6 @@
+ #  Railway - Configurazione deploy
+ #  Docs: https://docs.railway.app
+-#  version: 2.198.104
++#  version: 2.198.105
+ #  redeploy: 07/05/2026 00:00:00
+
+ [build]
+diff --git a/setup.py b/setup.py
+index 0ba6bb1d..b9546a03 100644
+--- a/setup.py
++++ b/setup.py
+@@ -10,7 +10,7 @@ from packaging_manifest import extras_requirements, read_version, runtime_requir
+
+ setup(
+     name="pct-studio-legale",
+-    # Versione applicativa 2.198.104, letta dalla source of truth pct.__init__
++    # Versione applicativa 2.198.105, letta dalla source of truth pct.__init__
+     version=read_version(),
+     description="IUSENTRA: gestionale web modulare per studi legali con PCT, Lex locale e servizi telematici",
+     packages=find_packages(),
+
+diff --git a/artifacts/react-migration/legacy-contracts/giurisprudenza__detail.json b/artifacts/react-migration/legacy-contracts/giurisprudenza__detail.json
+new file mode 100644
+index 00000000..29ed33fc
+--- /dev/null
++++ b/artifacts/react-migration/legacy-contracts/giurisprudenza__detail.json
+@@ -0,0 +1,12 @@
++{
++  "route": "/giurisprudenza/*",
++  "legacyUrl": "/giurisprudenza/qualunque?_legacy=1",
++  "status": "legacy_operational",
++  "forms": [],
++  "links": [],
++  "linksCount": 0,
++  "downloads": [],
++  "hasBootstrapClass": false,
++  "hasReactRoot": false,
++  "note": "Contratto wildcard sicuro: dettaglio, testo completo, download/export, classificazione e audit restano legacy."
++}
+
+diff --git a/artifacts/react-migration/legacy-contracts/giurisprudenza__nuova.json b/artifacts/react-migration/legacy-contracts/giurisprudenza__nuova.json
+new file mode 100644
+index 00000000..c4e0272c
+--- /dev/null
++++ b/artifacts/react-migration/legacy-contracts/giurisprudenza__nuova.json
+@@ -0,0 +1,14 @@
++{
++  "route": "/giurisprudenza/nuova",
++  "legacyUrl": "/giurisprudenza/nuova?_legacy=1",
++  "status": 302,
++  "redirectLocation": "/login?next=/giurisprudenza/nuova?_legacy%3D1",
++  "forms": [],
++  "links": [
++    "/login?next=/giurisprudenza/nuova?_legacy%3D1"
++  ],
++  "linksCount": 1,
++  "downloads": [],
++  "hasBootstrapClass": false,
++  "hasReactRoot": false
++}
+\ No newline at end of file
+warning: in the working copy of 'artifacts/react-migration/legacy-contracts/giurisprudenza__nuova.json', CRLF will be replaced by LF the next time Git touches it
+
+diff --git a/artifacts/react-migration/legacy-contracts/legal-intelligence__detail.json b/artifacts/react-migration/legacy-contracts/legal-intelligence__detail.json
+new file mode 100644
+index 00000000..dec1afb0
+--- /dev/null
++++ b/artifacts/react-migration/legacy-contracts/legal-intelligence__detail.json
+@@ -0,0 +1,12 @@
++{
++  "route": "/legal-intelligence/*",
++  "legacyUrl": "/legal-intelligence/qualunque?_legacy=1",
++  "status": "legacy_operational",
++  "forms": [],
++  "links": [],
++  "linksCount": 0,
++  "downloads": [],
++  "hasBootstrapClass": false,
++  "hasReactRoot": false,
++  "note": "Contratto wildcard sicuro: sincronizzazione fonti, approvazione contenuti, pipeline legacy, indice assistito e audit restano legacy."
++}
+
+diff --git a/artifacts/react-migration/legacy-contracts/legal-intelligence__mediazione.json b/artifacts/react-migration/legacy-contracts/legal-intelligence__mediazione.json
+new file mode 100644
+index 00000000..162ceac3
+--- /dev/null
++++ b/artifacts/react-migration/legacy-contracts/legal-intelligence__mediazione.json
+@@ -0,0 +1,14 @@
++{
++  "route": "/legal-intelligence/mediazione",
++  "legacyUrl": "/legal-intelligence/mediazione?_legacy=1",
++  "status": 302,
++  "redirectLocation": "/login?next=/legal-intelligence/mediazione?_legacy%3D1",
++  "forms": [],
++  "links": [
++    "/login?next=/legal-intelligence/mediazione?_legacy%3D1"
++  ],
++  "linksCount": 1,
++  "downloads": [],
++  "hasBootstrapClass": false,
++  "hasReactRoot": false
++}
+\ No newline at end of file
+warning: in the working copy of 'artifacts/react-migration/legacy-contracts/legal-intelligence__mediazione.json', CRLF will be replaced by LF the next time Git touches it
+
+diff --git a/artifacts/react-migration/legacy-contracts/legal-intelligence__news.json b/artifacts/react-migration/legacy-contracts/legal-intelligence__news.json
+new file mode 100644
+index 00000000..f50c82ef
+--- /dev/null
++++ b/artifacts/react-migration/legacy-contracts/legal-intelligence__news.json
+@@ -0,0 +1,14 @@
++{
++  "route": "/legal-intelligence/news",
++  "legacyUrl": "/legal-intelligence/news?_legacy=1",
++  "status": 302,
++  "redirectLocation": "/login?next=/legal-intelligence/news?_legacy%3D1",
++  "forms": [],
++  "links": [
++    "/login?next=/legal-intelligence/news?_legacy%3D1"
++  ],
++  "linksCount": 1,
++  "downloads": [],
++  "hasBootstrapClass": false,
++  "hasReactRoot": false
++}
+\ No newline at end of file
+warning: in the working copy of 'artifacts/react-migration/legacy-contracts/legal-intelligence__news.json', CRLF will be replaced by LF the next time Git touches it
+
+diff --git a/artifacts/react-migration/legacy-contracts/ricerca-legale.json b/artifacts/react-migration/legacy-contracts/ricerca-legale.json
+new file mode 100644
+index 00000000..5c23afb7
+--- /dev/null
++++ b/artifacts/react-migration/legacy-contracts/ricerca-legale.json
+@@ -0,0 +1,14 @@
++{
++  "route": "/ricerca-legale",
++  "legacyUrl": "/ricerca-legale?_legacy=1",
++  "status": 302,
++  "redirectLocation": "/login?next=/ricerca-legale?_legacy%3D1",
++  "forms": [],
++  "links": [
++    "/login?next=/ricerca-legale?_legacy%3D1"
++  ],
++  "linksCount": 1,
++  "downloads": [],
++  "hasBootstrapClass": false,
++  "hasReactRoot": false
++}
+\ No newline at end of file
+warning: in the working copy of 'artifacts/react-migration/legacy-contracts/ricerca-legale.json', CRLF will be replaced by LF the next time Git touches it
+
+diff --git a/artifacts/react-migration/legacy-contracts/ricerca-legale__detail.json b/artifacts/react-migration/legacy-contracts/ricerca-legale__detail.json
+new file mode 100644
+index 00000000..3fc2f5ea
+--- /dev/null
++++ b/artifacts/react-migration/legacy-contracts/ricerca-legale__detail.json
+@@ -0,0 +1,12 @@
++{
++  "route": "/ricerca-legale/*",
++  "legacyUrl": "/ricerca-legale/qualunque?_legacy=1",
++  "status": "legacy_operational",
++  "forms": [],
++  "links": [],
++  "linksCount": 0,
++  "downloads": [],
++  "hasBootstrapClass": false,
++  "hasReactRoot": false,
++  "note": "Contratto wildcard sicuro: sottopercorsi non governati restano fuori dalla promozione React."
++}
+
+diff --git a/artifacts/react-migration/tranche-10a-gate.md b/artifacts/react-migration/tranche-10a-gate.md
+new file mode 100644
+index 00000000..098b1995
+--- /dev/null
++++ b/artifacts/react-migration/tranche-10a-gate.md
+@@ -0,0 +1,29 @@
++# Tranche 10A gate check
++
++- [OK] login tenant (status=302)
++- [OK] React shell /giurisprudenza (status=200)
++- [OK] React shell /legal-intelligence (status=200)
++- [OK] React shell /legal-intelligence/news (status=200)
++- [OK] React shell /legal-intelligence/mediazione (status=200)
++- [OK] React shell /ricerca-legale (status=200)
++- [OK] Ancora legacy /giurisprudenza?_legacy=1 (status=308)
++- [OK] Ancora legacy /giurisprudenza/nuova (status=200)
++- [OK] Ancora legacy /giurisprudenza/qualunque (status=302)
++- [OK] Ancora legacy /legal-intelligence?_legacy=1 (status=308)
++- [OK] Ancora legacy /legal-intelligence/news?_legacy=1 (status=200)
++- [OK] Ancora legacy /legal-intelligence/mediazione?_legacy=1 (status=200)
++- [OK] Ancora legacy /legal-intelligence/qualunque (status=404)
++- [OK] Ancora legacy /ricerca-legale?_legacy=1 (status=302)
++- [OK] Ancora legacy /ricerca-legale/qualunque (status=404)
++- [OK] Ancora legacy /checklist (status=200)
++- [OK] Ancora legacy /deposito/checklist (status=200)
++- [OK] JSON /api/v1/ui/giurisprudenza (status=200)
++- [OK] JSON /api/v1/ui/legal-intelligence (status=200)
++- [OK] JSON /api/v1/ui/legal-intelligence/news (status=200)
++- [OK] JSON /api/v1/ui/legal-intelligence/mediazione (status=200)
++- [OK] JSON /api/v1/ui/ricerca-legale (status=200)
++- [OK] POST non intercettato /giurisprudenza (status=404)
++- [OK] POST non intercettato /giurisprudenza/nuova (status=302)
++- [OK] POST non intercettato /legal-intelligence (status=404)
++- [OK] POST non intercettato /legal-intelligence/news (status=405)
++- [OK] POST non intercettato /deposito/checklist (status=405)
+warning: in the working copy of 'artifacts/react-migration/tranche-10a-gate.md', CRLF will be replaced by LF the next time Git touches it
+
+diff --git a/artifacts/react-migration/tranche-10a-no-ai-generation.md b/artifacts/react-migration/tranche-10a-no-ai-generation.md
+new file mode 100644
+index 00000000..a611ec20
+--- /dev/null
++++ b/artifacts/react-migration/tranche-10a-no-ai-generation.md
+@@ -0,0 +1,5 @@
++# Tranche 10A anti-generazione-AI
++
++File controllati: 6
++Violazioni: 0
++
+
+diff --git a/artifacts/react-migration/tranche-10a-no-document-raw.md b/artifacts/react-migration/tranche-10a-no-document-raw.md
+new file mode 100644
+index 00000000..e45f22b1
+--- /dev/null
++++ b/artifacts/react-migration/tranche-10a-no-document-raw.md
+@@ -0,0 +1,5 @@
++# Tranche 10A anti-documento-raw
++
++File controllati: 6
++Violazioni: 0
++
+
+diff --git a/artifacts/react-migration/tranche-10a-no-external-fetch.md b/artifacts/react-migration/tranche-10a-no-external-fetch.md
+new file mode 100644
+index 00000000..f0feafe4
+--- /dev/null
++++ b/artifacts/react-migration/tranche-10a-no-external-fetch.md
+@@ -0,0 +1,5 @@
++# Tranche 10A anti-fetch-esterno
++
++File controllati: 6
++Violazioni: 0
++
+
+diff --git a/artifacts/react-migration/tranche-10a-open-design-check.md b/artifacts/react-migration/tranche-10a-open-design-check.md
+new file mode 100644
+index 00000000..744d61bd
+--- /dev/null
++++ b/artifacts/react-migration/tranche-10a-open-design-check.md
+@@ -0,0 +1,5 @@
++# Tranche 10A Open Design check
++
++File controllati: 6
++Violazioni: 0
++
+
+diff --git a/artifacts/react-migration/tranche-10a-open-design.md b/artifacts/react-migration/tranche-10a-open-design.md
+new file mode 100644
+index 00000000..0122b62d
+--- /dev/null
++++ b/artifacts/react-migration/tranche-10a-open-design.md
+@@ -0,0 +1,73 @@
++# Tranche 10A - Impeccable / Open Design
++
++Data: 2026-05-07
++
++## Principi usati
++
++- Gerarchia visiva pulita per archivi, fonti, news e registro mediazione.
++- Spacing coerente tramite variabili `--iu-*` e `--iu-od-*`.
++- Densita professionale: KPI, fonti, metadati e liste leggibili senza decorazioni non operative.
++- Focus visibile e stati hover/focus delegati a token interni.
++- Distinzione esplicita tra fonte, metadato, inferenza backend, warning e azione legacy.
++
++## File toccati
++
++- `frontend/src/theme/impeccable-open-design.css`
++- `frontend/src/ui/openDesign.ts`
++- `frontend/src/components/GiurisprudenzaPage.tsx`
++- `frontend/src/components/GiurisprudenzaPage.css`
++- `frontend/src/components/LegalIntelligencePage.tsx`
++- `frontend/src/components/LegalIntelligencePage.css`
++
++## Token creati o aggiornati
++
++- `--iu-od-source-gap`
++- `--iu-od-source-card-radius`
++- `--iu-od-source-meta-size`
++- `--iu-od-source-focus-ring`
++- `--iu-od-evidence-border`
++- `--iu-od-evidence-surface`
++
++## Utility create o aggiornate
++
++- `.iu-od-source-card`
++- `.iu-od-source-meta`
++- `.iu-od-source-badge`
++- `.iu-od-evidence-panel`
++- `.iu-od-inference-warning`
++- `.iu-od-legal-list`
++- `.iu-od-action-row`
++
++## Componenti interessati
++
++- `GiurisprudenzaPage`: archivio metadati, fonti, filtri client-side, provvedimenti, warning e link legacy.
++- `LegalIntelligencePage`: dashboard, news, mediazione e hub ricerca legale con record read-only.
++- `openDesignLegalKnowledgeSurface`: contratto interno di classi riusabili, senza dipendenze esterne.
++
++## Distinzione fonte/inferenza
++
++- Le fonti usano badge `iu-od-source-badge` e card `iu-od-source-card`.
++- I metadati sono in `dl` semantici e non contengono corpo documento.
++- Le inferenze sono mostrate solo se gia esposte dal backend e rese distinguibili con righe evidenza.
++- I warning usano `iu-od-inference-warning` e segnalano cosa resta legacy.
++
++## Esclusioni
++
++- Nessuna libreria grafica.
++- Nessun CDN.
++- Nessun font esterno.
++- Nessun nuovo design system.
++- Nessuna chiamata live a fonti esterne.
++- Nessun editor, chart, download o generazione contenuti.
++
++## Verifica regressioni
++
++- `node scripts/react-migration/check-ui-consistency.mjs`
++- `node scripts/react-migration/check-tranche-10a-open-design.mjs`
++- `frontend/scripts/check-react-contracts.mjs`
++- `npm run typecheck`
++- `npm run build`
++
++## Motivo assenza librerie grafiche
++
++Impeccable e Open Design sono trattati come principi interni: token CSS auditabili, classi `iu-*`, componenti gia presenti nel UI kit e nessun lock-in verso librerie proprietarie.
+
+diff --git a/artifacts/react-migration/tranche-10a-report.md b/artifacts/react-migration/tranche-10a-report.md
+new file mode 100644
+index 00000000..2f0663c5
+--- /dev/null
++++ b/artifacts/react-migration/tranche-10a-report.md
+@@ -0,0 +1,46 @@
++# Tranche 10A - Report finale
++
++- Data/ora: 2026-05-07 19:45 Europe/Rome.
++- Branch base: `claude/legal-electronic-filing-kIxcV`; branch di lavoro: `Codex/legal-electronic-filing-kIxcV`.
++- Route migrate: `/giurisprudenza`, `/legal-intelligence`, `/legal-intelligence/news`, `/legal-intelligence/mediazione`, `/ricerca-legale`.
++- Route preparate ma legacy: `/giurisprudenza/nuova`, `/giurisprudenza/*`, `/legal-intelligence/*` diverso da news/mediazione, `/ricerca-legale/*`, `/checklist`, `/deposito/checklist`.
++- File creati: bridge `web/services/react_giurisprudenza_bridge.py`, `web/services/react_legal_intelligence_bridge.py`; data client e pagine React/CSS; check 10A; contratti wildcard sicuri; report route-map/open-design.
++- File modificati: `frontend/src/App.tsx`, `web/blueprints/api_v1_react.py`, `web/bootstrap/react_route_gate.py`, `web/blueprints/react_shell.py`, manifest, runner, contratti React, token Open Design, versioni e documentazione.
++- Endpoint aggiunti: GET `/api/v1/ui/giurisprudenza`, `/api/v1/ui/legal-intelligence`, `/api/v1/ui/legal-intelligence/news`, `/api/v1/ui/legal-intelligence/mediazione`, `/api/v1/ui/ricerca-legale`.
++- Gate modificato: exact path React; sottopercorsi operativi restano legacy; `?_legacy=1` preservato.
++- Route ancora bloccate: checklist, deposito checklist, telematiche, impostazioni, template/redazione profonde, compensi/tariffario profondi, fatturazione/preventivi profondi.
++- Contratti legacy catturati: giurisprudenza, giurisprudenza nuova, legal intelligence, news, mediazione, ricerca legale, checklist, deposito checklist; aggiunti contratti wildcard sicuri per detail.
++- Permessi verificati: endpoint UI richiedono `_richiedi_auth` e utente di sessione, coerenti con le route legacy login-only.
++- POST legacy preservati: nessun POST legacy modificato; nessun nuovo POST React/API introdotto.
++- Import giurisprudenza: lasciato legacy.
++- Classificazione: lasciata legacy.
++- Testo integrale: lasciato legacy e non serializzato nei bridge React.
++- Scraping/crawling: non introdotti.
++- AI/generazione: non introdotte; workflow AI/approvazione restano legacy.
++- Checklist deposito: lasciata legacy.
++- Distinzione fonte/inferenza: applicata con badge fonte, pannelli evidenza, warning inferenza e contratti payload.
++- Impeccable in questa PR: gerarchia compatta, spacing coerente, focus/hover accessibili e densita professionale per fonti, metadati, news e orientamenti.
++- Open Design in questa PR: token CSS `--iu-*`, classi `iu-*`, nessuna dipendenza grafica, nessun CDN, CSS auditabile.
++- Token creati/aggiornati: `--iu-od-source-gap`, `--iu-od-source-card-radius`, `--iu-od-source-meta-size`, `--iu-od-source-focus-ring`, `--iu-od-evidence-border`, `--iu-od-evidence-surface`.
++- Componenti UI interessati: `GiurisprudenzaPage`, `LegalIntelligencePage`, utility `openDesignLegalKnowledgeSurface`.
++- Anti-segreti: OK.
++- Anti-external-fetch: OK.
++- Anti-AI-generation: OK.
++- Anti-document-raw: OK.
++- Open Design check: OK.
++- Test eseguiti: contratti React, gate route, UI consistency, check 10A, gate Flask 10A, `npm run test`, `npm run typecheck`, `npm run build`.
++- `npm run test`: OK.
++- `npm run typecheck`: OK.
++- `npm run build`: OK.
++- `check-ui-consistency`: OK.
++- `check-route-gate`: OK.
++- `check-tranche-10a-gate`: OK con Flask `test_client` autenticato.
++- Limiti test Flask: nessun bypass inventato; il test usa harness tenant/admin temporaneo.
++- Rischi residui: le scritture e i workflow sensibili restano sulle route legacy; la UI React dipende dai payload sicuri dei bridge.
++- Runner finale: OK con `ALLOW_DIRTY=1` per working tree preesistente non pulito; eseguiti audit, cattura contratti, gate, UI consistency, check 10A, gate Flask, test, typecheck, build e generazione patch.
++- Rollback:
++  - `git apply -R artifacts/react-migration/patches/tranche-10a.backend.patch`
++  - `git apply -R artifacts/react-migration/patches/tranche-10a.frontend.patch`
++  - `git apply -R artifacts/react-migration/patches/tranche-10a.gate.patch`
++  - `git apply -R artifacts/react-migration/patches/tranche-10a.design.patch`
++  - `git apply -R artifacts/react-migration/patches/tranche-10a.tests.patch`
+
+diff --git a/artifacts/react-migration/tranche-10a-route-map.md b/artifacts/react-migration/tranche-10a-route-map.md
+new file mode 100644
+index 00000000..252f0c48
+--- /dev/null
++++ b/artifacts/react-migration/tranche-10a-route-map.md
+@@ -0,0 +1,132 @@
++# Tranche 10A - Route legacy map
++
++Data: 2026-05-07
++
++## Metodo
++
++Analisi eseguita su `AGENTS.md`, `docs/`, `docs/specs/ministero/`, `deploy/hetzner/`, `ops/`, `.github/`, `tools/CODEX_SUPPORT_STACK.md`, handler Flask, template Jinja, manager `pct/` e test correlati. `rg` non era utilizzabile nella sessione locale per `Accesso negato`; la ricerca e' stata completata con `Select-String` sugli stessi path richiesti.
++
++## /giurisprudenza
++
++- Handler legacy: `web/blueprints/giurisprudenza.py`
++- Funzione: `index`
++- Template: `web/templates/giurisprudenza/index.html`
++- Repository/manager: `get_giurisprudenza()`, `GestioneGiurisprudenza.catalogo_fonti`, `statistiche`, `storage_stats`, `tassonomia`, `filtri`, `cerca`, `recent_sync_runs`
++- Permessi: sessione utente (`_richiedi_login`), nessun permesso granulare ulteriore rilevato
++- Form presenti: filtri GET, sync POST, import URL POST, import materiale POST multipart, classificazione suggerita via fetch POST legacy
++- POST presenti: si, solo legacy
++- Action form: `giurisprudenza.sync`, `giurisprudenza.importa_url`, `giurisprudenza.importa_materiale`, `giurisprudenza.classificazione_suggerita`
++- Method form: GET e POST
++- CSRF: nessun token esplicito rilevato nei template legacy
++- Upload: si, import materiale
++- Download/export/PDF/DOCX: dettaglio legacy puo esporre documenti e contenuti collegati; non migrato
++- Import/classificazione/AI/Lex/generazione: import e classificazione presenti nel legacy; React non li espone
++- Crawler/scraper/fonti esterne: il manager legacy contiene logiche di acquisizione fonti; React non invoca acquisizioni
++- Workflow approvazione: classificazione e completamento scheda restano legacy
++- Dati sensibili: nessun segreto nel payload React; testo completo e file restano fuori dal bridge
++- Decisione: sbloccabile solo come archivio/metadati React.
++
++## /giurisprudenza/nuova
++
++- Handler legacy: `web/blueprints/giurisprudenza.py`
++- Funzione: `nuova`
++- Template: `web/templates/giurisprudenza/form.html`
++- Repository/manager: `get_giurisprudenza().empty_record`, `salva_da_form`
++- Permessi: sessione utente (`_richiedi_login`)
++- Form presenti: scheda sentenza/provvedimento
++- POST presenti: si
++- Action/method: route corrente, GET/POST
++- CSRF: nessun token esplicito rilevato
++- Upload/download/import/classificazione: classificazione e import collegati al workflow di scheda
++- AI/Lex/generazione: contenuti redazionali e classificazioni restano controllati dal legacy
++- Decisione: resta legacy per inserimento, import fonte, classificazione e POST auditato.
++
++## /giurisprudenza/*
++
++- Handler legacy: `dettaglio`, `modifica`, `sync`, `classificazione_suggerita`, `importa_url`, `importa_materiale`
++- Template: `giurisprudenza/dettaglio.html`, `giurisprudenza/form.html`
++- Repository/manager: `get`, `related`, `judgment_text_versions`, `raw_documents`, `practice_links`, `salva_da_form`, import e classificazione legacy
++- Permessi: sessione utente
++- Form/POST/upload/download: presenti nei sottopercorsi legacy
++- PDF/DOCX/raw/testo completo: disponibili solo nel dettaglio/manager legacy, non nel payload React
++- Decisione: resta legacy per dettaglio sentenza, testo completo, file, classificazione, import e audit.
++
++## /legal-intelligence
++
++- Handler legacy: `web/blueprints/legal_intelligence.py`
++- Funzione: `index`
++- Template: `web/templates/legal_intelligence/index.html`
++- Repository/manager: `get_legal_intelligence().build_dashboard_snapshot`, `get_legal_update_pipeline().dashboard_snapshot`, `LegalIntelligenceDailyEngine.dashboard_snapshot`, fascicoli, clienti, agenda, scadenziario, tabelle normative
++- Permessi: sessione utente (`_richiedi_login`)
++- Form presenti: sync tabelle, monitor fonti, controllo giornaliero, rigenera indice assistito, approvazione update
++- POST presenti: si, solo legacy
++- Action form: `/legal-intelligence/sync/esegui`, `/monitor/esegui`, `/daily/esegui`, `/daily/rigenera-indice-ai`, `/daily/update/<id>/approva`
++- Method form: POST
++- CSRF: nessun token esplicito rilevato nei template legacy
++- Import/classificazione/AI/Lex/generazione: pipeline e indice assistito restano legacy
++- Fonti esterne: monitor fonti gestito solo da legacy
++- Workflow approvazione: presente e non migrato
++- Decisione: sbloccabile solo come dashboard read-only React.
++
++## /legal-intelligence/news
++
++- Handler legacy: `news`
++- Template: `web/templates/legal_intelligence/news.html`
++- Repository/manager: `get_legal_update_pipeline().repository.list_news`, `list_matters`, `dashboard_snapshot`
++- Permessi: sessione utente
++- Form presenti: filtri GET
++- POST/upload/import/export: non nella route exact
++- Link dettaglio: `/legal-intelligence/news/<slug>` resta legacy
++- Decisione: sbloccabile come elenco news gia presenti nel backend.
++
++## /legal-intelligence/mediazione
++
++- Handler legacy: `registro_mediazione`
++- Template: `web/templates/legal_intelligence/mediazione.html`
++- Repository/manager: `get_legal_intelligence().mediazione_registry_snapshot`
++- Permessi: sessione utente
++- Form presenti: filtri GET, sync POST e import POST nei sottopercorsi
++- POST/upload/import: restano legacy su `/mediazione/sync` e `/mediazione/import`
++- Fonti esterne: aggiornamento registro gestito dal legacy
++- Decisione: sbloccabile come consultazione registro gia disponibile nel backend.
++
++## /legal-intelligence/*
++
++- Handler legacy: news detail, monitor, daily, approvazione, diff, sync, mediazione sync/import, API snapshot/tabelle/news
++- Template: `news_detail.html`, `daily_diff.html`, template admin collegati
++- POST/import/approvazione/AI: presenti
++- Decisione: resta legacy salvo exact `/news` e `/mediazione`.
++
++## /ricerca-legale
++
++- Handler legacy: `web/blueprints/terminology_aliases.py`
++- Funzione: `ricerca_legale`
++- Template: nessuno; redirect a `legal_intelligence.index`
++- Permessi: ereditati dalla destinazione legacy
++- Form/POST/upload/download/import: assenti
++- Decisione: sbloccabile come alias/hub React verso Legal Intelligence.
++
++## /ricerca-legale/*
++
++- Handler legacy specifico: non rilevato
++- Decisione: resta non React/legacy per evitare sblocco di sottopercorsi non governati.
++
++## /checklist
++
++- Handler legacy: `web/bootstrap/checklist_routes.py`
++- Funzione: `checklist_atti`
++- Template: `web/templates/checklist/lista.html`
++- Repository/manager: catalogo checklist atti/deposito
++- Permessi: sessione utente
++- Workflow collegati: wizard, upload documenti e controlli deposito su route correlate
++- Decisione: resta legacy.
++
++## /deposito/checklist
++
++- Handler legacy: `web/bootstrap/deposito_routes.py`
++- Funzione: `deposito_checklist`
++- Template: `web/templates/deposito_checklist.html`
++- Repository/manager: checklist deposito e contesto telematico
++- Permessi: sessione utente
++- Workflow collegati: deposito telematico, allegati, firme, Local Signer
++- Decisione: resta legacy e nessuna route telematica viene sbloccata.
+
+diff --git a/artifacts/react-migration/tranche-10a-secrets.md b/artifacts/react-migration/tranche-10a-secrets.md
+new file mode 100644
+index 00000000..0eb154a9
+--- /dev/null
++++ b/artifacts/react-migration/tranche-10a-secrets.md
+@@ -0,0 +1,5 @@
++# Tranche 10A anti-segreti
++
++File controllati: 6
++Violazioni: 0
++

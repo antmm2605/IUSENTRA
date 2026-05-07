@@ -168,18 +168,15 @@ _LEGACY_OPERATIONAL_PREFIXES = (
     "/checklist",
     "/database",
     "/deposito/checklist",
-    "/giurisprudenza",
     "/guida/firma-digitale",
     "/impostazioni",
     "/impostazioni-studio",
-    "/legal-intelligence",
     "/notifiche",
     "/notifiche-whatsapp",
     "/pat",
     "/pdp",
     "/polisweb",
     "/portali",
-    "/ricerca-legale",
     "/servizi-telematici",
     "/sigit",
     "/sigp",
@@ -244,11 +241,14 @@ def _excluded(path: str) -> bool:
         return True
     if lower == "/deposito/checklist" or lower.startswith("/deposito/checklist/"):
         return True
-    if lower == "/giurisprudenza" or lower.startswith("/giurisprudenza/"):
+    if lower.startswith("/giurisprudenza/"):
         return True
-    if lower == "/legal-intelligence" or lower.startswith("/legal-intelligence/"):
+    if lower.startswith("/legal-intelligence/") and lower not in {
+        "/legal-intelligence/news",
+        "/legal-intelligence/mediazione",
+    }:
         return True
-    if lower == "/ricerca-legale" or lower.startswith("/ricerca-legale/"):
+    if lower.startswith("/ricerca-legale/"):
         return True
     if any(lower == prefix or lower.startswith(f"{prefix}/") for prefix in _LEGACY_OPERATIONAL_PREFIXES):
         return True

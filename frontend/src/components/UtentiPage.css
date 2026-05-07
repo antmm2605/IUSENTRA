@@ -30,8 +30,8 @@
   gap: 14px;
   padding: 14px;
   border: 1px solid var(--iu-border);
-  border-radius: 14px;
-  background: #fff;
+  border-radius: var(--iu-od-radius-2);
+  background: var(--iu-od-surface);
 }
 
 .iu-users-record__identity,
@@ -45,7 +45,7 @@
 .iu-users-record__identity strong,
 .iu-users-role strong,
 .iu-users-distribution__item span {
-  color: #111827;
+  color: var(--iu-od-text);
   font-size: 14px;
   line-height: 1.25;
   font-weight: 900;
@@ -56,14 +56,14 @@
 .iu-users-role span,
 .iu-users-distribution__item small,
 .iu-users-contract span {
-  color: var(--iu-slate-500);
+  color: var(--iu-od-muted);
   font-size: 12px;
   line-height: 1.45;
   font-weight: 650;
 }
 
 .iu-users-record__identity small {
-  color: var(--iu-slate-600);
+  color: var(--iu-od-muted);
   font-size: 12px;
   line-height: 1.45;
   font-weight: 700;
@@ -86,10 +86,10 @@
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
-  border: 1px solid rgba(245, 158, 11, .24);
-  border-radius: 12px;
-  background: rgba(245, 158, 11, .08);
-  color: #92400e;
+  border: 1px solid color-mix(in oklch, var(--iu-warning-500, var(--iu-od-focus)) 30%, var(--iu-od-border) 70%);
+  border-radius: var(--iu-od-radius-2);
+  background: color-mix(in oklch, var(--iu-warning-50, var(--iu-od-surface-soft)) 86%, var(--iu-od-surface) 14%);
+  color: var(--iu-od-text);
   font-size: 13px;
   font-weight: 700;
 }
@@ -110,7 +110,7 @@
 }
 
 .iu-users-distribution__item strong {
-  color: #111827;
+  color: var(--iu-od-text);
   font-size: 18px;
   line-height: 1;
   font-weight: 900;
@@ -118,6 +118,109 @@
 
 .iu-users-contract {
   grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.iu-users-create-form {
+  display: grid;
+  gap: var(--iu-od-space-4);
+}
+
+.iu-users-form-grid {
+  display: grid;
+  gap: var(--iu-od-space-4);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.iu-users-field {
+  display: grid;
+  gap: var(--iu-od-space-2);
+  min-width: 0;
+}
+
+.iu-users-field--wide {
+  grid-column: 1 / -1;
+}
+
+.iu-users-field span {
+  color: var(--iu-od-text);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.iu-users-field input,
+.iu-users-field select {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid var(--iu-od-border);
+  border-radius: var(--iu-od-radius-2);
+  background: var(--iu-od-surface);
+  color: var(--iu-od-text);
+  font: inherit;
+  padding: 10px 12px;
+  transition: border-color var(--iu-od-transition), box-shadow var(--iu-od-transition);
+}
+
+.iu-users-field input:focus,
+.iu-users-field select:focus {
+  border-color: var(--iu-od-focus);
+  box-shadow: var(--iu-od-doc-focus-ring);
+  outline: none;
+}
+
+.iu-users-field input[aria-invalid="true"],
+.iu-users-field select[aria-invalid="true"] {
+  border-color: var(--iu-danger-500, var(--iu-od-focus));
+}
+
+.iu-users-field small {
+  color: var(--iu-od-muted);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+.iu-users-field input[aria-invalid="true"] + small,
+.iu-users-field select[aria-invalid="true"] + small {
+  color: var(--iu-danger-700, var(--iu-od-text));
+}
+
+.iu-users-form-actions,
+.iu-users-rollback,
+.iu-users-form-alert {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--iu-od-space-3);
+}
+
+.iu-users-form-alert,
+.iu-users-rollback {
+  border: 1px solid var(--iu-od-border);
+  border-radius: var(--iu-od-radius-2);
+  color: var(--iu-od-text);
+  padding: var(--iu-od-space-3);
+}
+
+.iu-users-form-alert span,
+.iu-users-rollback span {
+  flex: 1 1 220px;
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+.iu-users-form-alert--success {
+  background: color-mix(in oklch, var(--iu-success-50, var(--iu-od-surface-soft)) 88%, var(--iu-od-surface) 12%);
+  border-color: color-mix(in oklch, var(--iu-success-500, var(--iu-od-focus)) 34%, var(--iu-od-border) 66%);
+}
+
+.iu-users-form-alert--validation,
+.iu-users-form-alert--permission,
+.iu-users-form-alert--server,
+.iu-users-rollback {
+  background: color-mix(in oklch, var(--iu-warning-50, var(--iu-od-surface-soft)) 86%, var(--iu-od-surface) 14%);
+  border-color: color-mix(in oklch, var(--iu-warning-500, var(--iu-od-focus)) 30%, var(--iu-od-border) 70%);
 }
 
 @media (max-width: 1180px) {
@@ -142,6 +245,7 @@
   .iu-users-kpis,
   .iu-users-grid,
   .iu-users-new,
+  .iu-users-form-grid,
   .iu-users-contract {
     grid-template-columns: 1fr;
   }

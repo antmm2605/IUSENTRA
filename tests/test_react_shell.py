@@ -7,6 +7,7 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from pct.agenda import Agenda, TipoAppuntamento
+from pct.auth import GestioneUtenti, RuoloUtente
 from pct.clienti import GestioneClienti, TipoCliente
 from pct.email_client import CartellaEmail, EmailRicevuta, GestioneEmailRicevute, StatoEmail
 from pct.fascicoli import GestioneFascicoli, StatoFascicolo, TipoAttivita, TipoDocumento, TipoFascicolo
@@ -850,6 +851,80 @@ def test_react_api_bridge_richiede_autenticazione(tmp_path: Path):
 
     assert response.status_code == 401
     assert response.get_json()["errore"] == "Autenticazione richiesta."
+
+
+def test_react_api_utenti_nuovo_crea_utente_json_senza_password(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+
+    with app.test_client() as client:
+        _login(client)
+        response = client.post(
+            "/api/v1/ui/utenti/nuovo",
+            json={
+                "username": "nuovo.reactive",
+                "password": "Temporanea123!",
+                "ruolo": "SEGRETERIA",
+                "nome_completo": "Nuovo Utente React",
+                "email": "nuovo.reactive@example.it",
+            },
+        )
+        lista_response = client.get("/api/v1/ui/utenti")
+        audit_response = client.get("/api/v1/ui/audit")
+
+    payload = response.get_json()
+    assert response.status_code == 200
+    assert payload["ok"] is True
+    assert payload["item"]["username"] == "nuovo.reactive"
+    assert payload["item"]["role"] == "SEGRETERIA"
+    assert "password" not in json.dumps(payload).lower()
+    lista_payload = lista_response.get_json()
+    audit_text = audit_response.get_data(as_text=True)
+    assert any(record["username"] == "nuovo.reactive" for record in lista_payload["records"])
+    assert "utenti.crea" in audit_text
+    assert "Temporanea123!" not in audit_text
+
+
+def test_react_api_utenti_nuovo_valida_campi_e_permesso(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    with app.app_context():
+        gestore = GestioneUtenti(
+            db_path=app.config["AUTH_DB"],
+            audit_path=app.config["AUDIT_DB"],
+            secret_key=app.secret_key,
+        )
+        gestore.crea(
+            username="lettore",
+            password="Lettore123!",
+            ruolo=RuoloUtente.PRATICANTE,
+            must_change_password=False,
+        )
+
+    with app.test_client() as client:
+        _login(client)
+        invalid = client.post(
+            "/api/v1/ui/utenti/nuovo",
+            json={"username": "", "password": "breve", "ruolo": "SUPERADMIN"},
+        )
+        client.post("/logout")
+        client.post("/login", data={"username": "lettore", "password": "Lettore123!"})
+        forbidden = client.post(
+            "/api/v1/ui/utenti/nuovo",
+            json={"username": "vietato", "password": "Temporanea123!", "ruolo": "SEGRETERIA"},
+        )
+    payload = invalid.get_json()
+    forbidden_payload = forbidden.get_json()
+
+    assert invalid.status_code == 200
+    assert payload["ok"] is False
+    assert "username" in payload["errors"]
+    assert "password" in payload["errors"]
+    assert "ruolo" in payload["errors"]
+    assert "password" not in json.dumps(payload["item"] if "item" in payload else {}).lower()
+    assert forbidden.status_code == 403
+    assert forbidden_payload["ok"] is False
+    assert "utenti.scrivi" in forbidden_payload["message"]
 
 
 def test_react_api_bootstrap_espone_flag_primo_blocco_ufficiale(tmp_path: Path):

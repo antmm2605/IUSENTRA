@@ -1,0 +1,12 @@
+{
+  "route": "/giurisprudenza/*",
+  "legacyUrl": "/giurisprudenza/qualunque?_legacy=1",
+  "status": "legacy_operational",
+  "forms": [],
+  "links": [],
+  "linksCount": 0,
+  "downloads": [],
+  "hasBootstrapClass": false,
+  "hasReactRoot": false,
+  "note": "Contratto wildcard sicuro: dettaglio, testo completo, download/export, classificazione e audit restano legacy."
+}

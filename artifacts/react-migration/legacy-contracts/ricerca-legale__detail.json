@@ -1,0 +1,12 @@
+{
+  "route": "/ricerca-legale/*",
+  "legacyUrl": "/ricerca-legale/qualunque?_legacy=1",
+  "status": "legacy_operational",
+  "forms": [],
+  "links": [],
+  "linksCount": 0,
+  "downloads": [],
+  "hasBootstrapClass": false,
+  "hasReactRoot": false,
+  "note": "Contratto wildcard sicuro: sottopercorsi non governati restano fuori dalla promozione React."
+}

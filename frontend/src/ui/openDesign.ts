@@ -21,3 +21,14 @@ export const openDesignDocumentSurface = {
   actionRow: 'iu-od-action-row',
   focusRing: 'iu-od-focus-ring',
 } as const
+
+export const openDesignLegalKnowledgeSurface = {
+  sourceCard: 'iu-od-source-card',
+  sourceMeta: 'iu-od-source-meta',
+  sourceBadge: 'iu-od-source-badge',
+  evidencePanel: 'iu-od-evidence-panel',
+  inferenceWarning: 'iu-od-inference-warning',
+  legalList: 'iu-od-legal-list',
+  actionRow: 'iu-od-action-row',
+  focusRing: 'iu-od-focus-ring',
+} as const

@@ -54,6 +54,14 @@ export type UtenteRecord = {
   permissionsHref: string
 }
 
+export type AdminAction = {
+  id: string
+  label: string
+  href: string
+  method: 'GET'
+  tone: AdminTone
+}
+
 export type LegacyFormDefinition = {
   id: string
   title: string
@@ -66,17 +74,16 @@ export type LegacyFormDefinition = {
   fields: LegacyPostField[]
 }
 
-export type AdminAction = {
-  id: string
-  label: string
-  href: string
-  method: 'GET'
-  tone: AdminTone
-}
-
 export type AdminWarning = {
   code: string
   message: string
+}
+
+export type RoleOption = {
+  value: string
+  label: string
+  description: string
+  tone: AdminTone
 }
 
 export type UtentiPageData = {
@@ -87,7 +94,9 @@ export type UtentiPageData = {
   sections: AdminSection[]
   records: UtenteRecord[]
   actions: AdminAction[]
-  forms: LegacyFormDefinition[]
+  createEndpoint: string
+  roles: RoleOption[]
+  forms: unknown[]
   warnings: AdminWarning[]
 }
 
@@ -103,6 +112,8 @@ export const emptyUtentiPage: UtentiPageData = {
   sections: [],
   records: [],
   actions: [],
+  createEndpoint: '',
+  roles: [],
   forms: [],
   warnings: [],
 }
@@ -195,44 +206,13 @@ function normaliseUser(raw: unknown): UtenteRecord {
   }
 }
 
-function normaliseField(raw: unknown): LegacyPostField {
+function normaliseRole(raw: unknown): RoleOption {
   const item = asRecord(raw)
-  const fieldType = ['text', 'email', 'password', 'select', 'checkbox', 'hidden'].includes(String(item.type))
-    ? String(item.type) as LegacyPostField['type']
-    : 'text'
   return {
-    name: text(item.name),
-    label: text(item.label),
-    type: fieldType,
-    required: bool(item.required),
-    autocomplete: text(item.autocomplete),
-    minLength: number(item.minLength),
     value: text(item.value),
-    placeholder: text(item.placeholder),
-    options: list(item.options).map((option) => {
-      const record = asRecord(option)
-      return {
-        value: text(record.value),
-        label: text(record.label) || text(record.value),
-        description: text(record.description),
-        enabled: record.enabled === false ? false : true,
-      }
-    }),
-  }
-}
-
-function normaliseForm(raw: unknown): LegacyFormDefinition {
-  const item = asRecord(raw)
-  return {
-    id: text(item.id) || text(item.title) || 'form',
-    title: text(item.title),
+    label: text(item.label) || text(item.value),
     description: text(item.description),
-    action: text(item.action),
-    method: 'POST',
-    csrfField: text(item.csrfField) || '_csrf_token',
-    submitLabel: text(item.submitLabel) || 'Invia',
-    enabled: item.enabled === false ? false : true,
-    fields: list(item.fields).map(normaliseField).filter((field) => field.name),
+    tone: tone(item.tone),
   }
 }
 
@@ -271,7 +251,9 @@ function normalisePage(raw: unknown): UtentiPageData {
     sections: list(page.sections).map(normaliseSection),
     records: list(page.records).map(normaliseUser),
     actions: list(page.actions).map(normaliseAction).filter((action) => action.method === 'GET' && action.href),
-    forms: list(page.forms).map(normaliseForm).filter((form) => form.action),
+    createEndpoint: text(page.createEndpoint),
+    roles: list(page.roles).map(normaliseRole).filter((role) => role.value),
+    forms: [],
     warnings: list(page.warnings).map(normaliseWarning),
   }
 }

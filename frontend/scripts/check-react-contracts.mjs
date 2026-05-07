@@ -421,7 +421,7 @@ for (const entry of routeManifest.routes ?? []) {
 for (const [route, status] of [
   ['/utenti/nuovo', 'react_operational_full'],
   ['/utenti', 'react_operational_partial'],
-  ['/profili', 'react_bridge'],
+  ['/profili', 'react_operational_full'],
   ['/backup', 'react_bridge'],
   ['/sito-studio', 'react_bridge'],
   ['/sito-studio/contatti', 'react_bridge'],
@@ -599,7 +599,8 @@ assertContains(utentiPage, 'iu-users-form-alert--server', 'UtentiPage gestisce e
 assertContains(utentiPage, 'passwordRef', 'UtentiPage non conserva password nello stato React')
 assertNotContains(utentiPage, 'localStorage', 'UtentiPage non usa localStorage')
 assertNotContains(utentiPage, 'sessionStorage', 'UtentiPage non usa sessionStorage')
-assertContains(profiliPage, 'LegacyPostForm', 'ProfiliPage usa LegacyPostForm per scritture legacy')
+assertNotContains(profiliPage, 'LegacyPostForm', 'ProfiliPage non usa LegacyPostForm nel flusso principale')
+assertContains(profiliPage, 'saveProfiliPermissions', 'ProfiliPage salva profili via JSON')
 assertContains(backupPage, 'LegacyPostForm', 'BackupPage usa LegacyPostForm per azioni legacy')
 assertContains(sitoStudioPage, 'LegacyPostForm', 'SitoStudioPage usa LegacyPostForm per azioni legacy')
 assertContains(fatturazionePage, 'LegacyPostForm', 'FatturazionePage usa LegacyPostForm')
@@ -626,6 +627,7 @@ assertContains(auditData, '/api/v1/ui/audit', 'auditData usa endpoint audit')
 assertContains(auditData, '/api/v1/ui/registro-attivita', 'auditData usa endpoint registro attivita')
 assertContains(utentiData, '/api/v1/ui/utenti', 'utentiData usa endpoint utenti')
 assertContains(profiliData, '/api/v1/ui/profili', 'profiliData usa endpoint profili')
+assertContains(profiliData, 'apiPostJson<SaveProfiliResult>', 'profiliData usa apiPostJson per salvataggio profili')
 assertContains(backupData, '/api/v1/ui/backup', 'backupData usa endpoint backup')
 assertContains(sitoStudioData, '/api/v1/ui/sito-studio', 'sitoStudioData usa endpoint sito studio')
 assertContains(sitoStudioData, '/api/v1/ui/sito-studio/contatti', 'sitoStudioData usa endpoint contatti sito studio')
@@ -673,6 +675,7 @@ assertContains(apiBridge, 'manager.crea(', 'nuovo utente riusa manager utenti')
 assertContains(apiBridge, 'manager.registra_evento(', 'nuovo utente registra audit')
 assertNotContains(apiBridge, '"password":', 'API React non restituisce password')
 assertContains(apiBridge, '@api_v1_react.get("/profili")', 'endpoint UI profili')
+assertContains(apiBridge, '@api_v1_react.post("/profili")', 'endpoint JSON scrittura profili')
 assertContains(apiBridge, '@api_v1_react.get("/backup")', 'endpoint UI backup')
 assertContains(apiBridge, '@api_v1_react.get("/sito-studio")', 'endpoint UI sito studio')
 assertContains(apiBridge, '@api_v1_react.get("/sito-studio/contatti")', 'endpoint UI contatti sito studio')

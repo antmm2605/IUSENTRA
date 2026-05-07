@@ -26,7 +26,9 @@
 .iu-fatt-list,
 .iu-fatt-contract,
 .iu-fatt-service-list,
-.iu-fatt-operational {
+.iu-fatt-operational,
+.iu-fatt-detail,
+.iu-fatt-detail-lines {
   display: grid;
   gap: 14px;
 }
@@ -126,6 +128,46 @@
 
 .iu-fatt-record__actions {
   justify-content: flex-end;
+}
+
+.iu-fatt-search {
+  min-height: 42px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 14px;
+  padding: 9px 11px;
+  border: 1px solid var(--iu-border);
+  border-radius: var(--iu-radius-sm);
+  background: var(--iu-bg-card);
+  color: var(--iu-slate-700);
+}
+
+.iu-fatt-search input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--iu-navy-900);
+  font: inherit;
+}
+
+.iu-fatt-status-action {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.iu-fatt-status-action select {
+  min-height: 38px;
+  border: 1px solid var(--iu-border);
+  border-radius: var(--iu-radius-sm);
+  background: var(--iu-bg-card);
+  color: var(--iu-navy-900);
+  font: inherit;
+  padding: 8px 10px;
 }
 
 .iu-fatt-warning {
@@ -312,6 +354,36 @@
   justify-content: flex-start;
 }
 
+.iu-fatt-detail {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.iu-fatt-detail span,
+.iu-fatt-detail-line small {
+  color: var(--iu-slate-500);
+  font-size: 12px;
+  line-height: 1.45;
+  font-weight: 650;
+}
+
+.iu-fatt-detail-line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(110px, auto) minmax(120px, auto);
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid var(--iu-border);
+  border-radius: var(--iu-radius-sm);
+  background: var(--iu-bg-card);
+}
+
+.iu-fatt-detail-line span,
+.iu-fatt-detail-line strong {
+  color: var(--iu-navy-900);
+  font-size: 13px;
+  font-weight: 850;
+}
+
 @media (max-width: 1180px) {
   .iu-fatt-kpis,
   .iu-fatt-grid,
@@ -320,7 +392,9 @@
   }
 
   .iu-fatt-record,
-  .iu-fatt-service-row {
+  .iu-fatt-service-row,
+  .iu-fatt-detail,
+  .iu-fatt-detail-line {
     grid-template-columns: minmax(0, 1fr);
     align-items: start;
   }

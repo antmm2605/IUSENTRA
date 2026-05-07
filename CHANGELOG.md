@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.198.114 - 2026-05-07
+
+- Promosse `/preventivi/nuovo`, `/preventivi/conferimento/nuovo`, `/preventivi` e `/fatturazione` a `react_operational_full` con letture reali, salvataggi/azioni JSON, CSRF/sessione, permessi backend e audit operativo quando disponibile.
+- Rimosso `LegacyPostForm` dai flussi principali preventivi/conferimenti e dagli archivi: rollback `_legacy=1` confinato ai pannelli `Rollback tecnico`, subpath non autorizzati ancora legacy/protetti dal gate.
+- Preservati calcolo canonico, parametri forensi, fiscalita', PDF/DOCX/XML/export e document generation lato backend/legacy; aggiunti report e check anti-mascheramento tranche 18A-21A.
+
 ## 2.198.110 - 2026-05-07
 
 - Promossa `/fatturazione/nuova` a `react_operational_full`: la pagina React legge clienti, fascicoli, default e opzioni fiscali da `GET /api/v1/ui/fatturazione/nuova`.

@@ -46,10 +46,16 @@ _CSRF_PROTECTED_ENDPOINTS = {
     "api_v1_react.utenti_reset_password",
     "api_v1_react.utenti_aggiorna_profilo",
     "api_v1_react.profili_page_update",
-    "api_v1_react.backup_crea",
-    "api_v1_react.backup_verifica",
-    "api_v1_react.fatturazione_nuova_crea",
-}
+        "api_v1_react.backup_crea",
+        "api_v1_react.backup_verifica",
+        "api_v1_react.fatturazione_nuova_crea",
+        "api_v1_react.fatturazione_aggiorna_stato",
+        "api_v1_react.fatturazione_annulla",
+        "api_v1_react.fatturazione_segna_pagata",
+        "api_v1_react.preventivi_nuovo_crea",
+        "api_v1_react.preventivi_conferimento_nuovo_crea",
+        "api_v1_react.preventivi_aggiorna_stato",
+    }
 
 _UNSAFE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 

@@ -107,9 +107,13 @@ from web.services.react_amministrazione_bridge import (
     build_react_amministrazione_payload,
 )
 from web.services.react_fatturazione_bridge import (
+    build_react_fatturazione_detail_payload,
     build_react_fatturazione_error_payload,
     build_react_fatturazione_payload,
+    cancel_react_fatturazione_document,
     create_react_fattura,
+    mark_react_fatturazione_paid,
+    update_react_fatturazione_status,
 )
 from web.services.react_compensi_forensi_bridge import (
     build_react_compensi_forensi_error_payload,
@@ -121,8 +125,12 @@ from web.services.react_tariffario_bridge import (
     build_react_tariffario_run_payload,
 )
 from web.services.react_preventivi_bridge import (
+    build_react_preventivo_detail_payload,
     build_react_preventivi_error_payload,
     build_react_preventivi_payload,
+    create_react_conferimento,
+    create_react_preventivo,
+    update_react_preventivo_status,
 )
 from web.services.react_preventivo_wizard_bridge import (
     WizardPayloadForm,
@@ -254,6 +262,14 @@ def _puo_leggere_fatturazione() -> bool:
 def _puo_scrivere_fatturazione() -> bool:
     utente = g.get("utente_corrente")
     return bool(utente and getattr(utente, "ha_permesso", lambda _permesso: False)("fatturazione.scrivi"))
+
+
+def _puo_leggere_preventivi() -> bool:
+    return _puo_leggere_fatturazione()
+
+
+def _puo_scrivere_preventivi() -> bool:
+    return _puo_scrivere_fatturazione()
 
 
 def _richiedi_admin_sito_studio_api():
@@ -3015,6 +3031,108 @@ def fatturazione_nuova_crea():
         }), 500
 
 
+@api_v1_react.get("/fatturazione/<id_documento>")
+@_richiedi_auth
+def fatturazione_detail_page(id_documento: str):
+    utente = g.get("utente_corrente")
+    if not utente:
+        return jsonify({
+            "ok": False,
+            "message": "Sessione utente richiesta.",
+            "errors": {"session": "Accedi per consultare la fatturazione."},
+            "item": None,
+        }), 403
+    if not _puo_leggere_fatturazione():
+        return jsonify({
+            "ok": False,
+            "message": "Permesso fatturazione.leggi richiesto.",
+            "errors": {"permission": "Operazione non autorizzata."},
+            "item": None,
+        }), 403
+    result, status = build_react_fatturazione_detail_payload(
+        get_fatturazione=get_fatturazione,
+        get_clienti=get_clienti,
+        get_fascicoli=get_fascicoli,
+        id_documento=id_documento,
+    )
+    return jsonify(result), status
+
+
+@api_v1_react.post("/fatturazione/<id_documento>/stato")
+@_richiedi_auth
+def fatturazione_aggiorna_stato(id_documento: str):
+    utente = g.get("utente_corrente")
+    if not utente or not _puo_scrivere_fatturazione():
+        return jsonify({
+            "ok": False,
+            "message": "Permesso fatturazione.scrivi richiesto.",
+            "errors": {"permission": "Operazione non autorizzata."},
+            "item": None,
+        }), 403
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    result, status = update_react_fatturazione_status(
+        get_fatturazione=get_fatturazione,
+        get_utenti=get_utenti,
+        current_user=utente,
+        id_documento=id_documento,
+        payload=payload,
+        ip_address=request.remote_addr or "",
+    )
+    return jsonify(result), status
+
+
+@api_v1_react.post("/fatturazione/<id_documento>/annulla")
+@_richiedi_auth
+def fatturazione_annulla(id_documento: str):
+    utente = g.get("utente_corrente")
+    if not utente or not _puo_scrivere_fatturazione():
+        return jsonify({
+            "ok": False,
+            "message": "Permesso fatturazione.scrivi richiesto.",
+            "errors": {"permission": "Operazione non autorizzata."},
+            "item": None,
+        }), 403
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    result, status = cancel_react_fatturazione_document(
+        get_fatturazione=get_fatturazione,
+        get_utenti=get_utenti,
+        current_user=utente,
+        id_documento=id_documento,
+        payload=payload,
+        ip_address=request.remote_addr or "",
+    )
+    return jsonify(result), status
+
+
+@api_v1_react.post("/fatturazione/<id_documento>/segna-pagata")
+@_richiedi_auth
+def fatturazione_segna_pagata(id_documento: str):
+    utente = g.get("utente_corrente")
+    if not utente or not _puo_scrivere_fatturazione():
+        return jsonify({
+            "ok": False,
+            "message": "Permesso fatturazione.scrivi richiesto.",
+            "errors": {"permission": "Operazione non autorizzata."},
+            "item": None,
+        }), 403
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    result, status = mark_react_fatturazione_paid(
+        get_fatturazione=get_fatturazione,
+        get_utenti=get_utenti,
+        current_user=utente,
+        id_documento=id_documento,
+        payload=payload,
+        ip_address=request.remote_addr or "",
+    )
+    return jsonify(result), status
+
+
 @api_v1_react.get("/incassi-pagamenti")
 @_richiedi_auth
 def incassi_pagamenti_page():
@@ -3266,13 +3384,16 @@ def ricerca_legale_page():
 def _preventivi_ui_payload(route: str):
     utente = g.get("utente_corrente")
     if not utente:
-        return jsonify(build_react_preventivi_error_payload("Sessione utente richiesta.")), 403
+        return jsonify(build_react_preventivi_error_payload("Sessione utente richiesta.", route=route)), 403
+    if not _puo_leggere_preventivi():
+        return jsonify(build_react_preventivi_error_payload("Permesso fatturazione.leggi richiesto.", route=route)), 403
     try:
         return jsonify(
             build_react_preventivi_payload(
                 get_preventivi=get_preventivi,
                 get_clienti=get_clienti,
                 get_fascicoli=get_fascicoli,
+                current_user=utente,
                 query=dict(request.args),
                 route=route,
             )
@@ -3281,7 +3402,8 @@ def _preventivi_ui_payload(route: str):
         current_app.logger.exception("Errore Preventivi React bridge: %s", exc)
         return jsonify(
             build_react_preventivi_error_payload(
-                "Preventivi e conferimenti non disponibili dal runtime corrente."
+                "Preventivi e conferimenti non disponibili dal runtime corrente.",
+                route=route,
             )
         ), 200
 
@@ -3298,10 +3420,107 @@ def preventivi_nuovo_page():
     return _preventivi_ui_payload("/preventivi/nuovo")
 
 
+@api_v1_react.post("/preventivi/nuovo")
+@_richiedi_auth
+def preventivi_nuovo_crea():
+    utente = g.get("utente_corrente")
+    if not utente or not _puo_scrivere_preventivi():
+        return jsonify({
+            "ok": False,
+            "message": "Permesso fatturazione.scrivi richiesto.",
+            "errors": {"permission": "Operazione non autorizzata."},
+            "item": None,
+        }), 403
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    result, status = create_react_preventivo(
+        get_preventivi=get_preventivi,
+        get_clienti=get_clienti,
+        get_fascicoli=get_fascicoli,
+        get_utenti=get_utenti,
+        current_user=utente,
+        payload=payload,
+        ip_address=request.remote_addr or "",
+    )
+    return jsonify(result), status
+
+
 @api_v1_react.get("/preventivi/conferimento/nuovo")
 @_richiedi_auth
 def preventivi_conferimento_nuovo_page():
     return _preventivi_ui_payload("/preventivi/conferimento/nuovo")
+
+
+@api_v1_react.post("/preventivi/conferimento/nuovo")
+@_richiedi_auth
+def preventivi_conferimento_nuovo_crea():
+    utente = g.get("utente_corrente")
+    if not utente or not _puo_scrivere_preventivi():
+        return jsonify({
+            "ok": False,
+            "message": "Permesso fatturazione.scrivi richiesto.",
+            "errors": {"permission": "Operazione non autorizzata."},
+            "item": None,
+        }), 403
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    result, status = create_react_conferimento(
+        get_preventivi=get_preventivi,
+        get_clienti=get_clienti,
+        get_fascicoli=get_fascicoli,
+        get_utenti=get_utenti,
+        current_user=utente,
+        payload=payload,
+        ip_address=request.remote_addr or "",
+    )
+    return jsonify(result), status
+
+
+@api_v1_react.get("/preventivi/<id_preventivo>")
+@_richiedi_auth
+def preventivi_detail_page(id_preventivo: str):
+    utente = g.get("utente_corrente")
+    if not utente or not _puo_leggere_preventivi():
+        return jsonify({
+            "ok": False,
+            "message": "Permesso fatturazione.leggi richiesto.",
+            "errors": {"permission": "Operazione non autorizzata."},
+            "item": None,
+        }), 403
+    result, status = build_react_preventivo_detail_payload(
+        get_preventivi=get_preventivi,
+        get_clienti=get_clienti,
+        get_fascicoli=get_fascicoli,
+        id_preventivo=id_preventivo,
+    )
+    return jsonify(result), status
+
+
+@api_v1_react.post("/preventivi/<id_preventivo>/stato")
+@_richiedi_auth
+def preventivi_aggiorna_stato(id_preventivo: str):
+    utente = g.get("utente_corrente")
+    if not utente or not _puo_scrivere_preventivi():
+        return jsonify({
+            "ok": False,
+            "message": "Permesso fatturazione.scrivi richiesto.",
+            "errors": {"permission": "Operazione non autorizzata."},
+            "item": None,
+        }), 403
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    result, status = update_react_preventivo_status(
+        get_preventivi=get_preventivi,
+        get_utenti=get_utenti,
+        current_user=utente,
+        id_preventivo=id_preventivo,
+        payload=payload,
+        ip_address=request.remote_addr or "",
+    )
+    return jsonify(result), status
 
 
 @api_v1_react.get("/preventivi/wizard")

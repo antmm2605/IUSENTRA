@@ -7,6 +7,12 @@ from datetime import date, datetime, timedelta, timezone
 from typing import Any, Callable
 
 from pct.fatturazione import VoceParcella
+from web.services.react_fatturazione_archive_actions import (
+    build_react_fatturazione_detail_payload,
+    cancel_react_fatturazione_document,
+    mark_react_fatturazione_paid,
+    update_react_fatturazione_status,
+)
 
 
 _TOP_LEVEL_FIELDS = {
@@ -200,9 +206,9 @@ def _invoice_record(parcella: Any, clienti: dict[str, Any], fascicoli: dict[str,
         "stateLabel": _status_label(status),
         "stateTone": _status_tone(status),
         "paymentMethod": _text(getattr(parcella, "metodo_pagamento", "")),
-        "detailHref": f"/fatturazione/{pid}?_legacy=1" if pid else "",
-        "pdfHref": f"/fatturazione/{pid}/pdf?_legacy=1" if pid else "",
-        "xmlHref": f"/fatturazione/{pid}/xml?_legacy=1" if pid else "",
+        "detailHref": f"/fatturazione/{pid}" if pid else "",
+        "pdfHref": f"/fatturazione/{pid}/pdf" if pid else "",
+        "xmlHref": f"/fatturazione/{pid}/xml" if pid else "",
     }
 
 
@@ -237,10 +243,11 @@ def _contracts(route: str) -> dict[str, Any]:
         }
     return {
         "mock_fallback": False,
-        "writes": _technical_archive_writes(),
+        "writes": "json_api",
         "route_owner": "react_shell",
-        "operational": False,
+        "operational": True,
         "canonical_calculation": "backend",
+        "document_generation": "backend_legacy",
         "legacy_contract": "artifacts/react-migration/legacy-contracts/fatturazione.json",
     }
 
@@ -386,7 +393,7 @@ def _actions_for(route: str, current_user: Any) -> list[dict[str, Any]]:
         ]
     return [
         _action("nuova", "Nuova parcella", "/fatturazione/nuova", "primary"),
-        _action("export", "Export CSV backend", "/export/fatturazione.csv?_legacy=1", "neutral"),
+        _action("export", "Export CSV backend", "/export/fatturazione.csv", "neutral"),
         _action("rollback", "Rollback tecnico archivio", "/fatturazione?_legacy=1", "warning"),
     ]
 
@@ -404,7 +411,7 @@ def build_react_fatturazione_payload(
     warnings: list[dict[str, str]] = [
         {
             "code": "documenti_backend",
-            "message": "PDF, XML, export, dettagli avanzati e variazioni di stato restano sui blueprint Flask auditabili.",
+            "message": "PDF, XML ed export restano sui blueprint Flask auditabili; stato e dettaglio sintetico usano API JSON.",
         },
         {
             "code": "calcolo_backend",
@@ -474,7 +481,7 @@ def build_react_fatturazione_payload(
                 "Funzioni conservate",
                 "backend-routes",
                 [
-                    _item("dettaglio", "Dettaglio parcella", "backend", "Aperto con parametro tecnico di bypass React", "warning"),
+                    _item("dettaglio", "Dettaglio parcella", "json", "Sintesi sicura letta da API React", "info"),
                     _item("pdf", "PDF", "backend", "Generazione e download restano Flask", "warning"),
                     _item("xml", "XML FatturaPA", "backend", "Produzione XML fuori dalla shell React", "warning"),
                     _item("export", "Export CSV", "backend", "Download servito dal blueprint export esistente", "warning"),
@@ -483,6 +490,21 @@ def build_react_fatturazione_payload(
             ),
         ],
         "records": records,
+        "documents": records,
+        "statuses": [
+            {"value": code, "label": _status_label(code), "tone": _status_tone(code)}
+            for code in ("BOZZA", "EMESSA", "PAGATA", "SCADUTA", "ANNULLATA")
+        ],
+        "permissions": {
+            "canCreate": _can(current_user, "fatturazione.scrivi"),
+            "canUpdateStatus": _can(current_user, "fatturazione.scrivi"),
+            "canArchive": False,
+            "canCancel": _can(current_user, "fatturazione.scrivi"),
+            "canMarkPaid": _can(current_user, "fatturazione.scrivi"),
+            "canDownloadPdf": True,
+            "canDownloadXml": True,
+            "canExport": True,
+        },
         "forms": [form],
     }
     return payload

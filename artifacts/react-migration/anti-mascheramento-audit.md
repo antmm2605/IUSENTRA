@@ -1,6 +1,6 @@
 # Audit anti-mascheramento React
 
-Generato: 2026-05-07T19:41:41.776Z
+Generato: 2026-05-07T20:32:23.288Z
 
 ## Regole operative Parte 12A
 
@@ -13,12 +13,12 @@ Generato: 2026-05-07T19:41:41.776Z
 ## Sintesi
 
 - Route censite: 53
-- Link `?_legacy=1`: 241
-- LegacyPostForm: 9
+- Link `?_legacy=1`: 240
+- LegacyPostForm: 7
 - Form POST HTML React: 0
-- Bridge con scritture legacy: 27
+- Bridge con scritture legacy: 25
 - Status react_full deprecati: 0
-- API JSON di salvataggio mancanti: 4
+- API JSON di salvataggio mancanti: 3
 
 ## Tabella route
 
@@ -41,14 +41,14 @@ Generato: 2026-05-07T19:41:41.776Z
 | /sito-studio/contatti | frontend/src/components/SitoStudioPage.tsx | frontend/src/sitoStudioData.ts | web/services/react_sito_studio_bridge.py | react_bridge | 16 | 1 | no | 16 link ?_legacy=1 primari o non governati; LegacyPostForm presente; bridge writes=legacy_routes; API JSON di salvataggio mancante | react_bridge |
 | /sito-studio/builder | frontend/src/components/SitoStudioPage.tsx | frontend/src/sitoStudioData.ts | web/services/react_sito_studio_bridge.py | legacy_operational | 16 | 1 | no | 16 link ?_legacy=1 primari o non governati; LegacyPostForm presente; bridge writes=legacy_routes | legacy_operational |
 | /statistiche | frontend/src/components/StatistichePage.tsx | frontend/src/statisticheData.ts | web/services/react_statistiche_bridge.py | react_operational_partial | 1 | 0 | no | 1 link ?_legacy=1 primari o non governati | react_bridge |
-| /fatturazione | frontend/src/components/FatturazionePage.tsx | frontend/src/fatturazioneData.ts | web/services/react_fatturazione_bridge.py | react_bridge | 8 | 0 | si | fallback legacy tecnico non primario | react_operational_full |
-| /fatturazione/nuova | frontend/src/components/FatturazionePage.tsx | frontend/src/fatturazioneData.ts | web/services/react_fatturazione_bridge.py | react_operational_full | 8 | 0 | si | fallback legacy tecnico non primario | react_operational_full |
-| /fatturazione/* | frontend/src/components/FatturazionePage.tsx | frontend/src/fatturazioneData.ts | web/services/react_fatturazione_bridge.py | legacy_operational | 8 | 0 | si | fallback legacy tecnico non primario | legacy_operational |
+| /fatturazione | frontend/src/components/FatturazionePage.tsx | frontend/src/fatturazioneData.ts | web/services/react_fatturazione_bridge.py | react_operational_full | 5 | 0 | si | fallback legacy tecnico non primario | react_operational_full |
+| /fatturazione/nuova | frontend/src/components/FatturazionePage.tsx | frontend/src/fatturazioneData.ts | web/services/react_fatturazione_bridge.py | react_operational_full | 5 | 0 | si | fallback legacy tecnico non primario | react_operational_full |
+| /fatturazione/* | frontend/src/components/FatturazionePage.tsx | frontend/src/fatturazioneData.ts | web/services/react_fatturazione_bridge.py | legacy_operational | 5 | 0 | si | fallback legacy tecnico non primario | legacy_operational |
 | /incassi-pagamenti | frontend/src/components/IncassiPagamentiPage.tsx | frontend/src/incassiPagamentiData.ts | web/services/react_incassi_pagamenti_bridge.py | react_bridge | 5 | 0 | no | 5 link ?_legacy=1 primari o non governati; bridge writes=legacy_routes | react_bridge |
-| /preventivi | frontend/src/components/PreventivoWizardPage.tsx | frontend/src/preventivoWizardData.ts | web/services/react_preventivo_wizard_bridge.py | react_bridge | 4 | 0 | si | fallback legacy tecnico non primario | react_operational_full |
-| /preventivi/nuovo | frontend/src/components/PreventivoWizardPage.tsx | frontend/src/preventivoWizardData.ts | web/services/react_preventivo_wizard_bridge.py | react_bridge | 4 | 0 | si | fallback legacy tecnico non primario | react_operational_full |
-| /preventivi/conferimento/nuovo | frontend/src/components/PreventiviPage.tsx | frontend/src/preventiviData.ts | web/services/react_preventivi_bridge.py | react_bridge | 8 | 1 | no | 8 link ?_legacy=1 primari o non governati; LegacyPostForm presente; bridge writes=legacy_routes; API JSON di salvataggio mancante | react_bridge |
-| /preventivi/* | frontend/src/components/PreventiviPage.tsx | frontend/src/preventiviData.ts | web/services/react_preventivi_bridge.py | legacy_operational | 8 | 1 | no | 8 link ?_legacy=1 primari o non governati; LegacyPostForm presente; bridge writes=legacy_routes | legacy_operational |
+| /preventivi | frontend/src/components/PreventiviPage.tsx | frontend/src/preventiviData.ts | web/services/react_preventivi_bridge.py | react_operational_full | 8 | 0 | si | fallback legacy tecnico non primario | react_operational_full |
+| /preventivi/nuovo | frontend/src/components/PreventiviPage.tsx | frontend/src/preventiviData.ts | web/services/react_preventivi_bridge.py | react_operational_full | 8 | 0 | si | fallback legacy tecnico non primario | react_operational_full |
+| /preventivi/conferimento/nuovo | frontend/src/components/PreventiviPage.tsx | frontend/src/preventiviData.ts | web/services/react_preventivi_bridge.py | react_operational_full | 8 | 0 | si | fallback legacy tecnico non primario | react_operational_full |
+| /preventivi/* | frontend/src/components/PreventiviPage.tsx | frontend/src/preventiviData.ts | web/services/react_preventivi_bridge.py | legacy_operational | 8 | 0 | si | fallback legacy tecnico non primario | legacy_operational |
 | /preventivi/wizard | frontend/src/components/PreventivoWizardPage.tsx | frontend/src/preventivoWizardData.ts | web/services/react_preventivo_wizard_bridge.py | react_operational_partial | 4 | 0 | si | fallback legacy tecnico non primario | react_operational_full |
 | /compensi-forensi | frontend/src/components/CompensiForensiPage.tsx | frontend/src/compensiForensiData.ts | web/services/react_compensi_forensi_bridge.py | react_bridge | 3 | 1 | no | 3 link ?_legacy=1 primari o non governati; LegacyPostForm presente; bridge writes=legacy_routes; gestione successo non rilevata | react_bridge |
 | /compensi-forensi/* | frontend/src/components/CompensiForensiPage.tsx | frontend/src/compensiForensiData.ts | web/services/react_compensi_forensi_bridge.py | legacy_operational | 3 | 1 | no | 3 link ?_legacy=1 primari o non governati; LegacyPostForm presente; bridge writes=legacy_routes; gestione successo non rilevata | legacy_operational |

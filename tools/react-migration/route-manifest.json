@@ -331,7 +331,7 @@
     {
       "route": "/fatturazione",
       "family": "economico",
-      "status": "react_bridge",
+      "status": "react_operational_full",
       "risk": "high",
       "targetComponent": "frontend/src/components/FatturazionePage.tsx",
       "targetData": "frontend/src/fatturazioneData.ts",
@@ -339,11 +339,18 @@
       "legacyContract": "artifacts/react-migration/legacy-contracts/fatturazione.json",
       "unlockFromGate": true,
       "mustPreserve": [
-        "archivio parcelle reale",
+        "archivio fatturazione reale",
         "KPI backend",
-        "dettagli legacy",
-        "PDF XML export legacy",
-        "nessuna scrittura diretta"
+        "stati documento reali",
+        "dettaglio sintetico JSON",
+        "azioni stato JSON se supportate",
+        "audit operazioni",
+        "permessi backend",
+        "calcolo fiscale backend",
+        "PDF/XML/export backend/legacy",
+        "nessuna CTA legacy primaria",
+        "rollback legacy tecnico",
+        "nessun PDF/XML React"
       ]
     },
     {
@@ -407,43 +414,57 @@
     {
       "route": "/preventivi",
       "family": "mandato",
-      "status": "react_bridge",
+      "status": "react_operational_full",
       "risk": "high",
-      "targetComponent": "frontend/src/components/PreventivoWizardPage.tsx",
-      "targetData": "frontend/src/preventivoWizardData.ts",
-      "targetBridge": "web/services/react_preventivo_wizard_bridge.py",
+      "targetComponent": "frontend/src/components/PreventiviPage.tsx",
+      "targetData": "frontend/src/preventiviData.ts",
+      "targetBridge": "web/services/react_preventivi_bridge.py",
       "legacyContract": "artifacts/react-migration/legacy-contracts/preventivi.json",
       "unlockFromGate": true,
       "mustPreserve": [
         "archivio preventivi reale",
         "KPI backend",
-        "stati preventivo e conferimento",
-        "cliente e fascicolo collegati",
-        "nessuna scrittura diretta"
+        "stati preventivo reali",
+        "conferimenti collegati reali",
+        "dettaglio sintetico JSON",
+        "azioni stato JSON se supportate",
+        "audit operazioni",
+        "permessi backend",
+        "calcolo backend",
+        "generazione documento backend/legacy",
+        "nessuna CTA legacy primaria",
+        "rollback legacy tecnico",
+        "nessun PDF/DOCX React"
       ]
     },
     {
       "route": "/preventivi/nuovo",
       "family": "mandato",
-      "status": "react_bridge",
+      "status": "react_operational_full",
       "risk": "high",
-      "targetComponent": "frontend/src/components/PreventivoWizardPage.tsx",
-      "targetData": "frontend/src/preventivoWizardData.ts",
-      "targetBridge": "web/services/react_preventivo_wizard_bridge.py",
+      "targetComponent": "frontend/src/components/PreventiviPage.tsx",
+      "targetData": "frontend/src/preventiviData.ts",
+      "targetBridge": "web/services/react_preventivi_bridge.py",
       "legacyContract": "artifacts/react-migration/legacy-contracts/preventivi__nuovo.json",
       "unlockFromGate": true,
       "mustPreserve": [
-        "POST legacy auditato",
-        "calcolo backend",
-        "CSRF e sessione Flask",
-        "nessun calcolo DM55 React",
-        "nessuna generazione documento React"
+        "form preventivo reale",
+        "clienti reali",
+        "fascicoli reali",
+        "salvataggio JSON",
+        "calcolo canonico backend",
+        "DM55 backend",
+        "audit operazioni",
+        "permessi backend",
+        "nessuna CTA legacy primaria",
+        "rollback legacy tecnico",
+        "nessun PDF/DOCX React"
       ]
     },
     {
       "route": "/preventivi/conferimento/nuovo",
       "family": "mandato",
-      "status": "react_bridge",
+      "status": "react_operational_full",
       "risk": "high",
       "targetComponent": "frontend/src/components/PreventiviPage.tsx",
       "targetData": "frontend/src/preventiviData.ts",
@@ -451,11 +472,19 @@
       "legacyContract": "artifacts/react-migration/legacy-contracts/preventivi__conferimento__nuovo.json",
       "unlockFromGate": true,
       "mustPreserve": [
-        "POST legacy auditato",
-        "dati incarico reali",
-        "CSRF e sessione Flask",
-        "nessuna generazione incarico React",
-        "nessuna apertura fascicolo React"
+        "form conferimento reale",
+        "clienti reali",
+        "fascicoli reali",
+        "preventivi collegabili reali",
+        "prefill da preventivo",
+        "salvataggio JSON",
+        "persistenza backend",
+        "generazione documento backend/legacy",
+        "audit operazioni",
+        "permessi backend",
+        "nessuna CTA legacy primaria",
+        "rollback legacy tecnico",
+        "nessun PDF/DOCX React"
       ]
     },
     {

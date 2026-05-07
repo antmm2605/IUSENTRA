@@ -9,21 +9,28 @@ import {
   Plus,
   ReceiptText,
   Save,
+  Search,
   Trash2,
   XCircle,
 } from 'lucide-react'
 import {
+  cancelFatturazioneDocument,
   createFattura,
   emptyFatturazionePage,
+  getFatturazioneDetail,
   getFatturazionePage,
   getNuovaFatturaPage,
+  markFatturazionePaid,
+  updateFatturazioneStatus,
   type CreateFatturaPayload,
   type CreateFatturaResult,
+  type FatturazioneDetail,
   type FatturazioneFiscalDefaults,
   type FatturazioneFormDefinition,
   type FatturazioneMatter,
   type FatturazionePageData,
   type FatturazioneRecord,
+  type FatturazioneMutationResult,
   type FatturazioneVoiceDefault,
 } from '../fatturazioneData'
 import { Badge } from '../ui/Badge'
@@ -168,7 +175,24 @@ function ContractPanel({ data }: { data: FatturazionePageData }) {
   )
 }
 
-function InvoiceRow({ record }: { record: FatturazioneRecord }) {
+function InvoiceRow({
+  record,
+  data,
+  savingId,
+  onDetail,
+  onStatus,
+  onCancel,
+  onPaid,
+}: {
+  record: FatturazioneRecord
+  data: FatturazionePageData
+  savingId: string
+  onDetail: (record: FatturazioneRecord) => void
+  onStatus: (record: FatturazioneRecord, stato: string) => void
+  onCancel: (record: FatturazioneRecord) => void
+  onPaid: (record: FatturazioneRecord) => void
+}) {
+  const [nextStatus, setNextStatus] = useState(record.state)
   return (
     <article className="iu-fatt-record">
       <div className="iu-fatt-record__main">
@@ -187,11 +211,29 @@ function InvoiceRow({ record }: { record: FatturazioneRecord }) {
         {record.paymentMethod ? <small>{record.paymentMethod}</small> : null}
       </div>
       <div className="iu-fatt-record__actions">
-        {record.detailHref ? (
-          <ButtonLink href={record.detailHref} tone="neutral">
-            <ExternalLink size={15} />
-            Dettaglio backend
-          </ButtonLink>
+        <Button type="button" tone="neutral" onClick={() => onDetail(record)}>
+          <Search size={15} />
+          Dettaglio JSON
+        </Button>
+        {data.permissions.canUpdateStatus ? (
+          <div className="iu-fatt-status-action">
+            <select value={nextStatus} onChange={(event) => setNextStatus(event.currentTarget.value)} aria-label="Nuovo stato documento">
+              {data.statuses.map((status) => <option value={status.value} key={status.value}>{status.label}</option>)}
+            </select>
+            <Button type="button" tone="neutral" disabled={savingId === record.id || nextStatus === record.state} onClick={() => onStatus(record, nextStatus)}>
+              {savingId === record.id ? 'saving' : 'Aggiorna'}
+            </Button>
+          </div>
+        ) : null}
+        {data.permissions.canMarkPaid && record.state !== 'PAGATA' ? (
+          <Button type="button" tone="success" disabled={savingId === record.id} onClick={() => onPaid(record)}>
+            Segna pagata
+          </Button>
+        ) : null}
+        {data.permissions.canCancel && record.state !== 'ANNULLATA' ? (
+          <Button type="button" tone="danger" disabled={savingId === record.id} onClick={() => onCancel(record)}>
+            Annulla
+          </Button>
         ) : null}
         {record.pdfHref ? (
           <ButtonLink href={record.pdfHref} tone="neutral">
@@ -281,14 +323,14 @@ function StatusMessage({
   )
 }
 
-function TechnicalRollback() {
+function TechnicalRollback({ href = '/fatturazione/nuova?_legacy=1' }: { href?: string }) {
   return (
     <section className="iu-fatt-rollback" aria-label="Rollback tecnico">
       <div>
         <strong>Rollback tecnico</strong>
         <span>Disponibile solo per assistenza e confronto con il template storico, non come flusso principale.</span>
       </div>
-      <ButtonLink href="/fatturazione/nuova?_legacy=1" tone="warning">
+      <ButtonLink href={href} tone="warning">
         <ExternalLink size={15} />
         Apri template storico
       </ButtonLink>
@@ -575,18 +617,127 @@ function NewInvoiceForm({
           </div>
         ) : null}
       </form>
-      <TechnicalRollback />
+      <TechnicalRollback href="/fatturazione?_legacy=1" />
     </Panel>
   )
 }
 
-function ArchiveView({ data }: { data: FatturazionePageData }) {
+function ArchiveDetailPanel({ detail, loading }: { detail: FatturazioneDetail | null; loading: boolean }) {
+  if (loading) return <LoadingState title="Caricamento dettaglio" message="Lettura della sintesi JSON dal backend." />
+  if (!detail) return null
+  return (
+    <Panel title={`Dettaglio ${detail.number || detail.id}`} subtitle={detail.customerName}>
+      <div className="iu-fatt-detail">
+        <span>Stato: {detail.stateLabel}</span>
+        <span>Importo backend: {detail.amountDisplay || 'non indicato'}</span>
+        {detail.caseTitle ? <span>Fascicolo: {detail.caseTitle}</span> : null}
+        {detail.paymentMethod ? <span>Pagamento: {detail.paymentMethod}</span> : null}
+      </div>
+      {detail.voci.length ? (
+        <div className="iu-fatt-detail-lines">
+          {detail.voci.map((voice, index) => (
+            <div className="iu-fatt-detail-line" key={`${voice.descrizione}-${index}`}>
+              <span>{voice.descrizione}</span>
+              <small>Quantita {voice.quantita || '1'}</small>
+              <strong>{voice.prezzoDisplay}</strong>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <EmptyState title="Nessuna voce sintetica" message="Il backend non ha restituito righe di dettaglio per questo documento." />
+      )}
+    </Panel>
+  )
+}
+
+function ArchiveMutationState({ result, errors }: { result: FatturazioneMutationResult | null; errors: Record<string, string> }) {
+  if (!result) return null
+  if (result.ok) {
+    return (
+      <section className="iu-fatt-state iu-fatt-state--success" aria-live="polite">
+        <CheckCircle2 size={20} />
+        <div>
+          <strong>success</strong>
+          <span>{result.message}</span>
+        </div>
+      </section>
+    )
+  }
+  const rows = displayErrors(errors)
+  return (
+    <section className="iu-fatt-state iu-fatt-state--warning" aria-live="polite">
+      <AlertTriangle size={20} />
+      <div>
+        <strong>validation error</strong>
+        {rows.length ? rows.map((row) => <span key={row}>{row}</span>) : <span>{result.message}</span>}
+      </div>
+    </section>
+  )
+}
+
+function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload: (data: FatturazionePageData) => void }) {
   const exportAction = data.actions.find((action) => action.id === 'export')
+  const [query, setQuery] = useState('')
+  const [detail, setDetail] = useState<FatturazioneDetail | null>(null)
+  const [detailLoading, setDetailLoading] = useState(false)
+  const [savingId, setSavingId] = useState('')
+  const [mutationResult, setMutationResult] = useState<FatturazioneMutationResult | null>(null)
+  const [mutationErrors, setMutationErrors] = useState<Record<string, string>>({})
+  const lowered = query.trim().toLowerCase()
+  const records = data.records.filter((record) => {
+    if (!lowered) return true
+    return [record.number, record.customerName, record.caseTitle, record.stateLabel]
+      .join(' ')
+      .toLowerCase()
+      .includes(lowered)
+  })
+
+  async function reloadAfter(result: FatturazioneMutationResult) {
+    setMutationResult(result)
+    setMutationErrors(result.errors || {})
+    if (result.ok) {
+      onReload(await getFatturazionePage())
+    }
+  }
+
+  async function loadDetail(record: FatturazioneRecord) {
+    setDetailLoading(true)
+    setDetail(null)
+    const response = await getFatturazioneDetail(record.id)
+    if (response.ok) {
+      setDetail(response.item)
+      setMutationResult(null)
+      setMutationErrors({})
+    } else {
+      setMutationResult({ ok: false, message: response.message || 'Dettaglio non disponibile.', errors: response.errors, item: null })
+      setMutationErrors(response.errors)
+    }
+    setDetailLoading(false)
+  }
+
+  async function updateStatus(record: FatturazioneRecord, stato: string) {
+    setSavingId(record.id)
+    await reloadAfter(await updateFatturazioneStatus(record.id, { stato }))
+    setSavingId('')
+  }
+
+  async function cancelRecord(record: FatturazioneRecord) {
+    setSavingId(record.id)
+    await reloadAfter(await cancelFatturazioneDocument(record.id))
+    setSavingId('')
+  }
+
+  async function markPaid(record: FatturazioneRecord) {
+    setSavingId(record.id)
+    await reloadAfter(await markFatturazionePaid(record.id))
+    setSavingId('')
+  }
+
   return (
     <>
       <section className="iu-fatt-banner" aria-label="Documenti economici backend">
         <strong>PDF, XML ed export restano backend</strong>
-        <span>La shell React mostra archivio e KPI reali; dettagli, download e variazioni di stato restano sui blueprint Flask.</span>
+        <span>La shell React mostra archivio, KPI, dettaglio sintetico e azioni stato tramite API JSON.</span>
       </section>
       <WarningPanel data={data} />
       <MetricGrid data={data} />
@@ -612,7 +763,7 @@ function ArchiveView({ data }: { data: FatturazionePageData }) {
       </section>
       <Panel
         title="Archivio parcelle e fatture"
-        subtitle={`${data.records.length} elementi letti dal repository reale`}
+        subtitle={`${records.length} elementi visualizzati su ${data.records.length}`}
         actions={exportAction ? (
           <ButtonLink href={exportAction.href} tone="neutral">
             <Download size={15} />
@@ -620,19 +771,37 @@ function ArchiveView({ data }: { data: FatturazionePageData }) {
           </ButtonLink>
         ) : null}
       >
-        {data.records.length ? (
+        <label className="iu-fatt-search">
+          <Search size={16} />
+          <input value={query} onChange={(event) => setQuery(event.currentTarget.value)} placeholder="Cerca per cliente, numero, fascicolo o stato" />
+        </label>
+        <ArchiveMutationState result={mutationResult} errors={mutationErrors} />
+        {records.length ? (
           <div className="iu-fatt-records">
-            {data.records.map((record) => <InvoiceRow record={record} key={record.id || record.number} />)}
+            {records.map((record) => (
+              <InvoiceRow
+                record={record}
+                data={data}
+                savingId={savingId}
+                onDetail={loadDetail}
+                onStatus={updateStatus}
+                onCancel={cancelRecord}
+                onPaid={markPaid}
+                key={record.id || record.number}
+              />
+            ))}
           </div>
         ) : (
           <EmptyState
-            title="Nessuna parcella visualizzabile"
-            message="L'archivio economico non contiene documenti per la vista corrente."
+            title={data.records.length ? 'Nessun risultato' : 'Nessuna parcella visualizzabile'}
+            message={data.records.length ? 'La ricerca locale non ha trovato documenti nell elenco ricevuto.' : "L'archivio economico non contiene documenti per la vista corrente."}
             action={<ButtonLink href="/fatturazione/nuova" tone="primary">Nuova parcella</ButtonLink>}
           />
         )}
       </Panel>
+      <ArchiveDetailPanel detail={detail} loading={detailLoading} />
       <ContractPanel data={data} />
+      <TechnicalRollback />
     </>
   )
 }
@@ -717,7 +886,7 @@ export function FatturazionePage() {
             <ContractPanel data={data} />
           </>
         ) : (
-          <ArchiveView data={data} />
+          <ArchiveView data={data} onReload={setData} />
         )
       ) : null}
     </Page>

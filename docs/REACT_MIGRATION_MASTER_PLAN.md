@@ -1,5 +1,32 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-07 - Parti 18A-21A preventivi e fatturazione operative 2.198.114
+
+Le Parti 18A-21A completano le superfici operative mandato/economico gia'
+avviate dopo `/fatturazione/nuova`:
+
+- `/preventivi/nuovo` usa `GET /api/v1/ui/preventivi/nuovo` e
+  `POST /api/v1/ui/preventivi/nuovo`; React raccoglie clienti, fascicoli,
+  voci e opzioni fiscali come input, mentre calcolo canonico, parametri
+  forensi, numerazione e persistenza restano in `GestionePreventivi`.
+- `/preventivi/conferimento/nuovo` usa
+  `GET/POST /api/v1/ui/preventivi/conferimento/nuovo`, precompila da
+  `id_preventivo` quando presente e conserva generazione documento, firme e
+  apertura fascicolo nei workflow backend/legacy.
+- `/preventivi` usa `GET /api/v1/ui/preventivi`,
+  `GET /api/v1/ui/preventivi/<id_preventivo>` e
+  `POST /api/v1/ui/preventivi/<id_preventivo>/stato` per archivio reale,
+  dettaglio sintetico e cambio stato supportato; archivia/annulla/duplica
+  restano disabilitate se non esiste una semantica legacy sicura.
+- `/fatturazione` usa `GET /api/v1/ui/fatturazione`,
+  `GET /api/v1/ui/fatturazione/<id_documento>` e POST JSON per stato,
+  annulla e segna pagata. PDF, XML, export e calcoli fiscali canonici restano
+  backend/legacy; React non usa fetch blob o generazione documenti.
+- Tutte le CTA `_legacy=1` rimaste sono confinate a `Rollback tecnico`; il
+  gate continua a proteggere `/preventivi/*` non autorizzati,
+  `/preventivi/wizard` resta invariato e `/fatturazione/*` diverso da
+  `/fatturazione/nuova` resta legacy/protetto.
+
 ## Stato tranche 2026-05-07 - Parte 17A fatturazione nuova operativa 2.198.110
 
 La Parte 17A promuove `/fatturazione/nuova` da `react_bridge` a

@@ -201,6 +201,127 @@ if (fatturazioneNuovaRow?.manifestStatus === 'react_operational_full') {
   }
 }
 
+const preventiviPage = readFileSync(resolve(root, 'frontend/src/components/PreventiviPage.tsx'), 'utf8')
+const preventiviData = readFileSync(resolve(root, 'frontend/src/preventiviData.ts'), 'utf8')
+const preventiviBridge = readFileSync(resolve(root, 'web/services/react_preventivi_bridge.py'), 'utf8')
+const preventiviCombined = `${preventiviPage}\n${preventiviData}\n${preventiviBridge}`
+
+const preventiviNuovoRow = rows.find((row) => row.route === '/preventivi/nuovo')
+if (preventiviNuovoRow?.manifestStatus === 'react_operational_full') {
+  if (/\bLegacyPostForm\b/.test(preventiviPage)) {
+    violations.push('/preventivi/nuovo: react_operational_full non puo contenere LegacyPostForm.')
+  }
+  if (/\?_legacy=1/.test(preventiviPage) && !/Rollback tecnico/.test(preventiviPage)) {
+    violations.push('/preventivi/nuovo: ?_legacy=1 ammesso solo come Rollback tecnico.')
+  }
+  if (!/\bapiPostJson\b/.test(preventiviData) || !/\bcreatePreventivo\b/.test(preventiviPage)) {
+    violations.push('/preventivi/nuovo: deve salvare tramite createPreventivo e apiPostJson.')
+  }
+  if (!/["']writes["']\s*:\s*["']json_api["']/.test(preventiviBridge)) {
+    violations.push('/preventivi/nuovo: bridge preventivi deve dichiarare writes json_api.')
+  }
+  if (!apiSource.includes('@api_v1_react.post("/preventivi/nuovo")')) {
+    violations.push('/preventivi/nuovo: manca endpoint POST JSON /api/v1/ui/preventivi/nuovo.')
+  }
+  if (/localStorage|sessionStorage|response\.blob|fetch\s*\([^)]*blob|URL\.createObjectURL|new Blob/.test(preventiviCombined)) {
+    violations.push('/preventivi/nuovo: non deve usare storage browser o blob frontend.')
+  }
+  if (/generatePdf|generatePDF|generateDocx|generateDOCX|calculateCompenso|calculatePreventivo/i.test(`${preventiviPage}\n${preventiviData}`)) {
+    violations.push('/preventivi/nuovo: React non deve calcolare compensi o generare documenti.')
+  }
+}
+
+const conferimentoRow = rows.find((row) => row.route === '/preventivi/conferimento/nuovo')
+if (conferimentoRow?.manifestStatus === 'react_operational_full') {
+  if (/\bLegacyPostForm\b/.test(preventiviPage)) {
+    violations.push('/preventivi/conferimento/nuovo: react_operational_full non puo contenere LegacyPostForm.')
+  }
+  if (/\?_legacy=1/.test(preventiviPage) && !/Rollback tecnico/.test(preventiviPage)) {
+    violations.push('/preventivi/conferimento/nuovo: ?_legacy=1 ammesso solo come Rollback tecnico.')
+  }
+  if (!/\bapiPostJson\b/.test(preventiviData) || !/\bcreateConferimento\b/.test(preventiviPage)) {
+    violations.push('/preventivi/conferimento/nuovo: deve salvare tramite createConferimento e apiPostJson.')
+  }
+  if (!/["']writes["']\s*:\s*["']json_api["']/.test(preventiviBridge)) {
+    violations.push('/preventivi/conferimento/nuovo: bridge preventivi deve dichiarare writes json_api.')
+  }
+  if (!apiSource.includes('@api_v1_react.post("/preventivi/conferimento/nuovo")')) {
+    violations.push('/preventivi/conferimento/nuovo: manca endpoint POST JSON /api/v1/ui/preventivi/conferimento/nuovo.')
+  }
+  if (/localStorage|sessionStorage|response\.blob|fetch\s*\([^)]*blob|URL\.createObjectURL|new Blob/.test(preventiviCombined)) {
+    violations.push('/preventivi/conferimento/nuovo: non deve usare storage browser o blob frontend.')
+  }
+  if (/generatePdf|generatePDF|generateDocx|generateDOCX|generateDocument|createDocument/.test(`${preventiviPage}\n${preventiviData}`)) {
+    violations.push('/preventivi/conferimento/nuovo: React non deve generare mandato, PDF o DOCX.')
+  }
+}
+
+const preventiviArchiveRow = rows.find((row) => row.route === '/preventivi')
+if (preventiviArchiveRow?.manifestStatus === 'react_operational_full') {
+  if (/\bLegacyPostForm\b/.test(preventiviPage)) {
+    violations.push('/preventivi: react_operational_full non puo contenere LegacyPostForm.')
+  }
+  if (/\?_legacy=1/.test(preventiviPage) && !/Rollback tecnico/.test(preventiviPage)) {
+    violations.push('/preventivi: ?_legacy=1 ammesso solo come Rollback tecnico.')
+  }
+  if (!/\bgetPreventiviPage\b/.test(preventiviPage) || !/\bgetPreventivoDetail\b/.test(preventiviPage)) {
+    violations.push('/preventivi: archivio e dettaglio devono usare API JSON.')
+  }
+  if (!/\bapiPostJson\b/.test(preventiviData) || !/\bupdatePreventivoStatus\b/.test(preventiviPage)) {
+    violations.push('/preventivi: azioni principali supportate devono usare apiPostJson.')
+  }
+  if (!apiSource.includes('@api_v1_react.get("/preventivi")') || !apiSource.includes('@api_v1_react.get("/preventivi/<id_preventivo>")')) {
+    violations.push('/preventivi: mancano endpoint GET JSON archivio o dettaglio.')
+  }
+  if (!apiSource.includes('@api_v1_react.post("/preventivi/<id_preventivo>/stato")')) {
+    violations.push('/preventivi: manca endpoint POST JSON per cambio stato supportato.')
+  }
+  if (!/["']writes["']\s*:\s*["']json_api["']/.test(preventiviBridge)) {
+    violations.push('/preventivi: bridge preventivi deve dichiarare writes json_api.')
+  }
+  if (/localStorage|sessionStorage|response\.blob|fetch\s*\([^)]*blob|URL\.createObjectURL|new Blob/.test(preventiviCombined)) {
+    violations.push('/preventivi: non deve usare storage browser o blob frontend.')
+  }
+  if (/generatePdf|generatePDF|generateDocx|generateDOCX|calculateCompenso|calculatePreventivo/i.test(`${preventiviPage}\n${preventiviData}`)) {
+    violations.push('/preventivi: React non deve calcolare compensi o generare documenti.')
+  }
+}
+
+const fatturazioneArchiveRow = rows.find((row) => row.route === '/fatturazione')
+if (fatturazioneArchiveRow?.manifestStatus === 'react_operational_full') {
+  const fattPage = readFileSync(resolve(root, 'frontend/src/components/FatturazionePage.tsx'), 'utf8')
+  const fattData = readFileSync(resolve(root, 'frontend/src/fatturazioneData.ts'), 'utf8')
+  const fattBridge = readFileSync(resolve(root, 'web/services/react_fatturazione_bridge.py'), 'utf8')
+  const fattCombined = `${fattPage}\n${fattData}\n${fattBridge}`
+  if (/\bLegacyPostForm\b/.test(fattPage)) {
+    violations.push('/fatturazione: react_operational_full non puo contenere LegacyPostForm.')
+  }
+  if (/\?_legacy=1/.test(fattPage) && !/Rollback tecnico/.test(fattPage)) {
+    violations.push('/fatturazione: ?_legacy=1 ammesso solo come Rollback tecnico.')
+  }
+  if (!/\bgetFatturazionePage\b/.test(fattPage) || !/\bgetFatturazioneDetail\b/.test(fattPage)) {
+    violations.push('/fatturazione: archivio e dettaglio devono usare API JSON.')
+  }
+  if (!/\bapiPostJson\b/.test(fattData) || !/\bupdateFatturazioneStatus\b/.test(fattPage)) {
+    violations.push('/fatturazione: azioni principali supportate devono usare apiPostJson.')
+  }
+  if (!apiSource.includes('@api_v1_react.get("/fatturazione")') || !apiSource.includes('@api_v1_react.get("/fatturazione/<id_documento>")')) {
+    violations.push('/fatturazione: mancano endpoint GET JSON archivio o dettaglio.')
+  }
+  if (!apiSource.includes('@api_v1_react.post("/fatturazione/<id_documento>/stato")')) {
+    violations.push('/fatturazione: manca endpoint POST JSON per cambio stato supportato.')
+  }
+  if (!/["']writes["']\s*:\s*["']json_api["']/.test(fattBridge)) {
+    violations.push('/fatturazione: bridge fatturazione deve dichiarare writes json_api.')
+  }
+  if (/localStorage|sessionStorage|response\.blob|fetch\s*\([^)]*blob|URL\.createObjectURL|new Blob/.test(fattCombined)) {
+    violations.push('/fatturazione: non deve usare storage browser o blob frontend.')
+  }
+  if (/calculateVat|calculateIva|calculateTax|calculateTotal|ivaRate|aliquotaIva|cassaRate|aliquotaCassa|ritenutaRate|Math\.round|\.toFixed\s*\(/i.test(`${fattPage}\n${fattData}`)) {
+    violations.push('/fatturazione: React non deve contenere calcolo fiscale canonico.')
+  }
+}
+
 const md = [
   '# Check no fake React full',
   '',

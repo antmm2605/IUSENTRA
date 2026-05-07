@@ -28,6 +28,59 @@ export type FatturazioneRecord = {
   xmlHref: string
 }
 
+export type FatturazioneDocumentRow = FatturazioneRecord
+
+export type FatturazioneStatus = {
+  value: string
+  label: string
+  tone: AdminTone
+}
+
+export type FatturazionePermissions = {
+  canCreate: boolean
+  canUpdateStatus: boolean
+  canArchive: boolean
+  canCancel: boolean
+  canMarkPaid: boolean
+  canDownloadPdf: boolean
+  canDownloadXml: boolean
+  canExport: boolean
+}
+
+export type FatturazioneDetail = FatturazioneRecord & {
+  voci: Array<{
+    descrizione: string
+    quantita: string
+    prezzoDisplay: string
+  }>
+}
+
+export type UpdateFatturazioneStatusPayload = {
+  stato: string
+  data_pagamento?: string
+  metodo_pagamento?: string
+  note?: string
+}
+
+export type FatturazioneMutationItem = {
+  id: string
+  number: string
+  amountDisplay: string
+  state: string
+  stateLabel: string
+  stateTone: AdminTone
+  paidAt: string
+  paymentMethod: string
+}
+
+export type FatturazioneMutationResult = {
+  ok: boolean
+  message: string
+  errors: Record<string, string>
+  item: FatturazioneMutationItem | null
+  status?: number
+}
+
 export type FatturazioneOption = {
   id: string
   value: string
@@ -96,6 +149,9 @@ export type FatturazionePageData = {
   metrics: AdminMetric[]
   sections: AdminSection[]
   records: FatturazioneRecord[]
+  documents: FatturazioneDocumentRow[]
+  statuses: FatturazioneStatus[]
+  permissions: FatturazionePermissions
   actions: AdminAction[]
   forms: FatturazioneFormDefinition[]
   warnings: AdminWarning[]
@@ -186,7 +242,18 @@ const emptyForm: FatturazioneFormDefinition = {
   hidden: {},
 }
 
-const archiveWritesContract = 'legacy_' + 'routes'
+const archiveWritesContract = 'json_api'
+
+const emptyPermissions: FatturazionePermissions = {
+  canCreate: false,
+  canUpdateStatus: false,
+  canArchive: false,
+  canCancel: false,
+  canMarkPaid: false,
+  canDownloadPdf: false,
+  canDownloadXml: false,
+  canExport: false,
+}
 
 export const emptyFatturazionePage: FatturazionePageData = {
   ok: false,
@@ -205,6 +272,9 @@ export const emptyFatturazionePage: FatturazionePageData = {
   metrics: [],
   sections: [],
   records: [],
+  documents: [],
+  statuses: [],
+  permissions: emptyPermissions,
   actions: [],
   forms: [],
   warnings: [],
@@ -213,6 +283,13 @@ export const emptyFatturazionePage: FatturazionePageData = {
 const createFallback: CreateFatturaResult = {
   ok: false,
   message: 'Salvataggio non completato.',
+  errors: { server: 'Il backend non ha restituito una risposta valida.' },
+  item: null,
+}
+
+const mutationFallback: FatturazioneMutationResult = {
+  ok: false,
+  message: 'Operazione non completata.',
   errors: { server: 'Il backend non ha restituito una risposta valida.' },
   item: null,
 }
@@ -319,6 +396,29 @@ function normaliseRecord(raw: unknown): FatturazioneRecord {
     detailHref: safeHref(item.detailHref),
     pdfHref: safeHref(item.pdfHref),
     xmlHref: safeHref(item.xmlHref),
+  }
+}
+
+function normaliseStatus(raw: unknown): FatturazioneStatus {
+  const item = asRecord(raw)
+  return {
+    value: text(item.value),
+    label: text(item.label) || text(item.value),
+    tone: tone(item.tone),
+  }
+}
+
+function normalisePermissions(raw: unknown): FatturazionePermissions {
+  const item = asRecord(raw)
+  return {
+    canCreate: bool(item.canCreate),
+    canUpdateStatus: bool(item.canUpdateStatus),
+    canArchive: bool(item.canArchive),
+    canCancel: bool(item.canCancel),
+    canMarkPaid: bool(item.canMarkPaid),
+    canDownloadPdf: bool(item.canDownloadPdf),
+    canDownloadXml: bool(item.canDownloadXml),
+    canExport: bool(item.canExport),
   }
 }
 
@@ -441,6 +541,9 @@ function normalisePage(raw: unknown): FatturazionePageData {
     metrics: list(page.metrics).map(normaliseMetric),
     sections: list(page.sections).map(normaliseSection),
     records: list(page.records).map(normaliseRecord).filter((record) => record.id || record.number),
+    documents: list(page.documents).map(normaliseRecord).filter((record) => record.id || record.number),
+    statuses: list(page.statuses).map(normaliseStatus).filter((status) => status.value),
+    permissions: normalisePermissions(page.permissions),
     actions: list(page.actions).map(normaliseAction).filter((action) => action.href),
     forms: list(page.forms).map(normaliseForm),
     warnings: list(page.warnings).map(normaliseWarning),
@@ -471,9 +574,60 @@ function normaliseCreateResult(raw: unknown): CreateFatturaResult {
   }
 }
 
+function normaliseMutationItem(raw: unknown): FatturazioneMutationItem | null {
+  if (!raw || typeof raw !== 'object') return null
+  const item = asRecord(raw)
+  return {
+    id: text(item.id),
+    number: text(item.number),
+    amountDisplay: text(item.amountDisplay),
+    state: text(item.state),
+    stateLabel: text(item.stateLabel),
+    stateTone: tone(item.stateTone),
+    paidAt: text(item.paidAt),
+    paymentMethod: text(item.paymentMethod),
+  }
+}
+
+function normaliseMutationResult(raw: unknown): FatturazioneMutationResult {
+  const item = asRecord(raw)
+  return {
+    ok: item.ok === true,
+    message: text(item.message) || (item.ok === true ? 'Operazione completata.' : 'Operazione non completata.'),
+    errors: Object.fromEntries(
+      Object.entries(asRecord(item.errors)).map(([key, rawValue]) => [key, text(rawValue)]),
+    ),
+    item: normaliseMutationItem(item.item),
+    status: typeof item.status === 'number' ? item.status : undefined,
+  }
+}
+
 export async function getFatturazionePage(): Promise<FatturazionePageData> {
   const payload = await apiJson<unknown>('/api/v1/ui/fatturazione', emptyFatturazionePage)
   return normalisePage(payload)
+}
+
+export async function getFatturazioneDetail(idDocumento: string): Promise<{ ok: boolean; item: FatturazioneDetail | null; message: string; errors: Record<string, string> }> {
+  const payload = await apiJson<unknown>(`/api/v1/ui/fatturazione/${encodeURIComponent(idDocumento)}`, { ok: false, item: null })
+  const page = asRecord(payload)
+  const rawItem = asRecord(page.item)
+  const item = page.item ? {
+    ...normaliseRecord(page.item),
+    voci: list(rawItem.voci).map((voice) => {
+      const row = asRecord(voice)
+      return {
+        descrizione: text(row.descrizione),
+        quantita: text(row.quantita),
+        prezzoDisplay: text(row.prezzoDisplay),
+      }
+    }),
+  } : null
+  return {
+    ok: page.ok === true,
+    item,
+    message: text(page.message),
+    errors: Object.fromEntries(Object.entries(asRecord(page.errors)).map(([key, rawValue]) => [key, text(rawValue)])),
+  }
 }
 
 export async function getNuovaFatturaPage(): Promise<FatturazionePageData> {
@@ -488,4 +642,23 @@ export async function createFattura(payload: CreateFatturaPayload): Promise<Crea
 
 export async function createParcella(payload: CreateFatturaPayload): Promise<CreateFatturaResult> {
   return createFattura(payload)
+}
+
+export async function updateFatturazioneStatus(idDocumento: string, payload: UpdateFatturazioneStatusPayload): Promise<FatturazioneMutationResult> {
+  const result = await apiPostJson<FatturazioneMutationResult>(`/api/v1/ui/fatturazione/${encodeURIComponent(idDocumento)}/stato`, payload, mutationFallback)
+  return normaliseMutationResult(result)
+}
+
+export async function archiveFatturazioneDocument(): Promise<FatturazioneMutationResult> {
+  return { ...mutationFallback, message: 'Archiviazione non supportata dal backend legacy.' }
+}
+
+export async function cancelFatturazioneDocument(idDocumento: string): Promise<FatturazioneMutationResult> {
+  const result = await apiPostJson<FatturazioneMutationResult>(`/api/v1/ui/fatturazione/${encodeURIComponent(idDocumento)}/annulla`, {}, mutationFallback)
+  return normaliseMutationResult(result)
+}
+
+export async function markFatturazionePaid(idDocumento: string, payload: Omit<UpdateFatturazioneStatusPayload, 'stato'> = {}): Promise<FatturazioneMutationResult> {
+  const result = await apiPostJson<FatturazioneMutationResult>(`/api/v1/ui/fatturazione/${encodeURIComponent(idDocumento)}/segna-pagata`, payload, mutationFallback)
+  return normaliseMutationResult(result)
 }

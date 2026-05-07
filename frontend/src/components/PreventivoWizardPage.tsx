@@ -119,6 +119,27 @@ function readFavorites(): string[] {
   }
 }
 
+function wizardStringList(value: unknown): string[] {
+  return Array.isArray(value) ? value.map((item) => String(item || '').trim()).filter(Boolean) : []
+}
+
+function wizardReferenceRows(value: unknown): Array<Record<string, unknown>> {
+  if (!Array.isArray(value)) return []
+  return value.map((item) => {
+    if (item && typeof item === 'object' && !Array.isArray(item)) return item as Record<string, unknown>
+    const label = String(item || '').trim()
+    return label ? { title: label } : {}
+  }).filter((item) => Object.keys(item).length)
+}
+
+function wizardComplianceLabel(status: unknown, exact: unknown): string {
+  const value = String(status || '').toLowerCase()
+  if (value === 'snapshot_esatto' || exact === true) return 'Snapshot esatto'
+  if (value === 'ricostruzione') return 'Ricostruzione dichiarata'
+  if (value === 'fallback_tecnico') return 'Fallback tecnico'
+  return String(status || 'Copertura da verificare')
+}
+
 function Field({
   id,
   label,
@@ -433,6 +454,13 @@ function Sidebar({
 }) {
   const total = calculation?.economic?.totale_label || formatEuro(0)
   const base = calculation?.economic?.imponibile_label || formatEuro(0)
+  const audit = calculation?.audit || {}
+  const auditStatus = wizardComplianceLabel(audit.compliance_status, audit.exact_snapshot)
+  const auditTable = String(audit.table_label || audit.table_code || '')
+  const auditRule = String(audit.rule_label || audit.rule_code || '')
+  const auditScaglione = calculation?.scaglione || String(audit.scaglione || '')
+  const auditReferences = wizardReferenceRows(audit.riferimenti_normativi)
+  const auditCodes = wizardStringList(audit.reference_codes)
   const refs = practice?.normative_references.length ? practice.normative_references : []
   const checklist = practice?.checklist_iniziale || []
   return (
@@ -448,12 +476,22 @@ function Sidebar({
           practice?.motore_label || '',
           practice?.redattore_label || '',
           practice?.label || '',
-          data.support.audit.aligned ? 'Verificata su snapshot' : '',
+          calculation ? auditStatus : data.support.audit.aligned ? 'Snapshot esatto' : '',
+          auditTable,
+          auditScaglione.includes('Oltre EUR 520.000') ? 'Fascia alta' : '',
         ]} />
         <h3>{practice?.label || 'Tipologia non selezionata'}</h3>
         <p>{practice?.summary || 'Seleziona una tipologia per attivare profilo, calcolo e riferimenti.'}</p>
         {practice?.when_to_use ? <p>{practice.when_to_use}</p> : null}
         {practice?.base_normativa ? <p className="iu-pwiz-side-note">Regola allineata al catalogo tariffario e alla tabella ufficiale presente nello snapshot DM 147/2022.</p> : null}
+        {calculation ? (
+          <div className="iu-pwiz-side-audit">
+            <strong>{auditStatus}</strong>
+            {auditRule ? <span>Regola: {auditRule}</span> : null}
+            {auditTable ? <span>Tabella: {auditTable}</span> : null}
+            {auditScaglione ? <span>Scaglione: {auditScaglione}</span> : null}
+          </div>
+        ) : null}
         {client ? <p className="iu-pwiz-side-client">Cliente: <strong>{client.label}</strong></p> : null}
         <div className="iu-pwiz-money-grid">
           <div><span>Compenso base</span><strong>{base}</strong></div>
@@ -479,6 +517,26 @@ function Sidebar({
         </Accordion>
         <Accordion id="coverage" title="Copertura tariffaria" badge={`${data.support.audit.aligned}/${data.support.audit.total || 0}`} open={open.coverage} onToggle={() => onToggle('coverage')}>
           <p>Copertura snapshot: {data.support.audit.aligned} regole allineate su {data.support.audit.total || 0}. Voci aperte: {data.support.audit.open}.</p>
+          {calculation ? (
+            <div className="iu-pwiz-side-list">
+              <article>
+                <strong>{auditStatus}</strong>
+                <span>{String(audit.compliance_note || 'Audit tariffario conservato nel log del preventivo.')}</span>
+              </article>
+              {auditCodes.length ? (
+                <article>
+                  <strong>Codici normativi</strong>
+                  <span>{auditCodes.join(', ')}</span>
+                </article>
+              ) : null}
+              {auditReferences.slice(0, 4).map((ref, index) => (
+                <article key={`${String(ref.code || ref.title || 'audit-ref')}-${index}`}>
+                  <strong>{String(ref.title || ref.label || ref.code || 'Riferimento')}</strong>
+                  <span>{String(ref.article || ref.description || ref.url || '')}</span>
+                </article>
+              ))}
+            </div>
+          ) : null}
         </Accordion>
         {calculation?.economic ? (
           <dl className="iu-pwiz-side-fiscal">
@@ -1133,7 +1191,7 @@ export function PreventivoWizardPage() {
                 <SelectInput id="grade" label="Grado / sede" value={grade} onChange={setGrade}>
                   {(selectedPractice?.regole_tariffarie.length ? Array.from(new Set(selectedPractice.regole_tariffarie.flatMap((item) => Array.isArray(item.allowed_grade_input_values) ? item.allowed_grade_input_values.map(String) : [String(item.grado_input_value || '')]).filter(Boolean))) : [selectedPractice?.grado_default || '']).map((item) => <option value={item} key={item}>{item}</option>)}
                 </SelectInput>
-                <SelectInput id="complexity" label="Complessità stimata" value={complexity} help="Bassa usa la forbice minima, media il valore base, alta la forbice massima; se il valore non è determinato, IUSENTRA usa il primo scaglione reale disponibile." onChange={setComplexity}>
+                <SelectInput id="complexity" label="Complessità stimata" value={complexity} help="Molto alta usa il valore indeterminabile parametrizzato oltre EUR 520.000 e viene tracciata nell'audit prima dell'invio al cliente." onChange={setComplexity}>
                   {data.options.complexity.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}
                 </SelectInput>
                 <TextInput id="hourly-rate" label="Tariffa oraria" value={hourlyRate} onChange={(next) => setHourlyRate(normalizeAmountInput(next))} />

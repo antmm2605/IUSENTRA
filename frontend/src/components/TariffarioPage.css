@@ -144,7 +144,7 @@
 }
 
 .iu-tar-layout {
-  align-items: stretch;
+  align-items: start;
   display: grid;
   gap: 1rem;
   grid-template-columns: minmax(0, 1fr) minmax(19rem, 25rem);
@@ -158,8 +158,9 @@
 
 .iu-tar-sidebar {
   align-content: start;
-  align-self: stretch;
-  min-height: 100%;
+  align-self: start;
+  min-height: 0;
+  position: relative;
 }
 
 .iu-tar-panel,
@@ -196,8 +197,17 @@
 .iu-tar-field-grid {
   display: grid;
   gap: 0.9rem;
-  grid-template-columns: 1fr 1.35fr 0.82fr 0.85fr;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   padding: 1.1rem;
+}
+
+.iu-tar-filter-switches {
+  align-items: center;
+  border-top: 1px solid #e3ebf4;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  padding: 0.85rem 1.1rem 1rem;
 }
 
 .iu-tar-field {
@@ -642,6 +652,42 @@
   margin: 1rem 1.1rem;
 }
 
+.iu-tar-result-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  padding: 0 1.1rem 0.85rem;
+}
+
+.iu-tar-result-badges span {
+  background: #f4f8ff;
+  border: 1px solid #bfd4ff;
+  border-radius: 999px;
+  color: #163f94;
+  font-size: 0.78rem;
+  font-weight: 900;
+  min-height: 1.7rem;
+  padding: 0.24rem 0.58rem;
+}
+
+.iu-tar-result-warning-list {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0 1.1rem 0.9rem;
+}
+
+.iu-tar-result-warning-list p {
+  align-items: center;
+  background: #fff8e6;
+  border: 1px solid #f0cf87;
+  border-radius: 10px;
+  color: #7d4b00;
+  display: flex;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.72rem 0.85rem;
+}
+
 .iu-tar-chips {
   padding: 0 1.1rem 1rem;
 }
@@ -712,6 +758,78 @@
   margin: 1rem 1.1rem 0;
 }
 
+.iu-tar-audit-box {
+  border: 1px solid #dbe5f1;
+  border-radius: 12px;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  margin: 1rem 1.1rem 0;
+  padding: 1rem;
+}
+
+.iu-tar-audit-box h3 {
+  color: #142138;
+  font-size: 0.95rem;
+  margin: 0 0 0.6rem;
+}
+
+.iu-tar-audit-box dl {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+}
+
+.iu-tar-audit-box dl div {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.iu-tar-audit-box dt {
+  color: #66748a;
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.iu-tar-audit-box dd {
+  color: #17243a;
+  font-weight: 850;
+  margin: 0;
+}
+
+.iu-tar-audit-box p {
+  color: #53627a;
+  line-height: 1.45;
+  margin: 0.7rem 0 0;
+}
+
+.iu-tar-reference-list {
+  display: grid;
+  gap: 0.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.iu-tar-reference-list li {
+  border: 1px solid #dbe5f1;
+  border-radius: 9px;
+  display: grid;
+  gap: 0.18rem;
+  padding: 0.62rem;
+}
+
+.iu-tar-reference-list strong {
+  color: #17243a;
+  font-size: 0.86rem;
+}
+
+.iu-tar-reference-list span {
+  color: #66748a;
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
 .iu-tar-bottom-grid {
   display: grid;
   gap: 0.8rem;
@@ -765,13 +883,35 @@
     linear-gradient(135deg, rgba(15, 27, 49, 0.98), rgba(16, 37, 70, 0.95)),
     #0f1b31;
   color: #ffffff;
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 1.2rem;
+  scrollbar-color: rgba(255, 255, 255, 0.38) rgba(255, 255, 255, 0.08);
 }
 
 .iu-tar-summary-sticky {
-  position: sticky;
-  top: 1rem;
   z-index: 2;
+}
+
+.iu-tar-summary-holder {
+  min-width: 0;
+}
+
+.iu-tar-summary-sticky.is-floating {
+  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.18);
+  z-index: 28;
+}
+
+.iu-tar-inline-warning {
+  background: #fff8e7;
+  border: 1px solid #f2d596;
+  border-radius: 10px;
+  color: #785100;
+  font-size: 0.84rem;
+  line-height: 1.38;
+  margin: 0.7rem 0;
+  padding: 0.7rem 0.78rem;
 }
 
 .iu-tar-realtime-head {
@@ -998,7 +1138,7 @@
   padding: 0.9rem;
 }
 
-@media (max-width: 1180px) {
+@media (max-width: 1040px) {
   .iu-tar-field-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1007,7 +1147,16 @@
     grid-template-columns: 1fr;
   }
 
+  .iu-tar-sidebar {
+    max-height: none;
+    overflow: visible;
+    padding-right: 0;
+    position: static;
+  }
+
   .iu-tar-summary-sticky {
+    max-height: none;
+    overflow: visible;
     position: static;
   }
 }
@@ -1018,6 +1167,7 @@
   .iu-tar-steps,
   .iu-tar-section-cards,
   .iu-tar-bottom-grid,
+  .iu-tar-audit-box,
   .iu-tar-audit-cards {
     grid-template-columns: 1fr;
   }

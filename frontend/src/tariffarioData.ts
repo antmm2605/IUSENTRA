@@ -20,9 +20,16 @@ export type TariffarioRuleRow = {
   label: string
   rule_label: string
   table_label: string
+  table_code?: string
   matter: string
+  materia_label?: string
   suggested_practice_id: string
   grado_input_value: string
+  calc_mode?: string
+  exact_snapshot?: boolean
+  compliance_status?: string
+  compliance_note?: string
+  reference_codes?: string[]
 }
 
 export type TariffarioPracticeRow = {
@@ -60,6 +67,9 @@ export type TariffarioCatalog = {
   ruleCatalog: Record<string, TariffarioRuleRow[]>
   complexityOptions: TariffarioOption[]
   ruleOptions: TariffarioOption[]
+  areaOptions: TariffarioOption[]
+  tableOptions: TariffarioOption[]
+  calcModeOptions: TariffarioOption[]
   gradeOptions: TariffarioOption[]
   practices: Record<string, TariffarioPracticeRow>
 }
@@ -74,6 +84,7 @@ export type TariffarioManualLine = {
 }
 
 export type TariffarioState = {
+  [key: string]: unknown
   materia: string
   regola_tariffaria: string
   grado: string
@@ -111,6 +122,8 @@ export type TariffarioDynamic = {
   variationPolicy: Record<string, unknown>
   mediazioneEnabled: boolean
   mediazioneTargets: string[]
+  mediazioneEligible?: boolean
+  mediazioneEligibleTargets?: string[]
   manualTypes: string[]
   fiscalTypes: string[]
 }
@@ -127,13 +140,28 @@ export type TariffarioResult = {
   engineLabel: string
   engineText: string
   metadata: Array<{ label: string; value: string }>
+  badges: string[]
   table: {
     columns: Array<{ id: string; label: string }>
     rows: TariffarioResultRow[]
     selected: string
   }
   note: string
-  included: Array<{ id: string; descrizione: string; tipo: string; importo: number; importo_label: string }>
+  warnings: string[]
+  audit: Record<string, unknown>
+  references: Array<Record<string, unknown> | string>
+  referenceCodes: string[]
+  tableCode: string
+  tableLabel: string
+  ruleCode: string
+  ruleLabel: string
+  exactSnapshot: boolean
+  complianceStatus: string
+  complianceNote: string
+  sourceSnapshot: string
+  highRange: boolean
+  indeterminate: boolean
+  included: Array<{ id: string; descrizione: string; tipo: string; importo: number; importo_label: string; fiscale?: string }>
   economic: {
     rows: Array<{ id: string; label: string; value: string; tone?: string }>
     total: string
@@ -224,6 +252,9 @@ const emptyCatalog: TariffarioCatalog = {
   ruleCatalog: {},
   complexityOptions: [],
   ruleOptions: [],
+  areaOptions: [],
+  tableOptions: [],
+  calcModeOptions: [],
   gradeOptions: [],
   practices: {},
 }
@@ -266,6 +297,8 @@ const emptyDynamic: TariffarioDynamic = {
   variationPolicy: {},
   mediazioneEnabled: false,
   mediazioneTargets: [],
+  mediazioneEligible: false,
+  mediazioneEligibleTargets: [],
   manualTypes: [],
   fiscalTypes: [],
 }
@@ -383,9 +416,16 @@ function normaliseRule(raw: unknown): TariffarioRuleRow {
     label: text(item.label) || text(item.rule_label),
     rule_label: text(item.rule_label),
     table_label: text(item.table_label),
+    table_code: text(item.table_code),
     matter: text(item.matter),
+    materia_label: text(item.materia_label),
     suggested_practice_id: text(item.suggested_practice_id),
     grado_input_value: text(item.grado_input_value),
+    calc_mode: text(item.calc_mode),
+    exact_snapshot: bool(item.exact_snapshot),
+    compliance_status: text(item.compliance_status),
+    compliance_note: text(item.compliance_note),
+    reference_codes: normaliseStringList(item.reference_codes),
   }
 }
 
@@ -444,8 +484,12 @@ function normaliseManualLine(raw: unknown): TariffarioManualLine {
 
 function normaliseState(raw: unknown): TariffarioState {
   const item = asRecord(raw)
+  const extraVariationState = Object.fromEntries(
+    Object.entries(item).filter(([key]) => key.startsWith('var_')).map(([key, value]) => [key, text(value)]),
+  )
   return {
     ...emptyTariffarioState,
+    ...extraVariationState,
     materia: text(item.materia),
     regola_tariffaria: text(item.regola_tariffaria),
     grado: text(item.grado),
@@ -486,6 +530,9 @@ function normaliseCatalog(raw: unknown): TariffarioCatalog {
     ),
     complexityOptions: list(item.complexityOptions).map(normaliseOption),
     ruleOptions: list(item.ruleOptions).map(normaliseOption),
+    areaOptions: list(item.areaOptions).map(normaliseOption),
+    tableOptions: list(item.tableOptions).map(normaliseOption),
+    calcModeOptions: list(item.calcModeOptions).map(normaliseOption),
     gradeOptions: list(item.gradeOptions).map(normaliseOption),
     practices: Object.fromEntries(
       Object.entries(practicesRaw).map(([key, value]) => [key, normalisePractice(value)]),
@@ -518,6 +565,8 @@ function normaliseDynamic(raw: unknown): TariffarioDynamic {
     variationPolicy: asRecord(item.variationPolicy),
     mediazioneEnabled: bool(item.mediazioneEnabled),
     mediazioneTargets: normaliseStringList(item.mediazioneTargets),
+    mediazioneEligible: bool(item.mediazioneEligible),
+    mediazioneEligibleTargets: normaliseStringList(item.mediazioneEligibleTargets),
     manualTypes: normaliseStringList(item.manualTypes),
     fiscalTypes: normaliseStringList(item.fiscalTypes),
   }
@@ -535,6 +584,7 @@ function normaliseResult(raw: unknown): TariffarioResult | null {
       const entry = asRecord(rawItem)
       return { label: text(entry.label), value: text(entry.value) }
     }).filter((entry) => entry.label || entry.value),
+    badges: normaliseStringList(item.badges),
     table: {
       columns: list(table.columns).map((rawColumn) => {
         const column = asRecord(rawColumn)
@@ -554,6 +604,23 @@ function normaliseResult(raw: unknown): TariffarioResult | null {
       selected: text(table.selected),
     },
     note: text(item.note),
+    warnings: normaliseStringList(item.warnings),
+    audit: asRecord(item.audit),
+    references: list(item.references).map((entry) => {
+      const rawRef = asRecord(entry)
+      return Object.keys(rawRef).length ? rawRef : text(entry)
+    }),
+    referenceCodes: normaliseStringList(item.referenceCodes),
+    tableCode: text(item.tableCode),
+    tableLabel: text(item.tableLabel),
+    ruleCode: text(item.ruleCode),
+    ruleLabel: text(item.ruleLabel),
+    exactSnapshot: bool(item.exactSnapshot),
+    complianceStatus: text(item.complianceStatus),
+    complianceNote: text(item.complianceNote),
+    sourceSnapshot: text(item.sourceSnapshot),
+    highRange: bool(item.highRange),
+    indeterminate: bool(item.indeterminate),
     included: list(item.included).map((rawLine) => {
       const line = asRecord(rawLine)
       return {
@@ -562,6 +629,7 @@ function normaliseResult(raw: unknown): TariffarioResult | null {
         tipo: text(line.tipo),
         importo: numberValue(line.importo),
         importo_label: text(line.importo_label),
+        fiscale: text(line.fiscale),
       }
     }),
     economic: {

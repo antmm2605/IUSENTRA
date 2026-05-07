@@ -1890,6 +1890,27 @@
   margin-top: 1rem;
 }
 
+.iu-pwiz-side-audit {
+  display: grid;
+  gap: 0.28rem;
+  margin-top: 0.85rem;
+  border: 1px solid #d8e4f2;
+  border-radius: 10px;
+  background: #f8fbff;
+  padding: 0.72rem;
+}
+
+.iu-pwiz-side-audit strong {
+  color: #1459c8;
+  font-size: 0.86rem;
+}
+
+.iu-pwiz-side-audit span {
+  color: #455a75;
+  font-size: 0.8rem;
+  line-height: 1.32;
+}
+
 .iu-pwiz-side-client {
   border-top: 1px solid #e4edf7;
   padding-top: 0.75rem;

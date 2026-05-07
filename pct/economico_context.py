@@ -31,6 +31,12 @@ def _compact_tariffario_audit(row: Optional[Dict[str, Any]]) -> Dict[str, Any]:
     if not isinstance(row, dict):
         return {}
     profile = row.get("profile") if isinstance(row.get("profile"), dict) else {}
+    def _ref_label(ref: Any) -> str:
+        if isinstance(ref, dict):
+            title = str(ref.get("title") or "").strip()
+            article = str(ref.get("article") or "").strip()
+            return " - ".join(part for part in (title, article) if part)
+        return str(ref or "").strip()
     rule_label = str(
         row.get("rule_label")
         or row.get("label")
@@ -43,12 +49,26 @@ def _compact_tariffario_audit(row: Optional[Dict[str, Any]]) -> Dict[str, Any]:
         "rule_label": rule_label,
         "table_code": str(row.get("table_code") or profile.get("table_code") or "").strip(),
         "table_label": str(row.get("table_label") or profile.get("table_label") or "").strip(),
+        "area_scope": str(row.get("area_scope") or profile.get("area_scope") or "").strip(),
+        "grade_scope": str(row.get("grade_scope") or profile.get("grade_scope") or "").strip(),
+        "calc_mode": str(row.get("calc_mode") or profile.get("calc_mode") or "").strip(),
+        "exact_snapshot": bool(row.get("exact_snapshot", profile.get("exact_snapshot", False))),
         "compliance_status": str(row.get("compliance_status") or "").strip(),
         "compliance_label": str(row.get("compliance_label") or "").strip(),
         "compliance_badge": str(row.get("compliance_badge") or "").strip(),
         "compliance_note": str(row.get("compliance_note") or "").strip(),
         "snapshot_origin": str(row.get("snapshot_origin") or "").strip(),
         "source_snapshot": str(row.get("source_snapshot") or "").strip(),
+        "reference_codes": [
+            str(code or "").strip()
+            for code in (row.get("reference_codes") or profile.get("reference_codes") or [])
+            if str(code or "").strip()
+        ],
+        "riferimenti_normativi": [
+            label
+            for label in (_ref_label(ref) for ref in (row.get("riferimenti_normativi") or row.get("normative_references") or profile.get("normative_references") or []))
+            if label
+        ],
     }
 
 
@@ -61,7 +81,7 @@ def _resolve_tariffario_audit(
     existing: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     compact_existing = _compact_tariffario_audit(existing)
-    if compact_existing.get("rule_code"):
+    if compact_existing.get("rule_code") and compact_existing.get("table_code") and compact_existing.get("reference_codes"):
         return compact_existing
 
     try:
@@ -95,16 +115,19 @@ def sincronizza_contesto_economico(raw: Any) -> Dict[str, Any]:
     data = carica_log_calcolo(raw)
     if not data:
         return {}
+    legacy_tariffario = data.get("tariffario") if isinstance(data.get("tariffario"), dict) else {}
 
     audit = _resolve_tariffario_audit(
-        rule_code=str(data.get("regola_tariffaria_code") or "").strip(),
-        rule_label=str(data.get("regola_tariffaria_label") or "").strip(),
-        practice_id=str(data.get("id_pratica") or "").strip(),
-        fallback_rule_value=str(data.get("regola_tariffaria") or "").strip(),
-        existing=data.get("audit_tariffario"),
+        rule_code=str(data.get("regola_tariffaria_code") or legacy_tariffario.get("rule_code") or "").strip(),
+        rule_label=str(data.get("regola_tariffaria_label") or legacy_tariffario.get("rule_label") or "").strip(),
+        practice_id=str(data.get("id_pratica") or legacy_tariffario.get("id_pratica") or "").strip(),
+        fallback_rule_value=str(data.get("regola_tariffaria") or legacy_tariffario.get("regola_tariffaria") or "").strip(),
+        existing=data.get("audit_tariffario") if isinstance(data.get("audit_tariffario"), dict) else legacy_tariffario,
     )
     if audit:
         data["audit_tariffario"] = audit
+        if legacy_tariffario:
+            data["tariffario"] = {**legacy_tariffario, **audit}
         if audit.get("rule_code"):
             data["regola_tariffaria_code"] = audit["rule_code"]
         if audit.get("rule_label"):
@@ -244,6 +267,7 @@ def costruisci_contesto_economico(
         for row in (classificazioni_tassonomiche or [])
         if isinstance(row, dict)
     ]
+    riferimenti_payload = _compact_refs(riferimenti_normativi or audit.get("riferimenti_normativi") or [])
     return {
         "source": source,
         "source_label": source_label,
@@ -271,6 +295,13 @@ def costruisci_contesto_economico(
         "regola_tariffaria": regola_display,
         "regola_tariffaria_code": regola_code,
         "regola_tariffaria_label": str(audit.get("rule_label") or regola_display),
+        "table_code": str(audit.get("table_code") or "").strip(),
+        "table_label": str(audit.get("table_label") or "").strip(),
+        "exact_snapshot": bool(audit.get("exact_snapshot")),
+        "compliance_status": str(audit.get("compliance_status") or "").strip(),
+        "compliance_note": str(audit.get("compliance_note") or "").strip(),
+        "source_snapshot": str(audit.get("source_snapshot") or "").strip(),
+        "reference_codes": list(audit.get("reference_codes") or []),
         "complessita": complessita,
         "valore_controversia": round(_safe_float(valore_controversia), 2),
         "bonus_telematico": bool(bonus_telematico),
@@ -294,7 +325,7 @@ def costruisci_contesto_economico(
         "esborsi": list(esborsi or []),
         "manual_voci": list(manual_voci or []),
         "risultato": dict(risultato or {}),
-        "riferimenti_normativi": _compact_refs(riferimenti_normativi or []),
+        "riferimenti_normativi": riferimenti_payload,
         "riferimenti_tassonomia": _compact_refs(riferimenti_tassonomia or []),
         "classificazioni_tassonomiche": classificazioni_norm,
         "audit_tariffario": audit,
@@ -337,6 +368,13 @@ def riepilogo_contesto_economico(raw: Any) -> Dict[str, Any]:
         "regola_tariffaria": str(data.get("regola_tariffaria") or "").strip(),
         "regola_tariffaria_code": str(data.get("regola_tariffaria_code") or audit.get("rule_code") or "").strip(),
         "regola_tariffaria_label": str(data.get("regola_tariffaria_label") or audit.get("rule_label") or data.get("regola_tariffaria") or "").strip(),
+        "table_code": str(data.get("table_code") or audit.get("table_code") or "").strip(),
+        "table_label": str(data.get("table_label") or audit.get("table_label") or "").strip(),
+        "exact_snapshot": bool(data.get("exact_snapshot") or audit.get("exact_snapshot")),
+        "compliance_status": str(data.get("compliance_status") or audit.get("compliance_status") or "").strip(),
+        "compliance_note": str(data.get("compliance_note") or audit.get("compliance_note") or "").strip(),
+        "source_snapshot": str(data.get("source_snapshot") or audit.get("source_snapshot") or "").strip(),
+        "reference_codes": list(data.get("reference_codes") or audit.get("reference_codes") or []),
         "complessita": str(data.get("complessita") or "").strip(),
         "valore_controversia": round(_safe_float(data.get("valore_controversia")), 2),
         "bonus_telematico": bool(data.get("bonus_telematico")),

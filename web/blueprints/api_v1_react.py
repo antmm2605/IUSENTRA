@@ -2991,6 +2991,22 @@ def preventivi_wizard_create_page():
         _aggiungi_voce_compenso_a_tempo(voci, compenso_a_tempo)
         if not voci:
             return jsonify({"ok": False, "warnings": [_warning("voci_richieste", "Aggiungi almeno una voce al preventivo.")]}), 200
+        motore_rows = [
+            row for row in (calculation.get("rows") or [])
+            if isinstance(row, dict) and str(row.get("source") or "") == "motore"
+        ]
+        if motore_rows and sum(float(getattr(voce, "importo", 0.0) or 0.0) for voce in voci) <= 0:
+            return jsonify(
+                {
+                    "ok": False,
+                    "warnings": [
+                        _warning(
+                            "calcolo_tabellare_zero",
+                            "La regola tariffaria selezionata richiede un compenso tabellare positivo: il preventivo non viene creato a zero. Usa una voce manuale solo se e' dichiarata come non tabellare.",
+                        )
+                    ],
+                }
+            ), 200
 
         cfg = current_app.config
         log_calcolo = _contesto_log_wizard_da_form(form, compenso_a_tempo)

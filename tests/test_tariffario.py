@@ -1,4 +1,4 @@
-from pct.tariffario import Fase, Grado, LivelloCompenso, Materia, calcola_compenso, livello_compenso_da_complessita, parse_numero_locale
+from pct.tariffario import ComplessitaStimata, Fase, Grado, LivelloCompenso, Materia, calcola_compenso, livello_compenso_da_complessita, parse_numero_locale
 from pct.tariffario_catalogo import (
     TABELLE_SNAPSHOT_META,
     default_rule_for_practice,
@@ -206,20 +206,20 @@ def test_riepilogo_livello_massimo_calcola_bonus_e_spese():
     assert riepilogo["spese_generali"] == round((riepilogo["subtotale"] + riepilogo["bonus_telematico"]) * 0.15, 2)
 
 
-def test_valore_zero_usa_il_primo_scaglione_reale_come_default():
+def test_valore_zero_con_complessita_parametrizza_indeterminabile():
     risultato = calcola_compenso(
         Materia.CIVILE_COGN,
         Grado.TRIBUNALE,
         0,
         [Fase.STUDIO, Fase.INTRODUTTIVA, Fase.ISTRUTTORIA, Fase.DECISIONALE],
-        complessita="media",
+        complessita=ComplessitaStimata.MOLTO_ALTA,
     )
 
-    assert risultato.complessita_stimata == "media"
+    assert risultato.complessita_stimata == "molto_alta"
     assert risultato.valore_input == 0
-    assert risultato.valore_calcolo == 0.0
-    assert risultato.scaglione == "Fino a EUR 1.100 (o indeterminabile)"
-    assert "primo scaglione tabellare disponibile" in risultato.note.lower()
+    assert risultato.valore_calcolo == 520001.0
+    assert risultato.scaglione == "Oltre EUR 520.000"
+    assert "valore indeterminabile parametrizzato" in risultato.note.lower()
 
 
 def test_parse_numero_locale_accetta_separatori_migliaia_e_decimali():
@@ -317,7 +317,7 @@ def test_audit_tariffario_copre_tutte_le_regole_senza_buchi_strutturali():
     assert all(row["snapshot_present"] for row in audit_rows)
     assert all(row["phase_alignment_ok"] for row in audit_rows)
     assert all(row["normative_reference_count"] >= 4 for row in audit_rows)
-    assert not [row["rule_code"] for row in audit_rows if row["compliance_status"] == "da_verificare"]
+    assert not [row["rule_code"] for row in audit_rows if row["compliance_status"] == "fallback_tecnico"]
 
 
 def test_audit_tariffario_giurisdizioni_superiori_separa_le_tre_sedi_su_tabella_14():
@@ -326,7 +326,7 @@ def test_audit_tariffario_giurisdizioni_superiori_separa_le_tre_sedi_su_tabella_
     assert audit_rows["giurisdizioni_superiori_corte_costituzionale"]["table_code"] == "A14"
     assert audit_rows["giurisdizioni_superiori_corte_edu"]["grado_input_value"] == "Corte europea dei diritti dell'uomo"
     assert audit_rows["giurisdizioni_superiori_corte_giustizia_ue"]["grado_input_value"] == "Corte di giustizia UE"
-    assert audit_rows["giurisdizioni_superiori_corte_costituzionale"]["compliance_status"] in {"verificata_snapshot", "verificata_seed"}
+    assert audit_rows["giurisdizioni_superiori_corte_costituzionale"]["compliance_status"] == "snapshot_esatto"
     assert default_rule_for_practice("cassazione_previdenza")["rule_code"] == "previdenza_cassazione"
 
 

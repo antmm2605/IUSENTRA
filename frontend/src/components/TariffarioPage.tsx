@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import {
   AlertCircle,
   CheckCircle2,
@@ -69,6 +69,30 @@ function pickValue(options: TariffarioOption[], fallback = '') {
 
 function selectedLevelLabel(value: string) {
   return levelLabels[value] || value || 'Base'
+}
+
+function complianceLabel(status?: string, exact?: boolean) {
+  const value = String(status || '').toLowerCase()
+  if (value === 'snapshot_esatto' || exact) return 'Snapshot esatto'
+  if (value === 'ricostruzione') return 'Ricostruzione dichiarata'
+  if (value === 'fallback_tecnico') return 'Fallback tecnico'
+  return status || 'Copertura da verificare'
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
+}
+
+function referenceRows(value: unknown): Array<Record<string, unknown>> {
+  if (Array.isArray(value)) {
+    return value.map((item) => {
+      if (item && typeof item === 'object' && !Array.isArray(item)) return item as Record<string, unknown>
+      const label = String(item || '').trim()
+      return label ? { title: label } : {}
+    }).filter((item) => Object.keys(item).length)
+  }
+  const record = asRecord(value)
+  return Object.values(record).filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object' && !Array.isArray(item)))
 }
 
 function Hero({ stats }: { stats: TariffarioPageData['stats'] }) {
@@ -243,12 +267,22 @@ function StepRail() {
 function CompensationBaseSection({
   form,
   dynamic,
+  complexityOptions,
   onChange,
 }: {
   form: TariffarioState
   dynamic: TariffarioDynamic
+  complexityOptions: TariffarioOption[]
   onChange: (next: TariffarioState) => void
 }) {
+  const selectableComplexity = complexityOptions.length
+    ? complexityOptions
+    : [
+        { value: 'bassa', label: 'Bassa', description: '', enabled: true },
+        { value: 'media', label: 'Media/Base', description: '', enabled: true },
+        { value: 'alta', label: 'Alta', description: '', enabled: true },
+        { value: 'molto_alta', label: 'Molto alta / oltre EUR 520.000', description: '', enabled: true },
+      ]
   const allPhases = dynamic.phaseOptions.length
     ? dynamic.phaseOptions
     : form.fasi.map((fase) => ({ key: fase, label: fase, value: fase }))
@@ -292,9 +326,9 @@ function CompensationBaseSection({
         <h3>Opzioni compenso</h3>
         <p>Compresso in un unico pannello operativo.</p>
         <div className="iu-tar-segment" aria-label="Colonna tariffaria selezionata">
-          {['minimo', 'base', 'massimo'].map((level) => (
-            <span className={form.complessita === (level === 'base' ? 'media' : level === 'minimo' ? 'bassa' : 'alta') ? 'is-active' : ''} key={level}>
-              {selectedLevelLabel(level)}
+          {selectableComplexity.map((option) => (
+            <span className={form.complessita === option.value ? 'is-active' : ''} key={option.value}>
+              {option.label}
             </span>
           ))}
         </div>
@@ -302,12 +336,8 @@ function CompensationBaseSection({
           id="tariffario-complessita"
           label="Complessità stimata"
           value={form.complessita}
-          options={[
-            { value: 'bassa', label: 'Bassa', description: '', enabled: true },
-            { value: 'media', label: 'Media/Base', description: '', enabled: true },
-            { value: 'alta', label: 'Alta', description: '', enabled: true },
-          ]}
-          help="Bassa usa la forbice minima, media il valore base, alta la forbice massima; se il valore non e' determinato, IUSENTRA usa il primo valore tabellare reale disponibile."
+          options={selectableComplexity}
+          help="Molto alta usa il valore indeterminabile parametrizzato oltre EUR 520.000: verifica la congruita prima dell'invio al cliente."
           onChange={(value) => onChange({ ...form, complessita: value })}
         />
         <div className="iu-tar-switch-row">
@@ -375,12 +405,19 @@ function IntegrationsSection({ form, dynamic, onChange }: { form: TariffarioStat
 }
 
 function MediationCostsSection({ form, dynamic, onChange }: { form: TariffarioState; dynamic: TariffarioDynamic; onChange: (next: TariffarioState) => void }) {
+  const hasSelectedMediationAccessory = dynamic.accessori.some((accessory) => (
+    form.accessori.includes(accessory.id) && accessory.tipo_pratica_id === 'mediazione'
+  ))
+  const isMediationReachable = Boolean(dynamic.mediazioneEnabled || dynamic.mediazioneEligible || hasSelectedMediationAccessory)
   return (
     <div className="iu-tar-section-cards">
       <article className="iu-tar-inner-card">
         <h3>Costi organismo mediazione</h3>
         <p>Il pannello si attiva quando il profilo attivo o una sua integrazione usa la mediazione civile / commerciale.</p>
-        <SwitchRow id="odm-attiva" checked={form.mediazione_odm_attiva || dynamic.mediazioneEnabled} label="Includi costi organismo mediazione" onChange={(checked) => onChange({ ...form, mediazione_odm_attiva: checked })} />
+        <SwitchRow id="odm-attiva" checked={form.mediazione_odm_attiva} label="Includi costi organismo mediazione" onChange={(checked) => onChange({ ...form, mediazione_odm_attiva: checked })} />
+        {!isMediationReachable ? (
+          <p className="iu-tar-inline-warning">Seleziona un profilo di mediazione o l'integrazione mediazione per includere i costi ODM nel totale.</p>
+        ) : null}
         <SelectField
           id="odm-regime"
           label="Regime"
@@ -526,14 +563,40 @@ function CalculatorPanel({
   onToggle: (id: string) => void
   onChange: (next: TariffarioState) => void
 }) {
+  const [ruleFilters, setRuleFilters] = useState({
+    tableCode: '',
+    calcMode: '',
+    onlySnapshot: false,
+    showRicostruzioni: true,
+  })
   const gradeOptions = (data.catalog.gradeCatalog[form.materia] || []).map((grade) => ({ value: grade, label: grade, description: '', enabled: true }))
   const ruleRows = data.catalog.ruleCatalog[form.materia] || []
+  const tableOptions = [
+    { value: '', label: 'Tutte le tabelle', description: '', enabled: true },
+    ...(data.catalog.tableOptions || []),
+  ]
+  const calcModeOptions = [
+    { value: '', label: 'Tutti i tipi', description: '', enabled: true },
+    ...(data.catalog.calcModeOptions || []),
+  ]
+  const areaOptions = data.catalog.areaOptions.length ? data.catalog.areaOptions : data.catalog.materiaOptions
+  const filteredRuleRows = ruleRows.filter((rule) => {
+    if (ruleFilters.tableCode && rule.table_code !== ruleFilters.tableCode) return false
+    if (ruleFilters.calcMode && rule.calc_mode !== ruleFilters.calcMode) return false
+    if (ruleFilters.onlySnapshot && !(rule.exact_snapshot || rule.compliance_status === 'snapshot_esatto')) return false
+    if (!ruleFilters.showRicostruzioni && rule.compliance_status === 'ricostruzione') return false
+    return true
+  })
+  const selectedRule = ruleRows.find((item) => item.rule_code === form.regola_tariffaria)
+  const visibleRuleRows = selectedRule && !filteredRuleRows.some((item) => item.rule_code === selectedRule.rule_code)
+    ? [selectedRule, ...filteredRuleRows]
+    : filteredRuleRows
   const ruleOptions = [
     { value: '', label: 'Regola standard del tariffario', description: '', enabled: true },
-    ...ruleRows.map((rule) => ({
+    ...visibleRuleRows.map((rule) => ({
       value: rule.rule_code,
       label: rule.label || rule.rule_label || rule.table_label || rule.rule_code,
-      description: rule.matter,
+      description: `${rule.table_code || ''} ${rule.calc_mode || ''} ${rule.compliance_status || ''}`.trim() || rule.matter,
       enabled: true,
     })),
   ]
@@ -567,7 +630,22 @@ function CalculatorPanel({
         <span>Il motore compila preventivi e parcelle dalla stessa struttura.</span>
       </header>
       <div className="iu-tar-field-grid">
+        <SelectField id="tariffario-area" label="Area" value={form.materia} options={areaOptions} onChange={setMateria} />
         <SelectField id="tariffario-materia" label="Materia" value={form.materia} options={data.catalog.materiaOptions} onChange={setMateria} />
+        <SelectField
+          id="tariffario-tabella"
+          label="Tabella"
+          value={ruleFilters.tableCode}
+          options={tableOptions}
+          onChange={(value) => setRuleFilters((current) => ({ ...current, tableCode: value }))}
+        />
+        <SelectField
+          id="tariffario-calc-mode"
+          label="Tipo calcolo"
+          value={ruleFilters.calcMode}
+          options={calcModeOptions}
+          onChange={(value) => setRuleFilters((current) => ({ ...current, calcMode: value }))}
+        />
         <SelectField
           id="tariffario-regola"
           label="Regola tariffaria / competenza"
@@ -581,13 +659,27 @@ function CalculatorPanel({
           id="tariffario-valore"
           label="Valore controversia (EUR)"
           value={form.valore}
-          help="Usa 0 se il valore non è ancora determinato: IUSENTRA applicherà per default il primo valore tabellare disponibile."
+          help="Usa 0 solo per valore indeterminabile: il motore applica la complessita selezionata e segnala il valore parametrizzato nell'audit."
           onChange={(value) => onChange({ ...form, valore: value })}
+        />
+      </div>
+      <div className="iu-tar-filter-switches">
+        <SwitchRow
+          id="tariffario-solo-snapshot"
+          checked={ruleFilters.onlySnapshot}
+          label="Solo snapshot esatti"
+          onChange={(checked) => setRuleFilters((current) => ({ ...current, onlySnapshot: checked }))}
+        />
+        <SwitchRow
+          id="tariffario-ricostruzioni"
+          checked={ruleFilters.showRicostruzioni}
+          label="Mostra ricostruzioni dichiarate"
+          onChange={(checked) => setRuleFilters((current) => ({ ...current, showRicostruzioni: checked }))}
         />
       </div>
       <StepRail />
       <Accordion id="base" title="Compenso base e fasi" badges={['Compenso unico', 'Opzioni fiscali']} description="Fasi tabellari, compenso unico, complessità stimata, spese generali e bonus." open={open.base} onToggle={() => onToggle('base')}>
-        <CompensationBaseSection form={form} dynamic={dynamic} onChange={onChange} />
+        <CompensationBaseSection form={form} dynamic={dynamic} complexityOptions={data.catalog.complexityOptions} onChange={onChange} />
       </Accordion>
       <Accordion id="adr" title="Variazioni ADR e accordo" badges={['Mediazione', 'Negoziazione']} description="Si attiva solo quando il profilo o una sua integrazione usa ADR." open={open.adr} onToggle={() => onToggle('adr')}>
         <AdrVariationSection form={form} dynamic={dynamic} onChange={onChange} />
@@ -614,6 +706,16 @@ function ResultPanel({ result }: { result: TariffarioResult | null }) {
       </section>
     )
   }
+  const audit = asRecord(result.audit)
+  const references = referenceRows(result.references)
+  const auditRows = [
+    ['Regola', result.ruleLabel || result.ruleCode],
+    ['Tabella', result.tableLabel || result.tableCode],
+    ['Scaglione', String(audit.scaglione || '')],
+    ['Copertura', complianceLabel(result.complianceStatus, result.exactSnapshot)],
+    ['Snapshot', result.sourceSnapshot],
+    ['Tipo calcolo', String(audit.calc_mode || '')],
+  ].filter(([, value]) => String(value || '').trim())
   return (
     <section className="iu-tar-result iu-tar-panel" aria-labelledby="tariffario-risultato">
       <header className="iu-tar-panel-head">
@@ -624,6 +726,18 @@ function ResultPanel({ result }: { result: TariffarioResult | null }) {
         <strong>{result.engineLabel}</strong>
         <p>{result.engineText}</p>
       </div>
+      {result.badges.length ? (
+        <div className="iu-tar-result-badges" aria-label="Badge risultato">
+          {result.badges.map((badge) => <span key={badge}>{badge}</span>)}
+        </div>
+      ) : null}
+      {result.warnings.length ? (
+        <div className="iu-tar-result-warning-list" role="status">
+          {result.warnings.map((warning) => (
+            <p key={warning}><AlertCircle size={16} aria-hidden="true" /> {warning}</p>
+          ))}
+        </div>
+      ) : null}
       <div className="iu-tar-chips" aria-label="Metadati risultato">
         {result.metadata.map((item) => (
           <span key={`${item.label}-${item.value}`}>{item.label}: {item.value}</span>
@@ -655,6 +769,35 @@ function ResultPanel({ result }: { result: TariffarioResult | null }) {
         </table>
       </div>
       {result.note ? <p className="iu-tar-note">{result.note}</p> : null}
+      <div className="iu-tar-audit-box" aria-label="Audit tariffario del calcolo">
+        <div>
+          <h3>Audit tariffario</h3>
+          <dl>
+            {auditRows.map(([label, value]) => (
+              <div key={label}>
+                <dt>{label}</dt>
+                <dd>{String(value)}</dd>
+              </div>
+            ))}
+          </dl>
+          {result.complianceNote ? <p>{result.complianceNote}</p> : null}
+        </div>
+        <div>
+          <h3>Riferimenti normativi</h3>
+          {references.length ? (
+            <ul className="iu-tar-reference-list">
+              {references.slice(0, 8).map((ref, index) => (
+                <li key={`${String(ref.code || ref.title || 'ref')}-${index}`}>
+                  <strong>{String(ref.title || ref.label || ref.code || 'Riferimento')}</strong>
+                  <span>{String(ref.article || ref.description || ref.url || '')}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="iu-tar-empty">Nessun riferimento normativo esposto dal risultato.</p>
+          )}
+        </div>
+      </div>
       <div className="iu-tar-bottom-grid">
         <IncludedItems result={result} />
         <EconomicSummary result={result} />
@@ -680,7 +823,7 @@ function IncludedItems({ result }: { result: TariffarioResult }) {
             {result.included.map((item) => (
               <tr key={item.id}>
                 <td>{item.descrizione}</td>
-                <td>{item.tipo}</td>
+                <td>{item.fiscale ? `${item.tipo} - ${item.fiscale}` : item.tipo}</td>
                 <td>{item.importo_label}</td>
               </tr>
             ))}
@@ -719,15 +862,25 @@ function RealtimeSummary({
   error,
   onRun,
   onReset,
+  floatingStyle,
+  isFloating = false,
 }: {
   result: TariffarioResult | null
   busy: boolean
   error: string
   onRun: () => void
   onReset: () => void
+  floatingStyle?: CSSProperties
+  isFloating?: boolean
 }) {
+  const operationalTotal = result?.economic.total || result?.selectedTotal || 'EUR 0,00'
   return (
-    <aside className="iu-tar-realtime iu-tar-summary-sticky" aria-label="Riepilogo in tempo reale" aria-live="polite">
+    <aside
+      className={`iu-tar-realtime iu-tar-summary-sticky${isFloating ? ' is-floating' : ''}`}
+      aria-label="Riepilogo in tempo reale"
+      aria-live="polite"
+      style={floatingStyle}
+    >
       <div className="iu-tar-realtime-head">
         <span>RIEPILOGO IN TEMPO REALE</span>
         <button className="iu-tar-summary-refresh" type="button" onClick={onRun} disabled={busy}>
@@ -735,7 +888,7 @@ function RealtimeSummary({
           Calcola e aggiorna il quadro
         </button>
       </div>
-      <strong>{result?.selectedTotal || 'EUR 0,00'}</strong>
+      <strong>{operationalTotal}</strong>
       {error ? (
         <p className="iu-tar-summary-error" role="alert">
           <AlertCircle size={16} aria-hidden="true" />
@@ -760,6 +913,97 @@ function RealtimeSummary({
         </button>
       </div>
     </aside>
+  )
+}
+
+function StickyRealtimeSummary({
+  result,
+  busy,
+  error,
+  onRun,
+  onReset,
+}: {
+  result: TariffarioResult | null
+  busy: boolean
+  error: string
+  onRun: () => void
+  onReset: () => void
+}) {
+  const anchor = useRef<HTMLDivElement | null>(null)
+  const [floating, setFloating] = useState(false)
+  const [metrics, setMetrics] = useState({ height: 0, left: 0, top: 76, width: 0 })
+
+  useEffect(() => {
+    let frame = 0
+    const measure = () => {
+      frame = 0
+      const holder = anchor.current
+      const card = holder?.querySelector<HTMLElement>('.iu-tar-realtime')
+      const layout = holder?.closest('.iu-tar-layout')
+      const main = layout?.querySelector<HTMLElement>('.iu-tar-main')
+      if (!holder || !card || !main || window.innerWidth <= 1040) {
+        setFloating(false)
+        return
+      }
+
+      const holderRect = holder.getBoundingClientRect()
+      const mainRect = main.getBoundingClientRect()
+      const topOffset = 76
+      const height = card.offsetHeight
+      const shouldFloat = mainRect.top <= topOffset && mainRect.bottom > topOffset
+      const top = Math.min(topOffset, Math.max(12, mainRect.bottom - height))
+
+      setMetrics({
+        height,
+        left: holderRect.left,
+        top,
+        width: holderRect.width,
+      })
+      setFloating(shouldFloat)
+    }
+    const schedule = () => {
+      if (frame) return
+      frame = window.requestAnimationFrame(measure)
+    }
+
+    measure()
+    window.addEventListener('resize', schedule)
+    window.addEventListener('scroll', schedule, { passive: true })
+    document.addEventListener('scroll', schedule, true)
+    return () => {
+      if (frame) window.cancelAnimationFrame(frame)
+      window.removeEventListener('resize', schedule)
+      window.removeEventListener('scroll', schedule)
+      document.removeEventListener('scroll', schedule, true)
+    }
+  }, [busy, error, result])
+
+  const floatingStyle: CSSProperties | undefined = floating
+    ? {
+        left: metrics.left,
+        maxHeight: 'calc(100vh - 92px)',
+        position: 'fixed',
+        top: metrics.top,
+        width: metrics.width,
+      }
+    : undefined
+
+  return (
+    <div
+      ref={anchor}
+      className={`iu-tar-summary-holder${floating ? ' is-floating' : ''}`}
+      style={floating ? { minHeight: metrics.height } : undefined}
+    >
+      <RealtimeSummary
+        result={result}
+        busy={busy}
+        error={error}
+        onRun={onRun}
+        onReset={onReset}
+        floatingStyle={floatingStyle}
+        isFloating={floating}
+      />
+    </div>
   )
 }
 
@@ -1035,7 +1279,7 @@ export function TariffarioPage() {
               <ResultPanel result={result} />
             </div>
             <aside className="iu-tar-sidebar">
-              <RealtimeSummary result={result} busy={busy} error={error} onRun={submitRun} onReset={reset} />
+              <StickyRealtimeSummary result={result} busy={busy} error={error} onRun={submitRun} onReset={reset} />
               <ActiveProfileCard profile={profile} />
               <NormativeSupportPanel support={data.support} open={open} onToggle={toggle} />
             </aside>

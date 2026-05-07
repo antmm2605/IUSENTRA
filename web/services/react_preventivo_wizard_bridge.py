@@ -31,7 +31,7 @@ from pct.preventivi import (
     testo_predefinito_clausola_controversie,
 )
 from pct.tariffario import Fase, Grado, livello_compenso_da_complessita
-from pct.tariffario_catalogo import default_rule_for_practice, rule_lookup, rules_for_practice
+from pct.tariffario_catalogo import default_rule_for_practice, rule_lookup, rules_for_practice, tariffario_complessita_rows
 from web.services.mediazione_dm150_runtime import (
     calcola_mediazione_odm_da_context,
     is_mediazione_practice,
@@ -267,7 +267,7 @@ def build_react_preventivo_wizard_payload(
     default_clause = next((item for item in clausole if item.get("id") == "TUTELA_CLIENTE_CONSUMATORE"), clausole[0] if clausole else {})
     refs = _table_rows(get_normative_tables, "tariffario_riferimenti", warnings, "riferimenti")
     audit = _table_rows(get_normative_tables, "tariffario_audit", warnings, "audit")
-    aligned = sum(1 for row in audit if row.get("compliance_status") in {"verificata_snapshot", "verificata_seed"})
+    aligned = sum(1 for row in audit if row.get("compliance_status") in {"snapshot_esatto", "verificata_snapshot", "verificata_seed"})
     return {
         "source": "repository_reali",
         "generated_at": _iso_now(),
@@ -305,9 +305,8 @@ def build_react_preventivo_wizard_payload(
         },
         "options": {
             "complexity": [
-                _option("bassa", "Bassa"),
-                _option("media", "Media"),
-                _option("alta", "Alta"),
+                _option(row.get("value", ""), _text(row.get("label")) or _text(row.get("value")), _text(row.get("description")))
+                for row in tariffario_complessita_rows()
             ],
             "voiceTypes": [_option(item.value, item.value) for item in TipoVoce],
             "manualFiscalTypes": [
@@ -356,8 +355,18 @@ _GRADE_MAP = {
     "Corte d'Assise d'Appello": Grado.CORTE_ASSISE_APPELLO,
     "Corte di Cassazione": Grado.CASSAZIONE,
     "Tribunale di Sorveglianza": Grado.TRIBUNALE_SORVEGLIANZA,
+    "Magistrato di Sorveglianza": Grado.MAGISTRATO_SORVEGLIANZA,
     "TAR": Grado.TAR,
     "Consiglio di Stato": Grado.CONSIGLIO_DI_STATO,
+    "Corte dei Conti": Grado.CORTE_DEI_CONTI,
+    "Corte costituzionale": Grado.CORTE_COSTITUZIONALE,
+    "Corte europea dei diritti dell'uomo": Grado.CORTE_EDU,
+    "Corte di giustizia UE": Grado.CORTE_GIUSTIZIA_UE,
+    "Corte cost. / Corte europea / CGUE": Grado.CORTE_SUPERIORE_UE,
+    "Conservatoria / tavolare": Grado.CONSERVATORIA_TAVOLARE,
+    "Tribunale concorsuale": Grado.TRIBUNALE_CONCORSUALE,
+    "Giudice tutelare": Grado.GIUDICE_TUTELARE,
+    "Giudice competente": Grado.GIUDICE_COMPETENTE,
     "CGT di primo grado": Grado.CGT_PRIMO_GRADO,
     "CGT di secondo grado": Grado.CGT_SECONDO_GRADO,
     "Fuori giudizio": Grado.FUORI_GIUDIZIO,
@@ -768,6 +777,10 @@ def build_react_preventivo_wizard_calculation_payload(payload: dict[str, Any] | 
         for item in target_results
         if _text(item["dm"].note)
     )
+    dm_dict = dm.to_dict()
+    audit_tariffario = dm_dict.get("audit_tariffario") if isinstance(dm_dict.get("audit_tariffario"), dict) else {}
+    riferimenti_normativi = dm_dict.get("riferimenti_normativi") if isinstance(dm_dict.get("riferimenti_normativi"), list) else []
+    reference_codes = dm_dict.get("reference_codes") if isinstance(dm_dict.get("reference_codes"), list) else []
     log = dump_log_calcolo(
         costruisci_contesto_economico(
             source="preventivo_guidato_react",
@@ -798,7 +811,17 @@ def build_react_preventivo_wizard_calculation_payload(payload: dict[str, Any] | 
                 "totale": summary["totale"],
                 "nota": note_calcolo or dm.note,
                 "voci_area_pratica": [item["label"] for item in target_results],
+                "table_code": dm_dict.get("table_code", ""),
+                "table_label": dm_dict.get("table_label", ""),
+                "rule_code": dm_dict.get("rule_code", ""),
+                "rule_label": dm_dict.get("rule_label", ""),
+                "exact_snapshot": dm_dict.get("exact_snapshot", False),
+                "compliance_status": dm_dict.get("compliance_status", ""),
+                "compliance_note": dm_dict.get("compliance_note", ""),
+                "reference_codes": reference_codes,
             },
+            audit_tariffario=audit_tariffario,
+            riferimenti_normativi=riferimenti_normativi,
         )
     )
     return {
@@ -820,7 +843,20 @@ def build_react_preventivo_wizard_calculation_payload(payload: dict[str, Any] | 
         "mediazione_odm": mediazione_odm,
         "note": _text(payload.get("note")) or tp.note_template,
         "warnings": [],
-        "audit": {"log_calcolo": log},
+        "audit": {
+            "log_calcolo": log,
+            "audit_tariffario": audit_tariffario,
+            "reference_codes": reference_codes,
+            "riferimenti_normativi": riferimenti_normativi,
+            "table_code": dm_dict.get("table_code", ""),
+            "table_label": dm_dict.get("table_label", ""),
+            "rule_code": dm_dict.get("rule_code", ""),
+            "rule_label": dm_dict.get("rule_label", ""),
+            "exact_snapshot": dm_dict.get("exact_snapshot", False),
+            "compliance_status": dm_dict.get("compliance_status", ""),
+            "compliance_note": dm_dict.get("compliance_note", ""),
+            "source_snapshot": dm_dict.get("source_snapshot", ""),
+        },
         "transfer": {
             "voce_descr": [row["descrizione"] for row in rows],
             "voce_importo": [row["importo"] for row in rows],

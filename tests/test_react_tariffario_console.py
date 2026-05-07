@@ -127,3 +127,50 @@ def test_tariffario_react_spese_manuale_mediazione_e_cta(tmp_path: Path):
     assert "Anticipazione concordata" in descriptions
     assert payload["result"]["actions"]["preventivo"].startswith("/preventivi/wizard")
     assert payload["result"]["actions"]["parcella"].startswith("/fatturazione/nuova")
+
+
+def test_tariffario_react_variazioni_adr_e_art15_incidono_sul_totale(tmp_path: Path):
+    _app_obj, client = _logged_client(tmp_path)
+    page = client.get("/api/v1/ui/tariffario").get_json()
+    state = dict(page["state"])
+    state.update(
+        {
+            "accessori": ["mediazione_generale"],
+            "mediazione_odm_attiva": True,
+            "mediazione_odm_regime": "volontaria",
+            "mediazione_odm_esito": "primo_incontro_con_accordo",
+            "adr_accordo": True,
+            "var_attivazione": "50",
+            "manual_lines": [
+                {
+                    "id": "manuale_art15",
+                    "descrizione": "Anticipazione art. 15 test",
+                    "tipo": "Anticipazione art. 15",
+                    "importo": "100,00",
+                    "fiscale": "anticipazione_art15",
+                    "inclusa": True,
+                }
+            ],
+        }
+    )
+    base_state = {**state, "var_attivazione": "", "adr_accordo": False}
+
+    base_payload = client.post("/api/v1/ui/tariffario/calcola", json=base_state).get_json()
+    changed_payload = client.post("/api/v1/ui/tariffario/calcola", json=state).get_json()
+
+    assert changed_payload["ok"] is True
+    assert changed_payload["state"]["var_attivazione"] == "50"
+    base_mediazione = next(
+        item["importo"]
+        for item in base_payload["result"]["included"]
+        if item["id"] == "accessorio:mediazione_generale"
+    )
+    changed_mediazione = next(
+        item["importo"]
+        for item in changed_payload["result"]["included"]
+        if item["id"] == "accessorio:mediazione_generale"
+    )
+    assert changed_mediazione > base_mediazione
+    economic_rows = {row["id"]: row["value"] for row in changed_payload["result"]["economic"]["rows"]}
+    assert economic_rows["anticipazioni_art15"] != "EUR 0,00"
+    assert any("Costi organismo mediazione" in item["descrizione"] for item in changed_payload["result"]["included"])

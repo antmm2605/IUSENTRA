@@ -112,6 +112,11 @@ COMPLESSITA_ROWS = [
         "label": "Alta",
         "description": "Valore indeterminabile collocato nel range superiore 260.000-520.000 EUR.",
     },
+    {
+        "value": "molto_alta",
+        "label": "Molto alta",
+        "description": "Valore indeterminabile collocato nella fascia oltre EUR 520.000.",
+    },
 ]
 
 _URL_LEGGE_FORENSE = "https://www.gazzettaufficiale.it/eli/id/2013/01/18/13G00018/sg"
@@ -132,6 +137,9 @@ _URL_EQUO_COMPENSO = (
 )
 _URL_CASSA_FORENSE = "https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Alegge%3A1980-09-20%3B576"
 _URL_DPR633 = "https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Adecreto.del.presidente.della.repubblica%3A1972-10-26%3B633"
+_URL_DLGS28_MEDIAZIONE = "https://www.gazzettaufficiale.it/eli/id/2010/03/05/010G0050/sg"
+_URL_DM150_MEDIAZIONE = "https://www.gazzettaufficiale.it/eli/id/2023/10/31/23G00163/sg"
+_URL_DL132_NEGOZIAZIONE = "https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Adecreto.legge%3A2014-09-12%3B132"
 _URL_DLGS127 = "https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Adecreto.legislativo%3A2015-08-05%3B127"
 _URL_CODICE_GIUSTIZIA_CONTABILE = "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=16G00187&atto.dataPubblicazioneGazzetta=2016-09-07&qId=&tipoDettaglio=multivigenza"
 _URL_CODICE_CRISE_IMPRESA = "https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Adecreto.legislativo%3A2019%3B14="
@@ -234,6 +242,38 @@ TARIFFARIO_REFERENCE_ROWS: List[Dict[str, Any]] = [
         "description": "Anticipazioni in nome e per conto del cliente escluse da imponibile IVA.",
         "url": _URL_DPR633,
         "domains": ["tariffario", "preventivi", "parcelle", "fatturazione_elettronica"],
+    },
+    {
+        "reference_code": "dpr633_iva",
+        "title": "D.P.R. 26 ottobre 1972, n. 633",
+        "article": "IVA",
+        "description": "Imposta sul valore aggiunto applicata alle prestazioni professionali imponibili.",
+        "url": _URL_DPR633,
+        "domains": ["tariffario", "preventivi", "parcelle", "fatturazione_elettronica"],
+    },
+    {
+        "reference_code": "d_lgs_28_2010_mediazione",
+        "title": "D.Lgs. 4 marzo 2010, n. 28",
+        "article": "mediazione civile e commerciale",
+        "description": "Disciplina della mediazione finalizzata alla conciliazione delle controversie civili e commerciali.",
+        "url": _URL_DLGS28_MEDIAZIONE,
+        "domains": ["tariffario", "preventivi", "mediazione"],
+    },
+    {
+        "reference_code": "dm150_2023_mediazione",
+        "title": "D.M. 24 ottobre 2023, n. 150",
+        "article": "indennita organismi di mediazione",
+        "description": "Regolamento degli organismi di mediazione e delle indennita spettanti agli organismi.",
+        "url": _URL_DM150_MEDIAZIONE,
+        "domains": ["preventivi", "mediazione"],
+    },
+    {
+        "reference_code": "dl132_2014_negoziazione",
+        "title": "D.L. 12 settembre 2014, n. 132",
+        "article": "negoziazione assistita",
+        "description": "Misure di degiurisdizionalizzazione e disciplina della negoziazione assistita da avvocati.",
+        "url": _URL_DL132_NEGOZIAZIONE,
+        "domains": ["tariffario", "preventivi", "negoziazione_assistita"],
     },
     {
         "reference_code": "dlgs127_fattura_elettronica",
@@ -912,7 +952,7 @@ RULE_ROWS: List[Dict[str, Any]] = [
         "label": "Procedimento camerale / volontaria giurisdizione",
         "summary": "Regola generica per procedimenti camerali e di volontaria giurisdizione quando non vuoi ancora vincolare il preventivo a una sottotipologia familiare specifica.",
         "profile_code": "volontaria",
-        "suggested_practice_id": "",
+        "suggested_practice_id": "volontaria_giurisdizione",
         "grado_input_value": "Tribunale",
         "allowed_grade_input_values": ["Tribunale"],
     },
@@ -2772,6 +2812,630 @@ _upsert_rows(
     ],
 )
 
+_CORE_REFERENCE_CODES = [
+    "l247_art13",
+    "dm55_parametri",
+    "dm147_aggiornamento",
+    "dm55_art2",
+    "dm55_art4",
+    "l49_equo_compenso",
+    "l576_art11",
+    "dpr633_art15",
+    "dpr633_iva",
+]
+
+_TABLE_REFERENCE_CODES: Dict[str, List[str]] = {
+    "A11": ["dlgs174_giustizia_contabile"],
+    "A20": ["dlgs14_crisi_impresa"],
+    "A20-BIS": ["dlgs14_crisi_impresa"],
+    "A25": ["dm55_art22bis"],
+    "A26": ["dm55_art19"],
+    "A27": [
+        "dm55_art19",
+        "dm55_art20_adr",
+        "d_lgs_28_2010_mediazione",
+        "dm150_2023_mediazione",
+        "dl132_2014_negoziazione",
+    ],
+}
+
+_MATERIA_REFERENCE_CODES: Dict[str, List[str]] = {
+    "MEDIAZIONE": ["dm55_art19", "dm55_art20_adr", "d_lgs_28_2010_mediazione", "dm150_2023_mediazione"],
+    "NEGOZIAZIONE_ASSISTITA": ["dm55_art19", "dm55_art20_adr", "dl132_2014_negoziazione"],
+    "CONTABILE": ["dlgs174_giustizia_contabile"],
+    "CRISI_IMPRESA": ["dlgs14_crisi_impresa"],
+    "ARBITRATO": ["dm55_art19"],
+}
+
+_TABLE_CALC_MODE: Dict[str, str] = {
+    "A6": "compenso_unico",
+    "A7": "compenso_unico",
+    "A8": "compenso_unico",
+    "A19": "compenso_unico",
+    "A20": "compenso_unico",
+    "A25": "compenso_unico",
+    "A26": "compenso_unico",
+    "A27": "per_fasi_adr",
+}
+
+
+def _merge_codes(*groups: Iterable[Any]) -> List[str]:
+    out: List[str] = []
+    seen = set()
+    for group in groups:
+        for value in group or []:
+            code = str(value or "").strip()
+            if not code or code in seen:
+                continue
+            seen.add(code)
+            out.append(code)
+    return out
+
+
+def _raw_snapshot_tables_for_defaults() -> Dict[str, Dict[str, List[Optional[float]]]]:
+    try:
+        raw = json.loads(_SNAPSHOT_PATH.read_text(encoding="utf-8-sig"))
+    except Exception:
+        return {}
+    tabelle = raw.get("tabelle", {}) if isinstance(raw, dict) else {}
+    return dict(tabelle) if isinstance(tabelle, dict) else {}
+
+
+def _table_calc_mode(table_code: str, raw_table: Mapping[str, Iterable[Optional[float]]] | None) -> str:
+    if table_code in _TABLE_CALC_MODE:
+        return _TABLE_CALC_MODE[table_code]
+    values_by_phase = raw_table or {}
+    active_phases = [
+        PHASE_KEY_BY_RAW.get(str(raw_phase), str(raw_phase).lower())
+        for raw_phase, values in values_by_phase.items()
+        if any(value is not None for value in (values or []))
+    ]
+    if active_phases == ["compenso_unico"]:
+        return "compenso_unico"
+    return "per_fasi"
+
+
+def _reference_codes_for_table(table_code: str) -> List[str]:
+    return _merge_codes(_CORE_REFERENCE_CODES, _TABLE_REFERENCE_CODES.get(table_code, []))
+
+
+def _reference_codes_for_profile(row: Mapping[str, Any]) -> List[str]:
+    return _merge_codes(
+        row.get("reference_codes") or [],
+        _reference_codes_for_table(str(row.get("table_code") or "")),
+        _MATERIA_REFERENCE_CODES.get(str(row.get("materia_key") or ""), []),
+    )
+
+
+def _profile_compliance_status(row: Mapping[str, Any], table_known: bool) -> str:
+    existing = str(row.get("compliance_status") or "").strip()
+    if existing:
+        return existing
+    if not table_known:
+        return "fallback_tecnico"
+    return "snapshot_esatto" if bool(row.get("exact_snapshot")) else "ricostruzione"
+
+
+def _profile_compliance_note(row: Mapping[str, Any], table_known: bool) -> str:
+    existing = str(row.get("compliance_note") or "").strip()
+    if existing:
+        return existing
+    table_code = str(row.get("table_code") or "").strip()
+    if not table_known:
+        return f"Tabella {table_code or 'non indicata'} non disponibile nello snapshot o nei supplementi dichiarati: calcolo bloccato o da verificare."
+    if bool(row.get("exact_snapshot")):
+        return "Profilo collegato a valori presenti nello snapshot DM 147/2022 o nei supplementi dichiarati del catalogo."
+    return "Profilo operativo ricostruttivo: usa valori tabellari dichiarati con coefficiente, mapping di fase o sede non speculare uno-a-uno alla tabella ministeriale."
+
+
+def _normalizza_catalogo_tariffario() -> None:
+    raw_snapshot = _raw_snapshot_tables_for_defaults()
+    all_tables = {**raw_snapshot, **TARIFFARIO_SNAPSHOT_SUPPLEMENTS}
+    for table_code, meta in TABELLE_SNAPSHOT_META.items():
+        raw_table = all_tables.get(table_code, {})
+        source_snapshot = _SNAPSHOT_PATH.name if table_code in raw_snapshot else "TARIFFARIO_SNAPSHOT_SUPPLEMENTS"
+        meta.setdefault("calc_mode", _table_calc_mode(table_code, raw_table))
+        meta.setdefault("reference_codes", _reference_codes_for_table(table_code))
+        meta.setdefault("source_snapshot", source_snapshot)
+        meta.setdefault("exact_snapshot", table_code in raw_snapshot)
+        meta.setdefault("compliance_status", "snapshot_esatto" if table_code in raw_snapshot else "ricostruzione")
+        meta.setdefault(
+            "compliance_note",
+            "Tabella letta dallo snapshot DM 147/2022."
+            if table_code in raw_snapshot
+            else "Tabella disponibile nei supplementi dichiarati del catalogo, non nel file snapshot originario.",
+        )
+
+    meta_by_table = TABELLE_SNAPSHOT_META
+    known_tables = set(all_tables)
+    for row in PROFILE_ROWS:
+        table_code = str(row.get("table_code") or "").strip()
+        meta = meta_by_table.get(table_code, {})
+        row.setdefault("table_label", meta.get("table_label", table_code))
+        row.setdefault("calc_mode", meta.get("calc_mode", "per_fasi"))
+        row.setdefault("source_snapshot", meta.get("source_snapshot", _SNAPSHOT_PATH.name))
+        row["reference_codes"] = _reference_codes_for_profile(row)
+        table_known = table_code in known_tables
+        row["compliance_status"] = _profile_compliance_status(row, table_known)
+        row["compliance_note"] = _profile_compliance_note(row, table_known)
+
+    profile_by_code = {str(row.get("profile_code") or ""): row for row in PROFILE_ROWS}
+    for row in RULE_ROWS:
+        profile = profile_by_code.get(str(row.get("profile_code") or ""))
+        if profile and not str(row.get("suggested_practice_id") or "").strip():
+            row["suggested_practice_id"] = str(profile.get("suggested_practice_id") or "").strip()
+        row["reference_codes"] = _merge_codes(
+            row.get("reference_codes") or [],
+            (profile or {}).get("reference_codes") or [],
+            _MATERIA_REFERENCE_CODES.get(str((profile or {}).get("materia_key") or ""), []),
+        )
+        if profile:
+            row.setdefault("source_snapshot", profile.get("source_snapshot", _SNAPSHOT_PATH.name))
+            row.setdefault("exact_snapshot", bool(profile.get("exact_snapshot")))
+            row.setdefault("compliance_status", profile.get("compliance_status", "ricostruzione"))
+            row.setdefault("compliance_note", profile.get("compliance_note", ""))
+
+
+_upsert_rows(
+    RULE_ROWS,
+    "rule_code",
+    [
+        {
+            "rule_code": "lavoro_demansionamento",
+            "materia_label": "Controversie di lavoro",
+            "label": "Demansionamento / dequalificazione",
+            "summary": "Domande risarcitorie e retributive collegate a mansioni, inquadramento e professionalita.",
+            "profile_code": "lavoro_tribunale",
+            "suggested_practice_id": "demansionamento",
+            "grado_input_value": "Tribunale",
+            "allowed_grade_input_values": ["Tribunale"],
+        },
+        {
+            "rule_code": "lavoro_mobbing_straining",
+            "materia_label": "Controversie di lavoro",
+            "label": "Mobbing / straining",
+            "summary": "Controversie di lavoro con allegazioni risarcitorie e istruttoria articolata.",
+            "profile_code": "lavoro_tribunale",
+            "suggested_practice_id": "mobbing_straining",
+            "grado_input_value": "Tribunale",
+            "allowed_grade_input_values": ["Tribunale"],
+        },
+        {
+            "rule_code": "lavoro_dirigente",
+            "materia_label": "Controversie di lavoro",
+            "label": "Rapporto dirigenziale",
+            "summary": "Controversie relative a rapporto dirigenziale, indennita e recesso.",
+            "profile_code": "lavoro_tribunale",
+            "suggested_practice_id": "rapporto_dirigenziale",
+            "grado_input_value": "Tribunale",
+            "allowed_grade_input_values": ["Tribunale"],
+        },
+        {
+            "rule_code": "lavoro_pubblico_privatizzato",
+            "materia_label": "Controversie di lavoro",
+            "label": "Lavoro pubblico privatizzato",
+            "summary": "Contenzioso di lavoro pubblico contrattualizzato davanti al giudice ordinario.",
+            "profile_code": "lavoro_tribunale",
+            "suggested_practice_id": "lavoro_pubblico_privatizzato",
+            "grado_input_value": "Tribunale",
+            "allowed_grade_input_values": ["Tribunale"],
+        },
+        {
+            "rule_code": "lavoro_sanzione_ordinanza",
+            "materia_label": "Controversie di lavoro",
+            "label": "Opposizione a ordinanza / sanzione lavoro",
+            "summary": "Opposizioni amministrative connesse a materia lavoro e sicurezza.",
+            "profile_code": "lavoro_tribunale",
+            "suggested_practice_id": "opposizione_sanzione_lavoro",
+            "grado_input_value": "Tribunale",
+            "allowed_grade_input_values": ["Tribunale"],
+        },
+        {
+            "rule_code": "previdenza_invalidita_civile",
+            "materia_label": "Previdenza e assistenza",
+            "label": "Invalidita civile",
+            "summary": "Accertamento sanitario e prestazioni assistenziali in materia di invalidita civile.",
+            "profile_code": "previdenza_tribunale",
+            "suggested_practice_id": "invalidita_civile",
+            "grado_input_value": "Tribunale",
+            "allowed_grade_input_values": ["Tribunale"],
+        },
+        {
+            "rule_code": "previdenza_accompagnamento",
+            "materia_label": "Previdenza e assistenza",
+            "label": "Indennita di accompagnamento",
+            "summary": "Domande giudiziali per indennita di accompagnamento e prestazioni collegate.",
+            "profile_code": "previdenza_tribunale",
+            "suggested_practice_id": "indennita_accompagnamento",
+            "grado_input_value": "Tribunale",
+            "allowed_grade_input_values": ["Tribunale"],
+        },
+        {
+            "rule_code": "previdenza_opposizione_inps",
+            "materia_label": "Previdenza e assistenza",
+            "label": "Opposizione INPS",
+            "summary": "Opposizioni e accertamenti contro provvedimenti INPS.",
+            "profile_code": "previdenza_tribunale",
+            "suggested_practice_id": "opposizione_inps",
+            "grado_input_value": "Tribunale",
+            "allowed_grade_input_values": ["Tribunale"],
+        },
+        {
+            "rule_code": "previdenza_opposizione_inail",
+            "materia_label": "Previdenza e assistenza",
+            "label": "Opposizione INAIL",
+            "summary": "Opposizioni e accertamenti in materia assicurativa INAIL.",
+            "profile_code": "previdenza_tribunale",
+            "suggested_practice_id": "opposizione_inail",
+            "grado_input_value": "Tribunale",
+            "allowed_grade_input_values": ["Tribunale"],
+        },
+        {
+            "rule_code": "previdenza_prestazioni_assistenziali",
+            "materia_label": "Previdenza e assistenza",
+            "label": "Prestazioni assistenziali",
+            "summary": "Prestazioni assistenziali non pensionistiche con rito previdenziale.",
+            "profile_code": "previdenza_tribunale",
+            "suggested_practice_id": "prestazioni_assistenziali",
+            "grado_input_value": "Tribunale",
+            "allowed_grade_input_values": ["Tribunale"],
+        },
+        {
+            "rule_code": "esecuzione_intervento",
+            "materia_label": "Esecuzione mobiliare",
+            "label": "Intervento nella procedura esecutiva",
+            "summary": "Intervento del creditore in procedura esecutiva gia pendente.",
+            "profile_code": "esecuzione_mobiliare",
+            "suggested_practice_id": "intervento_esecuzione",
+            "grado_input_value": "Tribunale",
+            "allowed_grade_input_values": ["Tribunale"],
+        },
+        {
+            "rule_code": "esecuzione_fase_distributiva",
+            "materia_label": "Esecuzione mobiliare",
+            "label": "Fase distributiva",
+            "summary": "Attivita nella fase di riparto e distribuzione della procedura esecutiva.",
+            "profile_code": "esecuzione_mobiliare",
+            "suggested_practice_id": "fase_distributiva",
+            "grado_input_value": "Tribunale",
+            "allowed_grade_input_values": ["Tribunale"],
+        },
+        {
+            "rule_code": "famiglia_divorzio_contenzioso",
+            "materia_label": "Civile di cognizione",
+            "label": "Divorzio contenzioso",
+            "summary": "Procedimento contenzioso di divorzio con fasi ordinarie davanti al Tribunale.",
+            "profile_code": "civile_tribunale",
+            "suggested_practice_id": "divorzio_contenzioso",
+            "grado_input_value": "Tribunale",
+            "allowed_grade_input_values": ["Tribunale"],
+        },
+        {
+            "rule_code": "volontaria_autorizzazioni_gt",
+            "materia_label": "Volontaria giurisdizione",
+            "label": "Autorizzazioni giudice tutelare",
+            "summary": "Istanze autorizzative davanti al giudice tutelare.",
+            "profile_code": "volontaria_giudice_tutelare",
+            "suggested_practice_id": "autorizzazioni_giudice_tutelare",
+            "grado_input_value": "Giudice tutelare",
+            "allowed_grade_input_values": ["Giudice tutelare"],
+        },
+        {
+            "rule_code": "amministrativo_ottemperanza",
+            "materia_label": "Amministrativo / TAR-CdS",
+            "label": "Giudizio di ottemperanza",
+            "summary": "Ricorso per esecuzione del giudicato amministrativo.",
+            "profile_code": "amministrativo_primo_grado",
+            "suggested_practice_id": "ottemperanza",
+            "grado_input_value": "TAR",
+            "allowed_grade_input_values": ["TAR", "Consiglio di Stato"],
+        },
+        {
+            "rule_code": "amministrativo_accesso_atti",
+            "materia_label": "Amministrativo / TAR-CdS",
+            "label": "Accesso atti",
+            "summary": "Ricorso avverso diniego, differimento o silenzio su accesso documentale.",
+            "profile_code": "amministrativo_primo_grado",
+            "suggested_practice_id": "accesso_atti",
+            "grado_input_value": "TAR",
+            "allowed_grade_input_values": ["TAR"],
+        },
+        {
+            "rule_code": "amministrativo_cautelare",
+            "materia_label": "Amministrativo / TAR-CdS",
+            "label": "Cautelare amministrativo",
+            "summary": "Fase cautelare collegata al ricorso amministrativo.",
+            "profile_code": "amministrativo_primo_grado",
+            "suggested_practice_id": "cautelare_amministrativo",
+            "grado_input_value": "TAR",
+            "allowed_grade_input_values": ["TAR", "Consiglio di Stato"],
+        },
+        {
+            "rule_code": "amministrativo_pubblico_impiego",
+            "materia_label": "Amministrativo / TAR-CdS",
+            "label": "Pubblico impiego non privatizzato",
+            "summary": "Contenzioso amministrativo sul pubblico impiego non contrattualizzato.",
+            "profile_code": "amministrativo_primo_grado",
+            "suggested_practice_id": "pubblico_impiego_non_privatizzato",
+            "grado_input_value": "TAR",
+            "allowed_grade_input_values": ["TAR", "Consiglio di Stato"],
+        },
+        {
+            "rule_code": "amministrativo_appalti",
+            "materia_label": "Amministrativo / TAR-CdS",
+            "label": "Appalti pubblici",
+            "summary": "Ricorso in materia di contratti pubblici e procedure di affidamento.",
+            "profile_code": "amministrativo_primo_grado",
+            "suggested_practice_id": "appalti",
+            "grado_input_value": "TAR",
+            "allowed_grade_input_values": ["TAR", "Consiglio di Stato"],
+        },
+        {
+            "rule_code": "tributario_reclamo_mediazione",
+            "materia_label": "Tributario / CGT",
+            "label": "Reclamo / mediazione tributaria",
+            "summary": "Fase deflattiva tributaria ove pertinente prima del giudizio.",
+            "profile_code": "stragiudiziale",
+            "suggested_practice_id": "reclamo_mediazione_tributaria",
+            "grado_input_value": "Fuori giudizio",
+            "allowed_grade_input_values": ["Fuori giudizio"],
+        },
+        {
+            "rule_code": "tributario_cautelare",
+            "materia_label": "Tributario / CGT",
+            "label": "Cautelare tributaria",
+            "summary": "Istanza cautelare collegata al ricorso tributario.",
+            "profile_code": "tributario_primo_grado",
+            "suggested_practice_id": "cautelare_tributaria",
+            "grado_input_value": "CGT di primo grado",
+            "allowed_grade_input_values": ["CGT di primo grado", "CGT di secondo grado"],
+        },
+        {
+            "rule_code": "tributario_cartella",
+            "materia_label": "Tributario / CGT",
+            "label": "Cartella esattoriale",
+            "summary": "Impugnazione di cartella di pagamento o ruolo.",
+            "profile_code": "tributario_primo_grado",
+            "suggested_practice_id": "cartella_esattoriale",
+            "grado_input_value": "CGT di primo grado",
+            "allowed_grade_input_values": ["CGT di primo grado"],
+        },
+        {
+            "rule_code": "tributario_avviso_accertamento",
+            "materia_label": "Tributario / CGT",
+            "label": "Avviso di accertamento",
+            "summary": "Ricorso avverso avviso di accertamento o atto impositivo.",
+            "profile_code": "tributario_primo_grado",
+            "suggested_practice_id": "avviso_accertamento",
+            "grado_input_value": "CGT di primo grado",
+            "allowed_grade_input_values": ["CGT di primo grado"],
+        },
+        {
+            "rule_code": "tributario_intimazione_pagamento",
+            "materia_label": "Tributario / CGT",
+            "label": "Intimazione di pagamento",
+            "summary": "Impugnazione di intimazione di pagamento e atti della riscossione.",
+            "profile_code": "tributario_primo_grado",
+            "suggested_practice_id": "intimazione_pagamento",
+            "grado_input_value": "CGT di primo grado",
+            "allowed_grade_input_values": ["CGT di primo grado"],
+        },
+        {
+            "rule_code": "tributario_fermo_ipoteca",
+            "materia_label": "Tributario / CGT",
+            "label": "Fermo / ipoteca",
+            "summary": "Impugnazione di fermo amministrativo, ipoteca o atti cautelari della riscossione.",
+            "profile_code": "tributario_primo_grado",
+            "suggested_practice_id": "fermo_ipoteca",
+            "grado_input_value": "CGT di primo grado",
+            "allowed_grade_input_values": ["CGT di primo grado"],
+        },
+        {
+            "rule_code": "stragiud_assistenza_contrattuale",
+            "materia_label": "Stragiudiziale / Consulenza",
+            "label": "Assistenza contrattuale",
+            "summary": "Assistenza nella negoziazione, redazione o revisione contrattuale.",
+            "profile_code": "stragiudiziale",
+            "suggested_practice_id": "assistenza_contrattuale",
+            "grado_input_value": "Fuori giudizio",
+            "allowed_grade_input_values": ["Fuori giudizio"],
+        },
+        {
+            "rule_code": "stragiud_due_diligence",
+            "materia_label": "Stragiudiziale / Consulenza",
+            "label": "Due diligence",
+            "summary": "Verifica documentale e legale fuori giudizio.",
+            "profile_code": "stragiudiziale",
+            "suggested_practice_id": "due_diligence",
+            "grado_input_value": "Fuori giudizio",
+            "allowed_grade_input_values": ["Fuori giudizio"],
+        },
+        {
+            "rule_code": "stragiud_recupero_credito",
+            "materia_label": "Stragiudiziale / Consulenza",
+            "label": "Recupero credito stragiudiziale",
+            "summary": "Solleciti, diffide e trattative prima del contenzioso.",
+            "profile_code": "stragiudiziale",
+            "suggested_practice_id": "recupero_credito_stragiudiziale",
+            "grado_input_value": "Fuori giudizio",
+            "allowed_grade_input_values": ["Fuori giudizio"],
+        },
+        {
+            "rule_code": "stragiud_societario",
+            "materia_label": "Stragiudiziale / Consulenza",
+            "label": "Assistenza societaria stragiudiziale",
+            "summary": "Assistenza societaria, governance e consulenza continuativa fuori giudizio.",
+            "profile_code": "stragiudiziale",
+            "suggested_practice_id": "governance_societaria",
+            "grado_input_value": "Fuori giudizio",
+            "allowed_grade_input_values": ["Fuori giudizio"],
+        },
+        {
+            "rule_code": "mediazione_obbligatoria",
+            "materia_label": "Mediazione (D.Lgs. 28/2010)",
+            "label": "Mediazione civile obbligatoria",
+            "summary": "Procedura ADR obbligatoria con tabella 27 e costi organismo separati dal runtime DM 150/2023.",
+            "profile_code": "mediazione",
+            "suggested_practice_id": "mediazione_obbligatoria",
+            "grado_input_value": "Procedura ADR",
+            "allowed_grade_input_values": ["Procedura ADR"],
+        },
+        {
+            "rule_code": "mediazione_volontaria",
+            "materia_label": "Mediazione (D.Lgs. 28/2010)",
+            "label": "Mediazione volontaria",
+            "summary": "Procedura ADR volontaria calcolata su tabella 27.",
+            "profile_code": "mediazione",
+            "suggested_practice_id": "mediazione_volontaria",
+            "grado_input_value": "Procedura ADR",
+            "allowed_grade_input_values": ["Procedura ADR"],
+        },
+        {
+            "rule_code": "mediazione_demandata",
+            "materia_label": "Mediazione (D.Lgs. 28/2010)",
+            "label": "Mediazione demandata",
+            "summary": "Procedura ADR demandata dal giudice, con costi organismo gestiti dal runtime dedicato.",
+            "profile_code": "mediazione",
+            "suggested_practice_id": "mediazione_demandata",
+            "grado_input_value": "Procedura ADR",
+            "allowed_grade_input_values": ["Procedura ADR"],
+        },
+        {
+            "rule_code": "adr_con_accordo",
+            "materia_label": "Mediazione (D.Lgs. 28/2010)",
+            "label": "ADR con accordo",
+            "summary": "Mediazione o negoziazione con accordo: aumento del 30% sulle fasi iniziali quando applicabile.",
+            "profile_code": "mediazione",
+            "suggested_practice_id": "adr_con_accordo",
+            "grado_input_value": "Procedura ADR",
+            "allowed_grade_input_values": ["Procedura ADR"],
+        },
+        {
+            "rule_code": "adr_senza_accordo",
+            "materia_label": "Mediazione (D.Lgs. 28/2010)",
+            "label": "ADR senza accordo",
+            "summary": "Mediazione o negoziazione senza accordo, senza maggiorazione art. 20.",
+            "profile_code": "mediazione",
+            "suggested_practice_id": "adr_senza_accordo",
+            "grado_input_value": "Procedura ADR",
+            "allowed_grade_input_values": ["Procedura ADR"],
+        },
+        {
+            "rule_code": "arbitrato_irrituale",
+            "materia_label": "Arbitrato",
+            "label": "Arbitrato irrituale",
+            "summary": "Arbitrato irrituale con compenso unico tabellare A26.",
+            "profile_code": "arbitrato",
+            "suggested_practice_id": "arbitrato_irrituale",
+            "grado_input_value": "Procedura ADR",
+            "allowed_grade_input_values": ["Procedura ADR"],
+        },
+        {
+            "rule_code": "arbitrato_arbitro_unico",
+            "materia_label": "Arbitrato",
+            "label": "Arbitro unico / collegio",
+            "summary": "Opzione accessoria descrittiva: l'importo resta quello della tabella A26 senza coefficienti non dichiarati.",
+            "profile_code": "arbitrato",
+            "suggested_practice_id": "arbitro_unico_collegio",
+            "grado_input_value": "Procedura ADR",
+            "allowed_grade_input_values": ["Procedura ADR"],
+        },
+        {
+            "rule_code": "contabile_responsabilita",
+            "materia_label": "Contabile / Corte dei Conti",
+            "label": "Giudizio di responsabilita",
+            "summary": "Giudizio davanti alla Corte dei Conti con riferimento al codice di giustizia contabile.",
+            "profile_code": "contabile_corte_conti",
+            "suggested_practice_id": "giudizio_responsabilita_contabile",
+            "grado_input_value": "Corte dei Conti",
+            "allowed_grade_input_values": ["Corte dei Conti"],
+        },
+        {
+            "rule_code": "contabile_pensionistico",
+            "materia_label": "Contabile / Corte dei Conti",
+            "label": "Giudizio pensionistico contabile",
+            "summary": "Contenzioso pensionistico davanti alla Corte dei Conti.",
+            "profile_code": "contabile_corte_conti",
+            "suggested_practice_id": "giudizio_pensionistico_contabile",
+            "grado_input_value": "Corte dei Conti",
+            "allowed_grade_input_values": ["Corte dei Conti"],
+        },
+        {
+            "rule_code": "contabile_appello",
+            "materia_label": "Contabile / Corte dei Conti",
+            "label": "Appello Corte dei Conti",
+            "summary": "Impugnazione davanti alle sezioni giurisdizionali di appello della Corte dei Conti.",
+            "profile_code": "contabile_corte_conti",
+            "suggested_practice_id": "appello_corte_conti",
+            "grado_input_value": "Corte dei Conti",
+            "allowed_grade_input_values": ["Corte dei Conti"],
+        },
+        {
+            "rule_code": "crisi_liquidazione_giudiziale",
+            "materia_label": "Crisi d'impresa / concorsuale",
+            "label": "Liquidazione giudiziale",
+            "summary": "Apertura e assistenza in procedura di liquidazione giudiziale.",
+            "profile_code": "crisi_impresa_apertura",
+            "suggested_practice_id": "liquidazione_giudiziale",
+            "grado_input_value": "Tribunale concorsuale",
+            "allowed_grade_input_values": ["Tribunale concorsuale"],
+        },
+        {
+            "rule_code": "crisi_insinuazione_passivo",
+            "materia_label": "Crisi d'impresa / concorsuale",
+            "label": "Insinuazione al passivo",
+            "summary": "Domanda di insinuazione o rivendica nello stato passivo.",
+            "profile_code": "crisi_impresa_passivo",
+            "suggested_practice_id": "insinuazione_passivo",
+            "grado_input_value": "Tribunale concorsuale",
+            "allowed_grade_input_values": ["Tribunale concorsuale"],
+        },
+        {
+            "rule_code": "crisi_opposizione_stato_passivo",
+            "materia_label": "Crisi d'impresa / concorsuale",
+            "label": "Opposizione stato passivo",
+            "summary": "Opposizione, impugnazione o revocazione dello stato passivo.",
+            "profile_code": "crisi_impresa_passivo",
+            "suggested_practice_id": "opposizione_stato_passivo",
+            "grado_input_value": "Tribunale concorsuale",
+            "allowed_grade_input_values": ["Tribunale concorsuale"],
+        },
+        {
+            "rule_code": "crisi_concordato_preventivo",
+            "materia_label": "Crisi d'impresa / concorsuale",
+            "label": "Concordato preventivo",
+            "summary": "Assistenza nella procedura di concordato preventivo.",
+            "profile_code": "crisi_impresa_apertura",
+            "suggested_practice_id": "concordato_preventivo",
+            "grado_input_value": "Tribunale concorsuale",
+            "allowed_grade_input_values": ["Tribunale concorsuale"],
+        },
+        {
+            "rule_code": "crisi_composizione_negoziata",
+            "materia_label": "Crisi d'impresa / concorsuale",
+            "label": "Composizione negoziata",
+            "summary": "Assistenza nella composizione negoziata della crisi.",
+            "profile_code": "stragiudiziale",
+            "suggested_practice_id": "composizione_negoziata",
+            "grado_input_value": "Fuori giudizio",
+            "allowed_grade_input_values": ["Fuori giudizio"],
+            "reference_codes": ["dlgs14_crisi_impresa"],
+        },
+        {
+            "rule_code": "crisi_sovraindebitamento",
+            "materia_label": "Crisi d'impresa / concorsuale",
+            "label": "Sovraindebitamento",
+            "summary": "Assistenza in procedure di sovraindebitamento e ristrutturazione del consumatore.",
+            "profile_code": "crisi_impresa_apertura",
+            "suggested_practice_id": "sovraindebitamento",
+            "grado_input_value": "Tribunale concorsuale",
+            "allowed_grade_input_values": ["Tribunale concorsuale"],
+        },
+    ],
+)
+
+_normalizza_catalogo_tariffario()
+
 OPTION_ROWS: List[Dict[str, Any]] = [
     {
         "option_code": "spese_generali_15",
@@ -2937,26 +3601,55 @@ def load_tariffario_snapshot() -> Dict[str, Dict[str, List[Optional[float]]]]:
     return snapshot
 
 
-def _labels_for_table(raw_table: Mapping[str, Iterable[Optional[float]]]) -> List[tuple[float, float, str]]:
+def _mean_at_index(raw_table: Mapping[str, Iterable[Optional[float]]], index: int) -> float:
+    values = []
+    for raw_values in raw_table.values():
+        row = list(raw_values or [])
+        if len(row) > index and row[index] is not None:
+            values.append(float(row[index]))
+    return (sum(values) / len(values)) if values else 0.0
+
+
+def _snapshot_scaglione_sources(
+    raw_table: Mapping[str, Iterable[Optional[float]]],
+) -> List[tuple[int, float, float, str]]:
     max_count = max((sum(1 for value in values if value is not None) for values in raw_table.values()), default=0)
     if max_count <= 3:
-        return list(_LABELS_3)
+        return [(idx, *label) for idx, label in enumerate(_LABELS_3[:max_count])]
+
+    active_indexes = sorted(
+        {
+            idx
+            for values in raw_table.values()
+            for idx, value in enumerate(list(values or []))
+            if value is not None
+        }
+    )
+    if not active_indexes:
+        return []
+
     labels = list(_LABELS_7)
-    # Verifica regresso al 7° scaglione: se il compenso medio dell'indice 6 è
-    # inferiore a quello dell'indice 5, il 7° valore è il "valore indeterminabile"
-    # (DM 55/2014 art. 5) e non un genuino scaglione progressivo.
-    # Si rimuove il 7° e si apre il 6° a infinito (coerente con _snapshot_table).
-    all_vals = [list(v) for v in raw_table.values()]
-    valori_sc6 = [float(v[5]) for v in all_vals if len(v) > 5 and v[5] is not None]
-    valori_sc7 = [float(v[6]) for v in all_vals if len(v) > 6 and v[6] is not None]
-    if valori_sc6 and valori_sc7:
-        media6 = sum(valori_sc6) / len(valori_sc6)
-        media7 = sum(valori_sc7) / len(valori_sc7)
-        if media7 < media6 * 0.95:
-            da, _, lbl = labels[5]
-            labels[5] = (da, float("inf"), lbl)
-            labels = labels[:6]
-    return labels
+    progressive_tail_index = max((idx for idx in active_indexes if idx < 6), default=-1)
+    mean_tail = _mean_at_index(raw_table, progressive_tail_index) if progressive_tail_index >= 0 else 0.0
+    mean_index_6 = _mean_at_index(raw_table, 6)
+    index_6_is_indeterminabile = bool(mean_index_6 and mean_tail and mean_index_6 < mean_tail * 0.95)
+
+    rows: List[tuple[int, float, float, str]] = []
+    for idx in active_indexes:
+        if idx >= len(labels):
+            continue
+        if idx == 6 and index_6_is_indeterminabile:
+            continue
+        rows.append((idx, *labels[idx]))
+
+    has_high_progressive = any(item[0] == 6 for item in rows)
+    if not has_high_progressive and progressive_tail_index >= 0:
+        rows.append((progressive_tail_index, 520000.0, float("inf"), "Oltre EUR 520.000"))
+    return rows
+
+
+def _labels_for_table(raw_table: Mapping[str, Iterable[Optional[float]]]) -> List[tuple[float, float, str]]:
+    return [(value_from, value_to, label) for _, value_from, value_to, label in _snapshot_scaglione_sources(raw_table)]
 
 
 def _reference_by_code(reference_code: str) -> Dict[str, Any]:
@@ -2966,6 +3659,10 @@ def _reference_by_code(reference_code: str) -> Dict[str, Any]:
     return {}
 
 
+def _references_by_codes(reference_codes: Iterable[Any]) -> List[Dict[str, Any]]:
+    return [ref for code in reference_codes for ref in [_reference_by_code(str(code or ""))] if ref]
+
+
 def tariffario_scaglioni_rows() -> List[Dict[str, Any]]:
     rows: List[Dict[str, Any]] = []
     snapshot = load_tariffario_snapshot()
@@ -2973,12 +3670,12 @@ def tariffario_scaglioni_rows() -> List[Dict[str, Any]]:
         raw_table = snapshot.get(table_code) or {}
         if not raw_table:
             continue
-        labels = _labels_for_table(raw_table)
-        for sc_index, (valore_da, valore_a, label) in enumerate(labels, start=1):
+        labels = _snapshot_scaglione_sources(raw_table)
+        for sc_index, (source_index, valore_da, valore_a, label) in enumerate(labels, start=1):
             for raw_phase, values in raw_table.items():
-                if sc_index - 1 >= len(values):
+                if source_index >= len(values):
                     continue
-                base = values[sc_index - 1]
+                base = values[source_index]
                 if base is None:
                     continue
                 phase_key = PHASE_KEY_BY_RAW.get(raw_phase, raw_phase.lower())
@@ -3012,21 +3709,8 @@ def tariffario_profile_rows() -> List[Dict[str, Any]]:
         item["grado_input_value"] = GRADE_INPUT_BY_KEY.get(item.get("grado_key", ""), item.get("grado_label", ""))
         item["phase_labels"] = [PHASE_LABEL_BY_KEY.get(key, key) for key in item.get("phase_keys", [])]
         item["phase_values"] = [PHASE_VALUE_BY_KEY.get(key, key) for key in item.get("phase_keys", [])]
-        refs = list(TARIFFARIO_REFERENCE_ROWS[:4])
-        if item["materia_key"] in {"AMMINISTRATIVO", "TRIBUTARIO", "MEDIAZIONE", "NEGOZIAZIONE_ASSISTITA"}:
-            refs.append(_reference_by_code("l49_equo_compenso"))
-        if item["materia_key"] in {"MEDIAZIONE", "NEGOZIAZIONE_ASSISTITA"}:
-            refs.extend(
-                [
-                    _reference_by_code("dm55_art19"),
-                    _reference_by_code("dm55_art20_adr"),
-                ]
-            )
-        if item["materia_key"] == "CONTABILE":
-            refs.append(_reference_by_code("dlgs174_giustizia_contabile"))
-        if item["materia_key"] == "CRISI_IMPRESA":
-            refs.append(_reference_by_code("dlgs14_crisi_impresa"))
-        item["normative_references"] = [ref for ref in refs if ref]
+        item["reference_codes"] = _reference_codes_for_profile(item)
+        item["normative_references"] = _references_by_codes(item["reference_codes"])
         rows.append(item)
     return rows
 
@@ -3081,6 +3765,7 @@ def _compliance_payload_for_rule(item: Mapping[str, Any], profile: Optional[Mapp
     table_code = str((profile or {}).get("table_code") or "")
     table_snapshot = snapshot.get(table_code) or {}
     snapshot_origin = "snapshot" if table_code in raw_tariffario_snapshot_codes() else ("seed" if table_code in snapshot else "")
+    source_snapshot = str((profile or {}).get("source_snapshot") or _SNAPSHOT_PATH.name)
     available_phase_keys = _available_phase_keys_for_table(table_snapshot)
     profile_phase_keys = [str(key) for key in ((profile or {}).get("phase_keys") or [])]
     phase_aliases = {
@@ -3107,24 +3792,24 @@ def _compliance_payload_for_rule(item: Mapping[str, Any], profile: Optional[Mapp
     exact_snapshot = bool((profile or {}).get("exact_snapshot"))
     ref_count = len(list(item.get("normative_references") or []))
 
-    status = "verificata_snapshot"
-    label = "Verificata su snapshot"
+    status = "snapshot_esatto"
+    label = "Snapshot esatto"
     badge = "success"
     note = "Regola allineata al catalogo tariffario e alla tabella ufficiale presente nello snapshot DM 147/2022."
 
     if not profile:
-        status = "da_verificare"
-        label = "Da verificare"
+        status = "fallback_tecnico"
+        label = "Fallback tecnico"
         badge = "danger"
         note = "Regola tariffaria priva di profilo di calcolo collegato."
     elif not table_code or not table_snapshot:
-        status = "da_verificare"
-        label = "Da verificare"
+        status = "fallback_tecnico"
+        label = "Fallback tecnico"
         badge = "danger"
         note = "La tabella indicata dal profilo non e presente nello snapshot tariffario disponibile."
     elif missing_phase_keys:
-        status = "da_verificare"
-        label = "Da verificare"
+        status = "fallback_tecnico"
+        label = "Fallback tecnico"
         badge = "danger"
         note = (
             "La regola usa fasi non coperte integralmente dalla tabella collegata: "
@@ -3132,18 +3817,18 @@ def _compliance_payload_for_rule(item: Mapping[str, Any], profile: Optional[Mapp
             + "."
         )
     elif ref_count == 0:
-        status = "da_verificare"
-        label = "Da verificare"
+        status = "fallback_tecnico"
+        label = "Fallback tecnico"
         badge = "danger"
         note = "Regola senza riferimenti normativi ufficiali agganciati."
     elif not exact_snapshot:
-        status = "ricostruttiva"
-        label = "Ricostruttiva"
+        status = "ricostruzione"
+        label = "Ricostruzione dichiarata"
         badge = "warning"
         note = "Profilo operativo ricostruito dal motore: utile e coerente, ma non speculare uno-a-uno alla tabella ministeriale."
     elif mapped_phase_keys:
-        status = "ricostruttiva"
-        label = "Ricostruttiva"
+        status = "ricostruzione"
+        label = "Ricostruzione dichiarata"
         badge = "warning"
         note = (
             "La regola usa un mapping operativo di fase rispetto alle colonne ufficiali della tabella: "
@@ -3151,9 +3836,9 @@ def _compliance_payload_for_rule(item: Mapping[str, Any], profile: Optional[Mapp
             + "."
         )
     elif snapshot_origin == "seed":
-        status = "verificata_seed"
-        label = "Verificata su integrazione"
-        badge = "info"
+        status = "ricostruzione"
+        label = "Ricostruzione dichiarata"
+        badge = "warning"
         note = "Regola coperta da integrazione seed del catalogo tariffario, sincronizzata insieme allo snapshot ufficiale."
 
     return {
@@ -3167,12 +3852,11 @@ def _compliance_payload_for_rule(item: Mapping[str, Any], profile: Optional[Mapp
         "missing_phase_keys": missing_phase_keys,
         "mapped_phase_keys": mapped_phase_keys,
         "normative_reference_count": ref_count,
-        "source_snapshot": _SNAPSHOT_PATH.name,
+        "source_snapshot": source_snapshot,
         "severity_rank": {
-            "da_verificare": 3,
-            "ricostruttiva": 2,
-            "verificata_seed": 1,
-            "verificata_snapshot": 0,
+            "fallback_tecnico": 3,
+            "ricostruzione": 2,
+            "snapshot_esatto": 0,
         }.get(status, 9),
     }
 
@@ -3190,23 +3874,19 @@ def tariffario_rule_rows() -> List[Dict[str, Any]]:
         item = dict(row)
         profile = _profile_by_code(item.get("profile_code", ""))
         item["profile"] = profile
+        if profile:
+            item["table_code"] = item.get("table_code") or profile.get("table_code", "")
+            item["table_label"] = item.get("table_label") or profile.get("table_label", "")
+            item["calc_mode"] = item.get("calc_mode") or profile.get("calc_mode", "")
+            item["exact_snapshot"] = bool(item.get("exact_snapshot") or profile.get("exact_snapshot"))
+            item["source_snapshot"] = item.get("source_snapshot") or profile.get("source_snapshot", _SNAPSHOT_PATH.name)
         item["grado_input_value"] = item.get("grado_input_value") or (profile or {}).get("grado_input_value", "")
         item["allowed_grade_input_values"] = list(item.get("allowed_grade_input_values") or ([item["grado_input_value"]] if item.get("grado_input_value") else []))
-        refs = list(TARIFFARIO_REFERENCE_ROWS[:4])
-        if item.get("materia_label") in {"Amministrativo / TAR-CdS", "Tributario / CGT", "Mediazione (D.Lgs. 28/2010)", "Negoziazione Assistita (D.L. 132/2014)"}:
-            refs.append(_reference_by_code("l49_equo_compenso"))
-        if item.get("materia_label") in {"Mediazione (D.Lgs. 28/2010)", "Negoziazione Assistita (D.L. 132/2014)"}:
-            refs.extend(
-                [
-                    _reference_by_code("dm55_art19"),
-                    _reference_by_code("dm55_art20_adr"),
-                ]
-            )
-        if item.get("materia_label") == "Contabile / Corte dei Conti":
-            refs.append(_reference_by_code("dlgs174_giustizia_contabile"))
-        if item.get("materia_label") == "Crisi d'impresa / concorsuale":
-            refs.append(_reference_by_code("dlgs14_crisi_impresa"))
-        item["normative_references"] = [ref for ref in refs if ref]
+        item["reference_codes"] = _merge_codes(
+            item.get("reference_codes") or [],
+            (profile or {}).get("reference_codes") or [],
+        )
+        item["normative_references"] = _references_by_codes(item["reference_codes"])
         item.update(_compliance_payload_for_rule(item, profile))
         rows.append(item)
     return rows
@@ -3224,8 +3904,17 @@ def tariffario_audit_rows() -> List[Dict[str, Any]]:
                 "grado_input_value": row.get("grado_input_value", ""),
                 "table_code": (row.get("profile") or {}).get("table_code", ""),
                 "table_label": (row.get("profile") or {}).get("table_label", ""),
+                "area_scope": TABELLE_SNAPSHOT_META.get((row.get("profile") or {}).get("table_code", ""), {}).get("area_scope", ""),
+                "grade_scope": TABELLE_SNAPSHOT_META.get((row.get("profile") or {}).get("table_code", ""), {}).get("grade_scope", ""),
+                "calc_mode": (row.get("profile") or {}).get("calc_mode", ""),
                 "profile_code": row.get("profile_code", ""),
                 "exact_snapshot": bool((row.get("profile") or {}).get("exact_snapshot")),
+                "reference_codes": list(row.get("reference_codes") or []),
+                "riferimenti_normativi": [
+                    " - ".join(part for part in (ref.get("title", ""), ref.get("article", "")) if part)
+                    for ref in row.get("normative_references") or []
+                    if isinstance(ref, dict)
+                ],
                 "snapshot_origin": row.get("snapshot_origin", ""),
                 "snapshot_present": bool(row.get("snapshot_present")),
                 "phase_alignment_ok": bool(row.get("phase_alignment_ok")),
@@ -3412,4 +4101,128 @@ def first_rule_for_materia(materia_label: str) -> Optional[Dict[str, Any]]:
         if row["materia_label"] == materia_label:
             return dict(row)
     return None
+
+
+def list_all_snapshot_tables() -> List[Dict[str, Any]]:
+    snapshot = load_tariffario_snapshot()
+    rows: List[Dict[str, Any]] = []
+    for table_code in sorted(snapshot):
+        meta = TABELLE_SNAPSHOT_META.get(table_code, {})
+        rows.append(
+            {
+                "table_code": table_code,
+                "table_label": meta.get("table_label", table_code),
+                "area_scope": meta.get("area_scope", ""),
+                "grade_scope": meta.get("grade_scope", ""),
+                "calc_mode": meta.get("calc_mode", _table_calc_mode(table_code, snapshot.get(table_code, {}))),
+                "reference_codes": list(meta.get("reference_codes") or _reference_codes_for_table(table_code)),
+                "source_snapshot": meta.get("source_snapshot", _SNAPSHOT_PATH.name),
+                "exact_snapshot": bool(meta.get("exact_snapshot")),
+                "phase_keys": sorted(_available_phase_keys_for_table(snapshot.get(table_code, {}))),
+            }
+        )
+    return rows
+
+
+def missing_snapshot_meta() -> List[str]:
+    return sorted(set(load_tariffario_snapshot()) - set(TABELLE_SNAPSHOT_META))
+
+
+def profiles_by_area() -> Dict[str, List[Dict[str, Any]]]:
+    grouped: Dict[str, List[Dict[str, Any]]] = {}
+    for row in tariffario_profile_rows():
+        grouped.setdefault(str(row.get("materia_label") or ""), []).append(dict(row))
+    return grouped
+
+
+def profiles_for_table(table_code: str) -> List[Dict[str, Any]]:
+    code = str(table_code or "").strip()
+    return [dict(row) for row in tariffario_profile_rows() if row.get("table_code") == code]
+
+
+def profile_reference_rows(profile_code: str) -> List[Dict[str, Any]]:
+    code = str(profile_code or "").strip()
+    profile = next((row for row in tariffario_profile_rows() if row.get("profile_code") == code), None)
+    return list((profile or {}).get("normative_references") or [])
+
+
+def _phase_keys_compatibili(table_code: str, profile_phase_keys: Iterable[Any], table_phase_keys: set[str]) -> List[str]:
+    phase_aliases = {
+        "A16": {"esecutiva": "istruttoria"},
+        "A17": {"esecutiva": "istruttoria"},
+        "A18": {"esecutiva": "istruttoria"},
+        "A27": {
+            "attivazione": "introduttiva",
+            "rivitalizzazione": "istruttoria",
+            "negoziazione": "istruttoria",
+            "conciliazione": "decisionale",
+        },
+    }.get(table_code, {})
+    missing: List[str] = []
+    for key in [str(item or "") for item in profile_phase_keys if str(item or "")]:
+        if key in table_phase_keys:
+            continue
+        alias_key = phase_aliases.get(key, "")
+        if alias_key and alias_key in table_phase_keys:
+            continue
+        missing.append(key)
+    return missing
+
+
+def validate_tariffario_catalog_coverage() -> Dict[str, Any]:
+    snapshot = load_tariffario_snapshot()
+    errors: List[str] = []
+    warnings: List[str] = []
+    profile_codes: set[str] = set()
+
+    for table_code in sorted(snapshot):
+        if table_code not in TABELLE_SNAPSHOT_META:
+            errors.append(f"Tabella {table_code} senza metadati TABELLE_SNAPSHOT_META.")
+
+    for profile in tariffario_profile_rows():
+        profile_code = str(profile.get("profile_code") or "").strip()
+        table_code = str(profile.get("table_code") or "").strip()
+        if not profile_code:
+            errors.append("Profilo senza profile_code.")
+        elif profile_code in profile_codes:
+            errors.append(f"Profile code duplicato: {profile_code}.")
+        profile_codes.add(profile_code)
+        if not table_code:
+            errors.append(f"Profilo {profile_code} senza table_code.")
+            continue
+        if table_code not in snapshot:
+            errors.append(f"Profilo {profile_code} usa tabella {table_code} non presente nello snapshot o nei supplementi.")
+            continue
+        if not profile.get("table_label"):
+            errors.append(f"Profilo {profile_code} senza table_label.")
+        if not profile.get("reference_codes"):
+            errors.append(f"Profilo {profile_code} senza reference_codes.")
+        if not profile.get("compliance_status"):
+            errors.append(f"Profilo {profile_code} senza compliance_status.")
+        if profile.get("exact_snapshot") and table_code not in snapshot:
+            errors.append(f"Profilo {profile_code} exact_snapshot=True ma tabella {table_code} assente.")
+        table_phase_keys = _available_phase_keys_for_table(snapshot.get(table_code, {}))
+        missing = _phase_keys_compatibili(table_code, profile.get("phase_keys") or [], table_phase_keys)
+        if missing:
+            errors.append(f"Profilo {profile_code} usa fasi non compatibili con {table_code}: {', '.join(missing)}.")
+        calc_mode = str(profile.get("calc_mode") or "")
+        if calc_mode not in {"per_fasi", "compenso_unico", "per_fasi_adr"}:
+            errors.append(f"Profilo {profile_code} ha calc_mode non riconosciuto: {calc_mode}.")
+        if calc_mode == "compenso_unico" and "compenso_unico" not in (profile.get("phase_keys") or []):
+            warnings.append(f"Profilo {profile_code} a compenso unico senza phase_key compenso_unico.")
+
+    for row in tariffario_rule_rows():
+        if not row.get("reference_codes"):
+            errors.append(f"Regola {row.get('rule_code') or '<senza codice>'} senza reference_codes.")
+        if not row.get("compliance_status"):
+            errors.append(f"Regola {row.get('rule_code') or '<senza codice>'} senza compliance_status.")
+
+    return {
+        "ok": not errors,
+        "errors": errors,
+        "warnings": warnings,
+        "tables": len(snapshot),
+        "profiles": len(profile_codes),
+        "rules": len(tariffario_rule_rows()),
+    }
 

@@ -505,6 +505,15 @@ class Preventivo:
         d["classificazioni_tassonomiche"] = _normalizza_classificazioni_tassonomiche(
             d.get("classificazioni_tassonomiche")
         )
+        if d.get("log_calcolo"):
+            try:
+                from pct.economico_context import dump_log_calcolo, sincronizza_contesto_economico
+
+                sincronizzato = sincronizza_contesto_economico(d.get("log_calcolo"))
+                d["log_calcolo"] = dump_log_calcolo(sincronizzato) if sincronizzato else d.get("log_calcolo")
+            except Exception:
+                if isinstance(d.get("log_calcolo"), dict):
+                    d["log_calcolo"] = json.dumps(d["log_calcolo"], ensure_ascii=False, separators=(",", ":"))
         d["voci"] = [VocePreventivo.from_dict(v) for v in d.get("voci", [])]
         d["piano_pagamenti"] = [VoceScadenza.from_dict(r) for r in d.get("piano_pagamenti", [])]
         campi = set(Preventivo.__dataclass_fields__)

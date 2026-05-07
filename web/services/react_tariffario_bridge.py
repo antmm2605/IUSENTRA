@@ -8,6 +8,7 @@ from typing import Any, Callable
 from pct.motore_preventivo import catalogo_wizard
 from pct.tariffario import ComplessitaStimata, Grado, Materia
 from pct.tariffario_catalogo import (
+    list_all_snapshot_tables,
     grade_catalog_by_materia,
     phase_catalog_by_materia,
     rule_catalog_by_materia,
@@ -127,8 +128,29 @@ def _rule_options(rule_catalog: dict[str, list[dict[str, Any]]]) -> list[dict[st
                 continue
             seen.add(value)
             label = _text(row.get("label")) or _text(row.get("table_label")) or value
-            options.append(_option(value, label, _text(row.get("matter"))))
+            options.append(_option(value, label, _text(row.get("matter") or row.get("materia_label") or row.get("compliance_status"))))
     return options
+
+
+def _table_options() -> list[dict[str, Any]]:
+    return [
+        _option(row.get("table_code", ""), _text(row.get("table_label")) or _text(row.get("table_code")), _text(row.get("calc_mode")))
+        for row in list_all_snapshot_tables()
+    ]
+
+
+def _area_options(rule_catalog: dict[str, list[dict[str, Any]]]) -> list[dict[str, Any]]:
+    values = sorted({_text(row.get("materia_label")) for rows in rule_catalog.values() for row in rows if _text(row.get("materia_label"))})
+    return [_option("", "Tutte le aree")] + [_option(value, value) for value in values]
+
+
+def _calc_mode_options() -> list[dict[str, Any]]:
+    return [
+        _option("", "Tutti i tipi di calcolo"),
+        _option("per_fasi", "Per fasi"),
+        _option("compenso_unico", "Compenso unico"),
+        _option("per_fasi_adr", "ADR per fasi"),
+    ]
 
 
 def _tariffario_form(
@@ -182,10 +204,9 @@ def _enrich_audit(rows: list[dict[str, Any]], practices: dict[str, dict[str, Any
 def _audit_summary(rows: list[dict[str, Any]]) -> dict[str, int]:
     return {
         "totale": len(rows),
-        "verificata_snapshot": sum(1 for row in rows if row.get("compliance_status") == "verificata_snapshot"),
-        "verificata_seed": sum(1 for row in rows if row.get("compliance_status") == "verificata_seed"),
-        "ricostruttiva": sum(1 for row in rows if row.get("compliance_status") == "ricostruttiva"),
-        "da_verificare": sum(1 for row in rows if row.get("compliance_status") == "da_verificare"),
+        "snapshot_esatto": sum(1 for row in rows if row.get("compliance_status") in {"snapshot_esatto", "verificata_snapshot", "verificata_seed"}),
+        "ricostruzione": sum(1 for row in rows if row.get("compliance_status") in {"ricostruzione", "ricostruttiva"}),
+        "fallback_tecnico": sum(1 for row in rows if row.get("compliance_status") in {"fallback_tecnico", "da_verificare"}),
     }
 
 
@@ -222,18 +243,18 @@ def _support_payload(
     channels: list[dict[str, Any]],
     summary: dict[str, int],
 ) -> dict[str, Any]:
-    warnings = [row for row in audit if row.get("compliance_status") != "verificata_snapshot"]
+    warnings = [row for row in audit if row.get("compliance_status") not in {"snapshot_esatto", "verificata_snapshot", "verificata_seed"}]
     return {
         "auditSummary": summary,
         "auditRows": warnings,
         "auditCards": [
             {
-                "value": summary.get("verificata_snapshot", 0),
+                "value": summary.get("snapshot_esatto", 0),
                 "label": "Regole allineate allo snapshot ufficiale DM 147/2022.",
             },
             {
-                "value": summary.get("verificata_seed", 0),
-                "label": "Regole coperte da integrazioni seed controllate.",
+                "value": summary.get("ricostruzione", 0),
+                "label": "Ricostruzioni dichiarate e tracciate.",
             },
         ],
         "tables": tables,
@@ -251,8 +272,8 @@ def _stats_payload(
     options: list[dict[str, Any]],
     audit_summary: dict[str, int],
 ) -> dict[str, Any]:
-    open_count = audit_summary.get("ricostruttiva", 0) + audit_summary.get("da_verificare", 0)
-    aligned = audit_summary.get("verificata_snapshot", 0) + audit_summary.get("verificata_seed", 0)
+    open_count = audit_summary.get("ricostruzione", 0) + audit_summary.get("fallback_tecnico", 0)
+    aligned = audit_summary.get("snapshot_esatto", 0)
     return {
         "profiles": len(profiles),
         "rules": len(rules),
@@ -278,6 +299,9 @@ def _catalog_payload(
         "ruleCatalog": rule_catalog,
         "complexityOptions": _complexity_options(),
         "ruleOptions": _rule_options(rule_catalog),
+        "areaOptions": _area_options(rule_catalog),
+        "tableOptions": [_option("", "Tutte le tabelle")] + _table_options(),
+        "calcModeOptions": _calc_mode_options(),
         "gradeOptions": _grado_options(grade_catalog),
         "practices": practices,
     }

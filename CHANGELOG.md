@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.198.103 - 2026-05-07
+
+- Esteso il motore Tariffario / Preventivi / Compensi forensi a tutte le tabelle disponibili nello snapshot DM 147/2022 e nei supplementi dichiarati, con 150 regole tariffarie, riferimenti normativi obbligatori e audit completo per regola, tabella, scaglione e fonte.
+- Rafforzata la gestione della fascia `Oltre EUR 520.000` e introdotta la complessita `molto_alta` per valore indeterminabile parametrizzato a `520001.0`, sempre tracciato come valore virtuale e non dichiarato dal cliente.
+- Aggiornate API e UI React di `/tariffario` e `/preventivi/wizard` con filtri area/tabella/tipo calcolo, badge di copertura, warning non silenziosi, log economico persistente e test dedicati di catalogo, fascia alta e audit preventivi.
+
 ## 2.198.102 - 2026-05-07
 
 - Rifinita `/tariffario`: rimossi dalla pagina gli avvisi tecnici di bootstrap e le KPI statistiche sopra il workspace, lasciando il flusso operativo centrato su parametri, risultato e supporto apribile.

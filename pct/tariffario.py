@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from functools import lru_cache
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 
 class Materia(str, Enum):
@@ -91,6 +91,7 @@ class ComplessitaStimata(str, Enum):
     BASSA = "bassa"
     MEDIA = "media"
     ALTA = "alta"
+    MOLTO_ALTA = "molto_alta"
 
 
 @dataclass
@@ -139,6 +140,17 @@ class RisultatoCalcolo:
     valore_input: float = 0.0
     valore_calcolo: float = 0.0
     complessita_stimata: str = ""
+    table_code: str = ""
+    table_label: str = ""
+    rule_code: str = ""
+    rule_label: str = ""
+    exact_snapshot: bool = False
+    compliance_status: str = ""
+    compliance_note: str = ""
+    reference_codes: List[str] = field(default_factory=list)
+    riferimenti_normativi: List[dict] = field(default_factory=list)
+    source_snapshot: str = ""
+    audit_tariffario: dict = field(default_factory=dict)
 
     def _indice_livello(self, livello: LivelloCompenso | str) -> int:
         value = livello.value if isinstance(livello, LivelloCompenso) else str(livello or LivelloCompenso.BASE.value)
@@ -205,6 +217,17 @@ class RisultatoCalcolo:
             "maggiorazioni_fasi": self.maggiorazioni_fasi,
             "bonus_telematico_attivo": self.bonus_telematico_attivo,
             "includi_spese_generali": self.includi_spese_generali,
+            "table_code": self.table_code,
+            "table_label": self.table_label,
+            "rule_code": self.rule_code,
+            "rule_label": self.rule_label,
+            "exact_snapshot": self.exact_snapshot,
+            "compliance_status": self.compliance_status,
+            "compliance_note": self.compliance_note,
+            "reference_codes": list(self.reference_codes),
+            "riferimenti_normativi": list(self.riferimenti_normativi),
+            "source_snapshot": self.source_snapshot,
+            "audit_tariffario": dict(self.audit_tariffario),
         }
 
 
@@ -270,6 +293,7 @@ _COMPLESSITA_VIRTUAL_VALUE = {
     ComplessitaStimata.BASSA: 39000.0,
     ComplessitaStimata.MEDIA: 156000.0,
     ComplessitaStimata.ALTA: 390000.0,
+    ComplessitaStimata.MOLTO_ALTA: 520001.0,
 }
 
 
@@ -369,6 +393,7 @@ def livello_compenso_da_complessita(
         ComplessitaStimata.BASSA: LivelloCompenso.MINIMO,
         ComplessitaStimata.MEDIA: LivelloCompenso.BASE,
         ComplessitaStimata.ALTA: LivelloCompenso.MASSIMO,
+        ComplessitaStimata.MOLTO_ALTA: LivelloCompenso.MASSIMO,
     }
     return mapping.get(complessita_norm, LivelloCompenso.BASE)
 
@@ -390,6 +415,50 @@ def _carica_snapshot() -> dict[str, dict[str, list[float | None]]]:
         return load_tariffario_snapshot()
     except Exception:
         return {}
+
+
+def _mean_at_index(raw_table: dict[str, list[float | None]], index: int) -> float:
+    values = [
+        float(row[index])
+        for row in raw_table.values()
+        if len(row) > index and row[index] is not None
+    ]
+    return (sum(values) / len(values)) if values else 0.0
+
+
+def _snapshot_scaglione_sources(raw_table: dict[str, list[float | None]]) -> list[tuple[int, float, float, str]]:
+    max_count = max((sum(1 for value in values if value is not None) for values in raw_table.values()), default=0)
+    if max_count <= 3:
+        return [(idx, *label) for idx, label in enumerate(_LABELS_3[:max_count])]
+
+    active_indexes = sorted(
+        {
+            idx
+            for values in raw_table.values()
+            for idx, value in enumerate(values or [])
+            if value is not None
+        }
+    )
+    if not active_indexes:
+        return []
+
+    progressive_tail_index = max((idx for idx in active_indexes if idx < 6), default=-1)
+    mean_tail = _mean_at_index(raw_table, progressive_tail_index) if progressive_tail_index >= 0 else 0.0
+    mean_index_6 = _mean_at_index(raw_table, 6)
+    index_6_is_indeterminabile = bool(mean_index_6 and mean_tail and mean_index_6 < mean_tail * 0.95)
+
+    rows: list[tuple[int, float, float, str]] = []
+    for idx in active_indexes:
+        if idx >= len(_LABELS_7):
+            continue
+        if idx == 6 and index_6_is_indeterminabile:
+            continue
+        rows.append((idx, *_LABELS_7[idx]))
+
+    has_high_progressive = any(row[0] == 6 for row in rows)
+    if not has_high_progressive and progressive_tail_index >= 0:
+        rows.append((progressive_tail_index, 520000.0, float("inf"), "Oltre EUR 520.000"))
+    return rows
 
 
 def _snapshot_table(
@@ -414,48 +483,20 @@ def _snapshot_table(
             return []
         return [Scaglione(0.0, float("inf"), single_label, fasi)]
 
-    max_count = max(
-        (sum(1 for value in valori if value is not None) for valori in raw.values()),
-        default=0,
-    )
-    labels = _LABELS_3 if max_count <= 3 else _LABELS_7
+    labels = _snapshot_scaglione_sources(raw)
     scaglioni: list[Scaglione] = []
-    for idx, (valore_da, valore_a, label) in enumerate(labels):
+    for source_idx, valore_da, valore_a, label in labels:
         fasi: Dict[str, ScaglioneFase] = {}
         for fase_raw, valori in raw.items():
-            if idx >= len(valori):
+            if source_idx >= len(valori):
                 continue
-            valore = valori[idx]
+            valore = valori[source_idx]
             if valore is None:
                 continue
             fase_label = alias_map.get(fase_raw, _PHASE_LABELS.get(fase_raw, fase_raw))
             fasi[fase_label] = _sc(float(valore))
         if fasi:
             scaglioni.append(Scaglione(valore_da, valore_a, label, fasi))
-
-    # Il DM 55/2014 (e DM 147/2022) pubblica in alcune tabelle un 7° valore che
-    # rappresenta il compenso per controversie a «valore indeterminabile» (art. 5
-    # co. 1), non il compenso progressivo del 7° scaglione. Questo valore è
-    # tipicamente inferiore al 6° (260k-520k) perché calcolato su un valore medio
-    # stimato. Se il compenso medio dell'ultimo scaglione risulta inferiore a quello
-    # del penultimo, il dato non è un genuino 7° scaglione progressivo: si elimina
-    # l'ultimo e si estende il penultimo fino a float("inf"), garantendo che cause
-    # con valore > 520.000 EUR ricevano il compenso del 6° scaglione (corretto) e
-    # non un importo anomalmente ridotto.
-    if len(scaglioni) >= 2:
-        _media_sc = lambda sc: (
-            sum(sf.base for sf in sc.fasi.values()) / len(sc.fasi) if sc.fasi else 0.0
-        )
-        if _media_sc(scaglioni[-1]) < _media_sc(scaglioni[-2]) * 0.95:
-            scaglioni.pop()
-            ultimo = scaglioni[-1]
-            # Riapre l'ultimo scaglione mantenuto fino a infinito
-            scaglioni[-1] = Scaglione(
-                ultimo.valore_da,
-                float("inf"),
-                ultimo.label,
-                ultimo.fasi,
-            )
 
     return scaglioni
 
@@ -1078,6 +1119,79 @@ def _tabella_per_calcolo(
     return tabella, 1.0, "A2", exact, note
 
 
+def _catalog_context_for_result(profile_code: str, table_code: str, exact_snapshot: bool) -> dict[str, Any]:
+    try:
+        from pct.tariffario_catalogo import (
+            TABELLE_SNAPSHOT_META,
+            tariffario_profile_rows,
+            tariffario_rule_rows,
+        )
+    except Exception:
+        return {
+            "table_code": table_code,
+            "table_label": table_code,
+            "rule_code": "",
+            "rule_label": "",
+            "exact_snapshot": exact_snapshot,
+            "compliance_status": "snapshot_esatto" if exact_snapshot else "ricostruzione",
+            "compliance_note": "",
+            "reference_codes": [],
+            "riferimenti_normativi": [],
+            "source_snapshot": _SNAPSHOT_PATH.name,
+            "audit_tariffario": {},
+        }
+
+    profile = next((row for row in tariffario_profile_rows() if row.get("profile_code") == profile_code), None)
+    if profile is None:
+        profile = next((row for row in tariffario_profile_rows() if row.get("table_code") == table_code), None)
+    rule = next((row for row in tariffario_rule_rows() if row.get("profile_code") == (profile or {}).get("profile_code")), None)
+    meta = TABELLE_SNAPSHOT_META.get(table_code, {})
+    refs = list((rule or {}).get("normative_references") or (profile or {}).get("normative_references") or [])
+    reference_codes = list((rule or {}).get("reference_codes") or (profile or {}).get("reference_codes") or meta.get("reference_codes") or [])
+    table_label = str((profile or {}).get("table_label") or meta.get("table_label") or table_code)
+    rule_label = str((rule or {}).get("label") or (rule or {}).get("rule_label") or "")
+    compliance_status = str(
+        (rule or {}).get("compliance_status")
+        or (profile or {}).get("compliance_status")
+        or ("snapshot_esatto" if exact_snapshot else "ricostruzione")
+    )
+    compliance_note = str(
+        (rule or {}).get("compliance_note")
+        or (profile or {}).get("compliance_note")
+        or meta.get("compliance_note", "")
+    )
+    audit = {
+        "rule_code": str((rule or {}).get("rule_code") or ""),
+        "rule_label": rule_label,
+        "table_code": table_code,
+        "table_label": table_label,
+        "area_scope": str(meta.get("area_scope") or ""),
+        "grade_scope": str(meta.get("grade_scope") or ""),
+        "calc_mode": str((profile or {}).get("calc_mode") or meta.get("calc_mode") or ""),
+        "exact_snapshot": bool((profile or {}).get("exact_snapshot", exact_snapshot)),
+        "compliance_status": compliance_status,
+        "compliance_label": str((rule or {}).get("compliance_label") or ""),
+        "compliance_badge": str((rule or {}).get("compliance_badge") or ""),
+        "compliance_note": compliance_note,
+        "source_snapshot": str((rule or {}).get("source_snapshot") or (profile or {}).get("source_snapshot") or meta.get("source_snapshot") or _SNAPSHOT_PATH.name),
+        "reference_codes": reference_codes,
+        "riferimenti_normativi": refs,
+    }
+    return {
+        "table_code": table_code,
+        "table_label": table_label,
+        "rule_code": audit["rule_code"],
+        "rule_label": rule_label,
+        "exact_snapshot": audit["exact_snapshot"],
+        "compliance_status": compliance_status,
+        "compliance_note": compliance_note,
+        "reference_codes": reference_codes,
+        "riferimenti_normativi": refs,
+        "source_snapshot": audit["source_snapshot"],
+        "audit_tariffario": audit,
+    }
+
+
 def calcola_compenso(
     materia: Materia,
     grado: Grado,
@@ -1105,6 +1219,7 @@ def calcola_compenso(
     valore_input = parse_numero_locale(valore, 0.0)
     valore_calcolo = valore_input
     complessita_norm = _parse_complessita(complessita)
+    valore_indeterminabile_parametrizzato = False
     force_compenso_unico = bool(_PROFILE_TABLE_OVERRIDES.get(profile_code or "", {}).get("force_compenso_unico"))
     fasi_esplicitamente_vuote = fasi == []
 
@@ -1132,11 +1247,25 @@ def calcola_compenso(
     riparto_compenso_unico = False
 
     if valore_calcolo <= 0 and tabella:
-        valore_calcolo = tabella[0].valore_da
-        note_parts.append(
-            "Valore non determinato o pari a zero: per default IUSENTRA applica il primo scaglione tabellare disponibile. "
-            "La complessita stimata continua a incidere sulla forbice minimo / base / massimo del compenso."
-        )
+        virtual_value, virtual_complexity = valore_virtuale_indeterminabile(complessita_norm)
+        if (
+            virtual_value > 0
+            and materia != Materia.PENALE
+            and complessita_norm == ComplessitaStimata.MOLTO_ALTA
+        ):
+            valore_calcolo = virtual_value
+            valore_indeterminabile_parametrizzato = True
+            complessita_norm = virtual_complexity
+            note_parts.append(
+                "Valore indeterminabile parametrizzato: il valore virtuale e' usato solo per individuare lo scaglione, "
+                "non come valore dichiarato dal cliente."
+            )
+        else:
+            valore_calcolo = tabella[0].valore_da
+            note_parts.append(
+                "Valore non determinato o pari a zero: per default IUSENTRA applica il primo scaglione tabellare disponibile. "
+                "La complessita stimata continua a incidere sulla forbice minimo / base / massimo del compenso."
+            )
 
     sc = tabella[-1]
     for scaglione in tabella:
@@ -1200,9 +1329,11 @@ def calcola_compenso(
         note_parts.append("Valore di controversia non applicato al penale.")
     if valore_calcolo > 520000 and materia != Materia.PENALE:
         note_parts.append(
-            "Valore superiore a EUR 520.000: applicati i valori del 6° scaglione tabellare "
-            "(DM 147/2022). Per controversie di valore molto elevato il compenso è liberamente "
-            "determinabile tra le parti nei limiti dell'equo compenso (L. 49/2023)."
+            "Valore superiore a EUR 520.000: applicato lo scaglione 'Oltre EUR 520.000' senza degradare su fasce inferiori."
+        )
+    if valore_indeterminabile_parametrizzato and complessita_norm == ComplessitaStimata.MOLTO_ALTA:
+        note_parts.append(
+            "Complessita molto alta: valore indeterminabile parametrizzato nella fascia oltre EUR 520.000; verificare congruita prima dell'invio al cliente."
         )
     if materia in {Materia.STRAGIUD, Materia.ARBITRATO} or force_compenso_unico:
         note_parts.append("Compenso unico tabellare: le fasi selezionate in UI sono accorpate automaticamente.")
@@ -1239,6 +1370,37 @@ def calcola_compenso(
         note_parts.append("Valori non completamente distinguibili con l'attuale UI IUSENTRA: applicata ricostruzione esplicita e tracciata nelle note.")
     note_parts.append("DM 147/2022: variazione +/-50% tassativa.")
 
+    catalog_context = _catalog_context_for_result(profile_code, tabella_codice, esatto)
+    if fasi_mancanti and catalog_context.get("audit_tariffario"):
+        catalog_context["audit_tariffario"] = {
+            **catalog_context["audit_tariffario"],
+            "fallback_tecnico": True,
+            "fallback_note": "Fasi richieste non presenti nella tabella selezionata: " + ", ".join(fasi_mancanti) + ".",
+        }
+    audit_tariffario = dict(catalog_context.get("audit_tariffario") or {})
+    audit_tariffario.update(
+        {
+            "table_code": catalog_context.get("table_code", tabella_codice),
+            "table_label": catalog_context.get("table_label", tabella_codice),
+            "rule_code": catalog_context.get("rule_code", ""),
+            "rule_label": catalog_context.get("rule_label", ""),
+            "scaglione": sc.label,
+            "fasi_selezionate": list(dettaglio.keys()),
+            "fasi_mancanti": list(fasi_mancanti),
+            "valore_input": valore_input,
+            "valore_calcolo": valore_calcolo,
+            "valore_indeterminabile_parametrizzato": valore_indeterminabile_parametrizzato,
+            "fascia_alta": valore_calcolo > 520000 and "Oltre EUR 520.000" in sc.label,
+            "complessita_stimata": complessita_norm.value if complessita_norm else "",
+            "exact_snapshot": bool(catalog_context.get("exact_snapshot", esatto)),
+            "compliance_status": str(catalog_context.get("compliance_status", "")),
+            "compliance_note": str(catalog_context.get("compliance_note", "")),
+            "reference_codes": list(catalog_context.get("reference_codes") or []),
+            "riferimenti_normativi": list(catalog_context.get("riferimenti_normativi") or []),
+            "source_snapshot": str(catalog_context.get("source_snapshot") or _SNAPSHOT_PATH.name),
+        }
+    )
+
     return RisultatoCalcolo(
         materia=materia.value,
         grado=grado.value,
@@ -1261,6 +1423,17 @@ def calcola_compenso(
         valore_input=valore_input,
         valore_calcolo=valore_calcolo,
         complessita_stimata=complessita_norm.value if complessita_norm else "",
+        table_code=catalog_context.get("table_code", tabella_codice),
+        table_label=catalog_context.get("table_label", tabella_codice),
+        rule_code=catalog_context.get("rule_code", ""),
+        rule_label=catalog_context.get("rule_label", ""),
+        exact_snapshot=bool(catalog_context.get("exact_snapshot", esatto)),
+        compliance_status=str(catalog_context.get("compliance_status", "")),
+        compliance_note=str(catalog_context.get("compliance_note", "")),
+        reference_codes=list(catalog_context.get("reference_codes") or []),
+        riferimenti_normativi=list(catalog_context.get("riferimenti_normativi") or []),
+        source_snapshot=str(catalog_context.get("source_snapshot") or _SNAPSHOT_PATH.name),
+        audit_tariffario=audit_tariffario,
     )
 
 

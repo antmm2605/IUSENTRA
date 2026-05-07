@@ -268,9 +268,15 @@ services:
     restart: unless-stopped
     command: ["serve"]
     ports:
-      - "11434:11434"
+      - "127.0.0.1:11434:11434"
     volumes:
       - ./data/intelligence/models:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
 
 
   # --------------------------------------------------------------------------

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.198.104 - 2026-05-07
+
+- Integrato Local Deep Research come sidecar Docker opzionale con profilo `ldr`, SearXNG dedicato, data root governato e bridge Lex configurabile tramite `.env.ldr`.
+- Rafforzata la sicurezza del runtime AI locale: Ollama nella compose locale resta esposto solo su `127.0.0.1` e il client LDR blocca query con dati identificativi o contesto riservato prima del login HTTP.
+- Aggiornate documentazione Lex/deploy/storage/pack e regressioni su compose, policy privacy, CSRF, polling e recupero report LDR.
+
 ## 2.198.103 - 2026-05-07
 
 - Esteso il motore Tariffario / Preventivi / Compensi forensi a tutte le tabelle disponibili nello snapshot DM 147/2022 e nei supplementi dichiarati, con 150 regole tariffarie, riferimenti normativi obbligatori e audit completo per regola, tabella, scaglione e fonte.

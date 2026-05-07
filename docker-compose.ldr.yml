@@ -1,0 +1,107 @@
+# IUSENTRA + Local Deep Research sidecar.
+#
+# Usage from the IUSENTRA repository root:
+#   cp .env.ldr.example .env.ldr
+#   docker compose --env-file .env --env-file .env.ldr \
+#     --profile ollama-sidecar --profile ldr \
+#     -f docker-compose.yml -f docker-compose.ldr.yml up -d
+#
+# Runtime data is always mounted under the IUSENTRA data root. Locally this is
+# ./data; on Hetzner pass IUSENTRA_DATA_DIR=/opt/iusentra/data through the env
+# file before enabling the optional ldr profile.
+
+services:
+  local-deep-research:
+    profiles: ["ldr"]
+    image: localdeepresearch/local-deep-research:latest
+    container_name: iusentra-local-deep-research
+    restart: unless-stopped
+    depends_on:
+      ollama:
+        condition: service_healthy
+      searxng:
+        condition: service_healthy
+    ports:
+      - "${LDR_BIND_ADDR:-127.0.0.1}:${LDR_PORT:-5000}:5000"
+    volumes:
+      - ${IUSENTRA_DATA_DIR:-./data}/local-deep-research:/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      LDR_WEB_HOST: "0.0.0.0"
+      LDR_WEB_PORT: "5000"
+      LDR_DATA_DIR: "/data"
+      LDR_LLM_OLLAMA_URL: "http://ollama:11434"
+      LDR_SEARCH_ENGINE_WEB_SEARXNG_DEFAULT_PARAMS_INSTANCE_URL: "http://searxng:8080"
+      LDR_APP_EXTERNAL_URL: "${LDR_APP_EXTERNAL_URL:-http://localhost:5000}"
+      LDR_LLM_PROVIDER: "ollama"
+      LDR_LLM_MODEL: "${LDR_LLM_MODEL:-gemma3:4b}"
+      # Keep registrations enabled for the first account. After that, set:
+      # LDR_APP_ALLOW_REGISTRATIONS: "false"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    security_opt:
+      - "no-new-privileges:true"
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - FOWNER
+      - DAC_OVERRIDE
+      - SETUID
+      - SETGID
+
+  searxng:
+    profiles: ["ldr"]
+    image: searxng/searxng:latest
+    container_name: iusentra-searxng
+    restart: unless-stopped
+    volumes:
+      - ${IUSENTRA_DATA_DIR:-./data}/searxng:/etc/searxng
+    environment:
+      SEARXNG_BASE_URL: "${SEARXNG_BASE_URL:-http://localhost:8088/}"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    security_opt:
+      - "no-new-privileges:true"
+    cap_drop:
+      - ALL
+    # Intentionally not exposed by default. Uncomment for local debugging only.
+    # ports:
+    #   - "127.0.0.1:8088:8080"
+
+  app:
+    environment:
+      OLLAMA_BASE_URL: "http://ollama:11434"
+      OLLAMA_DEFAULT_MODEL: "${LDR_LLM_MODEL:-gemma3:4b}"
+      LEX_DEFAULT_PROVIDER: "ollama"
+      LEX_DEFAULT_MODEL: "${LDR_LLM_MODEL:-gemma3:4b}"
+      LEX_AI_MODE: "local_first"
+      LEX_EXTERNAL_ALLOWED: "0"
+      PCT_LOCAL_AI_BASE_URL: "http://ollama:11434/api/version"
+      LDR_BASE_URL: "${LDR_BASE_URL:-http://local-deep-research:5000}"
+      LDR_USERNAME: "${LDR_USERNAME:-}"
+      LDR_PASSWORD: "${LDR_PASSWORD:-}"
+      LDR_TIMEOUT_SECONDS: "${LDR_TIMEOUT_SECONDS:-30}"
+      LDR_ALLOW_SENSITIVE: "${LDR_ALLOW_SENSITIVE:-0}"
+
+  scheduler-worker:
+    environment:
+      OLLAMA_BASE_URL: "http://ollama:11434"
+      OLLAMA_DEFAULT_MODEL: "${LDR_LLM_MODEL:-gemma3:4b}"
+      LEX_DEFAULT_PROVIDER: "ollama"
+      LEX_DEFAULT_MODEL: "${LDR_LLM_MODEL:-gemma3:4b}"
+      LEX_AI_MODE: "local_first"
+      LEX_EXTERNAL_ALLOWED: "0"
+      PCT_LOCAL_AI_BASE_URL: "http://ollama:11434/api/version"
+      LDR_BASE_URL: "${LDR_BASE_URL:-http://local-deep-research:5000}"
+      LDR_USERNAME: "${LDR_USERNAME:-}"
+      LDR_PASSWORD: "${LDR_PASSWORD:-}"
+      LDR_TIMEOUT_SECONDS: "${LDR_TIMEOUT_SECONDS:-30}"
+      LDR_ALLOW_SENSITIVE: "${LDR_ALLOW_SENSITIVE:-0}"

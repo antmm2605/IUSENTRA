@@ -140,5 +140,6 @@ I backup `.tar.zst` sono prodotti con zstd ad alta compressione (`IUSENTRA_BACKU
 - Il server CPX42 e' adeguato per app, Redis, OCR, scheduler e monitoring leggero.
 - Lex/Ollama puo' girare sullo stesso host solo per modelli piccoli CPU; per carichi AI pesanti serve nodo dedicato o runtime locale dello studio.
 - Il profilo Hetzner avvia il servizio Docker `ollama` e `deploy.sh` verifica/scarica `PCT_LOCAL_AI_CHAT_MODEL` (default `gemma3:1b`), cosi' il widget Lex usa una sola pipeline backend senza dipendere dal companion browser per la risposta finale.
+- Local Deep Research non e' attivo nel deploy standard. Se lo studio decide di abilitarlo, usare `docker-compose.ldr.yml` come overlay solo con `IUSENTRA_DATA_DIR=/opt/iusentra/data`, bind LDR su `127.0.0.1` o dietro proxy autenticato, e mantenere fascicoli/dati cliente nel retrieval tenant-aware di Lex.
 - Il Local Signer resta sul PC dell'avvocato e dialoga con `127.0.0.1`; non va spostato nel cloud.
 - Gli artefatti PST/PDP/PAT runtime restano sotto `/opt/iusentra/data`, mai nel path del repository.

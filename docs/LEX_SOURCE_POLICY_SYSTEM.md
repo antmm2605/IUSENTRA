@@ -82,6 +82,7 @@ Esempi coperti:
 - quando il retrieval e' gia' stato calcolato per lo stesso tenant e lo stesso contesto, Lex riusa il pacchetto evidenze dalla cache e dichiara il `cache hit` nel metadata finale.
 - Se il pacchetto evidenze non e' sufficiente, Lex non completa in modo plausibile: produce risposta degradata con warning e gap evidenza.
 - nelle richieste economiche (`preventivo`, `tariffario`, `fattura`) il bounded workflow evita risposte meta o simulate, non gonfia la UI con fonti legali decorative e apre direttamente il percorso operativo corretto.
+- Local Deep Research puo' essere attivato come sidecar Docker opzionale per ricerche pubbliche profonde. Non sostituisce fonti ufficiali, retrieval tenant-aware o workflow fascicolo: il client `lex/integrations/local_deep_research_client.py` blocca di default dati identificativi e contesto riservato prima di chiamare LDR.
 
 ## Modalita'
 

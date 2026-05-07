@@ -44,6 +44,15 @@ Servizi locali governati:
 - `iusentra-telematico`
 - `iusentra-updater`
 
+Sidecar opzionali, non inclusi come dati nel `Product Pack`:
+
+- `local-deep-research`, attivabile con il profilo Docker `ldr` per ricerche
+  pubbliche e non identificative;
+- `searxng`, usato da Local Deep Research come motore web privato.
+
+Questi sidecar usano il data root dello studio e non devono contenere memoria
+privata redistribuibile come update di prodotto.
+
 ## Studio Local Pack
 
 Ogni tenant ha il proprio `Studio Local Pack`, che nasce e resta nel perimetro locale dello studio.

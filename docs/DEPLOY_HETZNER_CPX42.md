@@ -122,6 +122,7 @@ Se esiste `/opt/iusentra/import/iusentra-data.tar.zst.sha256`, lo script verific
 ## Note operative
 
 - Local Signer resta sempre sul PC dell'avvocato, non sul server Hetzner.
+- Local Deep Research resta opzionale e non viene avviato dal deploy standard. Se abilitato come overlay, montare i dati sotto `/opt/iusentra/data`, non esporre Ollama su Internet e proteggere l'accesso LDR con bind locale o proxy autenticato.
 - Artefatti PST, PDP, PAT, PTT e import portali devono restare sotto `/opt/iusentra/data`.
 - Le credenziali PEC e i segreti devono restare cifrati o in variabili ambiente, mai in chiaro nel repository.
 - Prima dello switch definitivo da Railway verificare route principali, worker OCR, scheduler, backup, restore e log Caddy.

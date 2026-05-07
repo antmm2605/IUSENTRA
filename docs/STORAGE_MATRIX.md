@@ -39,6 +39,7 @@ Legenda:
 | Piattaforma | Assistenza remota cliente e audit sessioni | - | R/W | R/W | parita' completa | Wave piattaforma | repository SQL/PostgreSQL dedicato, nessun fallback invisibile |
 | Web pubblico studio | Sito Studio, pagine, articoli, sedi, contatti e prenotazioni | - | R/W | R/W | parita' completa | Wave web studio | repository SQL/PostgreSQL dedicato; asset su filesystem tenant; sezioni pubbliche opzionali governate da flag |
 | AI locale | Runtime locale, modelli e RAG | - | R/W | - | non attiva | Fuori scope come backend primario | SQLite locale e filesystem sullo stesso host del runtime |
+| AI locale | Local Deep Research sidecar e SearXNG | - | R/W sidecar | - | fuori parity IUSENTRA | Fuori scope come backend primario | dati runtime sotto `${IUSENTRA_DATA_DIR:-./data}/local-deep-research` e `${IUSENTRA_DATA_DIR:-./data}/searxng`; credenziali solo in env locale; nessun fallback su dati fascicolo |
 
 ## Verita' operativa oggi
 
@@ -51,6 +52,7 @@ Legenda:
 - non esiste fallback silenzioso da PostgreSQL attivo a JSON: il runtime blocca l'operazione e lascia traccia nel log applicativo.
 - documenti, buste telematiche e modelli locali AI restano filesystem-first anche dopo il cutover SQL.
 - L'adapter Docling di Lex e' un parser opzionale in-memory attivato da `LEX_DOCLING_ENABLED=1`: produce metadati citabili per evidence pack e, quando si persiste RAG, deve confluire nelle tabelle `rag_documents`/`rag_chunks` del dominio `AI locale` senza creare fallback invisibili o sorgenti parallele.
+- Local Deep Research e' un sidecar opzionale per ricerche pubbliche. I suoi dati applicativi restano nel data root scrivibile e non diventano fonte primaria IUSENTRA: Lex continua a usare retrieval tenant-aware per fascicoli, clienti, atti e documenti interni.
 - i moduli economici condividono lo stesso percorso ufficiale di migrazione `JSON -> SQLite -> PostgreSQL` con report di consistenza; il compenso a tempo ex art. 22-bis D.M. 55/2014 e' persistito su preventivi, conferimenti, log economico e fatturazione con migrazioni SQLite/PostgreSQL dedicate.
 - anche `Update Intelligence` e `Coverage AI` rientrano nello stesso programma ufficiale di migrazione, con repository SQL locale e replica PostgreSQL tenant-aware.
 - Lex AI consuma `Update Intelligence` dal repository SQL/PostgreSQL `legal_updates.db`; `legal_updates_repository.json` e `giurisprudenza.json` non sono sorgenti runtime e restano solo export/mirror espliciti.

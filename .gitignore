@@ -48,6 +48,7 @@ tmp_local_signer_*.out.log
 .env.local
 .env.*
 !.env.example
+!.env.ldr.example
 *.enc
 
 # Runtime data

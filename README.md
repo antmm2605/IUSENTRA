@@ -43,6 +43,7 @@ La repo oggi non è più solo un tool CLI per il Processo Civile Telematico: con
 - Runtime AI locale con Lex come strato linguistico sopra motori deterministici.
 - Local Signer come ponte operativo locale per firma digitale, AI locale e test/invio PEC dal PC dello studio: se il servizio non risponde, la UI prova ad avviarlo e propone il pacchetto da installare; nelle firme documento distingue anche il caso Windows in cui il token compare nel `token_probe_fresh`, riavvia l'app locale tramite protocollo registrato, non chiede il PIN finche' `token[]` non e' pronto e conserva la posizione della firma visibile configurata con coccarda trasparente. Local Signer `1.6.25` include `reportlab`, applica il timbro laterale su tutte le pagine con testo a 8 pt, coccarda a 1 mm dal margine destro e opzioni per luogo, data e orario.
 - Lex espone anche un gateway provider local-first con privacy guard: i dati sensibili restano sui runtime locali e gli esterni sono utilizzabili solo con policy esplicita.
+- Local Deep Research puo' essere avviato come sidecar Docker opzionale per ricerche pubbliche profonde con SearXNG e Ollama, mentre fascicoli e dati riservati restano nel retrieval tenant-aware di Lex.
 - Lex dispone ora del `Centro Fonti Ufficiali`: Normattiva e Gazzetta Ufficiale alimentano un archivio locale SQLite/JSONL interrogabile dal retrieval, con registro fonti disabilitabile e predisposizione per Ministero Giustizia, PST/PCT, PAT/SIGA, PTT/SIGIT, PDP, CNF, Agenzia Entrate, Garante Privacy, EUR-Lex e authority.
 - Lex integra anche `Update Intelligence` come sorgente SQL governata: news, normativa, giurisprudenza e prassi pubblicate entrano nel retrieval senza passare da JSON runtime.
 - Lex puo' usare Docling come parser locale opzionale (`LEX_DOCLING_ENABLED=1`, extra `lex-docling`) per trasformare atti, PDF, DOCX e scansioni in Markdown, chunk strutturati, tabelle e metadati citabili; se Docling non e' installato o fallisce, resta attivo il parser legacy senza bloccare il workflow.
@@ -88,6 +89,7 @@ Per il workspace applicazioni vedi anche [docs/APPLICAZIONI_WORKSPACE.md](docs/A
 Per la separazione ferrea tra `Product Pack`, `Studio Local Pack` e `Update Pack` vedi [docs/PACK_ARCHITECTURE.md](docs/PACK_ARCHITECTURE.md).
 Per hardening, observability e source policy vedi anche [docs/OBSERVABILITY_AUDIT_PRODUCT.md](docs/OBSERVABILITY_AUDIT_PRODUCT.md) e [docs/LEX_SOURCE_POLICY_SYSTEM.md](docs/LEX_SOURCE_POLICY_SYSTEM.md).
 Per il gateway provider di Lex vedi [docs/LEX_GATEWAY.md](docs/LEX_GATEWAY.md).
+Per il sidecar Local Deep Research vedi [docs/IUSENTRA_LOCAL_DEEP_RESEARCH.md](docs/IUSENTRA_LOCAL_DEEP_RESEARCH.md).
 Per il Centro Fonti Ufficiali Lex vedi [docs/CENTRO_FONTI_UFFICIALI_LEX.md](docs/CENTRO_FONTI_UFFICIALI_LEX.md).
 Per il workflow giurisprudenziale di Lex vedi [docs/LEX_GIURISPRUDENZA.md](docs/LEX_GIURISPRUDENZA.md).
 Per l'assistenza remota cliente vedi [docs/ASSISTENZA_REMOTA.md](docs/ASSISTENZA_REMOTA.md).

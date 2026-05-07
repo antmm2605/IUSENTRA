@@ -32,3 +32,24 @@ La risposta espone mode, provider, modello predefinito e stato privacy senza res
 ## Guardrail
 
 I test in `lex/tests/test_gateway_privacy_guard.py`, `lex/tests/test_gateway_router.py` e `lex/tests/test_gateway_status.py` verificano classificazione privacy, routing local-first e diagnostica senza leakage di segreti.
+
+## Local Deep Research sidecar
+
+`docker-compose.ldr.yml` aggiunge Local Deep Research e SearXNG come profilo
+opzionale `ldr`, riusando il sidecar Ollama locale. Il bridge Python vive in
+`lex/integrations/local_deep_research_client.py` e applica la privacy guard
+prima di chiamare le API LDR.
+
+Uso previsto:
+
+- ricerche pubbliche e non identificative;
+- fonti normative, dottrina, giurisprudenza pubblica e news;
+- report con citazioni da usare come evidenze da verificare.
+
+Uso vietato come default:
+
+- fascicoli, clienti, controparti, RG, CF, IBAN, atti e allegati interni;
+- credenziali o sessioni di portale;
+- qualunque contenuto che deve restare nel retrieval tenant-aware di Lex.
+
+Dettaglio operativo: `docs/IUSENTRA_LOCAL_DEEP_RESEARCH.md`.

@@ -1,5 +1,27 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-07 - Parte 12A anti-mascheramento 2.198.106
+
+La Parte 12A cambia la definizione di migrazione React: una pagina non puo'
+essere dichiarata pienamente operativa se il flusso principale torna a template
+Flask, CTA `?_legacy=1`, `LegacyPostForm` o POST legacy.
+
+- `tools/react-migration/route-manifest.json` usa ora gli stati
+  `react_shell`, `react_bridge`, `react_operational_partial`,
+  `react_operational_full` e `legacy_operational`; `react_full` resta
+  deprecato e non viene piu' usato per superfici mascherate.
+- `scripts/react-migration/audit-anti-mascheramento.mjs` censisce link
+  legacy, form legacy, bridge con scritture legacy, API mancanti e stati UI,
+  generando report JSON/Markdown in `artifacts/react-migration/`.
+- `scripts/react-migration/check-no-fake-react-full.mjs` blocca manifest e
+  gate quando una route piena dipende ancora da legacy per il flusso primario.
+- Il pilota `/utenti/nuovo` usa React controllato e
+  `POST /api/v1/ui/utenti/nuovo`, con `_richiedi_auth`, permesso
+  `utenti.scrivi`, CSRF/sessione, audit e risposta JSON senza password.
+- I fallback `?_legacy=1` restano solo rollback tecnici non primari; le route
+  ancora bridge/shell restano dichiarate come tali fino a API JSON complete,
+  permessi, stati UI e test dedicati.
+
 ## Stato tranche 2026-05-07 - Legal knowledge React read-only 2.198.105
 
 La decima promozione governata abilita le superfici di consultazione giuridica

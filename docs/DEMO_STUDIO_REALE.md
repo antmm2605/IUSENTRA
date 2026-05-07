@@ -64,7 +64,7 @@ Il comando restituisce:
 1. Crea il cliente.
 2. Apri il preventivo guidato.
    Il wizard usa le tabelle giuste per il tipo di pratica: D.M. 55/2014 per le fasi giudiziali, Tabella A25 per lo stragiudiziale e Tabella A27 per mediazione / negoziazione assistita.
-   Quando la tipologia prevede il compenso unico, il wizard mantiene visibili le fasi operative e usa il flag dedicato come comando di calcolo: attivo genera la voce unica tabellare, disattivo calcola le fasi selezionate; l'importo resta zero solo se tutte le fasi vengono spente.
+   Quando la tipologia prevede il compenso unico, il wizard mantiene visibili le fasi operative e usa il flag dedicato come comando di calcolo: attivo genera la voce unica tabellare, disattivo calcola le fasi selezionate; se la tabella ministeriale ha solo l'importo unico, il riparto sulle fasi resta operativo e tracciato. Le voci area pratica aggiunte generano tutte una riga economica in bozza, non solo l'ultima selezionata.
    Se la pratica usa la mediazione civile / commerciale, puoi attivare anche i costi organismo ex D.M. 150/2023 con regime, esito procedura e maggiorazione art. 31, comma 3: il totale operativo cambia davvero sia nel wizard sia nella console tariffaria.
    Le opzioni fiscali, i costi ODM e le classificazioni tassonomiche aggiuntive entrano davvero nel totale e nella bozza.
    Il ricalcolo e' guidato da feedback inline coerenti e i log raccontano la sequenza operativa del calcolo senza messaggi tecnici ambigui.

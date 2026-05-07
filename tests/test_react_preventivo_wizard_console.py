@@ -18,6 +18,10 @@ def _logged_client(tmp_path: Path):
 
 
 def _amministrazione_sostegno(payload: dict) -> dict:
+    return _practice_by_label(payload, "Amministrazione di sostegno")
+
+
+def _practice_by_label(payload: dict, label: str) -> dict:
     practices = payload["catalog"]["practices"]
     if isinstance(practices, dict):
         iterable = practices.values()
@@ -26,7 +30,7 @@ def _amministrazione_sostegno(payload: dict) -> dict:
     return next(
         practice
         for practice in iterable
-        if practice["label"] == "Amministrazione di sostegno"
+        if practice["label"] == label
     )
 
 
@@ -158,7 +162,7 @@ def test_preventivo_wizard_react_calcola_ads_con_voci_manuali_e_accessori(tmp_pa
     assert payload["economic"]["iva"] > 0
 
 
-def test_preventivo_wizard_react_calcola_ads_compenso_unico_default_senza_voci_manuali(tmp_path: Path):
+def test_preventivo_wizard_react_calcola_ads_per_fasi_senza_compenso_unico(tmp_path: Path):
     _app_obj, client = _logged_client(tmp_path)
     page = client.get("/api/v1/ui/preventivi/wizard").get_json()
     practice = _amministrazione_sostegno(page)
@@ -179,8 +183,89 @@ def test_preventivo_wizard_react_calcola_ads_compenso_unico_default_senza_voci_m
     assert payload["ok"] is True
     assert payload["compenso_base"] > 0
     assert payload["economic"]["totale"] > 0
-    assert "compenso_unico" in payload["state"]["fasi"]
-    assert "Compenso unico" in payload["fasi"]
+    assert "compenso_unico" not in payload["state"]["fasi"]
+    assert set(payload["fasi"]) == {"Studio", "Introduttiva", "Decisionale"}
+    assert "ripartito in quote operative" in payload["audit"]["log_calcolo"]
+
+
+def test_preventivo_wizard_react_calcola_ads_compenso_unico_solo_se_flag_attivo(tmp_path: Path):
+    _app_obj, client = _logged_client(tmp_path)
+    page = client.get("/api/v1/ui/preventivi/wizard").get_json()
+    practice = _amministrazione_sostegno(page)
+
+    per_fasi = client.post(
+        "/api/v1/ui/preventivi/wizard/calculate",
+        json=_calculation_payload(
+            practice,
+            fasi=["studio"],
+            compenso_unico=False,
+            voci_bozza=[],
+            manual_lines=[],
+            spese_generali=False,
+            applica_cpa=False,
+            applica_iva=False,
+        ),
+    ).get_json()
+    unico = client.post(
+        "/api/v1/ui/preventivi/wizard/calculate",
+        json=_calculation_payload(
+            practice,
+            fasi=["studio", "compenso_unico"],
+            compenso_unico=True,
+            voci_bozza=[],
+            manual_lines=[],
+            spese_generali=False,
+            applica_cpa=False,
+            applica_iva=False,
+        ),
+    ).get_json()
+
+    assert per_fasi["ok"] is True
+    assert unico["ok"] is True
+    assert set(per_fasi["fasi"]) == {"Studio"}
+    assert set(unico["fasi"]) == {"Compenso unico"}
+    assert 0 < per_fasi["compenso_base"] < unico["compenso_base"]
+    assert "compenso_unico" not in per_fasi["state"]["fasi"]
+    assert "compenso_unico" in unico["state"]["fasi"]
+
+
+def test_preventivo_wizard_react_calcola_tutte_le_voci_area_pratica_aggiunte(tmp_path: Path):
+    _app_obj, client = _logged_client(tmp_path)
+    page = client.get("/api/v1/ui/preventivi/wizard").get_json()
+    appello_civile = _practice_by_label(page, "Appello civile")
+    appello_famiglia = _practice_by_label(page, "Appello famiglia / minori")
+    appello_lavoro = _practice_by_label(page, "Appello in materia di lavoro")
+
+    response = client.post(
+        "/api/v1/ui/preventivi/wizard/calculate",
+        json=_calculation_payload(
+            appello_lavoro,
+            fasi=["studio", "introduttiva", "decisionale"],
+            compenso_unico=False,
+            voci_bozza=[],
+            manual_lines=[],
+            classificazioni_tassonomiche=[
+                {"tipologia_pratica_id": appello_civile["id"], "tipologia_pratica_label": appello_civile["label"]},
+                {"tipologia_pratica_id": appello_famiglia["id"], "tipologia_pratica_label": appello_famiglia["label"]},
+                {"tipologia_pratica_id": appello_lavoro["id"], "tipologia_pratica_label": appello_lavoro["label"]},
+            ],
+        ),
+    )
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["ok"] is True
+    descriptions = [row["descrizione"] for row in payload["rows"]]
+    assert any("Compenso professionale per Appello civile" in item for item in descriptions)
+    assert any("Compenso professionale per Appello famiglia / minori" in item for item in descriptions)
+    assert any("Compenso professionale per Appello in materia di lavoro" in item for item in descriptions)
+    assert sum(1 for item in descriptions if item.startswith("Compenso professionale per Appello")) == 3
+    compensation_rows = [row for row in payload["rows"] if row["descrizione"].startswith("Compenso professionale per Appello")]
+    assert all(row["importo"] > 0 for row in compensation_rows)
+    assert any(item.startswith("Appello civile - Studio") for item in payload["fasi"])
+    assert any(item.startswith("Appello famiglia / minori - Decisionale") for item in payload["fasi"])
+    assert not any("Istruttoria" in item for item in payload["fasi"])
+    assert payload["economic"]["totale"] > sum(row["importo"] for row in compensation_rows)
 
 
 def test_preventivo_wizard_react_create_crea_preventivo_reale_con_cliente_potenziale_e_clausola(tmp_path: Path):

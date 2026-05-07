@@ -2562,12 +2562,6 @@ function defaultPhaseKeysForPractice(practice) {
 
 function defaultCalculationPhaseKeysForPractice(practice, ruleCode = '') {
   const keys = defaultPhaseKeysForPractice(practice);
-  const profile = practice && tipologiaCorrente && practice.id === tipologiaCorrente.id
-    ? currentCalcProfile()
-    : calcProfileForPractice(practice, ruleCode);
-  if (isCompensoUnicoProfile(profile) && !keys.includes('compenso_unico')) {
-    return [...keys, 'compenso_unico'];
-  }
   return keys;
 }
 
@@ -3304,9 +3298,6 @@ function renderFasi() {
   const activePhaseSet = new Set(phaseNodes.filter((node) => node.checked).map((node) => node.value));
   const defaultPhaseKeys = defaultPhaseKeysForPractice(tipologiaCorrente);
   const defaultPhaseSet = new Set(defaultPhaseKeys);
-  if (calcMode === 'compenso_unico' && phases.includes('compenso_unico')) {
-    defaultPhaseSet.add('compenso_unico');
-  }
   const prefillPhaseSet = Array.isArray(WIZARD_PREFILL.fasi) && WIZARD_PREFILL.fasi.length
     ? new Set(WIZARD_PREFILL.fasi)
     : defaultPhaseSet;
@@ -3320,7 +3311,8 @@ function renderFasi() {
       <div class="col-12">
         <div class="alert alert-info small mb-2">
           Il profilo tariffario attivo usa una tabella a <strong>compenso unico</strong>: le fasi operative restano visibili
-          per continuita del preventivo; con il flag acceso viene calcolata la voce unica, con il flag spento il wizard usa le fasi tabellari selezionate.
+          per continuita del preventivo; con il flag acceso viene calcolata la voce unica, con il flag spento il wizard usa le fasi selezionate
+          e ripartisce in modo operativo l'importo unico quando la tabella ministeriale non contiene valori autonomi per fase.
         </div>
       </div>`
     : '';
@@ -4075,10 +4067,6 @@ function buildPracticeCalculationUrl(practiceId = '', fasiOverride = null) {
   const effectiveFasi = Array.isArray(fasiOverride) && fasiOverride.length
     ? [...fasiOverride]
     : defaultCalculationPhaseKeysForPractice(practice, ruleCode);
-  const profile = calcProfileForPractice(practice, ruleCode);
-  if (isCompensoUnicoProfile(profile) && !effectiveFasi.includes('compenso_unico')) {
-    effectiveFasi.push('compenso_unico');
-  }
   return buildWizardCalculationUrl(practiceId, effectiveFasi);
 }
 

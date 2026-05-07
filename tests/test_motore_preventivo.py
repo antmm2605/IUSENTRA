@@ -197,6 +197,43 @@ def test_motore_preventivo_permette_fasi_tabellari_senza_voce_unica_monitorio():
     assert per_fasi.onorario_base > compenso_unico.onorario_base
 
 
+def test_motore_preventivo_ripartisce_compenso_unico_sulle_fasi_preventivate():
+    fasi = [Fase.STUDIO, Fase.INTRODUTTIVA, Fase.DECISIONALE]
+    compenso_unico = motore_calcola(
+        "amministrazione_sostegno",
+        valore_controversia=0,
+        grado=Grado.GIUDICE_TUTELARE,
+        regola_tariffaria="volontaria_amministrazione_sostegno",
+        fasi=fasi,
+        includi_spese_generali=False,
+    )
+    tutte_le_fasi = motore_calcola(
+        "amministrazione_sostegno",
+        valore_controversia=0,
+        grado=Grado.GIUDICE_TUTELARE,
+        regola_tariffaria="volontaria_amministrazione_sostegno",
+        profile_code_override="",
+        fasi=fasi,
+        includi_spese_generali=False,
+    )
+    solo_studio = motore_calcola(
+        "amministrazione_sostegno",
+        valore_controversia=0,
+        grado=Grado.GIUDICE_TUTELARE,
+        regola_tariffaria="volontaria_amministrazione_sostegno",
+        profile_code_override="",
+        fasi=[Fase.STUDIO],
+        includi_spese_generali=False,
+    )
+
+    assert set(compenso_unico.calcolo_dm55.dettaglio) == {"Compenso unico"}
+    assert set(tutte_le_fasi.calcolo_dm55.dettaglio) == {"Studio", "Introduttiva", "Decisionale"}
+    assert round(tutte_le_fasi.onorario_base, 2) == round(compenso_unico.onorario_base, 2)
+    assert 0 < solo_studio.onorario_base < tutte_le_fasi.onorario_base
+    assert round(solo_studio.onorario_base, 2) == round(tutte_le_fasi.onorario_base / 3, 2)
+    assert "ripartito in quote operative" in solo_studio.calcolo_dm55.note
+
+
 def test_appello_civile_espone_base_normativa_sdoppiata_per_competenza():
     scheda = redattore_preventivo_iniziale("appello_civile")
     regole = {row["rule_code"]: row for row in scheda["regole_tariffarie"]}

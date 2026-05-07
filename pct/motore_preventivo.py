@@ -3050,6 +3050,7 @@ def motore_calcola(
         variazioni_fasi=variazioni_fasi or None,
         maggiorazioni_fasi=maggiorazioni_fasi or None,
         complessita=complessita,
+        riparto_fasi_base=tp.fasi_default if profile_code_override == "" else None,
     )
 
     if livello_compenso in (None, ""):

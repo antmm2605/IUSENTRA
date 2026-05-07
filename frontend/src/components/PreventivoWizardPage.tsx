@@ -27,7 +27,6 @@ import {
 import {
   dateToItalian,
   formatEuro,
-  isCompensoUnicoOnlyProfile,
   isCompensoUnicoProfile,
   mergeCalculatedRowsWithManualRows,
   normalizeAmountInput,
@@ -603,7 +602,6 @@ export function PreventivoWizardPage() {
   const selectedClient = customerId ? data.clients.find((client) => client.id === customerId) || null : null
   const filteredCases = customerId ? data.cases.filter((item) => item.customerId === customerId) : data.cases
   const hasCompensoUnico = isCompensoUnicoProfile(selectedPractice)
-  const requiresCompensoUnico = isCompensoUnicoOnlyProfile(selectedPractice)
   const currentFilters = useMemo<PracticeFilters>(() => ({
     area,
     procedure: '',
@@ -675,7 +673,6 @@ export function PreventivoWizardPage() {
 
   function applyPractice(practice: WizardPractice, replaceText = false) {
     const nextPhases = practice.fasi_default_keys.length ? practice.fasi_default_keys : practice.fasi_default.map((item) => item.toLowerCase())
-    const safePhases = isCompensoUnicoOnlyProfile(practice) ? Array.from(new Set([...nextPhases, 'compenso_unico'])) : nextPhases
     setPracticeId(practice.id)
     setArea(practice.area || area)
     setProcedure(practice.procedura_operativa_codice || '')
@@ -687,7 +684,7 @@ export function PreventivoWizardPage() {
     setRule(practice.regola_tariffaria_default)
     setGrade(practice.grado_default)
     setValue(String(practice.valore_suggerito || '0'))
-    setPhases(safePhases)
+    setPhases(nextPhases)
     setAccessories(practice.accessori_calcolo.filter((item) => item.default_checked).map((item) => item.id))
     if (replaceText || !object) setObject(practice.oggetto_template || `Preventivo professionale per ${practice.label}`)
     if (replaceText || !notes) setNotes(practice.note_template)
@@ -731,9 +728,7 @@ export function PreventivoWizardPage() {
           setComplexity(String(payload.prefill.complessita || 'media'))
           const prefillPhases = Array.isArray(payload.prefill.fasi) ? payload.prefill.fasi.map(String).filter(Boolean) : []
           if (prefillPhases.length) {
-            setPhases(isCompensoUnicoOnlyProfile(firstPractice) ? Array.from(new Set([...prefillPhases, 'compenso_unico'])) : prefillPhases)
-          } else if (isCompensoUnicoOnlyProfile(firstPractice)) {
-            setPhases((current) => Array.from(new Set([...current, 'compenso_unico'])))
+            setPhases(prefillPhases)
           }
           setBonusTelematico(Boolean(payload.prefill.bonusTelematico))
           setGeneralExpenses(Boolean(payload.prefill.speseGenerali ?? payload.defaults.speseGenerali))
@@ -766,7 +761,6 @@ export function PreventivoWizardPage() {
   }
 
   function togglePhase(key: string, checked: boolean) {
-    if (key === 'compenso_unico' && requiresCompensoUnico && !checked) return
     setPhases((current) => checked ? Array.from(new Set([...current, key])) : current.filter((item) => item !== key))
   }
 
@@ -830,7 +824,6 @@ export function PreventivoWizardPage() {
 
   function buildPayload(includeRows = true): Record<string, unknown> {
     const practice = selectedPractice
-    const safePhases = requiresCompensoUnico ? Array.from(new Set([...phases, 'compenso_unico'])) : phases
     return {
       id_cliente: customerId,
       id_fascicolo: caseId,
@@ -862,8 +855,8 @@ export function PreventivoWizardPage() {
       ore_stimate: estimatedHours,
       anticipazioni: anticipations,
       avvocato_referente: lawyer,
-      fasi: safePhases,
-      compenso_unico: safePhases.includes('compenso_unico'),
+      fasi: phases,
+      compenso_unico: phases.includes('compenso_unico'),
       bonus_telematico: bonusTelematico,
       spese_generali: generalExpenses,
       perc_spese_generali: generalExpensesPct,
@@ -1154,15 +1147,14 @@ export function PreventivoWizardPage() {
                 <article>
                   <h3>FASI DA INCLUDERE</h3>
                   <p>Include anche il flag compenso unico quando previsto.</p>
-                  {hasCompensoUnico ? <p className="iu-pwiz-info">{requiresCompensoUnico ? 'Il profilo tariffario attivo prevede solo la voce a compenso unico: il flag resta attivo per evitare bozze a zero.' : 'Il profilo tariffario attivo usa anche una tabella a compenso unico: con il flag acceso viene calcolata la voce unica, con il flag spento il wizard usa le fasi tabellari selezionate.'}</p> : null}
+                  {hasCompensoUnico ? <p className="iu-pwiz-info">Il profilo tariffario attivo prevede anche il compenso unico: con il flag acceso viene calcolata la voce unica; con il flag spento il wizard usa le fasi selezionate e, quando la tabella ministeriale espone solo un importo unico, lo ripartisce in modo operativo e tracciato.</p> : null}
                   <div className="iu-pwiz-check-grid">
                     {Array.from(new Set([...(selectedPractice?.fasi_default_keys || []), ...(hasCompensoUnico ? ['compenso_unico'] : [])])).map((key) => (
                       <label className="iu-pwiz-check" htmlFor={`phase-${key}`} key={key}>
                         <input
                           id={`phase-${key}`}
                           type="checkbox"
-                          checked={phases.includes(key) || (key === 'compenso_unico' && requiresCompensoUnico)}
-                          disabled={key === 'compenso_unico' && requiresCompensoUnico}
+                          checked={phases.includes(key)}
                           onChange={(event) => togglePhase(key, event.target.checked)}
                         />
                         <span>{phaseKeyLabel(key)}</span>

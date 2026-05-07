@@ -213,9 +213,9 @@ def test_template_wizard_espone_compenso_unico_come_flag_calcolabile():
     assert "compenso_unico: 'Compenso unico'" in template
     assert "availablePhaseKeysForPractice" in template
     assert "return ['compenso_unico']" not in template
-    assert "defaultPhaseSet.add('compenso_unico')" in template
+    assert "defaultPhaseSet.add('compenso_unico')" not in template
     assert "le fasi operative restano visibili" in template
-    assert "con il flag spento il wizard usa le fasi tabellari selezionate" in template
+    assert "ripartisce in modo operativo l'importo unico" in template
     assert "Fasi tabellari, compenso unico, complessita stimata, spese generali e bonus." in template
     assert "Include anche il flag compenso unico quando previsto." in template
     assert "Il motore applica anche CPA, IVA, anticipazioni ex art. 15 e compenso orario." in template

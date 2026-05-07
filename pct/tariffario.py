@@ -1090,6 +1090,7 @@ def calcola_compenso(
     variazioni_fasi: Optional[Dict[str, float]] = None,
     maggiorazioni_fasi: Optional[Dict[str, float]] = None,
     complessita: ComplessitaStimata | str | None = None,
+    riparto_fasi_base: Optional[List[Fase]] = None,
 ) -> RisultatoCalcolo:
     """Calcola il compenso forense secondo DM 147/2022.
 
@@ -1118,6 +1119,18 @@ def calcola_compenso(
     else:
         fasi_richieste = [fase.value for fase in fasi]
 
+    riparto_labels = list(
+        dict.fromkeys(
+            fase.value
+            for fase in (riparto_fasi_base or [])
+            if fase.value != "Compenso unico"
+        )
+    )
+    if not riparto_labels:
+        riparto_labels = list(dict.fromkeys(fase for fase in fasi_richieste if fase != "Compenso unico"))
+    riparto_denominatore = max(len(riparto_labels), 1)
+    riparto_compenso_unico = False
+
     if valore_calcolo <= 0 and tabella:
         valore_calcolo = tabella[0].valore_da
         note_parts.append(
@@ -1135,8 +1148,24 @@ def calcola_compenso(
     tot_min = tot_base = tot_max = 0.0
     fasi_mancanti: list[str] = []
 
+    riparto_usati = 0
+    riparto_residuo_base = float(sc.fasi.get("Compenso unico", ScaglioneFase(0.0)).base or 0.0)
     for fase in fasi_richieste:
         fase_data = sc.fasi.get(fase)
+        if (
+            not fase_data
+            and fase != "Compenso unico"
+            and fase in riparto_labels
+            and "Compenso unico" in sc.fasi
+        ):
+            riparto_usati += 1
+            if riparto_usati == riparto_denominatore:
+                quota_base = round(riparto_residuo_base, 2)
+            else:
+                quota_base = round(sc.fasi["Compenso unico"].base / riparto_denominatore, 2)
+                riparto_residuo_base = round(riparto_residuo_base - quota_base, 2)
+            fase_data = ScaglioneFase(quota_base)
+            riparto_compenso_unico = True
         if not fase_data:
             fasi_mancanti.append(fase)
             continue
@@ -1177,6 +1206,11 @@ def calcola_compenso(
         )
     if materia in {Materia.STRAGIUD, Materia.ARBITRATO} or force_compenso_unico:
         note_parts.append("Compenso unico tabellare: le fasi selezionate in UI sono accorpate automaticamente.")
+    if riparto_compenso_unico:
+        note_parts.append(
+            f"{tabella_codice}: tabella a compenso unico; per il preventivo scritto l'importo unico e' "
+            "ripartito in quote operative sulle fasi selezionate, senza creare valori ministeriali autonomi."
+        )
     if _variazioni:
         note_parts.append("Variazioni per fase applicate (DM 147/2022 ±50%).")
     if _maggiorazioni:

@@ -424,15 +424,8 @@ def _state(payload: dict[str, Any]) -> dict[str, Any]:
             _PHASE_VALUE_TO_KEY.get(fase.value, "")
             for fase in (getattr(tp, "fasi_default", []) or [])
         ] if tp else []
-        phases = [phase for phase in phases if phase]
+    phases = [phase for phase in phases if phase]
     if _bool(payload.get("compenso_unico"), False) and "compenso_unico" not in phases:
-        phases = [*phases, "compenso_unico"]
-    regola = rule_lookup(regola_tariffaria) if regola_tariffaria else None
-    if not regola and practice_id:
-        regola = default_rule_for_practice(practice_id)
-    profile = (regola or {}).get("profile", {}) or {}
-    phase_keys = [str(item or "") for item in (profile.get("phase_keys") or []) if str(item or "")]
-    if profile.get("calc_mode") == "compenso_unico" and phase_keys == ["compenso_unico"] and "compenso_unico" not in phases:
         phases = [*phases, "compenso_unico"]
     manual_lines = payload.get("manual_lines") if isinstance(payload.get("manual_lines"), list) else payload.get("voci_bozza")
     return {
@@ -559,6 +552,46 @@ def _tax_summary(*, taxable_rows: list[dict[str, Any]], art15: float, applica_cp
     }
 
 
+def _phase_keys_for_practice(practice: Any, include_compenso_unico: bool = False) -> list[str]:
+    keys = [
+        _PHASE_VALUE_TO_KEY.get(fase.value, "")
+        for fase in (getattr(practice, "fasi_default", []) or [])
+    ]
+    keys = [key for key in keys if key]
+    if include_compenso_unico and "compenso_unico" not in keys:
+        keys.append("compenso_unico")
+    return keys
+
+
+def _rule_code_for_practice(practice_id: str) -> str:
+    regola = default_rule_for_practice(practice_id)
+    return _text((regola or {}).get("rule_code") or (regola or {}).get("profile_code"))
+
+
+def _profile_has_compenso_unico(practice_id: str, rule_code: str = "") -> bool:
+    regola = rule_lookup(rule_code) if rule_code else None
+    if not regola:
+        regola = default_rule_for_practice(practice_id)
+    profile = (regola or {}).get("profile", {}) or {}
+    phase_keys = [str(item or "") for item in (profile.get("phase_keys") or []) if str(item or "")]
+    return profile.get("calc_mode") == "compenso_unico" or "compenso_unico" in phase_keys
+
+
+def _calculation_targets(payload: dict[str, Any], primary_practice_id: str) -> list[str]:
+    targets: list[str] = []
+    classifications = payload.get("classificazioni_tassonomiche")
+    if isinstance(classifications, list):
+        for row in classifications:
+            if not isinstance(row, dict):
+                continue
+            practice_id = _text(row.get("tipologia_pratica_id") or row.get("id_pratica"))
+            if practice_id and practice_id not in targets:
+                targets.append(practice_id)
+    if primary_practice_id and primary_practice_id not in targets:
+        targets.append(primary_practice_id)
+    return targets or ([primary_practice_id] if primary_practice_id else [])
+
+
 def build_react_preventivo_wizard_calculation_payload(payload: dict[str, Any] | None) -> dict[str, Any]:
     payload = payload or {}
     state = _state(payload)
@@ -568,84 +601,129 @@ def build_react_preventivo_wizard_calculation_payload(payload: dict[str, Any] | 
     tp = get_tipo_pratica(practice_id)
     if not tp:
         return {"ok": False, "state": state, "warnings": [_warning("tipologia_non_trovata", f"Tipologia non trovata: {practice_id}.")]}
-    regola = state["regola_tariffaria"]
-    if regola and regola not in {str(row.get("rule_code", "") or "") for row in rules_for_practice(practice_id)}:
-        regola = ""
-        state["regola_tariffaria"] = ""
-    grado = _GRADE_MAP.get(state["grado"]) if state["grado"] else None
     form = WizardPayloadForm({**state, **payload})
-    fasi, profile_override = _phase_selection(state, practice_id)
     variations, increases = _variation_payload(form, tp)
     mediazione_context = parse_mediazione_odm_context(form)
     livello = livello_compenso_da_complessita(state["complessita"])
     perc_spese = _parse_num(state["perc_spese_generali"], 15.0) / 100.0
     anticipazioni_base = _parse_num(state["anticipazioni"], 0.0)
-    ris = motore_calcola(
-        id_pratica=practice_id,
-        valore_controversia=_parse_num(state["valore"], 0.0),
-        grado=grado,
-        regola_tariffaria=regola,
-        profile_code_override=profile_override,
-        fasi=fasi,
-        livello_compenso=livello,
-        complessita=state["complessita"],
-        bonus_telematico=state["bonus_telematico"],
-        includi_spese_generali=state["spese_generali"],
-        perc_spese_generali=perc_spese,
-        variazioni_fasi=variations or None,
-        maggiorazioni_fasi=increases or None,
-        applica_cpa=state["applica_cpa"],
-        applica_iva=state["applica_iva"],
-        anticipazioni=anticipazioni_base,
-    )
-    dm = ris.calcolo_dm55
-    level_summary = dm.riepilogo_livello(livello)
-    bonus = round(float(level_summary.get("bonus_telematico", 0.0)), 2)
-    spese_generali = round(float(level_summary.get("spese_generali", 0.0)), 2)
-    compenso = round(float(level_summary.get("subtotale", ris.onorario_selezionato)) + bonus, 2)
-    taxable_rows = [
-        {
-            "id": "compenso_principale",
-            "descrizione": f"Compenso professionale per {tp.label} - {dm.scaglione}",
-            "tipo": TipoVoce.ONORARIO.value,
-            "importo": compenso,
-            "importo_label": _money(compenso),
-            "fiscale": "imponibile",
-            "source": "motore",
-            "locked": False,
-        }
-    ]
-    if state["spese_generali"] and spese_generali > 0:
+    taxable_rows: list[dict[str, Any]] = []
+    extra_rows: list[dict[str, Any]] = []
+    target_results: list[dict[str, Any]] = []
+    target_ids = _calculation_targets(payload, practice_id)
+
+    for target_index, target_id in enumerate(target_ids, start=1):
+        target_tp = get_tipo_pratica(target_id)
+        if not target_tp:
+            continue
+        target_state = dict(state)
+        target_state["id_pratica"] = target_id
+        target_regola = state["regola_tariffaria"] if target_id == practice_id else _rule_code_for_practice(target_id)
+        if target_regola and target_regola not in {str(row.get("rule_code", "") or "") for row in rules_for_practice(target_id)}:
+            target_regola = ""
+        target_state["regola_tariffaria"] = target_regola
+        if target_id != practice_id:
+            selected_phase_keys = [_text(item) for item in state.get("fasi", []) if _text(item)]
+            if selected_phase_keys:
+                target_state["fasi"] = [
+                    key
+                    for key in selected_phase_keys
+                    if key != "compenso_unico" or _profile_has_compenso_unico(target_id, target_regola)
+                ]
+            else:
+                include_unico = "compenso_unico" in (state.get("fasi") or []) and _profile_has_compenso_unico(target_id, target_regola)
+                target_state["fasi"] = _phase_keys_for_practice(target_tp, include_compenso_unico=include_unico)
+            target_state["grado"] = _enum(getattr(target_tp, "grado_default", ""))
+        grado = _GRADE_MAP.get(target_state["grado"]) if target_state["grado"] else None
+        fasi, profile_override = _phase_selection(target_state, target_id)
+        ris = motore_calcola(
+            id_pratica=target_id,
+            valore_controversia=_parse_num(state["valore"], 0.0),
+            grado=grado,
+            regola_tariffaria=target_regola,
+            profile_code_override=profile_override,
+            fasi=fasi,
+            livello_compenso=livello,
+            complessita=state["complessita"],
+            bonus_telematico=state["bonus_telematico"],
+            includi_spese_generali=state["spese_generali"],
+            perc_spese_generali=perc_spese,
+            variazioni_fasi=variations or None,
+            maggiorazioni_fasi=increases or None,
+            applica_cpa=state["applica_cpa"],
+            applica_iva=state["applica_iva"],
+            anticipazioni=0.0,
+        )
+        dm = ris.calcolo_dm55
+        level_summary = dm.riepilogo_livello(livello)
+        target_bonus = round(float(level_summary.get("bonus_telematico", 0.0)), 2)
+        target_spese = round(float(level_summary.get("spese_generali", 0.0)), 2)
+        target_compenso = round(float(level_summary.get("subtotale", ris.onorario_selezionato)) + target_bonus, 2)
         taxable_rows.append(
             {
-                "id": "spese_generali",
-                "descrizione": f"Spese generali {int(round(dm.perc_spese_generali * 100))}%",
-                "tipo": TipoVoce.SPESA_FORFETTARIA.value,
-                "importo": spese_generali,
-                "importo_label": _money(spese_generali),
+                "id": f"compenso_{target_index}_{target_id}",
+                "descrizione": f"Compenso professionale per {target_tp.label} - {dm.scaglione}",
+                "tipo": TipoVoce.ONORARIO.value,
+                "importo": target_compenso,
+                "importo_label": _money(target_compenso),
                 "fiscale": "imponibile",
                 "source": "motore",
                 "locked": False,
             }
         )
-    art15 = anticipazioni_base
-    extra_rows: list[dict[str, Any]] = []
-    mediazione_odm = calcola_mediazione_odm_da_context(_parse_num(state["valore"], 0.0), mediazione_context) if is_mediazione_practice(tp) else None
-    if mediazione_odm:
-        amount = round(float(mediazione_odm.get("totale_organismo") or 0.0), 2)
-        art15 += amount
-        extra_rows.append(
+        if state["spese_generali"] and target_spese > 0:
+            taxable_rows.append(
+                {
+                    "id": f"spese_generali_{target_index}_{target_id}",
+                    "descrizione": f"Spese generali {int(round(dm.perc_spese_generali * 100))}% - {target_tp.label}",
+                    "tipo": TipoVoce.SPESA_FORFETTARIA.value,
+                    "importo": target_spese,
+                    "importo_label": _money(target_spese),
+                    "fiscale": "imponibile",
+                    "source": "motore",
+                    "locked": False,
+                }
+            )
+        target_mediazione_odm = calcola_mediazione_odm_da_context(_parse_num(state["valore"], 0.0), mediazione_context) if is_mediazione_practice(target_tp) else None
+        if target_mediazione_odm:
+            amount = round(float(target_mediazione_odm.get("totale_organismo") or 0.0), 2)
+            extra_rows.append(
+                {
+                    "id": f"mediazione_odm_{target_index}_{target_id}",
+                    "descrizione": target_mediazione_odm.get("voce_label") or f"Costi organismo mediazione D.M. 150/2023 - {target_tp.label}",
+                    "tipo": TipoVoce.SPESA_VIVA.value,
+                    "importo": amount,
+                    "importo_label": _money(amount),
+                    "fiscale": "anticipazione_art15",
+                    "source": "mediazione_odm",
+                    "locked": False,
+                }
+            )
+        target_results.append(
             {
-                "id": "mediazione_odm",
-                "descrizione": mediazione_odm.get("voce_label") or "Costi organismo mediazione D.M. 150/2023",
-                "tipo": TipoVoce.SPESA_VIVA.value,
-                "importo": amount,
-                "importo_label": _money(amount),
-                "fiscale": "anticipazione_art15",
-                "source": "mediazione_odm",
-                "locked": False,
+                "id": target_id,
+                "label": target_tp.label,
+                "tp": target_tp,
+                "ris": ris,
+                "dm": dm,
+                "compenso": target_compenso,
+                "bonus": target_bonus,
+                "spese_generali": target_spese,
+                "regola": target_regola,
+                "mediazione_odm": target_mediazione_odm,
             }
         )
+    if not target_results:
+        return {"ok": False, "state": state, "warnings": [_warning("tipologie_non_calcolabili", "Nessuna tipologia pratica calcolabile nella bozza.")]}
+    primary_result = next((item for item in target_results if item["id"] == practice_id), target_results[0])
+    dm = primary_result["dm"]
+    regola = _text(primary_result["regola"])
+    bonus = round(sum(float(item["bonus"] or 0.0) for item in target_results), 2)
+    spese_generali = round(sum(float(item["spese_generali"] or 0.0) for item in target_results), 2)
+    compenso = round(sum(float(item["compenso"] or 0.0) for item in target_results), 2)
+    mediazione_odm = next((item["mediazione_odm"] for item in target_results if item.get("mediazione_odm")), None)
+    art15 = anticipazioni_base
+    art15 += sum(float(row.get("importo") or 0.0) for row in extra_rows)
     selected_expenses = set(state.get("esborsi") or [])
     for index, item in enumerate(getattr(tp, "esborsi_tipici", []) or [], start=1):
         key = _text(item.get("key")) or f"{practice_id}:{index - 1}"
@@ -678,7 +756,18 @@ def build_react_preventivo_wizard_calculation_payload(payload: dict[str, Any] | 
         applica_iva=state["applica_iva"],
     )
     rows = taxable_rows + extra_rows
-    fasi_out = {fase: {"min": values[0], "base": values[1], "max": values[2]} for fase, values in dm.dettaglio.items()}
+    multi_target = len(target_results) > 1
+    fasi_out: dict[str, dict[str, float]] = {}
+    for item in target_results:
+        item_dm = item["dm"]
+        for fase, values in item_dm.dettaglio.items():
+            key = f"{item['label']} - {fase}" if multi_target else fase
+            fasi_out[key] = {"min": values[0], "base": values[1], "max": values[2]}
+    note_calcolo = " | ".join(
+        f"{item['label']}: {item['dm'].note}"
+        for item in target_results
+        if _text(item["dm"].note)
+    )
     log = dump_log_calcolo(
         costruisci_contesto_economico(
             source="preventivo_guidato_react",
@@ -707,7 +796,8 @@ def build_react_preventivo_wizard_calculation_payload(payload: dict[str, Any] | 
                 "cpa": summary["cpa"],
                 "iva": summary["iva"],
                 "totale": summary["totale"],
-                "nota": dm.note,
+                "nota": note_calcolo or dm.note,
+                "voci_area_pratica": [item["label"] for item in target_results],
             },
         )
     )
@@ -721,7 +811,7 @@ def build_react_preventivo_wizard_calculation_payload(payload: dict[str, Any] | 
         "base_normativa": tp.base_normativa,
         "fasi": fasi_out,
         "scaglione": dm.scaglione,
-        "livello_compenso": ris.livello_compenso,
+        "livello_compenso": primary_result["ris"].livello_compenso,
         "bonus_telematico": bonus,
         "spese_generali": spese_generali,
         "compenso_base": compenso,

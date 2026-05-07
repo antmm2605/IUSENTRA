@@ -1,11 +1,16 @@
 # Changelog
 
+## 2.198.101 - 2026-05-07
+
+- Reso professionale il comportamento `Fasi da includere` nel preventivo guidato: il flag `Compenso unico` calcola la voce unica tabellare, mentre a flag spento il wizard calcola solo le fasi selezionate dall'avvocato; se la tabella ministeriale espone solo un importo unico, l'importo viene ripartito in quote operative tracciate senza inventare nuovi valori ministeriali.
+- Corretto il calcolo delle voci area pratica aggiunte: `Aggiungi voce area pratica` ora porta in `Bozza operativa` tutte le tipologie selezionate, deduplicate, ciascuna con il proprio compenso e le relative spese generali, invece di calcolare solo l'ultima pratica attiva.
+
 ## 2.198.100 - 2026-05-07
 
 - Corretto `/preventivi/wizard`: il filtro `Area pratica` ora calcola le compatibilita' reali rispetto a classificazione operativa e tassonomia attive, disabilita le aree incoerenti e offre il reset dei filtri tecnici quando il catalogo non produce risultati.
 - Reso piu' compatto lo sticky footer del preventivo guidato su desktop e mobile: base imponibile, data emissione, CTA e badge finali non si sovrappongono e restano leggibili anche su larghezze ridotte, mantenendo il riepilogo `desktop sticky` affiancato sui desktop della shell.
 - Rifinita la UI del wizard preventivi: riepilogo e riferimenti normativi passano nella colonna sinistra, i pannelli tecnici classificazione/tassonomia restano silenziosi, gli avvisi informativi di bootstrap non vengono piu' mostrati e `Area pratica` espone il pulsante reale `Aggiungi voce area pratica` con riepilogo/rimozione delle voci aggiunte al payload del preventivo.
-- Corretto il flusso finale del preventivo guidato: i profili solo a `Compenso unico` non producono piu' bozze a zero e il conferimento incarico viene generato solo dopo registrazione esplicita dell'accettazione cliente del preventivo.
+- Corretto il flusso finale del preventivo guidato: i profili a `Compenso unico` non producono piu' bozze a zero e il conferimento incarico viene generato solo dopo registrazione esplicita dell'accettazione cliente del preventivo.
 
 ## 2.198.99 - 2026-05-06
 

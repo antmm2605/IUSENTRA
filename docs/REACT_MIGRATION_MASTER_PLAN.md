@@ -137,6 +137,11 @@ legacy:
   footer su desktop e mobile, protegge i profili solo a `Compenso unico` da
   bozze a zero e vincola il conferimento alla previa accettazione cliente del
   preventivo senza spostare formule economiche nel frontend.
+  La tranche `2.198.101` rende il flag `Compenso unico` una scelta effettiva:
+  acceso calcola la voce unica, spento calcola le sole fasi selezionate
+  dall'avvocato con riparto operativo tracciato quando la tabella ministeriale
+  espone solo l'importo unico; le voci area pratica aggiunte entrano tutte
+  nella bozza con compenso e spese, non soltanto l'ultima pratica attiva.
 - `scripts/react-migration/check-tranche-7a-secrets.mjs`,
   `scripts/react-migration/check-tranche-7a-no-compensi-logic.mjs` e
   `scripts/react-migration/check-tranche-7a-no-document-generation.mjs`

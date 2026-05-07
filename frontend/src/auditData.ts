@@ -1,4 +1,4 @@
-import { apiJson } from './lib/apiClient'
+import { apiJson, apiPostJson } from './lib/apiClient'
 
 export type AuditTone = 'primary' | 'neutral' | 'danger' | 'success' | 'warning' | 'info'
 
@@ -51,6 +51,12 @@ export type AuditRecord = {
   resourceNote: string
   resourceUrl: string
   resourceBadgeLabel: string
+  payloadSanitized: boolean
+}
+
+export type AuditEventDetail = AuditRecord & {
+  payload: Record<string, unknown>
+  rawAvailable: boolean
 }
 
 export type AuditAction = {
@@ -61,45 +67,74 @@ export type AuditAction = {
   tone: AuditTone
 }
 
+export type AuditPermissions = {
+  canMarkRead: boolean
+  canResolve: boolean
+  canAddNote: boolean
+  canExport: boolean
+  links: AuditAction[]
+}
+
 export type AuditWarning = {
   code: string
   message: string
 }
 
 export type AuditPageData = {
+  ok?: boolean
   source: string
   generated_at: string
   contracts: AuditContract
   metrics: AuditMetric[]
   sections: AuditSection[]
+  events: AuditRecord[]
+  filters: Record<string, string>
   records: AuditRecord[]
-  actions: AuditAction[]
+  actions: AuditPermissions
   warnings: AuditWarning[]
+}
+
+export type AuditMutationResult = {
+  ok: boolean
+  message: string
+  errors: Record<string, string>
+  item: AuditEventDetail | null
 }
 
 const AUDIT_ENDPOINT = '/api/v1/ui/audit'
 const REGISTRO_ATTIVITA_ENDPOINT = '/api/v1/ui/registro-attivita'
 
+const emptyActions: AuditPermissions = {
+  canMarkRead: false,
+  canResolve: false,
+  canAddNote: false,
+  canExport: false,
+  links: [],
+}
+
 export const emptyAuditPage: AuditPageData = {
+  ok: false,
   source: '',
   generated_at: '',
   contracts: {
     mock_fallback: false,
-    writes: 'none',
+    writes: 'json_api',
     route_owner: 'react_shell',
   },
   metrics: [],
   sections: [],
+  events: [],
+  filters: {},
   records: [],
-  actions: [],
+  actions: emptyActions,
   warnings: [],
 }
 
-function currentEndpoint(): string {
-  if (typeof window === 'undefined') return AUDIT_ENDPOINT
-  return window.location.pathname.toLowerCase().includes('registro-attivita')
-    ? REGISTRO_ATTIVITA_ENDPOINT
-    : AUDIT_ENDPOINT
+const emptyMutation: AuditMutationResult = {
+  ok: false,
+  message: 'Operazione audit non completata.',
+  errors: {},
+  item: null,
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -120,10 +155,19 @@ function list(value: unknown): unknown[] {
   return Array.isArray(value) ? value : []
 }
 
+function bool(value: unknown): boolean {
+  return value === true
+}
+
 function tone(value: unknown): AuditTone {
   return ['primary', 'neutral', 'danger', 'success', 'warning', 'info'].includes(String(value))
     ? String(value) as AuditTone
     : 'neutral'
+}
+
+function safeHref(value: unknown, fallback = ''): string {
+  const href = text(value)
+  return href.startsWith('/') && href !== '#' ? href : fallback
 }
 
 function normaliseMetric(raw: unknown): AuditMetric {
@@ -177,8 +221,19 @@ function normaliseRecord(raw: unknown): AuditRecord {
     resourceTone: tone(item.resourceTone),
     resourceLabel: text(item.resourceLabel),
     resourceNote: text(item.resourceNote),
-    resourceUrl: text(item.resourceUrl),
+    resourceUrl: safeHref(item.resourceUrl),
     resourceBadgeLabel: text(item.resourceBadgeLabel),
+    payloadSanitized: item.payloadSanitized !== false,
+  }
+}
+
+function normaliseDetail(raw: unknown): AuditEventDetail | null {
+  const item = asRecord(raw)
+  if (!Object.keys(item).length) return null
+  return {
+    ...normaliseRecord(item),
+    payload: asRecord(item.payload),
+    rawAvailable: bool(item.rawAvailable),
   }
 }
 
@@ -187,9 +242,20 @@ function normaliseAction(raw: unknown): AuditAction {
   return {
     id: text(item.id) || text(item.label) || 'azione',
     label: text(item.label) || 'Apri',
-    href: text(item.href) || '/audit',
+    href: safeHref(item.href, '/audit'),
     method: 'GET',
     tone: tone(item.tone),
+  }
+}
+
+function normaliseActions(raw: unknown): AuditPermissions {
+  const item = asRecord(raw)
+  return {
+    canMarkRead: bool(item.canMarkRead),
+    canResolve: bool(item.canResolve),
+    canAddNote: bool(item.canAddNote),
+    canExport: bool(item.canExport),
+    links: list(item.links).map(normaliseAction).filter((action) => action.href),
   }
 }
 
@@ -204,24 +270,60 @@ function normaliseWarning(raw: unknown): AuditWarning {
 function normalisePage(raw: unknown): AuditPageData {
   const page = asRecord(raw)
   const contracts = asRecord(page.contracts)
+  const events = list(page.events).map(normaliseRecord)
+  const records = events.length ? events : list(page.records).map(normaliseRecord)
   return {
+    ok: page.ok === true,
     source: text(page.source),
     generated_at: text(page.generated_at),
     contracts: {
       mock_fallback: contracts.mock_fallback === true ? true : false,
-      writes: text(contracts.writes) || 'none',
+      writes: text(contracts.writes) || 'json_api',
       route_owner: text(contracts.route_owner) || 'react_shell',
       legacy_contract: text(contracts.legacy_contract),
     },
     metrics: list(page.metrics).map(normaliseMetric),
     sections: list(page.sections).map(normaliseSection),
-    records: list(page.records).map(normaliseRecord),
-    actions: list(page.actions).map(normaliseAction).filter((action) => action.method === 'GET' && action.href),
+    events: records,
+    filters: Object.fromEntries(Object.entries(asRecord(page.filters)).map(([key, val]) => [key, text(val)])),
+    records,
+    actions: normaliseActions(page.actions),
     warnings: list(page.warnings).map(normaliseWarning),
   }
 }
 
+function normaliseMutation(raw: unknown): AuditMutationResult {
+  const item = asRecord(raw)
+  return {
+    ok: item.ok === true,
+    message: text(item.message) || (item.ok === true ? 'Operazione completata.' : 'Operazione non completata.'),
+    errors: asRecord(item.errors) as Record<string, string>,
+    item: normaliseDetail(item.item),
+  }
+}
+
 export async function getAuditPage(): Promise<AuditPageData> {
-  const payload = await apiJson<unknown>(currentEndpoint(), emptyAuditPage)
+  const payload = await apiJson<unknown>(AUDIT_ENDPOINT, emptyAuditPage)
   return normalisePage(payload)
+}
+
+export async function getRegistroAttivitaPage(): Promise<AuditPageData> {
+  const payload = await apiJson<unknown>(REGISTRO_ATTIVITA_ENDPOINT, emptyAuditPage)
+  return normalisePage(payload)
+}
+
+export async function getAuditEventDetail(idEvento: string): Promise<AuditMutationResult> {
+  return normaliseMutation(await apiJson<unknown>(`${AUDIT_ENDPOINT}/${encodeURIComponent(idEvento)}`, emptyMutation))
+}
+
+export async function markAuditEventRead(idEvento: string): Promise<AuditMutationResult> {
+  return normaliseMutation(await apiPostJson<unknown>(`${AUDIT_ENDPOINT}/${encodeURIComponent(idEvento)}/letto`, {}, emptyMutation))
+}
+
+export async function resolveAuditEvent(idEvento: string): Promise<AuditMutationResult> {
+  return normaliseMutation(await apiPostJson<unknown>(`${AUDIT_ENDPOINT}/${encodeURIComponent(idEvento)}/risolto`, {}, emptyMutation))
+}
+
+export async function addAuditEventNote(idEvento: string, note: string): Promise<AuditMutationResult> {
+  return normaliseMutation(await apiPostJson<unknown>(`${AUDIT_ENDPOINT}/${encodeURIComponent(idEvento)}/nota`, { note }, emptyMutation))
 }

@@ -74,7 +74,7 @@
     {
       "route": "/audit",
       "family": "amministrazione",
-      "status": "react_operational_partial",
+      "status": "react_operational_full",
       "risk": "medium",
       "targetComponent": "frontend/src/components/AuditPage.tsx",
       "targetData": "frontend/src/auditData.ts",
@@ -82,17 +82,20 @@
       "legacyContract": "artifacts/react-migration/legacy-contracts/audit.json",
       "unlockFromGate": true,
       "mustPreserve": [
-        "filtro eventi reali",
-        "export CSV",
-        "dettaglio attore e risorsa",
-        "osservabilita amministrativa",
-        "assenza di dati inventati"
+        "eventi audit reali",
+        "filtri reali",
+        "dettaglio evento JSON",
+        "payload sensibili redatti",
+        "export backend sicuro",
+        "permessi backend",
+        "nessuna CTA legacy primaria",
+        "rollback legacy tecnico"
       ]
     },
     {
       "route": "/registro-attivita",
       "family": "amministrazione",
-      "status": "react_operational_partial",
+      "status": "react_operational_full",
       "risk": "medium",
       "targetComponent": "frontend/src/components/AuditPage.tsx",
       "targetData": "frontend/src/auditData.ts",
@@ -100,11 +103,14 @@
       "legacyContract": "artifacts/react-migration/legacy-contracts/registro-attivita.json",
       "unlockFromGate": true,
       "mustPreserve": [
-        "registro audit",
-        "export tracciato",
-        "filtri per utente e azione",
-        "link a utenti e database",
-        "permessi amministrativi"
+        "eventi audit reali",
+        "filtri reali",
+        "dettaglio evento JSON",
+        "payload sensibili redatti",
+        "export backend sicuro",
+        "permessi backend",
+        "nessuna CTA legacy primaria",
+        "rollback legacy tecnico"
       ]
     },
     {
@@ -396,7 +402,7 @@
     {
       "route": "/incassi-pagamenti",
       "family": "economico",
-      "status": "react_bridge",
+      "status": "react_operational_full",
       "risk": "high",
       "targetComponent": "frontend/src/components/IncassiPagamentiPage.tsx",
       "targetData": "frontend/src/incassiPagamentiData.ts",
@@ -404,11 +410,19 @@
       "legacyContract": "artifacts/react-migration/legacy-contracts/incassi-pagamenti.json",
       "unlockFromGate": true,
       "mustPreserve": [
-        "dashboard incassi sicura",
-        "stato provider aggregato",
-        "link fatturazione",
-        "configurazione provider legacy",
-        "nessuna scrittura diretta"
+        "dashboard incassi reale",
+        "KPI backend",
+        "pagamenti reali",
+        "incassi reali",
+        "stato provider sicuro",
+        "azioni JSON se supportate",
+        "audit operazioni",
+        "permessi backend",
+        "provider config legacy",
+        "webhook legacy",
+        "nessuna CTA legacy primaria",
+        "rollback legacy tecnico",
+        "nessun segreto provider React"
       ]
     },
     {
@@ -526,7 +540,7 @@
     {
       "route": "/compensi-forensi",
       "family": "mandato",
-      "status": "react_bridge",
+      "status": "react_operational_full",
       "risk": "high",
       "targetComponent": "frontend/src/components/CompensiForensiPage.tsx",
       "targetData": "frontend/src/compensiForensiData.ts",
@@ -534,11 +548,18 @@
       "legacyContract": "artifacts/react-migration/legacy-contracts/compensi-forensi.json",
       "unlockFromGate": true,
       "mustPreserve": [
-        "parametri forensi",
-        "fasi e valore controversia",
+        "parametri forensi reali",
         "calcolo backend",
-        "log compensi legacy",
-        "nessuna generazione preventivo React"
+        "DM55 backend",
+        "risultato backend",
+        "salva log JSON se supportato",
+        "crea preventivo JSON se supportato",
+        "audit operazioni",
+        "permessi backend",
+        "nessuna CTA legacy primaria",
+        "rollback legacy tecnico",
+        "nessun PDF/DOCX React",
+        "nessuna formula React"
       ]
     },
     {
@@ -562,7 +583,7 @@
     {
       "route": "/tariffario",
       "family": "mandato",
-      "status": "react_operational_partial",
+      "status": "react_operational_full",
       "risk": "high",
       "targetComponent": "frontend/src/components/TariffarioPage.tsx",
       "targetData": "frontend/src/tariffarioData.ts",
@@ -570,11 +591,20 @@
       "legacyContract": "artifacts/react-migration/legacy-contracts/tariffario.json",
       "unlockFromGate": true,
       "mustPreserve": [
-        "motore DM 55",
-        "voci tariffarie",
+        "voci tariffarie backend",
+        "versioni normative backend",
+        "scaglioni backend",
         "calcolo backend",
-        "audit",
-        "integrazione preventivi"
+        "DM55 backend",
+        "risultato backend",
+        "collegamento compensi/preventivi se supportato",
+        "audit operazioni",
+        "permessi backend",
+        "nessuna CTA legacy primaria",
+        "rollback legacy tecnico",
+        "nessun PDF/DOCX React",
+        "nessuna formula React",
+        "nessuno scaglione hardcoded React"
       ]
     },
     {

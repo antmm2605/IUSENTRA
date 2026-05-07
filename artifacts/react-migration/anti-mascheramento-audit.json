@@ -1,6 +1,6 @@
 {
   "summary": {
-    "generatedAt": "2026-05-07T20:32:23.288Z",
+    "generatedAt": "2026-05-07T21:44:17.875Z",
     "scannedFiles": [
       "frontend/src/adminDatabaseData.ts",
       "frontend/src/agendaData.ts",
@@ -171,18 +171,17 @@
     ],
     "totals": {
       "routes": 53,
-      "legacyLinks": 240,
-      "legacyPostForms": 7,
+      "legacyLinks": 235,
+      "legacyPostForms": 3,
       "reactPostForms": 0,
-      "bridgeLegacyWrites": 25,
+      "bridgeLegacyWrites": 20,
       "deprecatedReactFull": 0,
       "missingWriteApi": 3
     },
     "levels": {
-      "react_operational_full": 10,
-      "react_bridge": 17,
-      "legacy_operational": 25,
-      "react_operational_partial": 1
+      "react_operational_full": 15,
+      "react_bridge": 13,
+      "legacy_operational": 25
     }
   },
   "rows": [
@@ -263,48 +262,48 @@
       "component": "frontend/src/components/AuditPage.tsx",
       "dataClient": "frontend/src/auditData.ts",
       "bridge": "web/services/react_audit_bridge.py",
-      "manifestStatus": "react_operational_partial",
+      "manifestStatus": "react_operational_full",
       "unlockFromGate": true,
       "legacyLinks": 1,
       "legacyButtons": 0,
       "legacyPostForms": 0,
       "reactPostForms": 0,
-      "jsonWrites": false,
+      "jsonWrites": true,
       "jsonReads": true,
       "bridgeWritesLegacy": false,
-      "blockingLegacyLinks": 1,
-      "technicalRollback": false,
+      "blockingLegacyLinks": 0,
+      "technicalRollback": true,
       "missingWriteApi": false,
       "missingErrorHandling": false,
       "missingSuccessHandling": false,
       "problems": [
-        "1 link ?_legacy=1 primari o non governati"
+        "fallback legacy tecnico non primario"
       ],
-      "realLevel": "react_bridge"
+      "realLevel": "react_operational_full"
     },
     {
       "route": "/registro-attivita",
       "component": "frontend/src/components/AuditPage.tsx",
       "dataClient": "frontend/src/auditData.ts",
       "bridge": "web/services/react_audit_bridge.py",
-      "manifestStatus": "react_operational_partial",
+      "manifestStatus": "react_operational_full",
       "unlockFromGate": true,
       "legacyLinks": 1,
       "legacyButtons": 0,
       "legacyPostForms": 0,
       "reactPostForms": 0,
-      "jsonWrites": false,
+      "jsonWrites": true,
       "jsonReads": true,
       "bridgeWritesLegacy": false,
-      "blockingLegacyLinks": 1,
-      "technicalRollback": false,
+      "blockingLegacyLinks": 0,
+      "technicalRollback": true,
       "missingWriteApi": false,
       "missingErrorHandling": false,
       "missingSuccessHandling": false,
       "problems": [
-        "1 link ?_legacy=1 primari o non governati"
+        "fallback legacy tecnico non primario"
       ],
-      "realLevel": "react_bridge"
+      "realLevel": "react_operational_full"
     },
     {
       "route": "/studio",
@@ -671,25 +670,24 @@
       "component": "frontend/src/components/IncassiPagamentiPage.tsx",
       "dataClient": "frontend/src/incassiPagamentiData.ts",
       "bridge": "web/services/react_incassi_pagamenti_bridge.py",
-      "manifestStatus": "react_bridge",
+      "manifestStatus": "react_operational_full",
       "unlockFromGate": true,
-      "legacyLinks": 5,
-      "legacyButtons": 2,
+      "legacyLinks": 2,
+      "legacyButtons": 0,
       "legacyPostForms": 0,
       "reactPostForms": 0,
-      "jsonWrites": false,
+      "jsonWrites": true,
       "jsonReads": true,
-      "bridgeWritesLegacy": true,
-      "blockingLegacyLinks": 5,
-      "technicalRollback": false,
+      "bridgeWritesLegacy": false,
+      "blockingLegacyLinks": 0,
+      "technicalRollback": true,
       "missingWriteApi": false,
       "missingErrorHandling": false,
       "missingSuccessHandling": false,
       "problems": [
-        "5 link ?_legacy=1 primari o non governati",
-        "bridge writes=legacy_routes"
+        "fallback legacy tecnico non primario"
       ],
-      "realLevel": "react_bridge"
+      "realLevel": "react_operational_full"
     },
     {
       "route": "/preventivi",
@@ -816,27 +814,24 @@
       "component": "frontend/src/components/CompensiForensiPage.tsx",
       "dataClient": "frontend/src/compensiForensiData.ts",
       "bridge": "web/services/react_compensi_forensi_bridge.py",
-      "manifestStatus": "react_bridge",
+      "manifestStatus": "react_operational_full",
       "unlockFromGate": true,
-      "legacyLinks": 3,
+      "legacyLinks": 2,
       "legacyButtons": 0,
-      "legacyPostForms": 1,
+      "legacyPostForms": 0,
       "reactPostForms": 0,
-      "jsonWrites": false,
+      "jsonWrites": true,
       "jsonReads": true,
-      "bridgeWritesLegacy": true,
-      "blockingLegacyLinks": 3,
-      "technicalRollback": false,
+      "bridgeWritesLegacy": false,
+      "blockingLegacyLinks": 0,
+      "technicalRollback": true,
       "missingWriteApi": false,
       "missingErrorHandling": false,
-      "missingSuccessHandling": true,
+      "missingSuccessHandling": false,
       "problems": [
-        "3 link ?_legacy=1 primari o non governati",
-        "LegacyPostForm presente",
-        "bridge writes=legacy_routes",
-        "gestione successo non rilevata"
+        "fallback legacy tecnico non primario"
       ],
-      "realLevel": "react_bridge"
+      "realLevel": "react_operational_full"
     },
     {
       "route": "/compensi-forensi/*",
@@ -845,23 +840,20 @@
       "bridge": "web/services/react_compensi_forensi_bridge.py",
       "manifestStatus": "legacy_operational",
       "unlockFromGate": false,
-      "legacyLinks": 3,
+      "legacyLinks": 2,
       "legacyButtons": 0,
-      "legacyPostForms": 1,
+      "legacyPostForms": 0,
       "reactPostForms": 0,
-      "jsonWrites": false,
+      "jsonWrites": true,
       "jsonReads": true,
-      "bridgeWritesLegacy": true,
-      "blockingLegacyLinks": 3,
-      "technicalRollback": false,
+      "bridgeWritesLegacy": false,
+      "blockingLegacyLinks": 0,
+      "technicalRollback": true,
       "missingWriteApi": false,
       "missingErrorHandling": false,
-      "missingSuccessHandling": true,
+      "missingSuccessHandling": false,
       "problems": [
-        "3 link ?_legacy=1 primari o non governati",
-        "LegacyPostForm presente",
-        "bridge writes=legacy_routes",
-        "gestione successo non rilevata"
+        "fallback legacy tecnico non primario"
       ],
       "realLevel": "legacy_operational"
     },
@@ -870,26 +862,24 @@
       "component": "frontend/src/components/TariffarioPage.tsx",
       "dataClient": "frontend/src/tariffarioData.ts",
       "bridge": "web/services/react_tariffario_bridge.py",
-      "manifestStatus": "react_operational_partial",
+      "manifestStatus": "react_operational_full",
       "unlockFromGate": true,
       "legacyLinks": 3,
       "legacyButtons": 1,
-      "legacyPostForms": 1,
+      "legacyPostForms": 0,
       "reactPostForms": 0,
       "jsonWrites": true,
       "jsonReads": true,
-      "bridgeWritesLegacy": true,
+      "bridgeWritesLegacy": false,
       "blockingLegacyLinks": 0,
       "technicalRollback": true,
       "missingWriteApi": false,
       "missingErrorHandling": false,
       "missingSuccessHandling": false,
       "problems": [
-        "fallback legacy tecnico non primario",
-        "LegacyPostForm presente",
-        "bridge writes=legacy_routes"
+        "fallback legacy tecnico non primario"
       ],
-      "realLevel": "react_operational_partial"
+      "realLevel": "react_operational_full"
     },
     {
       "route": "/tariffario/*",
@@ -900,20 +890,18 @@
       "unlockFromGate": false,
       "legacyLinks": 3,
       "legacyButtons": 1,
-      "legacyPostForms": 1,
+      "legacyPostForms": 0,
       "reactPostForms": 0,
       "jsonWrites": true,
       "jsonReads": true,
-      "bridgeWritesLegacy": true,
+      "bridgeWritesLegacy": false,
       "blockingLegacyLinks": 0,
       "technicalRollback": true,
       "missingWriteApi": false,
       "missingErrorHandling": false,
       "missingSuccessHandling": false,
       "problems": [
-        "fallback legacy tecnico non primario",
-        "LegacyPostForm presente",
-        "bridge writes=legacy_routes"
+        "fallback legacy tecnico non primario"
       ],
       "realLevel": "legacy_operational"
     },

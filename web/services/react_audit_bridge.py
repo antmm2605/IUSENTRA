@@ -1,12 +1,27 @@
-"""Bridge read-only per audit e registro attivita React."""
+"""Bridge operativo per audit e registro attivita React."""
 
 from __future__ import annotations
 
+import json
 from collections import Counter
 from datetime import datetime, timezone
 from typing import Any, Callable
 
 from web.services.audit_surface import build_audit_view
+
+
+_SENSITIVE_KEYS = (
+    "password",
+    "passwd",
+    "hash",
+    "token",
+    "api_key",
+    "apikey",
+    "secret",
+    "authorization",
+    "stack",
+    "traceback",
+)
 
 
 def _iso_now() -> str:
@@ -58,9 +73,46 @@ def _filters_from_query(query: Any) -> dict[str, str]:
     }
 
 
+def _safe_string(value: Any) -> str:
+    rendered = _text(value)
+    lowered = rendered.lower()
+    if any(marker in lowered for marker in ("traceback", "exception:", "authorization:", "bearer ")):
+        return "[redatto]"
+    if len(rendered) > 600:
+        return rendered[:600] + "..."
+    return rendered
+
+
+def _redact_payload(value: Any) -> Any:
+    if isinstance(value, dict):
+        result: dict[str, Any] = {}
+        for key, raw in value.items():
+            rendered_key = _text(key)
+            lowered = rendered_key.lower()
+            if any(marker in lowered for marker in _SENSITIVE_KEYS):
+                result[rendered_key] = "[redatto]"
+            else:
+                result[rendered_key] = _redact_payload(raw)
+        return result
+    if isinstance(value, list):
+        return [_redact_payload(item) for item in value[:40]]
+    return _safe_string(value)
+
+
+def _details_payload(details: str) -> dict[str, Any]:
+    if not details:
+        return {}
+    try:
+        parsed = json.loads(details)
+    except Exception:
+        return {"testo": _safe_string(details)}
+    return _redact_payload(parsed) if isinstance(parsed, dict) else {"valore": _redact_payload(parsed)}
+
+
 def _normalise_record(row: dict[str, Any]) -> dict[str, Any]:
     result = _text(row.get("esito") or "OK").upper()
     resource_state = _text(row.get("resource_state"))
+    details = _safe_string(row.get("dettagli"))
     return {
         "id": _text(row.get("id") or row.get("timestamp") or row.get("azione")),
         "timestamp": _text(row.get("timestamp")),
@@ -69,17 +121,61 @@ def _normalise_record(row: dict[str, Any]) -> dict[str, Any]:
         "action": _text(row.get("azione")) or "azione non indicata",
         "resourceType": _text(row.get("risorsa_tipo")),
         "resourceId": _text(row.get("risorsa_id")),
-        "details": _text(row.get("dettagli")),
+        "details": details,
         "ip": _text(row.get("ip")),
         "result": result,
         "resultTone": _tone_for_result(result),
         "resourceState": resource_state,
         "resourceTone": _resource_tone(resource_state),
         "resourceLabel": _text(row.get("resource_label")),
-        "resourceNote": _text(row.get("resource_note")),
+        "resourceNote": _safe_string(row.get("resource_note")),
         "resourceUrl": _text(row.get("resource_url")),
         "resourceBadgeLabel": _text(row.get("resource_badge_label")),
+        "payloadSanitized": True,
     }
+
+
+def _contracts(route: str) -> dict[str, Any]:
+    return {
+        "mock_fallback": False,
+        "writes": "json_api",
+        "route_owner": "react_shell",
+        "operational": True,
+        "sensitive_payloads_redacted": True,
+        "legacy_contract": (
+            "artifacts/react-migration/legacy-contracts/registro-attivita.json"
+            if route == "/registro-attivita"
+            else "artifacts/react-migration/legacy-contracts/audit.json"
+        ),
+    }
+
+
+def _action(aid: str, label: str, href: str, tone: str = "neutral", *, enabled: bool = True) -> dict[str, Any]:
+    return {"id": aid, "label": label, "href": href, "method": "GET", "tone": tone, "enabled": enabled}
+
+
+def _base_actions(route: str) -> dict[str, Any]:
+    return {
+        "canMarkRead": False,
+        "canResolve": False,
+        "canAddNote": False,
+        "canExport": True,
+        "links": [
+            _action("refresh", "Aggiorna registro", route, "primary"),
+            _action("export_csv", "Esporta CSV", "/audit/esporta.csv", "neutral"),
+            _action("audit", "Apri audit", "/audit", "neutral"),
+            _action("registro", "Apri registro attivita", "/registro-attivita", "neutral"),
+            _action("rollback_tecnico", "Rollback tecnico legacy", f"{route}?_legacy=1", "warning"),
+        ],
+    }
+
+
+def _events_for_view(manager: Any, filters: dict[str, str], limit: int = 200) -> list[Any]:
+    return manager.audit_log(
+        id_utente=filters["id_utente"],
+        azione=filters["azione"],
+        limit=limit,
+    )
 
 
 def build_react_audit_payload(
@@ -91,12 +187,7 @@ def build_react_audit_payload(
     warnings: list[dict[str, str]] = []
     filters = _filters_from_query(query)
     manager = get_utenti()
-
-    eventi = manager.audit_log(
-        id_utente=filters["id_utente"],
-        azione=filters["azione"],
-        limit=200,
-    )
+    eventi = _events_for_view(manager, filters)
     try:
         audit_view = build_audit_view(eventi)
     except Exception as exc:
@@ -173,51 +264,56 @@ def build_react_audit_payload(
         },
     ]
 
-    actions = [
-        {"id": "refresh", "label": "Aggiorna registro", "href": route, "method": "GET", "tone": "primary"},
-        {"id": "export_csv", "label": "Esporta CSV", "href": "/audit/esporta.csv", "method": "GET", "tone": "neutral"},
-        {"id": "audit", "label": "Apri audit", "href": "/audit", "method": "GET", "tone": "neutral"},
-        {"id": "registro", "label": "Apri registro attivita", "href": "/registro-attivita", "method": "GET", "tone": "neutral"},
-    ]
-
     return {
+        "ok": True,
         "source": "repository_reali",
         "generated_at": _iso_now(),
-        "contracts": {
-            "mock_fallback": False,
-            "writes": "none",
-            "route_owner": "react_shell",
-            "legacy_contract": (
-                "artifacts/react-migration/legacy-contracts/registro-attivita.json"
-                if route == "/registro-attivita"
-                else "artifacts/react-migration/legacy-contracts/audit.json"
-            ),
-        },
+        "contracts": _contracts(route),
         "metrics": metrics,
+        "events": records,
+        "filters": filters,
         "sections": sections,
         "records": records,
-        "actions": actions,
+        "actions": _base_actions(route),
         "warnings": warnings,
     }
 
 
+def build_react_audit_detail_payload(
+    *,
+    get_utenti: Callable[[], Any],
+    id_evento: str,
+) -> tuple[dict[str, Any], int]:
+    wanted = _text(id_evento)
+    if not wanted:
+        return {"ok": False, "message": "ID evento richiesto.", "errors": {"id_evento": "Campo obbligatorio."}, "item": None}, 400
+    manager = get_utenti()
+    eventi = manager.audit_log(limit=10000)
+    raw_event = next((event for event in eventi if _text(getattr(event, "id", "")) == wanted), None)
+    if raw_event is None:
+        return {"ok": False, "message": "Evento audit non trovato.", "errors": {"id_evento": "Evento inesistente."}, "item": None}, 404
+    row = raw_event.to_dict()
+    normalised = _normalise_record(row)
+    detail = {
+        **normalised,
+        "payload": _details_payload(_text(row.get("dettagli"))),
+        "payloadSanitized": True,
+        "rawAvailable": False,
+    }
+    return {"ok": True, "message": "Dettaglio evento caricato.", "errors": {}, "item": detail}, 200
+
+
 def build_react_audit_error_payload(message: str = "Registro audit non disponibile.", *, route: str = "/audit") -> dict[str, Any]:
     return {
+        "ok": False,
         "source": "errore_controllato",
         "generated_at": _iso_now(),
-        "contracts": {
-            "mock_fallback": False,
-            "writes": "none",
-            "route_owner": "react_shell",
-            "legacy_contract": (
-                "artifacts/react-migration/legacy-contracts/registro-attivita.json"
-                if route == "/registro-attivita"
-                else "artifacts/react-migration/legacy-contracts/audit.json"
-            ),
-        },
+        "contracts": _contracts(route),
         "metrics": [],
+        "events": [],
+        "filters": {},
         "sections": [],
         "records": [],
-        "actions": [{"id": "legacy", "label": "Apri modulo legacy", "href": f"{route}?_legacy=1", "method": "GET", "tone": "neutral"}],
+        "actions": _base_actions(route),
         "warnings": [{"code": "audit_errore_controllato", "message": message}],
     }

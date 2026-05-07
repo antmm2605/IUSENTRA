@@ -42,7 +42,11 @@ from web.services.react_admin_database_bridge import (
     build_react_admin_database_error_payload,
     build_react_admin_database_payload,
 )
-from web.services.react_audit_bridge import build_react_audit_error_payload, build_react_audit_payload
+from web.services.react_audit_bridge import (
+    build_react_audit_detail_payload,
+    build_react_audit_error_payload,
+    build_react_audit_payload,
+)
 from web.services.react_clienti_bridge import (
     build_react_cliente_cartella_payload,
     build_react_cliente_modifica_payload,
@@ -118,11 +122,14 @@ from web.services.react_fatturazione_bridge import (
 from web.services.react_compensi_forensi_bridge import (
     build_react_compensi_forensi_error_payload,
     build_react_compensi_forensi_payload,
+    calculate_react_compensi_forensi,
 )
 from web.services.react_tariffario_bridge import (
+    build_react_tariffario_detail_payload,
     build_react_tariffario_error_payload,
     build_react_tariffario_payload,
     build_react_tariffario_run_payload,
+    calculate_react_tariffario,
 )
 from web.services.react_preventivi_bridge import (
     build_react_preventivo_detail_payload,
@@ -157,8 +164,12 @@ from web.services.react_legal_intelligence_bridge import (
     build_react_legal_intelligence_payload,
 )
 from web.services.react_incassi_pagamenti_bridge import (
+    build_or_get_react_payment_link,
     build_react_incassi_pagamenti_error_payload,
     build_react_incassi_pagamenti_payload,
+    link_react_pagamento_invoice,
+    register_react_incasso,
+    update_react_pagamento_status,
 )
 from web.services.react_studio_module_bridge import build_react_studio_module_payload
 from web.services.react_telematico_bridge import (
@@ -2471,6 +2482,19 @@ def registro_attivita_page():
         ), 200
 
 
+@api_v1_react.get("/audit/<id_evento>")
+@_richiedi_auth
+def audit_event_detail_page(id_evento: str):
+    if not _puo_leggere_audit():
+        return jsonify({"ok": False, "message": "Permesso audit.leggi richiesto.", "errors": {"permission": "Operazione non autorizzata."}, "item": None}), 403
+    try:
+        result, status = build_react_audit_detail_payload(get_utenti=get_utenti, id_evento=id_evento)
+        return jsonify(result), status
+    except Exception as exc:
+        current_app.logger.exception("Errore dettaglio audit React bridge: %s", exc)
+        return jsonify({"ok": False, "message": "Dettaglio audit non disponibile.", "errors": {"_form": "Errore server controllato."}, "item": None}), 500
+
+
 @api_v1_react.get("/utenti")
 @_richiedi_auth
 def utenti_page():
@@ -3139,12 +3163,15 @@ def incassi_pagamenti_page():
     utente = g.get("utente_corrente")
     if not utente:
         return jsonify(build_react_incassi_pagamenti_error_payload("Sessione utente richiesta.")), 403
+    if not _puo_leggere_fatturazione():
+        return jsonify(build_react_incassi_pagamenti_error_payload("Permesso fatturazione.leggi richiesto.")), 403
     try:
         return jsonify(
             build_react_incassi_pagamenti_payload(
                 get_fatturazione=get_fatturazione,
                 get_pagamenti=get_pagamenti,
                 get_clienti=get_clienti,
+                current_user=utente,
             )
         )
     except Exception as exc:
@@ -3156,17 +3183,96 @@ def incassi_pagamenti_page():
         ), 200
 
 
+@api_v1_react.post("/incassi-pagamenti/incasso")
+@_richiedi_auth
+def incassi_pagamenti_registra_incasso():
+    utente = g.get("utente_corrente")
+    if not utente or not _puo_scrivere_fatturazione():
+        return jsonify({"ok": False, "message": "Permesso fatturazione.scrivi richiesto.", "errors": {"permission": "Operazione non autorizzata."}, "item": None}), 403
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    result, status = register_react_incasso(
+        get_fatturazione=get_fatturazione,
+        get_pagamenti=get_pagamenti,
+        get_utenti=get_utenti,
+        current_user=utente,
+        payload=payload,
+        ip_address=request.remote_addr or "",
+    )
+    return jsonify(result), status
+
+
+@api_v1_react.post("/incassi-pagamenti/<id_pagamento>/stato")
+@_richiedi_auth
+def incassi_pagamenti_aggiorna_stato(id_pagamento: str):
+    utente = g.get("utente_corrente")
+    if not utente or not _puo_scrivere_fatturazione():
+        return jsonify({"ok": False, "message": "Permesso fatturazione.scrivi richiesto.", "errors": {"permission": "Operazione non autorizzata."}, "item": None}), 403
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    result, status = update_react_pagamento_status(
+        get_pagamenti=get_pagamenti,
+        get_fatturazione=get_fatturazione,
+        get_utenti=get_utenti,
+        current_user=utente,
+        payment_id=id_pagamento,
+        payload=payload,
+        ip_address=request.remote_addr or "",
+    )
+    return jsonify(result), status
+
+
+@api_v1_react.post("/incassi-pagamenti/<id_pagamento>/collega")
+@_richiedi_auth
+def incassi_pagamenti_collega(id_pagamento: str):
+    utente = g.get("utente_corrente")
+    if not utente or not _puo_scrivere_fatturazione():
+        return jsonify({"ok": False, "message": "Permesso fatturazione.scrivi richiesto.", "errors": {"permission": "Operazione non autorizzata."}, "item": None}), 403
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    result, status = link_react_pagamento_invoice(payment_id=id_pagamento, payload=payload)
+    return jsonify(result), status
+
+
+@api_v1_react.post("/incassi-pagamenti/<id_pagamento>/link-pagamento")
+@_richiedi_auth
+def incassi_pagamenti_link_pagamento(id_pagamento: str):
+    utente = g.get("utente_corrente")
+    if not utente or not _puo_scrivere_fatturazione():
+        return jsonify({"ok": False, "message": "Permesso fatturazione.scrivi richiesto.", "errors": {"permission": "Operazione non autorizzata."}, "item": None}), 403
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    result, status = build_or_get_react_payment_link(
+        get_pagamenti=get_pagamenti,
+        get_fatturazione=get_fatturazione,
+        get_utenti=get_utenti,
+        current_user=utente,
+        payment_id=id_pagamento,
+        payload=payload,
+        host_url=request.host_url,
+        ip_address=request.remote_addr or "",
+    )
+    return jsonify(result), status
+
+
 @api_v1_react.get("/compensi-forensi")
 @_richiedi_auth
 def compensi_forensi_page():
     utente = g.get("utente_corrente")
     if not utente:
         return jsonify(build_react_compensi_forensi_error_payload("Sessione utente richiesta.")), 403
+    if not _puo_leggere_fatturazione():
+        return jsonify(build_react_compensi_forensi_error_payload("Permesso fatturazione.leggi richiesto.")), 403
     try:
         return jsonify(
             build_react_compensi_forensi_payload(
                 get_normative_tables=get_normative_tables,
                 get_preventivi=get_preventivi,
+                current_user=utente,
             )
         )
     except Exception as exc:
@@ -3178,12 +3284,33 @@ def compensi_forensi_page():
         ), 200
 
 
+@api_v1_react.post("/compensi-forensi/calcola")
+@_richiedi_auth
+def compensi_forensi_calcola():
+    utente = g.get("utente_corrente")
+    if not utente or not _puo_leggere_fatturazione():
+        return jsonify({"ok": False, "message": "Permesso fatturazione.leggi richiesto.", "errors": {"permission": "Operazione non autorizzata."}, "result": None, "warnings": []}), 403
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    result, status = calculate_react_compensi_forensi(
+        get_normative_tables=get_normative_tables,
+        get_utenti=get_utenti,
+        current_user=utente,
+        payload=payload,
+        ip_address=request.remote_addr or "",
+    )
+    return jsonify(result), status
+
+
 @api_v1_react.get("/tariffario")
 @_richiedi_auth
 def tariffario_page():
     utente = g.get("utente_corrente")
     if not utente:
         return jsonify(build_react_tariffario_error_payload("Sessione utente richiesta.")), 403
+    if not _puo_leggere_fatturazione():
+        return jsonify(build_react_tariffario_error_payload("Permesso fatturazione.leggi richiesto.")), 403
     try:
         return jsonify(
             build_react_tariffario_payload(
@@ -3200,20 +3327,30 @@ def tariffario_page():
         ), 200
 
 
+@api_v1_react.get("/tariffario/<id_voce>")
+@_richiedi_auth
+def tariffario_detail_page(id_voce: str):
+    utente = g.get("utente_corrente")
+    if not utente or not _puo_leggere_fatturazione():
+        return jsonify({"ok": False, "message": "Permesso fatturazione.leggi richiesto.", "errors": {"permission": "Operazione non autorizzata."}, "item": None}), 403
+    result, status = build_react_tariffario_detail_payload(get_normative_tables=get_normative_tables, id_voce=id_voce)
+    return jsonify(result), status
+
+
 @api_v1_react.post("/tariffario/calcola")
 @_richiedi_auth
 def tariffario_calcola_page():
     utente = g.get("utente_corrente")
     if not utente:
         return jsonify(build_react_tariffario_error_payload("Sessione utente richiesta.")), 403
+    if not _puo_leggere_fatturazione():
+        return jsonify({"ok": False, "message": "Permesso fatturazione.leggi richiesto.", "errors": {"permission": "Operazione non autorizzata."}, "result": None, "warnings": []}), 403
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
     try:
-        payload = _request_payload()
-        return jsonify(
-            build_react_tariffario_run_payload(
-                payload,
-                get_normative_tables=get_normative_tables,
-            )
-        )
+        result, status = calculate_react_tariffario(get_normative_tables=get_normative_tables, payload=payload)
+        return jsonify(result), status
     except Exception as exc:
         current_app.logger.exception("Errore calcolo Tariffario React bridge: %s", exc)
         return jsonify(

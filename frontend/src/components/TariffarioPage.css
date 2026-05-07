@@ -11,6 +11,24 @@
   padding-bottom: 2rem;
 }
 
+.iu-tar-alert {
+  padding: 12px 14px;
+  border: 1px solid var(--iu-border);
+  border-radius: var(--iu-radius-control);
+  background: var(--iu-surface-muted);
+  color: var(--iu-text-strong);
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.iu-tar-alert-success {
+  color: var(--iu-success-500);
+}
+
+.iu-tar-alert-error {
+  color: var(--iu-danger-500);
+}
+
 .iu-tar-hero,
 .iu-tar-kpi,
 .iu-tar-panel,
@@ -891,6 +909,8 @@
 }
 
 .iu-tar-summary-sticky {
+  position: sticky;
+  top: var(--iu-space-4);
   z-index: 2;
 }
 

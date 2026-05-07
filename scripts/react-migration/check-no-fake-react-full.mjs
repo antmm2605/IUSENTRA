@@ -322,6 +322,131 @@ if (fatturazioneArchiveRow?.manifestStatus === 'react_operational_full') {
   }
 }
 
+const incassiRow = rows.find((row) => row.route === '/incassi-pagamenti')
+if (incassiRow?.manifestStatus === 'react_operational_full') {
+  const page = readFileSync(resolve(root, 'frontend/src/components/IncassiPagamentiPage.tsx'), 'utf8')
+  const data = readFileSync(resolve(root, 'frontend/src/incassiPagamentiData.ts'), 'utf8')
+  const bridge = readFileSync(resolve(root, 'web/services/react_incassi_pagamenti_bridge.py'), 'utf8')
+  const combined = `${page}\n${data}\n${bridge}`
+  if (/\bLegacyPostForm\b/.test(page)) {
+    violations.push('/incassi-pagamenti: react_operational_full non puo contenere LegacyPostForm.')
+  }
+  if (/\?_legacy=1/.test(page) && !/Rollback tecnico|Impostazioni provider legacy/.test(page)) {
+    violations.push('/incassi-pagamenti: ?_legacy=1 ammesso solo come Rollback tecnico o Impostazioni provider legacy.')
+  }
+  if (!/\bapiPostJson\b/.test(data) || !/\bregisterIncasso\b/.test(page)) {
+    violations.push('/incassi-pagamenti: azioni principali devono usare apiPostJson e funzioni data client.')
+  }
+  if (!/["']writes["']\s*:\s*["']json_api["']/.test(bridge)) {
+    violations.push('/incassi-pagamenti: bridge incassi deve dichiarare writes json_api.')
+  }
+  if (!apiSource.includes('@api_v1_react.get("/incassi-pagamenti")')) {
+    violations.push('/incassi-pagamenti: manca endpoint GET JSON.')
+  }
+  if (!apiSource.includes('@api_v1_react.post("/incassi-pagamenti/incasso")')) {
+    violations.push('/incassi-pagamenti: manca endpoint POST JSON incasso.')
+  }
+  if (/localStorage|sessionStorage|response\.blob|fetch\s*\([^)]*blob|URL\.createObjectURL|new Blob/.test(combined)) {
+    violations.push('/incassi-pagamenti: non deve usare storage browser o blob frontend.')
+  }
+  if (/fetch\s*\(\s*["']https?:\/\//.test(data) || /provider_secret|webhook_secret|client_secret|api_key|access_token|refresh_token/i.test(`${page}\n${data}`)) {
+    violations.push('/incassi-pagamenti: React non deve fare fetch esterni o esporre segreti provider.')
+  }
+}
+
+const compensiRow = rows.find((row) => row.route === '/compensi-forensi')
+if (compensiRow?.manifestStatus === 'react_operational_full') {
+  const page = readFileSync(resolve(root, 'frontend/src/components/CompensiForensiPage.tsx'), 'utf8')
+  const data = readFileSync(resolve(root, 'frontend/src/compensiForensiData.ts'), 'utf8')
+  const bridge = readFileSync(resolve(root, 'web/services/react_compensi_forensi_bridge.py'), 'utf8')
+  const combined = `${page}\n${data}\n${bridge}`
+  if (/\bLegacyPostForm\b/.test(page)) {
+    violations.push('/compensi-forensi: react_operational_full non puo contenere LegacyPostForm.')
+  }
+  if (/\?_legacy=1/.test(page) && !/Rollback tecnico/.test(page)) {
+    violations.push('/compensi-forensi: ?_legacy=1 ammesso solo come Rollback tecnico.')
+  }
+  if (!/\bcalculateCompensiForensi\b/.test(page) || !/\bapiPostJson\b/.test(data)) {
+    violations.push('/compensi-forensi: deve calcolare tramite data client e apiPostJson.')
+  }
+  if (!/["']writes["']\s*:\s*["']json_api["']/.test(bridge)) {
+    violations.push('/compensi-forensi: bridge compensi deve dichiarare writes json_api.')
+  }
+  if (!apiSource.includes('@api_v1_react.get("/compensi-forensi")') || !apiSource.includes('@api_v1_react.post("/compensi-forensi/calcola")')) {
+    violations.push('/compensi-forensi: mancano endpoint GET o POST /calcola JSON.')
+  }
+  if (/localStorage|sessionStorage|response\.blob|fetch\s*\([^)]*blob|URL\.createObjectURL|new Blob/.test(combined)) {
+    violations.push('/compensi-forensi: non deve usare storage browser o blob frontend.')
+  }
+  if (/calculateTotal|calculateCompenso|calculateOnorari|calculateDM55|computeDM55|dm55Table|coefficiente|moltiplicatore|Math\.round|\.toFixed\s*\(/.test(`${page}\n${data}`)) {
+    violations.push('/compensi-forensi: React non deve contenere formule o calcoli canonici.')
+  }
+}
+
+const tariffarioRow = rows.find((row) => row.route === '/tariffario')
+if (tariffarioRow?.manifestStatus === 'react_operational_full') {
+  const page = readFileSync(resolve(root, 'frontend/src/components/TariffarioPage.tsx'), 'utf8')
+  const data = readFileSync(resolve(root, 'frontend/src/tariffarioData.ts'), 'utf8')
+  const bridge = readFileSync(resolve(root, 'web/services/react_tariffario_bridge.py'), 'utf8')
+  const combined = `${page}\n${data}\n${bridge}`
+  if (/\bLegacyPostForm\b/.test(page)) {
+    violations.push('/tariffario: react_operational_full non puo contenere LegacyPostForm.')
+  }
+  if (/\?_legacy=1/.test(page) && !/Rollback tecnico/.test(page)) {
+    violations.push('/tariffario: ?_legacy=1 ammesso solo come Rollback tecnico.')
+  }
+  if (!/\bgetTariffarioPage\b/.test(page) || !/\bcalculateTariffario\b/.test(page)) {
+    violations.push('/tariffario: deve leggere e calcolare tramite data client JSON.')
+  }
+  if (!/\bapiPostJson\b/.test(data)) {
+    violations.push('/tariffario: data client deve usare apiPostJson per il calcolo.')
+  }
+  if (!/["']writes["']\s*:\s*["']json_api["']/.test(bridge)) {
+    violations.push('/tariffario: bridge tariffario deve dichiarare writes json_api.')
+  }
+  if (!apiSource.includes('@api_v1_react.get("/tariffario")') || !apiSource.includes('@api_v1_react.post("/tariffario/calcola")')) {
+    violations.push('/tariffario: mancano endpoint GET o POST /calcola JSON.')
+  }
+  if (/localStorage|sessionStorage|response\.blob|fetch\s*\([^)]*blob|URL\.createObjectURL|new Blob/.test(combined)) {
+    violations.push('/tariffario: non deve usare storage browser o blob frontend.')
+  }
+  if (/calculateTotal|calculateCompenso|calculateOnorari|calculateDM55|computeDM55|dm55Table|tariffarioTable|hardcodedBrackets|scaglioni\s*=\s*\[|coefficiente|moltiplicatore|Math\.round|\.toFixed\s*\(/.test(`${page}\n${data}`)) {
+    violations.push('/tariffario: React non deve contenere formule o scaglioni hardcoded.')
+  }
+}
+
+for (const auditRoute of ['/audit', '/registro-attivita']) {
+  const auditRow = rows.find((row) => row.route === auditRoute)
+  if (auditRow?.manifestStatus !== 'react_operational_full') {
+    continue
+  }
+  const page = readFileSync(resolve(root, 'frontend/src/components/AuditPage.tsx'), 'utf8')
+  const data = readFileSync(resolve(root, 'frontend/src/auditData.ts'), 'utf8')
+  const bridge = readFileSync(resolve(root, 'web/services/react_audit_bridge.py'), 'utf8')
+  const frontend = `${page}\n${data}`
+  if (/\bLegacyPostForm\b/.test(page)) {
+    violations.push(`${auditRoute}: react_operational_full non puo contenere LegacyPostForm.`)
+  }
+  if (/\?_legacy=1/.test(page) && !/Rollback tecnico/.test(page)) {
+    violations.push(`${auditRoute}: ?_legacy=1 ammesso solo come Rollback tecnico.`)
+  }
+  if (!/\bgetAuditEventDetail\b/.test(page) || !/\bapiPostJson\b/.test(data)) {
+    violations.push(`${auditRoute}: dettaglio e azioni devono passare da data client JSON.`)
+  }
+  if (!/["']writes["']\s*:\s*["']json_api["']/.test(bridge)) {
+    violations.push(`${auditRoute}: bridge audit deve dichiarare writes json_api.`)
+  }
+  if (!apiSource.includes('@api_v1_react.get("/audit")') || !apiSource.includes('@api_v1_react.get("/registro-attivita")') || !apiSource.includes('@api_v1_react.get("/audit/<id_evento>")')) {
+    violations.push(`${auditRoute}: mancano endpoint GET JSON audit, registro o dettaglio.`)
+  }
+  if (/localStorage|sessionStorage|response\.blob|fetch\s*\([^)]*blob|URL\.createObjectURL|new Blob|dangerouslySetInnerHTML/.test(frontend)) {
+    violations.push(`${auditRoute}: non deve usare storage browser, blob o HTML raw.`)
+  }
+  if (/password_hash|api_key|access_token|refresh_token|stack_trace|traceback/i.test(frontend)) {
+    violations.push(`${auditRoute}: payload renderizzato non deve contenere segreti o stack trace.`)
+  }
+}
+
 const md = [
   '# Check no fake React full',
   '',

@@ -30,6 +30,24 @@
   gap: 14px;
 }
 
+.iu-pay-alert {
+  padding: 12px 14px;
+  border: 1px solid var(--iu-border);
+  border-radius: var(--iu-radius-control);
+  background: var(--iu-surface-muted);
+  color: var(--iu-text-strong);
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.iu-pay-alert--success {
+  color: var(--iu-success-500);
+}
+
+.iu-pay-alert--error {
+  color: var(--iu-danger-500);
+}
+
 .iu-pay-kpis {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
@@ -119,6 +137,35 @@
   flex-wrap: wrap;
 }
 
+.iu-pay-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 12px;
+}
+
+.iu-pay-form label {
+  display: grid;
+  gap: 6px;
+}
+
+.iu-pay-form label span {
+  color: var(--iu-text-subtle);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.iu-pay-form input,
+.iu-pay-form select {
+  min-height: 40px;
+  border: 1px solid var(--iu-border);
+  border-radius: var(--iu-radius-control);
+  background: var(--iu-surface-solid);
+  color: var(--iu-text-strong);
+  font: inherit;
+  padding: 0 10px;
+}
+
 .iu-pay-warning {
   display: flex;
   align-items: center;
@@ -173,5 +220,9 @@
   .iu-pay-warning {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .iu-pay-form {
+    grid-template-columns: 1fr;
   }
 }

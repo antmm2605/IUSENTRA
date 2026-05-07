@@ -68,9 +68,28 @@
 .iu-audit-events,
 .iu-audit-warnings,
 .iu-audit-list,
-.iu-audit-contract {
+.iu-audit-contract,
+.iu-audit-detail {
   display: grid;
   gap: 10px;
+}
+
+.iu-audit-state {
+  padding: 12px 14px;
+  border: 1px solid var(--iu-border);
+  border-radius: var(--iu-radius-control);
+  background: var(--iu-surface-muted);
+  color: var(--iu-text-strong);
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.iu-audit-state--success {
+  color: var(--iu-success-500);
+}
+
+.iu-audit-state--error {
+  color: var(--iu-danger-500);
 }
 
 .iu-audit-event {
@@ -188,7 +207,48 @@
 }
 
 .iu-audit-contract {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.iu-audit-detail > div,
+.iu-audit-detail dl div {
+  border: 1px solid var(--iu-border);
+  border-radius: var(--iu-radius-control);
+  padding: 10px 12px;
+}
+
+.iu-audit-detail > div {
+  display: grid;
+  gap: 4px;
+}
+
+.iu-audit-detail strong {
+  color: var(--iu-text-strong);
+  font-weight: 900;
+}
+
+.iu-audit-detail span,
+.iu-audit-detail p,
+.iu-audit-detail dt {
+  color: var(--iu-text-subtle);
+  font-size: 13px;
+}
+
+.iu-audit-detail p {
+  margin: 0;
+}
+
+.iu-audit-detail dl {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.iu-audit-detail dd {
+  color: var(--iu-text-strong);
+  font-weight: 750;
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
 }
 
 @media (max-width: 1100px) {

@@ -1,6 +1,5 @@
-import { apiJson } from './lib/apiClient'
+import { apiJson, apiPostJson } from './lib/apiClient'
 import type { AdminAction, AdminContract, AdminMetric, AdminSection, AdminTone, AdminWarning } from './utentiData'
-import type { LegacyPostField } from './ui/LegacyPostForm'
 
 export type CompensiForensiRecord = {
   id: string
@@ -12,42 +11,131 @@ export type CompensiForensiRecord = {
   href: string
 }
 
-export type CompensiForensiFormDefinition = {
-  id: string
-  title: string
-  description: string
-  action: string
-  method: 'POST'
-  submitLabel: string
-  enabled: boolean
-  fields: LegacyPostField[]
+export type CompensiForensiParameters = {
+  areas: Array<{ value: string; label: string }>
+  proceedings: Array<{ value: string; label: string; area: string; grade: string }>
+  complexities: Array<{ value: string; label: string }>
+  fiscal_options: {
+    applica_iva: boolean
+    applica_cassa: boolean
+    applica_ritenuta: boolean
+  }
 }
 
-export type CompensiForensiPageData = {
-  source: string
-  generated_at: string
-  contracts: AdminContract
-  metrics: AdminMetric[]
-  sections: AdminSection[]
-  records: CompensiForensiRecord[]
-  actions: AdminAction[]
-  forms: CompensiForensiFormDefinition[]
+export type CompensiForensiCalculationPayload = {
+  area: string
+  procedimento: string
+  fase: string
+  valore_controversia: number
+  complessita: string
+  aumenti: string[]
+  riduzioni: string[]
+  opzioni_fiscali: {
+    applica_iva: boolean
+    applica_cassa: boolean
+    applica_ritenuta: boolean
+  }
+}
+
+export type CompensiForensiCalculationResult = {
+  title: string
+  engineLabel: string
+  engineText: string
+  metadata: Array<{ label: string; value: string }>
+  badges: string[]
+  table?: {
+    columns: Array<{ id: string; label: string }>
+    rows: Array<{ id: string; label: string; values: Record<string, string> }>
+    selected: string
+  }
+  note: string
+  warnings: string[]
+  economic?: {
+    rows: Array<{ id: string; label: string; value: string; tone?: string }>
+    total: string
+    base: string
+  }
+  selectedTotal?: string
+}
+
+export type CompensiForensiPermissions = {
+  canCalculate: boolean
+  canSaveLog: boolean
+  canCreatePreventivo: boolean
+  canOpenTariffario: boolean
+  links: AdminAction[]
+}
+
+export type CompensiForensiMutationResult = {
+  ok: boolean
+  message: string
+  errors: Record<string, string>
+  result: CompensiForensiCalculationResult | null
   warnings: AdminWarning[]
 }
 
+export type CompensiForensiPageData = {
+  ok?: boolean
+  source: string
+  generated_at: string
+  contracts: AdminContract
+  parameters: CompensiForensiParameters
+  areas: Array<{ value: string; label: string }>
+  phases: Array<{ value: string; label: string }>
+  options: Record<string, unknown>
+  last_results: CompensiForensiCalculationResult[]
+  actions: CompensiForensiPermissions
+  metrics: AdminMetric[]
+  sections: AdminSection[]
+  records: CompensiForensiRecord[]
+  warnings: AdminWarning[]
+}
+
+const emptyParameters: CompensiForensiParameters = {
+  areas: [],
+  proceedings: [],
+  complexities: [],
+  fiscal_options: {
+    applica_iva: true,
+    applica_cassa: true,
+    applica_ritenuta: false,
+  },
+}
+
+const emptyActions: CompensiForensiPermissions = {
+  canCalculate: false,
+  canSaveLog: false,
+  canCreatePreventivo: false,
+  canOpenTariffario: false,
+  links: [],
+}
+
 export const emptyCompensiForensiPage: CompensiForensiPageData = {
+  ok: false,
   source: '',
   generated_at: '',
   contracts: {
     mock_fallback: false,
-    writes: 'legacy_routes',
+    writes: 'json_api',
     route_owner: 'react_shell',
   },
+  parameters: emptyParameters,
+  areas: [],
+  phases: [],
+  options: {},
+  last_results: [],
+  actions: emptyActions,
   metrics: [],
   sections: [],
   records: [],
-  actions: [],
-  forms: [],
+  warnings: [],
+}
+
+const emptyMutation: CompensiForensiMutationResult = {
+  ok: false,
+  message: 'Calcolo non completato.',
+  errors: {},
+  result: null,
   warnings: [],
 }
 
@@ -147,67 +235,153 @@ function normaliseRecord(raw: unknown): CompensiForensiRecord {
   }
 }
 
-function normaliseField(raw: unknown): LegacyPostField | null {
+function normaliseParameters(raw: unknown): CompensiForensiParameters {
   const item = asRecord(raw)
-  const name = text(item.name)
-  const allowedNames = new Set(['materia', 'regola_tariffaria', 'grado', 'valore', 'complessita'])
-  if (!allowedNames.has(name)) return null
-  const rawType = text(item.type)
-  const fieldType: LegacyPostField['type'] = rawType === 'select' || rawType === 'hidden' ? rawType : 'text'
   return {
-    name,
-    label: text(item.label) || name,
-    type: fieldType,
-    required: bool(item.required),
-    value: text(item.value),
-    options: list(item.options).map((option) => {
-      const entry = asRecord(option)
+    areas: list(item.areas).map((entry) => {
+      const row = asRecord(entry)
+      return { value: text(row.value), label: text(row.label) || text(row.value) }
+    }).filter((row) => row.value || row.label),
+    proceedings: list(item.proceedings).map((entry) => {
+      const row = asRecord(entry)
       return {
-        value: text(entry.value),
-        label: text(entry.label) || text(entry.value),
-        description: text(entry.description),
-        enabled: entry.enabled !== false,
+        value: text(row.value),
+        label: text(row.label) || text(row.value),
+        area: text(row.area),
+        grade: text(row.grade),
       }
-    }),
+    }).filter((row) => row.value || row.label),
+    complexities: list(item.complexities).map((entry) => {
+      const row = asRecord(entry)
+      return { value: text(row.value), label: text(row.label) || text(row.value) }
+    }).filter((row) => row.value || row.label),
+    fiscal_options: {
+      applica_iva: asRecord(item.fiscal_options).applica_iva !== false,
+      applica_cassa: asRecord(item.fiscal_options).applica_cassa !== false,
+      applica_ritenuta: bool(asRecord(item.fiscal_options).applica_ritenuta),
+    },
   }
 }
 
-function normaliseForm(raw: unknown): CompensiForensiFormDefinition {
+function normaliseActions(raw: unknown): CompensiForensiPermissions {
   const item = asRecord(raw)
   return {
-    id: text(item.id) || 'form',
-    title: text(item.title) || 'Form legacy',
-    description: text(item.description),
-    action: safeHref(item.action, '/tariffario'),
-    method: 'POST',
-    submitLabel: text(item.submitLabel) || 'Invia',
-    enabled: item.enabled !== false,
-    fields: list(item.fields).map(normaliseField).filter((field): field is LegacyPostField => Boolean(field)),
+    canCalculate: bool(item.canCalculate),
+    canSaveLog: bool(item.canSaveLog),
+    canCreatePreventivo: bool(item.canCreatePreventivo),
+    canOpenTariffario: bool(item.canOpenTariffario),
+    links: list(item.links).map(normaliseAction).filter((action) => action.href),
+  }
+}
+
+function normaliseResult(raw: unknown): CompensiForensiCalculationResult | null {
+  const item = asRecord(raw)
+  if (!Object.keys(item).length) return null
+  const table = asRecord(item.table)
+  const economic = asRecord(item.economic)
+  return {
+    title: text(item.title) || 'Risultato backend',
+    engineLabel: text(item.engineLabel),
+    engineText: text(item.engineText),
+    metadata: list(item.metadata).map((entry) => {
+      const row = asRecord(entry)
+      return { label: text(row.label), value: text(row.value) }
+    }).filter((row) => row.label || row.value),
+    badges: list(item.badges).map((entry) => text(entry)).filter(Boolean),
+    table: Object.keys(table).length ? {
+      columns: list(table.columns).map((entry) => {
+        const row = asRecord(entry)
+        return { id: text(row.id), label: text(row.label) }
+      }),
+      rows: list(table.rows).map((entry) => {
+        const row = asRecord(entry)
+        return {
+          id: text(row.id),
+          label: text(row.label),
+          values: Object.fromEntries(Object.entries(asRecord(row.values)).map(([key, val]) => [key, text(val)])),
+        }
+      }),
+      selected: text(table.selected),
+    } : undefined,
+    note: text(item.note),
+    warnings: list(item.warnings).map((entry) => text(entry)).filter(Boolean),
+    economic: Object.keys(economic).length ? {
+      rows: list(economic.rows).map((entry) => {
+        const row = asRecord(entry)
+        return { id: text(row.id), label: text(row.label), value: text(row.value), tone: text(row.tone) }
+      }),
+      total: text(economic.total),
+      base: text(economic.base),
+    } : undefined,
+    selectedTotal: text(item.selectedTotal),
   }
 }
 
 function normalisePage(raw: unknown): CompensiForensiPageData {
   const page = asRecord(raw)
   const contracts = asRecord(page.contracts)
+  const parameters = normaliseParameters(page.parameters)
   return {
+    ok: page.ok === true,
     source: text(page.source),
     generated_at: text(page.generated_at),
     contracts: {
       mock_fallback: contracts.mock_fallback === true ? true : false,
-      writes: text(contracts.writes) || 'legacy_routes',
+      writes: text(contracts.writes) || 'json_api',
       route_owner: text(contracts.route_owner) || 'react_shell',
       legacy_contract: text(contracts.legacy_contract),
     },
+    parameters,
+    areas: list(page.areas).map((entry) => {
+      const row = asRecord(entry)
+      return { value: text(row.value), label: text(row.label) || text(row.value) }
+    }).filter((row) => row.value || row.label),
+    phases: list(page.phases).map((entry) => {
+      const row = asRecord(entry)
+      return { value: text(row.value), label: text(row.label) || text(row.value) }
+    }).filter((row) => row.value || row.label),
+    options: asRecord(page.options),
+    last_results: list(page.last_results).map(normaliseResult).filter((item): item is CompensiForensiCalculationResult => Boolean(item)),
+    actions: normaliseActions(page.actions),
     metrics: list(page.metrics).map(normaliseMetric),
     sections: list(page.sections).map(normaliseSection),
     records: list(page.records).map(normaliseRecord).filter((record) => record.id),
-    actions: list(page.actions).map(normaliseAction).filter((action) => action.href),
-    forms: list(page.forms).map(normaliseForm).filter((form) => form.action),
     warnings: list(page.warnings).map(normaliseWarning),
+  }
+}
+
+function normaliseMutation(raw: unknown): CompensiForensiMutationResult {
+  const item = asRecord(raw)
+  return {
+    ok: item.ok === true,
+    message: text(item.message) || (item.ok === true ? 'Calcolo completato.' : 'Calcolo non completato.'),
+    errors: asRecord(item.errors) as Record<string, string>,
+    result: normaliseResult(item.result),
+    warnings: list(item.warnings).map(normaliseWarning),
   }
 }
 
 export async function getCompensiForensiPage(): Promise<CompensiForensiPageData> {
   const payload = await apiJson<unknown>('/api/v1/ui/compensi-forensi', emptyCompensiForensiPage)
   return normalisePage(payload)
+}
+
+export async function calculateCompensiForensi(payload: CompensiForensiCalculationPayload): Promise<CompensiForensiMutationResult> {
+  return normaliseMutation(await apiPostJson<unknown>('/api/v1/ui/compensi-forensi/calcola', payload, emptyMutation))
+}
+
+export async function saveCompensiForensiLog(): Promise<CompensiForensiMutationResult> {
+  return {
+    ...emptyMutation,
+    message: 'Salvataggio log non disponibile tramite API React.',
+    errors: { unsupported: 'Azione non supportata dal backend legacy.' },
+  }
+}
+
+export async function createPreventivoFromCompensi(): Promise<CompensiForensiMutationResult> {
+  return {
+    ...emptyMutation,
+    message: 'Creazione preventivo diretta non disponibile tramite API React.',
+    errors: { unsupported: 'Usa il flusso nuovo preventivo.' },
+  }
 }

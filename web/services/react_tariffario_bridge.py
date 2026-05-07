@@ -47,6 +47,19 @@ def _warning(code: str, message: str) -> dict[str, str]:
     return {"code": code, "message": message}
 
 
+def _contracts() -> dict[str, Any]:
+    return {
+        "mock_fallback": False,
+        "writes": "json_api",
+        "route_owner": "react_shell",
+        "operational": True,
+        "canonical_tariff": "backend",
+        "canonical_calculation": "backend",
+        "dm55_calculation": "backend",
+        "legacy_contract": "artifacts/react-migration/legacy-contracts/tariffario.json",
+    }
+
+
 def _option(value: Any, label: str, description: str = "") -> dict[str, Any]:
     return {"value": _text(value), "label": label, "description": description, "enabled": True}
 
@@ -343,12 +356,18 @@ def build_react_tariffario_payload(
     return {
         "source": "repository_reali",
         "generated_at": _iso_now(),
-        "contracts": {
-            "mock_fallback": False,
-            "writes": "legacy_routes",
-            "route_owner": "react_shell",
-            "legacy_contract": "artifacts/react-migration/legacy-contracts/tariffario.json",
-        },
+        "contracts": _contracts(),
+        "versions": tables,
+        "areas": _catalog_payload(
+            grade_catalog=grade_catalog,
+            phase_catalog=phase_catalog,
+            rule_catalog=rule_catalog,
+            practices=practices,
+        ).get("materiaOptions", []),
+        "proceedings": records,
+        "phases": phase_catalog,
+        "brackets": [],
+        "tariff_items": records,
         "stats": stats,
         "catalog": _catalog_payload(
             grade_catalog=grade_catalog,
@@ -392,9 +411,9 @@ def build_react_tariffario_payload(
         "actions": [
             _action("compensi", "Compensi forensi", "/compensi-forensi", "primary"),
             _action("wizard", "Wizard preventivi", "/preventivi/wizard", "neutral"),
-            _action("legacy", "Vista Flask", "/tariffario?_legacy=1", "warning"),
+            _action("rollback_tecnico", "Rollback tecnico legacy", "/tariffario?_legacy=1", "warning"),
         ],
-        "forms": [_tariffario_form(grade_catalog=grade_catalog, rule_catalog=rule_catalog)],
+        "forms": [],
         "warnings": warnings + list(initial.get("warnings") or []),
     }
 
@@ -403,12 +422,13 @@ def build_react_tariffario_error_payload(message: str = "Tariffario non disponib
     return {
         "source": "errore_controllato",
         "generated_at": _iso_now(),
-        "contracts": {
-            "mock_fallback": False,
-            "writes": "legacy_routes",
-            "route_owner": "react_shell",
-            "legacy_contract": "artifacts/react-migration/legacy-contracts/tariffario.json",
-        },
+        "contracts": _contracts(),
+        "versions": [],
+        "areas": [],
+        "proceedings": [],
+        "phases": {},
+        "brackets": [],
+        "tariff_items": [],
         "stats": {},
         "catalog": {},
         "state": {},
@@ -419,7 +439,86 @@ def build_react_tariffario_error_payload(message: str = "Tariffario non disponib
         "metrics": [],
         "sections": [],
         "records": [],
-        "actions": [_action("legacy", "Vista Flask", "/tariffario?_legacy=1", "warning")],
+        "actions": [_action("rollback_tecnico", "Rollback tecnico legacy", "/tariffario?_legacy=1", "warning")],
         "forms": [],
         "warnings": [_warning("tariffario_errore_controllato", message)],
     }
+
+
+def calculate_react_tariffario(
+    *,
+    get_normative_tables: Callable[[], Any],
+    payload: dict[str, Any],
+) -> tuple[dict[str, Any], int]:
+    allowed = {
+        "versione_normativa",
+        "area",
+        "materia",
+        "procedimento",
+        "regola_tariffaria",
+        "grado",
+        "fase",
+        "fasi",
+        "valore",
+        "valore_controversia",
+        "complessita",
+        "opzioni",
+        "compenso_unico",
+        "spese_generali",
+        "bonus_telematico",
+        "perc_spese_generali",
+        "accessori",
+        "esborsi",
+        "adr_accordo",
+        "mediazione_odm_attiva",
+        "mediazione_odm_regime",
+        "mediazione_odm_esito",
+        "mediazione_odm_art31_maggiorazione_20",
+        "manual_lines",
+    }
+    forbidden = {"result", "risultato", "totale", "iva", "cassa", "ritenuta", "brackets", "scaglioni"}
+    unknown = sorted(set(payload) - allowed)
+    blocked = sorted(set(payload) & forbidden)
+    if unknown or blocked:
+        errors = {key: "Campo non ammesso come fonte canonica." for key in unknown + blocked}
+        return {"ok": False, "message": "Payload tariffario non valido.", "errors": errors, "result": None, "warnings": []}, 400
+    run_payload = {
+        **payload,
+        "materia": _text(payload.get("materia")) or _text(payload.get("area")),
+        "regola_tariffaria": _text(payload.get("regola_tariffaria")) or _text(payload.get("procedimento")),
+        "valore": _text(payload.get("valore")) or _text(payload.get("valore_controversia")),
+        "fasi": payload.get("fasi") or ([payload.get("fase")] if _text(payload.get("fase")) else []),
+    }
+    result = build_react_tariffario_run_payload(run_payload, get_normative_tables=get_normative_tables)
+    return result, 200 if result.get("ok") else 400
+
+
+def build_react_tariffario_detail_payload(
+    *,
+    get_normative_tables: Callable[[], Any],
+    id_voce: str,
+) -> tuple[dict[str, Any], int]:
+    warnings: list[dict[str, str]] = []
+    rows = _table_rows(get_normative_tables, "tariffario_profili", warnings, "profili")
+    rows += _table_rows(get_normative_tables, "tariffario_regole", warnings, "regole")
+    wanted = _text(id_voce)
+    item = next(
+        (
+            row for row in rows
+            if wanted in {_text(row.get("profile_code")), _text(row.get("rule_code")), _text(row.get("reference_code"))}
+        ),
+        None,
+    )
+    if not item:
+        return {"ok": False, "message": "Voce tariffaria non trovata.", "errors": {"id_voce": "Voce inesistente."}, "item": None}, 404
+    safe_item = {
+        "id": wanted,
+        "title": _text(item.get("label")) or _text(item.get("table_label")) or wanted,
+        "metadata": {
+            "table": _text(item.get("table_label")),
+            "matter": _text(item.get("materia_label")),
+            "grade": _text(item.get("grado_input_value")),
+            "status": _text(item.get("compliance_status")),
+        },
+    }
+    return {"ok": True, "message": "Dettaglio voce tariffaria caricato.", "errors": {}, "item": safe_item}, 200

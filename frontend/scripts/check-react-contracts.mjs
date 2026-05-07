@@ -435,7 +435,7 @@ for (const [route, status] of [
   ['/sito-studio/contatti', 'react_bridge'],
   ['/fatturazione/nuova', 'react_operational_full'],
   ['/preventivi/wizard', 'react_operational_partial'],
-  ['/tariffario', 'react_operational_partial'],
+  ['/tariffario', 'react_operational_full'],
   ['/giurisprudenza', 'react_bridge'],
   ['/legal-intelligence', 'react_bridge'],
   ['/legal-intelligence/news', 'react_bridge'],
@@ -646,8 +646,12 @@ assertContains(fatturazionePage, 'markFatturazionePaid', 'FatturazionePage segna
 assertContains(fatturazioneData, 'apiPostJson<FatturazioneMutationResult>', 'fatturazioneData usa apiPostJson per azioni archivio')
 assertContains(apiBridge, '@api_v1_react.get("/fatturazione/<id_documento>")', 'endpoint JSON dettaglio fatturazione')
 assertContains(apiBridge, '@api_v1_react.post("/fatturazione/<id_documento>/stato")', 'endpoint JSON stato fatturazione')
-assertContains(compensiForensiPage, 'LegacyPostForm', 'CompensiForensiPage usa LegacyPostForm se presente')
-assertContains(tariffarioPage, 'LegacyPostForm', 'TariffarioPage usa LegacyPostForm se presente')
+assertNotContains(compensiForensiPage, 'LegacyPostForm', 'CompensiForensiPage senza LegacyPostForm operativo')
+assertNotContains(tariffarioPage, 'LegacyPostForm', 'TariffarioPage senza LegacyPostForm operativo')
+assertContains(compensiForensiPage, 'calculateCompensiForensi', 'CompensiForensiPage calcola tramite API JSON backend')
+assertContains(tariffarioPage, 'calculateTariffario', 'TariffarioPage calcola tramite API JSON backend')
+assertContains(compensiForensiData, "apiPostJson<unknown>('/api/v1/ui/compensi-forensi/calcola'", 'compensiForensiData usa apiPostJson per calcolo backend')
+assertContains(tariffarioData, "apiPostJson<unknown>('/api/v1/ui/tariffario/calcola'", 'tariffarioData usa apiPostJson per calcolo backend')
 assertContains(tariffarioPage, 'RIEPILOGO IN TEMPO REALE', 'TariffarioPage espone riepilogo economico in tempo reale')
 assertContains(tariffarioPage, 'iu-tar-summary-sticky', 'TariffarioPage rende sticky il riepilogo economico')
 assertContains(tariffarioPage, 'Calcola e aggiorna il quadro', 'TariffarioPage porta il refresh nel riepilogo sticky')
@@ -1002,10 +1006,6 @@ for (const [label, source] of [
 for (const [label, source] of [
   ['PreventiviPage', preventiviPage],
   ['preventiviData', preventiviData],
-  ['CompensiForensiPage', compensiForensiPage],
-  ['compensiForensiData', compensiForensiData],
-  ['TariffarioPage', tariffarioPage],
-  ['tariffarioData', tariffarioData],
 ]) {
   const sourceWithoutBackendContract = source.replaceAll('dm55_calculation', '')
   assertNotContains(sourceWithoutBackendContract, 'calculate', `${label} senza calculate frontend`)

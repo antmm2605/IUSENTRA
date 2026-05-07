@@ -1,4 +1,4 @@
-"""Bridge read-only per la superficie React dei compensi forensi."""
+"""Bridge operativo per la superficie React dei compensi forensi."""
 
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from typing import Any, Callable
 
 from pct.motore_preventivo import catalogo_wizard
+from web.services.react_tariffario_compute import build_react_tariffario_run_payload
 
 
 def _iso_now() -> str:
@@ -28,8 +29,8 @@ def _section(sid: str, title: str, kind: str, items: list[dict[str, Any]], empty
     return {"id": sid, "title": title, "kind": kind, "items": items, "emptyMessage": empty}
 
 
-def _action(aid: str, label: str, href: str, tone: str = "neutral") -> dict[str, Any]:
-    return {"id": aid, "label": label, "href": href, "method": "GET", "tone": tone}
+def _action(aid: str, label: str, href: str, tone: str = "neutral", *, enabled: bool = True) -> dict[str, Any]:
+    return {"id": aid, "label": label, "href": href, "method": "GET", "tone": tone, "enabled": enabled}
 
 
 def _warning(code: str, message: str) -> dict[str, str]:
@@ -100,31 +101,92 @@ def _safe_record(row: dict[str, Any], index: int) -> dict[str, Any]:
     }
 
 
+def _contracts() -> dict[str, Any]:
+    return {
+        "mock_fallback": False,
+        "writes": "json_api",
+        "route_owner": "react_shell",
+        "operational": True,
+        "canonical_calculation": "backend",
+        "dm55_calculation": "backend",
+        "legacy_contract": "artifacts/react-migration/legacy-contracts/compensi-forensi.json",
+    }
+
+
+def _permissions(current_user: Any | None) -> dict[str, bool]:
+    can_read = bool(current_user and getattr(current_user, "ha_permesso", lambda _permesso: False)("fatturazione.leggi"))
+    can_write = bool(current_user and getattr(current_user, "ha_permesso", lambda _permesso: False)("fatturazione.scrivi"))
+    return {
+        "canCalculate": can_read,
+        "canSaveLog": False,
+        "canCreatePreventivo": can_write,
+        "canOpenTariffario": can_read,
+    }
+
+
+def _parameters(profili: list[dict[str, Any]], regole: list[dict[str, Any]]) -> dict[str, Any]:
+    areas = sorted({_text(row.get("materia_label")) for row in profili + regole if _text(row.get("materia_label"))})
+    proceedings = [
+        {
+            "value": _text(row.get("profile_code")) or _text(row.get("rule_code")),
+            "label": _text(row.get("label")) or _text(row.get("table_label")) or "Parametro backend",
+            "area": _text(row.get("materia_label")),
+            "grade": _text(row.get("grado_input_value")),
+        }
+        for row in (profili[:80] + regole[:80])
+    ]
+    return {
+        "areas": [{"value": area, "label": area} for area in areas],
+        "proceedings": [row for row in proceedings if row["value"] or row["label"]],
+        "complexities": [
+            {"value": "minima", "label": "Minima"},
+            {"value": "bassa", "label": "Bassa"},
+            {"value": "media", "label": "Media"},
+            {"value": "alta", "label": "Alta"},
+            {"value": "molto_alta", "label": "Molto alta"},
+        ],
+        "fiscal_options": {
+            "applica_iva": True,
+            "applica_cassa": True,
+            "applica_ritenuta": False,
+        },
+    }
+
+
 def build_react_compensi_forensi_payload(
     *,
     get_normative_tables: Callable[[], Any],
     get_preventivi: Callable[[], Any] | None = None,
+    current_user: Any | None = None,
 ) -> dict[str, Any]:
     warnings: list[dict[str, str]] = [
-        _warning("scritture_legacy", "I submit restano sulle route Flask esistenti."),
-        _warning("motore_backend", "Il motore forense, i log economici e la produzione di stampe restano nel backend."),
+        _warning("motore_backend", "Il calcolo dei compensi resta nel backend; React invia solo input JSON."),
     ]
     profili = _table_rows(get_normative_tables, "tariffario_profili", warnings, "profili")
     regole = _table_rows(get_normative_tables, "tariffario_regole", warnings, "regole")
     audit = _table_rows(get_normative_tables, "tariffario_audit", warnings, "audit")
     preventivi_count, conferimenti_count = _preventivi_totals(get_preventivi, warnings)
     wizard_items = _wizard_sections(warnings)
-
+    parameters = _parameters(profili, regole)
     records = [_safe_record(row, index) for index, row in enumerate((profili[:16] + regole[:16]), start=1)]
 
     return {
+        "ok": True,
         "source": "repository_reali",
         "generated_at": _iso_now(),
-        "contracts": {
-            "mock_fallback": False,
-            "writes": "legacy_routes",
-            "route_owner": "react_shell",
-            "legacy_contract": "artifacts/react-migration/legacy-contracts/compensi-forensi.json",
+        "contracts": _contracts(),
+        "parameters": parameters,
+        "areas": parameters["areas"],
+        "phases": [],
+        "options": parameters["fiscal_options"],
+        "last_results": [],
+        "actions": {
+            **_permissions(current_user),
+            "links": [
+                _action("tariffario", "Apri tariffario", "/tariffario", "primary"),
+                _action("preventivi", "Archivio preventivi", "/preventivi", "neutral"),
+                _action("rollback_tecnico", "Rollback tecnico legacy", "/compensi-forensi?_legacy=1", "warning"),
+            ],
         },
         "metrics": [
             _metric("profili", "Profili tariffari", len(profili), "Letti dalle tabelle normative", "primary"),
@@ -137,41 +199,131 @@ def build_react_compensi_forensi_payload(
             _section(
                 "presidi",
                 "Presidi conservati",
-                "legacy-routes",
+                "backend-calculation",
                 [
-                    _item("tariffario", "Tariffario canonico", "legacy", "Consultazione e submit sono governati da Flask", "warning"),
-                    _item("wizard", "Wizard preventivi", "legacy", "Generazione e audit restano nel workflow storico", "warning"),
+                    _item("tariffario", "Tariffario canonico", "backend", "Parametri e risultato arrivano dal backend", "success"),
                     _item("audit", "Audit tariffario", len(audit), "Righe audit lette dal backend", "info" if audit else "neutral"),
                 ],
                 "Nessun presidio rilevato.",
             ),
         ],
         "records": records,
-        "actions": [
-            _action("tariffario", "Apri tariffario", "/tariffario", "primary"),
-            _action("wizard", "Wizard preventivi", "/preventivi/wizard?_legacy=1", "neutral"),
-            _action("preventivi", "Archivio preventivi", "/preventivi", "neutral"),
-            _action("legacy", "Vista Flask", "/compensi-forensi?_legacy=1", "warning"),
-        ],
-        "forms": [],
         "warnings": warnings,
     }
 
 
+def _validation_error(message: str, errors: dict[str, str], status: int = 400) -> tuple[dict[str, Any], int]:
+    return {"ok": False, "message": message, "errors": errors, "result": None, "warnings": []}, status
+
+
+def _audit(get_utenti: Callable[[], Any] | None, current_user: Any, resource_id: str, ip: str) -> None:
+    if not callable(get_utenti):
+        return
+    try:
+        get_utenti().registra_evento(
+            "compensi_forensi.calcola",
+            id_utente=_text(getattr(current_user, "id", "")),
+            username=_text(getattr(current_user, "username", "")),
+            risorsa_tipo="compenso_forense",
+            risorsa_id=resource_id,
+            dettagli="Calcolo eseguito via API JSON React.",
+            ip=ip,
+        )
+    except Exception:
+        pass
+
+
+def calculate_react_compensi_forensi(
+    *,
+    get_normative_tables: Callable[[], Any],
+    get_utenti: Callable[[], Any] | None,
+    current_user: Any,
+    payload: dict[str, Any],
+    ip_address: str,
+) -> tuple[dict[str, Any], int]:
+    allowed = {
+        "area",
+        "procedimento",
+        "fase",
+        "fasi",
+        "valore_controversia",
+        "complessita",
+        "aumenti",
+        "riduzioni",
+        "opzioni_fiscali",
+    }
+    forbidden = {"totale", "risultato", "compenso_calcolato", "iva", "cassa", "ritenuta"}
+    unknown = sorted(set(payload) - allowed)
+    blocked = sorted(set(payload) & forbidden)
+    if unknown or blocked:
+        errors = {key: "Campo non ammesso come fonte canonica." for key in unknown + blocked}
+        return _validation_error("Payload calcolo non valido.", errors)
+    area = _text(payload.get("area"))
+    value = _text(payload.get("valore_controversia")) or "0"
+    if not area:
+        return _validation_error("Seleziona l'area del calcolo.", {"area": "Campo obbligatorio."})
+    calc_payload = {
+        "materia": area,
+        "regola_tariffaria": _text(payload.get("procedimento")),
+        "valore": value,
+        "complessita": _text(payload.get("complessita")) or "media",
+        "fasi": payload.get("fasi") or ([payload.get("fase")] if _text(payload.get("fase")) else []),
+        "spese_generali": True,
+        "bonus_telematico": False,
+    }
+    result = build_react_tariffario_run_payload(calc_payload, get_normative_tables=get_normative_tables)
+    warnings = [row for row in result.get("warnings", []) if isinstance(row, dict)]
+    if not result.get("ok") or not result.get("result"):
+        return {
+            "ok": False,
+            "message": "Calcolo non completato dal backend.",
+            "errors": {"_form": "Verifica i parametri indicati."},
+            "result": None,
+            "warnings": warnings,
+        }, 400
+    _audit(get_utenti, current_user, _text(result.get("result", {}).get("ruleCode")) or area, ip_address)
+    return {
+        "ok": True,
+        "message": "Calcolo eseguito dal backend.",
+        "errors": {},
+        "result": result.get("result"),
+        "warnings": warnings,
+    }, 200
+
+
+def save_react_compensi_log(*, payload: dict[str, Any]) -> tuple[dict[str, Any], int]:
+    return _validation_error(
+        "Salvataggio log non esposto dal backend legacy per questa route.",
+        {"unsupported": "Azione non disponibile."},
+        status=409,
+    )
+
+
+def create_react_preventivo_from_compenso(*, payload: dict[str, Any]) -> tuple[dict[str, Any], int]:
+    return _validation_error(
+        "Creazione preventivo diretta dai compensi non esposta dal backend legacy.",
+        {"unsupported": "Usa il flusso /preventivi/nuovo con input backend."},
+        status=409,
+    )
+
+
 def build_react_compensi_forensi_error_payload(message: str = "Compensi forensi non disponibili.") -> dict[str, Any]:
     return {
+        "ok": False,
         "source": "errore_controllato",
         "generated_at": _iso_now(),
-        "contracts": {
-            "mock_fallback": False,
-            "writes": "legacy_routes",
-            "route_owner": "react_shell",
-            "legacy_contract": "artifacts/react-migration/legacy-contracts/compensi-forensi.json",
+        "contracts": _contracts(),
+        "parameters": {},
+        "areas": [],
+        "phases": [],
+        "options": {},
+        "last_results": [],
+        "actions": {
+            **_permissions(None),
+            "links": [_action("rollback_tecnico", "Rollback tecnico legacy", "/compensi-forensi?_legacy=1", "warning", enabled=False)],
         },
         "metrics": [],
         "sections": [],
         "records": [],
-        "actions": [_action("legacy", "Vista Flask", "/compensi-forensi?_legacy=1", "warning")],
-        "forms": [],
         "warnings": [_warning("compensi_errore_controllato", message)],
     }

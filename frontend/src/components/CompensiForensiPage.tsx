@@ -1,15 +1,20 @@
-import { useEffect, useState } from 'react'
-import { Banknote, ExternalLink, RefreshCw, ShieldCheck } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { Banknote, Calculator, ExternalLink, RefreshCw, ShieldCheck } from 'lucide-react'
 import { Badge } from '../ui/Badge'
 import { Button, ButtonLink } from '../ui/Button'
 import { EmptyState } from '../ui/EmptyState'
 import { KpiCard } from '../ui/KpiCard'
-import { LegacyPostForm } from '../ui/LegacyPostForm'
 import { LoadingState } from '../ui/LoadingState'
 import { Page } from '../ui/Page'
 import { Panel } from '../ui/Panel'
 import { openDesignContract } from '../ui/openDesign'
-import { emptyCompensiForensiPage, getCompensiForensiPage, type CompensiForensiPageData } from '../compensiForensiData'
+import {
+  calculateCompensiForensi,
+  emptyCompensiForensiPage,
+  getCompensiForensiPage,
+  type CompensiForensiCalculationResult,
+  type CompensiForensiPageData,
+} from '../compensiForensiData'
 import './CompensiForensiPage.css'
 
 function ContractStrip({ data }: { data: CompensiForensiPageData }) {
@@ -19,7 +24,7 @@ function ContractStrip({ data }: { data: CompensiForensiPageData }) {
       <div>
         <strong>{openDesignContract.system}</strong>
         <span>
-          {data.source || 'Sorgente non indicata'} · scritture {data.contracts.writes || 'legacy_routes'}
+          {data.source || 'Sorgente non indicata'} - scritture {data.contracts.writes || 'json_api'}
         </span>
       </div>
     </aside>
@@ -83,49 +88,42 @@ function Sections({ data }: { data: CompensiForensiPageData }) {
   )
 }
 
-function Records({ data }: { data: CompensiForensiPageData }) {
+function ResultPanel({ result }: { result: CompensiForensiCalculationResult | null }) {
+  if (!result) {
+    return (
+      <Panel title="Risultato backend">
+        <EmptyState title="Nessun risultato calcolato" message="Inserisci i parametri e invia il calcolo al backend." />
+      </Panel>
+    )
+  }
   return (
-    <Panel title="Profili e regole disponibili" subtitle="Solo dati gia' esposti dal backend.">
-      {data.records.length ? (
-        <div className="iu-comp-records">
-          {data.records.map((record) => (
-            <a className="iu-comp-record iu-od-focus-ring" href={record.href} key={record.id}>
-              <div>
-                <strong>{record.title}</strong>
-                {record.subtitle ? <span>{record.subtitle}</span> : null}
-                {record.meta ? <small>{record.meta}</small> : null}
-              </div>
-              {record.stateLabel ? <Badge tone={record.stateTone}>{record.stateLabel}</Badge> : null}
-            </a>
-          ))}
+    <Panel title={result.title || 'Risultato backend'} subtitle={result.engineLabel}>
+      <div className="iu-comp-result">
+        <p>{result.engineText}</p>
+        <div className="iu-comp-result__badges">
+          {result.badges.map((badge) => <Badge tone="info" key={badge}>{badge}</Badge>)}
         </div>
-      ) : (
-        <EmptyState
-          title="Nessun profilo tariffario esposto"
-          message="La pagina resta neutra finche' il backend non fornisce elementi consultabili."
-        />
-      )}
-    </Panel>
-  )
-}
-
-function Forms({ data }: { data: CompensiForensiPageData }) {
-  if (!data.forms.length) return null
-  return (
-    <Panel title="Form operativi" subtitle="Submit HTML standard verso Flask.">
-      <div className="iu-comp-forms">
-        {data.forms.map((form) => (
-          <LegacyPostForm
-            key={form.id}
-            action={form.action}
-            method={form.method}
-            title={form.title}
-            description={form.description}
-            submitLabel={form.submitLabel}
-            fields={form.fields}
-            disabled={!form.enabled}
-          />
-        ))}
+        {result.metadata.length ? (
+          <dl className="iu-comp-result__meta">
+            {result.metadata.map((item) => (
+              <div key={`${item.label}-${item.value}`}>
+                <dt>{item.label}</dt>
+                <dd>{item.value}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : null}
+        {result.economic?.rows.length ? (
+          <dl className="iu-comp-result__meta">
+            {result.economic.rows.map((row) => (
+              <div key={row.id}>
+                <dt>{row.label}</dt>
+                <dd>{row.value}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : null}
+        {result.note ? <p>{result.note}</p> : null}
       </div>
     </Panel>
   )
@@ -134,17 +132,68 @@ function Forms({ data }: { data: CompensiForensiPageData }) {
 export function CompensiForensiPage() {
   const [data, setData] = useState<CompensiForensiPageData>(emptyCompensiForensiPage)
   const [loading, setLoading] = useState(true)
+  const [calculating, setCalculating] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [success, setSuccess] = useState('')
+  const [error, setError] = useState('')
+  const [result, setResult] = useState<CompensiForensiCalculationResult | null>(null)
+  const [area, setArea] = useState('')
+  const [proceeding, setProceeding] = useState('')
+  const [phase, setPhase] = useState('')
+  const [value, setValue] = useState('0')
+  const [complexity, setComplexity] = useState('media')
 
   function load() {
     setLoading(true)
     getCompensiForensiPage()
-      .then(setData)
+      .then((payload) => {
+        setData(payload)
+        const firstArea = payload.parameters.areas[0]?.value || ''
+        const firstProceeding = payload.parameters.proceedings[0]?.value || ''
+        const firstComplexity = payload.parameters.complexities.find((item) => item.value === 'media')?.value
+          || payload.parameters.complexities[0]?.value
+          || 'media'
+        if (!area) setArea(firstArea)
+        if (!proceeding) setProceeding(firstProceeding)
+        if (!complexity) setComplexity(firstComplexity)
+      })
       .finally(() => setLoading(false))
   }
 
   useEffect(() => {
     load()
   }, [])
+
+  const filteredProceedings = useMemo(() => {
+    if (!area) return data.parameters.proceedings
+    const filtered = data.parameters.proceedings.filter((item) => item.area === area)
+    return filtered.length ? filtered : data.parameters.proceedings
+  }, [area, data.parameters.proceedings])
+
+  async function runCalculation() {
+    setCalculating(true)
+    setSaving(true)
+    setSuccess('')
+    setError('')
+    const response = await calculateCompensiForensi({
+      area,
+      procedimento: proceeding,
+      fase: phase,
+      valore_controversia: Number(value || 0),
+      complessita: complexity,
+      aumenti: [],
+      riduzioni: [],
+      opzioni_fiscali: data.parameters.fiscal_options,
+    })
+    setCalculating(false)
+    setSaving(false)
+    if (!response.ok || !response.result) {
+      setError(response.message)
+      return
+    }
+    setResult(response.result)
+    setSuccess(response.message)
+  }
 
   if (loading) {
     return <LoadingState title="Caricamento compensi forensi" message="Recupero i dati reali dal backend." />
@@ -153,7 +202,7 @@ export function CompensiForensiPage() {
   return (
     <Page
       title="Compensi forensi"
-      subtitle="Dashboard operativa di accesso al motore economico dello studio."
+      subtitle="Calcolo operativo via API JSON: parametri e risultati restano canonici nel backend."
       actions={
         <>
           <Button type="button" tone="neutral" onClick={load}>
@@ -168,20 +217,22 @@ export function CompensiForensiPage() {
       }
     >
       <div className="iu-comp-page iu-od-stack">
+        {calculating ? <LoadingState title="Calcolo compensi" message="Il backend sta elaborando il risultato." /> : null}
+        {saving ? <div className="iu-comp-state" role="status">Salvataggio richiesta JSON in corso.</div> : null}
+        {success ? <div className="iu-comp-state iu-comp-state--success" role="status">{success}</div> : null}
+        {error ? <div className="iu-comp-state iu-comp-state--error" role="alert">{error}</div> : null}
         <ContractStrip data={data} />
         <WarningList data={data} />
         <Metrics data={data} />
         <section className="iu-comp-hero iu-od-surface">
           <div>
-            <p className="iu-comp-eyebrow">Mandato e parametri forensi</p>
-            <h2>Accesso controllato alle funzioni economiche</h2>
+            <h2>Input al motore backend</h2>
             <p>
-              React mostra archivio, aree disponibili e link operativi. Il motore economico rimane nella route Flask
-              gia' auditata.
+              React raccoglie parametri e invia la richiesta; il risultato visualizzato arriva dalla risposta backend.
             </p>
           </div>
           <div className="iu-comp-actions">
-            {data.actions.map((action) => (
+            {data.actions.links.map((action) => (
               <ButtonLink key={action.id} href={action.href} tone={action.tone === 'primary' ? 'primary' : 'neutral'}>
                 <ExternalLink size={16} aria-hidden="true" />
                 {action.label}
@@ -189,9 +240,54 @@ export function CompensiForensiPage() {
             ))}
           </div>
         </section>
+        <Panel title="Calcolo compensi" subtitle="Nessuna formula viene eseguita nel browser.">
+          {data.actions.canCalculate ? (
+            <div className="iu-comp-form">
+              <label>
+                <span>Area</span>
+                <select value={area} onChange={(event) => setArea(event.target.value)}>
+                  <option value="">Seleziona area</option>
+                  {data.parameters.areas.map((item) => (
+                    <option value={item.value} key={item.value}>{item.label}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span>Procedimento</span>
+                <select value={proceeding} onChange={(event) => setProceeding(event.target.value)}>
+                  <option value="">Standard backend</option>
+                  {filteredProceedings.map((item) => (
+                    <option value={item.value} key={item.value}>{item.label}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span>Fase</span>
+                <input value={phase} onChange={(event) => setPhase(event.target.value)} placeholder="Fase se prevista dal backend" />
+              </label>
+              <label>
+                <span>Valore controversia</span>
+                <input type="number" min="0" value={value} onChange={(event) => setValue(event.target.value)} />
+              </label>
+              <label>
+                <span>Complessita</span>
+                <select value={complexity} onChange={(event) => setComplexity(event.target.value)}>
+                  {data.parameters.complexities.map((item) => (
+                    <option value={item.value} key={item.value}>{item.label}</option>
+                  ))}
+                </select>
+              </label>
+              <Button type="button" tone="primary" onClick={runCalculation} disabled={calculating || !area}>
+                <Calculator size={16} aria-hidden="true" />
+                Calcola via backend
+              </Button>
+            </div>
+          ) : (
+            <EmptyState title="Calcolo non autorizzato" message="La sessione corrente non ha permessi backend per il calcolo." />
+          )}
+        </Panel>
+        <ResultPanel result={result} />
         <Sections data={data} />
-        <Records data={data} />
-        <Forms data={data} />
       </div>
     </Page>
   )

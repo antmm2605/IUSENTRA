@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   AlertCircle,
   CheckCircle2,
@@ -13,12 +13,11 @@ import {
   Scale,
   Trash2,
 } from 'lucide-react'
-import { LegacyPostForm } from '../ui/LegacyPostForm'
 import { LoadingState } from '../ui/LoadingState'
 import {
+  calculateTariffario,
   emptyTariffarioPage,
   getTariffarioPage,
-  runTariffario,
   type TariffarioDynamic,
   type TariffarioManualLine,
   type TariffarioOption,
@@ -862,24 +861,19 @@ function RealtimeSummary({
   error,
   onRun,
   onReset,
-  floatingStyle,
-  isFloating = false,
 }: {
   result: TariffarioResult | null
   busy: boolean
   error: string
   onRun: () => void
   onReset: () => void
-  floatingStyle?: CSSProperties
-  isFloating?: boolean
 }) {
   const operationalTotal = result?.economic.total || result?.selectedTotal || 'EUR 0,00'
   return (
     <aside
-      className={`iu-tar-realtime iu-tar-summary-sticky${isFloating ? ' is-floating' : ''}`}
+      className="iu-tar-realtime iu-tar-summary-sticky"
       aria-label="Riepilogo in tempo reale"
       aria-live="polite"
-      style={floatingStyle}
     >
       <div className="iu-tar-realtime-head">
         <span>RIEPILOGO IN TEMPO REALE</span>
@@ -930,69 +924,15 @@ function StickyRealtimeSummary({
   onReset: () => void
 }) {
   const anchor = useRef<HTMLDivElement | null>(null)
-  const [floating, setFloating] = useState(false)
-  const [metrics, setMetrics] = useState({ height: 0, left: 0, top: 76, width: 0 })
 
   useEffect(() => {
-    let frame = 0
-    const measure = () => {
-      frame = 0
-      const holder = anchor.current
-      const card = holder?.querySelector<HTMLElement>('.iu-tar-realtime')
-      const layout = holder?.closest('.iu-tar-layout')
-      const main = layout?.querySelector<HTMLElement>('.iu-tar-main')
-      if (!holder || !card || !main || window.innerWidth <= 1040) {
-        setFloating(false)
-        return
-      }
-
-      const holderRect = holder.getBoundingClientRect()
-      const mainRect = main.getBoundingClientRect()
-      const topOffset = 76
-      const height = card.offsetHeight
-      const shouldFloat = mainRect.top <= topOffset && mainRect.bottom > topOffset
-      const top = Math.min(topOffset, Math.max(12, mainRect.bottom - height))
-
-      setMetrics({
-        height,
-        left: holderRect.left,
-        top,
-        width: holderRect.width,
-      })
-      setFloating(shouldFloat)
-    }
-    const schedule = () => {
-      if (frame) return
-      frame = window.requestAnimationFrame(measure)
-    }
-
-    measure()
-    window.addEventListener('resize', schedule)
-    window.addEventListener('scroll', schedule, { passive: true })
-    document.addEventListener('scroll', schedule, true)
-    return () => {
-      if (frame) window.cancelAnimationFrame(frame)
-      window.removeEventListener('resize', schedule)
-      window.removeEventListener('scroll', schedule)
-      document.removeEventListener('scroll', schedule, true)
-    }
+    anchor.current?.querySelector<HTMLElement>('.iu-tar-realtime')?.setAttribute('data-summary-ready', 'true')
   }, [busy, error, result])
-
-  const floatingStyle: CSSProperties | undefined = floating
-    ? {
-        left: metrics.left,
-        maxHeight: 'calc(100vh - 92px)',
-        position: 'fixed',
-        top: metrics.top,
-        width: metrics.width,
-      }
-    : undefined
 
   return (
     <div
       ref={anchor}
-      className={`iu-tar-summary-holder${floating ? ' is-floating' : ''}`}
-      style={floating ? { minHeight: metrics.height } : undefined}
+      className="iu-tar-summary-holder"
     >
       <RealtimeSummary
         result={result}
@@ -1000,8 +940,6 @@ function StickyRealtimeSummary({
         error={error}
         onRun={onRun}
         onReset={onReset}
-        floatingStyle={floatingStyle}
-        isFloating={floating}
       />
     </div>
   )
@@ -1161,11 +1099,11 @@ export function TariffarioPage() {
   const [result, setResult] = useState<TariffarioResult | null>(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
+  const [success, setSuccess] = useState('')
   const [error, setError] = useState('')
   const latestRun = useRef(0)
   const syncedPayload = useRef('')
   const { open, toggle } = useAccordionState()
-  const legacyBridgeName = LegacyPostForm.name
 
   function applyPage(next: TariffarioPageData) {
     syncedPayload.current = JSON.stringify(next.state)
@@ -1200,8 +1138,9 @@ export function TariffarioPage() {
     const runId = latestRun.current + 1
     latestRun.current = runId
     setBusy(true)
+    setSuccess('')
     setError('')
-    const response = await runTariffario(form)
+    const response = await calculateTariffario(form)
     if (runId !== latestRun.current) return
     setBusy(false)
     if (!response.ok || !response.result) {
@@ -1213,6 +1152,7 @@ export function TariffarioPage() {
     setProfile(response.profile)
     setDynamic(response.dynamic)
     setResult(response.result)
+    setSuccess('Calcolo completato dal backend.')
   }
 
   function reset() {
@@ -1233,8 +1173,9 @@ export function TariffarioPage() {
     latestRun.current = runId
     const timer = window.setTimeout(async () => {
       setBusy(true)
+      setSuccess('')
       setError('')
-      const response = await runTariffario(form)
+      const response = await calculateTariffario(form)
       if (runId !== latestRun.current) return
       setBusy(false)
       if (!response.ok || !response.result) {
@@ -1246,6 +1187,7 @@ export function TariffarioPage() {
       setProfile(response.profile)
       setDynamic(response.dynamic)
       setResult(response.result)
+      setSuccess('Calcolo aggiornato dal backend.')
       setError('')
     }, 450)
     return () => window.clearTimeout(timer)
@@ -1256,13 +1198,19 @@ export function TariffarioPage() {
   }
 
   return (
-    <main className="iu-content iu-page iu-tar-page" data-legacy-form={legacyBridgeName}>
+    <main className="iu-content iu-page iu-tar-page">
       <Hero stats={data.stats} />
+      {busy ? <LoadingState title="Calcolo tariffario" message="Salvataggio JSON al backend e aggiornamento risultato." /> : null}
+      {success ? <div className="iu-tar-alert iu-tar-alert-success" role="status">{success}</div> : null}
+      {error ? <div className="iu-tar-alert iu-tar-alert-error" role="alert">{error}</div> : null}
       {!hasCatalog ? (
         <section className="iu-tar-panel">
           <h2>Catalogo tariffario non disponibile</h2>
-          <p>La route React è attiva, ma il catalogo non ha restituito opzioni operative. Resta disponibile il fallback tecnico.</p>
-          <a className="iu-tar-button iu-tar-button-light" href="/tariffario?_legacy=1">Apri vista legacy</a>
+          <p>La route React è attiva, ma il catalogo non ha restituito opzioni operative.</p>
+          <div className="iu-tar-rollback">
+            <strong>Rollback tecnico</strong>
+            <a className="iu-tar-button iu-tar-button-light" href="/tariffario?_legacy=1">Apri vista legacy</a>
+          </div>
         </section>
       ) : (
         <>

@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Download, RefreshCw, Search } from 'lucide-react'
+import { Download, Eye, RefreshCw, Search } from 'lucide-react'
 import {
   emptyAuditPage,
   getAuditPage,
+  getAuditEventDetail,
+  getRegistroAttivitaPage,
   type AuditAction,
+  type AuditEventDetail,
   type AuditPageData,
   type AuditRecord,
 } from '../auditData'
@@ -65,7 +68,7 @@ function Warnings({ data }: { data: AuditPageData }) {
   )
 }
 
-function AuditRecordItem({ record }: { record: AuditRecord }) {
+function AuditRecordItem({ record, onDetail }: { record: AuditRecord; onDetail: (record: AuditRecord) => void }) {
   return (
     <article className="iu-audit-event">
       <div className="iu-audit-event__main">
@@ -84,21 +87,74 @@ function AuditRecordItem({ record }: { record: AuditRecord }) {
         {record.resourceId ? <small>ID risorsa: {record.resourceId}</small> : null}
         {record.ip ? <small>IP: {record.ip}</small> : null}
         {record.resourceUrl ? <a href={record.resourceUrl}>Apri risorsa</a> : null}
+        <Button type="button" tone="neutral" onClick={() => onDetail(record)}>
+          <Eye size={15} />
+          Dettaglio
+        </Button>
       </aside>
     </article>
+  )
+}
+
+function DetailPanel({ detail }: { detail: AuditEventDetail | null }) {
+  if (!detail) return null
+  const payloadRows = Object.entries(detail.payload)
+  return (
+    <Panel title="Dettaglio evento" subtitle="Payload sanificato dal backend.">
+      <div className="iu-audit-detail">
+        <div>
+          <strong>{detail.action}</strong>
+          <span>{formatTimestamp(detail.timestamp)}</span>
+        </div>
+        <p>{detail.details || 'Nessun dettaglio testuale.'}</p>
+        {payloadRows.length ? (
+          <dl>
+            {payloadRows.map(([key, value]) => (
+              <div key={key}>
+                <dt>{key}</dt>
+                <dd>{typeof value === 'string' || typeof value === 'number' ? String(value) : JSON.stringify(value)}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : (
+          <EmptyState title="Payload non presente" message="Il backend non ha restituito dati aggiuntivi per questo evento." />
+        )}
+      </div>
+    </Panel>
   )
 }
 
 export function AuditPage() {
   const [data, setData] = useState<AuditPageData>(emptyAuditPage)
   const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [success, setSuccess] = useState('')
+  const [error, setError] = useState('')
+  const [detail, setDetail] = useState<AuditEventDetail | null>(null)
   const [query, setQuery] = useState('')
   const [result, setResult] = useState('tutti')
   const title = window.location.pathname.toLowerCase().includes('registro-attivita') ? 'Registro attivita' : 'Audit'
 
+  function load() {
+    setLoading(true)
+    const loader = window.location.pathname.toLowerCase().includes('registro-attivita')
+      ? getRegistroAttivitaPage
+      : getAuditPage
+    loader()
+      .then((payload) => {
+        setData(payload)
+      })
+      .finally(() => {
+        setLoading(false)
+      })
+  }
+
   useEffect(() => {
     let active = true
-    getAuditPage()
+    const loader = window.location.pathname.toLowerCase().includes('registro-attivita')
+      ? getRegistroAttivitaPage
+      : getAuditPage
+    loader()
       .then((payload) => {
         if (active) setData(payload)
       })
@@ -110,12 +166,26 @@ export function AuditPage() {
     }
   }, [])
 
+  async function showDetail(record: AuditRecord) {
+    setSaving(true)
+    setSuccess('')
+    setError('')
+    const response = await getAuditEventDetail(record.id)
+    setSaving(false)
+    if (!response.ok || !response.item) {
+      setError(response.message)
+      return
+    }
+    setDetail(response.item)
+    setSuccess(response.message)
+  }
+
   const visibleRecords = useMemo(
     () => data.records.filter((record) => matchesQuery(record, query.trim(), result)),
     [data.records, query, result],
   )
   const hasData = data.metrics.length > 0 || data.records.length > 0
-  const safeActions = data.actions.filter((action) => action.method === 'GET' && action.href)
+  const safeActions = data.actions.links.filter((action) => action.method === 'GET' && action.href)
 
   return (
     <Page
@@ -123,10 +193,10 @@ export function AuditPage() {
       subtitle="Registro read-only delle attivita applicative e amministrative."
       actions={
         <>
-          <ButtonLink href={window.location.pathname} tone="primary">
+          <Button type="button" tone="primary" onClick={load}>
             <RefreshCw size={16} />
             Aggiorna
-          </ButtonLink>
+          </Button>
           {safeActions.filter((action) => action.id === 'export_csv').map((action) => (
             <ButtonLink href={action.href} tone={actionTone(action)} key={action.id}>
               <Download size={16} />
@@ -145,6 +215,9 @@ export function AuditPage() {
       ) : null}
       {!loading && hasData ? (
         <>
+          {saving ? <LoadingState title="Caricamento dettaglio audit" message="Lettura JSON sanificata in corso." /> : null}
+          {success ? <div className="iu-audit-state iu-audit-state--success" role="status">{success}</div> : null}
+          {error ? <div className="iu-audit-state iu-audit-state--error" role="alert">{error}</div> : null}
           <Warnings data={data} />
           <section className="iu-audit-kpis" aria-label="KPI audit">
             {data.metrics.map((metric) => (
@@ -187,12 +260,13 @@ export function AuditPage() {
           <Panel title="Eventi attivita" subtitle={`${visibleRecords.length} record visualizzati`}>
             {visibleRecords.length ? (
               <div className="iu-audit-events">
-                {visibleRecords.map((record) => <AuditRecordItem record={record} key={record.id} />)}
+                {visibleRecords.map((record) => <AuditRecordItem record={record} onDetail={showDetail} key={record.id} />)}
               </div>
             ) : (
               <EmptyState title="Nessun evento nei filtri correnti" />
             )}
           </Panel>
+          <DetailPanel detail={detail} />
           <section className="iu-audit-grid" aria-label="Distribuzioni audit">
             {data.sections.filter((section) => section.items.length > 0).map((section) => (
               <Panel title={section.title} subtitle={section.kind} key={section.id}>
@@ -214,6 +288,7 @@ export function AuditPage() {
               <span>Generato: {data.generated_at || 'non disponibile'}</span>
               <span>Scritture: {data.contracts.writes}</span>
               <span>Mock fallback: {data.contracts.mock_fallback ? 'si' : 'no'}</span>
+              <span>Payload sanificati: si</span>
             </div>
           </Panel>
         </>

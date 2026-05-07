@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.198.118 - 2026-05-07
+
+- Promosse `/incassi-pagamenti`, `/compensi-forensi`, `/tariffario`, `/audit` e `/registro-attivita` a `react_operational_full` con payload reali, dettaglio/eventi JSON, permessi backend, CSRF/sessione e audit operativo quando supportato.
+- Aggiunte API JSON operative per incassi manuali/stati/link pagamento, calcolo compensi forensi backend, simulazione tariffario backend e dettaglio audit sanificato; provider, webhook, formule DM55, tariffario canonico, export e documenti restano backend/legacy.
+- Rafforzati i guardrail 22A-25A anti-segreti, anti-calcolo frontend, anti-payload audit sensibile e no-fake React full, con rollback `_legacy=1` confinato a `Rollback tecnico` o impostazioni provider legacy.
+
 ## 2.198.114 - 2026-05-07
 
 - Promosse `/preventivi/nuovo`, `/preventivi/conferimento/nuovo`, `/preventivi` e `/fatturazione` a `react_operational_full` con letture reali, salvataggi/azioni JSON, CSRF/sessione, permessi backend e audit operativo quando disponibile.

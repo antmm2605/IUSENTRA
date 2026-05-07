@@ -1,6 +1,14 @@
 import { apiJson, apiPostJson } from './lib/apiClient'
 import type { AdminAction, AdminContract, AdminMetric, AdminSection, AdminTone, AdminWarning } from './utentiData'
-import type { LegacyPostField } from './ui/LegacyPostForm'
+
+export type TariffarioFormField = {
+  name: string
+  label: string
+  type: 'text' | 'select' | 'hidden' | 'checkbox'
+  required?: boolean
+  value?: string
+  options?: TariffarioOption[]
+}
 
 export type TariffarioOption = {
   value: string
@@ -214,7 +222,13 @@ export type TariffarioFormDefinition = {
   method: 'POST'
   submitLabel: string
   enabled: boolean
-  fields: LegacyPostField[]
+  fields: TariffarioFormField[]
+}
+
+export type TariffarioDetail = {
+  id: string
+  title: string
+  metadata: Record<string, string>
 }
 
 export type TariffarioPageData = {
@@ -318,7 +332,7 @@ export const emptyTariffarioPage: TariffarioPageData = {
   generated_at: '',
   contracts: {
     mock_fallback: false,
-    writes: 'legacy_routes',
+    writes: 'json_api',
     route_owner: 'react_shell',
   },
   stats: {
@@ -746,7 +760,7 @@ function normaliseRecord(raw: unknown): TariffarioRecord {
   }
 }
 
-function normaliseField(raw: unknown): LegacyPostField | null {
+function normaliseField(raw: unknown): TariffarioFormField | null {
   const item = asRecord(raw)
   const name = text(item.name)
   const allowedNames = new Set([
@@ -761,7 +775,7 @@ function normaliseField(raw: unknown): LegacyPostField | null {
   ])
   if (!allowedNames.has(name)) return null
   const rawType = text(item.type)
-  const fieldType: LegacyPostField['type'] =
+  const fieldType: TariffarioFormField['type'] =
     rawType === 'select' || rawType === 'hidden' || rawType === 'checkbox' ? rawType : 'text'
   return {
     name,
@@ -783,7 +797,7 @@ function normaliseForm(raw: unknown): TariffarioFormDefinition {
     method: 'POST',
     submitLabel: text(item.submitLabel) || 'Invia',
     enabled: item.enabled !== false,
-    fields: list(item.fields).map(normaliseField).filter((field): field is LegacyPostField => Boolean(field)),
+    fields: list(item.fields).map(normaliseField).filter((field): field is TariffarioFormField => Boolean(field)),
   }
 }
 
@@ -795,7 +809,7 @@ function normalisePage(raw: unknown): TariffarioPageData {
     generated_at: text(page.generated_at),
     contracts: {
       mock_fallback: contracts.mock_fallback === true ? true : false,
-      writes: text(contracts.writes) || 'legacy_routes',
+      writes: text(contracts.writes) || 'json_api',
       route_owner: text(contracts.route_owner) || 'react_shell',
       legacy_contract: text(contracts.legacy_contract),
     },
@@ -832,7 +846,30 @@ export async function getTariffarioPage(): Promise<TariffarioPageData> {
   return normalisePage(payload)
 }
 
-export async function runTariffario(payload: TariffarioState): Promise<TariffarioRunResponse> {
+export async function calculateTariffario(payload: TariffarioState): Promise<TariffarioRunResponse> {
   const response = await apiPostJson<unknown>('/api/v1/ui/tariffario/calcola', payload, emptyRunResponse)
   return normaliseRun(response)
+}
+
+export async function runTariffario(payload: TariffarioState): Promise<TariffarioRunResponse> {
+  return calculateTariffario(payload)
+}
+
+export async function getTariffarioDetail(idVoce: string): Promise<TariffarioDetail | null> {
+  const response = await apiJson<unknown>(`/api/v1/ui/tariffario/${encodeURIComponent(idVoce)}`, { ok: false, item: null })
+  const item = asRecord(asRecord(response).item)
+  if (!Object.keys(item).length) return null
+  return {
+    id: text(item.id),
+    title: text(item.title),
+    metadata: Object.fromEntries(Object.entries(asRecord(item.metadata)).map(([key, value]) => [key, text(value)])),
+  }
+}
+
+export async function linkTariffarioToCompensi() {
+  return { ok: false, message: 'Collegamento gestito tramite /compensi-forensi.', errors: { unsupported: 'Azione non supportata.' }, item: null }
+}
+
+export async function createPreventivoFromTariffario() {
+  return { ok: false, message: 'Creazione preventivo diretta non disponibile da questa API.', errors: { unsupported: 'Usa /preventivi/nuovo.' }, item: null }
 }

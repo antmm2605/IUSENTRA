@@ -1,5 +1,29 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-07 - Parti 22A-25A economico, tariffario e audit operativi 2.198.118
+
+Le Parti 22A-25A chiudono il blocco economico principale e portano audit e
+registro attivita a superfici React pienamente operative senza spostare logiche
+canoniche nel frontend:
+
+- `/incassi-pagamenti` usa `GET /api/v1/ui/incassi-pagamenti` e le azioni JSON
+  supportate per registrare incassi manuali, aggiornare stati, collegare fatture
+  e recuperare link pagamento solo tramite backend. Provider, webhook e
+  configurazioni riservate restano legacy/backend; React vede solo stato pubblico.
+- `/compensi-forensi` legge parametri reali e invia il calcolo a
+  `POST /api/v1/ui/compensi-forensi/calcola`; DM55, risultato economico, logica
+  fiscale e creazione preventivo restano backend o azioni esplicitamente
+  supportate.
+- `/tariffario` legge versioni, aree, fasi, voci e scaglioni dal backend e usa
+  `POST /api/v1/ui/tariffario/calcola` quando il calcolo e disponibile; nessuna
+  formula, scaglione o tabella canonica viene duplicata in React.
+- `/audit` e `/registro-attivita` usano payload reali da
+  `GET /api/v1/ui/audit` e `GET /api/v1/ui/registro-attivita`, dettaglio sicuro
+  via `GET /api/v1/ui/audit/<id_evento>` e payload sanificati dal bridge.
+- I fallback `?_legacy=1` restano solo rollback tecnici o impostazioni provider
+  legacy; le sottoroute `/incassi-pagamenti/*`, `/compensi-forensi/*` e
+  `/tariffario/*` restano legacy/protette dal gate.
+
 ## Stato tranche 2026-05-07 - Parti 18A-21A preventivi e fatturazione operative 2.198.114
 
 Le Parti 18A-21A completano le superfici operative mandato/economico gia'

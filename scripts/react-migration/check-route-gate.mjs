@@ -68,7 +68,7 @@ function isBlockedBySpecialRule(path) {
     path.startsWith('/impostazioni-studio/') ||
     path === '/sincronizzazione-calendari' ||
     path.startsWith('/sincronizzazione-calendari/') ||
-    (path.startsWith('/preventivi/') && path !== '/preventivi/nuovo' && path !== '/preventivi/conferimento/nuovo') ||
+    (path.startsWith('/preventivi/') && path !== '/preventivi/nuovo' && path !== '/preventivi/wizard' && path !== '/preventivi/conferimento/nuovo') ||
     path.startsWith('/compensi-forensi/') ||
     path.startsWith('/tariffario/') ||
     path === '/template-atti/nuovo' ||
@@ -97,7 +97,7 @@ const reactExact = new Set(extractSet(gate, '_REACT_EXACT').map(normaliseRoute))
 const legacyOperationalPrefixes = extractTuple(gate, '_LEGACY_OPERATIONAL_PREFIXES')
 const excludedPrefixes = extractTuple(gate, '_EXCLUDED_PREFIXES')
 const shellLegacyFirstPrefixes = extractTuple(reactShell, '_LEGACY_FIRST_PREFIXES')
-const allowedReactUnlocks = new Set(['/statistiche', '/audit', '/registro-attivita', '/utenti', '/profili', '/backup', '/sito-studio', '/sito-studio/contatti', '/studio', '/amministrazione', '/fatturazione', '/fatturazione/nuova', '/incassi-pagamenti', '/preventivi', '/preventivi/nuovo', '/preventivi/conferimento/nuovo', '/compensi-forensi', '/tariffario', '/template-atti', '/template-atti/catalogo', '/redazione-atti'])
+const allowedReactUnlocks = new Set(['/statistiche', '/audit', '/registro-attivita', '/utenti', '/profili', '/backup', '/sito-studio', '/sito-studio/contatti', '/studio', '/amministrazione', '/fatturazione', '/fatturazione/nuova', '/incassi-pagamenti', '/preventivi', '/preventivi/nuovo', '/preventivi/wizard', '/preventivi/conferimento/nuovo', '/compensi-forensi', '/tariffario', '/template-atti', '/template-atti/catalogo', '/redazione-atti'])
 
 const violations = []
 for (const entry of manifest.routes ?? []) {
@@ -196,7 +196,7 @@ for (const route of ['/fatturazione', '/fatturazione/nuova', '/incassi-pagamenti
   }
 }
 
-for (const route of ['/preventivi', '/preventivi/nuovo', '/preventivi/conferimento/nuovo']) {
+for (const route of ['/preventivi', '/preventivi/nuovo', '/preventivi/wizard', '/preventivi/conferimento/nuovo']) {
   const entry = (manifest.routes ?? []).find((item) => normaliseRoute(item.route) === route)
   if (!entry || entry.status !== 'react_full' || entry.unlockFromGate !== true) {
     violations.push(`${route}: deve essere react_full con unlockFromGate=true nella Tranche 7A`)
@@ -220,7 +220,7 @@ for (const route of ['/template-atti', '/template-atti/catalogo', '/redazione-at
   }
 }
 
-for (const route of ['/fatturazione/*', '/impostazioni/pagamenti', '/preventivi/*', '/preventivi/wizard', '/compensi-forensi/*', '/tariffario/*', '/template-atti/nuovo', '/template-atti/*', '/redazione-atti/*', '/checklist', '/giurisprudenza', '/legal-intelligence', '/deposito/checklist']) {
+for (const route of ['/fatturazione/*', '/impostazioni/pagamenti', '/preventivi/*', '/compensi-forensi/*', '/tariffario/*', '/template-atti/nuovo', '/template-atti/*', '/redazione-atti/*', '/checklist', '/giurisprudenza', '/legal-intelligence', '/deposito/checklist']) {
   const entry = (manifest.routes ?? []).find((item) => item.route === route)
   if (!entry || entry.status !== 'legacy_operational' || entry.unlockFromGate !== false) {
     violations.push(`${route}: deve restare legacy_operational con unlockFromGate=false nelle tranche governate`)
@@ -240,6 +240,7 @@ for (const snippet of [
   'lower == "/sincronizzazione-calendari" or lower.startswith("/sincronizzazione-calendari/")',
   'lower.startswith("/preventivi/") and lower not in {',
   '"/preventivi/nuovo",',
+  '"/preventivi/wizard",',
   '"/preventivi/conferimento/nuovo",',
   'lower.startswith("/compensi-forensi/")',
   'lower.startswith("/tariffario/")',

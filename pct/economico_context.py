@@ -229,6 +229,7 @@ def costruisci_contesto_economico(
     classificazioni_norm = [
         {
             "uid": str(row.get("uid") or "").strip(),
+            "area_pratica": str(row.get("area_pratica") or "").strip(),
             "area_tassonomica_code": str(row.get("area_tassonomica_code") or "").strip(),
             "area_tassonomica": str(row.get("area_tassonomica") or "").strip(),
             "macro_area_tassonomica_code": str(row.get("macro_area_tassonomica_code") or "").strip(),

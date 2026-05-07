@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from pct.clienti import GestioneClienti, TipoCliente
+from pct.preventivi import StatoPreventivo
 from tests.test_applicazioni import _crea_operatore, _login
 from tests.test_react_shell import _app
 from web.helpers import get_preventivi
@@ -72,6 +73,27 @@ def _calculation_payload(practice: dict, **overrides) -> dict:
     return payload
 
 
+def _cliente_conferimento_pronto(app) -> str:
+    clienti = GestioneClienti(db_path=app.config["CLIENTI_DB"])
+    cliente = clienti.nuovo(
+        TipoCliente.PERSONA_FISICA,
+        nome="Ada",
+        cognome="Accettazione",
+        codice_fiscale="RSSMRA80A01H501U",
+    )
+    clienti.aggiorna_recapiti(cliente.id, email="ada.accettazione@example.it")
+    clienti.aggiorna_indirizzo(
+        cliente.id,
+        "residenza",
+        via="Via Roma",
+        civico="1",
+        cap="00100",
+        comune="Roma",
+        provincia="RM",
+    )
+    return cliente.id
+
+
 def test_preventivo_wizard_react_bootstrap_console_operativa(tmp_path: Path):
     app, client = _logged_client(tmp_path)
     cliente = GestioneClienti(db_path=app.config["CLIENTI_DB"]).nuovo(
@@ -136,6 +158,31 @@ def test_preventivo_wizard_react_calcola_ads_con_voci_manuali_e_accessori(tmp_pa
     assert payload["economic"]["iva"] > 0
 
 
+def test_preventivo_wizard_react_calcola_ads_compenso_unico_default_senza_voci_manuali(tmp_path: Path):
+    _app_obj, client = _logged_client(tmp_path)
+    page = client.get("/api/v1/ui/preventivi/wizard").get_json()
+    practice = _amministrazione_sostegno(page)
+
+    response = client.post(
+        "/api/v1/ui/preventivi/wizard/calculate",
+        json=_calculation_payload(
+            practice,
+            fasi=practice.get("fasi_default_keys", []),
+            compenso_unico=False,
+            voci_bozza=[],
+            manual_lines=[],
+        ),
+    )
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["ok"] is True
+    assert payload["compenso_base"] > 0
+    assert payload["economic"]["totale"] > 0
+    assert "compenso_unico" in payload["state"]["fasi"]
+    assert "Compenso unico" in payload["fasi"]
+
+
 def test_preventivo_wizard_react_create_crea_preventivo_reale_con_cliente_potenziale_e_clausola(tmp_path: Path):
     app, client = _logged_client(tmp_path)
     page = client.get("/api/v1/ui/preventivi/wizard").get_json()
@@ -167,6 +214,75 @@ def test_preventivo_wizard_react_create_crea_preventivo_reale_con_cliente_potenz
     assert preventivo.clausola_controversie_attiva is True
     assert preventivo.clausola_controversie_testo == "Clausola controversie verificata nel wizard React."
     assert any(voce.descrizione == "Voce manuale di verifica" for voce in preventivo.voci)
+
+
+def test_preventivo_wizard_react_non_genera_conferimento_senza_accettazione_cliente(tmp_path: Path):
+    app, client = _logged_client(tmp_path)
+    page = client.get("/api/v1/ui/preventivi/wizard").get_json()
+    practice = _amministrazione_sostegno(page)
+    request_payload = _calculation_payload(
+        practice,
+        id_cliente=_cliente_conferimento_pronto(app),
+        voci_bozza=[],
+        manual_lines=[],
+        opzioni_finali={
+            "preventivo_accettato": False,
+            "genera_conferimento": True,
+            "apri_fascicolo_guidato": True,
+            "informativa_art13_resa": True,
+        },
+    )
+
+    response = client.post("/api/v1/ui/preventivi/wizard/create", json=request_payload)
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["ok"] is True
+    assert payload["id_preventivo"]
+    assert payload.get("id_conferimento", "") == ""
+    assert any(warning["code"] == "conferimento_dopo_accettazione" for warning in payload["warnings"])
+    with app.app_context():
+        preventivo = get_preventivi().get_preventivo(payload["id_preventivo"])
+        conferimento = get_preventivi().get_conferimento_principale_preventivo(payload["id_preventivo"])
+    assert preventivo is not None
+    assert preventivo.stato == StatoPreventivo.BOZZA
+    assert not preventivo.accettato_il
+    assert conferimento is None
+
+
+def test_preventivo_wizard_react_genera_conferimento_solo_dopo_accettazione_cliente(tmp_path: Path):
+    app, client = _logged_client(tmp_path)
+    page = client.get("/api/v1/ui/preventivi/wizard").get_json()
+    practice = _amministrazione_sostegno(page)
+    request_payload = _calculation_payload(
+        practice,
+        id_cliente=_cliente_conferimento_pronto(app),
+        voci_bozza=[],
+        manual_lines=[],
+        opzioni_finali={
+            "preventivo_accettato": True,
+            "genera_conferimento": True,
+            "apri_fascicolo_guidato": False,
+            "informativa_art13_resa": True,
+        },
+    )
+
+    response = client.post("/api/v1/ui/preventivi/wizard/create", json=request_payload)
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["ok"] is True
+    assert payload["id_preventivo"]
+    assert payload["id_conferimento"]
+    with app.app_context():
+        gp = get_preventivi()
+        preventivo = gp.get_preventivo(payload["id_preventivo"])
+        conferimento = gp.get_conferimento(payload["id_conferimento"])
+    assert preventivo is not None
+    assert conferimento is not None
+    assert preventivo.accettato_il
+    assert preventivo.stato == StatoPreventivo.CONVERTITO
+    assert conferimento.id_preventivo == preventivo.id
 
 
 def test_preventivo_wizard_react_api_richiede_auth(tmp_path: Path):

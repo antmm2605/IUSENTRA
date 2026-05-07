@@ -2830,6 +2830,9 @@ def _wizard_react_form_payload(payload: dict[str, Any], calculation: dict[str, A
     economic = calculation.get("economic") if isinstance(calculation.get("economic"), dict) else {}
     clause = payload.get("clausola") if isinstance(payload.get("clausola"), dict) else {}
     final = payload.get("opzioni_finali") if isinstance(payload.get("opzioni_finali"), dict) else {}
+    preventivo_accettato = bool(final.get("preventivo_accettato"))
+    conferimento_richiesto = bool(final.get("genera_conferimento"))
+    conferimento_autorizzato = bool(preventivo_accettato and conferimento_richiesto)
     quick = payload.get("cliente_rapido") if isinstance(payload.get("cliente_rapido"), dict) else {}
     metadata = payload.get("metadata") if isinstance(payload.get("metadata"), dict) else {}
     classifications = payload.get("classificazioni_tassonomiche")
@@ -2888,8 +2891,10 @@ def _wizard_react_form_payload(payload: dict[str, Any], calculation: dict[str, A
         "log_calcolo": str((calculation.get("audit") or {}).get("log_calcolo") or payload.get("log_calcolo") or "").strip(),
         "fonti_tassonomia_json": json.dumps(sources, ensure_ascii=False),
         "classificazioni_tassonomiche_json": json.dumps(classifications, ensure_ascii=False),
-        "genera_conferimento": "1" if bool(final.get("genera_conferimento")) else "",
-        "apri_fascicolo_guidato": "1" if bool(final.get("apri_fascicolo_guidato")) else "",
+        "preventivo_accettato": "1" if preventivo_accettato else "",
+        "genera_conferimento": "1" if conferimento_autorizzato else "",
+        "apri_fascicolo_guidato": "1" if bool(final.get("apri_fascicolo_guidato") and conferimento_autorizzato) else "",
+        "conferimento_richiesto_senza_accettazione": "1" if conferimento_richiesto and not preventivo_accettato else "",
         "informativa_art13_resa": "1" if bool(final.get("informativa_art13_resa", True)) else "",
         "clausola_adr_resa": "1" if bool(clause.get("attiva")) else "",
         "clausola_controversie_attiva": "1" if bool(clause.get("attiva")) else "",
@@ -2934,6 +2939,14 @@ def preventivi_wizard_create_page():
         gp = get_preventivi()
         id_cliente = form.get("id_cliente", "").strip()
         messages: list[dict[str, str]] = []
+        response_warnings: list[dict[str, str]] = []
+        if _flag_from_form(form, "conferimento_richiesto_senza_accettazione"):
+            response_warnings.append(
+                _warning(
+                    "conferimento_dopo_accettazione",
+                    "Il conferimento incarico non viene generato finche' il preventivo non risulta accettato dal cliente.",
+                )
+            )
         if not id_cliente:
             if _flag_from_form(form, "cliente_rapido_attivo"):
                 id_cliente, msg_cliente = _crea_cliente_rapido_da_wizard(form)
@@ -3041,6 +3054,17 @@ def preventivi_wizard_create_page():
         conferimento_id = ""
         fascicolo_id = ""
         redirect_url = detail_url_for_preventivo(p.id)
+        if _flag_from_form(form, "preventivo_accettato"):
+            p, _ = gp.registra_accettazione_preventivo(
+                p.id,
+                workflow_channel="STUDIO",
+                via="STUDIO",
+                ip=request.remote_addr or "",
+                user_agent=request.headers.get("User-Agent", ""),
+                creato_da=getattr(utente, "username", ""),
+                auto_crea_conferimento=False,
+            )
+            messages.append({"tone": "success", "message": "Accettazione cliente registrata prima del conferimento."})
         if _flag_from_form(form, "genera_conferimento"):
             cliente_corrente = get_clienti().get(id_cliente)
             if _cliente_da_completare(cliente_corrente):
@@ -3058,7 +3082,7 @@ def preventivi_wizard_create_page():
                                 from_page="preventivo",
                             ),
                         ),
-                        "warnings": [
+                        "warnings": response_warnings + [
                             _warning("cliente_da_completare", f"Preventivo creato. Completa l'anagrafica cliente prima del conferimento: {missing}.")
                         ],
                         "messages": messages,
@@ -3120,7 +3144,7 @@ def preventivi_wizard_create_page():
                 "detail_url": detail_url_for_preventivo(p.id),
                 "redirect_url": redirect_url,
                 "messages": messages + [{"tone": "success", "message": f"Preventivo {p.numero} creato."}],
-                "warnings": [],
+                "warnings": response_warnings,
             }
         ), 200
     except Exception as exc:

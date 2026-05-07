@@ -49,7 +49,13 @@ def main() -> int:
             )
             _record(results, "login tenant", login.status_code == 302, f"status={login.status_code}")
 
-            for path in ("/compensi-forensi", "/tariffario"):
+            for path in (
+                "/preventivi/wizard",
+                "/compensi-forensi",
+                "/tariffario",
+                "/template-atti",
+                "/redazione-atti",
+            ):
                 response = client.get(path, headers={"Accept": "text/html"})
                 _record(
                     results,
@@ -63,10 +69,13 @@ def main() -> int:
                 "/tariffario?_legacy=1",
                 "/compensi-forensi/dettaglio",
                 "/tariffario/dettaglio",
-                "/preventivi/wizard",
+                "/preventivi/wizard?_legacy=1",
                 "/preventivi/qualunque",
-                "/template-atti",
-                "/redazione-atti",
+                "/template-atti?_legacy=1",
+                "/template-atti/nuovo",
+                "/template-atti/qualunque",
+                "/redazione-atti?_legacy=1",
+                "/redazione-atti/qualunque",
             ):
                 response = client.get(path, headers={"Accept": "text/html"}, follow_redirects=False)
                 _record(
@@ -76,7 +85,13 @@ def main() -> int:
                     f"status={response.status_code}",
                 )
 
-            for path in ("/api/v1/ui/compensi-forensi", "/api/v1/ui/tariffario"):
+            for path in (
+                "/api/v1/ui/preventivi/wizard",
+                "/api/v1/ui/compensi-forensi",
+                "/api/v1/ui/tariffario",
+                "/api/v1/ui/template-atti",
+                "/api/v1/ui/redazione-atti",
+            ):
                 response = client.get(path, headers={"Accept": "application/json"})
                 _record(
                     results,

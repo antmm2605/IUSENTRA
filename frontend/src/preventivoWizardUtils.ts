@@ -58,6 +58,19 @@ export function isCompensoUnicoProfile(practice: WizardPractice | null): boolean
   })
 }
 
+export function isCompensoUnicoOnlyProfile(practice: WizardPractice | null): boolean {
+  if (!practice) return false
+  return practice.regole_tariffarie.some((rule) => {
+    const profile = rule.profile
+    if (!profile || typeof profile !== 'object' || Array.isArray(profile)) return false
+    const calcMode = String((profile as Record<string, unknown>).calc_mode || '')
+    const phaseKeys = Array.isArray((profile as Record<string, unknown>).phase_keys)
+      ? ((profile as Record<string, unknown>).phase_keys as unknown[]).map((item) => String(item || '')).filter(Boolean)
+      : []
+    return calcMode === 'compenso_unico' && phaseKeys.length === 1 && phaseKeys[0] === 'compenso_unico'
+  })
+}
+
 export function phaseKeyLabel(key: string): string {
   return {
     studio: 'Studio',

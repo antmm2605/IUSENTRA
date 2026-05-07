@@ -93,6 +93,7 @@ def _normalizza_classificazioni_tassonomiche(
             continue
         item = {
             "uid": str(raw.get("uid") or "").strip(),
+            "area_pratica": str(raw.get("area_pratica") or "").strip(),
             "area_tassonomica_code": str(raw.get("area_tassonomica_code") or "").strip(),
             "area_tassonomica": str(raw.get("area_tassonomica") or "").strip(),
             "macro_area_tassonomica_code": str(raw.get("macro_area_tassonomica_code") or "").strip(),
@@ -108,6 +109,7 @@ def _normalizza_classificazioni_tassonomiche(
             item[key]
             for key in (
                 "area_tassonomica",
+                "area_pratica",
                 "macro_area_tassonomica",
                 "sottobranca_tassonomica",
                 "tipologia_pratica_id",

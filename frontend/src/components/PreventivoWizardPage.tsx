@@ -27,6 +27,7 @@ import {
 import {
   dateToItalian,
   formatEuro,
+  isCompensoUnicoOnlyProfile,
   isCompensoUnicoProfile,
   mergeCalculatedRowsWithManualRows,
   normalizeAmountInput,
@@ -60,6 +61,7 @@ type ClauseState = {
 }
 
 type FinalOptions = {
+  preventivo_accettato: boolean
   genera_conferimento: boolean
   apri_fascicolo_guidato: boolean
   informativa_art13_resa: boolean
@@ -212,17 +214,19 @@ function SwitchRow({
   checked,
   label,
   help,
+  disabled = false,
   onChange,
 }: {
   id: string
   checked: boolean
   label: string
   help?: string
+  disabled?: boolean
   onChange: (checked: boolean) => void
 }) {
   return (
     <label className="iu-pwiz-switch" htmlFor={id}>
-      <input id={id} type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} />
+      <input id={id} type="checkbox" checked={checked} disabled={disabled} onChange={(event) => onChange(event.target.checked)} />
       <span aria-hidden="true" />
       <strong>{label}</strong>
       {help ? <small>{help}</small> : null}
@@ -365,6 +369,54 @@ function StatusMessages({ warnings, message }: { warnings: string[]; message: st
   )
 }
 
+type PracticeFilters = {
+  area: string
+  procedure: string
+  workflow: string
+  channel: string
+  taxonomyArea: string
+  taxonomyMacro: string
+  taxonomySub: string
+  favoritesOnly?: boolean
+  searchTerm?: string
+}
+
+function practiceMatchesFilters(
+  practice: WizardPractice,
+  filters: PracticeFilters,
+  options: { ignore?: Array<keyof PracticeFilters>; favorites?: string[] } = {},
+): boolean {
+  const ignore = new Set(options.ignore || [])
+  if (!ignore.has('area') && filters.area && practice.area !== filters.area) return false
+  if (!ignore.has('procedure') && filters.procedure && practice.procedura_operativa_codice !== filters.procedure) return false
+  if (!ignore.has('workflow') && filters.workflow && practice.workflow_operativo_codice !== filters.workflow) return false
+  if (!ignore.has('channel') && filters.channel && practice.canale_operativo !== filters.channel) return false
+  if (!ignore.has('taxonomyArea') && filters.taxonomyArea && practice.area_tassonomica !== filters.taxonomyArea) return false
+  if (!ignore.has('taxonomyMacro') && filters.taxonomyMacro && practice.macro_area_tassonomica !== filters.taxonomyMacro) return false
+  if (!ignore.has('taxonomySub') && filters.taxonomySub && practice.sottobranca_tassonomica !== filters.taxonomySub) return false
+  if (!ignore.has('favoritesOnly') && filters.favoritesOnly && !(options.favorites || []).includes(practice.id)) return false
+  if (!ignore.has('searchTerm')) {
+    const needle = String(filters.searchTerm || '').trim().toLowerCase()
+    if (needle) {
+      const haystack = [
+        practice.label,
+        practice.summary,
+        practice.when_to_use,
+        practice.area,
+        practice.area_tassonomica,
+        practice.macro_area_tassonomica,
+        practice.sottobranca_tassonomica,
+      ].join(' ').toLowerCase()
+      if (!haystack.includes(needle)) return false
+    }
+  }
+  return true
+}
+
+function hasTechnicalFilters(filters: PracticeFilters): boolean {
+  return Boolean(filters.procedure || filters.workflow || filters.channel || filters.taxonomyArea || filters.taxonomyMacro || filters.taxonomySub)
+}
+
 function Sidebar({
   practice,
   client,
@@ -389,14 +441,11 @@ function Sidebar({
       <div className="iu-pwiz-side-card">
         <header>
           <span>RIEPILOGO INTELLIGENTE</span>
-          <em>desktop sticky</em>
+          <em>sticky a sinistra</em>
         </header>
         <h2>Vista compatta del preventivo</h2>
         <Tags values={[
           practice?.area || '',
-          practice?.area_tassonomica || '',
-          practice?.macro_area_tassonomica || '',
-          practice?.sottobranca_tassonomica || '',
           practice?.motore_label || '',
           practice?.redattore_label || '',
           practice?.label || '',
@@ -404,7 +453,6 @@ function Sidebar({
         ]} />
         <h3>{practice?.label || 'Tipologia non selezionata'}</h3>
         <p>{practice?.summary || 'Seleziona una tipologia per attivare profilo, calcolo e riferimenti.'}</p>
-        {practice?.area_tassonomica ? <p>Tassonomia tecnica di supporto: {practice.area_tassonomica} / {practice.macro_area_tassonomica} / {practice.sottobranca_tassonomica}</p> : null}
         {practice?.when_to_use ? <p>{practice.when_to_use}</p> : null}
         {practice?.base_normativa ? <p className="iu-pwiz-side-note">Regola allineata al catalogo tariffario e alla tabella ufficiale presente nello snapshot DM 147/2022.</p> : null}
         {client ? <p className="iu-pwiz-side-client">Cliente: <strong>{client.label}</strong></p> : null}
@@ -485,7 +533,6 @@ export function PreventivoWizardPage() {
   const [taxonomySub, setTaxonomySub] = useState('')
   const [extraTaxonomies, setExtraTaxonomies] = useState<Array<Record<string, string>>>([])
   const [searchTerm, setSearchTerm] = useState('')
-  const [advancedFilters, setAdvancedFilters] = useState(false)
   const [favoritesOnly, setFavoritesOnly] = useState(false)
   const [compactCards, setCompactCards] = useState(false)
   const [practiceId, setPracticeId] = useState('')
@@ -522,7 +569,8 @@ export function PreventivoWizardPage() {
     trattativa_individuale: false,
   })
   const [finalOptions, setFinalOptions] = useState<FinalOptions>({
-    genera_conferimento: true,
+    preventivo_accettato: false,
+    genera_conferimento: false,
     apri_fascicolo_guidato: false,
     informativa_art13_resa: true,
   })
@@ -555,9 +603,79 @@ export function PreventivoWizardPage() {
   const selectedClient = customerId ? data.clients.find((client) => client.id === customerId) || null : null
   const filteredCases = customerId ? data.cases.filter((item) => item.customerId === customerId) : data.cases
   const hasCompensoUnico = isCompensoUnicoProfile(selectedPractice)
-  const visibleTaxonomySources = selectedPractice?.tassonomia_sources?.length || data.catalog.taxonomySources.length
+  const requiresCompensoUnico = isCompensoUnicoOnlyProfile(selectedPractice)
+  const currentFilters = useMemo<PracticeFilters>(() => ({
+    area,
+    procedure: '',
+    workflow: '',
+    channel: '',
+    taxonomyArea: '',
+    taxonomyMacro: '',
+    taxonomySub: '',
+    favoritesOnly,
+    searchTerm,
+  }), [area, favoritesOnly, searchTerm])
+  const practiceList = useMemo(() => Object.values(practices), [practices])
+
+  function clearTechnicalFilters() {
+    setArea('')
+    setSearchTerm('')
+    setFavoritesOnly(false)
+    setProcedure('')
+    setWorkflow('')
+    setChannel('')
+    setTaxonomyArea('')
+    setTaxonomyMacro('')
+    setTaxonomySub('')
+  }
+
+  function handleAreaChange(nextArea: string) {
+    const compatibleWithCurrentTechnicalFilters = !nextArea || practiceList.some((practice) => (
+      practice.area === nextArea
+      && practiceMatchesFilters(practice, currentFilters, { ignore: ['area', 'favoritesOnly', 'searchTerm'], favorites })
+    ))
+    setArea(nextArea)
+    if (selectedPractice && nextArea && selectedPractice.area !== nextArea) {
+      setPracticeId('')
+    }
+    if (nextArea && !compatibleWithCurrentTechnicalFilters && hasTechnicalFilters(currentFilters)) {
+      clearTechnicalFilters()
+    }
+  }
+
+  function handleTaxonomyAreaChange(nextArea: string) {
+    setTaxonomyArea(nextArea)
+    if (taxonomyMacro && !practiceList.some((practice) => (
+      (!nextArea || practice.area_tassonomica === nextArea)
+      && practice.macro_area_tassonomica === taxonomyMacro
+    ))) {
+      setTaxonomyMacro('')
+      setTaxonomySub('')
+    }
+  }
+
+  function handleTaxonomyMacroChange(nextMacro: string) {
+    setTaxonomyMacro(nextMacro)
+    if (taxonomySub && !practiceList.some((practice) => (
+      (!taxonomyArea || practice.area_tassonomica === taxonomyArea)
+      && (!nextMacro || practice.macro_area_tassonomica === nextMacro)
+      && practice.sottobranca_tassonomica === taxonomySub
+    ))) {
+      setTaxonomySub('')
+    }
+  }
+
+  const areaFilters = useMemo(() => data.catalog.areas.map((item) => {
+    const compatibleCount = practiceList.filter((practice) => (
+      practice.area === item.value
+      && practiceMatchesFilters(practice, currentFilters, { ignore: ['area', 'favoritesOnly', 'searchTerm'], favorites })
+    )).length
+    return { ...item, compatibleCount }
+  }), [currentFilters, data.catalog.areas, favorites, practiceList])
 
   function applyPractice(practice: WizardPractice, replaceText = false) {
+    const nextPhases = practice.fasi_default_keys.length ? practice.fasi_default_keys : practice.fasi_default.map((item) => item.toLowerCase())
+    const safePhases = isCompensoUnicoOnlyProfile(practice) ? Array.from(new Set([...nextPhases, 'compenso_unico'])) : nextPhases
     setPracticeId(practice.id)
     setArea(practice.area || area)
     setProcedure(practice.procedura_operativa_codice || '')
@@ -569,7 +687,7 @@ export function PreventivoWizardPage() {
     setRule(practice.regola_tariffaria_default)
     setGrade(practice.grado_default)
     setValue(String(practice.valore_suggerito || '0'))
-    setPhases(practice.fasi_default_keys.length ? practice.fasi_default_keys : practice.fasi_default.map((item) => item.toLowerCase()))
+    setPhases(safePhases)
     setAccessories(practice.accessori_calcolo.filter((item) => item.default_checked).map((item) => item.id))
     if (replaceText || !object) setObject(practice.oggetto_template || `Preventivo professionale per ${practice.label}`)
     if (replaceText || !notes) setNotes(practice.note_template)
@@ -612,7 +730,11 @@ export function PreventivoWizardPage() {
           setRule(String(payload.prefill.regolaTariffaria || firstPractice.regola_tariffaria_default))
           setComplexity(String(payload.prefill.complessita || 'media'))
           const prefillPhases = Array.isArray(payload.prefill.fasi) ? payload.prefill.fasi.map(String).filter(Boolean) : []
-          if (prefillPhases.length) setPhases(prefillPhases)
+          if (prefillPhases.length) {
+            setPhases(isCompensoUnicoOnlyProfile(firstPractice) ? Array.from(new Set([...prefillPhases, 'compenso_unico'])) : prefillPhases)
+          } else if (isCompensoUnicoOnlyProfile(firstPractice)) {
+            setPhases((current) => Array.from(new Set([...current, 'compenso_unico'])))
+          }
           setBonusTelematico(Boolean(payload.prefill.bonusTelematico))
           setGeneralExpenses(Boolean(payload.prefill.speseGenerali ?? payload.defaults.speseGenerali))
           setApplyCpa(Boolean(payload.prefill.applicaCpa ?? payload.defaults.applicaCpa))
@@ -632,29 +754,8 @@ export function PreventivoWizardPage() {
   }, [])
 
   const filteredPractices = useMemo(() => {
-    const needle = searchTerm.trim().toLowerCase()
-    return Object.values(practices).filter((practice) => {
-      if (area && practice.area !== area) return false
-      if (procedure && practice.procedura_operativa_codice !== procedure) return false
-      if (workflow && practice.workflow_operativo_codice !== workflow) return false
-      if (channel && practice.canale_operativo !== channel) return false
-      if (taxonomyArea && practice.area_tassonomica !== taxonomyArea) return false
-      if (taxonomyMacro && practice.macro_area_tassonomica !== taxonomyMacro) return false
-      if (taxonomySub && practice.sottobranca_tassonomica !== taxonomySub) return false
-      if (favoritesOnly && !favorites.includes(practice.id)) return false
-      if (!needle) return true
-      const haystack = [
-        practice.label,
-        practice.summary,
-        practice.when_to_use,
-        practice.area,
-        practice.area_tassonomica,
-        practice.macro_area_tassonomica,
-        practice.sottobranca_tassonomica,
-      ].join(' ').toLowerCase()
-      return haystack.includes(needle)
-    })
-  }, [area, procedure, workflow, channel, taxonomyArea, taxonomyMacro, taxonomySub, favoritesOnly, favorites, practices, searchTerm])
+    return practiceList.filter((practice) => practiceMatchesFilters(practice, currentFilters, { favorites }))
+  }, [currentFilters, favorites, practiceList])
 
   function toggleFavorite(id: string) {
     setFavorites((current) => {
@@ -665,6 +766,7 @@ export function PreventivoWizardPage() {
   }
 
   function togglePhase(key: string, checked: boolean) {
+    if (key === 'compenso_unico' && requiresCompensoUnico && !checked) return
     setPhases((current) => checked ? Array.from(new Set([...current, key])) : current.filter((item) => item !== key))
   }
 
@@ -699,22 +801,36 @@ export function PreventivoWizardPage() {
   }
 
   function addExtraTaxonomy() {
-    setExtraTaxonomies((current) => [
-      ...current,
-      {
-        uid: `tax-${Date.now()}`,
-        area_tassonomica: taxonomyArea,
-        macro_area_tassonomica: taxonomyMacro,
-        sottobranca_tassonomica: taxonomySub,
-        tipologia_pratica_id: practiceId,
-        tipologia_pratica_label: selectedPractice?.label || '',
-        tipo_compenso: selectedPractice?.tipo_compenso_default || '',
-      },
-    ])
+    if (!selectedPractice) return
+    setExtraTaxonomies((current) => {
+      if (current.some((item) => item.tipologia_pratica_id === selectedPractice.id)) return current
+      return [
+        ...current,
+        {
+          uid: `tax-${Date.now()}`,
+          area_pratica: selectedPractice.area || area,
+          area_tassonomica_code: selectedPractice.area_tassonomica_code,
+          area_tassonomica: selectedPractice.area_tassonomica,
+          macro_area_tassonomica_code: selectedPractice.macro_area_tassonomica_code,
+          macro_area_tassonomica: selectedPractice.macro_area_tassonomica,
+          sottobranca_tassonomica_code: selectedPractice.sottobranca_tassonomica_code,
+          sottobranca_tassonomica: selectedPractice.sottobranca_tassonomica,
+          tassonomia_codice: selectedPractice.tassonomia_codice,
+          tipologia_pratica_id: selectedPractice.id,
+          tipologia_pratica_label: selectedPractice.label,
+          tipo_compenso: selectedPractice.tipo_compenso_default,
+        },
+      ]
+    })
+  }
+
+  function removeExtraTaxonomy(uid: string) {
+    setExtraTaxonomies((current) => current.filter((row) => row.uid !== uid))
   }
 
   function buildPayload(includeRows = true): Record<string, unknown> {
     const practice = selectedPractice
+    const safePhases = requiresCompensoUnico ? Array.from(new Set([...phases, 'compenso_unico'])) : phases
     return {
       id_cliente: customerId,
       id_fascicolo: caseId,
@@ -746,8 +862,8 @@ export function PreventivoWizardPage() {
       ore_stimate: estimatedHours,
       anticipazioni: anticipations,
       avvocato_referente: lawyer,
-      fasi: phases,
-      compenso_unico: phases.includes('compenso_unico'),
+      fasi: safePhases,
+      compenso_unico: safePhases.includes('compenso_unico'),
       bonus_telematico: bonusTelematico,
       spese_generali: generalExpenses,
       perc_spese_generali: generalExpensesPct,
@@ -922,74 +1038,51 @@ export function PreventivoWizardPage() {
             open={open.tipologia}
             onToggle={() => toggleOpen('tipologia')}
           >
-            <section className="iu-pwiz-subpanel">
-              <h3>CLASSIFICAZIONE OPERATIVA</h3>
-              <div className="iu-pwiz-grid three">
-                <SelectInput id="proc" label="Procedura / servizio" value={procedure} onChange={setProcedure}>
-                  <option value="">Tutte le procedure</option>
-                  {data.catalog.procedures.filter((option) => option.value).map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}
-                </SelectInput>
-                <SelectInput id="workflow" label="Workflow" value={workflow} onChange={setWorkflow}>
-                  <option value="">Tutti i workflow</option>
-                  {data.catalog.workflows.filter((option) => option.value).map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}
-                </SelectInput>
-                <SelectInput id="channel" label="Canale" value={channel} onChange={setChannel}>
-                  <option value="">Tutti i canali</option>
-                  {data.catalog.channels.filter((option) => option.value).map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}
-                </SelectInput>
-              </div>
-              <p>La classificazione operativa guida davvero il catalogo: procedura, workflow e canale selezionano il profilo professionale prima della tassonomia di supporto.</p>
-              {selectedPractice ? (
-                <Tags values={[selectedPractice.label, selectedPractice.procedura_operativa_nome, selectedPractice.workflow_operativo_codice, selectedPractice.canale_operativo]} />
-              ) : (
-                <div className="iu-pwiz-empty"><strong>Classificazione operativa non ancora selezionata</strong><span>Scegli una procedura, un workflow o una tipologia: qui vedrai subito il profilo operativo reale che alimenta preventivo, conferimento, fascicolo, parcella e fattura.</span></div>
-              )}
-            </section>
-            <Accordion id="taxonomy" title="Tassonomia tecnica di supporto" description="CLASSIFICAZIONE TASSONOMICA" open={open.tassonomia} onToggle={() => toggleOpen('tassonomia')}>
-              <div className="iu-pwiz-grid three">
-                <SelectInput id="tax-area" label="Area tassonomica" value={taxonomyArea} onChange={setTaxonomyArea}>
-                  <option value="">Tutte le aree tassonomiche</option>
-                  {data.catalog.taxonomySummary.areas.map((item) => <option value={item} key={item}>{item}</option>)}
-                </SelectInput>
-                <SelectInput id="tax-macro" label="Macro-area" value={taxonomyMacro} onChange={setTaxonomyMacro}>
-                  <option value="">Tutte le macro-aree</option>
-                  {data.catalog.taxonomySummary.macroAreas.map((item) => <option value={item} key={item}>{item}</option>)}
-                </SelectInput>
-                <SelectInput id="tax-sub" label="Sottobranca" value={taxonomySub} onChange={setTaxonomySub}>
-                  <option value="">Tutte le sottobranche</option>
-                  {data.catalog.taxonomySummary.subBranches.map((item) => <option value={item} key={item}>{item}</option>)}
-                </SelectInput>
-              </div>
-              <div className="iu-pwiz-tax-box">
-                <Tags values={[taxonomyArea, taxonomyMacro, taxonomySub, `${filteredPractices.length} tipologie compatibili`]} />
-                <p>Tassonomia tecnica attiva: {[taxonomyArea, taxonomyMacro, taxonomySub].filter(Boolean).join(' / ') || 'non selezionata'}</p>
-                <p>{visibleTaxonomySources} fonti ufficiali aggregate pronte per il tracciato del preventivo.</p>
-              </div>
-            </Accordion>
-            {(mode === 'avanzato' || extraTaxonomies.length > 0) ? (
-              <Accordion id="aggiuntive" title="Classificazioni tassonomiche aggiuntive" description="Aggiungi altri sviluppi della pratica: ogni classificazione può collegare una tipologia tariffaria e genera una voce autonoma nel preventivo." open={open.aggiuntive} onToggle={() => toggleOpen('aggiuntive')}>
-                <button className="iu-pwiz-light-button" type="button" onClick={addExtraTaxonomy}><Plus size={16} aria-hidden="true" /> Aggiungi classificazione</button>
-                {extraTaxonomies.length ? (
-                  <div className="iu-pwiz-extra-tax">
-                    {extraTaxonomies.map((item) => (
-                      <article key={item.uid}>
-                        <strong>{item.tipologia_pratica_label || 'Classificazione aggiuntiva'}</strong>
-                        <span>{[item.area_tassonomica, item.macro_area_tassonomica, item.sottobranca_tassonomica].filter(Boolean).join(' / ')}</span>
-                        <button type="button" onClick={() => setExtraTaxonomies((current) => current.filter((row) => row.uid !== item.uid))}><Trash2 size={15} aria-hidden="true" /> Rimuovi</button>
-                      </article>
-                    ))}
-                  </div>
-                ) : <p className="iu-pwiz-empty">Nessuna classificazione aggiuntiva inserita.</p>}
-              </Accordion>
-            ) : null}
             <section className="iu-pwiz-area-practice">
-              <h3>AREA PRATICA</h3>
+              <div className="iu-pwiz-area-head">
+                <h3>AREA PRATICA</h3>
+                <button
+                  className="iu-pwiz-add-practice-button"
+                  type="button"
+                  onClick={addExtraTaxonomy}
+                  disabled={!selectedPractice}
+                  title={selectedPractice ? 'Aggiunge la tipologia selezionata come ulteriore voce area pratica del preventivo.' : 'Seleziona prima una tipologia pratica.'}
+                >
+                  <Plus size={16} aria-hidden="true" />
+                  Aggiungi voce area pratica
+                </button>
+              </div>
               <div className="iu-pwiz-area-pills">
-                <button className={!area ? 'is-active' : ''} type="button" onClick={() => setArea('')}>Tutte</button>
-                {data.catalog.areas.map((item) => (
-                  <button className={area === item.value ? 'is-active' : ''} type="button" onClick={() => setArea(item.value)} key={item.id}>{item.label}</button>
+                <button className={!area ? 'is-active' : ''} type="button" onClick={() => handleAreaChange('')}>Tutte</button>
+                {areaFilters.map((item) => (
+                  <button
+                    className={area === item.value ? 'is-active' : ''}
+                    type="button"
+                    onClick={() => handleAreaChange(item.value)}
+                    disabled={item.compatibleCount === 0}
+                    key={item.id}
+                    title={item.compatibleCount === 0 ? 'Nessuna tipologia disponibile per i filtri visibili correnti.' : undefined}
+                  >
+                    {item.value} ({item.compatibleCount})
+                  </button>
                 ))}
               </div>
+              {extraTaxonomies.length ? (
+                <div className="iu-pwiz-added-practices" aria-label="Voci area pratica aggiunte al preventivo">
+                  {extraTaxonomies.map((item) => (
+                    <article key={item.uid}>
+                      <span>
+                        <strong>{item.tipologia_pratica_label || 'Voce area pratica'}</strong>
+                        <small>{[item.area_pratica, item.tipo_compenso].filter(Boolean).join(' / ')}</small>
+                      </span>
+                      <button type="button" onClick={() => removeExtraTaxonomy(String(item.uid))}>
+                        <Trash2 size={15} aria-hidden="true" />
+                        Rimuovi
+                      </button>
+                    </article>
+                  ))}
+                </div>
+              ) : null}
             </section>
             <section className="iu-pwiz-searchbar">
               <label htmlFor="tipologia-search">Ricerca tipologie</label>
@@ -997,11 +1090,9 @@ export function PreventivoWizardPage() {
                 <Search size={17} aria-hidden="true" />
                 <input id="tipologia-search" value={searchTerm} placeholder="Es. recupero crediti, mediazione, penale..." onChange={(event) => setSearchTerm(event.target.value)} />
               </div>
-              <button type="button" className={advancedFilters ? 'is-active' : ''} onClick={() => setAdvancedFilters((current) => !current)}>Filtri avanzati</button>
               <button type="button" className={favoritesOnly ? 'is-active' : ''} onClick={() => setFavoritesOnly((current) => !current)}>Preferite</button>
               <button type="button" className={compactCards ? 'is-active' : ''} onClick={() => setCompactCards((current) => !current)}>Vista compatta</button>
             </section>
-            {advancedFilters ? <p className="iu-pwiz-info">I filtri avanzati usano i campi reali del catalogo: area, procedura, workflow, canale e tassonomia.</p> : null}
             <div className={`iu-pwiz-practice-grid ${compactClass}`}>
               {filteredPractices.length ? filteredPractices.slice(0, mode === 'guidato' ? 12 : 80).map((practice) => (
                 <article className={`iu-pwiz-practice ${practice.id === practiceId ? 'is-selected' : ''}`} key={practice.id}>
@@ -1015,7 +1106,13 @@ export function PreventivoWizardPage() {
                     <Star size={16} aria-hidden="true" />
                   </button>
                 </article>
-              )) : <p className="iu-pwiz-empty">Nessuna tipologia compatibile con i filtri correnti.</p>}
+              )) : (
+                <div className="iu-pwiz-empty iu-pwiz-filter-empty">
+                  <strong>Nessuna tipologia compatibile con i filtri visibili.</strong>
+                  <span>Area pratica, ricerca o preferite non trovano una combinazione disponibile nel catalogo reale.</span>
+                  <button className="iu-pwiz-light-button" type="button" onClick={clearTechnicalFilters}>Azzera filtri visibili</button>
+                </div>
+              )}
             </div>
             {errors.practice ? <p className="iu-pwiz-error">{errors.practice}</p> : null}
           </StepCard>
@@ -1057,11 +1154,17 @@ export function PreventivoWizardPage() {
                 <article>
                   <h3>FASI DA INCLUDERE</h3>
                   <p>Include anche il flag compenso unico quando previsto.</p>
-                  {hasCompensoUnico ? <p className="iu-pwiz-info">Il profilo tariffario attivo usa una tabella a compenso unico: le fasi operative restano visibili per continuità  del preventivo; con il flag acceso viene calcolata la voce unica, con il flag spento il wizard usa le fasi tabellari selezionate.</p> : null}
+                  {hasCompensoUnico ? <p className="iu-pwiz-info">{requiresCompensoUnico ? 'Il profilo tariffario attivo prevede solo la voce a compenso unico: il flag resta attivo per evitare bozze a zero.' : 'Il profilo tariffario attivo usa anche una tabella a compenso unico: con il flag acceso viene calcolata la voce unica, con il flag spento il wizard usa le fasi tabellari selezionate.'}</p> : null}
                   <div className="iu-pwiz-check-grid">
                     {Array.from(new Set([...(selectedPractice?.fasi_default_keys || []), ...(hasCompensoUnico ? ['compenso_unico'] : [])])).map((key) => (
                       <label className="iu-pwiz-check" htmlFor={`phase-${key}`} key={key}>
-                        <input id={`phase-${key}`} type="checkbox" checked={phases.includes(key)} onChange={(event) => togglePhase(key, event.target.checked)} />
+                        <input
+                          id={`phase-${key}`}
+                          type="checkbox"
+                          checked={phases.includes(key) || (key === 'compenso_unico' && requiresCompensoUnico)}
+                          disabled={key === 'compenso_unico' && requiresCompensoUnico}
+                          onChange={(event) => togglePhase(key, event.target.checked)}
+                        />
                         <span>{phaseKeyLabel(key)}</span>
                       </label>
                     ))}
@@ -1220,8 +1323,9 @@ export function PreventivoWizardPage() {
             </Accordion>
             <Accordion id="finali" title="Opzioni finali" open={open.finali} onToggle={() => toggleOpen('finali')}>
               <div className="iu-pwiz-final-options">
-                <SwitchRow id="gen-conf" checked={finalOptions.genera_conferimento} label="Genera anche il conferimento incarico" onChange={(checked) => setFinalOptions((current) => ({ ...current, genera_conferimento: checked, apri_fascicolo_guidato: checked ? current.apri_fascicolo_guidato : false }))} />
-                <SwitchRow id="open-case" checked={finalOptions.apri_fascicolo_guidato} label="Poi apri il fascicolo guidato" help={!finalOptions.genera_conferimento ? 'Disponibile dopo aver attivato il conferimento.' : undefined} onChange={(checked) => setFinalOptions((current) => ({ ...current, apri_fascicolo_guidato: checked }))} />
+                <SwitchRow id="quote-accepted" checked={finalOptions.preventivo_accettato} label="Il cliente ha accettato il preventivo" help="Solo dopo questa conferma il wizard può predisporre il conferimento incarico." onChange={(checked) => setFinalOptions((current) => ({ ...current, preventivo_accettato: checked, genera_conferimento: checked ? current.genera_conferimento : false, apri_fascicolo_guidato: checked ? current.apri_fascicolo_guidato : false }))} />
+                <SwitchRow id="gen-conf" checked={finalOptions.genera_conferimento && finalOptions.preventivo_accettato} disabled={!finalOptions.preventivo_accettato} label="Genera il conferimento incarico" help={!finalOptions.preventivo_accettato ? 'Disponibile dopo l’accettazione del preventivo.' : 'Il conferimento viene creato dopo aver registrato l’accettazione.'} onChange={(checked) => setFinalOptions((current) => ({ ...current, genera_conferimento: checked, apri_fascicolo_guidato: checked ? current.apri_fascicolo_guidato : false }))} />
+                <SwitchRow id="open-case" checked={finalOptions.apri_fascicolo_guidato && finalOptions.genera_conferimento && finalOptions.preventivo_accettato} disabled={!finalOptions.preventivo_accettato || !finalOptions.genera_conferimento} label="Poi apri il fascicolo guidato" help={!finalOptions.genera_conferimento || !finalOptions.preventivo_accettato ? 'Disponibile dopo accettazione e conferimento.' : undefined} onChange={(checked) => setFinalOptions((current) => ({ ...current, apri_fascicolo_guidato: checked }))} />
                 <SwitchRow id="art13" checked={finalOptions.informativa_art13_resa} label="Informativa art. 13 resa" onChange={(checked) => setFinalOptions((current) => ({ ...current, informativa_art13_resa: checked }))} />
               </div>
             </Accordion>
@@ -1233,13 +1337,17 @@ export function PreventivoWizardPage() {
         <div className="iu-pwiz-footer-total">
           <span className="iu-pwiz-footer-total-label">TOTALE PREVENTIVO</span>
           <strong className="iu-pwiz-footer-total-value">{totalLabel}</strong>
-          <small className="iu-pwiz-footer-total-meta">Base imponibile: {baseLabel} - emissione {dateToItalian(issuedAt)}</small>
+          <small className="iu-pwiz-footer-total-meta">
+            <span>Base imponibile: {baseLabel}</span>
+            <span className="iu-pwiz-footer-date">emissione {dateToItalian(issuedAt)}</span>
+          </small>
         </div>
         <nav className="iu-pwiz-footer-actions" aria-label="Azioni finali preventivo">
           <button className="iu-pwiz-light-button" type="button" onClick={cancel}>Annulla</button>
           <button className="iu-pwiz-primary-button" type="button" disabled={busyCalc || !practiceId} onClick={submitCalculation}>
             {busyCalc ? <Loader2 className="iu-pwiz-spin" size={17} aria-hidden="true" /> : <RefreshCw size={17} aria-hidden="true" />}
-            Calcola e aggiorna la bozza
+            <span className="iu-pwiz-action-label-wide">Calcola e aggiorna la bozza</span>
+            <span className="iu-pwiz-action-label-short">Aggiorna bozza</span>
           </button>
           <button className="iu-pwiz-create-button" type="button" disabled={!canCreate} onClick={submitCreate}>
             {busyCreate ? <Loader2 className="iu-pwiz-spin" size={17} aria-hidden="true" /> : null}
@@ -1247,8 +1355,9 @@ export function PreventivoWizardPage() {
           </button>
         </nav>
         <div className="iu-pwiz-footer-tags">
-          {finalOptions.genera_conferimento ? <span>conferimento incarico pronto</span> : null}
-          {finalOptions.informativa_art13_resa ? <span>informativa art. 13 resa</span> : null}
+          {finalOptions.preventivo_accettato ? <span title="Accettazione preventivo registrata prima del conferimento">Preventivo accettato</span> : null}
+          {finalOptions.genera_conferimento && finalOptions.preventivo_accettato ? <span title="Conferimento incarico dopo accettazione">Conferimento</span> : null}
+          {finalOptions.informativa_art13_resa ? <span title="Informativa art. 13 resa">Art. 13 resa</span> : null}
         </div>
       </div>
     </main>

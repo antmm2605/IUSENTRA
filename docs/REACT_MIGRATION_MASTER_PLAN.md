@@ -131,6 +131,12 @@ legacy:
   `web/services/react_preventivo_wizard_bridge.py` e gli endpoint
   `/api/v1/ui/preventivi/wizard`, `/calculate` e `/create`; i dettagli
   `/preventivi/*` restano legacy con protezioni esplicite nel gate e nella shell.
+  La tranche `2.198.100` porta riepilogo e riferimenti nella colonna sinistra,
+  mantiene classificazione operativa/tassonomia come metadati silenziosi,
+  aggiunge il pulsante reale `Aggiungi voce area pratica` e compatta lo sticky
+  footer su desktop e mobile, protegge i profili solo a `Compenso unico` da
+  bozze a zero e vincola il conferimento alla previa accettazione cliente del
+  preventivo senza spostare formule economiche nel frontend.
 - `scripts/react-migration/check-tranche-7a-secrets.mjs`,
   `scripts/react-migration/check-tranche-7a-no-compensi-logic.mjs` e
   `scripts/react-migration/check-tranche-7a-no-document-generation.mjs`

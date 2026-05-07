@@ -254,10 +254,7 @@ def build_react_preventivo_wizard_payload(
     get_normative_tables: Callable[[], Any],
     query: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    warnings: list[dict[str, str]] = [
-        _warning("motore_backend", "Il calcolo economico resta nel motore preventivo Python."),
-        _warning("fallback_legacy", "La vista tecnica storica resta disponibile con ?_legacy=1."),
-    ]
+    warnings: list[dict[str, str]] = []
     clienti = _safe_all(get_clienti, "tutti", warnings, "clienti")
     fascicoli = _safe_all(get_fascicoli, "tutti", warnings, "fascicoli")
     grouped, practices = _catalog_rows()
@@ -420,6 +417,7 @@ class WizardPayloadForm:
 def _state(payload: dict[str, Any]) -> dict[str, Any]:
     practice_id = _text(payload.get("id_pratica") or payload.get("practiceId"))
     tp = get_tipo_pratica(practice_id) if practice_id else None
+    regola_tariffaria = _text(payload.get("regola_tariffaria") or getattr(tp, "regola_tariffaria_default", ""))
     phases = payload.get("fasi")
     if not isinstance(phases, list) or not phases:
         phases = [
@@ -429,12 +427,19 @@ def _state(payload: dict[str, Any]) -> dict[str, Any]:
         phases = [phase for phase in phases if phase]
     if _bool(payload.get("compenso_unico"), False) and "compenso_unico" not in phases:
         phases = [*phases, "compenso_unico"]
+    regola = rule_lookup(regola_tariffaria) if regola_tariffaria else None
+    if not regola and practice_id:
+        regola = default_rule_for_practice(practice_id)
+    profile = (regola or {}).get("profile", {}) or {}
+    phase_keys = [str(item or "") for item in (profile.get("phase_keys") or []) if str(item or "")]
+    if profile.get("calc_mode") == "compenso_unico" and phase_keys == ["compenso_unico"] and "compenso_unico" not in phases:
+        phases = [*phases, "compenso_unico"]
     manual_lines = payload.get("manual_lines") if isinstance(payload.get("manual_lines"), list) else payload.get("voci_bozza")
     return {
         "id_pratica": practice_id,
         "valore": _text(payload.get("valore") or payload.get("valore_controversia"), "0"),
         "grado": _text(payload.get("grado") or getattr(getattr(tp, "grado_default", None), "value", "")),
-        "regola_tariffaria": _text(payload.get("regola_tariffaria") or getattr(tp, "regola_tariffaria_default", "")),
+        "regola_tariffaria": regola_tariffaria,
         "complessita": _text(payload.get("complessita"), "media"),
         "fasi": phases,
         "bonus_telematico": _bool(payload.get("bonus_telematico")),

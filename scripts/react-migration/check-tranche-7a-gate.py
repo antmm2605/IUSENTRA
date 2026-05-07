@@ -49,7 +49,14 @@ def main() -> int:
             )
             _record(results, "login tenant", login.status_code == 302, f"status={login.status_code}")
 
-            for path in ("/preventivi", "/preventivi/nuovo", "/preventivi/conferimento/nuovo"):
+            for path in (
+                "/preventivi",
+                "/preventivi/nuovo",
+                "/preventivi/wizard",
+                "/preventivi/conferimento/nuovo",
+                "/compensi-forensi",
+                "/tariffario",
+            ):
                 response = client.get(path, headers={"Accept": "text/html"})
                 _record(
                     results,
@@ -61,13 +68,15 @@ def main() -> int:
             for path in (
                 "/preventivi?_legacy=1",
                 "/preventivi/nuovo?_legacy=1",
+                "/preventivi/wizard?_legacy=1",
                 "/preventivi/conferimento/nuovo?_legacy=1",
-                "/preventivi/wizard",
                 "/preventivi/p/qualunque",
                 "/preventivi/conferimento/qualunque",
                 "/preventivi/qualunque",
-                "/compensi-forensi",
-                "/tariffario",
+                "/compensi-forensi?_legacy=1",
+                "/compensi-forensi/dettaglio",
+                "/tariffario?_legacy=1",
+                "/tariffario/dettaglio",
             ):
                 response = client.get(path, headers={"Accept": "text/html"}, follow_redirects=False)
                 _record(
@@ -80,7 +89,10 @@ def main() -> int:
             for path in (
                 "/api/v1/ui/preventivi",
                 "/api/v1/ui/preventivi/nuovo",
+                "/api/v1/ui/preventivi/wizard",
                 "/api/v1/ui/preventivi/conferimento/nuovo",
+                "/api/v1/ui/compensi-forensi",
+                "/api/v1/ui/tariffario",
             ):
                 response = client.get(path, headers={"Accept": "application/json"})
                 _record(

@@ -420,7 +420,7 @@ for (const entry of routeManifest.routes ?? []) {
 }
 for (const [route, status] of [
   ['/utenti/nuovo', 'react_operational_full'],
-  ['/utenti', 'react_operational_partial'],
+  ['/utenti', 'react_operational_full'],
   ['/profili', 'react_operational_full'],
   ['/backup', 'react_bridge'],
   ['/sito-studio', 'react_bridge'],
@@ -591,11 +591,15 @@ assertContains(templateAttiPage, 'getTemplateAttiPage', 'TemplateAttiPage usa ge
 assertContains(templateAttiPage, 'getTemplateAttiCatalogoPage', 'TemplateAttiPage usa getTemplateAttiCatalogoPage')
 assertContains(redazioneAttiPage, 'getRedazioneAttiPage', 'RedazioneAttiPage usa getRedazioneAttiPage')
 assertNotContains(utentiPage, 'LegacyPostForm', 'UtentiPage non usa LegacyPostForm nel flusso principale')
-assertContains(utentiPage, 'apiPostJson<CreateUserResponse>', 'UtentiPage usa apiPostJson per creazione utente')
-assertContains(utentiPage, 'iu-users-form-alert--success', 'UtentiPage gestisce success creazione')
-assertContains(utentiPage, 'iu-users-form-alert--validation', 'UtentiPage gestisce errori validazione')
-assertContains(utentiPage, 'iu-users-form-alert--permission', 'UtentiPage gestisce errore permesso')
-assertContains(utentiPage, 'iu-users-form-alert--server', 'UtentiPage gestisce errore server')
+assertContains(utentiData, 'apiPostJson<unknown>', 'utentiData usa apiPostJson per le azioni utenti')
+assertContains(utentiPage, 'updateUtenteStatus', 'UtentiPage aggiorna stato via data client')
+assertContains(utentiPage, 'updateUtenteRole', 'UtentiPage aggiorna ruolo via data client')
+assertContains(utentiPage, 'resetUtentePassword', 'UtentiPage resetta credenziale via data client')
+assertContains(utentiPage, 'updateUtenteProfile', 'UtentiPage aggiorna profilo via data client')
+assertContains(utentiPage, 'Operazione completata', 'UtentiPage gestisce success')
+assertContains(utentiPage, 'Controlla i dati', 'UtentiPage gestisce errori validazione')
+assertContains(utentiPage, 'Permesso negato', 'UtentiPage gestisce errore permesso')
+assertContains(utentiPage, 'Errore di rete', 'UtentiPage gestisce errore server')
 assertContains(utentiPage, 'passwordRef', 'UtentiPage non conserva password nello stato React')
 assertNotContains(utentiPage, 'localStorage', 'UtentiPage non usa localStorage')
 assertNotContains(utentiPage, 'sessionStorage', 'UtentiPage non usa sessionStorage')

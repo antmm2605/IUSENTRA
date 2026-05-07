@@ -78,7 +78,14 @@ from web.services.react_statistiche_bridge import (
     build_react_statistiche_error_payload,
     build_react_statistiche_payload,
 )
-from web.services.react_utenti_bridge import build_react_utenti_error_payload, build_react_utenti_payload
+from web.services.react_utenti_bridge import (
+    build_react_utenti_error_payload,
+    build_react_utenti_payload,
+    reset_react_utente_password,
+    update_react_utente_profile,
+    update_react_utente_role,
+    update_react_utente_status,
+)
 from web.services.react_profili_bridge import (
     build_react_profili_error_payload,
     build_react_profili_payload,
@@ -331,6 +338,23 @@ def _request_payload() -> dict[str, Any]:
 
 def _json_validation_error(message: str, errors: dict[str, str], *, status: int = 200):
     return jsonify({"ok": False, "message": message, "errors": errors}), status
+
+
+def _request_json_object() -> tuple[dict[str, Any] | None, Any | None]:
+    if not request.is_json:
+        return None, _json_validation_error(
+            "Payload JSON richiesto.",
+            {"payload": "Invia Content-Type application/json."},
+            status=400,
+        )
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return None, _json_validation_error(
+            "Payload JSON non valido.",
+            {"payload": "Il corpo della richiesta deve essere un oggetto JSON."},
+            status=400,
+        )
+    return payload, None
 
 
 def _warning(code: str, message: str) -> dict[str, str]:
@@ -2521,6 +2545,128 @@ def utenti_nuovo_crea():
             },
         }
     )
+
+
+def _utenti_permission_response():
+    return jsonify(
+        {
+            "ok": False,
+            "message": "Permesso utenti.scrivi richiesto.",
+            "errors": {"permission": "Operazione non autorizzata."},
+            "user": None,
+        }
+    ), 403
+
+
+def _utenti_result_status(result: dict[str, Any]) -> int:
+    if result.get("ok"):
+        return 200
+    errors = result.get("errors") if isinstance(result.get("errors"), dict) else {}
+    return 403 if "permission" in errors else 400
+
+
+@api_v1_react.post("/utenti/<id_utente>/stato")
+@_richiedi_auth
+def utenti_aggiorna_stato(id_utente: str):
+    if not _puo_scrivere_utenti():
+        return _utenti_permission_response()
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    try:
+        result = update_react_utente_status(
+            get_utenti=get_utenti,
+            current_user=g.get("utente_corrente"),
+            user_id=id_utente,
+            payload=payload or {},
+            ip=request.remote_addr or "",
+        )
+        return jsonify(result), _utenti_result_status(result)
+    except Exception as exc:
+        current_app.logger.exception("Errore modifica stato utente React JSON: %s", exc)
+        return _json_validation_error(
+            "Modifica stato utente non disponibile dal runtime corrente.",
+            {"_form": "Errore server controllato. Riprova o usa il rollback tecnico."},
+            status=500,
+        )
+
+
+@api_v1_react.post("/utenti/<id_utente>/ruolo")
+@_richiedi_auth
+def utenti_aggiorna_ruolo(id_utente: str):
+    if not _puo_scrivere_utenti():
+        return _utenti_permission_response()
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    try:
+        result = update_react_utente_role(
+            get_utenti=get_utenti,
+            current_user=g.get("utente_corrente"),
+            user_id=id_utente,
+            payload=payload or {},
+            ip=request.remote_addr or "",
+        )
+        return jsonify(result), _utenti_result_status(result)
+    except Exception as exc:
+        current_app.logger.exception("Errore modifica ruolo utente React JSON: %s", exc)
+        return _json_validation_error(
+            "Modifica ruolo utente non disponibile dal runtime corrente.",
+            {"_form": "Errore server controllato. Riprova o usa il rollback tecnico."},
+            status=500,
+        )
+
+
+@api_v1_react.post("/utenti/<id_utente>/reset-password")
+@_richiedi_auth
+def utenti_reset_password(id_utente: str):
+    if not _puo_scrivere_utenti():
+        return _utenti_permission_response()
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    try:
+        result = reset_react_utente_password(
+            get_utenti=get_utenti,
+            current_user=g.get("utente_corrente"),
+            user_id=id_utente,
+            payload=payload or {},
+            ip=request.remote_addr or "",
+        )
+        return jsonify(result), _utenti_result_status(result)
+    except Exception as exc:
+        current_app.logger.exception("Errore reset credenziale utente React JSON: %s", exc)
+        return _json_validation_error(
+            "Reset credenziale utente non disponibile dal runtime corrente.",
+            {"_form": "Errore server controllato. Riprova o usa il rollback tecnico."},
+            status=500,
+        )
+
+
+@api_v1_react.post("/utenti/<id_utente>/profilo")
+@_richiedi_auth
+def utenti_aggiorna_profilo(id_utente: str):
+    if not _puo_scrivere_utenti():
+        return _utenti_permission_response()
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    try:
+        result = update_react_utente_profile(
+            get_utenti=get_utenti,
+            current_user=g.get("utente_corrente"),
+            user_id=id_utente,
+            payload=payload or {},
+            ip=request.remote_addr or "",
+        )
+        return jsonify(result), _utenti_result_status(result)
+    except Exception as exc:
+        current_app.logger.exception("Errore modifica profilo utente React JSON: %s", exc)
+        return _json_validation_error(
+            "Modifica profilo utente non disponibile dal runtime corrente.",
+            {"_form": "Errore server controllato. Riprova o usa il rollback tecnico."},
+            status=500,
+        )
 
 
 @api_v1_react.get("/profili")

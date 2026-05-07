@@ -16,7 +16,7 @@
     {
       "route": "/utenti",
       "family": "amministrazione",
-      "status": "react_operational_partial",
+      "status": "react_operational_full",
       "risk": "medium",
       "targetComponent": "frontend/src/components/UtentiPage.tsx",
       "targetData": "frontend/src/utentiData.ts",
@@ -24,11 +24,14 @@
       "legacyContract": "artifacts/react-migration/legacy-contracts/utenti.json",
       "unlockFromGate": true,
       "mustPreserve": [
-        "gestione operatori reali",
-        "creazione utente auditata",
-        "ruoli e stato account",
-        "permessi RBAC",
-        "CSRF e sessione Flask"
+        "lista utenti reale",
+        "ruoli reali",
+        "stato account reale",
+        "salvataggio JSON",
+        "audit modifiche",
+        "permessi backend",
+        "nessuna CTA legacy primaria",
+        "rollback legacy tecnico"
       ]
     },
     {

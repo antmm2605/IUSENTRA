@@ -1,36 +1,36 @@
-import { apiJson } from './lib/apiClient'
-import type { LegacyPostField } from './ui/LegacyPostForm'
+import { apiJson, apiPostJson } from './lib/apiClient'
 
-export type AdminTone = 'primary' | 'neutral' | 'danger' | 'success' | 'warning' | 'info'
+export type UtentiTone = 'primary' | 'neutral' | 'danger' | 'success' | 'warning' | 'info'
 
-export type AdminContract = {
+export type UtentiContract = {
   mock_fallback: boolean
   writes: string
   route_owner: string
+  operational?: boolean
   legacy_contract?: string
 }
 
-export type AdminMetric = {
+export type UtentiMetric = {
   id: string
   label: string
   value: string | number
   note: string
-  tone: AdminTone
+  tone: UtentiTone
 }
 
-export type AdminSectionItem = {
+export type UtentiSectionItem = {
   id: string
   label: string
   value: string | number
   note: string
-  tone: AdminTone
+  tone: UtentiTone
 }
 
-export type AdminSection = {
+export type UtentiSection = {
   id: string
   title: string
   kind: string
-  items: AdminSectionItem[]
+  items: UtentiSectionItem[]
   emptyMessage: string
 }
 
@@ -42,16 +42,28 @@ export type UtenteRecord = {
   role: string
   roleLabel: string
   roleDescription: string
-  roleTone: AdminTone
+  roleTone: UtentiTone
   active: boolean
-  mustChangePassword: boolean
+  mustChangeCredential: boolean
   lastAccess: string
   hasOverride: boolean
   extraPermissionsCount: number
   deniedPermissionsCount: number
   twoFactorEnabled: boolean
-  editHref: string
-  permissionsHref: string
+  isCurrentUser: boolean
+}
+
+export type UtenteRole = {
+  value: string
+  label: string
+  description: string
+  tone: UtentiTone
+}
+
+export type UtentiRollbackAction = {
+  label: string
+  href: string
+  method: 'GET'
 }
 
 export type AdminAction = {
@@ -59,7 +71,24 @@ export type AdminAction = {
   label: string
   href: string
   method: 'GET'
-  tone: AdminTone
+  tone: UtentiTone
+}
+
+export type LegacyFormField = {
+  name: string
+  label: string
+  type: 'text' | 'email' | 'password' | 'select' | 'checkbox' | 'hidden'
+  required?: boolean
+  autocomplete?: string
+  minLength?: number
+  value?: string
+  placeholder?: string
+  options?: Array<{
+    value: string
+    label: string
+    description?: string
+    enabled?: boolean
+  }>
 }
 
 export type LegacyFormDefinition = {
@@ -71,51 +100,129 @@ export type LegacyFormDefinition = {
   csrfField: string
   submitLabel: string
   enabled?: boolean
-  fields: LegacyPostField[]
+  fields: LegacyFormField[]
 }
 
-export type AdminWarning = {
+export type UtentiPermissions = {
+  canCreate: boolean
+  canUpdate: boolean
+  canDisable: boolean
+  canResetPassword: boolean
+  canChangeRole: boolean
+  canUpdateProfile: boolean
+  read: boolean
+  create: string
+  profiles: string
+  statusEndpoint: string
+  roleEndpoint: string
+  resetPasswordEndpoint: string
+  profileEndpoint: string
+  rollback?: UtentiRollbackAction
+}
+
+export type UtentiWarning = {
   code: string
   message: string
 }
 
-export type RoleOption = {
-  value: string
-  label: string
-  description: string
-  tone: AdminTone
-}
-
 export type UtentiPageData = {
+  ok: boolean
   source: string
   generated_at: string
-  contracts: AdminContract
-  metrics: AdminMetric[]
-  sections: AdminSection[]
+  contracts: UtentiContract
+  metrics: UtentiMetric[]
+  sections: UtentiSection[]
+  users: UtenteRecord[]
   records: UtenteRecord[]
-  actions: AdminAction[]
+  actions: UtentiPermissions
   createEndpoint: string
-  roles: RoleOption[]
+  roles: UtenteRole[]
   forms: unknown[]
-  warnings: AdminWarning[]
+  warnings: UtentiWarning[]
 }
 
+export type UpdateUtenteStatusPayload = {
+  active: boolean
+}
+
+export type UpdateUtenteRolePayload = {
+  role: string
+}
+
+export type ResetUtentePasswordPayload = {
+  temporaryPassword: string
+  confirm: boolean
+}
+
+export type UpdateUtenteProfilePayload = {
+  name: string
+  email: string
+}
+
+export type CreateUtentePayload = {
+  username: string
+  ruolo: string
+  nome_completo: string
+  email: string
+  password: string
+}
+
+export type UtenteMutationResult = {
+  ok: boolean
+  message: string
+  errors: Record<string, string>
+  user: UtenteRecord | null
+  payload?: UtentiPageData
+}
+
+export type AdminTone = UtentiTone
+export type AdminContract = UtentiContract
+export type AdminMetric = UtentiMetric
+export type AdminSectionItem = UtentiSectionItem
+export type AdminSection = UtentiSection
+export type AdminWarning = UtentiWarning
+export type RoleOption = UtenteRole
+
 export const emptyUtentiPage: UtentiPageData = {
+  ok: false,
   source: '',
   generated_at: '',
   contracts: {
     mock_fallback: false,
-    writes: 'legacy_routes',
+    writes: 'json_api',
     route_owner: 'react_shell',
+    operational: true,
   },
   metrics: [],
   sections: [],
+  users: [],
   records: [],
-  actions: [],
+  actions: {
+    canCreate: false,
+    canUpdate: false,
+    canDisable: false,
+    canResetPassword: false,
+    canChangeRole: false,
+    canUpdateProfile: false,
+    read: false,
+    create: '',
+    profiles: '',
+    statusEndpoint: '',
+    roleEndpoint: '',
+    resetPasswordEndpoint: '',
+    profileEndpoint: '',
+  },
   createEndpoint: '',
   roles: [],
   forms: [],
   warnings: [],
+}
+
+const emptyMutation: UtenteMutationResult = {
+  ok: false,
+  message: 'Operazione non completata.',
+  errors: { _form: 'Il backend non ha restituito un esito utilizzabile.' },
+  user: null,
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -138,41 +245,51 @@ function number(value: unknown): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : 0
 }
 
-function value(value: unknown): string | number {
+function scalar(value: unknown): string | number {
   if (typeof value === 'number' && Number.isFinite(value)) return value
   if (typeof value === 'string') return value.trim()
   return ''
 }
 
-function tone(value: unknown): AdminTone {
+function tone(value: unknown): UtentiTone {
   return ['primary', 'neutral', 'danger', 'success', 'warning', 'info'].includes(String(value))
-    ? String(value) as AdminTone
+    ? String(value) as UtentiTone
     : 'neutral'
 }
 
-function normaliseMetric(raw: unknown): AdminMetric {
+function endpointPattern(value: unknown, fallback: string): string {
+  const raw = text(value)
+  return raw || fallback
+}
+
+function endpointFromPattern(pattern: string, userId: string, fallback: string): string {
+  const safePattern = pattern || fallback
+  return safePattern.replace('{id_utente}', encodeURIComponent(userId))
+}
+
+function normaliseMetric(raw: unknown): UtentiMetric {
   const item = asRecord(raw)
   return {
     id: text(item.id) || text(item.label) || 'metrica',
     label: text(item.label) || 'Metrica',
-    value: value(item.value),
+    value: scalar(item.value),
     note: text(item.note),
     tone: tone(item.tone),
   }
 }
 
-function normaliseSectionItem(raw: unknown): AdminSectionItem {
+function normaliseSectionItem(raw: unknown): UtentiSectionItem {
   const item = asRecord(raw)
   return {
     id: text(item.id) || text(item.label) || 'voce',
     label: text(item.label) || 'Voce',
-    value: value(item.value),
+    value: scalar(item.value),
     note: text(item.note),
     tone: tone(item.tone),
   }
 }
 
-function normaliseSection(raw: unknown): AdminSection {
+function normaliseSection(raw: unknown): UtentiSection {
   const item = asRecord(raw)
   return {
     id: text(item.id) || text(item.title) || 'sezione',
@@ -195,18 +312,17 @@ function normaliseUser(raw: unknown): UtenteRecord {
     roleDescription: text(item.roleDescription),
     roleTone: tone(item.roleTone),
     active: bool(item.active),
-    mustChangePassword: bool(item.mustChangePassword),
+    mustChangeCredential: bool(item.mustChangeCredential) || bool(item.mustChangePassword),
     lastAccess: text(item.lastAccess),
     hasOverride: bool(item.hasOverride),
     extraPermissionsCount: number(item.extraPermissionsCount),
     deniedPermissionsCount: number(item.deniedPermissionsCount),
     twoFactorEnabled: bool(item.twoFactorEnabled),
-    editHref: text(item.editHref),
-    permissionsHref: text(item.permissionsHref),
+    isCurrentUser: bool(item.isCurrentUser),
   }
 }
 
-function normaliseRole(raw: unknown): RoleOption {
+function normaliseRole(raw: unknown): UtenteRole {
   const item = asRecord(raw)
   return {
     value: text(item.value),
@@ -216,18 +332,7 @@ function normaliseRole(raw: unknown): RoleOption {
   }
 }
 
-function normaliseAction(raw: unknown): AdminAction {
-  const item = asRecord(raw)
-  return {
-    id: text(item.id) || text(item.label) || 'azione',
-    label: text(item.label) || 'Apri',
-    href: text(item.href) || '/utenti',
-    method: 'GET',
-    tone: tone(item.tone),
-  }
-}
-
-function normaliseWarning(raw: unknown): AdminWarning {
+function normaliseWarning(raw: unknown): UtentiWarning {
   const item = asRecord(raw)
   return {
     code: text(item.code) || 'warning',
@@ -235,27 +340,78 @@ function normaliseWarning(raw: unknown): AdminWarning {
   }
 }
 
+function normaliseRollback(raw: unknown): UtentiRollbackAction | undefined {
+  const item = asRecord(raw)
+  const href = text(item.href)
+  if (!href) return undefined
+  return {
+    label: text(item.label) || 'Rollback tecnico',
+    href,
+    method: 'GET',
+  }
+}
+
+function normaliseActions(raw: unknown): UtentiPermissions {
+  const item = asRecord(raw)
+  return {
+    canCreate: bool(item.canCreate),
+    canUpdate: bool(item.canUpdate),
+    canDisable: bool(item.canDisable),
+    canResetPassword: bool(item.canResetPassword),
+    canChangeRole: bool(item.canChangeRole),
+    canUpdateProfile: bool(item.canUpdateProfile) || bool(item.canUpdate),
+    read: bool(item.read),
+    create: text(item.create),
+    profiles: text(item.profiles),
+    statusEndpoint: endpointPattern(item.statusEndpoint, '/api/v1/ui/utenti/{id_utente}/stato'),
+    roleEndpoint: endpointPattern(item.roleEndpoint, '/api/v1/ui/utenti/{id_utente}/ruolo'),
+    resetPasswordEndpoint: endpointPattern(item.resetPasswordEndpoint, '/api/v1/ui/utenti/{id_utente}/reset-password'),
+    profileEndpoint: endpointPattern(item.profileEndpoint, '/api/v1/ui/utenti/{id_utente}/profilo'),
+    rollback: normaliseRollback(item.rollback),
+  }
+}
+
 function normalisePage(raw: unknown): UtentiPageData {
   const page = asRecord(raw)
   const contracts = asRecord(page.contracts)
+  const users = (list(page.users).length ? list(page.users) : list(page.records)).map(normaliseUser)
   return {
+    ok: page.ok === true,
     source: text(page.source),
     generated_at: text(page.generated_at),
     contracts: {
-      mock_fallback: contracts.mock_fallback === true ? true : false,
-      writes: text(contracts.writes) || 'legacy_routes',
+      mock_fallback: contracts.mock_fallback === true,
+      writes: text(contracts.writes) || 'json_api',
       route_owner: text(contracts.route_owner) || 'react_shell',
+      operational: contracts.operational !== false,
       legacy_contract: text(contracts.legacy_contract),
     },
     metrics: list(page.metrics).map(normaliseMetric),
     sections: list(page.sections).map(normaliseSection),
-    records: list(page.records).map(normaliseUser),
-    actions: list(page.actions).map(normaliseAction).filter((action) => action.method === 'GET' && action.href),
+    users,
+    records: users,
+    actions: normaliseActions(page.actions),
     createEndpoint: text(page.createEndpoint),
     roles: list(page.roles).map(normaliseRole).filter((role) => role.value),
     forms: [],
     warnings: list(page.warnings).map(normaliseWarning),
   }
+}
+
+function normaliseMutation(raw: unknown): UtenteMutationResult {
+  const item = asRecord(raw)
+  const errors = asRecord(item.errors)
+  const userRaw = item.user || item.item
+  const result: UtenteMutationResult = {
+    ok: item.ok === true,
+    message: text(item.message) || (item.ok === true ? 'Operazione completata.' : 'Operazione non completata.'),
+    errors: Object.fromEntries(Object.entries(errors).map(([key, value]) => [key, text(value)])),
+    user: userRaw ? normaliseUser(userRaw) : null,
+  }
+  if (item.payload) {
+    result.payload = normalisePage(item.payload)
+  }
+  return result
 }
 
 function utentiEndpoint(): string {
@@ -268,4 +424,49 @@ function utentiEndpoint(): string {
 export async function getUtentiPage(): Promise<UtentiPageData> {
   const payload = await apiJson<unknown>(utentiEndpoint(), emptyUtentiPage)
   return normalisePage(payload)
+}
+
+export async function createUtente(payload: CreateUtentePayload, endpoint = '/api/v1/ui/utenti/nuovo'): Promise<UtenteMutationResult> {
+  const response = await apiPostJson<unknown>(endpoint || '/api/v1/ui/utenti/nuovo', payload, emptyMutation)
+  return normaliseMutation(response)
+}
+
+export async function updateUtenteStatus(
+  userId: string,
+  payload: UpdateUtenteStatusPayload,
+  endpointPatternValue = '/api/v1/ui/utenti/{id_utente}/stato',
+): Promise<UtenteMutationResult> {
+  const endpoint = endpointFromPattern(endpointPatternValue, userId, '/api/v1/ui/utenti/{id_utente}/stato')
+  const response = await apiPostJson<unknown>(endpoint, payload, emptyMutation)
+  return normaliseMutation(response)
+}
+
+export async function updateUtenteRole(
+  userId: string,
+  payload: UpdateUtenteRolePayload,
+  endpointPatternValue = '/api/v1/ui/utenti/{id_utente}/ruolo',
+): Promise<UtenteMutationResult> {
+  const endpoint = endpointFromPattern(endpointPatternValue, userId, '/api/v1/ui/utenti/{id_utente}/ruolo')
+  const response = await apiPostJson<unknown>(endpoint, payload, emptyMutation)
+  return normaliseMutation(response)
+}
+
+export async function resetUtentePassword(
+  userId: string,
+  payload: ResetUtentePasswordPayload,
+  endpointPatternValue = '/api/v1/ui/utenti/{id_utente}/reset-password',
+): Promise<UtenteMutationResult> {
+  const endpoint = endpointFromPattern(endpointPatternValue, userId, '/api/v1/ui/utenti/{id_utente}/reset-password')
+  const response = await apiPostJson<unknown>(endpoint, payload, emptyMutation)
+  return normaliseMutation(response)
+}
+
+export async function updateUtenteProfile(
+  userId: string,
+  payload: UpdateUtenteProfilePayload,
+  endpointPatternValue = '/api/v1/ui/utenti/{id_utente}/profilo',
+): Promise<UtenteMutationResult> {
+  const endpoint = endpointFromPattern(endpointPatternValue, userId, '/api/v1/ui/utenti/{id_utente}/profilo')
+  const response = await apiPostJson<unknown>(endpoint, payload, emptyMutation)
+  return normaliseMutation(response)
 }

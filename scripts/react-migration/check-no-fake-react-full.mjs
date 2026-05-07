@@ -75,6 +75,44 @@ if (profiliRow?.manifestStatus === 'react_operational_full') {
   }
 }
 
+const utentiRow = rows.find((row) => row.route === '/utenti')
+if (utentiRow?.manifestStatus === 'react_operational_full') {
+  const utentiComponent = readFileSync(resolve(root, 'frontend/src/components/UtentiPage.tsx'), 'utf8')
+  const utentiData = readFileSync(resolve(root, 'frontend/src/utentiData.ts'), 'utf8')
+  const utentiBridge = readFileSync(resolve(root, 'web/services/react_utenti_bridge.py'), 'utf8')
+  const utentiCombined = `${utentiComponent}\n${utentiData}\n${utentiBridge}`
+  const utentiPostEndpoints = [
+    '@api_v1_react.post("/utenti/<id_utente>/stato")',
+    '@api_v1_react.post("/utenti/<id_utente>/ruolo")',
+    '@api_v1_react.post("/utenti/<id_utente>/reset-password")',
+    '@api_v1_react.post("/utenti/<id_utente>/profilo")',
+  ]
+
+  if (/\bLegacyPostForm\b/.test(utentiComponent)) {
+    violations.push('/utenti: react_operational_full non puo contenere LegacyPostForm nel componente principale.')
+  }
+  if (/\?_legacy=1/.test(utentiComponent) && !/Rollback tecnico/.test(utentiComponent)) {
+    violations.push('/utenti: react_operational_full puo mantenere ?_legacy=1 solo come Rollback tecnico.')
+  }
+  if (!/\bapiPostJson\b/.test(utentiData)) {
+    violations.push('/utenti: react_operational_full deve usare apiPostJson centralizzato per le azioni principali.')
+  }
+  if (!/["']writes["']\s*:\s*["']json_api["']/.test(utentiBridge)) {
+    violations.push('/utenti: bridge operativo deve dichiarare writes json_api.')
+  }
+  for (const endpoint of utentiPostEndpoints) {
+    if (!apiSource.includes(endpoint)) {
+      violations.push(`/utenti: manca endpoint POST JSON ${endpoint}.`)
+    }
+  }
+  if (/localStorage|sessionStorage/.test(utentiCombined)) {
+    violations.push('/utenti: react_operational_full non deve usare localStorage o sessionStorage.')
+  }
+  if (/password_hash|reset_token|totp_secret|session_token|api_key/i.test(utentiBridge)) {
+    violations.push('/utenti: bridge React non deve serializzare password hash, reset token, TOTP secret, session token o API key.')
+  }
+}
+
 const md = [
   '# Check no fake React full',
   '',

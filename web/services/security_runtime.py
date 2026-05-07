@@ -41,6 +41,10 @@ _CSRF_PROTECTED_ENDPOINTS = {
     "api_v1_editor_ai.editor_ai_rifiuta_modifica",
     "api_v1_editor_ai.editor_ai_export",
     "api_v1_react.utenti_nuovo_crea",
+    "api_v1_react.utenti_aggiorna_stato",
+    "api_v1_react.utenti_aggiorna_ruolo",
+    "api_v1_react.utenti_reset_password",
+    "api_v1_react.utenti_aggiorna_profilo",
     "api_v1_react.profili_page_update",
 }
 

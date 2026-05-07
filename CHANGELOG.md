@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.198.108 - 2026-05-07
+
+- Promossa `/utenti` a `react_operational_full`: la lista legge utenti, ruoli, stato account e permessi operativi da `GET /api/v1/ui/utenti`.
+- Aggiunti POST JSON per stato account, ruolo, reimpostazione credenziale temporanea e profilo minimo, con CSRF/sessione, permesso `utenti.scrivi`, validazione, audit e payload senza hash o token.
+- Rimossi link e form legacy dal flusso principale utenti: il fallback `/utenti?_legacy=1` resta solo nel pannello `Rollback tecnico`, con check e report Tranche 14A dedicati.
+
 ## 2.198.107 - 2026-05-07
 
 - Promossa `/profili` a `react_operational_full`: la pagina React legge ruoli, permessi, matrice e override reali da `GET /api/v1/ui/profili`.

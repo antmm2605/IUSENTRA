@@ -1,5 +1,25 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-07 - Parte 14A utenti operativi 2.198.108
+
+La Parte 14A promuove `/utenti` da `react_operational_partial` a
+`react_operational_full` senza sbloccare sottoroute utenti ulteriori:
+
+- `GET /api/v1/ui/utenti` espone utenti reali, ruoli gestibili, stato account,
+  metriche, permessi operativi e contratto `writes=json_api`, senza
+  `password_hash`, reset token, segreti TOTP o dati di sessione.
+- `POST /api/v1/ui/utenti/<id>/stato`, `/ruolo`, `/reset-password` e
+  `/profilo` applicano `_richiedi_auth`, CSRF browser, permesso
+  `utenti.scrivi`, validazione JSON, blocchi su `SUPERADMIN`, ultimo
+  amministratore e auto-disabilitazione, e audit dedicato nel manager utenti.
+- `frontend/src/components/UtentiPage.tsx` usa ricerca/filtro client-side sui
+  dati gia ricevuti e azioni inline/modali leggere via API JSON per profilo
+  minimo, ruolo, stato account e credenziale temporanea; `LegacyPostForm` e
+  CTA primarie `?_legacy=1` sono assenti.
+- `/utenti?_legacy=1` resta disponibile solo come `Rollback tecnico`;
+  `/utenti/nuovo` resta `react_operational_full` e le altre route
+  `/utenti/*` restano protette dal gate finche' non avranno UI React reale.
+
 ## Stato tranche 2026-05-07 - Parte 13A profili operativi 2.198.107
 
 La Parte 13A promuove `/profili` da `react_bridge` a

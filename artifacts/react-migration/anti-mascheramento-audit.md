@@ -1,6 +1,6 @@
 # Audit anti-mascheramento React
 
-Generato: 2026-05-07T18:25:39.013Z
+Generato: 2026-05-07T18:53:20.043Z
 
 ## Regole operative Parte 12A
 
@@ -13,10 +13,10 @@ Generato: 2026-05-07T18:25:39.013Z
 ## Sintesi
 
 - Route censite: 53
-- Link `?_legacy=1`: 248
+- Link `?_legacy=1`: 242
 - LegacyPostForm: 13
 - Form POST HTML React: 0
-- Bridge con scritture legacy: 32
+- Bridge con scritture legacy: 31
 - Status react_full deprecati: 0
 - API JSON di salvataggio mancanti: 6
 
@@ -24,8 +24,8 @@ Generato: 2026-05-07T18:25:39.013Z
 
 | route | componente | data client | bridge | stato manifest | link legacy presenti | form legacy presenti | scritture JSON presenti | problemi | livello reale |
 | --- | --- | --- | --- | --- | ---: | ---: | --- | --- | --- |
-| /utenti | frontend/src/components/UtentiPage.tsx | frontend/src/utentiData.ts | web/services/react_utenti_bridge.py | react_operational_partial | 4 | 0 | si | fallback legacy tecnico non primario; bridge writes=legacy_routes | react_operational_partial |
-| /utenti/nuovo | frontend/src/components/UtentiPage.tsx | frontend/src/utentiData.ts | web/services/react_utenti_bridge.py | react_operational_full | 4 | 0 | si | fallback legacy tecnico non primario | react_operational_full |
+| /utenti | frontend/src/components/UtentiPage.tsx | frontend/src/utentiData.ts | web/services/react_utenti_bridge.py | react_operational_full | 1 | 0 | si | fallback legacy tecnico non primario | react_operational_full |
+| /utenti/nuovo | frontend/src/components/UtentiPage.tsx | frontend/src/utentiData.ts | web/services/react_utenti_bridge.py | react_operational_full | 1 | 0 | si | fallback legacy tecnico non primario | react_operational_full |
 | /profili | frontend/src/components/ProfiliPage.tsx | frontend/src/profiliData.ts | web/services/react_profili_bridge.py | react_operational_full | 2 | 0 | si | fallback legacy tecnico non primario | react_operational_full |
 | /audit | frontend/src/components/AuditPage.tsx | frontend/src/auditData.ts | web/services/react_audit_bridge.py | react_operational_partial | 1 | 0 | no | 1 link ?_legacy=1 primari o non governati | react_bridge |
 | /registro-attivita | frontend/src/components/AuditPage.tsx | frontend/src/auditData.ts | web/services/react_audit_bridge.py | react_operational_partial | 1 | 0 | no | 1 link ?_legacy=1 primari o non governati | react_bridge |

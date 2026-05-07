@@ -466,6 +466,7 @@ class GestioneUtenti:
                     d["permessi_extra"] = _json.loads(d.get("permessi_extra") or "[]")
                     d["permessi_negati"] = _json.loads(d.get("permessi_negati") or "[]")
                     d["attivo"] = bool(d.get("attivo", 1))
+                    d["must_change_password"] = bool(d.get("must_change_password", 0))
                     if (
                         self._tenant_slug_context
                         and not str(d.get("tenant_slug") or "").strip()

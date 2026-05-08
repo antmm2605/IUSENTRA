@@ -1,6 +1,6 @@
 # Deploy Hetzner CPX42
 
-> **Versione corrente:** 2.202.0 — commit da aggiornare dopo push
+> **Versione corrente:** 2.202.0 — commit `a06145c`
 > Guida aggiornata: 08/05/2026
 
 Questa guida rende esplicito il profilo `deploy/hetzner` come destinazione di produzione o fallback governato rispetto a Railway.
@@ -184,6 +184,6 @@ guard OK: ExactLegalReferenceGuard
 
 | Versione | Commit | Data | Contenuto principale |
 |----------|--------|------|----------------------|
-| 2.202.0 | da aggiornare | 08/05/2026 | Lex: fix CASO 1 (sentenza esatta forza ricerca pubblica, confidence cap ≤ 0.45), fix CASO 2 (studio_data_lookup mostra dati cliente reali). `giurisprudenza_specifica` in `_STRICT_LEGAL_WORKFLOWS`. Handler deterministic `studio_data_lookup`. `user_facing_output_guard`. `case_law_completeness`. `exact_case_law_guard`. Prompt: no "Ciao sono Lex" su query operative. |
+| 2.202.0 | `a06145c` | 08/05/2026 | Lex: fix CASO 1 (sentenza esatta forza ricerca pubblica, confidence cap ≤ 0.45), fix CASO 2 (studio_data_lookup mostra dati cliente reali). `giurisprudenza_specifica` in `_STRICT_LEGAL_WORKFLOWS`. Handler deterministic `studio_data_lookup`. `user_facing_output_guard`. `case_law_completeness`. `exact_case_law_guard`. Prompt: no "Ciao sono Lex" su query operative. |
 | 2.201.0 | `177ca37` | 08/05/2026 | Lex: distinzione fonti pubbliche vs dati studio. Parser sentenze esatte, ExactLegalReferenceGuard, StudioDataGateway, fix `_should_force_web_fallback`, fix `_clienti_lines` (4→8, CF/email), intent `cliente_anagrafica` → `studio_data_lookup`. |
 | 2.200.0 | `77a4f40` | 08/05/2026 | Hetzner CPX42: fix Caddyfile rate_limit (→ Flask-Limiter), Ollama profilo opzionale `ai`, deploy.sh robusto con `COMPOSE_PROFILES`. Lex v2.200.0: debug payload 46 campi, fasi 1-16 router/guards/contracts. |

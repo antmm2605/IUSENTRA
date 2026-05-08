@@ -6,6 +6,7 @@ on:
 jobs:
   release-readiness:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout
@@ -29,4 +30,4 @@ jobs:
         run: python tools/check_release_readiness.py
 
       - name: Release readiness tests
-        run: python -m pytest -q tests/test_release_readiness.py
+        run: python scripts/run_pytest_phases.py --suite release-readiness --timeout-minutes 5

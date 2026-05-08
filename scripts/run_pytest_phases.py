@@ -11,6 +11,7 @@ sequence.
 from __future__ import annotations
 
 import argparse
+import ast
 import json
 import re
 import subprocess
@@ -18,11 +19,54 @@ import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, TypeVar
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 TEST_ROOTS = [REPO_ROOT / "tests", REPO_ROOT / "lex" / "tests"]
+T = TypeVar("T")
+CORE_CI_SUBSHARDS: dict[int, int] = {
+    5: 6,
+    6: 16,
+    7: 3,
+    8: 3,
+    9: 6,
+}
+CORE_CI_ITEM_SPLIT_PHASES = set(CORE_CI_SUBSHARDS)
+CI_TEST_SUITES: dict[str, tuple[Path, ...]] = {
+    "coverage-critical": (
+        REPO_ROOT / "lex" / "tests",
+        REPO_ROOT / "tests" / "test_lex_docling_parser.py",
+        REPO_ROOT / "tests" / "test_auth.py",
+        REPO_ROOT / "tests" / "test_storage_strategy.py",
+        REPO_ROOT / "tests" / "test_storage_governance.py",
+        REPO_ROOT / "tests" / "test_telematico_repository.py",
+        REPO_ROOT / "tests" / "test_telematico_workflow.py",
+        REPO_ROOT / "tests" / "test_telematico_resilience.py",
+    ),
+    "e2e-smoke": (
+        REPO_ROOT / "tests" / "e2e" / "test_studio_reale_flow.py",
+    ),
+    "signer": (
+        REPO_ROOT / "tests" / "test_local_signer.py",
+        REPO_ROOT / "tests" / "test_build_dist.py",
+        REPO_ROOT / "tests" / "test_visible_signature.py",
+    ),
+    "quality-overlay": (
+        REPO_ROOT / "tests" / "test_lex_quality_gates.py",
+        REPO_ROOT / "tests" / "test_performance_budget.py",
+        REPO_ROOT / "tests" / "test_local_signer_ai_cache.py",
+    ),
+    "release-readiness": (
+        REPO_ROOT / "tests" / "test_release_readiness.py",
+    ),
+    "e2e-nightly": (
+        REPO_ROOT / "tests" / "e2e" / "test_studio_reale_flow.py",
+        REPO_ROOT / "tests" / "e2e" / "test_ai_pipeline_full.py",
+        REPO_ROOT / "tests" / "e2e" / "test_tenant_migration_full.py",
+        REPO_ROOT / "tests" / "e2e" / "test_operational_crash_day.py",
+    ),
+}
 CORE_TARGETS: tuple[Path, ...] = (
     REPO_ROOT / "lex" / "tests",
     REPO_ROOT / "tests" / "test_auth.py",
@@ -216,14 +260,64 @@ def discover_core_test_files() -> list[Path]:
     return sorted(deduped, key=rel)
 
 
-def split_core_shards(files: list[Path], total_shards: int) -> list[list[Path]]:
+def discover_suite_test_files(suite_name: str) -> list[Path]:
+    try:
+        targets = CI_TEST_SUITES[suite_name]
+    except KeyError as exc:
+        known = ", ".join(sorted(CI_TEST_SUITES))
+        raise SystemExit(f"Suite CI sconosciuta: {suite_name}. Valori ammessi: {known}") from exc
+
+    files: list[Path] = []
+    missing: list[str] = []
+    for target in targets:
+        if target.is_dir():
+            files.extend(path for path in target.rglob("test_*.py") if path.is_file())
+        elif target.is_file():
+            files.append(target)
+        else:
+            missing.append(rel(target))
+
+    if missing:
+        raise SystemExit(f"Target suite {suite_name} mancanti: {', '.join(missing)}")
+
+    deduped = dict.fromkeys(files)
+    return sorted(deduped, key=rel)
+
+
+def split_core_shards(items: list[T], total_shards: int) -> list[list[T]]:
     if total_shards < 1:
         raise SystemExit("--core-total-shards deve essere almeno 1")
 
-    shards: list[list[Path]] = [[] for _ in range(total_shards)]
-    for index, path in enumerate(files):
-        shards[index % total_shards].append(path)
+    shards: list[list[T]] = [[] for _ in range(total_shards)]
+    for index, item in enumerate(items):
+        shards[index % total_shards].append(item)
     return shards
+
+
+def discover_test_items(files: Iterable[Path]) -> list[str]:
+    """Espande i file in node id pytest per diagnosi a grana fine."""
+    items: list[str] = []
+    for path in files:
+        relative = rel(path)
+        try:
+            tree = ast.parse(path.read_text(encoding="utf-8-sig"))
+        except SyntaxError:
+            items.append(relative)
+            continue
+
+        found = False
+        for node in tree.body:
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name.startswith("test_"):
+                items.append(f"{relative}::{node.name}")
+                found = True
+            elif isinstance(node, ast.ClassDef) and node.name.startswith("Test"):
+                for child in node.body:
+                    if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)) and child.name.startswith("test_"):
+                        items.append(f"{relative}::{node.name}::{child.name}")
+                        found = True
+        if not found:
+            items.append(relative)
+    return items
 
 
 def group_tests(files: Iterable[Path]) -> dict[str, list[Path]]:
@@ -308,21 +402,56 @@ def print_list(summary: dict[str, object]) -> None:
         print(f"  {name}: {', '.join(phases)}")
 
 
+def _target_label(target: Path | str) -> str:
+    if isinstance(target, Path):
+        return rel(target)
+    return target
+
+
 def build_core_summary(total_shards: int) -> dict[str, object]:
     files = discover_core_test_files()
     shards = split_core_shards(files, total_shards)
+    shard_entries: list[dict[str, object]] = []
+    for index, shard in enumerate(shards, start=1):
+        total_subshards = CORE_CI_SUBSHARDS.get(index, 1)
+        item_mode = index in CORE_CI_ITEM_SPLIT_PHASES
+        targets: list[Path | str] = discover_test_items(shard) if item_mode else list(shard)
+        subshards = split_core_shards(targets, total_subshards)
+        shard_entries.append(
+            {
+                "name": f"core-{index:02d}",
+                "fileCount": len(shard),
+                "files": [rel(path) for path in shard],
+                "targetMode": "test-items" if item_mode else "files",
+                "totalSubshards": total_subshards,
+                "subshards": [
+                    {
+                        "name": f"core-{index:02d}.{subindex:02d}",
+                        "targetCount": len(subshard),
+                        "targets": [_target_label(target) for target in subshard],
+                    }
+                    for subindex, subshard in enumerate(subshards, start=1)
+                ],
+            }
+        )
     return {
         "totalFiles": len(files),
         "totalShards": total_shards,
-        "shards": [
-            {
-                "name": f"core-{index + 1:02d}",
-                "fileCount": len(shard),
-                "files": [rel(path) for path in shard],
-            }
-            for index, shard in enumerate(shards)
-        ],
+        "splitPhases": CORE_CI_SUBSHARDS,
+        "shards": shard_entries,
     }
+
+
+def build_ci_suites_summary() -> dict[str, object]:
+    suites: dict[str, object] = {}
+    for name in sorted(CI_TEST_SUITES):
+        files = discover_suite_test_files(name)
+        suites[name] = {
+            "fileCount": len(files),
+            "itemCount": len(discover_test_items(files)),
+            "files": [rel(path) for path in files],
+        }
+    return {"suites": suites}
 
 
 def print_core_list(summary: dict[str, object]) -> None:
@@ -332,13 +461,26 @@ def print_core_list(summary: dict[str, object]) -> None:
     print(f"Shard paralleli: {summary['totalShards']}")
     print("")
     for shard in summary["shards"]:  # type: ignore[index]
-        print(f"{shard['name']}: {shard['fileCount']} file")  # type: ignore[index]
+        detail = f"{shard['fileCount']} file"  # type: ignore[index]
+        if shard["totalSubshards"] != 1:  # type: ignore[index]
+            detail += f", {shard['totalSubshards']} sotto-fasi {shard['targetMode']}"  # type: ignore[index]
+        print(f"{shard['name']}: {detail}")  # type: ignore[index]
+        for subshard in shard["subshards"]:  # type: ignore[index]
+            if shard["totalSubshards"] != 1:  # type: ignore[index]
+                print(f"  {subshard['name']}: {subshard['targetCount']} target")  # type: ignore[index]
+
+
+def print_suite_list(summary: dict[str, object]) -> None:
+    print("Suite test CI IUSENTRA")
+    print("=====================")
+    for name, suite in summary["suites"].items():  # type: ignore[index]
+        print(f"{name}: {suite['fileCount']} file, {suite['itemCount']} test item")  # type: ignore[index]
 
 
 def run_file_set(
     label: str,
     description: str,
-    files: list[Path],
+    files: list[Path | str],
     *,
     collect_only: bool,
     pytest_args: list[str],
@@ -371,7 +513,7 @@ def run_file_set(
     cmd.extend(pytest_args)
 
     print(f"\n[{label}] {description}")
-    print(f"[{label}] file: {len(files)}")
+    print(f"[{label}] target: {len(files)}")
     print(f"[{label}] comando: {' '.join(cmd)}")
 
     started = time.monotonic()
@@ -400,8 +542,21 @@ def run_phase(
     pytest_args: list[str],
     timeout_minutes: int | None,
     batch_size: int | None,
+    item_batch_size: int | None,
 ) -> int:
     phase = phase_by_name(phase_name)
+    if batch_size and item_batch_size:
+        raise SystemExit("Usa solo uno tra --batch-size e --item-batch-size.")
+    if item_batch_size and item_batch_size > 0:
+        return run_file_set(
+            phase.name,
+            phase.description,
+            discover_test_items(files),
+            collect_only=collect_only,
+            pytest_args=pytest_args,
+            timeout_minutes=timeout_minutes,
+            batch_size=item_batch_size,
+        )
     return run_file_set(
         phase.name,
         phase.description,
@@ -428,6 +583,27 @@ def main() -> int:
     parser.add_argument("--core-list", action="store_true", help="Mostra i 10 shard del gate Pytest core CI.")
     parser.add_argument("--core-shard", type=int, help="Esegue uno shard 1-based del gate Pytest core CI.")
     parser.add_argument("--core-total-shards", type=int, default=10, help="Numero di shard Pytest core CI.")
+    parser.add_argument("--core-subshard", type=int, default=1, help="Sotto-shard 1-based dentro uno shard Pytest core.")
+    parser.add_argument(
+        "--core-total-subshards",
+        type=int,
+        default=1,
+        help="Numero di sotto-shard dentro lo shard Pytest core selezionato.",
+    )
+    parser.add_argument(
+        "--core-subdivide-items",
+        action="store_true",
+        help="Divide lo shard Pytest core in sotto-shard di singoli test item invece che di file.",
+    )
+    parser.add_argument("--suite-list", action="store_true", help="Mostra le suite test CI aggiuntive.")
+    parser.add_argument("--suite", choices=sorted(CI_TEST_SUITES), help="Esegue una suite test CI governata.")
+    parser.add_argument("--suite-shard", type=int, default=1, help="Shard 1-based della suite CI selezionata.")
+    parser.add_argument("--suite-total-shards", type=int, default=1, help="Numero di shard della suite CI selezionata.")
+    parser.add_argument(
+        "--suite-subdivide-items",
+        action="store_true",
+        help="Divide la suite CI in sotto-shard di singoli test item invece che di file.",
+    )
     parser.add_argument("--json", action="store_true", help="Con --list stampa JSON invece del riepilogo testuale.")
     parser.add_argument("--collect-only", action="store_true", help="Passa --collect-only a pytest per validare la raccolta.")
     parser.add_argument("--timeout-minutes", type=int, help="Timeout massimo per singola fase.")
@@ -435,6 +611,11 @@ def main() -> int:
         "--batch-size",
         type=int,
         help="Spezza ogni fase in batch da N file. Usa 1 per isolare un file lento o bloccato.",
+    )
+    parser.add_argument(
+        "--item-batch-size",
+        type=int,
+        help="Spezza ogni fase in batch da N test item per diagnosticare file molto lenti.",
     )
     parser.add_argument(
         "--report",
@@ -451,6 +632,47 @@ def main() -> int:
     pytest_args = args.pytest_args
     if pytest_args and pytest_args[0] == "--":
         pytest_args = pytest_args[1:]
+
+    if args.suite_list:
+        suite_summary = build_ci_suites_summary()
+        if args.json:
+            print(json.dumps(suite_summary, indent=2, ensure_ascii=False))
+        else:
+            print_suite_list(suite_summary)
+        if args.report:
+            write_report(args.report, suite_summary)
+        if args.suite is None:
+            return 0
+
+    if args.suite is not None:
+        suite_files = discover_suite_test_files(args.suite)
+        targets: list[Path | str] = discover_test_items(suite_files) if args.suite_subdivide_items else list(suite_files)
+        suite_shards = split_core_shards(targets, args.suite_total_shards)
+        suite_index = args.suite_shard - 1
+        if suite_index < 0 or suite_index >= args.suite_total_shards:
+            raise SystemExit(
+                "--suite-shard deve essere tra 1 e "
+                f"{args.suite_total_shards}: ricevuto {args.suite_shard}"
+            )
+
+        suite_targets = suite_shards[suite_index]
+        label = f"{args.suite}-{args.suite_shard:02d}-{args.suite_total_shards}"
+        code = run_file_set(
+            label,
+            f"Suite CI {args.suite}, shard {args.suite_shard}/{args.suite_total_shards}.",
+            suite_targets,
+            collect_only=args.collect_only,
+            pytest_args=pytest_args,
+            timeout_minutes=args.timeout_minutes,
+            batch_size=args.batch_size,
+        )
+        if args.report:
+            write_report(
+                args.report,
+                build_ci_suites_summary(),
+                [{"phase": label, "exitCode": code, "targetCount": len(suite_targets)}],
+            )
+        return code
 
     if args.core_list or args.core_shard is not None:
         core_summary = build_core_summary(args.core_total_shards)
@@ -473,11 +695,27 @@ def main() -> int:
         files = discover_core_test_files()
         shards = split_core_shards(files, args.core_total_shards)
         shard_files = shards[shard_index]
+        targets: list[Path | str] = discover_test_items(shard_files) if args.core_subdivide_items else list(shard_files)
+        subshards = split_core_shards(targets, args.core_total_subshards)
+        subshard_index = args.core_subshard - 1
+        if subshard_index < 0 or subshard_index >= args.core_total_subshards:
+            raise SystemExit(
+                "--core-subshard deve essere tra 1 e "
+                f"{args.core_total_subshards}: ricevuto {args.core_subshard}"
+            )
+
+        shard_targets = subshards[subshard_index]
         label = f"core-{args.core_shard:02d}"
+        if args.core_total_subshards > 1:
+            label = f"{label}.{args.core_subshard:02d}-{args.core_total_subshards}"
         code = run_file_set(
             label,
-            f"Shard {args.core_shard}/{args.core_total_shards} del gate Pytest core CI.",
-            shard_files,
+            (
+                f"Shard {args.core_shard}/{args.core_total_shards}, "
+                f"sotto-shard {args.core_subshard}/{args.core_total_subshards} "
+                "del gate Pytest core CI."
+            ),
+            shard_targets,
             collect_only=args.collect_only,
             pytest_args=pytest_args,
             timeout_minutes=args.timeout_minutes,
@@ -487,7 +725,7 @@ def main() -> int:
             write_report(
                 args.report,
                 core_summary,
-                [{"phase": label, "exitCode": code, "fileCount": len(shard_files)}],
+                [{"phase": label, "exitCode": code, "targetCount": len(shard_targets)}],
             )
         return code
 
@@ -515,6 +753,7 @@ def main() -> int:
             pytest_args=pytest_args,
             timeout_minutes=args.timeout_minutes,
             batch_size=args.batch_size,
+            item_batch_size=args.item_batch_size,
         )
         results.append({"phase": name, "exitCode": code, "fileCount": len(groups[name])})
         if code != 0:

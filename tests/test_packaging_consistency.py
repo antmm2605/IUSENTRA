@@ -125,6 +125,7 @@ def test_ci_include_packaging_check_coverage_ed_e2e_smoke():
     assert "requirements/constraints.txt" in ci_text
     assert "--cov=" in ci_text
     thresholds = [int(value) for value in re.findall(r"--cov-fail-under=(\d+)", ci_text)]
+    thresholds.extend(int(value) for value in re.findall(r"--fail-under=(\d+)", ci_text))
     assert max(thresholds) >= 100
     assert any(value >= 70 for value in thresholds)
     assert "tests/e2e/test_studio_reale_flow.py" in ci_text

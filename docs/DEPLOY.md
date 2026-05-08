@@ -59,8 +59,11 @@ a fasi:
 ```bash
 python scripts/run_pytest_phases.py --list
 python scripts/run_pytest_phases.py --core-list
-python scripts/run_pytest_phases.py --core-shard 1 --core-total-shards 10 --timeout-minutes 10
+python scripts/run_pytest_phases.py --suite-list
+python scripts/run_pytest_phases.py --core-shard 6 --core-total-shards 10 --core-subshard 2 --core-total-subshards 16 --core-subdivide-items --timeout-minutes 5
+python scripts/run_pytest_phases.py --suite signer --suite-shard 2 --suite-total-shards 4 --suite-subdivide-items --timeout-minutes 5
 python scripts/run_pytest_phases.py --phase react-migration --timeout-minutes 20
+python scripts/run_pytest_phases.py --phase 02-react-ui --item-batch-size 20 --timeout-minutes 5
 python scripts/run_pytest_phases.py --phase full --timeout-minutes 30 --report artifacts/react-migration/pytest-phases-run.json
 ```
 
@@ -69,9 +72,14 @@ verde la suite backend devono passare tutte le fasi necessarie, inclusa
 `09-misc`, oppure la CI equivalente su Python `3.12`. Il dettaglio operativo e'
 in `docs/PYTEST_PHASES.md`.
 
-In GitHub Actions il gate `Pytest core` e' diviso in 10 shard paralleli con
-timeout pytest di 10 minuti per shard e job aggregatore finale. Il check
-aggregato resta `Pytest core` e fallisce se anche una sola fase fallisce.
+In GitHub Actions il gate `Pytest core` e' diviso in 10 shard principali; le
+fasi 5, 6, 7, 8 e 9 sono ulteriormente divise a livello di test item. Le fasi
+5 e 9 hanno 6 parti, la fase 6 ha 16 parti, observability e OCR restano divisi
+in 3 parti. Ogni sotto-fase ha timeout pytest di 5 minuti e il check aggregato
+resta `Pytest core`, fallendo se anche una sola parte fallisce. Anche coverage
+critica, Local Signer, overlay qualita', release readiness, E2E nightly e
+frontend React hanno shard/aggregatori dedicati per mantenere il feedback sotto
+il budget operativo senza rimuovere test.
 
 ## Codex Support Stack prima della release
 

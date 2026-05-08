@@ -1,0 +1,93 @@
+{
+  "suites": {
+    "coverage-critical": {
+      "fileCount": 41,
+      "itemCount": 230,
+      "files": [
+        "lex/tests/test_citation_guard_strict.py",
+        "lex/tests/test_dependencies.py",
+        "lex/tests/test_evaluation_metrics.py",
+        "lex/tests/test_gateway_privacy_guard.py",
+        "lex/tests/test_gateway_router.py",
+        "lex/tests/test_gateway_status.py",
+        "lex/tests/test_grounding.py",
+        "lex/tests/test_hallucination_guard.py",
+        "lex/tests/test_http_bounded_bridge.py",
+        "lex/tests/test_http_bounded_bridge_governed_only.py",
+        "lex/tests/test_legal_reference_guard_strict.py",
+        "lex/tests/test_official_web.py",
+        "lex/tests/test_ollama_provider_strict_no_evidence.py",
+        "lex/tests/test_orchestrator.py",
+        "lex/tests/test_orchestrator_http_raw_chat_blocked.py",
+        "lex/tests/test_professional_answer_needs_review.py",
+        "lex/tests/test_provider_health_and_citations.py",
+        "lex/tests/test_routes.py",
+        "lex/tests/test_runtime_dependencies.py",
+        "lex/tests/test_service.py",
+        "lex/tests/unit/test_bundle_scenarios.py",
+        "lex/tests/unit/test_deterministic_provider.py",
+        "lex/tests/unit/test_guard_orchestrator.py",
+        "lex/tests/unit/test_memory_service.py",
+        "lex/tests/unit/test_ollama_provider.py",
+        "lex/tests/unit/test_professional_answer.py",
+        "lex/tests/unit/test_registry.py",
+        "lex/tests/unit/test_retrieval_orchestrator.py",
+        "lex/tests/unit/test_router.py",
+        "lex/tests/unit/test_social_intent_routing.py",
+        "lex/tests/unit/test_source_policy.py",
+        "lex/tests/unit/test_source_policy_invariants.py",
+        "lex/tests/unit/test_source_registry.py",
+        "lex/tests/unit/test_studio_context.py",
+        "tests/test_auth.py",
+        "tests/test_lex_docling_parser.py",
+        "tests/test_storage_governance.py",
+        "tests/test_storage_strategy.py",
+        "tests/test_telematico_repository.py",
+        "tests/test_telematico_resilience.py",
+        "tests/test_telematico_workflow.py"
+      ]
+    },
+    "e2e-nightly": {
+      "fileCount": 4,
+      "itemCount": 6,
+      "files": [
+        "tests/e2e/test_ai_pipeline_full.py",
+        "tests/e2e/test_operational_crash_day.py",
+        "tests/e2e/test_studio_reale_flow.py",
+        "tests/e2e/test_tenant_migration_full.py"
+      ]
+    },
+    "e2e-smoke": {
+      "fileCount": 1,
+      "itemCount": 1,
+      "files": [
+        "tests/e2e/test_studio_reale_flow.py"
+      ]
+    },
+    "quality-overlay": {
+      "fileCount": 3,
+      "itemCount": 5,
+      "files": [
+        "tests/test_lex_quality_gates.py",
+        "tests/test_local_signer_ai_cache.py",
+        "tests/test_performance_budget.py"
+      ]
+    },
+    "release-readiness": {
+      "fileCount": 1,
+      "itemCount": 1,
+      "files": [
+        "tests/test_release_readiness.py"
+      ]
+    },
+    "signer": {
+      "fileCount": 3,
+      "itemCount": 153,
+      "files": [
+        "tests/test_build_dist.py",
+        "tests/test_local_signer.py",
+        "tests/test_visible_signature.py"
+      ]
+    }
+  }
+}

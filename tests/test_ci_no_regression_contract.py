@@ -33,12 +33,16 @@ def test_ci_keeps_core_and_coverage_gates() -> None:
         "tests/test_lex_docling_parser.py",
         "tests/test_storage_strategy.py",
         "--cov-config=config/coverage-critical.ini",
+        "coverage-critical-shards:",
+        "coverage combine coverage-parts",
+        "--fail-under=71",
         "name: Gate anti-regressione CI 100%",
     )
     for snippet in required:
         assert snippet in workflow
 
     thresholds = [int(value) for value in re.findall(r"--cov-fail-under=(\d+)", workflow)]
+    thresholds.extend(int(value) for value in re.findall(r"--fail-under=(\d+)", workflow))
     assert thresholds
     assert max(thresholds) >= 100
     assert any(value >= 71 for value in thresholds)
@@ -49,14 +53,30 @@ def test_pytest_core_uses_ten_parallel_shards_without_removing_tests() -> None:
     shards_section = workflow.split("tests-core-shards:", 1)[1].split("tests-core:", 1)[0]
     summary_section = workflow.split("tests-core:", 1)[1].split("coverage-critical:", 1)[0]
 
-    assert "name: Pytest core fase ${{ matrix.phase }}/10" in shards_section
+    assert "name: Pytest core fase ${{ matrix.label }}" in shards_section
     assert "fail-fast: false" in shards_section
-    assert "phase: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]" in shards_section
+    assert "include:" in shards_section
     assert "--core-shard ${{ matrix.phase }}" in shards_section
     assert "--core-total-shards 10" in shards_section
-    assert "--timeout-minutes 10" in shards_section
+    assert "--core-subshard ${{ matrix.subshard }}" in shards_section
+    assert "--core-total-subshards ${{ matrix.total_subshards }}" in shards_section
+    assert "--core-subdivide-items" in shards_section
+    assert "--timeout-minutes 5" in shards_section
     assert "name: Pytest core" in summary_section
     assert "needs['tests-core-shards'].result" in summary_section
+
+    rows = re.findall(
+        r"- phase:\s*(\d+)\s+subshard:\s*(\d+)\s+total_subshards:\s*(\d+)\s+"
+        r"subdivide_items:\s*(true|false)\s+label:",
+        shards_section,
+    )
+    expected_subshards = {5: 6, 6: 16, 7: 3, 8: 3, 9: 6}
+    assert len(rows) == 39
+    split_rows = {(int(phase), int(sub), int(total), item_mode) for phase, sub, total, item_mode in rows}
+    for phase, total in expected_subshards.items():
+        assert {(phase, sub, total, "true") for sub in range(1, total + 1)} <= split_rows
+    for phase in (1, 2, 3, 4, 10):
+        assert (phase, 1, 1, "false") in split_rows
 
     timeout = re.search(r"timeout-minutes:\s*(\d+)", shards_section)
     assert timeout
@@ -72,6 +92,15 @@ def test_pytest_core_uses_ten_parallel_shards_without_removing_tests() -> None:
     assert all(shard for shard in shards)
     assert len(flattened) == len(core_files)
     assert len(set(flattened)) == len(core_files)
+    for phase, total in expected_subshards.items():
+        phase_targets = runner.discover_test_items(shards[phase - 1])
+        subshards = runner.split_core_shards(phase_targets, total)
+        subshard_targets = [target for subshard in subshards for target in subshard]
+        assert len(subshards) == total
+        assert len(subshard_targets) == len(phase_targets)
+        assert len(set(subshard_targets)) == len(phase_targets)
+    assert any("tests/test_observability_runtime.py::" in item for item in runner.discover_test_items(shards[6]))
+    assert any("tests/test_ocr_worker.py::" in item for item in runner.discover_test_items(shards[7]))
 
     required_core_tests = (
         "tests/test_auth.py",
@@ -107,6 +136,55 @@ def test_pytest_core_uses_ten_parallel_shards_without_removing_tests() -> None:
     }
     assert lex_tests
     assert lex_tests <= discovered
+
+
+def test_ci_uses_five_minute_shards_for_other_test_suites() -> None:
+    workflow = _read(".github/workflows/ci.yml")
+    quality_overlay = _read(".github/workflows/ci_quality_overlay.yml")
+    release_overlay = _read(".github/workflows/ci_release_overlay.yml")
+    e2e_nightly = _read(".github/workflows/e2e-nightly.yml")
+    frontend = _read(".github/workflows/frontend-ci.yml")
+    performance = _read(".github/workflows/performance-nightly.yml")
+
+    required = (
+        "--suite coverage-critical",
+        "--suite-total-shards 12",
+        "--suite e2e-smoke",
+        "--suite signer",
+        "--suite-total-shards 4",
+        "name: Local Signer e PKCS#11",
+        "needs['signer-shards'].result",
+        "name: Frontend React CI",
+        "npm run build:vite",
+    )
+    combined = "\n".join((workflow, frontend))
+    for snippet in required:
+        assert snippet in combined
+
+    assert "--suite quality-overlay" in quality_overlay
+    assert "--suite-total-shards 3" in quality_overlay
+    assert "--suite release-readiness" in release_overlay
+    assert "--suite e2e-nightly" in e2e_nightly
+    assert "--suite-total-shards 4" in e2e_nightly
+    assert "timeout 5m python tools/performance_smoke.py" in performance
+
+    for text in (workflow, quality_overlay, release_overlay, e2e_nightly):
+        assert "--timeout-minutes 5" in text
+
+    runner = _load_pytest_phase_runner()
+    coverage_files = {path.relative_to(REPO_ROOT).as_posix() for path in runner.discover_suite_test_files("coverage-critical")}
+    signer_items = runner.discover_test_items(runner.discover_suite_test_files("signer"))
+    e2e_files = {path.relative_to(REPO_ROOT).as_posix() for path in runner.discover_suite_test_files("e2e-nightly")}
+
+    assert "lex/tests/test_gateway_router.py" in coverage_files
+    assert "tests/test_storage_strategy.py" in coverage_files
+    assert any(item.startswith("tests/test_local_signer.py::") for item in signer_items)
+    assert {
+        "tests/e2e/test_studio_reale_flow.py",
+        "tests/e2e/test_ai_pipeline_full.py",
+        "tests/e2e/test_tenant_migration_full.py",
+        "tests/e2e/test_operational_crash_day.py",
+    } <= e2e_files
 
 
 def test_agents_documents_ci_no_regression_rule() -> None:

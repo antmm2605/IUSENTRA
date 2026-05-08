@@ -8,8 +8,11 @@ blocchi eseguibili separatamente.
 ```bash
 python scripts/run_pytest_phases.py --list
 python scripts/run_pytest_phases.py --core-list
-python scripts/run_pytest_phases.py --core-shard 1 --core-total-shards 10 --timeout-minutes 10
+python scripts/run_pytest_phases.py --suite-list
+python scripts/run_pytest_phases.py --core-shard 6 --core-total-shards 10 --core-subshard 2 --core-total-subshards 16 --core-subdivide-items --timeout-minutes 5
+python scripts/run_pytest_phases.py --suite signer --suite-shard 2 --suite-total-shards 4 --suite-subdivide-items --timeout-minutes 5
 python scripts/run_pytest_phases.py --phase react-migration --timeout-minutes 20
+python scripts/run_pytest_phases.py --phase 02-react-ui --item-batch-size 20 --timeout-minutes 5
 python scripts/run_pytest_phases.py --phase full --timeout-minutes 30 --report artifacts/react-migration/pytest-phases-run.json
 ```
 
@@ -36,8 +39,13 @@ quando la CI equivalente su Python 3.12 e' verde.
 
 ## Pytest core CI
 
-Il workflow GitHub Actions divide `Pytest core` in 10 shard paralleli generati
-dal runner con `--core-shard`. Il check aggregato finale resta `Pytest core` e
-fallisce se una delle 10 fasi fallisce.
+Il workflow GitHub Actions divide `Pytest core` in 10 shard principali generati
+dal runner con `--core-shard`. Le fasi lente usano sotto-fasi a livello di test
+item con timeout pytest di 5 minuti: fase 5 in 6 parti, fase 6 in 16 parti,
+fase 9 in 6 parti, observability e OCR in 3 parti ciascuna. Il check aggregato
+finale resta `Pytest core` e fallisce se una qualunque parte fallisce. Anche le
+suite CI `coverage-critical`, `signer`, `quality-overlay`, `release-readiness`
+ed `e2e-nightly` sono censite dal runner.
 
 Inventario JSON: `artifacts/react-migration/pytest-core-shards.json`.
+Inventario suite CI: `artifacts/react-migration/ci-test-suites.json`.

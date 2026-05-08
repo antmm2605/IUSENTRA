@@ -1,9 +1,15 @@
 # Changelog
 
+## 2.198.124 - 2026-05-08
+
+- Divise le fasi CI `Pytest core` 5/10, 6/10 e 9/10 in sotto-fasi piu' fini a livello di test item, con budget pytest di 5 minuti: fase 5 in 6 parti, fase 6 in 16 parti e fase 9 in 6 parti.
+- Divise anche le fasi 7/10 e 8/10, che contengono observability e OCR, in 3 sotto-fasi ciascuna con `--core-subdivide-items`.
+- Esteso il runner a suite CI aggiuntive (`coverage-critical`, `signer`, `e2e-smoke`, `quality-overlay`, `release-readiness`, `e2e-nightly`) e convertiti coverage critica, Local Signer, overlay qualita', release readiness, E2E nightly e frontend React in shard con aggregatori, senza rimuovere test.
+
 ## 2.198.123 - 2026-05-08
 
 - Corretto il guardrail governance della CI mantenendo nel workflow i target storici ora espansi dal runner `Pytest core` a 10 shard.
-- Aggiunta l'opzione `--batch-size` al runner pytest a fasi per isolare file lenti o bloccati senza ridurre il perimetro dei test.
+- Aggiunte le opzioni `--batch-size` e `--item-batch-size` al runner pytest a fasi per isolare file o singoli test lenti senza ridurre il perimetro dei controlli.
 
 ## 2.198.122 - 2026-05-08
 

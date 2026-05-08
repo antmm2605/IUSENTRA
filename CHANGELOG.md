@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.207.0 - 2026-05-08
+
+- Reso lo stato finale `docker compose ps` informativo dopo il gate health: il deploy non fallisce piu' se Compose restituisce un codice non-zero durante la sola stampa dello stato.
+
 ## 2.206.0 - 2026-05-08
 
 - Corretto il completamento finale dello script Hetzner: la rigenerazione del crontab backup non fallisce piu' quando le vecchie righe marcate vengono rimosse tutte.

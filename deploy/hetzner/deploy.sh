@@ -184,7 +184,7 @@ docker compose \
   --env-file "$ENV_FILE" \
   -f "$COMPOSE_FILE" \
   "${PROFILE_ARGS[@]}" \
-  ps
+  ps || true
 
 # ---------------------------------------------------------------------------
 # 8. Cron backup automatico (aggiornato ad ogni deploy)

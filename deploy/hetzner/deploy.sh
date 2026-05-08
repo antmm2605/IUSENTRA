@@ -78,6 +78,62 @@ if [ -n "$PROFILES" ]; then
   done
 fi
 
+wait_for_compose_services() {
+  local timeout="${IUSENTRA_DEPLOY_HEALTH_TIMEOUT:-180}"
+  if ! [[ "$timeout" =~ ^[0-9]+$ ]] || (( timeout < 30 )); then
+    timeout=180
+  fi
+
+  local deadline=$((SECONDS + timeout))
+  local container_ids=()
+  local container_id
+  local name
+  local running
+  local health
+  local pending
+  local status_lines=()
+
+  while true; do
+    pending=0
+    status_lines=()
+    mapfile -t container_ids < <(docker compose \
+      --env-file "$ENV_FILE" \
+      -f "$COMPOSE_FILE" \
+      "${PROFILE_ARGS[@]}" \
+      ps -q)
+
+    if (( ${#container_ids[@]} == 0 )); then
+      pending=1
+      status_lines+=("nessun container rilevato")
+    fi
+
+    for container_id in "${container_ids[@]}"; do
+      name="$(docker inspect --format '{{.Name}}' "$container_id" 2>/dev/null | sed 's#^/##' || true)"
+      running="$(docker inspect --format '{{.State.Running}}' "$container_id" 2>/dev/null || echo false)"
+      health="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$container_id" 2>/dev/null || echo unknown)"
+      status_lines+=("${name:-$container_id}: running=${running}, health=${health}")
+
+      if [[ "$running" != "true" ]]; then
+        pending=1
+      elif [[ "$health" == "starting" || "$health" == "unhealthy" || "$health" == "unknown" ]]; then
+        pending=1
+      fi
+    done
+
+    if (( pending == 0 )); then
+      return 0
+    fi
+
+    if (( SECONDS >= deadline )); then
+      printf 'Timeout health container dopo %ss:\n' "$timeout" >&2
+      printf ' - %s\n' "${status_lines[@]}" >&2
+      return 1
+    fi
+
+    sleep 5
+  done
+}
+
 # ---------------------------------------------------------------------------
 # 5. Build e avvio servizi
 # ---------------------------------------------------------------------------
@@ -111,6 +167,9 @@ fi
 # ---------------------------------------------------------------------------
 # 7. Stato servizi
 # ---------------------------------------------------------------------------
+echo "Attendo health container..."
+wait_for_compose_services
+
 docker compose \
   --env-file "$ENV_FILE" \
   -f "$COMPOSE_FILE" \

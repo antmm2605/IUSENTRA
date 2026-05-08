@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.204.0 - 2026-05-08
+
+- Rafforzato il deploy Hetzner: lo script attende esplicitamente che app, worker e servizi con health check escano dallo stato `starting` prima di stampare lo stato finale e completare il deploy.
+- Allineata la versione frontend alla release applicativa finale.
+
 ## 2.203.0 - 2026-05-08
 
 - Corretto Lex per le ricerche di sentenze specifiche: il percorso HTTP bounded conserva `giurisprudenza_specifica`, forza la ricerca ufficiale quando consentita, distingue frammento locale/exact match e non mostra piu' elenchi di sentenze correlate come fonti principali.

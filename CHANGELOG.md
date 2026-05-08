@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.198.125 - 2026-05-08
+
+- Corretto lo shard coverage critica in CI rinominando l'artefatto `.coverage` prodotto da `pytest-cov` prima dell'upload, cosi' i 12 shard possono essere combinati dal gate aggregatore `Coverage moduli critici`.
+
 ## 2.198.124 - 2026-05-08
 
 - Divise le fasi CI `Pytest core` 5/10, 6/10 e 9/10 in sotto-fasi piu' fini a livello di test item, con budget pytest di 5 minuti: fase 5 in 6 parti, fase 6 in 16 parti e fase 9 in 6 parti.

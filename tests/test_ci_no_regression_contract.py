@@ -35,6 +35,7 @@ def test_ci_keeps_core_and_coverage_gates() -> None:
         "--cov-config=config/coverage-critical.ini",
         "coverage-critical-shards:",
         "coverage combine coverage-parts",
+        "mv .coverage",
         "--fail-under=71",
         "name: Gate anti-regressione CI 100%",
     )

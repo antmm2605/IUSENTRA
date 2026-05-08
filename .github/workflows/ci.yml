@@ -622,6 +622,10 @@ jobs:
             --cov=pct.telematico_workflow \
             --cov-config=config/coverage-critical.ini \
             --cov-report=
+          if [ -f .coverage ]; then
+            mv .coverage ".coverage.critical.${{ matrix.shard }}"
+          fi
+          test -f ".coverage.critical.${{ matrix.shard }}"
 
       - name: Upload coverage shard
         uses: actions/upload-artifact@v4

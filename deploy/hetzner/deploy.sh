@@ -58,4 +58,14 @@ docker compose \
   -f deploy/hetzner/docker-compose.hetzner.yml \
   ps
 
+# ---------------------------------------------------------------------------
+# Cron backup automatico (installato/aggiornato ad ogni deploy)
+# Default: ogni giorno alle 02:15. Override con IUSENTRA_BACKUP_CRON_SCHEDULE.
+# ---------------------------------------------------------------------------
+CRON_SCHEDULE="${IUSENTRA_BACKUP_CRON_SCHEDULE:-15 2 * * *}"
+CRON_CMD="${CRON_SCHEDULE} bash ${REPO_DIR}/deploy/hetzner/backup.sh >> /var/log/iusentra/backup.log 2>&1"
+CRONTAB_MARKER="# iusentra-backup"
+( crontab -l 2>/dev/null | grep -v "$CRONTAB_MARKER" ; echo "${CRON_CMD}  ${CRONTAB_MARKER}" ) | crontab -
+echo "Cron backup impostato: ${CRON_SCHEDULE}"
+
 echo "Deploy completato. Health: https://${IUSENTRA_DOMAIN}/api/pronto"

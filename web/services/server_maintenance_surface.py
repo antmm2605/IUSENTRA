@@ -342,6 +342,24 @@ def _tenant_rows(data_root: Path) -> list[dict[str, Any]]:
     return sorted(rows, key=lambda row: int(row["total_bytes"]), reverse=True)
 
 
+def _system_info() -> dict[str, Any]:
+    try:
+        import psutil
+        mem = psutil.virtual_memory()
+        load = psutil.getloadavg()
+        return {
+            "mem_total_label": human_bytes(mem.total),
+            "mem_used_label": human_bytes(mem.used),
+            "mem_percent": round(mem.percent, 1),
+            "load_1": round(load[0], 2),
+            "load_5": round(load[1], 2),
+            "load_15": round(load[2], 2),
+            "available": True,
+        }
+    except Exception:
+        return {"available": False}
+
+
 def build_server_maintenance_surface(config: dict[str, Any] | None = None) -> dict[str, Any]:
     cfg = _runtime_config(config)
     data_root = resolve_data_root(cfg)
@@ -410,6 +428,8 @@ def build_server_maintenance_surface(config: dict[str, Any] | None = None) -> di
             "apply_backup_retention": "/admin/server-manutenzione/applica-retention-backup",
         },
         "recommendations": recommendations,
+        "last_backup": _last_backup_info(backup_dir),
+        "system_info": _system_info(),
     }
 
 
@@ -465,4 +485,83 @@ def run_storage_compaction(
         "bytes_reclaimable_label": human_bytes(bytes_reclaimable),
         "bytes_reclaimed_label": human_bytes(bytes_reclaimed),
         "reports": reports,
+    }
+
+
+def trigger_backup(*, backup_script_path: str | Path | None = None) -> dict[str, Any]:
+    """Lancia backup.sh in background e ritorna subito con un ticket."""
+    import subprocess, shlex, tempfile
+    script = Path(backup_script_path or "").resolve() if backup_script_path else None
+    if script is None or not script.exists():
+        # Percorsi standard
+        for candidate in [
+            Path(__file__).resolve().parents[2] / "deploy" / "hetzner" / "backup.sh",
+            Path("/opt/iusentra/repo/deploy/hetzner/backup.sh"),
+        ]:
+            if candidate.exists():
+                script = candidate
+                break
+    if script is None:
+        return {"ok": False, "error": "Script backup.sh non trovato.", "pid": None}
+    log_path = Path("/tmp/iusentra-backup-trigger.log")
+    try:
+        proc = subprocess.Popen(
+            ["/usr/bin/env", "bash", str(script)],
+            stdout=log_path.open("w"),
+            stderr=subprocess.STDOUT,
+            start_new_session=True,
+        )
+        return {"ok": True, "pid": proc.pid, "log": str(log_path), "script": str(script)}
+    except Exception as exc:
+        return {"ok": False, "error": str(exc), "pid": None}
+
+
+def run_docker_prune(*, dry_run: bool = True) -> dict[str, Any]:
+    """Esegue docker system prune per liberare immagini e layer non usati."""
+    import subprocess
+    try:
+        cmd = ["docker", "system", "df", "--format", "json"]
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+        df_output = result.stdout.strip() if result.returncode == 0 else ""
+    except Exception:
+        df_output = ""
+
+    if dry_run:
+        return {
+            "applied": False,
+            "dry_run": True,
+            "docker_df": df_output,
+            "error": None,
+        }
+    try:
+        prune = subprocess.run(
+            ["docker", "system", "prune", "--volumes", "--force"],
+            capture_output=True, text=True, timeout=120,
+        )
+        return {
+            "applied": True,
+            "dry_run": False,
+            "stdout": prune.stdout,
+            "error": prune.stderr if prune.returncode != 0 else None,
+            "docker_df": df_output,
+        }
+    except Exception as exc:
+        return {"applied": False, "dry_run": False, "docker_df": df_output, "error": str(exc)}
+
+
+def _last_backup_info(backup_dir: str | Path | None = None) -> dict[str, Any]:
+    """Ritorna info sull'ultimo backup disponibile."""
+    root = Path(backup_dir) if backup_dir else resolve_external_backup_dir()
+    archives = _backup_archives(root)
+    if not archives:
+        return {"found": False, "label": "Nessun backup", "path": None}
+    last = archives[0]
+    ts = datetime.fromtimestamp(last.mtime, tz=timezone.utc)
+    return {
+        "found": True,
+        "label": ts.strftime("%d/%m/%Y %H:%M UTC"),
+        "size_label": human_bytes(last.size_bytes),
+        "path": str(last.path),
+        "checksum": last.checksum_path is not None,
+        "count": len(archives),
     }

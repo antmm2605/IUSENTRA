@@ -54,6 +54,37 @@
   </div>
 </div>
 
+<div class="row g-3 mb-4">
+  <div class="col-12 col-md-6">
+    <div class="card h-100 shadow-sm">
+      <div class="card-body">
+        <div class="text-muted small mb-1">Ultimo backup</div>
+        {% if payload.last_backup.found %}
+        <div class="display-6 fw-semibold text-primary">{{ payload.last_backup.label }}</div>
+        <div class="small text-muted">{{ payload.last_backup.size_label }} — {{ payload.last_backup.count }} archivi — {% if payload.last_backup.checksum %}<span class="text-success">SHA-256 ✓</span>{% else %}<span class="text-warning">senza checksum</span>{% endif %}</div>
+        {% else %}
+        <div class="display-6 fw-semibold text-muted">Nessuno</div>
+        <div class="small text-muted">Nessun archivio backup trovato in {{ payload.backup_dir }}</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-md-6">
+    <div class="card h-100 shadow-sm">
+      <div class="card-body">
+        <div class="text-muted small mb-1">Memoria sistema</div>
+        {% if payload.system_info.available %}
+        <div class="display-6 fw-semibold">{{ payload.system_info.mem_percent }}%</div>
+        <div class="small text-muted">{{ payload.system_info.mem_used_label }} / {{ payload.system_info.mem_total_label }} — load {{ payload.system_info.load_1 }} {{ payload.system_info.load_5 }} {{ payload.system_info.load_15 }}</div>
+        {% else %}
+        <div class="display-6 fw-semibold text-muted">N/D</div>
+        <div class="small text-muted">psutil non disponibile</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="card shadow-sm mb-4">
   <div class="card-header bg-body-tertiary d-flex flex-wrap justify-content-between gap-2 align-items-center">
     <strong>Manutenzione sicura globale</strong>
@@ -92,6 +123,18 @@
             <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
             <button class="btn btn-warning" type="submit">
               <i class="bi bi-trash3"></i> Applica retention backup
+            </button>
+          </form>
+          <form method="post" action="{{ url_for('server_maintenance_admin.backup_ora') }}" onsubmit="return confirm('Avviare un backup in background adesso?')">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <button class="btn btn-primary" type="submit">
+              <i class="bi bi-cloud-arrow-up"></i> Backup ora
+            </button>
+          </form>
+          <form method="post" action="{{ url_for('server_maintenance_admin.docker_prune') }}" onsubmit="return confirm('Eseguire docker system prune --volumes? Questa operazione rimuove immagini e volumi non usati.')">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <button class="btn btn-outline-danger" type="submit">
+              <i class="bi bi-bucket"></i> Docker prune
             </button>
           </form>
         </div>
@@ -148,6 +191,13 @@
         {% endfor %}
       </ul>
       {% endif %}
+    </div>
+    {% endif %}
+    {% if docker_prune %}
+    <div class="alert alert-{{ 'danger' if docker_prune.error else 'success' }} mt-3 mb-0">
+      <div class="fw-semibold">{{ 'Errore Docker prune' if docker_prune.error else 'Docker prune completato' }}</div>
+      {% if docker_prune.error %}<div class="small">{{ docker_prune.error }}</div>{% endif %}
+      {% if docker_prune.stdout %}<pre class="small mt-1 mb-0" style="white-space:pre-wrap;max-height:160px;overflow-y:auto">{{ docker_prune.stdout }}</pre>{% endif %}
     </div>
     {% endif %}
   </div>

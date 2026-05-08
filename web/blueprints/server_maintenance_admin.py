@@ -8,7 +8,9 @@ from web.blueprints.admin import superadmin_required
 from web.services.server_maintenance_surface import (
     build_server_maintenance_surface,
     run_backup_retention,
+    run_docker_prune,
     run_storage_compaction,
+    trigger_backup,
 )
 
 
@@ -28,6 +30,7 @@ def dashboard():
         payload=payload,
         compaction=None,
         backup_retention=None,
+        docker_prune=None,
     )
 
 
@@ -55,6 +58,7 @@ def analizza_compattazione():
             payload=build_server_maintenance_surface(),
             compaction=compaction,
             backup_retention=None,
+            docker_prune=None,
         )
     except Exception as exc:
         current_app.logger.exception("Errore analisi compattazione storage: %s", exc)
@@ -80,6 +84,7 @@ def compatta():
             payload=build_server_maintenance_surface(),
             compaction=compaction,
             backup_retention=None,
+            docker_prune=None,
         )
     except Exception as exc:
         current_app.logger.exception("Errore compattazione storage: %s", exc)
@@ -103,6 +108,7 @@ def analizza_retention_backup():
             payload=build_server_maintenance_surface(),
             compaction=None,
             backup_retention=backup_retention,
+            docker_prune=None,
         )
     except Exception as exc:
         current_app.logger.exception("Errore analisi retention backup: %s", exc)
@@ -127,8 +133,46 @@ def applica_retention_backup():
             payload=build_server_maintenance_surface(),
             compaction=None,
             backup_retention=backup_retention,
+            docker_prune=None,
         )
     except Exception as exc:
         current_app.logger.exception("Errore retention backup: %s", exc)
         flash("Errore durante la retention backup.", "danger")
+        return redirect(url_for("server_maintenance_admin.dashboard"))
+
+
+@server_maintenance_admin.post("/backup-ora")
+@superadmin_required
+def backup_ora():
+    try:
+        result = trigger_backup()
+        if result["ok"]:
+            flash(f"Backup avviato in background (PID {result['pid']}).", "success")
+        else:
+            flash(f"Errore avvio backup: {result['error']}", "danger")
+    except Exception as exc:
+        current_app.logger.exception("Errore avvio backup: %s", exc)
+        flash("Errore durante l'avvio del backup.", "danger")
+    return redirect(url_for("server_maintenance_admin.dashboard"))
+
+
+@server_maintenance_admin.post("/docker-prune")
+@superadmin_required
+def docker_prune():
+    try:
+        result = run_docker_prune(dry_run=False)
+        if result.get("error"):
+            flash(f"Docker prune — attenzione: {result['error']}", "warning")
+        else:
+            flash("Docker system prune completato.", "success")
+        return render_template(
+            "admin/server_manutenzione.html",
+            payload=build_server_maintenance_surface(),
+            compaction=None,
+            backup_retention=None,
+            docker_prune=result,
+        )
+    except Exception as exc:
+        current_app.logger.exception("Errore docker prune: %s", exc)
+        flash("Errore durante docker prune.", "danger")
         return redirect(url_for("server_maintenance_admin.dashboard"))

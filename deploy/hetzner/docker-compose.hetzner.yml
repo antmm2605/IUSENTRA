@@ -170,6 +170,7 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - ${IUSENTRA_CADDY_DATA_DIR:-/opt/iusentra/caddy_data}:/data
       - ${IUSENTRA_CADDY_CONFIG_DIR:-/opt/iusentra/caddy_config}:/config
+      - /var/log/iusentra:/var/log/iusentra
     depends_on:
       app:
         condition: service_healthy

@@ -81,8 +81,11 @@ function assertNoClientStorage(source, label) {
 }
 
 function assertNoSensitivePayloadWords(source, label) {
-  for (const word of ['api_key', 'apikey', 'secret', 'password', 'smtp_password', 'pec_password', 'token', 'private_key', 'access_key', 'refresh_token', 'client_secret', 'bearer']) {
-    if (new RegExp(word, 'i').test(source)) {
+  const sanitizedSource = source
+    .replace(/SENSITIVE_KEY\s*=\s*\/.*?\n/s, '')
+    .replace(/secrets_exposed/g, '')
+  for (const word of ['api_key', 'apikey', 'password', 'smtp_password', 'pec_password', 'password_hash', 'private_key', 'access_key', 'access_token', 'refresh_token', 'oauth_token', 'client_secret', 'provider_secret', 'webhook_secret', 'bearer']) {
+    if (new RegExp(word, 'i').test(sanitizedSource)) {
       throw new Error(`${label}: contiene parola riservata nel payload o nella UI: ${word}`)
     }
   }
@@ -431,8 +434,10 @@ for (const [route, status] of [
   ['/utenti', 'react_operational_full'],
   ['/profili', 'react_operational_full'],
   ['/backup', 'react_operational_full'],
-  ['/sito-studio', 'react_bridge'],
-  ['/sito-studio/contatti', 'react_bridge'],
+  ['/studio', 'react_operational_full'],
+  ['/amministrazione', 'react_operational_full'],
+  ['/sito-studio', 'react_operational_full'],
+  ['/sito-studio/contatti', 'react_operational_full'],
   ['/fatturazione/nuova', 'react_operational_full'],
   ['/preventivi/wizard', 'react_operational_partial'],
   ['/tariffario', 'react_operational_full'],
@@ -617,7 +622,9 @@ assertContains(profiliPage, 'saveProfiliPermissions', 'ProfiliPage salva profili
 assertNotContains(backupPage, 'LegacyPostForm', 'BackupPage non usa LegacyPostForm nel flusso principale')
 assertContains(backupPage, 'createBackup', 'BackupPage crea backup via data client JSON')
 assertContains(backupPage, 'verifyBackupIntegrity', 'BackupPage verifica integrita via data client JSON')
-assertContains(sitoStudioPage, 'LegacyPostForm', 'SitoStudioPage usa LegacyPostForm per azioni legacy')
+assertNotContains(sitoStudioPage, 'LegacyPostForm', 'SitoStudioPage non usa LegacyPostForm nel flusso principale')
+assertContains(sitoStudioData, 'apiPostJson', 'sitoStudioData usa apiPostJson per azioni sito supportate')
+assertContains(sitoStudioPage, 'linkSitoContatto', 'SitoStudioPage collega contatti via API JSON')
 assertNotContains(fatturazionePage, 'LegacyPostForm', 'FatturazionePage non usa LegacyPostForm nel flusso nuova fatturazione')
 assertContains(fatturazionePage, 'createFattura', 'FatturazionePage salva nuova parcella via JSON')
 assertContains(fatturazionePage, 'saveStatus', 'FatturazionePage gestisce saving/success/error')

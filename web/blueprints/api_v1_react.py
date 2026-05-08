@@ -102,8 +102,11 @@ from web.services.react_backup_bridge import (
     verify_react_backup_integrity,
 )
 from web.services.react_sito_studio_bridge import (
+    build_react_sito_contatti_payload,
     build_react_sito_studio_error_payload,
     build_react_sito_studio_payload,
+    link_react_sito_contatto,
+    update_react_sito_booking_status,
 )
 from web.services.react_studio_bridge import build_react_studio_error_payload, build_react_studio_payload
 from web.services.react_amministrazione_bridge import (
@@ -2884,7 +2887,13 @@ def sito_studio_page():
     if denied is not None:
         return denied
     try:
-        return jsonify(build_react_sito_studio_payload())
+        return jsonify(
+            build_react_sito_studio_payload(
+                current_user=g.get("utente_corrente"),
+                get_clienti=get_clienti,
+                get_fascicoli=get_fascicoli,
+            )
+        )
     except Exception as exc:
         current_app.logger.exception("Errore Sito Studio React bridge: %s", exc)
         return jsonify(build_react_sito_studio_error_payload("Sito Studio non disponibile dal runtime corrente.")), 200
@@ -2897,10 +2906,42 @@ def sito_studio_contatti_page():
     if denied is not None:
         return denied
     try:
-        return jsonify(build_react_sito_studio_payload(contacts_only=True))
+        return jsonify(
+            build_react_sito_contatti_payload(
+                current_user=g.get("utente_corrente"),
+                get_clienti=get_clienti,
+                get_fascicoli=get_fascicoli,
+            )
+        )
     except Exception as exc:
         current_app.logger.exception("Errore contatti Sito Studio React bridge: %s", exc)
         return jsonify(build_react_sito_studio_error_payload("Contatti Sito Studio non disponibili dal runtime corrente.")), 200
+
+
+@api_v1_react.post("/sito-studio/contatti/<id_contatto>/collega")
+@_richiedi_auth
+def sito_studio_contatto_collega(id_contatto: str):
+    denied = _richiedi_admin_sito_studio_api()
+    if denied is not None:
+        return denied
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    result = link_react_sito_contatto(id_contatto, payload or {}, get_clienti=get_clienti)
+    return jsonify(result), 200 if result.get("ok") else 400
+
+
+@api_v1_react.post("/sito-studio/prenotazioni/<id_prenotazione>/stato")
+@_richiedi_auth
+def sito_studio_prenotazione_stato(id_prenotazione: str):
+    denied = _richiedi_admin_sito_studio_api()
+    if denied is not None:
+        return denied
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    result = update_react_sito_booking_status(id_prenotazione, payload or {})
+    return jsonify(result), 200 if result.get("ok") else 400
 
 
 @api_v1_react.get("/studio")
@@ -2918,6 +2959,10 @@ def studio_page():
                 get_clienti=get_clienti,
                 get_fascicoli=get_fascicoli,
                 get_scadenziario=get_scadenziario,
+                get_backup=_backup_loader(),
+                get_fatturazione=get_fatturazione,
+                get_preventivi=get_preventivi,
+                get_pagamenti=get_pagamenti,
             )
         )
     except Exception as exc:

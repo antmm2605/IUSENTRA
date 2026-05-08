@@ -14,6 +14,25 @@ essere dichiarata operativa deve avere:
 - test di regressione su route, API e card;
 - nessun link visibile verso `?_legacy=1`.
 
+## Aggiornamento 2026-05-08 - Regia studio, amministrazione e Sito Studio
+
+Le route `/studio`, `/amministrazione`, `/sito-studio` e
+`/sito-studio/contatti` sono state promosse a `react_operational_full`:
+
+- `/studio` e `/amministrazione` sono read-only (`writes=none`) e leggono solo
+  aggregati sicuri via `GET /api/v1/ui/studio` e
+  `GET /api/v1/ui/amministrazione`.
+- `/sito-studio` resta read-only per dashboard, contenuti pubblici sicuri,
+  KPI e anteprima pubblica; builder/editor/pubblicazione restano legacy
+  protetti.
+- `/sito-studio/contatti` usa JSON API per le azioni legacy supportate:
+  collegamento cliente e stato prenotazione. Le azioni non supportate dal
+  backend legacy sono esposte come disabilitate, non emulate.
+- Nessuna pagina usa `LegacyPostForm`, CTA legacy primaria, storage browser,
+  fetch esterni o rendering HTML raw.
+- `/impostazioni*`, `/sincronizzazione-calendari`, `/studio/*`,
+  `/amministrazione/*` e `/sito-studio/builder` restano protetti dal gate.
+
 ## Aggiornamento 2026-05-07 - Nuova fatturazione operativa
 
 La route `/fatturazione/nuova` e' stata promossa a

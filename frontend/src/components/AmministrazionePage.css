@@ -2,10 +2,10 @@
   display: grid;
   gap: 5px;
   padding: 14px 16px;
-  border: 1px solid rgba(47, 128, 237, .24);
-  border-radius: 12px;
-  background: rgba(47, 128, 237, .08);
-  color: #1d4ed8;
+  border: 1px solid var(--iu-border);
+  border-radius: var(--iu-radius-panel);
+  background: var(--iu-surface-accent);
+  color: var(--iu-text-strong);
 }
 
 .iu-adminhub-banner strong {
@@ -14,6 +14,7 @@
 }
 
 .iu-adminhub-banner span {
+  color: var(--iu-text-subtle);
   font-size: 13px;
   line-height: 1.45;
   font-weight: 700;
@@ -25,7 +26,8 @@
 .iu-adminhub-list,
 .iu-adminhub-actions,
 .iu-adminhub-modules,
-.iu-adminhub-contract {
+.iu-adminhub-contract,
+.iu-adminhub-security {
   display: grid;
   gap: 14px;
 }
@@ -38,15 +40,20 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.iu-adminhub-module,
+.iu-adminhub-security article,
+.iu-adminhub-warning {
+  border: 1px solid var(--iu-border);
+  border-radius: var(--iu-radius-panel);
+  background: var(--iu-surface-solid);
+}
+
 .iu-adminhub-module {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 14px;
   padding: 14px;
-  border: 1px solid var(--iu-border);
-  border-radius: 12px;
-  background: #fff;
 }
 
 .iu-adminhub-module div {
@@ -62,8 +69,9 @@
 }
 
 .iu-adminhub-module strong,
-.iu-adminhub-list__item span {
-  color: #111827;
+.iu-adminhub-list__item span,
+.iu-adminhub-security strong {
+  color: var(--iu-text-strong);
   font-size: 14px;
   line-height: 1.25;
   font-weight: 900;
@@ -71,11 +79,22 @@
 
 .iu-adminhub-module span,
 .iu-adminhub-list__item small,
-.iu-adminhub-contract span {
-  color: var(--iu-slate-500);
+.iu-adminhub-contract span,
+.iu-adminhub-security span {
+  color: var(--iu-text-subtle);
   font-size: 12px;
   line-height: 1.45;
   font-weight: 650;
+}
+
+.iu-adminhub-security {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.iu-adminhub-security article {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
 }
 
 .iu-adminhub-list__item {
@@ -91,14 +110,14 @@
 }
 
 .iu-adminhub-list__item strong {
-  color: #111827;
+  color: var(--iu-text-strong);
   font-size: 18px;
   line-height: 1;
   font-weight: 900;
 }
 
 .iu-adminhub-actions {
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .iu-adminhub-warning {
@@ -106,23 +125,22 @@
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
-  border: 1px solid rgba(245, 158, 11, .24);
-  border-radius: 12px;
-  background: rgba(245, 158, 11, .08);
-  color: #92400e;
+  background: var(--iu-surface-muted);
+  color: var(--iu-text-strong);
   font-size: 13px;
   font-weight: 700;
 }
 
 .iu-adminhub-contract {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
 }
 
 @media (max-width: 1180px) {
   .iu-adminhub-kpis,
   .iu-adminhub-grid,
   .iu-adminhub-actions,
-  .iu-adminhub-contract {
+  .iu-adminhub-contract,
+  .iu-adminhub-security {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -136,7 +154,8 @@
   .iu-adminhub-kpis,
   .iu-adminhub-grid,
   .iu-adminhub-actions,
-  .iu-adminhub-contract {
+  .iu-adminhub-contract,
+  .iu-adminhub-security {
     grid-template-columns: 1fr;
   }
 

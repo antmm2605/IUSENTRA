@@ -61,6 +61,8 @@ _CSRF_PROTECTED_ENDPOINTS = {
     "api_v1_react.incassi_pagamenti_link_pagamento",
     "api_v1_react.compensi_forensi_calcola",
     "api_v1_react.tariffario_calcola_page",
+    "api_v1_react.sito_studio_contatto_collega",
+    "api_v1_react.sito_studio_prenotazione_stato",
     }
 
 _UNSAFE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}

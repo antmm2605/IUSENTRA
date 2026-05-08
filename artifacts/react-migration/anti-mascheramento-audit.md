@@ -1,6 +1,6 @@
 # Audit anti-mascheramento React
 
-Generato: 2026-05-07T21:44:17.875Z
+Generato: 2026-05-08T08:42:22.033Z
 
 ## Regole operative Parte 12A
 
@@ -13,12 +13,12 @@ Generato: 2026-05-07T21:44:17.875Z
 ## Sintesi
 
 - Route censite: 53
-- Link `?_legacy=1`: 235
-- LegacyPostForm: 3
+- Link `?_legacy=1`: 189
+- LegacyPostForm: 0
 - Form POST HTML React: 0
-- Bridge con scritture legacy: 20
+- Bridge con scritture legacy: 15
 - Status react_full deprecati: 0
-- API JSON di salvataggio mancanti: 3
+- API JSON di salvataggio mancanti: 2
 
 ## Tabella route
 
@@ -29,17 +29,17 @@ Generato: 2026-05-07T21:44:17.875Z
 | /profili | frontend/src/components/ProfiliPage.tsx | frontend/src/profiliData.ts | web/services/react_profili_bridge.py | react_operational_full | 2 | 0 | si | fallback legacy tecnico non primario | react_operational_full |
 | /audit | frontend/src/components/AuditPage.tsx | frontend/src/auditData.ts | web/services/react_audit_bridge.py | react_operational_full | 1 | 0 | si | fallback legacy tecnico non primario | react_operational_full |
 | /registro-attivita | frontend/src/components/AuditPage.tsx | frontend/src/auditData.ts | web/services/react_audit_bridge.py | react_operational_full | 1 | 0 | si | fallback legacy tecnico non primario | react_operational_full |
-| /studio | frontend/src/components/StudioPage.tsx | frontend/src/studioData.ts | web/services/react_studio_bridge.py | react_bridge | 4 | 0 | no | 4 link ?_legacy=1 primari o non governati; bridge writes=legacy_routes; gestione successo non rilevata | react_bridge |
-| /amministrazione | frontend/src/components/AmministrazionePage.tsx | frontend/src/amministrazioneData.ts | web/services/react_amministrazione_bridge.py | react_bridge | 0 | 0 | no | bridge writes=legacy_routes; gestione successo non rilevata | react_bridge |
+| /studio | frontend/src/components/StudioPage.tsx | frontend/src/studioData.ts | web/services/react_studio_bridge.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
+| /amministrazione | frontend/src/components/AmministrazionePage.tsx | frontend/src/amministrazioneData.ts | web/services/react_amministrazione_bridge.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
 | /impostazioni | frontend/src/components/ImpostazioniPage.tsx | frontend/src/impostazioniData.ts | web/services/react_impostazioni_bridge.py | legacy_operational | 0 | 0 | no | nessuno | legacy_operational |
 | /impostazioni-studio | frontend/src/components/ImpostazioniPage.tsx | frontend/src/impostazioniData.ts | web/services/react_impostazioni_bridge.py | legacy_operational | 0 | 0 | no | nessuno | legacy_operational |
 | /impostazioni/calendario | frontend/src/components/ImpostazioniPage.tsx | frontend/src/impostazioniData.ts | web/services/react_impostazioni_bridge.py | legacy_operational | 0 | 0 | no | nessuno | legacy_operational |
 | /impostazioni/pagamenti | frontend/src/components/ImpostazioniPage.tsx | frontend/src/impostazioniData.ts | web/services/react_impostazioni_bridge.py | legacy_operational | 0 | 0 | no | nessuno | legacy_operational |
 | /sincronizzazione-calendari | frontend/src/components/ImpostazioniPage.tsx | frontend/src/impostazioniData.ts | web/services/react_impostazioni_bridge.py | legacy_operational | 0 | 0 | no | nessuno | legacy_operational |
 | /backup | frontend/src/components/BackupPage.tsx | frontend/src/backupData.ts | web/services/react_backup_bridge.py | react_operational_full | 5 | 0 | si | fallback legacy tecnico non primario | react_operational_full |
-| /sito-studio | frontend/src/components/SitoStudioPage.tsx | frontend/src/sitoStudioData.ts | web/services/react_sito_studio_bridge.py | react_bridge | 16 | 1 | no | 16 link ?_legacy=1 primari o non governati; LegacyPostForm presente; bridge writes=legacy_routes | react_bridge |
-| /sito-studio/contatti | frontend/src/components/SitoStudioPage.tsx | frontend/src/sitoStudioData.ts | web/services/react_sito_studio_bridge.py | react_bridge | 16 | 1 | no | 16 link ?_legacy=1 primari o non governati; LegacyPostForm presente; bridge writes=legacy_routes; API JSON di salvataggio mancante | react_bridge |
-| /sito-studio/builder | frontend/src/components/SitoStudioPage.tsx | frontend/src/sitoStudioData.ts | web/services/react_sito_studio_bridge.py | legacy_operational | 16 | 1 | no | 16 link ?_legacy=1 primari o non governati; LegacyPostForm presente; bridge writes=legacy_routes | legacy_operational |
+| /sito-studio | frontend/src/components/SitoStudioPage.tsx | frontend/src/sitoStudioData.ts | web/services/react_sito_studio_bridge.py | react_operational_full | 2 | 0 | si | fallback legacy tecnico non primario | react_operational_full |
+| /sito-studio/contatti | frontend/src/components/SitoStudioPage.tsx | frontend/src/sitoStudioData.ts | web/services/react_sito_studio_bridge.py | react_operational_full | 2 | 0 | si | fallback legacy tecnico non primario | react_operational_full |
+| /sito-studio/builder | frontend/src/components/SitoStudioPage.tsx | frontend/src/sitoStudioData.ts | web/services/react_sito_studio_bridge.py | legacy_operational | 2 | 0 | si | fallback legacy tecnico non primario | legacy_operational |
 | /statistiche | frontend/src/components/StatistichePage.tsx | frontend/src/statisticheData.ts | web/services/react_statistiche_bridge.py | react_operational_partial | 1 | 0 | no | 1 link ?_legacy=1 primari o non governati | react_bridge |
 | /fatturazione | frontend/src/components/FatturazionePage.tsx | frontend/src/fatturazioneData.ts | web/services/react_fatturazione_bridge.py | react_operational_full | 5 | 0 | si | fallback legacy tecnico non primario | react_operational_full |
 | /fatturazione/nuova | frontend/src/components/FatturazionePage.tsx | frontend/src/fatturazioneData.ts | web/services/react_fatturazione_bridge.py | react_operational_full | 5 | 0 | si | fallback legacy tecnico non primario | react_operational_full |

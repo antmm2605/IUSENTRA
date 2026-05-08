@@ -51,6 +51,127 @@ for (const row of rows) {
 }
 
 const apiSource = readFileSync(resolve(root, 'web/blueprints/api_v1_react.py'), 'utf8')
+
+function read(relPath) {
+  return readFileSync(resolve(root, relPath), 'utf8')
+}
+
+function routeRow(route) {
+  return rows.find((row) => row.route === route)
+}
+
+function assertLegacyProtected(route) {
+  const row = routeRow(route)
+  if (row?.manifestStatus !== 'legacy_operational' || row?.unlockFromGate !== false) {
+    violations.push(`${route}: deve restare legacy_operational con unlockFromGate false.`)
+  }
+}
+
+for (const route of ['/impostazioni', '/impostazioni-studio', '/sincronizzazione-calendari', '/sito-studio/builder']) {
+  assertLegacyProtected(route)
+}
+
+function assertNoBrowserUnsafe(route, combined) {
+  if (/localStorage|sessionStorage/.test(combined)) {
+    violations.push(`${route}: non deve usare localStorage o sessionStorage.`)
+  }
+  if (/fetch\s*\(\s*["']https?:\/\//.test(combined)) {
+    violations.push(`${route}: non deve usare fetch esterni.`)
+  }
+  if (/dangerouslySetInnerHTML/.test(combined)) {
+    violations.push(`${route}: non deve renderizzare HTML raw.`)
+  }
+}
+
+function assertPrimaryLegacyOnlyRollback(route, combined) {
+  if (/\?_legacy=1/.test(combined) && !/Rollback tecnico/.test(combined)) {
+    violations.push(`${route}: eventuale ?_legacy=1 deve restare solo in Rollback tecnico.`)
+  }
+}
+
+for (const config of [
+  {
+    route: '/studio',
+    component: 'frontend/src/components/StudioPage.tsx',
+    data: 'frontend/src/studioData.ts',
+    bridge: 'web/services/react_studio_bridge.py',
+    endpoint: '/api/v1/ui/studio',
+    apiGet: '@api_v1_react.get("/studio")',
+    writes: 'none',
+  },
+  {
+    route: '/amministrazione',
+    component: 'frontend/src/components/AmministrazionePage.tsx',
+    data: 'frontend/src/amministrazioneData.ts',
+    bridge: 'web/services/react_amministrazione_bridge.py',
+    endpoint: '/api/v1/ui/amministrazione',
+    apiGet: '@api_v1_react.get("/amministrazione")',
+    writes: 'none',
+  },
+]) {
+  const row = routeRow(config.route)
+  if (row?.manifestStatus !== 'react_operational_full') {
+    continue
+  }
+  const component = read(config.component)
+  const data = read(config.data)
+  const bridge = read(config.bridge)
+  const combined = `${component}\n${data}\n${bridge}`
+  if (/\bLegacyPostForm\b/.test(component)) {
+    violations.push(`${config.route}: react_operational_full non puo contenere LegacyPostForm.`)
+  }
+  assertPrimaryLegacyOnlyRollback(config.route, component)
+  if (!data.includes(config.endpoint)) {
+    violations.push(`${config.route}: data client deve leggere ${config.endpoint}.`)
+  }
+  if (!apiSource.includes(config.apiGet)) {
+    violations.push(`${config.route}: manca endpoint GET JSON ${config.apiGet}.`)
+  }
+  if (!/["']operational["']\s*:\s*True/.test(bridge)) {
+    violations.push(`${config.route}: bridge operativo deve dichiarare operational true.`)
+  }
+  if (!new RegExp(`["']writes["']\\s*:\\s*["']${config.writes}["']`).test(bridge)) {
+    violations.push(`${config.route}: bridge operativo deve dichiarare writes ${config.writes}.`)
+  }
+  if (/LegacyPostForm|apiPostJson/.test(combined)) {
+    violations.push(`${config.route}: tranche read-only non deve usare form legacy o apiPostJson.`)
+  }
+  assertNoBrowserUnsafe(config.route, combined)
+}
+
+const sitoRow = routeRow('/sito-studio')
+const sitoContattiRow = routeRow('/sito-studio/contatti')
+if (sitoRow?.manifestStatus === 'react_operational_full' || sitoContattiRow?.manifestStatus === 'react_operational_full') {
+  const component = read('frontend/src/components/SitoStudioPage.tsx')
+  const data = read('frontend/src/sitoStudioData.ts')
+  const bridge = read('web/services/react_sito_studio_bridge.py')
+  const combined = `${component}\n${data}\n${bridge}`
+
+  if (/\bLegacyPostForm\b/.test(component)) {
+    violations.push('/sito-studio: react_operational_full non puo contenere LegacyPostForm.')
+  }
+  assertPrimaryLegacyOnlyRollback('/sito-studio', component)
+  if (!data.includes('/api/v1/ui/sito-studio') || !data.includes('/api/v1/ui/sito-studio/contatti')) {
+    violations.push('/sito-studio: data client deve leggere gli endpoint GET sito e contatti.')
+  }
+  if (!/\bapiPostJson\b/.test(data) || !/linkSitoContatto|updateSitoBookingStatus/.test(data)) {
+    violations.push('/sito-studio/contatti: azioni supportate devono usare apiPostJson.')
+  }
+  if (!apiSource.includes('@api_v1_react.get("/sito-studio")') || !apiSource.includes('@api_v1_react.get("/sito-studio/contatti")')) {
+    violations.push('/sito-studio: mancano endpoint GET JSON sito o contatti.')
+  }
+  if (!apiSource.includes('@api_v1_react.post("/sito-studio/contatti/<id_contatto>/collega")')) {
+    violations.push('/sito-studio/contatti: manca endpoint POST JSON collegamento cliente supportato.')
+  }
+  if (!/["']writes["']\s*:\s*["']json_api["']|writes\s*=\s*["']json_api["']/.test(bridge)) {
+    violations.push('/sito-studio/contatti: bridge operativo deve dichiarare writes json_api.')
+  }
+  if (!/["']writes["']\s*:\s*["']none["']|writes\s*=\s*["']none["']/.test(bridge)) {
+    violations.push('/sito-studio: bridge dashboard deve dichiarare writes none.')
+  }
+  assertNoBrowserUnsafe('/sito-studio', combined)
+}
+
 const profiliRow = rows.find((row) => row.route === '/profili')
 if (profiliRow?.manifestStatus === 'react_operational_full') {
   const profiliComponent = readFileSync(resolve(root, 'frontend/src/components/ProfiliPage.tsx'), 'utf8')

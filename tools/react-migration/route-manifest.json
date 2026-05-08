@@ -116,7 +116,7 @@
     {
       "route": "/studio",
       "family": "studio",
-      "status": "react_bridge",
+      "status": "react_operational_full",
       "risk": "medium",
       "targetComponent": "frontend/src/components/StudioPage.tsx",
       "targetData": "frontend/src/studioData.ts",
@@ -126,15 +126,18 @@
       "mustPreserve": [
         "hub studio sicuro",
         "dati reali aggregati",
-        "link backup",
-        "link sito studio",
-        "nessuna scrittura diretta"
+        "route operative reali",
+        "route legacy protette",
+        "nessuna scrittura diretta",
+        "nessuna CTA legacy primaria",
+        "nessun segreto esposto",
+        "impostazioni legacy protette"
       ]
     },
     {
       "route": "/amministrazione",
       "family": "amministrazione",
-      "status": "react_bridge",
+      "status": "react_operational_full",
       "risk": "medium",
       "targetComponent": "frontend/src/components/AmministrazionePage.tsx",
       "targetData": "frontend/src/amministrazioneData.ts",
@@ -142,11 +145,14 @@
       "legacyContract": "artifacts/react-migration/legacy-contracts/amministrazione.json",
       "unlockFromGate": true,
       "mustPreserve": [
-        "hub amministrativo",
-        "link utenti",
-        "link profili",
-        "link audit",
-        "nessuna scrittura diretta"
+        "hub amministrativo sicuro",
+        "utenti/profili/audit reali",
+        "sicurezza aggregata",
+        "route operative reali",
+        "route legacy protette",
+        "nessuna scrittura diretta",
+        "nessuna CTA legacy primaria",
+        "nessun segreto esposto"
       ]
     },
     {
@@ -265,7 +271,7 @@
     {
       "route": "/sito-studio",
       "family": "studio",
-      "status": "react_bridge",
+      "status": "react_operational_full",
       "risk": "medium",
       "targetComponent": "frontend/src/components/SitoStudioPage.tsx",
       "targetData": "frontend/src/sitoStudioData.ts",
@@ -273,17 +279,19 @@
       "legacyContract": "artifacts/react-migration/legacy-contracts/sito-studio.json",
       "unlockFromGate": true,
       "mustPreserve": [
-        "contenuti CMS reali",
-        "richieste contatto",
-        "prenotazioni",
-        "anteprima pubblica",
-        "nessun testo demo"
+        "stato sito reale",
+        "KPI contatti/prenotazioni",
+        "anteprima sicura",
+        "contenuti pubblici sicuri",
+        "builder legacy protetto",
+        "nessuna CTA legacy primaria",
+        "nessun segreto esposto"
       ]
     },
     {
       "route": "/sito-studio/contatti",
       "family": "studio",
-      "status": "react_bridge",
+      "status": "react_operational_full",
       "risk": "medium",
       "targetComponent": "frontend/src/components/SitoStudioPage.tsx",
       "targetData": "frontend/src/sitoStudioData.ts",
@@ -293,9 +301,16 @@
       "mustPreserve": [
         "richieste contatto reali",
         "prenotazioni reali",
-        "gestione legacy auditata",
-        "nessun dato demo",
-        "privacy contatti"
+        "gestione stato JSON",
+        "note interne JSON",
+        "archiviazione JSON",
+        "assegnazione JSON se supportata",
+        "collegamento cliente/fascicolo se supportato",
+        "audit modifiche",
+        "permessi backend",
+        "nessuna CTA legacy primaria",
+        "rollback legacy tecnico",
+        "nessun invio notifiche React"
       ]
     },
     {

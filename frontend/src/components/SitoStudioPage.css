@@ -2,10 +2,10 @@
   display: grid;
   gap: 5px;
   padding: 14px 16px;
-  border: 1px solid rgba(47, 128, 237, .24);
-  border-radius: 14px;
-  background: rgba(47, 128, 237, .08);
-  color: var(--iu-navy-900);
+  border: 1px solid var(--iu-border);
+  border-radius: var(--iu-radius-panel);
+  background: var(--iu-surface-accent);
+  color: var(--iu-text-strong);
 }
 
 .iu-sito-banner strong {
@@ -14,43 +14,39 @@
 }
 
 .iu-sito-banner span {
+  color: var(--iu-text-subtle);
   font-size: 13px;
   line-height: 1.45;
   font-weight: 700;
 }
 
 .iu-sito-kpis,
-.iu-sito-grid,
 .iu-sito-records,
 .iu-sito-warnings,
-.iu-sito-list,
 .iu-sito-contract,
 .iu-sito-actions,
-.iu-sito-record__forms {
+.iu-sito-status,
+.iu-sito-contact__actions {
   display: grid;
   gap: 14px;
 }
 
 .iu-sito-kpis {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.iu-sito-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .iu-sito-status {
-  display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
 }
 
 .iu-sito-status > div,
 .iu-sito-record,
-.iu-sito-list__item {
+.iu-sito-contact,
+.iu-sito-warning,
+.iu-sito-flash {
   border: 1px solid var(--iu-border);
-  border-radius: 14px;
-  background: #fff;
+  border-radius: var(--iu-radius-panel);
+  background: var(--iu-surface-solid);
 }
 
 .iu-sito-status > div {
@@ -60,21 +56,22 @@
 }
 
 .iu-sito-status span,
-.iu-sito-list__item span,
 .iu-sito-record__head span,
-.iu-sito-record__meta dt,
-.iu-sito-contract span {
-  color: var(--iu-slate-500);
+.iu-sito-contract span,
+.iu-sito-contact__head span,
+.iu-sito-contact__meta dt {
+  color: var(--iu-text-subtle);
   font-size: 12px;
   line-height: 1.45;
   font-weight: 750;
 }
 
 .iu-sito-status strong,
-.iu-sito-list__item strong,
-.iu-sito-record__head h3 {
+.iu-sito-record__head h3,
+.iu-sito-contact__head h3,
+.iu-sito-contact__meta dd {
   min-width: 0;
-  color: #111827;
+  color: var(--iu-text-strong);
   font-weight: 900;
 }
 
@@ -84,141 +81,148 @@
   overflow-wrap: anywhere;
 }
 
-.iu-sito-list__item {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 6px 12px;
-  padding: 12px;
-}
-
-.iu-sito-list__item small {
-  grid-column: 1 / -1;
-  color: var(--iu-slate-500);
-  font-size: 12px;
-  font-weight: 650;
-}
-
-.iu-sito-record {
+.iu-sito-record,
+.iu-sito-contact {
   display: grid;
   gap: 14px;
   padding: 14px;
 }
 
-.iu-sito-record__head {
+.iu-sito-record__head,
+.iu-sito-contact__head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 14px;
 }
 
-.iu-sito-record__head h3 {
+.iu-sito-record__head h3,
+.iu-sito-contact__head h3 {
   margin: 4px 0 0;
   font-size: 15px;
   line-height: 1.25;
 }
 
-.iu-sito-record__head p {
+.iu-sito-record__head p,
+.iu-sito-contact__head p,
+.iu-sito-contact__message {
   margin: 5px 0 0;
-  color: var(--iu-slate-700);
+  color: var(--iu-text-subtle);
   font-size: 13px;
   line-height: 1.45;
   font-weight: 650;
 }
 
-.iu-sito-record__meta {
+.iu-sito-contact__meta {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
   margin: 0;
 }
 
-.iu-sito-record__meta div {
+.iu-sito-contact__meta div {
   min-width: 0;
 }
 
-.iu-sito-record__meta dd {
+.iu-sito-contact__meta dd {
   margin: 2px 0 0;
-  color: #111827;
   font-size: 13px;
   line-height: 1.35;
-  font-weight: 800;
   overflow-wrap: anywhere;
 }
 
-.iu-sito-record__actions {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.iu-sito-record__forms {
-  grid-template-columns: repeat(2, minmax(0, auto));
-}
-
-.iu-sito-record__forms .iu-legacy-form {
-  display: block;
-}
-
-.iu-sito-record__forms .iu-legacy-form__header,
-.iu-sito-record__forms .iu-legacy-form__fields {
-  display: none;
-}
-
-.iu-sito-record__forms .iu-legacy-form__actions {
-  display: block;
-}
-
-.iu-sito-warning {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border: 1px solid rgba(245, 158, 11, .24);
-  border-radius: 12px;
-  background: rgba(245, 158, 11, .08);
-  color: #92400e;
-  font-size: 13px;
-  font-weight: 700;
-}
-
+.iu-sito-contact__actions,
 .iu-sito-actions {
   grid-template-columns: repeat(4, minmax(0, max-content));
   align-items: center;
 }
 
+.iu-sito-warning,
+.iu-sito-flash {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  color: var(--iu-text-strong);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.iu-sito-flash {
+  background: var(--iu-surface-muted);
+}
+
+.iu-sito-flash--success {
+  color: var(--iu-success-500);
+}
+
+.iu-sito-flash--danger {
+  color: var(--iu-danger-500);
+}
+
+.iu-sito-flash--warning {
+  color: var(--iu-warning-500);
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.iu-sito-input,
+.iu-sito-select {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid var(--iu-border);
+  border-radius: var(--iu-radius-control);
+  background: var(--iu-surface-solid);
+  color: var(--iu-text-strong);
+  font: inherit;
+  font-weight: 750;
+}
+
+.iu-sito-input {
+  padding: 0 12px;
+}
+
+.iu-sito-select {
+  min-width: 220px;
+  padding: 0 10px;
+}
+
+.iu-sito-input:focus,
+.iu-sito-select:focus {
+  outline: 2px solid var(--iu-focus-ring);
+  outline-offset: 2px;
+}
+
 .iu-sito-contract {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
 }
 
 @media (max-width: 1180px) {
   .iu-sito-kpis,
-  .iu-sito-grid,
   .iu-sito-status,
-  .iu-sito-record__meta,
+  .iu-sito-contact__meta,
   .iu-sito-contract {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .iu-sito-actions {
+  .iu-sito-actions,
+  .iu-sito-contact__actions {
     grid-template-columns: repeat(2, minmax(0, max-content));
   }
 }
 
 @media (max-width: 760px) {
   .iu-sito-kpis,
-  .iu-sito-grid,
   .iu-sito-status,
-  .iu-sito-record__meta,
+  .iu-sito-contact__meta,
   .iu-sito-contract,
   .iu-sito-actions,
-  .iu-sito-record__forms {
+  .iu-sito-contact__actions {
     grid-template-columns: 1fr;
   }
 
   .iu-sito-record__head,
-  .iu-sito-record__actions,
+  .iu-sito-contact__head,
   .iu-sito-warning {
     align-items: flex-start;
     flex-direction: column;

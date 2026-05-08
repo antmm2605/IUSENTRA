@@ -1,40 +1,82 @@
 import { apiJson } from './lib/apiClient'
-import type { AdminAction, AdminContract, AdminMetric, AdminSection, AdminTone, AdminWarning } from './utentiData'
+import {
+  sanitizePayload,
+  tone,
+  type LegacyModule,
+  type OperationalModule,
+  type ReactOperationalContract,
+  type RouteAction,
+  type SecuritySummary,
+  type WarningItem,
+} from './studioData'
+import type { AdminTone } from './utentiData'
 
-export type AmministrazioneRecord = {
+export type AdminHubMetric = {
   id: string
   label: string
-  href: string
-  status: string
-  tone: AdminTone
+  value: string | number
   note: string
+  tone: AdminTone
+}
+
+export type AdminHubSectionItem = {
+  id: string
+  label: string
+  value: string | number
+  note: string
+  tone: AdminTone
+}
+
+export type AdminHubSection = {
+  id: string
+  title: string
+  kind: string
+  items: AdminHubSectionItem[]
+  emptyMessage: string
 }
 
 export type AmministrazionePageData = {
+  ok: boolean
   source: string
   generated_at: string
-  contracts: AdminContract
-  metrics: AdminMetric[]
-  sections: AdminSection[]
-  records: AmministrazioneRecord[]
-  actions: AdminAction[]
-  forms: []
-  warnings: AdminWarning[]
+  contracts: ReactOperationalContract
+  security: SecuritySummary
+  users: Record<string, unknown>
+  profiles: Record<string, unknown>
+  audit: Record<string, unknown>
+  database: Record<string, unknown>
+  modules: OperationalModule[]
+  operational_routes: OperationalModule[]
+  legacy_routes: LegacyModule[]
+  metrics: AdminHubMetric[]
+  sections: AdminHubSection[]
+  actions: RouteAction[]
+  warnings: WarningItem[]
 }
 
 export const emptyAmministrazionePage: AmministrazionePageData = {
+  ok: false,
   source: '',
   generated_at: '',
   contracts: {
     mock_fallback: false,
-    writes: 'legacy_routes',
+    writes: 'none',
     route_owner: 'react_shell',
+    operational: true,
+    sensitive_settings: 'legacy_protected',
+    secrets_exposed: false,
   },
+  security: {},
+  users: {},
+  profiles: {},
+  audit: {},
+  database: {},
+  modules: [],
+  operational_routes: [],
+  legacy_routes: [],
   metrics: [],
   sections: [],
-  records: [],
   actions: [],
-  forms: [],
   warnings: [],
 }
 
@@ -50,19 +92,30 @@ function text(value: unknown, fallback = ''): string {
   return typeof value === 'string' ? value.trim() : fallback
 }
 
+function bool(value: unknown): boolean {
+  return value === true
+}
+
 function value(value: unknown): string | number {
   if (typeof value === 'number' && Number.isFinite(value)) return value
   if (typeof value === 'string') return value.trim()
   return ''
 }
 
-function tone(value: unknown): AdminTone {
-  return ['primary', 'neutral', 'danger', 'success', 'warning', 'info'].includes(String(value))
-    ? String(value) as AdminTone
-    : 'neutral'
+function normaliseContract(raw: unknown): ReactOperationalContract {
+  const item = asRecord(raw)
+  return {
+    mock_fallback: bool(item.mock_fallback),
+    writes: text(item.writes) || 'none',
+    route_owner: text(item.route_owner) || 'react_shell',
+    operational: item.operational === false ? false : true,
+    sensitive_settings: text(item.sensitive_settings),
+    secrets_exposed: bool(item.secrets_exposed),
+    legacy_contract: text(item.legacy_contract),
+  }
 }
 
-function normaliseMetric(raw: unknown): AdminMetric {
+function normaliseMetric(raw: unknown): AdminHubMetric {
   const item = asRecord(raw)
   return {
     id: text(item.id) || text(item.label) || 'metrica',
@@ -73,7 +126,7 @@ function normaliseMetric(raw: unknown): AdminMetric {
   }
 }
 
-function normaliseSection(raw: unknown): AdminSection {
+function normaliseSection(raw: unknown): AdminHubSection {
   const item = asRecord(raw)
   return {
     id: text(item.id) || text(item.title) || 'sezione',
@@ -93,18 +146,32 @@ function normaliseSection(raw: unknown): AdminSection {
   }
 }
 
-function normaliseAction(raw: unknown): AdminAction {
+function normaliseModule(raw: unknown): OperationalModule {
+  const item = asRecord(raw)
+  return {
+    id: text(item.id) || text(item.label) || 'modulo',
+    label: text(item.label) || 'Modulo',
+    href: text(item.href),
+    area: text(item.area),
+    status: text(item.status) || 'stato non indicato',
+    tone: tone(item.tone),
+    note: text(item.note),
+  }
+}
+
+function normaliseAction(raw: unknown): RouteAction {
   const item = asRecord(raw)
   return {
     id: text(item.id) || text(item.label) || 'azione',
     label: text(item.label) || 'Apri',
-    href: text(item.href) || '/amministrazione',
+    href: text(item.href),
     method: 'GET',
     tone: tone(item.tone),
+    protected: bool(item.protected),
   }
 }
 
-function normaliseWarning(raw: unknown): AdminWarning {
+function normaliseWarning(raw: unknown): WarningItem {
   const item = asRecord(raw)
   return {
     code: text(item.code) || 'warning',
@@ -112,35 +179,40 @@ function normaliseWarning(raw: unknown): AdminWarning {
   }
 }
 
-function normaliseRecord(raw: unknown): AmministrazioneRecord {
+function normaliseSecurity(raw: unknown): SecuritySummary {
   const item = asRecord(raw)
   return {
-    id: text(item.id) || text(item.label) || 'modulo',
-    label: text(item.label) || 'Modulo',
-    href: text(item.href) || '/amministrazione',
-    status: text(item.status) || 'Stato non indicato',
+    canRead: bool(item.canRead),
+    canWriteUsers: bool(item.canWriteUsers),
+    canReadAudit: bool(item.canReadAudit),
+    canConfigureAdmin: bool(item.canConfigureAdmin),
+    activeAccounts: typeof item.activeAccounts === 'number' ? item.activeAccounts : 0,
+    inactiveAccounts: typeof item.inactiveAccounts === 'number' ? item.inactiveAccounts : 0,
+    twoFactorEnabled: typeof item.twoFactorEnabled === 'number' ? item.twoFactorEnabled : 0,
+    permissionOverrides: typeof item.permissionOverrides === 'number' ? item.permissionOverrides : 0,
+    status: text(item.status),
     tone: tone(item.tone),
-    note: text(item.note),
   }
 }
 
 function normalisePage(raw: unknown): AmministrazionePageData {
-  const page = asRecord(raw)
-  const contracts = asRecord(page.contracts)
+  const page = asRecord(sanitizePayload(raw))
   return {
+    ok: bool(page.ok),
     source: text(page.source),
     generated_at: text(page.generated_at),
-    contracts: {
-      mock_fallback: contracts.mock_fallback === true ? true : false,
-      writes: text(contracts.writes) || 'legacy_routes',
-      route_owner: text(contracts.route_owner) || 'react_shell',
-      legacy_contract: text(contracts.legacy_contract),
-    },
+    contracts: normaliseContract(page.contracts),
+    security: normaliseSecurity(page.security),
+    users: asRecord(page.users),
+    profiles: asRecord(page.profiles),
+    audit: asRecord(page.audit),
+    database: asRecord(page.database),
+    modules: list(page.modules).map(normaliseModule).filter((item) => item.href),
+    operational_routes: list(page.operational_routes).map(normaliseModule).filter((item) => item.href),
+    legacy_routes: list(page.legacy_routes).map(normaliseModule).filter((item) => item.href),
     metrics: list(page.metrics).map(normaliseMetric),
     sections: list(page.sections).map(normaliseSection),
-    records: list(page.records).map(normaliseRecord).filter((record) => record.href),
     actions: list(page.actions).map(normaliseAction).filter((action) => action.href),
-    forms: [],
     warnings: list(page.warnings).map(normaliseWarning),
   }
 }

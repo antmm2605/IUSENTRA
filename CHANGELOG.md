@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.198.119 - 2026-05-08
+
+- Promosse `/studio`, `/amministrazione`, `/sito-studio` e `/sito-studio/contatti` a `react_operational_full` con payload JSON reali, contratti anti-mascheramento, permessi backend e distinzione esplicita tra route operative React e legacy protetti.
+- Aggiunti endpoint JSON per collegare richieste contatto a clienti e aggiornare lo stato delle prenotazioni Sito Studio, riusando i servizi legacy supportati con CSRF/sessione e audit; builder, pubblicazione avanzata, impostazioni, calendari, pagamenti e telematico restano legacy protetti.
+- Rimossi `LegacyPostForm` e CTA legacy primarie dai flussi principali Studio/Amministrazione/Sito Studio, con report e check 26a/27a anti-segreti, anti-storage browser, anti-fetch esterno e no-fake React full.
+
 ## 2.198.118 - 2026-05-07
 
 - Promosse `/incassi-pagamenti`, `/compensi-forensi`, `/tariffario`, `/audit` e `/registro-attivita` a `react_operational_full` con payload reali, dettaglio/eventi JSON, permessi backend, CSRF/sessione e audit operativo quando supportato.

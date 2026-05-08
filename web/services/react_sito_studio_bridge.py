@@ -1,19 +1,33 @@
-"""Bridge read-only per le superfici React del Sito Studio."""
+"""Bridge operativo per le superfici React del Sito Studio."""
 
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Callable
 
-from web.services.studio_site_runtime import build_studio_site_dashboard_payload
+from web.services.studio_site_runtime import (
+    approve_booking_request_for_current_site,
+    audit_studio_site_action,
+    build_studio_site_dashboard_payload,
+    create_lead_cliente_from_submission,
+    get_site_for_current_tenant,
+    reject_booking_request_for_current_site,
+    studio_site_repository,
+)
+
+
+Loader = Callable[[], Any]
 
 
 def _iso_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
-def _text(value: Any) -> str:
-    return str(value or "").strip()
+def _text(value: Any, limit: int = 0) -> str:
+    text = " ".join(str(value or "").split())
+    if limit and len(text) > limit:
+        return text[: limit - 1].rstrip() + "..."
+    return text
 
 
 def _bool(value: Any) -> bool:
@@ -27,15 +41,51 @@ def _int(value: Any) -> int:
         return 0
 
 
+def _can(user: Any, permission: str) -> bool:
+    checker = getattr(user, "ha_permesso", None)
+    return bool(callable(checker) and checker(permission))
+
+
 def _tone_for_status(status: str) -> str:
     clean = status.lower()
-    if clean in {"published", "active", "approved", "ok"}:
+    if clean in {"published", "active", "approved", "ok", "visible", "cliente_collegato"}:
         return "success"
-    if clean in {"pending", "draft", "bozza"}:
+    if clean in {"pending", "draft", "bozza", "nuovo"}:
         return "warning"
     if clean in {"rejected", "inactive", "error"}:
         return "danger"
     return "neutral"
+
+
+def _contracts(route: str, *, writes: str) -> dict[str, Any]:
+    name = route.strip("/").replace("/", "__") or "root"
+    contract = {
+        "mock_fallback": False,
+        "writes": writes,
+        "route_owner": "react_shell",
+        "operational": True,
+        "legacy_contract": f"artifacts/react-migration/legacy-contracts/{name}.json",
+    }
+    if route == "/sito-studio":
+        contract.update({"builder": "legacy_protected", "publishing": "legacy_protected"})
+    else:
+        contract.update({"notifications": "legacy_protected", "automation": "legacy_protected"})
+    return contract
+
+
+def _metric(metric_id: str, label: str, value: Any, note: str, tone: str = "neutral") -> dict[str, Any]:
+    return {"id": metric_id, "label": label, "value": value, "note": note, "tone": tone}
+
+
+def _action(action_id: str, label: str, href: str, tone: str = "neutral", *, protected: bool = False) -> dict[str, Any]:
+    return {
+        "id": action_id,
+        "label": label,
+        "href": href,
+        "method": "GET",
+        "tone": tone,
+        "protected": protected,
+    }
 
 
 def _site_summary(site: dict[str, Any], public_url: str) -> dict[str, Any]:
@@ -46,8 +96,8 @@ def _site_summary(site: dict[str, Any], public_url: str) -> dict[str, Any]:
         "siteName": _text(site.get("site_name")),
         "publicSlug": _text(site.get("public_slug")),
         "title": _text(site.get("site_title")),
-        "description": _text(site.get("site_description")),
-        "claim": _text(site.get("hero_claim")),
+        "description": _text(site.get("site_description"), 360),
+        "claim": _text(site.get("hero_claim"), 180),
         "contactEmail": _text(site.get("contact_email")),
         "contactPhone": _text(site.get("contact_phone")),
         "address": _text(site.get("address")),
@@ -64,284 +114,339 @@ def _site_summary(site: dict[str, Any], public_url: str) -> dict[str, Any]:
     }
 
 
-def _page(row: dict[str, Any]) -> dict[str, Any]:
+def _page(row: dict[str, Any], kind: str) -> dict[str, Any]:
     row_id = _int(row.get("id"))
-    status = _text(row.get("status") or "draft")
+    status = _text(row.get("status") or ("visible" if _bool(row.get("is_visible")) else "hidden"))
+    title = _text(row.get("title") or row.get("full_name") or row.get("name"))
+    subtitle = _text(row.get("excerpt") or row.get("short_description") or row.get("role_title") or row.get("city"), 180)
     return {
         "id": str(row_id),
-        "kind": "page",
-        "title": _text(row.get("title")),
-        "subtitle": _text(row.get("excerpt")),
+        "kind": kind,
+        "title": title,
+        "subtitle": subtitle,
         "status": status,
         "statusTone": _tone_for_status(status),
-        "href": f"/sito-studio/pagine/{row_id}/modifica?_legacy=1" if row_id else "",
         "meta": [
             {"label": "Slug", "value": _text(row.get("slug"))},
-            {"label": "Menu", "value": "visibile" if _bool(row.get("show_in_menu")) else "nascosta"},
-            {"label": "Home", "value": "si" if _bool(row.get("is_home")) else "no"},
-        ],
-    }
-
-
-def _article(row: dict[str, Any]) -> dict[str, Any]:
-    row_id = _int(row.get("id"))
-    status = _text(row.get("status") or "draft")
-    return {
-        "id": str(row_id),
-        "kind": "article",
-        "title": _text(row.get("title")),
-        "subtitle": _text(row.get("excerpt")),
-        "status": status,
-        "statusTone": _tone_for_status(status),
-        "href": f"/sito-studio/articoli/{row_id}/modifica?_legacy=1" if row_id else "",
-        "meta": [
             {"label": "Categoria", "value": _text(row.get("category"))},
-            {"label": "Autore", "value": _text(row.get("author_name"))},
-            {"label": "Pubblicato", "value": _text(row.get("published_at") or row.get("created_at"))},
-        ],
-    }
-
-
-def _service(row: dict[str, Any]) -> dict[str, Any]:
-    row_id = _int(row.get("id"))
-    return {
-        "id": str(row_id),
-        "kind": "service",
-        "title": _text(row.get("title")),
-        "subtitle": _text(row.get("short_description")),
-        "status": "visible" if _bool(row.get("is_visible")) else "hidden",
-        "statusTone": "success" if _bool(row.get("is_visible")) else "neutral",
-        "href": f"/sito-studio/servizi/{row_id}/modifica?_legacy=1" if row_id else "",
-        "meta": [{"label": "Ordine", "value": _text(row.get("sort_order"))}],
-    }
-
-
-def _professional(row: dict[str, Any]) -> dict[str, Any]:
-    row_id = _int(row.get("id"))
-    return {
-        "id": str(row_id),
-        "kind": "professional",
-        "title": _text(row.get("full_name")),
-        "subtitle": _text(row.get("role_title")),
-        "status": "visible" if _bool(row.get("is_visible")) else "hidden",
-        "statusTone": "success" if _bool(row.get("is_visible")) else "neutral",
-        "href": f"/sito-studio/professionisti/{row_id}/modifica?_legacy=1" if row_id else "",
-        "meta": [
-            {"label": "Email", "value": _text(row.get("email"))},
-            {"label": "Telefono", "value": _text(row.get("phone"))},
-        ],
-    }
-
-
-def _office(row: dict[str, Any]) -> dict[str, Any]:
-    row_id = _int(row.get("id"))
-    city = " ".join(part for part in [_text(row.get("zip_code")), _text(row.get("city")), _text(row.get("province"))] if part)
-    return {
-        "id": str(row_id),
-        "kind": "office",
-        "title": _text(row.get("name")),
-        "subtitle": city,
-        "status": "primary" if _bool(row.get("is_primary")) else "secondary",
-        "statusTone": "primary" if _bool(row.get("is_primary")) else "neutral",
-        "href": f"/sito-studio/sedi/{row_id}/modifica?_legacy=1" if row_id else "",
-        "meta": [
-            {"label": "Indirizzo", "value": _text(row.get("address"))},
-            {"label": "Email", "value": _text(row.get("email"))},
-            {"label": "Telefono", "value": _text(row.get("phone"))},
+            {"label": "Menu", "value": "visibile" if _bool(row.get("show_in_menu")) else ""},
+            {"label": "Aggiornato", "value": _text(row.get("updated_at") or row.get("created_at"))},
         ],
     }
 
 
 def _contact(row: dict[str, Any]) -> dict[str, Any]:
-    row_id = _int(row.get("id"))
+    contact_id = _int(row.get("id"))
     lead_id = _text(row.get("lead_cliente_id"))
+    status = "cliente_collegato" if lead_id else "nuovo"
     return {
-        "id": str(row_id),
-        "kind": "contact",
-        "title": _text(row.get("full_name")),
-        "subtitle": _text(row.get("subject")) or "Richiesta contatto",
-        "status": "cliente collegato" if lead_id else "da gestire",
-        "statusTone": "success" if lead_id else "warning",
-        "href": f"/clienti/{lead_id}" if lead_id else "",
-        "meta": [
-            {"label": "Email", "value": _text(row.get("email"))},
-            {"label": "Telefono", "value": _text(row.get("phone"))},
-            {"label": "Messaggio", "value": _text(row.get("message"))},
-            {"label": "Data", "value": _text(row.get("created_at"))},
-        ],
-        "forms": [] if lead_id else [
-            {
-                "id": f"contatto_{row_id}_cliente",
-                "title": "Crea cliente potenziale",
-                "description": "Invio standard verso la route legacy auditata.",
-                "action": f"/sito-studio/contatti/{row_id}/crea-cliente",
-                "method": "POST",
-                "submitLabel": "Crea cliente",
-                "enabled": bool(row_id),
-                "fields": [],
-            }
-        ],
+        "id": str(contact_id),
+        "fullName": _text(row.get("full_name"), 140),
+        "email": _text(row.get("email"), 180),
+        "phone": _text(row.get("phone"), 60),
+        "subject": _text(row.get("subject"), 180),
+        "message": _text(row.get("message"), 700),
+        "createdAt": _text(row.get("created_at")),
+        "status": status,
+        "statusLabel": "Cliente collegato" if lead_id else "Da gestire",
+        "statusTone": _tone_for_status(status),
+        "leadClienteId": lead_id,
+        "clientHref": f"/clienti/{lead_id}" if lead_id else "",
+        "actions": {
+            "canLinkClient": not bool(lead_id),
+            "linkEndpoint": f"/api/v1/ui/sito-studio/contatti/{contact_id}/collega" if contact_id and not lead_id else "",
+        },
     }
 
 
 def _booking(row: dict[str, Any]) -> dict[str, Any]:
-    row_id = _int(row.get("id"))
+    booking_id = _int(row.get("id"))
     status = _text(row.get("status") or "pending")
-    pending = status.lower() == "pending"
+    requested = " ".join(part for part in [_text(row.get("requested_date")), _text(row.get("requested_time"))] if part)
     return {
-        "id": str(row_id),
-        "kind": "booking",
-        "title": _text(row.get("customer_name")),
-        "subtitle": _text(row.get("subject")) or "Prenotazione appuntamento",
+        "id": str(booking_id),
+        "customerName": _text(row.get("customer_name"), 140),
+        "email": _text(row.get("customer_email"), 180),
+        "phone": _text(row.get("customer_phone"), 60),
+        "subject": _text(row.get("subject"), 180),
+        "notes": _text(row.get("notes"), 700),
+        "requestedAt": requested,
+        "createdAt": _text(row.get("created_at")),
+        "officeName": _text(row.get("office_name")),
         "status": status,
+        "statusLabel": {"pending": "In attesa", "approved": "Approvata", "rejected": "Rifiutata"}.get(status, status),
         "statusTone": _tone_for_status(status),
-        "href": "/sito-studio/prenotazioni?_legacy=1",
-        "meta": [
-            {"label": "Email", "value": _text(row.get("customer_email"))},
-            {"label": "Telefono", "value": _text(row.get("customer_phone"))},
-            {"label": "Data", "value": " ".join(part for part in [_text(row.get("requested_date")), _text(row.get("requested_time"))] if part)},
-            {"label": "Sede", "value": _text(row.get("office_name"))},
-        ],
-        "forms": [] if not pending else [
-            {
-                "id": f"prenotazione_{row_id}_approva",
-                "title": "Approva prenotazione",
-                "description": "Sincronizza tramite POST legacy.",
-                "action": f"/sito-studio/prenotazioni/{row_id}/approva",
-                "method": "POST",
-                "submitLabel": "Approva",
-                "enabled": bool(row_id),
-                "fields": [],
-            },
-            {
-                "id": f"prenotazione_{row_id}_rifiuta",
-                "title": "Rifiuta prenotazione",
-                "description": "Aggiorna lo stato tramite POST legacy.",
-                "action": f"/sito-studio/prenotazioni/{row_id}/rifiuta",
-                "method": "POST",
-                "submitLabel": "Rifiuta",
-                "enabled": bool(row_id),
-                "fields": [],
-            },
-        ],
+        "agendaEventId": _text(row.get("agenda_event_id")),
+        "actions": {
+            "canUpdateStatus": status == "pending",
+            "statusEndpoint": f"/api/v1/ui/sito-studio/prenotazioni/{booking_id}/stato" if booking_id and status == "pending" else "",
+        },
     }
 
 
-def _metric(metric_id: str, label: str, value: Any, note: str, tone: str = "neutral") -> dict[str, Any]:
-    return {"id": metric_id, "label": label, "value": value, "note": note, "tone": tone}
+def _safe_clients(get_clienti: Loader | None, current_user: Any) -> list[dict[str, str]]:
+    if get_clienti is None or not _can(current_user, "clienti.leggi"):
+        return []
+    try:
+        manager = get_clienti()
+        rows = manager.tutti() if callable(getattr(manager, "tutti", None)) else []
+        return [
+            {
+                "id": _text(getattr(row, "id", "")),
+                "label": _text(getattr(row, "nome_completo", "")) or _text(getattr(row, "ragione_sociale", "")),
+            }
+            for row in list(rows)[:80]
+            if _text(getattr(row, "id", ""))
+        ]
+    except Exception:
+        return []
 
 
-def _section(section_id: str, title: str, items: list[dict[str, Any]], empty: str) -> dict[str, Any]:
-    return {"id": section_id, "title": title, "kind": "summary", "items": items, "emptyMessage": empty}
+def _safe_matters(get_fascicoli: Loader | None, current_user: Any) -> list[dict[str, str]]:
+    if get_fascicoli is None or not _can(current_user, "fascicoli.leggi"):
+        return []
+    try:
+        manager = get_fascicoli()
+        rows = manager.tutti() if callable(getattr(manager, "tutti", None)) else []
+        return [
+            {
+                "id": _text(getattr(row, "id", "")),
+                "label": _text(getattr(row, "oggetto", "")) or _text(getattr(row, "numero_ruolo", "")),
+            }
+            for row in list(rows)[:80]
+            if _text(getattr(row, "id", ""))
+        ]
+    except Exception:
+        return []
 
 
-def _contracts(route: str) -> dict[str, Any]:
-    name = route.strip("/").replace("/", "__") or "root"
-    return {
-        "mock_fallback": False,
-        "writes": "legacy_routes",
-        "route_owner": "react_shell",
-        "legacy_contract": f"artifacts/react-migration/legacy-contracts/{name}.json",
-    }
+def _base_dashboard() -> dict[str, Any]:
+    return build_studio_site_dashboard_payload()
 
 
-def _base_payload(route: str, dashboard: dict[str, Any]) -> dict[str, Any]:
+def build_react_sito_studio_payload(
+    *,
+    contacts_only: bool = False,
+    current_user: Any = None,
+    get_clienti: Loader | None = None,
+    get_fascicoli: Loader | None = None,
+) -> dict[str, Any]:
+    if contacts_only:
+        return build_react_sito_contatti_payload(
+            current_user=current_user,
+            get_clienti=get_clienti,
+            get_fascicoli=get_fascicoli,
+        )
+
+    dashboard = _base_dashboard()
     site = dashboard.get("site") or {}
     stats = dashboard.get("stats") or {}
     site_summary = _site_summary(site, _text(dashboard.get("public_url")))
-    records = (
-        [_page(row) for row in dashboard.get("pages", [])]
-        + [_article(row) for row in dashboard.get("articles", [])]
-        + [_service(row) for row in dashboard.get("services", [])]
-        + [_professional(row) for row in dashboard.get("professionals", [])]
-        + [_office(row) for row in dashboard.get("offices", [])]
+    pages = (
+        [_page(row, "page") for row in dashboard.get("pages", [])]
+        + [_page(row, "article") for row in dashboard.get("articles", [])]
+        + [_page(row, "service") for row in dashboard.get("services", [])]
+        + [_page(row, "professional") for row in dashboard.get("professionals", [])]
+        + [_page(row, "office") for row in dashboard.get("offices", [])]
     )
-
+    warnings = [
+        {"code": "builder_legacy_protetto", "message": "Builder, editor contenuti e pubblicazione avanzata restano legacy protetti."},
+        {"code": "notifiche_non_introdotte", "message": "Questa dashboard non invia email, SMS o WhatsApp e non crea automazioni."},
+        *[
+            {"code": "sito_studio", "message": _text(message)}
+            for message in dashboard.get("warnings", [])
+            if _text(message)
+        ],
+    ]
     return {
+        "ok": True,
         "source": "repository_reali",
         "generated_at": _iso_now(),
-        "contracts": _contracts(route),
+        "contracts": _contracts("/sito-studio", writes="none"),
         "site": site_summary,
+        "pages": pages,
         "metrics": [
-            _metric("pages", "Pagine", _int(stats.get("pages")), "Pagine del sito", "primary"),
+            _metric("pages", "Pagine", _int(stats.get("pages")), "Pagine pubbliche sicure", "primary"),
             _metric("articles", "Articoli", _int(stats.get("articles")), "Contenuti editoriali", "info"),
             _metric("contacts", "Contatti", _int(stats.get("contact_submissions")), "Richieste ricevute", "warning" if _int(stats.get("contact_submissions")) else "neutral"),
-            _metric("bookings", "Prenotazioni", _int(stats.get("pending_booking_requests")), "Richieste in attesa", "warning" if _int(stats.get("pending_booking_requests")) else "success"),
+            _metric("bookings", "Prenotazioni in attesa", _int(stats.get("pending_booking_requests")), "Richieste appuntamento da presidiare", "warning" if _int(stats.get("pending_booking_requests")) else "success"),
+            _metric("services", "Servizi", _int(stats.get("services")), "Servizi pubblicabili", "neutral"),
         ],
-        "sections": [
-            _section(
-                "status",
-                "Stato pubblicazione",
-                [
-                    {"id": "active", "label": "Sito", "value": "attivo" if site_summary["active"] else "disattivo", "note": "Flag operativo", "tone": "success" if site_summary["active"] else "warning"},
-                    {"id": "published", "label": "Pubblicazione", "value": "pubblicato" if site_summary["published"] else "bozza", "note": "Visibilita pubblica", "tone": "success" if site_summary["published"] else "warning"},
-                    {"id": "public", "label": "URL pubblico", "value": site_summary["publicUrl"], "note": "Anteprima reale", "tone": "primary" if site_summary["publicUrl"] else "neutral"},
-                ],
-                "Stato sito non disponibile.",
-            ),
-            _section(
-                "catalog",
-                "Catalogo contenuti",
-                [
-                    {"id": "services", "label": "Servizi", "value": _int(stats.get("services")), "note": "Servizi pubblicabili", "tone": "primary"},
-                    {"id": "professionals", "label": "Professionisti", "value": _int(stats.get("professionals")), "note": "Profili studio", "tone": "primary"},
-                    {"id": "offices", "label": "Sedi", "value": _int(stats.get("offices")), "note": "Sedi e recapiti", "tone": "primary"},
-                ],
-                "Catalogo non configurato.",
-            ),
-        ],
-        "records": records,
+        "preview": {
+            "href": site_summary["publicUrl"],
+            "label": "Apri anteprima pubblica" if site_summary["publicUrl"] else "Anteprima non disponibile",
+            "safe": bool(site_summary["publicUrl"]),
+        },
         "actions": [
-            {"id": "builder", "label": "Apri Builder Pro legacy", "href": "/sito-studio/builder?_legacy=1", "method": "GET", "tone": "primary"},
-            {"id": "settings", "label": "Impostazioni sito legacy", "href": "/sito-studio/impostazioni?_legacy=1", "method": "GET", "tone": "neutral"},
-            {"id": "contacts", "label": "Richieste contatto", "href": "/sito-studio/contatti", "method": "GET", "tone": "warning"},
-            {"id": "bookings", "label": "Prenotazioni legacy", "href": "/sito-studio/prenotazioni?_legacy=1", "method": "GET", "tone": "neutral"},
-            {"id": "public", "label": "Apri sito pubblico", "href": site_summary["publicUrl"], "method": "GET", "tone": "success"},
+            _action("contatti", "Apri contatti sito", "/sito-studio/contatti", "primary"),
+            _action("public", "Apri sito pubblico", site_summary["publicUrl"], "success") if site_summary["publicUrl"] else _action("public-disabled", "Sito pubblico non disponibile", "/sito-studio", "neutral"),
+            _action("builder", "Builder legacy protetto", "/sito-studio/builder", "warning", protected=True),
+            _action("rollback", "Rollback tecnico legacy", "/sito-studio?_legacy=1", "neutral", protected=True),
         ],
-        "forms": [],
+        "legacy_routes": [
+            _action("builder", "Builder legacy protetto", "/sito-studio/builder", "warning", protected=True),
+        ],
+        "warnings": warnings,
+    }
+
+
+def build_react_sito_contatti_payload(
+    *,
+    current_user: Any = None,
+    get_clienti: Loader | None = None,
+    get_fascicoli: Loader | None = None,
+) -> dict[str, Any]:
+    dashboard = _base_dashboard()
+    contacts = [_contact(row) for row in dashboard.get("contact_submissions", [])]
+    bookings = [_booking(row) for row in dashboard.get("booking_requests", [])]
+    can_manage = _can(current_user, "admin.configura") if current_user is not None else True
+    actions = {
+        "canRead": True,
+        "canUpdateStatus": False,
+        "canArchive": False,
+        "canAddNote": False,
+        "canAssign": False,
+        "canLinkClient": can_manage,
+        "canLinkMatter": False,
+        "canUpdateBookingStatus": can_manage,
+        "unsupportedReason": "Il repository legacy supporta solo collegamento cliente e approvazione/rifiuto prenotazioni.",
+        "rollback": {"label": "Rollback tecnico legacy", "href": "/sito-studio/contatti?_legacy=1", "method": "GET"},
+    }
+    return {
+        "ok": True,
+        "source": "repository_reali",
+        "generated_at": _iso_now(),
+        "contracts": _contracts("/sito-studio/contatti", writes="json_api"),
+        "contacts": contacts,
+        "bookings": bookings,
+        "statuses": [
+            {"value": "nuovo", "label": "Da gestire", "mutable": False},
+            {"value": "cliente_collegato", "label": "Cliente collegato", "mutable": False},
+            {"value": "pending", "label": "Prenotazione in attesa", "mutable": True},
+            {"value": "approved", "label": "Prenotazione approvata", "mutable": True},
+            {"value": "rejected", "label": "Prenotazione rifiutata", "mutable": True},
+        ],
+        "assignees": [],
+        "clients": _safe_clients(get_clienti, current_user),
+        "matters": _safe_matters(get_fascicoli, current_user),
+        "actions": actions,
         "warnings": [
-            {"code": "builder_legacy", "message": "Builder, pubblicazione avanzata e asset restano sulle route legacy in questa tranche."},
-            *[
-                {"code": "sito_studio", "message": _text(message)}
-                for message in dashboard.get("warnings", [])
-                if _text(message)
-            ],
+            {"code": "azioni_contatto_limitate", "message": "Stato contatto, archiviazione, note interne, assegnazione e collegamento fascicolo non sono supportati dal backend legacy corrente."},
+            {"code": "notifiche_non_introdotte", "message": "Le azioni React non inviano email, SMS o WhatsApp e non creano automazioni."},
         ],
     }
 
 
-def build_react_sito_studio_payload(*, contacts_only: bool = False) -> dict[str, Any]:
-    dashboard = build_studio_site_dashboard_payload()
-    route = "/sito-studio/contatti" if contacts_only else "/sito-studio"
-    payload = _base_payload(route, dashboard)
+def _find_contact(submission_id: int) -> tuple[int, Any, dict[str, Any] | None]:
+    site = get_site_for_current_tenant()
+    repo = studio_site_repository()
+    site_id = int(site["id"])
+    rows = repo.list_contact_submissions(site_id, limit=1000)
+    row = next((item for item in rows if _int(item.get("id")) == int(submission_id)), None)
+    return site_id, repo, row
 
-    contact_records = [_contact(row) for row in dashboard.get("contact_submissions", [])]
-    booking_records = [_booking(row) for row in dashboard.get("booking_requests", [])]
-    if contacts_only:
-        payload["records"] = contact_records + booking_records
-        payload["actions"] = [
-            {"id": "dashboard", "label": "Torna al Sito Studio", "href": "/sito-studio", "method": "GET", "tone": "neutral"},
-            {"id": "contacts-legacy", "label": "Apri contatti legacy", "href": "/sito-studio/contatti?_legacy=1", "method": "GET", "tone": "primary"},
-            {"id": "bookings-legacy", "label": "Apri prenotazioni legacy", "href": "/sito-studio/prenotazioni?_legacy=1", "method": "GET", "tone": "warning"},
-        ]
-        payload["warnings"].append(
-            {"code": "gestione_legacy", "message": "Conversione contatti e gestione prenotazioni inviano form standard alle route legacy."}
+
+def _mutation_error(message: str, field: str = "payload") -> dict[str, Any]:
+    return {"ok": False, "message": message, "errors": {field: message}, "item": None}
+
+
+def update_react_sito_contatto_status(_id_contatto: str, _payload: dict[str, Any]) -> dict[str, Any]:
+    return _mutation_error("Cambio stato contatto non supportato dal backend legacy corrente.", "status")
+
+
+def archive_react_sito_contatto(_id_contatto: str, _payload: dict[str, Any]) -> dict[str, Any]:
+    return _mutation_error("Archiviazione contatto non supportata dal backend legacy corrente.", "archive")
+
+
+def add_react_sito_contatto_note(_id_contatto: str, _payload: dict[str, Any]) -> dict[str, Any]:
+    return _mutation_error("Nota interna contatto non supportata dal backend legacy corrente.", "note")
+
+
+def assign_react_sito_contatto(_id_contatto: str, _payload: dict[str, Any]) -> dict[str, Any]:
+    return _mutation_error("Assegnazione contatto non supportata dal backend legacy corrente.", "assignee")
+
+
+def link_react_sito_contatto(id_contatto: str, payload: dict[str, Any], *, get_clienti: Loader | None = None) -> dict[str, Any]:
+    allowed = {"mode", "cliente_id"}
+    unknown = sorted(set(payload) - allowed)
+    if unknown:
+        return _mutation_error(f"Campi non ammessi: {', '.join(unknown)}.", "payload")
+    contact_id = _int(id_contatto)
+    if contact_id <= 0:
+        return _mutation_error("Identificativo contatto non valido.", "id_contatto")
+    site_id, repo, submission = _find_contact(contact_id)
+    if submission is None:
+        return _mutation_error("Richiesta contatto non trovata.", "id_contatto")
+    existing = _text(submission.get("lead_cliente_id"))
+    if existing:
+        return {"ok": True, "message": "Cliente gia' collegato alla richiesta.", "errors": {}, "item": _contact(submission)}
+    cliente_id = _text(payload.get("cliente_id"))
+    if cliente_id:
+        if get_clienti is not None:
+            manager = get_clienti()
+            if callable(getattr(manager, "get", None)) and manager.get(cliente_id) is None:
+                return _mutation_error("Cliente indicato non trovato.", "cliente_id")
+        repo.update_contact_submission_lead(site_id, contact_id, cliente_id)
+        audit_studio_site_action(
+            "sito_studio.collega_cliente",
+            resource_id=str(contact_id),
+            details=f"Cliente {cliente_id} collegato alla richiesta contatto {contact_id}.",
         )
-    else:
-        payload["records"] = payload["records"] + contact_records[:4] + booking_records[:4]
-    return payload
+        rows = repo.list_contact_submissions(site_id, limit=1000)
+        updated = next((item for item in rows if _int(item.get("id")) == contact_id), submission)
+        return {"ok": True, "message": "Cliente collegato alla richiesta.", "errors": {}, "item": _contact(updated)}
+    mode = _text(payload.get("mode") or "create_lead")
+    if mode != "create_lead":
+        return _mutation_error("Azione di collegamento non supportata.", "mode")
+    try:
+        lead_id = create_lead_cliente_from_submission(submission)
+    except ValueError as exc:
+        return _mutation_error(str(exc), "cliente")
+    repo.update_contact_submission_lead(site_id, contact_id, lead_id)
+    audit_studio_site_action(
+        "sito_studio.crea_lead_cliente",
+        resource_id=str(contact_id),
+        details=f"Cliente potenziale {lead_id} creato dalla richiesta contatto {contact_id}.",
+    )
+    rows = repo.list_contact_submissions(site_id, limit=1000)
+    updated = next((item for item in rows if _int(item.get("id")) == contact_id), submission)
+    return {"ok": True, "message": "Cliente potenziale creato e collegato.", "errors": {}, "item": _contact(updated)}
+
+
+def update_react_sito_booking_status(id_prenotazione: str, payload: dict[str, Any]) -> dict[str, Any]:
+    allowed = {"status"}
+    unknown = sorted(set(payload) - allowed)
+    if unknown:
+        return _mutation_error(f"Campi non ammessi: {', '.join(unknown)}.", "payload")
+    booking_id = _int(id_prenotazione)
+    status = _text(payload.get("status")).lower()
+    if booking_id <= 0:
+        return _mutation_error("Identificativo prenotazione non valido.", "id_prenotazione")
+    if status not in {"approved", "rejected"}:
+        return _mutation_error("Stato prenotazione non ammesso.", "status")
+    try:
+        updated = approve_booking_request_for_current_site(booking_id) if status == "approved" else reject_booking_request_for_current_site(booking_id)
+    except ValueError as exc:
+        return _mutation_error(str(exc), "status")
+    return {
+        "ok": True,
+        "message": "Prenotazione aggiornata.",
+        "errors": {},
+        "item": _booking(updated or {}),
+    }
 
 
 def build_react_sito_studio_error_payload(message: str = "Sito Studio non disponibile.") -> dict[str, Any]:
     return {
+        "ok": False,
         "source": "errore_controllato",
         "generated_at": _iso_now(),
-        "contracts": _contracts("/sito-studio"),
+        "contracts": _contracts("/sito-studio", writes="none"),
         "site": {},
+        "pages": [],
         "metrics": [],
-        "sections": [],
-        "records": [],
-        "actions": [{"id": "legacy", "label": "Apri Sito Studio legacy", "href": "/sito-studio?_legacy=1", "method": "GET", "tone": "neutral"}],
-        "forms": [],
+        "preview": {},
+        "actions": [],
+        "legacy_routes": [],
         "warnings": [{"code": "sito_studio_errore", "message": message}],
     }

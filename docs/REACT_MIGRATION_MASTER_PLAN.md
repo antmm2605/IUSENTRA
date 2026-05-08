@@ -377,6 +377,38 @@ legacy:
   con Flask `test_client`, esegue test/typecheck/build frontend e genera patch
   separate di rollback.
 
+## Stato tranche 2026-05-08 - Tranche 26A/27A regia studio, amministrazione e sito
+
+La tranche anti-mascheramento 26A/27A promuove gli hub direzionali e il Sito
+Studio a `react_operational_full` senza sbloccare impostazioni, builder o
+portali:
+
+- `/studio` usa `GET /api/v1/ui/studio` con contratto `writes=none`,
+  `operational=true` e `secrets_exposed=false`; mostra KPI reali, sessione,
+  salute backup/sito/economico/documentale, route React operative e route
+  legacy protette.
+- `/amministrazione` usa `GET /api/v1/ui/amministrazione`, richiede
+  `utenti.leggi` e mostra utenti, profili, audit, sicurezza aggregata, moduli
+  amministrativi operativi e impostazioni legacy protette.
+- `/sito-studio` usa `GET /api/v1/ui/sito-studio` con `writes=none` per stato
+  sito reale, contenuti pubblici sicuri, KPI contatti/prenotazioni e anteprima
+  pubblica sicura.
+- `/sito-studio/contatti` usa `GET /api/v1/ui/sito-studio/contatti` e POST
+  JSON solo per azioni legacy realmente supportate: collegamento cliente e
+  aggiornamento stato prenotazione. Stato contatto, archiviazione, note,
+  assegnazione e collegamento fascicolo restano disabilitati quando il backend
+  legacy non li supporta.
+- `/studio/*`, `/amministrazione/*`, `/sito-studio/builder`,
+  `/sito-studio/*` ulteriori, `/impostazioni*` e
+  `/sincronizzazione-calendari` restano protetti dal gate.
+- I check dedicati sono
+  `check-tranche-26a-studio-amministrazione-operational.mjs`,
+  `check-tranche-26a-no-settings-secret-leak.mjs`,
+  `check-tranche-26a-studio-amministrazione-api.py`,
+  `check-tranche-27a-sito-studio-operational.mjs`,
+  `check-tranche-27a-no-sito-secret-leak.mjs` e
+  `check-tranche-27a-sito-studio-api.py`.
+
 ## Stato tranche 2026-05-06 - Tranche 5A hub studio e amministrazione
 
 La quarta promozione governata abilita due hub direzionali React exact senza

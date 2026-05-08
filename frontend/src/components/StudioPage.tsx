@@ -1,6 +1,13 @@
-import { useEffect, useState } from 'react'
-import { Building2, ExternalLink, Settings2 } from 'lucide-react'
-import { emptyStudioPage, getStudioPage, type StudioPageData } from '../studioData'
+import { useEffect, useMemo, useState } from 'react'
+import { Building2, ExternalLink, ShieldAlert, ShieldCheck } from 'lucide-react'
+import {
+  buttonTone,
+  emptyStudioPage,
+  getStudioPage,
+  type LegacyModule,
+  type OperationalModule,
+  type StudioPageData,
+} from '../studioData'
 import { Badge } from '../ui/Badge'
 import { ButtonLink } from '../ui/Button'
 import { EmptyState } from '../ui/EmptyState'
@@ -31,14 +38,37 @@ function WarningPanel({ data }: { data: StudioPageData }) {
   )
 }
 
+function ModuleList({ modules, legacy = false }: { modules: Array<OperationalModule | LegacyModule>; legacy?: boolean }) {
+  if (!modules.length) return <EmptyState title={legacy ? 'Nessun modulo legacy protetto' : 'Nessun modulo operativo disponibile'} />
+  return (
+    <div className="iu-studio-modules">
+      {modules.map((record) => (
+        <article className="iu-studio-module" key={record.id}>
+          <div>
+            {legacy ? <ShieldAlert size={18} /> : <ShieldCheck size={18} />}
+            <strong>{record.label}</strong>
+            <span>{record.note}</span>
+          </div>
+          <Badge tone={record.tone}>{record.status}</Badge>
+          <ButtonLink href={record.href} tone={legacy ? 'warning' : 'neutral'}>
+            <ExternalLink size={15} />
+            Apri
+          </ButtonLink>
+        </article>
+      ))}
+    </div>
+  )
+}
+
 function ContractPanel({ data }: { data: StudioPageData }) {
   return (
-    <Panel title="Contratto dati" subtitle="GET React con scritture conservate sui percorsi legacy.">
+    <Panel title="Contratto dati" subtitle="GET JSON read-only con impostazioni sensibili protette.">
       <div className="iu-studio-contract">
         <span>Fonte: {data.source || 'non indicata'}</span>
         <span>Generato: {data.generated_at || 'non disponibile'}</span>
         <span>Scritture: {data.contracts.writes}</span>
         <span>Owner route: {data.contracts.route_owner}</span>
+        <span>Operativo: {data.contracts.operational ? 'si' : 'no'}</span>
         <span>Mock fallback: {data.contracts.mock_fallback ? 'si' : 'no'}</span>
       </div>
     </Panel>
@@ -48,12 +78,18 @@ function ContractPanel({ data }: { data: StudioPageData }) {
 export function StudioPage() {
   const [data, setData] = useState<StudioPageData>(emptyStudioPage)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     let active = true
     getStudioPage()
       .then((payload) => {
-        if (active) setData(payload)
+        if (!active) return
+        setData(payload)
+        setError(payload.ok ? '' : payload.warnings[0]?.message || 'Dashboard Studio non disponibile.')
+      })
+      .catch(() => {
+        if (active) setError('Dashboard Studio non disponibile.')
       })
       .finally(() => {
         if (active) setLoading(false)
@@ -63,32 +99,38 @@ export function StudioPage() {
     }
   }, [])
 
-  const hasData = data.metrics.length > 0 || data.records.length > 0 || data.sections.some((section) => section.items.length > 0)
+  const hasData = useMemo(
+    () => data.metrics.length > 0 || data.operational_routes.length > 0 || data.health.length > 0,
+    [data],
+  )
 
   return (
     <Page
       title={data.studio.name || 'Studio'}
-      subtitle="Quadro direzionale dello studio con soli dati sicuri e collegamenti operativi."
+      subtitle="Regia operativa dello studio con dati reali aggregati, permessi e presidi di sicurezza."
       actions={
-        <ButtonLink href="/impostazioni?_legacy=1" tone="warning">
-          <Settings2 size={16} />
-          Impostazioni legacy
-        </ButtonLink>
+        <>
+          <ButtonLink href="/backup" tone="primary">Apri backup</ButtonLink>
+          <ButtonLink href="/sito-studio/contatti" tone="primary">Contatti sito</ButtonLink>
+        </>
       }
     >
       {loading ? <LoadingState title="Caricamento studio" message="Lettura dei repository reali in corso." /> : null}
-      {!loading && !hasData ? (
+      {!loading && error ? (
+        <EmptyState title="Studio non disponibile" message={error} action={<ButtonLink href="/backup" tone="primary">Apri backup</ButtonLink>} />
+      ) : null}
+      {!loading && !error && !hasData ? (
         <EmptyState
           title="Nessun dato studio disponibile"
-          message="Lo hub non ha ricevuto dati visualizzabili dai repository."
-          action={<ButtonLink href="/impostazioni?_legacy=1" tone="warning">Apri impostazioni legacy</ButtonLink>}
+          message="Lo hub non ha ricevuto aggregati visualizzabili dai repository."
+          action={<ButtonLink href="/utenti" tone="primary">Apri utenti</ButtonLink>}
         />
       ) : null}
-      {!loading && hasData ? (
+      {!loading && !error && hasData ? (
         <>
-          <section className="iu-studio-banner" aria-label="Impostazioni sensibili ancora legacy">
-            <strong>Impostazioni sensibili ancora legacy</strong>
-            <span>Configurazioni riservate, calendari e pagamenti restano sui template Flask auditati.</span>
+          <section className="iu-studio-banner" aria-label="Impostazioni sensibili legacy">
+            <strong>Impostazioni sensibili legacy protette</strong>
+            <span>PEC, firma digitale, calendari, provider pagamenti e telematico restano nei percorsi Flask protetti.</span>
           </section>
           <WarningPanel data={data} />
           <section className="iu-studio-kpis" aria-label="KPI studio">
@@ -102,47 +144,31 @@ export function StudioPage() {
               />
             ))}
           </section>
-          <Panel title="Moduli operativi" subtitle={`${data.records.length} collegamenti governati`}>
-            <div className="iu-studio-modules">
-              {data.records.map((record) => (
-                <article className="iu-studio-module" key={record.id}>
+          <Panel title="Salute sistema" subtitle={`${data.health.length} presidi letti dal backend`}>
+            <div className="iu-studio-health">
+              {data.health.map((item) => (
+                <article className="iu-studio-health__item" key={item.id}>
+                  <Building2 size={18} />
                   <div>
-                    <Building2 size={18} />
-                    <strong>{record.label}</strong>
-                    <span>{record.note}</span>
+                    <span>{item.label}</span>
+                    <strong>{item.status}</strong>
+                    {item.note ? <small>{item.note}</small> : null}
                   </div>
-                  <Badge tone={record.tone}>{record.status}</Badge>
-                  <ButtonLink href={record.href} tone={record.tone === 'warning' ? 'warning' : 'neutral'}>
-                    <ExternalLink size={15} />
-                    Apri
-                  </ButtonLink>
+                  <Badge tone={item.tone}>{formatValue(item.value) || item.tone}</Badge>
                 </article>
               ))}
             </div>
           </Panel>
-          <section className="iu-studio-grid" aria-label="Sezioni studio">
-            {data.sections.map((section) => (
-              <Panel title={section.title} subtitle={section.kind} key={section.id}>
-                {section.items.length ? (
-                  <div className="iu-studio-list">
-                    {section.items.map((item) => (
-                      <div className="iu-studio-list__item" key={item.id}>
-                        <span>{item.label}</span>
-                        <strong>{formatValue(item.value)}</strong>
-                        {item.note ? <small>{item.note}</small> : null}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <EmptyState title={section.emptyMessage} />
-                )}
-              </Panel>
-            ))}
-          </section>
-          <Panel title="Collegamenti rapidi">
+          <Panel title="Moduli React operativi" subtitle={`${data.operational_routes.length} route operative full`}>
+            <ModuleList modules={data.operational_routes} />
+          </Panel>
+          <Panel title="Impostazioni sensibili legacy" subtitle="Percorsi protetti, non usati come CTA primaria">
+            <ModuleList modules={data.legacy_routes} legacy />
+          </Panel>
+          <Panel title="Collegamenti operativi">
             <div className="iu-studio-actions">
               {data.actions.map((action) => (
-                <ButtonLink href={action.href} tone={action.tone === 'info' ? 'neutral' : action.tone} key={action.id}>
+                <ButtonLink href={action.href} tone={buttonTone(action.tone)} key={action.id}>
                   <ExternalLink size={15} />
                   {action.label}
                 </ButtonLink>

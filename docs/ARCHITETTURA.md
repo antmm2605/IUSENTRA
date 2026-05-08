@@ -267,7 +267,7 @@ La maturità della repo richiede una pipeline continua composta da:
 - lint statico conservativo su errori bloccanti
 - import/syntax check
 - smoke Flask
-- `pytest` core su Linux
+- `pytest` core su Linux diviso in 10 fasi parallele con check aggregato `Pytest core`
 - matrix Windows/macOS/Linux per Local Signer e parti cross-platform
 
 La CI deve restare coerente con questa architettura: testare per layer e per dominio, non solo con un job generico.

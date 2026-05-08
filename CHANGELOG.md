@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.198.122 - 2026-05-08
+
+- Aggiunto `scripts/run_pytest_phases.py` per eseguire la suite pytest in fasi esplicite, con preset `react-migration`, `ci-core-local` e `full`, report JSON e timeout per singola fase.
+- Diviso il job GitHub Actions `Pytest core` in 10 shard paralleli con timeout pytest da 10 minuti per shard e check aggregatore stabile `Pytest core`.
+- Rafforzato `tests/test_ci_no_regression_contract.py` per verificare matrice a 10 fasi, aggregatore CI e copertura di tutti i target storici del `Pytest core`, inclusi i file sotto `lex/tests`.
+- Documentato il flusso locale a fasi in `docs/PYTEST_PHASES.md` e in `docs/DEPLOY.md`, chiarendo che non sostituisce il gate completo: tutte le fasi devono passare prima di dichiarare verde la suite backend.
+- Generato `artifacts/react-migration/pytest-phases.json` come inventario iniziale dei gruppi di test, inclusa la fase `09-misc` di sicurezza per evitare esclusioni silenziose.
+
 ## 2.198.121 - 2026-05-08
 
 - Integrato il design system interno IUSENTRA basato su shadcn/ui, Lucide Icons, Tailwind e primitive Radix, senza copiare template completi sopra le superfici operative.

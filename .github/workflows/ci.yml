@@ -308,13 +308,17 @@ jobs:
           print("Scheduler worker OK")
           PY
 
-  tests-core:
-    name: Pytest core
+  tests-core-shards:
+    name: Pytest core fase ${{ matrix.phase }}/10
     runs-on: ubuntu-latest
     needs:
       - quality
       - governance
-    timeout-minutes: 45
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        phase: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
     steps:
       - name: Checkout
@@ -335,33 +339,29 @@ jobs:
         run: |
           pip install -c requirements/constraints.txt -r requirements-dev.txt
 
-      - name: Run core suite
+      - name: Run core shard
         run: |
-          pytest -q \
-            lex/tests \
-            tests/test_auth.py \
-            tests/test_scheduler.py \
-            tests/test_scheduler_worker.py \
-            tests/test_storage_strategy.py \
-            tests/test_observability_runtime.py \
-            tests/test_ocr_worker.py \
-            tests/test_assistente_followup.py \
-            tests/test_assistente_language_guidance.py \
-            tests/test_assistente_social.py \
-            tests/test_assistente_social_intent.py \
-            tests/test_assistente_legal_reference_guard.py \
-            tests/test_web_bootstrap.py \
-            tests/test_web_security.py \
-            tests/test_database.py \
-            tests/test_local_ai.py \
-            tests/test_pst_catalog.py \
-            tests/test_giurisprudenza_repository.py \
-            tests/test_legal_intelligence_repository.py \
-            tests/test_telematico_repository.py \
-            tests/test_template_atti_repository.py \
-            tests/test_preventivi_repository.py \
-            tests/test_applicazioni_repository.py \
-            tests/test_lex_module.py
+          python scripts/run_pytest_phases.py \
+            --core-shard ${{ matrix.phase }} \
+            --core-total-shards 10 \
+            --timeout-minutes 10
+
+  tests-core:
+    name: Pytest core
+    runs-on: ubuntu-latest
+    needs:
+      - tests-core-shards
+    if: always()
+    timeout-minutes: 5
+
+    steps:
+      - name: Check all core shards
+        run: |
+          if [ "${{ needs['tests-core-shards'].result }}" != "success" ]; then
+            echo "Uno o piu' shard del Pytest core non sono verdi."
+            exit 1
+          fi
+          echo "Tutte le 10 fasi del Pytest core sono verdi."
 
   coverage-critical:
     name: Coverage moduli critici

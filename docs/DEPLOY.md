@@ -51,6 +51,28 @@ preventivo, ma il verdetto di rilascio va letto contro il workflow CI su Python
 `3.12`; in caso di divergenza, rieseguire il controllo con interprete allineato
 alla CI oppure attendere GitHub Actions prima di trarre conclusioni definitive.
 
+### Pytest locale per fasi
+
+Se `python -m pytest -q` locale diventa troppo lungo o opaco, usare il runner
+a fasi:
+
+```bash
+python scripts/run_pytest_phases.py --list
+python scripts/run_pytest_phases.py --core-list
+python scripts/run_pytest_phases.py --core-shard 1 --core-total-shards 10 --timeout-minutes 10
+python scripts/run_pytest_phases.py --phase react-migration --timeout-minutes 20
+python scripts/run_pytest_phases.py --phase full --timeout-minutes 30 --report artifacts/react-migration/pytest-phases-run.json
+```
+
+Il runner non rimuove test e non sostituisce il gate completo: per dichiarare
+verde la suite backend devono passare tutte le fasi necessarie, inclusa
+`09-misc`, oppure la CI equivalente su Python `3.12`. Il dettaglio operativo e'
+in `docs/PYTEST_PHASES.md`.
+
+In GitHub Actions il gate `Pytest core` e' diviso in 10 shard paralleli con
+timeout pytest di 10 minuti per shard e job aggregatore finale. Il check
+aggregato resta `Pytest core` e fallisce se anche una sola fase fallisce.
+
 ## Codex Support Stack prima della release
 
 Quando una modifica nasce da Codex, MetaHarness, autoresearch-lite o Open Design support, prima di entrare nel flusso di release applicativa eseguire il gate dedicato:

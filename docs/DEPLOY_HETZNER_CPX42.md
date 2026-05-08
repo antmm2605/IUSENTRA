@@ -1,6 +1,6 @@
 # Deploy Hetzner CPX42
 
-> **Versione corrente:** 2.202.0 — commit `a06145c`
+> **Versione corrente:** 2.202.0 — commit `8c1bfde`
 > Guida aggiornata: 08/05/2026
 
 Questa guida rende esplicito il profilo `deploy/hetzner` come destinazione di produzione o fallback governato rispetto a Railway.

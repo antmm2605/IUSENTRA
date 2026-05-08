@@ -1,6 +1,6 @@
 # Audit anti-mascheramento React
 
-Generato: 2026-05-08T21:02:22.529Z
+Generato: 2026-05-08T21:12:43.684Z
 
 ## Regole operative Parte 12A
 

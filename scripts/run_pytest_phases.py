@@ -343,9 +343,26 @@ def run_file_set(
     collect_only: bool,
     pytest_args: list[str],
     timeout_minutes: int | None,
+    batch_size: int | None = None,
 ) -> int:
     if not files:
         print(f"\n[{label}] nessun file da eseguire.")
+        return 0
+
+    if batch_size and batch_size > 0 and len(files) > batch_size:
+        batches = [files[index : index + batch_size] for index in range(0, len(files), batch_size)]
+        for index, batch_files in enumerate(batches, start=1):
+            batch_label = f"{label}#{index}/{len(batches)}"
+            code = run_file_set(
+                batch_label,
+                description,
+                batch_files,
+                collect_only=collect_only,
+                pytest_args=pytest_args,
+                timeout_minutes=timeout_minutes,
+            )
+            if code != 0:
+                return code
         return 0
 
     cmd = [sys.executable, "-m", "pytest", "-q", *[str(path) for path in files]]
@@ -382,6 +399,7 @@ def run_phase(
     collect_only: bool,
     pytest_args: list[str],
     timeout_minutes: int | None,
+    batch_size: int | None,
 ) -> int:
     phase = phase_by_name(phase_name)
     return run_file_set(
@@ -391,6 +409,7 @@ def run_phase(
         collect_only=collect_only,
         pytest_args=pytest_args,
         timeout_minutes=timeout_minutes,
+        batch_size=batch_size,
     )
 
 
@@ -412,6 +431,11 @@ def main() -> int:
     parser.add_argument("--json", action="store_true", help="Con --list stampa JSON invece del riepilogo testuale.")
     parser.add_argument("--collect-only", action="store_true", help="Passa --collect-only a pytest per validare la raccolta.")
     parser.add_argument("--timeout-minutes", type=int, help="Timeout massimo per singola fase.")
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        help="Spezza ogni fase in batch da N file. Usa 1 per isolare un file lento o bloccato.",
+    )
     parser.add_argument(
         "--report",
         type=Path,
@@ -457,6 +481,7 @@ def main() -> int:
             collect_only=args.collect_only,
             pytest_args=pytest_args,
             timeout_minutes=args.timeout_minutes,
+            batch_size=args.batch_size,
         )
         if args.report:
             write_report(
@@ -489,6 +514,7 @@ def main() -> int:
             collect_only=args.collect_only,
             pytest_args=pytest_args,
             timeout_minutes=args.timeout_minutes,
+            batch_size=args.batch_size,
         )
         results.append({"phase": name, "exitCode": code, "fileCount": len(groups[name])})
         if code != 0:

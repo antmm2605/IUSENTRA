@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.198.123 - 2026-05-08
+
+- Corretto il guardrail governance della CI mantenendo nel workflow i target storici ora espansi dal runner `Pytest core` a 10 shard.
+- Aggiunta l'opzione `--batch-size` al runner pytest a fasi per isolare file lenti o bloccati senza ridurre il perimetro dei test.
+
 ## 2.198.122 - 2026-05-08
 
 - Aggiunto `scripts/run_pytest_phases.py` per eseguire la suite pytest in fasi esplicite, con preset `react-migration`, `ci-core-local` e `full`, report JSON e timeout per singola fase.

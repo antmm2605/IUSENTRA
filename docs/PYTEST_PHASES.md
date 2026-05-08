@@ -24,6 +24,7 @@ Gli argomenti extra di pytest vanno dopo `--`:
 
 ```bash
 python scripts/run_pytest_phases.py --phase 02-react-ui -- --maxfail=1 -vv
+python scripts/run_pytest_phases.py --phase 02-react-ui --batch-size 1 --timeout-minutes 10 -- --maxfail=1 -vv
 ```
 
 ## Regola di rilascio

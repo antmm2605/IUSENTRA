@@ -341,6 +341,9 @@ jobs:
 
       - name: Run core shard
         run: |
+          # Target storici inclusi dal runner core:
+          # tests/test_observability_runtime.py
+          # tests/test_ocr_worker.py
           python scripts/run_pytest_phases.py \
             --core-shard ${{ matrix.phase }} \
             --core-total-shards 10 \

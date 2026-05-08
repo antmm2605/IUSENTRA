@@ -9,6 +9,11 @@ from .citations import build_citations
 from .context_builder import RetrievalContextBuilder
 from .dedup import deduplicate_evidence
 from .filters import RetrievalFilters
+from .legal_research_integrator import (
+    merge_public_research_into_evidence,
+    run_public_research_for_request,
+    should_run_public_research,
+)
 from .query_planner import QueryPlanner
 from .ranker import rank_evidence
 from .source_router import SourceRouter
@@ -224,6 +229,32 @@ class RetrievalOrchestrator:
                 "ttl_seconds": self.retrieval_cache.ttl_seconds,
             },
         }
+        # ------------------------------------------------------------------
+        # Integrazione ricerca legale pubblica (Phase 5 — Professional Upgrade)
+        # Viene eseguita solo per workflow strict legal quando l'evidenza interna
+        # è insufficiente e la richiesta consente fonti esterne.
+        # ------------------------------------------------------------------
+        if should_run_public_research(workflow, sufficient, bool(getattr(request, "allow_external_research", True))):
+            source_mode = str(
+                (dict(request_metadata.get("request_profile") or {}).get("source_mode"))
+                or request_metadata.get("source_mode")
+                or "balanced"
+            )
+            public_research = run_public_research_for_request(
+                request,
+                context,
+                workflow,
+                source_mode=source_mode,
+                max_results=6,
+            )
+            if public_research and not public_research.get("public_research_error"):
+                payload = merge_public_research_into_evidence(payload, public_research)
+                # Aggiorna evidence_sufficient se le fonti pubbliche lo migliorano
+                if list(public_research.get("public_official_sources") or []):
+                    payload["evidence_sufficient"] = True
+                # Propaga warnings e next_actions public research
+                payload.setdefault("_public_research", public_research)
+
         if not cache_disabled:
             self.retrieval_cache.set(cache_key, payload)
         return payload

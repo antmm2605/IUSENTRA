@@ -224,3 +224,233 @@ def test_router_dati_cliente_goes_to_studio_data_lookup():
     )
     workflow = LexRouter().resolve_workflow(request)
     assert workflow == "studio_data_lookup"
+
+
+def test_router_cliente_nome_secco_goes_to_studio_data_lookup():
+    from lex.contracts import LexRequest
+    from lex.router import LexRouter
+
+    request = LexRequest(
+        tenant_id="t1",
+        user_id="u1",
+        session_id="s1",
+        query="cliente marco moscato",
+    )
+
+    assert LexRouter().resolve_workflow(request) == "studio_data_lookup"
+
+
+def test_http_bridge_preserves_specific_case_law_and_client_workflow():
+    from lex.http_bounded_bridge import _resolve_intent, _resolve_workflow_hint
+
+    specific_profile = {"intent": "giurisprudenza_specifica"}
+    assert _resolve_workflow_hint({"focus_topic": "sentenze_web"}, specific_profile) == "giurisprudenza_specifica"
+    assert _resolve_intent("Sentenza n. 7919 del 31/03/2026", {"focus_topic": "sentenze_web"}, specific_profile) == "giurisprudenza_specifica"
+
+    client_profile = {"intent": "cliente_anagrafica"}
+    assert _resolve_workflow_hint({"focus_topic": "clienti"}, client_profile) == "studio_data_lookup"
+    assert _resolve_intent("cliente marco moscato", {"focus_topic": "clienti"}, client_profile) == "cliente_anagrafica"
+
+
+def test_case_law_exact_search_queries_include_required_variants():
+    from lex.research.case_law_exact_search import parse_case_law_reference
+
+    ref = parse_case_law_reference("mi puoi trovare questa Sentenza n. 7919 del 31/03/2026")
+
+    assert ref.number == "7919"
+    assert ref.date == "31/03/2026"
+    assert ref.year == "2026"
+    assert ref.is_exact_reference is True
+    assert '"Sentenza n. 7919 del 31/03/2026"' in ref.normalized_queries
+    assert '"7919" "31/03/2026" "Cassazione"' in ref.normalized_queries
+    assert 'site:cortedicassazione.it "7919" "31/03/2026"' in ref.normalized_queries
+    assert 'site:cortedicassazione.it "7919" "2026"' in ref.normalized_queries
+
+
+def test_answer_builder_specific_case_law_no_exact_hides_related_sources():
+    from types import SimpleNamespace
+
+    from lex.contracts import LexRequest
+    from lex.formatting.answer_builder import AnswerBuilder
+
+    request = LexRequest(
+        tenant_id="t1",
+        user_id="u1",
+        session_id="s1",
+        query="mi puoi trovare questa Sentenza n. 7919 del 31/03/2026",
+    )
+    items = [
+        {"title": f"Sentenza n. {1000 + idx} del 01/01/2026", "content": "frammento", "official_url": "https://www.cortedicassazione.it/"}
+        for idx in range(12)
+    ]
+    evidence = {
+        "items": items,
+        "evidence_pack": {
+            "metadata": {
+                "source_scope": "public_legal_source",
+                "exact_match_found": False,
+                "official_search_run": True,
+                "local_case_law_fragment_found": True,
+                "local_case_law_complete": False,
+                "local_case_law_missing_parts": ["testo integrale", "dispositivo"],
+                "discarded_unrelated_case_law_count": 12,
+            }
+        },
+    }
+    draft = SimpleNamespace(text="Risposta deterministica per workflow 'x'.", metadata={"provider": "deterministic"})
+    verdict = SimpleNamespace(warnings=[], risk_level="high")
+
+    response = AnswerBuilder().build_response(request, {}, "giurisprudenza_specifica", evidence, draft, verdict)
+
+    assert response.answer_mode == "needs_review"
+    assert response.confidence <= 0.45
+    assert "Non ho trovato una conferma ufficiale esatta" in response.answer
+    assert "Risposta deterministica" not in response.answer
+    assert "workflow" not in response.answer.lower()
+    assert "Sentenza n. 1001" not in response.answer
+    assert response.considered_sources == []
+    assert response.evidence_summary["discarded_count"] == 12
+
+
+def test_answer_builder_specific_case_law_exact_without_full_text_caps_confidence():
+    from types import SimpleNamespace
+
+    from lex.contracts import LexRequest
+    from lex.formatting.answer_builder import AnswerBuilder
+
+    request = LexRequest(
+        tenant_id="t1",
+        user_id="u1",
+        session_id="s1",
+        query="mi puoi trovare questa Sentenza n. 7919 del 31/03/2026",
+    )
+    evidence = {
+        "items": [],
+        "evidence_pack": {
+            "metadata": {
+                "source_scope": "public_legal_source",
+                "exact_match_found": True,
+                "official_search_run": True,
+                "official_url": "https://www.cortedicassazione.it/it/civile_dettaglio.page?contentId=SZC49646",
+                "official_title": "Sentenza n. 7919 del 31/03/2026",
+                "official_court": "Corte di Cassazione",
+                "official_number": "7919",
+                "official_date": "31/03/2026",
+                "has_full_text": False,
+                "has_dispositivo": False,
+                "has_motivazione": False,
+                "confidence_cap": 0.55,
+            }
+        },
+    }
+    draft = SimpleNamespace(text="", metadata={"provider": "ollama"})
+    verdict = SimpleNamespace(warnings=[], risk_level="high")
+
+    response = AnswerBuilder().build_response(request, {}, "giurisprudenza_specifica", evidence, draft, verdict)
+
+    assert "Ho individuato la pronuncia richiesta." in response.answer
+    assert response.confidence <= 0.55
+    assert response.answer_mode == "needs_review"
+    assert "testo integrale" in response.answer
+    assert response.evidence_summary["exact_match_count"] == 1
+
+
+def test_studio_data_gateway_cliente_nome_secco_found(monkeypatch):
+    from types import SimpleNamespace
+
+    from lex.tools import studio_data_gateway as gateway
+
+    rec = SimpleNamespace(email="marco@example.test", pec="marco@pec.test", telefono="123")
+    cliente = SimpleNamespace(
+        id="c1",
+        nome_completo="Moscato Marco",
+        codice_fiscale="MSCMRC80A01H501Z",
+        partita_iva="",
+        recapiti=rec,
+        indirizzo_residenza=None,
+        indirizzo_sede_legale=None,
+        tipo=SimpleNamespace(value="persona fisica"),
+        stato=SimpleNamespace(value="attivo"),
+        avvocato_referente="",
+        data_prima_acquisizione="",
+        note="",
+        tag=[],
+    )
+    other = SimpleNamespace(
+        id="c2",
+        nome_completo="Chiarini Marco",
+        codice_fiscale="",
+        partita_iva="",
+        recapiti=SimpleNamespace(email="", pec="", telefono=""),
+        indirizzo_residenza=None,
+        indirizzo_sede_legale=None,
+        tipo=SimpleNamespace(value=""),
+        stato=SimpleNamespace(value=""),
+        avvocato_referente="",
+        data_prima_acquisizione="",
+        note="",
+        tag=[],
+    )
+    gestore = SimpleNamespace(
+        tutti=lambda: [cliente, other],
+        cerca=lambda q: [cliente, other],
+        ottieni=lambda cid: cliente if cid == "c1" else None,
+    )
+    fascicoli = SimpleNamespace(tutti=lambda: [], cerca=lambda q: [], ottieni=lambda fid: None)
+    monkeypatch.setattr(gateway, "_get_clienti", lambda: gestore)
+    monkeypatch.setattr(gateway, "_get_fascicoli", lambda: fascicoli)
+
+    result = gateway.find_cliente("cliente marco moscato")
+    answer = gateway.build_cliente_answer(result)
+
+    assert result.status == "found"
+    assert result.cleaned_query == "marco moscato"
+    assert result.selected.nome_completo == "Moscato Marco"
+    assert "Ho trovato il cliente Moscato Marco." in answer
+    assert "Cabina operativa" not in answer
+    assert "fonti ufficiali" not in answer.lower()
+
+
+def test_answer_builder_studio_data_lookup_never_uses_web(monkeypatch):
+    from types import SimpleNamespace
+
+    from lex.contracts import LexRequest
+    from lex.formatting.answer_builder import AnswerBuilder
+    from lex.tools import studio_data_gateway as gateway
+
+    result = gateway.StudioLookupResult(
+        lookup_type="cliente",
+        query="cliente marco moscato",
+        cleaned_query="marco moscato",
+        matches=[],
+        status="not_found",
+        source="Clienti",
+    )
+    monkeypatch.setattr(gateway, "find_cliente", lambda q: result)
+
+    request = LexRequest(tenant_id="t1", user_id="u1", session_id="s1", query="cliente marco moscato")
+    draft = SimpleNamespace(text="Cabina operativa dello studio", metadata={"provider": "deterministic"})
+    verdict = SimpleNamespace(warnings=[], risk_level="low")
+
+    response = AnswerBuilder().build_response(request, {}, "studio_data_lookup", {}, draft, verdict)
+
+    assert response.answer_mode == "lookup"
+    assert response.metadata["web_used"] is False
+    assert response.metadata["web_forbidden_reason"] == "Richiesta dati interni studio"
+    assert "Cabina operativa" not in response.answer
+    assert "fonti ufficiali" not in response.answer.lower()
+    assert "Non ho trovato un cliente corrispondente" in response.answer
+
+
+def test_user_facing_guard_blocks_generic_workflow_word():
+    from lex.guards.user_facing_output_guard import check_output_safety
+
+    safe, sanitized = check_output_safety(
+        "Risposta deterministica per workflow 'test'. provider: x",
+        workflow="giurisprudenza_specifica",
+        question="Sentenza n. 7919 del 31/03/2026",
+    )
+
+    assert safe is False
+    assert "workflow" not in sanitized.lower()
+    assert "provider" not in sanitized.lower()

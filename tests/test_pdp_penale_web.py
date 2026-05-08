@@ -100,7 +100,7 @@ def test_workspace_pdp_penale_renderizza_link_nel_dettaglio(tmp_path: Path):
         )
         assert login.status_code == 200
 
-        detail = client.get(f"/fascicoli/{fasc_id}", follow_redirects=True)
+        detail = client.get(f"/fascicoli/{fasc_id}?_legacy=1", follow_redirects=True)
         html = detail.get_data(as_text=True)
 
     assert detail.status_code == 200
@@ -127,7 +127,7 @@ def test_dettaglio_penale_importato_nasconde_navigazioni_portale_non_coerenti(tm
         )
         assert login.status_code == 200
 
-        detail = client.get(f"/fascicoli/{fasc_id}", follow_redirects=True)
+        detail = client.get(f"/fascicoli/{fasc_id}?_legacy=1", follow_redirects=True)
         html = detail.get_data(as_text=True)
 
     assert detail.status_code == 200
@@ -375,6 +375,8 @@ def test_workspace_pdp_penale_completa_flusso_generazione_deposito_sync_e_import
                 doc for doc in fascicolo.documenti
                 if doc.nome.startswith("richiesta_accesso_pdp_")
             )
+            fascicoli.segna_firmato(fasc_id, generated_doc.id)
+            generated_doc.firmato_digitalmente = True
 
             import pct.pdp as pdp_module
 
@@ -397,6 +399,7 @@ def test_workspace_pdp_penale_completa_flusso_generazione_deposito_sync_e_import
                     "local_doc_id": generated_doc.id,
                     "tipo_atto": "RICHIESTA",
                     "oggetto": "Richiesta accesso atti procedimento 12345/2026",
+                    "confirm_lawyer_review": "1",
                 },
                 follow_redirects=True,
             )

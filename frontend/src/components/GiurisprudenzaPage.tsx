@@ -25,7 +25,7 @@ function ContractStrip({ data }: { data: GiurisprudenzaPageData }) {
       <div>
         <strong>{openDesignContract.system}</strong>
         <span>
-          {data.source || 'Repository'} - sorgente canonica {data.contracts.canonical_source || 'backend legacy'}
+          {data.source || 'Repository'} - sorgente canonica {data.contracts.canonical_source || 'backend storico'}
         </span>
       </div>
     </aside>
@@ -99,7 +99,7 @@ function SourceCard({ source }: { source: GiurisprudenzaSource }) {
         ) : null}
         {source.legacyHref ? (
           <ButtonLink href={source.legacyHref} tone="neutral">
-            Percorso legacy
+            Scheda fonte
           </ButtonLink>
         ) : null}
       </footer>
@@ -240,7 +240,7 @@ function RecordCard({ record }: { record: GiurisprudenzaRecord }) {
       <footer className="iu-od-action-row iu-legal-record__actions">
         <ButtonLink href={record.legacyHref} tone="primary">
           <FileText size={16} aria-hidden="true" />
-          Apri dettaglio legacy
+          Apri scheda metadati
         </ButtonLink>
       </footer>
     </article>
@@ -300,11 +300,7 @@ export function GiurisprudenzaPage() {
     <Page
       title="Archivio Giurisprudenza"
       subtitle="Banca dati interna di sentenze e provvedimenti, esposta in React solo come consultazione di metadati."
-      actions={
-        <ButtonLink href="/giurisprudenza/nuova?_legacy=1" tone="primary">
-          Nuova scheda legacy
-        </ButtonLink>
-      }
+      actions={<ButtonLink href="/legal-intelligence" tone="primary">Legal Intelligence</ButtonLink>}
     >
       <div className="iu-legal-page">
         <ContractStrip data={data} />
@@ -346,7 +342,7 @@ export function GiurisprudenzaPage() {
             <EmptyState
               title="Nessun provvedimento da mostrare"
               message="L'archivio non contiene metadati compatibili con i filtri applicati."
-              action={<ButtonLink href="/giurisprudenza?_legacy=1" tone="neutral">Apri archivio legacy</ButtonLink>}
+              action={<ButtonLink href="/legal-intelligence" tone="neutral">Apri Legal Intelligence</ButtonLink>}
             />
           )}
         </Panel>

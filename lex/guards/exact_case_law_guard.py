@@ -24,7 +24,9 @@ class ExactCaseLawCheckResult:
     next_actions: list[str] = field(default_factory=list)
     official_url: str = ""
     has_full_text: bool = False
+    has_pdf: bool = False
     has_dispositivo: bool = False
+    has_motivazione: bool = False
     discarded_unrelated_count: int = 0
 
 
@@ -86,10 +88,16 @@ def check_exact_case_law(
         number_match = bool(exact_number and exact_number in combined)
         year_match = bool(exact_year and exact_year in combined)
         date_match = bool(exact_date and exact_date.replace("/", "") in combined.replace("/", "").replace("-", ""))
-        court_match = bool(not exact_court or exact_court.lower() in combined)
+        court_lower = exact_court.lower()
+        official = _is_official_url(official_url)
+        court_match = bool(
+            not exact_court
+            or court_lower in combined
+            or (court_lower == "corte di cassazione" and "cortedicassazione.it" in official_url.lower())
+        )
 
         # Exact match: numero + (anno o data) + URL ufficiale
-        if number_match and (year_match or date_match) and _is_official_url(official_url):
+        if number_match and (year_match or date_match) and court_match and official:
             exact_match_item = item
             result.official_url = official_url
             break
@@ -107,8 +115,17 @@ def check_exact_case_law(
         # Verifica completezza testo
         content = _item_str(exact_match_item, "content", "excerpt", "text").lower()
         dispositivo_markers = ["p.q.m.", "per questi motivi", "si rigetta", "si accoglie", "condanna", "dispositivo"]
-        result.has_dispositivo = any(m in content for m in dispositivo_markers)
-        result.has_full_text = result.has_dispositivo or len(content) > 800
+        motivazione_markers = ["motivazione", "ritenuto", "considerato", "in fatto", "in diritto", "svolgimento"]
+        result.has_dispositivo = any(
+            m in content and f"senza {m}" not in content and f"manca {m}" not in content
+            for m in dispositivo_markers
+        )
+        result.has_motivazione = any(
+            m in content and f"senza {m}" not in content and f"manca {m}" not in content
+            for m in motivazione_markers
+        )
+        result.has_pdf = result.official_url.lower().endswith(".pdf")
+        result.has_full_text = result.has_dispositivo or result.has_motivazione or len(content) > 1200
 
         if result.has_full_text:
             result.confidence_cap = 0.92

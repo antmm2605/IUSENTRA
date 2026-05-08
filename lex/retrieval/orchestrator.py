@@ -3,6 +3,10 @@ from __future__ import annotations
 from dataclasses import asdict
 
 from lex.research import LexResearchService
+from lex.guards.exact_case_law_guard import check_exact_case_law
+from lex.research.case_law_completeness import detect_case_law_fragment
+from lex.research.case_law_exact_search import parse_case_law_reference
+from lex.research.source_scope_policy import classify_source_scope
 
 from .cache import get_retrieval_cache
 from .citations import build_citations
@@ -128,6 +132,129 @@ class RetrievalOrchestrator:
             return 24
         return 12
 
+    @staticmethod
+    def _item_value(item, *keys: str) -> str:
+        for key in keys:
+            if isinstance(item, dict):
+                value = item.get(key)
+            else:
+                value = getattr(item, key, None)
+                if not value:
+                    meta = getattr(item, "metadata", None)
+                    if isinstance(meta, dict):
+                        value = meta.get(key)
+            if value:
+                return str(value).strip()
+        return ""
+
+    def _case_law_fragment_scan(self, items) -> tuple[bool, bool, list[str], object | None]:
+        found = False
+        complete = False
+        missing: list[str] = []
+        first_fragment = None
+        for item in list(items or []):
+            result = detect_case_law_fragment(item)
+            if not result.is_case_law:
+                continue
+            found = True
+            complete = complete or result.is_complete
+            if first_fragment is None:
+                first_fragment = item
+            missing.extend(result.missing_parts)
+        return found, complete, list(dict.fromkeys(missing)), first_fragment
+
+    def _apply_case_law_exact_metadata(self, payload, request, workflow: str, *, public_search_run: bool, web_blocked_reason: str = ""):
+        reference = parse_case_law_reference(str(getattr(request, "query", "") or ""))
+        request_metadata = dict(getattr(request, "metadata", {}) or {})
+        scope = classify_source_scope(
+            str(getattr(request, "query", "") or ""),
+            workflow=workflow,
+            intent=str(getattr(request, "intent", "") or ""),
+            metadata=request_metadata,
+        )
+        items = list(payload.get("items") or [])
+        fragment_found, fragment_complete, fragment_missing, fragment_item = self._case_law_fragment_scan(items)
+        exact_check = check_exact_case_law(
+            items,
+            exact_number=reference.number,
+            exact_year=reference.year,
+            exact_date=reference.date,
+            exact_court=reference.court,
+        )
+        exact_found = exact_check.match_status == "exact_match"
+        has_full_text = bool(exact_check.has_full_text)
+        has_dispositivo = bool(getattr(exact_check, "has_dispositivo", False))
+        has_motivazione = bool(getattr(exact_check, "has_motivazione", False))
+        has_pdf = bool(getattr(exact_check, "has_pdf", False))
+        official_url = str(exact_check.official_url or "")
+        exact_title = ""
+        for item in items:
+            item_url = self._item_value(item, "official_url", "url")
+            title = self._item_value(item, "title", "citation")
+            combined = f"{title} {self._item_value(item, 'content', 'excerpt', 'text')}"
+            if official_url and item_url == official_url:
+                exact_title = title
+                break
+            if reference.number and reference.number in combined and (reference.year and reference.year in combined):
+                exact_title = title
+        missing_parts = list(fragment_missing)
+        if not official_url:
+            missing_parts.append("URL/PDF ufficiale")
+        if not has_full_text:
+            missing_parts.append("testo integrale")
+        if not has_motivazione:
+            missing_parts.append("motivazione")
+        if not has_dispositivo:
+            missing_parts.append("dispositivo")
+        missing_parts = list(dict.fromkeys(missing_parts))
+
+        ep = dict(payload.get("evidence_pack") or {})
+        metadata = dict(ep.get("metadata") or {})
+        metadata.update(
+            {
+                "source_scope": scope.scope,
+                "source_scope_confidence": scope.confidence,
+                "source_scope_reason": scope.reason,
+                "exact_reference": bool(reference.is_exact_reference),
+                "exact_reference_number": reference.number,
+                "exact_reference_date": reference.date,
+                "exact_reference_year": reference.year,
+                "exact_reference_kind": reference.kind or "sentenza",
+                "local_case_law_fragment_found": bool(fragment_found),
+                "local_case_law_complete": bool(fragment_complete),
+                "local_case_law_missing_parts": missing_parts,
+                "public_web_forced": True,
+                "complete_public_source": True,
+                "official_search_run": bool(public_search_run),
+                "exact_match_found": bool(exact_found),
+                "possible_match_found": exact_check.match_status == "possible_match",
+                "completed_from_web": bool(exact_found and official_url),
+                "official_url": official_url,
+                "official_title": exact_title,
+                "official_court": reference.court or "Corte di Cassazione",
+                "official_date": reference.date,
+                "official_number": reference.number,
+                "has_full_text": has_full_text,
+                "has_pdf": has_pdf,
+                "has_dispositivo": has_dispositivo,
+                "has_motivazione": has_motivazione,
+                "confidence_cap": exact_check.confidence_cap,
+                "confidence_cap_reason": exact_check.confidence_cap_reason,
+                "discarded_unrelated_case_law_count": exact_check.discarded_unrelated_count,
+                "web_blocked_reason": web_blocked_reason,
+                "local_fragment_summary": self._item_value(fragment_item, "title", "content", "excerpt", "text") if fragment_item else "",
+            }
+        )
+        ep["metadata"] = metadata
+        ep["sufficient"] = bool(exact_found and (has_full_text or has_dispositivo or has_motivazione))
+        payload["evidence_pack"] = ep
+        payload["evidence_sufficient"] = bool(ep["sufficient"])
+        if exact_found and exact_title:
+            payload["official_sources"] = [exact_title]
+        elif not exact_found:
+            payload["official_sources"] = []
+        return payload
+
     def collect(self, request, context, workflow: str):
         cache_disabled = bool((getattr(request, "metadata", {}) or {}).get("disable_retrieval_cache"))
         cache_key = self.retrieval_cache.build_key(request, context, workflow)
@@ -165,6 +292,29 @@ class RetrievalOrchestrator:
         internal_results = self.filters.apply(internal_results, request, context, workflow)
         internal_results = deduplicate_evidence(internal_results)
         internal_results = rank_evidence(internal_results, request, workflow)
+        request_metadata_live = dict(getattr(request, "metadata", {}) or {})
+        reference_live = parse_case_law_reference(str(getattr(request, "query", "") or ""))
+        fragment_found_live, fragment_complete_live, fragment_missing_live, _ = self._case_law_fragment_scan(internal_results)
+        if workflow == "giurisprudenza_specifica" or reference_live.is_exact_reference:
+            scope_live = classify_source_scope(
+                str(getattr(request, "query", "") or ""),
+                workflow="giurisprudenza_specifica",
+                intent=str(getattr(request, "intent", "") or ""),
+                metadata=request_metadata_live,
+            )
+            request_metadata_live.update(
+                {
+                    "source_scope": scope_live.scope,
+                    "public_web_forced": True,
+                    "complete_public_source": True,
+                    "exact_reference": True,
+                    "exact_legal_reference": True,
+                    "local_case_law_fragment_found": bool(fragment_found_live),
+                    "local_case_law_complete": bool(fragment_complete_live),
+                    "local_case_law_missing_parts": fragment_missing_live,
+                }
+            )
+            request.metadata = request_metadata_live
 
         fallback_triggered = False
         results = list(internal_results)
@@ -244,14 +394,18 @@ class RetrievalOrchestrator:
         exact_reference = bool(request_metadata.get("exact_legal_reference") or request_metadata.get("exact_reference"))
         local_case_law_incomplete = workflow == "giurisprudenza_specifica"
         user_requested_public_source = bool(request_metadata.get("complete_public_source") or request_metadata.get("public_web_forced"))
+        public_research_run = False
+        web_blocked_reason = ""
         if should_run_public_research(
             workflow,
             sufficient,
             bool(getattr(request, "allow_external_research", True)),
+            force=bool(request_metadata.get("public_web_forced") or request_metadata.get("complete_public_source")),
             exact_reference=exact_reference,
             local_case_law_incomplete=local_case_law_incomplete,
             user_requested_public_source=user_requested_public_source,
         ):
+            public_research_run = True
             source_mode = str(
                 (dict(request_metadata.get("request_profile") or {}).get("source_mode"))
                 or request_metadata.get("source_mode")
@@ -267,10 +421,22 @@ class RetrievalOrchestrator:
             if public_research and not public_research.get("public_research_error"):
                 payload = merge_public_research_into_evidence(payload, public_research)
                 # Aggiorna evidence_sufficient se le fonti pubbliche lo migliorano
-                if list(public_research.get("public_official_sources") or []):
+                if workflow != "giurisprudenza_specifica" and list(public_research.get("public_official_sources") or []):
                     payload["evidence_sufficient"] = True
                 # Propaga warnings e next_actions public research
                 payload.setdefault("_public_research", public_research)
+                web_blocked_reason = str(public_research.get("web_blocked_reason") or "")
+            elif public_research:
+                web_blocked_reason = str(public_research.get("public_research_error") or public_research.get("web_blocked_reason") or "")
+
+        if workflow == "giurisprudenza_specifica" or exact_reference:
+            payload = self._apply_case_law_exact_metadata(
+                payload,
+                request,
+                workflow,
+                public_search_run=public_research_run,
+                web_blocked_reason=web_blocked_reason,
+            )
 
         if not cache_disabled:
             self.retrieval_cache.set(cache_key, payload)

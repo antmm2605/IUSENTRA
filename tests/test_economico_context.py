@@ -79,7 +79,7 @@ def test_sincronizza_contesto_economico_arricchisce_regola_e_audit_tariffario():
     assert synced["regola_tariffaria_label"] == "Negoziazione assistita"
     assert summary["regola_tariffaria_label"] == "Negoziazione assistita"
     assert summary["audit_tariffario"]["table_code"] == "A27"
-    assert summary["audit_tariffario"]["compliance_label"] == "Ricostruttiva"
+    assert summary["audit_tariffario"]["compliance_label"] == "Ricostruzione dichiarata"
 
 
 def test_contesto_economico_arricchisce_procedura_operativa():

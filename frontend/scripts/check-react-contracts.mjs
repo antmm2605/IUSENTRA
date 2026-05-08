@@ -441,11 +441,11 @@ for (const [route, status] of [
   ['/fatturazione/nuova', 'react_operational_full'],
   ['/preventivi/wizard', 'react_operational_partial'],
   ['/tariffario', 'react_operational_full'],
-  ['/giurisprudenza', 'react_bridge'],
-  ['/legal-intelligence', 'react_bridge'],
-  ['/legal-intelligence/news', 'react_bridge'],
-  ['/legal-intelligence/mediazione', 'react_bridge'],
-  ['/ricerca-legale', 'react_bridge'],
+  ['/giurisprudenza', 'react_operational_full'],
+  ['/legal-intelligence', 'react_operational_full'],
+  ['/legal-intelligence/news', 'react_operational_full'],
+  ['/legal-intelligence/mediazione', 'react_operational_full'],
+  ['/ricerca-legale', 'react_operational_full'],
 ]) {
   const entry = (routeManifest.routes ?? []).find((item) => item.route === route)
   if (!entry || entry.status !== status || entry.unlockFromGate !== true) {
@@ -1601,14 +1601,14 @@ for (const snippet of [
 ]) {
   assertContains(reactRouteGate, snippet, `protezione route gate ${snippet}`)
 }
-assertManifestRoute('/giurisprudenza', 'react_bridge', true)
+assertManifestRoute('/giurisprudenza', 'react_operational_full', true)
 assertManifestRoute('/giurisprudenza/nuova', 'legacy_operational', false)
 assertManifestRoute('/giurisprudenza/*', 'legacy_operational', false)
-assertManifestRoute('/legal-intelligence', 'react_bridge', true)
-assertManifestRoute('/legal-intelligence/news', 'react_bridge', true)
-assertManifestRoute('/legal-intelligence/mediazione', 'react_bridge', true)
+assertManifestRoute('/legal-intelligence', 'react_operational_full', true)
+assertManifestRoute('/legal-intelligence/news', 'react_operational_full', true)
+assertManifestRoute('/legal-intelligence/mediazione', 'react_operational_full', true)
 assertManifestRoute('/legal-intelligence/*', 'legacy_operational', false)
-assertManifestRoute('/ricerca-legale', 'react_bridge', true)
+assertManifestRoute('/ricerca-legale', 'react_operational_full', true)
 assertManifestRoute('/ricerca-legale/*', 'legacy_operational', false)
 assertManifestRoute('/deposito/checklist', 'legacy_operational', false)
 

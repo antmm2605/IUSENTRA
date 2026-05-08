@@ -90,7 +90,7 @@ def test_catalogo_template_route_mostra_master_versionato(tmp_path: Path):
 
     with app.test_client() as client:
         client.post("/login", data={"username": "avvocato", "password": "Avv12345!"})
-        response = client.get("/template-atti/catalogo")
+        response = client.get("/template-atti/catalogo?_legacy=1")
 
     assert response.status_code == 200
     html = response.get_data(as_text=True)

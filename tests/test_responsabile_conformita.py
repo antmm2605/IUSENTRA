@@ -138,7 +138,7 @@ def test_dettaglio_fascicolo_mostra_responsabile_conformita(tmp_path):
             data={"username": "avvocato", "password": "Avv12345!"},
             follow_redirects=True,
         )
-        response = client.get(f"/fascicoli/{fasc.id}")
+        response = client.get(f"/fascicoli/{fasc.id}?_legacy=1")
 
     assert response.status_code == 200
     html = response.get_data(as_text=True)
@@ -235,7 +235,7 @@ def test_dettaglio_fascicolo_consente_disattivare_controlli_conformita(tmp_path)
             f"/fascicoli/{fasc.id}/conformita/controlli",
             data={
                 "enabled": "0",
-                "next": f"/fascicoli/{fasc.id}#sezione-responsabile-conformita",
+                "next": f"/fascicoli/{fasc.id}?_legacy=1#sezione-responsabile-conformita",
             },
             follow_redirects=True,
         )
@@ -304,7 +304,7 @@ def test_dettaglio_fascicolo_separa_istanze_e_scadenze(tmp_path):
             data={"username": "avvocato", "password": "Avv12345!"},
             follow_redirects=True,
         )
-        response = client.get(f"/fascicoli/{fasc.id}")
+        response = client.get(f"/fascicoli/{fasc.id}?_legacy=1")
 
     assert response.status_code == 200
     html = response.get_data(as_text=True)

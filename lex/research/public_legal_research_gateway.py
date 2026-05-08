@@ -193,7 +193,20 @@ def _normalize_row(row: dict[str, Any], source_type: str = "web_ufficiale") -> N
     excerpt = str(row.get("excerpt") or row.get("content") or row.get("text") or "")[:500]
     source_name = str(row.get("source_name") or row.get("authority") or row.get("sorgente") or "")
     date = str(row.get("published_at") or row.get("date") or "")
-    official = bool(row.get("official") or row.get("verified_reference") or row.get("tier") == "tier_1")
+    official_domains = (
+        "giustizia.it",
+        "cortedicassazione.it",
+        "cortecostituzionale.it",
+        "normattiva.it",
+        "giustizia-amministrativa.it",
+        "eur-lex.europa.eu",
+    )
+    official = bool(
+        row.get("official")
+        or row.get("verified_reference")
+        or row.get("tier") == "tier_1"
+        or any(domain in url.lower() for domain in official_domains)
+    )
     restricted = bool(row.get("restricted") or row.get("source_restricted"))
     requires_auth = bool(row.get("requires_credentials") or row.get("source_requires_credentials"))
 
@@ -334,7 +347,7 @@ def run_public_legal_research(
         log.append(f"[2] Ricerca web ufficiale per: «{public_query[:80]}»")
         result.web_used = True
         try:
-            web_rows = _search_web(public_query, source_mode=source_mode) or []
+            web_rows = _search_web(public_query, limit_results=max_results) or []
             for row in web_rows[:max_results]:
                 row_dict = row if isinstance(row, dict) else vars(row)
                 normalized = _normalize_row(row_dict, source_type="web_ufficiale")

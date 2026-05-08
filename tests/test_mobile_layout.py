@@ -38,7 +38,7 @@ def _login_admin(cfg: dict) -> None:
     )
 
 
-def test_dashboard_mobile_header_usa_griglia_coerente(tmp_path: Path):
+def test_dashboard_classica_mobile_header_usa_griglia_coerente(tmp_path: Path):
     cfg = _cfg_web(tmp_path)
     _login_admin(cfg)
     app = create_app(cfg)
@@ -51,7 +51,7 @@ def test_dashboard_mobile_header_usa_griglia_coerente(tmp_path: Path):
         )
         assert login.status_code == 200
 
-        page = client.get("/", follow_redirects=True)
+        page = client.get("/?_legacy=1", follow_redirects=True)
         html = page.get_data(as_text=True)
 
     css = Path("web/static/css/mobile.css").read_text(encoding="utf-8")
@@ -67,7 +67,7 @@ def test_dashboard_mobile_header_usa_griglia_coerente(tmp_path: Path):
     assert ".topbar-actions .btn," in scss
 
 
-def test_agenda_mobile_toolbar_ha_layout_dedicato(tmp_path: Path):
+def test_agenda_classica_mobile_toolbar_ha_layout_dedicato(tmp_path: Path):
     cfg = _cfg_web(tmp_path)
     _login_admin(cfg)
     app = create_app(cfg)
@@ -80,7 +80,7 @@ def test_agenda_mobile_toolbar_ha_layout_dedicato(tmp_path: Path):
         )
         assert login.status_code == 200
 
-        page = client.get("/agenda", follow_redirects=True)
+        page = client.get("/agenda?_legacy=1", follow_redirects=True)
         html = page.get_data(as_text=True)
 
     css = Path("web/static/css/mobile.css").read_text(encoding="utf-8")

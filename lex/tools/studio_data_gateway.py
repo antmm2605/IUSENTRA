@@ -21,7 +21,10 @@ from flask import current_app, g
 # ---------------------------------------------------------------------------
 
 def _get_tenant_id() -> str:
-    tenant = getattr(g, "tenant", None)
+    try:
+        tenant = getattr(g, "tenant", None)
+    except RuntimeError:
+        tenant = None
     if tenant:
         return str(getattr(tenant, "id", "") or getattr(tenant, "slug", "") or "default")
     return "default"
@@ -119,6 +122,44 @@ class ClienteResult:
 
 
 @dataclass
+class StudioLookupResult:
+    lookup_type: str
+    query: str
+    cleaned_query: str
+    matches: list[ClienteResult] = field(default_factory=list)
+    selected: ClienteResult | None = None
+    status: str = "not_found"
+    source: str = "Clienti"
+    warnings: list[str] = field(default_factory=list)
+    debug: dict[str, Any] = field(default_factory=dict)
+
+    def __iter__(self):
+        return iter(self.matches)
+
+    def __len__(self) -> int:
+        return len(self.matches)
+
+    def __getitem__(self, index):
+        return self.matches[index]
+
+    def __bool__(self) -> bool:
+        return bool(self.matches)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "lookup_type": self.lookup_type,
+            "query": self.query,
+            "cleaned_query": self.cleaned_query,
+            "matches": [m.to_dict() for m in self.matches],
+            "selected": self.selected.to_dict() if self.selected else None,
+            "status": self.status,
+            "source": self.source,
+            "warnings": list(self.warnings),
+            "debug": dict(self.debug),
+        }
+
+
+@dataclass
 class FascicoloResult:
     id: str
     titolo: str
@@ -195,71 +236,148 @@ def extract_entity_hint(query: str) -> dict[str, str]:
     }
 
 
+_CLIENTE_QUERY_PREFIXES = (
+    r"^\s*(?:dati|scheda|recapiti|contatti|pec|email|telefono|indirizzo|codice\s+fiscale|cf|partita\s+iva|p\.?\s*iva)\s+(?:del|della|di|dell[o']|per\s+il)?\s*cliente\s+",
+    r"^\s*(?:trova|cerca|mostra|apri)\s+(?:il\s+)?cliente\s+",
+    r"^\s*cliente\s+",
+    r"^\s*che\s+fascicoli\s+ha\s+",
+    r"^\s*(?:dati|scheda|recapiti|contatti)\s+(?:di|del|della|dell[o'])\s+",
+)
+
+
+def clean_cliente_query(query: str) -> str:
+    text = " ".join(str(query or "").replace("?", " ").split()).strip()
+    cleaned = text
+    for pattern in _CLIENTE_QUERY_PREFIXES:
+        cleaned = re.sub(pattern, "", cleaned, flags=re.IGNORECASE).strip()
+    cleaned = re.sub(r"\b(?:per favore|grazie)\b", "", cleaned, flags=re.IGNORECASE).strip()
+    return " ".join(cleaned.split()) or text
+
+
+def _norm(value: Any) -> str:
+    return re.sub(r"\s+", " ", str(value or "").lower()).strip()
+
+
+def _score_cliente(row: Any, cleaned_query: str, hints: dict[str, str], gestore_matches: set[str]) -> int:
+    rec = getattr(row, "recapiti", None)
+    nome = _norm(getattr(row, "nome_completo", ""))
+    cf = _norm(getattr(row, "codice_fiscale", ""))
+    piva = _norm(getattr(row, "partita_iva", ""))
+    email = _norm(getattr(rec, "email", ""))
+    pec = _norm(getattr(rec, "pec", ""))
+    haystack = " ".join([nome, cf, piva, email, pec])
+    query = _norm(cleaned_query)
+    if not query:
+        return 0
+    if hints.get("codice_fiscale") and cf == _norm(hints["codice_fiscale"]):
+        return 120
+    if hints.get("partita_iva") and piva == _norm(hints["partita_iva"]):
+        return 120
+    if hints.get("email") and (_norm(hints["email"]) == email or _norm(hints["email"]) == pec):
+        return 120
+    score = 0
+    query_tokens = [token for token in re.split(r"[^a-z0-9Ã Ã¨Ã©Ã¬Ã²Ã¹]+", query) if len(token) > 1]
+    name_tokens = [token for token in re.split(r"[^a-z0-9Ã Ã¨Ã©Ã¬Ã²Ã¹]+", nome) if token]
+    if query == nome:
+        score = max(score, 110)
+    if query_tokens and set(query_tokens) == set(name_tokens):
+        score = max(score, 104)
+    if query_tokens and all(token in nome for token in query_tokens):
+        score = max(score, 92)
+    if query_tokens and all(token in haystack for token in query_tokens):
+        score = max(score, 80)
+    if query and query in haystack:
+        score = max(score, 76)
+    if str(getattr(row, "id", "")) in gestore_matches:
+        score += 20
+    return score
+
+
 # ---------------------------------------------------------------------------
 # Tool: find_cliente
 # ---------------------------------------------------------------------------
 
-def find_cliente(query: str, *, limit: int = 8) -> list[ClienteResult]:
+def find_cliente(query: str, tenant_id: str | None = None, *, limit: int = 20) -> StudioLookupResult:
     """Cerca clienti per nome, CF, PIVA, email o testo libero.
 
-    Ritorna fino a `limit` risultati, ordinati per pertinenza.
+    Ritorna un risultato strutturato e list-like, ordinato per pertinenza.
     """
+    cleaned_query = clean_cliente_query(query)
     try:
         gestore = _get_clienti()
-        hints = extract_entity_hint(query)
-
-        # Ricerca per CF esatto
-        if hints["codice_fiscale"]:
-            rows = [r for r in gestore.tutti() if getattr(r, "codice_fiscale", "").upper() == hints["codice_fiscale"]]
-            if rows:
-                return [_cliente_to_result(r, gestore) for r in rows[:limit]]
-
-        # Ricerca per PIVA esatta
-        if hints["partita_iva"]:
-            rows = [r for r in gestore.tutti() if getattr(r, "partita_iva", "") == hints["partita_iva"]]
-            if rows:
-                return [_cliente_to_result(r, gestore) for r in rows[:limit]]
-
-        # Ricerca per email esatta
-        if hints["email"]:
-            rows = [
-                r for r in gestore.tutti()
-                if hints["email"] in (getattr(getattr(r, "recapiti", None), "email", "") or "").lower()
-                or hints["email"] in (getattr(getattr(r, "recapiti", None), "pec", "") or "").lower()
-            ]
-            if rows:
-                return [_cliente_to_result(r, gestore) for r in rows[:limit]]
-
-        # Ricerca testuale
-        matches = gestore.cerca(query) if query.strip() else gestore.tutti()
-        return [_cliente_to_result(r, gestore) for r in matches[:limit]]
+        hints = extract_entity_hint(cleaned_query)
+        all_rows = list(gestore.tutti())
+        gestore_matches = {
+            str(getattr(row, "id", ""))
+            for row in (gestore.cerca(cleaned_query) if cleaned_query.strip() else [])
+        }
+        ranked: list[tuple[int, Any]] = []
+        for row in all_rows:
+            score = _score_cliente(row, cleaned_query, hints, gestore_matches)
+            if score > 0:
+                ranked.append((score, row))
+        ranked.sort(key=lambda item: (-item[0], _norm(getattr(item[1], "nome_completo", ""))))
+        matches = [_cliente_to_result(row, gestore) for score, row in ranked[:limit]]
+        status = "not_found"
+        selected = None
+        if matches:
+            top_score = ranked[0][0]
+            second_score = ranked[1][0] if len(ranked) > 1 else 0
+            if top_score >= 100 or top_score - second_score >= 18:
+                status = "found"
+                selected = matches[0]
+            else:
+                status = "multiple_matches"
+        return StudioLookupResult(
+            lookup_type="cliente",
+            query=str(query or ""),
+            cleaned_query=cleaned_query,
+            matches=matches,
+            selected=selected,
+            status=status,
+            source="Clienti",
+            debug={
+                "tenant_id": tenant_id or _get_tenant_id(),
+                "candidate_count": len(all_rows),
+                "ranked_count": len(ranked),
+                "top_score": ranked[0][0] if ranked else 0,
+            },
+        )
     except Exception as exc:
         _log_error("find_cliente", exc)
-        return []
+        return StudioLookupResult(
+            lookup_type="cliente",
+            query=str(query or ""),
+            cleaned_query=cleaned_query,
+            status="error",
+            source="Clienti",
+            warnings=[str(exc)],
+            debug={"tenant_id": tenant_id or "default"},
+        )
 
 
 # ---------------------------------------------------------------------------
 # Tool: get_cliente_details
 # ---------------------------------------------------------------------------
 
-def get_cliente_details(cliente_id: str) -> ClienteResult | None:
+def get_cliente_details(cliente_id: str, tenant_id: str | None = None) -> dict[str, Any]:
     """Ritorna i dettagli completi di un cliente per ID."""
     try:
         gestore = _get_clienti()
         row = gestore.ottieni(cliente_id)
         if row is None:
-            return None
-        return _cliente_to_result(row, gestore)
+            return {}
+        return _cliente_to_result(row, gestore).to_dict()
     except Exception as exc:
         _log_error("get_cliente_details", exc)
-        return None
+        return {}
 
 
 # ---------------------------------------------------------------------------
 # Tool: get_cliente_contacts
 # ---------------------------------------------------------------------------
 
-def get_cliente_contacts(cliente_id: str) -> dict[str, str]:
+def get_cliente_contacts(cliente_id: str, tenant_id: str | None = None) -> dict[str, str]:
     """Ritorna solo i recapiti di un cliente (email, PEC, telefono, indirizzo)."""
     try:
         gestore = _get_clienti()
@@ -285,7 +403,7 @@ def get_cliente_contacts(cliente_id: str) -> dict[str, str]:
 # Tool: find_fascicoli_by_cliente
 # ---------------------------------------------------------------------------
 
-def find_fascicoli_by_cliente(cliente_id: str, *, limit: int = 10) -> list[FascicoloResult]:
+def find_fascicoli_by_cliente(cliente_id: str, tenant_id: str | None = None, *, limit: int = 10) -> list[FascicoloResult]:
     """Ritorna i fascicoli collegati a un cliente."""
     try:
         gestore = _get_fascicoli()
@@ -369,7 +487,7 @@ def get_cliente_timeline(cliente_id: str, *, limit: int = 10) -> list[dict[str, 
 # Tool: get_cliente_economic_summary
 # ---------------------------------------------------------------------------
 
-def get_cliente_economic_summary(cliente_id: str) -> dict[str, Any]:
+def get_cliente_economic_summary(cliente_id: str, tenant_id: str | None = None) -> dict[str, Any]:
     """Ritorna un sommario economico del cliente (parcelle, fatture, pagamenti)."""
     try:
         fatturazione = _get_fatturazione()
@@ -414,6 +532,101 @@ def get_cliente_documents(cliente_id: str, *, limit: int = 10) -> list[dict[str,
     except Exception as exc:
         _log_error("get_cliente_documents", exc)
     return docs
+
+
+def _field_or_missing(value: str, label: str, missing: list[str]) -> str:
+    clean = str(value or "").strip()
+    if clean:
+        return clean
+    missing.append(label)
+    return "non disponibile"
+
+
+def build_cliente_answer(result: StudioLookupResult) -> str:
+    """Costruisce una risposta utente professionale per il lookup cliente."""
+    cleaned = result.cleaned_query or result.query
+    if result.status == "error":
+        return (
+            "Non riesco a completare la ricerca nell'anagrafica interna dello studio.\n\n"
+            "Ho cercato in:\n"
+            "- Clienti\n"
+            "- eventuali soggetti/anagrafiche collegate\n\n"
+            "Prossima azione:\n"
+            "verifica il gestionale clienti e riprova la ricerca."
+        )
+    if result.status == "not_found" or not result.matches:
+        return (
+            f"Non ho trovato un cliente corrispondente a '{cleaned}' nell'anagrafica dello studio.\n\n"
+            "Ho cercato in:\n"
+            "- Clienti\n"
+            "- eventuali soggetti/anagrafiche collegate\n\n"
+            "Prossima azione:\n"
+            "verifica se il nominativo e' scritto diversamente oppure crea/aggiorna l'anagrafica cliente."
+        )
+    if result.status == "multiple_matches" or result.selected is None:
+        lines = [
+            "Ho trovato piu' clienti compatibili con la ricerca.",
+            "",
+            "Clienti da distinguere:",
+        ]
+        for item in result.matches[:8]:
+            details = []
+            if item.codice_fiscale:
+                details.append(f"CF {item.codice_fiscale}")
+            if item.email:
+                details.append(item.email)
+            suffix = f" ({', '.join(details)})" if details else ""
+            lines.append(f"- {item.nome_completo}{suffix}")
+        lines.extend([
+            "",
+            "Prossima azione:",
+            "indica un dato ulteriore, ad esempio codice fiscale, PEC, email o fascicolo collegato.",
+        ])
+        return "\n".join(lines)
+
+    cliente = result.selected
+    missing: list[str] = []
+    cf_piva = cliente.codice_fiscale or cliente.partita_iva
+    fascicoli = find_fascicoli_by_cliente(cliente.id, limit=20)
+    lines = [
+        f"Ho trovato il cliente {cliente.nome_completo}.",
+        "",
+        "Dati anagrafici:",
+        f"- Nome: {cliente.nome_completo}",
+        f"- Tipo: {_field_or_missing(cliente.tipo, 'tipo', missing)}",
+        f"- Codice fiscale/P.IVA: {_field_or_missing(cf_piva, 'codice fiscale/P.IVA', missing)}",
+        f"- Indirizzo: {_field_or_missing(cliente.indirizzo, 'indirizzo', missing)}",
+        "",
+        "Recapiti:",
+        f"- Email: {_field_or_missing(cliente.email, 'email', missing)}",
+        f"- PEC: {_field_or_missing(cliente.pec, 'PEC', missing)}",
+        f"- Telefono: {_field_or_missing(cliente.telefono, 'telefono', missing)}",
+        "",
+        "Fascicoli collegati:",
+    ]
+    if fascicoli:
+        for fascicolo in fascicoli:
+            rg = f"RG {fascicolo.numero_rg}/{fascicolo.anno_rg}" if fascicolo.numero_rg and fascicolo.anno_rg else "senza RG"
+            title = fascicolo.titolo or fascicolo.oggetto or fascicolo.id
+            lines.append(f"- {title} ({rg})")
+    else:
+        missing.append("fascicoli collegati")
+        lines.append("- nessun fascicolo collegato disponibile")
+    lines.extend([
+        "",
+        "Dati mancanti:",
+    ])
+    if missing:
+        for item in list(dict.fromkeys(missing)):
+            lines.append(f"- {item}")
+    else:
+        lines.append("- nessuno tra i campi principali")
+    lines.extend([
+        "",
+        "Prossima azione:",
+        "Puoi aprire la scheda cliente oppure aggiornare i dati mancanti.",
+    ])
+    return "\n".join(lines)
 
 
 # ---------------------------------------------------------------------------

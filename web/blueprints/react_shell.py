@@ -37,7 +37,6 @@ _LEGACY_FIRST_PREFIXES = (
     "/sigp-sync",
     "/sincronizzazione-calendari",
     "/strumenti-legali",
-    "/strumenti-operativi",
     "/telematico",
     "/tribunali",
 )

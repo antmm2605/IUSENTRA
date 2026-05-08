@@ -18,7 +18,7 @@ function ContractStrip({ data }: { data: RedazioneAttiPageData }) {
       <div>
         <strong>{openDesignContract.system}</strong>
         <span>
-          {data.source || 'Sorgente non indicata'} - scritture {data.contracts.writes || 'legacy_routes'}
+          {data.source || 'Sorgente non indicata'} - scritture {data.contracts.writes || 'none'}
         </span>
       </div>
     </aside>
@@ -84,7 +84,7 @@ function Sections({ data }: { data: RedazioneAttiPageData }) {
 
 function Records({ data }: { data: RedazioneAttiPageData }) {
   return (
-    <Panel title="Punti operativi" subtitle="Link reali verso superfici React o percorsi Flask legacy.">
+    <Panel title="Punti operativi" subtitle="Link reali verso superfici React o percorsi Flask dedicati.">
       {data.records.length ? (
         <div className="iu-redazione-records">
           {data.records.map((record) => (
@@ -140,8 +140,8 @@ export function RedazioneAttiPage() {
           <ButtonLink href="/template-atti/catalogo" tone="primary">
             Catalogo template
           </ButtonLink>
-          <ButtonLink href="/deposito/checklist?_legacy=1" tone="neutral">
-            Checklist deposito
+          <ButtonLink href="/documenti" tone="neutral">
+            Documenti
           </ButtonLink>
         </>
       }

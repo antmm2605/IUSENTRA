@@ -6,6 +6,12 @@ from typing import Any
 from .base import BaseProvider
 from lex.contracts import ProviderDraft
 
+try:  # esportato anche per test legacy con monkeypatch
+    from lex.tools.studio_data_gateway import build_cliente_answer, find_cliente
+except Exception:  # pragma: no cover
+    build_cliente_answer = None  # type: ignore[assignment]
+    find_cliente = None  # type: ignore[assignment]
+
 
 def _as_items(evidence: Any) -> list[Any]:
     if isinstance(evidence, dict):
@@ -1043,6 +1049,16 @@ Con osservanza,
 
 def _studio_data_lookup_text(q: str, context: Any) -> str:
     """Ricerca dati cliente/fascicolo nei dati interni dello studio."""
+    try:
+        if build_cliente_answer is None or find_cliente is None:
+            raise RuntimeError("studio_data_gateway non disponibile")
+        return build_cliente_answer(find_cliente(q))
+    except Exception:
+        return (
+            "Non riesco a completare la ricerca nell'anagrafica interna dello studio.\n\n"
+            "Prossima azione:\n"
+            "verifica il gestionale clienti e riprova la ricerca."
+        )
     try:
         from lex.tools.studio_data_gateway import find_cliente, find_fascicoli_by_cliente
         matches = find_cliente(q)

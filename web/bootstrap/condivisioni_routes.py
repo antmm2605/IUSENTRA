@@ -74,7 +74,7 @@ def register_condivisioni_routes(
         cliente = gc.get(id_cliente)
         if not cliente:
             flash("Cliente non trovato.", "warning")
-            return redirect(url_for("lista_clienti"))
+            return redirect(url_for("lista_clienti", _legacy=1))
 
         utente = g.utente_corrente
         puo_gestire = utente.ha_permesso("clienti.scrivi") or get_condivisioni().ha_accesso(

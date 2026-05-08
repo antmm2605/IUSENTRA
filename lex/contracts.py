@@ -427,3 +427,8 @@ def answer_contract_for(workflow: WorkflowType) -> AnswerContract:  # noqa: C901
         target_latency_ms=2500,
         metadata={"italian_only": True},
     )
+
+
+def get_answer_contract(workflow: WorkflowType) -> AnswerContract:
+    """Alias retrocompatibile per i test/unit legacy."""
+    return answer_contract_for(workflow)

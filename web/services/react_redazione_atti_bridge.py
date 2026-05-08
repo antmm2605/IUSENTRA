@@ -59,7 +59,7 @@ def build_react_redazione_atti_payload(
     get_preventivi: Callable[[], Any] | None = None,
 ) -> dict[str, Any]:
     warnings: list[dict[str, str]] = [
-        _warning("workflow_legacy", "Redazione guidata, assistenza redazionale e produzione file restano nei percorsi Flask legacy."),
+        _warning("workflow_dedicato", "Redazione guidata, assistenza redazionale e produzione file restano nei percorsi Flask dedicati e auditati."),
         _warning("solo_metadati", "Questa pagina mostra solo quadro operativo, template di riferimento e link controllati."),
     ]
     template_payload = build_react_template_atti_payload(
@@ -85,9 +85,9 @@ def build_react_redazione_atti_payload(
 
     workflow_items = [
         _item("scegli_template", "Scegli template", "React", "Catalogo e metadati senza contenuti integrali", "primary"),
-        _item("redazione_guidata", "Redazione guidata", "legacy", "Compilazione e revisione restano su Flask", "warning"),
-        _item("checklist", "Checklist", "legacy", "Controlli deposito e fascicolo restano operativi nel legacy", "warning"),
-        _item("lex", "Lex", "legacy", "Assistenza contenuti solo nei workflow gia' governati", "neutral"),
+        _item("redazione_guidata", "Redazione guidata", "percorso dedicato", "Compilazione e revisione restano su Flask auditato", "warning"),
+        _item("checklist", "Checklist", "percorso dedicato", "Controlli deposito e fascicolo restano nei workflow governati", "warning"),
+        _item("lex", "Lex", "workspace", "Assistenza contenuti solo nei workflow gia' governati", "neutral"),
     ]
 
     records = [
@@ -101,13 +101,13 @@ def build_react_redazione_atti_payload(
             "href": "/template-atti/catalogo",
         },
         {
-            "id": "workflow_legacy",
-            "title": "Redazione guidata legacy",
+            "id": "workflow_guidato",
+            "title": "Redazione guidata controllata",
             "subtitle": "Compilazione controllata",
-            "meta": "Editor, controlli e file restano sul percorso storico",
-            "stateLabel": "Legacy",
+            "meta": "Editor, controlli e file restano sul percorso governato",
+            "stateLabel": "Governato",
             "stateTone": "warning",
-            "href": "/template-atti?_legacy=1",
+            "href": "/redazione-atti",
         },
     ]
     records.extend(template_refs)
@@ -117,7 +117,7 @@ def build_react_redazione_atti_payload(
         "generated_at": _iso_now(),
         "contracts": {
             "mock_fallback": False,
-            "writes": "legacy_routes",
+            "writes": "none",
             "route_owner": "react_shell",
             "legacy_contract": "artifacts/react-migration/legacy-contracts/redazione-atti.json",
         },
@@ -143,11 +143,11 @@ def build_react_redazione_atti_payload(
             _section(
                 "presidi",
                 "Presidi conservati",
-                "legacy-routes",
+                "dedicated-routes",
                 [
-                    _item("template_editor", "Editor template", "legacy", "Creazione e modifica non sono React", "warning"),
-                    _item("deposito", "Checklist deposito", "legacy", "Flusso telematico non sbloccato", "warning"),
-                    _item("intelligence", "Giurisprudenza e intelligence", "legacy", "Ricerca e monitoraggio restano su Flask", "warning"),
+                    _item("template_editor", "Editor template", "percorso dedicato", "Creazione e modifica non sono React", "warning"),
+                    _item("deposito", "Checklist deposito", "percorso dedicato", "Flusso telematico non sbloccato", "warning"),
+                    _item("intelligence", "Giurisprudenza e intelligence", "React read-only", "Ricerca e monitoraggio consultabili senza fetch esterni", "info"),
                 ],
                 "Nessun presidio rilevato.",
             ),
@@ -155,16 +155,13 @@ def build_react_redazione_atti_payload(
         "records": records,
         "actions": [
             _action("catalogo", "Catalogo template", "/template-atti/catalogo", "primary"),
-            _action("nuovo_template", "Nuovo template legacy", "/template-atti/nuovo?_legacy=1", "neutral"),
-            _action("checklist", "Checklist legacy", "/checklist?_legacy=1", "neutral"),
-            _action("deposito", "Checklist deposito legacy", "/deposito/checklist?_legacy=1", "warning"),
             _action("fascicoli", "Fascicoli", "/fascicoli", "primary"),
             _action("preventivi", "Preventivi", "/preventivi", "neutral"),
-            _action("intelligence", "Legal intelligence legacy", "/legal-intelligence?_legacy=1", "neutral"),
+            _action("intelligence", "Legal intelligence", "/legal-intelligence", "neutral"),
         ],
         "forms": [],
         "warnings": warnings,
-        "summary": _short("Quadro operativo per scegliere template, fascicolo e controlli prima di rientrare nei workflow legacy completi.", 240),
+        "summary": _short("Quadro operativo per scegliere template, fascicolo e controlli prima dei workflow documentali completi.", 240),
     }
 
 
@@ -174,7 +171,7 @@ def build_react_redazione_atti_error_payload(message: str = "Redazione atti non 
         "generated_at": _iso_now(),
         "contracts": {
             "mock_fallback": False,
-            "writes": "legacy_routes",
+            "writes": "none",
             "route_owner": "react_shell",
             "legacy_contract": "artifacts/react-migration/legacy-contracts/redazione-atti.json",
         },
@@ -183,7 +180,7 @@ def build_react_redazione_atti_error_payload(message: str = "Redazione atti non 
         "records": [],
         "actions": [
             _action("catalogo", "Catalogo template", "/template-atti/catalogo", "primary"),
-            _action("checklist", "Checklist legacy", "/checklist?_legacy=1", "neutral"),
+            _action("fascicoli", "Fascicoli", "/fascicoli", "neutral"),
         ],
         "forms": [],
         "warnings": [_warning("redazione_atti_errore_controllato", message)],

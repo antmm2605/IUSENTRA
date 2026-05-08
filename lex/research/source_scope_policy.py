@@ -190,6 +190,7 @@ def classify_source_scope(
     *,
     workflow: str = "",
     intent: str = "",
+    metadata: dict[str, Any] | None = None,
 ) -> SourceScope:
     """Classifica la richiesta in uno scope sorgente preciso.
 

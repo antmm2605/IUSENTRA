@@ -40,11 +40,11 @@ export const emptyLegalIntelligencePage: LegalIntelligencePageData = {
   generated_at: '',
   contracts: {
     mock_fallback: false,
-    writes: 'legacy_routes',
+    writes: 'none',
     route_owner: 'react_shell',
     external_fetch: false,
     ai_generation: false,
-    canonical_source: 'backend_legacy',
+    canonical_source: 'backend_storico',
   },
   metrics: [],
   sections: [],
@@ -155,7 +155,7 @@ function normaliseRecord(input: unknown): LegalIntelligenceRecord {
     stateTone: tone(item.stateTone),
     territory: text(item.territory),
     registryNumber: text(item.registryNumber),
-    legacyHref: safeHref(item.legacyHref, '/legal-intelligence?_legacy=1'),
+    legacyHref: safeHref(item.legacyHref, '/legal-intelligence'),
     evidenceType: text(item.evidenceType) || 'metadato',
   }
 }
@@ -174,11 +174,11 @@ function normalisePage(input: unknown): LegalIntelligencePageData {
     generated_at: text(page.generated_at),
     contracts: {
       mock_fallback: contracts.mock_fallback === true,
-      writes: text(contracts.writes) || 'legacy_routes',
+      writes: text(contracts.writes) || 'none',
       route_owner: text(contracts.route_owner) || 'react_shell',
       external_fetch: contracts.external_fetch === true,
       ai_generation: contracts.ai_generation === true,
-      canonical_source: text(contracts.canonical_source) || 'backend_legacy',
+      canonical_source: text(contracts.canonical_source) || 'backend_storico',
       legacy_contract: text(contracts.legacy_contract),
     },
     metrics: list(page.metrics).map(normaliseMetric),

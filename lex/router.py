@@ -188,6 +188,8 @@ class LexRouter:
     )
     _FONTI_HINTS = ("fonte", "fonti", "riferimento bibliografico", "citazione ufficiale")
     _CLIENTE_ANAGRAFICA_HINTS = (
+        "trova cliente",
+        "cerca cliente",
         "dati del cliente",
         "dati di",
         "anagrafica",
@@ -212,6 +214,9 @@ class LexRouter:
         r"\bpec\s+(?:del|di)\b.*\bcliente\b",
         r"\b(?:cf|codice\s+fiscale)\b.*\bcliente\b",
         r"\bcliente\b.*\b(?:email|pec|telefono|indirizzo|cf|codice\s+fiscale)\b",
+        r"^\s*cliente\s+[a-z0-9Ã Ã¨Ã©Ã¬Ã²Ã¹' -]{2,}$",
+        r"\b(?:trova|cerca)\s+cliente\s+[a-z0-9Ã Ã¨Ã©Ã¬Ã²Ã¹' -]{2,}",
+        r"\bche\s+fascicoli\s+ha\s+[a-z0-9Ã Ã¨Ã©Ã¬Ã²Ã¹' -]{2,}",
     )
 
     def resolve_workflow(self, request: LexRequest) -> WorkflowType:  # noqa: C901

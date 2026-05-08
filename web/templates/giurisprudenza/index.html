@@ -22,7 +22,7 @@
       <a href="{{ url_for('giurisprudenza.nuova') }}" class="btn btn-primary">
         <i class="bi bi-plus-circle me-2"></i>Nuova scheda sentenza
       </a>
-      <form method="post" action="{{ url_for('giurisprudenza.sync') }}">
+      <form method="post" action="{{ url_for('giurisprudenza.sync', _legacy=1) }}">
         <button class="btn btn-outline-primary w-100">
           <i class="bi bi-arrow-repeat me-2"></i>Avvia sync fonti ufficiali
         </button>
@@ -383,7 +383,7 @@
               <a href="{{ fonte.handoff_url }}" class="btn btn-sm btn-outline-primary">{{ fonte.handoff_label }}</a>
               {% endif %}
               {% if fonte.supports_auto_sync %}
-              <form method="post" action="{{ url_for('giurisprudenza.sync') }}">
+              <form method="post" action="{{ url_for('giurisprudenza.sync', _legacy=1) }}">
                 <input type="hidden" name="source_id" value="{{ fonte.id }}">
                 <button class="btn btn-sm btn-primary">Avvia recupero automatico</button>
               </form>

@@ -186,10 +186,14 @@ _LEGACY_OPERATIONAL_PREFIXES = (
     "/sigp-sync",
     "/sincronizzazione-calendari",
     "/strumenti-legali",
-    "/strumenti-operativi",
     "/telematico",
     "/tribunali",
 )
+
+_CANONICAL_ALIAS_PATHS = {
+    "/regia-operativa",
+    "/ricerca-studio",
+}
 
 
 def _legacy_requested() -> bool:
@@ -288,6 +292,8 @@ def _excluded(path: str) -> bool:
         or "/penale/pdp" in lower
     ):
         return True
+    if lower.startswith("/fascicoli/") and "/documenti/" in lower and lower.endswith("/editor"):
+        return True
     if any(lower == prefix or lower.startswith(prefix) for prefix in _EXCLUDED_PREFIXES):
         return True
     if lower.endswith(_EXCLUDED_SUFFIXES):
@@ -320,6 +326,13 @@ def register_react_route_gate(app: Flask) -> None:
         if request.method != "GET" or _legacy_requested() or not _accepts_html():
             return None
         if not g.get("utente_corrente"):
+            return None
+        raw_lower = (request.path or "/").lower()
+        if raw_lower.rstrip("/") in _CANONICAL_ALIAS_PATHS:
+            return None
+        if raw_lower == "/scadenziario" or raw_lower.startswith("/scadenziario/"):
+            return None
+        if raw_lower.startswith("/sito-studio/") and raw_lower != "/sito-studio/contatti":
             return None
         path = _normalise_path(request.path)
         if _excluded(path) or not _is_react_route(path):

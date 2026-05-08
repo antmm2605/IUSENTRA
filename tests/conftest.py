@@ -12,6 +12,8 @@ from __future__ import annotations
 import os
 import sys
 import types
+import importlib
+import json
 from pathlib import Path
 
 
@@ -56,15 +58,39 @@ def _ensure_lex_unit_stubs() -> None:
             mod.__getattr__ = lambda n: None  # type: ignore[attr-defined]
             sys.modules[full] = mod
 
-    _make_pct_stub("storage_postgres", build_postgres_dsn=lambda *a, **kw: "", PostgresStudioDB=None)
-    _make_pct_stub("postgres_runtime_support", resolve_runtime_postgres_dsn=lambda: None)
-    _make_pct_stub(
-        "legal_intelligence",
-        FONTI_UFFICIALI={},
-        USER_AGENT="lex-test/1.0",
-        fonti_per_query=lambda *a, **kw: [],
-        GestioneLegalIntelligence=type("GestioneLegalIntelligence", (), {}),
-    )
+    def _build_postgres_dsn_stub(*args, **kwargs) -> str:
+        host = str(kwargs.get("host") or "").strip()
+        db_name = str(kwargs.get("db_name") or "").strip()
+        user = str(kwargs.get("user") or "").strip()
+        if host and db_name and user:
+            return f"postgresql://{user}@{host}/{db_name}"
+        return ""
+
+    _make_pct_stub("storage_postgres", build_postgres_dsn=_build_postgres_dsn_stub, PostgresStudioDB=None)
+    _make_pct_stub("postgres_runtime_support", resolve_runtime_postgres_dsn=lambda *a, **kw: None)
+
+    try:
+        importlib.import_module("pct.legal_intelligence")
+    except Exception:
+        class _GestioneLegalIntelligenceStub:
+            def __init__(self, db_path: str = "", *args, **kwargs):
+                self.db_path = db_path or kwargs.get("db_path", "")
+
+            def _save(self) -> None:
+                if not self.db_path:
+                    return
+                target = Path(self.db_path)
+                target.parent.mkdir(parents=True, exist_ok=True)
+                if not target.exists():
+                    target.write_text(json.dumps({"monitor_runs": []}, ensure_ascii=False), encoding="utf-8")
+
+        _make_pct_stub(
+            "legal_intelligence",
+            FONTI_UFFICIALI={},
+            USER_AGENT="lex-test/1.0",
+            fonti_per_query=lambda *a, **kw: [],
+            GestioneLegalIntelligence=_GestioneLegalIntelligenceStub,
+        )
     _make_pct_stub(
         "local_ai",
         OllamaHttpClient=type("OllamaHttpClient", (), {}),
@@ -74,8 +100,11 @@ def _ensure_lex_unit_stubs() -> None:
 
     # Stub per web.helpers solo se web non è già un package reale caricato
     if "web.helpers" not in sys.modules and "web" not in sys.modules:
-        helpers = _stub("web.helpers")
-        helpers.__getattr__ = lambda name: (lambda *a, **kw: None)  # type: ignore[attr-defined]
+        try:
+            importlib.import_module("web.helpers")
+        except Exception:
+            helpers = _stub("web.helpers")
+            helpers.__getattr__ = lambda name: (lambda *a, **kw: None)  # type: ignore[attr-defined]
 
 
 _ensure_lex_unit_stubs()

@@ -87,17 +87,41 @@ def test_catalogo_builtin_supera_cento_modelli_e_contiene_atti_richiesti(tmp_pat
     assert by_title["Atto di citazione"].branca == "Civile ordinario"
 
 
+def test_template_personale_senza_binding_resta_a_redazione_guidata(tmp_path):
+    cfg, app = _bootstrap_app(tmp_path)
+    gt = GestioneTemplateAtti(db_path=cfg["TEMPLATE_ATTI_DB"])
+    custom = gt.crea(
+        "Memoria personalizzata dello studio",
+        "Civile ordinario",
+        "Ill.mo Giudice, {{ contenuto_istanza }}",
+        area="Civile",
+    )
+
+    assert custom.link_compilatore_code == "CIV_MEM_001"
+    assert custom.link_compilatore_code in MODEL_INDEX
+
+    with app.test_client() as client:
+        _login_client(client)
+        response = client.get("/template-atti/?_legacy=1")
+
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert "Memoria personalizzata dello studio" in html
+    assert f"/template-atti/compila/{custom.link_compilatore_code}" in html
+    assert ">Modello</span>" not in html
+
+
 def test_workspace_template_atti_renderizza_filtri_e_card_principali(tmp_path):
     _, app = _bootstrap_app(tmp_path)
     with app.test_client() as client:
         _login_client(client)
-        response = client.get("/template-atti/")
+        response = client.get("/template-atti/?_legacy=1")
 
     assert response.status_code == 200
     html = response.get_data(as_text=True)
-    assert "Workspace atti e modelli" in html
-    assert "Catalogo built-in con generazione reale" in html
-    assert "Solo modelli con compilatore" in html
+    assert "Redazione Atti" in html
+    assert "Area redazionale dello studio" in html
+    assert "Solo modelli con redazione guidata" in html
     assert "Atto di citazione" in html
     assert "Ricorso per decreto ingiuntivo" in html
     assert "Nomina del difensore di fiducia" in html

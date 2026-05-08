@@ -10,7 +10,10 @@ import re
 
 _FORBIDDEN_PHRASES = (
     "Risposta deterministica per workflow",
+    "Explanation of the JSON",
+    "workflow",
     "workflow '",
+    "provider",
     "provider '",
     "provider_hint",
     "evidence_pack",
@@ -76,6 +79,9 @@ def sanitize_user_output(text: str, *, workflow: str = "", question: str = "") -
         "",
         text,
     )
+    cleaned = re.sub(r"(?i)\bworkflow\b\s*[:=]?\s*['\"]?[\w_ -]*['\"]?", "", cleaned)
+    cleaned = re.sub(r"(?i)\bprovider\b\s*[:=]?\s*['\"]?[\w_ -]*['\"]?", "", cleaned)
+    cleaned = re.sub(r"(?i)Explanation of the JSON[:\s]*", "", cleaned)
     cleaned = re.sub(
         r"Evidenza principale:[^\n]*\n?",
         "",

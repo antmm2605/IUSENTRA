@@ -74,6 +74,25 @@ def build_lex_debug_payload(
     studio_data_lookup_used: bool = False,
     studio_entity_hint: str = "",
     web_forced_by_exact_ref: bool = False,
+    local_case_law_fragment_found: bool | None = None,
+    local_case_law_complete: bool | None = None,
+    local_case_law_missing_parts: list[str] | None = None,
+    public_web_forced: bool | None = None,
+    official_search_run: bool | None = None,
+    exact_match_found: bool | None = None,
+    completed_from_web: bool | None = None,
+    official_url: str = "",
+    has_full_text: bool | None = None,
+    has_dispositivo: bool | None = None,
+    has_motivazione: bool | None = None,
+    confidence_cap_reason: str = "",
+    discarded_unrelated_case_law_count: int | None = None,
+    studio_data_lookup_type: str = "",
+    studio_data_lookup_query: str = "",
+    studio_data_lookup_cleaned_query: str = "",
+    studio_data_lookup_matches: int | None = None,
+    studio_data_lookup_status: str = "",
+    web_forbidden_reason: str = "",
 ) -> dict[str, Any]:
     """Costruisce il payload debug completo Lex per admin/superadmin (v2.0 — 46+ campi).
 
@@ -90,6 +109,7 @@ def build_lex_debug_payload(
     evidence_pack = dict(ev.get("evidence_pack") or {})
     draft_meta = dict(getattr(draft, "metadata", {}) or {})
     resp_meta = dict(getattr(response, "metadata", {}) or {})
+    pack_meta = dict(evidence_pack.get("metadata") or {})
 
     official_sources: list[str] = list(
         ev.get("official_sources") or evidence_pack.get("official_sources") or []
@@ -240,19 +260,38 @@ def build_lex_debug_payload(
         "session_id": str(session_id or ""),
         "request_id": str(request_id or ""),
         # ── Source scope e classificazione fonti ───────────────────────
-        "source_scope": str(source_scope or ""),
-        "source_scope_confidence": round(float(source_scope_confidence or 0.0), 4),
+        "source_scope": str(source_scope or resp_meta.get("source_scope") or pack_meta.get("source_scope") or ""),
+        "source_scope_confidence": round(float(source_scope_confidence or resp_meta.get("source_scope_confidence") or pack_meta.get("source_scope_confidence") or 0.0), 4),
         # ── Riferimento legale esatto ──────────────────────────────────
-        "exact_legal_reference": bool(exact_legal_reference),
-        "exact_reference_number": str(exact_reference_number or ""),
-        "exact_reference_date": str(exact_reference_date or ""),
-        "exact_reference_year": str(exact_reference_year or ""),
-        "exact_reference_court": str(exact_reference_court or ""),
-        "exact_reference_kind": str(exact_reference_kind or ""),
-        "exact_reference_verdict": str(exact_reference_verdict or ""),
-        "web_forced_by_exact_ref": bool(web_forced_by_exact_ref),
+        "exact_legal_reference": bool(exact_legal_reference or resp_meta.get("exact_reference") or pack_meta.get("exact_reference")),
+        "exact_reference_number": str(exact_reference_number or resp_meta.get("exact_reference_number") or pack_meta.get("exact_reference_number") or ""),
+        "exact_reference_date": str(exact_reference_date or resp_meta.get("exact_reference_date") or pack_meta.get("exact_reference_date") or ""),
+        "exact_reference_year": str(exact_reference_year or resp_meta.get("exact_reference_year") or pack_meta.get("exact_reference_year") or ""),
+        "exact_reference_court": str(exact_reference_court or resp_meta.get("official_court") or pack_meta.get("official_court") or ""),
+        "exact_reference_kind": str(exact_reference_kind or resp_meta.get("exact_reference_kind") or pack_meta.get("exact_reference_kind") or ""),
+        "exact_reference_verdict": str(exact_reference_verdict or ("exact_match" if (resp_meta.get("exact_match_found") or pack_meta.get("exact_match_found")) else "")),
+        "web_forced_by_exact_ref": bool(web_forced_by_exact_ref or resp_meta.get("public_web_forced") or pack_meta.get("public_web_forced")),
+        "local_case_law_fragment_found": bool(resp_meta.get("local_case_law_fragment_found") if local_case_law_fragment_found is None else local_case_law_fragment_found),
+        "local_case_law_complete": bool(resp_meta.get("local_case_law_complete") if local_case_law_complete is None else local_case_law_complete),
+        "local_case_law_missing_parts": list(local_case_law_missing_parts or resp_meta.get("local_case_law_missing_parts") or pack_meta.get("local_case_law_missing_parts") or []),
+        "public_web_forced": bool(resp_meta.get("public_web_forced") if public_web_forced is None else public_web_forced),
+        "official_search_run": bool(resp_meta.get("official_search_run") if official_search_run is None else official_search_run),
+        "exact_match_found": bool(resp_meta.get("exact_match_found") if exact_match_found is None else exact_match_found),
+        "completed_from_web": bool(resp_meta.get("completed_from_web") if completed_from_web is None else completed_from_web),
+        "official_url": str(official_url or resp_meta.get("official_url") or pack_meta.get("official_url") or ""),
+        "has_full_text": bool(resp_meta.get("has_full_text") if has_full_text is None else has_full_text),
+        "has_dispositivo": bool(resp_meta.get("has_dispositivo") if has_dispositivo is None else has_dispositivo),
+        "has_motivazione": bool(resp_meta.get("has_motivazione") if has_motivazione is None else has_motivazione),
+        "confidence_cap_reason": str(confidence_cap_reason or resp_meta.get("confidence_cap_reason") or pack_meta.get("confidence_cap_reason") or ""),
+        "discarded_unrelated_case_law_count": int(discarded_unrelated_case_law_count if discarded_unrelated_case_law_count is not None else (resp_meta.get("discarded_unrelated_case_law_count") or pack_meta.get("discarded_unrelated_case_law_count") or 0)),
         # ── Studio data lookup ─────────────────────────────────────────
-        "studio_data_lookup_used": bool(studio_data_lookup_used),
+        "studio_data_lookup_used": bool(studio_data_lookup_used or resp_meta.get("studio_data_lookup_used")),
+        "studio_data_lookup_type": str(studio_data_lookup_type or resp_meta.get("studio_data_lookup_type") or ""),
+        "studio_data_lookup_query": str(studio_data_lookup_query or resp_meta.get("studio_data_lookup_query") or ""),
+        "studio_data_lookup_cleaned_query": str(studio_data_lookup_cleaned_query or resp_meta.get("studio_data_lookup_cleaned_query") or ""),
+        "studio_data_lookup_matches": int(studio_data_lookup_matches if studio_data_lookup_matches is not None else (resp_meta.get("studio_data_lookup_matches") or 0)),
+        "studio_data_lookup_status": str(studio_data_lookup_status or resp_meta.get("studio_data_lookup_status") or ""),
+        "web_forbidden_reason": str(web_forbidden_reason or resp_meta.get("web_forbidden_reason") or ""),
         "studio_entity_hint": str(studio_entity_hint or ""),
         # ── Versione e timestamp debug ─────────────────────────────────
         "debug_version": _DEBUG_VERSION,

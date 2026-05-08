@@ -65,23 +65,28 @@ def register_fascicoli_editor_routes(
     def editor_documento(id_fasc, id_doc):
         from pct.editor import estensione_editabile
 
+        gestore_fascicoli = get_fascicoli()
+        try:
+            fascicolo = gestore_fascicoli.get(id_fasc)
+            documento = next((doc for doc in fascicolo.documenti if doc.id == id_doc), None) if fascicolo else None
+            if documento and (documento.firmato_digitalmente or documento.nome.lower().endswith(".p7m")):
+                return redirect(url_for("visualizza_documento", id_fasc=id_fasc, id_doc=id_doc))
+        except Exception:
+            fascicolo = None
+            documento = None
+
         if not _richiede_vista_classica():
             from web.blueprints.react_shell import render_react_shell_response
 
             return render_react_shell_response(f"fascicoli/{id_fasc}/documenti/{id_doc}/editor")
 
-        gestore_fascicoli = get_fascicoli()
         try:
-            fascicolo = gestore_fascicoli.get(id_fasc)
             if not fascicolo:
                 flash("Fascicolo non trovato.", "warning")
                 return redirect(url_for("lista_fascicoli"))
-            documento = next((doc for doc in fascicolo.documenti if doc.id == id_doc), None)
             if not documento:
                 flash("Documento non trovato.", "warning")
                 return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
-            if documento.firmato_digitalmente or documento.nome.lower().endswith(".p7m"):
-                return redirect(url_for("visualizza_documento", id_fasc=id_fasc, id_doc=id_doc))
             if not estensione_editabile(documento.nome):
                 flash(
                     f"Formato '{documento.nome.split('.')[-1].upper()}' non supportato dall'editor.",

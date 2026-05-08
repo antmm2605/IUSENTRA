@@ -98,6 +98,9 @@ def _should_search_official_web(request, workflow: str) -> bool:
             return True
         return False
 
+    if workflow == "giurisprudenza_specifica":
+        return bool(getattr(request, "allow_external_research", True))
+
     if _metadata_flag(
         request,
         "allow_web_search",

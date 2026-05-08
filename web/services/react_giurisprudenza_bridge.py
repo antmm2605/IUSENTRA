@@ -88,7 +88,7 @@ def _safe_source(row: Mapping[str, Any]) -> dict[str, Any]:
         "coverage": _text(row.get("coverage")),
         "accessMode": _text(row.get("access_mode") or row.get("sync_mode")),
         "sourceHref": _safe_href(row.get("official_url") or row.get("search_url")),
-        "legacyHref": _safe_href(row.get("handoff_url")),
+        "legacyHref": "",
         "lastRunAt": _text(last_run.get("ended_at") or last_run.get("checked_at") or last_run.get("started_at")),
         "stateLabel": last_status or "Fonte censita",
         "stateTone": _tone_from_status(last_status),
@@ -142,7 +142,7 @@ def _safe_record(row: Mapping[str, Any], sources: Mapping[str, dict[str, Any]], 
         "verificationTone": _tone_from_status(verification),
         "citationLabel": _text(row.get("stato_citabilita") or row.get("citabilita")),
         "tags": [_text(item) for item in _list(row.get("parole_chiave") or row.get("tags")) if _text(item)][:12],
-        "legacyHref": f"/giurisprudenza/{record_id}?_legacy=1",
+        "legacyHref": f"/giurisprudenza?scheda={record_id}",
         "practiceLinks": _safe_links(row.get("practice_links") or row.get("fascicoli_collegati")),
         "evidenceType": "metadato",
     }
@@ -154,18 +154,18 @@ def _empty_payload(source: str, message: str) -> dict[str, Any]:
         "generated_at": _iso_now(),
         "contracts": {
             "mock_fallback": False,
-            "writes": "legacy_routes",
+            "writes": "none",
             "route_owner": "react_shell",
             "external_fetch": False,
             "ai_generation": False,
-            "canonical_source": "backend_legacy",
+            "canonical_source": "backend_storico",
             "legacy_contract": "artifacts/react-migration/legacy-contracts/giurisprudenza.json",
         },
         "metrics": [],
         "sections": [],
         "records": [],
         "actions": [
-            _action("nuova_legacy", "Nuova scheda legacy", "/giurisprudenza/nuova?_legacy=1", "neutral"),
+            _action("legal_intelligence", "Legal Intelligence", "/legal-intelligence", "primary"),
         ],
         "forms": [],
         "warnings": [_warning("giurisprudenza_non_disponibile", message)],
@@ -181,7 +181,7 @@ def build_react_giurisprudenza_payload(
 
     query = query or {}
     warnings: list[dict[str, str]] = [
-        _warning("workflow_legacy", "Import, classificazione, scheda di dettaglio e contenuto completo restano nelle route legacy."),
+        _warning("workflow_dedicato", "Import, classificazione, scheda di dettaglio e contenuto completo restano nei percorsi Flask dedicati e auditati."),
         _warning("metadati_sicuri", "La shell React riceve solo fonte, metadati, stato verifica e collegamenti operativi sicuri."),
     ]
     manager = get_giurisprudenza()
@@ -224,18 +224,18 @@ def build_react_giurisprudenza_payload(
         "generated_at": _iso_now(),
         "contracts": {
             "mock_fallback": False,
-            "writes": "legacy_routes",
+            "writes": "none",
             "route_owner": "react_shell",
             "external_fetch": False,
             "ai_generation": False,
-            "canonical_source": "backend_legacy",
+            "canonical_source": "backend_storico",
             "legacy_contract": "artifacts/react-migration/legacy-contracts/giurisprudenza.json",
         },
         "metrics": [
             _metric("provvedimenti", "Provvedimenti", int(stats.get("totale_sentenze") or len(records)), "Archivio interno", "primary"),
             _metric("fonti", "Fonti censite", int(stats.get("fonti_attive") or len(sources)), "Repository giurisprudenza", "info"),
             _metric("aree", "Aree coperte", int(stats.get("aree_coperte") or 0), "Metadati tassonomici", "neutral"),
-            _metric("da_verificare", "Da verificare", int(stats.get("bozze_da_classificare") or 0), "Gestione legacy", "warning"),
+            _metric("da_verificare", "Da verificare", int(stats.get("bozze_da_classificare") or 0), "Gestione governata", "warning"),
             _metric("collegamenti", "Fascicoli collegati", int(stats.get("fascicoli_collegati") or 0), "Solo metadati", "success" if stats.get("fascicoli_collegati") else "neutral"),
         ],
         "sections": [
@@ -267,8 +267,8 @@ def build_react_giurisprudenza_payload(
         ],
         "records": records,
         "actions": [
-            _action("nuova_legacy", "Nuova scheda legacy", "/giurisprudenza/nuova?_legacy=1", "neutral"),
             _action("legal_intelligence", "Legal Intelligence", "/legal-intelligence", "primary"),
+            _action("ricerca_legale", "Ricerca legale", "/ricerca-legale", "neutral"),
         ],
         "forms": [],
         "warnings": warnings,

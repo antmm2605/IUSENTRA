@@ -1837,7 +1837,7 @@ def fascicolo_react_dettaglio(id_fasc: str):
         get_config_studio=_core_runtime_func("get_config_studio"),
         id_fasc=id_fasc,
         studio_avvocato_titolare=_studio_avvocato_titolare(),
-        include_sections=_detail_include_sections(),
+        include_sections=_detail_include_sections(default={"documenti", "attivita", "scadenze", "depositi"}),
     ))
 
 

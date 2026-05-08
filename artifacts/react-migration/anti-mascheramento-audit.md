@@ -1,6 +1,6 @@
 # Audit anti-mascheramento React
 
-Generato: 2026-05-08T09:59:40.053Z
+Generato: 2026-05-08T21:02:22.529Z
 
 ## Regole operative Parte 12A
 
@@ -13,10 +13,10 @@ Generato: 2026-05-08T09:59:40.053Z
 ## Sintesi
 
 - Route censite: 53
-- Link `?_legacy=1`: 189
+- Link `?_legacy=1`: 81
 - LegacyPostForm: 0
 - Form POST HTML React: 0
-- Bridge con scritture legacy: 15
+- Bridge con scritture legacy: 0
 - Status react_full deprecati: 0
 - API JSON di salvataggio mancanti: 2
 
@@ -54,22 +54,22 @@ Generato: 2026-05-08T09:59:40.053Z
 | /compensi-forensi/* | frontend/src/components/CompensiForensiPage.tsx | frontend/src/compensiForensiData.ts | web/services/react_compensi_forensi_bridge.py | legacy_operational | 2 | 0 | si | fallback legacy tecnico non primario | legacy_operational |
 | /tariffario | frontend/src/components/TariffarioPage.tsx | frontend/src/tariffarioData.ts | web/services/react_tariffario_bridge.py | react_operational_full | 3 | 0 | si | fallback legacy tecnico non primario | react_operational_full |
 | /tariffario/* | frontend/src/components/TariffarioPage.tsx | frontend/src/tariffarioData.ts | web/services/react_tariffario_bridge.py | legacy_operational | 3 | 0 | si | fallback legacy tecnico non primario | legacy_operational |
-| /template-atti | frontend/src/components/TemplateAttiPage.tsx | frontend/src/templateAttiData.ts | web/services/react_template_atti_bridge.py | react_bridge | 10 | 0 | no | 10 link ?_legacy=1 primari o non governati; bridge writes=legacy_routes; gestione successo non rilevata | react_bridge |
-| /template-atti/catalogo | frontend/src/components/TemplateAttiPage.tsx | frontend/src/templateAttiData.ts | web/services/react_template_atti_bridge.py | react_bridge | 10 | 0 | no | 10 link ?_legacy=1 primari o non governati; bridge writes=legacy_routes; gestione successo non rilevata | react_bridge |
-| /template-atti/nuovo | frontend/src/components/TemplateAttiPage.tsx | frontend/src/templateAttiData.ts | web/services/react_template_atti_bridge.py | legacy_operational | 10 | 0 | no | 10 link ?_legacy=1 primari o non governati; bridge writes=legacy_routes; API JSON di salvataggio mancante; gestione successo non rilevata | legacy_operational |
-| /template-atti/* | frontend/src/components/TemplateAttiPage.tsx | frontend/src/templateAttiData.ts | web/services/react_template_atti_bridge.py | legacy_operational | 10 | 0 | no | 10 link ?_legacy=1 primari o non governati; bridge writes=legacy_routes; gestione successo non rilevata | legacy_operational |
-| /redazione-atti | frontend/src/components/RedazioneAttiPage.tsx | frontend/src/redazioneAttiData.ts | web/services/react_redazione_atti_bridge.py | react_bridge | 7 | 0 | no | 7 link ?_legacy=1 primari o non governati; bridge writes=legacy_routes; gestione successo non rilevata | react_bridge |
-| /redazione-atti/* | frontend/src/components/RedazioneAttiPage.tsx | frontend/src/redazioneAttiData.ts | web/services/react_redazione_atti_bridge.py | legacy_operational | 7 | 0 | no | 7 link ?_legacy=1 primari o non governati; bridge writes=legacy_routes; gestione successo non rilevata | legacy_operational |
+| /template-atti | frontend/src/components/TemplateAttiPage.tsx | frontend/src/templateAttiData.ts | web/services/react_template_atti_bridge.py | react_operational_full | 0 | 0 | no | gestione successo non rilevata | react_operational_full |
+| /template-atti/catalogo | frontend/src/components/TemplateAttiPage.tsx | frontend/src/templateAttiData.ts | web/services/react_template_atti_bridge.py | react_operational_full | 0 | 0 | no | gestione successo non rilevata | react_operational_full |
+| /template-atti/nuovo | frontend/src/components/TemplateAttiPage.tsx | frontend/src/templateAttiData.ts | web/services/react_template_atti_bridge.py | legacy_operational | 0 | 0 | no | API JSON di salvataggio mancante; gestione successo non rilevata | legacy_operational |
+| /template-atti/* | frontend/src/components/TemplateAttiPage.tsx | frontend/src/templateAttiData.ts | web/services/react_template_atti_bridge.py | legacy_operational | 0 | 0 | no | gestione successo non rilevata | legacy_operational |
+| /redazione-atti | frontend/src/components/RedazioneAttiPage.tsx | frontend/src/redazioneAttiData.ts | web/services/react_redazione_atti_bridge.py | react_operational_full | 0 | 0 | no | gestione successo non rilevata | react_operational_full |
+| /redazione-atti/* | frontend/src/components/RedazioneAttiPage.tsx | frontend/src/redazioneAttiData.ts | web/services/react_redazione_atti_bridge.py | legacy_operational | 0 | 0 | no | gestione successo non rilevata | legacy_operational |
 | /checklist | frontend/src/components/ChecklistPage.tsx | frontend/src/checklistData.ts | web/services/react_checklist_bridge.py | legacy_operational | 0 | 0 | no | nessuno | legacy_operational |
-| /giurisprudenza | frontend/src/components/GiurisprudenzaPage.tsx | frontend/src/giurisprudenzaData.ts | web/services/react_giurisprudenza_bridge.py | react_bridge | 6 | 0 | no | 6 link ?_legacy=1 primari o non governati; bridge writes=legacy_routes; gestione successo non rilevata | react_bridge |
-| /giurisprudenza/nuova | frontend/src/components/GiurisprudenzaPage.tsx | frontend/src/giurisprudenzaData.ts | web/services/react_giurisprudenza_bridge.py | legacy_operational | 6 | 0 | no | 6 link ?_legacy=1 primari o non governati; bridge writes=legacy_routes; API JSON di salvataggio mancante; gestione successo non rilevata | legacy_operational |
-| /giurisprudenza/* | frontend/src/components/GiurisprudenzaPage.tsx | frontend/src/giurisprudenzaData.ts | web/services/react_giurisprudenza_bridge.py | legacy_operational | 6 | 0 | no | 6 link ?_legacy=1 primari o non governati; bridge writes=legacy_routes; gestione successo non rilevata | legacy_operational |
-| /legal-intelligence | frontend/src/components/LegalIntelligencePage.tsx | frontend/src/legalIntelligenceData.ts | web/services/react_legal_intelligence_bridge.py | react_bridge | 6 | 0 | no | 6 link ?_legacy=1 primari o non governati; bridge writes=legacy_routes; gestione successo non rilevata | react_bridge |
-| /legal-intelligence/news | frontend/src/components/LegalIntelligencePage.tsx | frontend/src/legalIntelligenceData.ts | web/services/react_legal_intelligence_bridge.py | react_bridge | 6 | 0 | no | 6 link ?_legacy=1 primari o non governati; bridge writes=legacy_routes; gestione successo non rilevata | react_bridge |
-| /legal-intelligence/mediazione | frontend/src/components/LegalIntelligencePage.tsx | frontend/src/legalIntelligenceData.ts | web/services/react_legal_intelligence_bridge.py | react_bridge | 6 | 0 | no | 6 link ?_legacy=1 primari o non governati; bridge writes=legacy_routes; gestione successo non rilevata | react_bridge |
-| /legal-intelligence/* | frontend/src/components/LegalIntelligencePage.tsx | frontend/src/legalIntelligenceData.ts | web/services/react_legal_intelligence_bridge.py | legacy_operational | 6 | 0 | no | 6 link ?_legacy=1 primari o non governati; bridge writes=legacy_routes; gestione successo non rilevata | legacy_operational |
-| /ricerca-legale | frontend/src/components/LegalIntelligencePage.tsx | frontend/src/legalIntelligenceData.ts | web/services/react_legal_intelligence_bridge.py | react_bridge | 6 | 0 | no | 6 link ?_legacy=1 primari o non governati; bridge writes=legacy_routes; gestione successo non rilevata | react_bridge |
-| /ricerca-legale/* | frontend/src/components/LegalIntelligencePage.tsx | frontend/src/legalIntelligenceData.ts | web/services/react_legal_intelligence_bridge.py | legacy_operational | 6 | 0 | no | 6 link ?_legacy=1 primari o non governati; bridge writes=legacy_routes; gestione successo non rilevata | legacy_operational |
+| /giurisprudenza | frontend/src/components/GiurisprudenzaPage.tsx | frontend/src/giurisprudenzaData.ts | web/services/react_giurisprudenza_bridge.py | react_operational_full | 0 | 0 | no | gestione successo non rilevata | react_operational_full |
+| /giurisprudenza/nuova | frontend/src/components/GiurisprudenzaPage.tsx | frontend/src/giurisprudenzaData.ts | web/services/react_giurisprudenza_bridge.py | legacy_operational | 0 | 0 | no | API JSON di salvataggio mancante; gestione successo non rilevata | legacy_operational |
+| /giurisprudenza/* | frontend/src/components/GiurisprudenzaPage.tsx | frontend/src/giurisprudenzaData.ts | web/services/react_giurisprudenza_bridge.py | legacy_operational | 0 | 0 | no | gestione successo non rilevata | legacy_operational |
+| /legal-intelligence | frontend/src/components/LegalIntelligencePage.tsx | frontend/src/legalIntelligenceData.ts | web/services/react_legal_intelligence_bridge.py | react_operational_full | 0 | 0 | no | gestione successo non rilevata | react_operational_full |
+| /legal-intelligence/news | frontend/src/components/LegalIntelligencePage.tsx | frontend/src/legalIntelligenceData.ts | web/services/react_legal_intelligence_bridge.py | react_operational_full | 0 | 0 | no | gestione successo non rilevata | react_operational_full |
+| /legal-intelligence/mediazione | frontend/src/components/LegalIntelligencePage.tsx | frontend/src/legalIntelligenceData.ts | web/services/react_legal_intelligence_bridge.py | react_operational_full | 0 | 0 | no | gestione successo non rilevata | react_operational_full |
+| /legal-intelligence/* | frontend/src/components/LegalIntelligencePage.tsx | frontend/src/legalIntelligenceData.ts | web/services/react_legal_intelligence_bridge.py | legacy_operational | 0 | 0 | no | gestione successo non rilevata | legacy_operational |
+| /ricerca-legale | frontend/src/components/LegalIntelligencePage.tsx | frontend/src/legalIntelligenceData.ts | web/services/react_legal_intelligence_bridge.py | react_operational_full | 0 | 0 | no | gestione successo non rilevata | react_operational_full |
+| /ricerca-legale/* | frontend/src/components/LegalIntelligencePage.tsx | frontend/src/legalIntelligenceData.ts | web/services/react_legal_intelligence_bridge.py | legacy_operational | 0 | 0 | no | gestione successo non rilevata | legacy_operational |
 | /deposito/checklist | frontend/src/components/DepositoChecklistPage.tsx | frontend/src/depositoChecklistData.ts | web/services/react_deposito_checklist_bridge.py | legacy_operational | 0 | 0 | no | nessuno | legacy_operational |
 | /polisWeb | frontend/src/components/PolisWebPage.tsx | frontend/src/polisWebData.ts | web/services/react_telematico_bridge.py | legacy_operational | 0 | 0 | no | nessuno | legacy_operational |
 | /pdp | frontend/src/components/PdpPage.tsx | frontend/src/pdpData.ts | web/services/react_telematico_bridge.py | legacy_operational | 0 | 0 | no | nessuno | legacy_operational |

@@ -25,6 +25,16 @@ def _is_civil_case_law_query(question: str) -> bool:
     return has_case_law and has_civil_scope
 
 
+def _is_exact_case_law_query(question: str) -> bool:
+    text = _clean_spaces(question).lower()
+    if not text:
+        return False
+    has_kind = any(token in text for token in ("sentenza", "ordinanza", "pronuncia", "cassazione"))
+    has_number = re.search(r"\bn\.\s*\d{3,}|\b\d{3,}/(?:19|20)\d{2}\b", text) is not None
+    has_date_or_year = re.search(r"\b\d{1,2}/\d{1,2}/(?:19|20)\d{2}\b|\b(?:19|20)\d{2}\b", text) is not None
+    return bool(has_kind and has_number and has_date_or_year)
+
+
 _TOPIC_RULES: tuple[dict[str, Any], ...] = (
     {
         "topic": "dashboard",
@@ -84,7 +94,7 @@ _TOPIC_RULES: tuple[dict[str, Any], ...] = (
         "topic": "clienti",
         "keywords": ("cliente", "clienti", "assistito", "assistiti", "anagrafica"),
         "sections": ("Clienti", "Soggetti"),
-        "focus_label": "clienti rilevanti",
+        "focus_label": "scheda cliente",
         "include_live_web": False,
     },
     {
@@ -243,6 +253,14 @@ def _find_topic_rule(question: str) -> dict[str, Any] | None:
     haystack = _clean_spaces(question).lower()
     if not haystack:
         return None
+    if _is_exact_case_law_query(haystack):
+        return {
+            "topic": "sentenze_web",
+            "keywords": ("sentenza", "ordinanza", "pronuncia", "cassazione"),
+            "sections": ("Archivio sentenze", "Ricerca legale e fonti web"),
+            "focus_label": "sentenza specifica",
+            "include_live_web": True,
+        }
     if _is_civil_case_law_query(haystack):
         return next((rule for rule in _TOPIC_RULES if rule.get("topic") == "sentenze_civili"), None)
     for rule in _TOPIC_RULES:

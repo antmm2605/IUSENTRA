@@ -530,7 +530,7 @@ def test_blueprint_archivio_sentenze_renderizza_indice_e_salvataggio(tmp_path: P
         )
         assert login.status_code == 200
 
-        page = client.get("/giurisprudenza/", follow_redirects=True)
+        page = client.get("/giurisprudenza/?_legacy=1", follow_redirects=True)
         html = page.get_data(as_text=True)
         assert page.status_code == 200
         assert "Archivio Sentenze" in html
@@ -638,7 +638,7 @@ def test_blueprint_sync_avvia_job_in_background(tmp_path: Path, monkeypatch):
             data={"username": "admin-giurisprudenza", "password": "Admin1234!"},
             follow_redirects=True,
         )
-        response = client.post("/giurisprudenza/sync", follow_redirects=True)
+        response = client.post("/giurisprudenza/sync?_legacy=1", follow_redirects=True)
         html = response.get_data(as_text=True)
 
     assert response.status_code == 200
@@ -660,7 +660,7 @@ def test_sidebar_studio_espone_archivio_sentente(tmp_path: Path):
             data={"username": "admin-giurisprudenza", "password": "Admin1234!"},
             follow_redirects=True,
         )
-        page = client.get("/giurisprudenza/", follow_redirects=True)
+        page = client.get("/giurisprudenza/?_legacy=1", follow_redirects=True)
         html = page.get_data(as_text=True)
 
     assert 'Archivio Sentenze' in html
@@ -674,7 +674,7 @@ def test_template_giurisprudenza_usa_layout_responsive():
     theme_css = Path("web/static/css/theme.css").read_text(encoding="utf-8")
 
     assert ".jud-actions .btn" in theme_css
-    assert "width: 100%;" in theme_css
+    assert "width: 100%;" in theme_css or "width:100%" in theme_css
     assert "Import assistito da materiale cliente" in index_html
     assert "Importa materiale cliente" in index_html
     assert "Recupero automatico da fonti ufficiali" in index_html

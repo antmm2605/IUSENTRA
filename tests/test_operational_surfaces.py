@@ -16,6 +16,12 @@ from pct.timesheet import GestioneTimesheet, StatoTimesheet
 from web.app import create_app
 
 
+def _assert_react_shell(html: str) -> None:
+    assert 'class="react-shell-document"' in html
+    assert 'id="root"' in html
+    assert "/static/react/assets/" in html
+
+
 def _write_studio_config(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
@@ -321,7 +327,7 @@ def test_superadmin_product_surfaces_renderizzano(tmp_path: Path):
     assert aggiornamenti_review.status_code == 200
     assert "Coda revisioni aggiornamenti" in aggiornamenti_review.get_data(as_text=True)
     assert news.status_code == 200
-    assert "News giuridiche strutturate" in news.get_data(as_text=True)
+    _assert_react_shell(news.get_data(as_text=True))
 
 
 def test_superfici_cliente_fascicolo_e_timesheet_renderizzano_blocchi_operativi(tmp_path: Path):
@@ -348,27 +354,16 @@ def test_superfici_cliente_fascicolo_e_timesheet_renderizzano_blocchi_operativi(
 
     assert cartella.status_code == 200
     html_cartella = cartella.get_data(as_text=True)
-    assert 'id="sezione-workflow-cliente"' in html_cartella
-    assert "Controllo economico cliente" in html_cartella
-    assert "Tempo lavorato sul cliente" in html_cartella
+    _assert_react_shell(html_cartella)
 
     assert dettaglio.status_code == 200
     html_fascicolo = dettaglio.get_data(as_text=True)
-    assert "Cabina fascicolo" in html_fascicolo
-    assert "Quadro intelligente" in html_fascicolo
-    assert "Workflow -> incasso" in html_fascicolo
-    assert 'id="sezione-workflow-fascicolo"' in html_fascicolo
-    assert "Controllo economico fascicolo" in html_fascicolo
-    assert "Governo documentale" in html_fascicolo
-    assert "Deposito e conformita'" in html_fascicolo
+    _assert_react_shell(html_fascicolo)
 
     assert timesheet.status_code == 200
     html_timesheet = timesheet.get_data(as_text=True)
-    assert "Timesheet operativo" in html_timesheet
-    assert "Nuova voce timesheet" in html_timesheet
-    assert "Registro lavorazioni" in html_timesheet
-    assert "Genera parcella dalle voci validate" in html_timesheet
+    _assert_react_shell(html_timesheet)
 
     assert dashboard.status_code == 200
     html_dashboard = dashboard.get_data(as_text=True)
-    assert "Studio reale in 5 minuti" in html_dashboard
+    _assert_react_shell(html_dashboard)

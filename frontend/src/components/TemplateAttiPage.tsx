@@ -28,7 +28,7 @@ function ContractStrip({ data }: { data: TemplateAttiPageData }) {
       <div>
         <strong>{openDesignContract.system}</strong>
         <span>
-          {data.source || 'Sorgente non indicata'} - scritture {data.contracts.writes || 'legacy_routes'}
+          {data.source || 'Sorgente non indicata'} - scritture {data.contracts.writes || 'none'}
         </span>
       </div>
     </aside>
@@ -151,7 +151,7 @@ function TemplateCard({ record }: { record: TemplateAttiRecord }) {
       <footer className="iu-od-action-row iu-template-card__actions">
         <ButtonLink href={record.href} tone="primary">
           <ExternalLink size={16} aria-hidden="true" />
-          Apri percorso legacy
+          Apri scheda
         </ButtonLink>
         {record.detailHref ? (
           <ButtonLink href={record.detailHref} tone="neutral">
@@ -278,9 +278,6 @@ export function TemplateAttiPage() {
             <RefreshCw size={16} aria-hidden="true" />
             Aggiorna
           </Button>
-          <ButtonLink href="/template-atti/nuovo?_legacy=1" tone="neutral">
-            Nuovo legacy
-          </ButtonLink>
           <ButtonLink href="/redazione-atti" tone="primary">
             Redazione atti
           </ButtonLink>
@@ -297,7 +294,7 @@ export function TemplateAttiPage() {
             <h2>{catalogo ? 'Catalogo consultabile senza contenuti integrali' : 'Ingresso operativo ai template dello studio'}</h2>
             <p>
               La pagina mostra catalogo, categorie, materie, canali e variabili come metadati. Editor, compilazione,
-              produzione file ed esportazioni restano nei percorsi legacy.
+              produzione file ed esportazioni restano nei percorsi dedicati e auditati.
             </p>
           </div>
           <div className="iu-od-action-row iu-template-hero__actions">
@@ -337,8 +334,8 @@ export function TemplateAttiPage() {
               title="Nessun template disponibile"
               message="La UI resta neutra finche' il backend non espone metadati consultabili."
               action={
-                <ButtonLink href="/template-atti/nuovo?_legacy=1" tone="neutral">
-                  Apri creazione legacy
+                <ButtonLink href="/documenti" tone="neutral">
+                  Apri documenti
                 </ButtonLink>
               }
             />

@@ -57,7 +57,7 @@ function ContractStrip({ data }: { data: LegalIntelligencePageData }) {
       <div>
         <strong>{openDesignContract.system}</strong>
         <span>
-          {data.source || 'Repository'} - sorgente canonica {data.contracts.canonical_source || 'backend legacy'}
+          {data.source || 'Repository'} - sorgente canonica {data.contracts.canonical_source || 'backend storico'}
         </span>
       </div>
     </aside>
@@ -182,7 +182,7 @@ function RecordCard({ record }: { record: LegalIntelligenceRecord }) {
         {record.legacyHref ? (
           <ButtonLink href={record.legacyHref} tone="primary">
             {record.kind === 'mediazione' ? <Landmark size={16} aria-hidden="true" /> : <Newspaper size={16} aria-hidden="true" />}
-            Apri legacy
+            Apri scheda
           </ButtonLink>
         ) : null}
         {record.sourceHref ? (
@@ -258,11 +258,7 @@ export function LegalIntelligencePage() {
     <Page
       title={pageTitle(view)}
       subtitle={pageSubtitle(view)}
-      actions={
-        <ButtonLink href="/legal-intelligence?_legacy=1" tone="neutral">
-          Apri dashboard legacy
-        </ButtonLink>
-      }
+      actions={<ButtonLink href="/giurisprudenza" tone="neutral">Archivio giurisprudenza</ButtonLink>}
     >
       <div className="iu-li-page">
         <ContractStrip data={data} />
@@ -292,7 +288,7 @@ export function LegalIntelligencePage() {
             <EmptyState
               title="Nessun elemento da mostrare"
               message="Il backend non espone metadati compatibili con questa vista o con il filtro applicato."
-              action={<ButtonLink href="/legal-intelligence?_legacy=1" tone="neutral">Apri legacy</ButtonLink>}
+              action={<ButtonLink href="/giurisprudenza" tone="neutral">Apri giurisprudenza</ButtonLink>}
             />
           )}
         </Panel>

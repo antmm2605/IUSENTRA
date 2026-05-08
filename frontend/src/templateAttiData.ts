@@ -47,7 +47,7 @@ export const emptyTemplateAttiPage: TemplateAttiPageData = {
   generated_at: '',
   contracts: {
     mock_fallback: false,
-    writes: 'legacy_routes',
+    writes: 'none',
     route_owner: 'react_shell',
   },
   metrics: [],
@@ -180,7 +180,7 @@ function normalisePage(input: unknown): TemplateAttiPageData {
     generated_at: text(page.generated_at),
     contracts: {
       mock_fallback: contracts.mock_fallback === true ? true : false,
-      writes: text(contracts.writes) || 'legacy_routes',
+      writes: text(contracts.writes) || 'none',
       route_owner: text(contracts.route_owner) || 'react_shell',
       legacy_contract: text(contracts.legacy_contract),
     },

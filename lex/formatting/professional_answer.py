@@ -22,7 +22,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 
-STRICT_WORKFLOWS = {"normativa", "giurisprudenza", "prassi", "research", "fonti"}
+STRICT_WORKFLOWS = {"normativa", "giurisprudenza", "giurisprudenza_specifica", "prassi", "research", "fonti"}
 PRACTICAL_WORKFLOWS = {
     "fascicolo",
     "udienza",
@@ -486,7 +486,7 @@ class ProfessionalAnswerComposer:
             )
         if not evidence_sufficient and workflow in STRICT_WORKFLOWS:
             lines.append(
-                "Evidenze non sufficienti per il workflow selezionato: "
+                "Evidenze non sufficienti per il percorso selezionato: "
                 "integrare fonti ufficiali prima di chiudere il parere."
             )
         if fallback_triggered:

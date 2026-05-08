@@ -67,6 +67,7 @@ def detect_case_law_fragment(evidence_item: Any) -> CaseLawCompletenessResult:
     content = _get_str(evidence_item, "content", "excerpt", "text", "summary")
     source_type = _get_str(evidence_item, "source_type", "type").lower()
     official_url = _get_str(evidence_item, "official_url", "url")
+    local_doc_url = _get_str(evidence_item, "document_url", "file_url", "pdf_url")
 
     combined = f"{title} {content} {source_type}".lower()
 
@@ -101,16 +102,16 @@ def detect_case_law_fragment(evidence_item: Any) -> CaseLawCompletenessResult:
     if any(pattern in combined for pattern in court_patterns):
         result.has_court = True
     else:
-        result.missing_parts.append("organo giudicante")
+        result.missing_parts.append("fonte ufficiale")
 
     # Controlla sezione
     if re.search(r"sez(?:ione)?\.?\s*[ivxlIVXL\d]+|sezione\s+\w+", combined):
         result.has_section = True
 
     # URL ufficiale
-    result.has_official_url = _has_official_url(official_url)
+    result.has_official_url = _has_official_url(official_url) or bool(local_doc_url)
     if not result.has_official_url:
-        result.missing_parts.append("URL ufficiale verificato")
+        result.missing_parts.append("URL ufficiale/PDF ufficiale")
 
     # Testo integrale
     dispositivo_markers = ["dispositivo", "p.q.m.", "per questi motivi", "si rigetta", "si accoglie", "condanna"]
@@ -127,20 +128,25 @@ def detect_case_law_fragment(evidence_item: Any) -> CaseLawCompletenessResult:
 
     result.has_full_text = result.has_dispositivo or result.has_motivazione
     if not result.has_full_text:
-        result.missing_parts.append("testo completo (dispositivo/motivazione)")
+        result.missing_parts.append("testo integrale")
+    if not result.has_motivazione:
+        result.missing_parts.append("motivazione")
+    if not result.has_dispositivo:
+        result.missing_parts.append("dispositivo")
     if not result.has_massima:
-        result.missing_parts.append("massima ufficiale")
+        result.missing_parts.append("massima")
 
     # PDF
     pdf_url = _get_str(evidence_item, "pdf_url", "file_url")
-    result.has_pdf = bool(pdf_url and pdf_url.endswith(".pdf"))
+    result.has_pdf = bool(pdf_url and pdf_url.lower().endswith(".pdf"))
 
-    # Completezza: numero + data + URL ufficiale + (dispositivo o motivazione)
+    # Completezza: numero + data/anno + fonte/URL + testo sufficiente.
     result.is_complete = (
         result.has_number
-        and result.has_date
+        and (result.has_date or bool(re.search(r"\b(?:19|20)\d{2}\b", combined)))
+        and (result.has_court or result.has_official_url)
         and result.has_official_url
-        and result.has_full_text
+        and (len(content) >= 1200 or result.has_dispositivo or result.has_motivazione)
     )
 
     if result.is_complete:

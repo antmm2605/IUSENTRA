@@ -137,8 +137,6 @@ def _single_studio_sqlite_path(cfg_source: dict[str, Any]) -> str:
 
 def _coverage_backend_code(cfg_source: dict[str, Any], studio: Any = None) -> str:
     tenant_database = getattr(studio, "database", None)
-    if getattr(tenant_database, "is_sqlite", False):
-        return "SQLITE"
     runtime_dsn = resolve_runtime_postgres_dsn(
         "",
         database=tenant_database or cfg_source.get("TENANT_DATABASE_CONFIG"),
@@ -149,6 +147,8 @@ def _coverage_backend_code(cfg_source: dict[str, Any], studio: Any = None) -> st
         runtime_dsn = _legacy_tenant_postgres_dsn(tenant_database)
     if runtime_dsn:
         return "POSTGRESQL"
+    if getattr(tenant_database, "is_sqlite", False):
+        return "SQLITE"
     if not studio and _single_studio_sqlite_path(cfg_source):
         return "SQLITE"
     normalized_mode = str(

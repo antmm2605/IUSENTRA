@@ -167,7 +167,7 @@ def _safe_news_record(row: Mapping[str, Any], index: int) -> dict[str, Any]:
         "branch": _text(row.get("submatter_name") or row.get("submatter_slug")),
         "approvalLabel": status or "pubblicata",
         "approvalTone": _tone(status or "published"),
-        "legacyHref": f"/legal-intelligence/news/{slug}?_legacy=1" if slug else "/legal-intelligence/news?_legacy=1",
+        "legacyHref": f"/legal-intelligence/news?scheda={slug}" if slug else "/legal-intelligence/news",
         "evidenceType": "fonte",
     }
 
@@ -190,7 +190,7 @@ def _safe_mediazione_record(row: Mapping[str, Any], index: int) -> dict[str, Any
         "stateLabel": _text(row.get("status") or row.get("state") or "presente"),
         "stateTone": _tone(row.get("status") or row.get("state") or "ok"),
         "registryNumber": registration,
-        "legacyHref": "/legal-intelligence/mediazione?_legacy=1",
+        "legacyHref": f"/legal-intelligence/mediazione?organismo={registration}" if registration else "/legal-intelligence/mediazione",
         "evidenceType": "fonte",
     }
 
@@ -234,11 +234,11 @@ def _empty_payload(source: str, message: str, legacy_contract: str) -> dict[str,
         "generated_at": _iso_now(),
         "contracts": {
             "mock_fallback": False,
-            "writes": "legacy_routes",
+            "writes": "none",
             "route_owner": "react_shell",
             "external_fetch": False,
             "ai_generation": False,
-            "canonical_source": "backend_legacy",
+            "canonical_source": "backend_storico",
             "legacy_contract": legacy_contract,
         },
         "metrics": [],
@@ -266,7 +266,7 @@ def build_react_legal_intelligence_payload(
     query: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     warnings: list[dict[str, str]] = [
-        _warning("workflow_legacy", "Sincronizzazione fonti, approvazione contenuti, indice assistito e import restano nelle route legacy."),
+        _warning("workflow_dedicato", "Sincronizzazione fonti, approvazione contenuti, indice assistito e import restano nei percorsi Flask dedicati e auditati."),
         _warning("metadati_sicuri", "La shell React espone solo fonte, stato, date, aree e metadati gia presenti nel backend."),
     ]
     manager = get_legal_intelligence()
@@ -311,17 +311,17 @@ def build_react_legal_intelligence_payload(
         "generated_at": _iso_now(),
         "contracts": {
             "mock_fallback": False,
-            "writes": "legacy_routes",
+            "writes": "none",
             "route_owner": "react_shell",
             "external_fetch": False,
             "ai_generation": False,
-            "canonical_source": "backend_legacy",
+            "canonical_source": "backend_storico",
             "legacy_contract": legacy_contract,
         },
         "metrics": [
-            _metric("fonti_monitorate", "Fonti monitorate", int(headline.get("fonti_monitorate") or update_headline.get("sources") or 0), "Repository e monitor legacy", "primary"),
+            _metric("fonti_monitorate", "Fonti monitorate", int(headline.get("fonti_monitorate") or update_headline.get("sources") or 0), "Repository e monitor governato", "primary"),
             _metric("news_pubblicate", "News pubblicate", int(update_headline.get("published_news") or len(news_records)), "Gia presenti nel backend", "info"),
-            _metric("review", "In revisione", int(update_headline.get("review_pending") or headline.get("tabelle_da_validare") or 0), "Workflow legacy", "warning"),
+            _metric("review", "In revisione", int(update_headline.get("review_pending") or headline.get("tabelle_da_validare") or 0), "Workflow governato", "warning"),
             _metric("mediazione", "Organismi mediazione", int(mediazione.get("total_rows") or 0), "Registro consultabile", "success" if mediazione.get("total_rows") else "neutral"),
             _metric("fascicoli", "Fascicoli nel monitor", int(headline.get("fascicoli") or 0), "Metadati studio", "neutral"),
         ],
@@ -355,7 +355,7 @@ def build_react_legal_intelligence_payload(
                 "evidence",
                 [
                     _item("fonte", "Fonte", "ufficiale o interna", "Etichetta visibile su ogni riga", "success"),
-                    _item("metadato", "Metadato", "data, area, stato", "Letto dal backend legacy", "info"),
+                    _item("metadato", "Metadato", "data, area, stato", "Letto dal backend storico", "info"),
                     _item("inferenza", "Inferenza", "solo se gia esposta", "Nessuna generazione in React", "warning"),
                 ],
                 "Nessuna distinzione disponibile.",

@@ -251,7 +251,10 @@ def sync():
     except Exception as exc:
         current_app.logger.exception("Errore sync giurisprudenza: %s", exc)
         flash(f"Recupero sentenze non riuscito: {exc}", "warning")
-    return redirect(url_for("giurisprudenza.index", source_system=source_id) if source_id else url_for("giurisprudenza.index"))
+    redirect_args = {"source_system": source_id} if source_id else {}
+    if (request.args.get("_legacy") or "").strip().lower() in {"1", "true", "si", "yes", "on"}:
+        redirect_args["_legacy"] = "1"
+    return redirect(url_for("giurisprudenza.index", **redirect_args))
 
 
 @giurisprudenza.route("/api/classificazione-suggerita", methods=["POST"])

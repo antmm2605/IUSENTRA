@@ -107,7 +107,7 @@ def test_endpoint_dashboard_mostra_motore_giornaliero(tmp_path: Path):
 
     with app.test_client() as client:
         _login(client)
-        response = client.get("/legal-intelligence/")
+        response = client.get("/legal-intelligence/?_legacy=1")
         body = response.get_data(as_text=True)
 
     assert response.status_code == 200

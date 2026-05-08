@@ -1179,7 +1179,7 @@ def test_dettaglio_fascicolo_mostra_cartella_import_portale(tmp_path):
             data={"username": "avvocato", "password": "Avv12345!"},
             follow_redirects=True,
         )
-        response = client.get(f"/fascicoli/{fascicolo.id}")
+        response = client.get(f"/fascicoli/{fascicolo.id}?_legacy=1")
 
     body = response.data.decode("utf-8")
     assert response.status_code == 200
@@ -1248,10 +1248,16 @@ def test_dettaglio_fascicolo_mostra_download_ufficiale_portale(tmp_path):
             data={"username": "avvocato", "password": "Avv12345!"},
             follow_redirects=True,
         )
-        response = client.get(f"/fascicoli/{fascicolo.id}", follow_redirects=True)
+        response = client.get(f"/fascicoli/{fascicolo.id}?_legacy=1", follow_redirects=True)
+        react_response = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}")
 
     body = response.data.decode("utf-8")
     assert response.status_code == 200
+    assert react_response.status_code == 200
+    react_payload = react_response.get_json()
+    assert react_payload["deposits"][0]["externalId"] == "BUSTA-PST-1025"
+    assert react_payload["deposits"][0]["portalDocuments"][0]["name"] == "SentenzaDefinitiva_33581101.pdf"
+    assert react_payload["deposits"][0]["portalDocuments"][0]["imported"] is False
     assert "Naviga fascicolo PST" in body
     assert "Scarica + importa selezionati" in body
     assert "Acquisisci intero fascicolo" in body
@@ -1334,7 +1340,7 @@ def test_dettaglio_fascicolo_segna_documento_portale_gia_importato(tmp_path):
             data={"username": "avvocato", "password": "Avv12345!"},
             follow_redirects=True,
         )
-        response = client.get(f"/fascicoli/{fascicolo.id}", follow_redirects=True)
+        response = client.get(f"/fascicoli/{fascicolo.id}?_legacy=1", follow_redirects=True)
 
     body = response.data.decode("utf-8")
     assert response.status_code == 200
@@ -1380,7 +1386,7 @@ def test_lista_fascicoli_mostra_rg_come_riferimento_principale(tmp_path):
             data={"username": "avvocato", "password": "Avv12345!"},
             follow_redirects=True,
         )
-        response = client.get("/fascicoli", follow_redirects=True)
+        response = client.get("/fascicoli?_legacy=1", follow_redirects=True)
 
     body = response.data.decode("utf-8")
     assert response.status_code == 200
@@ -1448,14 +1454,16 @@ def test_dettaglio_fascicolo_non_mescola_documenti_portale_con_comunicazioni(tmp
             data={"username": "avvocato", "password": "Avv12345!"},
             follow_redirects=True,
         )
-        response = client.get(f"/fascicoli/{fascicolo.id}", follow_redirects=True)
+        response = client.get(f"/fascicoli/{fascicolo.id}?_legacy=1", follow_redirects=True)
 
     body = response.data.decode("utf-8")
     assert response.status_code == 200
     assert "documenti ufficiali" in body
     assert "Documenti fascicolo" in body
-    assert re.search(r"Documenti fascicolo\s*<span[^>]*>\s*1\s*</span>", body)
-    assert re.search(r"Attività processuali\s*<span[^>]*>\s*0\s*</span>", body)
+    assert re.search(r"Documenti fascicolo\s*<span[^>]*>\s*0\s*</span>", body)
+    assert "Catalogo portale 1" in body
+    assert "memoria conclusionale.pdf.p7m" in body
+    assert re.search(r"Attivit.{1,8}processuali\s*<span[^>]*>\s*0\s*</span>", body)
     assert "nella sezione <strong>Comunicazioni di cancelleria</strong>" not in body
     assert "Nessuna comunicazione di cancelleria" in body
 
@@ -1520,7 +1528,7 @@ def test_dettaglio_fascicolo_sezioni_collassabili(tmp_path):
             data={"username": "avvocato", "password": "Avv12345!"},
             follow_redirects=True,
         )
-        response = client.get(f"/fascicoli/{fascicolo.id}", follow_redirects=True)
+        response = client.get(f"/fascicoli/{fascicolo.id}?_legacy=1", follow_redirects=True)
 
     body = response.data.decode("utf-8")
     assert response.status_code == 200
@@ -1589,7 +1597,7 @@ def test_dettaglio_fascicolo_mostra_ricevute_pec_in_cancelleria(tmp_path):
             data={"username": "avvocato", "password": "Avv12345!"},
             follow_redirects=True,
         )
-        response = client.get(f"/fascicoli/{fascicolo.id}", follow_redirects=True)
+        response = client.get(f"/fascicoli/{fascicolo.id}?_legacy=1", follow_redirects=True)
 
     body = response.data.decode("utf-8")
     assert response.status_code == 200
@@ -1655,7 +1663,7 @@ def test_dettaglio_fascicolo_mostra_email_comunicazione_cancelleria(tmp_path):
             data={"username": "avvocato", "password": "Avv12345!"},
             follow_redirects=True,
         )
-        response = client.get(f"/fascicoli/{fascicolo.id}", follow_redirects=True)
+        response = client.get(f"/fascicoli/{fascicolo.id}?_legacy=1", follow_redirects=True)
 
     body = response.data.decode("utf-8")
     assert response.status_code == 200
@@ -1709,7 +1717,7 @@ def test_dettaglio_fascicolo_firma_usa_conversione_base64_sicura(tmp_path):
             data={"username": "avvocato", "password": "Avv12345!"},
             follow_redirects=True,
         )
-        response = client.get(f"/fascicoli/{fascicolo.id}", follow_redirects=True)
+        response = client.get(f"/fascicoli/{fascicolo.id}?_legacy=1", follow_redirects=True)
 
     body = response.get_data(as_text=True)
     assert response.status_code == 200
@@ -1881,11 +1889,13 @@ def test_route_importa_polisweb_via_local_signer_non_richiede_certificato_server
                     ]
                 ),
             },
-            follow_redirects=True,
+            follow_redirects=False,
         )
 
-    assert response.status_code == 200
-    assert "Nessun certificato configurato per l'accesso al PST" not in response.data.decode("utf-8")
+    assert response.status_code == 302
+    assert "/fascicoli/" in response.headers["Location"]
+    assert "preserve_pst_tree=1" not in response.headers["Location"]
+    assert "auto_pst_acquire=1" not in response.headers["Location"]
 
     gestione_fascicoli = GestioneFascicoli(
         db_path=cfg["FASCICOLI_DB"],
@@ -2178,7 +2188,7 @@ def test_dettaglio_fascicolo_mostra_metadati_documentali_importati_da_polisweb(t
             data={"username": "avvocato", "password": "Avv12345!"},
             follow_redirects=True,
         )
-        response = client.get(f"/fascicoli/{fascicolo.id}")
+        response = client.get(f"/fascicoli/{fascicolo.id}?_legacy=1")
 
     body = response.data.decode("utf-8")
     assert response.status_code == 200
@@ -2269,7 +2279,7 @@ def test_dettaglio_fascicolo_backfilla_metadati_documentali_dal_core_telematico(
             data={"username": "avvocato", "password": "Avv12345!"},
             follow_redirects=True,
         )
-        response = client.get(f"/fascicoli/{fascicolo.id}?focus=documenti")
+        response = client.get(f"/fascicoli/{fascicolo.id}?focus=documenti&_legacy=1")
 
     body = response.data.decode("utf-8")
     assert response.status_code == 200
@@ -2452,7 +2462,7 @@ def test_dettaglio_fascicolo_mostra_azioni_per_documento_ufficiale_acquisito(tmp
             data={"username": "avvocato", "password": "Avv12345!"},
             follow_redirects=True,
         )
-        response = client.get(f"/fascicoli/{fascicolo.id}", follow_redirects=True)
+        response = client.get(f"/fascicoli/{fascicolo.id}?_legacy=1", follow_redirects=True)
 
     body = response.data.decode("utf-8")
     assert response.status_code == 200
@@ -2503,7 +2513,7 @@ def test_dettaglio_fascicolo_visualizzatore_prefetch_blob_per_pdf(tmp_path):
             data={"username": "avvocato", "password": "Avv12345!"},
             follow_redirects=True,
         )
-        response = client.get(f"/fascicoli/{fascicolo.id}", follow_redirects=True)
+        response = client.get(f"/fascicoli/{fascicolo.id}?_legacy=1", follow_redirects=True)
 
     body = response.data.decode("utf-8")
     assert response.status_code == 200
@@ -5096,7 +5106,7 @@ def test_api_portale_acquisizione_import_pst_arricchisce_file_locali_con_metadat
             data={"username": "avvocato", "password": "Avv12345!"},
             follow_redirects=True,
         )
-        detail_response = detail_client.get(f"/fascicoli/{fascicolo.id}", follow_redirects=True)
+        detail_response = detail_client.get(f"/fascicoli/{fascicolo.id}?_legacy=1", follow_redirects=True)
 
     detail_body = detail_response.data.decode("utf-8")
     assert detail_response.status_code == 200

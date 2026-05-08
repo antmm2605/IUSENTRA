@@ -1,0 +1,184 @@
+{
+  "schema_version": "iusentra.legal_sources_registry.v1",
+  "generated_at": "2026-05-08T00:00:00+02:00",
+  "policy": {
+    "principle": "Nessuna fonte viene presentata come aggiornata automaticamente se non esiste un connettore o un controllo governato.",
+    "allowed_statuses": [
+      "active",
+      "deprecated",
+      "missing",
+      "manual_review_required"
+    ],
+    "manual_review_note": "Le fonti normative e tecniche ad alto impatto richiedono verifica professionale prima di usare etichette di conformita."
+  },
+  "sources": [
+    {
+      "id": "normattiva",
+      "name": "Normattiva",
+      "type": "normativa_consolidata",
+      "official_url": "https://www.normattiva.it/",
+      "scope": "Testi normativi vigenti, originari e consolidati.",
+      "last_verified_at": "2026-05-08",
+      "version": "portale ufficiale",
+      "modules": ["Lex AI", "Legal Intelligence", "Tariffario", "Template atti"],
+      "status": "active",
+      "notes": "Fonte ufficiale per testi normativi; l'aggiornamento puntuale resta governato dai connettori Lex esistenti."
+    },
+    {
+      "id": "gazzetta_ufficiale",
+      "name": "Gazzetta Ufficiale",
+      "type": "pubblicazione_ufficiale",
+      "official_url": "https://www.gazzettaufficiale.it/",
+      "scope": "Pubblicazione ufficiale di leggi, decreti e atti normativi.",
+      "last_verified_at": "2026-05-08",
+      "version": "portale ufficiale",
+      "modules": ["Lex AI", "Legal Intelligence", "Tariffario"],
+      "status": "active",
+      "notes": "Da usare per data di pubblicazione e controllo dell'atto; non sostituisce il testo vigente consolidato."
+    },
+    {
+      "id": "ministero_giustizia",
+      "name": "Ministero della Giustizia",
+      "type": "sito_istituzionale",
+      "official_url": "https://www.giustizia.it/",
+      "scope": "Provvedimenti, documentazione istituzionale e riferimenti di amministrazione della giustizia.",
+      "last_verified_at": "2026-05-08",
+      "version": "portale ufficiale",
+      "modules": ["Telematico", "Documenti", "Template atti", "Legal Intelligence"],
+      "status": "active",
+      "notes": "Fonte primaria per atti ministeriali e comunicazioni istituzionali."
+    },
+    {
+      "id": "pst",
+      "name": "Portale Servizi Telematici",
+      "type": "portale_telematico",
+      "official_url": "https://pst.giustizia.it/",
+      "scope": "Servizi telematici del Ministero della Giustizia, PCT/PST e documentazione tecnica.",
+      "last_verified_at": "2026-05-08",
+      "version": "portale ufficiale",
+      "modules": ["Telematico", "Depositi", "Documenti", "Local Signer"],
+      "status": "active",
+      "notes": "Le operazioni in IUSENTRA restano assistite; nessuno scraping HTML o automazione non autorizzata."
+    },
+    {
+      "id": "specifiche_pct_art_34",
+      "name": "Specifiche tecniche PCT art. 34 D.M. 44/2011",
+      "type": "specifica_tecnica",
+      "official_url": "https://pst.giustizia.it/PST/it/documentation.page",
+      "scope": "Specifiche tecniche per processo civile e penale telematico pubblicate dal Ministero/PST.",
+      "last_verified_at": "2026-05-08",
+      "version": "testo coordinato da verificare per release",
+      "modules": ["Telematico", "Depositi", "DatiAtto.xml", "Busta telematica"],
+      "status": "manual_review_required",
+      "notes": "Prima di dichiarare conformita XSD o depositabilita occorre verificare versione applicabile e profilo deposito."
+    },
+    {
+      "id": "giustizia_amministrativa_siga",
+      "name": "Giustizia Amministrativa - PAT/SIGA",
+      "type": "portale_telematico",
+      "official_url": "https://www.giustizia-amministrativa.it/processo-amministrativo-telematico",
+      "scope": "Processo amministrativo telematico, regole tecniche-operative e servizi SIGA.",
+      "last_verified_at": "2026-05-08",
+      "version": "portale ufficiale",
+      "modules": ["PAT", "Telematico", "Documenti"],
+      "status": "manual_review_required",
+      "notes": "IUSENTRA deve distinguere consultazione assistita, upload/import e controlli non esaustivi."
+    },
+    {
+      "id": "giustizia_tributaria_sigit",
+      "name": "Giustizia Tributaria - PTT/SIGIT",
+      "type": "portale_telematico",
+      "official_url": "https://www.giustiziatributaria.gov.it/",
+      "scope": "Processo tributario telematico e servizi SIGIT.",
+      "last_verified_at": "2026-05-08",
+      "version": "portale ufficiale",
+      "modules": ["PTT", "SIGIT", "Telematico"],
+      "status": "manual_review_required",
+      "notes": "Le regole di deposito vanno verificate per rito e aggiornamento del portale prima di indicare depositabilita."
+    },
+    {
+      "id": "sigp_giudice_pace",
+      "name": "SIGP / Giudice di Pace",
+      "type": "portale_telematico",
+      "official_url": "https://pst.giustizia.it/",
+      "scope": "Sincronizzazione fascicolo telematico e servizi autorizzati per Giudice di Pace quando disponibili.",
+      "last_verified_at": "2026-05-08",
+      "version": "fonte da validare su canale ufficiale",
+      "modules": ["SIGP", "Telematico", "Fascicoli"],
+      "status": "manual_review_required",
+      "notes": "Non usare shortcut HTML o scraping; il flusso corretto passa da servizi autorizzati o Local Connector."
+    },
+    {
+      "id": "cnf",
+      "name": "Consiglio Nazionale Forense",
+      "type": "istituzione_forense",
+      "official_url": "https://www.consiglionazionaleforense.it/",
+      "scope": "Informazioni istituzionali forensi, deontologia e riferimenti professionali ove applicabili.",
+      "last_verified_at": "2026-05-08",
+      "version": "portale istituzionale",
+      "modules": ["Legal Intelligence", "Template atti", "Lex AI"],
+      "status": "manual_review_required",
+      "notes": "Usare come fonte istituzionale solo quando il contenuto e' effettivamente censito e citabile."
+    },
+    {
+      "id": "dm_55_2014",
+      "name": "D.M. 10 marzo 2014, n. 55",
+      "type": "norma_tariffaria",
+      "official_url": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:ministero.giustizia:decreto:2014-03-10;55!vig=",
+      "scope": "Parametri per la liquidazione dei compensi per la professione forense.",
+      "last_verified_at": "2026-05-08",
+      "version": "testo vigente Normattiva",
+      "modules": ["Tariffario", "Preventivi", "Compensi forensi", "Fatturazione"],
+      "status": "active",
+      "notes": "Base tariffaria; ogni tabella applicativa deve mantenere fonte e scaglione tracciabili."
+    },
+    {
+      "id": "dm_147_2022",
+      "name": "D.M. 13 agosto 2022, n. 147",
+      "type": "norma_tariffaria",
+      "official_url": "https://www.normattiva.it/atto/caricaDettaglioAtto?atto.codiceRedazionale=22G00157&atto.dataPubblicazioneGazzetta=2022-10-08&classica=true&tipoDettaglio=vigente",
+      "scope": "Modifiche al D.M. 55/2014 e revisione tabelle parametri forensi.",
+      "last_verified_at": "2026-05-08",
+      "version": "testo vigente Normattiva",
+      "modules": ["Tariffario", "Preventivi", "Compensi forensi", "Fatturazione"],
+      "status": "active",
+      "notes": "Aggiornamento essenziale per tabelle tariffarie; nessun valore mancante deve essere inventato."
+    },
+    {
+      "id": "l_247_2012_art_13",
+      "name": "L. 31 dicembre 2012, n. 247 - art. 13",
+      "type": "norma_professione_forense",
+      "official_url": "https://www.gazzettaufficiale.it/eli/id/2013/01/18/13G00018/sg",
+      "scope": "Nuova disciplina dell'ordinamento della professione forense e compenso professionale.",
+      "last_verified_at": "2026-05-08",
+      "version": "Gazzetta Ufficiale / testo da consolidare",
+      "modules": ["Preventivi", "Conferimenti", "Tariffario"],
+      "status": "manual_review_required",
+      "notes": "Verificare testo vigente consolidato in Normattiva prima di usarlo come base automatica."
+    },
+    {
+      "id": "dm_44_2011",
+      "name": "D.M. 21 febbraio 2011, n. 44",
+      "type": "regole_tecniche_telematico",
+      "official_url": "https://www.giustizia.it/",
+      "scope": "Regole tecniche per processo civile e penale telematico.",
+      "last_verified_at": "2026-05-08",
+      "version": "testo da verificare per release",
+      "modules": ["Telematico", "Depositi", "PST"],
+      "status": "manual_review_required",
+      "notes": "Usare con specifiche tecniche applicabili; non basta per dichiarare una busta conforme."
+    },
+    {
+      "id": "gdpr_reg_2016_679",
+      "name": "Regolamento (UE) 2016/679 - GDPR",
+      "type": "privacy",
+      "official_url": "https://eur-lex.europa.eu/eli/reg/2016/679/oj",
+      "scope": "Protezione dati personali, privacy by design e responsabilita del titolare/responsabile.",
+      "last_verified_at": "2026-05-08",
+      "version": "EUR-Lex",
+      "modules": ["Privacy", "Documenti", "PEC", "Lex AI", "Multi-tenant"],
+      "status": "manual_review_required",
+      "notes": "La compliance privacy richiede policy di studio e valutazione organizzativa oltre ai controlli software."
+    }
+  ]
+}

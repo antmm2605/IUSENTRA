@@ -1,35 +1,6 @@
 import type { LucideIcon } from 'lucide-react'
-import {
-  AlertTriangle,
-  Bell,
-  Bot,
-  BriefcaseBusiness,
-  Calculator,
-  CalendarDays,
-  CheckCircle2,
-  Clock,
-  Contact,
-  Euro,
-  FileSignature,
-  FileText,
-  Files,
-  Fingerprint,
-  FolderOpen,
-  Gavel,
-  Info,
-  Landmark,
-  LockKeyhole,
-  MessageCircle,
-  ReceiptText,
-  Scale,
-  Search,
-  Send,
-  ShieldCheck,
-  Sparkles,
-  UploadCloud,
-  UserRound,
-  UsersRound,
-} from 'lucide-react'
+import { Scale } from 'lucide-react'
+import { iusIconCatalog as sharedIconCatalog, iusIcons } from './icons'
 
 export type IusLegalArea =
   | 'agenda'
@@ -49,32 +20,24 @@ export type IusLegalArea =
 export type IusTone = 'neutral' | 'primary' | 'success' | 'warning' | 'danger' | 'gold' | 'info'
 
 export const iusLegalIcons: Record<IusLegalArea, LucideIcon> = {
-  agenda: CalendarDays,
-  alert: AlertTriangle,
-  clienti: UserRound,
-  conformita: CheckCircle2,
-  documenti: FileText,
-  fascicoli: FolderOpen,
-  lex: Bot,
-  privacy: Fingerprint,
-  ricerca: Search,
-  sicurezza: ShieldCheck,
-  soggetti: UsersRound,
-  tariffario: Calculator,
-  telematico: Landmark,
+  agenda: iusIcons.agenda,
+  alert: iusIcons.alert,
+  clienti: iusIcons.clienti,
+  conformita: iusIcons.conformita,
+  documenti: iusIcons.documenti,
+  fascicoli: iusIcons.fascicoli,
+  lex: iusIcons.lex,
+  privacy: iusIcons.privacy,
+  ricerca: iusIcons.ricerca,
+  sicurezza: iusIcons.sicurezza,
+  soggetti: iusIcons.soggetti,
+  tariffario: iusIcons.tariffario,
+  telematico: iusIcons.telematico,
 }
 
 export const iusIconCatalog = {
-  agenda: { CalendarDays, Clock, Bell },
-  alert: { AlertTriangle, CheckCircle2, Info },
-  clienti: { UserRound, UsersRound, Contact },
-  documenti: { FileText, Files, FileSignature },
-  fascicoli: { FolderOpen, FileText, BriefcaseBusiness },
-  lex: { Bot, Sparkles, MessageCircle },
-  privacy: { LockKeyhole, ShieldCheck, Fingerprint },
-  ricerca: { Search },
-  tariffario: { Calculator, ReceiptText, Euro },
-  telematico: { Landmark, Send, UploadCloud, ShieldCheck, Gavel, Scale },
+  ...sharedIconCatalog,
+  telematico: { ...sharedIconCatalog.telematico, Scale },
 } as const
 
 export const iusToneClass: Record<IusTone, string> = {

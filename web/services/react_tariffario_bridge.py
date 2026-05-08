@@ -17,6 +17,18 @@ from pct.tariffario_catalogo import (
 from web.services.mediazione_dm150_runtime import MEDIAZIONE_ODM_TABLE_ID
 from web.services.react_tariffario_compute import build_react_tariffario_run_payload
 
+_ALLOWED_VARIATION_FIELDS = {
+    "var_studio",
+    "var_introduttiva",
+    "var_istruttoria",
+    "var_decisionale",
+    "var_esecutiva",
+    "var_attivazione",
+    "var_rivitalizzazione",
+    "var_negoziazione",
+    "var_conciliazione",
+}
+
 
 def _iso_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
@@ -477,7 +489,8 @@ def calculate_react_tariffario(
         "manual_lines",
     }
     forbidden = {"result", "risultato", "totale", "iva", "cassa", "ritenuta", "brackets", "scaglioni"}
-    unknown = sorted(set(payload) - allowed)
+    payload_fields = set(payload)
+    unknown = sorted(payload_fields - allowed - _ALLOWED_VARIATION_FIELDS)
     blocked = sorted(set(payload) & forbidden)
     if unknown or blocked:
         errors = {key: "Campo non ammesso come fonte canonica." for key in unknown + blocked}

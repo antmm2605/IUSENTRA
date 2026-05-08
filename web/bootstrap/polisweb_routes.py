@@ -293,10 +293,10 @@ def register_polisweb_routes(
             acquisisci_portale = form_data.get("acquisisci_portale") == "1"
             mantieni_albero_originale = form_data.get("mantieni_albero_originale") == "1"
 
-            # Se l'utente non ha richiesto il mantenimento dell'albero originale PST,
-            # i documenti eventualmente prefetchati non vengono importati/acquisiti.
-            if not mantieni_albero_originale:
-                documenti_pw = None
+            # I metadati dei documenti ricevuti esplicitamente dal Local Signer
+            # sono gia' un import assistito dall'utente e vanno sempre censiti.
+            # mantieni_albero_originale governa solo la navigazione/acquisizione
+            # successiva della UI, non la perdita dei metadati ufficiali.
 
             if id_fasc_target:
                 fascicolo_target = gestione_fascicoli.get(id_fasc_target)

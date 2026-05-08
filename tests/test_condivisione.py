@@ -309,7 +309,9 @@ def test_cartelle_condivise_route(client_web):
     c, gu, cfg = client_web
     r = c.get("/cartelle-condivise")
     assert r.status_code == 200
-    assert "Cartelle" in r.data.decode()
+    html = r.data.decode()
+    assert 'class="react-shell-document"' in html
+    assert 'id="root"' in html
 
 
 def test_gestione_collaboratori_cliente_inesistente(client_web):

@@ -44,7 +44,9 @@ def _clean_spaces(value: object) -> str:
 
 
 def _should_include_legal_sources(request, workflow: str) -> bool:
-    if workflow in {"normativa", "giurisprudenza", "prassi", "research", "fonti"}:
+    if workflow == "studio_data_lookup":
+        return False
+    if workflow in {"normativa", "giurisprudenza", "giurisprudenza_specifica", "prassi", "research", "fonti"}:
         return True
 
     metadata = dict(getattr(request, "metadata", {}) or {})

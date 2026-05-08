@@ -674,7 +674,7 @@
       "workspaceTarget": "/app/documenti?tab=template",
       "route": "/template-atti",
       "family": "documenti",
-      "status": "react_bridge",
+      "status": "react_operational_full",
       "risk": "high",
       "targetComponent": "frontend/src/components/TemplateAttiPage.tsx",
       "targetData": "frontend/src/templateAttiData.ts",
@@ -686,14 +686,16 @@
         "metadati template",
         "variabili solo come metadata",
         "nessun template raw",
-        "compliance deposito"
+        "compliance deposito",
+        "nessuna CTA legacy primaria",
+        "scrittura none"
       ]
     },
     {
       "workspaceTarget": "/app/documenti?tab=template",
       "route": "/template-atti/catalogo",
       "family": "documenti",
-      "status": "react_bridge",
+      "status": "react_operational_full",
       "risk": "high",
       "targetComponent": "frontend/src/components/TemplateAttiPage.tsx",
       "targetData": "frontend/src/templateAttiData.ts",
@@ -705,7 +707,9 @@
         "metadati template",
         "variabili solo come metadata",
         "nessun template raw",
-        "editor legacy"
+        "editor su percorso dedicato",
+        "nessuna CTA legacy primaria",
+        "scrittura none"
       ]
     },
     {
@@ -750,7 +754,7 @@
       "workspaceTarget": "/app/documenti?tab=redazione",
       "route": "/redazione-atti",
       "family": "documenti",
-      "status": "react_bridge",
+      "status": "react_operational_full",
       "risk": "high",
       "targetComponent": "frontend/src/components/RedazioneAttiPage.tsx",
       "targetData": "frontend/src/redazioneAttiData.ts",
@@ -761,8 +765,10 @@
         "superficie operativa controllata",
         "workflow come metadati",
         "template suggeriti solo come riferimento",
-        "azioni legacy sicure",
-        "nessuna redazione guidata React"
+        "azioni React read-only",
+        "nessuna redazione guidata React",
+        "nessuna CTA legacy primaria",
+        "scrittura none"
       ]
     },
     {
@@ -807,7 +813,7 @@
       "workspaceTarget": "/app/lex",
       "route": "/giurisprudenza",
       "family": "documenti",
-      "status": "react_bridge",
+      "status": "react_operational_full",
       "risk": "high",
       "targetComponent": "frontend/src/components/GiurisprudenzaPage.tsx",
       "targetData": "frontend/src/giurisprudenzaData.ts",
@@ -819,7 +825,9 @@
         "fonti gia presenti",
         "nessun import React",
         "nessuna classificazione React",
-        "dettaglio legacy"
+        "dettaglio come scheda metadati",
+        "nessuna CTA legacy primaria",
+        "scrittura none"
       ]
     },
     {
@@ -864,7 +872,7 @@
       "workspaceTarget": "/app/lex",
       "route": "/legal-intelligence",
       "family": "documenti",
-      "status": "react_bridge",
+      "status": "react_operational_full",
       "risk": "high",
       "targetComponent": "frontend/src/components/LegalIntelligencePage.tsx",
       "targetData": "frontend/src/legalIntelligenceData.ts",
@@ -874,16 +882,18 @@
       "mustPreserve": [
         "monitor fonti",
         "dashboard read-only",
-        "approvazione legacy",
+        "approvazione su percorso dedicato",
         "nessun fetch esterno",
-        "distinzione fonte e inferenza"
+        "distinzione fonte e inferenza",
+        "nessuna CTA legacy primaria",
+        "scrittura none"
       ]
     },
     {
       "workspaceTarget": "/app/lex",
       "route": "/legal-intelligence/news",
       "family": "documenti",
-      "status": "react_bridge",
+      "status": "react_operational_full",
       "risk": "high",
       "targetComponent": "frontend/src/components/LegalIntelligencePage.tsx",
       "targetData": "frontend/src/legalIntelligenceData.ts",
@@ -895,14 +905,16 @@
         "fonte",
         "stato approvazione",
         "nessuna sintesi generata",
-        "nessun fetch esterno"
+        "nessun fetch esterno",
+        "nessuna CTA legacy primaria",
+        "scrittura none"
       ]
     },
     {
       "workspaceTarget": "/app/lex",
       "route": "/legal-intelligence/mediazione",
       "family": "documenti",
-      "status": "react_bridge",
+      "status": "react_operational_full",
       "risk": "high",
       "targetComponent": "frontend/src/components/LegalIntelligencePage.tsx",
       "targetData": "frontend/src/legalIntelligenceData.ts",
@@ -914,7 +926,9 @@
         "fonte",
         "stato aggiornamento",
         "nessun import React",
-        "nessun fetch esterno"
+        "nessun fetch esterno",
+        "nessuna CTA legacy primaria",
+        "scrittura none"
       ]
     },
     {
@@ -940,7 +954,7 @@
       "workspaceTarget": "/app/lex",
       "route": "/ricerca-legale",
       "family": "documenti",
-      "status": "react_bridge",
+      "status": "react_operational_full",
       "risk": "high",
       "targetComponent": "frontend/src/components/LegalIntelligencePage.tsx",
       "targetData": "frontend/src/legalIntelligenceData.ts",
@@ -952,7 +966,9 @@
         "fonti gia presenti",
         "nessun fetch esterno",
         "nessuna sintesi generata",
-        "nessuna pipeline nuova"
+        "nessuna pipeline nuova",
+        "nessuna CTA legacy primaria",
+        "scrittura none"
       ]
     },
     {

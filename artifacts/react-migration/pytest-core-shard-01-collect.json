@@ -1,0 +1,130 @@
+{
+  "totalFiles": 57,
+  "totalShards": 10,
+  "shards": [
+    {
+      "name": "core-01",
+      "fileCount": 6,
+      "files": [
+        "lex/tests/test_citation_guard_strict.py",
+        "lex/tests/test_legal_reference_guard_strict.py",
+        "lex/tests/unit/test_bundle_scenarios.py",
+        "lex/tests/unit/test_source_policy.py",
+        "tests/test_auth.py",
+        "tests/test_scheduler.py"
+      ]
+    },
+    {
+      "name": "core-02",
+      "fileCount": 6,
+      "files": [
+        "lex/tests/test_dependencies.py",
+        "lex/tests/test_official_web.py",
+        "lex/tests/unit/test_deterministic_provider.py",
+        "lex/tests/unit/test_source_policy_invariants.py",
+        "tests/test_database.py",
+        "tests/test_scheduler_worker.py"
+      ]
+    },
+    {
+      "name": "core-03",
+      "fileCount": 6,
+      "files": [
+        "lex/tests/test_evaluation_metrics.py",
+        "lex/tests/test_ollama_provider_strict_no_evidence.py",
+        "lex/tests/unit/test_guard_orchestrator.py",
+        "lex/tests/unit/test_source_registry.py",
+        "tests/test_giurisprudenza_repository.py",
+        "tests/test_storage_strategy.py"
+      ]
+    },
+    {
+      "name": "core-04",
+      "fileCount": 6,
+      "files": [
+        "lex/tests/test_gateway_privacy_guard.py",
+        "lex/tests/test_orchestrator.py",
+        "lex/tests/unit/test_memory_service.py",
+        "lex/tests/unit/test_studio_context.py",
+        "tests/test_legal_intelligence_repository.py",
+        "tests/test_telematico_repository.py"
+      ]
+    },
+    {
+      "name": "core-05",
+      "fileCount": 6,
+      "files": [
+        "lex/tests/test_gateway_router.py",
+        "lex/tests/test_orchestrator_http_raw_chat_blocked.py",
+        "lex/tests/unit/test_ollama_provider.py",
+        "tests/test_applicazioni_repository.py",
+        "tests/test_lex_module.py",
+        "tests/test_template_atti_repository.py"
+      ]
+    },
+    {
+      "name": "core-06",
+      "fileCount": 6,
+      "files": [
+        "lex/tests/test_gateway_status.py",
+        "lex/tests/test_professional_answer_needs_review.py",
+        "lex/tests/unit/test_professional_answer.py",
+        "tests/test_assistente_followup.py",
+        "tests/test_local_ai.py",
+        "tests/test_web_bootstrap.py"
+      ]
+    },
+    {
+      "name": "core-07",
+      "fileCount": 6,
+      "files": [
+        "lex/tests/test_grounding.py",
+        "lex/tests/test_provider_health_and_citations.py",
+        "lex/tests/unit/test_registry.py",
+        "tests/test_assistente_language_guidance.py",
+        "tests/test_observability_runtime.py",
+        "tests/test_web_security.py"
+      ]
+    },
+    {
+      "name": "core-08",
+      "fileCount": 5,
+      "files": [
+        "lex/tests/test_hallucination_guard.py",
+        "lex/tests/test_routes.py",
+        "lex/tests/unit/test_retrieval_orchestrator.py",
+        "tests/test_assistente_legal_reference_guard.py",
+        "tests/test_ocr_worker.py"
+      ]
+    },
+    {
+      "name": "core-09",
+      "fileCount": 5,
+      "files": [
+        "lex/tests/test_http_bounded_bridge.py",
+        "lex/tests/test_runtime_dependencies.py",
+        "lex/tests/unit/test_router.py",
+        "tests/test_assistente_social.py",
+        "tests/test_preventivi_repository.py"
+      ]
+    },
+    {
+      "name": "core-10",
+      "fileCount": 5,
+      "files": [
+        "lex/tests/test_http_bounded_bridge_governed_only.py",
+        "lex/tests/test_service.py",
+        "lex/tests/unit/test_social_intent_routing.py",
+        "tests/test_assistente_social_intent.py",
+        "tests/test_pst_catalog.py"
+      ]
+    }
+  ],
+  "results": [
+    {
+      "phase": "core-01",
+      "exitCode": 0,
+      "fileCount": 6
+    }
+  ]
+}

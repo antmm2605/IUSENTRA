@@ -52,11 +52,11 @@ def should_run_public_research(
     # Ricerca sentenza specifica: sempre pubblica, il frammento locale non basta
     if workflow == "giurisprudenza_specifica":
         return True
+    if force:
+        return workflow != "studio_data_lookup"
     # Flag espliciti di override: riferimento esatto, frammento incompleto, fonte pubblica richiesta
     if exact_reference or local_case_law_incomplete or user_requested_public_source:
-        return workflow in _STRICT_LEGAL_WORKFLOWS
-    if force:
-        return workflow in _STRICT_LEGAL_WORKFLOWS
+        return workflow != "studio_data_lookup"
     return workflow in _STRICT_LEGAL_WORKFLOWS and not evidence_sufficient
 
 

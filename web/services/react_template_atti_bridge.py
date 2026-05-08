@@ -101,8 +101,8 @@ def _catalog_record(row: dict[str, Any], index: int) -> dict[str, Any]:
         "updatedAt": _text(row.get("updated_at") or row.get("created_at")),
         "tags": [_text(item) for item in _list(row.get("tags")) if _text(item)],
         "requiredVariables": _variable_names(row.get("dati_obbligatori")),
-        "href": f"/template-atti/compila/{compiler_code}?_legacy=1" if compiler_code else "/template-atti?_legacy=1",
-        "detailHref": f"/template-atti/{code}/compliance?_legacy=1",
+        "href": f"/template-atti/catalogo?template={compiler_code}" if compiler_code else "/template-atti/catalogo",
+        "detailHref": f"/template-atti/catalogo?scheda={code}",
     }
 
 
@@ -128,8 +128,8 @@ def _studio_record(template: Any, index: int) -> dict[str, Any]:
         "updatedAt": _text(getattr(template, "modificato_il", "") or getattr(template, "creato_il", "")),
         "tags": [_text(item) for item in _list(getattr(template, "parole_chiave", [])) if _text(item)],
         "requiredVariables": _variable_names(getattr(template, "campi_guidati", [])),
-        "href": f"/template-atti/{template_id}/usa?_legacy=1",
-        "detailHref": f"/template-atti/scheda/{template_id}?_legacy=1",
+        "href": f"/template-atti/catalogo?template={template_id}",
+        "detailHref": f"/template-atti/catalogo?scheda={template_id}",
     }
 
 
@@ -179,7 +179,7 @@ def build_react_template_atti_payload(
     page: str = "dashboard",
 ) -> dict[str, Any]:
     warnings: list[dict[str, str]] = [
-        _warning("editor_legacy", "Editor, compilazione assistita, esportazioni e stampe restano nelle route Flask legacy."),
+        _warning("editor_dedicato", "Editor, compilazione assistita, esportazioni e stampe restano nei percorsi Flask dedicati e auditati."),
         _warning("metadati_sicuri", "React riceve solo metadati, variabili come nomi e link operativi sicuri."),
     ]
     catalog_rows = _safe_catalog_rows(warnings)
@@ -205,7 +205,7 @@ def build_react_template_atti_payload(
         "generated_at": _iso_now(),
         "contracts": {
             "mock_fallback": False,
-            "writes": "legacy_routes",
+            "writes": "none",
             "route_owner": "react_shell",
             "legacy_contract": legacy_contract,
         },
@@ -221,12 +221,12 @@ def build_react_template_atti_payload(
             _counter_section("canali", "Canali", "distribution", channels, "Nessun canale indicato."),
             _section(
                 "presidi",
-                "Presidi legacy conservati",
-                "legacy-routes",
+                "Presidi documentali conservati",
+                "dedicated-routes",
                 [
-                    _item("nuovo", "Nuovo template", "legacy", "Creazione e modifica restano su Flask", "warning"),
-                    _item("redazione", "Redazione guidata", "legacy", "Workflow completo non spostato in React", "warning"),
-                    _item("file", "Stampe e file", "legacy", "Produzione e download restano sulle route storiche", "warning"),
+                    _item("nuovo", "Nuovo template", "percorso dedicato", "Creazione e modifica restano su Flask auditato", "warning"),
+                    _item("redazione", "Redazione guidata", "percorso dedicato", "Workflow completo non spostato in React", "warning"),
+                    _item("file", "Stampe e file", "percorso dedicato", "Produzione e download restano sui percorsi governati", "warning"),
                 ],
                 "Nessun presidio rilevato.",
             ),
@@ -234,9 +234,8 @@ def build_react_template_atti_payload(
         "records": records,
         "actions": [
             _action("catalogo", "Catalogo template", "/template-atti/catalogo", "primary"),
-            _action("nuovo_legacy", "Nuovo template legacy", "/template-atti/nuovo?_legacy=1", "neutral"),
             _action("redazione", "Redazione atti", "/redazione-atti", "primary"),
-            _action("checklist", "Checklist legacy", "/checklist?_legacy=1", "neutral"),
+            _action("documenti", "Console documenti", "/documenti", "neutral"),
         ],
         "forms": [],
         "warnings": warnings,
@@ -249,7 +248,7 @@ def build_react_template_atti_error_payload(message: str = "Template atti non di
         "generated_at": _iso_now(),
         "contracts": {
             "mock_fallback": False,
-            "writes": "legacy_routes",
+            "writes": "none",
             "route_owner": "react_shell",
             "legacy_contract": "artifacts/react-migration/legacy-contracts/template-atti.json",
         },
@@ -258,7 +257,7 @@ def build_react_template_atti_error_payload(message: str = "Template atti non di
         "records": [],
         "actions": [
             _action("catalogo", "Catalogo template", "/template-atti/catalogo", "primary"),
-            _action("nuovo_legacy", "Nuovo template legacy", "/template-atti/nuovo?_legacy=1", "neutral"),
+            _action("redazione", "Redazione atti", "/redazione-atti", "neutral"),
         ],
         "forms": [],
         "warnings": [_warning("template_atti_errore_controllato", message)],

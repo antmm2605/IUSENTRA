@@ -496,43 +496,29 @@ def test_blocco_telematico_studio_admin_resta_legacy_first():
     final_routes_source = Path("web/bootstrap/react_final_block_routes.py").read_text(encoding="utf-8")
 
     legacy_first_prefixes = (
-        "/servizi-telematici",
-        "/telematico",
-        "/polisweb",
-        "/portali",
-        "/sigp",
-        "/pdp",
-        "/pat",
-        "/sigit",
-        "/tribunali",
+        "/admin/osservabilita",
+        "/applicazioni",
+        "/checklist",
+        "/database",
         "/deposito/checklist",
         "/guida/firma-digitale",
-        "/studio",
-        "/fatturazione",
-        "/preventivi",
-        "/tariffario",
-        "/compensi-forensi",
-        "/redazione-atti",
-        "/template-atti",
-        "/statistiche",
-        "/ricerca-legale",
-        "/legal-intelligence",
-        "/giurisprudenza",
-        "/strumenti-legali",
-        "/strumenti-operativi",
-        "/applicazioni",
-        "/sito-studio",
-        "/notifiche-whatsapp",
-        "/incassi-pagamenti",
-        "/backup",
         "/impostazioni",
         "/impostazioni-studio",
+        "/notifiche",
+        "/notifiche-whatsapp",
+        "/pat",
+        "/pdp",
+        "/polisweb",
+        "/portali",
+        "/servizi-telematici",
+        "/sigit",
+        "/sigp",
+        "/sigp-sync",
         "/sincronizzazione-calendari",
-        "/amministrazione",
-        "/utenti",
-        "/profili",
-        "/registro-attivita",
-        "/database",
+        "/strumenti-legali",
+        "/strumenti-operativi",
+        "/telematico",
+        "/tribunali",
     )
 
     for prefix in legacy_first_prefixes:
@@ -1468,11 +1454,6 @@ def test_react_route_gate_copre_rotte_profonde_e_preserva_contratti_operativi(tm
         for path in (
             f"/fascicoli/{fascicolo.id}/deposito/prepara",
             f"/fascicoli/{fascicolo_penale.id}/penale/pdp",
-            "/preventivi/p/test-preventivo/stato",
-            "/fatturazione/test-parcella",
-            "/giurisprudenza/test-sentenza",
-            "/template-atti/scheda/test-template",
-            "/template-atti/test-template/compliance",
             "/checklist/test-template",
             "/applicazioni/fascicoli",
             "/impostazioni?tab=pec",
@@ -1519,58 +1500,65 @@ def test_route_gate_non_promuove_moduli_studio_telematico_admin_incompleti():
     from web.bootstrap.react_route_gate import _excluded, _normalise_path
 
     legacy_first_routes = {
-        "/servizi-telematici",
-        "/telematico",
-        "/polisWeb",
-        "/portali/pst/acquisizione",
-        "/sigp",
-        "/sigp-sync",
-        "/pdp",
-        "/pat",
-        "/sigit",
-        "/tribunali",
+        "/admin/osservabilita",
+        "/applicazioni",
+        "/checklist",
+        "/database",
         "/deposito/checklist",
         "/guida/firma-digitale",
-        "/studio",
-        "/fatturazione",
-        "/preventivi",
-        "/compensi-forensi",
-        "/tariffario",
-        "/redazione-atti",
-        "/template-atti",
-        "/statistiche",
-        "/ricerca-legale",
-        "/legal-intelligence",
-        "/giurisprudenza",
+        "/impostazioni",
+        "/impostazioni-studio",
+        "/notifiche",
+        "/notifiche-whatsapp",
+        "/pat",
+        "/pdp",
+        "/polisWeb",
+        "/portali/pst/acquisizione",
+        "/servizi-telematici",
+        "/sigit",
+        "/sigp",
+        "/sigp-sync",
+        "/sincronizzazione-calendari",
         "/strumenti-legali",
         "/strumenti-operativi",
-        "/applicazioni",
-        "/sito-studio",
-        "/notifiche-whatsapp",
-        "/notifiche",
-        "/incassi-pagamenti",
+        "/telematico",
+        "/tribunali",
         "/impostazioni/pagamenti",
-        "/backup",
-        "/impostazioni-studio",
-        "/impostazioni",
-        "/sincronizzazione-calendari",
         "/impostazioni/calendario",
-        "/amministrazione",
-        "/utenti",
-        "/profili",
-        "/registro-attivita",
-        "/audit",
-        "/database",
-        "/admin/osservabilita",
     }
 
     for raw in sorted(legacy_first_routes):
         path = _normalise_path(raw)
         assert _excluded(path), path
 
-    assert not _excluded(_normalise_path("/privacy/registro"))
-    assert not _excluded(_normalise_path("/privacy/registro/nuovo"))
-    assert not _excluded(_normalise_path("/admin/database"))
+    for raw in (
+        "/studio",
+        "/amministrazione",
+        "/utenti",
+        "/profili",
+        "/registro-attivita",
+        "/admin/database",
+        "/audit",
+        "/backup",
+        "/incassi-pagamenti",
+        "/privacy/registro",
+        "/privacy/registro/nuovo",
+        "/sito-studio",
+        "/statistiche",
+        "/fatturazione",
+        "/preventivi",
+        "/compensi-forensi",
+        "/tariffario",
+        "/redazione-atti",
+        "/template-atti",
+        "/template-atti/catalogo",
+        "/ricerca-legale",
+        "/legal-intelligence",
+        "/legal-intelligence/news",
+        "/legal-intelligence/mediazione",
+        "/giurisprudenza",
+    ):
+        assert not _excluded(_normalise_path(raw)), raw
     assert _excluded(_normalise_path("/privacy/registro/ABC123/elimina"))
 
 
@@ -2150,26 +2138,32 @@ def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: P
         "Checklist deposito": "/deposito/checklist",
         "Guida firma digitale": "/guida/firma-digitale",
     }
-    studio_admin_routes = {
+    react_studio_routes = {
         "Studio": "/studio",
-        "Parcelle e Fatture": "/fatturazione/",
-        "Preventivi e Incarichi": "/preventivi/",
+        "Parcelle e Fatture": "/fatturazione",
+        "Preventivi e Incarichi": "/preventivi",
         "Compensi Forensi": "/compensi-forensi",
         "Redazione Atti": "/redazione-atti",
-        "Statistiche": "/statistiche/",
+        "Template Atti": "/template-atti",
+        "Catalogo Template": "/template-atti/catalogo",
+        "Statistiche": "/statistiche",
         "Ricerca Legale": "/ricerca-legale",
-        "Archivio Giurisprudenza": "/giurisprudenza/",
-        "Strumenti Forensi": "/strumenti-legali/",
-        "Strumenti Operativi": "/strumenti-operativi",
-        "Sito Studio": "/sito-studio/",
-        "Notifiche WhatsApp": "/notifiche-whatsapp",
+        "Archivio Giurisprudenza": "/giurisprudenza",
+        "Legal Intelligence": "/legal-intelligence",
+        "Amministrazione": "/amministrazione",
         "Incassi e Pagamenti": "/incassi-pagamenti",
         "Backup": "/backup",
-        "Impostazioni Studio": "/impostazioni-studio",
-        "Sincronizzazione Calendari": "/sincronizzazione-calendari",
+        "Sito Studio": "/sito-studio/",
         "Utenti": "/utenti",
         "Profili e Permessi": "/profili",
         "Registro Attività": "/registro-attivita",
+    }
+    legacy_studio_routes = {
+        "Strumenti Forensi": "/strumenti-legali/",
+        "Strumenti Operativi": "/strumenti-operativi",
+        "Notifiche WhatsApp": "/notifiche-whatsapp",
+        "Impostazioni Studio": "/impostazioni-studio",
+        "Sincronizzazione Calendari": "/sincronizzazione-calendari",
     }
 
     with app.test_client() as client:
@@ -2182,7 +2176,10 @@ def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: P
         _assert_react_shell(client, "Alias Registro GDPR", "/registro-gdpr")
         _assert_react_shell(client, "Database", "/admin/database")
 
-        for label, path in {**telematico_routes, **studio_admin_routes}.items():
+        for label, path in react_studio_routes.items():
+            _assert_react_shell(client, label, path)
+
+        for label, path in {**telematico_routes, **legacy_studio_routes}.items():
             response = client.get(path, follow_redirects=True)
             assert response.status_code == 200, label
             assert "IUSENTRA - React Shell" not in response.get_data(as_text=True)
@@ -2940,7 +2937,10 @@ def test_react_fascicolo_dettaglio_normalizza_referente_udienza_e_chiusura(tmp_p
     assert profile["Chiusura"] != "n.d."
     assert profile["Ultimo sync"] == imported_at_it
     assert payload["fascicolo"]["notes"] == f"Importato da PolisWeb il {imported_at_it}"
-    assert payload["activities"] == []
+    assert any(
+        item.get("notes") == f"Evento acquisito il {imported_at_it}"
+        for item in payload["activities"]
+    )
     assert attivita_payload["activities"][0]["notes"] == f"Evento acquisito il {imported_at_it}"
     assert imported_at not in str(payload)
 

@@ -36,8 +36,16 @@ Non duplicare componenti gia' presenti. Se una pagina usa `frontend/src/ui/*`, a
 - `IusFormSection`: sezione form con intestazione e contenuto.
 - `IusCollapsiblePanel`: pannello espandibile per pagine complesse.
 - `IusDataTableShell`: shell tabellare responsive con toolbar e stato vuoto.
+- `IusLoadingState`, `IusErrorState`, `IusSuccessState`, `IusRetryPanel`: stati applicativi professionali senza stacktrace o messaggi tecnici grezzi.
+- `IusSkeletonTable`, `IusSkeletonCard`: caricamenti stabili per tabelle e card operative.
+- `IusWizardStepper`: stepper compatto per wizard deposito, preventivi e percorsi guidati.
+- `IusCompliancePanel`: pannello trasparente per verificato, non verificato, fonte mancante, fallback e revisione manuale.
+- `IusDocumentStatusBadge`: badge documentali per OCR, PDF/A, firma, deposito e validazione non eseguita.
+- `IusChannelCard`: card canale per PST/PDP/PAT/PTT/SIGP e import assistito, con stato, anomalie e azione primaria.
+- `IusMessageList`: lista comunicazioni/PEC con stato letto, allegati, fascicolo collegato e canale.
 - `IusLegalIcon`: wrapper unico per dimensioni, tono e accessibilita icone.
 - `LexFloatingButton`: pulsante flottante per Lex AI dove previsto.
+- `LexPanel`: drawer/pannello Lex con contesto, fonti, documenti usati, modalita operative e stati di contesto insufficiente.
 
 ## Token colore
 
@@ -52,7 +60,7 @@ Usare i token CSS in `iusentra-design-system.css` e le classi semantiche `ius-to
 
 ## Icone
 
-Usare sempre `lucide-react` tramite `IusLegalIcon` o `iusLegalIcons`:
+Usare sempre `lucide-react` tramite `IusLegalIcon`, `iusLegalIcons` o il registry `frontend/src/design/icons.tsx`:
 
 - Fascicoli: `FolderOpen`, `FileText`, `BriefcaseBusiness`
 - Clienti/Soggetti: `UserRound`, `UsersRound`, `Contact`

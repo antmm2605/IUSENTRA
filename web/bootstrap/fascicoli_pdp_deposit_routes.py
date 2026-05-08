@@ -172,7 +172,7 @@ def _run_pdp_preflight(
         size_bytes=Path(tmp_path).stat().st_size,
         signed=bool(getattr(documento, "firmato_digitalmente", False)),
         signature_format=signature_type,
-        pdfa=bool(getattr(documento, "pdfa", False)),
+        metadata={"pdfa": bool(getattr(documento, "pdfa", False))},
     )
     preflight_results = DocumentPreflightValidator().validate(
         documents=[deposit_document],
@@ -309,4 +309,3 @@ def _pdp_deposit_success(esito: dict[str, Any]) -> bool:
         "INVIATO" if codice_esito in {"0", "1"} else ""
     )
     return codice_esito in {"0", "1"} and stato != "ERRORE_TECNICO"
-

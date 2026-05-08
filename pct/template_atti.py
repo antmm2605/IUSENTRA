@@ -248,6 +248,26 @@ _CATEGORIA_COMPILER_FALLBACK: Dict[str, str] = {
 }
 
 
+def _compiler_fallback_for(*, area: str = "", categoria: str = "") -> str:
+    """Restituisce un compilatore guidato prudente per template senza binding specifico."""
+
+    return (
+        _AREA_COMPILER_FALLBACK.get(area or "")
+        or _CATEGORIA_COMPILER_FALLBACK.get(categoria or "")
+        or "CIV_MEM_001"
+    )
+
+
+def _ensure_redazione_guidata(tmpl: TemplateAtto) -> bool:
+    if tmpl.link_compilatore_code:
+        return False
+    tmpl.link_compilatore_code = _compiler_fallback_for(
+        area=tmpl.area,
+        categoria=tmpl.categoria,
+    )
+    return True
+
+
 # ================================================================ Gestore
 
 class GestioneTemplateAtti:
@@ -298,19 +318,14 @@ class GestioneTemplateAtti:
         for t in BUILTIN_TEMPLATES:
             self._templates[t["id"]] = TemplateAtto.from_dict(t)
 
-        # Assegna un fallback compiler a template built-in stale (salvati in JSON
-        # da versioni precedenti del codice) che non hanno link_compilatore_code.
+        # Ogni modello deve restare apribile in redazione guidata. Il fallback
+        # copre anche template personali o runtime stale privi di binding.
+        changed_custom = False
         for tmpl in self._templates.values():
-            if not tmpl.builtin or tmpl.link_compilatore_code:
-                continue
-            area = tmpl.area or ""
-            categoria = tmpl.categoria or ""
-            fallback = (
-                _AREA_COMPILER_FALLBACK.get(area)
-                or _CATEGORIA_COMPILER_FALLBACK.get(categoria)
-                or "CIV_MEM_001"
-            )
-            tmpl.link_compilatore_code = fallback
+            if _ensure_redazione_guidata(tmpl) and not tmpl.builtin:
+                changed_custom = True
+        if changed_custom:
+            self._salva()
 
     def _sync_repository(self):
         self._repository.synchronize_templates(self.tutti())
@@ -356,7 +371,11 @@ class GestioneTemplateAtti:
             parole_chiave=list(metadata.get("parole_chiave", []) or []),
             campi_guidati=list(metadata.get("campi_guidati", []) or []),
             varianti=list(metadata.get("varianti", []) or []),
-            link_compilatore_code=metadata.get("link_compilatore_code", ""),
+            link_compilatore_code=metadata.get("link_compilatore_code", "")
+            or _compiler_fallback_for(
+                area=metadata.get("area", ""),
+                categoria=categoria,
+            ),
             ordine=int(metadata.get("ordine", 9999) or 9999),
             builtin=False,
         )
@@ -372,6 +391,7 @@ class GestioneTemplateAtti:
         for k, v in kwargs.items():
             if hasattr(t, k):
                 setattr(t, k, v)
+        _ensure_redazione_guidata(t)
         t.modificato_il = datetime.now().isoformat()
         self._salva()
         self._sync_repository()

@@ -499,7 +499,7 @@ def test_news_page_renderizza_contenuto_pubblicato(tmp_path: Path):
         login = client.post("/login", data={"username": username, "password": password}, follow_redirects=False)
         assert login.status_code == 302
 
-        response = client.get("/legal-intelligence/news")
+        response = client.get("/legal-intelligence/news?_legacy=1")
 
     html = response.get_data(as_text=True)
     assert response.status_code == 200
@@ -517,8 +517,8 @@ def test_superadmin_vede_i_link_del_motore_in_sidebar_e_motori_legali(tmp_path: 
         assert login.status_code == 302
 
         dashboard = client.get("/")
-        motori = client.get("/legal-intelligence/")
-        news = client.get("/legal-intelligence/news")
+        motori = client.get("/legal-intelligence/?_legacy=1")
+        news = client.get("/legal-intelligence/news?_legacy=1")
 
     motori_html = motori.get_data(as_text=True)
     news_html = news.get_data(as_text=True)

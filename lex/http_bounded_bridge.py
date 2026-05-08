@@ -30,9 +30,9 @@ _UNBOUNDED_PROFILE_INTENTS = {
     "pratica_procedura",
     "sintesi_fascicolo",
 }
-_STRICT_OFFICIAL_INTENTS = {"giurisprudenza", "normativa", "pratica_procedura"}
-_STRICT_SOURCE_WORKFLOWS = {"normativa", "giurisprudenza", "prassi", "research", "fonti"}
-_LEGAL_BOUNDED_PROFILE_INTENTS = {"giurisprudenza", "normativa"}
+_STRICT_OFFICIAL_INTENTS = {"giurisprudenza", "giurisprudenza_specifica", "normativa", "pratica_procedura"}
+_STRICT_SOURCE_WORKFLOWS = {"normativa", "giurisprudenza", "giurisprudenza_specifica", "prassi", "research", "fonti"}
+_LEGAL_BOUNDED_PROFILE_INTENTS = {"giurisprudenza", "giurisprudenza_specifica", "normativa"}
 _LEGAL_BOUNDED_FOCUS_TOPICS = {"ricerca_legale", "archivio_sentenze", "sentenze_civili", "sentenze_web"}
 _FASCICOLO_FIRST_TOPICS = {"fascicoli"}
 _EXTERNAL_LEGAL_TOKENS = (
@@ -130,6 +130,10 @@ def _has_internal_context(studio_context: dict[str, Any]) -> bool:
 def _resolve_workflow_hint(studio_context: dict[str, Any], request_profile: dict[str, Any]) -> str:
     focus_topic = _clean_spaces(studio_context.get("focus_topic"))
     profile_intent = _clean_spaces(request_profile.get("intent"))
+    if profile_intent == "giurisprudenza_specifica":
+        return "giurisprudenza_specifica"
+    if profile_intent == "cliente_anagrafica" or focus_topic == "clienti":
+        return "studio_data_lookup"
     if focus_topic in {"economico", "preventivi", "fatture"}:
         return "economico"
     if focus_topic == "telematico":
@@ -216,6 +220,10 @@ def _resolve_intent(question: str, studio_context: dict[str, Any], request_profi
     haystack = _clean_spaces(question).lower()
     focus_topic = _clean_spaces(studio_context.get("focus_topic"))
     profile_intent = _clean_spaces(request_profile.get("intent"))
+    if profile_intent == "giurisprudenza_specifica":
+        return "giurisprudenza_specifica"
+    if profile_intent == "cliente_anagrafica" or focus_topic == "clienti":
+        return "cliente_anagrafica"
     if profile_intent == "normativa":
         return "research_normativa"
     if profile_intent == "giurisprudenza":

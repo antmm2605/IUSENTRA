@@ -7,6 +7,8 @@ from typing import Any
 from lex.contracts import LexResponse as WorkflowLexResponse
 from lex.domain.confidence import compute_confidence
 from lex.guards.italian_response_guard import rewrite_or_reject_non_italian_response
+from lex.guards.user_facing_output_guard import check_output_safety
+from lex.research.case_law_exact_search import parse_case_law_reference
 from lex.schemas import LexGroundingResult
 
 from .citations import build_citations
@@ -140,6 +142,22 @@ class AnswerBuilder:
         elif partner_registry_sources or credentialed_registry_sources:
             next_actions.append("Per le fonti partner, verifica credenziali e abilitazioni prima di chiudere il parere")
 
+        if workflow == "studio_data_lookup":
+            return self._build_studio_data_lookup_response(
+                request=request,
+                draft=draft,
+                verdict=verdict,
+            )
+
+        if workflow == "giurisprudenza_specifica":
+            return self._build_case_law_specific_response(
+                request=request,
+                evidence=evidence,
+                draft=draft,
+                verdict=verdict,
+                confidence=confidence,
+            )
+
         professional = ProfessionalAnswerComposer().compose(
             request=request,
             context=dict(context or {}),
@@ -162,6 +180,13 @@ class AnswerBuilder:
             {"workflow": workflow, "request": request},
         )
         italian_guard_applied = final_answer != professional.answer
+        output_safe, sanitized_answer = check_output_safety(
+            final_answer,
+            workflow=workflow,
+            question=str(getattr(request, "query", "") or ""),
+        )
+        output_guard_applied = sanitized_answer != final_answer or not output_safe
+        final_answer = sanitized_answer
         next_actions = self._unique_strings([*next_actions, *professional.next_actions])
         warnings = self._unique_strings(
             [
@@ -170,6 +195,7 @@ class AnswerBuilder:
                 *legal_quality_warnings,
                 *professional.warnings,
                 *(["Risposta normalizzata in italiano dal guard linguistico Lex."] if italian_guard_applied else []),
+                *(["Output tecnico rimosso dalla risposta utente."] if output_guard_applied else []),
                 *([] if evidence_sufficient else ["Evidenze insufficienti: risposta in modalita' needs_review."]),
             ]
         )
@@ -223,6 +249,7 @@ class AnswerBuilder:
                 "legal_quality_guard_applied": bool(draft_metadata.get("legal_quality_guard_applied")),
                 "legal_quality_warnings": legal_quality_warnings,
                 "italian_response_guard_applied": italian_guard_applied,
+                "user_facing_output_guard_applied": output_guard_applied,
                 "evidence_count": evidence_count,
                 "official_sources": official_sources,
                 "trusted_sources": trusted_sources,
@@ -254,6 +281,218 @@ class AnswerBuilder:
                 "answer_mode": answer_mode,
                 "professional_answer": professional.metadata,
                 "provenance": provenance_envelope,
+            },
+        )
+
+    def _build_case_law_specific_response(
+        self,
+        *,
+        request,
+        evidence: dict[str, Any],
+        draft,
+        verdict,
+        confidence: float,
+    ) -> WorkflowLexResponse:
+        evidence_pack = dict((evidence or {}).get("evidence_pack") or {})
+        metadata = dict(evidence_pack.get("metadata") or {})
+        reference = parse_case_law_reference(str(getattr(request, "query", "") or ""))
+        number = metadata.get("official_number") or reference.number
+        date = metadata.get("official_date") or reference.date
+        kind = str(metadata.get("exact_reference_kind") or reference.kind or "sentenza").capitalize()
+        pronuncia = f"{kind} n. {number}" + (f" del {date}" if date else "")
+        exact_match = bool(metadata.get("exact_match_found"))
+        official_url = str(metadata.get("official_url") or "")
+        official_title = str(metadata.get("official_title") or pronuncia)
+        official_court = str(metadata.get("official_court") or reference.court or "fonte ufficiale")
+        has_full_text = bool(metadata.get("has_full_text"))
+        has_dispositivo = bool(metadata.get("has_dispositivo"))
+        has_motivazione = bool(metadata.get("has_motivazione"))
+        local_fragment_found = bool(metadata.get("local_case_law_fragment_found"))
+        official_search_run = bool(metadata.get("official_search_run"))
+        web_blocked_reason = str(metadata.get("web_blocked_reason") or "")
+        cap = float(metadata.get("confidence_cap") or (0.55 if exact_match else 0.45))
+        confidence = min(confidence, cap)
+        missing_parts = list(metadata.get("local_case_law_missing_parts") or [])
+        if not has_full_text:
+            missing_parts.append("testo integrale")
+        if not has_motivazione:
+            missing_parts.append("motivazione")
+        if not has_dispositivo:
+            missing_parts.append("dispositivo")
+        if not official_url:
+            missing_parts.append("URL/PDF ufficiale")
+        missing_parts = self._unique_strings([str(item) for item in missing_parts if str(item or "").strip()])
+
+        if exact_match:
+            certain = [f"Numero e data risultano coerenti con il riferimento richiesto: {pronuncia}."]
+            if official_url:
+                certain.append("La fonte e' un dominio ufficiale o riconosciuto.")
+            answer_lines = [
+                "Ho individuato la pronuncia richiesta.",
+                "",
+                f"Pronuncia: {pronuncia}",
+                f"Fonte: {official_court}",
+                f"Link ufficiale: {official_url or 'non disponibile'}",
+                "",
+                "Cosa e' certo:",
+                *[f"- {item}" for item in certain],
+                "",
+                "Cosa manca:",
+                *([f"- {item}" for item in missing_parts] if missing_parts else ["- nessun elemento essenziale tra quelli disponibili"]),
+                "",
+                "Uso pratico:",
+                "Prima di citarla in un atto o parere, acquisisci o verifica il testo integrale ufficiale.",
+                "",
+                "Prossima azione:",
+                "Apri la fonte ufficiale e conserva il riferimento nel fascicolo.",
+            ]
+            answer_mode = "grounded" if has_full_text else "needs_review"
+            considered_sources = [official_title]
+            legal_basis = [official_title]
+        else:
+            reason_line = (
+                "La ricerca web ufficiale non e' disponibile o non e' riuscita: " + web_blocked_reason
+                if web_blocked_reason
+                else "Non considero sufficienti risultati generici o sentenze diverse."
+            )
+            fragment_line = (
+                "Ho trovato solo un frammento locale, che considero un indizio e non una fonte completa."
+                if local_fragment_found
+                else "Non ho trovato una fonte completa verificabile nelle evidenze disponibili."
+            )
+            answer_lines = [
+                f"Non ho trovato una conferma ufficiale esatta della {pronuncia} nelle fonti interrogate.",
+                "",
+                fragment_line,
+                reason_line,
+                "",
+                "Prossima azione:",
+                "verifica manualmente sul portale ufficiale oppure carica il link, il PDF o il testo integrale della pronuncia.",
+            ]
+            answer_mode = "needs_review"
+            considered_sources = []
+            legal_basis = []
+
+        final_answer = "\n".join(answer_lines).strip()
+        final_answer = rewrite_or_reject_non_italian_response(final_answer, {"workflow": "giurisprudenza_specifica", "request": request})
+        _, final_answer = check_output_safety(
+            final_answer,
+            workflow="giurisprudenza_specifica",
+            question=str(getattr(request, "query", "") or ""),
+        )
+        warnings = self._unique_strings(
+            [
+                *list(getattr(verdict, "warnings", []) or []),
+                *list(metadata.get("case_law_warnings") or []),
+                *([] if official_search_run else ["Ricerca ufficiale non eseguita o non disponibile."]),
+                *([] if exact_match else ["Conferma ufficiale esatta non trovata."]),
+            ]
+        )
+        next_actions = self._unique_strings(
+            [
+                "Verifica o acquisisci il testo integrale ufficiale prima dell'uso in atto.",
+            ]
+        )
+        retrieved_count = len(list((evidence or {}).get("items") or []))
+        discarded_count = int(metadata.get("discarded_unrelated_case_law_count") or 0)
+        response_metadata = {
+            **metadata,
+            "workflow": "giurisprudenza_specifica",
+            "provider": str(getattr(draft, "metadata", {}).get("provider") or ""),
+            "confidence": confidence,
+            "confidence_label": self._confidence_label(confidence),
+            "answer_mode": answer_mode,
+            "evidence_sufficient": bool(exact_match and has_full_text),
+        }
+        return WorkflowLexResponse(
+            answer=final_answer,
+            citations=[],
+            warnings=warnings,
+            next_actions=next_actions,
+            risk_level=str(getattr(verdict, "risk_level", "high") or "high"),
+            legal_basis=legal_basis,
+            considered_sources=considered_sources,
+            compared_sources=[],
+            missing_evidence=missing_parts,
+            confidence=confidence,
+            answer_mode=answer_mode,
+            evidence_summary={
+                "retrieved_count": retrieved_count,
+                "exact_match_count": 1 if exact_match else 0,
+                "relevant_count": 1 if exact_match else 0,
+                "discarded_count": discarded_count,
+                "local_fragment_found": local_fragment_found,
+                "completed_from_web": bool(metadata.get("completed_from_web")),
+                "official_search_run": official_search_run,
+                "evidence_sufficient": bool(exact_match and has_full_text),
+            },
+            metadata=response_metadata,
+        )
+
+    def _build_studio_data_lookup_response(self, *, request, draft, verdict) -> WorkflowLexResponse:
+        lookup_meta: dict[str, Any] = {}
+        answer = str(getattr(draft, "text", "") or "").strip()
+        try:
+            from lex.tools.studio_data_gateway import build_cliente_answer, find_cliente
+
+            lookup = find_cliente(str(getattr(request, "query", "") or ""))
+            answer = build_cliente_answer(lookup)
+            lookup_meta = {
+                "studio_data_lookup_used": True,
+                "studio_data_lookup_type": lookup.lookup_type,
+                "studio_data_lookup_query": lookup.query,
+                "studio_data_lookup_cleaned_query": lookup.cleaned_query,
+                "studio_data_lookup_matches": len(lookup.matches),
+                "studio_data_lookup_status": lookup.status,
+                "web_used": False,
+                "web_forbidden_reason": "Richiesta dati interni studio",
+            }
+        except Exception:
+            lookup_meta = {
+                "studio_data_lookup_used": True,
+                "studio_data_lookup_type": "cliente",
+                "studio_data_lookup_query": str(getattr(request, "query", "") or ""),
+                "studio_data_lookup_cleaned_query": str(getattr(request, "query", "") or ""),
+                "studio_data_lookup_matches": 0,
+                "studio_data_lookup_status": "error",
+                "web_used": False,
+                "web_forbidden_reason": "Richiesta dati interni studio",
+            }
+        answer = rewrite_or_reject_non_italian_response(answer, {"workflow": "studio_data_lookup", "request": request})
+        _, answer = check_output_safety(
+            answer,
+            workflow="studio_data_lookup",
+            question=str(getattr(request, "query", "") or ""),
+        )
+        status = str(lookup_meta.get("studio_data_lookup_status") or "not_found")
+        confidence = {"found": 0.86, "multiple_matches": 0.62, "not_found": 0.42, "error": 0.25}.get(status, 0.42)
+        return WorkflowLexResponse(
+            answer=answer,
+            citations=[],
+            warnings=list(getattr(verdict, "warnings", []) or []),
+            next_actions=["Apri la scheda cliente o aggiorna l'anagrafica se mancano dati."],
+            risk_level=str(getattr(verdict, "risk_level", "low") or "low"),
+            legal_basis=[],
+            considered_sources=[],
+            compared_sources=[],
+            missing_evidence=[],
+            confidence=confidence,
+            answer_mode="lookup",
+            evidence_summary={
+                "lookup_status": status,
+                "lookup_type": lookup_meta.get("studio_data_lookup_type") or "cliente",
+                "match_count": int(lookup_meta.get("studio_data_lookup_matches") or 0),
+                "web_used": False,
+            },
+            metadata={
+                "workflow": "studio_data_lookup",
+                "provider": str(getattr(draft, "metadata", {}).get("provider") or "deterministic"),
+                "answer_mode": "lookup",
+                "confidence": confidence,
+                "confidence_label": self._confidence_label(confidence),
+                "studio_internal_only": True,
+                "external_sources_used": False,
+                **lookup_meta,
             },
         )
 

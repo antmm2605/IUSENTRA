@@ -102,7 +102,7 @@ def test_fascicoli_route_archivio_e_dettaglio_restano_raggiungibili(tmp_path):
     assert detail.status_code == 200
 
 
-def test_fascicolo_dettaglio_principale_leggero_e_tab_lazy(tmp_path):
+def test_fascicolo_dettaglio_principale_include_quadro_operativo_e_tab_lazy(tmp_path):
     app = _app(tmp_path)
     with app.app_context():
         fascicoli = get_fascicoli()
@@ -126,10 +126,10 @@ def test_fascicolo_dettaglio_principale_leggero_e_tab_lazy(tmp_path):
         depositi = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}/depositi", headers=headers).get_json()
         regia = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}/regia", headers=headers).get_json()
 
-    assert main["documents"] == []
-    assert main["activities"] == []
-    assert main["deadlines"] == []
-    assert main["deposits"] == []
+    assert len(main["documents"]) == 1
+    assert any(item["title"] == "Udienza filtro lazy" for item in main["activities"])
+    assert len(main["deadlines"]) == 1
+    assert len(main["deposits"]) == 1
     assert main["regia"]["page_state"] == "lazy_non_caricata"
     assert main["quickCounts"]["documenti"] == 1
     assert main["quickCounts"]["attivita"] >= 1

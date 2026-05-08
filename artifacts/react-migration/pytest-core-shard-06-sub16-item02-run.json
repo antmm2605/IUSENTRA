@@ -1,0 +1,635 @@
+{
+  "totalFiles": 57,
+  "totalShards": 10,
+  "splitPhases": {
+    "5": 6,
+    "6": 16,
+    "7": 3,
+    "8": 3,
+    "9": 6
+  },
+  "shards": [
+    {
+      "name": "core-01",
+      "fileCount": 6,
+      "files": [
+        "lex/tests/test_citation_guard_strict.py",
+        "lex/tests/test_legal_reference_guard_strict.py",
+        "lex/tests/unit/test_bundle_scenarios.py",
+        "lex/tests/unit/test_source_policy.py",
+        "tests/test_auth.py",
+        "tests/test_scheduler.py"
+      ],
+      "targetMode": "files",
+      "totalSubshards": 1,
+      "subshards": [
+        {
+          "name": "core-01.01",
+          "targetCount": 6,
+          "targets": [
+            "lex/tests/test_citation_guard_strict.py",
+            "lex/tests/test_legal_reference_guard_strict.py",
+            "lex/tests/unit/test_bundle_scenarios.py",
+            "lex/tests/unit/test_source_policy.py",
+            "tests/test_auth.py",
+            "tests/test_scheduler.py"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "core-02",
+      "fileCount": 6,
+      "files": [
+        "lex/tests/test_dependencies.py",
+        "lex/tests/test_official_web.py",
+        "lex/tests/unit/test_deterministic_provider.py",
+        "lex/tests/unit/test_source_policy_invariants.py",
+        "tests/test_database.py",
+        "tests/test_scheduler_worker.py"
+      ],
+      "targetMode": "files",
+      "totalSubshards": 1,
+      "subshards": [
+        {
+          "name": "core-02.01",
+          "targetCount": 6,
+          "targets": [
+            "lex/tests/test_dependencies.py",
+            "lex/tests/test_official_web.py",
+            "lex/tests/unit/test_deterministic_provider.py",
+            "lex/tests/unit/test_source_policy_invariants.py",
+            "tests/test_database.py",
+            "tests/test_scheduler_worker.py"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "core-03",
+      "fileCount": 6,
+      "files": [
+        "lex/tests/test_evaluation_metrics.py",
+        "lex/tests/test_ollama_provider_strict_no_evidence.py",
+        "lex/tests/unit/test_guard_orchestrator.py",
+        "lex/tests/unit/test_source_registry.py",
+        "tests/test_giurisprudenza_repository.py",
+        "tests/test_storage_strategy.py"
+      ],
+      "targetMode": "files",
+      "totalSubshards": 1,
+      "subshards": [
+        {
+          "name": "core-03.01",
+          "targetCount": 6,
+          "targets": [
+            "lex/tests/test_evaluation_metrics.py",
+            "lex/tests/test_ollama_provider_strict_no_evidence.py",
+            "lex/tests/unit/test_guard_orchestrator.py",
+            "lex/tests/unit/test_source_registry.py",
+            "tests/test_giurisprudenza_repository.py",
+            "tests/test_storage_strategy.py"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "core-04",
+      "fileCount": 6,
+      "files": [
+        "lex/tests/test_gateway_privacy_guard.py",
+        "lex/tests/test_orchestrator.py",
+        "lex/tests/unit/test_memory_service.py",
+        "lex/tests/unit/test_studio_context.py",
+        "tests/test_legal_intelligence_repository.py",
+        "tests/test_telematico_repository.py"
+      ],
+      "targetMode": "files",
+      "totalSubshards": 1,
+      "subshards": [
+        {
+          "name": "core-04.01",
+          "targetCount": 6,
+          "targets": [
+            "lex/tests/test_gateway_privacy_guard.py",
+            "lex/tests/test_orchestrator.py",
+            "lex/tests/unit/test_memory_service.py",
+            "lex/tests/unit/test_studio_context.py",
+            "tests/test_legal_intelligence_repository.py",
+            "tests/test_telematico_repository.py"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "core-05",
+      "fileCount": 6,
+      "files": [
+        "lex/tests/test_gateway_router.py",
+        "lex/tests/test_orchestrator_http_raw_chat_blocked.py",
+        "lex/tests/unit/test_ollama_provider.py",
+        "tests/test_applicazioni_repository.py",
+        "tests/test_lex_module.py",
+        "tests/test_template_atti_repository.py"
+      ],
+      "targetMode": "test-items",
+      "totalSubshards": 6,
+      "subshards": [
+        {
+          "name": "core-05.01",
+          "targetCount": 5,
+          "targets": [
+            "lex/tests/test_gateway_router.py::test_sensitive_goes_local_only",
+            "lex/tests/unit/test_ollama_provider.py::test_ollama_provider_filtra_risposte_meta_su_fascicolo",
+            "tests/test_lex_module.py::test_lex_blueprint_keeps_assistente_endpoints",
+            "tests/test_lex_module.py::test_lex_retrieval_fascicolo_esporta_sommari_sezioni_e_tutti_i_documenti",
+            "tests/test_lex_module.py::test_lex_context_builder_aggrega_workspace_conformita_ed_economico"
+          ]
+        },
+        {
+          "name": "core-05.02",
+          "targetCount": 5,
+          "targets": [
+            "lex/tests/test_gateway_router.py::test_public_can_use_external_after_local_when_allowed",
+            "lex/tests/unit/test_ollama_provider.py::test_ollama_provider_non_mostra_errore_dns_runtime_all_utente",
+            "tests/test_lex_module.py::test_lex_memory_rewrites_last_user_message_only_when_needed",
+            "tests/test_lex_module.py::test_lex_retrieval_fascicolo_non_taglia_sezioni_estese",
+            "tests/test_lex_module.py::test_lex_compliance_source_e_provider_usano_dati_reali_del_fascicolo"
+          ]
+        },
+        {
+          "name": "core-05.03",
+          "targetCount": 5,
+          "targets": [
+            "lex/tests/test_orchestrator_http_raw_chat_blocked.py::test_raw_chat_bloccata_quando_env_non_attivo",
+            "lex/tests/unit/test_ollama_provider.py::test_ollama_provider_filtra_risposte_meta_su_giurisprudenza",
+            "tests/test_lex_module.py::test_lex_context_builder_adds_structured_sections",
+            "tests/test_lex_module.py::test_lex_sources_agenda_scadenziario_non_tagliano_a_tre",
+            "tests/test_template_atti_repository.py::test_template_repository_sincronizza_builtin_e_seleziona_il_template_migliore"
+          ]
+        },
+        {
+          "name": "core-05.04",
+          "targetCount": 5,
+          "targets": [
+            "lex/tests/test_orchestrator_http_raw_chat_blocked.py::test_raw_chat_bloccata_se_env_attivo_ma_manca_flag_richiesta",
+            "tests/test_applicazioni_repository.py::test_applicazioni_repository_sync_and_export",
+            "tests/test_lex_module.py::test_lex_document_context_marca_p7m_detached_come_ai_readable_se_esiste_originale",
+            "tests/test_lex_module.py::test_lex_orchestrator_usa_budget_esteso_per_fascicoli",
+            "tests/test_template_atti_repository.py::test_template_repository_aggiorna_anche_i_template_custom"
+          ]
+        },
+        {
+          "name": "core-05.05",
+          "targetCount": 5,
+          "targets": [
+            "lex/tests/test_orchestrator_http_raw_chat_blocked.py::test_raw_chat_passa_solo_con_env_e_flag_esplicito",
+            "tests/test_applicazioni_repository.py::test_applicazioni_repository_route_selects_best_workspace",
+            "tests/test_lex_module.py::test_lex_document_context_non_taglia_fascicolo_con_piu_di_otto_documenti",
+            "tests/test_lex_module.py::test_lex_studio_context_espone_dashboard_motori_legali",
+            "tests/test_template_atti_repository.py::test_template_atti_lines_usa_repository_strutturato"
+          ]
+        },
+        {
+          "name": "core-05.06",
+          "targetCount": 4,
+          "targets": [
+            "lex/tests/unit/test_ollama_provider.py::test_ollama_provider_non_chiama_modello_su_strict_senza_evidenze",
+            "tests/test_applicazioni_repository.py::test_applicazioni_lines_use_workspace_registry",
+            "tests/test_lex_module.py::test_lex_fascicolo_sections_context_censisce_tutte_le_sezioni_del_workspace",
+            "tests/test_lex_module.py::test_lex_anagrafica_context_risolve_cliente_e_soggetti_del_fascicolo"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "core-06",
+      "fileCount": 6,
+      "files": [
+        "lex/tests/test_gateway_status.py",
+        "lex/tests/test_professional_answer_needs_review.py",
+        "lex/tests/unit/test_professional_answer.py",
+        "tests/test_assistente_followup.py",
+        "tests/test_local_ai.py",
+        "tests/test_web_bootstrap.py"
+      ],
+      "targetMode": "test-items",
+      "totalSubshards": 16,
+      "subshards": [
+        {
+          "name": "core-06.01",
+          "targetCount": 6,
+          "targets": [
+            "lex/tests/test_gateway_status.py::test_gateway_status_espone_provider_senza_chiavi",
+            "tests/test_local_ai.py::test_local_ai_embed_all_pending_chunks_elabora_tutto_il_fascicolo",
+            "tests/test_local_ai.py::test_api_assistente_context_eredita_tema_precedente_per_verifica_web",
+            "tests/test_local_ai.py::test_api_local_ai_bootstrap_aggiorna_cache_runtime_chat",
+            "tests/test_web_bootstrap.py::test_web_app_dimagrisce_e_registra_i_moduli_estratti_finali",
+            "tests/test_web_bootstrap.py::test_local_signer_distribution_include_bridge_ai"
+          ]
+        },
+        {
+          "name": "core-06.02",
+          "targetCount": 6,
+          "targets": [
+            "lex/tests/test_professional_answer_needs_review.py::test_evidence_insufficiente_produce_needs_review_confidence_non_alta",
+            "tests/test_local_ai.py::test_prepare_fascicolo_query_include_inventari_completi_e_top_k_dinamico",
+            "tests/test_local_ai.py::test_api_assistente_attachments_parse_documenti_locali",
+            "tests/test_web_bootstrap.py::test_create_app_applies_runtime_overrides_and_registers_blueprints",
+            "tests/test_web_bootstrap.py::test_i_moduli_bootstrap_restano_governabili",
+            "tests/test_web_bootstrap.py::test_notifiche_whatsapp_usa_js_esterno_e_date_localizzate"
+          ]
+        },
+        {
+          "name": "core-06.03",
+          "targetCount": 6,
+          "targets": [
+            "lex/tests/unit/test_professional_answer.py::test_risposta_fascicolo_viene_strutturata_con_qualita_e_azioni",
+            "tests/test_local_ai.py::test_prepare_fascicolo_query_impone_analisi_professionale_e_fonti_compatte",
+            "tests/test_local_ai.py::test_api_assistente_documento_esporta_docx",
+            "tests/test_web_bootstrap.py::test_create_app_portale_runtime_paths_seguono_data_root",
+            "tests/test_web_bootstrap.py::test_template_principali_usano_copy_italiana_e_date_localizzate",
+            "tests/test_web_bootstrap.py::test_email_e_sync_fascicolo_usano_date_italiane_e_target_corrente"
+          ]
+        },
+        {
+          "name": "core-06.04",
+          "targetCount": 6,
+          "targets": [
+            "lex/tests/unit/test_professional_answer.py::test_risposta_normativa_incompleta_richiede_revisione_professionale",
+            "tests/test_local_ai.py::test_local_ai_index_file_supporta_p7m_con_payload_estratto",
+            "tests/test_local_ai.py::test_api_assistente_context_integra_documenti_caricati",
+            "tests/test_web_bootstrap.py::test_create_app_scheduler_only_costruisce_worker_senza_blueprint",
+            "tests/test_web_bootstrap.py::test_lex_frontend_allinea_smalltalk_e_guardie_legali",
+            "tests/test_web_bootstrap.py::test_ai_operativa_usa_bridge_browser_e_template_senza_logica_inline"
+          ]
+        },
+        {
+          "name": "core-06.05",
+          "targetCount": 6,
+          "targets": [
+            "tests/test_assistente_followup.py::test_resolve_followup_query_riusa_il_tema_precedente_per_richiesta_web_breve",
+            "tests/test_local_ai.py::test_local_ai_index_fascicolo_supporta_p7m_detached_con_versione_originale",
+            "tests/test_local_ai.py::test_impostazioni_template_contains_ai_locale_tab",
+            "tests/test_web_bootstrap.py::test_flask_app_factory_isola_bootstrap_base",
+            "tests/test_web_bootstrap.py::test_docker_compose_prevede_runtime_ollama_sulla_stessa_macchina",
+            "tests/test_web_bootstrap.py::test_lex_assistant_usa_componente_esterno_e_posizione_persistente"
+          ]
+        },
+        {
+          "name": "core-06.06",
+          "targetCount": 6,
+          "targets": [
+            "tests/test_assistente_followup.py::test_resolve_followup_query_fonde_il_referente_precedente",
+            "tests/test_local_ai.py::test_prepare_workspace_query_restituisce_snapshot",
+            "tests/test_local_ai.py::test_ollama_runtime_provisioner_selects_windows_installer_asset_per_l_utente",
+            "tests/test_web_bootstrap.py::test_runtime_bundle_scheduler_only_costruisce_solo_core",
+            "tests/test_web_bootstrap.py::test_docker_compose_hetzner_allinea_email_ordinaria_e_ai_locale",
+            "tests/test_web_bootstrap.py::test_contesto_lex_compatta_le_sezioni_e_limita_le_fonti"
+          ]
+        },
+        {
+          "name": "core-06.07",
+          "targetCount": 6,
+          "targets": [
+            "tests/test_assistente_followup.py::test_resolve_followup_query_aggancia_richiesta_pdf_al_tema_precedente",
+            "tests/test_local_ai.py::test_local_ai_health_snapshot_exposes_installer_and_resolved_models",
+            "tests/test_local_ai.py::test_ollama_runtime_provisioner_selects_windows_zip_asset_per_bootstrap_tecnico",
+            "tests/test_web_bootstrap.py::test_runtime_bundle_cloud_gestito_rinvia_governance_pesante",
+            "tests/test_web_bootstrap.py::test_bootstrap_pubblico_resta_allineato_a_password_temporanee_e_ci_reale",
+            "tests/test_web_bootstrap.py::test_preparazione_udienza_guidata_usa_componenti_modulari_e_js_esterno"
+          ]
+        },
+        {
+          "name": "core-06.08",
+          "targetCount": 6,
+          "targets": [
+            "tests/test_assistente_followup.py::test_should_trigger_web_search_esclude_le_richieste_solo_interne",
+            "tests/test_local_ai.py::test_local_ai_health_snapshot_fallback_su_modello_installato_disponibile",
+            "tests/test_local_ai.py::test_ollama_runtime_provisioner_prefers_host_bridge_strategy_on_windows_host_container",
+            "tests/test_web_bootstrap.py::test_create_app_cloud_gestito_rinvia_bootstrap_moduli_ma_get_database_lo_esegue",
+            "tests/test_web_bootstrap.py::test_scheduler_worker_entrypoint_resta_separato_dal_runtime_web",
+            "tests/test_web_bootstrap.py::test_preparazione_udienza_guidata_reindirizza_la_vecchia_route_nuovo"
+          ]
+        },
+        {
+          "name": "core-06.09",
+          "targetCount": 6,
+          "targets": [
+            "tests/test_assistente_followup.py::test_assistente_context_espone_followup_resolution_quando_eredita_il_tema",
+            "tests/test_local_ai.py::test_local_ai_active_model_fallback_su_runtime_disponibile",
+            "tests/test_local_ai.py::test_local_ai_settings_env_override_runtime_url",
+            "tests/test_web_bootstrap.py::test_root_repo_resta_pulita_e_spec_tecniche_stanno_fuori_dalla_root",
+            "tests/test_web_bootstrap.py::test_governance_lex_possiede_runtime_ai_locale_e_i_facade_web_restano_sottili",
+            "tests/test_web_bootstrap.py::test_modal_firma_deposito_prevede_riavvio_local_signer"
+          ]
+        },
+        {
+          "name": "core-06.10",
+          "targetCount": 6,
+          "targets": [
+            "tests/test_assistente_followup.py::test_assistente_context_guida_l_apertura_su_ricerca_web_sentenze_civili",
+            "tests/test_local_ai.py::test_local_ai_ask_fascicolo_builds_context_and_returns_answer",
+            "tests/test_local_ai.py::test_local_ai_monitoring_snapshot_usa_runtime_locale_live_se_db_stale",
+            "tests/test_web_bootstrap.py::test_auth_guard_keeps_login_public_and_redirects_protected_routes",
+            "tests/test_web_bootstrap.py::test_runtime_cloud_hosted_sposta_ai_locale_su_storage_effimero",
+            "tests/test_web_bootstrap.py::test_cockpit_fascicolo_unifica_quadro_workflow_e_controlli_operativi"
+          ]
+        },
+        {
+          "name": "core-06.11",
+          "targetCount": 6,
+          "targets": [
+            "tests/test_assistente_followup.py::test_assistente_context_copre_l_area_economica_di_studio",
+            "tests/test_local_ai.py::test_local_ai_ask_fascicolo_rimuove_meta_risposta_generica",
+            "tests/test_local_ai.py::test_local_ai_connect_fallback_su_journal_delete_quando_wal_non_disponibile",
+            "tests/test_web_bootstrap.py::test_api_pronto_restituisce_subito_stato_pronto",
+            "tests/test_web_bootstrap.py::test_runtime_cloud_hosted_ignora_percorsi_ai_del_tenant",
+            "tests/test_web_bootstrap.py::test_assistente_stato_usa_runtime_ollama_risolto"
+          ]
+        },
+        {
+          "name": "core-06.12",
+          "targetCount": 6,
+          "targets": [
+            "tests/test_local_ai.py::test_local_ai_bootstrap_disabled_is_non_blocking",
+            "tests/test_local_ai.py::test_api_local_ai_status_and_fascicolo_ai",
+            "tests/test_local_ai.py::test_get_local_ai_service_riusa_singleton_applicativo_su_richieste_multiple",
+            "tests/test_web_bootstrap.py::test_template_runtime_registers_filters_and_globals",
+            "tests/test_web_bootstrap.py::test_scss_governance_usa_bundle_modulari_e_niente_style_inline",
+            "tests/test_web_bootstrap.py::test_assistente_chat_usa_runtime_ollama_risolto"
+          ]
+        },
+        {
+          "name": "core-06.13",
+          "targetCount": 6,
+          "targets": [
+            "tests/test_local_ai.py::test_assistente_prompt_separa_voce_e_regole_tecniche",
+            "tests/test_local_ai.py::test_api_local_ai_context_endpoints_prepare_payloads",
+            "tests/test_local_ai.py::test_resolved_ollama_runtime_cache_evita_health_snapshot_ripetuti",
+            "tests/test_web_bootstrap.py::test_pwa_routes_and_error_handlers_restano_registrati",
+            "tests/test_web_bootstrap.py::test_template_html_restano_entra_il_budget_inline_style",
+            "tests/test_web_bootstrap.py::test_audit_log_riconcilia_eventi_storici_con_fascicolo_corrente"
+          ]
+        },
+        {
+          "name": "core-06.14",
+          "targetCount": 6,
+          "targets": [
+            "tests/test_local_ai.py::test_assistente_prompt_aggiunge_apertura_relazionale_quando_serve",
+            "tests/test_local_ai.py::test_api_assistente_context_prepara_prompt_per_companion_locale",
+            "tests/test_local_ai.py::test_resolved_ollama_runtime_ignora_runtime_db_non_ready",
+            "tests/test_web_bootstrap.py::test_impostazioni_pec_espone_controllo_local_signer_e_password_salvata",
+            "tests/test_web_bootstrap.py::test_brand_asset_iusentra_restano_coerenti",
+            "tests/test_web_bootstrap.py::test_file_critici_non_contengono_marker_di_mojibake"
+          ]
+        },
+        {
+          "name": "core-06.15",
+          "targetCount": 5,
+          "targets": [
+            "tests/test_local_ai.py::test_assistente_prompt_supporta_apertura_iniziale_guidata",
+            "tests/test_local_ai.py::test_api_assistente_context_integra_fonti_ufficiali_web_live",
+            "tests/test_local_ai.py::test_ollama_http_client_apre_circuit_breaker_dopo_errori_ripetuti",
+            "tests/test_web_bootstrap.py::test_route_domini_estratti_restano_operativi",
+            "tests/test_web_bootstrap.py::test_impostazioni_js_e_esterno_e_senza_duplicazioni"
+          ]
+        },
+        {
+          "name": "core-06.16",
+          "targetCount": 5,
+          "targets": [
+            "tests/test_local_ai.py::test_local_ai_index_and_hybrid_search",
+            "tests/test_local_ai.py::test_api_assistente_context_espone_profilo_richiesta_e_policy_fonti",
+            "tests/test_local_ai.py::test_assistente_chat_non_duplica_cronologia_nel_system_prompt_e_usa_keep_alive",
+            "tests/test_web_bootstrap.py::test_nuovo_cliente_renderizza_il_form_prima_del_modal_scanner",
+            "tests/test_web_bootstrap.py::test_local_signer_monitor_globale_verifica_versione_e_installer"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "core-07",
+      "fileCount": 6,
+      "files": [
+        "lex/tests/test_grounding.py",
+        "lex/tests/test_provider_health_and_citations.py",
+        "lex/tests/unit/test_registry.py",
+        "tests/test_assistente_language_guidance.py",
+        "tests/test_observability_runtime.py",
+        "tests/test_web_security.py"
+      ],
+      "targetMode": "test-items",
+      "totalSubshards": 3,
+      "subshards": [
+        {
+          "name": "core-07.01",
+          "targetCount": 8,
+          "targets": [
+            "lex/tests/test_grounding.py::test_grounding_guard_marks_low_confidence_without_sources",
+            "lex/tests/test_provider_health_and_citations.py::test_provider_health_usa_runtime_risolto",
+            "lex/tests/test_provider_health_and_citations.py::test_research_citation_builder_preserva_citazioni_esistenti",
+            "tests/test_assistente_language_guidance.py::test_language_guidance_prende_in_carico_ricerca_sentenze_civili",
+            "tests/test_observability_runtime.py::test_runtime_metrics_endpoint_restituisce_payload_strutturato",
+            "tests/test_observability_runtime.py::test_admin_osservabilita_page_mostra_alert_operativi",
+            "tests/test_observability_runtime.py::test_runtime_metrics_endpoint_segnala_circuit_breaker_pec",
+            "tests/test_web_security.py::test_password_temporanea_blocca_navigazione_finche_non_viene_cambiata"
+          ]
+        },
+        {
+          "name": "core-07.02",
+          "targetCount": 8,
+          "targets": [
+            "lex/tests/test_grounding.py::test_grounding_guard_marks_limited_confidence_with_one_source",
+            "lex/tests/test_provider_health_and_citations.py::test_warm_runtime_restituisce_dizionario",
+            "lex/tests/unit/test_registry.py::test_registry_builds_application_service_that_can_answer",
+            "tests/test_assistente_language_guidance.py::test_language_guidance_mantiene_prefisso_sociale_su_richiesta_web_operativa",
+            "tests/test_observability_runtime.py::test_runtime_metrics_endpoint_segnala_degradi_e_rimedi",
+            "tests/test_observability_runtime.py::test_admin_system_health_restituisce_json_azionabile",
+            "tests/test_observability_runtime.py::test_runtime_metrics_endpoint_segnala_circuit_breaker_portali",
+            "tests/test_web_security.py::test_api_v1_cors_resta_chiuso_di_default"
+          ]
+        },
+        {
+          "name": "core-07.03",
+          "targetCount": 8,
+          "targets": [
+            "lex/tests/test_grounding.py::test_grounding_guard_marks_high_confidence_with_two_sources",
+            "lex/tests/test_provider_health_and_citations.py::test_research_citation_builder_ricostruisce_da_metadata",
+            "lex/tests/unit/test_registry.py::test_provider_registry_usa_percorso_guidato_per_fascicolo_con_contesto",
+            "tests/test_assistente_language_guidance.py::test_language_guidance_costruisce_overview_giornaliera_sobria",
+            "tests/test_observability_runtime.py::test_admin_osservabilita_page_e_accessibile_al_superadmin",
+            "tests/test_observability_runtime.py::test_admin_system_health_traduce_alert_in_azioni",
+            "tests/test_web_security.py::test_login_headers_e_bootstrap_password_forzata",
+            "tests/test_web_security.py::test_api_v1_cors_consente_solo_origin_configurati"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "core-08",
+      "fileCount": 5,
+      "files": [
+        "lex/tests/test_hallucination_guard.py",
+        "lex/tests/test_routes.py",
+        "lex/tests/unit/test_retrieval_orchestrator.py",
+        "tests/test_assistente_legal_reference_guard.py",
+        "tests/test_ocr_worker.py"
+      ],
+      "targetMode": "test-items",
+      "totalSubshards": 3,
+      "subshards": [
+        {
+          "name": "core-08.01",
+          "targetCount": 9,
+          "targets": [
+            "lex/tests/test_hallucination_guard.py::test_draft_cassazione_senza_evidenze_blocca",
+            "lex/tests/test_hallucination_guard.py::test_draft_con_riferimento_presente_nelle_evidenze_passa",
+            "lex/tests/test_routes.py::test_assistente_attachments_endpoint_returns_attachment_evidence_metadata",
+            "lex/tests/test_routes.py::test_lex_standalone_page_removed_for_fascicoli_context",
+            "lex/tests/unit/test_retrieval_orchestrator.py::test_retrieval_orchestrator_triggers_official_fallback_and_builds_comparison",
+            "lex/tests/unit/test_retrieval_orchestrator.py::test_retrieval_orchestrator_espone_gap_su_fonti_partner_non_cercabili_via_web_pubblico",
+            "lex/tests/unit/test_retrieval_orchestrator.py::test_retrieval_orchestrator_usa_contesto_studio_per_workflow_economico",
+            "tests/test_assistente_legal_reference_guard.py::test_assistente_context_restituisce_direct_answer_per_pdf_non_verificato",
+            "tests/test_ocr_worker.py::test_ocr_job_store_fallback_su_delete_quando_wal_non_disponibile"
+          ]
+        },
+        {
+          "name": "core-08.02",
+          "targetCount": 8,
+          "targets": [
+            "lex/tests/test_hallucination_guard.py::test_draft_articolo_normativa_senza_evidenze_blocca",
+            "lex/tests/test_routes.py::test_lex_blueprint_registers_expected_routes",
+            "lex/tests/test_routes.py::test_lex_standalone_page_removed_for_authenticated_user",
+            "lex/tests/test_routes.py::test_lex_standalone_page_redirects_login_for_unauthenticated_user",
+            "lex/tests/unit/test_retrieval_orchestrator.py::test_retrieval_orchestrator_riusa_cache_tenant_aware_sulla_stessa_richiesta",
+            "lex/tests/unit/test_retrieval_orchestrator.py::test_source_router_non_trascina_fonti_legali_su_preventivo_operativo",
+            "tests/test_assistente_legal_reference_guard.py::test_guard_riconosce_fonti_verificate_e_prompt_di_blocco",
+            "tests/test_ocr_worker.py::test_ocr_runtime_persistente_accoda_job"
+          ]
+        },
+        {
+          "name": "core-08.03",
+          "targetCount": 8,
+          "targets": [
+            "lex/tests/test_hallucination_guard.py::test_draft_generico_senza_riferimenti_specifici_non_blocca",
+            "lex/tests/test_routes.py::test_assistente_stato_endpoint_returns_200",
+            "lex/tests/test_routes.py::test_lex_standalone_page_removed_for_panoramica_context",
+            "lex/tests/test_routes.py::test_assistente_chat_endpoint_remains_registered_for_post",
+            "lex/tests/unit/test_retrieval_orchestrator.py::test_retrieval_orchestrator_non_condivide_cache_tra_tenant_diversi",
+            "lex/tests/unit/test_retrieval_orchestrator.py::test_source_router_include_update_intelligence_sql_su_ricerca_legale",
+            "tests/test_assistente_legal_reference_guard.py::test_guard_blocca_download_pdf_su_pronuncia_non_verificata",
+            "tests/test_ocr_worker.py::test_ocr_worker_processa_job_e_marca_completato"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "core-09",
+      "fileCount": 5,
+      "files": [
+        "lex/tests/test_http_bounded_bridge.py",
+        "lex/tests/test_runtime_dependencies.py",
+        "lex/tests/unit/test_router.py",
+        "tests/test_assistente_social.py",
+        "tests/test_preventivi_repository.py"
+      ],
+      "targetMode": "test-items",
+      "totalSubshards": 6,
+      "subshards": [
+        {
+          "name": "core-09.01",
+          "targetCount": 4,
+          "targets": [
+            "lex/tests/test_http_bounded_bridge.py::test_http_bridge_instrada_preventivo_sul_workflow_bounded",
+            "lex/tests/test_runtime_dependencies.py::test_require_authenticated_flask_user_lascia_passare_utente_autenticato",
+            "tests/test_assistente_social.py::test_classify_social_message_riconosce_saluti_e_messaggi_misti",
+            "tests/test_preventivi_repository.py::test_preventivi_repository_tracks_conferimento_and_next_actions"
+          ]
+        },
+        {
+          "name": "core-09.02",
+          "targetCount": 4,
+          "targets": [
+            "lex/tests/test_http_bounded_bridge.py::test_http_bridge_non_aggiunge_fonti_legali_di_comodo_su_workflow_economico",
+            "lex/tests/unit/test_router.py::test_router_resolves_telematico_workflow",
+            "tests/test_assistente_social.py::test_prepend_social_prefix_evita_duplicazioni",
+            "tests/test_preventivi_repository.py::test_preventivi_repository_salva_campi_compenso_a_tempo_e_conferimento"
+          ]
+        },
+        {
+          "name": "core-09.03",
+          "targetCount": 4,
+          "targets": [
+            "lex/tests/test_http_bounded_bridge.py::test_http_bridge_attiva_il_percorso_bounded_su_giurisprudenza_strict",
+            "lex/tests/unit/test_router.py::test_router_resolves_atto_workflow",
+            "tests/test_assistente_social.py::test_assistente_context_risponde_subito_a_messaggio_sociale",
+            "tests/test_preventivi_repository.py::test_preventivi_lines_expose_repository_context_for_lex"
+          ]
+        },
+        {
+          "name": "core-09.04",
+          "targetCount": 4,
+          "targets": [
+            "lex/tests/test_http_bounded_bridge.py::test_http_bridge_attiva_il_percorso_bounded_su_normativa_strict",
+            "lex/tests/unit/test_router.py::test_router_defaults_to_chat",
+            "tests/test_assistente_social.py::test_assistente_chat_bypassa_ollama_per_messaggio_sociale",
+            "tests/test_preventivi_repository.py::test_preventivi_repository_esporta_procedura_operativa"
+          ]
+        },
+        {
+          "name": "core-09.05",
+          "targetCount": 4,
+          "targets": [
+            "lex/tests/test_runtime_dependencies.py::test_build_runtime_lex_dependencies_usa_i_binding_del_modulo",
+            "lex/tests/unit/test_router.py::test_router_infers_normativa_from_query_text",
+            "tests/test_assistente_social.py::test_assistente_context_messaggio_misto_restituisce_prefix_e_domanda_effettiva",
+            "tests/test_preventivi_repository.py::test_preventivi_repository_esporta_classificazioni_tassonomiche_aggiuntive"
+          ]
+        },
+        {
+          "name": "core-09.06",
+          "targetCount": 3,
+          "targets": [
+            "lex/tests/test_runtime_dependencies.py::test_require_authenticated_flask_user_blocca_anonimo",
+            "lex/tests/unit/test_router.py::test_router_infers_economico_from_query_text",
+            "tests/test_preventivi_repository.py::test_preventivi_repository_sync_exports_split_payload_and_clean_json"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "core-10",
+      "fileCount": 5,
+      "files": [
+        "lex/tests/test_http_bounded_bridge_governed_only.py",
+        "lex/tests/test_service.py",
+        "lex/tests/unit/test_social_intent_routing.py",
+        "tests/test_assistente_social_intent.py",
+        "tests/test_pst_catalog.py"
+      ],
+      "targetMode": "files",
+      "totalSubshards": 1,
+      "subshards": [
+        {
+          "name": "core-10.01",
+          "targetCount": 5,
+          "targets": [
+            "lex/tests/test_http_bounded_bridge_governed_only.py",
+            "lex/tests/test_service.py",
+            "lex/tests/unit/test_social_intent_routing.py",
+            "tests/test_assistente_social_intent.py",
+            "tests/test_pst_catalog.py"
+          ]
+        }
+      ]
+    }
+  ],
+  "results": [
+    {
+      "phase": "core-06.02-5",
+      "exitCode": 124,
+      "targetCount": 19
+    }
+  ]
+}

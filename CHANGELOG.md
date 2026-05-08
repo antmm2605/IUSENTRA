@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.198.126 - 2026-05-08
+
+- Reso compatibile l'upload degli shard `Coverage moduli critici` con `actions/upload-artifact@v4`, abilitando esplicitamente `include-hidden-files` per gli artefatti `.coverage.critical.*` e aggiungendo il presidio nel contratto CI anti-regressione.
+- Fissata in `AGENTS.md` e `docs/PYTEST_PHASES.md` la regola permanente per cui ogni nuovo test o suite CI deve essere shardabile e non superare 5 minuti per singolo comando pytest/job operativo, senza ridurre il perimetro delle verifiche.
+
 ## 2.198.125 - 2026-05-08
 
 - Corretto lo shard coverage critica in CI rinominando l'artefatto `.coverage` prodotto da `pytest-cov` prima dell'upload, cosi' i 12 shard possono essere combinati dal gate aggregatore `Coverage moduli critici`.

@@ -44,6 +44,15 @@ release se una fase non e' stata eseguita o e' fallita. Serve a:
 Per dichiarare verde la suite backend locale devono passare tutte le fasi del
 preset `full`, oppure un workflow CI equivalente su Python 3.12.
 
+## Regola permanente per nuovi test
+
+Qualsiasi nuovo test, file di test o suite CI deve nascere gia' compatibile con
+lo split a 5 minuti: va registrato nel runner `scripts/run_pytest_phases.py`,
+in una suite CI shardata o in una matrice equivalente. Nessun nuovo comando
+pytest/job operativo deve superare 5 minuti. Se un controllo rischia di
+superare quel limite, va diviso subito in piu' test item, shard, fixture piu'
+leggere o job paralleli, mantenendo lo stesso perimetro di verifica.
+
 ## Pytest core in CI
 
 Il job GitHub Actions `Pytest core` non gira piu' come processo monolitico da

@@ -632,6 +632,7 @@ jobs:
         with:
           name: coverage-critical-${{ matrix.shard }}
           path: .coverage.critical.${{ matrix.shard }}*
+          include-hidden-files: true
           if-no-files-found: error
 
   coverage-critical:

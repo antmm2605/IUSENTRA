@@ -36,6 +36,7 @@ def test_ci_keeps_core_and_coverage_gates() -> None:
         "coverage-critical-shards:",
         "coverage combine coverage-parts",
         "mv .coverage",
+        "include-hidden-files: true",
         "--fail-under=71",
         "name: Gate anti-regressione CI 100%",
     )
@@ -197,11 +198,23 @@ def test_agents_documents_ci_no_regression_rule() -> None:
         "Gate anti-regressione al 100%",
         "target richiesto dall'utente per chiudere definitivamente la coverage critica e' **100%**",
         "vietato dichiarare che il problema coverage sia chiuso",
+        "Regola permanente nuovi test",
+        "tempo massimo di 5 minuti per singolo comando pytest/job operativo",
+        "scripts/run_pytest_phases.py",
         "71,49%",
         "release-blocking",
     )
     for snippet in required:
         assert snippet in agents
+
+    pytest_phases = _read("docs/PYTEST_PHASES.md")
+    for snippet in (
+        "Regola permanente per nuovi test",
+        "Nessun nuovo comando",
+        "pytest/job operativo deve superare 5 minuti",
+        "mantenendo lo stesso perimetro di verifica",
+    ):
+        assert snippet in pytest_phases
 
 
 def test_coverage_config_remains_governed() -> None:

@@ -2,6 +2,8 @@ import type { ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { ArrowRight } from 'lucide-react'
 import type { Dossier, Metric, Source, Tone } from '../data'
+import { IusMetricCard, IusStatusBadge } from './iusentra'
+import type { IusTone } from '../design/iusentraTokens'
 
 type ButtonProps = {
   children: ReactNode
@@ -18,7 +20,13 @@ export function Button({ children, variant = 'secondary', full = false, href, cl
 }
 
 export function Badge({ tone = 'neutral', children }:{tone?:Tone; children:ReactNode}) {
-  return <span className={`iu-badge iu-badge--${tone}`}>{children}</span>
+  return <IusStatusBadge tone={toIusTone(tone)}>{children}</IusStatusBadge>
+}
+
+function toIusTone(tone: Tone): IusTone {
+  if (tone === 'orange' || tone === 'purple') return 'gold'
+  if (tone === 'info') return 'info'
+  return tone
 }
 
 export function Panel({
@@ -56,26 +64,17 @@ export function Panel({
 }
 
 export function KpiCard({ item, icon: Icon }:{item:Metric; icon:LucideIcon}) {
-  const content = (
-    <>
-      <div className="iu-metric__icon"><Icon size={25}/></div>
-      <div className="iu-metric__content">
-        <div className="iu-metric__top">
-          <strong>{item.value}</strong>
-          {item.tag?<Badge tone={item.tone}>{item.tag}</Badge>:null}
-        </div>
-        <div className="iu-metric__label">{item.label}</div>
-        <span className="iu-link">{item.actionLabel || 'Apri'} <ArrowRight size={14}/></span>
-      </div>
-    </>
-  )
-  if (!item.href) {
-    return <article className={`iu-metric iu-metric--${item.tone}`} aria-label={item.label}>{content}</article>
-  }
   return (
-    <a href={item.href} className={`iu-metric iu-metric--${item.tone}`}>
-      {content}
-    </a>
+    <IusMetricCard
+      label={item.label}
+      value={item.value}
+      badge={item.tag}
+      href={item.href}
+      icon={Icon}
+      tone={toIusTone(item.tone)}
+      actionLabel={item.actionLabel || 'Apri'}
+      className={`iu-metric iu-metric--${item.tone}`}
+    />
   )
 }
 

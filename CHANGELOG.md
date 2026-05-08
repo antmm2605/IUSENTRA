@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.198.121 - 2026-05-08
+
+- Integrato il design system interno IUSENTRA basato su shadcn/ui, Lucide Icons, Tailwind e primitive Radix, senza copiare template completi sopra le superfici operative.
+- Aggiunti i componenti riutilizzabili `IusPageShell`, `IusAppSidebar`, `IusTopBar`, `IusSectionHeader`, `IusMetricCard`, `IusActionCard`, `IusStatusBadge`, `IusEmptyState`, `IusFormSection`, `IusCollapsiblePanel`, `IusDataTableShell`, `IusLegalIcon` e `LexFloatingButton`, con token colore legali e mappa icone per area.
+- Normalizzati wrapper React esistenti, shadcn primitives, build assets e documentazione `docs/UI_DESIGN_SYSTEM.md`, preservando contratti, route, API, dati reali e fallback governati.
+- Aggiunti audit iniziali Full React (`full-react-audit.*`), inventario Jinja, report responsive/accessibilita/performance e manifest con `workspaceTarget` per tutte le route censite, senza promuovere route non verificate.
+- Introdotta la nuova struttura `frontend/src/app`, `frontend/src/shell`, `frontend/src/api` e `frontend/src/features/*`, riusando i componenti e data client React esistenti per non duplicare logiche canoniche backend.
+- Creato un set UI legale condiviso (`legal-ui.css`, primitive card/layout/drawer/modali/filtri/stati) e nuovi runner `run-full-react-migration.mjs` / `run-legal-ui-checks.mjs` per bloccare mascheramenti, mock, POST legacy, Bootstrap primario e regressioni responsive.
+
 ## 2.198.119 - 2026-05-08
 
 - Promosse `/studio`, `/amministrazione`, `/sito-studio` e `/sito-studio/contatti` a `react_operational_full` con payload JSON reali, contratti anti-mascheramento, permessi backend e distinzione esplicita tra route operative React e legacy protetti.

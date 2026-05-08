@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { IusEmptyState } from '@/components/iusentra'
 import './ui.css'
 
 export function EmptyState({
@@ -11,12 +12,6 @@ export function EmptyState({
   action?: ReactNode
 }) {
   return (
-    <section className="iu-empty-state" aria-live="polite">
-      <div className="iu-empty-state__body">
-        <h2>{title}</h2>
-        {message ? <p>{message}</p> : null}
-        {action}
-      </div>
-    </section>
+    <IusEmptyState title={title} message={message} action={action} className="iu-empty-state" />
   )
 }

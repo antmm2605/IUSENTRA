@@ -1,0 +1,6 @@
+export * as preventiviApi from '../../preventiviData'
+export * as preventivoWizardApi from '../../preventivoWizardData'
+export * as tariffarioApi from '../../tariffarioData'
+export * as compensiForensiApi from '../../compensiForensiData'
+export * as fatturazioneApi from '../../fatturazioneData'
+export * as incassiPagamentiApi from '../../incassiPagamentiData'

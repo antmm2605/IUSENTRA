@@ -14,7 +14,7 @@ export function Page({
   children: ReactNode
 }) {
   return (
-    <main className="iu-content iu-page">
+    <main className="iu-content iu-page ius-page-shell">
       <PageHeader title={title} subtitle={subtitle} actions={actions} />
       {children}
     </main>

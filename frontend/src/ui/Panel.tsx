@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react'
+import { Card, CardContent } from '@/components/ui/card'
+import { IusSectionHeader } from '@/components/iusentra'
 import './ui.css'
 
 export function Panel({
@@ -13,15 +15,11 @@ export function Panel({
   children: ReactNode
 }) {
   return (
-    <section className="iu-panel">
-      <header className="iu-panel__header">
-        <div className="iu-panel__title">
-          <h2>{title}</h2>
-          {subtitle ? <p>{subtitle}</p> : null}
-        </div>
-        {actions ? <div className="iu-action-bar">{actions}</div> : null}
-      </header>
-      <div className="iu-panel__body">{children}</div>
-    </section>
+    <Card className="iu-panel ius-panel-card">
+      <CardContent className="ius-panel-card__content">
+        <IusSectionHeader title={title} description={subtitle} actions={actions} level={2} className="iu-panel__header" />
+        <div className="iu-panel__body ius-panel-card__body">{children}</div>
+      </CardContent>
+    </Card>
   )
 }

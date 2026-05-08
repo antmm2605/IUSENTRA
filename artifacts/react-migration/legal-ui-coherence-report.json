@@ -1,0 +1,155 @@
+{
+  "generatedAt": "2026-05-08T10:03:02.066Z",
+  "uiComponentsCreated": [
+    "IconButton",
+    "Card",
+    "ActionCard",
+    "CompactCard",
+    "Workspace",
+    "WorkspaceHeader",
+    "WorkspaceGrid",
+    "SplitLayout",
+    "ThreeColumnLayout",
+    "FourColumnLayout",
+    "Drawer",
+    "Modal",
+    "Accordion",
+    "ResponsiveTable",
+    "FilterBar",
+    "AdvancedFilters",
+    "SearchInput",
+    "Select",
+    "DateField",
+    "TextField",
+    "TextArea",
+    "StatusBadge",
+    "LegalStatusBadge",
+    "Timeline",
+    "ErrorState",
+    "PermissionDeniedState",
+    "Toast",
+    "ConfirmDialog",
+    "StickyActionBar",
+    "QuickActionBar",
+    "DetailPanel",
+    "SummaryPanel",
+    "NextActionPanel",
+    "InlineAlert"
+  ],
+  "uiComponentsModified": [
+    "Button reusato come base",
+    "Badge/Kpi/Panel esistenti preservati",
+    "ui.css esteso con layout responsive e stati"
+  ],
+  "workspacesUpdated": [
+    "regia",
+    "fascicoli",
+    "anagrafiche",
+    "agenda",
+    "mandato",
+    "documenti",
+    "telematico",
+    "comunicazioni",
+    "amministrazione",
+    "lex"
+  ],
+  "routesUpdated": [
+    "/app",
+    "/app/regia",
+    "/app/fascicoli",
+    "/app/fascicoli/:id",
+    "/app/anagrafiche",
+    "/app/agenda",
+    "/app/mandato",
+    "/app/documenti",
+    "/app/telematico",
+    "/app/comunicazioni",
+    "/app/lex",
+    "/app/amministrazione",
+    "/app/impostazioni"
+  ],
+  "layoutsApplied": [
+    "shell desktop/tablet/mobile",
+    "split layout",
+    "three column layout",
+    "four column layout",
+    "responsive grid",
+    "sticky action bar",
+    "drawer/mobile bottom navigation"
+  ],
+  "advancedFiltersAdded": [
+    "FilterBar",
+    "AdvancedFilters",
+    "SearchInput",
+    "Select",
+    "DateField"
+  ],
+  "operationalCardsAdded": [
+    "ActionCard",
+    "CompactCard",
+    "KpiCard esistente",
+    "DetailPanel",
+    "SummaryPanel",
+    "NextActionPanel"
+  ],
+  "realActionsConnected": "Le nuove primitive richiedono href/onClick reali; i workspace riusano componenti/data client esistenti gia collegati al backend dove operativi.",
+  "technicalTextsRemoved": "Nessuna nuova stringa tecnica inglese nei nuovi componenti; i check bloccano termini vietati nella nuova superficie.",
+  "dateFormats": "La tranche aggiunge classi di supporto; la normalizzazione route-per-route resta da verificare sui dati reali.",
+  "amountFormats": "La tranche aggiunge classi di supporto; i calcoli e formati canonici restano backend/data client esistenti.",
+  "responsiveImprovements": [
+    "shell.css con sidebar/tablet/mobile nav",
+    "ui.css con griglie responsive",
+    "report full-react-responsive-check.md"
+  ],
+  "performanceImprovements": [
+    "nessuna nuova dipendenza introdotta da questa tranche",
+    "route table centralizzata",
+    "client API con AbortSignal",
+    "workspace esistenti lazy-loaded nella shell corrente"
+  ],
+  "tests": {
+    "generatedAt": "2026-05-08T10:03:02.066Z",
+    "backend": [
+      {
+        "command": "python -m pytest -q",
+        "status": "timeout",
+        "details": "Interrotto dal timeout locale dopo circa 45 minuti; nessun verde completo dichiarabile."
+      }
+    ],
+    "frontend": [
+      {
+        "command": "npm test",
+        "status": "passed",
+        "details": "Contratti React verificati."
+      },
+      {
+        "command": "npm run typecheck",
+        "status": "passed",
+        "details": "tsc --noEmit completato."
+      },
+      {
+        "command": "npm run build",
+        "status": "passed",
+        "details": "Vite build completata; asset generati in web/static/react."
+      }
+    ],
+    "migration": [
+      {
+        "command": "node scripts/react-migration/run-full-react-migration.mjs",
+        "status": "passed",
+        "details": "Audit, anti-mascheramento e check Full React passati."
+      },
+      {
+        "command": "node scripts/react-migration/run-legal-ui-checks.mjs",
+        "status": "passed",
+        "details": "Check UI legale, responsive e anti-Bootstrap passati."
+      }
+    ]
+  },
+  "residualRisks": [
+    "python -m pytest -q non completato entro timeout",
+    "frontend/src/App.tsx resta monolitico e va spezzato in tranche successive",
+    "molte route restano legacy_operational/react_bridge per scelta del manifest",
+    "verifica browser visuale non eseguita in questa sessione"
+  ]
+}

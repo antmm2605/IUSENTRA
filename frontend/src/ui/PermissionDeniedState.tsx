@@ -1,0 +1,1 @@
+export { PermissionDeniedState } from './legalPrimitives'

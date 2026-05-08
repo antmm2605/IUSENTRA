@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { IusDataTableShell } from '@/components/iusentra'
 import './ui.css'
 
 export type DataTableColumn<T> = {
@@ -18,23 +19,5 @@ export function DataTable<T>({
   getRowKey: (row: T) => string
   empty?: ReactNode
 }) {
-  if (!rows.length && empty) return <>{empty}</>
-  return (
-    <div className="iu-data-table-wrap">
-      <table className="iu-data-table">
-        <thead>
-          <tr>
-            {columns.map((column) => <th key={column.key}>{column.header}</th>)}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr key={getRowKey(row)}>
-              {columns.map((column) => <td key={column.key}>{column.render(row)}</td>)}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  )
+  return <IusDataTableShell columns={columns} rows={rows} getRowKey={getRowKey} empty={empty} className="iu-data-table-wrap iu-data-table" />
 }

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { IusMetricCard } from '@/components/iusentra'
 import './ui.css'
 
 export function KpiCard({
@@ -13,13 +14,6 @@ export function KpiCard({
   badge?: ReactNode
 }) {
   return (
-    <article className="iu-kpi-card">
-      <div className="iu-layout-split">
-        <span className="iu-kpi-card__label">{label}</span>
-        {badge}
-      </div>
-      <strong className="iu-kpi-card__value">{value}</strong>
-      {note ? <span className="iu-kpi-card__note">{note}</span> : null}
-    </article>
+    <IusMetricCard label={label} value={value} note={note} badge={badge} className="iu-kpi-card" />
   )
 }

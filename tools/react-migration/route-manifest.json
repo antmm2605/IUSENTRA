@@ -14,6 +14,7 @@
   },
   "routes": [
     {
+      "workspaceTarget": "/app/amministrazione?tab=utenti",
       "route": "/utenti",
       "family": "amministrazione",
       "status": "react_operational_full",
@@ -35,6 +36,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/amministrazione?tab=utenti",
       "route": "/utenti/nuovo",
       "family": "amministrazione",
       "status": "react_operational_full",
@@ -53,6 +55,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/amministrazione?tab=profili",
       "route": "/profili",
       "family": "amministrazione",
       "status": "react_operational_full",
@@ -72,6 +75,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/amministrazione?tab=audit",
       "route": "/audit",
       "family": "amministrazione",
       "status": "react_operational_full",
@@ -93,6 +97,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/amministrazione?tab=audit",
       "route": "/registro-attivita",
       "family": "amministrazione",
       "status": "react_operational_full",
@@ -114,6 +119,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/impostazioni",
       "route": "/studio",
       "family": "studio",
       "status": "react_operational_full",
@@ -135,6 +141,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/amministrazione",
       "route": "/amministrazione",
       "family": "amministrazione",
       "status": "react_operational_full",
@@ -156,6 +163,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/impostazioni",
       "route": "/impostazioni",
       "family": "studio",
       "status": "legacy_operational",
@@ -174,6 +182,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/impostazioni",
       "route": "/impostazioni-studio",
       "family": "studio",
       "status": "legacy_operational",
@@ -192,6 +201,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/impostazioni",
       "route": "/impostazioni/calendario",
       "family": "studio",
       "status": "legacy_operational",
@@ -210,6 +220,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/impostazioni",
       "route": "/impostazioni/pagamenti",
       "family": "studio",
       "status": "legacy_operational",
@@ -228,6 +239,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/impostazioni",
       "route": "/sincronizzazione-calendari",
       "family": "studio",
       "status": "legacy_operational",
@@ -246,6 +258,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/amministrazione?tab=backup",
       "route": "/backup",
       "family": "studio",
       "status": "react_operational_full",
@@ -269,6 +282,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/amministrazione?tab=studio",
       "route": "/sito-studio",
       "family": "studio",
       "status": "react_operational_full",
@@ -289,6 +303,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/amministrazione?tab=studio",
       "route": "/sito-studio/contatti",
       "family": "studio",
       "status": "react_operational_full",
@@ -314,6 +329,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/amministrazione?tab=studio",
       "route": "/sito-studio/builder",
       "family": "studio",
       "status": "legacy_operational",
@@ -332,6 +348,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/regia?tab=statistiche",
       "route": "/statistiche",
       "family": "studio",
       "status": "react_operational_partial",
@@ -350,6 +367,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/mandato?tab=fatturazione",
       "route": "/fatturazione",
       "family": "economico",
       "status": "react_operational_full",
@@ -375,6 +393,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/mandato?tab=fatturazione&drawer=nuova",
       "route": "/fatturazione/nuova",
       "family": "economico",
       "status": "react_operational_full",
@@ -397,6 +416,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/mandato?tab=fatturazione",
       "route": "/fatturazione/*",
       "family": "economico",
       "status": "legacy_operational",
@@ -415,6 +435,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/mandato?tab=incassi",
       "route": "/incassi-pagamenti",
       "family": "economico",
       "status": "react_operational_full",
@@ -441,6 +462,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/mandato?tab=preventivi",
       "route": "/preventivi",
       "family": "mandato",
       "status": "react_operational_full",
@@ -467,6 +489,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/mandato?tab=preventivi",
       "route": "/preventivi/nuovo",
       "family": "mandato",
       "status": "react_operational_full",
@@ -491,6 +514,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/mandato?tab=conferimenti",
       "route": "/preventivi/conferimento/nuovo",
       "family": "mandato",
       "status": "react_operational_full",
@@ -517,6 +541,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/mandato?tab=preventivi",
       "route": "/preventivi/*",
       "family": "mandato",
       "status": "legacy_operational",
@@ -535,6 +560,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/mandato?tab=wizard",
       "route": "/preventivi/wizard",
       "family": "mandato",
       "status": "react_operational_partial",
@@ -553,6 +579,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/mandato?tab=compensi",
       "route": "/compensi-forensi",
       "family": "mandato",
       "status": "react_operational_full",
@@ -578,6 +605,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/mandato?tab=compensi",
       "route": "/compensi-forensi/*",
       "family": "mandato",
       "status": "legacy_operational",
@@ -596,6 +624,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/mandato?tab=tariffario",
       "route": "/tariffario",
       "family": "mandato",
       "status": "react_operational_full",
@@ -623,6 +652,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/mandato?tab=tariffario",
       "route": "/tariffario/*",
       "family": "mandato",
       "status": "legacy_operational",
@@ -641,6 +671,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/documenti?tab=template",
       "route": "/template-atti",
       "family": "documenti",
       "status": "react_bridge",
@@ -659,6 +690,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/documenti?tab=template",
       "route": "/template-atti/catalogo",
       "family": "documenti",
       "status": "react_bridge",
@@ -677,6 +709,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/documenti?tab=template",
       "route": "/template-atti/nuovo",
       "family": "documenti",
       "status": "legacy_operational",
@@ -695,6 +728,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/documenti?tab=template",
       "route": "/template-atti/*",
       "family": "documenti",
       "status": "legacy_operational",
@@ -713,6 +747,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/documenti?tab=redazione",
       "route": "/redazione-atti",
       "family": "documenti",
       "status": "react_bridge",
@@ -731,6 +766,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/documenti?tab=redazione",
       "route": "/redazione-atti/*",
       "family": "documenti",
       "status": "legacy_operational",
@@ -749,6 +785,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app",
       "route": "/checklist",
       "family": "documenti",
       "status": "legacy_operational",
@@ -767,6 +804,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/lex",
       "route": "/giurisprudenza",
       "family": "documenti",
       "status": "react_bridge",
@@ -785,6 +823,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/lex",
       "route": "/giurisprudenza/nuova",
       "family": "documenti",
       "status": "legacy_operational",
@@ -803,6 +842,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/lex",
       "route": "/giurisprudenza/*",
       "family": "documenti",
       "status": "legacy_operational",
@@ -821,6 +861,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/lex",
       "route": "/legal-intelligence",
       "family": "documenti",
       "status": "react_bridge",
@@ -839,6 +880,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/lex",
       "route": "/legal-intelligence/news",
       "family": "documenti",
       "status": "react_bridge",
@@ -857,6 +899,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/lex",
       "route": "/legal-intelligence/mediazione",
       "family": "documenti",
       "status": "react_bridge",
@@ -875,6 +918,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/lex",
       "route": "/legal-intelligence/*",
       "family": "documenti",
       "status": "legacy_operational",
@@ -893,6 +937,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/lex",
       "route": "/ricerca-legale",
       "family": "documenti",
       "status": "react_bridge",
@@ -911,6 +956,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/lex",
       "route": "/ricerca-legale/*",
       "family": "documenti",
       "status": "legacy_operational",
@@ -929,6 +975,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/telematico",
       "route": "/deposito/checklist",
       "family": "telematico",
       "status": "legacy_operational",
@@ -947,6 +994,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/telematico",
       "route": "/polisWeb",
       "family": "telematico",
       "status": "legacy_operational",
@@ -965,6 +1013,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/telematico",
       "route": "/pdp",
       "family": "telematico",
       "status": "legacy_operational",
@@ -983,6 +1032,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/telematico",
       "route": "/pat",
       "family": "telematico",
       "status": "legacy_operational",
@@ -1001,6 +1051,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/telematico",
       "route": "/sigit",
       "family": "telematico",
       "status": "legacy_operational",
@@ -1019,6 +1070,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/telematico",
       "route": "/sigp",
       "family": "telematico",
       "status": "legacy_operational",
@@ -1037,6 +1089,7 @@
       ]
     },
     {
+      "workspaceTarget": "/app/telematico",
       "route": "/portali/*",
       "family": "telematico",
       "status": "legacy_operational",

@@ -1,0 +1,43 @@
+{
+  "generatedAt": "2026-05-08T10:03:02.066Z",
+  "testResults": {
+    "generatedAt": "2026-05-08T10:03:02.066Z",
+    "backend": [
+      {
+        "command": "python -m pytest -q",
+        "status": "timeout",
+        "details": "Interrotto dal timeout locale dopo circa 45 minuti; nessun verde completo dichiarabile."
+      }
+    ],
+    "frontend": [
+      {
+        "command": "npm test",
+        "status": "passed",
+        "details": "Contratti React verificati."
+      },
+      {
+        "command": "npm run typecheck",
+        "status": "passed",
+        "details": "tsc --noEmit completato."
+      },
+      {
+        "command": "npm run build",
+        "status": "passed",
+        "details": "Vite build completata; asset generati in web/static/react."
+      }
+    ],
+    "migration": [
+      {
+        "command": "node scripts/react-migration/run-full-react-migration.mjs",
+        "status": "passed",
+        "details": "Audit, anti-mascheramento e check Full React passati."
+      },
+      {
+        "command": "node scripts/react-migration/run-legal-ui-checks.mjs",
+        "status": "passed",
+        "details": "Check UI legale, responsive e anti-Bootstrap passati."
+      }
+    ]
+  },
+  "summary": "Tranche architetturale: audit, manifest workspaceTarget, client API, shell/app/features, primitive UI e gate. Non dichiarare completata la migrazione totale per timeout pytest e route ancora legacy/bridge."
+}

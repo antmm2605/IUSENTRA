@@ -1,16 +1,16 @@
 # Audit migrazione React
 
-Generato: 2026-05-07T17:20:26.285Z
+Generato: 2026-05-08T09:59:39.471Z
 
 ## Frontend
 
-Dipendenze runtime: @vitejs/plugin-react, vite, typescript, react, react-dom, lucide-react
+Dipendenze runtime: @fontsource-variable/geist, @vitejs/plugin-react, class-variance-authority, clsx, lucide-react, radix-ui, react, react-dom, shadcn, tailwind-merge, tw-animate-css, typescript, vite
 Script disponibili: dev, test, typecheck, build, preview
 
 ## Gate React
 
 Route React prefixes: 55
-Route React exact: 43
+Route React exact: 46
 Excluded prefixes: 14
 Legacy operational prefixes: 23
 

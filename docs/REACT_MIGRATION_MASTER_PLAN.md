@@ -1,5 +1,53 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-08 - Design system IUSENTRA shadcn/lucide 2.198.121
+
+Questa tranche integra la base grafica governata per rendere le superfici React
+piu' professionali senza promuovere nuove route e senza sostituire logiche
+backend:
+
+- `frontend/components.json`, `frontend/src/components/ui/*` e
+  `frontend/src/lib/utils.ts` introducono shadcn/ui su Vite/React con alias
+  `@/*`, primitive Radix e classi componibili.
+- `frontend/src/design/iusentraTokens.ts` e
+  `frontend/src/styles/iusentra-design-system.css` definiscono palette blu
+  notte, oro tenue, grigi neutri, superfici operative, focus ring, stati e
+  mappa Lucide per le aree legali.
+- `frontend/src/components/iusentra/*` aggiunge componenti riutilizzabili per
+  shell, sidebar, top bar, header, metriche, action card, badge, stati vuoti,
+  form section, pannelli collassabili, data table shell, icone e Lex floating
+  button.
+- I wrapper storici `frontend/src/ui/*`, la dashboard condivisa e i layout
+  esistenti vengono normalizzati verso il nuovo sistema mantenendo i contratti
+  statici usati dai gate React.
+- La guida operativa vive in `docs/UI_DESIGN_SYSTEM.md` e descrive librerie,
+  struttura, token, icone, pattern pagina, form, toolbar, accessibilita e divieti
+  per evitare template, dati demo o componenti duplicati.
+
+## Stato tranche 2026-05-08 - Architettura Full React governata 2.198.120
+
+Questa tranche crea la base governata della migrazione Full React senza
+dichiarare complete le route che restano bridge o legacy:
+
+- `artifacts/react-migration/full-react-audit.*` censisce 53 route del manifest
+  con stato reale, componenti React, bridge backend, endpoint JSON, presenza di
+  `_legacy=1`, POST HTML, dati mock/demo, rischio e workspace di destinazione.
+- `tools/react-migration/route-manifest.json` dichiara `workspaceTarget` per
+  ogni route censita; gli stati esistenti non vengono promossi se manca parita'
+  operativa.
+- `frontend/src/app`, `frontend/src/shell`, `frontend/src/api` e
+  `frontend/src/features/*` introducono la grammatica Full React: route
+  applicative, shell unica, client API JSON/CSRF centralizzato e workspace
+  consolidati che riusano i data client esistenti invece di duplicare logiche
+  backend.
+- `frontend/src/theme/legal-ui.css` e le primitive in `frontend/src/ui/*`
+  aggiungono layout, card operative, filtri, drawer, modali, stati, pannelli e
+  sticky action bar tokenizzati per la UI legale professionale.
+- I runner `scripts/react-migration/run-full-react-migration.mjs` e
+  `scripts/react-migration/run-legal-ui-checks.mjs` aggregano i nuovi gate
+  anti-mascheramento, anti-mock, anti-logica canonica frontend, responsive e
+  anti-Bootstrap primario.
+
 ## Stato tranche 2026-05-07 - Parti 22A-25A economico, tariffario e audit operativi 2.198.118
 
 Le Parti 22A-25A chiudono il blocco economico principale e portano audit e

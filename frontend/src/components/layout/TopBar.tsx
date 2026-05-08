@@ -7,6 +7,7 @@ import { TopBarRecentItems } from './TopBarRecentItems'
 import { TopBarSearch } from './TopBarSearch'
 import { TopBarTimeTracker } from './TopBarTimeTracker'
 import { TopBarTodayMenu } from './TopBarTodayMenu'
+import { IusTopBar } from '../iusentra'
 import type { TopbarCreateContext } from '../../types/topbar'
 
 type PanelName = 'create' | 'today' | 'notifications' | 'deadlines' | 'recent' | 'timer' | null
@@ -38,7 +39,7 @@ export function TopBar({ onOpenMenu, activePath }: { onOpenMenu: () => void; act
   const closePanel = () => setOpenPanel(null)
 
   return (
-    <header className="iu-topbar iu-topbar-op">
+    <IusTopBar className="iu-topbar-op">
       <button className="iu-icon iu-menu-mobile" type="button" onClick={onOpenMenu} aria-label="Apri menu">
         <PanelLeftOpen size={18} />
       </button>
@@ -87,6 +88,6 @@ export function TopBar({ onOpenMenu, activePath }: { onOpenMenu: () => void; act
           icon={<Plus size={16} />}
         />
       </div>
-    </header>
+    </IusTopBar>
   )
 }

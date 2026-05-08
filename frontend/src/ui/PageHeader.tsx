@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { IusSectionHeader } from '@/components/iusentra'
 import './ui.css'
 
 export function PageHeader({
@@ -11,12 +12,6 @@ export function PageHeader({
   actions?: ReactNode
 }) {
   return (
-    <header className="iu-page-heading">
-      <div>
-        <h1>{title}</h1>
-        {subtitle ? <p>{subtitle}</p> : null}
-      </div>
-      {actions ? <div className="iu-page-actions">{actions}</div> : null}
-    </header>
+    <IusSectionHeader title={title} description={subtitle} actions={actions} level={1} className="iu-page-heading" />
   )
 }

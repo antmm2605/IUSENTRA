@@ -1,0 +1,43 @@
+@import './tokens.css';
+@import './layout.css';
+
+:root {
+  --iu-legal-density-compact: 8px;
+  --iu-legal-density-regular: 12px;
+  --iu-legal-density-spacious: 18px;
+  --iu-legal-touch-target: 44px;
+}
+
+.iu-legal-workspace {
+  display: grid;
+  gap: var(--iu-legal-density-spacious);
+}
+
+.iu-legal-workspace [data-panel='sinistra'],
+.iu-legal-workspace [data-panel='destra'] {
+  min-width: 0;
+}
+
+.iu-legal-amount {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.iu-legal-date {
+  font-variant-numeric: tabular-nums;
+}
+
+.iu-legal-actions {
+  min-height: var(--iu-legal-touch-target);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 720px) {
+  .iu-legal-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+}

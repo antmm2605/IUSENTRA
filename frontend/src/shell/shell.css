@@ -1,0 +1,227 @@
+@import '../theme/tokens.css';
+@import '../theme/layout.css';
+
+.iu-app-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  background: var(--iu-bg);
+  color: var(--iu-text);
+}
+
+.iu-app-shell__main {
+  min-width: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.iu-app-shell__workspace {
+  min-width: 0;
+  padding: 24px;
+}
+
+.iu-shell-sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 18px;
+  padding: 18px;
+  border-right: 1px solid var(--iu-border);
+  background: var(--iu-surface-muted);
+}
+
+.iu-shell-sidebar__brand {
+  display: grid;
+  gap: 2px;
+}
+
+.iu-shell-sidebar__brand strong {
+  color: var(--iu-text-strong);
+  font-size: 15px;
+  font-weight: 860;
+}
+
+.iu-shell-sidebar__brand span {
+  color: var(--iu-text-subtle);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.iu-shell-sidebar nav,
+.iu-mobile-nav {
+  display: grid;
+  gap: 6px;
+}
+
+.iu-shell-nav-link,
+.iu-mobile-nav a {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px;
+  border-radius: var(--iu-radius-control);
+  color: var(--iu-text-subtle);
+  font-size: 13px;
+  font-weight: 760;
+  text-decoration: none;
+}
+
+.iu-shell-nav-link.is-active,
+.iu-shell-nav-link:hover,
+.iu-mobile-nav a.is-active {
+  background: var(--iu-surface-solid);
+  color: var(--iu-text-strong);
+  box-shadow: var(--iu-shadow-hairline);
+}
+
+.iu-shell-topbar {
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--iu-border);
+  background: var(--iu-surface-solid);
+}
+
+.iu-shell-topbar__tools,
+.iu-quick-actions,
+.iu-notification-center,
+.iu-user-studio-menu {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.iu-command-palette {
+  width: min(680px, calc(100vw - 32px));
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--iu-border);
+  border-radius: var(--iu-radius-panel);
+  background: var(--iu-surface-solid);
+  box-shadow: var(--iu-shadow-floating);
+}
+
+.iu-command-palette input {
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid var(--iu-border);
+  border-radius: var(--iu-radius-control);
+  color: var(--iu-text-strong);
+  font: inherit;
+}
+
+.iu-command-palette input:focus-visible,
+.iu-shell-nav-link:focus-visible,
+.iu-mobile-nav a:focus-visible {
+  outline: 2px solid var(--iu-focus-ring);
+  outline-offset: 2px;
+}
+
+.iu-breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--iu-text-subtle);
+  font-size: 12px;
+  font-weight: 720;
+}
+
+.iu-workspace-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.iu-workspace-header h1 {
+  margin: 0;
+  color: var(--iu-text-strong);
+  font-size: 1.75rem;
+  line-height: 1.16;
+  letter-spacing: 0;
+}
+
+.iu-workspace-header p {
+  max-width: 72ch;
+  margin: 6px 0 0;
+  color: var(--iu-text-subtle);
+  font-size: .9375rem;
+  line-height: 1.55;
+}
+
+.iu-lex-floating {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  z-index: 30;
+}
+
+.iu-mobile-nav {
+  display: none;
+}
+
+@media (max-width: 1024px) {
+  .iu-app-shell {
+    grid-template-columns: 76px minmax(0, 1fr);
+  }
+
+  .iu-shell-sidebar {
+    padding: 12px;
+  }
+
+  .iu-shell-sidebar__brand span,
+  .iu-shell-nav-link span {
+    display: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .iu-app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .iu-shell-sidebar {
+    display: none;
+  }
+
+  .iu-app-shell__workspace {
+    padding: 16px 14px 86px;
+  }
+
+  .iu-shell-topbar {
+    padding: 0 14px;
+  }
+
+  .iu-mobile-nav {
+    position: fixed;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    z-index: 25;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    padding: 8px;
+    border: 1px solid var(--iu-border);
+    border-radius: var(--iu-radius-panel);
+    background: var(--iu-surface-solid);
+    box-shadow: var(--iu-shadow-floating);
+  }
+
+  .iu-mobile-nav a {
+    min-height: 48px;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .iu-mobile-nav span {
+    display: none;
+  }
+}

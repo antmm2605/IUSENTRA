@@ -49,6 +49,7 @@ import {
 import { DashboardData, Row, Tone, emptyDashboard, getDashboard, syncDashboardMailboxes } from './data'
 import { Badge, DossierCard, KpiCard, Panel, SourceCard } from './components/dashboard'
 import { FloatingLex } from './components/FloatingLex'
+import { IusAppSidebar } from './components/iusentra'
 import { TopBar } from './components/layout/TopBar'
 import { findStudioModule, isStudioModuleRoute } from './studioModuleData'
 import './index.css'
@@ -696,7 +697,7 @@ function Sidebar({ collapsed, mobileOpen, activePath, onToggle, onCloseMobile, b
     onToggle()
   }
   return (
-    <aside className={`iu-sidebar ${collapsed?'iu-sidebar--collapsed':''} ${mobileOpen?'iu-sidebar--mobile-open':''}`}>
+    <IusAppSidebar collapsed={collapsed} className={mobileOpen ? 'iu-sidebar--mobile-open' : ''}>
       <div className="iu-sidebar__brand">
         <Logo/>
         <div><strong>IUSENTRA</strong><span>Lo studio legale, in un unico sistema</span></div>
@@ -721,7 +722,7 @@ function Sidebar({ collapsed, mobileOpen, activePath, onToggle, onCloseMobile, b
         })}
       </nav>
       <SidebarUser bootstrap={bootstrap}/>
-    </aside>
+    </IusAppSidebar>
   )
 }
 

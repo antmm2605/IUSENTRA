@@ -316,6 +316,36 @@ def answer_contract_for(workflow: WorkflowType) -> AnswerContract:  # noqa: C901
         )
 
     # ------------------------------------------------------------------ #
+    # Lookup dati cliente/studio (dati interni, no web)                    #
+    # ------------------------------------------------------------------ #
+    if workflow == "studio_data_lookup":
+        return AnswerContract(
+            workflow=workflow,
+            sections=[
+                "cliente_individuato",
+                "dati_anagrafici",
+                "recapiti",
+                "fascicoli_collegati",
+                "dati_mancanti",
+                "prossima_azione",
+            ],
+            require_citations=False,
+            require_official_sources=False,
+            require_source_comparison=False,
+            allow_abstention=False,
+            provider_hint="deterministic",
+            target_latency_ms=800,
+            metadata={
+                "italian_only": True,
+                "studio_internal_only": True,
+                "web_forbidden": True,
+                "requires_tool": "studio_data_gateway",
+                "no_json_output": True,
+                "suppress_unrelated_sources": True,
+            },
+        )
+
+    # ------------------------------------------------------------------ #
     # Giurisprudenza specifica (sentenza con numero)                        #
     # ------------------------------------------------------------------ #
     if workflow == "giurisprudenza_specifica":

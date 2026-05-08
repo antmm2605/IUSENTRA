@@ -19,7 +19,8 @@ def test_router_detects_corte_costituzionale_sentence():
         query="Sentenza n. 49/2026 - Corte costituzionale",
     )
 
-    assert LexRouter().resolve_workflow(request) == "giurisprudenza"
+    # Sentenza con numero esatto → giurisprudenza_specifica (ricerca su fonti ufficiali)
+    assert LexRouter().resolve_workflow(request) == "giurisprudenza_specifica"
 
 
 def test_http_bridge_allows_bounded_giurisprudenza():

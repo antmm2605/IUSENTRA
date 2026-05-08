@@ -16,7 +16,7 @@ from .sections import build_sections
 
 class AnswerBuilder:
     def build_response(self, request, context, workflow, evidence, draft, verdict) -> WorkflowLexResponse:
-        strict_workflow = workflow in {"normativa", "giurisprudenza", "prassi", "research", "fonti"}
+        strict_workflow = workflow in {"normativa", "giurisprudenza", "prassi", "research", "fonti", "giurisprudenza_specifica"}
         practical_workflow = workflow in {
             "fascicolo",
             "udienza",
@@ -32,26 +32,32 @@ class AnswerBuilder:
         }
         citations = list((evidence or {}).get("citations") or [])
         evidence_pack = dict((evidence or {}).get("evidence_pack") or {})
-        official_sources = list((evidence or {}).get("official_sources") or evidence_pack.get("official_sources") or [])
-        trusted_sources = list((evidence or {}).get("trusted_sources") or evidence_pack.get("trusted_sources") or [])
-        if strict_workflow:
-            considered_sources = official_sources or trusted_sources or [citation.title for citation in citations if getattr(citation, "title", "")]
-        elif practical_workflow:
-            considered_sources = [citation.title for citation in citations if getattr(citation, "title", "")]
-            if not considered_sources:
+        # studio_data_lookup: nessuna fonte esterna, nessuna citazione da sentenze
+        if workflow == "studio_data_lookup":
+            official_sources = []
+            trusted_sources = []
+            considered_sources = []
+        else:
+            official_sources = list((evidence or {}).get("official_sources") or evidence_pack.get("official_sources") or [])
+            trusted_sources = list((evidence or {}).get("trusted_sources") or evidence_pack.get("trusted_sources") or [])
+            if strict_workflow:
+                considered_sources = official_sources or trusted_sources or [citation.title for citation in citations if getattr(citation, "title", "")]
+            elif practical_workflow:
+                considered_sources = [citation.title for citation in citations if getattr(citation, "title", "")]
+                if not considered_sources:
+                    considered_sources = [
+                        str(item.get("title") or "").strip()
+                        for item in list((evidence or {}).get("items") or [])
+                        if isinstance(item, dict) and str(item.get("title") or "").strip()
+                    ]
+                considered_sources = considered_sources[:6]
+            else:
+                compared_sources_preview = list((evidence or {}).get("source_comparison") or evidence_pack.get("compared_sources") or [])
                 considered_sources = [
                     str(item.get("title") or "").strip()
-                    for item in list((evidence or {}).get("items") or [])
-                    if isinstance(item, dict) and str(item.get("title") or "").strip()
-                ]
-            considered_sources = considered_sources[:6]
-        else:
-            compared_sources_preview = list((evidence or {}).get("source_comparison") or evidence_pack.get("compared_sources") or [])
-            considered_sources = [
-                str(item.get("title") or "").strip()
-                for item in compared_sources_preview
-                if str(item.get("title") or "").strip()
-            ] or [citation.title for citation in citations if getattr(citation, "title", "")]
+                    for item in compared_sources_preview
+                    if str(item.get("title") or "").strip()
+                ] or [citation.title for citation in citations if getattr(citation, "title", "")]
         missing_evidence = list((evidence or {}).get("coverage_gaps") or evidence_pack.get("coverage_gaps") or [])
         compared_sources = list((evidence or {}).get("source_comparison") or evidence_pack.get("compared_sources") or [])
         fallback_triggered = bool((evidence or {}).get("fallback_triggered") or evidence_pack.get("fallback_triggered"))
@@ -89,6 +95,14 @@ class AnswerBuilder:
             confidence = min(confidence, 0.68)
         elif workflow == "giurisprudenza" and case_law_warnings:
             confidence = min(confidence, 0.74)
+        # Sentenza specifica: confidence massima 0.45 senza exact_match, 0.55 senza testo completo
+        if workflow == "giurisprudenza_specifica":
+            exact_match = bool(evidence_pack.get("metadata", {}).get("exact_match_found"))
+            has_full_text = bool(evidence_pack.get("metadata", {}).get("has_full_text"))
+            if not exact_match:
+                confidence = min(confidence, 0.45)
+            elif not has_full_text:
+                confidence = min(confidence, 0.55)
         if legal_quality_warnings:
             confidence = min(confidence, 0.69)
         if not strict_workflow:
@@ -99,7 +113,13 @@ class AnswerBuilder:
         if not evidence_sufficient:
             confidence = min(confidence, 0.54)
         confidence = max(0.0, min(0.99, round(confidence, 4)))
-        answer_mode = "grounded" if evidence_sufficient else "needs_review"
+        # Per studio_data_lookup: non mostrare "grounded" (è lookup, non reasoning)
+        if workflow == "studio_data_lookup":
+            answer_mode = "lookup"
+        elif workflow == "giurisprudenza_specifica" and not bool(evidence_pack.get("metadata", {}).get("exact_match_found")):
+            answer_mode = "needs_review"
+        else:
+            answer_mode = "grounded" if evidence_sufficient else "needs_review"
         next_actions: list[str] = []
         if workflow in {"telematico", "telematico_status"}:
             next_actions.append("Verifica canale ed esito ufficiale prima di procedere")

@@ -54,14 +54,45 @@ def build_studio_context(request) -> dict[str, Any]:
 
     metadata = dict(getattr(request, "metadata", {}) or {})
     seed_payload = dict(metadata.get("studio_context_seed") or {})
+    workflow_hint = str(getattr(request, "workflow_hint", "") or metadata.get("workflow_hint") or "")
     payload = {
         "tenant_id": getattr(request, "tenant_id", ""),
-        "workflow_hint": getattr(request, "workflow_hint", "") or "",
+        "workflow_hint": workflow_hint,
         "request_metadata": metadata,
     }
     question = str(getattr(request, "query", "") or "").strip()
     if not question:
         return _merge_seed_payload(payload, seed_payload)
+
+    # Percorso rapido per lookup dati cliente: solo anagrafica, nessuna cabina
+    if workflow_hint == "studio_data_lookup":
+        try:
+            from lex.tools.studio_data_gateway import find_cliente
+            matches = find_cliente(question)
+            cliente_lines = [m.to_text() for m in matches[:8]]
+        except Exception:
+            cliente_lines = []
+        rich_payload: dict[str, Any] = {
+            "studio": {
+                "sources": [
+                    {
+                        "id": f"cliente:{m.id}",
+                        "title": m.nome_completo,
+                        "text": m.to_text(),
+                        "type": "cliente",
+                    }
+                    for m in (matches if "matches" in dir() and matches else [])
+                ],
+            },
+            "studio_data_lookup": True,
+            "studio_data_lookup_query": question,
+            "studio_data_lookup_matches": len(matches) if "matches" in dir() else 0,
+        }
+        rich_payload = _merge_seed_payload(rich_payload, seed_payload)
+        rich_payload.setdefault("tenant_id", payload["tenant_id"])
+        rich_payload.setdefault("workflow_hint", workflow_hint)
+        rich_payload.setdefault("request_metadata", metadata)
+        return rich_payload
 
     mode = str(metadata.get("mode") or "chat").strip() or "chat"
     messages = list(metadata.get("messages") or [])
@@ -72,6 +103,6 @@ def build_studio_context(request) -> dict[str, Any]:
 
     rich_payload = _merge_seed_payload(rich_payload, seed_payload)
     rich_payload.setdefault("tenant_id", payload["tenant_id"])
-    rich_payload.setdefault("workflow_hint", payload["workflow_hint"])
+    rich_payload.setdefault("workflow_hint", workflow_hint)
     rich_payload.setdefault("request_metadata", metadata)
     return rich_payload

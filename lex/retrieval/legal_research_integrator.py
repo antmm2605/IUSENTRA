@@ -19,7 +19,7 @@ from typing import Any
 
 
 _STRICT_LEGAL_WORKFLOWS = frozenset(
-    {"normativa", "giurisprudenza", "prassi", "research", "fonti"}
+    {"normativa", "giurisprudenza", "prassi", "research", "fonti", "giurisprudenza_specifica"}
 )
 
 
@@ -34,18 +34,27 @@ def should_run_public_research(
     allow_external: bool,
     *,
     force: bool = False,
+    exact_reference: bool = False,
+    local_case_law_incomplete: bool = False,
+    user_requested_public_source: bool = False,
 ) -> bool:
     """Decide se eseguire la ricerca legale pubblica.
 
     Criteri:
-    - Workflow strict legal (normativa, giurisprudenza, ecc.)
-    - Evidenza interna insufficiente oppure force=True
+    - Workflow strict legal (normativa, giurisprudenza, giurisprudenza_specifica, ecc.)
+    - Per giurisprudenza_specifica: sempre True (ricerca esatta su fonti ufficiali)
     - allow_external_research=True
     - LEX_GOVERNED_ONLY non disabilita l'uso di fonti ufficiali esterne
       (le fonti ufficiali web rientrano nel perimetro governato)
     """
     if not allow_external:
         return False
+    # Ricerca sentenza specifica: sempre pubblica, il frammento locale non basta
+    if workflow == "giurisprudenza_specifica":
+        return True
+    # Flag espliciti di override: riferimento esatto, frammento incompleto, fonte pubblica richiesta
+    if exact_reference or local_case_law_incomplete or user_requested_public_source:
+        return workflow in _STRICT_LEGAL_WORKFLOWS
     if force:
         return workflow in _STRICT_LEGAL_WORKFLOWS
     return workflow in _STRICT_LEGAL_WORKFLOWS and not evidence_sufficient

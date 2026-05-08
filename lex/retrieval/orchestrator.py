@@ -99,15 +99,22 @@ class RetrievalOrchestrator:
         top = list(results[:5])
         official_count = 0
         strong_count = 0
+        has_official_url = False
         for item in top:
             trust_class = str(getattr(item, "trust_class", "") or (item.get("trust_class") if isinstance(item, dict) else "")).upper()
             source_level = int(getattr(item, "source_level", 0) or (item.get("source_level") if isinstance(item, dict) else 0) or 0)
             score = float(getattr(item, "score", 0.0) or (item.get("score") if isinstance(item, dict) else 0.0) or 0.0)
+            official_url = str(getattr(item, "official_url", "") or (item.get("official_url") if isinstance(item, dict) else "") or "")
             if trust_class in {"A", "B"} or source_level <= 2:
                 official_count += 1
             if score >= 0.55:
                 strong_count += 1
+            if official_url and ("giustizia" in official_url or "normattiva" in official_url or "cortecostituzionale" in official_url):
+                has_official_url = True
 
+        # Sentenza specifica: sempre insufficiente senza URL ufficiale + testo completo
+        if workflow == "giurisprudenza_specifica":
+            return False
         if workflow in {"normativa", "giurisprudenza", "prassi", "research", "fonti"}:
             return official_count >= 1 and strong_count >= 2
         if workflow in {"fascicolo", "udienza", "telematico_status", "documento"}:
@@ -234,7 +241,17 @@ class RetrievalOrchestrator:
         # Viene eseguita solo per workflow strict legal quando l'evidenza interna
         # è insufficiente e la richiesta consente fonti esterne.
         # ------------------------------------------------------------------
-        if should_run_public_research(workflow, sufficient, bool(getattr(request, "allow_external_research", True))):
+        exact_reference = bool(request_metadata.get("exact_legal_reference") or request_metadata.get("exact_reference"))
+        local_case_law_incomplete = workflow == "giurisprudenza_specifica"
+        user_requested_public_source = bool(request_metadata.get("complete_public_source") or request_metadata.get("public_web_forced"))
+        if should_run_public_research(
+            workflow,
+            sufficient,
+            bool(getattr(request, "allow_external_research", True)),
+            exact_reference=exact_reference,
+            local_case_law_incomplete=local_case_law_incomplete,
+            user_requested_public_source=user_requested_public_source,
+        ):
             source_mode = str(
                 (dict(request_metadata.get("request_profile") or {}).get("source_mode"))
                 or request_metadata.get("source_mode")

@@ -1041,6 +1041,76 @@ Con osservanza,
 > - Allegati: documenti comprovanti il credito/obbligo"""
 
 
+def _studio_data_lookup_text(q: str, context: Any) -> str:
+    """Ricerca dati cliente/fascicolo nei dati interni dello studio."""
+    try:
+        from lex.tools.studio_data_gateway import find_cliente, find_fascicoli_by_cliente
+        matches = find_cliente(q)
+    except Exception:
+        matches = []
+
+    if not matches:
+        nome = q.strip()
+        return (
+            f"Non ho trovato nessun cliente corrispondente a **{nome}** nell'anagrafica dello studio.\n\n"
+            "Se il nome è parziale, prova con cognome e nome separati. "
+            "I dati sono ricercati solo nei registri interni dello studio — nessuna fonte esterna viene consultata."
+        )
+
+    if len(matches) > 1:
+        nomi = [m.nome_completo for m in matches[:5]]
+        lista = "\n".join(f"- {n}" for n in nomi)
+        return (
+            f"Ho trovato {len(matches)} clienti che corrispondono alla ricerca:\n\n{lista}\n\n"
+            "Specifica il nome completo per ottenere i dettagli."
+        )
+
+    c = matches[0]
+    lines = [f"**{c.nome_completo}**"]
+    if c.tipo:
+        lines.append(f"Tipo: {c.tipo}")
+    if c.stato:
+        lines.append(f"Stato: {c.stato}")
+    if c.codice_fiscale:
+        lines.append(f"CF: {c.codice_fiscale}")
+    if c.partita_iva:
+        lines.append(f"P.IVA: {c.partita_iva}")
+    if c.email:
+        lines.append(f"Email: {c.email}")
+    if c.pec:
+        lines.append(f"PEC: {c.pec}")
+    if c.telefono:
+        lines.append(f"Tel: {c.telefono}")
+    if c.indirizzo:
+        lines.append(f"Indirizzo: {c.indirizzo}")
+    if c.avvocato_referente:
+        lines.append(f"Referente: {c.avvocato_referente}")
+
+    try:
+        fascicoli = find_fascicoli_by_cliente(c.id, limit=5)
+        if fascicoli:
+            rgs = [f"RG {f.numero_rg}/{f.anno_rg}" if f.numero_rg else f.titolo for f in fascicoli]
+            lines.append(f"Fascicoli ({len(fascicoli)}): {', '.join(rgs)}")
+    except Exception:
+        if c.n_fascicoli:
+            lines.append(f"Fascicoli: {c.n_fascicoli}")
+
+    return "\n".join(lines)
+
+
+def _generic_operational_text(q: str, context: Any, title: str, summary: str) -> str:
+    """Fallback operativo generico — mai espone nomi tecnici interni."""
+    if title and summary and summary != "Nessuna evidenza disponibile.":
+        return f"{title}\n\n{summary}"
+    if title:
+        return title
+    return (
+        "Non ho trovato informazioni sufficienti per rispondere a questa domanda "
+        "con i dati disponibili nello studio. Prova a riformulare la richiesta "
+        "o indica un fascicolo, un cliente o una scadenza specifica."
+    )
+
+
 class DeterministicProvider(BaseProvider):
     provider_name = "deterministic"
 
@@ -1060,6 +1130,8 @@ class DeterministicProvider(BaseProvider):
             text = _fascicolo_text(q, context, title, summary)
         elif workflow in {"telematico_status", "compliance"}:
             text = _compliance_text(q, context, title, summary)
+        elif workflow == "studio_data_lookup":
+            text = _studio_data_lookup_text(q, context)
         elif workflow in {"drafting_legal_letter", "lettera", "bozza_lettera", "pec_comunicazioni"}:
             q_lower = q.lower()
             if "sollecito" in q_lower and "diffida" not in q_lower:
@@ -1079,11 +1151,7 @@ class DeterministicProvider(BaseProvider):
             else:
                 text = build_diffida_messa_in_mora_template(context)
         else:
-            text = (
-                f"Risposta deterministica per workflow '{workflow}'.\n"
-                f"Evidenza principale: {title or 'non disponibile'}\n"
-                f"Sintesi: {summary}"
-            )
+            text = _generic_operational_text(q, context, title, summary)
 
         return ProviderDraft(
             text=text,

@@ -1,5 +1,8 @@
 # Deploy Hetzner CPX42
 
+> **Versione corrente:** 2.201.0 — commit `177ca37`
+> Guida aggiornata: 08/05/2026
+
 Questa guida rende esplicito il profilo `deploy/hetzner` come destinazione di produzione o fallback governato rispetto a Railway.
 
 ## Target
@@ -148,3 +151,38 @@ Se esiste `/opt/iusentra/import/iusentra-data.tar.zst.sha256`, lo script verific
 - Artefatti PST, PDP, PAT, PTT e import portali devono restare sotto `/opt/iusentra/data`.
 - Le credenziali PEC e i segreti devono restare cifrati o in variabili ambiente, mai in chiaro nel repository.
 - Prima dello switch definitivo da Railway verificare route principali, worker OCR, scheduler, backup, restore e log Caddy.
+
+## Verifiche post-deploy Lex (da v2.201.0)
+
+Dopo ogni deploy che tocca `lex/`, verificare che i nuovi moduli siano raggiungibili dall'app:
+
+```bash
+docker compose --env-file /opt/iusentra/.env.hetzner \
+  -f deploy/hetzner/docker-compose.hetzner.yml \
+  exec app python -c "
+from lex.research.case_law_reference_parser import parse_case_law_reference
+from lex.guards.exact_legal_reference_guard import ExactLegalReferenceGuard
+from lex.tools.studio_data_gateway import extract_entity_hint
+from lex.research.query_helpers import is_exact_legal_reference_query
+ref = parse_case_law_reference('Sentenza n. 7919 del 31/03/2026')
+print('case_law_parser OK:', ref.is_exact_reference, ref.number)
+print('query_helpers OK:', is_exact_legal_reference_query('sentenza n. 1/2024'))
+print('studio_gateway OK:', extract_entity_hint('CF RSSMRA80A01H501Z'))
+print('guard OK:', ExactLegalReferenceGuard().__class__.__name__)
+"
+```
+
+Output atteso:
+```
+case_law_parser OK: True 7919
+query_helpers OK: True
+studio_gateway OK: {'codice_fiscale': 'RSSMRA80A01H501Z', ...}
+guard OK: ExactLegalReferenceGuard
+```
+
+## Changelog deploy
+
+| Versione | Commit | Data | Contenuto principale |
+|----------|--------|------|----------------------|
+| 2.201.0 | `177ca37` | 08/05/2026 | Lex: distinzione fonti pubbliche vs dati studio. Parser sentenze esatte, ExactLegalReferenceGuard, StudioDataGateway, fix `_should_force_web_fallback`, fix `_clienti_lines` (4→8, CF/email), intent `cliente_anagrafica` → `studio_data_lookup`. |
+| 2.200.0 | `77a4f40` | 08/05/2026 | Hetzner CPX42: fix Caddyfile rate_limit (→ Flask-Limiter), Ollama profilo opzionale `ai`, deploy.sh robusto con `COMPOSE_PROFILES`. Lex v2.200.0: debug payload 46 campi, fasi 1-16 router/guards/contracts. |

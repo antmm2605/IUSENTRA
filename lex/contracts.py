@@ -211,15 +211,100 @@ class LexResponse:
     evidence_summary: dict[str, Any] = field(default_factory=dict)
 
 
-def answer_contract_for(workflow: WorkflowType) -> AnswerContract:
+def answer_contract_for(workflow: WorkflowType) -> AnswerContract:  # noqa: C901
+    # ------------------------------------------------------------------ #
+    # Redazione legale — lettere, diffide, PEC, atti processuali           #
+    # ------------------------------------------------------------------ #
+    if workflow in {
+        "drafting_legal_letter", "lettera", "bozza_lettera", "atto", "bozza_atto",
+        "pec_comunicazioni",
+    }:
+        return AnswerContract(
+            workflow=workflow,
+            sections=["bozza", "punti_da_adattare", "avvertenze"],
+            require_citations=False,
+            require_official_sources=False,
+            allow_abstention=False,
+            provider_hint="ollama",
+            target_latency_ms=3500,
+            metadata={
+                "italian_only": True,
+                "disclaimer_suppressed": True,
+                "no_json_output": True,
+                "no_english_output": True,
+            },
+        )
+
+    # ------------------------------------------------------------------ #
+    # Termini processuali — calcolo deterministico                          #
+    # ------------------------------------------------------------------ #
+    if workflow == "termini_processuali":
+        return AnswerContract(
+            workflow=workflow,
+            sections=["scadenza_calcolata", "normativa_applicata", "avvertenze", "prossima_azione"],
+            require_citations=True,
+            require_official_sources=True,
+            allow_abstention=False,
+            provider_hint="deterministic",
+            target_latency_ms=800,
+            metadata={
+                "italian_only": True,
+                "disclaimer_suppressed": True,
+                "deterministic": True,
+            },
+        )
+
+    # ------------------------------------------------------------------ #
+    # Deposito telematico — checklist portali                               #
+    # ------------------------------------------------------------------ #
+    if workflow in {"deposito_telematico", "telematico_status", "compliance"}:
+        return AnswerContract(
+            workflow=workflow,
+            sections=["checklist", "portale", "requisiti_tecnici", "diagnosi_errori", "prossima_azione"],
+            require_citations=False,
+            allow_abstention=False,
+            provider_hint="deterministic",
+            target_latency_ms=1000,
+            metadata={
+                "italian_only": True,
+                "disclaimer_suppressed": True,
+            },
+        )
+
+    # ------------------------------------------------------------------ #
+    # Feedback e diagnosi Lex                                               #
+    # ------------------------------------------------------------------ #
+    if workflow == "lex_feedback_diagnostico":
+        return AnswerContract(
+            workflow=workflow,
+            sections=["comprensione", "riformulazione", "proposta_corretta"],
+            require_citations=False,
+            allow_abstention=False,
+            provider_hint="deterministic",
+            target_latency_ms=600,
+            metadata={
+                "italian_only": True,
+                "disclaimer_suppressed": True,
+            },
+        )
+
+    # ------------------------------------------------------------------ #
+    # Fascicolo operativo                                                   #
+    # ------------------------------------------------------------------ #
     if workflow == "fascicolo":
         return AnswerContract(
             workflow=workflow,
-            sections=["risposta", "fonti_considerate", "prossime_azioni"],
+            sections=["quadro_pratica", "documenti_chiave", "scadenze", "prossime_azioni"],
             require_citations=True,
             allow_abstention=True,
+            provider_hint="deterministic",
             target_latency_ms=2500,
+            metadata={"italian_only": True},
         )
+
+    # ------------------------------------------------------------------ #
+    # Udienza                                                               #
+    # ------------------------------------------------------------------ #
     if workflow == "udienza":
         return AnswerContract(
             workflow=workflow,
@@ -227,8 +312,33 @@ def answer_contract_for(workflow: WorkflowType) -> AnswerContract:
             require_citations=True,
             allow_abstention=True,
             target_latency_ms=3000,
+            metadata={"italian_only": True},
         )
-    if workflow in {"normativa", "giurisprudenza", "prassi", "research", "fonti"}:
+
+    # ------------------------------------------------------------------ #
+    # Giurisprudenza specifica (sentenza con numero)                        #
+    # ------------------------------------------------------------------ #
+    if workflow == "giurisprudenza_specifica":
+        return AnswerContract(
+            workflow=workflow,
+            sections=["riferimento", "massima", "organo_giudicante", "applicazione_pratica", "fonti"],
+            require_citations=True,
+            require_official_sources=True,
+            require_source_comparison=False,
+            allow_abstention=True,
+            provider_hint="ollama",
+            target_latency_ms=4000,
+            metadata={
+                "italian_only": True,
+                "strict_legal": True,
+                "no_invented_references": True,
+            },
+        )
+
+    # ------------------------------------------------------------------ #
+    # Ricerca normativa / giurisprudenziale / prassi / fonti               #
+    # ------------------------------------------------------------------ #
+    if workflow in {"normativa", "giurisprudenza", "prassi", "research", "fonti", "intelligence"}:
         return AnswerContract(
             workflow=workflow,
             sections=["risposta", "base_legale", "fonti_considerate", "confronto_fonti", "limiti"],
@@ -238,20 +348,52 @@ def answer_contract_for(workflow: WorkflowType) -> AnswerContract:
             allow_abstention=True,
             provider_hint="ollama",
             target_latency_ms=4500,
+            metadata={
+                "italian_only": True,
+                "strict_legal": True,
+                "no_invented_references": True,
+            },
         )
-    if workflow in {"economico", "next_action", "cabina", "telematico_status", "compliance"}:
+
+    # ------------------------------------------------------------------ #
+    # Economico / preventivo / tariffario                                   #
+    # ------------------------------------------------------------------ #
+    if workflow in {"economico", "next_action", "cabina"}:
         return AnswerContract(
             workflow=workflow,
-            sections=["risposta", "dati_usati", "prossima_azione"],
+            sections=["calcolo", "dati_usati", "normativa", "prossima_azione"],
             require_citations=False,
             allow_abstention=False,
             provider_hint="deterministic",
             target_latency_ms=1200,
+            metadata={
+                "italian_only": True,
+                "disclaimer_suppressed": True,
+            },
         )
+
+    # ------------------------------------------------------------------ #
+    # Analisi documento                                                     #
+    # ------------------------------------------------------------------ #
+    if workflow in {"documento", "document_editor", "documento_editor"}:
+        return AnswerContract(
+            workflow=workflow,
+            sections=["sintesi", "punti_chiave", "rischi_lacune", "obblighi", "prossime_azioni"],
+            require_citations=False,
+            allow_abstention=True,
+            provider_hint="ollama",
+            target_latency_ms=3500,
+            metadata={"italian_only": True},
+        )
+
+    # ------------------------------------------------------------------ #
+    # Default                                                               #
+    # ------------------------------------------------------------------ #
     return AnswerContract(
         workflow=workflow,
         sections=["risposta", "fonti_considerate"],
         require_citations=False,
         allow_abstention=True,
         target_latency_ms=2500,
+        metadata={"italian_only": True},
     )

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.203.0 - 2026-05-08
+
+- Corretto Lex per le ricerche di sentenze specifiche: il percorso HTTP bounded conserva `giurisprudenza_specifica`, forza la ricerca ufficiale quando consentita, distingue frammento locale/exact match e non mostra piu' elenchi di sentenze correlate come fonti principali.
+- Rafforzati exact guard e AnswerBuilder: confidence cap a 0.45 senza exact-match, 0.55 senza testo integrale/dispositivo/motivazione, template professionali senza nomi tecnici interni.
+- Corretto il lookup dati cliente: `cliente marco moscato` e varianti vengono instradati a `studio_data_lookup`, usano solo anagrafica interna tramite `studio_data_gateway`, non usano web e producono scheda cliente/fascicoli o not_found chiaro.
+- Aggiunti test mirati su router, bridge HTTP, exact search, AnswerBuilder, studio data gateway, output guard e payload debug Lex.
+
 ## 2.198.127 - 2026-05-08
 
 - Integrato in `AGENTS.md` il documento `AGENTS_IUSENTRA_Codex.md` preservando le regole esistenti su branch, deploy Hetzner, telematico, storage, sicurezza, CI, coverage e igiene repository.

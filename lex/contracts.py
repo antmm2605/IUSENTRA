@@ -87,6 +87,7 @@ class GuardVerdict:
     warnings: list[str] = field(default_factory=list)
     reasons: list[str] = field(default_factory=list)
     risk_level: RiskLevel = "low"
+    rewritten_draft: str | None = None
 
 
 @dataclass(slots=True)

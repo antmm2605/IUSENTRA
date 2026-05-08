@@ -578,6 +578,94 @@ def _compliance_text(question: str, context: Any, title: str, summary: str) -> s
     )
 
 
+def build_diffida_messa_in_mora_template(context: Any) -> str:
+    """Bozza italiana deterministica di diffida e messa in mora.
+
+    Usata come fallback quando il modello AI produce output in inglese.
+    Tutti i campi sensibili sono segnaposto in parentesi quadre.
+    """
+    from datetime import date as _date
+    oggi = _format_data_italiana(_date.today().isoformat())
+    controparte = "[Nome e Cognome / Ragione sociale della controparte]"
+    indirizzo = "[Indirizzo, CAP, Città, Provincia]"
+    avvocato = "[Studio Legale / Avv. Nome Cognome]"
+    oggetto_credito = "[descrizione del credito/obbligo inademputo]"
+    importo = "[€ importo]"
+    termine = "[X] giorni"
+
+    if isinstance(context, dict):
+        controparte = str(context.get("controparte") or controparte)
+        indirizzo = str(context.get("indirizzo_controparte") or indirizzo)
+        avvocato = str(context.get("avvocato") or avvocato)
+        oggetto_credito = str(context.get("oggetto") or oggetto_credito)
+        importo = str(context.get("importo") or importo)
+        termine_giorni = context.get("termine_giorni")
+        if termine_giorni:
+            termine = f"{termine_giorni} giorni"
+
+    return f"""**BOZZA — DIFFIDA E MESSA IN MORA**
+
+---
+
+{avvocato}
+[Via e numero civico dello studio]
+[CAP, Città, Provincia]
+[C.F. / P.IVA dello studio]
+[Tel. — Email — PEC dello studio]
+
+{oggi}
+
+**Spett.le**
+{controparte}
+{indirizzo}
+
+---
+
+**Oggetto: DIFFIDA E MESSA IN MORA** — {oggetto_credito}
+
+---
+
+Con la presente, il sottoscritto/la sottoscritta {avvocato}, in qualità di legale rappresentante / procuratore di [Nome del cliente — da completare], con la presente **Si invita e diffida formalmente** la S.V. / codesta Spettabile Società ad adempiere, entro e non oltre {termine} dal ricevimento della presente, all'obbligo di {oggetto_credito}, per un importo complessivo di {importo}.
+
+**Fatto**
+
+[Esporre in modo sintetico e cronologico i fatti rilevanti: rapporto contrattuale, obbligazione assunta, inadempimento verificatosi, eventuali precedenti solleciti già inviati — DA COMPLETARE]
+
+**Diritto**
+
+Ai sensi dell'art. 1219 c.c., la presente lettera costituisce formale messa in mora.
+[Se applicabile: richiamare la clausola contrattuale o normativa pertinente — DA COMPLETARE]
+
+**Richiesta formale**
+
+Si diffida la S.V. a:
+
+1. [Prima richiesta specifica — DA COMPLETARE]
+2. [Eventuale seconda richiesta — DA COMPLETARE]
+
+il tutto entro il termine perentorio di {termine} dalla ricezione della presente.
+
+**Avvertenza**
+
+In difetto di riscontro positivo nel termine indicato, il sottoscritto / la sottoscritta si riserva di agire in ogni sede competente — civile, penale, amministrativa — con ogni conseguenza di legge, ivi incluse le spese legali.
+
+---
+
+Con osservanza,
+
+{avvocato}
+
+---
+> **Dati da completare prima dell'invio:**
+> - Nome e dati completi del cliente mittente
+> - Dati completi della controparte (CF/PI se società)
+> - Descrizione precisa del credito/obbligo inademputo
+> - Importo esatto e calcolo interessi moratori (art. 1224 c.c.) se applicabile
+> - Termine congruo (solitamente 15–30 giorni)
+> - Firma digitale o autografa dell'avvocato
+> - Allegati: documenti comprovanti il credito/obbligo"""
+
+
 class DeterministicProvider(BaseProvider):
     provider_name = "deterministic"
 
@@ -597,6 +685,8 @@ class DeterministicProvider(BaseProvider):
             text = _fascicolo_text(q, context, title, summary)
         elif workflow in {"telematico_status", "compliance"}:
             text = _compliance_text(q, context, title, summary)
+        elif workflow in {"drafting_legal_letter", "lettera", "bozza_lettera"}:
+            text = build_diffida_messa_in_mora_template(context)
         else:
             text = (
                 f"Risposta deterministica per workflow '{workflow}'.\n"

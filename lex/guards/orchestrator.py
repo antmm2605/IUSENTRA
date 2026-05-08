@@ -3,7 +3,9 @@ from __future__ import annotations
 from lex.contracts import GuardVerdict
 
 from .citation_guard import CitationGuard
+from .evidence_relevance_guard import EvidenceRelevanceGuard
 from .hallucination_guard import HallucinationGuard
+from .italian_language_guard import ItalianLanguageGuard
 from .legal_answer_quality_guard import LegalAnswerQualityGuard
 from .legal_reference_guard import LegalReferenceGuard
 from .output_schema_guard import OutputSchemaGuard
@@ -21,6 +23,8 @@ class GuardOrchestrator:
     def __init__(self) -> None:
         self.pre_guards = [TenantGuard(), PermissionGuard(), PrivacyGuard(), RiskGuard()]
         self.post_guards = [
+            ItalianLanguageGuard(),
+            EvidenceRelevanceGuard(),
             CitationGuard(),
             LegalReferenceGuard(),
             HallucinationGuard(),
@@ -46,6 +50,7 @@ class GuardOrchestrator:
         warnings: list[str] = []
         reasons: list[str] = []
         risk_level = "low"
+        rewritten_draft: str | None = None
 
         for guard in self.post_guards:
             verdict = guard.check(
@@ -59,12 +64,15 @@ class GuardOrchestrator:
             reasons.extend(verdict.reasons)
             if _RISK_ORDER.get(str(verdict.risk_level or "low"), 0) > _RISK_ORDER.get(risk_level, 0):
                 risk_level = str(verdict.risk_level or risk_level)
+            if verdict.rewritten_draft is not None:
+                rewritten_draft = verdict.rewritten_draft
             if not verdict.allowed:
                 return GuardVerdict(
                     allowed=False,
                     warnings=warnings,
                     reasons=reasons,
                     risk_level=risk_level,
+                    rewritten_draft=rewritten_draft,
                 )
 
         return GuardVerdict(
@@ -72,4 +80,5 @@ class GuardOrchestrator:
             warnings=warnings,
             reasons=reasons,
             risk_level=risk_level,
+            rewritten_draft=rewritten_draft,
         )

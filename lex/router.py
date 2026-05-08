@@ -77,6 +77,22 @@ class LexRouter:
         "promemoria",
     )
     _FONTI_HINTS = ("fonte", "fonti", "riferimento", "citazione", "link ufficiale")
+    _LETTERA_HINTS = (
+        "diffida",
+        "messa in mora",
+        "messa in mòra",
+        "costituzione in mora",
+        "costituzione in mòra",
+        "intimazione",
+        "invito e diffida",
+        "formale diffida",
+        "diffida formale",
+        "sollecito formale",
+        "pec legale",
+        "lettera legale",
+        "lettera di messa",
+        "lettera di diffida",
+    )
 
     def resolve_workflow(self, request: LexRequest) -> WorkflowType:
         hint = str(getattr(request, "workflow_hint", "") or "").strip().lower()
@@ -84,6 +100,12 @@ class LexRouter:
             return hint  # type: ignore[return-value]
 
         intent = str(getattr(request, "intent", "") or "").strip()
+        if intent == "risposta_in_italiano":
+            return "question_answering"
+        if intent == "bozza_lettera":
+            return "drafting_legal_letter"
+        if intent == "bozza_atto":
+            return "atto"
         if intent == "prepare_udienza":
             return "udienza"
         if intent in {"draft_act_support", "validate_draft"}:
@@ -120,6 +142,8 @@ class LexRouter:
                 str((getattr(request, "metadata", {}) or {}).get("topic") or ""),
             ]
         ))
+        if self._has_any(text, self._LETTERA_HINTS):
+            return "drafting_legal_letter"
         if self._has_any(text, self._COMPLIANCE_HINTS):
             return "compliance"
         if self._has_any(text, self._ECONOMICO_HINTS):

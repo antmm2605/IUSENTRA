@@ -22,6 +22,8 @@ _REQUEST_PROFILE_INTENTS = {
     "fatturazione_economica",
     "preventivo_guidato",
     "tariffario_economico",
+    "bozza_lettera",
+    "bozza_atto",
 }
 _UNBOUNDED_PROFILE_INTENTS = {
     "checklist_operativa",
@@ -151,6 +153,19 @@ def _is_fascicolo_first_request(data: dict[str, Any], studio_context: dict[str, 
     )
 
 
+_DRAFTING_INTENTS = {"bozza_lettera", "bozza_atto", "risposta_in_italiano"}
+_DRAFTING_WEB_ONLY_TOKENS = (
+    "norma",
+    "normativa",
+    "legge",
+    "decreto",
+    "art.",
+    "articolo",
+    "codice civile",
+    "codice penale",
+)
+
+
 def _external_sources_reason(
     question: str,
     studio_context: dict[str, Any],
@@ -163,6 +178,16 @@ def _external_sources_reason(
     focus_topic = _clean_spaces(studio_context.get("focus_topic")).lower()
     text = _clean_spaces(question).lower()
     explicit_web = bool(studio_context.get("web_execution_requested") or studio_context.get("web_fallback_used"))
+
+    # Per i workflow di redazione, "web"/"cerca" nella query dell'utente NON deve
+    # attivare la ricerca esterna di giurisprudenza o fonti irrilevanti.
+    # Solo token normativi specifici giustificano la ricerca per bozza/drafting.
+    if profile_intent in _DRAFTING_INTENTS:
+        has_normative_token = any(token in text for token in _DRAFTING_WEB_ONLY_TOKENS)
+        if has_normative_token:
+            return "La bozza richiede un riferimento normativo da verificare."
+        return None
+
     explicit_research = (
         source_mode == "strict"
         or profile_intent in _LEGAL_BOUNDED_PROFILE_INTENTS

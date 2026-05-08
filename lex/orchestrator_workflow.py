@@ -48,7 +48,15 @@ def run_workflow(orchestrator, request):
     draft = provider.generate(request=request, context=context, evidence=evidence, workflow=workflow)
 
     post = orchestrator.guard_orchestrator.run_post(request, context, workflow, evidence, draft)
-    if not post.allowed:
+    if post.rewritten_draft is not None:
+        draft = SimpleNamespace(
+            text=post.rewritten_draft,
+            metadata={
+                **dict(getattr(draft, "metadata", {}) or {}),
+                "language_rewritten": True,
+            },
+        )
+    elif not post.allowed:
         contract = answer_contract_for(workflow)
         if not contract.allow_abstention:
             raise LexGuardError("; ".join(post.reasons or ["Response blocked by guards"]))

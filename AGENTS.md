@@ -108,6 +108,21 @@ Quando il lavoro riguarda UI React, Flask, template, rotte o pagine app-v2:
 - Lex AI floating icon dove previsto;
 - nessuna pagina deve restare scollegata da menu, route o API necessarie.
 
+### Regole professionali React, shadcn/ui e UI operativa
+
+Quando una modifica riguarda UI React, app-v2, template, SCSS/CSS, componenti condivisi o superfici operative, l'interfaccia deve essere trattata come prodotto legale professionale, non come demo o template generico.
+
+- **UI professionale obbligatoria**: ogni schermata deve essere responsive desktop/tablet/mobile, ordinata, compatta ma leggibile, senza spazio morto inutile, con gerarchia chiara, stati vuoti utili, loading, errori, successo e azioni principali sempre riconoscibili.
+- **Card operative**: le card devono rappresentare dati o azioni reali, indicare stato/prossima azione quando utile, avere badge e metadati essenziali, e non essere decorative. Sono vietate card giganti, griglie ripetitive senza scopo, pulsanti placeholder o azioni non collegate.
+- **Linguaggio non tecnico**: tutto il testo visibile deve essere in italiano, professionale, breve e orientato all'azione. Non mostrare stack trace, nomi di variabili, endpoint, `undefined`, `null`, `NaN`, `TODO`, `demo`, `sample`, errori grezzi o messaggi misti italiano/inglese.
+- **Icone moderne e coerenti**: usare icone lineari e sobrie, preferibilmente `lucide-react` nelle superfici React quando disponibile, con dimensioni e stroke coerenti. Non usare emoji, set grafici mischiati o icone decorative casuali nelle pagine operative.
+- **shadcn/ui**: se il progetto usa React + Tailwind, usare shadcn/ui come base per componenti accessibili e personalizzabili, senza importare componenti non presenti, senza duplicare `components/ui`, senza stili inline non governati e senza rompere focus, tastiera, `aria` o composizione Radix. Preferire varianti/tokens semantici a colori raw.
+- **Componenti attesi**: prima di creare markup custom verificare se esistono gia' `Button`, `Card`, `Badge`, `Tabs`, `Accordion`, `Collapsible`, `Dialog`, `Sheet`, `DropdownMenu`, `Popover`, `Tooltip`, `Command`, `Form`, `Input`, `Select`, `Table/DataTable`, `Skeleton`, `Toast/Sonner`, `Alert`, `Separator`, `ScrollArea` o wrapper IUSENTRA equivalenti.
+- **Open Design / Open Designer**: per pagine UI importanti definire obiettivo, utente, scenario d'uso, azioni primarie, densita' informativa, struttura responsive, accessibilita' e pattern componenti prima di implementare. Open Design produce proposte: Codex deve convertirle in codice IUSENTRA modulare, tipizzato, testato e collegato a dati reali.
+- **open-design-support**: se esiste `tools/open-design-support/`, prima di modificare UI leggere almeno `tools/open-design-support/IUSENTRA_DESIGN.md`, `tools/open-design-support/IUSENTRA_UI_RULES.md` e la skill pertinente. Non importare open-design-support nel runtime o nel bundle finale.
+- **Impeccable**: per ogni pagina UI significativa fare una revisione finale su layout, gerarchia, densita', contrasto, accessibilita', chiarezza testi, azioni principali, responsive, performance, assenza di spazio morto e assenza di pattern generici da AI.
+- **Niente template completi sovrascritti**: non copiare admin template o landing page sopra IUSENTRA. Integrare componenti e pattern nel design system interno preservando rotte, API, permessi, validazioni, workflow e dati.
+
 ### Regole per storage e dati
 
 Quando il lavoro riguarda persistenza, tenant, JSON, SQLite, SQL o PostgreSQL:
@@ -258,6 +273,50 @@ Regola finale: **non dichiarare mai conclusa una funzione se e' stata completata
   - evitare patch monolitiche che su Windows rischiano limiti pratici di shell, diff o applicazione patch
 - Ogni nuovo modulo deve avere una responsabilità leggibile già dal nome del file. Se nel nome o nel contenuto convivono più domini distinti, il modulo va spezzato.
 - Ogni estrazione o nuovo modulo deve aggiornare anche i **guardrail automatici** in `tests/test_web_bootstrap.py`, così i limiti restano vivi e verificabili nel tempo.
+
+## Budget anti-monolite UI/backend/CSS - REGOLA OBBLIGATORIA
+
+Ogni nuovo file o refactor deve rispettare il limite piu' severo applicabile tra questa sezione e i budget legacy gia' presenti. Le eccezioni legacy sono debito tecnico da ridurre, non precedenti da copiare.
+
+### Limiti per nuovo codice
+
+- componente React: massimo **250 righe**;
+- pagina React: massimo **450 righe**;
+- hook React: massimo **180 righe**;
+- servizio frontend o API client: massimo **250 righe**;
+- modulo backend di servizio: target **<= 500 righe**;
+- blueprint o file route: target **<= 500 righe** e nessuna logica business pesante inline;
+- file CSS/SCSS singolo: massimo **400 righe**, salvo bundle legacy gia' governati;
+- file utility: massimo **250 righe**.
+
+Se una funzione supera o rischia di superare questi limiti, va divisa prima del merge in componenti, hook, servizi, tipi, schema, costanti, repository o moduli omogenei. E' vietato spostare un monolite in un altro file grande equivalente.
+
+### Struttura minima per pagine React complesse
+
+Una pagina React complessa deve separare almeno:
+
+```text
+src/pages/<Area>/<Page>.tsx
+src/pages/<Area>/components/
+src/pages/<Area>/hooks/
+src/pages/<Area>/lib/
+src/pages/<Area>/types.ts
+src/pages/<Area>/schema.ts
+src/pages/<Area>/constants.ts
+```
+
+I componenti condivisi devono vivere in strutture riusabili (`src/components/ui/`, `src/components/layout/`, `src/components/app/`, `src/components/iusentra/`, `src/hooks/`, `src/services/`, `src/lib/`) oppure nelle cartelle equivalenti gia' presenti nella repo. Non duplicare card, badge, toolbar, empty state, dialog, form field, data table o layout shell.
+
+## Performance, accessibilita, sicurezza e quality gate - REGOLA OBBLIGATORIA
+
+Ogni modifica deve mantenere o migliorare velocita', sicurezza, accessibilita' e verificabilita'. Non basta che il codice compili.
+
+- **Performance frontend**: evitare render inutili, fetch ripetuti, stato globale non necessario, import icone/librerie in blocco e liste lunghe non paginate o non virtualizzate. Usare lazy loading per aree pesanti, skeleton coerenti, abort/cancel delle richieste e feedback immediato sulle azioni.
+- **Performance backend**: evitare query ripetute, letture/scritture integrali di file grandi quando basta un delta, operazioni pesanti dentro request web e caricamento completo del fascicolo quando serve solo un riepilogo. Usare job/queue, paginazione, indici e cache tenant-aware dove appropriato.
+- **Sicurezza**: non salvare segreti, PIN, token, cookie o sessioni; non loggare dati sensibili; non bypassare auth/RBAC/tenant; validare input lato server; proteggere upload, path traversal, CSRF, XSS e endpoint admin; non scrivere dati runtime nel repository.
+- **Accessibilita**: garantire contrasto adeguato, focus visibile, navigazione tastiera, label nei form, heading coerenti, errori associati ai campi, target touch adeguati e stati non basati solo sul colore.
+- **Test e quality gate**: ogni nuova verifica deve rispettare la regola dei 5 minuti per comando pytest/job operativo. Eseguire lint, typecheck, test, build, smoke route e gate Codex pertinenti al perimetro. Non disattivare test, non abbassare coverage, non usare `skip` per aggirare regressioni.
+- **Report finale**: riportare file modificati, cosa e' stato fatto, verifiche eseguite, verifiche non eseguite con motivo, rischi residui, stato CI e stato deploy quando richiesto dalle regole di release.
 
 ## Regola obbligatoria — Portale Servizi Telematici
 

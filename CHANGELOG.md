@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.198.127 - 2026-05-08
+
+- Integrato in `AGENTS.md` il documento `AGENTS_IUSENTRA_Codex.md` preservando le regole esistenti su branch, deploy Hetzner, telematico, storage, sicurezza, CI, coverage e igiene repository.
+- Aggiunte regole obbligatorie su UI React professionale, shadcn/ui, Open Design/Open Designer, open-design-support, Impeccable, anti-monolite, performance frontend/backend, accessibilita', sicurezza, quality gate e report finale.
+- Rafforzato `tests/test_ci_no_regression_contract.py` per bloccare la rimozione accidentale delle nuove regole operative da `AGENTS.md`.
+
 ## 2.198.126 - 2026-05-08
 
 - Reso compatibile l'upload degli shard `Coverage moduli critici` con `actions/upload-artifact@v4`, abilitando esplicitamente `include-hidden-files` per gli artefatti `.coverage.critical.*` e aggiungendo il presidio nel contratto CI anti-regressione.

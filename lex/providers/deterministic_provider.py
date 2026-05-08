@@ -578,6 +578,381 @@ def _compliance_text(question: str, context: Any, title: str, summary: str) -> s
     )
 
 
+def build_sollecito_pagamento_template(context: Any) -> str:
+    """Bozza italiana deterministica di sollecito pagamento."""
+    from datetime import date as _date
+    oggi = _format_data_italiana(_date.today().isoformat())
+    controparte = "[Nome e Cognome / Ragione sociale]"
+    importo = "[€ importo]"
+    scadenza_originale = "[data originale di scadenza]"
+    avvocato = "[Studio Legale / Avv. Nome Cognome]"
+    if isinstance(context, dict):
+        controparte = str(context.get("controparte") or controparte)
+        importo = str(context.get("importo") or importo)
+        scadenza_originale = str(context.get("scadenza_originale") or scadenza_originale)
+        avvocato = str(context.get("avvocato") or avvocato)
+    return f"""**BOZZA — SOLLECITO DI PAGAMENTO**
+
+---
+
+{avvocato}
+[Via e numero civico dello studio]
+[CAP, Città, Provincia]
+
+{oggi}
+
+**Spett.le**
+{controparte}
+[Indirizzo, CAP, Città]
+
+---
+
+**Oggetto: Sollecito di pagamento** — somma di {importo}
+
+---
+
+Con la presente La sollecitiamo cortesemente a voler provvedere al pagamento della somma di {importo}, il cui versamento era previsto entro il {scadenza_originale}, e che risulta ad oggi ancora non corrisposto.
+
+**La invitiamo pertanto a regolarizzare la Sua posizione entro e non oltre 10 (dieci) giorni** dal ricevimento della presente, accreditando quanto dovuto sul conto indicato di seguito:
+
+> IBAN: [IBAN dello studio/cliente]
+> Intestatario: [Nome intestatario]
+> Causale: [causale pagamento]
+
+Qualora entro il termine indicato non si provveda al pagamento, saremo costretti ad adottare le misure legali necessarie per il recupero del credito, con aggravio di spese a Suo carico.
+
+Confidiamo in una pronta risposta.
+
+Distinti saluti,
+
+{avvocato}
+
+---
+> **Dati da completare prima dell'invio:**
+> - Dati completi del destinatario
+> - Importo esatto e data di scadenza originale
+> - IBAN e causale di pagamento
+> - Eventuale riferimento a fattura o contratto"""
+
+
+def build_pec_formale_template(context: Any) -> str:
+    """Bozza italiana deterministica di PEC formale."""
+    from datetime import date as _date
+    oggi = _format_data_italiana(_date.today().isoformat())
+    destinatario = "[nome@pec.destinatario.it]"
+    oggetto_pec = "[Oggetto della PEC]"
+    corpo = "[Testo del messaggio PEC — DA COMPLETARE]"
+    avvocato = "[Studio Legale / Avv. Nome Cognome]"
+    if isinstance(context, dict):
+        destinatario = str(context.get("destinatario") or destinatario)
+        oggetto_pec = str(context.get("oggetto_pec") or oggetto_pec)
+        corpo = str(context.get("corpo") or corpo)
+        avvocato = str(context.get("avvocato") or avvocato)
+    return f"""**BOZZA — PEC FORMALE**
+
+---
+
+**A:** {destinatario}
+**Da:** [pec@studiolegale.it]
+**Data:** {oggi}
+**Oggetto:** {oggetto_pec}
+
+---
+
+Con la presente comunicazione a mezzo PEC si notifica quanto segue:
+
+{corpo}
+
+Per qualsiasi comunicazione relativa alla presente, si prega di rispondere esclusivamente all'indirizzo PEC del mittente.
+
+Distinti saluti,
+
+{avvocato}
+[Indirizzo e recapiti dello studio]
+[PEC: pec@studiolegale.it]
+
+---
+> **Dati da completare prima dell'invio:**
+> - Indirizzo PEC del destinatario verificato su INI-PEC o ReGINde
+> - Oggetto della PEC (deve descrivere sinteticamente il contenuto)
+> - Testo completo del messaggio
+> - Allegare documenti pertinenti se necessario"""
+
+
+def build_lettera_cliente_template(context: Any) -> str:
+    """Bozza italiana di lettera informativa al cliente."""
+    from datetime import date as _date
+    oggi = _format_data_italiana(_date.today().isoformat())
+    cliente = "[Nome e Cognome cliente]"
+    oggetto = "[oggetto della comunicazione]"
+    avvocato = "[Studio Legale / Avv. Nome Cognome]"
+    if isinstance(context, dict):
+        cliente = str(context.get("cliente") or cliente)
+        oggetto = str(context.get("oggetto") or oggetto)
+        avvocato = str(context.get("avvocato") or avvocato)
+    return f"""**BOZZA — LETTERA INFORMATIVA AL CLIENTE**
+
+---
+
+{avvocato}
+[Via e numero civico dello studio]
+[CAP, Città, Provincia]
+[Tel. — Email — PEC dello studio]
+
+{oggi}
+
+**Gentile**
+{cliente}
+[Indirizzo]
+
+---
+
+**Oggetto:** {oggetto}
+
+---
+
+Facendo seguito ai recenti contatti e ai colloqui intercorsi, con la presente La informiamo dell'evoluzione della Sua pratica e degli aggiornamenti più rilevanti.
+
+[Testo descrittivo dell'aggiornamento — DA COMPLETARE]
+
+**Prossimi passi:**
+
+1. [Prima azione prevista — DA COMPLETARE]
+2. [Eventuale seconda azione — DA COMPLETARE]
+
+Restiamo a Sua disposizione per qualsiasi chiarimento.
+
+Cordiali saluti,
+
+{avvocato}
+
+---
+> **Dati da completare prima dell'invio:**
+> - Dati completi del cliente
+> - Contenuto dell'aggiornamento
+> - Prossimi passi concordati"""
+
+
+def build_contestazione_fattura_template(context: Any) -> str:
+    """Bozza italiana di contestazione fattura."""
+    from datetime import date as _date
+    oggi = _format_data_italiana(_date.today().isoformat())
+    fornitore = "[Nome fornitore / Ragione sociale]"
+    numero_fattura = "[numero fattura]"
+    importo = "[€ importo]"
+    motivo = "[motivo della contestazione]"
+    avvocato = "[Studio Legale / Avv. Nome Cognome]"
+    if isinstance(context, dict):
+        fornitore = str(context.get("fornitore") or fornitore)
+        numero_fattura = str(context.get("numero_fattura") or numero_fattura)
+        importo = str(context.get("importo") or importo)
+        motivo = str(context.get("motivo") or motivo)
+        avvocato = str(context.get("avvocato") or avvocato)
+    return f"""**BOZZA — CONTESTAZIONE FATTURA**
+
+---
+
+{avvocato}
+[Via e numero civico dello studio]
+[CAP, Città, Provincia]
+
+{oggi}
+
+**Spett.le**
+{fornitore}
+[Indirizzo]
+
+---
+
+**Oggetto: Contestazione fattura n. {numero_fattura} — importo {importo}**
+
+---
+
+Con la presente, il sottoscritto/la sottoscritta {avvocato} contesta formalmente la fattura n. {numero_fattura} dell'importo di {importo}, in quanto: {motivo}.
+
+**Chiediamo pertanto:**
+
+1. La rettifica o l'annullamento della fattura entro 15 giorni dal ricevimento della presente
+2. L'emissione di nota di credito o fattura corretta
+3. Eventuale restituzione di quanto già pagato in eccesso
+
+In assenza di riscontro nel termine indicato, saremo costretti ad adire le competenti sedi legali.
+
+Distinti saluti,
+
+{avvocato}
+
+---
+> **Dati da completare prima dell'invio:**
+> - Dati completi del fornitore
+> - Numero e data della fattura contestata
+> - Motivazione specifica della contestazione
+> - Importo contestato"""
+
+
+def build_richiesta_documenti_template(context: Any) -> str:
+    """Bozza italiana di richiesta documenti."""
+    from datetime import date as _date
+    oggi = _format_data_italiana(_date.today().isoformat())
+    destinatario = "[Nome e Cognome / Ente / Società]"
+    documenti = "[elenco dei documenti richiesti]"
+    motivo = "[motivo della richiesta]"
+    avvocato = "[Studio Legale / Avv. Nome Cognome]"
+    if isinstance(context, dict):
+        destinatario = str(context.get("destinatario") or destinatario)
+        documenti = str(context.get("documenti") or documenti)
+        motivo = str(context.get("motivo") or motivo)
+        avvocato = str(context.get("avvocato") or avvocato)
+    return f"""**BOZZA — RICHIESTA DOCUMENTI**
+
+---
+
+{avvocato}
+[Via e numero civico dello studio]
+[CAP, Città, Provincia]
+
+{oggi}
+
+**Spett.le / Egregio**
+{destinatario}
+[Indirizzo]
+
+---
+
+**Oggetto: Richiesta di trasmissione documenti**
+
+---
+
+Con la presente, in qualità di [ruolo/qualifica — DA COMPLETARE], Le chiediamo la trasmissione dei seguenti documenti:
+
+{documenti}
+
+La richiesta è motivata da: {motivo}.
+
+**La invitiamo a trasmettere i documenti richiesti entro 15 (quindici) giorni** dal ricevimento della presente, all'indirizzo email/PEC sotto indicato.
+
+[Email / PEC di destinazione]
+
+In mancanza di riscontro, ci riserviamo di adottare le azioni legali necessarie per ottenere la documentazione.
+
+Distinti saluti,
+
+{avvocato}
+
+---
+> **Dati da completare prima dell'invio:**
+> - Dati completi del destinatario
+> - Elenco preciso dei documenti richiesti
+> - Motivazione giuridica della richiesta
+> - Indirizzo di trasmissione"""
+
+
+def build_invito_a_stipula_template(context: Any) -> str:
+    """Bozza italiana di invito formale a stipula contratto."""
+    from datetime import date as _date
+    oggi = _format_data_italiana(_date.today().isoformat())
+    destinatario = "[Nome e Cognome / Ragione sociale]"
+    tipo_contratto = "[tipo di contratto]"
+    data_stipula = "[data proposta per la stipula]"
+    avvocato = "[Studio Legale / Avv. Nome Cognome]"
+    if isinstance(context, dict):
+        destinatario = str(context.get("destinatario") or destinatario)
+        tipo_contratto = str(context.get("tipo_contratto") or tipo_contratto)
+        data_stipula = str(context.get("data_stipula") or data_stipula)
+        avvocato = str(context.get("avvocato") or avvocato)
+    return f"""**BOZZA — INVITO FORMALE A STIPULA**
+
+---
+
+{avvocato}
+[Via e numero civico dello studio]
+[CAP, Città, Provincia]
+
+{oggi}
+
+**Spett.le**
+{destinatario}
+[Indirizzo]
+
+---
+
+**Oggetto: Invito a stipulare {tipo_contratto}**
+
+---
+
+Con la presente, il sottoscritto/la sottoscritta {avvocato}, in rappresentanza di [Nome cliente — DA COMPLETARE], La invita formalmente a procedere alla stipula del {tipo_contratto} nelle condizioni già concordate tra le parti.
+
+**Si propone la stipula per il giorno {data_stipula}**, presso [luogo — DA COMPLETARE], o in altra data da concordare entro 10 giorni dal ricevimento della presente.
+
+Si allega bozza del contratto per presa visione [se disponibile].
+
+In assenza di riscontro nel termine indicato, il nostro assistito si riserva di revocare la proposta contrattuale e di agire per il risarcimento dei danni eventualmente subiti.
+
+Distinti saluti,
+
+{avvocato}
+
+---
+> **Dati da completare prima dell'invio:**
+> - Dati del cliente rappresentato
+> - Tipo specifico di contratto
+> - Data e luogo proposti per la stipula
+> - Eventuale allegato bozza contratto"""
+
+
+def build_riscontro_comunicazione_template(context: Any) -> str:
+    """Bozza italiana di riscontro a comunicazione ricevuta."""
+    from datetime import date as _date
+    oggi = _format_data_italiana(_date.today().isoformat())
+    mittente_originale = "[Mittente della comunicazione originale]"
+    data_comunicazione = "[data della comunicazione cui si risponde]"
+    oggetto_originale = "[oggetto della comunicazione originale]"
+    avvocato = "[Studio Legale / Avv. Nome Cognome]"
+    if isinstance(context, dict):
+        mittente_originale = str(context.get("mittente_originale") or mittente_originale)
+        data_comunicazione = str(context.get("data_comunicazione") or data_comunicazione)
+        oggetto_originale = str(context.get("oggetto_originale") or oggetto_originale)
+        avvocato = str(context.get("avvocato") or avvocato)
+    return f"""**BOZZA — RISCONTRO A COMUNICAZIONE**
+
+---
+
+{avvocato}
+[Via e numero civico dello studio]
+[CAP, Città, Provincia]
+
+{oggi}
+
+**Spett.le / Egregio**
+{mittente_originale}
+[Indirizzo]
+
+---
+
+**Oggetto: Riscontro alla comunicazione del {data_comunicazione} — {oggetto_originale}**
+
+---
+
+In riscontro alla Sua comunicazione del {data_comunicazione}, con la presente ci premuriamo di rappresentare quanto segue.
+
+[Contenuto della risposta — DA COMPLETARE]
+
+Quanto sopra è precisato a fini di piena chiarezza e senza alcuna rinuncia ai diritti del nostro assistito.
+
+Restiamo a disposizione per eventuali chiarimenti.
+
+Distinti saluti,
+
+{avvocato}
+
+---
+> **Dati da completare prima dell'invio:**
+> - Dati completi del destinatario
+> - Data e contenuto della comunicazione originale
+> - Testo della risposta
+> - Eventuali documenti da allegare"""
+
+
 def build_diffida_messa_in_mora_template(context: Any) -> str:
     """Bozza italiana deterministica di diffida e messa in mora.
 
@@ -625,7 +1000,7 @@ def build_diffida_messa_in_mora_template(context: Any) -> str:
 
 ---
 
-Con la presente, il sottoscritto/la sottoscritta {avvocato}, in qualità di legale rappresentante / procuratore di [Nome del cliente — da completare], con la presente **Si invita e diffida formalmente** la S.V. / codesta Spettabile Società ad adempiere, entro e non oltre {termine} dal ricevimento della presente, all'obbligo di {oggetto_credito}, per un importo complessivo di {importo}.
+Con la presente, il sottoscritto/la sottoscritta {avvocato}, in qualità di legale rappresentante / procuratore di [Nome del cliente — da completare], si invita e diffida formalmente la S.V. / codesta Spettabile Società ad adempiere, entro e non oltre {termine} dal ricevimento della presente, all'obbligo di {oggetto_credito}, per un importo complessivo di {importo}.
 
 **Fatto**
 
@@ -647,7 +1022,7 @@ il tutto entro il termine perentorio di {termine} dalla ricezione della presente
 
 **Avvertenza**
 
-In difetto di riscontro positivo nel termine indicato, il sottoscritto / la sottoscritta si riserva di agire in ogni sede competente — civile, penale, amministrativa — con ogni conseguenza di legge, ivi incluse le spese legali.
+in difetto di riscontro positivo nel termine indicato, il sottoscritto / la sottoscritta si riserva di agire in ogni sede competente — civile, penale, amministrativa — con ogni conseguenza di legge, ivi incluse le spese legali.
 
 ---
 
@@ -685,8 +1060,24 @@ class DeterministicProvider(BaseProvider):
             text = _fascicolo_text(q, context, title, summary)
         elif workflow in {"telematico_status", "compliance"}:
             text = _compliance_text(q, context, title, summary)
-        elif workflow in {"drafting_legal_letter", "lettera", "bozza_lettera"}:
-            text = build_diffida_messa_in_mora_template(context)
+        elif workflow in {"drafting_legal_letter", "lettera", "bozza_lettera", "pec_comunicazioni"}:
+            q_lower = q.lower()
+            if "sollecito" in q_lower and "diffida" not in q_lower:
+                text = build_sollecito_pagamento_template(context)
+            elif "pec" in q_lower and "diffida" not in q_lower:
+                text = build_pec_formale_template(context)
+            elif "contestazion" in q_lower:
+                text = build_contestazione_fattura_template(context)
+            elif "richiesta document" in q_lower or "richiesta dei document" in q_lower:
+                text = build_richiesta_documenti_template(context)
+            elif "invito" in q_lower and "stipula" in q_lower:
+                text = build_invito_a_stipula_template(context)
+            elif "riscontro" in q_lower or "risposta a" in q_lower:
+                text = build_riscontro_comunicazione_template(context)
+            elif "lettera" in q_lower and "cliente" in q_lower:
+                text = build_lettera_cliente_template(context)
+            else:
+                text = build_diffida_messa_in_mora_template(context)
         else:
             text = (
                 f"Risposta deterministica per workflow '{workflow}'.\n"

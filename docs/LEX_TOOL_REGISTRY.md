@@ -1,0 +1,109 @@
+# LEX — Tool Registry (v2.200.0)
+
+Registro dei 25+ tool disponibili in `lex/tools/legal_studio_tools.py`.
+
+## Dispatcher
+
+```python
+from lex.tools.legal_studio_tools import dispatch_tool, list_tools
+
+# Lista tutti i tool disponibili
+tools = list_tools()
+
+# Esegui un tool per nome
+result = dispatch_tool("calculate_tariffario", valore_causa=50000, fasi=["studio", "istr", "dec"])
+```
+
+## Tool per categoria
+
+### Tariffario forense (DM 55/2014)
+
+| Tool | Parametri | Output |
+|------|-----------|--------|
+| `calculate_tariffario` | `valore_causa`, `fasi`, `riduzione_pct`, `aumento_pct` | scaglione, totale, rimborso 15% |
+| `list_scaglioni` | — | tabella 8 scaglioni con range e importi medi |
+| `list_fasi` | — | lista fasi (studio, intro, istr, dec) con descrizione |
+
+### Termini processuali
+
+| Tool | Parametri | Output |
+|------|-----------|--------|
+| `calculate_deadline` | `tipo_termine`, `data_decorrenza`, `giorni_personalizzati` | scadenza ISO, giorni restanti, flag urgente |
+| `list_termini` | — | 16 tipi termine con norma e giorni |
+| `check_feriale_agosto` | `data_iso` | bool: la data cade nel periodo feriale agosto |
+
+### Deposito telematico
+
+| Tool | Parametri | Output |
+|------|-----------|--------|
+| `build_deposito_checklist` | `portale` (PST/PDP/PAT/PTT) | checklist markdown con normativa |
+| `diagnosi_errore_pst` | `messaggio_errore` | diagnosi + soluzione |
+| `get_portale_info` | `portale` | URL, autenticazione, normativa |
+
+### Fascicolo e documenti
+
+| Tool | Parametri | Output |
+|------|-----------|--------|
+| `get_fascicolo_summary` | `fascicolo_id` | riepilogo strutturato fascicolo |
+| `list_scadenze_fascicolo` | `fascicolo_id` | scadenze ordinate per urgenza |
+| `search_fascicoli` | `query`, `limite` | lista fascicoli corrispondenti |
+
+### Giurisprudenza e normativa
+
+| Tool | Parametri | Output |
+|------|-----------|--------|
+| `search_giurisprudenza` | `query`, `limite` | sentenze rilevanti |
+| `get_normativa` | `articolo`, `codice` | testo normativo |
+| `get_massima` | `numero_sentenza` | massima + riferimento |
+
+### Redazione
+
+| Tool | Parametri | Output |
+|------|-----------|--------|
+| `build_diffida_template` | `context` | bozza diffida messa in mora |
+| `build_sollecito_template` | `context` | bozza sollecito pagamento |
+| `build_pec_template` | `context` | bozza PEC formale |
+| `build_lettera_template` | `context` | bozza lettera al cliente |
+| `build_contestazione_template` | `context` | bozza contestazione fattura |
+
+### Studio e agenda
+
+| Tool | Parametri | Output |
+|------|-----------|--------|
+| `get_agenda_oggi` | — | appuntamenti del giorno |
+| `get_prossime_scadenze` | `giorni` | scadenze nei prossimi N giorni |
+| `get_statistiche_studio` | — | statistiche generali studio |
+
+## Scaglioni DM 55/2014
+
+| Scaglione | Da | A | Fase studio | Fase intro | Fase istr | Fase dec |
+|-----------|-----|---|-------------|------------|-----------|---------|
+| 1 | 0 | 1.100 | 270 | 170 | 340 | 340 |
+| 2 | 1.101 | 5.200 | 630 | 400 | 790 | 790 |
+| 3 | 5.201 | 26.000 | 1.080 | 670 | 1.350 | 1.350 |
+| 4 | 26.001 | 52.000 | 2.430 | 1.530 | 3.020 | 3.020 |
+| 5 | 52.001 | 260.000 | 4.000 | 2.500 | 5.000 | 5.000 |
+| 6 | 260.001 | 520.000 | 6.600 | 4.100 | 8.200 | 8.200 |
+| 7 | 520.001 | 2.600.000 | 13.000 | 8.200 | 16.400 | 16.400 |
+| 8 | > 2.600.000 | ∞ | 22.000 | 13.500 | 27.000 | 27.000 |
+
+## Termini processuali disponibili (16 tipi)
+
+| Tipo | Giorni | Norma |
+|------|--------|-------|
+| `opposizione_decreto_ingiuntivo` | 40 | art. 641-645 c.p.c. |
+| `appello_sentenza_civile` | 30 | art. 325 c.p.c. |
+| `appello_breve` | 15 | art. 325 c.p.c. |
+| `ricorso_cassazione` | 60 | art. 325 c.p.c. |
+| `opposizione_esecuzione` | 20 | art. 617 c.p.c. |
+| `reclamo_cautelare` | 15 | art. 669-terdecies c.p.c. |
+| `risposta_citazione` | 20 | art. 167 c.p.c. |
+| `memoria_ex_183` | 30 | art. 183 c.p.c. |
+| `ricorso_tar` | 60 | art. 29 c.p.a. |
+| `ricorso_tar_silenzio` | 365 | art. 31 c.p.a. |
+| `appello_consiglio_stato` | 30 | art. 92 c.p.a. |
+| `impugnazione_penale` | 15 | art. 585 c.p.p. |
+| `ricorso_cassazione_penale` | 45 | art. 585 c.p.p. |
+| `querela` | 90 | art. 124 c.p. |
+| `prescrizione_ordinaria` | 3650 | art. 2946 c.c. |
+| `prescrizione_breve` | 1825 | art. 2948-2955 c.c. |

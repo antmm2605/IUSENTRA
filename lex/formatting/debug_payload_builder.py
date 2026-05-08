@@ -1,7 +1,8 @@
 """Costruzione del payload debug Lex per admin e superadmin.
 
 Il payload debug espone il massimo dettaglio diagnostico del ciclo Lex
-(provider, routing, evidenze, fonti, confidence, gap) senza esporre
+(provider, routing, evidenze, fonti, confidence, gap, guard verdicts,
+latenza, intent matrix, request profile, contract) senza esporre
 informazioni sensibili (chiavi API, path assoluti, query private, token
 rimossi).
 
@@ -16,7 +17,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 
-_DEBUG_VERSION = "1.0"
+_DEBUG_VERSION = "2.0"
 
 _AUTHORIZED_ROLES: frozenset[str] = frozenset({"superadmin", "admin_studio", "admin"})
 
@@ -43,8 +44,25 @@ def build_lex_debug_payload(
     web_used: bool = False,
     web_blocked_reason: str = "",
     skipped_generation_reason: str = "",
+    # Phase 18 — extended fields
+    intent: str = "",
+    intent_confidence: float = 0.0,
+    request_profile: str = "",
+    routing_priority: int = 0,
+    answer_contract: dict[str, Any] | None = None,
+    guard_verdicts: list[dict[str, Any]] | None = None,
+    latency_ms: float = 0.0,
+    latency_breakdown: dict[str, float] | None = None,
+    template_used: str = "",
+    workflow_registry_hit: bool = False,
+    memory_hit: bool = False,
+    session_id: str = "",
+    request_id: str = "",
+    total_tokens: int = 0,
+    prompt_tokens: int = 0,
+    completion_tokens: int = 0,
 ) -> dict[str, Any]:
-    """Costruisce il payload debug completo Lex per admin/superadmin.
+    """Costruisce il payload debug completo Lex per admin/superadmin (v2.0 — 20+ campi).
 
     Parametri sensibili gestiti:
     - private_context_query → sempre '[REDATTO PER PRIVACY]' nell'output
@@ -128,35 +146,62 @@ def build_lex_debug_payload(
     retrieval_cache = _sanitize_cache(raw_cache)
 
     # ------------------------------------------------------------------ #
-    # Payload finale                                                        #
+    # Guard verdicts normalizzati                                          #
+    # ------------------------------------------------------------------ #
+    normalized_guard_verdicts = _normalize_guard_verdicts(guard_verdicts or [])
+
+    # ------------------------------------------------------------------ #
+    # Answer contract (solo campi non sensibili)                           #
+    # ------------------------------------------------------------------ #
+    safe_contract = _safe_contract(answer_contract or {})
+
+    # ------------------------------------------------------------------ #
+    # Latency breakdown                                                    #
+    # ------------------------------------------------------------------ #
+    safe_latency = dict(latency_breakdown or {})
+
+    # ------------------------------------------------------------------ #
+    # Payload finale — 20+ campi                                           #
     # ------------------------------------------------------------------ #
     return {
-        # Routing e provider
+        # ── Routing e classificazione ──────────────────────────────────
         "workflow": str(workflow or ""),
+        "intent": str(intent or ""),
+        "intent_confidence": round(float(intent_confidence or 0.0), 4),
+        "request_profile": str(request_profile or ""),
+        "routing_priority": int(routing_priority or 0),
+        "workflow_registry_hit": bool(workflow_registry_hit),
+        # ── Provider e modello ─────────────────────────────────────────
         "provider": provider_name,
         "model": model_name,
-        # Risposta
+        "template_used": str(template_used or ""),
+        # ── Risposta e qualità ─────────────────────────────────────────
         "answer_mode": answer_mode,
         "confidence": round(confidence, 4),
         "confidence_reason": confidence_reason,
         "risk_level": risk_level,
-        # Evidenze
+        # ── Guard verdicts ─────────────────────────────────────────────
+        "guard_verdicts": normalized_guard_verdicts,
+        # ── Answer contract applicato ──────────────────────────────────
+        "answer_contract": safe_contract,
+        # ── Evidenze ───────────────────────────────────────────────────
         "evidence_count": evidence_count,
         "official_sources_count": official_count,
         "internal_sources_count": internal_count,
-        # Retrieval esteso
+        # ── Retrieval esteso ───────────────────────────────────────────
         "ldr_used": bool(ldr_used),
         "ldr_blocked_reason": str(ldr_blocked_reason or ""),
         "web_used": bool(web_used),
         "web_blocked_reason": str(web_blocked_reason or ""),
-        # Query (privacy)
+        "memory_hit": bool(memory_hit),
+        # ── Query (privacy) ────────────────────────────────────────────
         "public_research_query": str(public_research_query or ""),
         "private_context_query": "[REDATTO PER PRIVACY]",
-        # Token rimossi (solo conteggio, mai i valori reali)
+        # ── Token rimossi (solo conteggio) ─────────────────────────────
         "removed_sensitive_tokens": {
             "count": len(removed_sensitive_tokens) if removed_sensitive_tokens is not None else 0
         },
-        # Fonti e gap
+        # ── Fonti e gap ────────────────────────────────────────────────
         "considered_sources": considered_sources,
         "compared_sources": compared_sources,
         "official_sources": official_sources,
@@ -164,14 +209,24 @@ def build_lex_debug_payload(
         "partner_sources": partner_sources,
         "coverage_gaps": coverage_gaps,
         "missing_evidence": missing_evidence,
-        # Azioni
+        # ── Azioni ─────────────────────────────────────────────────────
         "next_actions": next_actions,
-        # Fallback e cache
+        # ── Fallback e cache ───────────────────────────────────────────
         "fallback_triggered": fallback_triggered,
         "retrieval_cache": retrieval_cache,
-        # Generazione saltata
+        # ── Generazione saltata ────────────────────────────────────────
         "skipped_generation_reason": str(skipped_generation_reason or ""),
-        # Versione e timestamp debug
+        # ── Latenza ────────────────────────────────────────────────────
+        "latency_ms": round(float(latency_ms or 0.0), 1),
+        "latency_breakdown": safe_latency,
+        # ── Token usage ────────────────────────────────────────────────
+        "total_tokens": int(total_tokens or 0),
+        "prompt_tokens": int(prompt_tokens or 0),
+        "completion_tokens": int(completion_tokens or 0),
+        # ── Sessione e tracciabilità ───────────────────────────────────
+        "session_id": str(session_id or ""),
+        "request_id": str(request_id or ""),
+        # ── Versione e timestamp debug ─────────────────────────────────
         "debug_version": _DEBUG_VERSION,
         "debug_timestamp": datetime.now(tz=timezone.utc).isoformat(),
     }
@@ -180,6 +235,45 @@ def build_lex_debug_payload(
 # ------------------------------------------------------------------ #
 # Helpers privati                                                       #
 # ------------------------------------------------------------------ #
+
+def _normalize_guard_verdicts(verdicts: list[Any]) -> list[dict[str, Any]]:
+    """Normalizza una lista di GuardVerdict (o dict) in formato uniforme."""
+    result: list[dict[str, Any]] = []
+    for v in verdicts:
+        if isinstance(v, dict):
+            result.append({
+                "guard": str(v.get("guard") or "unknown"),
+                "allowed": bool(v.get("allowed", True)),
+                "risk_level": str(v.get("risk_level") or "low"),
+                "warnings": list(v.get("warnings") or []),
+                "reasons": list(v.get("reasons") or []),
+            })
+        else:
+            result.append({
+                "guard": str(getattr(v, "guard", "unknown") or "unknown"),
+                "allowed": bool(getattr(v, "allowed", True)),
+                "risk_level": str(getattr(v, "risk_level", "low") or "low"),
+                "warnings": list(getattr(v, "warnings", None) or []),
+                "reasons": list(getattr(v, "reasons", None) or []),
+            })
+    return result
+
+
+def _safe_contract(contract: dict[str, Any]) -> dict[str, Any]:
+    """Ritorna solo i campi non sensibili dell'answer contract."""
+    _ALLOWED_KEYS = {
+        "workflow", "sections", "provider_hint", "allow_abstention",
+        "italian_only", "disclaimer_suppressed", "no_json_output",
+        "no_english_output", "strict_legal", "no_invented_references",
+    }
+    if not contract:
+        return {}
+    # Flatten metadata into top-level if present
+    flat = dict(contract)
+    meta = dict(flat.pop("metadata", {}) or {})
+    flat.update(meta)
+    return {k: v for k, v in flat.items() if k in _ALLOWED_KEYS}
+
 
 def _build_confidence_reason(
     *,

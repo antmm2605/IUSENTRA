@@ -1,0 +1,177 @@
+# LEX — Audit: Fonti Pubbliche e Dati Studio (v2.201.0)
+
+Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle fonti pubbliche (sentenze, normativa, giurisprudenza) e dei dati interni dello studio (clienti, fascicoli, anagrafica).
+
+---
+
+## 1. Come Lex decide oggi se usare contesto interno
+
+Il contesto studio viene costruito da `web/services/assistente_studio_context.py` tramite `build_lex_studio_context()`. La decisione avviene in due step:
+
+### Step A — Selezione sezioni per keyword (`_select_detail_sections`)
+Le sezioni vengono incluse in base a match testuale sulla domanda. Threshold: top 5 sezioni per punteggio.
+
+| Sezione | Keyword trigger |
+|---------|----------------|
+| Clienti | "cliente", "clienti", "assistito", "anagrafica" |
+| Fascicoli | "fascicolo", "fascicoli", "rg", "pratica", "causa" |
+| Agenda | "agenda", "appuntamento", "udienza" |
+| Scadenziario | "scadenza", "termine", "scadenze" |
+| Fatturazione | "fattura", "parcella", "onorario" |
+
+**Problema**: se la domanda è "dammi i dati del cliente Mario Rossi" ma il nome del cliente è in minuscolo e la sezione non viene triggerata per via di normalizzazioni, Lex non carica il contesto cliente.
+
+### Step B — Caricamento dati (`_clienti_lines`)
+```python
+selected = matches[:4] if matches else all_rows[:4]
+```
+**Limite critico**: massimo 4 clienti. Se ci sono omonimi o la ricerca restituisce molti risultati, i dati dettagliati vengono tagliati. Il testo restituito è solo `nome_completo + stato + referente` — mancano CF, PEC, email, telefono, fascicoli.
+
+---
+
+## 2. Come Lex decide oggi se usare il web
+
+La funzione `_should_force_web_fallback()` in `assistente_studio_context.py` forza ricerca web se:
+- NON è una query solo operativa (agenda/fascicolo/cliente senza termini legali)
+- NON c'è contesto locale specifico (`_has_specific_local_context` = False)
+- Almeno un token legale è presente: norma, normativa, legge, decreto, sentenza, cassazione, tar, giurisprudenza, etc.
+
+**Problema critico**: `_has_specific_local_context` restituisce True se ci sono fonti `cliente:*` o `fascicolo:*` nei sources, **bloccando la ricerca web anche per sentenze specifiche**. Se la domanda è "nel fascicolo Rossi trova la Sentenza n. 7919" → contesto fascicolo viene caricato → `_has_specific_local_context = True` → web bloccato → Lex usa solo il DB locale che non contiene quella sentenza.
+
+---
+
+## 3. Perché una sentenza specifica non forza ricerca web
+
+Il router classifica correttamente "Sentenza n. 7919 del 31/03/2026" come `giurisprudenza_specifica` (priorità 7 in `lex/router.py`). Ma il retrieval layer non ha un meccanismo di "exact reference override": anche per `giurisprudenza_specifica`, se esiste qualsiasi fonte locale (anche solo `studio:default` o agenda), `_has_specific_local_context` può restituire True e bloccare il web.
+
+Non esiste `case_law_reference_parser.py` che estragga numero+data da una query e forzi `public_web_forced=True`. Il sistema non distingue "dimmi delle sentenze sulla prescrizione" (generico) da "trovami la Sentenza n. 7919 del 31/03/2026" (riferimento esatto).
+
+---
+
+## 4. Perché vengono mostrate fonti correlate non richieste
+
+Il motore di retrieval (`lex/retrieval/orchestrator.py`, `lex/research/public_legal_research_gateway.py`) non ha un "exact match guard". Quando cerca sul web governato, restituisce tutti i risultati rilevanti per il query semantico, non filtrati per numero/data sentenza. L'`answer_builder.py` non distingue tra "fonte esatta richiesta" e "fonti correlate non richieste".
+
+Risultato: per "Sentenza n. 7919/2026" vengono mostrate le prime 5-12 sentenze che contengono termini simili, nessuna delle quali è necessariamente la 7919.
+
+---
+
+## 5. Perché confidence diventa media anche se manca testo integrale/dispositivo
+
+In `lex/formatting/answer_builder.py`, la confidence viene calcolata su:
+- numero di evidenze
+- presenza di fonti ufficiali
+- freshness score
+- post-guard risk
+
+Non considera se il testo integrale o il dispositivo della sentenza specifica è effettivamente nelle evidenze. Quindi: 3 sentenze correlate → confidence media (0.6-0.7) anche se nessuna è la sentenza richiesta e nessuna ha il testo integrale.
+
+---
+
+## 6. Perché il cliente presente nello studio può non essere letto
+
+Cinque cause distinte:
+
+1. **Keyword mismatch**: la sezione "Clienti" si attiva solo se la domanda contiene "cliente/assistito/anagrafica". "dammi i dati di Mario Rossi" → nessun trigger → sezione non caricata.
+2. **Limite 4 risultati**: `_clienti_lines` ritorna max 4 clienti, testo ridotto a nome+stato.
+3. **Cache stale**: TTL 90s — se i dati del cliente sono stati modificati di recente, la cache restituisce dati vecchi.
+4. **Testo fonte insufficiente**: il campo `text` nella source è solo "Tipo: X. Stato: Y. Referente: Z." — mancano email, PEC, CF, fascicoli, note.
+5. **No entity extraction**: la domanda non viene analizzata per estrarre nome proprio, CF, PIVA, email → la ricerca `gestore.cerca(question)` può non trovare il cliente se la domanda ha molte parole estranee.
+
+---
+
+## 7. Sezioni del contesto studio caricate
+
+Le sezioni vengono selezionate da `_select_detail_sections_for_chat()` (chat mode) o `_select_detail_sections()` (default), massimo 4-5 sezioni per richiesta:
+
+| Sezione | TTL cache | Contenuto |
+|---------|-----------|-----------|
+| Fascicoli | 90s | Titolo, RG, tribunale, oggetto — massimo 4 |
+| Clienti | 90s | Nome, stato, referente — massimo 4 |
+| Agenda | 60s | Appuntamenti prossimi 21 giorni — massimo 4 |
+| Scadenziario | 60s | Scadenze imminenti — massimo 4 |
+| Fatturazione | 120s | Parcelle recenti — massimo 4 |
+| Template atti | 120s | Template disponibili — massimo 4 |
+| Tariffario | 300s | Scaglioni DM 55 |
+| Ricerca legale | 180s | Motori ricerca legale |
+| Archivio sentenze | 120s | Sentenze indicizzate localmente |
+
+---
+
+## 8. Limiti di `_clienti_lines`
+
+```python
+def _clienti_lines(question: str) -> tuple[list[str], list[dict[str, Any]]]:
+    gestore = get_clienti()
+    all_rows = gestore.tutti()
+    stats = gestore.statistiche()
+    matches = gestore.cerca(question) if _clean_spaces(question) else []
+    selected = matches[:4] if matches else all_rows[:4]      # ← MAX 4
+    sources = [_source(...)  for row in selected]           # ← solo nome+stato+referente
+```
+
+Limiti:
+- Ritorna massimo 4 clienti
+- Non include email, PEC, CF, PIVA, telefono, indirizzo
+- Non include fascicoli collegati
+- Non include documenti, note, tag
+- Non fa entity extraction prima di chiamare `gestore.cerca()`
+- Se `question` ha molte parole inutili, `cerca()` può non trovare il match
+
+---
+
+## 9. Limiti di `_select_detail_sections`
+
+```python
+def _select_detail_sections(question: str) -> set[str]:
+    # Punteggio per keyword → top 5 sezioni
+    return set(selected[:5])
+```
+
+Limiti:
+- Nessuna entity extraction (nomi propri, CF, PIVA non triggerano sezioni)
+- Massimo 5 sezioni → può scartare sezioni rilevanti se competono con altre
+- Non distingue tra "cliente con dati anagrafici" e "cliente nel contesto di un fascicolo"
+- Nessun meccanismo di force-include per intent specifici
+
+---
+
+## 10. Limiti di `_should_force_web_fallback`
+
+```python
+if _has_specific_local_context(local_sources):
+    return False          # ← blocca web se c'è QUALSIASI fonte locale specifica
+```
+
+Limiti critici:
+- Blocca ricerca web anche per `giurisprudenza_specifica` se c'è un fascicolo in contesto
+- Non distingue exact reference (sentenza specifica) da query generica
+- Non considera il workflow corrente (giurisprudenza_specifica dovrebbe sempre usare web)
+- Nessun parametro `exact_reference` o `force_public_web`
+
+---
+
+## 11. Limiti di `official_web.search_recognized_official_web`
+
+In `lex/retrieval/official_web.py`:
+- Usa DuckDuckGo come motore di ricerca su domini allowlisted
+- Non ha query optimizer per sentenze specifiche (no "site:cortedicassazione.it N. XXXX")
+- Non fa exact match verification sui risultati: restituisce i primi N risultati per query semantica
+- Nessun filtro per numero/anno sentenza
+- Non distingue tra "trovato documento esatto" e "trovato documento correlato"
+- Cache TTL 900s — query per "Sentenza 7919/2026" può restituire risultati cached per query diverse
+
+---
+
+## 12. Cosa va corretto (piano di azione)
+
+| Problema | Soluzione | Fase |
+|----------|-----------|------|
+| Sentenza specifica non forza web | `case_law_reference_parser.py` + `exact_legal_reference_guard.py` | 4, 5 |
+| `_has_specific_local_context` blocca web per sentenze specifiche | Modifica `_should_force_web_fallback` per bypassare se exact reference | 6 |
+| Clienti non letti (keyword mismatch) | Entity extraction + intent `cliente_anagrafica` | 9, 10 |
+| Max 4 clienti con dati ridotti | `studio_data_gateway.py` con dati completi | 8 |
+| Risultati correlati presentati come fonte | `exact_legal_reference_guard.py` filtro post-retrieval | 5 |
+| Confidence media senza testo integrale | Confidence cap in `exact_legal_reference_guard.py` | 5 |
+| Nessuna classificazione public/private scope | `source_scope_policy.py` | 2 |
+| Debug insufficiente | Aggiornamento `debug_payload_builder.py` | 12 |

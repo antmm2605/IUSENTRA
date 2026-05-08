@@ -9,6 +9,7 @@ from typing import Any
 from flask import current_app, g
 
 from lex.research import build_request_profile_prompt, classify_request
+from lex.research.query_helpers import extract_entity_hint, is_exact_legal_reference_query
 from lex.research.source_policy import evaluate_source_row, summarize_evaluated_sources
 from pct.config_studio import GestioneConfigStudio
 from pct.legal_intelligence import fonti_per_query, motori_per_query
@@ -411,6 +412,11 @@ def _is_operational_only_query(question: str) -> bool:
     return has_operational and not has_legal_web
 
 
+def _is_exact_legal_reference_query(text: str) -> bool:
+    """True se la query contiene un riferimento esatto a sentenza/ordinanza con numero."""
+    return is_exact_legal_reference_query(text)
+
+
 def _should_force_web_fallback(
     question: str,
     *,
@@ -422,6 +428,15 @@ def _should_force_web_fallback(
         return False
     if chat_mode and _is_operational_only_query(text):
         return False
+
+    # Se è un riferimento legale esatto (sentenza n. XXXX) → web obbligatorio
+    # anche se esiste contesto locale (es. fascicolo), perché la fonte ufficiale
+    # deve essere verificata su cortedicassazione.it o normattiva.it
+    if _is_exact_legal_reference_query(text):
+        legal_triggers_exact = ("sentenza", "ordinanza", "decreto", "massima", "cassazione")
+        if any(_contains_query_token(text, token) for token in legal_triggers_exact):
+            return True
+
     if _has_specific_local_context(local_sources):
         return False
 
@@ -692,12 +707,36 @@ def _operational_lines() -> tuple[list[str], list[dict[str, Any]]]:
     return lines, sources
 
 
+def _extract_entity_hint_from_question(question: str) -> dict[str, str]:
+    """Estrae CF, PIVA, email dalla domanda per ricerca mirata del cliente."""
+    return extract_entity_hint(question)
+
+
 def _clienti_lines(question: str) -> tuple[list[str], list[dict[str, Any]]]:
     gestore = get_clienti()
     all_rows = gestore.tutti()
     stats = gestore.statistiche()
-    matches = gestore.cerca(question) if _clean_spaces(question) else []
-    selected = matches[:4] if matches else all_rows[:4]
+
+    # Entity extraction: priorità a CF/PIVA/email se presenti nella domanda
+    hints = _extract_entity_hint_from_question(question)
+    matched_by_entity: list[Any] = []
+    if hints["codice_fiscale"]:
+        matched_by_entity = [r for r in all_rows if getattr(r, "codice_fiscale", "").upper() == hints["codice_fiscale"]]
+    elif hints["partita_iva"]:
+        matched_by_entity = [r for r in all_rows if getattr(r, "partita_iva", "") == hints["partita_iva"]]
+    elif hints["email"]:
+        matched_by_entity = [
+            r for r in all_rows
+            if hints["email"] in (getattr(getattr(r, "recapiti", None), "email", "") or "").lower()
+            or hints["email"] in (getattr(getattr(r, "recapiti", None), "pec", "") or "").lower()
+        ]
+
+    if matched_by_entity:
+        selected = matched_by_entity[:8]
+    else:
+        text_matches = gestore.cerca(question) if _clean_spaces(question) else []
+        selected = text_matches[:8] if text_matches else all_rows[:8]
+
     lines = [
         f"Anagrafica clienti: {stats.get('totale', len(all_rows))} soggetti censiti, {stats.get('con_procedimenti_attivi', 0)} con procedimenti attivi.",
     ]
@@ -713,15 +752,36 @@ def _clienti_lines(question: str) -> tuple[list[str], list[dict[str, Any]]]:
             )
             + "."
         )
-    sources = [
-        _source(
-            f"Cliente - {row.nome_completo}",
-            f"Tipo: {getattr(getattr(row, 'tipo', None), 'value', '')}. Stato: {getattr(getattr(row, 'stato', None), 'value', '')}. Referente: {row.avvocato_referente or 'n.d.'}.",
-            source_id=f"cliente:{row.id}",
-            title=row.nome_completo,
+    sources = []
+    for row in selected:
+        rec = getattr(row, "recapiti", None)
+        email_val = getattr(rec, "email", "") or ""
+        pec_val = getattr(rec, "pec", "") or ""
+        telefono_val = getattr(rec, "telefono", "") or ""
+        cf_val = getattr(row, "codice_fiscale", "") or ""
+        piva_val = getattr(row, "partita_iva", "") or ""
+        referente = row.avvocato_referente or "n.d."
+        tipo_val = getattr(getattr(row, "tipo", None), "value", "") or ""
+        stato_val = getattr(getattr(row, "stato", None), "value", "") or ""
+        text_parts = [
+            f"Tipo: {tipo_val}." if tipo_val else "",
+            f"Stato: {stato_val}." if stato_val else "",
+            f"Referente: {referente}.",
+            f"CF: {cf_val}." if cf_val else "",
+            f"P.IVA: {piva_val}." if piva_val else "",
+            f"Email: {email_val}." if email_val else "",
+            f"PEC: {pec_val}." if pec_val else "",
+            f"Tel: {telefono_val}." if telefono_val else "",
+        ]
+        source_text = " ".join(p for p in text_parts if p)
+        sources.append(
+            _source(
+                f"Cliente - {row.nome_completo}",
+                source_text,
+                source_id=f"cliente:{row.id}",
+                title=row.nome_completo,
+            )
         )
-        for row in selected
-    ]
     return lines, sources
 
 

@@ -61,8 +61,21 @@ def build_lex_debug_payload(
     total_tokens: int = 0,
     prompt_tokens: int = 0,
     completion_tokens: int = 0,
+    # Phase 12 — source scope fields
+    source_scope: str = "",
+    source_scope_confidence: float = 0.0,
+    exact_legal_reference: bool = False,
+    exact_reference_number: str = "",
+    exact_reference_date: str = "",
+    exact_reference_year: str = "",
+    exact_reference_court: str = "",
+    exact_reference_kind: str = "",
+    exact_reference_verdict: str = "",
+    studio_data_lookup_used: bool = False,
+    studio_entity_hint: str = "",
+    web_forced_by_exact_ref: bool = False,
 ) -> dict[str, Any]:
-    """Costruisce il payload debug completo Lex per admin/superadmin (v2.0 — 20+ campi).
+    """Costruisce il payload debug completo Lex per admin/superadmin (v2.0 — 46+ campi).
 
     Parametri sensibili gestiti:
     - private_context_query → sempre '[REDATTO PER PRIVACY]' nell'output
@@ -226,6 +239,21 @@ def build_lex_debug_payload(
         # ── Sessione e tracciabilità ───────────────────────────────────
         "session_id": str(session_id or ""),
         "request_id": str(request_id or ""),
+        # ── Source scope e classificazione fonti ───────────────────────
+        "source_scope": str(source_scope or ""),
+        "source_scope_confidence": round(float(source_scope_confidence or 0.0), 4),
+        # ── Riferimento legale esatto ──────────────────────────────────
+        "exact_legal_reference": bool(exact_legal_reference),
+        "exact_reference_number": str(exact_reference_number or ""),
+        "exact_reference_date": str(exact_reference_date or ""),
+        "exact_reference_year": str(exact_reference_year or ""),
+        "exact_reference_court": str(exact_reference_court or ""),
+        "exact_reference_kind": str(exact_reference_kind or ""),
+        "exact_reference_verdict": str(exact_reference_verdict or ""),
+        "web_forced_by_exact_ref": bool(web_forced_by_exact_ref),
+        # ── Studio data lookup ─────────────────────────────────────────
+        "studio_data_lookup_used": bool(studio_data_lookup_used),
+        "studio_entity_hint": str(studio_entity_hint or ""),
         # ── Versione e timestamp debug ─────────────────────────────────
         "debug_version": _DEBUG_VERSION,
         "debug_timestamp": datetime.now(tz=timezone.utc).isoformat(),

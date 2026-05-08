@@ -24,6 +24,7 @@ IntentType = Literal[
     "evaluate_tariffario",
     "evaluate_fatturazione",
     "resolve_operational_question",
+    "cliente_anagrafica",
 ]
 
 RiskLevel = Literal["low", "medium", "high", "critical"]
@@ -47,6 +48,12 @@ WorkflowType = Literal[
     "telematico_status",
     "documento",
     "question_answering",
+    "studio_data_lookup",
+    "giurisprudenza_specifica",
+    "termini_processuali",
+    "drafting_legal_letter",
+    "deposito_telematico",
+    "lex_feedback_diagnostico",
 ]
 
 ProviderType = Literal["ollama", "openai", "mock", "deterministic"]

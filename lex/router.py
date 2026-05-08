@@ -187,6 +187,32 @@ class LexRouter:
         "da dove parto",
     )
     _FONTI_HINTS = ("fonte", "fonti", "riferimento bibliografico", "citazione ufficiale")
+    _CLIENTE_ANAGRAFICA_HINTS = (
+        "dati del cliente",
+        "dati di",
+        "anagrafica",
+        "recapiti",
+        "email del cliente",
+        "pec del cliente",
+        "codice fiscale del cliente",
+        "cf del cliente",
+        "partita iva del cliente",
+        "telefono del cliente",
+        "indirizzo del cliente",
+        "chi è il cliente",
+        "scheda cliente",
+        "contatti del cliente",
+    )
+    _CLIENTE_ANAGRAFICA_PATTERNS = (
+        r"\bdati\s+(?:del|di|della|dell[o'])\s+cliente\b",
+        r"\banagrafica\s+(?:del|di|della|dell[o'])\b",
+        r"\brecapiti\s+(?:del|di|della|dell[o'])\b",
+        r"\bcontatti\s+(?:del|di|della|dell[o'])\b",
+        r"\bemail\s+(?:del|di)\b.*\bcliente\b",
+        r"\bpec\s+(?:del|di)\b.*\bcliente\b",
+        r"\b(?:cf|codice\s+fiscale)\b.*\bcliente\b",
+        r"\bcliente\b.*\b(?:email|pec|telefono|indirizzo|cf|codice\s+fiscale)\b",
+    )
 
     def resolve_workflow(self, request: LexRequest) -> WorkflowType:  # noqa: C901
         hint = str(getattr(request, "workflow_hint", "") or "").strip().lower()
@@ -243,6 +269,10 @@ class LexRouter:
         # ---- Livello 10: fascicolo operativo ----
         if intent in {"summarize_fascicolo", "suggest_fascicolo_updates"}:
             return "fascicolo"
+
+        # ---- Livello 10b: anagrafica cliente ----
+        if intent == "cliente_anagrafica":
+            return "studio_data_lookup"
 
         # ---- Livello 11: analisi documenti ----
         if intent in {"analyze_document", "compare_documents"}:
@@ -301,6 +331,9 @@ class LexRouter:
         # P9: economico
         if self._has_any(text, self._ECONOMICO_HINTS):
             return "economico"
+        # P10: anagrafica cliente (ha priorità su fascicolo generico)
+        if self._has_any(text, self._CLIENTE_ANAGRAFICA_HINTS) or self._looks_like_cliente_anagrafica(text):
+            return "studio_data_lookup"
         # P10: fascicolo
         if getattr(request, "fascicolo_id", None):
             return "fascicolo"
@@ -318,6 +351,12 @@ class LexRouter:
     @staticmethod
     def _has_any(text: str, hints: tuple[str, ...]) -> bool:
         return any(hint in text for hint in hints)
+
+    def _looks_like_cliente_anagrafica(self, text: str) -> bool:
+        for p in self._CLIENTE_ANAGRAFICA_PATTERNS:
+            if re.search(p, text):
+                return True
+        return False
 
     @staticmethod
     def _looks_like_giurisprudenza_specifica(text: str) -> bool:

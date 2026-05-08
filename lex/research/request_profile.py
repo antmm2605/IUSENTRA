@@ -293,6 +293,29 @@ _INTENT_CATALOG: tuple[dict[str, Any], ...] = (
         "external": True,
         "drafting": False,
     },
+    {
+        "intent": "cliente_anagrafica",
+        "label": "dati anagrafici e recapiti cliente",
+        "patterns": (
+            r"\bdati\s+(?:del|di|della|dell[o'])\s+cliente\b",
+            r"\banagrafica\s+(?:del|di|della|dell[o'])\b",
+            r"\brecapiti\s+(?:del|di|della|dell[o'])\b",
+            r"\bcontatti\s+(?:del|di|della|dell[o'])\b",
+            r"\bemail\s+(?:del|di)\b.*\bcliente\b",
+            r"\bpec\s+(?:del|di)\b.*\bcliente\b",
+            r"\b(?:cf|codice\s+fiscale)\b.*\bcliente\b",
+            r"\bcliente\b.*\b(?:email|pec|telefono|indirizzo|codice\s+fiscale)\b",
+            r"\bscheda\s+(?:del\s+)?cliente\b",
+            r"\bdammi\s+i\s+dati\s+di\b",
+            r"\bdimmi\s+i\s+dati\s+di\b",
+        ),
+        "schema": ("Dati anagrafici", "Recapiti", "Fascicoli attivi", "Note"),
+        "risk": "low",
+        "source_mode": "strict",
+        "internal": True,
+        "external": False,
+        "drafting": False,
+    },
 )
 
 

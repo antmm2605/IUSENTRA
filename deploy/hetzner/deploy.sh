@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# deploy.sh — sincronizza branch, ricrea servizi, imposta cron backup.
+# Eseguire come root in /opt/iusentra/repo o da qualsiasi path tramite REPO_DIR.
 set -euo pipefail
 
 IUSENTRA_HOME="${IUSENTRA_HOME:-/opt/iusentra}"
@@ -6,7 +8,11 @@ REPO_DIR="${REPO_DIR:-${IUSENTRA_HOME}/repo}"
 REPO_URL="${REPO_URL:-https://github.com/antmm2605/IUSENTRA.git}"
 BRANCH="${BRANCH:-Codex/legal-electronic-filing-kIxcV}"
 ENV_FILE="${IUSENTRA_ENV_FILE:-${IUSENTRA_HOME}/.env.hetzner}"
+COMPOSE_FILE="deploy/hetzner/docker-compose.hetzner.yml"
 
+# ---------------------------------------------------------------------------
+# 1. Verifica file ambiente
+# ---------------------------------------------------------------------------
 if [ ! -f "$ENV_FILE" ]; then
   echo "File ambiente mancante: $ENV_FILE" >&2
   echo "Copia deploy/hetzner/env.hetzner.example in $ENV_FILE e compila dominio e secrets." >&2
@@ -14,6 +20,7 @@ if [ ! -f "$ENV_FILE" ]; then
 fi
 
 set -a
+# shellcheck source=/dev/null
 source "$ENV_FILE"
 set +a
 
@@ -24,9 +31,24 @@ set +a
 : "${FERNET_PRIMARY_KEY:?Impostare FERNET_PRIMARY_KEY in $ENV_FILE}"
 : "${AUDIT_HMAC_KEY:?Impostare AUDIT_HMAC_KEY in $ENV_FILE}"
 
-mkdir -p "$IUSENTRA_HOME/data" "$IUSENTRA_HOME/backups" "$IUSENTRA_HOME/caddy_data" "$IUSENTRA_HOME/caddy_config" "$IUSENTRA_HOME/import"
-chmod 750 "$IUSENTRA_HOME/data" "$IUSENTRA_HOME/backups" "$IUSENTRA_HOME/import" || true
+# ---------------------------------------------------------------------------
+# 2. Directory runtime
+# ---------------------------------------------------------------------------
+mkdir -p \
+  "${IUSENTRA_DATA_DIR:-$IUSENTRA_HOME/data}" \
+  "${IUSENTRA_BACKUP_DIR:-$IUSENTRA_HOME/backups}" \
+  "${IUSENTRA_CADDY_DATA_DIR:-$IUSENTRA_HOME/caddy_data}" \
+  "${IUSENTRA_CADDY_CONFIG_DIR:-$IUSENTRA_HOME/caddy_config}" \
+  "$IUSENTRA_HOME/import" \
+  /var/log/iusentra
+chmod 750 \
+  "${IUSENTRA_DATA_DIR:-$IUSENTRA_HOME/data}" \
+  "${IUSENTRA_BACKUP_DIR:-$IUSENTRA_HOME/backups}" \
+  "$IUSENTRA_HOME/import" || true
 
+# ---------------------------------------------------------------------------
+# 3. Sincronizza repository
+# ---------------------------------------------------------------------------
 if [ ! -d "$REPO_DIR/.git" ]; then
   git clone --branch "$BRANCH" "$REPO_URL" "$REPO_DIR"
 else
@@ -35,37 +57,75 @@ else
   git -C "$REPO_DIR" reset --hard "origin/$BRANCH"
 fi
 
+DEPLOYED_COMMIT="$(git -C "$REPO_DIR" rev-parse --short HEAD)"
+echo "Branch: $BRANCH — commit: $DEPLOYED_COMMIT"
+
 cd "$REPO_DIR"
 
+# ---------------------------------------------------------------------------
+# 4. Profilo Docker Compose
+# ---------------------------------------------------------------------------
+# COMPOSE_PROFILES può essere impostato in .env.hetzner.
+# Valore consigliato: "ai" per avviare il sidecar Ollama.
+# Lasciare vuoto per disabilitare Ollama (PCT_LOCAL_AI_ENABLED=0).
+PROFILES="${COMPOSE_PROFILES:-}"
+PROFILE_ARGS=()
+if [ -n "$PROFILES" ]; then
+  IFS=',' read -r -a profile_list <<< "$PROFILES"
+  for p in "${profile_list[@]}"; do
+    p="$(echo "$p" | xargs)"
+    [ -n "$p" ] && PROFILE_ARGS+=("--profile" "$p")
+  done
+fi
+
+# ---------------------------------------------------------------------------
+# 5. Build e avvio servizi
+# ---------------------------------------------------------------------------
 docker compose \
   --env-file "$ENV_FILE" \
-  -f deploy/hetzner/docker-compose.hetzner.yml \
+  -f "$COMPOSE_FILE" \
+  "${PROFILE_ARGS[@]}" \
   up -d --build --remove-orphans
 
-if [ "${PCT_LOCAL_AI_ENABLED:-1}" != "0" ] && [ "${PCT_LOCAL_AI_ENABLED:-1}" != "false" ]; then
+# ---------------------------------------------------------------------------
+# 6. Pull modello Ollama (solo se il sidecar è attivo)
+# ---------------------------------------------------------------------------
+AI_ENABLED="${PCT_LOCAL_AI_ENABLED:-1}"
+if [ "$AI_ENABLED" != "0" ] && [ "$AI_ENABLED" != "false" ]; then
   OLLAMA_CHAT_MODEL="${PCT_LOCAL_AI_CHAT_MODEL:-gemma3:1b}"
-  if [ -n "$OLLAMA_CHAT_MODEL" ]; then
+  if [ -n "$OLLAMA_CHAT_MODEL" ] && docker compose \
+       --env-file "$ENV_FILE" \
+       -f "$COMPOSE_FILE" \
+       "${PROFILE_ARGS[@]}" \
+       ps --services 2>/dev/null | grep -q "^ollama$"; then
     echo "Verifico modello Ollama locale: $OLLAMA_CHAT_MODEL"
     docker compose \
       --env-file "$ENV_FILE" \
-      -f deploy/hetzner/docker-compose.hetzner.yml \
-      exec -T ollama ollama pull "$OLLAMA_CHAT_MODEL"
+      -f "$COMPOSE_FILE" \
+      "${PROFILE_ARGS[@]}" \
+      exec -T ollama ollama pull "$OLLAMA_CHAT_MODEL" || \
+      echo "Attenzione: pull modello Ollama non riuscito — verificare manualmente."
   fi
 fi
 
+# ---------------------------------------------------------------------------
+# 7. Stato servizi
+# ---------------------------------------------------------------------------
 docker compose \
   --env-file "$ENV_FILE" \
-  -f deploy/hetzner/docker-compose.hetzner.yml \
+  -f "$COMPOSE_FILE" \
+  "${PROFILE_ARGS[@]}" \
   ps
 
 # ---------------------------------------------------------------------------
-# Cron backup automatico (installato/aggiornato ad ogni deploy)
-# Default: ogni giorno alle 02:15. Override con IUSENTRA_BACKUP_CRON_SCHEDULE.
+# 8. Cron backup automatico (aggiornato ad ogni deploy)
 # ---------------------------------------------------------------------------
 CRON_SCHEDULE="${IUSENTRA_BACKUP_CRON_SCHEDULE:-15 2 * * *}"
 CRON_CMD="${CRON_SCHEDULE} bash ${REPO_DIR}/deploy/hetzner/backup.sh >> /var/log/iusentra/backup.log 2>&1"
 CRONTAB_MARKER="# iusentra-backup"
-( crontab -l 2>/dev/null | grep -v "$CRONTAB_MARKER" ; echo "${CRON_CMD}  ${CRONTAB_MARKER}" ) | crontab -
-echo "Cron backup impostato: ${CRON_SCHEDULE}"
+( crontab -l 2>/dev/null | grep -v "$CRONTAB_MARKER"; echo "${CRON_CMD}  ${CRONTAB_MARKER}" ) | crontab -
+echo "Cron backup: ${CRON_SCHEDULE}"
 
-echo "Deploy completato. Health: https://${IUSENTRA_DOMAIN}/api/pronto"
+echo ""
+echo "Deploy completato: commit=${DEPLOYED_COMMIT}  branch=${BRANCH}"
+echo "Health: https://${IUSENTRA_DOMAIN}/api/pronto"

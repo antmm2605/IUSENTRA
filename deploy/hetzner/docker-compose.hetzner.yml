@@ -13,8 +13,12 @@ x-iusentra-env: &iusentra-env
   WEB_CONCURRENCY: ${WEB_CONCURRENCY:-4}
   GUNICORN_THREADS: ${GUNICORN_THREADS:-2}
   GUNICORN_TIMEOUT: ${GUNICORN_TIMEOUT:-180}
-  PCT_LOCAL_AI_BASE_URL: ${PCT_LOCAL_AI_BASE_URL:-http://ollama:11434/api/version}
+  # Ollama: punta a http://ollama:11434 se il profilo `ai` è attivo,
+  # altrimenti a http://host.docker.internal:11434 per istanza host-level.
+  # Impostare PCT_LOCAL_AI_ENABLED=0 per disabilitare completamente l'AI locale.
+  PCT_LOCAL_AI_BASE_URL: ${PCT_LOCAL_AI_BASE_URL:-http://ollama:11434/api}
   PCT_LOCAL_AI_CHAT_MODEL: ${PCT_LOCAL_AI_CHAT_MODEL:-gemma3:1b}
+  PCT_LOCAL_AI_ENABLED: ${PCT_LOCAL_AI_ENABLED:-1}
   PCT_STUDIO_NOME: ${PCT_STUDIO_NOME:-IUSENTRA}
   IUSENTRA_BACKUP_DIR: /opt/iusentra/backups
   PCT_AGENDA_DB: /data/agenda/appuntamenti.json
@@ -60,6 +64,20 @@ x-iusentra-env: &iusentra-env
   PCT_STUDIO_CONFIG: /data/config/studio.json
 
 services:
+  # ── Core: Redis ─────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    volumes:
+      - ${IUSENTRA_DATA_DIR:-/opt/iusentra/data}/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # ── Core: App Flask ──────────────────────────────────────────────────────────
   app:
     build:
       context: ../..
@@ -78,15 +96,14 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-      ollama:
-        condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/api/pronto', timeout=5)"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 25s
+      start_period: 30s
 
+  # ── Core: Worker scheduler ───────────────────────────────────────────────────
   scheduler-worker:
     build:
       context: ../..
@@ -111,6 +128,7 @@ services:
       retries: 3
       start_period: 15s
 
+  # ── Core: Worker OCR ─────────────────────────────────────────────────────────
   ocr-worker:
     build:
       context: ../..
@@ -134,30 +152,7 @@ services:
       retries: 3
       start_period: 15s
 
-  redis:
-    image: redis:7-alpine
-    restart: unless-stopped
-    command: ["redis-server", "--appendonly", "yes"]
-    volumes:
-      - ${IUSENTRA_DATA_DIR:-/opt/iusentra/data}/redis:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 15s
-      timeout: 5s
-      retries: 5
-
-  ollama:
-    image: ollama/ollama:latest
-    restart: unless-stopped
-    volumes:
-      - ${IUSENTRA_DATA_DIR:-/opt/iusentra/data}/ollama:/root/.ollama
-    healthcheck:
-      test: ["CMD", "ollama", "list"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 30s
-
+  # ── Core: Caddy HTTPS ────────────────────────────────────────────────────────
   caddy:
     image: caddy:2.8-alpine
     restart: unless-stopped
@@ -175,6 +170,25 @@ services:
       app:
         condition: service_healthy
 
+  # ── Opzionale: Ollama AI locale (profilo `ai`) ───────────────────────────────
+  # Attivare con: docker compose ... --profile ai up
+  # Oppure impostare COMPOSE_PROFILES=ai in .env.hetzner.
+  # Se disabilitato, l'app usa PCT_LOCAL_AI_ENABLED=0 e Lex funziona
+  # senza AI locale (solo provider deterministici e research esterno).
+  ollama:
+    profiles: ["ai"]
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    volumes:
+      - ${IUSENTRA_DATA_DIR:-/opt/iusentra/data}/ollama:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # ── Opzionale: Prometheus + Grafana (profilo `monitoring`) ───────────────────
   prometheus:
     profiles: ["monitoring"]
     image: prom/prometheus:latest

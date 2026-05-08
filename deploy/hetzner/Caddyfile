@@ -26,15 +26,11 @@
 		-Server
 	}
 
-	# Rate limit sulle route di autenticazione (10 req/min per IP)
-	@auth_routes path /auth/login /auth/login_2fa /auth/reset_password*
-	rate_limit @auth_routes {
-		zone auth_zone {
-			key {remote_host}
-			events 10
-			window 60s
-		}
-	}
+	# Rate limiting sulle route di autenticazione gestito da Flask-Limiter
+	# con backend Redis (RATELIMIT_STORAGE_URI=redis://redis:6379/1).
+	# Il modulo caddy-ratelimit non è incluso in caddy:2.8-alpine standard;
+	# per aggiungere rate limiting a livello reverse proxy usare un'immagine
+	# xcaddy custom oppure affidarsi al layer Flask (già operativo).
 
 	@static path /static/*
 	header @static Cache-Control "public, max-age=604800"

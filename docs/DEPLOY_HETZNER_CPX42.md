@@ -16,12 +16,32 @@ Railway puo' restare fase transitoria, ambiente di fallback o riferimento durant
 ## File del profilo
 
 - `deploy/hetzner/bootstrap_ubuntu.sh`: prepara Ubuntu con Docker, Compose plugin, firewall, OpenSC/pcscd, zstd e cartelle runtime.
-- `deploy/hetzner/docker-compose.hetzner.yml`: avvia `app`, `redis`, `scheduler-worker`, `ocr-worker`, sidecar `ollama`, `caddy` e profilo opzionale monitoring.
-- `deploy/hetzner/Caddyfile`: termina HTTPS, imposta header di sicurezza e inoltra verso l'app Flask.
-- `deploy/hetzner/env.hetzner.example`: template delle variabili ambiente di produzione.
-- `deploy/hetzner/deploy.sh`: sincronizza il branch, ricrea i servizi e verifica/scarica il modello chat Ollama configurato.
+- `deploy/hetzner/docker-compose.hetzner.yml`: avvia `app`, `redis`, `scheduler-worker`, `ocr-worker`, `caddy` (core sempre attivi) e profili opzionali `ai` (Ollama sidecar) e `monitoring` (Prometheus + Grafana).
+- `deploy/hetzner/Caddyfile`: termina HTTPS, imposta header di sicurezza, gestisce SSE e WebSocket, inoltra verso l'app Flask. Il rate limiting sulle route di autenticazione è gestito da Flask-Limiter con Redis a livello applicativo.
+- `deploy/hetzner/env.hetzner.example`: template delle variabili ambiente di produzione, incluse le variabili `COMPOSE_PROFILES` e `PCT_LOCAL_AI_ENABLED` per il controllo dell'AI locale.
+- `deploy/hetzner/deploy.sh`: sincronizza il branch, legge `COMPOSE_PROFILES` da `.env.hetzner`, avvia i servizi con i profili corretti, scarica il modello Ollama solo se il sidecar è attivo, imposta il cron backup.
 - `deploy/hetzner/backup.sh`: crea archivio dati e checksum.
 - `deploy/hetzner/restore_data.sh`: verifica checksum se presente, ferma i servizi e ripristina i dati.
+
+## Profili Docker Compose
+
+| Profilo | Servizi aggiuntivi | Quando usarlo |
+|---------|-------------------|---------------|
+| *(nessuno)* | solo core: app, redis, scheduler-worker, ocr-worker, caddy | installazioni senza AI locale |
+| `ai` | + sidecar `ollama` | self-hosted con AI locale (default consigliato su CPX42) |
+| `monitoring` | + prometheus, grafana | dashboard metriche (porta 3000 solo localhost) |
+| `ai,monitoring` | tutti | ambiente completo |
+
+Impostare in `.env.hetzner`:
+
+```bash
+COMPOSE_PROFILES=ai
+# oppure
+COMPOSE_PROFILES=ai,monitoring
+# oppure (senza AI)
+COMPOSE_PROFILES=
+PCT_LOCAL_AI_ENABLED=0
+```
 
 ## Bootstrap
 
@@ -75,10 +95,12 @@ Verifiche minime:
 
 ```bash
 docker compose --env-file /opt/iusentra/.env.hetzner -f deploy/hetzner/docker-compose.hetzner.yml ps
-git rev-parse --short HEAD
+git -C /opt/iusentra/repo rev-parse --short HEAD
 curl -fsS https://<dominio>/api/pronto
 curl -I https://<dominio>/app-v2/fascicoli
 ```
+
+Il deploy stampa il commit deployed e l'URL health al termine. Il `git rev-parse` deve corrispondere all'HEAD del branch pushato.
 
 ## Backup
 

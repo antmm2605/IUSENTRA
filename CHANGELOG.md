@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.206.0 - 2026-05-08
+
+- Corretto il completamento finale dello script Hetzner: la rigenerazione del crontab backup non fallisce piu' quando le vecchie righe marcate vengono rimosse tutte.
+
 ## 2.205.0 - 2026-05-08
 
 - Reso il deploy Hetzner a due fasi: Redis/app vengono avviati e verificati prima dei servizi dipendenti, poi worker, Caddy e profili completano il rollout con health check finale.

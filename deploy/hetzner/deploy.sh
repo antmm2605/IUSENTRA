@@ -192,7 +192,7 @@ docker compose \
 CRON_SCHEDULE="${IUSENTRA_BACKUP_CRON_SCHEDULE:-15 2 * * *}"
 CRON_CMD="${CRON_SCHEDULE} bash ${REPO_DIR}/deploy/hetzner/backup.sh >> /var/log/iusentra/backup.log 2>&1"
 CRONTAB_MARKER="# iusentra-backup"
-( crontab -l 2>/dev/null | grep -v "$CRONTAB_MARKER"; echo "${CRON_CMD}  ${CRONTAB_MARKER}" ) | crontab -
+( crontab -l 2>/dev/null | grep -v "$CRONTAB_MARKER" || true; echo "${CRON_CMD}  ${CRONTAB_MARKER}" ) | crontab -
 echo "Cron backup: ${CRON_SCHEDULE}"
 
 echo ""

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.205.0 - 2026-05-08
+
+- Reso il deploy Hetzner a due fasi: Redis/app vengono avviati e verificati prima dei servizi dipendenti, poi worker, Caddy e profili completano il rollout con health check finale.
+
 ## 2.204.0 - 2026-05-08
 
 - Rafforzato il deploy Hetzner: lo script attende esplicitamente che app, worker e servizi con health check escano dallo stato `starting` prima di stampare lo stato finale e completare il deploy.

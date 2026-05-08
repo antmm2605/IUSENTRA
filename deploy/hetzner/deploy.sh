@@ -92,6 +92,7 @@ wait_for_compose_services() {
   local health
   local pending
   local status_lines=()
+  local services=("$@")
 
   while true; do
     pending=0
@@ -100,7 +101,7 @@ wait_for_compose_services() {
       --env-file "$ENV_FILE" \
       -f "$COMPOSE_FILE" \
       "${PROFILE_ARGS[@]}" \
-      ps -q)
+      ps -q "${services[@]}")
 
     if (( ${#container_ids[@]} == 0 )); then
       pending=1
@@ -137,6 +138,15 @@ wait_for_compose_services() {
 # ---------------------------------------------------------------------------
 # 5. Build e avvio servizi
 # ---------------------------------------------------------------------------
+docker compose \
+  --env-file "$ENV_FILE" \
+  -f "$COMPOSE_FILE" \
+  "${PROFILE_ARGS[@]}" \
+  up -d --build --remove-orphans redis app
+
+echo "Attendo health app..."
+wait_for_compose_services redis app
+
 docker compose \
   --env-file "$ENV_FILE" \
   -f "$COMPOSE_FILE" \

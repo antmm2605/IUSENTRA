@@ -55,6 +55,7 @@ _CSRF_PROTECTED_ENDPOINTS = {
     "api_v1_react.preventivi_nuovo_crea",
     "api_v1_react.preventivi_conferimento_nuovo_crea",
     "api_v1_react.preventivi_aggiorna_stato",
+    "api_v1_react.preventivi_conferimento_aggiorna_stato",
     "api_v1_react.incassi_pagamenti_registra_incasso",
     "api_v1_react.incassi_pagamenti_aggiorna_stato",
     "api_v1_react.incassi_pagamenti_collega",

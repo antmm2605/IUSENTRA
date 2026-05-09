@@ -73,6 +73,7 @@ import {
   type SelectOption,
   type FascicoliPagination,
 } from '../fascicoliData'
+import { redirectAfterSuccess, submitFormJson } from '../formSubmit'
 import './FascicoliPage.css'
 
 type SortKey = 'recenti' | 'rg' | 'cliente' | 'scadenza' | 'documenti'
@@ -215,6 +216,55 @@ function PostAction({ action, children, tone = 'secondary', confirm, confirmTitl
         </div>
       ) : null}
     </>
+  )
+}
+
+function JsonPostForm({
+  action,
+  className,
+  children,
+  redirectTo,
+  encType,
+  onDone,
+  onError,
+}: {
+  action: string
+  className?: string
+  children: ReactNode
+  redirectTo?: string
+  encType?: string
+  onDone?: (message?: string) => void
+  onError?: (message: string) => void
+}) {
+  const [message, setMessage] = useState('')
+  const [busy, setBusy] = useState(false)
+  if (!action) return null
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setBusy(true)
+    setMessage('Salvataggio in corso...')
+    try {
+      const result = await submitFormJson(action, new FormData(event.currentTarget))
+      const nextMessage = result.message || 'Operazione completata.'
+      setMessage(nextMessage)
+      if (onDone) {
+        onDone(nextMessage)
+      } else {
+        redirectAfterSuccess(result, redirectTo || window.location.href)
+      }
+    } catch (error) {
+      const nextMessage = error instanceof Error ? error.message : 'Operazione non riuscita.'
+      setMessage(nextMessage)
+      onError?.(nextMessage)
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <form className={className} onSubmit={submit} encType={encType} data-busy={busy ? 'true' : undefined}>
+      {children}
+      {message ? <span className="iu-fas-inline-error" role="status">{message}</span> : null}
+    </form>
   )
 }
 
@@ -544,7 +594,7 @@ function FascicoliListPage() {
 
       <section className="iu-fas-status-line">
         <span className={loading ? '' : 'is-ok'}>{loading ? 'Sincronizzazione fascicoli...' : 'Dati aggiornati'}</span>
-        <small><ShieldCheck size={14}/> React gestisce la vista; salvataggi e audit restano sui servizi backend già governati.</small>
+        <small><ShieldCheck size={14}/> Vista operativa aggiornata con salvataggi tracciati e controlli di studio già governati.</small>
         {selectedVisible ? <small className="iu-fas-selected">{selectedVisible} selezionati</small> : null}
       </section>
 
@@ -678,7 +728,7 @@ function FascicoloFormPage({ mode, id }:{mode:'new'|'edit'; id?:string}) {
       {loading ? <p className="iu-empty">Caricamento dati fascicolo...</p> : null}
       {data.correction?.active ? <section className="iu-fas-correction"><Badge tone="primary">Correzione</Badge><div><strong>{data.correction.title}</strong><span>{data.correction.help}</span></div></section> : null}
       <section className="iu-fas-form-layout">
-        <form className="iu-fas-form" method="post" action={data.action || (mode === 'edit' && id ? `/fascicoli/${encodeURIComponent(id)}/modifica` : '/fascicoli/nuovo')}>
+        <JsonPostForm className="iu-fas-form" action={data.action || (mode === 'edit' && id ? `/fascicoli/${encodeURIComponent(id)}/modifica` : '/fascicoli/nuovo')} redirectTo={data.detailHref || data.backHref}>
           {mode === 'new' ? <><input type="hidden" name="source_preventivo" value={data.query.source_preventivo || ''}/><input type="hidden" name="source_conferimento" value={data.query.source_conferimento || ''}/><input type="hidden" name="from_page" value={data.query.from_page || ''}/></> : null}
           <Panel title="Dati principali" subtitle="Titolo, tipo e oggetto" icon={<FolderOpen size={17}/>}>
             <div className="iu-fas-form-grid"><Field label="Titolo" name="titolo" defaultValue={getValue(data, 'title')} required placeholder="es. Rossi c/ Bianchi - Inadempimento contrattuale"/><SelectField label="Tipo" name="tipo" options={data.types} defaultValue={getValue(data, 'typeRaw') || getValue(data, 'type').toUpperCase()} required/><TextAreaField label="Oggetto / Descrizione" name="oggetto" defaultValue={getValue(data, 'object') || getValue(data, 'subtitle')} rows={2}/></div>
@@ -693,7 +743,7 @@ function FascicoloFormPage({ mode, id }:{mode:'new'|'edit'; id?:string}) {
             <div className="iu-fas-form-grid"><Field label="Avvocato referente" name="avvocato_referente" defaultValue={getValue(data, 'leadLawyer')}/><Field label="Avvocato dominus" name="avvocato_dominus" defaultValue={getValue(data, 'dominus')}/><TextAreaField label="Note" name="note" defaultValue={getValue(data, 'notes')} rows={4}/></div>
           </Panel>
           <div className="iu-fas-form-actions"><button className="iu-fas-submit" type="submit"><CheckCircle2 size={16}/> {mode === 'edit' ? 'Salva modifiche' : 'Crea fascicolo'}</button><a href={data.detailHref || data.backHref}>Annulla</a></div>
-        </form>
+        </JsonPostForm>
         <aside className="iu-fas-form-side">
           <FascicoloGuardrailsPanel guardrails={data.guardrails} />
           {data.workflow ? <Panel title="Apertura pratica guidata" icon={<Sparkles size={17}/>}><div className="iu-fas-workflow-box"><div>{data.workflow.badges.map((badge) => <Badge tone="primary" key={badge}>{badge}</Badge>)}</div><p>{data.workflow.summary}</p>{data.workflow.values.map((item) => <span key={item.label}><strong>{item.label}</strong>{item.value}</span>)}<ul>{data.workflow.checklist.map((item) => <li key={item}>{item}</li>)}</ul></div></Panel> : null}
@@ -1417,7 +1467,7 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
             <button className="iu-fas-submit" type="button" disabled={busy || !localSignerCanSign || (alreadySigned && !confirmResign)} onClick={firmaConLocalSigner}>
               <ShieldCheck size={16}/> {busy ? 'Firma in corso...' : 'Firma tramite Local Signer'}
             </button>
-            <p className="iu-fas-signature-help">La firma integrata passa da <code>{localSignerBaseUrl().replace(/^https?:\/\//, '')}</code>. IUSENTRA non salva PIN, password o credenziali del token.</p>
+            <p className="iu-fas-signature-help">La firma integrata usa il servizio locale installato su questo PC. IUSENTRA non salva PIN, password o credenziali del token.</p>
               </>
             ) : (
               <div className="iu-fas-signer-next-step">
@@ -1429,7 +1479,7 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
         </Panel>
 
         <Panel title="Firma esterna" subtitle="ArubaSign, Dike o altro software di firma" icon={<UploadCloud size={17}/>}>
-          <form className="iu-fas-signature-form" method="post" action={firmaUrl} encType="multipart/form-data">
+          <JsonPostForm className="iu-fas-signature-form" action={firmaUrl} encType="multipart/form-data">
             <p>Scarica il documento, firmalo in CAdES/PAdES secondo la policy del canale, poi carica qui il file firmato.</p>
             <label className="iu-fas-field">
               <span>File firmato <b>*</b></span>
@@ -1450,7 +1500,7 @@ function SignaturePage({ id, documentId }:{id:string; documentId:string}) {
             ) : null}
             {alreadySigned && confirmResign ? <input type="hidden" name="confirm_resign" value="1"/> : null}
             <button className="iu-fas-submit" type="submit" disabled={alreadySigned && !confirmResign}><UploadCloud size={16}/> Carica file firmato</button>
-          </form>
+          </JsonPostForm>
         </Panel>
 
         <Panel title="Verifica firma" subtitle="Esito letto dal documento salvato" icon={<FileCheck2 size={17}/>} count={info?.firme?.length || 0}>
@@ -1476,7 +1526,7 @@ function ActivityRow({ activity }:{activity:FascicoloActivity}) {
       <div><Badge tone={activity.tone}>{activity.result || activity.type}</Badge><time>{activity.date || 'n.d.'}</time></div>
       <div><strong>{activity.title}</strong><span>{activity.type}{activity.place ? ` · ${activity.place}` : ''}{activity.lawyer ? ` · ${activity.lawyer}` : ''}</span>{activity.description ? <p>{activity.description}</p> : null}{activity.notes ? <em>{activity.notes}</em> : null}</div>
       <div className="iu-fas-actions iu-fas-actions--wrap">
-        {activity.updateAction ? <form method="post" action={activity.updateAction} className="iu-fas-mini-form"><select name="esito" defaultValue={activity.result || 'IN_ATTESA'}><option value="IN_ATTESA">In attesa</option><option value="FAVOREVOLE">Favorevole</option><option value="PARZIALE">Parziale</option><option value="SFAVOREVOLE">Sfavorevole</option><option value="RINVIATO">Rinviato</option><option value="ANNULLATO">Annullato</option></select><button type="submit">Aggiorna</button></form> : null}
+        {activity.updateAction ? <JsonPostForm action={activity.updateAction} className="iu-fas-mini-form"><select name="esito" defaultValue={activity.result || 'IN_ATTESA'}><option value="IN_ATTESA">In attesa</option><option value="FAVOREVOLE">Favorevole</option><option value="PARZIALE">Parziale</option><option value="SFAVOREVOLE">Sfavorevole</option><option value="RINVIATO">Rinviato</option><option value="ANNULLATO">Annullato</option></select><button type="submit">Aggiorna</button></JsonPostForm> : null}
         {activity.deleteAction ? <PostAction action={activity.deleteAction} tone="danger" confirm="Eliminare questa attività?"><Trash2 size={14}/></PostAction> : null}
       </div>
     </article>
@@ -1606,7 +1656,7 @@ function DetailPage({ id }:{id:string}) {
             </div>
           </DetailSection>
           <DetailSection id="attivita" title="Attività processuali" icon={<ListChecks size={17}/>} count={data.quickCounts.attivita || 0} onOpen={() => loadLazySection('attivita')}>
-            <form className="iu-fas-add-activity" method="post" action={data.actions.addActivity}><select name="tipo" defaultValue="ALTRO">{data.options.activityTypes.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select><input type="date" name="data" required/><input name="titolo" placeholder="Titolo attività" required/><input name="luogo" placeholder="Luogo"/><select name="esito" defaultValue="IN_ATTESA">{data.options.activityResults.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select><input name="avvocato" placeholder="Avvocato"/><textarea name="descrizione" placeholder="Descrizione"/><button type="submit"><Plus size={15}/> Aggiungi</button></form>
+            <JsonPostForm className="iu-fas-add-activity" action={data.actions.addActivity}><select name="tipo" defaultValue="ALTRO">{data.options.activityTypes.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select><input type="date" name="data" required/><input name="titolo" placeholder="Titolo attività" required/><input name="luogo" placeholder="Luogo"/><select name="esito" defaultValue="IN_ATTESA">{data.options.activityResults.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select><input name="avvocato" placeholder="Avvocato"/><textarea name="descrizione" placeholder="Descrizione"/><button type="submit"><Plus size={15}/> Aggiungi</button></JsonPostForm>
             <div className="iu-fas-activity-list">{lazyStatus.attivita === 'loading' ? <p className="iu-empty">Caricamento attività...</p> : null}{data.activities.map((activity) => <ActivityRow activity={activity} key={activity.id}/>)}{lazyStatus.attivita === 'loaded' && !data.activities.length ? <p className="iu-empty">Nessuna attività processuale registrata.</p> : null}{lazyStatus.attivita === 'idle' ? <p className="iu-empty">Apri la sezione per caricare la timeline processuale.</p> : null}</div>
           </DetailSection>
           <DetailSection id="udienze" title="Udienze e scadenze" icon={<CalendarDays size={17}/>} count={data.quickCounts.udienze_scadenze || 0} onOpen={() => loadLazySection('scadenze')}>
@@ -1622,12 +1672,12 @@ function DetailPage({ id }:{id:string}) {
         </div>
         <aside className="iu-fas-detail-side">
           <DetailSection id="gestione" title="Gestione fascicolo" icon={<Gauge size={17}/>}>
-            <form className="iu-fas-side-form" method="post" action={data.actions.changeState}><label><span>Cambia stato</span><select name="stato" defaultValue={f.status.toUpperCase()}>{data.options.states.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label><input name="avvocato" placeholder="Avvocato"/><textarea name="note" placeholder="Note cambio stato"/><button type="submit"><RefreshCw size={15}/> Aggiorna stato</button></form>
-            <div className="iu-fas-action-stack"><form method="post" action={data.actions.define}><input name="esito_finale" placeholder="Esito finale"/><input name="motivo" placeholder="Motivo"/><input name="avvocato" placeholder="Avvocato"/><textarea name="note" placeholder="Note definizione"/><button type="submit"><CheckCircle2 size={15}/> Definisci</button></form><PostAction action={data.actions.archive} tone="primary" confirm="Archiviare il fascicolo?" confirmTitle="Archivia fascicolo"><Archive size={15}/> Archivia con ZIP</PostAction><PostAction action={data.actions.restore} tone="secondary" confirm="Ripristinare il fascicolo?" confirmTitle="Ripristina fascicolo"><RotateCcw size={15}/> Ripristina</PostAction><a className="iu-fas-side-link" href={data.actions.exportPdf || f.exportPdfHref}><FileDown size={15}/> PDF fascicolo</a>{data.actions.archiveZip ? <a className="iu-fas-side-link" href={data.actions.archiveZip}><FileArchive size={15}/> Scarica ZIP</a> : null}<PostAction action={data.actions.delete} tone="danger" confirm="Eliminare definitivamente il fascicolo?" confirmTitle="Elimina fascicolo" redirectTo="/fascicoli"><Trash2 size={15}/> Elimina</PostAction></div>
+            <JsonPostForm className="iu-fas-side-form" action={data.actions.changeState}><label><span>Cambia stato</span><select name="stato" defaultValue={f.status.toUpperCase()}>{data.options.states.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label><input name="avvocato" placeholder="Avvocato"/><textarea name="note" placeholder="Note cambio stato"/><button type="submit"><RefreshCw size={15}/> Aggiorna stato</button></JsonPostForm>
+            <div className="iu-fas-action-stack"><JsonPostForm action={data.actions.define}><input name="esito_finale" placeholder="Esito finale"/><input name="motivo" placeholder="Motivo"/><input name="avvocato" placeholder="Avvocato"/><textarea name="note" placeholder="Note definizione"/><button type="submit"><CheckCircle2 size={15}/> Definisci</button></JsonPostForm><PostAction action={data.actions.archive} tone="primary" confirm="Archiviare il fascicolo?" confirmTitle="Archivia fascicolo"><Archive size={15}/> Archivia con ZIP</PostAction><PostAction action={data.actions.restore} tone="secondary" confirm="Ripristinare il fascicolo?" confirmTitle="Ripristina fascicolo"><RotateCcw size={15}/> Ripristina</PostAction><a className="iu-fas-side-link" href={data.actions.exportPdf || f.exportPdfHref}><FileDown size={15}/> PDF fascicolo</a>{data.actions.archiveZip ? <a className="iu-fas-side-link" href={data.actions.archiveZip}><FileArchive size={15}/> Scarica ZIP</a> : null}<PostAction action={data.actions.delete} tone="danger" confirm="Eliminare definitivamente il fascicolo?" confirmTitle="Elimina fascicolo" redirectTo="/fascicoli"><Trash2 size={15}/> Elimina</PostAction></div>
           </DetailSection>
           <DetailSection id="economia" title="Controllo economico" icon={<WalletCards size={17}/>} count={data.economics.length}><div className="iu-fas-side-cards">{data.economics.map((item) => <a href={item.href} key={item.id}><Badge tone={item.tone}>{item.label}</Badge><strong>{item.value}</strong><span>{item.note}</span></a>)}{!data.economics.length ? <p className="iu-empty">Nessun dato economico collegato.</p> : null}</div></DetailSection>
           <DetailSection id="workflow" title="Workflow cliente → incasso" icon={<Sparkles size={17}/>} count={data.workflow.length}><div className="iu-fas-side-cards">{data.workflow.map((item) => item.href ? <a href={item.href} key={item.label}><Badge tone={item.tone}>{item.label}</Badge><strong>{item.value}</strong><span>{item.note}</span></a> : <article key={item.label}><Badge tone={item.tone}>{item.label}</Badge><strong>{item.value}</strong><span>{item.note}</span></article>)}</div></DetailSection>
-          <DetailSection id="conformita" title="Conformità e qualità" icon={<ShieldCheck size={17}/>} count={data.quality.length}><div className="iu-fas-quality-list">{data.quality.map((item) => <span key={item.label}><Badge tone={item.tone}>{item.ok ? 'OK' : 'Verifica'}</Badge><strong>{item.label}</strong><small>{item.value}</small></span>)}</div><form className={`iu-fas-compliance-toggle ${f.complianceControlsEnabled ? 'is-on' : 'is-off'}`} method="post" action={f.complianceControlsEnabled ? data.actions.complianceOff : data.actions.complianceOn}><input type="hidden" name="enabled" value={f.complianceControlsEnabled ? '0' : '1'}/><input type="hidden" name="next" value={detailReturnHref}/><button type="submit" aria-pressed={f.complianceControlsEnabled}><span className="iu-fas-compliance-toggle__switch" aria-hidden="true"><i/></span><span><strong>{f.complianceControlsEnabled ? 'Controlli automatici attivi' : 'Controlli automatici disattivati'}</strong><small>{f.complianceControlsEnabled ? 'Disattiva i controlli qualità sul fascicolo' : 'Riattiva i controlli qualità sul fascicolo'}</small></span></button></form></DetailSection>
+          <DetailSection id="conformita" title="Conformità e qualità" icon={<ShieldCheck size={17}/>} count={data.quality.length}><div className="iu-fas-quality-list">{data.quality.map((item) => <span key={item.label}><Badge tone={item.tone}>{item.ok ? 'OK' : 'Verifica'}</Badge><strong>{item.label}</strong><small>{item.value}</small></span>)}</div><JsonPostForm className={`iu-fas-compliance-toggle ${f.complianceControlsEnabled ? 'is-on' : 'is-off'}`} action={f.complianceControlsEnabled ? data.actions.complianceOff : data.actions.complianceOn} redirectTo={detailReturnHref}><input type="hidden" name="enabled" value={f.complianceControlsEnabled ? '0' : '1'}/><input type="hidden" name="next" value={detailReturnHref}/><button type="submit" aria-pressed={f.complianceControlsEnabled}><span className="iu-fas-compliance-toggle__switch" aria-hidden="true"><i/></span><span><strong>{f.complianceControlsEnabled ? 'Controlli automatici attivi' : 'Controlli automatici disattivati'}</strong><small>{f.complianceControlsEnabled ? 'Disattiva i controlli qualità sul fascicolo' : 'Riattiva i controlli qualità sul fascicolo'}</small></span></button></JsonPostForm></DetailSection>
           <DetailSection id="telematico" title="Servizi telematici" icon={<Send size={17}/>} count={data.telematic.length}><div className="iu-fas-side-cards">{data.telematic.map((item) => <a href={item.href} key={item.label}><Badge tone={item.tone}>{item.label}</Badge><strong>{item.value}</strong><span>{item.note}</span></a>)}</div></DetailSection>
           <DetailSection id="cliente" title="Cliente" icon={<UserRound size={17}/>} count={data.client ? 1 : 0}>{data.client ? <KvGrid items={[{ label: 'Nome', value: data.client.name, href: data.client.href }, { label: 'Codice fiscale', value: data.client.taxCode, mono: true }, { label: 'P. IVA', value: data.client.vat, mono: true }, { label: 'Email', value: data.client.email }, { label: 'PEC', value: data.client.pec }, { label: 'Telefono', value: data.client.phone }, { label: 'Indirizzo', value: data.client.address }]}/> : <p className="iu-empty">Cliente non collegato.</p>}</DetailSection>
           <DetailSection id="soggetti" title="Soggetti e parti" icon={<UsersRound size={17}/>} count={data.parties.length}><div className="iu-fas-party-list">{data.parties.map((party) => <a href={party.href} key={party.id}><strong>{party.name}</strong><span>{party.role || 'Soggetto'} · {party.taxCode || 'C.F. n.d.'}</span><small>{party.email || party.pec || party.phone}</small></a>)}{!data.parties.length ? <p className="iu-empty">Nessun soggetto collegato.</p> : null}</div><a className="iu-fas-inline-link" href={`/soggetti/nuovo?id_fascicolo=${encodeURIComponent(f.id)}`}><Plus size={14}/> Nuovo soggetto</a></DetailSection>

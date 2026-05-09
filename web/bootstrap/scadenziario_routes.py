@@ -33,6 +33,13 @@ def _richiede_vista_classica() -> bool:
     return (request.args.get("_legacy") or "").strip().lower() in {"1", "true", "si", "yes", "on"}
 
 
+def _richiede_json() -> bool:
+    return (
+        request.headers.get("X-Requested-With") == "XMLHttpRequest"
+        or "application/json" in (request.headers.get("Accept") or "")
+    )
+
+
 def register_scadenziario_routes(
     app: Flask,
     *,
@@ -291,9 +298,17 @@ def register_scadenziario_routes(
                 flash(f"Scadenza '{sc.titolo}' creata.", "success")
                 sync_pubblica("crea", "scadenze", sc.id)
                 if from_cliente:
+                    target = url_for("cartella_cliente", id_cliente=from_cliente)
+                    if _richiede_json():
+                        return jsonify({"ok": True, "id": sc.id, "message": f"Scadenza '{sc.titolo}' creata.", "redirect": target})
                     return redirect(url_for("cartella_cliente", id_cliente=from_cliente))
+                target = url_for("scadenziario")
+                if _richiede_json():
+                    return jsonify({"ok": True, "id": sc.id, "message": f"Scadenza '{sc.titolo}' creata.", "redirect": target})
                 return redirect(url_for("scadenziario"))
             except (ValueError, KeyError) as e:
+                if _richiede_json():
+                    return jsonify({"ok": False, "message": str(e)}), 400
                 flash(str(e), "danger")
         return render_template("scadenziario/form.html", **_scadenziario_form_context())
 
@@ -401,8 +416,12 @@ def register_scadenziario_routes(
                 audit("scadenziario.modifica", "scadenza", id_sc)
                 flash("Scadenza aggiornata.", "success")
                 sync_pubblica("modifica", "scadenze", id_sc)
+                if _richiede_json():
+                    return jsonify({"ok": True, "id": id_sc, "message": "Scadenza aggiornata.", "redirect": url_for("scadenziario")})
                 return redirect(url_for("scadenziario"))
             except (ValueError, KeyError) as e:
+                if _richiede_json():
+                    return jsonify({"ok": False, "message": str(e)}), 400
                 flash(str(e), "danger")
         return render_template("scadenziario/form.html", **_scadenziario_form_context(sc))
 

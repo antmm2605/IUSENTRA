@@ -1,4 +1,5 @@
 import { apiJson, apiPostJson } from './lib/apiClient'
+import { sanitizeDisplayText } from './displayText'
 import {
   sanitizePayload,
   tone,
@@ -144,6 +145,12 @@ export type SitoStudioContattiPageData = {
   source: string
   generated_at: string
   contracts: ReactOperationalContract
+  entrypoints: {
+    publicSite: string
+    publicContact: string
+    publicBooking: string
+    dashboard: string
+  }
   contacts: SitoContattoRow[]
   bookings: SitoBookingRow[]
   statuses: SitoContattoStatus[]
@@ -207,11 +214,17 @@ export const emptySitoStudioContattiPage: SitoStudioContattiPageData = {
   generated_at: '',
   contracts: {
     mock_fallback: false,
-    writes: 'json_api',
+    writes: 'azioni_protette',
     route_owner: 'react_shell',
     operational: true,
     notifications: 'legacy_protected',
     automation: 'legacy_protected',
+  },
+  entrypoints: {
+    publicSite: '',
+    publicContact: '',
+    publicBooking: '',
+    dashboard: '/sito-studio',
   },
   contacts: [],
   bookings: [],
@@ -235,7 +248,7 @@ export const emptySitoStudioContattiPage: SitoStudioContattiPageData = {
 
 const unsupportedMutation: SitoContattoMutationResult = {
   ok: false,
-  message: 'Azione non supportata dal backend legacy corrente.',
+  message: 'Azione non disponibile nella configurazione corrente.',
   errors: { action: 'Azione non supportata.' },
   item: null,
 }
@@ -252,6 +265,10 @@ function text(value: unknown, fallback = ''): string {
   return typeof value === 'string' ? value.trim() : fallback
 }
 
+function display(value: unknown, fallback = ''): string {
+  return sanitizeDisplayText(text(value, fallback))
+}
+
 function bool(value: unknown): boolean {
   return value === true
 }
@@ -262,7 +279,7 @@ function number(value: unknown): number {
 
 function value(value: unknown): string | number {
   if (typeof value === 'number' && Number.isFinite(value)) return value
-  if (typeof value === 'string') return value.trim()
+  if (typeof value === 'string') return sanitizeDisplayText(value.trim())
   return ''
 }
 
@@ -284,8 +301,8 @@ function normaliseContract(raw: unknown, writes: string): ReactOperationalContra
 function normaliseWarning(raw: unknown): WarningItem {
   const item = asRecord(raw)
   return {
-    code: text(item.code) || 'warning',
-    message: text(item.message) || 'Avviso operativo disponibile.',
+    code: display(item.code) || 'warning',
+    message: display(item.message) || 'Avviso operativo disponibile.',
   }
 }
 
@@ -293,9 +310,9 @@ function normaliseMetric(raw: unknown): SitoMetric {
   const item = asRecord(raw)
   return {
     id: text(item.id) || text(item.label) || 'metrica',
-    label: text(item.label) || 'Metrica',
+    label: display(item.label) || 'Metrica',
     value: value(item.value),
-    note: text(item.note),
+    note: display(item.note),
     tone: tone(item.tone),
   }
 }
@@ -304,7 +321,7 @@ function normaliseAction(raw: unknown): RouteAction {
   const item = asRecord(raw)
   return {
     id: text(item.id) || text(item.label) || 'azione',
-    label: text(item.label) || 'Apri',
+    label: display(item.label) || 'Apri',
     href: text(item.href),
     method: 'GET',
     tone: tone(item.tone),
@@ -317,17 +334,17 @@ function normaliseSite(raw: unknown): SitoStudioSite {
   return {
     id: number(item.id),
     tenantSlug: text(item.tenantSlug),
-    studioName: text(item.studioName),
-    siteName: text(item.siteName),
+    studioName: display(item.studioName),
+    siteName: display(item.siteName),
     publicSlug: text(item.publicSlug),
-    title: text(item.title),
-    description: text(item.description),
-    claim: text(item.claim),
+    title: display(item.title),
+    description: display(item.description),
+    claim: display(item.claim),
     contactEmail: text(item.contactEmail),
     contactPhone: text(item.contactPhone),
-    address: text(item.address),
-    city: text(item.city),
-    province: text(item.province),
+    address: display(item.address),
+    city: display(item.city),
+    province: display(item.province),
     zipCode: text(item.zipCode),
     published: bool(item.published),
     active: bool(item.active),
@@ -347,13 +364,13 @@ function normalisePageItem(raw: unknown): SitoPageItem {
   return {
     id: text(item.id),
     kind,
-    title: text(item.title) || 'Elemento sito',
-    subtitle: text(item.subtitle),
-    status: text(item.status),
+    title: display(item.title) || 'Elemento sito',
+    subtitle: display(item.subtitle),
+    status: display(item.status),
     statusTone: tone(item.statusTone),
     meta: list(item.meta).map((rawMeta) => {
       const meta = asRecord(rawMeta)
-      return { label: text(meta.label), value: text(meta.value) }
+      return { label: display(meta.label), value: display(meta.value) }
     }).filter((entry) => entry.label || entry.value),
   }
 }
@@ -363,14 +380,14 @@ function normaliseContact(raw: unknown): SitoContattoRow {
   const actions = asRecord(item.actions)
   return {
     id: text(item.id),
-    fullName: text(item.fullName),
+    fullName: display(item.fullName),
     email: text(item.email),
     phone: text(item.phone),
-    subject: text(item.subject),
-    message: text(item.message),
+    subject: display(item.subject),
+    message: display(item.message),
     createdAt: text(item.createdAt),
-    status: text(item.status),
-    statusLabel: text(item.statusLabel) || text(item.status),
+    status: display(item.status),
+    statusLabel: display(item.statusLabel) || display(item.status),
     statusTone: tone(item.statusTone),
     leadClienteId: text(item.leadClienteId),
     clientHref: text(item.clientHref),
@@ -386,16 +403,16 @@ function normaliseBooking(raw: unknown): SitoBookingRow {
   const actions = asRecord(item.actions)
   return {
     id: text(item.id),
-    customerName: text(item.customerName),
+    customerName: display(item.customerName),
     email: text(item.email),
     phone: text(item.phone),
-    subject: text(item.subject),
-    notes: text(item.notes),
+    subject: display(item.subject),
+    notes: display(item.notes),
     requestedAt: text(item.requestedAt),
     createdAt: text(item.createdAt),
-    officeName: text(item.officeName),
-    status: text(item.status),
-    statusLabel: text(item.statusLabel) || text(item.status),
+    officeName: display(item.officeName),
+    status: display(item.status),
+    statusLabel: display(item.statusLabel) || display(item.status),
     statusTone: tone(item.statusTone),
     agendaEventId: text(item.agendaEventId),
     actions: {
@@ -409,7 +426,7 @@ function normaliseStatus(raw: unknown): SitoContattoStatus {
   const item = asRecord(raw)
   return {
     value: text(item.value),
-    label: text(item.label),
+    label: display(item.label),
     mutable: bool(item.mutable),
   }
 }
@@ -418,7 +435,7 @@ function normaliseOption(raw: unknown): { id: string; label: string } {
   const item = asRecord(raw)
   return {
     id: text(item.id),
-    label: text(item.label),
+    label: display(item.label),
   }
 }
 
@@ -434,10 +451,20 @@ function normalisePermissions(raw: unknown): SitoContattiPermissions {
     canLinkClient: bool(item.canLinkClient),
     canLinkMatter: bool(item.canLinkMatter),
     canUpdateBookingStatus: bool(item.canUpdateBookingStatus),
-    unsupportedReason: text(item.unsupportedReason),
+    unsupportedReason: display(item.unsupportedReason),
     rollback: text(rollback.href)
-      ? { label: text(rollback.label) || 'Rollback tecnico legacy', href: text(rollback.href), method: 'GET' }
+      ? { label: display(rollback.label) || 'Percorso di recupero', href: text(rollback.href), method: 'GET' }
       : undefined,
+  }
+}
+
+function normaliseEntrypoints(raw: unknown): SitoStudioContattiPageData['entrypoints'] {
+  const item = asRecord(raw)
+  return {
+    publicSite: text(item.publicSite),
+    publicContact: text(item.publicContact),
+    publicBooking: text(item.publicBooking),
+    dashboard: text(item.dashboard) || '/sito-studio',
   }
 }
 
@@ -446,8 +473,8 @@ function normaliseMutation(raw: unknown): SitoContattoMutationResult {
   const row = item.item
   return {
     ok: bool(item.ok),
-    message: text(item.message) || (bool(item.ok) ? 'Operazione completata.' : 'Operazione non completata.'),
-    errors: Object.fromEntries(Object.entries(asRecord(item.errors)).map(([key, entry]) => [key, text(entry)])),
+    message: display(item.message) || (bool(item.ok) ? 'Operazione completata.' : 'Operazione non completata.'),
+    errors: Object.fromEntries(Object.entries(asRecord(item.errors)).map(([key, entry]) => [key, display(entry)])),
     item: row ? ('customerName' in asRecord(row) ? normaliseBooking(row) : normaliseContact(row)) : null,
   }
 }
@@ -465,7 +492,7 @@ function normaliseSitoStudioPage(raw: unknown): SitoStudioPageData {
     metrics: list(page.metrics).map(normaliseMetric),
     preview: {
       href: text(preview.href),
-      label: text(preview.label),
+      label: display(preview.label),
       safe: bool(preview.safe),
     },
     actions: list(page.actions).map(normaliseAction).filter((action) => action.href),
@@ -480,7 +507,8 @@ function normaliseSitoContattiPage(raw: unknown): SitoStudioContattiPageData {
     ok: bool(page.ok),
     source: text(page.source),
     generated_at: text(page.generated_at),
-    contracts: normaliseContract(page.contracts, 'json_api'),
+    contracts: normaliseContract(page.contracts, 'azioni_protette'),
+    entrypoints: normaliseEntrypoints(page.entrypoints),
     contacts: list(page.contacts).map(normaliseContact),
     bookings: list(page.bookings).map(normaliseBooking),
     statuses: list(page.statuses).map(normaliseStatus),

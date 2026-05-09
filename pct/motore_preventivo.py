@@ -2874,6 +2874,15 @@ def catalogo_wizard() -> Dict[str, List[dict]]:
     return result
 
 
+def catalogo_wizard_counts() -> Dict[str, int]:
+    """Conteggio leggero delle aree wizard senza serializzare tutto il catalogo."""
+    result: Dict[str, int] = {area: 0 for area in AREE_WIZARD}
+    for tp in CATALOGO:
+        area_wizard = _AREA_WIZARD_ALIAS.get(tp.area, "Speciali")
+        result[area_wizard] = result.get(area_wizard, 0) + 1
+    return {area: count for area, count in result.items() if count}
+
+
 def redattore_preventivo_iniziale(id_pratica: str) -> dict:
     """Restituisce la scheda professionale della tipologia per il wizard preventivi."""
     tp = get_tipo_pratica(id_pratica)

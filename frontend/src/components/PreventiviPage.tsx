@@ -4,6 +4,7 @@ import {
   AlertTriangle,
   BriefcaseBusiness,
   CheckCircle2,
+  Download,
   ExternalLink,
   FileText,
   Plus,
@@ -16,11 +17,14 @@ import {
   createConferimento,
   createPreventivo,
   emptyPreventiviPage,
+  getConferimentoDetail,
   getNuovoConferimentoPage,
   getNuovoPreventivoPage,
   getPreventiviPage,
   getPreventivoDetail,
+  updateConferimentoStatus,
   updatePreventivoStatus,
+  type ConferimentoDetail,
   type CreateConferimentoPayload,
   type CreateConferimentoResult,
   type CreatePreventivoPayload,
@@ -32,6 +36,7 @@ import {
   type PreventivoRow,
   type PreventivoVoiceInput,
 } from '../preventiviData'
+import { displaySourceLabel, displayWritesLabel, sanitizeDisplayText } from '../displayText'
 import { Badge } from '../ui/Badge'
 import { Button, ButtonLink } from '../ui/Button'
 import { EmptyState } from '../ui/EmptyState'
@@ -41,7 +46,7 @@ import { Page } from '../ui/Page'
 import { Panel } from '../ui/Panel'
 import './PreventiviPage.css'
 
-type PageMode = 'archive' | 'new-preventivo' | 'new-conferimento'
+type PageMode = 'archive' | 'new-preventivo' | 'new-conferimento' | 'detail-conferimento'
 type SaveStatus = 'idle' | 'loading' | 'saving' | 'success' | 'validation' | 'permission' | 'error'
 
 type PreventivoVoiceRow = {
@@ -103,7 +108,13 @@ function modeFromPath(): PageMode {
   const path = window.location.pathname.replace(/\/+$/, '').toLowerCase() || '/preventivi'
   if (path === '/preventivi/nuovo') return 'new-preventivo'
   if (path === '/preventivi/conferimento/nuovo') return 'new-conferimento'
+  if (/^\/preventivi\/conferimento\/[^/]+$/.test(path)) return 'detail-conferimento'
   return 'archive'
+}
+
+function detailIdFromPath(): string {
+  const match = window.location.pathname.replace(/\/+$/, '').match(/^\/preventivi\/conferimento\/([^/]+)$/i)
+  return match ? decodeURIComponent(match[1]) : ''
 }
 
 function displayValue(value: string | number): string {
@@ -189,14 +200,14 @@ function WarningPanel({ data }: { data: PreventiviPageData }) {
 
 function ContractPanel({ data }: { data: PreventiviPageData }) {
   return (
-    <Panel title="Contratto dati" subtitle="Scritture JSON con source of truth nei servizi backend.">
+    <Panel title="Presidio dati" subtitle="Scritture tracciate con fonte governata nei servizi di studio.">
       <div className="iu-prev-contract">
-        <span>Fonte: {data.source || 'non indicata'}</span>
+        <span>Fonte: {displaySourceLabel(data.source || '')}</span>
         <span>Generato: {data.generated_at || 'non disponibile'}</span>
-        <span>Scritture: {data.contracts.writes}</span>
-        <span>Owner route: {data.contracts.route_owner}</span>
+        <span>Scritture: {displayWritesLabel(data.contracts.writes || '')}</span>
+        <span>Responsabile: {displaySourceLabel(data.contracts.route_owner || '')}</span>
         <span>Operativa: {data.contracts.operational ? 'si' : 'no'}</span>
-        <span>Mock fallback: {data.contracts.mock_fallback ? 'si' : 'no'}</span>
+        <span>Dati reali: {data.contracts.mock_fallback ? 'da verificare' : 'si'}</span>
       </div>
     </Panel>
   )
@@ -218,7 +229,7 @@ function StatusMessage({
         <CheckCircle2 size={20} />
         <div>
           <strong>{result.message}</strong>
-          <span>Elemento {result.item.number || result.item.id} salvato dal backend.</span>
+          <span>Elemento {result.item.number || result.item.id} salvato correttamente.</span>
         </div>
       </section>
     )
@@ -229,7 +240,7 @@ function StatusMessage({
         <XCircle size={20} />
         <div>
           <strong>Permesso negato</strong>
-          <span>Il backend richiede un permesso operativo per salvare o aggiornare il mandato.</span>
+          <span>Serve un permesso operativo per salvare o aggiornare il mandato.</span>
         </div>
       </section>
     )
@@ -239,7 +250,7 @@ function StatusMessage({
       <section className="iu-prev-state iu-prev-state--danger" aria-live="polite">
         <AlertTriangle size={20} />
         <div>
-          <strong>Errore server</strong>
+          <strong>Operazione non completata</strong>
           <span>{result?.message || 'Operazione non completata.'}</span>
         </div>
       </section>
@@ -251,7 +262,7 @@ function StatusMessage({
       <AlertTriangle size={20} />
       <div>
         <strong>Controlla i campi evidenziati</strong>
-        {rows.length ? rows.map((row) => <span key={row}>{row}</span>) : <span>Il backend ha rifiutato il payload.</span>}
+        {rows.length ? rows.map((row) => <span key={row}>{sanitizeDisplayText(row)}</span>) : <span>La richiesta non e stata accettata.</span>}
       </div>
     </section>
   )
@@ -259,9 +270,9 @@ function StatusMessage({
 
 function TechnicalRollback({ href }: { href: string }) {
   return (
-    <section className="iu-prev-rollback" aria-label="Rollback tecnico">
+    <section className="iu-prev-rollback" aria-label="Percorso di recupero">
       <div>
-        <strong>Rollback tecnico</strong>
+        <strong>Percorso di recupero</strong>
         <span>Disponibile per assistenza e confronto con il template storico, non come flusso principale.</span>
       </div>
       <ButtonLink href={href} tone="warning">
@@ -458,7 +469,7 @@ function NewPreventivoForm({ data }: { data: PreventiviPageData }) {
   }
 
   return (
-    <Panel title="Form preventivo" subtitle="Salvataggio JSON con validazione, permessi e audit backend.">
+    <Panel title="Form preventivo" subtitle="Salvataggio con validazione, permessi e audit.">
       <form className="iu-prev-operational" onSubmit={onSubmit}>
         <StatusMessage status={saveStatus} result={result} errors={errors} />
         <div className="iu-prev-form-grid">
@@ -517,9 +528,9 @@ function NewPreventivoForm({ data }: { data: PreventiviPageData }) {
           <span>Note</span>
           <textarea rows={4} value={formState.note} onChange={(event) => setFormState((current) => ({ ...current, note: event.currentTarget.value }))} placeholder="Note interne o condizioni da conservare nel preventivo" />
         </label>
-        <section className="iu-prev-form-note" aria-label="Presidio backend">
+        <section className="iu-prev-form-note" aria-label="Presidio operativo">
           <AlertTriangle size={17} />
-          <span>Il backend determina importi finali, parametri forensi, numerazione e persistenza.</span>
+          <span>Il sistema determina importi finali, parametri forensi, numerazione e persistenza.</span>
         </section>
         <div className="iu-prev-action-row">
           <Button type="submit" tone="primary" disabled={saveStatus === 'saving' || !data.permissions.canCreate}>
@@ -531,7 +542,7 @@ function NewPreventivoForm({ data }: { data: PreventiviPageData }) {
         {saveStatus === 'success' ? (
           <div className="iu-prev-success-actions">
             <ButtonLink href="/preventivi" tone="primary">Torna all'archivio</ButtonLink>
-            {result?.redirect_href ? <ButtonLink href={result.redirect_href} tone="neutral">Apri dettaglio backend</ButtonLink> : null}
+            {result?.redirect_href ? <ButtonLink href={result.redirect_href} tone="neutral">Apri dettaglio</ButtonLink> : null}
           </div>
         ) : null}
       </form>
@@ -607,7 +618,7 @@ function NewConferimentoForm({ data }: { data: PreventiviPageData }) {
   }
 
   return (
-    <Panel title="Form conferimento incarico" subtitle="Salvataggio JSON con validazione, permessi e audit backend.">
+    <Panel title="Form conferimento incarico" subtitle="Salvataggio con validazione, permessi e audit.">
       <form className="iu-prev-operational" onSubmit={onSubmit}>
         <StatusMessage status={saveStatus} result={result} errors={errors} />
         <div className="iu-prev-form-grid">
@@ -695,9 +706,9 @@ function NewConferimentoForm({ data }: { data: PreventiviPageData }) {
           <span>Note incarico</span>
           <textarea rows={4} value={formState.note} onChange={(event) => setFormState((current) => ({ ...current, note: event.currentTarget.value }))} placeholder="Patti, condizioni o istruzioni da conservare nel conferimento" />
         </label>
-        <section className="iu-prev-form-note" aria-label="Presidio backend">
+        <section className="iu-prev-form-note" aria-label="Presidio operativo">
           <AlertTriangle size={17} />
-          <span>Documento, firme e apertura fascicolo restano nei workflow backend autorizzati.</span>
+          <span>Documento, firme e apertura fascicolo restano nei workflow autorizzati.</span>
         </section>
         <div className="iu-prev-action-row">
           <Button type="submit" tone="primary" disabled={saveStatus === 'saving' || !data.permissions.canCreate}>
@@ -709,7 +720,7 @@ function NewConferimentoForm({ data }: { data: PreventiviPageData }) {
         {saveStatus === 'success' ? (
           <div className="iu-prev-success-actions">
             <ButtonLink href="/preventivi" tone="primary">Torna all'archivio</ButtonLink>
-            {result?.redirect_href ? <ButtonLink href={result.redirect_href} tone="neutral">Apri dettaglio backend</ButtonLink> : null}
+            {result?.redirect_href ? <ButtonLink href={result.redirect_href} tone="neutral">Apri dettaglio</ButtonLink> : null}
           </div>
         ) : null}
       </form>
@@ -725,7 +736,7 @@ function DetailPanel({
   detail: PreventivoDetail | null
   status: SaveStatus
 }) {
-  if (status === 'loading') return <LoadingState title="Caricamento dettaglio" message="Lettura della sintesi JSON dal backend." />
+  if (status === 'loading') return <LoadingState title="Caricamento dettaglio" message="Lettura della sintesi operativa." />
   if (!detail) return null
   return (
     <Panel title={`Dettaglio ${detail.number || detail.id}`} subtitle={detail.subject}>
@@ -733,7 +744,7 @@ function DetailPanel({
         <span>Cliente: {detail.customerName}</span>
         {detail.caseTitle ? <span>Fascicolo: {detail.caseTitle}</span> : null}
         <span>Stato: {detail.stateLabel}</span>
-        <span>Importo backend: {detail.amountDisplay || 'non indicato'}</span>
+        <span>Importo: {detail.amountDisplay || 'non indicato'}</span>
       </div>
       {detail.voci.length ? (
         <div className="iu-prev-detail-lines">
@@ -746,9 +757,142 @@ function DetailPanel({
           ))}
         </div>
       ) : (
-        <EmptyState title="Nessuna voce di dettaglio" message="Il backend non ha restituito voci sintetiche per questo preventivo." />
+        <EmptyState title="Nessuna voce di dettaglio" message="Non sono disponibili voci sintetiche per questo preventivo." />
       )}
     </Panel>
+  )
+}
+
+function DetailFact({ label, value }: { label: string; value: string }) {
+  if (!value) return null
+  return (
+    <div className="iu-prev-detail-fact">
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
+  )
+}
+
+function ConferimentoDetailView({
+  detail,
+  statuses,
+  warnings,
+  status,
+  errors,
+  onStatusUpdate,
+}: {
+  detail: ConferimentoDetail
+  statuses: PreventiviPageData['statuses']
+  warnings: PreventiviPageData['warnings']
+  status: SaveStatus
+  errors: Record<string, string>
+  onStatusUpdate: (stato: string) => void
+}) {
+  const [nextStatus, setNextStatus] = useState(detail.state)
+
+  useEffect(() => {
+    setNextStatus(detail.state)
+  }, [detail.state])
+
+  return (
+    <section className="iu-prev-detail-page" aria-label="Dettaglio conferimento incarico">
+      <section className="iu-prev-banner">
+        <div>
+          <BriefcaseBusiness size={22} />
+          <strong>Conferimento {detail.number || detail.id}</strong>
+          <span>{detail.subject}</span>
+        </div>
+        <Badge tone={detail.stateTone}>{detail.stateLabel}</Badge>
+      </section>
+
+      {status === 'permission' || status === 'validation' || status === 'error' ? (
+        <StatusMessage status={status} result={null} errors={errors} />
+      ) : null}
+      {status === 'success' ? (
+        <section className="iu-prev-state iu-prev-state--success" aria-live="polite">
+          <CheckCircle2 size={20} />
+          <div>
+            <strong>Stato aggiornato</strong>
+            <span>Il conferimento e stato aggiornato correttamente.</span>
+          </div>
+        </section>
+      ) : null}
+
+      {warnings.length ? (
+        <Panel title="Avvisi incarico">
+          <div className="iu-prev-warnings">
+            {warnings.map((warning) => (
+              <div className="iu-prev-warning" key={`${warning.code}-${warning.message}`}>
+                <Badge tone="warning">{warning.code}</Badge>
+                <span>{warning.message}</span>
+              </div>
+            ))}
+          </div>
+        </Panel>
+      ) : null}
+
+      <section className="iu-prev-detail-layout">
+        <Panel title="Quadro incarico" subtitle="Dati principali letti dall'archivio mandato.">
+          <div className="iu-prev-detail-facts">
+            <DetailFact label="Cliente" value={detail.customerName} />
+            <DetailFact label="Fascicolo" value={detail.caseTitle || 'Da collegare'} />
+            <DetailFact label="Compenso pattuito" value={detail.amountDisplay || 'Non indicato'} />
+            <DetailFact label="Data incarico" value={detail.engagementAt || 'Non indicata'} />
+            <DetailFact label="Avvocato referente" value={detail.lawyer || 'Non indicato'} />
+            <DetailFact label="Ordine" value={detail.barCouncil} />
+            <DetailFact label="Numero albo" value={detail.barNumber} />
+            <DetailFact label="Tipo compenso" value={detail.compensationType} />
+            <DetailFact label="Tipo procedimento" value={detail.proceedingType} />
+            <DetailFact label="Preventivo collegato" value={detail.preventivoNumber || detail.preventivoId || 'Non collegato'} />
+            <DetailFact label="Firma cliente" value={detail.signed ? `Registrata${detail.signedAt ? ` il ${detail.signedAt}` : ''}` : 'Da registrare'} />
+          </div>
+          {detail.notes ? <p className="iu-prev-detail-note">{detail.notes}</p> : null}
+        </Panel>
+
+        <Panel title="Azioni operative" subtitle="Collegamenti sicuri senza uscire dal flusso di studio.">
+          <div className="iu-prev-detail-actions">
+            {detail.pdfHref ? <ButtonLink href={detail.pdfHref} tone="primary"><Download size={15} />PDF conferimento</ButtonLink> : null}
+            {detail.customerHref ? <ButtonLink href={detail.customerHref} tone="neutral"><ExternalLink size={15} />Apri cliente</ButtonLink> : null}
+            {detail.matterHref ? <ButtonLink href={detail.matterHref} tone="neutral"><ExternalLink size={15} />Apri fascicolo</ButtonLink> : null}
+            {!detail.matterHref && detail.newMatterHref ? <ButtonLink href={detail.newMatterHref} tone="primary"><Plus size={15} />Apri fascicolo</ButtonLink> : null}
+            {detail.completeCustomerHref ? <ButtonLink href={detail.completeCustomerHref} tone="warning"><AlertTriangle size={15} />Completa cliente</ButtonLink> : null}
+            {detail.preventivoHref ? <ButtonLink href="/preventivi" tone="neutral"><FileText size={15} />Archivio preventivi</ButtonLink> : null}
+          </div>
+          {statuses.length ? (
+            <div className="iu-prev-status-action iu-prev-status-action--detail">
+              <select value={nextStatus} onChange={(event) => setNextStatus(event.currentTarget.value)} aria-label="Nuovo stato conferimento">
+                {statuses.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
+              </select>
+              <Button type="button" tone="neutral" disabled={status === 'saving' || nextStatus === detail.state} onClick={() => onStatusUpdate(nextStatus)}>
+                {status === 'saving' ? 'Aggiornamento' : 'Aggiorna stato'}
+              </Button>
+            </div>
+          ) : null}
+        </Panel>
+      </section>
+
+      <section className="iu-prev-grid" aria-label="Workflow conferimento">
+        <Panel title="Presidi incarico" subtitle="Stato operativo di cliente, firma, fascicolo e preventivo.">
+          <div className="iu-prev-section-list">
+            {detail.workflow.map((item) => (
+              <div className="iu-prev-section-item" key={item.id}>
+                <span>{item.label}</span>
+                <strong>{displayValue(item.value)}</strong>
+                {item.note ? <small>{item.note}</small> : null}
+                <Badge tone={item.tone}>{item.tone}</Badge>
+              </div>
+            ))}
+          </div>
+        </Panel>
+        <Panel title="Clausole e informative" subtitle="Presidi collegati al conferimento.">
+          <div className="iu-prev-section-list">
+            <div className="iu-prev-section-item"><span>Informativa art. 13</span><strong>{detail.clauses.informativaArt13 ? 'Resa' : 'Da completare'}</strong><Badge tone={detail.clauses.informativaArt13 ? 'success' : 'warning'}>{detail.clauses.informativaArt13 ? 'ok' : 'attenzione'}</Badge></div>
+            <div className="iu-prev-section-item"><span>Clausola ADR</span><strong>{detail.clauses.clausolaAdr ? 'Resa' : 'Da completare'}</strong><Badge tone={detail.clauses.clausolaAdr ? 'success' : 'warning'}>{detail.clauses.clausolaAdr ? 'ok' : 'attenzione'}</Badge></div>
+            <div className="iu-prev-section-item"><span>Clausola controversie</span><strong>{detail.clauses.controversie ? 'Attiva' : 'Non attiva'}</strong><Badge tone={detail.clauses.controversie ? 'info' : 'neutral'}>{detail.clauses.controversie ? 'attiva' : 'neutra'}</Badge></div>
+          </div>
+        </Panel>
+      </section>
+    </section>
   )
 }
 
@@ -791,12 +935,12 @@ function RecordRow({
         {isPreventivo ? (
           <Button type="button" tone="neutral" onClick={() => onDetail(record)}>
             <Search size={15} />
-            Dettaglio JSON
+            Dettaglio operativo
           </Button>
         ) : record.detailHref ? (
           <ButtonLink href={record.detailHref} tone="neutral">
             <ExternalLink size={15} />
-            Dettaglio backend
+            Dettaglio
           </ButtonLink>
         ) : null}
         {isPreventivo && data.permissions.canUpdateStatus ? (
@@ -805,7 +949,7 @@ function RecordRow({
               {data.statuses.map((status) => <option value={status.value} key={status.value}>{status.label}</option>)}
             </select>
             <Button type="button" tone="neutral" disabled={savingId === record.id || nextStatus === record.state} onClick={() => onStatus(record, nextStatus)}>
-              {savingId === record.id ? 'saving' : 'Aggiorna'}
+              {savingId === record.id ? 'Aggiornamento' : 'Aggiorna'}
             </Button>
           </div>
         ) : null}
@@ -872,7 +1016,7 @@ function RecordsPanel({ data, onReload }: { data: PreventiviPageData; onReload: 
     return (
       <EmptyState
         title="Nessun preventivo o incarico in archivio"
-        message="Quando il backend avra dati reali, compariranno qui con cliente, fascicolo, stato e importi gia determinati dal sistema."
+        message="Quando saranno disponibili dati reali, compariranno qui con cliente, fascicolo, stato e importi gia determinati dal sistema."
         action={<ButtonLink href="/preventivi/nuovo" tone="primary">Nuovo preventivo</ButtonLink>}
       />
     )
@@ -897,7 +1041,7 @@ function RecordsPanel({ data, onReload }: { data: PreventiviPageData; onReload: 
             <CheckCircle2 size={20} />
             <div>
               <strong>success</strong>
-              <span>Stato aggiornato dal backend.</span>
+              <span>Stato aggiornato correttamente.</span>
             </div>
           </section>
         ) : null}
@@ -912,7 +1056,7 @@ function RecordsPanel({ data, onReload }: { data: PreventiviPageData; onReload: 
               key={`${record.kind}-${record.id || record.number}`}
             />
           )) : (
-            <EmptyState title="Nessun risultato" message="La ricerca locale non ha trovato elementi nell'elenco ricevuto dal backend." />
+            <EmptyState title="Nessun risultato" message="La ricerca locale non ha trovato elementi nell'elenco disponibile." />
           )}
         </div>
       </Panel>
@@ -951,7 +1095,7 @@ function ArchiveView({ data, onReload }: { data: PreventiviPageData; onReload: (
         <div>
           <FileText size={22} />
           <strong>Archivio preventivi operativo</strong>
-          <span>Elenco, KPI, dettaglio sintetico e stato preventivo passano da API JSON; documenti e workflow avanzati restano backend.</span>
+          <span>Elenco, KPI, dettaglio sintetico e stato preventivo sono tracciati; documenti e workflow avanzati restano governati.</span>
         </div>
         <BriefcaseBusiness size={22} />
       </section>
@@ -978,11 +1122,51 @@ function FormActions({ mode }: { mode: PageMode }) {
 export function PreventiviPage() {
   const [mode] = useState<PageMode>(() => modeFromPath())
   const [data, setData] = useState<PreventiviPageData>(emptyPreventiviPage)
+  const [conferimentoDetail, setConferimentoDetail] = useState<ConferimentoDetail | null>(null)
+  const [conferimentoStatuses, setConferimentoStatuses] = useState<PreventiviPageData['statuses']>([])
+  const [conferimentoWarnings, setConferimentoWarnings] = useState<PreventiviPageData['warnings']>([])
+  const [detailStatus, setDetailStatus] = useState<SaveStatus>('idle')
+  const [detailErrors, setDetailErrors] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
 
   useEffect(() => {
     let active = true
+    if (mode === 'detail-conferimento') {
+      const idConferimento = detailIdFromPath()
+      setLoading(true)
+      setLoadError('')
+      setConferimentoDetail(null)
+      setDetailStatus('idle')
+      setDetailErrors({})
+      if (!idConferimento) {
+        setLoadError('Conferimento non indicato.')
+        setLoading(false)
+        return () => {
+          active = false
+        }
+      }
+      getConferimentoDetail(idConferimento)
+        .then((payload) => {
+          if (!active) return
+          setConferimentoDetail(payload.item)
+          setConferimentoStatuses(payload.statuses)
+          setConferimentoWarnings(payload.warnings)
+          if (!payload.ok) {
+            setLoadError(payload.message || 'Conferimento non disponibile.')
+            setDetailErrors(payload.errors)
+          }
+        })
+        .catch(() => {
+          if (active) setLoadError('Errore nel caricamento del conferimento.')
+        })
+        .finally(() => {
+          if (active) setLoading(false)
+        })
+      return () => {
+        active = false
+      }
+    }
     const loader = mode === 'new-preventivo'
       ? getNuovoPreventivoPage
       : mode === 'new-conferimento'
@@ -1009,19 +1193,48 @@ export function PreventiviPage() {
     }
   }, [mode])
 
+  async function handleConferimentoStatus(stato: string) {
+    if (!conferimentoDetail) return
+    setDetailStatus('saving')
+    setDetailErrors({})
+    const response = await updateConferimentoStatus(conferimentoDetail.id, { stato })
+    if (response.ok) {
+      const refreshed = await getConferimentoDetail(conferimentoDetail.id)
+      setConferimentoDetail(refreshed.item)
+      setConferimentoStatuses(refreshed.statuses)
+      setConferimentoWarnings(refreshed.warnings)
+      setDetailStatus('success')
+    } else if (response.status === 403 || response.errors?.permission) {
+      setDetailStatus('permission')
+      setDetailErrors(response.errors || {})
+    } else if (response.status && response.status >= 500) {
+      setDetailStatus('error')
+      setDetailErrors(response.errors || {})
+    } else {
+      setDetailStatus('validation')
+      setDetailErrors(response.errors || {})
+    }
+  }
+
   const title = mode === 'new-preventivo'
     ? 'Nuovo preventivo'
     : mode === 'new-conferimento'
       ? 'Nuovo conferimento incarico'
+      : mode === 'detail-conferimento'
+        ? 'Conferimento incarico'
       : 'Preventivi e incarichi'
   const subtitle = mode === 'archive'
-    ? 'Archivio mandato con KPI, stati, dettaglio JSON e collegamenti reali.'
-    : 'UI React operativa con salvataggio JSON e source of truth nel backend.'
-  const hasData = data.records.length > 0 || data.clients.length > 0 || data.metrics.length > 0 || data.sections.some((section) => section.items.length > 0)
+    ? 'Archivio mandato con KPI, stati, dettaglio operativo e collegamenti reali.'
+    : mode === 'detail-conferimento'
+      ? 'Dettaglio operativo con cliente, fascicolo, firma, PDF e stato incarico.'
+    : 'Interfaccia operativa con salvataggio validato e fonte dati governata.'
+  const hasData = mode === 'detail-conferimento'
+    ? Boolean(conferimentoDetail)
+    : data.records.length > 0 || data.clients.length > 0 || data.metrics.length > 0 || data.sections.some((section) => section.items.length > 0)
 
   return (
     <Page title={title} subtitle={subtitle} actions={<FormActions mode={mode} />}>
-      {loading ? <LoadingState title="Caricamento preventivi" message="Recupero dati reali da backend, clienti e fascicoli." /> : null}
+      {loading ? <LoadingState title={mode === 'detail-conferimento' ? 'Caricamento conferimento' : 'Caricamento preventivi'} message="Recupero dati reali da clienti e fascicoli." /> : null}
       {!loading && loadError ? (
         <section className="iu-prev-state iu-prev-state--danger" aria-live="polite">
           <AlertTriangle size={20} />
@@ -1034,7 +1247,7 @@ export function PreventiviPage() {
       {!loading && !loadError && !hasData ? (
         <EmptyState
           title="Nessun dato mandato disponibile"
-          message="Il backend non ha restituito dati visualizzabili per questa superficie."
+          message="Non sono disponibili dati visualizzabili per questa superficie."
           action={<ButtonLink href="/clienti" tone="primary">Apri clienti</ButtonLink>}
         />
       ) : null}
@@ -1051,6 +1264,15 @@ export function PreventiviPage() {
             <NewConferimentoForm data={data} />
             <ContractPanel data={data} />
           </>
+        ) : mode === 'detail-conferimento' && conferimentoDetail ? (
+          <ConferimentoDetailView
+            detail={conferimentoDetail}
+            statuses={conferimentoStatuses}
+            warnings={conferimentoWarnings}
+            status={detailStatus}
+            errors={detailErrors}
+            onStatusUpdate={handleConferimentoStatus}
+          />
         ) : (
           <ArchiveView data={data} onReload={setData} />
         )

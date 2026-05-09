@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { CheckCircle2, ExternalLink, Globe2, Link2, Mail, PenLine, RefreshCw, XCircle } from 'lucide-react'
+import { Bot, CalendarDays, CheckCircle2, ExternalLink, Globe2, Link2, Mail, PenLine, RefreshCw, XCircle } from 'lucide-react'
 import {
   emptySitoStudioContattiPage,
   emptySitoStudioPage,
@@ -20,6 +20,7 @@ import { KpiCard } from '../ui/KpiCard'
 import { LoadingState } from '../ui/LoadingState'
 import { Page } from '../ui/Page'
 import { Panel } from '../ui/Panel'
+import { displaySourceLabel, displayWritesLabel } from '../displayText'
 import './SitoStudioPage.css'
 
 function routeKey(): string {
@@ -63,7 +64,7 @@ function DashboardContent({ data }: { data: SitoStudioPageData }) {
     <>
       <section className="iu-sito-banner" aria-label="Sito Studio operativo">
         <strong>Sito Studio React operativo</strong>
-        <span>Dashboard, contatti e prenotazioni leggono dati reali; builder e pubblicazione avanzata restano legacy protetti.</span>
+        <span>Dashboard, contatti, builder e redazione AI leggono dati reali e usano azioni operative controllate.</span>
       </section>
       <WarningList warnings={data.warnings} />
       <section className="iu-sito-kpis" aria-label="KPI Sito Studio">
@@ -72,7 +73,7 @@ function DashboardContent({ data }: { data: SitoStudioPageData }) {
             label={metric.label}
             value={formatValue(metric.value)}
             note={metric.note}
-            badge={<Badge tone={metric.tone}>{metric.tone}</Badge>}
+            badge={<Badge tone={metric.tone}>{metric.value ? 'attivo' : 'vuoto'}</Badge>}
             key={metric.id}
           />
         ))}
@@ -153,13 +154,13 @@ function DashboardContent({ data }: { data: SitoStudioPageData }) {
         <div className="iu-sito-actions">
           {data.actions.filter((action) => !action.protected && action.id !== 'public-disabled').map((action) => (
             <ButtonLink href={action.href} tone={buttonTone(action.tone)} key={action.id}>
-              {action.id === 'public' ? <Globe2 size={15} /> : <ExternalLink size={15} />}
+              {action.id === 'public' ? <Globe2 size={15} /> : action.id === 'builder' ? <PenLine size={15} /> : action.id === 'redazione-ai' ? <Bot size={15} /> : <ExternalLink size={15} />}
               {action.label}
             </ButtonLink>
           ))}
         </div>
       </Panel>
-      <Panel title="Rollback tecnico" subtitle="Builder/editor/pubblicazione avanzata restano legacy protetti">
+      <Panel title="Percorso di recupero" subtitle="Disponibile solo come uscita controllata se serve confrontare un dato">
         <div className="iu-sito-actions">
           {data.actions.filter((action) => action.protected).map((action) => (
             <ButtonLink href={action.href} tone={buttonTone(action.tone)} key={action.id}>
@@ -258,10 +259,10 @@ function ContactCard({
             </Button>
           </>
         ) : null}
-        <Button tone="neutral" disabled title="Nota interna non supportata dal backend legacy corrente">
+        <Button tone="neutral" disabled title="Nota interna non disponibile per questa scheda">
           Nota interna
         </Button>
-        <Button tone="neutral" disabled title="Archiviazione non supportata dal backend legacy corrente">
+        <Button tone="neutral" disabled title="Archiviazione non disponibile per questa scheda">
           Archivia
         </Button>
       </div>
@@ -347,6 +348,29 @@ function ContactsContent({ data, reload }: { data: SitoStudioContattiPageData; r
       `${contact.fullName} ${contact.email} ${contact.phone} ${contact.subject} ${contact.statusLabel}`.toLowerCase().includes(needle)
     ))
   }, [data.contacts, query])
+  const entrypointActions = [
+    {
+      id: 'contatto',
+      href: data.entrypoints.publicContact,
+      label: 'Apri modulo contatti',
+      tone: 'primary' as const,
+      icon: <Mail size={15} />,
+    },
+    {
+      id: 'prenotazione',
+      href: data.entrypoints.publicBooking,
+      label: 'Apri prenotazione',
+      tone: 'success' as const,
+      icon: <CalendarDays size={15} />,
+    },
+    {
+      id: 'sito',
+      href: data.entrypoints.publicSite,
+      label: 'Apri sito pubblico',
+      tone: 'neutral' as const,
+      icon: <Globe2 size={15} />,
+    },
+  ].filter((action) => action.href)
 
   function updateClientSelection(id: string, value: string) {
     setSelectedClients((current) => ({ ...current, [id]: value }))
@@ -413,9 +437,23 @@ function ContactsContent({ data, reload }: { data: SitoStudioContattiPageData; r
     <>
       <section className="iu-sito-banner" aria-label="Contatti e prenotazioni">
         <strong>Contatti e prenotazioni reali</strong>
-        <span>Le azioni abilitate usano API JSON con sessione, CSRF e audit legacy conservato.</span>
+        <span>La scheda resta operativa anche quando non ci sono richieste: puoi aprire i moduli pubblici e presidiare gli ingressi dello studio.</span>
       </section>
       <WarningList warnings={data.warnings} />
+      <Panel title="Ingressi pubblici" subtitle="Accessi usati dai visitatori per inviare nuove richieste.">
+        {entrypointActions.length ? (
+          <div className="iu-sito-actions">
+            {entrypointActions.map((action) => (
+              <ButtonLink href={action.href} tone={action.tone} target="_blank" rel="noopener" key={action.id}>
+                {action.icon}
+                {action.label}
+              </ButtonLink>
+            ))}
+          </div>
+        ) : (
+          <EmptyState title="Modulo pubblico non configurato" message="Configura il sito pubblico per ricevere richieste direttamente da questa scheda." />
+        )}
+      </Panel>
       {success ? <div className="iu-sito-flash iu-sito-flash--success">{success}</div> : null}
       {error ? <div className="iu-sito-flash iu-sito-flash--danger">{error}</div> : null}
       {Object.keys(validation).length ? (
@@ -450,7 +488,11 @@ function ContactsContent({ data, reload }: { data: SitoStudioContattiPageData; r
             ))}
           </div>
         ) : (
-          <EmptyState title="Nessuna richiesta contatto ricevuta" />
+          <EmptyState
+            title="Nessuna richiesta contatto ricevuta"
+            message="Quando un visitatore invia il modulo pubblico, la richiesta compare qui con le azioni di collegamento cliente."
+            action={data.entrypoints.publicContact ? <ButtonLink href={data.entrypoints.publicContact} tone="primary" target="_blank" rel="noopener">Apri modulo contatti</ButtonLink> : undefined}
+          />
         )}
       </Panel>
       <Panel title="Prenotazioni" subtitle={`${data.bookings.length} richieste reali`}>
@@ -467,11 +509,15 @@ function ContactsContent({ data, reload }: { data: SitoStudioContattiPageData; r
             ))}
           </div>
         ) : (
-          <EmptyState title="Nessuna prenotazione ricevuta" />
+          <EmptyState
+            title="Nessuna prenotazione ricevuta"
+            message="Quando un visitatore richiede un appuntamento, puoi approvarlo o rifiutarlo da questa scheda."
+            action={data.entrypoints.publicBooking ? <ButtonLink href={data.entrypoints.publicBooking} tone="success" target="_blank" rel="noopener">Apri prenotazione</ButtonLink> : undefined}
+          />
         )}
       </Panel>
       {data.actions.rollback ? (
-        <Panel title="Rollback tecnico" subtitle={data.actions.unsupportedReason || 'Percorso legacy disponibile solo come fallback tecnico'}>
+        <Panel title="Percorso di recupero" subtitle={data.actions.unsupportedReason || 'Percorso disponibile solo per assistenza controllata'}>
           <div className="iu-sito-actions">
             <ButtonLink href={data.actions.rollback.href} tone="neutral">
               <ExternalLink size={15} />
@@ -486,14 +532,14 @@ function ContactsContent({ data, reload }: { data: SitoStudioContattiPageData; r
 
 function ContractPanel({ data }: { data: SitoStudioPageData | SitoStudioContattiPageData }) {
   return (
-    <Panel title="Contratto dati" subtitle="Route servita dalla shell React con JSON backend.">
+    <Panel title="Stato dati" subtitle="Superficie servita dalla shell operativa.">
       <div className="iu-sito-contract">
-        <span>Fonte: {data.source || 'non indicata'}</span>
+        <span>Fonte: {displaySourceLabel(data.source)}</span>
         <span>Generato: {data.generated_at || 'non disponibile'}</span>
-        <span>Scritture: {data.contracts.writes}</span>
-        <span>Owner route: {data.contracts.route_owner}</span>
+        <span>Azioni: {displayWritesLabel(data.contracts.writes)}</span>
+        <span>Gestione: {displaySourceLabel(data.contracts.route_owner)}</span>
         <span>Operativo: {data.contracts.operational ? 'si' : 'no'}</span>
-        <span>Mock fallback: {data.contracts.mock_fallback ? 'si' : 'no'}</span>
+        <span>Dati reali: {data.contracts.mock_fallback ? 'da verificare' : 'si'}</span>
       </div>
     </Panel>
   )
@@ -537,24 +583,23 @@ export function SitoStudioPage() {
   }, [contactsRoute, reloadCounter])
 
   const dashboardHasData = dashboardData.metrics.length > 0 || dashboardData.pages.length > 0
-  const contactsHasData = contactsData.contacts.length > 0 || contactsData.bookings.length > 0
-  const hasData = contactsRoute ? contactsHasData : dashboardHasData
+  const hasData = contactsRoute ? contactsData.ok : dashboardHasData
   const pageTitle = contactsRoute ? 'Contatti Sito Studio' : 'Sito Studio'
 
   return (
     <Page
       title={pageTitle}
-      subtitle={contactsRoute ? 'Richieste contatto e prenotazioni gestite con API JSON sicure.' : 'Dashboard operativa del sito pubblico dello studio.'}
+      subtitle={contactsRoute ? 'Richieste contatto e prenotazioni gestite con servizi sicuri.' : 'Dashboard operativa del sito pubblico dello studio.'}
       actions={
         <>
           <ButtonLink href={contactsRoute ? '/sito-studio' : '/sito-studio/contatti'} tone="primary">
             {contactsRoute ? <Globe2 size={16} /> : <Mail size={16} />}
             {contactsRoute ? 'Dashboard sito' : 'Contatti sito'}
           </ButtonLink>
-          <ButtonLink href={contactsRoute ? '/sito-studio/contatti' : '/sito-studio'} tone="neutral">
+          <Button tone="neutral" onClick={() => setReloadCounter((value) => value + 1)}>
             <RefreshCw size={16} />
             Aggiorna
-          </ButtonLink>
+          </Button>
         </>
       }
     >
@@ -566,11 +611,11 @@ export function SitoStudioPage() {
           action={<ButtonLink href={contactsRoute ? '/sito-studio' : '/sito-studio/contatti'} tone="primary">{contactsRoute ? 'Dashboard sito' : 'Contatti sito'}</ButtonLink>}
         />
       ) : null}
-      {!loading && !error && !hasData ? (
+      {!loading && !error && !contactsRoute && !hasData ? (
         <EmptyState
-          title={contactsRoute ? 'Nessun contatto o prenotazione' : 'Nessun dato Sito Studio disponibile'}
-          message={contactsRoute ? 'Il repository non contiene richieste visualizzabili.' : 'Il repository del sito non espone ancora contenuti o KPI visualizzabili.'}
-          action={<ButtonLink href={contactsRoute ? '/sito-studio' : '/sito-studio/contatti'} tone="primary">{contactsRoute ? 'Dashboard sito' : 'Contatti sito'}</ButtonLink>}
+          title="Nessun dato Sito Studio disponibile"
+          message="Il sito non espone ancora contenuti o KPI visualizzabili."
+          action={<ButtonLink href="/sito-studio/contatti" tone="primary">Contatti sito</ButtonLink>}
         />
       ) : null}
       {!loading && !error && hasData ? (

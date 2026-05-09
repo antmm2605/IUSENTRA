@@ -29,7 +29,7 @@ function WarningPanel({ data }: { data: StudioPageData }) {
       <div className="iu-studio-warnings">
         {data.warnings.map((warning) => (
           <div className="iu-studio-warning" key={`${warning.code}-${warning.message}`}>
-            <Badge tone="warning">{warning.code}</Badge>
+            <Badge tone="warning">Avviso</Badge>
             <span>{warning.message}</span>
           </div>
         ))}
@@ -39,7 +39,7 @@ function WarningPanel({ data }: { data: StudioPageData }) {
 }
 
 function ModuleList({ modules, legacy = false }: { modules: Array<OperationalModule | LegacyModule>; legacy?: boolean }) {
-  if (!modules.length) return <EmptyState title={legacy ? 'Nessun modulo legacy protetto' : 'Nessun modulo operativo disponibile'} />
+  if (!modules.length) return <EmptyState title={legacy ? 'Nessun modulo protetto' : 'Nessun modulo operativo disponibile'} />
   return (
     <div className="iu-studio-modules">
       {modules.map((record) => (
@@ -62,14 +62,11 @@ function ModuleList({ modules, legacy = false }: { modules: Array<OperationalMod
 
 function ContractPanel({ data }: { data: StudioPageData }) {
   return (
-    <Panel title="Contratto dati" subtitle="GET JSON read-only con impostazioni sensibili protette.">
+    <Panel title="Presidio dati" subtitle="Consultazione operativa con impostazioni sensibili protette.">
       <div className="iu-studio-contract">
-        <span>Fonte: {data.source || 'non indicata'}</span>
         <span>Generato: {data.generated_at || 'non disponibile'}</span>
-        <span>Scritture: {data.contracts.writes}</span>
-        <span>Owner route: {data.contracts.route_owner}</span>
-        <span>Operativo: {data.contracts.operational ? 'si' : 'no'}</span>
-        <span>Mock fallback: {data.contracts.mock_fallback ? 'si' : 'no'}</span>
+        <span>Consultazione: {data.contracts.operational ? 'attiva' : 'non disponibile'}</span>
+        <span>Impostazioni sensibili: protette</span>
       </div>
     </Panel>
   )
@@ -128,9 +125,9 @@ export function StudioPage() {
       ) : null}
       {!loading && !error && hasData ? (
         <>
-          <section className="iu-studio-banner" aria-label="Impostazioni sensibili legacy">
-            <strong>Impostazioni sensibili legacy protette</strong>
-            <span>PEC, firma digitale, calendari, provider pagamenti e telematico restano nei percorsi Flask protetti.</span>
+          <section className="iu-studio-banner" aria-label="Impostazioni sensibili presidiate">
+            <strong>Impostazioni sensibili presidiate</strong>
+            <span>PEC, firma digitale, calendari, pagamenti e telematico restano nei percorsi protetti.</span>
           </section>
           <WarningPanel data={data} />
           <section className="iu-studio-kpis" aria-label="KPI studio">
@@ -144,7 +141,7 @@ export function StudioPage() {
               />
             ))}
           </section>
-          <Panel title="Salute sistema" subtitle={`${data.health.length} presidi letti dal backend`}>
+          <Panel title="Salute sistema" subtitle={`${data.health.length} presidi verificati`}>
             <div className="iu-studio-health">
               {data.health.map((item) => (
                 <article className="iu-studio-health__item" key={item.id}>
@@ -159,10 +156,10 @@ export function StudioPage() {
               ))}
             </div>
           </Panel>
-          <Panel title="Moduli React operativi" subtitle={`${data.operational_routes.length} route operative full`}>
+          <Panel title="Moduli operativi" subtitle={`${data.operational_routes.length} percorsi pronti`}>
             <ModuleList modules={data.operational_routes} />
           </Panel>
-          <Panel title="Impostazioni sensibili legacy" subtitle="Percorsi protetti, non usati come CTA primaria">
+          <Panel title="Impostazioni sensibili presidiate" subtitle="Percorsi protetti, non usati come azione primaria">
             <ModuleList modules={data.legacy_routes} legacy />
           </Panel>
           <Panel title="Collegamenti operativi">

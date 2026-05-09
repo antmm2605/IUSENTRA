@@ -772,7 +772,7 @@ export function ScadenziarioPage() {
 
       <section className="iu-scad-status-line">
         <span className={loading ? '' : 'is-ok'}>{loading ? 'Sincronizzazione scadenziario...' : 'Dati scadenziario aggiornati'}</span>
-        <small><ShieldCheck size={14}/> Scritture e calcoli restano sulle route Flask operative già auditate.</small>
+        <small><ShieldCheck size={14}/> Scritture e calcoli restano tracciati con controlli operativi.</small>
         {statusLine ? <small className="iu-scad-operation-status">{statusLine}</small> : null}
       </section>
 

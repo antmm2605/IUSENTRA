@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any, Callable
 
-from pct.motore_preventivo import catalogo_wizard
+from pct.motore_preventivo import catalogo_wizard_counts
 from web.services.react_tariffario_compute import build_react_tariffario_run_payload
 
 
@@ -38,13 +38,12 @@ def _warning(code: str, message: str) -> dict[str, str]:
 
 
 def _table_rows(
-    get_normative_tables: Callable[[], Any],
+    manager: Any,
     method: str,
     warnings: list[dict[str, str]],
     label: str,
 ) -> list[dict[str, Any]]:
     try:
-        manager = get_normative_tables()
         reader = getattr(manager, method, None)
         if callable(reader):
             return [row for row in reader() if isinstance(row, dict)]
@@ -68,20 +67,19 @@ def _preventivi_totals(get_preventivi: Callable[[], Any] | None, warnings: list[
 
 def _wizard_sections(warnings: list[dict[str, str]]) -> list[dict[str, Any]]:
     try:
-        catalog = catalogo_wizard()
+        catalog = catalogo_wizard_counts()
     except Exception as exc:
         warnings.append(_warning("catalogo_wizard_non_disponibile", f"Catalogo wizard non disponibile: {type(exc).__name__}."))
         return []
     sections: list[dict[str, Any]] = []
-    for area, rows in catalog.items():
-        items = rows if isinstance(rows, list) else []
+    for area, count in catalog.items():
         sections.append(
             _item(
                 _text(area).lower().replace(" ", "_") or "area",
                 _text(area) or "Area operativa",
-                len(items),
-                "Percorsi esistenti nel catalogo backend",
-                "primary" if items else "neutral",
+                int(count or 0),
+                "Percorsi esistenti nel catalogo operativo",
+                "primary" if int(count or 0) else "neutral",
             )
         )
     return sections
@@ -94,8 +92,8 @@ def _safe_record(row: dict[str, Any], index: int) -> dict[str, Any]:
         "id": _text(row.get("profile_code")) or _text(row.get("rule_code")) or _text(row.get("reference_code")) or f"record_{index}",
         "title": title or "Voce tariffaria",
         "subtitle": subtitle,
-        "meta": _text(row.get("materia_label")) or _text(row.get("domains")) or "Dato backend",
-        "stateLabel": "Backend",
+        "meta": _text(row.get("materia_label")) or _text(row.get("domains")) or "Dato tariffario",
+        "stateLabel": "Disponibile",
         "stateTone": "neutral",
         "href": "/tariffario",
     }
@@ -104,12 +102,12 @@ def _safe_record(row: dict[str, Any], index: int) -> dict[str, Any]:
 def _contracts() -> dict[str, Any]:
     return {
         "mock_fallback": False,
-        "writes": "json_api",
-        "route_owner": "react_shell",
+        "writes": "azioni_auditate",
+        "route_owner": "superficie_react",
         "operational": True,
-        "canonical_calculation": "backend",
-        "dm55_calculation": "backend",
-        "legacy_contract": "artifacts/react-migration/legacy-contracts/compensi-forensi.json",
+        "canonical_calculation": "servizi_governati",
+        "dm55_calculation": "servizi_governati",
+        "migration_report": "artifacts/react-migration/legacy-contracts/compensi-forensi.json",
     }
 
 
@@ -129,7 +127,7 @@ def _parameters(profili: list[dict[str, Any]], regole: list[dict[str, Any]]) -> 
     proceedings = [
         {
             "value": _text(row.get("profile_code")) or _text(row.get("rule_code")),
-            "label": _text(row.get("label")) or _text(row.get("table_label")) or "Parametro backend",
+            "label": _text(row.get("label")) or _text(row.get("table_label")) or "Parametro tariffario",
             "area": _text(row.get("materia_label")),
             "grade": _text(row.get("grado_input_value")),
         }
@@ -160,11 +158,16 @@ def build_react_compensi_forensi_payload(
     current_user: Any | None = None,
 ) -> dict[str, Any]:
     warnings: list[dict[str, str]] = [
-        _warning("motore_backend", "Il calcolo dei compensi resta nel backend; React invia solo input JSON."),
+        _warning("motore_calcolo", "Il calcolo dei compensi resta nei servizi applicativi governati."),
     ]
-    profili = _table_rows(get_normative_tables, "tariffario_profili", warnings, "profili")
-    regole = _table_rows(get_normative_tables, "tariffario_regole", warnings, "regole")
-    audit = _table_rows(get_normative_tables, "tariffario_audit", warnings, "audit")
+    manager: Any | None = None
+    try:
+        manager = get_normative_tables()
+    except Exception as exc:
+        warnings.append(_warning("tariffario_non_disponibile", f"Sorgente tariffaria non disponibile: {type(exc).__name__}."))
+    profili = _table_rows(manager, "tariffario_profili", warnings, "profili") if manager is not None else []
+    regole = _table_rows(manager, "tariffario_regole", warnings, "regole") if manager is not None else []
+    audit = _table_rows(manager, "tariffario_audit", warnings, "audit") if manager is not None else []
     preventivi_count, conferimenti_count = _preventivi_totals(get_preventivi, warnings)
     wizard_items = _wizard_sections(warnings)
     parameters = _parameters(profili, regole)
@@ -185,12 +188,12 @@ def build_react_compensi_forensi_payload(
             "links": [
                 _action("tariffario", "Apri tariffario", "/tariffario", "primary"),
                 _action("preventivi", "Archivio preventivi", "/preventivi", "neutral"),
-                _action("rollback_tecnico", "Rollback tecnico legacy", "/compensi-forensi?_legacy=1", "warning"),
+                _action("percorso_recupero", "Percorso di recupero", "/compensi-forensi?_legacy=1", "warning"),
             ],
         },
         "metrics": [
             _metric("profili", "Profili tariffari", len(profili), "Letti dalle tabelle normative", "primary"),
-            _metric("regole", "Regole disponibili", len(regole), "Catalogo backend", "info"),
+            _metric("regole", "Regole disponibili", len(regole), "Catalogo operativo", "info"),
             _metric("preventivi", "Preventivi collegati", preventivi_count, "Archivio mandato", "neutral"),
             _metric("conferimenti", "Conferimenti", conferimenti_count, "Archivio incarichi", "neutral"),
         ],
@@ -199,10 +202,10 @@ def build_react_compensi_forensi_payload(
             _section(
                 "presidi",
                 "Presidi conservati",
-                "backend-calculation",
+                "Calcolo governato",
                 [
-                    _item("tariffario", "Tariffario canonico", "backend", "Parametri e risultato arrivano dal backend", "success"),
-                    _item("audit", "Audit tariffario", len(audit), "Righe audit lette dal backend", "info" if audit else "neutral"),
+                    _item("tariffario", "Tariffario canonico", "governato", "Parametri e risultato arrivano dai servizi applicativi", "success"),
+                    _item("audit", "Audit tariffario", len(audit), "Righe di controllo lette dai servizi applicativi", "info" if audit else "neutral"),
                 ],
                 "Nessun presidio rilevato.",
             ),
@@ -276,7 +279,7 @@ def calculate_react_compensi_forensi(
     if not result.get("ok") or not result.get("result"):
         return {
             "ok": False,
-            "message": "Calcolo non completato dal backend.",
+            "message": "Calcolo non completato.",
             "errors": {"_form": "Verifica i parametri indicati."},
             "result": None,
             "warnings": warnings,
@@ -284,7 +287,7 @@ def calculate_react_compensi_forensi(
     _audit(get_utenti, current_user, _text(result.get("result", {}).get("ruleCode")) or area, ip_address)
     return {
         "ok": True,
-        "message": "Calcolo eseguito dal backend.",
+        "message": "Calcolo eseguito.",
         "errors": {},
         "result": result.get("result"),
         "warnings": warnings,
@@ -293,7 +296,7 @@ def calculate_react_compensi_forensi(
 
 def save_react_compensi_log(*, payload: dict[str, Any]) -> tuple[dict[str, Any], int]:
     return _validation_error(
-        "Salvataggio log non esposto dal backend legacy per questa route.",
+        "Salvataggio log non disponibile nella configurazione corrente.",
         {"unsupported": "Azione non disponibile."},
         status=409,
     )
@@ -301,8 +304,8 @@ def save_react_compensi_log(*, payload: dict[str, Any]) -> tuple[dict[str, Any],
 
 def create_react_preventivo_from_compenso(*, payload: dict[str, Any]) -> tuple[dict[str, Any], int]:
     return _validation_error(
-        "Creazione preventivo diretta dai compensi non esposta dal backend legacy.",
-        {"unsupported": "Usa il flusso /preventivi/nuovo con input backend."},
+        "Creazione preventivo diretta dai compensi non disponibile nella configurazione corrente.",
+        {"unsupported": "Usa il flusso /preventivi/nuovo con dati controllati."},
         status=409,
     )
 
@@ -320,7 +323,7 @@ def build_react_compensi_forensi_error_payload(message: str = "Compensi forensi 
         "last_results": [],
         "actions": {
             **_permissions(None),
-            "links": [_action("rollback_tecnico", "Rollback tecnico legacy", "/compensi-forensi?_legacy=1", "warning", enabled=False)],
+            "links": [_action("percorso_recupero", "Percorso di recupero", "/compensi-forensi?_legacy=1", "warning", enabled=False)],
         },
         "metrics": [],
         "sections": [],

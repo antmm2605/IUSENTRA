@@ -151,7 +151,7 @@ function WarningPanel({ data }: { data: FatturazionePageData }) {
       <div className="iu-fatt-warnings">
         {data.warnings.map((warning) => (
           <div className="iu-fatt-warning" key={`${warning.code}-${warning.message}`}>
-            <Badge tone="warning">{warning.code}</Badge>
+            <Badge tone="warning">Avviso</Badge>
             <span>{warning.message}</span>
           </div>
         ))}
@@ -162,14 +162,11 @@ function WarningPanel({ data }: { data: FatturazionePageData }) {
 
 function ContractPanel({ data }: { data: FatturazionePageData }) {
   return (
-    <Panel title="Contratto dati" subtitle="Lettura React con proprieta' fiscale canonica conservata nel backend.">
+    <Panel title="Presidio dati" subtitle="Lettura operativa con proprieta' fiscale governata.">
       <div className="iu-fatt-contract">
-        <span>Fonte: {data.source || 'non indicata'}</span>
         <span>Generato: {data.generated_at || 'non disponibile'}</span>
-        <span>Scritture: {data.contracts.writes}</span>
-        <span>Owner route: {data.contracts.route_owner}</span>
-        <span>Calcolo: {data.contracts.canonical_calculation || 'backend'}</span>
-        <span>Mock fallback: {data.contracts.mock_fallback ? 'si' : 'no'}</span>
+        <span>Calcolo: governato</span>
+        <span>Consultazione: {data.contracts.operational ? 'attiva' : 'non disponibile'}</span>
       </div>
     </Panel>
   )
@@ -238,13 +235,13 @@ function InvoiceRow({
         {record.pdfHref ? (
           <ButtonLink href={record.pdfHref} tone="neutral">
             <FileText size={15} />
-            PDF backend
+            PDF
           </ButtonLink>
         ) : null}
         {record.xmlHref ? (
           <ButtonLink href={record.xmlHref} tone="neutral">
             <FileText size={15} />
-            XML backend
+            XML
           </ButtonLink>
         ) : null}
       </div>
@@ -284,7 +281,7 @@ function StatusMessage({
         <CheckCircle2 size={20} />
         <div>
           <strong>{result.message}</strong>
-          <span>Documento {result.item.number || result.item.id} creato dal backend.</span>
+          <span>Documento {result.item.number || result.item.id} creato correttamente.</span>
         </div>
       </section>
     )
@@ -295,7 +292,7 @@ function StatusMessage({
         <XCircle size={20} />
         <div>
           <strong>Permesso negato</strong>
-          <span>Serve il permesso backend di creazione o modifica fatturazione.</span>
+          <span>Serve il permesso di creazione o modifica fatturazione.</span>
         </div>
       </section>
     )
@@ -305,7 +302,7 @@ function StatusMessage({
       <section className="iu-fatt-state iu-fatt-state--danger" aria-live="polite">
         <AlertTriangle size={20} />
         <div>
-          <strong>Errore server</strong>
+          <strong>Operazione non completata</strong>
           <span>{result?.message || 'Il salvataggio non e\' stato completato.'}</span>
         </div>
       </section>
@@ -317,7 +314,7 @@ function StatusMessage({
       <AlertTriangle size={20} />
       <div>
         <strong>Controlla i campi evidenziati</strong>
-        {rows.length ? rows.map((row) => <span key={row}>{row}</span>) : <span>Il backend ha rifiutato il payload.</span>}
+        {rows.length ? rows.map((row) => <span key={row}>{row}</span>) : <span>La richiesta non e stata accettata.</span>}
       </div>
     </section>
   )
@@ -325,9 +322,9 @@ function StatusMessage({
 
 function TechnicalRollback({ href = '/fatturazione/nuova?_legacy=1' }: { href?: string }) {
   return (
-    <section className="iu-fatt-rollback" aria-label="Rollback tecnico">
+    <section className="iu-fatt-rollback" aria-label="Percorso di recupero">
       <div>
-        <strong>Rollback tecnico</strong>
+        <strong>Percorso di recupero</strong>
         <span>Disponibile solo per assistenza e confronto con il template storico, non come flusso principale.</span>
       </div>
       <ButtonLink href={href} tone="warning">
@@ -513,7 +510,7 @@ function NewInvoiceForm({
   }
 
   return (
-    <Panel title="Nuova parcella" subtitle="Salvataggio JSON con validazione, permessi e audit backend.">
+    <Panel title="Nuova parcella" subtitle="Salvataggio con validazione, permessi e audit.">
       <form className="iu-fatt-operational" onSubmit={onSubmit}>
         <StatusMessage status={saveStatus} result={result} errors={errors} />
         <div className="iu-fatt-form-grid">
@@ -586,9 +583,9 @@ function NewInvoiceForm({
           />
         </label>
 
-        <section className="iu-fatt-form-note" aria-label="Calcolo backend">
-          <strong>Calcolo definitivo nel backend</strong>
-          <span>React invia voci e opzioni; numerazione, imponibile, imposte e importi finali sono determinati dai servizi di fatturazione.</span>
+        <section className="iu-fatt-form-note" aria-label="Calcolo definitivo">
+          <strong>Calcolo definitivo governato</strong>
+          <span>La pagina invia voci e opzioni; numerazione, imponibile, imposte e importi finali sono determinati dai servizi di fatturazione.</span>
         </section>
 
         <div className="iu-fatt-action-row">
@@ -611,7 +608,7 @@ function NewInvoiceForm({
             {result?.redirect_href ? (
               <ButtonLink href={result.redirect_href} tone="neutral">
                 <ExternalLink size={16} />
-                Apri dettaglio backend
+                Apri dettaglio
               </ButtonLink>
             ) : null}
           </div>
@@ -623,13 +620,13 @@ function NewInvoiceForm({
 }
 
 function ArchiveDetailPanel({ detail, loading }: { detail: FatturazioneDetail | null; loading: boolean }) {
-  if (loading) return <LoadingState title="Caricamento dettaglio" message="Lettura della sintesi JSON dal backend." />
+  if (loading) return <LoadingState title="Caricamento dettaglio" message="Lettura della sintesi operativa." />
   if (!detail) return null
   return (
     <Panel title={`Dettaglio ${detail.number || detail.id}`} subtitle={detail.customerName}>
       <div className="iu-fatt-detail">
         <span>Stato: {detail.stateLabel}</span>
-        <span>Importo backend: {detail.amountDisplay || 'non indicato'}</span>
+        <span>Importo: {detail.amountDisplay || 'non indicato'}</span>
         {detail.caseTitle ? <span>Fascicolo: {detail.caseTitle}</span> : null}
         {detail.paymentMethod ? <span>Pagamento: {detail.paymentMethod}</span> : null}
       </div>
@@ -644,7 +641,7 @@ function ArchiveDetailPanel({ detail, loading }: { detail: FatturazioneDetail | 
           ))}
         </div>
       ) : (
-        <EmptyState title="Nessuna voce sintetica" message="Il backend non ha restituito righe di dettaglio per questo documento." />
+        <EmptyState title="Nessuna voce sintetica" message="Non sono disponibili righe di dettaglio per questo documento." />
       )}
     </Panel>
   )
@@ -735,9 +732,9 @@ function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload:
 
   return (
     <>
-      <section className="iu-fatt-banner" aria-label="Documenti economici backend">
-        <strong>PDF, XML ed export restano backend</strong>
-        <span>La shell React mostra archivio, KPI, dettaglio sintetico e azioni stato tramite API JSON.</span>
+      <section className="iu-fatt-banner" aria-label="Documenti economici">
+        <strong>PDF, XML ed export restano governati</strong>
+        <span>Archivio, KPI, dettaglio sintetico e azioni di stato usano servizi applicativi protetti.</span>
       </section>
       <WarningPanel data={data} />
       <MetricGrid data={data} />
@@ -842,7 +839,7 @@ export function FatturazionePage() {
   return (
     <Page
       title={isNew ? 'Nuova parcella' : 'Fatturazione'}
-      subtitle={isNew ? 'UI React operativa con salvataggio JSON e calcolo fiscale canonico nel backend.' : 'Archivio economico con KPI reali e documenti avanzati conservati nel backend.'}
+      subtitle={isNew ? 'Interfaccia operativa con salvataggio validato e calcolo fiscale governato.' : 'Archivio economico con KPI reali e documenti avanzati governati.'}
       actions={
         isNew ? (
           <ButtonLink href="/fatturazione" tone="neutral">
@@ -870,7 +867,7 @@ export function FatturazionePage() {
       {!loading && !hasData && !loadError ? (
         <EmptyState
           title="Nessun dato economico disponibile"
-          message="Il backend non ha restituito dati visualizzabili per questa superficie."
+          message="Non sono disponibili dati visualizzabili per questa superficie."
           action={isNew ? <ButtonLink href="/clienti" tone="primary">Apri clienti</ButtonLink> : <ButtonLink href="/fatturazione/nuova" tone="primary">Nuova parcella</ButtonLink>}
         />
       ) : null}
@@ -878,7 +875,7 @@ export function FatturazionePage() {
         isNew ? (
           <>
             <section className="iu-fatt-banner" aria-label="Form operativo">
-              <strong>Scrittura JSON backend</strong>
+              <strong>Scrittura tracciata</strong>
               <span>La pagina raccoglie i dati minimi; creazione, numerazione, validazione, audit e importi definitivi restano nei servizi Flask.</span>
             </section>
             <WarningPanel data={data} />

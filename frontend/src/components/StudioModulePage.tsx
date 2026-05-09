@@ -38,6 +38,7 @@ import {
   type StudioRuntimeField,
   type StudioRuntimeOperation,
 } from '../studioModuleRuntime'
+import { displayWritesLabel } from '../displayText'
 import './StudioModulePage.css'
 
 function runtimeSourceLabel(source: string): string {
@@ -249,7 +250,7 @@ function ActiveFunctionPanel({
         <dl>
           <div><dt>Area</dt><dd>{module.title}</dd></div>
           <div><dt>Fonte</dt><dd>{runtimeSourceLabel(runtime.source)}</dd></div>
-          <div><dt>Scritture</dt><dd>{runtime.contracts.writes === 'operational_routes' ? 'Route operative auditate' : runtime.contracts.writes}</dd></div>
+          <div><dt>Azioni</dt><dd>{displayWritesLabel(runtime.contracts.writes)}</dd></div>
         </dl>
         {metrics.length ? (
           <div className="iu-sm-focus__metrics">

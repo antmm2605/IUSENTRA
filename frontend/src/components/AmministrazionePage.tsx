@@ -37,7 +37,7 @@ function WarningPanel({ data }: { data: AmministrazionePageData }) {
 }
 
 function ModuleList({ modules, legacy = false }: { modules: Array<OperationalModule | LegacyModule>; legacy?: boolean }) {
-  if (!modules.length) return <EmptyState title={legacy ? 'Nessuna area legacy protetta' : 'Nessun modulo operativo disponibile'} />
+  if (!modules.length) return <EmptyState title={legacy ? 'Nessuna area protetta' : 'Nessun modulo operativo disponibile'} />
   return (
     <div className="iu-adminhub-modules">
       {modules.map((record) => (
@@ -153,7 +153,7 @@ export function AmministrazionePage() {
         <>
           <section className="iu-adminhub-banner" aria-label="Quadro amministrativo operativo">
             <strong>Regia amministrativa React</strong>
-            <span>Utenti, profili, audit e backup sono collegamenti operativi; impostazioni sensibili restano legacy protette.</span>
+            <span>Utenti, profili, audit e backup sono collegamenti operativi; le impostazioni sensibili restano presidiate.</span>
           </section>
           <WarningPanel data={data} />
           <section className="iu-adminhub-kpis" aria-label="KPI amministrazione">
@@ -171,7 +171,7 @@ export function AmministrazionePage() {
           <Panel title="Moduli amministrativi React" subtitle={`${data.operational_routes.length} route operative full`}>
             <ModuleList modules={data.operational_routes} />
           </Panel>
-          <Panel title="Impostazioni legacy protette" subtitle="Percorsi non sbloccati da questa tranche">
+          <Panel title="Impostazioni presidiate" subtitle="Percorsi mantenuti sotto controllo amministrativo">
             <ModuleList modules={data.legacy_routes} legacy />
           </Panel>
           <section className="iu-adminhub-grid" aria-label="Sezioni amministrazione">

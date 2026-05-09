@@ -1,4 +1,5 @@
 import { apiJson, apiPostJson } from './lib/apiClient'
+import { sanitizeDisplayText } from './displayText'
 
 export type AuditTone = 'primary' | 'neutral' | 'danger' | 'success' | 'warning' | 'info'
 
@@ -145,9 +146,13 @@ function text(value: unknown, fallback = ''): string {
   return typeof value === 'string' ? value.trim() : fallback
 }
 
+function display(value: unknown, fallback = ''): string {
+  return sanitizeDisplayText(text(value, fallback))
+}
+
 function value(value: unknown): string | number {
   if (typeof value === 'number' && Number.isFinite(value)) return value
-  if (typeof value === 'string') return value.trim()
+  if (typeof value === 'string') return sanitizeDisplayText(value.trim())
   return ''
 }
 
@@ -174,9 +179,9 @@ function normaliseMetric(raw: unknown): AuditMetric {
   const item = asRecord(raw)
   return {
     id: text(item.id) || text(item.label) || 'metrica',
-    label: text(item.label) || 'Metrica',
+    label: display(item.label) || 'Metrica',
     value: value(item.value),
-    note: text(item.note),
+    note: display(item.note),
     tone: tone(item.tone),
   }
 }
@@ -185,9 +190,9 @@ function normaliseItem(raw: unknown): AuditItem {
   const item = asRecord(raw)
   return {
     id: text(item.id) || text(item.label) || 'voce',
-    label: text(item.label) || 'Voce',
+    label: display(item.label) || 'Voce',
     value: value(item.value),
-    note: text(item.note),
+    note: display(item.note),
     tone: tone(item.tone),
   }
 }
@@ -196,10 +201,10 @@ function normaliseSection(raw: unknown): AuditSection {
   const item = asRecord(raw)
   return {
     id: text(item.id) || text(item.title) || 'sezione',
-    title: text(item.title) || 'Sezione',
-    kind: text(item.kind) || 'distribution',
+    title: display(item.title) || 'Sezione',
+    kind: display(item.kind) || 'distribuzione',
     items: list(item.items).map(normaliseItem),
-    emptyMessage: text(item.emptyMessage) || 'Nessun dato disponibile.',
+    emptyMessage: display(item.emptyMessage) || 'Nessun dato disponibile.',
   }
 }
 
@@ -209,20 +214,20 @@ function normaliseRecord(raw: unknown): AuditRecord {
     id: text(item.id) || text(item.timestamp) || 'evento',
     timestamp: text(item.timestamp),
     userId: text(item.userId),
-    username: text(item.username) || 'Utente non indicato',
-    action: text(item.action) || 'azione non indicata',
-    resourceType: text(item.resourceType),
+    username: display(item.username) || 'Utente non indicato',
+    action: display(item.action) || 'azione non indicata',
+    resourceType: display(item.resourceType),
     resourceId: text(item.resourceId),
-    details: text(item.details),
+    details: display(item.details),
     ip: text(item.ip),
-    result: text(item.result) || 'OK',
+    result: display(item.result) || 'OK',
     resultTone: tone(item.resultTone),
-    resourceState: text(item.resourceState),
+    resourceState: display(item.resourceState),
     resourceTone: tone(item.resourceTone),
-    resourceLabel: text(item.resourceLabel),
-    resourceNote: text(item.resourceNote),
+    resourceLabel: display(item.resourceLabel),
+    resourceNote: display(item.resourceNote),
     resourceUrl: safeHref(item.resourceUrl),
-    resourceBadgeLabel: text(item.resourceBadgeLabel),
+    resourceBadgeLabel: display(item.resourceBadgeLabel),
     payloadSanitized: item.payloadSanitized !== false,
   }
 }
@@ -241,7 +246,7 @@ function normaliseAction(raw: unknown): AuditAction {
   const item = asRecord(raw)
   return {
     id: text(item.id) || text(item.label) || 'azione',
-    label: text(item.label) || 'Apri',
+    label: display(item.label) || 'Apri',
     href: safeHref(item.href, '/audit'),
     method: 'GET',
     tone: tone(item.tone),
@@ -262,8 +267,8 @@ function normaliseActions(raw: unknown): AuditPermissions {
 function normaliseWarning(raw: unknown): AuditWarning {
   const item = asRecord(raw)
   return {
-    code: text(item.code) || 'warning',
-    message: text(item.message) || 'Avviso tecnico disponibile.',
+    code: display(item.code) || 'avviso',
+    message: display(item.message) || 'Avviso operativo disponibile.',
   }
 }
 
@@ -296,8 +301,8 @@ function normaliseMutation(raw: unknown): AuditMutationResult {
   const item = asRecord(raw)
   return {
     ok: item.ok === true,
-    message: text(item.message) || (item.ok === true ? 'Operazione completata.' : 'Operazione non completata.'),
-    errors: asRecord(item.errors) as Record<string, string>,
+    message: display(item.message) || (item.ok === true ? 'Operazione completata.' : 'Operazione non completata.'),
+    errors: Object.fromEntries(Object.entries(asRecord(item.errors)).map(([key, rawValue]) => [key, display(rawValue)])),
     item: normaliseDetail(item.item),
   }
 }

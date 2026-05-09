@@ -38,6 +38,13 @@ def _richiede_vista_legacy() -> bool:
     return (request.args.get("_legacy") or "").strip().lower() in {"1", "true", "si", "yes", "on"}
 
 
+def _richiede_json() -> bool:
+    return (
+        request.headers.get("X-Requested-With") == "XMLHttpRequest"
+        or "application/json" in (request.headers.get("Accept") or "")
+    )
+
+
 def _salva_indirizzo(gc: Any, id_cliente: str, tipo: str, form: Any, prefix: str = "") -> None:
     gc.aggiorna_indirizzo(
         id_cliente,
@@ -152,18 +159,28 @@ def register_clienti_routes(
                 flash(f"Cliente '{cliente.nome_completo}' aggiunto.", "success")
                 sync_pubblica("crea", "clienti", cliente.id)
                 if next_url:
+                    if _richiede_json():
+                        return jsonify({"ok": True, "id": cliente.id, "message": f"Cliente '{cliente.nome_completo}' aggiunto.", "redirect": next_url})
                     return redirect(next_url)
                 if "1" in form.getlist("crea_preventivo_iniziale"):
-                    return redirect(
-                        url_for(
-                            "preventivi.wizard",
-                            id_cliente=cliente.id,
-                            from_page="cliente",
-                            entry="iniziale",
-                        )
+                    target = url_for(
+                        "preventivi.wizard",
+                        id_cliente=cliente.id,
+                        from_page="cliente",
+                        entry="iniziale",
                     )
+                    if _richiede_json():
+                        return jsonify({"ok": True, "id": cliente.id, "message": f"Cliente '{cliente.nome_completo}' aggiunto.", "redirect": target})
+                    return redirect(
+                        target
+                    )
+                target = url_for("dettaglio_cliente", id_cliente=cliente.id)
+                if _richiede_json():
+                    return jsonify({"ok": True, "id": cliente.id, "message": f"Cliente '{cliente.nome_completo}' aggiunto.", "redirect": target})
                 return redirect(url_for("dettaglio_cliente", id_cliente=cliente.id))
             except (ValueError, KeyError) as exc:
+                if _richiede_json():
+                    return jsonify({"ok": False, "message": str(exc)}), 400
                 flash(str(exc), "danger")
 
         return render_template(
@@ -282,9 +299,16 @@ def register_clienti_routes(
                 flash("Cliente aggiornato.", "success")
                 sync_pubblica("modifica", "clienti", id_cliente)
                 if next_url:
+                    if _richiede_json():
+                        return jsonify({"ok": True, "id": id_cliente, "message": "Cliente aggiornato.", "redirect": next_url})
                     return redirect(next_url)
+                target = url_for("dettaglio_cliente", id_cliente=id_cliente)
+                if _richiede_json():
+                    return jsonify({"ok": True, "id": id_cliente, "message": "Cliente aggiornato.", "redirect": target})
                 return redirect(url_for("dettaglio_cliente", id_cliente=id_cliente))
             except (ValueError, KeyError) as exc:
+                if _richiede_json():
+                    return jsonify({"ok": False, "message": str(exc)}), 400
                 flash(str(exc), "danger")
 
         return render_template(

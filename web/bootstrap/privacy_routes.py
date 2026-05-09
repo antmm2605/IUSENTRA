@@ -8,7 +8,14 @@ import os
 from collections.abc import Callable
 from datetime import date, datetime
 
-from flask import Flask, Response, abort, flash, g, redirect, render_template, request, send_file, url_for
+from flask import Flask, Response, abort, flash, g, jsonify, redirect, render_template, request, send_file, url_for
+
+
+def _richiede_json() -> bool:
+    return (
+        request.headers.get("X-Requested-With") == "XMLHttpRequest"
+        or "application/json" in (request.headers.get("Accept") or "")
+    )
 
 
 def register_privacy_routes(
@@ -53,6 +60,8 @@ def register_privacy_routes(
             )
             audit("privacy.registro.nuovo")
             flash("Trattamento aggiunto al registro.", "success")
+            if _richiede_json():
+                return jsonify({"ok": True, "message": "Trattamento aggiunto al registro.", "redirect": url_for("registro_trattamenti")})
             return redirect(url_for("registro_trattamenti"))
         return render_template(
             "privacy/registro.html",
@@ -69,7 +78,11 @@ def register_privacy_routes(
             get_trattamenti().elimina(id_t)
             audit("privacy.registro.elimina", risorsa_id=id_t)
             flash("Trattamento eliminato.", "success")
+            if _richiede_json():
+                return jsonify({"ok": True, "id": id_t, "message": "Trattamento eliminato.", "redirect": url_for("registro_trattamenti")})
         except KeyError as exc:
+            if _richiede_json():
+                return jsonify({"ok": False, "message": str(exc)}), 400
             flash(str(exc), "danger")
         return redirect(url_for("registro_trattamenti"))
 

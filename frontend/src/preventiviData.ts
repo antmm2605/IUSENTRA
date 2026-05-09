@@ -1,4 +1,5 @@
 import { apiJson, apiPostJson } from './lib/apiClient'
+import { sanitizeDisplayText } from './displayText'
 import type { AdminAction, AdminContract, AdminMetric, AdminSection, AdminTone, AdminWarning } from './utentiData'
 
 export type PreventivoClientOption = {
@@ -148,6 +149,39 @@ export type PreventivoDetail = PreventivoRow & {
     tipo: string
     importoDisplay: string
   }>
+}
+
+export type ConferimentoDetail = PreventivoRow & {
+  lawyer: string
+  barNumber: string
+  barCouncil: string
+  compensationType: string
+  proceedingType: string
+  createdBy: string
+  createdAt: string
+  notes: string
+  preventivoId: string
+  preventivoNumber: string
+  preventivoHref: string
+  customerId: string
+  customerHref: string
+  matterId: string
+  matterHref: string
+  newMatterHref: string
+  completeCustomerHref: string
+  pdfHref: string
+  signed: boolean
+  signedAt: string
+  signatureMethod: string
+  customerComplete: boolean
+  missingCustomerFields: string[]
+  clauses: {
+    informativaArt13: boolean
+    clausolaAdr: boolean
+    controversie: boolean
+    trattativaIndividuale: boolean
+  }
+  workflow: AdminSection['items']
 }
 
 export type UpdatePreventivoStatusPayload = {
@@ -314,7 +348,7 @@ export const emptyPreventiviPage: PreventiviPageData = {
 const mutationFallback: PreventivoMutationResult = {
   ok: false,
   message: 'Operazione non completata.',
-  errors: { server: 'Il backend non ha restituito una risposta valida.' },
+  errors: { server: 'Il servizio non ha restituito una risposta valida.' },
   item: null,
 }
 
@@ -335,6 +369,11 @@ function text(value: unknown, fallback = ''): string {
   return typeof value === 'string' ? value.trim() : fallback
 }
 
+function display(value: unknown, fallback = ''): string {
+  const result = text(value, fallback)
+  return result ? sanitizeDisplayText(result) : fallback
+}
+
 function bool(value: unknown, fallback = false): boolean {
   if (typeof value === 'boolean') return value
   return fallback
@@ -342,7 +381,7 @@ function bool(value: unknown, fallback = false): boolean {
 
 function scalar(value: unknown): string | number {
   if (typeof value === 'number' && Number.isFinite(value)) return value
-  if (typeof value === 'string') return value.trim()
+  if (typeof value === 'string') return sanitizeDisplayText(value.trim())
   return ''
 }
 
@@ -361,9 +400,9 @@ function normaliseMetric(raw: unknown): AdminMetric {
   const item = asRecord(raw)
   return {
     id: text(item.id) || text(item.label) || 'metrica',
-    label: text(item.label) || 'Metrica',
+    label: display(item.label) || 'Metrica',
     value: scalar(item.value),
-    note: text(item.note),
+    note: display(item.note),
     tone: tone(item.tone),
   }
 }
@@ -372,19 +411,19 @@ function normaliseSection(raw: unknown): AdminSection {
   const item = asRecord(raw)
   return {
     id: text(item.id) || text(item.title) || 'sezione',
-    title: text(item.title) || 'Sezione',
+    title: display(item.title) || 'Sezione',
     kind: text(item.kind) || 'distribution',
     items: list(item.items).map((rawItem) => {
       const entry = asRecord(rawItem)
       return {
         id: text(entry.id) || text(entry.label) || 'voce',
-        label: text(entry.label) || 'Voce',
+        label: display(entry.label) || 'Voce',
         value: scalar(entry.value),
-        note: text(entry.note),
+        note: display(entry.note),
         tone: tone(entry.tone),
       }
     }),
-    emptyMessage: text(item.emptyMessage) || 'Nessun dato disponibile.',
+    emptyMessage: display(item.emptyMessage) || 'Nessun dato disponibile.',
   }
 }
 
@@ -392,7 +431,7 @@ function normaliseAction(raw: unknown): AdminAction {
   const item = asRecord(raw)
   return {
     id: text(item.id) || text(item.label) || 'azione',
-    label: text(item.label) || 'Apri',
+    label: display(item.label) || 'Apri',
     href: safeHref(item.href, '/preventivi'),
     method: 'GET',
     tone: tone(item.tone),
@@ -402,8 +441,8 @@ function normaliseAction(raw: unknown): AdminAction {
 function normaliseWarning(raw: unknown): AdminWarning {
   const item = asRecord(raw)
   return {
-    code: text(item.code) || 'warning',
-    message: text(item.message) || 'Avviso tecnico disponibile.',
+    code: display(item.code) || 'avviso',
+    message: display(item.message) || 'Avviso disponibile.',
   }
 }
 
@@ -413,8 +452,8 @@ function normaliseOption(raw: unknown): PreventivoClientOption {
   return {
     id,
     value: text(item.value) || id,
-    label: text(item.label) || 'Voce non indicata',
-    description: text(item.description),
+    label: display(item.label) || 'Voce non indicata',
+    description: display(item.description),
   }
 }
 
@@ -448,15 +487,15 @@ function normaliseRecord(raw: unknown): PreventivoRow {
     id: text(item.id),
     kind: normaliseKind(item.kind),
     number: text(item.number),
-    subject: text(item.subject) || 'Oggetto non indicato',
-    customerName: text(item.customerName) || 'Cliente non indicato',
-    caseTitle: text(item.caseTitle),
+    subject: display(item.subject) || 'Oggetto non indicato',
+    customerName: display(item.customerName) || 'Cliente non indicato',
+    caseTitle: display(item.caseTitle),
     amountDisplay: text(item.amountDisplay),
     issuedAt: text(item.issuedAt),
     dueAt: text(item.dueAt),
     engagementAt: text(item.engagementAt),
     state: text(item.state),
-    stateLabel: text(item.stateLabel) || text(item.state) || 'Stato non indicato',
+    stateLabel: display(item.stateLabel) || display(item.state) || 'Stato non indicato',
     stateTone: tone(item.stateTone),
     detailHref: safeHref(item.detailHref),
     wizardHref: safeHref(item.wizardHref),
@@ -468,7 +507,7 @@ function normaliseStatus(raw: unknown): PreventivoStatus {
   const item = asRecord(raw)
   return {
     value: text(item.value),
-    label: text(item.label) || text(item.value),
+    label: display(item.label) || display(item.value),
     tone: tone(item.tone),
   }
 }
@@ -570,8 +609,8 @@ function normaliseMutationResult(raw: unknown): PreventivoMutationResult {
   const item = asRecord(raw)
   return {
     ok: item.ok === true,
-    message: text(item.message) || (item.ok === true ? 'Operazione completata.' : 'Operazione non completata.'),
-    errors: Object.fromEntries(Object.entries(asRecord(item.errors)).map(([key, rawValue]) => [key, text(rawValue)])),
+    message: display(item.message) || (item.ok === true ? 'Operazione completata.' : 'Operazione non completata.'),
+    errors: Object.fromEntries(Object.entries(asRecord(item.errors)).map(([key, rawValue]) => [key, display(rawValue)])),
     item: normaliseMutationItem(item.item),
     status: typeof item.status === 'number' ? item.status : undefined,
   }
@@ -583,6 +622,54 @@ function normaliseCreateResult(raw: unknown): CreatePreventivoResult {
   return {
     ...result,
     redirect_href: safeHref(item.redirect_href),
+  }
+}
+
+function normaliseConferimentoDetail(raw: unknown): ConferimentoDetail | null {
+  if (!raw || typeof raw !== 'object') return null
+  const item = asRecord(raw)
+  const clauses = asRecord(item.clauses)
+  return {
+    ...normaliseRecord(item),
+    lawyer: display(item.lawyer),
+    barNumber: display(item.barNumber),
+    barCouncil: display(item.barCouncil),
+    compensationType: display(item.compensationType),
+    proceedingType: display(item.proceedingType),
+    createdBy: display(item.createdBy),
+    createdAt: text(item.createdAt),
+    notes: display(item.notes),
+    preventivoId: text(item.preventivoId),
+    preventivoNumber: display(item.preventivoNumber),
+    preventivoHref: safeHref(item.preventivoHref),
+    customerId: text(item.customerId),
+    customerHref: safeHref(item.customerHref),
+    matterId: text(item.matterId),
+    matterHref: safeHref(item.matterHref),
+    newMatterHref: safeHref(item.newMatterHref),
+    completeCustomerHref: safeHref(item.completeCustomerHref),
+    pdfHref: safeHref(item.pdfHref),
+    signed: bool(item.signed),
+    signedAt: text(item.signedAt),
+    signatureMethod: display(item.signatureMethod),
+    customerComplete: bool(item.customerComplete),
+    missingCustomerFields: list(item.missingCustomerFields).map((row) => display(row)).filter(Boolean),
+    clauses: {
+      informativaArt13: bool(clauses.informativaArt13),
+      clausolaAdr: bool(clauses.clausolaAdr),
+      controversie: bool(clauses.controversie),
+      trattativaIndividuale: bool(clauses.trattativaIndividuale),
+    },
+    workflow: list(item.workflow).map((rawRow) => {
+      const row = asRecord(rawRow)
+      return {
+        id: text(row.id) || text(row.label) || 'voce',
+        label: display(row.label) || 'Voce',
+        value: scalar(row.value),
+        note: display(row.note),
+        tone: tone(row.tone),
+      }
+    }),
   }
 }
 
@@ -624,17 +711,17 @@ function normalisePage(raw: unknown): PreventiviPageData {
       const option = asRecord(rawOption)
       return {
         name: text(option.name) as keyof PreventivoFiscalOptions,
-        label: text(option.label) || text(option.name),
+        label: display(option.label) || display(option.name),
         default: bool(option.default),
-        description: text(option.description),
+        description: display(option.description),
       }
     }).filter((option) => ['applica_iva', 'applica_cassa', 'applica_ritenuta'].includes(option.name)),
     compensation_options: list(page.compensation_options).map((rawOption) => {
       const option = asRecord(rawOption)
       return {
         value: text(option.value),
-        label: text(option.label) || text(option.value),
-        description: text(option.description),
+        label: display(option.label) || display(option.value),
+        description: display(option.description),
       }
     }).filter((option) => option.value),
     studio: {
@@ -689,6 +776,26 @@ export async function getPreventivoDetail(idPreventivo: string): Promise<{ ok: b
   }
 }
 
+export async function getConferimentoDetail(idConferimento: string): Promise<{
+  ok: boolean
+  item: ConferimentoDetail | null
+  message: string
+  errors: Record<string, string>
+  statuses: PreventivoStatus[]
+  warnings: AdminWarning[]
+}> {
+  const payload = await apiJson<unknown>(`/api/v1/ui/preventivi/conferimento/${encodeURIComponent(idConferimento)}`, { ok: false, item: null })
+  const page = asRecord(payload)
+  return {
+    ok: page.ok === true,
+    item: normaliseConferimentoDetail(page.item),
+    message: display(page.message),
+    errors: Object.fromEntries(Object.entries(asRecord(page.errors)).map(([key, rawValue]) => [key, display(rawValue)])),
+    statuses: list(page.statuses).map(normaliseStatus).filter((status) => status.value),
+    warnings: list(page.warnings).map(normaliseWarning),
+  }
+}
+
 export async function createPreventivo(payload: CreatePreventivoPayload): Promise<CreatePreventivoResult> {
   const result = await apiPostJson<CreatePreventivoResult>('/api/v1/ui/preventivi/nuovo', payload, createFallback)
   return normaliseCreateResult(result)
@@ -704,14 +811,19 @@ export async function updatePreventivoStatus(idPreventivo: string, payload: Upda
   return normaliseMutationResult(result)
 }
 
+export async function updateConferimentoStatus(idConferimento: string, payload: UpdatePreventivoStatusPayload): Promise<PreventivoMutationResult> {
+  const result = await apiPostJson<PreventivoMutationResult>(`/api/v1/ui/preventivi/conferimento/${encodeURIComponent(idConferimento)}/stato`, payload, mutationFallback)
+  return normaliseMutationResult(result)
+}
+
 export async function archivePreventivo(): Promise<PreventivoMutationResult> {
-  return { ...mutationFallback, message: 'Archiviazione non supportata dal backend legacy.' }
+  return { ...mutationFallback, message: 'Archiviazione non disponibile da questa vista.' }
 }
 
 export async function cancelPreventivo(): Promise<PreventivoMutationResult> {
-  return { ...mutationFallback, message: 'Annullamento non supportato dal backend legacy.' }
+  return { ...mutationFallback, message: 'Annullamento non disponibile da questa vista.' }
 }
 
 export async function duplicatePreventivo(): Promise<PreventivoMutationResult> {
-  return { ...mutationFallback, message: 'Duplicazione non supportata dal backend legacy.' }
+  return { ...mutationFallback, message: 'Duplicazione non disponibile da questa vista.' }
 }

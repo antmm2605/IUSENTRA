@@ -1017,7 +1017,7 @@ export function PreventivoWizardPage() {
   }
 
   if (loading) {
-    return <LoadingState title="Caricamento preventivo guidato" message="Recupero clienti, fascicoli, catalogo, tassonomia e presidi tariffari dal backend." />
+    return <LoadingState title="Caricamento preventivo guidato" message="Recupero clienti, fascicoli, catalogo, tassonomia e presidi tariffari." />
   }
 
   const totalLabel = calculation?.economic?.totale_label || formatEuro(0)

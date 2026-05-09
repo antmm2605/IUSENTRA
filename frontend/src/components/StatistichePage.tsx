@@ -14,6 +14,7 @@ import { KpiCard } from '../ui/KpiCard'
 import { LoadingState } from '../ui/LoadingState'
 import { Page } from '../ui/Page'
 import { Panel } from '../ui/Panel'
+import { displaySourceLabel, displayWritesLabel } from '../displayText'
 import './StatistichePage.css'
 
 function displayValue(value: string | number | undefined): string {
@@ -132,7 +133,7 @@ export function StatistichePage() {
                 label={metric.label}
                 value={displayValue(metric.value)}
                 note={metric.note}
-                badge={<Badge tone={metric.tone}>{metric.tone}</Badge>}
+                badge={<Badge tone={metric.tone}>{metric.tone === 'neutral' ? 'Dato' : 'Stato'}</Badge>}
                 key={metric.id}
               />
             ))}
@@ -161,12 +162,12 @@ export function StatistichePage() {
               <EmptyState title="Nessun record riepilogativo" />
             )}
           </Panel>
-          <Panel title="Contratto dati" subtitle="Informazioni tecniche di parita route.">
+          <Panel title="Presidio dati" subtitle="Origine e azioni governate per questa vista.">
             <div className="iu-stat-contract">
-              <span>Fonte: {data.source || 'non indicata'}</span>
+              <span>Fonte: {displaySourceLabel(data.source)}</span>
               <span>Generato: {data.generated_at || 'non disponibile'}</span>
-              <span>Scritture: {data.contracts.writes}</span>
-              <span>Mock fallback: {data.contracts.mock_fallback ? 'si' : 'no'}</span>
+              <span>Azioni: {displayWritesLabel(data.contracts.writes)}</span>
+              <span>Dati reali: {data.contracts.mock_fallback ? 'da verificare' : 'si'}</span>
             </div>
           </Panel>
         </>

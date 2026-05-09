@@ -8,6 +8,7 @@ import { LoadingState } from '../ui/LoadingState'
 import { Page } from '../ui/Page'
 import { Panel } from '../ui/Panel'
 import { openDesignContract } from '../ui/openDesign'
+import { displaySourceLabel } from '../displayText'
 import {
   calculateCompensiForensi,
   emptyCompensiForensiPage,
@@ -24,7 +25,7 @@ function ContractStrip({ data }: { data: CompensiForensiPageData }) {
       <div>
         <strong>{openDesignContract.system}</strong>
         <span>
-          {data.source || 'Sorgente non indicata'} - scritture {data.contracts.writes || 'json_api'}
+          {displaySourceLabel(data.source)} - calcolo governato
         </span>
       </div>
     </aside>
@@ -66,7 +67,7 @@ function Sections({ data }: { data: CompensiForensiPageData }) {
   return (
     <section className="iu-comp-section-grid" aria-label="Aree compensi forensi">
       {data.sections.map((section) => (
-        <Panel title={section.title} subtitle={section.kind} key={section.id}>
+        <Panel title={section.title} subtitle={displaySourceLabel(section.kind)} key={section.id}>
           {section.items.length ? (
             <div className="iu-comp-list">
               {section.items.map((item) => (
@@ -91,13 +92,13 @@ function Sections({ data }: { data: CompensiForensiPageData }) {
 function ResultPanel({ result }: { result: CompensiForensiCalculationResult | null }) {
   if (!result) {
     return (
-      <Panel title="Risultato backend">
-        <EmptyState title="Nessun risultato calcolato" message="Inserisci i parametri e invia il calcolo al backend." />
+      <Panel title="Risultato calcolo">
+        <EmptyState title="Nessun risultato calcolato" message="Inserisci i parametri e avvia il calcolo." />
       </Panel>
     )
   }
   return (
-    <Panel title={result.title || 'Risultato backend'} subtitle={result.engineLabel}>
+    <Panel title={result.title || 'Risultato calcolo'} subtitle={result.engineLabel}>
       <div className="iu-comp-result">
         <p>{result.engineText}</p>
         <div className="iu-comp-result__badges">
@@ -196,13 +197,13 @@ export function CompensiForensiPage() {
   }
 
   if (loading) {
-    return <LoadingState title="Caricamento compensi forensi" message="Recupero i dati reali dal backend." />
+    return <LoadingState title="Caricamento compensi forensi" message="Recupero i dati reali." />
   }
 
   return (
     <Page
       title="Compensi forensi"
-      subtitle="Calcolo operativo via API JSON: parametri e risultati restano canonici nel backend."
+      subtitle="Calcolo operativo con parametri e risultati governati dallo studio."
       actions={
         <>
           <Button type="button" tone="neutral" onClick={load}>
@@ -217,8 +218,8 @@ export function CompensiForensiPage() {
       }
     >
       <div className="iu-comp-page iu-od-stack">
-        {calculating ? <LoadingState title="Calcolo compensi" message="Il backend sta elaborando il risultato." /> : null}
-        {saving ? <div className="iu-comp-state" role="status">Salvataggio richiesta JSON in corso.</div> : null}
+        {calculating ? <LoadingState title="Calcolo compensi" message="Elaborazione del risultato in corso." /> : null}
+        {saving ? <div className="iu-comp-state" role="status">Salvataggio richiesta in corso.</div> : null}
         {success ? <div className="iu-comp-state iu-comp-state--success" role="status">{success}</div> : null}
         {error ? <div className="iu-comp-state iu-comp-state--error" role="alert">{error}</div> : null}
         <ContractStrip data={data} />
@@ -226,9 +227,9 @@ export function CompensiForensiPage() {
         <Metrics data={data} />
         <section className="iu-comp-hero iu-od-surface">
           <div>
-            <h2>Input al motore backend</h2>
+            <h2>Parametri di calcolo</h2>
             <p>
-              React raccoglie parametri e invia la richiesta; il risultato visualizzato arriva dalla risposta backend.
+              Inserisci i parametri e ottieni un risultato tracciabile, pronto per verifica e salvataggio.
             </p>
           </div>
           <div className="iu-comp-actions">
@@ -255,7 +256,7 @@ export function CompensiForensiPage() {
               <label>
                 <span>Procedimento</span>
                 <select value={proceeding} onChange={(event) => setProceeding(event.target.value)}>
-                  <option value="">Standard backend</option>
+                  <option value="">Standard di studio</option>
                   {filteredProceedings.map((item) => (
                     <option value={item.value} key={item.value}>{item.label}</option>
                   ))}
@@ -263,7 +264,7 @@ export function CompensiForensiPage() {
               </label>
               <label>
                 <span>Fase</span>
-                <input value={phase} onChange={(event) => setPhase(event.target.value)} placeholder="Fase se prevista dal backend" />
+                <input value={phase} onChange={(event) => setPhase(event.target.value)} placeholder="Fase se prevista dal criterio scelto" />
               </label>
               <label>
                 <span>Valore controversia</span>
@@ -279,11 +280,11 @@ export function CompensiForensiPage() {
               </label>
               <Button type="button" tone="primary" onClick={runCalculation} disabled={calculating || !area}>
                 <Calculator size={16} aria-hidden="true" />
-                Calcola via backend
+                Calcola
               </Button>
             </div>
           ) : (
-            <EmptyState title="Calcolo non autorizzato" message="La sessione corrente non ha permessi backend per il calcolo." />
+            <EmptyState title="Calcolo non autorizzato" message="La sessione corrente non ha permessi per il calcolo." />
           )}
         </Panel>
         <ResultPanel result={result} />

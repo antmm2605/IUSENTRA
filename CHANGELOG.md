@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.213.0 - 2026-05-09
+
+- Corretto `Contatti Sito Studio`: la pagina React resta operativa anche senza richieste, mostra ingressi pubblici, modulo contatti, prenotazioni e stati vuoti specifici invece dello stato vuoto generale.
+- Corretto il comportamento della sidebar: una sola cartella resta aperta, la sezione attiva non si richiude navigando al suo interno e viene sostituita quando si seleziona un'altra cartella.
+- Estesa la migrazione full React al perimetro operativo richiesto dall'utente: manifest, contratti legacy e gate ora governano le route richieste come superfici `react_operational_full` dove esiste la pagina React.
+- Aggiunto submit React centralizzato con feedback e redirect controllato; rimossi i form POST HTML dai componenti React full e dal flusso Preparazione Udienza Guidata dashboard/step/riepilogo.
+- Convertite le azioni principali di Nuovo Cliente/Soggetto, Nuovo Appuntamento, Messaggi/SMS-WA, Nuova Scadenza, Registro GDPR, Agenda, Timesheet, Email PEC/ordinaria, Fascicoli e Wizard in submit React/fetch.
+- Aggiornati i blueprint Flask collegati per rispondere in JSON alle richieste React mantenendo compatibilita' con le route esistenti.
+- Ripuliti testi visibili tecnici nelle pagine operative richieste: il fallback diventa `Percorso di recupero`, e le superfici non mostrano piu' diciture da sviluppatore come `backend`, `legacy`, `payload`, `runtime`, `json_api` o `route Flask`.
+- Aggiornati `AGENTS.md`, `agents.md`, piano React, gate anti-mascheramento e report di migrazione per rendere permanente la regola: full React significa comportamento end-to-end, non solo shell.
+
 ## 2.212.0 - 2026-05-09
 
 - Corretto il backup Hetzner: Ollama, modelli e download rigenerabili sono esclusi in modo obbligatorio e l'archivio fallisce se contiene ancora percorsi `ollama`.

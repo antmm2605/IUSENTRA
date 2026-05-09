@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ChangeEvent, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react'
 import {
   ArrowLeft,
   BadgeCheck,
@@ -29,12 +29,14 @@ import {
   type ClientiNuovoData,
   type RegistryOption,
 } from '../clientiNuovoData'
+import { redirectAfterSuccess, submitFormJson } from '../formSubmit'
 import './NuovoClientePage.css'
 
 type Tab = 'cliente' | 'soggetto'
 type ClientType = 'PERSONA_FISICA' | 'PERSONA_GIURIDICA'
 type ClientFormState = Record<string, string | boolean>
 type SubjectFormState = Record<string, string>
+type SubmitState = { saving: boolean; tone: 'success' | 'danger' | 'neutral'; message: string }
 
 const subjectLegalTypes = new Set(['PERSONA_GIURIDICA', 'PUBBLICA_AMMINISTRAZIONE', 'ENTE', 'CONDOMINIO', 'ASSOCIAZIONE'])
 
@@ -149,6 +151,19 @@ async function safeJson(response: Response): Promise<Record<string, unknown>> {
 
 function asInputValue(value: string | boolean | undefined): string {
   return typeof value === 'boolean' ? (value ? '1' : '0') : text(value)
+}
+
+function emptySubmitState(): SubmitState {
+  return { saving: false, tone: 'neutral', message: '' }
+}
+
+function SubmitFeedback({ state }:{ state: SubmitState }) {
+  if (!state.message) return null
+  return (
+    <p className={`iu-cln-field-note iu-cln-field-note--${state.tone}`} role={state.tone === 'danger' ? 'alert' : 'status'}>
+      <CheckCircle2 size={14}/>{state.message}
+    </p>
+  )
 }
 
 function Field({
@@ -317,6 +332,7 @@ function StatsStrip({ data }:{data: ClientiNuovoData}) {
 function ClientForm({ data }:{data: ClientiNuovoData}) {
   const [values, setValues] = useState<ClientFormState>({...initialClient})
   const [cfStatus, setCfStatus] = useState('')
+  const [submitState, setSubmitState] = useState<SubmitState>(() => emptySubmitState())
   const action = data.actions.operationalClientForm
   const isPhysical = values.tipo === 'PERSONA_FISICA'
   const nextUrl = data.query.nextUrl
@@ -403,14 +419,26 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
     })
   }
 
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setSubmitState({ saving: true, tone: 'neutral', message: 'Salvataggio in corso...' })
+    try {
+      const result = await submitFormJson(action, new FormData(event.currentTarget))
+      setSubmitState({ saving: false, tone: 'success', message: result.message || 'Cliente salvato.' })
+      redirectAfterSuccess(result, data.mode === 'edit' && data.query.idCliente ? `/clienti/${encodeURIComponent(data.query.idCliente)}` : '/clienti')
+    } catch (error) {
+      setSubmitState({ saving: false, tone: 'danger', message: error instanceof Error ? error.message : 'Salvataggio non riuscito.' })
+    }
+  }
+
   return (
-    <form className="iu-cln-form" method="post" action={action}>
+    <form className="iu-cln-form" onSubmit={handleSubmit}>
       <input type="hidden" name="next_url" value={asInputValue(values.next_url)}/>
-      <Card title="Tipo cliente" icon={<UserCheck size={18}/>} note={data.mode === 'edit' ? 'Aggiornamento anagrafica esistente' : 'Scrittura su /clienti/nuovo'}>
+      <Card title="Tipo cliente" icon={<UserCheck size={18}/>} note={data.mode === 'edit' ? 'Aggiornamento anagrafica esistente' : 'Nuova anagrafica governata'}>
         <ChoiceGrid name="tipo" value={asInputValue(values.tipo)} options={data.options.clientTypes} onChange={change}/>
       </Card>
 
-      <Card title={isPhysical ? 'Dati persona fisica' : 'Dati persona giuridica'} icon={isPhysical ? <UserRound size={18}/> : <Building2 size={18}/>} note="Campi compatibili con il form storico">
+      <Card title={isPhysical ? 'Dati persona fisica' : 'Dati persona giuridica'} icon={isPhysical ? <UserRound size={18}/> : <Building2 size={18}/>} note="Campi coerenti con l'anagrafica dello studio">
         {isPhysical ? (
           <div className="iu-cln-grid">
             <Field label="Cognome" name="cognome" value={asInputValue(values.cognome)} required placeholder="Rossi" onChange={change}/>
@@ -484,12 +512,13 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
           <input type="checkbox" name="crea_preventivo_iniziale" value="1" checked={Boolean(values.crea_preventivo_iniziale)} onChange={checkbox}/>
           <span><i/></span>
           <strong>Crea preventivo iniziale dopo il salvataggio</strong>
-          <small>Segue il workflow storico preventivo - conferimento - fascicolo.</small>
+          <small>Prosegue con preventivo, conferimento e fascicolo collegati.</small>
         </label>
       )}
 
+      <SubmitFeedback state={submitState}/>
       <div className="iu-cln-actions">
-        <button className="iu-cln-submit" type="submit"><CheckCircle2 size={17}/>{data.mode === 'edit' ? 'Salva modifiche' : 'Salva cliente'}</button>
+        <button className="iu-cln-submit" type="submit" disabled={submitState.saving}><CheckCircle2 size={17}/>{submitState.saving ? 'Salvataggio...' : data.mode === 'edit' ? 'Salva modifiche' : 'Salva cliente'}</button>
         <a className="iu-cln-secondary" href={data.mode === 'edit' && data.query.idCliente ? `/clienti/${encodeURIComponent(data.query.idCliente)}/cartella` : '/clienti'}>Annulla</a>
       </div>
     </form>
@@ -499,6 +528,7 @@ function ClientForm({ data }:{data: ClientiNuovoData}) {
 function SubjectForm({ data }:{data: ClientiNuovoData}) {
   const [values, setValues] = useState<SubjectFormState>({...initialSubject})
   const [cfStatus, setCfStatus] = useState('')
+  const [submitState, setSubmitState] = useState<SubmitState>(() => emptySubmitState())
   const action = data.actions.operationalSubjectForm
   const isLegal = subjectLegalTypes.has(values.tipo)
 
@@ -573,13 +603,25 @@ function SubjectForm({ data }:{data: ClientiNuovoData}) {
     })
   }
 
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setSubmitState({ saving: true, tone: 'neutral', message: 'Salvataggio in corso...' })
+    try {
+      const result = await submitFormJson(action, new FormData(event.currentTarget))
+      setSubmitState({ saving: false, tone: 'success', message: result.message || 'Soggetto salvato.' })
+      redirectAfterSuccess(result, data.mode === 'edit_subject' && data.query.idSoggetto ? `/soggetti/${encodeURIComponent(data.query.idSoggetto)}` : '/soggetti')
+    } catch (error) {
+      setSubmitState({ saving: false, tone: 'danger', message: error instanceof Error ? error.message : 'Salvataggio non riuscito.' })
+    }
+  }
+
   return (
-    <form className="iu-cln-form" method="post" action={action}>
+    <form className="iu-cln-form" onSubmit={handleSubmit}>
       <Card title="Tipo soggetto" icon={<UsersRound size={18}/>} note={data.mode === 'edit_subject' ? 'Aggiornamento soggetto processuale esistente' : 'Anagrafica soggetto processuale'}>
         <ChoiceGrid name="tipo" value={values.tipo} options={data.options.subjectTypes} columns="subject" onChange={change}/>
       </Card>
 
-      <Card title={isLegal ? 'Dati ente o parte giuridica' : 'Dati persona fisica'} icon={isLegal ? <Landmark size={18}/> : <UserRound size={18}/>} note={data.mode === 'edit_subject' ? 'Scrittura sulla route operativa di modifica' : 'Scrittura su /soggetti/nuovo'}>
+      <Card title={isLegal ? 'Dati ente o parte giuridica' : 'Dati persona fisica'} icon={isLegal ? <Landmark size={18}/> : <UserRound size={18}/>} note={data.mode === 'edit_subject' ? 'Aggiornamento soggetto processuale' : 'Nuovo soggetto governato'}>
         {isLegal ? (
           <div className="iu-cln-grid">
             <Field label="Ragione sociale" name="ragione_sociale" value={values.ragione_sociale} required onChange={change}/>
@@ -639,8 +681,9 @@ function SubjectForm({ data }:{data: ClientiNuovoData}) {
         </div>
       </Card>
 
+      <SubmitFeedback state={submitState}/>
       <div className="iu-cln-actions">
-        <button className="iu-cln-submit" type="submit"><CheckCircle2 size={17}/>{data.mode === 'edit_subject' ? 'Salva modifiche' : 'Salva soggetto'}</button>
+        <button className="iu-cln-submit" type="submit" disabled={submitState.saving}><CheckCircle2 size={17}/>{submitState.saving ? 'Salvataggio...' : data.mode === 'edit_subject' ? 'Salva modifiche' : 'Salva soggetto'}</button>
         <a className="iu-cln-secondary" href={data.mode === 'edit_subject' && data.query.idSoggetto ? `/soggetti/${encodeURIComponent(data.query.idSoggetto)}` : '/soggetti'}>Annulla</a>
       </div>
     </form>
@@ -724,7 +767,7 @@ export function NuovoClientePage() {
       <div className="iu-cln-tabs" role="tablist" aria-label="Scelta anagrafica">
         <button type="button" className={tab === 'cliente' ? 'is-active' : ''} onClick={() => setTab('cliente')} disabled={data.mode === 'edit_subject'}><UserPlus size={17}/>{data.mode === 'edit' ? 'Cliente' : 'Nuovo Cliente'}</button>
         <button type="button" className={tab === 'soggetto' ? 'is-active' : ''} onClick={() => setTab('soggetto')} disabled={data.mode === 'edit'}><UsersRound size={17}/>{data.mode === 'edit_subject' ? 'Soggetto' : 'Nuovo Soggetto'}</button>
-        <span>{loading ? 'Caricamento dati...' : `${data.source} - salvataggio backend storico`}</span>
+        <span>{loading ? 'Caricamento dati...' : 'Salvataggio sicuro attivo'}</span>
       </div>
 
       {data.query.idCliente ? (

@@ -1,0 +1,15 @@
+{
+  "route": "/messaggi/nuovo",
+  "capturedAt": "2026-05-09",
+  "status": "react_operational_full",
+  "source": "audit richiesto utente: full React end-to-end",
+  "preserve": [
+    "nuovo SMS/WA React",
+    "invio JSON",
+    "anteprima messaggio",
+    "WhatsApp Web governato",
+    "nessun POST HTML"
+  ],
+  "uiPolicy": "docs/UI_DESIGN_SYSTEM.md",
+  "regressionGuard": "nessun form POST HTML, nessuna CTA primaria legacy, testi visibili non tecnici"
+}

@@ -1,3 +1,4 @@
+import { sanitizeDisplayText } from './displayText'
 import type { Tone } from './data'
 
 export type PrivacyRiskFlag = {
@@ -129,6 +130,10 @@ function text(value: unknown, fallback = ''): string {
   return raw || fallback
 }
 
+function display(value: unknown, fallback = ''): string {
+  return sanitizeDisplayText(text(value, fallback))
+}
+
 function number(value: unknown): number {
   const parsed = Number(value ?? 0)
   return Number.isFinite(parsed) ? parsed : 0
@@ -147,10 +152,10 @@ function tone(value: unknown): Tone {
 function riskFlagFromPayload(value: unknown): PrivacyRiskFlag {
   const item = isRecord(value) ? value : {}
   return {
-    code: text(item.code, 'warning'),
-    label: text(item.label, 'Avviso'),
+    code: display(item.code, 'warning'),
+    label: display(item.label, 'Avviso'),
     tone: tone(item.tone),
-    message: text(item.message),
+    message: display(item.message),
   }
 }
 
@@ -159,23 +164,23 @@ function treatmentFromPayload(value: unknown, index: number): PrivacyTreatment {
   const id = text(item.id, `trattamento-${index}`)
   return {
     id,
-    name: text(item.name, 'Trattamento senza nome'),
-    purpose: text(item.purpose),
-    dataCategory: text(item.dataCategory),
-    legalBasis: text(item.legalBasis),
-    subjects: text(item.subjects),
-    recipients: text(item.recipients),
+    name: display(item.name, 'Trattamento senza nome'),
+    purpose: display(item.purpose),
+    dataCategory: display(item.dataCategory),
+    legalBasis: display(item.legalBasis),
+    subjects: display(item.subjects),
+    recipients: display(item.recipients),
     extraEuTransfer: bool(item.extraEuTransfer),
-    destinationCountry: text(item.destinationCountry),
-    retention: text(item.retention),
-    securityMeasures: text(item.securityMeasures),
-    processor: text(item.processor),
+    destinationCountry: display(item.destinationCountry),
+    retention: display(item.retention),
+    securityMeasures: display(item.securityMeasures),
+    processor: display(item.processor),
     active: item.active !== false,
-    notes: text(item.notes),
+    notes: display(item.notes),
     createdAt: text(item.createdAt),
-    createdLabel: text(item.createdLabel, 'n.d.'),
+    createdLabel: display(item.createdLabel, 'n.d.'),
     updatedAt: text(item.updatedAt),
-    updatedLabel: text(item.updatedLabel, 'n.d.'),
+    updatedLabel: display(item.updatedLabel, 'n.d.'),
     riskFlags: Array.isArray(item.riskFlags) ? item.riskFlags.map(riskFlagFromPayload) : [],
     deleteAction: text(item.deleteAction, `/privacy/registro/${encodeURIComponent(id)}/elimina`),
   }
@@ -185,7 +190,7 @@ function optionList(value: unknown): Array<{ value: string; label: string }> {
   if (!Array.isArray(value)) return []
   return value.map((item) => {
     const row = isRecord(item) ? item : {}
-    return { value: text(row.value), label: text(row.label, text(row.value)) }
+    return { value: text(row.value), label: display(row.label, text(row.value)) }
   }).filter((item) => item.value || item.label)
 }
 
@@ -201,8 +206,8 @@ function normalisePayload(payload: unknown): PrivacyRegistroPageData {
     source: text(payload.source, 'repository_reali'),
     generatedAt: text(payload.generatedAt),
     page: {
-      title: text(page.title, 'Registro dei trattamenti'),
-      subtitle: text(page.subtitle, emptyPrivacyRegistroPage.page.subtitle),
+      title: display(page.title, 'Registro dei trattamenti'),
+      subtitle: display(page.subtitle, emptyPrivacyRegistroPage.page.subtitle),
       path: text(page.path, '/privacy/registro'),
       formOpenByDefault: bool(page.formOpenByDefault),
     },

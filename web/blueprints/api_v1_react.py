@@ -108,6 +108,29 @@ from web.services.react_sito_studio_bridge import (
     link_react_sito_contatto,
     update_react_sito_booking_status,
 )
+from web.services.react_sito_studio_builder_bridge import (
+    apply_react_builder_template,
+    build_react_sito_studio_builder_payload,
+    builder_error_payload,
+    create_react_builder_page,
+    delete_react_builder_page,
+    delete_react_builder_asset,
+    generate_react_builder_site,
+    publish_react_builder_blocks,
+    restore_react_builder_revision,
+    save_react_builder_blocks,
+    save_react_builder_design,
+    upload_react_builder_asset,
+    validate_react_builder,
+)
+from web.services.react_sito_studio_ai_bridge import (
+    build_react_sito_studio_ai_error_payload,
+    build_react_sito_studio_ai_payload,
+    create_react_sito_studio_ai_draft,
+    generate_react_sito_studio_ai_article,
+    generate_react_sito_studio_ai_image,
+    publish_react_sito_studio_ai_article,
+)
 from web.services.react_studio_bridge import build_react_studio_error_payload, build_react_studio_payload
 from web.services.react_impostazioni_bridge import (
     bootstrap_react_impostazioni_ai,
@@ -155,11 +178,13 @@ from web.services.react_tariffario_bridge import (
     calculate_react_tariffario,
 )
 from web.services.react_preventivi_bridge import (
+    build_react_conferimento_detail_payload,
     build_react_preventivo_detail_payload,
     build_react_preventivi_error_payload,
     build_react_preventivi_payload,
     create_react_conferimento,
     create_react_preventivo,
+    update_react_conferimento_status,
     update_react_preventivo_status,
 )
 from web.services.react_preventivo_wizard_bridge import (
@@ -220,6 +245,7 @@ from web.helpers import (
     get_practice_engine,
     get_giurisprudenza,
     get_preventivi,
+    get_preventivi_readonly,
     get_scadenziario,
     get_soggetti,
     get_timesheet,
@@ -468,7 +494,7 @@ def _regia_context(id_fasc: str) -> dict[str, Any]:
     fascicolo = gf.get(id_fasc)
     if not fascicolo:
         return {"error": jsonify({"errore": "Fascicolo non trovato.", "codice": 404}), "status": 404}
-    gp = get_preventivi()
+    gp = get_preventivi_readonly()
     preventivi = gp.preventivi_per_fascicolo(id_fasc)
     conferimenti = gp.conferimenti_per_fascicolo(id_fasc)
     parcelle = get_fatturazione().per_fascicolo(id_fasc)
@@ -895,7 +921,7 @@ def _soggetto_mancante(soggetto: Any) -> bool:
 
 
 def _missing_engagements(limit: int = 4) -> tuple[list[dict[str, Any]], int]:
-    preventivi = _safe("preventivi", lambda: get_preventivi(), None)
+    preventivi = _safe("preventivi", lambda: get_preventivi_readonly(), None)
     if not preventivi:
         return [], 0
     clienti = _clienti_by_id()
@@ -943,7 +969,7 @@ def _missing_engagements(limit: int = 4) -> tuple[list[dict[str, Any]], int]:
 
 
 def _expiring_quotes_count() -> int:
-    preventivi = _safe("preventivi", lambda: get_preventivi().tutti_preventivi(), [])
+    preventivi = _safe("preventivi", lambda: get_preventivi_readonly().tutti_preventivi(), [])
     today = date.today()
     horizon = today + timedelta(days=14)
     active = {StatoPreventivo.INVIATO.value, StatoPreventivo.APERTO.value, StatoPreventivo.VERIFICATO.value}
@@ -1224,6 +1250,31 @@ def bootstrap():
     )
 
 
+@api_v1_react.get("/global-search")
+@_richiedi_auth
+def global_search_react_bootstrap():
+    from web.blueprints.global_search import _service as global_search_service, _tenant_id as global_search_tenant_id
+
+    service = global_search_service()
+    try:
+        stats = service.stats({"tenant_id": global_search_tenant_id()})
+        return jsonify(
+            {
+                "ok": True,
+                "source": "repository_reali",
+                "generated_at": _iso_now(),
+                "stats": stats,
+                "actions": {
+                    "search": "/api/global-search",
+                    "stats": "/api/global-search/stats",
+                    "reindex": "/api/global-search/reindex",
+                },
+            }
+        )
+    finally:
+        service.repository.close()
+
+
 @api_v1_react.get("/clienti")
 @_richiedi_auth
 def clienti_react_list():
@@ -1279,7 +1330,7 @@ def cliente_cartella_react(id_cliente: str):
             get_agenda=get_agenda,
             get_messaggi=_messaggi_manager,
             get_scadenziario=get_scadenziario,
-            get_preventivi=get_preventivi,
+            get_preventivi=get_preventivi_readonly,
             get_fatturazione=get_fatturazione,
             id_cliente=id_cliente,
         ))
@@ -1700,7 +1751,7 @@ def studio_module_react_payload(module_id: str):
         get_fatturazione=get_fatturazione,
         get_clienti=get_clienti,
         get_fascicoli=get_fascicoli,
-        get_preventivi=get_preventivi,
+        get_preventivi=get_preventivi_readonly,
         get_timesheet=get_timesheet,
         get_config_studio=_core_runtime_func("get_config_studio"),
         get_trattamenti=get_trattamenti,
@@ -1854,7 +1905,7 @@ def fascicolo_react_dettaglio(id_fasc: str):
         get_agenda=get_agenda,
         get_scadenziario=get_scadenziario,
         get_soggetti=get_soggetti,
-        get_preventivi=get_preventivi,
+        get_preventivi=get_preventivi_readonly,
         get_fatturazione=get_fatturazione,
         get_timesheet=get_timesheet,
         get_practice_engine=get_practice_engine,
@@ -1874,7 +1925,7 @@ def fascicolo_react_documenti(id_fasc: str):
         get_agenda=get_agenda,
         get_scadenziario=get_scadenziario,
         get_soggetti=get_soggetti,
-        get_preventivi=get_preventivi,
+        get_preventivi=get_preventivi_readonly,
         get_fatturazione=get_fatturazione,
         get_timesheet=get_timesheet,
         get_practice_engine=get_practice_engine,
@@ -1894,7 +1945,7 @@ def fascicolo_react_attivita(id_fasc: str):
         get_agenda=get_agenda,
         get_scadenziario=get_scadenziario,
         get_soggetti=get_soggetti,
-        get_preventivi=get_preventivi,
+        get_preventivi=get_preventivi_readonly,
         get_fatturazione=get_fatturazione,
         get_timesheet=get_timesheet,
         get_practice_engine=get_practice_engine,
@@ -1914,7 +1965,7 @@ def fascicolo_react_scadenze(id_fasc: str):
         get_agenda=get_agenda,
         get_scadenziario=get_scadenziario,
         get_soggetti=get_soggetti,
-        get_preventivi=get_preventivi,
+        get_preventivi=get_preventivi_readonly,
         get_fatturazione=get_fatturazione,
         get_timesheet=get_timesheet,
         get_practice_engine=get_practice_engine,
@@ -1934,7 +1985,7 @@ def fascicolo_react_depositi(id_fasc: str):
         get_agenda=get_agenda,
         get_scadenziario=get_scadenziario,
         get_soggetti=get_soggetti,
-        get_preventivi=get_preventivi,
+        get_preventivi=get_preventivi_readonly,
         get_fatturazione=get_fatturazione,
         get_timesheet=get_timesheet,
         get_practice_engine=get_practice_engine,
@@ -1952,7 +2003,7 @@ def fascicolo_regia_operativa(id_fasc: str):
         fascicolo_id=id_fasc,
         get_fascicoli=get_fascicoli,
         get_clienti=get_clienti,
-        get_preventivi=get_preventivi,
+        get_preventivi=get_preventivi_readonly,
         get_fatturazione=get_fatturazione,
         get_practice_engine=get_practice_engine,
         actor=_actor_label(),
@@ -2014,7 +2065,7 @@ def fascicolo_regia_checklist(id_fasc: str):
         fascicolo_id=id_fasc,
         get_fascicoli=get_fascicoli,
         get_clienti=get_clienti,
-        get_preventivi=get_preventivi,
+        get_preventivi=get_preventivi_readonly,
         get_fatturazione=get_fatturazione,
         get_practice_engine=get_practice_engine,
         actor=_actor_label(),
@@ -2029,7 +2080,7 @@ def fascicolo_regia_document_slots(id_fasc: str):
         fascicolo_id=id_fasc,
         get_fascicoli=get_fascicoli,
         get_clienti=get_clienti,
-        get_preventivi=get_preventivi,
+        get_preventivi=get_preventivi_readonly,
         get_fatturazione=get_fatturazione,
         get_practice_engine=get_practice_engine,
         actor=_actor_label(),
@@ -2923,6 +2974,259 @@ def sito_studio_page():
         return jsonify(build_react_sito_studio_error_payload("Sito Studio non disponibile dal runtime corrente.")), 200
 
 
+@api_v1_react.get("/sito-studio/builder")
+@_richiedi_auth
+def sito_studio_builder_page():
+    denied = _richiedi_admin_sito_studio_api()
+    if denied is not None:
+        return denied
+    try:
+        return jsonify(build_react_sito_studio_builder_payload(page_id=request.args.get("page_id", type=int)))
+    except Exception as exc:
+        current_app.logger.exception("Errore Builder Sito Studio React bridge: %s", exc)
+        return jsonify(builder_error_payload("Builder Sito Studio non disponibile dal runtime corrente.")), 200
+
+
+@api_v1_react.post("/sito-studio/builder/template")
+@_richiedi_auth
+def sito_studio_builder_template():
+    denied = _richiedi_admin_sito_studio_api()
+    if denied is not None:
+        return denied
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    result = apply_react_builder_template(payload or {})
+    return jsonify(result), 200 if result.get("ok") else 400
+
+
+@api_v1_react.post("/sito-studio/builder/design")
+@_richiedi_auth
+def sito_studio_builder_design():
+    denied = _richiedi_admin_sito_studio_api()
+    if denied is not None:
+        return denied
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    try:
+        result = save_react_builder_design(payload or {})
+    except Exception as exc:
+        current_app.logger.exception("Errore salvataggio design Builder React: %s", exc)
+        result = {"ok": False, "message": "Salvataggio parametri grafici non riuscito."}
+    return jsonify(result), 200 if result.get("ok") else 400
+
+
+@api_v1_react.post("/sito-studio/builder/genera")
+@_richiedi_auth
+def sito_studio_builder_genera():
+    denied = _richiedi_admin_sito_studio_api()
+    if denied is not None:
+        return denied
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    try:
+        result = generate_react_builder_site(payload or {})
+    except Exception as exc:
+        current_app.logger.exception("Errore generazione Builder React: %s", exc)
+        result = {"ok": False, "message": "Generazione guidata non riuscita."}
+    return jsonify(result), 200 if result.get("ok") else 400
+
+
+@api_v1_react.post("/sito-studio/builder/valida")
+@_richiedi_auth
+def sito_studio_builder_valida():
+    denied = _richiedi_admin_sito_studio_api()
+    if denied is not None:
+        return denied
+    try:
+        result = validate_react_builder()
+    except Exception as exc:
+        current_app.logger.exception("Errore validazione Builder React: %s", exc)
+        result = {"ok": False, "message": "Controlli professionali non completati."}
+    return jsonify(result), 200 if result.get("ok") else 400
+
+
+@api_v1_react.post("/sito-studio/builder/pages")
+@_richiedi_auth
+def sito_studio_builder_create_page():
+    denied = _richiedi_admin_sito_studio_api()
+    if denied is not None:
+        return denied
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    try:
+        result = create_react_builder_page(payload or {})
+    except Exception as exc:
+        current_app.logger.exception("Errore creazione pagina Builder React: %s", exc)
+        result = {"ok": False, "message": "Creazione pagina non riuscita."}
+    return jsonify(result), 200 if result.get("ok") else 400
+
+
+@api_v1_react.delete("/sito-studio/builder/pages/<int:page_id>")
+@_richiedi_auth
+def sito_studio_builder_delete_page(page_id: int):
+    denied = _richiedi_admin_sito_studio_api()
+    if denied is not None:
+        return denied
+    try:
+        result = delete_react_builder_page(page_id)
+    except Exception as exc:
+        current_app.logger.exception("Errore rimozione pagina Builder React: %s", exc)
+        result = {"ok": False, "message": "Rimozione pagina non riuscita."}
+    return jsonify(result), 200 if result.get("ok") else 400
+
+
+@api_v1_react.post("/sito-studio/builder/pages/<int:page_id>/blocks")
+@_richiedi_auth
+def sito_studio_builder_blocks(page_id: int):
+    denied = _richiedi_admin_sito_studio_api()
+    if denied is not None:
+        return denied
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    try:
+        result = save_react_builder_blocks(page_id, payload or {})
+    except Exception as exc:
+        current_app.logger.exception("Errore salvataggio blocchi Builder React: %s", exc)
+        result = {"ok": False, "message": "Salvataggio bozza non riuscito."}
+    return jsonify(result), 200 if result.get("ok") else 400
+
+
+@api_v1_react.post("/sito-studio/builder/pages/<int:page_id>/publish")
+@_richiedi_auth
+def sito_studio_builder_publish(page_id: int):
+    denied = _richiedi_admin_sito_studio_api()
+    if denied is not None:
+        return denied
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    try:
+        result = publish_react_builder_blocks(page_id, payload or {})
+    except Exception as exc:
+        current_app.logger.exception("Errore pubblicazione Builder React: %s", exc)
+        result = {"ok": False, "message": "Pubblicazione modifiche non riuscita."}
+    return jsonify(result), 200 if result.get("ok") else 400
+
+
+@api_v1_react.post("/sito-studio/builder/revisions/<int:revision_id>/restore")
+@_richiedi_auth
+def sito_studio_builder_restore(revision_id: int):
+    denied = _richiedi_admin_sito_studio_api()
+    if denied is not None:
+        return denied
+    try:
+        result = restore_react_builder_revision(revision_id)
+    except Exception as exc:
+        current_app.logger.exception("Errore ripristino revisione Builder React: %s", exc)
+        result = {"ok": False, "message": "Ripristino revisione non riuscito."}
+    return jsonify(result), 200 if result.get("ok") else 400
+
+
+@api_v1_react.post("/sito-studio/builder/assets/upload")
+@_richiedi_auth
+def sito_studio_builder_asset_upload():
+    denied = _richiedi_admin_sito_studio_api()
+    if denied is not None:
+        return denied
+    try:
+        result = upload_react_builder_asset(request.files.get("file"), request.form.to_dict())
+    except Exception as exc:
+        current_app.logger.exception("Errore caricamento immagine Builder React: %s", exc)
+        result = {"ok": False, "message": "Caricamento immagine non riuscito."}
+    return jsonify(result), 200 if result.get("ok") else 400
+
+
+@api_v1_react.delete("/sito-studio/builder/assets/<int:asset_id>")
+@_richiedi_auth
+def sito_studio_builder_asset_delete(asset_id: int):
+    denied = _richiedi_admin_sito_studio_api()
+    if denied is not None:
+        return denied
+    try:
+        result = delete_react_builder_asset(asset_id)
+    except Exception as exc:
+        current_app.logger.exception("Errore rimozione immagine Builder React: %s", exc)
+        result = {"ok": False, "message": "Rimozione immagine non riuscita."}
+    return jsonify(result), 200 if result.get("ok") else 400
+
+
+@api_v1_react.get("/sito-studio/redazione-ai")
+@_richiedi_auth
+def sito_studio_redazione_ai_page():
+    denied = _richiedi_admin_sito_studio_api()
+    if denied is not None:
+        return denied
+    try:
+        return jsonify(build_react_sito_studio_ai_payload())
+    except Exception as exc:
+        current_app.logger.exception("Errore Redazione AI Sito Studio React bridge: %s", exc)
+        return jsonify(build_react_sito_studio_ai_error_payload("Redazione AI non disponibile dal runtime corrente.")), 200
+
+
+@api_v1_react.post("/sito-studio/redazione-ai/articolo/genera")
+@_richiedi_auth
+def sito_studio_redazione_ai_genera():
+    denied = _richiedi_admin_sito_studio_api()
+    if denied is not None:
+        return denied
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    try:
+        result = generate_react_sito_studio_ai_article(payload or {})
+    except Exception as exc:
+        current_app.logger.exception("Errore generazione articolo Redazione AI React: %s", exc)
+        result = {"ok": False, "message": str(exc) or "Generazione bozza non riuscita."}
+    return jsonify(result), 200 if result.get("ok") else 400
+
+
+@api_v1_react.post("/sito-studio/redazione-ai/jobs/<int:job_id>/crea-bozza")
+@_richiedi_auth
+def sito_studio_redazione_ai_crea_bozza(job_id: int):
+    denied = _richiedi_admin_sito_studio_api()
+    if denied is not None:
+        return denied
+    try:
+        result = create_react_sito_studio_ai_draft(job_id)
+    except Exception as exc:
+        current_app.logger.exception("Errore creazione bozza Redazione AI React: %s", exc)
+        result = {"ok": False, "message": "Creazione bozza non riuscita."}
+    return jsonify(result), 200 if result.get("ok") else 400
+
+
+@api_v1_react.post("/sito-studio/redazione-ai/articoli/<int:article_id>/genera-immagine")
+@_richiedi_auth
+def sito_studio_redazione_ai_genera_immagine(article_id: int):
+    denied = _richiedi_admin_sito_studio_api()
+    if denied is not None:
+        return denied
+    try:
+        result = generate_react_sito_studio_ai_image(article_id)
+    except Exception as exc:
+        current_app.logger.exception("Errore immagine Redazione AI React: %s", exc)
+        result = {"ok": False, "message": "Generazione immagine non riuscita."}
+    return jsonify(result), 200 if result.get("ok") else 400
+
+
+@api_v1_react.post("/sito-studio/redazione-ai/articoli/<int:article_id>/pubblica")
+@_richiedi_auth
+def sito_studio_redazione_ai_pubblica(article_id: int):
+    denied = _richiedi_admin_sito_studio_api()
+    if denied is not None:
+        return denied
+    try:
+        result = publish_react_sito_studio_ai_article(article_id)
+    except Exception as exc:
+        current_app.logger.exception("Errore pubblicazione Redazione AI React: %s", exc)
+        result = {"ok": False, "message": "Pubblicazione articolo non riuscita."}
+    return jsonify(result), 200 if result.get("ok") else 400
+
+
 @api_v1_react.get("/sito-studio/contatti")
 @_richiedi_auth
 def sito_studio_contatti_page():
@@ -2985,7 +3289,7 @@ def studio_page():
                 get_scadenziario=get_scadenziario,
                 get_backup=_backup_loader(),
                 get_fatturazione=get_fatturazione,
-                get_preventivi=get_preventivi,
+                get_preventivi=get_preventivi_readonly,
                 get_pagamenti=get_pagamenti,
             )
         )
@@ -3168,7 +3472,7 @@ def fatturazione_page():
                 get_fatturazione=get_fatturazione,
                 get_clienti=get_clienti,
                 get_fascicoli=get_fascicoli,
-                get_preventivi=get_preventivi,
+                get_preventivi=get_preventivi_readonly,
                 current_user=utente,
                 query=dict(request.args),
                 route="/fatturazione",
@@ -3198,7 +3502,7 @@ def fatturazione_nuova_page():
                 get_fatturazione=get_fatturazione,
                 get_clienti=get_clienti,
                 get_fascicoli=get_fascicoli,
-                get_preventivi=get_preventivi,
+                get_preventivi=get_preventivi_readonly,
                 current_user=utente,
                 query=dict(request.args),
                 route="/fatturazione/nuova",
@@ -3476,7 +3780,7 @@ def compensi_forensi_page():
         return jsonify(
             build_react_compensi_forensi_payload(
                 get_normative_tables=get_normative_tables,
-                get_preventivi=get_preventivi,
+                get_preventivi=get_preventivi_readonly,
                 current_user=utente,
             )
         )
@@ -3626,7 +3930,7 @@ def redazione_atti_page():
             build_react_redazione_atti_payload(
                 get_template_manager=_template_atti_loader,
                 get_fascicoli=get_fascicoli,
-                get_preventivi=get_preventivi,
+                get_preventivi=get_preventivi_readonly,
             )
         )
     except Exception as exc:
@@ -3732,7 +4036,7 @@ def _preventivi_ui_payload(route: str):
     try:
         return jsonify(
             build_react_preventivi_payload(
-                get_preventivi=get_preventivi,
+                get_preventivi=get_preventivi_readonly,
                 get_clienti=get_clienti,
                 get_fascicoli=get_fascicoli,
                 current_user=utente,
@@ -3832,10 +4136,30 @@ def preventivi_detail_page(id_preventivo: str):
             "item": None,
         }), 403
     result, status = build_react_preventivo_detail_payload(
-        get_preventivi=get_preventivi,
+        get_preventivi=get_preventivi_readonly,
         get_clienti=get_clienti,
         get_fascicoli=get_fascicoli,
         id_preventivo=id_preventivo,
+    )
+    return jsonify(result), status
+
+
+@api_v1_react.get("/preventivi/conferimento/<id_conferimento>")
+@_richiedi_auth
+def preventivi_conferimento_detail_page(id_conferimento: str):
+    utente = g.get("utente_corrente")
+    if not utente or not _puo_leggere_preventivi():
+        return jsonify({
+            "ok": False,
+            "message": "Permesso fatturazione.leggi richiesto.",
+            "errors": {"permission": "Operazione non autorizzata."},
+            "item": None,
+        }), 403
+    result, status = build_react_conferimento_detail_payload(
+        get_preventivi=get_preventivi_readonly,
+        get_clienti=get_clienti,
+        get_fascicoli=get_fascicoli,
+        id_conferimento=id_conferimento,
     )
     return jsonify(result), status
 
@@ -3859,6 +4183,31 @@ def preventivi_aggiorna_stato(id_preventivo: str):
         get_utenti=get_utenti,
         current_user=utente,
         id_preventivo=id_preventivo,
+        payload=payload,
+        ip_address=request.remote_addr or "",
+    )
+    return jsonify(result), status
+
+
+@api_v1_react.post("/preventivi/conferimento/<id_conferimento>/stato")
+@_richiedi_auth
+def preventivi_conferimento_aggiorna_stato(id_conferimento: str):
+    utente = g.get("utente_corrente")
+    if not utente or not _puo_scrivere_preventivi():
+        return jsonify({
+            "ok": False,
+            "message": "Permesso fatturazione.scrivi richiesto.",
+            "errors": {"permission": "Operazione non autorizzata."},
+            "item": None,
+        }), 403
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    result, status = update_react_conferimento_status(
+        get_preventivi=get_preventivi,
+        get_utenti=get_utenti,
+        current_user=utente,
+        id_conferimento=id_conferimento,
         payload=payload,
         ip_address=request.remote_addr or "",
     )

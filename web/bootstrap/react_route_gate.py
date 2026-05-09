@@ -106,6 +106,7 @@ _REACT_EXACT = {
     "/sito-studio",
     "/sito-studio/builder",
     "/sito-studio/contatti",
+    "/sito-studio/redazione-ai",
     "/statistiche",
     "/studio",
     "/strumenti-legali",
@@ -211,7 +212,7 @@ def _excluded(path: str) -> bool:
         return True
     if lower.startswith("/backup/"):
         return True
-    if lower.startswith("/sito-studio/") and lower not in {"/sito-studio/contatti"}:
+    if lower.startswith("/sito-studio/") and lower not in {"/sito-studio/builder", "/sito-studio/contatti", "/sito-studio/redazione-ai"}:
         return True
     if lower.startswith("/studio/"):
         return True
@@ -248,11 +249,12 @@ def _excluded(path: str) -> bool:
         return True
     if any(lower == prefix or lower.startswith(f"{prefix}/") for prefix in _LEGACY_OPERATIONAL_PREFIXES):
         return True
+    is_conferimento_detail = lower.startswith("/preventivi/conferimento/") and lower.count("/") == 3
     if lower.startswith("/preventivi/") and lower not in {
         "/preventivi/nuovo",
         "/preventivi/wizard",
         "/preventivi/conferimento/nuovo",
-    }:
+    } and not is_conferimento_detail:
         return True
     if lower.startswith("/compensi-forensi/"):
         return True
@@ -267,6 +269,8 @@ def _excluded(path: str) -> bool:
     # I wizard deposito interni al fascicolo restano sui template operativi
     # finche' il relativo flusso React non copre l'intera procedura.
     if lower.startswith("/fascicoli/") and "/wizard/" in lower:
+        return True
+    if lower.startswith("/fascicoli/") and lower.endswith("/copertina"):
         return True
     if lower.startswith("/fascicoli/") and (
         "/deposito/" in lower
@@ -301,14 +305,14 @@ def _is_react_route(path: str) -> bool:
 
 def _react_bootstrap_texts_for_path(path: str) -> list[str]:
     lower = path.lower().rstrip("/") or "/"
-    if lower == "/sito-studio":
+    if lower in {"/sito-studio", "/sito-studio/builder", "/sito-studio/redazione-ai"}:
         return ["Sito Studio"]
     return []
 
 
 def _preserve_react_route_side_effects(path: str) -> None:
     lower = path.lower().rstrip("/") or "/"
-    if lower not in {"/sito-studio", "/sito-studio/contatti"}:
+    if lower not in {"/sito-studio", "/sito-studio/builder", "/sito-studio/contatti", "/sito-studio/redazione-ai"}:
         return
     try:
         from web.services.studio_site_runtime import ensure_current_studio_site
@@ -333,7 +337,7 @@ def register_react_route_gate(app: Flask) -> None:
         if raw_lower == "/scadenziario" or raw_lower.startswith("/scadenziario/"):
             return None
         sito_path = raw_lower.rstrip("/") or "/"
-        if raw_lower.startswith("/sito-studio/") and sito_path not in {"/sito-studio", "/sito-studio/contatti"}:
+        if raw_lower.startswith("/sito-studio/") and sito_path not in {"/sito-studio", "/sito-studio/builder", "/sito-studio/contatti", "/sito-studio/redazione-ai"}:
             return None
         path = _normalise_path(request.path)
         if _excluded(path) or not _is_react_route(path):

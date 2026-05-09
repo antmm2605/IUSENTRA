@@ -101,6 +101,14 @@ def get_preventivi() -> GestionePreventivi:
     return GestionePreventivi(db_path=_cfg("PREVENTIVI_DB"), studio_db=_studio_db())
 
 
+def get_preventivi_readonly() -> GestionePreventivi:
+    return GestionePreventivi(
+        db_path=_cfg("PREVENTIVI_DB"),
+        studio_db=_studio_db(),
+        sync_repository_on_init=False,
+    )
+
+
 def get_fatturazione() -> GestioneFatturazione:
     return GestioneFatturazione(db_path=_cfg("FATTURAZIONE_DB"), studio_db=_studio_db())
 

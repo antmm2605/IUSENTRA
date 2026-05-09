@@ -50,7 +50,7 @@ assertContains(bridge, '"canonical_calculation": "backend"', 'bridge dichiara ca
 assert(nuova?.status === 'react_operational_full', 'manifest deve marcare /fatturazione/nuova react_operational_full')
 assert(nuova?.unlockFromGate === true, 'manifest deve sbloccare /fatturazione/nuova')
 assert(wildcard?.status === 'legacy_operational' && wildcard?.unlockFromGate === false, 'manifest deve lasciare /fatturazione/* legacy_operational bloccato')
-assertContains(page, 'Rollback tecnico', 'eventuali link ?_legacy=1 devono stare nel rollback tecnico')
+assertContains(page, 'Percorso di recupero', 'eventuali link ?_legacy=1 devono stare nel percorso di recupero governato')
 assertNotContains(combinedFrontend, /\blocalStorage\b|\bsessionStorage\b/, 'frontend fatturazione non deve usare browser storage')
 assertNotContains(combinedFrontend, /response\.blob|fetch\s*\([^)]*blob|URL\.createObjectURL|new Blob/i, 'frontend fatturazione non deve usare blob o object URL')
 assertNotContains(combinedFrontend, /generatePdf|generatePDF|generateXml|generateXML|createPdf|createXml/i, 'React non deve generare PDF o XML')

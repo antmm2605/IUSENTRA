@@ -1290,15 +1290,15 @@ function AcquisitionWizard({
                 <label><input type="checkbox" checked={options.importa_eventi} onChange={(event) => updateOption('importa_eventi', event.currentTarget.checked)}/> Importa eventi</label>
                 <label><input type="checkbox" checked={options.importa_parti} onChange={(event) => updateOption('importa_parti', event.currentTarget.checked)}/> Importa parti</label>
                 <label><input type="checkbox" checked={options.scarica_originale_portale} onChange={(event) => updateOption('scarica_originale_portale', event.currentTarget.checked)}/> Originale portale</label>
-                <label><input type="checkbox" checked={options.mantieni_albero_originale} onChange={(event) => updateOption('mantieni_albero_originale', event.currentTarget.checked)}/> Mantieni albero tecnico</label>
+                <label><input type="checkbox" checked={options.mantieni_albero_originale} onChange={(event) => updateOption('mantieni_albero_originale', event.currentTarget.checked)}/> Mantieni struttura originale</label>
               </div>
               {portal === 'pst' ? <p className="iu-tel-acq-note">Default PST: copia di consultazione con annotazioni ministeriali. L'originale si usa solo se selezionato espressamente.</p> : null}
               <label className="iu-tel-acq-file">
-                <span>File, ZIP o dati JSON autorizzati</span>
+                <span>File, ZIP o dati autorizzati</span>
                 <input type="file" multiple accept=".zip,.pdf,.p7m,.eml,.msg,.xml,.json,.html,.htm,.txt" onChange={onFiles}/>
               </label>
               <div className="iu-tel-acq-results iu-tel-acq-results--compact">
-                {files.map((file) => <span key={`${file.nome}-${file.contenuto_b64.length}`}>{file.nome}{file.payload_json ? ' - dati JSON' : ''}</span>)}
+                {files.map((file) => <span key={`${file.nome}-${file.contenuto_b64.length}`}>{file.nome}{file.payload_json ? ' - dati autorizzati' : ''}</span>)}
               </div>
               <div className="iu-tel-acq-actions">
                 <button type="button" onClick={() => setStep(5)}><ArrowRight size={15}/> Vai alla mappatura</button>

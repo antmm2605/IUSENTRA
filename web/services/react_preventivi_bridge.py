@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, Callable
 
-from pct.preventivi import StatoPreventivo, TipoVoce, VocePreventivo
+from pct.preventivi import StatoConferimento, StatoPreventivo, TipoVoce, VocePreventivo
 
 _PREVENTIVO_FIELDS = {
     "id_cliente",
@@ -318,6 +318,16 @@ def _conferimento_record(conferimento: Any, clienti: dict[str, Any], fascicoli: 
 
 
 def _contracts(route: str) -> dict[str, Any]:
+    if route.startswith("/preventivi/conferimento/") and route != "/preventivi/conferimento/nuovo":
+        return {
+            "mock_fallback": False,
+            "writes": "json_api",
+            "route_owner": "react_shell",
+            "operational": True,
+            "document_generation": "backend_legacy",
+            "canonical_persistence": "backend",
+            "legacy_contract": "artifacts/react-migration/legacy-contracts/preventivi__conferimento__detail.json",
+        }
     if route == "/preventivi/nuovo":
         return {
             "mock_fallback": False,
@@ -432,8 +442,8 @@ def build_react_preventivi_payload(
     route: str = "/preventivi",
 ) -> dict[str, Any]:
     warnings: list[dict[str, str]] = [
-        {"code": "calcolo_backend", "message": "React invia input: importi canonici, fiscalita', parametri forensi e documenti restano backend."},
-        {"code": "rollback_tecnico", "message": "I template storici restano disponibili solo come rollback tecnico."},
+        {"code": "presidio_calcolo", "message": "L'interfaccia invia input controllati: importi definitivi, fiscalita', parametri forensi e documenti restano nei servizi applicativi."},
+        {"code": "percorso_recupero", "message": "I template storici restano disponibili solo come percorso di recupero assistito."},
     ]
     preventivi: list[Any] = []
     conferimenti: list[Any] = []
@@ -469,7 +479,7 @@ def build_react_preventivi_payload(
         "metrics": [
             _metric("preventivi_totali", "Preventivi", len(preventivo_records), "Archivio corrente", "primary"),
             _metric("preventivi_aperti", "Preventivi aperti", len([row for row in preventivo_records if row["state"] in {"BOZZA", "GENERATO", "INVIATO", "APERTO"}]), "Stati dal repository", "warning"),
-            _metric("preventivi_accettati", "Accettati", len([row for row in preventivo_records if row["state"] in {"ACCETTATO", "CONVERTITO"}]), "Valori backend", "success"),
+            _metric("preventivi_accettati", "Accettati", len([row for row in preventivo_records if row["state"] in {"ACCETTATO", "CONVERTITO"}]), "Valori calcolati", "success"),
             _metric("conferimenti", "Conferimenti", len(conferimento_records), "Incarichi collegati", "info"),
         ],
         "sections": [
@@ -486,14 +496,14 @@ def build_react_preventivi_payload(
         "form": form,
         "forms": [form],
         "fiscal_options": [
-            {"name": "applica_cassa", "label": "Cassa Forense", "default": True, "description": "Input inviato al backend."},
-            {"name": "applica_iva", "label": "IVA", "default": True, "description": "Input inviato al backend."},
-            {"name": "applica_ritenuta", "label": "Ritenuta", "default": False, "description": "Input inviato al backend."},
+            {"name": "applica_cassa", "label": "Cassa Forense", "default": True, "description": "Dato inviato ai servizi applicativi."},
+            {"name": "applica_iva", "label": "IVA", "default": True, "description": "Dato inviato ai servizi applicativi."},
+            {"name": "applica_ritenuta", "label": "Ritenuta", "default": False, "description": "Dato inviato ai servizi applicativi."},
         ],
         "compensation_options": [
-            {"value": "forfait", "label": "Forfait", "description": "Configurazione testuale, calcolo backend."},
-            {"value": "tempo", "label": "A tempo", "description": "Ore e tariffa sono input, calcolo backend."},
-            {"value": "fasi", "label": "Per fasi", "description": "Parametri forensi gestiti dal backend."},
+            {"value": "forfait", "label": "Forfait", "description": "Configurazione testuale, calcolo applicativo."},
+            {"value": "tempo", "label": "A tempo", "description": "Ore e tariffa sono input, calcolo applicativo."},
+            {"value": "fasi", "label": "Per fasi", "description": "Parametri forensi gestiti dai servizi applicativi."},
         ],
         "studio": {
             "avvocato_referente": defaults.get("avvocato_referente", ""),
@@ -506,8 +516,8 @@ def build_react_preventivi_payload(
             "links": [
                 _action("nuovo_preventivo", "Nuovo preventivo", "/preventivi/nuovo", "primary"),
                 _action("nuovo_conferimento", "Nuovo conferimento", "/preventivi/conferimento/nuovo", "primary"),
-                _action("wizard", "Wizard backend", "/preventivi/wizard", "neutral"),
-                _action("rollback", "Rollback tecnico", f"{route}?_legacy=1", "warning"),
+                _action("wizard", "Wizard preventivi", "/preventivi/wizard", "neutral"),
+                _action("percorso_recupero", "Percorso di recupero", f"{route}?_legacy=1", "warning"),
             ],
         },
         "warnings": warnings,
@@ -820,6 +830,110 @@ def build_react_preventivo_detail_payload(
     return {"ok": True, "source": "repository_reali", "generated_at": _iso_now(), "contracts": _contracts("/preventivi"), "item": item, "warnings": warnings}, 200
 
 
+def _conferimento_detail_item(conferimento: Any, cliente: Any, fascicolo: Any, preventivo: Any) -> dict[str, Any]:
+    item = _conferimento_record(
+        conferimento,
+        {_text(getattr(cliente, "id", "")): cliente} if cliente else {},
+        {_text(getattr(fascicolo, "id", "")): fascicolo} if fascicolo else {},
+    )
+    preventivo_id = _text(getattr(conferimento, "id_preventivo", ""))
+    cliente_id = _text(getattr(conferimento, "id_cliente", ""))
+    fascicolo_id = _text(getattr(conferimento, "id_fascicolo", ""))
+    signed = bool(getattr(conferimento, "firma_cliente_eseguita", False))
+    customer_complete = bool(getattr(cliente, "profilo_completo_per_conferimento", False)) if cliente else False
+    missing_customer_fields = [str(row) for row in (getattr(cliente, "campi_mancanti_per_conferimento", []) or [])]
+    return {
+        **item,
+        "lawyer": _text(getattr(conferimento, "avvocato_referente", "")),
+        "barNumber": _text(getattr(conferimento, "numero_iscrizione_albo", "")),
+        "barCouncil": _text(getattr(conferimento, "ordine_avvocati", "")),
+        "compensationType": _text(getattr(conferimento, "tipo_compenso", "")),
+        "proceedingType": _text(getattr(conferimento, "tipo_procedimento", "")),
+        "createdBy": _text(getattr(conferimento, "creato_da", "")),
+        "createdAt": _date_label(getattr(conferimento, "creato_il", "")),
+        "notes": _text(getattr(conferimento, "note", "")),
+        "preventivoId": preventivo_id,
+        "preventivoNumber": _text(getattr(preventivo, "numero", "")),
+        "preventivoHref": f"/preventivi/p/{preventivo_id}" if preventivo_id else "",
+        "customerId": cliente_id,
+        "customerHref": f"/clienti/{cliente_id}" if cliente_id else "",
+        "matterId": fascicolo_id,
+        "matterHref": f"/fascicoli/{fascicolo_id}" if fascicolo_id else "",
+        "newMatterHref": (
+            f"/fascicoli/nuovo?id_cliente={cliente_id}&source_conferimento={_text(getattr(conferimento, 'id', ''))}&from_page=conferimento"
+            if cliente_id
+            else ""
+        ),
+        "completeCustomerHref": f"/clienti/{cliente_id}/modifica" if cliente_id and not customer_complete else "",
+        "pdfHref": f"/preventivi/conferimento/{_text(getattr(conferimento, 'id', ''))}/pdf",
+        "signed": signed,
+        "signedAt": _date_label(getattr(conferimento, "firma_cliente_il", "")),
+        "signatureMethod": _text(getattr(conferimento, "firma_cliente_via", "")) or ("Registrata" if signed else "Da registrare"),
+        "customerComplete": customer_complete,
+        "missingCustomerFields": missing_customer_fields,
+        "clauses": {
+            "informativaArt13": bool(getattr(conferimento, "informativa_art13_resa", False)),
+            "clausolaAdr": bool(getattr(conferimento, "clausola_adr_resa", False)),
+            "controversie": bool(getattr(conferimento, "clausola_controversie_attiva", False)),
+            "trattativaIndividuale": bool(getattr(conferimento, "clausola_controversie_trattativa_individuale", False)),
+        },
+        "workflow": [
+            _item("cliente", "Cliente", "Completo" if customer_complete else "Da completare", "Anagrafica necessaria per incarico e fascicolo.", "success" if customer_complete else "warning"),
+            _item("firma", "Firma cliente", "Registrata" if signed else "Da registrare", "Stato firma collegato al conferimento.", "success" if signed else "warning"),
+            _item("fascicolo", "Fascicolo", "Collegato" if fascicolo_id else "Da aprire", "Collegamento operativo della pratica.", "success" if fascicolo_id else "warning"),
+            _item("preventivo", "Preventivo", _text(getattr(preventivo, "numero", "")) or "Non collegato", "Origine economica dell'incarico.", "info" if preventivo_id else "neutral"),
+        ],
+    }
+
+
+def build_react_conferimento_detail_payload(
+    *,
+    get_preventivi: Callable[[], Any],
+    get_clienti: Callable[[], Any],
+    get_fascicoli: Callable[[], Any],
+    id_conferimento: str,
+) -> tuple[dict[str, Any], int]:
+    try:
+        manager = get_preventivi()
+        conferimento = manager.get_conferimento(id_conferimento)
+    except Exception:
+        conferimento = None
+    if not conferimento:
+        return {"ok": False, "message": "Conferimento non trovato.", "errors": {"id_conferimento": "Identificativo non valido."}, "item": None}, 404
+
+    warnings: list[dict[str, str]] = []
+    cliente = None
+    fascicolo = None
+    preventivo = None
+    try:
+        cliente = get_clienti().get(getattr(conferimento, "id_cliente", ""))
+    except Exception as exc:
+        warnings.append({"code": "cliente_non_disponibile", "message": f"Cliente non disponibile: {type(exc).__name__}."})
+    try:
+        id_fascicolo = _text(getattr(conferimento, "id_fascicolo", ""))
+        fascicolo = get_fascicoli().get(id_fascicolo) if id_fascicolo else None
+    except Exception as exc:
+        warnings.append({"code": "fascicolo_non_disponibile", "message": f"Fascicolo non disponibile: {type(exc).__name__}."})
+    try:
+        id_preventivo = _text(getattr(conferimento, "id_preventivo", ""))
+        preventivo = manager.get_preventivo(id_preventivo) if id_preventivo else None
+    except Exception as exc:
+        warnings.append({"code": "preventivo_non_disponibile", "message": f"Preventivo collegato non disponibile: {type(exc).__name__}."})
+
+    return {
+        "ok": True,
+        "source": "repository_reali",
+        "generated_at": _iso_now(),
+        "contracts": _contracts(f"/preventivi/conferimento/{id_conferimento}"),
+        "item": _conferimento_detail_item(conferimento, cliente, fascicolo, preventivo),
+        "statuses": [
+            {"value": item.value, "label": _status_label(item.value), "tone": _status_tone(item.value)}
+            for item in StatoConferimento
+        ],
+        "warnings": warnings,
+    }, 200
+
+
 def update_react_preventivo_status(
     *,
     get_preventivi: Callable[[], Any],
@@ -851,3 +965,36 @@ def update_react_preventivo_status(
         return {"ok": False, "message": "Preventivo non trovato.", "errors": {"id_preventivo": "Identificativo non valido."}, "item": None}, 404
     _audit(get_utenti, current_user, "preventivi.stato", "preventivo", id_preventivo, ip_address)
     return {"ok": True, "message": "Stato preventivo aggiornato.", "errors": {}, "item": _created_item(item, "preventivo")}, 200
+
+
+def update_react_conferimento_status(
+    *,
+    get_preventivi: Callable[[], Any],
+    get_utenti: Callable[[], Any],
+    current_user: Any,
+    id_conferimento: str,
+    payload: dict[str, Any],
+    ip_address: str = "",
+) -> tuple[dict[str, Any], int]:
+    if not _can(current_user, "fatturazione.scrivi"):
+        return {"ok": False, "message": "Permesso fatturazione.scrivi richiesto.", "errors": {"permission": "Operazione non autorizzata."}, "item": None}, 403
+    unknown = _unknown_fields(payload, {"stato", "note"})
+    errors: dict[str, str] = {}
+    if unknown:
+        errors["payload"] = "Campi non consentiti: " + ", ".join(sorted(unknown))
+    requested = _text(payload.get("stato")).upper()
+    try:
+        status = StatoConferimento(requested)
+    except ValueError:
+        errors["stato"] = "Stato conferimento non valido."
+        status = StatoConferimento.ATTIVO
+    if errors:
+        return {"ok": False, "message": "Controlla i campi evidenziati.", "errors": errors, "item": None}, 400
+    try:
+        manager = get_preventivi()
+        manager.cambia_stato_conferimento(id_conferimento, status)
+        item = manager.get_conferimento(id_conferimento)
+    except KeyError:
+        return {"ok": False, "message": "Conferimento non trovato.", "errors": {"id_conferimento": "Identificativo non valido."}, "item": None}, 404
+    _audit(get_utenti, current_user, "preventivi.conferimento.stato", "conferimento", id_conferimento, ip_address)
+    return {"ok": True, "message": "Stato conferimento aggiornato.", "errors": {}, "item": _created_item(item, "conferimento")}, 200

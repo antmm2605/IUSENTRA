@@ -1,4 +1,5 @@
 import type { Tone } from './data'
+import { sanitizeDisplayText } from './displayText'
 
 export type ReactContracts = {
   mock_fallback: boolean
@@ -169,7 +170,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function text(value: unknown, fallback = ''): string {
-  return String(value ?? fallback).trim() || fallback
+  return sanitizeDisplayText(String(value ?? fallback).trim() || fallback)
 }
 
 function number(value: unknown, fallback = 0): number {

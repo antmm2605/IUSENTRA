@@ -1,5 +1,52 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-09 - Pagine operative richieste full React 2.213.0
+
+Questa tranche risponde al controllo utente sul perimetro completo delle pagine
+operative IUSENTRA e rende piu' evidente la migrazione React:
+
+- Hotfix Sito Studio/Contatti/Nav: `/sito-studio/contatti` ora resta una
+  dashboard React operativa anche quando non ci sono ancora richieste o
+  prenotazioni. Mostra ingressi pubblici, modulo contatti, prenotazione, sito
+  pubblico, pannelli `Richieste contatto` e `Prenotazioni` con stati vuoti
+  specifici, senza lo stato vuoto globale che faceva sembrare la pagina non
+  funzionante.
+- La sidebar React ora tiene aperta una sola cartella operativa: la sezione
+  attiva resta aperta durante la navigazione interna, per esempio `Studio` resta
+  aperto su `Statistiche`; quando l'utente seleziona `Fascicoli`, si chiude
+  `Studio` e resta aperto solo `Fascicoli`.
+- Verifica browser locale su `localhost:8080`: `Contatti Sito Studio` mostra
+  `Ingressi pubblici`, `Richieste contatto`, `Prenotazioni`, link pubblici e
+  nessun testo tecnico vietato; `Statistiche` mantiene aperto `STUDIO`; il
+  passaggio a `Fascicoli` mantiene aperto solo `FASCICOLI`.
+- il manifest React e i gate includono le route richieste come
+  `react_operational_full` quando esiste una superficie React governata, con
+  alias espliciti per Panoramica, Regia Operativa, Ricerca Studio, Agenda,
+  Fascicoli, Clienti/Soggetti, Comunicazioni, Scadenze, Preparazione Udienza,
+  Studio, Fatturazione, Preventivi, Compensi, Redazione Atti, Statistiche,
+  Ricerca Legale, Giurisprudenza, Strumenti, Sito Studio, Amministrazione,
+  Utenti, Profili, Registro Attivita, Database e Registro GDPR.
+- `frontend/src/formSubmit.ts` e `frontend/src/components/JsonPostForm.tsx`
+  centralizzano i submit React con `fetch`, CSRF/sessione, feedback visibile e
+  redirect controllato; i componenti full React non devono piu' contenere form
+  HTML `method="post"` nel flusso operativo.
+- Sono stati convertiti i salvataggi principali di Nuovo Cliente/Soggetto,
+  Nuovo Appuntamento, Messaggi/SMS-WA, Nuova Scadenza, Registro GDPR, Agenda,
+  Timesheet, Email PEC/ordinaria, Fascicoli e Preparazione Udienza Guidata
+  dashboard/step/riepilogo.
+- I blueprint Flask collegati restituiscono JSON quando la richiesta arriva da
+  React/XHR, mantenendo compatibilita' con redirect e route esistenti.
+- Le pagine del perimetro richiesto sono state ripulite dai testi tecnici
+  visibili (`backend`, `legacy`, `payload`, `runtime`, `json_api`, `route
+  Flask`, `Rollback tecnico`): il linguaggio deve restare operativo per studio
+  legale e i fallback devono chiamarsi `Percorso di recupero`.
+- Gate confermati in corso tranche: `node frontend/scripts/check-react-contracts.mjs`,
+  `node scripts/react-migration/check-full-react-route-contract.mjs` e
+  `npm --prefix frontend run typecheck`.
+- Restano obbligatori prima della chiusura release: build Vite finale, smoke
+  browser desktop/tablet/mobile, Docker locale no-cache/health, commit/push
+  branch gemelli e deploy Hetzner verificato.
+
 ## Stato tranche 2026-05-09 - Controlli Atti e Strumenti full React 2.210.0
 
 Questa tranche rimuove tre eccezioni `legacy_operational` rimaste sulle voci

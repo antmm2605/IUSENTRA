@@ -3,403 +3,342 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Copertina Fascicolo — {{ fascicolo.titolo }}</title>
+  <title>Copertina fascicolo - {{ fascicolo.titolo }}</title>
   <style>
-    /* ── Variabili ── */
     :root {
-      --ink:       #1a1a2e;
-      --ink-muted: #4a4a6a;
-      --rule:      #c8972b;
-      --rule-lt:   #e8d5a3;
-      --bg:        #ffffff;
-      --section-bg:#f8f6f0;
-      --font-serif: 'Georgia', 'Times New Roman', serif;
-      --font-sans:  'Helvetica Neue', 'Arial', sans-serif;
-      --radius:    4px;
+      --ink: #172033;
+      --muted: #5f6b7a;
+      --rule: #b8872f;
+      --rule-soft: #ead7ad;
+      --paper: #ffffff;
+      --soft: #f8f6f0;
+      --line: #d9d3c5;
+      --serif: Georgia, "Times New Roman", serif;
+      --sans: "Helvetica Neue", Arial, sans-serif;
     }
 
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
+    *, *::before, *::after { box-sizing: border-box; }
     body {
-      background: #e8e8e8;
-      font-family: var(--font-sans);
-      font-size: 14px;
+      margin: 0;
+      background: #e7e9ee;
       color: var(--ink);
-      -webkit-font-smoothing: antialiased;
+      font-family: var(--sans);
+      font-size: 14px;
+      line-height: 1.45;
     }
 
-    /* ── Schermo: centrato come carta A4 ── */
+    .screen-actions {
+      position: fixed;
+      top: 14px;
+      right: 14px;
+      z-index: 10;
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-action {
+      border: 1px solid #cfd6df;
+      border-radius: 7px;
+      padding: 8px 13px;
+      background: #fff;
+      color: #172033;
+      text-decoration: none;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .btn-print {
+      background: #173a5e;
+      border-color: #173a5e;
+      color: #fff;
+    }
+
     .page-wrap {
+      min-height: 100vh;
+      padding: 32px 16px 56px;
       display: flex;
       justify-content: center;
-      padding: 2rem 1rem 4rem;
-      min-height: 100vh;
     }
 
     .cover-page {
-      background: var(--bg);
+      position: relative;
       width: 210mm;
       min-height: 297mm;
-      padding: 18mm 18mm 14mm;
-      position: relative;
-      box-shadow: 0 4px 32px rgba(0,0,0,.18);
+      background: var(--paper);
+      box-shadow: 0 18px 46px rgba(15, 23, 42, .18);
+      padding: 18mm 18mm 16mm;
     }
 
-    /* ── Banda laterale sinistra ── */
     .cover-page::before {
-      content: '';
+      content: "";
       position: absolute;
-      left: 0; top: 0; bottom: 0;
+      inset: 0 auto 0 0;
       width: 6px;
       background: var(--rule);
     }
 
-    /* ── Testata studio ── */
-    .studio-header {
+    .studio-header,
+    .cover-footer {
       display: flex;
-      align-items: flex-start;
       justify-content: space-between;
-      margin-bottom: 10mm;
-      padding-bottom: 5mm;
-      border-bottom: 1px solid var(--rule-lt);
+      gap: 14px;
+      border-color: var(--rule-soft);
     }
-    .studio-name {
-      font-family: var(--font-serif);
-      font-size: 1.1rem;
-      font-weight: 700;
+
+    .studio-header {
+      align-items: flex-start;
+      margin-bottom: 30px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--rule-soft);
+    }
+
+    .studio-name,
+    .cover-pratica {
+      font-family: var(--serif);
       color: var(--ink);
-      letter-spacing: .02em;
+      font-weight: 700;
     }
-    .studio-label {
+
+    .studio-name { font-size: 1.12rem; }
+    .studio-label,
+    .cover-label,
+    .data-section-title,
+    .subject-title {
+      color: var(--muted);
       font-size: .72rem;
-      color: var(--ink-muted);
-      text-transform: uppercase;
+      font-weight: 800;
       letter-spacing: .08em;
-      margin-top: 2px;
+      text-transform: uppercase;
     }
+
     .cover-date {
       text-align: right;
+      color: var(--muted);
       font-size: .78rem;
-      color: var(--ink-muted);
     }
-    .cover-date strong { color: var(--ink); font-size: .9rem; }
 
-    /* ── Titolo copertina ── */
+    .cover-date strong { color: var(--ink); }
+
     .cover-title-block {
       text-align: center;
-      margin-bottom: 10mm;
+      margin-bottom: 28px;
     }
-    .cover-label {
-      font-size: .72rem;
-      text-transform: uppercase;
-      letter-spacing: .14em;
-      color: var(--ink-muted);
-      font-weight: 600;
-    }
+
+    .cover-label { color: var(--rule); }
     .cover-pratica {
-      font-family: var(--font-serif);
+      margin: 10px auto 8px;
       font-size: 2rem;
-      font-weight: 700;
-      color: var(--ink);
-      margin: 3mm 0 2mm;
-      line-height: 1.2;
+      line-height: 1.18;
+      max-width: 150mm;
     }
+
     .cover-oggetto {
-      font-size: 1rem;
-      color: var(--ink-muted);
+      max-width: 150mm;
+      margin: 0 auto;
+      color: var(--muted);
       font-style: italic;
     }
+
     .cover-rule {
-      margin: 4mm auto;
-      border: none;
+      width: 64mm;
       height: 2px;
-      width: 60mm;
+      border: 0;
+      margin: 16px auto 0;
       background: linear-gradient(90deg, transparent, var(--rule), transparent);
     }
 
-    /* ── Schede dati ── */
     .data-section {
-      margin-bottom: 6mm;
+      margin-bottom: 22px;
+      break-inside: avoid;
     }
+
     .data-section-title {
-      font-size: .68rem;
-      text-transform: uppercase;
-      letter-spacing: .12em;
       color: var(--rule);
-      font-weight: 700;
-      margin-bottom: 2mm;
-      padding-bottom: 1mm;
-      border-bottom: 1px solid var(--rule-lt);
+      margin-bottom: 8px;
+      padding-bottom: 5px;
+      border-bottom: 1px solid var(--rule-soft);
     }
+
     .data-grid {
       display: grid;
-      grid-template-columns: 44mm 1fr;
-      gap: 1.5mm 3mm;
+      grid-template-columns: 42mm 1fr;
+      gap: 6px 12px;
     }
-    .data-grid.two-col {
-      grid-template-columns: 44mm 1fr 44mm 1fr;
-    }
+
     .data-label {
-      font-size: .75rem;
-      color: var(--ink-muted);
-      font-weight: 600;
+      color: var(--muted);
+      font-size: .78rem;
+      font-weight: 700;
       text-align: right;
-      padding-right: 2mm;
       white-space: nowrap;
     }
-    .data-label::after { content: ':'; }
+
+    .data-label::after { content: ":"; }
     .data-val {
-      font-size: .83rem;
+      min-width: 0;
       color: var(--ink);
-      font-weight: 500;
+      font-weight: 600;
+      overflow-wrap: anywhere;
     }
-    .data-val.empty { color: #aaa; font-style: italic; }
+    .data-val.empty { color: #8b95a1; font-style: italic; font-weight: 500; }
 
-    /* ── Sezione soggetti ── */
-    .subjects-section {
-      margin-top: 6mm;
-    }
-    .subject-title {
-      font-size: .72rem;
-      text-transform: uppercase;
-      letter-spacing: .1em;
-      color: var(--rule);
-      font-weight: 700;
-      text-decoration: underline;
-      margin-bottom: 2mm;
-    }
-    .subject-item {
-      font-size: .83rem;
-      color: var(--ink);
-      padding: 1.5mm 0;
-      border-bottom: 1px dotted #ddd;
-      display: flex;
-      gap: 2mm;
-    }
-    .subject-item::before { content: '●'; color: var(--rule); flex-shrink: 0; }
-
-    /* ── Badge stato ── */
     .stato-badge {
       display: inline-block;
-      padding: 1px 6px;
-      border-radius: 3px;
-      font-size: .72rem;
-      font-weight: 700;
+      border-radius: 4px;
+      padding: 2px 7px;
+      background: #eef5ff;
+      color: #1d4f82;
+      font-size: .74rem;
+      font-weight: 800;
       text-transform: uppercase;
-      letter-spacing: .06em;
     }
-    .stato-APERTO        { background: #dbeafe; color: #1d4ed8; }
-    .stato-IN_CORSO      { background: #dcfce7; color: #15803d; }
-    .stato-SOSPESO       { background: #fef9c3; color: #a16207; }
-    .stato-DEFINITO      { background: #e0f2fe; color: #0369a1; }
-    .stato-ARCHIVIATO    { background: #f1f5f9; color: #64748b; }
 
-    /* ── Footer ── */
+    .subjects-section {
+      margin-top: 22px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .subject-title {
+      color: var(--rule);
+      margin-bottom: 6px;
+    }
+
+    .subject-item {
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--rule);
+      border-radius: 6px;
+      padding: 9px 11px;
+      background: var(--soft);
+      color: var(--ink);
+      font-weight: 600;
+    }
+
     .cover-footer {
       position: absolute;
-      bottom: 10mm;
       left: 18mm;
       right: 18mm;
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
+      bottom: 10mm;
+      padding-top: 10px;
+      border-top: 1px solid var(--rule-soft);
+      color: var(--muted);
       font-size: .7rem;
-      color: var(--ink-muted);
-      border-top: 1px solid var(--rule-lt);
-      padding-top: 3mm;
     }
 
-    /* ── Barra azioni (solo schermo) ── */
-    .screen-actions {
-      position: fixed;
-      top: 1rem;
-      right: 1rem;
-      display: flex;
-      gap: .5rem;
-      z-index: 100;
-    }
-    .btn-action {
-      padding: .45rem 1rem;
-      border-radius: 6px;
-      font-size: .82rem;
-      font-weight: 600;
-      cursor: pointer;
-      border: none;
-      display: inline-flex;
-      align-items: center;
-      gap: .4rem;
-      text-decoration: none;
-    }
-    .btn-print  { background: #1a3a5c; color: #fff; }
-    .btn-print:hover  { background: #143058; }
-    .btn-back   { background: #fff; color: #333; border: 1px solid #ccc; }
-    .btn-back:hover { background: #f5f5f5; }
-
-    /* ── Print ── */
     @media print {
-      body { background: white; font-size: 11pt; }
-      .page-wrap { display: block; padding: 0; }
-      .cover-page {
-        width: 100%;
-        min-height: 100vh;
-        box-shadow: none;
-        padding: 15mm 18mm 12mm;
-      }
+      body { background: #fff; font-size: 11pt; }
       .screen-actions { display: none !important; }
+      .page-wrap { display: block; padding: 0; }
+      .cover-page { width: 100%; min-height: 100vh; box-shadow: none; padding: 15mm 18mm 12mm; }
       @page { size: A4; margin: 0; }
     }
 
-    /* ── Mobile ── */
-    @media (max-width: 220mm) {
-      .cover-page {
-        width: 100%;
-        min-height: auto;
-        padding: 6mm 8mm 10mm;
-      }
-      .data-grid.two-col { grid-template-columns: 44mm 1fr; }
+    @media (max-width: 900px) {
+      .screen-actions { position: static; padding: 12px; justify-content: flex-end; }
+      .page-wrap { padding-top: 0; }
+      .cover-page { width: 100%; min-height: auto; padding: 18mm 8mm 18mm; }
+      .data-grid { grid-template-columns: 1fr; }
+      .data-label { text-align: left; }
+      .cover-footer { position: static; margin-top: 28px; flex-direction: column; }
     }
   </style>
 </head>
 <body>
+{% set empty = '-' %}
+{% set stato_value = fascicolo.stato.value if fascicolo.stato and fascicolo.stato.value is defined else fascicolo.stato|string %}
+{% set tipo_value = fascicolo.tipo.value if fascicolo.tipo and fascicolo.tipo.value is defined else fascicolo.tipo|string %}
 
-<!-- Barra azioni (solo schermo) -->
 <div class="screen-actions">
-  <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}" class="btn-action btn-back">
-    ← Indietro
-  </a>
-  <button class="btn-action btn-print" onclick="window.print()">
-    🖨️ Stampa
-  </button>
+  <a href="{{ url_for('dettaglio_fascicolo', id_fasc=fascicolo.id) }}" class="btn-action">Indietro</a>
+  <button class="btn-action btn-print" type="button" onclick="window.print()">Stampa</button>
 </div>
 
 <div class="page-wrap">
-  <div class="cover-page">
-
-    <!-- Testata studio -->
-    <div class="studio-header">
+  <main class="cover-page" aria-label="Copertina fascicolo">
+    <header class="studio-header">
       <div>
         <div class="studio-name">{{ studio_nome }}</div>
-        <div class="studio-label">Fascicolo — Copertina</div>
+        <div class="studio-label">Fascicolo - copertina</div>
       </div>
       <div class="cover-date">
         <div>Stampato il</div>
         <strong>{{ oggi|fmt_data }}</strong>
       </div>
-    </div>
+    </header>
 
-    <!-- Titolo principale -->
-    <div class="cover-title-block">
-      <div class="cover-label">Copertina del Fascicolo</div>
-      <div class="cover-pratica">{{ fascicolo.titolo }}</div>
+    <section class="cover-title-block">
+      <div class="cover-label">Copertina del fascicolo</div>
+      <h1 class="cover-pratica">{{ fascicolo.titolo }}</h1>
       {% if fascicolo.oggetto %}
-      <div class="cover-oggetto">{{ fascicolo.oggetto }}</div>
+      <p class="cover-oggetto">{{ fascicolo.oggetto }}</p>
       {% endif %}
       <hr class="cover-rule">
-    </div>
+    </section>
 
-    <!-- Dati pratica -->
-    <div class="data-section">
+    <section class="data-section">
       <div class="data-section-title">Dati della pratica</div>
       <div class="data-grid">
         <div class="data-label">Pratica</div>
         <div class="data-val">{{ fascicolo.titolo }}</div>
 
         <div class="data-label">Oggetto</div>
-        <div class="data-val {% if not fascicolo.oggetto %}empty{% endif %}">
-          {{ fascicolo.oggetto or '—' }}
-        </div>
+        <div class="data-val {% if not fascicolo.oggetto %}empty{% endif %}">{{ fascicolo.oggetto or empty }}</div>
 
         <div class="data-label">Identificativo</div>
-        <div class="data-val">
-          <code>{{ fascicolo.numero }}</code>
-        </div>
-
-        <div class="data-label">Riferimento cartaceo</div>
-        <div class="data-val empty">—</div>
+        <div class="data-val">{{ fascicolo.numero }}</div>
 
         <div class="data-label">Data di apertura</div>
         <div class="data-val {% if not fascicolo.data_apertura %}empty{% endif %}">
-          {% if fascicolo.data_apertura %}
-            {{ fascicolo.data_apertura|fmt_data }}
-          {% else %}—{% endif %}
+          {% if fascicolo.data_apertura %}{{ fascicolo.data_apertura|fmt_data }}{% else %}{{ empty }}{% endif %}
         </div>
 
         <div class="data-label">Titolare pratica</div>
-        <div class="data-val {% if not fascicolo.avvocato_referente %}empty{% endif %}">
-          {{ fascicolo.avvocato_referente or '—' }}
-        </div>
+        <div class="data-val {% if not fascicolo.avvocato_referente %}empty{% endif %}">{{ fascicolo.avvocato_referente or empty }}</div>
 
         <div class="data-label">Responsabile pratica</div>
-        <div class="data-val {% if not fascicolo.avvocato_dominus %}empty{% endif %}">
-          {{ fascicolo.avvocato_dominus or '—' }}
-        </div>
+        <div class="data-val {% if not fascicolo.avvocato_dominus %}empty{% endif %}">{{ fascicolo.avvocato_dominus or empty }}</div>
 
         <div class="data-label">Stato della pratica</div>
-        <div class="data-val">
-          <span class="stato-badge stato-{{ fascicolo.stato.value }}">
-            {{ fascicolo.stato.value.replace('_',' ') }}
-          </span>
-        </div>
+        <div class="data-val"><span class="stato-badge">{{ stato_value.replace('_', ' ') }}</span></div>
       </div>
-    </div>
+    </section>
 
-    <!-- Dati giudiziari -->
-    <div class="data-section">
+    <section class="data-section">
       <div class="data-section-title">Dati giudiziari</div>
       <div class="data-grid">
-        <div class="data-label">Autorità giudiziaria</div>
-        <div class="data-val {% if not fascicolo.tribunale %}empty{% endif %}">
-          {{ fascicolo.tribunale or '—' }}
-        </div>
+        <div class="data-label">Autorita giudiziaria</div>
+        <div class="data-val {% if not fascicolo.tribunale %}empty{% endif %}">{{ fascicolo.tribunale or empty }}</div>
 
         <div class="data-label">Sezione</div>
-        <div class="data-val {% if not fascicolo.sezione %}empty{% endif %}">
-          {{ fascicolo.sezione or '—' }}
-        </div>
+        <div class="data-val {% if not fascicolo.sezione %}empty{% endif %}">{{ fascicolo.sezione or empty }}</div>
 
         <div class="data-label">Registro</div>
-        <div class="data-val">{{ fascicolo.tipo.value.lower() }}</div>
+        <div class="data-val">{{ tipo_value|lower }}</div>
 
-        <div class="data-label">N° RG</div>
+        <div class="data-label">N. RG</div>
         <div class="data-val {% if not fascicolo.numero_rg %}empty{% endif %}">
-          {% if fascicolo.numero_rg %}
-            {{ fascicolo.numero_rg }}{% if fascicolo.anno_rg %}/{{ fascicolo.anno_rg }}{% endif %}
-          {% else %}—{% endif %}
+          {% if fascicolo.numero_rg %}{{ fascicolo.numero_rg }}{% if fascicolo.anno_rg %}/{{ fascicolo.anno_rg }}{% endif %}{% else %}{{ empty }}{% endif %}
         </div>
 
-        <div class="data-label">Istruttore / PM / Gip</div>
-        <div class="data-val {% if not fascicolo.giudice %}empty{% endif %}">
-          {{ fascicolo.giudice or '—' }}
-        </div>
+        <div class="data-label">Istruttore / PM / GIP</div>
+        <div class="data-val {% if not fascicolo.giudice %}empty{% endif %}">{{ fascicolo.giudice or empty }}</div>
 
-        <div class="data-label">Cancelliere</div>
-        <div class="data-val empty">—</div>
-
-        <div class="data-label">Consulente di ufficio</div>
-        <div class="data-val empty">—</div>
-
-        <div class="data-label">Avvocato controparte</div>
-        <div class="data-val {% if not fascicolo.controparte %}empty{% endif %}">
-          {{ fascicolo.controparte or '—' }}
-        </div>
+        <div class="data-label">Controparte</div>
+        <div class="data-val {% if not fascicolo.controparte %}empty{% endif %}">{{ fascicolo.controparte or empty }}</div>
 
         {% if fascicolo.data_prima_udienza %}
         <div class="data-label">Prima udienza</div>
-        <div class="data-val">
-          {{ fascicolo.data_prima_udienza|fmt_data }}
-        </div>
+        <div class="data-val">{{ fascicolo.data_prima_udienza|fmt_data }}</div>
         {% endif %}
 
         {% if fascicolo.data_prossima_udienza %}
         <div class="data-label">Prossima udienza</div>
-        <div class="data-val">
-          {{ fascicolo.data_prossima_udienza|fmt_data }}
-        </div>
+        <div class="data-val">{{ fascicolo.data_prossima_udienza|fmt_data }}</div>
         {% endif %}
 
         {% if fascicolo.valore_causa %}
         <div class="data-label">Valore della causa</div>
-        <div class="data-val">€ {{ "%.2f"|format(fascicolo.valore_causa)|replace('.', ',') }}</div>
+        <div class="data-val">EUR {{ "%.2f"|format(fascicolo.valore_causa)|replace('.', ',') }}</div>
         {% endif %}
 
         {% if fascicolo.note %}
@@ -407,48 +346,40 @@
         <div class="data-val">{{ fascicolo.note|fmt_nota_import }}</div>
         {% endif %}
       </div>
-    </div>
+    </section>
 
-    <!-- Soggetti -->
-    <div class="subjects-section">
-
+    <section class="subjects-section">
       {% if cliente %}
-      <div style="margin-bottom:5mm">
-        <div class="subject-title">Clienti della pratica:</div>
+      <article>
+        <div class="subject-title">Cliente della pratica</div>
         <div class="subject-item">
           {{ cliente.nome_completo }}
           {% if cliente.indirizzo_residenza and cliente.indirizzo_residenza.via %}
-            {{ cliente.indirizzo_residenza.via }}, {{ cliente.indirizzo_residenza.civico or '' }}
-            &nbsp; {{ cliente.indirizzo_residenza.cap or '' }} {{ cliente.indirizzo_residenza.comune or '' }}
+            - {{ cliente.indirizzo_residenza.via }}, {{ cliente.indirizzo_residenza.civico or '' }}
+            {{ cliente.indirizzo_residenza.cap or '' }} {{ cliente.indirizzo_residenza.comune or '' }}
           {% endif %}
-          {% if cliente.codice_fiscale %}
-            - C.F: {{ cliente.codice_fiscale }}
-          {% endif %}
+          {% if cliente.codice_fiscale %} - C.F. {{ cliente.codice_fiscale }}{% endif %}
         </div>
-      </div>
+      </article>
       {% endif %}
 
       {% if fascicolo.controparte %}
-      <div>
-        <div class="subject-title">Controparti della pratica:</div>
+      <article>
+        <div class="subject-title">Controparte della pratica</div>
         <div class="subject-item">
           {{ fascicolo.controparte }}
-          {% if fascicolo.cf_controparte %} - C.F: {{ fascicolo.cf_controparte }}{% endif %}
+          {% if fascicolo.cf_controparte %} - C.F. {{ fascicolo.cf_controparte }}{% endif %}
         </div>
-      </div>
+      </article>
       {% endif %}
+    </section>
 
-    </div>
-
-    <!-- Footer -->
-    <div class="cover-footer">
+    <footer class="cover-footer">
       <span>{{ studio_nome }}</span>
-      <span>{{ fascicolo.numero }} — {{ fascicolo.titolo }}</span>
+      <span>{{ fascicolo.numero }} - {{ fascicolo.titolo }}</span>
       <span>{{ oggi|fmt_data }}</span>
-    </div>
-
-  </div>
+    </footer>
+  </main>
 </div>
-
 </body>
 </html>

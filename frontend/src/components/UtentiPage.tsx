@@ -32,6 +32,7 @@ import { KpiCard } from '../ui/KpiCard'
 import { LoadingState } from '../ui/LoadingState'
 import { Page } from '../ui/Page'
 import { Panel } from '../ui/Panel'
+import { displaySourceLabel, displayWritesLabel } from '../displayText'
 import './UtentiPage.css'
 
 type LoadStatus = 'loading' | 'ready' | 'error'
@@ -211,7 +212,7 @@ function UserFilters({
   roles: RoleOption[]
 }) {
   return (
-    <Panel title="Ricerca e filtri" subtitle="Filtro locale sui dati gia ricevuti dal backend.">
+    <Panel title="Ricerca e filtri" subtitle="Filtro locale sui dati caricati per la sessione.">
       <div className="iu-users-filters">
         <label className="iu-users-field iu-users-field--search">
           <span>Cerca</span>
@@ -311,7 +312,7 @@ function NewUserView({ data, onCreated }: { data: UtentiPageData; onCreated: () 
     <section className="iu-users-new">
       <Panel
         title="Crea utente"
-        subtitle="Salvataggio JSON protetto da sessione, CSRF, permessi e audit amministrativo."
+        subtitle="Salvataggio protetto da sessione, CSRF, permessi e audit amministrativo."
       >
         {data.createEndpoint ? (
           <form className="iu-users-create-form" onSubmit={submit} noValidate>
@@ -449,7 +450,7 @@ function UserEditor({
   if (!selectedUser) {
     return (
       <Panel title="Operazioni utente">
-        <EmptyState title="Seleziona un utente" message="Scegli un account dalla lista per aprire le azioni operative JSON." />
+        <EmptyState title="Seleziona un utente" message="Scegli un account dalla lista per aprire le azioni operative." />
       </Panel>
     )
   }
@@ -461,14 +462,14 @@ function UserEditor({
   const isLastActiveAdmin = selectedUser.active && selectedUser.role === 'AMMINISTRATORE' && activeAdmins.length <= 1
   const disabling = selectedUser.active
   const disableBlockedReason = !data.actions.canDisable
-    ? 'Il backend non ha dichiarato il permesso utenti.scrivi.'
+    ? 'La sessione corrente non autorizza la scrittura utenti.'
     : selectedUser.isCurrentUser
       ? 'Non puoi disabilitare il tuo account dalla sessione corrente.'
       : isLastActiveAdmin
         ? "Non puoi disabilitare l'ultimo amministratore attivo."
         : ''
   const roleBlockedReason = !data.actions.canChangeRole
-    ? 'Il backend non ha dichiarato il permesso utenti.scrivi.'
+    ? 'La sessione corrente non autorizza la scrittura utenti.'
     : isLastActiveAdmin && roleDraft !== 'AMMINISTRATORE'
       ? "Non puoi rimuovere il ruolo dall'ultimo amministratore attivo."
       : ''
@@ -546,7 +547,7 @@ function UserEditor({
   return (
     <Panel
       title={`Operazioni su ${userLabel(selectedUser)}`}
-      subtitle="Profilo minimo, ruolo, stato account e credenziale temporanea via API JSON auditata."
+      subtitle="Profilo minimo, ruolo, stato account e credenziale temporanea con salvataggio auditato."
     >
       <div className="iu-users-editor">
         <div className="iu-users-editor__summary">
@@ -592,7 +593,7 @@ function UserEditor({
               <Save size={16} />
               Salva profilo
             </Button>
-            {!canWrite ? <small>Modifica profilo non autorizzata dal backend.</small> : null}
+            {!canWrite ? <small>Modifica profilo non autorizzata per la sessione corrente.</small> : null}
           </div>
         </section>
         <section className="iu-users-editor-section">
@@ -682,7 +683,7 @@ function UserEditor({
               <KeyRound size={16} />
               Reimposta credenziale
             </Button>
-            {!data.actions.canResetPassword ? <small>Reimpostazione non autorizzata dal backend.</small> : null}
+            {!data.actions.canResetPassword ? <small>Reimpostazione non autorizzata per la sessione corrente.</small> : null}
           </div>
         </section>
       </div>
@@ -710,7 +711,7 @@ export function UtentiPage() {
       setSelectedUserId((current) => current || payload.users[0]?.id || '')
     } catch {
       setLoadStatus('error')
-      setMessage('Impossibile leggere gli utenti dal backend.')
+      setMessage('Impossibile leggere gli utenti.')
     }
   }
 
@@ -746,7 +747,7 @@ export function UtentiPage() {
   return (
     <Page
       title={isNewUser ? 'Nuovo utente' : 'Gestione utenti'}
-      subtitle="Account reali dello studio, letti e aggiornati tramite API JSON protette."
+      subtitle="Account reali dello studio, letti e aggiornati tramite servizi protetti."
       actions={
         <>
           <Button type="button" tone="neutral" onClick={refreshData} disabled={loadStatus === 'loading'}>
@@ -778,7 +779,7 @@ export function UtentiPage() {
       {loadStatus === 'error' ? (
         <EmptyState
           title="Utenti non disponibili"
-          message={message || 'Il backend non ha restituito record utenti visualizzabili.'}
+          message={message || 'Non sono disponibili utenti visualizzabili per questa sessione.'}
           action={<Button type="button" tone="primary" onClick={refreshData}>Riprova</Button>}
         />
       ) : null}
@@ -858,19 +859,19 @@ export function UtentiPage() {
               </section>
             </>
           )}
-          <Panel title="Contratto dati" subtitle="Scritture amministrative via JSON, dominio e audit restano nel backend Flask.">
+          <Panel title="Presidio dati" subtitle="Scritture amministrative tracciate con permessi e audit di studio.">
             <div className="iu-users-contract">
-              <span>Fonte: {data.source || 'non indicata'}</span>
+              <span>Fonte: {displaySourceLabel(data.source)}</span>
               <span>Generato: {formatGeneratedAt(data.generated_at)}</span>
-              <span>Scritture: {data.contracts.writes}</span>
-              <span>Mock fallback: {data.contracts.mock_fallback ? 'si' : 'no'}</span>
+              <span>Azioni: {displayWritesLabel(data.contracts.writes)}</span>
+              <span>Dati reali: {data.contracts.mock_fallback ? 'da verificare' : 'si'}</span>
             </div>
           </Panel>
           {data.actions.rollback ? (
-            <Panel title="Rollback tecnico" subtitle="Percorso di assistenza mantenuto per confronto e recupero controllato.">
+            <Panel title="Percorso di recupero" subtitle="Assistenza mantenuta per confronto e recupero controllato.">
               <div className="iu-users-rollback">
                 <AlertTriangle size={18} />
-                <span>La vista Flask resta disponibile solo come fallback tecnico, non come flusso principale.</span>
+                <span>Il percorso di recupero resta disponibile solo per assistenza controllata, non come flusso principale.</span>
                 <ButtonLink href={data.actions.rollback.href} tone="neutral">{data.actions.rollback.label}</ButtonLink>
               </div>
             </Panel>

@@ -35,6 +35,7 @@ import {
   type NuovoMessaggioData,
 } from '../messaggiData'
 import type { Tone } from '../data'
+import { redirectAfterSuccess, submitFormJson } from '../formSubmit'
 import './MessaggiPage.css'
 
 type ComposeState = {
@@ -44,6 +45,7 @@ type ComposeState = {
   oggetto: string
   testo: string
 }
+type SubmitState = { saving: boolean; tone: 'success' | 'danger' | 'neutral'; message: string }
 
 function channelIcon(channel: MessageChannel, size = 18): ReactNode {
   if (channel === 'EMAIL') return <Mail size={size}/>
@@ -58,6 +60,36 @@ function text(value: unknown): string {
 function toneForChannel(channel: MessageChannel): Tone {
   if (channel === 'EMAIL') return 'primary'
   return 'success'
+}
+
+function emptySubmit(): SubmitState {
+  return { saving: false, tone: 'neutral', message: '' }
+}
+
+function SubmitNotice({ state }:{ state: SubmitState }) {
+  if (!state.message) return null
+  return <span role={state.tone === 'danger' ? 'alert' : 'status'}>{state.message}</span>
+}
+
+function DeleteMessageButton({ id }:{ id: string }) {
+  const [state, setState] = useState<SubmitState>(() => emptySubmit())
+  const handleDelete = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!window.confirm('Eliminare il messaggio?')) return
+    setState({ saving: true, tone: 'neutral', message: 'Eliminazione...' })
+    try {
+      const result = await submitFormJson(`/messaggi/${encodeURIComponent(id)}/elimina`, new FormData(event.currentTarget))
+      setState({ saving: false, tone: 'success', message: result.message || 'Messaggio eliminato.' })
+      redirectAfterSuccess(result, '/messaggi')
+    } catch (error) {
+      setState({ saving: false, tone: 'danger', message: error instanceof Error ? error.message : 'Eliminazione non riuscita.' })
+    }
+  }
+  return (
+    <form onSubmit={handleDelete}>
+      <button type="submit" aria-label="Elimina messaggio" disabled={state.saving}><Trash2 size={15}/></button>
+    </form>
+  )
 }
 
 function statRows(data: MessaggiData) {
@@ -114,9 +146,7 @@ function MessageRow({ item }:{ item: MessageItem }) {
       </div>
       <div className="iu-msg-actions">
         <a href={item.detailHref || `/messaggi/${item.id}`} aria-label="Apri dettaglio messaggio">Apri</a>
-        <form method="post" action={`/messaggi/${encodeURIComponent(item.id)}/elimina`} onSubmit={(event) => { if (!window.confirm('Eliminare il messaggio?')) event.preventDefault() }}>
-          <button type="submit" aria-label="Elimina messaggio"><Trash2 size={15}/></button>
-        </form>
+        <DeleteMessageButton id={item.id}/>
       </div>
     </article>
   )
@@ -175,9 +205,7 @@ function MessageFocus({ item }:{item: MessageItem}) {
         {item.clientHref ? <a href={item.clientHref}><UsersRound size={15}/>Apri cliente</a> : null}
         {item.manualWhatsapp && item.whatsappLink ? <a href={item.whatsappLink} target="_blank" rel="noreferrer"><ExternalLink size={15}/>WhatsApp Web</a> : null}
         <a href="#lex" data-lex-open data-lex-context="messaggi" data-lex-label={`Contesto messaggio: ${item.subject || item.recipient}`}><Sparkles size={15}/>Chiedi a Lex</a>
-        <form method="post" action={`/messaggi/${encodeURIComponent(item.id)}/elimina`} onSubmit={(event) => { if (!window.confirm('Eliminare il messaggio?')) event.preventDefault() }}>
-          <button type="submit"><Trash2 size={15}/>Elimina</button>
-        </form>
+        <DeleteMessageButton id={item.id}/>
       </div>
     </section>
   )
@@ -341,6 +369,7 @@ export function NuovoMessaggioPage() {
   const [data, setData] = useState<NuovoMessaggioData>(emptyNuovoMessaggioData)
   const [values, setValues] = useState<ComposeState>(() => initialCompose(emptyNuovoMessaggioData))
   const [loading, setLoading] = useState(true)
+  const [submitState, setSubmitState] = useState<SubmitState>(() => emptySubmit())
 
   useEffect(() => {
     let cancelled = false
@@ -377,6 +406,20 @@ export function NuovoMessaggioPage() {
     setValues((current) => ({ ...current, ...filled }))
   }
 
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setSubmitState({ saving: true, tone: 'neutral', message: 'Invio in corso...' })
+    try {
+      const result = await submitFormJson(data.actions.sendEndpoint, new FormData(event.currentTarget))
+      const message = result.whatsappLink ? 'Messaggio preparato: si apre WhatsApp Web.' : result.message || 'Messaggio inviato.'
+      setSubmitState({ saving: false, tone: 'success', message })
+      if (result.whatsappLink) window.open(result.whatsappLink, '_blank', 'noopener,noreferrer')
+      redirectAfterSuccess(result, '/messaggi')
+    } catch (error) {
+      setSubmitState({ saving: false, tone: 'danger', message: error instanceof Error ? error.message : 'Invio non riuscito.' })
+    }
+  }
+
   return (
     <main className="iu-msg-page iu-msg-compose-page">
       <section className="iu-msg-hero iu-msg-hero--compose">
@@ -393,7 +436,7 @@ export function NuovoMessaggioPage() {
       </section>
 
       <section className="iu-msg-compose-layout">
-        <form className="iu-msg-compose" method="post" action={data.actions.sendEndpoint}>
+        <form className="iu-msg-compose" onSubmit={handleSubmit}>
           <input type="hidden" name="from_cliente" value={data.query.fromCliente}/>
 
           <Panel title="Canale" subtitle="Scegli il mezzo pi? adatto" icon={<MessageCircle size={17}/>}>
@@ -404,7 +447,7 @@ export function NuovoMessaggioPage() {
                   <span>{channelIcon(channel.value, 20)}</span>
                   <strong>{channel.label}</strong>
                   <small>{channel.destinationHelp}</small>
-                  <Badge tone={channel.configured || channel.value === 'WHATSAPP' ? 'success' : 'warning'}>{channel.configured ? 'Pronto' : channel.value === 'WHATSAPP' ? 'Link Web' : 'Config'}</Badge>
+                  <Badge tone={channel.configured || channel.value === 'WHATSAPP' ? 'success' : 'warning'}>{channel.configured ? 'Pronto' : channel.value === 'WHATSAPP' ? 'Link Web' : 'Da completare'}</Badge>
                 </label>
               ))}
             </div>
@@ -425,7 +468,7 @@ export function NuovoMessaggioPage() {
             </div>
           </Panel>
 
-          <Panel title="Testo" subtitle="Scrittura assistita e compatibile con il backend di invio" icon={<Sparkles size={17}/>}>
+          <Panel title="Testo" subtitle="Scrittura assistita e invio governato" icon={<Sparkles size={17}/>}>
             <div className="iu-msg-templates">
               {availableTemplates.map((template) => <button type="button" key={template.id} onClick={() => applyTemplate(template)}>{template.label}</button>)}
             </div>
@@ -442,9 +485,10 @@ export function NuovoMessaggioPage() {
           </Panel>
 
           <div className="iu-msg-submitbar">
-            <button type="submit"><Send size={17}/>Invia</button>
+            <button type="submit" disabled={submitState.saving}><Send size={17}/>{submitState.saving ? 'Invio...' : 'Invia'}</button>
             <a href="/messaggi">Annulla</a>
-            <span>{loading ? 'Caricamento dati...' : 'Salvataggio su /messaggi/nuovo'}</span>
+            <SubmitNotice state={submitState}/>
+            {!submitState.message ? <span>{loading ? 'Caricamento dati...' : 'Invio governato dai servizi dello studio'}</span> : null}
           </div>
         </form>
 

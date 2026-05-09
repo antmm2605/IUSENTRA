@@ -1,4 +1,5 @@
 import { apiJson, apiPostJson } from './lib/apiClient'
+import { sanitizeDisplayText } from './displayText'
 
 export type UtentiTone = 'primary' | 'neutral' | 'danger' | 'success' | 'warning' | 'info'
 
@@ -221,7 +222,7 @@ export const emptyUtentiPage: UtentiPageData = {
 const emptyMutation: UtenteMutationResult = {
   ok: false,
   message: 'Operazione non completata.',
-  errors: { _form: 'Il backend non ha restituito un esito utilizzabile.' },
+  errors: { _form: 'Il servizio non ha restituito un esito utilizzabile.' },
   user: null,
 }
 
@@ -237,6 +238,10 @@ function text(value: unknown, fallback = ''): string {
   return typeof value === 'string' ? value.trim() : fallback
 }
 
+function display(value: unknown, fallback = ''): string {
+  return sanitizeDisplayText(text(value, fallback))
+}
+
 function bool(value: unknown): boolean {
   return value === true
 }
@@ -247,7 +252,7 @@ function number(value: unknown): number {
 
 function scalar(value: unknown): string | number {
   if (typeof value === 'number' && Number.isFinite(value)) return value
-  if (typeof value === 'string') return value.trim()
+  if (typeof value === 'string') return sanitizeDisplayText(value.trim())
   return ''
 }
 
@@ -271,9 +276,9 @@ function normaliseMetric(raw: unknown): UtentiMetric {
   const item = asRecord(raw)
   return {
     id: text(item.id) || text(item.label) || 'metrica',
-    label: text(item.label) || 'Metrica',
+    label: display(item.label) || 'Metrica',
     value: scalar(item.value),
-    note: text(item.note),
+    note: display(item.note),
     tone: tone(item.tone),
   }
 }
@@ -282,9 +287,9 @@ function normaliseSectionItem(raw: unknown): UtentiSectionItem {
   const item = asRecord(raw)
   return {
     id: text(item.id) || text(item.label) || 'voce',
-    label: text(item.label) || 'Voce',
+    label: display(item.label) || 'Voce',
     value: scalar(item.value),
-    note: text(item.note),
+    note: display(item.note),
     tone: tone(item.tone),
   }
 }
@@ -293,10 +298,10 @@ function normaliseSection(raw: unknown): UtentiSection {
   const item = asRecord(raw)
   return {
     id: text(item.id) || text(item.title) || 'sezione',
-    title: text(item.title) || 'Sezione',
-    kind: text(item.kind) || 'distribution',
+    title: display(item.title) || 'Sezione',
+    kind: display(item.kind) || 'Distribuzione',
     items: list(item.items).map(normaliseSectionItem),
-    emptyMessage: text(item.emptyMessage) || 'Nessun dato disponibile.',
+    emptyMessage: display(item.emptyMessage) || 'Nessun dato disponibile.',
   }
 }
 
@@ -308,8 +313,8 @@ function normaliseUser(raw: unknown): UtenteRecord {
     name: text(item.name),
     email: text(item.email),
     role: text(item.role),
-    roleLabel: text(item.roleLabel) || text(item.role),
-    roleDescription: text(item.roleDescription),
+    roleLabel: display(item.roleLabel) || display(item.role),
+    roleDescription: display(item.roleDescription),
     roleTone: tone(item.roleTone),
     active: bool(item.active),
     mustChangeCredential: bool(item.mustChangeCredential) || bool(item.mustChangePassword),
@@ -326,8 +331,8 @@ function normaliseRole(raw: unknown): UtenteRole {
   const item = asRecord(raw)
   return {
     value: text(item.value),
-    label: text(item.label) || text(item.value),
-    description: text(item.description),
+    label: display(item.label) || display(item.value),
+    description: display(item.description),
     tone: tone(item.tone),
   }
 }
@@ -335,8 +340,8 @@ function normaliseRole(raw: unknown): UtenteRole {
 function normaliseWarning(raw: unknown): UtentiWarning {
   const item = asRecord(raw)
   return {
-    code: text(item.code) || 'warning',
-    message: text(item.message) || 'Avviso tecnico disponibile.',
+    code: display(item.code) || 'warning',
+    message: display(item.message) || 'Avviso operativo disponibile.',
   }
 }
 
@@ -345,7 +350,7 @@ function normaliseRollback(raw: unknown): UtentiRollbackAction | undefined {
   const href = text(item.href)
   if (!href) return undefined
   return {
-    label: text(item.label) || 'Rollback tecnico',
+    label: display(item.label) || 'Percorso di recupero',
     href,
     method: 'GET',
   }
@@ -404,8 +409,8 @@ function normaliseMutation(raw: unknown): UtenteMutationResult {
   const userRaw = item.user || item.item
   const result: UtenteMutationResult = {
     ok: item.ok === true,
-    message: text(item.message) || (item.ok === true ? 'Operazione completata.' : 'Operazione non completata.'),
-    errors: Object.fromEntries(Object.entries(errors).map(([key, value]) => [key, text(value)])),
+    message: display(item.message) || (item.ok === true ? 'Operazione completata.' : 'Operazione non completata.'),
+    errors: Object.fromEntries(Object.entries(errors).map(([key, value]) => [key, display(value)])),
     user: userRaw ? normaliseUser(userRaw) : null,
   }
   if (item.payload) {

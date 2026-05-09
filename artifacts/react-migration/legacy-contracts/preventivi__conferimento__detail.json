@@ -1,0 +1,14 @@
+{
+  "route": "/preventivi/conferimento/:id",
+  "legacyUrl": "/preventivi/conferimento/f613a379-326a-42b8-8465-777d8998b624?_legacy=1",
+  "status": 302,
+  "redirectLocation": "/login?next=/preventivi/conferimento/f613a379-326a-42b8-8465-777d8998b624?_legacy%3D1",
+  "forms": [],
+  "links": [
+    "/login?next=/preventivi/conferimento/f613a379-326a-42b8-8465-777d8998b624?_legacy%3D1"
+  ],
+  "linksCount": 1,
+  "downloads": [],
+  "hasBootstrapClass": false,
+  "hasReactRoot": false
+}

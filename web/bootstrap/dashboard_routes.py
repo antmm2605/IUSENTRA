@@ -13,6 +13,14 @@ from web.blueprints.react_shell import render_react_shell_response
 def _richiede_vista_classica() -> bool:
     return (request.args.get("_legacy") or "").strip().lower() in {"1", "true", "si", "yes", "on"}
 
+
+def _richiede_json() -> bool:
+    return (
+        request.headers.get("X-Requested-With") == "XMLHttpRequest"
+        or "application/json" in (request.headers.get("Accept") or "")
+    )
+
+
 def register_dashboard_routes(
     app: Flask,
     *,
@@ -202,9 +210,17 @@ def register_dashboard_routes(
                 )
                 flash(f"Appuntamento '{new_app.titolo}' aggiunto.", "success")
                 if from_cliente:
+                    target = url_for("cartella_cliente", id_cliente=from_cliente)
+                    if _richiede_json():
+                        return jsonify({"ok": True, "id": new_app.id, "message": f"Appuntamento '{new_app.titolo}' aggiunto.", "redirect": target})
                     return redirect(url_for("cartella_cliente", id_cliente=from_cliente))
+                target = url_for("dettaglio_appuntamento", id_app=new_app.id)
+                if _richiede_json():
+                    return jsonify({"ok": True, "id": new_app.id, "message": f"Appuntamento '{new_app.titolo}' aggiunto.", "redirect": target})
                 return redirect(url_for("dettaglio_appuntamento", id_app=new_app.id))
             except ValueError as e:
+                if _richiede_json():
+                    return jsonify({"ok": False, "message": str(e)}), 400
                 flash(str(e), "danger")
 
         data_default = request.args.get("data", "")
@@ -271,8 +287,13 @@ def register_dashboard_routes(
                 agenda.modifica(id_app, **campi)
                 flash("Appuntamento aggiornato.", "success")
                 sync_pubblica("modifica", "agenda", id_app)
+                target = url_for("dettaglio_appuntamento", id_app=id_app)
+                if _richiede_json():
+                    return jsonify({"ok": True, "id": id_app, "message": "Appuntamento aggiornato.", "redirect": target})
                 return redirect(url_for("dettaglio_appuntamento", id_app=id_app))
             except (ValueError, KeyError) as e:
+                if _richiede_json():
+                    return jsonify({"ok": False, "message": str(e)}), 400
                 flash(str(e), "danger")
 
         return render_template(

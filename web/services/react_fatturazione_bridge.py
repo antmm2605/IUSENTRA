@@ -355,7 +355,7 @@ def _new_form_payload(
     return {
         "id": "nuova_parcella",
         "title": "Nuova parcella",
-        "description": "La pagina invia JSON al backend; numerazione e calcolo fiscale definitivo restano nei servizi fatturazione.",
+        "description": "La pagina invia i dati controllati; numerazione e calcolo fiscale definitivo restano nei servizi fatturazione.",
         "readHref": "/api/v1/ui/fatturazione/nuova",
         "saveHref": "/api/v1/ui/fatturazione/nuova",
         "submitLabel": "Crea parcella",
@@ -378,7 +378,7 @@ def _fiscal_options(defaults: dict[str, Any]) -> list[dict[str, Any]]:
             "name": name,
             "label": label,
             "default": bool(opts.get(name)),
-            "description": "Opzione inviata al backend, con calcolo definitivo lato servizio.",
+            "description": "Opzione usata dai servizi per il calcolo definitivo.",
         }
         for name, label in labels.items()
     ]
@@ -389,12 +389,12 @@ def _actions_for(route: str, current_user: Any) -> list[dict[str, Any]]:
         return [
             {"id": "save", "label": "Crea parcella", "href": "/api/v1/ui/fatturazione/nuova", "method": "POST", "tone": "primary", "enabled": _can(current_user, "fatturazione.scrivi")},
             {"id": "archive", "label": "Archivio fatturazione", "href": "/fatturazione", "method": "GET", "tone": "neutral", "enabled": True},
-            {"id": "rollback", "label": "Rollback tecnico", "href": "/fatturazione/nuova?_legacy=1", "method": "GET", "tone": "warning", "enabled": True},
+            {"id": "recupero", "label": "Percorso di recupero", "href": "/fatturazione/nuova?_legacy=1", "method": "GET", "tone": "warning", "enabled": True},
         ]
     return [
         _action("nuova", "Nuova parcella", "/fatturazione/nuova", "primary"),
-        _action("export", "Export CSV backend", "/export/fatturazione.csv", "neutral"),
-        _action("rollback", "Rollback tecnico archivio", "/fatturazione?_legacy=1", "warning"),
+        _action("export", "Esporta CSV", "/export/fatturazione.csv", "neutral"),
+        _action("recupero", "Percorso di recupero", "/fatturazione?_legacy=1", "warning"),
     ]
 
 
@@ -410,12 +410,12 @@ def build_react_fatturazione_payload(
 ) -> dict[str, Any]:
     warnings: list[dict[str, str]] = [
         {
-            "code": "documenti_backend",
-            "message": "PDF, XML ed export restano sui blueprint Flask auditabili; stato e dettaglio sintetico usano API JSON.",
+            "code": "documenti_presidiati",
+            "message": "PDF, XML ed export restano nei percorsi auditabili; stato e dettaglio sintetico sono consultabili dalla pagina.",
         },
         {
-            "code": "calcolo_backend",
-            "message": "La shell React non determina totali fiscali canonici: il risultato definitivo resta nel modulo fatturazione.",
+            "code": "calcolo_presidiato",
+            "message": "La pagina non determina totali fiscali definitivi: il risultato finale resta nel modulo fatturazione.",
         },
     ]
     if route == "/fatturazione/nuova" and not _can(current_user, "fatturazione.scrivi"):
@@ -472,21 +472,21 @@ def build_react_fatturazione_payload(
             _metric("fatturato", "Fatturato anno", _money(stats.get("fatturato_lordo", 0)), f"Anno {stats.get('anno', anno)}", "primary"),
             _metric("incassato", "Incassato", _money(stats.get("incassato", 0)), "Valori dal servizio fatturazione", "success"),
             _metric("da_incassare", "Da incassare", _money(stats.get("da_incassare", 0)), "Parcelle emesse non saldate", "warning"),
-            _metric("scaduto", "Scaduto", _money(stats.get("scaduto", 0)), "Parcelle gia' marcate scadute dal backend", "danger" if stats.get("scaduto", 0) else "neutral"),
+            _metric("scaduto", "Scaduto", _money(stats.get("scaduto", 0)), "Parcelle gia' marcate scadute dal servizio", "danger" if stats.get("scaduto", 0) else "neutral"),
         ],
         "sections": [
             _section("stati", "Stato parcelle", "distribution", state_items, "Nessuna parcella nell'archivio."),
             _section(
-                "funzioni_backend",
+                "funzioni_presidiate",
                 "Funzioni conservate",
-                "backend-routes",
+                "presidi",
                 [
-                    _item("dettaglio", "Dettaglio parcella", "json", "Sintesi sicura letta da API React", "info"),
-                    _item("pdf", "PDF", "backend", "Generazione e download restano Flask", "warning"),
-                    _item("xml", "XML FatturaPA", "backend", "Produzione XML fuori dalla shell React", "warning"),
-                    _item("export", "Export CSV", "backend", "Download servito dal blueprint export esistente", "warning"),
+                    _item("dettaglio", "Dettaglio parcella", "consultabile", "Sintesi sicura letta dal servizio", "info"),
+                    _item("pdf", "PDF", "presidiato", "Generazione e download restano nel percorso dedicato", "warning"),
+                    _item("xml", "XML FatturaPA", "presidiato", "Produzione XML nel percorso dedicato", "warning"),
+                    _item("export", "Export CSV", "presidiato", "Download servito dal percorso di esportazione", "warning"),
                 ],
-                "Nessuna funzione backend conservata rilevata.",
+                "Nessuna funzione presidiata rilevata.",
             ),
         ],
         "records": records,

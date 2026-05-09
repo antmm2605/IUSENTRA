@@ -252,7 +252,7 @@ function InsightPanel({ data, visible }:{data: ClientiPageData; visible: Cliente
           <article>
             <span>Clienti collegati</span>
             <strong>{withProcedures} clienti con procedimenti visibili</strong>
-            <small>La nuova interfaccia è attiva: salvataggi e audit passano dai servizi backend già governati.</small>
+            <small>La nuova interfaccia è attiva: salvataggi e controlli restano tracciati nello studio.</small>
           </article>
         </div>
       </Panel>
@@ -390,7 +390,7 @@ export function AnagraficaClientiPage() {
 
       <section className="iu-cli-status-line">
         <span className={loading ? '' : 'is-ok'}>{loading ? 'Sincronizzazione anagrafiche...' : 'Dati aggiornati'}</span>
-        <small><ShieldCheck size={14}/> Dettaglio, modifica e invii usano il backend storico senza duplicare dati.</small>
+        <small><ShieldCheck size={14}/> Dettaglio, modifica e invii usano i dati di studio senza duplicazioni.</small>
         {selectedVisible ? <small className="iu-cli-selected">{selectedVisible} selezionati</small> : null}
       </section>
 

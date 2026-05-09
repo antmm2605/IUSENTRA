@@ -111,7 +111,7 @@ function ModuleTable({ modules }: { modules: AdminDatabaseModule[] }) {
       <div className="iu-db-empty">
         <Database size={24}/>
         <strong>Nessun modulo dati rilevato</strong>
-        <span>Il runtime non ha restituito moduli monitorabili per questa sessione.</span>
+        <span>L'ambiente operativo non ha restituito moduli monitorabili per questa sessione.</span>
       </div>
     )
   }
@@ -460,7 +460,7 @@ export function AdminDatabasePage() {
                   type="button"
                   className="iu-button"
                   onClick={() => {
-                    if (window.confirm('Attivare SQLite operativo per questo runtime?')) void runMigration(true)
+                    if (window.confirm('Attivare SQLite operativo per questo ambiente?')) void runMigration(true)
                   }}
                   disabled={migration.status === 'loading'}
                 >

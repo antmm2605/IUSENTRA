@@ -1,4 +1,5 @@
 import { apiJson, apiPostJson } from './lib/apiClient'
+import { sanitizeDisplayText } from './displayText'
 import type { AdminAction, AdminContract, AdminMetric, AdminSection, AdminTone, AdminWarning } from './utentiData'
 
 export type CompensiForensiRecord = {
@@ -116,7 +117,7 @@ export const emptyCompensiForensiPage: CompensiForensiPageData = {
   generated_at: '',
   contracts: {
     mock_fallback: false,
-    writes: 'json_api',
+    writes: 'azioni_auditate',
     route_owner: 'react_shell',
   },
   parameters: emptyParameters,
@@ -151,6 +152,10 @@ function text(value: unknown, fallback = ''): string {
   return typeof value === 'string' ? value.trim() : fallback
 }
 
+function display(value: unknown, fallback = ''): string {
+  return sanitizeDisplayText(text(value, fallback))
+}
+
 function scalar(value: unknown): string | number {
   if (typeof value === 'number' && Number.isFinite(value)) return value
   if (typeof value === 'string') return value.trim()
@@ -176,9 +181,9 @@ function normaliseMetric(raw: unknown): AdminMetric {
   const item = asRecord(raw)
   return {
     id: text(item.id) || text(item.label) || 'metrica',
-    label: text(item.label) || 'Metrica',
+    label: display(item.label) || 'Metrica',
     value: scalar(item.value),
-    note: text(item.note),
+    note: display(item.note),
     tone: tone(item.tone),
   }
 }
@@ -187,19 +192,19 @@ function normaliseSection(raw: unknown): AdminSection {
   const item = asRecord(raw)
   return {
     id: text(item.id) || text(item.title) || 'sezione',
-    title: text(item.title) || 'Sezione',
-    kind: text(item.kind) || 'distribution',
+    title: display(item.title) || 'Sezione',
+    kind: display(item.kind) || 'Sezione operativa',
     items: list(item.items).map((rawItem) => {
       const entry = asRecord(rawItem)
       return {
         id: text(entry.id) || text(entry.label) || 'voce',
-        label: text(entry.label) || 'Voce',
+        label: display(entry.label) || 'Voce',
         value: scalar(entry.value),
-        note: text(entry.note),
+        note: display(entry.note),
         tone: tone(entry.tone),
       }
     }),
-    emptyMessage: text(item.emptyMessage) || 'Nessun dato disponibile.',
+    emptyMessage: display(item.emptyMessage) || 'Nessun dato disponibile.',
   }
 }
 
@@ -207,7 +212,7 @@ function normaliseAction(raw: unknown): AdminAction {
   const item = asRecord(raw)
   return {
     id: text(item.id) || text(item.label) || 'azione',
-    label: text(item.label) || 'Apri',
+    label: display(item.label) || 'Apri',
     href: safeHref(item.href, '/compensi-forensi'),
     method: 'GET',
     tone: tone(item.tone),
@@ -218,7 +223,7 @@ function normaliseWarning(raw: unknown): AdminWarning {
   const item = asRecord(raw)
   return {
     code: text(item.code) || 'warning',
-    message: text(item.message) || 'Avviso tecnico disponibile.',
+    message: display(item.message) || 'Avviso operativo disponibile.',
   }
 }
 
@@ -226,10 +231,10 @@ function normaliseRecord(raw: unknown): CompensiForensiRecord {
   const item = asRecord(raw)
   return {
     id: text(item.id) || text(item.title) || 'record',
-    title: text(item.title) || 'Voce operativa',
-    subtitle: text(item.subtitle),
-    meta: text(item.meta),
-    stateLabel: text(item.stateLabel),
+    title: display(item.title) || 'Voce operativa',
+    subtitle: display(item.subtitle),
+    meta: display(item.meta),
+    stateLabel: display(item.stateLabel),
     stateTone: tone(item.stateTone),
     href: safeHref(item.href, '/tariffario'),
   }
@@ -240,20 +245,20 @@ function normaliseParameters(raw: unknown): CompensiForensiParameters {
   return {
     areas: list(item.areas).map((entry) => {
       const row = asRecord(entry)
-      return { value: text(row.value), label: text(row.label) || text(row.value) }
+      return { value: text(row.value), label: display(row.label) || display(row.value) }
     }).filter((row) => row.value || row.label),
     proceedings: list(item.proceedings).map((entry) => {
       const row = asRecord(entry)
       return {
         value: text(row.value),
-        label: text(row.label) || text(row.value),
-        area: text(row.area),
-        grade: text(row.grade),
+        label: display(row.label) || display(row.value),
+        area: display(row.area),
+        grade: display(row.grade),
       }
     }).filter((row) => row.value || row.label),
     complexities: list(item.complexities).map((entry) => {
       const row = asRecord(entry)
-      return { value: text(row.value), label: text(row.label) || text(row.value) }
+      return { value: text(row.value), label: display(row.label) || display(row.value) }
     }).filter((row) => row.value || row.label),
     fiscal_options: {
       applica_iva: asRecord(item.fiscal_options).applica_iva !== false,
@@ -280,40 +285,40 @@ function normaliseResult(raw: unknown): CompensiForensiCalculationResult | null 
   const table = asRecord(item.table)
   const economic = asRecord(item.economic)
   return {
-    title: text(item.title) || 'Risultato backend',
-    engineLabel: text(item.engineLabel),
-    engineText: text(item.engineText),
+    title: display(item.title) || 'Risultato calcolo',
+    engineLabel: display(item.engineLabel),
+    engineText: display(item.engineText),
     metadata: list(item.metadata).map((entry) => {
       const row = asRecord(entry)
-      return { label: text(row.label), value: text(row.value) }
+      return { label: display(row.label), value: display(row.value) }
     }).filter((row) => row.label || row.value),
-    badges: list(item.badges).map((entry) => text(entry)).filter(Boolean),
+    badges: list(item.badges).map((entry) => display(entry)).filter(Boolean),
     table: Object.keys(table).length ? {
       columns: list(table.columns).map((entry) => {
         const row = asRecord(entry)
-        return { id: text(row.id), label: text(row.label) }
+        return { id: text(row.id), label: display(row.label) }
       }),
       rows: list(table.rows).map((entry) => {
         const row = asRecord(entry)
         return {
           id: text(row.id),
-          label: text(row.label),
-          values: Object.fromEntries(Object.entries(asRecord(row.values)).map(([key, val]) => [key, text(val)])),
+          label: display(row.label),
+          values: Object.fromEntries(Object.entries(asRecord(row.values)).map(([key, val]) => [key, display(val)])),
         }
       }),
-      selected: text(table.selected),
+      selected: display(table.selected),
     } : undefined,
-    note: text(item.note),
-    warnings: list(item.warnings).map((entry) => text(entry)).filter(Boolean),
+    note: display(item.note),
+    warnings: list(item.warnings).map((entry) => display(entry)).filter(Boolean),
     economic: Object.keys(economic).length ? {
       rows: list(economic.rows).map((entry) => {
         const row = asRecord(entry)
-        return { id: text(row.id), label: text(row.label), value: text(row.value), tone: text(row.tone) }
+        return { id: text(row.id), label: display(row.label), value: display(row.value), tone: text(row.tone) }
       }),
-      total: text(economic.total),
-      base: text(economic.base),
+      total: display(economic.total),
+      base: display(economic.base),
     } : undefined,
-    selectedTotal: text(item.selectedTotal),
+    selectedTotal: display(item.selectedTotal),
   }
 }
 
@@ -323,22 +328,22 @@ function normalisePage(raw: unknown): CompensiForensiPageData {
   const parameters = normaliseParameters(page.parameters)
   return {
     ok: page.ok === true,
-    source: text(page.source),
+    source: display(page.source),
     generated_at: text(page.generated_at),
     contracts: {
       mock_fallback: contracts.mock_fallback === true ? true : false,
-      writes: text(contracts.writes) || 'json_api',
+      writes: display(contracts.writes) || 'azioni_auditate',
       route_owner: text(contracts.route_owner) || 'react_shell',
       legacy_contract: text(contracts.legacy_contract),
     },
     parameters,
     areas: list(page.areas).map((entry) => {
       const row = asRecord(entry)
-      return { value: text(row.value), label: text(row.label) || text(row.value) }
+      return { value: text(row.value), label: display(row.label) || display(row.value) }
     }).filter((row) => row.value || row.label),
     phases: list(page.phases).map((entry) => {
       const row = asRecord(entry)
-      return { value: text(row.value), label: text(row.label) || text(row.value) }
+      return { value: text(row.value), label: display(row.label) || display(row.value) }
     }).filter((row) => row.value || row.label),
     options: asRecord(page.options),
     last_results: list(page.last_results).map(normaliseResult).filter((item): item is CompensiForensiCalculationResult => Boolean(item)),
@@ -354,7 +359,7 @@ function normaliseMutation(raw: unknown): CompensiForensiMutationResult {
   const item = asRecord(raw)
   return {
     ok: item.ok === true,
-    message: text(item.message) || (item.ok === true ? 'Calcolo completato.' : 'Calcolo non completato.'),
+    message: display(item.message) || (item.ok === true ? 'Calcolo completato.' : 'Calcolo non completato.'),
     errors: asRecord(item.errors) as Record<string, string>,
     result: normaliseResult(item.result),
     warnings: list(item.warnings).map(normaliseWarning),
@@ -373,8 +378,8 @@ export async function calculateCompensiForensi(payload: CompensiForensiCalculati
 export async function saveCompensiForensiLog(): Promise<CompensiForensiMutationResult> {
   return {
     ...emptyMutation,
-    message: 'Salvataggio log non disponibile tramite API React.',
-    errors: { unsupported: 'Azione non supportata dal backend legacy.' },
+    message: 'Salvataggio log non disponibile da questa vista.',
+    errors: { unsupported: 'Azione non disponibile da questa vista.' },
   }
 }
 

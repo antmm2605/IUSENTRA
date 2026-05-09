@@ -15,6 +15,13 @@ def _richiede_vista_legacy() -> bool:
     return (request.args.get("_legacy") or "").strip().lower() in {"1", "true", "si", "yes", "on"}
 
 
+def _richiede_json() -> bool:
+    return (
+        request.headers.get("X-Requested-With") == "XMLHttpRequest"
+        or "application/json" in (request.headers.get("Accept") or "")
+    )
+
+
 def register_soggetti_routes(
     app: Flask,
     *,
@@ -97,6 +104,9 @@ def register_soggetti_routes(
             )
             audit("soggetti.crea", "soggetto", soggetto.id, dettagli=soggetto.nome_completo)
             flash(f"Soggetto '{soggetto.nome_completo}' creato.", "success")
+            target = url_for("dettaglio_soggetto", id_soggetto=soggetto.id)
+            if _richiede_json():
+                return jsonify({"ok": True, "id": soggetto.id, "message": f"Soggetto '{soggetto.nome_completo}' creato.", "redirect": target})
             return redirect(url_for("dettaglio_soggetto", id_soggetto=soggetto.id))
 
         prefill = {
@@ -201,6 +211,9 @@ def register_soggetti_routes(
             )
             audit("soggetti.modifica", "soggetto", id_soggetto, dettagli=soggetto.nome_completo)
             flash("Soggetto aggiornato.", "success")
+            target = url_for("dettaglio_soggetto", id_soggetto=id_soggetto)
+            if _richiede_json():
+                return jsonify({"ok": True, "id": id_soggetto, "message": "Soggetto aggiornato.", "redirect": target})
             return redirect(url_for("dettaglio_soggetto", id_soggetto=id_soggetto))
         return render_template(
             "soggetti/form.html",

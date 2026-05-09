@@ -1,4 +1,5 @@
 import type { Tone } from './data'
+import { sanitizeDisplayText } from './displayText'
 import type {
   TelematicoCase,
   TelematicoChannel,
@@ -175,6 +176,10 @@ function text(value: unknown, fallback = ''): string {
   return String(value ?? fallback).trim()
 }
 
+function display(value: unknown, fallback = ''): string {
+  return sanitizeDisplayText(text(value, fallback))
+}
+
 function number(value: unknown): number {
   const parsed = Number(value ?? 0)
   return Number.isFinite(parsed) ? parsed : 0
@@ -212,7 +217,7 @@ function normaliseAction(value: unknown, index: number): SurfaceAction {
   const item = isRecord(value) ? value : {}
   return {
     id: text(item.id, `azione-${index}`),
-    label: text(item.label, 'Apri'),
+    label: display(item.label, 'Apri'),
     href: text(item.href, '#'),
     tone: tone(item.tone, 'primary'),
     method: method(item.method),
@@ -224,16 +229,16 @@ function normaliseCard(value: unknown, index: number): SurfaceCard {
   const item = isRecord(value) ? value : {}
   return {
     id: text(item.id, `card-${index}`),
-    title: text(item.title, 'Azione operativa'),
-    body: text(item.body, ''),
+    title: display(item.title, 'Azione operativa'),
+    body: display(item.body, ''),
     tone: tone(item.tone, 'primary'),
     icon: text(item.icon, 'workflow'),
     actions: asList(item.actions).map(normaliseAction),
     metrics: asList(item.metrics).map((metric, metricIndex) => {
       const row = isRecord(metric) ? metric : {}
       return {
-        label: text(row.label, `Indicatore ${metricIndex + 1}`),
-        value: typeof row.value === 'string' ? row.value : number(row.value),
+        label: display(row.label, `Indicatore ${metricIndex + 1}`),
+        value: typeof row.value === 'string' ? display(row.value) : number(row.value),
       }
     }),
   }
@@ -243,13 +248,13 @@ function normaliseChecklistGroup(value: unknown, index: number): ChecklistGroup 
   const item = isRecord(value) ? value : {}
   return {
     id: text(item.id, `gruppo-${index}`),
-    title: text(item.title, 'Checklist'),
+    title: display(item.title, 'Checklist'),
     items: asList(item.items).map((raw, itemIndex) => {
       const row = isRecord(raw) ? raw : {}
       return {
         id: text(row.id, `item-${index}-${itemIndex}`),
-        label: text(row.label, 'Controllo'),
-        description: text(row.description, ''),
+        label: display(row.label, 'Controllo'),
+        description: display(row.description, ''),
         critical: bool(row.critical),
       }
     }),
@@ -262,16 +267,16 @@ function normaliseOffice(value: unknown, index: number): OfficeRow {
     id: text(item.id, `ufficio-${index}`),
     codice: text(item.codice),
     codiceMinistero: text(item.codiceMinistero ?? item.codice_ministero),
-    nome: text(item.nome, 'Ufficio giudiziario'),
-    descrizione: text(item.descrizione ?? item.descrizioneMinistero ?? item.descrizione_ministero),
-    tipo: text(item.tipo, 'ALTRO'),
-    distretto: text(item.distretto),
+    nome: display(item.nome, 'Ufficio giudiziario'),
+    descrizione: display(item.descrizione ?? item.descrizioneMinistero ?? item.descrizione_ministero),
+    tipo: display(item.tipo, 'ALTRO'),
+    distretto: display(item.distretto),
     pec: text(item.pec),
-    regione: text(item.regione),
-    provincia: text(item.provincia),
-    comune: text(item.comune),
-    servizioPst: text(item.servizioPst ?? item.servizio_pst_predefinito),
-    servizi: asList(item.servizi ?? item.serviziMinistero ?? item.servizi_ministero).map((servizio) => text(servizio)).filter(Boolean),
+    regione: display(item.regione),
+    provincia: display(item.provincia),
+    comune: display(item.comune),
+    servizioPst: display(item.servizioPst ?? item.servizio_pst_predefinito),
+    servizi: asList(item.servizi ?? item.serviziMinistero ?? item.servizi_ministero).map((servizio) => display(servizio)).filter(Boolean),
   }
 }
 
@@ -292,11 +297,11 @@ function normaliseControlItem(value: unknown, index: number, fallbackBadge: stri
   return {
     id: text(item.id, `control-${fallbackBadge}-${index}`),
     portal: text(item.portal) as 'pst' | 'pdp' | 'pat' | 'ptt' | 'altro',
-    title: text(item.title, 'Elemento da presidiare'),
-    subtitle: text(item.subtitle ?? item.description),
+    title: display(item.title, 'Elemento da presidiare'),
+    subtitle: display(item.subtitle ?? item.description),
     href: text(item.href, '/app-v2/telematico'),
     tone: tone(item.tone, 'warning'),
-    badge: text(item.badge, fallbackBadge),
+    badge: display(item.badge, fallbackBadge),
   }
 }
 
@@ -316,17 +321,17 @@ function normaliseCase(value: unknown, index: number): TelematicoCase {
   return {
     id: text(item.id, `case-${index}`),
     portal: text(item.portal, 'altro') as TelematicoCase['portal'],
-    portalLabel: text(item.portalLabel, 'Telematico'),
-    title: text(item.title, 'Pratica telematica'),
-    subtitle: text(item.subtitle, ''),
-    subject: text(item.subject),
-    statusText: text(item.statusText, 'Da verificare'),
+    portalLabel: display(item.portalLabel, 'Telematico'),
+    title: display(item.title, 'Pratica telematica'),
+    subtitle: display(item.subtitle, ''),
+    subject: display(item.subject),
+    statusText: display(item.statusText, 'Da verificare'),
     documentsCount: number(item.documentsCount),
     openTasks: number(item.openTasks),
     syncedAt: text(item.syncedAt),
     href: text(item.href, '/app-v2/telematico'),
     tone: tone(item.tone, 'neutral'),
-    badges: asList(item.badges).map((badge) => text(badge)).filter(Boolean),
+    badges: asList(item.badges).map((badge) => display(badge)).filter(Boolean),
   }
 }
 
@@ -335,12 +340,12 @@ function normaliseEvent(value: unknown, index: number): TelematicoEvent {
   return {
     id: text(item.id, `event-${index}`),
     portal: text(item.portal, 'altro') as TelematicoEvent['portal'],
-    title: text(item.title, 'Attivita telematica'),
-    subtitle: text(item.subtitle, ''),
+    title: display(item.title, 'Attivita telematica'),
+    subtitle: display(item.subtitle, ''),
     timestamp: text(item.timestamp),
     href: text(item.href, '/app-v2/telematico'),
     tone: tone(item.tone, 'primary'),
-    badge: text(item.badge),
+    badge: display(item.badge),
   }
 }
 
@@ -363,9 +368,9 @@ function normaliseSurfacePayload(payload: unknown): TelematicoSurfaceData {
     surface: {
       id: surfaceId(surface.id),
       portal: text(surface.portal),
-      title: text(surface.title, 'Servizi telematici'),
-      eyebrow: text(surface.eyebrow, 'IUSENTRA'),
-      subtitle: text(surface.subtitle),
+      title: display(surface.title, 'Servizi telematici'),
+      eyebrow: display(surface.eyebrow, 'IUSENTRA'),
+      subtitle: display(surface.subtitle),
       tone: tone(surface.tone, 'primary'),
       appHref: text(surface.appHref, '/app-v2/telematico'),
       legacyHref: text(surface.legacyHref),
@@ -386,13 +391,13 @@ function normaliseSurfacePayload(payload: unknown): TelematicoSurfaceData {
     recentEvents: asList(payload.recentEvents).map(normaliseEvent),
     links: asList(payload.links).map((link) => {
       const item = isRecord(link) ? link : {}
-      return { label: text(item.label, 'Link'), href: text(item.href, '#'), kind: text(item.kind, 'link') }
+      return { label: display(item.label, 'Link'), href: text(item.href, '#'), kind: display(item.kind, 'link') }
     }),
     notices: asList(payload.notices).map((notice) => {
       const item = isRecord(notice) ? notice : {}
-      return { tone: tone(item.tone, 'warning'), title: text(item.title, 'Avviso'), body: text(item.body) }
+      return { tone: tone(item.tone, 'warning'), title: display(item.title, 'Avviso'), body: display(item.body) }
     }),
-    lexSuggestions: asList(payload.lexSuggestions).map((item) => text(item)).filter(Boolean),
+    lexSuggestions: asList(payload.lexSuggestions).map((item) => display(item)).filter(Boolean),
     offices: asList(payload.offices).map(normaliseOffice),
     officeSummary: {
       source: text(officeSummary.source),

@@ -15,6 +15,7 @@ import {
   type TemplateAttiPageData,
   type TemplateAttiRecord,
 } from '../templateAttiData'
+import { displaySourceLabel, displayWritesLabel } from '../displayText'
 import './TemplateAttiPage.css'
 
 function isCatalogoRoute() {
@@ -28,7 +29,7 @@ function ContractStrip({ data }: { data: TemplateAttiPageData }) {
       <div>
         <strong>{openDesignContract.system}</strong>
         <span>
-          {data.source || 'Sorgente non indicata'} - scritture {data.contracts.writes || 'none'}
+          {displaySourceLabel(data.source)} - {displayWritesLabel(data.contracts.writes)}
         </span>
       </div>
     </aside>
@@ -265,7 +266,7 @@ export function TemplateAttiPage() {
   }, [category, channel, data.records, query])
 
   if (loading) {
-    return <LoadingState title="Caricamento template atti" message="Recupero catalogo e metadati reali dal backend." />
+    return <LoadingState title="Caricamento template atti" message="Recupero catalogo e metadati reali." />
   }
 
   return (
@@ -332,7 +333,7 @@ export function TemplateAttiPage() {
           ) : (
             <EmptyState
               title="Nessun template disponibile"
-              message="La UI resta neutra finche' il backend non espone metadati consultabili."
+              message="La schermata resta neutra finche' non sono disponibili metadati consultabili."
               action={
                 <ButtonLink href="/documenti" tone="neutral">
                   Apri documenti
@@ -342,7 +343,7 @@ export function TemplateAttiPage() {
           )}
         </Panel>
         <aside className="iu-template-source iu-od-meta">
-          Contratto: {data.contracts.legacy_contract || 'non indicato'} - aggiornato {data.generated_at || 'non indicato'}
+          Presidio dati: {displaySourceLabel(data.source)} - aggiornato {data.generated_at || 'non indicato'}
         </aside>
       </div>
     </Page>

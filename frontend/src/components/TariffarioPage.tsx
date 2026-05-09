@@ -1152,7 +1152,7 @@ export function TariffarioPage() {
     setProfile(response.profile)
     setDynamic(response.dynamic)
     setResult(response.result)
-    setSuccess('Calcolo completato dal backend.')
+    setSuccess('Calcolo completato.')
   }
 
   function reset() {
@@ -1187,29 +1187,29 @@ export function TariffarioPage() {
       setProfile(response.profile)
       setDynamic(response.dynamic)
       setResult(response.result)
-      setSuccess('Calcolo aggiornato dal backend.')
+      setSuccess('Calcolo aggiornato.')
       setError('')
     }, 450)
     return () => window.clearTimeout(timer)
   }, [form, hasCatalog, loading])
 
   if (loading) {
-    return <LoadingState title="Caricamento tariffario" message="Recupero catalogo, profili, audit e risultato iniziale dal backend." />
+    return <LoadingState title="Caricamento tariffario" message="Recupero catalogo, profili, controlli e risultato iniziale." />
   }
 
   return (
     <main className="iu-content iu-page iu-tar-page">
       <Hero stats={data.stats} />
-      {busy ? <LoadingState title="Calcolo tariffario" message="Salvataggio JSON al backend e aggiornamento risultato." /> : null}
+      {busy ? <LoadingState title="Calcolo tariffario" message="Salvataggio e aggiornamento del risultato." /> : null}
       {success ? <div className="iu-tar-alert iu-tar-alert-success" role="status">{success}</div> : null}
       {error ? <div className="iu-tar-alert iu-tar-alert-error" role="alert">{error}</div> : null}
       {!hasCatalog ? (
         <section className="iu-tar-panel">
           <h2>Catalogo tariffario non disponibile</h2>
-          <p>La route React è attiva, ma il catalogo non ha restituito opzioni operative.</p>
+          <p>La schermata e' attiva, ma il catalogo non ha restituito opzioni operative.</p>
           <div className="iu-tar-rollback">
-            <strong>Rollback tecnico</strong>
-            <a className="iu-tar-button iu-tar-button-light" href="/tariffario?_legacy=1">Apri vista legacy</a>
+            <strong>Percorso di recupero</strong>
+            <a className="iu-tar-button iu-tar-button-light" href="/tariffario?_legacy=1">Apri vista di recupero</a>
           </div>
         </section>
       ) : (

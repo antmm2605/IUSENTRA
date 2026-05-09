@@ -8,6 +8,17 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 
 ## Frontend e gate React
 
+### Tranche 2.213.0 - pagine operative richieste full React
+
+| Verifica | Esito | Nota |
+| --- | --- | --- |
+| `node frontend/scripts/check-react-contracts.mjs` | OK | Contratti aggiornati: submit React centralizzato, route richieste governate, niente regressione sui contratti esistenti. |
+| `node scripts/react-migration/check-route-gate.mjs` | OK | Manifest/gate allineati dopo promozione delle route richieste e alias full React. |
+| `node scripts/react-migration/check-full-react-route-contract.mjs` | OK | Anti-mascheramento verde: 84 route censite, nessun full React fittizio e nessun form POST HTML nei target full. |
+| `npm --prefix frontend run typecheck` | OK | TypeScript senza errori dopo conversione JsonPostForm e pulizia testi UI. |
+| `npm --prefix frontend run build` | OK | Build Vite produzione rigenerata con asset React 2.213.0. |
+| `python tools/sync_packaging_files.py --check` | OK | Packaging sincronizzato con versione 2.213.0. |
+
 | Verifica | Esito | Nota |
 | --- | --- | --- |
 | `npm test` | OK | Contratti React verificati. |
@@ -200,6 +211,20 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 ## Nota pytest monolitico
 
 `python -m pytest -q` monolitico non viene usato come dichiarazione di verde totale in locale perche' va in timeout. Il gate viene verificato tramite shard/sotto-shard con timeout per job, isolando i test lenti e correggendo le failure reali.
+
+## Hotfix Sito Studio Contatti e Nav React 2026-05-09
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile web/services/react_sito_studio_bridge.py web/blueprints/api_v1_react.py` | OK | Sintassi backend confermata dopo entrypoint pubblici, testi non tecnici e azioni protette dei contatti sito. |
+| `npm run typecheck` | OK | TypeScript confermato dopo `entrypoints`, pagina contatti operativa anche a lista vuota e nuova gestione sidebar. |
+| `npm run build` | OK | Build Vite 2.213.0 completata; asset React rigenerati in `web/static/react`. |
+| `docker compose build app` | OK | Immagine locale app ricostruita con bridge e asset aggiornati. |
+| `docker compose up -d --no-build app nginx` | OK | `iusentra-app` riavviata e healthy; `iusentra-nginx` attivo. |
+| `docker compose ps` | OK | `iusentra-app`, `iusentra-scheduler`, `iusentra-ocr` e `iusentra-redis` healthy; `iusentra-nginx` attivo. |
+| `Invoke-WebRequest http://127.0.0.1:8080/api/pronto` | OK | Readiness locale: `{"ok":true,"stato":"pronto","versione":"2.213.0"}`. |
+| Browser reale `http://localhost:8080/sito-studio/contatti` | OK | Pagina React presente con `Contatti Sito Studio`, `Ingressi pubblici`, `Richieste contatto`, `Prenotazioni`, link `Apri modulo contatti` e `Apri prenotazione`; nessun overflow orizzontale e nessun testo tecnico vietato. |
+| Browser reale nav `Studio -> Statistiche -> Fascicoli` | OK | Su `Statistiche` resta aperta solo la sezione `STUDIO`; aprendo `FASCICOLI` si chiude `STUDIO`; su `/fascicoli` resta aperta solo `FASCICOLI`. |
 
 ## Gate finali tranche Impostazioni React 2.209.0
 

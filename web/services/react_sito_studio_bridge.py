@@ -67,7 +67,7 @@ def _contracts(route: str, *, writes: str) -> dict[str, Any]:
         "legacy_contract": f"artifacts/react-migration/legacy-contracts/{name}.json",
     }
     if route == "/sito-studio":
-        contract.update({"builder": "legacy_protected", "publishing": "legacy_protected"})
+        contract.update({"builder": "react_operativo", "publishing": "azioni_protette"})
     else:
         contract.update({"notifications": "legacy_protected", "automation": "legacy_protected"})
     return contract
@@ -250,7 +250,7 @@ def build_react_sito_studio_payload(
         + [_page(row, "office") for row in dashboard.get("offices", [])]
     )
     warnings = [
-        {"code": "builder_legacy_protetto", "message": "Builder, editor contenuti e pubblicazione avanzata restano legacy protetti."},
+        {"code": "builder_react_operativo", "message": "Builder, pagine, redazione AI e pubblicazione sono disponibili nelle superfici React dedicate."},
         {"code": "notifiche_non_introdotte", "message": "Questa dashboard non invia email, SMS o WhatsApp e non crea automazioni."},
         *[
             {"code": "sito_studio", "message": _text(message)}
@@ -280,11 +280,12 @@ def build_react_sito_studio_payload(
         "actions": [
             _action("contatti", "Apri contatti sito", "/sito-studio/contatti", "primary"),
             _action("public", "Apri sito pubblico", site_summary["publicUrl"], "success") if site_summary["publicUrl"] else _action("public-disabled", "Sito pubblico non disponibile", "/sito-studio", "neutral"),
-            _action("builder", "Builder legacy protetto", "/sito-studio/builder", "warning", protected=True),
-            _action("rollback", "Rollback tecnico legacy", "/sito-studio?_legacy=1", "neutral", protected=True),
+            _action("builder", "Apri Builder sito", "/sito-studio/builder", "primary"),
+            _action("redazione-ai", "Apri Redazione AI", "/sito-studio/redazione-ai", "primary"),
+            _action("recupero", "Percorso di recupero", "/sito-studio?_legacy=1", "neutral", protected=True),
         ],
         "legacy_routes": [
-            _action("builder", "Builder legacy protetto", "/sito-studio/builder", "warning", protected=True),
+            _action("recupero", "Percorso di recupero", "/sito-studio?_legacy=1", "neutral", protected=True),
         ],
         "warnings": warnings,
     }
@@ -297,6 +298,10 @@ def build_react_sito_contatti_payload(
     get_fascicoli: Loader | None = None,
 ) -> dict[str, Any]:
     dashboard = _base_dashboard()
+    site = dashboard.get("site") or {}
+    site_summary = _site_summary(site, _text(dashboard.get("public_url")))
+    public_slug = site_summary["publicSlug"]
+    public_site_url = site_summary["publicUrl"] or (f"/web/{public_slug}/" if public_slug else "")
     contacts = [_contact(row) for row in dashboard.get("contact_submissions", [])]
     bookings = [_booking(row) for row in dashboard.get("booking_requests", [])]
     can_manage = _can(current_user, "admin.configura") if current_user is not None else True
@@ -309,14 +314,20 @@ def build_react_sito_contatti_payload(
         "canLinkClient": can_manage,
         "canLinkMatter": False,
         "canUpdateBookingStatus": can_manage,
-        "unsupportedReason": "Il repository legacy supporta solo collegamento cliente e approvazione/rifiuto prenotazioni.",
-        "rollback": {"label": "Rollback tecnico legacy", "href": "/sito-studio/contatti?_legacy=1", "method": "GET"},
+        "unsupportedReason": "Sono abilitate le azioni sicure gia collegate: creazione cliente, collegamento cliente e approvazione o rifiuto prenotazioni.",
+        "rollback": {"label": "Percorso di recupero", "href": "/sito-studio/contatti?_legacy=1", "method": "GET"},
     }
     return {
         "ok": True,
         "source": "repository_reali",
         "generated_at": _iso_now(),
-        "contracts": _contracts("/sito-studio/contatti", writes="json_api"),
+        "contracts": _contracts("/sito-studio/contatti", writes="azioni_protette"),
+        "entrypoints": {
+            "publicSite": public_site_url,
+            "publicContact": f"/web/{public_slug}/contatti" if public_slug else public_site_url,
+            "publicBooking": f"/web/{public_slug}/prenota" if public_slug else "",
+            "dashboard": "/sito-studio",
+        },
         "contacts": contacts,
         "bookings": bookings,
         "statuses": [
@@ -331,7 +342,7 @@ def build_react_sito_contatti_payload(
         "matters": _safe_matters(get_fascicoli, current_user),
         "actions": actions,
         "warnings": [
-            {"code": "azioni_contatto_limitate", "message": "Stato contatto, archiviazione, note interne, assegnazione e collegamento fascicolo non sono supportati dal backend legacy corrente."},
+            {"code": "azioni_contatto_limitate", "message": "Questa scheda consente collegamento cliente e gestione prenotazioni. Note interne, assegnazione e archiviazione saranno abilitate in una fase successiva."},
             {"code": "notifiche_non_introdotte", "message": "Le azioni React non inviano email, SMS o WhatsApp e non creano automazioni."},
         ],
     }

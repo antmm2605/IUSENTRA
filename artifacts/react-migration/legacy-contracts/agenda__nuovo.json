@@ -1,0 +1,15 @@
+{
+  "route": "/agenda/nuovo",
+  "capturedAt": "2026-05-09",
+  "status": "react_operational_full",
+  "source": "audit richiesto utente: full React end-to-end",
+  "preserve": [
+    "nuovo appuntamento React",
+    "salvataggio JSON",
+    "autocomplete clienti reale",
+    "controllo sovrapposizioni",
+    "messaggi successo/errore"
+  ],
+  "uiPolicy": "docs/UI_DESIGN_SYSTEM.md",
+  "regressionGuard": "nessun form POST HTML, nessuna CTA primaria legacy, testi visibili non tecnici"
+}

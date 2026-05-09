@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
-import { Banknote, CalendarDays, CheckCircle2, Clock3, FileText, Filter, Plus, Search } from 'lucide-react'
+import { AlertTriangle, Banknote, CalendarDays, CheckCircle2, Clock3, FileText, Filter, Plus, Search } from 'lucide-react'
 import { Badge } from './dashboard'
 import { FloatingLex } from './FloatingLex'
+import { JsonPostForm } from './JsonPostForm'
 import { getTimesheetPage, type TimesheetData, type TimesheetEntry } from '../timesheetData'
 import './TimesheetPage.css'
 
@@ -78,7 +79,7 @@ function NewEntryForm({ data }: { data: TimesheetData }) {
           <h2>Registra tempo</h2>
         </div>
       </div>
-      <form className="iu-timesheet-form" method="post" action={data.actions.create}>
+      <JsonPostForm className="iu-timesheet-form" action={data.actions.create} successMessage="Attivita salvata.">
         <input type="hidden" name="_csrf_token" value={csrfToken()} />
         <input type="hidden" name="from_page" value="timesheet" />
         <label className="wide">
@@ -124,14 +125,14 @@ function NewEntryForm({ data }: { data: TimesheetData }) {
           <span>Voce fatturabile</span>
         </label>
         <button type="submit">Salva attivita</button>
-      </form>
+      </JsonPostForm>
     </section>
   )
 }
 
 function StatusForm({ entry, data }: { entry: TimesheetEntry; data: TimesheetData }) {
   return (
-    <form className="iu-timesheet-status" method="post" action={entry.stateAction}>
+    <JsonPostForm className="iu-timesheet-status" action={entry.stateAction} successMessage="Stato salvato.">
       <input type="hidden" name="_csrf_token" value={csrfToken()} />
       <input type="hidden" name="id_cliente" value={data.filters.id_cliente || entry.idCliente} />
       <input type="hidden" name="id_fascicolo" value={data.filters.id_fascicolo || entry.idFascicolo} />
@@ -139,7 +140,7 @@ function StatusForm({ entry, data }: { entry: TimesheetEntry; data: TimesheetDat
         {data.options.statuses.map((status) => <option value={status.value} key={status.value}>{status.label}</option>)}
       </select>
       <button type="submit">Aggiorna</button>
-    </form>
+    </JsonPostForm>
   )
 }
 
@@ -197,7 +198,7 @@ function BillingPanel({ data }: { data: TimesheetData }) {
         <a href={data.actions.billing}>Apri fatturazione</a>
       </div>
       {eligible.length ? (
-        <form className="iu-timesheet-billing" method="post" action={data.billing.action}>
+        <JsonPostForm className="iu-timesheet-billing" action={data.billing.action} successMessage="Parcella creata.">
           <input type="hidden" name="_csrf_token" value={csrfToken()} />
           <input type="hidden" name="id_cliente" value={data.billing.idCliente} />
           <input type="hidden" name="id_fascicolo" value={data.billing.idFascicolo} />
@@ -215,7 +216,7 @@ function BillingPanel({ data }: { data: TimesheetData }) {
             <input type="date" name="data_scadenza" />
           </label>
           <button type="submit" disabled={!selected.length}>Genera parcella da voci validate</button>
-        </form>
+        </JsonPostForm>
       ) : (
         <div className="iu-timesheet-empty small">
           <CheckCircle2 size={22}/>
@@ -230,11 +231,33 @@ function BillingPanel({ data }: { data: TimesheetData }) {
 
 export function TimesheetPage() {
   const [data, setData] = useState<TimesheetData | null>(null)
+  const [loadError, setLoadError] = useState('')
   useEffect(() => {
     let active = true
-    getTimesheetPage().then((payload) => { if (active) setData(payload) })
+    getTimesheetPage()
+      .then((payload) => {
+        if (!active) return
+        setData(payload)
+        setLoadError('')
+      })
+      .catch(() => {
+        if (active) setLoadError('Errore durante il caricamento del timesheet.')
+      })
     return () => { active = false }
   }, [])
+
+  if (loadError) {
+    return (
+      <main className="iu-timesheet-page">
+        <div className="iu-timesheet-empty">
+          <AlertTriangle size={26}/>
+          <strong>Timesheet non disponibile</strong>
+          <span>{loadError}</span>
+          <button type="button" onClick={() => window.location.reload()}>Riprova</button>
+        </div>
+      </main>
+    )
+  }
 
   if (!data) {
     return <main className="iu-timesheet-page"><div className="iu-timesheet-loading">Caricamento timesheet...</div></main>

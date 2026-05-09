@@ -8,6 +8,7 @@ import { LoadingState } from '../ui/LoadingState'
 import { Page } from '../ui/Page'
 import { Panel } from '../ui/Panel'
 import { openDesignContract } from '../ui/openDesign'
+import { displaySourceLabel, displayWritesLabel } from '../displayText'
 import { emptyRedazioneAttiPage, getRedazioneAttiPage, type RedazioneAttiPageData } from '../redazioneAttiData'
 import './RedazioneAttiPage.css'
 
@@ -18,7 +19,7 @@ function ContractStrip({ data }: { data: RedazioneAttiPageData }) {
       <div>
         <strong>{openDesignContract.system}</strong>
         <span>
-          {data.source || 'Sorgente non indicata'} - scritture {data.contracts.writes || 'none'}
+          {displaySourceLabel(data.source)} - {displayWritesLabel(data.contracts.writes || 'none')}
         </span>
       </div>
     </aside>
@@ -84,7 +85,7 @@ function Sections({ data }: { data: RedazioneAttiPageData }) {
 
 function Records({ data }: { data: RedazioneAttiPageData }) {
   return (
-    <Panel title="Punti operativi" subtitle="Link reali verso superfici React o percorsi Flask dedicati.">
+    <Panel title="Punti operativi" subtitle="Link reali verso superfici React o percorsi applicativi dedicati.">
       {data.records.length ? (
         <div className="iu-redazione-records">
           {data.records.map((record) => (
@@ -101,7 +102,7 @@ function Records({ data }: { data: RedazioneAttiPageData }) {
       ) : (
         <EmptyState
           title="Nessun punto operativo disponibile"
-          message="La pagina resta neutra finche' il backend non fornisce collegamenti consultabili."
+          message="La pagina resta neutra finche' non sono disponibili collegamenti consultabili."
         />
       )}
     </Panel>
@@ -124,7 +125,7 @@ export function RedazioneAttiPage() {
   }, [])
 
   if (loading) {
-    return <LoadingState title="Caricamento redazione atti" message="Recupero quadro operativo e metadati dal backend." />
+    return <LoadingState title="Caricamento redazione atti" message="Recupero quadro operativo e metadati." />
   }
 
   return (
@@ -155,7 +156,7 @@ export function RedazioneAttiPage() {
             <p className="iu-redazione-eyebrow">Workflow documentale</p>
             <h2>Ingresso governato alla redazione</h2>
             <p>
-              {data.summary || "React coordina metadati e collegamenti operativi. I passaggi completi restano nei percorsi Flask gia' auditati."}
+              {data.summary || "La pagina coordina metadati e collegamenti operativi. I passaggi completi restano nei percorsi applicativi gia' auditati."}
             </p>
           </div>
           <div className="iu-od-action-row iu-redazione-hero__actions">
@@ -174,13 +175,13 @@ export function RedazioneAttiPage() {
             <h2>Produzione atti non spostata in React</h2>
             <p>
               Questa superficie non apre editor, non compila modelli e non crea file. Le azioni sensibili restano sui
-              percorsi Flask con controlli, audit e revisione umana.
+              percorsi applicativi con controlli, audit e revisione umana.
             </p>
           </div>
         </section>
         <Records data={data} />
         <aside className="iu-redazione-source iu-od-meta">
-          Contratto: {data.contracts.legacy_contract || 'non indicato'} - aggiornato {data.generated_at || 'non indicato'}
+          Stato collegamenti governato - aggiornato {data.generated_at || 'non indicato'}
         </aside>
       </div>
     </Page>

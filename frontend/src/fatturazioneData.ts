@@ -1,5 +1,6 @@
 import { apiJson, apiPostJson } from './lib/apiClient'
 import type { AdminAction, AdminMetric, AdminSection, AdminTone, AdminWarning } from './utentiData'
+import { sanitizeDisplayText } from './displayText'
 
 export type FatturazioneContract = {
   mock_fallback: boolean
@@ -283,14 +284,14 @@ export const emptyFatturazionePage: FatturazionePageData = {
 const createFallback: CreateFatturaResult = {
   ok: false,
   message: 'Salvataggio non completato.',
-  errors: { server: 'Il backend non ha restituito una risposta valida.' },
+  errors: { server: 'Il servizio non ha restituito una risposta valida.' },
   item: null,
 }
 
 const mutationFallback: FatturazioneMutationResult = {
   ok: false,
   message: 'Operazione non completata.',
-  errors: { server: 'Il backend non ha restituito una risposta valida.' },
+  errors: { server: 'Il servizio non ha restituito una risposta valida.' },
   item: null,
 }
 
@@ -306,6 +307,10 @@ function text(value: unknown, fallback = ''): string {
   return typeof value === 'string' ? value.trim() : fallback
 }
 
+function display(value: unknown, fallback = ''): string {
+  return sanitizeDisplayText(text(value, fallback))
+}
+
 function bool(value: unknown, fallback = false): boolean {
   if (typeof value === 'boolean') return value
   return fallback
@@ -313,7 +318,7 @@ function bool(value: unknown, fallback = false): boolean {
 
 function value(value: unknown): string | number {
   if (typeof value === 'number' && Number.isFinite(value)) return value
-  if (typeof value === 'string') return value.trim()
+  if (typeof value === 'string') return sanitizeDisplayText(value.trim())
   return ''
 }
 
@@ -332,9 +337,9 @@ function normaliseMetric(raw: unknown): AdminMetric {
   const item = asRecord(raw)
   return {
     id: text(item.id) || text(item.label) || 'metrica',
-    label: text(item.label) || 'Metrica',
+    label: display(item.label) || 'Metrica',
     value: value(item.value),
-    note: text(item.note),
+    note: display(item.note),
     tone: tone(item.tone),
   }
 }
@@ -343,19 +348,19 @@ function normaliseSection(raw: unknown): AdminSection {
   const item = asRecord(raw)
   return {
     id: text(item.id) || text(item.title) || 'sezione',
-    title: text(item.title) || 'Sezione',
-    kind: text(item.kind) || 'distribution',
+    title: display(item.title) || 'Sezione',
+    kind: display(item.kind) || 'distribuzione',
     items: list(item.items).map((rawItem) => {
       const entry = asRecord(rawItem)
       return {
         id: text(entry.id) || text(entry.label) || 'voce',
-        label: text(entry.label) || 'Voce',
+        label: display(entry.label) || 'Voce',
         value: value(entry.value),
-        note: text(entry.note),
+        note: display(entry.note),
         tone: tone(entry.tone),
       }
     }),
-    emptyMessage: text(item.emptyMessage) || 'Nessun dato disponibile.',
+    emptyMessage: display(item.emptyMessage) || 'Nessun dato disponibile.',
   }
 }
 
@@ -363,7 +368,7 @@ function normaliseAction(raw: unknown): AdminAction {
   const item = asRecord(raw)
   return {
     id: text(item.id) || text(item.label) || 'azione',
-    label: text(item.label) || 'Apri',
+    label: display(item.label) || 'Apri',
     href: safeHref(item.href, '/fatturazione'),
     method: 'GET',
     tone: tone(item.tone),
@@ -373,8 +378,8 @@ function normaliseAction(raw: unknown): AdminAction {
 function normaliseWarning(raw: unknown): AdminWarning {
   const item = asRecord(raw)
   return {
-    code: text(item.code) || 'warning',
-    message: text(item.message) || 'Avviso tecnico disponibile.',
+    code: display(item.code) || 'avviso',
+    message: display(item.message) || 'Avviso operativo disponibile.',
   }
 }
 
@@ -383,16 +388,16 @@ function normaliseRecord(raw: unknown): FatturazioneRecord {
   return {
     id: text(item.id),
     number: text(item.number),
-    customerName: text(item.customerName) || 'Cliente non indicato',
-    caseTitle: text(item.caseTitle),
-    amountDisplay: text(item.amountDisplay),
+    customerName: display(item.customerName) || 'Cliente non indicato',
+    caseTitle: display(item.caseTitle),
+    amountDisplay: display(item.amountDisplay),
     issuedAt: text(item.issuedAt),
     dueAt: text(item.dueAt),
     paidAt: text(item.paidAt),
     state: text(item.state),
-    stateLabel: text(item.stateLabel) || text(item.state) || 'Stato non indicato',
+    stateLabel: display(item.stateLabel) || display(item.state) || 'Stato non indicato',
     stateTone: tone(item.stateTone),
-    paymentMethod: text(item.paymentMethod),
+    paymentMethod: display(item.paymentMethod),
     detailHref: safeHref(item.detailHref),
     pdfHref: safeHref(item.pdfHref),
     xmlHref: safeHref(item.xmlHref),
@@ -403,7 +408,7 @@ function normaliseStatus(raw: unknown): FatturazioneStatus {
   const item = asRecord(raw)
   return {
     value: text(item.value),
-    label: text(item.label) || text(item.value),
+    label: display(item.label) || display(item.value),
     tone: tone(item.tone),
   }
 }
@@ -428,8 +433,8 @@ function normaliseOption(raw: unknown): FatturazioneOption {
   return {
     id,
     value: text(item.value) || id,
-    label: text(item.label) || 'Voce non indicata',
-    description: text(item.description),
+    label: display(item.label) || 'Voce non indicata',
+    description: display(item.description),
   }
 }
 
@@ -445,7 +450,7 @@ function normaliseMatter(raw: unknown): FatturazioneMatter {
 function normaliseVoice(raw: unknown): FatturazioneVoiceDefault {
   const item = asRecord(raw)
   return {
-    descrizione: text(item.descrizione),
+    descrizione: display(item.descrizione),
     quantita: text(item.quantita) || '1',
     prezzo_unitario: text(item.prezzo_unitario),
     tipo: text(item.tipo) || 'ONORARIO',
@@ -491,11 +496,11 @@ function normaliseForm(raw: unknown): FatturazioneFormDefinition {
   const defaults = normaliseDefaults(item.defaults)
   return {
     id: text(item.id) || 'nuova_parcella',
-    title: text(item.title) || 'Nuova parcella',
-    description: text(item.description),
+    title: display(item.title) || 'Nuova parcella',
+    description: display(item.description),
     readHref: safeHref(item.readHref, '/api/v1/ui/fatturazione/nuova'),
     saveHref: safeHref(item.saveHref, '/api/v1/ui/fatturazione/nuova'),
-    submitLabel: text(item.submitLabel) || 'Crea parcella',
+    submitLabel: display(item.submitLabel) || 'Crea parcella',
     enabled: item.enabled !== false,
     defaults,
     hidden: normaliseHidden(item.hidden),
@@ -508,9 +513,9 @@ function normaliseFiscalOption(raw: unknown): FatturazioneFiscalOption | null {
   if (!['applica_iva', 'applica_cassa', 'applica_ritenuta', 'applica_bollo'].includes(name)) return null
   return {
     name,
-    label: text(item.label) || name,
+    label: display(item.label) || name,
     default: bool(item.default),
-    description: text(item.description),
+    description: display(item.description),
   }
 }
 
@@ -555,18 +560,18 @@ function normaliseCreateResult(raw: unknown): CreateFatturaResult {
   const created = asRecord(item.item)
   return {
     ok: item.ok === true,
-    message: text(item.message) || (item.ok === true ? 'Parcella creata.' : 'Salvataggio non completato.'),
+    message: display(item.message) || (item.ok === true ? 'Parcella creata.' : 'Salvataggio non completato.'),
     errors: Object.fromEntries(
-      Object.entries(asRecord(item.errors)).map(([key, rawValue]) => [key, text(rawValue)]),
+      Object.entries(asRecord(item.errors)).map(([key, rawValue]) => [key, display(rawValue)]),
     ),
     item: item.item && typeof item.item === 'object' ? {
       id: text(created.id),
       number: text(created.number),
-      amountDisplay: text(created.amountDisplay),
+      amountDisplay: display(created.amountDisplay),
       issuedAt: text(created.issuedAt),
       dueAt: text(created.dueAt),
       state: text(created.state),
-      stateLabel: text(created.stateLabel),
+      stateLabel: display(created.stateLabel),
       stateTone: tone(created.stateTone),
     } : null,
     redirect_href: safeHref(item.redirect_href),
@@ -580,12 +585,12 @@ function normaliseMutationItem(raw: unknown): FatturazioneMutationItem | null {
   return {
     id: text(item.id),
     number: text(item.number),
-    amountDisplay: text(item.amountDisplay),
+    amountDisplay: display(item.amountDisplay),
     state: text(item.state),
-    stateLabel: text(item.stateLabel),
+    stateLabel: display(item.stateLabel),
     stateTone: tone(item.stateTone),
     paidAt: text(item.paidAt),
-    paymentMethod: text(item.paymentMethod),
+    paymentMethod: display(item.paymentMethod),
   }
 }
 
@@ -593,9 +598,9 @@ function normaliseMutationResult(raw: unknown): FatturazioneMutationResult {
   const item = asRecord(raw)
   return {
     ok: item.ok === true,
-    message: text(item.message) || (item.ok === true ? 'Operazione completata.' : 'Operazione non completata.'),
+    message: display(item.message) || (item.ok === true ? 'Operazione completata.' : 'Operazione non completata.'),
     errors: Object.fromEntries(
-      Object.entries(asRecord(item.errors)).map(([key, rawValue]) => [key, text(rawValue)]),
+      Object.entries(asRecord(item.errors)).map(([key, rawValue]) => [key, display(rawValue)]),
     ),
     item: normaliseMutationItem(item.item),
     status: typeof item.status === 'number' ? item.status : undefined,
@@ -616,7 +621,7 @@ export async function getFatturazioneDetail(idDocumento: string): Promise<{ ok: 
     voci: list(rawItem.voci).map((voice) => {
       const row = asRecord(voice)
       return {
-        descrizione: text(row.descrizione),
+        descrizione: display(row.descrizione),
         quantita: text(row.quantita),
         prezzoDisplay: text(row.prezzoDisplay),
       }
@@ -625,8 +630,8 @@ export async function getFatturazioneDetail(idDocumento: string): Promise<{ ok: 
   return {
     ok: page.ok === true,
     item,
-    message: text(page.message),
-    errors: Object.fromEntries(Object.entries(asRecord(page.errors)).map(([key, rawValue]) => [key, text(rawValue)])),
+    message: display(page.message),
+    errors: Object.fromEntries(Object.entries(asRecord(page.errors)).map(([key, rawValue]) => [key, display(rawValue)])),
   }
 }
 
@@ -650,7 +655,7 @@ export async function updateFatturazioneStatus(idDocumento: string, payload: Upd
 }
 
 export async function archiveFatturazioneDocument(): Promise<FatturazioneMutationResult> {
-  return { ...mutationFallback, message: 'Archiviazione non supportata dal backend legacy.' }
+  return { ...mutationFallback, message: 'Archiviazione non disponibile nella configurazione corrente.' }
 }
 
 export async function cancelFatturazioneDocument(idDocumento: string): Promise<FatturazioneMutationResult> {

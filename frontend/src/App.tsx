@@ -4,6 +4,7 @@ import {
   Archive,
   Banknote,
   BookOpen,
+  Bot,
   BriefcaseBusiness,
   Building2,
   CalendarCheck,
@@ -50,6 +51,7 @@ import { DashboardData, Row, Tone, emptyDashboard, getDashboard, syncDashboardMa
 import { Badge, DossierCard, KpiCard, Panel, SourceCard } from './components/dashboard'
 import { FloatingLex } from './components/FloatingLex'
 import { IusAppSidebar } from './components/iusentra'
+import { JsonPostForm } from './components/JsonPostForm'
 import { TopBar } from './components/layout/TopBar'
 import { findStudioModule, isStudioModuleRoute } from './studioModuleData'
 import './index.css'
@@ -87,6 +89,8 @@ const AuditPage = lazy(() => import('./components/AuditPage').then((module) => (
 const UtentiPage = lazy(() => import('./components/UtentiPage').then((module) => ({ default: module.UtentiPage })))
 const ProfiliPage = lazy(() => import('./components/ProfiliPage').then((module) => ({ default: module.ProfiliPage })))
 const BackupPage = lazy(() => import('./components/BackupPage').then((module) => ({ default: module.BackupPage })))
+const SitoStudioBuilderPage = lazy(() => import('./components/SitoStudioBuilderPage').then((module) => ({ default: module.SitoStudioBuilderPage })))
+const SitoStudioRedazioneAiPage = lazy(() => import('./components/SitoStudioRedazioneAiPage').then((module) => ({ default: module.SitoStudioRedazioneAiPage })))
 const SitoStudioPage = lazy(() => import('./components/SitoStudioPage').then((module) => ({ default: module.SitoStudioPage })))
 const StudioPage = lazy(() => import('./components/StudioPage').then((module) => ({ default: module.StudioPage })))
 const AmministrazionePage = lazy(() => import('./components/AmministrazionePage').then((module) => ({ default: module.AmministrazionePage })))
@@ -320,7 +324,17 @@ const navSections: NavSection[] = [
       { label: 'Archivio Giurisprudenza', icon: Landmark, href: '/giurisprudenza/' },
       { label: 'Strumenti Forensi', icon: Wrench, href: '/strumenti-legali/' },
       { label: 'Strumenti Operativi', icon: Table, href: '/strumenti-operativi' },
+    ]
+  },
+  {
+    id: 'sito-studio',
+    label: 'Sito Studio',
+    icon: Earth,
+    items: [
       { label: 'Sito Studio', icon: Earth, href: '/sito-studio/' },
+      { label: 'Builder Sito', icon: FilePenLine, href: '/sito-studio/builder' },
+      { label: 'Redazione AI Sito', icon: Bot, href: '/sito-studio/redazione-ai' },
+      { label: 'Contatti Sito', icon: Mail, href: '/sito-studio/contatti' },
     ]
   },
   {
@@ -682,18 +696,24 @@ function SidebarUser({ bootstrap }: { bootstrap: ShellBootstrap }) {
       </div>
       {bootstrap.actions.profile ? <a href={bootstrap.actions.profile} aria-label="Profilo" title="Profilo"><UserRound size={16}/></a> : null}
       {logoutAction ? (
-        <form method="post" action={logoutAction}>
+        <JsonPostForm action={logoutAction}>
           <input type="hidden" name="_csrf_token" value={csrfToken()}/>
           <button type="submit" aria-label="Esci" title="Esci"><LogOut size={16}/></button>
-        </form>
+        </JsonPostForm>
       ) : null}
     </div>
   )
 }
 
 function Sidebar({ collapsed, mobileOpen, activePath, onToggle, onCloseMobile, bootstrap }:{collapsed:boolean; mobileOpen:boolean; activePath:string; onToggle:()=>void; onCloseMobile:()=>void; bootstrap:ShellBootstrap}) {
-  const [openSections,setOpenSections]=useState<Record<string,boolean>>({})
-  const toggleSection=(id:string)=>setOpenSections(current=>({...current,[id]:!current[id]}))
+  const activeSectionId = navSections.find(section => section.items.some(item => isActiveHref(item.href, activePath)))?.id || null
+  const [openSectionId,setOpenSectionId]=useState<string | null>(activeSectionId)
+  useEffect(()=>{
+    if(activeSectionId){
+      setOpenSectionId(activeSectionId)
+    }
+  },[activeSectionId])
+  const toggleSection=(id:string)=>setOpenSectionId(current=>current===id?null:id)
   const ToggleIcon = mobileOpen ? PanelLeftClose : collapsed ? PanelLeftOpen : PanelLeftClose
   const toggleLabel = mobileOpen ? 'Chiudi menu' : collapsed ? 'Espandi menu' : 'Comprimi menu'
   const handleToggle = () => {
@@ -716,7 +736,7 @@ function Sidebar({ collapsed, mobileOpen, activePath, onToggle, onCloseMobile, b
         </div>
         {navSections.filter(section=>section.items.length > 0).map(section=>{
           const SectionIcon = section.icon || Folder
-          const open = openSections[section.id] === true
+          const open = openSectionId === section.id
           return (
             <section className={`iu-nav-section ${section.tone==='admin'?'iu-nav-section--admin':''}`} key={section.id}>
               <button className="iu-nav-section__head" type="button" onClick={()=>toggleSection(section.id)} aria-expanded={open}>
@@ -906,6 +926,8 @@ export default function App() {
   const isUtentiPage = routeKey === '/utenti' || routeKey === '/utenti/nuovo'
   const isProfiliPage = routeKey === '/profili'
   const isBackupPage = routeKey === '/backup'
+  const isSitoStudioBuilderPage = routeKey === '/sito-studio/builder'
+  const isSitoStudioRedazioneAiPage = routeKey === '/sito-studio/redazione-ai'
   const isSitoStudioPage = routeKey === '/sito-studio' || routeKey === '/sito-studio/contatti'
   const isStudioPage = routeKey === '/studio'
   const isAmministrazionePage = routeKey === '/amministrazione'
@@ -915,7 +937,8 @@ export default function App() {
   const isPreventiviPage =
     routeKey === '/preventivi' ||
     routeKey === '/preventivi/nuovo' ||
-    routeKey === '/preventivi/conferimento/nuovo'
+    routeKey === '/preventivi/conferimento/nuovo' ||
+    /^\/preventivi\/conferimento\/[^/]+$/.test(routeKey)
   const isCompensiForensiPage = routeKey === '/compensi-forensi'
   const isTariffarioPage = routeKey === '/tariffario'
   const isTemplateAttiPage =
@@ -928,9 +951,9 @@ export default function App() {
     routeKey === '/legal-intelligence/news' ||
     routeKey === '/legal-intelligence/mediazione' ||
     routeKey === '/ricerca-legale'
-  const isStudioModulePage = !isStudioPage && !isAmministrazionePage && !isFatturazionePage && !isIncassiPagamentiPage && !isPreventivoWizardPage && !isPreventiviPage && !isCompensiForensiPage && !isTariffarioPage && !isTemplateAttiPage && !isRedazioneAttiPage && !isGiurisprudenzaPage && !isLegalIntelligencePage && !isAdminDatabasePage && !isStatistichePage && !isImpostazioniPage && !isAuditPage && !isRegistroAttivitaPage && !isUtentiPage && !isProfiliPage && !isBackupPage && !isSitoStudioPage && !isTimesheetPage && !isCartelleCondivisePage && !isWizardProPage && isStudioModuleRoute(routeKey)
-  const isDashboardPage = !isSearchPage && !isAgendaPage && !isNewAppointmentPage && !isAppointmentEditPage && !isRegiaPage && !isDocumentEditorPage && !isFascicoliPage && !isClientiPage && !isClientFolderPage && !isClientEditPage && !isNewClientPage && !isSoggettiPage && !isNewSubjectPage && !isSubjectEditPage && !isEmailComposePage && !isEmailOrdinariaComposePage && !isEmailPage && !isEmailOrdinariaPage && !isMessagesPage && !isNewMessagePage && !isScadenziarioPage && !isNewDeadlinePage && !isDeadlineEditPage && !isTimesheetPage && !isCartelleCondivisePage && !isWizardProPage && !isTelematicoPage && !isTelematicoSurfacePage && !isPrivacyRegistroPage && !isAdminDatabasePage && !isStatistichePage && !isImpostazioniPage && !isAuditPage && !isRegistroAttivitaPage && !isUtentiPage && !isProfiliPage && !isBackupPage && !isSitoStudioPage && !isStudioPage && !isAmministrazionePage && !isFatturazionePage && !isIncassiPagamentiPage && !isPreventivoWizardPage && !isPreventiviPage && !isCompensiForensiPage && !isTariffarioPage && !isTemplateAttiPage && !isRedazioneAttiPage && !isGiurisprudenzaPage && !isLegalIntelligencePage && !isStudioModulePage
-  const isStandalonePage = isSearchPage || isAgendaPage || isNewAppointmentPage || isAppointmentEditPage || isDocumentEditorPage || isFascicoliPage || isClientiPage || isClientFolderPage || isClientEditPage || isNewClientPage || isSoggettiPage || isNewSubjectPage || isSubjectEditPage || isEmailComposePage || isEmailOrdinariaComposePage || isEmailPage || isEmailOrdinariaPage || isMessagesPage || isNewMessagePage || isScadenziarioPage || isNewDeadlinePage || isDeadlineEditPage || isTimesheetPage || isCartelleCondivisePage || isWizardProPage || isTelematicoPage || isTelematicoSurfacePage || isPrivacyRegistroPage || isAdminDatabasePage || isStatistichePage || isImpostazioniPage || isAuditPage || isRegistroAttivitaPage || isUtentiPage || isProfiliPage || isBackupPage || isSitoStudioPage || isStudioPage || isAmministrazionePage || isFatturazionePage || isIncassiPagamentiPage || isPreventivoWizardPage || isPreventiviPage || isCompensiForensiPage || isTariffarioPage || isTemplateAttiPage || isRedazioneAttiPage || isGiurisprudenzaPage || isLegalIntelligencePage || isStudioModulePage
+  const isStudioModulePage = !isStudioPage && !isAmministrazionePage && !isFatturazionePage && !isIncassiPagamentiPage && !isPreventivoWizardPage && !isPreventiviPage && !isCompensiForensiPage && !isTariffarioPage && !isTemplateAttiPage && !isRedazioneAttiPage && !isGiurisprudenzaPage && !isLegalIntelligencePage && !isAdminDatabasePage && !isStatistichePage && !isImpostazioniPage && !isAuditPage && !isRegistroAttivitaPage && !isUtentiPage && !isProfiliPage && !isBackupPage && !isSitoStudioBuilderPage && !isSitoStudioRedazioneAiPage && !isSitoStudioPage && !isTimesheetPage && !isCartelleCondivisePage && !isWizardProPage && isStudioModuleRoute(routeKey)
+  const isDashboardPage = !isSearchPage && !isAgendaPage && !isNewAppointmentPage && !isAppointmentEditPage && !isRegiaPage && !isDocumentEditorPage && !isFascicoliPage && !isClientiPage && !isClientFolderPage && !isClientEditPage && !isNewClientPage && !isSoggettiPage && !isNewSubjectPage && !isSubjectEditPage && !isEmailComposePage && !isEmailOrdinariaComposePage && !isEmailPage && !isEmailOrdinariaPage && !isMessagesPage && !isNewMessagePage && !isScadenziarioPage && !isNewDeadlinePage && !isDeadlineEditPage && !isTimesheetPage && !isCartelleCondivisePage && !isWizardProPage && !isTelematicoPage && !isTelematicoSurfacePage && !isPrivacyRegistroPage && !isAdminDatabasePage && !isStatistichePage && !isImpostazioniPage && !isAuditPage && !isRegistroAttivitaPage && !isUtentiPage && !isProfiliPage && !isBackupPage && !isSitoStudioBuilderPage && !isSitoStudioRedazioneAiPage && !isSitoStudioPage && !isStudioPage && !isAmministrazionePage && !isFatturazionePage && !isIncassiPagamentiPage && !isPreventivoWizardPage && !isPreventiviPage && !isCompensiForensiPage && !isTariffarioPage && !isTemplateAttiPage && !isRedazioneAttiPage && !isGiurisprudenzaPage && !isLegalIntelligencePage && !isStudioModulePage
+  const isStandalonePage = isSearchPage || isAgendaPage || isNewAppointmentPage || isAppointmentEditPage || isDocumentEditorPage || isFascicoliPage || isClientiPage || isClientFolderPage || isClientEditPage || isNewClientPage || isSoggettiPage || isNewSubjectPage || isSubjectEditPage || isEmailComposePage || isEmailOrdinariaComposePage || isEmailPage || isEmailOrdinariaPage || isMessagesPage || isNewMessagePage || isScadenziarioPage || isNewDeadlinePage || isDeadlineEditPage || isTimesheetPage || isCartelleCondivisePage || isWizardProPage || isTelematicoPage || isTelematicoSurfacePage || isPrivacyRegistroPage || isAdminDatabasePage || isStatistichePage || isImpostazioniPage || isAuditPage || isRegistroAttivitaPage || isUtentiPage || isProfiliPage || isBackupPage || isSitoStudioBuilderPage || isSitoStudioRedazioneAiPage || isSitoStudioPage || isStudioPage || isAmministrazionePage || isFatturazionePage || isIncassiPagamentiPage || isPreventivoWizardPage || isPreventiviPage || isCompensiForensiPage || isTariffarioPage || isTemplateAttiPage || isRedazioneAttiPage || isGiurisprudenzaPage || isLegalIntelligencePage || isStudioModulePage
   const initialSearchQuery = new URLSearchParams(window.location.search).get('q') ?? ''
   const lexConfig = resolveLexPageContext(routeKey)
   const needsShellLexContext = !routePublishesLexContext(routeKey)
@@ -969,7 +992,7 @@ export default function App() {
         <div className="iu-main">
           <TopBar onOpenMenu={()=>setMobileMenuOpen(true)} activePath={routeKey}/>
           <Suspense fallback={<PageLoading/>}>
-            {isSearchPage?<RicercaStudioPage initialQuery={initialSearchQuery}/>:isNewAppointmentPage||isAppointmentEditPage?<NuovoAppuntamentoPage/>:isAgendaPage?<AgendaPage/>:isRegiaPage?<RegiaOperativaPage data={data} loading={loading}/>:isDocumentEditorPage?<DocumentEditorPage/>:isFascicoliPage?<FascicoliPage/>:isNewClientPage||isNewSubjectPage||isClientEditPage||isSubjectEditPage?<NuovoClientePage/>:isClientFolderPage?<CartellaClientePage/>:isClientiPage?<AnagraficaClientiPage/>:isSoggettiPage?<SoggettiPage/>:isEmailOrdinariaComposePage?<EmailComposePage mode="ordinaria"/>:isEmailComposePage?<EmailComposePage mode="pec"/>:isEmailOrdinariaPage?<EmailOrdinariaPage/>:isEmailPage?<EmailPecPage/>:isNewMessagePage?<NuovoMessaggioPage/>:isMessagesPage?<MessaggiPage/>:isNewDeadlinePage||isDeadlineEditPage?<NuovaScadenzaPage/>:isScadenziarioPage?<ScadenziarioPage/>:isTimesheetPage?<TimesheetPage/>:isCartelleCondivisePage?<CartelleCondivisePage/>:isWizardProStep?<WizardProStepPage/>:isWizardProComplete?<WizardProCompletePage/>:isWizardProDashboard?<WizardProPage/>:isTelematicoPage?<TelematicoPage/>:isTelematicoSurfacePage?<TelematicoSurfacePage/>:isPrivacyRegistroPage?<PrivacyRegistroPage/>:isAdminDatabasePage?<AdminDatabasePage/>:isStatistichePage?<StatistichePage/>:isImpostazioniPage?<ImpostazioniPage/>:isAuditPage||isRegistroAttivitaPage?<AuditPage/>:isUtentiPage?<UtentiPage/>:isProfiliPage?<ProfiliPage/>:isBackupPage?<BackupPage/>:isSitoStudioPage?<SitoStudioPage/>:isStudioPage?<StudioPage/>:isAmministrazionePage?<AmministrazionePage/>:isFatturazionePage?<FatturazionePage/>:isIncassiPagamentiPage?<IncassiPagamentiPage/>:isPreventivoWizardPage?<PreventivoWizardPage/>:isPreventiviPage?<PreventiviPage/>:isCompensiForensiPage?<CompensiForensiPage/>:isTariffarioPage?<TariffarioPage/>:isTemplateAttiPage?<TemplateAttiPage/>:isRedazioneAttiPage?<RedazioneAttiPage/>:isGiurisprudenzaPage?<GiurisprudenzaPage/>:isLegalIntelligencePage?<LegalIntelligencePage/>:isStudioModulePage?<StudioModulePage/>:<DashboardPage data={data} loading={loading} mailSyncing={mailSyncing}/>}
+            {isSearchPage?<RicercaStudioPage initialQuery={initialSearchQuery}/>:isNewAppointmentPage||isAppointmentEditPage?<NuovoAppuntamentoPage/>:isAgendaPage?<AgendaPage/>:isRegiaPage?<RegiaOperativaPage data={data} loading={loading}/>:isDocumentEditorPage?<DocumentEditorPage/>:isFascicoliPage?<FascicoliPage/>:isNewClientPage||isNewSubjectPage||isClientEditPage||isSubjectEditPage?<NuovoClientePage/>:isClientFolderPage?<CartellaClientePage/>:isClientiPage?<AnagraficaClientiPage/>:isSoggettiPage?<SoggettiPage/>:isEmailOrdinariaComposePage?<EmailComposePage mode="ordinaria"/>:isEmailComposePage?<EmailComposePage mode="pec"/>:isEmailOrdinariaPage?<EmailOrdinariaPage/>:isEmailPage?<EmailPecPage/>:isNewMessagePage?<NuovoMessaggioPage/>:isMessagesPage?<MessaggiPage/>:isNewDeadlinePage||isDeadlineEditPage?<NuovaScadenzaPage/>:isScadenziarioPage?<ScadenziarioPage/>:isTimesheetPage?<TimesheetPage/>:isCartelleCondivisePage?<CartelleCondivisePage/>:isWizardProStep?<WizardProStepPage/>:isWizardProComplete?<WizardProCompletePage/>:isWizardProDashboard?<WizardProPage/>:isTelematicoPage?<TelematicoPage/>:isTelematicoSurfacePage?<TelematicoSurfacePage/>:isPrivacyRegistroPage?<PrivacyRegistroPage/>:isAdminDatabasePage?<AdminDatabasePage/>:isStatistichePage?<StatistichePage/>:isImpostazioniPage?<ImpostazioniPage/>:isAuditPage||isRegistroAttivitaPage?<AuditPage/>:isUtentiPage?<UtentiPage/>:isProfiliPage?<ProfiliPage/>:isBackupPage?<BackupPage/>:isSitoStudioRedazioneAiPage?<SitoStudioRedazioneAiPage/>:isSitoStudioBuilderPage?<SitoStudioBuilderPage/>:isSitoStudioPage?<SitoStudioPage/>:isStudioPage?<StudioPage/>:isAmministrazionePage?<AmministrazionePage/>:isFatturazionePage?<FatturazionePage/>:isIncassiPagamentiPage?<IncassiPagamentiPage/>:isPreventivoWizardPage?<PreventivoWizardPage/>:isPreventiviPage?<PreventiviPage/>:isCompensiForensiPage?<CompensiForensiPage/>:isTariffarioPage?<TariffarioPage/>:isTemplateAttiPage?<TemplateAttiPage/>:isRedazioneAttiPage?<RedazioneAttiPage/>:isGiurisprudenzaPage?<GiurisprudenzaPage/>:isLegalIntelligencePage?<LegalIntelligencePage/>:isStudioModulePage?<StudioModulePage/>:<DashboardPage data={data} loading={loading} mailSyncing={mailSyncing}/>}
           </Suspense>
         </div>
         <nav className={`iu-mobile ${mobileNavCollapsed?'is-collapsed':''}`} aria-label="Navigazione mobile">

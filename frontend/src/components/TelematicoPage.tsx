@@ -233,7 +233,7 @@ function EventCard({ item }:{item:TelematicoEvent}) {
 
 function QualityGrid({ data }:{data:TelematicoPageData}) {
   const checks = [
-    { icon: <ShieldCheck size={17}/>, label: 'Canali autorizzati', text: 'PST, PDP, PAT e PTT restano su portali ufficiali, Local Signer o import file/payload autorizzati.' },
+    { icon: <ShieldCheck size={17}/>, label: 'Canali autorizzati', text: 'PST, PDP, PAT e PTT restano su portali ufficiali, Local Signer o import di file autorizzati.' },
     { icon: <Database size={17}/>, label: 'Repository unico', text: 'Documenti, eventi, udienze, comunicazioni e istanze finiscono nel fascicolo interno.' },
     { icon: <ClipboardCheck size={17}/>, label: 'Predisposto deposito', text: `${data.summary.blocked} blocchi e ${data.summary.warnings} warning vengono esposti prima della firma.` },
     { icon: <Sparkles size={17}/>, label: 'Lex contestuale', text: 'Lex legge contesto telematico, RG, portale, esiti, documenti censiti e prossima azione.' },
@@ -415,7 +415,7 @@ export function TelematicoPage() {
               <div className="iu-tel-empty">
                 <FolderOpen size={34}/>
                 <strong>Nessuna pratica nella vista corrente</strong>
-                <span>Apri un portale o importa un payload autorizzato per alimentare la regia telematica.</span>
+                <span>Apri un portale o importa dati autorizzati per alimentare la regia telematica.</span>
               </div>
             ) : null}
           </div>

@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useState, type ReactNode } from 'react'
+import { useDeferredValue, useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import {
   AlertTriangle,
   CheckCircle2,
@@ -21,9 +21,11 @@ import {
   type PrivacyRegistroPageData,
   type PrivacyTreatment,
 } from '../privacyRegistroData'
+import { redirectAfterSuccess, submitFormJson } from '../formSubmit'
 import './PrivacyRegistroPage.css'
 
 type StatusFilter = 'tutti' | 'attivi' | 'inattivi' | 'extra_ue' | 'da_completare'
+type SubmitState = { saving: boolean; tone: 'success' | 'danger' | 'neutral'; message: string }
 
 function sourceLabel(source: string): string {
   if (source === 'repository_reali') return 'Dati applicativi'
@@ -35,8 +37,36 @@ function textOrDash(value: string): string {
   return value || 'n.d.'
 }
 
+function emptySubmit(): SubmitState {
+  return { saving: false, tone: 'neutral', message: '' }
+}
+
 function normalise(value: string): string {
   return value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+}
+
+function DeleteTreatmentButton({ item }: { item: PrivacyTreatment }) {
+  const [state, setState] = useState<SubmitState>(() => emptySubmit())
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!window.confirm(`Eliminare dal registro il trattamento "${item.name}"?`)) return
+    setState({ saving: true, tone: 'neutral', message: 'Eliminazione...' })
+    try {
+      const result = await submitFormJson(item.deleteAction, new FormData(event.currentTarget))
+      setState({ saving: false, tone: 'success', message: result.message || 'Trattamento eliminato.' })
+      redirectAfterSuccess(result, '/privacy/registro')
+    } catch (error) {
+      setState({ saving: false, tone: 'danger', message: error instanceof Error ? error.message : 'Eliminazione non riuscita.' })
+    }
+  }
+  return (
+    <form onSubmit={handleSubmit}>
+      <button type="submit" className="iu-privacy-delete" title="Elimina trattamento" disabled={state.saving}>
+        <Trash2 size={16}/>
+        <span>{state.saving ? 'Elimino...' : 'Elimina'}</span>
+      </button>
+    </form>
+  )
 }
 
 function isTreatmentVisible(item: PrivacyTreatment, query: string, status: StatusFilter): boolean {
@@ -87,18 +117,7 @@ function TreatmentCard({ item }: { item: PrivacyTreatment }) {
           </div>
           <p>{textOrDash(item.purpose)}</p>
         </div>
-        <form
-          method="post"
-          action={item.deleteAction}
-          onSubmit={(event) => {
-            if (!window.confirm(`Eliminare dal registro il trattamento "${item.name}"?`)) event.preventDefault()
-          }}
-        >
-          <button type="submit" className="iu-privacy-delete" title="Elimina trattamento">
-            <Trash2 size={16}/>
-            <span>Elimina</span>
-          </button>
-        </form>
+        <DeleteTreatmentButton item={item}/>
       </header>
       <dl>
         <div><dt>Base giuridica</dt><dd>{textOrDash(item.legalBasis)}</dd></div>
@@ -135,10 +154,22 @@ function TreatmentCard({ item }: { item: PrivacyTreatment }) {
 }
 
 function NewTreatmentForm({ data, open }: { data: PrivacyRegistroPageData; open: boolean }) {
+  const [state, setState] = useState<SubmitState>(() => emptySubmit())
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setState({ saving: true, tone: 'neutral', message: 'Salvataggio in corso...' })
+    try {
+      const result = await submitFormJson(data.actions.create, new FormData(event.currentTarget))
+      setState({ saving: false, tone: 'success', message: result.message || 'Trattamento aggiunto al registro.' })
+      redirectAfterSuccess(result, '/privacy/registro')
+    } catch (error) {
+      setState({ saving: false, tone: 'danger', message: error instanceof Error ? error.message : 'Salvataggio non riuscito.' })
+    }
+  }
   if (!open) return null
   return (
-    <Panel title="Nuovo trattamento" subtitle="Il salvataggio usa il POST Flask esistente con audit privacy.registro.nuovo." icon={<Plus size={17}/>}>
-      <form className="iu-privacy-form" method="post" action={data.actions.create}>
+    <Panel title="Nuovo trattamento" subtitle="Scheda operativa con salvataggio auditato." icon={<Plus size={17}/>}>
+      <form className="iu-privacy-form" onSubmit={handleSubmit}>
         <label className="span2">
           <span>Nome / descrizione *</span>
           <input name="nome" required placeholder="Es. Gestione clienti e pratiche legali"/>
@@ -164,7 +195,7 @@ function NewTreatmentForm({ data, open }: { data: PrivacyRegistroPageData; open:
         </label>
         <label>
           <span>Destinatari</span>
-          <input name="destinatari" placeholder="Autorità giudiziarie, consulenti, provider"/>
+          <input name="destinatari" placeholder="Autorita giudiziarie, consulenti, soggetti autorizzati"/>
         </label>
         <label>
           <span>Termine di conservazione</span>
@@ -192,7 +223,8 @@ function NewTreatmentForm({ data, open }: { data: PrivacyRegistroPageData; open:
         </label>
         <div className="iu-privacy-form__actions span2">
           <Button href={data.actions.list}>Annulla</Button>
-          <button type="submit" className="iu-button iu-button--primary">Aggiungi al registro</button>
+          <button type="submit" className="iu-button iu-button--primary" disabled={state.saving}>{state.saving ? 'Salvataggio...' : 'Aggiungi al registro'}</button>
+          {state.message ? <span role={state.tone === 'danger' ? 'alert' : 'status'}>{state.message}</span> : null}
         </div>
       </form>
     </Panel>

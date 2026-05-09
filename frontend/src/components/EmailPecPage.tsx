@@ -25,6 +25,7 @@ import {
 } from 'lucide-react'
 import { Badge, Button, Panel } from './dashboard'
 import { FloatingLex } from './FloatingLex'
+import { JsonPostForm } from './JsonPostForm'
 import {
   emptyEmailOrdinariaPage,
   emptyEmailPecPage,
@@ -567,7 +568,7 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
 
       <section className="iu-mail-status-line">
         <span className={loading ? '' : 'is-ok'}>{loading ? copy.syncingLabel : copy.updatedLabel}</span>
-        <small><Clock3 size={14} /> Le azioni restano sui servizi backend già auditati e separati per PEC/email ordinaria.</small>
+        <small><Clock3 size={14} /> Le azioni sono tracciate e separate tra PEC ed email ordinaria.</small>
         {statusLine ? <small className="iu-mail-operation-status">{statusLine}</small> : null}
       </section>
 
@@ -660,7 +661,7 @@ export function EmailComposePage({ mode }: { mode: MailboxMode }) {
       </section>
 
       <section className="iu-mail-compose-grid">
-        <form className="iu-mail-compose-form" method="post" action={action}>
+        <JsonPostForm className="iu-mail-compose-form" action={action}>
           <label>
             <span>Destinatario</span>
             <input
@@ -699,12 +700,12 @@ export function EmailComposePage({ mode }: { mode: MailboxMode }) {
             <button type="submit"><Send size={16} /> Invia</button>
             <a href={backHref}>Annulla</a>
           </footer>
-        </form>
+        </JsonPostForm>
 
         <aside className="iu-mail-compose-side">
           <Panel title={isOrdinary ? 'Canale ordinario' : 'Canale PEC'} subtitle="Controllo operativo" icon={isOrdinary ? <Mail size={17} /> : <ShieldCheck size={17} />}>
             <div className="iu-mail-compose-checks">
-              <span><CheckCircle2 size={16} /> Form collegato a <strong>{action}</strong>.</span>
+              <span><CheckCircle2 size={16} /> Invio collegato alla casella selezionata.</span>
               <span><CheckCircle2 size={16} /> Rientro automatico in <strong>{isOrdinary ? 'Email ordinaria' : 'Email PEC'}</strong>.</span>
               <span><Settings2 size={16} /> Configurazione da <a href={settingsHref}>{isOrdinary ? 'SMTP/IMAP ordinario' : 'PEC'}</a>.</span>
             </div>

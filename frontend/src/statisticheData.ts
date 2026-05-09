@@ -1,4 +1,5 @@
 import { apiJson } from './lib/apiClient'
+import { sanitizeDisplayText } from './displayText'
 
 export type StatisticheTone = 'primary' | 'neutral' | 'danger' | 'success' | 'warning' | 'info'
 
@@ -89,9 +90,13 @@ function text(value: unknown, fallback = ''): string {
   return typeof value === 'string' ? value.trim() : fallback
 }
 
+function display(value: unknown, fallback = ''): string {
+  return sanitizeDisplayText(text(value, fallback))
+}
+
 function value(value: unknown): string | number {
   if (typeof value === 'number' && Number.isFinite(value)) return value
-  if (typeof value === 'string') return value.trim()
+  if (typeof value === 'string') return sanitizeDisplayText(value.trim())
   return ''
 }
 
@@ -109,9 +114,9 @@ function normaliseMetric(raw: unknown): StatisticheMetric {
   const item = asRecord(raw)
   return {
     id: text(item.id) || text(item.label) || 'metrica',
-    label: text(item.label) || 'Metrica',
+    label: display(item.label) || 'Metrica',
     value: value(item.value),
-    note: text(item.note),
+    note: display(item.note),
     tone: tone(item.tone),
   }
 }
@@ -120,10 +125,10 @@ function normaliseItem(raw: unknown): StatisticheItem {
   const item = asRecord(raw)
   return {
     id: text(item.id) || text(item.label) || 'voce',
-    label: text(item.label) || 'Voce',
+    label: display(item.label) || 'Voce',
     value: value(item.value),
     secondaryValue: value(item.secondaryValue),
-    note: text(item.note),
+    note: display(item.note),
     tone: tone(item.tone),
   }
 }
@@ -132,10 +137,10 @@ function normaliseSection(raw: unknown): StatisticheSection {
   const item = asRecord(raw)
   return {
     id: text(item.id) || text(item.title) || 'sezione',
-    title: text(item.title) || 'Sezione',
-    kind: text(item.kind) || 'distribution',
+    title: display(item.title) || 'Sezione',
+    kind: display(item.kind) || 'Distribuzione',
     items: list(item.items).map(normaliseItem),
-    emptyMessage: text(item.emptyMessage) || 'Nessun dato disponibile.',
+    emptyMessage: display(item.emptyMessage) || 'Nessun dato disponibile.',
   }
 }
 
@@ -143,9 +148,9 @@ function normaliseRecord(raw: unknown): StatisticheRecord {
   const item = asRecord(raw)
   return {
     id: text(item.id) || text(item.label) || 'record',
-    label: text(item.label) || 'Record',
+    label: display(item.label) || 'Record',
     value: value(item.value),
-    note: text(item.note),
+    note: display(item.note),
     href: text(item.href) || '/statistiche',
   }
 }
@@ -154,7 +159,7 @@ function normaliseAction(raw: unknown): StatisticheAction {
   const item = asRecord(raw)
   return {
     id: text(item.id) || text(item.label) || 'azione',
-    label: text(item.label) || 'Apri',
+    label: display(item.label) || 'Apri',
     href: text(item.href) || '/statistiche',
     method: 'GET',
     tone: tone(item.tone),
@@ -164,8 +169,8 @@ function normaliseAction(raw: unknown): StatisticheAction {
 function normaliseWarning(raw: unknown): StatisticheWarning {
   const item = asRecord(raw)
   return {
-    code: text(item.code) || 'warning',
-    message: text(item.message) || 'Avviso tecnico disponibile.',
+    code: display(item.code) || 'warning',
+    message: display(item.message) || 'Avviso operativo disponibile.',
   }
 }
 

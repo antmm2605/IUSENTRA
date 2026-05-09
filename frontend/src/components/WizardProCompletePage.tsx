@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Archive, CalendarDays, CheckCircle2, FileText, Gavel, Trash2 } from 'lucide-react'
 import { Badge } from './dashboard'
 import { FloatingLex } from './FloatingLex'
+import { JsonPostForm } from './JsonPostForm'
 import { MatterSummary, WizardStepper, csrfToken } from './WizardProShared'
 import { getWizardProCompletePage, type WizardProCompleteData } from '../wizardProData'
 import './WizardProPage.css'
@@ -82,17 +83,17 @@ export function WizardProCompletePage() {
           <section className="iu-wiz-panel">
             <div className="iu-wiz-panel__head"><h2>Azioni sulla sessione</h2></div>
             <div className="iu-wiz-actions">
-              <form method="post" action={data.actions.archive}>
+              <JsonPostForm action={data.actions.archive} successMessage="Sessione archiviata.">
                 <input type="hidden" name="_csrf_token" value={csrfToken()} />
                 <button type="submit"><Archive size={16}/> Archivia sessione</button>
-              </form>
+              </JsonPostForm>
               <button type="button" className="danger" onClick={() => setConfirmDelete((value) => !value)}><Trash2 size={16}/> Elimina sessione</button>
               {confirmDelete ? (
-                <form method="post" action={data.actions.delete} className="iu-wiz-delete">
+                <JsonPostForm action={data.actions.delete} className="iu-wiz-delete" successMessage="Sessione eliminata.">
                   <input type="hidden" name="_csrf_token" value={csrfToken()} />
-                  <p>Conferma esplicita richiesta: l eliminazione usa la route operativa Flask.</p>
+                  <p>Conferma esplicita richiesta: l eliminazione e una azione irreversibile e tracciata.</p>
                   <button type="submit" className="danger"><Trash2 size={16}/> Confermo eliminazione</button>
-                </form>
+                </JsonPostForm>
               ) : null}
             </div>
           </section>

@@ -1,4 +1,5 @@
 import type { Tone } from './data'
+import { sanitizeDisplayText } from './displayText'
 
 export type TelematicoChannelId = 'pst' | 'pdp' | 'pat' | 'ptt'
 
@@ -217,6 +218,10 @@ function text(value: unknown, fallback = ''): string {
   return String(value ?? fallback).trim()
 }
 
+function display(value: unknown, fallback = ''): string {
+  return sanitizeDisplayText(text(value, fallback))
+}
+
 function number(value: unknown): number {
   const parsed = Number(value ?? 0)
   return Number.isFinite(parsed) ? parsed : 0
@@ -257,13 +262,13 @@ function asList(value: unknown): unknown[] {
 }
 
 function textArray(value: unknown): string[] {
-  return asList(value).map((item) => text(item)).filter(Boolean)
+  return asList(value).map((item) => display(item)).filter(Boolean)
 }
 
 function normaliseAction(value: unknown, fallback: { label: string; href: string; tone?: Tone }) {
   const item = isRecord(value) ? value : {}
   return {
-    label: text(item.label, fallback.label),
+    label: display(item.label, fallback.label),
     href: text(item.href, fallback.href),
     tone: tone(item.tone, fallback.tone || 'neutral'),
   }
@@ -287,12 +292,12 @@ function normaliseChannel(value: unknown, index: number): TelematicoChannel {
     ]
   return {
     ...defaults,
-    label: text(item.label, defaults.label),
-    title: text(item.title, defaults.title),
-    description: text(item.description, defaults.description),
+    label: display(item.label, defaults.label),
+    title: display(item.title, defaults.title),
+    description: display(item.description, defaults.description),
     tone: tone(item.tone, defaults.tone),
-    statusText: text(item.statusText ?? item.status_text, 'Da configurare'),
-    environmentLabel: text(item.environmentLabel ?? item.environment_label, ''),
+    statusText: display(item.statusText ?? item.status_text, 'Da configurare'),
+    environmentLabel: display(item.environmentLabel ?? item.environment_label, ''),
     cases: number(item.cases ?? item.totale),
     importCompleted: number(item.importCompleted ?? item.import_completed),
     attentionNeeded: number(item.attentionNeeded ?? item.attention_needed),
@@ -315,11 +320,11 @@ function normaliseCase(value: unknown, index: number): TelematicoCase {
   return {
     id: text(item.id, `case-${index}`),
     portal,
-    portalLabel: text(item.portalLabel ?? item.portal_label, portalLabel),
-    title: text(item.title, 'Pratica telematica'),
-    subtitle: text(item.subtitle, 'Fascicolo collegato al repository telematico'),
-    subject: text(item.subject ?? item.oggetto),
-    statusText: text(item.statusText ?? item.status_text, 'Da verificare'),
+    portalLabel: display(item.portalLabel ?? item.portal_label, portalLabel),
+    title: display(item.title, 'Pratica telematica'),
+    subtitle: display(item.subtitle, 'Fascicolo collegato al repository telematico'),
+    subject: display(item.subject ?? item.oggetto),
+    statusText: display(item.statusText ?? item.status_text, 'Da verificare'),
     documentsCount: number(item.documentsCount ?? item.documents_count ?? item.documents),
     openTasks: number(item.openTasks ?? item.open_tasks ?? item.task_aperti),
     syncedAt: text(item.syncedAt ?? item.synced_at ?? item.last_sync_at),
@@ -334,12 +339,12 @@ function normaliseEvent(value: unknown, index: number): TelematicoEvent {
   return {
     id: text(item.id, `event-${index}`),
     portal: optionalChannelId(item.portal ?? item.portale ?? item.service_code),
-    title: text(item.title, 'Attività telematica'),
-    subtitle: text(item.subtitle ?? item.description, ''),
+    title: display(item.title, 'Attivita telematica'),
+    subtitle: display(item.subtitle ?? item.description, ''),
     timestamp: text(item.timestamp ?? item.created_at ?? item.time),
     href: text(item.href, '/telematico'),
     tone: tone(item.tone, 'primary'),
-    badge: text(item.badge, ''),
+    badge: display(item.badge, ''),
   }
 }
 
@@ -348,11 +353,11 @@ function normaliseControlItem(value: unknown, index: number, fallbackBadge: stri
   return {
     id: text(item.id, `control-${fallbackBadge}-${index}`),
     portal: optionalChannelId(item.portal ?? item.portale ?? item.service_code),
-    title: text(item.title, 'Elemento da presidiare'),
-    subtitle: text(item.subtitle ?? item.description, ''),
+    title: display(item.title, 'Elemento da presidiare'),
+    subtitle: display(item.subtitle ?? item.description, ''),
     href: text(item.href, '/telematico'),
     tone: tone(item.tone, fallbackBadge === 'bloccato' ? 'danger' : 'warning'),
-    badge: text(item.badge, fallbackBadge),
+    badge: display(item.badge, fallbackBadge),
   }
 }
 
@@ -406,7 +411,7 @@ function normalisePayload(payload: unknown): TelematicoPageData {
     controlTower,
     notices: Array.isArray(payload.notices) ? payload.notices.map((notice) => {
       const item = isRecord(notice) ? notice : {}
-      return { tone: tone(item.tone, 'warning'), title: text(item.title, 'Avviso operativo'), body: text(item.body) }
+      return { tone: tone(item.tone, 'warning'), title: display(item.title, 'Avviso operativo'), body: display(item.body) }
     }).filter((item) => item.body || item.title) : [],
     actions: {
       checklistHref: text(actions.checklistHref ?? actions.checklist_href, emptyTelematicoPage.actions.checklistHref),
@@ -416,7 +421,7 @@ function normalisePayload(payload: unknown): TelematicoPageData {
       lexHref: text(actions.lexHref ?? actions.lex_href, emptyTelematicoPage.actions.lexHref),
       emailHref: text(actions.emailHref ?? actions.email_href, emptyTelematicoPage.actions.emailHref),
     },
-    lexSuggestions: asList(payload.lexSuggestions ?? payload.lex_suggestions).map((item) => text(item)).filter(Boolean),
+    lexSuggestions: asList(payload.lexSuggestions ?? payload.lex_suggestions).map((item) => display(item)).filter(Boolean),
   }
 }
 

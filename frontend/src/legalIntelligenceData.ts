@@ -1,4 +1,5 @@
 import { apiJson } from './lib/apiClient'
+import { sanitizeDisplayText } from './displayText'
 import type { LegalAction, LegalMetric, LegalSection, LegalTone, LegalUiContract, LegalWarning } from './giurisprudenzaData'
 
 export type LegalIntelligenceRecord = {
@@ -67,9 +68,13 @@ function text(value: unknown, fallback = ''): string {
   return typeof value === 'string' ? value.trim() : fallback
 }
 
+function display(value: unknown, fallback = ''): string {
+  return sanitizeDisplayText(text(value, fallback))
+}
+
 function scalar(value: unknown): string | number {
   if (typeof value === 'number' && Number.isFinite(value)) return value
-  if (typeof value === 'string') return value.trim()
+  if (typeof value === 'string') return sanitizeDisplayText(value.trim())
   return ''
 }
 
@@ -90,9 +95,9 @@ function normaliseMetric(input: unknown): LegalMetric {
   const item = asRecord(input)
   return {
     id: text(item.id) || text(item.label) || 'metrica',
-    label: text(item.label) || 'Metrica',
+    label: display(item.label) || 'Metrica',
     value: scalar(item.value),
-    note: text(item.note),
+    note: display(item.note),
     tone: tone(item.tone),
   }
 }
@@ -101,19 +106,19 @@ function normaliseSection(input: unknown): LegalSection {
   const item = asRecord(input)
   return {
     id: text(item.id) || text(item.title) || 'sezione',
-    title: text(item.title) || 'Sezione',
-    kind: text(item.kind) || 'metadata',
+    title: display(item.title) || 'Sezione',
+    kind: display(item.kind) || 'metadati',
     items: list(item.items).map((entryInput) => {
       const entry = asRecord(entryInput)
       return {
         id: text(entry.id) || text(entry.label) || 'voce',
-        label: text(entry.label) || 'Voce',
+        label: display(entry.label) || 'Voce',
         value: scalar(entry.value),
-        note: text(entry.note),
+        note: display(entry.note),
         tone: tone(entry.tone),
       }
     }),
-    emptyMessage: text(item.emptyMessage) || 'Nessun dato disponibile.',
+    emptyMessage: display(item.emptyMessage) || 'Nessun dato disponibile.',
   }
 }
 
@@ -121,7 +126,7 @@ function normaliseAction(input: unknown): LegalAction {
   const item = asRecord(input)
   return {
     id: text(item.id) || text(item.label) || 'azione',
-    label: text(item.label) || 'Apri',
+    label: display(item.label) || 'Apri',
     href: safeHref(item.href, '/legal-intelligence'),
     method: 'GET',
     tone: tone(item.tone),
@@ -131,8 +136,8 @@ function normaliseAction(input: unknown): LegalAction {
 function normaliseWarning(input: unknown): LegalWarning {
   const item = asRecord(input)
   return {
-    code: text(item.code) || 'warning',
-    message: text(item.message) || 'Avviso disponibile.',
+    code: display(item.code) || 'warning',
+    message: display(item.message) || 'Avviso disponibile.',
   }
 }
 
@@ -140,23 +145,23 @@ function normaliseRecord(input: unknown): LegalIntelligenceRecord {
   const item = asRecord(input)
   return {
     id: text(item.id) || text(item.title) || 'record',
-    kind: text(item.kind) || 'dashboard',
-    title: text(item.title) || 'Voce Legal Intelligence',
-    subtitle: text(item.subtitle),
-    sourceLabel: text(item.sourceLabel) || 'Fonte',
-    sourceKind: text(item.sourceKind),
+    kind: display(item.kind) || 'dashboard',
+    title: display(item.title) || 'Voce Legal Intelligence',
+    subtitle: display(item.subtitle),
+    sourceLabel: display(item.sourceLabel) || 'Fonte',
+    sourceKind: display(item.sourceKind),
     sourceHref: safeHref(item.sourceHref),
-    date: text(item.date),
-    area: text(item.area),
-    branch: text(item.branch),
-    approvalLabel: text(item.approvalLabel),
+    date: display(item.date),
+    area: display(item.area),
+    branch: display(item.branch),
+    approvalLabel: display(item.approvalLabel),
     approvalTone: tone(item.approvalTone),
-    stateLabel: text(item.stateLabel),
+    stateLabel: display(item.stateLabel),
     stateTone: tone(item.stateTone),
-    territory: text(item.territory),
-    registryNumber: text(item.registryNumber),
+    territory: display(item.territory),
+    registryNumber: display(item.registryNumber),
     legacyHref: safeHref(item.legacyHref, '/legal-intelligence'),
-    evidenceType: text(item.evidenceType) || 'metadato',
+    evidenceType: display(item.evidenceType) || 'metadato',
   }
 }
 

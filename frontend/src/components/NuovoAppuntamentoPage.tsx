@@ -21,6 +21,7 @@ import {
   X,
 } from 'lucide-react'
 import type { Tone } from '../data'
+import { redirectAfterSuccess, submitFormJson } from '../formSubmit'
 import { Badge } from './dashboard'
 import './NuovoAppuntamentoPage.css'
 
@@ -132,6 +133,7 @@ type CompletionCheck = {
   ok: boolean
   required?: boolean
 }
+type SubmitState = { saving: boolean; tone: 'success' | 'danger' | 'neutral'; message: string }
 
 type AppointmentTypeMeta = {
   value: AppointmentType
@@ -450,6 +452,7 @@ export function NuovoAppuntamentoPage() {
   const [dayEvents, setDayEvents] = useState<AgendaApiItem[]>([])
   const [agendaLoading, setAgendaLoading] = useState(false)
   const [showValidation, setShowValidation] = useState(false)
+  const [submitState, setSubmitState] = useState<SubmitState>({ saving: false, tone: 'neutral', message: '' })
   const courtInputRef = useRef<HTMLInputElement>(null)
 
   const typeMeta = appointmentTypes.find((item) => item.value === form.tipo) ?? appointmentTypes[0]
@@ -687,10 +690,20 @@ export function NuovoAppuntamentoPage() {
     update('titolo', suggestedTitle)
   }
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
     if (!canSubmit) {
-      event.preventDefault()
       setShowValidation(true)
+      setSubmitState({ saving: false, tone: 'danger', message: 'Completa i campi obbligatori e risolvi le sovrapposizioni.' })
+      return
+    }
+    setSubmitState({ saving: true, tone: 'neutral', message: 'Salvataggio in corso...' })
+    try {
+      const result = await submitFormJson(formAction, new FormData(event.currentTarget))
+      setSubmitState({ saving: false, tone: 'success', message: result.message || 'Appuntamento salvato.' })
+      redirectAfterSuccess(result, cancelHref)
+    } catch (error) {
+      setSubmitState({ saving: false, tone: 'danger', message: error instanceof Error ? error.message : 'Salvataggio non riuscito.' })
     }
   }
 
@@ -703,7 +716,7 @@ export function NuovoAppuntamentoPage() {
             Agenda studio
           </span>
           <h1>{isEditMode ? 'Modifica appuntamento' : 'Nuovo appuntamento'}</h1>
-          <p>{isEditMode ? 'Aggiorna l’impegno mantenendo controlli, sovrapposizioni e route operativa originale.' : 'Inserimento rapido, leggibile e controllato per udienze, consultazioni, riunioni, depositi e scadenze.'}</p>
+          <p>{isEditMode ? "Aggiorna l'impegno mantenendo controlli, sovrapposizioni e collegamenti allo studio." : 'Inserimento rapido, leggibile e controllato per udienze, consultazioni, riunioni, depositi e scadenze.'}</p>
         </div>
         <div className="iu-appt-hero__actions">
           <a className="iu-appt-ghost" href="/agenda">
@@ -718,7 +731,7 @@ export function NuovoAppuntamentoPage() {
       </section>
 
       <div className="iu-appt-layout">
-        <form className="iu-appt-form" method="post" action={formAction} onSubmit={handleSubmit}>
+        <form className="iu-appt-form" onSubmit={handleSubmit}>
           <input type="hidden" name="id_cliente" value={form.id_cliente} />
           <input type="hidden" name="from_cliente" value={form.from_cliente} />
 
@@ -948,11 +961,17 @@ export function NuovoAppuntamentoPage() {
                 <Sparkles size={16} />
                 Completa titolo
               </button>
-              <button className="iu-appt-submit" type="submit" disabled={!canSubmit}>
+              <button className="iu-appt-submit" type="submit" disabled={!canSubmit || submitState.saving}>
                 <Send size={16} />
-                {isEditMode ? 'Salva modifiche' : 'Aggiungi appuntamento'}
+                {submitState.saving ? 'Salvataggio...' : isEditMode ? 'Salva modifiche' : 'Aggiungi appuntamento'}
               </button>
             </div>
+            {submitState.message ? (
+              <p className={`iu-appt-validation iu-appt-validation--${submitState.tone}`} role={submitState.tone === 'danger' ? 'alert' : 'status'}>
+                {submitState.tone === 'danger' ? <AlertTriangle size={16} /> : <CheckCircle2 size={16} />}
+                {submitState.message}
+              </p>
+            ) : null}
           </section>
         </form>
 
@@ -1029,9 +1048,9 @@ export function NuovoAppuntamentoPage() {
               </span>
             </header>
             <ul className="iu-appt-integrations">
-              <li><ChevronRight size={14} /> Salvataggio sul backend esistente <code>/agenda/nuovo</code></li>
-              <li><ChevronRight size={14} /> Autocomplete clienti da <code>/api/clienti</code></li>
-              <li><ChevronRight size={14} /> Controllo sovrapposizioni da <code>/api/agenda</code></li>
+              <li><ChevronRight size={14} /> Salvataggio immediato senza uscire dalla pagina</li>
+              <li><ChevronRight size={14} /> Ricerca cliente collegata alle anagrafiche reali</li>
+              <li><ChevronRight size={14} /> Controllo sovrapposizioni sul giorno selezionato</li>
               <li><ChevronRight size={14} /> Feed WebCal/iCal gia compatibili con l agenda</li>
               <li><ChevronRight size={14} /> Contesto appuntamento pronto per Lex e regia operativa</li>
             </ul>

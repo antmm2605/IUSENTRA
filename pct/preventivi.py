@@ -636,7 +636,13 @@ class ConferimentoIncarico:
 class GestionePreventivi:
     """Gestisce preventivi e conferimenti di incarico."""
 
-    def __init__(self, db_path: str = "./preventivi/preventivi.json", studio_db=None):
+    def __init__(
+        self,
+        db_path: str = "./preventivi/preventivi.json",
+        studio_db=None,
+        *,
+        sync_repository_on_init: bool = True,
+    ):
         self.db_path = db_path
         self._studio_db = studio_db
         self._conf_path = os.path.join(
@@ -658,7 +664,8 @@ class GestionePreventivi:
             field_map_json_path=self.repository_field_map_json_path,
             rules_json_path=self.repository_rules_json_path,
         )
-        self._sync_repository()
+        if sync_repository_on_init:
+            self._sync_repository()
 
     # ---------------------------------------------------------------- I/O
 

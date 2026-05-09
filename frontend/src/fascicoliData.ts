@@ -1,4 +1,5 @@
 import type { Tone } from './data'
+import { sanitizeDisplayText } from './displayText'
 
 export type FascicoloTipo = 'tutti' | 'civile' | 'penale' | 'amministrativo' | 'tributario' | 'stragiudiziale' | 'consulenza' | 'lavoro' | 'famiglia' | 'successioni' | 'altro'
 export type FascicoloStato = 'tutti' | 'aperto' | 'in_corso' | 'definito' | 'da_archiviare' | 'archiviato' | 'sospeso'
@@ -464,7 +465,7 @@ function asArray(value: unknown): unknown[] {
 }
 
 function text(value: unknown, fallback = ''): string {
-  return String(value ?? fallback).trim()
+  return sanitizeDisplayText(String(value ?? fallback).trim())
 }
 
 function number(value: unknown): number {

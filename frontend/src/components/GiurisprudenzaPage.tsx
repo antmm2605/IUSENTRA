@@ -25,7 +25,7 @@ function ContractStrip({ data }: { data: GiurisprudenzaPageData }) {
       <div>
         <strong>{openDesignContract.system}</strong>
         <span>
-          {data.source || 'Repository'} - sorgente canonica {data.contracts.canonical_source || 'backend storico'}
+          {data.source || 'Archivio'} - sorgente governata
         </span>
       </div>
     </aside>
@@ -213,7 +213,7 @@ function RecordCard({ record }: { record: GiurisprudenzaRecord }) {
         <span className="iu-od-source-badge">{record.evidenceType || 'metadato'}</span>
         {record.orientation ? (
           <span className="iu-od-source-badge">
-            {record.orientationKind ? 'Inferenza backend' : 'Orientamento'}: {record.orientation}
+            {record.orientationKind ? 'Analisi' : 'Orientamento'}: {record.orientation}
           </span>
         ) : null}
         {record.citationLabel ? <span className="iu-od-source-badge">{record.citationLabel}</span> : null}
@@ -293,7 +293,7 @@ export function GiurisprudenzaPage() {
   }), [area, data.records, grade, query])
 
   if (loading) {
-    return <LoadingState title="Caricamento archivio giurisprudenza" message="Recupero dei metadati reali dal backend." />
+    return <LoadingState title="Caricamento archivio giurisprudenza" message="Recupero dei metadati reali." />
   }
 
   return (

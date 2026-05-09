@@ -52,7 +52,7 @@ export function DocumentUploadPanel({
           type="file"
           accept=".pdf,.docx,.doc,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         />
-        <small>Formati ammessi: PDF, DOCX, DOC. Limite configurato dal backend.</small>
+        <small>Formati ammessi: PDF, DOCX, DOC. Il limite e' configurato dallo studio.</small>
       </div>
       <button type="submit" disabled={state === 'loading'}>
         <UploadCloud size={16} aria-hidden="true" />

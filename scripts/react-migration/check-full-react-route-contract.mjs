@@ -7,6 +7,13 @@ execFileSync(process.execPath, ['scripts/react-migration/check-no-fake-react-ful
 const api = read('web/blueprints/api_v1_react.py')
 const violations = []
 const apiAliasMarkers = new Map([
+  ['/workspace-intelligente', ['("/dashboard")', "('/dashboard')"]],
+  ['/regia-operativa', ['("/dashboard")', "('/dashboard')"]],
+  ['/ricerca-studio', ['("/global-search")', "('/global-search')"]],
+  ['/agenda/nuovo', ['("/agenda")', "('/agenda')"]],
+  ['/soggetti/nuovo', ['("/clienti/nuovo")', "('/clienti/nuovo')"]],
+  ['/privacy/registro/nuovo', ['("/privacy/registro")', "('/privacy/registro')"]],
+  ['/registro-gdpr', ['("/privacy/registro")', "('/privacy/registro')"]],
   ['/impostazioni/calendario', ['("/impostazioni")', "('/impostazioni')"]],
   ['/impostazioni/pagamenti', ['("/impostazioni")', "('/impostazioni')"]],
   ['/notifiche', ['("/impostazioni")', "('/impostazioni')"]],

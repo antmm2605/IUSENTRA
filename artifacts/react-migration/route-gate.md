@@ -1,8 +1,8 @@
 # Route gate report
 
-Route nel manifest: 57
-Route con unlockFromGate=true: 38
-Route governate consentite: /statistiche, /audit, /registro-attivita, /utenti, /utenti/nuovo, /profili, /backup, /sito-studio, /sito-studio/contatti, /studio, /amministrazione, /impostazioni, /impostazioni-studio, /impostazioni/calendario, /impostazioni/pagamenti, /notifiche, /notifiche-whatsapp, /sincronizzazione-calendari, /fatturazione, /fatturazione/nuova, /incassi-pagamenti, /preventivi, /preventivi/nuovo, /preventivi/wizard, /preventivi/conferimento/nuovo, /compensi-forensi, /tariffario, /template-atti, /template-atti/catalogo, /redazione-atti, /giurisprudenza, /legal-intelligence, /legal-intelligence/news, /legal-intelligence/mediazione, /ricerca-legale, /deposito/checklist, /strumenti-legali, /strumenti-operativi
+Route nel manifest: 84
+Route con unlockFromGate=true: 65
+Route governate consentite: /, /admin/database, /agenda, /agenda/nuovo, /amministrazione, /audit, /backup, /cartelle-condivise, /clienti, /clienti/nuovo, /compensi-forensi, /deposito/checklist, /email, /email-ordinaria, /fascicoli, /fascicoli/archivio, /fascicoli/nuovo, /fatturazione, /fatturazione/nuova, /giurisprudenza, /global-search, /impostazioni, /impostazioni-studio, /impostazioni/calendario, /impostazioni/pagamenti, /incassi-pagamenti, /legal-intelligence, /legal-intelligence/mediazione, /legal-intelligence/news, /messaggi, /messaggi/nuovo, /notifiche, /notifiche-whatsapp, /preventivi, /preventivi/conferimento/nuovo, /preventivi/nuovo, /preventivi/wizard, /privacy/registro, /privacy/registro/nuovo, /profili, /redazione-atti, /regia-operativa, /registro-attivita, /registro-gdpr, /ricerca-legale, /ricerca-studio, /scadenziario, /scadenziario/nuova, /sincronizzazione-calendari, /sito-studio, /sito-studio/contatti, /soggetti, /soggetti/nuovo, /statistiche, /strumenti-legali, /strumenti-operativi, /studio, /tariffario, /template-atti, /template-atti/catalogo, /timesheet, /utenti, /utenti/nuovo, /wizard-pro, /workspace-intelligente
 Tranche 4A: route studio/backup censite come bridge se conservano scritture legacy.
 Tranche 5A: studio e amministrazione restano bridge quando sono hub di navigazione.
 Tranche 6A: fatturazione e incassi restano bridge se le scritture principali sono legacy.

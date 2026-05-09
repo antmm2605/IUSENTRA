@@ -191,7 +191,7 @@ export const studioModules: StudioModuleConfig[] = [
     lexLabel: 'Lex interpreta indicatori e segnala anomalie operative.',
     kpis: [
       { label: 'Dataset', value: '7', note: 'economico, fascicoli, clienti, scadenze, agenda, depositi, produttività', tone: 'primary' },
-      { label: 'API', value: 'Pronte', note: 'endpoint statistiche già disponibili', tone: 'success' },
+      { label: 'Servizi', value: 'Pronti', note: 'statistiche già disponibili', tone: 'success' },
       { label: 'Uso', value: 'Direzione', note: 'lettura gestionale e controllo studio', tone: 'purple' },
     ],
     cards: [
@@ -211,7 +211,7 @@ export const studioModules: StudioModuleConfig[] = [
     lexContext: 'ricerca-legale',
     lexLabel: 'Lex distingue fonti, aggiornamenti, impatto pratico e fascicoli collegabili.',
     kpis: [
-      { label: 'Fonti', value: 'Monitor', note: 'pipeline aggiornamenti e snapshot', tone: 'primary' },
+      { label: 'Fonti', value: 'Monitor', note: 'aggiornamenti e quadro fonti', tone: 'primary' },
       { label: 'News', value: 'Studio', note: 'archivio aggiornamenti legali', tone: 'success' },
       { label: 'Revisione', value: 'Umana', note: 'approvazione contenuti prima dell’uso', tone: 'warning' },
     ],
@@ -253,7 +253,7 @@ export const studioModules: StudioModuleConfig[] = [
     lexContext: 'strumenti-forensi',
     lexLabel: 'Lex aiuta a scegliere strumento, dati necessari e risultato da allegare al fascicolo.',
     kpis: [
-      { label: 'Moduli', value: '18+', note: 'calcolatori già esposti via API', tone: 'primary' },
+      { label: 'Moduli', value: '18+', note: 'calcolatori già disponibili', tone: 'primary' },
       { label: 'Prefill', value: 'Fascicolo', note: 'dati cliente e pratica riutilizzabili', tone: 'success' },
       { label: 'Output', value: 'Audit', note: 'risultati verificabili e ripetibili', tone: 'warning' },
     ],

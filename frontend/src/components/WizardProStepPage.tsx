@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, CalendarDays, CheckCircle2, ClipboardCheck, FileText, Gavel, PenLine } from 'lucide-react'
 import { Badge } from './dashboard'
 import { FloatingLex } from './FloatingLex'
+import { JsonPostForm } from './JsonPostForm'
 import { MatterSummary, WizardStepper, csrfToken } from './WizardProShared'
 import { getWizardProStepPage, type WizardProDocument, type WizardProStepData } from '../wizardProData'
 import './WizardProPage.css'
@@ -69,7 +70,7 @@ function DocumentsList({ documents }: { documents: WizardProDocument[] }) {
 
 function Step1({ data }: { data: WizardProStepData }) {
   return (
-    <form className="iu-wiz-panel iu-wiz-form" method="post" action={data.actions.form}>
+    <JsonPostForm className="iu-wiz-panel iu-wiz-form" action={data.actions.form} successMessage="Briefing salvato.">
       <input type="hidden" name="_csrf_token" value={csrfToken()} />
       <label>
         <span>Note briefing fascicolo</span>
@@ -80,13 +81,13 @@ function Step1({ data }: { data: WizardProStepData }) {
         {data.case?.href ? <a href={data.case.href}>Apri fascicolo</a> : null}
         <a href={data.actions.agenda}>Apri agenda</a>
       </div>
-    </form>
+    </JsonPostForm>
   )
 }
 
 function Step2({ data }: { data: WizardProStepData }) {
   return (
-    <form className="iu-wiz-panel iu-wiz-form" method="post" action={data.actions.form}>
+    <JsonPostForm className="iu-wiz-panel iu-wiz-form" action={data.actions.form} successMessage="Documenti salvati.">
       <input type="hidden" name="_csrf_token" value={csrfToken()} />
       <DocumentsList documents={data.documents} />
       <div className="iu-wiz-doc-edit">
@@ -116,17 +117,17 @@ function Step2({ data }: { data: WizardProStepData }) {
         <button type="submit">Salva e vai allo step 3</button>
         {data.case?.href ? <a href={data.case.href}>Apri fascicolo</a> : null}
       </div>
-    </form>
+    </JsonPostForm>
   )
 }
 
 function Step3({ data }: { data: WizardProStepData }) {
   return (
-    <form className="iu-wiz-panel iu-wiz-form" method="post" action={data.actions.form}>
+    <JsonPostForm className="iu-wiz-panel iu-wiz-form" action={data.actions.form} successMessage="Strategia salvata.">
       <input type="hidden" name="_csrf_token" value={csrfToken()} />
       <div className="iu-wiz-warning">
         <PenLine size={18}/>
-        <span>Compila strategia, richieste ed eccezioni in modo verificabile: il salvataggio resta sulla route Flask auditata.</span>
+        <span>Compila strategia, richieste ed eccezioni in modo verificabile: il salvataggio resta tracciato nello studio.</span>
       </div>
       <label>
         <span>Note preparazione</span>
@@ -145,14 +146,14 @@ function Step3({ data }: { data: WizardProStepData }) {
         <textarea name="eccezioni_da_sollevare" defaultValue={data.fields.eccezioni_da_sollevare} rows={4} />
       </label>
       <div className="iu-wiz-actions"><button type="submit">Salva e vai allo step 4</button></div>
-    </form>
+    </JsonPostForm>
   )
 }
 
 function Step4({ data }: { data: WizardProStepData }) {
   const hasMissing = data.missingDocuments.length > 0
   return (
-    <form className="iu-wiz-panel iu-wiz-form" method="post" action={data.actions.form}>
+    <JsonPostForm className="iu-wiz-panel iu-wiz-form" action={data.actions.form} successMessage="Pre-controlli salvati.">
       <input type="hidden" name="_csrf_token" value={csrfToken()} />
       {hasMissing ? <div className="iu-wiz-warning danger"><AlertTriangle size={18}/><span>Ci sono documenti ancora da portare o verificare prima della partenza.</span></div> : null}
       <div className="iu-wiz-precheck">
@@ -170,13 +171,13 @@ function Step4({ data }: { data: WizardProStepData }) {
         <a href={data.actions.signature}>Guida firma digitale</a>
         <a href={data.actions.agenda}>Apri agenda</a>
       </div>
-    </form>
+    </JsonPostForm>
   )
 }
 
 function Step5({ data }: { data: WizardProStepData }) {
   return (
-    <form className="iu-wiz-panel iu-wiz-form" method="post" action={data.actions.form}>
+    <JsonPostForm className="iu-wiz-panel iu-wiz-form" action={data.actions.form} successMessage="Preparazione completata.">
       <input type="hidden" name="_csrf_token" value={csrfToken()} />
       <div className="iu-wiz-warning">
         <Gavel size={18}/>
@@ -206,7 +207,7 @@ function Step5({ data }: { data: WizardProStepData }) {
         <span>Aggiorna il fascicolo con l esito udienza</span>
       </label>
       <div className="iu-wiz-actions"><button type="submit">Completa preparazione</button></div>
-    </form>
+    </JsonPostForm>
   )
 }
 

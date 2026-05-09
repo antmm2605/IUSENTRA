@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable
 from datetime import datetime, timezone
 from typing import Any
@@ -185,6 +186,13 @@ def _text(value: Any, fallback: str = "") -> str:
     return str(value or fallback).strip()
 
 
+def _display_text(value: Any, fallback: str = "") -> str:
+    text = _text(value, fallback)
+    text = re.sub(r"\bdemo\b", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"\s{2,}", " ", text).strip(" -")
+    return text or fallback
+
+
 def _portal_from_service(value: Any) -> str:
     raw = _text(value).lower()
     if raw in PORTALS:
@@ -291,22 +299,22 @@ def _case_row(row: dict[str, Any], index: int, fascicoli_index: dict[str, Any]) 
     practice_id = _text(row.get("practice_id") or row.get("id_fascicolo"))
     fasc = fascicoli_index.get(practice_id)
     title = (
-        _text(row.get("title"))
-        or _text(row.get("practice_title"))
-        or _text(getattr(fasc, "titolo", ""))
-        or _text(row.get("registry_number"))
+        _display_text(row.get("title"))
+        or _display_text(row.get("practice_title"))
+        or _display_text(getattr(fasc, "titolo", ""))
+        or _display_text(row.get("registry_number"))
         or "Pratica telematica"
     )
-    rg = _text(row.get("registry_number") or row.get("numero_rg") or getattr(fasc, "rg_completo", "") or getattr(fasc, "numero", ""))
-    court = _text(row.get("office_name") or row.get("ufficio") or getattr(fasc, "tribunale", ""))
-    status = _text(row.get("internal_status") or row.get("status") or row.get("status_text"), "Da verificare")
+    rg = _display_text(row.get("registry_number") or row.get("numero_rg") or getattr(fasc, "rg_completo", "") or getattr(fasc, "numero", ""))
+    court = _display_text(row.get("office_name") or row.get("ufficio") or getattr(fasc, "tribunale", ""))
+    status = _display_text(row.get("internal_status") or row.get("status") or row.get("status_text"), "Da verificare")
     return {
         "id": _text(row.get("id") or practice_id, f"case-{index}"),
         "portal": portal,
         "portalLabel": PORTAL_LABELS.get(portal, "Telematico"),
         "title": title,
         "subtitle": " · ".join(part for part in [court, rg] if part) or "Fascicolo telematico importato",
-        "subject": _text(row.get("subject") or row.get("oggetto") or getattr(fasc, "oggetto", "")),
+        "subject": _display_text(row.get("subject") or row.get("oggetto") or getattr(fasc, "oggetto", "")),
         "statusText": status.replace("_", " ").title(),
         "documentsCount": _int(row.get("documents_count") or row.get("documents") or row.get("document_count")),
         "openTasks": _int(row.get("open_tasks") or row.get("task_aperti") or row.get("tasks")),

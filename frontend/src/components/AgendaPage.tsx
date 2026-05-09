@@ -28,6 +28,7 @@ import {
 } from 'lucide-react'
 import { Badge, Button, Panel } from './dashboard'
 import { FloatingLex } from './FloatingLex'
+import { JsonPostForm } from './JsonPostForm'
 import type { AgendaEvent, AgendaKind, AgendaView } from '../agendaData'
 import {
   addDays,
@@ -314,10 +315,10 @@ function AgendaFocus({ event }:{event:AgendaEvent}) {
         <a href={`/messaggi/nuovo?oggetto=${encodeURIComponent(event.title)}`}><MessageCircleIcon/>Avvisa cliente</a>
         <a href="#lex" data-lex-open data-lex-context="agenda" data-lex-label={`Contesto agenda: ${event.title}`}><Sparkles size={15}/>Chiedi a Lex</a>
         {!isDeadline ? (
-          <form method="post" action={completeHref}>
+          <JsonPostForm action={completeHref}>
             <input type="hidden" name="stato" value="COMPLETATO"/>
             <button type="submit"><CheckCircle2 size={15}/>Segna completato</button>
-          </form>
+          </JsonPostForm>
         ) : null}
       </div>
     </section>
@@ -509,7 +510,7 @@ export function AgendaPage() {
           <div className="iu-ag-automations">
             <a href={messageReminderHref(automationTarget)}>Promemoria cliente</a>
             {canCreateTimesheet ? (
-              <form method="post" action="/timesheet/nuovo">
+              <JsonPostForm action="/timesheet/nuovo">
                 <input type="hidden" name="from_page" value="fascicolo"/>
                 <input type="hidden" name="focus" value="workflow"/>
                 <input type="hidden" name="id_fascicolo" value={automationTarget?.matterId || ''}/>
@@ -520,7 +521,7 @@ export function AgendaPage() {
                 <input type="hidden" name="fatturabile" value="1"/>
                 <input type="hidden" name="contesto" value="agenda-react"/>
                 <button type="submit">Crea voce timesheet</button>
-              </form>
+              </JsonPostForm>
             ) : (
               <button type="button" className="is-disabled" aria-disabled="true" title="Seleziona un evento collegato a un fascicolo per creare il timesheet.">Crea voce timesheet</button>
             )}

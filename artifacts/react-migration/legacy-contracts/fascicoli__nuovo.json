@@ -1,0 +1,14 @@
+{
+  "route": "/fascicoli/nuovo",
+  "capturedAt": "2026-05-09",
+  "status": "react_operational_full",
+  "source": "audit richiesto utente: full React end-to-end",
+  "preserve": [
+    "nuovo fascicolo React",
+    "payload form reale",
+    "validazioni UI",
+    "azioni collegate governate"
+  ],
+  "uiPolicy": "docs/UI_DESIGN_SYSTEM.md",
+  "regressionGuard": "nessun form POST HTML, nessuna CTA primaria legacy, testi visibili non tecnici"
+}

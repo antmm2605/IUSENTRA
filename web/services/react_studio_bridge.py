@@ -102,7 +102,7 @@ def _site_status(warnings: list[dict[str, str]]) -> dict[str, Any]:
             "label": "Sito Studio",
             "status": "pubblicato" if bool(site.get("is_published")) else "bozza",
             "tone": "success" if bool(site.get("is_published")) else "warning",
-            "note": "Dashboard e contatti sono gestiti in React; builder e pubblicazione restano protetti.",
+            "note": "Dashboard e contatti sono gestiti nello spazio operativo; builder e pubblicazione restano protetti.",
             "href": "/sito-studio",
             "metrics": {
                 "pagine": int(stats.get("pages") or 0),
@@ -136,7 +136,7 @@ def _module(module_id: str, label: str, href: str, area: str, note: str, *, stat
 
 
 def _legacy(module_id: str, label: str, href: str, area: str, note: str) -> dict[str, Any]:
-    return _module(module_id, label, href, area, note, status="legacy protetto", tone="warning")
+    return _module(module_id, label, href, area, note, status="protetto", tone="warning")
 
 
 def _health(health_id: str, label: str, status: str, tone: str, note: str, value: Any = "") -> dict[str, Any]:
@@ -164,7 +164,7 @@ def _contracts() -> dict[str, Any]:
         "writes": "none",
         "route_owner": "react_shell",
         "operational": True,
-        "sensitive_settings": "legacy_protected",
+        "sensitive_settings": "protetto",
         "secrets_exposed": False,
         "legacy_contract": "artifacts/react-migration/legacy-contracts/studio.json",
     }
@@ -201,31 +201,31 @@ def build_react_studio_payload(
     pending_payments = int(pagamenti_stats.get("in_attesa", pagamenti_stats.get("pendenti", 0)) or 0)
 
     operational_routes = [
-        _module("utenti", "Utenti", "/utenti", "amministrazione", "Elenco e creazione utenti in React operativo."),
-        _module("utenti-nuovo", "Nuovo utente", "/utenti/nuovo", "amministrazione", "Creazione utente JSON con permessi e audit."),
-        _module("profili", "Profili", "/profili", "amministrazione", "Matrice ruoli e permessi in React operativo."),
-        _module("audit", "Audit", "/audit", "sicurezza", "Registro audit consultabile via API JSON."),
+        _module("utenti", "Utenti", "/utenti", "amministrazione", "Elenco e creazione utenti operativi."),
+        _module("utenti-nuovo", "Nuovo utente", "/utenti/nuovo", "amministrazione", "Creazione utente con permessi e audit."),
+        _module("profili", "Profili", "/profili", "amministrazione", "Matrice ruoli e permessi operativa."),
+        _module("audit", "Audit", "/audit", "sicurezza", "Registro audit consultabile dallo studio."),
         _module("registro-attivita", "Registro attivita", "/registro-attivita", "sicurezza", "Alias operativo del registro audit."),
-        _module("backup", "Backup", "/backup", "governance", "Stato backup e verifiche in React operativo."),
-        _module("fatturazione", "Fatturazione", "/fatturazione", "economico", "Documenti economici su dashboard React."),
-        _module("fatturazione-nuova", "Nuova fattura", "/fatturazione/nuova", "economico", "Creazione fattura JSON già migrata."),
-        _module("incassi", "Incassi e pagamenti", "/incassi-pagamenti", "economico", "Incassi, pagamenti e link pagamento via API JSON."),
+        _module("backup", "Backup", "/backup", "governance", "Stato backup e verifiche operative."),
+        _module("fatturazione", "Fatturazione", "/fatturazione", "economico", "Documenti economici nella dashboard."),
+        _module("fatturazione-nuova", "Nuova fattura", "/fatturazione/nuova", "economico", "Creazione fattura con controlli applicativi."),
+        _module("incassi", "Incassi e pagamenti", "/incassi-pagamenti", "economico", "Incassi, pagamenti e link pagamento governati."),
         _module("preventivi", "Preventivi", "/preventivi", "mandato", "Lista preventivi e stati reali."),
-        _module("preventivi-nuovo", "Nuovo preventivo", "/preventivi/nuovo", "mandato", "Creazione preventivo JSON già migrata."),
+        _module("preventivi-nuovo", "Nuovo preventivo", "/preventivi/nuovo", "mandato", "Creazione preventivo con controlli applicativi."),
         _module("conferimento", "Nuovo conferimento", "/preventivi/conferimento/nuovo", "mandato", "Workflow conferimento già servito dalla shell."),
-        _module("compensi", "Compensi forensi", "/compensi-forensi", "economico", "Calcolo compensi via API JSON."),
-        _module("tariffario", "Tariffario", "/tariffario", "economico", "Motore tariffario operativo in React."),
-        _module("sito-studio", "Sito Studio", "/sito-studio", "comunicazione", "Dashboard e contatti sito in React operativo."),
-        _module("sito-contatti", "Contatti Sito Studio", "/sito-studio/contatti", "comunicazione", "Richieste contatto e prenotazioni su API JSON."),
+        _module("compensi", "Compensi forensi", "/compensi-forensi", "economico", "Calcolo compensi governato."),
+        _module("tariffario", "Tariffario", "/tariffario", "economico", "Motore tariffario operativo."),
+        _module("sito-studio", "Sito Studio", "/sito-studio", "comunicazione", "Dashboard e contatti sito operativi."),
+        _module("sito-contatti", "Contatti Sito Studio", "/sito-studio/contatti", "comunicazione", "Richieste contatto e prenotazioni governate."),
     ]
     legacy_routes = [
-        _legacy("impostazioni", "Impostazioni", "/impostazioni", "impostazioni sensibili", "Configurazioni riservate preservate nel legacy protetto."),
+        _legacy("impostazioni", "Impostazioni", "/impostazioni", "impostazioni sensibili", "Configurazioni riservate presidiate nel percorso dedicato."),
         _legacy("impostazioni-studio", "Impostazioni studio", "/impostazioni-studio", "impostazioni sensibili", "Dati configurativi dello studio non scritti da questa dashboard."),
-        _legacy("calendario", "Impostazioni calendario", "/impostazioni/calendario", "impostazioni sensibili", "OAuth e feed calendario restano nel legacy protetto."),
-        _legacy("pagamenti", "Impostazioni pagamenti", "/impostazioni/pagamenti", "impostazioni sensibili", "Provider e webhook non sono esposti nel payload React."),
+        _legacy("calendario", "Impostazioni calendario", "/impostazioni/calendario", "impostazioni sensibili", "Collegamenti calendario presidiati nel percorso dedicato."),
+        _legacy("pagamenti", "Impostazioni pagamenti", "/impostazioni/pagamenti", "impostazioni sensibili", "Configurazioni di incasso presidiate e non esposte in chiaro."),
         _legacy("sync-calendari", "Sincronizzazione calendari", "/sincronizzazione-calendari", "impostazioni sensibili", "Operazioni calendario protette fuori dallo hub."),
         _legacy("telematico", "Servizi telematici", "/servizi-telematici", "telematico", "Portali, firma e deposito restano su percorsi protetti."),
-        _legacy("builder", "Builder Sito Studio", "/sito-studio/builder", "sito studio", "Editor e pubblicazione avanzata restano legacy protetti."),
+        _legacy("builder", "Builder Sito Studio", "/sito-studio/builder", "sito studio", "Editor e pubblicazione avanzata restano protetti nel percorso dedicato."),
     ]
     health = [
         _health("backup", "Backup", "presente" if backup_total else "da verificare", "success" if backup_total else "warning", "Conteggio registro backup sicuro.", backup_total),
@@ -238,12 +238,12 @@ def build_react_studio_payload(
     warnings.extend(
         [
             {
-                "code": "impostazioni_legacy_protette",
-                "message": "Impostazioni riservate, calendari, pagamenti, PEC, firma digitale e provider restano nel legacy protetto.",
+                "code": "impostazioni_protette",
+                "message": "Impostazioni riservate, calendari, pagamenti, PEC e firma digitale restano nel percorso protetto.",
             },
             {
-                "code": "telematico_legacy_protetto",
-                "message": "PST, PDP, PAT, firma e portali telematici restano fuori da questa dashboard React.",
+                "code": "telematico_protetto",
+                "message": "PST, PDP, PAT, firma e portali telematici restano fuori da questa dashboard.",
             },
         ]
     )

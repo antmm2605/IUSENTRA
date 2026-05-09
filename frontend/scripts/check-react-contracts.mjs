@@ -383,7 +383,7 @@ assertContains(tranche6aGate, '/fatturazione/qualunque/pdf', 'check Tranche 6A v
 assertContains(tranche6aSecrets, 'react_fatturazione_bridge.py', 'check Tranche 6A anti-segreti scansiona bridge fatturazione')
 assertContains(tranche6aNoFiscalLogic, 'calculateIva', 'check Tranche 6A blocca calcolo fiscale frontend')
 assertContains(tranche17aOperational, '@api_v1_react.post("/fatturazione/nuova")', 'check Tranche 17A presidia POST JSON nuova fatturazione')
-assertContains(tranche17aOperational, 'Rollback tecnico', 'check Tranche 17A presidia rollback tecnico')
+assertContains(tranche17aOperational, 'Percorso di recupero', 'check Tranche 17A presidia recupero governato')
 assertContains(tranche17aApi, 'manager.crea(', 'check Tranche 17A API presidia riuso GestioneFatturazione')
 assertContains(tranche17aApi, 'fatturazione.scrivi', 'check Tranche 17A API presidia permessi backend')
 assertContains(tranche17aNoFiscalLogic, 'calculateIva', 'check Tranche 17A blocca calcolo fiscale frontend')
@@ -417,7 +417,74 @@ assertContains(tranche8aOpenDesignReport, 'Token creati', 'report Open Design 8A
 if (routeManifest.policy?.currentReleaseUnlocksRoutes !== true) {
   throw new Error('route manifest: currentReleaseUnlocksRoutes deve essere true nelle tranche di promozione')
 }
-const allowedGovernedUnlocks = new Set(['/statistiche', '/audit', '/registro-attivita', '/utenti', '/utenti/nuovo', '/profili', '/backup', '/sito-studio', '/sito-studio/contatti', '/studio', '/amministrazione', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/notifiche', '/notifiche-whatsapp', '/sincronizzazione-calendari', '/fatturazione', '/fatturazione/nuova', '/incassi-pagamenti', '/preventivi', '/preventivi/nuovo', '/preventivi/wizard', '/preventivi/conferimento/nuovo', '/compensi-forensi', '/tariffario', '/template-atti', '/template-atti/catalogo', '/redazione-atti', '/giurisprudenza', '/legal-intelligence', '/legal-intelligence/news', '/legal-intelligence/mediazione', '/ricerca-legale', '/deposito/checklist', '/strumenti-legali', '/strumenti-operativi'])
+const allowedGovernedUnlocks = new Set(['/', '/admin/database', '/agenda', '/agenda/nuovo', '/amministrazione', '/audit', '/backup', '/cartelle-condivise', '/clienti', '/clienti/nuovo', '/compensi-forensi', '/deposito/checklist', '/email', '/email-ordinaria', '/fascicoli', '/fascicoli/archivio', '/fascicoli/nuovo', '/fatturazione', '/fatturazione/nuova', '/giurisprudenza', '/global-search', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/incassi-pagamenti', '/legal-intelligence', '/legal-intelligence/mediazione', '/legal-intelligence/news', '/messaggi', '/messaggi/nuovo', '/notifiche', '/notifiche-whatsapp', '/preventivi', '/preventivi/conferimento/nuovo', '/preventivi/nuovo', '/preventivi/wizard', '/privacy/registro', '/privacy/registro/nuovo', '/profili', '/redazione-atti', '/regia-operativa', '/registro-attivita', '/registro-gdpr', '/ricerca-legale', '/ricerca-studio', '/scadenziario', '/scadenziario/nuova', '/sincronizzazione-calendari', '/sito-studio', '/sito-studio/contatti', '/soggetti', '/soggetti/nuovo', '/statistiche', '/strumenti-legali', '/strumenti-operativi', '/studio', '/tariffario', '/template-atti', '/template-atti/catalogo', '/timesheet', '/utenti', '/utenti/nuovo', '/wizard-pro', '/workspace-intelligente'])
+const governedExpectedStatuses = new Map([
+  ['/', 'react_operational_full'],
+  ['/admin/database', 'react_operational_full'],
+  ['/agenda', 'react_operational_full'],
+  ['/agenda/nuovo', 'react_operational_full'],
+  ['/amministrazione', 'react_operational_full'],
+  ['/audit', 'react_operational_full'],
+  ['/backup', 'react_operational_full'],
+  ['/cartelle-condivise', 'react_operational_full'],
+  ['/clienti', 'react_operational_full'],
+  ['/clienti/nuovo', 'react_operational_full'],
+  ['/compensi-forensi', 'react_operational_full'],
+  ['/deposito/checklist', 'react_operational_full'],
+  ['/email', 'react_operational_full'],
+  ['/email-ordinaria', 'react_operational_full'],
+  ['/fascicoli', 'react_operational_full'],
+  ['/fascicoli/archivio', 'react_operational_full'],
+  ['/fascicoli/nuovo', 'react_operational_full'],
+  ['/fatturazione', 'react_operational_full'],
+  ['/fatturazione/nuova', 'react_operational_full'],
+  ['/giurisprudenza', 'react_operational_full'],
+  ['/global-search', 'react_operational_full'],
+  ['/impostazioni', 'react_operational_full'],
+  ['/impostazioni-studio', 'react_operational_full'],
+  ['/impostazioni/calendario', 'react_operational_full'],
+  ['/impostazioni/pagamenti', 'react_operational_full'],
+  ['/incassi-pagamenti', 'react_operational_full'],
+  ['/legal-intelligence', 'react_operational_full'],
+  ['/legal-intelligence/mediazione', 'react_operational_full'],
+  ['/legal-intelligence/news', 'react_operational_full'],
+  ['/messaggi', 'react_operational_full'],
+  ['/messaggi/nuovo', 'react_operational_full'],
+  ['/notifiche', 'react_operational_full'],
+  ['/notifiche-whatsapp', 'react_operational_full'],
+  ['/preventivi', 'react_operational_full'],
+  ['/preventivi/conferimento/nuovo', 'react_operational_full'],
+  ['/preventivi/nuovo', 'react_operational_full'],
+  ['/preventivi/wizard', 'react_operational_partial'],
+  ['/privacy/registro', 'react_operational_full'],
+  ['/privacy/registro/nuovo', 'react_operational_full'],
+  ['/profili', 'react_operational_full'],
+  ['/redazione-atti', 'react_operational_full'],
+  ['/regia-operativa', 'react_operational_full'],
+  ['/registro-attivita', 'react_operational_full'],
+  ['/registro-gdpr', 'react_operational_full'],
+  ['/ricerca-legale', 'react_operational_full'],
+  ['/ricerca-studio', 'react_operational_full'],
+  ['/scadenziario', 'react_operational_full'],
+  ['/scadenziario/nuova', 'react_operational_full'],
+  ['/sincronizzazione-calendari', 'react_operational_full'],
+  ['/sito-studio', 'react_operational_full'],
+  ['/sito-studio/contatti', 'react_operational_full'],
+  ['/soggetti', 'react_operational_full'],
+  ['/soggetti/nuovo', 'react_operational_full'],
+  ['/statistiche', 'react_operational_full'],
+  ['/strumenti-legali', 'react_operational_full'],
+  ['/strumenti-operativi', 'react_operational_full'],
+  ['/studio', 'react_operational_full'],
+  ['/tariffario', 'react_operational_full'],
+  ['/template-atti', 'react_operational_full'],
+  ['/template-atti/catalogo', 'react_operational_full'],
+  ['/timesheet', 'react_operational_full'],
+  ['/utenti', 'react_operational_full'],
+  ['/utenti/nuovo', 'react_operational_full'],
+  ['/wizard-pro', 'react_operational_full'],
+  ['/workspace-intelligente', 'react_operational_full'],
+])
 const allowedManifestStatuses = new Set(['legacy_operational', 'react_shell', 'react_bridge', 'react_operational_partial', 'react_operational_full'])
 const unlockStatuses = new Set(['react_bridge', 'react_operational_partial', 'react_operational_full'])
 for (const entry of routeManifest.routes ?? []) {
@@ -471,6 +538,14 @@ for (const [route, status] of [
     throw new Error(`route manifest: ${route} deve essere ${status} con unlockFromGate=true`)
   }
 }
+
+for (const [route, status] of governedExpectedStatuses) {
+  const entry = (routeManifest.routes ?? []).find((item) => item.route === route)
+  if (!entry || entry.status !== status || entry.unlockFromGate !== true) {
+    throw new Error(`route manifest richieste utente: ${route} deve essere ${status} con unlockFromGate=true`)
+  }
+}
+
 for (const route of ['/sito-studio/builder']) {
   const entry = (routeManifest.routes ?? []).find((item) => item.route === route)
   if (!entry || entry.status !== 'legacy_operational' || entry.unlockFromGate !== false) {
@@ -651,7 +726,7 @@ assertContains(sitoStudioPage, 'linkSitoContatto', 'SitoStudioPage collega conta
 assertNotContains(fatturazionePage, 'LegacyPostForm', 'FatturazionePage non usa LegacyPostForm nel flusso nuova fatturazione')
 assertContains(fatturazionePage, 'createFattura', 'FatturazionePage salva nuova parcella via JSON')
 assertContains(fatturazionePage, 'saveStatus', 'FatturazionePage gestisce saving/success/error')
-assertContains(fatturazionePage, 'Rollback tecnico', 'FatturazionePage confina il fallback legacy in sezione tecnica')
+assertContains(fatturazionePage, 'Percorso di recupero', 'FatturazionePage confina il fallback in sezione governata')
 assertContains(fatturazioneData, 'apiPostJson<CreateFatturaResult>', 'fatturazioneData usa apiPostJson per nuova parcella')
 assertContains(fatturazioneBridge, '"writes": "json_api"', 'bridge nuova fatturazione dichiara scrittura JSON')
 assertContains(fatturazioneBridge, '"canonical_calculation": "backend"', 'bridge nuova fatturazione dichiara calcolo canonico backend')
@@ -662,7 +737,7 @@ assertContains(preventiviPage, 'createPreventivo', 'PreventiviPage crea preventi
 assertContains(preventiviPage, 'createConferimento', 'PreventiviPage crea conferimento via JSON')
 assertContains(preventiviPage, 'getPreventivoDetail', 'PreventiviPage legge dettaglio preventivo via JSON')
 assertContains(preventiviPage, 'updatePreventivoStatus', 'PreventiviPage aggiorna stato preventivo via JSON')
-assertContains(preventiviPage, 'Rollback tecnico', 'PreventiviPage confina il fallback legacy in sezione tecnica')
+assertContains(preventiviPage, 'Percorso di recupero', 'PreventiviPage confina il fallback in sezione governata')
 assertContains(preventiviData, 'apiPostJson<CreatePreventivoResult>', 'preventiviData usa apiPostJson per nuovo preventivo')
 assertContains(preventiviData, 'apiPostJson<CreateConferimentoResult>', 'preventiviData usa apiPostJson per nuovo conferimento')
 assertContains(preventiviData, 'apiPostJson<PreventivoMutationResult>', 'preventiviData usa apiPostJson per azioni archivio preventivi')
@@ -1156,7 +1231,7 @@ for (const [label, source] of [
 }
 assertContains(app, "readShellBootstrap", 'bootstrap profilo reale shell react')
 assertContains(app, "profile.displayName", 'nome profilo reale in sidebar react')
-assertContains(app, 'method="post" action={logoutAction}', 'logout react via POST reale')
+assertContains(app, '<JsonPostForm action={logoutAction}>', 'logout react via submit JSON reale')
 assertContains(app, "findStudioModule(route)", 'contesto lex blocco finale')
 assertContains(app, "const OPEN_LEX_WIDGET_HREF = '#lex'", 'cta lex usa widget flottante')
 assertNotContains(app, legacyLexContextHref, 'shell react senza link funzionali /lex')
@@ -1527,11 +1602,11 @@ assertContains(apiBridge, '@api_v1_react.get("/timesheet")', 'endpoint /api/v1/u
 assertContains(timesheetBridge, '"mock_fallback": False', 'timesheet mock_fallback false')
 assertContains(timesheetBridge, '"writes": "operational_routes"', 'timesheet writes operational_routes')
 assertContains(timesheetBridge, '"route_owner": "react_shell"', 'timesheet route_owner react_shell')
-assertContains(timesheet, 'method="post" action={data.actions.create}', 'form POST timesheet nuovo')
+assertContains(timesheet, '<JsonPostForm className="iu-timesheet-form" action={data.actions.create}', 'submit React timesheet nuovo')
 assertContains(timesheetData, "create: '/timesheet/nuovo'", 'azione /timesheet/nuovo')
-assertContains(timesheet, 'method="post" action={entry.stateAction}', 'form POST stato timesheet')
+assertContains(timesheet, '<JsonPostForm className="iu-timesheet-status" action={entry.stateAction}', 'submit React stato timesheet')
 assertContains(timesheetBridge, 'f"/timesheet/{entry_id}/stato"', 'azione /timesheet/<id>/stato')
-assertContains(timesheet, 'method="post" action={data.billing.action}', 'form POST genera parcella')
+assertContains(timesheet, '<JsonPostForm className="iu-timesheet-billing" action={data.billing.action}', 'submit React genera parcella')
 assertContains(timesheetData, "action: '/timesheet/genera-parcella'", 'azione /timesheet/genera-parcella')
 assertNotContains(timesheet, 'href="#"', 'timesheet senza href vuoto')
 assertNotContains(timesheetData, '_legacy=1', 'timesheet data senza route tecnica')
@@ -1565,11 +1640,11 @@ assertNotContains(wizardBundle, 'Vista classica', 'wizard pro senza vista classi
 assertNotContains(wizardBundle, '_legacy=1', 'wizard pro senza link tecnico')
 assertNotContains(wizardBundle, 'legacy', 'wizard pro componenti/data senza stringa legacy')
 assertNotContains(wizardBundle, 'href="#"', 'wizard pro senza href vuoto')
-assertContains(wizardPro, 'method="post" action={item.startHref}', 'form POST wizard pro nuovo')
+assertContains(wizardPro, '<JsonPostForm action={item.startHref}', 'submit React wizard pro nuovo')
 assertContains(wizardProData, "start: '/wizard-pro/nuovo'", 'azione /wizard-pro/nuovo')
 assertContains(wizardProBridge, 'f"/wizard-pro/{id_sessione}/step/{n}"', 'form /wizard-pro/<id>/step/<n>')
-assertContains(wizardProComplete, 'method="post" action={data.actions.archive}', 'form POST wizard pro archivia')
-assertContains(wizardProComplete, 'method="post" action={data.actions.delete}', 'form POST wizard pro elimina')
+assertContains(wizardProComplete, '<JsonPostForm action={data.actions.archive}', 'submit React wizard pro archivia')
+assertContains(wizardProComplete, '<JsonPostForm action={data.actions.delete}', 'submit React wizard pro elimina')
 for (const field of [
   'step1_note',
   'doc_stato_',

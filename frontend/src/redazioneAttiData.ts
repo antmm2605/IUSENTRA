@@ -1,4 +1,5 @@
 import { apiJson } from './lib/apiClient'
+import { sanitizeDisplayText } from './displayText'
 import type { AdminAction, AdminContract, AdminMetric, AdminSection, AdminTone, AdminWarning } from './utentiData'
 
 export type RedazioneAttiRecord = {
@@ -53,9 +54,13 @@ function text(value: unknown, fallback = ''): string {
   return typeof value === 'string' ? value.trim() : fallback
 }
 
+function display(value: unknown, fallback = ''): string {
+  return sanitizeDisplayText(text(value, fallback))
+}
+
 function scalar(value: unknown): string | number {
   if (typeof value === 'number' && Number.isFinite(value)) return value
-  if (typeof value === 'string') return value.trim()
+  if (typeof value === 'string') return sanitizeDisplayText(value.trim())
   return ''
 }
 
@@ -74,9 +79,9 @@ function normaliseMetric(input: unknown): AdminMetric {
   const item = asRecord(input)
   return {
     id: text(item.id) || text(item.label) || 'metrica',
-    label: text(item.label) || 'Metrica',
+    label: display(item.label) || 'Metrica',
     value: scalar(item.value),
-    note: text(item.note),
+    note: display(item.note),
     tone: tone(item.tone),
   }
 }
@@ -85,19 +90,19 @@ function normaliseSection(input: unknown): AdminSection {
   const item = asRecord(input)
   return {
     id: text(item.id) || text(item.title) || 'sezione',
-    title: text(item.title) || 'Sezione',
-    kind: text(item.kind) || 'distribution',
+    title: display(item.title) || 'Sezione',
+    kind: display(item.kind) || 'Distribuzione',
     items: list(item.items).map((entryInput) => {
       const entry = asRecord(entryInput)
       return {
         id: text(entry.id) || text(entry.label) || 'voce',
-        label: text(entry.label) || 'Voce',
+        label: display(entry.label) || 'Voce',
         value: scalar(entry.value),
-        note: text(entry.note),
+        note: display(entry.note),
         tone: tone(entry.tone),
       }
     }),
-    emptyMessage: text(item.emptyMessage) || 'Nessun dato disponibile.',
+    emptyMessage: display(item.emptyMessage) || 'Nessun dato disponibile.',
   }
 }
 
@@ -105,7 +110,7 @@ function normaliseAction(input: unknown): AdminAction {
   const item = asRecord(input)
   return {
     id: text(item.id) || text(item.label) || 'azione',
-    label: text(item.label) || 'Apri',
+    label: display(item.label) || 'Apri',
     href: safeHref(item.href, '/redazione-atti'),
     method: 'GET',
     tone: tone(item.tone),
@@ -115,8 +120,8 @@ function normaliseAction(input: unknown): AdminAction {
 function normaliseWarning(input: unknown): AdminWarning {
   const item = asRecord(input)
   return {
-    code: text(item.code) || 'warning',
-    message: text(item.message) || 'Avviso tecnico disponibile.',
+    code: display(item.code) || 'warning',
+    message: display(item.message) || 'Avviso operativo disponibile.',
   }
 }
 
@@ -124,10 +129,10 @@ function normaliseRecord(input: unknown): RedazioneAttiRecord {
   const item = asRecord(input)
   return {
     id: text(item.id) || text(item.title) || 'record',
-    title: text(item.title) || 'Voce operativa',
-    subtitle: text(item.subtitle),
-    meta: text(item.meta),
-    stateLabel: text(item.stateLabel),
+    title: display(item.title) || 'Voce operativa',
+    subtitle: display(item.subtitle),
+    meta: display(item.meta),
+    stateLabel: display(item.stateLabel),
     stateTone: tone(item.stateTone),
     href: safeHref(item.href, '/redazione-atti'),
   }
@@ -151,7 +156,7 @@ function normalisePage(input: unknown): RedazioneAttiPageData {
     actions: list(page.actions).map(normaliseAction).filter((action) => action.href),
     forms: [],
     warnings: list(page.warnings).map(normaliseWarning),
-    summary: text(page.summary),
+    summary: display(page.summary),
   }
 }
 

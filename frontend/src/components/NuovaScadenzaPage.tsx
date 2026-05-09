@@ -24,6 +24,8 @@ import {
   UserRound,
 } from 'lucide-react'
 import type { Tone } from '../data'
+import { sanitizeDisplayText } from '../displayText'
+import { redirectAfterSuccess, submitFormJson } from '../formSubmit'
 import { Badge } from './dashboard'
 import './NuovaScadenzaPage.css'
 
@@ -149,6 +151,7 @@ type CheckItem = {
   required?: boolean
   tone?: Tone
 }
+type SubmitState = { saving: boolean; tone: 'success' | 'danger' | 'neutral'; message: string }
 
 const fallbackTypes: SelectOption[] = [
   { value: 'UDIENZA', label: 'UDIENZA' },
@@ -214,6 +217,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function asText(value: unknown, fallback = ''): string {
   if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return String(value).trim()
   return fallback
+}
+
+function displayText(value: unknown, fallback = ''): string {
+  return sanitizeDisplayText(asText(value, fallback))
 }
 
 async function safeJson(response: Response): Promise<unknown> {
@@ -299,7 +306,7 @@ function normalisePayload(payload: unknown): ContextPayload {
 
 function selectedLabel(options: SelectOption[], value: string): string {
   const item = options.find((option) => (option.value || option.id || '') === value)
-  return item?.label || value || '—'
+  return displayText(item?.label || value || '—')
 }
 
 function presetProfile(preset: DeadlinePreset | undefined): string {
@@ -391,6 +398,7 @@ export function NuovaScadenzaPage() {
   const [calcResult, setCalcResult] = useState<CalculationResult | null>(null)
   const [calcError, setCalcError] = useState('')
   const [showValidation, setShowValidation] = useState(false)
+  const [submitState, setSubmitState] = useState<SubmitState>({ saving: false, tone: 'neutral', message: '' })
   const [officeQuery, setOfficeQuery] = useState('')
   const officeInputRef = useRef<HTMLInputElement>(null)
 
@@ -511,7 +519,6 @@ export function NuovaScadenzaPage() {
   const canSubmit = requiredOk && !calcLoading
   const isEditMode = context.mode === 'edit' || Boolean(editId)
   const writeEndpoint = context.actions?.write_endpoint || (isEditMode && editId ? `/scadenziario/${encodeURIComponent(editId)}/modifica` : '/scadenziario/nuova')
-  const legacyHref = context.actions?.legacy_fallback || `${writeEndpoint}?_legacy=1`
   const cancelHref = context.actions?.detail || (form.from_cliente || form.id_cliente ? `/clienti/${form.from_cliente || form.id_cliente}` : '/scadenziario')
   const calculatedNotes = Array.isArray(calcResult?.operational_notes)
     ? calcResult?.operational_notes || []
@@ -604,10 +611,20 @@ export function NuovaScadenzaPage() {
     }
   }
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
     if (!canSubmit) {
-      event.preventDefault()
       setShowValidation(true)
+      setSubmitState({ saving: false, tone: 'danger', message: 'Completa i dati necessari prima del salvataggio.' })
+      return
+    }
+    setSubmitState({ saving: true, tone: 'neutral', message: 'Salvataggio in corso...' })
+    try {
+      const result = await submitFormJson(writeEndpoint, new FormData(event.currentTarget))
+      setSubmitState({ saving: false, tone: 'success', message: result.message || 'Scadenza salvata.' })
+      redirectAfterSuccess(result, cancelHref)
+    } catch (error) {
+      setSubmitState({ saving: false, tone: 'danger', message: error instanceof Error ? error.message : 'Salvataggio non riuscito.' })
     }
   }
 
@@ -617,17 +634,16 @@ export function NuovaScadenzaPage() {
         <div className="iu-deadline-hero__main">
           <span className="iu-deadline-eyebrow"><CalendarPlus size={16} /> Scadenziario professionale</span>
           <h1>{isEditMode ? 'Modifica scadenza' : 'Nuova scadenza'}</h1>
-          <p>{isEditMode ? 'Aggiorna una scadenza esistente mantenendo validazioni, audit e route operativa originale.' : 'Calcolo termini con preset processuali, calendario nazionale, patroni studio/ufficio, anticipo operativo e trace verificabile.'}</p>
+          <p>{isEditMode ? 'Aggiorna una scadenza esistente mantenendo validazioni e tracciamento.' : 'Calcolo termini con preset processuali, calendario nazionale, patroni studio/ufficio, anticipo operativo e verifica del percorso.'}</p>
         </div>
         <div className="iu-deadline-hero__actions">
           <a className="iu-deadline-ghost" href="/scadenziario"><ArrowLeft size={16} /> Scadenziario</a>
           <a className="iu-deadline-ghost" href="/agenda"><CalendarDays size={16} /> Agenda</a>
-          <a className="iu-deadline-ghost" href={legacyHref}><ExternalLink size={16} /> Vista classica</a>
         </div>
       </section>
 
       <div className="iu-deadline-layout">
-        <form className="iu-deadline-form" method="post" action={writeEndpoint} onSubmit={handleSubmit}>
+        <form className="iu-deadline-form" onSubmit={handleSubmit}>
           <input type="hidden" name="id_cliente" value={form.id_cliente} />
           <input type="hidden" name="from_cliente" value={form.from_cliente} />
           {form.october_observance_blocks ? <input type="hidden" name="october_observance_blocks" value="1" /> : null}
@@ -649,7 +665,7 @@ export function NuovaScadenzaPage() {
                 <select name="preset" value={form.preset} onChange={(event) => applyPreset(event.currentTarget.value)}>
                   <option value="">Nessun preset rapido</option>
                   {presets.map((preset) => (
-                    <option key={preset.key} value={preset.key}>{preset.label}</option>
+                    <option key={preset.key} value={preset.key}>{displayText(preset.label)}</option>
                   ))}
                 </select>
                 <small className="iu-deadline-hint">Usa i preset per impugnazioni, memorie e termini processuali ricorrenti.</small>
@@ -666,7 +682,7 @@ export function NuovaScadenzaPage() {
                 >
                   <option value="">Seleziona un profilo</option>
                   {profiles.map((profile) => (
-                    <option key={profile.code} value={profile.code}>{profile.label}</option>
+                    <option key={profile.code} value={profile.code}>{displayText(profile.label)}</option>
                   ))}
                 </select>
                 <small className="iu-deadline-hint">Usalo quando vuoi il motore avanzato senza preset processuale.</small>
@@ -806,7 +822,7 @@ export function NuovaScadenzaPage() {
                     setCalcResult(null)
                   }}
                 >
-                  {officeModes.map((mode) => <option key={mode.value} value={mode.value}>{mode.label}</option>)}
+                  {officeModes.map((mode) => <option key={mode.value} value={mode.value}>{displayText(mode.label)}</option>)}
                 </select>
               </Field>
 
@@ -863,7 +879,7 @@ export function NuovaScadenzaPage() {
                   onChange={(event) => update('tipo', event.currentTarget.value as DeadlineType)}
                   required
                 >
-                  {deadlineTypes.map((item) => <option key={item.value || item.id || item.label} value={item.value || item.id || item.label}>{item.label}</option>)}
+                  {deadlineTypes.map((item) => <option key={item.value || item.id || item.label} value={item.value || item.id || item.label}>{displayText(item.label)}</option>)}
                 </select>
               </Field>
 
@@ -906,14 +922,14 @@ export function NuovaScadenzaPage() {
               <Field label="Fascicolo" icon={<Building2 size={16} />}>
                 <select name="id_fascicolo" value={form.id_fascicolo} onChange={(event) => update('id_fascicolo', event.currentTarget.value)}>
                   <option value="">Nessun fascicolo</option>
-                  {matters.map((item) => <option key={item.id || item.value || item.label} value={item.id || item.value}>{item.label}</option>)}
+                  {matters.map((item) => <option key={item.id || item.value || item.label} value={item.id || item.value}>{displayText(item.label)}</option>)}
                 </select>
               </Field>
 
               <Field label="Responsabile" icon={<UserRound size={16} />}>
                 <select name="id_utente" value={form.id_utente} onChange={(event) => update('id_utente', event.currentTarget.value)}>
                   <option value="">Nessun responsabile</option>
-                  {users.map((item) => <option key={item.id || item.value || item.label} value={item.id || item.value}>{item.label}</option>)}
+                  {users.map((item) => <option key={item.id || item.value || item.label} value={item.id || item.value}>{displayText(item.label)}</option>)}
                 </select>
               </Field>
 
@@ -946,10 +962,16 @@ export function NuovaScadenzaPage() {
                 {calcLoading ? <Loader2 size={16} className="iu-spin" /> : <Sparkles size={16} />}
                 Ricalcola
               </button>
-              <button className="iu-deadline-submit" type="submit" disabled={!canSubmit}>
-                <CheckCircle2 size={17} /> {isEditMode ? 'Salva modifiche' : 'Crea scadenza'}
+              <button className="iu-deadline-submit" type="submit" disabled={!canSubmit || submitState.saving}>
+                <CheckCircle2 size={17} /> {submitState.saving ? 'Salvataggio...' : isEditMode ? 'Salva modifiche' : 'Crea scadenza'}
               </button>
             </div>
+            {submitState.message ? (
+              <p className={`iu-deadline-validation iu-deadline-validation--${submitState.tone}`} role={submitState.tone === 'danger' ? 'alert' : 'status'}>
+                {submitState.tone === 'danger' ? <AlertTriangle size={16} /> : <CheckCircle2 size={16} />}
+                {submitState.message}
+              </p>
+            ) : null}
           </section>
         </form>
 
@@ -974,7 +996,7 @@ export function NuovaScadenzaPage() {
               <OperationalCard
                 icon={<Building2 size={18} />}
                 title="Apri fascicolo"
-                text={selectedMatter?.subtitle || selectedMatter?.label || 'Collega un fascicolo per attivare la cabina'}
+                text={displayText(selectedMatter?.subtitle || selectedMatter?.label || 'Collega un fascicolo per attivare la cabina')}
                 href={form.id_fascicolo ? `/fascicoli/${encodeURIComponent(form.id_fascicolo)}` : '/fascicoli'}
                 disabled={!form.id_fascicolo}
               />
@@ -997,7 +1019,7 @@ export function NuovaScadenzaPage() {
                 <div key={check.id} className={check.ok ? 'is-ok' : ''}>
                   {check.ok ? <CheckCircle2 size={17} /> : <AlertTriangle size={17} />}
                   <span>
-                    <strong>{check.label}{check.required ? ' *' : ''}</strong>
+                    <strong>{displayText(check.label)}{check.required ? ' *' : ''}</strong>
                     <small>{check.help}</small>
                   </span>
                 </div>
@@ -1020,10 +1042,10 @@ export function NuovaScadenzaPage() {
           <section className="iu-deadline-side-card">
             <header><span><Info size={17} /> Dati collegati</span></header>
             <dl className="iu-deadline-context-list">
-              <div><dt>Preset</dt><dd>{activePreset?.label || '—'}</dd></div>
-              <div><dt>Profilo</dt><dd>{selectedProfile?.label || '—'}</dd></div>
-              <div><dt>Fascicolo</dt><dd>{selectedMatter?.label || '—'}</dd></div>
-              <div><dt>Responsabile</dt><dd>{selectedOwner?.label || '—'}</dd></div>
+              <div><dt>Preset</dt><dd>{displayText(activePreset?.label || '—')}</dd></div>
+              <div><dt>Profilo</dt><dd>{displayText(selectedProfile?.label || '—')}</dd></div>
+              <div><dt>Fascicolo</dt><dd>{displayText(selectedMatter?.label || '—')}</dd></div>
+              <div><dt>Responsabile</dt><dd>{displayText(selectedOwner?.label || '—')}</dd></div>
             </dl>
           </section>
         </aside>

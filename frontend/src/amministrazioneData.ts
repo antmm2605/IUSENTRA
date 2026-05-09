@@ -10,6 +10,7 @@ import {
   type WarningItem,
 } from './studioData'
 import type { AdminTone } from './utentiData'
+import { sanitizeDisplayText } from './displayText'
 
 export type AdminHubMetric = {
   id: string
@@ -92,13 +93,17 @@ function text(value: unknown, fallback = ''): string {
   return typeof value === 'string' ? value.trim() : fallback
 }
 
+function display(value: unknown, fallback = ''): string {
+  return sanitizeDisplayText(text(value, fallback))
+}
+
 function bool(value: unknown): boolean {
   return value === true
 }
 
 function value(value: unknown): string | number {
   if (typeof value === 'number' && Number.isFinite(value)) return value
-  if (typeof value === 'string') return value.trim()
+  if (typeof value === 'string') return sanitizeDisplayText(value.trim())
   return ''
 }
 
@@ -119,9 +124,9 @@ function normaliseMetric(raw: unknown): AdminHubMetric {
   const item = asRecord(raw)
   return {
     id: text(item.id) || text(item.label) || 'metrica',
-    label: text(item.label) || 'Metrica',
+    label: display(item.label) || 'Metrica',
     value: value(item.value),
-    note: text(item.note),
+    note: display(item.note),
     tone: tone(item.tone),
   }
 }
@@ -130,19 +135,19 @@ function normaliseSection(raw: unknown): AdminHubSection {
   const item = asRecord(raw)
   return {
     id: text(item.id) || text(item.title) || 'sezione',
-    title: text(item.title) || 'Sezione',
-    kind: text(item.kind) || 'distribution',
+    title: display(item.title) || 'Sezione',
+    kind: display(item.kind) || 'distribuzione',
     items: list(item.items).map((rawItem) => {
       const entry = asRecord(rawItem)
       return {
         id: text(entry.id) || text(entry.label) || 'voce',
-        label: text(entry.label) || 'Voce',
+        label: display(entry.label) || 'Voce',
         value: value(entry.value),
-        note: text(entry.note),
+        note: display(entry.note),
         tone: tone(entry.tone),
       }
     }),
-    emptyMessage: text(item.emptyMessage) || 'Nessun dato disponibile.',
+    emptyMessage: display(item.emptyMessage) || 'Nessun dato disponibile.',
   }
 }
 
@@ -150,12 +155,12 @@ function normaliseModule(raw: unknown): OperationalModule {
   const item = asRecord(raw)
   return {
     id: text(item.id) || text(item.label) || 'modulo',
-    label: text(item.label) || 'Modulo',
+    label: display(item.label) || 'Modulo',
     href: text(item.href),
-    area: text(item.area),
-    status: text(item.status) || 'stato non indicato',
+    area: display(item.area),
+    status: display(item.status) || 'stato non indicato',
     tone: tone(item.tone),
-    note: text(item.note),
+    note: display(item.note),
   }
 }
 
@@ -163,7 +168,7 @@ function normaliseAction(raw: unknown): RouteAction {
   const item = asRecord(raw)
   return {
     id: text(item.id) || text(item.label) || 'azione',
-    label: text(item.label) || 'Apri',
+    label: display(item.label) || 'Apri',
     href: text(item.href),
     method: 'GET',
     tone: tone(item.tone),
@@ -174,8 +179,8 @@ function normaliseAction(raw: unknown): RouteAction {
 function normaliseWarning(raw: unknown): WarningItem {
   const item = asRecord(raw)
   return {
-    code: text(item.code) || 'warning',
-    message: text(item.message) || 'Avviso tecnico disponibile.',
+    code: display(item.code) || 'avviso',
+    message: display(item.message) || 'Avviso operativo disponibile.',
   }
 }
 
@@ -190,7 +195,7 @@ function normaliseSecurity(raw: unknown): SecuritySummary {
     inactiveAccounts: typeof item.inactiveAccounts === 'number' ? item.inactiveAccounts : 0,
     twoFactorEnabled: typeof item.twoFactorEnabled === 'number' ? item.twoFactorEnabled : 0,
     permissionOverrides: typeof item.permissionOverrides === 'number' ? item.permissionOverrides : 0,
-    status: text(item.status),
+    status: display(item.status),
     tone: tone(item.tone),
   }
 }

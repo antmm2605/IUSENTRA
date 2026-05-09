@@ -20,6 +20,7 @@ import { KpiCard } from '../ui/KpiCard'
 import { LoadingState } from '../ui/LoadingState'
 import { Page } from '../ui/Page'
 import { Panel } from '../ui/Panel'
+import { displaySourceLabel, displayWritesLabel } from '../displayText'
 import './ProfiliPage.css'
 
 type DraftOverride = {
@@ -287,7 +288,7 @@ function OverrideEditor({
           <ShieldAlert size={20} />
           <div>
             <strong>Permesso negato</strong>
-            <p>Il backend non ha dichiarato `utenti.scrivi` per la sessione corrente.</p>
+            <p>La sessione corrente non autorizza la modifica dei permessi utente.</p>
           </div>
         </div>
       </Panel>
@@ -303,7 +304,7 @@ function OverrideEditor({
   return (
     <Panel
       title="Editor override utente"
-      subtitle="Le modifiche valgono solo per l'utente selezionato e vengono salvate via API JSON."
+      subtitle="Le modifiche valgono solo per l'utente selezionato e vengono salvate con audit."
       actions={
         <>
           <Button type="button" tone="neutral" onClick={onReset} disabled={!selectedUser || saveStatus === 'saving'}>
@@ -402,7 +403,7 @@ export function ProfiliPage() {
       })
       .catch(() => {
         setLoadStatus('error')
-        setMessage('Impossibile leggere i profili dal backend.')
+        setMessage('Impossibile leggere i profili.')
       })
   }
 
@@ -484,7 +485,7 @@ export function ProfiliPage() {
   return (
     <Page
       title="Profili e permessi"
-      subtitle="Matrice RBAC reale dello studio e override utente salvati via API JSON."
+      subtitle="Matrice RBAC reale dello studio e override utente salvati con servizi protetti."
       actions={
         <>
           <Button type="button" tone="neutral" onClick={refresh} disabled={loadStatus === 'loading'}>
@@ -502,7 +503,7 @@ export function ProfiliPage() {
       {loadStatus === 'error' ? (
         <EmptyState
           title="Profili non disponibili"
-          message={message || 'Il backend non ha restituito una matrice permessi utilizzabile.'}
+          message={message || 'Non sono disponibili permessi utilizzabili per questa sessione.'}
           action={<Button type="button" tone="primary" onClick={refresh}>Riprova</Button>}
         />
       ) : null}
@@ -546,16 +547,16 @@ export function ProfiliPage() {
             validationErrors={validationErrors}
           />
           <OverrideSummary overrides={data.overrides} />
-          <Panel title="Contratto dati" subtitle="RBAC letto dal dominio esistente, scritture JSON auditabili.">
+          <Panel title="Presidio dati" subtitle="RBAC letto dal dominio esistente, modifiche auditabili.">
             <div className="iu-profiles-contract">
-              <span>Fonte: {data.source || 'non indicata'}</span>
+              <span>Fonte: {displaySourceLabel(data.source)}</span>
               <span>Generato: {formatGeneratedAt(data.generated_at)}</span>
-              <span>Scritture: {data.contracts.writes}</span>
-              <span>Mock fallback: {data.contracts.mock_fallback ? 'si' : 'no'}</span>
+              <span>Azioni: {displayWritesLabel(data.contracts.writes)}</span>
+              <span>Dati reali: {data.contracts.mock_fallback ? 'da verificare' : 'si'}</span>
             </div>
           </Panel>
           {data.actions.rollback ? (
-            <Panel title="Rollback tecnico" subtitle="Percorso di assistenza mantenuto per confronto e recupero operativo.">
+            <Panel title="Percorso di recupero" subtitle="Assistenza mantenuta per confronto e recupero operativo.">
               <a className="iu-profiles-rollback" href={data.actions.rollback.href}>
                 {data.actions.rollback.label}
               </a>

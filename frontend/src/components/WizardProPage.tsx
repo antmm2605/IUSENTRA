@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { Badge } from './dashboard'
 import { FloatingLex } from './FloatingLex'
+import { JsonPostForm } from './JsonPostForm'
 import { csrfToken } from './WizardProShared'
 import { getWizardProPage, type WizardProCase, type WizardProData } from '../wizardProData'
 import './WizardProPage.css'
@@ -39,13 +40,13 @@ function CaseCard({ item, selected, onSelect }: { item: WizardProCase; selected:
       </div>
       <div className="iu-wiz-case__actions">
         {session ? <a href={session.stepHref}><PlayCircle size={15}/> Riprendi</a> : (
-          <form method="post" action={item.startHref}>
+          <JsonPostForm action={item.startHref} successMessage="Avvio riuscito.">
             <input type="hidden" name="_csrf_token" value={csrfToken()} />
             <input type="hidden" name="id_fascicolo" value={item.startPayload.id_fascicolo} />
             <input type="hidden" name="id_appuntamento" value={item.startPayload.id_appuntamento} />
             <input type="hidden" name="titolo" value="" />
             <button type="submit"><PlayCircle size={15}/> Avvia</button>
-          </form>
+          </JsonPostForm>
         )}
         {item.completedSession ? <a href={item.completedSession.summaryHref}><CheckCircle2 size={15}/> Riepilogo</a> : null}
         <a href={item.folderHref}><FileText size={15}/> Fascicolo</a>
@@ -84,13 +85,13 @@ function SelectedPanel({ item, actions }: { item: WizardProCase | null; actions:
       </div>
       <div className="iu-wiz-selected__actions">
         {session ? <a className="iu-wiz-btn primary" href={session.stepHref}>Riprendi step {session.step}</a> : (
-          <form method="post" action={item.startHref}>
+          <JsonPostForm action={item.startHref} successMessage="Preparazione creata.">
             <input type="hidden" name="_csrf_token" value={csrfToken()} />
             <input type="hidden" name="id_fascicolo" value={item.startPayload.id_fascicolo} />
             <input type="hidden" name="id_appuntamento" value={item.startPayload.id_appuntamento} />
             <input type="hidden" name="titolo" value="" />
             <button className="iu-wiz-btn primary" type="submit">Avvia preparazione</button>
-          </form>
+          </JsonPostForm>
         )}
         <a className="iu-wiz-btn" href={item.agendaHref}>Apri udienza</a>
         <a className="iu-wiz-btn" href={item.deadlineHref}>Termini collegati</a>
@@ -103,6 +104,7 @@ function SelectedPanel({ item, actions }: { item: WizardProCase | null; actions:
 export function WizardProPage() {
   const [data, setData] = useState<WizardProData | null>(null)
   const [selected, setSelected] = useState<WizardProCase | null>(null)
+  const [loadError, setLoadError] = useState('')
   const [query, setQuery] = useState('')
   const [stateFilter, setStateFilter] = useState('tutti')
   const [onlyUpcoming, setOnlyUpcoming] = useState(false)
@@ -110,13 +112,31 @@ export function WizardProPage() {
 
   useEffect(() => {
     let active = true
-    getWizardProPage().then((payload) => {
-      if (!active) return
-      setData(payload)
-      setSelected(payload.selectedCase)
-    })
+    getWizardProPage()
+      .then((payload) => {
+        if (!active) return
+        setData(payload)
+        setSelected(payload.selectedCase)
+        setLoadError('')
+      })
+      .catch(() => {
+        if (active) setLoadError('Errore durante il caricamento della preparazione udienza.')
+      })
     return () => { active = false }
   }, [])
+
+  if (loadError) {
+    return (
+      <main className="iu-wiz-page">
+        <aside className="iu-wiz-selected">
+          <AlertTriangle size={24}/>
+          <h2>Preparazione non disponibile</h2>
+          <p>{loadError}</p>
+          <button className="iu-wiz-btn primary" type="button" onClick={() => window.location.reload()}>Riprova</button>
+        </aside>
+      </main>
+    )
+  }
 
   const filtered = useMemo(() => {
     const rows = data?.cases ?? []

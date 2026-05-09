@@ -1,4 +1,5 @@
 import type { Tone } from './data'
+import { sanitizeDisplayText } from './displayText'
 import type { ReactContracts } from './timesheetData'
 
 export type WizardProSession = {
@@ -361,7 +362,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function text(value: unknown, fallback = ''): string {
-  return String(value ?? fallback).trim() || fallback
+  return sanitizeDisplayText(String(value ?? fallback).trim() || fallback)
 }
 
 function number(value: unknown, fallback = 0): number {

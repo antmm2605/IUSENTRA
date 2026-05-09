@@ -91,8 +91,8 @@ function assertNoBrowserUnsafe(route, combined) {
 }
 
 function assertPrimaryLegacyOnlyRollback(route, combined) {
-  if (/\?_legacy=1/.test(combined) && !/Rollback tecnico/.test(combined)) {
-    violations.push(`${route}: eventuale ?_legacy=1 deve restare solo in Rollback tecnico.`)
+  if (/\?_legacy=1/.test(combined) && !/(Rollback tecnico|Percorso di recupero)/.test(combined)) {
+    violations.push(`${route}: eventuale ?_legacy=1 deve restare solo in percorso di recupero governato.`)
   }
 }
 
@@ -189,8 +189,8 @@ if (profiliRow?.manifestStatus === 'react_operational_full') {
   if (/\bLegacyPostForm\b/.test(profiliComponent)) {
     violations.push('/profili: react_operational_full non puo contenere LegacyPostForm nel componente principale.')
   }
-  if (/\?_legacy=1/.test(profiliCombined) && !/Rollback tecnico/.test(profiliCombined)) {
-    violations.push('/profili: react_operational_full puo mantenere ?_legacy=1 solo come Rollback tecnico.')
+  if (/\?_legacy=1/.test(profiliCombined) && !/(Rollback tecnico|Percorso di recupero)/.test(profiliCombined)) {
+    violations.push('/profili: react_operational_full puo mantenere ?_legacy=1 solo come percorso di recupero governato.')
   }
   if (!/\bapiPostJson\b/.test(profiliData) && !/\bapiPostJson\b/.test(profiliComponent)) {
     violations.push('/profili: react_operational_full deve salvare tramite apiPostJson centralizzato.')
@@ -219,8 +219,8 @@ if (utentiRow?.manifestStatus === 'react_operational_full') {
   if (/\bLegacyPostForm\b/.test(utentiComponent)) {
     violations.push('/utenti: react_operational_full non puo contenere LegacyPostForm nel componente principale.')
   }
-  if (/\?_legacy=1/.test(utentiComponent) && !/Rollback tecnico/.test(utentiComponent)) {
-    violations.push('/utenti: react_operational_full puo mantenere ?_legacy=1 solo come Rollback tecnico.')
+  if (/\?_legacy=1/.test(utentiComponent) && !/(Rollback tecnico|Percorso di recupero)/.test(utentiComponent)) {
+    violations.push('/utenti: react_operational_full puo mantenere ?_legacy=1 solo come percorso di recupero governato.')
   }
   if (!/\bapiPostJson\b/.test(utentiData)) {
     violations.push('/utenti: react_operational_full deve usare apiPostJson centralizzato per le azioni principali.')
@@ -255,8 +255,8 @@ if (backupRow?.manifestStatus === 'react_operational_full') {
   if (/\bLegacyPostForm\b/.test(backupComponent)) {
     violations.push('/backup: react_operational_full non puo contenere LegacyPostForm nel componente principale.')
   }
-  if (/\?_legacy=1/.test(backupComponent) && !/Rollback tecnico/.test(backupComponent)) {
-    violations.push('/backup: react_operational_full puo mantenere ?_legacy=1 solo come Rollback tecnico.')
+  if (/\?_legacy=1/.test(backupComponent) && !/(Rollback tecnico|Percorso di recupero)/.test(backupComponent)) {
+    violations.push('/backup: react_operational_full puo mantenere ?_legacy=1 solo come percorso di recupero governato.')
   }
   if (!/\bapiPostJson\b/.test(backupData)) {
     violations.push('/backup: react_operational_full deve usare apiPostJson centralizzato per crea/verifica.')
@@ -294,8 +294,8 @@ if (fatturazioneNuovaRow?.manifestStatus === 'react_operational_full') {
   if (/\bLegacyPostForm\b/.test(page)) {
     violations.push('/fatturazione/nuova: react_operational_full non puo contenere LegacyPostForm nel flusso principale.')
   }
-  if (/\?_legacy=1/.test(combined) && !/Rollback tecnico/.test(combined)) {
-    violations.push('/fatturazione/nuova: eventuale ?_legacy=1 deve restare solo rollback tecnico.')
+  if (/\?_legacy=1/.test(combined) && !/(Rollback tecnico|Percorso di recupero)/.test(combined)) {
+    violations.push('/fatturazione/nuova: eventuale ?_legacy=1 deve restare solo percorso di recupero governato.')
   }
   if (!/\bapiPostJson\b/.test(data)) {
     violations.push('/fatturazione/nuova: il salvataggio deve usare apiPostJson centralizzato.')
@@ -339,8 +339,8 @@ if (preventiviNuovoRow?.manifestStatus === 'react_operational_full') {
   if (/\bLegacyPostForm\b/.test(preventiviPage)) {
     violations.push('/preventivi/nuovo: react_operational_full non puo contenere LegacyPostForm.')
   }
-  if (/\?_legacy=1/.test(preventiviPage) && !/Rollback tecnico/.test(preventiviPage)) {
-    violations.push('/preventivi/nuovo: ?_legacy=1 ammesso solo come Rollback tecnico.')
+  if (/\?_legacy=1/.test(preventiviPage) && !/(Rollback tecnico|Percorso di recupero)/.test(preventiviPage)) {
+    violations.push('/preventivi/nuovo: ?_legacy=1 ammesso solo come percorso di recupero governato.')
   }
   if (!/\bapiPostJson\b/.test(preventiviData) || !/\bcreatePreventivo\b/.test(preventiviPage)) {
     violations.push('/preventivi/nuovo: deve salvare tramite createPreventivo e apiPostJson.')
@@ -364,8 +364,8 @@ if (conferimentoRow?.manifestStatus === 'react_operational_full') {
   if (/\bLegacyPostForm\b/.test(preventiviPage)) {
     violations.push('/preventivi/conferimento/nuovo: react_operational_full non puo contenere LegacyPostForm.')
   }
-  if (/\?_legacy=1/.test(preventiviPage) && !/Rollback tecnico/.test(preventiviPage)) {
-    violations.push('/preventivi/conferimento/nuovo: ?_legacy=1 ammesso solo come Rollback tecnico.')
+  if (/\?_legacy=1/.test(preventiviPage) && !/(Rollback tecnico|Percorso di recupero)/.test(preventiviPage)) {
+    violations.push('/preventivi/conferimento/nuovo: ?_legacy=1 ammesso solo come percorso di recupero governato.')
   }
   if (!/\bapiPostJson\b/.test(preventiviData) || !/\bcreateConferimento\b/.test(preventiviPage)) {
     violations.push('/preventivi/conferimento/nuovo: deve salvare tramite createConferimento e apiPostJson.')
@@ -389,8 +389,8 @@ if (preventiviArchiveRow?.manifestStatus === 'react_operational_full') {
   if (/\bLegacyPostForm\b/.test(preventiviPage)) {
     violations.push('/preventivi: react_operational_full non puo contenere LegacyPostForm.')
   }
-  if (/\?_legacy=1/.test(preventiviPage) && !/Rollback tecnico/.test(preventiviPage)) {
-    violations.push('/preventivi: ?_legacy=1 ammesso solo come Rollback tecnico.')
+  if (/\?_legacy=1/.test(preventiviPage) && !/(Rollback tecnico|Percorso di recupero)/.test(preventiviPage)) {
+    violations.push('/preventivi: ?_legacy=1 ammesso solo come percorso di recupero governato.')
   }
   if (!/\bgetPreventiviPage\b/.test(preventiviPage) || !/\bgetPreventivoDetail\b/.test(preventiviPage)) {
     violations.push('/preventivi: archivio e dettaglio devono usare API JSON.')
@@ -424,8 +424,8 @@ if (fatturazioneArchiveRow?.manifestStatus === 'react_operational_full') {
   if (/\bLegacyPostForm\b/.test(fattPage)) {
     violations.push('/fatturazione: react_operational_full non puo contenere LegacyPostForm.')
   }
-  if (/\?_legacy=1/.test(fattPage) && !/Rollback tecnico/.test(fattPage)) {
-    violations.push('/fatturazione: ?_legacy=1 ammesso solo come Rollback tecnico.')
+  if (/\?_legacy=1/.test(fattPage) && !/(Rollback tecnico|Percorso di recupero)/.test(fattPage)) {
+    violations.push('/fatturazione: ?_legacy=1 ammesso solo come percorso di recupero governato.')
   }
   if (!/\bgetFatturazionePage\b/.test(fattPage) || !/\bgetFatturazioneDetail\b/.test(fattPage)) {
     violations.push('/fatturazione: archivio e dettaglio devono usare API JSON.')
@@ -459,8 +459,8 @@ if (incassiRow?.manifestStatus === 'react_operational_full') {
   if (/\bLegacyPostForm\b/.test(page)) {
     violations.push('/incassi-pagamenti: react_operational_full non puo contenere LegacyPostForm.')
   }
-  if (/\?_legacy=1/.test(page) && !/Rollback tecnico|Impostazioni provider legacy/.test(page)) {
-    violations.push('/incassi-pagamenti: ?_legacy=1 ammesso solo come Rollback tecnico o Impostazioni provider legacy.')
+  if (/\?_legacy=1/.test(page) && !/(Rollback tecnico|Percorso di recupero|Impostazioni provider legacy)/.test(page)) {
+    violations.push('/incassi-pagamenti: ?_legacy=1 ammesso solo come percorso di recupero governato.')
   }
   if (!/\bapiPostJson\b/.test(data) || !/\bregisterIncasso\b/.test(page)) {
     violations.push('/incassi-pagamenti: azioni principali devono usare apiPostJson e funzioni data client.')
@@ -491,8 +491,8 @@ if (compensiRow?.manifestStatus === 'react_operational_full') {
   if (/\bLegacyPostForm\b/.test(page)) {
     violations.push('/compensi-forensi: react_operational_full non puo contenere LegacyPostForm.')
   }
-  if (/\?_legacy=1/.test(page) && !/Rollback tecnico/.test(page)) {
-    violations.push('/compensi-forensi: ?_legacy=1 ammesso solo come Rollback tecnico.')
+  if (/\?_legacy=1/.test(page) && !/(Rollback tecnico|Percorso di recupero)/.test(page)) {
+    violations.push('/compensi-forensi: ?_legacy=1 ammesso solo come percorso di recupero governato.')
   }
   if (!/\bcalculateCompensiForensi\b/.test(page) || !/\bapiPostJson\b/.test(data)) {
     violations.push('/compensi-forensi: deve calcolare tramite data client e apiPostJson.')
@@ -520,8 +520,8 @@ if (tariffarioRow?.manifestStatus === 'react_operational_full') {
   if (/\bLegacyPostForm\b/.test(page)) {
     violations.push('/tariffario: react_operational_full non puo contenere LegacyPostForm.')
   }
-  if (/\?_legacy=1/.test(page) && !/Rollback tecnico/.test(page)) {
-    violations.push('/tariffario: ?_legacy=1 ammesso solo come Rollback tecnico.')
+  if (/\?_legacy=1/.test(page) && !/(Rollback tecnico|Percorso di recupero)/.test(page)) {
+    violations.push('/tariffario: ?_legacy=1 ammesso solo come percorso di recupero governato.')
   }
   if (!/\bgetTariffarioPage\b/.test(page) || !/\bcalculateTariffario\b/.test(page)) {
     violations.push('/tariffario: deve leggere e calcolare tramite data client JSON.')
@@ -555,8 +555,8 @@ for (const auditRoute of ['/audit', '/registro-attivita']) {
   if (/\bLegacyPostForm\b/.test(page)) {
     violations.push(`${auditRoute}: react_operational_full non puo contenere LegacyPostForm.`)
   }
-  if (/\?_legacy=1/.test(page) && !/Rollback tecnico/.test(page)) {
-    violations.push(`${auditRoute}: ?_legacy=1 ammesso solo come Rollback tecnico.`)
+  if (/\?_legacy=1/.test(page) && !/(Rollback tecnico|Percorso di recupero)/.test(page)) {
+    violations.push(`${auditRoute}: ?_legacy=1 ammesso solo come percorso di recupero governato.`)
   }
   if (!/\bgetAuditEventDetail\b/.test(page) || !/\bapiPostJson\b/.test(data)) {
     violations.push(`${auditRoute}: dettaglio e azioni devono passare da data client JSON.`)

@@ -1,3 +1,5 @@
+import { sanitizeDisplayText } from './displayText'
+
 export type StudioRuntimeMetric = {
   label: string
   value: string
@@ -83,6 +85,10 @@ function text(value: unknown, fallback = ''): string {
   return raw || fallback
 }
 
+function display(value: unknown, fallback = ''): string {
+  return sanitizeDisplayText(text(value, fallback))
+}
+
 function method(value: unknown): 'GET' | 'POST' {
   return text(value).toUpperCase() === 'POST' ? 'POST' : 'GET'
 }
@@ -94,9 +100,9 @@ function list(value: unknown): unknown[] {
 function normaliseMetric(value: unknown): StudioRuntimeMetric {
   const item = isRecord(value) ? value : {}
   return {
-    label: text(item.label, 'Indicatore'),
-    value: text(item.value, '0'),
-    note: text(item.note),
+    label: display(item.label, 'Indicatore'),
+    value: display(item.value, '0'),
+    note: display(item.note),
   }
 }
 
@@ -104,18 +110,18 @@ function normaliseRecord(value: unknown): StudioRuntimeRecord {
   const item = isRecord(value) ? value : {}
   return {
     id: text(item.id, 'record'),
-    title: text(item.title, 'Elemento'),
-    subtitle: text(item.subtitle),
-    badge: text(item.badge),
+    title: display(item.title, 'Elemento'),
+    subtitle: display(item.subtitle),
+    badge: display(item.badge),
     href: text(item.href, '#'),
-    meta: text(item.meta),
+    meta: display(item.meta),
   }
 }
 
 function normaliseAction(value: unknown): StudioRuntimeAction {
   const item = isRecord(value) ? value : {}
   return {
-    label: text(item.label, 'Apri'),
+    label: display(item.label, 'Apri'),
     href: text(item.href, '#'),
     method: method(item.method),
     tone: text(item.tone, 'primary'),
@@ -130,13 +136,13 @@ function normaliseField(value: unknown): StudioRuntimeField {
     : 'text'
   return {
     name: text(item.name),
-    label: text(item.label, 'Campo'),
+    label: display(item.label, 'Campo'),
     type: fieldType,
     required: item.required === true,
     value: text(item.value),
     options: list(item.options).map((option) => {
       const row = isRecord(option) ? option : {}
-      return { value: text(row.value), label: text(row.label, text(row.value)) }
+      return { value: text(row.value), label: display(row.label, text(row.value)) }
     }),
   }
 }
@@ -147,7 +153,7 @@ function normaliseForm(value: unknown): StudioRuntimeForm | null {
     action: text(value.action, '#'),
     method: method(value.method),
     enctype: text(value.enctype),
-    submitLabel: text(value.submitLabel, 'Salva'),
+    submitLabel: display(value.submitLabel, 'Salva'),
     fields: list(value.fields).map(normaliseField).filter((field) => field.name),
   }
 }
@@ -156,13 +162,13 @@ function normaliseOperation(value: unknown): StudioRuntimeOperation {
   const item = isRecord(value) ? value : {}
   return {
     id: text(item.id, 'operazione'),
-    title: text(item.title, 'Operazione'),
-    body: text(item.body),
+    title: display(item.title, 'Operazione'),
+    body: display(item.body),
     metrics: list(item.metrics).map(normaliseMetric),
     records: list(item.records).map(normaliseRecord),
     actions: list(item.actions).map(normaliseAction),
     form: normaliseForm(item.form),
-    warnings: list(item.warnings).map((warning) => text(warning)).filter(Boolean),
+    warnings: list(item.warnings).map((warning) => display(warning)).filter(Boolean),
   }
 }
 

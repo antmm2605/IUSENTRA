@@ -8,6 +8,7 @@ import { LoadingState } from '../ui/LoadingState'
 import { Page } from '../ui/Page'
 import { Panel } from '../ui/Panel'
 import { openDesignContract, openDesignLegalKnowledgeSurface } from '../ui/openDesign'
+import { displaySourceLabel } from '../displayText'
 import {
   emptyLegalIntelligencePage,
   getLegalIntelligenceMediazionePage,
@@ -37,9 +38,9 @@ function pageTitle(view: LegalIntelligenceView) {
 }
 
 function pageSubtitle(view: LegalIntelligenceView) {
-  if (view === 'news') return 'News giuridiche gia presenti nel backend, con fonte, materia e stato pubblicazione.'
-  if (view === 'mediazione') return 'Consultazione del registro mediazione gia disponibile nel backend.'
-  if (view === 'ricerca-legale') return 'Hub di consultazione verso Legal Intelligence, senza nuova pipeline.'
+  if (view === 'news') return 'News giuridiche disponibili, con fonte, materia e stato pubblicazione.'
+  if (view === 'mediazione') return 'Consultazione del registro mediazione disponibile per lo studio.'
+  if (view === 'ricerca-legale') return 'Hub di consultazione verso Legal Intelligence con fonti e metadati governati.'
   return 'Dashboard di monitoraggio fonti, news e registri, esposta in React solo come consultazione.'
 }
 
@@ -57,7 +58,7 @@ function ContractStrip({ data }: { data: LegalIntelligencePageData }) {
       <div>
         <strong>{openDesignContract.system}</strong>
         <span>
-          {data.source || 'Repository'} - sorgente canonica {data.contracts.canonical_source || 'backend storico'}
+          {displaySourceLabel(data.source)} - sorgente governata
         </span>
       </div>
     </aside>
@@ -251,7 +252,7 @@ export function LegalIntelligencePage() {
   ].join(' '), query)), [data.records, query])
 
   if (loading) {
-    return <LoadingState title={`Caricamento ${pageTitle(view)}`} message="Recupero dei metadati reali dal backend." />
+    return <LoadingState title={`Caricamento ${pageTitle(view)}`} message="Recupero dei metadati reali." />
   }
 
   return (
@@ -287,7 +288,7 @@ export function LegalIntelligencePage() {
           ) : (
             <EmptyState
               title="Nessun elemento da mostrare"
-              message="Il backend non espone metadati compatibili con questa vista o con il filtro applicato."
+              message="Non sono disponibili metadati compatibili con questa vista o con il filtro applicato."
               action={<ButtonLink href="/giurisprudenza" tone="neutral">Apri giurisprudenza</ButtonLink>}
             />
           )}

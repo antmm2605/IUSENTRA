@@ -17,6 +17,7 @@ import { KpiCard } from '../ui/KpiCard'
 import { LoadingState } from '../ui/LoadingState'
 import { Page } from '../ui/Page'
 import { Panel } from '../ui/Panel'
+import { displaySourceLabel, displayWritesLabel, sanitizeDisplayText } from '../displayText'
 import './AuditPage.css'
 
 function actionTone(action: AuditAction) {
@@ -59,7 +60,7 @@ function Warnings({ data }: { data: AuditPageData }) {
       <div className="iu-audit-warnings">
         {data.warnings.map((warning) => (
           <div className="iu-audit-warning" key={`${warning.code}-${warning.message}`}>
-            <Badge tone="warning">{warning.code}</Badge>
+            <Badge tone="warning">{sanitizeDisplayText(warning.code)}</Badge>
             <span>{warning.message}</span>
           </div>
         ))}
@@ -100,7 +101,7 @@ function DetailPanel({ detail }: { detail: AuditEventDetail | null }) {
   if (!detail) return null
   const payloadRows = Object.entries(detail.payload)
   return (
-    <Panel title="Dettaglio evento" subtitle="Payload sanificato dal backend.">
+    <Panel title="Dettaglio evento" subtitle="Dati sensibili filtrati e mostrati in forma leggibile.">
       <div className="iu-audit-detail">
         <div>
           <strong>{detail.action}</strong>
@@ -117,7 +118,7 @@ function DetailPanel({ detail }: { detail: AuditEventDetail | null }) {
             ))}
           </dl>
         ) : (
-          <EmptyState title="Payload non presente" message="Il backend non ha restituito dati aggiuntivi per questo evento." />
+          <EmptyState title="Dettagli non presenti" message="Non sono disponibili dati aggiuntivi per questo evento." />
         )}
       </div>
     </Panel>
@@ -215,7 +216,7 @@ export function AuditPage() {
       ) : null}
       {!loading && hasData ? (
         <>
-          {saving ? <LoadingState title="Caricamento dettaglio audit" message="Lettura JSON sanificata in corso." /> : null}
+          {saving ? <LoadingState title="Caricamento dettaglio audit" message="Lettura dettagli filtrati in corso." /> : null}
           {success ? <div className="iu-audit-state iu-audit-state--success" role="status">{success}</div> : null}
           {error ? <div className="iu-audit-state iu-audit-state--error" role="alert">{error}</div> : null}
           <Warnings data={data} />
@@ -282,13 +283,13 @@ export function AuditPage() {
               </Panel>
             ))}
           </section>
-          <Panel title="Contratto dati" subtitle="Informazioni tecniche di parita route.">
+          <Panel title="Presidio dati" subtitle="Origine dati e protezioni operative.">
             <div className="iu-audit-contract">
-              <span>Fonte: {data.source || 'non indicata'}</span>
+              <span>Fonte: {displaySourceLabel(data.source)}</span>
               <span>Generato: {data.generated_at || 'non disponibile'}</span>
-              <span>Scritture: {data.contracts.writes}</span>
+              <span>Azioni: {displayWritesLabel(data.contracts.writes)}</span>
               <span>Mock fallback: {data.contracts.mock_fallback ? 'si' : 'no'}</span>
-              <span>Payload sanificati: si</span>
+              <span>Dettagli filtrati: si</span>
             </div>
           </Panel>
         </>

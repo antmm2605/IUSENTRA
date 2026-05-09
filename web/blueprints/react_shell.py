@@ -39,13 +39,106 @@ def _react_static_dir() -> Path:
     return Path(current_app.static_folder or "web/static") / "react"
 
 
-def _vite_entry() -> dict[str, Any]:
+_ROUTE_COMPONENTS: tuple[tuple[str, str], ...] = (
+    ("/agenda/nuovo", "src/components/NuovoAppuntamentoPage.tsx"),
+    ("/agenda", "src/components/AgendaPage.tsx"),
+    ("/timesheet", "src/components/TimesheetPage.tsx"),
+    ("/fascicoli/nuovo", "src/components/FascicoliPage.tsx"),
+    ("/fascicoli/archivio", "src/components/FascicoliPage.tsx"),
+    ("/fascicoli", "src/components/FascicoliPage.tsx"),
+    ("/clienti/nuovo", "src/components/NuovoClientePage.tsx"),
+    ("/clienti", "src/components/AnagraficaClientiPage.tsx"),
+    ("/cartelle-condivise", "src/components/CartelleCondivisePage.tsx"),
+    ("/soggetti/nuovo", "src/components/NuovoClientePage.tsx"),
+    ("/soggetti", "src/components/SoggettiPage.tsx"),
+    ("/email-ordinaria", "src/components/EmailPecPage.tsx"),
+    ("/email", "src/components/EmailPecPage.tsx"),
+    ("/messaggi/nuovo", "src/components/MessaggiPage.tsx"),
+    ("/messaggi", "src/components/MessaggiPage.tsx"),
+    ("/scadenziario/nuova", "src/components/NuovaScadenzaPage.tsx"),
+    ("/scadenziario", "src/components/ScadenziarioPage.tsx"),
+    ("/wizard-pro", "src/components/WizardProPage.tsx"),
+    ("/deposito/checklist", "src/components/TelematicoSurfacePage.tsx"),
+    ("/studio", "src/components/StudioPage.tsx"),
+    ("/fatturazione", "src/components/FatturazionePage.tsx"),
+    ("/preventivi/conferimento", "src/components/PreventiviPage.tsx"),
+    ("/preventivi/nuovo", "src/components/PreventiviPage.tsx"),
+    ("/preventivi", "src/components/PreventiviPage.tsx"),
+    ("/compensi-forensi", "src/components/CompensiForensiPage.tsx"),
+    ("/redazione-atti", "src/components/RedazioneAttiPage.tsx"),
+    ("/statistiche", "src/components/StatistichePage.tsx"),
+    ("/ricerca-legale", "src/components/LegalIntelligencePage.tsx"),
+    ("/giurisprudenza", "src/components/GiurisprudenzaPage.tsx"),
+    ("/strumenti-legali", "src/components/StudioModulePage.tsx"),
+    ("/strumenti-operativi", "src/components/StudioModulePage.tsx"),
+    ("/sito-studio/redazione-ai", "src/components/SitoStudioRedazioneAiPage.tsx"),
+    ("/sito-studio/builder", "src/components/SitoStudioBuilderPage.tsx"),
+    ("/sito-studio", "src/components/SitoStudioPage.tsx"),
+    ("/amministrazione", "src/components/AmministrazionePage.tsx"),
+    ("/utenti", "src/components/UtentiPage.tsx"),
+    ("/profili", "src/components/ProfiliPage.tsx"),
+    ("/audit", "src/components/AuditPage.tsx"),
+    ("/registro-attivita", "src/components/AuditPage.tsx"),
+    ("/admin/database", "src/components/AdminDatabasePage.tsx"),
+    ("/privacy/registro", "src/components/PrivacyRegistroPage.tsx"),
+    ("/impostazioni", "src/components/ImpostazioniPage.tsx"),
+    ("/impostazioni-studio", "src/components/ImpostazioniPage.tsx"),
+    ("/notifiche", "src/components/ImpostazioniPage.tsx"),
+    ("/notifiche-whatsapp", "src/components/ImpostazioniPage.tsx"),
+    ("/backup", "src/components/ImpostazioniPage.tsx"),
+    ("/sincronizzazione-calendari", "src/components/ImpostazioniPage.tsx"),
+    ("/global-search", "src/components/RicercaStudioPage.tsx"),
+    ("/workspace-intelligente", ""),
+)
+
+
+def _route_component_key(path: str) -> str:
+    lower = (path or "/").rstrip("/").lower() or "/"
+    if lower.startswith("/app-v2/"):
+        lower = lower[len("/app-v2") :] or "/"
+    if lower == "/":
+        return ""
+    for prefix, component in _ROUTE_COMPONENTS:
+        if lower == prefix or lower.startswith(f"{prefix}/"):
+            return component
+    return "src/components/StudioModulePage.tsx"
+
+
+def _collect_manifest_assets(manifest: dict[str, Any], key: str) -> dict[str, list[str]]:
+    seen: set[str] = set()
+    js: list[str] = []
+    css: list[str] = []
+
+    def visit(entry_key: str) -> None:
+        if not entry_key or entry_key in seen:
+            return
+        seen.add(entry_key)
+        entry = manifest.get(entry_key) or {}
+        file_name = entry.get("file")
+        if file_name and entry_key != "index.html":
+            js.append(f"/static/react/{file_name}")
+        for css_file in entry.get("css", []) or []:
+            css.append(f"/static/react/{css_file}")
+        for import_key in entry.get("imports", []) or []:
+            if import_key != "index.html":
+                visit(import_key)
+
+    visit(key)
+    return {
+        "js": list(dict.fromkeys(js)),
+        "css": list(dict.fromkeys(css)),
+    }
+
+
+def _vite_entry(current_path: str = "") -> dict[str, Any]:
     manifest_path = _react_static_dir() / ".vite" / "manifest.json"
     if not manifest_path.exists():
         return {
             "ready": False,
             "js": [],
             "css": [],
+            "preload_js": [],
+            "page_css": [],
             "error": "Build React non trovata. Esegui: cd frontend; npm ci; npm run build",
         }
 
@@ -57,6 +150,8 @@ def _vite_entry() -> dict[str, Any]:
             "ready": False,
             "js": [],
             "css": [],
+            "preload_js": [],
+            "page_css": [],
             "error": "Manifest React non leggibile. Rigenera la build frontend.",
         }
 
@@ -69,13 +164,18 @@ def _vite_entry() -> dict[str, Any]:
             "ready": False,
             "js": [],
             "css": [],
+            "preload_js": [],
+            "page_css": [],
             "error": "Manifest Vite presente ma entry src/main.tsx non trovata.",
         }
 
+    route_assets = _collect_manifest_assets(manifest, _route_component_key(current_path))
     return {
         "ready": True,
         "js": [f"/static/react/{entry['file']}"],
         "css": [f"/static/react/{path}" for path in entry.get("css", [])],
+        "preload_js": route_assets["js"],
+        "page_css": route_assets["css"],
         "error": "",
     }
 
@@ -105,14 +205,34 @@ def render_react_shell_response(spa_path: str = "", *, bootstrap_texts: Iterable
 
     response = make_response(render_template(
         "react_shell.html",
-        react_assets=_vite_entry(),
+        react_assets=_vite_entry(request.path),
         react_spa_path=spa_path,
         react_bootstrap=_react_bootstrap_payload(),
+        react_runtime_flags=_react_runtime_flags(),
         react_bootstrap_texts=[str(item) for item in (bootstrap_texts or []) if str(item or "").strip()],
     ))
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"
     return response
+
+
+def _react_runtime_flags() -> dict[str, bool]:
+    lower = ((request.path or "/").rstrip("/") or "/").lower()
+    settings_surface = lower in {
+        "/impostazioni",
+        "/impostazioni-studio",
+        "/impostazioni/pagamenti",
+        "/notifiche",
+        "/notifiche-whatsapp",
+        "/backup",
+        "/impostazioni/calendario",
+        "/sincronizzazione-calendari",
+    }
+    signer_surface = settings_surface or lower.startswith("/app-v2/polisweb") or lower.startswith("/app-v2/pdp") or lower.startswith("/app-v2/pat") or lower.startswith("/app-v2/ptt")
+    return {
+        "settings_guards": settings_surface,
+        "local_signer_monitor": signer_surface,
+    }
 
 
 def _deve_mantenere_vista_classica() -> bool:
@@ -128,6 +248,8 @@ def _deve_mantenere_vista_classica() -> bool:
     if enabled:
         return False
     lower = path.lower()
+    if lower.startswith("/fascicoli/") and lower.endswith("/copertina"):
+        return True
     if lower.startswith("/fascicoli/") and (
         "/wizard/" in lower
         or "/deposito/" in lower
@@ -140,7 +262,7 @@ def _deve_mantenere_vista_classica() -> bool:
         return True
     if lower.startswith("/backup/"):
         return True
-    if lower.startswith("/sito-studio/") and lower not in {"/sito-studio/contatti"}:
+    if lower.startswith("/sito-studio/") and lower not in {"/sito-studio/builder", "/sito-studio/contatti", "/sito-studio/redazione-ai"}:
         return True
     if lower.startswith("/studio/"):
         return True
@@ -156,11 +278,12 @@ def _deve_mantenere_vista_classica() -> bool:
         return True
     if lower.startswith("/sincronizzazione-calendari/"):
         return True
+    is_conferimento_detail = lower.startswith("/preventivi/conferimento/") and lower.count("/") == 3
     if lower.startswith("/preventivi/") and lower not in {
         "/preventivi/nuovo",
         "/preventivi/wizard",
         "/preventivi/conferimento/nuovo",
-    }:
+    } and not is_conferimento_detail:
         return True
     if lower.startswith("/compensi-forensi/"):
         return True

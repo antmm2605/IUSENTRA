@@ -15,6 +15,13 @@ def _richiede_vista_classica() -> bool:
     return request.args.get("_legacy") == "1"
 
 
+def _richiede_json() -> bool:
+    return (
+        request.headers.get("X-Requested-With") == "XMLHttpRequest"
+        or "application/json" in (request.headers.get("Accept") or "")
+    )
+
+
 def register_messages_routes(
     app: Flask,
     *,
@@ -96,6 +103,9 @@ def register_messages_routes(
                         id_cliente=id_cliente,
                     )
                     if msg_wa.sid_esterno and msg_wa.sid_esterno.startswith("https://wa.me"):
+                        if _richiede_json():
+                            target = url_for("cartella_cliente", id_cliente=from_cliente) if from_cliente else url_for("lista_messaggi")
+                            return jsonify({"ok": True, "id": msg_wa.id, "message": "Messaggio WhatsApp preparato.", "redirect": target, "whatsappLink": msg_wa.sid_esterno})
                         return render_template(
                             "messaggi/form.html",
                             clienti=clienti,
@@ -110,9 +120,17 @@ def register_messages_routes(
                         )
                 flash("Messaggio inviato.", "success")
                 if from_cliente:
+                    target = url_for("cartella_cliente", id_cliente=from_cliente)
+                    if _richiede_json():
+                        return jsonify({"ok": True, "message": "Messaggio inviato.", "redirect": target})
                     return redirect(url_for("cartella_cliente", id_cliente=from_cliente))
+                target = url_for("lista_messaggi")
+                if _richiede_json():
+                    return jsonify({"ok": True, "message": "Messaggio inviato.", "redirect": target})
                 return redirect(url_for("lista_messaggi"))
             except Exception as e:
+                if _richiede_json():
+                    return jsonify({"ok": False, "message": str(e)}), 400
                 flash(str(e), "danger")
         id_cliente_get = request.args.get("id_cliente", "")
         canale_get = request.args.get("canale", "EMAIL")
@@ -147,7 +165,11 @@ def register_messages_routes(
         try:
             gm.elimina(id_msg)
             flash("Messaggio eliminato.", "success")
+            if _richiede_json():
+                return jsonify({"ok": True, "id": id_msg, "message": "Messaggio eliminato.", "redirect": url_for("lista_messaggi")})
         except ValueError as e:
+            if _richiede_json():
+                return jsonify({"ok": False, "message": str(e)}), 400
             flash(str(e), "danger")
         return redirect(url_for("lista_messaggi"))
 

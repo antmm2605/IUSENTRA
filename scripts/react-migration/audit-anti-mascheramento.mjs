@@ -64,6 +64,8 @@ function hasJsonWrite(route, sources) {
   return (
     sources.component.includes('apiPostJson') ||
     sources.data.includes('apiPostJson') ||
+    sources.component.includes('submitFormJson') ||
+    sources.data.includes('submitFormJson') ||
     sources.component.includes(`fetch('${endpoint}`) ||
     sources.component.includes(`fetch(\`${endpoint}`) ||
     sources.data.includes(`fetch('${endpoint}`) ||

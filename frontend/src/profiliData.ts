@@ -1,4 +1,5 @@
 import { apiJson, apiPostJson } from './lib/apiClient'
+import { sanitizeDisplayText } from './displayText'
 
 export type ProfiloTone = 'primary' | 'neutral' | 'danger' | 'success' | 'warning' | 'info'
 
@@ -166,6 +167,10 @@ function text(value: unknown, fallback = ''): string {
   return typeof value === 'string' ? value.trim() : fallback
 }
 
+function display(value: unknown, fallback = ''): string {
+  return sanitizeDisplayText(text(value, fallback))
+}
+
 function bool(value: unknown): boolean {
   return value === true
 }
@@ -176,7 +181,7 @@ function number(value: unknown): number {
 
 function value(value: unknown): string | number {
   if (typeof value === 'number' && Number.isFinite(value)) return value
-  if (typeof value === 'string') return value.trim()
+  if (typeof value === 'string') return sanitizeDisplayText(value.trim())
   return ''
 }
 
@@ -194,9 +199,9 @@ function normaliseMetric(raw: unknown): ProfiloMetric {
   const item = asRecord(raw)
   return {
     id: text(item.id) || text(item.label) || 'metrica',
-    label: text(item.label) || 'Metrica',
+    label: display(item.label) || 'Metrica',
     value: value(item.value),
-    note: text(item.note),
+    note: display(item.note),
     tone: tone(item.tone),
   }
 }
@@ -206,7 +211,7 @@ function normaliseRoleUser(raw: unknown): ProfiloRoleUser {
   return {
     id: text(item.id),
     username: text(item.username),
-    label: text(item.label),
+    label: display(item.label),
     role: text(item.role),
     active: bool(item.active),
     hasOverride: bool(item.hasOverride),
@@ -218,8 +223,8 @@ function normaliseRole(raw: unknown): ProfiloRole {
   return {
     id: text(item.id) || text(item.role),
     role: text(item.role),
-    label: text(item.label) || text(item.role),
-    description: text(item.description),
+    label: display(item.label) || display(item.role),
+    description: display(item.description),
     tone: tone(item.tone),
     usersCount: number(item.usersCount),
     permissionsCount: number(item.permissionsCount),
@@ -232,9 +237,9 @@ function normalisePermission(raw: unknown): ProfiloPermission {
   const item = asRecord(raw)
   return {
     id: text(item.id) || text(item.permission),
-    category: text(item.category),
+    category: display(item.category),
     permission: text(item.permission),
-    label: text(item.label),
+    label: display(item.label),
   }
 }
 
@@ -242,9 +247,9 @@ function normaliseMatrixRow(raw: unknown): ProfiloMatrixRow {
   const item = asRecord(raw)
   return {
     id: text(item.id) || text(item.permission),
-    category: text(item.category),
+    category: display(item.category),
     permission: text(item.permission),
-    label: text(item.label),
+    label: display(item.label),
     grants: list(item.grants).map((grant) => {
       const record = asRecord(grant)
       return { role: text(record.role), granted: bool(record.granted) }
@@ -257,7 +262,7 @@ function normaliseOverride(raw: unknown): ProfiloOverride {
   return {
     id: text(item.id),
     username: text(item.username),
-    label: text(item.label),
+    label: display(item.label),
     role: text(item.role),
     active: bool(item.active),
     hasOverride: bool(item.hasOverride),
@@ -270,8 +275,8 @@ function normaliseOverride(raw: unknown): ProfiloOverride {
 function normaliseWarning(raw: unknown): ProfiloWarning {
   const item = asRecord(raw)
   return {
-    code: text(item.code) || 'warning',
-    message: text(item.message) || 'Avviso operativo disponibile.',
+    code: display(item.code) || 'warning',
+    message: display(item.message) || 'Avviso operativo disponibile.',
   }
 }
 
@@ -286,7 +291,7 @@ function normaliseActions(raw: unknown): ProfiloActions {
     users: text(item.users) || emptyActions.users,
     rollback: rollbackHref
       ? {
-        label: text(rollback.label) || 'Rollback tecnico',
+        label: display(rollback.label) || 'Percorso di recupero',
         href: rollbackHref,
         method: 'GET',
       }
@@ -310,7 +315,7 @@ function errors(raw: unknown): Record<string, string> {
   const output: Record<string, string> = {}
   for (const [key, val] of Object.entries(item)) {
     const message = text(val)
-    if (message) output[key] = message
+    if (message) output[key] = sanitizeDisplayText(message)
   }
   return output
 }
@@ -342,7 +347,7 @@ function normaliseSaveResult(raw: unknown): SaveProfiliResult {
   const payload = item.payload ? normalisePage(item.payload) : undefined
   return {
     ok: bool(item.ok),
-    message: text(item.message) || emptySaveResult.message,
+    message: display(item.message) || emptySaveResult.message,
     errors: errors(item.errors),
     updated: item.updated ? normaliseOverride(item.updated) : null,
     payload,

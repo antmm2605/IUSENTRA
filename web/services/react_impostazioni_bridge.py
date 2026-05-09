@@ -481,7 +481,6 @@ def run_react_impostazioni_test(test_id: str, payload: dict[str, Any]) -> dict[s
         ConfigSMTP,
         ConfigWhatsApp,
         test_pec_imap,
-        test_pec_smtp,
         test_smtp_email,
         test_smtp_imap,
         test_whatsapp,
@@ -491,15 +490,15 @@ def run_react_impostazioni_test(test_id: str, payload: dict[str, Any]) -> dict[s
     data = payload or {}
     test_id = _text(test_id).lower()
     if test_id == "pec-smtp":
-        result = test_pec_smtp(ConfigPEC(
-            indirizzo=_text(data.get("indirizzo"), cfg.pec.indirizzo),
-            password=_text(data.get("password"), cfg.pec.password) or cfg.pec.password,
-            smtp_host=_text(data.get("smtp_host"), cfg.pec.smtp_host),
-            smtp_port=_int(data.get("smtp_port"), cfg.pec.smtp_port, minimum=1),
-            imap_host=cfg.pec.imap_host,
-            imap_port=cfg.pec.imap_port,
-            use_ssl=_bool(data.get("use_ssl"), cfg.pec.use_ssl),
-        ))
+        return {
+            "ok": False,
+            "local_signer_required": True,
+            "message": (
+                "La verifica invio PEC si esegue dal PC in uso tramite "
+                "IUSENTRA Local Signer. Apri Impostazioni sul computer dello studio "
+                "e premi Verifica invio PEC."
+            ),
+        }
     elif test_id == "pec-imap":
         result = test_pec_imap(ConfigPEC(
             indirizzo=_text(data.get("indirizzo"), cfg.pec.indirizzo),

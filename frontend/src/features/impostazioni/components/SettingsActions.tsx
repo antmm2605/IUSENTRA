@@ -3,7 +3,7 @@ import { Bot, CheckCircle2, Download, Play, RefreshCw, ShieldCheck } from 'lucid
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { IusStatusBadge } from '@/components/iusentra'
-import { checkLocalSigner, type LocalSignerCheck } from '../localSigner'
+import { checkLocalSigner, testPecSmtpViaLocalSigner, type LocalSignerCheck } from '../localSigner'
 import type { AiRuntimePayload, SettingsPayload, SettingsSection, TestResult } from '../types'
 
 function aiStatusLabel(aiStatus: AiRuntimePayload | null): string {
@@ -50,6 +50,8 @@ export function SettingsActions({
   onPrepareAi: (force?: boolean) => Promise<AiRuntimePayload>
 }) {
   const [localSigner, setLocalSigner] = useState<LocalSignerCheck | null>(null)
+  const [pecLocalResult, setPecLocalResult] = useState<LocalSignerCheck | null>(null)
+  const [pecChecking, setPecChecking] = useState(false)
 
   if (section === 'studio' || section === 'scheduler') {
     return (
@@ -111,11 +113,52 @@ export function SettingsActions({
     )
   }
 
-  const tests = section === 'pec'
-    ? [['pec-smtp', 'Verifica invio PEC'], ['pec-imap', 'Verifica ricezione PEC']]
-    : section === 'smtp'
-      ? [['smtp', 'Verifica invio email'], ['smtp-imap', 'Verifica ricezione email']]
-      : [['whatsapp', 'Invia test WhatsApp']]
+  if (section === 'pec') {
+    const runPecSendCheck = async () => {
+      setPecChecking(true)
+      setPecLocalResult(null)
+      try {
+        const result = await testPecSmtpViaLocalSigner(
+          data.local_signer.base_url,
+          data.local_signer.restart_protocol,
+          values,
+          data.pec.password,
+        )
+        setPecLocalResult(result)
+      } finally {
+        setPecChecking(false)
+      }
+    }
+
+    const runPecReceiveCheck = () => {
+      setPecLocalResult(null)
+      void onTest('pec-imap', values)
+    }
+
+    return (
+      <div className="iu-settings-actions-panel">
+        <div>
+          <strong>Verifiche PEC</strong>
+          <span>Il controllo dell'invio parte dal PC in uso: la password resta sul dispositivo locale.</span>
+        </div>
+        <div className="iu-settings-actions-panel__buttons">
+          <Button type="button" variant="outline" disabled={pecChecking} onClick={() => { void runPecSendCheck() }}>
+            <Play data-icon="inline-start" />
+            {pecChecking ? 'Verifica in corso' : 'Verifica invio PEC'}
+          </Button>
+          <Button type="button" variant="outline" onClick={runPecReceiveCheck}>
+            <Play data-icon="inline-start" />
+            Verifica ricezione PEC
+          </Button>
+        </div>
+        <ResultAlert result={pecLocalResult || testResult} />
+      </div>
+    )
+  }
+
+  const tests = section === 'smtp'
+    ? [['smtp', 'Verifica invio email'], ['smtp-imap', 'Verifica ricezione email']]
+    : [['whatsapp', 'Invia test WhatsApp']]
 
   return (
     <div className="iu-settings-actions-panel">

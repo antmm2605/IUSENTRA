@@ -3027,7 +3027,8 @@ def impostazioni_page_test(test_id: str):
     if error_response is not None:
         return error_response
     result = run_react_impostazioni_test(test_id, payload or {})
-    return jsonify(result), 200 if result.get("ok") else 400
+    status_code = 200 if result.get("ok") or result.get("local_signer_required") else 400
+    return jsonify(result), status_code
 
 
 @api_v1_react.get("/impostazioni/ai/status")

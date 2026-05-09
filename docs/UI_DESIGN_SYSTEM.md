@@ -116,6 +116,7 @@ Esempio sintetico:
 - Le schede a tab devono essere compatte e non devono mai generare colonne vuote, pannelli schiacciati o contenuto principale spostato fuori asse. Dopo ogni modifica a tab/form, verificare la route renderizzata su desktop e mobile.
 - Le impostazioni operative devono restare in un unico pannello React: `Pagamenti`, `Notifiche`, `Backup` e `Calendari` sono tab di `Impostazioni`, non pagine tecniche separate. Gli alias `/impostazioni/pagamenti`, `/notifiche`, `/notifiche-whatsapp`, `/backup`, `/impostazioni/calendario` e `/sincronizzazione-calendari` devono aprire la stessa esperienza coerente.
 - La coerenza grafica vale per tutto IUSENTRA: shell, densita', tab, card operative, badge, pulsanti, icone Lucide, spaziature, stati e responsive devono restare allineati tra Studio, Impostazioni, Backup, Calendari, Pagamenti, Notifiche e le altre superfici. Una pagina gia' React non va accettata se appare come isola grafica o usa vecchie card tecniche.
+- In `Impostazioni -> PEC`, `Verifica invio PEC` deve controllare l'invio dal PC in uso tramite IUSENTRA Local Signer. La UI non deve presentare verifiche SMTP remote come equivalenti e deve spiegare solo che la password resta sul dispositivo locale.
 
 ## Linguaggio visibile
 

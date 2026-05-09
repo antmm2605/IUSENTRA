@@ -430,6 +430,7 @@ for (const entry of routeManifest.routes ?? []) {
   }
 }
 for (const [route, status] of [
+  ['/statistiche', 'react_operational_full'],
   ['/utenti/nuovo', 'react_operational_full'],
   ['/utenti', 'react_operational_full'],
   ['/profili', 'react_operational_full'],

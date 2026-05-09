@@ -53,6 +53,7 @@ def build_application_runtime_bundle(
         try:
             GestioneTenant(app.config["TENANTS_REGISTRY"]).sync_user_directory(
                 secret_key=app.secret_key,
+                reconcile_storage=False,
             )
         except Exception as exc:
             app.logger.exception("Errore sync tenant_user_directory in avvio: %s", exc)

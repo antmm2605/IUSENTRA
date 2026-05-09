@@ -354,6 +354,6 @@ def build_react_statistiche_error_payload(message: str = "Statistiche non dispon
         "metrics": [],
         "sections": [],
         "records": [],
-        "actions": [{"id": "legacy", "label": "Apri modulo legacy", "href": "/statistiche?_legacy=1", "method": "GET", "tone": "neutral"}],
+        "actions": [{"id": "retry", "label": "Riprova statistiche", "href": "/statistiche", "method": "GET", "tone": "primary"}],
         "warnings": [{"code": "statistiche_errore_controllato", "message": message}],
     }

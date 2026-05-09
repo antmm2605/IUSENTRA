@@ -76,6 +76,13 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
         else:
             root = base.parent
         return str(root / folder / filename)
+
+    def _runtime_data_default(*parts: str, fallback: str) -> str:
+        data_root = str(os.getenv("PCT_DATA_ROOT", "") or "").strip()
+        if data_root:
+            return str(Path(data_root).joinpath(*parts))
+        return fallback
+
     app.config["CONDIVISIONI_DB"] = cfg.get(
         "CONDIVISIONI_DB", os.getenv("PCT_CONDIVISIONI_DB", "./clienti/condivisioni.json")
     )
@@ -109,11 +116,22 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
         "MESSAGGI_DB", os.getenv("PCT_MESSAGGI_DB", "./messaggi/storico.json")
     )
     app.config["EMAIL_CASELLA_DB"] = cfg.get(
-        "EMAIL_CASELLA_DB", os.getenv("PCT_EMAIL_DB", "./email/casella.json")
+        "EMAIL_CASELLA_DB",
+        os.getenv(
+            "PCT_EMAIL_DB",
+            _runtime_data_default("email", "casella.json", fallback="./email/casella.json"),
+        ),
     )
     app.config["EMAIL_ORDINARIA_DB"] = cfg.get(
         "EMAIL_ORDINARIA_DB",
-        os.getenv("PCT_EMAIL_ORDINARIA_DB", "./email/ordinaria.json"),
+        os.getenv(
+            "PCT_EMAIL_ORDINARIA_DB",
+            _runtime_data_default(
+                "email",
+                "ordinaria.json",
+                fallback=str(Path(app.config["EMAIL_CASELLA_DB"]).with_name("ordinaria.json")),
+            ),
+        ),
     )
     app.config["BACKUP_DIR"] = cfg.get(
         "BACKUP_DIR", os.getenv("PCT_BACKUP_DIR", "./backup")

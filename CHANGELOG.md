@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.208.0 - 2026-05-09
+
+- Promossa `/statistiche` a `react_operational_full`: il payload React resta read-only su repository reali, non espone piu' azioni `?_legacy=1` nell'errore controllato e il manifest anti-mascheramento non la classifica piu' come bridge residuo.
+- Aggiornati contratti React, gate route e test mirato per bloccare regressioni su fallback legacy non governati nella superficie statistiche.
+- Ripristinate le regex Lex sui nomi cliente con accenti italiani corretti, così il gate governance resta verde senza ridurre le verifiche.
+- Allineato il runtime Docker della posta ordinaria a `/data/email/ordinaria.json`, evitando la ricreazione di file runtime nel repository.
+- Aggiunta in `AGENTS.md` la memoria operativa obbligatoria: test/gate/failure vanno registrati nei report di stato, e il caso Docker `email/ordinaria.json` non va piu' rianalizzato da zero.
+- Reso non bloccante lo startup web multi-tenant: `sync_user_directory` puo' saltare il reconcile storage pesante all'avvio, lasciandolo ai flussi amministrativi espliciti.
+
 ## 2.207.0 - 2026-05-08
 
 - Reso lo stato finale `docker compose ps` informativo dopo il gate health: il deploy non fallisce piu' se Compose restituisce un codice non-zero durante la sola stampa dello stato.

@@ -1332,7 +1332,12 @@ class GestioneTenant:
             "SOGGETTI_PARTI_DB": f"{base}/soggetti/parti.json",
         }
 
-    def build_user_directory(self, *, secret_key: str = "") -> Dict[str, Any]:
+    def build_user_directory(
+        self,
+        *,
+        secret_key: str = "",
+        reconcile_storage: bool = True,
+    ) -> Dict[str, Any]:
         from pct.auth import GestioneUtenti
         from pct.storage import StudioDB
         import sqlite3
@@ -1347,8 +1352,9 @@ class GestioneTenant:
             slug = str(studio.slug or "").strip().lower()
             if not slug:
                 continue
-            self.reconcile_storage_aliases(slug)
-            paths = self.percorsi_dati(slug)
+            if reconcile_storage:
+                self.reconcile_storage_aliases(slug)
+            paths = self.percorsi_dati(slug, reconcile_aliases=reconcile_storage)
             studio_db = None
             try:
                 studio_db = build_core_storage_backend(studio.database, studio_db_path=paths["STUDIO_DB"])
@@ -1432,8 +1438,16 @@ class GestioneTenant:
             "conflicts": conflicts,
         }
 
-    def sync_user_directory(self, *, secret_key: str = "") -> Dict[str, Any]:
-        payload = self.build_user_directory(secret_key=secret_key)
+    def sync_user_directory(
+        self,
+        *,
+        secret_key: str = "",
+        reconcile_storage: bool = True,
+    ) -> Dict[str, Any]:
+        payload = self.build_user_directory(
+            secret_key=secret_key,
+            reconcile_storage=reconcile_storage,
+        )
         path = self._tenant_user_directory_path()
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(

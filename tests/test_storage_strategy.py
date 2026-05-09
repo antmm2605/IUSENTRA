@@ -734,6 +734,43 @@ def test_sync_user_directory_indicizza_utenti_tenant_sqlite(tmp_path: Path):
     assert payload["emails"]["r.montagnese@tiscali.it"]["user_id"] == tenant_user.id
 
 
+def test_sync_user_directory_puo_saltare_reconcile_pesante(tmp_path: Path, monkeypatch):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app({**_cfg(tmp_path), "MULTI_TENANT": True})
+
+    tm = GestioneTenant(app.config["TENANTS_REGISTRY"])
+    studio = tm.crea("Studio Antonella", "antonella-mammola", db_config={"mode": "SQLITE"})
+    paths = tm.percorsi_dati(studio.slug)
+    tenant_users = GestioneUtenti(
+        db_path=paths["AUTH_DB"],
+        audit_path=paths["AUDIT_DB"],
+        secret_key=app.secret_key,
+        crea_admin_se_vuoto=False,
+        studio_db=StudioDB.get(paths["STUDIO_DB"]),
+    )
+    tenant_user = tenant_users.crea(
+        username="roberto.montagnese",
+        password="PasswordSicura!123",
+        ruolo=RuoloUtente.AMMINISTRATORE,
+        email="r.montagnese@tiscali.it",
+        tenant_slug=studio.slug,
+        must_change_password=False,
+    )
+    calls = {"reconcile": 0}
+
+    def _reconcile(_slug):
+        calls["reconcile"] += 1
+        return {"ok": True}
+
+    monkeypatch.setattr(tm, "reconcile_storage_aliases", _reconcile)
+
+    payload = tm.sync_user_directory(secret_key=app.secret_key, reconcile_storage=False)
+
+    assert calls["reconcile"] == 0
+    assert payload["users"]["roberto.montagnese"]["tenant_slug"] == studio.slug
+    assert payload["emails"]["r.montagnese@tiscali.it"]["user_id"] == tenant_user.id
+
+
 def test_admin_utenti_studio_mostra_utenti_tenant_sqlite(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app({**_cfg(tmp_path), "MULTI_TENANT": True})

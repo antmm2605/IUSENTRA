@@ -1,6 +1,6 @@
 {
   "summary": {
-    "generatedAt": "2026-05-09T09:55:43.654Z",
+    "generatedAt": "2026-05-09T10:34:36.861Z",
     "scannedFiles": [
       "frontend/src/adminDatabaseData.ts",
       "frontend/src/agendaData.ts",
@@ -348,7 +348,7 @@
     ],
     "totals": {
       "routes": 53,
-      "legacyLinks": 81,
+      "legacyLinks": 80,
       "legacyPostForms": 0,
       "reactPostForms": 0,
       "bridgeLegacyWrites": 0,
@@ -356,9 +356,8 @@
       "missingWriteApi": 2
     },
     "levels": {
-      "react_operational_full": 27,
-      "legacy_operational": 25,
-      "react_bridge": 1
+      "react_operational_full": 28,
+      "legacy_operational": 25
     }
   },
   "rows": [
@@ -737,24 +736,22 @@
       "component": "frontend/src/components/StatistichePage.tsx",
       "dataClient": "frontend/src/statisticheData.ts",
       "bridge": "web/services/react_statistiche_bridge.py",
-      "manifestStatus": "react_operational_partial",
+      "manifestStatus": "react_operational_full",
       "unlockFromGate": true,
-      "legacyLinks": 1,
+      "legacyLinks": 0,
       "legacyButtons": 0,
       "legacyPostForms": 0,
       "reactPostForms": 0,
       "jsonWrites": false,
       "jsonReads": true,
       "bridgeWritesLegacy": false,
-      "blockingLegacyLinks": 1,
+      "blockingLegacyLinks": 0,
       "technicalRollback": false,
       "missingWriteApi": false,
       "missingErrorHandling": false,
       "missingSuccessHandling": false,
-      "problems": [
-        "1 link ?_legacy=1 primari o non governati"
-      ],
-      "realLevel": "react_bridge"
+      "problems": [],
+      "realLevel": "react_operational_full"
     },
     {
       "route": "/fatturazione",

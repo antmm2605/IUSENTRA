@@ -351,7 +351,7 @@
       "workspaceTarget": "/app/regia?tab=statistiche",
       "route": "/statistiche",
       "family": "studio",
-      "status": "react_operational_partial",
+      "status": "react_operational_full",
       "risk": "medium",
       "targetComponent": "frontend/src/components/StatistichePage.tsx",
       "targetData": "frontend/src/statisticheData.ts",
@@ -363,7 +363,9 @@
         "grafici da repository",
         "filtri periodo",
         "export ove presente",
-        "link a moduli operativi"
+        "link a moduli operativi",
+        "nessuna CTA legacy primaria",
+        "fallback errore senza ritorno legacy"
       ]
     },
     {

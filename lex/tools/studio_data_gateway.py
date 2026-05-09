@@ -276,8 +276,8 @@ def _score_cliente(row: Any, cleaned_query: str, hints: dict[str, str], gestore_
     if hints.get("email") and (_norm(hints["email"]) == email or _norm(hints["email"]) == pec):
         return 120
     score = 0
-    query_tokens = [token for token in re.split(r"[^a-z0-9Ã Ã¨Ã©Ã¬Ã²Ã¹]+", query) if len(token) > 1]
-    name_tokens = [token for token in re.split(r"[^a-z0-9Ã Ã¨Ã©Ã¬Ã²Ã¹]+", nome) if token]
+    query_tokens = [token for token in re.split(r"[^a-z0-9àèéìòù]+", query) if len(token) > 1]
+    name_tokens = [token for token in re.split(r"[^a-z0-9àèéìòù]+", nome) if token]
     if query == nome:
         score = max(score, 110)
     if query_tokens and set(query_tokens) == set(name_tokens):

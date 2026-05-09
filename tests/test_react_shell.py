@@ -488,6 +488,32 @@ def test_react_blocco_finale_route_reali_e_vista_classica(tmp_path: Path):
             assert "IUSENTRA - React Shell" not in response.get_data(as_text=True)
 
 
+def test_statistiche_react_full_non_espone_fallback_legacy(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+
+    response = client.get("/api/v1/ui/statistiche", headers={"X-API-Key": "react-test-key"})
+    payload = response.get_json()
+    manifest = json.loads(Path("tools/react-migration/route-manifest.json").read_text(encoding="utf-8"))
+    entry = next(item for item in manifest["routes"] if item["route"] == "/statistiche")
+    route_sources = "\n".join(
+        Path(path).read_text(encoding="utf-8")
+        for path in (
+            "frontend/src/components/StatistichePage.tsx",
+            "frontend/src/statisticheData.ts",
+            "web/services/react_statistiche_bridge.py",
+        )
+    )
+
+    assert response.status_code == 200
+    assert payload["contracts"]["mock_fallback"] is False
+    assert payload["contracts"]["writes"] == "none"
+    assert entry["status"] == "react_operational_full"
+    assert entry["unlockFromGate"] is True
+    assert "/statistiche?_legacy=1" not in route_sources
+    assert all("_legacy=1" not in action.get("href", "") for action in payload["actions"])
+
+
 def test_blocco_telematico_studio_admin_resta_legacy_first():
     """Le aree operative non migrate integralmente non devono essere promosse a React."""
 

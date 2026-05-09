@@ -23,6 +23,16 @@
   - i due branch locali e i due branch remoti puntino allo **stesso commit**
 - Per enforcement e cleanup usare lo script: `scripts/repo_hygiene.ps1`
 
+## Memoria operativa obbligatoria — test, gate e runtime
+
+- Ogni test, gate, build, diagnosi di failure e relativa risoluzione deve essere riportato nei file di stato pertinenti prima di dichiarare concluso il lavoro. Per la migrazione React usare sempre:
+  - `artifacts/react-migration/pytest-confirmed-ok.md` per comandi, shard e gate confermati verdi;
+  - `artifacts/react-migration/pytest-open-issues.md` per failure reali, timeout isolati, workaround, fix applicati e verifiche ancora da rilanciare;
+  - i report `artifacts/react-migration/*final-report*` e `*audit*` quando cambia lo stato di una route o di un gate architetturale.
+- Non rilanciare a vuoto test o shard già documentati come OK: prima consultare `pytest-confirmed-ok.md` e `pytest-open-issues.md`; ripetere solo se sono stati toccati file collegati o come gate finale dichiarato.
+- Se un test o un avvio locale modifica file runtime/dati (`data/`, `email/`, `output/`, `intelligence/`, cache o database generati), registrare l'evento se rilevante e ripulire la worktree prima di proseguire. Non committare artefatti runtime salvo richiesta esplicita e motivata.
+- Caso già diagnosticato: `email/ordinaria.json` non deve mai essere ricreato nel repository durante Docker/local runtime. La posta ordinaria deve puntare a `PCT_EMAIL_ORDINARIA_DB=/data/email/ordinaria.json` o a un path tenant-aware sotto data root; se ricompare un errore su `email/ordinaria.json`, verificare prima env/fallback runtime invece di rifare analisi generica.
+
 ## Progetto
 
 **IUSENTRA** — gestionale per studi legali (Python/Flask).

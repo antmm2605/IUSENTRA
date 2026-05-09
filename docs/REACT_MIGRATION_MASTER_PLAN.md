@@ -1,5 +1,20 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-09 - Statistiche full React 2.208.0
+
+Questa tranche chiude il bridge reale residuo su `/statistiche` senza toccare
+aree sensibili o portali:
+
+- `tools/react-migration/route-manifest.json` promuove `/statistiche` a
+  `react_operational_full` con `writes=none`, dati JSON reali e
+  `unlockFromGate=true`.
+- `web/services/react_statistiche_bridge.py` non restituisce piu' azioni
+  `?_legacy=1` nemmeno nel payload di errore controllato; la pagina puo'
+  soltanto riprovare la lettura React.
+- I gate anti-mascheramento devono classificare 27 route full reali e 0 bridge
+  residui; le route legacy restano quelle ad alto rischio per segreti, export,
+  documenti, impostazioni e portali telematici.
+
 ## Stato tranche 2026-05-08 - Design system IUSENTRA shadcn/lucide 2.198.121
 
 Questa tranche integra la base grafica governata per rendere le superfici React

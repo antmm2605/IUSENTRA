@@ -1,14 +1,14 @@
 # Full React Audit IUSENTRA
 
-Generato: 2026-05-08T00:00:00+02:00
+Generato: 2026-05-09T10:34:36+02:00
 
 ## Sintesi
 
 - Route censite: 53
-- Stati manifest: react_operational_full=26, react_operational_partial=2, react_bridge=0, legacy_operational=25
-- Classificazione anti-mascheramento reale: react_operational_full=27, react_bridge=1, legacy_operational=25
+- Stati manifest: react_operational_full=27, react_operational_partial=1, react_bridge=0, legacy_operational=25
+- Classificazione anti-mascheramento reale: react_operational_full=28, legacy_operational=25
 - Route bridge azzerate nel manifest: 8 -> 0
-- CTA `?_legacy=1` complessive rilevate dal gate: 81
+- CTA `?_legacy=1` complessive rilevate dal gate: 80
 - CTA `?_legacy=1` primarie nelle route promosse in questa fase: 0
 - Route con LegacyPostForm: 0
 - Route con form HTML POST React: 0
@@ -30,10 +30,11 @@ Generato: 2026-05-08T00:00:00+02:00
 | `/legal-intelligence/news` | react_bridge | react_operational_full | news backend reali con fonte e stato |
 | `/legal-intelligence/mediazione` | react_bridge | react_operational_full | registro mediazione backend, stato fonte visibile |
 | `/ricerca-legale` | react_bridge | react_operational_full | alias React verso Legal Intelligence senza pipeline nuova |
+| `/statistiche` | react_operational_partial | react_operational_full | dashboard read-only su repository reali, nessun fallback legacy nel payload React |
 
 ## Route Non Promosse
 
-- `/statistiche`: resta `react_operational_partial`; l'audit reale la classifica ancora come bridge per completezza degli stati.
+- `/preventivi/wizard`: resta `react_operational_partial` nel manifest per cautela sui sottopercorsi e sui fallback tecnici, pur risultando operativo nel controllo anti-mascheramento.
 - Route impostazioni sensibili: restano legacy per PEC, firma, Local Signer, OAuth e segreti non esponibili.
 - Route wildcard economiche/documentali: restano legacy per dettaglio, export, PDF, DOCX, XML e download governati.
 - Route telematiche `/polisWeb`, `/pdp`, `/pat`, `/sigit`, `/sigp`, `/portali/*`: restano legacy per conformita portali, sessioni, certificati, Local Connector e divieto di scraping.

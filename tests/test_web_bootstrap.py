@@ -200,6 +200,22 @@ def test_create_app_portale_runtime_paths_seguono_data_root(tmp_path: Path):
     assert Path(app.config["PORTALE_IMPORT_LOG_DB"]) == tmp_path / "portale" / "import_log.json"
 
 
+def test_create_app_email_ordinaria_deriva_da_email_db_runtime(tmp_path: Path, monkeypatch):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    cfg = _cfg_web(tmp_path)
+    cfg.pop("EMAIL_CASELLA_DB")
+    cfg.pop("EMAIL_ORDINARIA_DB")
+    email_db = tmp_path / "runtime" / "email" / "casella.json"
+    monkeypatch.setenv("PCT_EMAIL_DB", str(email_db))
+    monkeypatch.delenv("PCT_EMAIL_ORDINARIA_DB", raising=False)
+
+    app = create_app(cfg)
+
+    assert Path(app.config["EMAIL_CASELLA_DB"]) == email_db
+    assert Path(app.config["EMAIL_ORDINARIA_DB"]) == email_db.with_name("ordinaria.json")
+    assert email_db.with_name("ordinaria.json").exists()
+
+
 def test_create_app_scheduler_only_costruisce_worker_senza_blueprint(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app({**_cfg_web(tmp_path), "SCHEDULER_ONLY": True})
@@ -261,6 +277,13 @@ def test_runtime_bundle_cloud_gestito_rinvia_governance_pesante(monkeypatch, tmp
 
     assert runtime_bundle.scheduler_only is False
     assert called == {"sync": 0, "pack": 0, "legacy": 0}
+
+
+def test_runtime_bundle_startup_sync_directory_non_rilancia_reconcile_pesante():
+    source = (REPO_ROOT / "web" / "bootstrap" / "runtime_bundle.py").read_text(encoding="utf-8")
+
+    assert "sync_user_directory(" in source
+    assert "reconcile_storage=False" in source
 
 
 def test_create_app_cloud_gestito_rinvia_bootstrap_moduli_ma_get_database_lo_esegue(
@@ -783,6 +806,7 @@ def test_lex_frontend_allinea_smalltalk_e_guardie_legali():
 
 def test_docker_compose_prevede_runtime_ollama_sulla_stessa_macchina():
     compose = (REPO_ROOT / "docker-compose.yml").read_text(encoding="utf-8")
+    dockerfile = (REPO_ROOT / "Dockerfile").read_text(encoding="utf-8")
 
     assert "ollama:" in compose
     assert "scheduler-worker:" in compose
@@ -796,6 +820,7 @@ def test_docker_compose_prevede_runtime_ollama_sulla_stessa_macchina():
     assert 'PCT_STORAGE_MODE: "SQLITE"' in compose
     assert 'PCT_SQLITE_MODE: "1"' in compose
     assert 'host.docker.internal:host-gateway' in compose
+    assert "PCT_EMAIL_ORDINARIA_DB=/data/email/ordinaria.json" in dockerfile
 
 
 def test_docker_compose_hetzner_allinea_email_ordinaria_e_ai_locale():

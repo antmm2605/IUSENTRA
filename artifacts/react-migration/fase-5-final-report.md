@@ -6,27 +6,27 @@ Manifest iniziale dichiarato: 53 route, 18 full, 2 partial, 8 bridge, 25 legacy;
 
 ## 2. Stato finale
 
-Manifest finale: 53 route, 26 full, 2 partial, 0 bridge, 25 legacy; audit reale anti-mascheramento: 27 full, 1 bridge, 25 legacy; CTA `?_legacy=1` rilevate: 81.
+Manifest finale aggiornato: 53 route, 27 full, 1 partial, 0 bridge, 25 legacy; audit reale anti-mascheramento: 28 full, 0 bridge, 25 legacy; CTA `?_legacy=1` rilevate: 80.
 
 ## 3-11. Numeri
 
 - Route totali: 53
-- Full React: 18 -> 26
-- Partial: 2 -> 2
+- Full React: 18 -> 27
+- Partial: 2 -> 1
 - Bridge: 8 -> 0
 - Legacy: 25 -> 25
 - Template Jinja UI primaria: 130 -> 130
 - Template fallback tecnico: 36 -> 36
-- CTA `_legacy=1`: 189 dichiarate -> 81 rilevate
+- CTA `_legacy=1`: 189 dichiarate -> 80 rilevate
 - CTA `_legacy=1` primarie rimaste nelle full promosse: 0
 
 ## 12. Route convertite
 
-`/template-atti`, `/template-atti/catalogo`, `/redazione-atti`, `/giurisprudenza`, `/legal-intelligence`, `/legal-intelligence/news`, `/legal-intelligence/mediazione`, `/ricerca-legale`.
+`/template-atti`, `/template-atti/catalogo`, `/redazione-atti`, `/giurisprudenza`, `/legal-intelligence`, `/legal-intelligence/news`, `/legal-intelligence/mediazione`, `/ricerca-legale`, `/statistiche`.
 
 ## 13-14. Route rimaste legacy/bridge e motivo
 
-Legacy: impostazioni sensibili, editor/export documentale, dettagli economici, checklist deposito e portali. Motivo: segreti, file, certificati, conformita e POST storici non ancora coperti da API JSON dedicate. Bridge: nessuno nel manifest; `/statistiche` resta partial e bridge reale.
+Legacy: impostazioni sensibili, editor/export documentale, dettagli economici, checklist deposito e portali. Motivo: segreti, file, certificati, conformita e POST storici non ancora coperti da API JSON dedicate. Bridge: nessuno nel manifest e nessuno nell'audit anti-mascheramento corrente.
 
 ## 15-19. Design system e API
 

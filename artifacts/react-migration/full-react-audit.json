@@ -1,19 +1,18 @@
 {
   "summary": {
-    "generatedAt": "2026-05-08T00:00:00+02:00",
+    "generatedAt": "2026-05-09T10:34:36+02:00",
     "routeCount": 53,
     "byStatus": {
-      "react_operational_full": 26,
-      "react_operational_partial": 2,
+      "react_operational_full": 27,
+      "react_operational_partial": 1,
       "react_bridge": 0,
       "legacy_operational": 25
     },
     "byAntiMaskingRealLevel": {
-      "react_operational_full": 27,
-      "react_bridge": 1,
+      "react_operational_full": 28,
       "legacy_operational": 25
     },
-    "legacyQueryOccurrences": 81,
+    "legacyQueryOccurrences": 80,
     "primaryLegacyCtaOnPromotedRoutes": 0,
     "legacyPostFormRoutes": 0,
     "htmlPostRoutes": 0,
@@ -31,10 +30,10 @@
     "/legal-intelligence",
     "/legal-intelligence/news",
     "/legal-intelligence/mediazione",
-    "/ricerca-legale"
+    "/ricerca-legale",
+    "/statistiche"
   ],
   "notPromotedReasons": {
-    "/statistiche": "Partial reale: stati e copertura non ancora abbastanza completi.",
     "/impostazioni*": "Configurazioni sensibili PEC/firma/OAuth/Local Signer e segreti non esponibili.",
     "/template-atti/*": "Dettaglio, editor, export e download restano workflow dedicati.",
     "/redazione-atti/*": "Generazione documenti e redazione guidata richiedono motore storico auditato.",

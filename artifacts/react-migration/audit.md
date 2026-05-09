@@ -1,6 +1,6 @@
 # Audit migrazione React
 
-Generato: 2026-05-09T09:55:42.993Z
+Generato: 2026-05-09T10:34:36.321Z
 
 ## Frontend
 

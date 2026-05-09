@@ -1,5 +1,35 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-09 - Controlli Atti e Strumenti full React 2.210.0
+
+Questa tranche rimuove tre eccezioni `legacy_operational` rimaste sulle voci
+richieste dall'utente e le porta nella shell React governata:
+
+- `/deposito/checklist` e' `react_operational_full` nel manifest e apre
+  `TelematicoSurfacePage` con payload reale
+  `/api/v1/ui/telematico/surface/checklist`; restano legacy solo eventuali
+  sottopercorsi non ricostruiti, download o workflow tecnici.
+- `/strumenti-legali` e `/strumenti-operativi` sono `react_operational_full`
+  nel manifest, aprono `StudioModulePage` e leggono rispettivamente
+  `/api/v1/ui/studio-modules/strumenti-forensi` e
+  `/api/v1/ui/studio-modules/strumenti-operativi`.
+- `web/bootstrap/react_route_gate.py`, `web/blueprints/react_shell.py` e
+  `frontend/src/App.tsx` non devono piu' deviare queste route esatte verso la
+  vista classica; `?_legacy=1` resta disponibile come fallback storico.
+- I gate `check-react-contracts` e `check-route-gate` devono bloccare regressioni
+  verso legacy, controllare manifest/contratti e preservare protezioni per
+  subpath non migrati.
+- La grafica resta vincolata a `docs/UI_DESIGN_SYSTEM.md`: card operative
+  compatte, icone Lucide, testi italiani, stati vuoti/errore/successo, nessun
+  dato demo e layout responsive senza spazio morto.
+- Il titolo visibile della rotta `/deposito/checklist` e' `Controlli Atti`; la
+  dicitura `Checklist deposito` resta solo come contesto/azione dove utile.
+- Verifica browser reale eseguita con Chrome su desktop 1440x900, tablet
+  834x1112 e mobile 390x844 per `/deposito/checklist`, `/strumenti-legali` e
+  `/strumenti-operativi`: shell React presente, nessun overflow orizzontale,
+  azioni/card operative visibili e nessun testo tecnico `payload`, `backend`,
+  `frontend`, `runtime`, `json_api`, `undefined`, `null`, `todo` o `sample`.
+
 ## Stato tranche 2026-05-09 - Impostazioni full React 2.209.0
 
 Questa tranche porta le impostazioni operative principali fuori dal template

@@ -417,7 +417,7 @@ assertContains(tranche8aOpenDesignReport, 'Token creati', 'report Open Design 8A
 if (routeManifest.policy?.currentReleaseUnlocksRoutes !== true) {
   throw new Error('route manifest: currentReleaseUnlocksRoutes deve essere true nelle tranche di promozione')
 }
-const allowedGovernedUnlocks = new Set(['/statistiche', '/audit', '/registro-attivita', '/utenti', '/utenti/nuovo', '/profili', '/backup', '/sito-studio', '/sito-studio/contatti', '/studio', '/amministrazione', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/notifiche', '/notifiche-whatsapp', '/sincronizzazione-calendari', '/fatturazione', '/fatturazione/nuova', '/incassi-pagamenti', '/preventivi', '/preventivi/nuovo', '/preventivi/wizard', '/preventivi/conferimento/nuovo', '/compensi-forensi', '/tariffario', '/template-atti', '/template-atti/catalogo', '/redazione-atti', '/giurisprudenza', '/legal-intelligence', '/legal-intelligence/news', '/legal-intelligence/mediazione', '/ricerca-legale'])
+const allowedGovernedUnlocks = new Set(['/statistiche', '/audit', '/registro-attivita', '/utenti', '/utenti/nuovo', '/profili', '/backup', '/sito-studio', '/sito-studio/contatti', '/studio', '/amministrazione', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/notifiche', '/notifiche-whatsapp', '/sincronizzazione-calendari', '/fatturazione', '/fatturazione/nuova', '/incassi-pagamenti', '/preventivi', '/preventivi/nuovo', '/preventivi/wizard', '/preventivi/conferimento/nuovo', '/compensi-forensi', '/tariffario', '/template-atti', '/template-atti/catalogo', '/redazione-atti', '/giurisprudenza', '/legal-intelligence', '/legal-intelligence/news', '/legal-intelligence/mediazione', '/ricerca-legale', '/deposito/checklist', '/strumenti-legali', '/strumenti-operativi'])
 const allowedManifestStatuses = new Set(['legacy_operational', 'react_shell', 'react_bridge', 'react_operational_partial', 'react_operational_full'])
 const unlockStatuses = new Set(['react_bridge', 'react_operational_partial', 'react_operational_full'])
 for (const entry of routeManifest.routes ?? []) {
@@ -462,6 +462,9 @@ for (const [route, status] of [
   ['/notifiche', 'react_operational_full'],
   ['/notifiche-whatsapp', 'react_operational_full'],
   ['/sincronizzazione-calendari', 'react_operational_full'],
+  ['/deposito/checklist', 'react_operational_full'],
+  ['/strumenti-legali', 'react_operational_full'],
+  ['/strumenti-operativi', 'react_operational_full'],
 ]) {
   const entry = (routeManifest.routes ?? []).find((item) => item.route === route)
   if (!entry || entry.status !== status || entry.unlockFromGate !== true) {
@@ -474,13 +477,13 @@ for (const route of ['/sito-studio/builder']) {
     throw new Error(`route manifest: ${route} deve restare legacy_operational con unlockFromGate=false`)
   }
 }
-for (const route of ['/fatturazione/*', '/preventivi/*', '/compensi-forensi/*', '/tariffario/*', '/template-atti/nuovo', '/template-atti/*', '/redazione-atti/*', '/giurisprudenza/nuova', '/giurisprudenza/*', '/legal-intelligence/*', '/ricerca-legale/*', '/deposito/checklist']) {
+for (const route of ['/fatturazione/*', '/preventivi/*', '/compensi-forensi/*', '/tariffario/*', '/template-atti/nuovo', '/template-atti/*', '/redazione-atti/*', '/giurisprudenza/nuova', '/giurisprudenza/*', '/legal-intelligence/*', '/ricerca-legale/*']) {
   const entry = (routeManifest.routes ?? []).find((item) => item.route === route)
   if (!entry || entry.status !== 'legacy_operational' || entry.unlockFromGate !== false) {
     throw new Error(`route manifest: ${route} deve restare legacy_operational con unlockFromGate=false`)
   }
 }
-for (const route of ['/utenti', '/profili', '/audit', '/registro-attivita', '/studio', '/amministrazione', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/notifiche', '/notifiche-whatsapp', '/sincronizzazione-calendari', '/backup', '/sito-studio', '/sito-studio/contatti', '/sito-studio/builder', '/statistiche', '/fatturazione', '/fatturazione/nuova', '/fatturazione/*', '/incassi-pagamenti', '/preventivi', '/preventivi/nuovo', '/preventivi/conferimento/nuovo', '/preventivi/*', '/preventivi/wizard', '/compensi-forensi', '/compensi-forensi/*', '/tariffario', '/tariffario/*', '/template-atti', '/template-atti/catalogo', '/template-atti/nuovo', '/template-atti/*', '/redazione-atti', '/redazione-atti/*', '/checklist', '/giurisprudenza', '/giurisprudenza/nuova', '/giurisprudenza/*', '/legal-intelligence', '/legal-intelligence/news', '/legal-intelligence/mediazione', '/legal-intelligence/*', '/ricerca-legale', '/ricerca-legale/*', '/deposito/checklist', '/polisWeb', '/pdp', '/pat', '/sigit', '/sigp', '/portali/*']) {
+for (const route of ['/utenti', '/profili', '/audit', '/registro-attivita', '/studio', '/amministrazione', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/notifiche', '/notifiche-whatsapp', '/sincronizzazione-calendari', '/backup', '/sito-studio', '/sito-studio/contatti', '/sito-studio/builder', '/statistiche', '/fatturazione', '/fatturazione/nuova', '/fatturazione/*', '/incassi-pagamenti', '/preventivi', '/preventivi/nuovo', '/preventivi/conferimento/nuovo', '/preventivi/*', '/preventivi/wizard', '/compensi-forensi', '/compensi-forensi/*', '/tariffario', '/tariffario/*', '/template-atti', '/template-atti/catalogo', '/template-atti/nuovo', '/template-atti/*', '/redazione-atti', '/redazione-atti/*', '/checklist', '/giurisprudenza', '/giurisprudenza/nuova', '/giurisprudenza/*', '/legal-intelligence', '/legal-intelligence/news', '/legal-intelligence/mediazione', '/legal-intelligence/*', '/ricerca-legale', '/ricerca-legale/*', '/deposito/checklist', '/strumenti-legali', '/strumenti-operativi', '/polisWeb', '/pdp', '/pat', '/sigit', '/sigp', '/portali/*']) {
   if (!(routeManifest.routes ?? []).some((entry) => entry.route === route)) {
     throw new Error(`route manifest: manca ${route}`)
   }
@@ -815,7 +818,9 @@ assertNotContains(legacyOperationalTuple, '"/impostazioni"', 'gate legacy senza 
 assertNotContains(legacyOperationalTuple, '"/impostazioni-studio"', 'gate legacy senza impostazioni studio full React')
 assertNotContains(legacyOperationalTuple, '"/sincronizzazione-calendari"', 'gate legacy senza sincronizzazione calendari exact')
 assertContains(legacyOperationalTuple, '"/checklist"', 'gate legacy mantiene checklist')
-assertContains(legacyOperationalTuple, '"/deposito/checklist"', 'gate legacy mantiene deposito checklist')
+assertNotContains(legacyOperationalTuple, '"/deposito/checklist"', 'gate legacy senza deposito checklist full React')
+assertNotContains(legacyOperationalTuple, '"/strumenti-legali"', 'gate legacy senza strumenti forensi full React')
+assertNotContains(legacyOperationalTuple, '"/strumenti-operativi"', 'gate legacy senza strumenti operativi full React')
 assertNotContains(legacyOperationalTuple, '"/giurisprudenza"', 'gate legacy senza giurisprudenza exact')
 assertNotContains(legacyOperationalTuple, '"/legal-intelligence"', 'gate legacy senza legal intelligence exact')
 assertNotContains(legacyOperationalTuple, '"/ricerca-legale"', 'gate legacy senza ricerca legale exact')
@@ -847,7 +852,8 @@ assertContains(reactRouteGate, 'lower == "/template-atti/nuovo"', 'gate protegge
 assertContains(reactRouteGate, 'lower.startswith("/template-atti/") and lower != "/template-atti/catalogo"', 'gate protegge nested template atti legacy')
 assertContains(reactRouteGate, 'lower.startswith("/redazione-atti/")', 'gate protegge nested redazione atti legacy')
 assertContains(reactRouteGate, 'lower == "/checklist" or lower.startswith("/checklist/")', 'gate protegge checklist legacy')
-assertContains(reactRouteGate, 'lower == "/deposito/checklist" or lower.startswith("/deposito/checklist/")', 'gate protegge deposito checklist legacy')
+assertContains(reactRouteGate, 'lower.startswith("/deposito/checklist/")', 'gate protegge sottopercorsi deposito checklist legacy')
+assertNotContains(reactRouteGate, 'lower == "/deposito/checklist" or lower.startswith("/deposito/checklist/")', 'gate non blocca deposito checklist exact')
 assertContains(reactRouteGate, 'lower.startswith("/giurisprudenza/")', 'gate protegge nested giurisprudenza legacy')
 assertContains(reactRouteGate, 'lower.startswith("/legal-intelligence/") and lower not in {', 'gate protegge nested legal intelligence legacy')
 assertContains(reactRouteGate, '"/legal-intelligence/news"', 'gate consente legal intelligence news')
@@ -872,6 +878,9 @@ assertNotContains(shellLegacyFirstTuple, '"/redazione-atti"', 'shell legacy-firs
 assertNotContains(shellLegacyFirstTuple, '"/impostazioni"', 'shell legacy-first senza impostazioni full React')
 assertNotContains(shellLegacyFirstTuple, '"/impostazioni-studio"', 'shell legacy-first senza impostazioni studio full React')
 assertNotContains(shellLegacyFirstTuple, '"/sincronizzazione-calendari"', 'shell legacy-first senza sincronizzazione calendari exact')
+assertNotContains(shellLegacyFirstTuple, '"/deposito/checklist"', 'shell legacy-first senza deposito checklist full React')
+assertNotContains(shellLegacyFirstTuple, '"/strumenti-legali"', 'shell legacy-first senza strumenti forensi full React')
+assertNotContains(shellLegacyFirstTuple, '"/strumenti-operativi"', 'shell legacy-first senza strumenti operativi full React')
 assertNotContains(shellLegacyFirstTuple, '"/giurisprudenza"', 'shell legacy-first senza giurisprudenza exact')
 assertNotContains(shellLegacyFirstTuple, '"/legal-intelligence"', 'shell legacy-first senza legal intelligence exact')
 assertNotContains(shellLegacyFirstTuple, '"/ricerca-legale"', 'shell legacy-first senza ricerca legale exact')
@@ -1649,7 +1658,7 @@ for (const snippet of [
   '"/legal-intelligence/mediazione",',
   'lower.startswith("/ricerca-legale/")',
   'lower == "/checklist" or lower.startswith("/checklist/")',
-  'lower == "/deposito/checklist" or lower.startswith("/deposito/checklist/")',
+  'lower.startswith("/deposito/checklist/")',
 ]) {
   assertContains(reactRouteGate, snippet, `protezione route gate ${snippet}`)
 }
@@ -1662,7 +1671,9 @@ assertManifestRoute('/legal-intelligence/mediazione', 'react_operational_full', 
 assertManifestRoute('/legal-intelligence/*', 'legacy_operational', false)
 assertManifestRoute('/ricerca-legale', 'react_operational_full', true)
 assertManifestRoute('/ricerca-legale/*', 'legacy_operational', false)
-assertManifestRoute('/deposito/checklist', 'legacy_operational', false)
+assertManifestRoute('/deposito/checklist', 'react_operational_full', true)
+assertManifestRoute('/strumenti-legali', 'react_operational_full', true)
+assertManifestRoute('/strumenti-operativi', 'react_operational_full', true)
 
 for (const [source, label] of [
   [giurisprudenzaPage, 'GiurisprudenzaPage'],

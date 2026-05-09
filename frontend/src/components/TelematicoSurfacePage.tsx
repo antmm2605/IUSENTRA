@@ -54,7 +54,7 @@ const surfaceFallbacks: Record<TelematicoSurfaceId, { title: string; context: st
   pat: { title: 'PAT Amministrativo', context: 'telematico-pat' },
   ptt: { title: 'PTT Tributario', context: 'telematico-ptt' },
   tribunali: { title: 'Tribunali / PEC', context: 'telematico-tribunali' },
-  checklist: { title: 'Checklist deposito', context: 'telematico-checklist' },
+  checklist: { title: 'Controlli Atti', context: 'telematico-checklist' },
   firma: { title: 'Guida firma digitale', context: 'telematico-firma' },
 }
 
@@ -1098,7 +1098,7 @@ function AcquisitionWizard({
       if (payload.ok === false) throw new Error(asText(payload.errore, 'Importazione non completata.'))
       setImportResult(payload)
       setStep(7)
-      setMessage('Importazione completata o presa in carico dal backend operativo.')
+      setMessage('Importazione completata o presa in carico dal gestionale operativo.')
     } catch (error: unknown) {
       setMessage(asText(error instanceof Error ? error.message : error, 'Importazione non disponibile.'))
     } finally {
@@ -1294,11 +1294,11 @@ function AcquisitionWizard({
               </div>
               {portal === 'pst' ? <p className="iu-tel-acq-note">Default PST: copia di consultazione con annotazioni ministeriali. L'originale si usa solo se selezionato espressamente.</p> : null}
               <label className="iu-tel-acq-file">
-                <span>File, ZIP o payload JSON autorizzato</span>
+                <span>File, ZIP o dati JSON autorizzati</span>
                 <input type="file" multiple accept=".zip,.pdf,.p7m,.eml,.msg,.xml,.json,.html,.htm,.txt" onChange={onFiles}/>
               </label>
               <div className="iu-tel-acq-results iu-tel-acq-results--compact">
-                {files.map((file) => <span key={`${file.nome}-${file.contenuto_b64.length}`}>{file.nome}{file.payload_json ? ' - payload JSON' : ''}</span>)}
+                {files.map((file) => <span key={`${file.nome}-${file.contenuto_b64.length}`}>{file.nome}{file.payload_json ? ' - dati JSON' : ''}</span>)}
               </div>
               <div className="iu-tel-acq-actions">
                 <button type="button" onClick={() => setStep(5)}><ArrowRight size={15}/> Vai alla mappatura</button>
@@ -1360,15 +1360,15 @@ function AcquisitionWizard({
           ) : null}
 
           {step === 7 ? (
-            <Panel title="Step 7 - Importazione finale" subtitle="Scrittura nel gestionale tramite backend" icon={<UploadCloud size={17}/>}>
-              <p className="iu-tel-acq-note">L'importazione non scarica dati dai portali in modo nascosto: usa payload autorizzati, file selezionati dall'utente o canale Local Signer quando disponibile.</p>
+            <Panel title="Step 7 - Importazione finale" subtitle="Registrazione controllata nel gestionale" icon={<UploadCloud size={17}/>}>
+              <p className="iu-tel-acq-note">L'importazione non scarica dati dai portali in modo nascosto: usa dati autorizzati, file selezionati dall'utente o canale Local Signer quando disponibile.</p>
               <div className="iu-tel-acq-actions">
                 <button type="button" disabled={busy === 'import'} onClick={runImport}><UploadCloud size={15}/> Importa nel gestionale</button>
               </div>
               {Object.keys(importResult).length ? (
                 <div className="iu-tel-acq-import-result">
                   <strong>Import completato</strong>
-                  <span>{asText(summary.numero_pratica || summary.fascicolo_id || summary.id_fascicolo || summary.message, 'Risultato registrato dal backend.')}</span>
+                  <span>{asText(summary.numero_pratica || summary.fascicolo_id || summary.id_fascicolo || summary.message, 'Risultato registrato nel gestionale.')}</span>
                   {asText(summary.fascicolo_url || summary.redirect_url || summary.url) ? <a href={asText(summary.fascicolo_url || summary.redirect_url || summary.url)}>Apri fascicolo importato</a> : null}
                 </div>
               ) : null}

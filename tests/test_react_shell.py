@@ -515,7 +515,7 @@ def test_statistiche_react_full_non_espone_fallback_legacy(tmp_path: Path):
 
 
 def test_blocco_telematico_studio_admin_resta_legacy_first():
-    """Le aree operative non migrate integralmente non devono essere promosse a React."""
+    """Le aree operative non migrate integralmente restano legacy-first."""
 
     gate_source = Path("web/bootstrap/react_route_gate.py").read_text(encoding="utf-8").lower()
     shell_source = Path("web/blueprints/react_shell.py").read_text(encoding="utf-8").lower()
@@ -526,7 +526,6 @@ def test_blocco_telematico_studio_admin_resta_legacy_first():
         "/applicazioni",
         "/checklist",
         "/database",
-        "/deposito/checklist",
         "/guida/firma-digitale",
         "/pat",
         "/pdp",
@@ -536,8 +535,6 @@ def test_blocco_telematico_studio_admin_resta_legacy_first():
         "/sigit",
         "/sigp",
         "/sigp-sync",
-        "/strumenti-legali",
-        "/strumenti-operativi",
         "/telematico",
         "/tribunali",
     )
@@ -1178,7 +1175,7 @@ def test_react_superfici_telematiche_collegate_nav_api_css():
     assert "@media(max-width:860px)" in css
 
 
-def test_route_ufficiali_superfici_telematiche_restano_moduli_operativi_legacy(tmp_path: Path):
+def test_route_ufficiali_superfici_telematiche_restano_moduli_operativi_legacy_e_checklist_react(tmp_path: Path):
     app = _app(tmp_path)
     _crea_operatore(app)
 
@@ -1196,7 +1193,6 @@ def test_route_ufficiali_superfici_telematiche_restano_moduli_operativi_legacy(t
             "/sigp/",
             "/sigp-sync/",
             "/tribunali",
-            "/deposito/checklist",
             "/guida/firma-digitale",
         ):
             response = client.get(path, follow_redirects=True)
@@ -1204,6 +1200,12 @@ def test_route_ufficiali_superfici_telematiche_restano_moduli_operativi_legacy(t
             assert response.status_code == 200, path
             assert '<html lang="it" class="react-shell-document">' not in html
             assert 'id="root"' not in html
+
+        checklist = client.get("/deposito/checklist", follow_redirects=True)
+        checklist_html = checklist.get_data(as_text=True)
+        assert checklist.status_code == 200
+        assert '<html lang="it" class="react-shell-document">' in checklist_html
+        assert 'id="root"' in checklist_html
 
         for path in ("/polisWeb?_legacy=1", "/pdp?_legacy=1", "/pat?_legacy=1", "/sigit?_legacy=1", "/tribunali?_legacy=1", "/deposito/checklist?_legacy=1", "/guida/firma-digitale?_legacy=1"):
             response = client.get(path)
@@ -1539,7 +1541,6 @@ def test_route_gate_non_promuove_moduli_studio_telematico_admin_incompleti():
         "/applicazioni",
         "/checklist",
         "/database",
-        "/deposito/checklist",
         "/guida/firma-digitale",
         "/pat",
         "/pdp",
@@ -1549,8 +1550,6 @@ def test_route_gate_non_promuove_moduli_studio_telematico_admin_incompleti():
         "/sigit",
         "/sigp",
         "/sigp-sync",
-        "/strumenti-legali",
-        "/strumenti-operativi",
         "/telematico",
         "/tribunali",
     }
@@ -1592,8 +1591,12 @@ def test_route_gate_non_promuove_moduli_studio_telematico_admin_incompleti():
         "/legal-intelligence/news",
         "/legal-intelligence/mediazione",
         "/giurisprudenza",
+        "/deposito/checklist",
+        "/strumenti-legali",
+        "/strumenti-operativi",
     ):
         assert not _excluded(_normalise_path(raw)), raw
+    assert _excluded(_normalise_path("/deposito/checklist/download"))
     assert _excluded(_normalise_path("/privacy/registro/ABC123/elimina"))
 
 
@@ -2380,7 +2383,6 @@ def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: P
         "PAT Amministrativo": "/pat",
         "PTT Tributario": "/sigit",
         "Tribunali / PEC": "/tribunali",
-        "Checklist deposito": "/deposito/checklist",
         "Guida firma digitale": "/guida/firma-digitale",
     }
     react_studio_routes = {
@@ -2395,6 +2397,9 @@ def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: P
         "Ricerca Legale": "/ricerca-legale",
         "Archivio Giurisprudenza": "/giurisprudenza",
         "Legal Intelligence": "/legal-intelligence",
+        "Controlli Atti": "/deposito/checklist",
+        "Strumenti Forensi": "/strumenti-legali/",
+        "Strumenti Operativi": "/strumenti-operativi",
         "Amministrazione": "/amministrazione",
         "Incassi e Pagamenti": "/incassi-pagamenti",
         "Pagamenti": "/impostazioni?tab=pagamenti",
@@ -2407,11 +2412,6 @@ def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: P
         "Profili e Permessi": "/profili",
         "Registro Attività": "/registro-attivita",
     }
-    legacy_studio_routes = {
-        "Strumenti Forensi": "/strumenti-legali/",
-        "Strumenti Operativi": "/strumenti-operativi",
-    }
-
     with app.test_client() as client:
         _login(client)
         for label, path in first_block_routes.items():
@@ -2425,7 +2425,7 @@ def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: P
         for label, path in react_studio_routes.items():
             _assert_react_shell(client, label, path)
 
-        for label, path in {**telematico_routes, **legacy_studio_routes}.items():
+        for label, path in telematico_routes.items():
             response = client.get(path, follow_redirects=True)
             assert response.status_code == 200, label
             assert "IUSENTRA - React Shell" not in response.get_data(as_text=True)

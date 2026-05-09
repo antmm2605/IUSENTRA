@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { Bot, CheckCircle2, Download, Play, RefreshCw, ShieldCheck } from 'lucide-react'
+import { Bot, CheckCircle2, Cpu, Download, HardDrive, Play, RefreshCw, ShieldCheck } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { IusStatusBadge } from '@/components/iusentra'
+import { checkLocalAiViaLocalSigner, prepareLocalAiViaLocalSigner, type LocalAiLocalResult } from '../localAi'
 import { checkLocalSigner, testPecSmtpViaLocalSigner, type LocalSignerCheck } from '../localSigner'
 import type { AiRuntimePayload, SettingsPayload, SettingsSection, TestResult } from '../types'
 
@@ -17,7 +18,7 @@ function aiStatusLabel(aiStatus: AiRuntimePayload | null): string {
   return 'non verificato'
 }
 
-function ResultAlert({ result }: { result: TestResult | LocalSignerCheck | AiRuntimePayload | null }) {
+function ResultAlert({ result }: { result: TestResult | LocalSignerCheck | AiRuntimePayload | LocalAiLocalResult | null }) {
   if (!result) return null
   const ok = Boolean(result.ok)
   const message = 'message' in result ? String(result.message || '') : ''
@@ -28,6 +29,54 @@ function ResultAlert({ result }: { result: TestResult | LocalSignerCheck | AiRun
       <AlertDescription>{message || 'Risultato disponibile.'}</AlertDescription>
     </Alert>
   )
+}
+
+function record(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
+}
+
+function asText(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : ''
+}
+
+function numberLabel(value: unknown, suffix: string): string {
+  const raw = typeof value === 'number' ? value : Number(value)
+  if (!Number.isFinite(raw) || raw <= 0) return ''
+  const amount = raw >= 10 ? Math.round(raw) : Number(raw.toFixed(1))
+  return `${amount} ${suffix}`
+}
+
+function aiProfileLabel(value: unknown): string {
+  const profile = asText(value).toLowerCase()
+  if (profile === 'strong') return 'PC adatto a modelli completi'
+  if (profile === 'medium') return 'PC adatto a modelli medi'
+  if (profile === 'weak') return 'PC da usare con modelli leggeri'
+  return 'PC da verificare'
+}
+
+function aiPayload(localAiResult: LocalAiLocalResult | null, aiStatus: AiRuntimePayload | null): Record<string, unknown> {
+  if (localAiResult?.payload) return localAiResult.payload
+  return record(aiStatus?.status_payload)
+}
+
+function aiInstallerHref(payload: Record<string, unknown>): string {
+  const installer = record(payload.installer)
+  return asText(installer.asset_download_url) || asText(installer.latest_release_url) || 'https://ollama.com/download'
+}
+
+function aiDetailRows(payload: Record<string, unknown>): Array<{ label: string; value: string; icon: typeof Cpu }> {
+  const runtime = record(payload.runtime)
+  const models = record(payload.resolved_models)
+  const pc = [
+    aiProfileLabel(runtime.hardware_profile),
+    numberLabel(runtime.ram_gb, 'GB RAM'),
+    numberLabel(runtime.disk_free_gb, 'GB liberi'),
+  ].filter(Boolean).join(', ')
+  return [
+    { label: 'PC verificato', value: pc, icon: Cpu },
+    { label: "Risposte dell'assistente", value: asText(models.chat) || 'Scelta automatica', icon: Bot },
+    { label: 'Ricerca nei documenti', value: asText(models.embed) || 'Scelta automatica', icon: HardDrive },
+  ].filter((row) => Boolean(row.value))
 }
 
 export function SettingsActions({
@@ -52,6 +101,9 @@ export function SettingsActions({
   const [localSigner, setLocalSigner] = useState<LocalSignerCheck | null>(null)
   const [pecLocalResult, setPecLocalResult] = useState<LocalSignerCheck | null>(null)
   const [pecChecking, setPecChecking] = useState(false)
+  const [localAiResult, setLocalAiResult] = useState<LocalAiLocalResult | null>(null)
+  const [aiChecking, setAiChecking] = useState(false)
+  const [aiPreparing, setAiPreparing] = useState(false)
 
   if (section === 'studio' || section === 'scheduler') {
     return (
@@ -92,23 +144,79 @@ export function SettingsActions({
   }
 
   if (section === 'ai') {
+    const payload = aiPayload(localAiResult, aiStatus)
+    const rows = aiDetailRows(payload)
+    const installerHref = aiInstallerHref(payload)
+
+    const runAiCheck = async () => {
+      setAiChecking(true)
+      try {
+        setLocalAiResult(await checkLocalAiViaLocalSigner(
+          data.local_signer.base_url,
+          data.local_signer.restart_protocol,
+          values,
+        ))
+      } finally {
+        setAiChecking(false)
+      }
+    }
+
+    const runAiPrepare = async () => {
+      setAiPreparing(true)
+      try {
+        setLocalAiResult(await prepareLocalAiViaLocalSigner(
+          data.local_signer.base_url,
+          data.local_signer.restart_protocol,
+          values,
+          false,
+        ))
+      } finally {
+        setAiPreparing(false)
+      }
+    }
+
     return (
       <div className="iu-settings-actions-panel">
         <div>
-          <strong>AI locale</strong>
-          <span>Stato corrente: <IusStatusBadge>{aiStatusLabel(aiStatus)}</IusStatusBadge></span>
+          <strong>AI locale sul PC</strong>
+          <span>
+            IUSENTRA controlla il computer, sceglie i modelli adatti e prepara Ollama se manca.
+            Stato: <IusStatusBadge>{localAiResult?.ok ? 'pronta' : aiStatusLabel(aiStatus)}</IusStatusBadge>
+          </span>
         </div>
         <div className="iu-settings-actions-panel__buttons">
-          <Button type="button" variant="outline" onClick={() => { void onRefreshAi() }}>
+          <Button type="button" variant="outline" disabled={aiChecking} onClick={() => { void runAiCheck() }}>
             <RefreshCw data-icon="inline-start" />
-            Verifica AI locale
+            {aiChecking ? 'Controllo in corso' : 'Verifica PC e modelli'}
           </Button>
-          <Button type="button" variant="outline" onClick={() => { void onPrepareAi(false) }}>
+          <Button type="button" variant="outline" disabled={aiPreparing} onClick={() => { void runAiPrepare() }}>
             <Bot data-icon="inline-start" />
-            Prepara motore locale
+            {aiPreparing ? 'Preparazione in corso' : 'Prepara AI locale'}
+          </Button>
+          <Button type="button" variant="outline" asChild>
+            <a href={installerHref} target="_blank" rel="noreferrer">
+              <Download data-icon="inline-start" />
+              Scarica Ollama
+            </a>
           </Button>
         </div>
-        <ResultAlert result={aiStatus} />
+        <ResultAlert result={localAiResult || aiStatus} />
+        {rows.length > 0 && (
+          <div className="iu-settings-ai-grid" aria-live="polite">
+            {rows.map((row) => {
+              const Icon = row.icon
+              return (
+                <article key={row.label}>
+                  <Icon />
+                  <div>
+                    <span>{row.label}</span>
+                    <strong>{row.value}</strong>
+                  </div>
+                </article>
+              )
+            })}
+          </div>
+        )}
       </div>
     )
   }

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-09T12:40:10.826Z",
+  "generatedAt": "2026-05-09T15:07:53.814Z",
   "react": {
     "dependencies": {
       "@fontsource-variable/geist": "^5.2.8",
@@ -104,7 +104,6 @@
       "/fatturazione/nuova",
       "/giurisprudenza",
       "/giurisprudenza/nuova",
-      "/impostazioni/calendario",
       "/impostazioni/pagamenti",
       "/impostazioni",
       "/impostazioni-studio",
@@ -124,7 +123,6 @@
       "/registro-attivita",
       "/ricerca-legale",
       "/servizi-telematici",
-      "/sincronizzazione-calendari",
       "/sito-studio",
       "/sito-studio/builder",
       "/sito-studio/contatti",
@@ -159,12 +157,7 @@
       "/applicazioni",
       "/checklist",
       "/database",
-      "/deposito/checklist",
       "/guida/firma-digitale",
-      "/impostazioni/calendario",
-      "/impostazioni/pagamenti",
-      "/notifiche",
-      "/notifiche-whatsapp",
       "/pat",
       "/pdp",
       "/polisweb",
@@ -173,9 +166,6 @@
       "/sigit",
       "/sigp",
       "/sigp-sync",
-      "/sincronizzazione-calendari",
-      "/strumenti-legali",
-      "/strumenti-operativi",
       "/telematico",
       "/tribunali"
     ]
@@ -444,6 +434,7 @@
       "/giurisprudenza/nuova",
       "/impostazioni",
       "/impostazioni-studio",
+      "/impostazioni?tab=backup",
       "/impostazioni/calendario",
       "/impostazioni/pagamenti",
       "/incassi-pagamenti",

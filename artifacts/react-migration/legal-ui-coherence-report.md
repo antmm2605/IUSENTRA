@@ -78,5 +78,5 @@ Card operative: ActionCard, CompactCard, KpiCard esistente, DetailPanel, Summary
 
 - python -m pytest -q non completato entro timeout
 - frontend/src/App.tsx resta monolitico e va spezzato in tranche successive
-- molte route restano legacy_operational/react_bridge per scelta del manifest
-- verifica browser visuale non eseguita in questa sessione
+- alcune route restano legacy_operational per scelta del manifest e per workflow profondi/documentali/telematici ancora non ricostruiti
+- verifica browser visuale eseguita il 2026-05-09 sulle route promosse `/deposito/checklist`, `/strumenti-legali` e `/strumenti-operativi` in desktop/tablet/mobile; nessun testo tecnico visibile tra `payload`, `backend`, `frontend`, `runtime`, `json_api`, `undefined`, `null`, `todo`, `sample`

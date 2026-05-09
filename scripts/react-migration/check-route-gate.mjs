@@ -63,7 +63,6 @@ function isBlockedBySpecialRule(path) {
     path.startsWith('/redazione-atti/') ||
     path === '/checklist' ||
     path.startsWith('/checklist/') ||
-    path === '/deposito/checklist' ||
     path.startsWith('/deposito/checklist/') ||
     path.startsWith('/giurisprudenza/') ||
     (path.startsWith('/legal-intelligence/') && path !== '/legal-intelligence/news' && path !== '/legal-intelligence/mediazione') ||
@@ -83,7 +82,7 @@ const excludedPrefixes = extractTuple(gate, '_EXCLUDED_PREFIXES')
 const shellLegacyFirstPrefixes = extractTuple(reactShell, '_LEGACY_FIRST_PREFIXES')
 const allowedStatuses = new Set(['legacy_operational', 'react_shell', 'react_bridge', 'react_operational_partial', 'react_operational_full'])
 const allowedUnlockStatuses = new Set(['react_bridge', 'react_operational_partial', 'react_operational_full'])
-const allowedReactUnlocks = new Set(['/statistiche', '/audit', '/registro-attivita', '/utenti', '/utenti/nuovo', '/profili', '/backup', '/sito-studio', '/sito-studio/contatti', '/studio', '/amministrazione', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/notifiche', '/notifiche-whatsapp', '/sincronizzazione-calendari', '/fatturazione', '/fatturazione/nuova', '/incassi-pagamenti', '/preventivi', '/preventivi/nuovo', '/preventivi/wizard', '/preventivi/conferimento/nuovo', '/compensi-forensi', '/tariffario', '/template-atti', '/template-atti/catalogo', '/redazione-atti', '/giurisprudenza', '/legal-intelligence', '/legal-intelligence/news', '/legal-intelligence/mediazione', '/ricerca-legale'])
+const allowedReactUnlocks = new Set(['/statistiche', '/audit', '/registro-attivita', '/utenti', '/utenti/nuovo', '/profili', '/backup', '/sito-studio', '/sito-studio/contatti', '/studio', '/amministrazione', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/notifiche', '/notifiche-whatsapp', '/sincronizzazione-calendari', '/fatturazione', '/fatturazione/nuova', '/incassi-pagamenti', '/preventivi', '/preventivi/nuovo', '/preventivi/wizard', '/preventivi/conferimento/nuovo', '/compensi-forensi', '/tariffario', '/template-atti', '/template-atti/catalogo', '/redazione-atti', '/giurisprudenza', '/legal-intelligence', '/legal-intelligence/news', '/legal-intelligence/mediazione', '/ricerca-legale', '/deposito/checklist', '/strumenti-legali', '/strumenti-operativi'])
 const expectedStatuses = new Map([
   ['/statistiche', 'react_operational_full'],
   ['/audit', 'react_operational_full'],
@@ -120,6 +119,9 @@ const expectedStatuses = new Map([
   ['/notifiche', 'react_operational_full'],
   ['/notifiche-whatsapp', 'react_operational_full'],
   ['/sincronizzazione-calendari', 'react_operational_full'],
+  ['/deposito/checklist', 'react_operational_full'],
+  ['/strumenti-legali', 'react_operational_full'],
+  ['/strumenti-operativi', 'react_operational_full'],
 ])
 
 const legacyRoutes = [
@@ -136,7 +138,6 @@ const legacyRoutes = [
   '/giurisprudenza/*',
   '/legal-intelligence/*',
   '/ricerca-legale/*',
-  '/deposito/checklist',
 ]
 
 const violations = []
@@ -214,7 +215,7 @@ for (const snippet of [
   'lower.startswith("/template-atti/") and lower != "/template-atti/catalogo"',
   'lower.startswith("/redazione-atti/")',
   'lower == "/checklist" or lower.startswith("/checklist/")',
-  'lower == "/deposito/checklist" or lower.startswith("/deposito/checklist/")',
+  'lower.startswith("/deposito/checklist/")',
   'lower.startswith("/giurisprudenza/")',
   'lower.startswith("/legal-intelligence/") and lower not in {',
   '"/legal-intelligence/news",',

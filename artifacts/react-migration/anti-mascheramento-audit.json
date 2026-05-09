@@ -1,6 +1,6 @@
 {
   "summary": {
-    "generatedAt": "2026-05-09T14:07:09.913Z",
+    "generatedAt": "2026-05-09T15:07:54.458Z",
     "scannedFiles": [
       "frontend/src/adminDatabaseData.ts",
       "frontend/src/agendaData.ts",
@@ -362,7 +362,7 @@
       "web/services/react_wizard_pro_bridge.py"
     ],
     "totals": {
-      "routes": 55,
+      "routes": 57,
       "legacyLinks": 73,
       "legacyPostForms": 0,
       "reactPostForms": 0,
@@ -371,8 +371,8 @@
       "missingWriteApi": 2
     },
     "levels": {
-      "react_operational_full": 35,
-      "legacy_operational": 20
+      "react_operational_full": 38,
+      "legacy_operational": 19
     }
   },
   "rows": [
@@ -1505,18 +1505,18 @@
       "realLevel": "legacy_operational"
     },
     {
-      "route": "/deposito/checklist",
-      "component": "frontend/src/components/DepositoChecklistPage.tsx",
-      "dataClient": "frontend/src/depositoChecklistData.ts",
-      "bridge": "web/services/react_deposito_checklist_bridge.py",
-      "manifestStatus": "legacy_operational",
-      "unlockFromGate": false,
+      "route": "/strumenti-legali",
+      "component": "frontend/src/components/StudioModulePage.tsx",
+      "dataClient": "frontend/src/studioModuleData.ts",
+      "bridge": "web/services/react_studio_module_bridge.py",
+      "manifestStatus": "react_operational_full",
+      "unlockFromGate": true,
       "legacyLinks": 0,
       "legacyButtons": 0,
       "legacyPostForms": 0,
       "reactPostForms": 0,
       "jsonWrites": false,
-      "jsonReads": false,
+      "jsonReads": true,
       "bridgeWritesLegacy": false,
       "blockingLegacyLinks": 0,
       "technicalRollback": false,
@@ -1524,7 +1524,51 @@
       "missingErrorHandling": false,
       "missingSuccessHandling": false,
       "problems": [],
-      "realLevel": "legacy_operational"
+      "realLevel": "react_operational_full"
+    },
+    {
+      "route": "/strumenti-operativi",
+      "component": "frontend/src/components/StudioModulePage.tsx",
+      "dataClient": "frontend/src/studioModuleData.ts",
+      "bridge": "web/services/react_studio_module_bridge.py",
+      "manifestStatus": "react_operational_full",
+      "unlockFromGate": true,
+      "legacyLinks": 0,
+      "legacyButtons": 0,
+      "legacyPostForms": 0,
+      "reactPostForms": 0,
+      "jsonWrites": false,
+      "jsonReads": true,
+      "bridgeWritesLegacy": false,
+      "blockingLegacyLinks": 0,
+      "technicalRollback": false,
+      "missingWriteApi": false,
+      "missingErrorHandling": false,
+      "missingSuccessHandling": false,
+      "problems": [],
+      "realLevel": "react_operational_full"
+    },
+    {
+      "route": "/deposito/checklist",
+      "component": "frontend/src/components/TelematicoSurfacePage.tsx",
+      "dataClient": "frontend/src/telematicoSurfacesData.ts",
+      "bridge": "web/services/react_telematico_bridge.py",
+      "manifestStatus": "react_operational_full",
+      "unlockFromGate": true,
+      "legacyLinks": 0,
+      "legacyButtons": 0,
+      "legacyPostForms": 0,
+      "reactPostForms": 0,
+      "jsonWrites": false,
+      "jsonReads": true,
+      "bridgeWritesLegacy": false,
+      "blockingLegacyLinks": 0,
+      "technicalRollback": false,
+      "missingWriteApi": false,
+      "missingErrorHandling": false,
+      "missingSuccessHandling": false,
+      "problems": [],
+      "realLevel": "react_operational_full"
     },
     {
       "route": "/polisWeb",

@@ -1,6 +1,6 @@
 # Audit migrazione React
 
-Generato: 2026-05-09T12:40:10.826Z
+Generato: 2026-05-09T15:07:53.814Z
 
 ## Frontend
 
@@ -10,15 +10,15 @@ Script disponibili: dev, test, typecheck, build, build:vite, preview
 ## Gate React
 
 Route React prefixes: 55
-Route React exact: 46
+Route React exact: 44
 Excluded prefixes: 14
-Legacy operational prefixes: 23
+Legacy operational prefixes: 15
 
 ## App React
 
 Lazy components: 45
 Route checks: 60
-Studio module routes: 52
+Studio module routes: 53
 
 ## Nota operativa
 

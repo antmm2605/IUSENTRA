@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.210.0 - 2026-05-09
+
+- Promosse a `react_operational_full` le route esatte `/deposito/checklist`, `/strumenti-legali` e `/strumenti-operativi`, eliminando le ultime eccezioni legacy sulle voci richieste Controlli Atti, Strumenti Forensi e Strumenti Operativi.
+- Collegata `Controlli Atti` alla superficie React telematica con payload reale `/api/v1/ui/telematico/surface/checklist`, mantenendo legacy solo per sottopercorsi tecnici e workflow non ricostruiti.
+- Collegati `Strumenti Forensi` e `Strumenti Operativi` a `StudioModulePage` con payload reali `/api/v1/ui/studio-modules/strumenti-forensi` e `/api/v1/ui/studio-modules/strumenti-operativi`.
+- Allineato il titolo visibile della checklist a `Controlli Atti` e rimossi testi tecnici come `payload` e `backend` dalle superfici telematiche rivolte allo studio.
+- Aggiornati `AGENTS.md`, manifest React, contratti legacy, gate anti-regressione, route gate e test React per impedire regressioni verso `legacy_operational`.
+- Rafforzata la memoria operativa della migrazione full React con la lista completa delle pagine da verificare end-to-end, criteri grafici UI_DESIGN_SYSTEM e passaggi obbligatori di test/deploy.
+
 ## 2.209.0 - 2026-05-09
 
 - Promosse `/impostazioni`, `/impostazioni-studio`, `/impostazioni/pagamenti`, `/notifiche`, `/notifiche-whatsapp`, `/backup`, `/impostazioni/calendario` e `/sincronizzazione-calendari` a `react_operational_full`: Dati Studio, PEC, Firma Digitale, Email SMTP, WhatsApp, Scheduler, AI Locale, Pagamenti, Notifiche, Backup e Calendari sono ora gestiti da un'unica pagina React.

@@ -1,12 +1,12 @@
 # Full React Audit IUSENTRA
 
-Generato: 2026-05-09T10:34:36+02:00
+Generato: 2026-05-09T17:09:00+02:00
 
 ## Sintesi
 
-- Route censite: 53
-- Stati manifest: react_operational_full=27, react_operational_partial=1, react_bridge=0, legacy_operational=25
-- Classificazione anti-mascheramento reale: react_operational_full=28, legacy_operational=25
+- Route censite: 57
+- Stati manifest: react_operational_full=37, react_operational_partial=1, react_bridge=0, legacy_operational=19
+- Classificazione anti-mascheramento reale: react_operational_full=38, legacy_operational=19
 - Route bridge azzerate nel manifest: 8 -> 0
 - CTA `?_legacy=1` complessive rilevate dal gate: 80
 - CTA `?_legacy=1` primarie nelle route promosse in questa fase: 0
@@ -31,6 +31,9 @@ Generato: 2026-05-09T10:34:36+02:00
 | `/legal-intelligence/mediazione` | react_bridge | react_operational_full | registro mediazione backend, stato fonte visibile |
 | `/ricerca-legale` | react_bridge | react_operational_full | alias React verso Legal Intelligence senza pipeline nuova |
 | `/statistiche` | react_operational_partial | react_operational_full | dashboard read-only su repository reali, nessun fallback legacy nel payload React |
+| `/deposito/checklist` | legacy_operational | react_operational_full | Controlli Atti in `TelematicoSurfacePage`, API reale `/api/v1/ui/telematico/surface/checklist`, nessun testo tecnico vietato in UI |
+| `/strumenti-legali` | legacy_operational | react_operational_full | Strumenti Forensi in `StudioModulePage`, API reale `/api/v1/ui/studio-modules/strumenti-forensi`, azioni operative senza form POST HTML |
+| `/strumenti-operativi` | legacy_operational | react_operational_full | Strumenti Operativi in `StudioModulePage`, API reale `/api/v1/ui/studio-modules/strumenti-operativi`, azioni operative senza form POST HTML |
 
 ## Route Non Promosse
 

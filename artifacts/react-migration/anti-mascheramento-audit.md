@@ -1,6 +1,6 @@
 # Audit anti-mascheramento React
 
-Generato: 2026-05-09T14:07:09.913Z
+Generato: 2026-05-09T15:07:54.458Z
 
 ## Regole operative Parte 12A
 
@@ -12,7 +12,7 @@ Generato: 2026-05-09T14:07:09.913Z
 
 ## Sintesi
 
-- Route censite: 55
+- Route censite: 57
 - Link `?_legacy=1`: 73
 - LegacyPostForm: 0
 - Form POST HTML React: 0
@@ -72,7 +72,9 @@ Generato: 2026-05-09T14:07:09.913Z
 | /legal-intelligence/* | frontend/src/components/LegalIntelligencePage.tsx | frontend/src/legalIntelligenceData.ts | web/services/react_legal_intelligence_bridge.py | legacy_operational | 0 | 0 | no | gestione successo non rilevata | legacy_operational |
 | /ricerca-legale | frontend/src/components/LegalIntelligencePage.tsx | frontend/src/legalIntelligenceData.ts | web/services/react_legal_intelligence_bridge.py | react_operational_full | 0 | 0 | no | gestione successo non rilevata | react_operational_full |
 | /ricerca-legale/* | frontend/src/components/LegalIntelligencePage.tsx | frontend/src/legalIntelligenceData.ts | web/services/react_legal_intelligence_bridge.py | legacy_operational | 0 | 0 | no | gestione successo non rilevata | legacy_operational |
-| /deposito/checklist | frontend/src/components/DepositoChecklistPage.tsx | frontend/src/depositoChecklistData.ts | web/services/react_deposito_checklist_bridge.py | legacy_operational | 0 | 0 | no | nessuno | legacy_operational |
+| /strumenti-legali | frontend/src/components/StudioModulePage.tsx | frontend/src/studioModuleData.ts | web/services/react_studio_module_bridge.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
+| /strumenti-operativi | frontend/src/components/StudioModulePage.tsx | frontend/src/studioModuleData.ts | web/services/react_studio_module_bridge.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
+| /deposito/checklist | frontend/src/components/TelematicoSurfacePage.tsx | frontend/src/telematicoSurfacesData.ts | web/services/react_telematico_bridge.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
 | /polisWeb | frontend/src/components/PolisWebPage.tsx | frontend/src/polisWebData.ts | web/services/react_telematico_bridge.py | legacy_operational | 0 | 0 | no | nessuno | legacy_operational |
 | /pdp | frontend/src/components/PdpPage.tsx | frontend/src/pdpData.ts | web/services/react_telematico_bridge.py | legacy_operational | 0 | 0 | no | nessuno | legacy_operational |
 | /pat | frontend/src/components/PatPage.tsx | frontend/src/patData.ts | web/services/react_telematico_bridge.py | legacy_operational | 0 | 0 | no | nessuno | legacy_operational |

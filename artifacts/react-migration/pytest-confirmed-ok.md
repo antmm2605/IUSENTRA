@@ -219,3 +219,26 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `python -m py_compile web/services/react_impostazioni_bridge.py web/blueprints/api_v1_react.py` | OK | Sintassi backend confermata dopo blocco del test SMTP PEC server-side. |
 | `python -m pytest -q tests/test_impostazioni_pec_local_signer_react.py tests/test_email_client.py::test_impostazioni_payload_smtp_locale_usa_password_pec_salvata_del_tenant tests/test_local_signer.py::test_ui_pec_locale_auto_avvia_signer_e_mostra_pacchetto --tb=short` | OK | 4/4 passati: React usa Local Signer `/pec/smtp/test`, recupero password salvata tenant-aware e legacy locale confermati. |
 | `python -m pytest -q tests/test_react_shell.py::test_impostazioni_react_frontend_copre_local_signer_occhio_e_ai_locale tests/test_react_shell.py::test_impostazioni_react_api_redige_segreti_e_salva_configurazioni --tb=short` | OK | 2/2 passati: pagina Impostazioni React e API configurazioni restano coerenti. |
+
+## Gate finali tranche Controlli Atti e Strumenti React 2.210.0
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `node frontend/scripts/check-react-contracts.mjs` / `npm test` | OK | Contratti React aggiornati: `/deposito/checklist`, `/strumenti-legali` e `/strumenti-operativi` sono governati e non tornano legacy. |
+| `node scripts/react-migration/check-route-gate.mjs` | OK | Route gate allineato: exact `/deposito/checklist` React, subpath checklist profondi ancora protetti. |
+| `node scripts/react-migration/audit-anti-mascheramento.mjs` | OK | Audit aggiornato: 57 route censite, bridge legacy azzerati, 0 form POST HTML React. |
+| `node scripts/react-migration/check-no-fake-react-full.mjs` | OK | Nessuna route full mascherata; rimosso form POST HTML dalla superficie `StudioModulePage`. |
+| `node scripts/react-migration/run-legal-ui-checks.mjs` | OK | Check UI legale/responsive/anti-Bootstrap confermati dopo promozione route. |
+| `npm run typecheck` | OK | TypeScript confermato dopo titolo `Controlli Atti` e pulizia testi telematici. |
+| `npm run build` | OK | Build Vite 2.210.0 completata; asset rigenerati in `web/static/react`. |
+| `node scripts/react-migration/run-full-react-migration.mjs` | OK | Audit, anti-mascheramento, route contract, no fake full e responsive workspace OK. |
+| Visual smoke Chrome desktop/tablet/mobile | OK | `/deposito/checklist`, `/strumenti-legali`, `/strumenti-operativi` verificati a 1440x900, 834x1112 e 390x844: shell React, titoli, card e azioni visibili, nessun overflow e nessun testo tecnico vietato. |
+| `python -m pytest -q tests/test_react_shell.py::test_react_blocco_finale_studio_admin_completo tests/test_react_shell.py::test_blocco_telematico_studio_admin_resta_legacy_first tests/test_react_shell.py::test_react_blocco_finale_route_reali_e_vista_classica tests/test_react_shell.py::test_route_ufficiali_superfici_telematiche_restano_moduli_operativi_legacy_e_checklist_react tests/test_react_shell.py::test_react_superfici_telematiche_api_payload_reale tests/test_react_shell.py::test_route_gate_non_promuove_moduli_studio_telematico_admin_incompleti tests/test_react_shell.py::test_react_migration_matrice_completa_route_api_e_card_operative --tb=short` | OK | 7/7 passati dopo lo sblocco iniziale delle route. |
+| `python -m pytest -q tests/test_react_shell.py::test_route_ufficiali_superfici_telematiche_restano_moduli_operativi_legacy_e_checklist_react tests/test_react_shell.py::test_react_superfici_telematiche_api_payload_reale tests/test_react_shell.py::test_route_gate_non_promuove_moduli_studio_telematico_admin_incompleti tests/test_react_shell.py::test_react_migration_matrice_completa_route_api_e_card_operative --tb=short` | OK | 4/4 ripetuti solo per file toccati dopo la pulizia titolo/testi: route/API/gate/matrice confermati. |
+| `python tools/sync_packaging_files.py --check` | OK | Coerenza packaging verificata dopo bump 2.210.0. |
+| `python -m pytest -q tests/test_packaging_consistency.py tests/test_release_readiness.py --tb=short` | OK | Packaging e release readiness confermati per versione 2.210.0. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker` | OK | Immagini locali ricostruite da zero con package `pct-studio-legale==2.210.0`. |
+| `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx` | OK | Servizi locali riavviati sulle immagini appena costruite. |
+| `docker compose ps` | OK | `iusentra-app`, `iusentra-scheduler`, `iusentra-ocr` e `iusentra-redis` healthy; `iusentra-nginx` attivo. |
+| `Invoke-WebRequest -UseBasicParsing -Uri http://127.0.0.1:8080/api/pronto -TimeoutSec 20` | OK | Readiness locale: `{"ok":true,"stato":"pronto","versione":"2.210.0"}`. |
+| `docker exec iusentra-app python -c "import pct; print(pct.__version__)"` | OK | Versione runtime container locale: `2.210.0`. |

@@ -132,7 +132,7 @@ SURFACE_SPECS = {
     "checklist": {
         "id": "checklist",
         "portal": "",
-        "title": "Checklist deposito",
+        "title": "Controlli Atti",
         "eyebrow": "Controlli prima dell'invio",
         "subtitle": (
             "Checklist operativa token-based per PCT, PDP, PAT e PTT con stato locale "
@@ -147,7 +147,7 @@ SURFACE_SPECS = {
         "eyebrow": "Local Signer, token e certificati",
         "subtitle": (
             "Percorso guidato per usare Local Signer, token USB, P12/PEM e pacchetti "
-            "installabili senza confondere token locale e backend server."
+            "installabili senza confondere token locale e server dello studio."
         ),
         "tone": "info",
     },
@@ -382,7 +382,7 @@ def _lex_suggestions(summary: dict[str, int], channels: list[dict[str, Any]]) ->
     if summary.get("incompleteImports"):
         suggestions.append("Completa gli import parziali prima di chiudere il presidio telematico giornaliero.")
     if any(channel.get("demoMode") or channel.get("browserChannelRequired") for channel in channels):
-        suggestions.append("Per i canali browser-guided apri il portale ufficiale e importa solo payload o file autorizzati.")
+        suggestions.append("Per i canali con browser guidato apri il portale ufficiale e importa solo dati o file autorizzati.")
     return suggestions[:4]
 
 
@@ -435,7 +435,7 @@ def _portal_operation_cards(surface_id: str, portal: str, channel: dict[str, Any
     import_label = PORTAL_IMPORT_LABELS.get(portal, "Importa pratica da portale")
     import_body = PORTAL_IMPORT_DESCRIPTIONS.get(
         portal,
-        "Avvia il wizard operativo per acquisire nel fascicolo interno payload, file o cataloghi ottenuti da canali autorizzati.",
+        "Avvia il percorso operativo per acquisire nel fascicolo interno dati, file o cataloghi ottenuti da canali autorizzati.",
     )
     return [
         _surface_card(

@@ -168,7 +168,6 @@ _LEGACY_OPERATIONAL_PREFIXES = (
     "/applicazioni",
     "/checklist",
     "/database",
-    "/deposito/checklist",
     "/guida/firma-digitale",
     "/pat",
     "/pdp",
@@ -178,8 +177,6 @@ _LEGACY_OPERATIONAL_PREFIXES = (
     "/sigit",
     "/sigp",
     "/sigp-sync",
-    "/strumenti-legali",
-    "/strumenti-operativi",
     "/telematico",
     "/tribunali",
 )
@@ -238,7 +235,7 @@ def _excluded(path: str) -> bool:
         return True
     if lower == "/checklist" or lower.startswith("/checklist/"):
         return True
-    if lower == "/deposito/checklist" or lower.startswith("/deposito/checklist/"):
+    if lower.startswith("/deposito/checklist/"):
         return True
     if lower.startswith("/giurisprudenza/"):
         return True

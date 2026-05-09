@@ -1041,22 +1041,63 @@
       ]
     },
     {
+      "workspaceTarget": "/app/studio",
+      "route": "/strumenti-legali",
+      "family": "studio",
+      "status": "react_operational_full",
+      "risk": "high",
+      "targetComponent": "frontend/src/components/StudioModulePage.tsx",
+      "targetData": "frontend/src/studioModuleData.ts",
+      "targetBridge": "web/services/react_studio_module_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/strumenti-legali.json",
+      "unlockFromGate": true,
+      "mustPreserve": [
+        "suite strumenti forensi",
+        "calcoli reali collegati alle route operative",
+        "API studio-modules strumenti-forensi",
+        "card operative con icone",
+        "nessun dato demo",
+        "nessuna CTA legacy primaria"
+      ]
+    },
+    {
+      "workspaceTarget": "/app/studio",
+      "route": "/strumenti-operativi",
+      "family": "studio",
+      "status": "react_operational_full",
+      "risk": "medium",
+      "targetComponent": "frontend/src/components/StudioModulePage.tsx",
+      "targetData": "frontend/src/studioModuleData.ts",
+      "targetBridge": "web/services/react_studio_module_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/strumenti-operativi.json",
+      "unlockFromGate": true,
+      "mustPreserve": [
+        "hub strumenti operativi",
+        "API studio-modules strumenti-operativi",
+        "azioni reali verso timesheet, export, cartelle e regia",
+        "card operative con icone",
+        "nessun dato demo",
+        "nessuna CTA legacy primaria"
+      ]
+    },
+    {
       "workspaceTarget": "/app/telematico",
       "route": "/deposito/checklist",
       "family": "telematico",
-      "status": "legacy_operational",
+      "status": "react_operational_full",
       "risk": "critical",
-      "targetComponent": "frontend/src/components/DepositoChecklistPage.tsx",
-      "targetData": "frontend/src/depositoChecklistData.ts",
-      "targetBridge": "web/services/react_deposito_checklist_bridge.py",
+      "targetComponent": "frontend/src/components/TelematicoSurfacePage.tsx",
+      "targetData": "frontend/src/telematicoSurfacesData.ts",
+      "targetBridge": "web/services/react_telematico_bridge.py",
       "legacyContract": "artifacts/react-migration/legacy-contracts/deposito__checklist.json",
-      "unlockFromGate": false,
+      "unlockFromGate": true,
       "mustPreserve": [
-        "deposito end-to-end",
-        "allegati",
-        "download",
-        "Local Signer",
-        "audit"
+        "checklist PCT PDP PAT PTT",
+        "API telematico surface checklist",
+        "nessun download autonomo dei portali",
+        "spunte locali non sensibili",
+        "link a fascicoli, PEC e firma",
+        "nessun dato demo"
       ]
     },
     {

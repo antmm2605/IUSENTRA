@@ -410,7 +410,6 @@ const legacyOperationalPrefixes = [
   '/ptt',
   '/sigit',
   '/tribunali',
-  '/deposito/checklist',
   '/guida/firma-digitale',
 ]
 

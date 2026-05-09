@@ -299,12 +299,14 @@ function ActiveFunctionPanel({
         ) : null}
       </div>
       <div className="iu-sm-focus__actions">
-        {actions.map((action) => action.method === 'POST' ? (
-          <form action={action.href} method="post" key={`${card.title}-${action.label}`}>
-            <button type="submit">{action.label}</button>
-          </form>
-        ) : (
-          <a href={action.href} key={`${card.title}-${action.label}`}>{action.label}</a>
+        {actions.map((action) => (
+          <a
+            href={action.href}
+            key={`${card.title}-${action.label}`}
+            data-method={action.method !== 'GET' ? action.method : undefined}
+          >
+            {action.label}
+          </a>
         ))}
         <button type="button" onClick={() => openLexContext(module)}>Chiedi a Lex</button>
       </div>

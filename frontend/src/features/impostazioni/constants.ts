@@ -27,7 +27,7 @@ export const SETTINGS_SECTIONS: Array<{
   { id: 'smtp', label: 'Email SMTP', description: 'Casella ordinaria separata dalla PEC.', icon: AtSign, tone: 'info' },
   { id: 'whatsapp', label: 'WhatsApp', description: 'Canale messaggi e promemoria cliente.', icon: MessageCircle, tone: 'success' },
   { id: 'scheduler', label: 'Scheduler', description: 'Backup e automazioni periodiche dello studio.', icon: Clock3, tone: 'neutral' },
-  { id: 'ai', label: 'AI Locale', description: 'Assistente sul PC dello studio e ricerca nei documenti.', icon: Bot, tone: 'primary' },
+  { id: 'ai', label: 'AI Locale', description: 'Assistente sul PC: prepara Ollama, sceglie i modelli e cerca nei documenti.', icon: Bot, tone: 'primary' },
   { id: 'pagamenti', label: 'Pagamenti', description: 'Carte, PayPal, Satispay, SumUp, bonifico e link parcella.', icon: CreditCard, tone: 'info' },
   { id: 'notifiche', label: 'Notifiche', description: 'Messaggi WhatsApp, promemoria e registro dello studio.', icon: Bell, tone: 'success' },
   { id: 'backup', label: 'Backup', description: 'Copie, verifica e scaricamento protetto dei dati dello studio.', icon: CloudUpload, tone: 'warning' },
@@ -124,13 +124,13 @@ export const SETTINGS_FIELDS: Record<SettingsSection, SettingsField[]> = {
     { name: 'enabled', label: 'AI locale attiva', type: 'checkbox', width: 'half' },
     { name: 'auto_bootstrap', label: 'Prepara motore locale automaticamente', type: 'checkbox', width: 'half' },
     { name: 'base_url', label: 'Collegamento AI sul PC', width: 'full', help: "Lascia invariato se l'assistente gira su questo computer." },
-    { name: 'chat_model', label: "Risposte dell'assistente", type: 'select', width: 'half', options: [
+    { name: 'chat_model', label: "Risposte dell'assistente", type: 'select', width: 'half', help: 'Lascia Automatico: IUSENTRA sceglie dopo il controllo del PC.', options: [
       { value: '__auto__', label: 'Automatico (consigliato)' },
       { value: 'gemma3:1b', label: 'Veloce' },
       { value: 'qwen2.5:0.5b', label: 'Molto leggero' },
       { value: 'mistral', label: 'Piu completo se gia installato' },
     ] },
-    { name: 'embed_model', label: 'Ricerca nei documenti', type: 'select', width: 'half', options: [
+    { name: 'embed_model', label: 'Ricerca nei documenti', type: 'select', width: 'half', help: 'Lascia Automatico: IUSENTRA prepara il modello adatto alla ricerca locale.', options: [
       { value: '__auto__', label: 'Automatico (consigliato)' },
       { value: 'embeddinggemma:300m', label: 'Ricerca locale consigliata' },
       { value: 'nomic-embed-text', label: 'Ricerca alternativa' },

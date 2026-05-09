@@ -155,6 +155,8 @@ const profiliPage = read('src/components/ProfiliPage.tsx')
 const profiliData = read('src/profiliData.ts')
 const profiliBridge = read('../web/services/react_profili_bridge.py')
 const backupPage = read('src/components/BackupPage.tsx')
+const backupSettingsPanel = read('src/features/impostazioni/components/BackupSettingsPanel.tsx')
+const calendarSettingsPanel = read('src/features/impostazioni/components/CalendarSettingsPanel.tsx')
 const backupData = read('src/backupData.ts')
 const backupBridge = read('../web/services/react_backup_bridge.py')
 const sitoStudioPage = read('src/components/SitoStudioPage.tsx')
@@ -166,6 +168,12 @@ const studioBridge = read('../web/services/react_studio_bridge.py')
 const amministrazionePage = read('src/components/AmministrazionePage.tsx')
 const amministrazioneData = read('src/amministrazioneData.ts')
 const amministrazioneBridge = read('../web/services/react_amministrazione_bridge.py')
+const impostazioniPage = read('src/features/impostazioni/ImpostazioniPage.tsx')
+const impostazioniForm = read('src/features/impostazioni/components/SettingsSectionForm.tsx')
+const impostazioniActions = read('src/features/impostazioni/components/SettingsActions.tsx')
+const impostazioniLocalSigner = read('src/features/impostazioni/localSigner.ts')
+const impostazioniApi = read('src/features/impostazioni/api.ts')
+const impostazioniBridge = read('../web/services/react_impostazioni_bridge.py')
 const fatturazionePage = read('src/components/FatturazionePage.tsx')
 const fatturazioneData = read('src/fatturazioneData.ts')
 const fatturazioneBridge = read('../web/services/react_fatturazione_bridge.py')
@@ -409,7 +417,7 @@ assertContains(tranche8aOpenDesignReport, 'Token creati', 'report Open Design 8A
 if (routeManifest.policy?.currentReleaseUnlocksRoutes !== true) {
   throw new Error('route manifest: currentReleaseUnlocksRoutes deve essere true nelle tranche di promozione')
 }
-const allowedGovernedUnlocks = new Set(['/statistiche', '/audit', '/registro-attivita', '/utenti', '/utenti/nuovo', '/profili', '/backup', '/sito-studio', '/sito-studio/contatti', '/studio', '/amministrazione', '/fatturazione', '/fatturazione/nuova', '/incassi-pagamenti', '/preventivi', '/preventivi/nuovo', '/preventivi/wizard', '/preventivi/conferimento/nuovo', '/compensi-forensi', '/tariffario', '/template-atti', '/template-atti/catalogo', '/redazione-atti', '/giurisprudenza', '/legal-intelligence', '/legal-intelligence/news', '/legal-intelligence/mediazione', '/ricerca-legale'])
+const allowedGovernedUnlocks = new Set(['/statistiche', '/audit', '/registro-attivita', '/utenti', '/utenti/nuovo', '/profili', '/backup', '/sito-studio', '/sito-studio/contatti', '/studio', '/amministrazione', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/notifiche', '/notifiche-whatsapp', '/sincronizzazione-calendari', '/fatturazione', '/fatturazione/nuova', '/incassi-pagamenti', '/preventivi', '/preventivi/nuovo', '/preventivi/wizard', '/preventivi/conferimento/nuovo', '/compensi-forensi', '/tariffario', '/template-atti', '/template-atti/catalogo', '/redazione-atti', '/giurisprudenza', '/legal-intelligence', '/legal-intelligence/news', '/legal-intelligence/mediazione', '/ricerca-legale'])
 const allowedManifestStatuses = new Set(['legacy_operational', 'react_shell', 'react_bridge', 'react_operational_partial', 'react_operational_full'])
 const unlockStatuses = new Set(['react_bridge', 'react_operational_partial', 'react_operational_full'])
 for (const entry of routeManifest.routes ?? []) {
@@ -447,25 +455,32 @@ for (const [route, status] of [
   ['/legal-intelligence/news', 'react_operational_full'],
   ['/legal-intelligence/mediazione', 'react_operational_full'],
   ['/ricerca-legale', 'react_operational_full'],
+  ['/impostazioni', 'react_operational_full'],
+  ['/impostazioni-studio', 'react_operational_full'],
+  ['/impostazioni/calendario', 'react_operational_full'],
+  ['/impostazioni/pagamenti', 'react_operational_full'],
+  ['/notifiche', 'react_operational_full'],
+  ['/notifiche-whatsapp', 'react_operational_full'],
+  ['/sincronizzazione-calendari', 'react_operational_full'],
 ]) {
   const entry = (routeManifest.routes ?? []).find((item) => item.route === route)
   if (!entry || entry.status !== status || entry.unlockFromGate !== true) {
     throw new Error(`route manifest: ${route} deve essere ${status} con unlockFromGate=true`)
   }
 }
-for (const route of ['/sito-studio/builder', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/sincronizzazione-calendari']) {
+for (const route of ['/sito-studio/builder']) {
   const entry = (routeManifest.routes ?? []).find((item) => item.route === route)
   if (!entry || entry.status !== 'legacy_operational' || entry.unlockFromGate !== false) {
     throw new Error(`route manifest: ${route} deve restare legacy_operational con unlockFromGate=false`)
   }
 }
-for (const route of ['/fatturazione/*', '/preventivi/*', '/compensi-forensi/*', '/tariffario/*', '/template-atti/nuovo', '/template-atti/*', '/redazione-atti/*', '/giurisprudenza/nuova', '/giurisprudenza/*', '/legal-intelligence/*', '/ricerca-legale/*', '/deposito/checklist', '/impostazioni/pagamenti']) {
+for (const route of ['/fatturazione/*', '/preventivi/*', '/compensi-forensi/*', '/tariffario/*', '/template-atti/nuovo', '/template-atti/*', '/redazione-atti/*', '/giurisprudenza/nuova', '/giurisprudenza/*', '/legal-intelligence/*', '/ricerca-legale/*', '/deposito/checklist']) {
   const entry = (routeManifest.routes ?? []).find((item) => item.route === route)
   if (!entry || entry.status !== 'legacy_operational' || entry.unlockFromGate !== false) {
     throw new Error(`route manifest: ${route} deve restare legacy_operational con unlockFromGate=false`)
   }
 }
-for (const route of ['/utenti', '/profili', '/audit', '/registro-attivita', '/studio', '/amministrazione', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/sincronizzazione-calendari', '/backup', '/sito-studio', '/sito-studio/contatti', '/sito-studio/builder', '/statistiche', '/fatturazione', '/fatturazione/nuova', '/fatturazione/*', '/incassi-pagamenti', '/preventivi', '/preventivi/nuovo', '/preventivi/conferimento/nuovo', '/preventivi/*', '/preventivi/wizard', '/compensi-forensi', '/compensi-forensi/*', '/tariffario', '/tariffario/*', '/template-atti', '/template-atti/catalogo', '/template-atti/nuovo', '/template-atti/*', '/redazione-atti', '/redazione-atti/*', '/checklist', '/giurisprudenza', '/giurisprudenza/nuova', '/giurisprudenza/*', '/legal-intelligence', '/legal-intelligence/news', '/legal-intelligence/mediazione', '/legal-intelligence/*', '/ricerca-legale', '/ricerca-legale/*', '/deposito/checklist', '/polisWeb', '/pdp', '/pat', '/sigit', '/sigp', '/portali/*']) {
+for (const route of ['/utenti', '/profili', '/audit', '/registro-attivita', '/studio', '/amministrazione', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/notifiche', '/notifiche-whatsapp', '/sincronizzazione-calendari', '/backup', '/sito-studio', '/sito-studio/contatti', '/sito-studio/builder', '/statistiche', '/fatturazione', '/fatturazione/nuova', '/fatturazione/*', '/incassi-pagamenti', '/preventivi', '/preventivi/nuovo', '/preventivi/conferimento/nuovo', '/preventivi/*', '/preventivi/wizard', '/compensi-forensi', '/compensi-forensi/*', '/tariffario', '/tariffario/*', '/template-atti', '/template-atti/catalogo', '/template-atti/nuovo', '/template-atti/*', '/redazione-atti', '/redazione-atti/*', '/checklist', '/giurisprudenza', '/giurisprudenza/nuova', '/giurisprudenza/*', '/legal-intelligence', '/legal-intelligence/news', '/legal-intelligence/mediazione', '/legal-intelligence/*', '/ricerca-legale', '/ricerca-legale/*', '/deposito/checklist', '/polisWeb', '/pdp', '/pat', '/sigit', '/sigp', '/portali/*']) {
   if (!(routeManifest.routes ?? []).some((entry) => entry.route === route)) {
     throw new Error(`route manifest: manca ${route}`)
   }
@@ -566,7 +581,11 @@ assertContains(statistiche, 'getStatistichePage', 'StatistichePage usa getStatis
 assertContains(auditPage, 'getAuditPage', 'AuditPage usa getAuditPage')
 assertContains(utentiPage, 'getUtentiPage', 'UtentiPage usa getUtentiPage')
 assertContains(profiliPage, 'getProfiliPage', 'ProfiliPage usa getProfiliPage')
-assertContains(backupPage, 'getBackupPage', 'BackupPage usa getBackupPage')
+assertContains(backupPage, 'ImpostazioniPage', 'BackupPage rimanda alla scheda Impostazioni')
+assertContains(backupSettingsPanel, 'createBackup', 'scheda Backup crea copie via client JSON')
+assertContains(backupSettingsPanel, 'verifyBackupIntegrity', 'scheda Backup verifica copie via client JSON')
+assertContains(calendarSettingsPanel, 'createCalendarProfile', 'scheda Calendari crea profili')
+assertContains(calendarSettingsPanel, 'regenerateCalendarLinks', 'scheda Calendari rigenera link riservati')
 assertContains(sitoStudioPage, 'getSitoStudioPage', 'SitoStudioPage usa getSitoStudioPage')
 assertContains(sitoStudioPage, 'getSitoStudioContattiPage', 'SitoStudioPage usa getSitoStudioContattiPage')
 assertContains(studioPage, 'getStudioPage', 'StudioPage usa getStudioPage')
@@ -621,8 +640,8 @@ assertNotContains(utentiPage, 'sessionStorage', 'UtentiPage non usa sessionStora
 assertNotContains(profiliPage, 'LegacyPostForm', 'ProfiliPage non usa LegacyPostForm nel flusso principale')
 assertContains(profiliPage, 'saveProfiliPermissions', 'ProfiliPage salva profili via JSON')
 assertNotContains(backupPage, 'LegacyPostForm', 'BackupPage non usa LegacyPostForm nel flusso principale')
-assertContains(backupPage, 'createBackup', 'BackupPage crea backup via data client JSON')
-assertContains(backupPage, 'verifyBackupIntegrity', 'BackupPage verifica integrita via data client JSON')
+assertContains(backupSettingsPanel, 'createBackup', 'scheda Backup crea backup via data client JSON')
+assertContains(backupSettingsPanel, 'verifyBackupIntegrity', 'scheda Backup verifica integrita via data client JSON')
 assertNotContains(sitoStudioPage, 'LegacyPostForm', 'SitoStudioPage non usa LegacyPostForm nel flusso principale')
 assertContains(sitoStudioData, 'apiPostJson', 'sitoStudioData usa apiPostJson per azioni sito supportate')
 assertContains(sitoStudioPage, 'linkSitoContatto', 'SitoStudioPage collega contatti via API JSON')
@@ -753,6 +772,29 @@ assertContains(apiBridge, '@api_v1_react.get("/tariffario")', 'endpoint UI tarif
 assertContains(apiBridge, '@api_v1_react.get("/template-atti")', 'endpoint UI template atti')
 assertContains(apiBridge, '@api_v1_react.get("/template-atti/catalogo")', 'endpoint UI catalogo template atti')
 assertContains(apiBridge, '@api_v1_react.get("/redazione-atti")', 'endpoint UI redazione atti')
+assertContains(apiBridge, '@api_v1_react.get("/impostazioni")', 'endpoint UI impostazioni')
+assertContains(apiBridge, '@api_v1_react.get("/impostazioni-studio")', 'endpoint alias UI impostazioni studio')
+assertContains(apiBridge, '@api_v1_react.post("/impostazioni/<section>")', 'endpoint salvataggio impostazioni')
+assertContains(apiBridge, '@api_v1_react.post("/impostazioni/test/<test_id>")', 'endpoint test impostazioni')
+assertContains(apiBridge, '@api_v1_react.get("/impostazioni/ai/status")', 'endpoint stato AI locale impostazioni')
+assertContains(apiBridge, '@api_v1_react.post("/impostazioni/ai/bootstrap")', 'endpoint bootstrap AI locale impostazioni')
+assertContains(apiBridge, '@api_v1_react.post("/impostazioni/calendari/profili")', 'endpoint profili calendario impostazioni')
+assertContains(apiBridge, '@api_v1_react.post("/impostazioni/calendari/rigenera-link")', 'endpoint rigenera link calendario impostazioni')
+assertContains(app, 'const ImpostazioniPage = lazy', 'shell carica pagina impostazioni React')
+assertContains(app, 'isImpostazioniPage?<ImpostazioniPage/>', 'shell instrada impostazioni React')
+assertContains(impostazioniPage, 'SETTINGS_SECTIONS', 'pagina impostazioni ha tab completi')
+assertContains(impostazioniPage, 'SettingsSummary', 'pagina impostazioni ha riepilogo operativo')
+assertContains(impostazioniForm, 'Eye, EyeOff', 'campi segreti con icona occhio')
+assertContains(impostazioniForm, 'Mostra valore inserito', 'toggle visibilita valore digitato')
+assertContains(impostazioniActions, 'checkLocalSigner', 'firma digitale verifica Local Signer dal browser')
+assertContains(impostazioniLocalSigner, 'token_probe_fresh', 'Local Signer accetta token probe fresco')
+assertContains(impostazioniApi, 'iusentra-local-signer://restart', 'Local Signer riavvio via protocollo')
+assertContains(impostazioniApi, '/api/v1/ui/impostazioni', 'client impostazioni usa API JSON')
+assertNotContains(impostazioniApi, '_legacy=1', 'client impostazioni senza rollback legacy')
+assertContains(impostazioniBridge, '"secrets_exposed": False', 'bridge impostazioni dichiara segreti non esposti')
+assertContains(impostazioniBridge, '_secret_state(cfg.pec.password)', 'bridge impostazioni redige password PEC')
+assertContains(impostazioniBridge, '_secret_state(cfg.whatsapp.callmebot_key)', 'bridge impostazioni redige chiave CallMeBot')
+assertContains(impostazioniBridge, '_audit(section)', 'bridge impostazioni registra audit')
 assertNotContains(legacyOperationalTuple, '"/statistiche"', 'gate legacy senza statistiche')
 assertNotContains(legacyOperationalTuple, '"/audit"', 'gate legacy senza audit')
 assertNotContains(legacyOperationalTuple, '"/registro-attivita"', 'gate legacy senza registro attivita')
@@ -769,9 +811,9 @@ assertNotContains(legacyOperationalTuple, '"/compensi-forensi"', 'gate legacy se
 assertNotContains(legacyOperationalTuple, '"/tariffario"', 'gate legacy senza tariffario exact')
 assertNotContains(legacyOperationalTuple, '"/template-atti"', 'gate legacy senza template atti exact')
 assertNotContains(legacyOperationalTuple, '"/redazione-atti"', 'gate legacy senza redazione atti exact')
-assertContains(legacyOperationalTuple, '"/impostazioni"', 'gate legacy mantiene impostazioni')
-assertContains(legacyOperationalTuple, '"/impostazioni-studio"', 'gate legacy mantiene impostazioni studio')
-assertContains(legacyOperationalTuple, '"/sincronizzazione-calendari"', 'gate legacy mantiene sincronizzazione calendari')
+assertNotContains(legacyOperationalTuple, '"/impostazioni"', 'gate legacy senza impostazioni full React')
+assertNotContains(legacyOperationalTuple, '"/impostazioni-studio"', 'gate legacy senza impostazioni studio full React')
+assertNotContains(legacyOperationalTuple, '"/sincronizzazione-calendari"', 'gate legacy senza sincronizzazione calendari exact')
 assertContains(legacyOperationalTuple, '"/checklist"', 'gate legacy mantiene checklist')
 assertContains(legacyOperationalTuple, '"/deposito/checklist"', 'gate legacy mantiene deposito checklist')
 assertNotContains(legacyOperationalTuple, '"/giurisprudenza"', 'gate legacy senza giurisprudenza exact')
@@ -785,10 +827,14 @@ assertContains(reactRouteGate, 'lower.startswith("/studio/")', 'gate protegge su
 assertContains(reactRouteGate, 'lower.startswith("/amministrazione/")', 'gate protegge subpath amministrazione legacy')
 assertContains(reactRouteGate, 'lower.startswith("/fatturazione/") and lower != "/fatturazione/nuova"', 'gate protegge subpath fatturazione legacy')
 assertContains(reactRouteGate, 'lower.startswith("/incassi-pagamenti/")', 'gate protegge subpath incassi legacy')
-assertContains(reactRouteGate, 'lower == "/impostazioni/pagamenti" or lower.startswith("/impostazioni/pagamenti/")', 'gate protegge impostazioni pagamenti legacy')
-assertContains(reactRouteGate, 'lower == "/impostazioni" or lower.startswith("/impostazioni/")', 'gate protegge impostazioni legacy')
-assertContains(reactRouteGate, 'lower == "/impostazioni-studio" or lower.startswith("/impostazioni-studio/")', 'gate protegge impostazioni studio legacy')
-assertContains(reactRouteGate, 'lower == "/sincronizzazione-calendari" or lower.startswith("/sincronizzazione-calendari/")', 'gate protegge sincronizzazione calendari legacy')
+assertContains(reactRouteGate, 'lower.startswith("/impostazioni/pagamenti/")', 'gate protegge subpath impostazioni pagamenti')
+assertNotContains(reactRouteGate, 'lower == "/impostazioni/pagamenti" or lower.startswith("/impostazioni/pagamenti/")', 'gate non blocca pagamenti exact')
+assertContains(reactRouteGate, 'lower.startswith("/impostazioni/calendario/")', 'gate protegge subpath impostazioni calendario')
+assertNotContains(reactRouteGate, 'lower == "/impostazioni/calendario" or lower.startswith("/impostazioni/calendario/")', 'gate non blocca calendario exact')
+assertNotContains(reactRouteGate, 'lower == "/impostazioni" or lower.startswith("/impostazioni/")', 'gate non blocca impostazioni full React')
+assertNotContains(reactRouteGate, 'lower == "/impostazioni-studio" or lower.startswith("/impostazioni-studio/")', 'gate non blocca impostazioni studio full React')
+assertContains(reactRouteGate, 'lower.startswith("/sincronizzazione-calendari/")', 'gate protegge subpath sincronizzazione calendari')
+assertNotContains(reactRouteGate, 'lower == "/sincronizzazione-calendari" or lower.startswith("/sincronizzazione-calendari/")', 'gate non blocca sincronizzazione calendari exact')
 assertContains(reactRouteGate, 'lower.startswith("/preventivi/") and lower not in {', 'gate protegge nested preventivi non migrati')
 assertContains(reactRouteGate, '"/preventivi/nuovo"', 'gate consente nuovo preventivo')
 assertContains(reactRouteGate, '"/preventivi/wizard"', 'gate consente preventivo guidato react')
@@ -823,9 +869,9 @@ assertNotContains(shellLegacyFirstTuple, '"/compensi-forensi"', 'shell legacy-fi
 assertNotContains(shellLegacyFirstTuple, '"/tariffario"', 'shell legacy-first senza tariffario exact')
 assertNotContains(shellLegacyFirstTuple, '"/template-atti"', 'shell legacy-first senza template atti exact')
 assertNotContains(shellLegacyFirstTuple, '"/redazione-atti"', 'shell legacy-first senza redazione atti exact')
-assertContains(shellLegacyFirstTuple, '"/impostazioni"', 'shell legacy-first mantiene impostazioni')
-assertContains(shellLegacyFirstTuple, '"/impostazioni-studio"', 'shell legacy-first mantiene impostazioni studio')
-assertContains(shellLegacyFirstTuple, '"/sincronizzazione-calendari"', 'shell legacy-first mantiene sincronizzazione calendari')
+assertNotContains(shellLegacyFirstTuple, '"/impostazioni"', 'shell legacy-first senza impostazioni full React')
+assertNotContains(shellLegacyFirstTuple, '"/impostazioni-studio"', 'shell legacy-first senza impostazioni studio full React')
+assertNotContains(shellLegacyFirstTuple, '"/sincronizzazione-calendari"', 'shell legacy-first senza sincronizzazione calendari exact')
 assertNotContains(shellLegacyFirstTuple, '"/giurisprudenza"', 'shell legacy-first senza giurisprudenza exact')
 assertNotContains(shellLegacyFirstTuple, '"/legal-intelligence"', 'shell legacy-first senza legal intelligence exact')
 assertNotContains(shellLegacyFirstTuple, '"/ricerca-legale"', 'shell legacy-first senza ricerca legale exact')
@@ -837,10 +883,14 @@ assertContains(reactShellBlueprint, 'lower.startswith("/studio/")', 'shell prote
 assertContains(reactShellBlueprint, 'lower.startswith("/amministrazione/")', 'shell protegge subpath amministrazione legacy')
 assertContains(reactShellBlueprint, 'lower.startswith("/fatturazione/") and lower != "/fatturazione/nuova"', 'shell protegge subpath fatturazione legacy')
 assertContains(reactShellBlueprint, 'lower.startswith("/incassi-pagamenti/")', 'shell protegge subpath incassi legacy')
-assertContains(reactShellBlueprint, 'lower == "/impostazioni/pagamenti" or lower.startswith("/impostazioni/pagamenti/")', 'shell protegge impostazioni pagamenti legacy')
-assertContains(reactShellBlueprint, 'lower == "/impostazioni" or lower.startswith("/impostazioni/")', 'shell protegge impostazioni legacy')
-assertContains(reactShellBlueprint, 'lower == "/impostazioni-studio" or lower.startswith("/impostazioni-studio/")', 'shell protegge impostazioni studio legacy')
-assertContains(reactShellBlueprint, 'lower == "/sincronizzazione-calendari" or lower.startswith("/sincronizzazione-calendari/")', 'shell protegge sincronizzazione calendari legacy')
+assertContains(reactShellBlueprint, 'lower.startswith("/impostazioni/pagamenti/")', 'shell protegge subpath impostazioni pagamenti')
+assertNotContains(reactShellBlueprint, 'lower == "/impostazioni/pagamenti" or lower.startswith("/impostazioni/pagamenti/")', 'shell non blocca pagamenti exact')
+assertContains(reactShellBlueprint, 'lower.startswith("/impostazioni/calendario/")', 'shell protegge subpath impostazioni calendario')
+assertNotContains(reactShellBlueprint, 'lower == "/impostazioni/calendario" or lower.startswith("/impostazioni/calendario/")', 'shell non blocca calendario exact')
+assertNotContains(reactShellBlueprint, 'lower == "/impostazioni" or lower.startswith("/impostazioni/")', 'shell non blocca impostazioni full React')
+assertNotContains(reactShellBlueprint, 'lower == "/impostazioni-studio" or lower.startswith("/impostazioni-studio/")', 'shell non blocca impostazioni studio full React')
+assertContains(reactShellBlueprint, 'lower.startswith("/sincronizzazione-calendari/")', 'shell protegge subpath sincronizzazione calendari')
+assertNotContains(reactShellBlueprint, 'lower == "/sincronizzazione-calendari" or lower.startswith("/sincronizzazione-calendari/")', 'shell non blocca sincronizzazione calendari exact')
 assertContains(reactShellBlueprint, 'lower.startswith("/preventivi/") and lower not in {', 'shell protegge nested preventivi non migrati')
 assertContains(reactShellBlueprint, '"/preventivi/wizard"', 'shell consente preventivo guidato react')
 assertNotContains(reactShellBlueprint, 'lower == "/compensi-forensi" or lower.startswith("/compensi-forensi/")', 'shell non blocca exact compensi forensi')
@@ -1333,7 +1383,7 @@ for (const label of [
   'Timesheet',
   'Cartelle Condivise',
   'Sito Studio',
-  'Notifiche WhatsApp',
+  'Notifiche',
   'Incassi e Pagamenti',
   'Backup',
   'Impostazioni Studio',
@@ -1373,6 +1423,7 @@ for (const route of [
   '/sito-studio',
   '/sito-studio/builder',
   '/sito-studio/contatti',
+  '/notifiche',
   '/notifiche-whatsapp',
   '/incassi-pagamenti',
   '/backup',

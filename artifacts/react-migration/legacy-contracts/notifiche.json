@@ -1,0 +1,13 @@
+{
+  "route": "/notifiche/?_legacy=1",
+  "status_code": 200,
+  "description": "Pannello legacy notifiche WhatsApp mantenuto come fallback tecnico.",
+  "forms": [
+    "/notifiche/invia",
+    "/notifiche/promemoria-domani"
+  ],
+  "links": [
+    "/impostazioni?tab=whatsapp"
+  ],
+  "react_replacement": "/impostazioni?tab=notifiche"
+}

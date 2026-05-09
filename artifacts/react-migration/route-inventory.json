@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-09T10:34:36.321Z",
+  "generatedAt": "2026-05-09T12:40:10.826Z",
   "react": {
     "dependencies": {
       "@fontsource-variable/geist": "^5.2.8",
@@ -161,8 +161,8 @@
       "/database",
       "/deposito/checklist",
       "/guida/firma-digitale",
-      "/impostazioni",
-      "/impostazioni-studio",
+      "/impostazioni/calendario",
+      "/impostazioni/pagamenti",
       "/notifiche",
       "/notifiche-whatsapp",
       "/pat",
@@ -291,6 +291,10 @@
         "importPath": "./components/StatistichePage"
       },
       {
+        "name": "ImpostazioniPage",
+        "importPath": "./components/ImpostazioniPage"
+      },
+      {
         "name": "AuditPage",
         "importPath": "./components/AuditPage"
       },
@@ -398,6 +402,7 @@
       "isPrivacyRegistroPage",
       "isAdminDatabasePage",
       "isStatistichePage",
+      "isImpostazioniPage",
       "isAuditPage",
       "isRegistroAttivitaPage",
       "isUtentiPage",

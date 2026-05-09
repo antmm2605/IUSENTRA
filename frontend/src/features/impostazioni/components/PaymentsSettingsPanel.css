@@ -1,0 +1,170 @@
+.iu-pay-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.iu-pay-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.iu-pay-metrics span {
+  min-height: 62px;
+  padding: 12px;
+  border: 1px solid var(--ius-border);
+  border-radius: 10px;
+  background: #f8fafc;
+  color: var(--ius-muted);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.iu-pay-metrics strong {
+  display: block;
+  color: var(--ius-text);
+  font-size: 18px;
+  line-height: 1.2;
+  font-weight: 900;
+}
+
+.iu-pay-group,
+.iu-pay-history {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 12px;
+  background: #fbfdff;
+}
+
+.iu-pay-group header,
+.iu-pay-history header {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.iu-pay-group header svg {
+  width: 18px;
+  height: 18px;
+  color: var(--iu-blue-600, #2563eb);
+}
+
+.iu-pay-group header strong,
+.iu-pay-history header strong {
+  color: var(--ius-text);
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.iu-pay-history header span {
+  color: var(--ius-muted);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.iu-pay-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.iu-pay-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.iu-pay-field textarea {
+  min-height: 82px;
+  resize: vertical;
+}
+
+.iu-pay-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 1px solid var(--ius-border);
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.iu-pay-check input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--iu-blue-600, #2563eb);
+}
+
+.iu-pay-secret {
+  position: relative;
+  display: block;
+}
+
+.iu-pay-secret input {
+  padding-right: 46px;
+}
+
+.iu-pay-secret button {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  width: 34px;
+  height: 34px;
+  transform: translateY(-50%);
+  color: var(--ius-muted);
+}
+
+.iu-pay-secret svg {
+  width: 17px;
+  height: 17px;
+}
+
+.iu-pay-history p {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  margin: 0;
+  padding: 9px 0;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+  color: var(--ius-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.iu-pay-history p:first-of-type {
+  border-top: 0;
+}
+
+.iu-pay-history b {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ius-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.iu-pay-history span {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 900px) {
+  .iu-pay-metrics,
+  .iu-pay-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .iu-pay-history p {
+    display: grid;
+  }
+}

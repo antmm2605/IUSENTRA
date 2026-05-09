@@ -94,6 +94,9 @@ def test_docker_runtime_ha_healthcheck_railway_compatibile_e_entrypoint_hardened
     assert "/api/pronto" in docker_text
     assert "os.getenv('PORT', '8080')" in gunicorn_text
     assert 'os.getenv("WEB_CONCURRENCY", "1")' in gunicorn_text
+    assert "WEB_CONCURRENCY:      ${WEB_CONCURRENCY:-2}" in compose_text
+    assert "GUNICORN_THREADS:     ${GUNICORN_THREADS:-4}" in compose_text
+    assert "GUNICORN_WORKER_CONNECTIONS: ${GUNICORN_WORKER_CONNECTIONS:-500}" in compose_text
     assert "os.getenv('PORT', '8080')" in docker_text
     assert 'adduser --system --ingroup iusentra' in docker_text
     assert "COPY pyproject.toml ." in docker_text

@@ -1,6 +1,6 @@
 # Audit migrazione React
 
-Generato: 2026-05-09T10:34:36.321Z
+Generato: 2026-05-09T12:40:10.826Z
 
 ## Frontend
 
@@ -16,8 +16,8 @@ Legacy operational prefixes: 23
 
 ## App React
 
-Lazy components: 44
-Route checks: 59
+Lazy components: 45
+Route checks: 60
 Studio module routes: 52
 
 ## Nota operativa

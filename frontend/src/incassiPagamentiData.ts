@@ -210,7 +210,7 @@ function normaliseWarning(raw: unknown): AdminWarning {
   const item = asRecord(raw)
   return {
     code: text(item.code) || 'warning',
-    message: text(item.message) || 'Avviso tecnico disponibile.',
+    message: text(item.message) || 'Avviso disponibile.',
   }
 }
 
@@ -252,8 +252,8 @@ function normaliseReceipt(raw: unknown): ReceiptRow {
 function normaliseProvider(raw: unknown): PaymentProviderStatus {
   const item = asRecord(raw)
   return {
-    id: text(item.id) || text(item.label) || 'provider',
-    label: text(item.label) || 'Provider',
+    id: text(item.id) || text(item.label) || 'canale',
+    label: text(item.label) || 'Canale',
     value: value(item.value),
     note: text(item.note),
     tone: tone(item.tone),

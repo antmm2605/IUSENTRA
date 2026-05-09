@@ -26,28 +26,13 @@ function displayValue(value: string | number): string {
 function WarningPanel({ data }: { data: IncassiPagamentiPageData }) {
   if (!data.warnings.length) return null
   return (
-    <Panel title="Avvisi pagamenti">
+    <Panel title="Da verificare">
       <div className="iu-pay-warnings">
         {data.warnings.map((warning) => (
           <div className="iu-pay-warning" key={`${warning.code}-${warning.message}`}>
-            <Badge tone="warning">{warning.code}</Badge>
             <span>{warning.message}</span>
           </div>
         ))}
-      </div>
-    </Panel>
-  )
-}
-
-function ContractPanel({ data }: { data: IncassiPagamentiPageData }) {
-  return (
-    <Panel title="Contratto dati" subtitle="Dashboard GET senza configurazioni provider nel payload React.">
-      <div className="iu-pay-contract">
-        <span>Fonte: {data.source || 'non indicata'}</span>
-        <span>Generato: {data.generated_at || 'non disponibile'}</span>
-        <span>Scritture: {data.contracts.writes}</span>
-        <span>Owner route: {data.contracts.route_owner}</span>
-        <span>Mock fallback: {data.contracts.mock_fallback ? 'si' : 'no'}</span>
       </div>
     </Panel>
   )
@@ -73,7 +58,7 @@ function PaymentRow({
       <div className="iu-pay-record__main">
         <span>{record.invoiceNumber || record.invoiceId}</span>
         <strong>{record.customerName}</strong>
-        <small>Provider: {record.providerLabel}</small>
+        <small>Canale: {record.providerLabel}</small>
       </div>
       <div className="iu-pay-record__dates">
         <span>Creato {record.createdAt || 'non indicato'}</span>
@@ -208,7 +193,7 @@ export function IncassiPagamentiPage() {
   return (
     <Page
       title="Incassi e pagamenti"
-      subtitle="Dashboard operativa su incassi, collegamenti pagamento e stato provider sicuro."
+      subtitle="Controllo operativo su incassi, link parcella e stato dei canali."
       actions={
         <>
           <ButtonLink href="/fatturazione" tone="primary">
@@ -218,7 +203,7 @@ export function IncassiPagamentiPage() {
         </>
       }
     >
-      {loading ? <LoadingState title="Caricamento incassi" message="Lettura dei repository economici reali in corso." /> : null}
+      {loading ? <LoadingState title="Caricamento incassi" message="Lettura incassi in corso." /> : null}
       {!loading && !hasData ? (
         <EmptyState
           title="Nessun incasso disponibile"
@@ -227,12 +212,12 @@ export function IncassiPagamentiPage() {
       ) : null}
       {!loading && hasData ? (
         <>
-          {saving ? <LoadingState title="Salvataggio incasso" message="Invio sicuro al backend JSON in corso." /> : null}
+          {saving ? <LoadingState title="Salvataggio incasso" message="Salvataggio in corso." /> : null}
           {success ? <div className="iu-pay-alert iu-pay-alert--success" role="status">{success}</div> : null}
           {error ? <div className="iu-pay-alert iu-pay-alert--error" role="alert">{error}</div> : null}
-          <section className="iu-pay-banner" aria-label="Provider legacy">
-            <strong>Configurazione provider ancora legacy</strong>
-            <span>React mostra solo stato e importi sicuri; configurazioni riservate e webhook restano nel pannello Flask.</span>
+          <section className="iu-pay-banner" aria-label="Impostazioni pagamenti">
+            <strong>Impostazioni nella scheda Pagamenti</strong>
+            <span>Canali e chiavi riservate si gestiscono da un unico pannello in Impostazioni.</span>
           </section>
           <WarningPanel data={data} />
           <section className="iu-pay-kpis" aria-label="KPI incassi">
@@ -241,14 +226,13 @@ export function IncassiPagamentiPage() {
                 label={metric.label}
                 value={displayValue(metric.value)}
                 note={metric.note}
-                badge={<Badge tone={metric.tone}>{metric.tone}</Badge>}
                 key={metric.id}
               />
             ))}
           </section>
           <section className="iu-pay-grid" aria-label="Sezioni incassi">
             {data.sections.map((section) => (
-              <Panel title={section.title} subtitle={section.kind} key={section.id}>
+              <Panel title={section.title} key={section.id}>
                 {section.items.length ? (
                   <div className="iu-pay-list">
                     {section.items.map((item) => (
@@ -257,7 +241,6 @@ export function IncassiPagamentiPage() {
                         <span>{item.label}</span>
                         <strong>{displayValue(item.value)}</strong>
                         {item.note ? <small>{item.note}</small> : null}
-                        <Badge tone={item.tone}>{item.tone}</Badge>
                       </div>
                     ))}
                   </div>
@@ -267,7 +250,7 @@ export function IncassiPagamentiPage() {
               </Panel>
             ))}
           </section>
-          <Panel title="Registra incasso manuale" subtitle="Scrittura JSON backend con permessi e CSRF della sessione.">
+          <Panel title="Registra incasso manuale" subtitle="Salvataggio con permessi della sessione.">
             {data.actions.canRegisterPayment ? (
               <div className="iu-pay-form">
                 <label>
@@ -295,10 +278,10 @@ export function IncassiPagamentiPage() {
                 </Button>
               </div>
             ) : (
-              <EmptyState title="Permesso non disponibile" message="Il backend non consente registrazioni incasso per questa sessione." />
+              <EmptyState title="Permesso non disponibile" message="Questa sessione non consente registrazioni incasso." />
             )}
           </Panel>
-          <Panel title="Collegamenti pagamento" subtitle={`${data.records.length} record visibili dal repository pagamenti`}>
+          <Panel title="Collegamenti pagamento" subtitle={`${data.records.length} collegamenti disponibili`}>
             {data.records.length ? (
               <div className="iu-pay-records">
                 {data.records.map((record) => (
@@ -327,7 +310,6 @@ export function IncassiPagamentiPage() {
               ))}
             </div>
           </Panel>
-          <ContractPanel data={data} />
         </>
       ) : null}
     </Page>

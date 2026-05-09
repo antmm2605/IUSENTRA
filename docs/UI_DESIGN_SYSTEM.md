@@ -113,6 +113,23 @@ Esempio sintetico:
 - Preferire icone Lucide nei pulsanti compatti e testo italiano chiaro nelle CTA primarie.
 - Date e ore devono arrivare gia' formattate con i filtri condivisi o funzioni di formato italiane esistenti.
 - Non mostrare dati demo, nomi fittizi, ruoli inventati o conteggi non derivati da API/sessione/repository.
+- Le schede a tab devono essere compatte e non devono mai generare colonne vuote, pannelli schiacciati o contenuto principale spostato fuori asse. Dopo ogni modifica a tab/form, verificare la route renderizzata su desktop e mobile.
+- Le impostazioni operative devono restare in un unico pannello React: `Pagamenti`, `Notifiche`, `Backup` e `Calendari` sono tab di `Impostazioni`, non pagine tecniche separate. Gli alias `/impostazioni/pagamenti`, `/notifiche`, `/notifiche-whatsapp`, `/backup`, `/impostazioni/calendario` e `/sincronizzazione-calendari` devono aprire la stessa esperienza coerente.
+- La coerenza grafica vale per tutto IUSENTRA: shell, densita', tab, card operative, badge, pulsanti, icone Lucide, spaziature, stati e responsive devono restare allineati tra Studio, Impostazioni, Backup, Calendari, Pagamenti, Notifiche e le altre superfici. Una pagina gia' React non va accettata se appare come isola grafica o usa vecchie card tecniche.
+
+## Linguaggio visibile
+
+- La UI finale parla all'avvocato e al personale di studio, non allo sviluppatore.
+- Non mostrare codici interni, chiavi di sistema, nomi API, identificativi tecnici o parole come `endpoint`, `payload`, `json_api`, `config_studio`, `undefined`, `null`, `runtime`, `server-side`, `backend`, `frontend`, `bridge`.
+- Se un'informazione tecnica serve davvero, tradurla in un'azione comprensibile e vicina al campo: "Da completare", "Verifica invio PEC", "Configurazione salvata", "AI locale non verificata".
+- Non usare banner globali per spiegazioni ovvie sui segreti. Le password e i token devono indicare lo stato solo dentro il campo interessato; l'icona occhio serve a controllare il nuovo valore digitato, non a riesporre quello salvato.
+- Non togliere aiuti operativi necessari. Nel campo `Email SMTP -> Password email`, se lo studio usa Gmail o Google Workspace, ricordare che serve una password per le app Google e offrire il link alla generazione su `https://myaccount.google.com/apppasswords`.
+- I dettagli tecnici restano nei log, nei test e nei report agenti, non nelle schermate operative.
+- Prima di chiudere una pagina UI, cercare nel testo visibile e negli screenshot eventuali parole interne o messaggi da sviluppatore.
+- Per `Pagamenti`, usare parole come "canali", "chiavi riservate", "link parcella", "bonifico" e "conferme pagamento". Non mostrare all'utente termini come `provider`, `webhook`, `legacy`, `payload` o `backend`.
+- Per `Notifiche`, mostrare destinatario, testo, promemoria e registro. Non esporre nomi di servizi interni, endpoint o codici stato non comprensibili allo studio.
+- Per `Backup`, mostrare copie, verifica, scaricamento protetto e permessi. Evitare parole come `runtime`, `snapshot tecnico`, `rollback`, `legacy`, `backend` o `storage` nella UI rivolta allo studio.
+- Per `Calendari`, mostrare link riservati, calendari collegati, promemoria e sincronizzazione manuale. Evitare `token`, `feed`, `sync`, `payload`, `endpoint` e sigle tecniche quando non indispensabili.
 
 ## Accessibilita e UX
 
@@ -132,6 +149,7 @@ Esempio sintetico:
 - Non creare componenti duplicati per varianti minime.
 - Non sostituire workflow backend reali con logica solo frontend.
 - Non promuovere una pagina a React pieno se letture, scritture, permessi, audit e rollback tecnico non sono allineati.
+- Non consegnare una schermata con tab, card, form o riepiloghi rotti visivamente anche se build e test passano.
 
 ## Verifiche minime
 

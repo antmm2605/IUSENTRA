@@ -22,6 +22,45 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 
 | Verifica | Esito | Nota |
 | --- | --- | --- |
+| `node frontend/scripts/check-react-contracts.mjs` | OK | Contratti React aggiornati per Impostazioni, Pagamenti, Notifiche, Backup e Calendari. |
+| `node scripts/react-migration/check-route-gate.mjs` | OK | Gate route allineato: `/backup`, `/impostazioni/calendario` e `/sincronizzazione-calendari` aprono Impostazioni React; sottoroute operative restano protette. |
+| `python -m pytest -q tests/test_react_shell.py::test_impostazioni_react_api_redige_segreti_e_salva_configurazioni tests/test_react_shell.py::test_impostazioni_react_frontend_copre_local_signer_occhio_e_ai_locale --tb=short` | OK | 2 test passati dopo fix loader backup: segreti redatti, occhio sui campi riservati, link Google App Password e AI Locale coperti. |
+| `python -m pytest -q tests/test_react_shell.py -k "impostazioni or route_gate_non_promuove_moduli_studio_telematico_admin_incompleti or react_blocco_finale_route_reali_e_vista_classica or react_blocco_finale_studio_admin_completo or navigation_sidebar" --tb=short` | OK | 6 test passati su shell, gate, sidebar e Impostazioni full React. |
+| `npm test -- --runInBand` | OK | Contratti frontend React verdi. |
+| `npm run typecheck` | OK | TypeScript verde dopo integrazione tab Backup/Calendari e testi non tecnici. |
+| `npm run build` | OK | Build Vite produzione rigenerata; chunk corrente `ImpostazioniPage-BliipEpP.js`. |
+| `node scripts/react-migration/check-no-fake-react-full.mjs` | OK | Nessuna route full React fittizia. |
+| `node scripts/react-migration/audit-anti-mascheramento.mjs` | OK | Audit aggiornato: 55 route censite, 73 link legacy, nessun `LegacyPostForm` o form POST HTML React. |
+| `python -m pytest -q tests/test_backup.py tests/test_calendar_sync.py --tb=short` | OK | 28 test passati su backup e sincronizzazione calendari. |
+| `python -m pytest -q tests/test_impostazioni_firma.py tests/test_local_signer.py tests/test_firma_pkcs11.py --tb=short` | OK | Test firma, Local Signer e canale PKCS#11 passati. |
+| `python -m pytest -q tests/test_packaging_consistency.py tests/test_web_bootstrap.py --tb=short` | OK | 54 test passati su packaging, bootstrap e contratti runtime. |
+| `python tools/sync_packaging_files.py --check` | OK | Packaging sincronizzato con versione 2.209.0. |
+| `python -m pytest -q tests/test_release_readiness.py --tb=short` | OK | Release readiness passata. |
+| `python tools/check_repo_governance.py` | OK | Governance verde: `web/app.py` 40 righe e 0 route inline. |
+| Verifica browser locale isolata `/backup`, `/impostazioni?tab=backup`, `/impostazioni/calendario`, `/impostazioni?tab=smtp` | OK | Login temporaneo con dati fuori repo; Backup e Calendari nella stessa pagina Impostazioni, link Google App Password presente, nessun testo visibile `frontend`, `backend`, `payload`, `runtime`, `json_api`, `Segreti protetti`, `Password e token`, `Modello conversazione` o `Modello ricerca documenti`. |
+| `npm run typecheck` | OK | TypeScript verde dopo pagina Impostazioni full React. |
+| `npm test` | OK | Contratti React aggiornati per `/impostazioni` e `/impostazioni-studio`. |
+| `npm run build` | OK | Build Vite rigenerata con chunk `ImpostazioniPage`. |
+| `node scripts/react-migration/audit-anti-mascheramento.mjs` | OK | Audit aggiornato a 53 route; impostazioni classificate con componente operativo reale. |
+| `node scripts/react-migration/check-no-fake-react-full.mjs` | OK | Nessun full React fittizio dopo riallineamento manifest. |
+| `node scripts/react-migration/check-route-gate.mjs` | OK | Gate route coerente: impostazioni full React, calendario/pagamenti legacy protetti. |
+| `python -m pytest -q tests/test_react_shell.py -k "impostazioni or route_gate or blocco_telematico_studio_admin_resta_legacy_first or react_blocco_finale_studio_admin_completo" --tb=short` | OK | 7 test passati su shell, gate, impostazioni e AI Locale. |
+| `python -m pytest -q tests/test_impostazioni_firma.py tests/test_web_bootstrap.py::test_impostazioni_pec_espone_controllo_local_signer_e_password_salvata tests/test_local_signer.py::test_tab_firma_mostra_download_local_signer_per_tutte_le_piattaforme --tb=short` | OK | 6 test passati su firma, PEC legacy fallback e Local Signer. |
+| `python -m pytest -q tests/test_react_shell.py::test_impostazioni_react_ai_status_e_bootstrap_usano_runtime_locale tests/test_local_ai.py::test_impostazioni_template_contains_ai_locale_tab tests/test_local_ai.py::test_api_local_ai_bootstrap_aggiorna_cache_runtime_chat --tb=short` | OK | 3 test passati su AI Locale e bootstrap runtime. |
+| `python tools/sync_packaging_files.py --check` | OK | Packaging sincronizzato dopo bump 2.209.0. |
+| `python -m pytest -q tests/test_packaging_consistency.py tests/test_release_readiness.py --tb=short` | OK | 8 test release/packaging passati dopo bump 2.209.0. |
+| `npm run typecheck` | OK | Verde dopo correzione testi visibili Impostazioni e messaggio AI Locale. |
+| `npm run build` | OK | Build Vite rigenerata dopo fix layout/testi Impostazioni; chunk corrente `ImpostazioniPage-C_-flQDe.js` e CSS `ImpostazioniPage-C9le0siY.css`. |
+| `python -m pytest -q tests/test_packaging_consistency.py tests/test_react_shell.py::test_impostazioni_react_frontend_copre_local_signer_occhio_e_ai_locale --tb=short` | OK | 8 test passati: Docker locale multi-processo, layout tabs compatto, niente `Fonte/config_studio/json_api` nella card riepilogo, segreti tradotti in UI. |
+| `npm test` | OK | Contratti React verdi dopo fix Impostazioni e reattivita' Docker locale. |
+| `python -m pytest -q tests/test_react_shell.py -k "impostazioni or route_gate or blocco_telematico_studio_admin_resta_legacy_first or react_blocco_finale_studio_admin_completo" --tb=short` | OK | 7 test passati dopo i guardrail contro regressioni visive/testuali su Impostazioni. |
+| `python -m pytest -q tests/test_packaging_consistency.py tests/test_release_readiness.py --tb=short` | OK | 8 test passati dopo aggiunta concorrenza Docker locale. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker` | OK | Build no-cache completata per app, scheduler e OCR con wheel `pct-studio-legale==2.209.0`. |
+| `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx` | OK | App, scheduler, OCR e Redis healthy dopo rebuild; Nginx attivo. |
+| `docker compose ps` | OK | Tutti i container runtime locali risultano in esecuzione; app, scheduler, OCR e Redis healthy. |
+| `docker exec iusentra-app printenv WEB_CONCURRENCY/GUNICORN_THREADS/GUNICORN_WORKER_CONNECTIONS` | OK | Runtime locale confermato: 2 processi web, 4 thread, 500 connessioni worker. |
+| `Invoke-WebRequest http://127.0.0.1:8080/api/pronto` | OK | 5 richieste consecutive: prima 153 ms, successive 13-14 ms, versione `2.209.0`. |
+| Verifica browser `/impostazioni` desktop/tablet/mobile | OK | Schermata React renderizzata, sezioni presenti, nessun testo visibile `json_api`, `config_studio`, `Fonte`, `React operativo` o `bridge impostazioni`; tab compatti e form leggibile anche su mobile. |
 | `node scripts/react-migration/check-route-gate.mjs` | OK | Manifest e gate route allineati dopo promozione `/statistiche` a `react_operational_full`. |
 | `python -m pytest -q tests/test_react_shell.py::test_statistiche_react_full_non_espone_fallback_legacy --tb=short` | OK | Regressione mirata: payload `/api/v1/ui/statistiche` senza fallback `_legacy=1`, manifest full, `writes=none`. |
 | `npm test` | OK | Verde dopo correzioni Lex/Local AI. |
@@ -159,3 +198,14 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 ## Nota pytest monolitico
 
 `python -m pytest -q` monolitico non viene usato come dichiarazione di verde totale in locale perche' va in timeout. Il gate viene verificato tramite shard/sotto-shard con timeout per job, isolando i test lenti e correggendo le failure reali.
+
+## Gate finali tranche Impostazioni React 2.209.0
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `docker compose build --no-cache app scheduler-worker ocr-worker` | OK | Build locale completa delle immagini 2.209.0 senza cache. |
+| `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx` | OK | Servizi riavviati sulle immagini appena costruite. |
+| `docker compose ps` | OK | `iusentra-app`, `iusentra-scheduler`, `iusentra-ocr` e `iusentra-redis` healthy; `iusentra-nginx` attivo. |
+| `Invoke-WebRequest http://127.0.0.1:8080/api/pronto` | OK | Readiness locale: `{"ok":true,"stato":"pronto","versione":"2.209.0"}`. |
+| `docker exec iusentra-app printenv WEB_CONCURRENCY` | OK | Confermata capacita' locale: `2`. |
+| `docker exec iusentra-app python -c "import pct; print(pct.__version__)"` | OK | Versione runtime container: `2.209.0`. |

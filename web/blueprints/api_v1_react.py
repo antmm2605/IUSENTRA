@@ -109,6 +109,26 @@ from web.services.react_sito_studio_bridge import (
     update_react_sito_booking_status,
 )
 from web.services.react_studio_bridge import build_react_studio_error_payload, build_react_studio_payload
+from web.services.react_impostazioni_bridge import (
+    bootstrap_react_impostazioni_ai,
+    build_react_impostazioni_ai_status,
+    build_react_impostazioni_error_payload,
+    build_react_impostazioni_payload,
+    run_react_impostazioni_test,
+    update_react_impostazioni_section,
+)
+from web.services.react_impostazioni_notifications import (
+    prepare_notifica_link,
+    send_notifica,
+    send_promemoria_domani,
+)
+from web.services.react_impostazioni_calendar import (
+    create_calendar_profile,
+    delete_calendar_profile,
+    regenerate_calendar_token,
+    sync_calendar_profile,
+    toggle_calendar_profile,
+)
 from web.services.react_amministrazione_bridge import (
     build_react_amministrazione_error_payload,
     build_react_amministrazione_payload,
@@ -266,6 +286,10 @@ def _puo_leggere_backup() -> bool:
 def _puo_eseguire_backup() -> bool:
     utente = g.get("utente_corrente")
     return bool(utente and getattr(utente, "ha_permesso", lambda _permesso: False)("backup.esegui"))
+
+
+def _puo_configurare_impostazioni() -> bool:
+    return _api_key_valida() or _session_user_can("admin.configura")
 
 
 def _puo_leggere_fatturazione() -> bool:
@@ -2968,6 +2992,141 @@ def studio_page():
     except Exception as exc:
         current_app.logger.exception("Errore Studio React bridge: %s", exc)
         return jsonify(build_react_studio_error_payload("Studio non disponibile dal runtime corrente.")), 200
+
+
+@api_v1_react.get("/impostazioni")
+@api_v1_react.get("/impostazioni-studio")
+@_richiedi_auth
+def impostazioni_page():
+    if not g.get("utente_corrente") and not _api_key_valida():
+        return jsonify(build_react_impostazioni_error_payload("Sessione utente richiesta.")), 403
+    try:
+        return jsonify(build_react_impostazioni_payload())
+    except Exception as exc:
+        current_app.logger.exception("Errore Impostazioni React bridge: %s", exc)
+        return jsonify(build_react_impostazioni_error_payload("Impostazioni non disponibili dal runtime corrente.")), 200
+
+
+@api_v1_react.post("/impostazioni/<section>")
+@_richiedi_auth
+def impostazioni_page_update(section: str):
+    if request.is_json:
+        payload, error_response = _request_json_object()
+        if error_response is not None:
+            return error_response
+        result = update_react_impostazioni_section(section, payload or {})
+    else:
+        result = update_react_impostazioni_section(section, dict(request.form), files=request.files)
+    return jsonify(result), 200 if result.get("ok") else 400
+
+
+@api_v1_react.post("/impostazioni/test/<test_id>")
+@_richiedi_auth
+def impostazioni_page_test(test_id: str):
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    result = run_react_impostazioni_test(test_id, payload or {})
+    return jsonify(result), 200 if result.get("ok") else 400
+
+
+@api_v1_react.get("/impostazioni/ai/status")
+@_richiedi_auth
+def impostazioni_page_ai_status():
+    result = build_react_impostazioni_ai_status()
+    return jsonify(result), 200 if result.get("ok") else 200
+
+
+@api_v1_react.post("/impostazioni/ai/bootstrap")
+@_richiedi_auth
+def impostazioni_page_ai_bootstrap():
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    result = bootstrap_react_impostazioni_ai(force=bool((payload or {}).get("force")))
+    return jsonify(result), 200 if result.get("ok") else 400
+
+
+@api_v1_react.post("/impostazioni/notifiche/link")
+@_richiedi_auth
+def impostazioni_notifiche_link():
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    result = prepare_notifica_link(payload or {})
+    return jsonify(result), 200 if result.get("ok") else 400
+
+
+@api_v1_react.post("/impostazioni/notifiche/invia")
+@_richiedi_auth
+def impostazioni_notifiche_invia():
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    result = send_notifica(payload or {})
+    return jsonify(result), 200 if result.get("ok") else 400
+
+
+@api_v1_react.post("/impostazioni/notifiche/promemoria-domani")
+@_richiedi_auth
+def impostazioni_notifiche_promemoria_domani():
+    result = send_promemoria_domani()
+    return jsonify(result), 200 if result.get("ok") else 400
+
+
+@api_v1_react.post("/impostazioni/calendari/profili")
+@_richiedi_auth
+def impostazioni_calendari_crea_profilo():
+    if not _puo_configurare_impostazioni():
+        return jsonify({"ok": False, "message": "Permesso impostazioni richiesto.", "errors": {"permission": "Permesso insufficiente."}}), 403
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    try:
+        result = create_calendar_profile(payload=payload or {}, get_calendar_sync=get_calendar_sync)
+    except Exception as exc:
+        current_app.logger.exception("Errore creazione profilo calendario React: %s", exc)
+        result = {"ok": False, "message": "Calendario non aggiunto.", "errors": {"_form": "Operazione non completata."}}
+    return jsonify(result), 200 if result.get("ok") else 400
+
+
+@api_v1_react.post("/impostazioni/calendari/profili/<profile_id>/sincronizza")
+@_richiedi_auth
+def impostazioni_calendari_sincronizza(profile_id: str):
+    if not _puo_configurare_impostazioni():
+        return jsonify({"ok": False, "message": "Permesso impostazioni richiesto.", "errors": {"permission": "Permesso insufficiente."}}), 403
+    result = sync_calendar_profile(profile_id=profile_id, get_calendar_sync=get_calendar_sync, get_agenda=get_agenda)
+    return jsonify(result), 200 if result.get("ok") else 400
+
+
+@api_v1_react.post("/impostazioni/calendari/profili/<profile_id>/stato")
+@_richiedi_auth
+def impostazioni_calendari_stato(profile_id: str):
+    if not _puo_configurare_impostazioni():
+        return jsonify({"ok": False, "message": "Permesso impostazioni richiesto.", "errors": {"permission": "Permesso insufficiente."}}), 403
+    result = toggle_calendar_profile(profile_id=profile_id, get_calendar_sync=get_calendar_sync)
+    return jsonify(result), 200 if result.get("ok") else 400
+
+
+@api_v1_react.post("/impostazioni/calendari/profili/<profile_id>/elimina")
+@_richiedi_auth
+def impostazioni_calendari_elimina(profile_id: str):
+    if not _puo_configurare_impostazioni():
+        return jsonify({"ok": False, "message": "Permesso impostazioni richiesto.", "errors": {"permission": "Permesso insufficiente."}}), 403
+    try:
+        result = delete_calendar_profile(profile_id=profile_id, get_calendar_sync=get_calendar_sync)
+    except Exception:
+        result = {"ok": False, "message": "Calendario non eliminato.", "errors": {"profile": "Non trovato."}}
+    return jsonify(result), 200 if result.get("ok") else 400
+
+
+@api_v1_react.post("/impostazioni/calendari/rigenera-link")
+@_richiedi_auth
+def impostazioni_calendari_rigenera_link():
+    if not _puo_configurare_impostazioni():
+        return jsonify({"ok": False, "message": "Permesso impostazioni richiesto.", "errors": {"permission": "Permesso insufficiente."}}), 403
+    result = regenerate_calendar_token()
+    return jsonify(result), 200 if result.get("ok") else 400
 
 
 @api_v1_react.get("/amministrazione")

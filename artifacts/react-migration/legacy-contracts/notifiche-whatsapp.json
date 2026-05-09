@@ -1,0 +1,10 @@
+{
+  "route": "/notifiche-whatsapp?_legacy=1",
+  "status_code": 302,
+  "description": "Alias legacy notifiche WhatsApp mantenuto come fallback tecnico verso il pannello classico.",
+  "forms": [],
+  "links": [
+    "/notifiche/?_legacy=1"
+  ],
+  "react_replacement": "/impostazioni?tab=notifiche"
+}

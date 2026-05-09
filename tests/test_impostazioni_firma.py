@@ -68,7 +68,7 @@ def test_impostazioni_firma_pkcs11_non_mostra_falso_errore_server(tmp_path: Path
             data={"username": "avvocato", "password": "Avv12345!"},
             follow_redirects=True,
         )
-        response = client.get("/impostazioni?tab=firma", follow_redirects=True)
+        response = client.get("/impostazioni?tab=firma&_legacy=1", follow_redirects=True)
 
     html = response.get_data(as_text=True)
     assert response.status_code == 200

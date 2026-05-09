@@ -2292,7 +2292,7 @@ def test_tab_firma_mostra_download_local_signer_per_tutte_le_piattaforme(tmp_pat
         )
         assert login.status_code in (302, 303)
 
-        r = c.get("/impostazioni?tab=firma")
+        r = c.get("/impostazioni?tab=firma&_legacy=1")
 
     assert r.status_code == 200
     body = r.data.decode("utf-8")

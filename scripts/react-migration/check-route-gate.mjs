@@ -52,13 +52,8 @@ function isBlockedBySpecialRule(path) {
     path.startsWith('/amministrazione/') ||
     (path.startsWith('/fatturazione/') && path !== '/fatturazione/nuova') ||
     path.startsWith('/incassi-pagamenti/') ||
-    path === '/impostazioni/pagamenti' ||
     path.startsWith('/impostazioni/pagamenti/') ||
-    path === '/impostazioni' ||
-    path.startsWith('/impostazioni/') ||
-    path === '/impostazioni-studio' ||
-    path.startsWith('/impostazioni-studio/') ||
-    path === '/sincronizzazione-calendari' ||
+    path.startsWith('/impostazioni/calendario/') ||
     path.startsWith('/sincronizzazione-calendari/') ||
     (path.startsWith('/preventivi/') && path !== '/preventivi/nuovo' && path !== '/preventivi/wizard' && path !== '/preventivi/conferimento/nuovo') ||
     path.startsWith('/compensi-forensi/') ||
@@ -88,7 +83,7 @@ const excludedPrefixes = extractTuple(gate, '_EXCLUDED_PREFIXES')
 const shellLegacyFirstPrefixes = extractTuple(reactShell, '_LEGACY_FIRST_PREFIXES')
 const allowedStatuses = new Set(['legacy_operational', 'react_shell', 'react_bridge', 'react_operational_partial', 'react_operational_full'])
 const allowedUnlockStatuses = new Set(['react_bridge', 'react_operational_partial', 'react_operational_full'])
-const allowedReactUnlocks = new Set(['/statistiche', '/audit', '/registro-attivita', '/utenti', '/utenti/nuovo', '/profili', '/backup', '/sito-studio', '/sito-studio/contatti', '/studio', '/amministrazione', '/fatturazione', '/fatturazione/nuova', '/incassi-pagamenti', '/preventivi', '/preventivi/nuovo', '/preventivi/wizard', '/preventivi/conferimento/nuovo', '/compensi-forensi', '/tariffario', '/template-atti', '/template-atti/catalogo', '/redazione-atti', '/giurisprudenza', '/legal-intelligence', '/legal-intelligence/news', '/legal-intelligence/mediazione', '/ricerca-legale'])
+const allowedReactUnlocks = new Set(['/statistiche', '/audit', '/registro-attivita', '/utenti', '/utenti/nuovo', '/profili', '/backup', '/sito-studio', '/sito-studio/contatti', '/studio', '/amministrazione', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/notifiche', '/notifiche-whatsapp', '/sincronizzazione-calendari', '/fatturazione', '/fatturazione/nuova', '/incassi-pagamenti', '/preventivi', '/preventivi/nuovo', '/preventivi/wizard', '/preventivi/conferimento/nuovo', '/compensi-forensi', '/tariffario', '/template-atti', '/template-atti/catalogo', '/redazione-atti', '/giurisprudenza', '/legal-intelligence', '/legal-intelligence/news', '/legal-intelligence/mediazione', '/ricerca-legale'])
 const expectedStatuses = new Map([
   ['/statistiche', 'react_operational_full'],
   ['/audit', 'react_operational_full'],
@@ -118,14 +113,16 @@ const expectedStatuses = new Map([
   ['/legal-intelligence/news', 'react_operational_full'],
   ['/legal-intelligence/mediazione', 'react_operational_full'],
   ['/ricerca-legale', 'react_operational_full'],
+  ['/impostazioni', 'react_operational_full'],
+  ['/impostazioni-studio', 'react_operational_full'],
+  ['/impostazioni/calendario', 'react_operational_full'],
+  ['/impostazioni/pagamenti', 'react_operational_full'],
+  ['/notifiche', 'react_operational_full'],
+  ['/notifiche-whatsapp', 'react_operational_full'],
+  ['/sincronizzazione-calendari', 'react_operational_full'],
 ])
 
 const legacyRoutes = [
-  '/impostazioni',
-  '/impostazioni-studio',
-  '/impostazioni/calendario',
-  '/impostazioni/pagamenti',
-  '/sincronizzazione-calendari',
   '/sito-studio/builder',
   '/fatturazione/*',
   '/preventivi/*',
@@ -204,10 +201,9 @@ for (const snippet of [
   'lower.startswith("/amministrazione/")',
   'lower.startswith("/fatturazione/") and lower != "/fatturazione/nuova"',
   'lower.startswith("/incassi-pagamenti/")',
-  'lower == "/impostazioni/pagamenti" or lower.startswith("/impostazioni/pagamenti/")',
-  'lower == "/impostazioni" or lower.startswith("/impostazioni/")',
-  'lower == "/impostazioni-studio" or lower.startswith("/impostazioni-studio/")',
-  'lower == "/sincronizzazione-calendari" or lower.startswith("/sincronizzazione-calendari/")',
+  'lower.startswith("/impostazioni/pagamenti/")',
+  'lower.startswith("/impostazioni/calendario/")',
+  'lower.startswith("/sincronizzazione-calendari/")',
   'lower.startswith("/preventivi/") and lower not in {',
   '"/preventivi/nuovo",',
   '"/preventivi/wizard",',

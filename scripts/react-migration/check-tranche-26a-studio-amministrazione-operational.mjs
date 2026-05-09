@@ -39,12 +39,15 @@ assert(/["']writes["']\s*:\s*["']none["']/.test(studioBridge), 'react_studio_bri
 assert(/["']writes["']\s*:\s*["']none["']/.test(adminBridge), 'react_amministrazione_bridge.py deve dichiarare writes none.')
 assert(route('/studio')?.status === 'react_operational_full', '/studio deve essere react_operational_full nel manifest.')
 assert(route('/amministrazione')?.status === 'react_operational_full', '/amministrazione deve essere react_operational_full nel manifest.')
-for (const path of ['/impostazioni', '/impostazioni-studio', '/sincronizzazione-calendari']) {
+for (const path of ['/sincronizzazione-calendari']) {
   assert(route(path)?.status === 'legacy_operational' && route(path)?.unlockFromGate === false, `${path} deve restare legacy.`)
+}
+for (const path of ['/impostazioni', '/impostazioni-studio']) {
+  assert(route(path)?.status === 'react_operational_full' && route(path)?.unlockFromGate === true, `${path} deve risultare full React.`)
 }
 assert(gate.includes('if lower.startswith("/studio/"):'), 'Gate deve proteggere /studio/*.')
 assert(gate.includes('if lower.startswith("/amministrazione/"):'), 'Gate deve proteggere /amministrazione/*.')
-assert(gate.includes('if lower == "/impostazioni" or lower.startswith("/impostazioni/"):'), 'Gate deve proteggere /impostazioni.')
+assert(gate.includes('if lower == "/impostazioni/calendario" or lower.startswith("/impostazioni/calendario/"):'), 'Gate deve proteggere impostazioni calendario.')
 assert(!/localStorage|sessionStorage/.test(combined), 'Non deve usare localStorage/sessionStorage.')
 assert(!/fetch\s*\(\s*["']https?:\/\//.test(combined), 'Non deve usare fetch esterni.')
 assert(!/dangerouslySetInnerHTML/.test(combined), 'Non deve usare dangerouslySetInnerHTML.')

@@ -328,7 +328,7 @@ def _build_fatturazione(get_fatturazione: Callable[[], Any], get_clienti: Callab
             _operation(
                 "nuova-parcella",
                 "Nuova parcella",
-                "Crea una parcella dal form React inviando al POST operativo storico.",
+                "Crea una parcella usando il percorso gia' controllato dello studio.",
                 form={
                     "action": "/fatturazione/nuova",
                     "method": "POST",
@@ -344,7 +344,7 @@ def _build_fatturazione(get_fatturazione: Callable[[], Any], get_clienti: Callab
                     ],
                 },
             ),
-            _operation("incassi-e-pagamenti", "Incassi e pagamenti", "Provider, link pagamento e stato incassi collegati alle parcelle.", actions=[_action("Apri pagamenti", "/incassi-pagamenti")]),
+            _operation("incassi-e-pagamenti", "Incassi e pagamenti", "Canali, link pagamento e stato incassi collegati alle parcelle.", actions=[_action("Apri pagamenti", "/impostazioni?tab=pagamenti")]),
             _operation("esporta-contabilita", "Esporta contabilità", "Download CSV per controllo contabile.", actions=[_action("Scarica CSV", "/export/fatturazione.csv")]),
         ],
     }
@@ -444,7 +444,7 @@ def _build_preventivi(
             _operation(
                 "nuovo-preventivo",
                 "Nuovo preventivo",
-                "Crea una proposta economica usando il POST operativo esistente, senza duplicare la logica fiscale nel frontend.",
+                "Crea una proposta economica usando il percorso gia' controllato dello studio.",
                 form={
                     "action": "/preventivi/nuovo",
                     "method": "POST",
@@ -469,7 +469,7 @@ def _build_preventivi(
                         _field("note", "Note", "textarea"),
                     ],
                 },
-                warnings=["Il calcolo finale resta nel backend storico: React invia i campi al POST già auditato."],
+                warnings=["Il calcolo finale viene eseguito dalla funzione gia' controllata dello studio."],
             ),
             _operation(
                 "conferimento-incarico",
@@ -562,7 +562,7 @@ def _build_timesheet(
             _operation(
                 "nuova-attivita",
                 "Nuova attività",
-                "Registra una voce tempo sul POST operativo esistente.",
+                "Registra una voce tempo usando il percorso gia' controllato dello studio.",
                 form={
                     "action": "/timesheet/nuovo",
                     "method": "POST",
@@ -636,11 +636,11 @@ def _build_database(config: dict[str, Any]) -> dict[str, Any]:
         for key in keys
     ]
     return {
-        "metrics": [_metric("Archivi", len(keys)), _metric("Data root", _text(config.get("DATA_ROOT", "")) or _text(config.get("PCT_DATA_ROOT", "")) or "runtime")],
+        "metrics": [_metric("Archivi", len(keys)), _metric("Cartella dati", _text(config.get("DATA_ROOT", "")) or _text(config.get("PCT_DATA_ROOT", "")) or "non indicata")],
         "operations": [
-            _operation("stato-database", "Stato database", "Verifica archivi runtime, dimensioni e percorsi governati.", records=records, actions=[_action("Apri backup", "/backup"), _action("Registro attività", "/registro-attivita")]),
-            _operation("backup", "Backup", "Controlla copie e ripristino prima delle operazioni tecniche.", actions=[_action("Apri backup", "/backup")]),
-            _operation("registro-attivita", "Registro attività", "Audit tecnico collegato a storage e migrazioni.", actions=[_action("Apri registro", "/registro-attivita")]),
+            _operation("stato-database", "Stato database", "Verifica archivi, dimensioni e percorsi governati.", records=records, actions=[_action("Apri backup", "/impostazioni?tab=backup"), _action("Registro attività", "/registro-attivita")]),
+            _operation("backup", "Backup", "Controlla copie e ripristino prima delle operazioni delicate.", actions=[_action("Apri backup", "/impostazioni?tab=backup")]),
+            _operation("registro-attivita", "Registro attività", "Registro collegato a dati e migrazioni.", actions=[_action("Apri registro", "/registro-attivita")]),
         ],
     }
 
@@ -684,18 +684,18 @@ def _build_impostazioni(config: dict[str, Any]) -> dict[str, Any]:
     safe_rows = [
         _record("studio", "Studio", _text(config.get("STUDIO_NOME", "IUSENTRA")), badge="Dati", href="/impostazioni-studio#dati-studio"),
         _record("pec", "PEC", _text(config.get("PEC_HOST", "")) or _text(config.get("IMAP_HOST", "")) or "configurazione locale", badge="Canale", href="/impostazioni-studio#pec-e-smtp"),
-        _record("smtp", "SMTP", _text(config.get("SMTP_HOST", "")) or "Local Signer / provider", badge="Invio", href="/impostazioni-studio#pec-e-smtp"),
+        _record("smtp", "SMTP", _text(config.get("SMTP_HOST", "")) or "configurazione locale", badge="Invio", href="/impostazioni?tab=smtp"),
         _record("signer", "Local Signer", "http://127.0.0.1:27272", badge="Locale", href="/impostazioni-studio#firma-digitale"),
         _record("scheduler", "Scheduler", "backup, calendari e job pianificati", badge="Automazioni", href="/impostazioni-studio#scheduler"),
     ]
     return {
-        "metrics": [_metric("Sezioni", 6), _metric("Controllo token", "Locale"), _metric("Password cloud", "No")],
+        "metrics": [_metric("Sezioni", 11), _metric("Firma locale", "Presente"), _metric("Password protette", "Si")],
         "operations": [
             _operation("dati-studio", "Dati studio", "Dati anagrafici e fiscali usati nei documenti.", records=safe_rows[:1]),
             _operation("pec-e-smtp", "PEC e SMTP", "Verifica canali senza esporre password nella UI.", records=safe_rows[1:3], actions=[_action("Test PEC/SMTP", "/impostazioni/test/pec-smtp", method="POST")]),
-            _operation("firma-digitale", "Firma digitale", "Il token USB si verifica dal browser tramite Local Signer sul PC dell'avvocato.", records=safe_rows[3:4], actions=[_action("Scarica Local Signer Windows", "/polisWeb/local-signer/setup/windows-exe")]),
-            _operation("ai-locale", "AI locale", "Runtime AI locale e reindicizzazione documenti.", actions=[_action("Stato AI locale", "/api/local-ai/status")]),
-            _operation("whatsapp", "WhatsApp", "Provider, numeri e promemoria cliente.", actions=[_action("Test WhatsApp", "/impostazioni/test/whatsapp", method="POST")]),
+            _operation("firma-digitale", "Firma digitale", "Il dispositivo di firma si verifica dal browser tramite Local Signer sul PC dell'avvocato.", records=safe_rows[3:4], actions=[_action("Scarica Local Signer Windows", "/polisWeb/local-signer/setup/windows-exe")]),
+            _operation("ai-locale", "AI locale", "Assistente sul PC dello studio e reindicizzazione documenti.", actions=[_action("Stato AI locale", "/api/local-ai/status")]),
+            _operation("whatsapp", "WhatsApp", "Canale, numeri e promemoria cliente.", actions=[_action("Apri WhatsApp", "/impostazioni?tab=whatsapp")]),
             _operation("scheduler", "Scheduler", "Automazioni, backup e sincronizzazione calendario.", records=safe_rows[4:]),
         ],
     }
@@ -768,24 +768,24 @@ _GENERIC_OPERATION_CATALOG: dict[str, list[tuple[str, str, str, list[tuple[str, 
         ("richieste-contatto", "Richieste contatto", "Apre lead e messaggi arrivati dal sito.", [("Apri contatti", "/sito-studio/contatti", "GET")]),
     ],
     "notifiche-whatsapp": [
-        ("centro-notifiche", "Centro notifiche", "Apre notifiche e promemoria cliente.", [("Apri notifiche", "/notifiche", "GET")]),
-        ("configura-whatsapp", "Configura WhatsApp", "Apre le impostazioni del provider.", [("Apri configurazione", "/impostazioni-studio#whatsapp", "GET")]),
+        ("centro-notifiche", "Notifiche", "Apre messaggi e promemoria cliente.", [("Apri notifiche", "/impostazioni?tab=notifiche", "GET")]),
+        ("configura-whatsapp", "Configura WhatsApp", "Apre le impostazioni del canale.", [("Apri configurazione", "/impostazioni?tab=whatsapp", "GET")]),
         ("messaggi-clienti", "Messaggi clienti", "Apre conversazioni e nuovo invio.", [("Apri messaggi", "/messaggi", "GET")]),
     ],
     "incassi-pagamenti": [
-        ("impostazioni-pagamenti", "Impostazioni pagamenti", "Apre configurazione provider e preferenze.", [("Apri impostazioni", "/impostazioni/pagamenti", "GET")]),
+        ("impostazioni-pagamenti", "Impostazioni pagamenti", "Apre configurazione canali e preferenze.", [("Apri impostazioni", "/impostazioni?tab=pagamenti", "GET")]),
         ("parcelle-aperte", "Parcelle aperte", "Apre le parcelle da incassare.", [("Apri parcelle", "/fatturazione", "GET")]),
         ("statistiche-economiche", "Statistiche economiche", "Apre trend economici e incassi.", [("Apri statistiche", "/statistiche", "GET")]),
     ],
     "backup": [
-        ("archivio-backup", "Archivio backup", "Apre lista backup, verifica e download.", [("Apri archivio", "/backup", "GET")]),
-        ("scheduler-backup", "Scheduler backup", "Apre configurazione delle automazioni.", [("Apri scheduler", "/impostazioni-studio#scheduler", "GET")]),
-        ("database", "Database", "Apre storage e snapshot tecnici.", [("Apri database", "/admin/database", "GET")]),
+        ("archivio-backup", "Archivio backup", "Apre lista backup, verifica e download.", [("Apri backup", "/impostazioni?tab=backup", "GET")]),
+        ("scheduler-backup", "Scheduler backup", "Apre configurazione delle automazioni.", [("Apri scheduler", "/impostazioni?tab=scheduler", "GET")]),
+        ("database", "Database", "Apre controllo archivi e copie.", [("Apri database", "/admin/database", "GET")]),
     ],
     "sincronizzazione-calendari": [
-        ("pannello-calendario", "Pannello calendario", "Apre token, feed e profili di sync.", [("Apri pannello", "/impostazioni/calendario", "GET")]),
-        ("export-agenda", "Export agenda", "Scarica gli appuntamenti in formato ICS.", [("Scarica agenda", "/agenda/export.ics", "GET")]),
-        ("export-scadenze", "Export scadenze", "Scarica le scadenze in formato ICS.", [("Scarica scadenze", "/scadenziario/export.ics", "GET")]),
+        ("pannello-calendario", "Pannello calendario", "Apre link riservati, calendari collegati e sincronizzazione.", [("Apri calendari", "/impostazioni/calendario", "GET")]),
+        ("export-agenda", "Export agenda", "Scarica il file calendario degli appuntamenti.", [("Scarica agenda", "/agenda/export.ics", "GET")]),
+        ("export-scadenze", "Export scadenze", "Scarica il file calendario delle scadenze.", [("Scarica scadenze", "/scadenziario/export.ics", "GET")]),
     ],
     "amministrazione": [
         ("utenti", "Utenti", "Apre gestione operatori e accessi.", [("Apri utenti", "/utenti", "GET")]),
@@ -839,7 +839,7 @@ def _build_generic(module_id: str, get_clienti: Callable[[], Any], get_fascicoli
             _operation(
                 module_id,
                 "Funzione operativa",
-                "Questa superficie React usa dati reali e route operative già collegate.",
+                "Questa funzione usa dati reali e azioni gia' collegate.",
                 actions=[_action("Apri modulo", f"/{module_id}")],
                 records=[
                     _record(getattr(item, "id", ""), getattr(item, "titolo", "") or getattr(item, "nome_completo", ""), getattr(item, "numero_rg", ""), href=f"/fascicoli/{getattr(item, 'id', '')}")

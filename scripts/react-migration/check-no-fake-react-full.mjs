@@ -67,8 +67,15 @@ function assertLegacyProtected(route) {
   }
 }
 
-for (const route of ['/impostazioni', '/impostazioni-studio', '/sincronizzazione-calendari', '/sito-studio/builder']) {
+for (const route of ['/sito-studio/builder']) {
   assertLegacyProtected(route)
+}
+
+for (const route of ['/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/sincronizzazione-calendari', '/backup']) {
+  const row = routeRow(route)
+  if (row?.manifestStatus !== 'react_operational_full' || row?.unlockFromGate !== true) {
+    violations.push(`${route}: deve essere react_operational_full con unlockFromGate true.`)
+  }
 }
 
 function assertNoBrowserUnsafe(route, combined) {

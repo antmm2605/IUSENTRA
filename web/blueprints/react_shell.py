@@ -23,10 +23,6 @@ _LEGACY_FIRST_PREFIXES = (
     "/database",
     "/deposito/checklist",
     "/guida/firma-digitale",
-    "/impostazioni",
-    "/impostazioni-studio",
-    "/notifiche",
-    "/notifiche-whatsapp",
     "/pat",
     "/pdp",
     "/polisweb",
@@ -35,7 +31,6 @@ _LEGACY_FIRST_PREFIXES = (
     "/sigit",
     "/sigp",
     "/sigp-sync",
-    "/sincronizzazione-calendari",
     "/strumenti-legali",
     "/strumenti-operativi",
     "/telematico",
@@ -158,13 +153,11 @@ def _deve_mantenere_vista_classica() -> bool:
         return True
     if lower.startswith("/incassi-pagamenti/"):
         return True
-    if lower == "/impostazioni/pagamenti" or lower.startswith("/impostazioni/pagamenti/"):
+    if lower.startswith("/impostazioni/pagamenti/"):
         return True
-    if lower == "/impostazioni" or lower.startswith("/impostazioni/"):
+    if lower.startswith("/impostazioni/calendario/"):
         return True
-    if lower == "/impostazioni-studio" or lower.startswith("/impostazioni-studio/"):
-        return True
-    if lower == "/sincronizzazione-calendari" or lower.startswith("/sincronizzazione-calendari/"):
+    if lower.startswith("/sincronizzazione-calendari/"):
         return True
     if lower.startswith("/preventivi/") and lower not in {
         "/preventivi/nuovo",

@@ -325,13 +325,13 @@
          class="nav-link sb-link {% if request.blueprint in ('studio_site','studio_site_builder') %}active{% endif %}">
         <i class="bi bi-globe2"></i><span class="sb-txt">Sito Studio</span>
       </a>
-      <a href="{{ url_for('notifiche.pannello') }}"
-         class="nav-link sb-link {% if request.blueprint == 'notifiche' %}active{% endif %}">
-        <i class="bi bi-whatsapp"></i><span class="sb-txt">Notifiche WhatsApp</span>
+      <a href="{{ url_for('impostazioni.index', tab='notifiche') }}"
+         class="nav-link sb-link {% if request.blueprint == 'notifiche' or (request.blueprint == 'impostazioni' and request.args.get('tab') == 'notifiche') %}active{% endif %}">
+        <i class="bi bi-whatsapp"></i><span class="sb-txt">Notifiche</span>
       </a>
-      <a href="{{ url_for('pagamenti.impostazioni_pagamenti') }}"
-         class="nav-link sb-link {% if request.blueprint == 'pagamenti' %}active{% endif %}">
-        <i class="bi bi-credit-card"></i><span class="sb-txt">Incassi e Pagamenti</span>
+      <a href="{{ url_for('impostazioni.index', tab='pagamenti') }}"
+         class="nav-link sb-link {% if request.blueprint == 'pagamenti' or (request.blueprint == 'impostazioni' and request.args.get('tab') == 'pagamenti') %}active{% endif %}">
+        <i class="bi bi-credit-card"></i><span class="sb-txt">Pagamenti</span>
       </a>
       <a href="{{ url_for('lista_backup') }}"
          class="nav-link sb-link {% if request.endpoint in ('lista_backup','ripristina_backup') %}active{% endif %}">

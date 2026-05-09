@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.209.0 - 2026-05-09
+
+- Promosse `/impostazioni`, `/impostazioni-studio`, `/impostazioni/pagamenti`, `/notifiche`, `/notifiche-whatsapp`, `/backup`, `/impostazioni/calendario` e `/sincronizzazione-calendari` a `react_operational_full`: Dati Studio, PEC, Firma Digitale, Email SMTP, WhatsApp, Scheduler, AI Locale, Pagamenti, Notifiche, Backup e Calendari sono ora gestiti da un'unica pagina React.
+- Aggiunti salvataggi sezione per sezione con permessi `admin.configura`, audit, supporto upload firma e applicazione della configurazione studio.
+- Aggiunti test operativi per PEC/SMTP/WhatsApp, stato/bootstrap AI Locale e verifica IUSENTRA Local Signer dal browser sul PC, incluso supporto `token_probe_fresh`.
+- I campi riservati mostrano lo stato salvato senza riesporre il segreto dal server; l'icona occhio consente di vedere il nuovo valore digitato prima del salvataggio.
+- Corretto il layout della pagina Impostazioni: le schede restano compatte, il form non viene piu' schiacciato a destra e i testi visibili non mostrano codici interni o dettagli tecnici.
+- Ripristinato l'aiuto operativo sotto `Password email`: per Gmail/Google Workspace indica la password per le app Google e collega la pagina ufficiale di generazione; le scelte AI Locale sono presentate come opzioni guidate, non come nomi tecnici di modello.
+- Spostati Pagamenti, Notifiche, Backup e Sincronizzazione Calendari nel gruppo `Impostazioni` del menu React, fuori da `Studio`, con regola di coerenza grafica globale aggiornata in `AGENTS.md` e `docs/UI_DESIGN_SYSTEM.md`.
+- Integrate le schede Pagamenti, Notifiche, Backup e Calendari con dati reali, azioni protette, link riservati, audit e testi rivolti allo studio senza termini tecnici visibili.
+- Reso piu' reattivo il Docker locale: l'app web parte con piu' capacita' di risposta e non resta bloccata appena una richiesta lunga occupa un processo.
+- Aggiornati manifest, gate React, contratti anti-mascheramento, test e build Vite per bloccare regressioni verso template legacy non governati.
+
 ## 2.208.0 - 2026-05-09
 
 - Promossa `/statistiche` a `react_operational_full`: il payload React resta read-only su repository reali, non espone piu' azioni `?_legacy=1` nell'errore controllato e il manifest anti-mascheramento non la classifica piu' come bridge residuo.

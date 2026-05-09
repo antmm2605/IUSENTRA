@@ -77,10 +77,13 @@ export const LEGACY_ROUTE_TARGETS: Record<string, string> = {
   '/email': '/app/comunicazioni?tab=email',
   '/utenti': '/app/amministrazione?tab=utenti',
   '/profili': '/app/amministrazione?tab=profili',
-  '/backup': '/app/amministrazione?tab=backup',
+  '/backup': '/app/impostazioni?tab=backup',
+  '/sincronizzazione-calendari': '/app/impostazioni?tab=calendari',
+  '/impostazioni/calendario': '/app/impostazioni?tab=calendari',
   '/audit': '/app/amministrazione?tab=audit',
   '/registro-attivita': '/app/amministrazione?tab=registro',
   '/impostazioni': '/app/impostazioni',
+  '/impostazioni-studio': '/app/impostazioni',
 }
 
 export const APP_ROUTE_ICONS = {

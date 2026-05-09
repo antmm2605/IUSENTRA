@@ -110,8 +110,8 @@ def _safe_provider_state(config: Any) -> list[dict[str, Any]]:
         section = getattr(config, code, None)
         enabled = bool(getattr(section, "abilitato", False))
         configured = code in active
-        public_state = "configured" if configured else ("enabled" if enabled else "disabled")
-        note = "Configurato nel backend legacy" if configured else "Configurazione gestita nel backend legacy"
+        public_state = "attivo" if configured else ("da completare" if enabled else "non attivo")
+        note = "Pronto per ricevere pagamenti" if configured else "Da completare nella scheda Pagamenti"
         rows.append(_item(code, label, public_state, note, "success" if configured else "neutral"))
     return rows
 
@@ -196,12 +196,7 @@ def build_react_incassi_pagamenti_payload(
     get_clienti: Callable[[], Any],
     current_user: Any | None = None,
 ) -> dict[str, Any]:
-    warnings: list[dict[str, str]] = [
-        {
-            "code": "provider_legacy",
-            "message": "Rollback tecnico: configurazione provider e webhook restano nel backend legacy; React riceve solo stato pubblico.",
-        }
-    ]
+    warnings: list[dict[str, str]] = []
     anno = date.today().year
     fatt_stats: dict[str, Any] = {}
     parcelle: list[Any] = []
@@ -212,7 +207,7 @@ def build_react_incassi_pagamenti_payload(
     except Exception as exc:
         warnings.append({
             "code": "fatturazione_non_disponibile",
-            "message": f"Archivio fatturazione non disponibile: {type(exc).__name__}.",
+            "message": "Archivio fatturazione non disponibile in questo momento.",
         })
 
     pay_stats: dict[str, Any] = {}
@@ -226,7 +221,7 @@ def build_react_incassi_pagamenti_payload(
     except Exception as exc:
         warnings.append({
             "code": "pagamenti_non_disponibili",
-            "message": f"Archivio pagamenti non disponibile: {type(exc).__name__}.",
+            "message": "Archivio pagamenti non disponibile in questo momento.",
         })
 
     try:
@@ -234,7 +229,7 @@ def build_react_incassi_pagamenti_payload(
     except Exception as exc:
         warnings.append({
             "code": "clienti_non_disponibili",
-            "message": f"Anagrafica clienti non disponibile: {type(exc).__name__}.",
+            "message": "Anagrafica clienti non disponibile in questo momento.",
         })
         clienti = {}
 
@@ -255,7 +250,7 @@ def build_react_incassi_pagamenti_payload(
         "metrics": [
             _metric("incassato", "Incassato anno", _money(fatt_stats.get("incassato", 0)), f"Anno {fatt_stats.get('anno', anno)}", "success"),
             _metric("da_incassare", "Da incassare", _money(fatt_stats.get("da_incassare", 0)), "Parcelle emesse non saldate", "warning"),
-            _metric("scaduto", "Scaduto", _money(fatt_stats.get("scaduto", 0)), "Parcelle gia' marcate scadute dal backend", "danger" if fatt_stats.get("scaduto", 0) else "neutral"),
+            _metric("scaduto", "Scaduto", _money(fatt_stats.get("scaduto", 0)), "Parcelle gia' scadute.", "danger" if fatt_stats.get("scaduto", 0) else "neutral"),
             _metric("link_attesi", "Link attesi", pay_stats.get("attesi", 0), "Collegamenti di pagamento aperti", "primary"),
         ],
         "payments": payments,
@@ -270,11 +265,11 @@ def build_react_incassi_pagamenti_payload(
             "links": [
                 _action("fatturazione", "Apri fatturazione", "/fatturazione", "primary"),
                 _action("nuova", "Nuova parcella", "/fatturazione/nuova", "neutral"),
-                _action("provider_legacy", "Impostazioni provider legacy", "/impostazioni/pagamenti?_legacy=1", "warning", enabled=actions["canOpenProviderSettings"]),
+                _action("impostazioni_pagamenti", "Impostazioni pagamenti", "/impostazioni?tab=pagamenti", "primary", enabled=actions["canOpenProviderSettings"]),
             ],
         },
         "sections": [
-            _section("provider", "Stato provider", "safe-status", provider_items, "Nessun provider abilitato."),
+            _section("canali", "Stato canali", "safe-status", provider_items, "Nessun canale attivo."),
             _section(
                 "link",
                 "Riepilogo link pagamento",
@@ -283,7 +278,7 @@ def build_react_incassi_pagamenti_payload(
                     _item("totale", "Totale link", pay_stats.get("totale_link", 0), "Archivio collegamenti", "primary"),
                     _item("pagati", "Pagati", pay_stats.get("pagati", 0), _money(pay_stats.get("importo_pagato", 0)), "success"),
                     _item("attesi", "Attesi", pay_stats.get("attesi", 0), _money(pay_stats.get("importo_atteso", 0)), "warning"),
-                    _item("falliti", "Falliti", pay_stats.get("falliti", 0), "Da verificare sul backend", "danger" if pay_stats.get("falliti", 0) else "neutral"),
+                    _item("falliti", "Falliti", pay_stats.get("falliti", 0), "Da verificare", "danger" if pay_stats.get("falliti", 0) else "neutral"),
                 ],
                 "Nessun collegamento pagamento disponibile.",
             ),
@@ -329,7 +324,7 @@ def register_react_incasso(
     allowed = {"id_parcella", "id_pagamento", "metodo_pagamento", "data_pagamento", "note"}
     unknown = sorted(set(payload) - allowed)
     if unknown:
-        return _json_error("Campi non ammessi nel payload.", {key: "Campo non previsto." for key in unknown})
+        return _json_error("Campi non ammessi nella richiesta.", {key: "Campo non previsto." for key in unknown})
     invoice_id = _text(payload.get("id_parcella"))
     payment_id = _text(payload.get("id_pagamento"))
     if not invoice_id and payment_id:
@@ -349,7 +344,7 @@ def register_react_incasso(
     _audit(get_utenti, current_user, "pagamenti.incasso_registra", invoice_id, f"metodo={method}", ip_address)
     return {
         "ok": True,
-        "message": "Incasso registrato dal backend.",
+        "message": "Incasso registrato.",
         "errors": {},
         "item": {"id": invoice_id, "state": "PAGATA", "stateLabel": "Pagata", "paidAt": _date_label(paid_at), "method": method},
     }, 200
@@ -368,10 +363,10 @@ def update_react_pagamento_status(
     allowed = {"stato", "metodo_pagamento", "note"}
     unknown = sorted(set(payload) - allowed)
     if unknown:
-        return _json_error("Campi non ammessi nel payload.", {key: "Campo non previsto." for key in unknown})
+        return _json_error("Campi non ammessi nella richiesta.", {key: "Campo non previsto." for key in unknown})
     state = _text(payload.get("stato")).upper()
     if state not in {"PAGATO", "FALLITO"}:
-        return _json_error("Stato pagamento non supportato dal backend legacy.", {"stato": "Usa Pagato o Fallito."})
+        return _json_error("Stato pagamento non disponibile per questa azione.", {"stato": "Usa Pagato o Fallito."})
     row = _find_payment(get_pagamenti, payment_id)
     if not row:
         return _json_error("Pagamento non trovato.", {"id_pagamento": "Pagamento inesistente."}, status=404)
@@ -387,7 +382,7 @@ def update_react_pagamento_status(
     _audit(get_utenti, current_user, "pagamenti.stato", payment_id, f"stato={state}", ip_address)
     return {
         "ok": True,
-        "message": "Stato pagamento aggiornato dal backend.",
+        "message": "Stato pagamento aggiornato.",
         "errors": {},
         "item": {"id": payment_id, "state": state, "stateLabel": _label(state), "stateTone": _tone(state)},
     }, 200
@@ -407,7 +402,7 @@ def build_or_get_react_payment_link(
     allowed = {"id_parcella", "giorni_validita"}
     unknown = sorted(set(payload) - allowed)
     if unknown:
-        return _json_error("Campi non ammessi nel payload.", {key: "Campo non previsto." for key in unknown})
+        return _json_error("Campi non ammessi nella richiesta.", {key: "Campo non previsto." for key in unknown})
     payment_row = _find_payment(get_pagamenti, payment_id) if payment_id else None
     invoice_id = _text(payload.get("id_parcella")) or _text(getattr(payment_row, "id_parcella", ""))
     if not invoice_id:
@@ -435,7 +430,7 @@ def build_or_get_react_payment_link(
     _audit(get_utenti, current_user, "pagamenti.link", _text(getattr(link, "id", "")), f"parcella={invoice_id}", ip_address)
     return {
         "ok": True,
-        "message": "Link pagamento gestito dal backend.",
+        "message": "Link pagamento aggiornato.",
         "errors": {},
         "item": {"id": _text(getattr(link, "id", "")), "invoiceId": invoice_id, "paymentHref": href},
     }, 200
@@ -447,7 +442,7 @@ def link_react_pagamento_invoice(
     payload: dict[str, Any],
 ) -> tuple[dict[str, Any], int]:
     return _json_error(
-        "Collegamento pagamento-parcella non esposto dal backend legacy.",
+        "Collegamento parcella non disponibile da questa vista.",
         {"unsupported": f"Azione non disponibile per {payment_id or 'pagamento'}."},
         status=409,
     )
@@ -466,7 +461,7 @@ def build_react_incassi_pagamenti_error_payload(message: str = "Incassi e pagame
         "statuses": [],
         "actions": {
             **_permissions(None),
-            "links": [_action("provider_legacy", "Impostazioni provider legacy", "/impostazioni/pagamenti?_legacy=1", "warning", enabled=False)],
+            "links": [_action("impostazioni_pagamenti", "Impostazioni pagamenti", "/impostazioni?tab=pagamenti", "primary", enabled=False)],
         },
         "sections": [],
         "records": [],

@@ -7,7 +7,7 @@ GET HTML di aree migrate, evitando API, download e allegati.
 
 from __future__ import annotations
 
-from flask import Flask, current_app, g, has_request_context, request
+from flask import Flask, current_app, g, request
 
 from web.blueprints.react_shell import render_react_shell_response
 
@@ -84,7 +84,6 @@ _REACT_EXACT = {
     "/fatturazione/nuova",
     "/giurisprudenza",
     "/giurisprudenza/nuova",
-    "/impostazioni/calendario",
     "/impostazioni/pagamenti",
     "/impostazioni",
     "/impostazioni-studio",
@@ -104,7 +103,6 @@ _REACT_EXACT = {
     "/registro-attivita",
     "/ricerca-legale",
     "/servizi-telematici",
-    "/sincronizzazione-calendari",
     "/sito-studio",
     "/sito-studio/builder",
     "/sito-studio/contatti",
@@ -172,10 +170,6 @@ _LEGACY_OPERATIONAL_PREFIXES = (
     "/database",
     "/deposito/checklist",
     "/guida/firma-digitale",
-    "/impostazioni",
-    "/impostazioni-studio",
-    "/notifiche",
-    "/notifiche-whatsapp",
     "/pat",
     "/pdp",
     "/polisweb",
@@ -184,7 +178,6 @@ _LEGACY_OPERATIONAL_PREFIXES = (
     "/sigit",
     "/sigp",
     "/sigp-sync",
-    "/sincronizzazione-calendari",
     "/strumenti-legali",
     "/strumenti-operativi",
     "/telematico",
@@ -231,13 +224,11 @@ def _excluded(path: str) -> bool:
         return True
     if lower.startswith("/incassi-pagamenti/"):
         return True
-    if lower == "/impostazioni/pagamenti" or lower.startswith("/impostazioni/pagamenti/"):
+    if lower.startswith("/impostazioni/pagamenti/"):
         return True
-    if lower == "/impostazioni" or lower.startswith("/impostazioni/"):
+    if lower.startswith("/impostazioni/calendario/"):
         return True
-    if lower == "/impostazioni-studio" or lower.startswith("/impostazioni-studio/"):
-        return True
-    if lower == "/sincronizzazione-calendari" or lower.startswith("/sincronizzazione-calendari/"):
+    if lower.startswith("/sincronizzazione-calendari/"):
         return True
     if lower == "/template-atti/nuovo":
         return True
@@ -276,14 +267,6 @@ def _excluded(path: str) -> bool:
         return True
     if lower.startswith("/wizard-pro/fascicolo/"):
         return True
-    if lower == "/impostazioni" and has_request_context():
-        tab = (request.args.get("tab") or "").strip().lower()
-        # Il tab Firma Digitale contiene ancora controlli browser-locali
-        # completi (download Local Signer e verifica 127.0.0.1) non replicati
-        # integralmente nella shell React: non va servito in React finche' il
-        # flusso non e' realmente completo end-to-end.
-        if tab in {"firma", "firma-digitale"}:
-            return True
     # I wizard deposito interni al fascicolo restano sui template operativi
     # finche' il relativo flusso React non copre l'intera procedura.
     if lower.startswith("/fascicoli/") and "/wizard/" in lower:

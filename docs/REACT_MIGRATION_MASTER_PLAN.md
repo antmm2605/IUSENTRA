@@ -1,5 +1,49 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-09 - Impostazioni full React 2.209.0
+
+Questa tranche porta le impostazioni operative principali fuori dal template
+storico e dentro una superficie React completa, mantenendo le scritture sensibili
+nei servizi applicativi:
+
+- `/impostazioni` e `/impostazioni-studio` sono `react_operational_full` nel
+  manifest e vengono servite dalla shell React; `/impostazioni/pagamenti`,
+  `/notifiche`, `/notifiche-whatsapp`, `/backup`, `/impostazioni/calendario`
+  e `/sincronizzazione-calendari` sono alias React della stessa pagina
+  Impostazioni.
+- Il bridge `web/services/react_impostazioni_bridge.py` espone Dati Studio, PEC,
+  Firma Digitale, Email SMTP, WhatsApp, Scheduler, AI Locale, Pagamenti,
+  Notifiche, Backup e Calendari tramite `/api/v1/ui/impostazioni`, con
+  salvataggi JSON/multipart per singola sezione, audit e permessi coerenti con
+  il dominio.
+- Password, token e chiavi salvate non vengono riesposte in chiaro dal server:
+  React mostra solo stato/placeholder; l'icona occhio permette di controllare il
+  nuovo valore digitato prima del salvataggio.
+- La scheda Email SMTP conserva l'aiuto operativo per Gmail/Google Workspace:
+  sotto `Password email` chiarisce che serve la password per le app Google e
+  collega la pagina ufficiale di generazione.
+- La firma digitale usa il browser per verificare IUSENTRA Local Signer su
+  `127.0.0.1:27272`, accetta `token_probe_fresh` e conserva i download installer.
+- AI Locale dispone di stato e bootstrap JSON dedicati, mentre i gate
+  anti-mascheramento classificano le due route come full React senza bridge
+  fittizi.
+- Pagamenti usa `web/services/react_impostazioni_payments.py` per leggere e
+  salvare configurazione canali, bonifico, chiavi riservate e stato link senza
+  riesporre segreti; l'utente vede linguaggio operativo, non `provider`,
+  `webhook`, `legacy` o codici interni.
+- Notifiche usa `web/services/react_impostazioni_notifications.py` e gli endpoint
+  `/api/v1/ui/impostazioni/notifiche/*` per preparare link WhatsApp, inviare
+  messaggi/promemoria e aggiornare il registro da dati reali di clienti e agenda.
+- Backup usa `web/services/react_impostazioni_backup.py` per mostrare copia,
+  verifica, download protetto e permessi dentro la scheda Impostazioni, mentre
+  `/backup` resta un alias della stessa esperienza.
+- Calendari usa `web/services/react_impostazioni_calendar.py` e gli endpoint
+  `/api/v1/ui/impostazioni/calendari/*` per link riservati, profili calendario,
+  sincronizzazione manuale, rigenerazione link e audit.
+- Il menu React sposta Notifiche, Pagamenti, Backup e Sincronizzazione Calendari
+  nel gruppo `Impostazioni`, fuori dal gruppo `Studio`, cosi' la navigazione
+  riflette il modello unico richiesto.
+
 ## Stato tranche 2026-05-09 - Statistiche full React 2.208.0
 
 Questa tranche chiude il bridge reale residuo su `/statistiche` senza toccare

@@ -32,8 +32,10 @@ for forbidden in ["provider_secret", "webhook_secret", "client_secret", "api_key
 
 if 'lower.startswith("/incassi-pagamenti/")' not in gate:
     failures.append("Gate non protegge /incassi-pagamenti/*.")
-if '"/impostazioni/pagamenti"' not in gate:
-    failures.append("Gate non mantiene legacy /impostazioni/pagamenti.")
+if 'lower.startswith("/impostazioni/pagamenti/")' not in gate:
+    failures.append("Gate non protegge eventuali sottoroute /impostazioni/pagamenti/*.")
+if 'lower == "/impostazioni/pagamenti" or lower.startswith("/impostazioni/pagamenti/")' in gate:
+    failures.append("Gate blocca ancora la scheda React /impostazioni/pagamenti.")
 
 if failures:
     raise SystemExit("Tranche 22A API KO\n- " + "\n- ".join(failures))

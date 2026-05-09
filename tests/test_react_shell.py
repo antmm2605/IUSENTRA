@@ -173,8 +173,8 @@ def test_nav_legacy_allineata_react_senza_nascondere_sidebar():
         "Strumenti Forensi",
         "Strumenti Operativi",
         "Sito Studio",
-        "Notifiche WhatsApp",
-        "Incassi e Pagamenti",
+        "Notifiche",
+        "Pagamenti",
         "Backup",
         "Impostazioni Studio",
         "Sincronizzazione Calendari",
@@ -286,7 +286,7 @@ def test_react_blocco_finale_studio_admin_completo():
         "Timesheet",
         "Cartelle Condivise",
         "Sito Studio",
-        "Notifiche WhatsApp",
+        "Notifiche",
         "Incassi e Pagamenti",
         "Backup",
         "Impostazioni Studio",
@@ -528,10 +528,6 @@ def test_blocco_telematico_studio_admin_resta_legacy_first():
         "/database",
         "/deposito/checklist",
         "/guida/firma-digitale",
-        "/impostazioni",
-        "/impostazioni-studio",
-        "/notifiche",
-        "/notifiche-whatsapp",
         "/pat",
         "/pdp",
         "/polisweb",
@@ -540,7 +536,6 @@ def test_blocco_telematico_studio_admin_resta_legacy_first():
         "/sigit",
         "/sigp",
         "/sigp-sync",
-        "/sincronizzazione-calendari",
         "/strumenti-legali",
         "/strumenti-operativi",
         "/telematico",
@@ -1470,6 +1465,21 @@ def test_react_route_gate_copre_rotte_profonde_e_preserva_contratti_operativi(tm
             f"/scadenziario/{scadenza.id}",
             f"/scadenziario/{scadenza.id}/modifica",
             f"/soggetti/{soggetto.id}",
+            "/impostazioni",
+            "/impostazioni-studio",
+            "/impostazioni?tab=pec",
+            "/impostazioni?tab=firma",
+            "/impostazioni?tab=ai",
+            "/impostazioni?tab=pagamenti",
+            "/impostazioni?tab=notifiche",
+            "/impostazioni?tab=backup",
+            "/impostazioni?tab=calendario",
+            "/impostazioni/calendario",
+            "/impostazioni/pagamenti",
+            "/notifiche",
+            "/notifiche-whatsapp",
+            "/backup",
+            "/sincronizzazione-calendari",
         ):
             response = client.get(path)
             html = response.get_data(as_text=True)
@@ -1482,7 +1492,6 @@ def test_react_route_gate_copre_rotte_profonde_e_preserva_contratti_operativi(tm
             f"/fascicoli/{fascicolo_penale.id}/penale/pdp",
             "/checklist/test-template",
             "/applicazioni/fascicoli",
-            "/impostazioni?tab=pec",
             "/servizi-telematici",
             "/tribunali",
             "/guida/firma-digitale",
@@ -1510,7 +1519,7 @@ def test_react_route_gate_copre_rotte_profonde_e_preserva_contratti_operativi(tm
     assert legacy.status_code == 200
     assert 'id="root"' not in legacy.get_data(as_text=True)
     assert firma_operativa.status_code == 200
-    assert 'id="root"' not in firma_operativa.get_data(as_text=True)
+    assert 'id="root"' in firma_operativa.get_data(as_text=True)
     assert api.status_code == 200
     assert api.is_json
     assert "IUSENTRA - React Shell" not in api.get_data(as_text=True)
@@ -1532,10 +1541,6 @@ def test_route_gate_non_promuove_moduli_studio_telematico_admin_incompleti():
         "/database",
         "/deposito/checklist",
         "/guida/firma-digitale",
-        "/impostazioni",
-        "/impostazioni-studio",
-        "/notifiche",
-        "/notifiche-whatsapp",
         "/pat",
         "/pdp",
         "/polisWeb",
@@ -1544,13 +1549,10 @@ def test_route_gate_non_promuove_moduli_studio_telematico_admin_incompleti():
         "/sigit",
         "/sigp",
         "/sigp-sync",
-        "/sincronizzazione-calendari",
         "/strumenti-legali",
         "/strumenti-operativi",
         "/telematico",
         "/tribunali",
-        "/impostazioni/pagamenti",
-        "/impostazioni/calendario",
     }
 
     for raw in sorted(legacy_first_routes):
@@ -1571,6 +1573,13 @@ def test_route_gate_non_promuove_moduli_studio_telematico_admin_incompleti():
         "/privacy/registro/nuovo",
         "/sito-studio",
         "/statistiche",
+        "/impostazioni",
+        "/impostazioni-studio",
+        "/impostazioni/pagamenti",
+        "/impostazioni/calendario",
+        "/notifiche",
+        "/notifiche-whatsapp",
+        "/sincronizzazione-calendari",
         "/fatturazione",
         "/preventivi",
         "/compensi-forensi",
@@ -1586,6 +1595,216 @@ def test_route_gate_non_promuove_moduli_studio_telematico_admin_incompleti():
     ):
         assert not _excluded(_normalise_path(raw)), raw
     assert _excluded(_normalise_path("/privacy/registro/ABC123/elimina"))
+
+
+def test_impostazioni_react_api_redige_segreti_e_salva_configurazioni(tmp_path: Path):
+    from pct.config_studio import GestioneConfigStudio
+
+    config_path = tmp_path / "config" / "studio.json"
+    app = _app(tmp_path)
+    manager = GestioneConfigStudio(str(config_path))
+    cfg = manager.config
+    cfg.pec.password = "pec-super-segreta"
+    cfg.smtp.password = "smtp-super-segreta"
+    cfg.firma.password = "firma-super-segreta"
+    cfg.whatsapp.twilio_token = "twilio-super-segreto"
+    cfg.whatsapp.callmebot_key = "callmebot-super-segreta"
+    manager.aggiorna(cfg)
+
+    with app.test_client() as client:
+        response = client.get("/api/v1/ui/impostazioni", headers={"X-API-Key": "react-test-key"})
+        save_pec = client.post(
+            "/api/v1/ui/impostazioni/pec",
+            json={
+                "indirizzo": "studio.nuovo@pec.example.it",
+                "password": "",
+                "smtp_host": "smtp.pec.example.it",
+                "smtp_port": 465,
+                "imap_host": "imap.pec.example.it",
+                "imap_port": 993,
+                "use_ssl": True,
+            },
+            headers={"X-API-Key": "react-test-key"},
+        )
+        save_firma = client.post(
+            "/api/v1/ui/impostazioni/firma",
+            json={
+                "backend_preferito": "pkcs11",
+                "cf_avvocato": "RSSMRA80A01H501Z",
+                "visible_signature_mode": "basso_sinistra",
+            },
+            headers={"X-API-Key": "react-test-key"},
+        )
+        save_pagamenti = client.post(
+            "/api/v1/ui/impostazioni/pagamenti",
+            json={
+                "stripe_abilitato": True,
+                "stripe_modo": "test",
+                "stripe_pk_test": "pk_test_pubblica",
+                "stripe_sk_test": "stripe-segreta",
+                "paypal_abilitato": True,
+                "paypal_modo": "sandbox",
+                "paypal_client_id": "paypal-client",
+                "paypal_client_secret": "paypal-segreta",
+                "bonifico_abilitato": True,
+                "bonifico_iban": "IT60X0542811101000000123456",
+                "bonifico_intestazione": "Studio Legale",
+            },
+            headers={"X-API-Key": "react-test-key"},
+        )
+        link_notifica = client.post(
+            "/api/v1/ui/impostazioni/notifiche/link",
+            json={"numero": "+393331112233", "testo": "Messaggio di prova"},
+            headers={"X-API-Key": "react-test-key"},
+        )
+
+    payload = response.get_json()
+    serialized = json.dumps(payload, ensure_ascii=False)
+    assert response.status_code == 200
+    assert payload["ok"] is True
+    assert payload["contracts"]["writes"] == "json_api"
+    assert payload["contracts"]["secrets_exposed"] is False
+    assert payload["warnings"] == []
+    assert {section["label"] for section in payload["sections"]} >= {
+        "Dati Studio",
+        "PEC",
+        "Firma Digitale",
+        "Email SMTP",
+        "WhatsApp",
+        "Scheduler",
+            "AI Locale",
+            "Pagamenti",
+            "Notifiche",
+            "Backup",
+            "Calendari",
+        }
+    assert payload["pec"]["password"]["present"] is True
+    assert payload["smtp"]["password"]["present"] is True
+    assert payload["firma"]["password"]["present"] is True
+    assert payload["whatsapp"]["twilio_token"]["present"] is True
+    assert payload["whatsapp"]["callmebot_key"]["present"] is True
+    assert payload["pagamenti"]["provider_attivi"] == ["bonifico"]
+    assert "notifiche" in payload
+    assert "backup" in payload
+    assert "calendari" in payload
+    for secret in (
+        "pec-super-segreta",
+        "smtp-super-segreta",
+        "firma-super-segreta",
+        "twilio-super-segreto",
+        "callmebot-super-segreta",
+    ):
+        assert secret not in serialized
+
+    assert save_pec.status_code == 200
+    assert save_pec.get_json()["ok"] is True
+    assert save_firma.status_code == 200
+    assert save_firma.get_json()["ok"] is True
+    assert save_pagamenti.status_code == 200
+    assert save_pagamenti.get_json()["ok"] is True
+    assert save_pagamenti.get_json()["pagamenti"]["stripe_sk_test"]["present"] is True
+    assert "stripe-segreta" not in json.dumps(save_pagamenti.get_json(), ensure_ascii=False)
+    assert "paypal-segreta" not in json.dumps(save_pagamenti.get_json(), ensure_ascii=False)
+    assert link_notifica.status_code == 200
+    assert link_notifica.get_json()["ok"] is True
+    assert "https://wa.me/" in link_notifica.get_json()["link"]
+    saved = GestioneConfigStudio(str(config_path)).config
+    assert saved.pec.indirizzo == "studio.nuovo@pec.example.it"
+    assert saved.pec.password == "pec-super-segreta"
+    assert saved.firma.backend_preferito == "pkcs11"
+    assert saved.firma.visible_signature_mode == "basso_sinistra"
+
+
+def test_impostazioni_react_frontend_copre_local_signer_occhio_e_ai_locale():
+    page = Path("frontend/src/features/impostazioni/ImpostazioniPage.tsx").read_text(encoding="utf-8")
+    form = Path("frontend/src/features/impostazioni/components/SettingsSectionForm.tsx").read_text(encoding="utf-8")
+    actions = Path("frontend/src/features/impostazioni/components/SettingsActions.tsx").read_text(encoding="utf-8")
+    payments = Path("frontend/src/features/impostazioni/components/PaymentsSettingsPanel.tsx").read_text(encoding="utf-8")
+    notifications = Path("frontend/src/features/impostazioni/components/NotificationsSettingsPanel.tsx").read_text(encoding="utf-8")
+    backup = Path("frontend/src/features/impostazioni/components/BackupSettingsPanel.tsx").read_text(encoding="utf-8")
+    calendari = Path("frontend/src/features/impostazioni/components/CalendarSettingsPanel.tsx").read_text(encoding="utf-8")
+    summary = Path("frontend/src/features/impostazioni/components/SettingsSummary.tsx").read_text(encoding="utf-8")
+    styles = Path("frontend/src/features/impostazioni/ImpostazioniPage.css").read_text(encoding="utf-8")
+    signer = Path("frontend/src/features/impostazioni/localSigner.ts").read_text(encoding="utf-8")
+    api = Path("frontend/src/features/impostazioni/api.ts").read_text(encoding="utf-8")
+
+    assert "Dati Studio" in Path("frontend/src/features/impostazioni/constants.ts").read_text(encoding="utf-8")
+    assert "Eye, EyeOff" in form
+    assert "Mostra valore inserito" in form
+    assert "SettingsSummary" in page
+    assert "checkLocalSigner" in actions
+    assert "token_probe_fresh" in signer
+    assert "iusentra-local-signer://restart" in api
+    assert "/api/v1/ui/impostazioni/ai/bootstrap" in api
+    assert "/api/v1/ui/impostazioni/notifiche/invia" in api
+    assert "/api/v1/ui/impostazioni/calendari/profili" in api
+    assert "/api/v1/ui/impostazioni/calendari/rigenera-link" in api
+    assert "PaymentsSettingsPanel" in page
+    assert "NotificationsSettingsPanel" in page
+    assert "BackupSettingsPanel" in page
+    assert "CalendarSettingsPanel" in page
+    assert "Mostra valore inserito" in payments
+    assert "Prepara link WhatsApp" in notifications
+    assert "Invia promemoria" in notifications
+    assert "createBackup" in backup
+    assert "verifyBackupIntegrity" in backup
+    assert "createCalendarProfile" in calendari
+    assert "Rigenera link" in calendari
+    assert "_legacy=1" not in api
+    assert "Fonte:" not in summary
+    assert "config_studio" not in summary
+    assert "json_api" not in summary
+    assert "React operativo" not in page
+    assert "bridge impostazioni" not in page
+    assert "segreti_redatti" not in page
+    assert "Segreti protetti" not in page
+    assert "Password e token sono indicati" not in page
+    constants = Path("frontend/src/features/impostazioni/constants.ts").read_text(encoding="utf-8")
+    assert "Modello conversazione" not in constants
+    assert "Modello ricerca documenti" not in constants
+    assert "Automatico (consigliato)" in constants
+    assert "Risposte dell'assistente" in constants
+    assert "Genera password per le app Google" in constants
+    assert "https://myaccount.google.com/apppasswords" in constants
+    assert "helpLink.href" in form
+    assert ".iu-settings-tabs {\n  display: flex;" in styles
+    assert "flex-direction: column;" in styles
+    assert ".iu-settings-tabs__list {\n  display: flex;" in styles
+
+
+def test_impostazioni_react_ai_status_e_bootstrap_usano_runtime_locale(tmp_path: Path, monkeypatch):
+    app = _app(tmp_path)
+    calls = {"bootstrap": 0, "refresh": 0}
+
+    class FakeService:
+        def health_snapshot(self):
+            return {"runtime": {"status": "ready"}, "models": [{"name": "gemma3:1b"}]}
+
+        def bootstrap_runtime(self, force=False):
+            calls["bootstrap"] += 1
+            return {"status": "ready", "force": force}
+
+    monkeypatch.setattr("lex.providers.local_ai_service.get_local_ai_service", lambda: FakeService())
+    monkeypatch.setattr(
+        "lex.providers.ollama_runtime.refresh_live_ollama_runtime",
+        lambda: calls.__setitem__("refresh", calls["refresh"] + 1),
+    )
+
+    with app.test_client() as client:
+        status = client.get("/api/v1/ui/impostazioni/ai/status", headers={"X-API-Key": "react-test-key"})
+        bootstrap = client.post(
+            "/api/v1/ui/impostazioni/ai/bootstrap",
+            json={"force": True},
+            headers={"X-API-Key": "react-test-key"},
+        )
+
+    assert status.status_code == 200
+    assert status.get_json()["ok"] is True
+    assert status.get_json()["status_payload"]["runtime"]["status"] == "ready"
+    assert bootstrap.status_code == 200
+    assert bootstrap.get_json()["ok"] is True
+    assert bootstrap.get_json()["result"]["force"] is True
+    assert calls == {"bootstrap": 1, "refresh": 1}
 
 
 def test_react_privacy_registro_operativo_secondo_pattern_oss(tmp_path: Path):
@@ -2078,8 +2297,8 @@ def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: P
         "Strumenti Forensi",
         "Strumenti Operativi",
         "Sito Studio",
-        "Notifiche WhatsApp",
-        "Incassi e Pagamenti",
+        "Notifiche",
+        "Pagamenti",
         "Backup",
         "Impostazioni Studio",
         "Sincronizzazione Calendari",
@@ -2178,8 +2397,12 @@ def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: P
         "Legal Intelligence": "/legal-intelligence",
         "Amministrazione": "/amministrazione",
         "Incassi e Pagamenti": "/incassi-pagamenti",
+        "Pagamenti": "/impostazioni?tab=pagamenti",
+        "Notifiche": "/impostazioni?tab=notifiche",
         "Backup": "/backup",
+        "Sincronizzazione Calendari": "/impostazioni/calendario",
         "Sito Studio": "/sito-studio/",
+        "Impostazioni Studio": "/impostazioni-studio",
         "Utenti": "/utenti",
         "Profili e Permessi": "/profili",
         "Registro Attività": "/registro-attivita",
@@ -2187,9 +2410,6 @@ def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: P
     legacy_studio_routes = {
         "Strumenti Forensi": "/strumenti-legali/",
         "Strumenti Operativi": "/strumenti-operativi",
-        "Notifiche WhatsApp": "/notifiche-whatsapp",
-        "Impostazioni Studio": "/impostazioni-studio",
-        "Sincronizzazione Calendari": "/sincronizzazione-calendari",
     }
 
     with app.test_client() as client:

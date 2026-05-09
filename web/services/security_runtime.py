@@ -63,6 +63,17 @@ _CSRF_PROTECTED_ENDPOINTS = {
     "api_v1_react.tariffario_calcola_page",
     "api_v1_react.sito_studio_contatto_collega",
     "api_v1_react.sito_studio_prenotazione_stato",
+    "api_v1_react.impostazioni_page_update",
+    "api_v1_react.impostazioni_page_test",
+    "api_v1_react.impostazioni_page_ai_bootstrap",
+    "api_v1_react.impostazioni_notifiche_link",
+    "api_v1_react.impostazioni_notifiche_invia",
+    "api_v1_react.impostazioni_notifiche_promemoria_domani",
+    "api_v1_react.impostazioni_calendari_crea_profilo",
+    "api_v1_react.impostazioni_calendari_sincronizza",
+    "api_v1_react.impostazioni_calendari_stato",
+    "api_v1_react.impostazioni_calendari_elimina",
+    "api_v1_react.impostazioni_calendari_rigenera_link",
     }
 
 _UNSAFE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}

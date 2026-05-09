@@ -190,11 +190,11 @@ def build_react_backup_payload(
         "warnings": [
             {
                 "code": "restore_non_migrato",
-                "message": "Il ripristino resta sul percorso legacy protetto e non viene eseguito dalla UI React.",
+                "message": "Il ripristino richiede una procedura protetta di assistenza.",
             },
             {
                 "code": "delete_non_migrato",
-                "message": "La cancellazione delle copie non e' esposta nella UI React di questa tranche.",
+                "message": "La cancellazione delle copie non e' disponibile da questa scheda.",
             },
         ],
     }
@@ -241,7 +241,7 @@ def _result(
 
 def _forbidden_fields(payload: dict[str, Any], allowed: set[str]) -> dict[str, str]:
     unknown = sorted(set(payload) - allowed)
-    return {key: "Campo non accettato da questa API JSON." for key in unknown}
+    return {key: "Campo non accettato in questa richiesta." for key in unknown}
 
 
 def _audit(
@@ -301,7 +301,7 @@ def create_react_backup(
         components = [_text(item) for item in raw_components if _text(item)]
         unknown = sorted(set(components) - allowed_components)
         if unknown:
-            errors["components"] = "Alcuni componenti non sono configurati nel runtime backup."
+            errors["components"] = "Alcune parti non sono disponibili per la copia."
     else:
         components = None
         errors["components"] = "Invia una lista di componenti valida."

@@ -31,6 +31,7 @@ npm run build</code></pre>
   <script id="iusentra-react-bootstrap" type="application/json">{{ react_bootstrap | tojson }}</script>
   <div id="root"></div>
   <script src="/static/js/react-pec-local-signer-guard.js?v={{ app_version }}"></script>
+  <script src="/static/js/react-ai-local-guard.js?v={{ app_version }}"></script>
   {% if react_bootstrap_texts %}
   <section hidden aria-hidden="true" data-react-bootstrap-texts>
     {% for text in react_bootstrap_texts %}

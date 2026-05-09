@@ -29,6 +29,8 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 | `npm test -- --runInBand` | OK | Contratti frontend React verdi. |
 | `npm run typecheck` | OK | TypeScript verde dopo integrazione tab Backup/Calendari e testi non tecnici. |
 | `npm run build` | OK | Build Vite produzione rigenerata; chunk corrente `ImpostazioniPage-BliipEpP.js`. |
+| `python -m pytest -q tests/test_impostazioni_ai_locale_react.py tests/test_impostazioni_pec_local_signer_react.py --tb=short` | OK | 5 test passati: AI Locale e PEC verificano il PC in uso tramite IUSENTRA Local Signer e la shell React carica i guard statici. |
+| `python -m pytest -q tests/test_web_bootstrap.py::test_lex_assistant_usa_componente_esterno_e_posizione_persistente --tb=short` | OK | Shell React compatibile con widget Lex e bridge browser dopo aggiunta guard AI Locale. |
 | `node scripts/react-migration/check-no-fake-react-full.mjs` | OK | Nessuna route full React fittizia. |
 | `node scripts/react-migration/audit-anti-mascheramento.mjs` | OK | Audit aggiornato: 55 route censite, 73 link legacy, nessun `LegacyPostForm` o form POST HTML React. |
 | `python -m pytest -q tests/test_backup.py tests/test_calendar_sync.py --tb=short` | OK | 28 test passati su backup e sincronizzazione calendari. |
@@ -219,6 +221,17 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `python -m py_compile web/services/react_impostazioni_bridge.py web/blueprints/api_v1_react.py` | OK | Sintassi backend confermata dopo blocco del test SMTP PEC server-side. |
 | `python -m pytest -q tests/test_impostazioni_pec_local_signer_react.py tests/test_email_client.py::test_impostazioni_payload_smtp_locale_usa_password_pec_salvata_del_tenant tests/test_local_signer.py::test_ui_pec_locale_auto_avvia_signer_e_mostra_pacchetto --tb=short` | OK | 4/4 passati: React usa Local Signer `/pec/smtp/test`, recupero password salvata tenant-aware e legacy locale confermati. |
 | `python -m pytest -q tests/test_react_shell.py::test_impostazioni_react_frontend_copre_local_signer_occhio_e_ai_locale tests/test_react_shell.py::test_impostazioni_react_api_redige_segreti_e_salva_configurazioni --tb=short` | OK | 2/2 passati: pagina Impostazioni React e API configurazioni restano coerenti. |
+
+## Hotfix Impostazioni AI Locale React / Local Signer 2026-05-09
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `npm run typecheck` | OK | TypeScript React confermato dopo spostamento delle azioni AI Locale sul Local Signer del PC. |
+| `npm run test` | OK | Contratti React confermati dopo guardia AI Locale. |
+| `npm run build` | OK | Build Vite 2.211.0 completata; asset React rigenerati con la tab AI Locale aggiornata. |
+| `node --check web/static/js/react-ai-local-guard.js` | OK | Sintassi della guardia browser-locale AI Locale confermata. |
+| `python -m pytest -q tests/test_impostazioni_ai_locale_react.py tests/test_local_signer.py::test_local_ai_bridge_snapshot_windows_propone_installer_e_download_modello_automatico tests/test_react_shell.py::test_impostazioni_react_frontend_copre_local_signer_occhio_e_ai_locale --tb=short` | OK | 5/5 passati: AI Locale React passa dal Local Signer, gestisce Ollama/modelli mancanti, conferma il rilevamento prestazioni PC e conserva il contratto Impostazioni. |
+| `python tools/sync_packaging_files.py --check` | OK | Versione 2.211.0 allineata tra sorgente Python, frontend, Docker e Railway. |
 
 ## Gate finali tranche Controlli Atti e Strumenti React 2.210.0
 

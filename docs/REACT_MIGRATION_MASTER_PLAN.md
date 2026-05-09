@@ -54,9 +54,19 @@ nei servizi applicativi:
   collega la pagina ufficiale di generazione.
 - La firma digitale usa il browser per verificare IUSENTRA Local Signer su
   `127.0.0.1:27272`, accetta `token_probe_fresh` e conserva i download installer.
-- AI Locale dispone di stato e bootstrap JSON dedicati, mentre i gate
-  anti-mascheramento classificano le due route come full React senza bridge
-  fittizi.
+- AI Locale dispone di stato e bootstrap JSON dedicati, ma la verifica utente
+  finale deve passare dal PC in uso tramite IUSENTRA Local Signer: React chiama
+  `/ai/status` e `/ai/bootstrap` sul companion locale, mostra `Prepara AI
+  locale`, lascia i modelli in scelta automatica e spiega che IUSENTRA controlla
+  RAM/spazio/profilo hardware prima di scegliere i modelli.
+- La shell React carica anche `web/static/js/react-ai-local-guard.js` per
+  proteggere asset React gia' compilati: eventuali vecchie chiamate
+  `/api/v1/ui/impostazioni/ai/status` e `/api/v1/ui/impostazioni/ai/bootstrap`
+  vengono instradate al Local Signer del browser, non usate come fonte finale
+  server/cloud.
+- I gate anti-mascheramento classificano le route AI Locale come full React
+  senza bridge fittizi e `tests/test_impostazioni_ai_locale_react.py` blocca
+  regressioni su Local Signer, messaggi operativi e scelta automatica modelli.
 - Pagamenti usa `web/services/react_impostazioni_payments.py` per leggere e
   salvare configurazione canali, bonifico, chiavi riservate e stato link senza
   riesporre segreti; l'utente vede linguaggio operativo, non `provider`,

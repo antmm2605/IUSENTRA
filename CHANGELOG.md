@@ -1,11 +1,17 @@
 # Changelog
 
+## 2.211.0 - 2026-05-09
+
+- Rafforzata `Impostazioni -> AI Locale`: la shell React carica `react-ai-local-guard.js`, i controlli stato/preparazione passano dal PC in uso tramite IUSENTRA Local Signer e i test mirati bloccano regressioni verso verifiche solo server/cloud.
+- Aggiornati `AGENTS.md`, `docs/UI_DESIGN_SYSTEM.md`, piano React e report test per rendere permanente la regola: la scelta dei modelli AI resta automatica e governata dal computer dello studio.
+
 ## 2.210.0 - 2026-05-09
 
 - Promosse a `react_operational_full` le route esatte `/deposito/checklist`, `/strumenti-legali` e `/strumenti-operativi`, eliminando le ultime eccezioni legacy sulle voci richieste Controlli Atti, Strumenti Forensi e Strumenti Operativi.
 - Collegata `Controlli Atti` alla superficie React telematica con payload reale `/api/v1/ui/telematico/surface/checklist`, mantenendo legacy solo per sottopercorsi tecnici e workflow non ricostruiti.
 - Collegati `Strumenti Forensi` e `Strumenti Operativi` a `StudioModulePage` con payload reali `/api/v1/ui/studio-modules/strumenti-forensi` e `/api/v1/ui/studio-modules/strumenti-operativi`.
 - Allineato il titolo visibile della checklist a `Controlli Atti` e rimossi testi tecnici come `payload` e `backend` dalle superfici telematiche rivolte allo studio.
+- Riallineata `Impostazioni -> AI Locale` al PC dello studio: verifica e preparazione passano dal Local Signer, Ollama/modelli mancanti hanno azione guidata, scelta modelli resta automatica e la shell protegge anche gli asset React gia' compilati.
 - Aggiornati `AGENTS.md`, manifest React, contratti legacy, gate anti-regressione, route gate e test React per impedire regressioni verso `legacy_operational`.
 - Rafforzata la memoria operativa della migrazione full React con la lista completa delle pagine da verificare end-to-end, criteri grafici UI_DESIGN_SYSTEM e passaggi obbligatori di test/deploy.
 

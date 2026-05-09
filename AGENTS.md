@@ -527,6 +527,10 @@ python -m pytest tests/ -v
 - **Divieto di verificare il token USB interrogando il server remoto** quando il controllo corretto è lato client.
   - Il pulsante `Verifica token collegato` deve usare il `Local Signer` locale (`127.0.0.1:27272`) dal browser.
   - Gli endpoint server `/api/firma/pkcs11/*` restano validi solo per casi realmente server-side o per diagnostica specifica, non come fonte unica dello stato UI in produzione hosted.
+- **PEC da Impostazioni sempre locale**: il pulsante `Impostazioni -> PEC -> Verifica invio PEC` deve usare il `Local Signer` locale dal browser (`/pec/smtp/test`) e non deve mai eseguire una verifica SMTP dal server/cloud. La password PEC resta sul PC in uso; quando e' gia' salvata puo' essere consegnata al browser solo tramite `/impostazioni/pec/local-smtp-payload` per la prova locale.
+  - Fix eseguito il 2026-05-09 nel commit `c3f7ff79`: `SettingsActions.tsx` chiama `testPecSmtpViaLocalSigner`, `localSigner.ts` invia la prova a `http://127.0.0.1:27272/pec/smtp/test`, `react-pec-local-signer-guard.js` protegge anche gli asset React gia' compilati intercettando il vecchio endpoint, `react_impostazioni_bridge.py` non esegue piu' il test SMTP PEC dal server e `tests/test_impostazioni_pec_local_signer_react.py` impedisce la regressione.
+  - Motivo: in produzione e in cloud il server non e' il PC dello studio; la verifica invio PEC deve partire dal dispositivo dell'avvocato, dove vive IUSENTRA Local Signer e dove resta la password PEC. Il server puo' solo indicare che serve il controllo locale.
+  - Non modificare, rimuovere, aggirare o sostituire questa regola per nessun motivo: eventuali refactor futuri devono mantenere il test locale via Local Signer, il recupero tenant-aware della password salvata solo per la prova locale e il blocco del test SMTP PEC server-side.
 - **Ping Local Signer Windows con `token_probe_fresh`:** se il servizio locale risponde con `ok: true`, `token[]` vuoto e `token_probe_fresh[]` valorizzato, la UI non deve mostrare `Local Signer non rilevato`. Deve distinguere:
   - servizio Local Signer raggiungibile;
   - token rilevato da probe fresco;

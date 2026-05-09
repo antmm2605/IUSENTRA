@@ -1,0 +1,31 @@
+{
+  "phase": "02-react-ui",
+  "startIndex": 125,
+  "totalItems": 140,
+  "executedItems": 15,
+  "batchSize": 5,
+  "resultCode": 0,
+  "targets": [
+    "tests/test_regia_channels.py::test_pdp_non_usa_pec_generica_e_sigp_richiede_xsd",
+    "tests/test_regia_channels.py::test_canale_senza_adapter_non_dichiara_invio_reale",
+    "tests/test_regia_deposito_receipts.py::test_deposito_non_parte_con_blocchi",
+    "tests/test_regia_deposito_receipts.py::test_ricevute_intermedie_non_acquisiscono_e_finale_si",
+    "tests/test_regia_deposito_receipts.py::test_esito_negativo_porta_da_correggere",
+    "tests/test_regia_no_shortcuts.py::test_nessun_mock_fallback_true_o_placeholder_regia",
+    "tests/test_regia_no_shortcuts.py::test_nessun_test_regia_skip_e_nessuna_busta_simulata_reale",
+    "tests/test_regia_no_shortcuts.py::test_acquisito_solo_con_ricevuta_finale",
+    "tests/test_regia_scoped_loading.py::test_regia_usa_metodi_scoped_quando_disponibili",
+    "tests/test_regia_scoped_loading.py::test_regia_fallback_solo_se_metodo_scoped_assente",
+    "tests/test_regia_scoped_loading.py::test_regia_fascicolo_non_trovato_resta_senza_mock",
+    "tests/test_regia_ui_react.py::test_ui_react_espone_regia_operativa_e_payload_reale",
+    "tests/test_regia_ui_react.py::test_ui_mostra_dati_regia_senza_placeholder_operativi",
+    "tests/test_topbar_operational_api.py::test_topbar_search_valida_query_auth_e_permessi",
+    "tests/test_topbar_operational_api.py::test_topbar_today_notifications_deadlines_recent_and_timer"
+  ],
+  "results": [
+    {
+      "phase": "02-react-ui",
+      "code": 0
+    }
+  ]
+}

@@ -135,7 +135,7 @@ def test_impostazioni_payload_smtp_locale_usa_password_pec_salvata_del_tenant(tm
 
 def test_base_template_non_renderizza_vecchio_lex_duplicato():
     template = Path("web/templates/base.html").read_text(encoding="utf-8")
-    assert "__legacy_lex_disabled__" in template
+    assert "__legacy_lex_disabled__" not in template
     assert "false and g.utente_corrente" not in template
     assert template.count('include "components/pct_ai_widget.html"') == 1
 

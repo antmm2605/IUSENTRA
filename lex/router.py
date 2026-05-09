@@ -246,7 +246,9 @@ class LexRouter:
             return "termini_processuali"
 
         # ---- Livello 5: telematico deposito ----
-        if intent in {"deposito_telematico", "explain_telematico_error"}:
+        if intent == "explain_telematico_error":
+            return "telematico_status"
+        if intent == "deposito_telematico":
             return "deposito_telematico"
 
         # ---- Livello 6: PEC comunicazioni ----
@@ -309,6 +311,10 @@ class LexRouter:
         # P4: termini
         if self._has_any(text, self._TERMINI_HINTS):
             return "termini_processuali"
+        # Domande sulla base normativa di un canale telematico restano ricerca normativa,
+        # non checklist operativa di deposito.
+        if self._has_any(text, self._NORMATIVA_HINTS) and self._looks_like_telematico(text):
+            return "normativa"
         # P5: telematico
         if self._looks_like_telematico(text):
             return "deposito_telematico"

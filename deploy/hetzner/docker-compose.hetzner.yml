@@ -16,7 +16,7 @@ x-iusentra-env: &iusentra-env
   # Ollama: punta a http://ollama:11434 se il profilo `ai` è attivo,
   # altrimenti a http://host.docker.internal:11434 per istanza host-level.
   # Impostare PCT_LOCAL_AI_ENABLED=0 per disabilitare completamente l'AI locale.
-  PCT_LOCAL_AI_BASE_URL: ${PCT_LOCAL_AI_BASE_URL:-http://ollama:11434/api}
+  PCT_LOCAL_AI_BASE_URL: ${PCT_LOCAL_AI_BASE_URL:-http://ollama:11434/api/version}
   PCT_LOCAL_AI_CHAT_MODEL: ${PCT_LOCAL_AI_CHAT_MODEL:-gemma3:1b}
   PCT_LOCAL_AI_ENABLED: ${PCT_LOCAL_AI_ENABLED:-1}
   PCT_STUDIO_NOME: ${PCT_STUDIO_NOME:-IUSENTRA}

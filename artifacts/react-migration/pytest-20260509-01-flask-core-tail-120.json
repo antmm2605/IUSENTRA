@@ -1,0 +1,36 @@
+{
+  "phase": "01-flask-core",
+  "startIndex": 120,
+  "totalItems": 140,
+  "executedItems": 20,
+  "batchSize": 5,
+  "resultCode": 1,
+  "targets": [
+    "tests/test_web_bootstrap.py::test_impostazioni_js_e_esterno_e_senza_duplicazioni",
+    "tests/test_web_bootstrap.py::test_local_signer_monitor_globale_verifica_versione_e_installer",
+    "tests/test_web_bootstrap.py::test_local_signer_distribution_include_bridge_ai",
+    "tests/test_web_bootstrap.py::test_notifiche_whatsapp_usa_js_esterno_e_date_localizzate",
+    "tests/test_web_bootstrap.py::test_email_e_sync_fascicolo_usano_date_italiane_e_target_corrente",
+    "tests/test_web_bootstrap.py::test_ai_operativa_usa_bridge_browser_e_template_senza_logica_inline",
+    "tests/test_web_bootstrap.py::test_lex_assistant_usa_componente_esterno_e_posizione_persistente",
+    "tests/test_web_bootstrap.py::test_contesto_lex_compatta_le_sezioni_e_limita_le_fonti",
+    "tests/test_web_bootstrap.py::test_preparazione_udienza_guidata_usa_componenti_modulari_e_js_esterno",
+    "tests/test_web_bootstrap.py::test_preparazione_udienza_guidata_reindirizza_la_vecchia_route_nuovo",
+    "tests/test_web_bootstrap.py::test_modal_firma_deposito_prevede_riavvio_local_signer",
+    "tests/test_web_bootstrap.py::test_cockpit_fascicolo_unifica_quadro_workflow_e_controlli_operativi",
+    "tests/test_web_bootstrap.py::test_assistente_stato_usa_runtime_ollama_risolto",
+    "tests/test_web_bootstrap.py::test_assistente_chat_usa_runtime_ollama_risolto",
+    "tests/test_web_bootstrap.py::test_audit_log_riconcilia_eventi_storici_con_fascicolo_corrente",
+    "tests/test_web_bootstrap.py::test_file_critici_non_contengono_marker_di_mojibake",
+    "tests/test_web_security.py::test_login_headers_e_bootstrap_password_forzata",
+    "tests/test_web_security.py::test_password_temporanea_blocca_navigazione_finche_non_viene_cambiata",
+    "tests/test_web_security.py::test_api_v1_cors_resta_chiuso_di_default",
+    "tests/test_web_security.py::test_api_v1_cors_consente_solo_origin_configurati"
+  ],
+  "results": [
+    {
+      "phase": "01-flask-core",
+      "code": 1
+    }
+  ]
+}

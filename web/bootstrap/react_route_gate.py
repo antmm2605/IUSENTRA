@@ -7,7 +7,7 @@ GET HTML di aree migrate, evitando API, download e allegati.
 
 from __future__ import annotations
 
-from flask import Flask, g, has_request_context, request
+from flask import Flask, current_app, g, has_request_context, request
 
 from web.blueprints.react_shell import render_react_shell_response
 
@@ -186,6 +186,7 @@ _LEGACY_OPERATIONAL_PREFIXES = (
     "/sigp-sync",
     "/sincronizzazione-calendari",
     "/strumenti-legali",
+    "/strumenti-operativi",
     "/telematico",
     "/tribunali",
 )
@@ -318,6 +319,25 @@ def _is_react_route(path: str) -> bool:
     return False
 
 
+def _react_bootstrap_texts_for_path(path: str) -> list[str]:
+    lower = path.lower().rstrip("/") or "/"
+    if lower == "/sito-studio":
+        return ["Sito Studio"]
+    return []
+
+
+def _preserve_react_route_side_effects(path: str) -> None:
+    lower = path.lower().rstrip("/") or "/"
+    if lower not in {"/sito-studio", "/sito-studio/contatti"}:
+        return
+    try:
+        from web.services.studio_site_runtime import ensure_current_studio_site
+
+        ensure_current_studio_site()
+    except Exception as exc:
+        current_app.logger.warning("Bootstrap Sito Studio React non completato: %s", exc)
+
+
 def register_react_route_gate(app: Flask) -> None:
     """Intercetta le GET HTML migrate prima che cadano nei template Jinja."""
 
@@ -332,10 +352,12 @@ def register_react_route_gate(app: Flask) -> None:
             return None
         if raw_lower == "/scadenziario" or raw_lower.startswith("/scadenziario/"):
             return None
-        if raw_lower.startswith("/sito-studio/") and raw_lower != "/sito-studio/contatti":
+        sito_path = raw_lower.rstrip("/") or "/"
+        if raw_lower.startswith("/sito-studio/") and sito_path not in {"/sito-studio", "/sito-studio/contatti"}:
             return None
         path = _normalise_path(request.path)
         if _excluded(path) or not _is_react_route(path):
             return None
         spa_path = "" if path == "/" else path.lstrip("/")
-        return render_react_shell_response(spa_path)
+        _preserve_react_route_side_effects(path)
+        return render_react_shell_response(spa_path, bootstrap_texts=_react_bootstrap_texts_for_path(path))

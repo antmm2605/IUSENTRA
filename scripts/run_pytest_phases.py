@@ -290,6 +290,14 @@ def split_core_shards(items: list[T], total_shards: int) -> list[list[T]]:
 
     shards: list[list[T]] = [[] for _ in range(total_shards)]
     for index, item in enumerate(items):
+        if total_shards == 10 and isinstance(item, Path):
+            item_rel = rel(item)
+            if item_rel == "tests/test_observability_runtime.py":
+                shards[6].append(item)
+                continue
+            if item_rel == "tests/test_ocr_worker.py":
+                shards[7].append(item)
+                continue
         shards[index % total_shards].append(item)
     return shards
 

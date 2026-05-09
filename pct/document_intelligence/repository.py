@@ -26,6 +26,10 @@ SQLITE_SCHEMA_DOCUMENTI_AI = Path(__file__).resolve().parents[1] / "sql" / "2026
 POSTGRES_SCHEMA_DOCUMENTI_AI = Path(__file__).resolve().parents[1] / "sql" / "20260505_documenti_ai_postgres.sql"
 
 
+def _postgres_backend_type() -> type[Any] | None:
+    return PostgresRepositoryBackend if isinstance(PostgresRepositoryBackend, type) else None
+
+
 class _ManagedSqliteBackend:
     backend_kind = "sqlite"
 
@@ -96,14 +100,18 @@ class DocumentAIRepository:
         storage_root: str | Path,
         schema_path: str | Path | None = None,
     ) -> "DocumentAIRepository":
-        backend = PostgresRepositoryBackend(str(dsn or "").strip(), schema_path or POSTGRES_SCHEMA_DOCUMENTI_AI)
+        backend_cls = _postgres_backend_type()
+        if backend_cls is None:
+            raise RuntimeError("Backend PostgreSQL documentale non disponibile.")
+        backend = backend_cls(str(dsn or "").strip(), schema_path or POSTGRES_SCHEMA_DOCUMENTI_AI)
         root = Path(storage_root)
         return cls(root / "documenti_ai.json", root, structured_db=backend)
 
     def _detect_backend(self, structured_db: Any) -> str:
         if structured_db is None:
             return ""
-        if isinstance(structured_db, PostgresRepositoryBackend):
+        postgres_backend_cls = _postgres_backend_type()
+        if postgres_backend_cls is not None and isinstance(structured_db, postgres_backend_cls):
             return "postgresql"
         kind = str(getattr(structured_db, "backend_kind", "") or "").lower()
         if kind == "postgresql":
@@ -161,7 +169,12 @@ class DocumentAIRepository:
         self.json_path.write_text(json.dumps(self._data, ensure_ascii=False, indent=2), encoding="utf-8")
 
     def _conn(self):
-        if self._backend == "postgresql" and isinstance(self.structured_db, PostgresRepositoryBackend):
+        postgres_backend_cls = _postgres_backend_type()
+        if (
+            self._backend == "postgresql"
+            and postgres_backend_cls is not None
+            and isinstance(self.structured_db, postgres_backend_cls)
+        ):
             return self.structured_db.connection()
         connection = getattr(self.structured_db, "connection", None)
         if self._backend == "postgresql" and callable(connection) and not hasattr(self.structured_db, "conn"):

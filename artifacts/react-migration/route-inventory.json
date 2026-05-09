@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-08T21:32:08.005Z",
+  "generatedAt": "2026-05-09T09:55:42.993Z",
   "react": {
     "dependencies": {
       "@fontsource-variable/geist": "^5.2.8",
@@ -175,6 +175,7 @@
       "/sigp-sync",
       "/sincronizzazione-calendari",
       "/strumenti-legali",
+      "/strumenti-operativi",
       "/telematico",
       "/tribunali"
     ]

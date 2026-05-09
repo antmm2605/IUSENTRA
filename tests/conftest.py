@@ -66,8 +66,45 @@ def _ensure_lex_unit_stubs() -> None:
             return f"postgresql://{user}@{host}/{db_name}"
         return ""
 
+    def _database_config_to_dsn_stub(database) -> str:
+        if database is None:
+            return ""
+        mode = str(
+            getattr(database, "normalized_mode", None)
+            or getattr(database, "mode", "")
+            or ""
+        ).strip().upper()
+        if mode != "POSTGRESQL":
+            return ""
+        host = str(getattr(database, "host", "") or "").strip()
+        db_name = str(getattr(database, "db_name", "") or "").strip()
+        user = str(getattr(database, "utente", "") or "").strip()
+        password = str(getattr(database, "password", "") or "")
+        port = int(getattr(database, "porta_effettiva", 0) or getattr(database, "porta", 0) or 5432)
+        if not all((host, db_name, user)):
+            return ""
+        auth = f"{user}:{password}" if password else user
+        return f"postgresql://{auth}@{host}:{port}/{db_name}"
+
+    def _resolve_runtime_postgres_dsn_stub(explicit_dsn: str = "", **kwargs) -> str:
+        if str(explicit_dsn or "").strip():
+            return str(explicit_dsn).strip()
+        config = dict(kwargs.get("config") or {})
+        for key in kwargs.get("env_url_keys") or ():
+            value = str(config.get(key) or "").strip()
+            if value:
+                return value
+        dsn = _database_config_to_dsn_stub(kwargs.get("database"))
+        if dsn:
+            return dsn
+        return _database_config_to_dsn_stub(config.get("TENANT_DATABASE_CONFIG"))
+
     _make_pct_stub("storage_postgres", build_postgres_dsn=_build_postgres_dsn_stub, PostgresStudioDB=None)
-    _make_pct_stub("postgres_runtime_support", resolve_runtime_postgres_dsn=lambda *a, **kw: None)
+    _make_pct_stub(
+        "postgres_runtime_support",
+        database_config_to_dsn=_database_config_to_dsn_stub,
+        resolve_runtime_postgres_dsn=_resolve_runtime_postgres_dsn_stub,
+    )
 
     try:
         importlib.import_module("pct.legal_intelligence")
@@ -91,12 +128,34 @@ def _ensure_lex_unit_stubs() -> None:
             fonti_per_query=lambda *a, **kw: [],
             GestioneLegalIntelligence=_GestioneLegalIntelligenceStub,
         )
-    _make_pct_stub(
-        "local_ai",
-        OllamaHttpClient=type("OllamaHttpClient", (), {}),
-        LocalAIService=type("LocalAIService", (), {"get_client": staticmethod(lambda: None)}),
-        strip_api_suffix=lambda x: x,
-    )
+    try:
+        importlib.import_module("pct.local_ai")
+    except Exception:
+        class _LocalAIServiceStub:
+            def __init__(self, **kwargs):
+                self.enabled = bool(kwargs.get("enabled", False))
+                for key, value in kwargs.items():
+                    if key in {"db_path", "policy_path", "config_path", "app_root", "models_path"}:
+                        setattr(self, key, Path(value))
+                    else:
+                        setattr(self, key, value)
+
+            @staticmethod
+            def get_client():
+                return None
+
+            def bootstrap_runtime(self, *, force: bool = False):
+                return {"status": "disabled", "force": bool(force)}
+
+            def health_snapshot(self):
+                return {"runtime": {"status": "disabled"}}
+
+        _make_pct_stub(
+            "local_ai",
+            OllamaHttpClient=type("OllamaHttpClient", (), {}),
+            LocalAIService=_LocalAIServiceStub,
+            strip_api_suffix=lambda x: x,
+        )
 
     # Stub per web.helpers solo se web non è già un package reale caricato
     if "web.helpers" not in sys.modules and "web" not in sys.modules:

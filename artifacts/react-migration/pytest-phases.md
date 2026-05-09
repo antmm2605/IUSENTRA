@@ -37,6 +37,16 @@ Questo inventario non rende verde la suite: serve a eseguire e diagnosticare.
 La suite backend e' verde solo quando tutte le fasi richieste passano, oppure
 quando la CI equivalente su Python 3.12 e' verde.
 
+## Stato shard 2026-05-09
+
+Formula operativa mantenuta nei report: `pytest completo monolitico non è verde perché va in timeout; il gate è stato verificato con shard/sotto-shard, con timeout per job, e i timeout larghi sono stati isolati.`
+
+Le fasi `00-ci-contracts`, `01-flask-core`, `02-react-ui`, `03-core-business`, `04-storage`, `05-documents`, `06-telematico`, `07-lex-ai`, `08-e2e` e `09-misc` sono state verificate tramite report JSON in `artifacts/react-migration/pytest-20260509-*.json` e storico dettagliato in `pytest-confirmed-ok.md`.
+
+Timeout larghi isolati e non dichiarati verdi monolitici:
+- `03-core-business`: batch workflow lenti confermati con item singoli.
+- `07-lex-ai`: follow-up lenti e Local AI API context confermati con sotto-shard singoli.
+
 ## Pytest core CI
 
 Il workflow GitHub Actions divide `Pytest core` in 10 shard principali generati

@@ -30,6 +30,7 @@ class AnswerBuilder:
             "cabina",
             "telematico",
             "telematico_status",
+            "deposito_telematico",
             "compliance",
         }
         citations = list((evidence or {}).get("citations") or [])
@@ -123,7 +124,7 @@ class AnswerBuilder:
         else:
             answer_mode = "grounded" if evidence_sufficient else "needs_review"
         next_actions: list[str] = []
-        if workflow in {"telematico", "telematico_status"}:
+        if workflow in {"telematico", "telematico_status", "deposito_telematico"}:
             next_actions.append("Verifica canale ed esito ufficiale prima di procedere")
         if workflow == "udienza":
             next_actions.append("Controlla documenti chiave e scadenze collegate")
@@ -218,6 +219,12 @@ class AnswerBuilder:
         except Exception:
             provenance_envelope = {}
 
+        metadata_workflow = {
+            "giurisprudenza_specifica": "giurisprudenza",
+            "deposito_telematico": "telematico_status",
+        }.get(workflow, workflow)
+        workflow_detail = workflow if metadata_workflow != workflow else ""
+
         return WorkflowLexResponse(
             answer=final_answer,
             citations=citations,
@@ -241,7 +248,8 @@ class AnswerBuilder:
                 "partner_source_count": len(partner_registry_sources),
             },
             metadata={
-                "workflow": workflow,
+                "workflow": metadata_workflow,
+                "workflow_detail": workflow_detail,
                 "provider": str(getattr(draft, "metadata", {}).get("provider") or ""),
                 "case_law_guard_applied": bool(draft_metadata.get("case_law_guard_applied")),
                 "case_law_fallback_used": case_law_fallback_used,
@@ -361,6 +369,8 @@ class AnswerBuilder:
                 else "Non ho trovato una fonte completa verificabile nelle evidenze disponibili."
             )
             answer_lines = [
+                "Non posso completare una risposta legale affidabile con i riferimenti oggi verificati.",
+                "",
                 f"Non ho trovato una conferma ufficiale esatta della {pronuncia} nelle fonti interrogate.",
                 "",
                 fragment_line,
@@ -395,14 +405,22 @@ class AnswerBuilder:
         )
         retrieved_count = len(list((evidence or {}).get("items") or []))
         discarded_count = int(metadata.get("discarded_unrelated_case_law_count") or 0)
+        coverage_gaps = self._unique_strings(
+            [
+                *list((evidence or {}).get("coverage_gaps") or []),
+                *list(evidence_pack.get("coverage_gaps") or []),
+            ]
+        )
         response_metadata = {
             **metadata,
-            "workflow": "giurisprudenza_specifica",
+            "workflow": "giurisprudenza",
+            "workflow_detail": "giurisprudenza_specifica",
             "provider": str(getattr(draft, "metadata", {}).get("provider") or ""),
             "confidence": confidence,
             "confidence_label": self._confidence_label(confidence),
             "answer_mode": answer_mode,
             "evidence_sufficient": bool(exact_match and has_full_text),
+            "coverage_gaps": coverage_gaps or missing_parts,
         }
         return WorkflowLexResponse(
             answer=final_answer,

@@ -13,7 +13,15 @@ from lex.contracts import answer_contract_for
 # ------------------------------------------------------------------ #
 # Set workflow esistenti (retrocompatibili)                             #
 # ------------------------------------------------------------------ #
-_DETERMINISTIC_WORKFLOWS = {"economico", "next_action", "cabina", "telematico_status", "compliance", "studio_data_lookup"}
+_DETERMINISTIC_WORKFLOWS = {
+    "economico",
+    "next_action",
+    "cabina",
+    "telematico_status",
+    "deposito_telematico",
+    "compliance",
+    "studio_data_lookup",
+}
 _STRICT_LEGAL_WORKFLOWS = {"normativa", "giurisprudenza", "giurisprudenza_specifica", "prassi", "research", "fonti"}
 
 
@@ -35,7 +43,15 @@ _DRAFTER_WORKFLOWS: frozenset[str] = frozenset({"atto", "documento"})
 
 # Deterministici: nessuna generazione, logica regola-based
 _DETERMINISTIC_PROFILE_WORKFLOWS: frozenset[str] = frozenset(
-    {"economico", "next_action", "cabina", "telematico_status", "compliance", "studio_data_lookup"}
+    {
+        "economico",
+        "next_action",
+        "cabina",
+        "telematico_status",
+        "deposito_telematico",
+        "compliance",
+        "studio_data_lookup",
+    }
 )
 
 

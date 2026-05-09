@@ -34,6 +34,7 @@ PRACTICAL_WORKFLOWS = {
     "cabina",
     "telematico",
     "telematico_status",
+    "deposito_telematico",
     "compliance",
 }
 HIGH_RISK_LEVELS = {"high", "critical"}
@@ -130,7 +131,8 @@ class ProfessionalAnswerComposer:
             fallback_triggered=fallback_triggered,
         )
         if fonti_lines:
-            sections.append(("Fonti consultate", fonti_lines))
+            source_heading = "Quadro verificato" if workflow in PRACTICAL_WORKFLOWS else "Fonti consultate"
+            sections.append((source_heading, fonti_lines))
 
         # ------------------------------------------------------------------ #
         # Sezione 3 — Dato certo                                               #
@@ -198,7 +200,7 @@ class ProfessionalAnswerComposer:
             human_review_required=human_review_required,
         )
         if confidence_lines:
-            sections.append(("Confidence", confidence_lines))
+            sections.append(("Qualita della risposta", confidence_lines))
 
         # ------------------------------------------------------------------ #
         # Sezione 9 — Missing evidence                                         #
@@ -208,7 +210,8 @@ class ProfessionalAnswerComposer:
             needs_review=needs_review,
         )
         if missing_lines:
-            sections.append(("Evidenze mancanti", missing_lines))
+            missing_heading = "Limiti e verifiche" if needs_review else "Evidenze mancanti"
+            sections.append((missing_heading, missing_lines))
 
         # ------------------------------------------------------------------ #
         # Sezione 10 — Warning                                                 #
@@ -269,8 +272,8 @@ class ProfessionalAnswerComposer:
 
     def _main_heading(self, workflow: str) -> str:
         if workflow in STRICT_WORKFLOWS:
-            return "Sintesi operativa"
-        if workflow in {"fascicolo", "udienza", "telematico", "telematico_status", "compliance"}:
+            return "Risposta professionale"
+        if workflow in {"fascicolo", "udienza", "telematico", "telematico_status", "deposito_telematico", "compliance"}:
             return "Sintesi operativa"
         if workflow in {"economico", "cabina", "next_action"}:
             return "Sintesi operativa"
@@ -386,7 +389,7 @@ class ProfessionalAnswerComposer:
         giudice = self._clean(str(fascicolo.get("giudice") or ""))
         stato = self._clean(str(fascicolo.get("stato") or fascicolo.get("status") or ""))
         if numero:
-            lines.append(f"Fascicolo di riferimento: {numero}.")
+            lines.append(f"Fascicolo considerato: {numero}.")
         elif titolo:
             lines.append(f"Pratica di riferimento: {titolo}.")
         if ufficio:
@@ -518,7 +521,7 @@ class ProfessionalAnswerComposer:
                 "Verifica scadenze, documenti preparatori e ultimo "
                 "provvedimento prima dell'udienza."
             )
-        elif workflow in {"telematico", "telematico_status"}:
+        elif workflow in {"telematico", "telematico_status", "deposito_telematico"}:
             actions.append(
                 "Controlla sempre ricevute, esiti e log del portale "
                 "ufficiale prima di depositare."

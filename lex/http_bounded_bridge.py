@@ -537,6 +537,7 @@ def build_bounded_http_payload(
     )
 
     attachment_evidence = build_attachment_evidence(attachments, request=request, context=studio_context)
+    attachment_source_rows = attachment_evidence_source_rows(attachment_evidence)
     if list(attachments or []) and not attachment_evidence:
         return _attachment_needs_indexing_payload(
             current_user_message=current_user_message,
@@ -547,9 +548,9 @@ def build_bounded_http_payload(
     if attachment_evidence:
         seed = dict(metadata.get("studio_context_seed") or {})
         seed_sources = list(seed.get("sources") or [])
-        seed_sources.extend(attachment_evidence_source_rows(attachment_evidence))
+        seed_sources.extend(attachment_source_rows)
         seed["sources"] = seed_sources
-        seed.setdefault("attachment_evidence", attachment_evidence_source_rows(attachment_evidence))
+        seed.setdefault("attachment_evidence", attachment_source_rows)
         metadata["studio_context_seed"] = seed
         metadata["attachment_evidence_count"] = len(attachment_evidence)
         metadata["attachment_count"] = len(list(attachments or []))
@@ -559,8 +560,16 @@ def build_bounded_http_payload(
     if not isinstance(response, LexResponse):
         return None
 
-    citations = [_citation_label(item) for item in list(response.citations or []) if _citation_label(item)]
-    sources = _source_rows(response)
+    citations: list[str] = []
+    for item in list(attachment_evidence or []):
+        label = _clean_spaces(getattr(item, "title", ""))
+        if label and label not in citations:
+            citations.append(label)
+    for item in list(response.citations or []):
+        label = _citation_label(item)
+        if label and label not in citations:
+            citations.append(label)
+    sources = [*attachment_source_rows, *_source_rows(response)]
     external_sources_used = bool(
         response.metadata.get("external_sources_used")
         or response.metadata.get("fallback_triggered")

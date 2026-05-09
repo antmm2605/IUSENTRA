@@ -1,6 +1,6 @@
 # Audit migrazione React
 
-Generato: 2026-05-08T21:32:08.005Z
+Generato: 2026-05-09T09:55:42.993Z
 
 ## Frontend
 
@@ -12,7 +12,7 @@ Script disponibili: dev, test, typecheck, build, build:vite, preview
 Route React prefixes: 55
 Route React exact: 46
 Excluded prefixes: 14
-Legacy operational prefixes: 22
+Legacy operational prefixes: 23
 
 ## App React
 

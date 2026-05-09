@@ -1,0 +1,26 @@
+{
+  "phase": "01-flask-core",
+  "startIndex": 130,
+  "totalItems": 140,
+  "executedItems": 10,
+  "batchSize": 5,
+  "resultCode": 0,
+  "targets": [
+    "tests/test_web_bootstrap.py::test_modal_firma_deposito_prevede_riavvio_local_signer",
+    "tests/test_web_bootstrap.py::test_cockpit_fascicolo_unifica_quadro_workflow_e_controlli_operativi",
+    "tests/test_web_bootstrap.py::test_assistente_stato_usa_runtime_ollama_risolto",
+    "tests/test_web_bootstrap.py::test_assistente_chat_usa_runtime_ollama_risolto",
+    "tests/test_web_bootstrap.py::test_audit_log_riconcilia_eventi_storici_con_fascicolo_corrente",
+    "tests/test_web_bootstrap.py::test_file_critici_non_contengono_marker_di_mojibake",
+    "tests/test_web_security.py::test_login_headers_e_bootstrap_password_forzata",
+    "tests/test_web_security.py::test_password_temporanea_blocca_navigazione_finche_non_viene_cambiata",
+    "tests/test_web_security.py::test_api_v1_cors_resta_chiuso_di_default",
+    "tests/test_web_security.py::test_api_v1_cors_consente_solo_origin_configurati"
+  ],
+  "results": [
+    {
+      "phase": "01-flask-core",
+      "code": 0
+    }
+  ]
+}

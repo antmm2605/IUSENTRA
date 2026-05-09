@@ -1,0 +1,24 @@
+{
+  "phase": "03-core-business",
+  "startIndex": 445,
+  "totalItems": 453,
+  "executedItems": 8,
+  "batchSize": 5,
+  "resultCode": 0,
+  "targets": [
+    "tests/test_workflow_onboarding.py::test_build_fascicolo_onboarding_arricchisce_la_procedura_operativa_tributaria",
+    "tests/test_workflow_pipeline.py::test_cliente_workflow_identifica_step_incasso",
+    "tests/test_workflow_pipeline.py::test_fascicolo_workflow_chiede_prima_attivita",
+    "tests/test_workspace_intelligente.py::test_workspace_intelligente_aggrega_moduli",
+    "tests/test_workspace_intelligente.py::test_workspace_intelligente_propone_sentenza_per_fascicolo",
+    "tests/test_workspace_intelligente.py::test_workspace_intelligente_calcola_presidio_reale_per_pratica_definita",
+    "tests/test_workspace_intelligente.py::test_workspace_intelligente_riconosce_stato_chiuso_legacy_e_deduplica_provvedimenti",
+    "tests/test_workspace_intelligente.py::test_workspace_intelligente_web_e_fascicolo_renderizzano"
+  ],
+  "results": [
+    {
+      "phase": "03-core-business",
+      "code": 0
+    }
+  ]
+}

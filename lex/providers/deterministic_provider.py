@@ -1144,7 +1144,7 @@ class DeterministicProvider(BaseProvider):
             text = _economic_text(q, context, title, summary)
         elif workflow in {"fascicolo"}:
             text = _fascicolo_text(q, context, title, summary)
-        elif workflow in {"telematico_status", "compliance"}:
+        elif workflow in {"telematico_status", "deposito_telematico", "compliance"}:
             text = _compliance_text(q, context, title, summary)
         elif workflow == "studio_data_lookup":
             text = _studio_data_lookup_text(q, context)

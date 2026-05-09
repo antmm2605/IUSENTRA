@@ -239,6 +239,16 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `Invoke-WebRequest -UseBasicParsing -Uri http://127.0.0.1:8080/api/pronto -TimeoutSec 20` | OK | Readiness locale: `{"ok":true,"stato":"pronto","versione":"2.211.0"}`. |
 | `docker exec iusentra-app python -c "import pct; print(pct.__version__)"` | OK | Versione runtime container locale: `2.211.0`. |
 
+## Hotfix Hetzner Backup / Esclusione Ollama 2026-05-09
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `ssh iusentra-hetzner "tar --use-compress-program=unzstd -tf /opt/iusentra/backups/iusentra-data-20260509_153532.tar.zst | grep -E '(^|/)ollama(/|$)' | head -20 || true"` | KO diagnosticato | Verifica reale: il backup vecchio conteneva ancora `intelligence/downloads/ollama` e path tenant, quindi non bastava escludere solo `./ollama`. |
+| `bash -n deploy/hetzner/backup.sh` | OK | Sintassi script backup confermata dopo esclusioni obbligatorie e verifica anti-Ollama nell'archivio. |
+| `python -m pytest -q tests/test_hetzner_backup_retention.py --tb=short` | OK | 3/3 passati: contratto retention, env esempio e test runtime con backup reale temporaneo senza percorsi Ollama. |
+| `python tools/sync_packaging_files.py --check` | OK | Versione 2.212.0 allineata tra sorgente Python, frontend, Docker e Railway. |
+| `python -m pytest -q tests/test_packaging_consistency.py tests/test_release_readiness.py --tb=short` | OK | 8/8 passati: packaging e readiness confermati dopo bump 2.212.0. |
+
 ## Gate finali tranche Controlli Atti e Strumenti React 2.210.0
 
 | Comando / verifica | Esito | Nota |

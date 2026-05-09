@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.212.0 - 2026-05-09
+
+- Corretto il backup Hetzner: Ollama, modelli e download rigenerabili sono esclusi in modo obbligatorio e l'archivio fallisce se contiene ancora percorsi `ollama`.
+- Aggiunto test runtime che crea un backup temporaneo reale e verifica che i dati da conservare restino presenti mentre le cartelle Ollama non vengono archiviate.
+
 ## 2.211.0 - 2026-05-09
 
 - Rafforzata `Impostazioni -> AI Locale`: la shell React carica `react-ai-local-guard.js`, i controlli stato/preparazione passano dal PC in uso tramite IUSENTRA Local Signer e i test mirati bloccano regressioni verso verifiche solo server/cloud.

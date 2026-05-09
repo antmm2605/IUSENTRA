@@ -20,6 +20,14 @@ RETENTION_MAX_GIB="${IUSENTRA_BACKUP_RETENTION_MAX_GIB:-${BACKUP_RETENTION_MAX_G
 ZSTD_LEVEL="${IUSENTRA_BACKUP_ZSTD_LEVEL:-${BACKUP_ZSTD_LEVEL:-19}}"
 ZSTD_LONG_WINDOW="${IUSENTRA_BACKUP_ZSTD_LONG_WINDOW:-${BACKUP_ZSTD_LONG_WINDOW:-27}}"
 BACKUP_EXCLUDE_PATHS="${IUSENTRA_BACKUP_EXCLUDE_PATHS:-${BACKUP_EXCLUDE_PATHS:-./ollama}}"
+MANDATORY_REGENERABLE_EXCLUDES=(
+  "./ollama"
+  "./ollama/*"
+  "./intelligence/downloads/ollama"
+  "./intelligence/downloads/ollama/*"
+  "./tenants/*/intelligence/downloads/ollama"
+  "./tenants/*/intelligence/downloads/ollama/*"
+)
 STAMP="$(date -u +%Y%m%d_%H%M%S)"
 FINAL_OUT="${BACKUP_DIR}/iusentra-data-${STAMP}.tar.zst"
 OUT="${FINAL_OUT}.tmp"
@@ -35,15 +43,53 @@ cleanup_incomplete_backup() {
 trap cleanup_incomplete_backup EXIT
 
 tar_exclude_args=()
+tar_exclude_seen="|"
+add_tar_exclude() {
+  local exclude_path="$1"
+  exclude_path="$(echo "$exclude_path" | xargs)"
+  if [[ -n "$exclude_path" && "$tar_exclude_seen" != *"|${exclude_path}|"* ]]; then
+    tar_exclude_args+=("--exclude=${exclude_path}")
+    tar_exclude_seen+="${exclude_path}|"
+  fi
+}
+
 if [[ -n "$BACKUP_EXCLUDE_PATHS" ]]; then
   IFS=',' read -r -a configured_excludes <<< "$BACKUP_EXCLUDE_PATHS"
   for exclude_path in "${configured_excludes[@]}"; do
-    exclude_path="$(echo "$exclude_path" | xargs)"
-    if [[ -n "$exclude_path" ]]; then
-      tar_exclude_args+=("--exclude=${exclude_path}")
-    fi
+    add_tar_exclude "$exclude_path"
   done
 fi
+for exclude_path in "${MANDATORY_REGENERABLE_EXCLUDES[@]}"; do
+  add_tar_exclude "$exclude_path"
+done
+
+list_backup_archive() {
+  case "$OUT" in
+    *.tar.zst)
+      if command -v unzstd >/dev/null 2>&1; then
+        tar --use-compress-program=unzstd -tf "$OUT"
+      else
+        zstd -dc "$OUT" | tar -tf -
+      fi
+      ;;
+    *.tar.gz)
+      tar -tzf "$OUT"
+      ;;
+    *)
+      tar -tf "$OUT"
+      ;;
+  esac
+}
+
+verify_no_ollama_in_backup() {
+  local found
+  found="$(list_backup_archive | grep -E '(^|/)ollama(/|$)' | head -20 || true)"
+  if [[ -n "$found" ]]; then
+    echo "Errore: il backup contiene dati Ollama rigenerabili. Correggere le esclusioni prima di conservarlo." >&2
+    echo "$found" >&2
+    return 1
+  fi
+}
 
 backup_find_args=(
   "$BACKUP_DIR"
@@ -107,6 +153,7 @@ fi
 
 mv -f -- "$OUT" "$FINAL_OUT"
 OUT="$FINAL_OUT"
+verify_no_ollama_in_backup
 sha256sum "$OUT" > "${OUT}.sha256"
 sha256sum -c "${OUT}.sha256"
 
@@ -131,7 +178,7 @@ prune_by_total_size
 
 echo "Retention backup applicata: giorni=${RETENTION_DAYS}, copie=${RETENTION_COUNT}, minimo=${RETENTION_MIN_COUNT}, spazio_max_gib=${RETENTION_MAX_GIB}"
 if [[ -n "$BACKUP_EXCLUDE_PATHS" ]]; then
-  echo "Esclusioni backup rigenerabili: ${BACKUP_EXCLUDE_PATHS}"
+  echo "Esclusioni backup rigenerabili: ${BACKUP_EXCLUDE_PATHS}, ${MANDATORY_REGENERABLE_EXCLUDES[*]}"
 fi
 echo "$OUT"
 BACKUP_COMPLETED=1

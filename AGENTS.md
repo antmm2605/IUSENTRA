@@ -190,6 +190,8 @@ Quando il lavoro riguarda Hetzner, Docker, PostgreSQL, volumi, backup, restore o
   - `ssh iusentra-hetzner "bash /opt/iusentra/repo/deploy/hetzner/backup.sh"`;
   - `ssh iusentra-hetzner "bash /opt/iusentra/repo/deploy/hetzner/deploy.sh"`;
   - verificare `git rev-parse --short HEAD`, `docker compose ... ps` e `curl -fsS https://app.iusentra.it/api/pronto`;
+- **Ollama non deve mai finire nei backup**: modelli, cache e download Ollama sono rigenerabili e consumano spazio. `deploy/hetzner/backup.sh` deve escludere sempre `./ollama`, `./intelligence/downloads/ollama` e `./tenants/*/intelligence/downloads/ollama`, anche se l'env personalizza `IUSENTRA_BACKUP_EXCLUDE_PATHS`, e deve verificare l'archivio fallendo se trova ancora un percorso `ollama`.
+- Fix eseguito il 2026-05-09 dopo verifica reale su Hetzner: il vecchio backup escludeva solo `./ollama` ma lasciava dentro `intelligence/downloads/ollama`; non tornare mai a quella configurazione.
 - non salvare segreti nel repository;
 - non inserire dati studio nel Product Pack;
 - documentare rollback e verifiche post-deploy;

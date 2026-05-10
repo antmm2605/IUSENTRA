@@ -19,6 +19,15 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 | `python tools/sync_packaging_files.py --check` | OK | Packaging/versione 2.215.2 sincronizzati. |
 | `python -m pytest -q tests/test_packaging_consistency.py tests/test_release_readiness.py --tb=short` | OK | 8 test verdi su coerenza packaging e readiness release dopo il bump versione. |
 
+### Hotfix Docker email ordinaria 2.215.3
+
+| Verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest -q tests/test_web_bootstrap.py::test_docker_compose_prevede_runtime_ollama_sulla_stessa_macchina --tb=short` | OK | Contratto CI verde dopo ripristino `PCT_EMAIL_ORDINARIA_DB=/data/email/ordinaria.json` nel Dockerfile. |
+| `python scripts/run_pytest_phases.py --core-shard 7 --core-total-shards 10 --core-subshard 3 --core-total-subshards 3 --core-subdivide-items --timeout-minutes 5` | OK | 36 test verdi: riprodotto localmente il sotto-shard `Pytest core fase 7/10 observability parte 3/3` che falliva su GitHub. |
+| `python tools/sync_packaging_files.py --check` | OK | Packaging/versione 2.215.3 sincronizzati. |
+| `python -m pytest -q tests/test_packaging_consistency.py tests/test_release_readiness.py --tb=short` | OK | 8 test verdi su coerenza packaging e readiness release dopo il bump versione 2.215.3. |
+
 ### Ripristino CI mirato 2026-05-10
 
 | Verifica | Esito | Nota |

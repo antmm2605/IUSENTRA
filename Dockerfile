@@ -1,4 +1,4 @@
-#  version: 2.215.2
+#  version: 2.215.3
 #  IUSENTRA | Dockerfile produzione
 
 #  Build multi-stage:
@@ -75,7 +75,7 @@ RUN mkdir -p /out && /tmp/dart-sass/sass --no-source-map --style=compressed \
 FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="IUSENTRA" \
-      org.opencontainers.image.version="2.215.2" \
+      org.opencontainers.image.version="2.215.3" \
       org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
       org.opencontainers.image.created="2026-03-18"
 
@@ -144,6 +144,7 @@ ENV PCT_AGENDA_DB=/data/agenda/appuntamenti.json \
     PCT_PRACTICE_ENGINE_DB=/data/fascicoli/practice_engine/practice_engine.json \
     PCT_MESSAGGI_DB=/data/messaggi/storico.json \
     PCT_EMAIL_DB=/data/email/casella.json \
+    PCT_EMAIL_ORDINARIA_DB=/data/email/ordinaria.json \
     PCT_BACKUP_DIR=/data/backup \
     PCT_AUTH_DB=/data/auth/utenti.json \
     PCT_AUDIT_DB=/data/auth/audit.json \

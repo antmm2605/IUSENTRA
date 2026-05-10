@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.215.3 - 2026-05-11
+
+- Ripristinato nel `Dockerfile` il path runtime esplicito `PCT_EMAIL_ORDINARIA_DB=/data/email/ordinaria.json`, cosi' il container non puo' ricadere sul repository e il contratto CI resta allineato al comportamento tenant-aware.
+
 ## 2.215.2 - 2026-05-11
 
 - Corretta l'operazione multipla su `Email ordinaria` e `Email PEC`: spostamento nel cestino ed eliminazione definitiva caricano e salvano la casella una sola volta anche con migliaia di messaggi selezionati.

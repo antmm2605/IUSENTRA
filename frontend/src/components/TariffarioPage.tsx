@@ -1026,7 +1026,7 @@ function StickyRealtimeSummary({
   return (
     <div
       ref={anchor}
-      className="iu-tar-summary-dock"
+      className="iu-tar-summary-dock iu-tar-summary-sticky"
       style={dock.floating ? { minHeight: dock.height } : undefined}
     >
       <div className={`iu-tar-summary-holder${dock.floating ? ' is-floating' : ''}`} style={dock.style}>

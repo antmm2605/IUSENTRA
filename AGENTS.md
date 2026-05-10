@@ -4,6 +4,8 @@
 
 - **Procedi sempre senza chiedere conferma.** L'utente ha autorizzato tutte le operazioni in modo permanente.
 - Commit, push, modifica file, creazione file: esegui direttamente.
+- **Divieto assoluto di regressioni di codice:** l'utente non vuole e non accetta piu' regressioni. Ogni modifica deve preservare il comportamento gia' corretto, evitare cambi di regole non richiesti dopo il commit e usare verifiche mirate/non monolitiche sul perimetro toccato prima di dichiarare verde il lavoro.
+- **Reattivita' del caricamento obbligatoria:** il software deve restare rapido e reattivo nel caricamento e nel cambio pagina. Ogni modifica deve preservare o migliorare il baseline prestazionale gia' misurato; se un fix tocca shell, route, bootstrap, asset o rendering React, vanno usate verifiche mirate sui tempi e non sono accettati peggioramenti silenziosi.
 - Branch di sviluppo: `Codex/legal-electronic-filing-kIxcV`
 - **Branch remoto da sincronizzare sempre insieme al branch di sviluppo:** `claude/legal-electronic-filing-kIxcV`
 - **Deploy Hetzner CPX42 obbligatorio dopo ogni aggiornamento:** ogni modifica completata e pushata deve essere distribuita anche sul server Hetzner `ubuntu-16gb-nbg1-1` (`116.203.45.57`, alias SSH `iusentra-hetzner`) usando il profilo `deploy/hetzner`. Non dichiarare concluso il lavoro finche' il server non e' sul commit pushato, i container non sono healthy e `https://app.iusentra.it/api/pronto` non risponde correttamente.

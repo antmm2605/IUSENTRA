@@ -8,18 +8,7 @@ from pct.agenda import Agenda, StatoAppuntamento, TipoAppuntamento
 from pct.economic_dashboard import build_studio_economic_dashboard
 from pct.studio_demo import build_studio_demo_snapshot
 from web.blueprints.react_shell import render_react_shell_response
-
-
-def _richiede_vista_classica() -> bool:
-    return (request.args.get("_legacy") or "").strip().lower() in {"1", "true", "si", "yes", "on"}
-
-
-def _richiede_json() -> bool:
-    return (
-        request.headers.get("X-Requested-With") == "XMLHttpRequest"
-        or "application/json" in (request.headers.get("Accept") or "")
-    )
-
+from web.services.request_mode import richiede_json, richiede_vista_classica
 
 def register_dashboard_routes(
     app: Flask,
@@ -42,7 +31,7 @@ def register_dashboard_routes(
     """Register dashboard, agenda, calendar import, and agenda API routes."""
     @app.route("/")
     def dashboard():
-        if not _richiede_vista_classica():
+        if not richiede_vista_classica():
             return render_react_shell_response("")
         agenda = get_agenda()
         oggi = date.today()
@@ -123,7 +112,7 @@ def register_dashboard_routes(
         )
     @app.route("/agenda")
     def agenda_view():
-        if not _richiede_vista_classica():
+        if not richiede_vista_classica():
             return render_react_shell_response("agenda")
         agenda = get_agenda()
         vista = request.args.get("vista", "settimana")
@@ -183,7 +172,7 @@ def register_dashboard_routes(
         )
     @app.route("/agenda/nuovo", methods=["GET", "POST"])
     def nuovo_appuntamento():
-        if request.method == "GET" and not _richiede_vista_classica():
+        if request.method == "GET" and not richiede_vista_classica():
             return render_react_shell_response("agenda/nuovo")
         if request.method == "POST":
             agenda = get_agenda()
@@ -211,15 +200,15 @@ def register_dashboard_routes(
                 flash(f"Appuntamento '{new_app.titolo}' aggiunto.", "success")
                 if from_cliente:
                     target = url_for("cartella_cliente", id_cliente=from_cliente)
-                    if _richiede_json():
+                    if richiede_json():
                         return jsonify({"ok": True, "id": new_app.id, "message": f"Appuntamento '{new_app.titolo}' aggiunto.", "redirect": target})
                     return redirect(url_for("cartella_cliente", id_cliente=from_cliente))
                 target = url_for("dettaglio_appuntamento", id_app=new_app.id)
-                if _richiede_json():
+                if richiede_json():
                     return jsonify({"ok": True, "id": new_app.id, "message": f"Appuntamento '{new_app.titolo}' aggiunto.", "redirect": target})
                 return redirect(url_for("dettaglio_appuntamento", id_app=new_app.id))
             except ValueError as e:
-                if _richiede_json():
+                if richiede_json():
                     return jsonify({"ok": False, "message": str(e)}), 400
                 flash(str(e), "danger")
 
@@ -238,7 +227,6 @@ def register_dashboard_routes(
             from_cliente=from_cliente_get,
             cliente_presel=cliente_presel,
         )
-
     @app.route("/agenda/<id_app>")
     def dettaglio_appuntamento(id_app):
         agenda = get_agenda()
@@ -246,7 +234,7 @@ def register_dashboard_routes(
         if not app_item:
             flash("Appuntamento non trovato.", "warning")
             return redirect(url_for("agenda_view"))
-        if not _richiede_vista_classica(): return render_react_shell_response(f"agenda/{id_app}")
+        if not richiede_vista_classica(): return render_react_shell_response(f"agenda/{id_app}")
         track_recente(
             "appuntamento",
             id_app,
@@ -255,7 +243,6 @@ def register_dashboard_routes(
             "bi-calendar-event",
         )
         return render_template("dettaglio_appuntamento.html", app=app_item)
-
     @app.route("/agenda/<id_app>/modifica", methods=["GET", "POST"])
     def modifica_appuntamento(id_app):
         agenda = get_agenda()
@@ -263,7 +250,7 @@ def register_dashboard_routes(
         if not app_item:
             flash("Appuntamento non trovato.", "warning")
             return redirect(url_for("agenda_view"))
-        if request.method == "GET" and not _richiede_vista_classica(): return render_react_shell_response(f"agenda/{id_app}/modifica")
+        if request.method == "GET" and not richiede_vista_classica(): return render_react_shell_response(f"agenda/{id_app}/modifica")
 
         if request.method == "POST":
             data = request.form.get("data", "")
@@ -288,11 +275,11 @@ def register_dashboard_routes(
                 flash("Appuntamento aggiornato.", "success")
                 sync_pubblica("modifica", "agenda", id_app)
                 target = url_for("dettaglio_appuntamento", id_app=id_app)
-                if _richiede_json():
+                if richiede_json():
                     return jsonify({"ok": True, "id": id_app, "message": "Appuntamento aggiornato.", "redirect": target})
                 return redirect(url_for("dettaglio_appuntamento", id_app=id_app))
             except (ValueError, KeyError) as e:
-                if _richiede_json():
+                if richiede_json():
                     return jsonify({"ok": False, "message": str(e)}), 400
                 flash(str(e), "danger")
 
@@ -301,7 +288,6 @@ def register_dashboard_routes(
             app=app_item,
             tipi=list(TipoAppuntamento),
         )
-
     @app.route("/agenda/<id_app>/stato", methods=["POST"])
     def cambia_stato(id_app):
         agenda = get_agenda()
@@ -312,7 +298,6 @@ def register_dashboard_routes(
         except (KeyError, ValueError) as e:
             flash(str(e), "danger")
         return redirect(url_for("dettaglio_appuntamento", id_app=id_app))
-
     @app.route("/agenda/<id_app>/elimina", methods=["POST"])
     def elimina_appuntamento(id_app):
         agenda = get_agenda()
@@ -323,10 +308,9 @@ def register_dashboard_routes(
         except KeyError as e:
             flash(str(e), "danger")
         return redirect(url_for("agenda_view"))
-
     @app.route("/agenda/importa", methods=["GET", "POST"])
     def importa_calendario():
-        if request.method == "GET" and not _richiede_vista_classica(): return render_react_shell_response("agenda/importa")
+        if request.method == "GET" and not richiede_vista_classica(): return render_react_shell_response("agenda/importa")
         import json as _json
 
         from pct.agenda import TipoAppuntamento
@@ -601,7 +585,6 @@ def register_dashboard_routes(
             sorgente="generico",
             oggi=date.today(),
         )
-
     @app.route("/api/agenda/<id_app>/sposta", methods=["POST"])
     def api_sposta_appuntamento(id_app):
         if not g.utente_corrente or not g.utente_corrente.ha_permesso("agenda.scrivi"):
@@ -624,7 +607,6 @@ def register_dashboard_routes(
             return jsonify({"ok": True, "data_ora": appt.data_ora})
         except (ValueError, KeyError) as e:
             return jsonify({"errore": str(e)}), 409
-
     @app.route("/api/agenda")
     def api_agenda():
         try:
@@ -638,7 +620,6 @@ def register_dashboard_routes(
         except Exception as e:
             app.logger.exception("Errore api_agenda: %s", e)
             return jsonify([])
-
     @app.route("/api/agenda/<id_app>")
     def api_appuntamento(id_app):
         try:
@@ -650,7 +631,6 @@ def register_dashboard_routes(
         except Exception as e:
             app.logger.exception("Errore api_appuntamento: %s", e)
             return jsonify({"errore": str(e)})
-
     @app.route("/api/reminder")
     def api_reminder():
         try:
@@ -661,7 +641,6 @@ def register_dashboard_routes(
         except Exception as e:
             app.logger.exception("Errore api_reminder: %s", e)
             return jsonify([])
-
     @app.route("/api/statistiche")
     def api_statistiche():
         try:

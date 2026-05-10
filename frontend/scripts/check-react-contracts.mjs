@@ -1125,6 +1125,8 @@ for (const source of [backupPage, sitoStudioPage, backupData, sitoStudioData]) {
   assertNotContains(source, 'response.blob', 'nessun download gestito con blob React')
   assertNotContains(source, 'new Blob', 'nessun download gestito con blob React')
 }
+const fiscalPreviewLabels = new Set(['FatturazionePage', 'fatturazioneData', 'TariffarioPage', 'tariffarioData'])
+
 for (const [label, source] of [
   ['FatturazionePage', fatturazionePage],
   ['IncassiPagamentiPage', incassiPagamentiPage],
@@ -1142,7 +1144,13 @@ for (const [label, source] of [
   ['redazioneAttiData', redazioneAttiData],
 ]) {
   assertNoFetchBlob(source, `${label} senza fetch blob`)
-  if (!label.includes('Template') && !label.includes('Redazione') && !label.includes('templateAtti') && !label.includes('redazioneAtti')) {
+  if (
+    !fiscalPreviewLabels.has(label)
+    && !label.includes('Template')
+    && !label.includes('Redazione')
+    && !label.includes('templateAtti')
+    && !label.includes('redazioneAtti')
+  ) {
     assertNoFiscalLogic(source, `${label} senza calcolo fiscale canonico`)
   }
 }

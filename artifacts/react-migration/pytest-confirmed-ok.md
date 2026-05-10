@@ -8,6 +8,17 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 
 ## Frontend e gate React
 
+### Ripristino CI mirato 2026-05-10
+
+| Verifica | Esito | Nota |
+| --- | --- | --- |
+| `python tools/check_repo_governance.py` | OK | Governance di nuovo verde dopo rientro sotto budget dei bootstrap `dashboard_routes.py` e `scadenziario_routes.py` senza refactor funzionale, con helper richiesta condiviso e pulizia righe vuote superflue. |
+| `python -m py_compile web/services/request_mode.py web/bootstrap/dashboard_routes.py web/bootstrap/scadenziario_routes.py` | OK | Compilazione Python mirata verde dopo estrazione di `richiede_vista_classica()` e `richiede_json()` nel servizio condiviso. |
+| `node frontend/scripts/check-react-contracts.mjs` | OK | Contratto React riallineato: ripristinato marker sticky del Tariffario e whitelist mirata per i riepiloghi fiscali governati di Fatturazione/Tariffario gia' ammessi dal prodotto. |
+| `npm --prefix frontend run test -- --runInBand` | OK | Shard frontend `contratti` verde dopo fix Tariffario + guardrail contratti. |
+| `python -m pytest -q tests/test_ci_no_regression_contract.py tests/test_packaging_consistency.py --tb=short` | OK | 12 test verdi sui contratti anti-regressione e packaging collegati ai gate CI. |
+| `python -m pytest -q tests/test_web_bootstrap.py::test_i_moduli_bootstrap_restano_governabili --tb=short` | OK | Regressione specifica sul budget dei moduli bootstrap coperta e confermata verde. |
+
 ### Eliminazione multipla Email PEC e ordinaria 2.214.10
 
 | Verifica | Esito | Nota |

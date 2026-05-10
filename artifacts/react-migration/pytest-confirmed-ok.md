@@ -13,11 +13,14 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 | Verifica | Esito | Nota |
 | --- | --- | --- |
 | `python tools/check_repo_governance.py` | OK | Governance di nuovo verde dopo rientro sotto budget dei bootstrap `dashboard_routes.py` e `scadenziario_routes.py` senza refactor funzionale, con helper richiesta condiviso e pulizia righe vuote superflue. |
+| `python -m ruff check web/services/request_mode.py web/bootstrap/dashboard_routes.py web/bootstrap/scadenziario_routes.py` | OK | `Lint + syntax` mirato verde dopo correzione delle tre forme `if ...: return ...` che avevano riaperto il gate `E701` su `dashboard_routes.py`. |
+| `python -m flake8 web/services/request_mode.py web/bootstrap/dashboard_routes.py web/bootstrap/scadenziario_routes.py` | OK | Sintassi e stile mirati confermati verdi sugli stessi file toccati dal fix CI. |
 | `python -m py_compile web/services/request_mode.py web/bootstrap/dashboard_routes.py web/bootstrap/scadenziario_routes.py` | OK | Compilazione Python mirata verde dopo estrazione di `richiede_vista_classica()` e `richiede_json()` nel servizio condiviso. |
 | `node frontend/scripts/check-react-contracts.mjs` | OK | Contratto React riallineato: ripristinato marker sticky del Tariffario e whitelist mirata per i riepiloghi fiscali governati di Fatturazione/Tariffario gia' ammessi dal prodotto. |
 | `npm --prefix frontend run test -- --runInBand` | OK | Shard frontend `contratti` verde dopo fix Tariffario + guardrail contratti. |
 | `python -m pytest -q tests/test_ci_no_regression_contract.py tests/test_packaging_consistency.py --tb=short` | OK | 12 test verdi sui contratti anti-regressione e packaging collegati ai gate CI. |
 | `python -m pytest -q tests/test_web_bootstrap.py::test_i_moduli_bootstrap_restano_governabili --tb=short` | OK | Regressione specifica sul budget dei moduli bootstrap coperta e confermata verde. |
+| `python tools/check_local_signer_boundaries.py` | OK | Guardrail Local Signer verde; il riepilogo CI relativo non ha piu' un errore locale riproducibile dopo il ripristino del gate principale. |
 
 ### Eliminazione multipla Email PEC e ordinaria 2.214.10
 

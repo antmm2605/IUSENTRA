@@ -234,7 +234,8 @@ def register_dashboard_routes(
         if not app_item:
             flash("Appuntamento non trovato.", "warning")
             return redirect(url_for("agenda_view"))
-        if not richiede_vista_classica(): return render_react_shell_response(f"agenda/{id_app}")
+        if not richiede_vista_classica():
+            return render_react_shell_response(f"agenda/{id_app}")
         track_recente(
             "appuntamento",
             id_app,
@@ -250,7 +251,8 @@ def register_dashboard_routes(
         if not app_item:
             flash("Appuntamento non trovato.", "warning")
             return redirect(url_for("agenda_view"))
-        if request.method == "GET" and not richiede_vista_classica(): return render_react_shell_response(f"agenda/{id_app}/modifica")
+        if request.method == "GET" and not richiede_vista_classica():
+            return render_react_shell_response(f"agenda/{id_app}/modifica")
 
         if request.method == "POST":
             data = request.form.get("data", "")
@@ -310,7 +312,8 @@ def register_dashboard_routes(
         return redirect(url_for("agenda_view"))
     @app.route("/agenda/importa", methods=["GET", "POST"])
     def importa_calendario():
-        if request.method == "GET" and not richiede_vista_classica(): return render_react_shell_response("agenda/importa")
+        if request.method == "GET" and not richiede_vista_classica():
+            return render_react_shell_response("agenda/importa")
         import json as _json
 
         from pct.agenda import TipoAppuntamento
@@ -318,7 +321,6 @@ def register_dashboard_routes(
 
         fase = request.form.get("fase", "")
         calendar_sync = get_calendar_sync()
-
         def _render_upload_form(**extra):
             context = {
                 "fase": "upload_form",
@@ -328,7 +330,6 @@ def register_dashboard_routes(
             }
             context.update(extra)
             return render_template("importa_calendario.html", **context)
-
         def _render_preview(*, sorgente, eventi, import_metadata, source_url="", content_type=""):
             return render_template(
                 "importa_calendario.html",
@@ -342,10 +343,8 @@ def register_dashboard_routes(
                 profili_sync=calendar_sync.list_profiles(),
                 oggi=date.today(),
             )
-
         if request.method == "GET":
             return _render_upload_form()
-
         if request.method == "POST" and fase == "upload":
             import hashlib as _hashlib
 

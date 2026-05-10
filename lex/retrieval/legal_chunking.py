@@ -14,9 +14,8 @@ from __future__ import annotations
 import hashlib
 import re
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
-
 
 # ---------------------------------------------------------------------------
 # Tipi di sezione giuridica riconosciuti
@@ -193,7 +192,7 @@ def _compute_hash(text: str) -> str:
 
 
 def _now_iso() -> str:
-    return datetime.now(tz=timezone.utc).isoformat()
+    return datetime.now(tz=UTC).isoformat()
 
 
 def _detect_norme(text: str) -> list[str]:

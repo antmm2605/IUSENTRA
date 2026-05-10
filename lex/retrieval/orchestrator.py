@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from dataclasses import asdict
 
-from lex.research import LexResearchService
 from lex.guards.exact_case_law_guard import check_exact_case_law
+from lex.research import LexResearchService
 from lex.research.case_law_completeness import detect_case_law_fragment
 from lex.research.case_law_exact_search import parse_case_law_reference
 from lex.research.source_scope_policy import classify_source_scope
@@ -103,18 +103,14 @@ class RetrievalOrchestrator:
         top = list(results[:5])
         official_count = 0
         strong_count = 0
-        has_official_url = False
         for item in top:
             trust_class = str(getattr(item, "trust_class", "") or (item.get("trust_class") if isinstance(item, dict) else "")).upper()
             source_level = int(getattr(item, "source_level", 0) or (item.get("source_level") if isinstance(item, dict) else 0) or 0)
             score = float(getattr(item, "score", 0.0) or (item.get("score") if isinstance(item, dict) else 0.0) or 0.0)
-            official_url = str(getattr(item, "official_url", "") or (item.get("official_url") if isinstance(item, dict) else "") or "")
             if trust_class in {"A", "B"} or source_level <= 2:
                 official_count += 1
             if score >= 0.55:
                 strong_count += 1
-            if official_url and ("giustizia" in official_url or "normattiva" in official_url or "cortecostituzionale" in official_url):
-                has_official_url = True
 
         # Sentenza specifica: sempre insufficiente senza URL ufficiale + testo completo
         if workflow == "giurisprudenza_specifica":

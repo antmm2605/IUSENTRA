@@ -17,7 +17,6 @@ from __future__ import annotations
 import os
 from typing import Any
 
-
 _STRICT_LEGAL_WORKFLOWS = frozenset(
     {"normativa", "giurisprudenza", "prassi", "research", "fonti", "giurisprudenza_specifica"}
 )

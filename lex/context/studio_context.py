@@ -69,9 +69,8 @@ def build_studio_context(request) -> dict[str, Any]:
         try:
             from lex.tools.studio_data_gateway import find_cliente
             matches = find_cliente(question)
-            cliente_lines = [m.to_text() for m in matches[:8]]
         except Exception:
-            cliente_lines = []
+            matches = []
         rich_payload: dict[str, Any] = {
             "studio": {
                 "sources": [

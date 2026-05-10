@@ -61,6 +61,16 @@ TOOL_SCHEMAS: Dict[str, Dict[str, Any]] = {
                     {"value": "cassazione", "label": "Cassazione"},
                 ],
             },
+            {
+                "name": "cu_valore_tipo",
+                "label": "Tipo valore",
+                "type": "select",
+                "options": [
+                    {"value": "determinato", "label": "Valore determinato"},
+                    {"value": "indeterminabile", "label": "Valore indeterminabile"},
+                    {"value": "non_indicato", "label": "Valore non indicato"},
+                ],
+            },
             {"name": "cu_valore", "label": "Valore causa", "type": "number", "step": "0.01", "min": "0"},
             {
                 "name": "cu_anticipazione_forfettaria",

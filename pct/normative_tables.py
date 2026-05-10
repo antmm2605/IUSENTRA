@@ -621,7 +621,10 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
                 {"max_value": 520000.0, "amount": 1214.0},
                 {"max_value": None, "amount": 1686.0},
             ],
-            "defaults": {"indeterminabile_amount": 518.0},
+            "defaults": {
+                "indeterminabile_amount": 518.0,
+                "non_indicato_amount": 1686.0,
+            },
             "published_at": "",
             "effective_from": "2024-01-01",
         },
@@ -641,6 +644,10 @@ def canonical_table_definitions() -> Dict[str, Dict[str, Any]]:
                 {"max_value": 200000.0, "amount": 500.0},
                 {"max_value": None, "amount": 1500.0},
             ],
+            "defaults": {
+                "indeterminabile_amount": 120.0,
+                "non_indicato_amount": 1500.0,
+            },
             "published_at": "",
             "effective_from": "2024-01-01",
         },
@@ -1582,13 +1589,16 @@ class GestioneTabelleNormative:
         if not table:
             raise KeyError(f"Tabella normativa non trovata: {table_id}")
         active = self._active_version(table, on_date=on_date)
+        definition = canonical_table_definitions().get(table_id) or {}
+        merged_defaults = dict(definition.get("defaults") or {})
+        merged_defaults.update(table.get("defaults") or {})
         return {
             "id": table["id"],
             "title": table.get("title", table_id),
             "category": table.get("category", ""),
             "description": table.get("description", ""),
             "strategy": table.get("strategy", ""),
-            "defaults": dict(table.get("defaults") or {}),
+            "defaults": merged_defaults,
             "sync_status": table.get("sync_status", "sconosciuta"),
             "last_synced_at": table.get("last_synced_at", ""),
             "last_source_change_at": table.get("last_source_change_at", ""),

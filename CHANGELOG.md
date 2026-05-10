@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.214.3 - 2026-05-10
+
+- Allineato il calcolo del contributo unificato alle tabelle operative richieste per civile, tributario e amministrativo.
+- Distinti nel motore e nel form `Valore determinato`, `Valore indeterminabile` e `Valore non indicato`, evitando il vecchio uso ambiguo del solo valore `0`.
+- Corretta la Cassazione tributaria: ora usa la misura prevista per il processo civile, inclusi i casi di valore non indicato.
+- Corretti i ricorsi amministrativi di terzo grado e gli appalti pubblici in Cassazione/valore non indicato, con nuovi test anti-regressione mirati.
+
 ## 2.214.2 - 2026-05-10
 
 - Ripristinato nelle pagine `/clienti` e `/soggetti` il tasto operativo `Elimina` direttamente nelle azioni riga, sia in tabella sia nelle card mobile.

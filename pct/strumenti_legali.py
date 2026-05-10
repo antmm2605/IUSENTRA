@@ -222,6 +222,7 @@ class GestioneStrumentiLegali:
         defaults = {
             "cu_categoria": "civile_ordinario",
             "cu_grado": "primo_grado",
+            "cu_valore_tipo": "determinato" if prefill.get("valore_causa") else "indeterminabile",
             "cu_valore": prefill.get("valore_causa", ""),
             "cu_anticipazione_forfettaria": "1",
             "int_tipo": "legali",
@@ -373,10 +374,18 @@ class GestioneStrumentiLegali:
             {"value": "amministrativo_ottemperanza", "label": "Ottemperanza con contestuale risarcitoria", "needs_value": False},
         ]
 
+    def opzioni_valore_contributo_unificato(self) -> List[Dict[str, str]]:
+        return [
+            {"value": "determinato", "label": "Valore determinato"},
+            {"value": "indeterminabile", "label": "Valore indeterminabile"},
+            {"value": "non_indicato", "label": "Valore non indicato"},
+        ]
+
     def calcola_contributo_unificato(self, payload: Mapping[str, Any]) -> Dict[str, Any]:
         categoria = _clean_text(payload.get("cu_categoria")) or "civile_ordinario"
         grado = _clean_text(payload.get("cu_grado")) or "primo_grado"
         valore = _safe_float(payload.get("cu_valore"))
+        valore_tipo = self._normalize_cu_value_mode(payload, categoria=categoria, valore=valore)
         anticipazione_forfettaria = str(payload.get("cu_anticipazione_forfettaria", "")).lower() in {"1", "true", "on", "si"}
 
         base = 0.0
@@ -389,14 +398,20 @@ class GestioneStrumentiLegali:
             "appello": "Appello",
             "cassazione": "Cassazione",
         }.get(grado, "Primo grado")
+        valore_tipo_label = next(
+            (row["label"] for row in self.opzioni_valore_contributo_unificato() if row["value"] == valore_tipo),
+            valore_tipo,
+        )
 
         if categoria == "civile_ordinario":
-            base = self._contributo_civile(valore)
+            base = self._contributo_civile(valore, valore_tipo=valore_tipo)
             sources.extend(self._sources_for_codes("cu_viterbo"))
-            if valore <= 0:
-                notes.append("Valore non indicato: applicato il contributo previsto per causa di valore indeterminabile.")
+            if valore_tipo == "indeterminabile":
+                notes.append("Applicato il contributo previsto per causa di valore indeterminabile.")
+            elif valore_tipo == "non_indicato":
+                notes.append("Applicato il contributo previsto per causa con valore non indicato.")
         elif categoria == "decreto_ingiuntivo":
-            base = round(self._contributo_civile(valore) / 2.0, 2)
+            base = round(self._contributo_civile(valore, valore_tipo=valore_tipo) / 2.0, 2)
             sources.extend(self._sources_for_codes("cu_viterbo"))
             notes.append("Per il decreto ingiuntivo il contributo e ridotto alla meta.")
         elif categoria == "volontaria_giurisdizione":
@@ -406,8 +421,12 @@ class GestioneStrumentiLegali:
             base = self.norme.contributo_speciale("separazione_consensuale", valore)
             notes.append("Importo fisso per separazione consensuale o scioglimento congiunto, salvo casi esenti.")
         elif categoria == "tributario":
-            base = self._contributo_tributario(valore)
+            base = self._contributo_tributario(valore, valore_tipo=valore_tipo)
             notes.append("Importo determinato per scaglione di valore del ricorso tributario.")
+            if valore_tipo == "indeterminabile":
+                notes.append("Applicato il contributo previsto per controversia tributaria di valore indeterminabile.")
+            elif valore_tipo == "non_indicato":
+                notes.append("Applicato il contributo previsto per controversia tributaria con valore non indicato.")
         elif categoria == "amministrativo_ordinario":
             base = self.norme.contributo_speciale("amministrativo_ordinario", valore)
             sources.extend(self._sources_for_codes("cu_admin"))
@@ -417,7 +436,11 @@ class GestioneStrumentiLegali:
             sources.extend(self._sources_for_codes("cu_admin"))
         elif categoria == "amministrativo_appalti":
             sources.extend(self._sources_for_codes("cu_admin"))
-            base = self.norme.contributo_speciale("amministrativo_appalti", valore)
+            if valore_tipo == "non_indicato":
+                base = 6000.0
+                notes.append("Applicato il contributo previsto per ricorso amministrativo di valore non indicato.")
+            else:
+                base = self.norme.contributo_speciale("amministrativo_appalti", valore)
         elif categoria == "amministrativo_ottemperanza":
             base = self.norme.contributo_speciale("amministrativo_ottemperanza", valore)
             sources.extend(self._sources_for_codes("cu_admin"))
@@ -444,6 +467,18 @@ class GestioneStrumentiLegali:
         }:
             base = round(base * 2.0, 2)
             notes.append("Applicato l'aumento del doppio previsto per il giudizio di legittimita.")
+        elif grado == "cassazione" and categoria == "tributario":
+            base = self._contributo_civile(valore, valore_tipo=valore_tipo)
+            base = round(base * 2.0, 2)
+            notes.append("Per la Cassazione tributaria applicata la misura prevista per il processo civile.")
+        elif grado == "cassazione" and categoria in {
+            "amministrativo_ordinario",
+            "amministrativo_rito_abbreviato",
+            "amministrativo_appalti",
+            "amministrativo_ottemperanza",
+        }:
+            base = round(base * 2.0, 2)
+            notes.append("Applicato l'aumento del doppio previsto per il giudizio di terzo grado amministrativo.")
         elif grado == "cassazione":
             warnings.append("Per questa tipologia il calcolo automatico della Cassazione richiede una verifica puntuale dell'atto da iscrivere.")
 
@@ -465,6 +500,8 @@ class GestioneStrumentiLegali:
             "categoria_label": categoria_label,
             "grado": grado,
             "grado_label": grado_label,
+            "valore_tipo": valore_tipo,
+            "valore_tipo_label": valore_tipo_label,
             "valore": valore,
             "base": round(base, 2),
             "anticipazione_forfettaria": anticipazione,
@@ -1987,18 +2024,40 @@ class GestioneStrumentiLegali:
             "sources": [],
         }
 
-    def _contributo_civile(self, valore: float) -> float:
+    def _contributo_civile(self, valore: float, *, valore_tipo: str = "determinato") -> float:
+        defaults = self.norme.contributo_defaults("civile")
+        if valore_tipo == "indeterminabile":
+            return float(defaults.get("indeterminabile_amount", 518.0))
+        if valore_tipo == "non_indicato":
+            return float(defaults.get("non_indicato_amount", 1686.0))
         if valore <= 0:
-            return float(self.norme.contributo_defaults("civile").get("indeterminabile_amount", 518.0))
+            return float(defaults.get("indeterminabile_amount", 518.0))
         for limite, importo in self.norme.contributo_tiers("civile"):
             if valore <= limite:
                 return float(importo)
         return self.norme.contributo_tiers("civile")[-1][1]
 
-    def _contributo_tributario(self, valore: float) -> float:
+    def _contributo_tributario(self, valore: float, *, valore_tipo: str = "determinato") -> float:
+        defaults = self.norme.contributo_defaults("tributario")
+        if valore_tipo == "indeterminabile":
+            return float(defaults.get("indeterminabile_amount", 120.0))
+        if valore_tipo == "non_indicato":
+            return float(defaults.get("non_indicato_amount", 1500.0))
         if valore <= 0:
             raise ValueError("Per il ricorso tributario indica il valore della controversia.")
         for limite, importo in self.norme.contributo_tiers("tributario"):
             if valore <= limite:
                 return float(importo)
         return self.norme.contributo_tiers("tributario")[-1][1]
+
+    def _normalize_cu_value_mode(self, payload: Mapping[str, Any], *, categoria: str, valore: float) -> str:
+        raw_mode = _clean_text(payload.get("cu_valore_tipo")).lower()
+        if raw_mode in {"determinato", "indeterminabile", "non_indicato"}:
+            return raw_mode
+        if _clean_text(payload.get("cu_valore")):
+            return "determinato"
+        if categoria in {"civile_ordinario", "decreto_ingiuntivo"}:
+            return "indeterminabile"
+        if categoria == "tributario":
+            return "determinato" if valore > 0 else "indeterminabile"
+        return "determinato"

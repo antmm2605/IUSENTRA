@@ -8,6 +8,14 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 
 ## Frontend e gate React
 
+### Hotfix contributo unificato 2.214.3
+
+| Verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest -q tests/test_strumenti_legali.py -k contributo_unificato --tb=short` | OK | 6 test mirati verdi su civile valore non indicato, Cassazione tributaria, amministrativo Cassazione e appalti. |
+| `python -m pytest -q tests/test_strumenti_legali.py --tb=short` | OK | 21 test verdi sull'intero modulo Strumenti Legali dopo l'aggiunta del nuovo selettore `Tipo valore` e l'allineamento dei contributi unificati. |
+| `python tools/sync_packaging_files.py --check` | OK | Packaging e file versione allineati alla release `2.214.3`. |
+
 ### Hotfix eliminazione clienti e soggetti 2.214.2
 
 | Verifica | Esito | Nota |

@@ -132,6 +132,7 @@ def index():
         results=results,
         moduli=gestore.catalogo_moduli(),
         opzioni_cu=gestore.opzioni_contributo_unificato(),
+        opzioni_cu_valore=gestore.opzioni_valore_contributo_unificato(),
         onorari_options=onorari_options,
         selected_onorari_fasi=selected_onorari_fasi,
     )

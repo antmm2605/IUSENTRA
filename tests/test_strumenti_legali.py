@@ -49,6 +49,90 @@ def test_contributo_unificato_civile_appello(tmp_path):
     assert result["totale"] == 382.5
 
 
+def test_contributo_unificato_civile_valore_non_indicato(tmp_path):
+    gestore = _gestore(tmp_path)
+    result = gestore.calcola_contributo_unificato(
+        {
+            "cu_categoria": "civile_ordinario",
+            "cu_grado": "primo_grado",
+            "cu_valore_tipo": "non_indicato",
+            "cu_anticipazione_forfettaria": "1",
+        }
+    )
+
+    assert result["base"] == 1686.0
+    assert result["anticipazione_forfettaria"] == 27.0
+    assert result["totale"] == 1713.0
+
+
+def test_contributo_unificato_tributario_cassazione_usa_misura_civile(tmp_path):
+    gestore = _gestore(tmp_path)
+    result = gestore.calcola_contributo_unificato(
+        {
+            "cu_categoria": "tributario",
+            "cu_grado": "cassazione",
+            "cu_valore": "10000",
+            "cu_valore_tipo": "determinato",
+            "cu_anticipazione_forfettaria": "0",
+        }
+    )
+
+    assert result["base"] == 474.0
+    assert any("cassazione tributaria" in note.lower() for note in result["notes"])
+
+
+def test_contributo_unificato_tributario_valore_non_indicato(tmp_path):
+    gestore = _gestore(tmp_path)
+    result = gestore.calcola_contributo_unificato(
+        {
+            "cu_categoria": "tributario",
+            "cu_grado": "primo_grado",
+            "cu_valore_tipo": "non_indicato",
+            "cu_anticipazione_forfettaria": "0",
+        }
+    )
+
+    assert result["base"] == 1500.0
+    assert result["totale"] == 1500.0
+
+
+def test_contributo_unificato_amministrativo_cassazione_raddoppia_importo(tmp_path):
+    gestore = _gestore(tmp_path)
+    result = gestore.calcola_contributo_unificato(
+        {
+            "cu_categoria": "amministrativo_ordinario",
+            "cu_grado": "cassazione",
+            "cu_anticipazione_forfettaria": "0",
+        }
+    )
+
+    assert result["base"] == 1300.0
+
+
+def test_contributo_unificato_appalti_cassazione_e_non_indicato(tmp_path):
+    gestore = _gestore(tmp_path)
+    cassazione = gestore.calcola_contributo_unificato(
+        {
+            "cu_categoria": "amministrativo_appalti",
+            "cu_grado": "cassazione",
+            "cu_valore": "150000",
+            "cu_valore_tipo": "determinato",
+            "cu_anticipazione_forfettaria": "0",
+        }
+    )
+    non_indicato = gestore.calcola_contributo_unificato(
+        {
+            "cu_categoria": "amministrativo_appalti",
+            "cu_grado": "primo_grado",
+            "cu_valore_tipo": "non_indicato",
+            "cu_anticipazione_forfettaria": "0",
+        }
+    )
+
+    assert cassazione["base"] == 4000.0
+    assert non_indicato["base"] == 6000.0
+
+
 def test_interessi_legali_2025_su_anno_intero(tmp_path):
     gestore = _gestore(tmp_path)
     result = gestore.calcola_interessi(
@@ -303,7 +387,7 @@ def test_strumenti_legali_index_renderizza_nuovi_moduli(tmp_path):
         login = client.post("/login", data={"username": "admin", "password": "admin"}, follow_redirects=True)
         assert login.status_code == 200
 
-        response = client.get("/strumenti-legali/")
+        response = client.get("/strumenti-legali/?_legacy=1")
         body = response.get_data(as_text=True)
 
     assert response.status_code == 200

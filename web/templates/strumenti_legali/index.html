@@ -181,7 +181,7 @@
     {% call tool_section('contributo_unificato', 'Contributo unificato', 'bi-bank', 'Calcolo guidato con categoria, grado e anticipazione forfettaria.') %}
       <form method="post" class="row g-3 tool-form-grid">
         {{ tool_hidden('contributo_unificato', fascicolo_sel) }}
-        <div class="col-md-5">
+        <div class="col-md-4">
           <label class="form-label">Tipologia</label>
           <select name="cu_categoria" class="form-select">
             {% for option in opzioni_cu %}
@@ -189,12 +189,20 @@
             {% endfor %}
           </select>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
           <label class="form-label">Grado</label>
           <select name="cu_grado" class="form-select">
             <option value="primo_grado" {{ 'selected' if form_state.cu_grado == 'primo_grado' }}>Primo grado</option>
             <option value="appello" {{ 'selected' if form_state.cu_grado == 'appello' }}>Appello</option>
             <option value="cassazione" {{ 'selected' if form_state.cu_grado == 'cassazione' }}>Cassazione</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Tipo valore</label>
+          <select name="cu_valore_tipo" class="form-select">
+            {% for option in opzioni_cu_valore %}
+            <option value="{{ option.value }}" {{ 'selected' if form_state.cu_valore_tipo == option.value }}>{{ option.label }}</option>
+            {% endfor %}
           </select>
         </div>
         <div class="col-md-2">

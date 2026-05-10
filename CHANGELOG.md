@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.214.4 - 2026-05-10
+
+- Corretto il contributo unificato proposto nel Preventivo guidato per le pratiche civili di cognizione ordinaria: dopo il calcolo React il wizard riallinea la spesa viva alla tabella normativa in base a valore e grado della pratica.
+- Rimossa dal contributo unificato del Preventivo guidato la dicitura visibile `indicativo`, non adatta alla bozza professionale consegnata al cliente.
+- Aggiunti test anti-regressione sul catalogo preventivi e sul calcolo React del wizard per bloccare il caso `Atto di citazione` da `EUR 10.000` con contributo unificato corretto a `EUR 237,00`.
+
 ## 2.214.3 - 2026-05-10
 
 - Allineato il calcolo del contributo unificato alle tabelle operative richieste per civile, tributario e amministrativo.

@@ -656,7 +656,9 @@ export function PreventivoWizardPage() {
   }
 
   const practices = data.catalog.practices
-  const selectedPractice = practiceId ? practices[practiceId] || null : null
+  const selectedPractice = practiceId
+    ? ((calculation?.profile && calculation.profile.id === practiceId ? calculation.profile : null) || practices[practiceId] || null)
+    : null
   const selectedClient = customerId ? data.clients.find((client) => client.id === customerId) || null : null
   const filteredCases = customerId ? data.cases.filter((item) => item.customerId === customerId) : data.cases
   const hasCompensoUnico = isCompensoUnicoProfile(selectedPractice)

@@ -8,6 +8,13 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 
 ## Frontend e gate React
 
+### Hotfix contributo unificato preventivo 2.214.4
+
+| Verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest -q tests/test_motore_preventivo.py tests/test_preventivi_wizard.py --tb=short` | OK | 47 test verdi: catalogo preventivi, bridge React wizard e regressione `Atto di citazione` con contributo unificato `EUR 237,00`. |
+| `npm --prefix frontend run typecheck` | OK | TypeScript confermato dopo l'uso del profilo ricalcolato nel wizard per riallineare le spese vive suggerite. |
+
 ### Hotfix contributo unificato 2.214.3
 
 | Verifica | Esito | Nota |

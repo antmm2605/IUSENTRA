@@ -1,5 +1,13 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-10 - Hotfix contributo unificato Preventivo guidato 2.214.4
+
+Questa tranche chiude il disallineamento segnalato dall'utente nel Preventivo guidato:
+
+- il pannello `Spese vive suggerite` non mostra piu' `Contributo Unificato (indicativo)`, ma la dicitura pulita `Contributo Unificato`;
+- dopo il calcolo del wizard React, le pratiche civili di cognizione ordinaria usano ora il contributo unificato coerente con valore e grado della pratica, invece del vecchio importo fisso storico;
+- aggiunti test di regressione sul catalogo `Atto di citazione` e sul calcolo wizard per il caso `EUR 10.000 -> EUR 237,00`.
+
 ## Stato tranche 2026-05-10 - Eliminazione clienti e soggetti 2.214.2
 
 Questa tranche risponde alla richiesta di ripristinare l'eliminazione operativa

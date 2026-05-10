@@ -12,6 +12,7 @@ from web.blueprints.preventivi import (
     _contesto_fascicolo_wizard,
     _contesto_log_wizard_da_form,
 )
+from web.services.react_preventivo_wizard_bridge import build_react_preventivo_wizard_calculation_payload
 from web.helpers import get_preventivi
 
 from tests.test_web_bootstrap import _cfg_web, _write_studio_config
@@ -222,6 +223,30 @@ def test_template_wizard_espone_compenso_unico_come_flag_calcolabile():
     assert "selectedRegolaTariffariaForPractice" in template
     assert "defaultCalculationPhaseKeysForPractice" in template
     assert "phaseInputs.length) return checked" in template
+
+
+def test_calcolo_wizard_allinea_contributo_unificato_al_valore_della_pratica():
+    payload = build_react_preventivo_wizard_calculation_payload(
+        {
+            "id_pratica": "atto_citazione",
+            "valore": "10000",
+            "grado": "Tribunale",
+            "regola_tariffaria": "civile_cognizione_primo_grado",
+            "complessita": "media",
+            "fasi": ["studio", "introduttiva", "istruttoria", "decisionale"],
+            "spese_generali": False,
+            "applica_cpa": False,
+            "applica_iva": False,
+            "esborsi": ["atto_citazione:0"],
+        }
+    )
+
+    assert payload["ok"] is True
+    assert payload["profile"]["esborsi_tipici"][0]["descrizione"] == "Contributo Unificato"
+    assert payload["profile"]["esborsi_tipici"][0]["importo"] == 237.0
+    contributo = next(row for row in payload["rows"] if row["id"] == "esborso_atto_citazione:0")
+    assert contributo["descrizione"] == "Contributo Unificato"
+    assert contributo["importo"] == 237.0
 
 
 def _crea_admin(app) -> None:

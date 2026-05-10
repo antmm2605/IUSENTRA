@@ -1500,7 +1500,7 @@ _ESBORSI_TIPICI: Dict[str, List[Dict]] = {
     ],
     "recupero_crediti": [
         {"descrizione": "Diritti di segreteria ricorso", "importo": 27.0},
-        {"descrizione": "Contributo Unificato (indicativo)", "importo": 98.0},
+        {"descrizione": "Contributo Unificato", "importo": 98.0},
         {"descrizione": "Notifica tramite Ufficiale Giudiziario", "importo": 25.0},
     ],
     "decreto_ingiuntivo": [
@@ -1515,7 +1515,7 @@ _ESBORSI_TIPICI: Dict[str, List[Dict]] = {
         {"descrizione": "Diritti di segreteria", "importo": 27.0},
     ],
     "atto_citazione": [
-        {"descrizione": "Contributo Unificato (indicativo)", "importo": 196.0},
+        {"descrizione": "Contributo Unificato", "importo": 196.0},
         {"descrizione": "Notifica atto citazione tramite U.G.", "importo": 25.0},
         {"descrizione": "Diritti di segreteria", "importo": 27.0},
     ],
@@ -1638,12 +1638,12 @@ _ESBORSI_TIPICI: Dict[str, List[Dict]] = {
         {"descrizione": "Copie autentiche del decreto reclamato", "importo": 15.0},
     ],
     "sfratto_morosita": [
-        {"descrizione": "Contributo Unificato (indicativo)", "importo": 103.0},
+        {"descrizione": "Contributo Unificato", "importo": 103.0},
         {"descrizione": "Diritti di segreteria", "importo": 27.0},
         {"descrizione": "Notifica intimazione / citazione", "importo": 25.0},
     ],
     "risarcimento_danni": [
-        {"descrizione": "Contributo Unificato (indicativo)", "importo": 196.0},
+        {"descrizione": "Contributo Unificato", "importo": 196.0},
         {"descrizione": "Diritti di segreteria", "importo": 27.0},
         {"descrizione": "Notifica atto introduttivo", "importo": 25.0},
         {"descrizione": "Perizia di parte / relazione tecnica (indicativa)", "importo": 250.0},
@@ -1941,12 +1941,12 @@ _ESBORSI_TIPICI.update(
             {"descrizione": "Raccomandata / PEC", "importo": 10.0},
         ],
         "contenzioso_societario": [
-            {"descrizione": "Contributo Unificato (indicativo)", "importo": 196.0},
+            {"descrizione": "Contributo Unificato", "importo": 196.0},
             {"descrizione": "Notifica atto introduttivo", "importo": 25.0},
             {"descrizione": "Diritti di segreteria", "importo": 27.0},
         ],
         "responsabilita_organi_sociali": [
-            {"descrizione": "Contributo Unificato (indicativo)", "importo": 392.0},
+            {"descrizione": "Contributo Unificato", "importo": 392.0},
             {"descrizione": "Notifica atto introduttivo", "importo": 25.0},
             {"descrizione": "Diritti di segreteria", "importo": 27.0},
         ],

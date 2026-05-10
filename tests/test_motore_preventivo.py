@@ -20,6 +20,8 @@ def test_atto_citazione_ha_metadata_professionali_e_riferimenti():
     assert "L. 31 dicembre 2012, n. 247" in titles
     assert "D.M. 10 marzo 2014, n. 55" in titles
     assert any("art. 163 c.p.c." in (ref.get("article") or "") for ref in tp.normative_references)
+    assert any(voce["descrizione"] == "Contributo Unificato" for voce in tp.esborsi_tipici)
+    assert all("(indicativo)" not in voce["descrizione"] for voce in tp.esborsi_tipici if "Contributo Unificato" in voce["descrizione"])
 
 
 def test_catalogo_wizard_espone_fasi_e_checklist_serializzabili():

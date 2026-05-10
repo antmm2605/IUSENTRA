@@ -30,6 +30,7 @@ from pct.preventivi import (
     normalizza_modello_clausola_controversie,
     testo_predefinito_clausola_controversie,
 )
+from pct.strumenti_legali import GestioneStrumentiLegali
 from pct.tariffario import Fase, Grado, livello_compenso_da_complessita
 from pct.tariffario_catalogo import default_rule_for_practice, rule_lookup, rules_for_practice, tariffario_complessita_rows
 from web.services.mediazione_dm150_runtime import (
@@ -91,6 +92,58 @@ def _parse_num(value: Any, default: float = 0.0) -> float:
         return float(raw.replace(".", "").replace(",", ".")) if "," in raw else float(raw)
     except (TypeError, ValueError):
         return default
+
+
+_STRUMENTI_LEGALI = GestioneStrumentiLegali()
+
+
+def _cu_grade_from_label(grade_label: str) -> str:
+    lowered = _text(grade_label).lower()
+    if "cassazione" in lowered:
+        return "cassazione"
+    if "appello" in lowered or "consiglio di stato" in lowered or "secondo grado" in lowered:
+        return "appello"
+    return "primo_grado"
+
+
+def _cu_amount_for_practice(practice_id: str, *, value: float, grade_label: str) -> float | None:
+    grade = _cu_grade_from_label(grade_label)
+    if practice_id in {"atto_citazione", "opposizione_di", "comparsa_risposta", "risarcimento_danni"}:
+        result = _STRUMENTI_LEGALI.calcola_contributo_unificato(
+            {
+                "cu_categoria": "civile_ordinario",
+                "cu_grado": grade,
+                "cu_valore": value,
+                "cu_valore_tipo": "determinato" if value > 0 else "indeterminabile",
+            }
+        )
+        return round(float(result.get("base") or 0.0), 2)
+    if practice_id == "decreto_ingiuntivo":
+        result = _STRUMENTI_LEGALI.calcola_contributo_unificato(
+            {
+                "cu_categoria": "decreto_ingiuntivo",
+                "cu_grado": "primo_grado",
+                "cu_valore": value,
+                "cu_valore_tipo": "determinato" if value > 0 else "indeterminabile",
+            }
+        )
+        return round(float(result.get("base") or 0.0), 2)
+    return None
+
+
+def _resolved_practice_expenses(practice: Any, *, value: float, grade_label: str) -> list[dict[str, Any]]:
+    resolved: list[dict[str, Any]] = []
+    for item in list(getattr(practice, "esborsi_tipici", []) or []):
+        row = dict(item)
+        descrizione = _text(row.get("descrizione"))
+        if "contributo unificato" in descrizione.lower():
+            row["descrizione"] = descrizione.replace(" (indicativo)", "").replace("(indicativo)", "").strip()
+            amount = _cu_amount_for_practice(_text(getattr(practice, "id", "")), value=value, grade_label=grade_label)
+            if amount is not None:
+                row["importo"] = amount
+                row["source"] = "Calcolato da tabella contributo unificato"
+        resolved.append(row)
+    return resolved
 
 
 def _warning(code: str, message: str) -> dict[str, str]:
@@ -805,6 +858,11 @@ def build_react_preventivo_wizard_calculation_payload(payload: dict[str, Any] | 
     primary_result = next((item for item in target_results if item["id"] == practice_id), target_results[0])
     dm = primary_result["dm"]
     regola = _text(primary_result["regola"])
+    resolved_expenses = _resolved_practice_expenses(
+        tp,
+        value=_parse_num(state["valore"], 0.0),
+        grade_label=state["grado"],
+    )
     bonus = round(sum(float(item["bonus"] or 0.0) for item in target_results), 2)
     spese_generali = round(sum(float(item["spese_generali"] or 0.0) for item in target_results), 2)
     compenso = round(sum(float(item["compenso"] or 0.0) for item in target_results), 2)
@@ -812,7 +870,7 @@ def build_react_preventivo_wizard_calculation_payload(payload: dict[str, Any] | 
     art15 = anticipazioni_base
     art15 += sum(float(row.get("importo") or 0.0) for row in extra_rows)
     selected_expenses = set(state.get("esborsi") or [])
-    for index, item in enumerate(getattr(tp, "esborsi_tipici", []) or [], start=1):
+    for index, item in enumerate(resolved_expenses, start=1):
         key = _text(item.get("key")) or f"{practice_id}:{index - 1}"
         if key not in selected_expenses:
             continue
@@ -902,10 +960,12 @@ def build_react_preventivo_wizard_calculation_payload(payload: dict[str, Any] | 
             riferimenti_normativi=riferimenti_normativi,
         )
     )
+    profile_payload = tp.to_dict()
+    profile_payload["esborsi_tipici"] = resolved_expenses
     return {
         "ok": True,
         "state": state,
-        "profile": tp.to_dict(),
+        "profile": profile_payload,
         "summary": tp.summary,
         "when_to_use": tp.when_to_use,
         "normative_references": tp.normative_references,

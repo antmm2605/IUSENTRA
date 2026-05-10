@@ -58,6 +58,7 @@ import logging
 import os
 import re
 import secrets
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -117,7 +118,7 @@ PST_DOWNLOAD_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_DOWNLOAD_MAX_TIME", "300"
 PST_DOWNLOAD_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_DOWNLOAD_CONNECT_TIMEOUT", str(PST_SOAP_CONNECT_TIMEOUT)))
 PST_PREFLIGHT_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_PREFLIGHT_MAX_TIME", "30"))
 PST_PREFLIGHT_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_PREFLIGHT_CONNECT_TIMEOUT", "10"))
-PIN_SESSION_TTL_SECONDS = max(int(os.getenv("HACS_SIGNER_PIN_SESSION_TTL", "900")), 60)
+PIN_SESSION_TTL_SECONDS = max(int(os.getenv("HACS_SIGNER_PIN_SESSION_TTL", "1800")), 60)
 PIN_SESSION_MAX_ACTIVE = max(int(os.getenv("HACS_SIGNER_PIN_SESSION_MAX_ACTIVE", "4")), 1)
 PST_SESSION_TTL_SECONDS = max(
     int(os.getenv("HACS_SIGNER_PST_SESSION_TTL", str(PIN_SESSION_TTL_SECONDS))),
@@ -1812,6 +1813,27 @@ def _pst_session_response_fields(session_entry: Optional[dict]) -> dict:
         "pst_session_expires_at": _pst_datetime_payload(session_entry.get("expires_at")),
         "pst_session_purpose": str(session_entry.get("purpose") or "view"),
     }
+
+
+def _find_view_session_for_cert(cert_thumbprint: str, tribunale: str) -> Optional[dict]:
+    """Restituisce la prima sessione view autenticata per lo stesso certificato e ufficio."""
+    thumbprint = (cert_thumbprint or "").strip()
+    trib = (tribunale or "").strip()
+    now = _utcnow_naive()
+    with _pst_session_lock:
+        for entry in _pst_session_cache.values():
+            if str(entry.get("purpose") or "view").lower() != "view":
+                continue
+            if thumbprint and entry.get("cert_thumbprint", "").strip() != thumbprint:
+                continue
+            if trib and entry.get("tribunale", "").strip() != trib:
+                continue
+            if entry.get("expires_at") and entry["expires_at"] <= now:
+                continue
+            if not entry.get("auth_ready"):
+                continue
+            return dict(entry)
+    return None
 
 
 def _pst_session_lock_for(session_entry: Optional[dict]) -> threading.Lock:
@@ -6480,6 +6502,19 @@ class _Handler(BaseHTTPRequestHandler):
                     cert_preferences=data.get("cert_preferences") if isinstance(data.get("cert_preferences"), dict) else None,
                 )
                 session_cleanup_id = session_entry["session_id"]
+                # Per sessioni import appena create: eredita i cookie della sessione view attiva
+                # (stesso certificato e ufficio). I cookie esistenti pre-autenticano il canale
+                # TLS evitando un nuovo prompt PIN quando la sessione Windows e' ancora attiva.
+                if purpose == "import" and _created:
+                    view_entry = _find_view_session_for_cert(cert_thumbprint, tribunale)
+                    if view_entry:
+                        view_cookie = str(view_entry.get("cookie_file") or "").strip()
+                        import_cookie = str(session_entry.get("cookie_file") or "").strip()
+                        if view_cookie and import_cookie and view_cookie != import_cookie:
+                            try:
+                                shutil.copy2(view_cookie, import_cookie)
+                            except Exception:
+                                pass
             with _pst_session_lock_for(session_entry):
                 esito = _pst_preflight_auth_curl(
                     url=_pst_url_ricerca(base_url),

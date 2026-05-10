@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.214.7 - 2026-05-10
+
+- Blindato il runtime multi-studio: un account non `SUPERADMIN` non puo' piu' proseguire senza contesto tenant valido e il login blocca gli account globali non associati a uno studio quando esistono piu' studi attivi.
+- Chiuso il fallback silenzioso ai path globali per le richieste tenant senza `g.data_paths`, cosi' il sistema fallisce in modo sicuro invece di leggere dati di un altro studio.
+- Aggiunte regressioni automatiche su login/sessioni legacy multi-studio e sul caching del profilo storage tenant-aware per impedire nuove letture cross-studio.
+
 ## 2.214.6 - 2026-05-10
 
 - Corretto il calcolo della nuova parcella personalizzata in `/fatturazione`: con regime forfettario o minimo l'IVA non viene piu' applicata, anche se l'opzione risultava attiva nel form.

@@ -154,35 +154,38 @@ def register_auth_runtime(
     def _session_user_manager(uid: str | None = None):
         auth_scope = _session_auth_scope()
         auth_tenant_slug = _session_auth_tenant_slug()
+        session_tenant_slug = str(session.get("tenant_slug", "") or "").strip().lower()
 
         multi_tenant_enabled = _ensure_runtime_multi_tenant_alignment()
 
-        if auth_scope == "tenant" and auth_tenant_slug and multi_tenant_enabled:
-            manager = _tenant_user_manager(auth_tenant_slug)
+        if auth_scope == "tenant" and multi_tenant_enabled:
+            resolved_tenant_slug = auth_tenant_slug or session_tenant_slug
+            if not resolved_tenant_slug:
+                return get_utenti(), None, "tenant", ""
+            manager = _tenant_user_manager(resolved_tenant_slug)
             user = manager.get(uid) if uid else None
-            return manager, user, "tenant", auth_tenant_slug
+            return manager, user, "tenant", resolved_tenant_slug
 
         if auth_scope == "global" or not multi_tenant_enabled:
             manager = get_utenti()
             user = manager.get(uid) if uid else None
             return manager, user, "global", ""
 
-        tenant_slug = str(session.get("tenant_slug", "") or "").strip().lower()
-        if tenant_slug and multi_tenant_enabled:
-            manager = _tenant_user_manager(tenant_slug)
+        if session_tenant_slug and multi_tenant_enabled:
+            manager = _tenant_user_manager(session_tenant_slug)
             user = manager.get(uid) if uid else None
             if user:
-                return manager, user, "tenant", tenant_slug
+                return manager, user, "tenant", session_tenant_slug
 
         manager = get_utenti()
         user = manager.get(uid) if uid else None
         if user:
             return manager, user, "global", ""
 
-        if tenant_slug and multi_tenant_enabled:
-            manager = _tenant_user_manager(tenant_slug)
+        if session_tenant_slug and multi_tenant_enabled:
+            manager = _tenant_user_manager(session_tenant_slug)
             user = manager.get(uid) if uid else None
-            return manager, user, "tenant", tenant_slug
+            return manager, user, "tenant", session_tenant_slug
 
         return manager, user, "global", ""
 
@@ -333,14 +336,31 @@ def register_auth_runtime(
         g.tenant = None
         g.data_paths = {}
         g.storage_runtime = None
+        g.tenant_context_required = False
+        g.tenant_context_missing = False
+        g.tenant_context_slug = ""
         if not _ensure_runtime_multi_tenant_alignment():
             return None
         if _skip_tenant_runtime_bootstrap():
             return None
 
         user = getattr(g, "utente_corrente", None)
-        tenant_slug = session.get("tenant_slug") or (user.tenant_slug if user else "")
+        g.tenant_context_required = bool(user and not getattr(user, "is_superadmin", False))
+        tenant_slug = (
+            session.get("tenant_slug")
+            or session.get("auth_tenant_slug")
+            or (user.tenant_slug if user else "")
+        )
+        tenant_slug = str(tenant_slug or "").strip().lower()
+        g.tenant_context_slug = tenant_slug
         if not tenant_slug:
+            if g.tenant_context_required:
+                g.tenant_context_missing = True
+                app.logger.warning(
+                    "Contesto tenant mancante per utente autenticato non SUPERADMIN: user_id=%s username=%s",
+                    getattr(user, "id", ""),
+                    getattr(user, "username", ""),
+                )
             return None
 
         from pct.tenant import GestioneTenant
@@ -352,6 +372,14 @@ def register_auth_runtime(
             g.data_paths = tenants.percorsi_dati(tenant_slug, reconcile_aliases=False)
             g.storage_runtime = get_request_storage_runtime(g.data_paths["CLIENTI_DB"]).to_dict()
             _ensure_tenant_runtime_ready(tenants, tenant_slug)
+        elif g.tenant_context_required:
+            g.tenant_context_missing = True
+            app.logger.warning(
+                "Contesto tenant non risolto per utente autenticato: tenant_slug=%s user_id=%s username=%s",
+                tenant_slug,
+                getattr(user, "id", ""),
+                getattr(user, "username", ""),
+            )
         return None
 
     @app.before_request
@@ -423,6 +451,35 @@ def register_auth_runtime(
         if g.utente_corrente is None:
             return redirect(url_for("login", next=request.full_path.rstrip("?")))
         if (
+            g.multi_tenant_enabled
+            and not getattr(g.utente_corrente, "is_superadmin", False)
+            and (
+                getattr(g, "tenant_context_missing", False)
+                or (
+                    not str(getattr(g.utente_corrente, "tenant_slug", "") or "").strip()
+                    and getattr(g, "utente_auth_scope", "") != "tenant"
+                    and len(_active_tenants()) > 1
+                )
+            )
+        ):
+            auth_manager = getattr(g, "utente_auth_manager", None)
+            if auth_manager is not None:
+                auth_manager.registra_evento(
+                    "auth.context_invalid",
+                    id_utente=getattr(g.utente_corrente, "id", ""),
+                    username=getattr(g.utente_corrente, "username", ""),
+                    dettagli="Contesto studio mancante o account globale non ammesso in ambiente multi-studio.",
+                    ip=request.remote_addr or "",
+                    esito="ERRORE",
+                )
+            session.clear()
+            flash(
+                "Questo account non e' associato a uno studio valido. "
+                "Accedi con l'amministratore dello studio corretto oppure usa il SUPERADMIN.",
+                "danger",
+            )
+            return redirect(url_for("login", next=request.full_path.rstrip("?")))
+        if (
             not app.testing
             and getattr(g.utente_corrente, "must_change_password", False)
             and request.endpoint not in password_change_routes
@@ -487,11 +544,34 @@ def register_auth_runtime(
                         auth_scope = "tenant"
                         auth_tenant_slug = selected_tenant_slug
             if utente:
+                resolved_tenant_slug = str(
+                    selected_tenant_slug or getattr(utente, "tenant_slug", "") or ""
+                ).strip().lower()
+                if (
+                    multi_tenant_enabled
+                    and not getattr(utente, "is_superadmin", False)
+                    and not resolved_tenant_slug
+                ):
+                    errore = (
+                        "Questo account non e' associato a uno studio. "
+                        "Usa l'amministratore dello studio corretto oppure accedi come SUPERADMIN."
+                    )
+                    manager.registra_evento(
+                        "auth.login_fallito",
+                        id_utente=getattr(utente, "id", ""),
+                        username=getattr(utente, "username", "") or username,
+                        dettagli="Login bloccato: account globale non consentito in ambiente multi-studio.",
+                        ip=request.remote_addr or "",
+                        esito="ERRORE",
+                    )
+                    utente = None
+
+            if utente:
                 if utente.totp_attivato:
                     session.clear()
                     session["totp_pending_uid"] = utente.id
                     session["totp_pending_tenant_slug"] = (
-                        selected_tenant_slug or utente.tenant_slug or ""
+                        resolved_tenant_slug or ""
                     )
                     session["totp_pending_auth_scope"] = auth_scope
                     session["totp_pending_auth_tenant_slug"] = auth_tenant_slug or ""
@@ -505,7 +585,7 @@ def register_auth_runtime(
 
                 session.clear()
                 session["user_id"] = utente.id
-                session["tenant_slug"] = selected_tenant_slug or utente.tenant_slug or ""
+                session["tenant_slug"] = resolved_tenant_slug
                 session["auth_scope"] = auth_scope
                 session["auth_tenant_slug"] = auth_tenant_slug or ""
                 session["last_activity"] = datetime.now().isoformat()

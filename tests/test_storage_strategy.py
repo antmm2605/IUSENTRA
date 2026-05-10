@@ -605,6 +605,83 @@ def test_login_route_assigns_single_active_tenant_to_legacy_global_admin(tmp_pat
         assert session_data["auth_tenant_slug"] == ""
 
 
+def test_login_route_blocca_account_globale_non_superadmin_se_esistono_piu_studi(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app({**_cfg(tmp_path), "MULTI_TENANT": True})
+
+    tm = GestioneTenant(app.config["TENANTS_REGISTRY"])
+    tm.crea("Studio Antonella", "antonella-mammola", db_config={"mode": "SQLITE"})
+    tm.crea("Studio Secondario", "studio-secondario", db_config={"mode": "SQLITE"})
+
+    root_users = GestioneUtenti(
+        db_path=app.config["AUTH_DB"],
+        audit_path=app.config["AUDIT_DB"],
+        secret_key=app.secret_key,
+        crea_admin_se_vuoto=False,
+    )
+    legacy_admin = root_users.crea(
+        username="admin",
+        password="adminadmin",
+        ruolo=RuoloUtente.AMMINISTRATORE,
+        tenant_slug="",
+        must_change_password=False,
+    )
+
+    client = app.test_client()
+    response = client.post(
+        "/login",
+        data={"username": legacy_admin.username, "password": "adminadmin"},
+        follow_redirects=True,
+    )
+
+    body = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert "<form" in body
+    assert "Accedi" in body
+    with client.session_transaction() as session_data:
+        assert "user_id" not in session_data
+        assert "tenant_slug" not in session_data
+
+
+def test_richiesta_blocca_sessione_globale_non_superadmin_con_piu_studi(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app({**_cfg(tmp_path), "MULTI_TENANT": True})
+
+    tm = GestioneTenant(app.config["TENANTS_REGISTRY"])
+    primo = tm.crea("Studio Antonella", "antonella-mammola", db_config={"mode": "SQLITE"})
+    tm.crea("Studio Secondario", "studio-secondario", db_config={"mode": "SQLITE"})
+
+    root_users = GestioneUtenti(
+        db_path=app.config["AUTH_DB"],
+        audit_path=app.config["AUDIT_DB"],
+        secret_key=app.secret_key,
+        crea_admin_se_vuoto=False,
+    )
+    legacy_admin = root_users.crea(
+        username="admin",
+        password="adminadmin",
+        ruolo=RuoloUtente.AMMINISTRATORE,
+        tenant_slug="",
+        must_change_password=False,
+    )
+
+    client = app.test_client()
+    with client.session_transaction() as session_data:
+        session_data["user_id"] = legacy_admin.id
+        session_data["tenant_slug"] = primo.slug
+        session_data["auth_scope"] = "global"
+        session_data["auth_tenant_slug"] = ""
+
+    response = client.get("/", follow_redirects=False)
+
+    assert response.status_code == 302
+    assert "/login" in response.headers["Location"]
+    with client.session_transaction() as session_data:
+        assert "user_id" not in session_data
+        assert "tenant_slug" not in session_data
+
+
 def test_reconcile_storage_aliases_semina_dati_dal_percorso_slug_al_storage_key(tmp_path: Path):
     registry = tmp_path / "tenants.json"
     tm = GestioneTenant(str(registry))

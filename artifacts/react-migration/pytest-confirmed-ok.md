@@ -382,3 +382,18 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `docker compose ps` | OK | `iusentra-app`, `iusentra-scheduler`, `iusentra-ocr` e `iusentra-redis` healthy; `iusentra-nginx` attivo. |
 | `Invoke-WebRequest -UseBasicParsing -Uri http://127.0.0.1:8080/api/pronto -TimeoutSec 20` | OK | Readiness locale: `{"ok":true,"stato":"pronto","versione":"2.210.0"}`. |
 | `docker exec iusentra-app python -c "import pct; print(pct.__version__)"` | OK | Versione runtime container locale: `2.210.0`. |
+
+## Hotfix isolamento tenant multi-studio 2026-05-10
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest -q tests/test_storage_strategy.py -k "legacy_global_admin or context_invalid or carica_tenant or request_storage_runtime" --tb=short` | OK | 10/10 passati: guardie tenant, bootstrap request e profilo storage tenant-aware confermati dopo il blocco fail-closed. |
+| `python -m pytest -q tests/test_storage_strategy.py --tb=short` | OK | 39/39 passati: login multi-studio, sessioni legacy, bootstrap tenant e runtime storage senza regressioni. |
+| `python -m pytest -q tests/test_auth.py --tb=short` | OK | 38/38 passati: autenticazione, ruoli, superadmin e persistenza utenti confermati dopo il rafforzamento del contesto tenant. |
+| `python tools/sync_packaging_files.py --check` | OK | Packaging e metadati versione allineati dopo bump 2.214.7. |
+| `python -m pytest -q tests/test_packaging_consistency.py tests/test_release_readiness.py --tb=short` | OK | 8/8 passati: coerenza packaging e readiness confermate per 2.214.7. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker` | OK | Immagini locali ricostruite da zero con package `pct-studio-legale==2.214.7`. |
+| `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx` | OK | Servizi locali riavviati sulle immagini 2.214.7. |
+| `docker compose ps` | OK | `iusentra-app`, `iusentra-scheduler`, `iusentra-ocr` e `iusentra-redis` healthy; `iusentra-nginx` attivo. |
+| `Invoke-WebRequest -UseBasicParsing -Uri http://127.0.0.1:8080/api/pronto -TimeoutSec 20` | OK | Readiness locale: `{"ok":true,"stato":"pronto","versione":"2.214.7"}`. |
+| `docker exec iusentra-app python -c "import pct; print(pct.__version__)"` | OK | Versione runtime container locale: `2.214.7`. |

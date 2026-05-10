@@ -204,11 +204,17 @@ def get_request_storage_runtime(anchor_path: str) -> StorageRuntimeProfile:
     if not has_request_context():
         return resolve_storage_runtime(anchor_path=anchor_path, tenant=None)
 
+    tenant = getattr(g, "tenant", None)
+    tenant_slug = str(getattr(tenant, "slug", "") or "")
+    resolved_anchor = str(Path(anchor_path).resolve())
     cached = getattr(g, "_storage_runtime_profile", None)
-    if cached and cached.data_anchor_path == str(Path(anchor_path).resolve()):
+    if (
+        cached
+        and cached.data_anchor_path == resolved_anchor
+        and str(getattr(cached, "tenant_slug", "") or "") == tenant_slug
+    ):
         return cached
 
-    tenant = getattr(g, "tenant", None)
     profile = resolve_storage_runtime(anchor_path=anchor_path, tenant=tenant)
     g._storage_runtime_profile = profile
     return profile

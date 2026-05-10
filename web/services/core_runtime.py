@@ -352,6 +352,11 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
     def _cfg_data_path(key: str) -> str:
         if has_request_context():
             paths = getattr(g, "data_paths", {}) or {}
+            if not paths and getattr(g, "tenant_context_missing", False):
+                raise RuntimeError(
+                    "Contesto studio non disponibile per la richiesta corrente. "
+                    "Accesso ai dati bloccato per evitare letture cross-studio."
+                )
             return paths.get(key, app.config[key])
         return app.config[key]
 

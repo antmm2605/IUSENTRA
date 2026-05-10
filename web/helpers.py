@@ -47,6 +47,11 @@ def _cfg(key: str) -> str:
     paths = getattr(g, "data_paths", {})
     if paths and key in paths:
         return paths[key]
+    if getattr(g, "tenant_context_missing", False):
+        raise RuntimeError(
+            "Contesto studio non disponibile per la richiesta corrente. "
+            "Accesso ai dati bloccato per evitare letture cross-studio."
+        )
     return current_app.config[key]
 
 

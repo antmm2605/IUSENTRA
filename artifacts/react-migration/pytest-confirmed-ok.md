@@ -21,6 +21,8 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 | `python -m pytest -q tests/test_ci_no_regression_contract.py tests/test_packaging_consistency.py --tb=short` | OK | 12 test verdi sui contratti anti-regressione e packaging collegati ai gate CI. |
 | `python -m pytest -q tests/test_web_bootstrap.py::test_i_moduli_bootstrap_restano_governabili --tb=short` | OK | Regressione specifica sul budget dei moduli bootstrap coperta e confermata verde. |
 | `python tools/check_local_signer_boundaries.py` | OK | Guardrail Local Signer verde; il riepilogo CI relativo non ha piu' un errore locale riproducibile dopo il ripristino del gate principale. |
+| `python -m ruff check --output-format=github --select E9,F63,F7,F82 core pct web lex tests tools/*.py worker.py gunicorn.conf.py vercel_app.py visible_signature.py wsgi.py` | OK | Gate `Lint + syntax` completo verde dopo correzione `F823` in `lex/providers/deterministic_provider.py` sul fallback `studio_data_lookup`. |
+| `python -m pytest -q lex/tests/unit/test_router.py tests/test_lex_legal_studio_full.py::TestTC20PipelineCoerenza::test_pipeline_coherence --tb=short` | OK | 10 test Lex mirati verdi dopo il fix del provider deterministico; routing e pipeline professionale restano coerenti. |
 
 ### Eliminazione multipla Email PEC e ordinaria 2.214.10
 

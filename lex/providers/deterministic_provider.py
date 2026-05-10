@@ -1054,14 +1054,14 @@ def _studio_data_lookup_text(q: str, context: Any) -> str:
             raise RuntimeError("studio_data_gateway non disponibile")
         return build_cliente_answer(find_cliente(q))
     except Exception:
-        return (
-            "Non riesco a completare la ricerca nell'anagrafica interna dello studio.\n\n"
-            "Prossima azione:\n"
-            "verifica il gestionale clienti e riprova la ricerca."
-        )
+        pass
+
+    find_fascicoli = None
     try:
-        from lex.tools.studio_data_gateway import find_cliente, find_fascicoli_by_cliente
-        matches = find_cliente(q)
+        from lex.tools.studio_data_gateway import find_cliente as search_cliente, find_fascicoli_by_cliente
+
+        find_fascicoli = find_fascicoli_by_cliente
+        matches = search_cliente(q)
     except Exception:
         matches = []
 
@@ -1103,7 +1103,9 @@ def _studio_data_lookup_text(q: str, context: Any) -> str:
         lines.append(f"Referente: {c.avvocato_referente}")
 
     try:
-        fascicoli = find_fascicoli_by_cliente(c.id, limit=5)
+        if find_fascicoli is None:
+            raise RuntimeError("ricerca fascicoli non disponibile")
+        fascicoli = find_fascicoli(c.id, limit=5)
         if fascicoli:
             rgs = [f"RG {f.numero_rg}/{f.anno_rg}" if f.numero_rg else f.titolo for f in fascicoli]
             lines.append(f"Fascicoli ({len(fascicoli)}): {', '.join(rgs)}")

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from tests.test_applicazioni import _crea_operatore, _login
@@ -66,15 +67,27 @@ def test_tariffario_riepilogo_realtime_sticky_sul_wrapper():
     page = (root / "frontend/src/components/TariffarioPage.tsx").read_text(encoding="utf-8")
     css = (root / "frontend/src/components/TariffarioPage.css").read_text(encoding="utf-8")
 
-    assert 'className="iu-tar-summary-holder iu-tar-summary-sticky"' in page
+    assert 'className="iu-tar-summary-dock"' in page
+    assert "position: 'fixed'" in page
+    assert "window.addEventListener('resize', schedule)" in page
     assert 'className="iu-tar-realtime iu-tar-summary-sticky"' not in page
-    assert ".iu-tar-summary-sticky {" in css
+    assert ".iu-tar-summary-dock {" in css
     assert ".iu-tar-sidebar {" in css
-    assert "position: sticky;" in css
-    assert "max-height: calc(100dvh - var(--iu-tar-sticky-top" in css
-    assert "position: sticky;" in css
-    assert "top: var(--iu-tar-sticky-top" in css
-    assert "top: 0;" in css
+    dock_block = re.search(r"\.iu-tar-summary-dock\s*\{(?P<body>[^}]+)\}", css)
+    floating_block = re.search(r"\.iu-tar-summary-holder\.is-floating\s*\{(?P<body>[^}]+)\}", css)
+    sidebar_blocks = [
+        match.group("body")
+        for match in re.finditer(r"\.iu-tar-sidebar\s*\{(?P<body>[^}]+)\}", css)
+    ]
+    layout_block = re.search(r"\.iu-tar-layout\s*\{(?P<body>[^}]+)\}", css)
+    assert dock_block and floating_block and sidebar_blocks and layout_block
+    sidebar_body = next(block for block in sidebar_blocks if "align-self: stretch;" in block)
+    assert "position: sticky;" not in css
+    assert "align-items: stretch;" in layout_block.group("body")
+    assert "align-self: stretch;" in sidebar_body
+    assert "position: sticky;" not in sidebar_body
+    assert "max-height:" not in sidebar_body
+    assert "overflow-y: auto;" not in sidebar_body
 
 
 def test_tariffario_react_post_calcolo_gdp_valore_zero(tmp_path: Path):

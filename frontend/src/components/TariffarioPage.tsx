@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import {
   AlertCircle,
   CheckCircle2,
@@ -924,23 +924,120 @@ function StickyRealtimeSummary({
   onReset: () => void
 }) {
   const anchor = useRef<HTMLDivElement | null>(null)
+  const [dock, setDock] = useState<{ floating: boolean; height: number; style: CSSProperties }>({
+    floating: false,
+    height: 0,
+    style: {},
+  })
 
   useEffect(() => {
     anchor.current?.querySelector<HTMLElement>('.iu-tar-realtime')?.setAttribute('data-summary-ready', 'true')
   }, [busy, error, result])
 
+  useEffect(() => {
+    const shell = anchor.current
+    if (!shell) return undefined
+
+    const summary = shell.querySelector<HTMLElement>('.iu-tar-summary-holder')
+    const card = shell.querySelector<HTMLElement>('.iu-tar-realtime')
+    const sidebar = shell.closest<HTMLElement>('.iu-tar-sidebar')
+    const layout = shell.closest<HTMLElement>('.iu-tar-layout')
+    if (!summary || !card || !sidebar || !layout) return undefined
+
+    let frame = 0
+    let lastKey = ''
+    const scrollParents: Array<HTMLElement | Window | VisualViewport> = [window]
+
+    for (let node = shell.parentElement; node; node = node.parentElement) {
+      const overflowY = window.getComputedStyle(node).overflowY
+      if (/(auto|scroll|overlay)/.test(overflowY)) {
+        scrollParents.push(node)
+      }
+    }
+    if (window.visualViewport) {
+      scrollParents.push(window.visualViewport)
+    }
+
+    const readTop = () => {
+      const raw = window.getComputedStyle(shell).getPropertyValue('--iu-tar-sticky-top').trim()
+      const parsed = Number.parseFloat(raw)
+      if (Number.isFinite(parsed)) return parsed
+      const rootTopbar = Number.parseFloat(window.getComputedStyle(document.documentElement).getPropertyValue('--iu-topbar-h'))
+      return (Number.isFinite(rootTopbar) ? rootTopbar : 76) + 16
+    }
+
+    const update = () => {
+      frame = 0
+      const desktop = window.matchMedia('(min-width: 1041px)').matches
+      if (!desktop) {
+        if (lastKey !== 'static') {
+          lastKey = 'static'
+          setDock({ floating: false, height: 0, style: {} })
+        }
+        return
+      }
+
+      const top = readTop()
+      const shellRect = shell.getBoundingClientRect()
+      const sidebarRect = sidebar.getBoundingClientRect()
+      const layoutRect = layout.getBoundingClientRect()
+      const height = card.offsetHeight
+      const canFloat = shellRect.top <= top && layoutRect.bottom - top - height > 0
+
+      if (!canFloat) {
+        if (lastKey !== 'inline') {
+          lastKey = 'inline'
+          setDock({ floating: false, height: 0, style: {} })
+        }
+        return
+      }
+
+      const style: CSSProperties = {
+        left: `${Math.round(sidebarRect.left)}px`,
+        position: 'fixed',
+        top: `${Math.round(top)}px`,
+        width: `${Math.round(sidebarRect.width)}px`,
+        zIndex: 80,
+      }
+      const nextKey = `${style.left}|${style.top}|${style.width}|${height}`
+      if (nextKey !== lastKey) {
+        lastKey = nextKey
+        setDock({ floating: true, height, style })
+      }
+    }
+
+    const schedule = () => {
+      if (!frame) {
+        frame = window.requestAnimationFrame(update)
+      }
+    }
+
+    schedule()
+    scrollParents.forEach((parent) => parent.addEventListener('scroll', schedule, { passive: true }))
+    window.addEventListener('resize', schedule)
+
+    return () => {
+      if (frame) window.cancelAnimationFrame(frame)
+      scrollParents.forEach((parent) => parent.removeEventListener('scroll', schedule))
+      window.removeEventListener('resize', schedule)
+    }
+  }, [busy, error, result])
+
   return (
     <div
       ref={anchor}
-      className="iu-tar-summary-holder iu-tar-summary-sticky"
+      className="iu-tar-summary-dock"
+      style={dock.floating ? { minHeight: dock.height } : undefined}
     >
-      <RealtimeSummary
-        result={result}
-        busy={busy}
-        error={error}
-        onRun={onRun}
-        onReset={onReset}
-      />
+      <div className={`iu-tar-summary-holder${dock.floating ? ' is-floating' : ''}`} style={dock.style}>
+        <RealtimeSummary
+          result={result}
+          busy={busy}
+          error={error}
+          onRun={onRun}
+          onReset={onReset}
+        />
+      </div>
     </div>
   )
 }

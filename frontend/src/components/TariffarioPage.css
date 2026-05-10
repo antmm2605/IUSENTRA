@@ -162,7 +162,7 @@
 }
 
 .iu-tar-layout {
-  align-items: start;
+  align-items: stretch;
   display: grid;
   gap: 1rem;
   grid-template-columns: minmax(0, 1fr) minmax(19rem, 25rem);
@@ -176,15 +176,10 @@
 
 .iu-tar-sidebar {
   align-content: start;
-  align-self: start;
-  max-height: calc(100dvh - var(--iu-tar-sticky-top, calc(var(--iu-topbar-h, 76px) + 1rem)) - 1rem);
+  align-self: stretch;
   min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
   padding-right: 0.2rem;
-  position: sticky;
-  scrollbar-color: rgba(15, 23, 42, 0.24) transparent;
-  top: var(--iu-tar-sticky-top, calc(var(--iu-topbar-h, 76px) + 1rem));
+  position: relative;
 }
 
 .iu-tar-panel,
@@ -914,20 +909,17 @@
   scrollbar-color: rgba(255, 255, 255, 0.38) rgba(255, 255, 255, 0.08);
 }
 
-.iu-tar-summary-sticky {
+.iu-tar-summary-dock {
   align-self: start;
-  position: sticky;
-  top: 0;
-  z-index: 28;
+  min-width: 0;
 }
 
 .iu-tar-summary-holder {
   min-width: 0;
 }
 
-.iu-tar-summary-sticky.is-floating {
+.iu-tar-summary-holder.is-floating {
   box-shadow: 0 20px 45px rgba(15, 23, 42, 0.18);
-  z-index: 28;
 }
 
 .iu-tar-inline-warning {
@@ -1181,8 +1173,9 @@
     position: static;
   }
 
-  .iu-tar-summary-sticky {
-    position: static;
+  .iu-tar-summary-holder.is-floating {
+    position: static !important;
+    width: auto !important;
   }
 
   .iu-tar-realtime {

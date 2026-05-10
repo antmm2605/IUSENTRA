@@ -364,6 +364,54 @@ class GestioneEmailRicevute:
             and cls._uid_imap_stabile(current_uid)
         )
 
+    @staticmethod
+    def _normalizza_testo_confronto(value: str) -> str:
+        return " ".join(str(value or "").split()).strip().lower()
+
+    @classmethod
+    def _fingerprint_inviata(cls, email_obj: EmailRicevuta) -> tuple[str, str, str, str]:
+        return (
+            cls._normalizza_testo_confronto(getattr(email_obj, "oggetto", "")),
+            cls._normalizza_testo_confronto(getattr(email_obj, "destinatari", "")),
+            str(getattr(email_obj, "data", "") or getattr(email_obj, "ricevuta_il", "") or "")[:19],
+            cls._normalizza_testo_confronto(getattr(email_obj, "corpo_testo", "") or getattr(email_obj, "corpo_html", ""))[:240],
+        )
+
+    @classmethod
+    def _email_inviata_equivalente(
+        cls,
+        candidate: EmailRicevuta,
+        existing: EmailRicevuta,
+    ) -> bool:
+        if str(getattr(existing, "cartella", "") or "").upper() != CartellaEmail.INVIATI:
+            return False
+        candidate_msg_id = cls._message_id_key(getattr(candidate, "message_id", ""))
+        existing_msg_id = cls._message_id_key(getattr(existing, "message_id", ""))
+        if candidate_msg_id and existing_msg_id and candidate_msg_id == existing_msg_id:
+            return True
+        fingerprint = cls._fingerprint_inviata(candidate)
+        if not all(fingerprint[:3]):
+            return False
+        return fingerprint == cls._fingerprint_inviata(existing)
+
+    @classmethod
+    def _preferisci_record_inviato_canonico(
+        cls,
+        *records: tuple[str, EmailRicevuta],
+        preferred_id: str = "",
+    ) -> tuple[str, EmailRicevuta] | None:
+        valid_records = [(record_id, record) for record_id, record in records if record_id and record]
+        if not valid_records:
+            return None
+        for record_id, record in valid_records:
+            if str(getattr(record, "cartella", "") or "").upper() == CartellaEmail.INVIATI and cls._uid_imap_stabile(getattr(record, "uid_imap", "")):
+                return record_id, record
+        if preferred_id:
+            for record_id, record in valid_records:
+                if record_id == preferred_id:
+                    return record_id, record
+        return valid_records[0]
+
     def _trova_email_esistente(
         self,
         db: Dict[str, EmailRicevuta],
@@ -771,16 +819,14 @@ class GestioneEmailRicevute:
     def sincronizza_inviati(self, messaggi_inviati: list) -> int:
         """
         Importa i messaggi email già inviati da messaggi.py nel database casella.
-        Evita duplicati tramite sid_esterno/id.
+        Evita duplicati tra storico messaggi e copia IMAP della cartella Inviati.
         """
         db = self._carica()
         aggiunti = 0
-        id_esistenti = set(db.keys())
+        modificati = False
 
         for msg in messaggi_inviati:
             em_id = f"INVIATA:{msg.id}"
-            if em_id in id_esistenti:
-                continue
             em = EmailRicevuta(
                 id=em_id,
                 cartella=CartellaEmail.INVIATI,
@@ -792,13 +838,68 @@ class GestioneEmailRicevute:
                 data=getattr(msg, "inviato_il", "") or getattr(msg, "creato_il", ""),
                 corpo_testo=getattr(msg, "corpo", "") or "",
                 corpo_html=getattr(msg, "corpo_html", "") or "",
+                message_id=getattr(msg, "sid_esterno", "") or "",
                 origine="INVIATA",
                 ricevuta_il=getattr(msg, "inviato_il", "") or getattr(msg, "creato_il", ""),
             )
-            db[em_id] = em
-            aggiunti += 1
 
-        if aggiunti:
+            candidati: list[tuple[str, EmailRicevuta]] = []
+            record_esatto = db.get(em_id)
+            if record_esatto is not None:
+                candidati.append((em_id, record_esatto))
+            for existing_id, existing in list(db.items()):
+                if existing_id == em_id:
+                    continue
+                if self._email_inviata_equivalente(em, existing):
+                    candidati.append((existing_id, existing))
+
+            if not candidati:
+                db[em_id] = em
+                aggiunti += 1
+                modificati = True
+                continue
+
+            canonico = self._preferisci_record_inviato_canonico(*candidati, preferred_id=em_id)
+            if canonico is None:
+                db[em_id] = em
+                aggiunti += 1
+                modificati = True
+                continue
+
+            canonico_id, email_canonica = canonico
+            changed = False
+            if not email_canonica.message_id and em.message_id:
+                email_canonica.message_id = em.message_id
+                changed = True
+            if not email_canonica.destinatari and em.destinatari:
+                email_canonica.destinatari = em.destinatari
+                changed = True
+            if not email_canonica.corpo_testo and em.corpo_testo:
+                email_canonica.corpo_testo = em.corpo_testo
+                changed = True
+            if not email_canonica.corpo_html and em.corpo_html:
+                email_canonica.corpo_html = em.corpo_html
+                changed = True
+            if not email_canonica.ricevuta_il and em.ricevuta_il:
+                email_canonica.ricevuta_il = em.ricevuta_il
+                changed = True
+            if str(email_canonica.cartella or "").upper() != CartellaEmail.INVIATI:
+                email_canonica.cartella = CartellaEmail.INVIATI
+                changed = True
+            if str(email_canonica.stato or "").upper() != StatoEmail.LETTA:
+                email_canonica.stato = StatoEmail.LETTA
+                changed = True
+
+            for duplicate_id, _duplicate in candidati:
+                if duplicate_id == canonico_id:
+                    continue
+                db.pop(duplicate_id, None)
+                modificati = True
+
+            if changed:
+                modificati = True
+
+        if aggiunti or modificati:
             self._salva()
         return aggiunti
 

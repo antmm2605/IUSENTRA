@@ -8,6 +8,18 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 
 ## Frontend e gate React
 
+### Deduplica Email ordinaria 2.214.9
+
+| Verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest -q tests/test_email_client.py -k "sincronizza_inviati_rimuove_doppione or email_ordinaria_route_react_api_e_repository_separato_da_pec" --tb=short` | OK | 2 test verdi: la casella ordinaria continua a restare separata dalla PEC e il sync degli inviati rimuove il doppione quando esiste gia' la copia IMAP stabile. |
+| `python -m pytest -q tests/test_email_client.py -k "sincronizza_imap_non_fonde_uid_stabili_con_stesso_message_id or sincronizza_imap_migra_riferimenti_legacy_tramite_message_id" --tb=short` | OK | 2 test verdi: il fix non rompe la migrazione `Message-ID` dei record legacy e non fonde due invii distinti con UID IMAP stabili. |
+| `python tools/sync_packaging_files.py --check` | OK | Packaging allineato dopo bump versione `2.214.9`. |
+| `python -m pytest -q tests/test_packaging_consistency.py tests/test_release_readiness.py --tb=short` | OK | 8 test verdi: packaging e readiness confermati per la release `2.214.9`. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker` | OK | Immagini locali ricostruite con package `pct-studio-legale==2.214.9`. |
+| `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx` + `docker compose up -d --no-build --force-recreate app scheduler-worker ocr-worker` | OK | Servizi locali riallineati alle immagini `2.214.9`; ricreazione forzata necessaria per portare il runtime sul nuovo tag. |
+| `docker exec iusentra-app python -c "import pct; print(pct.__version__)"` + `Invoke-WebRequest -UseBasicParsing -Uri http://127.0.0.1:8080/api/pronto -TimeoutSec 20` + health inspect | OK | Runtime locale confermato su `2.214.9`; readiness JSON corretta e container `healthy` dopo i probe iniziali lenti di startup. |
+
 ### Isolamento utenti multi-studio 2.214.8
 
 | Verifica | Esito | Nota |

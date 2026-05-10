@@ -1095,6 +1095,58 @@ def test_sincronizza_imap_non_fonde_uid_stabili_con_stesso_message_id(tmp_path, 
     assert "CONSEGNA: secondo duplicato Legalmail" in subjects
 
 
+def test_sincronizza_inviati_rimuove_doppione_quando_esiste_gia_copia_imap_inviata(tmp_path):
+    ge = GestioneEmailRicevute(str(tmp_path / "casella.json"))
+    ge.aggiungi(
+        EmailRicevuta(
+            id="MAIL-IMAP-SENT-1",
+            cartella=CartellaEmail.INVIATI,
+            stato=StatoEmail.LETTA,
+            mittente="studio@example.it",
+            destinatari="cliente@example.it",
+            oggetto="Parere inviato al cliente",
+            data="2026-05-10T09:30:00",
+            corpo_testo="Testo invio ordinario.",
+            uid_imap="Sent Items:UID:44",
+            message_id="<sent-sync-44@example.test>",
+            origine="IMAP",
+        )
+    )
+    ge.aggiungi(
+        EmailRicevuta(
+            id="INVIATA:MSG-44",
+            cartella=CartellaEmail.INVIATI,
+            stato=StatoEmail.LETTA,
+            destinatari="cliente@example.it",
+            oggetto="Parere inviato al cliente",
+            data="2026-05-10T09:30:00",
+            corpo_testo="Testo invio ordinario.",
+            message_id="<sent-sync-44@example.test>",
+            origine="INVIATA",
+        )
+    )
+
+    msg = SimpleNamespace(
+        id="MSG-44",
+        email_destinatario="cliente@example.it",
+        oggetto="Parere inviato al cliente",
+        corpo="Testo invio ordinario.",
+        corpo_html="",
+        inviato_il="2026-05-10T09:30:00",
+        creato_il="2026-05-10T09:29:59",
+        sid_esterno="<sent-sync-44@example.test>",
+    )
+
+    aggiunti = ge.sincronizza_inviati([msg])
+    rows = GestioneEmailRicevute(str(tmp_path / "casella.json"))._carica()
+
+    assert aggiunti == 0
+    assert len(rows) == 1
+    assert "MAIL-IMAP-SENT-1" in rows
+    assert "INVIATA:MSG-44" not in rows
+    assert rows["MAIL-IMAP-SENT-1"].uid_imap == "Sent Items:UID:44"
+
+
 def test_email_dettaglio_visualizza_anche_xml_ed_eml(tmp_path):
     from web.app import create_app
 

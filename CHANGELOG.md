@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.214.9 - 2026-05-10
+
+- Corretta la deduplica degli invii nella casella `Email ordinaria`: i messaggi importati dallo storico SMTP non vengono piu' duplicati quando esiste gia' la stessa email nella cartella IMAP `Inviati`.
+- Il repository email usa ora `Message-ID` come chiave preferenziale e un fingerprint prudente di oggetto, destinatario, data e corpo come fallback, cosi' il sync distingue i veri doppi dalle copie legittime con UID IMAP diversi.
+- La sincronizzazione degli inviati ripulisce anche i doppioni storici gia' presenti, preferendo la copia IMAP stabile e rimuovendo la copia sintetica `INVIATA:*` quando rappresenta lo stesso messaggio.
+- Aggiunti test anti-regressione mirati sulla deduplica tra storico messaggi e cartella `Inviati`, mantenendo verdi anche i casi gia' coperti di migrazione `Message-ID` e UID IMAP stabili.
+
 ## 2.214.8 - 2026-05-10
 
 - Disattivato il bootstrap automatico dei dati legacy root verso i tenant quando esistono piu' studi attivi: in ambiente multi-studio il sistema non puo' piu' popolare un nuovo studio con dati provenienti dalla root storica.

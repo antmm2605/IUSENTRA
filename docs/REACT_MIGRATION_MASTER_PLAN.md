@@ -1,5 +1,22 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-10 - Deduplica Email ordinaria 2.214.9
+
+Questa tranche chiude la regressione che mostrava email duplicate nella
+casella ordinaria:
+
+- la sincronizzazione degli inviati (`GestioneEmailRicevute.sincronizza_inviati`)
+  non si limita piu' all'id sintetico `INVIATA:<msg.id>`, ma confronta anche
+  `Message-ID` e un fingerprint prudente del messaggio inviato;
+- quando esistono gia' sia la copia IMAP degli `Inviati` sia la copia sintetica
+  generata dallo storico SMTP, il sistema mantiene la copia IMAP con UID stabile
+  e rimuove il duplicato storico;
+- la pulizia avviene anche sui dati gia' presenti, quindi aprire la casella o
+  rieseguire il sync riallinea automaticamente gli inviati ordinari;
+- verifiche locali confermate: shard mirati su `tests/test_email_client.py`
+  per deduplica inviati, regressioni `Message-ID` e caso Legalmail con UID
+  stabili verdi prima del deploy.
+
 ## Stato tranche 2026-05-10 - Isolamento utenti multi-studio 2.214.8
 
 Questa tranche chiude una regressione critica sull'isolamento tra studi nella

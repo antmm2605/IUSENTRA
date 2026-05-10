@@ -1519,26 +1519,14 @@ def _email_bulk_action(
         return _json_validation_error("Azione multipla non valida.", {"action": "Azione non riconosciuta."}, status=400)
 
     gestore = GestioneEmailRicevute(db_path=_tenant_cfg_value(db_key, default_db_path))
-    updated: list[str] = []
-    missing: list[str] = []
-    skipped: list[str] = []
-    for email_id in ids:
-        email_obj = gestore.get(email_id)
-        if not email_obj:
-            missing.append(email_id)
-            continue
-        folder = str(getattr(email_obj, "cartella", "") or "").upper()
-        if action == "trash":
-            if folder == CartellaEmail.CESTINO:
-                skipped.append(email_id)
-                continue
-            gestore.sposta_cestino(email_id)
-            _audit_event(f"{resource_prefix}.cestino", "email", email_id, str(getattr(email_obj, "oggetto", "") or ""))
-            updated.append(email_id)
-            continue
-        gestore.elimina_definitivamente(email_id)
-        _audit_event(f"{resource_prefix}.elimina", "email", email_id, str(getattr(email_obj, "oggetto", "") or ""))
-        updated.append(email_id)
+    if action == "trash":
+        result = gestore.sposta_cestino_multipla(ids)
+    else:
+        result = gestore.elimina_definitivamente_multipla(ids)
+
+    updated = list(result.get("updated") or [])
+    missing = list(result.get("missing") or [])
+    skipped = list(result.get("skipped") or [])
 
     if not updated:
         if action == "trash" and skipped and not missing:
@@ -1559,8 +1547,16 @@ def _email_bulk_action(
 
     if action == "delete":
         base_message = "Messaggio eliminato definitivamente." if len(updated) == 1 else f"{len(updated)} messaggi eliminati definitivamente."
+        audit_action = f"{resource_prefix}.elimina.bulk"
     else:
         base_message = "Messaggio spostato nel cestino." if len(updated) == 1 else f"{len(updated)} messaggi spostati nel cestino."
+        audit_action = f"{resource_prefix}.cestino.bulk"
+    _audit_event(
+        audit_action,
+        "email",
+        "bulk",
+        f"{len(updated)} messaggi; {len(missing)} non trovati; {len(skipped)} gia' nel cestino",
+    )
     if skipped:
         base_message = f"{base_message} {len(skipped)} gia' presenti nel cestino."
     if missing:

@@ -514,6 +514,94 @@ def test_email_ordinaria_react_bulk_action_elimina_selezione_da_cestino(tmp_path
     assert ordinaria_reload.get("ORD-TRASH-2") is None
 
 
+def test_email_ordinaria_react_bulk_action_sposta_cestino_salva_una_volta(tmp_path, monkeypatch):
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    ordinaria = GestioneEmailRicevute(cfg["EMAIL_ORDINARIA_DB"])
+    ids = [f"ORD-BULK-INBOX-{idx}" for idx in range(40)]
+    for email_id in ids:
+        ordinaria.aggiungi(
+            EmailRicevuta(
+                id=email_id,
+                cartella=CartellaEmail.INBOX,
+                stato=StatoEmail.NON_LETTA,
+                mittente="cliente@example.it",
+                oggetto=f"Da cestinare {email_id}",
+                data="2026-04-08T09:00:00",
+            )
+        )
+
+    saves: list[str] = []
+    original_save = GestioneEmailRicevute._salva
+
+    def _counted_save(self):
+        saves.append(str(self.db_path))
+        return original_save(self)
+
+    monkeypatch.setattr(GestioneEmailRicevute, "_salva", _counted_save)
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        _autentica_admin_session(app, client, cfg)
+        response = client.post(
+            "/api/v1/ui/email-ordinaria/bulk-action",
+            json={"ids": ids, "action": "trash"},
+        )
+
+    payload = response.get_json()
+    ordinaria_reload = GestioneEmailRicevute(cfg["EMAIL_ORDINARIA_DB"])
+    assert response.status_code == 200
+    assert payload["ok"] is True
+    assert payload["updated"] == ids
+    assert saves.count(cfg["EMAIL_ORDINARIA_DB"]) == 1
+    assert all(ordinaria_reload.get(email_id).cartella == CartellaEmail.CESTINO for email_id in ids)
+
+
+def test_email_ordinaria_react_bulk_action_elimina_selezione_salva_una_volta(tmp_path, monkeypatch):
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    ordinaria = GestioneEmailRicevute(cfg["EMAIL_ORDINARIA_DB"])
+    ids = [f"ORD-BULK-TRASH-{idx}" for idx in range(40)]
+    for email_id in ids:
+        ordinaria.aggiungi(
+            EmailRicevuta(
+                id=email_id,
+                cartella=CartellaEmail.CESTINO,
+                stato=StatoEmail.CESTINO,
+                mittente="cliente@example.it",
+                oggetto=f"Da eliminare {email_id}",
+                data="2026-04-08T09:00:00",
+            )
+        )
+
+    saves: list[str] = []
+    original_save = GestioneEmailRicevute._salva
+
+    def _counted_save(self):
+        saves.append(str(self.db_path))
+        return original_save(self)
+
+    monkeypatch.setattr(GestioneEmailRicevute, "_salva", _counted_save)
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        _autentica_admin_session(app, client, cfg)
+        response = client.post(
+            "/api/v1/ui/email-ordinaria/bulk-action",
+            json={"ids": ids, "action": "delete"},
+        )
+
+    payload = response.get_json()
+    ordinaria_reload = GestioneEmailRicevute(cfg["EMAIL_ORDINARIA_DB"])
+    assert response.status_code == 200
+    assert payload["ok"] is True
+    assert payload["updated"] == ids
+    assert saves.count(cfg["EMAIL_ORDINARIA_DB"]) == 1
+    assert all(ordinaria_reload.get(email_id) is None for email_id in ids)
+
+
 def test_email_ordinaria_scrivi_restera_separata_da_email_pec(tmp_path, monkeypatch):
     from web.app import create_app
     from pct.messaggi import GestioneMessaggi, StatoMessaggio

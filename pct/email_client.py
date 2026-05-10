@@ -634,6 +634,33 @@ class GestioneEmailRicevute:
             db[id_email].stato    = StatoEmail.CESTINO
             self._salva()
 
+    def sposta_cestino_multipla(self, ids_email: List[str]) -> dict[str, list[str]]:
+        db = self._carica()
+        updated: list[str] = []
+        missing: list[str] = []
+        skipped: list[str] = []
+        seen: set[str] = set()
+
+        for raw_id in ids_email:
+            id_email = str(raw_id or "").strip()
+            if not id_email or id_email in seen:
+                continue
+            seen.add(id_email)
+            email_obj = db.get(id_email)
+            if email_obj is None:
+                missing.append(id_email)
+                continue
+            if str(email_obj.cartella or "").upper() == CartellaEmail.CESTINO:
+                skipped.append(id_email)
+                continue
+            email_obj.cartella = CartellaEmail.CESTINO
+            email_obj.stato = StatoEmail.CESTINO
+            updated.append(id_email)
+
+        if updated:
+            self._salva()
+        return {"updated": updated, "missing": missing, "skipped": skipped}
+
     def ripristina(self, id_email: str) -> None:
         db = self._carica()
         if id_email in db:
@@ -651,6 +678,32 @@ class GestioneEmailRicevute:
                 shutil.rmtree(cartella_email, ignore_errors=True)
             self._salva()
             self._invalida()
+
+    def elimina_definitivamente_multipla(self, ids_email: List[str]) -> dict[str, list[str]]:
+        db = self._carica()
+        updated: list[str] = []
+        missing: list[str] = []
+        seen: set[str] = set()
+
+        for raw_id in ids_email:
+            id_email = str(raw_id or "").strip()
+            if not id_email or id_email in seen:
+                continue
+            seen.add(id_email)
+            if id_email not in db:
+                missing.append(id_email)
+                continue
+            del db[id_email]
+            updated.append(id_email)
+
+        if updated:
+            self._salva()
+            for id_email in updated:
+                cartella_email = self.attachments_dir / id_email
+                if cartella_email.exists():
+                    shutil.rmtree(cartella_email, ignore_errors=True)
+            self._invalida()
+        return {"updated": updated, "missing": missing, "skipped": []}
 
     def svuota_cestino(self) -> int:
         db = self._carica()

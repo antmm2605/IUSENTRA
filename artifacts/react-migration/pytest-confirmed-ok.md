@@ -1,12 +1,23 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-10, sessione React Full / shard backend.
+Aggiornato: 2026-05-11, sessione React Full / shard backend.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Hotfix Email ordinaria bulk 2.215.2
+
+| Verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m compileall pct/email_client.py web/blueprints/api_v1_react.py tests/test_email_client.py` | OK | Compilazione mirata dei file toccati dal fix bulk email. |
+| `python -m pytest -q tests/test_email_client.py -k "email_ordinaria_react_bulk_action or fallback_globale_senza_tenant" --tb=short` | OK | 6 test verdi: cancellazione/spostamento multiplo ordinaria con salvataggio singolo e guardrail no fallback globale. |
+| `python -m pytest -q tests/test_email_client.py -k "bulk_action" --tb=short` | OK | 5 test verdi: endpoint bulk PEC e ordinaria confermati dopo il passaggio ai metodi batch. |
+| Prova sintetica `elimina_definitivamente_multipla()` con 1986 messaggi su file temporaneo | OK | 1986 eliminati, 0 residui, tempo locale 0.033s; conferma che il collo di bottiglia dei salvataggi ripetuti e' rimosso. |
+| `python tools/sync_packaging_files.py --check` | OK | Packaging/versione 2.215.2 sincronizzati. |
+| `python -m pytest -q tests/test_packaging_consistency.py tests/test_release_readiness.py --tb=short` | OK | 8 test verdi su coerenza packaging e readiness release dopo il bump versione. |
 
 ### Ripristino CI mirato 2026-05-10
 

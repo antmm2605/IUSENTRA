@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.215.2 - 2026-05-11
+
+- Corretta l'operazione multipla su `Email ordinaria` e `Email PEC`: spostamento nel cestino ed eliminazione definitiva caricano e salvano la casella una sola volta anche con migliaia di messaggi selezionati.
+- Ridotto l'audit delle operazioni bulk a un evento aggregato separato per PEC/email ordinaria, mantenendo la tracciabilita' senza bloccare la risposta utente.
+- Aggiunti test anti-regressione che verificano il salvataggio singolo per selezioni email numerose.
+
 ## 2.215.1 - 2026-05-11
 
 - Chiuso il fallback globale di `Email PEC` ed `Email ordinaria` in ambiente multi-studio: liste, dettagli, allegati, statistiche, sincronizzazione e azioni bulk usano solo i path del tenant attivo oppure falliscono chiusi con `tenant_context_required`.

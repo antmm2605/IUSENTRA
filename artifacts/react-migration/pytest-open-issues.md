@@ -1,6 +1,6 @@
 # Pytest issue aperte e risoluzioni
 
-Aggiornato: 2026-05-10, sessione React Full / shard backend.
+Aggiornato: 2026-05-11, sessione React Full / shard backend.
 
 ## Regola operativa
 
@@ -10,6 +10,7 @@ Questo file e' la coda di lavoro. Prima di rilanciare test gia' passati, control
 
 | Area | Test / comando | Stato | Problema rilevato | Risoluzione |
 | --- | --- | --- | --- | --- |
+| Email ordinaria / cancellazione multipla | `POST /api/v1/ui/email-ordinaria/bulk-action` con selezione ampia | Risolto e verificato in hotfix 2.215.2 | Una selezione molto ampia poteva non completare perche' il backend applicava i metodi singoli e salvava la casella email una volta per messaggio. | Introdotte operazioni bulk reali in `GestioneEmailRicevute` con un solo caricamento/salvataggio, audit aggregato e test anti-regressione sul salvataggio singolo; shard `email_ordinaria_react_bulk_action`, `fallback_globale_senza_tenant` e `bulk_action` verdi. |
 | Gate React / Tariffario sticky | `npm --prefix frontend run test` | Risolto il 2026-05-10 | Il controllo `frontend/scripts/check-react-contracts.mjs` falliva su un'asserzione storica (`iu-tar-summary-sticky`) del Tariffario, non piu' presente nel wrapper reale della sidebar sticky. | Ripristinato il marker `iu-tar-summary-sticky` nel dock del riepilogo e aggiunto il selettore CSS dedicato; `check-react-contracts.mjs` e lo shard frontend `contratti` sono tornati verdi. |
 | Gate React / whitelist fiscale governata | `node frontend/scripts/check-react-contracts.mjs` | Risolto il 2026-05-10 | Il contratto statico bloccava anche `FatturazionePage` e `TariffarioPage`, che per prodotto espongono un riepilogo fiscale governato e non un motore arbitrario lato client. | Aggiornata la whitelist mirata dei componenti autorizzati al preview fiscale governato (`FatturazionePage`, `fatturazioneData`, `TariffarioPage`, `tariffarioData`) senza allentare i controlli sulle altre superfici React. |
 | CI / Lint + syntax | `python -m ruff check --output-format=github --select E9,F63,F7,F82 ...` | Risolto il 2026-05-10 | Il workflow GitHub sul commit `46116f37` falliva in `Ruff` non per i file bootstrap appena corretti, ma per `F823 Local variable find_cliente referenced before assignment` in `lex/providers/deterministic_provider.py`. | Rifattorizzato il fallback di `_studio_data_lookup_text`: fast-path con `build_cliente_answer(find_cliente(...))`, fallback ricco separato con alias `search_cliente` e riferimento facoltativo a `find_fascicoli_by_cliente`. Gate `ruff` completo e test Lex mirati tornati verdi. |

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.214.10 - 2026-05-10
+
+- Aggiunta nelle pagine `Email PEC` ed `Email ordinaria` la selezione multipla dei messaggi visibili, con checkbox di riga, selezione totale della vista corrente e barra operativa dedicata.
+- La cancellazione multipla segue ora il comportamento corretto della cartella aperta: in `In arrivo` e `Inviati` i messaggi vengono spostati nel cestino, mentre da `Cestino` possono essere eliminati definitivamente in blocco.
+- Estesi i bridge React email con l'azione `bulkAction` e introdotti gli endpoint JSON `POST /api/v1/ui/email/bulk-action` e `POST /api/v1/ui/email-ordinaria/bulk-action`, mantenendo separati i repository PEC e ordinaria.
+- Aggiunti test anti-regressione mirati su payload React e azioni multiple PEC/ordinaria per impedire nuovi mancati allineamenti tra interfaccia e backend.
+
 ## 2.214.9 - 2026-05-10
 
 - Corretta la deduplica degli invii nella casella `Email ordinaria`: i messaggi importati dallo storico SMTP non vengono piu' duplicati quando esiste gia' la stessa email nella cartella IMAP `Inviati`.

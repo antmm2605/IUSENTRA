@@ -1492,6 +1492,88 @@ def email_react_detail(id_email: str):
     return response
 
 
+def _email_bulk_action(
+    *,
+    db_key: str,
+    default_db_path: str,
+    resource_prefix: str,
+) -> Any:
+    payload, error = _request_json_object()
+    if error:
+        return error
+    ids = [str(item or "").strip() for item in list(payload.get("ids") or []) if str(item or "").strip()]
+    if not ids:
+        return _json_validation_error("Seleziona almeno un messaggio.", {"ids": "Nessun messaggio selezionato."}, status=400)
+    action = str(payload.get("action") or "").strip().lower()
+    if action not in {"trash", "delete"}:
+        return _json_validation_error("Azione multipla non valida.", {"action": "Azione non riconosciuta."}, status=400)
+
+    gestore = GestioneEmailRicevute(db_path=_cfg_value(db_key, default_db_path))
+    updated: list[str] = []
+    missing: list[str] = []
+    skipped: list[str] = []
+    for email_id in ids:
+        email_obj = gestore.get(email_id)
+        if not email_obj:
+            missing.append(email_id)
+            continue
+        folder = str(getattr(email_obj, "cartella", "") or "").upper()
+        if action == "trash":
+            if folder == CartellaEmail.CESTINO:
+                skipped.append(email_id)
+                continue
+            gestore.sposta_cestino(email_id)
+            _audit_event(f"{resource_prefix}.cestino", "email", email_id, str(getattr(email_obj, "oggetto", "") or ""))
+            updated.append(email_id)
+            continue
+        gestore.elimina_definitivamente(email_id)
+        _audit_event(f"{resource_prefix}.elimina", "email", email_id, str(getattr(email_obj, "oggetto", "") or ""))
+        updated.append(email_id)
+
+    if not updated:
+        if action == "trash" and skipped and not missing:
+            return jsonify({
+                "ok": False,
+                "message": "I messaggi selezionati sono gia' nel cestino.",
+                "updated": [],
+                "missing": missing,
+                "skipped": skipped,
+            }), 409
+        return jsonify({
+            "ok": False,
+            "message": "Nessun messaggio aggiornato.",
+            "updated": [],
+            "missing": missing,
+            "skipped": skipped,
+        }), 404
+
+    if action == "delete":
+        base_message = "Messaggio eliminato definitivamente." if len(updated) == 1 else f"{len(updated)} messaggi eliminati definitivamente."
+    else:
+        base_message = "Messaggio spostato nel cestino." if len(updated) == 1 else f"{len(updated)} messaggi spostati nel cestino."
+    if skipped:
+        base_message = f"{base_message} {len(skipped)} gia' presenti nel cestino."
+    if missing:
+        base_message = f"{base_message} {len(missing)} non trovati."
+    return jsonify({
+        "ok": True,
+        "message": base_message,
+        "updated": updated,
+        "missing": missing,
+        "skipped": skipped,
+    })
+
+
+@api_v1_react.post("/email/bulk-action")
+@_richiedi_auth
+def email_react_bulk_action():
+    return _email_bulk_action(
+        db_key="EMAIL_CASELLA_DB",
+        default_db_path="./email/casella.json",
+        resource_prefix="email",
+    )
+
+
 @api_v1_react.get("/email-ordinaria")
 @_richiedi_auth
 def email_ordinaria_react_list():
@@ -1536,6 +1618,16 @@ def email_ordinaria_react_detail(id_email: str):
     response = jsonify(payload)
     response.headers["Cache-Control"] = "no-store, max-age=0"
     return response
+
+
+@api_v1_react.post("/email-ordinaria/bulk-action")
+@_richiedi_auth
+def email_ordinaria_react_bulk_action():
+    return _email_bulk_action(
+        db_key="EMAIL_ORDINARIA_DB",
+        default_db_path="./email/ordinaria.json",
+        resource_prefix="email_ordinaria",
+    )
 
 
 @api_v1_react.get("/messaggi")

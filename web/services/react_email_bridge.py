@@ -337,6 +337,7 @@ def build_react_email_payload(
             "compose": compose_path,
             "settings": settings_path,
             "sync": sync_href,
+            "bulkAction": "/api/v1/ui/email/bulk-action" if include_telematic else "/api/v1/ui/email-ordinaria/bulk-action",
             "autoEsiti": auto_esiti_path if include_telematic else "",
             "operationalInbox": f"{base}/",
             "localPecTest": local_test_path,

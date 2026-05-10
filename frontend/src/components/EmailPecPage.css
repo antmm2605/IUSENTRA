@@ -344,10 +344,57 @@
   overflow:auto;
   padding:8px;
 }
+.iu-mail-list-select-all,
+.iu-mail-bulkbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:10px 14px;
+  border-bottom:1px solid var(--iu-border);
+  background:#fff;
+}
+.iu-mail-list-select-all label{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  color:var(--iu-slate-600);
+  font-size:12px;
+  font-weight:850;
+}
+.iu-mail-bulkbar{
+  background:rgba(37,99,235,.05);
+}
+.iu-mail-bulkbar strong{
+  color:#0f172a;
+  font-size:12px;
+  font-weight:950;
+}
+.iu-mail-bulkbar span{
+  flex:1;
+  color:var(--iu-slate-500);
+  font-size:11px;
+  font-weight:700;
+}
+.iu-mail-bulkbar button{
+  min-height:36px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  padding:0 12px;
+  border:1px solid rgba(239,68,68,.18);
+  border-radius:11px;
+  background:#fff;
+  color:var(--iu-danger-500);
+  font-size:12px;
+  font-weight:900;
+  cursor:pointer;
+}
 .iu-mail-row{
   width:100%;
   display:grid;
-  grid-template-columns:42px minmax(0,1fr);
+  grid-template-columns:22px 42px minmax(0,1fr);
   gap:10px;
   padding:10px;
   border:1px solid transparent;
@@ -355,6 +402,14 @@
   background:transparent;
   text-align:left;
   cursor:pointer;
+}
+.iu-mail-row__check{
+  display:grid;
+  place-items:center;
+}
+.iu-mail-row__check input{
+  width:16px;
+  height:16px;
 }
 .iu-mail-row:hover{
   background:rgba(37,99,235,.04);
@@ -943,7 +998,9 @@
   .iu-mail-list-card,.iu-mail-preview-card{border-radius:14px}
   .iu-mail-list-card>header{min-height:48px;padding:0 11px}
   .iu-mail-list{padding:6px}
-  .iu-mail-row{grid-template-columns:34px minmax(0,1fr);padding:8px;border-radius:12px}
+  .iu-mail-list-select-all,.iu-mail-bulkbar{flex-wrap:wrap;padding:10px 11px}
+  .iu-mail-bulkbar button{width:100%}
+  .iu-mail-row{grid-template-columns:22px 34px minmax(0,1fr);padding:8px;border-radius:12px}
   .iu-mail-avatar{width:34px;height:34px;font-size:10px}
   .iu-mail-preview-card{min-height:auto;padding:12px}
   .iu-mail-preview-card>header{display:grid;gap:8px}

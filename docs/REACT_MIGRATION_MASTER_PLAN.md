@@ -1,5 +1,22 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-10 - Eliminazione multipla Email PEC e ordinaria 2.214.10
+
+Questa tranche chiude la richiesta operativa di selezione multipla nella posta:
+
+- le pagine React `Email PEC` ed `Email ordinaria` espongono ora checkbox per
+  riga, selezione completa dei messaggi visibili e barra azioni con feedback
+  immediato senza tornare ai form legacy;
+- l'azione multipla rispetta la cartella aperta: da `In arrivo` e `Inviati`
+  sposta i messaggi nel cestino, mentre dentro `Cestino` esegue
+  l'eliminazione definitiva della selezione;
+- il bridge React email espone ora `bulkAction` e il backend fornisce i nuovi
+  endpoint JSON tenant-aware `/api/v1/ui/email/bulk-action` e
+  `/api/v1/ui/email-ordinaria/bulk-action`, mantenendo la separazione tra
+  casella PEC e casella ordinaria;
+- verifiche locali confermate: shard pytest mirati su payload e bulk action,
+  typecheck TypeScript e build Vite verdi prima del deploy.
+
 ## Stato tranche 2026-05-10 - Deduplica Email ordinaria 2.214.9
 
 Questa tranche chiude la regressione che mostrava email duplicate nella

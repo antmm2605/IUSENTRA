@@ -57,6 +57,7 @@ export type EmailPecPageData = {
     compose: string
     settings: string
     sync: string
+    bulkAction: string
     autoEsiti: string
     operationalInbox: string
     localPecTest: string
@@ -134,6 +135,7 @@ export const emptyEmailPecPage: EmailPecPageData = {
     compose: '/email/scrivi',
     settings: '/email/impostazioni',
     sync: '/email/sincronizza',
+    bulkAction: '/api/v1/ui/email/bulk-action',
     autoEsiti: '/email/auto-esiti',
     operationalInbox: '/email/',
     localPecTest: '/email/impostazioni',
@@ -156,6 +158,7 @@ export const emptyEmailOrdinariaPage: EmailPecPageData = {
     compose: '/email-ordinaria/scrivi',
     settings: '/impostazioni?tab=smtp',
     sync: '/email-ordinaria/sincronizza',
+    bulkAction: '/api/v1/ui/email-ordinaria/bulk-action',
     autoEsiti: '',
     operationalInbox: '/email-ordinaria/',
     localPecTest: '/impostazioni?tab=smtp',
@@ -301,6 +304,7 @@ function normalisePayload(payload: unknown, fallback = emptyEmailPecPage): Email
       compose: text(actions.compose, fallback.actions.compose),
       settings: text(actions.settings, fallback.actions.settings),
       sync: text(actions.sync, fallback.actions.sync),
+      bulkAction: text(actions.bulkAction ?? actions.bulk_action, fallback.actions.bulkAction),
       autoEsiti: text(actions.autoEsiti ?? actions.auto_esiti, fallback.actions.autoEsiti),
       operationalInbox: text(actions.operationalInbox ?? actions.operational_inbox, fallback.actions.operationalInbox),
       localPecTest: text(actions.localPecTest ?? actions.local_pec_test, fallback.actions.localPecTest),
@@ -410,4 +414,32 @@ export async function getEmailPecDetail(id: string): Promise<EmailDetailData> {
 
 export async function getEmailOrdinariaDetail(id: string): Promise<EmailDetailData> {
   return fetchEmailDetail(`/api/v1/ui/email-ordinaria/messaggio/${encodeURIComponent(id)}`, '/email-ordinaria')
+}
+
+export async function submitEmailBulkAction(
+  endpoint: string,
+  ids: string[],
+  action: 'trash' | 'delete',
+): Promise<string> {
+  if (!endpoint) throw new Error('Azione multipla non disponibile in questa casella.')
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+    },
+    body: JSON.stringify({ ids, action }),
+  })
+  let payload: Record<string, unknown> = {}
+  try {
+    payload = await response.json() as Record<string, unknown>
+  } catch {
+    payload = {}
+  }
+  if (!response.ok || payload.ok === false) {
+    throw new Error(text(payload.message ?? payload.errore, 'Operazione multipla non completata.'))
+  }
+  return text(payload.message, 'Operazione multipla completata.')
 }

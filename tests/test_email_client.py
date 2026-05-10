@@ -312,9 +312,11 @@ def test_email_ordinaria_route_react_api_e_repository_separato_da_pec(tmp_path):
     assert payload_response.status_code == 200
     assert payload["actions"]["compose"] == "/email-ordinaria/scrivi"
     assert payload["actions"]["sync"] == "/email-ordinaria/sincronizza"
+    assert payload["actions"]["bulkAction"] == "/api/v1/ui/email-ordinaria/bulk-action"
     assert payload["actions"]["settings"] == "/impostazioni?tab=smtp"
     assert pec_payload["actions"]["compose"] == "/email/scrivi"
     assert pec_payload["actions"]["sync"] == "/email/sincronizza"
+    assert pec_payload["actions"]["bulkAction"] == "/api/v1/ui/email/bulk-action"
     assert payload["actions"]["compose"] != pec_payload["actions"]["compose"]
     assert payload["actions"]["sync"] != pec_payload["actions"]["sync"]
     assert payload["summary"]["pst"] == 0
@@ -323,6 +325,92 @@ def test_email_ordinaria_route_react_api_e_repository_separato_da_pec(tmp_path):
     assert payload["items"][0]["isPst"] is False
     assert payload["items"][0]["pctStatus"] == ""
     assert pec_payload["items"][0]["id"] == "PEC-1"
+
+
+def test_email_react_bulk_action_sposta_selezione_nel_cestino(tmp_path):
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    pec = GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"])
+    pec.aggiungi(
+        EmailRicevuta(
+            id="PEC-A",
+            cartella=CartellaEmail.INBOX,
+            stato=StatoEmail.NON_LETTA,
+            mittente="a@example.it",
+            oggetto="PEC A",
+            data="2026-04-08T09:00:00",
+        )
+    )
+    pec.aggiungi(
+        EmailRicevuta(
+            id="PEC-B",
+            cartella=CartellaEmail.INBOX,
+            stato=StatoEmail.LETTA,
+            mittente="b@example.it",
+            oggetto="PEC B",
+            data="2026-04-08T10:00:00",
+        )
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        _autentica_admin_session(app, client, cfg)
+        response = client.post(
+            "/api/v1/ui/email/bulk-action",
+            json={"ids": ["PEC-A", "PEC-B"], "action": "trash"},
+        )
+
+    payload = response.get_json()
+    pec_reload = GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"])
+    assert response.status_code == 200
+    assert payload["ok"] is True
+    assert payload["updated"] == ["PEC-A", "PEC-B"]
+    assert pec_reload.get("PEC-A").cartella == CartellaEmail.CESTINO
+    assert pec_reload.get("PEC-B").cartella == CartellaEmail.CESTINO
+
+
+def test_email_ordinaria_react_bulk_action_elimina_selezione_da_cestino(tmp_path):
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    ordinaria = GestioneEmailRicevute(cfg["EMAIL_ORDINARIA_DB"])
+    ordinaria.aggiungi(
+        EmailRicevuta(
+            id="ORD-TRASH-1",
+            cartella=CartellaEmail.CESTINO,
+            stato=StatoEmail.CESTINO,
+            mittente="cliente@example.it",
+            oggetto="Da eliminare 1",
+            data="2026-04-08T09:00:00",
+        )
+    )
+    ordinaria.aggiungi(
+        EmailRicevuta(
+            id="ORD-TRASH-2",
+            cartella=CartellaEmail.CESTINO,
+            stato=StatoEmail.CESTINO,
+            mittente="cliente2@example.it",
+            oggetto="Da eliminare 2",
+            data="2026-04-08T10:00:00",
+        )
+    )
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        _autentica_admin_session(app, client, cfg)
+        response = client.post(
+            "/api/v1/ui/email-ordinaria/bulk-action",
+            json={"ids": ["ORD-TRASH-1", "ORD-TRASH-2"], "action": "delete"},
+        )
+
+    payload = response.get_json()
+    ordinaria_reload = GestioneEmailRicevute(cfg["EMAIL_ORDINARIA_DB"])
+    assert response.status_code == 200
+    assert payload["ok"] is True
+    assert payload["updated"] == ["ORD-TRASH-1", "ORD-TRASH-2"]
+    assert ordinaria_reload.get("ORD-TRASH-1") is None
+    assert ordinaria_reload.get("ORD-TRASH-2") is None
 
 
 def test_email_ordinaria_scrivi_restera_separata_da_email_pec(tmp_path, monkeypatch):

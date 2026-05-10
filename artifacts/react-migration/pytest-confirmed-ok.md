@@ -8,6 +8,14 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 
 ## Frontend e gate React
 
+### Eliminazione multipla Email PEC e ordinaria 2.214.10
+
+| Verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest -q tests/test_email_client.py -k "bulk_action or email_ordinaria_route_react_api_e_repository_separato_da_pec" --tb=short` | OK | 3 test verdi: payload React PEC/ordinaria con `bulkAction` corretto, spostamento multiplo nel cestino per la PEC e cancellazione definitiva multipla dal cestino ordinario. |
+| `npm --prefix frontend run typecheck` | OK | TypeScript confermato dopo aggiunta checkbox, barra azioni multiple e submit JSON dedicato nelle due caselle email. |
+| `npm --prefix frontend run build` | OK | Build Vite completata con asset aggiornati della pagina `EmailPecPage`, inclusa la nuova esperienza di selezione multipla. |
+
 ### Deduplica Email ordinaria 2.214.9
 
 | Verifica | Esito | Nota |

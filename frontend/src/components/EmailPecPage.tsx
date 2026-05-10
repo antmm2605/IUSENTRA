@@ -34,6 +34,7 @@ import {
   getEmailOrdinariaDetail,
   getEmailPecPage,
   getEmailPecDetail,
+  submitEmailBulkAction,
   type EmailFolder,
   type EmailDetailData,
   type EmailPecPageData,
@@ -244,10 +245,29 @@ function FolderTabs({ data, folder, onChange, ariaLabel }: { data: EmailPecPageD
   )
 }
 
-function EmailListRow({ item, selected, onSelect, includeTelematic, fallbackInitials }: { item: EmailPecRow; selected: boolean; onSelect: () => void; includeTelematic: boolean; fallbackInitials: string }) {
+function EmailListRow({
+  item,
+  selected,
+  checked,
+  onSelect,
+  onToggleChecked,
+  includeTelematic,
+  fallbackInitials,
+}: {
+  item: EmailPecRow
+  selected: boolean
+  checked: boolean
+  onSelect: () => void
+  onToggleChecked: () => void
+  includeTelematic: boolean
+  fallbackInitials: string
+}) {
   const person = rowPerson(item)
   return (
     <button className={`iu-mail-row ${selected ? 'is-selected' : ''} ${item.unread ? 'is-unread' : ''}`} type="button" onClick={onSelect}>
+      <span className="iu-mail-row__check" onClick={(event) => event.stopPropagation()}>
+        <input type="checkbox" checked={checked} onChange={onToggleChecked} aria-label={`Seleziona ${item.subject || person}`} />
+      </span>
       <span className="iu-mail-avatar">{initials(person, fallbackInitials)}</span>
       <span className="iu-mail-main">
         <span className="iu-mail-row__top">
@@ -534,9 +554,11 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
   const [pctStatus, setPctStatus] = useState('')
   const [advancedOpen, setAdvancedOpen] = useState(false)
   const [selectedId, setSelectedId] = useState(routeEmailId(mode))
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [detail, setDetail] = useState<EmailDetailData | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
   const [statusLine, setStatusLine] = useState('')
+  const [bulkWorking, setBulkWorking] = useState(false)
 
   const fetchPage = mode === 'ordinaria' ? getEmailOrdinariaPage : getEmailPecPage
   const fetchParams = {
@@ -566,6 +588,23 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
 
   const visible = useMemo(() => sortRows(data.items.filter((item) => isInsideQuery(item, query)), sort), [data.items, query, sort])
   const selected = detail?.item && detail.item.id === selectedId ? detail.item : visible.find((item) => item.id === selectedId) || visible[0]
+  const visibleIds = useMemo(() => visible.map((item) => item.id), [visible])
+  const selectedVisibleCount = useMemo(() => visibleIds.filter((id) => selectedIds.has(id)).length, [selectedIds, visibleIds])
+  const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.has(id))
+  const bulkActionKind = folder === 'CESTINO' ? 'delete' : 'trash'
+  const bulkActionLabel = folder === 'CESTINO' ? 'Elimina selezione' : 'Sposta nel cestino'
+
+  useEffect(() => {
+    setSelectedIds((current) => {
+      const validIds = new Set(data.items.map((item) => item.id))
+      const next = new Set<string>()
+      current.forEach((id) => {
+        if (validIds.has(id)) next.add(id)
+      })
+      if (next.size === current.size) return current
+      return next
+    })
+  }, [data.items])
 
   useEffect(() => {
     const routeId = routeEmailId(mode)
@@ -607,6 +646,49 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
         load()
       })
       .catch((error) => setStatusLine(error instanceof Error ? error.message : `${label}: errore operativo`))
+  }
+
+  const toggleSelection = (id: string) => {
+    setSelectedIds((current) => {
+      const next = new Set(current)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleAllVisible = () => {
+    setSelectedIds((current) => {
+      const next = new Set(current)
+      if (allVisibleSelected) {
+        visibleIds.forEach((id) => next.delete(id))
+      } else {
+        visibleIds.forEach((id) => next.add(id))
+      }
+      return next
+    })
+  }
+
+  const runBulkAction = () => {
+    const ids = visibleIds.filter((id) => selectedIds.has(id))
+    if (!ids.length) {
+      setStatusLine('Seleziona almeno un messaggio.')
+      return
+    }
+    setBulkWorking(true)
+    setStatusLine(`${bulkActionLabel} in corso...`)
+    submitEmailBulkAction(data.actions.bulkAction, ids, bulkActionKind)
+      .then((message) => {
+        setStatusLine(message)
+        setSelectedIds((current) => {
+          const next = new Set(current)
+          ids.forEach((id) => next.delete(id))
+          return next
+        })
+        load()
+      })
+      .catch((error) => setStatusLine(error instanceof Error ? error.message : `${bulkActionLabel}: errore operativo`))
+      .finally(() => setBulkWorking(false))
   }
 
   const runSync = () => runAction(data.actions.sync, copy.syncLabel)
@@ -655,6 +737,7 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
       <section className="iu-mail-status-line">
         <span className={loading ? '' : 'is-ok'}>{loading ? copy.syncingLabel : copy.updatedLabel}</span>
         <small><Clock3 size={14} /> Le azioni sono tracciate e separate tra PEC ed email ordinaria.</small>
+        {selectedVisibleCount ? <small>{selectedVisibleCount} messaggi selezionati nella vista corrente.</small> : null}
         {statusLine ? <small className="iu-mail-operation-status">{statusLine}</small> : null}
       </section>
 
@@ -664,8 +747,36 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
             <div><strong>{visible.length} messaggi</strong><span>{folderLabel(folder)} · {sourceLabel(data.source, copy.sourceFallback)}</span></div>
             <a href={`${data.actions.operationalInbox}?cartella=${folder}`}><Download size={15} /> Apri cartella</a>
           </header>
+          {visible.length ? (
+            <div className="iu-mail-list-select-all">
+              <label>
+                <input type="checkbox" checked={allVisibleSelected} onChange={toggleAllVisible} />
+                <span>Seleziona tutti i messaggi visibili</span>
+              </label>
+            </div>
+          ) : null}
+          {selectedVisibleCount ? (
+            <div className="iu-mail-bulkbar">
+              <strong>{selectedVisibleCount} selezionati</strong>
+              <span>{folder === 'CESTINO' ? "Nel cestino puoi eliminare definitivamente piu' messaggi insieme." : "Puoi spostare nel cestino piu' messaggi della vista corrente."}</span>
+              <button type="button" onClick={runBulkAction} disabled={bulkWorking}>
+                <Trash2 size={15} /> {bulkWorking ? `${bulkActionLabel}...` : bulkActionLabel}
+              </button>
+            </div>
+          ) : null}
           <div className="iu-mail-list">
-            {visible.map((item) => <EmailListRow item={item} selected={selected?.id === item.id} onSelect={() => setSelectedId(item.id)} includeTelematic={copy.includeTelematic} fallbackInitials={mode === 'pec' ? 'PEC' : 'EM'} key={item.id} />)}
+            {visible.map((item) => (
+              <EmailListRow
+                item={item}
+                selected={selected?.id === item.id}
+                checked={selectedIds.has(item.id)}
+                onSelect={() => setSelectedId(item.id)}
+                onToggleChecked={() => toggleSelection(item.id)}
+                includeTelematic={copy.includeTelematic}
+                fallbackInitials={mode === 'pec' ? 'PEC' : 'EM'}
+                key={item.id}
+              />
+            ))}
             {!visible.length ? (
               <div className="iu-mail-empty">
                 <Mail size={34} />

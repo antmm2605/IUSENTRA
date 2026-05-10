@@ -11,6 +11,8 @@ from typing import Any, Callable, Mapping
 
 from flask import current_app, g, has_app_context
 
+from web.services.tenant_paths import CROSS_STUDIO_DATA_MESSAGE, TenantDataPathError
+
 
 DEFAULT_MAILBOX_SYNC_COOLDOWN_SECONDS = 180.0
 
@@ -85,11 +87,19 @@ def clear_mailbox_sync_runtime_state() -> None:
         _LAST_ATTEMPT.clear()
 
 
-def _cfg_path(ctx: MailboxRuntimeContext, key: str, default: str = "", *aliases: str) -> str:
+def _cfg_path(
+    ctx: MailboxRuntimeContext,
+    key: str,
+    default: str = "",
+    *aliases: str,
+    require_tenant: bool = False,
+) -> str:
     for candidate in (key, *aliases):
         value = ctx.data_paths.get(candidate)
         if value:
             return str(value)
+    if require_tenant and bool(ctx.config.get("MULTI_TENANT")):
+        raise TenantDataPathError(CROSS_STUDIO_DATA_MESSAGE)
     for candidate in (key, *aliases):
         value = ctx.config.get(candidate)
         if value:
@@ -128,8 +138,10 @@ def _email_manager(ctx: MailboxRuntimeContext, kind: str):
 
     if kind == "ordinary":
         default = os.environ.get("PCT_EMAIL_ORDINARIA_DB", "./email/ordinaria.json")
-        return GestioneEmailRicevute(db_path=_cfg_path(ctx, "EMAIL_ORDINARIA_DB", default))
-    return GestioneEmailRicevute(db_path=_cfg_path(ctx, "EMAIL_CASELLA_DB", os.environ.get("PCT_EMAIL_DB", "./email/casella.json")))
+        return GestioneEmailRicevute(db_path=_cfg_path(ctx, "EMAIL_ORDINARIA_DB", default, require_tenant=True))
+    return GestioneEmailRicevute(
+        db_path=_cfg_path(ctx, "EMAIL_CASELLA_DB", os.environ.get("PCT_EMAIL_DB", "./email/casella.json"), require_tenant=True)
+    )
 
 
 def _pec_state_path(ctx: MailboxRuntimeContext) -> str:

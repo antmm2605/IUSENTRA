@@ -233,6 +233,7 @@ from web.services.react_wizard_pro_bridge import (
     build_react_wizard_pro_step_payload,
 )
 from web.services.studio_site_runtime import site_admin_identity_or_403
+from web.services.tenant_paths import TenantDataPathError, tenant_data_path
 from web.helpers import (
     get_agenda,
     get_calendar_sync,
@@ -257,6 +258,11 @@ from web.helpers import (
 api_v1_react = Blueprint("api_v1_react", __name__, url_prefix="/api/v1/ui")
 
 MONTHS_SHORT = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"]
+
+
+@api_v1_react.errorhandler(TenantDataPathError)
+def _tenant_data_path_error(error: TenantDataPathError):
+    return jsonify({"ok": False, "errore": str(error), "codice": "tenant_context_required"}), 409
 
 
 def _api_key_valida() -> bool:
@@ -549,6 +555,10 @@ def _cfg_value(key: str, default: str = "") -> str:
     return str(current_app.config.get(key, default) or default)
 
 
+def _tenant_cfg_value(key: str, default: str = "") -> str:
+    return tenant_data_path(key, default, require_tenant=True)
+
+
 def _safe(label: str, func: Callable[[], Any], fallback: Any) -> Any:
     try:
         return func()
@@ -698,11 +708,11 @@ def _workspace_overview() -> dict[str, Any]:
 
 
 def _email_manager() -> GestioneEmailRicevute:
-    return GestioneEmailRicevute(_cfg_value("EMAIL_CASELLA_DB", "./email/casella.json"))
+    return GestioneEmailRicevute(_tenant_cfg_value("EMAIL_CASELLA_DB", "./email/casella.json"))
 
 
 def _ordinary_email_manager() -> GestioneEmailRicevute:
-    return GestioneEmailRicevute(_cfg_value("EMAIL_ORDINARIA_DB", "./email/ordinaria.json"))
+    return GestioneEmailRicevute(_tenant_cfg_value("EMAIL_ORDINARIA_DB", "./email/ordinaria.json"))
 
 
 def _messaggi_manager() -> GestioneMessaggi:
@@ -1450,8 +1460,8 @@ def soggetto_modifica_react(id_soggetto: str):
 @_richiedi_auth
 def email_react_list():
     response = jsonify(build_react_email_payload(
-        db_path=_cfg_value("EMAIL_CASELLA_DB", "./email/casella.json"),
-        messaggi_db=_cfg_value("MESSAGGI_DB", "./messaggi/storico.json"),
+        db_path=_tenant_cfg_value("EMAIL_CASELLA_DB", "./email/casella.json"),
+        messaggi_db=_tenant_cfg_value("MESSAGGI_DB", "./messaggi/storico.json"),
         base_path="/email",
         compose_path="/email/scrivi",
         settings_path="/impostazioni?tab=pec",
@@ -1478,7 +1488,7 @@ def email_react_list():
 @_richiedi_auth
 def email_react_detail(id_email: str):
     payload = build_react_email_detail_payload(
-        db_path=_cfg_value("EMAIL_CASELLA_DB", "./email/casella.json"),
+        db_path=_tenant_cfg_value("EMAIL_CASELLA_DB", "./email/casella.json"),
         id_email=id_email,
         base_path="/email",
         compose_path="/email/scrivi",
@@ -1508,7 +1518,7 @@ def _email_bulk_action(
     if action not in {"trash", "delete"}:
         return _json_validation_error("Azione multipla non valida.", {"action": "Azione non riconosciuta."}, status=400)
 
-    gestore = GestioneEmailRicevute(db_path=_cfg_value(db_key, default_db_path))
+    gestore = GestioneEmailRicevute(db_path=_tenant_cfg_value(db_key, default_db_path))
     updated: list[str] = []
     missing: list[str] = []
     skipped: list[str] = []
@@ -1578,8 +1588,8 @@ def email_react_bulk_action():
 @_richiedi_auth
 def email_ordinaria_react_list():
     response = jsonify(build_react_email_payload(
-        db_path=_cfg_value("EMAIL_ORDINARIA_DB", "./email/ordinaria.json"),
-        messaggi_db=_cfg_value("MESSAGGI_DB", "./messaggi/storico.json"),
+        db_path=_tenant_cfg_value("EMAIL_ORDINARIA_DB", "./email/ordinaria.json"),
+        messaggi_db=_tenant_cfg_value("MESSAGGI_DB", "./messaggi/storico.json"),
         base_path="/email-ordinaria",
         compose_path="/email-ordinaria/scrivi",
         settings_path="/impostazioni?tab=smtp",
@@ -1606,7 +1616,7 @@ def email_ordinaria_react_list():
 @_richiedi_auth
 def email_ordinaria_react_detail(id_email: str):
     payload = build_react_email_detail_payload(
-        db_path=_cfg_value("EMAIL_ORDINARIA_DB", "./email/ordinaria.json"),
+        db_path=_tenant_cfg_value("EMAIL_ORDINARIA_DB", "./email/ordinaria.json"),
         id_email=id_email,
         base_path="/email-ordinaria",
         compose_path="/email-ordinaria/scrivi",

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.215.1 - 2026-05-11
+
+- Chiuso il fallback globale di `Email PEC` ed `Email ordinaria` in ambiente multi-studio: liste, dettagli, allegati, statistiche, sincronizzazione e azioni bulk usano solo i path del tenant attivo oppure falliscono chiusi con `tenant_context_required`.
+- Introdotto il guardrail condiviso `TenantDataPathError` per impedire letture/scritture cross-studio quando manca il contesto tenant valido.
+- Aggiunti test anti-regressione che verificano che le API React email non leggano e non cancellino messaggi dal repository globale senza tenant attivo.
+
 ## 2.214.10 - 2026-05-10
 
 - Blindati altri accessi tenant-aware nei repository sensibili: backup, soggetti/anagrafiche parti, indice ricerca, registro privacy, condivisioni, calendario in Impostazioni, preventivi/template atti, sync PDP/PEC, topbar, applicazioni, legal intelligence e superfici admin database/salute sistema ora leggono i path del tenant attivo oppure falliscono chiusi se il contesto studio manca.

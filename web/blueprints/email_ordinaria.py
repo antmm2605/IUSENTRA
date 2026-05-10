@@ -29,6 +29,7 @@ from flask import (
 
 from web.blueprints.react_shell import render_react_shell_response
 from web.services.mailbox_sync_runtime import run_ordinary_mailbox_sync
+from web.services.tenant_paths import TenantDataPathError, tenant_data_path
 
 email_ordinaria = Blueprint("email_ordinaria", __name__, url_prefix="/email-ordinaria")
 
@@ -48,16 +49,7 @@ def _legacy_requested() -> bool:
 
 
 def _cfg_path(key: str, default: str = "", *aliases: str) -> str:
-    paths = getattr(g, "data_paths", {}) or {}
-    for candidate in (key, *aliases):
-        value = paths.get(candidate)
-        if value:
-            return str(value)
-    for candidate in (key, *aliases):
-        value = current_app.config.get(candidate)
-        if value:
-            return str(value)
-    return str(default or "")
+    return tenant_data_path(key, default, *aliases, require_tenant=True)
 
 
 def _studio_config_path() -> str:
@@ -331,4 +323,7 @@ def stats_json():
 @_login_required
 def sincronizza():
     """Sincronizza la casella ordinaria usando i parametri IMAP del tab SMTP."""
-    return jsonify(run_ordinary_mailbox_sync())
+    try:
+        return jsonify(run_ordinary_mailbox_sync())
+    except TenantDataPathError as exc:
+        return jsonify({"ok": False, "errore": str(exc)}), 409

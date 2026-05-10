@@ -28,6 +28,7 @@ from flask import (
 from pct.config_studio import _SMTPv4, _SMTP_SSLv4
 from web.blueprints.react_shell import render_react_shell_response
 from web.services.mailbox_sync_runtime import run_pec_mailbox_sync
+from web.services.tenant_paths import TenantDataPathError, tenant_data_path
 
 email_client = Blueprint("email_client", __name__, url_prefix="/email")
 
@@ -48,16 +49,7 @@ def _richiede_vista_classica() -> bool:
 
 
 def _cfg_path(key: str, default: str = "", *aliases: str) -> str:
-    paths = getattr(g, "data_paths", {}) or {}
-    for candidate in (key, *aliases):
-        value = paths.get(candidate)
-        if value:
-            return str(value)
-    for candidate in (key, *aliases):
-        value = current_app.config.get(candidate)
-        if value:
-            return str(value)
-    return str(default or "")
+    return tenant_data_path(key, default, *aliases, require_tenant=True)
 
 
 def _studio_config_path() -> str:
@@ -380,7 +372,10 @@ def stats_json():
 @_login_required
 def sincronizza():
     """AJAX — sincronizza la casella IMAP e aggiorna gli esiti PCT."""
-    return jsonify(run_pec_mailbox_sync())
+    try:
+        return jsonify(run_pec_mailbox_sync())
+    except TenantDataPathError as exc:
+        return jsonify({"ok": False, "errore": str(exc)}), 409
 
 
 @email_client.route("/auto-esiti", methods=["POST"])

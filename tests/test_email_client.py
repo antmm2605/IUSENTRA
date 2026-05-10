@@ -327,6 +327,107 @@ def test_email_ordinaria_route_react_api_e_repository_separato_da_pec(tmp_path):
     assert pec_payload["items"][0]["id"] == "PEC-1"
 
 
+def test_email_ordinaria_react_api_non_legge_fallback_globale_senza_tenant(tmp_path):
+    from web.app import create_app
+
+    cfg = {
+        **_cfg_web(tmp_path),
+        "MULTI_TENANT": True,
+        "TENANTS_REGISTRY": str(tmp_path / "tenants.json"),
+    }
+    GestioneEmailRicevute(cfg["EMAIL_ORDINARIA_DB"]).aggiungi(
+        EmailRicevuta(
+            id="MAIL-ROOT-1",
+            cartella=CartellaEmail.INBOX,
+            stato=StatoEmail.NON_LETTA,
+            mittente="altro-studio@example.it",
+            oggetto="Messaggio che non deve essere esposto",
+            data="2026-05-10T10:00:00",
+        )
+    )
+
+    app = create_app(cfg)
+    app.config["API_KEY"] = "react-test-key"
+    with app.test_client() as client:
+        response = client.get(
+            "/api/v1/ui/email-ordinaria",
+            headers={"X-API-Key": "react-test-key"},
+        )
+
+    payload = response.get_json()
+    assert response.status_code == 409
+    assert payload["codice"] == "tenant_context_required"
+    assert "cross-studio" in payload["errore"]
+
+
+def test_email_ordinaria_bulk_action_non_cancella_fallback_globale_senza_tenant(tmp_path):
+    from web.app import create_app
+
+    cfg = {
+        **_cfg_web(tmp_path),
+        "MULTI_TENANT": True,
+        "TENANTS_REGISTRY": str(tmp_path / "tenants.json"),
+    }
+    root_mail = GestioneEmailRicevute(cfg["EMAIL_ORDINARIA_DB"])
+    root_mail.aggiungi(
+        EmailRicevuta(
+            id="MAIL-ROOT-TRASH",
+            cartella=CartellaEmail.CESTINO,
+            stato=StatoEmail.CESTINO,
+            mittente="altro-studio@example.it",
+            oggetto="Non cancellare dal tenant sbagliato",
+            data="2026-05-10T10:00:00",
+        )
+    )
+
+    app = create_app(cfg)
+    app.config["API_KEY"] = "react-test-key"
+    with app.test_client() as client:
+        response = client.post(
+            "/api/v1/ui/email-ordinaria/bulk-action",
+            headers={"X-API-Key": "react-test-key"},
+            json={"ids": ["MAIL-ROOT-TRASH"], "action": "delete"},
+        )
+
+    payload = response.get_json()
+    assert response.status_code == 409
+    assert payload["codice"] == "tenant_context_required"
+    assert GestioneEmailRicevute(cfg["EMAIL_ORDINARIA_DB"]).get("MAIL-ROOT-TRASH") is not None
+
+
+def test_email_pec_react_api_non_legge_fallback_globale_senza_tenant(tmp_path):
+    from web.app import create_app
+
+    cfg = {
+        **_cfg_web(tmp_path),
+        "MULTI_TENANT": True,
+        "TENANTS_REGISTRY": str(tmp_path / "tenants.json"),
+    }
+    GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"]).aggiungi(
+        EmailRicevuta(
+            id="PEC-ROOT-1",
+            cartella=CartellaEmail.INBOX,
+            stato=StatoEmail.NON_LETTA,
+            mittente="altro-studio@pec.example.it",
+            oggetto="PEC che non deve essere esposta",
+            data="2026-05-10T10:00:00",
+        )
+    )
+
+    app = create_app(cfg)
+    app.config["API_KEY"] = "react-test-key"
+    with app.test_client() as client:
+        response = client.get(
+            "/api/v1/ui/email",
+            headers={"X-API-Key": "react-test-key"},
+        )
+
+    payload = response.get_json()
+    assert response.status_code == 409
+    assert payload["codice"] == "tenant_context_required"
+    assert "cross-studio" in payload["errore"]
+
+
 def test_email_react_bulk_action_sposta_selezione_nel_cestino(tmp_path):
     from web.app import create_app
 

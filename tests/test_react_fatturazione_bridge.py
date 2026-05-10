@@ -217,3 +217,50 @@ def test_create_react_fattura_salva_snapshot_personalizzato_e_registra_audit(tmp
     assert parcella.dati_personalizzati["payment"]["iban"] == "IT60X0542811101000000123456"
     assert audit_users.events
     assert audit_users.events[0][0][0] == "fatturazione.crea"
+
+
+def test_create_react_fattura_forfettaria_disattiva_iva_anche_se_selezionata(tmp_path):
+    cliente = _cliente()
+    manager = GestioneFatturazione(db_path=str(tmp_path / "parcelle.json"))
+    audit_users = _AuditUsers()
+
+    payload = {
+        "id_cliente": cliente.id,
+        "data_emissione": "2026-05-10",
+        "data_scadenza": "2026-06-09",
+        "note": "Parcella forfettaria",
+        "voci": [
+            {"descrizione": "Compenso professionale", "quantita": "1", "prezzo_unitario": "258.00", "tipo": "ONORARIO"},
+        ],
+        "opzioni_fiscali": {
+            "applica_iva": True,
+            "applica_cassa": True,
+            "applica_ritenuta": False,
+            "applica_bollo": False,
+        },
+        "percentuale_spese_generali": "15",
+        "metodo_pagamento": "Bonifico",
+        "dati_personalizzati": {
+            "document": {
+                "regime_fiscale": "RF19",
+            },
+        },
+    }
+
+    result, status = create_react_fattura(
+        get_fatturazione=lambda: manager,
+        get_clienti=lambda: _Loader(cliente),
+        get_fascicoli=lambda: _Loader(),
+        get_utenti=lambda: audit_users,
+        get_preventivi=None,
+        current_user=_User(),
+        payload=payload,
+        config=_studio_config(),
+        ip_address="127.0.0.1",
+    )
+
+    assert status == 200
+    assert result["ok"] is True
+    parcella = manager.tutte()[0]
+    assert parcella.applica_iva is False
+    assert parcella.iva == 0.0

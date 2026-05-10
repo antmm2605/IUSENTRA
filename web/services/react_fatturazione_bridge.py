@@ -54,6 +54,7 @@ _CANONICAL_AMOUNT_FIELDS = {
     "base_iva",
     "bollo",
 }
+_NO_VAT_REGIMES = {"RF19", "RF02"}
 
 
 def _iso_now() -> str:
@@ -825,6 +826,16 @@ def _unknown_fields(payload: dict[str, Any], allowed: set[str]) -> set[str]:
     return {key for key in payload if key not in allowed}
 
 
+def _regime_blocks_vat(dati_personalizzati: dict[str, Any]) -> bool:
+    if not isinstance(dati_personalizzati, dict):
+        return False
+    document = dati_personalizzati.get("document")
+    if not isinstance(document, dict):
+        return False
+    regime = _text(document.get("regime_fiscale"), limit=8).upper()
+    return regime in _NO_VAT_REGIMES
+
+
 def _reject_canonical_fields(payload: dict[str, Any], errors: dict[str, str], prefix: str = "") -> None:
     for field in sorted(_CANONICAL_AMOUNT_FIELDS & set(payload.keys())):
         key = f"{prefix}{field}" if prefix else field
@@ -968,6 +979,8 @@ def _validate_payload(
         "complessita": _text(payload.get("complessita"), limit=80),
         "log_calcolo": _text(payload.get("log_calcolo")) or None,
     }
+    if _regime_blocks_vat(dati_personalizzati):
+        validated["applica_iva"] = False
     return validated, errors
 
 

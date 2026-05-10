@@ -89,3 +89,49 @@ def test_xml_fattura_pa_usa_snapshot_personalizzato_e_destinatario_estero():
     assert "Spese generali 15%" in descriptions
     assert "Contributo Cassa Forense 4% (art. 11 L. 576/1980)" in descriptions
     assert len(root.xpath(".//f:DatiBeniServizi/f:DatiRiepilogo", namespaces=ns)) == 2
+
+
+def test_xml_fattura_pa_forfettaria_esclude_iva():
+    cliente = Cliente(
+        id="CLI-IT",
+        tipo=TipoCliente.PERSONA_GIURIDICA,
+        ragione_sociale="Beta Srl",
+        indirizzo_sede_legale=Indirizzo(via="Via Roma", civico="5", cap="20100", comune="Milano", provincia="MI", nazione="Italia"),
+        recapiti=Recapiti(email="amministrazione@beta.example"),
+    )
+    parcella = Parcella(
+        id="PAR-002",
+        numero="2026/002",
+        id_cliente=cliente.id,
+        id_fascicolo=None,
+        data_emissione="2026-05-10",
+        data_scadenza="2026-06-09",
+        stato=StatoParcella.BOZZA,
+        voci=[VoceParcella(descrizione="Compenso professionale", quantita=1, prezzo_unitario=258.0, tipo="ONORARIO")],
+        applica_iva=True,
+        applica_cassa=True,
+        applica_ritenuta=False,
+        percentuale_spese_generali=15.0,
+        dati_personalizzati={
+            "document": {
+                "regime_fiscale": "RF19",
+                "esigibilita_iva": "I",
+            },
+        },
+    )
+
+    xml_bytes = genera_xml_fattura_pa(
+        parcella=parcella,
+        cliente=cliente,
+        studio_nome="Studio Legale Rossi",
+        studio_piva="09876543210",
+        studio_cf="RSSMRA80A01H501Z",
+        studio_indirizzo="Via Verdi 8, 00100 Roma (RM)",
+    )
+    root = etree.fromstring(xml_bytes)
+    ns = {"f": "http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2"}
+
+    assert root.xpath("string(.//f:DatiCassaPrevidenziale/f:AliquotaIVA)", namespaces=ns) == "0.00"
+    assert root.xpath("string(.//f:DatiRiepilogo/f:AliquotaIVA)", namespaces=ns) == "0.00"
+    assert root.xpath("string(.//f:DatiRiepilogo/f:Imposta)", namespaces=ns) == "0.00"
+    assert "franchigia IVA" in root.xpath("string(.//f:DatiRiepilogo/f:RiferimentoNormativo)", namespaces=ns)

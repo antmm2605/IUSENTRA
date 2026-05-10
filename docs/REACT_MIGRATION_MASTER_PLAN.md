@@ -1,9 +1,13 @@
 # Migrazione progressiva Flask + React
 
-## Stato tranche 2026-05-10 - Parcella personalizzata Fatturazione 2.214.5
+## Stato tranche 2026-05-10 - Parcella personalizzata Fatturazione 2.214.6
 
 Questa tranche risponde alla richiesta di ampliare `/fatturazione/nuova` con
 una parcella personalizzata completa, precompilata dove possibile dal software:
+
+- hotfix 2.214.6 completato: con regime fiscale `forfettario` o `minimo` la
+  UI disattiva l'IVA, l'anteprima non la conteggia e il backend la forza a zero
+  anche nel salvataggio finale e nell'XML FatturaPA;
 
 - la pagina React raccoglie ora in sezioni operative distinte i dati di
   trasmissione, i dati dello studio, il destinatario, il corpo del documento,

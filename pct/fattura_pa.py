@@ -247,13 +247,15 @@ def genera_xml_fattura_pa(
     _el(dgd, "Data", _clean(document_snapshot.get("data_documento") or parcella.data_emissione, 10))
     _el(dgd, "Numero", parcella.numero)
 
+    iva_applicabile = bool(getattr(parcella, "iva_applicabile", getattr(parcella, "applica_iva", False)))
+
     if parcella.applica_cassa and parcella.cassa_forense > 0:
         dcp = _el(dgd, "DatiCassaPrevidenziale")
         _el(dcp, "TipoCassa", "CAF")
         _el(dcp, "AlCassa", "4.00")
         _el(dcp, "ImportoContributoCassa", f"{parcella.cassa_forense:.2f}")
         _el(dcp, "ImponibileCassa", f"{parcella.imponibile:.2f}")
-        _el(dcp, "AliquotaIVA", "22.00" if parcella.applica_iva else "0.00")
+        _el(dcp, "AliquotaIVA", "22.00" if iva_applicabile else "0.00")
         _el(dcp, "Ritenuta", "SI" if parcella.applica_ritenuta else "NO")
 
     if parcella.applica_ritenuta and parcella.ritenuta > 0:
@@ -277,8 +279,8 @@ def genera_xml_fattura_pa(
         _el(dgd, "Causale", causale[:200])
 
     dbs = _el(body, "DatiBeniServizi")
-    aliquota = "22.00" if parcella.applica_iva else "0.00"
-    natura = "" if parcella.applica_iva else "N2.2"
+    aliquota = "22.00" if iva_applicabile else "0.00"
+    natura = "" if iva_applicabile else "N2.2"
     line_number = 1
     for voce in parcella.voci:
         dl = _el(dbs, "DettaglioLinee")
@@ -323,7 +325,12 @@ def genera_xml_fattura_pa(
     _el(dr_rie, "AliquotaIVA", aliquota)
     if natura:
         _el(dr_rie, "Natura", natura)
-        _el(dr_rie, "RiferimentoNormativo", "Operazione non soggetta ad IVA ex art. 1, co. 54-89, L. 190/2014")
+        riferimento_normativo = (
+            "Operazione in franchigia IVA ex art. 1, co. 54-89, L. 190/2014"
+            if regime_fiscale == REGIME_FORFETTARIO
+            else "Operazione non soggetta ad IVA in base al regime fiscale applicato"
+        )
+        _el(dr_rie, "RiferimentoNormativo", riferimento_normativo)
     _el(dr_rie, "ImponibileImporto", f"{parcella.base_iva:.2f}")
     _el(dr_rie, "Imposta", f"{parcella.iva:.2f}")
     _el(dr_rie, "EsigibilitaIVA", _clean(document_snapshot.get("esigibilita_iva"), 1) or "I")

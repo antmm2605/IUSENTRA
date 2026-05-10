@@ -8,6 +8,19 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 
 ## Frontend e gate React
 
+### Parcella personalizzata Fatturazione 2.214.6
+
+| Verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest -q tests/test_fatturazione.py tests/test_react_fatturazione_bridge.py tests/test_fattura_pa.py` | OK | 11 test verdi inclusi i casi forfettario/minimo senza IVA su calcolo parcella, salvataggio React e XML FatturaPA. |
+| `npm --prefix frontend run typecheck` | OK | TypeScript confermato dopo il blocco UI dell'opzione IVA nei regimi senza imposta. |
+| `npm --prefix frontend run build` | OK | Build Vite 2.214.6 completata con chunk aggiornato `FatturazionePage`. |
+| `python tools/sync_packaging_files.py --check` | OK | Packaging confermato allineato dopo il bump patch `2.214.6`. |
+| `python -m pytest -q tests/test_packaging_consistency.py tests/test_release_readiness.py --tb=short` | OK | 8 test verdi sulla release `2.214.6`. |
+| `docker compose build app` | OK | Immagine locale ricostruita con wheel `pct-studio-legale==2.214.6`. |
+| `docker compose up -d --force-recreate app` | OK | Recreate necessario per riallineare il container locale al nuovo tag applicativo. |
+| `docker exec iusentra-app python -c "import pct; print(pct.__version__)"` + `/api/pronto` interno + health inspect | OK | Runtime locale confermato su `2.214.6`; readiness JSON corretta e container `healthy` dopo i probe iniziali. |
+
 ### Parcella personalizzata Fatturazione 2.214.5
 
 | Verifica | Esito | Nota |

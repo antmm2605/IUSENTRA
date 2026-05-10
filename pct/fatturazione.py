@@ -22,6 +22,8 @@ from typing import Any, Dict, List, Optional
 from pct.legal_platform_catalog import build_operational_fields
 from pct.compensi_a_tempo import calcola_compenso_a_tempo_art22bis
 
+_REGIMI_SENZA_IVA = {"RF19", "RF02"}
+
 
 # ================================================================ Enumerazioni
 
@@ -217,8 +219,21 @@ class Parcella:
         return round(self.imponibile + self.cassa_forense, 2)
 
     @property
+    def regime_fiscale(self) -> str:
+        raw = self.dati_personalizzati.get("document", {}) if isinstance(self.dati_personalizzati, dict) else {}
+        if not isinstance(raw, dict):
+            return ""
+        return str(raw.get("regime_fiscale", "") or "").strip().upper()
+
+    @property
+    def iva_applicabile(self) -> bool:
+        if self.regime_fiscale in _REGIMI_SENZA_IVA:
+            return False
+        return self.applica_iva
+
+    @property
     def iva(self) -> float:
-        return round(self.base_iva * 0.22, 2) if self.applica_iva else 0.0
+        return round(self.base_iva * 0.22, 2) if self.iva_applicabile else 0.0
 
     @property
     def ritenuta(self) -> float:

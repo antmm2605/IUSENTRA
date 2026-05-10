@@ -140,3 +140,29 @@ def test_parcella_personalizzata_salva_tipo_voci_e_snapshot_documento(tmp_path: 
     assert loaded.voci[0].tipo == "SPESE"
     assert loaded.dati_personalizzati["document"]["numero_documento"] == "2026/005"
     assert loaded.dati_personalizzati["payment"]["iban"] == "IT60X0542811101000000123456"
+
+
+def test_parcella_forfettaria_non_calcola_iva_anche_se_opzione_attiva(tmp_path: Path):
+    db_path = tmp_path / "parcelle.json"
+    gf = GestioneFatturazione(db_path=str(db_path))
+
+    parcella = gf.crea(
+        id_cliente="cliente-1",
+        data_emissione="2026-05-10",
+        data_scadenza="2026-06-09",
+        applica_iva=True,
+        applica_cassa=True,
+        percentuale_spese_generali=15,
+        voci=[VoceParcella(descrizione="Compenso professionale", quantita=1, prezzo_unitario=258.0, tipo="ONORARIO")],
+        dati_personalizzati={
+            "document": {
+                "regime_fiscale": "RF19",
+            },
+        },
+    )
+
+    assert parcella.iva_applicabile is False
+    assert parcella.base_iva == 308.57
+    assert parcella.iva == 0.0
+    assert parcella.totale_documento == 308.57
+    assert parcella.totale == 308.57

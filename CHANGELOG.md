@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.214.6 - 2026-05-10
+
+- Corretto il calcolo della nuova parcella personalizzata in `/fatturazione`: con regime forfettario o minimo l'IVA non viene piu' applicata, anche se l'opzione risultava attiva nel form.
+- Allineati preview React, validazione/salvataggio backend e XML FatturaPA, con blocco visivo dell'opzione IVA nei regimi che non la prevedono.
+- Aggiunti test anti-regressione mirati su dominio fatturazione, bridge React e generazione XML per il caso senza IVA.
+
 ## 2.214.5 - 2026-05-10
 
 - Estesa `/fatturazione/nuova` con la nuova parcella personalizzata: trasmissione, dati studio, destinatario, corpo documento, fiscalita' e pagamento sono ora raccolti in un'unica esperienza React coerente con il modello operativo richiesto.

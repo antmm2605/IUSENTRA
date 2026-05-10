@@ -81,6 +81,8 @@ const defaultFiscalOptions: FatturazioneFiscalDefaults = {
   applica_bollo: false,
 }
 
+const noVatRegimes = new Set(['RF19', 'RF02'])
+
 const fallbackFormState: FormState = {
   id_cliente: '',
   id_fascicolo: '',
@@ -184,9 +186,23 @@ function rowFromDefault(item: FatturazioneVoiceDefault, index: number): VoiceRow
   }
 }
 
+function isVatExcludedRegime(regime: string | undefined): boolean {
+  return noVatRegimes.has((regime || '').trim().toUpperCase())
+}
+
+function regimeLabel(regime: string): string {
+  return ({
+    RF01: 'Regime ordinario',
+    RF19: 'Regime forfettario',
+    RF02: 'Regime minimo',
+  })[regime] || 'Regime fiscale'
+}
+
 function stateFromForm(form: FatturazioneFormDefinition | undefined): FormState {
   const defaults = form?.defaults
   const rows = (defaults?.voci || []).map(rowFromDefault)
+  const regime = defaults?.dati_personalizzati?.document.regime_fiscale || 'RF01'
+  const ivaLocked = isVatExcludedRegime(regime)
   return {
     id_cliente: defaults?.id_cliente || '',
     id_fascicolo: defaults?.id_fascicolo || '',
@@ -194,7 +210,10 @@ function stateFromForm(form: FatturazioneFormDefinition | undefined): FormState 
     data_scadenza: defaults?.data_scadenza || '',
     note: defaults?.note || '',
     voci: rows.length ? rows : [defaultVoice],
-    opzioni_fiscali: defaults?.opzioni_fiscali || defaultFiscalOptions,
+    opzioni_fiscali: {
+      ...(defaults?.opzioni_fiscali || defaultFiscalOptions),
+      applica_iva: ivaLocked ? false : (defaults?.opzioni_fiscali?.applica_iva ?? defaultFiscalOptions.applica_iva),
+    },
     percentuale_spese_generali: defaults?.percentuale_spese_generali || '15',
     metodo_pagamento: defaults?.metodo_pagamento || defaults?.dati_personalizzati?.payment.modalita_pagamento_label || 'Bonifico',
     dati_personalizzati: defaults?.dati_personalizzati || fallbackFormState.dati_personalizzati,
@@ -248,6 +267,7 @@ function mergeParty(current: FatturazionePersonalizedParty, incoming?: Fatturazi
 }
 
 function computePreview(formState: FormState) {
+  const ivaLocked = isVatExcludedRegime(formState.dati_personalizzati.document.regime_fiscale)
   const competenze = formState.voci
     .filter((row) => (row.tipo || 'ONORARIO') !== 'SPESE' && (row.tipo || 'ONORARIO') !== 'ANTICIPO')
     .reduce((sum, row) => sum + lineTotal(row), 0)
@@ -262,7 +282,7 @@ function computePreview(formState: FormState) {
   const imponibile = competenze + speseImponibili + speseGenerali
   const cassa = formState.opzioni_fiscali.applica_cassa ? imponibile * 0.04 : 0
   const baseIva = imponibile + cassa
-  const iva = formState.opzioni_fiscali.applica_iva ? baseIva * 0.22 : 0
+  const iva = formState.opzioni_fiscali.applica_iva && !ivaLocked ? baseIva * 0.22 : 0
   const bollo = formState.opzioni_fiscali.applica_bollo ? 2 : 0
   const ritenutaBase = competenze + speseGenerali
   const ritenuta = formState.opzioni_fiscali.applica_ritenuta ? ritenutaBase * 0.2 : 0
@@ -560,9 +580,11 @@ function VoiceEditor({
 function FiscalOptions({
   values,
   onChange,
+  disableIva,
 }: {
   values: FatturazioneFiscalDefaults
   onChange: (values: FatturazioneFiscalDefaults) => void
+  disableIva?: boolean
 }) {
   const options: Array<{ name: keyof FatturazioneFiscalDefaults; label: string }> = [
     { name: 'applica_cassa', label: 'Cassa Forense' },
@@ -577,6 +599,7 @@ function FiscalOptions({
           <input
             type="checkbox"
             checked={values[option.name]}
+            disabled={option.name === 'applica_iva' && disableIva}
             onChange={(event) => onChange({ ...values, [option.name]: event.currentTarget.checked })}
           />
           <span>{option.label}</span>
@@ -614,6 +637,7 @@ function NewInvoiceForm({
   const noClients = data.clients.length === 0
   const clientProfile = data.clientProfiles[formState.id_cliente]
   const matterProfile = data.matterProfiles[formState.id_fascicolo]
+  const ivaLocked = isVatExcludedRegime(formState.dati_personalizzati.document.regime_fiscale)
 
   function updatePersonalized<K extends keyof FatturazionePersonalizedData>(
     section: K,
@@ -1028,7 +1052,28 @@ function NewInvoiceForm({
             </label>
             <label className="iu-fatt-field">
               <span>Regime fiscale</span>
-              <select value={formState.dati_personalizzati.document.regime_fiscale} onChange={(event) => updatePersonalized('document', { regime_fiscale: event.currentTarget.value })}>
+              <select
+                value={formState.dati_personalizzati.document.regime_fiscale}
+                onChange={(event) => {
+                  const regime = event.currentTarget.value
+                  const locked = isVatExcludedRegime(regime)
+                  setFormState((current) => ({
+                    ...current,
+                    opzioni_fiscali: {
+                      ...current.opzioni_fiscali,
+                      applica_iva: locked ? false : current.opzioni_fiscali.applica_iva,
+                    },
+                    dati_personalizzati: {
+                      ...current.dati_personalizzati,
+                      document: {
+                        ...current.dati_personalizzati.document,
+                        regime_fiscale: regime,
+                        regime_fiscale_label: regimeLabel(regime),
+                      },
+                    },
+                  }))
+                }}
+              >
                 <option value="RF01">Regime ordinario</option>
                 <option value="RF19">Regime forfettario</option>
                 <option value="RF02">Regime minimo</option>
@@ -1091,8 +1136,15 @@ function NewInvoiceForm({
           </div>
           <FiscalOptions
             values={formState.opzioni_fiscali}
+            disableIva={ivaLocked}
             onChange={(opzioni_fiscali) => setFormState((current) => ({ ...current, opzioni_fiscali }))}
           />
+          {ivaLocked ? (
+            <div className="iu-fatt-form-note" aria-label="Regime senza IVA">
+              <strong>IVA esclusa dal calcolo</strong>
+              <span>{regimeLabel(formState.dati_personalizzati.document.regime_fiscale)}: l&apos;imposta non viene applicata nella parcella.</span>
+            </div>
+          ) : null}
           <div className="iu-fatt-form-grid">
             <label className="iu-fatt-field">
               <span>Modalita di pagamento</span>

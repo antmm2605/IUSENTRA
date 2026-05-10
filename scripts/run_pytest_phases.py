@@ -37,6 +37,8 @@ CI_TEST_SUITES: dict[str, tuple[Path, ...]] = {
     "coverage-critical": (
         REPO_ROOT / "lex" / "tests",
         REPO_ROOT / "tests" / "test_lex_docling_parser.py",
+        REPO_ROOT / "tests" / "test_lex_professional_upgrade.py",
+        REPO_ROOT / "tests" / "test_lex_sources_and_studio_data.py",
         REPO_ROOT / "tests" / "test_auth.py",
         REPO_ROOT / "tests" / "test_storage_strategy.py",
         REPO_ROOT / "tests" / "test_storage_governance.py",

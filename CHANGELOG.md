@@ -3,6 +3,7 @@
 ## 2.215.3 - 2026-05-11
 
 - Ripristinato nel `Dockerfile` il path runtime esplicito `PCT_EMAIL_ORDINARIA_DB=/data/email/ordinaria.json`, cosi' il container non puo' ricadere sul repository e il contratto CI resta allineato al comportamento tenant-aware.
+- Riallineata la suite `coverage-critical` includendo i test Lex professionali gia' presenti che coprono moduli critici conteggiati dal gate, senza abbassare la soglia coverage.
 
 ## 2.215.2 - 2026-05-11
 

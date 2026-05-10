@@ -27,6 +27,8 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 | `python scripts/run_pytest_phases.py --core-shard 7 --core-total-shards 10 --core-subshard 3 --core-total-subshards 3 --core-subdivide-items --timeout-minutes 5` | OK | 36 test verdi: riprodotto localmente il sotto-shard `Pytest core fase 7/10 observability parte 3/3` che falliva su GitHub. |
 | `python tools/sync_packaging_files.py --check` | OK | Packaging/versione 2.215.3 sincronizzati. |
 | `python -m pytest -q tests/test_packaging_consistency.py tests/test_release_readiness.py --tb=short` | OK | 8 test verdi su coerenza packaging e readiness release dopo il bump versione 2.215.3. |
+| `python -m pytest -q tests/test_lex_professional_upgrade.py tests/test_lex_sources_and_studio_data.py --tb=short` | OK | 49 test verdi: test Lex gia' presenti usati per riallineare la coverage critica senza abbassare la soglia. |
+| `python scripts/run_pytest_phases.py --suite coverage-critical --timeout-minutes 5 -- --cov=lex --cov=pct.auth --cov=pct.storage --cov=pct.storage_postgres --cov=pct.telematico_repository --cov=pct.telematico_workflow --cov-config=config/coverage-critical.ini --cov-report=term --cov-fail-under=71` | OK | Suite coverage critica verde localmente: 313 test, coverage totale 71.56%, soglia 71 rispettata. |
 
 ### Ripristino CI mirato 2026-05-10
 

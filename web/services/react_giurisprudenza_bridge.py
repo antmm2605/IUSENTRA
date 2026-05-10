@@ -137,14 +137,14 @@ def _safe_record(row: Mapping[str, Any], sources: Mapping[str, dict[str, Any]], 
         "caseNumber": _text(row.get("numero_provvedimento") or row.get("numero_rg") or row.get("riferimento_causa")),
         "ecli": _text(row.get("ecli")),
         "orientation": orientation,
-        "orientationKind": "inferenza_backend" if orientation else "",
+        "orientationKind": "inferenza" if orientation else "",
         "verificationLabel": verification,
         "verificationTone": _tone_from_status(verification),
         "citationLabel": _text(row.get("stato_citabilita") or row.get("citabilita")),
         "tags": [_text(item) for item in _list(row.get("parole_chiave") or row.get("tags")) if _text(item)][:12],
         "legacyHref": f"/giurisprudenza?scheda={record_id}",
         "practiceLinks": _safe_links(row.get("practice_links") or row.get("fascicoli_collegati")),
-        "evidenceType": "metadato",
+        "evidenceType": "informazione",
     }
 
 
@@ -165,7 +165,7 @@ def _empty_payload(source: str, message: str) -> dict[str, Any]:
         "sections": [],
         "records": [],
         "actions": [
-            _action("legal_intelligence", "Legal Intelligence", "/legal-intelligence", "primary"),
+            _action("legal_intelligence", "Ricerca legale", "/legal-intelligence", "primary"),
         ],
         "forms": [],
         "warnings": [_warning("giurisprudenza_non_disponibile", message)],
@@ -177,13 +177,10 @@ def build_react_giurisprudenza_payload(
     get_giurisprudenza: Callable[[], Any],
     query: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Costruisce il payload React usando solo metadati gia presenti nel backend."""
+    """Costruisce i dati pagina usando solo informazioni gia presenti."""
 
     query = query or {}
-    warnings: list[dict[str, str]] = [
-        _warning("workflow_dedicato", "Import, classificazione, scheda di dettaglio e contenuto completo restano nei percorsi Flask dedicati e auditati."),
-        _warning("metadati_sicuri", "La shell React riceve solo fonte, metadati, stato verifica e collegamenti operativi sicuri."),
-    ]
+    warnings: list[dict[str, str]] = []
     manager = get_giurisprudenza()
     sources = [_safe_source(row) for row in _list(manager.catalogo_fonti()) if isinstance(row, dict)]
     source_lookup = {source["id"]: source for source in sources if source.get("id")}
@@ -233,10 +230,10 @@ def build_react_giurisprudenza_payload(
         },
         "metrics": [
             _metric("provvedimenti", "Provvedimenti", int(stats.get("totale_sentenze") or len(records)), "Archivio interno", "primary"),
-            _metric("fonti", "Fonti censite", int(stats.get("fonti_attive") or len(sources)), "Repository giurisprudenza", "info"),
-            _metric("aree", "Aree coperte", int(stats.get("aree_coperte") or 0), "Metadati tassonomici", "neutral"),
+            _metric("fonti", "Fonti censite", int(stats.get("fonti_attive") or len(sources)), "Archivio giurisprudenza", "info"),
+            _metric("aree", "Aree coperte", int(stats.get("aree_coperte") or 0), "Classificazione disponibile", "neutral"),
             _metric("da_verificare", "Da verificare", int(stats.get("bozze_da_classificare") or 0), "Gestione governata", "warning"),
-            _metric("collegamenti", "Fascicoli collegati", int(stats.get("fascicoli_collegati") or 0), "Solo metadati", "success" if stats.get("fascicoli_collegati") else "neutral"),
+            _metric("collegamenti", "Fascicoli collegati", int(stats.get("fascicoli_collegati") or 0), "Informazioni collegate", "success" if stats.get("fascicoli_collegati") else "neutral"),
         ],
         "sections": [
             _section(
@@ -247,27 +244,27 @@ def build_react_giurisprudenza_payload(
                     _item(source["id"], source["label"], source["count"], source.get("coverage") or source.get("stateLabel", ""), source.get("stateTone", "neutral"))
                     for source in sources
                 ],
-                "Nessuna fonte censita nel repository.",
+                "Nessuna fonte censita nell'archivio.",
             ),
             _count_section("aree", "Aree", "distribution", [record["area"] for record in records], "Nessuna area disponibile."),
             _count_section("gradi", "Gradi", "distribution", [record["grade"] for record in records], "Nessun grado disponibile."),
-            _count_section("orientamenti", "Orientamenti", "inference", [record["orientation"] for record in records], "Nessun orientamento presente nei metadati."),
+            _count_section("orientamenti", "Orientamenti", "analisi", [record["orientation"] for record in records], "Nessun orientamento presente nelle informazioni disponibili."),
             _section("sync_recenti", "Aggiornamenti registrati", "metadata", run_log, "Nessun aggiornamento registrato."),
             _section(
                 "filtri",
                 "Filtri disponibili",
                 "metadata",
                 [
-                    _item("fonti", "Fonti", len(_list(catalog_filters.get("fonti"))), "Catalogo backend"),
-                    _item("aree", "Aree", len(_list(catalog_filters.get("aree"))), "Tassonomia backend"),
-                    _item("storage", "Versione storage", storage_stats.get("storage_version", ""), "Matrice repository"),
+                    _item("fonti", "Fonti", len(_list(catalog_filters.get("fonti"))), "Catalogo"),
+                    _item("aree", "Aree", len(_list(catalog_filters.get("aree"))), "Tassonomia"),
+                    _item("storage", "Versione archivio", storage_stats.get("storage_version", ""), "Matrice archivi"),
                 ],
                 "Nessun filtro disponibile.",
             ),
         ],
         "records": records,
         "actions": [
-            _action("legal_intelligence", "Legal Intelligence", "/legal-intelligence", "primary"),
+            _action("legal_intelligence", "Ricerca legale", "/legal-intelligence", "primary"),
             _action("ricerca_legale", "Ricerca legale", "/ricerca-legale", "neutral"),
         ],
         "forms": [],

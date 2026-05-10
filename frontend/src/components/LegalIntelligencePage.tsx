@@ -8,7 +8,6 @@ import { LoadingState } from '../ui/LoadingState'
 import { Page } from '../ui/Page'
 import { Panel } from '../ui/Panel'
 import { openDesignContract, openDesignLegalKnowledgeSurface } from '../ui/openDesign'
-import { displaySourceLabel } from '../displayText'
 import {
   emptyLegalIntelligencePage,
   getLegalIntelligenceMediazionePage,
@@ -34,14 +33,14 @@ function pageTitle(view: LegalIntelligenceView) {
   if (view === 'news') return 'News Legali'
   if (view === 'mediazione') return 'Registro Mediazione'
   if (view === 'ricerca-legale') return 'Ricerca Legale'
-  return 'Legal Intelligence'
+  return 'Ricerca legale'
 }
 
 function pageSubtitle(view: LegalIntelligenceView) {
   if (view === 'news') return 'News giuridiche disponibili, con fonte, materia e stato pubblicazione.'
-  if (view === 'mediazione') return 'Consultazione del registro mediazione disponibile per lo studio.'
-  if (view === 'ricerca-legale') return 'Hub di consultazione verso Legal Intelligence con fonti e metadati governati.'
-  return 'Dashboard di monitoraggio fonti, news e registri, esposta in React solo come consultazione.'
+  if (view === 'mediazione') return 'Registro mediazione disponibile per lo studio.'
+  if (view === 'ricerca-legale') return 'Hub di ricerca con fonti, news e schede collegate.'
+  return 'Cruscotto di monitoraggio fonti, news e registri in una vista unica.'
 }
 
 async function loadPage(view: LegalIntelligenceView): Promise<LegalIntelligencePageData> {
@@ -57,9 +56,7 @@ function ContractStrip({ data }: { data: LegalIntelligencePageData }) {
       <ShieldCheck size={18} aria-hidden="true" />
       <div>
         <strong>{openDesignContract.system}</strong>
-        <span>
-          {displaySourceLabel(data.source)} - sorgente governata
-        </span>
+        <span>Fonti e aggiornamenti collegati al lavoro dello studio</span>
       </div>
     </aside>
   )
@@ -68,7 +65,7 @@ function ContractStrip({ data }: { data: LegalIntelligencePageData }) {
 function WarningList({ data }: { data: LegalIntelligencePageData }) {
   if (!data.warnings.length) return null
   return (
-    <section className="iu-li-warnings" aria-label="Avvisi Legal Intelligence">
+    <section className="iu-li-warnings" aria-label="Avvisi ricerca legale">
       {data.warnings.map((warning) => (
         <p className="iu-li-warning iu-od-inference-warning" key={`${warning.code}-${warning.message}`}>
           {warning.message}
@@ -81,7 +78,7 @@ function WarningList({ data }: { data: LegalIntelligencePageData }) {
 function Metrics({ data }: { data: LegalIntelligencePageData }) {
   if (!data.metrics.length) return null
   return (
-    <section className="iu-li-metrics" aria-label="KPI Legal Intelligence">
+    <section className="iu-li-metrics" aria-label="Indicatori ricerca legale">
       {data.metrics.map((metric) => (
         <KpiCard
           key={metric.id}
@@ -97,9 +94,9 @@ function Metrics({ data }: { data: LegalIntelligencePageData }) {
 
 function NavigationTabs({ view }: { view: LegalIntelligenceView }) {
   return (
-    <nav className="iu-li-tabs iu-od-source-card" aria-label="Sezioni Legal Intelligence">
+    <nav className="iu-li-tabs iu-od-source-card" aria-label="Sezioni ricerca legale">
       <ButtonLink href="/legal-intelligence" tone={view === 'dashboard' ? 'primary' : 'neutral'} className={view === 'dashboard' ? 'iu-li-tab--active' : 'iu-li-tab'}>
-        Dashboard
+        Cruscotto
       </ButtonLink>
       <ButtonLink href="/legal-intelligence/news" tone={view === 'news' ? 'primary' : 'neutral'} className={view === 'news' ? 'iu-li-tab--active' : 'iu-li-tab'}>
         News
@@ -122,7 +119,7 @@ function Sections({ data, view }: { data: LegalIntelligencePageData; view: Legal
       : data.sections
   if (!visible.length) return null
   return (
-    <section className="iu-li-section-grid" aria-label="Snapshot Legal Intelligence">
+    <section className="iu-li-section-grid" aria-label="Riepilogo ricerca legale">
       {visible.map((section) => (
         <Panel title={section.title} subtitle={section.kind} key={section.id}>
           {section.items.length ? (
@@ -144,7 +141,7 @@ function Sections({ data, view }: { data: LegalIntelligencePageData; view: Legal
   )
 }
 
-function RecordCard({ record }: { record: LegalIntelligenceRecord }) {
+function RecordCard({ record, onOpen }: { record: LegalIntelligenceRecord; onOpen: (record: LegalIntelligenceRecord) => void }) {
   const metaItems = [
     ['Fonte', record.sourceLabel],
     ['Tipo fonte', record.sourceKind],
@@ -181,10 +178,10 @@ function RecordCard({ record }: { record: LegalIntelligenceRecord }) {
       </div>
       <footer className="iu-od-action-row iu-li-record__actions">
         {record.legacyHref ? (
-          <ButtonLink href={record.legacyHref} tone="primary">
+          <Button type="button" tone="primary" onClick={() => onOpen(record)}>
             {record.kind === 'mediazione' ? <Landmark size={16} aria-hidden="true" /> : <Newspaper size={16} aria-hidden="true" />}
             Apri scheda
-          </ButtonLink>
+          </Button>
         ) : null}
         {record.sourceHref ? (
           <ButtonLink href={record.sourceHref} tone="neutral" target="_blank" rel="noreferrer">
@@ -197,6 +194,29 @@ function RecordCard({ record }: { record: LegalIntelligenceRecord }) {
   )
 }
 
+function RecordDetail({ record }: { record?: LegalIntelligenceRecord }) {
+  if (!record) return null
+  return (
+    <section className="iu-li-detail iu-od-source-card" aria-label="Scheda selezionata">
+      <div>
+        <span className="iu-od-source-badge">{record.kind}</span>
+        <h2>{record.title}</h2>
+        <p>{record.subtitle || 'Scheda operativa disponibile nella stessa pagina.'}</p>
+      </div>
+      <dl className="iu-li-meta">
+        <div><dt>Fonte</dt><dd>{record.sourceLabel || 'Non indicata'}</dd></div>
+        <div><dt>Area</dt><dd>{record.area || 'Non indicata'}</dd></div>
+        <div><dt>Materia</dt><dd>{record.branch || 'Non indicata'}</dd></div>
+        <div><dt>Data</dt><dd>{record.date || 'Non indicata'}</dd></div>
+      </dl>
+      <div className="iu-od-action-row">
+        {record.sourceHref ? <ButtonLink href={record.sourceHref} tone="neutral" target="_blank" rel="noreferrer">Apri fonte</ButtonLink> : null}
+        <ButtonLink href="/giurisprudenza" tone="neutral">Archivio giurisprudenza</ButtonLink>
+      </div>
+    </section>
+  )
+}
+
 function RecordFilters({
   query,
   onQuery,
@@ -205,7 +225,7 @@ function RecordFilters({
   onQuery: (value: string) => void
 }) {
   return (
-    <section className="iu-li-filters iu-od-source-card" aria-label="Filtro risultati Legal Intelligence">
+    <section className="iu-li-filters iu-od-source-card" aria-label="Filtro risultati ricerca legale">
       <label htmlFor="legal-intelligence-search">
         <Search size={15} aria-hidden="true" />
         Cerca
@@ -225,6 +245,7 @@ export function LegalIntelligencePage() {
   const [data, setData] = useState<LegalIntelligencePageData>(emptyLegalIntelligencePage)
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
+  const [selectedId, setSelectedId] = useState(new URLSearchParams(window.location.search).get('scheda') || '')
 
   useEffect(() => {
     let active = true
@@ -250,9 +271,15 @@ export function LegalIntelligencePage() {
     record.territory,
     record.registryNumber,
   ].join(' '), query)), [data.records, query])
+  const selectedRecord = data.records.find((record) => record.id === selectedId) || visibleRecords[0]
+  const openRecord = (record: LegalIntelligenceRecord) => {
+    setSelectedId(record.id)
+    window.history.replaceState({}, '', `${window.location.pathname}?scheda=${encodeURIComponent(record.id)}`)
+    window.requestAnimationFrame(() => document.querySelector('.iu-li-detail')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+  }
 
   if (loading) {
-    return <LoadingState title={`Caricamento ${pageTitle(view)}`} message="Recupero dei metadati reali." />
+    return <LoadingState title={`Caricamento ${pageTitle(view)}`} message="Recupero delle informazioni reali." />
   }
 
   return (
@@ -268,9 +295,10 @@ export function LegalIntelligencePage() {
         <Metrics data={data} />
         <Sections data={data} view={view} />
         <RecordFilters query={query} onQuery={setQuery} />
+        <RecordDetail record={selectedRecord} />
         <Panel
           title={view === 'mediazione' ? 'Registro mediazione' : view === 'news' ? 'News disponibili' : 'Elementi di monitoraggio'}
-          subtitle={`${visibleRecords.length} elementi visibili su ${data.records.length} metadati disponibili.`}
+          subtitle={`${visibleRecords.length} elementi visibili su ${data.records.length} schede disponibili.`}
           actions={
             query ? (
               <Button type="button" tone="neutral" onClick={() => setQuery('')}>
@@ -282,13 +310,13 @@ export function LegalIntelligencePage() {
           {visibleRecords.length ? (
             <div className={openDesignLegalKnowledgeSurface.legalList}>
               {visibleRecords.map((record) => (
-                <RecordCard record={record} key={`${record.kind}-${record.id}`} />
+                <RecordCard record={record} onOpen={openRecord} key={`${record.kind}-${record.id}`} />
               ))}
             </div>
           ) : (
             <EmptyState
               title="Nessun elemento da mostrare"
-              message="Non sono disponibili metadati compatibili con questa vista o con il filtro applicato."
+              message="Non sono disponibili schede compatibili con questa vista o con il filtro applicato."
               action={<ButtonLink href="/giurisprudenza" tone="neutral">Apri giurisprudenza</ButtonLink>}
             />
           )}

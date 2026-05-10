@@ -1,4 +1,5 @@
 import { apiJson } from './lib/apiClient'
+import { sanitizeDisplayText } from './displayText'
 import type { AdminTone } from './utentiData'
 
 export type ReactOperationalContract = {
@@ -156,6 +157,10 @@ function text(value: unknown, fallback = ''): string {
   return typeof value === 'string' ? value.trim() : fallback
 }
 
+function display(value: unknown, fallback = ''): string {
+  return sanitizeDisplayText(text(value, fallback))
+}
+
 function bool(value: unknown): boolean {
   return value === true
 }
@@ -166,7 +171,7 @@ function number(value: unknown): number {
 
 function value(value: unknown): string | number {
   if (typeof value === 'number' && Number.isFinite(value)) return value
-  if (typeof value === 'string') return value.trim()
+  if (typeof value === 'string') return sanitizeDisplayText(value.trim())
   return ''
 }
 
@@ -201,9 +206,9 @@ function normaliseMetric(raw: unknown): StudioMetric {
   const item = asRecord(raw)
   return {
     id: text(item.id) || text(item.label) || 'metrica',
-    label: text(item.label) || 'Metrica',
+    label: display(item.label) || 'Metrica',
     value: value(item.value),
-    note: text(item.note),
+    note: display(item.note),
     tone: tone(item.tone),
   }
 }
@@ -212,12 +217,12 @@ function normaliseModule(raw: unknown): OperationalModule {
   const item = asRecord(raw)
   return {
     id: text(item.id) || text(item.label) || 'modulo',
-    label: text(item.label) || 'Modulo',
+    label: display(item.label) || 'Modulo',
     href: text(item.href),
-    area: text(item.area),
-    status: text(item.status) || 'stato non indicato',
+    area: display(item.area),
+    status: display(item.status) || 'stato non indicato',
     tone: tone(item.tone),
-    note: text(item.note),
+    note: display(item.note),
   }
 }
 
@@ -225,10 +230,10 @@ function normaliseHealth(raw: unknown): SystemHealth {
   const item = asRecord(raw)
   return {
     id: text(item.id) || text(item.label) || 'salute',
-    label: text(item.label) || 'Salute sistema',
-    status: text(item.status) || 'non indicato',
+    label: display(item.label) || 'Salute sistema',
+    status: display(item.status) || 'non indicato',
     tone: tone(item.tone),
-    note: text(item.note),
+    note: display(item.note),
     value: value(item.value),
   }
 }
@@ -237,7 +242,7 @@ function normaliseAction(raw: unknown): RouteAction {
   const item = asRecord(raw)
   return {
     id: text(item.id) || text(item.label) || 'azione',
-    label: text(item.label) || 'Apri',
+    label: display(item.label) || 'Apri',
     href: text(item.href),
     method: 'GET',
     tone: tone(item.tone),
@@ -248,8 +253,8 @@ function normaliseAction(raw: unknown): RouteAction {
 function normaliseWarning(raw: unknown): WarningItem {
   const item = asRecord(raw)
   return {
-    code: text(item.code) || 'warning',
-    message: text(item.message) || 'Avviso tecnico disponibile.',
+    code: display(item.code) || 'avviso',
+    message: display(item.message) || 'Avviso operativo disponibile.',
   }
 }
 
@@ -259,8 +264,8 @@ function normaliseProfile(raw: unknown): StudioProfile {
   return {
     id: text(item.id),
     username: text(item.username),
-    label: text(item.label) || text(item.username),
-    role: text(item.role),
+    label: display(item.label) || text(item.username),
+    role: display(item.role),
     active: bool(item.active),
     permissions: Object.fromEntries(Object.entries(permissions).map(([key, entry]) => [key, bool(entry)])),
   }

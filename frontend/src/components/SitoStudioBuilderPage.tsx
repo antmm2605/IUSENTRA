@@ -71,7 +71,7 @@ export function SitoStudioBuilderPage() {
         }
       })
       .catch((err) => {
-        if (!(err instanceof DOMException && err.name === 'AbortError')) setError('Builder Sito Studio non disponibile.')
+        if (!(err instanceof DOMException && err.name === 'AbortError')) setError('Editor Sito Studio non disponibile.')
       })
       .finally(() => setLoading(false))
     return () => controller.abort()
@@ -189,23 +189,23 @@ export function SitoStudioBuilderPage() {
 
   return (
     <Page
-      title="Sito Studio Builder"
+      title="Editor Sito Studio"
       subtitle="Composizione pagine, blocchi, immagini, controlli professionali e pubblicazione del sito."
       actions={
         <>
-          <ButtonLink href="/sito-studio" tone="neutral"><Globe2 size={16} /> Dashboard</ButtonLink>
+          <ButtonLink href="/sito-studio" tone="neutral"><Globe2 size={16} /> Cruscotto</ButtonLink>
           <ButtonLink href="/sito-studio/redazione-ai" tone="neutral"><Bot size={16} /> Redazione AI</ButtonLink>
           <ButtonLink href={data.publicUrl || '/sito-studio'} tone="success" target="_blank" rel="noopener"><ExternalLink size={16} /> Apri sito</ButtonLink>
         </>
       }
     >
-      {loading ? <LoadingState title="Caricamento builder" message="Lettura pagine, blocchi, immagini e controlli reali." /> : null}
-      {!loading && error ? <EmptyState title="Builder non disponibile" message={error} /> : null}
+      {loading ? <LoadingState title="Caricamento editor" message="Lettura pagine, blocchi, immagini e controlli reali." /> : null}
+      {!loading && error ? <EmptyState title="Editor non disponibile" message={error} /> : null}
       {!loading && !error && !hasPayload ? <EmptyState title="Nessuna pagina configurata" message="Crea una pagina per iniziare la composizione del sito studio." /> : null}
 
       {!loading && !error && hasPayload ? (
         <>
-          <section className="iu-builder-commandbar" aria-label="Azioni builder">
+          <section className="iu-builder-commandbar" aria-label="Azioni editor sito">
             <div>
               <span>{data.site.siteName || 'Sito Studio'}</span>
               <strong>{dirty ? 'Modifiche non salvate' : 'Pagina allineata'}</strong>

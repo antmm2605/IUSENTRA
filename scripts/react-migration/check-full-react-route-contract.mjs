@@ -22,6 +22,7 @@ const apiAliasMarkers = new Map([
   ['/strumenti-legali', ['("/studio-modules/<module_id>")', "('/studio-modules/<module_id>')"]],
   ['/strumenti-operativi', ['("/studio-modules/<module_id>")', "('/studio-modules/<module_id>')"]],
   ['/deposito/checklist', ['("/telematico/surface/<surface>")', "('/telematico/surface/<surface>')"]],
+  ['/preventivi/conferimento/:id', ['("/preventivi/conferimento/<id_conferimento>")', "('/preventivi/conferimento/<id_conferimento>')"]],
 ])
 
 for (const route of fullRoutes()) {

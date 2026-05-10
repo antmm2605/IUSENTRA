@@ -24,9 +24,7 @@ function ContractStrip({ data }: { data: GiurisprudenzaPageData }) {
       <ShieldCheck size={18} aria-hidden="true" />
       <div>
         <strong>{openDesignContract.system}</strong>
-        <span>
-          {data.source || 'Archivio'} - sorgente governata
-        </span>
+        <span>Archivio sentenze collegato al lavoro dello studio</span>
       </div>
     </aside>
   )
@@ -48,7 +46,7 @@ function WarningList({ data }: { data: GiurisprudenzaPageData }) {
 function Metrics({ metrics }: { metrics: LegalMetric[] }) {
   if (!metrics.length) return null
   return (
-    <section className="iu-legal-metrics" aria-label="KPI archivio giurisprudenza">
+    <section className="iu-legal-metrics" aria-label="Indicatori archivio giurisprudenza">
       {metrics.map((metric) => (
         <KpiCard
           key={metric.id}
@@ -180,7 +178,7 @@ function Filters({
   )
 }
 
-function RecordCard({ record }: { record: GiurisprudenzaRecord }) {
+function RecordCard({ record, onOpen }: { record: GiurisprudenzaRecord; onOpen: (record: GiurisprudenzaRecord) => void }) {
   const metaItems = [
     ['Fonte', record.sourceLabel],
     ['Autorita', record.authority || record.office],
@@ -238,12 +236,36 @@ function RecordCard({ record }: { record: GiurisprudenzaRecord }) {
         </div>
       ) : null}
       <footer className="iu-od-action-row iu-legal-record__actions">
-        <ButtonLink href={record.legacyHref} tone="primary">
+        <Button type="button" tone="primary" onClick={() => onOpen(record)}>
           <FileText size={16} aria-hidden="true" />
-          Apri scheda metadati
-        </ButtonLink>
+          Apri scheda
+        </Button>
       </footer>
     </article>
+  )
+}
+
+function RecordDetail({ record }: { record?: GiurisprudenzaRecord }) {
+  if (!record) return null
+  return (
+    <section className="iu-legal-detail iu-od-source-card" aria-label="Scheda provvedimento">
+      <div>
+        <span className="iu-od-source-badge">{record.sourceKind || 'Fonte'}</span>
+        <h2>{record.title}</h2>
+        <p>{record.subtitle || record.orientation || 'Scheda del provvedimento selezionato.'}</p>
+      </div>
+      <dl className="iu-legal-meta">
+        <div><dt>Autorità</dt><dd>{record.authority || record.office || 'Non indicata'}</dd></div>
+        <div><dt>Data</dt><dd>{record.date || 'Non indicata'}</dd></div>
+        <div><dt>Area</dt><dd>{record.area || 'Non indicata'}</dd></div>
+        <div><dt>Numero</dt><dd>{record.caseNumber || record.ecli || 'Non indicato'}</dd></div>
+      </dl>
+      {record.tags.length ? (
+        <div className="iu-legal-tags">
+          {record.tags.map((tag) => <span className="iu-legal-tag" key={`${record.id}-detail-${tag}`}>{tag}</span>)}
+        </div>
+      ) : null}
+    </section>
   )
 }
 
@@ -258,6 +280,7 @@ export function GiurisprudenzaPage() {
   const [query, setQuery] = useState('')
   const [area, setArea] = useState('')
   const [grade, setGrade] = useState('')
+  const [selectedId, setSelectedId] = useState(new URLSearchParams(window.location.search).get('scheda') || '')
 
   useEffect(() => {
     let active = true
@@ -291,22 +314,29 @@ export function GiurisprudenzaPage() {
     ].join(' ')
     return includesText(searchable, query) && (!area || record.area === area) && (!grade || record.grade === grade)
   }), [area, data.records, grade, query])
+  const selectedRecord = data.records.find((record) => record.id === selectedId) || visibleRecords[0]
+  const openRecord = (record: GiurisprudenzaRecord) => {
+    setSelectedId(record.id)
+    window.history.replaceState({}, '', `${window.location.pathname}?scheda=${encodeURIComponent(record.id)}`)
+    window.requestAnimationFrame(() => document.querySelector('.iu-legal-detail')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+  }
 
   if (loading) {
-    return <LoadingState title="Caricamento archivio giurisprudenza" message="Recupero dei metadati reali." />
+    return <LoadingState title="Caricamento archivio giurisprudenza" message="Recupero delle informazioni reali." />
   }
 
   return (
     <Page
       title="Archivio Giurisprudenza"
-      subtitle="Banca dati interna di sentenze e provvedimenti, esposta in React solo come consultazione di metadati."
-      actions={<ButtonLink href="/legal-intelligence" tone="primary">Legal Intelligence</ButtonLink>}
+      subtitle="Banca dati interna di sentenze e provvedimenti in una pagina unica di ricerca e lettura."
+      actions={<ButtonLink href="/legal-intelligence" tone="primary">Ricerca legale</ButtonLink>}
     >
       <div className="iu-legal-page">
         <ContractStrip data={data} />
         <WarningList data={data} />
         <Metrics metrics={data.metrics} />
         <SourcesPanel data={data} />
+        <RecordDetail record={selectedRecord} />
         <Filters
           query={query}
           area={area}
@@ -319,7 +349,7 @@ export function GiurisprudenzaPage() {
         />
         <Panel
           title="Sentenze e provvedimenti"
-          subtitle={`${visibleRecords.length} elementi visibili su ${data.records.length} metadati disponibili.`}
+          subtitle={`${visibleRecords.length} elementi visibili su ${data.records.length} schede disponibili.`}
           actions={
             query || area || grade ? (
               <Button type="button" tone="neutral" onClick={() => {
@@ -335,14 +365,14 @@ export function GiurisprudenzaPage() {
           {visibleRecords.length ? (
             <div className={openDesignLegalKnowledgeSurface.legalList}>
               {visibleRecords.map((record) => (
-                <RecordCard record={record} key={record.id} />
+                <RecordCard record={record} onOpen={openRecord} key={record.id} />
               ))}
             </div>
           ) : (
             <EmptyState
               title="Nessun provvedimento da mostrare"
-              message="L'archivio non contiene metadati compatibili con i filtri applicati."
-              action={<ButtonLink href="/legal-intelligence" tone="neutral">Apri Legal Intelligence</ButtonLink>}
+              message="L'archivio non contiene schede compatibili con i filtri applicati."
+              action={<ButtonLink href="/legal-intelligence" tone="neutral">Apri ricerca legale</ButtonLink>}
             />
           )}
         </Panel>

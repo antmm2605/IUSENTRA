@@ -251,7 +251,7 @@ function InvoiceRow({
 
 function MetricGrid({ data }: { data: FatturazionePageData }) {
   return (
-    <section className="iu-fatt-kpis" aria-label="KPI fatturazione">
+    <section className="iu-fatt-kpis" aria-label="Indicatori fatturazione">
       {data.metrics.map((metric) => (
         <KpiCard
           label={metric.label}
@@ -329,7 +329,7 @@ function TechnicalRollback({ href = '/fatturazione/nuova?_legacy=1' }: { href?: 
       </div>
       <ButtonLink href={href} tone="warning">
         <ExternalLink size={15} />
-        Apri template storico
+        Apri percorso di recupero
       </ButtonLink>
     </section>
   )
@@ -734,7 +734,7 @@ function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload:
     <>
       <section className="iu-fatt-banner" aria-label="Documenti economici">
         <strong>PDF, XML ed export restano governati</strong>
-        <span>Archivio, KPI, dettaglio sintetico e azioni di stato usano servizi applicativi protetti.</span>
+        <span>Archivio, indicatori, dettaglio sintetico e azioni di stato usano controlli protetti.</span>
       </section>
       <WarningPanel data={data} />
       <MetricGrid data={data} />
@@ -839,7 +839,7 @@ export function FatturazionePage() {
   return (
     <Page
       title={isNew ? 'Nuova parcella' : 'Fatturazione'}
-      subtitle={isNew ? 'Interfaccia operativa con salvataggio validato e calcolo fiscale governato.' : 'Archivio economico con KPI reali e documenti avanzati governati.'}
+      subtitle={isNew ? 'Pagina operativa con salvataggio validato e calcolo fiscale governato.' : 'Archivio economico con indicatori reali e documenti avanzati governati.'}
       actions={
         isNew ? (
           <ButtonLink href="/fatturazione" tone="neutral">
@@ -854,7 +854,7 @@ export function FatturazionePage() {
         )
       }
     >
-      {loading ? <LoadingState title="Caricamento fatturazione" message="Lettura dei repository economici reali in corso." /> : null}
+      {loading ? <LoadingState title="Caricamento fatturazione" message="Lettura degli archivi economici reali in corso." /> : null}
       {!loading && loadError ? (
         <section className="iu-fatt-state iu-fatt-state--danger" aria-live="polite">
           <AlertTriangle size={20} />
@@ -876,7 +876,7 @@ export function FatturazionePage() {
           <>
             <section className="iu-fatt-banner" aria-label="Form operativo">
               <strong>Scrittura tracciata</strong>
-              <span>La pagina raccoglie i dati minimi; creazione, numerazione, validazione, audit e importi definitivi restano nei servizi Flask.</span>
+              <span>La pagina raccoglie i dati minimi; creazione, numerazione, validazione, controlli e importi definitivi restano nei servizi dello studio.</span>
             </section>
             <WarningPanel data={data} />
             <NewInvoiceForm data={data} form={form} />

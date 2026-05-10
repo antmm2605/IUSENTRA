@@ -1,4 +1,4 @@
-"""Payload operativo read-only per la dashboard React Amministrazione."""
+"""Dati consultabili per la pagina Amministrazione."""
 
 from __future__ import annotations
 
@@ -70,7 +70,7 @@ def _module(module_id: str, label: str, href: str, area: str, note: str, *, stat
 
 
 def _legacy(module_id: str, label: str, href: str, area: str, note: str) -> dict[str, Any]:
-    return _module(module_id, label, href, area, note, status="legacy protetto", tone="warning")
+    return _module(module_id, label, href, area, note, status="area protetta", tone="warning")
 
 
 def _action(action_id: str, label: str, href: str, tone: str = "neutral") -> dict[str, Any]:
@@ -133,19 +133,19 @@ def build_react_amministrazione_payload(
     inactive_count = max(total_users - active_count, 0)
     two_factor_count = sum(1 for user in users if bool(getattr(user, "totp_attivato", False)))
     operational_routes = [
-        _module("utenti", "Utenti", "/utenti", "utenti", "Lista utenti e stato account in React operativo."),
-        _module("utenti-nuovo", "Nuovo utente", "/utenti/nuovo", "utenti", "Creazione utente con API JSON e audit."),
-        _module("profili", "Profili", "/profili", "permessi", "Matrice ruoli, categorie e override in React operativo."),
-        _module("audit", "Audit", "/audit", "sicurezza", "Eventi audit e dettaglio via API JSON."),
+        _module("utenti", "Utenti", "/utenti", "utenti", "Lista utenti e stato account operativo."),
+        _module("utenti-nuovo", "Nuovo utente", "/utenti/nuovo", "utenti", "Creazione utente con validazioni e tracciamento."),
+        _module("profili", "Profili", "/profili", "permessi", "Matrice ruoli, categorie e permessi personalizzati."),
+        _module("audit", "Registro attivita", "/audit", "sicurezza", "Eventi di controllo e dettaglio consultabile."),
         _module("registro-attivita", "Registro attivita", "/registro-attivita", "sicurezza", "Superficie operativa del registro audit."),
-        _module("backup", "Backup", "/backup", "governance", "Controllo backup disponibile come modulo React."),
+        _module("backup", "Backup", "/backup", "governance", "Controllo backup disponibile nello stesso ambiente operativo."),
     ]
     legacy_routes = [
-        _legacy("impostazioni", "Impostazioni", "/impostazioni", "impostazioni sensibili", "Configurazioni riservate non scritte da questa dashboard."),
-        _legacy("impostazioni-studio", "Impostazioni studio", "/impostazioni-studio", "impostazioni sensibili", "Parametri studio e canali restano legacy protetti."),
-        _legacy("calendario", "Impostazioni calendario", "/impostazioni/calendario", "impostazioni sensibili", "OAuth calendario e sincronizzazioni restano legacy."),
-        _legacy("pagamenti", "Impostazioni pagamenti", "/impostazioni/pagamenti", "impostazioni sensibili", "Provider pagamenti e webhook restano legacy."),
-        _legacy("sync-calendari", "Sincronizzazione calendari", "/sincronizzazione-calendari", "impostazioni sensibili", "Scheduler calendario protetto fuori dallo hub."),
+        _legacy("impostazioni", "Impostazioni", "/impostazioni", "impostazioni sensibili", "Configurazioni riservate gestite nel percorso dedicato."),
+        _legacy("impostazioni-studio", "Impostazioni studio", "/impostazioni-studio", "impostazioni sensibili", "Parametri studio e canali restano protetti."),
+        _legacy("calendario", "Impostazioni calendario", "/impostazioni/calendario", "impostazioni sensibili", "Collegamenti calendario e sincronizzazioni restano protetti."),
+        _legacy("pagamenti", "Impostazioni pagamenti", "/impostazioni/pagamenti", "impostazioni sensibili", "Canali di pagamento e conferme restano protetti."),
+        _legacy("sync-calendari", "Sincronizzazione calendari", "/sincronizzazione-calendari", "impostazioni sensibili", "Pianificazione calendario protetta nel percorso dedicato."),
     ]
     security = {
         "canRead": _can(current_user, "utenti.leggi"),
@@ -183,12 +183,12 @@ def build_react_amministrazione_payload(
     database_summary = {
         "status": "modulo separato",
         "href": "/admin/database",
-        "note": "Console database tecnica non viene aperta come CTA primaria dello hub.",
+        "note": "La manutenzione dati resta disponibile come azione amministrativa secondaria.",
     }
     warnings = [
         {
             "code": "impostazioni_legacy_protette",
-            "message": "Impostazioni, calendario, pagamenti e sincronizzazioni restano in legacy protetto.",
+            "message": "Impostazioni, calendario, pagamenti e sincronizzazioni restano in area protetta.",
         }
     ]
     if not _can(current_user, "audit.leggi"):
@@ -207,7 +207,7 @@ def build_react_amministrazione_payload(
         "operational_routes": operational_routes,
         "legacy_routes": legacy_routes,
         "metrics": [
-            _metric("utenti", "Utenti", total_users, "Account nel repository utenti", "primary"),
+            _metric("utenti", "Utenti", total_users, "Account nell'archivio utenti", "primary"),
             _metric("attivi", "Utenti attivi", active_count, "Operatori abilitati", "success" if active_count else "warning"),
             _metric("profili", "Profili usati", len([role for role, count in role_counter.items() if role and count]), "Ruoli con almeno un operatore", "info"),
             _metric("audit", "Eventi audit", audit_count, "Eventi amministrativi registrati", "neutral"),

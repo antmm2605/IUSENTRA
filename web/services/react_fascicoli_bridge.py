@@ -1330,7 +1330,7 @@ def _telematic(fascicolo: Any) -> list[dict[str, Any]]:
     tipo = _enum_value(getattr(fascicolo, "tipo", ""))
     return [
         {"label": "PolisWeb / PST", "value": "Apri", "note": "consultazione e acquisizione guidata", "href": f"/polisWeb?id_fasc={fid}", "tone": "primary"},
-        {"label": "PDP Penale", "value": "Attivo" if tipo == "PENALE" else "Disponibile", "note": "workflow penale se applicabile", "href": f"/pdp/fascicoli/{fid}", "tone": "danger" if tipo == "PENALE" else "neutral"},
+        {"label": "PDP Penale", "value": "Attivo" if tipo == "PENALE" else "Disponibile", "note": "percorso penale se applicabile", "href": f"/pdp/fascicoli/{fid}", "tone": "danger" if tipo == "PENALE" else "neutral"},
         {"label": "PAT", "value": "Collega", "note": "amministrativo", "href": "/pat", "tone": "info"},
         {"label": "PTT / SIGIT", "value": "Collega", "note": "tributario", "href": "/app-v2/ptt", "tone": "warning"},
         {"label": "Checklist deposito", "value": "Verifica", "note": "busta, firme, PDF/A", "href": "/deposito/checklist", "tone": "success"},

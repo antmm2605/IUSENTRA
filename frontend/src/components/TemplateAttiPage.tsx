@@ -15,7 +15,7 @@ import {
   type TemplateAttiPageData,
   type TemplateAttiRecord,
 } from '../templateAttiData'
-import { displaySourceLabel, displayWritesLabel } from '../displayText'
+import { displaySourceLabel } from '../displayText'
 import './TemplateAttiPage.css'
 
 function isCatalogoRoute() {
@@ -28,9 +28,7 @@ function ContractStrip({ data }: { data: TemplateAttiPageData }) {
       <ShieldCheck size={18} aria-hidden="true" />
       <div>
         <strong>{openDesignContract.system}</strong>
-        <span>
-          {displaySourceLabel(data.source)} - {displayWritesLabel(data.contracts.writes)}
-        </span>
+        <span>Catalogo atti collegato ai dati dello studio</span>
       </div>
     </aside>
   )
@@ -52,7 +50,7 @@ function WarningList({ data }: { data: TemplateAttiPageData }) {
 function Metrics({ data }: { data: TemplateAttiPageData }) {
   if (!data.metrics.length) return null
   return (
-    <section className="iu-doc-metrics" aria-label="KPI template atti">
+    <section className="iu-doc-metrics" aria-label="Indicatori template atti">
       {data.metrics.map((metric) => (
         <KpiCard
           key={metric.id}
@@ -69,7 +67,7 @@ function Metrics({ data }: { data: TemplateAttiPageData }) {
 function Sections({ data }: { data: TemplateAttiPageData }) {
   if (!data.sections.length) return null
   return (
-    <section className="iu-doc-section-grid" aria-label="Metadati template atti">
+    <section className="iu-doc-section-grid" aria-label="Informazioni template atti">
       {data.sections.map((section) => (
         <Panel title={section.title} subtitle={section.kind} key={section.id}>
           {section.items.length ? (
@@ -90,7 +88,7 @@ function Sections({ data }: { data: TemplateAttiPageData }) {
   )
 }
 
-function TemplateCard({ record }: { record: TemplateAttiRecord }) {
+function TemplateCard({ record, onOpen }: { record: TemplateAttiRecord; onOpen: (record: TemplateAttiRecord) => void }) {
   return (
     <article className="iu-template-card iu-od-card">
       <header className="iu-template-card__header">
@@ -150,17 +148,40 @@ function TemplateCard({ record }: { record: TemplateAttiRecord }) {
         </div>
       ) : null}
       <footer className="iu-od-action-row iu-template-card__actions">
-        <ButtonLink href={record.href} tone="primary">
+        <Button type="button" tone="primary" onClick={() => onOpen(record)}>
           <ExternalLink size={16} aria-hidden="true" />
           Apri scheda
-        </ButtonLink>
-        {record.detailHref ? (
-          <ButtonLink href={record.detailHref} tone="neutral">
-            Metadati
-          </ButtonLink>
-        ) : null}
+        </Button>
+        <ButtonLink href={record.href} tone="neutral">Usa in redazione</ButtonLink>
       </footer>
     </article>
+  )
+}
+
+function TemplateDetail({ record }: { record?: TemplateAttiRecord }) {
+  if (!record) return null
+  return (
+    <section className="iu-template-detail iu-od-card" aria-label="Scheda template">
+      <div>
+        <span className="iu-template-card__kind">{record.kind}</span>
+        <h2>{record.title}</h2>
+        <p>{record.description || record.subtitle || 'Scheda operativa del modello selezionato.'}</p>
+      </div>
+      <dl className="iu-template-meta">
+        <div><dt>Categoria</dt><dd>{record.category || 'Non indicata'}</dd></div>
+        <div><dt>Materia</dt><dd>{record.matter || record.area || 'Non indicata'}</dd></div>
+        <div><dt>Canale</dt><dd>{record.channel || 'Non indicato'}</dd></div>
+        <div><dt>Variabili</dt><dd>{record.requiredVariables.length}</dd></div>
+      </dl>
+      {record.requiredVariables.length ? (
+        <div className="iu-template-vars__list">
+          {record.requiredVariables.map((variable) => <span className="iu-template-var" key={`${record.id}-${variable.name}`}>{variable.label || variable.name}</span>)}
+        </div>
+      ) : null}
+      <div className="iu-od-action-row">
+        <ButtonLink href={record.href} tone="primary">Usa in Redazione Atti</ButtonLink>
+      </div>
+    </section>
   )
 }
 
@@ -231,6 +252,7 @@ export function TemplateAttiPage() {
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('')
   const [channel, setChannel] = useState('')
+  const [selectedId, setSelectedId] = useState(new URLSearchParams(window.location.search).get('scheda') || '')
 
   function load() {
     setLoading(true)
@@ -264,15 +286,22 @@ export function TemplateAttiPage() {
       return matchesSearch && matchesCategory && matchesChannel
     })
   }, [category, channel, data.records, query])
+  const selectedRecord = data.records.find((record) => record.id === selectedId) || filteredRecords[0]
+
+  const openRecord = (record: TemplateAttiRecord) => {
+    setSelectedId(record.id)
+    window.history.replaceState({}, '', `${window.location.pathname}?scheda=${encodeURIComponent(record.id)}`)
+    window.requestAnimationFrame(() => document.querySelector('.iu-template-detail')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+  }
 
   if (loading) {
-    return <LoadingState title="Caricamento template atti" message="Recupero catalogo e metadati reali." />
+    return <LoadingState title="Caricamento template atti" message="Recupero catalogo e informazioni reali." />
   }
 
   return (
     <Page
       title={catalogo ? 'Catalogo template atti' : 'Template atti'}
-      subtitle="Superficie documentale di ingresso con soli metadati e azioni controllate."
+      subtitle="Catalogo operativo con scheda in pagina e avvio diretto della produzione atti."
       actions={
         <>
           <Button type="button" tone="neutral" onClick={load}>
@@ -292,10 +321,10 @@ export function TemplateAttiPage() {
         <section className="iu-template-hero iu-od-surface">
           <div>
             <p className="iu-template-eyebrow">Documenti e modelli</p>
-            <h2>{catalogo ? 'Catalogo consultabile senza contenuti integrali' : 'Ingresso operativo ai template dello studio'}</h2>
+            <h2>{catalogo ? 'Catalogo consultabile e pronto alla redazione' : 'Ingresso operativo ai template dello studio'}</h2>
             <p>
-              La pagina mostra catalogo, categorie, materie, canali e variabili come metadati. Editor, compilazione,
-              produzione file ed esportazioni restano nei percorsi dedicati e auditati.
+              La pagina mostra catalogo, categorie, materie, canali e variabili, apre la scheda senza uscire e porta
+              il modello selezionato nella produzione atti.
             </p>
           </div>
           <div className="iu-od-action-row iu-template-hero__actions">
@@ -320,20 +349,21 @@ export function TemplateAttiPage() {
             onChannel={setChannel}
           />
         ) : null}
+        <TemplateDetail record={selectedRecord} />
         <Panel
           title={catalogo ? 'Template del catalogo' : 'Template principali'}
-          subtitle={catalogo ? 'Filtri applicati solo sui dati ricevuti.' : 'Metadati reali e collegamenti sicuri.'}
+          subtitle={catalogo ? 'Filtri applicati agli atti disponibili.' : 'Informazioni reali e collegamenti sicuri.'}
         >
           {filteredRecords.length ? (
             <div className="iu-template-grid">
               {filteredRecords.map((record) => (
-                <TemplateCard record={record} key={record.id} />
+                <TemplateCard record={record} onOpen={openRecord} key={record.id} />
               ))}
             </div>
           ) : (
             <EmptyState
               title="Nessun template disponibile"
-              message="La schermata resta neutra finche' non sono disponibili metadati consultabili."
+              message="La schermata resta neutra finche' non sono disponibili template consultabili."
               action={
                 <ButtonLink href="/documenti" tone="neutral">
                   Apri documenti

@@ -53,6 +53,7 @@ import { FloatingLex } from './components/FloatingLex'
 import { IusAppSidebar } from './components/iusentra'
 import { JsonPostForm } from './components/JsonPostForm'
 import { TopBar } from './components/layout/TopBar'
+import { sanitizeDisplayText } from './displayText'
 import { findStudioModule, isStudioModuleRoute } from './studioModuleData'
 import './index.css'
 import './components/layout/TopBar.css'
@@ -107,6 +108,8 @@ const LegalIntelligencePage = lazy(() => import('./components/LegalIntelligenceP
 
 const toneColor: Record<Tone,string> = { danger:'var(--iu-danger-500)', warning:'var(--iu-warning-500)', primary:'var(--iu-blue-600)', success:'var(--iu-success-500)', info:'var(--iu-sky-500)', purple:'var(--iu-purple-500)', orange:'var(--iu-warning-500)', neutral:'var(--iu-slate-300)' }
 const metricIcon = { danger: AlertTriangle, primary: Mail, success: MessageCircle, purple: Clock3, orange: UsersRound, warning: AlertTriangle, info: Mail, neutral: Clock3 }
+const TEXT_SANITIZER_SKIP = new Set(['SCRIPT', 'STYLE', 'TEXTAREA', 'INPUT', 'SELECT', 'OPTION', 'PRE', 'CODE', 'KBD', 'SAMP'])
+const ATTRIBUTE_SANITIZER_SKIP = new Set(['SCRIPT', 'STYLE', 'PRE', 'CODE', 'KBD', 'SAMP'])
 
 class AppErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
   state = { hasError: false }
@@ -116,7 +119,7 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, { hasError: bo
   }
 
   componentDidCatch(error: unknown) {
-    console.error('Errore React shell IUSENTRA', error)
+    console.error('Errore interfaccia IUSENTRA', error)
   }
 
   render() {
@@ -126,7 +129,7 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, { hasError: bo
         <div>
           <AlertTriangle size={24}/>
           <h1>Pagina temporaneamente non disponibile</h1>
-          <p>La shell React ha intercettato un errore di interfaccia. Ricarica la pagina o apri il modulo operativo dal menu senza perdere i dati dello studio.</p>
+          <p>La pagina ha intercettato un errore di interfaccia. Ricarica o apri il modulo operativo dal menu senza perdere i dati dello studio.</p>
           <a href="/agenda">Apri agenda operativa</a>
           <button type="button" onClick={() => window.location.reload()}>Ricarica</button>
         </div>
@@ -174,6 +177,78 @@ type ShellBootstrap = {
     profile?: string
     logout?: string
   }
+}
+
+function shouldSanitizeTextNode(node: Node): boolean {
+  let current = node.parentElement
+  while (current) {
+    if (TEXT_SANITIZER_SKIP.has(current.tagName)) return false
+    if (current.getAttribute('data-allow-technical-text') === 'true') return false
+    current = current.parentElement
+  }
+  return true
+}
+
+function shouldSanitizeElement(element: Element): boolean {
+  let current: Element | null = element
+  while (current) {
+    if (ATTRIBUTE_SANITIZER_SKIP.has(current.tagName)) return false
+    if (current.getAttribute('data-allow-technical-text') === 'true') return false
+    current = current.parentElement
+  }
+  return true
+}
+
+function sanitizeVisibleAttributes(root: HTMLElement) {
+  const attributes = ['title', 'aria-label', 'aria-description', 'placeholder', 'alt']
+  for (const element of Array.from(root.querySelectorAll(attributes.map((name) => `[${name}]`).join(',')))) {
+    if (!shouldSanitizeElement(element)) continue
+    for (const attribute of attributes) {
+      const original = element.getAttribute(attribute)
+      if (!original) continue
+      const cleaned = sanitizeDisplayText(original)
+      if (cleaned !== original) element.setAttribute(attribute, cleaned)
+    }
+  }
+}
+
+function sanitizeVisibleText(root: HTMLElement) {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
+  const nodes: Text[] = []
+  let current = walker.nextNode()
+  while (current) {
+    if (current.textContent && shouldSanitizeTextNode(current)) nodes.push(current as Text)
+    current = walker.nextNode()
+  }
+  for (const node of nodes) {
+    const original = node.textContent || ''
+    const cleaned = sanitizeDisplayText(original)
+    if (cleaned !== original) node.textContent = cleaned
+  }
+  sanitizeVisibleAttributes(root)
+  const cleanedTitle = sanitizeDisplayText(document.title)
+  if (cleanedTitle !== document.title) document.title = cleanedTitle
+}
+
+function useVisibleTextGuard() {
+  useEffect(() => {
+    const root = document.getElementById('root') || document.body
+    let frame = 0
+    const schedule = () => {
+      if (frame) return
+      frame = window.requestAnimationFrame(() => {
+        frame = 0
+        sanitizeVisibleText(root)
+      })
+    }
+    schedule()
+    const observer = new MutationObserver(schedule)
+    observer.observe(root, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['title', 'aria-label', 'aria-description', 'placeholder', 'alt'] })
+    return () => {
+      observer.disconnect()
+      if (frame) window.cancelAnimationFrame(frame)
+    }
+  }, [])
 }
 
 const emptyShellBootstrap: ShellBootstrap = { user: null, actions: {} }
@@ -763,7 +838,7 @@ function PageLoading() {
       <div className="iu-page-heading">
         <div>
           <h1>Caricamento modulo</h1>
-          <p>Preparazione della superficie React operativa.</p>
+          <p>Preparazione della pagina operativa.</p>
         </div>
         <span className="iu-sync">Sincronizzazione...</span>
       </div>
@@ -878,6 +953,7 @@ function DashboardPage({ data, loading, mailSyncing = false }:{data:DashboardDat
 }
 
 export default function App() {
+  useVisibleTextGuard()
   const activePath = window.location.pathname.replace(/\/+$/, '') || '/'
   const routePath = normaliseRoutePath(activePath)
   const routeKey = routePath.toLowerCase()
@@ -943,14 +1019,15 @@ export default function App() {
   const isTariffarioPage = routeKey === '/tariffario'
   const isTemplateAttiPage =
     routeKey === '/template-atti' ||
-    routeKey === '/template-atti/catalogo'
-  const isRedazioneAttiPage = routeKey === '/redazione-atti'
-  const isGiurisprudenzaPage = routeKey === '/giurisprudenza'
+    routeKey.startsWith('/template-atti/')
+  const isRedazioneAttiPage = routeKey === '/redazione-atti' || routeKey.startsWith('/redazione-atti/')
+  const isGiurisprudenzaPage = routeKey === '/giurisprudenza' || routeKey.startsWith('/giurisprudenza/')
   const isLegalIntelligencePage =
     routeKey === '/legal-intelligence' ||
     routeKey === '/legal-intelligence/news' ||
     routeKey === '/legal-intelligence/mediazione' ||
-    routeKey === '/ricerca-legale'
+    routeKey === '/ricerca-legale' ||
+    routeKey.startsWith('/ricerca-legale/')
   const isStudioModulePage = !isStudioPage && !isAmministrazionePage && !isFatturazionePage && !isIncassiPagamentiPage && !isPreventivoWizardPage && !isPreventiviPage && !isCompensiForensiPage && !isTariffarioPage && !isTemplateAttiPage && !isRedazioneAttiPage && !isGiurisprudenzaPage && !isLegalIntelligencePage && !isAdminDatabasePage && !isStatistichePage && !isImpostazioniPage && !isAuditPage && !isRegistroAttivitaPage && !isUtentiPage && !isProfiliPage && !isBackupPage && !isSitoStudioBuilderPage && !isSitoStudioRedazioneAiPage && !isSitoStudioPage && !isTimesheetPage && !isCartelleCondivisePage && !isWizardProPage && isStudioModuleRoute(routeKey)
   const isDashboardPage = !isSearchPage && !isAgendaPage && !isNewAppointmentPage && !isAppointmentEditPage && !isRegiaPage && !isDocumentEditorPage && !isFascicoliPage && !isClientiPage && !isClientFolderPage && !isClientEditPage && !isNewClientPage && !isSoggettiPage && !isNewSubjectPage && !isSubjectEditPage && !isEmailComposePage && !isEmailOrdinariaComposePage && !isEmailPage && !isEmailOrdinariaPage && !isMessagesPage && !isNewMessagePage && !isScadenziarioPage && !isNewDeadlinePage && !isDeadlineEditPage && !isTimesheetPage && !isCartelleCondivisePage && !isWizardProPage && !isTelematicoPage && !isTelematicoSurfacePage && !isPrivacyRegistroPage && !isAdminDatabasePage && !isStatistichePage && !isImpostazioniPage && !isAuditPage && !isRegistroAttivitaPage && !isUtentiPage && !isProfiliPage && !isBackupPage && !isSitoStudioBuilderPage && !isSitoStudioRedazioneAiPage && !isSitoStudioPage && !isStudioPage && !isAmministrazionePage && !isFatturazionePage && !isIncassiPagamentiPage && !isPreventivoWizardPage && !isPreventiviPage && !isCompensiForensiPage && !isTariffarioPage && !isTemplateAttiPage && !isRedazioneAttiPage && !isGiurisprudenzaPage && !isLegalIntelligencePage && !isStudioModulePage
   const isStandalonePage = isSearchPage || isAgendaPage || isNewAppointmentPage || isAppointmentEditPage || isDocumentEditorPage || isFascicoliPage || isClientiPage || isClientFolderPage || isClientEditPage || isNewClientPage || isSoggettiPage || isNewSubjectPage || isSubjectEditPage || isEmailComposePage || isEmailOrdinariaComposePage || isEmailPage || isEmailOrdinariaPage || isMessagesPage || isNewMessagePage || isScadenziarioPage || isNewDeadlinePage || isDeadlineEditPage || isTimesheetPage || isCartelleCondivisePage || isWizardProPage || isTelematicoPage || isTelematicoSurfacePage || isPrivacyRegistroPage || isAdminDatabasePage || isStatistichePage || isImpostazioniPage || isAuditPage || isRegistroAttivitaPage || isUtentiPage || isProfiliPage || isBackupPage || isSitoStudioBuilderPage || isSitoStudioRedazioneAiPage || isSitoStudioPage || isStudioPage || isAmministrazionePage || isFatturazionePage || isIncassiPagamentiPage || isPreventivoWizardPage || isPreventiviPage || isCompensiForensiPage || isTariffarioPage || isTemplateAttiPage || isRedazioneAttiPage || isGiurisprudenzaPage || isLegalIntelligencePage || isStudioModulePage

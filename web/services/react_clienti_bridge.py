@@ -767,7 +767,7 @@ def build_react_cliente_modifica_payload(
     payload["insights"] = [
         "Stai modificando l'anagrafica reale: i collegamenti a fascicoli, preventivi e conferimenti restano sullo stesso id cliente.",
         "Completa recapiti, documento e indirizzo prima di generare o firmare il conferimento incarico.",
-        "Salvataggio, fascicoli collegati e ricerca restano agganciati ai repository operativi dello studio.",
+        "Salvataggio, fascicoli collegati e ricerca restano agganciati agli archivi operativi dello studio.",
     ]
     return payload
 
@@ -792,6 +792,6 @@ def build_react_soggetto_modifica_payload(
     payload["insights"] = [
         "Stai modificando un soggetto o una parte processuale reale: i collegamenti ai fascicoli restano sullo stesso id.",
         "Ruolo, recapiti, identificativo fiscale e collegamento cliente alimentano Ricerca Studio e schede fascicolo.",
-        "Salvataggio, collegamenti e ricerca restano agganciati ai repository operativi dello studio.",
+        "Salvataggio, collegamenti e ricerca restano agganciati agli archivi operativi dello studio.",
     ]
     return payload

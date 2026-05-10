@@ -417,7 +417,7 @@ assertContains(tranche8aOpenDesignReport, 'Token creati', 'report Open Design 8A
 if (routeManifest.policy?.currentReleaseUnlocksRoutes !== true) {
   throw new Error('route manifest: currentReleaseUnlocksRoutes deve essere true nelle tranche di promozione')
 }
-const allowedGovernedUnlocks = new Set(['/', '/admin/database', '/agenda', '/agenda/nuovo', '/amministrazione', '/audit', '/backup', '/cartelle-condivise', '/clienti', '/clienti/nuovo', '/compensi-forensi', '/deposito/checklist', '/email', '/email-ordinaria', '/fascicoli', '/fascicoli/archivio', '/fascicoli/nuovo', '/fatturazione', '/fatturazione/nuova', '/giurisprudenza', '/global-search', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/incassi-pagamenti', '/legal-intelligence', '/legal-intelligence/mediazione', '/legal-intelligence/news', '/messaggi', '/messaggi/nuovo', '/notifiche', '/notifiche-whatsapp', '/preventivi', '/preventivi/conferimento/nuovo', '/preventivi/nuovo', '/preventivi/wizard', '/privacy/registro', '/privacy/registro/nuovo', '/profili', '/redazione-atti', '/regia-operativa', '/registro-attivita', '/registro-gdpr', '/ricerca-legale', '/ricerca-studio', '/scadenziario', '/scadenziario/nuova', '/sincronizzazione-calendari', '/sito-studio', '/sito-studio/contatti', '/soggetti', '/soggetti/nuovo', '/statistiche', '/strumenti-legali', '/strumenti-operativi', '/studio', '/tariffario', '/template-atti', '/template-atti/catalogo', '/timesheet', '/utenti', '/utenti/nuovo', '/wizard-pro', '/workspace-intelligente'])
+const allowedGovernedUnlocks = new Set(['/', '/admin/database', '/agenda', '/agenda/nuovo', '/amministrazione', '/audit', '/backup', '/cartelle-condivise', '/clienti', '/clienti/nuovo', '/compensi-forensi', '/deposito/checklist', '/email', '/email-ordinaria', '/fascicoli', '/fascicoli/archivio', '/fascicoli/nuovo', '/fatturazione', '/fatturazione/nuova', '/giurisprudenza', '/global-search', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/incassi-pagamenti', '/legal-intelligence', '/legal-intelligence/mediazione', '/legal-intelligence/news', '/messaggi', '/messaggi/nuovo', '/notifiche', '/notifiche-whatsapp', '/preventivi', '/preventivi/conferimento/:id', '/preventivi/conferimento/nuovo', '/preventivi/nuovo', '/preventivi/wizard', '/privacy/registro', '/privacy/registro/nuovo', '/profili', '/redazione-atti', '/regia-operativa', '/registro-attivita', '/registro-gdpr', '/ricerca-legale', '/ricerca-studio', '/scadenziario', '/scadenziario/nuova', '/sincronizzazione-calendari', '/sito-studio', '/sito-studio/contatti', '/soggetti', '/soggetti/nuovo', '/statistiche', '/strumenti-legali', '/strumenti-operativi', '/studio', '/tariffario', '/template-atti', '/template-atti/catalogo', '/timesheet', '/utenti', '/utenti/nuovo', '/wizard-pro', '/workspace-intelligente'])
 const governedExpectedStatuses = new Map([
   ['/', 'react_operational_full'],
   ['/admin/database', 'react_operational_full'],
@@ -453,6 +453,7 @@ const governedExpectedStatuses = new Map([
   ['/notifiche', 'react_operational_full'],
   ['/notifiche-whatsapp', 'react_operational_full'],
   ['/preventivi', 'react_operational_full'],
+  ['/preventivi/conferimento/:id', 'react_operational_full'],
   ['/preventivi/conferimento/nuovo', 'react_operational_full'],
   ['/preventivi/nuovo', 'react_operational_full'],
   ['/preventivi/wizard', 'react_operational_partial'],
@@ -1262,7 +1263,7 @@ assertContains(app, "preparazione-udienza-esito", 'contesto lex wizard esito')
 assertContains(app, "preparazione-udienza-riepilogo", 'contesto lex wizard riepilogo')
 assertContains(app, "route === '/admin/database'", 'contesto lex database amministrativo')
 assertContains(app, 'AppErrorBoundary', 'barriera errore shell react')
-assertContains(app, 'openSections[section.id] === true', 'nav sezioni chiuse')
+assertContains(app, 'openSectionId === section.id', 'nav sezione attiva unica')
 assertContains(app, 'onCloseMobile', 'nav drawer mobile')
 assertContains(app, 'mobileNavCollapsed', 'nav mobile comprimibile')
 assertContains(app, 'iu-mobile__rail', 'nav mobile scorrevole')

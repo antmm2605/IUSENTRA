@@ -28,7 +28,7 @@ type StatusFilter = 'tutti' | 'attivi' | 'inattivi' | 'extra_ue' | 'da_completar
 type SubmitState = { saving: boolean; tone: 'success' | 'danger' | 'neutral'; message: string }
 
 function sourceLabel(source: string): string {
-  if (source === 'repository_reali') return 'Dati applicativi'
+  if (source === 'repository_reali') return 'Dati dello studio'
   if (source === 'errore_controllato') return 'Dati parziali'
   return source || 'Registro privacy'
 }

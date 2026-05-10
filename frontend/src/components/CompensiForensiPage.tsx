@@ -48,7 +48,7 @@ function WarningList({ data }: { data: CompensiForensiPageData }) {
 function Metrics({ data }: { data: CompensiForensiPageData }) {
   if (!data.metrics.length) return null
   return (
-    <section className="iu-comp-metrics" aria-label="KPI compensi forensi">
+    <section className="iu-comp-metrics" aria-label="Indicatori compensi forensi">
       {data.metrics.map((metric) => (
         <KpiCard
           key={metric.id}

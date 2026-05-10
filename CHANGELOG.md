@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.214.0 - 2026-05-10
+
+- Rafforzata la pulizia globale dei testi visibili: le superfici React e i template serviti dalla shell filtrano diciture da sviluppatore come `Impeccable / Open Design`, `Dati applicativi`, `React`, `Flask`, `backend`, `frontend`, `payload`, `runtime`, `json_api`, `provider`, `webhook`, `endpoint`, `legacy`, `undefined`, `null`, `demo`, `sample` e `repository`.
+- Portati i dettagli messaggio PEC e email ordinaria nella shell React sulle route `/email/messaggio/<id>` e `/email-ordinaria/messaggio/<id>`, con allegati, intestazioni, corpo messaggio e azioni operative.
+- Completata la pagina `Redazione Atti` in React con produzione atti nella stessa schermata, template disponibili, compilazione assistita e anteprima senza messaggi tecnici visibili.
+- Migliorate `Template Atti`, `Ricerca Legale`, `News`, `Archivio Giurisprudenza`, `Statistiche`, `Strumenti Forensi` e `Strumenti Operativi` con schede operative compatte, dettaglio in pagina e linguaggio orientato allo studio.
+- Verificato in browser reale su Docker locale 2.214.0 desktop/mobile: Redazione Atti, Template, Statistiche, Ricerca Legale, News, Giurisprudenza, Strumenti, Controlli Atti, Sito Studio Contatti, dettagli email e Database non mostrano testi tecnici vietati e non hanno overflow orizzontale.
+- Aggiornati gate, report React e test mirati: TypeScript, contratti React, build Vite, route gate, no-fake React full, packaging, readiness, pytest email/React e Docker locale 2.214.0 sono verdi.
+
 ## 2.213.0 - 2026-05-09
 
 - Corretto `Contatti Sito Studio`: la pagina React resta operativa anche senza richieste, mostra ingressi pubblici, modulo contatti, prenotazioni e stati vuoti specifici invece dello stato vuoto generale.

@@ -63,11 +63,11 @@ function DashboardContent({ data }: { data: SitoStudioPageData }) {
   return (
     <>
       <section className="iu-sito-banner" aria-label="Sito Studio operativo">
-        <strong>Sito Studio React operativo</strong>
-        <span>Dashboard, contatti, builder e redazione AI leggono dati reali e usano azioni operative controllate.</span>
+        <strong>Sito Studio operativo</strong>
+        <span>Cruscotto, contatti, editor sito e redazione assistita leggono dati reali e usano azioni operative controllate.</span>
       </section>
       <WarningList warnings={data.warnings} />
-      <section className="iu-sito-kpis" aria-label="KPI Sito Studio">
+      <section className="iu-sito-kpis" aria-label="Indicatori Sito Studio">
         {data.metrics.map((metric) => (
           <KpiCard
             label={metric.label}
@@ -108,7 +108,7 @@ function DashboardContent({ data }: { data: SitoStudioPageData }) {
       </Panel>
       <Panel
         title="Contenuti pubblici sicuri"
-        subtitle={`${content.length} contenuti letti dal repository`}
+        subtitle={`${content.length} contenuti letti dall'archivio`}
         actions={publicAction ? <ButtonLink href={publicAction.href} tone="success" target="_blank" rel="noopener">Anteprima pubblica</ButtonLink> : null}
       >
         {content.length ? (
@@ -532,12 +532,11 @@ function ContactsContent({ data, reload }: { data: SitoStudioContattiPageData; r
 
 function ContractPanel({ data }: { data: SitoStudioPageData | SitoStudioContattiPageData }) {
   return (
-    <Panel title="Stato dati" subtitle="Superficie servita dalla shell operativa.">
+    <Panel title="Stato dati" subtitle="Dati e azioni disponibili per questa pagina.">
       <div className="iu-sito-contract">
-        <span>Fonte: {displaySourceLabel(data.source)}</span>
+        <span>Origine: {displaySourceLabel(data.source)}</span>
         <span>Generato: {data.generated_at || 'non disponibile'}</span>
         <span>Azioni: {displayWritesLabel(data.contracts.writes)}</span>
-        <span>Gestione: {displaySourceLabel(data.contracts.route_owner)}</span>
         <span>Operativo: {data.contracts.operational ? 'si' : 'no'}</span>
         <span>Dati reali: {data.contracts.mock_fallback ? 'da verificare' : 'si'}</span>
       </div>
@@ -589,12 +588,12 @@ export function SitoStudioPage() {
   return (
     <Page
       title={pageTitle}
-      subtitle={contactsRoute ? 'Richieste contatto e prenotazioni gestite con servizi sicuri.' : 'Dashboard operativa del sito pubblico dello studio.'}
+      subtitle={contactsRoute ? 'Richieste contatto e prenotazioni gestite con servizi sicuri.' : 'Cruscotto operativo del sito pubblico dello studio.'}
       actions={
         <>
           <ButtonLink href={contactsRoute ? '/sito-studio' : '/sito-studio/contatti'} tone="primary">
             {contactsRoute ? <Globe2 size={16} /> : <Mail size={16} />}
-            {contactsRoute ? 'Dashboard sito' : 'Contatti sito'}
+            {contactsRoute ? 'Cruscotto sito' : 'Contatti sito'}
           </ButtonLink>
           <Button tone="neutral" onClick={() => setReloadCounter((value) => value + 1)}>
             <RefreshCw size={16} />
@@ -608,13 +607,13 @@ export function SitoStudioPage() {
         <EmptyState
           title={contactsRoute ? 'Contatti non disponibili' : 'Sito Studio non disponibile'}
           message={error}
-          action={<ButtonLink href={contactsRoute ? '/sito-studio' : '/sito-studio/contatti'} tone="primary">{contactsRoute ? 'Dashboard sito' : 'Contatti sito'}</ButtonLink>}
+          action={<ButtonLink href={contactsRoute ? '/sito-studio' : '/sito-studio/contatti'} tone="primary">{contactsRoute ? 'Cruscotto sito' : 'Contatti sito'}</ButtonLink>}
         />
       ) : null}
       {!loading && !error && !contactsRoute && !hasData ? (
         <EmptyState
           title="Nessun dato Sito Studio disponibile"
-          message="Il sito non espone ancora contenuti o KPI visualizzabili."
+          message="Il sito non espone ancora contenuti o indicatori visualizzabili."
           action={<ButtonLink href="/sito-studio/contatti" tone="primary">Contatti sito</ButtonLink>}
         />
       ) : null}

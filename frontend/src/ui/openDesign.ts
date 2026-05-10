@@ -1,5 +1,6 @@
+// Internal contract: Impeccable / Open Design.
 export const openDesignContract = {
-  system: 'Impeccable / Open Design',
+  system: 'Qualita studio',
   classPrefix: 'iu-',
   forbids: [
     'nuove dipendenze UI',

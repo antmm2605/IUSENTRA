@@ -101,7 +101,7 @@ def _catalog_record(row: dict[str, Any], index: int) -> dict[str, Any]:
         "updatedAt": _text(row.get("updated_at") or row.get("created_at")),
         "tags": [_text(item) for item in _list(row.get("tags")) if _text(item)],
         "requiredVariables": _variable_names(row.get("dati_obbligatori")),
-        "href": f"/template-atti/catalogo?template={compiler_code}" if compiler_code else "/template-atti/catalogo",
+        "href": f"/redazione-atti?template={compiler_code}" if compiler_code else "/redazione-atti",
         "detailHref": f"/template-atti/catalogo?scheda={code}",
     }
 
@@ -124,11 +124,11 @@ def _studio_record(template: Any, index: int) -> dict[str, Any]:
         "portal": _text(getattr(template, "profilo_deposito", "")),
         "stateLabel": "Sistema" if state == "built-in" else "Studio",
         "stateTone": "info" if state == "built-in" else "primary",
-        "complianceLabel": "Metadati deposito" if getattr(template, "controlli_conformita", None) else "",
+        "complianceLabel": "Informazioni deposito" if getattr(template, "controlli_conformita", None) else "",
         "updatedAt": _text(getattr(template, "modificato_il", "") or getattr(template, "creato_il", "")),
         "tags": [_text(item) for item in _list(getattr(template, "parole_chiave", [])) if _text(item)],
         "requiredVariables": _variable_names(getattr(template, "campi_guidati", [])),
-        "href": f"/template-atti/catalogo?template={template_id}",
+        "href": f"/redazione-atti?template={template_id}",
         "detailHref": f"/template-atti/catalogo?scheda={template_id}",
     }
 
@@ -179,8 +179,7 @@ def build_react_template_atti_payload(
     page: str = "dashboard",
 ) -> dict[str, Any]:
     warnings: list[dict[str, str]] = [
-        _warning("editor_dedicato", "Editor, compilazione assistita, esportazioni e stampe restano nei percorsi Flask dedicati e auditati."),
-        _warning("metadati_sicuri", "React riceve solo metadati, variabili come nomi e link operativi sicuri."),
+        _warning("produzione_disponibile", "Catalogo, scheda e avvio produzione sono disponibili nella pagina."),
     ]
     catalog_rows = _safe_catalog_rows(warnings)
     studio_templates = _safe_studio_templates(get_template_manager, warnings)
@@ -213,7 +212,7 @@ def build_react_template_atti_payload(
             _metric("template_totali", "Template", len(records), "Catalogo e modelli studio", "primary"),
             _metric("catalogo", "Catalogo", catalog_total, "Template classificati", "info"),
             _metric("studio", "Studio", studio_total, "Modelli locali", "neutral"),
-            _metric("variabili", "Variabili", with_variables, "Solo nomi e metadati", "warning" if with_variables else "neutral"),
+            _metric("variabili", "Variabili", with_variables, "Campi richiesti", "warning" if with_variables else "neutral"),
         ],
         "sections": [
             _counter_section("categorie", "Categorie", "distribution", categories, "Nessuna categoria disponibile."),
@@ -221,12 +220,12 @@ def build_react_template_atti_payload(
             _counter_section("canali", "Canali", "distribution", channels, "Nessun canale indicato."),
             _section(
                 "presidi",
-                "Presidi documentali conservati",
-                "dedicated-routes",
+                "Produzione documentale",
+                "react",
                 [
-                    _item("nuovo", "Nuovo template", "percorso dedicato", "Creazione e modifica restano su Flask auditato", "warning"),
-                    _item("redazione", "Redazione guidata", "percorso dedicato", "Workflow completo non spostato in React", "warning"),
-                    _item("file", "Stampe e file", "percorso dedicato", "Produzione e download restano sui percorsi governati", "warning"),
+                    _item("scheda", "Scheda template", "in pagina", "Dettaglio aperto senza uscire dal catalogo", "success"),
+                    _item("redazione", "Produzione atti", "in pagina", "Avvio diretto in Redazione Atti", "success"),
+                    _item("telematico", "Servizi telematici", "tranche successiva", "Deposito e portali restano separati", "warning"),
                 ],
                 "Nessun presidio rilevato.",
             ),

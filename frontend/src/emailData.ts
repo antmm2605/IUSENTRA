@@ -64,6 +64,30 @@ export type EmailPecPageData = {
   }
 }
 
+export type EmailAttachment = {
+  index: number
+  name: string
+  mime: string
+  sizeLabel: string
+  previewHref: string
+  downloadHref: string
+  available: boolean
+}
+
+export type EmailDetailData = {
+  source: string
+  generatedAt: string
+  item: EmailPecRow | null
+  bodyText: string
+  bodyHtml: string
+  attachments: EmailAttachment[]
+  actions: {
+    inbox: string
+    reply: string
+    settings: string
+  }
+}
+
 export type EmailPecParams = {
   folder?: EmailFolder
   q?: string
@@ -136,6 +160,20 @@ export const emptyEmailOrdinariaPage: EmailPecPageData = {
     operationalInbox: '/email-ordinaria/',
     localPecTest: '/impostazioni?tab=smtp',
     lex: '#lex',
+  },
+}
+
+export const emptyEmailDetail: EmailDetailData = {
+  source: 'vuoto',
+  generatedAt: '',
+  item: null,
+  bodyText: '',
+  bodyHtml: '',
+  attachments: [],
+  actions: {
+    inbox: '/email/',
+    reply: '/email/scrivi',
+    settings: '/impostazioni?tab=pec',
   },
 }
 
@@ -271,6 +309,64 @@ function normalisePayload(payload: unknown, fallback = emptyEmailPecPage): Email
   }
 }
 
+function attachmentFromPayload(value: unknown): EmailAttachment {
+  const item = isRecord(value) ? value : {}
+  return {
+    index: number(item.index),
+    name: text(item.name, 'allegato'),
+    mime: text(item.mime),
+    sizeLabel: text(item.sizeLabel ?? item.size_label),
+    previewHref: text(item.previewHref ?? item.preview_href ?? item.viewHref ?? item.view_href),
+    downloadHref: text(item.downloadHref ?? item.download_href),
+    available: item.available !== false,
+  }
+}
+
+function emptyDetailFor(basePath: string): EmailDetailData {
+  const ordinary = basePath.includes('ordinaria')
+  return {
+    ...emptyEmailDetail,
+    actions: {
+      inbox: `${basePath}/`,
+      reply: `${basePath}/scrivi`,
+      settings: ordinary ? '/impostazioni?tab=smtp' : '/impostazioni?tab=pec',
+    },
+  }
+}
+
+function normaliseDetailPayload(payload: unknown, fallbackBasePath: string): EmailDetailData {
+  if (!isRecord(payload)) return emptyDetailFor(fallbackBasePath)
+  const actions = isRecord(payload.actions) ? payload.actions : {}
+  const rawItem = payload.item ?? payload.email
+  return {
+    source: text(payload.source, 'repository_reali'),
+    generatedAt: text(payload.generatedAt ?? payload.generated_at),
+    item: rawItem ? rowFromPayload(rawItem, 0, fallbackBasePath) : null,
+    bodyText: text(payload.bodyText ?? payload.body_text),
+    bodyHtml: text(payload.bodyHtml ?? payload.body_html),
+    attachments: (Array.isArray(payload.attachments) ? payload.attachments : []).map(attachmentFromPayload),
+    actions: {
+      inbox: text(actions.inbox, `${fallbackBasePath}/`),
+      reply: text(actions.reply, `${fallbackBasePath}/scrivi`),
+      settings: text(actions.settings, fallbackBasePath.includes('ordinaria') ? '/impostazioni?tab=smtp' : '/impostazioni?tab=pec'),
+    },
+  }
+}
+
+async function fetchEmailDetail(endpoint: string, fallbackBasePath: string): Promise<EmailDetailData> {
+  try {
+    const response = await fetch(`${endpoint}?_ts=${Date.now()}`, {
+      credentials: 'same-origin',
+      cache: 'no-store',
+      headers: { Accept: 'application/json' },
+    })
+    if (!response.ok) return emptyDetailFor(fallbackBasePath)
+    return normaliseDetailPayload(await response.json(), fallbackBasePath)
+  } catch {
+    return emptyDetailFor(fallbackBasePath)
+  }
+}
+
 export function folderLabel(value: EmailFolder): string {
   if (value === 'INVIATI') return 'Inviati'
   if (value === 'CESTINO') return 'Cestino'
@@ -306,4 +402,12 @@ export async function getEmailPecPage(params: EmailPecParams = {}): Promise<Emai
 
 export async function getEmailOrdinariaPage(params: EmailPecParams = {}): Promise<EmailPecPageData> {
   return fetchEmailPage('/api/v1/ui/email-ordinaria', emptyEmailOrdinariaPage, params)
+}
+
+export async function getEmailPecDetail(id: string): Promise<EmailDetailData> {
+  return fetchEmailDetail(`/api/v1/ui/email/messaggio/${encodeURIComponent(id)}`, '/email')
+}
+
+export async function getEmailOrdinariaDetail(id: string): Promise<EmailDetailData> {
+  return fetchEmailDetail(`/api/v1/ui/email-ordinaria/messaggio/${encodeURIComponent(id)}`, '/email-ordinaria')
 }

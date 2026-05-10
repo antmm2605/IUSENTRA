@@ -212,6 +212,28 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 
 `python -m pytest -q` monolitico non viene usato come dichiarazione di verde totale in locale perche' va in timeout. Il gate viene verificato tramite shard/sotto-shard con timeout per job, isolando i test lenti e correggendo le failure reali.
 
+## Tranche testi visibili e dettagli email React 2.214.0
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `npm run typecheck` | OK | TypeScript confermato dopo guardia testi visibili, dettagli email React, Redazione Atti e bump 2.214.0. |
+| `npm test` | OK | Contratti React verificati. |
+| `npm run build` | OK | Build Vite 2.214.0 completata; asset React rigenerati in `web/static/react`. |
+| `python -m py_compile web/blueprints/api_v1_react.py web/blueprints/email_client.py web/blueprints/email_ordinaria.py web/blueprints/react_shell.py web/bootstrap/react_route_gate.py web/services/react_email_bridge.py web/services/react_redazione_atti_bridge.py web/services/react_template_atti_bridge.py web/services/react_legal_intelligence_bridge.py web/services/react_giurisprudenza_bridge.py web/services/react_statistiche_bridge.py web/services/react_studio_module_bridge.py` | OK | Sintassi backend confermata sui bridge/blueprint toccati. |
+| `python tools/sync_packaging_files.py --check` | OK | Packaging sincronizzato su 2.214.0. |
+| `node scripts/react-migration/check-route-gate.mjs` | OK | Route gate coerente. |
+| `node scripts/react-migration/check-full-react-route-contract.mjs` | OK | Audit anti-mascheramento aggiornato, no fake full e contratto full React OK. |
+| `node scripts/react-migration/check-no-fake-react-full.mjs` | OK | Nessuna route full mascherata. |
+| `python -m pytest -q tests/test_email_client.py::test_email_dettaglio_visualizza_e_scarica_allegato_salvato tests/test_email_client.py::test_email_ordinaria_dettaglio_usa_repository_smtp_e_allegati_ordinari tests/test_react_shell.py::test_react_blocco_finale_route_reali_e_vista_classica tests/test_react_shell.py::test_statistiche_react_full_non_espone_fallback_legacy tests/test_react_shell.py::test_route_gate_non_promuove_moduli_studio_telematico_admin_incompleti tests/test_react_shell.py::test_react_migration_matrice_completa_route_api_e_card_operative --tb=short` | OK | 6/6 passati: dettagli email, route React, statistiche e gate mirati. |
+| `python -m pytest -q tests/test_packaging_consistency.py tests/test_release_readiness.py --tb=short` | OK | 8/8 passati dopo bump versione. |
+| Browser desktop full React, 3 blocchi route manifest | OK | Tutte le route `react_operational_full` esatte del manifest, esclusa `/admin/database` verificata separatamente, hanno `#root`, nessun overflow e nessun termine tecnico vietato visibile. |
+| Browser Docker 2.214.0 desktop/mobile su pagine richieste | OK | `/redazione-atti`, `/template-atti`, `/statistiche`, `/ricerca-legale`, `/legal-intelligence/news`, `/giurisprudenza`, `/strumenti-legali`, `/strumenti-operativi`, `/deposito/checklist`, `/sito-studio/contatti`, dettagli PEC/email ordinaria e `/admin/database`: nessun overflow e nessun testo tecnico vietato. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker` | OK | Immagini locali ricostruite da zero con wheel `pct-studio-legale==2.214.0`. |
+| `docker compose up -d app scheduler-worker ocr-worker` | OK | Servizi locali riavviati sulle immagini 2.214.0. |
+| `docker compose ps` | OK | `iusentra-app`, `iusentra-scheduler`, `iusentra-ocr` e `iusentra-redis` healthy; `iusentra-nginx` attivo. |
+| `Invoke-WebRequest -UseBasicParsing http://localhost:8080/api/pronto` | OK | Readiness locale: `{"ok":true,"stato":"pronto","versione":"2.214.0"}`. |
+| `docker exec iusentra-app python -c "import pct; print(pct.__version__)"` | OK | Versione runtime container locale: `2.214.0`. |
+
 ## Hotfix Sito Studio Contatti e Nav React 2026-05-09
 
 | Comando / verifica | Esito | Nota |

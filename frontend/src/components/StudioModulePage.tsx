@@ -42,7 +42,7 @@ import { displayWritesLabel } from '../displayText'
 import './StudioModulePage.css'
 
 function runtimeSourceLabel(source: string): string {
-  return source === 'repository_reali' ? 'Dati applicativi' : 'Caricamento'
+  return source === 'repository_reali' ? 'Dati dello studio' : 'Caricamento'
 }
 
 const toneLabel: Record<StudioModuleTone, string> = {
@@ -50,7 +50,7 @@ const toneLabel: Record<StudioModuleTone, string> = {
   success: 'Operativo',
   warning: 'Da verificare',
   danger: 'Critico',
-  purple: 'AI / analisi',
+  purple: 'Analisi',
   orange: 'Economico',
   neutral: 'Supporto',
 }
@@ -99,7 +99,7 @@ function openLexContext(module: StudioModuleConfig) {
   window.dispatchEvent(new CustomEvent('iusentra:lex-context', {
     detail: {
       context: module.lexContext,
-      title: `Lex AI ${module.title}`,
+      title: `Lex ${module.title}`,
       body: module.lexLabel,
       page_path: window.location.pathname,
       context_label: module.section,
@@ -249,8 +249,8 @@ function ActiveFunctionPanel({
         <p>{operation?.body || card.body}</p>
         <dl>
           <div><dt>Area</dt><dd>{module.title}</dd></div>
-          <div><dt>Fonte</dt><dd>{runtimeSourceLabel(runtime.source)}</dd></div>
-          <div><dt>Azioni</dt><dd>{displayWritesLabel(runtime.contracts.writes)}</dd></div>
+          <div><dt>Dati</dt><dd>{runtimeSourceLabel(runtime.source)}</dd></div>
+          <div><dt>Comandi</dt><dd>{displayWritesLabel(runtime.contracts.writes)}</dd></div>
         </dl>
         {metrics.length ? (
           <div className="iu-sm-focus__metrics">
@@ -374,7 +374,7 @@ export function StudioModulePage() {
         </div>
         <aside>
           <Sparkles size={20}/>
-          <strong>Lex AI contestuale</strong>
+          <strong>Lex contestuale</strong>
           <span>{module.lexLabel}</span>
           <button type="button" onClick={() => openLexContext(module)}>Apri Lex</button>
         </aside>
@@ -395,7 +395,7 @@ export function StudioModulePage() {
           <div className="iu-sm-section-head">
             <div>
               <h2>Funzioni operative</h2>
-              <p>Ogni card apre una funzione collegata a dati, form o azioni reali del gestionale.</p>
+              <p>Ogni scheda apre una funzione collegata a dati, moduli o azioni reali del gestionale.</p>
             </div>
             <span>Operativo</span>
           </div>

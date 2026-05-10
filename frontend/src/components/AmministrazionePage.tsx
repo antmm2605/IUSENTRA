@@ -13,6 +13,7 @@ import { KpiCard } from '../ui/KpiCard'
 import { LoadingState } from '../ui/LoadingState'
 import { Page } from '../ui/Page'
 import { Panel } from '../ui/Panel'
+import { displaySourceLabel, displayWritesLabel } from '../displayText'
 import './AmministrazionePage.css'
 
 function formatValue(value: string | number): string {
@@ -69,7 +70,7 @@ function SecurityPanel({ data }: { data: AmministrazionePageData }) {
           <Badge tone={security.tone || 'neutral'}>{security.tone || 'neutral'}</Badge>
         </article>
         <article>
-          <span>Audit</span>
+          <span>Registro</span>
           <strong>{security.canReadAudit ? 'visibile' : 'permesso richiesto'}</strong>
           <Badge tone={security.canReadAudit ? 'success' : 'warning'}>audit</Badge>
         </article>
@@ -85,14 +86,13 @@ function SecurityPanel({ data }: { data: AmministrazionePageData }) {
 
 function ContractPanel({ data }: { data: AmministrazionePageData }) {
   return (
-    <Panel title="Contratto dati" subtitle="GET JSON read-only con impostazioni sensibili protette.">
+    <Panel title="Qualita dati" subtitle="Informazioni operative, impostazioni sensibili protette.">
       <div className="iu-adminhub-contract">
-        <span>Fonte: {data.source || 'non indicata'}</span>
+        <span>Origine: {displaySourceLabel(data.source || '')}</span>
         <span>Generato: {data.generated_at || 'non disponibile'}</span>
-        <span>Scritture: {data.contracts.writes}</span>
-        <span>Owner route: {data.contracts.route_owner}</span>
+        <span>Azioni: {displayWritesLabel(data.contracts.writes || '')}</span>
         <span>Operativo: {data.contracts.operational ? 'si' : 'no'}</span>
-        <span>Mock fallback: {data.contracts.mock_fallback ? 'si' : 'no'}</span>
+        <span>Dati reali: {data.contracts.mock_fallback ? 'da verificare' : 'si'}</span>
       </div>
     </Panel>
   )
@@ -109,10 +109,10 @@ export function AmministrazionePage() {
       .then((payload) => {
         if (!active) return
         setData(payload)
-        setError(payload.ok ? '' : payload.warnings[0]?.message || 'Dashboard amministrazione non disponibile.')
+        setError(payload.ok ? '' : payload.warnings[0]?.message || 'Pagina amministrazione non disponibile.')
       })
       .catch(() => {
-        if (active) setError('Dashboard amministrazione non disponibile.')
+        if (active) setError('Pagina amministrazione non disponibile.')
       })
       .finally(() => {
         if (active) setLoading(false)
@@ -138,25 +138,25 @@ export function AmministrazionePage() {
         </>
       }
     >
-      {loading ? <LoadingState title="Caricamento amministrazione" message="Lettura dei repository amministrativi in corso." /> : null}
+      {loading ? <LoadingState title="Caricamento amministrazione" message="Lettura degli archivi amministrativi in corso." /> : null}
       {!loading && error ? (
         <EmptyState title="Amministrazione non disponibile" message={error} action={<ButtonLink href="/utenti" tone="primary">Apri utenti</ButtonLink>} />
       ) : null}
       {!loading && !error && !hasData ? (
         <EmptyState
           title="Nessun dato amministrativo disponibile"
-          message="Lo hub non ha ricevuto dati visualizzabili dai repository."
+          message="Il centro amministrativo non ha ricevuto dati visualizzabili dagli archivi."
           action={<ButtonLink href="/utenti" tone="primary">Apri utenti</ButtonLink>}
         />
       ) : null}
       {!loading && !error && hasData ? (
         <>
           <section className="iu-adminhub-banner" aria-label="Quadro amministrativo operativo">
-            <strong>Regia amministrativa React</strong>
+            <strong>Regia amministrativa operativa</strong>
             <span>Utenti, profili, audit e backup sono collegamenti operativi; le impostazioni sensibili restano presidiate.</span>
           </section>
           <WarningPanel data={data} />
-          <section className="iu-adminhub-kpis" aria-label="KPI amministrazione">
+          <section className="iu-adminhub-kpis" aria-label="Indicatori amministrazione">
             {data.metrics.map((metric) => (
               <KpiCard
                 label={metric.label}
@@ -168,7 +168,7 @@ export function AmministrazionePage() {
             ))}
           </section>
           <SecurityPanel data={data} />
-          <Panel title="Moduli amministrativi React" subtitle={`${data.operational_routes.length} route operative full`}>
+          <Panel title="Moduli amministrativi" subtitle={`${data.operational_routes.length} funzioni operative`}>
             <ModuleList modules={data.operational_routes} />
           </Panel>
           <Panel title="Impostazioni presidiate" subtitle="Percorsi mantenuti sotto controllo amministrativo">

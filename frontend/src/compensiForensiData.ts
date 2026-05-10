@@ -386,7 +386,7 @@ export async function saveCompensiForensiLog(): Promise<CompensiForensiMutationR
 export async function createPreventivoFromCompensi(): Promise<CompensiForensiMutationResult> {
   return {
     ...emptyMutation,
-    message: 'Creazione preventivo diretta non disponibile tramite API React.',
+    message: 'Creazione preventivo diretta non disponibile da questa vista.',
     errors: { unsupported: 'Usa il flusso nuovo preventivo.' },
   }
 }

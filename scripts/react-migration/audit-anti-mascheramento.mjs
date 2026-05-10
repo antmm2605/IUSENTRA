@@ -176,7 +176,7 @@ const rows = [...routeMap.values()].map((entry) => {
     hasSuccessHandling: hasSuccessHandling(sources.component),
     requiresWriteApi: /(nuov|modifica|crea|salva|wizard|fatturazione\/nuova|conferimento|backup|contatti)/i.test(entry.route),
   }
-  facts.technicalRollback = /Rollback tecnico|fallback legacy tecnico|legacy_fallback|fallback tecnico/i.test(combined)
+  facts.technicalRollback = /Rollback tecnico|Percorso di recupero|fallback legacy tecnico|legacy_fallback|fallback tecnico/i.test(combined)
   facts.blockingLegacyLinks = facts.technicalRollback ? 0 : facts.legacyLinks
   facts.realLevel = classify(entry, facts)
   const problems = routeProblems(entry, facts)

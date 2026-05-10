@@ -1,4 +1,4 @@
-"""Payload operativo read-only per la dashboard React Studio."""
+"""Dati consultabili per la pagina Studio."""
 
 from __future__ import annotations
 
@@ -51,7 +51,7 @@ def _profile(user: Any) -> dict[str, Any]:
 
 def _safe_stats(loader: Loader | None, label: str, warnings: list[dict[str, str]]) -> dict[str, Any]:
     if loader is None:
-        warnings.append({"code": f"{label}_assente", "message": f"Sorgente {label} non configurata nel runtime."})
+        warnings.append({"code": f"{label}_assente", "message": f"Dati {label} non configurati."})
         return {}
     try:
         manager = loader()
@@ -60,13 +60,13 @@ def _safe_stats(loader: Loader | None, label: str, warnings: list[dict[str, str]
             data = stats()
             return data if isinstance(data, dict) else {}
     except Exception as exc:
-        warnings.append({"code": f"{label}_non_disponibile", "message": f"Sorgente {label} non disponibile: {type(exc).__name__}."})
+        warnings.append({"code": f"{label}_non_disponibile", "message": f"Dati {label} non disponibili."})
     return {}
 
 
 def _safe_count(loader: Loader | None, label: str, warnings: list[dict[str, str]]) -> int:
     if loader is None:
-        warnings.append({"code": f"{label}_assente", "message": f"Sorgente {label} non configurata nel runtime."})
+        warnings.append({"code": f"{label}_assente", "message": f"Dati {label} non configurati."})
         return 0
     stats = _safe_stats(loader, label, warnings)
     for key in ("totale", "totale_utenti", "attivi", "totale_fascicoli"):
@@ -102,7 +102,7 @@ def _site_status(warnings: list[dict[str, str]]) -> dict[str, Any]:
             "label": "Sito Studio",
             "status": "pubblicato" if bool(site.get("is_published")) else "bozza",
             "tone": "success" if bool(site.get("is_published")) else "warning",
-            "note": "Dashboard e contatti sono gestiti nello spazio operativo; builder e pubblicazione restano protetti.",
+            "note": "Cruscotto e contatti sono gestiti nello spazio operativo; modifica e pubblicazione restano protette.",
             "href": "/sito-studio",
             "metrics": {
                 "pagine": int(stats.get("pages") or 0),
@@ -117,7 +117,7 @@ def _site_status(warnings: list[dict[str, str]]) -> dict[str, Any]:
             "label": "Sito Studio",
             "status": "non disponibile",
             "tone": "warning",
-            "note": "Il runtime sito non ha restituito aggregati sicuri.",
+            "note": "Il sito non ha restituito aggregati sicuri.",
             "href": "/sito-studio",
             "metrics": {},
         }
@@ -202,36 +202,36 @@ def build_react_studio_payload(
 
     operational_routes = [
         _module("utenti", "Utenti", "/utenti", "amministrazione", "Elenco e creazione utenti operativi."),
-        _module("utenti-nuovo", "Nuovo utente", "/utenti/nuovo", "amministrazione", "Creazione utente con permessi e audit."),
+        _module("utenti-nuovo", "Nuovo utente", "/utenti/nuovo", "amministrazione", "Creazione utente con permessi e registro."),
         _module("profili", "Profili", "/profili", "amministrazione", "Matrice ruoli e permessi operativa."),
-        _module("audit", "Audit", "/audit", "sicurezza", "Registro audit consultabile dallo studio."),
-        _module("registro-attivita", "Registro attivita", "/registro-attivita", "sicurezza", "Alias operativo del registro audit."),
+        _module("registro", "Registro attivita", "/audit", "sicurezza", "Registro consultabile dallo studio."),
+        _module("registro-attivita", "Registro attivita", "/registro-attivita", "sicurezza", "Percorso operativo del registro attivita."),
         _module("backup", "Backup", "/backup", "governance", "Stato backup e verifiche operative."),
-        _module("fatturazione", "Fatturazione", "/fatturazione", "economico", "Documenti economici nella dashboard."),
+        _module("fatturazione", "Fatturazione", "/fatturazione", "economico", "Documenti economici nel cruscotto."),
         _module("fatturazione-nuova", "Nuova fattura", "/fatturazione/nuova", "economico", "Creazione fattura con controlli applicativi."),
         _module("incassi", "Incassi e pagamenti", "/incassi-pagamenti", "economico", "Incassi, pagamenti e link pagamento governati."),
         _module("preventivi", "Preventivi", "/preventivi", "mandato", "Lista preventivi e stati reali."),
         _module("preventivi-nuovo", "Nuovo preventivo", "/preventivi/nuovo", "mandato", "Creazione preventivo con controlli applicativi."),
-        _module("conferimento", "Nuovo conferimento", "/preventivi/conferimento/nuovo", "mandato", "Workflow conferimento già servito dalla shell."),
+        _module("conferimento", "Nuovo conferimento", "/preventivi/conferimento/nuovo", "mandato", "Percorso conferimento gia servito dalla pagina."),
         _module("compensi", "Compensi forensi", "/compensi-forensi", "economico", "Calcolo compensi governato."),
         _module("tariffario", "Tariffario", "/tariffario", "economico", "Motore tariffario operativo."),
-        _module("sito-studio", "Sito Studio", "/sito-studio", "comunicazione", "Dashboard e contatti sito operativi."),
+        _module("sito-studio", "Sito Studio", "/sito-studio", "comunicazione", "Cruscotto e contatti sito operativi."),
         _module("sito-contatti", "Contatti Sito Studio", "/sito-studio/contatti", "comunicazione", "Richieste contatto e prenotazioni governate."),
     ]
     legacy_routes = [
         _legacy("impostazioni", "Impostazioni", "/impostazioni", "impostazioni sensibili", "Configurazioni riservate presidiate nel percorso dedicato."),
-        _legacy("impostazioni-studio", "Impostazioni studio", "/impostazioni-studio", "impostazioni sensibili", "Dati configurativi dello studio non scritti da questa dashboard."),
+        _legacy("impostazioni-studio", "Impostazioni studio", "/impostazioni-studio", "impostazioni sensibili", "Dati configurativi dello studio gestiti nel percorso dedicato."),
         _legacy("calendario", "Impostazioni calendario", "/impostazioni/calendario", "impostazioni sensibili", "Collegamenti calendario presidiati nel percorso dedicato."),
         _legacy("pagamenti", "Impostazioni pagamenti", "/impostazioni/pagamenti", "impostazioni sensibili", "Configurazioni di incasso presidiate e non esposte in chiaro."),
-        _legacy("sync-calendari", "Sincronizzazione calendari", "/sincronizzazione-calendari", "impostazioni sensibili", "Operazioni calendario protette fuori dallo hub."),
+        _legacy("sync-calendari", "Sincronizzazione calendari", "/sincronizzazione-calendari", "impostazioni sensibili", "Operazioni calendario protette nel percorso dedicato."),
         _legacy("telematico", "Servizi telematici", "/servizi-telematici", "telematico", "Portali, firma e deposito restano su percorsi protetti."),
-        _legacy("builder", "Builder Sito Studio", "/sito-studio/builder", "sito studio", "Editor e pubblicazione avanzata restano protetti nel percorso dedicato."),
+        _legacy("builder", "Editor Sito Studio", "/sito-studio/builder", "sito studio", "Modifica e pubblicazione avanzata restano protette nel percorso dedicato."),
     ]
     health = [
         _health("backup", "Backup", "presente" if backup_total else "da verificare", "success" if backup_total else "warning", "Conteggio registro backup sicuro.", backup_total),
         _health("sito", "Sito Studio", site_status["status"], site_status["tone"], site_status["note"], site_status.get("metrics", {}).get("contatti", "")),
-        _health("utenti", "Utenti e profili", "presidiato" if active_users else "da verificare", "success" if active_users else "warning", "Account attivi letti dal repository utenti.", active_users),
-        _health("audit", "Audit", "abilitato" if _can(current_user, "audit.leggi") else "permesso mancante", "success" if _can(current_user, "audit.leggi") else "warning", "Accesso registro eventi amministrativi."),
+        _health("utenti", "Utenti e profili", "presidiato" if active_users else "da verificare", "success" if active_users else "warning", "Account attivi letti dall'archivio utenti.", active_users),
+        _health("registro", "Registro attivita", "abilitato" if _can(current_user, "audit.leggi") else "permesso mancante", "success" if _can(current_user, "audit.leggi") else "warning", "Accesso registro eventi amministrativi."),
         _health("economico", "Economico e mandato", "attenzione" if (unpaid or pending_payments or open_quotes) else "allineato", "warning" if (unpaid or pending_payments or open_quotes) else "success", "Aggregati fatturazione, preventivi e pagamenti.", unpaid + pending_payments + open_quotes),
         _health("documentale", "Fascicoli e scadenze", "attenzione" if urgent_terms else "allineato", "warning" if urgent_terms else "success", "Fascicoli e scadenze prioritarie reali.", urgent_terms),
     ]
@@ -243,7 +243,7 @@ def build_react_studio_payload(
             },
             {
                 "code": "telematico_protetto",
-                "message": "PST, PDP, PAT, firma e portali telematici restano fuori da questa dashboard.",
+                "message": "PST, PDP, PAT, firma e portali telematici restano nel percorso dedicato.",
             },
         ]
     )
@@ -259,9 +259,9 @@ def build_react_studio_payload(
         "legacy_routes": legacy_routes,
         "health": health,
         "metrics": [
-            _metric("fascicoli", "Fascicoli", fascicoli_count, "Conteggio dal repository fascicoli", "primary"),
+            _metric("fascicoli", "Fascicoli", fascicoli_count, "Conteggio dall'archivio fascicoli", "primary"),
             _metric("clienti", "Clienti", clienti_count, "Anagrafica clienti reale", "info"),
-            _metric("utenti", "Operatori attivi", active_users, "Account abilitati nel repository utenti", "success" if active_users else "warning"),
+            _metric("utenti", "Operatori attivi", active_users, "Account abilitati nell'archivio utenti", "success" if active_users else "warning"),
             _metric("scadenze", "Scadenze prioritarie", urgent_terms, "Critiche e alte nello scadenziario", "warning" if urgent_terms else "neutral"),
             _metric("backup", "Backup registrati", backup_total, "Registro backup sicuro", "success" if backup_total else "warning"),
             _metric("economico", "Presidi economici", unpaid + pending_payments + open_quotes, "Scoperti, pagamenti pendenti e preventivi aperti", "warning" if (unpaid or pending_payments or open_quotes) else "success"),
@@ -271,7 +271,7 @@ def build_react_studio_payload(
             _action("contatti", "Apri contatti sito", "/sito-studio/contatti", "primary"),
             _action("utenti", "Apri utenti", "/utenti", "neutral"),
             _action("profili", "Apri profili", "/profili", "neutral"),
-            _action("audit", "Apri audit", "/audit", "neutral"),
+            _action("registro", "Apri registro", "/audit", "neutral"),
             _action("fatturazione", "Apri fatturazione", "/fatturazione", "neutral"),
             _action("preventivi", "Apri preventivi", "/preventivi", "neutral"),
             _action("incassi", "Apri incassi", "/incassi-pagamenti", "neutral"),

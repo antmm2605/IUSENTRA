@@ -185,11 +185,11 @@ def _tariffario_form(
 ) -> dict[str, Any]:
     return {
         "id": "tariffario_calcolo_legacy",
-        "title": "Parametri per submit Flask",
-        "description": "Il form invia alla route esistente; il risultato viene prodotto dal backend.",
+        "title": "Parametri di calcolo",
+        "description": "Compila i dati della pratica e ottieni il risultato dal motore tariffario dello studio.",
         "action": "/tariffario",
         "method": "POST",
-        "submitLabel": "Invia al motore backend",
+        "submitLabel": "Calcola compenso",
         "enabled": True,
         "fields": [
             _field("materia", "Materia", "select", required=True, options=_materia_options()),
@@ -240,7 +240,7 @@ def _profile_record(row: dict[str, Any], index: int) -> dict[str, Any]:
         "id": _text(row.get("profile_code")) or f"profilo_{index}",
         "title": _text(row.get("table_label")) or _text(row.get("materia_label")) or "Profilo tariffario",
         "subtitle": _text(row.get("grado_input_value")) or _text(row.get("fase_label")),
-        "meta": _text(row.get("materia_label")) or "Tariffario backend",
+        "meta": _text(row.get("materia_label")) or "Tariffario studio",
         "stateLabel": "Profilo",
         "stateTone": "neutral",
         "href": "/tariffario",
@@ -252,7 +252,7 @@ def _rule_record(row: dict[str, Any], index: int) -> dict[str, Any]:
         "id": _text(row.get("rule_code")) or f"regola_{index}",
         "title": _text(row.get("label")) or _text(row.get("table_label")) or "Regola tariffaria",
         "subtitle": _text(row.get("matter")) or _text(row.get("jurisdiction")) or _text(row.get("description")),
-        "meta": _text(row.get("materia_label")) or "Regola backend",
+        "meta": _text(row.get("materia_label")) or "Regola tariffaria",
         "stateLabel": "Regola",
         "stateTone": "info",
         "href": "/tariffario",
@@ -403,7 +403,7 @@ def build_react_tariffario_payload(
             _metric("profili", "Profili tariffari", stats["profiles"], "Materia, grado, fasi e profilo operativo.", "primary"),
             _metric("opzioni", "Opzioni di calcolo", stats["options"], "Spese generali, bonus, accessori e logiche fiscali.", "info"),
             _metric("tabelle", "Tabelle sincronizzate", stats["tables"], "Catalogo normativo condiviso con il motore preventivi.", "neutral"),
-            _metric("audit", "Audit da aprire", stats["auditOpen"], "Voci ricostruttive o da verificare disponibili nel pannello tecnico.", "warning" if stats["auditOpen"] else "success"),
+            _metric("audit", "Verifiche da aprire", stats["auditOpen"], "Voci ricostruttive o da verificare disponibili nel pannello di controllo.", "warning" if stats["auditOpen"] else "success"),
         ],
         "sections": [
             _section("aree", "Aree tariffarie", "distribution", area_items, "Nessuna area tariffaria disponibile."),
@@ -412,8 +412,8 @@ def build_react_tariffario_payload(
                 "Presidi conservati",
                 "legacy-routes",
                 [
-                    _item("motore", "Motore backend", "attivo", "Nessuna formula viene spostata in React", "success"),
-                    _item("preventivo", "Preventivo guidato", "collegato", "CTA precompilata su route esistente", "primary"),
+                    _item("motore", "Motore tariffario", "attivo", "Le formule ufficiali restano governate dal calcolo dello studio.", "success"),
+                    _item("preventivo", "Preventivo guidato", "collegato", "Azione precompilata sul percorso preventivi.", "primary"),
                     _item("parcella", "Parcella precompilata", "collegata", "Voci operative passate alla fatturazione", "primary"),
                 ],
                 "Nessun presidio rilevato.",
@@ -422,8 +422,8 @@ def build_react_tariffario_payload(
         "records": records,
         "actions": [
             _action("compensi", "Compensi forensi", "/compensi-forensi", "primary"),
-            _action("wizard", "Wizard preventivi", "/preventivi/wizard", "neutral"),
-            _action("rollback_tecnico", "Rollback tecnico legacy", "/tariffario?_legacy=1", "warning"),
+            _action("percorso_guidato", "Percorso preventivi", "/preventivi/wizard", "neutral"),
+            _action("percorso_recupero", "Percorso di recupero", "/tariffario?_legacy=1", "warning"),
         ],
         "forms": [],
         "warnings": warnings + list(initial.get("warnings") or []),
@@ -451,7 +451,7 @@ def build_react_tariffario_error_payload(message: str = "Tariffario non disponib
         "metrics": [],
         "sections": [],
         "records": [],
-        "actions": [_action("rollback_tecnico", "Rollback tecnico legacy", "/tariffario?_legacy=1", "warning")],
+        "actions": [_action("percorso_recupero", "Percorso di recupero", "/tariffario?_legacy=1", "warning")],
         "forms": [],
         "warnings": [_warning("tariffario_errore_controllato", message)],
     }
@@ -494,7 +494,7 @@ def calculate_react_tariffario(
     blocked = sorted(set(payload) & forbidden)
     if unknown or blocked:
         errors = {key: "Campo non ammesso come fonte canonica." for key in unknown + blocked}
-        return {"ok": False, "message": "Payload tariffario non valido.", "errors": errors, "result": None, "warnings": []}, 400
+        return {"ok": False, "message": "Dati tariffari non validi.", "errors": errors, "result": None, "warnings": []}, 400
     run_payload = {
         **payload,
         "materia": _text(payload.get("materia")) or _text(payload.get("area")),

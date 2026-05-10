@@ -101,7 +101,7 @@ export function StatistichePage() {
   return (
     <Page
       title="Statistiche"
-      subtitle="Indicatori reali letti dai repository operativi dello studio."
+      subtitle="Indicatori reali letti dagli archivi operativi dello studio."
       actions={
         <>
           <ButtonLink href="/statistiche" tone="primary">
@@ -117,17 +117,17 @@ export function StatistichePage() {
         </>
       }
     >
-      {loading ? <LoadingState title="Caricamento statistiche" message="Lettura dei repository reali in corso." /> : null}
+      {loading ? <LoadingState title="Caricamento statistiche" message="Lettura degli archivi reali in corso." /> : null}
       {!loading && !hasData ? (
         <EmptyState
           title="Nessun dato statistico disponibile"
-          message="I repository non contengono ancora elementi sufficienti per alimentare questa pagina."
+          message="Gli archivi non contengono ancora elementi sufficienti per alimentare questa pagina."
         />
       ) : null}
       {!loading && hasData ? (
         <>
           <Warnings data={data} />
-          <section className="iu-stat-kpis" aria-label="KPI statistiche">
+          <section className="iu-stat-kpis" aria-label="Indicatori statistiche">
             {data.metrics.map((metric) => (
               <KpiCard
                 label={metric.label}
@@ -147,7 +147,7 @@ export function StatistichePage() {
               </Panel>
             ))}
           </section>
-          <Panel title="Record principali" subtitle="Collegamenti GET verso i moduli operativi collegati.">
+          <Panel title="Indicatori principali" subtitle="Collegamenti verso i moduli operativi collegati.">
             {data.records.length ? (
               <div className="iu-stat-records">
                 {data.records.map((record) => (
@@ -159,12 +159,12 @@ export function StatistichePage() {
                 ))}
               </div>
             ) : (
-              <EmptyState title="Nessun record riepilogativo" />
+              <EmptyState title="Nessun indicatore riepilogativo" />
             )}
           </Panel>
           <Panel title="Presidio dati" subtitle="Origine e azioni governate per questa vista.">
             <div className="iu-stat-contract">
-              <span>Fonte: {displaySourceLabel(data.source)}</span>
+              <span>Origine: {displaySourceLabel(data.source)}</span>
               <span>Generato: {data.generated_at || 'non disponibile'}</span>
               <span>Azioni: {displayWritesLabel(data.contracts.writes)}</span>
               <span>Dati reali: {data.contracts.mock_fallback ? 'da verificare' : 'si'}</span>

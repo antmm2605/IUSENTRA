@@ -374,7 +374,7 @@ def build_server_maintenance_surface(config: dict[str, Any] | None = None) -> di
     backup_retention = run_backup_retention(apply=False, backup_dir=backup_dir, config=cfg)
 
     areas = [
-        _area("data", "Dati applicativi", data_root, "Root runtime tenant-aware."),
+        _area("data", "Dati dello studio", data_root, "Cartella operativa riservata."),
         _area("tenants", "Tenant", data_root / "tenants", "Studi, database e documenti separati per tenant."),
         _area("email", "Allegati email", data_root / "email" / "allegati", "Allegati globali deduplicabili."),
         _area("tenant_email", "Allegati email tenant", data_root / "tenants", "Somma inclusa nei tenant."),

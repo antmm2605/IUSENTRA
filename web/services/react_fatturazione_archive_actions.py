@@ -156,7 +156,7 @@ def _safe_payload_fields(payload: dict[str, Any]) -> dict[str, str]:
     if unknown:
         errors["payload"] = "Campi non consentiti: " + ", ".join(sorted(unknown))
     for field in sorted(_CANONICAL_AMOUNT_FIELDS & set(payload.keys())):
-        errors[field] = "Importo canonico non accettato dal frontend."
+        errors[field] = "Importo calcolato non accettato dalla pagina."
     return errors
 
 

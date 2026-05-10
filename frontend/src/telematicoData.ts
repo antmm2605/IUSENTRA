@@ -322,7 +322,7 @@ function normaliseCase(value: unknown, index: number): TelematicoCase {
     portal,
     portalLabel: display(item.portalLabel ?? item.portal_label, portalLabel),
     title: display(item.title, 'Pratica telematica'),
-    subtitle: display(item.subtitle, 'Fascicolo collegato al repository telematico'),
+    subtitle: display(item.subtitle, "Fascicolo collegato all'archivio telematico"),
     subject: display(item.subject ?? item.oggetto),
     statusText: display(item.statusText ?? item.status_text, 'Da verificare'),
     documentsCount: number(item.documentsCount ?? item.documents_count ?? item.documents),

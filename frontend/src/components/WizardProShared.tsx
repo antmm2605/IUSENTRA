@@ -30,7 +30,7 @@ export function MatterSummary({ matter }: { matter: WizardProMatter | null }) {
     return (
       <section className="iu-wiz-panel">
         <h2>Fascicolo non disponibile</h2>
-        <p>La sessione non espone un fascicolo collegato nel repository corrente.</p>
+        <p>La sessione non espone un fascicolo collegato nell'archivio corrente.</p>
       </section>
     )
   }

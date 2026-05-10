@@ -144,7 +144,7 @@ function Warnings({ data }: { data: ProfiliPageData }) {
 
 function RoleCards({ roles }: { roles: ProfiloRole[] }) {
   if (!roles.length) {
-    return <EmptyState title="Nessun ruolo disponibile" message="Il repository utenti non ha restituito ruoli gestibili." />
+    return <EmptyState title="Nessun ruolo disponibile" message="L'archivio utenti non ha restituito ruoli gestibili." />
   }
   return (
     <section className="iu-profiles-roles" aria-label="Ruoli reali">
@@ -297,7 +297,7 @@ function OverrideEditor({
   if (!users.length) {
     return (
       <Panel title="Editor override utente">
-        <EmptyState title="Nessun utente modificabile" message="Il repository non ha restituito utenti su cui applicare override." />
+        <EmptyState title="Nessun utente modificabile" message="L'archivio non ha restituito utenti su cui applicare modifiche." />
       </Panel>
     )
   }
@@ -334,7 +334,7 @@ function OverrideEditor({
               {selectedOverride?.hasOverride ? 'override attivo' : 'standard'}
             </Badge>
             <span>Ruolo: {roleLabel(selectedRole, selectedUser.role)}</span>
-            <span>Stato: {dirty ? 'modifiche non salvate' : 'allineato al repository'}</span>
+            <span>Stato: {dirty ? 'modifiche non salvate' : "allineato all'archivio"}</span>
           </div>
         ) : null}
         <StatusMessage saveStatus={saveStatus} message="" validationErrors={validationErrors} />
@@ -510,14 +510,14 @@ export function ProfiliPage() {
       {loadStatus === 'ready' && !hasData ? (
         <EmptyState
           title="Nessuna matrice permessi disponibile"
-          message="Il repository utenti non ha restituito ruoli o permessi visualizzabili."
+          message="L'archivio utenti non ha restituito ruoli o permessi visualizzabili."
         />
       ) : null}
       {loadStatus === 'ready' && hasData ? (
         <>
           <StatusMessage saveStatus={saveStatus} message={message} validationErrors={validationErrors} />
           <Warnings data={data} />
-          <section className="iu-profiles-kpis" aria-label="KPI profili">
+          <section className="iu-profiles-kpis" aria-label="Indicatori profili">
             {data.metrics.map((metric) => (
               <KpiCard
                 label={metric.label}
@@ -549,7 +549,7 @@ export function ProfiliPage() {
           <OverrideSummary overrides={data.overrides} />
           <Panel title="Presidio dati" subtitle="RBAC letto dal dominio esistente, modifiche auditabili.">
             <div className="iu-profiles-contract">
-              <span>Fonte: {displaySourceLabel(data.source)}</span>
+              <span>Origine: {displaySourceLabel(data.source)}</span>
               <span>Generato: {formatGeneratedAt(data.generated_at)}</span>
               <span>Azioni: {displayWritesLabel(data.contracts.writes)}</span>
               <span>Dati reali: {data.contracts.mock_fallback ? 'da verificare' : 'si'}</span>

@@ -204,15 +204,13 @@ def _normalise_path(path: str) -> str:
 
 def _excluded(path: str) -> bool:
     lower = path.lower()
-    if lower.startswith("/email/messaggio/") or lower.startswith("/email-ordinaria/messaggio/"):
-        return True
     if lower.startswith("/utenti/") and lower != "/utenti/nuovo":
         return True
     if lower.startswith("/profili/"):
         return True
     if lower.startswith("/backup/"):
         return True
-    if lower.startswith("/sito-studio/") and lower not in {"/sito-studio/builder", "/sito-studio/contatti", "/sito-studio/redazione-ai"}:
+    if lower.startswith("/sito-studio/") and lower not in {"/sito-studio/contatti"}:
         return True
     if lower.startswith("/studio/"):
         return True
@@ -305,14 +303,14 @@ def _is_react_route(path: str) -> bool:
 
 def _react_bootstrap_texts_for_path(path: str) -> list[str]:
     lower = path.lower().rstrip("/") or "/"
-    if lower in {"/sito-studio", "/sito-studio/builder", "/sito-studio/redazione-ai"}:
+    if lower in {"/sito-studio"}:
         return ["Sito Studio"]
     return []
 
 
 def _preserve_react_route_side_effects(path: str) -> None:
     lower = path.lower().rstrip("/") or "/"
-    if lower not in {"/sito-studio", "/sito-studio/builder", "/sito-studio/contatti", "/sito-studio/redazione-ai"}:
+    if lower not in {"/sito-studio", "/sito-studio/contatti"}:
         return
     try:
         from web.services.studio_site_runtime import ensure_current_studio_site
@@ -337,7 +335,7 @@ def register_react_route_gate(app: Flask) -> None:
         if raw_lower == "/scadenziario" or raw_lower.startswith("/scadenziario/"):
             return None
         sito_path = raw_lower.rstrip("/") or "/"
-        if raw_lower.startswith("/sito-studio/") and sito_path not in {"/sito-studio", "/sito-studio/builder", "/sito-studio/contatti", "/sito-studio/redazione-ai"}:
+        if raw_lower.startswith("/sito-studio/") and sito_path not in {"/sito-studio", "/sito-studio/contatti"}:
             return None
         path = _normalise_path(request.path)
         if _excluded(path) or not _is_react_route(path):

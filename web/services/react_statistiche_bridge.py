@@ -211,6 +211,11 @@ def build_react_statistiche_payload(
     get_fascicoli: Callable[[], Any],
     get_fatturazione: Callable[[], Any],
     get_scadenziario: Callable[[], Any],
+    get_email: Callable[[], Any] | None = None,
+    get_email_ordinaria: Callable[[], Any] | None = None,
+    get_messaggi: Callable[[], Any] | None = None,
+    get_preventivi: Callable[[], Any] | None = None,
+    get_timesheet: Callable[[], Any] | None = None,
 ) -> dict[str, Any]:
     warnings: list[dict[str, str]] = []
     today = date.today()
@@ -220,6 +225,11 @@ def build_react_statistiche_payload(
     fascicoli_manager = _safe("fascicoli", warnings, get_fascicoli, None)
     fatturazione = _safe("fatturazione", warnings, get_fatturazione, None)
     scadenziario = _safe("scadenziario", warnings, get_scadenziario, None)
+    email = _safe("email", warnings, get_email, None) if callable(get_email) else None
+    email_ordinaria = _safe("email_ordinaria", warnings, get_email_ordinaria, None) if callable(get_email_ordinaria) else None
+    messaggi = _safe("messaggi", warnings, get_messaggi, None) if callable(get_messaggi) else None
+    preventivi = _safe("preventivi", warnings, get_preventivi, None) if callable(get_preventivi) else None
+    timesheet = _safe("timesheet", warnings, get_timesheet, None) if callable(get_timesheet) else None
 
     clienti_stats = _safe("clienti_statistiche", warnings, lambda: _stats_dict(clienti), {})
     fascicoli_stats = _safe("fascicoli_statistiche", warnings, lambda: _stats_dict(fascicoli_manager), {})
@@ -232,6 +242,12 @@ def build_react_statistiche_payload(
     parcelle = _safe("fatturazione_lista", warnings, lambda: _all(fatturazione), [])
     clienti_lista = _safe("clienti_lista", warnings, lambda: _all(clienti), [])
     agenda_lista = _safe("agenda_lista", warnings, lambda: _all(agenda), [])
+    pec_lista = _safe("pec_lista", warnings, lambda: _all(email), []) if email else []
+    email_lista = _safe("email_ordinaria_lista", warnings, lambda: _all(email_ordinaria), []) if email_ordinaria else []
+    messaggi_lista = _safe("messaggi_lista", warnings, lambda: _all(messaggi), []) if messaggi else []
+    preventivi_lista = _safe("preventivi_lista", warnings, lambda: list(preventivi.tutti_preventivi()), []) if preventivi else []
+    conferimenti_lista = _safe("conferimenti_lista", warnings, lambda: list(preventivi.tutti_conferimenti()), []) if preventivi else []
+    timesheet_lista = _safe("timesheet_lista", warnings, lambda: _all(timesheet), []) if timesheet else []
 
     scadenze_oggi = sum(1 for item in scadenze if _parse_date(getattr(item, "data_scadenza", "")) == today)
     productivity = _productivity(fascicoli, scadenze)
@@ -285,6 +301,24 @@ def build_react_statistiche_payload(
     stato_counter = Counter(_enum_value(getattr(item, "stato", "")) or "Non indicato" for item in fascicoli)
     priorita_counter = Counter(_enum_value(getattr(item, "priorita", "")) or "Non indicata" for item in scadenze)
     agenda_counter = Counter(_enum_value(getattr(item, "tipo", "")) or "Non indicato" for item in agenda_lista)
+    comunicazioni_counter = Counter(
+        [
+            ("PEC" if pec_lista else "")
+            for _item in pec_lista
+        ]
+        + [
+            ("Email ordinaria" if email_lista else "")
+            for _item in email_lista
+        ]
+        + [
+            _enum_value(getattr(item, "canale", "")) or "Messaggi"
+            for item in messaggi_lista
+        ]
+    )
+    comunicazioni_counter.pop("", None)
+    preventivi_counter = Counter(_enum_value(getattr(item, "stato", "")) or "Non indicato" for item in preventivi_lista)
+    conferimenti_counter = Counter(_enum_value(getattr(item, "stato", "")) or "Non indicato" for item in conferimenti_lista)
+    timesheet_counter = Counter(_enum_value(getattr(item, "stato", "")) or "Non indicato" for item in timesheet_lista)
 
     sections = [
         _counter_section("fascicoli_tipo", "Fascicoli per tipo", tipo_counter, "Nessun fascicolo presente."),
@@ -305,13 +339,23 @@ def build_react_statistiche_payload(
             "items": _depositi_records(fascicoli),
             "emptyMessage": "Nessuna attivita di deposito nell'anno corrente.",
         },
+        _counter_section("comunicazioni", "Comunicazioni per canale", comunicazioni_counter, "Nessuna comunicazione disponibile."),
+        _counter_section("preventivi_stato", "Preventivi per stato", preventivi_counter, "Nessun preventivo disponibile."),
+        _counter_section("incarichi_stato", "Incarichi per stato", conferimenti_counter, "Nessun incarico disponibile."),
+        _counter_section("timesheet_stato", "Timesheet per stato", timesheet_counter, "Nessuna voce tempo disponibile."),
     ]
 
     records = [
         {"id": "clienti", "label": "Clienti registrati", "value": len(clienti_lista), "note": "Anagrafica clienti", "href": "/clienti"},
         {"id": "fascicoli", "label": "Fascicoli totali", "value": len(fascicoli), "note": "Archivio fascicoli", "href": "/fascicoli"},
-        {"id": "parcelle", "label": "Parcelle", "value": len(parcelle), "note": "Fatturazione legacy", "href": "/fatturazione"},
+        {"id": "parcelle", "label": "Parcelle", "value": len(parcelle), "note": "Fatturazione", "href": "/fatturazione"},
         {"id": "scadenze", "label": "Scadenze", "value": len(scadenze), "note": "Scadenziario", "href": "/scadenziario"},
+        {"id": "pec", "label": "PEC", "value": len(pec_lista), "note": "Casella PEC", "href": "/email/"},
+        {"id": "email", "label": "Email ordinarie", "value": len(email_lista), "note": "Posta ordinaria", "href": "/email-ordinaria/"},
+        {"id": "messaggi", "label": "Messaggi clienti", "value": len(messaggi_lista), "note": "Comunicazioni", "href": "/messaggi"},
+        {"id": "preventivi", "label": "Preventivi", "value": len(preventivi_lista), "note": "Preventivi e incarichi", "href": "/preventivi"},
+        {"id": "conferimenti", "label": "Incarichi", "value": len(conferimenti_lista), "note": "Conferimenti incarico", "href": "/preventivi"},
+        {"id": "timesheet", "label": "Voci timesheet", "value": len(timesheet_lista), "note": "Tempo e produttivita", "href": "/timesheet"},
         {"id": "durata_media", "label": "Durata media fascicoli", "value": productivity["durata_media_gg"], "note": "Giorni", "href": "/fascicoli"},
         {"id": "tasso_chiusura", "label": "Tasso chiusura fascicoli", "value": f"{productivity['tasso_chiusura_pct']}%", "note": f"Chiusi: {productivity['fascicoli_chiusi']}", "href": "/fascicoli"},
     ]

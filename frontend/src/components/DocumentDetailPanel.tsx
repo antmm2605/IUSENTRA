@@ -20,7 +20,7 @@ export function DocumentDetailPanel({
   loading: boolean
   error: string
 }) {
-  if (!document) return <p className="iu-docai-muted">Seleziona un documento per aprire metadati, versioni e testo estratto.</p>
+  if (!document) return <p className="iu-docai-muted">Seleziona un documento per aprire informazioni, versioni e testo estratto.</p>
   return (
     <div className="iu-docai-detail">
       <header>

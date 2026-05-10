@@ -211,7 +211,7 @@ export const emptyNuovoMessaggioData: NuovoMessaggioData = {
   query: { channel: 'EMAIL', idCliente: '', fromCliente: '' },
   actions: { messagesList: '/messaggi', sendEndpoint: '/messaggi/nuovo', clientFolder: '' },
   insights: [
-    'Il form React invia tramite il servizio operativo /messaggi/nuovo per mantenere validazioni, audit e alternativa WhatsApp Web.',
+    'Il messaggio viene inviato dal servizio operativo dello studio, mantenendo validazioni, tracciamento e alternativa WhatsApp Web.',
     'Se selezioni un cliente, email o telefono vengono precompilati in base al canale.',
   ],
 }

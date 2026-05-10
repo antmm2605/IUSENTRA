@@ -160,7 +160,7 @@ def build_react_sito_studio_ai_error_payload(message: str) -> dict[str, Any]:
 
 def generate_react_sito_studio_ai_article(payload: dict[str, Any]) -> dict[str, Any]:
     generate_ai_article_job(payload or {})
-    return {"ok": True, "message": "Bozza AI generata e pronta per la revisione.", "payload": _payload()}
+    return {"ok": True, "message": "Bozza assistita generata e pronta per la revisione.", "payload": _payload()}
 
 
 def create_react_sito_studio_ai_draft(job_id: int) -> dict[str, Any]:

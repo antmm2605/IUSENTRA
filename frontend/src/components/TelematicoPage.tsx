@@ -65,7 +65,7 @@ function portalBadge(portal: TelematicoChannelId | 'altro') {
 }
 
 function sourceLabel(source: string): string {
-  return source === 'repository_reali' ? 'dati applicativi' : 'servizio applicativo'
+  return source === 'repository_reali' ? 'dati dello studio' : 'servizio operativo'
 }
 
 function sameTelematicoPage(href: string): boolean {
@@ -150,7 +150,7 @@ function ActiveChannelPanel({
 }) {
   const action = channel.quickActions[actionIndex] || channel.quickActions[0]
   const importAction = channel.quickActions.find((item) => item.href.includes('/acquisizione') || item.label.toLowerCase().includes('importa')) || action
-  const surfaceAction = channel.quickActions.find((item) => item.label.toLowerCase().includes('superficie')) || channel.quickActions[1] || action
+  const surfaceAction = channel.quickActions.find((item) => item.label.toLowerCase().includes('pagina')) || channel.quickActions[1] || action
   const checkAction = channel.quickActions.find((item) => item.label.toLowerCase().includes('checklist') || item.href.includes('checklist')) || action
   return (
     <section id="canale-attivo" className={`iu-tel-active-channel iu-tel-active-channel--${channel.tone}`}>
@@ -167,7 +167,7 @@ function ActiveChannelPanel({
       </div>
       <div className="iu-tel-active-channel__actions">
         <a href={importAction.href}>Importa pratica</a>
-        <a href={surfaceAction.href || channel.homeHref}>Apri superficie</a>
+        <a href={surfaceAction.href || channel.homeHref}>Apri pagina</a>
         <a href={checkAction.href}>Controlli</a>
       </div>
     </section>

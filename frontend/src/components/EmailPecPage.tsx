@@ -31,8 +31,11 @@ import {
   emptyEmailPecPage,
   folderLabel,
   getEmailOrdinariaPage,
+  getEmailOrdinariaDetail,
   getEmailPecPage,
+  getEmailPecDetail,
   type EmailFolder,
+  type EmailDetailData,
   type EmailPecPageData,
   type EmailPecRow,
   type EmailStatus,
@@ -132,7 +135,7 @@ const mailboxCopy: Record<MailboxMode, {
 type MailboxCopy = (typeof mailboxCopy)[MailboxMode]
 
 function sourceLabel(source: string, fallback: string): string {
-  if (source === 'repository_reali') return 'dati applicativi'
+  if (source === 'repository_reali') return 'dati dello studio'
   if (source === 'errore_controllato') return 'dati parziali'
   return source || fallback
 }
@@ -263,7 +266,68 @@ function EmailListRow({ item, selected, onSelect, includeTelematic, fallbackInit
   )
 }
 
-function EmailPreview({ item, onAction, copy }: { item?: EmailPecRow; onAction: (url: string, label: string) => void; copy: MailboxCopy }) {
+function EmailFullDetail({
+  item,
+  detail,
+  loading,
+}: {
+  item?: EmailPecRow
+  detail: EmailDetailData | null
+  loading: boolean
+}) {
+  if (!item) return null
+  if (loading) {
+    return <div className="iu-mail-full-detail"><strong>Caricamento messaggio completo...</strong></div>
+  }
+  if (!detail?.item) return null
+  const bodyText = detail.bodyText || detail.item.preview
+  return (
+    <div className="iu-mail-full-detail" aria-label="Messaggio completo">
+      <header>
+        <strong>Messaggio completo</strong>
+        <span>{detail.attachments.length} allegati</span>
+      </header>
+      {detail.bodyHtml ? (
+        <iframe
+          title="Corpo HTML email"
+          sandbox=""
+          srcDoc={detail.bodyHtml}
+        />
+      ) : (
+        <pre>{bodyText || 'Nessun testo disponibile per questo messaggio.'}</pre>
+      )}
+      {detail.attachments.length ? (
+        <div className="iu-mail-attachments">
+          {detail.attachments.map((attachment) => (
+            <article key={`${detail.item?.id}-${attachment.index}`}>
+              <Paperclip size={16} />
+              <div>
+                <strong>{attachment.name}</strong>
+                <span>{attachment.mime || 'file'} {attachment.sizeLabel ? `- ${attachment.sizeLabel}` : ''}</span>
+              </div>
+              {attachment.previewHref ? <a href={attachment.previewHref}>Apri</a> : null}
+              {attachment.downloadHref ? <a href={attachment.downloadHref}>Scarica</a> : null}
+            </article>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+function EmailPreview({
+  item,
+  detail,
+  detailLoading,
+  onAction,
+  copy,
+}: {
+  item?: EmailPecRow
+  detail: EmailDetailData | null
+  detailLoading: boolean
+  onAction: (url: string, label: string) => void
+  copy: MailboxCopy
+}) {
   if (!item) {
     return (
       <section className="iu-mail-preview-card iu-mail-preview-empty">
@@ -313,6 +377,7 @@ function EmailPreview({ item, onAction, copy }: { item?: EmailPecRow; onAction: 
           ? <button type="button" onClick={() => onAction(item.markReadHref, 'Segna letta')}><MailCheck size={15} /> Letta</button>
           : <button type="button" onClick={() => onAction(item.markUnreadHref, 'Segna non letta')}><Mail size={15} /> Non letta</button>}
       </footer>
+      <EmailFullDetail item={item} detail={detail} loading={detailLoading} />
     </section>
   )
 }
@@ -469,6 +534,8 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
   const [pctStatus, setPctStatus] = useState('')
   const [advancedOpen, setAdvancedOpen] = useState(false)
   const [selectedId, setSelectedId] = useState(routeEmailId(mode))
+  const [detail, setDetail] = useState<EmailDetailData | null>(null)
+  const [detailLoading, setDetailLoading] = useState(false)
   const [statusLine, setStatusLine] = useState('')
 
   const fetchPage = mode === 'ordinaria' ? getEmailOrdinariaPage : getEmailPecPage
@@ -498,20 +565,39 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
   }, [folder, status, onlyPst, onlyAttachments, pctStatus])
 
   const visible = useMemo(() => sortRows(data.items.filter((item) => isInsideQuery(item, query)), sort), [data.items, query, sort])
-  const selected = visible.find((item) => item.id === selectedId) || visible[0]
+  const selected = detail?.item && detail.item.id === selectedId ? detail.item : visible.find((item) => item.id === selectedId) || visible[0]
 
   useEffect(() => {
+    const routeId = routeEmailId(mode)
+    if (routeId) {
+      if (selectedId !== routeId) setSelectedId(routeId)
+      return
+    }
     if (!visible.length) {
       setSelectedId('')
       return
     }
-    const routeId = routeEmailId(mode)
-    if (routeId && visible.some((item) => item.id === routeId)) {
-      setSelectedId(routeId)
-      return
-    }
     if (!visible.some((item) => item.id === selectedId)) setSelectedId(visible[0].id)
   }, [mode, selectedId, visible])
+
+  useEffect(() => {
+    const id = selectedId || routeEmailId(mode)
+    if (!id) {
+      setDetail(null)
+      return
+    }
+    let active = true
+    setDetailLoading(true)
+    const loader = mode === 'ordinaria' ? getEmailOrdinariaDetail : getEmailPecDetail
+    loader(id)
+      .then((payload) => {
+        if (active) setDetail(payload.item ? payload : null)
+      })
+      .finally(() => {
+        if (active) setDetailLoading(false)
+      })
+    return () => { active = false }
+  }, [mode, selectedId])
 
   const runAction = (url: string, label: string) => {
     setStatusLine(`${label} in corso...`)
@@ -589,7 +675,7 @@ function EmailMailboxPage({ mode }: { mode: MailboxMode }) {
             ) : null}
           </div>
         </div>
-        <EmailPreview item={selected} onAction={runAction} copy={copy} />
+        <EmailPreview item={selected} detail={detail} detailLoading={detailLoading} onAction={runAction} copy={copy} />
         {mode === 'pec' ? <PecInspector data={data} rows={visible} /> : <OrdinaryInspector data={data} rows={visible} />}
       </section>
 

@@ -382,7 +382,7 @@ function NewUserView({ data, onCreated }: { data: UtentiPageData; onCreated: () 
                   required
                 />
                 {errors.password ? <small id="nuovo-utente-credenziale-errore">{errors.password}</small> : (
-                  <small>Il valore non viene conservato nello stato React.</small>
+                  <small>Il valore non resta memorizzato nella schermata.</small>
                 )}
               </label>
             </div>
@@ -554,7 +554,7 @@ function UserEditor({
           <Badge tone={selectedUser.active ? 'success' : 'neutral'}>{selectedUser.active ? 'Attivo' : 'Disabilitato'}</Badge>
           <Badge tone={selectedUser.roleTone}>{selectedUser.roleLabel}</Badge>
           {selectedUser.isCurrentUser ? <Badge tone="info">sessione corrente</Badge> : null}
-          <span>{profileDirty || roleDirty ? 'Modifiche non salvate' : 'Allineato al repository'}</span>
+          <span>{profileDirty || roleDirty ? 'Modifiche non salvate' : "Allineato all'archivio"}</span>
         </div>
         <StatusMessage status={saveStatus} message={message} errors={errors} />
         <section className="iu-users-editor-section">
@@ -666,7 +666,7 @@ function UserEditor({
                 disabled={!data.actions.canResetPassword || saveStatus === 'saving'}
                 aria-invalid={Boolean(errors.temporaryPassword)}
               />
-              {errors.temporaryPassword ? <small>{errors.temporaryPassword}</small> : <small>Il valore non viene restituito dal server e non viene salvato nello stato React.</small>}
+              {errors.temporaryPassword ? <small>{errors.temporaryPassword}</small> : <small>Il valore non viene restituito dal servizio e non resta memorizzato nella schermata.</small>}
             </label>
           </div>
           <label className="iu-users-check">
@@ -775,7 +775,7 @@ export function UtentiPage() {
         </>
       }
     >
-      {loadStatus === 'loading' ? <LoadingState title="Caricamento utenti" message="Lettura del repository amministrativo in corso." /> : null}
+      {loadStatus === 'loading' ? <LoadingState title="Caricamento utenti" message="Lettura dell'archivio amministrativo in corso." /> : null}
       {loadStatus === 'error' ? (
         <EmptyState
           title="Utenti non disponibili"
@@ -786,13 +786,13 @@ export function UtentiPage() {
       {loadStatus === 'ready' && !hasData ? (
         <EmptyState
           title="Nessun dato utenti disponibile"
-          message="Il repository utenti non ha restituito record visualizzabili."
+          message="L'archivio utenti non ha restituito elementi visualizzabili."
         />
       ) : null}
       {loadStatus === 'ready' && hasData ? (
         <>
           <Warnings data={data} />
-          <section className="iu-users-kpis" aria-label="KPI utenti">
+          <section className="iu-users-kpis" aria-label="Indicatori utenti">
             {data.metrics.map((metric) => (
               <KpiCard
                 label={metric.label}
@@ -861,7 +861,7 @@ export function UtentiPage() {
           )}
           <Panel title="Presidio dati" subtitle="Scritture amministrative tracciate con permessi e audit di studio.">
             <div className="iu-users-contract">
-              <span>Fonte: {displaySourceLabel(data.source)}</span>
+              <span>Origine: {displaySourceLabel(data.source)}</span>
               <span>Generato: {formatGeneratedAt(data.generated_at)}</span>
               <span>Azioni: {displayWritesLabel(data.contracts.writes)}</span>
               <span>Dati reali: {data.contracts.mock_fallback ? 'da verificare' : 'si'}</span>

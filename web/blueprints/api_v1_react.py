@@ -62,7 +62,7 @@ from web.services.react_dashboard_cache import (
     get_dashboard_payload_cached,
 )
 from web.services.react_document_editor_bridge import build_react_document_editor_payload
-from web.services.react_email_bridge import build_react_email_payload
+from web.services.react_email_bridge import build_react_email_detail_payload, build_react_email_payload
 from web.services.react_fascicoli_bridge import (
     build_react_archivio_payload,
     build_react_fascicoli_export_payload,
@@ -202,6 +202,7 @@ from web.services.react_template_atti_bridge import (
 from web.services.react_redazione_atti_bridge import (
     build_react_redazione_atti_error_payload,
     build_react_redazione_atti_payload,
+    produce_react_redazione_atti,
 )
 from web.services.react_giurisprudenza_bridge import (
     build_react_giurisprudenza_error_payload,
@@ -1403,6 +1404,24 @@ def email_react_list():
     return response
 
 
+@api_v1_react.get("/email/messaggio/<id_email>")
+@_richiedi_auth
+def email_react_detail(id_email: str):
+    payload = build_react_email_detail_payload(
+        db_path=_cfg_value("EMAIL_CASELLA_DB", "./email/casella.json"),
+        id_email=id_email,
+        base_path="/email",
+        compose_path="/email/scrivi",
+        settings_path="/impostazioni?tab=pec",
+        include_telematic=True,
+    )
+    if payload is None:
+        return jsonify({"errore": "Messaggio non trovato."}), 404
+    response = jsonify(payload)
+    response.headers["Cache-Control"] = "no-store, max-age=0"
+    return response
+
+
 @api_v1_react.get("/email-ordinaria")
 @_richiedi_auth
 def email_ordinaria_react_list():
@@ -1427,6 +1446,24 @@ def email_ordinaria_react_list():
         data_da=request.args.get("data_da", "").strip(),
         data_a=request.args.get("data_a", "").strip(),
     ))
+    response.headers["Cache-Control"] = "no-store, max-age=0"
+    return response
+
+
+@api_v1_react.get("/email-ordinaria/messaggio/<id_email>")
+@_richiedi_auth
+def email_ordinaria_react_detail(id_email: str):
+    payload = build_react_email_detail_payload(
+        db_path=_cfg_value("EMAIL_ORDINARIA_DB", "./email/ordinaria.json"),
+        id_email=id_email,
+        base_path="/email-ordinaria",
+        compose_path="/email-ordinaria/scrivi",
+        settings_path="/impostazioni?tab=smtp",
+        include_telematic=False,
+    )
+    if payload is None:
+        return jsonify({"errore": "Messaggio non trovato."}), 404
+    response = jsonify(payload)
     response.headers["Cache-Control"] = "no-store, max-age=0"
     return response
 
@@ -2522,6 +2559,11 @@ def statistiche_page():
                 get_fascicoli=get_fascicoli,
                 get_fatturazione=get_fatturazione,
                 get_scadenziario=get_scadenziario,
+                get_email=_email_manager,
+                get_email_ordinaria=_ordinary_email_manager,
+                get_messaggi=_messaggi_manager,
+                get_preventivi=get_preventivi_readonly,
+                get_timesheet=get_timesheet,
             )
         )
     except Exception as exc:
@@ -3931,6 +3973,7 @@ def redazione_atti_page():
                 get_template_manager=_template_atti_loader,
                 get_fascicoli=get_fascicoli,
                 get_preventivi=get_preventivi_readonly,
+                config=current_app.config,
             )
         )
     except Exception as exc:
@@ -3940,6 +3983,17 @@ def redazione_atti_page():
                 "Redazione atti non disponibile dal runtime corrente."
             )
         ), 200
+
+
+@api_v1_react.post("/redazione-atti/produci")
+@_richiedi_auth
+def redazione_atti_produci():
+    utente = g.get("utente_corrente")
+    if not utente:
+        return jsonify({"ok": False, "errors": {"sessione": "Sessione utente richiesta."}, "warnings": []}), 403
+    payload = request.get_json(silent=True) or {}
+    result, status = produce_react_redazione_atti(payload, config=current_app.config)
+    return jsonify(result), status
 
 
 @api_v1_react.get("/giurisprudenza")

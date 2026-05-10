@@ -1,4 +1,4 @@
-"""Payload React per l'editor documentale del fascicolo."""
+"""Dati operativi per l'editor documentale del fascicolo."""
 
 from __future__ import annotations
 
@@ -85,7 +85,7 @@ def _editor_ai_payload(fascicolo_id: str, document_id: str) -> dict[str, Any]:
                 "export": f"/api/v1/ui/fascicoli/{fascicolo_id}/editor-ai/{record.id}/export",
             }
     except Exception:
-        payload["warning"] = "Stato Editor AI non disponibile in questo momento."
+        payload["warning"] = "Stato assistente editor non disponibile in questo momento."
     return payload
 
 

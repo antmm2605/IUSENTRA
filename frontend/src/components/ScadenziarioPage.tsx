@@ -704,7 +704,7 @@ export function ScadenziarioPage() {
         <div>
           <span className="iu-scad-eyebrow"><CalendarCheck size={16}/> Scadenziario Legale</span>
           <h1>Scadenziario Legale</h1>
-          <p>Termini, udienze, depositi, calcoli avanzati e priorità operative dello studio in una cabina React professionale.</p>
+          <p>Termini, udienze, depositi, calcoli avanzati e priorità operative dello studio in una cabina professionale.</p>
         </div>
         <div className="iu-scad-hero__actions">
           <Button href="/app-v2/regia-operativa"><Sparkles size={15}/> Cabina</Button>
@@ -842,7 +842,7 @@ export function ScadenziarioPage() {
         </Panel>
         <Panel title="Integrazioni" subtitle="Agenda, fascicoli, deposito e calendario" icon={<CalendarDays size={17}/>}>
           <div className="iu-scad-integrations">
-            <a href={data.actions.agenda}>Agenda React</a>
+            <a href={data.actions.agenda}>Agenda</a>
             <a href="/app-v2/fascicoli">Fascicoli</a>
             <a href="/deposito/checklist">Checklist deposito</a>
             <a href={data.actions.calendarSettings}>Calendari</a>

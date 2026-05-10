@@ -165,7 +165,7 @@ def _base_actions(route: str) -> dict[str, Any]:
             _action("export_csv", "Esporta CSV", "/audit/esporta.csv", "neutral"),
             _action("audit", "Apri audit", "/audit", "neutral"),
             _action("registro", "Apri registro attivita", "/registro-attivita", "neutral"),
-            _action("rollback_tecnico", "Rollback tecnico legacy", f"{route}?_legacy=1", "warning"),
+            _action("percorso_recupero", "Percorso di recupero", f"{route}?_legacy=1", "warning"),
         ],
     }
 
@@ -303,7 +303,7 @@ def build_react_audit_detail_payload(
     return {"ok": True, "message": "Dettaglio evento caricato.", "errors": {}, "item": detail}, 200
 
 
-def build_react_audit_error_payload(message: str = "Registro audit non disponibile.", *, route: str = "/audit") -> dict[str, Any]:
+def build_react_audit_error_payload(message: str = "Registro attivita non disponibile.", *, route: str = "/audit") -> dict[str, Any]:
     return {
         "ok": False,
         "source": "errore_controllato",

@@ -203,6 +203,8 @@ def casella():
 @_login_required
 def dettaglio(id_email: str):
     """Vista dettaglio email (mobile o link diretto)."""
+    if not _richiede_vista_classica():
+        return render_react_shell_response(f"email/messaggio/{id_email}")
     ge = _get_gestore()
     em = ge.get(id_email)
     if not em:

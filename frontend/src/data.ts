@@ -108,7 +108,7 @@ function asDossiers(payload: Record<string, unknown>): Dossier[] {
     id: row.id || `dossier-${index}`,
     area: row.badge || 'FASCICOLO',
     title: row.title,
-    meta: row.subtitle || 'Dati fascicolo collegati ai repository operativi',
+    meta: row.subtitle || 'Dati fascicolo collegati agli archivi operativi',
     score: dossierScore(row, index),
     moves: [
       'Verificare scadenze, udienze e documenti recenti del fascicolo.',
@@ -148,7 +148,7 @@ function asSources(payload: Record<string, unknown>, dashboard: Omit<DashboardDa
     {
       id: 'source-fascicoli',
       title: 'Fascicoli',
-      description: `${openMatters} fascicoli attivi e ${dashboard.matters.length} pratiche con priorità alta esposte alla UI React.`,
+      description: `${openMatters} fascicoli attivi e ${dashboard.matters.length} pratiche con priorita alta nel riepilogo operativo.`,
       href: '/fascicoli',
       badge: `${openMatters}`,
       tone: dashboard.matters.length ? 'orange' : 'neutral',

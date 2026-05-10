@@ -72,7 +72,7 @@ function selectedLevelLabel(value: string) {
 
 function complianceLabel(status?: string, exact?: boolean) {
   const value = String(status || '').toLowerCase()
-  if (value === 'snapshot_esatto' || exact) return 'Snapshot esatto'
+  if (value === 'snapshot_esatto' || exact) return 'Rilevazione esatta'
   if (value === 'ricostruzione') return 'Ricostruzione dichiarata'
   if (value === 'fallback_tecnico') return 'Fallback tecnico'
   return status || 'Copertura da verificare'
@@ -108,7 +108,7 @@ function Hero({ stats }: { stats: TariffarioPageData['stats'] }) {
       </div>
       <aside className="iu-tar-hero-side" aria-label="Modalità di consultazione">
         <span className="iu-tar-kicker">MODALITÀ DI CONSULTAZIONE</span>
-        <p>Il calcolo resta in primo piano. Audit, tabelle, canali e riferimenti si aprono solo quando servono.</p>
+        <p>Il calcolo resta in primo piano. Registro, tabelle, canali e riferimenti si aprono solo quando servono.</p>
         <div className="iu-tar-hero-badges" aria-label="Stato catalogo tariffario">
           <span><CheckCircle2 size={14} aria-hidden="true" /> {stats.profiles} profili</span>
           <span><Scale size={14} aria-hidden="true" /> {stats.rules} regole</span>
@@ -344,7 +344,7 @@ function CompensationBaseSection({
           <SwitchRow id="bonus-telematico" checked={form.bonus_telematico} label="Bonus telematico 30%" onChange={(checked) => onChange({ ...form, bonus_telematico: checked })} />
         </div>
         <TextField id="perc-spese-generali" label="Percentuale spese generali" value={form.perc_spese_generali} onChange={(value) => onChange({ ...form, perc_spese_generali: value })} />
-        <p className="iu-tar-info">Il motore applica anche CPA, IVA, anticipazioni ex art. 15 e compenso orario quando il workflow li espone.</p>
+        <p className="iu-tar-info">Il motore applica anche CPA, IVA, anticipazioni ex art. 15 e compenso orario quando il percorso li espone.</p>
       </article>
     </div>
   )
@@ -658,7 +658,7 @@ function CalculatorPanel({
           id="tariffario-valore"
           label="Valore controversia (EUR)"
           value={form.valore}
-          help="Usa 0 solo per valore indeterminabile: il motore applica la complessita selezionata e segnala il valore parametrizzato nell'audit."
+          help="Usa 0 solo per valore indeterminabile: il motore applica la complessita selezionata e segnala il valore parametrizzato nel registro."
           onChange={(value) => onChange({ ...form, valore: value })}
         />
       </div>
@@ -666,7 +666,7 @@ function CalculatorPanel({
         <SwitchRow
           id="tariffario-solo-snapshot"
           checked={ruleFilters.onlySnapshot}
-          label="Solo snapshot esatti"
+          label="Solo rilevazioni esatte"
           onChange={(checked) => setRuleFilters((current) => ({ ...current, onlySnapshot: checked }))}
         />
         <SwitchRow
@@ -712,7 +712,7 @@ function ResultPanel({ result }: { result: TariffarioResult | null }) {
     ['Tabella', result.tableLabel || result.tableCode],
     ['Scaglione', String(audit.scaglione || '')],
     ['Copertura', complianceLabel(result.complianceStatus, result.exactSnapshot)],
-    ['Snapshot', result.sourceSnapshot],
+    ['Archivio', result.sourceSnapshot],
     ['Tipo calcolo', String(audit.calc_mode || '')],
   ].filter(([, value]) => String(value || '').trim())
   return (
@@ -737,7 +737,7 @@ function ResultPanel({ result }: { result: TariffarioResult | null }) {
           ))}
         </div>
       ) : null}
-      <div className="iu-tar-chips" aria-label="Metadati risultato">
+      <div className="iu-tar-chips" aria-label="Informazioni risultato">
         {result.metadata.map((item) => (
           <span key={`${item.label}-${item.value}`}>{item.label}: {item.value}</span>
         ))}
@@ -768,9 +768,9 @@ function ResultPanel({ result }: { result: TariffarioResult | null }) {
         </table>
       </div>
       {result.note ? <p className="iu-tar-note">{result.note}</p> : null}
-      <div className="iu-tar-audit-box" aria-label="Audit tariffario del calcolo">
+      <div className="iu-tar-audit-box" aria-label="Registro tariffario del calcolo">
         <div>
-          <h3>Audit tariffario</h3>
+          <h3>Registro tariffario</h3>
           <dl>
             {auditRows.map(([label, value]) => (
               <div key={label}>
@@ -1015,9 +1015,9 @@ function NormativeSupportPanel({ support, open, onToggle }: { support: Tariffari
       </header>
       <SupportAccordion
         id="audit"
-        title="Audit conformita tariffaria"
+        title="Registro conformita tariffaria"
         badge={`${auditTotal} regole`}
-        description={`${openAudit} aperte - copertura tra snapshot ufficiale e mapping ricostruttivi.`}
+        description={`${openAudit} aperte - copertura tra rilevazione ufficiale e collegamenti ricostruiti.`}
         open={open.audit}
         onToggle={() => onToggle('audit')}
       >
@@ -1040,7 +1040,7 @@ function NormativeSupportPanel({ support, open, onToggle }: { support: Tariffari
               <small>{String(row.table_label || row.table_code || '')}</small>
               {row.note || row.description ? <p>{String(row.note || row.description)}</p> : null}
             </article>
-          )) : <p className="iu-tar-empty">Nessuna voce audit aperta.</p>}
+          )) : <p className="iu-tar-empty">Nessuna voce aperta.</p>}
         </div>
       </SupportAccordion>
       <SupportAccordion

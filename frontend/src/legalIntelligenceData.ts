@@ -107,7 +107,7 @@ function normaliseSection(input: unknown): LegalSection {
   return {
     id: text(item.id) || text(item.title) || 'sezione',
     title: display(item.title) || 'Sezione',
-    kind: display(item.kind) || 'metadati',
+    kind: display(item.kind) || 'informazioni',
     items: list(item.items).map((entryInput) => {
       const entry = asRecord(entryInput)
       return {
@@ -146,7 +146,7 @@ function normaliseRecord(input: unknown): LegalIntelligenceRecord {
   return {
     id: text(item.id) || text(item.title) || 'record',
     kind: display(item.kind) || 'dashboard',
-    title: display(item.title) || 'Voce Legal Intelligence',
+    title: display(item.title) || 'Voce ricerca legale',
     subtitle: display(item.subtitle),
     sourceLabel: display(item.sourceLabel) || 'Fonte',
     sourceKind: display(item.sourceKind),
@@ -161,7 +161,7 @@ function normaliseRecord(input: unknown): LegalIntelligenceRecord {
     territory: display(item.territory),
     registryNumber: display(item.registryNumber),
     legacyHref: safeHref(item.legacyHref, '/legal-intelligence'),
-    evidenceType: display(item.evidenceType) || 'metadato',
+    evidenceType: display(item.evidenceType) || 'informazione',
   }
 }
 

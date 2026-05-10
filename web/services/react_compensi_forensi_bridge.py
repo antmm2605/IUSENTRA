@@ -69,7 +69,7 @@ def _wizard_sections(warnings: list[dict[str, str]]) -> list[dict[str, Any]]:
     try:
         catalog = catalogo_wizard_counts()
     except Exception as exc:
-        warnings.append(_warning("catalogo_wizard_non_disponibile", f"Catalogo wizard non disponibile: {type(exc).__name__}."))
+        warnings.append(_warning("catalogo_guidato_non_disponibile", "Catalogo guidato non disponibile."))
         return []
     sections: list[dict[str, Any]] = []
     for area, count in catalog.items():
@@ -102,8 +102,8 @@ def _safe_record(row: dict[str, Any], index: int) -> dict[str, Any]:
 def _contracts() -> dict[str, Any]:
     return {
         "mock_fallback": False,
-        "writes": "azioni_auditate",
-        "route_owner": "superficie_react",
+        "writes": "json_api",
+        "route_owner": "react_shell",
         "operational": True,
         "canonical_calculation": "servizi_governati",
         "dm55_calculation": "servizi_governati",
@@ -158,7 +158,7 @@ def build_react_compensi_forensi_payload(
     current_user: Any | None = None,
 ) -> dict[str, Any]:
     warnings: list[dict[str, str]] = [
-        _warning("motore_calcolo", "Il calcolo dei compensi resta nei servizi applicativi governati."),
+        _warning("motore_calcolo", "Il calcolo dei compensi resta nei controlli operativi governati."),
     ]
     manager: Any | None = None
     try:
@@ -198,14 +198,14 @@ def build_react_compensi_forensi_payload(
             _metric("conferimenti", "Conferimenti", conferimenti_count, "Archivio incarichi", "neutral"),
         ],
         "sections": [
-            _section("percorsi", "Aree di calcolo disponibili", "workflow", wizard_items, "Nessun percorso disponibile."),
+            _section("percorsi", "Aree di calcolo disponibili", "percorsi", wizard_items, "Nessun percorso disponibile."),
             _section(
                 "presidi",
                 "Presidi conservati",
                 "Calcolo governato",
                 [
-                    _item("tariffario", "Tariffario canonico", "governato", "Parametri e risultato arrivano dai servizi applicativi", "success"),
-                    _item("audit", "Audit tariffario", len(audit), "Righe di controllo lette dai servizi applicativi", "info" if audit else "neutral"),
+                    _item("tariffario", "Tariffario canonico", "governato", "Parametri e risultato arrivano dai controlli operativi", "success"),
+                    _item("registro", "Registro tariffario", len(audit), "Righe di controllo disponibili", "info" if audit else "neutral"),
                 ],
                 "Nessun presidio rilevato.",
             ),

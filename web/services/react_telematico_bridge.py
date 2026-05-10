@@ -32,7 +32,7 @@ PORTAL_TITLES = {
 }
 PORTAL_DESCRIPTIONS = {
     "pst": "Consultazione civile, SIGP e import autorizzato dei fascicoli già scaricati.",
-    "pdp": "Workflow penale, esiti, documenti collegati e controllo manual review.",
+    "pdp": "Percorso penale, esiti, documenti collegati e controllo dell'avvocato.",
     "pat": "Portale avvocato, fascicolo amministrativo e import guidato documenti.",
     "ptt": "Telecontenzioso, SIGIT, fascicoli tributari e ricevute importate.",
 }
@@ -54,13 +54,13 @@ PORTAL_IMPORT_LABELS = {
 }
 PORTAL_IMPORT_DESCRIPTIONS = {
     "pst": (
-        "Avvia il wizard operativo per acquisire nel fascicolo interno i dati e i file "
-        "ottenuti dal Portale Servizi Telematici o da PolisWeb, senza scraping e senza "
-        "credenziali salvate nel cloud."
+        "Avvia il percorso operativo per acquisire nel fascicolo interno i dati e i file "
+        "ottenuti dal Portale Servizi Telematici o da PolisWeb, senza accessi non autorizzati "
+        "e senza credenziali salvate fuori dallo studio."
     ),
-    "pdp": "Avvia il wizard operativo per acquisire nel fascicolo penale file, cataloghi ed esiti ottenuti dal PDP.",
-    "pat": "Avvia il wizard operativo per acquisire documenti, provvedimenti ed esiti dal Portale Avvocato / SIGA.",
-    "ptt": "Avvia il wizard operativo per acquisire fascicoli, ricevute e provvedimenti tributari da SIGIT.",
+    "pdp": "Avvia il percorso operativo per acquisire nel fascicolo penale file, cataloghi ed esiti ottenuti dal PDP.",
+    "pat": "Avvia il percorso operativo per acquisire documenti, provvedimenti ed esiti dal Portale Avvocato / SIGA.",
+    "ptt": "Avvia il percorso operativo per acquisire fascicoli, ricevute e provvedimenti tributari da SIGIT.",
 }
 PORTAL_OFFICIAL_URLS = {
     "pst": "https://pst.giustizia.it/PST/it/services.page",
@@ -93,7 +93,7 @@ SURFACE_SPECS = {
         "eyebrow": "Consultazione civile e SIGP",
         "subtitle": (
             "Ricerca fascicoli, acquisizione guidata e import autorizzato dal Portale "
-            "Servizi Telematici, senza scraping e senza credenziali salvate nel cloud."
+            "Servizi Telematici, senza accessi non autorizzati e senza credenziali salvate fuori dallo studio."
         ),
         "tone": "primary",
     },
@@ -103,8 +103,8 @@ SURFACE_SPECS = {
         "title": "PDP Penale",
         "eyebrow": "Deposito e fascicolo penale",
         "subtitle": (
-            "Workflow penale con accesso browser-guided, import fascicolo, ricevute, "
-            "task operativi e collegamento alla cabina fascicolo."
+            "Percorso penale con accesso guidato, import fascicolo, ricevute, "
+            "attivita operative e collegamento alla cabina fascicolo."
         ),
         "tone": "danger",
     },
@@ -148,7 +148,7 @@ SURFACE_SPECS = {
         "eyebrow": "Local Signer, token e certificati",
         "subtitle": (
             "Percorso guidato per usare Local Signer, token USB, P12/PEM e pacchetti "
-            "installabili senza confondere token locale e server dello studio."
+            "installabili senza confondere token locale e ambiente dello studio."
         ),
         "tone": "info",
     },
@@ -281,7 +281,7 @@ def _build_channel(portal: str, stats: dict[str, Any], access_payload: dict[str,
         "badges": _channel_badges(access_payload),
         "quickActions": [
             {"label": PORTAL_IMPORT_LABELS.get(portal, "Importa da portale"), "href": import_href, "tone": "primary"},
-            {"label": "Apri superficie", "href": home_href, "tone": PORTAL_TONES[portal]},
+            {"label": "Apri pagina", "href": home_href, "tone": PORTAL_TONES[portal]},
             {"label": "Checklist", "href": f"{home_href}#checklist-operativa", "tone": "warning"},
         ],
     }
@@ -464,7 +464,7 @@ def _portal_operation_cards(surface_id: str, portal: str, channel: dict[str, Any
             tone=tone,
             icon="monitor",
             actions=[
-                _surface_action("open-react", "Apri superficie", _app_v2_href(surface_id), tone=tone),
+                _surface_action("open-react", "Apri pagina", _app_v2_href(surface_id), tone=tone),
                 _surface_action("open-center", "Centro telematico", "/app-v2/telematico", tone="secondary"),
             ],
             metrics=[
@@ -475,12 +475,12 @@ def _portal_operation_cards(surface_id: str, portal: str, channel: dict[str, Any
         ),
         _surface_card(
             "presidio-react",
-            "Presidio operativo React",
-            "Lavora su checklist, stato canale e portale ufficiale senza uscire dalla nuova superficie.",
+            "Presidio operativo",
+            "Lavora su checklist, stato canale e portale ufficiale senza uscire dalla pagina.",
             tone="neutral",
             icon="external",
             actions=[
-                _surface_action("surface", "Apri superficie", home_href, tone="neutral"),
+                _surface_action("surface", "Apri pagina", home_href, tone="neutral"),
                 _surface_action("official", "Portale ufficiale", official_href, tone=tone, external=True),
             ],
         ),
@@ -504,7 +504,7 @@ def _portal_checklist_groups(portal: str) -> list[dict[str, Any]]:
             "id": "identita",
             "title": "Identita e accesso",
             "items": [
-                {"id": "certificato", "label": "Certificato o Local Signer verificato", "description": "Il controllo reale del token USB avviene sul PC locale, non sul server cloud.", "critical": True},
+                {"id": "certificato", "label": "Certificato o Local Signer verificato", "description": "Il controllo reale del token USB avviene sul PC locale, non in cloud.", "critical": True},
                 {"id": "ufficio", "label": "Ufficio e registro coerenti", "description": "Codice ufficio, RG, anno e rito devono corrispondere al fascicolo reale.", "critical": True},
                 {"id": "parti", "label": "Parti e anagrafiche riallineate", "description": "Nessun soggetto essenziale deve restare incompleto prima dell'import o deposito.", "critical": False},
             ],
@@ -551,7 +551,7 @@ def _deposit_checklist_groups() -> list[dict[str, Any]]:
             "title": "Kit base",
             "items": [
                 {"id": "firma", "label": "Firma digitale attiva", "description": "Certificato valido, PIN disponibile e Local Signer o software di firma funzionante.", "critical": True},
-                {"id": "pec", "label": "PEC operativa", "description": "Casella capiente e canale di invio coerente con configurazione server o Local Signer.", "critical": True},
+                {"id": "pec", "label": "PEC operativa", "description": "Casella capiente e canale di invio coerente con la configurazione dello studio o Local Signer.", "critical": True},
                 {"id": "pdf", "label": "PDF e allegati verificati", "description": "Documenti leggibili, non corrotti e collegati al fascicolo corretto.", "critical": True},
                 {"id": "ricevute", "label": "Ricevute da controllare dopo invio", "description": "Accettazione, consegna, controlli automatici ed esito ufficio.", "critical": False},
             ],
@@ -562,7 +562,7 @@ def _deposit_checklist_groups() -> list[dict[str, Any]]:
             "items": [
                 {"id": "atto-principale", "label": "Atto principale selezionato", "description": "L'atto principale deve essere quello effettivo da inserire in busta.", "critical": True},
                 {"id": "ufficio-pct", "label": "Ufficio abilitato verificato", "description": "Controlla codice ufficio e PEC destinataria prima dell'invio.", "critical": True},
-                {"id": "busta", "label": "Busta e allegati coerenti", "description": "Metadati, registro, RG, anno, oggetto e allegati devono combaciare.", "critical": True},
+                {"id": "busta", "label": "Busta e allegati coerenti", "description": "Informazioni, registro, RG, anno, oggetto e allegati devono combaciare.", "critical": True},
             ],
         },
         {
@@ -592,8 +592,8 @@ def _firma_checklist_groups() -> list[dict[str, Any]]:
             "id": "certificato",
             "title": "Certificato e token",
             "items": [
-                {"id": "token", "label": "Token USB controllato localmente", "description": "Non mostrare errori server-side PKCS#11 se il canale previsto e' browser-locale.", "critical": True},
-                {"id": "p12", "label": "P12/PEM solo se realmente server-side", "description": "Usare file certificato sul server solo per installazioni che lo prevedono.", "critical": False},
+                {"id": "token", "label": "Token USB controllato localmente", "description": "Se il controllo avviene dal PC, eventuali avvisi del cloud non bloccano la firma locale.", "critical": True},
+                {"id": "p12", "label": "P12/PEM solo dove previsto", "description": "Usare file certificato gestiti dallo studio solo per installazioni che lo prevedono.", "critical": False},
                 {"id": "scadenza", "label": "Scadenza certificato presidiata", "description": "Il certificato va verificato prima di firma e deposito.", "critical": True},
             ],
         },
@@ -689,7 +689,7 @@ def build_react_telematico_surface_payload(
             _surface_card(
                 "fascicoli",
                 "Fascicoli collegati",
-                "Usa la suite fascicoli React per preparare atti, documenti, scadenze e depositi.",
+                "Usa i fascicoli collegati per preparare atti, documenti, scadenze e depositi.",
                 tone="success",
                 icon="folder",
                 actions=[_surface_action("fascicoli", "Apri fascicoli", "/app-v2/fascicoli", tone="success")],
@@ -730,7 +730,7 @@ def build_react_telematico_surface_payload(
             _surface_card(
                 "monitor",
                 "Verifica Local Signer",
-                "Il browser controlla il servizio locale su 127.0.0.1:27272 e non il token dal server cloud.",
+                "Il browser controlla il servizio locale sul PC in uso, senza interrogare il token dal cloud.",
                 tone="success",
                 icon="shield",
                 actions=[_surface_action("settings", "Impostazioni firma", "/impostazioni?tab=firma", tone="success")],
@@ -908,7 +908,7 @@ def build_react_tribunali_payload() -> dict[str, Any]:
             "portal": "",
             "title": "Tribunali / PEC",
             "eyebrow": "Uffici giudiziari e indirizzi",
-            "subtitle": "Ricerca uffici, PEC, codici e stato della cache collegata a ReGINdE/PST.",
+            "subtitle": "Ricerca uffici, PEC, codici e stato dell'elenco collegato a ReGINdE/PST.",
             "tone": "primary",
             "appHref": "/app-v2/tribunali",
             "legacyHref": "/tribunali",
@@ -936,8 +936,8 @@ def build_react_tribunali_payload() -> dict[str, Any]:
             ),
             _surface_card(
                 "aggiorna",
-                "Aggiorna cache",
-                "Forza il refresh della cache uffici quando devi verificare variazioni o nuovi indirizzi.",
+                "Aggiorna elenco",
+                "Aggiorna l'elenco uffici quando devi verificare variazioni o nuovi indirizzi.",
                 tone="warning",
                 icon="refresh",
                 actions=[_surface_action("aggiorna", "Aggiorna", "/api/uffici/aggiorna", tone="warning", method="POST")],
@@ -945,7 +945,7 @@ def build_react_tribunali_payload() -> dict[str, Any]:
             _surface_card(
                 "variazioni",
                 "Verifica variazioni",
-                "Consulta o avvia il report di variazione uffici senza lasciare la superficie React.",
+                "Consulta o avvia il report di variazione uffici senza lasciare la pagina.",
                 tone="success",
                 icon="shield",
                 actions=[
@@ -955,8 +955,8 @@ def build_react_tribunali_payload() -> dict[str, Any]:
             ),
             _surface_card(
                 "centro-react",
-                "Centro telematico React",
-                "Rientra nella cabina React che coordina PST, PDP, PAT, PTT, controlli e firma digitale.",
+                "Centro telematico",
+                "Rientra nella cabina che coordina PST, PDP, PAT, PTT, controlli e firma digitale.",
                 tone="neutral",
                 icon="external",
                 actions=[_surface_action("centro", "Apri centro", "/app-v2/telematico", tone="neutral")],
@@ -973,21 +973,21 @@ def build_react_tribunali_payload() -> dict[str, Any]:
         "recentCases": [],
         "recentEvents": [],
         "links": [
-            {"label": "API ricerca uffici", "href": "/api/uffici", "kind": "api"},
-            {"label": "Stato cache", "href": "/api/uffici/stato", "kind": "api"},
+            {"label": "Ricerca uffici", "href": "/api/uffici", "kind": "azione"},
+            {"label": "Stato elenco", "href": "/api/uffici/stato", "kind": "azione"},
             {"label": "Centro telematico", "href": "/app-v2/telematico", "kind": "react"},
             {"label": "Checklist deposito", "href": "/app-v2/deposito/checklist", "kind": "react"},
         ],
         "notices": [
             {
                 "tone": "warning" if stato.get("scaduta") else "success",
-                "title": "Stato cache uffici",
+                "title": "Stato elenco uffici",
                 "body": f"Sorgente: {stato.get('sorgente', 'bundle')} - aggiornato il {stato.get('aggiornato_il', '')}.",
             }
         ],
         "lexSuggestions": [
             "Prima del deposito verifica sempre codice ufficio e PEC destinataria.",
-            "Se la cache risulta scaduta, aggiorna o controlla il report variazioni.",
+            "Se l'elenco risulta da aggiornare, avvia l'aggiornamento o controlla il report variazioni.",
         ],
         "offices": offices,
         "officeSummary": {

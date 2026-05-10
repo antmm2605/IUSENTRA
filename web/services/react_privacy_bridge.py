@@ -162,6 +162,6 @@ def build_react_privacy_registro_payload(
             "mock_fallback": False,
             "writes": "operational_routes",
             "route_owner": "react_shell",
-            "legacy_fallback": "_legacy=1 tecnico",
+            "legacy_fallback": "Percorso di recupero",
         },
     }

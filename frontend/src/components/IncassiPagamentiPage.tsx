@@ -220,7 +220,7 @@ export function IncassiPagamentiPage() {
             <span>Canali e chiavi riservate si gestiscono da un unico pannello in Impostazioni.</span>
           </section>
           <WarningPanel data={data} />
-          <section className="iu-pay-kpis" aria-label="KPI incassi">
+          <section className="iu-pay-kpis" aria-label="Indicatori incassi">
             {data.metrics.map((metric) => (
               <KpiCard
                 label={metric.label}

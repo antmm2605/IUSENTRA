@@ -90,7 +90,7 @@ export function DocumentiAIPage({ fascicoloId }:{fascicoloId: string}) {
         </div>
         <div className="iu-docai-header__badges">
           <Badge tone="warning">react_operational_partial</Badge>
-          <Badge tone={payload?.capabilities.lex_tools ? 'success' : 'neutral'}>Lex tools</Badge>
+          <Badge tone={payload?.capabilities.lex_tools ? 'success' : 'neutral'}>Strumenti Lex</Badge>
           <button type="button" onClick={loadList} disabled={state === 'loading'}>
             <RefreshCw size={15} aria-hidden="true" />
             Aggiorna

@@ -228,6 +228,8 @@ def scrivi():
 @email_ordinaria.route("/messaggio/<id_email>")
 @_login_required
 def dettaglio(id_email: str):
+    if not _legacy_requested():
+        return render_react_shell_response(f"email-ordinaria/messaggio/{id_email}")
     gestore = _get_gestore()
     em = gestore.get(id_email)
     if not em:

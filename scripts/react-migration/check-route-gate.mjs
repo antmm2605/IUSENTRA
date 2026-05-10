@@ -45,6 +45,7 @@ function isReactRoute(path, reactExact, reactPrefixes) {
 }
 
 function isBlockedBySpecialRule(path) {
+  const isConferimentoDetail = path.startsWith('/preventivi/conferimento/') && path.split('/').length === 4
   return (
     path.startsWith('/backup/') ||
     (path.startsWith('/sito-studio/') && path !== '/sito-studio/contatti') ||
@@ -55,7 +56,7 @@ function isBlockedBySpecialRule(path) {
     path.startsWith('/impostazioni/pagamenti/') ||
     path.startsWith('/impostazioni/calendario/') ||
     path.startsWith('/sincronizzazione-calendari/') ||
-    (path.startsWith('/preventivi/') && path !== '/preventivi/nuovo' && path !== '/preventivi/wizard' && path !== '/preventivi/conferimento/nuovo') ||
+    (path.startsWith('/preventivi/') && path !== '/preventivi/nuovo' && path !== '/preventivi/wizard' && path !== '/preventivi/conferimento/nuovo' && !isConferimentoDetail) ||
     path.startsWith('/compensi-forensi/') ||
     path.startsWith('/tariffario/') ||
     path === '/template-atti/nuovo' ||
@@ -82,7 +83,7 @@ const excludedPrefixes = extractTuple(gate, '_EXCLUDED_PREFIXES')
 const shellLegacyFirstPrefixes = extractTuple(reactShell, '_LEGACY_FIRST_PREFIXES')
 const allowedStatuses = new Set(['legacy_operational', 'react_shell', 'react_bridge', 'react_operational_partial', 'react_operational_full'])
 const allowedUnlockStatuses = new Set(['react_bridge', 'react_operational_partial', 'react_operational_full'])
-const allowedReactUnlocks = new Set(['/', '/admin/database', '/agenda', '/agenda/nuovo', '/amministrazione', '/audit', '/backup', '/cartelle-condivise', '/clienti', '/clienti/nuovo', '/compensi-forensi', '/deposito/checklist', '/email', '/email-ordinaria', '/fascicoli', '/fascicoli/archivio', '/fascicoli/nuovo', '/fatturazione', '/fatturazione/nuova', '/giurisprudenza', '/global-search', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/incassi-pagamenti', '/legal-intelligence', '/legal-intelligence/mediazione', '/legal-intelligence/news', '/messaggi', '/messaggi/nuovo', '/notifiche', '/notifiche-whatsapp', '/preventivi', '/preventivi/conferimento/nuovo', '/preventivi/nuovo', '/preventivi/wizard', '/privacy/registro', '/privacy/registro/nuovo', '/profili', '/redazione-atti', '/regia-operativa', '/registro-attivita', '/registro-gdpr', '/ricerca-legale', '/ricerca-studio', '/scadenziario', '/scadenziario/nuova', '/sincronizzazione-calendari', '/sito-studio', '/sito-studio/contatti', '/soggetti', '/soggetti/nuovo', '/statistiche', '/strumenti-legali', '/strumenti-operativi', '/studio', '/tariffario', '/template-atti', '/template-atti/catalogo', '/timesheet', '/utenti', '/utenti/nuovo', '/wizard-pro', '/workspace-intelligente'])
+const allowedReactUnlocks = new Set(['/', '/admin/database', '/agenda', '/agenda/nuovo', '/amministrazione', '/audit', '/backup', '/cartelle-condivise', '/clienti', '/clienti/nuovo', '/compensi-forensi', '/deposito/checklist', '/email', '/email-ordinaria', '/fascicoli', '/fascicoli/archivio', '/fascicoli/nuovo', '/fatturazione', '/fatturazione/nuova', '/giurisprudenza', '/global-search', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/incassi-pagamenti', '/legal-intelligence', '/legal-intelligence/mediazione', '/legal-intelligence/news', '/messaggi', '/messaggi/nuovo', '/notifiche', '/notifiche-whatsapp', '/preventivi', '/preventivi/conferimento/:id', '/preventivi/conferimento/nuovo', '/preventivi/nuovo', '/preventivi/wizard', '/privacy/registro', '/privacy/registro/nuovo', '/profili', '/redazione-atti', '/regia-operativa', '/registro-attivita', '/registro-gdpr', '/ricerca-legale', '/ricerca-studio', '/scadenziario', '/scadenziario/nuova', '/sincronizzazione-calendari', '/sito-studio', '/sito-studio/contatti', '/soggetti', '/soggetti/nuovo', '/statistiche', '/strumenti-legali', '/strumenti-operativi', '/studio', '/tariffario', '/template-atti', '/template-atti/catalogo', '/timesheet', '/utenti', '/utenti/nuovo', '/wizard-pro', '/workspace-intelligente'])
 const expectedStatuses = new Map([
   ['/', 'react_operational_full'],
   ['/admin/database', 'react_operational_full'],
@@ -118,6 +119,7 @@ const expectedStatuses = new Map([
   ['/notifiche', 'react_operational_full'],
   ['/notifiche-whatsapp', 'react_operational_full'],
   ['/preventivi', 'react_operational_full'],
+  ['/preventivi/conferimento/:id', 'react_operational_full'],
   ['/preventivi/conferimento/nuovo', 'react_operational_full'],
   ['/preventivi/nuovo', 'react_operational_full'],
   ['/preventivi/wizard', 'react_operational_partial'],

@@ -107,11 +107,11 @@ def _runtime_dependency_cards(observability: dict[str, Any]) -> list[dict[str, A
         reason = f"stato {runtime_status}" if runtime_status else "stato non disponibile"
         if last_error:
             reason = f"{reason} - {last_error}"
-        detail = f"AI locale abilitata ma non pronta nel runtime corrente: {reason}."
+        detail = f"AI locale abilitata ma non pronta sul PC dello studio: {reason}."
 
     meta: list[str] = []
     if api_base_url:
-        meta.append(f"Endpoint configurato: {api_base_url}")
+        meta.append(f"Indirizzo configurato: {api_base_url}")
     if chunks_total or chunks_pending:
         meta.append(f"Chunk RAG: {chunks_pending} pendenti su {chunks_total}")
 

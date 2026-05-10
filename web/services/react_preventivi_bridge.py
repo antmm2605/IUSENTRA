@@ -442,7 +442,7 @@ def build_react_preventivi_payload(
     route: str = "/preventivi",
 ) -> dict[str, Any]:
     warnings: list[dict[str, str]] = [
-        {"code": "presidio_calcolo", "message": "L'interfaccia invia input controllati: importi definitivi, fiscalita', parametri forensi e documenti restano nei servizi applicativi."},
+        {"code": "presidio_calcolo", "message": "La pagina invia dati controllati: importi definitivi, fiscalita', parametri forensi e documenti restano nei controlli operativi."},
         {"code": "percorso_recupero", "message": "I template storici restano disponibili solo come percorso di recupero assistito."},
     ]
     preventivi: list[Any] = []
@@ -478,7 +478,7 @@ def build_react_preventivi_payload(
         "contracts": _contracts(route),
         "metrics": [
             _metric("preventivi_totali", "Preventivi", len(preventivo_records), "Archivio corrente", "primary"),
-            _metric("preventivi_aperti", "Preventivi aperti", len([row for row in preventivo_records if row["state"] in {"BOZZA", "GENERATO", "INVIATO", "APERTO"}]), "Stati dal repository", "warning"),
+            _metric("preventivi_aperti", "Preventivi aperti", len([row for row in preventivo_records if row["state"] in {"BOZZA", "GENERATO", "INVIATO", "APERTO"}]), "Stati dall'archivio", "warning"),
             _metric("preventivi_accettati", "Accettati", len([row for row in preventivo_records if row["state"] in {"ACCETTATO", "CONVERTITO"}]), "Valori calcolati", "success"),
             _metric("conferimenti", "Conferimenti", len(conferimento_records), "Incarichi collegati", "info"),
         ],
@@ -496,14 +496,14 @@ def build_react_preventivi_payload(
         "form": form,
         "forms": [form],
         "fiscal_options": [
-            {"name": "applica_cassa", "label": "Cassa Forense", "default": True, "description": "Dato inviato ai servizi applicativi."},
-            {"name": "applica_iva", "label": "IVA", "default": True, "description": "Dato inviato ai servizi applicativi."},
-            {"name": "applica_ritenuta", "label": "Ritenuta", "default": False, "description": "Dato inviato ai servizi applicativi."},
+            {"name": "applica_cassa", "label": "Cassa Forense", "default": True, "description": "Dato inviato ai controlli operativi."},
+            {"name": "applica_iva", "label": "IVA", "default": True, "description": "Dato inviato ai controlli operativi."},
+            {"name": "applica_ritenuta", "label": "Ritenuta", "default": False, "description": "Dato inviato ai controlli operativi."},
         ],
         "compensation_options": [
             {"value": "forfait", "label": "Forfait", "description": "Configurazione testuale, calcolo applicativo."},
             {"value": "tempo", "label": "A tempo", "description": "Ore e tariffa sono input, calcolo applicativo."},
-            {"value": "fasi", "label": "Per fasi", "description": "Parametri forensi gestiti dai servizi applicativi."},
+            {"value": "fasi", "label": "Per fasi", "description": "Parametri forensi gestiti dai controlli operativi."},
         ],
         "studio": {
             "avvocato_referente": defaults.get("avvocato_referente", ""),
@@ -516,7 +516,7 @@ def build_react_preventivi_payload(
             "links": [
                 _action("nuovo_preventivo", "Nuovo preventivo", "/preventivi/nuovo", "primary"),
                 _action("nuovo_conferimento", "Nuovo conferimento", "/preventivi/conferimento/nuovo", "primary"),
-                _action("wizard", "Wizard preventivi", "/preventivi/wizard", "neutral"),
+                _action("percorso_guidato", "Percorso preventivi", "/preventivi/wizard", "neutral"),
                 _action("percorso_recupero", "Percorso di recupero", f"{route}?_legacy=1", "warning"),
             ],
         },
@@ -564,10 +564,10 @@ def _unknown_fields(payload: dict[str, Any], allowed: set[str]) -> set[str]:
 
 def _reject_canonical_fields(payload: dict[str, Any], errors: dict[str, str], prefix: str = "") -> None:
     for field in sorted(_CANONICAL_AMOUNT_FIELDS & set(payload.keys())):
-        errors[f"{prefix}{field}" if prefix else field] = "Importo o calcolo canonico non accettato dal frontend."
+        errors[f"{prefix}{field}" if prefix else field] = "Importo o calcolo non accettato dalla pagina."
     for field in payload:
         if field.lower().startswith("dm55"):
-            errors[f"{prefix}{field}" if prefix else field] = "Calcolo forense non accettato dal frontend."
+            errors[f"{prefix}{field}" if prefix else field] = "Calcolo forense non accettato dalla pagina."
 
 
 def _voice_type(value: Any, errors: dict[str, str], field: str) -> TipoVoce:

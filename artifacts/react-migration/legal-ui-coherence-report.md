@@ -2,6 +2,13 @@
 
 Generato: 2026-05-08T10:03:02.066Z
 
+Aggiornamento 2026-05-10: per la tranche 2.214.0 sono stati verificati in
+browser Docker locale Redazione Atti, Template Atti, Statistiche, Ricerca
+Legale, News, Archivio Giurisprudenza, Strumenti Forensi, Strumenti Operativi,
+Controlli Atti, Sito Studio Contatti, dettagli email PEC/ordinaria e Database.
+Le superfici usano card operative compatte, dettaglio in pagina, testi italiani
+per lo studio e nessuna dicitura tecnica visibile tra quelle vietate.
+
 ## Componenti UI creati
 
 - IconButton

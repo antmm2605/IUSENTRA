@@ -1,9 +1,4 @@
-"""Bridge React per la pagina amministrativa database.
-
-La pagina React consuma i dati e le azioni gia' governati dal runtime Flask:
-permessi, audit, tenant e scritture restano sulle route amministrative
-esistenti.
-"""
+"""Dati operativi per la pagina amministrativa database."""
 
 from __future__ import annotations
 
@@ -196,7 +191,7 @@ def build_react_admin_database_payload(
             "mock_fallback": False,
             "writes": "operational_routes",
             "route_owner": "react_shell",
-            "legacy_fallback": "_legacy=1 tecnico",
+            "legacy_fallback": "Percorso di recupero",
         },
     }
 
@@ -207,7 +202,7 @@ def build_react_admin_database_error_payload(message: str) -> dict[str, Any]:
         "generatedAt": _iso_now(),
         "page": {
             "title": "Gestione Database",
-            "subtitle": "La superficie database non e' raggiungibile nel runtime corrente.",
+            "subtitle": "La pagina Database non e' raggiungibile in questo momento.",
             "path": "/admin/database",
         },
         "summary": {
@@ -228,7 +223,7 @@ def build_react_admin_database_error_payload(message: str) -> dict[str, Any]:
             "mock_fallback": False,
             "writes": "operational_routes",
             "route_owner": "react_shell",
-            "legacy_fallback": "_legacy=1 tecnico",
+            "legacy_fallback": "Percorso di recupero",
         },
         "warning": message,
     }

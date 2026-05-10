@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react'
 import { ExternalLink, FilePenLine, RefreshCw, ShieldCheck } from 'lucide-react'
 import { Badge } from '../ui/Badge'
 import { Button, ButtonLink } from '../ui/Button'
@@ -8,8 +8,14 @@ import { LoadingState } from '../ui/LoadingState'
 import { Page } from '../ui/Page'
 import { Panel } from '../ui/Panel'
 import { openDesignContract } from '../ui/openDesign'
-import { displaySourceLabel, displayWritesLabel } from '../displayText'
-import { emptyRedazioneAttiPage, getRedazioneAttiPage, type RedazioneAttiPageData } from '../redazioneAttiData'
+import {
+  emptyRedazioneAttiPage,
+  getRedazioneAttiPage,
+  produceRedazioneAtto,
+  type RedazioneAttiPageData,
+  type RedazioneField,
+  type RedazioneProduceResult,
+} from '../redazioneAttiData'
 import './RedazioneAttiPage.css'
 
 function ContractStrip({ data }: { data: RedazioneAttiPageData }) {
@@ -18,9 +24,7 @@ function ContractStrip({ data }: { data: RedazioneAttiPageData }) {
       <ShieldCheck size={18} aria-hidden="true" />
       <div>
         <strong>{openDesignContract.system}</strong>
-        <span>
-          {displaySourceLabel(data.source)} - {displayWritesLabel(data.contracts.writes || 'none')}
-        </span>
+        <span>Redazione collegata ai dati dello studio</span>
       </div>
     </aside>
   )
@@ -42,7 +46,7 @@ function WarningList({ data }: { data: RedazioneAttiPageData }) {
 function Metrics({ data }: { data: RedazioneAttiPageData }) {
   if (!data.metrics.length) return null
   return (
-    <section className="iu-redazione-metrics" aria-label="KPI redazione atti">
+    <section className="iu-redazione-metrics" aria-label="Indicatori redazione atti">
       {data.metrics.map((metric) => (
         <KpiCard
           key={metric.id}
@@ -59,7 +63,7 @@ function Metrics({ data }: { data: RedazioneAttiPageData }) {
 function Sections({ data }: { data: RedazioneAttiPageData }) {
   if (!data.sections.length) return null
   return (
-    <section className="iu-redazione-section-grid" aria-label="Workflow redazione">
+    <section className="iu-redazione-section-grid" aria-label="Percorso redazione">
       {data.sections.map((section) => (
         <Panel title={section.title} subtitle={section.kind} key={section.id}>
           {section.items.length ? (
@@ -85,7 +89,7 @@ function Sections({ data }: { data: RedazioneAttiPageData }) {
 
 function Records({ data }: { data: RedazioneAttiPageData }) {
   return (
-    <Panel title="Punti operativi" subtitle="Link reali verso superfici React o percorsi applicativi dedicati.">
+    <Panel title="Punti operativi" subtitle="Collegamenti reali verso funzioni dello studio.">
       {data.records.length ? (
         <div className="iu-redazione-records">
           {data.records.map((record) => (
@@ -109,6 +113,117 @@ function Records({ data }: { data: RedazioneAttiPageData }) {
   )
 }
 
+function FieldInput({
+  field,
+  value,
+  onChange,
+  error,
+}: {
+  field: RedazioneField
+  value: string
+  onChange: (value: string) => void
+  error?: string
+}) {
+  const common = {
+    name: field.name,
+    required: field.required,
+    value,
+    onChange: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => onChange(event.target.value),
+  }
+  return (
+    <label className={error ? 'has-error' : ''}>
+      <span>{field.label}{field.required ? ' *' : ''}</span>
+      {field.options.length ? (
+        <select {...common}>
+          <option value="">Seleziona</option>
+          {field.options.map((option) => <option value={option.value} key={`${field.name}-${option.value}`}>{option.label}</option>)}
+        </select>
+      ) : field.type === 'textarea' || field.name.includes('facts') || field.name.includes('requests') ? (
+        <textarea {...common} rows={4} />
+      ) : (
+        <input {...common} type={field.type === 'date' || field.type === 'number' || field.type === 'email' ? field.type : 'text'} />
+      )}
+      {error ? <small>{error}</small> : null}
+    </label>
+  )
+}
+
+function ProductionWorkspace({ data }: { data: RedazioneAttiPageData }) {
+  const [modelCode, setModelCode] = useState(data.production.defaultModelCode)
+  const selectedModel = useMemo(
+    () => data.production.models.find((model) => model.code === modelCode) || data.production.models[0],
+    [data.production.models, modelCode],
+  )
+  const [values, setValues] = useState<Record<string, string>>({})
+  const [result, setResult] = useState<RedazioneProduceResult | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    const next = selectedModel?.fields.reduce<Record<string, string>>((acc, field) => {
+      acc[field.name] = field.value || ''
+      return acc
+    }, {}) || {}
+    setValues(next)
+    setResult(null)
+  }, [selectedModel?.code])
+
+  if (!selectedModel) {
+    return (
+      <section className="iu-redazione-production iu-od-card">
+        <EmptyState title="Nessun modello produttivo disponibile" message="La pagina resta pronta appena il catalogo compilatore espone modelli utilizzabili." />
+      </section>
+    )
+  }
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault()
+    setBusy(true)
+    produceRedazioneAtto(data.production.endpoint, selectedModel.code, values)
+      .then(setResult)
+      .finally(() => setBusy(false))
+  }
+
+  return (
+    <section className="iu-redazione-production iu-od-card">
+      <div className="iu-redazione-production__head">
+        <FilePenLine size={20} aria-hidden="true" />
+        <div>
+          <p className="iu-redazione-eyebrow">Produzione atti</p>
+          <h2>Compila e controlla l'atto nella stessa pagina</h2>
+          <span>{selectedModel.summary || 'Modello pronto per la compilazione guidata.'}</span>
+        </div>
+        <select value={selectedModel.code} onChange={(event) => setModelCode(event.target.value)} aria-label="Modello atto">
+          {data.production.models.map((model) => <option value={model.code} key={model.code}>{model.title}</option>)}
+        </select>
+      </div>
+      <div className="iu-redazione-production__grid">
+        <form className="iu-redazione-production__form" onSubmit={submit}>
+          {selectedModel.fields.map((field) => (
+            <FieldInput
+              key={`${selectedModel.code}-${field.name}`}
+              field={field}
+              value={values[field.name] ?? ''}
+              error={result?.errors?.[field.name]}
+              onChange={(value) => setValues((current) => ({ ...current, [field.name]: value }))}
+            />
+          ))}
+          <button type="submit" disabled={busy}>{busy ? 'Produzione in corso...' : 'Produci anteprima'}</button>
+        </form>
+        <aside className="iu-redazione-production__preview">
+          <div>
+            <strong>{result?.title || selectedModel.title}</strong>
+            <Badge tone={result?.ok ? 'success' : result ? 'warning' : 'neutral'}>
+              {result?.ok ? 'Pronta' : result ? 'Da completare' : selectedModel.area || 'Bozza'}
+            </Badge>
+          </div>
+          {result?.warnings?.length ? result.warnings.map((warning) => <p key={warning}>{warning}</p>) : null}
+          <pre>{result?.preview || 'Compila i campi essenziali e produci una prima versione verificabile dell atto.'}</pre>
+        </aside>
+      </div>
+    </section>
+  )
+}
+
 export function RedazioneAttiPage() {
   const [data, setData] = useState<RedazioneAttiPageData>(emptyRedazioneAttiPage)
   const [loading, setLoading] = useState(true)
@@ -125,13 +240,13 @@ export function RedazioneAttiPage() {
   }, [])
 
   if (loading) {
-    return <LoadingState title="Caricamento redazione atti" message="Recupero quadro operativo e metadati." />
+    return <LoadingState title="Caricamento redazione atti" message="Recupero quadro operativo e template." />
   }
 
   return (
     <Page
       title="Redazione atti"
-      subtitle="Quadro operativo controllato per scegliere template, fascicoli e checklist senza spostare i workflow sensibili."
+      subtitle="Pagina unica per scegliere template, compilare modelli reali e controllare l'anteprima dell'atto."
       actions={
         <>
           <Button type="button" tone="neutral" onClick={load}>
@@ -153,10 +268,10 @@ export function RedazioneAttiPage() {
         <Metrics data={data} />
         <section className="iu-redazione-hero iu-od-surface">
           <div>
-            <p className="iu-redazione-eyebrow">Workflow documentale</p>
+            <p className="iu-redazione-eyebrow">Percorso documentale</p>
             <h2>Ingresso governato alla redazione</h2>
             <p>
-              {data.summary || "La pagina coordina metadati e collegamenti operativi. I passaggi completi restano nei percorsi applicativi gia' auditati."}
+              {data.summary || 'La pagina coordina template, modelli e controlli operativi.'}
             </p>
           </div>
           <div className="iu-od-action-row iu-redazione-hero__actions">
@@ -168,17 +283,8 @@ export function RedazioneAttiPage() {
             ))}
           </div>
         </section>
+        <ProductionWorkspace data={data} />
         <Sections data={data} />
-        <section className="iu-redazione-guard iu-od-card">
-          <FilePenLine size={20} aria-hidden="true" />
-          <div>
-            <h2>Produzione atti non spostata in React</h2>
-            <p>
-              Questa superficie non apre editor, non compila modelli e non crea file. Le azioni sensibili restano sui
-              percorsi applicativi con controlli, audit e revisione umana.
-            </p>
-          </div>
-        </section>
         <Records data={data} />
         <aside className="iu-redazione-source iu-od-meta">
           Stato collegamenti governato - aggiornato {data.generated_at || 'non indicato'}

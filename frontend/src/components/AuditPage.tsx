@@ -85,8 +85,8 @@ function AuditRecordItem({ record, onDetail }: { record: AuditRecord; onDetail: 
       <aside className="iu-audit-event__side">
         <strong>{record.username}</strong>
         {record.resourceLabel ? <span>{record.resourceLabel}</span> : null}
-        {record.resourceId ? <small>ID risorsa: {record.resourceId}</small> : null}
-        {record.ip ? <small>IP: {record.ip}</small> : null}
+        {record.resourceId ? <small>Riferimento: {record.resourceId}</small> : null}
+        {record.ip ? <small>Accesso: {record.ip}</small> : null}
         {record.resourceUrl ? <a href={record.resourceUrl}>Apri risorsa</a> : null}
         <Button type="button" tone="neutral" onClick={() => onDetail(record)}>
           <Eye size={15} />
@@ -112,8 +112,8 @@ function DetailPanel({ detail }: { detail: AuditEventDetail | null }) {
           <dl>
             {payloadRows.map(([key, value]) => (
               <div key={key}>
-                <dt>{key}</dt>
-                <dd>{typeof value === 'string' || typeof value === 'number' ? String(value) : JSON.stringify(value)}</dd>
+                <dt>{sanitizeDisplayText(key.replace(/[_-]+/g, ' '))}</dt>
+                <dd>{sanitizeDisplayText(typeof value === 'string' || typeof value === 'number' ? String(value) : String(JSON.stringify(value) ?? ''))}</dd>
               </div>
             ))}
           </dl>
@@ -134,7 +134,7 @@ export function AuditPage() {
   const [detail, setDetail] = useState<AuditEventDetail | null>(null)
   const [query, setQuery] = useState('')
   const [result, setResult] = useState('tutti')
-  const title = window.location.pathname.toLowerCase().includes('registro-attivita') ? 'Registro attivita' : 'Audit'
+  const title = 'Registro attivita'
 
   function load() {
     setLoading(true)
@@ -191,7 +191,7 @@ export function AuditPage() {
   return (
     <Page
       title={title}
-      subtitle="Registro read-only delle attivita applicative e amministrative."
+      subtitle="Registro in consultazione delle attivita applicative e amministrative."
       actions={
         <>
           <Button type="button" tone="primary" onClick={load}>
@@ -207,20 +207,20 @@ export function AuditPage() {
         </>
       }
     >
-      {loading ? <LoadingState title="Caricamento audit" message="Lettura del registro reale in corso." /> : null}
+      {loading ? <LoadingState title="Caricamento registro" message="Lettura del registro reale in corso." /> : null}
       {!loading && !hasData ? (
         <EmptyState
-          title="Nessun evento audit disponibile"
+          title="Nessun evento disponibile"
           message="Il registro non contiene ancora eventi compatibili con i filtri correnti."
         />
       ) : null}
       {!loading && hasData ? (
         <>
-          {saving ? <LoadingState title="Caricamento dettaglio audit" message="Lettura dettagli filtrati in corso." /> : null}
+          {saving ? <LoadingState title="Caricamento dettaglio" message="Lettura dettagli filtrati in corso." /> : null}
           {success ? <div className="iu-audit-state iu-audit-state--success" role="status">{success}</div> : null}
           {error ? <div className="iu-audit-state iu-audit-state--error" role="alert">{error}</div> : null}
           <Warnings data={data} />
-          <section className="iu-audit-kpis" aria-label="KPI audit">
+          <section className="iu-audit-kpis" aria-label="Indicatori registro">
             {data.metrics.map((metric) => (
               <KpiCard
                 label={metric.label}
@@ -258,7 +258,7 @@ export function AuditPage() {
               </Button>
             </div>
           </Panel>
-          <Panel title="Eventi attivita" subtitle={`${visibleRecords.length} record visualizzati`}>
+          <Panel title="Eventi attivita" subtitle={`${visibleRecords.length} voci visualizzate`}>
             {visibleRecords.length ? (
               <div className="iu-audit-events">
                 {visibleRecords.map((record) => <AuditRecordItem record={record} onDetail={showDetail} key={record.id} />)}
@@ -268,7 +268,7 @@ export function AuditPage() {
             )}
           </Panel>
           <DetailPanel detail={detail} />
-          <section className="iu-audit-grid" aria-label="Distribuzioni audit">
+          <section className="iu-audit-grid" aria-label="Distribuzioni registro">
             {data.sections.filter((section) => section.items.length > 0).map((section) => (
               <Panel title={section.title} subtitle={section.kind} key={section.id}>
                 <div className="iu-audit-list">
@@ -285,10 +285,10 @@ export function AuditPage() {
           </section>
           <Panel title="Presidio dati" subtitle="Origine dati e protezioni operative.">
             <div className="iu-audit-contract">
-              <span>Fonte: {displaySourceLabel(data.source)}</span>
+              <span>Origine: {displaySourceLabel(data.source)}</span>
               <span>Generato: {data.generated_at || 'non disponibile'}</span>
               <span>Azioni: {displayWritesLabel(data.contracts.writes)}</span>
-              <span>Mock fallback: {data.contracts.mock_fallback ? 'si' : 'no'}</span>
+              <span>Dati reali: {data.contracts.mock_fallback ? 'da verificare' : 'si'}</span>
               <span>Dettagli filtrati: si</span>
             </div>
           </Panel>

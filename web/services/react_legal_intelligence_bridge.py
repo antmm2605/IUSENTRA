@@ -1,4 +1,4 @@
-"""Bridge read-only per le superfici React Legal Intelligence."""
+"""Dati consultabili per le pagine di ricerca legale."""
 
 from __future__ import annotations
 
@@ -98,7 +98,7 @@ def _dashboard_snapshot(
             portali=[],
         )
     except Exception as exc:
-        warnings.append(_warning("snapshot_non_disponibile", f"Snapshot Legal Intelligence non disponibile: {type(exc).__name__}."))
+        warnings.append(_warning("snapshot_non_disponibile", "Riepilogo ricerca legale non disponibile."))
         return {}
 
 
@@ -106,7 +106,7 @@ def _pipeline_snapshot(pipeline: Any, warnings: list[dict[str, str]]) -> dict[st
     try:
         return _dict(pipeline.dashboard_snapshot())
     except Exception as exc:
-        warnings.append(_warning("pipeline_non_disponibile", f"Repository aggiornamenti non disponibile: {type(exc).__name__}."))
+        warnings.append(_warning("pipeline_non_disponibile", "Archivio aggiornamenti non disponibile."))
         return {}
 
 
@@ -218,9 +218,9 @@ def _mediazione_section(snapshot: Mapping[str, Any]) -> dict[str, Any]:
     return _section(
         "mediazione",
         "Registro mediazione",
-        "source-cards",
+        "fonti",
         [
-            _item("totale", "Organismi", registry.get("total_rows", 0), _text(registry.get("data_origin_label") or "repository interno"), "primary"),
+            _item("totale", "Organismi", registry.get("total_rows", 0), _text(registry.get("data_origin_label") or "archivio interno"), "primary"),
             _item("filtrati", "Risultati filtrati", registry.get("filtered_rows", 0), _text(table.get("sync_status") or registry.get("data_origin")), _tone(table.get("sync_status"))),
             _item("aggiornamento", "Ultimo aggiornamento", _text(table.get("last_synced_at") or registry.get("last_successful_sync_at") or "n/d"), _text(registry.get("technical_notice")), "neutral"),
         ],
@@ -245,7 +245,7 @@ def _empty_payload(source: str, message: str, legacy_contract: str) -> dict[str,
         "sections": [],
         "records": [],
         "actions": [
-            _action("dashboard", "Legal Intelligence", "/legal-intelligence", "primary"),
+            _action("dashboard", "Ricerca legale", "/legal-intelligence", "primary"),
             _action("news", "News legali", "/legal-intelligence/news", "neutral"),
             _action("mediazione", "Registro mediazione", "/legal-intelligence/mediazione", "neutral"),
         ],
@@ -265,10 +265,7 @@ def build_react_legal_intelligence_payload(
     page: str = "dashboard",
     query: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    warnings: list[dict[str, str]] = [
-        _warning("workflow_dedicato", "Sincronizzazione fonti, approvazione contenuti, indice assistito e import restano nei percorsi Flask dedicati e auditati."),
-        _warning("metadati_sicuri", "La shell React espone solo fonte, stato, date, aree e metadati gia presenti nel backend."),
-    ]
+    warnings: list[dict[str, str]] = []
     manager = get_legal_intelligence()
     pipeline = get_legal_update_pipeline()
     snapshot = _dashboard_snapshot(
@@ -319,29 +316,29 @@ def build_react_legal_intelligence_payload(
             "legacy_contract": legacy_contract,
         },
         "metrics": [
-            _metric("fonti_monitorate", "Fonti monitorate", int(headline.get("fonti_monitorate") or update_headline.get("sources") or 0), "Repository e monitor governato", "primary"),
-            _metric("news_pubblicate", "News pubblicate", int(update_headline.get("published_news") or len(news_records)), "Gia presenti nel backend", "info"),
-            _metric("review", "In revisione", int(update_headline.get("review_pending") or headline.get("tabelle_da_validare") or 0), "Workflow governato", "warning"),
+            _metric("fonti_monitorate", "Fonti monitorate", int(headline.get("fonti_monitorate") or update_headline.get("sources") or 0), "Archivio e monitor governato", "primary"),
+            _metric("news_pubblicate", "News pubblicate", int(update_headline.get("published_news") or len(news_records)), "Disponibili nello studio", "info"),
+            _metric("review", "In revisione", int(update_headline.get("review_pending") or headline.get("tabelle_da_validare") or 0), "Percorso governato", "warning"),
             _metric("mediazione", "Organismi mediazione", int(mediazione.get("total_rows") or 0), "Registro consultabile", "success" if mediazione.get("total_rows") else "neutral"),
-            _metric("fascicoli", "Fascicoli nel monitor", int(headline.get("fascicoli") or 0), "Metadati studio", "neutral"),
+            _metric("fascicoli", "Fascicoli nel monitor", int(headline.get("fascicoli") or 0), "Informazioni studio", "neutral"),
         ],
         "sections": [
-            _section("fonti", "Stato fonti", "source-cards", source_items, "Nessuna fonte disponibile."),
+            _section("fonti", "Stato fonti", "fonti", source_items, "Nessuna fonte disponibile."),
             _section(
                 "news",
                 "News legali",
-                "metadata",
+                "informazioni",
                 [
                     _item(record["id"], record["title"], record["date"], record["sourceLabel"], record["approvalTone"])
                     for record in news_records[:8]
                 ],
-                "Nessuna news pubblicata nel backend.",
+                "Nessuna news pubblicata.",
             ),
             _mediazione_section({"mediazione_registry": mediazione}),
             _section(
                 "materie",
                 "Materie",
-                "metadata",
+                "informazioni",
                 [
                     _item(_text(row.get("slug") or row.get("name")), _text(row.get("name")), _text(row.get("level") or ""), _text(row.get("parent_slug")), "neutral")
                     for row in matters
@@ -351,19 +348,19 @@ def build_react_legal_intelligence_payload(
             ),
             _section(
                 "distinzione",
-                "Fonte, metadato e inferenza",
-                "evidence",
+                "Fonte, scheda e valutazione",
+                "controllo",
                 [
                     _item("fonte", "Fonte", "ufficiale o interna", "Etichetta visibile su ogni riga", "success"),
-                    _item("metadato", "Metadato", "data, area, stato", "Letto dal backend storico", "info"),
-                    _item("inferenza", "Inferenza", "solo se gia esposta", "Nessuna generazione in React", "warning"),
+                    _item("scheda", "Scheda", "data, area, stato", "Informazioni disponibili", "info"),
+                    _item("revisione", "Revisione", "se presente", "Controllo umano consigliato", "warning"),
                 ],
                 "Nessuna distinzione disponibile.",
             ),
         ],
         "records": records,
         "actions": [
-            _action("dashboard", "Legal Intelligence", "/legal-intelligence", "primary"),
+            _action("dashboard", "Ricerca legale", "/legal-intelligence", "primary"),
             _action("news", "News legali", "/legal-intelligence/news", "primary"),
             _action("mediazione", "Registro mediazione", "/legal-intelligence/mediazione", "neutral"),
             _action("giurisprudenza", "Archivio giurisprudenza", "/giurisprudenza", "neutral"),
@@ -375,7 +372,7 @@ def build_react_legal_intelligence_payload(
 
 
 def build_react_legal_intelligence_error_payload(
-    message: str = "Legal Intelligence non disponibile.",
+    message: str = "Ricerca legale non disponibile.",
     *,
     legacy_contract: str = "artifacts/react-migration/legacy-contracts/legal-intelligence.json",
 ) -> dict[str, Any]:

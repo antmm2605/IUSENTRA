@@ -1,6 +1,6 @@
 {
   "summary": {
-    "generatedAt": "2026-05-09T17:12:51.475Z",
+    "generatedAt": "2026-05-10T00:00:54.248Z",
     "scannedFiles": [
       "frontend/src/adminDatabaseData.ts",
       "frontend/src/agendaData.ts",
@@ -101,7 +101,13 @@
       "frontend/src/components/RedazioneAttiPage.tsx",
       "frontend/src/components/RicercaStudioPage.tsx",
       "frontend/src/components/ScadenziarioPage.tsx",
+      "frontend/src/components/sitoStudioBuilder/BuilderAdminPanels.tsx",
+      "frontend/src/components/sitoStudioBuilder/BuilderCanvas.tsx",
+      "frontend/src/components/sitoStudioBuilder/BuilderProperties.tsx",
+      "frontend/src/components/sitoStudioBuilder/BuilderSidebar.tsx",
+      "frontend/src/components/SitoStudioBuilderPage.tsx",
       "frontend/src/components/SitoStudioPage.tsx",
+      "frontend/src/components/SitoStudioRedazioneAiPage.tsx",
       "frontend/src/components/SoggettiPage.tsx",
       "frontend/src/components/StatistichePage.tsx",
       "frontend/src/components/StudioModulePage.tsx",
@@ -260,6 +266,8 @@
       "frontend/src/shell/Topbar.tsx",
       "frontend/src/shell/UserStudioMenu.tsx",
       "frontend/src/shell/WorkspaceHeader.tsx",
+      "frontend/src/sitoStudioAiData.ts",
+      "frontend/src/sitoStudioBuilderData.ts",
       "frontend/src/sitoStudioData.ts",
       "frontend/src/soggettiData.ts",
       "frontend/src/statisticheData.ts",
@@ -353,7 +361,9 @@
       "web/services/react_profili_bridge.py",
       "web/services/react_redazione_atti_bridge.py",
       "web/services/react_scadenziario_bridge.py",
+      "web/services/react_sito_studio_ai_bridge.py",
       "web/services/react_sito_studio_bridge.py",
+      "web/services/react_sito_studio_builder_bridge.py",
       "web/services/react_soggetti_bridge.py",
       "web/services/react_statistiche_bridge.py",
       "web/services/react_studio_bridge.py",
@@ -366,8 +376,8 @@
       "web/services/react_wizard_pro_bridge.py"
     ],
     "totals": {
-      "routes": 84,
-      "legacyLinks": 73,
+      "routes": 85,
+      "legacyLinks": 84,
       "legacyPostForms": 0,
       "reactPostForms": 0,
       "bridgeLegacyWrites": 0,
@@ -376,7 +386,8 @@
     },
     "levels": {
       "react_operational_full": 65,
-      "legacy_operational": 19
+      "legacy_operational": 19,
+      "react_operational_partial": 1
     }
   },
   "rows": [
@@ -884,7 +895,7 @@
       "manifestStatus": "react_operational_full",
       "unlockFromGate": true,
       "legacyLinks": 0,
-      "legacyButtons": 2,
+      "legacyButtons": 1,
       "legacyPostForms": 0,
       "reactPostForms": 0,
       "jsonWrites": false,
@@ -908,7 +919,7 @@
       "manifestStatus": "legacy_operational",
       "unlockFromGate": false,
       "legacyLinks": 0,
-      "legacyButtons": 2,
+      "legacyButtons": 1,
       "legacyPostForms": 0,
       "reactPostForms": 0,
       "jsonWrites": false,
@@ -932,7 +943,7 @@
       "manifestStatus": "legacy_operational",
       "unlockFromGate": false,
       "legacyLinks": 0,
-      "legacyButtons": 2,
+      "legacyButtons": 1,
       "legacyPostForms": 0,
       "reactPostForms": 0,
       "jsonWrites": false,
@@ -1091,7 +1102,7 @@
       "manifestStatus": "react_operational_full",
       "unlockFromGate": true,
       "legacyLinks": 0,
-      "legacyButtons": 1,
+      "legacyButtons": 0,
       "legacyPostForms": 0,
       "reactPostForms": 0,
       "jsonWrites": false,
@@ -1115,7 +1126,7 @@
       "manifestStatus": "legacy_operational",
       "unlockFromGate": false,
       "legacyLinks": 0,
-      "legacyButtons": 1,
+      "legacyButtons": 0,
       "legacyPostForms": 0,
       "reactPostForms": 0,
       "jsonWrites": false,
@@ -1139,7 +1150,7 @@
       "manifestStatus": "react_operational_full",
       "unlockFromGate": true,
       "legacyLinks": 0,
-      "legacyButtons": 1,
+      "legacyButtons": 0,
       "legacyPostForms": 0,
       "reactPostForms": 0,
       "jsonWrites": false,
@@ -1163,7 +1174,7 @@
       "manifestStatus": "react_operational_full",
       "unlockFromGate": true,
       "legacyLinks": 0,
-      "legacyButtons": 1,
+      "legacyButtons": 0,
       "legacyPostForms": 0,
       "reactPostForms": 0,
       "jsonWrites": false,
@@ -1428,6 +1439,30 @@
       "realLevel": "react_operational_full"
     },
     {
+      "route": "/preventivi/conferimento/:id",
+      "component": "frontend/src/components/PreventiviPage.tsx",
+      "dataClient": "frontend/src/preventiviData.ts",
+      "bridge": "web/services/react_preventivi_bridge.py",
+      "manifestStatus": "react_operational_full",
+      "unlockFromGate": true,
+      "legacyLinks": 8,
+      "legacyButtons": 0,
+      "legacyPostForms": 0,
+      "reactPostForms": 0,
+      "jsonWrites": true,
+      "jsonReads": true,
+      "bridgeWritesLegacy": false,
+      "blockingLegacyLinks": 0,
+      "technicalRollback": true,
+      "missingWriteApi": false,
+      "missingErrorHandling": false,
+      "missingSuccessHandling": false,
+      "problems": [
+        "fallback legacy tecnico non primario"
+      ],
+      "realLevel": "react_operational_full"
+    },
+    {
       "route": "/preventivi/nuovo",
       "component": "frontend/src/components/PreventiviPage.tsx",
       "dataClient": "frontend/src/preventiviData.ts",
@@ -1465,15 +1500,15 @@
       "jsonWrites": true,
       "jsonReads": true,
       "bridgeWritesLegacy": false,
-      "blockingLegacyLinks": 0,
-      "technicalRollback": true,
+      "blockingLegacyLinks": 4,
+      "technicalRollback": false,
       "missingWriteApi": false,
       "missingErrorHandling": false,
       "missingSuccessHandling": false,
       "problems": [
-        "fallback legacy tecnico non primario"
+        "4 link ?_legacy=1 primari o non governati"
       ],
-      "realLevel": "react_operational_full"
+      "realLevel": "react_operational_partial"
     },
     {
       "route": "/privacy/registro",
@@ -1554,17 +1589,15 @@
       "legacyButtons": 0,
       "legacyPostForms": 0,
       "reactPostForms": 0,
-      "jsonWrites": false,
+      "jsonWrites": true,
       "jsonReads": true,
       "bridgeWritesLegacy": false,
       "blockingLegacyLinks": 0,
       "technicalRollback": false,
       "missingWriteApi": false,
       "missingErrorHandling": false,
-      "missingSuccessHandling": true,
-      "problems": [
-        "gestione successo non rilevata"
-      ],
+      "missingSuccessHandling": false,
+      "problems": [],
       "realLevel": "react_operational_full"
     },
     {
@@ -1578,17 +1611,15 @@
       "legacyButtons": 0,
       "legacyPostForms": 0,
       "reactPostForms": 0,
-      "jsonWrites": false,
+      "jsonWrites": true,
       "jsonReads": true,
       "bridgeWritesLegacy": false,
       "blockingLegacyLinks": 0,
       "technicalRollback": false,
       "missingWriteApi": false,
       "missingErrorHandling": false,
-      "missingSuccessHandling": true,
-      "problems": [
-        "gestione successo non rilevata"
-      ],
+      "missingSuccessHandling": false,
+      "problems": [],
       "realLevel": "legacy_operational"
     },
     {
@@ -1667,7 +1698,7 @@
       "manifestStatus": "react_operational_full",
       "unlockFromGate": true,
       "legacyLinks": 0,
-      "legacyButtons": 1,
+      "legacyButtons": 0,
       "legacyPostForms": 0,
       "reactPostForms": 0,
       "jsonWrites": false,
@@ -1691,7 +1722,7 @@
       "manifestStatus": "legacy_operational",
       "unlockFromGate": false,
       "legacyLinks": 0,
-      "legacyButtons": 1,
+      "legacyButtons": 0,
       "legacyPostForms": 0,
       "reactPostForms": 0,
       "jsonWrites": false,
@@ -1848,7 +1879,7 @@
       "bridge": "web/services/react_sito_studio_bridge.py",
       "manifestStatus": "react_operational_full",
       "unlockFromGate": true,
-      "legacyLinks": 2,
+      "legacyLinks": 3,
       "legacyButtons": 0,
       "legacyPostForms": 0,
       "reactPostForms": 0,
@@ -1872,7 +1903,7 @@
       "bridge": "web/services/react_sito_studio_bridge.py",
       "manifestStatus": "legacy_operational",
       "unlockFromGate": false,
-      "legacyLinks": 2,
+      "legacyLinks": 3,
       "legacyButtons": 0,
       "legacyPostForms": 0,
       "reactPostForms": 0,
@@ -1896,7 +1927,7 @@
       "bridge": "web/services/react_sito_studio_bridge.py",
       "manifestStatus": "react_operational_full",
       "unlockFromGate": true,
-      "legacyLinks": 2,
+      "legacyLinks": 3,
       "legacyButtons": 0,
       "legacyPostForms": 0,
       "reactPostForms": 0,

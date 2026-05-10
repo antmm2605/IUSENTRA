@@ -83,10 +83,10 @@ export function StudioPage() {
       .then((payload) => {
         if (!active) return
         setData(payload)
-        setError(payload.ok ? '' : payload.warnings[0]?.message || 'Dashboard Studio non disponibile.')
+        setError(payload.ok ? '' : payload.warnings[0]?.message || 'Pagina Studio non disponibile.')
       })
       .catch(() => {
-        if (active) setError('Dashboard Studio non disponibile.')
+        if (active) setError('Pagina Studio non disponibile.')
       })
       .finally(() => {
         if (active) setLoading(false)
@@ -112,14 +112,14 @@ export function StudioPage() {
         </>
       }
     >
-      {loading ? <LoadingState title="Caricamento studio" message="Lettura dei repository reali in corso." /> : null}
+      {loading ? <LoadingState title="Caricamento studio" message="Lettura degli archivi reali in corso." /> : null}
       {!loading && error ? (
         <EmptyState title="Studio non disponibile" message={error} action={<ButtonLink href="/backup" tone="primary">Apri backup</ButtonLink>} />
       ) : null}
       {!loading && !error && !hasData ? (
         <EmptyState
           title="Nessun dato studio disponibile"
-          message="Lo hub non ha ricevuto aggregati visualizzabili dai repository."
+          message="Il centro studio non ha ricevuto aggregati visualizzabili dagli archivi."
           action={<ButtonLink href="/utenti" tone="primary">Apri utenti</ButtonLink>}
         />
       ) : null}
@@ -130,7 +130,7 @@ export function StudioPage() {
             <span>PEC, firma digitale, calendari, pagamenti e telematico restano nei percorsi protetti.</span>
           </section>
           <WarningPanel data={data} />
-          <section className="iu-studio-kpis" aria-label="KPI studio">
+          <section className="iu-studio-kpis" aria-label="Indicatori studio">
             {data.metrics.map((metric) => (
               <KpiCard
                 label={metric.label}

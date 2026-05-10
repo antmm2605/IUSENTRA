@@ -752,7 +752,7 @@ export function NuovoClientePage() {
       <section className="iu-cln-hero">
         <div>
           <a className="iu-cln-back" href={tab === 'cliente' ? '/clienti' : '/soggetti'}><ArrowLeft size={15}/>Torna all'anagrafica</a>
-          <span className="iu-cln-eyebrow"><Sparkles size={14}/>Superficie React ufficiale</span>
+          <span className="iu-cln-eyebrow"><Sparkles size={14}/>Anagrafica guidata</span>
           <h1>{data.mode === 'edit' ? 'Modifica Cliente' : data.mode === 'edit_subject' ? 'Modifica Soggetto' : tab === 'cliente' ? 'Nuovo Cliente' : 'Nuovo Soggetto'}</h1>
           <p>{heroText}</p>
         </div>

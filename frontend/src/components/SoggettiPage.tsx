@@ -123,7 +123,7 @@ function SoggettiTable({ items }:{items: SoggettoRow[]}) {
     <section className="iu-sogg-table-card" aria-label="Elenco soggetti e parti">
       <div className="iu-sogg-table-head">
         <strong>{items.length} soggetti</strong>
-        <span>Dettaglio e modifica aprono la nuova superficie React, con scritture sulle route operative auditabili</span>
+        <span>Dettaglio e modifica aprono la scheda aggiornata, con operazioni tracciate</span>
       </div>
       <div className="iu-sogg-table-wrap">
         <table className="iu-sogg-table">
@@ -215,7 +215,7 @@ function SelectedSubjectPanel({ item }:{item:SoggettoRow}) {
         <a href={`/messaggi/nuovo?destinatario=${encodeURIComponent(item.email || item.phone || item.pec || '')}`}><Mail size={16}/>Scrivi comunicazione</a>
         <a href={`/fascicoli/nuovo?id_soggetto=${encodeURIComponent(item.id)}`}><BriefcaseBusiness size={16}/>Nuovo fascicolo</a>
       </div>
-      <small><ChevronRight size={14}/>Le scritture restano sulle route operative esistenti, la scheda è servita dalla nuova grafica React.</small>
+      <small><ChevronRight size={14}/>Le operazioni restano tracciate e la scheda usa la nuova grafica.</small>
     </section>
   )
 }
@@ -257,7 +257,7 @@ export function SoggettiPage() {
         <div>
           <span><UsersRound size={15}/>Soggetti e Parti</span>
           <h1>Anagrafica soggetti</h1>
-          <p>Persone, enti, controparti, difensori, testimoni e soggetti collegati ai fascicoli nella nuova superficie React ufficiale.</p>
+          <p>Persone, enti, controparti, difensori, testimoni e soggetti collegati ai fascicoli in una vista anagrafica unica.</p>
         </div>
         <div className="iu-sogg-hero__actions">
           <a href="/soggetti/nuovo"><UserPlus size={16}/>Nuovo Soggetto</a>

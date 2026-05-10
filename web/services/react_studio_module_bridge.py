@@ -1,7 +1,7 @@
-"""Payload React per le superfici Studio e Amministrazione.
+"""Dati operativi per le superfici Studio e Amministrazione.
 
-Il bridge riusa repository e route operative esistenti: la pagina React mostra
-dati reali e invia le scritture ai POST già auditati dal backend storico.
+Le pagine usano archivi e percorsi operativi esistenti: la pagina mostra
+dati reali e invia le scritture ai comandi tracciati.
 """
 
 from __future__ import annotations
@@ -269,7 +269,7 @@ def _build_utenti(get_utenti: Callable[[], Any]) -> dict[str, Any]:
             _operation(
                 "nuovo-utente",
                 "Nuovo utente",
-                "Crea un operatore usando la route POST già auditata.",
+                "Crea un operatore con il comando autorizzato.",
                 form={
                     "action": "/utenti/nuovo",
                     "method": "POST",
@@ -287,7 +287,7 @@ def _build_utenti(get_utenti: Callable[[], Any]) -> dict[str, Any]:
             _operation(
                 "profili-e-permessi",
                 "Profili e permessi",
-                "Matrice RBAC e override individuali collegati agli utenti.",
+                "Matrice permessi e deroghe individuali collegati agli utenti.",
                 records=[_record(role, role, f"{count} utenti", badge="Ruolo", href="/profili") for role, count in sorted(role_counts.items())],
                 actions=[_action("Apri matrice ruoli", "/profili")],
             ),
@@ -505,10 +505,10 @@ def _build_preventivi(
                 ],
             ),
             _operation(
-                "wizard-compensi",
-                "Wizard compensi",
+                "percorso-compensi",
+                "Percorso compensi",
                 "Calcolo guidato compensi forensi collegato a cliente, fascicolo e conferimento.",
-                actions=[_action("Apri wizard", "/preventivi/wizard"), _action("Compensi Forensi", "/compensi-forensi")],
+                actions=[_action("Apri percorso", "/preventivi/wizard"), _action("Compensi Forensi", "/compensi-forensi")],
             ),
         ],
     }
@@ -614,8 +614,8 @@ def _build_audit(get_utenti: Callable[[], Any]) -> dict[str, Any]:
     return {
         "metrics": [_metric("Eventi", len(events)), _metric("Ultimo controllo", _date_it(getattr(events[0], "timestamp", "")) if events else "nessuno")],
         "operations": [
-            _operation("audit-utenti", "Audit utenti", "Registro reale degli eventi applicativi e di sicurezza.", records=records, actions=[_action("Esporta CSV", "/audit/esporta.csv")]),
-            _operation("esporta-audit", "Esporta audit", "Scarica il registro audit in formato CSV.", actions=[_action("Scarica CSV", "/audit/esporta.csv")]),
+            _operation("registro-utenti", "Registro utenti", "Registro reale degli eventi applicativi e di sicurezza.", records=records, actions=[_action("Esporta CSV", "/audit/esporta.csv")]),
+            _operation("esporta-registro", "Esporta registro", "Scarica il registro in formato CSV.", actions=[_action("Scarica CSV", "/audit/esporta.csv")]),
             _operation("osservabilita", "Osservabilità", "Superficie amministrativa per log e stato servizio.", actions=[_action("Apri osservabilità", "/admin/osservabilita")]),
         ],
     }
@@ -675,7 +675,7 @@ def _build_gdpr(get_trattamenti: Callable[[], Any]) -> dict[str, Any]:
                     ],
                 },
             ),
-            _operation("audit-privacy", "Audit privacy", "Esporta e verifica attività collegate ai dati personali.", actions=[_action("Esporta audit", "/audit/esporta.csv")]),
+            _operation("registro-privacy", "Registro privacy", "Esporta e verifica attività collegate ai dati personali.", actions=[_action("Esporta registro", "/audit/esporta.csv")]),
         ],
     }
 
@@ -694,7 +694,7 @@ def _build_impostazioni(config: dict[str, Any]) -> dict[str, Any]:
             _operation("dati-studio", "Dati studio", "Dati anagrafici e fiscali usati nei documenti.", records=safe_rows[:1]),
             _operation("pec-e-smtp", "PEC e SMTP", "Verifica canali senza esporre password nella UI.", records=safe_rows[1:3], actions=[_action("Test PEC/SMTP", "/impostazioni/test/pec-smtp", method="POST")]),
             _operation("firma-digitale", "Firma digitale", "Il dispositivo di firma si verifica dal browser tramite Local Signer sul PC dell'avvocato.", records=safe_rows[3:4], actions=[_action("Scarica Local Signer Windows", "/polisWeb/local-signer/setup/windows-exe")]),
-            _operation("ai-locale", "AI locale", "Assistente sul PC dello studio e reindicizzazione documenti.", actions=[_action("Stato AI locale", "/api/local-ai/status")]),
+            _operation("assistente-locale", "Assistente locale", "Assistente sul PC dello studio e aggiornamento documenti.", actions=[_action("Stato assistente", "/api/local-ai/status")]),
             _operation("whatsapp", "WhatsApp", "Canale, numeri e promemoria cliente.", actions=[_action("Apri WhatsApp", "/impostazioni?tab=whatsapp")]),
             _operation("scheduler", "Scheduler", "Automazioni, backup e sincronizzazione calendario.", records=safe_rows[4:]),
         ],
@@ -705,12 +705,12 @@ _GENERIC_OPERATION_CATALOG: dict[str, list[tuple[str, str, str, list[tuple[str, 
     "preventivi": [
         ("archivio-preventivi", "Archivio preventivi", "Apre la lista operativa di preventivi e conferimenti.", [("Apri archivio", "/preventivi", "GET")]),
         ("nuovo-preventivo", "Nuovo preventivo", "Invia al form operativo di creazione preventivo.", [("Crea preventivo", "/preventivi/nuovo", "GET")]),
-        ("conferimento-incarico", "Conferimento incarico", "Predispone il conferimento partendo dal flusso Flask auditato.", [("Crea incarico", "/preventivi/conferimento/nuovo", "GET")]),
-        ("wizard-compensi", "Wizard compensi", "Apre il calcolo guidato per compensi e preventivo.", [("Apri wizard", "/preventivi/wizard", "GET")]),
+        ("conferimento-incarico", "Conferimento incarico", "Predispone il conferimento partendo dal flusso controllato.", [("Crea incarico", "/preventivi/conferimento/nuovo", "GET")]),
+        ("percorso-compensi", "Percorso compensi", "Apre il calcolo guidato per compensi e preventivo.", [("Apri percorso", "/preventivi/wizard", "GET")]),
     ],
     "compensi-forensi": [
         ("tariffario", "Tariffario", "Apre parametri forensi e calcoli DM 55.", [("Apri tariffario", "/tariffario", "GET")]),
-        ("wizard-preventivo", "Wizard preventivo", "Trasforma il calcolo in preventivo operativo.", [("Genera preventivo", "/preventivi/wizard", "GET")]),
+        ("percorso-preventivo", "Percorso preventivo", "Trasforma il calcolo in preventivo operativo.", [("Genera preventivo", "/preventivi/wizard", "GET")]),
         ("strumenti-forensi", "Strumenti Forensi", "Apre la suite di calcolo forense.", [("Apri strumenti", "/strumenti-legali", "GET")]),
     ],
     "redazione-atti": [
@@ -720,51 +720,75 @@ _GENERIC_OPERATION_CATALOG: dict[str, list[tuple[str, str, str, list[tuple[str, 
         ("fascicoli", "Fascicoli", "Seleziona pratica, parti e documenti per la redazione.", [("Apri fascicoli", "/fascicoli", "GET")]),
     ],
     "pst-acquisizione": [
-        ("acquisizione-pst", "Acquisizione PST", "Apre il wizard guidato per import autorizzato da PST.", [("Apri acquisizione", "/portali/pst/acquisizione", "GET")]),
+        ("acquisizione-pst", "Acquisizione PST", "Apre il percorso guidato per import autorizzato da PST.", [("Apri acquisizione", "/portali/pst/acquisizione", "GET")]),
         ("checklist-import-pst", "Checklist import PST", "Porta ai prerequisiti operativi del flusso PST.", [("Verifica flusso", "/portali/pst/acquisizione#checklist-operativa", "GET")]),
         ("fascicoli", "Fascicoli", "Controlla o crea la pratica locale prima dell'import.", [("Apri fascicoli", "/fascicoli", "GET")]),
         ("centro-telematico", "Centro telematico", "Rientra nel quadro unico dei servizi telematici.", [("Apri centro", "/app-v2/telematico", "GET")]),
     ],
     "statistiche": [
-        ("dashboard-grafici", "Dashboard grafici", "Apre KPI, grafici e riepiloghi direzionali.", [("Apri dashboard", "/statistiche", "GET")]),
+        ("cruscotto-grafici", "Cruscotto grafici", "Apre indicatori, grafici e riepiloghi direzionali.", [("Apri cruscotto", "/statistiche", "GET")]),
         ("produttivita", "Produttività", "Filtra gli indicatori sul lavoro dello studio.", [("Vedi analisi", "/statistiche/?view=produttivita", "GET")]),
         ("depositi-trend", "Depositi trend", "Mostra andamento dei canali telematici.", [("Trend depositi", "/statistiche/?view=depositi", "GET")]),
     ],
     "ricerca-legale": [
-        ("dashboard-ricerca", "Dashboard ricerca", "Apre monitor normativo e Legal Intelligence.", [("Apri ricerca", "/legal-intelligence", "GET")]),
+        ("cruscotto-ricerca", "Cruscotto ricerca", "Apre monitor normativo e Ricerca legale.", [("Apri ricerca", "/legal-intelligence", "GET")]),
         ("news-legali", "News legali", "Consulta aggiornamenti e filtri per materia.", [("Apri news", "/legal-intelligence/news", "GET")]),
         ("registro-mediazione", "Registro mediazione", "Apre dati e aggiornamenti sulla mediazione.", [("Apri registro", "/legal-intelligence/mediazione", "GET")]),
     ],
     "giurisprudenza": [
         ("ricerca-sentenze", "Ricerca sentenze", "Apre archivio giurisprudenza e filtri.", [("Apri archivio", "/giurisprudenza", "GET")]),
         ("nuova-scheda", "Nuova scheda", "Registra manualmente una pronuncia.", [("Nuova scheda", "/giurisprudenza/nuova", "GET")]),
-        ("importa-materiale", "Importa materiale", "Collega materiale e fonti al repository interno.", [("Importa", "/giurisprudenza", "GET")]),
+        ("importa-materiale", "Importa materiale", "Collega materiale e fonti all'archivio interno.", [("Importa", "/giurisprudenza", "GET")]),
     ],
     "strumenti-forensi": [
         ("suite-strumenti", "Suite strumenti", "Apre la suite degli strumenti forensi.", [("Apri suite", "/strumenti-legali", "GET")]),
         ("onorari-forensi", "Onorari forensi", "Apre il calcolo compensi forensi.", [("Calcola onorari", "/strumenti-legali/?tool=onorari_forensi", "GET")]),
         ("contributo-unificato", "Contributo unificato", "Apre il calcolo del contributo unificato.", [("Calcola CU", "/strumenti-legali/?tool=contributo_unificato", "GET")]),
+        ("interessi-legali-e-mora", "Interessi legali e mora", "Calcola interessi per capitale, periodo e tasso applicabile.", [("Calcola interessi", "/strumenti-legali/?tool=interessi", "GET")]),
+        ("rivalutazione-istat", "Rivalutazione ISTAT", "Aggiorna importi e indici per conteggi documentabili.", [("Rivaluta importo", "/strumenti-legali/?tool=rivalutazione_istat", "GET")]),
+        ("verifica-usura", "Verifica usura", "Controlla soglie e dati del finanziamento prima del deposito in fascicolo.", [("Verifica usura", "/strumenti-legali/?tool=usura", "GET")]),
+        ("piano-ammortamento", "Piano ammortamento", "Prepara rate, interessi e residuo per mutui e finanziamenti.", [("Crea piano", "/strumenti-legali/?tool=piano_ammortamento", "GET")]),
+        ("danno-biologico", "Danno biologico", "Stima il danno con eta, invalidita e personalizzazione.", [("Calcola danno", "/strumenti-legali/?tool=danno_biologico", "GET")]),
+        ("prescrizione-reati", "Prescrizione reati", "Valuta termini e sospensioni con una scheda riepilogativa.", [("Calcola termine", "/strumenti-legali/?tool=prescrizione_penale", "GET")]),
+        ("successione-legittima", "Successione legittima", "Ripartisce quote ereditarie in base ai soggetti indicati.", [("Calcola quote", "/strumenti-legali/?tool=successione_legittima", "GET")]),
+        ("cedolare-secca", "Cedolare secca", "Confronta canoni e imposta dovuta per locazioni.", [("Calcola imposta", "/strumenti-legali/?tool=cedolare_secca", "GET")]),
+        ("trattamento-di-fine-rapporto", "Trattamento di fine rapporto", "Calcola quote, rivalutazione e riepilogo del rapporto.", [("Calcola TFR", "/strumenti-legali/?tool=tfr", "GET")]),
+        ("compenso-ctu", "Compenso CTU", "Predispone compenso e spese per consulenze tecniche.", [("Calcola CTU", "/strumenti-legali/?tool=ctu", "GET")]),
+        ("mediazione", "Mediazione", "Apre registro e riferimenti utili per costi e organismi.", [("Apri mediazione", "/legal-intelligence/mediazione", "GET")]),
+        ("preventivo-da-calcolo", "Preventivo da calcolo", "Porta il risultato nel percorso guidato per preventivi e incarichi.", [("Crea preventivo", "/preventivi/wizard", "GET")]),
     ],
     "timesheet": [
         ("cruscotto-tempi", "Cruscotto tempi", "Apre riepilogo e filtri del timesheet.", [("Apri timesheet", "/timesheet", "GET")]),
         ("nuova-attivita", "Nuova attività", "Collega una voce tempo ad agenda, cliente o fascicolo.", [("Aggancia agenda", "/agenda", "GET")]),
         ("genera-parcella", "Genera parcella", "Porta alla creazione parcella dalle voci validate.", [("Crea parcella", "/fatturazione/nuova", "GET")]),
-        ("produttivita", "Produttività", "Apre gli indicatori di produttività.", [("Vedi KPI", "/statistiche/?view=produttivita", "GET")]),
+        ("produttivita", "Produttività", "Apre gli indicatori di produttività.", [("Vedi indicatori", "/statistiche/?view=produttivita", "GET")]),
     ],
     "cartelle-condivise": [
         ("cartelle-condivise", "Cartelle condivise", "Apre elenco accessi e cartelle cliente.", [("Apri cartelle", "/cartelle-condivise", "GET")]),
         ("clienti", "Clienti", "Seleziona cliente e cartella operativa.", [("Apri clienti", "/clienti", "GET")]),
-        ("registro-attivita", "Registro attività", "Apre audit di condivisioni e accessi.", [("Apri audit", "/audit", "GET")]),
+        ("registro-attivita", "Registro attività", "Apre registro di condivisioni e accessi.", [("Apri registro", "/audit", "GET")]),
     ],
     "strumenti-operativi": [
         ("timesheet", "Timesheet", "Registra attività e valorizza lavoro fatturabile.", [("Apri timesheet", "/timesheet", "GET")]),
         ("export-dati", "Export dati", "Scarica dati economici per controlli.", [("Esporta", "/export/fatturazione.csv", "GET")]),
         ("condivisioni", "Condivisioni", "Gestisce cartelle condivise e accessi documentali.", [("Apri condivisioni", "/cartelle-condivise", "GET")]),
         ("regia-operativa", "Regia operativa", "Rientra nel quadro operativo dello studio.", [("Apri regia", "/workspace-intelligente", "GET")]),
+        ("agenda", "Agenda", "Apre appuntamenti, udienze e calendario dello studio.", [("Apri agenda", "/agenda", "GET")]),
+        ("nuovo-appuntamento", "Nuovo appuntamento", "Inserisce un impegno collegato a cliente o fascicolo.", [("Crea appuntamento", "/agenda/nuovo", "GET")]),
+        ("ricerca-studio", "Ricerca studio", "Trova rapidamente fascicoli, clienti, scadenze, comunicazioni e documenti.", [("Cerca", "/global-search", "GET")]),
+        ("scadenziario", "Scadenziario", "Controlla termini, stati e prossime azioni da completare.", [("Apri scadenze", "/scadenziario", "GET")]),
+        ("messaggi-clienti", "Messaggi clienti", "Gestisce conversazioni, SMS e WhatsApp collegati allo studio.", [("Apri messaggi", "/messaggi", "GET")]),
+        ("posta-ordinaria", "Posta ordinaria", "Apre email inviate e ricevute dal canale ordinario dello studio.", [("Apri posta", "/email-ordinaria/", "GET")]),
+        ("pec", "PEC", "Controlla casella, allegati e messaggi rilevanti per le pratiche.", [("Apri PEC", "/email/", "GET")]),
+        ("database", "Database", "Verifica archivi, integrita e manutenzione dei dati dello studio.", [("Apri database", "/admin/database", "GET")]),
+        ("backup", "Backup", "Controlla copie, verifica e pianificazione nella scheda impostazioni.", [("Apri backup", "/impostazioni?tab=backup", "GET")]),
+        ("calendari", "Calendari", "Gestisce link riservati e sincronizzazione agenda.", [("Apri calendari", "/impostazioni/calendario", "GET")]),
+        ("contatti-sito", "Contatti sito", "Apre richieste e prenotazioni arrivate dal sito dello studio.", [("Apri contatti", "/sito-studio/contatti", "GET")]),
+        ("registro-attivita", "Registro attivita", "Consulta eventi importanti e controlli amministrativi.", [("Apri registro", "/registro-attivita", "GET")]),
     ],
     "sito-studio": [
-        ("dashboard-sito", "Dashboard sito", "Apre controllo contenuti e pubblicazione del sito.", [("Apri dashboard", "/sito-studio", "GET")]),
-        ("builder-pro", "Builder Pro", "Apre il builder visuale del sito.", [("Apri builder", "/sito-studio/builder", "GET")]),
+        ("cruscotto-sito", "Cruscotto sito", "Apre controllo contenuti e pubblicazione del sito.", [("Apri cruscotto", "/sito-studio", "GET")]),
+        ("editor-sito", "Editor sito", "Apre la modifica visuale del sito.", [("Apri editor", "/sito-studio/builder", "GET")]),
         ("richieste-contatto", "Richieste contatto", "Apre lead e messaggi arrivati dal sito.", [("Apri contatti", "/sito-studio/contatti", "GET")]),
     ],
     "notifiche-whatsapp": [
@@ -790,13 +814,13 @@ _GENERIC_OPERATION_CATALOG: dict[str, list[tuple[str, str, str, list[tuple[str, 
     "amministrazione": [
         ("utenti", "Utenti", "Apre gestione operatori e accessi.", [("Apri utenti", "/utenti", "GET")]),
         ("profili-e-permessi", "Profili e permessi", "Apre matrice ruoli e policy.", [("Apri permessi", "/profili", "GET")]),
-        ("registro-attivita", "Registro attività", "Apre audit e osservabilità.", [("Apri registro", "/registro-attivita", "GET")]),
+        ("registro-attivita", "Registro attività", "Apre registro e controllo operativo.", [("Apri registro", "/registro-attivita", "GET")]),
         ("database-e-gdpr", "Database e GDPR", "Apre storage e registro trattamenti.", [("Apri database", "/admin/database", "GET")]),
     ],
     "profili": [
         ("matrice-ruoli", "Matrice ruoli", "Apre tabella profili e permessi.", [("Apri matrice", "/profili", "GET")]),
         ("utenti", "Utenti", "Apre operatori e override autorizzativi.", [("Apri utenti", "/utenti", "GET")]),
-        ("audit-permessi", "Audit permessi", "Apre audit dei cambi ruolo.", [("Apri audit", "/registro-attivita", "GET")]),
+        ("registro-permessi", "Registro permessi", "Apre il registro dei cambi ruolo.", [("Apri registro", "/registro-attivita", "GET")]),
     ],
 }
 

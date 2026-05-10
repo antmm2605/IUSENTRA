@@ -1,4 +1,4 @@
-"""Bridge React operativo per il Builder Sito Studio."""
+"""Dati operativi per l'editor Sito Studio."""
 
 from __future__ import annotations
 
@@ -217,7 +217,7 @@ def build_react_sito_studio_builder_payload(page_id: int | None = None) -> dict[
     return _builder_payload(page_id=page_id)
 
 
-def builder_error_payload(message: str = "Builder Sito Studio non disponibile.") -> dict[str, Any]:
+def builder_error_payload(message: str = "Editor Sito Studio non disponibile.") -> dict[str, Any]:
     return {
         "ok": False,
         "source": "errore_controllato",

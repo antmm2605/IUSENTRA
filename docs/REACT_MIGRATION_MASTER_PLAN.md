@@ -1,5 +1,35 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-10 - Pulizia testi visibili e dettagli email React 2.214.0
+
+Questa tranche risponde alla richiesta utente di non mostrare piu' messaggi da
+sviluppatore in nessuna scheda operativa e completa i dettagli email indicati:
+
+- La shell React applica una guardia visibile sui testi e sugli attributi
+  utente (`title`, `aria-label`, `placeholder`, `alt`) per sostituire termini
+  tecnici con lingua da studio legale. La stessa guardia e' caricata anche nei
+  template Flask tramite `web/static/js/iusentra-visible-text-guard.js`.
+- I termini da non mostrare allo studio includono `Impeccable / Open Design`,
+  `Dati applicativi`, `React`, `Flask`, `backend`, `frontend`, `payload`,
+  `runtime`, `json_api`, `provider`, `webhook`, `endpoint`, `legacy`,
+  `undefined`, `null`, `demo`, `sample` e `repository`.
+- `/email/messaggio/<id>` e `/email-ordinaria/messaggio/<id>` sono servite
+  dalla pagina React `EmailPecPage`, alimentate da endpoint JSON dedicati e
+  complete di metadati operativi, allegati, corpo messaggio e azioni sicure.
+- `Redazione Atti` resta su una sola pagina React e include produzione atti,
+  template disponibili, compilazione assistita e anteprima operativa, senza
+  spostare l'utente su testi o percorsi tecnici.
+- `Template Atti`, `Ricerca Legale`, `News`, `Archivio Giurisprudenza`,
+  `Statistiche`, `Strumenti Forensi` e `Strumenti Operativi` usano dettaglio in
+  pagina, card compatte operative e testi coerenti al design system.
+- Browser reale su Docker locale 2.214.0: desktop e mobile per le pagine
+  richieste, piu' `/admin/database`, risultano con `#root` React presente,
+  nessun overflow orizzontale e nessuno dei termini tecnici vietati nel testo
+  visibile.
+- Gate confermati: `npm run typecheck`, `npm test`, `npm run build`, route
+  gate, full-react contract, no-fake React full, pytest mirati email/React,
+  packaging/release readiness, Docker no-cache e readiness locale 2.214.0.
+
 ## Stato tranche 2026-05-09 - Pagine operative richieste full React 2.213.0
 
 Questa tranche risponde al controllo utente sul perimetro completo delle pagine

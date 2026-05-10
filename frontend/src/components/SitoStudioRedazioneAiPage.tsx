@@ -196,7 +196,7 @@ export function SitoStudioRedazioneAiPage() {
     getSitoStudioAi(controller.signal)
       .then(setData)
       .catch((err) => {
-        if (!(err instanceof DOMException && err.name === 'AbortError')) setError('Redazione AI non disponibile.')
+        if (!(err instanceof DOMException && err.name === 'AbortError')) setError('Redazione assistita non disponibile.')
       })
       .finally(() => setLoading(false))
     return () => controller.abort()
@@ -227,12 +227,12 @@ export function SitoStudioRedazioneAiPage() {
 
   return (
     <Page
-      title="Redazione AI Sito Studio"
+      title="Redazione assistita Sito Studio"
       subtitle="Bozze articolo, revisione professionale, immagini editoriali e pubblicazione manuale."
       actions={
         <>
-          <ButtonLink href="/sito-studio/builder" tone="neutral"><FilePenLine size={16} /> Builder</ButtonLink>
-          <ButtonLink href="/sito-studio" tone="neutral"><Globe2 size={16} /> Dashboard</ButtonLink>
+          <ButtonLink href="/sito-studio/builder" tone="neutral"><FilePenLine size={16} /> Editor</ButtonLink>
+          <ButtonLink href="/sito-studio" tone="neutral"><Globe2 size={16} /> Cruscotto</ButtonLink>
           <Button tone="neutral" type="button" disabled={busy} onClick={loadPage}><RefreshCw size={16} /> Aggiorna</Button>
         </>
       }
@@ -276,7 +276,7 @@ export function SitoStudioRedazioneAiPage() {
                     />
                   ))}
                 </div>
-              ) : <EmptyState title="Nessuna bozza AI" message="Inserisci un argomento reale per preparare il primo articolo." />}
+              ) : <EmptyState title="Nessuna bozza assistita" message="Inserisci un argomento reale per preparare il primo articolo." />}
             </section>
           </div>
 

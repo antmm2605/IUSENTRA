@@ -370,7 +370,7 @@ function ActiveOperationPanel({
         <p>{card.body}</p>
         <dl>
           <div><dt>Superficie</dt><dd>{title}</dd></div>
-          <div><dt>Modalità</dt><dd>React operativa</dd></div>
+          <div><dt>Modalità</dt><dd>Operativa</dd></div>
           <div><dt>Canale</dt><dd>{surfaceId === 'polisweb' ? 'PST / PolisWeb' : surfaceId.toUpperCase()}</dd></div>
         </dl>
       </div>
@@ -481,7 +481,7 @@ function CasesPanel({ data }:{ data:TelematicoSurfaceData }) {
             </a>
           ))}
         </div>
-      ) : <p className="iu-empty">Nessuna pratica collegata a questa superficie.</p>}
+      ) : <p className="iu-empty">Nessuna pratica collegata a questa pagina.</p>}
     </Panel>
   )
 }
@@ -604,7 +604,7 @@ function LexPanel({ data }:{ data:TelematicoSurfaceData }) {
         <div className="iu-tel-surface-lex">
           {data.lexSuggestions.map((item) => <span key={item}><Sparkles size={15}/>{item}</span>)}
         </div>
-      ) : <p className="iu-empty">Lex non segnala ulteriori priorita su questa superficie.</p>}
+      ) : <p className="iu-empty">Lex non segnala ulteriori priorita su questa pagina.</p>}
     </Panel>
   )
 }

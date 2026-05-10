@@ -2,6 +2,14 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-10T00:15:00+02:00: il manifest corrente conta 85 route
+nel gate anti-mascheramento, con 0 `LegacyPostForm`, 0 form POST HTML React,
+0 bridge con scritture legacy e 0 status `react_full` deprecati. Le nuove route
+di dettaglio PEC/email ordinaria sono servite dalla pagina React email. La
+verifica browser Docker 2.214.0 ha coperto desktop/mobile sulle pagine richieste
+dall'utente e su `/admin/database`, senza termini tecnici visibili e senza
+overflow orizzontale.
+
 ## Sintesi
 
 - Route censite: 57

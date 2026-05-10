@@ -140,7 +140,7 @@ export const emptyTelematicoSurface: TelematicoSurfaceData = {
     portal: 'pst',
     title: 'PolisWeb / PST',
     eyebrow: 'Servizi telematici',
-    subtitle: 'Superficie React in caricamento.',
+    subtitle: 'Pagina operativa in caricamento.',
     tone: 'primary',
     appHref: '/app-v2/polisweb',
     legacyHref: '/polisWeb',

@@ -211,7 +211,7 @@ export const emptyAdminDatabasePage: AdminDatabasePageData = {
     mock_fallback: false,
     writes: 'operational_routes',
     route_owner: 'react_shell',
-    legacy_fallback: '_legacy=1 tecnico',
+    legacy_fallback: 'Percorso di recupero',
   },
   warning: '',
 }
@@ -356,7 +356,7 @@ function normalisePayload(payload: unknown): AdminDatabasePageData {
       mock_fallback: bool(contracts.mock_fallback),
       writes: text(contracts.writes, 'operational_routes'),
       route_owner: text(contracts.route_owner, 'react_shell'),
-      legacy_fallback: text(contracts.legacy_fallback, '_legacy=1 tecnico'),
+      legacy_fallback: text(contracts.legacy_fallback, 'Percorso di recupero'),
     },
     warning: text(payload.warning),
   }

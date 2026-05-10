@@ -134,9 +134,9 @@ function wizardReferenceRows(value: unknown): Array<Record<string, unknown>> {
 
 function wizardComplianceLabel(status: unknown, exact: unknown): string {
   const value = String(status || '').toLowerCase()
-  if (value === 'snapshot_esatto' || exact === true) return 'Snapshot esatto'
+  if (value === 'snapshot_esatto' || exact === true) return 'Verifica esatta'
   if (value === 'ricostruzione') return 'Ricostruzione dichiarata'
-  if (value === 'fallback_tecnico') return 'Fallback tecnico'
+  if (value === 'fallback_tecnico') return 'Verifica prudenziale'
   return String(status || 'Copertura da verificare')
 }
 
@@ -476,14 +476,14 @@ function Sidebar({
           practice?.motore_label || '',
           practice?.redattore_label || '',
           practice?.label || '',
-          calculation ? auditStatus : data.support.audit.aligned ? 'Snapshot esatto' : '',
+          calculation ? auditStatus : data.support.audit.aligned ? 'Verifica esatta' : '',
           auditTable,
           auditScaglione.includes('Oltre EUR 520.000') ? 'Fascia alta' : '',
         ]} />
         <h3>{practice?.label || 'Tipologia non selezionata'}</h3>
         <p>{practice?.summary || 'Seleziona una tipologia per attivare profilo, calcolo e riferimenti.'}</p>
         {practice?.when_to_use ? <p>{practice.when_to_use}</p> : null}
-        {practice?.base_normativa ? <p className="iu-pwiz-side-note">Regola allineata al catalogo tariffario e alla tabella ufficiale presente nello snapshot DM 147/2022.</p> : null}
+        {practice?.base_normativa ? <p className="iu-pwiz-side-note">Regola allineata al catalogo tariffario e alla tabella ufficiale DM 147/2022.</p> : null}
         {calculation ? (
           <div className="iu-pwiz-side-audit">
             <strong>{auditStatus}</strong>
@@ -516,12 +516,12 @@ function Sidebar({
           <p>{practice?.when_to_use || 'Il motore suggerirà  la logica di lavoro dopo la selezione del profilo.'}</p>
         </Accordion>
         <Accordion id="coverage" title="Copertura tariffaria" badge={`${data.support.audit.aligned}/${data.support.audit.total || 0}`} open={open.coverage} onToggle={() => onToggle('coverage')}>
-          <p>Copertura snapshot: {data.support.audit.aligned} regole allineate su {data.support.audit.total || 0}. Voci aperte: {data.support.audit.open}.</p>
+          <p>Copertura tariffaria: {data.support.audit.aligned} regole allineate su {data.support.audit.total || 0}. Voci aperte: {data.support.audit.open}.</p>
           {calculation ? (
             <div className="iu-pwiz-side-list">
               <article>
                 <strong>{auditStatus}</strong>
-                <span>{String(audit.compliance_note || 'Audit tariffario conservato nel log del preventivo.')}</span>
+                <span>{String(audit.compliance_note || 'Registro tariffario conservato nel preventivo.')}</span>
               </article>
               {auditCodes.length ? (
                 <article>
@@ -1051,7 +1051,7 @@ export function PreventivoWizardPage() {
                 {filteredCases.map((matter) => <option value={matter.id} key={matter.id}>{matter.label}</option>)}
               </SelectInput>
             </div>
-            {!data.clients.length ? <p className="iu-pwiz-empty">Nessun cliente disponibile nel repository corrente. Usa l'inserimento rapido se devi creare un cliente potenziale.</p> : null}
+            {!data.clients.length ? <p className="iu-pwiz-empty">Nessun cliente disponibile nell'archivio corrente. Usa l'inserimento rapido se devi creare un cliente potenziale.</p> : null}
             <SwitchRow id="quick-client" checked={quickClientEnabled} label="Cliente non ancora censito: inserimento rapido" help="Creo un cliente potenziale con dati minimi e completo l'anagrafica quando il preventivo viene accettato." onChange={setQuickClientEnabled} />
             {quickClientEnabled ? (
               <div className="iu-pwiz-quick-client">

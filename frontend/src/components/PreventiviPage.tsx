@@ -202,10 +202,9 @@ function ContractPanel({ data }: { data: PreventiviPageData }) {
   return (
     <Panel title="Presidio dati" subtitle="Scritture tracciate con fonte governata nei servizi di studio.">
       <div className="iu-prev-contract">
-        <span>Fonte: {displaySourceLabel(data.source || '')}</span>
+        <span>Origine: {displaySourceLabel(data.source || '')}</span>
         <span>Generato: {data.generated_at || 'non disponibile'}</span>
-        <span>Scritture: {displayWritesLabel(data.contracts.writes || '')}</span>
-        <span>Responsabile: {displaySourceLabel(data.contracts.route_owner || '')}</span>
+        <span>Azioni: {displayWritesLabel(data.contracts.writes || '')}</span>
         <span>Operativa: {data.contracts.operational ? 'si' : 'no'}</span>
         <span>Dati reali: {data.contracts.mock_fallback ? 'da verificare' : 'si'}</span>
       </div>
@@ -286,7 +285,7 @@ function TechnicalRollback({ href }: { href: string }) {
 function MetricGrid({ data }: { data: PreventiviPageData }) {
   if (!data.metrics.length) return null
   return (
-    <section className="iu-prev-kpis" aria-label="KPI preventivi e incarichi">
+    <section className="iu-prev-kpis" aria-label="Indicatori preventivi e incarichi">
       {data.metrics.map((metric) => (
         <KpiCard
           label={metric.label}
@@ -708,7 +707,7 @@ function NewConferimentoForm({ data }: { data: PreventiviPageData }) {
         </label>
         <section className="iu-prev-form-note" aria-label="Presidio operativo">
           <AlertTriangle size={17} />
-          <span>Documento, firme e apertura fascicolo restano nei workflow autorizzati.</span>
+          <span>Documento, firme e apertura fascicolo restano nei percorsi autorizzati.</span>
         </section>
         <div className="iu-prev-action-row">
           <Button type="submit" tone="primary" disabled={saveStatus === 'saving' || !data.permissions.canCreate}>
@@ -871,7 +870,7 @@ function ConferimentoDetailView({
         </Panel>
       </section>
 
-      <section className="iu-prev-grid" aria-label="Workflow conferimento">
+      <section className="iu-prev-grid" aria-label="Percorso conferimento">
         <Panel title="Presidi incarico" subtitle="Stato operativo di cliente, firma, fascicolo e preventivo.">
           <div className="iu-prev-section-list">
             {detail.workflow.map((item) => (
@@ -1095,7 +1094,7 @@ function ArchiveView({ data, onReload }: { data: PreventiviPageData; onReload: (
         <div>
           <FileText size={22} />
           <strong>Archivio preventivi operativo</strong>
-          <span>Elenco, KPI, dettaglio sintetico e stato preventivo sono tracciati; documenti e workflow avanzati restano governati.</span>
+          <span>Elenco, indicatori, dettaglio sintetico e stato preventivo sono tracciati; documenti e percorsi avanzati restano governati.</span>
         </div>
         <BriefcaseBusiness size={22} />
       </section>
@@ -1224,10 +1223,10 @@ export function PreventiviPage() {
         ? 'Conferimento incarico'
       : 'Preventivi e incarichi'
   const subtitle = mode === 'archive'
-    ? 'Archivio mandato con KPI, stati, dettaglio operativo e collegamenti reali.'
+    ? 'Archivio mandato con indicatori, stati, dettaglio operativo e collegamenti reali.'
     : mode === 'detail-conferimento'
       ? 'Dettaglio operativo con cliente, fascicolo, firma, PDF e stato incarico.'
-    : 'Interfaccia operativa con salvataggio validato e fonte dati governata.'
+    : 'Pagina operativa con salvataggio validato e fonte dati governata.'
   const hasData = mode === 'detail-conferimento'
     ? Boolean(conferimentoDetail)
     : data.records.length > 0 || data.clients.length > 0 || data.metrics.length > 0 || data.sections.some((section) => section.items.length > 0)

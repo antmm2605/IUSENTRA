@@ -162,6 +162,78 @@ def _facet(value: str, label: str, count: int) -> dict[str, Any]:
     return {"value": value, "label": label, "count": int(count or 0)}
 
 
+def _size_label(value: Any) -> str:
+    try:
+        size = int(value or 0)
+    except (TypeError, ValueError):
+        size = 0
+    if size >= 1024 * 1024:
+        return f"{size / (1024 * 1024):.1f} MB"
+    if size >= 1024:
+        return f"{size / 1024:.1f} KB"
+    return f"{size} B" if size else ""
+
+
+def _attachment_rows(email_obj: Any, *, base_path: str) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    email_id = quote(str(getattr(email_obj, "id", "") or ""), safe="")
+    base = "/" + str(base_path or "/email").strip("/")
+    for index, info in enumerate(list(getattr(email_obj, "allegati", []) or [])):
+        if not isinstance(info, dict):
+            info = {}
+        name = _safe_text(info.get("nome") or info.get("nome_file") or f"allegato-{index + 1}")
+        href = f"{base}/messaggio/{email_id}/allegato/{index}"
+        rows.append(
+            {
+                "index": index,
+                "name": name,
+                "mime": _safe_text(info.get("mime")),
+                "sizeLabel": _size_label(info.get("size") or info.get("dimensione")),
+                "viewHref": href,
+                "previewHref": href,
+                "downloadHref": f"{href}?download=1",
+                "available": True,
+            }
+        )
+    return rows
+
+
+def build_react_email_detail_payload(
+    *,
+    db_path: str,
+    id_email: str,
+    base_path: str = "/email",
+    compose_path: str = "/email/scrivi",
+    settings_path: str = "/impostazioni?tab=pec",
+    include_telematic: bool = True,
+) -> dict[str, Any] | None:
+    gestore = GestioneEmailRicevute(db_path=db_path)
+    email_obj = gestore.get(id_email)
+    if not email_obj:
+        return None
+    sender = _safe_text(getattr(email_obj, "mittente", ""))
+    subject = _safe_text(getattr(email_obj, "oggetto", ""))
+    return {
+        "source": "repository_reali",
+        "generatedAt": _iso_now(),
+        "contracts": {"mock_fallback": False, "read_only": True},
+        "item": _email_row(
+            email_obj,
+            base_path=base_path,
+            compose_path=compose_path,
+            include_telematic=include_telematic,
+        ),
+        "bodyText": str(getattr(email_obj, "corpo_testo", "") or ""),
+        "bodyHtml": str(getattr(email_obj, "corpo_html", "") or ""),
+        "attachments": _attachment_rows(email_obj, base_path=base_path),
+        "actions": {
+            "inbox": f"{('/' + str(base_path or '/email').strip('/')).rstrip('/')}/",
+            "reply": f"{('/' + str(compose_path or '/email/scrivi').strip('/'))}?a={quote(sender, safe='')}&oggetto={quote('Re: ' + subject, safe='')}",
+            "settings": settings_path,
+        },
+    }
+
+
 def build_react_email_payload(
     *,
     db_path: str,

@@ -136,7 +136,7 @@ def _actions(can_read: bool, can_write: bool) -> dict[str, Any]:
         "resetPasswordEndpoint": "/api/v1/ui/utenti/{id_utente}/reset-password",
         "profileEndpoint": "/api/v1/ui/utenti/{id_utente}/profilo",
         "rollback": {
-            "label": "Rollback tecnico",
+            "label": "Percorso di recupero",
             "href": "/utenti?_legacy=1",
             "method": "GET",
         },

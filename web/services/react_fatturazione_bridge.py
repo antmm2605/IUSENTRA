@@ -582,7 +582,7 @@ def _unknown_fields(payload: dict[str, Any], allowed: set[str]) -> set[str]:
 def _reject_canonical_fields(payload: dict[str, Any], errors: dict[str, str], prefix: str = "") -> None:
     for field in sorted(_CANONICAL_AMOUNT_FIELDS & set(payload.keys())):
         key = f"{prefix}{field}" if prefix else field
-        errors[key] = "Importo canonico non accettato dal frontend."
+        errors[key] = "Importo calcolato non accettato dalla pagina."
 
 
 def _validate_voices(raw_voices: Any, errors: dict[str, str]) -> list[VoceParcella]:

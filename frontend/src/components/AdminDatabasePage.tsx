@@ -42,7 +42,7 @@ const emptyOptimization: OperationState<AdminDatabaseOptimizeResult> = { status:
 const emptyMigration: OperationState<AdminDatabaseMigrationResult> = { status: 'idle', message: '', payload: null }
 
 function sourceLabel(source: string): string {
-  if (source === 'repository_reali') return 'Dati applicativi'
+  if (source === 'repository_reali') return 'Dati dello studio'
   if (source === 'errore_controllato') return 'Dati parziali'
   return source || 'Database'
 }
@@ -260,7 +260,7 @@ function UsagePanel({ data }: { data: AdminDatabasePageData }) {
   return (
     <div className="iu-db-usage">
       <div className="iu-db-usage__summary">
-        <span><strong>{formatNumber(data.usage.totalEvents)}</strong> eventi audit</span>
+        <span><strong>{formatNumber(data.usage.totalEvents)}</strong> eventi registrati</span>
         <span><strong>{data.usage.peakHour === null ? 'n.d.' : `${data.usage.peakHour}:00`}</strong> ora di picco</span>
         <span><strong>{formatPercent(data.usage.errorRate)}</strong> tasso errori</span>
       </div>
@@ -269,7 +269,7 @@ function UsagePanel({ data }: { data: AdminDatabasePageData }) {
           <h3>Azioni frequenti</h3>
           {data.usage.topActions.length ? data.usage.topActions.map((item) => (
             <span key={item.id}><strong>{item.label}</strong>{formatNumber(item.count)}</span>
-          )) : <small>Nessuna azione auditata nel periodo.</small>}
+          )) : <small>Nessuna azione registrata nel periodo.</small>}
         </div>
         <div>
           <h3>Utenti attivi</h3>
@@ -400,8 +400,8 @@ export function AdminDatabasePage() {
       <section className="iu-db-stats" aria-label="Indicatori database">
         <StatCard icon={<Table size={22}/>} label="Moduli monitorati" value={formatNumber(data.summary.modulesMonitored)} note={`${statusSummary.ok} in stato OK`} tone="primary"/>
         <StatCard icon={<HardDrive size={22}/>} label="Record totali" value={formatNumber(data.summary.totalRecords)} note={`Dimensione ${data.summary.totalSizeLabel}`} tone="success"/>
-        <StatCard icon={<Gauge size={22}/>} label="Frammentazione SQLite" value={formatPercent(data.summary.sqliteFragmentationPct)} note={data.sqlite.exists ? `${data.sqlite.freePages} pagine libere` : 'Snapshot non presente'} tone={data.sqlite.fragmentationPct > 20 ? 'warning' : 'info'}/>
-        <StatCard icon={<CloudUpload size={22}/>} label="Migrabili SQLite" value={formatNumber(data.summary.modulesMigratableSqlite)} note={`${data.sqlite.tables.length} tabelle nello snapshot`} tone="purple"/>
+        <StatCard icon={<Gauge size={22}/>} label="Frammentazione SQLite" value={formatPercent(data.summary.sqliteFragmentationPct)} note={data.sqlite.exists ? `${data.sqlite.freePages} pagine libere` : 'Rilevazione non presente'} tone={data.sqlite.fragmentationPct > 20 ? 'warning' : 'info'}/>
+        <StatCard icon={<CloudUpload size={22}/>} label="Migrabili SQLite" value={formatNumber(data.summary.modulesMigratableSqlite)} note={`${data.sqlite.tables.length} tabelle nella rilevazione`} tone="purple"/>
         <StatCard icon={<ShieldCheck size={22}/>} label="Presidio" value={statusSummary.errors ? 'Critico' : 'Attivo'} note={`${statusSummary.warnings} avvisi configurazione`} tone={statusSummary.errors ? 'danger' : statusSummary.warnings ? 'warning' : 'success'}/>
       </section>
 
@@ -432,7 +432,7 @@ export function AdminDatabasePage() {
 
           <Panel
             title="Ottimizzazione"
-            subtitle="Compatta e normalizza i file gestiti dal repository dati."
+            subtitle="Compatta e normalizza i file gestiti dagli archivi dati."
             icon={<Zap size={17}/>}
             action={(
               <button type="button" className="iu-button iu-button--primary" onClick={runOptimization} disabled={optimization.status === 'loading'}>
@@ -440,13 +440,13 @@ export function AdminDatabasePage() {
               </button>
             )}
           >
-            <OperationAlert state={optimization as OperationState<unknown>} idleText="L'ottimizzazione usa la route amministrativa esistente e registra audit."/>
+            <OperationAlert state={optimization as OperationState<unknown>} idleText="L'ottimizzazione usa il comando amministrativo esistente e registra l'esito."/>
             <OptimizationResult result={optimization.payload}/>
           </Panel>
         </div>
 
         <aside className="iu-db-sidecol">
-          <Panel title="SQLite" subtitle={data.sqlite.exists ? `Snapshot ${data.sqlite.sizeLabel}` : 'Snapshot non ancora disponibile'} icon={<HardDrive size={17}/>}>
+          <Panel title="SQLite" subtitle={data.sqlite.exists ? `Archivio ${data.sqlite.sizeLabel}` : 'Rilevazione non ancora disponibile'} icon={<HardDrive size={17}/>}>
             <div className="iu-db-sqlite">
               <div className="iu-db-sqlite__status">
                 <Badge tone={data.sqlite.exists ? 'success' : 'warning'}>{data.sqlite.exists ? 'Presente' : 'Assente'}</Badge>
@@ -467,7 +467,7 @@ export function AdminDatabasePage() {
                   <HardDrive size={15}/>Attiva SQLite
                 </button>
               </div>
-              <OperationAlert state={migration as OperationState<unknown>} idleText="Migrazione e attivazione usano i POST amministrativi già auditati."/>
+              <OperationAlert state={migration as OperationState<unknown>} idleText="Migrazione e attivazione usano operazioni amministrative tracciate."/>
               <MigrationResult result={migration.payload}/>
               {data.sqlite.tables.length ? (
                 <div className="iu-db-sqlite__tables">
@@ -479,7 +479,7 @@ export function AdminDatabasePage() {
             </div>
           </Panel>
 
-          <Panel title="Analisi uso" subtitle="Lettura audit amministrativa" icon={<Gauge size={17}/>}>
+          <Panel title="Analisi uso" subtitle="Lettura del registro amministrativo" icon={<Gauge size={17}/>}>
             <UsagePanel data={data}/>
           </Panel>
 
@@ -495,7 +495,7 @@ export function AdminDatabasePage() {
       <FloatingLex
         context="database"
         title="Lex AI Database"
-        body="Lex riceve il contesto della gestione database: moduli dati, migrazione SQLite, audit, export e controlli di integrità."
+        body="Lex riceve il contesto della gestione database: moduli dati, migrazione SQLite, registro, esportazioni e controlli di integrità."
         primaryHref="#lex"
         primaryLabel="Apri Lex database"
         secondaryHref={data.actions.audit}

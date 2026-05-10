@@ -458,7 +458,7 @@ def _operative_cards(summary: dict[str, int]) -> list[dict[str, Any]]:
         _card(
             "bulk-complete",
             "Completa selezionate",
-            "Azione massiva collegata alla route operativa Flask: seleziona le righe e chiudi i termini lavorati.",
+            "Seleziona le righe e chiudi insieme i termini gia lavorati.",
             "bulk",
             "success",
             "check",

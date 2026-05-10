@@ -1,4 +1,4 @@
-import { apiJson } from './lib/apiClient'
+import { apiJson, apiPostJson } from './lib/apiClient'
 import { sanitizeDisplayText } from './displayText'
 import type { AdminAction, AdminContract, AdminMetric, AdminSection, AdminTone, AdminWarning } from './utentiData'
 
@@ -23,6 +23,38 @@ export type RedazioneAttiPageData = {
   forms: []
   warnings: AdminWarning[]
   summary: string
+  production: RedazioneProduction
+}
+
+export type RedazioneField = {
+  name: string
+  label: string
+  type: string
+  required: boolean
+  value: string
+  options: Array<{ value: string; label: string }>
+}
+
+export type RedazioneModel = {
+  code: string
+  title: string
+  area: string
+  summary: string
+  fields: RedazioneField[]
+}
+
+export type RedazioneProduction = {
+  defaultModelCode: string
+  models: RedazioneModel[]
+  endpoint: string
+}
+
+export type RedazioneProduceResult = {
+  ok: boolean
+  title: string
+  preview: string
+  errors: Record<string, string>
+  warnings: string[]
 }
 
 export const emptyRedazioneAttiPage: RedazioneAttiPageData = {
@@ -40,6 +72,7 @@ export const emptyRedazioneAttiPage: RedazioneAttiPageData = {
   forms: [],
   warnings: [],
   summary: '',
+  production: { defaultModelCode: '', models: [], endpoint: '/api/v1/ui/redazione-atti/produci' },
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -138,6 +171,40 @@ function normaliseRecord(input: unknown): RedazioneAttiRecord {
   }
 }
 
+function normaliseField(input: unknown): RedazioneField {
+  const item = asRecord(input)
+  return {
+    name: text(item.name) || 'campo',
+    label: display(item.label) || 'Campo',
+    type: text(item.type) || 'text',
+    required: item.required === true,
+    value: text(item.value),
+    options: list(item.options).map((option) => {
+      const row = asRecord(option)
+      return { value: text(row.value), label: display(row.label) || text(row.value) }
+    }),
+  }
+}
+
+function normaliseProduction(input: unknown): RedazioneProduction {
+  const item = asRecord(input)
+  const models = list(item.models).map((modelInput) => {
+    const model = asRecord(modelInput)
+    return {
+      code: text(model.code),
+      title: display(model.title) || text(model.code),
+      area: display(model.area),
+      summary: display(model.summary),
+      fields: list(model.fields).map(normaliseField).filter((field) => field.name),
+    }
+  }).filter((model) => model.code)
+  return {
+    defaultModelCode: text(item.defaultModelCode ?? item.default_model_code) || models[0]?.code || '',
+    models,
+    endpoint: safeHref(item.endpoint, '/api/v1/ui/redazione-atti/produci'),
+  }
+}
+
 function normalisePage(input: unknown): RedazioneAttiPageData {
   const page = asRecord(input)
   const contracts = asRecord(page.contracts)
@@ -157,10 +224,26 @@ function normalisePage(input: unknown): RedazioneAttiPageData {
     forms: [],
     warnings: list(page.warnings).map(normaliseWarning),
     summary: display(page.summary),
+    production: normaliseProduction(page.production),
   }
 }
 
 export async function getRedazioneAttiPage(): Promise<RedazioneAttiPageData> {
   const payload = await apiJson<unknown>('/api/v1/ui/redazione-atti', emptyRedazioneAttiPage)
   return normalisePage(payload)
+}
+
+export async function produceRedazioneAtto(endpoint: string, modelCode: string, values: Record<string, string>): Promise<RedazioneProduceResult> {
+  const payload = await apiPostJson<Record<string, unknown>>(
+    endpoint || '/api/v1/ui/redazione-atti/produci',
+    { modelCode, values },
+    { ok: false, errors: { generale: 'Produzione non completata.' } },
+  )
+  return {
+    ok: payload.ok === true,
+    title: display(payload.title) || 'Anteprima atto',
+    preview: text(payload.preview),
+    errors: asRecord(payload.errors) as Record<string, string>,
+    warnings: list(payload.warnings).map((item) => display(item)).filter(Boolean),
+  }
 }

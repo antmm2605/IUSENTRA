@@ -212,7 +212,7 @@ def build_react_profili_payload(
             "read": "/api/v1/ui/profili",
             "save": "/api/v1/ui/profili",
             "users": "/utenti",
-            "rollback": {"label": "Rollback tecnico", "href": "/profili?_legacy=1", "method": "GET"},
+            "rollback": {"label": "Percorso di recupero", "href": "/profili?_legacy=1", "method": "GET"},
         },
         "warnings": [] if can_write else [
             {
@@ -246,7 +246,7 @@ def build_react_profili_payload(
                 "id": "utenti",
                 "label": "Utenti collegati",
                 "value": len(all_users),
-                "note": "Account nel repository corrente",
+                "note": "Account nell'archivio corrente",
                 "tone": "info",
             },
         ],
@@ -344,7 +344,7 @@ def build_react_profili_error_payload(message: str = "Profili non disponibili.")
             "read": "/api/v1/ui/profili",
             "save": "",
             "users": "/utenti",
-            "rollback": {"label": "Rollback tecnico", "href": "/profili?_legacy=1", "method": "GET"},
+            "rollback": {"label": "Percorso di recupero", "href": "/profili?_legacy=1", "method": "GET"},
         },
         "warnings": [{"code": "profili_errore_controllato", "message": message}],
         "metrics": [],

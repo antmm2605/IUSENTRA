@@ -65,6 +65,7 @@ _ROUTE_COMPONENTS: tuple[tuple[str, str], ...] = (
     ("/preventivi/nuovo", "src/components/PreventiviPage.tsx"),
     ("/preventivi", "src/components/PreventiviPage.tsx"),
     ("/compensi-forensi", "src/components/CompensiForensiPage.tsx"),
+    ("/template-atti", "src/components/TemplateAttiPage.tsx"),
     ("/redazione-atti", "src/components/RedazioneAttiPage.tsx"),
     ("/statistiche", "src/components/StatistichePage.tsx"),
     ("/ricerca-legale", "src/components/LegalIntelligencePage.tsx"),
@@ -262,7 +263,7 @@ def _deve_mantenere_vista_classica() -> bool:
         return True
     if lower.startswith("/backup/"):
         return True
-    if lower.startswith("/sito-studio/") and lower not in {"/sito-studio/builder", "/sito-studio/contatti", "/sito-studio/redazione-ai"}:
+    if lower.startswith("/sito-studio/") and lower not in {"/sito-studio/contatti"}:
         return True
     if lower.startswith("/studio/"):
         return True

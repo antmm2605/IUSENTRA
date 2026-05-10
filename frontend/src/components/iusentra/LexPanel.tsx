@@ -62,7 +62,7 @@ export function LexPanel({
         />
       )}
       <footer>
-        <span><ShieldCheck aria-hidden="true" /> Privacy e tenant governati dai servizi applicativi</span>
+        <span><ShieldCheck aria-hidden="true" /> Privacy e studio governati dai controlli operativi</span>
         <span><Sparkles aria-hidden="true" /> Revisione professionale richiesta</span>
       </footer>
     </aside>

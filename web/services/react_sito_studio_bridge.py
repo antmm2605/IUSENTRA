@@ -250,8 +250,8 @@ def build_react_sito_studio_payload(
         + [_page(row, "office") for row in dashboard.get("offices", [])]
     )
     warnings = [
-        {"code": "builder_react_operativo", "message": "Builder, pagine, redazione AI e pubblicazione sono disponibili nelle superfici React dedicate."},
-        {"code": "notifiche_non_introdotte", "message": "Questa dashboard non invia email, SMS o WhatsApp e non crea automazioni."},
+        {"code": "editor_sito_operativo", "message": "Editor sito, pagine, redazione assistita e pubblicazione sono disponibili nei percorsi dedicati."},
+        {"code": "notifiche_non_introdotte", "message": "Questo cruscotto non invia email, SMS o WhatsApp e non crea automazioni."},
         *[
             {"code": "sito_studio", "message": _text(message)}
             for message in dashboard.get("warnings", [])
@@ -280,7 +280,7 @@ def build_react_sito_studio_payload(
         "actions": [
             _action("contatti", "Apri contatti sito", "/sito-studio/contatti", "primary"),
             _action("public", "Apri sito pubblico", site_summary["publicUrl"], "success") if site_summary["publicUrl"] else _action("public-disabled", "Sito pubblico non disponibile", "/sito-studio", "neutral"),
-            _action("builder", "Apri Builder sito", "/sito-studio/builder", "primary"),
+            _action("builder", "Apri editor sito", "/sito-studio/builder", "primary"),
             _action("redazione-ai", "Apri Redazione AI", "/sito-studio/redazione-ai", "primary"),
             _action("recupero", "Percorso di recupero", "/sito-studio?_legacy=1", "neutral", protected=True),
         ],
@@ -321,7 +321,7 @@ def build_react_sito_contatti_payload(
         "ok": True,
         "source": "repository_reali",
         "generated_at": _iso_now(),
-        "contracts": _contracts("/sito-studio/contatti", writes="azioni_protette"),
+        "contracts": _contracts("/sito-studio/contatti", writes="json_api"),
         "entrypoints": {
             "publicSite": public_site_url,
             "publicContact": f"/web/{public_slug}/contatti" if public_slug else public_site_url,
@@ -357,31 +357,31 @@ def _find_contact(submission_id: int) -> tuple[int, Any, dict[str, Any] | None]:
     return site_id, repo, row
 
 
-def _mutation_error(message: str, field: str = "payload") -> dict[str, Any]:
+def _mutation_error(message: str, field: str = "form") -> dict[str, Any]:
     return {"ok": False, "message": message, "errors": {field: message}, "item": None}
 
 
 def update_react_sito_contatto_status(_id_contatto: str, _payload: dict[str, Any]) -> dict[str, Any]:
-    return _mutation_error("Cambio stato contatto non supportato dal backend legacy corrente.", "status")
+    return _mutation_error("Cambio stato contatto non disponibile nel percorso corrente.", "status")
 
 
 def archive_react_sito_contatto(_id_contatto: str, _payload: dict[str, Any]) -> dict[str, Any]:
-    return _mutation_error("Archiviazione contatto non supportata dal backend legacy corrente.", "archive")
+    return _mutation_error("Archiviazione contatto non disponibile nel percorso corrente.", "archive")
 
 
 def add_react_sito_contatto_note(_id_contatto: str, _payload: dict[str, Any]) -> dict[str, Any]:
-    return _mutation_error("Nota interna contatto non supportata dal backend legacy corrente.", "note")
+    return _mutation_error("Nota interna contatto non disponibile nel percorso corrente.", "note")
 
 
 def assign_react_sito_contatto(_id_contatto: str, _payload: dict[str, Any]) -> dict[str, Any]:
-    return _mutation_error("Assegnazione contatto non supportata dal backend legacy corrente.", "assignee")
+    return _mutation_error("Assegnazione contatto non disponibile nel percorso corrente.", "assignee")
 
 
 def link_react_sito_contatto(id_contatto: str, payload: dict[str, Any], *, get_clienti: Loader | None = None) -> dict[str, Any]:
     allowed = {"mode", "cliente_id"}
     unknown = sorted(set(payload) - allowed)
     if unknown:
-        return _mutation_error(f"Campi non ammessi: {', '.join(unknown)}.", "payload")
+        return _mutation_error(f"Campi non ammessi: {', '.join(unknown)}.", "form")
     contact_id = _int(id_contatto)
     if contact_id <= 0:
         return _mutation_error("Identificativo contatto non valido.", "id_contatto")
@@ -428,7 +428,7 @@ def update_react_sito_booking_status(id_prenotazione: str, payload: dict[str, An
     allowed = {"status"}
     unknown = sorted(set(payload) - allowed)
     if unknown:
-        return _mutation_error(f"Campi non ammessi: {', '.join(unknown)}.", "payload")
+        return _mutation_error(f"Campi non ammessi: {', '.join(unknown)}.", "form")
     booking_id = _int(id_prenotazione)
     status = _text(payload.get("status")).lower()
     if booking_id <= 0:

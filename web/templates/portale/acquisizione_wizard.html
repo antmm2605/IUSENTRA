@@ -520,7 +520,7 @@ function awSetAccessBusy(busy) {
 function awRememberPstSession(data, tribunale, purpose = 'view') {
   const sid = String(data?.pst_session_id || '').trim();
   if (!sid) return null;
-  const ttl = Number(data?.pst_session_ttl_seconds || 900);
+  const ttl = Number(data?.pst_session_ttl_seconds || 1800);
   const normalizedPurpose = String(data?.pst_session_purpose || purpose || 'view').trim().toLowerCase() === 'import' ? 'import' : 'view';
   const saved = {
     session_id: sid,
@@ -2201,6 +2201,13 @@ async function awEnsurePstPreviewDocumentCatalog({ force = false } = {}) {
   if (!awShouldImportPortalFiles(options)) return 0;
   const currentDocs = awSelectedPreviewDocuments(options);
   if (!force && currentDocs.length) return currentDocs.length;
+  // Se lo snapshot è già in memoria il PIN di visualizzazione è già stato inserito:
+  // rielaboriamo i documenti dal catalogo locale senza richiedere nuova autenticazione.
+  if (!force && (AW_STATE.pstSnapshot?.documenti?.length ?? 0) > 0) {
+    const cached = AW_STATE.pstSnapshot.documenti;
+    await awApplyLocalSignerDocumentsToPreview(cached, { tab: 'documenti', refreshAnalysis: false });
+    return awSelectedPreviewDocuments(options).length || cached.length;
+  }
   if (!awCanPreviewPstViaBrowser(AW_STATE.selection)) return currentDocs.length;
   if (!AW_STATE.status.demo_mode) await awRefreshStatus({ force: true, probeSigner: true, light: true });
   await awEnsureLocalSignerReachable({ light: true });
@@ -2491,8 +2498,12 @@ async function awStartImport() {
   let selectedDocsCount = 0;
   try {
     if (!manualAuthorizedPayload && AW_BOOT.portale === 'pst' && awShouldImportPortalFiles(options)) {
-      state.innerHTML = 'Verifico il catalogo documenti PST e preparo il download reale dal Local Signer...';
-      await awEnsurePstPreviewDocumentCatalog();
+      const hasCatalog = awSelectedPreviewDocuments(options).length > 0 ||
+        (AW_STATE.pstSnapshot?.documenti?.length ?? 0) > 0;
+      if (!hasCatalog) {
+        state.innerHTML = 'Verifico il catalogo documenti PST e preparo il download reale dal Local Signer...';
+        await awEnsurePstPreviewDocumentCatalog();
+      }
     }
     selectedDocsCount = AW_STATE.preview ? awSelectedPreviewDocuments(options).length : 0;
     if (manualUploadedFiles.length && awShouldImportPortalFiles(options) && selectedDocsCount > 0) {
@@ -2507,7 +2518,7 @@ async function awStartImport() {
       };
       state.innerHTML = `<i class="bi bi-check-circle text-success me-1"></i>Upload manuale pronto: ${manualUploadedFiles.length} file selezionati. Importazione in corso...`;
     } else if (AW_BOOT.portale === 'pst' && awShouldImportPortalFiles(options) && selectedDocsCount > 0) {
-      state.innerHTML = 'Per scaricare e importare i documenti reali e richiesta una nuova conferma PIN: verra usata una sola volta per l’intero fascicolo...';
+      state.innerHTML = ‘Avvio download documenti PST tramite Local Signer. Se richiesto, inserire il PIN della smart card per autorizzare il download (diverso dal PIN di visualizzazione già usato)...’;
       downloadSummary = await awEnsurePstDownloadedFiles();
       downloadedFiles = Array.isArray(downloadSummary.files) ? downloadSummary.files : [];
       if (AW_STATE.downloadWarning) {

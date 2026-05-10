@@ -1,6 +1,6 @@
 # Pytest issue aperte e risoluzioni
 
-Aggiornato: 2026-05-09, sessione React Full / shard backend.
+Aggiornato: 2026-05-10, sessione React Full / shard backend.
 
 ## Regola operativa
 
@@ -10,6 +10,7 @@ Questo file e' la coda di lavoro. Prima di rilanciare test gia' passati, control
 
 | Area | Test / comando | Stato | Problema rilevato | Risoluzione |
 | --- | --- | --- | --- | --- |
+| Gate React / Tariffario sticky | `npm --prefix frontend run test` | Aperta | Il controllo `frontend/scripts/check-react-contracts.mjs` fallisce ancora su un'asserzione storica (`iu-tar-summary-sticky`) del Tariffario, non toccata dalla tranche Clienti/Soggetti. | Non blocca la consegna di eliminazione clienti/soggetti, ma va riallineato il contratto statico del Tariffario alla struttura corrente prima del prossimo giro di gate completo. |
 | React Sito Studio / Contatti | Browser reale `http://localhost:8080/sito-studio/contatti` | Risolto in hotfix 2026-05-09 | Con zero contatti e zero prenotazioni la pagina veniva fermata dallo stato vuoto globale, mostrando "Nessun contatto o prenotazione" e testo da repository invece della dashboard operativa. | La pagina ora renderizza sempre la superficie React quando il payload e' valido: ingressi pubblici, modulo contatti, prenotazione, pannelli contatti/prenotazioni e stati vuoti specifici; rimossi testi tecnici visibili. |
 | React nav / sezioni sidebar | Browser reale `Studio -> Statistiche -> Fascicoli` | Risolto in hotfix 2026-05-09 | La sidebar poteva accumulare o perdere sezioni aperte, rendendo poco stabile la navigazione tra cartelle operative. | La sidebar mantiene una sola cartella aperta: la sezione attiva resta aperta durante la navigazione interna e viene sostituita solo quando l'utente apre un'altra cartella. |
 | React Impostazioni / AI Locale PC locale | `tests/test_impostazioni_ai_locale_react.py` | Risolto in hotfix 2026-05-09 | La pagina React aveva gia' il client `localAi.ts`, ma serviva un presidio esplicito per evitare che vecchi asset o chiamate residue trattassero lo stato/preparazione AI come controllo solo server/cloud. | Aggiunti `react-ai-local-guard.js`, caricamento dalla shell React, regole in `AGENTS.md`/design system e test mirati: AI Locale passa da IUSENTRA Local Signer sul PC, offre `Prepara AI locale` e mantiene scelta modelli automatica. |

@@ -18,6 +18,7 @@ import {
   Search,
   ShieldCheck,
   Sparkles,
+  Trash2,
   UserPlus,
   UsersRound,
 } from 'lucide-react'
@@ -25,6 +26,8 @@ import { Badge, Button, Panel } from './dashboard'
 import { FloatingLex } from './FloatingLex'
 import {
   emptyClientiPage,
+  deleteCliente,
+  deleteClienti,
   formatClienteStatus,
   formatClienteType,
   getClientiPage,
@@ -121,12 +124,23 @@ function sortRows(rows: ClienteRow[], sort: SortKey): ClienteRow[] {
   return copy.sort((a, b) => a.name.localeCompare(b.name, 'it'))
 }
 
-function RowActions({ item }:{item: ClienteRow}) {
+function RowActions({
+  item,
+  deleting,
+  onDelete,
+}:{
+  item: ClienteRow
+  deleting: boolean
+  onDelete: (item: ClienteRow) => void
+}) {
   return (
     <div className="iu-cli-actions" aria-label={`Azioni cliente ${item.name}`}>
       <a href={item.href} aria-label="Apri scheda cliente"><Eye size={15}/></a>
       <a href={item.editHref} aria-label="Modifica cliente"><PencilLine size={15}/></a>
       <a href={item.folderHref} aria-label="Apri cartella cliente"><FolderOpen size={15}/></a>
+      <button type="button" onClick={() => onDelete(item)} disabled={deleting} aria-label={`Elimina cliente ${item.name}`}>
+        <Trash2 size={15}/>
+      </button>
     </div>
   )
 }
@@ -146,10 +160,14 @@ function ClienteMobileCard({
   item,
   checked,
   onToggle,
+  deleting,
+  onDelete,
 }:{
   item: ClienteRow
   checked: boolean
   onToggle: () => void
+  deleting: boolean
+  onDelete: (item: ClienteRow) => void
 }) {
   return (
     <article className="iu-cli-mobile-card">
@@ -169,7 +187,7 @@ function ClienteMobileCard({
       <footer>
         <Badge tone={qualityTone(item)}>{qualityLabel(item)}</Badge>
         <span><BriefcaseBusiness size={14}/> {item.activeMatters} attive</span>
-        <RowActions item={item}/>
+        <RowActions item={item} deleting={deleting} onDelete={onDelete}/>
       </footer>
     </article>
   )
@@ -180,11 +198,15 @@ function ClientiTable({
   selected,
   onToggle,
   onToggleAll,
+  deletingIds,
+  onDelete,
 }:{
   items: ClienteRow[]
   selected: Set<string>
   onToggle: (id: string) => void
   onToggleAll: () => void
+  deletingIds: Set<string>
+  onDelete: (item: ClienteRow) => void
 }) {
   const allSelected = items.length > 0 && items.every((item) => selected.has(item.id))
   return (
@@ -221,7 +243,7 @@ function ClientiTable({
                 <td><span className="iu-cli-matter-count">{item.matters}</span></td>
                 <td><Badge tone={qualityTone(item)}>{qualityLabel(item)}</Badge></td>
                 <td><Badge tone={item.tone}>{formatClienteStatus(item.status)}</Badge></td>
-                <td><RowActions item={item}/></td>
+                <td><RowActions item={item} deleting={deletingIds.has(item.id)} onDelete={onDelete}/></td>
               </tr>
             ))}
           </tbody>
@@ -229,7 +251,14 @@ function ClientiTable({
       </div>
       <div className="iu-cli-mobile-list">
         {items.map((item) => (
-          <ClienteMobileCard item={item} checked={selected.has(item.id)} onToggle={() => onToggle(item.id)} key={item.id}/>
+          <ClienteMobileCard
+            item={item}
+            checked={selected.has(item.id)}
+            onToggle={() => onToggle(item.id)}
+            deleting={deletingIds.has(item.id)}
+            onDelete={onDelete}
+            key={item.id}
+          />
         ))}
       </div>
       {!items.length ? <p className="iu-empty">Nessun cliente corrisponde ai filtri impostati.</p> : null}
@@ -299,6 +328,10 @@ export function AnagraficaClientiPage() {
   const [withoutContacts, setWithoutContacts] = useState(false)
   const [advancedOpen, setAdvancedOpen] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set())
+  const [bulkDeleting, setBulkDeleting] = useState(false)
+  const [feedback, setFeedback] = useState('')
+  const [error, setError] = useState('')
 
   const refresh = () => {
     setLoading(true)
@@ -327,7 +360,11 @@ export function AnagraficaClientiPage() {
     }), sort)
   }, [attorney, data.items, onlyIncomplete, query, sort, status, type, withoutContacts])
 
-  const selectedVisible = visible.filter((item) => selected.has(item.id)).length
+  const selectedIds = useMemo(
+    () => visible.filter((item) => selected.has(item.id)).map((item) => item.id),
+    [selected, visible],
+  )
+  const selectedVisible = selectedIds.length
   const toggle = (id: string) => {
     setSelected((current) => {
       const next = new Set(current)
@@ -342,6 +379,50 @@ export function AnagraficaClientiPage() {
       if (allSelected) return new Set([...current].filter((id) => !visible.some((item) => item.id === id)))
       return new Set([...current, ...visible.map((item) => item.id)])
     })
+  }
+
+  const handleDelete = async (item: ClienteRow) => {
+    if (!window.confirm(`Eliminare il cliente "${item.name}"?`)) return
+    setError('')
+    setFeedback('')
+    setDeletingIds((current) => new Set(current).add(item.id))
+    try {
+      const result = await deleteCliente(item.id)
+      setFeedback(result.message)
+      setSelected((current) => {
+        const next = new Set(current)
+        next.delete(item.id)
+        return next
+      })
+      refresh()
+    } catch (exc) {
+      setError(exc instanceof Error ? exc.message : 'Eliminazione cliente non riuscita.')
+    } finally {
+      setDeletingIds((current) => {
+        const next = new Set(current)
+        next.delete(item.id)
+        return next
+      })
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    if (!selectedIds.length) return
+    const label = selectedIds.length === 1 ? '1 cliente selezionato' : `${selectedIds.length} clienti selezionati`
+    if (!window.confirm(`Eliminare ${label}?`)) return
+    setError('')
+    setFeedback('')
+    setBulkDeleting(true)
+    try {
+      const result = await deleteClienti(selectedIds)
+      setFeedback(result.message)
+      setSelected((current) => new Set([...current].filter((id) => !selectedIds.includes(id))))
+      refresh()
+    } catch (exc) {
+      setError(exc instanceof Error ? exc.message : 'Eliminazione multipla clienti non riuscita.')
+    } finally {
+      setBulkDeleting(false)
+    }
   }
 
   return (
@@ -392,6 +473,8 @@ export function AnagraficaClientiPage() {
         <span className={loading ? '' : 'is-ok'}>{loading ? 'Sincronizzazione anagrafiche...' : 'Dati aggiornati'}</span>
         <small><ShieldCheck size={14}/> Dettaglio, modifica e invii usano i dati di studio senza duplicazioni.</small>
         {selectedVisible ? <small className="iu-cli-selected">{selectedVisible} selezionati</small> : null}
+        {feedback ? <small className="iu-cli-feedback">{feedback}</small> : null}
+        {error ? <small className="iu-cli-error">{error}</small> : null}
       </section>
 
       <section className="iu-cli-layout">
@@ -401,10 +484,20 @@ export function AnagraficaClientiPage() {
               <strong>{selectedVisible} clienti selezionati</strong>
               <a href="/clienti/esporta"><Download size={14}/> Esporta selezione</a>
               <a href="#lex" data-lex-open data-lex-context="clienti"><Sparkles size={14}/> Chiedi controllo a Lex</a>
+              <button type="button" onClick={handleBulkDelete} disabled={bulkDeleting}>
+                <Trash2 size={14}/> {bulkDeleting ? 'Eliminazione...' : 'Elimina selezione'}
+              </button>
               <button type="button" onClick={() => setSelected(new Set())}>Annulla</button>
             </div>
           ) : null}
-          <ClientiTable items={visible} selected={selected} onToggle={toggle} onToggleAll={toggleAll}/>
+          <ClientiTable
+            items={visible}
+            selected={selected}
+            onToggle={toggle}
+            onToggleAll={toggleAll}
+            deletingIds={deletingIds}
+            onDelete={handleDelete}
+          />
         </div>
         <InsightPanel data={data} visible={visible}/>
       </section>

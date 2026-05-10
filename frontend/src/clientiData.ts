@@ -24,6 +24,7 @@ export type ClienteRow = {
   href: string
   editHref: string
   folderHref: string
+  deleteHref: string
   tone: Tone
 }
 
@@ -158,6 +159,7 @@ function normalizeItem(value: unknown, index: number): ClienteRow {
     href: text(item.href, `/clienti/${encodeURIComponent(id)}`),
     editHref: text(item.editHref ?? item.edit_href, `/clienti/${encodeURIComponent(id)}/modifica`),
     folderHref: text(item.folderHref ?? item.folder_href, `/clienti/${encodeURIComponent(id)}/cartella`),
+    deleteHref: text(item.deleteHref ?? item.delete_href, `/clienti/${encodeURIComponent(id)}/elimina`),
     tone: statusTone(status),
   }
 }
@@ -247,4 +249,33 @@ export async function getClientiPage(): Promise<ClientiPageData> {
   } catch {
     return emptyClientiPage
   }
+}
+
+async function postDelete(url: string, ids: string[]): Promise<{ ok: boolean; message: string; deleted: string[] }> {
+  const response = await fetch(url, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ ids }),
+  })
+  const payload = await response.json().catch(() => ({}))
+  if (!response.ok || payload?.ok !== true) {
+    throw new Error(String(payload?.message || 'Eliminazione clienti non riuscita.'))
+  }
+  return {
+    ok: true,
+    message: String(payload?.message || 'Clienti eliminati.'),
+    deleted: Array.isArray(payload?.deleted) ? payload.deleted.map((item: unknown) => text(item)) : ids,
+  }
+}
+
+export async function deleteCliente(id: string): Promise<{ ok: boolean; message: string; deleted: string[] }> {
+  return postDelete('/api/v1/ui/clienti/delete', [id])
+}
+
+export async function deleteClienti(ids: string[]): Promise<{ ok: boolean; message: string; deleted: string[] }> {
+  return postDelete('/api/v1/ui/clienti/delete', ids)
 }

@@ -1,5 +1,24 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-10 - Eliminazione clienti e soggetti 2.214.2
+
+Questa tranche risponde alla richiesta di ripristinare l'eliminazione operativa
+nelle anagrafiche React senza tornare a form legacy:
+
+- `/clienti` espone di nuovo il tasto `Elimina` nelle azioni riga e nelle card
+  mobile, con selezione multipla visibile e azione `Elimina selezione`.
+- `/soggetti` adotta lo stesso pattern operativo: checkbox su tabella e mobile,
+  azione singola `Elimina` e cancellazione multipla dalla toolbar contestuale.
+- I payload React di clienti e soggetti includono ora `deleteHref`, mantenendo
+  coerenza con i percorsi operativi Flask gia' esistenti.
+- Gli endpoint `POST /api/v1/ui/clienti/delete` e
+  `POST /api/v1/ui/soggetti/delete` eseguono la cancellazione reale lato studio
+  e restituiscono esito JSON al client React.
+- Verifiche mirate locali: TypeScript e build Vite verdi; pytest mirati sulla
+  cancellazione clienti/soggetti verdi; il gate `check-react-contracts` resta
+  da riallineare su un'asserzione storica del Tariffario non collegata a questa
+  tranche.
+
 ## Stato tranche 2026-05-10 - Performance Tariffario e Preventivo guidato 2.214.1
 
 Questa tranche risponde alla richiesta di velocizzare `/tariffario` e

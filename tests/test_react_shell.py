@@ -3443,3 +3443,65 @@ def test_react_wizard_pro_nav_route_api_e_card_operative(tmp_path: Path):
     payload = api_response.get_json()
     assert payload["source"] == "repository_reali"
     assert payload["contracts"]["writes"] == "operational_routes"
+
+
+def test_react_clienti_delete_actions_presenti_e_endpoint_json_elimina(tmp_path: Path):
+    source = Path("frontend/src/components/AnagraficaClientiPage.tsx").read_text(encoding="utf-8")
+    data_source = Path("frontend/src/clientiData.ts").read_text(encoding="utf-8")
+
+    assert "Elimina selezione" in source
+    assert "deleteCliente" in source
+    assert "/api/v1/ui/clienti/delete" in data_source
+
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    cliente_repo = GestioneClienti(db_path=app.config["CLIENTI_DB"])
+    cliente_1 = cliente_repo.nuovo(TipoCliente.PERSONA_FISICA, nome="Anna", cognome="Rossi")
+    cliente_2 = cliente_repo.nuovo(TipoCliente.PERSONA_FISICA, nome="Luca", cognome="Bianchi")
+
+    with app.test_client() as client:
+        _login(client)
+        payload = client.get("/api/v1/ui/clienti").get_json()
+        rows = {item["id"]: item for item in payload["items"]}
+        assert rows[cliente_1.id]["deleteHref"].endswith(f"/clienti/{cliente_1.id}/elimina")
+        response = client.post("/api/v1/ui/clienti/delete", json={"ids": [cliente_1.id, cliente_2.id]})
+        payload_after = client.get("/api/v1/ui/clienti").get_json()
+
+    assert response.status_code == 200
+    result = response.get_json()
+    assert result["ok"] is True
+    assert set(result["deleted"]) == {cliente_1.id, cliente_2.id}
+    cliente_ids_after = {item["id"] for item in payload_after["items"]}
+    assert cliente_1.id not in cliente_ids_after
+    assert cliente_2.id not in cliente_ids_after
+
+
+def test_react_soggetti_delete_actions_presenti_e_endpoint_json_elimina(tmp_path: Path):
+    source = Path("frontend/src/components/SoggettiPage.tsx").read_text(encoding="utf-8")
+    data_source = Path("frontend/src/soggettiData.ts").read_text(encoding="utf-8")
+
+    assert "Elimina selezione" in source
+    assert "deleteSoggetto" in source
+    assert "/api/v1/ui/soggetti/delete" in data_source
+
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    soggetti = GestioneSoggetti(app.config["SOGGETTI_DB"], app.config["SOGGETTI_PARTI_DB"])
+    soggetto_1 = soggetti.crea(TipoSoggetto.PERSONA_FISICA, nome="Mario", cognome="Verdi")
+    soggetto_2 = soggetti.crea(TipoSoggetto.PERSONA_FISICA, nome="Giulia", cognome="Neri")
+
+    with app.test_client() as client:
+        _login(client)
+        payload = client.get("/api/v1/ui/soggetti").get_json()
+        rows = {item["id"]: item for item in payload["items"]}
+        assert rows[soggetto_1.id]["deleteHref"].endswith(f"/soggetti/{soggetto_1.id}/elimina")
+        response = client.post("/api/v1/ui/soggetti/delete", json={"ids": [soggetto_1.id, soggetto_2.id]})
+        payload_after = client.get("/api/v1/ui/soggetti").get_json()
+
+    assert response.status_code == 200
+    result = response.get_json()
+    assert result["ok"] is True
+    assert set(result["deleted"]) == {soggetto_1.id, soggetto_2.id}
+    soggetti_ids_after = {item["id"] for item in payload_after["items"]}
+    assert soggetto_1.id not in soggetti_ids_after
+    assert soggetto_2.id not in soggetti_ids_after

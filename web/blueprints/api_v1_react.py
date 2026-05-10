@@ -421,6 +421,18 @@ def _core_runtime_func(name: str) -> Callable[..., Any] | None:
     return func if callable(func) else None
 
 
+def _audit_event(action: str, resource_type: str = "", resource_id: str = "", details: str = "") -> None:
+    audit = _core_runtime_func("audit")
+    if callable(audit):
+        audit(action, resource_type, resource_id, details)
+
+
+def _sync_event(kind: str, module: str, resource_id: str = "") -> None:
+    sync_pubblica = _core_runtime_func("sync_pubblica")
+    if callable(sync_pubblica):
+        sync_pubblica(kind, module, resource_id)
+
+
 def _actor_label() -> str:
     utente = g.get("utente_corrente")
     return str(
@@ -1311,6 +1323,34 @@ def clienti_react_list():
         })
 
 
+@api_v1_react.post("/clienti/delete")
+@_richiedi_auth
+def clienti_react_delete():
+    payload, error = _request_json_object()
+    if error:
+        return error
+    ids = [str(item or "").strip() for item in list(payload.get("ids") or []) if str(item or "").strip()]
+    if not ids:
+        return _json_validation_error("Seleziona almeno un cliente da eliminare.", {"ids": "Nessun cliente selezionato."}, status=400)
+    clienti_repo = get_clienti()
+    deleted: list[str] = []
+    missing: list[str] = []
+    for cliente_id in ids:
+        try:
+            clienti_repo.elimina(cliente_id)
+            _sync_event("elimina", "clienti", cliente_id)
+            deleted.append(cliente_id)
+        except KeyError:
+            missing.append(cliente_id)
+    if not deleted:
+        return jsonify({"ok": False, "message": "Nessun cliente eliminato.", "deleted": [], "missing": missing}), 404
+    if len(deleted) == 1:
+        message = "Cliente eliminato."
+    else:
+        message = f"{len(deleted)} clienti eliminati."
+    return jsonify({"ok": True, "message": message, "deleted": deleted, "missing": missing})
+
+
 @api_v1_react.get("/clienti/nuovo")
 @_richiedi_auth
 def clienti_react_nuovo():
@@ -1360,6 +1400,36 @@ def soggetti_react_list():
         get_soggetti=get_soggetti,
         get_clienti=get_clienti,
     ))
+
+
+@api_v1_react.post("/soggetti/delete")
+@_richiedi_auth
+def soggetti_react_delete():
+    payload, error = _request_json_object()
+    if error:
+        return error
+    ids = [str(item or "").strip() for item in list(payload.get("ids") or []) if str(item or "").strip()]
+    if not ids:
+        return _json_validation_error("Seleziona almeno un soggetto da eliminare.", {"ids": "Nessun soggetto selezionato."}, status=400)
+    soggetti_repo = get_soggetti()
+    deleted: list[str] = []
+    missing: list[str] = []
+    for soggetto_id in ids:
+        try:
+            soggetto = soggetti_repo.get(soggetto_id)
+            nome = str(getattr(soggetto, "nome_completo", "") or "").strip()
+            soggetti_repo.elimina(soggetto_id)
+            _audit_event("soggetti.elimina", "soggetto", soggetto_id, nome)
+            deleted.append(soggetto_id)
+        except KeyError:
+            missing.append(soggetto_id)
+    if not deleted:
+        return jsonify({"ok": False, "message": "Nessun soggetto eliminato.", "deleted": [], "missing": missing}), 404
+    if len(deleted) == 1:
+        message = "Soggetto eliminato."
+    else:
+        message = f"{len(deleted)} soggetti eliminati."
+    return jsonify({"ok": True, "message": message, "deleted": deleted, "missing": missing})
 
 
 @api_v1_react.get("/soggetti/<id_soggetto>/modifica")

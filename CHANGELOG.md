@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.214.2 - 2026-05-10
+
+- Ripristinato nelle pagine `/clienti` e `/soggetti` il tasto operativo `Elimina` direttamente nelle azioni riga, sia in tabella sia nelle card mobile.
+- Aggiunta la cancellazione multipla nelle due anagrafiche React: selezione visibile, conferma esplicita, feedback di esito e refresh dei dati reali di studio.
+- Estesi i bridge JSON React con `deleteHref` ed endpoint `POST /api/v1/ui/clienti/delete` e `POST /api/v1/ui/soggetti/delete`, senza reintrodurre form HTML nel flusso principale.
+- Aggiunti test anti-regressione mirati su payload React ed eliminazione singola/multipla di clienti e soggetti.
+
 ## 2.214.1 - 2026-05-10
 
 - Aggiunta in `/preventivi/` la voce operativa `Preventivo guidato`, collegata a `/preventivi/wizard`, come azione primaria dell'archivio e degli stati vuoti.

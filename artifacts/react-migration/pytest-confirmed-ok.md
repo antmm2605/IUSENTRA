@@ -1,12 +1,20 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-09, sessione React Full / shard backend.
+Aggiornato: 2026-05-10, sessione React Full / shard backend.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Hotfix eliminazione clienti e soggetti 2.214.2
+
+| Verifica | Esito | Nota |
+| --- | --- | --- |
+| `npm --prefix frontend run typecheck` | OK | TypeScript confermato dopo aggiunta delete singolo/multiplo su Clienti e Soggetti. |
+| `npm --prefix frontend run build` | OK | Build Vite 2.214.2 completata; asset React rigenerati in `web/static/react`. |
+| `python -m pytest tests/test_react_shell.py -k "clienti_delete or soggetti_delete"` | OK | 2 test mirati verdi: payload React con `deleteHref` e endpoint JSON di eliminazione clienti/soggetti. |
 
 ### Hotfix Tariffario e Preventivo guidato 2.214.1
 

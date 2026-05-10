@@ -248,6 +248,7 @@ def build_react_clienti_payload(*, get_clienti: Callable[[], Any], get_fascicoli
             "href": f"/clienti/{item_id}",
             "editHref": f"/clienti/{item_id}/modifica",
             "folderHref": f"/clienti/{item_id}/cartella",
+            "deleteHref": f"/clienti/{item_id}/elimina",
             "tone": _tone(status),
         })
 

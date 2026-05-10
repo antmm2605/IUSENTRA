@@ -18,6 +18,13 @@
 .iu-sogg-toolbar input,.iu-sogg-toolbar select{width:100%;border:0;outline:0;background:transparent;color:#0f172a;font-weight:750}
 .iu-sogg-toolbar button{border:1px solid var(--iu-border);border-radius:12px;background:#fff;color:#0f172a;font-weight:900;cursor:pointer}
 .iu-sogg-toolbar button.is-active{border-color:rgba(245,158,11,.35);background:rgba(245,158,11,.12);color:#92400e}
+.iu-sogg-status{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px;color:var(--iu-slate-500);font-size:12px;font-weight:820}
+.iu-sogg-status>span{display:inline-flex;align-items:center;min-height:28px;padding:0 10px;border-radius:999px;background:rgba(37,99,235,.08);color:var(--iu-blue-700)}
+.iu-sogg-status>span.is-ok{background:rgba(16,185,129,.1);color:#047857}
+.iu-sogg-status small{display:inline-flex;align-items:center;gap:6px}
+.iu-sogg-status__selected{color:#b45309}
+.iu-sogg-status__feedback{color:#047857}
+.iu-sogg-status__error{color:#b91c1c}
 
 .iu-sogg-focus{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(260px,.8fr);gap:14px;align-items:start;margin-bottom:14px;padding:18px;border:1px solid rgba(37,99,235,.18);border-radius:20px;background:linear-gradient(135deg,#fff,#eff6ff);box-shadow:var(--iu-shadow-soft)}
 .iu-sogg-back{display:inline-flex;align-items:center;gap:7px;margin-bottom:8px;color:var(--iu-blue-700);font-size:12px;font-weight:950;text-decoration:none}
@@ -33,6 +40,9 @@
 .iu-sogg-focus small{grid-column:1/-1;display:inline-flex;align-items:center;gap:6px;color:#64748b;font-size:12px;font-weight:750}
 
 .iu-sogg-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,360px);gap:16px;align-items:start}
+.iu-sogg-bulkbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;min-height:42px;margin-bottom:10px;padding:8px 12px;border:1px solid rgba(37,99,235,.18);border-radius:14px;background:rgba(37,99,235,.07);color:#0f172a}
+.iu-sogg-bulkbar button{display:inline-flex;align-items:center;gap:6px;min-height:30px;padding:0 10px;border:1px solid var(--iu-border);border-radius:9px;background:#fff;color:var(--iu-blue-700);font-size:12px;font-weight:850;cursor:pointer}
+.iu-sogg-bulkbar button[disabled]{opacity:.65;cursor:progress}
 .iu-sogg-table-card{border:1px solid var(--iu-border);border-radius:18px;background:#fff;box-shadow:var(--iu-shadow-soft);overflow:hidden}
 .iu-sogg-table-head{min-height:54px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 16px;border-bottom:1px solid var(--iu-border)}
 .iu-sogg-table-head strong{font-size:14px;font-weight:950;color:#0f172a}
@@ -48,12 +58,15 @@
 .iu-sogg-contact svg{color:var(--iu-blue-600)}
 .iu-sogg-muted{color:var(--iu-slate-400);font-size:12px;font-weight:750}
 .iu-sogg-actions{display:flex;align-items:center;gap:6px}
-.iu-sogg-actions a{width:31px;height:31px;display:grid;place-items:center;border:1px solid var(--iu-border);border-radius:10px;background:#fff;color:#0f172a}
-.iu-sogg-actions a:hover{border-color:rgba(37,99,235,.35);color:var(--iu-blue-700)}
+.iu-sogg-actions a,.iu-sogg-actions button{width:31px;height:31px;display:grid;place-items:center;border:1px solid var(--iu-border);border-radius:10px;background:#fff;color:#0f172a}
+.iu-sogg-actions button{cursor:pointer}
+.iu-sogg-actions a:hover,.iu-sogg-actions button:hover{border-color:rgba(37,99,235,.35);color:var(--iu-blue-700)}
+.iu-sogg-actions button[disabled]{opacity:.6;cursor:progress}
 
 .iu-sogg-mobile-list{display:none}
 .iu-sogg-mobile-card{border:1px solid var(--iu-border);border-radius:16px;background:#fff;box-shadow:var(--iu-shadow-soft);padding:14px}
 .iu-sogg-mobile-card header,.iu-sogg-mobile-card footer{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.iu-sogg-mobile-card__select{display:flex;align-items:center;gap:8px;min-width:0}
 .iu-sogg-mobile-card header a{color:#0f172a;font-size:15px;font-weight:950;text-decoration:none}
 .iu-sogg-mobile-card p{margin:8px 0;color:var(--iu-slate-600);font-size:13px;font-weight:750}
 .iu-sogg-mobile-card dl{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:10px 0}

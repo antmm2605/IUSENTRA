@@ -96,6 +96,7 @@ def _subject_items(soggetti_repo: Any, soggetti: list[Any], clienti: list[Any]) 
             ],
             "href": f"/soggetti/{item_id}",
             "editHref": f"/soggetti/{item_id}/modifica",
+            "deleteHref": f"/soggetti/{item_id}/elimina",
             "tone": _tone(tipo),
         })
     return rows

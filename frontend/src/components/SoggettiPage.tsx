@@ -14,6 +14,7 @@ import {
   Search,
   ShieldCheck,
   Sparkles,
+  Trash2,
   UserPlus,
   UserRound,
   UsersRound,
@@ -21,6 +22,8 @@ import {
 import { Badge, Panel } from './dashboard'
 import { FloatingLex } from './FloatingLex'
 import {
+  deleteSoggetti,
+  deleteSoggetto,
   emptySoggettiPage,
   getSoggettiPage,
   type SoggettiPageData,
@@ -109,16 +112,42 @@ function ContactBlock({ item }:{item: SoggettoRow}) {
   )
 }
 
-function RowActions({ item }:{item: SoggettoRow}) {
+function RowActions({
+  item,
+  deleting,
+  onDelete,
+}:{
+  item: SoggettoRow
+  deleting: boolean
+  onDelete: (item: SoggettoRow) => void
+}) {
   return (
     <div className="iu-sogg-actions" aria-label={`Azioni soggetto ${item.name}`}>
       <a href={item.href} aria-label="Apri soggetto"><Eye size={15}/></a>
       <a href={item.editHref} aria-label="Modifica soggetto"><PencilLine size={15}/></a>
+      <button type="button" onClick={() => onDelete(item)} disabled={deleting} aria-label={`Elimina soggetto ${item.name}`}>
+        <Trash2 size={15}/>
+      </button>
     </div>
   )
 }
 
-function SoggettiTable({ items }:{items: SoggettoRow[]}) {
+function SoggettiTable({
+  items,
+  selected,
+  onToggle,
+  onToggleAll,
+  deletingIds,
+  onDelete,
+}:{
+  items: SoggettoRow[]
+  selected: Set<string>
+  onToggle: (id: string) => void
+  onToggleAll: () => void
+  deletingIds: Set<string>
+  onDelete: (item: SoggettoRow) => void
+}) {
+  const allSelected = items.length > 0 && items.every((item) => selected.has(item.id))
   return (
     <section className="iu-sogg-table-card" aria-label="Elenco soggetti e parti">
       <div className="iu-sogg-table-head">
@@ -129,6 +158,7 @@ function SoggettiTable({ items }:{items: SoggettoRow[]}) {
         <table className="iu-sogg-table">
           <thead>
             <tr>
+              <th><input type="checkbox" checked={allSelected} onChange={onToggleAll} aria-label="Seleziona tutti i soggetti visibili"/></th>
               <th>Soggetto</th>
               <th>Tipo</th>
               <th>Ruolo / qualifica</th>
@@ -143,6 +173,7 @@ function SoggettiTable({ items }:{items: SoggettoRow[]}) {
           <tbody>
             {items.map((item) => (
               <tr key={item.id}>
+                <td><input type="checkbox" checked={selected.has(item.id)} onChange={() => onToggle(item.id)} aria-label={`Seleziona ${item.name}`}/></td>
                 <td className="iu-sogg-title-cell"><a href={item.href}>{item.name}</a><span>{item.city ? `${item.city} ${item.province ? `(${item.province})` : ''}` : 'Anagrafica soggetto'}</span></td>
                 <td><Badge tone={item.tone}>{item.typeLabel}</Badge></td>
                 <td>{item.role.replaceAll('_', ' ')}</td>
@@ -151,7 +182,7 @@ function SoggettiTable({ items }:{items: SoggettoRow[]}) {
                 <td>{item.clientName || <span className="iu-sogg-muted">Non collegato</span>}</td>
                 <td>{item.matters}</td>
                 <td><Badge tone={qualityTone(item)}>{qualityLabel(item)}</Badge></td>
-                <td><RowActions item={item}/></td>
+                <td><RowActions item={item} deleting={deletingIds.has(item.id)} onDelete={onDelete}/></td>
               </tr>
             ))}
           </tbody>
@@ -161,11 +192,26 @@ function SoggettiTable({ items }:{items: SoggettoRow[]}) {
   )
 }
 
-function SoggettoMobileCard({ item }:{item: SoggettoRow}) {
+function SoggettoMobileCard({
+  item,
+  checked,
+  onToggle,
+  deleting,
+  onDelete,
+}:{
+  item: SoggettoRow
+  checked: boolean
+  onToggle: () => void
+  deleting: boolean
+  onDelete: (item: SoggettoRow) => void
+}) {
   return (
     <article className="iu-sogg-mobile-card">
       <header>
-        <a href={item.href}>{item.name}</a>
+        <label className="iu-sogg-mobile-card__select">
+          <input type="checkbox" checked={checked} onChange={onToggle}/>
+          <a href={item.href}>{item.name}</a>
+        </label>
         <Badge tone={item.tone}>{item.typeLabel}</Badge>
       </header>
       <p>{item.role.replaceAll('_', ' ')} - {item.identifier || 'Identificativo assente'}</p>
@@ -177,7 +223,7 @@ function SoggettoMobileCard({ item }:{item: SoggettoRow}) {
       <ContactBlock item={item}/>
       <footer>
         <Badge tone={qualityTone(item)}>{qualityLabel(item)}</Badge>
-        <RowActions item={item}/>
+        <RowActions item={item} deleting={deleting} onDelete={onDelete}/>
       </footer>
     </article>
   )
@@ -228,6 +274,11 @@ export function SoggettiPage() {
   const [roleFilter, setRoleFilter] = useState('tutti')
   const [qualityOnly, setQualityOnly] = useState(false)
   const [sort, setSort] = useState<SortKey>('nome')
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set())
+  const [bulkDeleting, setBulkDeleting] = useState(false)
+  const [feedback, setFeedback] = useState('')
+  const [error, setError] = useState('')
   const selectedId = routeSubjectId()
 
   useEffect(() => {
@@ -250,6 +301,77 @@ export function SoggettiPage() {
     return true
   }), sort), [data.items, query, typeFilter, roleFilter, qualityOnly, sort])
   const selectedSubject = selectedId ? data.items.find((item) => item.id === selectedId) : undefined
+  const selectedVisibleIds = useMemo(
+    () => filtered.filter((item) => selected.has(item.id)).map((item) => item.id),
+    [filtered, selected],
+  )
+  const selectedVisible = selectedVisibleIds.length
+
+  const toggle = (id: string) => {
+    setSelected((current) => {
+      const next = new Set(current)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleAll = () => {
+    setSelected((current) => {
+      const allSelected = filtered.length > 0 && filtered.every((item) => current.has(item.id))
+      if (allSelected) return new Set([...current].filter((id) => !filtered.some((item) => item.id === id)))
+      return new Set([...current, ...filtered.map((item) => item.id)])
+    })
+  }
+
+  const refresh = () => {
+    setLoading(true)
+    getSoggettiPage().then(setData).finally(() => setLoading(false))
+  }
+
+  const handleDelete = async (item: SoggettoRow) => {
+    if (!window.confirm(`Eliminare il soggetto "${item.name}"?`)) return
+    setError('')
+    setFeedback('')
+    setDeletingIds((current) => new Set(current).add(item.id))
+    try {
+      const result = await deleteSoggetto(item.id)
+      setFeedback(result.message)
+      setSelected((current) => {
+        const next = new Set(current)
+        next.delete(item.id)
+        return next
+      })
+      refresh()
+    } catch (exc) {
+      setError(exc instanceof Error ? exc.message : 'Eliminazione soggetto non riuscita.')
+    } finally {
+      setDeletingIds((current) => {
+        const next = new Set(current)
+        next.delete(item.id)
+        return next
+      })
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    if (!selectedVisibleIds.length) return
+    const label = selectedVisibleIds.length === 1 ? '1 soggetto selezionato' : `${selectedVisibleIds.length} soggetti selezionati`
+    if (!window.confirm(`Eliminare ${label}?`)) return
+    setError('')
+    setFeedback('')
+    setBulkDeleting(true)
+    try {
+      const result = await deleteSoggetti(selectedVisibleIds)
+      setFeedback(result.message)
+      setSelected((current) => new Set([...current].filter((id) => !selectedVisibleIds.includes(id))))
+      refresh()
+    } catch (exc) {
+      setError(exc instanceof Error ? exc.message : 'Eliminazione multipla soggetti non riuscita.')
+    } finally {
+      setBulkDeleting(false)
+    }
+  }
 
   return (
     <main className="iu-content iu-soggetti-page">
@@ -280,12 +402,49 @@ export function SoggettiPage() {
         <button className={qualityOnly ? 'is-active' : ''} type="button" onClick={() => setQualityOnly((value) => !value)}>Solo da completare</button>
       </section>
 
+      <section className="iu-sogg-status">
+        <span className={loading ? '' : 'is-ok'}>{loading ? 'Caricamento soggetti...' : 'Dati aggiornati'}</span>
+        <small><ShieldCheck size={14}/> Le operazioni di dettaglio, modifica ed eliminazione restano allineate con i dati di studio.</small>
+        {selectedVisible ? <small className="iu-sogg-status__selected">{selectedVisible} selezionati</small> : null}
+        {feedback ? <small className="iu-sogg-status__feedback">{feedback}</small> : null}
+        {error ? <small className="iu-sogg-status__error">{error}</small> : null}
+      </section>
+
       {selectedSubject ? <SelectedSubjectPanel item={selectedSubject}/> : null}
 
       <section className="iu-sogg-layout">
         <div>
-          {filtered.length ? <SoggettiTable items={filtered}/> : <EmptyState/>}
-          <div className="iu-sogg-mobile-list">{filtered.map((item) => <SoggettoMobileCard item={item} key={item.id}/>)}</div>
+          {selectedVisible ? (
+            <div className="iu-sogg-bulkbar">
+              <strong>{selectedVisible} soggetti selezionati</strong>
+              <button type="button" onClick={handleBulkDelete} disabled={bulkDeleting}>
+                <Trash2 size={14}/> {bulkDeleting ? 'Eliminazione...' : 'Elimina selezione'}
+              </button>
+              <button type="button" onClick={() => setSelected(new Set())}>Annulla</button>
+            </div>
+          ) : null}
+          {filtered.length ? (
+            <SoggettiTable
+              items={filtered}
+              selected={selected}
+              onToggle={toggle}
+              onToggleAll={toggleAll}
+              deletingIds={deletingIds}
+              onDelete={handleDelete}
+            />
+          ) : <EmptyState/>}
+          <div className="iu-sogg-mobile-list">
+            {filtered.map((item) => (
+              <SoggettoMobileCard
+                item={item}
+                checked={selected.has(item.id)}
+                onToggle={() => toggle(item.id)}
+                deleting={deletingIds.has(item.id)}
+                onDelete={handleDelete}
+                key={item.id}
+              />
+            ))}
+          </div>
         </div>
         <aside className="iu-sogg-rail">
           <Panel title="Qualita dati" icon={<ShieldCheck size={17}/>} count={data.summary.incomplete}>

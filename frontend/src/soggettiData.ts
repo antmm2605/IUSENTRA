@@ -21,6 +21,7 @@ export type SoggettoRow = {
   missingFields: string[]
   href: string
   editHref: string
+  deleteHref: string
   tone: Tone
 }
 
@@ -124,6 +125,7 @@ function normalizeItem(value: unknown, index: number): SoggettoRow {
     missingFields: arrayText(item.missingFields ?? item.missing_fields),
     href: text(item.href, `/soggetti/${encodeURIComponent(id)}`),
     editHref: text(item.editHref ?? item.edit_href, `/soggetti/${encodeURIComponent(id)}/modifica`),
+    deleteHref: text(item.deleteHref ?? item.delete_href, `/soggetti/${encodeURIComponent(id)}/elimina`),
     tone: (text(item.tone) as Tone) || toneFrom(type),
   }
 }
@@ -168,4 +170,33 @@ export async function getSoggettiPage(): Promise<SoggettiPageData> {
   } catch {
     return emptySoggettiPage
   }
+}
+
+async function postDelete(url: string, ids: string[]): Promise<{ ok: boolean; message: string; deleted: string[] }> {
+  const response = await fetch(url, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ ids }),
+  })
+  const payload = await response.json().catch(() => ({}))
+  if (!response.ok || payload?.ok !== true) {
+    throw new Error(String(payload?.message || 'Eliminazione soggetti non riuscita.'))
+  }
+  return {
+    ok: true,
+    message: String(payload?.message || 'Soggetti eliminati.'),
+    deleted: Array.isArray(payload?.deleted) ? payload.deleted.map((item: unknown) => text(item)) : ids,
+  }
+}
+
+export async function deleteSoggetto(id: string): Promise<{ ok: boolean; message: string; deleted: string[] }> {
+  return postDelete('/api/v1/ui/soggetti/delete', [id])
+}
+
+export async function deleteSoggetti(ids: string[]): Promise<{ ok: boolean; message: string; deleted: string[] }> {
+  return postDelete('/api/v1/ui/soggetti/delete', ids)
 }

@@ -1,5 +1,31 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-10 - Performance Tariffario e Preventivo guidato 2.214.1
+
+Questa tranche risponde alla richiesta di velocizzare `/tariffario` e
+`/preventivi/wizard` e di rendere raggiungibile il preventivo guidato da
+`/preventivi/`:
+
+- `/preventivi/` espone la voce primaria `Preventivo guidato` verso
+  `/preventivi/wizard`, anche nello stato vuoto dell'archivio.
+- Il bootstrap React del tariffario non invia piu' il catalogo pratiche completo
+  con regole e riferimenti normativi pesanti: le opzioni necessarie alla UI
+  restano disponibili, mentre i calcoli continuano a usare il motore Python.
+- Il bootstrap React del preventivo guidato non duplica piu' `catalog.grouped`,
+  non invia righe tassonomiche integrali non usate al primo render e conserva
+  solo regole/pratiche compatte sufficienti a filtro, scelta e calcolo.
+- Le righe tariffarie derivate sono memorizzate in cache applicativa, evitando
+  la ricostruzione ripetuta del catalogo DM 55/DM 147 a ogni apertura pagina.
+- Il riepilogo in tempo reale del Tariffario e' tornato sticky su desktop: la
+  colonna laterale segue lo scroll dei parametri di calcolo, mentre sotto
+  1040px torna nel flusso normale per non comprimere la UI mobile.
+- Baseline locale post-fix: `/api/v1/ui/tariffario` 416 KB / 66 ms e
+  `/api/v1/ui/preventivi/wizard` 705 KB / 47 ms, contro baseline pre-fix di
+  circa 3,87 MB / 30 s e 4,62 MB / 30 s.
+- Test mirati aggiunti per bloccare regressioni di payload e link al preventivo
+  guidato; verifica browser desktop/tablet/mobile confermata per lo sticky del
+  riepilogo e per l'apertura del wizard.
+
 ## Stato tranche 2026-05-10 - Pulizia testi visibili e dettagli email React 2.214.0
 
 Questa tranche risponde alla richiesta utente di non mostrare piu' messaggi da

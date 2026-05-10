@@ -20,6 +20,7 @@ def test_tariffario_react_payload_console_operativa(tmp_path: Path):
     response = client.get("/api/v1/ui/tariffario")
 
     assert response.status_code == 200
+    assert len(response.get_data()) < 800_000
     payload = response.get_json()
     assert payload["source"] == "repository_reali"
     assert payload["contracts"]["route_owner"] == "react_shell"
@@ -28,6 +29,7 @@ def test_tariffario_react_payload_console_operativa(tmp_path: Path):
     assert payload["stats"]["rules"] >= 100
     assert payload["stats"]["tables"] >= 8
     assert payload["catalog"]["materiaOptions"]
+    assert all("regole_tariffarie" not in practice for practice in payload["catalog"]["practices"].values())
     assert payload["state"]["materia"] == "Civile di cognizione"
     assert payload["state"]["grado"] == "Giudice di Pace"
     assert payload["result"]["table"]["rows"]
@@ -57,6 +59,22 @@ def test_tariffario_react_e_legacy_smoke(tmp_path: Path):
     legacy_html = legacy_response.get_data(as_text=True)
     assert "Tariffario Forense" in legacy_html
     assert "iusentra-react-root" not in legacy_html
+
+
+def test_tariffario_riepilogo_realtime_sticky_sul_wrapper():
+    root = Path(__file__).resolve().parents[1]
+    page = (root / "frontend/src/components/TariffarioPage.tsx").read_text(encoding="utf-8")
+    css = (root / "frontend/src/components/TariffarioPage.css").read_text(encoding="utf-8")
+
+    assert 'className="iu-tar-summary-holder iu-tar-summary-sticky"' in page
+    assert 'className="iu-tar-realtime iu-tar-summary-sticky"' not in page
+    assert ".iu-tar-summary-sticky {" in css
+    assert ".iu-tar-sidebar {" in css
+    assert "position: sticky;" in css
+    assert "max-height: calc(100dvh - var(--iu-tar-sticky-top" in css
+    assert "position: sticky;" in css
+    assert "top: var(--iu-tar-sticky-top" in css
+    assert "top: 0;" in css
 
 
 def test_tariffario_react_post_calcolo_gdp_valore_zero(tmp_path: Path):

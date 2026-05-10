@@ -871,7 +871,7 @@ function RealtimeSummary({
   const operationalTotal = result?.economic.total || result?.selectedTotal || 'EUR 0,00'
   return (
     <aside
-      className="iu-tar-realtime iu-tar-summary-sticky"
+      className="iu-tar-realtime"
       aria-label="Riepilogo in tempo reale"
       aria-live="polite"
     >
@@ -932,7 +932,7 @@ function StickyRealtimeSummary({
   return (
     <div
       ref={anchor}
-      className="iu-tar-summary-holder"
+      className="iu-tar-summary-holder iu-tar-summary-sticky"
     >
       <RealtimeSummary
         result={result}

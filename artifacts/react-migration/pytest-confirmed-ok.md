@@ -8,6 +8,19 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 
 ## Frontend e gate React
 
+### Hotfix Tariffario e Preventivo guidato 2.214.1
+
+| Verifica | Esito | Nota |
+| --- | --- | --- |
+| `npm --prefix frontend run typecheck` | OK | TypeScript confermato dopo CTA `Preventivo guidato`, payload compatti e ripristino riepilogo sticky. |
+| `node frontend/scripts/check-react-contracts.mjs` | OK | Contratti React confermati: riepilogo Tariffario, azioni compatte e link Preventivo guidato restano governati. |
+| `python -m pytest -q tests/test_react_tariffario_console.py tests/test_react_preventivo_wizard_console.py --tb=short` | OK | 17 test passati: payload sotto soglia, wizard, archivio preventivi e sticky Tariffario coperti. |
+| `npm --prefix frontend run build` | OK | Build Vite 2.214.1 completata; asset React rigenerati in `web/static/react`. |
+| Browser `localhost:5003/tariffario` desktop/tablet/mobile | OK | Sessione isolata 2.214.1: desktop dopo scroll mostra ancora riepilogo, `Calcola e aggiorna`, `Crea preventivo` e `Reset`; tablet/mobile senza errori console. |
+| Browser `localhost:5003/preventivi/` e `/preventivi/wizard` | OK | `Preventivo guidato` presente in archivio con 3 link a `/preventivi/wizard`; wizard caricato senza errori console. |
+| Misura client Flask autenticato | OK | `/api/v1/ui/tariffario` 416585 byte / media 66.4 ms; `/api/v1/ui/preventivi/wizard` 704916 byte / media 46.8 ms; `/preventivi/` 9124 byte / media 5.4 ms. |
+| Docker locale `docker compose build --no-cache app scheduler-worker ocr-worker` + `docker compose up -d app scheduler-worker ocr-worker nginx` | OK | Rebuild no-cache finale 2.214.1 verde; app, scheduler, OCR e Redis healthy, Nginx attivo, `/api/pronto` 200 con versione `2.214.1` e runtime container `2.214.1`. |
+
 ### Tranche 2.213.0 - pagine operative richieste full React
 
 | Verifica | Esito | Nota |

@@ -177,8 +177,14 @@
 .iu-tar-sidebar {
   align-content: start;
   align-self: start;
+  max-height: calc(100dvh - var(--iu-tar-sticky-top, calc(var(--iu-topbar-h, 76px) + 1rem)) - 1rem);
   min-height: 0;
-  position: relative;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 0.2rem;
+  position: sticky;
+  scrollbar-color: rgba(15, 23, 42, 0.24) transparent;
+  top: var(--iu-tar-sticky-top, calc(var(--iu-topbar-h, 76px) + 1rem));
 }
 
 .iu-tar-panel,
@@ -901,17 +907,18 @@
     linear-gradient(135deg, rgba(15, 27, 49, 0.98), rgba(16, 37, 70, 0.95)),
     #0f1b31;
   color: #ffffff;
-  max-height: calc(100vh - 2rem);
-  overflow-y: auto;
+  max-height: none;
+  overflow-y: visible;
   overscroll-behavior: contain;
   padding: 1.2rem;
   scrollbar-color: rgba(255, 255, 255, 0.38) rgba(255, 255, 255, 0.08);
 }
 
 .iu-tar-summary-sticky {
+  align-self: start;
   position: sticky;
-  top: var(--iu-space-4);
-  z-index: 2;
+  top: 0;
+  z-index: 28;
 }
 
 .iu-tar-summary-holder {
@@ -1175,9 +1182,12 @@
   }
 
   .iu-tar-summary-sticky {
+    position: static;
+  }
+
+  .iu-tar-realtime {
     max-height: none;
     overflow: visible;
-    position: static;
   }
 }
 

@@ -110,6 +110,7 @@ def test_preventivo_wizard_react_bootstrap_console_operativa(tmp_path: Path):
     response = client.get("/api/v1/ui/preventivi/wizard")
 
     assert response.status_code == 200
+    assert len(response.get_data()) < 1_200_000
     payload = response.get_json()
     practice = _amministrazione_sostegno(payload)
     assert payload["source"] == "repository_reali"
@@ -119,8 +120,17 @@ def test_preventivo_wizard_react_bootstrap_console_operativa(tmp_path: Path):
     assert payload["clients"][0]["id"] == cliente.id
     assert practice["motore_label"]
     assert practice["fasi_default_keys"]
+    assert payload["catalog"]["grouped"] == {}
+    assert payload["catalog"]["taxonomyRows"] == []
     assert payload["options"]["defaultClause"]["defaultText"]
     assert payload["support"]["references"]
+
+
+def test_preventivi_archivio_collega_preventivo_guidato():
+    source = Path("frontend/src/components/PreventiviPage.tsx").read_text(encoding="utf-8")
+
+    assert 'href="/preventivi/wizard"' in source
+    assert "Preventivo guidato" in source
 
 
 def test_preventivo_wizard_react_e_fallback_legacy_smoke(tmp_path: Path):

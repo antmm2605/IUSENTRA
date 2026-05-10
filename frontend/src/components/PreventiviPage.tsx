@@ -1016,7 +1016,7 @@ function RecordsPanel({ data, onReload }: { data: PreventiviPageData; onReload: 
       <EmptyState
         title="Nessun preventivo o incarico in archivio"
         message="Quando saranno disponibili dati reali, compariranno qui con cliente, fascicolo, stato e importi gia determinati dal sistema."
-        action={<ButtonLink href="/preventivi/nuovo" tone="primary">Nuovo preventivo</ButtonLink>}
+        action={<ButtonLink href="/preventivi/wizard" tone="primary">Preventivo guidato</ButtonLink>}
       />
     )
   }
@@ -1026,7 +1026,12 @@ function RecordsPanel({ data, onReload }: { data: PreventiviPageData; onReload: 
       <Panel
         title="Archivio preventivi e incarichi"
         subtitle={`${filtered.length} elementi visualizzati su ${data.records.length}`}
-        actions={<ButtonLink href="/preventivi/nuovo" tone="primary">Nuovo preventivo</ButtonLink>}
+        actions={(
+          <div className="iu-prev-action-row">
+            <ButtonLink href="/preventivi/wizard" tone="primary">Preventivo guidato</ButtonLink>
+            <ButtonLink href="/preventivi/nuovo" tone="neutral">Nuovo preventivo</ButtonLink>
+          </div>
+        )}
       >
         <label className="iu-prev-search">
           <Search size={16} />
@@ -1039,7 +1044,7 @@ function RecordsPanel({ data, onReload }: { data: PreventiviPageData; onReload: 
           <section className="iu-prev-state iu-prev-state--success" aria-live="polite">
             <CheckCircle2 size={20} />
             <div>
-              <strong>success</strong>
+              <strong>Stato aggiornato</strong>
               <span>Stato aggiornato correttamente.</span>
             </div>
           </section>
@@ -1096,7 +1101,7 @@ function ArchiveView({ data, onReload }: { data: PreventiviPageData; onReload: (
           <strong>Archivio preventivi operativo</strong>
           <span>Elenco, indicatori, dettaglio sintetico e stato preventivo sono tracciati; documenti e percorsi avanzati restano governati.</span>
         </div>
-        <BriefcaseBusiness size={22} />
+        <ButtonLink href="/preventivi/wizard" tone="primary"><BriefcaseBusiness size={16} />Preventivo guidato</ButtonLink>
       </section>
       <MetricGrid data={data} />
       <WarningPanel data={data} />
@@ -1112,8 +1117,9 @@ function FormActions({ mode }: { mode: PageMode }) {
   return (
     <div className="iu-prev-actions">
       <ButtonLink href="/preventivi" tone="neutral">Archivio</ButtonLink>
-      {mode !== 'new-preventivo' ? <ButtonLink href="/preventivi/nuovo" tone="primary">Nuovo preventivo</ButtonLink> : null}
-      {mode !== 'new-conferimento' ? <ButtonLink href="/preventivi/conferimento/nuovo" tone="primary">Nuovo conferimento</ButtonLink> : null}
+      <ButtonLink href="/preventivi/wizard" tone="primary">Preventivo guidato</ButtonLink>
+      {mode !== 'new-preventivo' ? <ButtonLink href="/preventivi/nuovo" tone="neutral">Nuovo preventivo</ButtonLink> : null}
+      {mode !== 'new-conferimento' ? <ButtonLink href="/preventivi/conferimento/nuovo" tone="neutral">Nuovo conferimento</ButtonLink> : null}
     </div>
   )
 }

@@ -59,6 +59,39 @@ def _warning(code: str, message: str) -> dict[str, str]:
     return {"code": code, "message": message}
 
 
+def _compact_rule(row: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "rule_code": _text(row.get("rule_code")),
+        "label": _text(row.get("label")),
+        "rule_label": _text(row.get("rule_label")),
+        "table_label": _text(row.get("table_label")),
+        "table_code": _text(row.get("table_code")),
+        "matter": _text(row.get("matter")),
+        "materia_label": _text(row.get("materia_label")),
+        "suggested_practice_id": _text(row.get("suggested_practice_id")),
+        "grado_input_value": _text(row.get("grado_input_value")),
+        "allowed_grade_input_values": list(row.get("allowed_grade_input_values") or []),
+        "calc_mode": _text(row.get("calc_mode")),
+        "exact_snapshot": bool(row.get("exact_snapshot")),
+        "compliance_status": _text(row.get("compliance_status")),
+        "compliance_note": _text(row.get("compliance_note")),
+        "reference_codes": list(row.get("reference_codes") or []),
+    }
+
+
+def _compact_practice(row: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "id": _text(row.get("id")),
+        "label": _text(row.get("label")),
+        "area": _text(row.get("area")),
+        "summary": _text(row.get("summary")),
+        "when_to_use": _text(row.get("when_to_use")),
+        "accessori_calcolo": list(row.get("accessori_calcolo") or []),
+        "esborsi_tipici": list(row.get("esborsi_tipici") or []),
+        "variation_policy": row.get("variation_policy") if isinstance(row.get("variation_policy"), dict) else {},
+    }
+
+
 def _contracts() -> dict[str, Any]:
     return {
         "mock_fallback": False,
@@ -207,12 +240,16 @@ def _tariffario_form(
 def _wizard_catalog() -> tuple[dict[str, list[dict[str, Any]]], dict[str, dict[str, Any]]]:
     catalog = catalogo_wizard()
     by_id = {
-        _text(item.get("id")): item
+        _text(item.get("id")): _compact_practice(item)
         for items in catalog.values()
         for item in items
         if isinstance(item, dict) and _text(item.get("id"))
     }
-    return catalog, by_id
+    compact_catalog = {
+        area: [_compact_practice(item) for item in items if isinstance(item, dict)]
+        for area, items in catalog.items()
+    }
+    return compact_catalog, by_id
 
 
 def _enrich_audit(rows: list[dict[str, Any]], practices: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
@@ -317,14 +354,18 @@ def _catalog_payload(
     rule_catalog: dict[str, list[dict[str, Any]]],
     practices: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
+    compact_rule_catalog = {
+        materia: [_compact_rule(row) for row in rows]
+        for materia, rows in rule_catalog.items()
+    }
     return {
         "materiaOptions": _materia_options(),
         "gradeCatalog": grade_catalog,
         "phaseCatalog": phase_catalog,
-        "ruleCatalog": rule_catalog,
+        "ruleCatalog": compact_rule_catalog,
         "complexityOptions": _complexity_options(),
-        "ruleOptions": _rule_options(rule_catalog),
-        "areaOptions": _area_options(rule_catalog),
+        "ruleOptions": _rule_options(compact_rule_catalog),
+        "areaOptions": _area_options(compact_rule_catalog),
         "tableOptions": [_option("", "Tutte le tabelle")] + _table_options(),
         "calcModeOptions": _calc_mode_options(),
         "gradeOptions": _grado_options(grade_catalog),

@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.214.1 - 2026-05-10
+
+- Aggiunta in `/preventivi/` la voce operativa `Preventivo guidato`, collegata a `/preventivi/wizard`, come azione primaria dell'archivio e degli stati vuoti.
+- Velocizzato il caricamento di `/tariffario` e `/preventivi/wizard`: i cataloghi React iniziali sono compatti, le regole tariffarie calcolate sono memorizzate in cache e restano completi i calcoli backend reali.
+- Ripristinato su desktop il riepilogo in tempo reale del Tariffario come colonna sticky: resta visibile durante lo scroll dei parametri di calcolo e su tablet/mobile degrada in layout normale.
+- Ridotto il payload locale misurato: `/api/v1/ui/tariffario` da circa 3,87 MB / 30 s a circa 416 KB / 66 ms; `/api/v1/ui/preventivi/wizard` da circa 4,62 MB / 30 s a circa 705 KB / 47 ms.
+- Aggiunti test anti-regressione su dimensione payload, collegamento al preventivo guidato e comportamento sticky del riepilogo tariffario.
+
 ## 2.214.0 - 2026-05-10
 
 - Rafforzata la pulizia globale dei testi visibili: le superfici React e i template serviti dalla shell filtrano diciture da sviluppatore come `Impeccable / Open Design`, `Dati applicativi`, `React`, `Flask`, `backend`, `frontend`, `payload`, `runtime`, `json_api`, `provider`, `webhook`, `endpoint`, `legacy`, `undefined`, `null`, `demo`, `sample` e `repository`.

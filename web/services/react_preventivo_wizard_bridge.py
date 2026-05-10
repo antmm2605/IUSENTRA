@@ -155,10 +155,88 @@ def _case_payload(fascicolo: Any) -> dict[str, Any]:
     }
 
 
+def _compact_reference(row: Any) -> dict[str, str]:
+    item = row if isinstance(row, dict) else {}
+    return {
+        "title": _text(item.get("title")),
+        "article": _text(item.get("article")),
+        "description": _text(item.get("description")),
+        "url": _text(item.get("url")),
+    }
+
+
+def _compact_rule(row: dict[str, Any]) -> dict[str, Any]:
+    profile = row.get("profile") if isinstance(row.get("profile"), dict) else {}
+    return {
+        "rule_code": _text(row.get("rule_code")),
+        "label": _text(row.get("label")),
+        "rule_label": _text(row.get("rule_label")),
+        "table_label": _text(row.get("table_label")),
+        "table_code": _text(row.get("table_code")),
+        "grado_input_value": _text(row.get("grado_input_value")),
+        "allowed_grade_input_values": list(row.get("allowed_grade_input_values") or []),
+        "calc_mode": _text(row.get("calc_mode") or profile.get("calc_mode")),
+        "exact_snapshot": bool(row.get("exact_snapshot") or profile.get("exact_snapshot")),
+        "compliance_status": _text(row.get("compliance_status")),
+        "profile": {
+            "calc_mode": _text(profile.get("calc_mode")),
+            "phase_keys": list(profile.get("phase_keys") or []),
+        },
+    }
+
+
+def _compact_practice(item: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "id": _text(item.get("id")),
+        "label": _text(item.get("label")),
+        "area": _text(item.get("area")),
+        "materia": _text(item.get("materia")),
+        "grado_default": _text(item.get("grado_default")),
+        "fasi_default": list(item.get("fasi_default") or []),
+        "fasi_default_keys": list(item.get("fasi_default_keys") or []),
+        "base_normativa": _text(item.get("base_normativa")),
+        "tipo_compenso_default": _text(item.get("tipo_compenso_default")),
+        "valore_suggerito": item.get("valore_suggerito") or 0,
+        "esborsi_tipici": list(item.get("esborsi_tipici") or []),
+        "motore_label": _text(item.get("motore_label")),
+        "redattore_label": _text(item.get("redattore_label")),
+        "summary": _text(item.get("summary")),
+        "when_to_use": _text(item.get("when_to_use")),
+        "oggetto_template": _text(item.get("oggetto_template")),
+        "note_template": _text(item.get("note_template")),
+        "checklist_iniziale": list(item.get("checklist_iniziale") or []),
+        "normative_references": [_compact_reference(row) for row in list(item.get("normative_references") or [])[:8]],
+        "accessori_calcolo": list(item.get("accessori_calcolo") or []),
+        "variation_policy": item.get("variation_policy") if isinstance(item.get("variation_policy"), dict) else {},
+        "area_tassonomica": _text(item.get("area_tassonomica")),
+        "area_tassonomica_code": _text(item.get("area_tassonomica_code")),
+        "macro_area_tassonomica": _text(item.get("macro_area_tassonomica")),
+        "macro_area_tassonomica_code": _text(item.get("macro_area_tassonomica_code")),
+        "sottobranca_tassonomica": _text(item.get("sottobranca_tassonomica")),
+        "sottobranca_tassonomica_code": _text(item.get("sottobranca_tassonomica_code")),
+        "tassonomia_codice": _text(item.get("tassonomia_codice")),
+        "tassonomia_descrizione": _text(item.get("tassonomia_descrizione")),
+        "tassonomia_sources": [],
+        "procedura_operativa_codice": _text(item.get("procedura_operativa_codice")),
+        "procedura_operativa_nome": _text(item.get("procedura_operativa_nome")),
+        "subbranch_operativa_codice": _text(item.get("subbranch_operativa_codice")),
+        "workflow_operativo_codice": _text(item.get("workflow_operativo_codice")),
+        "copertura_operativa": _text(item.get("copertura_operativa")),
+        "canale_operativo": _text(item.get("canale_operativo")),
+        "registro_operativo": _text(item.get("registro_operativo")),
+        "regola_tariffaria_default": _text(item.get("regola_tariffaria_default")),
+        "regole_tariffarie": [
+            _compact_rule(row)
+            for row in item.get("regole_tariffarie") or []
+            if isinstance(row, dict)
+        ],
+    }
+
+
 def _catalog_rows() -> tuple[dict[str, list[dict[str, Any]]], dict[str, dict[str, Any]]]:
     grouped = catalogo_wizard()
     flat = {
-        _text(item.get("id")): item
+        _text(item.get("id")): _compact_practice(item)
         for rows in grouped.values()
         for item in rows
         if isinstance(item, dict) and _text(item.get("id"))
@@ -294,14 +372,14 @@ def build_react_preventivo_wizard_payload(
         "cases": [_case_payload(fascicolo) for fascicolo in fascicoli],
         "catalog": {
             "areas": _area_counts(grouped),
-            "grouped": grouped,
+            "grouped": {},
             "practices": practices,
             "procedures": _operational_options(rows, "procedura_operativa_codice", "procedura_operativa_nome"),
             "workflows": _operational_options(rows, "workflow_operativo_codice"),
             "channels": _operational_options(rows, "canale_operativo"),
-            "taxonomyRows": taxonomy_rows,
+            "taxonomyRows": [],
             "taxonomySummary": _taxonomy_summary(taxonomy_rows),
-            "taxonomySources": sources,
+            "taxonomySources": [_compact_reference(row) for row in sources[:8]],
         },
         "options": {
             "complexity": [
@@ -326,7 +404,7 @@ def build_react_preventivo_wizard_payload(
             },
         },
         "support": {
-            "references": refs,
+            "references": [_compact_reference(row) for row in refs[:12]],
             "audit": {
                 "aligned": aligned,
                 "total": len(audit),

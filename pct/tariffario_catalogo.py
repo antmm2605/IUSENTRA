@@ -3702,6 +3702,7 @@ def tariffario_scaglioni_rows() -> List[Dict[str, Any]]:
     return rows
 
 
+@lru_cache(maxsize=1)
 def tariffario_profile_rows() -> List[Dict[str, Any]]:
     rows: List[Dict[str, Any]] = []
     for row in PROFILE_ROWS:
@@ -3868,6 +3869,7 @@ def _profile_by_code(profile_code: str) -> Optional[Dict[str, Any]]:
     return None
 
 
+@lru_cache(maxsize=1)
 def tariffario_rule_rows() -> List[Dict[str, Any]]:
     rows: List[Dict[str, Any]] = []
     for row in RULE_ROWS:
@@ -3892,6 +3894,7 @@ def tariffario_rule_rows() -> List[Dict[str, Any]]:
     return rows
 
 
+@lru_cache(maxsize=1)
 def tariffario_audit_rows() -> List[Dict[str, Any]]:
     rows: List[Dict[str, Any]] = []
     for row in tariffario_rule_rows():
@@ -3939,6 +3942,7 @@ def tariffario_audit_rows() -> List[Dict[str, Any]]:
     return rows
 
 
+@lru_cache(maxsize=1)
 def phase_catalog_by_materia() -> Dict[str, List[Dict[str, str]]]:
     catalog: Dict[str, List[Dict[str, str]]] = {}
     for row in tariffario_profile_rows():
@@ -3958,6 +3962,7 @@ def phase_catalog_by_materia() -> Dict[str, List[Dict[str, str]]]:
     return catalog
 
 
+@lru_cache(maxsize=1)
 def grade_catalog_by_materia() -> Dict[str, List[str]]:
     catalog: Dict[str, List[str]] = {}
     for row in tariffario_profile_rows():
@@ -3969,6 +3974,7 @@ def grade_catalog_by_materia() -> Dict[str, List[str]]:
     return catalog
 
 
+@lru_cache(maxsize=1)
 def rule_catalog_by_materia() -> Dict[str, List[Dict[str, Any]]]:
     catalog: Dict[str, List[Dict[str, Any]]] = {}
     for row in tariffario_rule_rows():

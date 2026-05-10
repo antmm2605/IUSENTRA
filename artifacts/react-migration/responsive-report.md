@@ -13,6 +13,7 @@ Route full/partial principali: amministrazione, studio, backup, sito studio, fat
 - LexPanel e liste comunicazioni hanno breakpoint mobile con colonna singola e azioni raggiungibili.
 - 2026-05-09: smoke browser Chrome su `/deposito/checklist`, `/strumenti-legali` e `/strumenti-operativi` in viewport desktop 1440x900, tablet 834x1112 e mobile 390x844. Nessun overflow orizzontale; shell React, titoli, card e azioni risultano visibili.
 - 2026-05-10: smoke browser Chrome su Docker locale 2.214.0 in desktop 1440x950 e mobile 390x844 per `/redazione-atti`, `/template-atti`, `/statistiche`, `/ricerca-legale`, `/legal-intelligence/news`, `/giurisprudenza`, `/strumenti-legali`, `/strumenti-operativi`, `/deposito/checklist`, `/sito-studio/contatti`, dettagli PEC/email ordinaria e `/admin/database`. Nessun overflow orizzontale e nessun testo tecnico vietato visibile.
+- 2026-05-10: smoke browser Tariffario 2.214.1 in desktop 1366x768, tablet 900x720 e mobile 390x844. Desktop: il riepilogo in tempo reale resta visibile durante lo scroll dei parametri; tablet/mobile: layout a colonna singola senza sovrapposizioni. Verificato anche `/preventivi/` con tre link `Preventivo guidato` verso `/preventivi/wizard` e wizard caricato senza errori console.
 
 ## Rischi residui
 

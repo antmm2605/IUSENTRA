@@ -123,6 +123,10 @@ def get_pagamenti() -> GestionePagamenti:
 
 
 def get_utenti() -> GestioneUtenti:
+    tenant_slug = str(getattr(g, "tenant_context_slug", "") or "").strip().lower()
+    if not tenant_slug:
+        tenant = getattr(g, "tenant", None)
+        tenant_slug = str(getattr(tenant, "slug", "") or "").strip().lower()
     return GestioneUtenti(
         db_path=_cfg("AUTH_DB"),
         audit_path=_cfg("AUDIT_DB"),
@@ -132,6 +136,7 @@ def get_utenti() -> GestioneUtenti:
         bootstrap_admin_credentials_path=current_app.config.get(
             "BOOTSTRAP_ADMIN_CREDENTIALS_PATH", ""
         ),
+        tenant_slug_context=tenant_slug,
     )
 
 

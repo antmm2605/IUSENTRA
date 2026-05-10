@@ -576,6 +576,10 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
                 Path(auth_db_path).parent / "bootstrap_admin.json"
             )
             platform_studio_db = None if app.config.get("MULTI_TENANT") else get_studio_db("AUTH_DB")
+            tenant_slug = str(getattr(g, "tenant_context_slug", "") or "").strip().lower()
+            if not tenant_slug:
+                tenant = getattr(g, "tenant", None)
+                tenant_slug = str(getattr(tenant, "slug", "") or "").strip().lower()
             g._utenti = GestioneUtenti(
                 db_path=auth_db_path,
                 audit_path=audit_db_path,
@@ -584,6 +588,7 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
                 studio_db=platform_studio_db,
                 bootstrap_admin_password=app.config.get("BOOTSTRAP_ADMIN_PASSWORD", ""),
                 bootstrap_admin_credentials_path=bootstrap_admin_credentials_path,
+                tenant_slug_context=tenant_slug,
             )
         return g._utenti
 

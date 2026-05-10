@@ -117,7 +117,16 @@ def _safe_user(user: Any, current_user: Any = None) -> dict[str, Any]:
 
 
 def _all_safe_users(manager: Any, current_user: Any) -> list[dict[str, Any]]:
-    return [_safe_user(user, current_user) for user in manager.tutti()]
+    current_tenant_slug = _text(getattr(current_user, "tenant_slug", "")).lower()
+    users: list[dict[str, Any]] = []
+    for user in manager.tutti():
+        user_tenant_slug = _text(getattr(user, "tenant_slug", "")).lower()
+        if current_tenant_slug and user_tenant_slug and user_tenant_slug != current_tenant_slug:
+            continue
+        if current_tenant_slug and _role_value(getattr(user, "ruolo", "")) == RuoloUtente.SUPERADMIN.value:
+            continue
+        users.append(_safe_user(user, current_user))
+    return users
 
 
 def _actions(can_read: bool, can_write: bool) -> dict[str, Any]:

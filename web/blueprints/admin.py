@@ -92,6 +92,7 @@ def _utenti_tenant(slug: str) -> GestioneUtenti:
             secret_key=current_app.secret_key,
             crea_admin_se_vuoto=False,  # Non auto-creare admin — lo fa il pannello
             studio_db=studio_db,
+            tenant_slug_context=slug,
         )
     except (OSError, sqlite3.Error):
         current_app.logger.warning(
@@ -104,6 +105,7 @@ def _utenti_tenant(slug: str) -> GestioneUtenti:
             secret_key=current_app.secret_key,
             crea_admin_se_vuoto=False,
             studio_db=None,
+            tenant_slug_context=slug,
         )
 
 
@@ -135,7 +137,8 @@ def _superadmin_corrente_piattaforma(gu: GestioneUtenti):
 
 
 def _utente_del_tenant(utente, slug: str) -> bool:
-    return str(getattr(utente, "tenant_slug", "") or slug).strip().lower() == slug
+    tenant_slug = str(getattr(utente, "tenant_slug", "") or "").strip().lower()
+    return bool(tenant_slug) and tenant_slug == slug
 
 
 def _db_mode_choices(current_mode: str = "") -> list[str]:

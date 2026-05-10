@@ -1,5 +1,27 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-10 - Isolamento utenti multi-studio 2.214.8
+
+Questa tranche chiude una regressione critica sull'isolamento tra studi nella
+gestione utenti:
+
+- il bootstrap automatico root -> tenant viene ora bloccato quando esistono
+  piu' studi attivi, cosi' un nuovo studio non puo' piu' ereditare dati
+  storici della root in un contesto multi-studio;
+- i manager utenti tenant ricevono sempre il contesto studio corrente anche
+  nelle superfici React, nel runtime condiviso e nel pannello amministrazione
+  multi-tenant;
+- la pagina `/utenti` e il pannello `/admin/studi/<slug>/utenti` non trattano
+  piu' un account senza `tenant_slug` come appartenente implicitamente allo
+  studio aperto;
+- il backend auth SQLite mantiene ora allineati `studio.db` e
+  `auth/utenti.json`, aggiunge `tenant_slug` alla tabella utenti quando manca e
+  riallinea automaticamente il `studio.db` tenant quando diverge
+  dall'archivio utenti locale dello stesso studio;
+- verifiche locali confermate: shard mirati auth/storage, test completi
+  `tests/test_auth.py` e `tests/test_storage_strategy.py`, packaging,
+  readiness, typecheck e build Vite verdi prima del deploy.
+
 ## Stato tranche 2026-05-10 - Parcella personalizzata Fatturazione 2.214.6
 
 Questa tranche risponde alla richiesta di ampliare `/fatturazione/nuova` con
@@ -1066,3 +1088,4 @@ python -m pytest tests/test_react_shell.py tests/test_email_client.py tests/test
 
 - Il runtime applicativo deve fallire in modo sicuro se una richiesta autenticata di studio non ha un contesto tenant valido: niente fallback ai path globali, niente letture cross-studio, niente sessioni legacy globali riusate quando esistono piu' studi attivi.
 - `web/services/auth_runtime.py` e i resolver dati condivisi devono bloccare gli account globali non `SUPERADMIN` in ambienti multi-studio, chiedendo sempre un accesso associato allo studio corretto.
+- Il bootstrap automatico root->tenant dei dati legacy e' consentito solo in installazioni davvero mono-studio; con piu' tenant attivi va rifiutato per evitare contaminazioni tra studi.

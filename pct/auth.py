@@ -419,6 +419,72 @@ class GestioneUtenti:
         )
         self._studio_db = None
 
+    def _load_json_utenti(self) -> Dict[str, Utente]:
+        from pct import cache as _cache
+
+        try:
+            raw = _cache.load(self.db_path)
+            return {k: Utente.from_dict(v) for k, v in raw.items()}
+        except Exception:
+            return {}
+
+    def _load_json_audit(self) -> List[EventoAudit]:
+        from pct import cache as _cache
+
+        try:
+            raw_audit = _cache.load(self.audit_path, default=[])
+            return [EventoAudit.from_dict(e) for e in raw_audit]
+        except Exception:
+            return []
+
+    def _save_json_utenti(self) -> None:
+        from pct import cache as _cache
+
+        _cache.save(self.db_path, {k: v.to_dict() for k, v in self._utenti.items()})
+
+    def _save_json_audit(self, recenti: List[EventoAudit]) -> None:
+        from pct import cache as _cache
+
+        _cache.save(self.audit_path, [e.to_dict() for e in recenti])
+
+    def _apply_tenant_context_to_users(self, users: Dict[str, Utente]) -> bool:
+        if not self._tenant_slug_context:
+            return False
+        changed = False
+        for user in users.values():
+            if user.ruolo == RuoloUtente.SUPERADMIN:
+                continue
+            if str(user.tenant_slug or "").strip():
+                continue
+            user.tenant_slug = self._tenant_slug_context
+            changed = True
+        return changed
+
+    @staticmethod
+    def _user_membership_signature(users: Dict[str, Utente]) -> Dict[str, tuple[str, str, bool]]:
+        signature: Dict[str, tuple[str, str, bool]] = {}
+        for user in users.values():
+            username = str(user.username or "").strip().lower()
+            if not username:
+                continue
+            signature[username] = (
+                str(user.email or "").strip().lower(),
+                str(getattr(user.ruolo, "value", user.ruolo) or "").strip().upper(),
+                bool(user.attivo),
+            )
+        return signature
+
+    def _tenant_json_should_repair_sqlite(
+        self,
+        legacy_users: Dict[str, Utente],
+        sqlite_users: Dict[str, Utente],
+    ) -> bool:
+        if not self._tenant_slug_context:
+            return False
+        if not legacy_users or not sqlite_users:
+            return False
+        return self._user_membership_signature(legacy_users) != self._user_membership_signature(sqlite_users)
+
     # ---- persistenza
 
     def _ensure_studio_db_schema(self):
@@ -433,6 +499,10 @@ class GestioneUtenti:
                 self._studio_db.conn.execute(
                     "ALTER TABLE utenti ADD COLUMN must_change_password INTEGER DEFAULT 0"
                 )
+            if "tenant_slug" not in cols:
+                self._studio_db.conn.execute(
+                    "ALTER TABLE utenti ADD COLUMN tenant_slug TEXT DEFAULT ''"
+                )
                 self._studio_db.conn.commit()
         except Exception:
             # Best effort: in assenza di schema SQLite o migrazione non disponibile
@@ -440,32 +510,37 @@ class GestioneUtenti:
             pass
 
     def _carica(self):
-        def _load_json_utenti() -> Dict[str, Utente]:
-            from pct import cache as _cache
-
-            try:
-                raw = _cache.load(self.db_path)
-                return {k: Utente.from_dict(v) for k, v in raw.items()}
-            except Exception:
-                return {}
-
-        def _load_json_audit() -> List[EventoAudit]:
-            from pct import cache as _cache
-
-            try:
-                raw_audit = _cache.load(self.audit_path, default=[])
-                return [EventoAudit.from_dict(e) for e in raw_audit]
-            except Exception:
-                return []
+        legacy_utenti = self._load_json_utenti()
+        legacy_changed = self._apply_tenant_context_to_users(legacy_utenti)
+        legacy_audit = self._load_json_audit()
 
         if self._studio_db is not None:
             import json as _json
 
             try:
+                user_cols = {
+                    row["name"]
+                    for row in self._studio_db.conn.execute("PRAGMA table_info(utenti)").fetchall()
+                }
+                has_tenant_slug = "tenant_slug" in user_cols
+                select_fields = [
+                    "id",
+                    "username",
+                    "email",
+                    "nome_completo",
+                    "ruolo",
+                    "password_hash",
+                    "attivo",
+                    "permessi_extra",
+                    "permessi_negati",
+                    "creato_il",
+                    "ultimo_accesso",
+                    "must_change_password",
+                ]
+                if has_tenant_slug:
+                    select_fields.append("tenant_slug")
                 rows = self._studio_db.conn.execute(
-                    "SELECT id, username, email, nome_completo, ruolo, "
-                    "password_hash, attivo, permessi_extra, permessi_negati, "
-                    "creato_il, ultimo_accesso, must_change_password FROM utenti"
+                    f"SELECT {', '.join(select_fields)} FROM utenti"
                 ).fetchall()
                 self._utenti = {}
                 for row in rows:
@@ -485,11 +560,22 @@ class GestioneUtenti:
                         self._utenti[u.id] = u
                     except Exception:
                         pass
-                if not self._utenti:
-                    legacy_utenti = _load_json_utenti()
-                    if legacy_utenti:
-                        self._utenti = legacy_utenti
-                        self._salva_utenti()
+                sqlite_changed = self._apply_tenant_context_to_users(self._utenti)
+                if self._tenant_json_should_repair_sqlite(legacy_utenti, self._utenti):
+                    logger.warning(
+                        "GestioneUtenti: riallineo studio.db da archivio utenti locale per tenant=%s db=%s",
+                        self._tenant_slug_context,
+                        self.db_path,
+                    )
+                    self._utenti = legacy_utenti
+                    self._salva_utenti()
+                elif not self._utenti and legacy_utenti:
+                    self._utenti = legacy_utenti
+                    self._salva_utenti()
+                elif sqlite_changed:
+                    self._salva_utenti()
+                elif legacy_changed:
+                    self._save_json_utenti()
 
                 rows = self._studio_db.conn.execute(
                     "SELECT id, timestamp, id_utente, username, azione, "
@@ -502,15 +588,16 @@ class GestioneUtenti:
                     except Exception:
                         pass
                 if not self._audit:
-                    legacy_audit = _load_json_audit()
                     if legacy_audit:
                         self._audit = legacy_audit
                         self._salva_audit()
                 return
             except Exception as exc:
                 self._disable_studio_db(exc, operation="caricamento utenti e audit")
-        self._utenti = _load_json_utenti()
-        self._audit = _load_json_audit()
+        self._utenti = legacy_utenti
+        self._audit = legacy_audit
+        if legacy_changed:
+            self._save_json_utenti()
 
     def _salva_utenti(self):
         if self._studio_db is not None:
@@ -522,8 +609,8 @@ class GestioneUtenti:
                     INSERT INTO utenti
                     (id, username, email, nome_completo, ruolo, password_hash,
                      attivo, permessi_extra, permessi_negati, creato_il, ultimo_accesso,
-                     must_change_password)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+                     must_change_password, tenant_slug)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
                     """,
                     (
                         u.id, u.username, u.email, u.nome_completo,
@@ -533,16 +620,17 @@ class GestioneUtenti:
                         _json.dumps(u.permessi_negati or [], ensure_ascii=False),
                         u.creato_il, u.ultimo_accesso,
                         1 if u.must_change_password else 0,
+                        str(u.tenant_slug or "").strip().lower(),
                     ),
                 )
 
             try:
                 self._studio_db.salva_tabella("utenti", list(self._utenti.values()), _insert)
+                self._save_json_utenti()
                 return
             except Exception as exc:
                 self._disable_studio_db(exc, operation="salvataggio utenti")
-        from pct import cache as _cache
-        _cache.save(self.db_path, {k: v.to_dict() for k, v in self._utenti.items()})
+        self._save_json_utenti()
 
     def _salva_audit(self):
         if self._studio_db is not None:
@@ -568,15 +656,15 @@ class GestioneUtenti:
 
             try:
                 self._studio_db.salva_tabella("audit_log", recenti, _insert)
+                self._save_json_audit(recenti)
                 return
             except Exception as exc:
                 self._disable_studio_db(exc, operation="salvataggio audit")
-        from pct import cache as _cache
         cutoff = (datetime.now() - timedelta(days=self._retention_days)).isoformat()
         recenti = [e for e in self._audit if e.timestamp >= cutoff]
         recenti = recenti[-10000:]  # hard cap di sicurezza
         self._audit = recenti
-        _cache.save(self.audit_path, [e.to_dict() for e in recenti])
+        self._save_json_audit(recenti)
 
     def esporta_audit_csv(
         self,

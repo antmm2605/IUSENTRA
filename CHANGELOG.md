@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.214.8 - 2026-05-10
+
+- Disattivato il bootstrap automatico dei dati legacy root verso i tenant quando esistono piu' studi attivi: in ambiente multi-studio il sistema non puo' piu' popolare un nuovo studio con dati provenienti dalla root storica.
+- Mantenuto il bootstrap automatico solo per il caso davvero mono-studio, che resta il solo scenario sicuro per la migrazione compatibile dei dati legacy.
+- Aggiunti test di regressione sul blocco esplicito del bootstrap root->tenant in presenza di due studi attivi, sia all'avvio sia con tenant richiesto.
+- Corretto il caricamento utenti multi-studio: i manager tenant passano ora sempre il contesto studio, filtrano in modo rigoroso gli account dello studio aperto e non trattano piu' gli utenti senza `tenant_slug` come appartenenti automaticamente a qualunque tenant.
+- SQLite auth tenant-aware ora mantiene allineati `studio.db` e `auth/utenti.json`, aggiunge la colonna `tenant_slug` dove manca e riallinea il `studio.db` locale quando diverge dall'archivio utenti del singolo studio.
+- Aggiunti test anti-regressione su riallineamento auth JSON/SQLite tenant, persistenza sincronizzata dei dati utenti e pannello utenti studio in modalita' multi-tenant.
+
 ## 2.214.7 - 2026-05-10
 
 - Blindato il runtime multi-studio: un account non `SUPERADMIN` non puo' piu' proseguire senza contesto tenant valido e il login blocca gli account globali non associati a uno studio quando esistono piu' studi attivi.

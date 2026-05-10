@@ -1,5 +1,7 @@
 """Test per il sistema di autenticazione e gestione utenti."""
 
+import json
+
 import pytest
 from pct.auth import (
     GestioneUtenti,
@@ -417,6 +419,102 @@ def test_migra_utenti_legacy_json_in_sqlite_quando_backend_auth_e_vuoto(tmp_path
     assert migrato.autentica("migrato", "Password123!") is not None
     assert studio_db.conn.execute("SELECT COUNT(*) FROM utenti").fetchone()[0] == 1
     assert studio_db.conn.execute("SELECT COUNT(*) FROM audit_log").fetchone()[0] >= 1
+
+
+def test_tenant_scoped_auth_riallinea_sqlite_da_json_quando_diverge(tmp_path):
+    db = str(tmp_path / "auth" / "utenti.json")
+    audit = str(tmp_path / "auth" / "audit.json")
+    legacy = GestioneUtenti(
+        db_path=db,
+        audit_path=audit,
+        secret_key="s",
+        crea_admin_se_vuoto=False,
+        tenant_slug_context="antonella-mammola",
+    )
+    legacy.crea(
+        "admin",
+        "Password123!",
+        RuoloUtente.AMMINISTRATORE,
+        email="mammolantonella@gmail.com",
+        tenant_slug="antonella-mammola",
+        must_change_password=False,
+    )
+    legacy.crea(
+        "roberto.montagnese",
+        "Password123!",
+        RuoloUtente.AMMINISTRATORE,
+        email="r.montagnese@tiscali.it",
+        tenant_slug="antonella-mammola",
+        must_change_password=False,
+    )
+
+    studio_db = StudioDB.get(str(tmp_path / "studio.db"))
+    seeded = GestioneUtenti(
+        db_path=db,
+        audit_path=audit,
+        secret_key="s",
+        crea_admin_se_vuoto=False,
+        studio_db=studio_db,
+        tenant_slug_context="antonella-mammola",
+    )
+    assert seeded.get_by_username("admin") is not None
+
+    studio_db.conn.execute(
+        "UPDATE utenti SET email = ?, tenant_slug = ? WHERE username = ?",
+        ("giuseppe.montagnese94@gmail.com", "studio-legale-giuseppe-montagnese", "admin"),
+    )
+    studio_db.conn.commit()
+
+    repaired = GestioneUtenti(
+        db_path=db,
+        audit_path=audit,
+        secret_key="s",
+        crea_admin_se_vuoto=False,
+        studio_db=studio_db,
+        tenant_slug_context="antonella-mammola",
+    )
+
+    admin = repaired.get_by_username("admin")
+    row = studio_db.conn.execute(
+        "SELECT email, tenant_slug FROM utenti WHERE username = ?",
+        ("admin",),
+    ).fetchone()
+
+    assert admin is not None
+    assert admin.email == "mammolantonella@gmail.com"
+    assert admin.tenant_slug == "antonella-mammola"
+    assert row is not None
+    assert row["email"] == "mammolantonella@gmail.com"
+    assert row["tenant_slug"] == "antonella-mammola"
+
+
+def test_backend_auth_sqlite_mantiene_json_allineato(tmp_path):
+    db = tmp_path / "auth" / "utenti.json"
+    audit = tmp_path / "auth" / "audit.json"
+    studio_db = StudioDB.get(str(tmp_path / "studio.db"))
+
+    manager = GestioneUtenti(
+        db_path=str(db),
+        audit_path=str(audit),
+        secret_key="s",
+        crea_admin_se_vuoto=False,
+        studio_db=studio_db,
+        tenant_slug_context="studio-rossi",
+    )
+    manager.crea(
+        "antonella",
+        "Password123!",
+        RuoloUtente.AMMINISTRATORE,
+        email="antonella@studio.it",
+        tenant_slug="studio-rossi",
+        must_change_password=False,
+    )
+
+    payload = json.loads(db.read_text(encoding="utf-8"))
+    saved = next(item for item in payload.values() if item.get("username") == "antonella")
+
+    assert saved["email"] == "antonella@studio.it"
+    assert saved["tenant_slug"] == "studio-rossi"
 
 
 # ------------------------------------------------------------------ Statistiche

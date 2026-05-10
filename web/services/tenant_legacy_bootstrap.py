@@ -67,6 +67,15 @@ def bootstrap_legacy_tenant_runtime_data(
         return {"ok": False, "reason": "single-tenant", "target_slug": ""}
 
     tenants = GestioneTenant(registry_path=app.config["TENANTS_REGISTRY"])
+    active_states = {"ATTIVO", "TRIAL"}
+    active_slugs = [
+        str(studio.slug or "").strip().lower()
+        for studio in tenants.lista()
+        if str(getattr(studio, "stato", "") or "").upper() in active_states
+    ]
+    if len(active_slugs) > 1:
+        return {"ok": False, "reason": "multi-tenant-ambiguous", "target_slug": ""}
+
     legacy_paths = legacy_root_data_paths(app.config)
     resolved_target = tenants.resolve_legacy_bootstrap_target_slug(legacy_paths)
     requested_tenant = str(tenant_slug or "").strip().lower()

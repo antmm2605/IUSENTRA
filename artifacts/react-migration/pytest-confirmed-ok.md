@@ -8,6 +8,19 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 
 ## Frontend e gate React
 
+### Isolamento utenti multi-studio 2.214.8
+
+| Verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest -q tests/test_auth.py -k "tenant_scoped_auth or backend_auth_sqlite_mantiene_json_allineato or migra_utenti_legacy_json_in_sqlite" --tb=short` | OK | 3 test verdi: riparazione SQLite auth tenant da archivio locale, persistenza JSON sincronizzata e migrazione legacy JSON -> SQLite. |
+| `python -m pytest -q tests/test_storage_strategy.py -k "admin_utenti_studio_mostra_utenti_tenant_sqlite or login_route_con_studio_slug_legge_utenti_dal_sqlite_del_tenant or bootstrap_legacy_runtime_data" --tb=short` | OK | 4 test verdi sul pannello utenti studio, login tenant-aware e blocco bootstrap root->tenant in ambiente multi-studio. |
+| `python -m pytest -q tests/test_auth.py --tb=short` | OK | 40 test verdi sull'intero modulo auth dopo introduzione del tenant context obbligatorio e della sincronizzazione JSON/SQLite. |
+| `python -m pytest -q tests/test_storage_strategy.py --tb=short` | OK | 40 test verdi sull'intero perimetro storage/auth multi-tenant, inclusi bootstrap, caching e route di amministrazione studio. |
+| `python tools/sync_packaging_files.py --check` | OK | Packaging confermato allineato alla release `2.214.8`. |
+| `python -m pytest -q tests/test_packaging_consistency.py tests/test_release_readiness.py --tb=short` | OK | 8 test verdi sui gate di packaging e readiness per la release multi-studio corretta. |
+| `npm --prefix frontend run typecheck` | OK | TypeScript confermato dopo l'hardening del bridge React `/utenti`. |
+| `npm --prefix frontend run build` | OK | Build Vite completata con asset aggiornati della pagina `UtentiPage`. |
+
 ### Parcella personalizzata Fatturazione 2.214.6
 
 | Verifica | Esito | Nota |
@@ -388,12 +401,13 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | Comando / verifica | Esito | Nota |
 | --- | --- | --- |
 | `python -m pytest -q tests/test_storage_strategy.py -k "legacy_global_admin or context_invalid or carica_tenant or request_storage_runtime" --tb=short` | OK | 10/10 passati: guardie tenant, bootstrap request e profilo storage tenant-aware confermati dopo il blocco fail-closed. |
-| `python -m pytest -q tests/test_storage_strategy.py --tb=short` | OK | 39/39 passati: login multi-studio, sessioni legacy, bootstrap tenant e runtime storage senza regressioni. |
+| `python -m pytest -q tests/test_storage_strategy.py -k "bootstrap_legacy_runtime_data or login_route_bootstraps_legacy_root_data_for_single_tenant_install" --tb=short` | OK | 3/3 passati: il bootstrap legacy resta attivo solo in mono-studio e viene bloccato quando sono presenti due tenant attivi. |
+| `python -m pytest -q tests/test_storage_strategy.py --tb=short` | OK | 40/40 passati: login multi-studio, sessioni legacy, bootstrap tenant e runtime storage senza regressioni. |
 | `python -m pytest -q tests/test_auth.py --tb=short` | OK | 38/38 passati: autenticazione, ruoli, superadmin e persistenza utenti confermati dopo il rafforzamento del contesto tenant. |
-| `python tools/sync_packaging_files.py --check` | OK | Packaging e metadati versione allineati dopo bump 2.214.7. |
-| `python -m pytest -q tests/test_packaging_consistency.py tests/test_release_readiness.py --tb=short` | OK | 8/8 passati: coerenza packaging e readiness confermate per 2.214.7. |
-| `docker compose build --no-cache app scheduler-worker ocr-worker` | OK | Immagini locali ricostruite da zero con package `pct-studio-legale==2.214.7`. |
-| `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx` | OK | Servizi locali riavviati sulle immagini 2.214.7. |
+| `python tools/sync_packaging_files.py --check` | OK | Packaging e metadati versione allineati dopo bump 2.214.8. |
+| `python -m pytest -q tests/test_packaging_consistency.py tests/test_release_readiness.py --tb=short` | OK | 8/8 passati: coerenza packaging e readiness confermate per 2.214.8. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker` | OK | Immagini locali ricostruite da zero con package `pct-studio-legale==2.214.8`. |
+| `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx` | OK | Servizi locali riavviati sulle immagini 2.214.8. |
 | `docker compose ps` | OK | `iusentra-app`, `iusentra-scheduler`, `iusentra-ocr` e `iusentra-redis` healthy; `iusentra-nginx` attivo. |
-| `Invoke-WebRequest -UseBasicParsing -Uri http://127.0.0.1:8080/api/pronto -TimeoutSec 20` | OK | Readiness locale: `{"ok":true,"stato":"pronto","versione":"2.214.7"}`. |
-| `docker exec iusentra-app python -c "import pct; print(pct.__version__)"` | OK | Versione runtime container locale: `2.214.7`. |
+| `Invoke-WebRequest -UseBasicParsing -Uri http://127.0.0.1:8080/api/pronto -TimeoutSec 20` | OK | Readiness locale: `{"ok":true,"stato":"pronto","versione":"2.214.8"}`. |
+| `docker exec iusentra-app python -c "import pct; print(pct.__version__)"` | OK | Versione runtime container locale: `2.214.8`. |

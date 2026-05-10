@@ -1033,7 +1033,7 @@ def test_login_route_bootstraps_legacy_root_data_for_single_tenant_install(tmp_p
     assert dashboard.status_code == 200
 
 
-def test_bootstrap_legacy_runtime_data_usa_mapping_directory_anche_con_due_tenant(
+def test_bootstrap_legacy_runtime_data_non_semina_root_quando_esistono_due_tenant(
     tmp_path: Path,
 ):
     _write_studio_config(tmp_path / "config" / "studio.json")
@@ -1088,15 +1088,39 @@ def test_bootstrap_legacy_runtime_data_usa_mapping_directory_anche_con_due_tenan
 
     report = bootstrap_legacy_tenant_runtime_data(app)
     tenant_paths = tm.percorsi_dati(studio_target.slug)
-    conn = sqlite3.connect(tenant_paths["STUDIO_DB"])
-    clienti_count = conn.execute("SELECT COUNT(*) FROM clienti").fetchone()[0]
-    conn.close()
-    tenant_config = json.loads(Path(tenant_paths["CONFIG_STUDIO_DB"]).read_text(encoding="utf-8"))
+    studio_db_path = Path(tenant_paths["STUDIO_DB"])
 
-    assert report["ok"] is True
-    assert report["target_slug"] == studio_target.slug
-    assert clienti_count >= 1
-    assert "smtp" in tenant_config
+    assert report["ok"] is False
+    assert report["reason"] == "multi-tenant-ambiguous"
+    assert report["target_slug"] == ""
+    assert not studio_db_path.exists() or not GestioneTenant._sqlite_table_has_records(studio_db_path, "clienti")
+
+
+def test_bootstrap_legacy_runtime_data_rifiuta_anche_il_tenant_richiesto_se_multi_studio(
+    tmp_path: Path,
+):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app({**_cfg(tmp_path), "MULTI_TENANT": True})
+
+    root_clienti = Path(app.config["CLIENTI_DB"])
+    root_clienti.parent.mkdir(parents=True, exist_ok=True)
+    root_clienti.write_text(
+        json.dumps({"CLI001": {"id": "CLI001", "nome": "Cliente storico"}}, ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+    tm = GestioneTenant(app.config["TENANTS_REGISTRY"])
+    studio_target = tm.crea("Studio Antonella", "antonella-mammola", db_config={"mode": "SQLITE"})
+    tm.crea("Studio Secondario", "studio-secondario", db_config={"mode": "SQLITE"})
+
+    report = bootstrap_legacy_tenant_runtime_data(app, tenant_slug=studio_target.slug)
+    tenant_paths = tm.percorsi_dati(studio_target.slug)
+    studio_db_path = Path(tenant_paths["STUDIO_DB"])
+
+    assert report["ok"] is False
+    assert report["reason"] == "multi-tenant-ambiguous"
+    assert report["target_slug"] == ""
+    assert not studio_db_path.exists() or not GestioneTenant._sqlite_table_has_records(studio_db_path, "clienti")
 
 
 def test_core_runtime_risolve_config_studio_e_smtp_dal_tenant_attivo(tmp_path: Path):

@@ -8,6 +8,21 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 
 ## Frontend e gate React
 
+### Parcella personalizzata Fatturazione 2.214.5
+
+| Verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest -q tests/test_fatturazione.py tests/test_react_fatturazione_bridge.py tests/test_fattura_pa.py` | OK | 8 test verdi su calcoli parcella, bridge React della nuova parcella personalizzata e XML FatturaPA con snapshot documento/destinatario estero. |
+| `npm --prefix frontend run typecheck` | OK | TypeScript confermato dopo l'estensione della pagina `/fatturazione/nuova` con sezioni trasmissione/studio/destinatario/documento/pagamento. |
+| `npm --prefix frontend run build` | OK | Build Vite 2.214.5 completata; asset React rigenerati con i nuovi chunk `FatturazionePage`. |
+| Browser reale `http://127.0.0.1:8091/fatturazione/nuova` desktop/tablet/mobile | OK | Login tecnico locale con dati reali seedati; presenti `Nuova parcella personalizzata`, sezioni trasmissione/studio/destinatario/documento/pagamento, nessun overflow orizzontale e nessun testo vietato `backend`, `payload`, `legacy`, `runtime`. |
+| `python tools/sync_packaging_files.py --check` | OK | Packaging confermato allineato dopo il bump release `2.214.5`. |
+| `python -m pytest -q tests/test_packaging_consistency.py tests/test_release_readiness.py --tb=short` | OK | 8 test verdi sulla release finale `2.214.5`. |
+| `docker compose build --no-cache app` | OK | Rebuild locale no-cache completato con wheel `pct-studio-legale==2.214.5`. |
+| `docker compose up -d --no-build redis app nginx` + `docker compose up -d --no-build --force-recreate app` | OK | Servizi locali rialzati; ricreazione forzata necessaria per allineare il container app al nuovo build. |
+| `docker compose ps` + `docker inspect iusentra-app --format "{{json .State.Health}}"` | OK | `iusentra-app` healthy dopo alcuni probe iniziali lenti; Redis/Nginx attivi. |
+| `docker exec iusentra-app python -c "import pct; print(pct.__version__)"` + `/api/pronto` interno | OK | Verifica finale nel container: versione runtime `2.214.5` e risposta JSON `{\"ok\": true, \"versione\": \"2.214.5\"}`. |
+
 ### Hotfix contributo unificato preventivo 2.214.4
 
 | Verifica | Esito | Nota |

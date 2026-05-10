@@ -107,6 +107,72 @@ export type FatturazioneFiscalDefaults = {
   applica_bollo: boolean
 }
 
+export type FatturazionePersonalizedTransmission = {
+  identificativo_fiscale: string
+  codice_invio: string
+  telefono: string
+  email: string
+}
+
+export type FatturazionePersonalizedParty = {
+  id?: string
+  partita_iva: string
+  codice_fiscale: string
+  nome_denominazione: string
+  denominazione: string
+  nome: string
+  cognome: string
+  indirizzo: string
+  indirizzo_completo: string
+  cap: string
+  citta: string
+  provincia: string
+  nazione: string
+  pec?: string
+  email?: string
+  telefono?: string
+  codice_destinatario?: string
+  iban?: string
+  istituto_finanziario?: string
+}
+
+export type FatturazionePersonalizedDocument = {
+  tipo_documento: string
+  tipo_documento_label: string
+  numero_documento: string
+  data_documento: string
+  causale_oggetto: string
+  regime_fiscale: string
+  regime_fiscale_label: string
+  esigibilita_iva: string
+  esigibilita_iva_label: string
+  cassa_previdenziale: string
+  cassa_previdenziale_label: string
+  percentuale_spese_generali: string
+  fascicolo_label?: string
+}
+
+export type FatturazionePersonalizedPayment = {
+  modalita_pagamento: string
+  modalita_pagamento_label: string
+  modalita_pagamento_codice: string
+  beneficiario: string
+  istituto_finanziario: string
+  iban: string
+  bic_swift: string
+  data_decorrenza: string
+  giorni_termini: string
+  importo_pagamento: string
+}
+
+export type FatturazionePersonalizedData = {
+  transmission: FatturazionePersonalizedTransmission
+  studio: FatturazionePersonalizedParty
+  recipient: FatturazionePersonalizedParty
+  document: FatturazionePersonalizedDocument
+  payment: FatturazionePersonalizedPayment
+}
+
 export type FatturazioneFormDefaults = {
   id_cliente: string
   id_fascicolo: string
@@ -115,6 +181,9 @@ export type FatturazioneFormDefaults = {
   note: string
   voci: FatturazioneVoiceDefault[]
   opzioni_fiscali: FatturazioneFiscalDefaults
+  percentuale_spese_generali: string
+  metodo_pagamento: string
+  dati_personalizzati: FatturazionePersonalizedData
   hidden: Record<string, string>
 }
 
@@ -145,6 +214,17 @@ export type FatturazionePageData = {
   form: FatturazioneFormDefinition
   clients: FatturazioneOption[]
   matters: FatturazioneMatter[]
+  clientProfiles: Record<string, FatturazionePersonalizedParty>
+  matterProfiles: Record<string, {
+    id: string
+    titolo: string
+    numero_rg: string
+    tribunale: string
+    giudice: string
+    oggetto: string
+  }>
+  studioProfile: FatturazionePersonalizedParty
+  nextNumber: string
   defaults: FatturazioneFormDefaults
   fiscal_options: FatturazioneFiscalOption[]
   metrics: AdminMetric[]
@@ -184,6 +264,9 @@ export type CreateFatturaPayload = {
   valore_controversia?: string
   complessita?: string
   log_calcolo?: string
+  percentuale_spese_generali?: string
+  metodo_pagamento?: string
+  dati_personalizzati?: FatturazionePersonalizedData
 }
 
 export type CreateFatturaItem = {
@@ -220,6 +303,65 @@ const emptyFiscalDefaults: FatturazioneFiscalDefaults = {
   applica_bollo: false,
 }
 
+const emptyParty: FatturazionePersonalizedParty = {
+  partita_iva: '',
+  codice_fiscale: '',
+  nome_denominazione: '',
+  denominazione: '',
+  nome: '',
+  cognome: '',
+  indirizzo: '',
+  indirizzo_completo: '',
+  cap: '',
+  citta: '',
+  provincia: '',
+  nazione: 'IT',
+  pec: '',
+  email: '',
+  telefono: '',
+  codice_destinatario: '',
+  iban: '',
+  istituto_finanziario: '',
+}
+
+const emptyPersonalizedData: FatturazionePersonalizedData = {
+  transmission: {
+    identificativo_fiscale: '',
+    codice_invio: '',
+    telefono: '',
+    email: '',
+  },
+  studio: { ...emptyParty },
+  recipient: { ...emptyParty },
+  document: {
+    tipo_documento: 'TD01',
+    tipo_documento_label: 'Fattura',
+    numero_documento: '',
+    data_documento: '',
+    causale_oggetto: '',
+    regime_fiscale: 'RF01',
+    regime_fiscale_label: 'Regime ordinario',
+    esigibilita_iva: 'I',
+    esigibilita_iva_label: 'Immediata',
+    cassa_previdenziale: 'CAF',
+    cassa_previdenziale_label: 'Avvocati',
+    percentuale_spese_generali: '15',
+    fascicolo_label: '',
+  },
+  payment: {
+    modalita_pagamento: 'MP05',
+    modalita_pagamento_label: 'Bonifico',
+    modalita_pagamento_codice: 'MP05',
+    beneficiario: '',
+    istituto_finanziario: '',
+    iban: '',
+    bic_swift: '',
+    data_decorrenza: '',
+    giorni_termini: '30',
+    importo_pagamento: '',
+  },
+}
+
 const emptyDefaults: FatturazioneFormDefaults = {
   id_cliente: '',
   id_fascicolo: '',
@@ -228,12 +370,15 @@ const emptyDefaults: FatturazioneFormDefaults = {
   note: '',
   voci: [emptyVoice],
   opzioni_fiscali: emptyFiscalDefaults,
+  percentuale_spese_generali: '15',
+  metodo_pagamento: 'Bonifico',
+  dati_personalizzati: emptyPersonalizedData,
   hidden: {},
 }
 
 const emptyForm: FatturazioneFormDefinition = {
   id: 'nuova_parcella',
-  title: 'Nuova parcella',
+  title: 'Nuova parcella personalizzata',
   description: '',
   readHref: '/api/v1/ui/fatturazione/nuova',
   saveHref: '/api/v1/ui/fatturazione/nuova',
@@ -268,6 +413,10 @@ export const emptyFatturazionePage: FatturazionePageData = {
   form: emptyForm,
   clients: [],
   matters: [],
+  clientProfiles: {},
+  matterProfiles: {},
+  studioProfile: emptyParty,
+  nextNumber: '',
   defaults: emptyDefaults,
   fiscal_options: [],
   metrics: [],
@@ -476,6 +625,75 @@ function normaliseFiscalDefaults(raw: unknown): FatturazioneFiscalDefaults {
   }
 }
 
+function normaliseParty(raw: unknown): FatturazionePersonalizedParty {
+  const item = asRecord(raw)
+  return {
+    id: text(item.id),
+    partita_iva: text(item.partita_iva),
+    codice_fiscale: text(item.codice_fiscale),
+    nome_denominazione: display(item.nome_denominazione),
+    denominazione: display(item.denominazione),
+    nome: display(item.nome),
+    cognome: display(item.cognome),
+    indirizzo: display(item.indirizzo),
+    indirizzo_completo: display(item.indirizzo_completo) || display(item.indirizzo),
+    cap: text(item.cap),
+    citta: display(item.citta),
+    provincia: text(item.provincia).toUpperCase(),
+    nazione: text(item.nazione) || 'IT',
+    pec: text(item.pec),
+    email: text(item.email),
+    telefono: text(item.telefono),
+    codice_destinatario: text(item.codice_destinatario),
+    iban: text(item.iban),
+    istituto_finanziario: display(item.istituto_finanziario),
+  }
+}
+
+function normalisePersonalizedData(raw: unknown): FatturazionePersonalizedData {
+  const item = asRecord(raw)
+  const transmission = asRecord(item.transmission)
+  const document = asRecord(item.document)
+  const payment = asRecord(item.payment)
+  return {
+    transmission: {
+      identificativo_fiscale: text(transmission.identificativo_fiscale),
+      codice_invio: text(transmission.codice_invio),
+      telefono: text(transmission.telefono),
+      email: text(transmission.email),
+    },
+    studio: normaliseParty(item.studio),
+    recipient: normaliseParty(item.recipient),
+    document: {
+      tipo_documento: text(document.tipo_documento) || 'TD01',
+      tipo_documento_label: display(document.tipo_documento_label) || 'Fattura',
+      numero_documento: text(document.numero_documento),
+      data_documento: text(document.data_documento),
+      causale_oggetto: text(document.causale_oggetto),
+      regime_fiscale: text(document.regime_fiscale) || 'RF01',
+      regime_fiscale_label: display(document.regime_fiscale_label) || 'Regime ordinario',
+      esigibilita_iva: text(document.esigibilita_iva) || 'I',
+      esigibilita_iva_label: display(document.esigibilita_iva_label) || 'Immediata',
+      cassa_previdenziale: text(document.cassa_previdenziale) || 'CAF',
+      cassa_previdenziale_label: display(document.cassa_previdenziale_label) || 'Avvocati',
+      percentuale_spese_generali: text(document.percentuale_spese_generali) || '15',
+      fascicolo_label: display(document.fascicolo_label),
+    },
+    payment: {
+      modalita_pagamento: text(payment.modalita_pagamento) || 'MP05',
+      modalita_pagamento_label: display(payment.modalita_pagamento_label) || 'Bonifico',
+      modalita_pagamento_codice: text(payment.modalita_pagamento_codice) || 'MP05',
+      beneficiario: display(payment.beneficiario),
+      istituto_finanziario: display(payment.istituto_finanziario),
+      iban: text(payment.iban),
+      bic_swift: text(payment.bic_swift),
+      data_decorrenza: text(payment.data_decorrenza),
+      giorni_termini: text(payment.giorni_termini) || '30',
+      importo_pagamento: text(payment.importo_pagamento),
+    },
+  }
+}
+
 function normaliseDefaults(raw: unknown): FatturazioneFormDefaults {
   const item = asRecord(raw)
   const voices = list(item.voci).map(normaliseVoice)
@@ -487,6 +705,9 @@ function normaliseDefaults(raw: unknown): FatturazioneFormDefaults {
     note: text(item.note),
     voci: voices.length ? voices : [emptyVoice],
     opzioni_fiscali: normaliseFiscalDefaults(item.opzioni_fiscali),
+    percentuale_spese_generali: text(item.percentuale_spese_generali) || '15',
+    metodo_pagamento: text(item.metodo_pagamento) || 'Bonifico',
+    dati_personalizzati: normalisePersonalizedData(item.dati_personalizzati),
     hidden: normaliseHidden(item.hidden),
   }
 }
@@ -496,7 +717,7 @@ function normaliseForm(raw: unknown): FatturazioneFormDefinition {
   const defaults = normaliseDefaults(item.defaults)
   return {
     id: text(item.id) || 'nuova_parcella',
-    title: display(item.title) || 'Nuova parcella',
+    title: display(item.title) || 'Nuova parcella personalizzata',
     description: display(item.description),
     readHref: safeHref(item.readHref, '/api/v1/ui/fatturazione/nuova'),
     saveHref: safeHref(item.saveHref, '/api/v1/ui/fatturazione/nuova'),
@@ -524,6 +745,22 @@ function normalisePage(raw: unknown): FatturazionePageData {
   const contracts = asRecord(page.contracts)
   const form = normaliseForm(page.form || list(page.forms)[0])
   const defaults = normaliseDefaults(page.defaults || form.defaults)
+  const clientProfiles = Object.fromEntries(
+    Object.entries(asRecord(page.clientProfiles)).map(([key, value]) => [key, normaliseParty(value)]),
+  )
+  const matterProfiles = Object.fromEntries(
+    Object.entries(asRecord(page.matterProfiles)).map(([key, value]) => {
+      const item = asRecord(value)
+      return [key, {
+        id: text(item.id) || key,
+        titolo: display(item.titolo),
+        numero_rg: text(item.numero_rg),
+        tribunale: display(item.tribunale),
+        giudice: display(item.giudice),
+        oggetto: display(item.oggetto),
+      }]
+    }),
+  )
   return {
     ok: page.ok === true,
     source: text(page.source),
@@ -539,6 +776,10 @@ function normalisePage(raw: unknown): FatturazionePageData {
     form,
     clients: list(page.clients).map(normaliseOption).filter((option) => option.value),
     matters: list(page.matters).map(normaliseMatter).filter((option) => option.value),
+    clientProfiles,
+    matterProfiles,
+    studioProfile: normaliseParty(page.studioProfile),
+    nextNumber: text(page.nextNumber),
     defaults,
     fiscal_options: list(page.fiscal_options)
       .map(normaliseFiscalOption)

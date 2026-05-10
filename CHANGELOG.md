@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.214.5 - 2026-05-10
+
+- Estesa `/fatturazione/nuova` con la nuova parcella personalizzata: trasmissione, dati studio, destinatario, corpo documento, fiscalita' e pagamento sono ora raccolti in un'unica esperienza React coerente con il modello operativo richiesto.
+- Precompilati automaticamente dai dati reali disponibili cliente, fascicolo, studio, causale, dati pagamento e progressivo di invio, mantenendo il calcolo definitivo governato al salvataggio.
+- Allineati dominio e XML FatturaPA a spese generali, spese imponibili, anticipazioni e snapshot personalizzato del documento; corretto anche il caso destinatario estero nella sezione `Nazione`.
+- Aggiunti test mirati su calcolo parcella, bridge React e generazione XML, con verifica browser desktop/tablet/mobile senza overflow e senza testi tecnici vietati sulla pagina.
+
 ## 2.214.4 - 2026-05-10
 
 - Corretto il contributo unificato proposto nel Preventivo guidato per le pratiche civili di cognizione ordinaria: dopo il calcolo React il wizard riallinea la spesa viva alla tabella normativa in base a valore e grado della pratica.

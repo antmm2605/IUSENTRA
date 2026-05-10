@@ -3588,6 +3588,7 @@ def fatturazione_page():
                 current_user=utente,
                 query=dict(request.args),
                 route="/fatturazione",
+                config=current_app.config,
             )
         )
     except Exception as exc:
@@ -3618,6 +3619,7 @@ def fatturazione_nuova_page():
                 current_user=utente,
                 query=dict(request.args),
                 route="/fatturazione/nuova",
+                config=current_app.config,
             )
         )
     except Exception as exc:

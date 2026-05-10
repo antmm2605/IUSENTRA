@@ -50,6 +50,7 @@ class VoceParcella:
     descrizione:      str
     quantita:         float = 1.0
     prezzo_unitario:  float = 0.0
+    tipo:             str = "ONORARIO"
 
     @property
     def importo(self) -> float:
@@ -60,6 +61,7 @@ class VoceParcella:
             "descrizione":     self.descrizione,
             "quantita":        self.quantita,
             "prezzo_unitario": self.prezzo_unitario,
+            "tipo":            self.tipo or "ONORARIO",
         }
 
     @staticmethod
@@ -68,6 +70,7 @@ class VoceParcella:
             descrizione=d.get("descrizione", ""),
             quantita=float(d.get("quantita", 1.0)),
             prezzo_unitario=float(d.get("prezzo_unitario", 0.0)),
+            tipo=str(d.get("tipo", "ONORARIO") or "ONORARIO").upper(),
         )
 
 
@@ -133,6 +136,7 @@ class Parcella:
     creato_il:         str   = field(default_factory=lambda: datetime.now().isoformat())
     data_pagamento:    Optional[str] = None
     metodo_pagamento:  Optional[str] = None
+    percentuale_spese_generali: float = 0.0
 
     # Provenienza e contesto economico
     origine:           str   = ""
@@ -157,12 +161,35 @@ class Parcella:
     studio_cf:         str = ""
     studio_indirizzo:  str = ""
     studio_iban:       str = ""
+    dati_personalizzati: Dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def totale_competenze(self) -> float:
+        return round(
+            sum(v.importo for v in self.voci if (v.tipo or "ONORARIO").upper() in {"ONORARIO", "ALTRO"}),
+            2,
+        )
+
+    @property
+    def totale_spese_imponibili(self) -> float:
+        return round(sum(v.importo for v in self.voci if (v.tipo or "").upper() == "SPESE"), 2)
+
+    @property
+    def totale_anticipazioni(self) -> float:
+        return round(sum(v.importo for v in self.voci if (v.tipo or "").upper() == "ANTICIPO"), 2)
+
+    @property
+    def spese_generali(self) -> float:
+        aliquota = max(float(self.percentuale_spese_generali or 0.0), 0.0)
+        if aliquota <= 0:
+            return 0.0
+        return round(self.totale_competenze * (aliquota / 100.0), 2)
 
     # ---------------------------------------------------------------- Calcoli
 
     @property
     def imponibile(self) -> float:
-        return round(sum(v.importo for v in self.voci), 2)
+        return round(self.totale_competenze + self.totale_spese_imponibili + self.spese_generali, 2)
 
     @property
     def cassa_forense(self) -> float:
@@ -195,15 +222,20 @@ class Parcella:
 
     @property
     def ritenuta(self) -> float:
-        return round(self.imponibile * 0.20, 2) if self.applica_ritenuta else 0.0
+        base_ritenuta = round(self.totale_competenze + self.spese_generali, 2)
+        return round(base_ritenuta * 0.20, 2) if self.applica_ritenuta else 0.0
 
     @property
     def bollo(self) -> float:
         return 2.00 if self.applica_bollo else 0.0
 
     @property
+    def totale_documento(self) -> float:
+        return round(self.base_iva + self.iva + self.bollo + self.totale_anticipazioni, 2)
+
+    @property
     def totale(self) -> float:
-        return round(self.base_iva + self.iva + self.bollo - self.ritenuta, 2)
+        return round(self.totale_documento - self.ritenuta, 2)
 
     @property
     def netto_a_pagare(self) -> float:
@@ -223,6 +255,8 @@ class Parcella:
         d = dict(d)
         d["stato"] = StatoParcella(d.get("stato", "BOZZA"))
         d["voci"]  = [VoceParcella.from_dict(v) for v in d.get("voci", [])]
+        if not isinstance(d.get("dati_personalizzati"), dict):
+            d["dati_personalizzati"] = {}
         campi = set(Parcella.__dataclass_fields__)
         return Parcella(**{k: v for k, v in d.items() if k in campi})
 
@@ -348,6 +382,7 @@ class GestioneFatturazione:
              applica_cassa:   bool = True,
              applica_ritenuta: bool = False,
              applica_bollo:   bool = False,
+             percentuale_spese_generali: float = 0.0,
              note:            str = "",
              origine:         str = "",
              id_preventivo:   Optional[str] = None,
@@ -362,7 +397,9 @@ class GestioneFatturazione:
              studio_piva:     str = "",
              studio_cf:       str = "",
              studio_indirizzo: str = "",
-             studio_iban:     str = "") -> Parcella:
+             studio_iban:     str = "",
+             metodo_pagamento: str = "",
+             dati_personalizzati: Optional[Dict[str, Any]] = None) -> Parcella:
         oggi = date.today().isoformat()
         operational_fields = build_operational_fields(
             procedure_code=procedura_operativa_codice,
@@ -384,6 +421,7 @@ class GestioneFatturazione:
             applica_cassa=applica_cassa,
             applica_ritenuta=applica_ritenuta,
             applica_bollo=applica_bollo,
+            percentuale_spese_generali=max(float(percentuale_spese_generali or 0.0), 0.0),
             note=note,
             origine=origine,
             id_preventivo=id_preventivo,
@@ -402,10 +440,12 @@ class GestioneFatturazione:
             complessita=complessita,
             log_calcolo=log_calcolo,
             creato_da=creato_da,
+            metodo_pagamento=metodo_pagamento or None,
             studio_piva=studio_piva,
             studio_cf=studio_cf,
             studio_indirizzo=studio_indirizzo,
             studio_iban=studio_iban,
+            dati_personalizzati=dict(dati_personalizzati or {}),
         )
         self._parcelle[p.id] = p
         self._salva()

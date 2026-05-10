@@ -6,10 +6,12 @@ import {
   Download,
   ExternalLink,
   FileText,
+  Mail,
   Plus,
   ReceiptText,
   Save,
   Search,
+  Sparkles,
   Trash2,
   XCircle,
 } from 'lucide-react'
@@ -29,6 +31,8 @@ import {
   type FatturazioneFormDefinition,
   type FatturazioneMatter,
   type FatturazionePageData,
+  type FatturazionePersonalizedData,
+  type FatturazionePersonalizedParty,
   type FatturazioneRecord,
   type FatturazioneMutationResult,
   type FatturazioneVoiceDefault,
@@ -54,6 +58,9 @@ type FormState = {
   note: string
   voci: VoiceRow[]
   opzioni_fiscali: FatturazioneFiscalDefaults
+  percentuale_spese_generali: string
+  metodo_pagamento: string
+  dati_personalizzati: FatturazionePersonalizedData
   hidden: Record<string, string>
 }
 
@@ -82,6 +89,83 @@ const fallbackFormState: FormState = {
   note: '',
   voci: [defaultVoice],
   opzioni_fiscali: defaultFiscalOptions,
+  percentuale_spese_generali: '15',
+  metodo_pagamento: 'Bonifico',
+  dati_personalizzati: {
+    transmission: {
+      identificativo_fiscale: '',
+      codice_invio: '',
+      telefono: '',
+      email: '',
+    },
+    studio: {
+      partita_iva: '',
+      codice_fiscale: '',
+      nome_denominazione: '',
+      denominazione: '',
+      nome: '',
+      cognome: '',
+      indirizzo: '',
+      indirizzo_completo: '',
+      cap: '',
+      citta: '',
+      provincia: '',
+      nazione: 'IT',
+      pec: '',
+      email: '',
+      telefono: '',
+      codice_destinatario: '',
+      iban: '',
+      istituto_finanziario: '',
+    },
+    recipient: {
+      partita_iva: '',
+      codice_fiscale: '',
+      nome_denominazione: '',
+      denominazione: '',
+      nome: '',
+      cognome: '',
+      indirizzo: '',
+      indirizzo_completo: '',
+      cap: '',
+      citta: '',
+      provincia: '',
+      nazione: 'IT',
+      pec: '',
+      email: '',
+      telefono: '',
+      codice_destinatario: '',
+      iban: '',
+      istituto_finanziario: '',
+    },
+    document: {
+      tipo_documento: 'TD01',
+      tipo_documento_label: 'Fattura',
+      numero_documento: '',
+      data_documento: '',
+      causale_oggetto: '',
+      regime_fiscale: 'RF01',
+      regime_fiscale_label: 'Regime ordinario',
+      esigibilita_iva: 'I',
+      esigibilita_iva_label: 'Immediata',
+      cassa_previdenziale: 'CAF',
+      cassa_previdenziale_label: 'Avvocati',
+      percentuale_spese_generali: '15',
+      fascicolo_label: '',
+    },
+    payment: {
+      modalita_pagamento: 'MP05',
+      modalita_pagamento_label: 'Bonifico',
+      modalita_pagamento_codice: 'MP05',
+      beneficiario: '',
+      istituto_finanziario: '',
+      iban: '',
+      bic_swift: '',
+      data_decorrenza: '',
+      giorni_termini: '30',
+      importo_pagamento: '',
+    },
+  },
   hidden: {},
 }
 
@@ -111,6 +195,9 @@ function stateFromForm(form: FatturazioneFormDefinition | undefined): FormState 
     note: defaults?.note || '',
     voci: rows.length ? rows : [defaultVoice],
     opzioni_fiscali: defaults?.opzioni_fiscali || defaultFiscalOptions,
+    percentuale_spese_generali: defaults?.percentuale_spese_generali || '15',
+    metodo_pagamento: defaults?.metodo_pagamento || defaults?.dati_personalizzati?.payment.modalita_pagamento_label || 'Bonifico',
+    dati_personalizzati: defaults?.dati_personalizzati || fallbackFormState.dati_personalizzati,
     hidden: defaults?.hidden || form?.hidden || {},
   }
 }
@@ -135,12 +222,65 @@ function buildPayload(formState: FormState): CreateFatturaPayload {
     data_scadenza: formState.data_scadenza,
     note: formState.note,
     opzioni_fiscali: formState.opzioni_fiscali,
+    percentuale_spese_generali: formState.percentuale_spese_generali,
+    metodo_pagamento: formState.metodo_pagamento,
+    dati_personalizzati: formState.dati_personalizzati,
     voci: formState.voci.map((row) => ({
       descrizione: row.descrizione,
       quantita: numericInputValue(row.quantita, 1),
       prezzo_unitario: numericInputValue(row.prezzo_unitario, 0),
       tipo: row.tipo || 'ONORARIO',
     })),
+  }
+}
+
+function currency(value: number): string {
+  return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(value)
+}
+
+function lineTotal(row: VoiceRow): number {
+  return numericInputValue(row.quantita, 1) * numericInputValue(row.prezzo_unitario, 0)
+}
+
+function mergeParty(current: FatturazionePersonalizedParty, incoming?: FatturazionePersonalizedParty): FatturazionePersonalizedParty {
+  if (!incoming) return current
+  return { ...current, ...incoming }
+}
+
+function computePreview(formState: FormState) {
+  const competenze = formState.voci
+    .filter((row) => (row.tipo || 'ONORARIO') !== 'SPESE' && (row.tipo || 'ONORARIO') !== 'ANTICIPO')
+    .reduce((sum, row) => sum + lineTotal(row), 0)
+  const speseImponibili = formState.voci
+    .filter((row) => row.tipo === 'SPESE')
+    .reduce((sum, row) => sum + lineTotal(row), 0)
+  const anticipazioni = formState.voci
+    .filter((row) => row.tipo === 'ANTICIPO')
+    .reduce((sum, row) => sum + lineTotal(row), 0)
+  const percSpeseGenerali = numericInputValue(formState.percentuale_spese_generali, 0)
+  const speseGenerali = Math.max(0, competenze * (percSpeseGenerali / 100))
+  const imponibile = competenze + speseImponibili + speseGenerali
+  const cassa = formState.opzioni_fiscali.applica_cassa ? imponibile * 0.04 : 0
+  const baseIva = imponibile + cassa
+  const iva = formState.opzioni_fiscali.applica_iva ? baseIva * 0.22 : 0
+  const bollo = formState.opzioni_fiscali.applica_bollo ? 2 : 0
+  const ritenutaBase = competenze + speseGenerali
+  const ritenuta = formState.opzioni_fiscali.applica_ritenuta ? ritenutaBase * 0.2 : 0
+  const totaleDocumento = baseIva + iva + bollo + anticipazioni
+  const totale = totaleDocumento - ritenuta
+  return {
+    competenze,
+    speseImponibili,
+    anticipazioni,
+    speseGenerali,
+    imponibile,
+    cassa,
+    baseIva,
+    iva,
+    bollo,
+    ritenuta,
+    totaleDocumento,
+    totale,
   }
 }
 
@@ -210,7 +350,7 @@ function InvoiceRow({
       <div className="iu-fatt-record__actions">
         <Button type="button" tone="neutral" onClick={() => onDetail(record)}>
           <Search size={15} />
-          Dettaglio JSON
+          Apri dettaglio
         </Button>
         {data.permissions.canUpdateStatus ? (
           <div className="iu-fatt-status-action">
@@ -469,8 +609,83 @@ function NewInvoiceForm({
     () => data.matters.filter((matter) => !formState.id_cliente || matter.idCliente === formState.id_cliente),
     [data.matters, formState.id_cliente],
   )
+  const preview = useMemo(() => computePreview(formState), [formState])
   const canSave = form?.enabled !== false
   const noClients = data.clients.length === 0
+  const clientProfile = data.clientProfiles[formState.id_cliente]
+  const matterProfile = data.matterProfiles[formState.id_fascicolo]
+
+  function updatePersonalized<K extends keyof FatturazionePersonalizedData>(
+    section: K,
+    patch: Partial<FatturazionePersonalizedData[K]>,
+  ) {
+    setFormState((current) => ({
+      ...current,
+      dati_personalizzati: {
+        ...current.dati_personalizzati,
+        [section]: {
+          ...current.dati_personalizzati[section],
+          ...patch,
+        },
+      },
+    }))
+  }
+
+  function applyClientToRecipient(clientId: string) {
+    const incoming = data.clientProfiles[clientId]
+    if (!incoming) return
+    setFormState((current) => ({
+      ...current,
+      id_cliente: clientId,
+      id_fascicolo: '',
+      dati_personalizzati: {
+        ...current.dati_personalizzati,
+        recipient: {
+          ...mergeParty(current.dati_personalizzati.recipient, incoming),
+          codice_destinatario: current.dati_personalizzati.recipient.codice_destinatario || '0000000',
+        },
+      },
+    }))
+  }
+
+  function applyStudioDefaults() {
+    setFormState((current) => ({
+      ...current,
+      dati_personalizzati: {
+        ...current.dati_personalizzati,
+        studio: data.studioProfile,
+        transmission: {
+          ...current.dati_personalizzati.transmission,
+          identificativo_fiscale:
+            data.studioProfile.codice_fiscale || data.studioProfile.partita_iva || current.dati_personalizzati.transmission.identificativo_fiscale,
+          telefono: data.studioProfile.telefono || current.dati_personalizzati.transmission.telefono,
+          email: data.studioProfile.email || current.dati_personalizzati.transmission.email,
+        },
+        payment: {
+          ...current.dati_personalizzati.payment,
+          beneficiario: data.studioProfile.nome_denominazione || current.dati_personalizzati.payment.beneficiario,
+          istituto_finanziario: data.studioProfile.istituto_finanziario || current.dati_personalizzati.payment.istituto_finanziario,
+          iban: data.studioProfile.iban || current.dati_personalizzati.payment.iban,
+        },
+      },
+    }))
+  }
+
+  function onMatterChange(matterId: string) {
+    const incoming = data.matterProfiles[matterId]
+    setFormState((current) => ({
+      ...current,
+      id_fascicolo: matterId,
+      dati_personalizzati: {
+        ...current.dati_personalizzati,
+        document: {
+          ...current.dati_personalizzati.document,
+          fascicolo_label: incoming?.titolo || '',
+          causale_oggetto: current.dati_personalizzati.document.causale_oggetto || incoming?.titolo || current.note,
+        },
+      },
+    }))
+  }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -510,82 +725,465 @@ function NewInvoiceForm({
   }
 
   return (
-    <Panel title="Nuova parcella" subtitle="Salvataggio con validazione, permessi e audit.">
+    <Panel title="Nuova parcella personalizzata" subtitle="Precompilazione da studio, cliente, fascicolo e impostazioni disponibili.">
       <form className="iu-fatt-operational" onSubmit={onSubmit}>
         <StatusMessage status={saveStatus} result={result} errors={errors} />
-        <div className="iu-fatt-form-grid">
-          <label className="iu-fatt-field">
-            <span>Cliente</span>
-            <select
-              required
-              value={formState.id_cliente}
-              onChange={(event) => setFormState((current) => ({ ...current, id_cliente: event.currentTarget.value, id_fascicolo: '' }))}
-            >
-              <option value="">Seleziona cliente</option>
-              {data.clients.map((option) => (
-                <option value={option.value} key={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="iu-fatt-field">
-            <span>Pratica</span>
-            <select
-              value={formState.id_fascicolo}
-              onChange={(event) => setFormState((current) => ({ ...current, id_fascicolo: event.currentTarget.value }))}
-            >
-              <option value="">Nessuna pratica</option>
-              {filteredMatters.map((matter: FatturazioneMatter) => (
-                <option value={matter.value} key={matter.value}>
-                  {matter.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="iu-fatt-field">
-            <span>Data emissione</span>
-            <input
-              type="date"
-              required
-              value={formState.data_emissione}
-              onChange={(event) => setFormState((current) => ({ ...current, data_emissione: event.currentTarget.value }))}
-            />
-          </label>
-          <label className="iu-fatt-field">
-            <span>Scadenza pagamento</span>
-            <input
-              type="date"
-              required
-              value={formState.data_scadenza}
-              onChange={(event) => setFormState((current) => ({ ...current, data_scadenza: event.currentTarget.value }))}
-            />
-          </label>
-        </div>
+        <section className="iu-fatt-rich-card">
+          <div className="iu-fatt-section-head">
+            <div>
+              <span className="iu-fatt-kicker">Anagrafica e pratica</span>
+              <h3>Collega i dati reali del gestionale</h3>
+            </div>
+            <Badge tone="primary">Archivio reale</Badge>
+          </div>
+          <div className="iu-fatt-form-grid">
+            <label className="iu-fatt-field">
+              <span>Cliente</span>
+              <select
+                required
+                value={formState.id_cliente}
+                onChange={(event) => applyClientToRecipient(event.currentTarget.value)}
+              >
+                <option value="">Seleziona cliente</option>
+                {data.clients.map((option) => (
+                  <option value={option.value} key={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="iu-fatt-field">
+              <span>Pratica</span>
+              <select
+                value={formState.id_fascicolo}
+                onChange={(event) => onMatterChange(event.currentTarget.value)}
+              >
+                <option value="">Nessuna pratica</option>
+                {filteredMatters.map((matter: FatturazioneMatter) => (
+                  <option value={matter.value} key={matter.value}>
+                    {matter.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="iu-fatt-field">
+              <span>Data documento</span>
+              <input
+                type="date"
+                required
+                value={formState.data_emissione}
+                onChange={(event) => {
+                  const value = event.currentTarget.value
+                  setFormState((current) => ({
+                    ...current,
+                    data_emissione: value,
+                    dati_personalizzati: {
+                      ...current.dati_personalizzati,
+                      document: {
+                        ...current.dati_personalizzati.document,
+                        data_documento: value,
+                      },
+                    },
+                  }))
+                }}
+              />
+            </label>
+            <label className="iu-fatt-field">
+              <span>Scadenza pagamento</span>
+              <input
+                type="date"
+                required
+                value={formState.data_scadenza}
+                onChange={(event) => {
+                  const value = event.currentTarget.value
+                  setFormState((current) => ({
+                    ...current,
+                    data_scadenza: value,
+                    dati_personalizzati: {
+                      ...current.dati_personalizzati,
+                      payment: {
+                        ...current.dati_personalizzati.payment,
+                        data_decorrenza: value,
+                      },
+                    },
+                  }))
+                }}
+              />
+            </label>
+          </div>
+          <div className="iu-fatt-inline-summary">
+            <div>
+              <strong>{clientProfile?.nome_denominazione || 'Cliente da selezionare'}</strong>
+              <span>{clientProfile?.codice_fiscale || clientProfile?.partita_iva || 'Identificativo fiscale non disponibile'}</span>
+            </div>
+            <div>
+              <strong>{matterProfile?.titolo || 'Nessuna pratica collegata'}</strong>
+              <span>{matterProfile?.numero_rg ? `RG ${matterProfile.numero_rg}` : 'Puoi creare la parcella anche senza pratica'}</span>
+            </div>
+          </div>
+        </section>
+
+        <section className="iu-fatt-rich-card">
+          <div className="iu-fatt-section-head">
+            <div>
+              <span className="iu-fatt-kicker">Trasmissione</span>
+              <h3>Dati generali relativi alla trasmissione</h3>
+            </div>
+            <Button type="button" tone="neutral" onClick={applyStudioDefaults}>
+              <Sparkles size={16} />
+              Usa dati studio
+            </Button>
+          </div>
+          <div className="iu-fatt-form-grid">
+            <label className="iu-fatt-field">
+              <span>Identificativo fiscale del trasmittente</span>
+              <input
+                value={formState.dati_personalizzati.transmission.identificativo_fiscale}
+                onChange={(event) => updatePersonalized('transmission', { identificativo_fiscale: event.currentTarget.value })}
+                placeholder="Codice fiscale del trasmittente"
+              />
+            </label>
+            <label className="iu-fatt-field">
+              <span>Codice di invio</span>
+              <input
+                value={formState.dati_personalizzati.transmission.codice_invio}
+                onChange={(event) => updatePersonalized('transmission', { codice_invio: event.currentTarget.value.toUpperCase() })}
+                placeholder={data.nextNumber || '26001'}
+              />
+            </label>
+            <label className="iu-fatt-field">
+              <span>Telefono trasmittente</span>
+              <input
+                value={formState.dati_personalizzati.transmission.telefono}
+                onChange={(event) => updatePersonalized('transmission', { telefono: event.currentTarget.value })}
+                placeholder="Recapito telefonico"
+              />
+            </label>
+            <label className="iu-fatt-field">
+              <span>Email trasmittente</span>
+              <input
+                type="email"
+                value={formState.dati_personalizzati.transmission.email}
+                onChange={(event) => updatePersonalized('transmission', { email: event.currentTarget.value })}
+                placeholder="Email non PEC"
+              />
+            </label>
+          </div>
+        </section>
+
+        <section className="iu-fatt-rich-card">
+          <div className="iu-fatt-section-head">
+            <div>
+              <span className="iu-fatt-kicker">Studio</span>
+              <h3>Dati dello studio</h3>
+            </div>
+            <Badge tone="success">Precompilati</Badge>
+          </div>
+          <div className="iu-fatt-form-grid">
+            <label className="iu-fatt-field">
+              <span>Nome o denominazione</span>
+              <input
+                value={formState.dati_personalizzati.studio.nome_denominazione}
+                onChange={(event) => updatePersonalized('studio', { nome_denominazione: event.currentTarget.value })}
+              />
+            </label>
+            <label className="iu-fatt-field">
+              <span>Cognome</span>
+              <input
+                value={formState.dati_personalizzati.studio.cognome}
+                onChange={(event) => updatePersonalized('studio', { cognome: event.currentTarget.value })}
+                placeholder="Lascia vuoto per studio associato"
+              />
+            </label>
+            <label className="iu-fatt-field">
+              <span>Indirizzo</span>
+              <input
+                value={formState.dati_personalizzati.studio.indirizzo}
+                onChange={(event) => updatePersonalized('studio', { indirizzo: event.currentTarget.value, indirizzo_completo: event.currentTarget.value })}
+              />
+            </label>
+            <label className="iu-fatt-field">
+              <span>CAP</span>
+              <input value={formState.dati_personalizzati.studio.cap} onChange={(event) => updatePersonalized('studio', { cap: event.currentTarget.value })} />
+            </label>
+            <label className="iu-fatt-field">
+              <span>Citta</span>
+              <input value={formState.dati_personalizzati.studio.citta} onChange={(event) => updatePersonalized('studio', { citta: event.currentTarget.value })} />
+            </label>
+            <label className="iu-fatt-field">
+              <span>Provincia</span>
+              <input value={formState.dati_personalizzati.studio.provincia} onChange={(event) => updatePersonalized('studio', { provincia: event.currentTarget.value.toUpperCase() })} />
+            </label>
+            <label className="iu-fatt-field">
+              <span>Partita IVA</span>
+              <input value={formState.dati_personalizzati.studio.partita_iva} onChange={(event) => updatePersonalized('studio', { partita_iva: event.currentTarget.value })} />
+            </label>
+            <label className="iu-fatt-field">
+              <span>Codice fiscale</span>
+              <input value={formState.dati_personalizzati.studio.codice_fiscale} onChange={(event) => updatePersonalized('studio', { codice_fiscale: event.currentTarget.value })} />
+            </label>
+          </div>
+        </section>
+
+        <section className="iu-fatt-rich-card">
+          <div className="iu-fatt-section-head">
+            <div>
+              <span className="iu-fatt-kicker">Destinatario</span>
+              <h3>Dati del destinatario</h3>
+            </div>
+            <Button type="button" tone="neutral" disabled={!formState.id_cliente} onClick={() => applyClientToRecipient(formState.id_cliente)}>
+              <Mail size={16} />
+              Ricarica anagrafica cliente
+            </Button>
+          </div>
+          <div className="iu-fatt-form-grid">
+            <label className="iu-fatt-field">
+              <span>Partita IVA</span>
+              <input value={formState.dati_personalizzati.recipient.partita_iva} onChange={(event) => updatePersonalized('recipient', { partita_iva: event.currentTarget.value })} />
+            </label>
+            <label className="iu-fatt-field">
+              <span>Codice fiscale</span>
+              <input value={formState.dati_personalizzati.recipient.codice_fiscale} onChange={(event) => updatePersonalized('recipient', { codice_fiscale: event.currentTarget.value })} />
+            </label>
+            <label className="iu-fatt-field">
+              <span>Nome o denominazione</span>
+              <input value={formState.dati_personalizzati.recipient.nome_denominazione} onChange={(event) => updatePersonalized('recipient', { nome_denominazione: event.currentTarget.value, denominazione: event.currentTarget.value })} />
+            </label>
+            <label className="iu-fatt-field">
+              <span>Cognome</span>
+              <input value={formState.dati_personalizzati.recipient.cognome} onChange={(event) => updatePersonalized('recipient', { cognome: event.currentTarget.value })} placeholder="Solo se persona fisica" />
+            </label>
+            <label className="iu-fatt-field">
+              <span>Indirizzo</span>
+              <input value={formState.dati_personalizzati.recipient.indirizzo} onChange={(event) => updatePersonalized('recipient', { indirizzo: event.currentTarget.value, indirizzo_completo: event.currentTarget.value })} />
+            </label>
+            <label className="iu-fatt-field">
+              <span>CAP</span>
+              <input value={formState.dati_personalizzati.recipient.cap} onChange={(event) => updatePersonalized('recipient', { cap: event.currentTarget.value })} />
+            </label>
+            <label className="iu-fatt-field">
+              <span>Citta</span>
+              <input value={formState.dati_personalizzati.recipient.citta} onChange={(event) => updatePersonalized('recipient', { citta: event.currentTarget.value })} />
+            </label>
+            <label className="iu-fatt-field">
+              <span>Provincia</span>
+              <input value={formState.dati_personalizzati.recipient.provincia} onChange={(event) => updatePersonalized('recipient', { provincia: event.currentTarget.value.toUpperCase() })} />
+            </label>
+            <label className="iu-fatt-field">
+              <span>Nazione</span>
+              <input value={formState.dati_personalizzati.recipient.nazione} onChange={(event) => updatePersonalized('recipient', { nazione: event.currentTarget.value.toUpperCase() })} placeholder="IT" />
+            </label>
+            <label className="iu-fatt-field">
+              <span>PEC del destinatario</span>
+              <input type="email" value={formState.dati_personalizzati.recipient.pec || ''} onChange={(event) => updatePersonalized('recipient', { pec: event.currentTarget.value })} />
+            </label>
+            <label className="iu-fatt-field">
+              <span>Codice univoco del destinatario</span>
+              <input value={formState.dati_personalizzati.recipient.codice_destinatario || ''} onChange={(event) => updatePersonalized('recipient', { codice_destinatario: event.currentTarget.value.toUpperCase() })} placeholder="0000000" />
+            </label>
+          </div>
+        </section>
+
+        <section className="iu-fatt-rich-card">
+          <div className="iu-fatt-section-head">
+            <div>
+              <span className="iu-fatt-kicker">Documento</span>
+              <h3>Corpo del documento</h3>
+            </div>
+            <Badge tone="warning">Numero assegnato al salvataggio</Badge>
+          </div>
+          <div className="iu-fatt-form-grid">
+            <label className="iu-fatt-field">
+              <span>Tipo documento</span>
+              <select value={formState.dati_personalizzati.document.tipo_documento} onChange={(event) => updatePersonalized('document', { tipo_documento: event.currentTarget.value })}>
+                <option value="TD01">Fattura</option>
+                <option value="TD04">Nota di credito</option>
+              </select>
+            </label>
+            <label className="iu-fatt-field">
+              <span>Numero documento</span>
+              <input value={formState.dati_personalizzati.document.numero_documento || data.nextNumber} readOnly />
+            </label>
+            <label className="iu-fatt-field iu-fatt-field--wide">
+              <span>Causale o oggetto</span>
+              <textarea
+                rows={3}
+                value={formState.dati_personalizzati.document.causale_oggetto}
+                onChange={(event) => {
+                  const value = event.currentTarget.value
+                  setFormState((current) => ({
+                    ...current,
+                    note: value,
+                    dati_personalizzati: {
+                      ...current.dati_personalizzati,
+                      document: {
+                        ...current.dati_personalizzati.document,
+                        causale_oggetto: value,
+                      },
+                    },
+                  }))
+                }}
+                placeholder="Riferimento pratica, fascicolo, parti o oggetto"
+              />
+            </label>
+            <label className="iu-fatt-field">
+              <span>Regime fiscale</span>
+              <select value={formState.dati_personalizzati.document.regime_fiscale} onChange={(event) => updatePersonalized('document', { regime_fiscale: event.currentTarget.value })}>
+                <option value="RF01">Regime ordinario</option>
+                <option value="RF19">Regime forfettario</option>
+                <option value="RF02">Regime minimo</option>
+              </select>
+            </label>
+            <label className="iu-fatt-field">
+              <span>Esigibilita IVA</span>
+              <select value={formState.dati_personalizzati.document.esigibilita_iva} onChange={(event) => updatePersonalized('document', { esigibilita_iva: event.currentTarget.value })}>
+                <option value="I">Immediata</option>
+                <option value="D">Differita</option>
+                <option value="S">Scissione pagamenti</option>
+              </select>
+            </label>
+            <label className="iu-fatt-field">
+              <span>Cassa previdenziale</span>
+              <select value={formState.dati_personalizzati.document.cassa_previdenziale} onChange={(event) => updatePersonalized('document', { cassa_previdenziale: event.currentTarget.value })}>
+                <option value="CAF">Avvocati</option>
+                <option value="ALTRO">Altra cassa</option>
+              </select>
+            </label>
+            <label className="iu-fatt-field">
+              <span>Spese generali %</span>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="0.01"
+                value={formState.percentuale_spese_generali}
+                onChange={(event) => {
+                  const value = event.currentTarget.value
+                  setFormState((current) => ({
+                    ...current,
+                    percentuale_spese_generali: value,
+                    dati_personalizzati: {
+                      ...current.dati_personalizzati,
+                      document: {
+                        ...current.dati_personalizzati.document,
+                        percentuale_spese_generali: value,
+                      },
+                    },
+                  }))
+                }}
+              />
+            </label>
+          </div>
+        </section>
 
         <VoiceEditor
           rows={formState.voci}
           onChange={(voci) => setFormState((current) => ({ ...current, voci }))}
         />
 
-        <FiscalOptions
-          values={formState.opzioni_fiscali}
-          onChange={(opzioni_fiscali) => setFormState((current) => ({ ...current, opzioni_fiscali }))}
-        />
-
-        <label className="iu-fatt-field">
-          <span>Note e causale</span>
-          <textarea
-            rows={4}
-            value={formState.note}
-            onChange={(event) => setFormState((current) => ({ ...current, note: event.currentTarget.value }))}
-            placeholder="Causale o note per il documento"
+        <section className="iu-fatt-rich-card">
+          <div className="iu-fatt-section-head">
+            <div>
+              <span className="iu-fatt-kicker">Fiscalita e pagamento</span>
+              <h3>Dati integrativi e pagamento</h3>
+            </div>
+            <Badge tone="success">Calcolo guidato</Badge>
+          </div>
+          <FiscalOptions
+            values={formState.opzioni_fiscali}
+            onChange={(opzioni_fiscali) => setFormState((current) => ({ ...current, opzioni_fiscali }))}
           />
-        </label>
+          <div className="iu-fatt-form-grid">
+            <label className="iu-fatt-field">
+              <span>Modalita di pagamento</span>
+              <select
+                value={formState.dati_personalizzati.payment.modalita_pagamento_label}
+                onChange={(event) => {
+                  const label = event.currentTarget.value
+                  const codeMap: Record<string, string> = {
+                    Bonifico: 'MP05',
+                    Contanti: 'MP01',
+                    Assegno: 'MP02',
+                    PayPal: 'MP12',
+                    'Carta di credito': 'MP08',
+                    Altro: 'MP05',
+                  }
+                  setFormState((current) => ({
+                    ...current,
+                    metodo_pagamento: label,
+                    dati_personalizzati: {
+                      ...current.dati_personalizzati,
+                      payment: {
+                        ...current.dati_personalizzati.payment,
+                        modalita_pagamento_label: label,
+                        modalita_pagamento_codice: codeMap[label] || 'MP05',
+                      },
+                    },
+                  }))
+                }}
+              >
+                <option value="Bonifico">Bonifico</option>
+                <option value="Contanti">Contanti</option>
+                <option value="Assegno">Assegno</option>
+                <option value="Carta di credito">Carta di credito</option>
+                <option value="PayPal">PayPal</option>
+                <option value="Altro">Altro</option>
+              </select>
+            </label>
+            <label className="iu-fatt-field">
+              <span>Beneficiario</span>
+              <input value={formState.dati_personalizzati.payment.beneficiario} onChange={(event) => updatePersonalized('payment', { beneficiario: event.currentTarget.value })} />
+            </label>
+            <label className="iu-fatt-field">
+              <span>Istituto finanziario</span>
+              <input value={formState.dati_personalizzati.payment.istituto_finanziario} onChange={(event) => updatePersonalized('payment', { istituto_finanziario: event.currentTarget.value })} />
+            </label>
+            <label className="iu-fatt-field">
+              <span>IBAN</span>
+              <input value={formState.dati_personalizzati.payment.iban} onChange={(event) => updatePersonalized('payment', { iban: event.currentTarget.value })} />
+            </label>
+            <label className="iu-fatt-field">
+              <span>BIC o SWIFT</span>
+              <input value={formState.dati_personalizzati.payment.bic_swift} onChange={(event) => updatePersonalized('payment', { bic_swift: event.currentTarget.value })} />
+            </label>
+            <label className="iu-fatt-field">
+              <span>Giorni termini di pagamento</span>
+              <input value={formState.dati_personalizzati.payment.giorni_termini} onChange={(event) => updatePersonalized('payment', { giorni_termini: event.currentTarget.value })} />
+            </label>
+            <label className="iu-fatt-field">
+              <span>Importo pagamento personalizzato</span>
+              <input value={formState.dati_personalizzati.payment.importo_pagamento} onChange={(event) => updatePersonalized('payment', { importo_pagamento: event.currentTarget.value })} placeholder="Lascia vuoto per il totale" />
+            </label>
+          </div>
+        </section>
+
+        <section className="iu-fatt-preview-card">
+          <div className="iu-fatt-section-head">
+            <div>
+              <span className="iu-fatt-kicker">Anteprima</span>
+              <h3>Riepilogo economico della parcella</h3>
+            </div>
+            <Badge tone="warning">Conferma finale al salvataggio</Badge>
+          </div>
+          <div className="iu-fatt-preview-grid">
+            <div><span>Totale competenze</span><strong>{currency(preview.competenze)}</strong></div>
+            <div><span>Spese imponibili</span><strong>{currency(preview.speseImponibili)}</strong></div>
+            <div><span>Anticipazioni</span><strong>{currency(preview.anticipazioni)}</strong></div>
+            <div><span>Spese generali</span><strong>{currency(preview.speseGenerali)}</strong></div>
+            <div><span>CPA 4%</span><strong>{currency(preview.cassa)}</strong></div>
+            <div><span>IVA 22%</span><strong>{currency(preview.iva)}</strong></div>
+            <div><span>Ritenuta 20%</span><strong>{currency(preview.ritenuta)}</strong></div>
+            <div><span>Totale documento</span><strong>{currency(preview.totaleDocumento)}</strong></div>
+          </div>
+          <div className="iu-fatt-preview-total">
+            <span>Totale generale</span>
+            <strong>{currency(preview.totale)}</strong>
+          </div>
+        </section>
 
         <section className="iu-fatt-form-note" aria-label="Calcolo definitivo">
           <strong>Calcolo definitivo governato</strong>
-          <span>La pagina invia voci e opzioni; numerazione, imponibile, imposte e importi finali sono determinati dai servizi di fatturazione.</span>
+          <span>La pagina prepara i dati della parcella; numerazione, imposte e importi finali vengono verificati prima del salvataggio definitivo.</span>
         </section>
 
         <div className="iu-fatt-action-row">
@@ -614,7 +1212,7 @@ function NewInvoiceForm({
           </div>
         ) : null}
       </form>
-      <TechnicalRollback href="/fatturazione?_legacy=1" />
+      <TechnicalRollback href="/fatturazione/nuova?_legacy=1" />
     </Panel>
   )
 }
@@ -654,7 +1252,7 @@ function ArchiveMutationState({ result, errors }: { result: FatturazioneMutation
       <section className="iu-fatt-state iu-fatt-state--success" aria-live="polite">
         <CheckCircle2 size={20} />
         <div>
-          <strong>success</strong>
+          <strong>Operazione completata</strong>
           <span>{result.message}</span>
         </div>
       </section>
@@ -665,7 +1263,7 @@ function ArchiveMutationState({ result, errors }: { result: FatturazioneMutation
     <section className="iu-fatt-state iu-fatt-state--warning" aria-live="polite">
       <AlertTriangle size={20} />
       <div>
-        <strong>validation error</strong>
+        <strong>Controlla i dati inseriti</strong>
         {rows.length ? rows.map((row) => <span key={row}>{row}</span>) : <span>{result.message}</span>}
       </div>
     </section>

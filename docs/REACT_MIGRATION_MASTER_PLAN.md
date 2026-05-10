@@ -1,5 +1,27 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-10 - Parcella personalizzata Fatturazione 2.214.5
+
+Questa tranche risponde alla richiesta di ampliare `/fatturazione/nuova` con
+una parcella personalizzata completa, precompilata dove possibile dal software:
+
+- la pagina React raccoglie ora in sezioni operative distinte i dati di
+  trasmissione, i dati dello studio, il destinatario, il corpo del documento,
+  la fiscalita' e il pagamento, mantenendo linguaggio da studio legale e senza
+  testo tecnico visibile;
+- cliente, fascicolo, studio, pagamento e causale vengono precompilati dai dati
+  reali disponibili, con numero documento assegnato al salvataggio e progressivo
+  di invio proposto automaticamente;
+- il dominio fatturazione governa ora spese generali, spese imponibili,
+  anticipazioni e snapshot personalizzato del documento, mantenendo i calcoli
+  definitivi lato servizio e persistendo i campi necessari all'XML FatturaPA;
+- la generazione XML usa i dati personalizzati salvati e gestisce correttamente
+  anche destinatari esteri senza duplicare o forzare una nazione italiana;
+- verifiche locali confermate: pytest mirati su fatturazione/bridge/XML,
+  typecheck e build Vite verdi, browser reale desktop/tablet/mobile senza
+  overflow orizzontale e senza termini vietati come `backend`, `payload`,
+  `legacy` o `runtime` nella pagina.
+
 ## Stato tranche 2026-05-10 - Hotfix contributo unificato Preventivo guidato 2.214.4
 
 Questa tranche chiude il disallineamento segnalato dall'utente nel Preventivo guidato:

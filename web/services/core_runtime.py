@@ -550,14 +550,14 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
 
     def get_backup() -> GestioneBackup:
         data_paths = {
-            "agenda": app.config["AGENDA_DB"],
-            "clienti": app.config["CLIENTI_DB"],
-            "fascicoli": app.config["FASCICOLI_DB"],
-            "messaggi": app.config["MESSAGGI_DB"],
-            "documenti": app.config["FASCICOLI_DOCS"],
+            "agenda": _cfg_data_path("AGENDA_DB"),
+            "clienti": _cfg_data_path("CLIENTI_DB"),
+            "fascicoli": _cfg_data_path("FASCICOLI_DB"),
+            "messaggi": _cfg_data_path("MESSAGGI_DB"),
+            "documenti": _cfg_data_path("FASCICOLI_DOCS"),
         }
         return GestioneBackup(
-            directory_backup=app.config["BACKUP_DIR"],
+            directory_backup=_cfg_data_path("BACKUP_DIR"),
             percorsi_dati=data_paths,
         )
 
@@ -659,20 +659,20 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
     def get_soggetti() -> GestioneSoggetti:
         if not hasattr(g, "_soggetti"):
             g._soggetti = GestioneSoggetti(
-                soggetti_path=app.config["SOGGETTI_DB"],
-                parti_path=app.config["SOGGETTI_PARTI_DB"],
+                soggetti_path=_cfg_data_path("SOGGETTI_DB"),
+                parti_path=_cfg_data_path("SOGGETTI_PARTI_DB"),
             )
         return g._soggetti
 
     def get_indice() -> IndiceRicerca:
         if not hasattr(g, "_indice"):
-            g._indice = IndiceRicerca(index_path=app.config["SEARCH_INDEX"])
+            g._indice = IndiceRicerca(index_path=_cfg_data_path("SEARCH_INDEX"))
         return g._indice
 
     def get_trattamenti() -> GestioneTrattamenti:
         if not hasattr(g, "_trattamenti"):
             g._trattamenti = GestioneTrattamenti(
-                db_path=app.config["PRIVACY_DB"],
+                db_path=_cfg_data_path("PRIVACY_DB"),
                 studio_db=get_studio_db("PRIVACY_DB"),
             )
         return g._trattamenti
@@ -680,7 +680,7 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
     def get_condivisioni() -> GestioneCondivisioni:
         if not hasattr(g, "_condivisioni"):
             g._condivisioni = GestioneCondivisioni(
-                db_path=app.config["CONDIVISIONI_DB"],
+                db_path=_cfg_data_path("CONDIVISIONI_DB"),
                 secret_key=app.config["SECRET_KEY"],
             )
         return g._condivisioni

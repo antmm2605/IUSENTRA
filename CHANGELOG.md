@@ -2,6 +2,8 @@
 
 ## 2.214.10 - 2026-05-10
 
+- Blindati altri accessi tenant-aware nei repository sensibili: backup, soggetti/anagrafiche parti, indice ricerca, registro privacy, condivisioni, calendario in Impostazioni, preventivi/template atti, sync PDP/PEC, topbar, applicazioni, legal intelligence e superfici admin database/salute sistema ora leggono i path del tenant attivo oppure falliscono chiusi se il contesto studio manca.
+- Aggiunti test anti-regressione mirati per impedire nuove letture cross-studio su loader core, helper calendario e repository preventivi.
 - Aggiunta nelle pagine `Email PEC` ed `Email ordinaria` la selezione multipla dei messaggi visibili, con checkbox di riga, selezione totale della vista corrente e barra operativa dedicata.
 - La cancellazione multipla segue ora il comportamento corretto della cartella aperta: in `In arrivo` e `Inviati` i messaggi vengono spostati nel cestino, mentre da `Cestino` possono essere eliminati definitivamente in blocco.
 - Estesi i bridge React email con l'azione `bulkAction` e introdotti gli endpoint JSON `POST /api/v1/ui/email/bulk-action` e `POST /api/v1/ui/email-ordinaria/bulk-action`, mantenendo separati i repository PEC e ordinaria.

@@ -188,6 +188,9 @@ Quando una modifica riguarda UI React, app-v2, template, SCSS/CSS, componenti co
 Quando il lavoro riguarda persistenza, tenant, JSON, SQLite, SQL o PostgreSQL:
 
 - consultare la storage matrix e l'architettura in `docs/`;
+- **Isolamento tenant assoluto, regola severa**: email PEC, email ordinaria, configurazioni studio, fascicoli, agenda, fatturazione, preventivi, impostazioni, clienti, soggetti e qualunque altro dato operativo devono essere letti e scritti solo sui path/repository del tenant attivo nella request o nel job esplicitamente contestualizzato; e' vietato usare fallback silenziosi a `app.config` globale o path root quando l'operazione riguarda dati di studio.
+- **Fail-closed multi-studio obbligatorio**: se in ambiente multi-studio manca il contesto tenant valido (`g.data_paths`, profilo storage o equivalente), l'operazione deve bloccarsi con errore controllato invece di provare a leggere o mostrare dati di un altro studio.
+- **Creazione nuovi studi senza contaminazione**: la creazione o inizializzazione di un nuovo studio non deve mai importare, mostrare o bootstrapare dati di un altro studio; eventuali migrazioni compatibili possono avvenire solo in scenari mono-studio o tramite procedura esplicita e tracciata, mai per eredita' implicita.
 - non introdurre fallback silenziosi;
 - non salvare dati runtime in path repository;
 - usare percorsi scrivibili e tenant-aware;

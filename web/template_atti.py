@@ -12,7 +12,7 @@ from datetime import date, timedelta
 from flask import (Blueprint, abort, flash, g, redirect,
                    render_template, request, send_file, url_for, current_app)
 
-from web.helpers import get_clienti, get_fascicoli
+from web.helpers import get_clienti, get_fascicoli, get_preventivi
 
 preventivi = Blueprint("preventivi", __name__, url_prefix="/preventivi")
 
@@ -20,10 +20,7 @@ preventivi = Blueprint("preventivi", __name__, url_prefix="/preventivi")
 # ---------------------------------------------------------------- helpers
 
 def _get_gp():
-    from pct.preventivi import GestionePreventivi
-    return GestionePreventivi(
-        db_path=current_app.config.get("PREVENTIVI_DB", "./preventivi/preventivi.json")
-    )
+    return get_preventivi()
 
 
 def _richiedi_login(f):

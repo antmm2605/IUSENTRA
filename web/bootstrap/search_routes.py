@@ -22,6 +22,17 @@ def register_search_routes(
 ) -> None:
     """Register search, index rebuild, and OCR worker state routes."""
 
+    def _cfg_data_path(key: str) -> str:
+        paths = getattr(g, "data_paths", {}) or {}
+        if paths and key in paths:
+            return str(paths[key])
+        if getattr(g, "tenant_context_missing", False):
+            raise RuntimeError(
+                "Contesto studio non disponibile per la richiesta corrente. "
+                "Accesso ai dati bloccato per evitare letture cross-studio."
+            )
+        return str(app.config[key])
+
     @app.route("/api/cerca")
     def api_cerca():
         try:
@@ -92,7 +103,7 @@ def register_search_routes(
                                 id_doc=doc["id"],
                                 nome_doc=doc.get("nome", ""),
                                 tipo_doc=doc.get("tipo", ""),
-                                index_path=app.config["SEARCH_INDEX"],
+                                index_path=_cfg_data_path("SEARCH_INDEX"),
                             )
                         except Exception:
                             pass

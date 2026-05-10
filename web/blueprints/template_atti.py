@@ -20,20 +20,32 @@ from web.helpers import get_clienti, get_fascicoli, get_soggetti, get_utenti
 template_atti = Blueprint("template_atti", __name__, url_prefix="/template-atti")
 
 
+def _cfg_path(key: str, default: str = "") -> str:
+    paths = getattr(g, "data_paths", {}) or {}
+    if key in paths:
+        return str(paths[key] or default)
+    if getattr(g, "tenant_context_missing", False):
+        raise RuntimeError(
+            "Contesto studio non disponibile per la richiesta corrente. "
+            "Accesso ai dati bloccato per evitare letture cross-studio."
+        )
+    return str(current_app.config.get(key, default) or default)
+
+
 def _get_gt():
     from pct.template_atti import GestioneTemplateAtti
     return GestioneTemplateAtti(
-        db_path=current_app.config.get("TEMPLATE_ATTI_DB", "./template_atti/templates.json")
+        db_path=_cfg_path("TEMPLATE_ATTI_DB", "./template_atti/templates.json")
     )
 
 
 def _get_gp():
     from pct.template_atti import GestionePreferenzeTemplateAtti, percorso_preferenze_editor
 
-    prefs_path = current_app.config.get("TEMPLATE_ATTI_PREFS_DB")
+    prefs_path = _cfg_path("TEMPLATE_ATTI_PREFS_DB")
     if not prefs_path:
         prefs_path = percorso_preferenze_editor(
-            current_app.config.get("TEMPLATE_ATTI_DB", "./template_atti/templates.json")
+            _cfg_path("TEMPLATE_ATTI_DB", "./template_atti/templates.json")
         )
     return GestionePreferenzeTemplateAtti(prefs_path=prefs_path)
 
@@ -42,7 +54,7 @@ def _get_assistente_redazionale():
     from pct.assistente_redazionale import AssistenteRedazionale
 
     return AssistenteRedazionale(
-        audit_db_path=current_app.config.get("REDACTION_ASSISTANT_DB", "./intelligence/assistente_redazionale.json"),
+        audit_db_path=_cfg_path("REDACTION_ASSISTANT_DB", "./intelligence/assistente_redazionale.json"),
         office_cache_path=current_app.config.get("UFFICI_GIUDIZIARI_DB", "") or current_app.config.get("REGINDE_DB", ""),
         pst_wsdl_catalog_zip_path=current_app.config.get("PST_WSDL_CATALOG_ZIP", ""),
         pst_official_cache_path=current_app.config.get("PST_OFFICIAL_CACHE", ""),

@@ -637,12 +637,22 @@ def build_pdp_penale_runtime(
         fasc: Fascicolo,
         case_row: dict[str, Any],
         access_requests: list[dict[str, Any]],
-    ) -> dict[str, Any]:
+) -> dict[str, Any]:
         from pct.email_client import GestioneEmailRicevute
 
         repo = get_pdp_penale()
         cfg = get_config_studio().config
-        email_db = app.config.get("EMAIL_CASELLA_DB", os.environ.get("PCT_EMAIL_DB", "./email/casella.json"))
+        data_paths = getattr(g, "data_paths", {}) or {}
+        if not data_paths and getattr(g, "tenant_context_missing", False):
+            raise RuntimeError(
+                "Contesto studio non disponibile per la richiesta corrente. "
+                "Accesso ai dati bloccato per evitare letture cross-studio."
+            )
+        email_db = str(
+            data_paths.get("EMAIL_CASELLA_DB")
+            or app.config.get("EMAIL_CASELLA_DB")
+            or os.environ.get("PCT_EMAIL_DB", "./email/casella.json")
+        )
         ge = GestioneEmailRicevute(db_path=email_db)
         sync_result = {"nuove": 0, "errore": ""}
         if getattr(cfg, "pec", None) and getattr(cfg.pec, "imap_host", "") and getattr(cfg.pec, "indirizzo", "") and getattr(cfg.pec, "password", ""):

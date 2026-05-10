@@ -12,9 +12,28 @@ from pct.storage import StudioDB
 from pct.tenant import DatabaseConfig, DbMode, GestioneTenant
 from web.bootstrap.flask_app_factory import create_flask_app
 from web.app import create_app
+from web.blueprints.api_v1_react import admin_database_react_payload
+from web.blueprints.legal_intelligence import (
+    _carica_portali as legal_intelligence_carica_portali,
+    _daily_db_path as legal_intelligence_daily_db_path,
+)
+from web.blueprints.template_atti import _get_gp as template_atti_get_gp
+from web.blueprints.template_atti import _get_gt as template_atti_get_gt
 from web.services.core_runtime import build_core_runtime
+from web.services.admin_surfaces_shared import (
+    get_backup_manager,
+    get_clienti_manager,
+    load_studio_config,
+)
+from web.services.applicazioni_runtime import (
+    _carica_portali as applicazioni_carica_portali,
+    _template_manager as applicazioni_template_manager,
+)
+from web.services.react_impostazioni_calendar import _cal_token_dir
 from web.services.storage_runtime import get_request_storage_runtime, get_request_studio_db
 from web.services.tenant_legacy_bootstrap import bootstrap_legacy_tenant_runtime_data
+from web.services.topbar_operational import _cfg_value as topbar_cfg_value
+from web.template_atti import _get_gp
 
 
 def _write_studio_config(path: Path) -> None:
@@ -147,6 +166,215 @@ def test_core_runtime_uses_tenant_practice_engine_path(tmp_path: Path):
 
     assert repo.db_path == Path(paths["PRACTICE_ENGINE_DB"])
     assert repo.root_dir == Path(paths["PRACTICE_ENGINE_DB"]).parent
+
+
+def test_core_runtime_uses_tenant_paths_for_sensitive_repositories(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg(tmp_path))
+    tm = GestioneTenant(app.config["TENANTS_REGISTRY"])
+    studio = tm.crea("Studio Blindato", "studio-blindato", db_config={"mode": "SQLITE"})
+    paths = tm.percorsi_dati(studio.slug)
+
+    with app.test_request_context("/"):
+        g.data_paths = paths
+        core = app.extensions["core_runtime"]
+        backup = core["get_backup"]()
+        soggetti = core["get_soggetti"]()
+        indice = core["get_indice"]()
+        trattamenti = core["get_trattamenti"]()
+        condivisioni = core["get_condivisioni"]()
+
+    assert backup.dir == Path(paths["BACKUP_DIR"])
+    assert backup._percorsi == {
+        "agenda": paths["AGENDA_DB"],
+        "clienti": paths["CLIENTI_DB"],
+        "fascicoli": paths["FASCICOLI_DB"],
+        "messaggi": paths["MESSAGGI_DB"],
+        "documenti": paths["FASCICOLI_DOCS"],
+    }
+    assert soggetti.soggetti_path == paths["SOGGETTI_DB"]
+    assert soggetti.parti_path == paths["SOGGETTI_PARTI_DB"]
+    assert indice.path == Path(paths["SEARCH_INDEX"])
+    assert trattamenti.db_path == Path(paths["PRIVACY_DB"])
+    assert condivisioni.db_path == Path(paths["CONDIVISIONI_DB"])
+
+
+def test_core_runtime_blocks_sensitive_repositories_when_tenant_context_is_missing(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app({**_cfg(tmp_path), "MULTI_TENANT": True})
+    core = app.extensions["core_runtime"]
+
+    with app.test_request_context("/"):
+        g.data_paths = {}
+        g.tenant_context_missing = True
+        for loader_name in ("get_backup", "get_soggetti", "get_indice", "get_trattamenti", "get_condivisioni"):
+            with pytest.raises(RuntimeError, match="cross-studio"):
+                core[loader_name]()
+
+
+def test_calendar_settings_token_dir_uses_tenant_agenda_path(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg(tmp_path))
+    tm = GestioneTenant(app.config["TENANTS_REGISTRY"])
+    studio = tm.crea("Studio Calendari", "studio-calendari", db_config={"mode": "SQLITE"})
+    paths = tm.percorsi_dati(studio.slug)
+
+    with app.test_request_context("/"):
+        g.data_paths = paths
+        token_dir = _cal_token_dir()
+
+    assert Path(token_dir) == Path(paths["AGENDA_DB"]).parent
+
+
+def test_template_atti_uses_tenant_preventivi_repository(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg(tmp_path))
+    tm = GestioneTenant(app.config["TENANTS_REGISTRY"])
+    studio = tm.crea("Studio Preventivi", "studio-preventivi", db_config={"mode": "SQLITE"})
+    paths = tm.percorsi_dati(studio.slug)
+
+    with app.test_request_context("/"):
+        g.data_paths = paths
+        gestore = _get_gp()
+
+    assert Path(gestore.db_path) == Path(paths["PREVENTIVI_DB"])
+
+
+def test_admin_database_react_payload_uses_tenant_backup_dir(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg(tmp_path))
+    tm = GestioneTenant(app.config["TENANTS_REGISTRY"])
+    studio = tm.crea("Studio Database", "studio-database", db_config={"mode": "SQLITE"})
+    paths = tm.percorsi_dati(studio.slug)
+    backup_dir = Path(paths["BACKUP_DIR"])
+    backup_dir.mkdir(parents=True, exist_ok=True)
+    sqlite_path = backup_dir / "studio_legale.db"
+    conn = sqlite3.connect(sqlite_path)
+    conn.execute("CREATE TABLE clienti (id TEXT)")
+    conn.commit()
+    conn.close()
+
+    class _AdminUser:
+        @staticmethod
+        def ha_permesso(permission: str) -> bool:
+            return permission == "utenti.leggi"
+
+    with app.test_request_context("/api/v1/ui/admin/database?path=/admin/database"):
+        g.data_paths = paths
+        g.utente_corrente = _AdminUser()
+        response = admin_database_react_payload()
+
+    payload = response.get_json()
+    assert payload["sqlite"]["exists"] is True
+    assert payload["sqlite"]["tables"]
+
+
+def test_admin_shared_helpers_use_tenant_paths(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg(tmp_path))
+    tm = GestioneTenant(app.config["TENANTS_REGISTRY"])
+    studio = tm.crea("Studio Admin", "studio-admin", db_config={"mode": "SQLITE"})
+    paths = tm.percorsi_dati(studio.slug)
+    Path(paths["CONFIG_STUDIO_DB"]).parent.mkdir(parents=True, exist_ok=True)
+    Path(paths["CONFIG_STUDIO_DB"]).write_text(
+        json.dumps({"studio": {"nome": "Studio Tenant Admin"}}, ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+    with app.test_request_context("/admin/system-health"):
+        g.data_paths = paths
+        config = load_studio_config()
+        backup = get_backup_manager()
+        clienti = get_clienti_manager()
+
+    assert config["studio"]["nome"] == "Studio Tenant Admin"
+    assert backup.dir == Path(paths["BACKUP_DIR"])
+    assert Path(clienti.db_path) == Path(paths["CLIENTI_DB"])
+
+
+def test_topbar_cfg_value_blocks_when_tenant_context_is_missing(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app({**_cfg(tmp_path), "MULTI_TENANT": True})
+
+    with app.test_request_context("/api/v1/ui/topbar"):
+        g.data_paths = {}
+        g.tenant_context_missing = True
+        with pytest.raises(RuntimeError, match="cross-studio"):
+            topbar_cfg_value("EMAIL_CASELLA_DB", "./email/casella.json")
+
+
+def test_template_blueprint_uses_tenant_template_paths(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg(tmp_path))
+    tm = GestioneTenant(app.config["TENANTS_REGISTRY"])
+    studio = tm.crea("Studio Template", "studio-template", db_config={"mode": "SQLITE"})
+    paths = tm.percorsi_dati(studio.slug)
+
+    with app.test_request_context("/template-atti"):
+        g.data_paths = paths
+        gestore_template = template_atti_get_gt()
+        gestore_prefs = template_atti_get_gp()
+
+    assert Path(gestore_template.db_path) == Path(paths["TEMPLATE_ATTI_DB"])
+    assert Path(gestore_prefs.prefs_path) == Path(paths["TEMPLATE_ATTI_PREFS_DB"])
+
+
+def test_applicazioni_runtime_uses_tenant_template_and_portale_paths(tmp_path: Path, monkeypatch):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg(tmp_path))
+    tm = GestioneTenant(app.config["TENANTS_REGISTRY"])
+    studio = tm.crea("Studio Applicazioni", "studio-applicazioni", db_config={"mode": "SQLITE"})
+    paths = tm.percorsi_dati(studio.slug)
+    observed: dict[str, str] = {}
+
+    class _DummyPortale:
+        def __init__(self, db_path: str, uploads_dir: str):
+            observed["db_path"] = db_path
+            observed["uploads_dir"] = uploads_dir
+
+        def tutti(self, includi_inattivi: bool = False):
+            return []
+
+    monkeypatch.setattr("pct.portale.GestionePortale", _DummyPortale)
+
+    with app.test_request_context("/applicazioni"):
+        g.data_paths = paths
+        template_manager = applicazioni_template_manager()
+        portali = applicazioni_carica_portali()
+
+    assert Path(template_manager.db_path) == Path(paths["TEMPLATE_ATTI_DB"])
+    assert observed["db_path"] == paths["PORTALE_DB"]
+    assert observed["uploads_dir"] == paths["PORTALE_UPLOADS"]
+    assert portali == []
+
+
+def test_legal_intelligence_uses_tenant_daily_and_portale_paths(tmp_path: Path, monkeypatch):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg(tmp_path))
+    tm = GestioneTenant(app.config["TENANTS_REGISTRY"])
+    studio = tm.crea("Studio Intelligence", "studio-intelligence", db_config={"mode": "SQLITE"})
+    paths = tm.percorsi_dati(studio.slug)
+    observed: dict[str, str] = {}
+
+    class _DummyPortale:
+        def __init__(self, db_path: str, uploads_dir: str):
+            observed["db_path"] = db_path
+            observed["uploads_dir"] = uploads_dir
+
+        def tutti(self, includi_inattivi: bool = False):
+            return []
+
+    monkeypatch.setattr("web.blueprints.legal_intelligence.GestionePortale", _DummyPortale)
+
+    with app.test_request_context("/legal-intelligence"):
+        g.data_paths = paths
+        daily_path = legal_intelligence_daily_db_path()
+        portali = legal_intelligence_carica_portali()
+
+    assert daily_path == Path(paths["LEGAL_INTELLIGENCE_DB"]).resolve().parent / "daily.sqlite"
+    assert observed["db_path"] == paths["PORTALE_DB"]
+    assert observed["uploads_dir"] == paths["PORTALE_UPLOADS"]
+    assert portali == []
 
 
 def test_superadmin_can_create_studio_with_sqlite_strategy(tmp_path: Path):

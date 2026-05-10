@@ -32,6 +32,17 @@ def register_fascicoli_editor_routes(
 ) -> None:
     """Register inline editor and conversion routes for fascicolo documents."""
 
+    def _cfg_data_path(key: str) -> str:
+        paths = getattr(g, "data_paths", {}) or {}
+        if paths and key in paths:
+            return str(paths[key])
+        if getattr(g, "tenant_context_missing", False):
+            raise RuntimeError(
+                "Contesto studio non disponibile per la richiesta corrente. "
+                "Accesso ai dati bloccato per evitare letture cross-studio."
+            )
+        return str(app.config[key])
+
     def _indicizza_salvataggio_editor(*, id_fasc: str, document_id: str, filename: str, content: bytes) -> None:
         try:
             from pct.document_intelligence.sources import source_from_uploaded_document
@@ -213,7 +224,7 @@ def register_fascicoli_editor_routes(
                 id_doc=doc_salvato.id,
                 nome_doc=doc_salvato.nome,
                 tipo_doc=doc_salvato.tipo.value,
-                index_path=app.config["SEARCH_INDEX"],
+                index_path=_cfg_data_path("SEARCH_INDEX"),
             )
             _indicizza_salvataggio_editor(
                 id_fasc=id_fasc,

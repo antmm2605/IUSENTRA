@@ -2014,7 +2014,7 @@ def admin_database_react_payload():
         return jsonify(build_react_admin_database_payload(
             get_database,
             latest_sqlite_snapshot_path,
-            backup_dir=str(current_app.config.get("BACKUP_DIR", "./backup")),
+            backup_dir=_cfg_value("BACKUP_DIR", "./backup"),
             path=request.args.get("path", "/admin/database"),
         ))
     except Exception as exc:

@@ -23,6 +23,18 @@ from web.helpers import (
 )
 
 
+def _cfg_path(key: str, default: str = "") -> str:
+    paths = getattr(g, "data_paths", {}) or {}
+    if key in paths:
+        return str(paths[key] or default)
+    if getattr(g, "tenant_context_missing", False):
+        raise RuntimeError(
+            "Contesto studio non disponibile per la richiesta corrente. "
+            "Accesso ai dati bloccato per evitare letture cross-studio."
+        )
+    return str(current_app.config.get(key, default) or default)
+
+
 def _clean_text(value: Any) -> str:
     return " ".join(str(value or "").split()).strip()
 
@@ -91,7 +103,7 @@ def _resolve_case_context() -> tuple[list, dict, Any, Any]:
 
 def _template_manager() -> GestioneTemplateAtti:
     return GestioneTemplateAtti(
-        db_path=current_app.config.get("TEMPLATE_ATTI_DB", "./template_atti/templates.json")
+        db_path=_cfg_path("TEMPLATE_ATTI_DB", "./template_atti/templates.json")
     )
 
 
@@ -100,8 +112,8 @@ def _carica_portali():
 
     try:
         gestore = GestionePortale(
-            db_path=current_app.config.get("PORTALE_DB", "./portale/portali.json"),
-            uploads_dir=current_app.config.get("PORTALE_UPLOADS", "./portale/uploads"),
+            db_path=_cfg_path("PORTALE_DB", "./portale/portali.json"),
+            uploads_dir=_cfg_path("PORTALE_UPLOADS", "./portale/uploads"),
         )
         return gestore.tutti(includi_inattivi=False)
     except Exception:

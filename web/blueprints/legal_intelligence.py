@@ -21,6 +21,18 @@ from web.helpers import (
 legal_intelligence = Blueprint("legal_intelligence", __name__, url_prefix="/legal-intelligence")
 
 
+def _cfg_path(key: str, default: str = "") -> str:
+    paths = getattr(g, "data_paths", {}) or {}
+    if key in paths:
+        return str(paths[key] or default)
+    if getattr(g, "tenant_context_missing", False):
+        raise RuntimeError(
+            "Contesto studio non disponibile per la richiesta corrente. "
+            "Accesso ai dati bloccato per evitare letture cross-studio."
+        )
+    return str(current_app.config.get(key, default) or default)
+
+
 def _richiedi_login(fn):
     @wraps(fn)
     def wrapper(*args, **kwargs):
@@ -34,8 +46,8 @@ def _richiedi_login(fn):
 def _carica_portali():
     try:
         gestore = GestionePortale(
-            db_path=current_app.config.get("PORTALE_DB", "./portale/portali.json"),
-            uploads_dir=current_app.config.get("PORTALE_UPLOADS", "./portale/uploads"),
+            db_path=_cfg_path("PORTALE_DB", "./portale/portali.json"),
+            uploads_dir=_cfg_path("PORTALE_UPLOADS", "./portale/uploads"),
         )
         return gestore.tutti(includi_inattivi=False)
     except Exception:
@@ -53,10 +65,13 @@ def _snapshot():
 
 
 def _daily_db_path() -> Path:
-    configured = current_app.config.get("LEGAL_INTELLIGENCE_DAILY_DB")
+    configured = _cfg_path("LEGAL_INTELLIGENCE_DAILY_DB")
     if configured:
         return Path(configured)
-    data_root = current_app.config.get("DATA_ROOT") or "data"
+    intelligence_db = _cfg_path("LEGAL_INTELLIGENCE_DB")
+    if intelligence_db:
+        return Path(intelligence_db).resolve().parent / "daily.sqlite"
+    data_root = str(current_app.config.get("DATA_ROOT") or "data")
     return Path(data_root) / "legal_intelligence" / "daily.sqlite"
 
 

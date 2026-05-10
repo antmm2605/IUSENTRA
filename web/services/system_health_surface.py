@@ -8,6 +8,7 @@ from typing import Any
 from flask import current_app
 
 from web.services.admin_surfaces_shared import (
+    _cfg,
     get_backup_manager,
     path_size_bytes,
 )
@@ -52,7 +53,7 @@ def build_system_health_surface() -> dict:
         },
         {
             "label": "Spazio dati",
-            "value": _fmt_mb(path_size_bytes(str(current_app.config.get("CLIENTI_DB", "")))),
+            "value": _fmt_mb(path_size_bytes(_cfg("CLIENTI_DB"))),
             "detail": "stima area dati principale",
         },
         {

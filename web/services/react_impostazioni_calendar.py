@@ -30,6 +30,18 @@ def _text(value: Any, fallback: str = "") -> str:
     return str(value if value is not None else fallback).strip()
 
 
+def _cfg_path(key: str, fallback: str = "") -> str:
+    paths = getattr(g, "data_paths", {}) or {}
+    if paths and key in paths:
+        return _text(paths[key], fallback)
+    if getattr(g, "tenant_context_missing", False):
+        raise RuntimeError(
+            "Contesto studio non disponibile per la richiesta corrente. "
+            "Accesso ai dati bloccato per evitare letture cross-studio."
+        )
+    return _text(current_app.config.get(key), fallback)
+
+
 def _can(permission: str) -> bool:
     api_key = str(current_app.config.get("API_KEY", "") or "")
     if api_key and request.headers.get("X-API-Key") == api_key:
@@ -40,7 +52,7 @@ def _can(permission: str) -> bool:
 
 
 def _cal_token_dir() -> str:
-    agenda_db = _text(current_app.config.get("AGENDA_DB"), "./data/agenda.json")
+    agenda_db = _cfg_path("AGENDA_DB", "./data/agenda.json")
     return os.path.dirname(os.path.abspath(agenda_db))
 
 

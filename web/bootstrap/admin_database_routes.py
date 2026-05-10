@@ -41,7 +41,7 @@ def register_admin_database_routes(
         statistiche = database.statistiche()
         uso = database.analisi_uso()
         sqlite_info = database.statistiche_sqlite(
-            latest_sqlite_snapshot_path(app.config.get("BACKUP_DIR", "./backup"))
+            latest_sqlite_snapshot_path(cfg_data_path("BACKUP_DIR"))
         )
         return render_template(
             "admin/database.html",
@@ -141,7 +141,7 @@ def register_admin_database_routes(
         if not utente or not utente.ha_permesso("utenti.leggi"):
             return jsonify({"errore": "Non autorizzato"}), 403
         percorso_db = os.path.join(
-            app.config.get("BACKUP_DIR", "./backup"),
+            cfg_data_path("BACKUP_DIR"),
             f"studio_legale_{date.today().isoformat()}.db",
         )
         database = get_database()

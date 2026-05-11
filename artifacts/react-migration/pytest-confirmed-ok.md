@@ -28,6 +28,7 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 | `Invoke-WebRequest -UseBasicParsing -Uri http://127.0.0.1:8080/api/pronto -TimeoutSec 30` | OK | Readiness locale 200 con `versione=2.216.0`. |
 | `docker exec iusentra-app python -c "import pct; print(pct.__version__)"` | OK | Versione runtime container locale: `2.216.0`. |
 | Browser Playwright headless su `/fascicoli/nuovo` desktop/tablet/mobile | OK | Sezioni collassabili, `Fascicolo Veloce`, upload documenti/email EML, `Presidio deposito assistito`, nessun overflow, nessun errore console e nessun testo tecnico vietato. Primo accesso post-restart ha riprodotto il warm-up tenant gia' aperto; passaggi caldi desktop 761.3/647.2/538.7 ms a contenuto visibile, tablet 692.5 ms, mobile 646.7 ms. |
+| `python tools/codex_harness/run_codex_quality_gate.py --mode code` | OK | Gate di supporto pre-deploy eseguito dopo il commit applicativo: perimetro code, dipendenze runtime, guardrail AGENTS e Open Design support verdi. |
 
 ### Hotfix `/documenti` React 2.215.7
 

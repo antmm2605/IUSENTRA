@@ -413,6 +413,22 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `npm run typecheck` | OK | TypeScript React confermato dopo spostamento delle azioni AI Locale sul Local Signer del PC. |
 | `npm run test` | OK | Contratti React confermati dopo guardia AI Locale. |
 | `npm run build` | OK | Build Vite 2.211.0 completata; asset React rigenerati con la tab AI Locale aggiornata. |
+## Catalogo PST / Preventivo guidato / Predeposito 2.215.4 - 2026-05-11
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m compileall pct\pratiche_collegate_catalog.py pct\preventivi.py pct\fascicoli.py pct\deposito_guidato.py pct\practice_engine\validators.py pct\practice_engine\profiles.py web\services\react_fascicoli_bridge.py web\services\react_preventivi_bridge.py web\services\react_preventivo_wizard_bridge.py web\services\fascicoli_runtime.py web\blueprints\api_v1_react.py` | OK | Sintassi confermata dopo catalogo PST, propagazione wizard/preventivi/conferimenti e blocco predeposito CodiceOggetto. |
+| `node frontend\scripts\check-react-contracts.mjs` | OK | Contratti React aggiornati: Preventivi, Preventivo guidato e Fascicoli usano il catalogo PST versionato e non hardcodano la tabella nel componente. |
+| `npm --prefix frontend run typecheck` | OK | TypeScript confermato dopo import JSON catalogo e campi CodiceOggetto nel wizard. |
+| `python -m pytest tests/test_react_preventivo_wizard_console.py::test_preventivo_wizard_react_create_crea_preventivo_reale_con_cliente_potenziale_e_clausola tests/test_react_preventivo_wizard_console.py::test_preventivo_wizard_react_rifiuta_codice_oggetto_non_ufficiale tests/test_react_preventivo_wizard_console.py::test_preventivo_wizard_react_genera_conferimento_solo_dopo_accettazione_cliente -q` | OK | 3/3 passati: il wizard salva un codice PST valido, rifiuta codice inventato e lo propaga al conferimento. |
+| `python -m pytest tests/test_deposito_guidato.py::test_orchestratore_blocca_comparsa_senza_procura tests/test_deposito_guidato.py::test_api_validazione_deposito_restituisce_semaforo_e_consente_con_warning tests/test_deposito_guidato.py::test_orchestratore_blocca_deposito_pct_senza_codice_oggetto_pst -q` | OK | 3/3 passati: il predeposito usa il CodiceOggetto PST e blocca la busta se manca. |
+| `python -m pytest tests/test_practice_engine_validators.py -q` | OK | 3/3 passati: validatori Regia/Practice Engine coerenti dopo il nuovo controllo `codice_oggetto_pst_valido`. |
+| `npm --prefix frontend run build` | OK | Build Vite produzione completata con asset React aggiornati per Preventivi, Preventivo guidato, Fascicoli e catalogo PST versionato. |
+| `python tools\sync_packaging_files.py --check` | OK | Packaging/versione 2.215.4 sincronizzati. |
+| `python -m pytest -q tests/test_packaging_consistency.py tests/test_release_readiness.py --tb=short` | OK | 8/8 passati: coerenza packaging e readiness release confermate dopo bump 2.215.4. |
+| `python -m pytest -q tests/test_react_shell.py::test_react_fascicoli_api_suite_usa_repository_reali --tb=short` | OK | Ponte Fascicoli confermato: il source preventivo propaga solo CodiceOggetto PST valido all'apertura fascicolo. |
+| `git diff --check` | OK | Nessun errore di whitespace; presenti solo warning CRLF su file gia' gestiti da Git/runtime locale. |
+
 | `node --check web/static/js/react-ai-local-guard.js` | OK | Sintassi della guardia browser-locale AI Locale confermata. |
 | `python -m pytest -q tests/test_impostazioni_ai_locale_react.py tests/test_local_signer.py::test_local_ai_bridge_snapshot_windows_propone_installer_e_download_modello_automatico tests/test_react_shell.py::test_impostazioni_react_frontend_copre_local_signer_occhio_e_ai_locale --tb=short` | OK | 5/5 passati: AI Locale React passa dal Local Signer, gestisce Ollama/modelli mancanti, conferma il rilevamento prestazioni PC e conserva il contratto Impostazioni. |
 | `python tools/sync_packaging_files.py --check` | OK | Versione 2.211.0 allineata tra sorgente Python, frontend, Docker e Railway. |

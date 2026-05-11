@@ -9,10 +9,12 @@
     "jsx": "react-jsx",
     "noEmit": true,
     "isolatedModules": true,
+    "resolveJsonModule": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@iusentra-data/*": ["../pct/data/*"]
     }
   },
-  "include": ["src"]
+  "include": ["src", "../pct/data/**/*.json"]
 }

@@ -38,6 +38,7 @@ from .pst_catalog import (
     get_catalog_snapshot,
     get_catalog_sources,
 )
+from .pratiche_collegate_catalog import codice_oggetto_pst_entry
 from .pst_services import PSTOfficialCatalogAdapter
 from .validazione import MAX_BYTES_ALLEGATO, verifica_dimensione, verifica_pdfa
 
@@ -805,6 +806,9 @@ class ValidatorNormativoRedazionale:
         anno_rg = _safe_int(context.get("anno_rg"))
         registro = str(context.get("codice_registro") or "").strip().upper()
         oggetto = str(context.get("oggetto") or "").strip()
+        codice_oggetto_pst = str(
+            context.get("codice_oggetto_pst") or getattr(fascicolo, "codice_oggetto_pst", "")
+        ).strip()
         operatore = str(context.get("operatore") or "").strip()
         fascicolo_tipo = fascicolo.tipo.value
         selected_groups = _classify_documents(selected_documents)
@@ -826,6 +830,41 @@ class ValidatorNormativoRedazionale:
                     field="tipo_atto",
                 )
             )
+
+        if profile.channel == "PCT_TELEMATICO":
+            codice_entry = codice_oggetto_pst_entry(codice_oggetto_pst)
+            if not codice_oggetto_pst:
+                issues.append(
+                    ValidationIssue(
+                        service=SERVICE_GIURIDICO,
+                        level=LEVEL_BLOCK,
+                        code="codice_oggetto_pst_mancante",
+                        title="Codice oggetto PST mancante",
+                        detail=(
+                            "Il DatiAtto.xml richiede un codice oggetto ministeriale: "
+                            "la tipologia tariffaria del preventivo non viene usata come sostituto."
+                        ),
+                        source="PST - XSD tipi-base.xsd / CodiceOggetto",
+                        suggested_action="Seleziona l'oggetto deposito dal catalogo ufficiale PST nei dati del fascicolo.",
+                        field="codice_oggetto_pst",
+                    )
+                )
+            elif not codice_entry:
+                issues.append(
+                    ValidationIssue(
+                        service=SERVICE_GIURIDICO,
+                        level=LEVEL_BLOCK,
+                        code="codice_oggetto_pst_non_ufficiale",
+                        title="Codice oggetto PST non ufficiale",
+                        detail=(
+                            f"Il codice '{codice_oggetto_pst}' non risulta tra i codici oggetto "
+                            "del catalogo ufficiale importato dagli XSD PST."
+                        ),
+                        source="PST - XSD tipi-base.xsd / CodiceOggetto",
+                        suggested_action="Sostituisci il codice con una voce selezionata dal catalogo ufficiale.",
+                        field="codice_oggetto_pst",
+                    )
+                )
 
         if profile.allowed_fascicolo_types and fascicolo_tipo not in profile.allowed_fascicolo_types:
             issues.append(
@@ -1386,6 +1425,38 @@ class ValidatorSchemiPST:
         main_doc = next((d for d in selected_documents if d.get("id") == context.get("atto_principale_id")), None)
         if not main_doc:
             return issues
+        codice_oggetto_pst = str(
+            context.get("codice_oggetto_pst") or getattr(fascicolo, "codice_oggetto_pst", "")
+        ).strip()
+        codice_oggetto_entry = codice_oggetto_pst_entry(codice_oggetto_pst)
+        if not codice_oggetto_pst:
+            issues.append(
+                ValidationIssue(
+                    service=SERVICE_TECNICO,
+                    level=LEVEL_BLOCK,
+                    code="xml_codice_oggetto_mancante",
+                    title="DatiAtto.xml senza codice oggetto",
+                    detail="Il nodo Oggetto del DatiAtto.xml deve contenere un CodiceOggetto PST, non la descrizione della pratica.",
+                    source="PST - XSD tipi-base.xsd / CodiceOggetto",
+                    suggested_action="Completa il codice oggetto PST nel fascicolo e ripeti la validazione.",
+                    field="codice_oggetto_pst",
+                )
+            )
+            return issues
+        if not codice_oggetto_entry:
+            issues.append(
+                ValidationIssue(
+                    service=SERVICE_TECNICO,
+                    level=LEVEL_BLOCK,
+                    code="xml_codice_oggetto_non_ufficiale",
+                    title="DatiAtto.xml con codice oggetto non ufficiale",
+                    detail=f"Il valore '{codice_oggetto_pst}' non e presente nel catalogo PST importato.",
+                    source="PST - XSD tipi-base.xsd / CodiceOggetto",
+                    suggested_action="Seleziona un codice oggetto ufficiale prima di generare la busta.",
+                    field="codice_oggetto_pst",
+                )
+            )
+            return issues
 
         if not resolver.get("effective_office_found"):
             issues.append(
@@ -1423,7 +1494,7 @@ class ValidatorSchemiPST:
                     or "SCONOSCIUTO"
                 ),
                 codice_registro=str(context.get("codice_registro") or "RG"),
-                oggetto=str(context.get("oggetto") or fascicolo.titolo or ""),
+                oggetto=codice_oggetto_pst,
                 tipo_atto=str(context.get("tipo_atto") or "ATTO_GENERICO"),
                 atto_principale=str(main_doc.get("percorso") or ""),
                 allegati=allegati,
@@ -1514,6 +1585,24 @@ class ValidatorSchemiPST:
                     source="PST - specifiche tecniche deposito",
                     suggested_action="Riallinea il tipo atto prima della generazione della busta.",
                     field="tipo_atto",
+                )
+            )
+
+        oggetto_xml = root.findtext(".//p:Atto/p:Oggetto", namespaces=ns) or ""
+        if oggetto_xml.strip() != codice_oggetto_pst:
+            issues.append(
+                ValidationIssue(
+                    service=SERVICE_TECNICO,
+                    level=LEVEL_BLOCK,
+                    code="codice_oggetto_xml_non_coerente",
+                    title="Codice oggetto nel DatiAtto.xml non coerente",
+                    detail=(
+                        f"Il XML riporta '{oggetto_xml}', diverso dal codice oggetto validato "
+                        f"'{codice_oggetto_pst}'."
+                    ),
+                    source="PST - specifiche tecniche deposito",
+                    suggested_action="Rigenera il DatiAtto.xml dopo aver riallineato il codice oggetto del fascicolo.",
+                    field="codice_oggetto_pst",
                 )
             )
 
@@ -1656,6 +1745,9 @@ class OrchestratoreDepositoGuidato:
             "tipo_atto": str(context.get("tipo_atto") or "ATTO_GENERICO").strip(),
             "codice_registro": str(context.get("codice_registro") or "RG").strip().upper(),
             "oggetto": str(context.get("oggetto") or fascicolo.titolo or "").strip(),
+            "codice_oggetto_pst": str(
+                context.get("codice_oggetto_pst") or getattr(fascicolo, "codice_oggetto_pst", "")
+            ).strip(),
             "numero_rg": str(context.get("numero_rg") or fascicolo.numero_rg or "").strip(),
             "anno_rg": _safe_int(context.get("anno_rg") or fascicolo.anno_rg),
             "atto_principale_id": str(context.get("atto_principale_id") or "").strip(),
@@ -1728,6 +1820,7 @@ class OrchestratoreDepositoGuidato:
             "pst_dm44_specifiche_url": PST_DM44_SPECIFICHE_URL,
             "profile_channel": profile.channel,
             "profile_deposit_mode": profile.deposit_mode,
+            "codice_oggetto_pst": normalized_context["codice_oggetto_pst"],
             "pst_busta_audit": dict(normalized_context.get("pst_busta_audit") or {}),
             "selected_documents": selected_summary,
             "selected_count": len(selected_summary),

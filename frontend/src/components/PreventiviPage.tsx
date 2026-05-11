@@ -36,6 +36,11 @@ import {
   type PreventivoRow,
   type PreventivoVoiceInput,
 } from '../preventiviData'
+import {
+  PRATICHE_COLLEGATE,
+  PRATICHE_COLLEGATE_CATALOG,
+  findPraticaCollegata,
+} from '../data/praticheCollegateCatalog'
 import { displaySourceLabel, displayWritesLabel, sanitizeDisplayText } from '../displayText'
 import { Badge } from '../ui/Badge'
 import { Button, ButtonLink } from '../ui/Button'
@@ -125,6 +130,52 @@ function displayValue(value: string | number): string {
 function numericInputValue(value: string): number {
   const parsed = Number.parseFloat(value.replace(',', '.'))
   return Number.isFinite(parsed) ? parsed : 0
+}
+
+function CodiceOggettoPstSelect({
+  value,
+  onChange,
+}: {
+  value: string
+  onChange: (codice: string, label: string) => void
+}) {
+  return (
+    <label className="iu-prev-field">
+      <span>Oggetto deposito</span>
+      <select
+        value={value}
+        onChange={(event) => {
+          const codice = event.currentTarget.value
+          onChange(codice, findPraticaCollegata(codice)?.label || '')
+        }}
+      >
+        <option value="">Da scegliere all'apertura del fascicolo</option>
+        {PRATICHE_COLLEGATE.map((area) => (
+          <optgroup label={area.label} key={area.area}>
+            {area.items.flatMap((item) => {
+              if (item.children?.length) {
+                return [
+                  <option value={item.codice} disabled key={item.codice}>{item.codice} - {item.label}</option>,
+                  ...item.children.map((child) => <option value={child.codice} key={child.codice}>{child.codice} - {child.label}</option>),
+                ]
+              }
+              return <option value={item.codice} key={item.codice}>{item.codice} - {item.label}</option>
+            })}
+          </optgroup>
+        ))}
+      </select>
+      <small>Se non è certo ora, lascialo vuoto: verrà scelto dal catalogo ufficiale prima del deposito.</small>
+    </label>
+  )
+}
+
+function nextHiddenWithCodice(current: Record<string, string>, codice: string): Record<string, string> {
+  return {
+    ...current,
+    codice_oggetto_pst: codice,
+    fonte_codice_oggetto: codice ? PRATICHE_COLLEGATE_CATALOG.fonte.tipo : '',
+    file_fonte_codice_oggetto: codice ? PRATICHE_COLLEGATE_CATALOG.fonte.fileFontePrevalente : '',
+  }
 }
 
 function voiceFromDefault(defaults: PreventiviFormDefaults): PreventivoVoiceRow[] {
@@ -512,6 +563,14 @@ function NewPreventivoForm({ data }: { data: PreventiviPageData }) {
             <span>Tipo procedimento</span>
             <input type="text" value={formState.tipo_procedimento} onChange={(event) => setFormState((current) => ({ ...current, tipo_procedimento: event.currentTarget.value }))} placeholder="Materia o procedimento" />
           </label>
+          <CodiceOggettoPstSelect
+            value={formState.hidden.codice_oggetto_pst || ''}
+            onChange={(codice, label) => setFormState((current) => ({
+              ...current,
+              tipo_procedimento: label || current.tipo_procedimento,
+              hidden: nextHiddenWithCodice(current.hidden, codice),
+            }))}
+          />
           <label className="iu-prev-field">
             <span>Valore pratica</span>
             <input type="number" min="0" step="0.01" value={formState.valore_controversia} onChange={(event) => setFormState((current) => ({ ...current, valore_controversia: event.currentTarget.value }))} />
@@ -686,6 +745,14 @@ function NewConferimentoForm({ data }: { data: PreventiviPageData }) {
             <span>Tipo procedimento</span>
             <input type="text" value={formState.tipo_procedimento} onChange={(event) => setFormState((current) => ({ ...current, tipo_procedimento: event.currentTarget.value }))} />
           </label>
+          <CodiceOggettoPstSelect
+            value={formState.hidden.codice_oggetto_pst || ''}
+            onChange={(codice, label) => setFormState((current) => ({
+              ...current,
+              tipo_procedimento: label || current.tipo_procedimento,
+              hidden: nextHiddenWithCodice(current.hidden, codice),
+            }))}
+          />
         </div>
         <div className="iu-prev-options" aria-label="Clausole e informative">
           <label>

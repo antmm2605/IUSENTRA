@@ -25,6 +25,11 @@ import {
   type WizardPractice,
 } from '../preventivoWizardData'
 import {
+  findPraticaCollegata,
+  PRATICHE_COLLEGATE,
+  PRATICHE_COLLEGATE_CATALOG,
+} from '../data/praticheCollegateCatalog'
+import {
   dateToItalian,
   formatEuro,
   isCompensoUnicoProfile,
@@ -226,6 +231,55 @@ function SelectInput({
         {children}
       </select>
     </Field>
+  )
+}
+
+function CodiceOggettoPstSelect({
+  value,
+  onChange,
+}: {
+  value: string
+  onChange: (value: string) => void
+}) {
+  const selected = findPraticaCollegata(value)
+  return (
+    <div className="iu-pwiz-codice-oggetto">
+      <SelectInput
+        id="wizard-codice-oggetto-pst"
+        label="Oggetto deposito"
+        value={value}
+        help="Facoltativo nel preventivo. Se lo scegli qui, il codice arriva già pronto in conferimento e apertura fascicolo; se non è certo, resta da completare prima del deposito."
+        onChange={onChange}
+      >
+        <option value="">Da scegliere all'apertura del fascicolo</option>
+        {PRATICHE_COLLEGATE.map((area) => (
+          <optgroup label={area.label} key={area.area}>
+            {area.items.flatMap((item) => {
+              if (item.children?.length) {
+                return [
+                  <option value={`group-${item.codice}`} disabled key={`group-${item.codice}`}>{item.codice} - {item.label}</option>,
+                  ...item.children.map((child) => (
+                    <option value={child.codice} key={child.codice}>
+                      {child.codice} - {child.label}
+                    </option>
+                  )),
+                ]
+              }
+              return [
+                <option value={item.codice} key={item.codice}>
+                  {item.codice} - {item.label}
+                </option>,
+              ]
+            })}
+          </optgroup>
+        ))}
+      </SelectInput>
+      <p className="iu-pwiz-codice-oggetto-note">
+        {selected
+          ? `Codice ufficiale ${selected.codice}: ${selected.label}. Fonte: ${PRATICHE_COLLEGATE_CATALOG.fonte.tipo}, ${PRATICHE_COLLEGATE_CATALOG.fonte.fileFontePrevalente}.`
+          : 'Nessun codice viene inventato dal wizard: senza selezione esplicita il fascicolo richiederà conferma dal catalogo PST.'}
+      </p>
+    </div>
   )
 }
 
@@ -585,6 +639,7 @@ export function PreventivoWizardPage() {
   const [procedure, setProcedure] = useState('')
   const [workflow, setWorkflow] = useState('')
   const [channel, setChannel] = useState('')
+  const [codiceOggettoPst, setCodiceOggettoPst] = useState('')
   const [taxonomyArea, setTaxonomyArea] = useState('')
   const [taxonomyMacro, setTaxonomyMacro] = useState('')
   const [taxonomySub, setTaxonomySub] = useState('')
@@ -701,6 +756,14 @@ export function PreventivoWizardPage() {
     }
   }
 
+  function handleCaseChange(nextCaseId: string) {
+    setCaseId(nextCaseId)
+    const matter = data.cases.find((item) => item.id === nextCaseId)
+    if (matter?.codiceOggettoPst) {
+      setCodiceOggettoPst(matter.codiceOggettoPst)
+    }
+  }
+
   function handleTaxonomyAreaChange(nextArea: string) {
     setTaxonomyArea(nextArea)
     if (taxonomyMacro && !practiceList.some((practice) => (
@@ -738,6 +801,7 @@ export function PreventivoWizardPage() {
     setProcedure(practice.procedura_operativa_codice || '')
     setWorkflow(practice.workflow_operativo_codice || '')
     setChannel(practice.canale_operativo || '')
+    if (practice.codice_oggetto_pst) setCodiceOggettoPst(practice.codice_oggetto_pst)
     setTaxonomyArea(practice.area_tassonomica)
     setTaxonomyMacro(practice.macro_area_tassonomica)
     setTaxonomySub(practice.sottobranca_tassonomica)
@@ -760,6 +824,7 @@ export function PreventivoWizardPage() {
         setData(payload)
         setCustomerId(String(payload.prefill.idCliente || ''))
         setCaseId(String(payload.prefill.idFascicolo || ''))
+        setCodiceOggettoPst(String(payload.prefill.codiceOggettoPst || ''))
         setIssuedAt(payload.defaults.issuedAt)
         setDueAt(payload.defaults.dueAt)
         setGeneralExpenses(payload.defaults.speseGenerali)
@@ -907,6 +972,9 @@ export function PreventivoWizardPage() {
       registro_operativo: practice?.registro_operativo || '',
       tipo_compenso: practice?.tipo_compenso_default || '',
       tipo_procedimento: practice?.label || '',
+      codice_oggetto_pst: codiceOggettoPst,
+      fonte_codice_oggetto: codiceOggettoPst ? PRATICHE_COLLEGATE_CATALOG.fonte.tipo : '',
+      file_fonte_codice_oggetto: codiceOggettoPst ? PRATICHE_COLLEGATE_CATALOG.fonte.fileFontePrevalente : '',
       valore: value,
       grado: grade,
       regola_tariffaria: rule,
@@ -1048,7 +1116,7 @@ export function PreventivoWizardPage() {
                 <option value="">Seleziona cliente</option>
                 {data.clients.map((client) => <option value={client.id} key={client.id}>{client.label}</option>)}
               </SelectInput>
-              <SelectInput id="wizard-fascicolo" label="Fascicolo collegato" value={caseId} help="Opzionale. Se presente, il preventivo resta agganciato alla pratica." onChange={setCaseId}>
+              <SelectInput id="wizard-fascicolo" label="Fascicolo collegato" value={caseId} help="Opzionale. Se presente, il preventivo resta agganciato alla pratica." onChange={handleCaseChange}>
                 <option value="">Nessun fascicolo collegato</option>
                 {filteredCases.map((matter) => <option value={matter.id} key={matter.id}>{matter.label}</option>)}
               </SelectInput>
@@ -1168,6 +1236,7 @@ export function PreventivoWizardPage() {
               )}
             </div>
             {errors.practice ? <p className="iu-pwiz-error">{errors.practice}</p> : null}
+            <CodiceOggettoPstSelect value={codiceOggettoPst} onChange={setCodiceOggettoPst} />
           </StepCard>
 
           <StepCard

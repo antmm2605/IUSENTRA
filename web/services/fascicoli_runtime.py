@@ -72,6 +72,10 @@ def build_fascicoli_runtime(
             "tipo_atto": (form_like.get("tipo_atto", "ATTO_GENERICO") or "ATTO_GENERICO").strip(),
             "codice_registro": (form_like.get("codice_registro", "RG") or "RG").strip(),
             "oggetto": (form_like.get("oggetto", "") or fasc.titolo).strip(),
+            "codice_oggetto_pst": (
+                form_like.get("codice_oggetto_pst", "")
+                or getattr(fasc, "codice_oggetto_pst", "")
+            ).strip(),
             "numero_rg": (form_like.get("numero_rg", "") or fasc.numero_rg).strip(),
             "anno_rg": int(anno_rg_raw) if anno_rg_raw.isdigit() else fasc.anno_rg,
             "atto_principale_id": (form_like.get("atto_principale_id", "") or "").strip(),

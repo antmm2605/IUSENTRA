@@ -28,6 +28,9 @@ export type WizardCase = {
   customerId: string
   area: string
   court: string
+  codiceOggettoPst: string
+  fonteCodiceOggetto: string
+  fileFonteCodiceOggetto: string
 }
 
 export type WizardPractice = {
@@ -68,6 +71,9 @@ export type WizardPractice = {
   copertura_operativa: string
   canale_operativo: string
   registro_operativo: string
+  codice_oggetto_pst: string
+  fonte_codice_oggetto: string
+  file_fonte_codice_oggetto: string
   regola_tariffaria_default: string
   regole_tariffarie: Array<Record<string, unknown>>
 }
@@ -435,6 +441,9 @@ function practice(raw: unknown): WizardPractice {
     copertura_operativa: text(item.copertura_operativa),
     canale_operativo: text(item.canale_operativo),
     registro_operativo: text(item.registro_operativo),
+    codice_oggetto_pst: text(item.codice_oggetto_pst),
+    fonte_codice_oggetto: text(item.fonte_codice_oggetto),
+    file_fonte_codice_oggetto: text(item.file_fonte_codice_oggetto),
     regola_tariffaria_default: text(item.regola_tariffaria_default),
     regole_tariffarie: list(item.regole_tariffarie).map((entry) => asRecord(entry)),
   }
@@ -464,6 +473,9 @@ function matter(raw: unknown): WizardCase {
     customerId: text(item.customerId),
     area: text(item.area),
     court: text(item.court),
+    codiceOggettoPst: text(item.codiceOggettoPst),
+    fonteCodiceOggetto: text(item.fonteCodiceOggetto),
+    fileFonteCodiceOggetto: text(item.fileFonteCodiceOggetto),
   }
 }
 

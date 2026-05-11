@@ -89,6 +89,7 @@ def test_orchestratore_blocca_comparsa_senza_procura(tmp_path):
             "tipo_atto": "COMPARSA_RISPOSTA",
             "codice_registro": "RG",
             "oggetto": "Comparsa di costituzione e risposta",
+            "codice_oggetto_pst": "014001",
             "numero_rg": "1025",
             "anno_rg": 2024,
             "atto_principale_id": atto.id,
@@ -185,6 +186,7 @@ def test_api_validazione_deposito_restituisce_semaforo_e_consente_con_warning(tm
                 "tipo_atto": "COMPARSA_RISPOSTA",
                 "codice_registro": "RG",
                 "oggetto": "Comparsa di costituzione e risposta",
+                "codice_oggetto_pst": "014001",
                 "numero_rg": "204",
                 "anno_rg": "2025",
                 "atto_principale_id": atto.id,
@@ -201,7 +203,70 @@ def test_api_validazione_deposito_restituisce_semaforo_e_consente_con_warning(tm
     assert data["validation"]["semaforo"]["giuridico"] == "warning"
     assert any(issue["code"] == "indice_non_rilevato" for issue in data["validation"]["issues"])
     assert data["validation"]["snapshot"]["pst_webservices_doc_version"] == PST_WEB_SERVICES_DOC_VERSION
+    assert data["validation"]["context"]["codice_oggetto_pst"] == "014001"
     assert data["validation"]["snapshot"]["pst_busta_audit"]["transport_mode"] == "simulazione_zip_rinominato"
+
+
+def test_orchestratore_blocca_deposito_pct_senza_codice_oggetto_pst(tmp_path):
+    gf = GestioneFascicoli(
+        db_path=str(tmp_path / "fascicoli.json"),
+        documents_dir=str(tmp_path / "docs"),
+        archive_dir=str(tmp_path / "arch"),
+    )
+    fasc = gf.nuovo(
+        titolo="Comparsa senza codice oggetto",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Palmi",
+        numero_rg="204",
+        anno_rg=2025,
+        controparte="Alfa S.r.l.",
+        id_cliente="cli-1",
+    )
+    atto = gf.aggiungi_documento(
+        fasc.id,
+        "comparsa.pdf",
+        TipoDocumento.COMPARSA,
+        _pdf_base(),
+        firmato=True,
+    )
+    procura = gf.aggiungi_documento(
+        fasc.id,
+        "procura.pdf",
+        TipoDocumento.PROCURA,
+        _pdf_base(),
+        firmato=False,
+    )
+
+    orchestratore = OrchestratoreDepositoGuidato(
+        validation_db_path=str(tmp_path / "validation.json"),
+        office_cache_path=str(tmp_path / "uffici.json"),
+    )
+    run = orchestratore.valida(
+        fascicolo=fasc,
+        context={
+            "tipo_atto": "COMPARSA_RISPOSTA",
+            "codice_registro": "RG",
+            "oggetto": "Comparsa di costituzione e risposta",
+            "numero_rg": "204",
+            "anno_rg": 2025,
+            "atto_principale_id": atto.id,
+            "allegati_ids": [procura.id],
+            "operatore": "avv.rossi",
+        },
+        selected_documents=[
+            _doc_payload(gf, fasc.id, atto),
+            _doc_payload(gf, fasc.id, procura),
+        ],
+        all_documents=[
+            _doc_payload(gf, fasc.id, atto),
+            _doc_payload(gf, fasc.id, procura),
+        ],
+    )
+
+    assert run.can_prepare_deposit is False
+    codes = {issue["code"] for issue in run.issues}
+    assert "codice_oggetto_pst_mancante" in codes
+    assert "xml_codice_oggetto_mancante" in codes
 
 
 def test_pagina_deposito_prepara_renderizza_anche_senza_correction_query(tmp_path):

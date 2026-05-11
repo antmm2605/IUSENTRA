@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.215.4 - 2026-05-11
+
+- Introdotto il catalogo versionato `pct/data/pratiche_collegate_catalog.json` per i codici oggetto PST, importato in React senza hardcoding nel componente.
+- Allineati Preventivi, Conferimenti, Preventivo guidato e Apertura nuovo fascicolo: il `CodiceOggetto` viaggia solo se scelto/validato dal catalogo ufficiale e non viene mai dedotto dalla tipologia tariffaria.
+- Blindato il pre-deposito PCT: `DatiAtto.xml` usa il `codice_oggetto_pst` del fascicolo come valore del nodo `Oggetto` e blocca la busta se il codice manca o non appartiene al catalogo PST.
+
 ## 2.215.3 - 2026-05-11
 
 - Ripristinato nel `Dockerfile` il path runtime esplicito `PCT_EMAIL_ORDINARIA_DB=/data/email/ordinaria.json`, cosi' il container non puo' ricadere sul repository e il contratto CI resta allineato al comportamento tenant-aware.

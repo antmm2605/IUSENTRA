@@ -14,6 +14,7 @@ from urllib.parse import quote
 
 from pct.fascicoli import EsitoAttivita, StatoFascicolo, TipoAttivita, TipoDocumento, TipoFascicolo
 from pct.fascicolo_workspace import build_fascicolo_workspace
+from pct.pratiche_collegate_catalog import codice_oggetto_pst_entry, codice_oggetto_pst_payload
 from web.services.react_practice_engine_bridge import build_react_practice_engine_payload
 
 MONTHS_SHORT = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"]
@@ -733,6 +734,70 @@ def _client_options(get_clienti: Callable[[], Any]) -> list[dict[str, str]]:
     return out
 
 
+def _codice_oggetto_from_source(source: Any) -> dict[str, str]:
+    codice = _text(getattr(source, "codice_oggetto_pst", ""))
+    if not codice or not codice_oggetto_pst_entry(codice):
+        return {
+            "codiceOggettoPst": "",
+            "fonteCodiceOggetto": "",
+            "fileFonteCodiceOggetto": "",
+        }
+    resolved = codice_oggetto_pst_payload(codice)
+    return {
+        "codiceOggettoPst": resolved["codice_oggetto_pst"],
+        "fonteCodiceOggetto": _text(getattr(source, "fonte_codice_oggetto", "")) or resolved["fonte_codice_oggetto"],
+        "fileFonteCodiceOggetto": _text(getattr(source, "file_fonte_codice_oggetto", "")) or resolved["file_fonte_codice_oggetto"],
+    }
+
+
+def _source_practice_prefill(query: dict[str, str], get_preventivi: Callable[[], Any] | None) -> dict[str, Any]:
+    if not callable(get_preventivi):
+        return {}
+    manager = _safe("preventivi_prefill", get_preventivi, None)
+    if manager is None:
+        return {}
+    source: Any | None = None
+    preventivo: Any | None = None
+    source_kind = ""
+    source_preventivo = _text(query.get("source_preventivo"))
+    source_conferimento = _text(query.get("source_conferimento"))
+    if source_conferimento:
+        source = _safe("conferimento_prefill", lambda: manager.get_conferimento(source_conferimento), None)
+        source_kind = "conferimento"
+        pid = _text(getattr(source, "id_preventivo", "")) if source else ""
+        preventivo = _safe("preventivo_conferimento_prefill", lambda: manager.get_preventivo(pid), None) if pid else None
+    elif source_preventivo:
+        preventivo = _safe("preventivo_prefill", lambda: manager.get_preventivo(source_preventivo), None)
+        source = preventivo
+        source_kind = "preventivo"
+    if source is None:
+        return {}
+    reference = source
+    codice_source = reference if _text(getattr(reference, "codice_oggetto_pst", "")) else preventivo
+    codice_payload = _codice_oggetto_from_source(codice_source) if codice_source else _codice_oggetto_from_source(reference)
+    amount = getattr(reference, "compenso_pattuito", None)
+    if amount in (None, "") and preventivo is not None:
+        amount = getattr(preventivo, "totale", "")
+    title = _text(getattr(reference, "oggetto", "")) or _text(getattr(preventivo, "oggetto", ""))
+    return {
+        "title": title,
+        "object": title,
+        "clientId": _text(getattr(reference, "id_cliente", "")) or _text(getattr(preventivo, "id_cliente", "")),
+        "id_cliente": _text(getattr(reference, "id_cliente", "")) or _text(getattr(preventivo, "id_cliente", "")),
+        "leadLawyer": _text(getattr(reference, "avvocato_referente", "")),
+        "procedureType": _text(getattr(reference, "tipo_procedimento", "")) or _text(getattr(preventivo, "tipo_procedimento", "")),
+        "practiceId": _text(getattr(reference, "id_pratica", "")) or _text(getattr(preventivo, "id_pratica", "")),
+        "practiceArea": _text(getattr(reference, "area_pratica", "")) or _text(getattr(preventivo, "area_pratica", "")),
+        "proceduraOperativaCodice": _text(getattr(reference, "procedura_operativa_codice", "")) or _text(getattr(preventivo, "procedura_operativa_codice", "")),
+        "quotedValue": str(getattr(preventivo, "totale", "") or ""),
+        "quotedValueRaw": str(getattr(preventivo, "totale", "") or ""),
+        "agreedFee": str(amount or ""),
+        "agreedFeeRaw": str(amount or ""),
+        "sourceKind": source_kind,
+        **codice_payload,
+    }
+
+
 def _form_fascicolo_payload(
     fascicolo: Any | None,
     *,
@@ -758,6 +823,20 @@ def _form_fascicolo_payload(
             "procedureType": _text(getattr(fascicolo, "tipo_procedimento", "")),
             "practiceId": _text(getattr(fascicolo, "id_pratica", "")),
             "practiceArea": _text(getattr(fascicolo, "area_pratica", "")),
+            "proceduraOperativaCodice": _text(getattr(fascicolo, "procedura_operativa_codice", "")),
+            "codiceOggettoPst": _text(getattr(fascicolo, "codice_oggetto_pst", "")),
+            "fonteCodiceOggetto": _text(getattr(fascicolo, "fonte_codice_oggetto", "")),
+            "fileFonteCodiceOggetto": _text(getattr(fascicolo, "file_fonte_codice_oggetto", "")),
+            "riferimentoCartaceo": _text(getattr(fascicolo, "riferimento_cartaceo", "")),
+            "attorePrincipale": _text(getattr(fascicolo, "attore_principale", "")),
+            "istruttorePmGip": _text(getattr(fascicolo, "istruttore_pm_gip", "")),
+            "cancelliere": _text(getattr(fascicolo, "cancelliere", "")),
+            "ctu": _text(getattr(fascicolo, "ctu", "")),
+            "ctp": _text(getattr(fascicolo, "ctp", "")),
+            "statoPraticaOperativa": _text(getattr(fascicolo, "stato_pratica_operativa", "")),
+            "personalizzabile": bool(getattr(fascicolo, "personalizzabile", False)),
+            "dataAperturaIso": _text(getattr(fascicolo, "data_apertura", "")),
+            "dataChiusuraIso": _text(getattr(fascicolo, "data_chiusura", "")),
             "firstHearing": _date_label(getattr(fascicolo, "data_prima_udienza", "")),
             "citationNotification": _date_label(getattr(fascicolo, "data_notifica_citazione", "")),
             "nextHearing": _date_label(getattr(fascicolo, "data_prossima_udienza", "")),
@@ -837,6 +916,7 @@ def build_react_fascicolo_form_payload(
     *,
     get_fascicoli: Callable[[], Any],
     get_clienti: Callable[[], Any],
+    get_preventivi: Callable[[], Any] | None = None,
     id_fasc: str | None = None,
     query: dict[str, Any] | None = None,
     correction_context: dict[str, Any] | None = None,
@@ -844,6 +924,9 @@ def build_react_fascicolo_form_payload(
 ) -> dict[str, Any]:
     query = {str(k): _text(v) for k, v in (query or {}).items()}
     fascicolo = _safe("fascicolo", lambda: get_fascicoli().get(id_fasc), None) if id_fasc else None
+    source_prefill = {} if fascicolo else _source_practice_prefill(query, get_preventivi)
+    if source_prefill.get("clientId") and not query.get("id_cliente"):
+        query["id_cliente"] = _text(source_prefill.get("clientId"))
     mode = "edit" if id_fasc else "new"
     action = f"/fascicoli/{id_fasc}/modifica" if id_fasc else "/fascicoli/nuovo"
     detail = f"/fascicoli/{id_fasc}" if id_fasc else "/fascicoli"
@@ -884,6 +967,7 @@ def build_react_fascicolo_form_payload(
         ) or {
             "leadLawyer": _text(studio_avvocato_titolare),
             "studioLeadLawyer": _text(studio_avvocato_titolare),
+            **source_prefill,
         },
         "workflow": workflow,
         "correction": correction_context or {"active": False, "title": "", "help": "", "highlight": ""},
@@ -928,6 +1012,11 @@ def _profile(fascicolo: Any, *, apps: Iterable[Any] | None = None, studio_avvoca
         ("Rif. interno", getattr(fascicolo, "numero", ""), True, ""),
         ("Sezione", getattr(fascicolo, "sezione", ""), False, ""),
         ("Giudice", getattr(fascicolo, "giudice", ""), False, ""),
+        ("Oggetto pratica", getattr(fascicolo, "tipo_procedimento", ""), False, ""),
+        ("Codice oggetto", getattr(fascicolo, "codice_oggetto_pst", ""), True, ""),
+        ("Attore principale", getattr(fascicolo, "attore_principale", ""), False, ""),
+        ("C.T.U.", getattr(fascicolo, "ctu", ""), False, ""),
+        ("C.T.P.", getattr(fascicolo, "ctp", ""), False, ""),
         ("Avv. referente", _lead_lawyer_label(getattr(fascicolo, "avvocato_referente", ""), studio_avvocato_titolare), False, ""),
         ("Avv. dominus", getattr(fascicolo, "avvocato_dominus", ""), False, ""),
         ("Valore causa", _euro(getattr(fascicolo, "valore_causa", 0)), False, ""),

@@ -44,6 +44,9 @@ export type CreatePreventivoPayload = {
   id_pratica?: string
   area_pratica?: string
   procedura_operativa_codice?: string
+  codice_oggetto_pst?: string
+  fonte_codice_oggetto?: string
+  file_fonte_codice_oggetto?: string
 }
 
 export type CreatePreventivoResult = {
@@ -95,6 +98,9 @@ export type CreateConferimentoPayload = {
   id_pratica?: string
   area_pratica?: string
   procedura_operativa_codice?: string
+  codice_oggetto_pst?: string
+  fonte_codice_oggetto?: string
+  file_fonte_codice_oggetto?: string
 }
 
 export type CreateConferimentoResult = CreatePreventivoResult

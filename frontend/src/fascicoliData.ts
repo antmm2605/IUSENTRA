@@ -202,6 +202,20 @@ export type FascicoloFull = FascicoloRow & {
   procedureType: string
   practiceId: string
   practiceArea: string
+  proceduraOperativaCodice: string
+  codiceOggettoPst: string
+  fonteCodiceOggetto: string
+  fileFonteCodiceOggetto: string
+  riferimentoCartaceo: string
+  attorePrincipale: string
+  istruttorePmGip: string
+  cancelliere: string
+  ctu: string
+  ctp: string
+  statoPraticaOperativa: string
+  personalizzabile: boolean
+  dataAperturaIso: string
+  dataChiusuraIso: string
   firstHearing: string
   citationNotification: string
   nextHearing: string
@@ -426,7 +440,10 @@ export const emptyFascicoloDetail: FascicoloDetailData = {
     nextDeadline: 'n.d.', nextDeadlineIso: '', status: 'aperto', documents: 0, unreadCommunications: 0, alerts: 0, openedAt: '', closedAt: '', updatedAt: '',
     href: '/fascicoli', operationalHref: '/fascicoli', editHref: '/fascicoli', operationalEditHref: '/fascicoli', exportPdfHref: '', deleteHref: '', archiveZipHref: '', restoreAction: '', tone: 'neutral',
     object: '', counterparty: '', counterpartyTaxCode: '', judge: '', section: '', leadLawyer: '', dominus: '', value: '', quotedValue: '', agreedFee: '',
-    procedureType: '', practiceId: '', practiceArea: '', firstHearing: '', citationNotification: '', nextHearing: '', notes: '', reservedNotes: '',
+    procedureType: '', practiceId: '', practiceArea: '', proceduraOperativaCodice: '', codiceOggettoPst: '', fonteCodiceOggetto: '', fileFonteCodiceOggetto: '',
+    riferimentoCartaceo: '', attorePrincipale: '', istruttorePmGip: '', cancelliere: '', ctu: '', ctp: '',
+    statoPraticaOperativa: '', personalizzabile: false, dataAperturaIso: '', dataChiusuraIso: '',
+    firstHearing: '', citationNotification: '', nextHearing: '', notes: '', reservedNotes: '',
     source: '', sourceExternalId: '', lastSyncAt: '', syncStatus: '', importLogId: '', hasConflicts: false, documentSyncEnabled: false,
     eventsSyncEnabled: false, complianceControlsEnabled: true, archiveReady: false,
   },
@@ -728,6 +745,20 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
     procedureType: text(fullPayload.procedureType ?? fullPayload.tipo_procedimento),
     practiceId: text(fullPayload.practiceId ?? fullPayload.id_pratica),
     practiceArea: text(fullPayload.practiceArea ?? fullPayload.area_pratica),
+    proceduraOperativaCodice: text(fullPayload.proceduraOperativaCodice ?? fullPayload.procedura_operativa_codice),
+    codiceOggettoPst: text(fullPayload.codiceOggettoPst ?? fullPayload.codice_oggetto_pst),
+    fonteCodiceOggetto: text(fullPayload.fonteCodiceOggetto ?? fullPayload.fonte_codice_oggetto),
+    fileFonteCodiceOggetto: text(fullPayload.fileFonteCodiceOggetto ?? fullPayload.file_fonte_codice_oggetto),
+    riferimentoCartaceo: text(fullPayload.riferimentoCartaceo ?? fullPayload.riferimento_cartaceo),
+    attorePrincipale: text(fullPayload.attorePrincipale ?? fullPayload.attore_principale),
+    istruttorePmGip: text(fullPayload.istruttorePmGip ?? fullPayload.istruttore_pm_gip),
+    cancelliere: text(fullPayload.cancelliere),
+    ctu: text(fullPayload.ctu),
+    ctp: text(fullPayload.ctp),
+    statoPraticaOperativa: text(fullPayload.statoPraticaOperativa ?? fullPayload.stato_pratica_operativa),
+    personalizzabile: bool(fullPayload.personalizzabile),
+    dataAperturaIso: text(fullPayload.dataAperturaIso ?? fullPayload.data_apertura),
+    dataChiusuraIso: text(fullPayload.dataChiusuraIso ?? fullPayload.data_chiusura),
     firstHearing: text(fullPayload.firstHearing ?? fullPayload.data_prima_udienza),
     citationNotification: text(fullPayload.citationNotification ?? fullPayload.data_notifica_citazione),
     nextHearing: text(fullPayload.nextHearing ?? fullPayload.data_prossima_udienza),

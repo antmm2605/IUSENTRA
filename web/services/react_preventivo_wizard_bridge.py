@@ -22,6 +22,7 @@ from pct.motore_preventivo import (
     get_tipo_pratica,
     motore_calcola,
 )
+from pct.pratiche_collegate_catalog import codice_oggetto_pst_payload
 from pct.preventivi import (
     TipoVoce,
     VocePreventivo,
@@ -199,12 +200,26 @@ def _client_payload(cliente: Any) -> dict[str, Any]:
 
 
 def _case_payload(fascicolo: Any) -> dict[str, Any]:
+    codice_payload = codice_oggetto_pst_payload(getattr(fascicolo, "codice_oggetto_pst", ""))
+    has_codice = bool(codice_payload["codice_oggetto_pst"])
     return {
         "id": _text(getattr(fascicolo, "id", "")),
         "label": _case_label(fascicolo),
         "customerId": _text(getattr(fascicolo, "id_cliente", "")),
         "area": _enum(getattr(getattr(fascicolo, "tipo", None), "value", "")),
         "court": _text(getattr(fascicolo, "tribunale", "")),
+        "codiceOggettoPst": codice_payload["codice_oggetto_pst"],
+        "fonteCodiceOggetto": (
+            _text(getattr(fascicolo, "fonte_codice_oggetto", "")) or codice_payload["fonte_codice_oggetto"]
+        )
+        if has_codice
+        else "",
+        "fileFonteCodiceOggetto": (
+            _text(getattr(fascicolo, "file_fonte_codice_oggetto", ""))
+            or codice_payload["file_fonte_codice_oggetto"]
+        )
+        if has_codice
+        else "",
     }
 
 
@@ -346,6 +361,8 @@ def _prefill(query: dict[str, Any] | None) -> dict[str, Any]:
         "MEDIAZIONE": "Stragiudiziale",
         "NEGOZIAZIONE_ASSISTITA": "Stragiudiziale",
     }.get(raw_area.upper(), raw_area)
+    codice_payload = codice_oggetto_pst_payload(query.get("codice_oggetto_pst"))
+    has_codice = bool(codice_payload["codice_oggetto_pst"])
     return {
         "idCliente": _text(query.get("id_cliente")),
         "idFascicolo": _text(query.get("id_fascicolo")),
@@ -365,6 +382,15 @@ def _prefill(query: dict[str, Any] | None) -> dict[str, Any]:
         "anticipazioni": _text(query.get("anticipazioni")) or "0",
         "mediazioneOdm": mediazione_odm_context_for_prefill(query),
         "autoCalcola": _bool(query.get("auto_calcola")),
+        "codiceOggettoPst": codice_payload["codice_oggetto_pst"],
+        "fonteCodiceOggetto": (_text(query.get("fonte_codice_oggetto")) or codice_payload["fonte_codice_oggetto"])
+        if has_codice
+        else "",
+        "fileFonteCodiceOggetto": (
+            _text(query.get("file_fonte_codice_oggetto")) or codice_payload["file_fonte_codice_oggetto"]
+        )
+        if has_codice
+        else "",
     }
 
 

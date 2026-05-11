@@ -28,6 +28,7 @@ from pct.practice_engine.evaluator import build_regia_payload, ensure_evidence_p
 from pct.practice_engine.profiles import get_profile
 from pct.practice_engine.receipt_tracker import import_receipt
 from pct.practice_engine.validators import ValidationContext, validate_slot
+from pct.pratiche_collegate_catalog import codice_oggetto_pst_entry, codice_oggetto_pst_payload
 from pct.scadenziario import PrioritaTermine, TipoTermine
 from pct.termini_processuali import (
     DeadlinePracticeRepository,
@@ -2071,6 +2072,7 @@ def fascicolo_react_nuovo():
     return jsonify(build_react_fascicolo_form_payload(
         get_fascicoli=get_fascicoli,
         get_clienti=get_clienti,
+        get_preventivi=get_preventivi_readonly,
         id_fasc=None,
         query=dict(request.args),
         correction_context={"active": False, "title": "", "help": "", "highlight": ""},
@@ -2084,6 +2086,7 @@ def fascicolo_react_modifica(id_fasc: str):
     return jsonify(build_react_fascicolo_form_payload(
         get_fascicoli=get_fascicoli,
         get_clienti=get_clienti,
+        get_preventivi=get_preventivi_readonly,
         id_fasc=id_fasc,
         query=dict(request.args),
         correction_context={"active": False, "title": "", "help": "", "highlight": ""},
@@ -4515,6 +4518,8 @@ def _wizard_react_form_payload(payload: dict[str, Any], calculation: dict[str, A
         classifications = []
     if not isinstance(sources, list):
         sources = profile.get("tassonomia_sources") if isinstance(profile.get("tassonomia_sources"), list) else []
+    codice_oggetto = str(payload.get("codice_oggetto_pst") or profile.get("codice_oggetto_pst") or "").strip()
+    codice_payload = codice_oggetto_pst_payload(codice_oggetto)
     return {
         **payload,
         "id_cliente": str(payload.get("id_cliente") or payload.get("customerId") or "").strip(),
@@ -4545,6 +4550,9 @@ def _wizard_react_form_payload(payload: dict[str, Any], calculation: dict[str, A
         "registro_operativo": str(payload.get("registro_operativo") or profile.get("registro_operativo") or "").strip(),
         "tipo_compenso": str(payload.get("tipo_compenso") or profile.get("tipo_compenso_default") or "").strip(),
         "tipo_procedimento": str(payload.get("tipo_procedimento") or profile.get("label") or "").strip(),
+        "codice_oggetto_pst": codice_payload["codice_oggetto_pst"],
+        "fonte_codice_oggetto": str(payload.get("fonte_codice_oggetto") or codice_payload["fonte_codice_oggetto"]).strip(),
+        "file_fonte_codice_oggetto": str(payload.get("file_fonte_codice_oggetto") or codice_payload["file_fonte_codice_oggetto"]).strip(),
         "grado_sede": str(payload.get("grado") or profile.get("grado_default") or "").strip(),
         "regola_tariffaria": str(payload.get("regola_tariffaria") or profile.get("regola_tariffaria_default") or "").strip(),
         "complessita": str(payload.get("complessita") or "media").strip(),
@@ -4605,6 +4613,16 @@ def preventivi_wizard_create_page():
         )
 
         payload = _request_payload()
+        codice_oggetto = str(payload.get("codice_oggetto_pst") or "").strip()
+        if codice_oggetto and not codice_oggetto_pst_entry(codice_oggetto):
+            return jsonify(
+                {
+                    "ok": False,
+                    "warnings": [
+                        _warning("codice_oggetto_pst_non_valido", "Seleziona il codice oggetto dal catalogo ufficiale PST.")
+                    ],
+                }
+            ), 200
         calculation = build_react_preventivo_wizard_calculation_payload(payload)
         if not calculation.get("ok"):
             return jsonify({"ok": False, "warnings": calculation.get("warnings") or []}), 200
@@ -4716,6 +4734,9 @@ def preventivi_wizard_create_page():
             classificazioni_tassonomiche=classificazioni if isinstance(classificazioni, list) else [],
             tipo_compenso=tipo_compenso,
             tipo_procedimento=form.get("tipo_procedimento", "").strip(),
+            codice_oggetto_pst=form.get("codice_oggetto_pst", "").strip(),
+            fonte_codice_oggetto=form.get("fonte_codice_oggetto", "").strip(),
+            file_fonte_codice_oggetto=form.get("file_fonte_codice_oggetto", "").strip(),
             valore_controversia=_parse_numero(form.get("valore_controversia"), 0.0),
             tariffa_oraria=_parse_numero(form.get("tariffa_oraria"), 0.0),
             ore_stimate=_parse_numero(form.get("ore_stimate"), 0.0),
@@ -4798,6 +4819,9 @@ def preventivi_wizard_create_page():
                 classificazioni_tassonomiche=classificazioni if isinstance(classificazioni, list) else [],
                 tipo_compenso=tipo_compenso,
                 tipo_procedimento=form.get("tipo_procedimento", "").strip(),
+                codice_oggetto_pst=form.get("codice_oggetto_pst", "").strip(),
+                fonte_codice_oggetto=form.get("fonte_codice_oggetto", "").strip(),
+                file_fonte_codice_oggetto=form.get("file_fonte_codice_oggetto", "").strip(),
                 tariffa_oraria=_parse_numero(form.get("tariffa_oraria"), 0.0),
                 criterio_arrotondamento_orario=form.get("criterio_arrotondamento_orario", "").strip() or "ora_frazione_oltre_30",
                 massimale_ore=_parse_numero(form.get("massimale_ore"), 0.0),

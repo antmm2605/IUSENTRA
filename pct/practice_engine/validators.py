@@ -8,12 +8,14 @@ from typing import Any, Callable
 import re
 
 from pct import validazione as pct_validazione
+from pct.pratiche_collegate_catalog import codice_oggetto_pst_entry
 
 from .messages import MAIN_ACT_NOT_PDFA, MAIN_ACT_NOT_SIGNED, MISSING_MAIN_ACT, MISSING_PROCURA, problem_action
 from .models import DocumentSlot, SlotStatus, SlotType, ValidationResult, ValidatorStatus
 
 
 CF_RE = re.compile(r"^[A-Z]{6}[0-9]{2}[A-Z][0-9]{2}[A-Z][0-9]{3}[A-Z]$")
+PST_CODICE_OGGETTO_CHANNELS = {"PCT_CIVILE", "PCT_LAVORO", "PST_GDP", "SIGP_GDP"}
 
 
 @dataclass
@@ -168,6 +170,36 @@ def registro_presente(ctx: ValidationContext) -> ValidationResult:
     if not getattr(ctx.profile, "depositable", False):
         return _na("registro_presente")
     return _block("registro_presente", "Impossibile depositare: manca il registro operativo.", "Seleziona registro e rito corretti.")
+
+
+def codice_oggetto_pst_valido(ctx: ValidationContext) -> ValidationResult:
+    channel = _text(getattr(ctx.profile, "channel", "")).upper()
+    if channel not in PST_CODICE_OGGETTO_CHANNELS:
+        return _na("codice_oggetto_pst_valido")
+    codice = _text(getattr(ctx.fascicolo, "codice_oggetto_pst", ""))
+    if not codice:
+        return _block(
+            "codice_oggetto_pst_valido",
+            "Impossibile depositare: manca il codice oggetto PST del fascicolo.",
+            "Seleziona l'oggetto deposito dal catalogo ufficiale prima del predeposito.",
+        )
+    entry = codice_oggetto_pst_entry(codice)
+    if not entry:
+        return _block(
+            "codice_oggetto_pst_valido",
+            "Impossibile depositare: il codice oggetto del fascicolo non appartiene al catalogo ufficiale.",
+            "Riapri i dati del fascicolo e scegli un codice dal catalogo PST.",
+            evidence={"codice_oggetto_pst": codice},
+        )
+    return _ok(
+        "codice_oggetto_pst_valido",
+        "Codice oggetto PST presente e valido nel catalogo ufficiale.",
+        evidence={
+            "codice_oggetto_pst": entry["codice"],
+            "descrizione": entry["descrizione"],
+            "area": entry["area_label"],
+        },
+    )
 
 
 def numero_rg_valido_se_endoprocedimentale(ctx: ValidationContext) -> ValidationResult:

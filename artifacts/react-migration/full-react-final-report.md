@@ -2,6 +2,13 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-11T02:05:00+02:00: tranche 2.215.4 sul flusso
+Preventivi/Incarichi/Fascicoli. Il catalogo `Pratiche collegate` e' ora dato
+versionato `PST_XSD`; il Preventivo guidato non deduce piu' il CodiceOggetto
+dalla tipologia tariffaria e il predeposito PCT blocca la busta se il fascicolo
+non contiene un CodiceOggetto ufficiale. `DatiAtto.xml` usa il codice PST nel
+nodo `Oggetto`.
+
 Aggiornamento 2026-05-10T00:15:00+02:00: tranche 2.214.0 completata sul
 perimetro testi visibili e dettagli email React. Le route
 `/email/messaggio/<id>` e `/email-ordinaria/messaggio/<id>` sono nella shell

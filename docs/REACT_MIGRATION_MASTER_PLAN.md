@@ -1,5 +1,23 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-11 - Catalogo PST e deposito CodiceOggetto 2.215.4
+
+Questa tranche separa definitivamente la classificazione tariffaria dal codice
+ministeriale di deposito:
+
+- il catalogo `Pratiche collegate` vive in `pct/data/pratiche_collegate_catalog.json`
+  con fonte `PST_XSD`, ed e' importato dalla UI React tramite wrapper dati senza
+  hardcoding nei componenti;
+- `Preventivi`, `Conferimenti` e `Preventivo guidato` possono portare
+  `codice_oggetto_pst`, `fonte_codice_oggetto` e `file_fonte_codice_oggetto`
+  solo se il valore e' validato sul catalogo ufficiale; in caso contrario il
+  codice resta vuoto e viene richiesto all'apertura del fascicolo;
+- `Apertura nuovo fascicolo` precompila il codice da preventivo/conferimento
+  solo se ufficiale, altrimenti mostra la selezione governata dal catalogo PST;
+- il pre-deposito PCT blocca la busta se il fascicolo non ha un CodiceOggetto
+  valido e genera `DatiAtto.xml` usando quel codice nel nodo `Oggetto`, evitando
+  qualsiasi uso della tipologia tariffaria come sostituto.
+
 ## Stato tranche 2026-05-10 - Eliminazione multipla Email PEC e ordinaria 2.214.10
 
 Questa tranche chiude la richiesta operativa di selezione multipla nella posta:

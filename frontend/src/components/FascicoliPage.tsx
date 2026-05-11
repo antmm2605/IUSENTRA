@@ -73,6 +73,13 @@ import {
   type SelectOption,
   type FascicoliPagination,
 } from '../fascicoliData'
+import {
+  NUOVO_FASCICOLO_LABELS,
+  PRATICHE_COLLEGATE,
+  PRATICHE_COLLEGATE_CATALOG,
+  STATI_PRATICA,
+  findPraticaCollegata,
+} from '../data/praticheCollegateCatalog'
 import { redirectAfterSuccess, submitFormJson } from '../formSubmit'
 import './FascicoliPage.css'
 
@@ -699,6 +706,69 @@ function getValue(data: FascicoloFormData, key: string): string {
   return value === undefined || value === null ? '' : String(value)
 }
 
+function getBoolValue(data: FascicoloFormData, key: string): boolean {
+  const value = data.fascicolo?.[key]
+  return value === true || value === 'true' || value === '1' || value === 1
+}
+
+function StatoPraticaField({ data }:{data:FascicoloFormData}) {
+  const current = getValue(data, 'statoPraticaOperativa') || (getValue(data, 'statusRaw') === 'ARCHIVIATO' ? 'archiviata' : 'aperta')
+  return (
+    <SelectField
+      label={NUOVO_FASCICOLO_LABELS.fields.statoPratica}
+      name="stato_pratica_operativa"
+      options={STATI_PRATICA.map((stato) => ({ value: stato.value, label: stato.label }))}
+      defaultValue={current}
+    />
+  )
+}
+
+function PraticheCollegateField({ data }:{data:FascicoloFormData}) {
+  const initialCode = getValue(data, 'codiceOggettoPst')
+  const [selectedCode, setSelectedCode] = useState(initialCode)
+  useEffect(() => setSelectedCode(initialCode), [initialCode])
+  const selected = findPraticaCollegata(selectedCode)
+  const currentProcedure = selected?.label || getValue(data, 'procedureType')
+  const currentArea = selected?.area || getValue(data, 'practiceArea')
+  return (
+    <div className="iu-fas-field iu-fas-field--wide iu-fas-catalog-field">
+      <label>
+        <span>{NUOVO_FASCICOLO_LABELS.fields.praticheCollegate}</span>
+        <select
+          name="codice_oggetto_pst"
+          value={selectedCode}
+          onChange={(event) => setSelectedCode(event.currentTarget.value)}
+          aria-describedby="pratiche-collegate-help"
+        >
+          <option value="">Seleziona dal catalogo ufficiale</option>
+          {PRATICHE_COLLEGATE.map((area) => (
+            <optgroup label={area.label} key={area.area}>
+              {area.items.flatMap((item) => {
+                if (item.children?.length) {
+                  return [
+                    <option value={item.codice} disabled key={item.codice}>{item.codice} - {item.label}</option>,
+                    ...item.children.map((child) => (
+                      <option value={child.codice} key={child.codice}>{child.codice} - {child.label}</option>
+                    )),
+                  ]
+                }
+                return <option value={item.codice} key={item.codice}>{item.codice} - {item.label}</option>
+              })}
+            </optgroup>
+          ))}
+        </select>
+      </label>
+      <input type="hidden" name="tipo_procedimento" value={currentProcedure}/>
+      <input type="hidden" name="area_pratica" value={currentArea}/>
+      <input type="hidden" name="fonte_codice_oggetto" value={selectedCode ? PRATICHE_COLLEGATE_CATALOG.fonte.tipo : getValue(data, 'fonteCodiceOggetto')}/>
+      <input type="hidden" name="file_fonte_codice_oggetto" value={selectedCode ? PRATICHE_COLLEGATE_CATALOG.fonte.fileFontePrevalente : getValue(data, 'fileFonteCodiceOggetto')}/>
+      <small id="pratiche-collegate-help" className="iu-fas-field-help">
+        Il codice scelto viene conservato nel fascicolo e sarà usato nei passaggi di deposito quando il flusso lo richiede.
+      </small>
+    </div>
+  )
+}
+
 function FascicoloGuardrailsPanel({ guardrails }: { guardrails?: FascicoloFormData['guardrails'] }) {
   if (!guardrails?.available) return null
   const modeLabel = guardrails.mode === 'opening' ? 'apertura fascicolo' : 'deposito'
@@ -719,10 +789,11 @@ function FascicoloFormPage({ mode, id }:{mode:'new'|'edit'; id?:string}) {
   const [data, setData] = useState<FascicoloFormData>(emptyFascicoloForm)
   const [loading, setLoading] = useState(true)
   useEffect(() => { let active = true; getFascicoloForm(mode === 'edit' ? id : undefined, window.location.search).then((payload) => { if (active) setData(payload) }).finally(() => { if (active) setLoading(false) }); return () => { active = false } }, [id, mode])
+  const labels = NUOVO_FASCICOLO_LABELS
   return (
     <main className="iu-content iu-fascicoli-page iu-fascicolo-form-page">
       <section className="iu-fas-hero">
-        <div><span className="iu-fas-eyebrow">{mode === 'edit' ? <Edit3 size={16}/> : <FolderPlus size={16}/>} {mode === 'edit' ? 'Modifica fascicolo' : 'Nuovo fascicolo'}</span><h1>{mode === 'edit' ? getValue(data, 'title') || 'Modifica fascicolo' : 'Nuovo Fascicolo'}</h1><p>Dati processuali, parti, informazioni economiche, percorso e note operative.</p></div>
+        <div><span className="iu-fas-eyebrow">{mode === 'edit' ? <Edit3 size={16}/> : <FolderPlus size={16}/>} {mode === 'edit' ? 'Modifica fascicolo' : labels.title}</span><h1>{mode === 'edit' ? getValue(data, 'title') || 'Modifica fascicolo' : labels.title}</h1><p>{mode === 'edit' ? 'Aggiorna dati principali, procedimento e annotazioni operative.' : labels.subtitle}</p></div>
         <div className="iu-fas-hero__actions"><Button href={data.detailHref || data.backHref}><ArrowLeft size={15}/> {mode === 'edit' ? 'Fascicolo' : 'Fascicoli'}</Button></div>
       </section>
       {loading ? <p className="iu-empty">Caricamento dati fascicolo...</p> : null}
@@ -730,17 +801,48 @@ function FascicoloFormPage({ mode, id }:{mode:'new'|'edit'; id?:string}) {
       <section className="iu-fas-form-layout">
         <JsonPostForm className="iu-fas-form" action={data.action || (mode === 'edit' && id ? `/fascicoli/${encodeURIComponent(id)}/modifica` : '/fascicoli/nuovo')} redirectTo={data.detailHref || data.backHref}>
           {mode === 'new' ? <><input type="hidden" name="source_preventivo" value={data.query.source_preventivo || ''}/><input type="hidden" name="source_conferimento" value={data.query.source_conferimento || ''}/><input type="hidden" name="from_page" value={data.query.from_page || ''}/></> : null}
-          <Panel title="Dati principali" subtitle="Titolo, tipo e oggetto" icon={<FolderOpen size={17}/>}>
-            <div className="iu-fas-form-grid"><Field label="Titolo" name="titolo" defaultValue={getValue(data, 'title')} required placeholder="es. Rossi c/ Bianchi - Inadempimento contrattuale"/><SelectField label="Tipo" name="tipo" options={data.types} defaultValue={getValue(data, 'typeRaw') || getValue(data, 'type').toUpperCase()} required/><TextAreaField label="Oggetto / Descrizione" name="oggetto" defaultValue={getValue(data, 'object') || getValue(data, 'subtitle')} rows={2}/></div>
+          <Panel title={labels.sections.datiGenerali} subtitle="Pratica, oggetto, stato e date principali" icon={<FolderOpen size={17}/>}>
+            <div className="iu-fas-form-grid">
+              <Field label={labels.fields.pratica} name="titolo" defaultValue={getValue(data, 'title')} required placeholder="es. Rossi c/ Bianchi - Inadempimento contrattuale"/>
+              <Field label={labels.fields.rifCartaceo} name="riferimento_cartaceo" defaultValue={getValue(data, 'riferimentoCartaceo')}/>
+              <SelectField label="Tipo fascicolo" name="tipo" options={data.types} defaultValue={getValue(data, 'typeRaw') || getValue(data, 'type').toUpperCase()} required/>
+              <StatoPraticaField data={data}/>
+              <Field label={labels.fields.dataApertura} name="data_apertura" type="date" defaultValue={getValue(data, 'dataAperturaIso') || new Date().toISOString().slice(0, 10)}/>
+              <Field label={labels.fields.dataArchiviazione} name="data_chiusura" type="date" defaultValue={getValue(data, 'dataChiusuraIso')}/>
+              <TextAreaField label={labels.fields.oggettoPratica} name="oggetto" defaultValue={getValue(data, 'object') || getValue(data, 'subtitle')} rows={2}/>
+              <label className="iu-fas-check-field"><input type="checkbox" name="personalizzabile" value="1" defaultChecked={getBoolValue(data, 'personalizzabile')}/><span>{labels.fields.personalizzabile}</span></label>
+            </div>
           </Panel>
-          <Panel title="Parti" subtitle="Cliente e controparte" icon={<UsersRound size={17}/>}>
-            <div className="iu-fas-form-grid"><SelectField label="Cliente" name="id_cliente" options={[{ value: '', label: 'Seleziona cliente' }, ...data.clients.map((client) => ({ value: client.id, label: client.label }))]} defaultValue={getValue(data, 'clientId') || data.query.id_cliente || ''}/><Field label="Controparte" name="controparte" defaultValue={getValue(data, 'counterparty')} placeholder="Cerca per nome, C.F. o digita"/><a className="iu-fas-inline-link" href="/soggetti/nuovo" target="_blank" rel="noreferrer"><Plus size={14}/> Nuovo soggetto</a></div>
+          <Panel title="Parti" subtitle="Cliente, controparte e attore principale" icon={<UsersRound size={17}/>}>
+            <div className="iu-fas-form-grid">
+              <SelectField label="Cliente" name="id_cliente" options={[{ value: '', label: 'Seleziona cliente' }, ...data.clients.map((client) => ({ value: client.id, label: client.label }))]} defaultValue={getValue(data, 'clientId') || data.query.id_cliente || ''}/>
+              <Field label="Controparte" name="controparte" defaultValue={getValue(data, 'counterparty')} placeholder="Cerca per nome, C.F. o digita"/>
+              <Field label={labels.fields.attorePrincipale} name="attore_principale" defaultValue={getValue(data, 'attorePrincipale')}/>
+              <a className="iu-fas-inline-link" href="/soggetti/nuovo" target="_blank" rel="noreferrer"><Plus size={14}/> Nuovo soggetto</a>
+            </div>
           </Panel>
-          <Panel title="Dati del procedimento" subtitle="Ufficio giudiziario, RG, valore, udienze" icon={<Landmark size={17}/>}>
-            <div className="iu-fas-form-grid"><Field label="Tribunale / ufficio" name="tribunale" defaultValue={getValue(data, 'court')}/><Field label="N. Registro Generale" name="numero_rg" defaultValue={getValue(data, 'numeroRg')}/><Field label="Anno iscrizione" name="anno_rg" type="number" defaultValue={getValue(data, 'annoRg') || new Date().getFullYear()}/><Field label="Sezione" name="sezione" defaultValue={getValue(data, 'section')}/><Field label="Giudice" name="giudice" defaultValue={getValue(data, 'judge')}/><Field label="Valore causa (EUR)" name="valore_causa" type="number" defaultValue={getValue(data, 'valueRaw') || getValue(data, 'value')} placeholder="0.00"/><Field label="Tipo procedimento" name="tipo_procedimento" defaultValue={getValue(data, 'procedureType')}/><Field label="Compenso pattuito (EUR)" name="compenso_pattuito" type="number" defaultValue={getValue(data, 'agreedFeeRaw') || getValue(data, 'agreedFee')} readOnly={Boolean(getValue(data, 'agreedFee'))}/><Field label="Valore preventivato (EUR)" name="valore_preventivato" type="number" defaultValue={getValue(data, 'quotedValueRaw') || getValue(data, 'quotedValue')} readOnly={Boolean(getValue(data, 'quotedValue'))}/><input type="hidden" name="id_pratica" value={getValue(data, 'practiceId')}/><input type="hidden" name="area_pratica" value={getValue(data, 'practiceArea')}/><Field label="Data prima udienza / comparizione" name="data_prima_udienza" type="date" defaultValue={getValue(data, 'firstHearingIso') || getValue(data, 'firstHearing')}/><Field label="Data notificazione citazione" name="data_notifica_citazione" type="date" defaultValue={getValue(data, 'citationNotificationIso') || getValue(data, 'citationNotification')}/></div>
+          <Panel title={labels.sections.identificazioneGiudiziale} subtitle="Autorità, numero di ruolo e catalogo ufficiale per il deposito" icon={<Landmark size={17}/>}>
+            <div className="iu-fas-form-grid">
+              <Field label={labels.fields.autoritaGiudiziaria} name="tribunale" defaultValue={getValue(data, 'court')}/>
+              <Field label={labels.fields.numeroRuolo} name="numero_rg" defaultValue={getValue(data, 'numeroRg')}/>
+              <Field label="Anno iscrizione" name="anno_rg" type="number" defaultValue={getValue(data, 'annoRg') || new Date().getFullYear()}/>
+              <Field label="Sezione" name="sezione" defaultValue={getValue(data, 'section')}/>
+              <Field label={labels.fields.istruttorePmGip} name="istruttore_pm_gip" defaultValue={getValue(data, 'istruttorePmGip') || getValue(data, 'judge')}/>
+              <Field label={labels.fields.cancelliere} name="cancelliere" defaultValue={getValue(data, 'cancelliere')}/>
+              <Field label={labels.fields.ctu} name="ctu" defaultValue={getValue(data, 'ctu')}/>
+              <Field label={labels.fields.ctp} name="ctp" defaultValue={getValue(data, 'ctp')}/>
+              <PraticheCollegateField data={data}/>
+              <Field label="Valore causa (EUR)" name="valore_causa" type="number" defaultValue={getValue(data, 'valueRaw') || getValue(data, 'value')} placeholder="0.00"/>
+              <Field label="Compenso pattuito (EUR)" name="compenso_pattuito" type="number" defaultValue={getValue(data, 'agreedFeeRaw') || getValue(data, 'agreedFee')} readOnly={Boolean(getValue(data, 'agreedFee'))}/>
+              <Field label="Valore preventivato (EUR)" name="valore_preventivato" type="number" defaultValue={getValue(data, 'quotedValueRaw') || getValue(data, 'quotedValue')} readOnly={Boolean(getValue(data, 'quotedValue'))}/>
+              <input type="hidden" name="id_pratica" value={getValue(data, 'practiceId')}/>
+              <input type="hidden" name="procedura_operativa_codice" value={getValue(data, 'proceduraOperativaCodice')}/>
+              <Field label="Data prima udienza / comparizione" name="data_prima_udienza" type="date" defaultValue={getValue(data, 'firstHearingIso') || getValue(data, 'firstHearing')}/>
+              <Field label="Data notificazione citazione" name="data_notifica_citazione" type="date" defaultValue={getValue(data, 'citationNotificationIso') || getValue(data, 'citationNotification')}/>
+            </div>
           </Panel>
-          <Panel title="Avvocati responsabili" subtitle="Referente, dominus e note" icon={<BriefcaseBusiness size={17}/>}>
-            <div className="iu-fas-form-grid"><Field label="Avvocato referente" name="avvocato_referente" defaultValue={getValue(data, 'leadLawyer')}/><Field label="Avvocato dominus" name="avvocato_dominus" defaultValue={getValue(data, 'dominus')}/><TextAreaField label="Note" name="note" defaultValue={getValue(data, 'notes')} rows={4}/></div>
+          <Panel title={labels.sections.annotazioni} subtitle="Referente, dominus e note operative" icon={<BriefcaseBusiness size={17}/>}>
+            <div className="iu-fas-form-grid"><Field label="Avvocato referente" name="avvocato_referente" defaultValue={getValue(data, 'leadLawyer')}/><Field label="Avvocato dominus" name="avvocato_dominus" defaultValue={getValue(data, 'dominus')}/><TextAreaField label={labels.fields.annotazioni} name="note" defaultValue={getValue(data, 'notes')} rows={4}/></div>
           </Panel>
           <div className="iu-fas-form-actions"><button className="iu-fas-submit" type="submit"><CheckCircle2 size={16}/> {mode === 'edit' ? 'Salva modifiche' : 'Crea fascicolo'}</button><a href={data.detailHref || data.backHref}>Annulla</a></div>
         </JsonPostForm>

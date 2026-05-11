@@ -284,6 +284,7 @@ def test_preventivo_wizard_react_create_crea_preventivo_reale_con_cliente_potenz
     practice = _amministrazione_sostegno(page)
     request_payload = _calculation_payload(
         practice,
+        codice_oggetto_pst="014001",
         cliente_rapido_attivo=True,
         cliente_rapido={
             "tipo": "PERSONA_FISICA",
@@ -306,9 +307,22 @@ def test_preventivo_wizard_react_create_crea_preventivo_reale_con_cliente_potenz
         preventivo = get_preventivi().get_preventivo(payload["id_preventivo"])
     assert preventivo is not None
     assert preventivo.id_pratica == practice["id"]
+    assert preventivo.codice_oggetto_pst == "014001"
+    assert preventivo.fonte_codice_oggetto == "PST_XSD"
     assert preventivo.clausola_controversie_attiva is True
     assert preventivo.clausola_controversie_testo == "Clausola controversie verificata nel wizard React."
     assert any(voce.descrizione == "Voce manuale di verifica" for voce in preventivo.voci)
+
+
+def test_preventivo_wizard_react_rifiuta_codice_oggetto_non_ufficiale(tmp_path: Path):
+    _app, client = _logged_client(tmp_path)
+
+    response = client.post("/api/v1/ui/preventivi/wizard/create", json={"codice_oggetto_pst": "IUSENTRA-BOZZA"})
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["ok"] is False
+    assert any(warning["code"] == "codice_oggetto_pst_non_valido" for warning in payload["warnings"])
 
 
 def test_preventivo_wizard_react_non_genera_conferimento_senza_accettazione_cliente(tmp_path: Path):
@@ -318,6 +332,7 @@ def test_preventivo_wizard_react_non_genera_conferimento_senza_accettazione_clie
     request_payload = _calculation_payload(
         practice,
         id_cliente=_cliente_conferimento_pronto(app),
+        codice_oggetto_pst="014001",
         voci_bozza=[],
         manual_lines=[],
         opzioni_finali={
@@ -352,6 +367,7 @@ def test_preventivo_wizard_react_genera_conferimento_solo_dopo_accettazione_clie
     request_payload = _calculation_payload(
         practice,
         id_cliente=_cliente_conferimento_pronto(app),
+        codice_oggetto_pst="014001",
         voci_bozza=[],
         manual_lines=[],
         opzioni_finali={
@@ -378,6 +394,8 @@ def test_preventivo_wizard_react_genera_conferimento_solo_dopo_accettazione_clie
     assert preventivo.accettato_il
     assert preventivo.stato == StatoPreventivo.CONVERTITO
     assert conferimento.id_preventivo == preventivo.id
+    assert conferimento.codice_oggetto_pst == "014001"
+    assert conferimento.fonte_codice_oggetto == "PST_XSD"
 
 
 def test_preventivo_wizard_react_api_richiede_auth(tmp_path: Path):

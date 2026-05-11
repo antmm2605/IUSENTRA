@@ -6,6 +6,7 @@ from datetime import date, datetime, timedelta, timezone
 from typing import Any, Callable
 
 from pct.preventivi import StatoConferimento, StatoPreventivo, TipoVoce, VocePreventivo
+from pct.pratiche_collegate_catalog import codice_oggetto_pst_entry, codice_oggetto_pst_payload
 
 _PREVENTIVO_FIELDS = {
     "id_cliente",
@@ -24,6 +25,9 @@ _PREVENTIVO_FIELDS = {
     "id_pratica",
     "area_pratica",
     "procedura_operativa_codice",
+    "codice_oggetto_pst",
+    "fonte_codice_oggetto",
+    "file_fonte_codice_oggetto",
     "anticipazioni_art15",
     "tariffa_oraria",
     "ore_stimate",
@@ -48,6 +52,9 @@ _CONFERIMENTO_FIELDS = {
     "id_pratica",
     "area_pratica",
     "procedura_operativa_codice",
+    "codice_oggetto_pst",
+    "fonte_codice_oggetto",
+    "file_fonte_codice_oggetto",
     "tariffa_oraria",
 }
 _VOICE_FIELDS = {"descrizione", "tipo", "importo"}
@@ -386,6 +393,9 @@ def _form_defaults(query: dict[str, Any] | None) -> dict[str, Any]:
             "id_pratica": _text(args.get("id_pratica")),
             "area_pratica": _text(args.get("area_pratica")),
             "procedura_operativa_codice": _text(args.get("procedura_operativa_codice")),
+            "codice_oggetto_pst": _text(args.get("codice_oggetto_pst")),
+            "fonte_codice_oggetto": _text(args.get("fonte_codice_oggetto")),
+            "file_fonte_codice_oggetto": _text(args.get("file_fonte_codice_oggetto")),
         },
     }
 
@@ -406,6 +416,10 @@ def _prefill_conferimento(defaults: dict[str, Any], preventivi: list[Any]) -> di
         "tipo_procedimento": defaults.get("tipo_procedimento") or _text(getattr(preventivo, "tipo_procedimento", "")),
         "compenso_pattuito": defaults.get("compenso_pattuito") or _text(getattr(preventivo, "totale", "")),
     })
+    hidden = dict(merged.get("hidden") or {})
+    for field in ("id_pratica", "area_pratica", "procedura_operativa_codice", "codice_oggetto_pst", "fonte_codice_oggetto", "file_fonte_codice_oggetto"):
+        hidden[field] = hidden.get(field) or _text(getattr(preventivo, field, ""))
+    merged["hidden"] = hidden
     return merged
 
 
@@ -585,6 +599,29 @@ def _voice_type(value: Any, errors: dict[str, str], field: str) -> TipoVoce:
     return mapping.get(key, TipoVoce.ONORARIO)
 
 
+def _validated_codice_oggetto(payload: dict[str, Any], errors: dict[str, str]) -> dict[str, str]:
+    codice = _text(payload.get("codice_oggetto_pst"), limit=40)
+    if not codice:
+        return {
+            "codice_oggetto_pst": "",
+            "fonte_codice_oggetto": "",
+            "file_fonte_codice_oggetto": "",
+        }
+    if not codice_oggetto_pst_entry(codice):
+        errors["codice_oggetto_pst"] = "Seleziona un codice dal catalogo ufficiale."
+        return {
+            "codice_oggetto_pst": "",
+            "fonte_codice_oggetto": "",
+            "file_fonte_codice_oggetto": "",
+        }
+    resolved = codice_oggetto_pst_payload(codice)
+    return {
+        "codice_oggetto_pst": resolved["codice_oggetto_pst"],
+        "fonte_codice_oggetto": _text(payload.get("fonte_codice_oggetto")) or resolved["fonte_codice_oggetto"],
+        "file_fonte_codice_oggetto": _text(payload.get("file_fonte_codice_oggetto")) or resolved["file_fonte_codice_oggetto"],
+    }
+
+
 def _validate_preventivo_payload(payload: dict[str, Any], *, get_clienti: Callable[[], Any], get_fascicoli: Callable[[], Any]) -> tuple[dict[str, Any], dict[str, str]]:
     errors: dict[str, str] = {}
     unknown = _unknown_fields(payload, _PREVENTIVO_FIELDS)
@@ -638,6 +675,7 @@ def _validate_preventivo_payload(payload: dict[str, Any], *, get_clienti: Callab
             voices.append(VocePreventivo(descrizione=description, importo=amount, tipo=_voice_type(raw_item.get("tipo"), errors, f"voci.{index}.tipo")))
     if not voices and "voci" not in errors:
         errors["voci"] = "Aggiungi almeno una voce valida."
+    codice_oggetto = _validated_codice_oggetto(payload, errors)
     return {
         "id_cliente": id_cliente,
         "id_fascicolo": id_fascicolo or None,
@@ -652,6 +690,7 @@ def _validate_preventivo_payload(payload: dict[str, Any], *, get_clienti: Callab
         "id_pratica": _text(payload.get("id_pratica"), limit=120),
         "area_pratica": _text(payload.get("area_pratica"), limit=120),
         "procedura_operativa_codice": _text(payload.get("procedura_operativa_codice"), limit=120),
+        **codice_oggetto,
         "tipo_compenso": _text(payload.get("tipo_compenso"), limit=120),
         "tipo_procedimento": _text(payload.get("tipo_procedimento"), limit=120),
         "valore_controversia": _as_number(payload.get("valore_controversia"), "valore_controversia", errors, minimum=0.0, default=0.0),
@@ -698,6 +737,12 @@ def _validate_conferimento_payload(payload: dict[str, Any], *, get_preventivi: C
     lawyer = _text(payload.get("avvocato_referente"), limit=160)
     if not lawyer:
         errors["avvocato_referente"] = "Avvocato referente obbligatorio."
+    codice_payload = dict(payload)
+    if preventivo:
+        codice_payload["codice_oggetto_pst"] = _text(payload.get("codice_oggetto_pst") or getattr(preventivo, "codice_oggetto_pst", ""))
+        codice_payload["fonte_codice_oggetto"] = _text(payload.get("fonte_codice_oggetto") or getattr(preventivo, "fonte_codice_oggetto", ""))
+        codice_payload["file_fonte_codice_oggetto"] = _text(payload.get("file_fonte_codice_oggetto") or getattr(preventivo, "file_fonte_codice_oggetto", ""))
+    codice_oggetto = _validated_codice_oggetto(codice_payload, errors)
     return {
         "id_cliente": id_cliente,
         "id_fascicolo": id_fascicolo or None,
@@ -710,6 +755,7 @@ def _validate_conferimento_payload(payload: dict[str, Any], *, get_preventivi: C
         "id_pratica": _text(payload.get("id_pratica") or getattr(preventivo, "id_pratica", ""), limit=120),
         "area_pratica": _text(payload.get("area_pratica") or getattr(preventivo, "area_pratica", ""), limit=120),
         "procedura_operativa_codice": _text(payload.get("procedura_operativa_codice") or getattr(preventivo, "procedura_operativa_codice", ""), limit=120),
+        **codice_oggetto,
         "numero_iscrizione_albo": _text(payload.get("numero_iscrizione_albo"), limit=80),
         "ordine_avvocati": _text(payload.get("ordine_avvocati"), limit=160),
         "tipo_compenso": _text(payload.get("tipo_compenso") or getattr(preventivo, "tipo_compenso", ""), limit=120),

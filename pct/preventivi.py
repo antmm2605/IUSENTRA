@@ -27,6 +27,7 @@ from pct.preventivi_repository import (
 )
 from pct.legal_platform_catalog import build_operational_fields
 from pct.compensi_a_tempo import normalizza_tipo_compenso
+from pct.pratiche_collegate_catalog import codice_oggetto_pst_payload
 
 
 # ================================================================ Enumerazioni
@@ -378,6 +379,9 @@ class Preventivo:
     copertura_operativa: str = ""
     canale_operativo: str = ""
     registro_operativo: str = ""
+    codice_oggetto_pst: str = ""
+    fonte_codice_oggetto: str = ""
+    file_fonte_codice_oggetto: str = ""
     tipo_compenso:        str   = ""    # es. "Compenso fisso", "Per fasi processuali (D.M. 55/2014)"
     tipo_procedimento:    str   = ""    # es. "Civile — fase di cognizione"
     valore_controversia:  float = 0.0  # €, 0 = indeterminabile
@@ -561,6 +565,9 @@ class ConferimentoIncarico:
     copertura_operativa: str = ""
     canale_operativo: str = ""
     registro_operativo: str = ""
+    codice_oggetto_pst: str = ""
+    fonte_codice_oggetto: str = ""
+    file_fonte_codice_oggetto: str = ""
     numero_iscrizione_albo: str   = ""
     ordine_avvocati:        str   = ""
     tipo_compenso:          str   = ""
@@ -943,6 +950,9 @@ class GestionePreventivi:
                         fonti_tassonomia: Optional[List[Dict[str, Any]]] = None,
                         classificazioni_tassonomiche: Optional[List[Dict[str, Any]]] = None,
                         procedura_operativa_codice: str = "",
+                        codice_oggetto_pst: str = "",
+                        fonte_codice_oggetto: str = "",
+                        file_fonte_codice_oggetto: str = "",
                         tipo_compenso:       str   = "",
                         tipo_procedimento:   str   = "",
                         valore_controversia: float = 0.0,
@@ -976,6 +986,9 @@ class GestionePreventivi:
             tipo_procedimento=tipo_procedimento,
             oggetto=oggetto,
         )
+        codice_oggetto = codice_oggetto_pst_payload(codice_oggetto_pst)
+        fonte_codice_oggetto = fonte_codice_oggetto or codice_oggetto["fonte_codice_oggetto"]
+        file_fonte_codice_oggetto = file_fonte_codice_oggetto or codice_oggetto["file_fonte_codice_oggetto"]
         clausola_payload = prepara_clausola_controversie(
             attiva=clausola_controversie_attiva,
             modello=clausola_controversie_modello,
@@ -1014,6 +1027,9 @@ class GestionePreventivi:
             copertura_operativa=operational_fields.get("copertura_operativa", ""),
             canale_operativo=operational_fields.get("canale_operativo", ""),
             registro_operativo=operational_fields.get("registro_operativo", ""),
+            codice_oggetto_pst=codice_oggetto["codice_oggetto_pst"],
+            fonte_codice_oggetto=fonte_codice_oggetto,
+            file_fonte_codice_oggetto=file_fonte_codice_oggetto,
             tipo_compenso=normalizza_tipo_compenso(tipo_compenso),
             tipo_procedimento=tipo_procedimento,
             valore_controversia=valore_controversia,
@@ -1156,6 +1172,9 @@ class GestionePreventivi:
                           fonti_tassonomia: Optional[List[Dict[str, Any]]] = None,
                           classificazioni_tassonomiche: Optional[List[Dict[str, Any]]] = None,
                           procedura_operativa_codice: str = "",
+                          codice_oggetto_pst: str = "",
+                          fonte_codice_oggetto: str = "",
+                          file_fonte_codice_oggetto: str = "",
                           numero_iscrizione_albo: str   = "",
                           ordine_avvocati:        str   = "",
                           tipo_compenso:          str   = "",
@@ -1205,6 +1224,12 @@ class GestionePreventivi:
                     )
                 if not procedura_operativa_codice:
                     procedura_operativa_codice = preventivo.procedura_operativa_codice
+                if not codice_oggetto_pst:
+                    codice_oggetto_pst = preventivo.codice_oggetto_pst
+                if not fonte_codice_oggetto:
+                    fonte_codice_oggetto = preventivo.fonte_codice_oggetto
+                if not file_fonte_codice_oggetto:
+                    file_fonte_codice_oggetto = preventivo.file_fonte_codice_oggetto
                 if not tipo_compenso:
                     tipo_compenso = preventivo.tipo_compenso
                 if not tipo_procedimento:
@@ -1246,6 +1271,9 @@ class GestionePreventivi:
             tipo_procedimento=tipo_procedimento,
             oggetto=oggetto,
         )
+        codice_oggetto = codice_oggetto_pst_payload(codice_oggetto_pst)
+        fonte_codice_oggetto = fonte_codice_oggetto or codice_oggetto["fonte_codice_oggetto"]
+        file_fonte_codice_oggetto = file_fonte_codice_oggetto or codice_oggetto["file_fonte_codice_oggetto"]
         clausola_payload = prepara_clausola_controversie(
             attiva=clausola_controversie_attiva,
             modello=clausola_controversie_modello,
@@ -1283,6 +1311,9 @@ class GestionePreventivi:
             copertura_operativa=operational_fields.get("copertura_operativa", ""),
             canale_operativo=operational_fields.get("canale_operativo", ""),
             registro_operativo=operational_fields.get("registro_operativo", ""),
+            codice_oggetto_pst=codice_oggetto["codice_oggetto_pst"],
+            fonte_codice_oggetto=fonte_codice_oggetto,
+            file_fonte_codice_oggetto=file_fonte_codice_oggetto,
             numero_iscrizione_albo=numero_iscrizione_albo,
             ordine_avvocati=ordine_avvocati,
             tipo_compenso=normalizza_tipo_compenso(tipo_compenso),

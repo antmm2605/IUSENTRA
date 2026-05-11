@@ -39,6 +39,7 @@ DEFAULT_ECONOMIC_VALIDATORS = [
 ]
 
 DEFAULT_DEPOSIT_VALIDATORS = [
+    "codice_oggetto_pst_valido",
     "atto_principale_presente",
     "procura_presente",
     "file_presente",

@@ -210,6 +210,13 @@
   gap: var(--iu-space-2);
 }
 
+.iu-prev-field small {
+  color: var(--iu-text-muted);
+  font-size: .78rem;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
 .iu-prev-field input,
 .iu-prev-field select,
 .iu-prev-field textarea {

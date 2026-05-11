@@ -1,0 +1,222 @@
+{
+  "versione": "2026-05-11.pst-xsd-seed",
+  "fonte": {
+    "tipo": "PST_XSD",
+    "nome": "PST Giustizia - File Ufficiali del Processo Civile Telematico",
+    "percorso": "Download > File Ufficiali del Processo Civile Telematico > XSD",
+    "fileFontePrevalente": "tipi-base.xsd",
+    "url": "https://pst.giustizia.it/PST/it/download.page",
+    "betaAmmessiProduzione": false
+  },
+  "regolaDeposito": "Il codice oggetto selezionato per il deposito deve provenire dal catalogo ufficiale PST/XSD attivo e non deve essere inventato dall'applicazione.",
+  "areas": [
+    {
+      "area": "procedimenti_speciali_sommari",
+      "label": "Procedimenti speciali sommari",
+      "items": [
+        {
+          "codice": "010",
+          "label": "Procedimento di ingiunzione ante causam",
+          "children": [
+            { "codice": "010003", "label": "Procedimento di ingiunzione ante causam - vendita" },
+            { "codice": "010004", "label": "Procedimento di ingiunzione ante causam - diritti reali e condominio" },
+            { "codice": "010005", "label": "Procedimento di ingiunzione ante causam - intermediazione finanziaria" },
+            { "codice": "010006", "label": "Procedimento di ingiunzione ante causam - rapporti bancari" },
+            { "codice": "010007", "label": "Procedimento di ingiunzione ante causam - titoli di credito" },
+            { "codice": "010008", "label": "Procedimento di ingiunzione ante causam - contratti di borsa" },
+            { "codice": "010009", "label": "Procedimento di ingiunzione ante causam - assicurazioni" },
+            { "codice": "010010", "label": "Procedimento di ingiunzione ante causam - fideiussione e altre garanzie" },
+            { "codice": "010011", "label": "Procedimento di ingiunzione ante causam - somministrazione" },
+            { "codice": "010012", "label": "Procedimento di ingiunzione ante causam - rapporti con società finanziarie" },
+            { "codice": "010013", "label": "Procedimento di ingiunzione ante causam - factoring" },
+            { "codice": "010014", "label": "Procedimento di ingiunzione ante causam - leasing" },
+            { "codice": "010015", "label": "Procedimento di ingiunzione ante causam - altri contratti tipici" },
+            { "codice": "010016", "label": "Procedimento di ingiunzione ante causam - diritto societario non di competenza della Sezione specializzata impresa" },
+            { "codice": "010017", "label": "Procedimento di ingiunzione ante causam - diritto tributario e doganale" },
+            { "codice": "010018", "label": "Procedimento di ingiunzione ante causam - diritto amministrativo" },
+            { "codice": "010019", "label": "Procedimento di ingiunzione ante causam - materia concorsuale" },
+            { "codice": "010020", "label": "Procedimento di ingiunzione ante causam - associazioni, comitati, consorzi e fondazioni" },
+            { "codice": "010021", "label": "Procedimento di ingiunzione ante causam - locazione di immobili" },
+            { "codice": "010022", "label": "Procedimento di ingiunzione ante causam - affitto di azienda" },
+            { "codice": "010023", "label": "Procedimento di ingiunzione ante causam - prestazione d'opera intellettuale" },
+            { "codice": "010024", "label": "Procedimento di ingiunzione ante causam - altri contratti d'opera" },
+            { "codice": "010025", "label": "Procedimento di ingiunzione ante causam - appalto" },
+            { "codice": "010026", "label": "Procedimento di ingiunzione ante causam - appalto di opere pubbliche sottosoglia UE" },
+            { "codice": "010027", "label": "Procedimento di ingiunzione ante causam - altri rapporti con la pubblica amministrazione" },
+            { "codice": "010028", "label": "Procedimento di ingiunzione ante causam - rapporti familiari" },
+            { "codice": "010029", "label": "Procedimento di ingiunzione ante causam - altre ipotesi" },
+            { "codice": "010999", "label": "Procedimento di ingiunzione ante causam - altre ipotesi residuali" }
+          ]
+        },
+        {
+          "codice": "011",
+          "label": "Procedimenti cautelari ante causam - sequestro",
+          "children": [
+            { "codice": "011001", "label": "Sequestro conservativo ex art. 671 c.p.c." },
+            { "codice": "011002", "label": "Sequestro giudiziario ex art. 670 c.p.c." },
+            { "codice": "011003", "label": "Sequestro liberatorio ex art. 687 c.p.c." }
+          ]
+        },
+        {
+          "codice": "012",
+          "label": "Procedimenti cautelari ante causam - istruzione preventiva",
+          "children": [
+            { "codice": "012001", "label": "Sequestro conservativo ex art. 671 c.p.c. - Sezione specializzata impresa" },
+            { "codice": "012002", "label": "Accertamento tecnico preventivo ex art. 696 c.p.c. - responsabilità sanitaria" },
+            { "codice": "012003", "label": "Accertamento tecnico preventivo ex art. 696 c.p.c. - altre ipotesi" },
+            { "codice": "012011", "label": "Ispezione preventiva" }
+          ]
+        },
+        {
+          "codice": "014",
+          "label": "Procedimenti cautelari davanti alla Corte di Appello",
+          "children": [
+            { "codice": "014001", "label": "Istanza di sospensione dell'esecuzione ex art. 373 c.p.c." },
+            { "codice": "014100", "label": "Reclamo alla Corte di Appello avverso procedimenti cautelari" },
+            { "codice": "014700", "label": "Reclamo alla Corte di Appello avverso procedimenti cautelari" }
+          ]
+        },
+        {
+          "codice": "015",
+          "label": "Procedimenti cautelari ante causam - azioni a tutela della proprietà e azioni residuali",
+          "children": [
+            { "codice": "015001", "label": "Denuncia di nuova opera o di danno temuto ex art. 688 c.p.c." },
+            { "codice": "015011", "label": "Provvedimenti d'urgenza ex art. 700 c.p.c." }
+          ]
+        },
+        {
+          "codice": "016",
+          "label": "Famiglia - provvedimenti in materia di mantenimento",
+          "children": [
+            { "codice": "016001", "label": "Mantenimento figli naturali o legittimi - istanza ex art. 148 c.c." },
+            { "codice": "016011", "label": "Assegno provvisorio per alimenti ex art. 446 c.c." }
+          ]
+        },
+        {
+          "codice": "017",
+          "label": "Provvedimenti cautelari ante causam davanti alla Sezione specializzata impresa",
+          "children": [
+            { "codice": "017002", "label": "Sequestro giudiziario ex art. 670 c.p.c. - Sezione specializzata impresa" },
+            { "codice": "017003", "label": "Sequestro liberatorio ex art. 687 c.p.c. - Sezione specializzata impresa" },
+            { "codice": "017004", "label": "Provvedimenti cautelari in materia di tutela della concorrenza e del mercato" },
+            { "codice": "017005", "label": "Provvedimenti d'urgenza ex art. 700 c.p.c. - Sezione specializzata impresa" },
+            { "codice": "017006", "label": "Inibitoria ex art. 131 c.p.i." },
+            { "codice": "017007", "label": "Sequestro ex art. 129 c.p.i." },
+            { "codice": "017008", "label": "Descrizione ex art. 129 c.p.i." },
+            { "codice": "017009", "label": "Inibitoria ex art. 156 L. 633/1941 - Legge autore" },
+            { "codice": "017010", "label": "Sequestro ex art. 161 L. 633/1941 - Legge autore" },
+            { "codice": "017011", "label": "Descrizione ex art. 161 L. 633/1941 - Legge autore" },
+            { "codice": "017012", "label": "Consulenza tecnica preventiva ex art. 128 c.p.i." },
+            { "codice": "017013", "label": "Accertamento tecnico preventivo / prova testimoniale ex art. 696 c.p.c. - Sezione specializzata impresa" },
+            { "codice": "017014", "label": "Consulenza tecnica preventiva a fini conciliativi ex art. 696-bis c.p.c. - Sezione specializzata impresa" },
+            { "codice": "017999", "label": "Altri procedimenti cautelari - Sezione specializzata impresa" }
+          ]
+        },
+        {
+          "codice": "019",
+          "label": "Procedimenti cautelari in genere - altri",
+          "children": [
+            { "codice": "019999", "label": "Altri procedimenti cautelari" }
+          ]
+        },
+        {
+          "codice": "020",
+          "label": "Procedimenti possessori",
+          "children": [
+            { "codice": "020001", "label": "Azione di reintegrazione nel possesso ex artt. 703 c.p.c. e 1168-1169 c.c." },
+            { "codice": "020011", "label": "Azione di manutenzione nel possesso ex artt. 703 c.p.c. e 1170 c.c." }
+          ]
+        },
+        {
+          "codice": "030",
+          "label": "Procedimento per convalida di sfratto",
+          "children": [
+            { "codice": "030001", "label": "Intimazione di licenza o sfratto per finita locazione ex art. 657 c.p.c. - uso abitativo" },
+            { "codice": "030002", "label": "Intimazione di licenza o sfratto per finita locazione ex art. 657 c.p.c. - uso diverso" },
+            { "codice": "030011", "label": "Intimazione di sfratto per morosità ex art. 658 c.p.c. - uso abitativo" },
+            { "codice": "030012", "label": "Intimazione di licenza o sfratto per morosità ex art. 658 c.p.c. - uso diverso" },
+            { "codice": "030021", "label": "Intimazione di licenza o sfratto per cessazione del rapporto di locazione d'opera" }
+          ]
+        },
+        {
+          "codice": "050",
+          "label": "Ingiunzioni ante causam in materia societaria, finanziaria, bancaria e creditizia",
+          "children": [
+            { "codice": "050001", "label": "Procedimento di ingiunzione ante causam" }
+          ]
+        },
+        {
+          "codice": "051",
+          "label": "Cautelari ante causam in materia societaria, finanziaria, bancaria e creditizia - sequestro",
+          "children": [
+            { "codice": "051001", "label": "Sequestro conservativo ex art. 671 c.p.c." },
+            { "codice": "051002", "label": "Sequestro giudiziario ex art. 670 c.p.c." },
+            { "codice": "051003", "label": "Sequestro liberatorio ex art. 687 c.p.c." }
+          ]
+        },
+        {
+          "codice": "052",
+          "label": "Cautelari ante causam in materia societaria, finanziaria, bancaria e creditizia - istruzione preventiva",
+          "children": [
+            { "codice": "052011", "label": "Ispezione preventiva" }
+          ]
+        },
+        {
+          "codice": "053",
+          "label": "Cautelari ante causam in materia societaria, finanziaria, bancaria e creditizia - inibitoria",
+          "children": [
+            { "codice": "053001", "label": "Inibitoria" }
+          ]
+        },
+        {
+          "codice": "055",
+          "label": "Cautelari ante causam in materia societaria, finanziaria, bancaria e creditizia - azioni residuali",
+          "children": [
+            { "codice": "055011", "label": "Provvedimenti d'urgenza ex art. 700 c.p.c." }
+          ]
+        },
+        {
+          "codice": "059",
+          "label": "Cautelari ante causam in materia societaria, finanziaria, bancaria e creditizia - altro",
+          "children": [
+            { "codice": "059999", "label": "Altri procedimenti cautelari in materia societaria, finanziaria, bancaria e creditizia" }
+          ]
+        }
+      ]
+    },
+    {
+      "area": "contenzioso_civile",
+      "label": "Contenzioso civile",
+      "items": [
+        { "codice": "100", "label": "Altri istituti e leggi speciali - Libro III c.p.c." },
+        { "codice": "101", "label": "Altri istituti e leggi speciali - altri istituti c.p.c." },
+        { "codice": "102", "label": "Altri istituti e leggi speciali - tutela dei diritti" },
+        { "codice": "103", "label": "Altri istituti e leggi speciali - diritto della navigazione" },
+        { "codice": "104", "label": "Altri istituti e leggi speciali di competenza della Corte di Appello / TRAP" },
+        { "codice": "105", "label": "Altri istituti e leggi speciali di competenza della Corte di Appello di Roma - usi civici" },
+        { "codice": "106", "label": "Altri istituti e leggi speciali di competenza della Corte di Appello in primo grado" },
+        { "codice": "108", "label": "Istituti di competenza esclusiva del Giudice di Pace" },
+        { "codice": "109", "label": "Altri istituti e leggi speciali in genere" },
+        { "codice": "110", "label": "Stato della persona e diritti della personalità" },
+        { "codice": "111", "label": "Famiglia" },
+        { "codice": "112", "label": "Cause in materia minorile" },
+        { "codice": "120", "label": "Successioni" },
+        { "codice": "129", "label": "Successioni - altri istituti" },
+        { "codice": "130", "label": "Diritti reali, possesso e trascrizioni" }
+      ]
+    },
+    {
+      "area": "lavoro_previdenza",
+      "label": "Lavoro e previdenza",
+      "items": [
+        { "codice": "201", "label": "Revocazione sentenza" },
+        { "codice": "210", "label": "Procedimenti speciali - ingiunzione" },
+        { "codice": "211", "label": "Procedimenti cautelari ante causam" },
+        { "codice": "220", "label": "Lavoro dipendente da privato" },
+        { "codice": "221", "label": "Pubblico impiego con pregiudiziale in materia di efficacia, validità o interpretazione" },
+        { "codice": "222", "label": "Pubblico impiego" },
+        { "codice": "223", "label": "Rapporto di lavoro parasubordinato" }
+      ]
+    }
+  ]
+}

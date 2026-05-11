@@ -3076,6 +3076,15 @@ def test_react_fascicoli_api_suite_usa_repository_reali(tmp_path: Path):
         (today + timedelta(days=10)).isoformat(),
         id_fascicolo=fascicolo.id,
     )
+    preventivo = GestionePreventivi(app.config["PREVENTIVI_DB"]).crea_preventivo(
+        cliente.id,
+        "Istanza sospensione esecuzione",
+        [VocePreventivo(descrizione="Studio e deposito", importo=1000.0)],
+        tipo_procedimento="Istanza di sospensione dell'esecuzione ex art. 373 c.p.c.",
+        id_pratica="sospensione_esecuzione_appello",
+        area_pratica="procedimenti_speciali_sommari",
+        codice_oggetto_pst="014001",
+    )
 
     list_response = client.get("/api/v1/ui/fascicoli", headers={"X-API-Key": "react-test-key"})
     detail_response = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}", headers={"X-API-Key": "react-test-key"})
@@ -3086,6 +3095,11 @@ def test_react_fascicoli_api_suite_usa_repository_reali(tmp_path: Path):
         query_string={"tipo": "PENALE"},
         headers={"X-API-Key": "react-test-key"},
     )
+    source_form_response = client.get(
+        "/api/v1/ui/fascicoli/nuovo",
+        query_string={"source_preventivo": preventivo.id},
+        headers={"X-API-Key": "react-test-key"},
+    )
     export_response = client.get("/api/v1/ui/fascicoli/export", headers={"X-API-Key": "react-test-key"})
 
     payload = list_response.get_json()
@@ -3093,6 +3107,7 @@ def test_react_fascicoli_api_suite_usa_repository_reali(tmp_path: Path):
     alias_detail = alias_detail_response.get_json()
     form = form_response.get_json()
     new_form = new_form_response.get_json()
+    source_form = source_form_response.get_json()
     export_payload = export_response.get_json()
 
     assert list_response.status_code == 200
@@ -3100,6 +3115,7 @@ def test_react_fascicoli_api_suite_usa_repository_reali(tmp_path: Path):
     assert alias_detail_response.status_code == 200
     assert form_response.status_code == 200
     assert new_form_response.status_code == 200
+    assert source_form_response.status_code == 200
     assert export_response.status_code == 200
     assert payload["source"] == "repository_reali"
     assert payload["contracts"]["mock_fallback"] is False
@@ -3134,6 +3150,9 @@ def test_react_fascicoli_api_suite_usa_repository_reali(tmp_path: Path):
     assert new_form["guardrails"]["channel"] == "PDP_PENALE"
     assert new_form["guardrails"]["channelLabel"] == "PDP Penale"
     assert new_form["guardrails"]["warnings"][0]["code"] == "DOCUMENTI_PREDEPOSITO_DOPO_CREAZIONE"
+    assert source_form["fascicolo"]["practiceId"] == "sospensione_esecuzione_appello"
+    assert source_form["fascicolo"]["codiceOggettoPst"] == "014001"
+    assert source_form["fascicolo"]["fonteCodiceOggetto"] == "PST_XSD"
     assert export_payload["formats"][0]["href"] == "/fascicoli/export.pdf"
     assert export_payload["presets"][-1]["href"] == "/fascicoli/archivio"
 

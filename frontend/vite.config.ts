@@ -7,6 +7,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': new URL('./src', import.meta.url).pathname,
+      '@iusentra-data': new URL('../pct/data', import.meta.url).pathname,
     },
   },
   build: {

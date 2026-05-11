@@ -2,6 +2,13 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-11T17:30:00+02:00: `/fascicoli/nuovo` resta
+`react_operational_full` e rafforza il flusso principale senza fallback legacy:
+API JSON reale con clienti, soggetti e autorita' giudiziarie, validazioni
+server-side per Fascicolo Veloce, messaggi JSON chiari e redirect automatico al
+deposito assistito. Nessun `LegacyPostForm`, nessun form POST HTML React e
+nessun dato demo introdotto.
+
 Aggiornamento 2026-05-11T11:00:00+02:00: `/documenti` promossa a
 `react_operational_full`. Il manifest corrente conta 86 route nel gate
 anti-mascheramento; la route usa `StudioModulePage`, bridge

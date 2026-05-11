@@ -727,8 +727,8 @@ function SelectField({ label, name, options, defaultValue = '', required = false
   return <Field label={label} name={name} required={required}><select name={name} defaultValue={defaultValue} required={required}>{options.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></Field>
 }
 
-function TextAreaField({ label, name, defaultValue = '', rows = 3, placeholder = '' }:{label:string; name:string; defaultValue?:string; rows?:number; placeholder?:string}) {
-  return <label className="iu-fas-field iu-fas-field--wide"><span>{label}</span><textarea name={name} rows={rows} defaultValue={defaultValue} placeholder={placeholder}/></label>
+function TextAreaField({ label, name, defaultValue = '', rows = 3, placeholder = '', required = false }:{label:string; name:string; defaultValue?:string; rows?:number; placeholder?:string; required?:boolean}) {
+  return <label className="iu-fas-field iu-fas-field--wide"><span>{label}{required ? <b>*</b> : null}</span><textarea name={name} rows={rows} defaultValue={defaultValue} placeholder={placeholder} required={required}/></label>
 }
 
 function getValue(data: FascicoloFormData, key: string): string {
@@ -750,6 +750,165 @@ function StatoPraticaField({ data }:{data:FascicoloFormData}) {
       options={STATI_PRATICA.map((stato) => ({ value: stato.value, label: stato.label }))}
       defaultValue={current}
     />
+  )
+}
+
+function compactMeta(parts: Array<string | undefined>): string {
+  return parts.map((part) => String(part || '').trim()).filter(Boolean).join(' - ')
+}
+
+function ClientChoiceField({ data }:{data:FascicoloFormData}) {
+  const initialClientId = getValue(data, 'clientId') || data.query.id_cliente || ''
+  const [clientId, setClientId] = useState(initialClientId)
+  useEffect(() => setClientId(initialClientId), [initialClientId])
+  const selected = data.clients.find((client) => client.id === clientId)
+  return (
+    <div className="iu-fas-field iu-fas-field--wide iu-fas-choice-field">
+      <label>
+        <span>Cliente</span>
+        <select name="id_cliente" value={clientId} onChange={(event) => setClientId(event.currentTarget.value)}>
+          <option value="">Seleziona cliente</option>
+          {data.clients.map((client) => (
+            <option value={client.id} key={client.id}>
+              {compactMeta([client.label, client.taxCode || client.vat, client.pec || client.email])}
+            </option>
+          ))}
+        </select>
+      </label>
+      {selected ? (
+        <div className="iu-fas-choice-card">
+          <Building2 size={17}/>
+          <div>
+            <strong>{selected.label}</strong>
+            <span>{compactMeta([selected.taxCode || selected.vat, selected.pec || selected.email, selected.phone]) || 'Scheda cliente collegata.'}</span>
+          </div>
+          {selected.href ? <a href={selected.href}>Apri scheda</a> : null}
+        </div>
+      ) : (
+        <div className="iu-fas-choice-card iu-fas-choice-card--empty">
+          <UserRound size={17}/>
+          <div>
+            <strong>Nessun cliente selezionato</strong>
+            <span>Puoi collegarlo ora o creare la scheda in un secondo momento.</span>
+          </div>
+          <a href="/clienti/nuovo" target="_blank" rel="noreferrer">Nuovo cliente</a>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function CounterpartyFields({ data, required }:{data:FascicoloFormData; required:boolean}) {
+  const initialName = getValue(data, 'counterparty')
+  const initialCode = getValue(data, 'counterpartyTaxCode') || getValue(data, 'cf_controparte')
+  const [selectedId, setSelectedId] = useState('')
+  const [counterpartyName, setCounterpartyName] = useState(initialName)
+  const [counterpartyCode, setCounterpartyCode] = useState(initialCode)
+  const [createSubject, setCreateSubject] = useState(false)
+  const [subjectType, setSubjectType] = useState('PERSONA_GIURIDICA')
+  useEffect(() => {
+    setCounterpartyName(initialName)
+    setCounterpartyCode(initialCode)
+  }, [initialName, initialCode])
+  const selected = data.subjects.find((subject) => subject.id === selectedId)
+  const handleSubjectChange = (value: string) => {
+    setSelectedId(value)
+    const subject = data.subjects.find((item) => item.id === value)
+    if (subject) {
+      setCounterpartyName(subject.label)
+      setCounterpartyCode(subject.taxCode || subject.vat)
+    }
+  }
+  return (
+    <>
+      <div className="iu-fas-field iu-fas-field--wide iu-fas-choice-field">
+        <label>
+          <span>Soggetto controparte già censito</span>
+          <select name="id_soggetto_controparte" value={selectedId} onChange={(event) => handleSubjectChange(event.currentTarget.value)}>
+            <option value="">Cerca tra i soggetti</option>
+            {data.subjects.map((subject) => (
+              <option value={subject.id} key={subject.id}>
+                {compactMeta([subject.label, subject.taxCode || subject.vat, subject.pec || subject.email])}
+              </option>
+            ))}
+          </select>
+        </label>
+        {selected ? (
+          <div className="iu-fas-choice-card">
+            <UsersRound size={17}/>
+            <div>
+              <strong>{selected.label}</strong>
+              <span>{compactMeta([selected.taxCode || selected.vat, selected.qualification, selected.pec || selected.email])}</span>
+            </div>
+            {selected.href ? <a href={selected.href}>Apri soggetto</a> : null}
+          </div>
+        ) : <small className="iu-fas-field-help">Se il soggetto esiste già, selezionalo: nome e identificativo vengono riportati nel fascicolo.</small>}
+      </div>
+      <Field label="Controparte" name="controparte" required={required}>
+        <input name="controparte" value={counterpartyName} onChange={(event) => setCounterpartyName(event.currentTarget.value)} required={required} placeholder="Nome o ragione sociale della controparte"/>
+      </Field>
+      <Field label="Codice fiscale / P. IVA controparte" name="cf_controparte" required={required}>
+        <input name="cf_controparte" value={counterpartyCode} onChange={(event) => setCounterpartyCode(event.currentTarget.value)} required={required} placeholder="Dato necessario per la scheda soggetto"/>
+      </Field>
+      <Field label={NUOVO_FASCICOLO_LABELS.fields.attorePrincipale} name="attore_principale" defaultValue={getValue(data, 'attorePrincipale')}/>
+      <label className="iu-fas-check-field iu-fas-check-field--wide">
+        <input type="checkbox" name="crea_soggetto_controparte" value="1" checked={createSubject} onChange={(event) => setCreateSubject(event.currentTarget.checked)}/>
+        <span>Crea anche la scheda soggetto della controparte</span>
+        <small>Utile quando la controparte non è ancora in anagrafica. Nome e identificativo restano obbligatori.</small>
+      </label>
+      {createSubject ? (
+        <div className="iu-fas-inline-subject iu-fas-field--wide">
+          <Field label="Tipo soggetto" name="nuovo_soggetto_tipo" required>
+            <select name="nuovo_soggetto_tipo" value={subjectType} onChange={(event) => setSubjectType(event.currentTarget.value)} required>
+              <option value="PERSONA_FISICA">Persona fisica</option>
+              <option value="PERSONA_GIURIDICA">Persona giuridica</option>
+              <option value="ENTE">Ente</option>
+              <option value="PUBBLICA_AMMINISTRAZIONE">Pubblica amministrazione</option>
+              <option value="CONDOMINIO">Condominio</option>
+            </select>
+          </Field>
+          <Field label="Nome completo / ragione sociale" name="nuovo_soggetto_nome_completo" required placeholder="Dato obbligatorio"/>
+          <Field label="Codice fiscale / P. IVA" name="nuovo_soggetto_identificativo" required placeholder="Dato obbligatorio"/>
+          <Field label="Email" name="nuovo_soggetto_email" type="email"/>
+          <Field label="PEC" name="nuovo_soggetto_pec" type="email"/>
+          <Field label="Telefono" name="nuovo_soggetto_telefono"/>
+        </div>
+      ) : null}
+    </>
+  )
+}
+
+function JudicialOfficeField({ data, required }:{data:FascicoloFormData; required:boolean}) {
+  const initial = getValue(data, 'court') || getValue(data, 'tribunale')
+  const [officeName, setOfficeName] = useState(initial)
+  useEffect(() => setOfficeName(initial), [initial])
+  const selected = data.judicialOffices.find((office) => office.value.toLocaleLowerCase() === officeName.toLocaleLowerCase())
+  return (
+    <div className="iu-fas-field iu-fas-field--wide iu-fas-office-field">
+      <label>
+        <span>{NUOVO_FASCICOLO_LABELS.fields.autoritaGiudiziaria}{required ? <b>*</b> : null}</span>
+        <input
+          list="fascicolo-uffici-giudiziari"
+          name="tribunale"
+          value={officeName}
+          onChange={(event) => setOfficeName(event.currentTarget.value)}
+          required={required}
+          placeholder="Cerca tribunale, corte, giudice di pace, TAR..."
+        />
+      </label>
+      <datalist id="fascicolo-uffici-giudiziari">
+        {data.judicialOffices.map((office) => <option value={office.value} label={office.label} key={`${office.code}-${office.value}`}/>)}
+      </datalist>
+      {selected ? (
+        <div className="iu-fas-choice-card">
+          <Landmark size={17}/>
+          <div>
+            <strong>{selected.value}</strong>
+            <span>{compactMeta([selected.kind, selected.district, selected.pec]) || 'Ufficio presente nel registro.'}</span>
+          </div>
+        </div>
+      ) : <small className="iu-fas-field-help">Gli uffici arrivano dal registro giudiziario IUSENTRA. Per il fascicolo veloce scegli una voce dell'elenco.</small>}
+    </div>
   )
 }
 
@@ -865,29 +1024,28 @@ function FascicoloFormPage({ mode, id }:{mode:'new'|'edit'; id?:string}) {
               <StatoPraticaField data={data}/>
               <Field label={labels.fields.dataApertura} name="data_apertura" type="date" defaultValue={getValue(data, 'dataAperturaIso') || new Date().toISOString().slice(0, 10)}/>
               <Field label={labels.fields.dataArchiviazione} name="data_chiusura" type="date" defaultValue={getValue(data, 'dataChiusuraIso')}/>
-              <TextAreaField label={labels.fields.oggettoPratica} name="oggetto" defaultValue={getValue(data, 'object') || getValue(data, 'subtitle')} rows={2}/>
+              <TextAreaField label={labels.fields.oggettoPratica} name="oggetto" defaultValue={getValue(data, 'object') || getValue(data, 'subtitle')} rows={2} required={fascicoloVeloce}/>
               <label className="iu-fas-check-field"><input type="checkbox" name="personalizzabile" value="1" defaultChecked={getBoolValue(data, 'personalizzabile')}/><span>{labels.fields.personalizzabile}</span></label>
               <PraticheCollegateField data={data}/>
               {mode === 'new' ? (
                 <label className="iu-fas-check-field iu-fas-check-field--wide" htmlFor="fascicolo-veloce">
                   <input id="fascicolo-veloce" type="checkbox" name="fascicolo_veloce" value="1" checked={fascicoloVeloce} onChange={(event) => setFascicoloVeloce(event.currentTarget.checked)} aria-controls="documenti-fascicolo-veloce email-fascicolo-veloce"/>
                   <span>Fascicolo Veloce</span>
-                  <small>Attiva caricamento iniziale di documenti ed email EML.</small>
+                  <small>Attiva caricamento iniziale e, dopo la creazione, apre il deposito assistito.</small>
                 </label>
               ) : null}
             </div>
           </CollapsibleFormPanel>
           <CollapsibleFormPanel title="Parti" subtitle="Cliente, controparte e attore principale" icon={<UsersRound size={17}/>}>
             <div className="iu-fas-form-grid">
-              <SelectField label="Cliente" name="id_cliente" options={[{ value: '', label: 'Seleziona cliente' }, ...data.clients.map((client) => ({ value: client.id, label: client.label }))]} defaultValue={getValue(data, 'clientId') || data.query.id_cliente || ''}/>
-              <Field label="Controparte" name="controparte" defaultValue={getValue(data, 'counterparty')} placeholder="Cerca per nome, C.F. o digita"/>
-              <Field label={labels.fields.attorePrincipale} name="attore_principale" defaultValue={getValue(data, 'attorePrincipale')}/>
+              <ClientChoiceField data={data}/>
+              <CounterpartyFields data={data} required={fascicoloVeloce}/>
               <a className="iu-fas-inline-link" href="/soggetti/nuovo" target="_blank" rel="noreferrer"><Plus size={14}/> Nuovo soggetto</a>
             </div>
           </CollapsibleFormPanel>
           <CollapsibleFormPanel title={labels.sections.identificazioneGiudiziale} subtitle="Autorità, numero di ruolo e riferimenti dell'ufficio" icon={<Landmark size={17}/>}>
             <div className="iu-fas-form-grid">
-              <Field label={labels.fields.autoritaGiudiziaria} name="tribunale" defaultValue={getValue(data, 'court')}/>
+              <JudicialOfficeField data={data} required={fascicoloVeloce}/>
               <Field label={labels.fields.numeroRuolo} name="numero_rg" defaultValue={getValue(data, 'numeroRg')}/>
               <Field label="Anno iscrizione" name="anno_rg" type="number" defaultValue={getValue(data, 'annoRg') || new Date().getFullYear()}/>
               <Field label="Sezione" name="sezione" defaultValue={getValue(data, 'section')}/>
@@ -914,7 +1072,7 @@ function FascicoloFormPage({ mode, id }:{mode:'new'|'edit'; id?:string}) {
           <FascicoloGuardrailsPanel guardrails={data.guardrails} />
           {data.workflow ? <CollapsibleFormPanel title="Apertura pratica guidata" icon={<Sparkles size={17}/>}><div className="iu-fas-workflow-box"><div>{data.workflow.badges.map((badge) => <Badge tone="primary" key={badge}>{badge}</Badge>)}</div><p>{data.workflow.summary}</p>{data.workflow.values.map((item) => <span key={item.label}><strong>{item.label}</strong>{item.value}</span>)}<ul>{data.workflow.checklist.map((item) => <li key={item}>{item}</li>)}</ul></div></CollapsibleFormPanel> : null}
           <CollapsibleFormPanel title="Guida rapida" icon={<BadgeCheck size={17}/>}><div className="iu-fas-help"><p><strong>RG</strong>: numero assegnato dal tribunale all'iscrizione a ruolo.</p><p><strong>Sezione</strong>: sezione competente, utile per filtri e notifiche.</p><p><strong>Valore causa</strong>: alimenta compensi, quadro economico e controllo incassi.</p></div></CollapsibleFormPanel>
-          <CollapsibleFormPanel title="Prossimi passi" icon={<ListChecks size={17}/>}><div className="iu-fas-help"><p>Dopo il salvataggio potrai completare documenti, scadenze processuali, attività, deposito assistito e note.</p></div></CollapsibleFormPanel>
+          <CollapsibleFormPanel title="Prossimi passi" icon={<ListChecks size={17}/>}><div className="iu-fas-help"><p>Con Fascicolo Veloce, dopo il salvataggio si apre il deposito assistito per controllare atto, allegati, firma e invio.</p></div></CollapsibleFormPanel>
         </aside>
       </section>
       <FloatingLex context="fascicolo-form" title="Lex AI fascicolo" body="Posso aiutarti a completare oggetto, tipo procedimento, checklist iniziale, scadenze e dati mancanti prima della creazione o modifica." primaryHref="#lex" primaryLabel="Apri Lex fascicolo" secondaryHref="/fascicoli" secondaryLabel="Torna ai fascicoli" />

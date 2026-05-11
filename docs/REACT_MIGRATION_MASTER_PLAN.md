@@ -1,5 +1,22 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-11 - Fascicolo Veloce guidato / apertura deposito 2.216.5
+
+La pagina `/fascicoli/nuovo` mantiene la shell React operativa e rende il
+percorso rapido piu' vicino al lavoro reale di studio:
+
+- il form riceve dall'API clienti, soggetti e uffici giudiziari reali, senza
+  valori dimostrativi o campi liberi non presidiati per l'autorita';
+- la selezione cliente mostra dati utili di scheda, PEC/email e collegamento,
+  mentre la controparte puo' essere scelta tra i soggetti esistenti o creata
+  contestualmente con identificativo obbligatorio;
+- per `Fascicolo Veloce` sono bloccanti titolo, tipo, oggetto, autorita'
+  giudiziaria, controparte e codice fiscale/P. IVA, con messaggi espliciti sui
+  dati mancanti;
+- dopo la creazione veloce il backend rimanda direttamente al deposito
+  assistito del fascicolo appena creato, mantenendo la generazione busta/invio
+  nel flusso telematico governato e confermato dall'utente.
+
 ## Stato tranche 2026-05-11 - Riduzione prompt PIN PST / Local Signer 1.6.28 / app 2.216.4
 
 La diagnosi reale sul fascicolo PST RG 274/2026 del Tribunale di Palmi ha

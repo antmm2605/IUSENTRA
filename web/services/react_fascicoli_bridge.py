@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from collections import Counter
 from datetime import date, datetime, timedelta, timezone
+import os
+from pathlib import Path
 import re
 from typing import Any, Callable, Iterable
 from urllib.parse import quote
@@ -727,14 +729,99 @@ def _client_options(get_clienti: Callable[[], Any]) -> list[dict[str, str]]:
     clienti = _safe("clienti", lambda: get_clienti().tutti(stato=None), [])
     out = []
     for cliente in clienti:
+        recapiti = getattr(cliente, "recapiti", None)
         out.append(
             {
                 "id": _text(getattr(cliente, "id", "")),
                 "label": _client_label(cliente),
                 "taxCode": _text(getattr(cliente, "codice_fiscale", "")),
+                "vat": _text(getattr(cliente, "partita_iva", "")),
+                "email": _text(getattr(recapiti, "email", "") or getattr(cliente, "email", "")),
+                "pec": _text(getattr(recapiti, "pec", "") or getattr(cliente, "pec", "")),
+                "phone": _text(getattr(recapiti, "telefono", "") or getattr(recapiti, "cellulare", "") or getattr(cliente, "telefono", "")),
+                "type": _enum_value(getattr(cliente, "tipo", "")),
+                "href": f"/clienti/{_text(getattr(cliente, 'id', ''))}",
             }
         )
     return out
+
+
+def _soggetto_label(soggetto: Any) -> str:
+    return _text(getattr(soggetto, "nome_completo", "")) or "Soggetto"
+
+
+def _subject_options(get_soggetti: Callable[[], Any] | None) -> list[dict[str, str]]:
+    if not callable(get_soggetti):
+        return []
+    soggetti = _safe("soggetti", lambda: get_soggetti().tutti(), [])
+    out: list[dict[str, str]] = []
+    for soggetto in soggetti:
+        recapiti = getattr(soggetto, "recapiti", None)
+        identificativo = _text(getattr(soggetto, "identificativo", ""))
+        out.append(
+            {
+                "id": _text(getattr(soggetto, "id", "")),
+                "label": _soggetto_label(soggetto),
+                "taxCode": _text(getattr(soggetto, "codice_fiscale", "")) or identificativo,
+                "vat": _text(getattr(soggetto, "partita_iva", "")),
+                "email": _text(getattr(recapiti, "email", "")),
+                "pec": _text(getattr(recapiti, "pec", "")),
+                "phone": _text(getattr(recapiti, "telefono", "") or getattr(recapiti, "cellulare", "")),
+                "type": _enum_value(getattr(soggetto, "tipo", "")),
+                "qualification": _text(getattr(soggetto, "qualifica", "")),
+                "href": f"/soggetti/{_text(getattr(soggetto, 'id', ''))}",
+            }
+        )
+    return sorted((row for row in out if row["id"]), key=lambda row: row["label"].casefold())
+
+
+def _uffici_cache_path() -> str:
+    configured = _text(os.getenv("PCT_UFFICI_DB", ""))
+    if configured:
+        return configured
+    repo_data = Path(__file__).resolve().parents[2] / "data" / "uffici" / "uffici_giudiziari.json"
+    if repo_data.exists():
+        return str(repo_data)
+    return "/data/uffici/uffici_giudiziari.json"
+
+
+def _judicial_office_options() -> list[dict[str, Any]]:
+    try:
+        from pct.uffici_giudiziari import TIPI_UFFICIO, get_gestore
+
+        uffici = get_gestore(_uffici_cache_path()).carica()
+    except Exception:
+        return []
+    out: list[dict[str, Any]] = []
+    for ufficio in uffici:
+        nome = _text(ufficio.get("nome"))
+        if not nome:
+            continue
+        tipo = _text(ufficio.get("tipo"))
+        tipo_label = _text((TIPI_UFFICIO.get(tipo) or ("", tipo))[1], tipo)
+        distretto = _text(ufficio.get("distretto"))
+        label_parts = [nome]
+        if tipo_label and tipo_label.casefold() not in nome.casefold():
+            label_parts.append(tipo_label)
+        if distretto and distretto.casefold() not in nome.casefold():
+            label_parts.append(distretto)
+        out.append(
+            {
+                "value": nome,
+                "label": " - ".join(label_parts),
+                "code": _text(ufficio.get("codice")),
+                "ministerialCode": _text(ufficio.get("codice_ministero")),
+                "district": distretto,
+                "pec": _text(ufficio.get("pec") or ufficio.get("pec_ministero")),
+                "kind": tipo_label,
+                "services": [
+                    _text(servizio)
+                    for servizio in (ufficio.get("servizi_ministero") or [])
+                    if _text(servizio)
+                ],
+            }
+        )
+    return sorted(out, key=lambda row: (str(row.get("kind", "")).casefold(), str(row.get("label", "")).casefold()))
 
 
 def _codice_oggetto_from_source(source: Any) -> dict[str, str]:
@@ -894,7 +981,7 @@ def _new_fascicolo_guardrails(query: dict[str, str], fascicolo: Any | None = Non
     channel = _deposit_channel_for_type(tipo)
     return {
         "available": True,
-        "title": "Guardrail deposito telematico",
+        "title": "Presidio deposito assistito",
         "portal": channel["portal"],
         "channel": channel["channel"],
         "channelLabel": channel["label"],
@@ -904,15 +991,15 @@ def _new_fascicolo_guardrails(query: dict[str, str], fascicolo: Any | None = Non
             {
                 "code": "DOCUMENTI_PREDEPOSITO_DOPO_CREAZIONE",
                 "message": (
-                    "Il fascicolo puo' essere aperto ora. Atto principale, procura, prova notifica "
-                    "e contributo saranno verificati nel pre-deposito con il motore deposito guidato."
+                    "Se usi Fascicolo Veloce, dopo il salvataggio si apre il deposito assistito. "
+                    "Atto principale, procura, prova notifica e contributo saranno controllati prima dell'invio."
                 ),
                 "field": "documenti",
             }
         ],
-        "requiredOpeningFields": ["titolo", "tipo", "oggetto", "tribunale"],
+        "requiredOpeningFields": ["titolo", "tipo", "oggetto", "autorita giudiziaria", "controparte"],
         "nextStep": {
-            "label": "Dopo la creazione apri il fascicolo e completa documenti / pre-deposito",
+            "label": "Dopo la creazione vai al deposito assistito",
             "href": "/deposito/checklist",
         },
     }
@@ -922,6 +1009,7 @@ def build_react_fascicolo_form_payload(
     *,
     get_fascicoli: Callable[[], Any],
     get_clienti: Callable[[], Any],
+    get_soggetti: Callable[[], Any] | None = None,
     get_preventivi: Callable[[], Any] | None = None,
     id_fasc: str | None = None,
     query: dict[str, Any] | None = None,
@@ -962,6 +1050,8 @@ def build_react_fascicolo_form_payload(
         "detailHref": detail,
         "query": query,
         "clients": _client_options(get_clienti),
+        "subjects": _subject_options(get_soggetti),
+        "judicialOffices": _judicial_office_options(),
         "types": _select_options(TipoFascicolo),
         "states": _select_options(StatoFascicolo),
         "studio": {

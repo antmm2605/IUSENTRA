@@ -2072,6 +2072,7 @@ def fascicolo_react_nuovo():
     return jsonify(build_react_fascicolo_form_payload(
         get_fascicoli=get_fascicoli,
         get_clienti=get_clienti,
+        get_soggetti=get_soggetti,
         get_preventivi=get_preventivi_readonly,
         id_fasc=None,
         query=dict(request.args),
@@ -2086,6 +2087,7 @@ def fascicolo_react_modifica(id_fasc: str):
     return jsonify(build_react_fascicolo_form_payload(
         get_fascicoli=get_fascicoli,
         get_clienti=get_clienti,
+        get_soggetti=get_soggetti,
         get_preventivi=get_preventivi_readonly,
         id_fasc=id_fasc,
         query=dict(request.args),

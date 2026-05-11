@@ -2,6 +2,16 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-11T17:30:00+02:00: tranche 2.216.5 su
+`/fascicoli/nuovo`. Il Fascicolo Veloce ora carica autorita' giudiziarie dal
+registro uffici IUSENTRA, mostra clienti e soggetti reali in selettori guidati,
+richiede controparte e identificativo quando la creazione veloce deve aprire il
+deposito, e restituisce errori JSON espliciti invece del generico `Operazione
+non riuscita`. Dopo la creazione veloce il salvataggio porta direttamente a
+`/fascicoli/<id>/deposito/prepara`, lasciando busta, firma e invio nel flusso
+di deposito assistito governato dagli schemi e dai controlli telematici.
+Browser reale Docker desktop/tablet/mobile verificato senza errori console.
+
 Aggiornamento 2026-05-11T14:25:00+02:00: hotfix 2.216.1 sul flusso
 PST via Local Signer. Il wizard React dei portali telematici apre il preflight
 PST dal browser, conserva la sessione locale e la riusa per ricerca,

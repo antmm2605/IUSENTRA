@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.216.5 - 2026-05-11
+
+- Rafforzata `/fascicoli/nuovo` per il flusso `Fascicolo Veloce`: clienti, soggetti e autorita' giudiziarie sono selezionabili da dati reali gia' presenti nel sistema.
+- Dopo la creazione veloce il flusso apre automaticamente il deposito assistito del fascicolo appena creato, invece di fermarsi alla scheda o alla cartella cliente.
+- Resi obbligatori, nel percorso veloce, autorita' giudiziaria valida, controparte e codice fiscale/P. IVA; il backend restituisce messaggi JSON chiari con i campi mancanti.
+- Aggiunta creazione/riuso della scheda soggetto controparte durante l'apertura, con collegamento automatico come parte processuale del fascicolo.
+- Aggiornati test React/backend e contratti di form per presidiare uffici giudiziari, soggetti reali, redirect al deposito e assenza del vecchio messaggio generico.
+
 ## 2.216.4 - 2026-05-11
 
 - Ridotti i prompt PIN nel wizard PST: la ricerca esatta RG/anno usa il nuovo endpoint Local Signer `/pst/ricerca-snapshot`, che accorpa ricerca fascicolo e catalogo documenti in un solo processo `curl`.

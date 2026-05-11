@@ -8,6 +8,21 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 
 ## Frontend e gate React
 
+### Fascicolo Veloce guidato / apertura deposito 2.216.5
+
+| Verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m compileall web\bootstrap\fascicoli_core_routes.py web\services\react_fascicoli_bridge.py web\blueprints\api_v1_react.py tests\test_react_shell.py` | OK | Sintassi confermata dopo selezione uffici/soggetti reali, validazioni chiare e redirect al deposito assistito. |
+| `npm --prefix frontend run typecheck` | OK | TypeScript confermato dopo nuovi tipi `judicialOffices`, `subjects` e selettori React del form. |
+| `python -m pytest -q tests/test_react_shell.py::test_react_fascicoli_suite_completa_route_componenti_e_lex tests/test_react_shell.py::test_react_fascicoli_api_suite_usa_repository_reali tests/test_react_shell.py::test_react_fascicolo_nuovo_form_collassabile_e_fascicolo_veloce tests/test_react_shell.py::test_post_nuovo_fascicolo_veloce_carica_documenti_ed_email_eml tests/test_react_shell.py::test_post_nuovo_fascicolo_veloce_crea_e_collega_soggetto_controparte tests/test_react_shell.py::test_post_nuovo_fascicolo_veloce_restituisce_errori_chiari_json --tb=short` | OK | 6/6 passati: form React, payload reale, apertura deposito, persistenza controparte/CF, creazione soggetto collegato e messaggi JSON chiari confermati. |
+| `npm --prefix frontend run build` | OK | Build Vite 2.216.5 completata in 6.15s; asset React rigenerati in `web/static/react`. |
+| `python tools\sync_packaging_files.py --check` | OK | Packaging sincronizzato dopo bump 2.216.5. |
+| `npm --prefix frontend run test` | OK | Contratti React confermati dopo le modifiche a `/fascicoli/nuovo`. |
+| `python -m pytest -q tests/test_packaging_consistency.py tests/test_release_readiness.py --tb=short` | OK | 8/8 passati: coerenza packaging e readiness release confermate per 2.216.5. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker` | OK | Immagini locali ricostruite da zero con wheel `pct-studio-legale==2.216.5`. |
+| `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx` / `docker compose ps` / `GET http://127.0.0.1:8080/api/pronto` | OK | Container locali healthy e readiness `versione=2.216.5`. |
+| Browser reale `http://127.0.0.1:8080/fascicoli/nuovo` desktop/tablet/mobile | OK | Selezione cliente arricchita, controparte/soggetto, autorita' giudiziaria reale e Fascicolo Veloce visibili; nessun overflow nelle sezioni verificate e nessun errore console. |
+
 ### Local Signer PST ricerca-snapshot 1.6.28 / app 2.216.4
 
 | Verifica | Esito | Nota |

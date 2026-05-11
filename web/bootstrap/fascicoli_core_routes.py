@@ -4,16 +4,19 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import date
+import os
 from pathlib import Path
 from typing import Any
 
-from flask import Flask, flash, redirect, render_template, request, url_for
+from flask import Flask, flash, jsonify, redirect, render_template, request, url_for
 
+from pct.clienti import Recapiti
 from pct.document_management import build_document_management_summary
 from pct.economic_dashboard import build_fascicolo_economic_dashboard
 from pct.fascicoli import EsitoAttivita, StatoFascicolo, TipoAttivita, TipoDocumento, TipoFascicolo
 from pct.reginde import ClientReGINde
-from pct.soggetti import RuoloSoggetto
+from pct.soggetti import RuoloSoggetto, TipoSoggetto
+from pct.uffici_giudiziari import risolvi_ufficio
 from pct.workflow_pipeline import build_fascicolo_workflow_pipeline
 from web.blueprints.react_shell import render_react_shell_response
 from web.services.telematico_document_catalog import sync_official_catalog_on_fascicolo
@@ -142,6 +145,126 @@ def register_fascicoli_core_routes(
 
         return documenti_caricati, email_caricate, email_scartate
 
+    def _richiede_json_form() -> bool:
+        return (
+            request.headers.get("X-Requested-With") == "XMLHttpRequest"
+            or "application/json" in (request.headers.get("Accept") or "")
+        )
+
+    def _risposta_errore_form(messaggio: str, *, status: int = 400):
+        if _richiede_json_form():
+            return jsonify({"ok": False, "message": messaggio, "errore": messaggio}), status
+        flash(messaggio, "danger")
+        return None
+
+    def _risposta_successo_form(messaggio: str, target: str, *, id_fascicolo: str):
+        if _richiede_json_form():
+            return jsonify(
+                {
+                    "ok": True,
+                    "message": messaggio,
+                    "redirect": target,
+                    "redirect_url": target,
+                    "id": id_fascicolo,
+                }
+            )
+        flash(messaggio, "success")
+        return redirect(target)
+
+    def _form_bool(form: Any, name: str) -> bool:
+        return form.get(name) in {"1", "true", "on", "si", "sì", "SI", "Si"}
+
+    def _split_nome_persona(nome_completo: str) -> tuple[str, str]:
+        parti = [parte for parte in str(nome_completo or "").strip().split() if parte]
+        if not parti:
+            return "", ""
+        if len(parti) == 1:
+            return parti[0], ""
+        return parti[0], " ".join(parti[1:])
+
+    def _tipo_soggetto_da_form(valore: str) -> TipoSoggetto:
+        try:
+            return TipoSoggetto(str(valore or "").strip() or "PERSONA_GIURIDICA")
+        except ValueError:
+            return TipoSoggetto.PERSONA_GIURIDICA
+
+    def _uffici_cache_path() -> str:
+        configured = str(os.getenv("PCT_UFFICI_DB", "") or "").strip()
+        if configured:
+            return configured
+        repo_data = Path(__file__).resolve().parents[2] / "data" / "uffici" / "uffici_giudiziari.json"
+        if repo_data.exists():
+            return str(repo_data)
+        return "/data/uffici/uffici_giudiziari.json"
+
+    def _soggetto_esistente_per_identificativo(gestore_soggetti: Any, identificativo: str):
+        valore = str(identificativo or "").strip().casefold()
+        if not valore:
+            return None
+        for soggetto in gestore_soggetti.cerca(q=identificativo):
+            if str(getattr(soggetto, "identificativo", "") or "").strip().casefold() == valore:
+                return soggetto
+        return None
+
+    def _crea_o_riusa_controparte(gestore_soggetti: Any, form: Any, *, nome_base: str, identificativo_base: str):
+        id_soggetto = str(form.get("id_soggetto_controparte", "") or "").strip()
+        if id_soggetto:
+            soggetto = gestore_soggetti.get(id_soggetto)
+            if not soggetto:
+                raise ValueError("La controparte selezionata non è più disponibile. Scegli un soggetto valido o inserisci i dati manualmente.")
+            return soggetto
+
+        nome_completo = str(form.get("nuovo_soggetto_nome_completo", "") or "").strip() or nome_base
+        identificativo = str(form.get("nuovo_soggetto_identificativo", "") or "").strip() or identificativo_base
+        if not nome_completo or not identificativo:
+            return None
+
+        esistente = _soggetto_esistente_per_identificativo(gestore_soggetti, identificativo)
+        if esistente:
+            return esistente
+
+        tipo = _tipo_soggetto_da_form(form.get("nuovo_soggetto_tipo", "PERSONA_GIURIDICA"))
+        recapiti = Recapiti(
+            telefono=str(form.get("nuovo_soggetto_telefono", "") or "").strip(),
+            email=str(form.get("nuovo_soggetto_email", "") or "").strip(),
+            pec=str(form.get("nuovo_soggetto_pec", "") or "").strip(),
+        )
+        common = {
+            "recapiti": recapiti,
+            "note": "Creato durante l'apertura del fascicolo.",
+            "tag": ["controparte"],
+        }
+        if tipo == TipoSoggetto.PERSONA_FISICA:
+            nome, cognome = _split_nome_persona(nome_completo)
+            return gestore_soggetti.crea(
+                tipo=tipo,
+                nome=nome,
+                cognome=cognome,
+                codice_fiscale=identificativo,
+                **common,
+            )
+        partita_iva = identificativo if identificativo.isdigit() and len(identificativo) == 11 else ""
+        return gestore_soggetti.crea(
+            tipo=tipo,
+            ragione_sociale=nome_completo,
+            codice_fiscale="" if partita_iva else identificativo,
+            partita_iva=partita_iva,
+            **common,
+        )
+
+    def _risolvi_autorita_giudiziaria(valore: str, *, obbligatoria: bool) -> str:
+        testo = str(valore or "").strip()
+        if not testo:
+            if obbligatoria:
+                raise ValueError("Se usi Fascicolo Veloce devi scegliere l'autorità giudiziaria dall'elenco degli uffici.")
+            return ""
+        if not obbligatoria:
+            return testo
+        ufficio = risolvi_ufficio(testo, cache_path=_uffici_cache_path())
+        if not ufficio:
+            raise ValueError("Autorità giudiziaria non trovata nel registro. Cerca e seleziona una voce dell'elenco prima di creare il fascicolo veloce.")
+        return str(ufficio.get("nome") or testo).strip()
+
     @app.route("/fascicoli")
     def lista_fascicoli():
         if not _richiede_vista_classica():
@@ -220,14 +343,55 @@ def register_fascicoli_core_routes(
                 nome_cliente = cliente.nome_completo if cliente else ""
             try:
                 avvocato_referente = form.get("avvocato_referente", "").strip() or _avvocato_titolare_studio()
-                fascicolo_veloce = form.get("fascicolo_veloce") in {"1", "true", "on", "si", "sì"}
+                fascicolo_veloce = _form_bool(form, "fascicolo_veloce")
+                titolo = form.get("titolo", "").strip()
+                tipo_valore = form.get("tipo", "").strip()
+                oggetto = form.get("oggetto", "").strip()
+                controparte = form.get("controparte", "").strip()
+                cf_controparte = form.get("cf_controparte", "").strip()
+                tribunale_input = form.get("tribunale", "").strip()
+                gestore_soggetti = get_soggetti()
+                id_soggetto_controparte = form.get("id_soggetto_controparte", "").strip()
+                if id_soggetto_controparte:
+                    soggetto_scelto = gestore_soggetti.get(id_soggetto_controparte)
+                    if not soggetto_scelto:
+                        raise ValueError("La controparte selezionata non è più disponibile. Scegli un soggetto valido o inserisci i dati manualmente.")
+                    controparte = controparte or soggetto_scelto.nome_completo
+                    cf_controparte = cf_controparte or soggetto_scelto.identificativo
+                if _form_bool(form, "crea_soggetto_controparte"):
+                    if not (form.get("nuovo_soggetto_nome_completo", "").strip() or controparte):
+                        raise ValueError("Per creare la scheda soggetto della controparte serve il nome completo o la ragione sociale.")
+                    if not (form.get("nuovo_soggetto_identificativo", "").strip() or cf_controparte):
+                        raise ValueError("Per creare la scheda soggetto della controparte serve codice fiscale o partita IVA.")
+                if fascicolo_veloce:
+                    mancanti = []
+                    if not titolo:
+                        mancanti.append("titolo")
+                    if not tipo_valore:
+                        mancanti.append("tipo fascicolo")
+                    if not oggetto:
+                        mancanti.append("oggetto")
+                    if not tribunale_input:
+                        mancanti.append("autorità giudiziaria")
+                    if not controparte:
+                        mancanti.append("controparte")
+                    if not cf_controparte:
+                        mancanti.append("codice fiscale o partita IVA della controparte")
+                    if mancanti:
+                        raise ValueError("Per creare il fascicolo veloce mancano: " + ", ".join(mancanti) + ".")
+                try:
+                    tipo_fascicolo = TipoFascicolo(tipo_valore)
+                except ValueError as exc:
+                    raise ValueError("Tipo fascicolo non valido. Scegli una voce dell'elenco.") from exc
+                tribunale = _risolvi_autorita_giudiziaria(tribunale_input, obbligatoria=fascicolo_veloce)
                 fascicolo = gestore_fascicoli.nuovo(
-                    titolo=form["titolo"],
-                    tipo=TipoFascicolo(form["tipo"]),
+                    titolo=titolo,
+                    tipo=tipo_fascicolo,
                     id_cliente=id_cliente,
                     nome_cliente=nome_cliente,
-                    controparte=form.get("controparte", ""),
-                    tribunale=form.get("tribunale", ""),
+                    controparte=controparte,
+                    cf_controparte=cf_controparte,
+                    tribunale=tribunale,
                     numero_rg=form.get("numero_rg", ""),
                     anno_rg=int(form.get("anno_rg") or 0),
                     giudice=form.get("giudice", "") or form.get("istruttore_pm_gip", ""),
@@ -236,7 +400,7 @@ def register_fascicoli_core_routes(
                     data_notifica_citazione=form.get("data_notifica_citazione", ""),
                     avvocato_referente=avvocato_referente,
                     avvocato_dominus=form.get("avvocato_dominus", ""),
-                    oggetto=form.get("oggetto", ""),
+                    oggetto=oggetto,
                     valore_causa=float(form.get("valore_causa") or 0),
                     valore_preventivato=float(form.get("valore_preventivato") or 0),
                     tipo_procedimento=form.get("tipo_procedimento", ""),
@@ -253,13 +417,28 @@ def register_fascicoli_core_routes(
                     ctu=form.get("ctu", "").strip(),
                     ctp=form.get("ctp", "").strip(),
                     stato_pratica_operativa=form.get("stato_pratica_operativa", "").strip(),
-                    personalizzabile=form.get("personalizzabile") in {"1", "true", "on", "si", "sì"},
+                    personalizzabile=_form_bool(form, "personalizzabile"),
                     data_apertura=form.get("data_apertura", "").strip() or date.today().isoformat(),
                     data_chiusura=form.get("data_chiusura", "").strip(),
                     compenso_pattuito=float(form.get("compenso_pattuito") or 0),
                     fascicolo_veloce=fascicolo_veloce,
                     note=form.get("note", ""),
                 )
+                soggetto_controparte = None
+                if id_soggetto_controparte or _form_bool(form, "crea_soggetto_controparte") or (controparte and cf_controparte):
+                    soggetto_controparte = _crea_o_riusa_controparte(
+                        gestore_soggetti,
+                        form,
+                        nome_base=controparte,
+                        identificativo_base=cf_controparte,
+                    )
+                if soggetto_controparte:
+                    gestore_soggetti.aggiungi_parte(
+                        fascicolo.id,
+                        soggetto_controparte.id,
+                        RuoloSoggetto.CONTROPARTE,
+                        note="Aggiunta durante l'apertura del fascicolo.",
+                    )
                 documenti_iniziali = 0
                 email_iniziali = 0
                 email_scartate = 0
@@ -311,15 +490,23 @@ def register_fascicoli_core_routes(
                     messaggio_creazione += f" Caricati {documenti_iniziali} documenti e {email_iniziali} email EML."
                 if email_scartate:
                     messaggio_creazione += f" {email_scartate} file email non EML non sono stati importati."
-                flash(messaggio_creazione, "success")
                 sync_pubblica("crea", "fascicoli", fascicolo.id)
+                if fascicolo_veloce:
+                    target = url_for("deposito_prepara", id_fasc=fascicolo.id)
+                    messaggio_creazione += " Si apre il deposito assistito."
+                    return _risposta_successo_form(messaggio_creazione, target, id_fascicolo=fascicolo.id)
                 if source_preventivo or source_conferimento:
-                    return redirect(url_for("dettaglio_fascicolo", id_fasc=fascicolo.id))
+                    target = url_for("dettaglio_fascicolo", id_fasc=fascicolo.id)
+                    return _risposta_successo_form(messaggio_creazione, target, id_fascicolo=fascicolo.id)
                 if id_cliente:
-                    return redirect(url_for("cartella_cliente", id_cliente=id_cliente))
-                return redirect(url_for("dettaglio_fascicolo", id_fasc=fascicolo.id))
+                    target = url_for("cartella_cliente", id_cliente=id_cliente)
+                    return _risposta_successo_form(messaggio_creazione, target, id_fascicolo=fascicolo.id)
+                target = url_for("dettaglio_fascicolo", id_fasc=fascicolo.id)
+                return _risposta_successo_form(messaggio_creazione, target, id_fascicolo=fascicolo.id)
             except (ValueError, KeyError) as exc:
-                flash(str(exc), "danger")
+                failure = _risposta_errore_form(str(exc), status=400)
+                if failure is not None:
+                    return failure
 
         source_preventivo = request.args.get("source_preventivo", "").strip()
         source_conferimento = request.args.get("source_conferimento", "").strip()

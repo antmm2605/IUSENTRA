@@ -2929,7 +2929,7 @@ def test_react_fascicoli_suite_completa_route_componenti_e_lex():
     assert 'title="Servizi telematici"' in page_source
     assert "FascicoloGuardrailsPanel" in page_source
     assert "data.guardrails" in page_source
-    assert "Guardrail deposito telematico" in page_source
+    assert "Presidio deposito assistito" in page_source
     assert "FascicoloFormGuardrails" in data_source
     assert "guardrails: guardrails ?" in data_source
     assert "_new_fascicolo_guardrails" in bridge
@@ -3159,7 +3159,10 @@ def test_react_fascicoli_api_suite_usa_repository_reali(tmp_path: Path):
     assert form["studio"]["leadLawyer"] == "Avv. Refactor"
     assert form["fascicolo"]["leadLawyer"] == "Avv. Refactor"
     assert form["guardrails"]["channel"] == "PCT_TELEMATICO"
-    assert form["guardrails"]["requiredOpeningFields"] == ["titolo", "tipo", "oggetto", "tribunale"]
+    assert form["guardrails"]["requiredOpeningFields"] == ["titolo", "tipo", "oggetto", "autorita giudiziaria", "controparte"]
+    assert new_form["judicialOffices"]
+    assert any("Tribunale" in office["label"] for office in new_form["judicialOffices"])
+    assert "subjects" in new_form
     assert new_form["guardrails"]["channel"] == "PDP_PENALE"
     assert new_form["guardrails"]["channelLabel"] == "PDP Penale"
     assert new_form["guardrails"]["warnings"][0]["code"] == "DOCUMENTI_PREDEPOSITO_DOPO_CREAZIONE"
@@ -3323,6 +3326,12 @@ def test_react_fascicolo_nuovo_form_collassabile_e_fascicolo_veloce():
     assert ".iu-fas-form-panel__summary" in css
     assert dati_generali.index("personalizzabile") < dati_generali.index("PraticheCollegateField data={data}") < dati_generali.index("Fascicolo Veloce")
     assert "PraticheCollegateField data={data}" not in identificazione
+    assert "ClientChoiceField data={data}" in source
+    assert "CounterpartyFields data={data} required={fascicoloVeloce}" in source
+    assert "JudicialOfficeField data={data} required={fascicoloVeloce}" in source
+    assert "id_soggetto_controparte" in source
+    assert "cf_controparte" in source
+    assert "fascicolo-uffici-giudiziari" in source
     assert 'name="documenti_fascicolo"' in source
     assert 'name="email_fascicolo"' in source
     assert 'accept=".eml,message/rfc822"' in source
@@ -3340,6 +3349,9 @@ def test_post_nuovo_fascicolo_veloce_carica_documenti_ed_email_eml(tmp_path: Pat
                 "titolo": "Apertura veloce deposito assistito",
                 "tipo": TipoFascicolo.CIVILE.value,
                 "oggetto": "Apertura con caricamenti iniziali",
+                "tribunale": "Tribunale di Milano",
+                "controparte": "Beta Costruzioni Srl",
+                "cf_controparte": "12345678901",
                 "fascicolo_veloce": "1",
                 "personalizzabile": "1",
                 "documenti_fascicolo": [
@@ -3353,7 +3365,8 @@ def test_post_nuovo_fascicolo_veloce_carica_documenti_ed_email_eml(tmp_path: Pat
             },
             follow_redirects=False,
         )
-        id_fascicolo = response.headers["Location"].rstrip("/").rsplit("/", 1)[-1]
+        location = response.headers["Location"]
+        id_fascicolo = location.split("/fascicoli/", 1)[1].split("/", 1)[0]
         detail_response = client.get(
             f"/api/v1/ui/fascicoli/{id_fascicolo}",
             headers={"X-API-Key": "react-test-key"},
@@ -3366,8 +3379,12 @@ def test_post_nuovo_fascicolo_veloce_carica_documenti_ed_email_eml(tmp_path: Pat
     email_docs = [doc for doc in documents if "email-iniziali" in doc["tags"]]
 
     assert response.status_code in {302, 303}
+    assert location.endswith(f"/fascicoli/{id_fascicolo}/deposito/prepara")
     assert detail_response.status_code == 200
     assert fascicolo["fascicoloVeloce"] is True
+    assert fascicolo["court"] == "Tribunale di Milano"
+    assert fascicolo["counterparty"] == "Beta Costruzioni Srl"
+    assert fascicolo["counterpartyTaxCode"] == "12345678901"
     assert fascicolo["documentiInizialiCount"] == 2
     assert fascicolo["emailInizialiCount"] == 1
     assert len(documents) == 3
@@ -3375,6 +3392,83 @@ def test_post_nuovo_fascicolo_veloce_carica_documenti_ed_email_eml(tmp_path: Pat
     assert "nota.txt" not in nomi_documenti
     assert len(email_docs) == 1
     assert email_docs[0]["type"] == TipoDocumento.COMUNICAZIONE.value
+
+
+def test_post_nuovo_fascicolo_veloce_crea_e_collega_soggetto_controparte(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+
+    with app.test_client() as client:
+        _login(client)
+        response = client.post(
+            "/fascicoli/nuovo",
+            data={
+                "titolo": "Fascicolo veloce con nuova controparte",
+                "tipo": TipoFascicolo.CIVILE.value,
+                "oggetto": "Apertura con controparte da censire",
+                "tribunale": "Tribunale di Milano",
+                "controparte": "Gamma Costruzioni Srl",
+                "cf_controparte": "11122233344",
+                "fascicolo_veloce": "1",
+                "crea_soggetto_controparte": "1",
+                "nuovo_soggetto_tipo": TipoSoggetto.PERSONA_GIURIDICA.value,
+                "nuovo_soggetto_nome_completo": "Gamma Costruzioni Srl",
+                "nuovo_soggetto_identificativo": "11122233344",
+                "nuovo_soggetto_email": "amministrazione@gamma.test",
+                "nuovo_soggetto_pec": "gamma@pec.test",
+            },
+            follow_redirects=False,
+        )
+        location = response.headers["Location"]
+        id_fascicolo = location.split("/fascicoli/", 1)[1].split("/", 1)[0]
+        detail_response = client.get(
+            f"/api/v1/ui/fascicoli/{id_fascicolo}",
+            headers={"X-API-Key": "react-test-key"},
+        )
+
+    soggetti = GestioneSoggetti(app.config["SOGGETTI_DB"], app.config["SOGGETTI_PARTI_DB"])
+    controparte = next(
+        soggetto for soggetto in soggetti.tutti()
+        if soggetto.nome_completo == "Gamma Costruzioni Srl"
+    )
+    parti = soggetti.parti_fascicolo(id_fascicolo)
+    payload = detail_response.get_json()
+
+    assert response.status_code in {302, 303}
+    assert location.endswith(f"/fascicoli/{id_fascicolo}/deposito/prepara")
+    assert controparte.partita_iva == "11122233344"
+    assert controparte.recapiti.pec == "gamma@pec.test"
+    assert any(
+        parte.id_soggetto == controparte.id and parte.ruolo == RuoloSoggetto.CONTROPARTE
+        for parte, _soggetto in parti
+    )
+    assert payload["fascicolo"]["counterparty"] == "Gamma Costruzioni Srl"
+    assert payload["fascicolo"]["counterpartyTaxCode"] == "11122233344"
+
+
+def test_post_nuovo_fascicolo_veloce_restituisce_errori_chiari_json(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+
+    with app.test_client() as client:
+        _login(client)
+        response = client.post(
+            "/fascicoli/nuovo",
+            data={
+                "titolo": "Apertura incompleta",
+                "tipo": TipoFascicolo.CIVILE.value,
+                "fascicolo_veloce": "1",
+            },
+            headers={"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"},
+        )
+
+    payload = response.get_json()
+    assert response.status_code == 400
+    assert payload["ok"] is False
+    assert "Per creare il fascicolo veloce mancano" in payload["message"]
+    assert "autorità giudiziaria" in payload["message"]
+    assert "controparte" in payload["message"]
+    assert "Operazione non riuscita" not in payload["message"]
 
 
 def test_react_clienti_nuovo_e_soggetti_collegati_nav_api_lex_cf():

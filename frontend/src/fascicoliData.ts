@@ -352,6 +352,42 @@ export type FascicoloFormGuardrails = {
   }
 }
 
+export type FascicoloFormClient = {
+  id: string
+  label: string
+  taxCode: string
+  vat: string
+  email: string
+  pec: string
+  phone: string
+  type: string
+  href: string
+}
+
+export type FascicoloFormSubject = {
+  id: string
+  label: string
+  taxCode: string
+  vat: string
+  email: string
+  pec: string
+  phone: string
+  type: string
+  qualification: string
+  href: string
+}
+
+export type JudicialOfficeOption = {
+  value: string
+  label: string
+  code: string
+  ministerialCode: string
+  district: string
+  pec: string
+  kind: string
+  services: string[]
+}
+
 export type FascicoloFormData = {
   source: string
   generatedAt: string
@@ -360,7 +396,9 @@ export type FascicoloFormData = {
   backHref: string
   detailHref: string
   query: Record<string, string>
-  clients: Array<{ id: string; label: string; taxCode: string }>
+  clients: FascicoloFormClient[]
+  subjects: FascicoloFormSubject[]
+  judicialOffices: JudicialOfficeOption[]
   types: SelectOption[]
   states: SelectOption[]
   fascicolo?: Partial<FascicoloFull> & Record<string, string | number | boolean | undefined>
@@ -460,7 +498,7 @@ export const emptyFascicoloDetail: FascicoloDetailData = {
 
 export const emptyFascicoloForm: FascicoloFormData = {
   source: 'vuoto', generatedAt: '', mode: 'new', action: '/fascicoli/nuovo', backHref: '/fascicoli', detailHref: '/fascicoli',
-  query: {}, clients: [], types: [], states: [],
+  query: {}, clients: [], subjects: [], judicialOffices: [], types: [], states: [],
 }
 
 export const emptyFascicoliExport: FascicoliExportData = {
@@ -871,14 +909,55 @@ function normalizeFormPayload(payload: unknown): FascicoloFormData {
     source: text(payload.source, 'repository_reali'), generatedAt: text(payload.generatedAt ?? payload.generated_at), mode: text(payload.mode, 'new') === 'edit' ? 'edit' : 'new',
     action: text(payload.action, '/fascicoli/nuovo'), backHref: text(payload.backHref ?? payload.back_href, '/fascicoli'), detailHref: text(payload.detailHref ?? payload.detail_href, '/fascicoli'),
     query: isRecord(payload.query) ? Object.fromEntries(Object.entries(payload.query).map(([key, value]) => [key, text(value)])) : {},
-    clients: asArray(payload.clients).map((entry) => { const row = isRecord(entry) ? entry : {}; return { id: text(row.id), label: text(row.label ?? row.name), taxCode: text(row.taxCode ?? row.codice_fiscale) } }).filter((row) => row.id),
+    clients: asArray(payload.clients).map((entry) => {
+      const row = isRecord(entry) ? entry : {}
+      return {
+        id: text(row.id),
+        label: text(row.label ?? row.name),
+        taxCode: text(row.taxCode ?? row.codice_fiscale),
+        vat: text(row.vat ?? row.partita_iva),
+        email: text(row.email),
+        pec: text(row.pec),
+        phone: text(row.phone ?? row.telefono ?? row.cellulare),
+        type: text(row.type ?? row.tipo),
+        href: text(row.href),
+      }
+    }).filter((row) => row.id),
+    subjects: asArray(payload.subjects).map((entry) => {
+      const row = isRecord(entry) ? entry : {}
+      return {
+        id: text(row.id),
+        label: text(row.label ?? row.name ?? row.nome),
+        taxCode: text(row.taxCode ?? row.codice_fiscale ?? row.identificativo),
+        vat: text(row.vat ?? row.partita_iva),
+        email: text(row.email),
+        pec: text(row.pec),
+        phone: text(row.phone ?? row.telefono ?? row.cellulare),
+        type: text(row.type ?? row.tipo),
+        qualification: text(row.qualification ?? row.qualifica),
+        href: text(row.href),
+      }
+    }).filter((row) => row.id),
+    judicialOffices: asArray(payload.judicialOffices ?? payload.judicial_offices ?? payload.offices).map((entry) => {
+      const row = isRecord(entry) ? entry : {}
+      return {
+        value: text(row.value ?? row.nome),
+        label: text(row.label ?? row.nome),
+        code: text(row.code ?? row.codice),
+        ministerialCode: text(row.ministerialCode ?? row.codice_ministero),
+        district: text(row.district ?? row.distretto),
+        pec: text(row.pec),
+        kind: text(row.kind ?? row.tipo),
+        services: asArray(row.services ?? row.servizi_ministero).map((item) => text(item)).filter(Boolean),
+      }
+    }).filter((row) => row.value),
     types: normalizeOptions(payload.types), states: normalizeOptions(payload.states),
     fascicolo: isRecord(payload.fascicolo) ? payload.fascicolo as FascicoloFormData['fascicolo'] : undefined,
     workflow: isRecord(payload.workflow) ? { title: text(payload.workflow.title), badges: asArray(payload.workflow.badges).map((badge) => text(badge)).filter(Boolean), summary: text(payload.workflow.summary), checklist: asArray(payload.workflow.checklist).map((item) => text(item)).filter(Boolean), values: normalizeKeyValues(payload.workflow.values) } : undefined,
     correction: isRecord(payload.correction) ? { active: bool(payload.correction.active), title: text(payload.correction.title), help: text(payload.correction.help), highlight: text(payload.correction.highlight) } : undefined,
     guardrails: guardrails ? {
       available: guardrails.available === undefined ? true : bool(guardrails.available),
-      title: text(guardrails.title, 'Guardrail deposito telematico'),
+      title: text(guardrails.title, 'Presidio deposito assistito'),
       portal: text(guardrails.portal, 'PCT'),
       channel: text(guardrails.channel, 'PCT_TELEMATICO'),
       channelLabel: text(guardrails.channelLabel ?? guardrails.channel_label, 'PCT / PST Civile'),

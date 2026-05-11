@@ -16,6 +16,14 @@ documenti/email EML e titolo utente `Presidio deposito assistito` al posto di
 diciture tecniche. Browser Docker desktop/tablet/mobile: nessun overflow,
 nessun errore console e nessun termine tecnico vietato visibile.
 
+Aggiornamento 2026-05-11: `/fascicoli/nuovo` 2.216.5 mantiene la stessa
+grafica IUSENTRA e rende il flusso veloce piu' guidato: selezione cliente con
+scheda di riepilogo reale, soggetto controparte gia' censito, inserimento
+controparte con identificativo richiesto, creazione facoltativa della scheda
+soggetto e campo `Autorita' giudiziaria` alimentato dal registro uffici. I
+messaggi di blocco usano linguaggio operativo per lo studio e il salvataggio
+veloce apre il deposito assistito.
+
 ## Componenti UI creati
 
 - IconButton

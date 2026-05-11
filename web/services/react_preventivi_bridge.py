@@ -6,7 +6,11 @@ from datetime import date, datetime, timedelta, timezone
 from typing import Any, Callable
 
 from pct.preventivi import StatoConferimento, StatoPreventivo, TipoVoce, VocePreventivo
-from pct.pratiche_collegate_catalog import codice_oggetto_pst_entry, codice_oggetto_pst_payload
+from pct.pratiche_collegate_catalog import (
+    codice_oggetto_pst_entry,
+    looks_like_codice_oggetto_pst,
+    resolve_codice_oggetto_pst_payload,
+)
 
 _PREVENTIVO_FIELDS = {
     "id_cliente",
@@ -600,7 +604,9 @@ def _voice_type(value: Any, errors: dict[str, str], field: str) -> TipoVoce:
 
 
 def _validated_codice_oggetto(payload: dict[str, Any], errors: dict[str, str]) -> dict[str, str]:
-    codice = _text(payload.get("codice_oggetto_pst"), limit=40)
+    explicit = _text(payload.get("codice_oggetto_pst"), limit=40)
+    oggetto_candidate = _text(payload.get("oggetto"), limit=40)
+    codice = explicit or (oggetto_candidate if looks_like_codice_oggetto_pst(oggetto_candidate) else "")
     if not codice:
         return {
             "codice_oggetto_pst": "",
@@ -608,13 +614,14 @@ def _validated_codice_oggetto(payload: dict[str, Any], errors: dict[str, str]) -
             "file_fonte_codice_oggetto": "",
         }
     if not codice_oggetto_pst_entry(codice):
-        errors["codice_oggetto_pst"] = "Seleziona un codice dal catalogo ufficiale."
+        if explicit or looks_like_codice_oggetto_pst(oggetto_candidate):
+            errors["codice_oggetto_pst"] = "Seleziona un codice dal catalogo ufficiale."
         return {
             "codice_oggetto_pst": "",
             "fonte_codice_oggetto": "",
             "file_fonte_codice_oggetto": "",
         }
-    resolved = codice_oggetto_pst_payload(codice)
+    resolved = resolve_codice_oggetto_pst_payload(codice)
     return {
         "codice_oggetto_pst": resolved["codice_oggetto_pst"],
         "fonte_codice_oggetto": _text(payload.get("fonte_codice_oggetto")) or resolved["fonte_codice_oggetto"],
@@ -676,6 +683,9 @@ def _validate_preventivo_payload(payload: dict[str, Any], *, get_clienti: Callab
     if not voices and "voci" not in errors:
         errors["voci"] = "Aggiungi almeno una voce valida."
     codice_oggetto = _validated_codice_oggetto(payload, errors)
+    codice_entry = codice_oggetto_pst_entry(codice_oggetto["codice_oggetto_pst"])
+    if codice_entry and subject == codice_oggetto["codice_oggetto_pst"]:
+        subject = _text(codice_entry.get("descrizione"), limit=240) or subject
     return {
         "id_cliente": id_cliente,
         "id_fascicolo": id_fascicolo or None,
@@ -743,6 +753,9 @@ def _validate_conferimento_payload(payload: dict[str, Any], *, get_preventivi: C
         codice_payload["fonte_codice_oggetto"] = _text(payload.get("fonte_codice_oggetto") or getattr(preventivo, "fonte_codice_oggetto", ""))
         codice_payload["file_fonte_codice_oggetto"] = _text(payload.get("file_fonte_codice_oggetto") or getattr(preventivo, "file_fonte_codice_oggetto", ""))
     codice_oggetto = _validated_codice_oggetto(codice_payload, errors)
+    codice_entry = codice_oggetto_pst_entry(codice_oggetto["codice_oggetto_pst"])
+    if codice_entry and subject == codice_oggetto["codice_oggetto_pst"]:
+        subject = _text(codice_entry.get("descrizione"), limit=240) or subject
     return {
         "id_cliente": id_cliente,
         "id_fascicolo": id_fascicolo or None,

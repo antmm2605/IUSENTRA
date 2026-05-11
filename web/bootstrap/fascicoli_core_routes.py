@@ -14,6 +14,11 @@ from pct.clienti import Recapiti
 from pct.document_management import build_document_management_summary
 from pct.economic_dashboard import build_fascicolo_economic_dashboard
 from pct.fascicoli import EsitoAttivita, StatoFascicolo, TipoAttivita, TipoDocumento, TipoFascicolo
+from pct.pratiche_collegate_catalog import (
+    codice_oggetto_pst_entry,
+    looks_like_codice_oggetto_pst,
+    resolve_codice_oggetto_pst_payload,
+)
 from pct.reginde import ClientReGINde
 from pct.soggetti import RuoloSoggetto, TipoSoggetto
 from pct.uffici_giudiziari import risolvi_ufficio
@@ -173,6 +178,61 @@ def register_fascicoli_core_routes(
 
     def _form_bool(form: Any, name: str) -> bool:
         return form.get(name) in {"1", "true", "on", "si", "sì", "SI", "Si"}
+
+    def _codice_oggetto_da_workflow(form: Any, gestore_preventivi: Any) -> str:
+        source_conferimento = str(form.get("source_conferimento", "") or "").strip()
+        if source_conferimento:
+            try:
+                conferimento = gestore_preventivi.get_conferimento(source_conferimento)
+            except Exception:
+                conferimento = None
+            if conferimento:
+                codice = str(getattr(conferimento, "codice_oggetto_pst", "") or "").strip()
+                if codice:
+                    return codice
+                id_preventivo = str(getattr(conferimento, "id_preventivo", "") or "").strip()
+                if id_preventivo:
+                    try:
+                        preventivo = gestore_preventivi.get_preventivo(id_preventivo)
+                    except Exception:
+                        preventivo = None
+                    codice = str(getattr(preventivo, "codice_oggetto_pst", "") or "").strip() if preventivo else ""
+                    if codice:
+                        return codice
+
+        source_preventivo = str(form.get("source_preventivo", "") or "").strip()
+        if source_preventivo:
+            try:
+                preventivo = gestore_preventivi.get_preventivo(source_preventivo)
+            except Exception:
+                preventivo = None
+            codice = str(getattr(preventivo, "codice_oggetto_pst", "") or "").strip() if preventivo else ""
+            if codice:
+                return codice
+        return ""
+
+    def _codice_oggetto_pst_da_form(form: Any, *, oggetto: str, gestore_preventivi: Any) -> dict[str, str]:
+        explicit = str(form.get("codice_oggetto_pst", "") or "").strip()
+        workflow = _codice_oggetto_da_workflow(form, gestore_preventivi)
+        oggetto_candidate = str(oggetto or "").strip()
+        candidate = explicit or workflow or (oggetto_candidate if looks_like_codice_oggetto_pst(oggetto_candidate) else "")
+        if not candidate:
+            return {
+                "codice_oggetto_pst": "",
+                "fonte_codice_oggetto": str(form.get("fonte_codice_oggetto", "") or "").strip(),
+                "file_fonte_codice_oggetto": str(form.get("file_fonte_codice_oggetto", "") or "").strip(),
+                "descrizione": "",
+            }
+        entry = codice_oggetto_pst_entry(candidate)
+        if not entry:
+            raise ValueError("Codice oggetto PST non valido. Scegli una voce del catalogo ufficiale.")
+        resolved = resolve_codice_oggetto_pst_payload(candidate)
+        return {
+            "codice_oggetto_pst": resolved["codice_oggetto_pst"],
+            "fonte_codice_oggetto": str(form.get("fonte_codice_oggetto", "") or resolved["fonte_codice_oggetto"]).strip(),
+            "file_fonte_codice_oggetto": str(form.get("file_fonte_codice_oggetto", "") or resolved["file_fonte_codice_oggetto"]).strip(),
+            "descrizione": str(entry.get("descrizione", "") or "").strip(),
+        }
 
     def _split_nome_persona(nome_completo: str) -> tuple[str, str]:
         parti = [parte for parte in str(nome_completo or "").strip().split() if parte]
@@ -384,6 +444,13 @@ def register_fascicoli_core_routes(
                 except ValueError as exc:
                     raise ValueError("Tipo fascicolo non valido. Scegli una voce dell'elenco.") from exc
                 tribunale = _risolvi_autorita_giudiziaria(tribunale_input, obbligatoria=fascicolo_veloce)
+                codice_oggetto = _codice_oggetto_pst_da_form(
+                    form,
+                    oggetto=oggetto,
+                    gestore_preventivi=gestore_preventivi,
+                )
+                if codice_oggetto["codice_oggetto_pst"] and oggetto == codice_oggetto["codice_oggetto_pst"]:
+                    oggetto = codice_oggetto["descrizione"] or oggetto
                 fascicolo = gestore_fascicoli.nuovo(
                     titolo=titolo,
                     tipo=tipo_fascicolo,
@@ -407,9 +474,9 @@ def register_fascicoli_core_routes(
                     id_pratica=form.get("id_pratica", ""),
                     area_pratica=form.get("area_pratica", ""),
                     procedura_operativa_codice=form.get("procedura_operativa_codice", "").strip(),
-                    codice_oggetto_pst=form.get("codice_oggetto_pst", "").strip(),
-                    fonte_codice_oggetto=form.get("fonte_codice_oggetto", "").strip(),
-                    file_fonte_codice_oggetto=form.get("file_fonte_codice_oggetto", "").strip(),
+                    codice_oggetto_pst=codice_oggetto["codice_oggetto_pst"],
+                    fonte_codice_oggetto=codice_oggetto["fonte_codice_oggetto"],
+                    file_fonte_codice_oggetto=codice_oggetto["file_fonte_codice_oggetto"],
                     riferimento_cartaceo=form.get("riferimento_cartaceo", "").strip(),
                     attore_principale=form.get("attore_principale", "").strip(),
                     istruttore_pm_gip=form.get("istruttore_pm_gip", "").strip(),

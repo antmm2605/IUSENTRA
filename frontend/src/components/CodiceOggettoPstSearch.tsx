@@ -103,6 +103,13 @@ export function CodiceOggettoPstSearch({
     : selected
       ? 'Procedimenti collegati allo stesso gruppo'
       : `${CODICI_OGGETTO_PST_CATALOG.totaleCodici} codici ufficiali disponibili`
+  const handleQueryChange = (nextQuery: string) => {
+    setQuery(nextQuery)
+    const exact = findCodiceOggettoPst(nextQuery.trim())
+    if (exact && exact.codice !== selected?.codice) {
+      onChange(exact.codice, exact.descrizione, exact)
+    }
+  }
 
   return (
     <div className={['iu-code-search', className].filter(Boolean).join(' ')}>
@@ -119,7 +126,7 @@ export function CodiceOggettoPstSearch({
           placeholder={placeholder}
           autoComplete="off"
           aria-describedby={`${fieldId}-help ${fieldId}-summary`}
-          onChange={(event) => setQuery(event.currentTarget.value)}
+          onChange={(event) => handleQueryChange(event.currentTarget.value)}
         />
         {query ? (
           <button type="button" onClick={() => setQuery('')} aria-label="Pulisci ricerca codice oggetto">

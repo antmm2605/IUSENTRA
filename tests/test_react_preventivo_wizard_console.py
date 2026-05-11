@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from pct.clienti import GestioneClienti, TipoCliente
+from pct.fascicoli import TipoFascicolo
 from pct.preventivi import StatoPreventivo
 from tests.test_applicazioni import _crea_operatore, _login
 from tests.test_react_shell import _app
@@ -312,6 +313,112 @@ def test_preventivo_wizard_react_create_crea_preventivo_reale_con_cliente_potenz
     assert preventivo.clausola_controversie_attiva is True
     assert preventivo.clausola_controversie_testo == "Clausola controversie verificata nel wizard React."
     assert any(voce.descrizione == "Voce manuale di verifica" for voce in preventivo.voci)
+
+
+def test_preventivo_react_nuovo_risolve_codice_digitato_nell_oggetto(tmp_path: Path):
+    app, client = _logged_client(tmp_path)
+    cliente = GestioneClienti(db_path=app.config["CLIENTI_DB"]).nuovo(
+        TipoCliente.PERSONA_FISICA,
+        nome="Paola",
+        cognome="Preventivo",
+        codice_fiscale="PRVPLA80A41H501X",
+    )
+
+    response = client.post(
+        "/api/v1/ui/preventivi/nuovo",
+        json={
+            "id_cliente": cliente.id,
+            "oggetto": "014001",
+            "data_emissione": "2026-05-11",
+            "data_scadenza": "2026-06-10",
+            "voci": [
+                {
+                    "descrizione": "Studio e deposito",
+                    "tipo": "ONORARIO",
+                    "importo": "900",
+                }
+            ],
+            "opzioni_fiscali": {"applica_iva": True, "applica_cassa": True},
+        },
+    )
+
+    payload = response.get_json()
+    with app.app_context():
+        preventivo = get_preventivi().get_preventivo(payload["item"]["id"])
+
+    assert response.status_code == 200
+    assert payload["ok"] is True
+    assert preventivo is not None
+    assert preventivo.codice_oggetto_pst == "014001"
+    assert preventivo.fonte_codice_oggetto == "PST_XSD"
+    assert "Istanza sospensione" in preventivo.oggetto
+
+
+def test_preventivo_wizard_react_codice_digitato_arriva_a_fascicolo_e_deposito(tmp_path: Path):
+    app, client = _logged_client(tmp_path)
+    page = client.get("/api/v1/ui/preventivi/wizard").get_json()
+    practice = _amministrazione_sostegno(page)
+    id_cliente = _cliente_conferimento_pronto(app)
+    request_payload = _calculation_payload(
+        practice,
+        id_cliente=id_cliente,
+        oggetto="014001",
+        codice_oggetto_pst="",
+        voci_bozza=[],
+        manual_lines=[],
+        opzioni_finali={
+            "preventivo_accettato": True,
+            "genera_conferimento": True,
+            "apri_fascicolo_guidato": True,
+            "informativa_art13_resa": True,
+        },
+    )
+
+    response = client.post("/api/v1/ui/preventivi/wizard/create", json=request_payload)
+    payload = response.get_json()
+    with app.app_context():
+        gp = get_preventivi()
+        preventivo = gp.get_preventivo(payload["id_preventivo"])
+        conferimento = gp.get_conferimento(payload["id_conferimento"])
+
+    assert response.status_code == 200
+    assert payload["ok"] is True
+    assert "/fascicoli/nuovo" in payload["redirect_url"]
+    assert preventivo is not None
+    assert conferimento is not None
+    assert preventivo.codice_oggetto_pst == "014001"
+    assert conferimento.codice_oggetto_pst == "014001"
+    assert "Istanza sospensione" in preventivo.oggetto
+
+    fascicolo_response = client.post(
+        "/fascicoli/nuovo",
+        data={
+            "source_preventivo": preventivo.id,
+            "source_conferimento": conferimento.id,
+            "id_cliente": id_cliente,
+            "titolo": "Fascicolo da wizard preventivo",
+            "tipo": TipoFascicolo.CIVILE.value,
+            "oggetto": "Apertura da preventivo guidato",
+            "tribunale": "Tribunale di Milano",
+            "controparte": "Omega Debitrice Srl",
+            "cf_controparte": "12345678901",
+            "fascicolo_veloce": "1",
+        },
+        follow_redirects=False,
+    )
+    location = fascicolo_response.headers["Location"]
+    id_fascicolo = location.split("/fascicoli/", 1)[1].split("/", 1)[0]
+    detail_response = client.get(
+        f"/api/v1/ui/fascicoli/{id_fascicolo}",
+        headers={"X-API-Key": "react-test-key"},
+    )
+    detail = detail_response.get_json()
+
+    assert fascicolo_response.status_code in {302, 303}
+    assert location.endswith(f"/fascicoli/{id_fascicolo}/deposito/prepara")
+    assert detail_response.status_code == 200
+    assert detail["fascicolo"]["codiceOggettoPst"] == "014001"
+    assert detail["fascicolo"]["fonteCodiceOggetto"] == "PST_XSD"
 
 
 def test_preventivo_wizard_react_rifiuta_codice_oggetto_non_ufficiale(tmp_path: Path):

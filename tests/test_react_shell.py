@@ -3312,6 +3312,7 @@ def test_post_modifica_fascicolo_salva_avvocato_titolare_se_referente_vuoto(tmp_
 def test_react_fascicolo_nuovo_form_collassabile_e_fascicolo_veloce():
     source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
     css = Path("frontend/src/components/FascicoliPage.css").read_text(encoding="utf-8")
+    codice_search = Path("frontend/src/components/CodiceOggettoPstSearch.tsx").read_text(encoding="utf-8")
 
     dati_generali = source[
         source.index("CollapsibleFormPanel title={labels.sections.datiGenerali}") :
@@ -3335,6 +3336,7 @@ def test_react_fascicolo_nuovo_form_collassabile_e_fascicolo_veloce():
     assert 'name="documenti_fascicolo"' in source
     assert 'name="email_fascicolo"' in source
     assert 'accept=".eml,message/rfc822"' in source
+    assert "findCodiceOggettoPst(nextQuery.trim())" in codice_search
 
 
 def test_post_nuovo_fascicolo_veloce_carica_documenti_ed_email_eml(tmp_path: Path):
@@ -3392,6 +3394,111 @@ def test_post_nuovo_fascicolo_veloce_carica_documenti_ed_email_eml(tmp_path: Pat
     assert "nota.txt" not in nomi_documenti
     assert len(email_docs) == 1
     assert email_docs[0]["type"] == TipoDocumento.COMUNICAZIONE.value
+
+
+def test_post_nuovo_fascicolo_veloce_risolve_codice_oggetto_pst_digitato(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+
+    with app.test_client() as client:
+        _login(client)
+        response = client.post(
+            "/fascicoli/nuovo",
+            data={
+                "titolo": "Apertura veloce con codice PST",
+                "tipo": TipoFascicolo.CIVILE.value,
+                "oggetto": "014001",
+                "tribunale": "Tribunale di Milano",
+                "controparte": "Delta Recuperi Srl",
+                "cf_controparte": "12345678901",
+                "fascicolo_veloce": "1",
+            },
+            follow_redirects=False,
+        )
+        location = response.headers["Location"]
+        id_fascicolo = location.split("/fascicoli/", 1)[1].split("/", 1)[0]
+        detail_response = client.get(
+            f"/api/v1/ui/fascicoli/{id_fascicolo}",
+            headers={"X-API-Key": "react-test-key"},
+        )
+
+    payload = detail_response.get_json()
+    fascicolo = payload["fascicolo"]
+
+    assert response.status_code in {302, 303}
+    assert location.endswith(f"/fascicoli/{id_fascicolo}/deposito/prepara")
+    assert detail_response.status_code == 200
+    assert fascicolo["codiceOggettoPst"] == "014001"
+    assert fascicolo["fonteCodiceOggetto"] == "PST_XSD"
+    assert fascicolo["fileFonteCodiceOggetto"].endswith(".xsd")
+    assert "Istanza sospensione" in fascicolo["object"]
+
+
+def test_post_nuovo_fascicolo_da_preventivo_preserva_codice_oggetto_fino_a_deposito(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+    clienti = GestioneClienti(db_path=app.config["CLIENTI_DB"])
+    cliente = clienti.nuovo(
+        TipoCliente.PERSONA_FISICA,
+        nome="Paola",
+        cognome="Preventivo",
+        codice_fiscale="PRVPLA80A41H501X",
+    )
+    gestore_preventivi = GestionePreventivi(app.config["PREVENTIVI_DB"])
+    preventivo = gestore_preventivi.crea_preventivo(
+        cliente.id,
+        "Istanza sospensione esecuzione",
+        [VocePreventivo(descrizione="Studio e deposito", importo=900.0)],
+        codice_oggetto_pst="014001",
+        fonte_codice_oggetto="PST_XSD",
+        file_fonte_codice_oggetto="tipi-base.xsd",
+    )
+    conferimento = gestore_preventivi.crea_conferimento(
+        cliente.id,
+        "Istanza sospensione esecuzione",
+        avvocato_referente="Avv. Refactor",
+        compenso_pattuito=900.0,
+        id_preventivo=preventivo.id,
+    )
+
+    with app.test_client() as client:
+        _login(client)
+        response = client.post(
+            "/fascicoli/nuovo",
+            data={
+                "source_preventivo": preventivo.id,
+                "source_conferimento": conferimento.id,
+                "id_cliente": cliente.id,
+                "titolo": "Fascicolo da preventivo accettato",
+                "tipo": TipoFascicolo.CIVILE.value,
+                "oggetto": "Apertura da preventivo accettato",
+                "tribunale": "Tribunale di Milano",
+                "controparte": "Omega Debitrice Srl",
+                "cf_controparte": "12345678901",
+                "fascicolo_veloce": "1",
+            },
+            follow_redirects=False,
+        )
+        location = response.headers["Location"]
+        id_fascicolo = location.split("/fascicoli/", 1)[1].split("/", 1)[0]
+        detail_response = client.get(
+            f"/api/v1/ui/fascicoli/{id_fascicolo}",
+            headers={"X-API-Key": "react-test-key"},
+        )
+
+    payload = detail_response.get_json()
+    fascicolo = payload["fascicolo"]
+    gestore_preventivi_aggiornato = GestionePreventivi(app.config["PREVENTIVI_DB"])
+    preventivo_collegato = gestore_preventivi_aggiornato.get_preventivo(preventivo.id)
+    conferimento_collegato = gestore_preventivi_aggiornato.get_conferimento(conferimento.id)
+
+    assert response.status_code in {302, 303}
+    assert location.endswith(f"/fascicoli/{id_fascicolo}/deposito/prepara")
+    assert detail_response.status_code == 200
+    assert fascicolo["codiceOggettoPst"] == "014001"
+    assert fascicolo["fonteCodiceOggetto"] == "PST_XSD"
+    assert preventivo_collegato.id_fascicolo == id_fascicolo
+    assert conferimento_collegato.id_fascicolo == id_fascicolo
 
 
 def test_post_nuovo_fascicolo_veloce_crea_e_collega_soggetto_controparte(tmp_path: Path):

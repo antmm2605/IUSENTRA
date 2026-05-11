@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.216.6 - 2026-05-11
+
+- Corretto il flusso `CodiceOggettoPst` su apertura fascicolo: digitando un codice ufficiale come `014001` il catalogo React lo seleziona subito e il valore nascosto viene inviato al backend.
+- Aggiunto fallback backend su `/fascicoli/nuovo`: se il codice non arriva dal form, viene risolto dall'oggetto digitato oppure dal preventivo/conferimento di origine, preservando fonte e file XSD.
+- Allineati preventivo normale e preventivo guidato: il codice digitato come oggetto viene validato sul catalogo PST, salvato come `codice_oggetto_pst` e propagato fino al fascicolo guidato che apre il deposito assistito.
+- Il dettaglio React del fascicolo espone ora `codiceOggettoPst`, fonte e file XSD anche nella scheda operativa principale, non solo nel form.
+- Aggiunti test mirati per fascicolo veloce, preventivo, wizard, collegamento preventivo/conferimento e redirect a `/deposito/prepara`.
+
 ## 2.216.5 - 2026-05-11
 
 - Rafforzata `/fascicoli/nuovo` per il flusso `Fascicolo Veloce`: clienti, soggetti e autorita' giudiziarie sono selezionabili da dati reali gia' presenti nel sistema.

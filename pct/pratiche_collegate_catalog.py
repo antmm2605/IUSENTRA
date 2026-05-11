@@ -122,6 +122,18 @@ def codice_oggetto_pst_entry(codice: Any) -> dict[str, str] | None:
     return _codici_index().get(_text(codice))
 
 
+def looks_like_codice_oggetto_pst(value: Any) -> bool:
+    testo = _text(value)
+    return testo.isdigit() and 3 <= len(testo) <= 8
+
+
+def resolve_codice_oggetto_pst_payload(*candidates: Any) -> dict[str, str]:
+    for candidate in candidates:
+        if codice_oggetto_pst_entry(candidate):
+            return codice_oggetto_pst_payload(candidate)
+    return codice_oggetto_pst_payload("")
+
+
 def codice_oggetto_pst_payload(codice: Any) -> dict[str, str]:
     entry = codice_oggetto_pst_entry(codice)
     if not entry:

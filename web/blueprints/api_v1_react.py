@@ -28,7 +28,11 @@ from pct.practice_engine.evaluator import build_regia_payload, ensure_evidence_p
 from pct.practice_engine.profiles import get_profile
 from pct.practice_engine.receipt_tracker import import_receipt
 from pct.practice_engine.validators import ValidationContext, validate_slot
-from pct.pratiche_collegate_catalog import codice_oggetto_pst_entry, codice_oggetto_pst_payload
+from pct.pratiche_collegate_catalog import (
+    codice_oggetto_pst_entry,
+    looks_like_codice_oggetto_pst,
+    resolve_codice_oggetto_pst_payload,
+)
 from pct.scadenziario import PrioritaTermine, TipoTermine
 from pct.termini_processuali import (
     DeadlinePracticeRepository,
@@ -4496,6 +4500,16 @@ def preventivi_wizard_calculate_page():
         ), 200
 
 
+def _wizard_codice_oggetto(payload: dict[str, Any], profile: dict[str, Any] | None = None) -> tuple[dict[str, str], dict[str, str] | None]:
+    profile = profile or {}
+    explicit = str(payload.get("codice_oggetto_pst") or "").strip()
+    profile_code = str(profile.get("codice_oggetto_pst") or "").strip()
+    oggetto = str(payload.get("oggetto") or "").strip()
+    candidate = explicit or profile_code or (oggetto if looks_like_codice_oggetto_pst(oggetto) else "")
+    resolved = resolve_codice_oggetto_pst_payload(candidate)
+    return resolved, codice_oggetto_pst_entry(resolved["codice_oggetto_pst"])
+
+
 def _wizard_react_form_payload(payload: dict[str, Any], calculation: dict[str, Any] | None = None) -> dict[str, Any]:
     calculation = calculation or {}
     profile = calculation.get("profile") if isinstance(calculation.get("profile"), dict) else {}
@@ -4520,8 +4534,10 @@ def _wizard_react_form_payload(payload: dict[str, Any], calculation: dict[str, A
         classifications = []
     if not isinstance(sources, list):
         sources = profile.get("tassonomia_sources") if isinstance(profile.get("tassonomia_sources"), list) else []
-    codice_oggetto = str(payload.get("codice_oggetto_pst") or profile.get("codice_oggetto_pst") or "").strip()
-    codice_payload = codice_oggetto_pst_payload(codice_oggetto)
+    codice_payload, codice_entry = _wizard_codice_oggetto(payload, profile)
+    oggetto_form = str(payload.get("oggetto") or "").strip()
+    if codice_entry and oggetto_form == codice_payload["codice_oggetto_pst"]:
+        oggetto_form = str(codice_entry.get("descrizione", "") or "").strip() or oggetto_form
     return {
         **payload,
         "id_cliente": str(payload.get("id_cliente") or payload.get("customerId") or "").strip(),
@@ -4534,7 +4550,7 @@ def _wizard_react_form_payload(payload: dict[str, Any], calculation: dict[str, A
         "cliente_rapido_codice_fiscale": str(quick.get("codice_fiscale") or "").strip(),
         "cliente_rapido_codice_fiscale_pg": str(quick.get("codice_fiscale") or "").strip(),
         "cliente_rapido_partita_iva": str(quick.get("partita_iva") or "").strip(),
-        "oggetto": str(payload.get("oggetto") or "").strip(),
+        "oggetto": oggetto_form,
         "data_emissione": str(payload.get("data_emissione") or date.today().isoformat()).strip(),
         "data_scadenza": str(payload.get("data_scadenza") or "").strip(),
         "id_pratica": str(payload.get("id_pratica") or profile.get("id") or "").strip(),
@@ -4616,7 +4632,15 @@ def preventivi_wizard_create_page():
 
         payload = _request_payload()
         codice_oggetto = str(payload.get("codice_oggetto_pst") or "").strip()
-        if codice_oggetto and not codice_oggetto_pst_entry(codice_oggetto):
+        oggetto_candidate = str(payload.get("oggetto") or "").strip()
+        codice_oggetto_non_valido = (
+            bool(codice_oggetto) and not codice_oggetto_pst_entry(codice_oggetto)
+        ) or (
+            not codice_oggetto
+            and looks_like_codice_oggetto_pst(oggetto_candidate)
+            and not codice_oggetto_pst_entry(oggetto_candidate)
+        )
+        if codice_oggetto_non_valido:
             return jsonify(
                 {
                     "ok": False,

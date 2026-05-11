@@ -84,3 +84,9 @@ Questo file e' la coda di lavoro. Prima di rilanciare test gia' passati, control
 4. Gate Docker locale: non ripetere la diagnosi su `email/ordinaria.json`; se ricompare, verificare prima `PCT_EMAIL_ORDINARIA_DB` e `PCT_DATA_ROOT`.
 5. Gate Docker locale: non ripetere la diagnosi su `/api/pronto` che resta occupato in `sync_user_directory`; verificare prima che lo startup usi `reconcile_storage=False`.
 6. Aggiornare questo file con ogni failure reale e spostare in `pytest-confirmed-ok.md` i batch confermati.
+
+## Note hotfix 2026-05-11
+
+| Area | Gate | Stato | Nota |
+| --- | --- | --- | --- |
+| Fascicoli / preventivi / wizard PST | Test mirati e browser reale registrati in `pytest-confirmed-ok.md` | Nessuna issue aperta | Il codice `014001` digitato nel catalogo o nell'oggetto viene ora risolto dal catalogo PST ufficiale e arriva fino al fascicolo guidato con redirect a deposito assistito. |

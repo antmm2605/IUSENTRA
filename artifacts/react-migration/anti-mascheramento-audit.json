@@ -1,6 +1,6 @@
 {
   "summary": {
-    "generatedAt": "2026-05-10T00:00:54.248Z",
+    "generatedAt": "2026-05-11T09:50:22.366Z",
     "scannedFiles": [
       "frontend/src/adminDatabaseData.ts",
       "frontend/src/agendaData.ts",
@@ -36,6 +36,7 @@
       "frontend/src/components/BackupPage.tsx",
       "frontend/src/components/CartellaClientePage.tsx",
       "frontend/src/components/CartelleCondivisePage.tsx",
+      "frontend/src/components/CodiceOggettoPstSearch.tsx",
       "frontend/src/components/CompensiForensiPage.tsx",
       "frontend/src/components/dashboard.tsx",
       "frontend/src/components/DocumentAIEmptyState.tsx",
@@ -139,6 +140,7 @@
       "frontend/src/components/WizardProPage.tsx",
       "frontend/src/components/WizardProShared.tsx",
       "frontend/src/components/WizardProStepPage.tsx",
+      "frontend/src/data/praticheCollegateCatalog.ts",
       "frontend/src/data.ts",
       "frontend/src/design/icons.tsx",
       "frontend/src/design/iusentraTokens.ts",
@@ -376,7 +378,7 @@
       "web/services/react_wizard_pro_bridge.py"
     ],
     "totals": {
-      "routes": 85,
+      "routes": 86,
       "legacyLinks": 84,
       "legacyPostForms": 0,
       "reactPostForms": 0,
@@ -385,7 +387,7 @@
       "missingWriteApi": 2
     },
     "levels": {
-      "react_operational_full": 65,
+      "react_operational_full": 66,
       "legacy_operational": 19,
       "react_operational_partial": 1
     }
@@ -657,6 +659,28 @@
       "problems": [
         "fallback legacy tecnico non primario"
       ],
+      "realLevel": "react_operational_full"
+    },
+    {
+      "route": "/documenti",
+      "component": "frontend/src/components/StudioModulePage.tsx",
+      "dataClient": "frontend/src/studioModuleData.ts",
+      "bridge": "web/services/react_studio_module_bridge.py",
+      "manifestStatus": "react_operational_full",
+      "unlockFromGate": true,
+      "legacyLinks": 0,
+      "legacyButtons": 0,
+      "legacyPostForms": 0,
+      "reactPostForms": 0,
+      "jsonWrites": false,
+      "jsonReads": true,
+      "bridgeWritesLegacy": false,
+      "blockingLegacyLinks": 0,
+      "technicalRollback": false,
+      "missingWriteApi": false,
+      "missingErrorHandling": false,
+      "missingSuccessHandling": false,
+      "problems": [],
       "realLevel": "react_operational_full"
     },
     {

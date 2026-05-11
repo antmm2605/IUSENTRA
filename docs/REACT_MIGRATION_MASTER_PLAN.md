@@ -1,5 +1,21 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-11 - Route Documenti React 2.215.7
+
+La route ufficiale `/documenti` e' stata promossa a workspace operativo React
+per correggere il 404 in produzione e mantenerla governata dal manifest:
+
+- `/documenti` passa dalla shell React autenticata e usa `StudioModulePage`
+  con payload reale `/api/v1/ui/studio-modules/documenti`;
+- il workspace collega fascicoli/documenti, catalogo atti, Redazione Atti e
+  ricerca documentale, senza CTA primaria verso fallback legacy;
+- il gate route, il contratto full React, i contratti frontend e
+  `tests/test_react_shell.py` includono `/documenti` come
+  `react_operational_full` con `unlockFromGate=true`;
+- verifica Docker/browser locale 2.215.7: desktop/tablet/mobile senza overflow,
+  senza errori console e senza termini tecnici visibili; payload JSON filtrato
+  per non esporre record locali con diciture `demo`/`sample`.
+
 ## Stato tranche 2026-05-11 - Catalogo ufficiale CodiceOggetto e ricerca UI 2.215.6
 
 Il catalogo CodiceOggetto e' stato portato sul binario ufficiale PST:

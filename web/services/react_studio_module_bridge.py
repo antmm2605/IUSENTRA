@@ -70,6 +70,17 @@ def _record(
     }
 
 
+_BLOCKED_VISIBLE_RECORD_TERMS = ("demo", "sample")
+
+
+def _is_visible_record(record: dict[str, str]) -> bool:
+    text = " ".join(
+        _text(record.get(key, ""))
+        for key in ("title", "subtitle", "badge", "meta")
+    ).lower()
+    return not any(term in text for term in _BLOCKED_VISIBLE_RECORD_TERMS)
+
+
 def _metric(label: str, value: Any, note: str = "") -> dict[str, str]:
     return {"label": label, "value": _text(value), "note": _text(note)}
 
@@ -713,6 +724,12 @@ _GENERIC_OPERATION_CATALOG: dict[str, list[tuple[str, str, str, list[tuple[str, 
         ("percorso-preventivo", "Percorso preventivo", "Trasforma il calcolo in preventivo operativo.", [("Genera preventivo", "/preventivi/wizard", "GET")]),
         ("strumenti-forensi", "Strumenti Forensi", "Apre la suite di calcolo forense.", [("Apri strumenti", "/strumenti-legali", "GET")]),
     ],
+    "documenti": [
+        ("documenti-fascicolo", "Fascicoli e documenti", "Apre i fascicoli con documenti, firme, upload e controlli collegati.", [("Apri fascicoli", "/fascicoli", "GET")]),
+        ("catalogo-atti", "Catalogo atti", "Apre il catalogo modelli e le schede operative per la redazione.", [("Apri catalogo", "/template-atti/catalogo", "GET")]),
+        ("redazione-atti", "Redazione atti", "Porta alla pagina di redazione e produzione atti dello studio.", [("Apri redazione", "/redazione-atti", "GET")]),
+        ("ricerca-documenti", "Ricerca documenti", "Cerca documenti, comunicazioni e riferimenti collegati ai fascicoli.", [("Cerca documenti", "/global-search?tipo=documenti", "GET")]),
+    ],
     "redazione-atti": [
         ("catalogo-atti", "Catalogo atti", "Apre catalogo, filtri e modelli dello studio.", [("Apri catalogo", "/template-atti/catalogo", "GET")]),
         ("nuovo-modello", "Nuovo modello", "Apre il form di creazione modello di studio.", [("Nuovo modello", "/template-atti/nuovo", "GET")]),
@@ -851,6 +868,7 @@ def _build_generic(module_id: str, get_clienti: Callable[[], Any], get_fascicoli
         )
         for item in fascicoli[:12]
     ]
+    records = [record for record in records if _is_visible_record(record)]
     operations = _catalog_operations(module_id, records)
     if operations:
         return {

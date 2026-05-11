@@ -80,6 +80,7 @@ _REACT_EXACT = {
     "/cerca",
     "/compensi-forensi",
     "/database",
+    "/documenti",
     "/fatturazione",
     "/fatturazione/nuova",
     "/giurisprudenza",

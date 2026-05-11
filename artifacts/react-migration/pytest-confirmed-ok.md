@@ -8,6 +8,29 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 
 ## Frontend e gate React
 
+### Hotfix `/documenti` React 2.215.7
+
+| Verifica | Esito | Nota |
+| --- | --- | --- |
+| `npm run typecheck` | OK | TypeScript confermato dopo aggiunta route/sidebar/workspace Documenti e rimozione falso positivo Tariffario. |
+| `npm run test` | OK | Contratti React confermati: `/documenti` e' governata e non torna legacy-first. |
+| `python -m compileall web\bootstrap\react_route_gate.py web\blueprints\react_shell.py web\services\react_studio_module_bridge.py -q` | OK | Sintassi backend confermata per gate, shell route e bridge StudioModule. |
+| `node scripts\react-migration\check-route-gate.mjs` | OK | Route gate allineato: `/documenti` censita tra le route governate consentite. |
+| `node scripts\react-migration\check-full-react-route-contract.mjs` | OK | Full React contract verde dopo filtro record visibili e fix falso positivo Tariffario. |
+| `python -m pytest -q tests/test_react_shell.py::test_react_blocco_finale_studio_admin_completo tests/test_react_shell.py::test_react_blocco_finale_route_reali_e_vista_classica tests/test_react_shell.py::test_route_gate_non_promuove_moduli_studio_telematico_admin_incompleti tests/test_react_shell.py::test_react_migration_matrice_completa_route_api_e_card_operative --tb=short` | OK | 4/4 passati: route, shell, gate e payload operativo Documenti coperti. |
+| `python -m pytest -q tests/test_react_shell.py::test_react_migration_matrice_completa_route_api_e_card_operative --tb=short` | OK | Rilancio mirato dopo filtro record `demo`/`sample`: payload operativo confermato. |
+| `npm run build` | OK | Build Vite 2.215.7 completata in 6.15s; asset React rigenerati in `web/static/react`. |
+| `python tools\sync_packaging_files.py --check` | OK | Packaging sincronizzato dopo bump 2.215.7. |
+| `python -m pytest -q tests\test_packaging_consistency.py tests\test_release_readiness.py --tb=short` | OK | 8/8 passati: coerenza packaging e readiness release confermate. |
+| `python -m json.tool tools\react-migration\route-manifest.json` / `python -m json.tool artifacts\react-migration\legacy-contracts\documenti.json` | OK | Manifest e contratto legacy `/documenti` validi JSON. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker` | OK | Eseguito due volte: rebuild finale dopo il filtro Python del bridge Documenti; package `pct-studio-legale==2.215.7`. |
+| `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx` | OK | Servizi locali riavviati sulle immagini 2.215.7. |
+| `docker compose ps` | OK | `iusentra-app`, `iusentra-scheduler`, `iusentra-ocr` e `iusentra-redis` healthy; `iusentra-nginx` attivo. |
+| `Invoke-WebRequest -UseBasicParsing -Uri http://127.0.0.1:8080/api/pronto -TimeoutSec 20` | OK | Readiness locale 200 con `versione=2.215.7`. |
+| `docker exec iusentra-app python -c "import pct; print(pct.__version__)"` | OK | Versione runtime container locale: `2.215.7`. |
+| Browser Playwright headless su `/documenti` desktop/tablet/mobile | OK | Desktop 352.9 ms, tablet 210.8 ms, mobile 167.9 ms a contenuto React visibile; nessun overflow, nessun errore console, nessun termine tecnico visibile. |
+| Payload JSON `/api/v1/ui/studio-modules/documenti` | OK | Status 200 e nessun `demo`/`sample` nel payload dopo filtro record visibili. |
+
 ### Catalogo ufficiale CodiceOggetto PST e ricerca UI 2.215.6
 
 | Verifica | Esito | Nota |

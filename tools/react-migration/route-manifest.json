@@ -255,6 +255,26 @@
       ]
     },
     {
+      "workspaceTarget": "/app/documenti",
+      "route": "/documenti",
+      "family": "documenti",
+      "status": "react_operational_full",
+      "risk": "medium",
+      "targetComponent": "frontend/src/components/StudioModulePage.tsx",
+      "targetData": "frontend/src/studioModuleData.ts",
+      "targetBridge": "web/services/react_studio_module_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/documenti.json",
+      "unlockFromGate": true,
+      "mustPreserve": [
+        "ingresso Documenti non 404",
+        "documenti fascicolo tramite route reali",
+        "catalogo atti e redazione collegati",
+        "ricerca documentale studio",
+        "nessun archivio fittizio",
+        "nessuna CTA legacy primaria"
+      ]
+    },
+    {
       "workspaceTarget": "/app/mandato?tab=compensi",
       "route": "/compensi-forensi/*",
       "family": "mandato",

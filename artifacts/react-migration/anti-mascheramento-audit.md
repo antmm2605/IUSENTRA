@@ -1,6 +1,6 @@
 # Audit anti-mascheramento React
 
-Generato: 2026-05-10T00:00:54.248Z
+Generato: 2026-05-11T09:50:22.366Z
 
 ## Regole operative Parte 12A
 
@@ -12,7 +12,7 @@ Generato: 2026-05-10T00:00:54.248Z
 
 ## Sintesi
 
-- Route censite: 85
+- Route censite: 86
 - Link `?_legacy=1`: 84
 - LegacyPostForm: 0
 - Form POST HTML React: 0
@@ -36,6 +36,7 @@ Generato: 2026-05-10T00:00:54.248Z
 | /clienti | frontend/src/components/AnagraficaClientiPage.tsx | frontend/src/clientiData.ts | web/services/react_clienti_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
 | /clienti/nuovo | frontend/src/components/NuovoClientePage.tsx | frontend/src/clientiNuovoData.ts | web/services/react_clienti_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
 | /compensi-forensi | frontend/src/components/CompensiForensiPage.tsx | frontend/src/compensiForensiData.ts | web/services/react_compensi_forensi_bridge.py | react_operational_full | 2 | 0 | si | fallback legacy tecnico non primario | react_operational_full |
+| /documenti | frontend/src/components/StudioModulePage.tsx | frontend/src/studioModuleData.ts | web/services/react_studio_module_bridge.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
 | /compensi-forensi/* | frontend/src/components/CompensiForensiPage.tsx | frontend/src/compensiForensiData.ts | web/services/react_compensi_forensi_bridge.py | legacy_operational | 2 | 0 | si | fallback legacy tecnico non primario | legacy_operational |
 | /deposito/checklist | frontend/src/components/TelematicoSurfacePage.tsx | frontend/src/telematicoSurfacesData.ts | web/services/react_telematico_bridge.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
 | /email | frontend/src/components/EmailPecPage.tsx | frontend/src/emailData.ts | web/services/react_email_bridge.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |

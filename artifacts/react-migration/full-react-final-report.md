@@ -2,6 +2,14 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-11T11:00:00+02:00: hotfix 2.215.7 su `/documenti`.
+La route non restituisce piu' 404: e' censita nel manifest come
+`react_operational_full`, sbloccata dal route gate e servita dalla shell React
+con `StudioModulePage` e API `/api/v1/ui/studio-modules/documenti`. Il workspace
+collega fascicoli/documenti, catalogo atti, Redazione Atti e ricerca documentale;
+il payload filtra record locali con diciture `demo`/`sample` per non esporli in
+UI.
+
 Aggiornamento 2026-05-11T02:35:00+02:00: hotfix 2.215.5 sui dettagli
 email React. Gli allegati PEC e Email ordinaria mostrano l'azione `Visualizza`
 separata da `Apri` e `Scarica`; `Visualizza` usa il link inline in nuova scheda
@@ -59,3 +67,12 @@ Tranche architetturale aggiornata: `/deposito/checklist`, `/strumenti-legali` e 
 - docker compose build --no-cache app scheduler-worker ocr-worker: passed - immagini locali ricostruite da zero con package 2.214.0.
 - docker compose up -d app scheduler-worker ocr-worker: passed - app, scheduler, OCR e Redis healthy.
 - Invoke-WebRequest http://localhost:8080/api/pronto: passed - readiness locale `versione=2.214.0`.
+- npm run typecheck: passed - TypeScript confermato per route/sidebar/workspace `/documenti`.
+- npm test: passed - Contratti React confermati dopo aggiunta `/documenti`.
+- npm run build: passed - Build Vite 2.215.7 completata in 6.15s; asset React rigenerati.
+- node scripts/react-migration/check-route-gate.mjs: passed - `/documenti` inclusa nelle route governate consentite.
+- node scripts/react-migration/check-full-react-route-contract.mjs: passed - Contratto full React e audit anti-mascheramento aggiornati.
+- python -m pytest -q tests/test_react_shell.py::test_react_blocco_finale_studio_admin_completo tests/test_react_shell.py::test_react_blocco_finale_route_reali_e_vista_classica tests/test_react_shell.py::test_route_gate_non_promuove_moduli_studio_telematico_admin_incompleti tests/test_react_shell.py::test_react_migration_matrice_completa_route_api_e_card_operative --tb=short: passed - 4/4 mirati route, shell, gate e payload.
+- docker compose build --no-cache app scheduler-worker ocr-worker: passed - immagini locali 2.215.7 ricostruite dopo il filtro Documenti.
+- docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx: passed - app, scheduler, OCR e Redis healthy.
+- Browser Playwright headless `/documenti`: passed - desktop 352.9 ms, tablet 210.8 ms, mobile 167.9 ms a contenuto visibile, nessun overflow e nessun testo tecnico visibile.

@@ -993,10 +993,10 @@ function StickyRealtimeSummary({
       }
 
       const style: CSSProperties = {
-        left: `${Math.round(sidebarRect.left)}px`,
+        left: `${sidebarRect.left}px`,
         position: 'fixed',
-        top: `${Math.round(top)}px`,
-        width: `${Math.round(sidebarRect.width)}px`,
+        top: `${top}px`,
+        width: `${sidebarRect.width}px`,
         zIndex: 80,
       }
       const nextKey = `${style.left}|${style.top}|${style.width}|${height}`

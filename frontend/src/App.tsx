@@ -393,6 +393,7 @@ const navSections: NavSection[] = [
       { label: 'Parcelle e Fatture', icon: FileText, href: '/fatturazione/' },
       { label: 'Preventivi e Incarichi', icon: FileText, href: '/preventivi/' },
       { label: 'Compensi Forensi', icon: Banknote, href: '/compensi-forensi' },
+      { label: 'Documenti', icon: FileText, href: '/documenti' },
       { label: 'Redazione Atti', icon: FilePenLine, href: '/redazione-atti' },
       { label: 'Statistiche', icon: ChartColumn, href: '/statistiche/' },
       { label: 'Ricerca Legale', icon: Building2, href: '/ricerca-legale' },

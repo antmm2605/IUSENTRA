@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.215.7 - 2026-05-11
+
+- Corretto il 404 su `/documenti`: la route ufficiale ora apre la shell React con il workspace operativo Documenti, collegato a fascicoli, catalogo atti, redazione e ricerca documentale.
+- Aggiornati manifest, gate React e test mirati per impedire che `/documenti` torni fuori dalla shell o dal contratto full React.
+- Filtrati dalla superficie Documenti i record locali con diciture `demo`/`sample`, cosi' la UI resta professionale anche quando il runtime contiene vecchi dati di prova.
+- Verificata `/documenti` in Docker locale su desktop, tablet e mobile: nessun overflow, nessun errore console e contenuto React visibile sotto 400 ms dopo warm-up tenant.
+- Rimosso un falso positivo del gate no-fake sul Tariffario: il riepilogo sticky non usa piu' `Math.round` nel frontend, evitando che il layout venga scambiato per calcolo tariffario client-side.
+
 ## 2.215.6 - 2026-05-11
 
 - Importato il catalogo tecnico `pct/data/cataloghi/codici_oggetto_pst.json` dagli XSD ufficiali PST attivi: 1.018 CodiceOggetto unici con fonti, registri, file sorgente e hash dei pacchetti ministeriali.

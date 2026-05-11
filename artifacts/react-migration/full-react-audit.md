@@ -2,6 +2,13 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-11T11:00:00+02:00: `/documenti` promossa a
+`react_operational_full`. Il manifest corrente conta 86 route nel gate
+anti-mascheramento; la route usa `StudioModulePage`, bridge
+`react_studio_module_bridge.py`, contratto legacy dedicato e API JSON reale
+`/api/v1/ui/studio-modules/documenti`. Browser Docker locale desktop/tablet/mobile
+confermato senza overflow, errori console o testi tecnici visibili.
+
 Aggiornamento 2026-05-10T00:15:00+02:00: il manifest corrente conta 85 route
 nel gate anti-mascheramento, con 0 `LegacyPostForm`, 0 form POST HTML React,
 0 bridge con scritture legacy e 0 status `react_full` deprecati. Le nuove route
@@ -42,6 +49,7 @@ overflow orizzontale.
 | `/deposito/checklist` | legacy_operational | react_operational_full | Controlli Atti in `TelematicoSurfacePage`, API reale `/api/v1/ui/telematico/surface/checklist`, nessun testo tecnico vietato in UI |
 | `/strumenti-legali` | legacy_operational | react_operational_full | Strumenti Forensi in `StudioModulePage`, API reale `/api/v1/ui/studio-modules/strumenti-forensi`, azioni operative senza form POST HTML |
 | `/strumenti-operativi` | legacy_operational | react_operational_full | Strumenti Operativi in `StudioModulePage`, API reale `/api/v1/ui/studio-modules/strumenti-operativi`, azioni operative senza form POST HTML |
+| `/documenti` | assente / 404 | react_operational_full | Documenti in `StudioModulePage`, API reale `/api/v1/ui/studio-modules/documenti`, azioni verso fascicoli, catalogo atti, redazione e ricerca documentale |
 
 ## Route Non Promosse
 

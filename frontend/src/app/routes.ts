@@ -70,6 +70,7 @@ export const LEGACY_ROUTE_TARGETS: Record<string, string> = {
   '/incassi-pagamenti': '/app/mandato?tab=incassi',
   '/clienti': '/app/anagrafiche?tab=clienti',
   '/soggetti': '/app/anagrafiche?tab=soggetti',
+  '/documenti': '/app/documenti',
   '/template-atti': '/app/documenti?tab=template',
   '/redazione-atti': '/app/documenti?tab=redazione',
   '/telematico': '/app/telematico',

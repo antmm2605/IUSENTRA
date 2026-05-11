@@ -138,6 +138,28 @@ export const studioModules: StudioModuleConfig[] = [
     links: [{ label: 'Preventivi', href: '/preventivi' }, { label: 'Parcelle', href: '/fatturazione' }],
   },
   {
+    id: 'documenti',
+    routes: ['/documenti'],
+    title: 'Documenti',
+    section: 'Documenti e atti',
+    subtitle: 'Punto di ingresso operativo per documenti fascicolo, modelli, redazione atti e ricerca documentale dello studio.',
+    lexContext: 'documenti',
+    lexLabel: 'Lex legge fascicoli, documenti, modelli e fonti interne collegate alla lavorazione aperta.',
+    kpis: [
+      { label: 'Archivio', value: 'Fascicoli', note: 'documenti conservati nelle pratiche dello studio', tone: 'primary' },
+      { label: 'Modelli', value: 'Template', note: 'catalogo atti e redazione collegati', tone: 'purple' },
+      { label: 'Ricerca', value: 'Studio', note: 'trova documenti, PEC, clienti e fascicoli', tone: 'success' },
+    ],
+    cards: [
+      { title: 'Documenti fascicolo', body: 'Apri i fascicoli e lavora sui documenti della pratica, con upload, firma e controlli collegati.', href: '/fascicoli', action: 'Apri fascicoli', icon: 'folder', tone: 'primary', meta: 'Pratiche' },
+      { title: 'Catalogo atti', body: 'Consulta modelli, filtri e schede operative per predisporre atti coerenti con la pratica.', href: '/template-atti/catalogo', action: 'Apri catalogo', icon: 'book', tone: 'purple', meta: 'Template' },
+      { title: 'Redazione atti', body: 'Rientra nel workspace di redazione per preparare bozze, template e produzione atti.', href: '/redazione-atti', action: 'Apri redazione', icon: 'file', tone: 'success', meta: 'Atti' },
+      { title: 'Ricerca documenti', body: 'Cerca rapidamente documenti, comunicazioni e riferimenti collegati ai fascicoli.', href: '/global-search?tipo=documenti', action: 'Cerca documenti', icon: 'book', tone: 'neutral', meta: 'Ricerca' },
+    ],
+    workflow: ['Scegli fascicolo o modello', 'Verifica documenti e allegati', 'Prepara o aggiorna atto', 'Cerca e collega al lavoro di studio'],
+    links: [{ label: 'Fascicoli', href: '/fascicoli' }, { label: 'Catalogo Atti', href: '/template-atti/catalogo' }, { label: 'Redazione Atti', href: '/redazione-atti' }, { label: 'Ricerca Studio', href: '/global-search?tipo=documenti' }],
+  },
+  {
     id: 'redazione-atti',
     routes: ['/redazione-atti', '/template-atti', '/template-atti/catalogo', '/template-atti/nuovo', '/checklist'],
     title: 'Redazione Atti',

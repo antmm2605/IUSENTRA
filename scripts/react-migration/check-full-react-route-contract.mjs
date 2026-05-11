@@ -19,6 +19,7 @@ const apiAliasMarkers = new Map([
   ['/notifiche', ['("/impostazioni")', "('/impostazioni')"]],
   ['/notifiche-whatsapp', ['("/impostazioni")', "('/impostazioni')"]],
   ['/sincronizzazione-calendari', ['("/impostazioni")', "('/impostazioni')"]],
+  ['/documenti', ['("/studio-modules/<module_id>")', "('/studio-modules/<module_id>')"]],
   ['/strumenti-legali', ['("/studio-modules/<module_id>")', "('/studio-modules/<module_id>')"]],
   ['/strumenti-operativi', ['("/studio-modules/<module_id>")', "('/studio-modules/<module_id>')"]],
   ['/deposito/checklist', ['("/telematico/surface/<surface>")', "('/telematico/surface/<surface>')"]],

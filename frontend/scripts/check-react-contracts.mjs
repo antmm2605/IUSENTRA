@@ -420,7 +420,7 @@ assertContains(tranche8aOpenDesignReport, 'Token creati', 'report Open Design 8A
 if (routeManifest.policy?.currentReleaseUnlocksRoutes !== true) {
   throw new Error('route manifest: currentReleaseUnlocksRoutes deve essere true nelle tranche di promozione')
 }
-const allowedGovernedUnlocks = new Set(['/', '/admin/database', '/agenda', '/agenda/nuovo', '/amministrazione', '/audit', '/backup', '/cartelle-condivise', '/clienti', '/clienti/nuovo', '/compensi-forensi', '/deposito/checklist', '/email', '/email-ordinaria', '/fascicoli', '/fascicoli/archivio', '/fascicoli/nuovo', '/fatturazione', '/fatturazione/nuova', '/giurisprudenza', '/global-search', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/incassi-pagamenti', '/legal-intelligence', '/legal-intelligence/mediazione', '/legal-intelligence/news', '/messaggi', '/messaggi/nuovo', '/notifiche', '/notifiche-whatsapp', '/preventivi', '/preventivi/conferimento/:id', '/preventivi/conferimento/nuovo', '/preventivi/nuovo', '/preventivi/wizard', '/privacy/registro', '/privacy/registro/nuovo', '/profili', '/redazione-atti', '/regia-operativa', '/registro-attivita', '/registro-gdpr', '/ricerca-legale', '/ricerca-studio', '/scadenziario', '/scadenziario/nuova', '/sincronizzazione-calendari', '/sito-studio', '/sito-studio/contatti', '/soggetti', '/soggetti/nuovo', '/statistiche', '/strumenti-legali', '/strumenti-operativi', '/studio', '/tariffario', '/template-atti', '/template-atti/catalogo', '/timesheet', '/utenti', '/utenti/nuovo', '/wizard-pro', '/workspace-intelligente'])
+const allowedGovernedUnlocks = new Set(['/', '/admin/database', '/agenda', '/agenda/nuovo', '/amministrazione', '/audit', '/backup', '/cartelle-condivise', '/clienti', '/clienti/nuovo', '/compensi-forensi', '/deposito/checklist', '/documenti', '/email', '/email-ordinaria', '/fascicoli', '/fascicoli/archivio', '/fascicoli/nuovo', '/fatturazione', '/fatturazione/nuova', '/giurisprudenza', '/global-search', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/incassi-pagamenti', '/legal-intelligence', '/legal-intelligence/mediazione', '/legal-intelligence/news', '/messaggi', '/messaggi/nuovo', '/notifiche', '/notifiche-whatsapp', '/preventivi', '/preventivi/conferimento/:id', '/preventivi/conferimento/nuovo', '/preventivi/nuovo', '/preventivi/wizard', '/privacy/registro', '/privacy/registro/nuovo', '/profili', '/redazione-atti', '/regia-operativa', '/registro-attivita', '/registro-gdpr', '/ricerca-legale', '/ricerca-studio', '/scadenziario', '/scadenziario/nuova', '/sincronizzazione-calendari', '/sito-studio', '/sito-studio/contatti', '/soggetti', '/soggetti/nuovo', '/statistiche', '/strumenti-legali', '/strumenti-operativi', '/studio', '/tariffario', '/template-atti', '/template-atti/catalogo', '/timesheet', '/utenti', '/utenti/nuovo', '/wizard-pro', '/workspace-intelligente'])
 const governedExpectedStatuses = new Map([
   ['/', 'react_operational_full'],
   ['/admin/database', 'react_operational_full'],
@@ -434,6 +434,7 @@ const governedExpectedStatuses = new Map([
   ['/clienti/nuovo', 'react_operational_full'],
   ['/compensi-forensi', 'react_operational_full'],
   ['/deposito/checklist', 'react_operational_full'],
+  ['/documenti', 'react_operational_full'],
   ['/email', 'react_operational_full'],
   ['/email-ordinaria', 'react_operational_full'],
   ['/fascicoli', 'react_operational_full'],
@@ -533,6 +534,7 @@ for (const [route, status] of [
   ['/notifiche', 'react_operational_full'],
   ['/notifiche-whatsapp', 'react_operational_full'],
   ['/sincronizzazione-calendari', 'react_operational_full'],
+  ['/documenti', 'react_operational_full'],
   ['/deposito/checklist', 'react_operational_full'],
   ['/strumenti-legali', 'react_operational_full'],
   ['/strumenti-operativi', 'react_operational_full'],
@@ -562,7 +564,7 @@ for (const route of ['/fatturazione/*', '/preventivi/*', '/compensi-forensi/*', 
     throw new Error(`route manifest: ${route} deve restare legacy_operational con unlockFromGate=false`)
   }
 }
-for (const route of ['/utenti', '/profili', '/audit', '/registro-attivita', '/studio', '/amministrazione', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/notifiche', '/notifiche-whatsapp', '/sincronizzazione-calendari', '/backup', '/sito-studio', '/sito-studio/contatti', '/sito-studio/builder', '/statistiche', '/fatturazione', '/fatturazione/nuova', '/fatturazione/*', '/incassi-pagamenti', '/preventivi', '/preventivi/nuovo', '/preventivi/conferimento/nuovo', '/preventivi/*', '/preventivi/wizard', '/compensi-forensi', '/compensi-forensi/*', '/tariffario', '/tariffario/*', '/template-atti', '/template-atti/catalogo', '/template-atti/nuovo', '/template-atti/*', '/redazione-atti', '/redazione-atti/*', '/checklist', '/giurisprudenza', '/giurisprudenza/nuova', '/giurisprudenza/*', '/legal-intelligence', '/legal-intelligence/news', '/legal-intelligence/mediazione', '/legal-intelligence/*', '/ricerca-legale', '/ricerca-legale/*', '/deposito/checklist', '/strumenti-legali', '/strumenti-operativi', '/polisWeb', '/pdp', '/pat', '/sigit', '/sigp', '/portali/*']) {
+for (const route of ['/utenti', '/profili', '/audit', '/registro-attivita', '/studio', '/amministrazione', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/notifiche', '/notifiche-whatsapp', '/sincronizzazione-calendari', '/backup', '/sito-studio', '/sito-studio/contatti', '/sito-studio/builder', '/statistiche', '/fatturazione', '/fatturazione/nuova', '/fatturazione/*', '/incassi-pagamenti', '/preventivi', '/preventivi/nuovo', '/preventivi/conferimento/nuovo', '/preventivi/*', '/preventivi/wizard', '/compensi-forensi', '/compensi-forensi/*', '/tariffario', '/tariffario/*', '/documenti', '/template-atti', '/template-atti/catalogo', '/template-atti/nuovo', '/template-atti/*', '/redazione-atti', '/redazione-atti/*', '/checklist', '/giurisprudenza', '/giurisprudenza/nuova', '/giurisprudenza/*', '/legal-intelligence', '/legal-intelligence/news', '/legal-intelligence/mediazione', '/legal-intelligence/*', '/ricerca-legale', '/ricerca-legale/*', '/deposito/checklist', '/strumenti-legali', '/strumenti-operativi', '/polisWeb', '/pdp', '/pat', '/sigit', '/sigp', '/portali/*']) {
   if (!(routeManifest.routes ?? []).some((entry) => entry.route === route)) {
     throw new Error(`route manifest: manca ${route}`)
   }
@@ -902,6 +904,7 @@ assertNotContains(legacyOperationalTuple, '"/preventivi"', 'gate legacy senza pr
 assertNotContains(legacyOperationalTuple, '"/compensi-forensi"', 'gate legacy senza compensi forensi exact')
 assertNotContains(legacyOperationalTuple, '"/tariffario"', 'gate legacy senza tariffario exact')
 assertNotContains(legacyOperationalTuple, '"/template-atti"', 'gate legacy senza template atti exact')
+assertNotContains(legacyOperationalTuple, '"/documenti"', 'gate legacy senza documenti exact')
 assertNotContains(legacyOperationalTuple, '"/redazione-atti"', 'gate legacy senza redazione atti exact')
 assertNotContains(legacyOperationalTuple, '"/impostazioni"', 'gate legacy senza impostazioni full React')
 assertNotContains(legacyOperationalTuple, '"/impostazioni-studio"', 'gate legacy senza impostazioni studio full React')
@@ -963,6 +966,7 @@ assertNotContains(shellLegacyFirstTuple, '"/preventivi"', 'shell legacy-first se
 assertNotContains(shellLegacyFirstTuple, '"/compensi-forensi"', 'shell legacy-first senza compensi exact')
 assertNotContains(shellLegacyFirstTuple, '"/tariffario"', 'shell legacy-first senza tariffario exact')
 assertNotContains(shellLegacyFirstTuple, '"/template-atti"', 'shell legacy-first senza template atti exact')
+assertNotContains(shellLegacyFirstTuple, '"/documenti"', 'shell legacy-first senza documenti exact')
 assertNotContains(shellLegacyFirstTuple, '"/redazione-atti"', 'shell legacy-first senza redazione atti exact')
 assertNotContains(shellLegacyFirstTuple, '"/impostazioni"', 'shell legacy-first senza impostazioni full React')
 assertNotContains(shellLegacyFirstTuple, '"/impostazioni-studio"', 'shell legacy-first senza impostazioni studio full React')
@@ -1495,6 +1499,7 @@ for (const label of [
   'Parcelle e Fatture',
   'Preventivi e Incarichi',
   'Compensi Forensi',
+  'Documenti',
   'Redazione Atti',
   'Importa pratica da PST',
   'Statistiche',
@@ -1528,6 +1533,7 @@ for (const route of [
   '/preventivi/wizard',
   '/preventivi/conferimento/nuovo',
   '/compensi-forensi',
+  '/documenti',
   '/redazione-atti',
   '/template-atti/catalogo',
   '/template-atti/nuovo',

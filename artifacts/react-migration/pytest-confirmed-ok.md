@@ -19,6 +19,7 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 | `python tools\sync_packaging_files.py --check` | OK | Packaging sincronizzato dopo bump 2.216.5. |
 | `npm --prefix frontend run test` | OK | Contratti React confermati dopo le modifiche a `/fascicoli/nuovo`. |
 | `python -m pytest -q tests/test_packaging_consistency.py tests/test_release_readiness.py --tb=short` | OK | 8/8 passati: coerenza packaging e readiness release confermate per 2.216.5. |
+| `python tools\codex_harness\run_codex_quality_gate.py --mode code` | OK | Gate Codex Harness eseguito sul perimetro applicativo dopo il commit: scope, dipendenze runtime, AGENTS e Open Design support verdi. |
 | `docker compose build --no-cache app scheduler-worker ocr-worker` | OK | Immagini locali ricostruite da zero con wheel `pct-studio-legale==2.216.5`. |
 | `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx` / `docker compose ps` / `GET http://127.0.0.1:8080/api/pronto` | OK | Container locali healthy e readiness `versione=2.216.5`. |
 | Browser reale `http://127.0.0.1:8080/fascicoli/nuovo` desktop/tablet/mobile | OK | Selezione cliente arricchita, controparte/soggetto, autorita' giudiziaria reale e Fascicolo Veloce visibili; nessun overflow nelle sezioni verificate e nessun errore console. |

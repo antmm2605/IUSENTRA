@@ -1,5 +1,20 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-11 - Sessione PST unica wizard / Local Signer 1.6.27 / app 2.216.3
+
+Il wizard di acquisizione PST non separa piu' consultazione e import in due
+sessioni locali: `preflight-auth`, ricerca/snapshot e download
+`/pst/download-documenti-batch` propagano lo stesso `pst_session_id` con
+`purpose=view`.
+
+- i download del wizard usano solo la sessione `AW_PST_SESSION` gia'
+  autenticata e non inviano piu' `purpose=import`;
+- il Local Signer mantiene compatibilita' con client precedenti, ma i download
+  PST singoli e batch defaultano alla sessione di visualizzazione e riusano la
+  sessione esistente anche quando un vecchio client invia ancora `purpose=import`;
+- i test mirati controllano il wizard, il preflight compatibile e il batch
+  PST, cosi' il flusso non puo' tornare a moltiplicare i prompt PIN.
+
 ## Stato tranche 2026-05-11 - Local Signer distribuito 1.6.26 / app 2.216.2
 
 Il pacchetto distribuito del Local Signer e' stato riallineato alla sorgente

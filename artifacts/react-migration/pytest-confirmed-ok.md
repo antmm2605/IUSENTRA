@@ -8,6 +8,26 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 
 ## Frontend e gate React
 
+### Local Signer PST sessione unica 1.6.27 / app 2.216.3
+
+| Verifica | Esito | Nota |
+| --- | --- | --- |
+| `python tools\build_dist.py` | OK | Generati `SetupLocalSigner-1.6.27.exe`, alias `SetupLocalSigner.exe`, `InstallaLocalSigner-1.6.27.command`, `InstallaLocalSigner-1.6.27.run`, PS1 interno e note release. |
+| `python -m compileall tools\local_signer.py tools\dist\local_signer.py tests\test_local_signer.py tests\test_polisweb.py -q` | OK | Sintassi confermata su sorgente, dist e guardrail PST dopo unificazione sessione. |
+| `python tools\sync_packaging_files.py --check` | OK | Versione applicativa 2.216.3 sincronizzata tra sorgente Python, frontend, Docker e Railway. |
+| `python tools\check_local_signer_boundaries.py` | OK | Boundary check Local Signer confermato dopo bump 1.6.27. |
+| `python -m pytest -q tests\test_local_signer.py --tb=short` | OK | 122/122 passati: session manager, download batch, compatibilita' preflight e dist Local Signer allineati. |
+| `python -m pytest -q tests\test_polisweb.py::test_dettaglio_fascicolo_mostra_download_ufficiale_portale tests\test_polisweb.py::test_acquisizione_wizard_pst_preview_error_usa_fallback_assistito tests\test_polisweb.py::test_acquisizione_wizard_pst_carica_documenti_local_signer_anche_in_modalita_assistita tests\test_polisweb.py::test_portale_acquisizione_wizard_renderizza_javascript_valido --tb=short` | OK | 4/4 passati: dettaglio fascicolo e wizard acquisizione usano batch, sessione view e JavaScript valido. |
+| `python -m pytest -q tests\test_packaging_consistency.py tests\test_release_readiness.py --tb=short` | OK | 8/8 passati: packaging e readiness release confermate per 2.216.3. |
+| `rg -n "fetch\([^\r\n]*(pst\.giustizia\|processotelematico\.giustizia\|giustizia\.it)\|XMLHttpRequest\([^\r\n]*(pst\.giustizia\|processotelematico\.giustizia\|giustizia\.it)" frontend\src web\templates integrations -g "*.ts" -g "*.tsx" -g "*.js" -g "*.html"` | OK | Nessuna chiamata browser diretta ai domini ministeriali nei sorgenti applicativi; il flusso PST resta su `127.0.0.1:27272`. |
+| `git diff --check` | OK | Nessun errore whitespace; presenti solo warning CRLF su file runtime/preesistenti e file toccati. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker` | OK | Rebuild locale no-cache completato; wheel `pct-studio-legale==2.216.3` inclusa nell'immagine. |
+| `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx` | OK | Servizi locali riavviati sulle immagini 2.216.3 senza procedure di backup. |
+| `docker compose ps` | OK | `iusentra-app`, `iusentra-scheduler`, `iusentra-ocr` e `iusentra-redis` healthy; `iusentra-nginx` attivo. |
+| `Invoke-WebRequest -UseBasicParsing -Uri http://127.0.0.1:8080/api/pronto -TimeoutSec 30` | OK | Readiness locale 200 con `versione=2.216.3`. |
+| `docker exec iusentra-app python -c "import pct; print(pct.__version__)"` | OK | Versione runtime container locale: `2.216.3`. |
+| `docker exec iusentra-app python -c "... SetupLocalSigner-1.6.27.exe ..."` | OK | Nel container locale sono presenti `SetupLocalSigner-1.6.27.exe` e alias `SetupLocalSigner.exe`, alias valido con header `MZ`. |
+
 ### Local Signer distribuito 1.6.26 / app 2.216.2
 
 | Verifica | Esito | Nota |

@@ -3412,6 +3412,10 @@ def test_acquisizione_wizard_pst_carica_documenti_local_signer_anche_in_modalita
     assert "document.getElementById('awLoadDocuments').addEventListener('click', awLoadDocumentsFromLocalSigner)" in template
     assert "function awEnsurePstPreviewDocumentCatalog" in template
     assert "await awEnsurePstPreviewDocumentCatalog()" in template
+    assert "/pst/download-documenti-batch" in template
+    assert "purpose: 'view'" in template
+    assert "purpose: 'import'" not in template
+    assert "AW_PST_IMPORT_SESSION?.session_id" not in template
     assert "Importazione interrotta: non salvo il fascicolo solo come metadati" in template
     assert "window.location.href = autoOpenUrl" in template
     assert "Importa tutto" in template

@@ -102,7 +102,7 @@ def test_pst_session_manager_scaduta_restituisce_errore_controllato():
             module._drop_pst_session(session_id)
 
 
-def test_wizard_pst_usa_snapshot_unico_e_sessioni_distinte():
+def test_wizard_pst_usa_snapshot_e_sessione_unica_anche_per_download():
     root = Path(__file__).resolve().parents[1]
     template = (root / "web" / "templates" / "portale" / "acquisizione_wizard.html").read_text(
         encoding="utf-8"
@@ -112,10 +112,167 @@ def test_wizard_pst_usa_snapshot_unico_e_sessioni_distinte():
     assert "/pst/fascicolo-snapshot" in signer
     assert "/pst/fascicolo-snapshot" in template
     assert "AW_PST_SNAPSHOT_PROMISE" in template
-    assert "AW_PST_IMPORT_SESSION" in template
+    assert "/pst/download-documenti-batch" in template
     assert "purpose: 'view'" in template
-    assert "purpose: 'import'" in template
+    assert "purpose: 'import'" not in template
+    assert "AW_PST_IMPORT_SESSION?.session_id" not in template
+    assert "pst_session_id: AW_PST_SESSION?.session_id || ''" in template
     assert "`${AW_PST_LS_BASE}/pst/documenti`" not in template
+
+
+def test_pst_preflight_import_riusa_sessione_view_attiva_senza_nuovo_handshake(monkeypatch):
+    module = _load_local_signer()
+    captured = {}
+    calls = {"preflight": 0, "ensure": 0}
+
+    class _FakeHandler:
+        def _read_json(self):
+            return {
+                "tribunale": "0580010",
+                "cert_thumbprint": "AABBCC11",
+                "cf_avvocato": "RSSMRA80A01H501Z",
+                "purpose": "import",
+            }
+
+        def _send_json(self, payload, status=200):
+            captured["payload"] = payload
+            captured["status"] = status
+
+    monkeypatch.setattr(module, "_curl_disponibile", lambda: True)
+    monkeypatch.setattr(
+        module,
+        "_risolvi_base_pst_runtime",
+        lambda tribunale: "https://ext.processotelematico.giustizia.it/pda/pycons/GLMI/JPW_SICID",
+    )
+    monkeypatch.setattr(module, "_require_certificato_pst", lambda thumbprint: "AABBCC11")
+    monkeypatch.setattr(module, "_cf_avvocato_pst", lambda cf, thumbprint: "RSSMRA80A01H501Z")
+    monkeypatch.setattr(
+        module,
+        "_find_view_session_for_cert",
+        lambda thumbprint, tribunale: {
+            "session_id": "SID-VIEW",
+            "purpose": "view",
+            "tribunale": tribunale,
+            "cert_thumbprint": thumbprint,
+            "auth_ready": True,
+        },
+    )
+
+    def _unexpected_preflight(**kwargs):
+        calls["preflight"] += 1
+        return {"ok": True}
+
+    def _unexpected_ensure(*args, **kwargs):
+        calls["ensure"] += 1
+        raise AssertionError("non deve creare una seconda sessione import")
+
+    monkeypatch.setattr(module, "_pst_preflight_auth_curl", _unexpected_preflight)
+    monkeypatch.setattr(module, "_ensure_pst_session_entry", _unexpected_ensure)
+
+    module._Handler._pst_preflight_auth(_FakeHandler())
+
+    assert captured["status"] == 200
+    assert captured["payload"]["ok"] is True
+    assert captured["payload"]["cached"] is True
+    assert captured["payload"]["pst_session_id"] == "SID-VIEW"
+    assert captured["payload"]["pst_session_purpose"] == "view"
+    assert calls == {"preflight": 0, "ensure": 0}
+
+
+def test_pst_download_batch_riusa_sessione_view_anche_se_client_chiede_import(monkeypatch):
+    module = _load_local_signer()
+    captured = {}
+    calls = {}
+
+    class _NullLock:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+    class _FakeHandler:
+        def _read_json(self):
+            return {
+                "tribunale": "0580010",
+                "cert_thumbprint": "AABBCC11",
+                "cf_avvocato": "RSSMRA80A01H501Z",
+                "pst_session_id": "SID-VIEW",
+                "purpose": "import",
+                "preflight_auth": False,
+                "documents": [{"id_documento": "DOC-1", "nome_documento": "atto.pdf"}],
+            }
+
+        def _send_json(self, payload, status=200):
+            captured["payload"] = payload
+            captured["status"] = status
+
+    monkeypatch.setattr(module, "_curl_disponibile", lambda: True)
+    monkeypatch.setattr(
+        module,
+        "_resolve_pst_session_entry",
+        lambda session_id: {
+            "session_id": session_id,
+            "purpose": "view",
+            "cookie_file": "C:\\temp\\pst.cookies",
+            "auth_ready": True,
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "_risolvi_base_pst_runtime",
+        lambda tribunale: "https://ext.processotelematico.giustizia.it/pda/pycons/GLMI/JPW_SICID",
+    )
+    monkeypatch.setattr(module, "_risolvi_codice_ufficio_pst", lambda tribunale: "0151460094")
+    monkeypatch.setattr(module, "_require_certificato_pst", lambda thumbprint: "AABBCC11")
+    monkeypatch.setattr(module, "_cf_avvocato_pst", lambda cf, thumbprint: "RSSMRA80A01H501Z")
+    monkeypatch.setattr(module, "_pst_session_lock_for", lambda session_entry: _NullLock())
+
+    def _fake_ensure(requested_session_id, **kwargs):
+        calls["ensure_purpose"] = kwargs.get("purpose")
+        calls["requested_session_id"] = requested_session_id
+        return (
+            {
+                "session_id": requested_session_id,
+                "purpose": kwargs.get("purpose"),
+                "cookie_file": "C:\\temp\\pst.cookies",
+                "auth_ready": True,
+                "cf_avvocato": "RSSMRA80A01H501Z",
+            },
+            False,
+        )
+
+    def _fake_prepare(session_entry, **kwargs):
+        calls["prepare_force"] = kwargs.get("force")
+        return session_entry, True
+
+    def _fake_batch(**kwargs):
+        calls["batch_cookie_file"] = kwargs.get("cookie_file")
+        calls["batch_do_preflight"] = kwargs.get("do_preflight")
+        return {
+            "ok": True,
+            "files": [],
+            "failures": [],
+            "documenti_richiesti": 1,
+            "documenti_scaricati": 0,
+        }
+
+    monkeypatch.setattr(module, "_ensure_pst_session_entry", _fake_ensure)
+    monkeypatch.setattr(module, "_pst_prepare_authenticated_session", _fake_prepare)
+    monkeypatch.setattr(module, "_pst_download_documenti_batch_payloads", _fake_batch)
+    monkeypatch.setattr(module, "_update_pst_session", lambda *args, **kwargs: None)
+
+    module._Handler._pst_download_documenti_batch(_FakeHandler())
+
+    assert captured["status"] == 200
+    assert captured["payload"]["ok"] is True
+    assert captured["payload"]["pst_session_id"] == "SID-VIEW"
+    assert captured["payload"]["pst_session_purpose"] == "view"
+    assert calls["requested_session_id"] == "SID-VIEW"
+    assert calls["ensure_purpose"] == "view"
+    assert calls["prepare_force"] is False
+    assert calls["batch_do_preflight"] is False
+    assert calls["batch_cookie_file"] == "C:\\temp\\pst.cookies"
 
 
 def _local_signer_version():

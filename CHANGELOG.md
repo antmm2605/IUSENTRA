@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.216.3 - 2026-05-11
+
+- Unificato il flusso PST del wizard di acquisizione: preflight, consultazione fascicolo e download batch propagano lo stesso `pst_session_id` e usano sempre la sessione `view`, evitando la vecchia sessione separata di import.
+- Rafforzato il Local Signer `1.6.27`: i download PST singoli e batch non creano piu' una sessione `import` di default e riusano la sessione esistente anche se un client precedente invia ancora `purpose=import`.
+- Aggiunti guardrail mirati su wizard e Local Signer per impedire il ritorno a download PST con sessione separata o prompt PIN aggiuntivi.
+
 ## 2.216.2 - 2026-05-11
 
 - Rilasciato IUSENTRA Local Signer `1.6.26` e rigenerati i pacchetti Windows, macOS e Linux in `tools/dist`, incluso `SetupLocalSigner-1.6.26.exe` e l'alias `SetupLocalSigner.exe`.

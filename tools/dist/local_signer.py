@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IUSENTRA Local Signer - v1.6.26
+IUSENTRA Local Signer - v1.6.27
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -110,7 +110,7 @@ from local_signer_mod.server_bootstrap import print_startup_banner  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.26"
+VERSION = "1.6.27"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -1834,6 +1834,21 @@ def _find_view_session_for_cert(cert_thumbprint: str, tribunale: str) -> Optiona
                 continue
             return dict(entry)
     return None
+
+
+def _pst_existing_session_purpose(session_id: str, default: str = "view") -> str:
+    fallback = (default or "view").strip().lower() or "view"
+    if fallback not in {"view", "import"}:
+        fallback = "view"
+    requested_id = (session_id or "").strip()
+    if not requested_id:
+        return fallback
+    try:
+        session_entry = _resolve_pst_session_entry(requested_id)
+    except Exception:
+        return fallback
+    purpose = str((session_entry or {}).get("purpose") or fallback).strip().lower() or fallback
+    return purpose if purpose in {"view", "import"} else fallback
 
 
 def _pst_session_lock_for(session_entry: Optional[dict]) -> threading.Lock:
@@ -6462,8 +6477,7 @@ class _Handler(BaseHTTPRequestHandler):
         try:
             session_entry = _resolve_pst_session_entry(requested_session_id) if requested_session_id else None
             if session_entry and str(session_entry.get("purpose") or "view").lower() != purpose:
-                session_entry = None
-                session_cleanup_id = ""
+                purpose = str(session_entry.get("purpose") or "view").lower()
             if session_entry and not data.get("force_auth") and not data.get("force_new"):
                 self._send_json({
                     "ok": True,
@@ -6489,6 +6503,21 @@ class _Handler(BaseHTTPRequestHandler):
                 data.get("cf_avvocato", "") or (session_entry or {}).get("cf_avvocato", ""),
                 cert_thumbprint,
             )
+            if not session_entry and purpose == "import":
+                view_entry = _find_view_session_for_cert(cert_thumbprint, tribunale)
+                if view_entry:
+                    session_entry = view_entry
+                    purpose = "view"
+                    session_cleanup_id = str(session_entry.get("session_id") or "")
+                    if not data.get("force_auth") and not data.get("force_new"):
+                        self._send_json({
+                            "ok": True,
+                            "tribunale": tribunale or str(session_entry.get("tribunale") or "").strip(),
+                            "cached": True,
+                            "nota": "Sessione accesso PST gia' attiva nel Local Signer.",
+                            **_pst_session_response_fields(session_entry),
+                        })
+                        return
             if not session_entry:
                 session_entry, _created = _ensure_pst_session_entry(
                     requested_session_id,
@@ -7280,6 +7309,7 @@ class _Handler(BaseHTTPRequestHandler):
 
         try:
             requested_session_id = str(data.get("pst_session_id") or "").strip()
+            download_purpose = _pst_existing_session_purpose(requested_session_id, "view")
             base_url = _risolvi_base_pst_runtime(tribunale)
             codice_pst = _risolvi_codice_ufficio_pst(tribunale)
             cert_thumbprint = _require_certificato_pst(
@@ -7292,7 +7322,7 @@ class _Handler(BaseHTTPRequestHandler):
                 base_url=base_url,
                 cf_avvocato=cf_avvocato,
                 cert_thumbprint=cert_thumbprint,
-                purpose=str(data.get("purpose") or "import").strip().lower() or "import",
+                purpose=download_purpose,
                 cert_key=str(data.get("cert_key") or cert_thumbprint or ""),
                 cert_preferences=data.get("cert_preferences") if isinstance(data.get("cert_preferences"), dict) else None,
             )
@@ -7382,6 +7412,7 @@ class _Handler(BaseHTTPRequestHandler):
 
         try:
             requested_session_id = str(data.get("pst_session_id") or "").strip()
+            download_purpose = _pst_existing_session_purpose(requested_session_id, "view")
             base_url = _risolvi_base_pst_runtime(tribunale)
             codice_pst = _risolvi_codice_ufficio_pst(tribunale)
             cert_thumbprint = _require_certificato_pst(
@@ -7394,7 +7425,7 @@ class _Handler(BaseHTTPRequestHandler):
                 base_url=base_url,
                 cf_avvocato=cf_avvocato,
                 cert_thumbprint=cert_thumbprint,
-                purpose=str(data.get("purpose") or "import").strip().lower() or "import",
+                purpose=download_purpose,
                 cert_key=str(data.get("cert_key") or cert_thumbprint or ""),
                 cert_preferences=data.get("cert_preferences") if isinstance(data.get("cert_preferences"), dict) else None,
             )

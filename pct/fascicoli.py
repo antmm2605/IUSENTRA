@@ -1708,6 +1708,7 @@ class GestioneFascicoli:
         def _merge_documenti_portale(*liste: List[dict]) -> List[dict]:
             merged: List[dict] = []
             visti: set[tuple[str, str, str]] = set()
+            by_key: dict[tuple[str, str, str], dict] = {}
             for lista in liste:
                 for item in lista or []:
                     row = _normalizza_doc_portale(item)
@@ -1726,8 +1727,19 @@ class GestioneFascicoli:
                             (row.get("tipo") or row.get("tipo_atto") or "").upper(),
                         )
                     if chiave in visti:
+                        existing = by_key.get(chiave)
+                        if existing is not None:
+                            for field_name, value in row.items():
+                                if field_name == "dimensione_bytes":
+                                    if int(value or 0) > 0 and int(existing.get(field_name) or 0) <= 0:
+                                        existing[field_name] = value
+                                elif field_name == "disponibile":
+                                    existing[field_name] = bool(existing.get(field_name, True) or value)
+                                elif str(value or "").strip() and not str(existing.get(field_name) or "").strip():
+                                    existing[field_name] = value
                         continue
                     visti.add(chiave)
+                    by_key[chiave] = row
                     merged.append(row)
             merged.sort(
                 key=lambda item: (

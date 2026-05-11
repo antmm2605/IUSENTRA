@@ -826,6 +826,8 @@ function normalisePstAcquisitionResult(value: unknown, index: number, query: Acq
     oggetto: asText(row.oggetto || query.oggetto),
     parti: parti.length ? parti : (partiDaRuolo.length ? partiDaRuolo : query.assistito.split(/[;,]/).map((item) => item.trim()).filter(Boolean)),
     controparti: controparti.length ? controparti : (contropartiDaRuolo.length ? contropartiDaRuolo : query.controparte.split(/[;,]/).map((item) => item.trim()).filter(Boolean)),
+    data_iscrizione: asText(row.data_iscrizione),
+    data_udienza: asText(row.data_udienza),
     ultima_attivita: asText(row.data_udienza || row.data_iscrizione || row.ultima_attivita),
     payload: row,
   }
@@ -1279,6 +1281,16 @@ function AcquisitionWizard({
     return exact?.codiceMinistero || exact?.codice || query.ufficio
   }
 
+  const officeLooksLikeSigp = () => /giudice\s+di\s+pace|\bgdp\b/i.test(`${query.ufficio} ${query.ufficioNome} ${resolvedOfficeCode()}`)
+
+  const canUsePstSearchSnapshot = () => Boolean(
+    portal === 'pst'
+    && asText(resolvedOfficeCode())
+    && asText(query.numero)
+    && asText(query.anno)
+    && !officeLooksLikeSigp(),
+  )
+
   const searchPayload = () => ({
     ufficio_codice: resolvedOfficeCode(),
     ufficio: query.ufficioNome || query.ufficio,
@@ -1312,26 +1324,57 @@ function AcquisitionWizard({
       let rows: AcquisitionResult[] = []
       if (portal === 'pst') {
         const tribunale = resolvedOfficeCode()
-        const { session, cert } = await ensurePstPortalSession(tribunale)
-        const signerPayload = await localSignerJson('/pst/ricerca', {
-          tribunale,
-          numero_rg: query.numero,
-          anno_rg: query.anno,
-          nome_parte: query.assistito || query.controparte,
-          cf_parte: query.cf,
-          cf_avvocato: asText(status.codice_fiscale_avvocato),
-          cert_thumbprint: cert.thumbprint || null,
-          cert_key: cert.thumbprint || '',
-          purpose: REACT_PST_SESSION_PURPOSE,
-          pst_session_id: session.sessionId,
-        }, 120000)
+        let signerPayload: JsonRecord | null = null
+        let cert = await ensurePstCertificate()
+        let session = isPstSessionActive(pstSession, tribunale, cert) ? pstSession : null
+        if (canUsePstSearchSnapshot()) {
+          try {
+            signerPayload = await localSignerJson('/pst/ricerca-snapshot', {
+              tribunale,
+              numero_rg: query.numero,
+              anno_rg: query.anno,
+              nome_parte: query.assistito || query.controparte,
+              cf_parte: query.cf,
+              oggetto: query.oggetto,
+              ufficio_nome: query.ufficioNome || query.ufficio,
+              cf_avvocato: asText(status.codice_fiscale_avvocato),
+              cert_thumbprint: cert.thumbprint || null,
+              cert_key: cert.thumbprint || '',
+              purpose: REACT_PST_SESSION_PURPOSE,
+              pst_session_id: session?.sessionId || '',
+            }, 120000)
+          } catch (error: unknown) {
+            const message = asText(error instanceof Error ? error.message : error)
+            if (!/not found/i.test(message)) throw error
+          }
+        }
+        if (!signerPayload) {
+          const prepared = await ensurePstPortalSession(tribunale)
+          session = prepared.session
+          cert = prepared.cert
+          signerPayload = await localSignerJson('/pst/ricerca', {
+            tribunale,
+            numero_rg: query.numero,
+            anno_rg: query.anno,
+            nome_parte: query.assistito || query.controparte,
+            cf_parte: query.cf,
+            cf_avvocato: asText(status.codice_fiscale_avvocato),
+            cert_thumbprint: cert.thumbprint || null,
+            cert_key: cert.thumbprint || '',
+            purpose: REACT_PST_SESSION_PURPOSE,
+            pst_session_id: session.sessionId,
+          }, 120000)
+        }
         const nextSession = rememberPstSession(signerPayload, tribunale, cert) || session
+        if (!nextSession) throw new Error('Sessione PST non inizializzata dal Local Signer.')
+        const snapshot = asRecord(signerPayload.snapshot)
         rows = asList(signerPayload.fascicoli || signerPayload.results).map((row, index) => {
           const item = normalisePstAcquisitionResult(row, index, query, tribunale)
           return {
             ...item,
             raw: {
               ...item.raw,
+              ...(Object.keys(snapshot).length ? { snapshot } : {}),
               pst_session: pstSessionForServer(nextSession, cert),
             },
           }
@@ -1363,32 +1406,38 @@ function AcquisitionWizard({
       let payload: JsonRecord
       if (portal === 'pst') {
         const tribunale = asText(selection.raw.ufficio_codice || resolvedOfficeCode())
-        const { session, cert } = await ensurePstPortalSession(tribunale)
-        const signerPayload = await localSignerJson('/pst/fascicolo-snapshot', {
-          selection: selection.raw,
-          codice_ufficio: tribunale,
-          numero_rg: asText(selection.raw.numero || query.numero),
-          anno_rg: asText(selection.raw.anno || query.anno),
-          id_fascicolo: asText(selection.raw.id_fascicolo),
-          sub_procedimento: asText(selection.raw.sub_procedimento),
-          cf_avvocato: asText(status.codice_fiscale_avvocato),
-          cert_thumbprint: cert.thumbprint || null,
-          cert_key: cert.thumbprint || '',
-          purpose: REACT_PST_SESSION_PURPOSE,
-          pst_session_id: session.sessionId,
-        }, 120000)
-        const nextSession = rememberPstSession(signerPayload, tribunale, cert) || session
-        const snapshot = asRecord(signerPayload.snapshot)
-        const documenti = asList(snapshot.documenti || signerPayload.documenti).map(asRecord)
+        let snapshot = asRecord(selection.raw.snapshot)
+        let documenti = asList(snapshot.documenti).map(asRecord)
+        let pstSessionPayload = asRecord(selection.raw.pst_session)
+        if (!documenti.length) {
+          const { session, cert } = await ensurePstPortalSession(tribunale)
+          const signerPayload = await localSignerJson('/pst/fascicolo-snapshot', {
+            selection: selection.raw,
+            codice_ufficio: tribunale,
+            numero_rg: asText(selection.raw.numero || query.numero),
+            anno_rg: asText(selection.raw.anno || query.anno),
+            id_fascicolo: asText(selection.raw.id_fascicolo),
+            sub_procedimento: asText(selection.raw.sub_procedimento),
+            cf_avvocato: asText(status.codice_fiscale_avvocato),
+            cert_thumbprint: cert.thumbprint || null,
+            cert_key: cert.thumbprint || '',
+            purpose: REACT_PST_SESSION_PURPOSE,
+            pst_session_id: session.sessionId,
+          }, 120000)
+          const nextSession = rememberPstSession(signerPayload, tribunale, cert) || session
+          snapshot = asRecord(signerPayload.snapshot)
+          documenti = asList(snapshot.documenti || signerPayload.documenti).map(asRecord)
+          pstSessionPayload = pstSessionForServer(nextSession, cert)
+        }
         payload = await portalJson(portal, 'preview', {
           selection: {
             ...selection.raw,
             snapshot,
-            pst_session: pstSessionForServer(nextSession, cert),
+            pst_session: pstSessionPayload,
           },
           snapshot,
           documenti,
-          pst_session: pstSessionForServer(nextSession, cert),
+          pst_session: pstSessionPayload,
         })
       } else {
         payload = await portalJson(portal, 'preview', { selection: selection.raw })
@@ -1460,19 +1509,21 @@ function AcquisitionWizard({
           .filter((item) => pstDocumentIdentifierValues(item).length)
         if (documenti.length) {
           const tribunale = asText(selection.raw.ufficio_codice || resolvedOfficeCode())
-          const { session, cert } = await ensurePstPortalSession(tribunale)
+          const cert = await ensurePstCertificate()
+          const session = isPstSessionActive(pstSession, tribunale, cert) ? pstSession : null
           const signerPayload = await localSignerJson('/pst/download-documenti-batch', {
             tribunale,
             cf_avvocato: asText(status.codice_fiscale_avvocato),
             cert_thumbprint: cert.thumbprint || null,
             cert_key: cert.thumbprint || '',
             purpose: REACT_PST_SESSION_PURPOSE,
-            pst_session_id: session.sessionId,
+            pst_session_id: session?.sessionId || '',
             preflight_auth: false,
             original: options.scarica_originale_portale,
             documents: documenti,
           }, 360000)
           const nextSession = rememberPstSession(signerPayload, tribunale, cert) || session
+          if (!nextSession) throw new Error('Sessione PST non inizializzata dal Local Signer.')
           const signerFiles = asList(signerPayload.files).map(asRecord)
           const failures = asList(signerPayload.failures).map(asRecord)
           if (!signerFiles.length) {

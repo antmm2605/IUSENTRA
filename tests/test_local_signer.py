@@ -109,6 +109,9 @@ def test_wizard_pst_usa_snapshot_e_sessione_unica_anche_per_download():
     )
     signer = (root / "tools" / "local_signer.py").read_text(encoding="utf-8")
 
+    assert "/pst/ricerca-snapshot" in signer
+    assert "/pst/ricerca-snapshot" in template
+    assert "function awCanUsePstSearchSnapshot" in template
     assert "/pst/fascicolo-snapshot" in signer
     assert "/pst/fascicolo-snapshot" in template
     assert "AW_PST_SNAPSHOT_PROMISE" in template
@@ -118,6 +121,13 @@ def test_wizard_pst_usa_snapshot_e_sessione_unica_anche_per_download():
     assert "AW_PST_IMPORT_SESSION?.session_id" not in template
     assert "pst_session_id: AW_PST_SESSION?.session_id || ''" in template
     assert "`${AW_PST_LS_BASE}/pst/documenti`" not in template
+    preview_fn = template[
+        template.index("async function awPstPreviewViaLocalSigner"):
+        template.index("function awMapLocalSignerSearchRows")
+    ]
+    assert preview_fn.index("AW_STATE.pstSnapshot?.documenti?.length") < preview_fn.index(
+        "awEnsurePstPortalSession"
+    )
 
 
 def test_pst_preflight_import_riusa_sessione_view_attiva_senza_nuovo_handshake(monkeypatch):
@@ -270,7 +280,7 @@ def test_pst_download_batch_riusa_sessione_view_anche_se_client_chiede_import(mo
     assert captured["payload"]["pst_session_purpose"] == "view"
     assert calls["requested_session_id"] == "SID-VIEW"
     assert calls["ensure_purpose"] == "view"
-    assert calls["prepare_force"] is False
+    assert "prepare_force" not in calls
     assert calls["batch_do_preflight"] is False
     assert calls["batch_cookie_file"] == "C:\\temp\\pst.cookies"
 
@@ -3754,6 +3764,182 @@ def test_pst_prepare_authenticated_session_esegue_preflight_una_sola_volta():
     assert len(calls) == 1
     assert calls[0]["cert_thumbprint"] == "AABBCC11"
     assert calls[0]["cookie_file"]
+
+
+def test_pst_prepare_authenticated_session_non_marca_cookie_pronto_su_preflight_timeout():
+    module = _load_local_signer()
+
+    orig_preflight = module._pst_preflight_auth_curl
+    calls = []
+    try:
+        def _fake_preflight(url, cert_thumbprint=None, pkcs11_uri=None, cookie_file=None):
+            calls.append({"url": url, "cert_thumbprint": cert_thumbprint, "cookie_file": cookie_file})
+            return {
+                "ok": True,
+                "http_code": None,
+                "content_type": None,
+                "warning": "Preflight PST in timeout non bloccante.",
+            }
+
+        module._pst_preflight_auth_curl = _fake_preflight
+        session_entry = module._create_pst_session(
+            cert_thumbprint="AABBCC11",
+            tribunale="0580010",
+            base_url="https://ext.processotelematico.giustizia.it/pda/pycons/GLMI/JPW_SICID",
+            cf_avvocato="RSSMRA80A01H501Z",
+        )
+
+        refreshed, prefer_cookie_only = module._pst_prepare_authenticated_session(
+            session_entry,
+            tribunale="0580010",
+            base_url="https://ext.processotelematico.giustizia.it/pda/pycons/GLMI/JPW_SICID",
+            cf_avvocato="RSSMRA80A01H501Z",
+            cert_thumbprint="AABBCC11",
+        )
+        refreshed_again, prefer_cookie_only_again = module._pst_prepare_authenticated_session(
+            refreshed,
+            tribunale="0580010",
+            base_url="https://ext.processotelematico.giustizia.it/pda/pycons/GLMI/JPW_SICID",
+            cf_avvocato="RSSMRA80A01H501Z",
+            cert_thumbprint="AABBCC11",
+        )
+    finally:
+        module._pst_preflight_auth_curl = orig_preflight
+
+    assert prefer_cookie_only is False
+    assert prefer_cookie_only_again is False
+    assert refreshed_again["auth_ready"] is False
+    assert refreshed_again["preflight_attempted"] is True
+    assert len(calls) == 1
+
+
+def test_pst_ricerca_snapshot_batcha_ricerca_e_documenti_senza_preflight():
+    module = _load_local_signer()
+
+    originals = {
+        "_curl_disponibile": module._curl_disponibile,
+        "_risolvi_base_pst_runtime": module._risolvi_base_pst_runtime,
+        "_pst_url_ricerca": module._pst_url_ricerca,
+        "_pst_url_documenti": module._pst_url_documenti,
+        "_risolvi_codice_ufficio_pst": module._risolvi_codice_ufficio_pst,
+        "_require_certificato_pst": module._require_certificato_pst,
+        "_cf_avvocato_pst": module._cf_avvocato_pst,
+        "_pst_namespace_qbuilder": module._pst_namespace_qbuilder,
+        "_pst_servizio_sigp": module._pst_servizio_sigp,
+        "_ensure_pst_session_entry": module._ensure_pst_session_entry,
+        "_pst_preflight_auth_curl": module._pst_preflight_auth_curl,
+        "_soap_call_pst_session_batch_raw": module._soap_call_pst_session_batch_raw,
+        "_estrai_fault_soap": module._estrai_fault_soap,
+        "_parse_fascicoli_xml": module._parse_fascicoli_xml,
+        "_parse_documenti_xml": module._parse_documenti_xml,
+        "_risolvi_ufficio_da_snapshot": module._risolvi_ufficio_da_snapshot,
+        "_update_pst_session": module._update_pst_session,
+        "_get_pst_session": module._get_pst_session,
+    }
+    captured = {"batch": None, "preflight": 0, "session_ids": []}
+
+    class _FakeHandler:
+        def _read_json(self):
+            return {
+                "tribunale": "0910011",
+                "numero_rg": "274",
+                "anno_rg": "2026",
+                "cert_thumbprint": "AABBCC11",
+                "cf_avvocato": "RSSMRA80A01H501Z",
+                "pst_session_id": "SID-STALENESS-FROM-BROWSER",
+            }
+
+        def _send_json(self, payload, status=200):
+            captured["payload"] = payload
+            captured["status"] = status
+
+    try:
+        module._curl_disponibile = lambda: True
+        module._risolvi_base_pst_runtime = lambda tribunale: "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID"
+        module._pst_url_ricerca = lambda base_url: base_url.rstrip("/")
+        module._pst_url_documenti = lambda base_url: base_url.rstrip("/")
+        module._risolvi_codice_ufficio_pst = lambda tribunale: "0800570094"
+        module._require_certificato_pst = lambda thumbprint: "AABBCC11"
+        module._cf_avvocato_pst = lambda cf, thumbprint: "RSSMRA80A01H501Z"
+        module._pst_namespace_qbuilder = lambda base_url: "urn:test-qbuilder"
+        module._pst_servizio_sigp = lambda base_url: False
+        def _fake_ensure_pst_session_entry(requested_session_id, **kwargs):
+            captured["session_ids"].append(requested_session_id)
+            if requested_session_id:
+                raise RuntimeError(
+                    "session_expired: Sessione accesso PST scaduta o non disponibile."
+                )
+            return (
+                {
+                    "session_id": "SID-SNAPSHOT",
+                    "cookie_file": "C:\\temp\\pst.cookies",
+                    "auth_ready": False,
+                    "cf_avvocato": "RSSMRA80A01H501Z",
+                },
+                True,
+            )
+
+        module._ensure_pst_session_entry = _fake_ensure_pst_session_entry
+
+        def _fake_preflight(*args, **kwargs):
+            captured["preflight"] += 1
+            raise AssertionError("La ricerca-snapshot esatta non deve fare preflight separato")
+
+        def _fake_batch(requests, **kwargs):
+            captured["batch"] = {"requests": list(requests), "kwargs": kwargs}
+            return [
+                (b"<search/>", "HTTP/1.1 200 OK\r\n"),
+                (b"<profile/>", "HTTP/1.1 200 OK\r\n"),
+                (b"<documents/>", "HTTP/1.1 200 OK\r\n"),
+            ]
+
+        module._pst_preflight_auth_curl = _fake_preflight
+        module._soap_call_pst_session_batch_raw = _fake_batch
+        module._estrai_fault_soap = lambda xml: None
+        def _fake_parse_fascicoli(xml):
+            if "profile" not in str(xml):
+                return []
+            return [
+                {
+                    "numero_rg": "274",
+                    "anno_rg": 2026,
+                    "codice_ufficio": "0800570094",
+                    "nome_ufficio": "Tribunale di Palmi",
+                    "ruolo": "Civile",
+                    "stato": "Pendente",
+                    "oggetto": "Usucapione",
+                    "data_iscrizione": "2026-03-05",
+                    "data_udienza": "2026-07-09",
+                    "parti": ["Assistito"],
+                }
+            ]
+
+        module._parse_fascicoli_xml = _fake_parse_fascicoli
+        module._parse_documenti_xml = lambda xml: [
+            {"id_documento": "DOC-1", "nome": "Atto.pdf", "id_cat": "DOC-1"}
+        ]
+        module._risolvi_ufficio_da_snapshot = lambda codice: {"nome": "Tribunale di Palmi"}
+        module._update_pst_session = lambda *args, **kwargs: None
+        module._get_pst_session = lambda *args, **kwargs: None
+
+        module._Handler._pst_ricerca_snapshot(_FakeHandler())
+    finally:
+        for name, value in originals.items():
+            setattr(module, name, value)
+
+    assert captured["status"] == 200
+    assert captured["preflight"] == 0
+    assert captured["payload"]["ok"] is True
+    assert captured["payload"]["fascicoli"][0]["numero_rg"] == "274"
+    assert captured["payload"]["fascicoli"][0]["nome_ufficio"] == "Tribunale di Palmi"
+    assert captured["payload"]["fascicoli"][0]["oggetto"] == "Usucapione"
+    assert captured["payload"]["snapshot"]["fascicolo"]["data_iscrizione"] == "2026-03-05"
+    assert captured["payload"]["documenti"][0]["id_documento"] == "DOC-1"
+    assert captured["payload"]["snapshot"]["fascicolo"]["numero"] == "274"
+    assert captured["session_ids"] == ["SID-STALENESS-FROM-BROWSER", ""]
+    assert len(captured["batch"]["requests"]) == 3
+    assert captured["batch"]["kwargs"]["cert_thumbprint"] == "AABBCC11"
+    assert captured["batch"]["kwargs"]["prefer_cookie_only"] is False
 
 
 def test_pst_ricerca_esatta_arricchisce_profilo_se_mancano_campi_identita():

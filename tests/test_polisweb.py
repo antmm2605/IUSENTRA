@@ -3412,11 +3412,18 @@ def test_acquisizione_wizard_pst_carica_documenti_local_signer_anche_in_modalita
     assert "document.getElementById('awLoadDocuments').addEventListener('click', awLoadDocumentsFromLocalSigner)" in template
     assert "function awEnsurePstPreviewDocumentCatalog" in template
     assert "await awEnsurePstPreviewDocumentCatalog()" in template
+    assert "/pst/ricerca-snapshot" in template
+    assert "function awCanUsePstSearchSnapshot" in template
     assert "/pst/download-documenti-batch" in template
     assert "purpose: 'view'" in template
     assert "purpose: 'import'" not in template
     assert "AW_PST_IMPORT_SESSION?.session_id" not in template
     assert "Importazione interrotta: non salvo il fascicolo solo come metadati" in template
+    assert "function awCanProceedWithPartialPstDownload" in template
+    assert "Aggiorno la pratica locale selezionata con i file ricevuti" in template
+    assert "Collega a pratica esistente" in template
+    assert "Aggiorna pratica esistente" in template
+    assert "Array.isArray(data.value) ? data.value : []" in template
     assert "window.location.href = autoOpenUrl" in template
     assert "Importa tutto" in template
     assert "awFormatDate(identity.data_iscrizione)" in template
@@ -4916,6 +4923,198 @@ def test_api_portale_acquisizione_import_pst_blocca_catalogo_senza_file(tmp_path
     assert fascicolo_reload is not None
     assert len(fascicolo_reload.documenti) == 0
     assert len(fascicolo_reload.depositi_pct) == 0
+
+
+def test_api_portale_acquisizione_import_pst_parziale_aggiorna_pratica_esistente(tmp_path):
+    from pct.auth import GestioneUtenti, RuoloUtente
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    gu = GestioneUtenti(
+        db_path=cfg["AUTH_DB"],
+        audit_path=cfg["AUDIT_DB"],
+        secret_key="test",
+    )
+    gu.crea(
+        username="avvocato",
+        password="Avv12345!",
+        ruolo=RuoloUtente.AVVOCATO,
+        email="avvocato@example.com",
+    )
+
+    gestione_fascicoli = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo = gestione_fascicoli.nuovo(
+        titolo="RG 274/2026 - Usucapione",
+        tipo=TipoFascicolo.CIVILE,
+        tribunale="Tribunale di Palmi",
+        numero_rg="274",
+        anno_rg=2026,
+        oggetto="Usucapione",
+    )
+
+    preview_documenti = [
+        {
+            "id_documento": "DOC-DECRETO-35052610",
+            "nome": "Decreto_35052610.pdf",
+            "tipo": "Decreto",
+            "tipo_atto": "Decreto",
+            "data_deposito": "2026-05-07",
+            "mittente": "RUSCIO EMANUELA",
+            "id_deposito": "BUSTA-PST-274",
+            "id_cat": "35052610",
+        },
+        {
+            "id_documento": "DOC-ATTO-34341272",
+            "nome": "AttoNonCodificato_34341272.pdf",
+            "tipo": "AttoNonCodificato",
+            "tipo_atto": "AttoNonCodificato",
+            "data_deposito": "2026-03-09",
+            "mittente": "MONTAGNESE ROBERTO",
+            "id_deposito": "BUSTA-PST-274",
+            "id_cat": "34341272",
+        },
+    ]
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        client.post(
+            "/login",
+            data={"username": "avvocato", "password": "Avv12345!"},
+            follow_redirects=True,
+        )
+        response = client.post(
+            "/api/portali/pst/acquisizione/import",
+            json={
+                "selection": {
+                    "external_id": "0580010:274:2026:RG",
+                    "numero": "274",
+                    "anno": 2026,
+                    "ufficio_codice": "0580010",
+                    "ufficio_nome": "Tribunale di Palmi",
+                    "procedimento": "GENERALE DEGLI AFFARI CIVILI CONTENZIOSI",
+                    "stato": "Attesa Esito Udienza Prima Comp. / Trattazione (art. 183)",
+                    "oggetto": "Usucapione",
+                    "parti": ["MONTAGNESE ROBERTO"],
+                    "controparti": [],
+                    "payload": {
+                        "numero_rg": "274",
+                        "anno_rg": 2026,
+                        "ruolo": "GENERALE DEGLI AFFARI CIVILI CONTENZIOSI",
+                        "stato": "Attesa Esito Udienza Prima Comp. / Trattazione (art. 183)",
+                        "oggetto": "Usucapione",
+                        "data_iscrizione": "2026-03-07",
+                        "codice_ufficio": "0580010",
+                        "nome_ufficio": "Tribunale di Palmi",
+                    },
+                },
+                "preview": {
+                    "identity": {
+                        "numero": "274",
+                        "anno": 2026,
+                        "ufficio_nome": "Tribunale di Palmi",
+                        "ufficio_codice": "0580010",
+                        "procedimento": "GENERALE DEGLI AFFARI CIVILI CONTENZIOSI",
+                        "stato": "Attesa Esito Udienza Prima Comp. / Trattazione (art. 183)",
+                        "oggetto": "Usucapione",
+                        "data_iscrizione": "2026-03-07",
+                    },
+                    "parti": ["MONTAGNESE ROBERTO"],
+                    "controparti": [],
+                    "difensori": [],
+                    "eventi": [],
+                    "documenti": preview_documenti,
+                    "depositi": [
+                        {
+                            "id_deposito": "BUSTA-PST-274",
+                            "tipo_atto": "DocumentiFascicolo",
+                            "data_deposito": "2026-05-07",
+                            "mittente": "PST",
+                            "documenti": preview_documenti,
+                        }
+                    ],
+                    "counts": {
+                        "parti": 1,
+                        "difensori": 0,
+                        "eventi": 0,
+                        "udienze": 0,
+                        "documenti": 2,
+                        "provvedimenti": 1,
+                        "depositi": 1,
+                        "esiti": 0,
+                    },
+                },
+                "options": {
+                    "importa_dati_pratica": True,
+                    "importa_parti": True,
+                    "importa_difensori": False,
+                    "importa_eventi": False,
+                    "importa_udienze": False,
+                    "importa_scadenze": False,
+                    "importa_documenti": True,
+                    "importa_provvedimenti": True,
+                    "importa_cronologia_depositi": True,
+                    "importa_esiti_telematici": False,
+                    "solo_nuovi": True,
+                    "aggiorna_pratica_esistente": True,
+                    "sovrascrivi_solo_vuoti": True,
+                    "non_toccare_note_interne": True,
+                    "non_duplicare_documenti": True,
+                    "conserva_log_origine_pst": True,
+                    "mantieni_albero_originale": False,
+                },
+                "mapping": {
+                    "mode": "update_existing",
+                    "target_fascicolo_id": fascicolo.id,
+                    "procedimento": "GENERALE DEGLI AFFARI CIVILI CONTENZIOSI",
+                    "materia": "Civile",
+                    "grado": "Primo grado",
+                },
+                "downloaded_files": [
+                    {
+                        "nome": "Decreto_35052610.pdf",
+                        "contenuto_b64": base64.b64encode(b"%PDF-1.4 decreto").decode("ascii"),
+                        "content_type": "application/pdf",
+                        "origine": "pst:JPW_SICID:35052610",
+                        "data_documento": "2026-05-07",
+                        "id_deposito_esterno": "BUSTA-PST-274",
+                        "id_documento_portale": "DOC-DECRETO-35052610",
+                        "id_cat": "35052610",
+                        "tipo_atto": "Decreto",
+                        "tipo": "Decreto",
+                        "mittente": "RUSCIO EMANUELA",
+                    }
+                ],
+            },
+            follow_redirects=True,
+        )
+
+    data = response.get_json()
+    assert response.status_code == 200
+    assert data["ok"] is True
+    assert data["result"]["created"] is False
+    assert data["result"]["summary"]["documenti"] == 1
+    assert data["result"]["summary"]["documenti_catalogo"] == 2
+    assert data["result"]["summary"]["documenti_da_acquisire"] == 1
+    assert data["result"]["summary"]["download_parziale_portale"] is True
+
+    gestione_fascicoli_reload = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo_reload = gestione_fascicoli_reload.get(fascicolo.id)
+    assert fascicolo_reload is not None
+    assert len(fascicolo_reload.documenti) == 1
+    assert len(fascicolo_reload.depositi_pct) == 1
+    deposito = fascicolo_reload.depositi_pct[0]
+    assert len(deposito.documenti_portale) == 2
+    assert len(deposito.documenti_ids) == 1
+    assert any(row["id_cat"] == "34341272" for row in deposito.documenti_portale)
+    assert fascicolo_reload.documenti[0].id_cat_portale == "35052610"
 
 
 def test_api_portale_acquisizione_import_pst_arricchisce_file_locali_con_metadati_preview(tmp_path):

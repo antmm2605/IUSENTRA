@@ -8,6 +8,28 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 
 ## Frontend e gate React
 
+### Local Signer PST ricerca-snapshot 1.6.28 / app 2.216.4
+
+| Verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m compileall tools/local_signer.py` | OK | Sintassi sorgente confermata dopo `auth_ready` prudente e nuovo endpoint `/pst/ricerca-snapshot`. |
+| `python -m pytest -q tests/test_local_signer.py::test_wizard_pst_usa_snapshot_e_sessione_unica_anche_per_download tests/test_local_signer.py::test_pst_prepare_authenticated_session_esegue_preflight_una_sola_volta tests/test_local_signer.py::test_pst_prepare_authenticated_session_non_marca_cookie_pronto_su_preflight_timeout tests/test_local_signer.py::test_pst_ricerca_snapshot_batcha_ricerca_e_documenti_senza_preflight tests/test_polisweb.py::test_acquisizione_wizard_pst_carica_documenti_local_signer_anche_in_modalita_assistita tests/test_react_shell.py::test_react_wizard_pst_verifica_local_signer_dal_browser --tb=short` | OK | 6/6 passati: preflight timeout non abilita cookie-only, ricerca esatta batcha ricerca+documenti e wizard Flask/React conoscono il nuovo endpoint. |
+| `npm --prefix frontend run typecheck` | OK | TypeScript confermato dopo riuso snapshot in `TelematicoSurfacePage`. |
+| `python tools\build_dist.py` | OK | Generati `SetupLocalSigner-1.6.28.exe`, alias `SetupLocalSigner.exe`, `InstallaLocalSigner-1.6.28.command`, `InstallaLocalSigner-1.6.28.run`, PS1 interno e note release. |
+| `npm --prefix frontend run build` | OK | Build Vite 2.216.4 completata; asset React rigenerati in `web/static/react`. |
+| `python tools\sync_packaging_files.py --check` | OK | Packaging sincronizzato per app 2.216.4. |
+| `python -m compileall tools\local_signer.py tools\dist\local_signer.py tests\test_local_signer.py tests\test_polisweb.py -q` | OK | Sintassi confermata su sorgente, dist e guardrail PST. |
+| `python -m pytest -q tests\test_local_signer.py --tb=short` | OK | 124/124 passati: dist, sessioni PST, preflight prudente, batch e endpoint ricerca-snapshot confermati. |
+| `python -m pytest -q tests\test_polisweb.py::test_dettaglio_fascicolo_mostra_download_ufficiale_portale tests\test_polisweb.py::test_acquisizione_wizard_pst_preview_error_usa_fallback_assistito tests\test_polisweb.py::test_acquisizione_wizard_pst_carica_documenti_local_signer_anche_in_modalita_assistita tests\test_polisweb.py::test_portale_acquisizione_wizard_renderizza_javascript_valido tests\test_react_shell.py::test_react_wizard_pst_verifica_local_signer_dal_browser --tb=short` | OK | 5/5 passati: wizard PST, fallback assistito, JavaScript e superficie React allineati. |
+| `python -m compileall pct\fascicoli.py web\services\telematico_runtime.py tests\test_polisweb.py -q` | OK | Sintassi confermata dopo import PST parziale su pratica esistente e merge metadati portale arricchito. |
+| `python -m pytest -q tests\test_polisweb.py::test_api_portale_acquisizione_import_pst_blocca_catalogo_senza_file tests\test_polisweb.py::test_api_portale_acquisizione_import_pst_parziale_aggiorna_pratica_esistente tests\test_polisweb.py::test_acquisizione_wizard_pst_carica_documenti_local_signer_anche_in_modalita_assistita --tb=short` | OK | 3/3 passati: zero file PST resta bloccato, pratica esistente con download parziale viene aggiornata e il documento mancante resta catalogato con identificativi portale. |
+| `python -m pytest -q tests\test_polisweb.py::test_api_portale_acquisizione_import_pst_parziale_aggiorna_pratica_esistente tests\test_polisweb.py::test_api_portale_acquisizione_import_pst_arricchisce_file_locali_con_metadati_preview tests\test_polisweb.py::test_dettaglio_fascicolo_mostra_download_ufficiale_portale --tb=short` | OK | 3/3 passati: regressione laterale su metadati portale, dettaglio fascicolo e arricchimento file PST esclusa. |
+| `python -m pytest -q tests\test_polisweb.py::test_acquisizione_wizard_pst_carica_documenti_local_signer_anche_in_modalita_assistita --tb=short` | OK | Guardrail statico aggiornato: autocomplete uffici supporta anche risposta `/api/uffici` con chiave `value`. |
+| Browser reale `http://127.0.0.1:8080/portali/pst/acquisizione` Palmi RG 274/2026 | OK | Selezionato Tribunale di Palmi, ricerca snapshot con dati completi, Step 5 su `Aggiorna pratica esistente`, import finale su `/fascicoli/B6A03AE6#sezione-documenti-fascicolo`; log Local Signer con `/pst/ricerca-snapshot` e `/pst/download-documenti-batch`, senza `/pst/preflight-auth` intermedio. |
+| `python tools\check_local_signer_boundaries.py` | OK | Boundary check Local Signer confermato dopo bump 1.6.28. |
+| `python -m pytest -q tests\test_packaging_consistency.py tests\test_release_readiness.py --tb=short` | OK | 8/8 passati: packaging e readiness release confermate per 2.216.4. |
+| `rg -n "fetch\([^\r\n]*(pst\.giustizia\|processotelematico\.giustizia\|giustizia\.it)\|XMLHttpRequest\([^\r\n]*(pst\.giustizia\|processotelematico\.giustizia\|giustizia\.it)" frontend\src web\templates integrations -g "*.ts" -g "*.tsx" -g "*.js" -g "*.html"` | OK | Nessuna chiamata diretta ai domini ministeriali nei sorgenti browser; il flusso PST resta sul Local Signer locale. |
+
 ### Local Signer PST sessione unica 1.6.27 / app 2.216.3
 
 | Verifica | Esito | Nota |
@@ -647,3 +669,14 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `python -m pytest -q tests/test_dashboard_mailbox_sync.py tests/test_email_client.py::test_email_ordinaria_sincronizza_usa_imap_smtp_dalle_impostazioni tests/test_email_client.py::test_email_blueprint_usa_storage_tenant_per_sincronizzazione --tb=short` | OK | 7/7 passati: sync PEC/ordinaria resta tenant-aware con contesto valido e non regredisce il bridge dashboard mailbox. |
 | `python tools/sync_packaging_files.py --check` | OK | Packaging sincronizzato dopo bump 2.215.1. |
 | `python -m pytest -q tests/test_packaging_consistency.py tests/test_release_readiness.py --tb=short` | OK | 8/8 passati: coerenza packaging e readiness confermate per 2.215.1. |
+## PST Palmi RG 274/2026 / Local Signer 1.6.28 - 2026-05-11
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest -q tests\test_local_signer.py::test_wizard_pst_usa_snapshot_e_sessione_unica_anche_per_download tests\test_local_signer.py::test_pst_download_batch_riusa_sessione_view_anche_se_client_chiede_import tests\test_local_signer.py::test_pst_ricerca_snapshot_batcha_ricerca_e_documenti_senza_preflight --tb=short` | OK | 3/3 passati: snapshot PST accorpa ricerca/profilo/catalogo, conserva `data_iscrizione`, e il download batch con `preflight_auth:false` non chiama il preflight preparatorio. |
+| `npm --prefix frontend run typecheck` | OK | TypeScript confermato dopo il riuso sessione senza preflight nel download batch React. |
+| `python -m compileall tools\local_signer.py tests\test_local_signer.py -q` | OK | Sintassi confermata per Local Signer 1.6.28 e test PST mirati. |
+| `python tools\build_dist.py` | OK | Rigenerati `SetupLocalSigner-1.6.28.exe`, alias `SetupLocalSigner.exe` e installer macOS/Linux dopo i fix PST. |
+| `npm --prefix frontend run build` | OK | Build Vite completata e asset React rigenerati. |
+| Browser reale `http://127.0.0.1:8080/portali/pst/acquisizione`, Tribunale di Palmi RG 274/2026 | OK con issue funzionale catalogo | Una sola `/pst/ricerca-snapshot` per consultazione; metadati completi recuperati (`Oggetto: Usucapione`, procedimento, stato, iscrizione 07/03/2026); tab documenti con 6 elementi; download eseguito con sola `/pst/download-documenti-batch` senza `/pst/preflight-auth`. Traccia locale ignorata dal git in `artifacts/pst-import-traces/palmi-274-2026-20260511-165722.local.*`. |
+| Docker locale `docker compose build app`, `docker compose up -d --no-build app`, `GET /api/pronto` | OK | Runtime locale aggiornato a `2.216.4`; app pronta e Local Signer `1.6.28` attivo su `127.0.0.1:27272`. |

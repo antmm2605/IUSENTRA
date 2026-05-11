@@ -1089,8 +1089,94 @@ async function awEnsurePstCertReady({ forceDialog = false } = {}) {
     AW_CERT_SELECT_PROMISE = null;
   }
 }
+function awPstLooksLikeSigpOffice() {
+  const label = `${document.getElementById('awOfficeInput')?.value || ''} ${document.getElementById('awOfficeValue')?.value || ''}`;
+  return /giudice\s+di\s+pace|\bgdp\b/i.test(label);
+}
+function awCanUsePstSearchSnapshot(query) {
+  return !!(
+    AW_BOOT.portale === 'pst'
+    && String(query?.ufficio_codice || '').trim()
+    && String(query?.numero || '').trim()
+    && String(query?.anno || '').trim()
+    && !awPstLooksLikeSigpOffice()
+  );
+}
+function awMapPstLocalSignerSearchRows(rows, query, tribunale) {
+  return (rows || []).map(row => {
+    const manualMode = !!(row.manual_mode || row.verifica_browser_ufficiale || row.portale_url);
+    const partiDettaglio = Array.isArray(row.parti_dettaglio) ? row.parti_dettaglio : [];
+    const contropartiDaRuolo = partiDettaglio
+      .filter(item => /convenuto|resistente|controparte/i.test(String(item.tipo || '')))
+      .map(item => String(item.nome || '').trim())
+      .filter(Boolean);
+    const partiDaRuolo = partiDettaglio
+      .filter(item => !/convenuto|resistente|controparte/i.test(String(item.tipo || '')))
+      .map(item => String(item.nome || '').trim())
+      .filter(Boolean);
+    const mapped = {
+      external_id: `${row.codice_ufficio || tribunale}:${row.numero_rg}:${row.anno_rg}:${row.ruolo || ''}`,
+      id_fascicolo: row.id_fascicolo || '',
+      numero: row.numero_rg || '',
+      anno: Number(row.anno_rg || 0),
+      ufficio_codice: row.codice_ufficio || tribunale || '',
+      ufficio_nome: row.nome_ufficio || document.getElementById('awOfficeInput').value || '',
+      procedimento: row.ruolo || '',
+      sub_procedimento: row.sub_procedimento || '',
+      sezione: row.sezione || '',
+      stato: row.stato || '',
+      oggetto: row.oggetto || query.oggetto || '',
+      parti: Array.isArray(row.parti) && row.parti.length ? row.parti : (partiDaRuolo.length ? partiDaRuolo : awSplitPeople(query.assistito)),
+      controparti: Array.isArray(row.controparti) && row.controparti.length ? row.controparti : (contropartiDaRuolo.length ? contropartiDaRuolo : awSplitPeople(query.controparte)),
+      data_iscrizione: row.data_iscrizione || '',
+      data_udienza: row.data_udienza || '',
+      ultima_attivita: row.data_udienza || row.data_iscrizione || '',
+      payload: row,
+    };
+    return manualMode
+      ? awMarkSelectionManual(mapped, row.messaggio_operativo || row.motivo_fallback || '', row.portale_url || '')
+      : mapped;
+  });
+}
 async function awPstSearchViaLocalSigner(query, retry = true) {
   const tribunale = String(query.ufficio_codice || '').trim();
+  if (awCanUsePstSearchSnapshot(query)) {
+    await awEnsurePstCertReady();
+    try {
+      const data = await awJson(`${AW_PST_LS_BASE}/pst/ricerca-snapshot`, {
+        method: 'POST',
+        body: JSON.stringify({
+          tribunale,
+          numero_rg: query.numero || '',
+          anno_rg: query.anno || '',
+          nome_parte: query.assistito || query.controparte || '',
+          cf_parte: query.cf || '',
+          oggetto: query.oggetto || '',
+          ufficio_nome: document.getElementById('awOfficeInput')?.value || '',
+          cf_avvocato: AW_STATE.status.codice_fiscale_avvocato || '',
+          cert_thumbprint: AW_PST_CERT?.thumbprint || null,
+          cert_key: AW_PST_CERT?.thumbprint || '',
+          purpose: 'view',
+          pst_session_id: AW_PST_SESSION?.session_id || '',
+        }),
+      });
+      if (!data.ok) {
+        const msg = data.errore || 'Ricerca PST non riuscita';
+        if (!/not found/i.test(String(msg))) throw new Error(msg);
+      } else {
+        awRememberPstSession(data, tribunale, 'view');
+        AW_STATE.pstSnapshot = data.snapshot || null;
+        AW_PST_SNAPSHOT_PROMISE = null;
+        return awMapPstLocalSignerSearchRows(data.fascicoli || [], query, tribunale);
+      }
+    } catch (err) {
+      if (retry && awIsPstSessionExpiredError(err)) {
+        awClearPstSession('view');
+        return awPstSearchViaLocalSigner(query, false);
+      }
+      if (!/not found/i.test(awErrorMessage(err))) throw err;
+    }
+  }
   await awEnsurePstPortalSession(tribunale, { purpose: 'view' });
   try {
     const data = await awJson(`${AW_PST_LS_BASE}/pst/ricerca`, {
@@ -1110,38 +1196,7 @@ async function awPstSearchViaLocalSigner(query, retry = true) {
     });
     if (!data.ok) throw new Error(data.errore || 'Ricerca PST non riuscita');
     awRememberPstSession(data, tribunale, 'view');
-    return (data.fascicoli || []).map(row => {
-      const manualMode = !!(row.manual_mode || row.verifica_browser_ufficiale || row.portale_url);
-      const partiDettaglio = Array.isArray(row.parti_dettaglio) ? row.parti_dettaglio : [];
-      const contropartiDaRuolo = partiDettaglio
-        .filter(item => /convenuto|resistente|controparte/i.test(String(item.tipo || '')))
-        .map(item => String(item.nome || '').trim())
-        .filter(Boolean);
-      const partiDaRuolo = partiDettaglio
-        .filter(item => !/convenuto|resistente|controparte/i.test(String(item.tipo || '')))
-        .map(item => String(item.nome || '').trim())
-        .filter(Boolean);
-      const mapped = {
-        external_id: `${row.codice_ufficio || tribunale}:${row.numero_rg}:${row.anno_rg}:${row.ruolo || ''}`,
-        id_fascicolo: row.id_fascicolo || '',
-        numero: row.numero_rg || '',
-        anno: Number(row.anno_rg || 0),
-        ufficio_codice: row.codice_ufficio || tribunale || '',
-        ufficio_nome: row.nome_ufficio || document.getElementById('awOfficeInput').value || '',
-        procedimento: row.ruolo || '',
-        sub_procedimento: row.sub_procedimento || '',
-        sezione: row.sezione || '',
-        stato: row.stato || '',
-        oggetto: row.oggetto || query.oggetto || '',
-        parti: Array.isArray(row.parti) && row.parti.length ? row.parti : (partiDaRuolo.length ? partiDaRuolo : awSplitPeople(query.assistito)),
-        controparti: Array.isArray(row.controparti) && row.controparti.length ? row.controparti : (contropartiDaRuolo.length ? contropartiDaRuolo : awSplitPeople(query.controparte)),
-        ultima_attivita: row.data_udienza || row.data_iscrizione || '',
-        payload: row,
-      };
-      return manualMode
-        ? awMarkSelectionManual(mapped, row.messaggio_operativo || row.motivo_fallback || '', row.portale_url || '')
-        : mapped;
-    });
+    return awMapPstLocalSignerSearchRows(data.fascicoli || [], query, tribunale);
   } catch (err) {
     if (retry && awIsPstSessionExpiredError(err)) {
       awClearPstSession('view');
@@ -1152,9 +1207,9 @@ async function awPstSearchViaLocalSigner(query, retry = true) {
 }
 async function awPstPreviewViaLocalSigner(selection, retry = true) {
   const tribunale = String(selection?.ufficio_codice || '').trim();
-  await awEnsurePstPortalSession(tribunale, { purpose: 'view' });
   if (AW_PST_SNAPSHOT_PROMISE) return AW_PST_SNAPSHOT_PROMISE;
   if (AW_STATE.pstSnapshot?.documenti?.length) return AW_STATE.pstSnapshot.documenti;
+  await awEnsurePstPortalSession(tribunale, { purpose: 'view' });
   try {
     AW_PST_SNAPSHOT_PROMISE = (async () => {
       const data = await awJson(`${AW_PST_LS_BASE}/pst/fascicolo-snapshot`, {
@@ -1457,7 +1512,7 @@ function awHasPortalDocumentIdentifier(item) {
 }
 async function awPstDownloadSelectionViaLocalSigner(retry = true) {
   const tribunale = String(AW_STATE.selection?.ufficio_codice || '').trim();
-  await awEnsurePstPortalSession(tribunale, { purpose: 'view' });
+  if (!AW_PST_CERT) await awEnsurePstCertReady();
   const options = awCurrentOptions();
   const scaricaOriginale = !!options.scarica_originale_portale;
   const previewDocs = awSelectedPreviewDocuments();
@@ -1539,7 +1594,7 @@ function awHideDownloadProgress() {
   if (wrapper) wrapper.style.display = 'none';
 }
 async function awPstDownloadDocumentoSingolo(tribunale, doc, retry = true) {
-  await awEnsurePstPortalSession(tribunale, { purpose: 'view' });
+  if (!AW_PST_CERT) await awEnsurePstCertReady();
   const scaricaOriginale = !!awCurrentOptions().scarica_originale_portale;
   try {
     const data = await awJson(`${AW_PST_LS_BASE}/pst/download-documenti-batch`, {
@@ -1561,7 +1616,6 @@ async function awPstDownloadDocumentoSingolo(tribunale, doc, retry = true) {
   } catch (err) {
     if (retry && awIsPstSessionExpiredError(err)) {
       awClearPstSession('view');
-      await awEnsurePstPortalSession(tribunale, { force: true, purpose: 'view' });
       return awPstDownloadDocumentoSingolo(tribunale, doc, false);
     }
     throw err;
@@ -1904,6 +1958,8 @@ async function awRunSearch() {
   const meta = document.getElementById('awResultsMeta');
   const root = document.getElementById('awResults');
   const query = awCurrentQuery();
+  AW_STATE.pstSnapshot = null;
+  AW_PST_SNAPSHOT_PROMISE = null;
   meta.textContent = 'Ricerca in corso...';
   root.innerHTML = '<div class="aw-box text-muted">Sto interrogando il portale e preparando i risultati utili alla verifica.</div>';
   try {
@@ -1936,7 +1992,6 @@ async function awRunSearch() {
     AW_STATE.preview = null;
     AW_STATE.analysis = null;
     AW_STATE.importResult = null;
-    AW_STATE.pstSnapshot = null;
     awRenderResults();
     awRenderPreview();
     awPostProcessPreviewDom();
@@ -2351,6 +2406,16 @@ function awCurrentMapping() {
     grado: document.getElementById('awGrado')?.value.trim() || '',
   };
 }
+function awCanProceedWithPartialPstDownload(downloadSummary, downloadedFiles) {
+  if (AW_BOOT.portale !== 'pst') return true;
+  if (!downloadSummary || !Array.isArray(downloadedFiles) || !downloadedFiles.length) return false;
+  const mapping = awCurrentMapping();
+  if (['attach_existing', 'update_existing'].includes(mapping.mode) && mapping.target_fascicolo_id) {
+    return true;
+  }
+  const analysis = AW_STATE.analysis || {};
+  return !!(analysis.auto_integrated && analysis.auto_target_fascicolo_id);
+}
 function awLinkedFascicoloMatch() {
   const linked = AW_BOOT.linkedFascicolo || null;
   if (!linked || !linked.id) return null;
@@ -2513,9 +2578,13 @@ async function awStartImport() {
       downloadSummary = await awEnsurePstDownloadedFiles();
       downloadedFiles = Array.isArray(downloadSummary.files) ? downloadSummary.files : [];
       if (AW_STATE.downloadWarning) {
-        importBtn.disabled = false;
-        state.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle me-1"></i>${awEscape(AW_STATE.downloadWarning)}</span><br><small class="text-muted">Importazione interrotta: per PST devono essere scaricati tutti i documenti selezionati prima di aggiornare il fascicolo.</small>`;
-        return;
+        if (awCanProceedWithPartialPstDownload(downloadSummary, downloadedFiles)) {
+          state.innerHTML = `<span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>${awEscape(AW_STATE.downloadWarning)}</span><br><small class="text-muted">Aggiorno la pratica locale selezionata con i file ricevuti e conservo i documenti non restituiti dal PST come voci ufficiali da acquisire.</small>`;
+        } else {
+          importBtn.disabled = false;
+          state.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle me-1"></i>${awEscape(AW_STATE.downloadWarning)}</span><br><small class="text-muted">Importazione interrotta: seleziona <strong>Collega a pratica esistente</strong> o <strong>Aggiorna pratica esistente</strong> per aggiornare una pratica gia presente con i file disponibili.</small>`;
+          return;
+        }
       } else {
         state.innerHTML = `<i class="bi bi-check-circle text-success me-1"></i>Download completato: ${downloadedFiles.length}/${downloadSummary.documenti_richiesti || downloadedFiles.length} allegati scaricati. Importazione in corso...`;
       }
@@ -2595,6 +2664,7 @@ async function awStartImport() {
       <div class="small">
         Documenti importati: ${awEscape(summary.documenti || 0)} ·
         Documenti catalogati: ${awEscape(summary.documenti_catalogo || AW_STATE.preview?.counts?.documenti || 0)} ·
+        Da acquisire: ${awEscape(summary.documenti_da_acquisire || 0)} ·
         Depositi censiti: ${awEscape(summary.depositi || 0)} ·
         Eventi generati: ${awEscape(summary.eventi_generati || 0)} ·
         Scadenze generate: ${awEscape(summary.scadenze_generate || 0)} ·
@@ -2746,7 +2816,7 @@ function awInitOfficeAutocomplete() {
       try {
         const resp = await fetch(`/api/uffici?q=${encodeURIComponent(q)}`);
         const data = await resp.json();
-        const rows = Array.isArray(data) ? data : [];
+        const rows = Array.isArray(data) ? data : (Array.isArray(data.value) ? data.value : []);
         const filtered = rows.filter(item => !allowed || allowed.has(String(item.tipo || '').toUpperCase())).slice(0, 12);
         if (!filtered.length) {
           dropdown.innerHTML = '<div class="list-group-item small text-muted">Nessun ufficio coerente con il portale selezionato.</div>';

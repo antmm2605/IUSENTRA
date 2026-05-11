@@ -1299,6 +1299,7 @@ def test_react_wizard_pst_verifica_local_signer_dal_browser():
     assert "disabled={localSigner.checking || localSigner.unsupported}" in source
     assert "REACT_PST_SESSION_KEY" in source
     assert "localSignerJson('/pst/preflight-auth'" in source
+    assert "localSignerJson('/pst/ricerca-snapshot'" in source
     assert "localSignerJson('/pst/ricerca'" in source
     assert "localSignerJson('/pst/fascicolo-snapshot'" in source
     assert "localSignerJson('/pst/download-documenti-batch'" in source

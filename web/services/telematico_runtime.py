@@ -2046,6 +2046,8 @@ def build_telematico_runtime(
         analysis = _analyze_portale_import(portale, selection, preview, options, mapping)
         if analysis["blockers"]:
             raise ValueError("Sono presenti blocchi da risolvere prima dell'importazione.")
+        mode, resolved_target, auto_integrated = _resolve_portale_import_target(portale, selection, mapping)
+        partial_pst_existing_update = False
 
         preview_for_files = _filter_portale_preview_by_options(preview, options)
         importa_file_portale = _preview_richiede_file_portale(options)
@@ -2073,7 +2075,11 @@ def build_telematico_runtime(
                     "Importazione PST interrotta: il lotto scaricato non contiene file documentali "
                     "riconducibili al catalogo del fascicolo."
                 )
-            if len(decoded_items) < documenti_attesi:
+            partial_pst_existing_update = len(decoded_items) < documenti_attesi and mode in {
+                "attach_existing",
+                "update_existing",
+            }
+            if len(decoded_items) < documenti_attesi and not partial_pst_existing_update:
                 raise ValueError(
                     f"Importazione PST interrotta: scaricati {len(decoded_items)} documenti su "
                     f"{documenti_attesi}. Il fascicolo viene aggiornato solo quando il lotto e' completo."
@@ -2087,6 +2093,11 @@ def build_telematico_runtime(
                 "options": options,
                 "mapping": mapping,
                 "analysis": analysis,
+                "download": {
+                    "documenti_attesi": documenti_attesi,
+                    "documenti_decodificati": len(decoded_items),
+                    "parziale_su_pratica_esistente": partial_pst_existing_update,
+                },
                 "utente": user_name,
             }
         )
@@ -2094,7 +2105,6 @@ def build_telematico_runtime(
         gf = get_fascicoli()
         gc = get_clienti()
         gsog = get_soggetti()
-        mode, resolved_target, auto_integrated = _resolve_portale_import_target(portale, selection, mapping)
         id_fasc = ""
         created = False
 
@@ -2288,6 +2298,8 @@ def build_telematico_runtime(
         )
 
         fasc = gf.get(id_fasc)
+        documenti_importati_count = int(import_result.get("documenti_importati", 0) or 0)
+        documenti_da_acquisire = max(documenti_attesi - documenti_importati_count, 0)
         return {
             "id_fascicolo": id_fasc,
             "created": created,
@@ -2303,8 +2315,9 @@ def build_telematico_runtime(
             "summary": {
                 "numero_pratica": getattr(fasc, "numero", ""),
                 "titolo": getattr(fasc, "titolo", ""),
-                "documenti": int(import_result.get("documenti_importati", 0) or 0),
+                "documenti": documenti_importati_count,
                 "documenti_catalogo": documenti_attesi,
+                "documenti_da_acquisire": documenti_da_acquisire,
                 "depositi": len(import_result.get("depositi_agganciati") or [])
                 or catalogo_depositi_synced
                 or int(preview.get("counts", {}).get("depositi", 0) or 0),
@@ -2317,6 +2330,7 @@ def build_telematico_runtime(
                 "lotto_generico": str(import_result.get("lotto_generico") or ""),
                 "modalita_documento_portale": "originale" if scarica_originale_portale else "copia",
                 "catalogo_solo_metadati": bool(importa_file_portale and documenti_attesi > 0 and not files),
+                "download_parziale_portale": bool(partial_pst_existing_update),
                 "albero_originale_salvato": bool(albero_originale_salvato),
             },
         }

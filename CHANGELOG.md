@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.216.4 - 2026-05-11
+
+- Ridotti i prompt PIN nel wizard PST: la ricerca esatta RG/anno usa il nuovo endpoint Local Signer `/pst/ricerca-snapshot`, che accorpa ricerca fascicolo e catalogo documenti in un solo processo `curl`.
+- Rafforzato il Local Signer `1.6.28`: un preflight PST terminato in timeout non viene piu' trattato come sessione cookie pronta, evitando il tentativo cookie-only seguito da nuovo handshake mTLS.
+- Il wizard Flask e la superficie React riusano lo snapshot ottenuto dalla ricerca esatta e saltano la successiva chiamata `/pst/fascicolo-snapshot` quando il catalogo documenti e' gia' disponibile.
+- Lo snapshot PST accorpato include anche il profilo fascicolo: oggetto, procedimento, stato, data di iscrizione, prossima udienza e parti non vengono impoveriti rispetto al flusso precedente.
+- Il download PST con `preflight_auth:false` usa direttamente il batch mTLS senza aprire un preflight preparatorio separato; la prova reale su Palmi RG 274/2026 ha confermato `/pst/ricerca-snapshot` e `/pst/download-documenti-batch` senza chiamate intermedie.
+- Registrata una traccia locale ignorata dal git per Palmi RG 274/2026, utile alla futura suddivisione UI del fascicolo: un documento `AttoNonCodificato` risulta catalogato dal PST ma non restituito nel download.
+- Se il fascicolo locale e' gia' presente e l'utente sceglie `Collega` o `Aggiorna`, un download PST parziale non blocca piu' l'import: i file ricevuti vengono acquisiti e i documenti non restituiti restano nel catalogo ufficiale come voci da acquisire.
+- Il merge dei metadati dei documenti portale conserva gli identificativi piu' ricchi (`idCat`, `idDocumento`, `idRepeatto`, `msgId`) quando una voce era gia' stata censita con dati piu' poveri.
+- L'autocomplete uffici del wizard accetta anche la risposta `/api/uffici` nel formato `{value:[...]}`, evitando che uffici reali come Tribunale di Palmi risultino non selezionabili.
+- Verificato in browser reale Palmi RG 274/2026: selezione `Aggiorna pratica esistente`, import completato su `B6A03AE6#sezione-documenti-fascicolo` e nessun `/pst/preflight-auth` tra ricerca snapshot e download batch.
+- Rigenerati `SetupLocalSigner-1.6.28.exe`, alias `SetupLocalSigner.exe` e installer macOS/Linux.
+
 ## 2.216.3 - 2026-05-11
 
 - Unificato il flusso PST del wizard di acquisizione: preflight, consultazione fascicolo e download batch propagano lo stesso `pst_session_id` e usano sempre la sessione `view`, evitando la vecchia sessione separata di import.

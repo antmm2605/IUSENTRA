@@ -1,5 +1,34 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-11 - Riduzione prompt PIN PST / Local Signer 1.6.28 / app 2.216.4
+
+La diagnosi reale sul fascicolo PST RG 274/2026 del Tribunale di Palmi ha
+confermato che il `pst_session_id` non veniva perso: i prompt PIN ripetuti
+nascevano dal portale che rifiutava il cookie-only e costringeva nuovi round
+mTLS in processi `curl` separati.
+
+- il Local Signer non marca piu' `auth_ready` quando il preflight termina senza
+  HTTP reale, cosi' una sessione in timeout non prova un cookie-only destinato
+  a fallire prima della chiamata operativa;
+- aggiunto `/pst/ricerca-snapshot`, endpoint esatto RG/anno che batcha ricerca
+  e catalogo documenti nello stesso processo `curl`;
+- il wizard Flask e `TelematicoSurfacePage` usano il nuovo endpoint per ricerche
+  esatte PST non SIGP e riusano lo snapshot ottenuto, saltando la chiamata
+  separata a `/pst/fascicolo-snapshot`;
+- i download continuano a usare esclusivamente `/pst/download-documenti-batch`
+  con lo stesso `pst_session_id` di visualizzazione.
+- quando la pratica locale e' gia' presente e viene selezionato `Collega` o
+  `Aggiorna`, un download PST parziale aggiorna il fascicolo con i file
+  ricevuti e mantiene i documenti non restituiti nel catalogo ufficiale come
+  voci da acquisire, senza creare duplicati.
+- l'autocomplete uffici del wizard gestisce anche il payload `/api/uffici`
+  in formato `{value:[...]}`, cosi' uffici reali come Tribunale di Palmi
+  restano selezionabili dopo il reload del container.
+- verifica browser reale aggiornata: Palmi RG 274/2026 importato su fascicolo
+  esistente `B6A03AE6#sezione-documenti-fascicolo` con solo
+  `/pst/ricerca-snapshot` e `/pst/download-documenti-batch` nel log Local
+  Signer.
+
 ## Stato tranche 2026-05-11 - Sessione PST unica wizard / Local Signer 1.6.27 / app 2.216.3
 
 Il wizard di acquisizione PST non separa piu' consultazione e import in due

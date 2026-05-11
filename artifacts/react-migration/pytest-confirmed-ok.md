@@ -8,6 +8,24 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 
 ## Frontend e gate React
 
+### Local Signer distribuito 1.6.26 / app 2.216.2
+
+| Verifica | Esito | Nota |
+| --- | --- | --- |
+| `python tools/build_dist.py` | OK | Generati `SetupLocalSigner-1.6.26.exe`, alias `SetupLocalSigner.exe`, `InstallaLocalSigner-1.6.26.command`, `InstallaLocalSigner-1.6.26.run`, PS1 interno e note release. |
+| `python -m compileall tools\local_signer.py tests\test_local_signer.py -q` | OK | Sintassi confermata dopo bump Local Signer e guardrail dist. |
+| `python tools\check_local_signer_boundaries.py` | OK | Boundary check Local Signer confermato. |
+| `python tools\sync_packaging_files.py --check` | OK | Versione applicativa 2.216.2 sincronizzata tra packaging, Docker e Railway. |
+| `python -m pytest -q tests\test_local_signer.py::test_local_signer_dist_allineato_a_sorgente_e_installer_versionati tests\test_local_signer.py::test_installer_local_signer_windows_legacy_restituisce_exe_senza_login tests\test_local_signer.py::test_installer_local_signer_windows_setup_route_e_pubblica tests\test_local_signer.py::test_installer_local_signer_windows_exe_route_se_bundle_presente tests\test_local_signer.py::test_installer_local_signer_macos_e_pubblico tests\test_local_signer.py::test_installer_local_signer_linux_e_pubblico --tb=short` | OK | 6/6 passati: dist allineato alla sorgente, alias EXE valido e download installer pubblici funzionanti. |
+| `python -m pytest -q tests\test_packaging_consistency.py tests\test_release_readiness.py --tb=short` | OK | 8/8 passati: coerenza packaging e readiness release confermate dopo 2.216.2. |
+| `git diff --check` | OK | Nessun errore whitespace; presenti solo warning CRLF su file runtime/preesistenti e package JSON. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker` | OK | Rebuild locale no-cache completato; wheel `pct-studio-legale==2.216.2` inclusa nell'immagine. |
+| `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx` | OK | Servizi locali riavviati sulle immagini 2.216.2. |
+| `docker compose ps` | OK | `iusentra-app`, `iusentra-scheduler`, `iusentra-ocr` e `iusentra-redis` healthy; `iusentra-nginx` attivo. |
+| `docker exec iusentra-app python -c "import pct; print(pct.__version__)"` | OK | Versione runtime container locale: `2.216.2`. |
+| `Invoke-WebRequest -UseBasicParsing -Uri http://127.0.0.1:8080/api/pronto -TimeoutSec 30` | OK | Readiness locale 200 con `versione=2.216.2`. |
+| `docker exec iusentra-app python -c "... SetupLocalSigner-1.6.26.exe ..."` | OK | Nel container locale e' presente `SetupLocalSigner-1.6.26.exe`, alias `SetupLocalSigner.exe` valido e header Windows `MZ`. |
+
 ### Hotfix PST Local Signer batch 2.216.1
 
 | Verifica | Esito | Nota |

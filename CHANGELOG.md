@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.216.2 - 2026-05-11
+
+- Rilasciato IUSENTRA Local Signer `1.6.26` e rigenerati i pacchetti Windows, macOS e Linux in `tools/dist`, incluso `SetupLocalSigner-1.6.26.exe` e l'alias `SetupLocalSigner.exe`.
+- Riallineato il pacchetto distribuito alla sorgente Local Signer corrente: TTL sessione PIN a 1800 secondi e riuso dei cookie della sessione PST di consultazione quando viene aperta una sessione di import con stesso certificato e ufficio.
+
 ## 2.216.1 - 2026-05-11
 
 - Corretto il flusso PST via Local Signer nella superficie React telematica: preflight, ricerca, anteprima e download riusano la stessa sessione PST locale e non tornano al server per le chiamate ministeriali.

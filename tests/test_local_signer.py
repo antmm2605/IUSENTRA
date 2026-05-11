@@ -122,6 +122,33 @@ def _local_signer_version():
     return _load_local_signer().VERSION
 
 
+def test_local_signer_dist_allineato_a_sorgente_e_installer_versionati():
+    root = Path(__file__).resolve().parents[1]
+    version = _local_signer_version()
+    source = root / "tools" / "local_signer.py"
+    dist = root / "tools" / "dist"
+
+    assert (dist / "local_signer.py").read_text(encoding="utf-8") == source.read_text(
+        encoding="utf-8"
+    )
+    for name in (
+        f"SetupLocalSigner-{version}.exe",
+        "SetupLocalSigner.exe",
+        f"InstallaLocalSigner-{version}.command",
+        f"InstallaLocalSigner-{version}.run",
+        f"LocalSigner-{version}.txt",
+    ):
+        assert (dist / name).exists(), name
+
+    assert (dist / f"SetupLocalSigner-{version}.exe").read_bytes() == (
+        dist / "SetupLocalSigner.exe"
+    ).read_bytes()
+    assert (dist / "SetupLocalSigner.exe").read_bytes().startswith(b"MZ")
+    assert f"Versione: {version}" in (dist / f"LocalSigner-{version}.txt").read_text(
+        encoding="utf-8"
+    )
+
+
 def test_rileva_endpoint_pst_legacy():
     module = _load_local_signer()
 

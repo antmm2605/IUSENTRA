@@ -1,5 +1,18 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-11 - Local Signer distribuito 1.6.26 / app 2.216.2
+
+Il pacchetto distribuito del Local Signer e' stato riallineato alla sorgente
+usata dai flussi PST: `SetupLocalSigner-1.6.26.exe`, l'alias
+`SetupLocalSigner.exe`, `InstallaLocalSigner-1.6.26.command` e
+`InstallaLocalSigner-1.6.26.run` sono rigenerati in `tools/dist`.
+
+- la sorgente distribuita ora coincide con `tools/local_signer.py`;
+- restano disponibili preflight, sessione PST, batch download e riuso cookie
+  tra consultazione e import con stesso certificato/ufficio;
+- `tests/test_local_signer.py` contiene un guardrail che impedisce di lasciare
+  indietro `tools/dist/local_signer.py` rispetto alla sorgente.
+
 ## Stato tranche 2026-05-11 - Sessione PST Local Signer 2.216.1
 
 La superficie React dei portali telematici mantiene il canale PST sul browser

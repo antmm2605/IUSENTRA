@@ -1,4 +1,4 @@
-"""Catalogo versionato dei codici oggetto PST usati dalle pratiche collegate."""
+"""Cataloghi versionati dei codici oggetto PST usati dalle pratiche collegate."""
 
 from __future__ import annotations
 
@@ -7,7 +7,9 @@ import json
 from pathlib import Path
 from typing import Any
 
-CATALOG_PATH = Path(__file__).resolve().parent / "data" / "pratiche_collegate_catalog.json"
+DATA_DIR = Path(__file__).resolve().parent / "data"
+CATALOG_PATH = DATA_DIR / "pratiche_collegate_catalog.json"
+CODICI_OGGETTO_PST_PATH = DATA_DIR / "cataloghi" / "codici_oggetto_pst.json"
 
 
 def _text(value: Any) -> str:
@@ -17,6 +19,13 @@ def _text(value: Any) -> str:
 @lru_cache(maxsize=1)
 def load_pratiche_collegate_catalog() -> dict[str, Any]:
     with CATALOG_PATH.open("r", encoding="utf-8") as handle:
+        payload = json.load(handle)
+    return payload if isinstance(payload, dict) else {}
+
+
+@lru_cache(maxsize=1)
+def load_codici_oggetto_pst_catalog() -> dict[str, Any]:
+    with CODICI_OGGETTO_PST_PATH.open("r", encoding="utf-8") as handle:
         payload = json.load(handle)
     return payload if isinstance(payload, dict) else {}
 
@@ -59,19 +68,49 @@ def _walk_items(items: list[dict[str, Any]], *, area: str, area_label: str) -> l
 
 @lru_cache(maxsize=1)
 def list_codici_oggetto_pst() -> tuple[dict[str, str], ...]:
-    catalog = load_pratiche_collegate_catalog()
+    official_catalog = load_codici_oggetto_pst_catalog()
+    records = official_catalog.get("records") if isinstance(official_catalog.get("records"), list) else []
     rows: list[dict[str, str]] = []
-    for area in catalog.get("areas") or []:
+    for record in records:
+        if not isinstance(record, dict):
+            continue
+        codice = _text(record.get("codice"))
+        descrizione = _text(record.get("descrizione"))
+        if not codice or not descrizione:
+            continue
+        rows.append(
+            {
+                "codice": codice,
+                "descrizione": descrizione,
+                "area": _text(record.get("area")),
+                "area_label": _text(record.get("area")),
+                "parent_codice": _text(record.get("codicePadre")),
+                "parent_label": _text(record.get("descrizionePadre")),
+                "registri": ", ".join(
+                    _text(item)
+                    for item in record.get("registri", [])
+                    if _text(item)
+                ),
+                "file_fonte": _text(record.get("fileFonte")),
+            }
+        )
+    if rows:
+        return tuple(rows)
+
+    # Fallback prudente per ambienti di sviluppo con il solo catalogo UI seed.
+    seed_catalog = load_pratiche_collegate_catalog()
+    seed_rows: list[dict[str, str]] = []
+    for area in seed_catalog.get("areas") or []:
         if not isinstance(area, dict):
             continue
-        rows.extend(
+        seed_rows.extend(
             _walk_items(
                 area.get("items") if isinstance(area.get("items"), list) else [],
                 area=_text(area.get("area")),
                 area_label=_text(area.get("label")),
             )
         )
-    return tuple(rows)
+    return tuple(seed_rows)
 
 
 @lru_cache(maxsize=1)
@@ -92,9 +131,14 @@ def codice_oggetto_pst_payload(codice: Any) -> dict[str, str]:
             "file_fonte_codice_oggetto": "",
         }
     catalog = load_pratiche_collegate_catalog()
-    fonte = catalog.get("fonte") if isinstance(catalog.get("fonte"), dict) else {}
+    official_catalog = load_codici_oggetto_pst_catalog()
+    fonte = official_catalog.get("fonte") if isinstance(official_catalog.get("fonte"), dict) else {}
+    seed_fonte = catalog.get("fonte") if isinstance(catalog.get("fonte"), dict) else {}
     return {
         "codice_oggetto_pst": entry["codice"],
-        "fonte_codice_oggetto": _text(fonte.get("tipo")) or "PST_XSD",
-        "file_fonte_codice_oggetto": _text(fonte.get("fileFontePrevalente")) or "tipi-base.xsd",
+        "fonte_codice_oggetto": _text(fonte.get("tipo")) or _text(seed_fonte.get("tipo")) or "PST_XSD",
+        "file_fonte_codice_oggetto": _text(entry.get("file_fonte"))
+        or _text(fonte.get("fileFontePrevalente"))
+        or _text(seed_fonte.get("fileFontePrevalente"))
+        or "tipi-base.xsd",
     }

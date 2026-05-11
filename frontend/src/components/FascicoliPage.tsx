@@ -75,12 +75,12 @@ import {
 } from '../fascicoliData'
 import {
   NUOVO_FASCICOLO_LABELS,
-  PRATICHE_COLLEGATE,
-  PRATICHE_COLLEGATE_CATALOG,
   STATI_PRATICA,
+  codiceOggettoPstSource,
   findPraticaCollegata,
 } from '../data/praticheCollegateCatalog'
 import { redirectAfterSuccess, submitFormJson } from '../formSubmit'
+import { CodiceOggettoPstSearch } from './CodiceOggettoPstSearch'
 import './FascicoliPage.css'
 
 type SortKey = 'recenti' | 'rg' | 'cliente' | 'scadenza' | 'documenti'
@@ -730,38 +730,21 @@ function PraticheCollegateField({ data }:{data:FascicoloFormData}) {
   const selected = findPraticaCollegata(selectedCode)
   const currentProcedure = selected?.label || getValue(data, 'procedureType')
   const currentArea = selected?.area || getValue(data, 'practiceArea')
+  const source = codiceOggettoPstSource(selectedCode)
   return (
     <div className="iu-fas-field iu-fas-field--wide iu-fas-catalog-field">
-      <label>
-        <span>{NUOVO_FASCICOLO_LABELS.fields.praticheCollegate}</span>
-        <select
-          name="codice_oggetto_pst"
-          value={selectedCode}
-          onChange={(event) => setSelectedCode(event.currentTarget.value)}
-          aria-describedby="pratiche-collegate-help"
-        >
-          <option value="">Seleziona dal catalogo ufficiale</option>
-          {PRATICHE_COLLEGATE.map((area) => (
-            <optgroup label={area.label} key={area.area}>
-              {area.items.flatMap((item) => {
-                if (item.children?.length) {
-                  return [
-                    <option value={item.codice} disabled key={item.codice}>{item.codice} - {item.label}</option>,
-                    ...item.children.map((child) => (
-                      <option value={child.codice} key={child.codice}>{child.codice} - {child.label}</option>
-                    )),
-                  ]
-                }
-                return <option value={item.codice} key={item.codice}>{item.codice} - {item.label}</option>
-              })}
-            </optgroup>
-          ))}
-        </select>
-      </label>
+      <CodiceOggettoPstSearch
+        name="codice_oggetto_pst"
+        id="pratiche-collegate"
+        label={NUOVO_FASCICOLO_LABELS.fields.praticheCollegate}
+        value={selectedCode}
+        help="Scegli dal catalogo ministeriale PST. Il codice resta modificabile finché non viene generata o inviata la busta."
+        onChange={(codice) => setSelectedCode(codice)}
+      />
       <input type="hidden" name="tipo_procedimento" value={currentProcedure}/>
       <input type="hidden" name="area_pratica" value={currentArea}/>
-      <input type="hidden" name="fonte_codice_oggetto" value={selectedCode ? PRATICHE_COLLEGATE_CATALOG.fonte.tipo : getValue(data, 'fonteCodiceOggetto')}/>
-      <input type="hidden" name="file_fonte_codice_oggetto" value={selectedCode ? PRATICHE_COLLEGATE_CATALOG.fonte.fileFontePrevalente : getValue(data, 'fileFonteCodiceOggetto')}/>
+      <input type="hidden" name="fonte_codice_oggetto" value={selectedCode ? source.fonteCodiceOggetto : ''}/>
+      <input type="hidden" name="file_fonte_codice_oggetto" value={selectedCode ? source.fileFonteCodiceOggetto : ''}/>
       <small id="pratiche-collegate-help" className="iu-fas-field-help">
         Il codice scelto viene conservato nel fascicolo e sarà usato nei passaggi di deposito quando il flusso lo richiede.
       </small>

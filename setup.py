@@ -10,13 +10,13 @@ from packaging_manifest import extras_requirements, read_version, runtime_requir
 
 setup(
     name="pct-studio-legale",
-# Versione applicativa 2.215.5, letta dalla source of truth pct.__init__
+# Versione applicativa 2.215.6, letta dalla source of truth pct.__init__
     version=read_version(),
     description="IUSENTRA: gestionale web modulare per studi legali con PCT, Lex locale e servizi telematici",
     packages=find_packages(),
     include_package_data=True,
     package_data={
-        "pct": ["data/*.json", "sql/*.sql", "template_atti_catalogo_data/*.json"],
+        "pct": ["data/*.json", "data/cataloghi/*.json", "sql/*.sql", "template_atti_catalogo_data/*.json"],
         "lex": ["research/source_policy/*.yaml"],
     },
     python_requires=">=3.12",

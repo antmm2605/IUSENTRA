@@ -25,10 +25,9 @@ import {
   type WizardPractice,
 } from '../preventivoWizardData'
 import {
-  findPraticaCollegata,
-  PRATICHE_COLLEGATE,
-  PRATICHE_COLLEGATE_CATALOG,
+  codiceOggettoPstSource,
 } from '../data/praticheCollegateCatalog'
+import { CodiceOggettoPstSearch } from './CodiceOggettoPstSearch'
 import {
   dateToItalian,
   formatEuro,
@@ -241,43 +240,16 @@ function CodiceOggettoPstSelect({
   value: string
   onChange: (value: string) => void
 }) {
-  const selected = findPraticaCollegata(value)
   return (
     <div className="iu-pwiz-codice-oggetto">
-      <SelectInput
+      <CodiceOggettoPstSearch
         id="wizard-codice-oggetto-pst"
-        label="Oggetto deposito"
         value={value}
         help="Facoltativo nel preventivo. Se lo scegli qui, il codice arriva già pronto in conferimento e apertura fascicolo; se non è certo, resta da completare prima del deposito."
-        onChange={onChange}
-      >
-        <option value="">Da scegliere all'apertura del fascicolo</option>
-        {PRATICHE_COLLEGATE.map((area) => (
-          <optgroup label={area.label} key={area.area}>
-            {area.items.flatMap((item) => {
-              if (item.children?.length) {
-                return [
-                  <option value={`group-${item.codice}`} disabled key={`group-${item.codice}`}>{item.codice} - {item.label}</option>,
-                  ...item.children.map((child) => (
-                    <option value={child.codice} key={child.codice}>
-                      {child.codice} - {child.label}
-                    </option>
-                  )),
-                ]
-              }
-              return [
-                <option value={item.codice} key={item.codice}>
-                  {item.codice} - {item.label}
-                </option>,
-              ]
-            })}
-          </optgroup>
-        ))}
-      </SelectInput>
+        onChange={(codice) => onChange(codice)}
+      />
       <p className="iu-pwiz-codice-oggetto-note">
-        {selected
-          ? `Codice ufficiale ${selected.codice}: ${selected.label}. Fonte: ${PRATICHE_COLLEGATE_CATALOG.fonte.tipo}, ${PRATICHE_COLLEGATE_CATALOG.fonte.fileFontePrevalente}.`
-          : 'Nessun codice viene inventato dal wizard: senza selezione esplicita il fascicolo richiederà conferma dal catalogo PST.'}
+        Nessun codice viene inventato dal wizard: senza selezione esplicita il fascicolo richiederà conferma dal catalogo PST prima del deposito.
       </p>
     </div>
   )
@@ -949,6 +921,7 @@ export function PreventivoWizardPage() {
 
   function buildPayload(includeRows = true): Record<string, unknown> {
     const practice = selectedPractice
+    const codiceSource = codiceOggettoPstSource(codiceOggettoPst)
     return {
       id_cliente: customerId,
       id_fascicolo: caseId,
@@ -973,8 +946,8 @@ export function PreventivoWizardPage() {
       tipo_compenso: practice?.tipo_compenso_default || '',
       tipo_procedimento: practice?.label || '',
       codice_oggetto_pst: codiceOggettoPst,
-      fonte_codice_oggetto: codiceOggettoPst ? PRATICHE_COLLEGATE_CATALOG.fonte.tipo : '',
-      file_fonte_codice_oggetto: codiceOggettoPst ? PRATICHE_COLLEGATE_CATALOG.fonte.fileFontePrevalente : '',
+      fonte_codice_oggetto: codiceSource.fonteCodiceOggetto,
+      file_fonte_codice_oggetto: codiceSource.fileFonteCodiceOggetto,
       valore: value,
       grado: grade,
       regola_tariffaria: rule,

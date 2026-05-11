@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.215.6 - 2026-05-11
+
+- Importato il catalogo tecnico `pct/data/cataloghi/codici_oggetto_pst.json` dagli XSD ufficiali PST attivi: 1.018 CodiceOggetto unici con fonti, registri, file sorgente e hash dei pacchetti ministeriali.
+- Separato il catalogo UI compatto `codici_oggetto_pst_ui.json` dal catalogo tecnico completo, usando il file Excel fornito solo per area/codice padre/metadati di ricerca e non come whitelist di deposito.
+- Sostituiti i menu lunghi di Preventivi, Preventivo guidato e Apertura nuovo fascicolo con ricerca rapida per codice, descrizione, area e registro, mantenendo il blocco sui codici non presenti negli XSD ufficiali.
+- Verificata la ricerca CodiceOggetto in browser su desktop/tablet/mobile per nuovo fascicolo, preventivo, conferimento e wizard: `014001` selezionabile, `111604` presente e `014700` escluso.
+
 ## 2.215.5 - 2026-05-11
 
 - Aggiunta l'azione `Visualizza` sugli allegati PEC e Email ordinaria nella pagina React di dettaglio messaggio: apre il file inline in nuova scheda senza usare il download forzato.

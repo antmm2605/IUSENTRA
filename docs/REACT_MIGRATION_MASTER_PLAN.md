@@ -1,5 +1,15 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-11 - Catalogo ufficiale CodiceOggetto e ricerca UI 2.215.6
+
+Il catalogo CodiceOggetto e' stato portato sul binario ufficiale PST:
+
+- `pct/data/cataloghi/codici_oggetto_pst.json` contiene 1.018 codici unici estratti dalle enumeration `CodiceOggetto` degli XSD ufficiali attivi SICI, SIGP/Giudice di Pace, UNEP e Cassazione;
+- `pct/data/cataloghi/codici_oggetto_pst_ui.json` e' la versione compatta per React: include solo codice, descrizione, registri, area e gruppo, cosi' la ricerca resta veloce senza caricare i dettagli tecnici completi;
+- il file Excel fornito dall'utente e' stato usato come supporto di usabilita' per aree e codici padre, ma non come fonte di validazione: i 17 codici presenti nel foglio e non trovati negli XSD restano esclusi dalla whitelist di deposito;
+- Preventivi, Conferimenti, Preventivo guidato e Apertura nuovo fascicolo usano `CodiceOggettoPstSearch`, una ricerca locale con ranking per codice, descrizione, area e registro, evitando il menu lungo e mantenendo la fonte ministeriale PST.
+- Browser smoke locale 2.215.6 confermato su desktop, tablet e mobile per `/fascicoli/nuovo`, `/preventivi/nuovo`, `/preventivi/conferimento/nuovo` e `/preventivi/wizard`: `014001` selezionabile, `111604` presente, `014700` escluso, nessun overflow orizzontale.
+
 ## Stato tranche 2026-05-11 - Visualizzazione allegati email 2.215.5
 
 Le route React `/email/messaggio/<id>` e `/email-ordinaria/messaggio/<id>`

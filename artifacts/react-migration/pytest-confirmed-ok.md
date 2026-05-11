@@ -8,6 +8,26 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 
 ## Frontend e gate React
 
+### Catalogo ufficiale CodiceOggetto PST e ricerca UI 2.215.6
+
+| Verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m compileall pct\pratiche_collegate_catalog.py` | OK | Sintassi confermata dopo separazione catalogo tecnico ufficiale e catalogo UI compatto. |
+| `python -m pytest -q tests/test_codici_oggetto_pst_catalog.py --tb=short` | OK | 3/3 passati: 1.018 codici XSD ufficiali, `014001` e `111604` presenti, `014700` escluso perche' non trovato negli XSD attivi. |
+| `npm --prefix frontend run typecheck` | OK | TypeScript confermato dopo introduzione di `CodiceOggettoPstSearch` e catalogo UI compatto. |
+| `node frontend\scripts\check-react-contracts.mjs` | OK | Contratti React aggiornati: Preventivi, Wizard e Fascicoli usano ricerca rapida CodiceOggetto e catalogo ufficiale compatto. |
+| `python -m pytest -q tests/test_react_preventivo_wizard_console.py::test_preventivo_wizard_react_create_crea_preventivo_reale_con_cliente_potenziale_e_clausola tests/test_react_preventivo_wizard_console.py::test_preventivo_wizard_react_rifiuta_codice_oggetto_non_ufficiale tests/test_react_preventivo_wizard_console.py::test_preventivo_wizard_react_genera_conferimento_solo_dopo_accettazione_cliente --tb=short` | OK | 3/3 passati: wizard, codice ufficiale, rifiuto codice inventato e conferimento restano governati. |
+| `python -m pytest -q tests/test_deposito_guidato.py::test_orchestratore_blocca_deposito_pct_senza_codice_oggetto_pst tests/test_deposito_guidato.py::test_api_validazione_deposito_restituisce_semaforo_e_consente_con_warning --tb=short` | OK | 2/2 passati: pre-deposito continua a bloccare fascicoli PCT senza CodiceOggetto ufficiale. |
+| `python -m pytest -q tests/test_react_shell.py::test_react_fascicoli_api_suite_usa_repository_reali --tb=short` | OK | Form fascicolo e propagazione CodiceOggetto confermati sui repository reali di test. |
+| `python -m pytest -q tests/test_practice_engine_validators.py --tb=short` | OK | 3/3 passati: validatori pratica continuano a usare il catalogo ufficiale. |
+| `npm --prefix frontend run build` | OK | Build Vite 2.215.6 completata in 7.36s; il chunk `CodiceOggettoPstSearch` resta separato e gzip circa 31 KB. |
+| `python tools\sync_packaging_files.py --check` | OK | Packaging/versione 2.215.6 sincronizzati. |
+| `python -m pytest -q tests/test_packaging_consistency.py tests/test_release_readiness.py --tb=short` | OK | 8/8 passati: coerenza packaging e readiness release confermate dopo bump 2.215.6. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker` | OK | Immagini locali ricostruite da zero con package `pct-studio-legale==2.215.6`. |
+| `docker compose up -d app scheduler-worker ocr-worker nginx` | OK | Servizi locali riavviati sulle immagini 2.215.6; app, scheduler, OCR e Redis healthy. |
+| `Invoke-RestMethod -Uri http://127.0.0.1:8080/api/pronto` | OK | Readiness locale: `{"ok":true,"stato":"pronto","versione":"2.215.6"}`. |
+| Browser Chrome headless desktop/tablet/mobile su `/fascicoli/nuovo`, `/preventivi/nuovo`, `/preventivi/conferimento/nuovo`, `/preventivi/wizard` | OK | Ricerca CodiceOggetto visibile e usabile: `014001` selezionabile, ricerca `famiglia` con 12 risultati, `111604` presente, `014700` escluso; nessun overflow orizzontale o errore console. |
+
 ### Hotfix visualizzazione allegati email 2.215.5
 
 | Verifica | Esito | Nota |

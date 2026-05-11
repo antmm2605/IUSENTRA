@@ -27,6 +27,8 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 | `Invoke-WebRequest -UseBasicParsing -Uri http://127.0.0.1:8080/api/pronto -TimeoutSec 30` | OK | Readiness locale 200 con `versione=2.216.3`. |
 | `docker exec iusentra-app python -c "import pct; print(pct.__version__)"` | OK | Versione runtime container locale: `2.216.3`. |
 | `docker exec iusentra-app python -c "... SetupLocalSigner-1.6.27.exe ..."` | OK | Nel container locale sono presenti `SetupLocalSigner-1.6.27.exe` e alias `SetupLocalSigner.exe`, alias valido con header `MZ`. |
+| Deploy manuale Hetzner senza backup | OK | Deploy eseguito senza `deploy.sh` e senza script backup: server allineato al commit pushato, app/scheduler/OCR/Redis healthy, runtime `2.216.3`, `SetupLocalSigner-1.6.27.exe` presente e alias `SetupLocalSigner.exe` valido con header `MZ`. |
+| `curl -fsS https://app.iusentra.it/api/pronto` | OK | Produzione Hetzner pronta con `versione=2.216.3`. |
 
 ### Local Signer distribuito 1.6.26 / app 2.216.2
 

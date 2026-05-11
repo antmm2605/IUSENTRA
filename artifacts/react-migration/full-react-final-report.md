@@ -2,6 +2,12 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-11T14:25:00+02:00: hotfix 2.216.1 sul flusso
+PST via Local Signer. Il wizard React dei portali telematici apre il preflight
+PST dal browser, conserva la sessione locale e la riusa per ricerca,
+snapshot fascicolo e download batch. SIGP/PST e il dettaglio fascicolo usano
+sempre il batch documenti, evitando il ritorno al download singolo.
+
 Aggiornamento 2026-05-11T12:40:00+02:00: tranche 2.216.0 su
 `/fascicoli/nuovo`. Il form React di apertura fascicolo usa sezioni
 collassabili, sposta `Pratiche collegate` nel blocco iniziale sotto
@@ -97,3 +103,9 @@ Tranche architetturale aggiornata: `/deposito/checklist`, `/strumenti-legali` e 
 - docker compose build --no-cache app scheduler-worker ocr-worker: passed - immagini locali finali ricostruite da zero con wheel 2.216.0.
 - docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx / docker compose ps / /api/pronto: passed - container locali healthy, readiness `versione=2.216.0`.
 - Browser Playwright headless `/fascicoli/nuovo`: passed - desktop/tablet/mobile con upload iniziali, ordine corretto, nessun overflow, nessun errore console e nessun testo tecnico vietato; warm-up tenant iniziale registrato in `pytest-open-issues.md`, passaggi caldi desktop sotto 800 ms.
+- npm --prefix frontend run typecheck: passed - TypeScript confermato dopo sessione PST React/Local Signer 2.216.1.
+- python -m pytest -q tests/test_react_shell.py::test_react_wizard_pst_verifica_local_signer_dal_browser tests/test_sigp_sync.py::test_sigp_sync_visibile_nel_menu_e_apre_primo_fascicolo_importato tests/test_sigp_sync.py::test_sigp_sync_local_connector_preview_e_download_salva_file tests/test_sigp_sync.py::test_sigp_sync_download_duplicato_passa_original_true_al_local_signer --tb=short: passed - 4/4 mirati su Local Signer PST e SIGP batch.
+- npm --prefix frontend run test: passed - Contratti React confermati dopo hotfix PST.
+- npm --prefix frontend run build: passed - Build Vite 2.216.1 completata in 5.84s; asset React rigenerati.
+- python -m pytest -q tests/test_sigp_sync.py --tb=short: passed - 13/13 sul perimetro SIGP/PST.
+- node scripts/react-migration/check-route-gate.mjs / check-full-react-route-contract.mjs: passed - gate e contratto full React coerenti.

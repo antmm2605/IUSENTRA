@@ -142,6 +142,25 @@ type BrowserLocalSignerStatus = {
   message: string
 }
 
+type PstCertificate = {
+  thumbprint: string
+  soggetto: string
+  emittente: string
+  scadenza: string
+  tokenSlot: string
+}
+
+type PstSession = {
+  sessionId: string
+  tribunale: string
+  certThumbprint: string
+  expiresAt: number
+}
+
+const REACT_PST_CERT_KEY = 'iusentra.react.pst.cert'
+const REACT_PST_SESSION_KEY = 'iusentra.react.pst.session'
+const REACT_PST_SESSION_PURPOSE = 'view'
+
 function surfaceFromCurrentPath(): TelematicoSurfaceId {
   const raw = window.location.pathname.replace(/\/+$/, '') || '/'
   const route = raw.toLowerCase().startsWith('/app-v2/') ? raw.slice('/app-v2'.length).toLowerCase() : raw.toLowerCase()
@@ -185,6 +204,89 @@ function asRecord(value: unknown): JsonRecord {
 
 function asList(value: unknown): unknown[] {
   return Array.isArray(value) ? value : []
+}
+
+function readStoredRecord(key: string): JsonRecord | null {
+  try {
+    const raw = window.sessionStorage?.getItem(key)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as unknown
+    return isRecord(parsed) ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+function writeStoredRecord(key: string, value: JsonRecord | null) {
+  try {
+    if (!value) {
+      window.sessionStorage?.removeItem(key)
+      return
+    }
+    window.sessionStorage?.setItem(key, JSON.stringify(value))
+  } catch {
+    // sessionStorage puo essere disabilitato: il flusso resta valido in memoria.
+  }
+}
+
+function loadPstCertificate(): PstCertificate | null {
+  const saved = readStoredRecord(REACT_PST_CERT_KEY)
+  const thumbprint = asText(saved?.thumbprint)
+  if (!thumbprint) return null
+  return {
+    thumbprint,
+    soggetto: asText(saved?.soggetto),
+    emittente: asText(saved?.emittente),
+    scadenza: asText(saved?.scadenza),
+    tokenSlot: asText(saved?.tokenSlot || saved?.token_slot),
+  }
+}
+
+function storePstCertificate(cert: PstCertificate | null) {
+  writeStoredRecord(REACT_PST_CERT_KEY, cert ? {
+    thumbprint: cert.thumbprint,
+    soggetto: cert.soggetto,
+    emittente: cert.emittente,
+    scadenza: cert.scadenza,
+    tokenSlot: cert.tokenSlot,
+  } : null)
+}
+
+function loadPstSession(): PstSession | null {
+  const saved = readStoredRecord(REACT_PST_SESSION_KEY)
+  const sessionId = asText(saved?.sessionId || saved?.session_id)
+  if (!sessionId) return null
+  return {
+    sessionId,
+    tribunale: asText(saved?.tribunale),
+    certThumbprint: asText(saved?.certThumbprint || saved?.cert_thumbprint),
+    expiresAt: asNumber(saved?.expiresAt || saved?.expires_at),
+  }
+}
+
+function storePstSession(session: PstSession | null) {
+  writeStoredRecord(REACT_PST_SESSION_KEY, session ? {
+    sessionId: session.sessionId,
+    tribunale: session.tribunale,
+    certThumbprint: session.certThumbprint,
+    expiresAt: session.expiresAt,
+  } : null)
+}
+
+function isPstSessionActive(session: PstSession | null, tribunale: string, cert: PstCertificate): session is PstSession {
+  if (!session?.sessionId) return false
+  if (session.expiresAt && session.expiresAt < Date.now()) return false
+  const wantedTribunale = asText(tribunale)
+  if (wantedTribunale && session.tribunale && wantedTribunale !== session.tribunale) return false
+  const savedThumb = session.certThumbprint.toUpperCase()
+  const currentThumb = cert.thumbprint.toUpperCase()
+  if (savedThumb && currentThumb && savedThumb !== currentThumb) return false
+  return true
+}
+
+function isPstSessionExpiredError(error: unknown): boolean {
+  const text = String(error instanceof Error ? error.message : error || '')
+  return text.includes('session_expired') || text.includes('Sessione accesso PST scaduta') || text.includes('riaprire il canale autenticato')
 }
 
 function italianDate(value: unknown): string {
@@ -692,6 +794,51 @@ function normaliseAcquisitionResult(value: unknown, index: number): AcquisitionR
   }
 }
 
+function normalisePstAcquisitionResult(value: unknown, index: number, query: AcquisitionQuery, tribunale: string): AcquisitionResult {
+  const row = asRecord(value)
+  const partiDettaglio = asList(row.parti_dettaglio).map(asRecord)
+  const contropartiDaRuolo = partiDettaglio
+    .filter((item) => /convenuto|resistente|controparte/i.test(asText(item.tipo)))
+    .map((item) => asText(item.nome))
+    .filter(Boolean)
+  const partiDaRuolo = partiDettaglio
+    .filter((item) => !/convenuto|resistente|controparte/i.test(asText(item.tipo)))
+    .map((item) => asText(item.nome))
+    .filter(Boolean)
+  const numero = asText(row.numero_rg || row.numero)
+  const anno = asNumber(row.anno_rg || row.anno)
+  const procedimento = asText(row.ruolo || row.procedimento || row.tipo)
+  const codiceUfficio = asText(row.codice_ufficio || row.ufficio_codice || tribunale)
+  const nomeUfficio = asText(row.nome_ufficio || row.ufficio_nome || query.ufficioNome || query.ufficio)
+  const parti = asList(row.parti).map((item) => asText(item)).filter(Boolean)
+  const controparti = asList(row.controparti).map((item) => asText(item)).filter(Boolean)
+  const raw = {
+    external_id: `${codiceUfficio}:${numero}:${anno || ''}:${procedimento}`,
+    id_fascicolo: asText(row.id_fascicolo),
+    numero,
+    anno,
+    ufficio_codice: codiceUfficio,
+    ufficio_nome: nomeUfficio,
+    procedimento,
+    sub_procedimento: asText(row.sub_procedimento),
+    sezione: asText(row.sezione),
+    stato: asText(row.stato),
+    oggetto: asText(row.oggetto || query.oggetto),
+    parti: parti.length ? parti : (partiDaRuolo.length ? partiDaRuolo : query.assistito.split(/[;,]/).map((item) => item.trim()).filter(Boolean)),
+    controparti: controparti.length ? controparti : (contropartiDaRuolo.length ? contropartiDaRuolo : query.controparte.split(/[;,]/).map((item) => item.trim()).filter(Boolean)),
+    ultima_attivita: asText(row.data_udienza || row.data_iscrizione || row.ultima_attivita),
+    payload: row,
+  }
+  return {
+    id: asText(raw.id_fascicolo || raw.external_id || numero, `pst-${index}`),
+    title: numero && anno ? `RG ${numero}/${anno}` : asText(row.title || row.titolo, `Fascicolo ${index + 1}`),
+    subtitle: [nomeUfficio, raw.parti[0], raw.controparti[0]].filter(Boolean).join(' - ') || 'Risultato dal canale autorizzato',
+    badge: asText(raw.stato || raw.procedimento, 'Fascicolo'),
+    meta: italianDate(raw.ultima_attivita),
+    raw,
+  }
+}
+
 function previewCount(preview: JsonRecord, key: string): number {
   const value = preview[key]
   if (Array.isArray(value)) return value.length
@@ -701,6 +848,61 @@ function previewCount(preview: JsonRecord, key: string): number {
 
 function previewIdentity(preview: JsonRecord): JsonRecord {
   return asRecord(preview.identity || preview.fascicolo || preview.procedimento || preview.ricorso || preview.controversia)
+}
+
+function pstPreviewDocuments(preview: JsonRecord): JsonRecord[] {
+  const direct = asList(preview.documenti).map(asRecord)
+  if (direct.length) return direct
+  return asList(preview.depositi).map(asRecord).flatMap((deposito) => {
+    const docs = asList(deposito.documenti).map(asRecord)
+    return docs.map((documento) => ({
+      ...documento,
+      id_deposito_pct: asText(documento.id_deposito_pct || deposito.id_deposito_pct),
+      id_deposito_esterno: asText(documento.id_deposito_esterno || deposito.id_deposito_esterno || deposito.id_deposito),
+      tipo_atto: asText(documento.tipo_atto || deposito.tipo_atto),
+      data_deposito: asText(documento.data_deposito || deposito.data_deposito),
+      mittente: asText(documento.mittente || deposito.mittente),
+    }))
+  })
+}
+
+function pstDocumentIdentifierValues(item: JsonRecord): string[] {
+  const values: string[] = []
+  const append = (value: unknown) => {
+    const text = asText(value)
+    if (!text || text.startsWith('#') || values.includes(text)) return
+    values.push(text)
+  }
+  asList(item.id_documento_candidates).forEach(append)
+  ;[
+    item.id_documento,
+    item.id_documento_portale,
+    item.id_cat,
+    item.id_repeatto,
+    item.msg_id,
+    item.numero_documento,
+    item.id_doc_mittente,
+  ].forEach(append)
+  return values
+}
+
+function pstDownloadDocumentPayload(item: JsonRecord, original: boolean): JsonRecord {
+  return {
+    id_documento: asText(item.id_documento || item.id_documento_portale),
+    nome_documento: asText(item.nome || item.nome_documento || item.nome_file_originale),
+    id_cat: asText(item.id_cat),
+    id_repeatto: asText(item.id_repeatto),
+    msg_id: asText(item.msg_id),
+    numero_documento: asText(item.numero_documento),
+    id_doc_mittente: asText(item.id_doc_mittente),
+    id_documento_candidates: pstDocumentIdentifierValues(item),
+    data_documento: asText(item.data_documento || item.data_deposito),
+    id_deposito_esterno: asText(item.id_deposito_esterno || item.id_deposito),
+    id_deposito_pct: asText(item.id_deposito_pct),
+    tipo_atto: asText(item.tipo_atto),
+    tipo: asText(item.tipo),
+    original,
+  }
 }
 
 function issueRows(analysis: JsonRecord, key: string): JsonRecord[] {
@@ -842,6 +1044,8 @@ function AcquisitionWizard({
       ? 'Controllo Local Signer non ancora eseguito su questo PC.'
       : 'Local Signer disponibile solo su PC desktop Windows, macOS o Linux. Da mobile o tablet il controllo non viene eseguito.',
   })
+  const [pstCert, setPstCert] = useState<PstCertificate | null>(() => loadPstCertificate())
+  const [pstSession, setPstSession] = useState<PstSession | null>(() => loadPstSession())
 
   useEffect(() => {
     if (!visible || !portal) return
@@ -922,6 +1126,112 @@ function AcquisitionWizard({
     }
   }
 
+  const localSignerJson = async (path: string, body?: JsonRecord, timeoutMs = 45000): Promise<JsonRecord> => {
+    const controller = new AbortController()
+    const timer = window.setTimeout(() => controller.abort(), timeoutMs)
+    try {
+      const response = await fetch(`${data.localSigner.browserUrl}${path}`, {
+        method: body ? 'POST' : 'GET',
+        cache: 'no-store',
+        headers: body ? { 'Content-Type': 'application/json' } : {},
+        body: body ? JSON.stringify(body) : undefined,
+        signal: controller.signal,
+      })
+      const payload = asRecord(await response.json().catch(() => ({ ok: false, errore: 'Risposta non valida dal Local Signer.' })))
+      if (!response.ok || payload.ok === false) {
+        throw new Error(asText(payload.errore || payload.error || payload.message, `Local Signer non disponibile (${response.status}).`))
+      }
+      return payload
+    } catch (error: unknown) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        throw new Error('Timeout del Local Signer locale. Verifica che sia avviato e riprova.')
+      }
+      throw error
+    } finally {
+      window.clearTimeout(timer)
+    }
+  }
+
+  const signerCertPreferenceQuery = () => {
+    const prefs = asRecord(status.cert_preferences)
+    const params = new URLSearchParams()
+    if (prefs.auto) params.set('auto', '1')
+    const preferIssuer = asText(prefs.prefer_issuer)
+    const preferSubject = asText(prefs.prefer_subject)
+    const preferCf = asText(prefs.prefer_cf || status.codice_fiscale_avvocato)
+    if (preferIssuer) params.set('prefer_issuer', preferIssuer)
+    if (preferSubject) params.set('prefer_subject', preferSubject)
+    if (preferCf) params.set('prefer_cf', preferCf)
+    const queryString = params.toString()
+    return queryString ? `?${queryString}` : ''
+  }
+
+  const ensurePstCertificate = async (forceDialog = false): Promise<PstCertificate> => {
+    if (!forceDialog && pstCert?.thumbprint) return pstCert
+    const payload = await localSignerJson(`/seleziona-certificato${signerCertPreferenceQuery()}`, undefined, 120000)
+    const cert = {
+      thumbprint: asText(payload.thumbprint),
+      soggetto: asText(payload.soggetto),
+      emittente: asText(payload.emittente),
+      scadenza: asText(payload.scadenza),
+      tokenSlot: asText(payload.token_slot),
+    }
+    if (!cert.thumbprint) throw new Error('Seleziona il certificato di firma sul PC e riprova.')
+    setPstCert(cert)
+    storePstCertificate(cert)
+    return cert
+  }
+
+  const rememberPstSession = (payload: JsonRecord, tribunale: string, cert: PstCertificate): PstSession | null => {
+    const sessionId = asText(payload.pst_session_id)
+    if (!sessionId) return null
+    const ttlSeconds = asNumber(payload.pst_session_ttl_seconds) || 900
+    const session = {
+      sessionId,
+      tribunale: asText(payload.tribunale || tribunale),
+      certThumbprint: cert.thumbprint,
+      expiresAt: Date.now() + ttlSeconds * 1000,
+    }
+    setPstSession(session)
+    storePstSession(session)
+    return session
+  }
+
+  const clearPstSession = () => {
+    setPstSession(null)
+    storePstSession(null)
+  }
+
+  const ensurePstPortalSession = async (tribunale: string, options?: { force?: boolean }): Promise<{ session: PstSession; cert: PstCertificate }> => {
+    const codiceUfficio = asText(tribunale)
+    if (!codiceUfficio) throw new Error("Seleziona prima l'ufficio giudiziario.")
+    const cert = await ensurePstCertificate()
+    const currentSession = isPstSessionActive(pstSession, codiceUfficio, cert) ? pstSession : null
+    if (currentSession && !options?.force) return { session: currentSession, cert }
+    const payload = await localSignerJson('/pst/preflight-auth', {
+      tribunale: codiceUfficio,
+      cf_avvocato: asText(status.codice_fiscale_avvocato),
+      cert_thumbprint: cert.thumbprint || null,
+      cert_key: cert.thumbprint || '',
+      purpose: REACT_PST_SESSION_PURPOSE,
+      pst_session_id: currentSession?.sessionId || '',
+      force_auth: Boolean(options?.force),
+      force_new: Boolean(options?.force),
+    }, 120000)
+    const session = rememberPstSession(payload, codiceUfficio, cert) || currentSession
+    if (!session) throw new Error('Sessione PST non inizializzata dal Local Signer.')
+    return { session, cert }
+  }
+
+  const pstSessionForServer = (session: PstSession, cert: PstCertificate): JsonRecord => ({
+    session_id: session.sessionId,
+    pst_session_id: session.sessionId,
+    purpose: REACT_PST_SESSION_PURPOSE,
+    cert_thumbprint: cert.thumbprint,
+    cert_key: cert.thumbprint,
+    expires_at: session.expiresAt,
+  })
+
   const updateQuery = (key: keyof AcquisitionQuery, value: string) => setQuery((current) => ({ ...current, [key]: value }))
   const updateOption = (key: keyof AcquisitionOptions, value: boolean) => setOptions((current) => ({ ...current, [key]: value }))
   const updateMapping = (key: keyof AcquisitionMapping, value: string) => setMapping((current) => ({ ...current, [key]: value }))
@@ -999,14 +1309,44 @@ function AcquisitionWizard({
     setMessage('')
     setImportResult({})
     try {
-      const payload = await portalJson(portal, 'search', searchPayload())
-      if (payload.ok === false) throw new Error(asText(payload.errore, 'Ricerca non completata.'))
-      const rows = asList(payload.results || payload.fascicoli).map(normaliseAcquisitionResult)
+      let rows: AcquisitionResult[] = []
+      if (portal === 'pst') {
+        const tribunale = resolvedOfficeCode()
+        const { session, cert } = await ensurePstPortalSession(tribunale)
+        const signerPayload = await localSignerJson('/pst/ricerca', {
+          tribunale,
+          numero_rg: query.numero,
+          anno_rg: query.anno,
+          nome_parte: query.assistito || query.controparte,
+          cf_parte: query.cf,
+          cf_avvocato: asText(status.codice_fiscale_avvocato),
+          cert_thumbprint: cert.thumbprint || null,
+          cert_key: cert.thumbprint || '',
+          purpose: REACT_PST_SESSION_PURPOSE,
+          pst_session_id: session.sessionId,
+        }, 120000)
+        const nextSession = rememberPstSession(signerPayload, tribunale, cert) || session
+        rows = asList(signerPayload.fascicoli || signerPayload.results).map((row, index) => {
+          const item = normalisePstAcquisitionResult(row, index, query, tribunale)
+          return {
+            ...item,
+            raw: {
+              ...item.raw,
+              pst_session: pstSessionForServer(nextSession, cert),
+            },
+          }
+        })
+      } else {
+        const payload = await portalJson(portal, 'search', searchPayload())
+        if (payload.ok === false) throw new Error(asText(payload.errore, 'Ricerca non completata.'))
+        rows = asList(payload.results || payload.fascicoli).map(normaliseAcquisitionResult)
+      }
       setResults(rows)
       setSelection(rows[0] || null)
       setStep(2)
       setMessage(rows.length ? `${rows.length} risultati trovati.` : 'Nessun fascicolo trovato con questi filtri.')
     } catch (error: unknown) {
+      if (portal === 'pst' && isPstSessionExpiredError(error)) clearPstSession()
       setMessage(asText(error instanceof Error ? error.message : error, 'Ricerca non disponibile.'))
     } finally {
       setBusy('')
@@ -1020,12 +1360,45 @@ function AcquisitionWizard({
     }
     setBusy('preview')
     try {
-      const payload = await portalJson(portal, 'preview', { selection: selection.raw })
+      let payload: JsonRecord
+      if (portal === 'pst') {
+        const tribunale = asText(selection.raw.ufficio_codice || resolvedOfficeCode())
+        const { session, cert } = await ensurePstPortalSession(tribunale)
+        const signerPayload = await localSignerJson('/pst/fascicolo-snapshot', {
+          selection: selection.raw,
+          codice_ufficio: tribunale,
+          numero_rg: asText(selection.raw.numero || query.numero),
+          anno_rg: asText(selection.raw.anno || query.anno),
+          id_fascicolo: asText(selection.raw.id_fascicolo),
+          sub_procedimento: asText(selection.raw.sub_procedimento),
+          cf_avvocato: asText(status.codice_fiscale_avvocato),
+          cert_thumbprint: cert.thumbprint || null,
+          cert_key: cert.thumbprint || '',
+          purpose: REACT_PST_SESSION_PURPOSE,
+          pst_session_id: session.sessionId,
+        }, 120000)
+        const nextSession = rememberPstSession(signerPayload, tribunale, cert) || session
+        const snapshot = asRecord(signerPayload.snapshot)
+        const documenti = asList(snapshot.documenti || signerPayload.documenti).map(asRecord)
+        payload = await portalJson(portal, 'preview', {
+          selection: {
+            ...selection.raw,
+            snapshot,
+            pst_session: pstSessionForServer(nextSession, cert),
+          },
+          snapshot,
+          documenti,
+          pst_session: pstSessionForServer(nextSession, cert),
+        })
+      } else {
+        payload = await portalJson(portal, 'preview', { selection: selection.raw })
+      }
       if (payload.ok === false) throw new Error(asText(payload.errore, 'Anteprima non completata.'))
       setPreview(asRecord(payload.preview))
       setStep(3)
       setMessage('Anteprima caricata: verifica dati, parti, eventi e documenti.')
     } catch (error: unknown) {
+      if (portal === 'pst' && isPstSessionExpiredError(error)) clearPstSession()
       setMessage(asText(error instanceof Error ? error.message : error, 'Anteprima non disponibile.'))
     } finally {
       setBusy('')
@@ -1079,7 +1452,39 @@ function AcquisitionWizard({
     setBusy('import')
     try {
       const payloadJson = authorisedPayload(files)
-      const downloadedFiles = files.filter((file) => !file.payload_json)
+      const downloadedFiles: unknown[] = files.filter((file) => !file.payload_json)
+      let activeSelection = selection.raw
+      if (!payloadJson && portal === 'pst' && options.importa_documenti && !downloadedFiles.length) {
+        const documenti = pstPreviewDocuments(preview)
+          .map((item) => pstDownloadDocumentPayload(item, options.scarica_originale_portale))
+          .filter((item) => pstDocumentIdentifierValues(item).length)
+        if (documenti.length) {
+          const tribunale = asText(selection.raw.ufficio_codice || resolvedOfficeCode())
+          const { session, cert } = await ensurePstPortalSession(tribunale)
+          const signerPayload = await localSignerJson('/pst/download-documenti-batch', {
+            tribunale,
+            cf_avvocato: asText(status.codice_fiscale_avvocato),
+            cert_thumbprint: cert.thumbprint || null,
+            cert_key: cert.thumbprint || '',
+            purpose: REACT_PST_SESSION_PURPOSE,
+            pst_session_id: session.sessionId,
+            preflight_auth: false,
+            original: options.scarica_originale_portale,
+            documents: documenti,
+          }, 360000)
+          const nextSession = rememberPstSession(signerPayload, tribunale, cert) || session
+          const signerFiles = asList(signerPayload.files).map(asRecord)
+          const failures = asList(signerPayload.failures).map(asRecord)
+          if (!signerFiles.length) {
+            throw new Error(asText(failures[0]?.errore || failures[0]?.message, 'Nessun documento scaricato dal portale ufficiale.'))
+          }
+          downloadedFiles.push(...signerFiles)
+          activeSelection = {
+            ...activeSelection,
+            pst_session: pstSessionForServer(nextSession, cert),
+          }
+        }
+      }
       const payload = payloadJson
         ? await portalJson(portal, 'importa-payload', {
             payload: payloadJson,
@@ -1089,17 +1494,19 @@ function AcquisitionWizard({
             downloaded_files: downloadedFiles,
           })
         : await portalJson(portal, 'import', {
-            selection: selection.raw,
+            selection: activeSelection,
             preview,
             options,
             mapping,
             downloaded_files: downloadedFiles,
+            pst_session: isRecord(activeSelection.pst_session) ? activeSelection.pst_session : {},
           })
       if (payload.ok === false) throw new Error(asText(payload.errore, 'Importazione non completata.'))
       setImportResult(payload)
       setStep(7)
       setMessage('Importazione completata o presa in carico dal gestionale operativo.')
     } catch (error: unknown) {
+      if (portal === 'pst' && isPstSessionExpiredError(error)) clearPstSession()
       setMessage(asText(error instanceof Error ? error.message : error, 'Importazione non disponibile.'))
     } finally {
       setBusy('')

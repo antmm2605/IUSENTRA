@@ -5033,6 +5033,33 @@ const _PST_FASCICOLO_CONTEXT = {
   numero_rg: {{ fascicolo.numero_rg|tojson }},
   anno_rg: {{ fascicolo.anno_rg|tojson }}
 };
+const _PST_FASC_SESSION_KEY = 'iusentra.fascicolo.pst.session.' + String(_PST_FASCICOLO_CONTEXT.tribunale || '');
+
+function getPstFascSessionId() {
+  try {
+    const saved = JSON.parse(window.sessionStorage.getItem(_PST_FASC_SESSION_KEY) || 'null');
+    if (!saved || !saved.session_id) return '';
+    if (saved.expires_at && Number(saved.expires_at) < Date.now()) {
+      window.sessionStorage.removeItem(_PST_FASC_SESSION_KEY);
+      return '';
+    }
+    return String(saved.session_id || '');
+  } catch (err) {
+    return '';
+  }
+}
+
+function savePstFascSession(data) {
+  const sessionId = String(data && data.pst_session_id || '').trim();
+  if (!sessionId) return;
+  const ttl = Number(data && data.pst_session_ttl_seconds || 900);
+  try {
+    window.sessionStorage.setItem(_PST_FASC_SESSION_KEY, JSON.stringify({
+      session_id: sessionId,
+      expires_at: Date.now() + (ttl * 1000)
+    }));
+  } catch (err) {}
+}
 
 function escapeHtml(value) {
   return String(value || '')
@@ -5402,7 +5429,9 @@ window._PST_PRESERVE_TREE = {{ 'true' if preserve_pst_tree else 'false' }};
         tribunale: _PST_FASCICOLO_CONTEXT.tribunale,
         numero_rg: _PST_FASCICOLO_CONTEXT.numero_rg,
         anno_rg: _PST_FASCICOLO_CONTEXT.anno_rg,
-        preflight_auth: true,
+        purpose: 'view',
+        pst_session_id: getPstFascSessionId(),
+        preflight_auth: !getPstFascSessionId(),
         original: scaricaDuplicatoOriginale(),
         documents: (items || []).map(function (item) {
           return {
@@ -5426,6 +5455,7 @@ window._PST_PRESERVE_TREE = {{ 'true' if preserve_pst_tree else 'false' }};
     if (!signerResp.ok || !signerData.ok) {
       throw new Error(signerData.errore || 'Download batch PST fallito.');
     }
+    savePstFascSession(signerData);
     return signerData;
   }
 

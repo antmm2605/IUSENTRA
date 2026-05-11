@@ -133,7 +133,10 @@ def test_sigp_sync_visibile_nel_menu_e_apre_primo_fascicolo_importato():
     assert "downloadDocuments('selected', true)" in js
     assert "original: Boolean(original)" in js
     assert "localSignerApi('/ping', null" in js
-    assert "localSignerApi('/pst/download-documento'" in js
+    assert "ensurePstPortalSession()" in js
+    assert "localSignerApi('/pst/preflight-auth'" in js
+    assert "localSignerApi('/pst/download-documenti-batch'" in js
+    assert "localSignerApi('/pst/download-documento'" not in js
     assert "salva-download-browser" in js
     assert "sessionStorage?.setItem(PST_SESSION_STORAGE_KEY" in js
     assert "downloadDocumentsViaServer" not in js
@@ -428,11 +431,17 @@ def test_sigp_sync_local_connector_preview_e_download_salva_file(tmp_path, monke
                 ]
             }
 
-        def download_document(self, document_payload):
-            assert document_payload["original"] is False
-            assert document_payload["fascicolo"]["numero_rg"] == "466"
-            assert document_payload["documento"]["documento_uid"] == "JPW_SICID:466-2023-001"
-            return b"%PDF-1.4\nSIGP test\n", "verbale_udienza.pdf", "application/pdf"
+        def download_documents(self, case_payload, documents, *, original=False):
+            assert original is False
+            assert case_payload["numero_rg"] == "466"
+            assert documents[0]["documento_uid"] == "JPW_SICID:466-2023-001"
+            return [
+                {
+                    "content": b"%PDF-1.4\nSIGP test\n",
+                    "filename": "verbale_udienza.pdf",
+                    "mime_type": "application/pdf",
+                }
+            ]
 
     monkeypatch.setattr("integrations.sigp_sync.routes.SigpLocalConnectorClient", FakeLocalConnectorClient)
 
@@ -634,9 +643,15 @@ def test_sigp_sync_download_duplicato_passa_original_true_al_local_signer(tmp_pa
         def __init__(self, *args, **kwargs):
             pass
 
-        def download_document(self, document_payload):
-            seen["original"] = document_payload["original"]
-            return b"%PDF-1.4\nDuplicato SIGP test\n", "decretoLiquidazioneCTU.pdf", "application/pdf"
+        def download_documents(self, case_payload, documents, *, original=False):
+            seen["original"] = original
+            return [
+                {
+                    "content": b"%PDF-1.4\nDuplicato SIGP test\n",
+                    "filename": "decretoLiquidazioneCTU.pdf",
+                    "mime_type": "application/pdf",
+                }
+            ]
 
     monkeypatch.setattr("integrations.sigp_sync.routes.SigpLocalConnectorClient", FakeLocalConnectorClient)
 

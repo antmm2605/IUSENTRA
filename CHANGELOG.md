@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.216.1 - 2026-05-11
+
+- Corretto il flusso PST via Local Signer nella superficie React telematica: preflight, ricerca, anteprima e download riusano la stessa sessione PST locale e non tornano al server per le chiamate ministeriali.
+- SIGP/PST ora prepara la sessione locale prima di catalogo e download e usa sempre `/pst/download-documenti-batch`, anche per un solo documento, evitando processi `curl` separati.
+- Anche l'acquisizione documenti PST dal dettaglio fascicolo conserva la sessione locale nel browser e la passa al lotto successivo.
+
 ## 2.216.0 - 2026-05-11
 
 - Aggiornata `/fascicoli/nuovo`: tutte le sezioni operative del form sono collassabili e `Pratiche collegate` e' ora sotto `Personalizzabile`, vicino alla classificazione iniziale del fascicolo.

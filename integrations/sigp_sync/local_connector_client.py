@@ -3,7 +3,7 @@
 Il server IUSENTRA non scarica autonomamente dal portale e non salva PIN o
 credenziali. Questo client parla con il Local Signer sul PC dello studio e usa
 gli endpoint reali gia' esposti da IUSENTRA: /pst/documenti e
-/pst/download-documento.
+/pst/download-documenti-batch.
 """
 from __future__ import annotations
 
@@ -56,46 +56,50 @@ class SigpLocalConnectorClient:
         return response.payload
 
     def download_document(self, document_payload: dict[str, Any]) -> tuple[bytes, str, str]:
-        """Scarica un documento tramite Local Signer e restituisce bytes, nome, MIME."""
+        """Compatibilita: scarica un singolo documento passando dal batch PST."""
         case_payload = _case_to_pst_payload(document_payload.get("fascicolo") or {})
         document = document_payload.get("documento") or {}
-        request_payload = {
-            **case_payload,
-            **_document_to_pst_payload(document),
-            "original": bool(document_payload.get("original", False)),
-        }
-        response = self._request("POST", "/pst/download-documento", request_payload)
-        if not response.ok:
-            raise LocalConnectorError(_error_message(response.payload, "Download documento PST non riuscito."))
-
-        file_payload = response.payload.get("file") or response.payload
-        content_b64 = (
-            file_payload.get("contenuto_b64")
-            or file_payload.get("content_base64")
-            or file_payload.get("file_base64")
+        files = self.download_documents(
+            case_payload,
+            [document],
+            original=bool(document_payload.get("original", False)),
         )
-        if not content_b64:
+        if not files:
             raise LocalConnectorError("Il Local Signer non ha restituito il contenuto del file.")
+        file_item = files[0]
+        return file_item["content"], file_item["filename"], file_item["mime_type"]
 
-        try:
-            content = base64.b64decode(str(content_b64))
-        except Exception as exc:  # pragma: no cover - input esterno
-            raise LocalConnectorError("Contenuto file PST non decodificabile.") from exc
-
-        filename = (
-            _text(file_payload.get("nome"))
-            or _text(file_payload.get("filename"))
-            or _text(file_payload.get("nome_file"))
-            or _text(document.get("nome_file"))
-            or "documento-sigp.pdf"
-        )
-        mime_type = (
-            _text(file_payload.get("content_type"))
-            or _text(file_payload.get("mime_type"))
-            or _text(document.get("mime_type"))
-            or "application/octet-stream"
-        )
-        return content, filename, mime_type
+    def download_documents(
+        self,
+        case_payload: dict[str, Any],
+        documents: list[dict[str, Any]],
+        *,
+        original: bool = False,
+    ) -> list[dict[str, Any]]:
+        """Scarica un lotto PST in un solo processo curl, riusando la stessa sessione."""
+        normalized_case = _case_to_pst_payload(case_payload)
+        normalized_documents = [_document_to_pst_payload(document) for document in documents]
+        request_payload = {
+            **normalized_case,
+            "documents": normalized_documents,
+            "original": bool(original),
+            "purpose": "view",
+            "preflight_auth": not bool(normalized_case.get("pst_session_id")),
+        }
+        response = self._request("POST", "/pst/download-documenti-batch", request_payload)
+        if not response.ok and not response.payload.get("files"):
+            raise LocalConnectorError(_error_message(response.payload, "Download documenti PST non riuscito."))
+        files = response.payload.get("files") or []
+        if not isinstance(files, list):
+            files = []
+        decoded = []
+        for index, file_payload in enumerate(files):
+            if not isinstance(file_payload, dict):
+                continue
+            decoded.append(_decode_file_payload(file_payload, documents[index] if index < len(documents) else {}))
+        if not decoded:
+            raise LocalConnectorError("Il Local Signer non ha restituito il contenuto dei file.")
+        return decoded
 
     def _request(self, method: str, path: str, payload: dict[str, Any] | None) -> LocalConnectorResponse:
         url = f"{self.base_url}{path}"
@@ -191,6 +195,42 @@ def _document_to_pst_payload(document: dict[str, Any]) -> dict[str, Any]:
         "tipo_atto": _first(document, raw, "tipo_atto", "tipoAtto", "tipo", "type"),
     }
     return {key: value for key, value in payload.items() if value}
+
+
+def _decode_file_payload(file_payload: dict[str, Any], document: dict[str, Any]) -> dict[str, Any]:
+    content_b64 = (
+        file_payload.get("contenuto_b64")
+        or file_payload.get("content_base64")
+        or file_payload.get("file_base64")
+    )
+    if not content_b64:
+        raise LocalConnectorError("Il Local Signer non ha restituito il contenuto del file.")
+
+    try:
+        content = base64.b64decode(str(content_b64))
+    except Exception as exc:  # pragma: no cover - input esterno
+        raise LocalConnectorError("Contenuto file PST non decodificabile.") from exc
+
+    filename = (
+        _text(file_payload.get("nome"))
+        or _text(file_payload.get("filename"))
+        or _text(file_payload.get("nome_file"))
+        or _text(document.get("nome_file"))
+        or "documento-sigp.pdf"
+    )
+    mime_type = (
+        _text(file_payload.get("content_type"))
+        or _text(file_payload.get("mime_type"))
+        or _text(document.get("mime_type"))
+        or "application/octet-stream"
+    )
+    return {
+        "content": content,
+        "filename": filename,
+        "mime_type": mime_type,
+        "id_documento": _text(file_payload.get("id_documento") or file_payload.get("id_documento_portale")),
+        "documento_uid": _text(file_payload.get("documento_uid")),
+    }
 
 
 def _raw_dict(value: dict[str, Any]) -> dict[str, Any]:

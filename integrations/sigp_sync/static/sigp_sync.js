@@ -218,6 +218,28 @@
     }
   }
 
+  async function ensurePstPortalSession() {
+    const payload = buildPstCasePayload();
+    const tribunale = pick(payload.codice_ufficio, payload.tribunale);
+    if (!tribunale) return payload;
+    if (state.pstSessionId) {
+      return { ...payload, pst_session_id: state.pstSessionId, purpose: 'view' };
+    }
+    const preflight = await localSignerApi('/pst/preflight-auth', {
+      ...payload,
+      tribunale,
+      purpose: 'view',
+      pst_session_id: '',
+      force_auth: false,
+      force_new: false,
+    }, 120000);
+    return {
+      ...payload,
+      pst_session_id: pick(preflight.pst_session_id, state.pstSessionId),
+      purpose: 'view',
+    };
+  }
+
   function setAdapterStatus(result) {
     const el = $('sigpAdapterStatus');
     if (!el) return;
@@ -559,7 +581,8 @@
 
   async function previewDocumentsFromConnector() {
     if (!state.currentCaseId) return;
-    const catalog = await localSignerApi('/pst/documenti', buildPstCasePayload(), 120000);
+    const pstPayload = await ensurePstPortalSession();
+    const catalog = await localSignerApi('/pst/documenti', pstPayload, 120000);
     const result = await api(`/api/fascicoli/${encodeURIComponent(state.currentCaseId)}/documenti/importa-catalogo`, {
       method: 'POST',
       body: JSON.stringify({ catalogo: catalog, source: 'local_connector_browser' }),
@@ -655,18 +678,15 @@
       toast('Nessun documento da scaricare', 'Non ci sono documenti nuovi o selezionati.', 'warn');
       return;
     }
+    const pstPayload = await ensurePstPortalSession();
     const requestPayload = {
-      ...buildPstCasePayload(),
+      ...pstPayload,
       documents: selectedDocuments.map(buildPstDocumentPayload),
+      purpose: 'view',
+      preflight_auth: !state.pstSessionId,
       original: Boolean(original),
     };
-    const signerResult = selectedDocuments.length > 1
-      ? await localSignerApi('/pst/download-documenti-batch', requestPayload, 360000)
-      : await localSignerApi('/pst/download-documento', {
-        ...buildPstCasePayload(),
-        ...buildPstDocumentPayload(selectedDocuments[0]),
-        original: Boolean(original),
-      }, 360000);
+    const signerResult = await localSignerApi('/pst/download-documenti-batch', requestPayload, 360000);
     const files = signerResult.files || (signerResult.file ? [signerResult.file] : []);
     const errors = signerResult.failures || [];
     const used = new Set();

@@ -1,5 +1,20 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-11 - Sessione PST Local Signer 2.216.1
+
+La superficie React dei portali telematici mantiene il canale PST sul browser
+locale: il wizard usa `preflight-auth`, ricerca, snapshot fascicolo e download
+batch direttamente su `127.0.0.1:27272`, riusando la stessa sessione PST di
+visualizzazione per ridurre i prompt PIN. Il server IUSENTRA riceve solo
+selezione, anteprima normalizzata e file gia' scaricati dal Local Signer.
+
+- SIGP/PST prepara la sessione locale prima di catalogo e download e non usa
+  piu' il fallback al download singolo;
+- il dettaglio fascicolo conserva nel browser la sessione PST del lotto e la
+  ripassa alle acquisizioni successive;
+- i contratti mirati impediscono la ricomparsa di `/pst/download-documento`
+  nei client React/SIGP e controllano gli endpoint Local Signer necessari.
+
 ## Stato tranche 2026-05-11 - Fascicolo Veloce e form collassabile 2.216.0
 
 La pagina `/fascicoli/nuovo` resta nella shell React operativa e riceve una

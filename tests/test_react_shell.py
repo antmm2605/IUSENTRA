@@ -1297,6 +1297,12 @@ def test_react_wizard_pst_verifica_local_signer_dal_browser():
     assert "Da mobile o tablet il controllo non viene eseguito" in source
     assert "Local Signer non rilevato su questo PC" in source
     assert "disabled={localSigner.checking || localSigner.unsupported}" in source
+    assert "REACT_PST_SESSION_KEY" in source
+    assert "localSignerJson('/pst/preflight-auth'" in source
+    assert "localSignerJson('/pst/ricerca'" in source
+    assert "localSignerJson('/pst/fascicolo-snapshot'" in source
+    assert "localSignerJson('/pst/download-documenti-batch'" in source
+    assert "'/pst/download-documento'" not in source
 
 
 def test_react_wizard_acquisizione_portale_usa_endpoint_operativi_reali(tmp_path: Path):

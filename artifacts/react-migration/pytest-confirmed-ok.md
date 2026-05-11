@@ -8,6 +8,23 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 
 ## Frontend e gate React
 
+### Hotfix PST Local Signer batch 2.216.1
+
+| Verifica | Esito | Nota |
+| --- | --- | --- |
+| `npm --prefix frontend run typecheck` | OK | TypeScript confermato dopo sessione PST React con preflight, ricerca, snapshot e download batch via Local Signer browser. |
+| `python -m compileall integrations/sigp_sync/local_connector_client.py integrations/sigp_sync/routes.py tests/test_sigp_sync.py tests/test_react_shell.py -q` | OK | Sintassi confermata per client/route SIGP e test mirati. |
+| `python -m pytest -q tests/test_react_shell.py::test_react_wizard_pst_verifica_local_signer_dal_browser tests/test_sigp_sync.py::test_sigp_sync_visibile_nel_menu_e_apre_primo_fascicolo_importato tests/test_sigp_sync.py::test_sigp_sync_local_connector_preview_e_download_salva_file tests/test_sigp_sync.py::test_sigp_sync_download_duplicato_passa_original_true_al_local_signer --tb=short` | OK | 4/4 passati: il wizard React usa Local Signer PST e SIGP non torna al download singolo. |
+| `npm --prefix frontend run test` | OK | Contratti React confermati dopo l'hotfix PST. |
+| `python tools/sync_packaging_files.py --check` | OK | Packaging sincronizzato dopo bump 2.216.1. |
+| `python -m pytest -q tests/test_packaging_consistency.py tests/test_release_readiness.py --tb=short` | OK | 8/8 passati: coerenza packaging e readiness release confermate. |
+| `npm --prefix frontend run build` | OK | Build Vite 2.216.1 completata in 5.84s; asset React rigenerati. |
+| `python -m pytest -q tests/test_sigp_sync.py --tb=short` | OK | 13/13 passati: SIGP/PST batch, catalogo, import e salvataggio browser confermati. |
+| `python -m pytest -q tests/test_local_signer.py::test_wizard_pst_usa_snapshot_unico_e_sessioni_distinte --tb=short` | OK | Wizard classico PST ancora coerente con snapshot unico e sessioni gestite dal Local Signer. |
+| `node scripts/react-migration/check-route-gate.mjs` | OK | Route gate invariato e coerente. |
+| `node scripts/react-migration/check-full-react-route-contract.mjs` | OK | Full React contract e no-fake React full verdi. |
+| `git diff --check` | OK | Nessun errore whitespace; presenti solo warning CRLF su file gia' gestiti da Git/runtime locale. |
+
 ### Fascicolo Veloce e form collassabile 2.216.0
 
 | Verifica | Esito | Nota |

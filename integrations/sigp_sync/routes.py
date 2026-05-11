@@ -306,28 +306,44 @@ def _download_document_ids(sigp_fascicolo_id: int, document_ids: list[int], *, o
     downloaded = []
     errors = []
     storage_root = _storage_root()
+    download_rows = []
     for document_id in document_ids:
         document = repo.get_document(sigp_fascicolo_id, document_id)
         if not document:
             errors.append({"document_id": document_id, "message": "Documento non trovato."})
             continue
+        download_rows.append((document_id, document))
+
+    if download_rows:
         try:
-            content, filename, mime_type = client.download_document(
-                {
-                    "fascicolo_id": sigp_fascicolo_id,
-                    "documento_id": document_id,
-                    "fascicolo": fascicolo_payload,
-                    "documento": document,
-                    "original": bool(original),
-                }
+            files = client.download_documents(
+                fascicolo_payload,
+                [document for _document_id, document in download_rows],
+                original=bool(original),
             )
-            saved = repo.set_downloaded_file(sigp_fascicolo_id, document_id, storage_root, filename, content, mime_type)
-            downloaded.append({"document_id": document_id, **saved})
+            for index, file_payload in enumerate(files):
+                if index >= len(download_rows):
+                    break
+                document_id, _document = download_rows[index]
+                saved = repo.set_downloaded_file(
+                    sigp_fascicolo_id,
+                    document_id,
+                    storage_root,
+                    file_payload["filename"],
+                    file_payload["content"],
+                    file_payload["mime_type"],
+                )
+                downloaded.append({"document_id": document_id, **saved})
+            missing_rows = download_rows[len(downloaded):]
+            for document_id, _document in missing_rows:
+                errors.append({"document_id": document_id, "message": "Documento non restituito dal lotto Local Signer."})
         except LocalConnectorError as exc:
-            errors.append({"document_id": document_id, "message": str(exc)})
+            for document_id, _document in download_rows:
+                errors.append({"document_id": document_id, "message": str(exc)})
         except Exception as exc:  # pragma: no cover - route guard
-            current_app.logger.exception("Errore download documento SIGP %s: %s", document_id, exc)
-            errors.append({"document_id": document_id, "message": str(exc)})
+            current_app.logger.exception("Errore download batch SIGP %s: %s", sigp_fascicolo_id, exc)
+            for document_id, _document in download_rows:
+                errors.append({"document_id": document_id, "message": str(exc)})
 
     return {
         "ok": len(errors) == 0 or bool(downloaded),

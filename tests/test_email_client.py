@@ -820,6 +820,7 @@ def test_email_dettaglio_visualizza_e_scarica_allegato_salvato(tmp_path):
         assert payload["item"]["subject"] == "PEC con allegato RG 1025/2024"
         assert payload["bodyText"] == "Contiene una ricevuta allegata."
         assert payload["attachments"][0]["viewHref"] == "/email/messaggio/MAIL-ATT-1/allegato/0"
+        assert payload["attachments"][0]["previewHref"] == "/email/messaggio/MAIL-ATT-1/allegato/0"
         assert payload["attachments"][0]["downloadHref"] == "/email/messaggio/MAIL-ATT-1/allegato/0?download=1"
 
         inline = client.get("/email/messaggio/MAIL-ATT-1/allegato/0")
@@ -875,6 +876,7 @@ def test_email_ordinaria_dettaglio_usa_repository_smtp_e_allegati_ordinari(tmp_p
         assert payload["item"]["subject"] == "Email ordinaria con allegato"
         assert payload["bodyText"] == "Messaggio ordinario con documento."
         assert payload["attachments"][0]["viewHref"] == "/email-ordinaria/messaggio/MAIL-ORD-ATT-1/allegato/0"
+        assert payload["attachments"][0]["previewHref"] == "/email-ordinaria/messaggio/MAIL-ORD-ATT-1/allegato/0"
         assert payload["attachments"][0]["viewHref"] != "/email/messaggio/MAIL-ORD-ATT-1/allegato/0"
 
         inline = client.get("/email-ordinaria/messaggio/MAIL-ORD-ATT-1/allegato/0")

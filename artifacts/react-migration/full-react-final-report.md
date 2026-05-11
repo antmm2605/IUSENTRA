@@ -2,6 +2,11 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-11T02:35:00+02:00: hotfix 2.215.5 sui dettagli
+email React. Gli allegati PEC e Email ordinaria mostrano l'azione `Visualizza`
+separata da `Apri` e `Scarica`; `Visualizza` usa il link inline in nuova scheda
+senza parametro di download forzato.
+
 Aggiornamento 2026-05-11T02:05:00+02:00: tranche 2.215.4 sul flusso
 Preventivi/Incarichi/Fascicoli. Il catalogo `Pratiche collegate` e' ora dato
 versionato `PST_XSD`; il Preventivo guidato non deduce piu' il CodiceOggetto

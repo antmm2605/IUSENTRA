@@ -70,6 +70,7 @@ export type EmailAttachment = {
   name: string
   mime: string
   sizeLabel: string
+  viewHref: string
   previewHref: string
   downloadHref: string
   available: boolean
@@ -320,6 +321,7 @@ function attachmentFromPayload(value: unknown): EmailAttachment {
     name: text(item.name, 'allegato'),
     mime: text(item.mime),
     sizeLabel: text(item.sizeLabel ?? item.size_label),
+    viewHref: text(item.viewHref ?? item.view_href ?? item.previewHref ?? item.preview_href),
     previewHref: text(item.previewHref ?? item.preview_href ?? item.viewHref ?? item.view_href),
     downloadHref: text(item.downloadHref ?? item.download_href),
     available: item.available !== false,

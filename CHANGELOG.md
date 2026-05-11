@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.215.5 - 2026-05-11
+
+- Aggiunta l'azione `Visualizza` sugli allegati PEC e Email ordinaria nella pagina React di dettaglio messaggio: apre il file inline in nuova scheda senza usare il download forzato.
+- Mantenute separate le azioni `Apri`, `Visualizza` e `Scarica`, con contratti React e test mirati per evitare regressioni sui link allegati PEC/SMTP.
+
 ## 2.215.4 - 2026-05-11
 
 - Introdotto il catalogo versionato `pct/data/pratiche_collegate_catalog.json` per i codici oggetto PST, importato in React senza hardcoding nel componente.

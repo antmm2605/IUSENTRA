@@ -8,6 +8,20 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 
 ## Frontend e gate React
 
+### Hotfix visualizzazione allegati email 2.215.5
+
+| Verifica | Esito | Nota |
+| --- | --- | --- |
+| `node frontend\scripts\check-react-contracts.mjs` | OK | Contratti React aggiornati: il dettaglio messaggio espone `Visualizza` per gli allegati email in nuova scheda, distinto da `Scarica`. |
+| `npm --prefix frontend run typecheck` | OK | TypeScript confermato dopo estensione del tipo `EmailAttachment` con `viewHref`. |
+| `python -m compileall web\services\react_email_bridge.py web\blueprints\email_client.py web\blueprints\email_ordinaria.py` | OK | Sintassi backend confermata per i moduli email collegati agli allegati. |
+| `python -m pytest -q tests/test_email_client.py::test_email_dettaglio_visualizza_e_scarica_allegato_salvato tests/test_email_client.py::test_email_ordinaria_dettaglio_usa_repository_smtp_e_allegati_ordinari --tb=short` | OK | 2/2 passati: link inline e download allegati confermati per PEC ed email ordinaria. |
+| `npm --prefix frontend run build` | OK | Build Vite 2.215.5 completata in 5.42s con chunk `EmailPecPage` aggiornato. |
+| `python tools\sync_packaging_files.py --check` | OK | Packaging/versione 2.215.5 sincronizzati. |
+| `python -m pytest -q tests/test_packaging_consistency.py tests/test_release_readiness.py --tb=short` | OK | 8/8 passati: coerenza packaging e readiness release confermate dopo bump 2.215.5. |
+| `python -m pytest -q tests/test_react_shell.py::test_react_comunicazioni_email_messaggi_collegate_nav_e_shell --tb=short` | OK | Shell React comunicazioni confermata dopo l'aggiunta dell'azione `Visualizza` agli allegati email. |
+| `git diff --check` | OK | Nessun errore di whitespace; presenti solo warning CRLF su file gia' gestiti da Git/runtime locale. |
+
 ### Hotfix Email ordinaria bulk 2.215.2
 
 | Verifica | Esito | Nota |

@@ -326,6 +326,7 @@ function EmailFullDetail({
                 <span>{attachment.mime || 'file'} {attachment.sizeLabel ? `- ${attachment.sizeLabel}` : ''}</span>
               </div>
               {attachment.previewHref ? <a href={attachment.previewHref}>Apri</a> : null}
+              {attachment.viewHref ? <a href={attachment.viewHref} target="_blank" rel="noreferrer">Visualizza</a> : null}
               {attachment.downloadHref ? <a href={attachment.downloadHref}>Scarica</a> : null}
             </article>
           ))}

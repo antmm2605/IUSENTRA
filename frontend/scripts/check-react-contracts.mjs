@@ -1398,6 +1398,8 @@ assertNotContains(widgetJs, 'sendVia' + 'Companion(text);', 'send non usa compan
 assertContains(email, 'Casella PEC dello studio', 'pagina email pec')
 assertContains(email, 'Cartelle PEC', 'tab cartelle pec')
 assertContains(email, 'Apri casella', 'azione casella operativa')
+assertContains(email, 'Visualizza', 'azione visualizza allegato email senza download')
+assertContains(email, 'target="_blank"', 'visualizzazione allegato email in nuova scheda')
 assertContains(emailData, '/api/v1/ui/email', 'api email pec')
 assertContains(emailData, 'operationalInbox', 'azione inbox operativa')
 assertContains(messaggi, 'Nuovo messaggio', 'pagina messaggi')

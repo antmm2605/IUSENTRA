@@ -1,5 +1,13 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-11 - Visualizzazione allegati email 2.215.5
+
+Le route React `/email/messaggio/<id>` e `/email-ordinaria/messaggio/<id>`
+mantengono azioni distinte sugli allegati: `Apri` per il flusso corrente,
+`Visualizza` per apertura inline in nuova scheda senza download forzato e
+`Scarica` per il download esplicito. Il comportamento e' coperto da contratti
+React e test mirati su PEC e posta ordinaria SMTP.
+
 ## Stato tranche 2026-05-11 - Catalogo PST e deposito CodiceOggetto 2.215.4
 
 Questa tranche separa definitivamente la classificazione tariffaria dal codice

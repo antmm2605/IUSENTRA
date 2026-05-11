@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import date
+from pathlib import Path
 from typing import Any
 
 from flask import Flask, flash, redirect, render_template, request, url_for
@@ -72,6 +73,74 @@ def register_fascicoli_core_routes(
             or app.config.get("PCT_STUDIO_AVVOCATO")
             or ""
         ).strip()
+
+    def _tipo_documento_upload_iniziale(nome_file: str, *, email: bool = False) -> TipoDocumento:
+        if email:
+            return TipoDocumento.COMUNICAZIONE
+        nome = Path(nome_file or "").name.lower()
+        if "procura" in nome:
+            return TipoDocumento.PROCURA
+        if "ricorso" in nome:
+            return TipoDocumento.RICORSO
+        if "citazione" in nome:
+            return TipoDocumento.CITAZIONE
+        if "comparsa" in nome:
+            return TipoDocumento.COMPARSA
+        if "memoria" in nome:
+            return TipoDocumento.MEMORIA
+        if "notifica" in nome or "relata" in nome:
+            return TipoDocumento.NOTIFICA
+        if nome.endswith((".eml", ".msg")) or "ricevuta" in nome:
+            return TipoDocumento.COMUNICAZIONE
+        if nome.endswith((".pdf", ".p7m")):
+            return TipoDocumento.ATTO_GIUDIZIARIO
+        return TipoDocumento.ALLEGATO
+
+    def _salva_upload_fascicolo_veloce(gestore_fascicoli: Any, id_fasc: str) -> tuple[int, int, int]:
+        documenti_caricati = 0
+        email_caricate = 0
+        email_scartate = 0
+
+        for storage in request.files.getlist("documenti_fascicolo"):
+            if not storage or not storage.filename:
+                continue
+            raw = storage.read()
+            if not raw:
+                continue
+            gestore_fascicoli.aggiungi_documento(
+                id_fasc,
+                Path(storage.filename).name,
+                _tipo_documento_upload_iniziale(storage.filename),
+                raw,
+                note="Caricato all'apertura con Fascicolo Veloce.",
+                tags=["fascicolo-veloce", "documenti-iniziali"],
+                fonte_documento="APERTURA_FASCICOLO_VELOCE",
+                nome_originale=storage.filename,
+            )
+            documenti_caricati += 1
+
+        for storage in request.files.getlist("email_fascicolo"):
+            if not storage or not storage.filename:
+                continue
+            if not Path(storage.filename).name.lower().endswith(".eml"):
+                email_scartate += 1
+                continue
+            raw = storage.read()
+            if not raw:
+                continue
+            gestore_fascicoli.aggiungi_documento(
+                id_fasc,
+                Path(storage.filename).name,
+                _tipo_documento_upload_iniziale(storage.filename, email=True),
+                raw,
+                note="Email EML caricata all'apertura con Fascicolo Veloce.",
+                tags=["fascicolo-veloce", "email-iniziali", "eml"],
+                fonte_documento="APERTURA_FASCICOLO_VELOCE",
+                nome_originale=storage.filename,
+            )
+            email_caricate += 1
+
+        return documenti_caricati, email_caricate, email_scartate
 
     @app.route("/fascicoli")
     def lista_fascicoli():
@@ -151,6 +220,7 @@ def register_fascicoli_core_routes(
                 nome_cliente = cliente.nome_completo if cliente else ""
             try:
                 avvocato_referente = form.get("avvocato_referente", "").strip() or _avvocato_titolare_studio()
+                fascicolo_veloce = form.get("fascicolo_veloce") in {"1", "true", "on", "si", "sì"}
                 fascicolo = gestore_fascicoli.nuovo(
                     titolo=form["titolo"],
                     tipo=TipoFascicolo(form["tipo"]),
@@ -187,8 +257,29 @@ def register_fascicoli_core_routes(
                     data_apertura=form.get("data_apertura", "").strip() or date.today().isoformat(),
                     data_chiusura=form.get("data_chiusura", "").strip(),
                     compenso_pattuito=float(form.get("compenso_pattuito") or 0),
+                    fascicolo_veloce=fascicolo_veloce,
                     note=form.get("note", ""),
                 )
+                documenti_iniziali = 0
+                email_iniziali = 0
+                email_scartate = 0
+                if fascicolo_veloce:
+                    documenti_iniziali, email_iniziali, email_scartate = _salva_upload_fascicolo_veloce(
+                        gestore_fascicoli,
+                        fascicolo.id,
+                    )
+                    gestore_fascicoli.aggiorna(
+                        fascicolo.id,
+                        documenti_iniziali_count=documenti_iniziali,
+                        email_iniziali_count=email_iniziali,
+                    )
+                    if documenti_iniziali or email_iniziali:
+                        gestore_fascicoli.registra_onboarding(
+                            fascicolo.id,
+                            "Fascicolo Veloce: caricamento iniziale",
+                            note=f"Documenti: {documenti_iniziali}; email EML: {email_iniziali}.",
+                            avvocato=avvocato_referente,
+                        )
                 if source_preventivo or source_conferimento:
                     gestore_preventivi.collega_fascicolo(
                         fascicolo.id,
@@ -215,7 +306,12 @@ def register_fascicoli_core_routes(
                         ),
                         avvocato=avvocato_referente,
                     )
-                flash(f"Fascicolo {fascicolo.numero} creato.", "success")
+                messaggio_creazione = f"Fascicolo {fascicolo.numero} creato."
+                if fascicolo_veloce and (documenti_iniziali or email_iniziali):
+                    messaggio_creazione += f" Caricati {documenti_iniziali} documenti e {email_iniziali} email EML."
+                if email_scartate:
+                    messaggio_creazione += f" {email_scartate} file email non EML non sono stati importati."
+                flash(messaggio_creazione, "success")
                 sync_pubblica("crea", "fascicoli", fascicolo.id)
                 if source_preventivo or source_conferimento:
                     return redirect(url_for("dettaglio_fascicolo", id_fasc=fascicolo.id))

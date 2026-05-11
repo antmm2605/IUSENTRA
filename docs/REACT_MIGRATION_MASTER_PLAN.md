@@ -1,5 +1,24 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-11 - Fascicolo Veloce e form collassabile 2.216.0
+
+La pagina `/fascicoli/nuovo` resta nella shell React operativa e riceve una
+rifinitura di apertura pratica coerente con il design system:
+
+- le sezioni del form principale e della colonna laterale sono collassabili,
+  con pannelli compatti, icone Lucide e testi operativi per lo studio;
+- `Pratiche collegate` e' stata spostata sotto `Personalizzabile`, cosi' la
+  classificazione del fascicolo resta nel blocco iniziale di creazione;
+- la nuova opzione `Fascicolo Veloce` abilita, sotto `Annotazioni`, il
+  multicaricamento di documenti iniziali e il multicaricamento separato delle
+  email `.eml` da conservare nel fascicolo;
+- il backend salva i file caricati nel repository documenti del fascicolo,
+  aggiorna i conteggi dedicati e ignora in modo controllato i file non `.eml`
+  nell'area email;
+- il presidio `deposito assistito` resta prudente: preparazione e controlli
+  automatici sono separati da firma, busta e invio, che richiedono sempre
+  conferma esplicita dell'utente.
+
 ## Stato tranche 2026-05-11 - Route Documenti React 2.215.7
 
 La route ufficiale `/documenti` e' stata promossa a workspace operativo React

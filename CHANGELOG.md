@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.216.0 - 2026-05-11
+
+- Aggiornata `/fascicoli/nuovo`: tutte le sezioni operative del form sono collassabili e `Pratiche collegate` e' ora sotto `Personalizzabile`, vicino alla classificazione iniziale del fascicolo.
+- Aggiunto `Fascicolo Veloce`: quando attivo mostra sotto `Annotazioni` due aree di multicaricamento, una per i documenti iniziali e una per le email `.eml` da conservare nel fascicolo.
+- Salvati i caricamenti iniziali nel repository documenti del fascicolo con conteggi dedicati, origine tracciata e filtro prudente sui file email non `.eml`.
+- Allineata la UI al principio di deposito assistito: IUSENTRA prepara e controlla, mentre firma, busta e invio restano sempre confermati dall'utente.
+
 ## 2.215.7 - 2026-05-11
 
 - Corretto il 404 su `/documenti`: la route ufficiale ora apre la shell React con il workspace operativo Documenti, collegato a fascicoli, catalogo atti, redazione e ricerca documentale.

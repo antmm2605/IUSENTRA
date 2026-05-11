@@ -3299,6 +3299,77 @@ def test_post_modifica_fascicolo_salva_avvocato_titolare_se_referente_vuoto(tmp_
     assert aggiornato.avvocato_referente == "Avv. Refactor"
 
 
+def test_react_fascicolo_nuovo_form_collassabile_e_fascicolo_veloce():
+    source = Path("frontend/src/components/FascicoliPage.tsx").read_text(encoding="utf-8")
+    css = Path("frontend/src/components/FascicoliPage.css").read_text(encoding="utf-8")
+
+    dati_generali = source[
+        source.index("CollapsibleFormPanel title={labels.sections.datiGenerali}") :
+        source.index('CollapsibleFormPanel title="Parti"')
+    ]
+    identificazione = source[
+        source.index("CollapsibleFormPanel title={labels.sections.identificazioneGiudiziale}") :
+        source.index("CollapsibleFormPanel title={labels.sections.annotazioni}")
+    ]
+
+    assert "CollapsibleFormPanel" in source
+    assert ".iu-fas-form-panel__summary" in css
+    assert dati_generali.index("personalizzabile") < dati_generali.index("PraticheCollegateField data={data}") < dati_generali.index("Fascicolo Veloce")
+    assert "PraticheCollegateField data={data}" not in identificazione
+    assert 'name="documenti_fascicolo"' in source
+    assert 'name="email_fascicolo"' in source
+    assert 'accept=".eml,message/rfc822"' in source
+
+
+def test_post_nuovo_fascicolo_veloce_carica_documenti_ed_email_eml(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+
+    with app.test_client() as client:
+        _login(client)
+        response = client.post(
+            "/fascicoli/nuovo",
+            data={
+                "titolo": "Apertura veloce deposito assistito",
+                "tipo": TipoFascicolo.CIVILE.value,
+                "oggetto": "Apertura con caricamenti iniziali",
+                "fascicolo_veloce": "1",
+                "personalizzabile": "1",
+                "documenti_fascicolo": [
+                    (io.BytesIO(b"%PDF-1.4\natto principale"), "atto_principale.pdf"),
+                    (io.BytesIO(b"contratto allegato"), "contratto.txt"),
+                ],
+                "email_fascicolo": [
+                    (io.BytesIO(b"From: cancelleria@example.test\nSubject: Ricevuta\n\nOK"), "ricevuta_accettazione.eml"),
+                    (io.BytesIO(b"non importare come email"), "nota.txt"),
+                ],
+            },
+            follow_redirects=False,
+        )
+        id_fascicolo = response.headers["Location"].rstrip("/").rsplit("/", 1)[-1]
+        detail_response = client.get(
+            f"/api/v1/ui/fascicoli/{id_fascicolo}",
+            headers={"X-API-Key": "react-test-key"},
+        )
+
+    payload = detail_response.get_json()
+    fascicolo = payload["fascicolo"]
+    documents = payload["documents"]
+    nomi_documenti = {doc["name"] for doc in documents}
+    email_docs = [doc for doc in documents if "email-iniziali" in doc["tags"]]
+
+    assert response.status_code in {302, 303}
+    assert detail_response.status_code == 200
+    assert fascicolo["fascicoloVeloce"] is True
+    assert fascicolo["documentiInizialiCount"] == 2
+    assert fascicolo["emailInizialiCount"] == 1
+    assert len(documents) == 3
+    assert {"atto_principale.pdf", "contratto.txt", "ricevuta_accettazione.eml"} <= nomi_documenti
+    assert "nota.txt" not in nomi_documenti
+    assert len(email_docs) == 1
+    assert email_docs[0]["type"] == TipoDocumento.COMUNICAZIONE.value
+
+
 def test_react_clienti_nuovo_e_soggetti_collegati_nav_api_lex_cf():
     app_source = Path("frontend/src/App.tsx").read_text(encoding="utf-8")
     new_page = Path("frontend/src/components/NuovoClientePage.tsx").read_text(encoding="utf-8")

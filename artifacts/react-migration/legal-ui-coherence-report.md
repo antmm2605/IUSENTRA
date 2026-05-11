@@ -9,6 +9,13 @@ Controlli Atti, Sito Studio Contatti, dettagli email PEC/ordinaria e Database.
 Le superfici usano card operative compatte, dettaglio in pagina, testi italiani
 per lo studio e nessuna dicitura tecnica visibile tra quelle vietate.
 
+Aggiornamento 2026-05-11: `/fascicoli/nuovo` 2.216.0 usa pannelli
+collassabili coerenti con la shell IUSENTRA, `Pratiche collegate` nel blocco
+iniziale sotto `Personalizzabile`, `Fascicolo Veloce` con multicaricamento
+documenti/email EML e titolo utente `Presidio deposito assistito` al posto di
+diciture tecniche. Browser Docker desktop/tablet/mobile: nessun overflow,
+nessun errore console e nessun termine tecnico vietato visibile.
+
 ## Componenti UI creati
 
 - IconButton

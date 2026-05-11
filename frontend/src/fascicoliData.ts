@@ -214,6 +214,9 @@ export type FascicoloFull = FascicoloRow & {
   ctp: string
   statoPraticaOperativa: string
   personalizzabile: boolean
+  fascicoloVeloce: boolean
+  documentiInizialiCount: number
+  emailInizialiCount: number
   dataAperturaIso: string
   dataChiusuraIso: string
   firstHearing: string
@@ -442,7 +445,7 @@ export const emptyFascicoloDetail: FascicoloDetailData = {
     object: '', counterparty: '', counterpartyTaxCode: '', judge: '', section: '', leadLawyer: '', dominus: '', value: '', quotedValue: '', agreedFee: '',
     procedureType: '', practiceId: '', practiceArea: '', proceduraOperativaCodice: '', codiceOggettoPst: '', fonteCodiceOggetto: '', fileFonteCodiceOggetto: '',
     riferimentoCartaceo: '', attorePrincipale: '', istruttorePmGip: '', cancelliere: '', ctu: '', ctp: '',
-    statoPraticaOperativa: '', personalizzabile: false, dataAperturaIso: '', dataChiusuraIso: '',
+    statoPraticaOperativa: '', personalizzabile: false, fascicoloVeloce: false, documentiInizialiCount: 0, emailInizialiCount: 0, dataAperturaIso: '', dataChiusuraIso: '',
     firstHearing: '', citationNotification: '', nextHearing: '', notes: '', reservedNotes: '',
     source: '', sourceExternalId: '', lastSyncAt: '', syncStatus: '', importLogId: '', hasConflicts: false, documentSyncEnabled: false,
     eventsSyncEnabled: false, complianceControlsEnabled: true, archiveReady: false,
@@ -757,6 +760,9 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
     ctp: text(fullPayload.ctp),
     statoPraticaOperativa: text(fullPayload.statoPraticaOperativa ?? fullPayload.stato_pratica_operativa),
     personalizzabile: bool(fullPayload.personalizzabile),
+    fascicoloVeloce: bool(fullPayload.fascicoloVeloce ?? fullPayload.fascicolo_veloce),
+    documentiInizialiCount: number(fullPayload.documentiInizialiCount ?? fullPayload.documenti_iniziali_count),
+    emailInizialiCount: number(fullPayload.emailInizialiCount ?? fullPayload.email_iniziali_count),
     dataAperturaIso: text(fullPayload.dataAperturaIso ?? fullPayload.data_apertura),
     dataChiusuraIso: text(fullPayload.dataChiusuraIso ?? fullPayload.data_chiusura),
     firstHearing: text(fullPayload.firstHearing ?? fullPayload.data_prima_udienza),

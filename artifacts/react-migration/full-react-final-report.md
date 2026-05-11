@@ -2,6 +2,16 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-11T12:40:00+02:00: tranche 2.216.0 su
+`/fascicoli/nuovo`. Il form React di apertura fascicolo usa sezioni
+collassabili, sposta `Pratiche collegate` nel blocco iniziale sotto
+`Personalizzabile` e introduce `Fascicolo Veloce` con multicaricamento separato
+di documenti iniziali ed email `.eml`. Il backend salva i file nel repository
+documenti del fascicolo, conserva conteggi dedicati e scarta i file non `.eml`
+nell'area email senza interrompere la creazione. Il flusso PCT resta impostato
+come deposito assistito: preparazione e controlli automatici, conferma utente
+prima di firma, busta e invio.
+
 Aggiornamento 2026-05-11T11:00:00+02:00: hotfix 2.215.7 su `/documenti`.
 La route non restituisce piu' 404: e' censita nel manifest come
 `react_operational_full`, sbloccata dal route gate e servita dalla shell React
@@ -76,3 +86,14 @@ Tranche architetturale aggiornata: `/deposito/checklist`, `/strumenti-legali` e 
 - docker compose build --no-cache app scheduler-worker ocr-worker: passed - immagini locali 2.215.7 ricostruite dopo il filtro Documenti.
 - docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx: passed - app, scheduler, OCR e Redis healthy.
 - Browser Playwright headless `/documenti`: passed - desktop 352.9 ms, tablet 210.8 ms, mobile 167.9 ms a contenuto visibile, nessun overflow e nessun testo tecnico visibile.
+- python -m compileall web/bootstrap/fascicoli_core_routes.py web/services/react_fascicoli_bridge.py pct/fascicoli.py tests/test_react_shell.py: passed - sintassi confermata dopo Fascicolo Veloce.
+- python -m pytest -q tests/test_react_shell.py::test_react_fascicolo_nuovo_form_collassabile_e_fascicolo_veloce tests/test_react_shell.py::test_post_nuovo_fascicolo_veloce_carica_documenti_ed_email_eml --tb=short: passed - 2/2 su pannelli collassabili, spostamento pratiche collegate e upload iniziali.
+- npm --prefix frontend run typecheck: passed - TypeScript confermato per la UI `/fascicoli/nuovo` 2.216.0.
+- npm --prefix frontend run test: passed - Contratti React confermati dopo la modifica alla pagina fascicolo.
+- npm --prefix frontend run build: passed - Build Vite finale 2.216.0 completata in 6.02s; asset React rigenerati in `web/static/react`.
+- node scripts/react-migration/check-route-gate.mjs / check-full-react-route-contract.mjs / check-no-fake-react-full.mjs: passed - route gate, contratto full React e no-fake coerenti.
+- python tools/sync_packaging_files.py --check: passed - packaging/versione 2.216.0 sincronizzati.
+- python -m pytest -q tests/test_packaging_consistency.py tests/test_release_readiness.py --tb=short: passed - 8/8 packaging e readiness release.
+- docker compose build --no-cache app scheduler-worker ocr-worker: passed - immagini locali finali ricostruite da zero con wheel 2.216.0.
+- docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx / docker compose ps / /api/pronto: passed - container locali healthy, readiness `versione=2.216.0`.
+- Browser Playwright headless `/fascicoli/nuovo`: passed - desktop/tablet/mobile con upload iniziali, ordine corretto, nessun overflow, nessun errore console e nessun testo tecnico vietato; warm-up tenant iniziale registrato in `pytest-open-issues.md`, passaggi caldi desktop sotto 800 ms.

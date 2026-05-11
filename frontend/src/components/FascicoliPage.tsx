@@ -275,6 +275,36 @@ function JsonPostForm({
   )
 }
 
+function CollapsibleFormPanel({
+  title,
+  subtitle,
+  icon,
+  children,
+  defaultOpen = true,
+  className = '',
+}: {
+  title: string
+  subtitle?: string
+  icon?: ReactNode
+  children: ReactNode
+  defaultOpen?: boolean
+  className?: string
+}) {
+  return (
+    <details className={`iu-fas-form-panel ${className}`.trim()} {...(defaultOpen ? { open: true } : {})}>
+      <summary className="iu-fas-form-panel__summary">
+        <span className="iu-fas-form-panel__icon">{icon}</span>
+        <span className="iu-fas-form-panel__copy">
+          <strong>{title}</strong>
+          {subtitle ? <small>{subtitle}</small> : null}
+        </span>
+        <ChevronDown className="iu-fas-form-panel__chevron" size={17}/>
+      </summary>
+      <div className="iu-fas-form-panel__body">{children}</div>
+    </details>
+  )
+}
+
 function LexIndexingPanel({ summary, refreshAction, retryAction, onDone, onError }:{summary:LexIndexingSummary; refreshAction:string; retryAction:string; onDone:(message?:string)=>void; onError:(message:string)=>void}) {
   const working = summary.queued + summary.indexing
   const tone = summary.status === 'ready' ? 'success' : summary.status === 'error' ? 'danger' : summary.status === 'stale' ? 'warning' : 'info'
@@ -755,22 +785,65 @@ function PraticheCollegateField({ data }:{data:FascicoloFormData}) {
 function FascicoloGuardrailsPanel({ guardrails }: { guardrails?: FascicoloFormData['guardrails'] }) {
   if (!guardrails?.available) return null
   const modeLabel = guardrails.mode === 'opening' ? 'apertura fascicolo' : 'deposito'
+  const panelTitle = guardrails.title?.toLowerCase().includes('guardrail')
+    ? 'Presidio deposito assistito'
+    : guardrails.title || 'Presidio deposito assistito'
   return (
-    <Panel title={guardrails.title || 'Guardrail deposito telematico'} subtitle={`${guardrails.channelLabel} - ${modeLabel}`} icon={<ShieldCheck size={17}/>}>
+    <CollapsibleFormPanel title={panelTitle} subtitle={`${guardrails.channelLabel} - ${modeLabel}`} icon={<ShieldCheck size={17}/>}>
       <div className="iu-fas-checklist iu-fas-guardrails">
+        <span><CheckCircle2 size={16}/> IUSENTRA prepara e controlla. Firma, busta e invio restano sempre confermati dall'utente.</span>
         <span><Landmark size={16}/> Canale suggerito: <strong>{guardrails.channelLabel}</strong></span>
         {guardrails.requiredOpeningFields.length ? <span><ClipboardCheck size={16}/> Campi minimi apertura: {guardrails.requiredOpeningFields.join(', ')}</span> : null}
         {guardrails.blocking.map((issue) => <span key={issue.code || issue.message} className="iu-fas-issue iu-fas-issue--block"><ShieldCheck size={16}/> {issue.message}</span>)}
         {guardrails.warnings.map((issue) => <span key={issue.code || issue.message} className="iu-fas-issue iu-fas-issue--warning"><Bell size={16}/> {issue.message}</span>)}
         {guardrails.nextStep?.href ? <a className="iu-fas-inline-link" href={guardrails.nextStep.href}>{guardrails.nextStep.label || 'Apri pre-deposito'}</a> : null}
       </div>
-    </Panel>
+    </CollapsibleFormPanel>
+  )
+}
+
+function FascicoloVeloceUploadSections({ enabled }:{enabled:boolean}) {
+  if (!enabled) return null
+  return (
+    <>
+      <CollapsibleFormPanel title="Documenti iniziali" subtitle="Multicaricamento degli atti e degli allegati da inserire subito nel fascicolo" icon={<UploadCloud size={17}/>} className="iu-fas-form-panel--quick">
+        <div className="iu-fas-upload-zone">
+          <label htmlFor="documenti-fascicolo-veloce">
+            <span><FileText size={16}/> Documenti del fascicolo</span>
+            <input
+              id="documenti-fascicolo-veloce"
+              type="file"
+              name="documenti_fascicolo"
+              multiple
+              accept=".pdf,.pdfa,.p7m,.doc,.docx,.odt,.rtf,.txt,.jpg,.jpeg,.png,.tif,.tiff,.xml,.zip,.rar,.7z"
+            />
+          </label>
+          <small>Alla creazione saranno archiviati nella sezione documenti del fascicolo con origine apertura rapida.</small>
+        </div>
+      </CollapsibleFormPanel>
+      <CollapsibleFormPanel title="Email da conservare" subtitle="Multicaricamento dei messaggi EML da collegare al fascicolo" icon={<Mail size={17}/>} className="iu-fas-form-panel--quick">
+        <div className="iu-fas-upload-zone">
+          <label htmlFor="email-fascicolo-veloce">
+            <span><Mail size={16}/> Email in formato EML</span>
+            <input
+              id="email-fascicolo-veloce"
+              type="file"
+              name="email_fascicolo"
+              multiple
+              accept=".eml,message/rfc822"
+            />
+          </label>
+          <small>Sono accettati solo file EML, utili per PEC, ricevute e comunicazioni da conservare nel fascicolo.</small>
+        </div>
+      </CollapsibleFormPanel>
+    </>
   )
 }
 
 function FascicoloFormPage({ mode, id }:{mode:'new'|'edit'; id?:string}) {
   const [data, setData] = useState<FascicoloFormData>(emptyFascicoloForm)
   const [loading, setLoading] = useState(true)
+  const [fascicoloVeloce, setFascicoloVeloce] = useState(false)
   useEffect(() => { let active = true; getFascicoloForm(mode === 'edit' ? id : undefined, window.location.search).then((payload) => { if (active) setData(payload) }).finally(() => { if (active) setLoading(false) }); return () => { active = false } }, [id, mode])
   const labels = NUOVO_FASCICOLO_LABELS
   return (
@@ -782,9 +855,9 @@ function FascicoloFormPage({ mode, id }:{mode:'new'|'edit'; id?:string}) {
       {loading ? <p className="iu-empty">Caricamento dati fascicolo...</p> : null}
       {data.correction?.active ? <section className="iu-fas-correction"><Badge tone="primary">Correzione</Badge><div><strong>{data.correction.title}</strong><span>{data.correction.help}</span></div></section> : null}
       <section className="iu-fas-form-layout">
-        <JsonPostForm className="iu-fas-form" action={data.action || (mode === 'edit' && id ? `/fascicoli/${encodeURIComponent(id)}/modifica` : '/fascicoli/nuovo')} redirectTo={data.detailHref || data.backHref}>
+        <JsonPostForm className="iu-fas-form" action={data.action || (mode === 'edit' && id ? `/fascicoli/${encodeURIComponent(id)}/modifica` : '/fascicoli/nuovo')} redirectTo={data.detailHref || data.backHref} encType="multipart/form-data">
           {mode === 'new' ? <><input type="hidden" name="source_preventivo" value={data.query.source_preventivo || ''}/><input type="hidden" name="source_conferimento" value={data.query.source_conferimento || ''}/><input type="hidden" name="from_page" value={data.query.from_page || ''}/></> : null}
-          <Panel title={labels.sections.datiGenerali} subtitle="Pratica, oggetto, stato e date principali" icon={<FolderOpen size={17}/>}>
+          <CollapsibleFormPanel title={labels.sections.datiGenerali} subtitle="Pratica, oggetto, stato e date principali" icon={<FolderOpen size={17}/>}>
             <div className="iu-fas-form-grid">
               <Field label={labels.fields.pratica} name="titolo" defaultValue={getValue(data, 'title')} required placeholder="es. Rossi c/ Bianchi - Inadempimento contrattuale"/>
               <Field label={labels.fields.rifCartaceo} name="riferimento_cartaceo" defaultValue={getValue(data, 'riferimentoCartaceo')}/>
@@ -794,17 +867,25 @@ function FascicoloFormPage({ mode, id }:{mode:'new'|'edit'; id?:string}) {
               <Field label={labels.fields.dataArchiviazione} name="data_chiusura" type="date" defaultValue={getValue(data, 'dataChiusuraIso')}/>
               <TextAreaField label={labels.fields.oggettoPratica} name="oggetto" defaultValue={getValue(data, 'object') || getValue(data, 'subtitle')} rows={2}/>
               <label className="iu-fas-check-field"><input type="checkbox" name="personalizzabile" value="1" defaultChecked={getBoolValue(data, 'personalizzabile')}/><span>{labels.fields.personalizzabile}</span></label>
+              <PraticheCollegateField data={data}/>
+              {mode === 'new' ? (
+                <label className="iu-fas-check-field iu-fas-check-field--wide" htmlFor="fascicolo-veloce">
+                  <input id="fascicolo-veloce" type="checkbox" name="fascicolo_veloce" value="1" checked={fascicoloVeloce} onChange={(event) => setFascicoloVeloce(event.currentTarget.checked)} aria-controls="documenti-fascicolo-veloce email-fascicolo-veloce"/>
+                  <span>Fascicolo Veloce</span>
+                  <small>Attiva caricamento iniziale di documenti ed email EML.</small>
+                </label>
+              ) : null}
             </div>
-          </Panel>
-          <Panel title="Parti" subtitle="Cliente, controparte e attore principale" icon={<UsersRound size={17}/>}>
+          </CollapsibleFormPanel>
+          <CollapsibleFormPanel title="Parti" subtitle="Cliente, controparte e attore principale" icon={<UsersRound size={17}/>}>
             <div className="iu-fas-form-grid">
               <SelectField label="Cliente" name="id_cliente" options={[{ value: '', label: 'Seleziona cliente' }, ...data.clients.map((client) => ({ value: client.id, label: client.label }))]} defaultValue={getValue(data, 'clientId') || data.query.id_cliente || ''}/>
               <Field label="Controparte" name="controparte" defaultValue={getValue(data, 'counterparty')} placeholder="Cerca per nome, C.F. o digita"/>
               <Field label={labels.fields.attorePrincipale} name="attore_principale" defaultValue={getValue(data, 'attorePrincipale')}/>
               <a className="iu-fas-inline-link" href="/soggetti/nuovo" target="_blank" rel="noreferrer"><Plus size={14}/> Nuovo soggetto</a>
             </div>
-          </Panel>
-          <Panel title={labels.sections.identificazioneGiudiziale} subtitle="Autorità, numero di ruolo e catalogo ufficiale per il deposito" icon={<Landmark size={17}/>}>
+          </CollapsibleFormPanel>
+          <CollapsibleFormPanel title={labels.sections.identificazioneGiudiziale} subtitle="Autorità, numero di ruolo e riferimenti dell'ufficio" icon={<Landmark size={17}/>}>
             <div className="iu-fas-form-grid">
               <Field label={labels.fields.autoritaGiudiziaria} name="tribunale" defaultValue={getValue(data, 'court')}/>
               <Field label={labels.fields.numeroRuolo} name="numero_rg" defaultValue={getValue(data, 'numeroRg')}/>
@@ -814,7 +895,6 @@ function FascicoloFormPage({ mode, id }:{mode:'new'|'edit'; id?:string}) {
               <Field label={labels.fields.cancelliere} name="cancelliere" defaultValue={getValue(data, 'cancelliere')}/>
               <Field label={labels.fields.ctu} name="ctu" defaultValue={getValue(data, 'ctu')}/>
               <Field label={labels.fields.ctp} name="ctp" defaultValue={getValue(data, 'ctp')}/>
-              <PraticheCollegateField data={data}/>
               <Field label="Valore causa (EUR)" name="valore_causa" type="number" defaultValue={getValue(data, 'valueRaw') || getValue(data, 'value')} placeholder="0.00"/>
               <Field label="Compenso pattuito (EUR)" name="compenso_pattuito" type="number" defaultValue={getValue(data, 'agreedFeeRaw') || getValue(data, 'agreedFee')} readOnly={Boolean(getValue(data, 'agreedFee'))}/>
               <Field label="Valore preventivato (EUR)" name="valore_preventivato" type="number" defaultValue={getValue(data, 'quotedValueRaw') || getValue(data, 'quotedValue')} readOnly={Boolean(getValue(data, 'quotedValue'))}/>
@@ -823,17 +903,18 @@ function FascicoloFormPage({ mode, id }:{mode:'new'|'edit'; id?:string}) {
               <Field label="Data prima udienza / comparizione" name="data_prima_udienza" type="date" defaultValue={getValue(data, 'firstHearingIso') || getValue(data, 'firstHearing')}/>
               <Field label="Data notificazione citazione" name="data_notifica_citazione" type="date" defaultValue={getValue(data, 'citationNotificationIso') || getValue(data, 'citationNotification')}/>
             </div>
-          </Panel>
-          <Panel title={labels.sections.annotazioni} subtitle="Referente, dominus e note operative" icon={<BriefcaseBusiness size={17}/>}>
+          </CollapsibleFormPanel>
+          <CollapsibleFormPanel title={labels.sections.annotazioni} subtitle="Referente, dominus e note operative" icon={<BriefcaseBusiness size={17}/>}>
             <div className="iu-fas-form-grid"><Field label="Avvocato referente" name="avvocato_referente" defaultValue={getValue(data, 'leadLawyer')}/><Field label="Avvocato dominus" name="avvocato_dominus" defaultValue={getValue(data, 'dominus')}/><TextAreaField label={labels.fields.annotazioni} name="note" defaultValue={getValue(data, 'notes')} rows={4}/></div>
-          </Panel>
+          </CollapsibleFormPanel>
+          {mode === 'new' ? <FascicoloVeloceUploadSections enabled={fascicoloVeloce}/> : null}
           <div className="iu-fas-form-actions"><button className="iu-fas-submit" type="submit"><CheckCircle2 size={16}/> {mode === 'edit' ? 'Salva modifiche' : 'Crea fascicolo'}</button><a href={data.detailHref || data.backHref}>Annulla</a></div>
         </JsonPostForm>
         <aside className="iu-fas-form-side">
           <FascicoloGuardrailsPanel guardrails={data.guardrails} />
-          {data.workflow ? <Panel title="Apertura pratica guidata" icon={<Sparkles size={17}/>}><div className="iu-fas-workflow-box"><div>{data.workflow.badges.map((badge) => <Badge tone="primary" key={badge}>{badge}</Badge>)}</div><p>{data.workflow.summary}</p>{data.workflow.values.map((item) => <span key={item.label}><strong>{item.label}</strong>{item.value}</span>)}<ul>{data.workflow.checklist.map((item) => <li key={item}>{item}</li>)}</ul></div></Panel> : null}
-          <Panel title="Guida rapida" icon={<BadgeCheck size={17}/>}><div className="iu-fas-help"><p><strong>RG</strong>: numero assegnato dal tribunale all'iscrizione a ruolo.</p><p><strong>Sezione</strong>: sezione competente, utile per filtri e notifiche.</p><p><strong>Valore causa</strong>: alimenta compensi, quadro economico e controllo incassi.</p></div></Panel>
-          <Panel title="Prossimi passi" icon={<ListChecks size={17}/>}><div className="iu-fas-help"><p>Dopo il salvataggio potrai aggiungere documenti, scadenze processuali, attività, depositi telematici e note.</p></div></Panel>
+          {data.workflow ? <CollapsibleFormPanel title="Apertura pratica guidata" icon={<Sparkles size={17}/>}><div className="iu-fas-workflow-box"><div>{data.workflow.badges.map((badge) => <Badge tone="primary" key={badge}>{badge}</Badge>)}</div><p>{data.workflow.summary}</p>{data.workflow.values.map((item) => <span key={item.label}><strong>{item.label}</strong>{item.value}</span>)}<ul>{data.workflow.checklist.map((item) => <li key={item}>{item}</li>)}</ul></div></CollapsibleFormPanel> : null}
+          <CollapsibleFormPanel title="Guida rapida" icon={<BadgeCheck size={17}/>}><div className="iu-fas-help"><p><strong>RG</strong>: numero assegnato dal tribunale all'iscrizione a ruolo.</p><p><strong>Sezione</strong>: sezione competente, utile per filtri e notifiche.</p><p><strong>Valore causa</strong>: alimenta compensi, quadro economico e controllo incassi.</p></div></CollapsibleFormPanel>
+          <CollapsibleFormPanel title="Prossimi passi" icon={<ListChecks size={17}/>}><div className="iu-fas-help"><p>Dopo il salvataggio potrai completare documenti, scadenze processuali, attività, deposito assistito e note.</p></div></CollapsibleFormPanel>
         </aside>
       </section>
       <FloatingLex context="fascicolo-form" title="Lex AI fascicolo" body="Posso aiutarti a completare oggetto, tipo procedimento, checklist iniziale, scadenze e dati mancanti prima della creazione o modifica." primaryHref="#lex" primaryLabel="Apri Lex fascicolo" secondaryHref="/fascicoli" secondaryLabel="Torna ai fascicoli" />

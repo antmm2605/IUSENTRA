@@ -631,6 +631,9 @@ class Fascicolo:
     ctp: str = ""
     stato_pratica_operativa: str = ""
     personalizzabile: bool = False
+    fascicolo_veloce: bool = False
+    documenti_iniziali_count: int = 0
+    email_iniziali_count: int = 0
     procedura_operativa_codice: str = ""
     procedura_operativa_nome: str = ""
     subbranch_operativa_codice: str = ""

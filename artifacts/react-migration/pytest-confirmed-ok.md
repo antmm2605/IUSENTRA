@@ -8,6 +8,27 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 
 ## Frontend e gate React
 
+### Fascicolo Veloce e form collassabile 2.216.0
+
+| Verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m compileall web/bootstrap/fascicoli_core_routes.py web/services/react_fascicoli_bridge.py pct/fascicoli.py tests/test_react_shell.py` | OK | Sintassi confermata per backend fascicoli, bridge React e test mirati. |
+| `python -m pytest -q tests/test_react_shell.py::test_react_fascicolo_nuovo_form_collassabile_e_fascicolo_veloce tests/test_react_shell.py::test_post_nuovo_fascicolo_veloce_carica_documenti_ed_email_eml --tb=short` | OK | 2/2 passati: sezioni collassabili, `Pratiche collegate` sotto `Personalizzabile`, upload documenti e import `.eml` nel fascicolo. |
+| `npm --prefix frontend run typecheck` | OK | TypeScript confermato dopo pannelli collassabili e stato `Fascicolo Veloce`. |
+| `npm --prefix frontend run test` | OK | Contratti React confermati dopo la modifica alla pagina `/fascicoli/nuovo`. |
+| `npm --prefix frontend run build` | OK | Build Vite finale completata in 6.02s; asset React rigenerati in `web/static/react`. |
+| `node scripts/react-migration/check-route-gate.mjs` | OK | Route gate invariato e coerente dopo la modifica a `/fascicoli/nuovo`. |
+| `node scripts/react-migration/check-full-react-route-contract.mjs` | OK | Contratto full React e audit anti-mascheramento coerenti. |
+| `node scripts/react-migration/check-no-fake-react-full.mjs` | OK | Nessuna route full mascherata dopo la tranche Fascicolo Veloce. |
+| `python tools/sync_packaging_files.py --check` | OK | Packaging/versione 2.216.0 sincronizzati tra Python, frontend, Docker e Railway. |
+| `python -m pytest -q tests/test_packaging_consistency.py tests/test_release_readiness.py --tb=short` | OK | 8/8 passati: coerenza packaging e readiness release confermate dopo bump 2.216.0. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker` | OK | Rebuild finale no-cache completato con wheel `pct-studio-legale==2.216.0` e asset React aggiornati. |
+| `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx` | OK | Servizi locali riavviati sulle immagini finali 2.216.0. |
+| `docker compose ps` | OK | `iusentra-app`, `iusentra-scheduler`, `iusentra-ocr` e `iusentra-redis` healthy; `iusentra-nginx` attivo. |
+| `Invoke-WebRequest -UseBasicParsing -Uri http://127.0.0.1:8080/api/pronto -TimeoutSec 30` | OK | Readiness locale 200 con `versione=2.216.0`. |
+| `docker exec iusentra-app python -c "import pct; print(pct.__version__)"` | OK | Versione runtime container locale: `2.216.0`. |
+| Browser Playwright headless su `/fascicoli/nuovo` desktop/tablet/mobile | OK | Sezioni collassabili, `Fascicolo Veloce`, upload documenti/email EML, `Presidio deposito assistito`, nessun overflow, nessun errore console e nessun testo tecnico vietato. Primo accesso post-restart ha riprodotto il warm-up tenant gia' aperto; passaggi caldi desktop 761.3/647.2/538.7 ms a contenuto visibile, tablet 692.5 ms, mobile 646.7 ms. |
+
 ### Hotfix `/documenti` React 2.215.7
 
 | Verifica | Esito | Nota |

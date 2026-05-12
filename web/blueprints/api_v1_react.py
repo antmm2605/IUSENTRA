@@ -8,6 +8,7 @@ truth frontend.
 from __future__ import annotations
 
 import json
+import hashlib
 import re
 from datetime import date, datetime, timedelta, timezone
 from functools import wraps
@@ -25,6 +26,8 @@ from pct.messaggi import CanaleMsggio, ConfigMessaggistica, GestioneMessaggi, Me
 from pct.notifiche_legali import (
     build_client_communication,
     normalise_custom_template,
+    preview_legal_relata,
+    validate_custom_template_body,
     template_preview_text,
     validate_deposit_notification_proof,
     validate_legal_notification,
@@ -1669,6 +1672,18 @@ def _notifiche_legali_result_response(result: Any, *, success_message: str):
     return jsonify(payload), 200 if result.ok else 400
 
 
+_NOTIFICHE_MODEL_LABEL_MAX = 120
+_NOTIFICHE_MODEL_DESCRIPTION_MAX = 500
+_NOTIFICHE_MODEL_BODY_MAX = 24000
+_NOTIFICHE_DRAFT_BODY_MAX = 30000
+_NOTIFICHE_CLIENT_BODY_MAX = 20000
+
+
+def _json_payload_or_error() -> tuple[dict[str, Any] | None, Any | None]:
+    payload, error = _request_json_object()
+    return payload, error
+
+
 def _notifiche_custom_templates_path() -> Path:
     log_path = Path(tenant_data_path(
         "NOTIFICHE_LOG",
@@ -1676,6 +1691,15 @@ def _notifiche_custom_templates_path() -> Path:
         require_tenant=True,
     ))
     return log_path.parent / "modelli_relata_personalizzati.json"
+
+
+def _notifiche_relata_drafts_path() -> Path:
+    log_path = Path(tenant_data_path(
+        "NOTIFICHE_LOG",
+        current_app.config.get("NOTIFICHE_LOG", "./notifiche/log.json"),
+        require_tenant=True,
+    ))
+    return log_path.parent / "bozze_relata.json"
 
 
 def _load_custom_relata_templates() -> list[dict[str, Any]]:
@@ -1703,6 +1727,29 @@ def _write_custom_relata_templates(templates: list[dict[str, Any]]) -> None:
         "version": 1,
         "updatedAt": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
         "templates": templates,
+    }
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def _load_relata_drafts() -> list[dict[str, Any]]:
+    path = _notifiche_relata_drafts_path()
+    if not path.exists():
+        return []
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return []
+    rows = payload.get("drafts") if isinstance(payload, dict) else []
+    return [item for item in rows if isinstance(item, dict)]
+
+
+def _write_relata_drafts(drafts: list[dict[str, Any]]) -> None:
+    path = _notifiche_relata_drafts_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "version": 1,
+        "updatedAt": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+        "drafts": drafts,
     }
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
@@ -1753,14 +1800,26 @@ def notifiche_legali_payload():
 @api_v1_react.post("/notifiche-legali/modelli-relata")
 @_richiedi_auth
 def notifiche_legali_salva_modello_relata():
-    payload = _request_payload()
+    payload, error = _json_payload_or_error()
+    if error is not None:
+        return error
+    assert payload is not None
     label = str(payload.get("label") or payload.get("nome") or "").strip()
     body = str(payload.get("body") or payload.get("testo") or "").replace("\r\n", "\n").replace("\r", "\n").strip()
     description = str(payload.get("description") or payload.get("descrizione") or "").strip()
     if not label:
         return jsonify({"ok": False, "message": "Indica un nome per il modello relata."}), 400
+    if len(label) > _NOTIFICHE_MODEL_LABEL_MAX:
+        return jsonify({"ok": False, "message": "Il nome del modello relata e' troppo lungo."}), 400
+    if len(description) > _NOTIFICHE_MODEL_DESCRIPTION_MAX:
+        return jsonify({"ok": False, "message": "La descrizione del modello relata e' troppo lunga."}), 400
     if len(body) < 80:
         return jsonify({"ok": False, "message": "Inserisci il testo del modello con i campi automatici necessari."}), 400
+    if len(body) > _NOTIFICHE_MODEL_BODY_MAX:
+        return jsonify({"ok": False, "message": "Il testo del modello relata e' troppo lungo."}), 400
+    template_blockers = validate_custom_template_body(body)
+    if template_blockers:
+        return jsonify({"ok": False, "message": "Correggi i campi automatici del modello relata.", "blockers": template_blockers}), 400
 
     existing = _load_custom_relata_templates()
     created_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
@@ -1787,10 +1846,73 @@ def notifiche_legali_salva_modello_relata():
     return jsonify({"ok": True, "message": "Modello relata salvato.", "template": _custom_relata_template_option(template)})
 
 
+@api_v1_react.post("/notifiche-legali/anteprima-relata")
+@_richiedi_auth
+def notifiche_legali_anteprima_relata():
+    payload, error = _json_payload_or_error()
+    if error is not None:
+        return error
+    assert payload is not None
+    result = preview_legal_relata(_augment_custom_relata_payload(payload))
+    if result.get("ok"):
+        _audit_event("notifiche_legali.anteprima_relata", "notifica_legale", "", "Anteprima relata compilata generata.")
+    return jsonify(result), 200 if result.get("ok") else 400
+
+
+@api_v1_react.post("/notifiche-legali/bozze-relata")
+@_richiedi_auth
+def notifiche_legali_salva_bozza_relata():
+    payload, error = _json_payload_or_error()
+    if error is not None:
+        return error
+    assert payload is not None
+    relata_text = str(payload.get("relataText") or payload.get("relata_text") or payload.get("testo") or "").replace("\r\n", "\n").replace("\r", "\n").strip()
+    template_id = str(payload.get("templateId") or payload.get("template_id") or "").strip()
+    practice_id = str(payload.get("practiceId") or payload.get("practice_id") or "").strip()
+    payload_hash = str(payload.get("payloadHash") or payload.get("payload_hash") or "").strip()
+    if not relata_text:
+        return jsonify({"ok": False, "message": "La bozza relata non puo' essere vuota."}), 400
+    if len(relata_text) > _NOTIFICHE_DRAFT_BODY_MAX:
+        return jsonify({"ok": False, "message": "La bozza relata e' troppo lunga."}), 400
+    if not template_id:
+        return jsonify({"ok": False, "message": "Seleziona il modello di riferimento della bozza."}), 400
+    saved_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    if not payload_hash:
+        payload_hash = hashlib.sha256(
+            json.dumps(
+                {"practiceId": practice_id, "templateId": template_id, "relataText": relata_text},
+                ensure_ascii=False,
+                sort_keys=True,
+            ).encode("utf-8")
+        ).hexdigest()
+    draft_id = f"bozza_relata_{saved_at.replace(':', '').replace('-', '')}_{payload_hash[:10]}"
+    draft = {
+        "id": draft_id,
+        "practiceId": practice_id,
+        "templateId": template_id,
+        "relataText": relata_text,
+        "payloadHash": payload_hash,
+        "savedAt": saved_at,
+        "savedBy": _actor_label(),
+    }
+    drafts = [item for item in _load_relata_drafts() if item.get("id") != draft_id]
+    drafts.append(draft)
+    _write_relata_drafts(drafts[-100:])
+    _audit_event("notifiche_legali.bozza_relata", "bozza_relata", draft_id, "Bozza relata salvata per la notifica corrente.")
+    return jsonify({"ok": True, "message": "Bozza relata salvata per questa notifica.", "draftId": draft_id, "savedAt": saved_at})
+
+
 @api_v1_react.post("/notifiche-legali/notifica")
 @_richiedi_auth
 def notifiche_legali_preview():
-    result = validate_legal_notification(_augment_custom_relata_payload(_request_payload()))
+    payload, error = _json_payload_or_error()
+    if error is not None:
+        return error
+    assert payload is not None
+    override_text = str(payload.get("relata_override_text") or "").strip()
+    if len(override_text) > _NOTIFICHE_DRAFT_BODY_MAX:
+        return jsonify({"ok": False, "message": "La bozza relata modificata e' troppo lunga.", "blockers": ["La bozza relata modificata e' troppo lunga."]}), 400
+    result = validate_legal_notification(_augment_custom_relata_payload(payload))
     return _notifiche_legali_result_response(
         result,
         success_message="Relata e controlli L. 53/1994 pronti per la revisione dell'avvocato.",
@@ -1800,7 +1922,14 @@ def notifiche_legali_preview():
 @api_v1_react.post("/notifiche-legali/comunicazione-cliente")
 @_richiedi_auth
 def notifiche_legali_comunicazione_cliente():
-    result = build_client_communication(_request_payload())
+    payload, error = _json_payload_or_error()
+    if error is not None:
+        return error
+    assert payload is not None
+    body_text = str(payload.get("body_override") or payload.get("corpo") or payload.get("body") or "")
+    if len(body_text) > _NOTIFICHE_CLIENT_BODY_MAX:
+        return jsonify({"ok": False, "message": "Il testo della comunicazione cliente e' troppo lungo.", "blockers": ["Il testo della comunicazione cliente e' troppo lungo."]}), 400
+    result = build_client_communication(payload)
     return _notifiche_legali_result_response(
         result,
         success_message="Comunicazione cliente preparata senza relata.",
@@ -1810,7 +1939,11 @@ def notifiche_legali_comunicazione_cliente():
 @api_v1_react.post("/notifiche-legali/prova-deposito")
 @_richiedi_auth
 def notifiche_legali_prova_deposito():
-    result = validate_deposit_notification_proof(_request_payload())
+    payload, error = _json_payload_or_error()
+    if error is not None:
+        return error
+    assert payload is not None
+    result = validate_deposit_notification_proof(payload)
     return _notifiche_legali_result_response(
         result,
         success_message="Prova della notifica pronta per il controllo busta.",

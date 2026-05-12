@@ -1,5 +1,30 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-12 - Notifiche legali sicure e bozze relata 2.217.1
+
+La route `/notifiche-legali` mantiene separati i tre percorsi operativi:
+notifica legale ex L. 53/1994, deposito della prova di notifica e
+comunicazione informativa al cliente. I modelli relata personalizzati non
+passano piu' da Jinja libero: il dominio accetta solo i campi automatici
+pubblicati nella UI e i blocchi operativi `documenti_righe`,
+`documenti_righe_privacy`, `attestazioni_testo` e `blocco_procedimento`,
+bloccando istruzioni, filtri, chiamate, accessi riservati e token non
+whitelistati prima del render.
+
+La pagina React mostra ora `Testo modello` e `Anteprima compilata`: la seconda
+usa i dati correnti del form, aggiorna i valori mancanti con placeholder
+leggibili e puo' essere modificata dall'avvocato come bozza della notifica
+corrente. La bozza viene salvata in storage tenant-aware dedicato, non nel
+catalogo dei modelli riutilizzabili, e la verifica finale continua a presidiare
+oggetto PEC, PEC da pubblico elenco, attestazioni, ricevuta completa, firma e
+approvazione.
+
+Il tab `Comunica al cliente` usa un catalogo separato
+`comunicazioni_cliente_templates.json`, con versione propria e modelli semplici
+per oggetto/corpo email ordinaria. Non espone il catalogo relata 2026.05.12,
+non genera relate e blocca l'oggetto L. 53/1994 quando viene usato fuori dal
+percorso di notifica.
+
 ## Stato tranche 2026-05-12 - Sincronizzazione calendari bidirezionale 2.217.0
 
 La sezione `Impostazioni -> Sincronizzazione Calendari` non si limita piu' ai

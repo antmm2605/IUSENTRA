@@ -13,6 +13,7 @@ import io
 import json
 import re
 import tempfile
+from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from functools import lru_cache
@@ -25,6 +26,7 @@ from jinja2 import ChainableUndefined, Environment
 
 LEGAL_NOTIFICATION_SUBJECT = "notificazione ai sensi della legge n. 53 del 1994"
 TEMPLATE_CATALOG_PATH = Path(__file__).with_name("data") / "notifiche_legali_templates.json"
+CLIENT_COMMUNICATION_CATALOG_PATH = Path(__file__).with_name("data") / "comunicazioni_cliente_templates.json"
 
 PUBLIC_PEC_REGISTERS: dict[str, str] = {
     "reginde": "ReGIndE",
@@ -114,6 +116,29 @@ AVAILABLE_TEMPLATE_FIELDS: tuple[dict[str, str], ...] = (
     {"group": "Provvedimento", "label": "Tipo provvedimento", "token": "{{ provvedimento.tipo }}"},
     {"group": "Provvedimento", "label": "Numero provvedimento", "token": "{{ provvedimento.numero }}"},
     {"group": "Provvedimento", "label": "Data provvedimento", "token": "{{ provvedimento.data }}"},
+)
+
+_TEMPLATE_TOKEN_RE = re.compile(r"{{\s*([^{}]+?)\s*}}", re.DOTALL)
+_SIMPLE_JINJA_IF_RE = re.compile(r"{%\s*if\s+([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*)\s*%}")
+_BLOCK_SYNTAX_RE = re.compile(r"{[%#].*?[%#]}", re.DOTALL)
+_FORBIDDEN_TOKEN_CHARS_RE = re.compile(r"[\[\]()]")
+_OPERATIONAL_TEMPLATE_FIELDS = {
+    "documenti_righe": "Elenco documenti",
+    "documenti_righe_privacy": "Elenco documenti riservato",
+    "attestazioni_testo": "Attestazioni automatiche",
+    "blocco_procedimento": "Blocco procedimento",
+}
+
+CLIENT_COMMUNICATION_FIELDS: tuple[dict[str, str], ...] = (
+    {"label": "Cliente", "token": "{{ cliente.nome }}"},
+    {"label": "Codice pratica", "token": "{{ pratica.codice }}"},
+    {"label": "Ufficio", "token": "{{ procedimento.ufficio }}"},
+    {"label": "Numero RG", "token": "{{ procedimento.numero_rg }}"},
+    {"label": "Anno RG", "token": "{{ procedimento.anno_rg }}"},
+    {"label": "Riferimento procedimento", "token": "{{ procedimento.riferimento }}"},
+    {"label": "Documento", "token": "{{ documento.descrizione }}"},
+    {"label": "Studio", "token": "{{ studio.nome }}"},
+    {"label": "Prossimi passi", "token": "{{ prossimi_passi }}"},
 )
 
 
@@ -228,6 +253,19 @@ def template_catalog_version() -> str:
     return text(load_template_catalog().get("catalog_version"), "2026.05.12")
 
 
+@lru_cache(maxsize=1)
+def load_client_communication_catalog() -> dict[str, Any]:
+    payload = json.loads(CLIENT_COMMUNICATION_CATALOG_PATH.read_text(encoding="utf-8"))
+    templates = payload.get("templates")
+    if not isinstance(templates, list) or not templates:
+        raise RuntimeError("Catalogo modelli comunicazione cliente non valido.")
+    return payload
+
+
+def client_communication_templates_version() -> str:
+    return text(load_client_communication_catalog().get("catalog_version"), "comunicazioni-cliente-1.0")
+
+
 def list_notification_templates(*, kind: str | None = None) -> list[dict[str, Any]]:
     templates = load_template_catalog()["templates"]
     if kind is None:
@@ -235,10 +273,82 @@ def list_notification_templates(*, kind: str | None = None) -> list[dict[str, An
     return [item for item in templates if item.get("kind") == kind]
 
 
+def list_client_communication_templates() -> list[dict[str, Any]]:
+    return list(load_client_communication_catalog()["templates"])
+
+
+def get_client_communication_template(template_id: Any) -> dict[str, Any] | None:
+    raw = text(template_id).lower().strip()
+    if not raw:
+        return None
+    normalised = raw.replace(" ", "_").replace("-", "_")
+    for template in list_client_communication_templates():
+        if normalised == text(template.get("id")).lower():
+            return template
+    return None
+
+
 def available_template_fields() -> list[dict[str, str]]:
     """Return the guided field tokens that can be inserted in custom models."""
 
     return [dict(item) for item in AVAILABLE_TEMPLATE_FIELDS]
+
+
+def _token_name(raw_token: str) -> str:
+    match = _TEMPLATE_TOKEN_RE.fullmatch(raw_token.strip())
+    return match.group(1).strip() if match else ""
+
+
+def _allowed_custom_template_tokens() -> set[str]:
+    tokens = {
+        _token_name(item["token"])
+        for item in AVAILABLE_TEMPLATE_FIELDS
+        if _token_name(item["token"])
+    }
+    tokens.update(_OPERATIONAL_TEMPLATE_FIELDS)
+    return tokens
+
+
+def _custom_template_token_labels() -> dict[str, str]:
+    labels = {
+        _token_name(item["token"]): item["label"]
+        for item in AVAILABLE_TEMPLATE_FIELDS
+        if _token_name(item["token"])
+    }
+    labels.update(_OPERATIONAL_TEMPLATE_FIELDS)
+    return labels
+
+
+def validate_custom_template_body(body: Any) -> list[str]:
+    """Validate a studio-authored relata model without allowing free Jinja."""
+
+    content = multiline_text(body)
+    blockers: list[str] = []
+    if not content:
+        blockers.append("Inserisci il testo del modello relata.")
+        return blockers
+    if "{%" in content or "%}" in content or _BLOCK_SYNTAX_RE.search(content):
+        blockers.append("I modelli personalizzati non possono contenere istruzioni Jinja.")
+    if "{#" in content or "#}" in content:
+        blockers.append("I modelli personalizzati non possono contenere commenti Jinja.")
+    if content.count("{{") != content.count("}}"):
+        blockers.append("Controlla le parentesi dei campi automatici del modello.")
+
+    allowed_tokens = _allowed_custom_template_tokens()
+    for match in _TEMPLATE_TOKEN_RE.finditer(content):
+        token = match.group(1).strip()
+        if "|" in token:
+            blockers.append(f"Il campo automatico {{{{ {token} }}}} contiene un filtro non consentito.")
+            continue
+        if _FORBIDDEN_TOKEN_CHARS_RE.search(token):
+            blockers.append(f"Il campo automatico {{{{ {token} }}}} contiene una chiamata o un accesso non consentito.")
+            continue
+        if "__" in token or token.startswith(".") or ".__" in token:
+            blockers.append(f"Il campo automatico {{{{ {token} }}}} contiene un accesso riservato non consentito.")
+            continue
+        if token not in allowed_tokens:
+            blockers.append(f"Campo automatico non consentito: {{{{ {token} }}}}.")
+    return list(dict.fromkeys(blockers))
 
 
 def normalise_custom_template(raw: dict[str, Any]) -> dict[str, Any]:
@@ -718,6 +828,108 @@ def _custom_render_context(context: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _render_restricted_template_body(
+    body: str,
+    context: dict[str, Any],
+    *,
+    placeholder_missing: bool = False,
+) -> tuple[str, list[str]]:
+    labels = _custom_template_token_labels()
+    render_context = _custom_render_context(context)
+    missing: list[str] = []
+
+    def replace(match: re.Match[str]) -> str:
+        token = match.group(1).strip()
+        value = render_context.get(token) if token in _OPERATIONAL_TEMPLATE_FIELDS else _context_lookup(context, token)
+        if not text(value):
+            label = labels.get(token, token.replace(".", " ").replace("_", " "))
+            if label not in missing:
+                missing.append(label)
+            return f"[dato mancante: {label}]" if placeholder_missing else ""
+        return str(value)
+
+    return _TEMPLATE_TOKEN_RE.sub(replace, body).strip(), missing
+
+
+def _assign_context_path(context: dict[str, Any], path: str, value: str) -> None:
+    current: dict[str, Any] = context
+    parts = [part for part in path.split(".") if part]
+    for part in parts[:-1]:
+        next_value = current.get(part)
+        if not isinstance(next_value, dict):
+            next_value = {}
+            current[part] = next_value
+        current = next_value
+    if parts:
+        current[parts[-1]] = value
+
+
+def _standard_preview_tokens(body: str) -> set[str]:
+    tokens = {match.group(1).strip() for match in _TEMPLATE_TOKEN_RE.finditer(body)}
+    tokens.update(match.group(1).strip() for match in _SIMPLE_JINJA_IF_RE.finditer(body))
+    return {
+        token
+        for token in tokens
+        if token and "|" not in token and "__" not in token and not _FORBIDDEN_TOKEN_CHARS_RE.search(token)
+    }
+
+
+def _render_standard_template_preview(
+    body: str,
+    context: dict[str, Any],
+    template: dict[str, Any],
+) -> tuple[str, list[str]]:
+    labels = _custom_template_token_labels()
+    preview_context = deepcopy(_custom_render_context(context))
+    missing: list[str] = []
+    for token in sorted(_standard_preview_tokens(body)):
+        value = preview_context.get(token) if token in _OPERATIONAL_TEMPLATE_FIELDS else _context_lookup(preview_context, token)
+        if text(value):
+            continue
+        label = labels.get(token) or _field_label(template, token)
+        if label not in missing:
+            missing.append(label)
+        placeholder = f"[dato mancante: {label}]"
+        if token in _OPERATIONAL_TEMPLATE_FIELDS:
+            preview_context[token] = placeholder
+        else:
+            _assign_context_path(preview_context, token, placeholder)
+    rendered = _TEMPLATE_ENV.from_string(body).render(**preview_context).strip()
+    return rendered, missing
+
+
+def preview_legal_relata(payload: dict[str, Any]) -> dict[str, Any]:
+    """Render the selected model with current form data without final blocking checks."""
+
+    template = select_relata_template(payload)
+    body = template_preview_text(template)
+    context = _build_context(payload, template=template)
+    if multiline_text(template.get("custom_body")):
+        blockers = validate_custom_template_body(body)
+        if blockers:
+            return {
+                "ok": False,
+                "previewText": "",
+                "missingFields": [],
+                "warnings": [],
+                "blockers": blockers,
+                "templateId": text(template.get("id")),
+                "templateLabel": text(template.get("label")),
+            }
+        preview_text, missing = _render_restricted_template_body(body, context, placeholder_missing=True)
+    else:
+        preview_text, missing = _render_standard_template_preview(body, context, template)
+    return {
+        "ok": True,
+        "previewText": preview_text,
+        "missingFields": missing,
+        "warnings": [f"Da completare nell'anteprima: {label}." for label in missing],
+        "blockers": [],
+        "templateId": text(template.get("id")),
+        "templateLabel": text(template.get("label")),
+    }
+
+
 def _append_lawyer_addition(lines: list[str], payload: dict[str, Any]) -> None:
     addition = text(_first(payload, "notifica.note_integrative_relata", "note_integrative_relata", "integrazione_avvocato"))
     if addition:
@@ -731,6 +943,9 @@ def validate_legal_notification(payload: dict[str, Any]) -> LegalWorkflowResult:
     warnings: list[str] = []
     template = select_relata_template(payload)
     context = _build_context(payload, template=template)
+    custom_body = multiline_text(template.get("custom_body"))
+    if custom_body:
+        blockers.extend(validate_custom_template_body(custom_body))
     role = context["destinatario"]["tipo"]
     documents = context["documenti"]
     subject = LEGAL_NOTIFICATION_SUBJECT
@@ -807,6 +1022,14 @@ def validate_legal_notification(payload: dict[str, Any]) -> LegalWorkflowResult:
         if not boolish(payload.get("approvazione_avvocato")):
             blockers.append("L'invio richiede approvazione finale dell'avvocato.")
 
+    relata_override_text = multiline_text(
+        payload.get("relata_override_text")
+        or payload.get("bozza_relata_testo")
+        or payload.get("relata_text_override")
+    )
+    if relata_override_text and len(relata_override_text) > 30000:
+        blockers.append("La bozza relata modificata e' troppo lunga.")
+
     blockers = list(dict.fromkeys(blockers))
     if blockers:
         return LegalWorkflowResult(
@@ -819,7 +1042,7 @@ def validate_legal_notification(payload: dict[str, Any]) -> LegalWorkflowResult:
             template_version=template_catalog_version(),
         )
 
-    relata_text = render_relata(payload, template=template)
+    relata_text = f"{relata_override_text}\n" if relata_override_text else render_relata(payload, template=template)
     body = render_control_document("corpo_pec_standard", payload, template=template)
     checklist = render_control_document("checklist_pre_invio", payload, template=template)
     attestation_blocks = _attestation_blocks(_build_context(payload, template=template))
@@ -855,7 +1078,9 @@ def render_relata(payload: dict[str, Any], *, template: dict[str, Any] | None = 
     privacy = bool(template.get("privacy_description"))
     custom_body = multiline_text(template.get("custom_body"))
     if custom_body:
-        rendered = _TEMPLATE_ENV.from_string(custom_body).render(**_custom_render_context(context)).strip()
+        if validate_custom_template_body(custom_body):
+            return ""
+        rendered, _missing = _render_restricted_template_body(custom_body, context)
         lines = [rendered] if rendered else []
         _append_lawyer_addition(lines, payload)
         return "\n\n".join(part for part in lines if text(part)).strip() + "\n"
@@ -1065,6 +1290,50 @@ def generate_relata_pdf_bytes(payload: dict[str, Any], *, pdfa: bool = False) ->
             raise RuntimeError("Conversione PDF/A non completata sul sistema corrente.") from exc
 
 
+def _client_communication_context(payload: dict[str, Any]) -> dict[str, Any]:
+    cliente_nome = text(payload.get("cliente_nome") or _deep_get(payload, "cliente.nome_denominazione"), "Cliente")
+    ufficio = text(payload.get("ufficio_giudiziario") or _deep_get(payload, "procedimento.ufficio"))
+    rg = text(payload.get("numero_rg") or _deep_get(payload, "procedimento.numero_rg"))
+    anno = text(payload.get("anno_rg") or _deep_get(payload, "procedimento.anno_rg"))
+    riferimento = f"R.G. {rg}/{anno}" if rg and anno else (f"R.G. {rg or anno}" if rg or anno else "")
+    documento = text(payload.get("provvedimento_descrizione") or payload.get("documento_descrizione") or _deep_get(payload, "documento.descrizione"))
+    return {
+        "cliente": {"nome": cliente_nome},
+        "pratica": {"codice": text(payload.get("pratica_codice") or _deep_get(payload, "pratica.codice"))},
+        "procedimento": {
+            "ufficio": ufficio,
+            "numero_rg": rg,
+            "anno_rg": anno,
+            "riferimento": " - ".join(part for part in (ufficio, riferimento) if part),
+        },
+        "documento": {"descrizione": documento},
+        "studio": {"nome": text(payload.get("studio_nome") or _deep_get(payload, "studio.nome"), "lo Studio")},
+        "prossimi_passi": text(payload.get("prossimi_passi"), "Lo studio resta a disposizione per concordare i prossimi passaggi."),
+    }
+
+
+def _client_token_labels() -> dict[str, str]:
+    return {
+        _token_name(item["token"]): item["label"]
+        for item in CLIENT_COMMUNICATION_FIELDS
+        if _token_name(item["token"])
+    }
+
+
+def _render_client_template_text(template_text: str, context: dict[str, Any]) -> str:
+    labels = _client_token_labels()
+    allowed = set(labels)
+
+    def replace(match: re.Match[str]) -> str:
+        token = match.group(1).strip()
+        if token not in allowed or "|" in token or "__" in token or _FORBIDDEN_TOKEN_CHARS_RE.search(token):
+            return ""
+        value = _context_lookup(context, token)
+        return text(value)
+
+    return _TEMPLATE_TOKEN_RE.sub(replace, template_text).strip()
+
+
 def build_client_communication(payload: dict[str, Any]) -> LegalWorkflowResult:
     """Prepare an informative communication to the client, without relata."""
 
@@ -1076,36 +1345,38 @@ def build_client_communication(payload: dict[str, Any]) -> LegalWorkflowResult:
         blockers.append("La comunicazione al cliente non deve usare l'oggetto della notifica L. 53/1994.")
     if boolish(payload.get("genera_relata")):
         blockers.append("La comunicazione al cliente non genera una relata di notificazione.")
+    if text(payload.get("relataText") or payload.get("relata_text") or payload.get("relata_override_text")):
+        blockers.append("La comunicazione al cliente non deve contenere la relata.")
+    template_id = text(payload.get("template_id") or payload.get("modello_cliente"), "aggiornamento_pratica")
+    if template_id.startswith("relata_") or get_notification_template(template_id):
+        blockers.append("Scegli un modello comunicazione cliente, non un modello relata.")
+    template = get_client_communication_template(template_id) or get_client_communication_template("aggiornamento_pratica")
+    if not template:
+        blockers.append("Modello comunicazione cliente non disponibile.")
     if not text(payload.get("provvedimento_descrizione")):
         warnings.append("Aggiungi una descrizione del provvedimento o documento trasmesso.")
 
-    ufficio = text(payload.get("ufficio_giudiziario") or _deep_get(payload, "procedimento.ufficio"))
-    rg = text(payload.get("numero_rg") or _deep_get(payload, "procedimento.numero_rg"))
-    anno = text(payload.get("anno_rg") or _deep_get(payload, "procedimento.anno_rg"))
-    subject_parts = ["Comunicazione provvedimento"]
-    if ufficio:
-        subject_parts.append(ufficio)
-    if rg or anno:
-        subject_parts.append(f"R.G. {rg}/{anno}" if rg and anno else f"R.G. {rg or anno}")
-    subject = " - ".join(subject_parts)
-    cliente_nome = text(payload.get("cliente_nome") or _deep_get(payload, "cliente.nome_denominazione"), "Cliente")
-    description = text(payload.get("provvedimento_descrizione"))
-    body = (
-        f"Gentile {cliente_nome},\n\n"
-        "Le trasmettiamo in allegato o tramite link sicuro il provvedimento indicato dallo studio"
-        f"{(' (' + description + ')') if description else ''}.\n"
-        "Lo studio resta a disposizione per l'esame degli effetti e delle eventuali scadenze.\n\n"
-        "Cordiali saluti"
-    )
+    context = _client_communication_context(payload)
+    subject_override = text(payload.get("subject") or payload.get("oggetto"))
+    if subject_override and is_legal_notification_subject(subject_override):
+        blockers.append("La comunicazione al cliente non deve usare l'oggetto della notifica L. 53/1994.")
+    subject_template = text((template or {}).get("subject"), "Aggiornamento pratica")
+    subject = subject_override or _render_client_template_text(subject_template, context)
+    body_override = multiline_text(payload.get("body_override") or payload.get("corpo") or payload.get("body"))
+    if body_override and is_legal_notification_subject(body_override):
+        blockers.append("Il corpo della comunicazione non deve riportare l'oggetto della notifica L. 53/1994.")
+    body_template = "\n".join(str(line) for line in ((template or {}).get("body_lines") or []))
+    body = body_override or _render_client_template_text(body_template, context)
+    blockers = list(dict.fromkeys(blockers))
     return LegalWorkflowResult(
         ok=not blockers,
         blockers=blockers,
         warnings=warnings,
         subject=subject,
         body=body,
-        template_id="comunicazione_cliente_non_notifica",
-        template_label="Comunicazione cliente",
-        template_version=template_catalog_version(),
+        template_id=text((template or {}).get("id"), template_id),
+        template_label=text((template or {}).get("label"), "Comunicazione cliente"),
+        template_version=client_communication_templates_version(),
         next_actions=("Invia al cliente via email ordinaria, PEC informativa o link sicuro.",),
     )
 

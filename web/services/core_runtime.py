@@ -219,7 +219,11 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
         "PREVENTIVI_DB", os.getenv("PCT_PREVENTIVI_DB", "./preventivi/preventivi.json")
     )
     app.config["NOTIFICHE_LOG"] = cfg.get(
-        "NOTIFICHE_LOG", os.getenv("PCT_NOTIFICHE_LOG", "./notifiche/log.json")
+        "NOTIFICHE_LOG",
+        os.getenv(
+            "PCT_NOTIFICHE_LOG",
+            _data_peer_path(app.config["CLIENTI_DB"], "notifiche", "log.json"),
+        ),
     )
     app.config["SOGGETTI_DB"] = cfg.get(
         "SOGGETTI_DB",

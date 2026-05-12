@@ -2,6 +2,19 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-12T17:50:00+02:00: tranche 2.217.1 su
+`/notifiche-legali`. I modelli relata personalizzati sono ora renderizzati con
+motore ristretto: solo token whitelistati, niente blocchi Jinja, filtri,
+chiamate o accessi riservati. La pagina mostra testo modello e anteprima
+compilata con dati correnti e placeholder espliciti; l'avvocato puo' modificare
+la relata compilata e salvarla come bozza della notifica corrente, tenant-aware
+e separata dal catalogo dei modelli riutilizzabili. Il tab `Comunica al
+cliente` usa un catalogo proprio `comunicazioni-cliente-1.0`, non espone il
+catalogo relata 2026.05.12 e genera solo oggetto/corpo email ordinaria.
+Smoke Chrome headless desktop/tablet/mobile confermato su Docker locale
+2.217.1: nessun errore console, overflow o testo tecnico vietato; tab cliente
+senza catalogo relata e senza versione `2026.05.12`.
+
 Aggiornamento 2026-05-12T22:05:00+02:00: tranche 2.217.0 su
 `Impostazioni -> Sincronizzazione Calendari`. La tab Calendari espone ora
 account collegabili, calendari con direzione bidirezionale/in sola entrata/in

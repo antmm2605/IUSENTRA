@@ -12,6 +12,8 @@ from pct.notifiche_legali import (
     LEGAL_RECIPIENT_ROLES,
     PUBLIC_PEC_REGISTERS,
     available_template_fields,
+    client_communication_templates_version,
+    list_client_communication_templates,
     list_notification_templates,
     normalise_custom_template,
     normalise_document_origin,
@@ -318,8 +320,13 @@ def build_react_notifiche_legali_payload(
         "modelliControllo": [
             _template_option(template)
             for template in list_notification_templates()
-            if template.get("kind") in {"control_document", "audit_document", "workflow", "communication"}
+            if template.get("kind") in {"control_document", "audit_document", "workflow"}
         ],
+        "modelliComunicazioneCliente": [
+            _client_template_option(template)
+            for template in list_client_communication_templates()
+        ],
+        "clientCommunicationTemplateVersion": client_communication_templates_version(),
         "precompilazione": _build_prefill_payload(
             get_clienti=get_clienti,
             get_fascicoli=get_fascicoli,
@@ -328,6 +335,8 @@ def build_react_notifiche_legali_payload(
         "campiDisponibili": available_template_fields(),
         "azioni": {
             "notifica": "/api/v1/ui/notifiche-legali/notifica",
+            "anteprimaRelata": "/api/v1/ui/notifiche-legali/anteprima-relata",
+            "bozzaRelata": "/api/v1/ui/notifiche-legali/bozze-relata",
             "comunicazioneCliente": "/api/v1/ui/notifiche-legali/comunicazione-cliente",
             "provaDeposito": "/api/v1/ui/notifiche-legali/prova-deposito",
             "pecCompose": "/email/scrivi?tipo=notifica_l53",
@@ -372,4 +381,15 @@ def _template_option(template: dict[str, Any]) -> dict[str, Any]:
             for field in (template.get("fields") or [])
             if isinstance(field, dict) and _text(field.get("name"))
         ],
+    }
+
+
+def _client_template_option(template: dict[str, Any]) -> dict[str, Any]:
+    body = "\n".join(str(line) for line in (template.get("body_lines") or []))
+    return {
+        "value": _text(template.get("id")),
+        "label": _text(template.get("label")),
+        "description": _text(template.get("description")),
+        "subjectPreview": _text(template.get("subject")),
+        "bodyPreview": body.strip(),
     }

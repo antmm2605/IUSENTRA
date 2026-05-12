@@ -2,6 +2,13 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-12T17:50:00+02:00: `/notifiche-legali` resta
+`react_operational_full` e aggiunge API JSON dedicate per anteprima relata
+compilata e salvataggio bozza relata. Le bozze sono tenant-aware e non vengono
+incluse in `modelliRelata`; il catalogo cliente e' distinto dal catalogo relata
+L. 53/1994 e non contiene oggetto legale o generazione relata. Nessun form POST
+HTML, `LegacyPostForm`, CTA classica primaria o dato dimostrativo introdotto.
+
 Aggiornamento 2026-05-12T22:05:00+02:00: `Impostazioni -> Calendari`
 resta nel perimetro React operativo e aggiunge collegamento account,
 calendari, conflitti e sync manuale tramite API JSON Flask. Nessun token o

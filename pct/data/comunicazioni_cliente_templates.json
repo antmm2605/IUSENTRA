@@ -1,0 +1,125 @@
+{
+  "catalog_version": "comunicazioni-cliente-1.0",
+  "templates": [
+    {
+      "id": "aggiornamento_pratica",
+      "label": "Aggiornamento pratica",
+      "description": "Messaggio breve sullo stato della pratica.",
+      "subject": "Aggiornamento pratica {{ pratica.codice }}",
+      "body_lines": [
+        "Gentile {{ cliente.nome }},",
+        "",
+        "la aggiorniamo sullo stato della pratica {{ pratica.codice }} {{ procedimento.riferimento }}.",
+        "{{ prossimi_passi }}",
+        "",
+        "Cordiali saluti",
+        "{{ studio.nome }}"
+      ]
+    },
+    {
+      "id": "invio_provvedimento",
+      "label": "Invio provvedimento",
+      "description": "Trasmissione al cliente di un provvedimento o documento ricevuto.",
+      "subject": "Invio provvedimento {{ procedimento.riferimento }}",
+      "body_lines": [
+        "Gentile {{ cliente.nome }},",
+        "",
+        "le trasmettiamo il documento indicato: {{ documento.descrizione }}.",
+        "Restiamo a disposizione per illustrarne effetti e scadenze.",
+        "",
+        "Cordiali saluti",
+        "{{ studio.nome }}"
+      ]
+    },
+    {
+      "id": "esito_notifica",
+      "label": "Esito notifica",
+      "description": "Informazione semplice sull'esito di una notifica gia' gestita dallo studio.",
+      "subject": "Esito notifica pratica {{ pratica.codice }}",
+      "body_lines": [
+        "Gentile {{ cliente.nome }},",
+        "",
+        "la informiamo che lo studio ha registrato l'esito della notifica collegata alla pratica {{ pratica.codice }}.",
+        "Le prossime attivita' verranno concordate in base alle ricevute conservate nel fascicolo.",
+        "",
+        "Cordiali saluti",
+        "{{ studio.nome }}"
+      ]
+    },
+    {
+      "id": "richiesta_documenti",
+      "label": "Richiesta documenti",
+      "description": "Richiesta ordinata di documenti o informazioni mancanti.",
+      "subject": "Richiesta documenti pratica {{ pratica.codice }}",
+      "body_lines": [
+        "Gentile {{ cliente.nome }},",
+        "",
+        "per proseguire la lavorazione della pratica {{ pratica.codice }} abbiamo bisogno dei documenti o delle informazioni concordate.",
+        "Puo' inviarli rispondendo a questa email o tramite il canale sicuro indicato dallo studio.",
+        "",
+        "Cordiali saluti",
+        "{{ studio.nome }}"
+      ]
+    },
+    {
+      "id": "prossimi_passi",
+      "label": "Prossimi passi",
+      "description": "Sintesi operativa delle attivita' successive.",
+      "subject": "Prossimi passi pratica {{ pratica.codice }}",
+      "body_lines": [
+        "Gentile {{ cliente.nome }},",
+        "",
+        "le riepiloghiamo i prossimi passaggi della pratica {{ pratica.codice }}.",
+        "{{ prossimi_passi }}",
+        "",
+        "Cordiali saluti",
+        "{{ studio.nome }}"
+      ]
+    },
+    {
+      "id": "promemoria_appuntamento",
+      "label": "Promemoria appuntamento",
+      "description": "Promemoria sobrio per un incontro gia' concordato.",
+      "subject": "Promemoria appuntamento studio",
+      "body_lines": [
+        "Gentile {{ cliente.nome }},",
+        "",
+        "le ricordiamo l'appuntamento concordato con lo studio.",
+        "In caso di impedimento, la invitiamo ad avvisarci con il maggiore anticipo possibile.",
+        "",
+        "Cordiali saluti",
+        "{{ studio.nome }}"
+      ]
+    },
+    {
+      "id": "comunicazione_deposito",
+      "label": "Comunicazione deposito",
+      "description": "Avviso al cliente su un deposito o una produzione gia' curata dallo studio.",
+      "subject": "Comunicazione deposito {{ procedimento.riferimento }}",
+      "body_lines": [
+        "Gentile {{ cliente.nome }},",
+        "",
+        "la informiamo che lo studio ha curato il deposito collegato alla pratica {{ pratica.codice }}.",
+        "Il fascicolo interno conserva le ricevute e gli atti pertinenti.",
+        "",
+        "Cordiali saluti",
+        "{{ studio.nome }}"
+      ]
+    },
+    {
+      "id": "trasmissione_copia_documento",
+      "label": "Trasmissione copia documento",
+      "description": "Invio al cliente di copia consultabile di un documento.",
+      "subject": "Trasmissione copia documento {{ pratica.codice }}",
+      "body_lines": [
+        "Gentile {{ cliente.nome }},",
+        "",
+        "le trasmettiamo copia del documento: {{ documento.descrizione }}.",
+        "Per ogni chiarimento puo' rispondere a questa comunicazione.",
+        "",
+        "Cordiali saluti",
+        "{{ studio.nome }}"
+      ]
+    }
+  ]
+}

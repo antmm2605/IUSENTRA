@@ -6,6 +6,11 @@ from types import SimpleNamespace
 from pct.notifiche_legali import (
     LEGAL_NOTIFICATION_SUBJECT,
     build_client_communication,
+    client_communication_templates_version,
+    list_client_communication_templates,
+    list_notification_templates,
+    preview_legal_relata,
+    template_catalog_version,
     validate_deposit_notification_proof,
     validate_legal_notification,
 )
@@ -123,6 +128,83 @@ def test_notifica_l53_modello_personalizzato_usa_campi_iusentra_e_note_avvocato(
     assert "Precisazione finale aggiunta dall'avvocato." in result.relata_text
 
 
+def test_modello_personalizzato_blocca_token_sconosciuto():
+    payload = _legal_payload()
+    payload["template_id"] = "relata_personalizzata_non_valida"
+    payload["template_personalizzato"] = {
+        "id": "relata_personalizzata_non_valida",
+        "label": "Relata non valida",
+        "custom_body": "Avv. {{ avvocato.full_name }} - {{ segreto.interno }}",
+    }
+
+    result = validate_legal_notification(payload)
+
+    assert result.ok is False
+    assert any("Campo automatico non consentito" in item for item in result.blockers)
+    assert result.relata_text == ""
+
+
+def test_modello_personalizzato_blocca_blocchi_jinja():
+    payload = _legal_payload()
+    payload["template_id"] = "relata_personalizzata_if"
+    payload["template_personalizzato"] = {
+        "id": "relata_personalizzata_if",
+        "label": "Relata con istruzioni",
+        "custom_body": "{% if avvocato %}Avv. {{ avvocato.full_name }}{% endif %}",
+    }
+
+    result = validate_legal_notification(payload)
+
+    assert result.ok is False
+    assert any("istruzioni Jinja" in item for item in result.blockers)
+
+
+def test_modello_personalizzato_blocca_accesso_pericoloso():
+    payload = _legal_payload()
+    payload["template_id"] = "relata_personalizzata_globals"
+    payload["template_personalizzato"] = {
+        "id": "relata_personalizzata_globals",
+        "label": "Relata pericolosa",
+        "custom_body": "Accesso {{ cycler.__init__.__globals__ }}",
+    }
+
+    result = validate_legal_notification(payload)
+
+    assert result.ok is False
+    assert any("accesso riservato" in item or "non consentito" in item for item in result.blockers)
+
+
+def test_modelli_standard_restano_renderizzabili():
+    payload = _legal_payload()
+    payload["template_id"] = "relata_pec_base_l53"
+
+    result = validate_legal_notification(payload)
+
+    assert result.ok is True
+    assert "RELAZIONE DI NOTIFICAZIONE" in result.relata_text
+
+
+def test_anteprima_relata_compilata_con_placeholder():
+    full = preview_legal_relata(_legal_payload())
+    missing_payload = _legal_payload()
+    missing_payload["destinatario_pec"] = ""
+    missing = preview_legal_relata(missing_payload)
+
+    assert full["ok"] is True
+    assert "Cliente S.r.l." in full["previewText"]
+    assert missing["ok"] is True
+    assert "[dato mancante: PEC destinatario]" in missing["previewText"]
+    assert "PEC destinatario" in missing["missingFields"]
+
+
+def test_anteprima_modelli_standard_catalogo_non_bloccata():
+    for template in list_notification_templates(kind="relata"):
+        payload = _legal_payload()
+        payload["template_id"] = template["id"]
+        preview = preview_legal_relata(payload)
+        assert preview["ok"] is True, template["id"]
+
+
 def test_comunicazione_cliente_non_usa_relata_o_oggetto_l53():
     blocked = build_client_communication({
         "cliente_nome": "Cliente",
@@ -142,7 +224,36 @@ def test_comunicazione_cliente_non_usa_relata_o_oggetto_l53():
     assert any("non genera una relata" in item for item in blocked.blockers)
     assert ok.ok is True
     assert ok.relata_text == ""
-    assert ok.subject == "Comunicazione provvedimento - Tribunale di Roma - R.G. 1234/2026"
+    assert ok.subject == "Aggiornamento pratica"
+    assert ok.template_version == client_communication_templates_version()
+
+
+def test_comunicazione_cliente_usa_modelli_separati():
+    templates = list_client_communication_templates()
+    result = build_client_communication({
+        "template_id": "richiesta_documenti",
+        "cliente_nome": "Cliente",
+        "pratica_codice": "2026/001",
+        "provvedimento_descrizione": "Documenti reddituali",
+    })
+
+    assert {item["id"] for item in templates} >= {"aggiornamento_pratica", "esito_notifica", "richiesta_documenti"}
+    assert result.ok is True
+    assert result.relata_text == ""
+    assert result.template_id == "richiesta_documenti"
+    assert "Richiesta documenti" in result.subject
+    assert result.template_version != template_catalog_version()
+
+
+def test_comunicazione_cliente_blocca_catalogo_relata_l53():
+    result = build_client_communication({
+        "template_id": "relata_pec_base_l53",
+        "cliente_nome": "Cliente",
+        "provvedimento_descrizione": "Provvedimento",
+    })
+
+    assert result.ok is False
+    assert any("modello comunicazione cliente" in item for item in result.blockers)
 
 
 def test_prova_deposito_richiede_rac_rdac_originali():
@@ -242,6 +353,146 @@ def test_api_react_notifiche_legali_salva_e_usa_modello_relata_personalizzato(tm
     assert preview["ok"] is True
     assert "RELAZIONE DI NOTIFICAZIONE PERSONALIZZATA" in preview["relataText"]
     assert "Cliente S.r.l." in preview["relataText"]
+
+
+def test_api_react_notifiche_legali_anteprima_relata_e_token_sicuri(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+    headers = {"X-API-Key": "react-test-key"}
+    payload = _legal_payload()
+    payload["destinatario_pec"] = ""
+    preview_response = client.post("/api/v1/ui/notifiche-legali/anteprima-relata", json=payload, headers=headers)
+    preview = preview_response.get_json()
+    dangerous = _legal_payload()
+    dangerous["template_id"] = "relata_personalizzata_pericolosa"
+    dangerous["template_personalizzato"] = {
+        "id": "relata_personalizzata_pericolosa",
+        "label": "Pericolosa",
+        "custom_body": "Accesso {{ cycler.__init__.__globals__ }}",
+    }
+    dangerous_response = client.post("/api/v1/ui/notifiche-legali/anteprima-relata", json=dangerous, headers=headers)
+    dangerous_payload = dangerous_response.get_json()
+
+    assert preview_response.status_code == 200
+    assert preview["ok"] is True
+    assert "[dato mancante: PEC destinatario]" in preview["previewText"]
+    assert dangerous_response.status_code == 400
+    assert dangerous_payload["ok"] is False
+    assert dangerous_payload["blockers"]
+
+
+def test_api_react_notifiche_legali_salva_bozza_relata_e_non_modello(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+    headers = {"X-API-Key": "react-test-key"}
+    draft_response = client.post(
+        "/api/v1/ui/notifiche-legali/bozze-relata",
+        json={"practiceId": "fascicolo-1", "templateId": "relata_pec_base_l53", "relataText": "Bozza relata modificata per questa notifica."},
+        headers=headers,
+    )
+    empty_response = client.post(
+        "/api/v1/ui/notifiche-legali/bozze-relata",
+        json={"templateId": "relata_pec_base_l53", "relataText": ""},
+        headers=headers,
+    )
+    catalog = client.get("/api/v1/ui/notifiche-legali", headers=headers).get_json()
+    draft_payload = draft_response.get_json()
+
+    assert draft_response.status_code == 200
+    assert draft_payload["ok"] is True
+    assert draft_payload["draftId"]
+    assert empty_response.status_code == 400
+    assert not any("Bozza relata modificata" in item["previewText"] for item in catalog["modelliRelata"])
+    assert (tmp_path / "notifiche" / "bozze_relata.json").exists()
+
+
+def test_bozza_relata_override_usata_ma_controlli_restano_attivi():
+    payload = _legal_payload()
+    payload["relata_override_text"] = "TESTO MANUALE DELLA RELATA"
+    ok = validate_legal_notification(payload)
+    blocked = _legal_payload()
+    blocked["relata_override_text"] = "TESTO MANUALE DELLA RELATA"
+    blocked["destinatario_pec"] = ""
+
+    blocked_result = validate_legal_notification(blocked)
+
+    assert ok.ok is True
+    assert ok.relata_text == "TESTO MANUALE DELLA RELATA\n"
+    assert blocked_result.ok is False
+    assert any("PEC del destinatario" in item for item in blocked_result.blockers)
+
+
+def test_api_react_notifiche_legali_robustezza_json_e_limiti(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+    headers = {"X-API-Key": "react-test-key"}
+    no_json = client.post("/api/v1/ui/notifiche-legali/notifica", data="non json", headers=headers)
+    malformed = client.post(
+        "/api/v1/ui/notifiche-legali/notifica",
+        data="{",
+        content_type="application/json",
+        headers=headers,
+    )
+    label_empty = client.post(
+        "/api/v1/ui/notifiche-legali/modelli-relata",
+        json={"label": "", "body": "RELAZIONE\n{{ avvocato.full_name }}\n" * 10},
+        headers=headers,
+    )
+    too_long = client.post(
+        "/api/v1/ui/notifiche-legali/modelli-relata",
+        json={"label": "Relata", "body": "x" * 25000},
+        headers=headers,
+    )
+    forbidden = client.post(
+        "/api/v1/ui/notifiche-legali/modelli-relata",
+        json={"label": "Relata", "body": ("RELAZIONE\n{{ token_non_permesso }}\n" * 10)},
+        headers=headers,
+    )
+
+    assert no_json.status_code == 400
+    assert no_json.get_json()["ok"] is False
+    assert malformed.status_code == 400
+    assert malformed.get_json()["ok"] is False
+    assert label_empty.status_code == 400
+    assert too_long.status_code == 400
+    assert forbidden.status_code == 400
+    assert forbidden.get_json()["blockers"]
+
+
+def test_api_react_notifiche_legali_modelli_cliente_separati(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+    headers = {"X-API-Key": "react-test-key"}
+    payload = client.get("/api/v1/ui/notifiche-legali", headers=headers).get_json()
+    communication_response = client.post(
+        "/api/v1/ui/notifiche-legali/comunicazione-cliente",
+        json={
+            "template_id": "invio_provvedimento",
+            "cliente_nome": "Cliente",
+            "ufficio_giudiziario": "Tribunale di Roma",
+            "numero_rg": "1234",
+            "anno_rg": "2026",
+            "provvedimento_descrizione": "Ordinanza depositata",
+        },
+        headers=headers,
+    )
+    blocked_response = client.post(
+        "/api/v1/ui/notifiche-legali/comunicazione-cliente",
+        json={"template_id": "relata_pec_base_l53", "cliente_nome": "Cliente", "provvedimento_descrizione": "Atto"},
+        headers=headers,
+    )
+    communication = communication_response.get_json()
+
+    assert payload["clientCommunicationTemplateVersion"] != payload["templateCatalogVersion"]
+    assert "2026.05.12" not in payload["clientCommunicationTemplateVersion"]
+    assert payload["modelliComunicazioneCliente"]
+    assert {item["value"] for item in payload["modelliComunicazioneCliente"]}.isdisjoint({item["value"] for item in payload["modelliRelata"]})
+    assert communication_response.status_code == 200
+    assert communication["ok"] is True
+    assert communication["relataText"] == ""
+    assert communication["templateId"] == "invio_provvedimento"
+    assert blocked_response.status_code == 400
+    assert blocked_response.get_json()["ok"] is False
 
 
 def test_payload_react_notifiche_legali_precompila_da_dati_iusentra():

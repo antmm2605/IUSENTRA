@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.217.1 - 2026-05-12
+
+- Rafforzata `/notifiche-legali`: i modelli relata personalizzati accettano solo i token ammessi, bloccano istruzioni Jinja, filtri, chiamate e accessi riservati prima del render.
+- Aggiunta anteprima relata a due livelli con testo modello e anteprima compilata, placeholder espliciti per dati mancanti e aggiornamento dai campi correnti della notifica.
+- L'avvocato puo' modificare l'anteprima compilata e salvarla come bozza tenant-aware della notifica corrente, senza inserirla nel catalogo dei modelli riutilizzabili.
+- Chiarita la distinzione UI tra modello relata riutilizzabile e bozza pratica; la verifica finale usa la bozza manuale ma mantiene oggetto PEC, PEC pubblica, attestazioni, ricevute, firma e approvazione come controlli bloccanti.
+- Separata la comunicazione cliente dal catalogo relata L. 53/1994 con modelli dedicati per email ordinaria, oggetto/corpo modificabili e blocco dell'oggetto legale riservato alle notifiche.
+
 ## 2.217.0 - 2026-05-12
 
 - Introdotto il Calendar Sync Engine server-side per Agenda e Scadenziario: account calendario, calendari collegati, binding eventi, job sync e conflitti sono persistenti e tenant-aware.

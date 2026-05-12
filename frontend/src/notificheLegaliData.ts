@@ -27,6 +27,14 @@ export type LegalTemplateFieldToken = {
   token: string
 }
 
+export type ClientCommunicationTemplateOption = {
+  value: string
+  label: string
+  description: string
+  subjectPreview: string
+  bodyPreview: string
+}
+
 export type LegalDocumentSuggestion = {
   id: string
   label: string
@@ -101,6 +109,23 @@ export type LegalWorkflowResult = {
   message?: string
 }
 
+export type LegalRelataPreviewResult = {
+  ok: boolean
+  previewText: string
+  missingFields: string[]
+  warnings: string[]
+  blockers: string[]
+  templateId: string
+  templateLabel: string
+}
+
+export type LegalRelataDraftResult = {
+  ok: boolean
+  message: string
+  draftId: string
+  savedAt: string
+}
+
 export type NotificheLegaliData = {
   source: string
   generatedAt: string
@@ -127,6 +152,8 @@ export type NotificheLegaliData = {
   originiDocumento: LegalOption[]
   modelliRelata: LegalTemplateOption[]
   modelliControllo: LegalTemplateOption[]
+  modelliComunicazioneCliente: ClientCommunicationTemplateOption[]
+  clientCommunicationTemplateVersion: string
   campiDisponibili: LegalTemplateFieldToken[]
   precompilazione: {
     pratiche: LegalPracticeSuggestion[]
@@ -136,6 +163,8 @@ export type NotificheLegaliData = {
   }
   azioni: {
     notifica: string
+    anteprimaRelata: string
+    bozzaRelata: string
     comunicazioneCliente: string
     provaDeposito: string
     pecCompose: string
@@ -189,6 +218,8 @@ export const emptyNotificheLegaliData: NotificheLegaliData = {
   originiDocumento: [],
   modelliRelata: [],
   modelliControllo: [],
+  modelliComunicazioneCliente: [],
+  clientCommunicationTemplateVersion: '',
   campiDisponibili: [],
   precompilazione: {
     pratiche: [],
@@ -198,6 +229,8 @@ export const emptyNotificheLegaliData: NotificheLegaliData = {
   },
   azioni: {
     notifica: '/api/v1/ui/notifiche-legali/notifica',
+    anteprimaRelata: '/api/v1/ui/notifiche-legali/anteprima-relata',
+    bozzaRelata: '/api/v1/ui/notifiche-legali/bozze-relata',
     comunicazioneCliente: '/api/v1/ui/notifiche-legali/comunicazione-cliente',
     provaDeposito: '/api/v1/ui/notifiche-legali/prova-deposito',
     pecCompose: '/email/scrivi?tipo=notifica_l53',
@@ -250,6 +283,20 @@ function templateOptions(value: unknown): LegalTemplateOption[] {
         const fieldRow = isRecord(field) ? field : {}
         return { name: text(fieldRow.name), label: text(fieldRow.label, text(fieldRow.name)) }
       }).filter((field) => field.name && field.label),
+    }
+  }).filter((item) => item.value && item.label)
+}
+
+function clientCommunicationTemplateOptions(value: unknown): ClientCommunicationTemplateOption[] {
+  if (!Array.isArray(value)) return []
+  return value.map((item) => {
+    const row = isRecord(item) ? item : {}
+    return {
+      value: text(row.value),
+      label: text(row.label, text(row.value)),
+      description: text(row.description),
+      subjectPreview: text(row.subjectPreview),
+      bodyPreview: text(row.bodyPreview),
     }
   }).filter((item) => item.value && item.label)
 }
@@ -368,6 +415,21 @@ function resultFromPayload(payload: unknown): LegalWorkflowResult {
   }
 }
 
+function previewFromPayload(payload: unknown): LegalRelataPreviewResult {
+  if (!isRecord(payload)) {
+    return { ok: false, previewText: '', missingFields: [], warnings: [], blockers: ['Anteprima non disponibile.'], templateId: '', templateLabel: '' }
+  }
+  return {
+    ok: bool(payload.ok),
+    previewText: text(payload.previewText),
+    missingFields: Array.isArray(payload.missingFields) ? payload.missingFields.map((item) => text(item)).filter(Boolean) : [],
+    warnings: Array.isArray(payload.warnings) ? payload.warnings.map((item) => text(item)).filter(Boolean) : [],
+    blockers: Array.isArray(payload.blockers) ? payload.blockers.map((item) => text(item)).filter(Boolean) : [],
+    templateId: text(payload.templateId),
+    templateLabel: text(payload.templateLabel),
+  }
+}
+
 function normalisePayload(payload: unknown): NotificheLegaliData {
   if (!isRecord(payload)) return emptyNotificheLegaliData
   const defaults = isRecord(payload.defaults) ? payload.defaults : {}
@@ -400,6 +462,8 @@ function normalisePayload(payload: unknown): NotificheLegaliData {
     originiDocumento: options(payload.originiDocumento),
     modelliRelata: templateOptions(payload.modelliRelata),
     modelliControllo: templateOptions(payload.modelliControllo),
+    modelliComunicazioneCliente: clientCommunicationTemplateOptions(payload.modelliComunicazioneCliente),
+    clientCommunicationTemplateVersion: text(payload.clientCommunicationTemplateVersion),
     campiDisponibili: fieldTokens(payload.campiDisponibili),
     precompilazione: {
       pratiche: practiceSuggestions(precompilazione.pratiche),
@@ -409,6 +473,8 @@ function normalisePayload(payload: unknown): NotificheLegaliData {
     },
     azioni: {
       notifica: text(azioni.notifica, emptyNotificheLegaliData.azioni.notifica),
+      anteprimaRelata: text(azioni.anteprimaRelata, emptyNotificheLegaliData.azioni.anteprimaRelata),
+      bozzaRelata: text(azioni.bozzaRelata, emptyNotificheLegaliData.azioni.bozzaRelata),
       comunicazioneCliente: text(azioni.comunicazioneCliente, emptyNotificheLegaliData.azioni.comunicazioneCliente),
       provaDeposito: text(azioni.provaDeposito, emptyNotificheLegaliData.azioni.provaDeposito),
       pecCompose: text(azioni.pecCompose, emptyNotificheLegaliData.azioni.pecCompose),
@@ -443,6 +509,50 @@ export async function postLegalWorkflow(endpoint: string, payload: Record<string
   const result = resultFromPayload(await response.json().catch(() => ({})))
   if (!response.ok || !result.ok) return result
   return result
+}
+
+export async function previewLegalRelata(payload: Record<string, unknown>): Promise<LegalRelataPreviewResult> {
+  const response = await fetch('/api/v1/ui/notifiche-legali/anteprima-relata', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+    },
+    body: JSON.stringify(payload),
+  })
+  const result = previewFromPayload(await response.json().catch(() => ({})))
+  if (!response.ok && !result.blockers.length) {
+    return { ...result, ok: false, blockers: ['Anteprima non disponibile.'] }
+  }
+  return result
+}
+
+export async function saveLegalRelataDraft(payload: {
+  practiceId?: string
+  templateId: string
+  relataText: string
+  payloadHash?: string
+}): Promise<LegalRelataDraftResult> {
+  const response = await fetch('/api/v1/ui/notifiche-legali/bozze-relata', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+    },
+    body: JSON.stringify(payload),
+  })
+  const body = await response.json().catch(() => ({}))
+  if (!isRecord(body)) return { ok: false, message: 'Salvataggio bozza non completato.', draftId: '', savedAt: '' }
+  return {
+    ok: bool(body.ok) && response.ok,
+    message: text(body.message, response.ok ? 'Bozza salvata.' : 'Salvataggio bozza non completato.'),
+    draftId: text(body.draftId),
+    savedAt: text(body.savedAt),
+  }
 }
 
 export async function saveLegalRelataTemplate(payload: {

@@ -11,6 +11,9 @@ import {
   Mail,
   PencilLine,
   PlusCircle,
+  RefreshCw,
+  RotateCcw,
+  Save,
   Scale,
   Send,
   ShieldCheck,
@@ -24,8 +27,11 @@ import {
   emptyNotificheLegaliData,
   getNotificheLegaliData,
   postLegalWorkflow,
+  previewLegalRelata,
+  saveLegalRelataDraft,
   saveLegalRelataTemplate,
   type LegalDocumentSuggestion,
+  type LegalRelataPreviewResult,
   type LegalPracticeSuggestion,
   type LegalRecipientSuggestion,
   type LegalTemplateFieldToken,
@@ -51,6 +57,22 @@ const emptyResult: LegalWorkflowResult = {
   checklistText: '',
   logJson: {},
   outputPlan: {},
+}
+
+const emptyRelataPreview: LegalRelataPreviewResult = {
+  ok: false,
+  previewText: '',
+  missingFields: [],
+  warnings: [],
+  blockers: [],
+  templateId: '',
+  templateLabel: '',
+}
+
+function todayLocalDate() {
+  const now = new Date()
+  now.setMinutes(now.getMinutes() - now.getTimezoneOffset())
+  return now.toISOString().slice(0, 10)
 }
 
 function Field({
@@ -150,7 +172,7 @@ export function NotificheLegaliPage() {
     studio_indirizzo: '',
     studio_citta: '',
     luogo: '',
-    data_relata: new Date().toISOString().slice(0, 10),
+    data_relata: todayLocalDate(),
     mittente_pec: '',
     fonte_pec_mittente: 'ReGIndE',
     mittente_pec_pubblico_elenco: true,
@@ -195,6 +217,12 @@ export function NotificheLegaliPage() {
     requiresProceeding: false,
   })
   const templateBodyRef = useRef<HTMLTextAreaElement | null>(null)
+  const [relataPreview, setRelataPreview] = useState<LegalRelataPreviewResult>(emptyRelataPreview)
+  const [relataPreviewWorking, setRelataPreviewWorking] = useState(false)
+  const [relataDraftText, setRelataDraftText] = useState('')
+  const [relataDraftDirty, setRelataDraftDirty] = useState(false)
+  const [relataDraftSaving, setRelataDraftSaving] = useState(false)
+  const [relataDraftMessage, setRelataDraftMessage] = useState('')
 
   const [deposito, setDeposito] = useState({
     atto_notificato: '',
@@ -206,11 +234,14 @@ export function NotificheLegaliPage() {
   })
 
   const [cliente, setCliente] = useState({
+    template_id: 'aggiornamento_pratica',
     cliente_nome: '',
     ufficio_giudiziario: '',
     numero_rg: '',
     anno_rg: '',
     provvedimento_descrizione: '',
+    oggetto: '',
+    corpo: '',
   })
 
   useEffect(() => {
@@ -230,6 +261,10 @@ export function NotificheLegaliPage() {
           mittente_pec: payload.defaults.mittentePec,
           fonte_pec_mittente: payload.defaults.fontePecMittente || 'ReGIndE',
         }))
+        setCliente((current) => ({
+          ...current,
+          template_id: payload.modelliComunicazioneCliente[0]?.value || current.template_id,
+        }))
       })
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false }
@@ -237,6 +272,7 @@ export function NotificheLegaliPage() {
 
   const selectedOrigin = useMemo(() => data.originiDocumento.find((item) => item.value === notifica.origine_documento), [data.originiDocumento, notifica.origine_documento])
   const selectedTemplate = useMemo(() => data.modelliRelata.find((item) => item.value === notifica.template_id), [data.modelliRelata, notifica.template_id])
+  const selectedClientTemplate = useMemo(() => data.modelliComunicazioneCliente.find((item) => item.value === cliente.template_id), [data.modelliComunicazioneCliente, cliente.template_id])
   const templateFieldGroups = useMemo(() => {
     const groups = new Map<string, LegalTemplateFieldToken[]>()
     data.campiDisponibili.forEach((field) => {
@@ -445,27 +481,87 @@ export function NotificheLegaliPage() {
     }))
   }
 
+  const buildNotificaPayload = (includeDraft: boolean): Record<string, unknown> => {
+    const payload: Record<string, unknown> = {
+      ...notifica,
+      template_fields: modelFields,
+      oggetto_pec: data.mandatorySubject,
+      documenti: [{
+        nome_file: notifica.nome_file,
+        descrizione: notifica.descrizione_documento,
+        origine: notifica.origine_documento,
+        hash_sha256: notifica.hash_sha256,
+        data_comunicazione_cancelleria: notifica.data_comunicazione_cancelleria,
+      }],
+    }
+    if (includeDraft && relataDraftDirty && relataDraftText.trim()) {
+      payload.relata_override_text = relataDraftText.trim()
+    }
+    return payload
+  }
+
+  const refreshRelataPreview = async (silent = false) => {
+    if (!silent) setRelataPreviewWorking(true)
+    const preview = await previewLegalRelata(buildNotificaPayload(false)).catch(() => ({
+      ...emptyRelataPreview,
+      blockers: ['Anteprima compilata non disponibile.'],
+    }))
+    setRelataPreview(preview)
+    if (preview.ok && !relataDraftDirty) {
+      setRelataDraftText(preview.previewText)
+    }
+    if (!silent) setRelataPreviewWorking(false)
+  }
+
+  const saveRelataDraft = async () => {
+    setRelataDraftSaving(true)
+    setRelataDraftMessage('Salvataggio bozza in corso...')
+    const saved = await saveLegalRelataDraft({
+      practiceId: selectedPracticeId,
+      templateId: notifica.template_id,
+      relataText: relataDraftText,
+    }).catch(() => ({ ok: false, message: 'Salvataggio bozza non completato.', draftId: '', savedAt: '' }))
+    setRelataDraftMessage(saved.message)
+    setRelataDraftSaving(false)
+  }
+
+  const restoreRelataDraftFromModel = () => {
+    setRelataDraftText(relataPreview.previewText)
+    setRelataDraftDirty(false)
+    setRelataDraftMessage('Bozza ripristinata dal modello compilato.')
+  }
+
+  const previewPayloadKey = JSON.stringify({ notifica, modelFields })
+
+  useEffect(() => {
+    if (loading || tab !== 'notifica') return undefined
+    const handle = window.setTimeout(() => {
+      void refreshRelataPreview(true)
+    }, 700)
+    return () => window.clearTimeout(handle)
+  }, [previewPayloadKey, loading, tab])
+
   const run = async (key: TabKey) => {
     setWorking(true)
     setResult({ ...emptyResult, message: 'Controllo in corso...' })
     const endpoint = key === 'notifica' ? data.azioni.notifica : key === 'deposito' ? data.azioni.provaDeposito : data.azioni.comunicazioneCliente
     const payload = key === 'notifica'
-      ? {
-          ...notifica,
-          template_fields: modelFields,
-          oggetto_pec: data.mandatorySubject,
-          documenti: [{
-            nome_file: notifica.nome_file,
-            descrizione: notifica.descrizione_documento,
-            origine: notifica.origine_documento,
-            hash_sha256: notifica.hash_sha256,
-            data_comunicazione_cancelleria: notifica.data_comunicazione_cancelleria,
-          }],
-        }
+      ? buildNotificaPayload(true)
       : key === 'deposito'
         ? deposito
-        : cliente
+        : {
+            ...cliente,
+            body_override: cliente.corpo,
+            template_id: cliente.template_id,
+          }
     const response = await postLegalWorkflow(endpoint, payload).catch(() => ({ ...emptyResult, blockers: ['Verifica non completata. Riprova tra poco.'] }))
+    if (key === 'cliente' && response.ok) {
+      setCliente((current) => ({
+        ...current,
+        oggetto: response.subject || current.oggetto,
+        corpo: response.body || current.corpo,
+      }))
+    }
     setResult(response)
     setWorking(false)
   }
@@ -588,7 +684,14 @@ export function NotificheLegaliPage() {
               </div>
               <div className="iu-legal-form-grid">
                 <Field label="Modello relata" wide hint={selectedTemplate?.description || 'Il sistema puo selezionare automaticamente il modello in base ai dati inseriti.'}>
-                  <select value={notifica.template_id} onChange={(event) => changeNotifica('template_id', event.currentTarget.value)}>
+                  <select
+                    value={notifica.template_id}
+                    onChange={(event) => {
+                      changeNotifica('template_id', event.currentTarget.value)
+                      setRelataDraftDirty(false)
+                      setRelataDraftMessage('')
+                    }}
+                  >
                     {data.modelliRelata.map((item) => <option value={item.value} key={item.value}>{item.code ? `${item.code} - ${item.label}` : item.label}</option>)}
                   </select>
                 </Field>
@@ -600,12 +703,71 @@ export function NotificheLegaliPage() {
                     </div>
                     {selectedTemplate?.custom ? <em>Personalizzato</em> : null}
                   </div>
-                  <pre>{selectedTemplate?.previewText || 'Il testo del modello sara visibile qui prima del controllo.'}</pre>
+                  <div className="iu-legal-preview-stack">
+                    <section>
+                      <div className="iu-legal-preview-stack__title">
+                        <strong>Testo modello</strong>
+                        <span>Campi automatici visibili prima della compilazione.</span>
+                      </div>
+                      <pre>{selectedTemplate?.previewText || 'Il testo del modello sara visibile qui prima del controllo.'}</pre>
+                    </section>
+                    <section>
+                      <div className="iu-legal-preview-stack__title iu-legal-preview-stack__title--action">
+                        <div>
+                          <strong>Anteprima compilata</strong>
+                          <span>{relataPreview.templateLabel || selectedTemplate?.label || 'Modello selezionato'}</span>
+                        </div>
+                        <button type="button" disabled={relataPreviewWorking} onClick={() => refreshRelataPreview(false)}>
+                          <RefreshCw size={14} /> {relataPreviewWorking ? 'Aggiorno...' : 'Aggiorna'}
+                        </button>
+                      </div>
+                      {relataPreview.blockers.length ? (
+                        <div className="iu-legal-list iu-legal-list--blockers">
+                          {relataPreview.blockers.map((item) => <span key={item}><AlertTriangle size={15} /> {item}</span>)}
+                        </div>
+                      ) : (
+                        <pre>{relataPreview.previewText || 'Compila i dati principali per vedere la relata con valori e dati mancanti evidenziati.'}</pre>
+                      )}
+                      {relataPreview.missingFields.length ? (
+                        <div className="iu-legal-missing-fields" aria-label="Dati mancanti nell'anteprima compilata">
+                          {relataPreview.missingFields.map((item) => <span key={item}>[dato mancante: {item}]</span>)}
+                        </div>
+                      ) : null}
+                    </section>
+                  </div>
+                  <div className="iu-legal-draft-editor">
+                    <div className="iu-legal-preview-stack__title iu-legal-preview-stack__title--action">
+                      <div>
+                        <strong>Modifica bozza relata</strong>
+                        <span>{relataDraftDirty ? 'Bozza modificata manualmente' : 'Testo allineato al modello compilato'}</span>
+                      </div>
+                      {relataDraftDirty ? <em>Bozza modificata manualmente</em> : null}
+                    </div>
+                    <textarea
+                      value={relataDraftText}
+                      rows={12}
+                      onChange={(event) => {
+                        setRelataDraftText(event.currentTarget.value)
+                        setRelataDraftDirty(true)
+                        setRelataDraftMessage('')
+                      }}
+                      placeholder="Aggiorna l'anteprima compilata, poi modifica qui la bozza della relata per questa notifica."
+                    />
+                    {relataDraftMessage ? <p className="iu-legal-template-message">{relataDraftMessage}</p> : null}
+                    <div className="iu-legal-template-actions">
+                      <button type="button" disabled={relataDraftSaving || !relataDraftText.trim()} onClick={saveRelataDraft}>
+                        <Save size={15} /> {relataDraftSaving ? 'Salvataggio...' : 'Salva bozza per questa notifica'}
+                      </button>
+                      <button type="button" disabled={!relataPreview.previewText} onClick={restoreRelataDraftFromModel}>
+                        <RotateCcw size={15} /> Ripristina dal modello
+                      </button>
+                    </div>
+                  </div>
                   <div className="iu-legal-template-actions">
-                    <button type="button" onClick={() => startTemplateEdit('copy')}><PencilLine size={15} /> Personalizza questo modello</button>
+                    <button type="button" onClick={() => startTemplateEdit('copy')}><PencilLine size={15} /> Personalizza modello</button>
                     <button type="button" onClick={() => startTemplateEdit('new')}><PlusCircle size={15} /> Nuovo modello su misura</button>
                   </div>
-                  <small>I campi tra doppie parentesi vengono compilati automaticamente dai dati presenti in IUSENTRA.</small>
+                  <small>La bozza compilata resta legata a questa notifica; solo il testo con campi automatici puo diventare modello riutilizzabile.</small>
                 </div>
                 {templateEditorOpen ? (
                   <div className="iu-legal-template-editor iu-legal-field--wide">
@@ -647,7 +809,7 @@ export function NotificheLegaliPage() {
                     </div>
                     {templateMessage ? <p className="iu-legal-template-message">{templateMessage}</p> : null}
                     <div className="iu-legal-template-actions">
-                      <button type="button" disabled={templateSaving} onClick={saveTemplate}><ShieldCheck size={15} /> {templateSaving ? 'Salvataggio...' : 'Salva modello e usa'}</button>
+                      <button type="button" disabled={templateSaving} onClick={saveTemplate}><ShieldCheck size={15} /> {templateSaving ? 'Salvataggio...' : 'Salva come modello riutilizzabile'}</button>
                     </div>
                   </div>
                 ) : null}
@@ -863,11 +1025,42 @@ export function NotificheLegaliPage() {
                 </div>
               </div>
               <div className="iu-legal-form-grid">
+                <div className="iu-legal-client-template iu-legal-field--wide">
+                  <div className="iu-legal-template-preview__header">
+                    <div>
+                      <strong>Modelli comunicazione cliente</strong>
+                      <span>{data.clientCommunicationTemplateVersion || 'Catalogo comunicazioni cliente'}</span>
+                    </div>
+                  </div>
+                  <Field label="Modello cliente" wide hint={selectedClientTemplate?.description || 'Scegli un testo semplice, separato dai modelli relata.'}>
+                    <select
+                      value={cliente.template_id}
+                      onChange={(event) => {
+                        changeCliente('template_id', event.currentTarget.value)
+                        setCliente((current) => ({ ...current, oggetto: '', corpo: '' }))
+                      }}
+                    >
+                      {data.modelliComunicazioneCliente.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}
+                    </select>
+                  </Field>
+                  {selectedClientTemplate ? (
+                    <div className="iu-legal-client-template__preview">
+                      <strong>{selectedClientTemplate.subjectPreview}</strong>
+                      <pre>{selectedClientTemplate.bodyPreview}</pre>
+                    </div>
+                  ) : null}
+                </div>
                 <Field label="Cliente"><input value={cliente.cliente_nome} onChange={(event) => changeCliente('cliente_nome', event.currentTarget.value)} /></Field>
                 <Field label="Ufficio"><input value={cliente.ufficio_giudiziario} onChange={(event) => changeCliente('ufficio_giudiziario', event.currentTarget.value)} /></Field>
                 <Field label="Numero RG"><input value={cliente.numero_rg} onChange={(event) => changeCliente('numero_rg', event.currentTarget.value)} /></Field>
                 <Field label="Anno RG"><input value={cliente.anno_rg} onChange={(event) => changeCliente('anno_rg', event.currentTarget.value)} /></Field>
                 <Field label="Provvedimento o documento" wide><input value={cliente.provvedimento_descrizione} onChange={(event) => changeCliente('provvedimento_descrizione', event.currentTarget.value)} /></Field>
+                <Field label="Oggetto comunicazione" wide hint="Non usare l'oggetto riservato alla notifica L. 53/1994.">
+                  <input value={cliente.oggetto} onChange={(event) => changeCliente('oggetto', event.currentTarget.value)} placeholder="Viene proposto dal modello cliente" />
+                </Field>
+                <Field label="Corpo comunicazione" wide hint="Testo ordinario modificabile prima dell'invio al cliente.">
+                  <textarea value={cliente.corpo} rows={10} onChange={(event) => changeCliente('corpo', event.currentTarget.value)} placeholder="Premi Prepara comunicazione per generare il testo dal modello cliente." />
+                </Field>
               </div>
               <button className="iu-legal-submit" type="button" disabled={working} onClick={() => run('cliente')}><Mail size={16} /> {working ? 'Preparazione...' : 'Prepara comunicazione'}</button>
             </Panel>
@@ -884,34 +1077,61 @@ export function NotificheLegaliPage() {
               <span><UserRound size={15} /> Il cliente resta nel percorso informativo.</span>
             </div>
           </Panel>
-          <Panel title="Catalogo modelli" subtitle={data.templateCatalogVersion ? `Versione ${data.templateCatalogVersion}` : 'Modelli caricati'} icon={<FileSignature size={17} />}>
-            <div className="iu-legal-list">
-              <span><FileCheck2 size={15} /> {data.modelliRelata.length} modelli relata disponibili.</span>
-              <span><ShieldCheck size={15} /> Attestazioni scelte in base all'origine del documento.</span>
-              <span><LockKeyhole size={15} /> Nessun invio automatico senza firma e conferma finale.</span>
-            </div>
-            <div className="iu-legal-template-catalog">
-              {data.modelliRelata.slice(0, templateCatalogExpanded ? data.modelliRelata.length : 8).map((item) => (
-                <button
-                  type="button"
-                  key={item.value}
-                  className={item.value === notifica.template_id ? 'is-active' : ''}
-                  onClick={() => {
-                    setTab('notifica')
-                    changeNotifica('template_id', item.value)
-                  }}
-                >
-                  <strong>{item.code ? `${item.code} - ${item.label}` : item.label}</strong>
-                  <span>{item.description || 'Modello disponibile per la relata.'}</span>
-                </button>
-              ))}
-              {data.modelliRelata.length > 8 ? (
-                <button type="button" className="iu-legal-template-catalog__toggle" onClick={() => setTemplateCatalogExpanded((current) => !current)}>
-                  {templateCatalogExpanded ? 'Mostra meno modelli' : 'Mostra tutti i modelli'}
-                </button>
-              ) : null}
-            </div>
-          </Panel>
+          {tab === 'cliente' ? (
+            <Panel title="Modelli cliente" subtitle={data.clientCommunicationTemplateVersion || 'Comunicazioni informative'} icon={<Mail size={17} />}>
+              <div className="iu-legal-list">
+                <span><Mail size={15} /> {data.modelliComunicazioneCliente.length} modelli comunicazione cliente disponibili.</span>
+                <span><UserRound size={15} /> Oggetto e corpo restano ordinari e modificabili.</span>
+                <span><LockKeyhole size={15} /> Nessuna relata viene generata da questo percorso.</span>
+              </div>
+              <div className="iu-legal-template-catalog">
+                {data.modelliComunicazioneCliente.map((item) => (
+                  <button
+                    type="button"
+                    key={item.value}
+                    className={item.value === cliente.template_id ? 'is-active' : ''}
+                    onClick={() => {
+                      changeCliente('template_id', item.value)
+                      setCliente((current) => ({ ...current, oggetto: '', corpo: '' }))
+                    }}
+                  >
+                    <strong>{item.label}</strong>
+                    <span>{item.description || 'Modello informativo per il cliente.'}</span>
+                  </button>
+                ))}
+              </div>
+            </Panel>
+          ) : (
+            <Panel title="Catalogo modelli relata" subtitle={data.templateCatalogVersion ? `Versione ${data.templateCatalogVersion}` : 'Modelli caricati'} icon={<FileSignature size={17} />}>
+              <div className="iu-legal-list">
+                <span><FileCheck2 size={15} /> {data.modelliRelata.length} modelli relata disponibili.</span>
+                <span><ShieldCheck size={15} /> Attestazioni scelte in base all'origine del documento.</span>
+                <span><LockKeyhole size={15} /> Nessun invio automatico senza firma e conferma finale.</span>
+              </div>
+              <div className="iu-legal-template-catalog">
+                {data.modelliRelata.slice(0, templateCatalogExpanded ? data.modelliRelata.length : 8).map((item) => (
+                  <button
+                    type="button"
+                    key={item.value}
+                    className={item.value === notifica.template_id ? 'is-active' : ''}
+                    onClick={() => {
+                      setTab('notifica')
+                      changeNotifica('template_id', item.value)
+                      setRelataDraftDirty(false)
+                    }}
+                  >
+                    <strong>{item.code ? `${item.code} - ${item.label}` : item.label}</strong>
+                    <span>{item.description || 'Modello disponibile per la relata.'}</span>
+                  </button>
+                ))}
+                {data.modelliRelata.length > 8 ? (
+                  <button type="button" className="iu-legal-template-catalog__toggle" onClick={() => setTemplateCatalogExpanded((current) => !current)}>
+                    {templateCatalogExpanded ? 'Mostra meno modelli' : 'Mostra tutti i modelli'}
+                  </button>
+                ) : null}
+              </div>
+            </Panel>
+          )}
           <Panel title="Fonti operative" subtitle="Da verificare nei flussi reali" icon={<Scale size={17} />}>
             <div className="iu-legal-sources">
               {data.fontiOperative.map((item) => <span key={item}>{item}</span>)}

@@ -1,12 +1,26 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-12, sincronizzazione calendari bidirezionale.
+Aggiornato: 2026-05-12, notifiche legali sicure e bozze relata 2.217.1.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Notifiche legali sicure / bozze relata / comunicazioni cliente 2.217.1
+
+| Verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct/notifiche_legali.py web/services/react_notifiche_legali_bridge.py web/services/core_runtime.py web/blueprints/api_v1_react.py tests/test_notifiche_legali.py` | OK | Sintassi confermata per hardening template, bridge React, default tenant-aware notifiche, API e test. |
+| `python -m pytest -q tests/test_notifiche_legali.py --tb=short` | OK | 22/22 passati: token sicuri, blocco Jinja/accessi riservati, modelli standard, anteprima compilata, bozze tenant-aware, comunicazioni cliente separate e robustezza JSON. |
+| `npm --prefix frontend run typecheck` | OK | TypeScript confermato per nuovi tipi `LegalRelataPreviewResult`, `LegalRelataDraftResult`, modelli cliente e funzioni API. |
+| `node frontend/scripts/check-react-contracts.mjs` | OK | Contratti React confermati per endpoint anteprima relata, bozze relata, modelli cliente separati e route `/notifiche-legali`. |
+| `npm --prefix frontend run build` | OK | Build Vite 2.217.1 completata in 6.89s; chunk lazy `NotificheLegaliPage-ZR7Tq272.js` 50.44 kB / 11.59 kB gzip e CSS 11.43 kB / 2.30 kB gzip. |
+| `python tools/sync_packaging_files.py --check` | OK | Packaging sincronizzato dopo bump 2.217.1. |
+| `python -m pytest -q tests/test_packaging_consistency.py tests/test_release_readiness.py --tb=short` | OK | 8/8 passati: coerenza packaging e readiness release confermate per 2.217.1. |
+| Docker locale `docker compose build --no-cache app scheduler-worker ocr-worker` + `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx` | OK | Immagini finali 2.217.1 ricostruite senza backup; app, scheduler, OCR e Redis healthy, Nginx attivo, `/api/pronto` 200 con versione `2.217.1`. |
+| Browser Chrome headless su `/notifiche-legali` desktop/tablet/mobile | OK | Dopo warm-up tenant gia' documentato: desktop 677.8 ms, tablet 620.0 ms, mobile 634.6 ms a contenuto visibile; nessun errore console, nessun overflow, nessun testo tecnico vietato; tab cliente senza catalogo relata e senza versione `2026.05.12`. |
 
 ### Sincronizzazione calendari bidirezionale 2.217.0
 

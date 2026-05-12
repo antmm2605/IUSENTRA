@@ -139,6 +139,16 @@ function list(value: unknown): unknown[] {
   return Array.isArray(value) ? value : []
 }
 
+function currentSearch(): string {
+  if (typeof window === 'undefined') return ''
+  return window.location.search || ''
+}
+
+function withCurrentSearch(path: string): string {
+  const search = currentSearch()
+  return search ? `${path}${search}` : path
+}
+
 function text(value: unknown, fallback = ''): string {
   return typeof value === 'string' ? value.trim() : fallback
 }
@@ -318,7 +328,7 @@ function normaliseMutation(raw: unknown): PaymentMutationResult {
 }
 
 export async function getIncassiPagamentiPage(): Promise<IncassiPagamentiPageData> {
-  const payload = await apiJson<unknown>('/api/v1/ui/incassi-pagamenti', emptyIncassiPagamentiPage)
+  const payload = await apiJson<unknown>(withCurrentSearch('/api/v1/ui/incassi-pagamenti'), emptyIncassiPagamentiPage)
   return normalisePage(payload)
 }
 

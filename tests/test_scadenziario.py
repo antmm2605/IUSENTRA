@@ -37,6 +37,22 @@ def gs(tmp_path):
     return GestioneScadenziario(db_path=str(tmp_path / "scadenze.json"))
 
 
+def test_import_portale_scarta_scadenze_gia_passate_dallo_scadenziario():
+    from web.services.telematico_runtime import (
+        _data_portale_scadenziario_utilizzabile,
+        _normalizza_data_portale,
+    )
+
+    oggi_importazione = date(2026, 5, 12)
+
+    assert _normalizza_data_portale("09/07/2026") == "2026-07-09"
+    assert _normalizza_data_portale("01/03/2023") == "2023-03-01"
+    assert _data_portale_scadenziario_utilizzabile("12/05/2026", today=oggi_importazione)
+    assert _data_portale_scadenziario_utilizzabile("09/07/2026", today=oggi_importazione)
+    assert not _data_portale_scadenziario_utilizzabile("01/03/2023", today=oggi_importazione)
+    assert not _data_portale_scadenziario_utilizzabile("", today=oggi_importazione)
+
+
 # ------------------------------------------------------------------ Festività e giorni lavorativi
 
 def test_pasqua_2024():

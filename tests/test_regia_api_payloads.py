@@ -55,6 +55,21 @@ def test_api_regia_payload_completo_e_mock_false(tmp_path):
     assert payload["validation"]["blockers"]
 
 
+def test_api_regia_economia_espone_link_operativi(tmp_path):
+    app, _gf, fascicolo = _app_with_fascicolo(tmp_path)
+    client = app.test_client()
+    response = client.get(f"/api/v1/ui/fascicoli/{fascicolo.id}/regia", headers={"X-API-Key": "regia-test-key"})
+    assert response.status_code == 200
+    economics = response.get_json()["economics"]
+    assert economics["preventivoHref"].startswith("/preventivi/nuovo?")
+    assert f"id_fascicolo={fascicolo.id}" in economics["preventivoHref"]
+    assert economics["conferimentoHref"].startswith("/preventivi/conferimento/nuovo?")
+    assert f"id_fascicolo={fascicolo.id}" in economics["conferimentoHref"]
+    assert economics["proformaHref"].startswith("/fatturazione/nuova?")
+    assert f"id_fascicolo={fascicolo.id}" in economics["proformaHref"]
+    assert economics["paymentHref"] == economics["proformaHref"]
+
+
 def test_api_slot_predeposito_deposito_ricevuta_evidence_pack(tmp_path):
     app, gf, fascicolo = _app_with_fascicolo(tmp_path)
     doc = gf.aggiungi_documento(fascicolo.id, "atto.pdf", TipoDocumento.ATTO_GIUDIZIARIO, pdfa_bytes(), firmato=True)

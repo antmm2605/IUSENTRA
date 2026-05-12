@@ -27,6 +27,41 @@ from web.services.telematico_resilience import (
 )
 
 
+def _normalizza_data_portale(value: Any) -> str:
+    text = str(value or "").strip()
+    if not text:
+        return ""
+    for fmt in (
+        "%Y-%m-%dT%H:%M:%S.%f",
+        "%Y-%m-%dT%H:%M:%S",
+        "%Y-%m-%d %H:%M:%S",
+        "%d/%m/%Y %H:%M:%S",
+        "%d/%m/%Y %H:%M",
+        "%Y-%m-%d",
+        "%d/%m/%Y",
+        "%d-%m-%Y",
+    ):
+        try:
+            return datetime.strptime(text, fmt).strftime("%Y-%m-%d")
+        except ValueError:
+            continue
+    prefix = text[:10]
+    try:
+        return date.fromisoformat(prefix).isoformat()
+    except ValueError:
+        return prefix if re.fullmatch(r"\d{4}-\d{2}-\d{2}", prefix) else ""
+
+
+def _data_portale_scadenziario_utilizzabile(value: Any, *, today: date | None = None) -> bool:
+    normalized = _normalizza_data_portale(value)
+    if not normalized:
+        return False
+    try:
+        return date.fromisoformat(normalized) >= (today or date.today())
+    except ValueError:
+        return False
+
+
 def build_telematico_runtime(
     app: Flask,
     *,
@@ -1537,11 +1572,11 @@ def build_telematico_runtime(
         gs = get_scadenziario()
         fasc = gf.get(id_fasc)
         if not fasc:
-            return {"attivita": 0, "scadenze": 0}
-        data_udienza = str(preview.get("identity", {}).get("data_udienza") or "").strip()
+            return {"attivita": 0, "scadenze": 0, "scadenze_scartate": 0}
+        data_udienza = _normalizza_data_portale(preview.get("identity", {}).get("data_udienza"))
         if not data_udienza:
-            return {"attivita": 0, "scadenze": 0}
-        created = {"attivita": 0, "scadenze": 0}
+            return {"attivita": 0, "scadenze": 0, "scadenze_scartate": 0}
+        created = {"attivita": 0, "scadenze": 0, "scadenze_scartate": 0}
         if crea_attivita:
             exists = any(att.tipo == TipoAttivita.UDIENZA and att.data == data_udienza for att in fasc.attivita)
             if not exists:
@@ -1555,6 +1590,9 @@ def build_telematico_runtime(
                 )
                 created["attivita"] += 1
         if crea_scadenza:
+            if not _data_portale_scadenziario_utilizzabile(data_udienza):
+                created["scadenze_scartate"] += 1
+                return created
             exists = [
                 sc for sc in gs.tutte(id_fascicolo=id_fasc, solo_aperte=False)
                 if sc.data_scadenza == data_udienza and "udienza" in sc.titolo.lower()
@@ -1598,32 +1636,15 @@ def build_telematico_runtime(
         gs = get_scadenziario()
         fasc = gf.get(id_fasc)
         if not fasc:
-            return {"attivita": 0, "scadenze": 0, "comunicazioni": 0, "istanze": 0, "depositi": 0}
+            return {"attivita": 0, "scadenze": 0, "scadenze_scartate": 0, "comunicazioni": 0, "istanze": 0, "depositi": 0}
 
-        created = {"attivita": 0, "scadenze": 0, "comunicazioni": 0, "istanze": 0, "depositi": 0}
+        created = {"attivita": 0, "scadenze": 0, "scadenze_scartate": 0, "comunicazioni": 0, "istanze": 0, "depositi": 0}
 
         def _clean(value: Any) -> str:
             return str(value or "").strip()
 
         def _date_value(value: Any) -> str:
-            text = _clean(value)
-            if not text:
-                return date.today().isoformat()
-            for fmt in (
-                "%Y-%m-%dT%H:%M:%S.%f",
-                "%Y-%m-%dT%H:%M:%S",
-                "%Y-%m-%d %H:%M:%S",
-                "%d/%m/%Y %H:%M:%S",
-                "%d/%m/%Y %H:%M",
-                "%Y-%m-%d",
-                "%d/%m/%Y",
-                "%d-%m-%Y",
-            ):
-                try:
-                    return datetime.strptime(text, fmt).strftime("%Y-%m-%d")
-                except ValueError:
-                    continue
-            return text[:10] if len(text) >= 10 else text
+            return _normalizza_data_portale(value)
 
         def _activity_type(tipo: str, titolo: str = "") -> TipoAttivita:
             text = f"{tipo} {titolo}".lower()
@@ -1686,6 +1707,8 @@ def build_telematico_runtime(
             udienze = list(preview.get("udienze") or [])
             for udienza in udienze:
                 data_udienza = _date_value(udienza.get("data") or udienza.get("data_udienza"))
+                if not data_udienza:
+                    continue
                 ora = _clean(udienza.get("ora"))
                 titolo = _clean(udienza.get("label") or udienza.get("tipo")) or "Udienza da portale"
                 descrizione = _clean(udienza.get("descrizione"))
@@ -1694,6 +1717,9 @@ def build_telematico_runtime(
                 if _add_activity(TipoAttivita.UDIENZA, data_udienza, titolo, descrizione):
                     pass
                 if options.get("importa_scadenze", False):
+                    if not _data_portale_scadenziario_utilizzabile(data_udienza):
+                        created["scadenze_scartate"] += 1
+                        continue
                     exists = [
                         sc for sc in gs.tutte(id_fascicolo=id_fasc, solo_aperte=False)
                         if sc.data_scadenza == data_udienza and "udienza" in sc.titolo.lower()
@@ -2322,6 +2348,7 @@ def build_telematico_runtime(
                 or catalogo_depositi_synced
                 or int(preview.get("counts", {}).get("depositi", 0) or 0),
                 "scadenze_generate": udienza_result["scadenze"] + structured_result["scadenze"],
+                "scadenze_scartate_per_data_passata": udienza_result.get("scadenze_scartate", 0) + structured_result.get("scadenze_scartate", 0),
                 "eventi_generati": udienza_result["attivita"] + structured_result["attivita"],
                 "comunicazioni_generate": structured_result["comunicazioni"],
                 "istanze_generate": structured_result["istanze"],

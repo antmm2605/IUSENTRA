@@ -1255,10 +1255,150 @@ def _documents(fascicolo: Any) -> list[dict[str, Any]]:
     return out
 
 
+_PORTAL_ACTIVITY_TYPES_HIDDEN_FROM_TIMELINE = {
+    "DEPOSITO_ATTI",
+    "COMUNICAZIONE_CANCELLERIA",
+}
+
+
+def _clean_key(value: Any) -> str:
+    return re.sub(r"\s+", " ", _text(value).casefold()).strip()
+
+
+def _activity_is_portal_noise(att: Any) -> bool:
+    if not _text(getattr(att, "id_deposito_pct", "")):
+        return False
+    tipo = _enum_value(getattr(att, "tipo", "")).upper()
+    title = _text(getattr(att, "titolo", "")).casefold()
+    description = _text(getattr(att, "descrizione", "")).casefold()
+    return (
+        tipo in _PORTAL_ACTIVITY_TYPES_HIDDEN_FROM_TIMELINE
+        or "deposito da portale" in title
+        or "documenti censiti da" in description
+    )
+
+
+def _activity_group_key(att: Any) -> tuple[str, str, str]:
+    tipo = _enum_value(getattr(att, "tipo", "")).upper()
+    raw_date = _text(getattr(att, "data", ""))
+    title = _clean_key(getattr(att, "titolo", ""))
+    if tipo in {"UDIENZA", "ISCRIZIONE_A_RUOLO"}:
+        title = tipo
+    deposit_id = _text(getattr(att, "id_deposito_pct", ""))
+    return (tipo, raw_date, deposit_id or title)
+
+
+def _activity_quality_score(att: Any) -> int:
+    title = _text(getattr(att, "titolo", "")).casefold()
+    description = _text(getattr(att, "descrizione", "")).casefold()
+    source_bonus = 80 if any(token in f"{title} {description}" for token in ("polisweb", "pst", "portale")) else 0
+    specificity_bonus = 40 if any(token in f"{title} {description}" for token in ("rg ", "ruolo", "udienza importata")) else 0
+    return (
+        len(_text(getattr(att, "descrizione", ""))) * 2
+        + len(_text(getattr(att, "note", "")))
+        + len(_text(getattr(att, "titolo", "")))
+        + source_bonus
+        + specificity_bonus
+    )
+
+
+def _visible_activity_records(fascicolo: Any) -> list[Any]:
+    selected: dict[tuple[str, str, str], Any] = {}
+    for att in getattr(fascicolo, "attivita", []) or []:
+        if _activity_is_portal_noise(att):
+            continue
+        key = _activity_group_key(att)
+        previous = selected.get(key)
+        if previous is None or _activity_quality_score(att) > _activity_quality_score(previous):
+            selected[key] = att
+    return sorted(
+        selected.values(),
+        key=lambda att: (_text(getattr(att, "data", "")), _text(getattr(att, "creato_il", ""))),
+        reverse=True,
+    )
+
+
+_PORTAL_ACT_LABELS = {
+    "ATTONONCODIFICATO": "Documento non classificato",
+    "DEPOSITONONCODIFICATO": "Deposito non classificato",
+    "DEPOSITONOTESCRITTESOSTUDIE": "Deposito note scritte sostitutive udienza",
+    "DEPOSITONOTECONCLUSIONALI": "Deposito note conclusionali",
+    "PRODUZIONEDOCUMENTIRICHIESTI": "Produzione documenti richiesti",
+    "DEPOSITODELLEMEMORIE": "Deposito memorie",
+    "DEPOSITODIMEMORIE": "Deposito memorie",
+    "DEPOSITODICONTRODEDUZIONI": "Deposito controdeduzioni",
+    "DEPOSITODISENTENZA": "Deposito sentenza",
+    "DEPOSITOSEMPLICE": "Deposito semplice",
+    "ISTANZAGENERICA": "Istanza generica",
+    "DOCUMENTO": "Documento",
+    "DECRETO": "Decreto",
+    "ORDINANZA": "Ordinanza",
+    "SENTENZA": "Sentenza",
+    "VERBALE": "Verbale",
+    "CITAZIONE": "Atto di citazione",
+}
+
+
+def _portal_act_label(value: Any) -> str:
+    raw = _text(value)
+    if not raw:
+        return "Evento portale"
+    key = re.sub(r"[^A-Za-z0-9]+", "", raw).upper()
+    if key in _PORTAL_ACT_LABELS:
+        return _PORTAL_ACT_LABELS[key]
+    spaced = re.sub(r"(?<=[a-z])(?=[A-Z])", " ", raw)
+    spaced = re.sub(r"[_\-]+", " ", spaced)
+    spaced = re.sub(r"\s+", " ", spaced).strip()
+    return spaced[:1].upper() + spaced[1:] if spaced else "Evento portale"
+
+
+def _deposit_display_message(dep: Any, portal_docs: list[dict[str, Any]]) -> str:
+    act = _portal_act_label(getattr(dep, "tipo_atto", ""))
+    service = _text(getattr(dep, "servizio_portale", "")).casefold()
+    text = " ".join(
+        [
+            service,
+            _text(getattr(dep, "tipo_atto", "")).casefold(),
+            _text(getattr(dep, "messaggio", "")).casefold(),
+            _text(getattr(dep, "note", "")).casefold(),
+        ]
+    )
+    raw_act = _text(getattr(dep, "tipo_atto", "")).casefold()
+    if raw_act.startswith("istan") or re.search(r"\bistanza\b", raw_act):
+        prefix = "Istanza"
+    elif any(token in text for token in ("sentenza", "ordinanza", "decreto", "provved")):
+        prefix = "Provvedimento"
+    elif any(token in text for token in ("accettaz", "consegna", "rdac", "rac", "esito", "busta")):
+        prefix = "Esito deposito"
+    elif "deposit" in text:
+        prefix = "Deposito"
+    elif "istan" in text:
+        prefix = "Istanza"
+    elif "comunic" in text or "canceller" in text or "notific" in text:
+        prefix = "Comunicazione"
+    else:
+        prefix = "Atto dal portale"
+    docs = len(portal_docs)
+    suffix = f" - {docs} documento" if docs == 1 else f" - {docs} documenti" if docs else ""
+    return f"{prefix}: {act}{suffix}"
+
+
+def _deposit_dedupe_key(dep: Any, portal_docs: list[dict[str, Any]]) -> tuple[str, ...]:
+    doc_names = tuple(sorted(_clean_key(doc.get("name")) for doc in portal_docs if doc.get("name")))
+    return (
+        _date_label(getattr(dep, "timestamp", "")),
+        _clean_key(getattr(dep, "servizio_portale", "")),
+        _clean_key(getattr(dep, "tipo_atto", "")),
+        _clean_key(getattr(dep, "pec_destinatario", "")),
+        _clean_key(getattr(dep, "nome_atto_principale", "")),
+        "|".join(doc_names),
+    )
+
+
 def _activities(fascicolo: Any) -> list[dict[str, Any]]:
     fid = _text(getattr(fascicolo, "id", ""))
     out = []
-    for att in getattr(fascicolo, "attivita", []) or []:
+    for att in _visible_activity_records(fascicolo):
         aid = _text(getattr(att, "id", ""))
         result = _enum_value(getattr(att, "esito", "IN_ATTESA"))
         out.append(
@@ -1279,7 +1419,7 @@ def _activities(fascicolo: Any) -> list[dict[str, Any]]:
                 "tone": _activity_tone(result),
             }
         )
-    return sorted(out, key=lambda item: item["date"], reverse=True)
+    return out
 
 
 def _deadlines(scadenze: Iterable[Any]) -> list[dict[str, Any]]:
@@ -1328,6 +1468,7 @@ def _appointments(apps: Iterable[Any]) -> list[dict[str, Any]]:
 
 def _deposits(fascicolo: Any) -> list[dict[str, Any]]:
     out = []
+    seen: set[tuple[str, ...]] = set()
     for dep in getattr(fascicolo, "depositi_pct", []) or []:
         did = _text(getattr(dep, "id", ""), f"deposito-{len(out)}")
         status = _enum_value(getattr(dep, "stato", ""))
@@ -1345,15 +1486,20 @@ def _deposits(fascicolo: Any) -> list[dict[str, Any]]:
                     "available": bool(doc.get("disponibile", True)),
                 }
             )
+        dedupe_key = _deposit_dedupe_key(dep, portal_docs)
+        if dedupe_key in seen:
+            continue
+        seen.add(dedupe_key)
         tone = "success" if status in {"ACCETTATO_CANCELLERIA", "CONSEGNATO", "ACCETTATO_PEC"} else "danger" if "ERRORE" in status or "RIFIUTATO" in status else "warning" if "WARN" in status else "primary"
+        message = _deposit_display_message(dep, portal_docs)
         out.append(
             {
                 "id": did,
                 "timestamp": _date_label(getattr(dep, "timestamp", "")),
                 "status": status.replace("_", " "),
-                "actType": _enum_value(getattr(dep, "tipo_atto", "")).replace("_", " "),
+                "actType": _portal_act_label(getattr(dep, "tipo_atto", "")),
                 "pec": _text(getattr(dep, "pec_destinatario", "")),
-                "message": _short(_italian_dates_in_text(getattr(dep, "messaggio", "")), 200),
+                "message": _short(_italian_dates_in_text(message), 200),
                 "checks": _enum_value(getattr(dep, "esito_controlli", "")),
                 "source": _text(getattr(dep, "fonte_portale", "")) or _text(getattr(dep, "servizio_portale", "")),
                 "externalId": _text(getattr(dep, "id_deposito_esterno", "")),
@@ -1490,13 +1636,23 @@ def _fatturapa_item(parcelle: list[Any], fascicolo: Any) -> dict[str, Any]:
 def _economics(preventivi: list[Any], conferimenti: list[Any], parcelle: list[Any], timesheet_entries: list[Any], fascicolo: Any) -> list[dict[str, Any]]:
     minutes = sum(int(getattr(item, "minuti", 0) or 0) for item in timesheet_entries)
     parcelle_total = sum(float(getattr(item, "totale", 0.0) or getattr(item, "netto_a_pagare", 0.0) or 0.0) for item in parcelle)
+    fid = quote(_text(getattr(fascicolo, "id", "")), safe="")
+    preventivo = preventivi[0] if preventivi else None
+    conferimento = conferimenti[0] if conferimenti else None
+    parcella = parcelle[0] if parcelle else None
+    preventivo_id = quote(_text(getattr(preventivo, "id", "")), safe="") if preventivo else ""
+    conferimento_id = quote(_text(getattr(conferimento, "id", "")), safe="") if conferimento else ""
+    parcella_id = quote(_text(getattr(parcella, "id", "")), safe="") if parcella else ""
+    preventivo_href = f"/preventivi/p/{preventivo_id}" if preventivo_id else f"/preventivi/nuovo?id_fascicolo={fid}"
+    conferimento_href = f"/preventivi/conferimento/{conferimento_id}" if conferimento_id else f"/preventivi/conferimento/nuovo?id_fascicolo={fid}"
+    parcelle_href = f"/fatturazione?id_documento={parcella_id}" if parcella_id else f"/fatturazione/nuova?id_fascicolo={fid}"
     return [
         {"id": "valore", "label": "Valore causa", "value": _euro(getattr(fascicolo, "valore_causa", 0)), "note": "dato fascicolo", "href": "#profilo", "tone": "primary"},
-        {"id": "compenso", "label": "Compenso pattuito", "value": _euro(getattr(fascicolo, "compenso_pattuito", 0)), "note": f"{len(conferimenti)} conferimenti", "href": "/preventivi", "tone": "purple"},
-        {"id": "parcelle", "label": "Parcelle", "value": _euro(parcelle_total), "note": f"{len(parcelle)} documenti economici", "href": "/fatturazione/", "tone": "success"},
+        {"id": "compenso", "label": "Compenso pattuito", "value": _euro(getattr(fascicolo, "compenso_pattuito", 0)), "note": f"{len(conferimenti)} conferimenti", "href": conferimento_href, "tone": "purple"},
+        {"id": "parcelle", "label": "Parcelle", "value": _euro(parcelle_total), "note": f"{len(parcelle)} documenti economici", "href": parcelle_href, "tone": "success"},
         _fatturapa_item(parcelle, fascicolo),
-        {"id": "tempo", "label": "Tempo", "value": f"{round(minutes/60, 1)} h".replace(".", ","), "note": f"{len(timesheet_entries)} voci timesheet", "href": "/timesheet", "tone": "info"},
-        {"id": "preventivi", "label": "Preventivi", "value": str(len(preventivi)), "note": "collegati al fascicolo", "href": "/preventivi/", "tone": "orange"},
+        {"id": "tempo", "label": "Tempo", "value": f"{round(minutes/60, 1)} h".replace(".", ","), "note": f"{len(timesheet_entries)} voci timesheet", "href": f"/timesheet?id_fascicolo={fid}", "tone": "info"},
+        {"id": "preventivi", "label": "Preventivi", "value": str(len(preventivi)), "note": "collegati al fascicolo", "href": preventivo_href, "tone": "orange"},
     ]
 
 
@@ -1634,22 +1790,18 @@ def build_react_fascicolo_detail_payload(
     conferimenti = _safe("conferimenti", lambda: preventivi_repo.conferimenti_per_fascicolo(fid), []) if preventivi_repo else []
     parcelle = _safe("parcelle", lambda: get_fatturazione().per_fascicolo(fid), [])
     timesheet_entries = _safe("timesheet", lambda: get_timesheet().per_fascicolo(fid), [])
-    raw_activities = getattr(fascicolo, "attivita", []) or []
-    activities = _activities(fascicolo) if load_activities else []
-    requests = [item for item in activities if "ISTAN" in item["type"].upper() or "ISTAN" in item["title"].upper()] if load_activities else []
-    requests_count = sum(
-        1
-        for activity in raw_activities
-        if "ISTAN" in _enum_value(getattr(activity, "tipo", "")).upper()
-        or "ISTAN" in _text(getattr(activity, "titolo", "")).upper()
-    )
+    visible_activities = _activities(fascicolo)
+    activities = visible_activities if load_activities else []
+    visible_requests = [item for item in visible_activities if "ISTAN" in item["type"].upper() or "ISTAN" in item["title"].upper()]
+    requests = visible_requests if load_activities else []
+    visible_deposits = _deposits(fascicolo)
     quick_counts = {
         "profilo": len(_profile(fascicolo, apps=apps, studio_avvocato_titolare=studio_avvocato_titolare)),
         "documenti": len(getattr(fascicolo, "documenti", []) or []),
-        "attivita": len(raw_activities),
+        "attivita": len(visible_activities),
         "udienze_scadenze": len(scadenze) + len(apps),
-        "comunicazioni": len(getattr(fascicolo, "depositi_pct", []) or []),
-        "istanze": requests_count,
+        "comunicazioni": len(visible_deposits),
+        "istanze": len(visible_requests),
     }
     lex_indexing = _safe(
         "lex_indexing",
@@ -1713,7 +1865,7 @@ def build_react_fascicolo_detail_payload(
         "activities": activities,
         "deadlines": _deadlines(scadenze) if load_deadlines else [],
         "appointments": _appointments(apps) if load_deadlines else [],
-        "deposits": _deposits(fascicolo) if load_deposits else [],
+        "deposits": visible_deposits if load_deposits else [],
         "requests": requests,
         "parties": parties,
         "history": _history(fascicolo),

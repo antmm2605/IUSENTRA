@@ -2898,21 +2898,28 @@ def test_react_fascicoli_suite_completa_route_componenti_e_lex():
     assert "Quadro intelligente" in page_source
     assert "Quadro intelligente AI" in page_source
     assert "<a href={quadroHref}><Gauge size={15}/> Quadro completo</a>" in page_source
-    assert "`${operationalHref}#editor-professionale`" in page_source
-    assert 'id="documenti" title="Documenti fascicolo"' in page_source
-    assert 'id="editor-professionale" title="Editor professionale e compilatore atti"' in page_source
+    assert 'className="iu-fas-ai-actions"' in page_source
+    assert '<a href="#documenti"><FileText size={15}/> Documenti e atti</a>' in page_source
+    assert 'id="documenti" title="Documenti e atti"' in page_source
+    assert 'id="editor-professionale" title="Editor professionale e compilatore atti"' not in page_source
     assert "_fatturapa_item" in bridge
     assert "FatturaPA / SDI" in bridge
     assert "Agenzia Entrate" in bridge
-    assert "<a href={editorWorkspaceHref}><PencilLine size={15}/><span>Editor professionale</span></a>" in page_source
-    assert "<a href={compilerHref}><ClipboardCheck size={15}/><span>Compilatore atti</span></a>" in page_source
+    assert '<a href="#documenti"><FileText size={15}/> Documenti e atti</a>' in page_source
+    assert "<a href={compilerHref}><ClipboardCheck size={15}/> Compilatore atti</a>" in page_source
+    assert '<a href="#documenti"><BrainCircuit size={15}/> Indice Lex</a>' in page_source
+    assert "editorWorkspaceHref" not in page_source
     assert "<a href={editorWorkspaceHref}><PencilLine size={15}/> Editor professionale</a>" not in page_source
     assert "<span>Analisi Lex AI</span>" not in page_source
     assert "Compilatore atti" in page_source
-    assert "Editor professionale" in page_source
+    assert "Editor professionale e compilatore atti" not in page_source
     assert "PdfPreviewModal" in page_source
-    assert "UploadDocumentForm" in page_source
-    assert "PortalImportForm" in page_source
+    assert "DocumentUploadWorkspace" in page_source
+    assert "classificazione_modalita" in page_source
+    assert 'name="files"' in page_source
+    assert "PortalImportForm" not in page_source
+    assert "Importa dal portale" not in page_source
+    assert "iu-fas-doc-workspace__portal" not in css
     assert "iu-fas-confirm-modal" in page_source
     assert "window.confirm" not in page_source
     assert "deleteHref" in data_source
@@ -2922,14 +2929,14 @@ def test_react_fascicoli_suite_completa_route_componenti_e_lex():
     assert "onDeleted={handleFascicoloDeleted}" in page_source
     assert "Anteprima interna" in page_source
     assert 'title="Firma digitale"' in page_source
-    assert 'title="Editor professionale"' in page_source
+    assert 'title="Modifica documento"' in page_source
     assert "onPreview={setPreviewDoc}" in page_source
     assert "onDone={refreshDetail}" in page_source
     assert "'X-Requested-With': 'XMLHttpRequest'" in page_source
     assert "/template-atti/catalogo?id_fascicolo=" in page_source
     assert "Dati aggiornati - ${data.source}" not in page_source
     assert 'title="Soggetti e parti"' in page_source
-    assert 'title="Cancelleria e istanze"' in page_source
+    assert 'title="Comunicazioni / Cancelleria"' in page_source
     assert 'title="Servizi telematici"' in page_source
     assert "FascicoloGuardrailsPanel" in page_source
     assert "data.guardrails" in page_source
@@ -3033,6 +3040,32 @@ def test_react_fascicolo_documenti_ajax_non_ricarica_e_cancella_senza_confirm_na
             content_type="multipart/form-data",
             headers=headers,
         )
+        multi_auto = client.post(
+            f"/fascicoli/{fascicolo.id}/documenti/carica",
+            data={
+                "files": [
+                    (io.BytesIO(b"procura alle liti"), "procura-speciale.pdf"),
+                    (io.BytesIO(b"sentenza tribunale"), "sentenza-tribunale.pdf"),
+                ],
+                "classificazione_modalita": "auto",
+            },
+            content_type="multipart/form-data",
+            headers=headers,
+        )
+        multi_manuale = client.post(
+            f"/fascicoli/{fascicolo.id}/documenti/carica",
+            data={
+                "files": [
+                    (io.BytesIO(b"contenuto generico"), "file-generico-1.bin"),
+                    (io.BytesIO(b"contenuto generico"), "file-generico-2.bin"),
+                ],
+                "classificazione_modalita": "manuale",
+                "tipo_doc_0": TipoDocumento.MEMORIA.value,
+                "tipo_doc_1": TipoDocumento.CONTRATTO.value,
+            },
+            content_type="multipart/form-data",
+            headers=headers,
+        )
         delete_doc = client.post(
             f"/fascicoli/{fascicolo.id}/documenti/{documento.id}/elimina",
             headers=headers,
@@ -3046,6 +3079,24 @@ def test_react_fascicolo_documenti_ajax_non_ricarica_e_cancella_senza_confirm_na
     assert upload.is_json
     assert upload.get_json()["ok"] is True
     assert upload.get_json()["redirect_url"].endswith("#documenti")
+    assert multi_auto.status_code == 200
+    assert multi_auto.is_json
+    assert len(multi_auto.get_json()["documenti_id"]) == 2
+    assert multi_manuale.status_code == 200
+    assert multi_manuale.is_json
+    assert len(multi_manuale.get_json()["documenti_id"]) == 2
+    fascicolo_aggiornato = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    ).get(fascicolo.id)
+    assert fascicolo_aggiornato is not None
+    docs_by_name = {doc.nome: doc for doc in fascicolo_aggiornato.documenti}
+    assert docs_by_name["nuovo-documento.txt"].tipo == TipoDocumento.ATTO_GIUDIZIARIO
+    assert docs_by_name["procura-speciale.pdf"].tipo == TipoDocumento.PROCURA
+    assert docs_by_name["sentenza-tribunale.pdf"].tipo == TipoDocumento.SENTENZA
+    assert docs_by_name["file-generico-1.bin"].tipo == TipoDocumento.MEMORIA
+    assert docs_by_name["file-generico-2.bin"].tipo == TipoDocumento.CONTRATTO
     assert delete_doc.status_code == 200
     assert delete_doc.is_json
     assert delete_doc.get_json()["ok"] is True
@@ -3228,6 +3279,65 @@ def test_react_fascicolo_dettaglio_normalizza_referente_udienza_e_chiusura(tmp_p
     )
     assert attivita_payload["activities"][0]["notes"] == f"Evento acquisito il {imported_at_it}"
     assert imported_at not in str(payload)
+
+
+def test_react_fascicolo_dettaglio_pulisce_righe_portale_duplicate(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+    with app.app_context():
+        fascicoli = app.extensions["core_runtime"]["get_fascicoli"]()
+        fascicolo = fascicoli.nuovo("RG 466/2023 - Usucapione", TipoFascicolo.CIVILE)
+        fascicoli.aggiungi_attivita(
+            fascicolo.id,
+            TipoAttivita.UDIENZA,
+            "2026-07-09",
+            "Udienza importata da PolisWeb",
+            descrizione="Udienza RG 466/2023",
+        )
+        fascicoli.aggiungi_attivita(
+            fascicolo.id,
+            TipoAttivita.UDIENZA,
+            "2026-07-09",
+            "Udienza rilevata",
+            descrizione="Duplicato portale meno completo",
+        )
+        documento_portale = {
+            "nome": "deposito_note.pdf",
+            "tipo": "Documento",
+            "data_deposito": "2026-03-10",
+            "mittente": "FOTI ALFREDO",
+        }
+        for external_id in ("DEP-1", "DEP-2"):
+            fascicoli.sincronizza_deposito_portale(
+                fascicolo.id,
+                fonte="PolisWeb / PST",
+                id_deposito_esterno=external_id,
+                tipo_atto="DepositoNoteConclusionali",
+                data_deposito="2026-03-10",
+                mittente="FOTI ALFREDO",
+                documenti_portale=[documento_portale],
+                registrato_da="antmm26051975",
+                stato="IMPORTATO_DA_PORTALE",
+                servizio_portale="DettaglioIstanze",
+            )
+
+    response = client.get(
+        f"/api/v1/ui/fascicoli/{fascicolo.id}?include=attivita,depositi",
+        headers={"X-API-Key": "react-test-key"},
+    )
+    payload = response.get_json()
+    activities_text = json.dumps(payload["activities"], ensure_ascii=False)
+
+    assert response.status_code == 200
+    assert payload["quickCounts"]["attivita"] == 1
+    assert len(payload["activities"]) == 1
+    assert payload["activities"][0]["title"] == "Udienza importata da PolisWeb"
+    assert "Deposito da portale" not in activities_text
+    assert payload["quickCounts"]["comunicazioni"] == 1
+    assert len(payload["deposits"]) == 1
+    assert payload["deposits"][0]["actType"] == "Deposito note conclusionali"
+    assert payload["deposits"][0]["message"] == "Deposito: Deposito note conclusionali - 1 documento"
+    assert "Metadati importati" not in payload["deposits"][0]["message"]
 
 
 def test_react_fascicoli_bridge_formatta_date_e_referenti_visibili():

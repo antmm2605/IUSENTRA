@@ -119,6 +119,13 @@ function detailIdFromPath(): string {
   return match ? decodeURIComponent(match[1]) : ''
 }
 
+function preventivoIdFromLocation(): string {
+  const pathMatch = window.location.pathname.replace(/\/+$/, '').match(/^\/preventivi\/p\/([^/]+)$/i)
+  if (pathMatch) return decodeURIComponent(pathMatch[1])
+  const params = new URLSearchParams(window.location.search)
+  return params.get('id_preventivo') || params.get('preventivo') || ''
+}
+
 function displayValue(value: string | number): string {
   if (typeof value === 'number') return new Intl.NumberFormat('it-IT').format(value)
   return value
@@ -998,7 +1005,9 @@ function RecordsPanel({ data, onReload }: { data: PreventiviPageData; onReload: 
   const [mutationStatus, setMutationStatus] = useState<SaveStatus>('idle')
   const [mutationErrors, setMutationErrors] = useState<Record<string, string>>({})
   const [savingId, setSavingId] = useState('')
+  const [autoOpenedId, setAutoOpenedId] = useState('')
   const lowered = query.trim().toLowerCase()
+  const requestedPreventivoId = preventivoIdFromLocation()
   const filtered = data.records.filter((record) => {
     if (!lowered) return true
     return [record.number, record.subject, record.customerName, record.caseTitle, record.stateLabel]
@@ -1019,6 +1028,15 @@ function RecordsPanel({ data, onReload }: { data: PreventiviPageData; onReload: 
       setMutationErrors(response.errors || { detail: response.message || 'Dettaglio non disponibile.' })
     }
   }
+
+  useEffect(() => {
+    if (!requestedPreventivoId || autoOpenedId === requestedPreventivoId) return
+    const record = data.records.find((item) => item.kind === 'preventivo' && item.id === requestedPreventivoId)
+    if (!record) return
+    setAutoOpenedId(requestedPreventivoId)
+    setQuery(record.number || record.subject || '')
+    loadDetail(record)
+  }, [autoOpenedId, data.records, requestedPreventivoId])
 
   async function mutateStatus(record: PreventivoRow, stato: string) {
     setSavingId(record.id)

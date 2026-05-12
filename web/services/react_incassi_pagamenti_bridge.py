@@ -150,6 +150,33 @@ def _payment_record(row: Any, parcelle: dict[str, Any], clienti: dict[str, Any])
     }
 
 
+def _invoice_needs_payment(parcella: Any) -> bool:
+    state = _enum(getattr(parcella, "stato", "")).upper()
+    return bool(_text(getattr(parcella, "id", ""))) and state not in {"PAGATA", "SALDATA", "ANNULLATA"}
+
+
+def _manual_invoice_record(parcella: Any, clienti: dict[str, Any]) -> dict[str, Any]:
+    invoice_id = _text(getattr(parcella, "id", ""))
+    id_cliente = _text(getattr(parcella, "id_cliente", ""))
+    state = _enum(getattr(parcella, "stato", "")) or "EMESSA"
+    return {
+        "id": "",
+        "invoiceId": invoice_id,
+        "invoiceNumber": _text(getattr(parcella, "numero", "")) or invoice_id,
+        "customerName": _client_label(clienti.get(id_cliente)),
+        "amountDisplay": _money(getattr(parcella, "netto_a_pagare", 0) or getattr(parcella, "totale", 0)),
+        "state": state,
+        "stateLabel": _label(state),
+        "stateTone": _tone(state),
+        "providerLabel": "incasso manuale",
+        "createdAt": _date_label(getattr(parcella, "data_emissione", "")),
+        "dueAt": _date_label(getattr(parcella, "data_scadenza", "")),
+        "paidAt": "",
+        "invoiceHref": f"/fatturazione/{invoice_id}" if invoice_id else "",
+        "paymentHref": "",
+    }
+
+
 def _receipt_record(parcella: Any, clienti: dict[str, Any]) -> dict[str, Any]:
     id_cliente = _text(getattr(parcella, "id_cliente", ""))
     return {
@@ -195,6 +222,7 @@ def build_react_incassi_pagamenti_payload(
     get_pagamenti: Callable[[], Any],
     get_clienti: Callable[[], Any],
     current_user: Any | None = None,
+    query: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     warnings: list[dict[str, str]] = []
     anno = date.today().year
@@ -235,6 +263,16 @@ def build_react_incassi_pagamenti_payload(
 
     parcelle_map = _invoice_lookup(parcelle)
     payments = [_payment_record(row, parcelle_map, clienti) for row in payment_rows[:120]]
+    payment_invoice_ids = {row["invoiceId"] for row in payments if row.get("invoiceId")}
+    manual_invoices = [
+        _manual_invoice_record(parcella, clienti)
+        for parcella in parcelle
+        if _text(getattr(parcella, "id", "")) not in payment_invoice_ids and _invoice_needs_payment(parcella)
+    ]
+    selected_invoice_id = _text((query or {}).get("id_parcella"))
+    records = (payments + manual_invoices)[:160]
+    if selected_invoice_id:
+        records.sort(key=lambda row: 0 if row.get("invoiceId") == selected_invoice_id else 1)
     receipts = [
         _receipt_record(parcella, clienti)
         for parcella in parcelle
@@ -253,7 +291,7 @@ def build_react_incassi_pagamenti_payload(
             _metric("scaduto", "Scaduto", _money(fatt_stats.get("scaduto", 0)), "Parcelle gia' scadute.", "danger" if fatt_stats.get("scaduto", 0) else "neutral"),
             _metric("link_attesi", "Link attesi", pay_stats.get("attesi", 0), "Collegamenti di pagamento aperti", "primary"),
         ],
-        "payments": payments,
+        "payments": records,
         "receipts": receipts,
         "providers": provider_items,
         "statuses": [
@@ -283,7 +321,7 @@ def build_react_incassi_pagamenti_payload(
                 "Nessun collegamento pagamento disponibile.",
             ),
         ],
-        "records": payments,
+        "records": records,
         "warnings": warnings,
     }
 

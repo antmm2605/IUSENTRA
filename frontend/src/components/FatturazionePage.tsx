@@ -176,6 +176,11 @@ function displayValue(value: string | number): string {
   return value
 }
 
+function requestedFatturazioneDetailId(): string {
+  const params = new URLSearchParams(window.location.search)
+  return params.get('id_documento') || params.get('id_parcella') || ''
+}
+
 function rowFromDefault(item: FatturazioneVoiceDefault, index: number): VoiceRow {
   return {
     rowId: `voce-${index + 1}`,
@@ -1330,7 +1335,9 @@ function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload:
   const [savingId, setSavingId] = useState('')
   const [mutationResult, setMutationResult] = useState<FatturazioneMutationResult | null>(null)
   const [mutationErrors, setMutationErrors] = useState<Record<string, string>>({})
+  const [autoOpenedId, setAutoOpenedId] = useState('')
   const lowered = query.trim().toLowerCase()
+  const requestedDetailId = requestedFatturazioneDetailId()
   const records = data.records.filter((record) => {
     if (!lowered) return true
     return [record.number, record.customerName, record.caseTitle, record.stateLabel]
@@ -1361,6 +1368,15 @@ function ArchiveView({ data, onReload }: { data: FatturazionePageData; onReload:
     }
     setDetailLoading(false)
   }
+
+  useEffect(() => {
+    if (!requestedDetailId || autoOpenedId === requestedDetailId) return
+    const record = data.records.find((item) => item.id === requestedDetailId)
+    if (!record) return
+    setAutoOpenedId(requestedDetailId)
+    setQuery(record.number || record.customerName || '')
+    loadDetail(record)
+  }, [autoOpenedId, data.records, requestedDetailId])
 
   async function updateStatus(record: FatturazioneRecord, stato: string) {
     setSavingId(record.id)

@@ -833,3 +833,13 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx` | OK | Servizi locali riavviati senza backup; app, scheduler, OCR e Redis healthy, Nginx attivo. |
 | `docker compose ps`; `Invoke-WebRequest http://127.0.0.1:8080/api/pronto`; `docker exec iusentra-app python -c "import pct; print(pct.__version__)"` | OK | Docker locale healthy; readiness `versione=2.217.2` e runtime container `2.217.2`. |
 | Browser Playwright headless autenticato/impersonato su `http://127.0.0.1:8080/notifiche`, desktop/tablet/mobile | OK | Pannello `Notifiche su questo dispositivo`, nota iPhone/iPad e pulsanti attiva/disattiva/test visibili; `ServiceWorker`, `PushManager` e `Notification` presenti; nessun overflow e nessun termine tecnico vietato visibile. |
+
+## Fascicolo Documenti e Cancelleria preview 2026-05-12
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile web\bootstrap\fascicoli_document_routes.py` | OK | Sintassi confermata dopo upload multiplo documenti e classificazione automatica/manuale. |
+| `npm --prefix frontend run build` | OK | TypeScript e build Vite completati; rigenerati asset React per `FascicoliPage`. |
+| `python -m pytest tests/test_react_shell.py -q -k "fascicoli_suite"` | OK | Suite mirata Fascicoli aggiornata: azioni documenti dentro Quadro intelligente AI, editor separato rimosso dalla UI, Comunicazioni / Cancelleria presenti. |
+| `docker compose build app`; `docker compose up -d --no-build app`; `GET http://127.0.0.1:8080/api/pronto` | OK | Immagine locale ricostruita senza backup; container `iusentra-app` healthy e readiness 200. |
+| Chrome headless autenticato su `http://127.0.0.1:8080/fascicoli/B6A03AE6`, desktop 1440x1100 e mobile 390x1000 | OK | Screenshot preview in `artifacts/react-migration/previews/*v3.png`; `Documenti e atti`, `Compilatore atti`, `Indice Lex`, `Elimina fascicolo` dentro Quadro intelligente AI; `Comunicazioni / Cancelleria` a due colonne; assenti `Catalogo portale`, `Depositi` e titolo separato editor; nessun overflow orizzontale e nessun errore console. |

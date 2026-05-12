@@ -100,6 +100,31 @@ def _payload_bool(value: Any, default: bool = False) -> bool:
     return str(value or "").strip().lower() in {"1", "true", "yes", "si", "s", "on"}
 
 
+def _classifica_tipo_documento(nome_file: str) -> TipoDocumento:
+    nome = str(nome_file or "").casefold()
+    rules: list[tuple[tuple[str, ...], TipoDocumento]] = [
+        (("procura", "mandato"), TipoDocumento.PROCURA),
+        (("ricorso",), TipoDocumento.RICORSO),
+        (("citazione",), TipoDocumento.CITAZIONE),
+        (("comparsa",), TipoDocumento.COMPARSA),
+        (("memoria", "note autorizzate", "conclusionale", "replica"), TipoDocumento.MEMORIA),
+        (("sentenza",), TipoDocumento.SENTENZA),
+        (("ordinanza",), TipoDocumento.ORDINANZA),
+        (("decreto",), TipoDocumento.DECRETO),
+        (("notifica", "relata"), TipoDocumento.NOTIFICA),
+        (("verbale", "udienza"), TipoDocumento.VERBALE),
+        (("parcella", "fattura", "proforma", "nota spese"), TipoDocumento.PARCELLA),
+        (("contratto", "accordo", "scrittura privata"), TipoDocumento.CONTRATTO),
+        (("deposito", "busta", "rdac", "rac", "esito"), TipoDocumento.DEPOSITO_PCT),
+        (("pec", "comunicazione", "cancelleria"), TipoDocumento.COMUNICAZIONE),
+        (("allegato", "doc", "documento", "immagine", "foto", "pdf"), TipoDocumento.ALLEGATO),
+    ]
+    for tokens, tipo in rules:
+        if any(token in nome for token in tokens):
+            return tipo
+    return TipoDocumento.ALTRO
+
+
 def _applica_modalita_portale(items: list[dict[str, Any]], *, scarica_originale: bool) -> list[dict[str, Any]]:
     modalita = "originale" if scarica_originale else "copia"
     patched: list[dict[str, Any]] = []
@@ -193,53 +218,81 @@ def register_fascicoli_document_routes(
     @app.route("/fascicoli/<id_fasc>/documenti/carica", methods=["POST"])
     def carica_documento(id_fasc):
         gestore_fascicoli = get_fascicoli()
-        if "file" not in request.files:
+        files = [
+            storage
+            for field_name in ("files", "file")
+            for storage in request.files.getlist(field_name)
+            if storage and storage.filename
+        ]
+        if not files:
             if _wants_json_response():
                 return jsonify({"ok": False, "messaggio": "Nessun file selezionato."}), 400
             flash("Nessun file selezionato.", "warning")
             return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
-        file = request.files["file"]
-        if not file.filename:
-            if _wants_json_response():
-                return jsonify({"ok": False, "messaggio": "Nome file non valido."}), 400
-            flash("Nome file non valido.", "warning")
-            return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
         form = request.form
         utente = g.utente_corrente
+        modalita_raw = str(form.get("classificazione_modalita") or form.get("classificazione") or "").strip().lower()
+        manuale = modalita_raw == "manuale" or (not modalita_raw and bool(form.get("tipo_doc")))
+        documenti_creati = []
         try:
-            raw = file.read()
-            tipo_doc = TipoDocumento(form.get("tipo_doc", "ALTRO"))
-            documento = salva_documento_fascicolo(
-                gf=gestore_fascicoli,
-                id_fasc=id_fasc,
-                nome_file=file.filename,
-                raw=raw,
-                tipo_doc=tipo_doc,
-                note=form.get("note", ""),
-                tags=normalize_document_tags(form.get("tags", "")),
-                data_documento=form.get("data_documento", ""),
-                firmato=form.get("firmato") == "1",
-                caricato_da=utente.username if utente else "",
-                fonte_documento="CARICAMENTO_STUDIO",
-                nome_originale=file.filename,
-            )
-            msg = f"Documento '{file.filename}' caricato."
+            for index, storage in enumerate(files):
+                raw = storage.read()
+                if not raw:
+                    continue
+                tipo_value = (
+                    form.get(f"tipo_doc_{index}")
+                    or form.get(f"tipo_doc_{storage.filename}")
+                    or form.get("tipo_doc")
+                    or ""
+                )
+                if manuale and tipo_value:
+                    try:
+                        tipo_doc = TipoDocumento(tipo_value)
+                    except ValueError as exc:
+                        raise ValueError("Tipo documento non valido.") from exc
+                else:
+                    tipo_doc = _classifica_tipo_documento(storage.filename)
+                documento = salva_documento_fascicolo(
+                    gf=gestore_fascicoli,
+                    id_fasc=id_fasc,
+                    nome_file=storage.filename,
+                    raw=raw,
+                    tipo_doc=tipo_doc,
+                    note=form.get("note", ""),
+                    tags=normalize_document_tags(form.get("tags", "")),
+                    data_documento=form.get("data_documento", ""),
+                    firmato=form.get("firmato") == "1",
+                    caricato_da=utente.username if utente else "",
+                    fonte_documento="CARICAMENTO_STUDIO",
+                    nome_originale=storage.filename,
+                )
+                documenti_creati.append(documento)
+                _indicizza_documento_lex(
+                    id_fasc=id_fasc,
+                    document_id=getattr(documento, "id", "") or storage.filename,
+                    filename=storage.filename,
+                    content=raw,
+                    source_type="documenti_fascicolo",
+                    metadata={
+                        "trigger": "upload_documenti_fascicolo",
+                        "classificazione_modalita": "manuale" if manuale else "auto",
+                        "tipo_documento": tipo_doc.value,
+                    },
+                )
+            if not documenti_creati:
+                raise ValueError("I file selezionati sono vuoti o non leggibili.")
+            count = len(documenti_creati)
+            msg = f"Caricato {count} documento." if count == 1 else f"Caricati {count} documenti."
             flash(msg, "success")
-            audit("fascicoli.documento.carica", "fascicolo", id_fasc, dettagli=f"file: {file.filename}")
-            _indicizza_documento_lex(
-                id_fasc=id_fasc,
-                document_id=getattr(documento, "id", "") or file.filename,
-                filename=file.filename,
-                content=raw,
-                source_type="documenti_fascicolo",
-                metadata={"trigger": "upload_documenti_fascicolo"},
-            )
+            audit("fascicoli.documento.carica", "fascicolo", id_fasc, dettagli=f"{count} file")
             if _wants_json_response():
                 return jsonify(
                     {
                         "ok": True,
                         "messaggio": msg,
-                        "documento_id": getattr(documento, "id", ""),
+                        "message": msg,
+                        "documento_id": getattr(documenti_creati[0], "id", ""),
+                        "documenti_id": [getattr(doc, "id", "") for doc in documenti_creati],
                         "redirect_url": url_for("dettaglio_fascicolo", id_fasc=id_fasc) + "#documenti",
                     }
                 )

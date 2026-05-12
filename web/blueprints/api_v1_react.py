@@ -4370,6 +4370,7 @@ def incassi_pagamenti_page():
                 get_pagamenti=get_pagamenti,
                 get_clienti=get_clienti,
                 current_user=utente,
+                query=dict(request.args),
             )
         )
     except Exception as exc:

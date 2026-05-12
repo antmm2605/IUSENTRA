@@ -371,6 +371,16 @@ function list(value: unknown): unknown[] {
   return Array.isArray(value) ? value : []
 }
 
+function currentSearch(): string {
+  if (typeof window === 'undefined') return ''
+  return window.location.search || ''
+}
+
+function withCurrentSearch(path: string): string {
+  const search = currentSearch()
+  return search ? `${path}${search}` : path
+}
+
 function text(value: unknown, fallback = ''): string {
   return typeof value === 'string' ? value.trim() : fallback
 }
@@ -751,12 +761,12 @@ export async function getPreventiviPage(): Promise<PreventiviPageData> {
 }
 
 export async function getNuovoPreventivoPage(): Promise<NuovoPreventivoPageData> {
-  const payload = await apiJson<unknown>('/api/v1/ui/preventivi/nuovo', emptyPreventiviPage)
+  const payload = await apiJson<unknown>(withCurrentSearch('/api/v1/ui/preventivi/nuovo'), emptyPreventiviPage)
   return normalisePage(payload)
 }
 
 export async function getNuovoConferimentoPage(): Promise<NuovoConferimentoPageData> {
-  const payload = await apiJson<unknown>('/api/v1/ui/preventivi/conferimento/nuovo', emptyPreventiviPage)
+  const payload = await apiJson<unknown>(withCurrentSearch('/api/v1/ui/preventivi/conferimento/nuovo'), emptyPreventiviPage)
   return normalisePage(payload)
 }
 

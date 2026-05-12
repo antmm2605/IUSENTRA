@@ -23,6 +23,11 @@ function displayValue(value: string | number): string {
   return value
 }
 
+function selectedInvoiceFromLocation(): string {
+  const params = new URLSearchParams(window.location.search)
+  return params.get('id_parcella') || ''
+}
+
 function WarningPanel({ data }: { data: IncassiPagamentiPageData }) {
   if (!data.warnings.length) return null
   return (
@@ -45,6 +50,7 @@ function PaymentRow({
   onMarkPaid,
   onMarkFailed,
   onPaymentLink,
+  onRegisterReceipt,
 }: {
   record: IncassoPagamentoRecord
   canUpdateStatus: boolean
@@ -52,6 +58,7 @@ function PaymentRow({
   onMarkPaid: (record: IncassoPagamentoRecord) => void
   onMarkFailed: (record: IncassoPagamentoRecord) => void
   onPaymentLink: (record: IncassoPagamentoRecord) => void
+  onRegisterReceipt: (record: IncassoPagamentoRecord) => void
 }) {
   return (
     <article className="iu-pay-record">
@@ -70,19 +77,25 @@ function PaymentRow({
         <Badge tone={record.stateTone}>{record.stateLabel}</Badge>
       </div>
       <div className="iu-pay-record__actions">
-        {canUpdateStatus && record.state !== 'PAGATO' ? (
+        {canUpdateStatus && record.id && record.state !== 'PAGATO' ? (
           <Button type="button" tone="success" onClick={() => onMarkPaid(record)}>
             <ReceiptText size={15} />
             Segna pagato
           </Button>
         ) : null}
-        {canUpdateStatus && record.state === 'ATTESO' ? (
+        {canUpdateStatus && !record.id && record.invoiceId && record.state !== 'PAGATO' ? (
+          <Button type="button" tone="success" onClick={() => onRegisterReceipt(record)}>
+            <ReceiptText size={15} />
+            Registra incasso
+          </Button>
+        ) : null}
+        {canUpdateStatus && record.id && record.state === 'ATTESO' ? (
           <Button type="button" tone="warning" onClick={() => onMarkFailed(record)}>
             <RefreshCw size={15} />
             Fallito
           </Button>
         ) : null}
-        {canGeneratePaymentLink && record.invoiceId ? (
+        {canGeneratePaymentLink && record.id && record.invoiceId ? (
           <Button type="button" tone="neutral" onClick={() => onPaymentLink(record)}>
             <Link2 size={15} />
             Link pagamento
@@ -114,13 +127,16 @@ export function IncassiPagamentiPage() {
   const [invoiceId, setInvoiceId] = useState('')
   const [method, setMethod] = useState('manuale')
   const [paidAt, setPaidAt] = useState(new Date().toISOString().slice(0, 10))
+  const requestedInvoiceId = selectedInvoiceFromLocation()
 
   function load() {
     setLoading(true)
     getIncassiPagamentiPage()
       .then((payload) => {
         setData(payload)
-        if (!invoiceId && payload.records[0]?.invoiceId) setInvoiceId(payload.records[0].invoiceId)
+        const requested = requestedInvoiceId && payload.records.some((record) => record.invoiceId === requestedInvoiceId) ? requestedInvoiceId : ''
+        if (requested) setInvoiceId(requested)
+        else if (!invoiceId && payload.records[0]?.invoiceId) setInvoiceId(payload.records[0].invoiceId)
       })
       .finally(() => setLoading(false))
   }
@@ -131,7 +147,9 @@ export function IncassiPagamentiPage() {
       .then((payload) => {
         if (active) {
           setData(payload)
-          if (!invoiceId && payload.records[0]?.invoiceId) setInvoiceId(payload.records[0].invoiceId)
+          const requested = requestedInvoiceId && payload.records.some((record) => record.invoiceId === requestedInvoiceId) ? requestedInvoiceId : ''
+          if (requested) setInvoiceId(requested)
+          else if (!invoiceId && payload.records[0]?.invoiceId) setInvoiceId(payload.records[0].invoiceId)
         }
       })
       .finally(() => {
@@ -140,7 +158,7 @@ export function IncassiPagamentiPage() {
     return () => {
       active = false
     }
-  }, [])
+  }, [requestedInvoiceId])
 
   async function submitManualReceipt() {
     setSaving(true)
@@ -186,6 +204,12 @@ export function IncassiPagamentiPage() {
     }
     setSuccess(response.message)
     load()
+  }
+
+  function selectManualReceipt(record: IncassoPagamentoRecord) {
+    setInvoiceId(record.invoiceId)
+    setSuccess('Parcella selezionata per la registrazione incasso.')
+    window.requestAnimationFrame(() => document.getElementById('registra-incasso')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
   }
 
   const hasData = data.metrics.length > 0 || data.records.length > 0 || data.sections.some((section) => section.items.length > 0)
@@ -252,7 +276,7 @@ export function IncassiPagamentiPage() {
           </section>
           <Panel title="Registra incasso manuale" subtitle="Salvataggio con permessi della sessione.">
             {data.actions.canRegisterPayment ? (
-              <div className="iu-pay-form">
+              <div className="iu-pay-form" id="registra-incasso">
                 <label>
                   <span>Parcella</span>
                   <select value={invoiceId} onChange={(event) => setInvoiceId(event.target.value)}>
@@ -292,6 +316,7 @@ export function IncassiPagamentiPage() {
                     onMarkPaid={(item) => mark(item, 'PAGATO')}
                     onMarkFailed={(item) => mark(item, 'FALLITO')}
                     onPaymentLink={paymentLink}
+                    onRegisterReceipt={selectManualReceipt}
                     key={record.id || record.invoiceId}
                   />
                 ))}

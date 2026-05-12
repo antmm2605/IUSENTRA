@@ -1,0 +1,3394 @@
+{
+  "stats": {
+    "detected_total": 1320,
+    "source_records_total": 4576,
+    "expected_total": 1320,
+    "delta": 0,
+    "matches_expected": true,
+    "duplicate_source_records": 3256,
+    "breakdown_by_source": {
+      "builtin_workspace": 708,
+      "compiler": 192,
+      "master": 420
+    },
+    "breakdown_by_source_records": {
+      "builtin_workspace": 708,
+      "compiler": 192,
+      "master": 420,
+      "repository_json:d-legale-iusentra-data-template-atti-template-re": 708,
+      "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4": 709,
+      "split_advanced": 186,
+      "split_core": 122,
+      "split_specialist": 92,
+      "split_studio_interno": 20,
+      "sqlite:d-legale-iusentra-data-template-atti-template-re": 708,
+      "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4": 709,
+      "tenant_template_json:d-legale-iusentra-data-tenants-antonella-mammola": 1,
+      "tenant_template_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4": 1
+    },
+    "breakdown_by_type": {
+      "compiler": 192,
+      "master": 420,
+      "repository": 708
+    },
+    "breakdown_by_status": {
+      "cartabia_ready": 1320
+    },
+    "missing_cartabia_profile": 0,
+    "missing_prefill_bindings": 0,
+    "missing_deposit_rules": 0,
+    "missing_timbro_support": 0,
+    "missing_compiler_binding": 0,
+    "missing_renderer": 0,
+    "blocking_templates": 0,
+    "duplicate_conflict_templates": 0,
+    "reconciled_duplicate_templates": 1156,
+    "duplicates": 710,
+    "duplicate_records": 4542,
+    "custom_source_records": 2,
+    "orphans": 0,
+    "not_reachable_from_ui": 0,
+    "cartabia_ready": 1320,
+    "cartabia_review_required": 0,
+    "needs_review": 0,
+    "prefill_complete_metadata": 1320,
+    "with_timbro_automatico": 1320,
+    "generated_at": "2026-05-12T23:35:34.979207+00:00"
+  },
+  "sources": [
+    {
+      "source": "master",
+      "source_label": "Catalogo master JSON",
+      "tipo_template": "master",
+      "loader": "master_catalog",
+      "path": "",
+      "tenant_scope": "global",
+      "required": true
+    },
+    {
+      "source": "split_core",
+      "source_label": "Split JSON core",
+      "tipo_template": "master",
+      "loader": "split_catalog",
+      "path": "core",
+      "tenant_scope": "global",
+      "required": true
+    },
+    {
+      "source": "split_advanced",
+      "source_label": "Split JSON advanced",
+      "tipo_template": "master",
+      "loader": "split_catalog",
+      "path": "advanced",
+      "tenant_scope": "global",
+      "required": true
+    },
+    {
+      "source": "split_specialist",
+      "source_label": "Split JSON specialist",
+      "tipo_template": "master",
+      "loader": "split_catalog",
+      "path": "specialist",
+      "tenant_scope": "global",
+      "required": true
+    },
+    {
+      "source": "split_studio_interno",
+      "source_label": "Split JSON studio interno",
+      "tipo_template": "studio_interno",
+      "loader": "split_catalog",
+      "path": "studio_interno",
+      "tenant_scope": "global",
+      "required": true
+    },
+    {
+      "source": "compiler",
+      "source_label": "Template compilatore",
+      "tipo_template": "compiler",
+      "loader": "compiler_models",
+      "path": "",
+      "tenant_scope": "global",
+      "required": true
+    },
+    {
+      "source": "builtin_workspace",
+      "source_label": "Template integrati redazione atti",
+      "tipo_template": "repository",
+      "loader": "builtin_templates",
+      "path": "",
+      "tenant_scope": "global",
+      "required": true
+    },
+    {
+      "source": "tenant_template_json:d-legale-iusentra-data-template-atti-templates-j",
+      "source_label": "Template tenant JSON (global)",
+      "tipo_template": "studio_interno",
+      "loader": "template_json",
+      "path": "D:\\legale\\IUSENTRA\\data\\template_atti\\templates.json",
+      "tenant_scope": "global",
+      "required": false
+    },
+    {
+      "source": "tenant_template_json:d-legale-iusentra-data-tenants-antonella-mammola",
+      "source_label": "Template tenant JSON (antonella-mammola)",
+      "tipo_template": "custom",
+      "loader": "template_json",
+      "path": "D:\\legale\\IUSENTRA\\data\\tenants\\antonella-mammola\\template_atti\\templates.json",
+      "tenant_scope": "antonella-mammola",
+      "required": false
+    },
+    {
+      "source": "tenant_template_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+      "source_label": "Template tenant JSON (tenant-8bf98719c459)",
+      "tipo_template": "custom",
+      "loader": "template_json",
+      "path": "D:\\legale\\IUSENTRA\\data\\tenants\\tenant-8bf98719c459\\template_atti\\templates.json",
+      "tenant_scope": "tenant-8bf98719c459",
+      "required": false
+    },
+    {
+      "source": "sqlite:d-legale-iusentra-data-template-atti-template-re",
+      "source_label": "Template SQLite (global)",
+      "tipo_template": "repository",
+      "loader": "sqlite",
+      "path": "D:\\legale\\IUSENTRA\\data\\template_atti\\template_repository.db",
+      "tenant_scope": "global",
+      "required": false
+    },
+    {
+      "source": "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+      "source_label": "Template SQLite (tenant-8bf98719c459)",
+      "tipo_template": "repository",
+      "loader": "sqlite",
+      "path": "D:\\legale\\IUSENTRA\\data\\tenants\\tenant-8bf98719c459\\template_atti\\template_repository.db",
+      "tenant_scope": "tenant-8bf98719c459",
+      "required": false
+    },
+    {
+      "source": "repository_json:d-legale-iusentra-data-template-atti-template-re",
+      "source_label": "Template repository JSON (global)",
+      "tipo_template": "repository",
+      "loader": "template_json",
+      "path": "D:\\legale\\IUSENTRA\\data\\template_atti\\template_repository.json",
+      "tenant_scope": "global",
+      "required": false
+    },
+    {
+      "source": "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+      "source_label": "Template repository JSON (tenant-8bf98719c459)",
+      "tipo_template": "repository",
+      "loader": "template_json",
+      "path": "D:\\legale\\IUSENTRA\\data\\tenants\\tenant-8bf98719c459\\template_atti\\template_repository.json",
+      "tenant_scope": "tenant-8bf98719c459",
+      "required": false
+    }
+  ],
+  "duplicates": [
+    {
+      "identity": "ADR_001|invito-alla-mediazione|invito alla mediazione",
+      "count": 7,
+      "sources": [
+        "builtin_workspace",
+        "master",
+        "repository_json:d-legale-iusentra-data-template-atti-template-re",
+        "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+        "split_specialist",
+        "sqlite:d-legale-iusentra-data-template-atti-template-re",
+        "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4"
+      ],
+      "records": [
+        {
+          "codice": "ADR_001",
+          "titolo": "Invito alla mediazione",
+          "source": "Catalogo master JSON",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_001",
+          "titolo": "Invito alla mediazione",
+          "source": "Split JSON specialist",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_001",
+          "titolo": "Invito alla mediazione",
+          "source": "Template integrati redazione atti",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_001",
+          "titolo": "Invito alla mediazione",
+          "source": "Template SQLite (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_001",
+          "titolo": "Invito alla mediazione",
+          "source": "Template SQLite (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_001",
+          "titolo": "Invito alla mediazione",
+          "source": "Template repository JSON (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_001",
+          "titolo": "Invito alla mediazione",
+          "source": "Template repository JSON (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        }
+      ]
+    },
+    {
+      "identity": "ADR_002|istanza-di-mediazione|istanza di mediazione",
+      "count": 7,
+      "sources": [
+        "builtin_workspace",
+        "master",
+        "repository_json:d-legale-iusentra-data-template-atti-template-re",
+        "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+        "split_specialist",
+        "sqlite:d-legale-iusentra-data-template-atti-template-re",
+        "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4"
+      ],
+      "records": [
+        {
+          "codice": "ADR_002",
+          "titolo": "Istanza di mediazione",
+          "source": "Catalogo master JSON",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_002",
+          "titolo": "Istanza di mediazione",
+          "source": "Split JSON specialist",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_002",
+          "titolo": "Istanza di mediazione",
+          "source": "Template integrati redazione atti",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_002",
+          "titolo": "Istanza di mediazione",
+          "source": "Template SQLite (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_002",
+          "titolo": "Istanza di mediazione",
+          "source": "Template SQLite (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_002",
+          "titolo": "Istanza di mediazione",
+          "source": "Template repository JSON (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_002",
+          "titolo": "Istanza di mediazione",
+          "source": "Template repository JSON (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        }
+      ]
+    },
+    {
+      "identity": "ADR_003|adesione-alla-mediazione|adesione alla mediazione",
+      "count": 7,
+      "sources": [
+        "builtin_workspace",
+        "master",
+        "repository_json:d-legale-iusentra-data-template-atti-template-re",
+        "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+        "split_specialist",
+        "sqlite:d-legale-iusentra-data-template-atti-template-re",
+        "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4"
+      ],
+      "records": [
+        {
+          "codice": "ADR_003",
+          "titolo": "Adesione alla mediazione",
+          "source": "Catalogo master JSON",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_003",
+          "titolo": "Adesione alla mediazione",
+          "source": "Split JSON specialist",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_003",
+          "titolo": "Adesione alla mediazione",
+          "source": "Template integrati redazione atti",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_003",
+          "titolo": "Adesione alla mediazione",
+          "source": "Template SQLite (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_003",
+          "titolo": "Adesione alla mediazione",
+          "source": "Template SQLite (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_003",
+          "titolo": "Adesione alla mediazione",
+          "source": "Template repository JSON (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_003",
+          "titolo": "Adesione alla mediazione",
+          "source": "Template repository JSON (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        }
+      ]
+    },
+    {
+      "identity": "ADR_004|verbale-di-accordo|verbale di accordo",
+      "count": 7,
+      "sources": [
+        "builtin_workspace",
+        "master",
+        "repository_json:d-legale-iusentra-data-template-atti-template-re",
+        "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+        "split_specialist",
+        "sqlite:d-legale-iusentra-data-template-atti-template-re",
+        "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4"
+      ],
+      "records": [
+        {
+          "codice": "ADR_004",
+          "titolo": "Verbale di accordo",
+          "source": "Catalogo master JSON",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_004",
+          "titolo": "Verbale di accordo",
+          "source": "Split JSON specialist",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_004",
+          "titolo": "Verbale di accordo",
+          "source": "Template integrati redazione atti",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_004",
+          "titolo": "Verbale di accordo",
+          "source": "Template SQLite (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_004",
+          "titolo": "Verbale di accordo",
+          "source": "Template SQLite (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_004",
+          "titolo": "Verbale di accordo",
+          "source": "Template repository JSON (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_004",
+          "titolo": "Verbale di accordo",
+          "source": "Template repository JSON (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        }
+      ]
+    },
+    {
+      "identity": "ADR_005|verbale-di-mancato-accordo|verbale di mancato accordo",
+      "count": 7,
+      "sources": [
+        "builtin_workspace",
+        "master",
+        "repository_json:d-legale-iusentra-data-template-atti-template-re",
+        "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+        "split_specialist",
+        "sqlite:d-legale-iusentra-data-template-atti-template-re",
+        "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4"
+      ],
+      "records": [
+        {
+          "codice": "ADR_005",
+          "titolo": "Verbale di mancato accordo",
+          "source": "Catalogo master JSON",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_005",
+          "titolo": "Verbale di mancato accordo",
+          "source": "Split JSON specialist",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_005",
+          "titolo": "Verbale di mancato accordo",
+          "source": "Template integrati redazione atti",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_005",
+          "titolo": "Verbale di mancato accordo",
+          "source": "Template SQLite (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_005",
+          "titolo": "Verbale di mancato accordo",
+          "source": "Template SQLite (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_005",
+          "titolo": "Verbale di mancato accordo",
+          "source": "Template repository JSON (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_005",
+          "titolo": "Verbale di mancato accordo",
+          "source": "Template repository JSON (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        }
+      ]
+    },
+    {
+      "identity": "ADR_006|invito-a-negoziazione-assistita|invito a negoziazione assistita",
+      "count": 7,
+      "sources": [
+        "builtin_workspace",
+        "master",
+        "repository_json:d-legale-iusentra-data-template-atti-template-re",
+        "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+        "split_specialist",
+        "sqlite:d-legale-iusentra-data-template-atti-template-re",
+        "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4"
+      ],
+      "records": [
+        {
+          "codice": "ADR_006",
+          "titolo": "Invito a negoziazione assistita",
+          "source": "Catalogo master JSON",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_006",
+          "titolo": "Invito a negoziazione assistita",
+          "source": "Split JSON specialist",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_006",
+          "titolo": "Invito a negoziazione assistita",
+          "source": "Template integrati redazione atti",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_006",
+          "titolo": "Invito a negoziazione assistita",
+          "source": "Template SQLite (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_006",
+          "titolo": "Invito a negoziazione assistita",
+          "source": "Template SQLite (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_006",
+          "titolo": "Invito a negoziazione assistita",
+          "source": "Template repository JSON (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_006",
+          "titolo": "Invito a negoziazione assistita",
+          "source": "Template repository JSON (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        }
+      ]
+    },
+    {
+      "identity": "ADR_007|accordo-di-negoziazione-assistita|accordo di negoziazione assistita",
+      "count": 7,
+      "sources": [
+        "builtin_workspace",
+        "master",
+        "repository_json:d-legale-iusentra-data-template-atti-template-re",
+        "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+        "split_specialist",
+        "sqlite:d-legale-iusentra-data-template-atti-template-re",
+        "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4"
+      ],
+      "records": [
+        {
+          "codice": "ADR_007",
+          "titolo": "Accordo di negoziazione assistita",
+          "source": "Catalogo master JSON",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_007",
+          "titolo": "Accordo di negoziazione assistita",
+          "source": "Split JSON specialist",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_007",
+          "titolo": "Accordo di negoziazione assistita",
+          "source": "Template integrati redazione atti",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_007",
+          "titolo": "Accordo di negoziazione assistita",
+          "source": "Template SQLite (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_007",
+          "titolo": "Accordo di negoziazione assistita",
+          "source": "Template SQLite (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_007",
+          "titolo": "Accordo di negoziazione assistita",
+          "source": "Template repository JSON (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_007",
+          "titolo": "Accordo di negoziazione assistita",
+          "source": "Template repository JSON (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        }
+      ]
+    },
+    {
+      "identity": "ADR_008|diniego-a-negoziazione|diniego a negoziazione",
+      "count": 7,
+      "sources": [
+        "builtin_workspace",
+        "master",
+        "repository_json:d-legale-iusentra-data-template-atti-template-re",
+        "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+        "split_specialist",
+        "sqlite:d-legale-iusentra-data-template-atti-template-re",
+        "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4"
+      ],
+      "records": [
+        {
+          "codice": "ADR_008",
+          "titolo": "Diniego a negoziazione",
+          "source": "Catalogo master JSON",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_008",
+          "titolo": "Diniego a negoziazione",
+          "source": "Split JSON specialist",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_008",
+          "titolo": "Diniego a negoziazione",
+          "source": "Template integrati redazione atti",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_008",
+          "titolo": "Diniego a negoziazione",
+          "source": "Template SQLite (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_008",
+          "titolo": "Diniego a negoziazione",
+          "source": "Template SQLite (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_008",
+          "titolo": "Diniego a negoziazione",
+          "source": "Template repository JSON (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_008",
+          "titolo": "Diniego a negoziazione",
+          "source": "Template repository JSON (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        }
+      ]
+    },
+    {
+      "identity": "ADR_009|clausola-compromissoria-standard|clausola compromissoria standard",
+      "count": 7,
+      "sources": [
+        "builtin_workspace",
+        "master",
+        "repository_json:d-legale-iusentra-data-template-atti-template-re",
+        "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+        "split_specialist",
+        "sqlite:d-legale-iusentra-data-template-atti-template-re",
+        "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4"
+      ],
+      "records": [
+        {
+          "codice": "ADR_009",
+          "titolo": "Clausola compromissoria standard",
+          "source": "Catalogo master JSON",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_009",
+          "titolo": "Clausola compromissoria standard",
+          "source": "Split JSON specialist",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_009",
+          "titolo": "Clausola compromissoria standard",
+          "source": "Template integrati redazione atti",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_009",
+          "titolo": "Clausola compromissoria standard",
+          "source": "Template SQLite (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_009",
+          "titolo": "Clausola compromissoria standard",
+          "source": "Template SQLite (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_009",
+          "titolo": "Clausola compromissoria standard",
+          "source": "Template repository JSON (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_009",
+          "titolo": "Clausola compromissoria standard",
+          "source": "Template repository JSON (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        }
+      ]
+    },
+    {
+      "identity": "ADR_010|domanda-di-arbitrato|domanda di arbitrato",
+      "count": 7,
+      "sources": [
+        "builtin_workspace",
+        "master",
+        "repository_json:d-legale-iusentra-data-template-atti-template-re",
+        "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+        "split_specialist",
+        "sqlite:d-legale-iusentra-data-template-atti-template-re",
+        "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4"
+      ],
+      "records": [
+        {
+          "codice": "ADR_010",
+          "titolo": "Domanda di arbitrato",
+          "source": "Catalogo master JSON",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_010",
+          "titolo": "Domanda di arbitrato",
+          "source": "Split JSON specialist",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_010",
+          "titolo": "Domanda di arbitrato",
+          "source": "Template integrati redazione atti",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_010",
+          "titolo": "Domanda di arbitrato",
+          "source": "Template SQLite (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_010",
+          "titolo": "Domanda di arbitrato",
+          "source": "Template SQLite (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_010",
+          "titolo": "Domanda di arbitrato",
+          "source": "Template repository JSON (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_010",
+          "titolo": "Domanda di arbitrato",
+          "source": "Template repository JSON (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        }
+      ]
+    },
+    {
+      "identity": "ADR_011|nomina-arbitro|nomina arbitro",
+      "count": 7,
+      "sources": [
+        "builtin_workspace",
+        "master",
+        "repository_json:d-legale-iusentra-data-template-atti-template-re",
+        "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+        "split_specialist",
+        "sqlite:d-legale-iusentra-data-template-atti-template-re",
+        "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4"
+      ],
+      "records": [
+        {
+          "codice": "ADR_011",
+          "titolo": "Nomina arbitro",
+          "source": "Catalogo master JSON",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_011",
+          "titolo": "Nomina arbitro",
+          "source": "Split JSON specialist",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_011",
+          "titolo": "Nomina arbitro",
+          "source": "Template integrati redazione atti",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_011",
+          "titolo": "Nomina arbitro",
+          "source": "Template SQLite (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_011",
+          "titolo": "Nomina arbitro",
+          "source": "Template SQLite (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_011",
+          "titolo": "Nomina arbitro",
+          "source": "Template repository JSON (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_011",
+          "titolo": "Nomina arbitro",
+          "source": "Template repository JSON (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        }
+      ]
+    },
+    {
+      "identity": "ADR_012|comparsa-nel-procedimento-arbitrale|comparsa nel procedimento arbitrale",
+      "count": 7,
+      "sources": [
+        "builtin_workspace",
+        "master",
+        "repository_json:d-legale-iusentra-data-template-atti-template-re",
+        "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+        "split_specialist",
+        "sqlite:d-legale-iusentra-data-template-atti-template-re",
+        "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4"
+      ],
+      "records": [
+        {
+          "codice": "ADR_012",
+          "titolo": "Comparsa nel procedimento arbitrale",
+          "source": "Catalogo master JSON",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_012",
+          "titolo": "Comparsa nel procedimento arbitrale",
+          "source": "Split JSON specialist",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_012",
+          "titolo": "Comparsa nel procedimento arbitrale",
+          "source": "Template integrati redazione atti",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_012",
+          "titolo": "Comparsa nel procedimento arbitrale",
+          "source": "Template SQLite (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_012",
+          "titolo": "Comparsa nel procedimento arbitrale",
+          "source": "Template SQLite (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_012",
+          "titolo": "Comparsa nel procedimento arbitrale",
+          "source": "Template repository JSON (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_012",
+          "titolo": "Comparsa nel procedimento arbitrale",
+          "source": "Template repository JSON (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        }
+      ]
+    },
+    {
+      "identity": "ADR_013|memoria-arbitrale|memoria arbitrale",
+      "count": 7,
+      "sources": [
+        "builtin_workspace",
+        "master",
+        "repository_json:d-legale-iusentra-data-template-atti-template-re",
+        "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+        "split_specialist",
+        "sqlite:d-legale-iusentra-data-template-atti-template-re",
+        "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4"
+      ],
+      "records": [
+        {
+          "codice": "ADR_013",
+          "titolo": "Memoria arbitrale",
+          "source": "Catalogo master JSON",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_013",
+          "titolo": "Memoria arbitrale",
+          "source": "Split JSON specialist",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_013",
+          "titolo": "Memoria arbitrale",
+          "source": "Template integrati redazione atti",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_013",
+          "titolo": "Memoria arbitrale",
+          "source": "Template SQLite (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_013",
+          "titolo": "Memoria arbitrale",
+          "source": "Template SQLite (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_013",
+          "titolo": "Memoria arbitrale",
+          "source": "Template repository JSON (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_013",
+          "titolo": "Memoria arbitrale",
+          "source": "Template repository JSON (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        }
+      ]
+    },
+    {
+      "identity": "ADR_014|accordo-transattivo-finale|accordo transattivo finale",
+      "count": 7,
+      "sources": [
+        "builtin_workspace",
+        "master",
+        "repository_json:d-legale-iusentra-data-template-atti-template-re",
+        "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+        "split_specialist",
+        "sqlite:d-legale-iusentra-data-template-atti-template-re",
+        "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4"
+      ],
+      "records": [
+        {
+          "codice": "ADR_014",
+          "titolo": "Accordo transattivo finale",
+          "source": "Catalogo master JSON",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_014",
+          "titolo": "Accordo transattivo finale",
+          "source": "Split JSON specialist",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_014",
+          "titolo": "Accordo transattivo finale",
+          "source": "Template integrati redazione atti",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_014",
+          "titolo": "Accordo transattivo finale",
+          "source": "Template SQLite (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_014",
+          "titolo": "Accordo transattivo finale",
+          "source": "Template SQLite (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_014",
+          "titolo": "Accordo transattivo finale",
+          "source": "Template repository JSON (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "ADR_014",
+          "titolo": "Accordo transattivo finale",
+          "source": "Template repository JSON (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        }
+      ]
+    },
+    {
+      "identity": "AMM_001|ricorso-al-tar|ricorso al tar",
+      "count": 7,
+      "sources": [
+        "builtin_workspace",
+        "master",
+        "repository_json:d-legale-iusentra-data-template-atti-template-re",
+        "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+        "split_specialist",
+        "sqlite:d-legale-iusentra-data-template-atti-template-re",
+        "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4"
+      ],
+      "records": [
+        {
+          "codice": "AMM_001",
+          "titolo": "Ricorso al TAR",
+          "source": "Catalogo master JSON",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_001",
+          "titolo": "Ricorso al TAR",
+          "source": "Split JSON specialist",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_001",
+          "titolo": "Ricorso al TAR",
+          "source": "Template integrati redazione atti",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_001",
+          "titolo": "Ricorso al TAR",
+          "source": "Template SQLite (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_001",
+          "titolo": "Ricorso al TAR",
+          "source": "Template SQLite (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_001",
+          "titolo": "Ricorso al TAR",
+          "source": "Template repository JSON (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_001",
+          "titolo": "Ricorso al TAR",
+          "source": "Template repository JSON (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        }
+      ]
+    },
+    {
+      "identity": "AMM_002|motivi-aggiunti|motivi aggiunti",
+      "count": 7,
+      "sources": [
+        "builtin_workspace",
+        "master",
+        "repository_json:d-legale-iusentra-data-template-atti-template-re",
+        "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+        "split_specialist",
+        "sqlite:d-legale-iusentra-data-template-atti-template-re",
+        "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4"
+      ],
+      "records": [
+        {
+          "codice": "AMM_002",
+          "titolo": "Motivi aggiunti",
+          "source": "Catalogo master JSON",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_002",
+          "titolo": "Motivi aggiunti",
+          "source": "Split JSON specialist",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_002",
+          "titolo": "Motivi aggiunti",
+          "source": "Template integrati redazione atti",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_002",
+          "titolo": "Motivi aggiunti",
+          "source": "Template SQLite (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_002",
+          "titolo": "Motivi aggiunti",
+          "source": "Template SQLite (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_002",
+          "titolo": "Motivi aggiunti",
+          "source": "Template repository JSON (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_002",
+          "titolo": "Motivi aggiunti",
+          "source": "Template repository JSON (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        }
+      ]
+    },
+    {
+      "identity": "AMM_003|ricorso-incidentale|ricorso incidentale",
+      "count": 7,
+      "sources": [
+        "builtin_workspace",
+        "master",
+        "repository_json:d-legale-iusentra-data-template-atti-template-re",
+        "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+        "split_specialist",
+        "sqlite:d-legale-iusentra-data-template-atti-template-re",
+        "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4"
+      ],
+      "records": [
+        {
+          "codice": "AMM_003",
+          "titolo": "Ricorso incidentale",
+          "source": "Catalogo master JSON",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_003",
+          "titolo": "Ricorso incidentale",
+          "source": "Split JSON specialist",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_003",
+          "titolo": "Ricorso incidentale",
+          "source": "Template integrati redazione atti",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_003",
+          "titolo": "Ricorso incidentale",
+          "source": "Template SQLite (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_003",
+          "titolo": "Ricorso incidentale",
+          "source": "Template SQLite (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_003",
+          "titolo": "Ricorso incidentale",
+          "source": "Template repository JSON (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_003",
+          "titolo": "Ricorso incidentale",
+          "source": "Template repository JSON (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        }
+      ]
+    },
+    {
+      "identity": "AMM_004|domanda-cautelare|domanda cautelare",
+      "count": 7,
+      "sources": [
+        "builtin_workspace",
+        "master",
+        "repository_json:d-legale-iusentra-data-template-atti-template-re",
+        "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+        "split_specialist",
+        "sqlite:d-legale-iusentra-data-template-atti-template-re",
+        "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4"
+      ],
+      "records": [
+        {
+          "codice": "AMM_004",
+          "titolo": "Domanda cautelare",
+          "source": "Catalogo master JSON",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_004",
+          "titolo": "Domanda cautelare",
+          "source": "Split JSON specialist",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_004",
+          "titolo": "Domanda cautelare",
+          "source": "Template integrati redazione atti",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_004",
+          "titolo": "Domanda cautelare",
+          "source": "Template SQLite (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_004",
+          "titolo": "Domanda cautelare",
+          "source": "Template SQLite (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_004",
+          "titolo": "Domanda cautelare",
+          "source": "Template repository JSON (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_004",
+          "titolo": "Domanda cautelare",
+          "source": "Template repository JSON (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        }
+      ]
+    },
+    {
+      "identity": "AMM_005|memoria-difensiva-amministrativa|memoria difensiva amministrativa",
+      "count": 7,
+      "sources": [
+        "builtin_workspace",
+        "master",
+        "repository_json:d-legale-iusentra-data-template-atti-template-re",
+        "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+        "split_specialist",
+        "sqlite:d-legale-iusentra-data-template-atti-template-re",
+        "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4"
+      ],
+      "records": [
+        {
+          "codice": "AMM_005",
+          "titolo": "Memoria difensiva amministrativa",
+          "source": "Catalogo master JSON",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_005",
+          "titolo": "Memoria difensiva amministrativa",
+          "source": "Split JSON specialist",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_005",
+          "titolo": "Memoria difensiva amministrativa",
+          "source": "Template integrati redazione atti",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_005",
+          "titolo": "Memoria difensiva amministrativa",
+          "source": "Template SQLite (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_005",
+          "titolo": "Memoria difensiva amministrativa",
+          "source": "Template SQLite (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_005",
+          "titolo": "Memoria difensiva amministrativa",
+          "source": "Template repository JSON (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_005",
+          "titolo": "Memoria difensiva amministrativa",
+          "source": "Template repository JSON (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        }
+      ]
+    },
+    {
+      "identity": "AMM_006|replica-amministrativa|replica amministrativa",
+      "count": 7,
+      "sources": [
+        "builtin_workspace",
+        "master",
+        "repository_json:d-legale-iusentra-data-template-atti-template-re",
+        "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+        "split_specialist",
+        "sqlite:d-legale-iusentra-data-template-atti-template-re",
+        "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4"
+      ],
+      "records": [
+        {
+          "codice": "AMM_006",
+          "titolo": "Replica amministrativa",
+          "source": "Catalogo master JSON",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_006",
+          "titolo": "Replica amministrativa",
+          "source": "Split JSON specialist",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_006",
+          "titolo": "Replica amministrativa",
+          "source": "Template integrati redazione atti",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_006",
+          "titolo": "Replica amministrativa",
+          "source": "Template SQLite (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_006",
+          "titolo": "Replica amministrativa",
+          "source": "Template SQLite (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_006",
+          "titolo": "Replica amministrativa",
+          "source": "Template repository JSON (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_006",
+          "titolo": "Replica amministrativa",
+          "source": "Template repository JSON (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        }
+      ]
+    },
+    {
+      "identity": "AMM_007|istanza-di-prelievo|istanza di prelievo",
+      "count": 7,
+      "sources": [
+        "builtin_workspace",
+        "master",
+        "repository_json:d-legale-iusentra-data-template-atti-template-re",
+        "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+        "split_specialist",
+        "sqlite:d-legale-iusentra-data-template-atti-template-re",
+        "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4"
+      ],
+      "records": [
+        {
+          "codice": "AMM_007",
+          "titolo": "Istanza di prelievo",
+          "source": "Catalogo master JSON",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_007",
+          "titolo": "Istanza di prelievo",
+          "source": "Split JSON specialist",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_007",
+          "titolo": "Istanza di prelievo",
+          "source": "Template integrati redazione atti",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_007",
+          "titolo": "Istanza di prelievo",
+          "source": "Template SQLite (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_007",
+          "titolo": "Istanza di prelievo",
+          "source": "Template SQLite (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_007",
+          "titolo": "Istanza di prelievo",
+          "source": "Template repository JSON (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_007",
+          "titolo": "Istanza di prelievo",
+          "source": "Template repository JSON (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        }
+      ]
+    },
+    {
+      "identity": "AMM_008|istanza-di-accesso-al-fascicolo|istanza di accesso al fascicolo",
+      "count": 7,
+      "sources": [
+        "builtin_workspace",
+        "master",
+        "repository_json:d-legale-iusentra-data-template-atti-template-re",
+        "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+        "split_specialist",
+        "sqlite:d-legale-iusentra-data-template-atti-template-re",
+        "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4"
+      ],
+      "records": [
+        {
+          "codice": "AMM_008",
+          "titolo": "Istanza di accesso al fascicolo",
+          "source": "Catalogo master JSON",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_008",
+          "titolo": "Istanza di accesso al fascicolo",
+          "source": "Split JSON specialist",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_008",
+          "titolo": "Istanza di accesso al fascicolo",
+          "source": "Template integrati redazione atti",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_008",
+          "titolo": "Istanza di accesso al fascicolo",
+          "source": "Template SQLite (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_008",
+          "titolo": "Istanza di accesso al fascicolo",
+          "source": "Template SQLite (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_008",
+          "titolo": "Istanza di accesso al fascicolo",
+          "source": "Template repository JSON (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_008",
+          "titolo": "Istanza di accesso al fascicolo",
+          "source": "Template repository JSON (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        }
+      ]
+    },
+    {
+      "identity": "AMM_009|ricorso-per-accesso-agli-atti|ricorso per accesso agli atti",
+      "count": 7,
+      "sources": [
+        "builtin_workspace",
+        "master",
+        "repository_json:d-legale-iusentra-data-template-atti-template-re",
+        "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+        "split_specialist",
+        "sqlite:d-legale-iusentra-data-template-atti-template-re",
+        "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4"
+      ],
+      "records": [
+        {
+          "codice": "AMM_009",
+          "titolo": "Ricorso per accesso agli atti",
+          "source": "Catalogo master JSON",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_009",
+          "titolo": "Ricorso per accesso agli atti",
+          "source": "Split JSON specialist",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_009",
+          "titolo": "Ricorso per accesso agli atti",
+          "source": "Template integrati redazione atti",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_009",
+          "titolo": "Ricorso per accesso agli atti",
+          "source": "Template SQLite (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_009",
+          "titolo": "Ricorso per accesso agli atti",
+          "source": "Template SQLite (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_009",
+          "titolo": "Ricorso per accesso agli atti",
+          "source": "Template repository JSON (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_009",
+          "titolo": "Ricorso per accesso agli atti",
+          "source": "Template repository JSON (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        }
+      ]
+    },
+    {
+      "identity": "AMM_010|ricorso-per-silenzio-inadempimento|ricorso per silenzio-inadempimento",
+      "count": 7,
+      "sources": [
+        "builtin_workspace",
+        "master",
+        "repository_json:d-legale-iusentra-data-template-atti-template-re",
+        "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+        "split_specialist",
+        "sqlite:d-legale-iusentra-data-template-atti-template-re",
+        "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4"
+      ],
+      "records": [
+        {
+          "codice": "AMM_010",
+          "titolo": "Ricorso per silenzio-inadempimento",
+          "source": "Catalogo master JSON",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_010",
+          "titolo": "Ricorso per silenzio-inadempimento",
+          "source": "Split JSON specialist",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_010",
+          "titolo": "Ricorso per silenzio-inadempimento",
+          "source": "Template integrati redazione atti",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_010",
+          "titolo": "Ricorso per silenzio-inadempimento",
+          "source": "Template SQLite (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_010",
+          "titolo": "Ricorso per silenzio-inadempimento",
+          "source": "Template SQLite (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_010",
+          "titolo": "Ricorso per silenzio-inadempimento",
+          "source": "Template repository JSON (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_010",
+          "titolo": "Ricorso per silenzio-inadempimento",
+          "source": "Template repository JSON (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        }
+      ]
+    },
+    {
+      "identity": "AMM_011|appello-al-consiglio-di-stato|appello al consiglio di stato",
+      "count": 7,
+      "sources": [
+        "builtin_workspace",
+        "master",
+        "repository_json:d-legale-iusentra-data-template-atti-template-re",
+        "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+        "split_specialist",
+        "sqlite:d-legale-iusentra-data-template-atti-template-re",
+        "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4"
+      ],
+      "records": [
+        {
+          "codice": "AMM_011",
+          "titolo": "Appello al Consiglio di Stato",
+          "source": "Catalogo master JSON",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_011",
+          "titolo": "Appello al Consiglio di Stato",
+          "source": "Split JSON specialist",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_011",
+          "titolo": "Appello al Consiglio di Stato",
+          "source": "Template integrati redazione atti",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_011",
+          "titolo": "Appello al Consiglio di Stato",
+          "source": "Template SQLite (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_011",
+          "titolo": "Appello al Consiglio di Stato",
+          "source": "Template SQLite (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_011",
+          "titolo": "Appello al Consiglio di Stato",
+          "source": "Template repository JSON (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_011",
+          "titolo": "Appello al Consiglio di Stato",
+          "source": "Template repository JSON (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        }
+      ]
+    },
+    {
+      "identity": "AMM_012|opposizione-a-decreto|opposizione a decreto",
+      "count": 7,
+      "sources": [
+        "builtin_workspace",
+        "master",
+        "repository_json:d-legale-iusentra-data-template-atti-template-re",
+        "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+        "split_specialist",
+        "sqlite:d-legale-iusentra-data-template-atti-template-re",
+        "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4"
+      ],
+      "records": [
+        {
+          "codice": "AMM_012",
+          "titolo": "Opposizione a decreto",
+          "source": "Catalogo master JSON",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_012",
+          "titolo": "Opposizione a decreto",
+          "source": "Split JSON specialist",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_012",
+          "titolo": "Opposizione a decreto",
+          "source": "Template integrati redazione atti",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_012",
+          "titolo": "Opposizione a decreto",
+          "source": "Template SQLite (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_012",
+          "titolo": "Opposizione a decreto",
+          "source": "Template SQLite (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_012",
+          "titolo": "Opposizione a decreto",
+          "source": "Template repository JSON (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_012",
+          "titolo": "Opposizione a decreto",
+          "source": "Template repository JSON (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        }
+      ]
+    },
+    {
+      "identity": "AMM_013|ricorso-per-ottemperanza|ricorso per ottemperanza",
+      "count": 7,
+      "sources": [
+        "builtin_workspace",
+        "master",
+        "repository_json:d-legale-iusentra-data-template-atti-template-re",
+        "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+        "split_specialist",
+        "sqlite:d-legale-iusentra-data-template-atti-template-re",
+        "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4"
+      ],
+      "records": [
+        {
+          "codice": "AMM_013",
+          "titolo": "Ricorso per ottemperanza",
+          "source": "Catalogo master JSON",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_013",
+          "titolo": "Ricorso per ottemperanza",
+          "source": "Split JSON specialist",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_013",
+          "titolo": "Ricorso per ottemperanza",
+          "source": "Template integrati redazione atti",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_013",
+          "titolo": "Ricorso per ottemperanza",
+          "source": "Template SQLite (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_013",
+          "titolo": "Ricorso per ottemperanza",
+          "source": "Template SQLite (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_013",
+          "titolo": "Ricorso per ottemperanza",
+          "source": "Template repository JSON (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_013",
+          "titolo": "Ricorso per ottemperanza",
+          "source": "Template repository JSON (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        }
+      ]
+    },
+    {
+      "identity": "AMM_014|ricorso-in-materia-di-appalti-pubblici|ricorso in materia di appalti pubblici",
+      "count": 7,
+      "sources": [
+        "builtin_workspace",
+        "master",
+        "repository_json:d-legale-iusentra-data-template-atti-template-re",
+        "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+        "split_specialist",
+        "sqlite:d-legale-iusentra-data-template-atti-template-re",
+        "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4"
+      ],
+      "records": [
+        {
+          "codice": "AMM_014",
+          "titolo": "Ricorso in materia di appalti pubblici",
+          "source": "Catalogo master JSON",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_014",
+          "titolo": "Ricorso in materia di appalti pubblici",
+          "source": "Split JSON specialist",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_014",
+          "titolo": "Ricorso in materia di appalti pubblici",
+          "source": "Template integrati redazione atti",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_014",
+          "titolo": "Ricorso in materia di appalti pubblici",
+          "source": "Template SQLite (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_014",
+          "titolo": "Ricorso in materia di appalti pubblici",
+          "source": "Template SQLite (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_014",
+          "titolo": "Ricorso in materia di appalti pubblici",
+          "source": "Template repository JSON (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_014",
+          "titolo": "Ricorso in materia di appalti pubblici",
+          "source": "Template repository JSON (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        }
+      ]
+    },
+    {
+      "identity": "AMM_015|ricorso-per-esclusione-da-gara|ricorso per esclusione da gara",
+      "count": 7,
+      "sources": [
+        "builtin_workspace",
+        "master",
+        "repository_json:d-legale-iusentra-data-template-atti-template-re",
+        "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+        "split_specialist",
+        "sqlite:d-legale-iusentra-data-template-atti-template-re",
+        "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4"
+      ],
+      "records": [
+        {
+          "codice": "AMM_015",
+          "titolo": "Ricorso per esclusione da gara",
+          "source": "Catalogo master JSON",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_015",
+          "titolo": "Ricorso per esclusione da gara",
+          "source": "Split JSON specialist",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_015",
+          "titolo": "Ricorso per esclusione da gara",
+          "source": "Template integrati redazione atti",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_015",
+          "titolo": "Ricorso per esclusione da gara",
+          "source": "Template SQLite (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_015",
+          "titolo": "Ricorso per esclusione da gara",
+          "source": "Template SQLite (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_015",
+          "titolo": "Ricorso per esclusione da gara",
+          "source": "Template repository JSON (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_015",
+          "titolo": "Ricorso per esclusione da gara",
+          "source": "Template repository JSON (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        }
+      ]
+    },
+    {
+      "identity": "AMM_016|ricorso-per-revoca-o-annullamento-di-concessione|ricorso per revoca o annullamento di concessione",
+      "count": 7,
+      "sources": [
+        "builtin_workspace",
+        "master",
+        "repository_json:d-legale-iusentra-data-template-atti-template-re",
+        "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+        "split_specialist",
+        "sqlite:d-legale-iusentra-data-template-atti-template-re",
+        "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4"
+      ],
+      "records": [
+        {
+          "codice": "AMM_016",
+          "titolo": "Ricorso per revoca o annullamento di concessione",
+          "source": "Catalogo master JSON",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_016",
+          "titolo": "Ricorso per revoca o annullamento di concessione",
+          "source": "Split JSON specialist",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_016",
+          "titolo": "Ricorso per revoca o annullamento di concessione",
+          "source": "Template integrati redazione atti",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_016",
+          "titolo": "Ricorso per revoca o annullamento di concessione",
+          "source": "Template SQLite (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_016",
+          "titolo": "Ricorso per revoca o annullamento di concessione",
+          "source": "Template SQLite (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_016",
+          "titolo": "Ricorso per revoca o annullamento di concessione",
+          "source": "Template repository JSON (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_016",
+          "titolo": "Ricorso per revoca o annullamento di concessione",
+          "source": "Template repository JSON (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        }
+      ]
+    },
+    {
+      "identity": "AMM_017|ricorso-per-sanzioni-amministrative-di-settore|ricorso per sanzioni amministrative di settore",
+      "count": 7,
+      "sources": [
+        "builtin_workspace",
+        "master",
+        "repository_json:d-legale-iusentra-data-template-atti-template-re",
+        "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+        "split_specialist",
+        "sqlite:d-legale-iusentra-data-template-atti-template-re",
+        "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4"
+      ],
+      "records": [
+        {
+          "codice": "AMM_017",
+          "titolo": "Ricorso per sanzioni amministrative di settore",
+          "source": "Catalogo master JSON",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_017",
+          "titolo": "Ricorso per sanzioni amministrative di settore",
+          "source": "Split JSON specialist",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_017",
+          "titolo": "Ricorso per sanzioni amministrative di settore",
+          "source": "Template integrati redazione atti",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_017",
+          "titolo": "Ricorso per sanzioni amministrative di settore",
+          "source": "Template SQLite (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_017",
+          "titolo": "Ricorso per sanzioni amministrative di settore",
+          "source": "Template SQLite (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_017",
+          "titolo": "Ricorso per sanzioni amministrative di settore",
+          "source": "Template repository JSON (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_017",
+          "titolo": "Ricorso per sanzioni amministrative di settore",
+          "source": "Template repository JSON (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        }
+      ]
+    },
+    {
+      "identity": "AMM_018|istanza-di-oscuramento-dati|istanza di oscuramento dati",
+      "count": 7,
+      "sources": [
+        "builtin_workspace",
+        "master",
+        "repository_json:d-legale-iusentra-data-template-atti-template-re",
+        "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+        "split_specialist",
+        "sqlite:d-legale-iusentra-data-template-atti-template-re",
+        "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4"
+      ],
+      "records": [
+        {
+          "codice": "AMM_018",
+          "titolo": "Istanza di oscuramento dati",
+          "source": "Catalogo master JSON",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_018",
+          "titolo": "Istanza di oscuramento dati",
+          "source": "Split JSON specialist",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_018",
+          "titolo": "Istanza di oscuramento dati",
+          "source": "Template integrati redazione atti",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_018",
+          "titolo": "Istanza di oscuramento dati",
+          "source": "Template SQLite (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_018",
+          "titolo": "Istanza di oscuramento dati",
+          "source": "Template SQLite (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_018",
+          "titolo": "Istanza di oscuramento dati",
+          "source": "Template repository JSON (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "AMM_018",
+          "titolo": "Istanza di oscuramento dati",
+          "source": "Template repository JSON (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        }
+      ]
+    },
+    {
+      "identity": "BAN_001|diffida-per-consegna-di-documentazione-bancaria|diffida per consegna di documentazione bancaria",
+      "count": 7,
+      "sources": [
+        "builtin_workspace",
+        "master",
+        "repository_json:d-legale-iusentra-data-template-atti-template-re",
+        "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+        "split_advanced",
+        "sqlite:d-legale-iusentra-data-template-atti-template-re",
+        "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4"
+      ],
+      "records": [
+        {
+          "codice": "BAN_001",
+          "titolo": "Diffida per consegna di documentazione bancaria",
+          "source": "Catalogo master JSON",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_001",
+          "titolo": "Diffida per consegna di documentazione bancaria",
+          "source": "Split JSON advanced",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_001",
+          "titolo": "Diffida per consegna di documentazione bancaria",
+          "source": "Template integrati redazione atti",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_001",
+          "titolo": "Diffida per consegna di documentazione bancaria",
+          "source": "Template SQLite (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_001",
+          "titolo": "Diffida per consegna di documentazione bancaria",
+          "source": "Template SQLite (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_001",
+          "titolo": "Diffida per consegna di documentazione bancaria",
+          "source": "Template repository JSON (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_001",
+          "titolo": "Diffida per consegna di documentazione bancaria",
+          "source": "Template repository JSON (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        }
+      ]
+    },
+    {
+      "identity": "BAN_002|richiesta-estratti-conto-ex-art-119-tub|richiesta estratti conto ex art. 119 tub",
+      "count": 7,
+      "sources": [
+        "builtin_workspace",
+        "master",
+        "repository_json:d-legale-iusentra-data-template-atti-template-re",
+        "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+        "split_advanced",
+        "sqlite:d-legale-iusentra-data-template-atti-template-re",
+        "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4"
+      ],
+      "records": [
+        {
+          "codice": "BAN_002",
+          "titolo": "Richiesta estratti conto ex art. 119 TUB",
+          "source": "Catalogo master JSON",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_002",
+          "titolo": "Richiesta estratti conto ex art. 119 TUB",
+          "source": "Split JSON advanced",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_002",
+          "titolo": "Richiesta estratti conto ex art. 119 TUB",
+          "source": "Template integrati redazione atti",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_002",
+          "titolo": "Richiesta estratti conto ex art. 119 TUB",
+          "source": "Template SQLite (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_002",
+          "titolo": "Richiesta estratti conto ex art. 119 TUB",
+          "source": "Template SQLite (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_002",
+          "titolo": "Richiesta estratti conto ex art. 119 TUB",
+          "source": "Template repository JSON (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_002",
+          "titolo": "Richiesta estratti conto ex art. 119 TUB",
+          "source": "Template repository JSON (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        }
+      ]
+    },
+    {
+      "identity": "BAN_003|atto-di-citazione-per-anatocismo|atto di citazione per anatocismo",
+      "count": 7,
+      "sources": [
+        "builtin_workspace",
+        "master",
+        "repository_json:d-legale-iusentra-data-template-atti-template-re",
+        "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+        "split_advanced",
+        "sqlite:d-legale-iusentra-data-template-atti-template-re",
+        "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4"
+      ],
+      "records": [
+        {
+          "codice": "BAN_003",
+          "titolo": "Atto di citazione per anatocismo",
+          "source": "Catalogo master JSON",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_003",
+          "titolo": "Atto di citazione per anatocismo",
+          "source": "Split JSON advanced",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_003",
+          "titolo": "Atto di citazione per anatocismo",
+          "source": "Template integrati redazione atti",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_003",
+          "titolo": "Atto di citazione per anatocismo",
+          "source": "Template SQLite (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_003",
+          "titolo": "Atto di citazione per anatocismo",
+          "source": "Template SQLite (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_003",
+          "titolo": "Atto di citazione per anatocismo",
+          "source": "Template repository JSON (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_003",
+          "titolo": "Atto di citazione per anatocismo",
+          "source": "Template repository JSON (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        }
+      ]
+    },
+    {
+      "identity": "BAN_004|atto-di-citazione-per-usura-bancaria|atto di citazione per usura bancaria",
+      "count": 7,
+      "sources": [
+        "builtin_workspace",
+        "master",
+        "repository_json:d-legale-iusentra-data-template-atti-template-re",
+        "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+        "split_advanced",
+        "sqlite:d-legale-iusentra-data-template-atti-template-re",
+        "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4"
+      ],
+      "records": [
+        {
+          "codice": "BAN_004",
+          "titolo": "Atto di citazione per usura bancaria",
+          "source": "Catalogo master JSON",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_004",
+          "titolo": "Atto di citazione per usura bancaria",
+          "source": "Split JSON advanced",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_004",
+          "titolo": "Atto di citazione per usura bancaria",
+          "source": "Template integrati redazione atti",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_004",
+          "titolo": "Atto di citazione per usura bancaria",
+          "source": "Template SQLite (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_004",
+          "titolo": "Atto di citazione per usura bancaria",
+          "source": "Template SQLite (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_004",
+          "titolo": "Atto di citazione per usura bancaria",
+          "source": "Template repository JSON (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_004",
+          "titolo": "Atto di citazione per usura bancaria",
+          "source": "Template repository JSON (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        }
+      ]
+    },
+    {
+      "identity": "BAN_005|azione-di-ripetizione-di-indebito-bancario|azione di ripetizione di indebito bancario",
+      "count": 7,
+      "sources": [
+        "builtin_workspace",
+        "master",
+        "repository_json:d-legale-iusentra-data-template-atti-template-re",
+        "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+        "split_advanced",
+        "sqlite:d-legale-iusentra-data-template-atti-template-re",
+        "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4"
+      ],
+      "records": [
+        {
+          "codice": "BAN_005",
+          "titolo": "Azione di ripetizione di indebito bancario",
+          "source": "Catalogo master JSON",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_005",
+          "titolo": "Azione di ripetizione di indebito bancario",
+          "source": "Split JSON advanced",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_005",
+          "titolo": "Azione di ripetizione di indebito bancario",
+          "source": "Template integrati redazione atti",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_005",
+          "titolo": "Azione di ripetizione di indebito bancario",
+          "source": "Template SQLite (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_005",
+          "titolo": "Azione di ripetizione di indebito bancario",
+          "source": "Template SQLite (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_005",
+          "titolo": "Azione di ripetizione di indebito bancario",
+          "source": "Template repository JSON (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_005",
+          "titolo": "Azione di ripetizione di indebito bancario",
+          "source": "Template repository JSON (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        }
+      ]
+    },
+    {
+      "identity": "BAN_006|atto-in-materia-di-fideiussione-omnibus|atto in materia di fideiussione omnibus",
+      "count": 7,
+      "sources": [
+        "builtin_workspace",
+        "master",
+        "repository_json:d-legale-iusentra-data-template-atti-template-re",
+        "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+        "split_advanced",
+        "sqlite:d-legale-iusentra-data-template-atti-template-re",
+        "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4"
+      ],
+      "records": [
+        {
+          "codice": "BAN_006",
+          "titolo": "Atto in materia di fideiussione omnibus",
+          "source": "Catalogo master JSON",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_006",
+          "titolo": "Atto in materia di fideiussione omnibus",
+          "source": "Split JSON advanced",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_006",
+          "titolo": "Atto in materia di fideiussione omnibus",
+          "source": "Template integrati redazione atti",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_006",
+          "titolo": "Atto in materia di fideiussione omnibus",
+          "source": "Template SQLite (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_006",
+          "titolo": "Atto in materia di fideiussione omnibus",
+          "source": "Template SQLite (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_006",
+          "titolo": "Atto in materia di fideiussione omnibus",
+          "source": "Template repository JSON (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_006",
+          "titolo": "Atto in materia di fideiussione omnibus",
+          "source": "Template repository JSON (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        }
+      ]
+    },
+    {
+      "identity": "BAN_007|opposizione-a-decreto-su-saldo-di-conto|opposizione a decreto su saldo di conto",
+      "count": 7,
+      "sources": [
+        "builtin_workspace",
+        "master",
+        "repository_json:d-legale-iusentra-data-template-atti-template-re",
+        "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+        "split_advanced",
+        "sqlite:d-legale-iusentra-data-template-atti-template-re",
+        "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4"
+      ],
+      "records": [
+        {
+          "codice": "BAN_007",
+          "titolo": "Opposizione a decreto su saldo di conto",
+          "source": "Catalogo master JSON",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_007",
+          "titolo": "Opposizione a decreto su saldo di conto",
+          "source": "Split JSON advanced",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_007",
+          "titolo": "Opposizione a decreto su saldo di conto",
+          "source": "Template integrati redazione atti",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_007",
+          "titolo": "Opposizione a decreto su saldo di conto",
+          "source": "Template SQLite (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_007",
+          "titolo": "Opposizione a decreto su saldo di conto",
+          "source": "Template SQLite (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_007",
+          "titolo": "Opposizione a decreto su saldo di conto",
+          "source": "Template repository JSON (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_007",
+          "titolo": "Opposizione a decreto su saldo di conto",
+          "source": "Template repository JSON (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        }
+      ]
+    },
+    {
+      "identity": "BAN_008|perizia-econometrica-introduttiva|perizia econometrica introduttiva",
+      "count": 7,
+      "sources": [
+        "builtin_workspace",
+        "master",
+        "repository_json:d-legale-iusentra-data-template-atti-template-re",
+        "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+        "split_advanced",
+        "sqlite:d-legale-iusentra-data-template-atti-template-re",
+        "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4"
+      ],
+      "records": [
+        {
+          "codice": "BAN_008",
+          "titolo": "Perizia econometrica introduttiva",
+          "source": "Catalogo master JSON",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_008",
+          "titolo": "Perizia econometrica introduttiva",
+          "source": "Split JSON advanced",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_008",
+          "titolo": "Perizia econometrica introduttiva",
+          "source": "Template integrati redazione atti",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_008",
+          "titolo": "Perizia econometrica introduttiva",
+          "source": "Template SQLite (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_008",
+          "titolo": "Perizia econometrica introduttiva",
+          "source": "Template SQLite (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_008",
+          "titolo": "Perizia econometrica introduttiva",
+          "source": "Template repository JSON (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_008",
+          "titolo": "Perizia econometrica introduttiva",
+          "source": "Template repository JSON (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        }
+      ]
+    },
+    {
+      "identity": "BAN_009|memoria-di-contestazione-interessi-e-usura|memoria di contestazione interessi e usura",
+      "count": 7,
+      "sources": [
+        "builtin_workspace",
+        "master",
+        "repository_json:d-legale-iusentra-data-template-atti-template-re",
+        "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+        "split_advanced",
+        "sqlite:d-legale-iusentra-data-template-atti-template-re",
+        "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4"
+      ],
+      "records": [
+        {
+          "codice": "BAN_009",
+          "titolo": "Memoria di contestazione interessi e usura",
+          "source": "Catalogo master JSON",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_009",
+          "titolo": "Memoria di contestazione interessi e usura",
+          "source": "Split JSON advanced",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_009",
+          "titolo": "Memoria di contestazione interessi e usura",
+          "source": "Template integrati redazione atti",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_009",
+          "titolo": "Memoria di contestazione interessi e usura",
+          "source": "Template SQLite (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_009",
+          "titolo": "Memoria di contestazione interessi e usura",
+          "source": "Template SQLite (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_009",
+          "titolo": "Memoria di contestazione interessi e usura",
+          "source": "Template repository JSON (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_009",
+          "titolo": "Memoria di contestazione interessi e usura",
+          "source": "Template repository JSON (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        }
+      ]
+    },
+    {
+      "identity": "BAN_010|opposizione-a-iscrizione-in-centrale-rischi|opposizione a iscrizione in centrale rischi",
+      "count": 7,
+      "sources": [
+        "builtin_workspace",
+        "master",
+        "repository_json:d-legale-iusentra-data-template-atti-template-re",
+        "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+        "split_advanced",
+        "sqlite:d-legale-iusentra-data-template-atti-template-re",
+        "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4"
+      ],
+      "records": [
+        {
+          "codice": "BAN_010",
+          "titolo": "Opposizione a iscrizione in centrale rischi",
+          "source": "Catalogo master JSON",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_010",
+          "titolo": "Opposizione a iscrizione in centrale rischi",
+          "source": "Split JSON advanced",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_010",
+          "titolo": "Opposizione a iscrizione in centrale rischi",
+          "source": "Template integrati redazione atti",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_010",
+          "titolo": "Opposizione a iscrizione in centrale rischi",
+          "source": "Template SQLite (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_010",
+          "titolo": "Opposizione a iscrizione in centrale rischi",
+          "source": "Template SQLite (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_010",
+          "titolo": "Opposizione a iscrizione in centrale rischi",
+          "source": "Template repository JSON (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_010",
+          "titolo": "Opposizione a iscrizione in centrale rischi",
+          "source": "Template repository JSON (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        }
+      ]
+    },
+    {
+      "identity": "BAN_011|diffida-a-intermediario-finanziario|diffida a intermediario finanziario",
+      "count": 7,
+      "sources": [
+        "builtin_workspace",
+        "master",
+        "repository_json:d-legale-iusentra-data-template-atti-template-re",
+        "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+        "split_advanced",
+        "sqlite:d-legale-iusentra-data-template-atti-template-re",
+        "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4"
+      ],
+      "records": [
+        {
+          "codice": "BAN_011",
+          "titolo": "Diffida a intermediario finanziario",
+          "source": "Catalogo master JSON",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_011",
+          "titolo": "Diffida a intermediario finanziario",
+          "source": "Split JSON advanced",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_011",
+          "titolo": "Diffida a intermediario finanziario",
+          "source": "Template integrati redazione atti",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_011",
+          "titolo": "Diffida a intermediario finanziario",
+          "source": "Template SQLite (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_011",
+          "titolo": "Diffida a intermediario finanziario",
+          "source": "Template SQLite (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_011",
+          "titolo": "Diffida a intermediario finanziario",
+          "source": "Template repository JSON (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_011",
+          "titolo": "Diffida a intermediario finanziario",
+          "source": "Template repository JSON (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        }
+      ]
+    },
+    {
+      "identity": "BAN_012|ricorso-abf-preparatorio-interno|ricorso abf preparatorio interno",
+      "count": 7,
+      "sources": [
+        "builtin_workspace",
+        "master",
+        "repository_json:d-legale-iusentra-data-template-atti-template-re",
+        "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+        "split_advanced",
+        "sqlite:d-legale-iusentra-data-template-atti-template-re",
+        "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4"
+      ],
+      "records": [
+        {
+          "codice": "BAN_012",
+          "titolo": "Ricorso ABF preparatorio interno",
+          "source": "Catalogo master JSON",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_012",
+          "titolo": "Ricorso ABF preparatorio interno",
+          "source": "Split JSON advanced",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_012",
+          "titolo": "Ricorso ABF preparatorio interno",
+          "source": "Template integrati redazione atti",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_012",
+          "titolo": "Ricorso ABF preparatorio interno",
+          "source": "Template SQLite (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_012",
+          "titolo": "Ricorso ABF preparatorio interno",
+          "source": "Template SQLite (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_012",
+          "titolo": "Ricorso ABF preparatorio interno",
+          "source": "Template repository JSON (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "BAN_012",
+          "titolo": "Ricorso ABF preparatorio interno",
+          "source": "Template repository JSON (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        }
+      ]
+    },
+    {
+      "identity": "CAU_001|ricorso-ex-art-700-c-p-c|ricorso ex art. 700 c.p.c.",
+      "count": 7,
+      "sources": [
+        "builtin_workspace",
+        "master",
+        "repository_json:d-legale-iusentra-data-template-atti-template-re",
+        "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+        "split_core",
+        "sqlite:d-legale-iusentra-data-template-atti-template-re",
+        "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4"
+      ],
+      "records": [
+        {
+          "codice": "CAU_001",
+          "titolo": "Ricorso ex art. 700 c.p.c.",
+          "source": "Catalogo master JSON",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "CAU_001",
+          "titolo": "Ricorso ex art. 700 c.p.c.",
+          "source": "Split JSON core",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "CAU_001",
+          "titolo": "Ricorso ex art. 700 c.p.c.",
+          "source": "Template integrati redazione atti",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "CAU_001",
+          "titolo": "Ricorso ex art. 700 c.p.c.",
+          "source": "Template SQLite (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "CAU_001",
+          "titolo": "Ricorso ex art. 700 c.p.c.",
+          "source": "Template SQLite (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "CAU_001",
+          "titolo": "Ricorso ex art. 700 c.p.c.",
+          "source": "Template repository JSON (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "CAU_001",
+          "titolo": "Ricorso ex art. 700 c.p.c.",
+          "source": "Template repository JSON (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        }
+      ]
+    },
+    {
+      "identity": "CAU_002|reclamo-cautelare|reclamo cautelare",
+      "count": 7,
+      "sources": [
+        "builtin_workspace",
+        "master",
+        "repository_json:d-legale-iusentra-data-template-atti-template-re",
+        "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+        "split_core",
+        "sqlite:d-legale-iusentra-data-template-atti-template-re",
+        "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4"
+      ],
+      "records": [
+        {
+          "codice": "CAU_002",
+          "titolo": "Reclamo cautelare",
+          "source": "Catalogo master JSON",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "CAU_002",
+          "titolo": "Reclamo cautelare",
+          "source": "Split JSON core",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "CAU_002",
+          "titolo": "Reclamo cautelare",
+          "source": "Template integrati redazione atti",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "CAU_002",
+          "titolo": "Reclamo cautelare",
+          "source": "Template SQLite (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "CAU_002",
+          "titolo": "Reclamo cautelare",
+          "source": "Template SQLite (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "CAU_002",
+          "titolo": "Reclamo cautelare",
+          "source": "Template repository JSON (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "CAU_002",
+          "titolo": "Reclamo cautelare",
+          "source": "Template repository JSON (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        }
+      ]
+    },
+    {
+      "identity": "CAU_003|memoria-del-resistente-in-cautelare|memoria del resistente in cautelare",
+      "count": 7,
+      "sources": [
+        "builtin_workspace",
+        "master",
+        "repository_json:d-legale-iusentra-data-template-atti-template-re",
+        "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+        "split_core",
+        "sqlite:d-legale-iusentra-data-template-atti-template-re",
+        "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4"
+      ],
+      "records": [
+        {
+          "codice": "CAU_003",
+          "titolo": "Memoria del resistente in cautelare",
+          "source": "Catalogo master JSON",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "CAU_003",
+          "titolo": "Memoria del resistente in cautelare",
+          "source": "Split JSON core",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "CAU_003",
+          "titolo": "Memoria del resistente in cautelare",
+          "source": "Template integrati redazione atti",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "CAU_003",
+          "titolo": "Memoria del resistente in cautelare",
+          "source": "Template SQLite (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "CAU_003",
+          "titolo": "Memoria del resistente in cautelare",
+          "source": "Template SQLite (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "CAU_003",
+          "titolo": "Memoria del resistente in cautelare",
+          "source": "Template repository JSON (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "CAU_003",
+          "titolo": "Memoria del resistente in cautelare",
+          "source": "Template repository JSON (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        }
+      ]
+    },
+    {
+      "identity": "CAU_004|istanza-di-provvedimento-inaudita-altera-parte|istanza di provvedimento inaudita altera parte",
+      "count": 7,
+      "sources": [
+        "builtin_workspace",
+        "master",
+        "repository_json:d-legale-iusentra-data-template-atti-template-re",
+        "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+        "split_core",
+        "sqlite:d-legale-iusentra-data-template-atti-template-re",
+        "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4"
+      ],
+      "records": [
+        {
+          "codice": "CAU_004",
+          "titolo": "Istanza di provvedimento inaudita altera parte",
+          "source": "Catalogo master JSON",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "CAU_004",
+          "titolo": "Istanza di provvedimento inaudita altera parte",
+          "source": "Split JSON core",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "CAU_004",
+          "titolo": "Istanza di provvedimento inaudita altera parte",
+          "source": "Template integrati redazione atti",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "CAU_004",
+          "titolo": "Istanza di provvedimento inaudita altera parte",
+          "source": "Template SQLite (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "CAU_004",
+          "titolo": "Istanza di provvedimento inaudita altera parte",
+          "source": "Template SQLite (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "CAU_004",
+          "titolo": "Istanza di provvedimento inaudita altera parte",
+          "source": "Template repository JSON (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "CAU_004",
+          "titolo": "Istanza di provvedimento inaudita altera parte",
+          "source": "Template repository JSON (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        }
+      ]
+    },
+    {
+      "identity": "CAU_005|sequestro-conservativo|sequestro conservativo",
+      "count": 7,
+      "sources": [
+        "builtin_workspace",
+        "master",
+        "repository_json:d-legale-iusentra-data-template-atti-template-re",
+        "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+        "split_core",
+        "sqlite:d-legale-iusentra-data-template-atti-template-re",
+        "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4"
+      ],
+      "records": [
+        {
+          "codice": "CAU_005",
+          "titolo": "Sequestro conservativo",
+          "source": "Catalogo master JSON",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "CAU_005",
+          "titolo": "Sequestro conservativo",
+          "source": "Split JSON core",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "CAU_005",
+          "titolo": "Sequestro conservativo",
+          "source": "Template integrati redazione atti",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "CAU_005",
+          "titolo": "Sequestro conservativo",
+          "source": "Template SQLite (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "CAU_005",
+          "titolo": "Sequestro conservativo",
+          "source": "Template SQLite (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "CAU_005",
+          "titolo": "Sequestro conservativo",
+          "source": "Template repository JSON (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "CAU_005",
+          "titolo": "Sequestro conservativo",
+          "source": "Template repository JSON (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        }
+      ]
+    },
+    {
+      "identity": "CAU_006|sequestro-giudiziario|sequestro giudiziario",
+      "count": 7,
+      "sources": [
+        "builtin_workspace",
+        "master",
+        "repository_json:d-legale-iusentra-data-template-atti-template-re",
+        "repository_json:d-legale-iusentra-data-tenants-tenant-8bf98719c4",
+        "split_core",
+        "sqlite:d-legale-iusentra-data-template-atti-template-re",
+        "sqlite:d-legale-iusentra-data-tenants-tenant-8bf98719c4"
+      ],
+      "records": [
+        {
+          "codice": "CAU_006",
+          "titolo": "Sequestro giudiziario",
+          "source": "Catalogo master JSON",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "CAU_006",
+          "titolo": "Sequestro giudiziario",
+          "source": "Split JSON core",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "CAU_006",
+          "titolo": "Sequestro giudiziario",
+          "source": "Template integrati redazione atti",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "CAU_006",
+          "titolo": "Sequestro giudiziario",
+          "source": "Template SQLite (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "CAU_006",
+          "titolo": "Sequestro giudiziario",
+          "source": "Template SQLite (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "CAU_006",
+          "titolo": "Sequestro giudiziario",
+          "source": "Template repository JSON (global)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        },
+        {
+          "codice": "CAU_006",
+          "titolo": "Sequestro giudiziario",
+          "source": "Template repository JSON (tenant-8bf98719c459)",
+          "stato": "cartabia_ready",
+          "issues": "copie multiple rilevate nelle fonti interne IUSENTRA; copie fonte riconciliate con fonte canonica: area"
+        }
+      ]
+    }
+  ],
+  "missing_cartabia_profile": [],
+  "missing_prefill_bindings": [],
+  "missing_deposit_rules": [],
+  "missing_timbro_support": [],
+  "missing_compiler_binding": [],
+  "orphans": []
+}

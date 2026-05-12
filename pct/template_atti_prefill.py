@@ -14,6 +14,12 @@ from typing import Any
 CONFIDENCE_HIGH = "high"
 CONFIDENCE_MEDIUM = "medium"
 CONFIDENCE_LOW = "low"
+CORE_CONTEXT_FIELDS = [
+    "destinatario_ufficio_giudiziario",
+    "cliente_mittente",
+    "pratica_collegata",
+    "autore",
+]
 
 SOURCE_LABELS = {
     "studio_timbro": "timbro studio",
@@ -28,31 +34,62 @@ SOURCE_LABELS = {
 }
 
 DEFAULT_PREFILL_BINDINGS: dict[str, list[str]] = {
+    "model_code": ["legacy.model_code"],
+    "title": ["legacy.title"],
+    "area": ["legacy.area"],
+    "act_type": ["legacy.act_type"],
+    "case_id": ["fascicolo.id", "legacy.case_id"],
+    "pratica_collegata": ["fascicolo.id", "fascicolo.codice", "fascicolo.numero", "legacy.case_id"],
+    "practice_id": ["fascicolo.id", "legacy.case_id"],
+    "practice_reference": ["fascicolo.rg_completo", "fascicolo.numero_rg", "fascicolo.numero", "fascicolo.id", "legacy.case_reference_display", "legacy.case_id"],
+    "author_user_id": ["studio.avvocato_titolare", "studio.avvocato_nome", "utente.nome_completo", "utente.username", "utente.id", "legacy.author_user_id"],
+    "autore": ["studio.avvocato_titolare", "studio.avvocato_nome", "utente.nome_completo", "utente.username", "legacy.author_user_id"],
     "cliente": ["parti.assistito_principale.nome_completo", "cliente.nome_completo", "legacy.client_or_sender"],
+    "cliente_mittente": ["parti.assistito_principale.nome_completo", "cliente.nome_completo", "legacy.client_or_sender"],
     "controparte": ["parti.controparte_principale.nome_completo", "fascicolo.controparte", "legacy.counterparty_or_recipient"],
-    "difensore": ["utente.nome_completo", "studio.avvocato_nome", "legacy.lawyer"],
+    "difensore": ["studio.avvocato_titolare", "studio.avvocato_nome", "utente.nome_completo", "utente.username", "legacy.lawyer"],
     "ufficio_giudiziario": ["fascicolo.tribunale", "fascicolo.ufficio_giudiziario", "legacy.recipient_or_court"],
+    "destinatario_ufficio_giudiziario": ["fascicolo.tribunale", "fascicolo.ufficio_giudiziario", "fascicolo.autorita", "legacy.recipient_or_court"],
     "rg": ["fascicolo.rg_completo", "fascicolo.numero_rg", "legacy.case_reference_display"],
     "oggetto": ["fascicolo.titolo", "fascicolo.oggetto", "legacy.subject"],
     "data_atto": ["today", "legacy.document_date"],
     "pec_studio": ["studio_timbro.pec", "studio.pec", "legacy._lawyer_pec"],
     "codice_fiscale_studio": ["studio_timbro.codice_fiscale", "studio.codice_fiscale", "legacy._lawyer_tax_id"],
     "partita_iva_studio": ["studio_timbro.partita_iva", "studio.partita_iva"],
+    "recipient_or_court": ["fascicolo.tribunale", "fascicolo.ufficio_giudiziario", "fascicolo.autorita", "legacy.recipient_or_court"],
     "client_or_sender": ["parti.assistito_principale.nome_completo", "cliente.nome_completo", "legacy.client_or_sender"],
     "counterparty_or_recipient": ["parti.controparte_principale.nome_completo", "fascicolo.controparte", "legacy.counterparty_or_recipient"],
-    "lawyer": ["utente.nome_completo", "studio.avvocato_nome", "legacy.lawyer"],
-    "recipient_or_court": ["fascicolo.tribunale", "fascicolo.ufficio_giudiziario", "legacy.recipient_or_court"],
+    "lawyer": ["studio.avvocato_titolare", "studio.avvocato_nome", "utente.nome_completo", "utente.username", "legacy.lawyer"],
     "case_reference_display": ["fascicolo.rg_completo", "fascicolo.numero_rg", "fascicolo.numero", "legacy.case_reference_display"],
     "matter": ["fascicolo.tipo.value", "fascicolo.materia", "legacy.matter"],
     "subject": ["fascicolo.oggetto", "fascicolo.titolo", "legacy.subject"],
     "facts": ["fascicolo.note", "legacy.facts"],
     "document_date": ["today", "legacy.document_date"],
-    "signature": ["utente.nome_completo", "studio.avvocato_nome", "legacy.signature"],
+    "signature": ["studio.avvocato_titolare", "studio.avvocato_nome", "utente.nome_completo", "utente.username", "legacy.signature"],
     "attachments_list": ["documenti.nomi", "legacy.attachments_list"],
     "place": ["studio.indirizzo", "studio_timbro.indirizzo_riga", "legacy.place"],
     "_lawyer_pec": ["studio_timbro.pec", "studio.pec", "legacy._lawyer_pec"],
     "_lawyer_tax_id": ["studio_timbro.codice_fiscale", "studio.codice_fiscale", "legacy._lawyer_tax_id"],
     "_studio_address": ["studio_timbro.indirizzo_riga", "studio.indirizzo", "legacy._studio_address"],
+    "court_name": ["fascicolo.tribunale", "fascicolo.ufficio_giudiziario", "legacy.court_name", "legacy.recipient_or_court"],
+    "competent_court": ["fascicolo.tribunale", "fascicolo.ufficio_giudiziario", "legacy.competent_court", "legacy.recipient_or_court"],
+    "proceeding_authority": ["fascicolo.tribunale", "fascicolo.ufficio_giudiziario", "legacy.proceeding_authority", "legacy.recipient_or_court"],
+    "competent_authority": ["fascicolo.tribunale", "fascicolo.ufficio_giudiziario", "legacy.competent_authority", "legacy.recipient_or_court"],
+    "competent_tar": ["fascicolo.tribunale", "fascicolo.ufficio_giudiziario", "legacy.competent_tar", "legacy.recipient_or_court"],
+    "competent_tax_court": ["fascicolo.tribunale", "fascicolo.ufficio_giudiziario", "legacy.competent_tax_court", "legacy.recipient_or_court"],
+    "plaintiff": ["parti.assistito_principale.nome_completo", "cliente.nome_completo", "legacy.plaintiff", "legacy.client_or_sender"],
+    "claimant": ["parti.assistito_principale.nome_completo", "cliente.nome_completo", "legacy.claimant", "legacy.client_or_sender"],
+    "applicant": ["parti.assistito_principale.nome_completo", "cliente.nome_completo", "legacy.applicant", "legacy.client_or_sender"],
+    "assisted_person": ["parti.assistito_principale.nome_completo", "cliente.nome_completo", "legacy.assisted_person", "legacy.client_or_sender"],
+    "defendant": ["parti.controparte_principale.nome_completo", "fascicolo.controparte", "legacy.defendant", "legacy.counterparty_or_recipient"],
+    "debtor": ["parti.controparte_principale.nome_completo", "fascicolo.controparte", "legacy.debtor", "legacy.counterparty_or_recipient"],
+    "respondent": ["parti.controparte_principale.nome_completo", "fascicolo.controparte", "legacy.respondent", "legacy.counterparty_or_recipient"],
+    "tax_authority_or_resistant_party": ["fascicolo.ente_impositore", "parti.controparte_principale.nome_completo", "fascicolo.controparte", "legacy.tax_authority_or_resistant_party"],
+    "respondent_administration": ["fascicolo.amministrazione_resistente", "parti.controparte_principale.nome_completo", "fascicolo.controparte", "legacy.respondent_administration"],
+    "documents_offered": ["documenti.nomi", "legacy.documents_offered", "legacy.attachments_list"],
+    "supporting_documents": ["documenti.nomi", "legacy.supporting_documents", "legacy.attachments_list"],
+    "case_value": ["fascicolo.valore_causa", "legacy.case_value"],
+    "dispute_value": ["fascicolo.valore_causa", "legacy.dispute_value", "legacy.case_value"],
 }
 
 LEGACY_CAMPI_BINDINGS = {
@@ -60,6 +97,12 @@ LEGACY_CAMPI_BINDINGS = {
     "controparte": "controparte",
     "difensore": "difensore",
     "ufficio_giudiziario": "ufficio_giudiziario",
+    "destinatario / ufficio giudiziario": "destinatario_ufficio_giudiziario",
+    "destinatario ufficio giudiziario": "destinatario_ufficio_giudiziario",
+    "cliente / mittente": "cliente_mittente",
+    "cliente mittente": "cliente_mittente",
+    "pratica collegata": "pratica_collegata",
+    "autore": "autore",
     "rg": "rg",
     "oggetto": "oggetto",
     "data_atto": "data_atto",
@@ -73,9 +116,12 @@ class PrefillField:
     source_label: str = ""
     confidence: str = CONFIDENCE_LOW
     editable: bool = True
+    required: bool = False
     missing_reason: str = ""
     warnings: list[str] | None = None
     alternatives: list[dict[str, Any]] | None = None
+    conflict: bool = False
+    privacy_level: str = "studio"
 
     def to_dict(self) -> dict[str, Any]:
         data = asdict(self)
@@ -135,15 +181,40 @@ def _confidence(source: str, value: Any) -> str:
     return CONFIDENCE_LOW
 
 
-def _studio_payload(config: dict[str, Any] | None) -> dict[str, Any]:
+def _config_path_value(config: Any, path: str) -> Any:
+    current = config
+    for part in path.split("."):
+        current = _value(current, part)
+        if current is None:
+            return None
+    return current
+
+
+def _first_config_value(config: Any, *paths: str) -> str:
+    for path in paths:
+        value = _config_path_value(config, path)
+        if not _is_empty(value):
+            return _clean(value)
+    return ""
+
+
+def _studio_payload(config: Any | None) -> dict[str, Any]:
     config = config or {}
+    avvocato = _first_config_value(
+        config,
+        "studio.avvocato",
+        "avvocato",
+        "STUDIO_AVVOCATO",
+        "PCT_STUDIO_AVVOCATO",
+    )
     return {
-        "nome": config.get("STUDIO_NOME", ""),
-        "avvocato_nome": config.get("STUDIO_AVVOCATO", ""),
-        "indirizzo": config.get("STUDIO_INDIRIZZO", ""),
-        "codice_fiscale": config.get("STUDIO_CF", ""),
-        "partita_iva": config.get("STUDIO_PIVA", ""),
-        "pec": config.get("PCT_STUDIO_PEC", "") or config.get("SMTP_FROM", ""),
+        "nome": _first_config_value(config, "studio.nome", "STUDIO_NOME"),
+        "avvocato_titolare": avvocato,
+        "avvocato_nome": avvocato,
+        "indirizzo": _first_config_value(config, "studio.indirizzo", "STUDIO_INDIRIZZO"),
+        "codice_fiscale": _first_config_value(config, "studio.cf", "STUDIO_CF"),
+        "partita_iva": _first_config_value(config, "studio.piva", "STUDIO_PIVA"),
+        "pec": _first_config_value(config, "pec.indirizzo", "PCT_STUDIO_PEC", "SMTP_FROM"),
     }
 
 
@@ -160,7 +231,7 @@ def build_prefill_context(
     fascicolo: Any = None,
     cliente: Any = None,
     utente: Any = None,
-    config: dict[str, Any] | None = None,
+    config: Any = None,
     studio_timbro: Any = None,
     parti: Any = None,
     legacy_payload: dict[str, Any] | None = None,
@@ -178,7 +249,21 @@ def build_prefill_context(
     }
 
 
-def resolve_field(name: str, candidates: list[str], context: dict[str, Any]) -> PrefillField:
+def _same_value(left: Any, right: Any) -> bool:
+    if isinstance(left, list) or isinstance(right, list):
+        return _clean(left) == _clean(right)
+    return _clean(left).casefold() == _clean(right).casefold()
+
+
+def _privacy_level(source: str) -> str:
+    if source in {"cliente", "parti", "fascicolo", "documenti", "legacy"}:
+        return "riservato_studio"
+    if source in {"studio_timbro", "studio", "utente"}:
+        return "studio"
+    return "operativo"
+
+
+def resolve_field(name: str, candidates: list[str], context: dict[str, Any], *, required: bool = False) -> PrefillField:
     alternatives: list[dict[str, Any]] = []
     warnings: list[str] = []
     for path in candidates:
@@ -187,8 +272,6 @@ def resolve_field(name: str, candidates: list[str], context: dict[str, Any]) -> 
         if _is_empty(value):
             continue
         normalized_value = value if isinstance(value, list) else _clean(value)
-        if alternatives:
-            warnings.append("Sono presenti piu' fonti possibili: verifica il dato prima del deposito.")
         alternatives.append(
             {
                 "value": normalized_value,
@@ -199,14 +282,27 @@ def resolve_field(name: str, candidates: list[str], context: dict[str, Any]) -> 
         )
     if alternatives:
         selected = alternatives[0]
+        high_conflict = any(
+            alt.get("confidence") == CONFIDENCE_HIGH
+            and selected.get("confidence") == CONFIDENCE_HIGH
+            and not _same_value(alt.get("value"), selected.get("value"))
+            for alt in alternatives[1:]
+        )
+        if high_conflict:
+            warnings.append("Sono presenti dati discordanti in archivi affidabili: conferma il valore prima di usare l'atto.")
+        elif alternatives[1:]:
+            warnings.append("Sono presenti piu' fonti possibili: verifica il dato prima del deposito.")
         return PrefillField(
             value=selected["value"],
             source=selected["source"],
             source_label=selected["source_label"],
             confidence=selected["confidence"],
             editable=True,
+            required=required,
             warnings=warnings,
             alternatives=alternatives[1:],
+            conflict=high_conflict,
+            privacy_level=_privacy_level(selected["source"]),
         )
     return PrefillField(
         value="",
@@ -214,9 +310,12 @@ def resolve_field(name: str, candidates: list[str], context: dict[str, Any]) -> 
         source_label="",
         confidence=CONFIDENCE_LOW,
         editable=True,
-        missing_reason="Dato non presente negli archivi selezionati.",
+        required=required,
+        missing_reason=f"{name.replace('_', ' ').strip().capitalize()} non presente negli archivi della pratica selezionata.",
         warnings=[],
         alternatives=[],
+        conflict=False,
+        privacy_level="riservato_studio" if required else "studio",
     )
 
 
@@ -233,7 +332,12 @@ def normalize_prefill_bindings(
     for key, value in (bindings or {}).items():
         candidates = [str(item).strip() for item in (value if isinstance(value, list) else [value]) if str(item).strip()]
         if candidates:
-            resolved[str(key).strip()] = candidates
+            normalized_key = str(key).strip()
+            if normalized_key in {*CORE_CONTEXT_FIELDS, "author_user_id", "lawyer", "difensore", "signature"}:
+                base_candidates = list(DEFAULT_PREFILL_BINDINGS.get(normalized_key, []))
+                resolved[normalized_key] = list(dict.fromkeys([*base_candidates, *candidates]))
+            else:
+                resolved[normalized_key] = candidates
     return resolved
 
 
@@ -247,13 +351,13 @@ def resolve_template_prefill(
     fascicolo: Any = None,
     cliente: Any = None,
     utente: Any = None,
-    config: dict[str, Any] | None = None,
+    config: Any = None,
     studio_timbro: Any = None,
     parti: Any = None,
     legacy_payload: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     normalized_bindings = normalize_prefill_bindings(bindings, legacy_campi=legacy_campi)
-    all_required = list(dict.fromkeys(required_fields or []))
+    all_required = list(dict.fromkeys([*CORE_CONTEXT_FIELDS, *(required_fields or [])]))
     all_optional = list(dict.fromkeys(optional_fields or []))
     for key in normalized_bindings:
         if key not in all_required and key not in all_optional:
@@ -271,7 +375,7 @@ def resolve_template_prefill(
     values: dict[str, Any] = {}
     for field_name in list(dict.fromkeys(all_required + all_optional)):
         candidates = normalized_bindings.get(field_name) or DEFAULT_PREFILL_BINDINGS.get(field_name) or [f"legacy.{field_name}"]
-        result = resolve_field(field_name, candidates, context).to_dict()
+        result = resolve_field(field_name, candidates, context, required=field_name in all_required).to_dict()
         fields[field_name] = result
         if not _is_empty(result.get("value")):
             values[field_name] = result["value"]
@@ -306,12 +410,48 @@ def resolve_template_prefill(
     }
 
 
+def merge_prefill_values(
+    user_values: dict[str, Any] | None,
+    resolved_values: dict[str, Any] | None,
+    field_sources: dict[str, dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Unisce prefill e input utente senza sovrascrivere valori digitati."""
+    user_values = dict(user_values or {})
+    resolved_values = dict(resolved_values or {})
+    field_sources = field_sources or {}
+    merged = dict(resolved_values)
+    preserved_user_inputs: list[str] = []
+    applied_prefill: list[str] = []
+    for key, value in resolved_values.items():
+        if _is_empty(user_values.get(key)):
+            applied_prefill.append(key)
+        else:
+            merged[key] = user_values[key]
+            preserved_user_inputs.append(key)
+    for key, value in user_values.items():
+        if key not in merged:
+            merged[key] = value
+            if not _is_empty(value):
+                preserved_user_inputs.append(key)
+    missing_reasons = {
+        key: data.get("missing_reason")
+        for key, data in field_sources.items()
+        if _is_empty(merged.get(key)) and data.get("missing_reason")
+    }
+    return {
+        "values": merged,
+        "applied_prefill": sorted(set(applied_prefill)),
+        "preserved_user_inputs": sorted(set(preserved_user_inputs)),
+        "missing_reasons": missing_reasons,
+    }
+
+
 __all__ = [
     "DEFAULT_PREFILL_BINDINGS",
     "PrefillField",
     "build_prefill_context",
+    "merge_prefill_values",
     "normalize_prefill_bindings",
     "resolve_field",
     "resolve_template_prefill",
 ]
-

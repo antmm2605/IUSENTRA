@@ -15,7 +15,7 @@ from pct.template_atti_prefill import DEFAULT_PREFILL_BINDINGS
 
 
 CARTABIA_RULESET_VERSION = "2026.05.12.1"
-CARTABIA_RULESET_SOURCE = "Ruleset operativo IUSENTRA per revisione Cartabia e controlli processuali"
+CARTABIA_RULESET_SOURCE = "Ruleset operativo IUSENTRA con fonti ufficiali tracciate in docs/legal_sources/cartabia_sources.jsonl"
 CARTABIA_RULESET_DATE = date(2026, 5, 12).isoformat()
 STATUS_DRAFT = "draft_professionale"
 STATUS_REVIEW = "cartabia_review_required"
@@ -32,6 +32,19 @@ PROCESS_AREAS = {
     "cautelare",
     "monitorio",
     "studio_interno",
+}
+
+AREA_EVIDENCE_IDS: dict[str, list[str]] = {
+    "civile": ["CARTABIA-CIVILE-DLGS-149-2022", "PST-DEPOSITO-ATTI-GIUDIZIARI", "PST-DOCUMENTAZIONE-TECNICA"],
+    "famiglia_minori": ["CARTABIA-CIVILE-DLGS-149-2022", "PST-DEPOSITO-ATTI-GIUDIZIARI"],
+    "adr": ["CARTABIA-CIVILE-DLGS-149-2022", "MEDIAZIONE-DLGS-28-2010"],
+    "penale": ["CARTABIA-PENALE-DLGS-150-2022", "PDP-SPECIFICHE-TECNICHE-2023"],
+    "tributario": ["PTT-SPECIFICHE-TECNICHE-2021"],
+    "amministrativo": ["PAT-REGOLE-TECNICHE-2021-2025"],
+    "esecuzione": ["CARTABIA-CIVILE-DLGS-149-2022", "PST-DEPOSITO-ATTI-GIUDIZIARI"],
+    "cautelare": ["CARTABIA-CIVILE-DLGS-149-2022", "PST-DEPOSITO-ATTI-GIUDIZIARI"],
+    "monitorio": ["CARTABIA-CIVILE-DLGS-149-2022", "PST-DEPOSITO-ATTI-GIUDIZIARI"],
+    "studio_interno": ["PRIVACY-GDPR-GARANTE", "CNF-DEONTOLOGIA-PROFESSIONALE"],
 }
 
 COMMON_REQUIRED = ["cliente", "difensore", "oggetto", "data_atto"]
@@ -271,9 +284,8 @@ def cartabia_profile_for_template(item: dict[str, Any]) -> dict[str, Any]:
     area = derive_processo_area(item)
     rules = deepcopy(AREA_RULES[area])
     depositabile = bool(item.get("depositabile"))
-    status = STATUS_REVIEW if rules.get("review") or depositabile else STATUS_DRAFT
-    if area == "studio_interno" and not depositabile:
-        status = STATUS_DRAFT
+    evidence_ids = list(AREA_EVIDENCE_IDS.get(area) or [])
+    status = STATUS_READY if evidence_ids else STATUS_REVIEW
     required_prefill = list(dict.fromkeys(rules["required"]))
     optional_prefill = [field for field in COMMON_OPTIONAL if field not in required_prefill]
     controlli_deposito = list(dict.fromkeys(rules["deposit_required"]))
@@ -289,13 +301,15 @@ def cartabia_profile_for_template(item: dict[str, Any]) -> dict[str, Any]:
         "termini_processuali_rilevanti": rules["termini_processuali_rilevanti"],
         "dati_obbligatori_cartabia": list(dict.fromkeys(rules["cartabia_required"])),
         "controlli_cartabia": list(dict.fromkeys(rules["checks"])),
+        "controlli_redazionali": list(dict.fromkeys(rules["checks"] + ["completezza dati", "coerenza allegati", "revisione professionale"])),
         "controlli_deposito": list(dict.fromkeys(controlli_deposito)),
         "avvisi_redazionali": rules["warnings"],
-        "richiede_verifica_avvocato": bool(rules.get("review") or status == STATUS_REVIEW),
+        "richiede_verifica_avvocato": bool(rules.get("review")),
         "stato_conformita": status,
         "data_ultimo_aggiornamento_normativo": CARTABIA_RULESET_DATE,
         "versione_regole": CARTABIA_RULESET_VERSION,
         "fonte_regole": CARTABIA_RULESET_SOURCE,
+        "source_evidence_ids": evidence_ids,
         "prefill_bindings": _prefill_for_area(area),
         "required_prefill_fields": required_prefill,
         "optional_prefill_fields": optional_prefill,
@@ -307,6 +321,8 @@ def cartabia_profile_for_template(item: dict[str, Any]) -> dict[str, Any]:
 def ensure_cartabia_metadata(item: dict[str, Any]) -> dict[str, Any]:
     enriched = dict(item)
     profile = cartabia_profile_for_template(enriched)
+    declared_area = _clean(enriched.get("processo_area"))
+    declared_area_invalid = bool(declared_area and declared_area not in PROCESS_AREAS)
     for key, value in profile.items():
         current = enriched.get(key)
         if current in (None, "", [], {}):
@@ -315,6 +331,14 @@ def ensure_cartabia_metadata(item: dict[str, Any]) -> dict[str, Any]:
             merged = deepcopy(value)
             merged.update(current)
             enriched[key] = merged
+    if declared_area_invalid:
+        enriched["source_evidence_ids"] = []
+    if not enriched.get("source_evidence_ids"):
+        enriched["source_evidence_ids"] = list(AREA_EVIDENCE_IDS.get(enriched.get("processo_area"), []))
+    if not enriched.get("source_evidence_ids"):
+        enriched["fonte_regole"] = "fonte ufficiale non documentata"
+        enriched["richiede_verifica_avvocato"] = True
+        enriched["stato_conformita"] = STATUS_REVIEW
     return enriched
 
 
@@ -341,16 +365,28 @@ def verifica_cartabia_template(
     recommended = [
         {"codice": "revisione_avvocato", "label": "Revisione professionale richiesta", "severity": "warning"}
     ] if enriched.get("richiede_verifica_avvocato") else []
+    if not enriched.get("source_evidence_ids"):
+        missing.append("fonte_normativa")
     blocking = [
         {"codice": f"dato_{field}", "label": f"Completa {field.replace('_', ' ')}", "severity": "block"}
         for field in missing
     ]
+    if not enriched.get("source_evidence_ids"):
+        blocking.append(
+            {
+                "codice": "fonte_normativa_mancante",
+                "label": "Fonte normativa ufficiale da documentare",
+                "severity": "block",
+            }
+        )
     return {
         "ok": not blocking and enriched.get("stato_conformita") == STATUS_READY,
         "stato_conformita": enriched.get("stato_conformita"),
         "processo_area": enriched.get("processo_area"),
         "cartabia_profile": enriched.get("cartabia_profile"),
         "ruleset_version": enriched.get("versione_regole", CARTABIA_RULESET_VERSION),
+        "fonte_regole": enriched.get("fonte_regole"),
+        "source_evidence_ids": list(enriched.get("source_evidence_ids") or []),
         "required_fields": required,
         "available_fields": available,
         "missing_fields": missing,
@@ -362,6 +398,7 @@ def verifica_cartabia_template(
 
 
 __all__ = [
+    "AREA_EVIDENCE_IDS",
     "CARTABIA_RULESET_VERSION",
     "STATUS_DRAFT",
     "STATUS_READY",
@@ -371,4 +408,3 @@ __all__ = [
     "ensure_cartabia_metadata",
     "verifica_cartabia_template",
 ]
-

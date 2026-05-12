@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections import Counter
 from datetime import datetime, timezone
+from functools import lru_cache
 from typing import Any, Callable
 
 
@@ -46,6 +47,40 @@ def _warning(code: str, message: str) -> dict[str, str]:
     return {"code": code, "message": message}
 
 
+@lru_cache(maxsize=2)
+def _safe_inventory_stats() -> dict[str, Any]:
+    try:
+        from pct.template_atti_inventory import build_template_inventory, template_inventory_stats
+
+        records = build_template_inventory()
+        source_records = build_template_inventory(include_source_duplicates=True)
+        return template_inventory_stats(records, source_records=source_records)
+    except Exception:
+        return {
+            "detected_total": 0,
+            "expected_total": 1320,
+            "delta": -1320,
+            "matches_expected": False,
+            "missing_timbro_support": 0,
+            "missing_compiler_binding": 0,
+            "breakdown_by_source": {},
+        }
+
+
+@lru_cache(maxsize=2)
+def _safe_inventory_by_code() -> dict[str, dict[str, Any]]:
+    try:
+        from pct.template_atti_inventory import build_template_inventory
+
+        return {
+            _text(record.get("codice")).upper(): record
+            for record in build_template_inventory()
+            if _text(record.get("codice"))
+        }
+    except Exception:
+        return {}
+
+
 def _tone_from_state(value: Any) -> str:
     state = _text(value).lower()
     if state in {"attivo", "completo", "pronto", "validato"}:
@@ -78,18 +113,61 @@ def _variable_names(values: Any) -> list[dict[str, str]]:
     return names
 
 
+def _public_check_label(value: Any) -> str:
+    text = _text(value)
+    lower = text.lower()
+    if "conflitto fonti template" in lower or "conflitto tra copie fonte" in lower:
+        return "Conflitto tra copie del template da risolvere"
+    if "fonte_normativa" in lower or "fonte normativa" in lower:
+        return "Fonte normativa ufficiale da documentare"
+    if lower.startswith("dato_") or lower.startswith("completa "):
+        return text.replace("_", " ").capitalize()
+    return text
+
+
+def _compliance_label(
+    *,
+    cartabia_state: str,
+    requires_review: bool,
+    missing: list[Any],
+    blocking_checks: list[str],
+    source_warnings: list[str],
+) -> str:
+    joined = " ".join([*blocking_checks, *[_text(item) for item in source_warnings]]).lower()
+    if "conflitto tra copie" in joined or "conflitto fonti template" in joined:
+        return "Bloccato per conflitto tra fonti template"
+    if "fonte normativa" in joined or "fonte_normativa" in joined:
+        return "Bloccato per fonte normativa mancante"
+    if missing:
+        return "Bloccato per dati mancanti"
+    if cartabia_state == "cartabia_ready":
+        return "Verificato dai controlli IUSENTRA"
+    if requires_review or cartabia_state == "cartabia_review_required":
+        return "Da completare con dati pratica"
+    return "Regole verificabili presenti" if cartabia_state else ""
+
+
 def _catalog_record(row: dict[str, Any], index: int) -> dict[str, Any]:
     code = _text(row.get("codice")) or f"catalogo_{index}"
+    inventory_record = _safe_inventory_by_code().get(code.upper(), {})
     channel = _text(row.get("canale_deposito") or row.get("portale_deposito"))
     state = _text(row.get("stato")) or ("depositabile" if row.get("depositabile") else "catalogo")
     compiler_code = _text(row.get("link_compilatore_code") or row.get("codice"))
-    cartabia_state = _text(row.get("stato_conformita"))
-    requires_review = bool(row.get("richiede_verifica_avvocato"))
+    cartabia_state = _text(inventory_record.get("stato_conformita") or row.get("stato_conformita"))
     required_fields = _list(row.get("required_prefill_fields") or row.get("dati_obbligatori"))
     prefill_bindings = row.get("prefill_bindings") if isinstance(row.get("prefill_bindings"), dict) else {}
     cartabia = row.get("cartabia_verifica") if isinstance(row.get("cartabia_verifica"), dict) else {}
     missing = _list(cartabia.get("missing_fields"))
     available = _list(cartabia.get("available_fields"))
+    source_blocking = [_public_check_label(item) for item in _list(inventory_record.get("blocking_issues")) if _public_check_label(item)]
+    source_warnings = [_public_check_label(item) for item in _list(inventory_record.get("warnings")) if _public_check_label(item)]
+    blocking_checks = [
+        _public_check_label(item.get("label") if isinstance(item, dict) else item)
+        for item in _list(cartabia.get("controlli_bloccanti"))
+        if _public_check_label(item.get("label") if isinstance(item, dict) else item)
+    ]
+    blocking_checks = list(dict.fromkeys([*source_blocking, *blocking_checks]))
+    requires_review = bool(source_blocking or cartabia_state == "cartabia_review_required")
     return {
         "id": code,
         "kind": "catalogo",
@@ -104,7 +182,13 @@ def _catalog_record(row: dict[str, Any], index: int) -> dict[str, Any]:
         "portal": _text(row.get("portale_deposito")),
         "stateLabel": state.capitalize(),
         "stateTone": _tone_from_state(state),
-        "complianceLabel": "Revisione avvocato richiesta" if requires_review else ("Regole verificabili presenti" if cartabia_state else ""),
+        "complianceLabel": _compliance_label(
+            cartabia_state=cartabia_state,
+            requires_review=requires_review,
+            missing=missing,
+            blocking_checks=blocking_checks,
+            source_warnings=source_warnings,
+        ),
         "cartabiaState": cartabia_state,
         "cartabiaLabel": _text(row.get("cartabia_profile")),
         "processArea": _text(row.get("processo_area")),
@@ -112,13 +196,14 @@ def _catalog_record(row: dict[str, Any], index: int) -> dict[str, Any]:
         "prefillStatus": "precompilabile" if prefill_bindings else "da completare",
         "prefillAvailable": len(available) if available else len(prefill_bindings),
         "prefillMissing": len(missing),
-        "blockingChecks": [_text(item.get("label") if isinstance(item, dict) else item) for item in _list(cartabia.get("controlli_bloccanti")) if _text(item.get("label") if isinstance(item, dict) else item)],
+        "blockingChecks": blocking_checks,
         "recommendedChecks": [_text(item.get("label") if isinstance(item, dict) else item) for item in _list(cartabia.get("controlli_consigliati")) if _text(item.get("label") if isinstance(item, dict) else item)],
         "dataSources": [_text(item) for item in _list(row.get("fonti_prefill")) if _text(item)],
         "updatedAt": _text(row.get("updated_at") or row.get("created_at")),
         "tags": [_text(item) for item in _list(row.get("tags")) if _text(item)],
         "requiredVariables": _variable_names(required_fields),
-        "href": f"/redazione-atti?template={compiler_code}" if compiler_code else "/redazione-atti",
+        "href": f"/template-atti/compila/{compiler_code}" if compiler_code else "/redazione-atti",
+        "primaryActionLabel": "Compila con dati IUSENTRA",
         "detailHref": f"/template-atti/catalogo?scheda={code}",
     }
 
@@ -155,7 +240,8 @@ def _studio_record(template: Any, index: int) -> dict[str, Any]:
         "updatedAt": _text(getattr(template, "modificato_il", "") or getattr(template, "creato_il", "")),
         "tags": [_text(item) for item in _list(getattr(template, "parole_chiave", [])) if _text(item)],
         "requiredVariables": _variable_names(getattr(template, "campi_guidati", [])),
-        "href": f"/redazione-atti?template={template_id}",
+        "href": f"/template-atti/{template_id}/usa",
+        "primaryActionLabel": "Compila con dati IUSENTRA",
         "detailHref": f"/template-atti/catalogo?scheda={template_id}",
     }
 
@@ -208,7 +294,7 @@ def build_react_template_atti_payload(
 ) -> dict[str, Any]:
     warnings: list[dict[str, str]] = [
         _warning("produzione_disponibile", "Catalogo, scheda e avvio produzione sono disponibili nella pagina."),
-        _warning("revisione_professionale", "Le verifiche Cartabia aiutano la redazione ma non sostituiscono la revisione professionale dell'avvocato."),
+        _warning("verifica_finale", "I template pronti come modello richiedono i dati della pratica solo quando si avvia la compilazione."),
     ]
     catalog_rows = _safe_catalog_rows(warnings)
     studio_templates = _safe_studio_templates(get_template_manager, warnings)
@@ -226,6 +312,14 @@ def build_react_template_atti_payload(
     catalog_total = len(catalog_records)
     studio_total = len(studio_records)
     stamp_preview = studio_timbro or {"payload": {}, "lines": [], "html": "", "text": "", "scope": {}}
+    inventory_stats = _safe_inventory_stats()
+    if inventory_stats.get("detected_total") and not inventory_stats.get("matches_expected"):
+        warnings.append(
+            _warning(
+                "inventario_1320_non_allineato",
+                f"Inventario rilevato {inventory_stats.get('detected_total')} su 1320 attesi: i template non riconciliati restano in revisione.",
+            )
+        )
 
     legacy_contract = (
         "artifacts/react-migration/legacy-contracts/template-atti__catalogo.json"
@@ -233,7 +327,7 @@ def build_react_template_atti_payload(
         else "artifacts/react-migration/legacy-contracts/template-atti.json"
     )
     return {
-        "source": "repository_reali",
+        "source": "archivi_reali",
         "generated_at": _iso_now(),
         "contracts": {
             "mock_fallback": False,
@@ -248,7 +342,10 @@ def build_react_template_atti_payload(
             _metric("variabili", "Variabili", with_variables, "Campi richiesti", "warning" if with_variables else "neutral"),
             _metric("cartabia", "Profili Cartabia", with_cartabia, "Regole versionate", "info"),
             _metric("prefill", "Precompilabili", prefillable, "Dati da IUSENTRA", "success" if prefillable else "neutral"),
-            _metric("revisione", "Da revisionare", review_required, "Verifica avvocato richiesta", "warning" if review_required else "success"),
+            _metric("completare", "Da completare", review_required, "Dati pratica richiesti in compilazione", "warning" if review_required else "success"),
+            _metric("attesi", "Attesi", inventory_stats.get("expected_total", 1320), "Totale richiesto", "info"),
+            _metric("scostamento", "Scostamento", inventory_stats.get("delta", 0), "Differenza inventario", "warning" if inventory_stats.get("delta") else "success"),
+            _metric("timbro", "Timbro automatico", inventory_stats.get("with_timbro_automatico", 0), "Applicato dal renderer", "success"),
         ],
         "sections": [
             _counter_section("categorie", "Categorie", "distribution", categories, "Nessuna categoria disponibile."),

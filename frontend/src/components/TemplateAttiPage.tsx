@@ -34,6 +34,17 @@ function ContractStrip({ data }: { data: TemplateAttiPageData }) {
   )
 }
 
+function cartabiaStateLabel(state: string) {
+  const normalised = state.toLowerCase()
+  if (normalised === 'cartabia_ready') return 'Verificato dai controlli IUSENTRA'
+  if (normalised === 'cartabia_review_required') return 'Da completare con dati pratica'
+  if (normalised === 'needs_review') return 'Da completare'
+  if (normalised === 'draft_professionale') return 'Bozza professionale'
+  if (normalised === 'deprecated') return 'Non utilizzabile'
+  if (normalised === 'internal_only') return 'Uso interno'
+  return state.replaceAll('_', ' ')
+}
+
 function WarningList({ data }: { data: TemplateAttiPageData }) {
   if (!data.warnings.length) return null
   return (
@@ -160,9 +171,9 @@ function TemplateCard({ record, onOpen }: { record: TemplateAttiRecord; onOpen: 
         </div>
       ) : null}
       <div className="iu-template-badges">
-        {record.cartabiaState ? <Badge tone={record.requiresLawyerReview ? 'warning' : 'success'}>{record.cartabiaState.replaceAll('_', ' ')}</Badge> : null}
+        {record.cartabiaState ? <Badge tone={record.requiresLawyerReview ? 'warning' : 'success'}>{cartabiaStateLabel(record.cartabiaState)}</Badge> : null}
         {record.prefillStatus === 'precompilabile' ? <Badge tone="success">Precompilabile</Badge> : null}
-        {record.requiresLawyerReview ? <Badge tone="warning">Richiede verifica avvocato</Badge> : null}
+        {record.requiresLawyerReview ? <Badge tone="warning">Dati pratica richiesti</Badge> : null}
       </div>
       {record.requiredVariables.length ? (
         <div className="iu-template-vars">
@@ -184,7 +195,7 @@ function TemplateCard({ record, onOpen }: { record: TemplateAttiRecord; onOpen: 
           <ExternalLink size={16} aria-hidden="true" />
           Apri scheda
         </Button>
-        <ButtonLink href={record.href} tone="neutral">Usa in redazione</ButtonLink>
+        <ButtonLink href={record.href} tone="neutral">{record.primaryActionLabel}</ButtonLink>
       </footer>
     </article>
   )
@@ -204,7 +215,7 @@ function TemplateDetail({ record }: { record?: TemplateAttiRecord }) {
         <div><dt>Materia</dt><dd>{record.matter || record.area || 'Non indicata'}</dd></div>
         <div><dt>Canale</dt><dd>{record.channel || 'Non indicato'}</dd></div>
         <div><dt>Variabili</dt><dd>{record.requiredVariables.length}</dd></div>
-        <div><dt>Cartabia</dt><dd>{record.cartabiaState ? record.cartabiaState.replaceAll('_', ' ') : 'Da verificare'}</dd></div>
+        <div><dt>Cartabia</dt><dd>{record.cartabiaState ? cartabiaStateLabel(record.cartabiaState) : 'Da verificare'}</dd></div>
         <div><dt>Dati disponibili</dt><dd>{record.prefillAvailable}</dd></div>
       </dl>
       <div className="iu-template-checks">
@@ -223,7 +234,7 @@ function TemplateDetail({ record }: { record?: TemplateAttiRecord }) {
         </div>
       ) : null}
       <div className="iu-od-action-row">
-        <ButtonLink href={record.href} tone="primary">Usa in Redazione Atti</ButtonLink>
+        <ButtonLink href={record.href} tone="primary">{record.primaryActionLabel}</ButtonLink>
       </div>
     </section>
   )

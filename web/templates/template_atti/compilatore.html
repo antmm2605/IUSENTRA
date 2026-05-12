@@ -223,7 +223,7 @@
 
         <div class="d-flex gap-2 mt-4">
           <button type="submit" class="btn btn-primary btn-lg flex-grow-1" id="assist-generate-btn">
-            <i class="bi bi-magic me-2"></i>Crea bozza dell'atto
+            <i class="bi bi-magic me-2"></i>{% if selected_fascicolo %}Crea bozza e apri editor{% else %}Crea bozza dell'atto{% endif %}
           </button>
           <a href="{{ url_for('template_atti.lista') }}" class="btn btn-outline-secondary btn-lg">Annulla</a>
         </div>

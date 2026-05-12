@@ -1,6 +1,6 @@
 # Pytest issue aperte e risoluzioni
 
-Aggiornato: 2026-05-12, Template Atti Cartabia / prefill / timbro studio 2.218.0.
+Aggiornato: 2026-05-13, Template Atti STRICT prefill autore/editor professionale 2.218.1.
 
 ## Regola operativa
 
@@ -105,3 +105,6 @@ Questo file e' la coda di lavoro. Prima di rilanciare test gia' passati, control
 | Area | Gate | Stato | Nota |
 | --- | --- | --- | --- |
 | Notifiche legali modelli personalizzati 2.216.9 | Test mirati, contratti React, packaging, build, Docker locale e browser desktop/mobile registrati in `pytest-confirmed-ok.md` | Nessuna issue aperta | L'avvocato puo' vedere il testo del modello relata, duplicarlo o crearne uno nuovo usando campi automatici IUSENTRA. `Deposito prova notifica` e `Comunica al cliente` leggono la pratica selezionata e precompilano i dati certi senza salvare backup o inventare RAC/RdAC. |
+
+| Template Atti STRICT 2.218.1 | Inventario e test mirati registrati in `pytest-confirmed-ok.md` | Nessuna issue aperta sull'inventario numerico | L'inventario riconcilia 1320 template canonici su 1320 attesi e mantiene 4576 record fonte con 3256 copie eccedenti tracciate. Zero template canonici senza Cartabia, prefill, timbro, renderer o binding dopo recupero interno; le copie fonte riconciliabili restano tracciate come evidenza, non bloccano i 1320 modelli canonici. La prontezza del modello non dipende dall'esistenza preventiva di un fascicolo: cliente/pratica vengono richiesti e risolti quando l'avvocato avvia la compilazione. |
+| Template Atti STRICT autore/editor 2.218.1 | Batch unico template/editor | Timeout isolato | Il comando unico con 12 file test ha superato il budget locale da 240s senza produrre failure funzionali. | Gli stessi file sono stati verificati in tre shard: 11/11, 10/10 e 24/24 passati. `npm --prefix frontend run typecheck` verde. |

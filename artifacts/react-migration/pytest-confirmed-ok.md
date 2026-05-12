@@ -1,6 +1,6 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-12, Template Atti Cartabia / prefill / timbro studio 2.218.0.
+Aggiornato: 2026-05-13, Template Atti STRICT prefill autore/editor professionale 2.218.1.
 
 ## Regola operativa
 
@@ -23,6 +23,30 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 | `python -m pytest -q tests\test_packaging_consistency.py tests\test_release_readiness.py --tb=short` | OK | 8/8 passati: coerenza packaging e readiness release confermate per 2.218.0. |
 | Docker locale `docker compose build --no-cache app scheduler-worker ocr-worker` + `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx` | OK | Immagini finali 2.218.0 ricostruite dopo micro-patch UI; app, scheduler, OCR e Redis healthy, Nginx attivo, `/api/pronto` 200 con versione `2.218.0`. |
 | Browser Chrome headless su `/template-atti/catalogo` e `/template-atti/compila/CIV_CIT_001` | OK | Catalogo desktop/tablet/mobile: Cartabia, timbro e prefill visibili, DOMContentLoaded caldo 291/254/287 ms; compilatore desktop 791 ms; nessun errore console, nessun overflow orizzontale e nessun testo tecnico vietato. Primo accesso post-rebuild ha mostrato warm-up tenant gia' registrato. |
+
+### Template Atti STRICT inventario/fonti 2.218.1
+
+| Verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct\template_atti_inventory.py pct\template_atti_unified_catalog.py pct\template_atti_prefill.py pct\template_cartabia_rules.py pct\studio_timbro.py web\blueprints\template_atti.py web\blueprints\api_v1_react.py` | OK | Sintassi confermata per inventario, catalogo unificato, prefill STRICT, fonti Cartabia, timbro top-left e nuove API. |
+| `python scripts\template_atti\build_template_inventory.py` | OK | Report aggiornato: 1320 template canonici rilevati su 1320 attesi, scostamento 0; 4576 record di fonte ispezionati, 3256 copie eccedenti tracciate e 710 gruppi con copie multiple riconciliati senza promuovere record duplicati. |
+| `python -m pytest tests/test_template_atti_master_catalog.py tests/test_template_atti_inventory.py tests/test_template_atti_cartabia_strict.py tests/test_template_atti_prefill_strict.py tests/test_template_atti_timbro.py tests/test_template_atti_unified_catalog.py tests/test_template_atti_sources.py tests/test_template_atti_api_strict.py tests/test_template_atti_cartabia_prefill_timbro.py -q` | OK | 30/30 passati: catalogo master, inventario, copie fonte riconciliate, strict mode, fonti ufficiali, prefill priorita/conflitti, timbro, API e regressioni 2.218.0. |
+| `npm --prefix frontend run typecheck` | OK | TypeScript confermato dopo label UI `Compila con dati IUSENTRA`, metriche inventario e stato Cartabia non assolutistico. |
+| `npm --prefix frontend run build` | OK | Build Vite 2.218.1 completata in 6.72s; chunk lazy `TemplateAttiPage-CPfS4W17.js` 16.96 kB / 5.07 kB gzip. |
+| `python tools\sync_packaging_files.py --check` | OK | Packaging sincronizzato dopo bump 2.218.1. |
+| `python -m pytest -q tests\test_packaging_consistency.py tests\test_release_readiness.py --tb=short` | OK | 8/8 passati: coerenza packaging e readiness release confermate per 2.218.1. |
+
+### Template Atti STRICT autore/editor professionale 2.218.1
+
+| Verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct\template_atti_prefill.py pct\compilatore_atti.py web\blueprints\template_atti.py web\blueprints\api_v1_react.py web\services\react_template_atti_bridge.py` | OK | Sintassi confermata dopo priorita' `Autore` da Dati Studio/Avvocato titolare e import automatico nell'editor professionale. |
+| `python -m pytest tests/test_template_atti_prefill_strict.py tests/test_template_atti_api_strict.py tests/test_assistente_redazionale.py -q` | OK | 9/9 passati: `autore` e `author_user_id` risolti da Dati Studio, API prefill allineata e compilazione con pratica importata come documento del fascicolo nell'editor. |
+| `python -m pytest tests/test_template_atti_inventory.py tests/test_template_atti_cartabia_strict.py tests/test_template_atti_unified_catalog.py tests/test_template_atti_sources.py -q` | OK | 11/11 passati: inventario, Cartabia STRICT, catalogo unificato e fonti ufficiali confermati dopo l'ultimo cambio. |
+| `python -m pytest tests/test_template_atti_prefill_strict.py tests/test_template_atti_api_strict.py tests/test_template_atti_cartabia_prefill_timbro.py -q` | OK | 10/10 passati: prefill, API strict e regressioni Cartabia/prefill/timbro. |
+| `python -m pytest tests/test_template_atti_master_catalog.py tests/test_template_atti_timbro.py tests/test_template_atti_workspace.py tests/test_assistente_redazionale.py tests/test_react_document_editor.py -q` | OK | 24/24 passati: catalogo master, timbro, workspace template, assistente redazionale e route/payload editor React. |
+| `python -m pytest tests/test_template_atti_master_catalog.py tests/test_template_atti_inventory.py tests/test_template_atti_cartabia_strict.py tests/test_template_atti_prefill_strict.py tests/test_template_atti_timbro.py tests/test_template_atti_unified_catalog.py tests/test_template_atti_sources.py tests/test_template_atti_api_strict.py tests/test_template_atti_cartabia_prefill_timbro.py tests/test_template_atti_workspace.py tests/test_assistente_redazionale.py tests/test_react_document_editor.py -q` | Timeout isolato | Batch unico troppo largo per il budget locale; gli stessi file sono passati nei tre shard sopra. |
+| `npm --prefix frontend run typecheck` | OK | TypeScript confermato dopo il cambio di flusso dal catalogo al compilatore. |
 
 ### Notifiche legali sicure / bozze relata / comunicazioni cliente 2.217.1
 
@@ -833,6 +857,15 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx` | OK | Servizi locali riavviati senza backup; app, scheduler, OCR e Redis healthy, Nginx attivo. |
 | `docker compose ps`; `Invoke-WebRequest http://127.0.0.1:8080/api/pronto`; `docker exec iusentra-app python -c "import pct; print(pct.__version__)"` | OK | Docker locale healthy; readiness `versione=2.217.2` e runtime container `2.217.2`. |
 | Browser Playwright headless autenticato/impersonato su `http://127.0.0.1:8080/notifiche`, desktop/tablet/mobile | OK | Pannello `Notifiche su questo dispositivo`, nota iPhone/iPad e pulsanti attiva/disattiva/test visibili; `ServiceWorker`, `PushManager` e `Notification` presenti; nessun overflow e nessun termine tecnico vietato visibile. |
+
+## Template Atti STRICT Cartabia/prefill/timbro 2.218.1 - 2026-05-12
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct\template_atti_inventory.py pct\template_atti_unified_catalog.py pct\template_atti_prefill.py pct\template_cartabia_rules.py pct\studio_timbro.py web\blueprints\template_atti.py web\blueprints\api_v1_react.py` | OK | Sintassi confermata per inventario, catalogo unificato, prefill STRICT, fonti Cartabia, timbro top-left e nuove API. |
+| `python scripts\template_atti\build_template_inventory.py` | OK | Report aggiornato: 1320 template canonici rilevati su 1320 attesi, scostamento 0; 4576 record di fonte ispezionati, 3256 copie eccedenti tracciate e conflitti fonte bloccati in revisione. |
+| `python -m pytest tests/test_template_atti_inventory.py tests/test_template_atti_unified_catalog.py tests/test_template_atti_cartabia_strict.py tests/test_template_atti_prefill_strict.py tests/test_template_atti_timbro.py tests/test_template_atti_sources.py tests/test_template_atti_api_strict.py tests/test_template_atti_cartabia_prefill_timbro.py -q` | OK | 20/20 passati: inventario, strict mode, fonti ufficiali, prefill priorita/conflitti, timbro, API e regressioni 2.218.0. |
+| `npm --prefix frontend run typecheck` | OK | TypeScript confermato dopo label UI `Compila con dati IUSENTRA`, metriche inventario e stato Cartabia non assolutistico. |
 
 ## Fascicolo Documenti e Cancelleria preview 2026-05-12
 

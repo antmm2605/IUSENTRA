@@ -1,5 +1,18 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-12 - Template Atti Cartabia / prefill / timbro studio 2.218.1
+
+La tranche e' stata rafforzata in modalita STRICT: l'inventario ora scandisce
+master, split, compilatore, repository JSON, SQLite e tenant, riconciliando
+il catalogo operativo a `1320` template canonici e mantenendo `4576` record di
+fonte come evidenze/duplicati tracciati senza gonfiare il totale.
+I dati mancanti nei repository non vengono piu' lasciati a revisione passiva:
+Cartabia, prefill, timbro, renderer e binding compilatore vengono recuperati
+dalle fonti interne disponibili, incluse le tabelle SQLite e il catalogo
+workspace. Le fonti normative sono registrate in
+`docs/legal_sources/cartabia_sources.jsonl`; se una regola futura non ha fonte
+ufficiale, il template resta bloccato per verifica professionale.
+
 ## Stato tranche 2026-05-12 - Template Atti Cartabia / prefill / timbro studio 2.218.0
 
 `/template-atti`, `/template-atti/catalogo` e il compilatore atti sono stati

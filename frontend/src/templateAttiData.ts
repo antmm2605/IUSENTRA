@@ -37,6 +37,7 @@ export type TemplateAttiRecord = {
   tags: string[]
   requiredVariables: TemplateVariableMeta[]
   href: string
+  primaryActionLabel: string
   detailHref: string
 }
 
@@ -196,6 +197,7 @@ function normaliseRecord(input: unknown): TemplateAttiRecord {
     tags: list(item.tags).map((tag) => text(tag)).filter(Boolean),
     requiredVariables: list(item.requiredVariables).map(normaliseVariable).filter((variable) => variable.name),
     href: safeHref(item.href, '/template-atti/catalogo'),
+    primaryActionLabel: text(item.primaryActionLabel) || 'Compila con dati IUSENTRA',
     detailHref: safeHref(item.detailHref, ''),
   }
 }

@@ -11,6 +11,7 @@ import re
 from datetime import date
 from html import escape
 from types import SimpleNamespace
+from typing import Any
 
 from flask import (Blueprint, abort, current_app, flash, g, jsonify,
                    redirect, render_template, request, send_file, url_for)
@@ -95,6 +96,48 @@ def _get_config_studio_manager():
     from pct.config_studio import GestioneConfigStudio
 
     return GestioneConfigStudio(config_path=_cfg_path("CONFIG_STUDIO_DB", "./config/studio.json"))
+
+
+def _studio_config_for_prefill() -> dict:
+    """Espone al compilatore i dati studio reali, inclusi quelli salvati in Impostazioni."""
+    config = dict(current_app.config)
+    try:
+        manager = _get_config_studio_manager()
+        config_studio = getattr(manager, "config", None)
+        studio = getattr(config_studio, "studio", None)
+        pec = getattr(config_studio, "pec", None)
+    except Exception:
+        studio = None
+        pec = None
+
+    if studio is not None:
+        studio_payload = {
+            "nome": str(getattr(studio, "nome", "") or "").strip(),
+            "avvocato": str(getattr(studio, "avvocato", "") or "").strip(),
+            "indirizzo": str(getattr(studio, "indirizzo", "") or "").strip(),
+            "cf": str(getattr(studio, "cf", "") or "").strip(),
+            "piva": str(getattr(studio, "piva", "") or "").strip(),
+            "codice_fiscale_avvocato": str(getattr(studio, "codice_fiscale_avvocato", "") or "").strip(),
+        }
+        config["studio"] = studio_payload
+        if studio_payload["nome"]:
+            config["STUDIO_NOME"] = studio_payload["nome"]
+        if studio_payload["avvocato"]:
+            config["STUDIO_AVVOCATO"] = studio_payload["avvocato"]
+            config["PCT_STUDIO_AVVOCATO"] = studio_payload["avvocato"]
+        if studio_payload["indirizzo"]:
+            config["STUDIO_INDIRIZZO"] = studio_payload["indirizzo"]
+        if studio_payload["cf"]:
+            config["STUDIO_CF"] = studio_payload["cf"]
+        if studio_payload["piva"]:
+            config["STUDIO_PIVA"] = studio_payload["piva"]
+    if pec is not None:
+        pec_payload = {"indirizzo": str(getattr(pec, "indirizzo", "") or "").strip()}
+        config["pec"] = pec_payload
+        if pec_payload["indirizzo"]:
+            config["PCT_STUDIO_PEC"] = pec_payload["indirizzo"]
+            config.setdefault("SMTP_FROM", pec_payload["indirizzo"])
+    return config
 
 
 def _get_studio_timbro():
@@ -301,7 +344,7 @@ def _prefill_template_fields(template, *, cliente=None, fascicolo=None, parti=No
             fascicolo=fascicolo,
             cliente=cliente,
             utente=g.get("utente_corrente"),
-            config=current_app.config,
+            config=_studio_config_for_prefill(),
             studio_timbro=_get_studio_timbro(),
             parti=parti,
             legacy_payload=values,
@@ -422,7 +465,7 @@ def _resolve_compiler_context(model_code: str):
         fascicolo=selected_fascicolo,
         cliente=selected_cliente,
         utente=g.get("utente_corrente"),
-        config=current_app.config,
+        config=_studio_config_for_prefill(),
         studio_timbro=_get_studio_timbro(),
         parti=parti_prefill,
     )
@@ -456,6 +499,144 @@ def _build_assistant_analysis(model_code: str, *, payload: dict, selected_client
         cliente=selected_cliente,
         utente=g.get("utente_corrente"),
     ).to_dict()
+
+
+def _audit_template_event(action: str, resource_type: str = "", resource_id: str = "", details: str = "") -> None:
+    audit = (current_app.extensions.get("core_runtime", {}) or {}).get("audit")
+    if not callable(audit):
+        return
+    try:
+        audit(action, resource_type, resource_id, dettagli=details)
+    except TypeError:
+        try:
+            audit(action, resource_type, resource_id, details)
+        except Exception:
+            current_app.logger.debug("Audit template atti non registrato per %s", action, exc_info=True)
+    except Exception:
+        current_app.logger.debug("Audit template atti non registrato per %s", action, exc_info=True)
+
+
+def _safe_editor_filename(title: str, model_code: str) -> str:
+    stem = re.sub(r"[^A-Za-z0-9._-]+", "_", str(title or "").lower()).strip("._-")
+    if not stem:
+        stem = re.sub(r"[^A-Za-z0-9._-]+", "_", str(model_code or "atto").lower()).strip("._-") or "atto"
+    return f"{stem[:70]}_{date.today().strftime('%Y%m%d')}.html"
+
+
+def _importa_compilazione_editor_professionale(
+    *,
+    model_code: str,
+    model: dict,
+    payload: dict,
+    testo_generato: str,
+    selected_fascicolo: Any,
+) -> dict[str, str] | None:
+    id_fascicolo = str(getattr(selected_fascicolo, "id", "") or payload.get("case_id") or "").strip()
+    if not id_fascicolo:
+        return None
+
+    from pct.fascicoli import TipoDocumento
+    from web.services.document_crypto import encrypt_doc
+
+    try:
+        from pct.editor_ai.editor_renderer import sanitize_editor_html
+    except Exception:
+        sanitize_editor_html = lambda value: value or "<p></p>"  # noqa: E731
+
+    title = _valore_form(payload.get("title") or model.get("name") or model_code or "Atto")
+    filename = _safe_editor_filename(title, model_code)
+    editor_html = sanitize_editor_html(_to_editor_html(testo_generato))
+    utente = g.get("utente_corrente")
+    documento = get_fascicoli().aggiungi_documento(
+        id_fascicolo,
+        filename,
+        TipoDocumento.ATTO_GIUDIZIARIO,
+        encrypt_doc(editor_html.encode("utf-8")),
+        note=f"Bozza creata da Template Atti: {title}",
+        tags=["template-atti", "bozza-editor", str(model_code or "").lower()],
+        caricato_da=getattr(utente, "username", "") if utente else "",
+        fonte_documento="TEMPLATE_ATTI_COMPILATORE",
+        nome_originale=filename,
+    )
+    open_url = f"/fascicoli/{id_fascicolo}/documenti/{documento.id}/editor"
+    _audit_template_event(
+        "template_atti.compilazione.importa_editor",
+        "fascicolo",
+        id_fascicolo,
+        f"modello={model_code}; documento={documento.id}",
+    )
+    return {"document_id": documento.id, "filename": documento.nome, "open_url": open_url}
+
+
+def _request_payload() -> dict:
+    payload = request.get_json(silent=True)
+    return payload if isinstance(payload, dict) else {}
+
+
+def _resolve_template_context_payload(payload: dict | None = None) -> dict:
+    payload = payload or {}
+    id_cliente = (
+        str(payload.get("id_cliente") or payload.get("cliente_id") or "").strip()
+        or request.args.get("id_cliente", "").strip()
+    )
+    id_fascicolo = (
+        str(payload.get("id_fascicolo") or payload.get("case_id") or payload.get("pratica_id") or "").strip()
+        or request.args.get("id_fascicolo", "").strip()
+        or request.args.get("case_id", "").strip()
+    )
+    clienti_repo = get_clienti()
+    fascicoli_repo = get_fascicoli()
+    selected_cliente = clienti_repo.get(id_cliente) if id_cliente else None
+    selected_fascicolo = fascicoli_repo.get(id_fascicolo) if id_fascicolo else None
+    if selected_fascicolo and not selected_cliente and getattr(selected_fascicolo, "id_cliente", ""):
+        selected_cliente = clienti_repo.get(selected_fascicolo.id_cliente)
+        id_cliente = getattr(selected_cliente, "id", "") if selected_cliente else id_cliente
+    _, parti_prefill = _build_parti_template_context(id_fascicolo)
+    return {
+        "id_cliente": id_cliente,
+        "id_fascicolo": id_fascicolo,
+        "selected_cliente": selected_cliente,
+        "selected_fascicolo": selected_fascicolo,
+        "parti": parti_prefill,
+    }
+
+
+def _resolve_template_prefill_response(codice: str, payload: dict | None = None) -> tuple[dict, int]:
+    from pct.template_atti_prefill import resolve_template_prefill
+    from pct.template_atti_unified_catalog import get_unified_template_item
+
+    payload = payload or {}
+    item = get_unified_template_item(codice)
+    if not item:
+        return {"ok": False, "errore": "Template non trovato.", "codice": codice}, 404
+    context = _resolve_template_context_payload(payload)
+    values = payload.get("values") if isinstance(payload.get("values"), dict) else {}
+    dati = payload.get("dati") if isinstance(payload.get("dati"), dict) else {}
+    legacy_payload = {**dati, **values}
+    resolution = resolve_template_prefill(
+        model_code=item.get("link_compilatore_code") or item.get("codice") or codice,
+        bindings=item.get("prefill_bindings") if isinstance(item.get("prefill_bindings"), dict) else None,
+        required_fields=list(item.get("required_prefill_fields") or item.get("prefill_required_fields") or []),
+        optional_fields=list(item.get("optional_prefill_fields") or []),
+        legacy_campi=list(item.get("dati_obbligatori") or []),
+        fascicolo=context["selected_fascicolo"],
+        cliente=context["selected_cliente"],
+        utente=g.get("utente_corrente"),
+        config=_studio_config_for_prefill(),
+        studio_timbro=_get_studio_timbro(),
+        parti=context["parti"],
+        legacy_payload=legacy_payload,
+    )
+    return {
+        "ok": True,
+        "codice": item.get("codice") or codice,
+        "titolo": item.get("titolo"),
+        "context": {
+            "id_cliente": context["id_cliente"],
+            "id_fascicolo": context["id_fascicolo"],
+        },
+        "prefill": resolution,
+    }, 200
 
 
 # ================================================================ LISTA
@@ -626,12 +807,17 @@ def catalogo():
 @_richiedi_login
 def catalogo_data():
     from pct.template_catalog_service import build_template_catalog_page_context
+    from pct.template_atti_inventory import build_template_inventory, template_inventory_stats
 
     context = build_template_catalog_page_context()
+    records = build_template_inventory()
+    source_records = build_template_inventory(include_source_duplicates=True)
+    inventory = template_inventory_stats(records, source_records=source_records)
     return jsonify(
         {
             "ok": True,
             "suite": context["suite_summary"],
+            "inventory": inventory,
             "templates": context["template_suite"],
             "filters": context["template_filters"],
         }
@@ -645,6 +831,138 @@ def catalogo_filters():
 
     context = build_template_catalog_page_context()
     return jsonify({"ok": True, "filters": context["template_filters"], "quick_filters": context["quick_filters"]})
+
+
+@template_atti.route("/inventory/data", methods=["GET"])
+@_richiedi_login
+def template_inventory_data():
+    from pct.template_atti_inventory import (
+        build_template_inventory,
+        detect_duplicate_templates,
+        detect_missing_cartabia_profile,
+        detect_missing_prefill_bindings,
+        detect_missing_timbro_support,
+        detect_templates_not_reachable_from_ui,
+        template_inventory_stats,
+    )
+
+    records = build_template_inventory()
+    source_records = build_template_inventory(include_source_duplicates=True)
+    stats = template_inventory_stats(records, source_records=source_records)
+    return jsonify(
+        {
+            "ok": True,
+            "stats": stats,
+            "records": records[:250],
+            "samples": {
+                "senza_cartabia": detect_missing_cartabia_profile(records)[:50],
+                "senza_prefill": detect_missing_prefill_bindings(records)[:50],
+                "senza_timbro": detect_missing_timbro_support(records)[:50],
+                "duplicati": detect_duplicate_templates(source_records)[:25],
+                "non_raggiungibili_ui": detect_templates_not_reachable_from_ui(records)[:50],
+            },
+        }
+    )
+
+
+@template_atti.route("/<codice>/prefill", methods=["GET"])
+@_richiedi_login
+def template_prefill_data(codice: str):
+    payload, status = _resolve_template_prefill_response(codice)
+    return jsonify(payload), status
+
+
+@template_atti.route("/<codice>/prefill/resolve", methods=["POST"])
+@_richiedi_login
+def template_prefill_resolve(codice: str):
+    payload, status = _resolve_template_prefill_response(codice, _request_payload())
+    return jsonify(payload), status
+
+
+@template_atti.route("/<codice>/prefill/merge", methods=["POST"])
+@_richiedi_login
+def template_prefill_merge(codice: str):
+    from pct.template_atti_prefill import merge_prefill_values
+
+    request_payload = _request_payload()
+    resolved_payload, status = _resolve_template_prefill_response(codice, request_payload)
+    if status != 200:
+        return jsonify(resolved_payload), status
+    user_values = request_payload.get("user_values") if isinstance(request_payload.get("user_values"), dict) else {}
+    if not user_values:
+        user_values = request_payload.get("values") if isinstance(request_payload.get("values"), dict) else {}
+    prefill = resolved_payload.get("prefill") or {}
+    merge = merge_prefill_values(user_values, prefill.get("values"), prefill.get("fields"))
+    return jsonify({"ok": True, "codice": resolved_payload.get("codice"), "merge": merge, "prefill": prefill})
+
+
+@template_atti.route("/<codice>/cartabia-compliance", methods=["GET"])
+@_richiedi_login
+def template_cartabia_compliance(codice: str):
+    from pct.template_cartabia_rules import verifica_cartabia_template
+    from pct.template_atti_unified_catalog import get_unified_template_item
+
+    item = get_unified_template_item(codice)
+    if not item:
+        return jsonify({"ok": False, "errore": "Template non trovato.", "codice": codice}), 404
+    return jsonify({"ok": True, "codice": item.get("codice") or codice, "cartabia": verifica_cartabia_template(item)})
+
+
+@template_atti.route("/<codice>/verifica-cartabia", methods=["POST"])
+@_richiedi_login
+def template_verifica_cartabia(codice: str):
+    from pct.template_cartabia_rules import verifica_cartabia_template
+    from pct.template_atti_unified_catalog import get_unified_template_item
+
+    request_payload = _request_payload()
+    item = get_unified_template_item(codice)
+    if not item:
+        return jsonify({"ok": False, "errore": "Template non trovato.", "codice": codice}), 404
+    prefill_payload, _ = _resolve_template_prefill_response(codice, request_payload)
+    prefill = prefill_payload.get("prefill") if prefill_payload.get("ok") else {}
+    values = request_payload.get("values") if isinstance(request_payload.get("values"), dict) else {}
+    result = verifica_cartabia_template(item, prefill_resolution=prefill, payload=values)
+    return jsonify({"ok": result.get("ok", False), "codice": item.get("codice") or codice, "cartabia": result})
+
+
+@template_atti.route("/<codice>/verifica-completa", methods=["POST"])
+@_richiedi_login
+def template_verifica_completa(codice: str):
+    from pct.template_atti_prefill import merge_prefill_values
+    from pct.template_catalog_service import verifica_deposito_template as _verifica_deposito
+    from pct.template_cartabia_rules import verifica_cartabia_template
+    from pct.template_atti_unified_catalog import get_unified_template_item
+
+    request_payload = _request_payload()
+    item = get_unified_template_item(codice)
+    if not item:
+        return jsonify({"ok": False, "errore": "Template non trovato.", "codice": codice}), 404
+    prefill_payload, status = _resolve_template_prefill_response(codice, request_payload)
+    if status != 200:
+        return jsonify(prefill_payload), status
+    prefill = prefill_payload.get("prefill") or {}
+    user_values = request_payload.get("values") if isinstance(request_payload.get("values"), dict) else {}
+    merge = merge_prefill_values(user_values, prefill.get("values"), prefill.get("fields"))
+    cartabia = verifica_cartabia_template(item, prefill_resolution=prefill, payload=merge.get("values"))
+    deposito = _verifica_deposito(
+        item.get("codice") or codice,
+        {
+            "dati": merge.get("values") or {},
+            "allegati": request_payload.get("allegati") if isinstance(request_payload.get("allegati"), dict) else {},
+        },
+    )
+    blocking = bool(cartabia.get("controlli_bloccanti") or deposito.get("dati_mancanti") or deposito.get("allegati_mancanti"))
+    return jsonify(
+        {
+            "ok": not blocking,
+            "codice": item.get("codice") or codice,
+            "prefill": prefill,
+            "merge": merge,
+            "cartabia": cartabia,
+            "deposito": deposito,
+            "stato": "verificato" if not blocking else "richiede_revisione",
+        }
+    )
 
 
 @template_atti.route("/<codice>/compliance", methods=["GET"])
@@ -931,6 +1249,21 @@ def compila(model_code: str):
             return render_template("template_atti/compilatore.html", **ctx)
 
         testo_generato = render_compiled_act(model_code, payload)
+        if selected_fascicolo:
+            try:
+                editor_import = _importa_compilazione_editor_professionale(
+                    model_code=model_code,
+                    model=model,
+                    payload=payload,
+                    testo_generato=testo_generato,
+                    selected_fascicolo=selected_fascicolo,
+                )
+                if editor_import:
+                    flash("Bozza importata nell'editor professionale. Puoi impaginarla e salvarla nel fascicolo.", "success")
+                    return redirect(editor_import["open_url"])
+            except Exception as exc:
+                current_app.logger.exception("Import editor professionale non riuscito per %s: %s", model_code, exc)
+                flash("Bozza creata, ma l'importazione nell'editor professionale non e' riuscita. Resta disponibile l'anteprima.", "warning")
         ctx = _contesto_compilatore(
             model_code,
             payload=payload,

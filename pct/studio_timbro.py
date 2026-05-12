@@ -21,10 +21,13 @@ SCHEMA_STUDIO_TIMBRO = Path(__file__).with_name("sql") / "20260512_studio_timbro
 POSTGRES_SCHEMA_STUDIO_TIMBRO = Path(__file__).with_name("sql") / "20260512_studio_timbro_postgres.sql"
 
 DEFAULT_LAYOUT: dict[str, Any] = {
-    "posizione": "top_center",
-    "allineamento": "center",
+    "posizione": "top_left",
+    "allineamento": "left",
     "margine_alto_mm": 18,
+    "margine_sinistro_mm": 18,
     "margine_basso_mm": 10,
+    "larghezza_blocco_mm": 82,
+    "interlinea": 1.22,
     "font_per_riga": ["Helvetica-Bold", "Helvetica", "Helvetica", "Helvetica", "Helvetica", "Helvetica"],
     "dimensione_per_riga": [13, 10, 9, 9, 9, 9],
     "grassetto_per_riga": [True, False, False, False, False, False],
@@ -149,12 +152,32 @@ def normalize_timbro_payload(payload: dict[str, Any] | None, *, defaults: dict[s
     result["righe_extra"] = [_clean(item) for item in _as_list(raw.get("righe_extra", defaults.get("righe_extra", []))) if _clean(item)]
     layout_raw = raw.get("layout", defaults.get("layout", {}))
     layout_raw = layout_raw if isinstance(layout_raw, dict) else {}
+    flat_layout_aliases = {
+        "layout_posizione": "posizione",
+        "layout_allineamento": "allineamento",
+        "margine_top_mm": "margine_alto_mm",
+        "margine_left_mm": "margine_sinistro_mm",
+        "margine_bottom_after_timbro_mm": "margine_basso_mm",
+        "larghezza_blocco_mm": "larghezza_blocco_mm",
+        "line_spacing": "interlinea",
+        "font_family": "font_per_riga",
+    }
+    for raw_key, layout_key in flat_layout_aliases.items():
+        if raw.get(raw_key) not in (None, ""):
+            layout_raw[layout_key] = raw[raw_key]
     layout = dict(DEFAULT_LAYOUT)
     layout.update({key: value for key, value in layout_raw.items() if key in DEFAULT_LAYOUT})
-    layout["posizione"] = "top_center"
-    layout["allineamento"] = "center"
+    layout["posizione"] = "top_left"
+    layout["allineamento"] = "left"
     layout["margine_alto_mm"] = _as_int(layout.get("margine_alto_mm"), DEFAULT_LAYOUT["margine_alto_mm"], min_value=0, max_value=60)
+    layout["margine_sinistro_mm"] = _as_int(layout.get("margine_sinistro_mm"), DEFAULT_LAYOUT["margine_sinistro_mm"], min_value=0, max_value=60)
     layout["margine_basso_mm"] = _as_int(layout.get("margine_basso_mm"), DEFAULT_LAYOUT["margine_basso_mm"], min_value=0, max_value=60)
+    layout["larghezza_blocco_mm"] = _as_int(layout.get("larghezza_blocco_mm"), DEFAULT_LAYOUT["larghezza_blocco_mm"], min_value=40, max_value=140)
+    try:
+        line_spacing = float(layout.get("interlinea", DEFAULT_LAYOUT["interlinea"]))
+    except (TypeError, ValueError):
+        line_spacing = DEFAULT_LAYOUT["interlinea"]
+    layout["interlinea"] = max(1.0, min(1.8, line_spacing))
     layout["font_per_riga"] = [_clean(item) or "Helvetica" for item in _as_list(layout.get("font_per_riga"))]
     layout["dimensione_per_riga"] = [
         _as_int(item, 9, min_value=7, max_value=18) for item in _as_list(layout.get("dimensione_per_riga"))
@@ -162,6 +185,16 @@ def normalize_timbro_payload(payload: dict[str, Any] | None, *, defaults: dict[s
     layout["grassetto_per_riga"] = [_as_bool(item) for item in _as_list(layout.get("grassetto_per_riga"))]
     layout["corsivo_per_riga"] = [_as_bool(item) for item in _as_list(layout.get("corsivo_per_riga"))]
     result["layout"] = layout
+    result["layout_posizione"] = layout["posizione"]
+    result["layout_allineamento"] = layout["allineamento"]
+    result["margine_top_mm"] = layout["margine_alto_mm"]
+    result["margine_left_mm"] = layout["margine_sinistro_mm"]
+    result["margine_bottom_after_timbro_mm"] = layout["margine_basso_mm"]
+    result["larghezza_blocco_mm"] = layout["larghezza_blocco_mm"]
+    result["line_spacing"] = layout["interlinea"]
+    result["font_family"] = _clean(_style_at(_as_list(layout.get("font_per_riga")), 0, "Helvetica")) or "Helvetica"
+    result["font_size_studio_nome"] = _as_int(_style_at(_as_list(layout.get("dimensione_per_riga")), 0, 13), 13, min_value=7, max_value=18)
+    result["font_size_righe"] = _as_int(_style_at(_as_list(layout.get("dimensione_per_riga")), 1, 9), 9, min_value=7, max_value=18)
     for key, default in DEFAULT_FLAGS.items():
         result[key] = _as_bool(raw.get(key, defaults.get(key, default)), default)
     return result
@@ -233,7 +266,7 @@ class StudioTimbro:
                 {
                     "text": text,
                     "source": source,
-                    "align": "center",
+                    "align": "left",
                     "font": _clean(_style_at(fonts, index, "Helvetica")) or "Helvetica",
                     "size": _as_int(_style_at(sizes, index, 9), 9, min_value=7, max_value=18),
                     "bold": _as_bool(_style_at(bold, index, index == 0), index == 0),
@@ -253,27 +286,27 @@ class StudioTimbro:
         for line in lines:
             weight = "700" if line.get("bold") else "400"
             style = (
-                "text-align:center;"
+                "text-align: left;"
                 f"font-size:{int(line.get('size') or 9)}pt;"
                 f"font-weight:{weight};"
                 f"font-style:{'italic' if line.get('italic') else 'normal'};"
-                "line-height:1.32;"
+                f"line-height:{float(self.payload.get('layout', {}).get('interlinea', 1.22)):.2f};"
                 "margin:0;"
             )
             html_lines.append(f'<p style="{style}">{escape(line["text"])}</p>')
         return (
             '<div class="iusentra-studio-timbro" data-studio-timbro="true" '
-            'style="text-align:center;margin:0 auto 1.1rem auto;">'
+            'style="text-align: left;margin:0 0 1.1rem 0;max-width:82mm;">'
             + "".join(html_lines)
             + "</div>"
         )
 
     def to_docx_header(self) -> dict[str, Any]:
-        return {"position": "top_center", "lines": self.to_lines(), "scope": self.scope_payload()}
+        return {"position": "top_left", "alignment": "left", "lines": self.to_lines(), "scope": self.scope_payload()}
 
     def to_pdf_flowable(self, styles: Any = None) -> list[Any]:
         try:
-            from reportlab.lib.enums import TA_CENTER
+            from reportlab.lib.enums import TA_LEFT
             from reportlab.platypus import Paragraph, Spacer
             from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
             from reportlab.lib.units import mm
@@ -288,8 +321,8 @@ class StudioTimbro:
                 parent=base_styles["Normal"],
                 fontName=font,
                 fontSize=int(line.get("size") or 9),
-                leading=int(line.get("size") or 9) + 2,
-                alignment=TA_CENTER,
+                leading=max(8, int((int(line.get("size") or 9)) * float(self.payload.get("layout", {}).get("interlinea", 1.22)))),
+                alignment=TA_LEFT,
                 spaceAfter=1,
             )
             flowables.append(Paragraph(escape(line["text"]), style))
@@ -435,4 +468,3 @@ __all__ = [
     "normalize_timbro_payload",
     "save_studio_timbro",
 ]
-

@@ -260,11 +260,21 @@ def test_compila_template_post_usa_id_fascicolo_del_form_anche_se_query_vuota(tm
             },
         )
 
-    assert response.status_code == 200
-    html = response.get_data(as_text=True)
-    assert "Bozza professionale" in html
-    assert "Campo redazionale obbligatorio: case_id" not in html
-    assert "Pratica Collegata obbligatorio." not in html
+    assert response.status_code == 302
+    assert f"/fascicoli/{fasc.id}/documenti/" in response.headers["Location"]
+    assert response.headers["Location"].endswith("/editor")
+    reloaded = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    fascicolo_salvato = reloaded.get(fasc.id)
+    assert fascicolo_salvato is not None
+    assert any(
+        doc.fonte_documento == "TEMPLATE_ATTI_COMPILATORE"
+        and "template-atti" in doc.tags
+        for doc in fascicolo_salvato.documenti
+    )
 
 
 def test_compilatore_mostra_correzione_guidata_e_campi_evidenziati(tmp_path):

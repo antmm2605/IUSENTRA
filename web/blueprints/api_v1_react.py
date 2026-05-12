@@ -399,6 +399,18 @@ def _studio_avvocato_titolare() -> str:
     ).strip()
 
 
+def _studio_prefill_config() -> dict[str, Any]:
+    config = dict(current_app.config)
+    avvocato = _studio_avvocato_titolare()
+    if avvocato:
+        studio = dict(config.get("studio") or {})
+        studio["avvocato"] = avvocato
+        config["studio"] = studio
+        config["STUDIO_AVVOCATO"] = avvocato
+        config["PCT_STUDIO_AVVOCATO"] = avvocato
+    return config
+
+
 def _telematico_loader() -> Callable[[], Any]:
     core_runtime = current_app.extensions.get("core_runtime", {}) or {}
     loader = core_runtime.get("get_telematico")
@@ -4625,6 +4637,20 @@ def studio_timbro_page():
         return jsonify({"ok": False, "message": "Timbro studio non disponibile."}), 200
 
 
+@api_v1_react.get("/studio/timbro/preview")
+@_richiedi_auth
+def studio_timbro_preview_page():
+    utente = g.get("utente_corrente")
+    if not utente:
+        return jsonify({"ok": False, "errors": {"sessione": "Sessione utente richiesta."}}), 403
+    try:
+        payload = _studio_timbro_payload()
+        return jsonify({"ok": True, "preview": payload, "timbro": payload["payload"]}), 200
+    except Exception as exc:
+        current_app.logger.exception("Errore anteprima Timbro Studio React: %s", exc)
+        return jsonify({"ok": False, "message": "Anteprima timbro studio non disponibile."}), 200
+
+
 @api_v1_react.post("/studio/timbro")
 @_richiedi_auth
 def studio_timbro_save():
@@ -4680,7 +4706,7 @@ def redazione_atti_page():
                 get_template_manager=_template_atti_loader,
                 get_fascicoli=get_fascicoli,
                 get_preventivi=get_preventivi_readonly,
-                config=current_app.config,
+                config=_studio_prefill_config(),
             )
         )
     except Exception as exc:
@@ -4699,7 +4725,7 @@ def redazione_atti_produci():
     if not utente:
         return jsonify({"ok": False, "errors": {"sessione": "Sessione utente richiesta."}, "warnings": []}), 403
     payload = request.get_json(silent=True) or {}
-    result, status = produce_react_redazione_atti(payload, config=current_app.config)
+    result, status = produce_react_redazione_atti(payload, config=_studio_prefill_config())
     return jsonify(result), status
 
 

@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.218.1 - 2026-05-12
+
+- Aggiunto inventario STRICT delle fonti Template Atti con report Markdown/JSON: master, split, compilatore, repository JSON, SQLite e tenant vengono ricondotti a 1320 template canonici, mantenendo i record duplicati come evidenze di fonte.
+- Introdotto catalogo unificato per capability Cartabia, prefill, timbro, deposito, preview, render e compilatore; i binding mancanti sono recuperati dalle fonti interne IUSENTRA e non lasciati come fallback vuoti.
+- Rafforzato il resolver prefill per `Destinatario / Ufficio Giudiziario`, `Cliente / Mittente`, `Pratica Collegata`, `Autore`, controparte, allegati e dati studio, con conflitti, alternative, privacy level e `missing_reason`.
+- Allineato `Autore`/`author_user_id` alla fonte primaria `Impostazioni > Dati Studio > Avvocato titolare`, con utente corrente solo come fallback quando il dato studio non esiste.
+- Collegata la compilazione dei Template Atti all'editor professionale: se la pratica e' selezionata, la bozza validata viene salvata nel fascicolo come documento HTML e aperta direttamente per l'impaginazione.
+- Allineato il timbro studio alla regola top-left/left anche negli alias API e aggiunta anteprima `/api/v1/ui/studio/timbro/preview`.
+- Registrate fonti ufficiali Cartabia/processo telematico in `docs/legal_sources/cartabia_sources.jsonl` e aggiunti test strict su inventario, catalogo unificato, fonti, prefill, timbro e API.
+
 ## 2.218.0 - 2026-05-12
 
 - Introdotto il timbro studio dinamico tenant-aware per Template Atti, con renderer testo/HTML/DOCX/PDF, endpoint React `/api/v1/ui/studio/timbro` e iniezione centrale nel compilatore e nei template.

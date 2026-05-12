@@ -1866,7 +1866,7 @@ def prefill_payload(
     config = config or {}
     documenti = getattr(fascicolo, "documenti", []) if fascicolo else []
     allegati = [getattr(doc, "nome", "") for doc in documenti if getattr(doc, "nome", "")]
-    lawyer_name = _first_non_empty(getattr(utente, "nome_completo", ""), getattr(utente, "username", ""), config.get("STUDIO_AVVOCATO", ""), config.get("STUDIO_NOME", ""))
+    lawyer_name = _first_non_empty(config.get("STUDIO_AVVOCATO", ""), getattr(utente, "nome_completo", ""), getattr(utente, "username", ""), config.get("STUDIO_NOME", ""))
     lawyer_id = _first_non_empty(getattr(utente, "id", ""), getattr(utente, "username", ""))
     lawyer_pec = _first_non_empty(config.get("SMTP_FROM", ""), config.get("PCT_STUDIO_PEC", ""))
     lawyer_cf = _first_non_empty(config.get("STUDIO_CF", ""))
@@ -1919,7 +1919,10 @@ def prefill_payload(
             legacy_payload=payload,
         )
         for key, value in resolution.get("values", {}).items():
-            if key not in payload or _is_empty_value(payload.get(key)):
+            field_resolution = (resolution.get("fields") or {}).get(key, {})
+            resolved_source = field_resolution.get("source", "")
+            should_prefer_internal = bool(resolved_source and resolved_source not in {"legacy", "today"})
+            if key not in payload or _is_empty_value(payload.get(key)) or should_prefer_internal:
                 payload[key] = value
         if studio_timbro is not None:
             if hasattr(studio_timbro, "to_payload"):
@@ -1992,7 +1995,7 @@ def render_compiled_act(model_code: str, payload: dict[str, Any]) -> str:
 
 def _prefill_extra_field(field_name: str, *, fascicolo: Any = None, cliente: Any = None, utente: Any = None, config: Optional[dict[str, Any]] = None, allegati: Optional[list[str]] = None) -> Any:
     config = config or {}
-    lawyer_name = _first_non_empty(getattr(utente, "nome_completo", ""), getattr(utente, "username", ""), config.get("STUDIO_AVVOCATO", ""))
+    lawyer_name = _first_non_empty(config.get("STUDIO_AVVOCATO", ""), getattr(utente, "nome_completo", ""), getattr(utente, "username", ""))
     lawyer_pec = _first_non_empty(config.get("SMTP_FROM", ""), config.get("PCT_STUDIO_PEC", ""))
     if field_name == "granting_party":
         return _resolve_cliente_label(cliente, fascicolo)

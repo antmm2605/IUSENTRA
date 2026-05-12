@@ -85,6 +85,37 @@ _TEMPLATE_ENV = Environment(
     lstrip_blocks=True,
 )
 
+AVAILABLE_TEMPLATE_FIELDS: tuple[dict[str, str], ...] = (
+    {"group": "Pratica", "label": "Codice pratica", "token": "{{ pratica.codice }}"},
+    {"group": "Avvocato", "label": "Avvocato notificante", "token": "{{ avvocato.full_name }}"},
+    {"group": "Avvocato", "label": "Codice fiscale avvocato", "token": "{{ avvocato.codice_fiscale }}"},
+    {"group": "Avvocato", "label": "Foro", "token": "{{ avvocato.foro }}"},
+    {"group": "Avvocato", "label": "PEC notificante", "token": "{{ avvocato.pec }}"},
+    {"group": "Avvocato", "label": "Studio", "token": "{{ avvocato.studio }}"},
+    {"group": "Assistito", "label": "Parte assistita", "token": "{{ cliente.nome_denominazione }}"},
+    {"group": "Assistito", "label": "C.F. / P. IVA assistito", "token": "{{ cliente.codice_fiscale_piva }}"},
+    {"group": "Procedimento", "label": "Ufficio giudiziario", "token": "{{ procedimento.ufficio }}"},
+    {"group": "Procedimento", "label": "Sezione", "token": "{{ procedimento.sezione }}"},
+    {"group": "Procedimento", "label": "Numero RG", "token": "{{ procedimento.numero_rg }}"},
+    {"group": "Procedimento", "label": "Anno RG", "token": "{{ procedimento.anno_rg }}"},
+    {"group": "Procedimento", "label": "Blocco procedimento", "token": "{{ blocco_procedimento }}"},
+    {"group": "Destinatario", "label": "Destinatario", "token": "{{ destinatario.nome_denominazione }}"},
+    {"group": "Destinatario", "label": "C.F. / P. IVA destinatario", "token": "{{ destinatario.codice_fiscale_piva }}"},
+    {"group": "Destinatario", "label": "PEC destinatario", "token": "{{ destinatario.pec }}"},
+    {"group": "Destinatario", "label": "Fonte PEC", "token": "{{ destinatario.fonte_pec }}"},
+    {"group": "Destinatario", "label": "Data verifica PEC", "token": "{{ destinatario.data_verifica_pec }}"},
+    {"group": "Destinatario", "label": "Ora verifica PEC", "token": "{{ destinatario.ora_verifica_pec }}"},
+    {"group": "Documenti", "label": "Elenco documenti", "token": "{{ documenti_righe }}"},
+    {"group": "Documenti", "label": "Elenco documenti riservato", "token": "{{ documenti_righe_privacy }}"},
+    {"group": "Documenti", "label": "Attestazioni automatiche", "token": "{{ attestazioni_testo }}"},
+    {"group": "Notifica", "label": "Luogo relata", "token": "{{ notifica.luogo }}"},
+    {"group": "Notifica", "label": "Data relata", "token": "{{ notifica.data }}"},
+    {"group": "Notifica", "label": "Oggetto PEC L. 53", "token": "{{ notifica.oggetto_pec }}"},
+    {"group": "Provvedimento", "label": "Tipo provvedimento", "token": "{{ provvedimento.tipo }}"},
+    {"group": "Provvedimento", "label": "Numero provvedimento", "token": "{{ provvedimento.numero }}"},
+    {"group": "Provvedimento", "label": "Data provvedimento", "token": "{{ provvedimento.data }}"},
+)
+
 
 @dataclass(frozen=True)
 class LegalWorkflowResult:
@@ -124,6 +155,11 @@ class LegalWorkflowResult:
 
 def text(value: Any, fallback: str = "") -> str:
     return " ".join(str(value if value is not None else fallback).split()).strip()
+
+
+def multiline_text(value: Any, fallback: str = "") -> str:
+    raw = str(value if value is not None else fallback).replace("\r\n", "\n").replace("\r", "\n").strip()
+    return "\n".join(line.rstrip() for line in raw.split("\n"))
 
 
 def boolish(value: Any) -> bool:
@@ -197,6 +233,89 @@ def list_notification_templates(*, kind: str | None = None) -> list[dict[str, An
     if kind is None:
         return list(templates)
     return [item for item in templates if item.get("kind") == kind]
+
+
+def available_template_fields() -> list[dict[str, str]]:
+    """Return the guided field tokens that can be inserted in custom models."""
+
+    return [dict(item) for item in AVAILABLE_TEMPLATE_FIELDS]
+
+
+def normalise_custom_template(raw: dict[str, Any]) -> dict[str, Any]:
+    template_id = text(raw.get("id") or raw.get("value"))
+    body = multiline_text(
+        raw.get("custom_body")
+        or raw.get("body")
+        or raw.get("previewText")
+        or raw.get("preview_text")
+        or raw.get("testo")
+    )
+    fields = raw.get("fields") if isinstance(raw.get("fields"), list) else []
+    return {
+        "id": template_id,
+        "code": text(raw.get("code"), "PERS"),
+        "kind": "relata",
+        "label": text(raw.get("label") or raw.get("nome"), "Modello personalizzato"),
+        "description": text(raw.get("description") or raw.get("descrizione"), "Modello relata personalizzato dallo studio."),
+        "custom": True,
+        "custom_body": body,
+        "requires_proceeding": boolish(raw.get("requires_proceeding")),
+        "privacy_description": boolish(raw.get("privacy_description")),
+        "required_fields": raw.get("required_fields") if isinstance(raw.get("required_fields"), list) else [],
+        "fields": [field for field in fields if isinstance(field, dict)],
+        "purpose_lines": [],
+        "created_at": text(raw.get("created_at")),
+        "created_by": text(raw.get("created_by")),
+    }
+
+
+def template_preview_text(template: dict[str, Any]) -> str:
+    """Build a readable model body for preview and customisation."""
+
+    custom_body = multiline_text(template.get("custom_body"))
+    if custom_body:
+        return custom_body
+    privacy = bool(template.get("privacy_description"))
+    lines = [
+        "RELAZIONE DI NOTIFICAZIONE A MEZZO POSTA ELETTRONICA CERTIFICATA",
+        "ai sensi dell'art. 3-bis della Legge 21 gennaio 1994, n. 53",
+        "",
+        "Io sottoscritto Avv. {{ avvocato.full_name }},",
+        "C.F. {{ avvocato.codice_fiscale }},",
+        "iscritto all'Ordine degli Avvocati di {{ avvocato.foro }},",
+        "con studio in {{ avvocato.studio }},",
+        "indirizzo PEC {{ avvocato.pec }},",
+        "",
+        "nella qualita' di difensore di {{ cliente.nome_denominazione }},",
+        "C.F./P.IVA {{ cliente.codice_fiscale_piva }},",
+        "giusta procura alle liti in atti, allegata o rilasciata su separato documento,",
+        "",
+        "NOTIFICO",
+        "",
+        "a {{ destinatario.nome_denominazione }},",
+        "C.F./P.IVA {{ destinatario.codice_fiscale_piva }},",
+        "all'indirizzo PEC {{ destinatario.pec }},",
+        "estratto dal pubblico elenco {{ destinatario.fonte_pec }} in data {{ destinatario.data_verifica_pec }} alle ore {{ destinatario.ora_verifica_pec }},",
+        "",
+        "i seguenti documenti informatici allegati al presente messaggio PEC:",
+        "",
+        "{{ documenti_righe_privacy }}" if privacy else "{{ documenti_righe }}",
+        "",
+        "{{ blocco_procedimento }}",
+    ]
+    purpose_lines = [multiline_text(line) for line in (template.get("purpose_lines") or []) if multiline_text(line)]
+    if purpose_lines:
+        lines.extend(["", *purpose_lines])
+    lines.extend([
+        "",
+        "{{ attestazioni_testo }}",
+        "",
+        "{{ notifica.luogo }}, {{ notifica.data }}",
+        "",
+        "Avv. {{ avvocato.full_name }}",
+        "Documento informatico separato sottoscritto con firma digitale.",
+    ])
+    return "\n".join(lines).strip()
 
 
 def _template_by_id() -> dict[str, dict[str, Any]]:
@@ -456,6 +575,29 @@ def select_relata_template(payload: dict[str, Any]) -> dict[str, Any]:
         or _deep_get(payload, "template.id")
         or _deep_get(payload, "notifica.template_id")
     )
+    custom_template = payload.get("template_personalizzato")
+    if isinstance(custom_template, dict):
+        custom = normalise_custom_template(custom_template)
+        custom_id = text(custom.get("id"))
+        if custom_id and (not text(explicit) or text(explicit) == custom_id):
+            return custom
+
+    inline_custom_body = multiline_text(
+        payload.get("template_personalizzato_testo")
+        or payload.get("testo_modello_personalizzato")
+        or payload.get("custom_template_body")
+    )
+    if inline_custom_body:
+        inline_id = text(explicit, "relata_personalizzata")
+        return normalise_custom_template({
+            "id": inline_id,
+            "code": "PERS",
+            "label": payload.get("template_personalizzato_nome") or payload.get("nome_modello_personalizzato") or "Modello personalizzato",
+            "description": payload.get("template_personalizzato_descrizione") or "Modello compilato dai dati IUSENTRA disponibili.",
+            "custom_body": inline_custom_body,
+            "requires_proceeding": payload.get("template_personalizzato_procedimento"),
+        })
+
     template = get_notification_template(explicit)
     if template:
         return template
@@ -553,6 +695,33 @@ def _document_rows(context: dict[str, Any], *, privacy: bool = False) -> list[st
         description = document["descrizione_breve_privacy"] if privacy else document["descrizione"]
         rows.append(f"{document['index']}. {document['nome_file']} - {description}")
     return rows
+
+
+def _proceeding_block(context: dict[str, Any]) -> str:
+    if not context["procedimento"]["presente"]:
+        return ""
+    return "\n".join([
+        "La presente notificazione viene eseguita in relazione al procedimento",
+        f"pendente innanzi a {context['procedimento']['ufficio']},",
+        f"Sezione {context['procedimento']['sezione']},",
+        f"R.G. n. {context['procedimento']['numero_rg']}/{context['procedimento']['anno_rg']}.",
+    ])
+
+
+def _custom_render_context(context: dict[str, Any]) -> dict[str, Any]:
+    return {
+        **context,
+        "documenti_righe": "\n".join(_document_rows(context, privacy=False)),
+        "documenti_righe_privacy": "\n".join(_document_rows(context, privacy=True)),
+        "blocco_procedimento": _proceeding_block(context),
+        "attestazioni_testo": "\n\n".join(_attestation_blocks(context)),
+    }
+
+
+def _append_lawyer_addition(lines: list[str], payload: dict[str, Any]) -> None:
+    addition = text(_first(payload, "notifica.note_integrative_relata", "note_integrative_relata", "integrazione_avvocato"))
+    if addition:
+        lines.extend(["", "INTEGRAZIONE DELL'AVVOCATO", "", addition])
 
 
 def validate_legal_notification(payload: dict[str, Any]) -> LegalWorkflowResult:
@@ -684,6 +853,13 @@ def render_relata(payload: dict[str, Any], *, template: dict[str, Any] | None = 
     template = template or select_relata_template(payload)
     context = _build_context(payload, template=template)
     privacy = bool(template.get("privacy_description"))
+    custom_body = multiline_text(template.get("custom_body"))
+    if custom_body:
+        rendered = _TEMPLATE_ENV.from_string(custom_body).render(**_custom_render_context(context)).strip()
+        lines = [rendered] if rendered else []
+        _append_lawyer_addition(lines, payload)
+        return "\n\n".join(part for part in lines if text(part)).strip() + "\n"
+
     lines = [
         "RELAZIONE DI NOTIFICAZIONE A MEZZO POSTA ELETTRONICA CERTIFICATA",
         "ai sensi dell'art. 3-bis della Legge 21 gennaio 1994, n. 53",
@@ -744,6 +920,8 @@ def render_relata(payload: dict[str, Any], *, template: dict[str, Any] | None = 
         lines.extend(["", "ATTESTAZIONE DI CONFORMITA", ""])
         for block in attestations:
             lines.extend([block, ""])
+
+    _append_lawyer_addition(lines, payload)
 
     lines.extend([
         f"{context['notifica']['luogo']}, {context['notifica']['data']}".strip(", "),

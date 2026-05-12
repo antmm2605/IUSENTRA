@@ -93,6 +93,36 @@ def test_notifica_l53_compila_attestazione_da_origine_documento():
     assert "copia informatica per immagine conforme all'originale analogico" in result.relata_text
 
 
+def test_notifica_l53_modello_personalizzato_usa_campi_iusentra_e_note_avvocato():
+    payload = _legal_payload()
+    payload["template_id"] = "relata_personalizzata_prova"
+    payload["template_personalizzato"] = {
+        "id": "relata_personalizzata_prova",
+        "label": "Relata su misura",
+        "custom_body": "\n".join([
+            "RELAZIONE PERSONALIZZATA",
+            "Avv. {{ avvocato.full_name }} per {{ cliente.nome_denominazione }}",
+            "Destinatario: {{ destinatario.nome_denominazione }} - {{ destinatario.pec }}",
+            "{{ documenti_righe }}",
+            "{{ blocco_procedimento }}",
+            "{{ attestazioni_testo }}",
+            "{{ notifica.luogo }}, {{ notifica.data }}",
+        ]),
+        "requires_proceeding": True,
+    }
+    payload["note_integrative_relata"] = "Precisazione finale aggiunta dall'avvocato."
+
+    result = validate_legal_notification(payload)
+
+    assert result.ok is True
+    assert "RELAZIONE PERSONALIZZATA" in result.relata_text
+    assert "Avv. Mario Rossi per Cliente S.r.l." in result.relata_text
+    assert "1. ricorso.pdf - Ricorso notificato" in result.relata_text
+    assert "R.G. n. 1234/2026" in result.relata_text
+    assert "INTEGRAZIONE DELL'AVVOCATO" in result.relata_text
+    assert "Precisazione finale aggiunta dall'avvocato." in result.relata_text
+
+
 def test_comunicazione_cliente_non_usa_relata_o_oggetto_l53():
     blocked = build_client_communication({
         "cliente_nome": "Cliente",
@@ -167,6 +197,8 @@ def test_api_react_notifiche_legali_espone_workflow_separati(tmp_path: Path):
     assert payload_response.status_code == 200
     assert payload["mandatorySubject"] == LEGAL_NOTIFICATION_SUBJECT
     assert payload["contracts"]["clientCommunicationWithoutRelata"] is True
+    assert payload["modelliRelata"][0]["previewText"]
+    assert any(field["token"] == "{{ documenti_righe }}" for field in payload["campiDisponibili"])
     assert invalid_response.status_code == 400
     assert invalid_payload["ok"] is False
     assert valid_response.status_code == 200
@@ -175,6 +207,41 @@ def test_api_react_notifiche_legali_espone_workflow_separati(tmp_path: Path):
     assert client_response.status_code == 200
     assert client_payload["ok"] is True
     assert client_payload["relataText"] == ""
+
+
+def test_api_react_notifiche_legali_salva_e_usa_modello_relata_personalizzato(tmp_path: Path):
+    app = _app(tmp_path)
+    client = app.test_client()
+    headers = {"X-API-Key": "react-test-key"}
+    body = "\n".join([
+        "RELAZIONE DI NOTIFICAZIONE PERSONALIZZATA",
+        "Avv. {{ avvocato.full_name }} notifica per {{ cliente.nome_denominazione }}.",
+        "Destinatario {{ destinatario.nome_denominazione }} presso {{ destinatario.pec }}.",
+        "{{ documenti_righe }}",
+        "{{ blocco_procedimento }}",
+        "{{ notifica.luogo }}, {{ notifica.data }}",
+    ])
+
+    save_response = client.post(
+        "/api/v1/ui/notifiche-legali/modelli-relata",
+        json={"label": "Relata prova studio", "description": "Uso interno studio", "body": body, "requiresProceeding": True},
+        headers=headers,
+    )
+    saved = save_response.get_json()
+    catalog = client.get("/api/v1/ui/notifiche-legali", headers=headers).get_json()
+    payload = _legal_payload()
+    payload["template_id"] = saved["template"]["value"]
+    preview_response = client.post("/api/v1/ui/notifiche-legali/notifica", json=payload, headers=headers)
+    preview = preview_response.get_json()
+
+    assert save_response.status_code == 200
+    assert saved["ok"] is True
+    assert saved["template"]["custom"] is True
+    assert any(item["value"] == saved["template"]["value"] and item["custom"] for item in catalog["modelliRelata"])
+    assert preview_response.status_code == 200
+    assert preview["ok"] is True
+    assert "RELAZIONE DI NOTIFICAZIONE PERSONALIZZATA" in preview["relataText"]
+    assert "Cliente S.r.l." in preview["relataText"]
 
 
 def test_payload_react_notifiche_legali_precompila_da_dati_iusentra():

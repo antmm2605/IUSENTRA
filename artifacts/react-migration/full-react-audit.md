@@ -2,6 +2,14 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-12T20:30:00+02:00: `/notifiche-legali` resta
+`react_operational_full` e aggiunge anteprima modello, catalogo modelli
+navigabile, editor modelli personalizzati, endpoint JSON dedicato
+`/api/v1/ui/notifiche-legali/modelli-relata` e campi automatici IUSENTRA
+inseribili nel testo. Il componente continua a non usare form POST HTML,
+`LegacyPostForm` o CTA primaria classica; deposito prova e comunicazione
+cliente hanno selettori pratica/documento/cliente collegati ai dati reali.
+
 Aggiornamento 2026-05-12T11:25:00+02:00: `/notifiche-legali` censita come
 `react_operational_full`, con componente `NotificheLegaliPage`, data client
 `notificheLegaliData`, bridge `react_notifiche_legali_bridge.py` e contratto

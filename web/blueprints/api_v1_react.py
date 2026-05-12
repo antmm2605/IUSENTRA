@@ -8,6 +8,7 @@ truth frontend.
 from __future__ import annotations
 
 import json
+import re
 from datetime import date, datetime, timedelta, timezone
 from functools import wraps
 from pathlib import Path
@@ -23,6 +24,8 @@ from pct.fatturazione import StatoParcella
 from pct.messaggi import CanaleMsggio, ConfigMessaggistica, GestioneMessaggi, Messaggio, StatoMessaggio
 from pct.notifiche_legali import (
     build_client_communication,
+    normalise_custom_template,
+    template_preview_text,
     validate_deposit_notification_proof,
     validate_legal_notification,
 )
@@ -1655,6 +1658,73 @@ def _notifiche_legali_result_response(result: Any, *, success_message: str):
     return jsonify(payload), 200 if result.ok else 400
 
 
+def _notifiche_custom_templates_path() -> Path:
+    log_path = Path(tenant_data_path(
+        "NOTIFICHE_LOG",
+        current_app.config.get("NOTIFICHE_LOG", "./notifiche/log.json"),
+        require_tenant=True,
+    ))
+    return log_path.parent / "modelli_relata_personalizzati.json"
+
+
+def _load_custom_relata_templates() -> list[dict[str, Any]]:
+    path = _notifiche_custom_templates_path()
+    if not path.exists():
+        return []
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return []
+    rows = payload.get("templates") if isinstance(payload, dict) else payload
+    if not isinstance(rows, list):
+        return []
+    return [
+        normalise_custom_template(row)
+        for row in rows
+        if isinstance(row, dict) and row.get("custom_body")
+    ]
+
+
+def _write_custom_relata_templates(templates: list[dict[str, Any]]) -> None:
+    path = _notifiche_custom_templates_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "version": 1,
+        "updatedAt": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+        "templates": templates,
+    }
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def _custom_relata_template_option(template: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "value": template.get("id", ""),
+        "code": template.get("code", "PERS"),
+        "label": template.get("label", ""),
+        "description": template.get("description", ""),
+        "requiresProceeding": bool(template.get("requires_proceeding")),
+        "privacyDescription": bool(template.get("privacy_description")),
+        "custom": True,
+        "previewText": template_preview_text(template),
+        "fields": template.get("fields", []),
+    }
+
+
+def _slug_relata_template(value: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "_", value.lower()).strip("_")
+    return slug[:48] or "modello"
+
+
+def _augment_custom_relata_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    template_id = str(payload.get("template_id") or payload.get("modello_relata") or "").strip()
+    if not template_id:
+        return payload
+    for template in _load_custom_relata_templates():
+        if template.get("id") == template_id:
+            return {**payload, "template_personalizzato": template}
+    return payload
+
+
 @api_v1_react.get("/notifiche-legali")
 @_richiedi_auth
 def notifiche_legali_payload():
@@ -1665,13 +1735,51 @@ def notifiche_legali_payload():
         get_clienti=get_clienti,
         get_fascicoli=get_fascicoli,
         get_soggetti=get_soggetti,
+        custom_templates=_load_custom_relata_templates(),
     ))
+
+
+@api_v1_react.post("/notifiche-legali/modelli-relata")
+@_richiedi_auth
+def notifiche_legali_salva_modello_relata():
+    payload = _request_payload()
+    label = str(payload.get("label") or payload.get("nome") or "").strip()
+    body = str(payload.get("body") or payload.get("testo") or "").replace("\r\n", "\n").replace("\r", "\n").strip()
+    description = str(payload.get("description") or payload.get("descrizione") or "").strip()
+    if not label:
+        return jsonify({"ok": False, "message": "Indica un nome per il modello relata."}), 400
+    if len(body) < 80:
+        return jsonify({"ok": False, "message": "Inserisci il testo del modello con i campi automatici necessari."}), 400
+
+    existing = _load_custom_relata_templates()
+    created_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    base_slug = _slug_relata_template(label)
+    template_id = str(payload.get("id") or "").strip()
+    if not template_id:
+        template_id = f"relata_personalizzata_{base_slug}_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
+
+    template = normalise_custom_template({
+        "id": template_id,
+        "code": "PERS",
+        "label": label,
+        "description": description or "Modello relata personalizzato dallo studio.",
+        "custom_body": body,
+        "requires_proceeding": bool(payload.get("requiresProceeding") or payload.get("requires_proceeding")),
+        "privacy_description": bool(payload.get("privacyDescription") or payload.get("privacy_description")),
+        "created_at": created_at,
+        "created_by": _actor_label(),
+    })
+    merged = [item for item in existing if item.get("id") != template_id]
+    merged.append(template)
+    _write_custom_relata_templates(merged)
+    _audit_event("notifiche_legali.modello_relata", "modello_relata", template_id, f"Salvato modello relata {label}.")
+    return jsonify({"ok": True, "message": "Modello relata salvato.", "template": _custom_relata_template_option(template)})
 
 
 @api_v1_react.post("/notifiche-legali/notifica")
 @_richiedi_auth
 def notifiche_legali_preview():
-    result = validate_legal_notification(_request_payload())
+    result = validate_legal_notification(_augment_custom_relata_payload(_request_payload()))
     return _notifiche_legali_result_response(
         result,
         success_message="Relata e controlli L. 53/1994 pronti per la revisione dell'avvocato.",

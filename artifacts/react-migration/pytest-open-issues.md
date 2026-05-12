@@ -94,3 +94,9 @@ Questo file e' la coda di lavoro. Prima di rilanciare test gia' passati, control
 | --- | --- | --- | --- |
 | Notifiche legali parametriche 2.216.8 | Test mirati, contratti React, packaging, build e browser su bundle 2.216.8 registrati in `pytest-confirmed-ok.md` | Nessuna issue aperta | Tutti i modelli richiesti sono nel catalogo JSON; la precompilazione usa dati reali IUSENTRA e lascia vuoti i dati non certi invece di inventarli. |
 | Fascicoli / preventivi / wizard PST | Test mirati e browser reale registrati in `pytest-confirmed-ok.md` | Nessuna issue aperta | Il codice `014001` digitato nel catalogo o nell'oggetto viene ora risolto dal catalogo PST ufficiale e arriva fino al fascicolo guidato con redirect a deposito assistito. |
+
+## Note hotfix 2026-05-12
+
+| Area | Gate | Stato | Nota |
+| --- | --- | --- | --- |
+| Notifiche legali modelli personalizzati 2.216.9 | Test mirati, contratti React, packaging, build, Docker locale e browser desktop/mobile registrati in `pytest-confirmed-ok.md` | Nessuna issue aperta | L'avvocato puo' vedere il testo del modello relata, duplicarlo o crearne uno nuovo usando campi automatici IUSENTRA. `Deposito prova notifica` e `Comunica al cliente` leggono la pratica selezionata e precompilano i dati certi senza salvare backup o inventare RAC/RdAC. |

@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.216.9 - 2026-05-12
+
+- La pagina `/notifiche-legali` mostra ora l'anteprima leggibile del modello relata selezionato prima del controllo, con catalogo laterale navigabile per scegliere rapidamente tra tutti i modelli disponibili.
+- Aggiunta creazione di modelli relata personalizzati tenant-aware: l'avvocato puo' duplicare un modello, scriverne uno nuovo e inserire campi automatici IUSENTRA come pratica, avvocato, assistito, procedimento, destinatario, documenti, attestazioni e oggetto PEC.
+- Il motore L. 53/1994 renderizza anche i modelli personalizzati e consente una integrazione libera dell'avvocato in coda alla relata generata, mantenendo validazioni, attestazioni e controlli automatici.
+- Estesa la compilazione assistita anche a `Deposito prova notifica` e `Comunica al cliente`: la pratica selezionata propone atto, destinatario, cliente, procedimento e documento informativo dove disponibili, lasciando RAC/RdAC e dati non certi alla conferma manuale.
+- Aggiornati API React, contratti statici e test per impedire regressioni su anteprima modelli, salvataggio dei modelli personalizzati e precompilazione operativa dei tre percorsi.
+
 ## 2.216.8 - 2026-05-12
 
 - Estesa `/notifiche-legali` con motore parametrico di modelli: catalogo JSON versionato, template L. 53/1994, attestazioni automatiche per fascicolo informatico, comunicazione di cancelleria e scansione analogica, checklist, log e scheda esito.

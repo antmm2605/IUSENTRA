@@ -11,8 +11,11 @@ from pct.notifiche_legali import (
     LEGAL_NOTIFICATION_SUBJECT,
     LEGAL_RECIPIENT_ROLES,
     PUBLIC_PEC_REGISTERS,
+    available_template_fields,
     list_notification_templates,
+    normalise_custom_template,
     normalise_document_origin,
+    template_preview_text,
     template_catalog_version,
 )
 
@@ -262,6 +265,7 @@ def build_react_notifiche_legali_payload(
     get_clienti: Any = None,
     get_fascicoli: Any = None,
     get_soggetti: Any = None,
+    custom_templates: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     cfg = _config_object(config_studio)
     studio = getattr(cfg, "studio", None)
@@ -306,7 +310,10 @@ def build_react_notifiche_legali_payload(
         ],
         "modelliRelata": [
             _template_option(template)
-            for template in list_notification_templates(kind="relata")
+            for template in (
+                list_notification_templates(kind="relata")
+                + [normalise_custom_template(item) for item in (custom_templates or [])]
+            )
         ],
         "modelliControllo": [
             _template_option(template)
@@ -318,6 +325,7 @@ def build_react_notifiche_legali_payload(
             get_fascicoli=get_fascicoli,
             get_soggetti=get_soggetti,
         ),
+        "campiDisponibili": available_template_fields(),
         "azioni": {
             "notifica": "/api/v1/ui/notifiche-legali/notifica",
             "comunicazioneCliente": "/api/v1/ui/notifiche-legali/comunicazione-cliente",
@@ -354,6 +362,8 @@ def _template_option(template: dict[str, Any]) -> dict[str, Any]:
         "description": _text(template.get("description")),
         "requiresProceeding": bool(template.get("requires_proceeding")),
         "privacyDescription": bool(template.get("privacy_description")),
+        "custom": bool(template.get("custom")),
+        "previewText": template_preview_text(template),
         "fields": [
             {
                 "name": _text(field.get("name")),

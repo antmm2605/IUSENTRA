@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   AlertTriangle,
   CheckCircle2,
@@ -9,6 +9,8 @@ import {
   Inbox,
   LockKeyhole,
   Mail,
+  PencilLine,
+  PlusCircle,
   Scale,
   Send,
   ShieldCheck,
@@ -22,9 +24,11 @@ import {
   emptyNotificheLegaliData,
   getNotificheLegaliData,
   postLegalWorkflow,
+  saveLegalRelataTemplate,
   type LegalDocumentSuggestion,
   type LegalPracticeSuggestion,
   type LegalRecipientSuggestion,
+  type LegalTemplateFieldToken,
   type LegalWorkflowResult,
   type NotificheLegaliData,
 } from '../notificheLegaliData'
@@ -165,6 +169,7 @@ export function NotificheLegaliPage() {
     hash_sha256: '',
     data_comunicazione_cancelleria: '',
     attestazione_conformita: '',
+    note_integrative_relata: '',
     procedimento_pendente: false,
     ufficio_giudiziario: '',
     sezione: '',
@@ -178,6 +183,18 @@ export function NotificheLegaliPage() {
   const [selectedPracticeId, setSelectedPracticeId] = useState('')
   const [selectedRecipientId, setSelectedRecipientId] = useState('')
   const [selectedDocumentId, setSelectedDocumentId] = useState('')
+  const [selectedClientId, setSelectedClientId] = useState('')
+  const [templateCatalogExpanded, setTemplateCatalogExpanded] = useState(false)
+  const [templateEditorOpen, setTemplateEditorOpen] = useState(false)
+  const [templateSaving, setTemplateSaving] = useState(false)
+  const [templateMessage, setTemplateMessage] = useState('')
+  const [templateDraft, setTemplateDraft] = useState({
+    label: '',
+    description: '',
+    body: '',
+    requiresProceeding: false,
+  })
+  const templateBodyRef = useRef<HTMLTextAreaElement | null>(null)
 
   const [deposito, setDeposito] = useState({
     atto_notificato: '',
@@ -220,6 +237,14 @@ export function NotificheLegaliPage() {
 
   const selectedOrigin = useMemo(() => data.originiDocumento.find((item) => item.value === notifica.origine_documento), [data.originiDocumento, notifica.origine_documento])
   const selectedTemplate = useMemo(() => data.modelliRelata.find((item) => item.value === notifica.template_id), [data.modelliRelata, notifica.template_id])
+  const templateFieldGroups = useMemo(() => {
+    const groups = new Map<string, LegalTemplateFieldToken[]>()
+    data.campiDisponibili.forEach((field) => {
+      const key = field.group || 'Dati'
+      groups.set(key, [...(groups.get(key) || []), field])
+    })
+    return Array.from(groups.entries()).slice(0, 7)
+  }, [data.campiDisponibili])
   const selectedPractice = useMemo(
     () => data.precompilazione.pratiche.find((item) => item.id === selectedPracticeId),
     [data.precompilazione.pratiche, selectedPracticeId],
@@ -242,6 +267,84 @@ export function NotificheLegaliPage() {
     return now.toISOString().slice(0, 16)
   }
 
+  const applyClient = (client: { id: string; nome: string; codiceFiscalePiva: string; pec: string }) => {
+    setSelectedClientId(client.id)
+    setNotifica((current) => ({
+      ...current,
+      assistito_nome: client.nome || current.assistito_nome,
+      assistito_cf: client.codiceFiscalePiva || current.assistito_cf,
+    }))
+    setCliente((current) => ({
+      ...current,
+      cliente_nome: client.nome || current.cliente_nome,
+    }))
+  }
+
+  const startTemplateEdit = (mode: 'copy' | 'new') => {
+    const base = mode === 'copy' ? selectedTemplate : null
+    setTemplateDraft({
+      label: base ? `Copia ${base.label}` : 'Nuovo modello relata',
+      description: base?.description || 'Modello predisposto con i campi automatici IUSENTRA.',
+      body: base?.previewText || [
+        'RELAZIONE DI NOTIFICAZIONE A MEZZO PEC',
+        "ai sensi dell'art. 3-bis L. 53/1994",
+        '',
+        'Io sottoscritto Avv. {{ avvocato.full_name }}, difensore di {{ cliente.nome_denominazione }},',
+        "notifico a {{ destinatario.nome_denominazione }} all'indirizzo PEC {{ destinatario.pec }}",
+        'i seguenti documenti:',
+        '',
+        '{{ documenti_righe }}',
+        '',
+        '{{ blocco_procedimento }}',
+        '',
+        '{{ attestazioni_testo }}',
+        '',
+        '{{ notifica.luogo }}, {{ notifica.data }}',
+        '',
+        'Avv. {{ avvocato.full_name }}',
+        'Documento informatico separato sottoscritto con firma digitale.',
+      ].join('\n'),
+      requiresProceeding: Boolean(base?.requiresProceeding),
+    })
+    setTemplateMessage('')
+    setTemplateEditorOpen(true)
+  }
+
+  const insertTemplateToken = (token: string) => {
+    const textarea = templateBodyRef.current
+    if (!textarea) {
+      setTemplateDraft((current) => ({ ...current, body: `${current.body}${current.body ? '\n' : ''}${token}` }))
+      return
+    }
+    const start = textarea.selectionStart ?? templateDraft.body.length
+    const end = textarea.selectionEnd ?? start
+    const before = templateDraft.body.slice(0, start)
+    const after = templateDraft.body.slice(end)
+    const next = `${before}${token}${after}`
+    setTemplateDraft((current) => ({ ...current, body: next }))
+    window.setTimeout(() => {
+      textarea.focus()
+      const position = start + token.length
+      textarea.setSelectionRange(position, position)
+    }, 0)
+  }
+
+  const saveTemplate = async () => {
+    setTemplateSaving(true)
+    setTemplateMessage('Salvataggio modello in corso...')
+    const saved = await saveLegalRelataTemplate(templateDraft).catch(() => ({ ok: false, message: 'Salvataggio non completato.', template: undefined }))
+    if (saved.ok && saved.template) {
+      setData((current) => ({
+        ...current,
+        modelliRelata: [...current.modelliRelata.filter((item) => item.value !== saved.template?.value), saved.template!],
+      }))
+      setNotifica((current) => ({ ...current, template_id: saved.template!.value }))
+      setTemplateEditorOpen(false)
+    }
+    setTemplateMessage(saved.message)
+    setTemplateSaving(false)
+  }
+
   const applyRecipient = (recipient: LegalRecipientSuggestion) => {
     setSelectedRecipientId(recipient.id)
     setNotifica((current) => ({
@@ -261,6 +364,10 @@ export function NotificheLegaliPage() {
         parte_rappresentata: recipient.parteRappresentata,
       }))
     }
+    setDeposito((current) => ({
+      ...current,
+      destinatario_nome: recipient.nome || current.destinatario_nome,
+    }))
   }
 
   const applyDocument = (documento: LegalDocumentSuggestion) => {
@@ -278,6 +385,14 @@ export function NotificheLegaliPage() {
           : current.template_id,
       procedimento_pendente: documento.origine === 'copia_fascicolo_informatico' ? true : current.procedimento_pendente,
     }))
+    setDeposito((current) => ({
+      ...current,
+      atto_notificato: documento.nomeFile || current.atto_notificato,
+    }))
+    setCliente((current) => ({
+      ...current,
+      provvedimento_descrizione: documento.descrizione || current.provvedimento_descrizione,
+    }))
   }
 
   const applyPractice = (practice: LegalPracticeSuggestion) => {
@@ -286,6 +401,7 @@ export function NotificheLegaliPage() {
     const unicoDocumento = practice.documenti.length === 1 ? practice.documenti[0] : null
     setSelectedRecipientId(unicoDestinatario?.id || '')
     setSelectedDocumentId(unicoDocumento?.id || '')
+    setSelectedClientId(practice.clienteId || '')
     setNotifica((current) => ({
       ...current,
       pratica_codice: practice.numero || current.pratica_codice,
@@ -352,6 +468,13 @@ export function NotificheLegaliPage() {
     const response = await postLegalWorkflow(endpoint, payload).catch(() => ({ ...emptyResult, blockers: ['Verifica non completata. Riprova tra poco.'] }))
     setResult(response)
     setWorking(false)
+  }
+
+  const clearPracticeSelection = () => {
+    setSelectedPracticeId('')
+    setSelectedRecipientId('')
+    setSelectedDocumentId('')
+    setSelectedClientId('')
   }
 
   const changeNotifica = (key: keyof typeof notifica, value: string | boolean) => setNotifica((current) => ({ ...current, [key]: value }))
@@ -422,11 +545,7 @@ export function NotificheLegaliPage() {
                       onChange={(event) => {
                         const practice = data.precompilazione.pratiche.find((item) => item.id === event.currentTarget.value)
                         if (practice) applyPractice(practice)
-                        else {
-                          setSelectedPracticeId('')
-                          setSelectedRecipientId('')
-                          setSelectedDocumentId('')
-                        }
+                        else clearPracticeSelection()
                       }}
                     >
                       <option value="">Seleziona pratica</option>
@@ -473,6 +592,65 @@ export function NotificheLegaliPage() {
                     {data.modelliRelata.map((item) => <option value={item.value} key={item.value}>{item.code ? `${item.code} - ${item.label}` : item.label}</option>)}
                   </select>
                 </Field>
+                <div className="iu-legal-template-preview iu-legal-field--wide">
+                  <div className="iu-legal-template-preview__header">
+                    <div>
+                      <strong>Anteprima modello relata</strong>
+                      <span>{selectedTemplate ? `${selectedTemplate.code ? `${selectedTemplate.code} - ` : ''}${selectedTemplate.label}` : 'Seleziona un modello'}</span>
+                    </div>
+                    {selectedTemplate?.custom ? <em>Personalizzato</em> : null}
+                  </div>
+                  <pre>{selectedTemplate?.previewText || 'Il testo del modello sara visibile qui prima del controllo.'}</pre>
+                  <div className="iu-legal-template-actions">
+                    <button type="button" onClick={() => startTemplateEdit('copy')}><PencilLine size={15} /> Personalizza questo modello</button>
+                    <button type="button" onClick={() => startTemplateEdit('new')}><PlusCircle size={15} /> Nuovo modello su misura</button>
+                  </div>
+                  <small>I campi tra doppie parentesi vengono compilati automaticamente dai dati presenti in IUSENTRA.</small>
+                </div>
+                {templateEditorOpen ? (
+                  <div className="iu-legal-template-editor iu-legal-field--wide">
+                    <div className="iu-legal-template-preview__header">
+                      <div>
+                        <strong>Modello personalizzato</strong>
+                        <span>Scrivi il testo una volta, poi inserisci i campi automatici necessari.</span>
+                      </div>
+                      <button type="button" onClick={() => setTemplateEditorOpen(false)}>Chiudi</button>
+                    </div>
+                    <div className="iu-legal-form-grid">
+                      <Field label="Nome modello"><input value={templateDraft.label} onChange={(event) => setTemplateDraft((current) => ({ ...current, label: event.currentTarget.value }))} /></Field>
+                      <Field label="Descrizione"><input value={templateDraft.description} onChange={(event) => setTemplateDraft((current) => ({ ...current, description: event.currentTarget.value }))} /></Field>
+                      <Field label="Testo modello" wide hint="Usa i campi automatici per far compilare a IUSENTRA pratica, assistito, destinatario, documenti e procedimento.">
+                        <textarea
+                          ref={templateBodyRef}
+                          value={templateDraft.body}
+                          rows={16}
+                          onChange={(event) => setTemplateDraft((current) => ({ ...current, body: event.currentTarget.value }))}
+                        />
+                      </Field>
+                    </div>
+                    <label className="iu-legal-check">
+                      <input type="checkbox" checked={templateDraft.requiresProceeding} onChange={(event) => setTemplateDraft((current) => ({ ...current, requiresProceeding: event.currentTarget.checked }))} />
+                      <span>Richiede sempre i dati del procedimento</span>
+                    </label>
+                    <div className="iu-legal-field-palette">
+                      <strong>Campi automatici disponibili</strong>
+                      {templateFieldGroups.map(([group, fields]) => (
+                        <div className="iu-legal-field-palette__group" key={group}>
+                          <span>{group}</span>
+                          <div>
+                            {fields.map((field) => (
+                              <button type="button" key={`${group}-${field.token}`} onClick={() => insertTemplateToken(field.token)}>{field.label}</button>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {templateMessage ? <p className="iu-legal-template-message">{templateMessage}</p> : null}
+                    <div className="iu-legal-template-actions">
+                      <button type="button" disabled={templateSaving} onClick={saveTemplate}><ShieldCheck size={15} /> {templateSaving ? 'Salvataggio...' : 'Salva modello e usa'}</button>
+                    </div>
+                  </div>
+                ) : null}
                 <Field label="Codice pratica"><input value={notifica.pratica_codice} onChange={(event) => changeNotifica('pratica_codice', event.currentTarget.value)} /></Field>
                 <Field label="Oggetto PEC obbligatorio" wide hint="Il valore e' bloccato dal percorso guidato.">
                   <input value={data.mandatorySubject} readOnly />
@@ -521,6 +699,9 @@ export function NotificheLegaliPage() {
                     <textarea value={notifica.attestazione_conformita} rows={4} onChange={(event) => changeNotifica('attestazione_conformita', event.currentTarget.value)} />
                   </Field>
                 ) : null}
+                <Field label="Integrazione libera dell'avvocato" wide hint="Facoltativa: il testo viene aggiunto alla relata generata senza sostituire i controlli automatici.">
+                  <textarea value={notifica.note_integrative_relata} rows={3} onChange={(event) => changeNotifica('note_integrative_relata', event.currentTarget.value)} />
+                </Field>
                 {selectedTemplate?.requiresProceeding ? (
                   <label className="iu-legal-check iu-legal-field--wide"><input type="checkbox" checked readOnly /><span>Questo modello richiede i dati del procedimento.</span></label>
                 ) : null}
@@ -555,6 +736,62 @@ export function NotificheLegaliPage() {
 
           {tab === 'deposito' ? (
             <Panel title="Prova della notifica" subtitle="Preparazione fascicolo interno e busta" icon={<FileCheck2 size={17} />}>
+              <div className="iu-legal-auto-box">
+                <div className="iu-legal-auto-box__title">
+                  <WandSparkles size={17} />
+                  <div>
+                    <strong>Compilazione da pratica IUSENTRA</strong>
+                    <span>Seleziona la pratica e IUSENTRA propone atto notificato e destinatario quando sono gia' presenti.</span>
+                  </div>
+                </div>
+                <div className="iu-legal-form-grid">
+                  <Field label="Pratica IUSENTRA" wide hint="Usa la stessa pratica della notifica o scegline una per preparare la prova.">
+                    <select
+                      value={selectedPracticeId}
+                      onChange={(event) => {
+                        const practice = data.precompilazione.pratiche.find((item) => item.id === event.currentTarget.value)
+                        if (practice) applyPractice(practice)
+                        else clearPracticeSelection()
+                      }}
+                    >
+                      <option value="">Seleziona pratica</option>
+                      {data.precompilazione.pratiche.map((item) => <option value={item.id} key={`deposito-${item.id}`}>{item.label}</option>)}
+                    </select>
+                  </Field>
+                  <Field label="Atto dal fascicolo" hint={documentSuggestions.length ? 'Il nome file viene riportato nella prova deposito.' : 'Nessun documento selezionabile per la pratica corrente.'}>
+                    <select
+                      value={selectedDocumentId}
+                      disabled={!documentSuggestions.length}
+                      onChange={(event) => {
+                        const document = documentSuggestions.find((item) => item.id === event.currentTarget.value)
+                        if (document) applyDocument(document)
+                        else setSelectedDocumentId('')
+                      }}
+                    >
+                      <option value="">Seleziona atto</option>
+                      {documentSuggestions.map((item) => <option value={item.id} key={`deposito-doc-${item.id}`}>{item.label}</option>)}
+                    </select>
+                  </Field>
+                  <Field label="Destinatario della prova" hint={recipientSuggestions.length ? 'Il nominativo viene proposto dai soggetti collegati.' : 'Seleziona o compila manualmente il destinatario.'}>
+                    <select
+                      value={selectedRecipientId}
+                      onChange={(event) => {
+                        const recipient = recipientSuggestions.find((item) => item.id === event.currentTarget.value)
+                        if (recipient) applyRecipient(recipient)
+                        else setSelectedRecipientId('')
+                      }}
+                    >
+                      <option value="">Seleziona destinatario</option>
+                      {recipientSuggestions.map((item) => <option value={item.id} key={`deposito-rec-${item.id}`}>{item.label}{item.pec ? ` - ${item.pec}` : ''}</option>)}
+                    </select>
+                  </Field>
+                </div>
+                <div className="iu-legal-auto-notes">
+                  <span><FileText size={15} /> {documentSuggestions.length} atti dalla pratica corrente.</span>
+                  <span><UserRound size={15} /> {recipientSuggestions.length} destinatari proponibili.</span>
+                  <span><Inbox size={15} /> RAC e RdAC restano originali digitali da associare.</span>
+                </div>
+              </div>
               <div className="iu-legal-form-grid">
                 <Field label="Atto notificato"><input value={deposito.atto_notificato} onChange={(event) => changeDeposito('atto_notificato', event.currentTarget.value)} placeholder="ricorso.pdf" /></Field>
                 <Field label="Relata firmata"><input value={deposito.relata_firmata} onChange={(event) => changeDeposito('relata_firmata', event.currentTarget.value)} placeholder="relata_notifica.pdf.p7m" /></Field>
@@ -569,6 +806,62 @@ export function NotificheLegaliPage() {
 
           {tab === 'cliente' ? (
             <Panel title="Comunicazione al cliente" subtitle="Informativa separata dalla notifica legale" icon={<UserRound size={17} />}>
+              <div className="iu-legal-auto-box">
+                <div className="iu-legal-auto-box__title">
+                  <WandSparkles size={17} />
+                  <div>
+                    <strong>Compilazione informativa da IUSENTRA</strong>
+                    <span>Pratica, cliente, procedimento e documento vengono proposti dai dati gia' registrati.</span>
+                  </div>
+                </div>
+                <div className="iu-legal-form-grid">
+                  <Field label="Pratica IUSENTRA" wide hint="La pratica compila cliente, ufficio, RG e documento informativo.">
+                    <select
+                      value={selectedPracticeId}
+                      onChange={(event) => {
+                        const practice = data.precompilazione.pratiche.find((item) => item.id === event.currentTarget.value)
+                        if (practice) applyPractice(practice)
+                        else clearPracticeSelection()
+                      }}
+                    >
+                      <option value="">Seleziona pratica</option>
+                      {data.precompilazione.pratiche.map((item) => <option value={item.id} key={`cliente-pratica-${item.id}`}>{item.label}</option>)}
+                    </select>
+                  </Field>
+                  <Field label="Cliente IUSENTRA" hint={data.precompilazione.clienti.length ? 'Scegli un cliente se la comunicazione non parte da una pratica.' : 'Nessun cliente disponibile nella precompilazione.'}>
+                    <select
+                      value={selectedClientId}
+                      onChange={(event) => {
+                        const client = data.precompilazione.clienti.find((item) => item.id === event.currentTarget.value)
+                        if (client) applyClient(client)
+                        else setSelectedClientId('')
+                      }}
+                    >
+                      <option value="">Seleziona cliente</option>
+                      {data.precompilazione.clienti.map((item) => <option value={item.id} key={`cliente-${item.id}`}>{item.nome}{item.codiceFiscalePiva ? ` - ${item.codiceFiscalePiva}` : ''}</option>)}
+                    </select>
+                  </Field>
+                  <Field label="Documento informativo" hint={documentSuggestions.length ? 'Descrizione e riferimento vengono riportati nel messaggio.' : 'Seleziona una pratica con documenti o compila manualmente.'}>
+                    <select
+                      value={selectedDocumentId}
+                      disabled={!documentSuggestions.length}
+                      onChange={(event) => {
+                        const document = documentSuggestions.find((item) => item.id === event.currentTarget.value)
+                        if (document) applyDocument(document)
+                        else setSelectedDocumentId('')
+                      }}
+                    >
+                      <option value="">Seleziona documento</option>
+                      {documentSuggestions.map((item) => <option value={item.id} key={`cliente-doc-${item.id}`}>{item.label}</option>)}
+                    </select>
+                  </Field>
+                </div>
+                <div className="iu-legal-auto-notes">
+                  <span><FolderOpen size={15} /> {data.precompilazione.pratiche.length} pratiche utilizzabili.</span>
+                  <span><UserRound size={15} /> {data.precompilazione.clienti.length} clienti disponibili.</span>
+                  <span><Mail size={15} /> La comunicazione resta senza relata e senza oggetto L. 53.</span>
+                </div>
+              </div>
               <div className="iu-legal-form-grid">
                 <Field label="Cliente"><input value={cliente.cliente_nome} onChange={(event) => changeCliente('cliente_nome', event.currentTarget.value)} /></Field>
                 <Field label="Ufficio"><input value={cliente.ufficio_giudiziario} onChange={(event) => changeCliente('ufficio_giudiziario', event.currentTarget.value)} /></Field>
@@ -596,6 +889,27 @@ export function NotificheLegaliPage() {
               <span><FileCheck2 size={15} /> {data.modelliRelata.length} modelli relata disponibili.</span>
               <span><ShieldCheck size={15} /> Attestazioni scelte in base all'origine del documento.</span>
               <span><LockKeyhole size={15} /> Nessun invio automatico senza firma e conferma finale.</span>
+            </div>
+            <div className="iu-legal-template-catalog">
+              {data.modelliRelata.slice(0, templateCatalogExpanded ? data.modelliRelata.length : 8).map((item) => (
+                <button
+                  type="button"
+                  key={item.value}
+                  className={item.value === notifica.template_id ? 'is-active' : ''}
+                  onClick={() => {
+                    setTab('notifica')
+                    changeNotifica('template_id', item.value)
+                  }}
+                >
+                  <strong>{item.code ? `${item.code} - ${item.label}` : item.label}</strong>
+                  <span>{item.description || 'Modello disponibile per la relata.'}</span>
+                </button>
+              ))}
+              {data.modelliRelata.length > 8 ? (
+                <button type="button" className="iu-legal-template-catalog__toggle" onClick={() => setTemplateCatalogExpanded((current) => !current)}>
+                  {templateCatalogExpanded ? 'Mostra meno modelli' : 'Mostra tutti i modelli'}
+                </button>
+              ) : null}
             </div>
           </Panel>
           <Panel title="Fonti operative" subtitle="Da verificare nei flussi reali" icon={<Scale size={17} />}>

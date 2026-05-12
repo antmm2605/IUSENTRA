@@ -2,6 +2,16 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-12T20:30:00+02:00: tranche 2.216.9 su
+`/notifiche-legali`. Il modello relata selezionato e' ora visibile in anteprima
+prima della verifica, il catalogo laterale permette scelta rapida e l'avvocato
+puo' duplicare o creare modelli personalizzati con campi automatici IUSENTRA.
+I modelli su misura vengono salvati nel perimetro tenant e renderizzati dal
+motore L. 53/1994 con gli stessi controlli dei modelli standard. I percorsi
+`Deposito prova notifica` e `Comunica al cliente` usano la stessa selezione
+pratica per proporre atto, destinatario, cliente, procedimento e documento
+informativo, riducendo la compilazione manuale senza inventare dati mancanti.
+
 Aggiornamento 2026-05-12T18:40:00+02:00: tranche 2.216.8 su
 `/notifiche-legali`. Il percorso e' ora un motore di modelli parametrico:
 catalogo JSON versionato con 39 voci complessive, tutti i modelli 01-34

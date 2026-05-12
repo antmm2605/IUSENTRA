@@ -16,7 +16,15 @@ export type LegalTemplateOption = {
   description: string
   requiresProceeding: boolean
   privacyDescription: boolean
+  custom: boolean
+  previewText: string
   fields: LegalTemplateField[]
+}
+
+export type LegalTemplateFieldToken = {
+  group: string
+  label: string
+  token: string
 }
 
 export type LegalDocumentSuggestion = {
@@ -119,6 +127,7 @@ export type NotificheLegaliData = {
   originiDocumento: LegalOption[]
   modelliRelata: LegalTemplateOption[]
   modelliControllo: LegalTemplateOption[]
+  campiDisponibili: LegalTemplateFieldToken[]
   precompilazione: {
     pratiche: LegalPracticeSuggestion[]
     clienti: LegalClientSuggestion[]
@@ -180,6 +189,7 @@ export const emptyNotificheLegaliData: NotificheLegaliData = {
   originiDocumento: [],
   modelliRelata: [],
   modelliControllo: [],
+  campiDisponibili: [],
   precompilazione: {
     pratiche: [],
     clienti: [],
@@ -234,12 +244,26 @@ function templateOptions(value: unknown): LegalTemplateOption[] {
       description: text(row.description),
       requiresProceeding: bool(row.requiresProceeding),
       privacyDescription: bool(row.privacyDescription),
+      custom: bool(row.custom),
+      previewText: text(row.previewText),
       fields: rawFields.map((field) => {
         const fieldRow = isRecord(field) ? field : {}
         return { name: text(fieldRow.name), label: text(fieldRow.label, text(fieldRow.name)) }
       }).filter((field) => field.name && field.label),
     }
   }).filter((item) => item.value && item.label)
+}
+
+function fieldTokens(value: unknown): LegalTemplateFieldToken[] {
+  if (!Array.isArray(value)) return []
+  return value.map((item) => {
+    const row = isRecord(item) ? item : {}
+    return {
+      group: text(row.group, 'Dati'),
+      label: text(row.label),
+      token: text(row.token),
+    }
+  }).filter((item) => item.label && item.token)
 }
 
 function documentSuggestions(value: unknown): LegalDocumentSuggestion[] {
@@ -376,6 +400,7 @@ function normalisePayload(payload: unknown): NotificheLegaliData {
     originiDocumento: options(payload.originiDocumento),
     modelliRelata: templateOptions(payload.modelliRelata),
     modelliControllo: templateOptions(payload.modelliControllo),
+    campiDisponibili: fieldTokens(payload.campiDisponibili),
     precompilazione: {
       pratiche: practiceSuggestions(precompilazione.pratiche),
       clienti: clientSuggestions(precompilazione.clienti),
@@ -418,4 +443,30 @@ export async function postLegalWorkflow(endpoint: string, payload: Record<string
   const result = resultFromPayload(await response.json().catch(() => ({})))
   if (!response.ok || !result.ok) return result
   return result
+}
+
+export async function saveLegalRelataTemplate(payload: {
+  label: string
+  description: string
+  body: string
+  requiresProceeding?: boolean
+}): Promise<{ ok: boolean; message: string; template?: LegalTemplateOption }> {
+  const response = await fetch('/api/v1/ui/notifiche-legali/modelli-relata', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+    },
+    body: JSON.stringify(payload),
+  })
+  const body = await response.json().catch(() => ({}))
+  if (!isRecord(body)) return { ok: false, message: 'Salvataggio non completato.' }
+  const template = templateOptions([body.template])[0]
+  return {
+    ok: bool(body.ok) && response.ok,
+    message: text(body.message, response.ok ? 'Modello salvato.' : 'Salvataggio non completato.'),
+    template,
+  }
 }

@@ -749,3 +749,24 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `python tools/sync_packaging_files.py --check` | OK | Packaging sincronizzato dopo bump 2.216.6. |
 | `python -m pytest -q tests/test_packaging_consistency.py tests/test_release_readiness.py --tb=short` | OK | 8/8 passati: coerenza packaging e readiness confermate per 2.216.6. |
 | `docker compose up -d --build app`; `curl.exe -sS --max-time 45 http://127.0.0.1:8080/api/pronto`; `docker exec iusentra-app python -c "import pct; print(pct.__version__)"` | OK | App Docker locale ricostruita e healthy su `127.0.0.1:8080`; readiness OK con versione `2.216.6`. |
+
+## Notifiche legali - modelli relata visibili/personalizzabili 2.216.9
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct\notifiche_legali.py web\services\react_notifiche_legali_bridge.py web\blueprints\api_v1_react.py tests\test_notifiche_legali.py` | OK | Sintassi confermata dopo rendering modelli personalizzati, campi automatici e storage tenant-aware dei modelli relata. |
+| `python -m pytest -q tests\test_notifiche_legali.py --tb=short` | OK | 9/9 passati: modelli standard, modello personalizzato Jinja, integrazione avvocato, API React e salvataggio modello personalizzato confermati. |
+| `npm --prefix frontend run typecheck` | OK | TypeScript confermato dopo anteprima modello, editor personalizzato, palette campi e precompilazione deposito/cliente. |
+| `node frontend\scripts\check-react-contracts.mjs` | OK | Contratti statici aggiornati per anteprima relata, nuovo modello su misura, campi automatici, endpoint salvataggio e percorsi deposito/cliente. |
+| `npm --prefix frontend run test` | OK | Suite frontend confermata dopo aggiornamento contratti React. |
+| `node scripts\react-migration\check-route-gate.mjs` | OK | Route gate invariato: `/notifiche-legali` resta governata come superficie React full. |
+| `node scripts\react-migration\check-full-react-route-contract.mjs` | OK | Contratto full React confermato; audit anti-mascheramento aggiornato senza nuove violazioni. |
+| `python tools\sync_packaging_files.py --check` | OK | Packaging sincronizzato dopo bump versione `2.216.9`. |
+| `python -m pytest -q tests\test_packaging_consistency.py tests\test_release_readiness.py --tb=short` | OK | 8/8 passati: coerenza packaging e readiness confermate per `2.216.9`. |
+| `npm --prefix frontend run build` | OK | Build Vite completata in 6.27s; chunk lazy `NotificheLegaliPage-CONMJjZ1.js` 42.04 kB / 10.01 kB gzip, CSS 9.46 kB / 2.07 kB gzip. |
+| `docker compose build app scheduler-worker ocr-worker` | OK | Immagini locali ricostruite senza backup con package `pct-studio-legale==2.216.9`. |
+| `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx` | OK | Servizi locali riavviati sulle immagini appena costruite. |
+| `docker compose ps` | OK | `iusentra-app`, `iusentra-scheduler`, `iusentra-ocr` e `iusentra-redis` healthy; `iusentra-nginx` attivo. |
+| `Invoke-WebRequest -UseBasicParsing -Uri http://127.0.0.1:8080/api/pronto -TimeoutSec 30` | OK | Readiness locale: `{"ok":true,"stato":"pronto","versione":"2.216.9"}`. |
+| `docker exec iusentra-app python -c "import pct; print(pct.__version__)"` | OK | Versione runtime container locale: `2.216.9`. |
+| Browser Chrome reale su `http://127.0.0.1:8080/notifiche-legali`, desktop 1440x1000 e mobile 390x844 | OK | Anteprima modello, nuovo modello su misura, inserimento campo `Avvocato notificante`, `Deposito prova notifica` e `Comunica al cliente` verificati; nessun overflow, nessun errore console e nessun testo tecnico vietato visibile. |

@@ -1,5 +1,26 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-12 - Modelli relata visibili e personalizzabili 2.216.9
+
+La route `/notifiche-legali` completa il passaggio da catalogo parametrico a
+strumento operativo per lo studio: l'avvocato vede il testo del modello relata
+prima del controllo, puo' scorrere il catalogo laterale, duplicare un modello
+esistente o crearne uno nuovo su misura. L'editor inserisce campi automatici
+IUSENTRA guidati, tra cui pratica, avvocato, assistito, procedimento,
+destinatario, documenti, attestazioni e oggetto PEC; il salvataggio e' nel
+perimetro dati del tenant e non genera backup.
+
+Il motore dominio accetta modelli personalizzati e li renderizza con gli stessi
+controlli L. 53/1994 dei modelli standard. La relata puo' ricevere anche una
+integrazione libera dell'avvocato, aggiunta in coda senza sostituire
+validazioni, attestazioni automatiche e blocchi obbligatori.
+
+Anche `Deposito prova notifica` e `Comunica al cliente` ricevono la
+precompilazione da pratica: atto, destinatario, cliente, ufficio, RG e documento
+informativo vengono proposti quando gia' presenti in IUSENTRA. RAC/RdAC, firma
+e dati non certi restano richiesti all'utente, cosi' il flusso rimane rapido ma
+governato.
+
 ## Stato tranche 2026-05-12 - Notifiche legali parametriche 2.216.8
 
 La route `/notifiche-legali` evolve da procedura guidata a motore

@@ -1774,6 +1774,10 @@ def catalogo_compilatore() -> dict[str, Any]:
 
 def wizard_schema_modello(model_code: str) -> dict[str, Any]:
     model = _require_model(model_code)
+    try:
+        from pct.template_atti_prefill import DEFAULT_PREFILL_BINDINGS
+    except Exception:
+        DEFAULT_PREFILL_BINDINGS = {}
     return {
         "model": copy.deepcopy(model),
         "field_catalog": copy.deepcopy(FIELD_CATALOG),
@@ -1787,6 +1791,9 @@ def wizard_schema_modello(model_code: str) -> dict[str, Any]:
         "sections": list(model.get("sections", [])),
         "renderer": model.get("renderer", "generic_professional_v1"),
         "prefill_map": copy.deepcopy(model.get("prefill_map", {})),
+        "prefill_bindings": copy.deepcopy(DEFAULT_PREFILL_BINDINGS),
+        "required_prefill_fields": list(BASE_REQUIRED_FIELDS) + list(model.get("required_extra_fields", [])),
+        "optional_prefill_fields": ["pec_studio", "codice_fiscale_studio", "partita_iva_studio"],
     }
 
 
@@ -1852,6 +1859,8 @@ def prefill_payload(
     cliente: Any = None,
     utente: Any = None,
     config: Optional[dict[str, Any]] = None,
+    studio_timbro: Any = None,
+    parti: Any = None,
 ) -> dict[str, Any]:
     model = _require_model(model_code)
     config = config or {}
@@ -1894,6 +1903,36 @@ def prefill_payload(
     }
     for field_name in model["required_extra_fields"]:
         payload[field_name] = _prefill_extra_field(field_name, fascicolo=fascicolo, cliente=cliente, utente=utente, config=config, allegati=allegati)
+    try:
+        from pct.template_atti_prefill import resolve_template_prefill
+
+        resolution = resolve_template_prefill(
+            model_code=model_code,
+            required_fields=list(BASE_REQUIRED_FIELDS) + list(model.get("required_extra_fields", [])),
+            optional_fields=["pec_studio", "codice_fiscale_studio", "partita_iva_studio"],
+            fascicolo=fascicolo,
+            cliente=cliente,
+            utente=utente,
+            config=config,
+            studio_timbro=studio_timbro,
+            parti=parti,
+            legacy_payload=payload,
+        )
+        for key, value in resolution.get("values", {}).items():
+            if key not in payload or _is_empty_value(payload.get(key)):
+                payload[key] = value
+        if studio_timbro is not None:
+            if hasattr(studio_timbro, "to_payload"):
+                timbro_payload = studio_timbro.to_payload()
+                payload["_studio_timbro"] = timbro_payload
+                payload["_studio_timbro_text"] = studio_timbro.to_text()
+                payload["_studio_timbro_html"] = studio_timbro.to_html()
+            elif isinstance(studio_timbro, dict):
+                payload["_studio_timbro"] = studio_timbro
+        payload["_prefill_resolution"] = resolution
+    except Exception:
+        if studio_timbro is not None:
+            payload["_studio_timbro"] = studio_timbro.to_payload() if hasattr(studio_timbro, "to_payload") else studio_timbro
     return payload
 
 
@@ -1942,7 +1981,13 @@ def render_compiled_act(model_code: str, payload: dict[str, Any]) -> str:
         "generic_professional_v1": _render_generic_professional_act,
     }
     renderer = renderers.get(model.get("renderer", "generic_professional_v1"), _render_generic_professional_act)
-    return renderer(model, payload).strip()
+    rendered = renderer(model, payload).strip()
+    try:
+        from pct.studio_timbro import inject_timbro_text
+
+        return inject_timbro_text(rendered, payload.get("_studio_timbro"))
+    except Exception:
+        return rendered
 
 
 def _prefill_extra_field(field_name: str, *, fascicolo: Any = None, cliente: Any = None, utente: Any = None, config: Optional[dict[str, Any]] = None, allegati: Optional[list[str]] = None) -> Any:

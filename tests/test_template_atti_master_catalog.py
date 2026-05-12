@@ -19,7 +19,7 @@ def test_catalogo_master_versionato_ha_schema_canali_e_id_governati():
     ids = {item["id"] for item in templates}
     channels = {item["canale_telematico"] for item in templates}
 
-    assert payload["versione"] == "1.1.0"
+    assert payload["versione"] == "1.2.0"
     assert len(templates) == payload["totale_template"] == 420
     assert len(ids) == len(templates)
     assert {"CIV_ORD_001", "GDP_001", "MON_001", "ESE_001", "FAM_001", "PEN_001", "TRI_001", "AMM_001"} <= ids
@@ -101,7 +101,7 @@ def test_catalogo_template_route_mostra_master_versionato(tmp_path: Path):
     assert "7 canali telematici" in html
     assert "Redazione guidata" in html
     assert "Controlli deposito" in html
-    assert "Pre-verifica conformità" in html
+    assert "Pre-verifica governata" in html
     assert "Master professionale" not in html
     assert 'id="viewMasterCatalog"' not in html
     assert 'data-master-card="true"' not in html
@@ -151,15 +151,18 @@ def test_catalogo_service_arricchisce_template_e_filtri():
     template_ids = {item["codice"] for item in context["template_suite"]}
 
     assert context["suite_summary"]["titolo"] == "Suite professionale completa"
-    assert context["suite_summary"]["versione"] == "v1.1.0"
+    assert context["suite_summary"]["versione"] == "v1.2.0"
     assert context["suite_summary"]["totale_template"] == 420
     assert context["suite_summary"]["template_operativi"] == 192
     assert context["suite_summary"]["template_master"] == 420
     assert context["suite_summary"]["totale_catalogo"] == 612
+    assert context["suite_summary"]["template_con_cartabia_profile"] == 420
+    assert context["suite_summary"]["template_con_prefill_bindings"] == 420
+    assert context["suite_summary"]["template_con_timbro_automatico"] == 420
     assert context["suite_summary"]["moduli_professionali"] == 22
     assert context["suite_summary"]["canali_governati"] == 7
     assert len(context["suite_groups"]) == 4
-    assert {"materia", "categoria_suite", "portale_deposito", "canale_deposito", "rito", "fase", "stato"} <= set(context["template_filters"])
+    assert {"materia", "categoria_suite", "portale_deposito", "canale_deposito", "rito", "fase", "stato", "stato_conformita", "processo_area", "prefill_completeness"} <= set(context["template_filters"])
     assert {
         "STR_DIFF_001",
         "CIV_CIT_001",

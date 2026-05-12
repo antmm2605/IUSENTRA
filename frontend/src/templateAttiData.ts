@@ -23,11 +23,27 @@ export type TemplateAttiRecord = {
   stateLabel: string
   stateTone: AdminTone
   complianceLabel: string
+  cartabiaState: string
+  cartabiaLabel: string
+  processArea: string
+  requiresLawyerReview: boolean
+  prefillStatus: string
+  prefillAvailable: number
+  prefillMissing: number
+  blockingChecks: string[]
+  recommendedChecks: string[]
+  dataSources: string[]
   updatedAt: string
   tags: string[]
   requiredVariables: TemplateVariableMeta[]
   href: string
   detailHref: string
+}
+
+export type StudioStampPreview = {
+  lines: Array<{ text: string; size: number; bold: boolean }>
+  text: string
+  scope: Record<string, boolean>
 }
 
 export type TemplateAttiPageData = {
@@ -37,6 +53,7 @@ export type TemplateAttiPageData = {
   metrics: AdminMetric[]
   sections: AdminSection[]
   records: TemplateAttiRecord[]
+  studioStamp: StudioStampPreview
   actions: AdminAction[]
   forms: []
   warnings: AdminWarning[]
@@ -53,6 +70,7 @@ export const emptyTemplateAttiPage: TemplateAttiPageData = {
   metrics: [],
   sections: [],
   records: [],
+  studioStamp: { lines: [], text: '', scope: {} },
   actions: [],
   forms: [],
   warnings: [],
@@ -164,11 +182,37 @@ function normaliseRecord(input: unknown): TemplateAttiRecord {
     stateLabel: text(item.stateLabel),
     stateTone: tone(item.stateTone),
     complianceLabel: text(item.complianceLabel),
+    cartabiaState: text(item.cartabiaState),
+    cartabiaLabel: text(item.cartabiaLabel),
+    processArea: text(item.processArea),
+    requiresLawyerReview: item.requiresLawyerReview === true,
+    prefillStatus: text(item.prefillStatus),
+    prefillAvailable: Number(item.prefillAvailable || 0),
+    prefillMissing: Number(item.prefillMissing || 0),
+    blockingChecks: list(item.blockingChecks).map((value) => text(value)).filter(Boolean),
+    recommendedChecks: list(item.recommendedChecks).map((value) => text(value)).filter(Boolean),
+    dataSources: list(item.dataSources).map((value) => text(value)).filter(Boolean),
     updatedAt: text(item.updatedAt),
     tags: list(item.tags).map((tag) => text(tag)).filter(Boolean),
     requiredVariables: list(item.requiredVariables).map(normaliseVariable).filter((variable) => variable.name),
     href: safeHref(item.href, '/template-atti/catalogo'),
     detailHref: safeHref(item.detailHref, ''),
+  }
+}
+
+function normaliseStudioStamp(input: unknown): StudioStampPreview {
+  const item = asRecord(input)
+  return {
+    lines: list(item.lines).map((lineInput) => {
+      const line = asRecord(lineInput)
+      return {
+        text: text(line.text),
+        size: Number(line.size || 9),
+        bold: line.bold === true,
+      }
+    }).filter((line) => line.text),
+    text: text(item.text),
+    scope: asRecord(item.scope) as Record<string, boolean>,
   }
 }
 
@@ -187,6 +231,7 @@ function normalisePage(input: unknown): TemplateAttiPageData {
     metrics: list(page.metrics).map(normaliseMetric),
     sections: list(page.sections).map(normaliseSection),
     records: list(page.records).map(normaliseRecord).filter((record) => record.id),
+    studioStamp: normaliseStudioStamp(page.studioStamp),
     actions: list(page.actions).map(normaliseAction).filter((action) => action.href),
     forms: [],
     warnings: list(page.warnings).map(normaliseWarning),

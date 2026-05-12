@@ -2,6 +2,14 @@
 
 Generato: 2026-05-08T10:03:02.066Z
 
+Aggiornamento 2026-05-12: `Template Atti` 2.218.0 espone catalogo e
+compilatore come superfici operative governate: filtri per stato Cartabia,
+area processuale, dati completi/incompleti e canale, chip di precompilazione,
+preview timbro studio e dettaglio dei controlli. Il linguaggio resta rivolto
+allo studio, con stati `Da verificare`, `Pronto dopo controllo` o equivalenti
+professionali, senza promesse statiche di conformita' piena e senza dati di
+esempio hardcoded.
+
 Aggiornamento 2026-05-12: `Impostazioni -> Calendari` 2.217.0 diventa un
 pannello operativo per collegare Google, Outlook/Microsoft 365, iCloud/CalDAV,
 WebCal/ICS e ambiente di prova locale. La UI usa sezioni compatte, icone

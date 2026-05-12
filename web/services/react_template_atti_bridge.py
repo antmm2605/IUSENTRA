@@ -83,6 +83,13 @@ def _catalog_record(row: dict[str, Any], index: int) -> dict[str, Any]:
     channel = _text(row.get("canale_deposito") or row.get("portale_deposito"))
     state = _text(row.get("stato")) or ("depositabile" if row.get("depositabile") else "catalogo")
     compiler_code = _text(row.get("link_compilatore_code") or row.get("codice"))
+    cartabia_state = _text(row.get("stato_conformita"))
+    requires_review = bool(row.get("richiede_verifica_avvocato"))
+    required_fields = _list(row.get("required_prefill_fields") or row.get("dati_obbligatori"))
+    prefill_bindings = row.get("prefill_bindings") if isinstance(row.get("prefill_bindings"), dict) else {}
+    cartabia = row.get("cartabia_verifica") if isinstance(row.get("cartabia_verifica"), dict) else {}
+    missing = _list(cartabia.get("missing_fields"))
+    available = _list(cartabia.get("available_fields"))
     return {
         "id": code,
         "kind": "catalogo",
@@ -97,10 +104,20 @@ def _catalog_record(row: dict[str, Any], index: int) -> dict[str, Any]:
         "portal": _text(row.get("portale_deposito")),
         "stateLabel": state.capitalize(),
         "stateTone": _tone_from_state(state),
-        "complianceLabel": "Controlli completi" if row.get("controlli_completi") else ("Da verificare" if row.get("controlli_deposito_disponibili") else ""),
+        "complianceLabel": "Revisione avvocato richiesta" if requires_review else ("Regole verificabili presenti" if cartabia_state else ""),
+        "cartabiaState": cartabia_state,
+        "cartabiaLabel": _text(row.get("cartabia_profile")),
+        "processArea": _text(row.get("processo_area")),
+        "requiresLawyerReview": requires_review,
+        "prefillStatus": "precompilabile" if prefill_bindings else "da completare",
+        "prefillAvailable": len(available) if available else len(prefill_bindings),
+        "prefillMissing": len(missing),
+        "blockingChecks": [_text(item.get("label") if isinstance(item, dict) else item) for item in _list(cartabia.get("controlli_bloccanti")) if _text(item.get("label") if isinstance(item, dict) else item)],
+        "recommendedChecks": [_text(item.get("label") if isinstance(item, dict) else item) for item in _list(cartabia.get("controlli_consigliati")) if _text(item.get("label") if isinstance(item, dict) else item)],
+        "dataSources": [_text(item) for item in _list(row.get("fonti_prefill")) if _text(item)],
         "updatedAt": _text(row.get("updated_at") or row.get("created_at")),
         "tags": [_text(item) for item in _list(row.get("tags")) if _text(item)],
-        "requiredVariables": _variable_names(row.get("dati_obbligatori")),
+        "requiredVariables": _variable_names(required_fields),
         "href": f"/redazione-atti?template={compiler_code}" if compiler_code else "/redazione-atti",
         "detailHref": f"/template-atti/catalogo?scheda={code}",
     }
@@ -125,6 +142,16 @@ def _studio_record(template: Any, index: int) -> dict[str, Any]:
         "stateLabel": "Sistema" if state == "built-in" else "Studio",
         "stateTone": "info" if state == "built-in" else "primary",
         "complianceLabel": "Informazioni deposito" if getattr(template, "controlli_conformita", None) else "",
+        "cartabiaState": "",
+        "cartabiaLabel": "",
+        "processArea": "",
+        "requiresLawyerReview": False,
+        "prefillStatus": "precompilabile" if getattr(template, "campi_guidati", None) else "da completare",
+        "prefillAvailable": len(_list(getattr(template, "campi_guidati", []))),
+        "prefillMissing": 0,
+        "blockingChecks": [],
+        "recommendedChecks": [],
+        "dataSources": [],
         "updatedAt": _text(getattr(template, "modificato_il", "") or getattr(template, "creato_il", "")),
         "tags": [_text(item) for item in _list(getattr(template, "parole_chiave", [])) if _text(item)],
         "requiredVariables": _variable_names(getattr(template, "campi_guidati", [])),
@@ -177,9 +204,11 @@ def build_react_template_atti_payload(
     *,
     get_template_manager: Callable[[], Any],
     page: str = "dashboard",
+    studio_timbro: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     warnings: list[dict[str, str]] = [
         _warning("produzione_disponibile", "Catalogo, scheda e avvio produzione sono disponibili nella pagina."),
+        _warning("revisione_professionale", "Le verifiche Cartabia aiutano la redazione ma non sostituiscono la revisione professionale dell'avvocato."),
     ]
     catalog_rows = _safe_catalog_rows(warnings)
     studio_templates = _safe_studio_templates(get_template_manager, warnings)
@@ -191,8 +220,12 @@ def build_react_template_atti_payload(
     matters = [record["matter"] or record["area"] for record in records]
     channels = [record["channel"] for record in records]
     with_variables = sum(1 for record in records if record.get("requiredVariables"))
+    with_cartabia = sum(1 for record in records if record.get("cartabiaState"))
+    review_required = sum(1 for record in records if record.get("requiresLawyerReview"))
+    prefillable = sum(1 for record in records if record.get("prefillStatus") == "precompilabile")
     catalog_total = len(catalog_records)
     studio_total = len(studio_records)
+    stamp_preview = studio_timbro or {"payload": {}, "lines": [], "html": "", "text": "", "scope": {}}
 
     legacy_contract = (
         "artifacts/react-migration/legacy-contracts/template-atti__catalogo.json"
@@ -213,6 +246,9 @@ def build_react_template_atti_payload(
             _metric("catalogo", "Catalogo", catalog_total, "Template classificati", "info"),
             _metric("studio", "Studio", studio_total, "Modelli locali", "neutral"),
             _metric("variabili", "Variabili", with_variables, "Campi richiesti", "warning" if with_variables else "neutral"),
+            _metric("cartabia", "Profili Cartabia", with_cartabia, "Regole versionate", "info"),
+            _metric("prefill", "Precompilabili", prefillable, "Dati da IUSENTRA", "success" if prefillable else "neutral"),
+            _metric("revisione", "Da revisionare", review_required, "Verifica avvocato richiesta", "warning" if review_required else "success"),
         ],
         "sections": [
             _counter_section("categorie", "Categorie", "distribution", categories, "Nessuna categoria disponibile."),
@@ -221,16 +257,18 @@ def build_react_template_atti_payload(
             _section(
                 "presidi",
                 "Produzione documentale",
-                "react",
+                "presidio",
                 [
                     _item("scheda", "Scheda template", "in pagina", "Dettaglio aperto senza uscire dal catalogo", "success"),
                     _item("redazione", "Produzione atti", "in pagina", "Avvio diretto in Redazione Atti", "success"),
-                    _item("telematico", "Servizi telematici", "tranche successiva", "Deposito e portali restano separati", "warning"),
+                    _item("cartabia", "Verifica conformita", "governata", "Controlli tracciati con stato di revisione", "warning"),
+                    _item("timbro", "Timbro studio", "automatico", "Intestazione configurabile applicata agli atti", "success" if stamp_preview.get("lines") else "warning"),
                 ],
                 "Nessun presidio rilevato.",
             ),
         ],
         "records": records,
+        "studioStamp": stamp_preview,
         "actions": [
             _action("catalogo", "Catalogo template", "/template-atti/catalogo", "primary"),
             _action("redazione", "Redazione atti", "/redazione-atti", "primary"),

@@ -2,6 +2,25 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-12T19:50:00+02:00: tranche 2.218.0 su
+`/template-atti`, `/template-atti/catalogo` e compilatore atti. Il catalogo
+mantiene 420 template master e 192 modelli operativi collegati, con schema
+Cartabia 1.2.0, prefill bindings e link compilatore su tutte le voci. La UI
+React mostra filtri per stato Cartabia, area processuale e precompilazione,
+chip `Precompilabile`, `Richiede verifica avvocato`, dati mancanti, controlli
+bloccanti/consigliati e preview del timbro studio. Nessuna voce viene
+dichiarata automaticamente `100% conforme`: gli stati restano governati da
+regole, metadati e revisione professionale dove necessaria.
+
+Il timbro studio e' ora servizio tenant-aware e viene iniettato centralmente
+nei render degli atti prima del titolo; il resolver prefill espone provenienza,
+attendibilita', avvisi, alternative e motivi dei dati mancanti senza inventare
+dati. Gate mirati registrati in `pytest-confirmed-ok.md`: script catalogo,
+pytest master/prefill/timbro, typecheck, contratti React, build Vite,
+packaging, readiness release, Docker locale 2.218.0 e smoke browser verdi.
+Chrome headless su Docker locale ha confermato catalogo desktop/tablet/mobile
+e compilatore desktop senza overflow, errori console o termini tecnici vietati.
+
 Aggiornamento 2026-05-12T18:05:00+02:00: tranche 2.217.2 PWA/Web Push.
 `Impostazioni > Notifiche` aggiunge il pannello dispositivo con consenso
 esplicito, attivazione/disattivazione subscription e test. Il centro notifiche

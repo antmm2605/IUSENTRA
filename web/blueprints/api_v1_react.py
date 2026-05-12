@@ -431,8 +431,38 @@ def _template_atti_loader() -> Any:
     from pct.template_atti import GestioneTemplateAtti
 
     return GestioneTemplateAtti(
-        db_path=str(current_app.config.get("TEMPLATE_ATTI_DB", "./template_atti/templates.json") or "./template_atti/templates.json")
+        db_path=_cfg_value("TEMPLATE_ATTI_DB", "./template_atti/templates.json")
     )
+
+
+def _studio_config_manager() -> Any:
+    loader = _core_runtime_func("get_config_studio")
+    if callable(loader):
+        return loader()
+    from pct.config_studio import GestioneConfigStudio
+
+    return GestioneConfigStudio(config_path=_cfg_value("CONFIG_STUDIO_DB", "./config/studio.json"))
+
+
+def _studio_timbro_payload() -> dict[str, Any]:
+    from pct.studio_timbro import build_studio_timbro
+
+    try:
+        config_studio = getattr(_studio_config_manager(), "config", None)
+    except Exception:
+        config_studio = None
+    timbro = build_studio_timbro(
+        db_path=_cfg_value("STUDIO_TIMBRO_DB", "./config/studio_timbro.db"),
+        config_studio=config_studio,
+        app_config=current_app.config,
+    )
+    return {
+        "payload": timbro.to_payload(),
+        "lines": timbro.to_lines(),
+        "html": timbro.to_html(),
+        "text": timbro.to_text(),
+        "scope": timbro.scope_payload(),
+    }
 
 
 def _telematico_runtime_func(name: str) -> Callable[..., Any]:
@@ -4545,6 +4575,7 @@ def template_atti_page():
             build_react_template_atti_payload(
                 get_template_manager=_template_atti_loader,
                 page="dashboard",
+                studio_timbro=_studio_timbro_payload(),
             )
         )
     except Exception as exc:
@@ -4567,6 +4598,7 @@ def template_atti_catalogo_page():
             build_react_template_atti_payload(
                 get_template_manager=_template_atti_loader,
                 page="catalogo",
+                studio_timbro=_studio_timbro_payload(),
             )
         )
     except Exception as exc:
@@ -4576,6 +4608,63 @@ def template_atti_catalogo_page():
                 "Catalogo template atti non disponibile dal runtime corrente."
             )
         ), 200
+
+
+@api_v1_react.get("/studio/timbro")
+@_richiedi_auth
+def studio_timbro_page():
+    utente = g.get("utente_corrente")
+    if not utente:
+        return jsonify({"ok": False, "errors": {"sessione": "Sessione utente richiesta."}}), 403
+    try:
+        payload = _studio_timbro_payload()
+        return jsonify({"ok": True, "timbro": payload["payload"], "preview": payload}), 200
+    except Exception as exc:
+        current_app.logger.exception("Errore lettura Timbro Studio React: %s", exc)
+        return jsonify({"ok": False, "message": "Timbro studio non disponibile."}), 200
+
+
+@api_v1_react.post("/studio/timbro")
+@_richiedi_auth
+def studio_timbro_save():
+    if not _puo_configurare_impostazioni():
+        return jsonify({"ok": False, "errors": {"permessi": "Permesso di configurazione richiesto."}}), 403
+    payload, error = _request_json_object()
+    if error is not None:
+        return error
+    from pct.studio_timbro import save_studio_timbro, StudioTimbro
+
+    try:
+        raw_timbro = payload.get("timbro", payload) if isinstance(payload, dict) else {}
+        try:
+            config_studio = getattr(_studio_config_manager(), "config", None)
+        except Exception:
+            config_studio = None
+        saved = save_studio_timbro(
+            raw_timbro,
+            db_path=_cfg_value("STUDIO_TIMBRO_DB", "./config/studio_timbro.db"),
+            config_studio=config_studio,
+            app_config=current_app.config,
+        )
+        timbro = StudioTimbro.from_payload(saved)
+        _audit_event("studio.timbro.salva", "studio_timbro", "default", "Timbro studio aggiornato.")
+        return jsonify(
+            {
+                "ok": True,
+                "message": "Timbro studio salvato.",
+                "timbro": saved,
+                "preview": {
+                    "payload": saved,
+                    "lines": timbro.to_lines(),
+                    "html": timbro.to_html(),
+                    "text": timbro.to_text(),
+                    "scope": timbro.scope_payload(),
+                },
+            }
+        ), 200
+    except Exception as exc:
+        current_app.logger.exception("Errore salvataggio Timbro Studio React: %s", exc)
+        return jsonify({"ok": False, "message": "Salvataggio timbro studio non riuscito."}), 200
 
 
 @api_v1_react.get("/redazione-atti")

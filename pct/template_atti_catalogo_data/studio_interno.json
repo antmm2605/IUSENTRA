@@ -1,6 +1,6 @@
 {
   "suite": "Suite professionale completa template atti IUSENTRA",
-  "versione": "1.1.0",
+  "versione": "1.2.0",
   "gruppo": "Atti interni di studio",
   "totale_template": 20,
   "moduli": [
@@ -69,7 +69,203 @@
       ],
       "versione": "1.1.0",
       "stato": "draft_professionale",
-      "ordinamento": 1
+      "ordinamento": 1,
+      "cartabia_profile": "studio_interno",
+      "processo_area": "studio_interno",
+      "normativa_riferimento": [
+        "Regole interne di mandato, privacy e gestione studio"
+      ],
+      "condizioni_procedibilita": [
+        "cliente, fascicolo e incarico quando collegati"
+      ],
+      "termini_processuali_rilevanti": [],
+      "dati_obbligatori_cartabia": [
+        "preventivo",
+        "conferimento",
+        "procura",
+        "privacy",
+        "incarico",
+        "firme necessarie"
+      ],
+      "controlli_cartabia": [
+        "collegamento cliente",
+        "incarico",
+        "privacy",
+        "timbro studio"
+      ],
+      "controlli_deposito": [
+        "timbro studio",
+        "firme necessarie"
+      ],
+      "avvisi_redazionali": [
+        "Gli atti interni non sostituiscono la verifica del mandato e delle firme."
+      ],
+      "richiede_verifica_avvocato": false,
+      "stato_conformita": "draft_professionale",
+      "data_ultimo_aggiornamento_normativo": "2026-05-12",
+      "versione_regole": "2026.05.12.1",
+      "fonte_regole": "Ruleset operativo IUSENTRA per revisione Cartabia e controlli processuali",
+      "prefill_bindings": {
+        "cliente": [
+          "parti.assistito_principale.nome_completo",
+          "cliente.nome_completo",
+          "legacy.client_or_sender"
+        ],
+        "controparte": [
+          "parti.controparte_principale.nome_completo",
+          "fascicolo.controparte",
+          "legacy.counterparty_or_recipient"
+        ],
+        "difensore": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.lawyer"
+        ],
+        "ufficio_giudiziario": [
+          "fascicolo.tribunale",
+          "fascicolo.ufficio_giudiziario",
+          "legacy.recipient_or_court"
+        ],
+        "rg": [
+          "fascicolo.rg_completo",
+          "fascicolo.numero_rg",
+          "legacy.case_reference_display"
+        ],
+        "oggetto": [
+          "fascicolo.titolo",
+          "fascicolo.oggetto",
+          "legacy.subject"
+        ],
+        "data_atto": [
+          "today",
+          "legacy.document_date"
+        ],
+        "pec_studio": [
+          "studio_timbro.pec",
+          "studio.pec",
+          "legacy._lawyer_pec"
+        ],
+        "codice_fiscale_studio": [
+          "studio_timbro.codice_fiscale",
+          "studio.codice_fiscale",
+          "legacy._lawyer_tax_id"
+        ],
+        "partita_iva_studio": [
+          "studio_timbro.partita_iva",
+          "studio.partita_iva"
+        ],
+        "client_or_sender": [
+          "parti.assistito_principale.nome_completo",
+          "cliente.nome_completo",
+          "legacy.client_or_sender"
+        ],
+        "counterparty_or_recipient": [
+          "parti.controparte_principale.nome_completo",
+          "fascicolo.controparte",
+          "legacy.counterparty_or_recipient"
+        ],
+        "lawyer": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.lawyer"
+        ],
+        "recipient_or_court": [
+          "fascicolo.tribunale",
+          "fascicolo.ufficio_giudiziario",
+          "legacy.recipient_or_court"
+        ],
+        "case_reference_display": [
+          "fascicolo.rg_completo",
+          "fascicolo.numero_rg",
+          "fascicolo.numero",
+          "legacy.case_reference_display"
+        ],
+        "matter": [
+          "fascicolo.tipo.value",
+          "fascicolo.materia",
+          "legacy.matter"
+        ],
+        "subject": [
+          "fascicolo.oggetto",
+          "fascicolo.titolo",
+          "legacy.subject"
+        ],
+        "facts": [
+          "fascicolo.note",
+          "legacy.facts"
+        ],
+        "document_date": [
+          "today",
+          "legacy.document_date"
+        ],
+        "signature": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.signature"
+        ],
+        "attachments_list": [
+          "documenti.nomi",
+          "legacy.attachments_list"
+        ],
+        "place": [
+          "studio.indirizzo",
+          "studio_timbro.indirizzo_riga",
+          "legacy.place"
+        ],
+        "_lawyer_pec": [
+          "studio_timbro.pec",
+          "studio.pec",
+          "legacy._lawyer_pec"
+        ],
+        "_lawyer_tax_id": [
+          "studio_timbro.codice_fiscale",
+          "studio.codice_fiscale",
+          "legacy._lawyer_tax_id"
+        ],
+        "_studio_address": [
+          "studio_timbro.indirizzo_riga",
+          "studio.indirizzo",
+          "legacy._studio_address"
+        ],
+        "timbro_studio": [
+          "studio_timbro.studio_nome"
+        ],
+        "preventivo": [
+          "fascicolo.preventivo",
+          "legacy.preventivo"
+        ],
+        "conferimento": [
+          "fascicolo.conferimento",
+          "legacy.conferimento"
+        ]
+      },
+      "required_prefill_fields": [
+        "cliente",
+        "difensore",
+        "oggetto",
+        "timbro_studio"
+      ],
+      "optional_prefill_fields": [
+        "controparte",
+        "ufficio_giudiziario",
+        "rg",
+        "pec_studio",
+        "codice_fiscale_studio",
+        "partita_iva_studio"
+      ],
+      "cartabia_required_fields": [
+        "preventivo",
+        "conferimento",
+        "procura",
+        "privacy",
+        "incarico",
+        "firme necessarie"
+      ],
+      "deposit_required_fields": [
+        "timbro studio",
+        "firme necessarie"
+      ],
+      "link_compilatore_code": "STR_COM_001"
     },
     {
       "id": "STD_002",
@@ -128,7 +324,203 @@
       ],
       "versione": "1.1.0",
       "stato": "draft_professionale",
-      "ordinamento": 2
+      "ordinamento": 2,
+      "cartabia_profile": "studio_interno",
+      "processo_area": "studio_interno",
+      "normativa_riferimento": [
+        "Regole interne di mandato, privacy e gestione studio"
+      ],
+      "condizioni_procedibilita": [
+        "cliente, fascicolo e incarico quando collegati"
+      ],
+      "termini_processuali_rilevanti": [],
+      "dati_obbligatori_cartabia": [
+        "preventivo",
+        "conferimento",
+        "procura",
+        "privacy",
+        "incarico",
+        "firme necessarie"
+      ],
+      "controlli_cartabia": [
+        "collegamento cliente",
+        "incarico",
+        "privacy",
+        "timbro studio"
+      ],
+      "controlli_deposito": [
+        "timbro studio",
+        "firme necessarie"
+      ],
+      "avvisi_redazionali": [
+        "Gli atti interni non sostituiscono la verifica del mandato e delle firme."
+      ],
+      "richiede_verifica_avvocato": false,
+      "stato_conformita": "draft_professionale",
+      "data_ultimo_aggiornamento_normativo": "2026-05-12",
+      "versione_regole": "2026.05.12.1",
+      "fonte_regole": "Ruleset operativo IUSENTRA per revisione Cartabia e controlli processuali",
+      "prefill_bindings": {
+        "cliente": [
+          "parti.assistito_principale.nome_completo",
+          "cliente.nome_completo",
+          "legacy.client_or_sender"
+        ],
+        "controparte": [
+          "parti.controparte_principale.nome_completo",
+          "fascicolo.controparte",
+          "legacy.counterparty_or_recipient"
+        ],
+        "difensore": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.lawyer"
+        ],
+        "ufficio_giudiziario": [
+          "fascicolo.tribunale",
+          "fascicolo.ufficio_giudiziario",
+          "legacy.recipient_or_court"
+        ],
+        "rg": [
+          "fascicolo.rg_completo",
+          "fascicolo.numero_rg",
+          "legacy.case_reference_display"
+        ],
+        "oggetto": [
+          "fascicolo.titolo",
+          "fascicolo.oggetto",
+          "legacy.subject"
+        ],
+        "data_atto": [
+          "today",
+          "legacy.document_date"
+        ],
+        "pec_studio": [
+          "studio_timbro.pec",
+          "studio.pec",
+          "legacy._lawyer_pec"
+        ],
+        "codice_fiscale_studio": [
+          "studio_timbro.codice_fiscale",
+          "studio.codice_fiscale",
+          "legacy._lawyer_tax_id"
+        ],
+        "partita_iva_studio": [
+          "studio_timbro.partita_iva",
+          "studio.partita_iva"
+        ],
+        "client_or_sender": [
+          "parti.assistito_principale.nome_completo",
+          "cliente.nome_completo",
+          "legacy.client_or_sender"
+        ],
+        "counterparty_or_recipient": [
+          "parti.controparte_principale.nome_completo",
+          "fascicolo.controparte",
+          "legacy.counterparty_or_recipient"
+        ],
+        "lawyer": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.lawyer"
+        ],
+        "recipient_or_court": [
+          "fascicolo.tribunale",
+          "fascicolo.ufficio_giudiziario",
+          "legacy.recipient_or_court"
+        ],
+        "case_reference_display": [
+          "fascicolo.rg_completo",
+          "fascicolo.numero_rg",
+          "fascicolo.numero",
+          "legacy.case_reference_display"
+        ],
+        "matter": [
+          "fascicolo.tipo.value",
+          "fascicolo.materia",
+          "legacy.matter"
+        ],
+        "subject": [
+          "fascicolo.oggetto",
+          "fascicolo.titolo",
+          "legacy.subject"
+        ],
+        "facts": [
+          "fascicolo.note",
+          "legacy.facts"
+        ],
+        "document_date": [
+          "today",
+          "legacy.document_date"
+        ],
+        "signature": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.signature"
+        ],
+        "attachments_list": [
+          "documenti.nomi",
+          "legacy.attachments_list"
+        ],
+        "place": [
+          "studio.indirizzo",
+          "studio_timbro.indirizzo_riga",
+          "legacy.place"
+        ],
+        "_lawyer_pec": [
+          "studio_timbro.pec",
+          "studio.pec",
+          "legacy._lawyer_pec"
+        ],
+        "_lawyer_tax_id": [
+          "studio_timbro.codice_fiscale",
+          "studio.codice_fiscale",
+          "legacy._lawyer_tax_id"
+        ],
+        "_studio_address": [
+          "studio_timbro.indirizzo_riga",
+          "studio.indirizzo",
+          "legacy._studio_address"
+        ],
+        "timbro_studio": [
+          "studio_timbro.studio_nome"
+        ],
+        "preventivo": [
+          "fascicolo.preventivo",
+          "legacy.preventivo"
+        ],
+        "conferimento": [
+          "fascicolo.conferimento",
+          "legacy.conferimento"
+        ]
+      },
+      "required_prefill_fields": [
+        "cliente",
+        "difensore",
+        "oggetto",
+        "timbro_studio"
+      ],
+      "optional_prefill_fields": [
+        "controparte",
+        "ufficio_giudiziario",
+        "rg",
+        "pec_studio",
+        "codice_fiscale_studio",
+        "partita_iva_studio"
+      ],
+      "cartabia_required_fields": [
+        "preventivo",
+        "conferimento",
+        "procura",
+        "privacy",
+        "incarico",
+        "firme necessarie"
+      ],
+      "deposit_required_fields": [
+        "timbro studio",
+        "firme necessarie"
+      ],
+      "link_compilatore_code": "STR_COM_001"
     },
     {
       "id": "STD_003",
@@ -187,7 +579,203 @@
       ],
       "versione": "1.1.0",
       "stato": "draft_professionale",
-      "ordinamento": 3
+      "ordinamento": 3,
+      "cartabia_profile": "studio_interno",
+      "processo_area": "studio_interno",
+      "normativa_riferimento": [
+        "Regole interne di mandato, privacy e gestione studio"
+      ],
+      "condizioni_procedibilita": [
+        "cliente, fascicolo e incarico quando collegati"
+      ],
+      "termini_processuali_rilevanti": [],
+      "dati_obbligatori_cartabia": [
+        "preventivo",
+        "conferimento",
+        "procura",
+        "privacy",
+        "incarico",
+        "firme necessarie"
+      ],
+      "controlli_cartabia": [
+        "collegamento cliente",
+        "incarico",
+        "privacy",
+        "timbro studio"
+      ],
+      "controlli_deposito": [
+        "timbro studio",
+        "firme necessarie"
+      ],
+      "avvisi_redazionali": [
+        "Gli atti interni non sostituiscono la verifica del mandato e delle firme."
+      ],
+      "richiede_verifica_avvocato": false,
+      "stato_conformita": "draft_professionale",
+      "data_ultimo_aggiornamento_normativo": "2026-05-12",
+      "versione_regole": "2026.05.12.1",
+      "fonte_regole": "Ruleset operativo IUSENTRA per revisione Cartabia e controlli processuali",
+      "prefill_bindings": {
+        "cliente": [
+          "parti.assistito_principale.nome_completo",
+          "cliente.nome_completo",
+          "legacy.client_or_sender"
+        ],
+        "controparte": [
+          "parti.controparte_principale.nome_completo",
+          "fascicolo.controparte",
+          "legacy.counterparty_or_recipient"
+        ],
+        "difensore": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.lawyer"
+        ],
+        "ufficio_giudiziario": [
+          "fascicolo.tribunale",
+          "fascicolo.ufficio_giudiziario",
+          "legacy.recipient_or_court"
+        ],
+        "rg": [
+          "fascicolo.rg_completo",
+          "fascicolo.numero_rg",
+          "legacy.case_reference_display"
+        ],
+        "oggetto": [
+          "fascicolo.titolo",
+          "fascicolo.oggetto",
+          "legacy.subject"
+        ],
+        "data_atto": [
+          "today",
+          "legacy.document_date"
+        ],
+        "pec_studio": [
+          "studio_timbro.pec",
+          "studio.pec",
+          "legacy._lawyer_pec"
+        ],
+        "codice_fiscale_studio": [
+          "studio_timbro.codice_fiscale",
+          "studio.codice_fiscale",
+          "legacy._lawyer_tax_id"
+        ],
+        "partita_iva_studio": [
+          "studio_timbro.partita_iva",
+          "studio.partita_iva"
+        ],
+        "client_or_sender": [
+          "parti.assistito_principale.nome_completo",
+          "cliente.nome_completo",
+          "legacy.client_or_sender"
+        ],
+        "counterparty_or_recipient": [
+          "parti.controparte_principale.nome_completo",
+          "fascicolo.controparte",
+          "legacy.counterparty_or_recipient"
+        ],
+        "lawyer": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.lawyer"
+        ],
+        "recipient_or_court": [
+          "fascicolo.tribunale",
+          "fascicolo.ufficio_giudiziario",
+          "legacy.recipient_or_court"
+        ],
+        "case_reference_display": [
+          "fascicolo.rg_completo",
+          "fascicolo.numero_rg",
+          "fascicolo.numero",
+          "legacy.case_reference_display"
+        ],
+        "matter": [
+          "fascicolo.tipo.value",
+          "fascicolo.materia",
+          "legacy.matter"
+        ],
+        "subject": [
+          "fascicolo.oggetto",
+          "fascicolo.titolo",
+          "legacy.subject"
+        ],
+        "facts": [
+          "fascicolo.note",
+          "legacy.facts"
+        ],
+        "document_date": [
+          "today",
+          "legacy.document_date"
+        ],
+        "signature": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.signature"
+        ],
+        "attachments_list": [
+          "documenti.nomi",
+          "legacy.attachments_list"
+        ],
+        "place": [
+          "studio.indirizzo",
+          "studio_timbro.indirizzo_riga",
+          "legacy.place"
+        ],
+        "_lawyer_pec": [
+          "studio_timbro.pec",
+          "studio.pec",
+          "legacy._lawyer_pec"
+        ],
+        "_lawyer_tax_id": [
+          "studio_timbro.codice_fiscale",
+          "studio.codice_fiscale",
+          "legacy._lawyer_tax_id"
+        ],
+        "_studio_address": [
+          "studio_timbro.indirizzo_riga",
+          "studio.indirizzo",
+          "legacy._studio_address"
+        ],
+        "timbro_studio": [
+          "studio_timbro.studio_nome"
+        ],
+        "preventivo": [
+          "fascicolo.preventivo",
+          "legacy.preventivo"
+        ],
+        "conferimento": [
+          "fascicolo.conferimento",
+          "legacy.conferimento"
+        ]
+      },
+      "required_prefill_fields": [
+        "cliente",
+        "difensore",
+        "oggetto",
+        "timbro_studio"
+      ],
+      "optional_prefill_fields": [
+        "controparte",
+        "ufficio_giudiziario",
+        "rg",
+        "pec_studio",
+        "codice_fiscale_studio",
+        "partita_iva_studio"
+      ],
+      "cartabia_required_fields": [
+        "preventivo",
+        "conferimento",
+        "procura",
+        "privacy",
+        "incarico",
+        "firme necessarie"
+      ],
+      "deposit_required_fields": [
+        "timbro studio",
+        "firme necessarie"
+      ],
+      "link_compilatore_code": "STR_COM_001"
     },
     {
       "id": "STD_004",
@@ -246,7 +834,203 @@
       ],
       "versione": "1.1.0",
       "stato": "draft_professionale",
-      "ordinamento": 4
+      "ordinamento": 4,
+      "cartabia_profile": "studio_interno",
+      "processo_area": "studio_interno",
+      "normativa_riferimento": [
+        "Regole interne di mandato, privacy e gestione studio"
+      ],
+      "condizioni_procedibilita": [
+        "cliente, fascicolo e incarico quando collegati"
+      ],
+      "termini_processuali_rilevanti": [],
+      "dati_obbligatori_cartabia": [
+        "preventivo",
+        "conferimento",
+        "procura",
+        "privacy",
+        "incarico",
+        "firme necessarie"
+      ],
+      "controlli_cartabia": [
+        "collegamento cliente",
+        "incarico",
+        "privacy",
+        "timbro studio"
+      ],
+      "controlli_deposito": [
+        "timbro studio",
+        "firme necessarie"
+      ],
+      "avvisi_redazionali": [
+        "Gli atti interni non sostituiscono la verifica del mandato e delle firme."
+      ],
+      "richiede_verifica_avvocato": false,
+      "stato_conformita": "draft_professionale",
+      "data_ultimo_aggiornamento_normativo": "2026-05-12",
+      "versione_regole": "2026.05.12.1",
+      "fonte_regole": "Ruleset operativo IUSENTRA per revisione Cartabia e controlli processuali",
+      "prefill_bindings": {
+        "cliente": [
+          "parti.assistito_principale.nome_completo",
+          "cliente.nome_completo",
+          "legacy.client_or_sender"
+        ],
+        "controparte": [
+          "parti.controparte_principale.nome_completo",
+          "fascicolo.controparte",
+          "legacy.counterparty_or_recipient"
+        ],
+        "difensore": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.lawyer"
+        ],
+        "ufficio_giudiziario": [
+          "fascicolo.tribunale",
+          "fascicolo.ufficio_giudiziario",
+          "legacy.recipient_or_court"
+        ],
+        "rg": [
+          "fascicolo.rg_completo",
+          "fascicolo.numero_rg",
+          "legacy.case_reference_display"
+        ],
+        "oggetto": [
+          "fascicolo.titolo",
+          "fascicolo.oggetto",
+          "legacy.subject"
+        ],
+        "data_atto": [
+          "today",
+          "legacy.document_date"
+        ],
+        "pec_studio": [
+          "studio_timbro.pec",
+          "studio.pec",
+          "legacy._lawyer_pec"
+        ],
+        "codice_fiscale_studio": [
+          "studio_timbro.codice_fiscale",
+          "studio.codice_fiscale",
+          "legacy._lawyer_tax_id"
+        ],
+        "partita_iva_studio": [
+          "studio_timbro.partita_iva",
+          "studio.partita_iva"
+        ],
+        "client_or_sender": [
+          "parti.assistito_principale.nome_completo",
+          "cliente.nome_completo",
+          "legacy.client_or_sender"
+        ],
+        "counterparty_or_recipient": [
+          "parti.controparte_principale.nome_completo",
+          "fascicolo.controparte",
+          "legacy.counterparty_or_recipient"
+        ],
+        "lawyer": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.lawyer"
+        ],
+        "recipient_or_court": [
+          "fascicolo.tribunale",
+          "fascicolo.ufficio_giudiziario",
+          "legacy.recipient_or_court"
+        ],
+        "case_reference_display": [
+          "fascicolo.rg_completo",
+          "fascicolo.numero_rg",
+          "fascicolo.numero",
+          "legacy.case_reference_display"
+        ],
+        "matter": [
+          "fascicolo.tipo.value",
+          "fascicolo.materia",
+          "legacy.matter"
+        ],
+        "subject": [
+          "fascicolo.oggetto",
+          "fascicolo.titolo",
+          "legacy.subject"
+        ],
+        "facts": [
+          "fascicolo.note",
+          "legacy.facts"
+        ],
+        "document_date": [
+          "today",
+          "legacy.document_date"
+        ],
+        "signature": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.signature"
+        ],
+        "attachments_list": [
+          "documenti.nomi",
+          "legacy.attachments_list"
+        ],
+        "place": [
+          "studio.indirizzo",
+          "studio_timbro.indirizzo_riga",
+          "legacy.place"
+        ],
+        "_lawyer_pec": [
+          "studio_timbro.pec",
+          "studio.pec",
+          "legacy._lawyer_pec"
+        ],
+        "_lawyer_tax_id": [
+          "studio_timbro.codice_fiscale",
+          "studio.codice_fiscale",
+          "legacy._lawyer_tax_id"
+        ],
+        "_studio_address": [
+          "studio_timbro.indirizzo_riga",
+          "studio.indirizzo",
+          "legacy._studio_address"
+        ],
+        "timbro_studio": [
+          "studio_timbro.studio_nome"
+        ],
+        "preventivo": [
+          "fascicolo.preventivo",
+          "legacy.preventivo"
+        ],
+        "conferimento": [
+          "fascicolo.conferimento",
+          "legacy.conferimento"
+        ]
+      },
+      "required_prefill_fields": [
+        "cliente",
+        "difensore",
+        "oggetto",
+        "timbro_studio"
+      ],
+      "optional_prefill_fields": [
+        "controparte",
+        "ufficio_giudiziario",
+        "rg",
+        "pec_studio",
+        "codice_fiscale_studio",
+        "partita_iva_studio"
+      ],
+      "cartabia_required_fields": [
+        "preventivo",
+        "conferimento",
+        "procura",
+        "privacy",
+        "incarico",
+        "firme necessarie"
+      ],
+      "deposit_required_fields": [
+        "timbro studio",
+        "firme necessarie"
+      ],
+      "link_compilatore_code": "CIV_PROC_001"
     },
     {
       "id": "STD_005",
@@ -305,7 +1089,203 @@
       ],
       "versione": "1.1.0",
       "stato": "draft_professionale",
-      "ordinamento": 5
+      "ordinamento": 5,
+      "cartabia_profile": "studio_interno",
+      "processo_area": "studio_interno",
+      "normativa_riferimento": [
+        "Regole interne di mandato, privacy e gestione studio"
+      ],
+      "condizioni_procedibilita": [
+        "cliente, fascicolo e incarico quando collegati"
+      ],
+      "termini_processuali_rilevanti": [],
+      "dati_obbligatori_cartabia": [
+        "preventivo",
+        "conferimento",
+        "procura",
+        "privacy",
+        "incarico",
+        "firme necessarie"
+      ],
+      "controlli_cartabia": [
+        "collegamento cliente",
+        "incarico",
+        "privacy",
+        "timbro studio"
+      ],
+      "controlli_deposito": [
+        "timbro studio",
+        "firme necessarie"
+      ],
+      "avvisi_redazionali": [
+        "Gli atti interni non sostituiscono la verifica del mandato e delle firme."
+      ],
+      "richiede_verifica_avvocato": false,
+      "stato_conformita": "draft_professionale",
+      "data_ultimo_aggiornamento_normativo": "2026-05-12",
+      "versione_regole": "2026.05.12.1",
+      "fonte_regole": "Ruleset operativo IUSENTRA per revisione Cartabia e controlli processuali",
+      "prefill_bindings": {
+        "cliente": [
+          "parti.assistito_principale.nome_completo",
+          "cliente.nome_completo",
+          "legacy.client_or_sender"
+        ],
+        "controparte": [
+          "parti.controparte_principale.nome_completo",
+          "fascicolo.controparte",
+          "legacy.counterparty_or_recipient"
+        ],
+        "difensore": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.lawyer"
+        ],
+        "ufficio_giudiziario": [
+          "fascicolo.tribunale",
+          "fascicolo.ufficio_giudiziario",
+          "legacy.recipient_or_court"
+        ],
+        "rg": [
+          "fascicolo.rg_completo",
+          "fascicolo.numero_rg",
+          "legacy.case_reference_display"
+        ],
+        "oggetto": [
+          "fascicolo.titolo",
+          "fascicolo.oggetto",
+          "legacy.subject"
+        ],
+        "data_atto": [
+          "today",
+          "legacy.document_date"
+        ],
+        "pec_studio": [
+          "studio_timbro.pec",
+          "studio.pec",
+          "legacy._lawyer_pec"
+        ],
+        "codice_fiscale_studio": [
+          "studio_timbro.codice_fiscale",
+          "studio.codice_fiscale",
+          "legacy._lawyer_tax_id"
+        ],
+        "partita_iva_studio": [
+          "studio_timbro.partita_iva",
+          "studio.partita_iva"
+        ],
+        "client_or_sender": [
+          "parti.assistito_principale.nome_completo",
+          "cliente.nome_completo",
+          "legacy.client_or_sender"
+        ],
+        "counterparty_or_recipient": [
+          "parti.controparte_principale.nome_completo",
+          "fascicolo.controparte",
+          "legacy.counterparty_or_recipient"
+        ],
+        "lawyer": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.lawyer"
+        ],
+        "recipient_or_court": [
+          "fascicolo.tribunale",
+          "fascicolo.ufficio_giudiziario",
+          "legacy.recipient_or_court"
+        ],
+        "case_reference_display": [
+          "fascicolo.rg_completo",
+          "fascicolo.numero_rg",
+          "fascicolo.numero",
+          "legacy.case_reference_display"
+        ],
+        "matter": [
+          "fascicolo.tipo.value",
+          "fascicolo.materia",
+          "legacy.matter"
+        ],
+        "subject": [
+          "fascicolo.oggetto",
+          "fascicolo.titolo",
+          "legacy.subject"
+        ],
+        "facts": [
+          "fascicolo.note",
+          "legacy.facts"
+        ],
+        "document_date": [
+          "today",
+          "legacy.document_date"
+        ],
+        "signature": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.signature"
+        ],
+        "attachments_list": [
+          "documenti.nomi",
+          "legacy.attachments_list"
+        ],
+        "place": [
+          "studio.indirizzo",
+          "studio_timbro.indirizzo_riga",
+          "legacy.place"
+        ],
+        "_lawyer_pec": [
+          "studio_timbro.pec",
+          "studio.pec",
+          "legacy._lawyer_pec"
+        ],
+        "_lawyer_tax_id": [
+          "studio_timbro.codice_fiscale",
+          "studio.codice_fiscale",
+          "legacy._lawyer_tax_id"
+        ],
+        "_studio_address": [
+          "studio_timbro.indirizzo_riga",
+          "studio.indirizzo",
+          "legacy._studio_address"
+        ],
+        "timbro_studio": [
+          "studio_timbro.studio_nome"
+        ],
+        "preventivo": [
+          "fascicolo.preventivo",
+          "legacy.preventivo"
+        ],
+        "conferimento": [
+          "fascicolo.conferimento",
+          "legacy.conferimento"
+        ]
+      },
+      "required_prefill_fields": [
+        "cliente",
+        "difensore",
+        "oggetto",
+        "timbro_studio"
+      ],
+      "optional_prefill_fields": [
+        "controparte",
+        "ufficio_giudiziario",
+        "rg",
+        "pec_studio",
+        "codice_fiscale_studio",
+        "partita_iva_studio"
+      ],
+      "cartabia_required_fields": [
+        "preventivo",
+        "conferimento",
+        "procura",
+        "privacy",
+        "incarico",
+        "firme necessarie"
+      ],
+      "deposit_required_fields": [
+        "timbro studio",
+        "firme necessarie"
+      ],
+      "link_compilatore_code": "STR_COM_001"
     },
     {
       "id": "STD_006",
@@ -364,7 +1344,203 @@
       ],
       "versione": "1.1.0",
       "stato": "draft_professionale",
-      "ordinamento": 6
+      "ordinamento": 6,
+      "cartabia_profile": "studio_interno",
+      "processo_area": "studio_interno",
+      "normativa_riferimento": [
+        "Regole interne di mandato, privacy e gestione studio"
+      ],
+      "condizioni_procedibilita": [
+        "cliente, fascicolo e incarico quando collegati"
+      ],
+      "termini_processuali_rilevanti": [],
+      "dati_obbligatori_cartabia": [
+        "preventivo",
+        "conferimento",
+        "procura",
+        "privacy",
+        "incarico",
+        "firme necessarie"
+      ],
+      "controlli_cartabia": [
+        "collegamento cliente",
+        "incarico",
+        "privacy",
+        "timbro studio"
+      ],
+      "controlli_deposito": [
+        "timbro studio",
+        "firme necessarie"
+      ],
+      "avvisi_redazionali": [
+        "Gli atti interni non sostituiscono la verifica del mandato e delle firme."
+      ],
+      "richiede_verifica_avvocato": false,
+      "stato_conformita": "draft_professionale",
+      "data_ultimo_aggiornamento_normativo": "2026-05-12",
+      "versione_regole": "2026.05.12.1",
+      "fonte_regole": "Ruleset operativo IUSENTRA per revisione Cartabia e controlli processuali",
+      "prefill_bindings": {
+        "cliente": [
+          "parti.assistito_principale.nome_completo",
+          "cliente.nome_completo",
+          "legacy.client_or_sender"
+        ],
+        "controparte": [
+          "parti.controparte_principale.nome_completo",
+          "fascicolo.controparte",
+          "legacy.counterparty_or_recipient"
+        ],
+        "difensore": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.lawyer"
+        ],
+        "ufficio_giudiziario": [
+          "fascicolo.tribunale",
+          "fascicolo.ufficio_giudiziario",
+          "legacy.recipient_or_court"
+        ],
+        "rg": [
+          "fascicolo.rg_completo",
+          "fascicolo.numero_rg",
+          "legacy.case_reference_display"
+        ],
+        "oggetto": [
+          "fascicolo.titolo",
+          "fascicolo.oggetto",
+          "legacy.subject"
+        ],
+        "data_atto": [
+          "today",
+          "legacy.document_date"
+        ],
+        "pec_studio": [
+          "studio_timbro.pec",
+          "studio.pec",
+          "legacy._lawyer_pec"
+        ],
+        "codice_fiscale_studio": [
+          "studio_timbro.codice_fiscale",
+          "studio.codice_fiscale",
+          "legacy._lawyer_tax_id"
+        ],
+        "partita_iva_studio": [
+          "studio_timbro.partita_iva",
+          "studio.partita_iva"
+        ],
+        "client_or_sender": [
+          "parti.assistito_principale.nome_completo",
+          "cliente.nome_completo",
+          "legacy.client_or_sender"
+        ],
+        "counterparty_or_recipient": [
+          "parti.controparte_principale.nome_completo",
+          "fascicolo.controparte",
+          "legacy.counterparty_or_recipient"
+        ],
+        "lawyer": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.lawyer"
+        ],
+        "recipient_or_court": [
+          "fascicolo.tribunale",
+          "fascicolo.ufficio_giudiziario",
+          "legacy.recipient_or_court"
+        ],
+        "case_reference_display": [
+          "fascicolo.rg_completo",
+          "fascicolo.numero_rg",
+          "fascicolo.numero",
+          "legacy.case_reference_display"
+        ],
+        "matter": [
+          "fascicolo.tipo.value",
+          "fascicolo.materia",
+          "legacy.matter"
+        ],
+        "subject": [
+          "fascicolo.oggetto",
+          "fascicolo.titolo",
+          "legacy.subject"
+        ],
+        "facts": [
+          "fascicolo.note",
+          "legacy.facts"
+        ],
+        "document_date": [
+          "today",
+          "legacy.document_date"
+        ],
+        "signature": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.signature"
+        ],
+        "attachments_list": [
+          "documenti.nomi",
+          "legacy.attachments_list"
+        ],
+        "place": [
+          "studio.indirizzo",
+          "studio_timbro.indirizzo_riga",
+          "legacy.place"
+        ],
+        "_lawyer_pec": [
+          "studio_timbro.pec",
+          "studio.pec",
+          "legacy._lawyer_pec"
+        ],
+        "_lawyer_tax_id": [
+          "studio_timbro.codice_fiscale",
+          "studio.codice_fiscale",
+          "legacy._lawyer_tax_id"
+        ],
+        "_studio_address": [
+          "studio_timbro.indirizzo_riga",
+          "studio.indirizzo",
+          "legacy._studio_address"
+        ],
+        "timbro_studio": [
+          "studio_timbro.studio_nome"
+        ],
+        "preventivo": [
+          "fascicolo.preventivo",
+          "legacy.preventivo"
+        ],
+        "conferimento": [
+          "fascicolo.conferimento",
+          "legacy.conferimento"
+        ]
+      },
+      "required_prefill_fields": [
+        "cliente",
+        "difensore",
+        "oggetto",
+        "timbro_studio"
+      ],
+      "optional_prefill_fields": [
+        "controparte",
+        "ufficio_giudiziario",
+        "rg",
+        "pec_studio",
+        "codice_fiscale_studio",
+        "partita_iva_studio"
+      ],
+      "cartabia_required_fields": [
+        "preventivo",
+        "conferimento",
+        "procura",
+        "privacy",
+        "incarico",
+        "firme necessarie"
+      ],
+      "deposit_required_fields": [
+        "timbro studio",
+        "firme necessarie"
+      ],
+      "link_compilatore_code": "STR_COM_001"
     },
     {
       "id": "STD_007",
@@ -423,7 +1599,203 @@
       ],
       "versione": "1.1.0",
       "stato": "draft_professionale",
-      "ordinamento": 7
+      "ordinamento": 7,
+      "cartabia_profile": "studio_interno",
+      "processo_area": "studio_interno",
+      "normativa_riferimento": [
+        "Regole interne di mandato, privacy e gestione studio"
+      ],
+      "condizioni_procedibilita": [
+        "cliente, fascicolo e incarico quando collegati"
+      ],
+      "termini_processuali_rilevanti": [],
+      "dati_obbligatori_cartabia": [
+        "preventivo",
+        "conferimento",
+        "procura",
+        "privacy",
+        "incarico",
+        "firme necessarie"
+      ],
+      "controlli_cartabia": [
+        "collegamento cliente",
+        "incarico",
+        "privacy",
+        "timbro studio"
+      ],
+      "controlli_deposito": [
+        "timbro studio",
+        "firme necessarie"
+      ],
+      "avvisi_redazionali": [
+        "Gli atti interni non sostituiscono la verifica del mandato e delle firme."
+      ],
+      "richiede_verifica_avvocato": false,
+      "stato_conformita": "draft_professionale",
+      "data_ultimo_aggiornamento_normativo": "2026-05-12",
+      "versione_regole": "2026.05.12.1",
+      "fonte_regole": "Ruleset operativo IUSENTRA per revisione Cartabia e controlli processuali",
+      "prefill_bindings": {
+        "cliente": [
+          "parti.assistito_principale.nome_completo",
+          "cliente.nome_completo",
+          "legacy.client_or_sender"
+        ],
+        "controparte": [
+          "parti.controparte_principale.nome_completo",
+          "fascicolo.controparte",
+          "legacy.counterparty_or_recipient"
+        ],
+        "difensore": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.lawyer"
+        ],
+        "ufficio_giudiziario": [
+          "fascicolo.tribunale",
+          "fascicolo.ufficio_giudiziario",
+          "legacy.recipient_or_court"
+        ],
+        "rg": [
+          "fascicolo.rg_completo",
+          "fascicolo.numero_rg",
+          "legacy.case_reference_display"
+        ],
+        "oggetto": [
+          "fascicolo.titolo",
+          "fascicolo.oggetto",
+          "legacy.subject"
+        ],
+        "data_atto": [
+          "today",
+          "legacy.document_date"
+        ],
+        "pec_studio": [
+          "studio_timbro.pec",
+          "studio.pec",
+          "legacy._lawyer_pec"
+        ],
+        "codice_fiscale_studio": [
+          "studio_timbro.codice_fiscale",
+          "studio.codice_fiscale",
+          "legacy._lawyer_tax_id"
+        ],
+        "partita_iva_studio": [
+          "studio_timbro.partita_iva",
+          "studio.partita_iva"
+        ],
+        "client_or_sender": [
+          "parti.assistito_principale.nome_completo",
+          "cliente.nome_completo",
+          "legacy.client_or_sender"
+        ],
+        "counterparty_or_recipient": [
+          "parti.controparte_principale.nome_completo",
+          "fascicolo.controparte",
+          "legacy.counterparty_or_recipient"
+        ],
+        "lawyer": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.lawyer"
+        ],
+        "recipient_or_court": [
+          "fascicolo.tribunale",
+          "fascicolo.ufficio_giudiziario",
+          "legacy.recipient_or_court"
+        ],
+        "case_reference_display": [
+          "fascicolo.rg_completo",
+          "fascicolo.numero_rg",
+          "fascicolo.numero",
+          "legacy.case_reference_display"
+        ],
+        "matter": [
+          "fascicolo.tipo.value",
+          "fascicolo.materia",
+          "legacy.matter"
+        ],
+        "subject": [
+          "fascicolo.oggetto",
+          "fascicolo.titolo",
+          "legacy.subject"
+        ],
+        "facts": [
+          "fascicolo.note",
+          "legacy.facts"
+        ],
+        "document_date": [
+          "today",
+          "legacy.document_date"
+        ],
+        "signature": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.signature"
+        ],
+        "attachments_list": [
+          "documenti.nomi",
+          "legacy.attachments_list"
+        ],
+        "place": [
+          "studio.indirizzo",
+          "studio_timbro.indirizzo_riga",
+          "legacy.place"
+        ],
+        "_lawyer_pec": [
+          "studio_timbro.pec",
+          "studio.pec",
+          "legacy._lawyer_pec"
+        ],
+        "_lawyer_tax_id": [
+          "studio_timbro.codice_fiscale",
+          "studio.codice_fiscale",
+          "legacy._lawyer_tax_id"
+        ],
+        "_studio_address": [
+          "studio_timbro.indirizzo_riga",
+          "studio.indirizzo",
+          "legacy._studio_address"
+        ],
+        "timbro_studio": [
+          "studio_timbro.studio_nome"
+        ],
+        "preventivo": [
+          "fascicolo.preventivo",
+          "legacy.preventivo"
+        ],
+        "conferimento": [
+          "fascicolo.conferimento",
+          "legacy.conferimento"
+        ]
+      },
+      "required_prefill_fields": [
+        "cliente",
+        "difensore",
+        "oggetto",
+        "timbro_studio"
+      ],
+      "optional_prefill_fields": [
+        "controparte",
+        "ufficio_giudiziario",
+        "rg",
+        "pec_studio",
+        "codice_fiscale_studio",
+        "partita_iva_studio"
+      ],
+      "cartabia_required_fields": [
+        "preventivo",
+        "conferimento",
+        "procura",
+        "privacy",
+        "incarico",
+        "firme necessarie"
+      ],
+      "deposit_required_fields": [
+        "timbro studio",
+        "firme necessarie"
+      ],
+      "link_compilatore_code": "STR_COM_001"
     },
     {
       "id": "STD_008",
@@ -482,7 +1854,203 @@
       ],
       "versione": "1.1.0",
       "stato": "draft_professionale",
-      "ordinamento": 8
+      "ordinamento": 8,
+      "cartabia_profile": "studio_interno",
+      "processo_area": "studio_interno",
+      "normativa_riferimento": [
+        "Regole interne di mandato, privacy e gestione studio"
+      ],
+      "condizioni_procedibilita": [
+        "cliente, fascicolo e incarico quando collegati"
+      ],
+      "termini_processuali_rilevanti": [],
+      "dati_obbligatori_cartabia": [
+        "preventivo",
+        "conferimento",
+        "procura",
+        "privacy",
+        "incarico",
+        "firme necessarie"
+      ],
+      "controlli_cartabia": [
+        "collegamento cliente",
+        "incarico",
+        "privacy",
+        "timbro studio"
+      ],
+      "controlli_deposito": [
+        "timbro studio",
+        "firme necessarie"
+      ],
+      "avvisi_redazionali": [
+        "Gli atti interni non sostituiscono la verifica del mandato e delle firme."
+      ],
+      "richiede_verifica_avvocato": false,
+      "stato_conformita": "draft_professionale",
+      "data_ultimo_aggiornamento_normativo": "2026-05-12",
+      "versione_regole": "2026.05.12.1",
+      "fonte_regole": "Ruleset operativo IUSENTRA per revisione Cartabia e controlli processuali",
+      "prefill_bindings": {
+        "cliente": [
+          "parti.assistito_principale.nome_completo",
+          "cliente.nome_completo",
+          "legacy.client_or_sender"
+        ],
+        "controparte": [
+          "parti.controparte_principale.nome_completo",
+          "fascicolo.controparte",
+          "legacy.counterparty_or_recipient"
+        ],
+        "difensore": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.lawyer"
+        ],
+        "ufficio_giudiziario": [
+          "fascicolo.tribunale",
+          "fascicolo.ufficio_giudiziario",
+          "legacy.recipient_or_court"
+        ],
+        "rg": [
+          "fascicolo.rg_completo",
+          "fascicolo.numero_rg",
+          "legacy.case_reference_display"
+        ],
+        "oggetto": [
+          "fascicolo.titolo",
+          "fascicolo.oggetto",
+          "legacy.subject"
+        ],
+        "data_atto": [
+          "today",
+          "legacy.document_date"
+        ],
+        "pec_studio": [
+          "studio_timbro.pec",
+          "studio.pec",
+          "legacy._lawyer_pec"
+        ],
+        "codice_fiscale_studio": [
+          "studio_timbro.codice_fiscale",
+          "studio.codice_fiscale",
+          "legacy._lawyer_tax_id"
+        ],
+        "partita_iva_studio": [
+          "studio_timbro.partita_iva",
+          "studio.partita_iva"
+        ],
+        "client_or_sender": [
+          "parti.assistito_principale.nome_completo",
+          "cliente.nome_completo",
+          "legacy.client_or_sender"
+        ],
+        "counterparty_or_recipient": [
+          "parti.controparte_principale.nome_completo",
+          "fascicolo.controparte",
+          "legacy.counterparty_or_recipient"
+        ],
+        "lawyer": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.lawyer"
+        ],
+        "recipient_or_court": [
+          "fascicolo.tribunale",
+          "fascicolo.ufficio_giudiziario",
+          "legacy.recipient_or_court"
+        ],
+        "case_reference_display": [
+          "fascicolo.rg_completo",
+          "fascicolo.numero_rg",
+          "fascicolo.numero",
+          "legacy.case_reference_display"
+        ],
+        "matter": [
+          "fascicolo.tipo.value",
+          "fascicolo.materia",
+          "legacy.matter"
+        ],
+        "subject": [
+          "fascicolo.oggetto",
+          "fascicolo.titolo",
+          "legacy.subject"
+        ],
+        "facts": [
+          "fascicolo.note",
+          "legacy.facts"
+        ],
+        "document_date": [
+          "today",
+          "legacy.document_date"
+        ],
+        "signature": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.signature"
+        ],
+        "attachments_list": [
+          "documenti.nomi",
+          "legacy.attachments_list"
+        ],
+        "place": [
+          "studio.indirizzo",
+          "studio_timbro.indirizzo_riga",
+          "legacy.place"
+        ],
+        "_lawyer_pec": [
+          "studio_timbro.pec",
+          "studio.pec",
+          "legacy._lawyer_pec"
+        ],
+        "_lawyer_tax_id": [
+          "studio_timbro.codice_fiscale",
+          "studio.codice_fiscale",
+          "legacy._lawyer_tax_id"
+        ],
+        "_studio_address": [
+          "studio_timbro.indirizzo_riga",
+          "studio.indirizzo",
+          "legacy._studio_address"
+        ],
+        "timbro_studio": [
+          "studio_timbro.studio_nome"
+        ],
+        "preventivo": [
+          "fascicolo.preventivo",
+          "legacy.preventivo"
+        ],
+        "conferimento": [
+          "fascicolo.conferimento",
+          "legacy.conferimento"
+        ]
+      },
+      "required_prefill_fields": [
+        "cliente",
+        "difensore",
+        "oggetto",
+        "timbro_studio"
+      ],
+      "optional_prefill_fields": [
+        "controparte",
+        "ufficio_giudiziario",
+        "rg",
+        "pec_studio",
+        "codice_fiscale_studio",
+        "partita_iva_studio"
+      ],
+      "cartabia_required_fields": [
+        "preventivo",
+        "conferimento",
+        "procura",
+        "privacy",
+        "incarico",
+        "firme necessarie"
+      ],
+      "deposit_required_fields": [
+        "timbro studio",
+        "firme necessarie"
+      ],
+      "link_compilatore_code": "STR_COM_001"
     },
     {
       "id": "STD_009",
@@ -541,7 +2109,203 @@
       ],
       "versione": "1.1.0",
       "stato": "draft_professionale",
-      "ordinamento": 9
+      "ordinamento": 9,
+      "cartabia_profile": "studio_interno",
+      "processo_area": "studio_interno",
+      "normativa_riferimento": [
+        "Regole interne di mandato, privacy e gestione studio"
+      ],
+      "condizioni_procedibilita": [
+        "cliente, fascicolo e incarico quando collegati"
+      ],
+      "termini_processuali_rilevanti": [],
+      "dati_obbligatori_cartabia": [
+        "preventivo",
+        "conferimento",
+        "procura",
+        "privacy",
+        "incarico",
+        "firme necessarie"
+      ],
+      "controlli_cartabia": [
+        "collegamento cliente",
+        "incarico",
+        "privacy",
+        "timbro studio"
+      ],
+      "controlli_deposito": [
+        "timbro studio",
+        "firme necessarie"
+      ],
+      "avvisi_redazionali": [
+        "Gli atti interni non sostituiscono la verifica del mandato e delle firme."
+      ],
+      "richiede_verifica_avvocato": false,
+      "stato_conformita": "draft_professionale",
+      "data_ultimo_aggiornamento_normativo": "2026-05-12",
+      "versione_regole": "2026.05.12.1",
+      "fonte_regole": "Ruleset operativo IUSENTRA per revisione Cartabia e controlli processuali",
+      "prefill_bindings": {
+        "cliente": [
+          "parti.assistito_principale.nome_completo",
+          "cliente.nome_completo",
+          "legacy.client_or_sender"
+        ],
+        "controparte": [
+          "parti.controparte_principale.nome_completo",
+          "fascicolo.controparte",
+          "legacy.counterparty_or_recipient"
+        ],
+        "difensore": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.lawyer"
+        ],
+        "ufficio_giudiziario": [
+          "fascicolo.tribunale",
+          "fascicolo.ufficio_giudiziario",
+          "legacy.recipient_or_court"
+        ],
+        "rg": [
+          "fascicolo.rg_completo",
+          "fascicolo.numero_rg",
+          "legacy.case_reference_display"
+        ],
+        "oggetto": [
+          "fascicolo.titolo",
+          "fascicolo.oggetto",
+          "legacy.subject"
+        ],
+        "data_atto": [
+          "today",
+          "legacy.document_date"
+        ],
+        "pec_studio": [
+          "studio_timbro.pec",
+          "studio.pec",
+          "legacy._lawyer_pec"
+        ],
+        "codice_fiscale_studio": [
+          "studio_timbro.codice_fiscale",
+          "studio.codice_fiscale",
+          "legacy._lawyer_tax_id"
+        ],
+        "partita_iva_studio": [
+          "studio_timbro.partita_iva",
+          "studio.partita_iva"
+        ],
+        "client_or_sender": [
+          "parti.assistito_principale.nome_completo",
+          "cliente.nome_completo",
+          "legacy.client_or_sender"
+        ],
+        "counterparty_or_recipient": [
+          "parti.controparte_principale.nome_completo",
+          "fascicolo.controparte",
+          "legacy.counterparty_or_recipient"
+        ],
+        "lawyer": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.lawyer"
+        ],
+        "recipient_or_court": [
+          "fascicolo.tribunale",
+          "fascicolo.ufficio_giudiziario",
+          "legacy.recipient_or_court"
+        ],
+        "case_reference_display": [
+          "fascicolo.rg_completo",
+          "fascicolo.numero_rg",
+          "fascicolo.numero",
+          "legacy.case_reference_display"
+        ],
+        "matter": [
+          "fascicolo.tipo.value",
+          "fascicolo.materia",
+          "legacy.matter"
+        ],
+        "subject": [
+          "fascicolo.oggetto",
+          "fascicolo.titolo",
+          "legacy.subject"
+        ],
+        "facts": [
+          "fascicolo.note",
+          "legacy.facts"
+        ],
+        "document_date": [
+          "today",
+          "legacy.document_date"
+        ],
+        "signature": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.signature"
+        ],
+        "attachments_list": [
+          "documenti.nomi",
+          "legacy.attachments_list"
+        ],
+        "place": [
+          "studio.indirizzo",
+          "studio_timbro.indirizzo_riga",
+          "legacy.place"
+        ],
+        "_lawyer_pec": [
+          "studio_timbro.pec",
+          "studio.pec",
+          "legacy._lawyer_pec"
+        ],
+        "_lawyer_tax_id": [
+          "studio_timbro.codice_fiscale",
+          "studio.codice_fiscale",
+          "legacy._lawyer_tax_id"
+        ],
+        "_studio_address": [
+          "studio_timbro.indirizzo_riga",
+          "studio.indirizzo",
+          "legacy._studio_address"
+        ],
+        "timbro_studio": [
+          "studio_timbro.studio_nome"
+        ],
+        "preventivo": [
+          "fascicolo.preventivo",
+          "legacy.preventivo"
+        ],
+        "conferimento": [
+          "fascicolo.conferimento",
+          "legacy.conferimento"
+        ]
+      },
+      "required_prefill_fields": [
+        "cliente",
+        "difensore",
+        "oggetto",
+        "timbro_studio"
+      ],
+      "optional_prefill_fields": [
+        "controparte",
+        "ufficio_giudiziario",
+        "rg",
+        "pec_studio",
+        "codice_fiscale_studio",
+        "partita_iva_studio"
+      ],
+      "cartabia_required_fields": [
+        "preventivo",
+        "conferimento",
+        "procura",
+        "privacy",
+        "incarico",
+        "firme necessarie"
+      ],
+      "deposit_required_fields": [
+        "timbro studio",
+        "firme necessarie"
+      ],
+      "link_compilatore_code": "STR_COM_001"
     },
     {
       "id": "STD_010",
@@ -600,7 +2364,203 @@
       ],
       "versione": "1.1.0",
       "stato": "draft_professionale",
-      "ordinamento": 10
+      "ordinamento": 10,
+      "cartabia_profile": "studio_interno",
+      "processo_area": "studio_interno",
+      "normativa_riferimento": [
+        "Regole interne di mandato, privacy e gestione studio"
+      ],
+      "condizioni_procedibilita": [
+        "cliente, fascicolo e incarico quando collegati"
+      ],
+      "termini_processuali_rilevanti": [],
+      "dati_obbligatori_cartabia": [
+        "preventivo",
+        "conferimento",
+        "procura",
+        "privacy",
+        "incarico",
+        "firme necessarie"
+      ],
+      "controlli_cartabia": [
+        "collegamento cliente",
+        "incarico",
+        "privacy",
+        "timbro studio"
+      ],
+      "controlli_deposito": [
+        "timbro studio",
+        "firme necessarie"
+      ],
+      "avvisi_redazionali": [
+        "Gli atti interni non sostituiscono la verifica del mandato e delle firme."
+      ],
+      "richiede_verifica_avvocato": false,
+      "stato_conformita": "draft_professionale",
+      "data_ultimo_aggiornamento_normativo": "2026-05-12",
+      "versione_regole": "2026.05.12.1",
+      "fonte_regole": "Ruleset operativo IUSENTRA per revisione Cartabia e controlli processuali",
+      "prefill_bindings": {
+        "cliente": [
+          "parti.assistito_principale.nome_completo",
+          "cliente.nome_completo",
+          "legacy.client_or_sender"
+        ],
+        "controparte": [
+          "parti.controparte_principale.nome_completo",
+          "fascicolo.controparte",
+          "legacy.counterparty_or_recipient"
+        ],
+        "difensore": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.lawyer"
+        ],
+        "ufficio_giudiziario": [
+          "fascicolo.tribunale",
+          "fascicolo.ufficio_giudiziario",
+          "legacy.recipient_or_court"
+        ],
+        "rg": [
+          "fascicolo.rg_completo",
+          "fascicolo.numero_rg",
+          "legacy.case_reference_display"
+        ],
+        "oggetto": [
+          "fascicolo.titolo",
+          "fascicolo.oggetto",
+          "legacy.subject"
+        ],
+        "data_atto": [
+          "today",
+          "legacy.document_date"
+        ],
+        "pec_studio": [
+          "studio_timbro.pec",
+          "studio.pec",
+          "legacy._lawyer_pec"
+        ],
+        "codice_fiscale_studio": [
+          "studio_timbro.codice_fiscale",
+          "studio.codice_fiscale",
+          "legacy._lawyer_tax_id"
+        ],
+        "partita_iva_studio": [
+          "studio_timbro.partita_iva",
+          "studio.partita_iva"
+        ],
+        "client_or_sender": [
+          "parti.assistito_principale.nome_completo",
+          "cliente.nome_completo",
+          "legacy.client_or_sender"
+        ],
+        "counterparty_or_recipient": [
+          "parti.controparte_principale.nome_completo",
+          "fascicolo.controparte",
+          "legacy.counterparty_or_recipient"
+        ],
+        "lawyer": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.lawyer"
+        ],
+        "recipient_or_court": [
+          "fascicolo.tribunale",
+          "fascicolo.ufficio_giudiziario",
+          "legacy.recipient_or_court"
+        ],
+        "case_reference_display": [
+          "fascicolo.rg_completo",
+          "fascicolo.numero_rg",
+          "fascicolo.numero",
+          "legacy.case_reference_display"
+        ],
+        "matter": [
+          "fascicolo.tipo.value",
+          "fascicolo.materia",
+          "legacy.matter"
+        ],
+        "subject": [
+          "fascicolo.oggetto",
+          "fascicolo.titolo",
+          "legacy.subject"
+        ],
+        "facts": [
+          "fascicolo.note",
+          "legacy.facts"
+        ],
+        "document_date": [
+          "today",
+          "legacy.document_date"
+        ],
+        "signature": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.signature"
+        ],
+        "attachments_list": [
+          "documenti.nomi",
+          "legacy.attachments_list"
+        ],
+        "place": [
+          "studio.indirizzo",
+          "studio_timbro.indirizzo_riga",
+          "legacy.place"
+        ],
+        "_lawyer_pec": [
+          "studio_timbro.pec",
+          "studio.pec",
+          "legacy._lawyer_pec"
+        ],
+        "_lawyer_tax_id": [
+          "studio_timbro.codice_fiscale",
+          "studio.codice_fiscale",
+          "legacy._lawyer_tax_id"
+        ],
+        "_studio_address": [
+          "studio_timbro.indirizzo_riga",
+          "studio.indirizzo",
+          "legacy._studio_address"
+        ],
+        "timbro_studio": [
+          "studio_timbro.studio_nome"
+        ],
+        "preventivo": [
+          "fascicolo.preventivo",
+          "legacy.preventivo"
+        ],
+        "conferimento": [
+          "fascicolo.conferimento",
+          "legacy.conferimento"
+        ]
+      },
+      "required_prefill_fields": [
+        "cliente",
+        "difensore",
+        "oggetto",
+        "timbro_studio"
+      ],
+      "optional_prefill_fields": [
+        "controparte",
+        "ufficio_giudiziario",
+        "rg",
+        "pec_studio",
+        "codice_fiscale_studio",
+        "partita_iva_studio"
+      ],
+      "cartabia_required_fields": [
+        "preventivo",
+        "conferimento",
+        "procura",
+        "privacy",
+        "incarico",
+        "firme necessarie"
+      ],
+      "deposit_required_fields": [
+        "timbro studio",
+        "firme necessarie"
+      ],
+      "link_compilatore_code": "STR_COM_001"
     },
     {
       "id": "STD_011",
@@ -660,7 +2620,203 @@
       ],
       "versione": "1.1.0",
       "stato": "draft_professionale",
-      "ordinamento": 11
+      "ordinamento": 11,
+      "cartabia_profile": "studio_interno",
+      "processo_area": "studio_interno",
+      "normativa_riferimento": [
+        "Regole interne di mandato, privacy e gestione studio"
+      ],
+      "condizioni_procedibilita": [
+        "cliente, fascicolo e incarico quando collegati"
+      ],
+      "termini_processuali_rilevanti": [],
+      "dati_obbligatori_cartabia": [
+        "preventivo",
+        "conferimento",
+        "procura",
+        "privacy",
+        "incarico",
+        "firme necessarie"
+      ],
+      "controlli_cartabia": [
+        "collegamento cliente",
+        "incarico",
+        "privacy",
+        "timbro studio"
+      ],
+      "controlli_deposito": [
+        "timbro studio",
+        "firme necessarie"
+      ],
+      "avvisi_redazionali": [
+        "Gli atti interni non sostituiscono la verifica del mandato e delle firme."
+      ],
+      "richiede_verifica_avvocato": false,
+      "stato_conformita": "draft_professionale",
+      "data_ultimo_aggiornamento_normativo": "2026-05-12",
+      "versione_regole": "2026.05.12.1",
+      "fonte_regole": "Ruleset operativo IUSENTRA per revisione Cartabia e controlli processuali",
+      "prefill_bindings": {
+        "cliente": [
+          "parti.assistito_principale.nome_completo",
+          "cliente.nome_completo",
+          "legacy.client_or_sender"
+        ],
+        "controparte": [
+          "parti.controparte_principale.nome_completo",
+          "fascicolo.controparte",
+          "legacy.counterparty_or_recipient"
+        ],
+        "difensore": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.lawyer"
+        ],
+        "ufficio_giudiziario": [
+          "fascicolo.tribunale",
+          "fascicolo.ufficio_giudiziario",
+          "legacy.recipient_or_court"
+        ],
+        "rg": [
+          "fascicolo.rg_completo",
+          "fascicolo.numero_rg",
+          "legacy.case_reference_display"
+        ],
+        "oggetto": [
+          "fascicolo.titolo",
+          "fascicolo.oggetto",
+          "legacy.subject"
+        ],
+        "data_atto": [
+          "today",
+          "legacy.document_date"
+        ],
+        "pec_studio": [
+          "studio_timbro.pec",
+          "studio.pec",
+          "legacy._lawyer_pec"
+        ],
+        "codice_fiscale_studio": [
+          "studio_timbro.codice_fiscale",
+          "studio.codice_fiscale",
+          "legacy._lawyer_tax_id"
+        ],
+        "partita_iva_studio": [
+          "studio_timbro.partita_iva",
+          "studio.partita_iva"
+        ],
+        "client_or_sender": [
+          "parti.assistito_principale.nome_completo",
+          "cliente.nome_completo",
+          "legacy.client_or_sender"
+        ],
+        "counterparty_or_recipient": [
+          "parti.controparte_principale.nome_completo",
+          "fascicolo.controparte",
+          "legacy.counterparty_or_recipient"
+        ],
+        "lawyer": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.lawyer"
+        ],
+        "recipient_or_court": [
+          "fascicolo.tribunale",
+          "fascicolo.ufficio_giudiziario",
+          "legacy.recipient_or_court"
+        ],
+        "case_reference_display": [
+          "fascicolo.rg_completo",
+          "fascicolo.numero_rg",
+          "fascicolo.numero",
+          "legacy.case_reference_display"
+        ],
+        "matter": [
+          "fascicolo.tipo.value",
+          "fascicolo.materia",
+          "legacy.matter"
+        ],
+        "subject": [
+          "fascicolo.oggetto",
+          "fascicolo.titolo",
+          "legacy.subject"
+        ],
+        "facts": [
+          "fascicolo.note",
+          "legacy.facts"
+        ],
+        "document_date": [
+          "today",
+          "legacy.document_date"
+        ],
+        "signature": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.signature"
+        ],
+        "attachments_list": [
+          "documenti.nomi",
+          "legacy.attachments_list"
+        ],
+        "place": [
+          "studio.indirizzo",
+          "studio_timbro.indirizzo_riga",
+          "legacy.place"
+        ],
+        "_lawyer_pec": [
+          "studio_timbro.pec",
+          "studio.pec",
+          "legacy._lawyer_pec"
+        ],
+        "_lawyer_tax_id": [
+          "studio_timbro.codice_fiscale",
+          "studio.codice_fiscale",
+          "legacy._lawyer_tax_id"
+        ],
+        "_studio_address": [
+          "studio_timbro.indirizzo_riga",
+          "studio.indirizzo",
+          "legacy._studio_address"
+        ],
+        "timbro_studio": [
+          "studio_timbro.studio_nome"
+        ],
+        "preventivo": [
+          "fascicolo.preventivo",
+          "legacy.preventivo"
+        ],
+        "conferimento": [
+          "fascicolo.conferimento",
+          "legacy.conferimento"
+        ]
+      },
+      "required_prefill_fields": [
+        "cliente",
+        "difensore",
+        "oggetto",
+        "timbro_studio"
+      ],
+      "optional_prefill_fields": [
+        "controparte",
+        "ufficio_giudiziario",
+        "rg",
+        "pec_studio",
+        "codice_fiscale_studio",
+        "partita_iva_studio"
+      ],
+      "cartabia_required_fields": [
+        "preventivo",
+        "conferimento",
+        "procura",
+        "privacy",
+        "incarico",
+        "firme necessarie"
+      ],
+      "deposit_required_fields": [
+        "timbro studio",
+        "firme necessarie"
+      ],
+      "link_compilatore_code": "STR_COM_001"
     },
     {
       "id": "STD_012",
@@ -719,7 +2875,203 @@
       ],
       "versione": "1.1.0",
       "stato": "draft_professionale",
-      "ordinamento": 12
+      "ordinamento": 12,
+      "cartabia_profile": "studio_interno",
+      "processo_area": "studio_interno",
+      "normativa_riferimento": [
+        "Regole interne di mandato, privacy e gestione studio"
+      ],
+      "condizioni_procedibilita": [
+        "cliente, fascicolo e incarico quando collegati"
+      ],
+      "termini_processuali_rilevanti": [],
+      "dati_obbligatori_cartabia": [
+        "preventivo",
+        "conferimento",
+        "procura",
+        "privacy",
+        "incarico",
+        "firme necessarie"
+      ],
+      "controlli_cartabia": [
+        "collegamento cliente",
+        "incarico",
+        "privacy",
+        "timbro studio"
+      ],
+      "controlli_deposito": [
+        "timbro studio",
+        "firme necessarie"
+      ],
+      "avvisi_redazionali": [
+        "Gli atti interni non sostituiscono la verifica del mandato e delle firme."
+      ],
+      "richiede_verifica_avvocato": false,
+      "stato_conformita": "draft_professionale",
+      "data_ultimo_aggiornamento_normativo": "2026-05-12",
+      "versione_regole": "2026.05.12.1",
+      "fonte_regole": "Ruleset operativo IUSENTRA per revisione Cartabia e controlli processuali",
+      "prefill_bindings": {
+        "cliente": [
+          "parti.assistito_principale.nome_completo",
+          "cliente.nome_completo",
+          "legacy.client_or_sender"
+        ],
+        "controparte": [
+          "parti.controparte_principale.nome_completo",
+          "fascicolo.controparte",
+          "legacy.counterparty_or_recipient"
+        ],
+        "difensore": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.lawyer"
+        ],
+        "ufficio_giudiziario": [
+          "fascicolo.tribunale",
+          "fascicolo.ufficio_giudiziario",
+          "legacy.recipient_or_court"
+        ],
+        "rg": [
+          "fascicolo.rg_completo",
+          "fascicolo.numero_rg",
+          "legacy.case_reference_display"
+        ],
+        "oggetto": [
+          "fascicolo.titolo",
+          "fascicolo.oggetto",
+          "legacy.subject"
+        ],
+        "data_atto": [
+          "today",
+          "legacy.document_date"
+        ],
+        "pec_studio": [
+          "studio_timbro.pec",
+          "studio.pec",
+          "legacy._lawyer_pec"
+        ],
+        "codice_fiscale_studio": [
+          "studio_timbro.codice_fiscale",
+          "studio.codice_fiscale",
+          "legacy._lawyer_tax_id"
+        ],
+        "partita_iva_studio": [
+          "studio_timbro.partita_iva",
+          "studio.partita_iva"
+        ],
+        "client_or_sender": [
+          "parti.assistito_principale.nome_completo",
+          "cliente.nome_completo",
+          "legacy.client_or_sender"
+        ],
+        "counterparty_or_recipient": [
+          "parti.controparte_principale.nome_completo",
+          "fascicolo.controparte",
+          "legacy.counterparty_or_recipient"
+        ],
+        "lawyer": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.lawyer"
+        ],
+        "recipient_or_court": [
+          "fascicolo.tribunale",
+          "fascicolo.ufficio_giudiziario",
+          "legacy.recipient_or_court"
+        ],
+        "case_reference_display": [
+          "fascicolo.rg_completo",
+          "fascicolo.numero_rg",
+          "fascicolo.numero",
+          "legacy.case_reference_display"
+        ],
+        "matter": [
+          "fascicolo.tipo.value",
+          "fascicolo.materia",
+          "legacy.matter"
+        ],
+        "subject": [
+          "fascicolo.oggetto",
+          "fascicolo.titolo",
+          "legacy.subject"
+        ],
+        "facts": [
+          "fascicolo.note",
+          "legacy.facts"
+        ],
+        "document_date": [
+          "today",
+          "legacy.document_date"
+        ],
+        "signature": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.signature"
+        ],
+        "attachments_list": [
+          "documenti.nomi",
+          "legacy.attachments_list"
+        ],
+        "place": [
+          "studio.indirizzo",
+          "studio_timbro.indirizzo_riga",
+          "legacy.place"
+        ],
+        "_lawyer_pec": [
+          "studio_timbro.pec",
+          "studio.pec",
+          "legacy._lawyer_pec"
+        ],
+        "_lawyer_tax_id": [
+          "studio_timbro.codice_fiscale",
+          "studio.codice_fiscale",
+          "legacy._lawyer_tax_id"
+        ],
+        "_studio_address": [
+          "studio_timbro.indirizzo_riga",
+          "studio.indirizzo",
+          "legacy._studio_address"
+        ],
+        "timbro_studio": [
+          "studio_timbro.studio_nome"
+        ],
+        "preventivo": [
+          "fascicolo.preventivo",
+          "legacy.preventivo"
+        ],
+        "conferimento": [
+          "fascicolo.conferimento",
+          "legacy.conferimento"
+        ]
+      },
+      "required_prefill_fields": [
+        "cliente",
+        "difensore",
+        "oggetto",
+        "timbro_studio"
+      ],
+      "optional_prefill_fields": [
+        "controparte",
+        "ufficio_giudiziario",
+        "rg",
+        "pec_studio",
+        "codice_fiscale_studio",
+        "partita_iva_studio"
+      ],
+      "cartabia_required_fields": [
+        "preventivo",
+        "conferimento",
+        "procura",
+        "privacy",
+        "incarico",
+        "firme necessarie"
+      ],
+      "deposit_required_fields": [
+        "timbro studio",
+        "firme necessarie"
+      ],
+      "link_compilatore_code": "STR_COM_001"
     },
     {
       "id": "STD_013",
@@ -778,7 +3130,203 @@
       ],
       "versione": "1.1.0",
       "stato": "draft_professionale",
-      "ordinamento": 13
+      "ordinamento": 13,
+      "cartabia_profile": "studio_interno",
+      "processo_area": "studio_interno",
+      "normativa_riferimento": [
+        "Regole interne di mandato, privacy e gestione studio"
+      ],
+      "condizioni_procedibilita": [
+        "cliente, fascicolo e incarico quando collegati"
+      ],
+      "termini_processuali_rilevanti": [],
+      "dati_obbligatori_cartabia": [
+        "preventivo",
+        "conferimento",
+        "procura",
+        "privacy",
+        "incarico",
+        "firme necessarie"
+      ],
+      "controlli_cartabia": [
+        "collegamento cliente",
+        "incarico",
+        "privacy",
+        "timbro studio"
+      ],
+      "controlli_deposito": [
+        "timbro studio",
+        "firme necessarie"
+      ],
+      "avvisi_redazionali": [
+        "Gli atti interni non sostituiscono la verifica del mandato e delle firme."
+      ],
+      "richiede_verifica_avvocato": false,
+      "stato_conformita": "draft_professionale",
+      "data_ultimo_aggiornamento_normativo": "2026-05-12",
+      "versione_regole": "2026.05.12.1",
+      "fonte_regole": "Ruleset operativo IUSENTRA per revisione Cartabia e controlli processuali",
+      "prefill_bindings": {
+        "cliente": [
+          "parti.assistito_principale.nome_completo",
+          "cliente.nome_completo",
+          "legacy.client_or_sender"
+        ],
+        "controparte": [
+          "parti.controparte_principale.nome_completo",
+          "fascicolo.controparte",
+          "legacy.counterparty_or_recipient"
+        ],
+        "difensore": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.lawyer"
+        ],
+        "ufficio_giudiziario": [
+          "fascicolo.tribunale",
+          "fascicolo.ufficio_giudiziario",
+          "legacy.recipient_or_court"
+        ],
+        "rg": [
+          "fascicolo.rg_completo",
+          "fascicolo.numero_rg",
+          "legacy.case_reference_display"
+        ],
+        "oggetto": [
+          "fascicolo.titolo",
+          "fascicolo.oggetto",
+          "legacy.subject"
+        ],
+        "data_atto": [
+          "today",
+          "legacy.document_date"
+        ],
+        "pec_studio": [
+          "studio_timbro.pec",
+          "studio.pec",
+          "legacy._lawyer_pec"
+        ],
+        "codice_fiscale_studio": [
+          "studio_timbro.codice_fiscale",
+          "studio.codice_fiscale",
+          "legacy._lawyer_tax_id"
+        ],
+        "partita_iva_studio": [
+          "studio_timbro.partita_iva",
+          "studio.partita_iva"
+        ],
+        "client_or_sender": [
+          "parti.assistito_principale.nome_completo",
+          "cliente.nome_completo",
+          "legacy.client_or_sender"
+        ],
+        "counterparty_or_recipient": [
+          "parti.controparte_principale.nome_completo",
+          "fascicolo.controparte",
+          "legacy.counterparty_or_recipient"
+        ],
+        "lawyer": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.lawyer"
+        ],
+        "recipient_or_court": [
+          "fascicolo.tribunale",
+          "fascicolo.ufficio_giudiziario",
+          "legacy.recipient_or_court"
+        ],
+        "case_reference_display": [
+          "fascicolo.rg_completo",
+          "fascicolo.numero_rg",
+          "fascicolo.numero",
+          "legacy.case_reference_display"
+        ],
+        "matter": [
+          "fascicolo.tipo.value",
+          "fascicolo.materia",
+          "legacy.matter"
+        ],
+        "subject": [
+          "fascicolo.oggetto",
+          "fascicolo.titolo",
+          "legacy.subject"
+        ],
+        "facts": [
+          "fascicolo.note",
+          "legacy.facts"
+        ],
+        "document_date": [
+          "today",
+          "legacy.document_date"
+        ],
+        "signature": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.signature"
+        ],
+        "attachments_list": [
+          "documenti.nomi",
+          "legacy.attachments_list"
+        ],
+        "place": [
+          "studio.indirizzo",
+          "studio_timbro.indirizzo_riga",
+          "legacy.place"
+        ],
+        "_lawyer_pec": [
+          "studio_timbro.pec",
+          "studio.pec",
+          "legacy._lawyer_pec"
+        ],
+        "_lawyer_tax_id": [
+          "studio_timbro.codice_fiscale",
+          "studio.codice_fiscale",
+          "legacy._lawyer_tax_id"
+        ],
+        "_studio_address": [
+          "studio_timbro.indirizzo_riga",
+          "studio.indirizzo",
+          "legacy._studio_address"
+        ],
+        "timbro_studio": [
+          "studio_timbro.studio_nome"
+        ],
+        "preventivo": [
+          "fascicolo.preventivo",
+          "legacy.preventivo"
+        ],
+        "conferimento": [
+          "fascicolo.conferimento",
+          "legacy.conferimento"
+        ]
+      },
+      "required_prefill_fields": [
+        "cliente",
+        "difensore",
+        "oggetto",
+        "timbro_studio"
+      ],
+      "optional_prefill_fields": [
+        "controparte",
+        "ufficio_giudiziario",
+        "rg",
+        "pec_studio",
+        "codice_fiscale_studio",
+        "partita_iva_studio"
+      ],
+      "cartabia_required_fields": [
+        "preventivo",
+        "conferimento",
+        "procura",
+        "privacy",
+        "incarico",
+        "firme necessarie"
+      ],
+      "deposit_required_fields": [
+        "timbro studio",
+        "firme necessarie"
+      ],
+      "link_compilatore_code": "STR_COM_001"
     },
     {
       "id": "STD_014",
@@ -837,7 +3385,203 @@
       ],
       "versione": "1.1.0",
       "stato": "draft_professionale",
-      "ordinamento": 14
+      "ordinamento": 14,
+      "cartabia_profile": "studio_interno",
+      "processo_area": "studio_interno",
+      "normativa_riferimento": [
+        "Regole interne di mandato, privacy e gestione studio"
+      ],
+      "condizioni_procedibilita": [
+        "cliente, fascicolo e incarico quando collegati"
+      ],
+      "termini_processuali_rilevanti": [],
+      "dati_obbligatori_cartabia": [
+        "preventivo",
+        "conferimento",
+        "procura",
+        "privacy",
+        "incarico",
+        "firme necessarie"
+      ],
+      "controlli_cartabia": [
+        "collegamento cliente",
+        "incarico",
+        "privacy",
+        "timbro studio"
+      ],
+      "controlli_deposito": [
+        "timbro studio",
+        "firme necessarie"
+      ],
+      "avvisi_redazionali": [
+        "Gli atti interni non sostituiscono la verifica del mandato e delle firme."
+      ],
+      "richiede_verifica_avvocato": false,
+      "stato_conformita": "draft_professionale",
+      "data_ultimo_aggiornamento_normativo": "2026-05-12",
+      "versione_regole": "2026.05.12.1",
+      "fonte_regole": "Ruleset operativo IUSENTRA per revisione Cartabia e controlli processuali",
+      "prefill_bindings": {
+        "cliente": [
+          "parti.assistito_principale.nome_completo",
+          "cliente.nome_completo",
+          "legacy.client_or_sender"
+        ],
+        "controparte": [
+          "parti.controparte_principale.nome_completo",
+          "fascicolo.controparte",
+          "legacy.counterparty_or_recipient"
+        ],
+        "difensore": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.lawyer"
+        ],
+        "ufficio_giudiziario": [
+          "fascicolo.tribunale",
+          "fascicolo.ufficio_giudiziario",
+          "legacy.recipient_or_court"
+        ],
+        "rg": [
+          "fascicolo.rg_completo",
+          "fascicolo.numero_rg",
+          "legacy.case_reference_display"
+        ],
+        "oggetto": [
+          "fascicolo.titolo",
+          "fascicolo.oggetto",
+          "legacy.subject"
+        ],
+        "data_atto": [
+          "today",
+          "legacy.document_date"
+        ],
+        "pec_studio": [
+          "studio_timbro.pec",
+          "studio.pec",
+          "legacy._lawyer_pec"
+        ],
+        "codice_fiscale_studio": [
+          "studio_timbro.codice_fiscale",
+          "studio.codice_fiscale",
+          "legacy._lawyer_tax_id"
+        ],
+        "partita_iva_studio": [
+          "studio_timbro.partita_iva",
+          "studio.partita_iva"
+        ],
+        "client_or_sender": [
+          "parti.assistito_principale.nome_completo",
+          "cliente.nome_completo",
+          "legacy.client_or_sender"
+        ],
+        "counterparty_or_recipient": [
+          "parti.controparte_principale.nome_completo",
+          "fascicolo.controparte",
+          "legacy.counterparty_or_recipient"
+        ],
+        "lawyer": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.lawyer"
+        ],
+        "recipient_or_court": [
+          "fascicolo.tribunale",
+          "fascicolo.ufficio_giudiziario",
+          "legacy.recipient_or_court"
+        ],
+        "case_reference_display": [
+          "fascicolo.rg_completo",
+          "fascicolo.numero_rg",
+          "fascicolo.numero",
+          "legacy.case_reference_display"
+        ],
+        "matter": [
+          "fascicolo.tipo.value",
+          "fascicolo.materia",
+          "legacy.matter"
+        ],
+        "subject": [
+          "fascicolo.oggetto",
+          "fascicolo.titolo",
+          "legacy.subject"
+        ],
+        "facts": [
+          "fascicolo.note",
+          "legacy.facts"
+        ],
+        "document_date": [
+          "today",
+          "legacy.document_date"
+        ],
+        "signature": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.signature"
+        ],
+        "attachments_list": [
+          "documenti.nomi",
+          "legacy.attachments_list"
+        ],
+        "place": [
+          "studio.indirizzo",
+          "studio_timbro.indirizzo_riga",
+          "legacy.place"
+        ],
+        "_lawyer_pec": [
+          "studio_timbro.pec",
+          "studio.pec",
+          "legacy._lawyer_pec"
+        ],
+        "_lawyer_tax_id": [
+          "studio_timbro.codice_fiscale",
+          "studio.codice_fiscale",
+          "legacy._lawyer_tax_id"
+        ],
+        "_studio_address": [
+          "studio_timbro.indirizzo_riga",
+          "studio.indirizzo",
+          "legacy._studio_address"
+        ],
+        "timbro_studio": [
+          "studio_timbro.studio_nome"
+        ],
+        "preventivo": [
+          "fascicolo.preventivo",
+          "legacy.preventivo"
+        ],
+        "conferimento": [
+          "fascicolo.conferimento",
+          "legacy.conferimento"
+        ]
+      },
+      "required_prefill_fields": [
+        "cliente",
+        "difensore",
+        "oggetto",
+        "timbro_studio"
+      ],
+      "optional_prefill_fields": [
+        "controparte",
+        "ufficio_giudiziario",
+        "rg",
+        "pec_studio",
+        "codice_fiscale_studio",
+        "partita_iva_studio"
+      ],
+      "cartabia_required_fields": [
+        "preventivo",
+        "conferimento",
+        "procura",
+        "privacy",
+        "incarico",
+        "firme necessarie"
+      ],
+      "deposit_required_fields": [
+        "timbro studio",
+        "firme necessarie"
+      ],
+      "link_compilatore_code": "STR_COM_001"
     },
     {
       "id": "STD_015",
@@ -896,7 +3640,203 @@
       ],
       "versione": "1.1.0",
       "stato": "draft_professionale",
-      "ordinamento": 15
+      "ordinamento": 15,
+      "cartabia_profile": "studio_interno",
+      "processo_area": "studio_interno",
+      "normativa_riferimento": [
+        "Regole interne di mandato, privacy e gestione studio"
+      ],
+      "condizioni_procedibilita": [
+        "cliente, fascicolo e incarico quando collegati"
+      ],
+      "termini_processuali_rilevanti": [],
+      "dati_obbligatori_cartabia": [
+        "preventivo",
+        "conferimento",
+        "procura",
+        "privacy",
+        "incarico",
+        "firme necessarie"
+      ],
+      "controlli_cartabia": [
+        "collegamento cliente",
+        "incarico",
+        "privacy",
+        "timbro studio"
+      ],
+      "controlli_deposito": [
+        "timbro studio",
+        "firme necessarie"
+      ],
+      "avvisi_redazionali": [
+        "Gli atti interni non sostituiscono la verifica del mandato e delle firme."
+      ],
+      "richiede_verifica_avvocato": false,
+      "stato_conformita": "draft_professionale",
+      "data_ultimo_aggiornamento_normativo": "2026-05-12",
+      "versione_regole": "2026.05.12.1",
+      "fonte_regole": "Ruleset operativo IUSENTRA per revisione Cartabia e controlli processuali",
+      "prefill_bindings": {
+        "cliente": [
+          "parti.assistito_principale.nome_completo",
+          "cliente.nome_completo",
+          "legacy.client_or_sender"
+        ],
+        "controparte": [
+          "parti.controparte_principale.nome_completo",
+          "fascicolo.controparte",
+          "legacy.counterparty_or_recipient"
+        ],
+        "difensore": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.lawyer"
+        ],
+        "ufficio_giudiziario": [
+          "fascicolo.tribunale",
+          "fascicolo.ufficio_giudiziario",
+          "legacy.recipient_or_court"
+        ],
+        "rg": [
+          "fascicolo.rg_completo",
+          "fascicolo.numero_rg",
+          "legacy.case_reference_display"
+        ],
+        "oggetto": [
+          "fascicolo.titolo",
+          "fascicolo.oggetto",
+          "legacy.subject"
+        ],
+        "data_atto": [
+          "today",
+          "legacy.document_date"
+        ],
+        "pec_studio": [
+          "studio_timbro.pec",
+          "studio.pec",
+          "legacy._lawyer_pec"
+        ],
+        "codice_fiscale_studio": [
+          "studio_timbro.codice_fiscale",
+          "studio.codice_fiscale",
+          "legacy._lawyer_tax_id"
+        ],
+        "partita_iva_studio": [
+          "studio_timbro.partita_iva",
+          "studio.partita_iva"
+        ],
+        "client_or_sender": [
+          "parti.assistito_principale.nome_completo",
+          "cliente.nome_completo",
+          "legacy.client_or_sender"
+        ],
+        "counterparty_or_recipient": [
+          "parti.controparte_principale.nome_completo",
+          "fascicolo.controparte",
+          "legacy.counterparty_or_recipient"
+        ],
+        "lawyer": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.lawyer"
+        ],
+        "recipient_or_court": [
+          "fascicolo.tribunale",
+          "fascicolo.ufficio_giudiziario",
+          "legacy.recipient_or_court"
+        ],
+        "case_reference_display": [
+          "fascicolo.rg_completo",
+          "fascicolo.numero_rg",
+          "fascicolo.numero",
+          "legacy.case_reference_display"
+        ],
+        "matter": [
+          "fascicolo.tipo.value",
+          "fascicolo.materia",
+          "legacy.matter"
+        ],
+        "subject": [
+          "fascicolo.oggetto",
+          "fascicolo.titolo",
+          "legacy.subject"
+        ],
+        "facts": [
+          "fascicolo.note",
+          "legacy.facts"
+        ],
+        "document_date": [
+          "today",
+          "legacy.document_date"
+        ],
+        "signature": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.signature"
+        ],
+        "attachments_list": [
+          "documenti.nomi",
+          "legacy.attachments_list"
+        ],
+        "place": [
+          "studio.indirizzo",
+          "studio_timbro.indirizzo_riga",
+          "legacy.place"
+        ],
+        "_lawyer_pec": [
+          "studio_timbro.pec",
+          "studio.pec",
+          "legacy._lawyer_pec"
+        ],
+        "_lawyer_tax_id": [
+          "studio_timbro.codice_fiscale",
+          "studio.codice_fiscale",
+          "legacy._lawyer_tax_id"
+        ],
+        "_studio_address": [
+          "studio_timbro.indirizzo_riga",
+          "studio.indirizzo",
+          "legacy._studio_address"
+        ],
+        "timbro_studio": [
+          "studio_timbro.studio_nome"
+        ],
+        "preventivo": [
+          "fascicolo.preventivo",
+          "legacy.preventivo"
+        ],
+        "conferimento": [
+          "fascicolo.conferimento",
+          "legacy.conferimento"
+        ]
+      },
+      "required_prefill_fields": [
+        "cliente",
+        "difensore",
+        "oggetto",
+        "timbro_studio"
+      ],
+      "optional_prefill_fields": [
+        "controparte",
+        "ufficio_giudiziario",
+        "rg",
+        "pec_studio",
+        "codice_fiscale_studio",
+        "partita_iva_studio"
+      ],
+      "cartabia_required_fields": [
+        "preventivo",
+        "conferimento",
+        "procura",
+        "privacy",
+        "incarico",
+        "firme necessarie"
+      ],
+      "deposit_required_fields": [
+        "timbro studio",
+        "firme necessarie"
+      ],
+      "link_compilatore_code": "STR_COM_001"
     },
     {
       "id": "STD_016",
@@ -955,7 +3895,203 @@
       ],
       "versione": "1.1.0",
       "stato": "draft_professionale",
-      "ordinamento": 16
+      "ordinamento": 16,
+      "cartabia_profile": "studio_interno",
+      "processo_area": "studio_interno",
+      "normativa_riferimento": [
+        "Regole interne di mandato, privacy e gestione studio"
+      ],
+      "condizioni_procedibilita": [
+        "cliente, fascicolo e incarico quando collegati"
+      ],
+      "termini_processuali_rilevanti": [],
+      "dati_obbligatori_cartabia": [
+        "preventivo",
+        "conferimento",
+        "procura",
+        "privacy",
+        "incarico",
+        "firme necessarie"
+      ],
+      "controlli_cartabia": [
+        "collegamento cliente",
+        "incarico",
+        "privacy",
+        "timbro studio"
+      ],
+      "controlli_deposito": [
+        "timbro studio",
+        "firme necessarie"
+      ],
+      "avvisi_redazionali": [
+        "Gli atti interni non sostituiscono la verifica del mandato e delle firme."
+      ],
+      "richiede_verifica_avvocato": false,
+      "stato_conformita": "draft_professionale",
+      "data_ultimo_aggiornamento_normativo": "2026-05-12",
+      "versione_regole": "2026.05.12.1",
+      "fonte_regole": "Ruleset operativo IUSENTRA per revisione Cartabia e controlli processuali",
+      "prefill_bindings": {
+        "cliente": [
+          "parti.assistito_principale.nome_completo",
+          "cliente.nome_completo",
+          "legacy.client_or_sender"
+        ],
+        "controparte": [
+          "parti.controparte_principale.nome_completo",
+          "fascicolo.controparte",
+          "legacy.counterparty_or_recipient"
+        ],
+        "difensore": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.lawyer"
+        ],
+        "ufficio_giudiziario": [
+          "fascicolo.tribunale",
+          "fascicolo.ufficio_giudiziario",
+          "legacy.recipient_or_court"
+        ],
+        "rg": [
+          "fascicolo.rg_completo",
+          "fascicolo.numero_rg",
+          "legacy.case_reference_display"
+        ],
+        "oggetto": [
+          "fascicolo.titolo",
+          "fascicolo.oggetto",
+          "legacy.subject"
+        ],
+        "data_atto": [
+          "today",
+          "legacy.document_date"
+        ],
+        "pec_studio": [
+          "studio_timbro.pec",
+          "studio.pec",
+          "legacy._lawyer_pec"
+        ],
+        "codice_fiscale_studio": [
+          "studio_timbro.codice_fiscale",
+          "studio.codice_fiscale",
+          "legacy._lawyer_tax_id"
+        ],
+        "partita_iva_studio": [
+          "studio_timbro.partita_iva",
+          "studio.partita_iva"
+        ],
+        "client_or_sender": [
+          "parti.assistito_principale.nome_completo",
+          "cliente.nome_completo",
+          "legacy.client_or_sender"
+        ],
+        "counterparty_or_recipient": [
+          "parti.controparte_principale.nome_completo",
+          "fascicolo.controparte",
+          "legacy.counterparty_or_recipient"
+        ],
+        "lawyer": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.lawyer"
+        ],
+        "recipient_or_court": [
+          "fascicolo.tribunale",
+          "fascicolo.ufficio_giudiziario",
+          "legacy.recipient_or_court"
+        ],
+        "case_reference_display": [
+          "fascicolo.rg_completo",
+          "fascicolo.numero_rg",
+          "fascicolo.numero",
+          "legacy.case_reference_display"
+        ],
+        "matter": [
+          "fascicolo.tipo.value",
+          "fascicolo.materia",
+          "legacy.matter"
+        ],
+        "subject": [
+          "fascicolo.oggetto",
+          "fascicolo.titolo",
+          "legacy.subject"
+        ],
+        "facts": [
+          "fascicolo.note",
+          "legacy.facts"
+        ],
+        "document_date": [
+          "today",
+          "legacy.document_date"
+        ],
+        "signature": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.signature"
+        ],
+        "attachments_list": [
+          "documenti.nomi",
+          "legacy.attachments_list"
+        ],
+        "place": [
+          "studio.indirizzo",
+          "studio_timbro.indirizzo_riga",
+          "legacy.place"
+        ],
+        "_lawyer_pec": [
+          "studio_timbro.pec",
+          "studio.pec",
+          "legacy._lawyer_pec"
+        ],
+        "_lawyer_tax_id": [
+          "studio_timbro.codice_fiscale",
+          "studio.codice_fiscale",
+          "legacy._lawyer_tax_id"
+        ],
+        "_studio_address": [
+          "studio_timbro.indirizzo_riga",
+          "studio.indirizzo",
+          "legacy._studio_address"
+        ],
+        "timbro_studio": [
+          "studio_timbro.studio_nome"
+        ],
+        "preventivo": [
+          "fascicolo.preventivo",
+          "legacy.preventivo"
+        ],
+        "conferimento": [
+          "fascicolo.conferimento",
+          "legacy.conferimento"
+        ]
+      },
+      "required_prefill_fields": [
+        "cliente",
+        "difensore",
+        "oggetto",
+        "timbro_studio"
+      ],
+      "optional_prefill_fields": [
+        "controparte",
+        "ufficio_giudiziario",
+        "rg",
+        "pec_studio",
+        "codice_fiscale_studio",
+        "partita_iva_studio"
+      ],
+      "cartabia_required_fields": [
+        "preventivo",
+        "conferimento",
+        "procura",
+        "privacy",
+        "incarico",
+        "firme necessarie"
+      ],
+      "deposit_required_fields": [
+        "timbro studio",
+        "firme necessarie"
+      ],
+      "link_compilatore_code": "STR_COM_001"
     },
     {
       "id": "STD_017",
@@ -1016,7 +4152,203 @@
       ],
       "versione": "1.1.0",
       "stato": "draft_professionale",
-      "ordinamento": 17
+      "ordinamento": 17,
+      "cartabia_profile": "studio_interno",
+      "processo_area": "studio_interno",
+      "normativa_riferimento": [
+        "Regole interne di mandato, privacy e gestione studio"
+      ],
+      "condizioni_procedibilita": [
+        "cliente, fascicolo e incarico quando collegati"
+      ],
+      "termini_processuali_rilevanti": [],
+      "dati_obbligatori_cartabia": [
+        "preventivo",
+        "conferimento",
+        "procura",
+        "privacy",
+        "incarico",
+        "firme necessarie"
+      ],
+      "controlli_cartabia": [
+        "collegamento cliente",
+        "incarico",
+        "privacy",
+        "timbro studio"
+      ],
+      "controlli_deposito": [
+        "timbro studio",
+        "firme necessarie"
+      ],
+      "avvisi_redazionali": [
+        "Gli atti interni non sostituiscono la verifica del mandato e delle firme."
+      ],
+      "richiede_verifica_avvocato": false,
+      "stato_conformita": "draft_professionale",
+      "data_ultimo_aggiornamento_normativo": "2026-05-12",
+      "versione_regole": "2026.05.12.1",
+      "fonte_regole": "Ruleset operativo IUSENTRA per revisione Cartabia e controlli processuali",
+      "prefill_bindings": {
+        "cliente": [
+          "parti.assistito_principale.nome_completo",
+          "cliente.nome_completo",
+          "legacy.client_or_sender"
+        ],
+        "controparte": [
+          "parti.controparte_principale.nome_completo",
+          "fascicolo.controparte",
+          "legacy.counterparty_or_recipient"
+        ],
+        "difensore": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.lawyer"
+        ],
+        "ufficio_giudiziario": [
+          "fascicolo.tribunale",
+          "fascicolo.ufficio_giudiziario",
+          "legacy.recipient_or_court"
+        ],
+        "rg": [
+          "fascicolo.rg_completo",
+          "fascicolo.numero_rg",
+          "legacy.case_reference_display"
+        ],
+        "oggetto": [
+          "fascicolo.titolo",
+          "fascicolo.oggetto",
+          "legacy.subject"
+        ],
+        "data_atto": [
+          "today",
+          "legacy.document_date"
+        ],
+        "pec_studio": [
+          "studio_timbro.pec",
+          "studio.pec",
+          "legacy._lawyer_pec"
+        ],
+        "codice_fiscale_studio": [
+          "studio_timbro.codice_fiscale",
+          "studio.codice_fiscale",
+          "legacy._lawyer_tax_id"
+        ],
+        "partita_iva_studio": [
+          "studio_timbro.partita_iva",
+          "studio.partita_iva"
+        ],
+        "client_or_sender": [
+          "parti.assistito_principale.nome_completo",
+          "cliente.nome_completo",
+          "legacy.client_or_sender"
+        ],
+        "counterparty_or_recipient": [
+          "parti.controparte_principale.nome_completo",
+          "fascicolo.controparte",
+          "legacy.counterparty_or_recipient"
+        ],
+        "lawyer": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.lawyer"
+        ],
+        "recipient_or_court": [
+          "fascicolo.tribunale",
+          "fascicolo.ufficio_giudiziario",
+          "legacy.recipient_or_court"
+        ],
+        "case_reference_display": [
+          "fascicolo.rg_completo",
+          "fascicolo.numero_rg",
+          "fascicolo.numero",
+          "legacy.case_reference_display"
+        ],
+        "matter": [
+          "fascicolo.tipo.value",
+          "fascicolo.materia",
+          "legacy.matter"
+        ],
+        "subject": [
+          "fascicolo.oggetto",
+          "fascicolo.titolo",
+          "legacy.subject"
+        ],
+        "facts": [
+          "fascicolo.note",
+          "legacy.facts"
+        ],
+        "document_date": [
+          "today",
+          "legacy.document_date"
+        ],
+        "signature": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.signature"
+        ],
+        "attachments_list": [
+          "documenti.nomi",
+          "legacy.attachments_list"
+        ],
+        "place": [
+          "studio.indirizzo",
+          "studio_timbro.indirizzo_riga",
+          "legacy.place"
+        ],
+        "_lawyer_pec": [
+          "studio_timbro.pec",
+          "studio.pec",
+          "legacy._lawyer_pec"
+        ],
+        "_lawyer_tax_id": [
+          "studio_timbro.codice_fiscale",
+          "studio.codice_fiscale",
+          "legacy._lawyer_tax_id"
+        ],
+        "_studio_address": [
+          "studio_timbro.indirizzo_riga",
+          "studio.indirizzo",
+          "legacy._studio_address"
+        ],
+        "timbro_studio": [
+          "studio_timbro.studio_nome"
+        ],
+        "preventivo": [
+          "fascicolo.preventivo",
+          "legacy.preventivo"
+        ],
+        "conferimento": [
+          "fascicolo.conferimento",
+          "legacy.conferimento"
+        ]
+      },
+      "required_prefill_fields": [
+        "cliente",
+        "difensore",
+        "oggetto",
+        "timbro_studio"
+      ],
+      "optional_prefill_fields": [
+        "controparte",
+        "ufficio_giudiziario",
+        "rg",
+        "pec_studio",
+        "codice_fiscale_studio",
+        "partita_iva_studio"
+      ],
+      "cartabia_required_fields": [
+        "preventivo",
+        "conferimento",
+        "procura",
+        "privacy",
+        "incarico",
+        "firme necessarie"
+      ],
+      "deposit_required_fields": [
+        "timbro studio",
+        "firme necessarie"
+      ],
+      "link_compilatore_code": "STR_COM_001"
     },
     {
       "id": "STD_018",
@@ -1075,7 +4407,203 @@
       ],
       "versione": "1.1.0",
       "stato": "draft_professionale",
-      "ordinamento": 18
+      "ordinamento": 18,
+      "cartabia_profile": "studio_interno",
+      "processo_area": "studio_interno",
+      "normativa_riferimento": [
+        "Regole interne di mandato, privacy e gestione studio"
+      ],
+      "condizioni_procedibilita": [
+        "cliente, fascicolo e incarico quando collegati"
+      ],
+      "termini_processuali_rilevanti": [],
+      "dati_obbligatori_cartabia": [
+        "preventivo",
+        "conferimento",
+        "procura",
+        "privacy",
+        "incarico",
+        "firme necessarie"
+      ],
+      "controlli_cartabia": [
+        "collegamento cliente",
+        "incarico",
+        "privacy",
+        "timbro studio"
+      ],
+      "controlli_deposito": [
+        "timbro studio",
+        "firme necessarie"
+      ],
+      "avvisi_redazionali": [
+        "Gli atti interni non sostituiscono la verifica del mandato e delle firme."
+      ],
+      "richiede_verifica_avvocato": false,
+      "stato_conformita": "draft_professionale",
+      "data_ultimo_aggiornamento_normativo": "2026-05-12",
+      "versione_regole": "2026.05.12.1",
+      "fonte_regole": "Ruleset operativo IUSENTRA per revisione Cartabia e controlli processuali",
+      "prefill_bindings": {
+        "cliente": [
+          "parti.assistito_principale.nome_completo",
+          "cliente.nome_completo",
+          "legacy.client_or_sender"
+        ],
+        "controparte": [
+          "parti.controparte_principale.nome_completo",
+          "fascicolo.controparte",
+          "legacy.counterparty_or_recipient"
+        ],
+        "difensore": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.lawyer"
+        ],
+        "ufficio_giudiziario": [
+          "fascicolo.tribunale",
+          "fascicolo.ufficio_giudiziario",
+          "legacy.recipient_or_court"
+        ],
+        "rg": [
+          "fascicolo.rg_completo",
+          "fascicolo.numero_rg",
+          "legacy.case_reference_display"
+        ],
+        "oggetto": [
+          "fascicolo.titolo",
+          "fascicolo.oggetto",
+          "legacy.subject"
+        ],
+        "data_atto": [
+          "today",
+          "legacy.document_date"
+        ],
+        "pec_studio": [
+          "studio_timbro.pec",
+          "studio.pec",
+          "legacy._lawyer_pec"
+        ],
+        "codice_fiscale_studio": [
+          "studio_timbro.codice_fiscale",
+          "studio.codice_fiscale",
+          "legacy._lawyer_tax_id"
+        ],
+        "partita_iva_studio": [
+          "studio_timbro.partita_iva",
+          "studio.partita_iva"
+        ],
+        "client_or_sender": [
+          "parti.assistito_principale.nome_completo",
+          "cliente.nome_completo",
+          "legacy.client_or_sender"
+        ],
+        "counterparty_or_recipient": [
+          "parti.controparte_principale.nome_completo",
+          "fascicolo.controparte",
+          "legacy.counterparty_or_recipient"
+        ],
+        "lawyer": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.lawyer"
+        ],
+        "recipient_or_court": [
+          "fascicolo.tribunale",
+          "fascicolo.ufficio_giudiziario",
+          "legacy.recipient_or_court"
+        ],
+        "case_reference_display": [
+          "fascicolo.rg_completo",
+          "fascicolo.numero_rg",
+          "fascicolo.numero",
+          "legacy.case_reference_display"
+        ],
+        "matter": [
+          "fascicolo.tipo.value",
+          "fascicolo.materia",
+          "legacy.matter"
+        ],
+        "subject": [
+          "fascicolo.oggetto",
+          "fascicolo.titolo",
+          "legacy.subject"
+        ],
+        "facts": [
+          "fascicolo.note",
+          "legacy.facts"
+        ],
+        "document_date": [
+          "today",
+          "legacy.document_date"
+        ],
+        "signature": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.signature"
+        ],
+        "attachments_list": [
+          "documenti.nomi",
+          "legacy.attachments_list"
+        ],
+        "place": [
+          "studio.indirizzo",
+          "studio_timbro.indirizzo_riga",
+          "legacy.place"
+        ],
+        "_lawyer_pec": [
+          "studio_timbro.pec",
+          "studio.pec",
+          "legacy._lawyer_pec"
+        ],
+        "_lawyer_tax_id": [
+          "studio_timbro.codice_fiscale",
+          "studio.codice_fiscale",
+          "legacy._lawyer_tax_id"
+        ],
+        "_studio_address": [
+          "studio_timbro.indirizzo_riga",
+          "studio.indirizzo",
+          "legacy._studio_address"
+        ],
+        "timbro_studio": [
+          "studio_timbro.studio_nome"
+        ],
+        "preventivo": [
+          "fascicolo.preventivo",
+          "legacy.preventivo"
+        ],
+        "conferimento": [
+          "fascicolo.conferimento",
+          "legacy.conferimento"
+        ]
+      },
+      "required_prefill_fields": [
+        "cliente",
+        "difensore",
+        "oggetto",
+        "timbro_studio"
+      ],
+      "optional_prefill_fields": [
+        "controparte",
+        "ufficio_giudiziario",
+        "rg",
+        "pec_studio",
+        "codice_fiscale_studio",
+        "partita_iva_studio"
+      ],
+      "cartabia_required_fields": [
+        "preventivo",
+        "conferimento",
+        "procura",
+        "privacy",
+        "incarico",
+        "firme necessarie"
+      ],
+      "deposit_required_fields": [
+        "timbro studio",
+        "firme necessarie"
+      ],
+      "link_compilatore_code": "STR_COM_001"
     },
     {
       "id": "STD_019",
@@ -1134,7 +4662,203 @@
       ],
       "versione": "1.1.0",
       "stato": "draft_professionale",
-      "ordinamento": 19
+      "ordinamento": 19,
+      "cartabia_profile": "studio_interno",
+      "processo_area": "studio_interno",
+      "normativa_riferimento": [
+        "Regole interne di mandato, privacy e gestione studio"
+      ],
+      "condizioni_procedibilita": [
+        "cliente, fascicolo e incarico quando collegati"
+      ],
+      "termini_processuali_rilevanti": [],
+      "dati_obbligatori_cartabia": [
+        "preventivo",
+        "conferimento",
+        "procura",
+        "privacy",
+        "incarico",
+        "firme necessarie"
+      ],
+      "controlli_cartabia": [
+        "collegamento cliente",
+        "incarico",
+        "privacy",
+        "timbro studio"
+      ],
+      "controlli_deposito": [
+        "timbro studio",
+        "firme necessarie"
+      ],
+      "avvisi_redazionali": [
+        "Gli atti interni non sostituiscono la verifica del mandato e delle firme."
+      ],
+      "richiede_verifica_avvocato": false,
+      "stato_conformita": "draft_professionale",
+      "data_ultimo_aggiornamento_normativo": "2026-05-12",
+      "versione_regole": "2026.05.12.1",
+      "fonte_regole": "Ruleset operativo IUSENTRA per revisione Cartabia e controlli processuali",
+      "prefill_bindings": {
+        "cliente": [
+          "parti.assistito_principale.nome_completo",
+          "cliente.nome_completo",
+          "legacy.client_or_sender"
+        ],
+        "controparte": [
+          "parti.controparte_principale.nome_completo",
+          "fascicolo.controparte",
+          "legacy.counterparty_or_recipient"
+        ],
+        "difensore": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.lawyer"
+        ],
+        "ufficio_giudiziario": [
+          "fascicolo.tribunale",
+          "fascicolo.ufficio_giudiziario",
+          "legacy.recipient_or_court"
+        ],
+        "rg": [
+          "fascicolo.rg_completo",
+          "fascicolo.numero_rg",
+          "legacy.case_reference_display"
+        ],
+        "oggetto": [
+          "fascicolo.titolo",
+          "fascicolo.oggetto",
+          "legacy.subject"
+        ],
+        "data_atto": [
+          "today",
+          "legacy.document_date"
+        ],
+        "pec_studio": [
+          "studio_timbro.pec",
+          "studio.pec",
+          "legacy._lawyer_pec"
+        ],
+        "codice_fiscale_studio": [
+          "studio_timbro.codice_fiscale",
+          "studio.codice_fiscale",
+          "legacy._lawyer_tax_id"
+        ],
+        "partita_iva_studio": [
+          "studio_timbro.partita_iva",
+          "studio.partita_iva"
+        ],
+        "client_or_sender": [
+          "parti.assistito_principale.nome_completo",
+          "cliente.nome_completo",
+          "legacy.client_or_sender"
+        ],
+        "counterparty_or_recipient": [
+          "parti.controparte_principale.nome_completo",
+          "fascicolo.controparte",
+          "legacy.counterparty_or_recipient"
+        ],
+        "lawyer": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.lawyer"
+        ],
+        "recipient_or_court": [
+          "fascicolo.tribunale",
+          "fascicolo.ufficio_giudiziario",
+          "legacy.recipient_or_court"
+        ],
+        "case_reference_display": [
+          "fascicolo.rg_completo",
+          "fascicolo.numero_rg",
+          "fascicolo.numero",
+          "legacy.case_reference_display"
+        ],
+        "matter": [
+          "fascicolo.tipo.value",
+          "fascicolo.materia",
+          "legacy.matter"
+        ],
+        "subject": [
+          "fascicolo.oggetto",
+          "fascicolo.titolo",
+          "legacy.subject"
+        ],
+        "facts": [
+          "fascicolo.note",
+          "legacy.facts"
+        ],
+        "document_date": [
+          "today",
+          "legacy.document_date"
+        ],
+        "signature": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.signature"
+        ],
+        "attachments_list": [
+          "documenti.nomi",
+          "legacy.attachments_list"
+        ],
+        "place": [
+          "studio.indirizzo",
+          "studio_timbro.indirizzo_riga",
+          "legacy.place"
+        ],
+        "_lawyer_pec": [
+          "studio_timbro.pec",
+          "studio.pec",
+          "legacy._lawyer_pec"
+        ],
+        "_lawyer_tax_id": [
+          "studio_timbro.codice_fiscale",
+          "studio.codice_fiscale",
+          "legacy._lawyer_tax_id"
+        ],
+        "_studio_address": [
+          "studio_timbro.indirizzo_riga",
+          "studio.indirizzo",
+          "legacy._studio_address"
+        ],
+        "timbro_studio": [
+          "studio_timbro.studio_nome"
+        ],
+        "preventivo": [
+          "fascicolo.preventivo",
+          "legacy.preventivo"
+        ],
+        "conferimento": [
+          "fascicolo.conferimento",
+          "legacy.conferimento"
+        ]
+      },
+      "required_prefill_fields": [
+        "cliente",
+        "difensore",
+        "oggetto",
+        "timbro_studio"
+      ],
+      "optional_prefill_fields": [
+        "controparte",
+        "ufficio_giudiziario",
+        "rg",
+        "pec_studio",
+        "codice_fiscale_studio",
+        "partita_iva_studio"
+      ],
+      "cartabia_required_fields": [
+        "preventivo",
+        "conferimento",
+        "procura",
+        "privacy",
+        "incarico",
+        "firme necessarie"
+      ],
+      "deposit_required_fields": [
+        "timbro studio",
+        "firme necessarie"
+      ],
+      "link_compilatore_code": "STR_COM_001"
     },
     {
       "id": "STD_020",
@@ -1193,7 +4917,248 @@
       ],
       "versione": "1.1.0",
       "stato": "draft_professionale",
-      "ordinamento": 20
+      "ordinamento": 20,
+      "cartabia_profile": "studio_interno",
+      "processo_area": "studio_interno",
+      "normativa_riferimento": [
+        "Regole interne di mandato, privacy e gestione studio"
+      ],
+      "condizioni_procedibilita": [
+        "cliente, fascicolo e incarico quando collegati"
+      ],
+      "termini_processuali_rilevanti": [],
+      "dati_obbligatori_cartabia": [
+        "preventivo",
+        "conferimento",
+        "procura",
+        "privacy",
+        "incarico",
+        "firme necessarie"
+      ],
+      "controlli_cartabia": [
+        "collegamento cliente",
+        "incarico",
+        "privacy",
+        "timbro studio"
+      ],
+      "controlli_deposito": [
+        "timbro studio",
+        "firme necessarie"
+      ],
+      "avvisi_redazionali": [
+        "Gli atti interni non sostituiscono la verifica del mandato e delle firme."
+      ],
+      "richiede_verifica_avvocato": false,
+      "stato_conformita": "draft_professionale",
+      "data_ultimo_aggiornamento_normativo": "2026-05-12",
+      "versione_regole": "2026.05.12.1",
+      "fonte_regole": "Ruleset operativo IUSENTRA per revisione Cartabia e controlli processuali",
+      "prefill_bindings": {
+        "cliente": [
+          "parti.assistito_principale.nome_completo",
+          "cliente.nome_completo",
+          "legacy.client_or_sender"
+        ],
+        "controparte": [
+          "parti.controparte_principale.nome_completo",
+          "fascicolo.controparte",
+          "legacy.counterparty_or_recipient"
+        ],
+        "difensore": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.lawyer"
+        ],
+        "ufficio_giudiziario": [
+          "fascicolo.tribunale",
+          "fascicolo.ufficio_giudiziario",
+          "legacy.recipient_or_court"
+        ],
+        "rg": [
+          "fascicolo.rg_completo",
+          "fascicolo.numero_rg",
+          "legacy.case_reference_display"
+        ],
+        "oggetto": [
+          "fascicolo.titolo",
+          "fascicolo.oggetto",
+          "legacy.subject"
+        ],
+        "data_atto": [
+          "today",
+          "legacy.document_date"
+        ],
+        "pec_studio": [
+          "studio_timbro.pec",
+          "studio.pec",
+          "legacy._lawyer_pec"
+        ],
+        "codice_fiscale_studio": [
+          "studio_timbro.codice_fiscale",
+          "studio.codice_fiscale",
+          "legacy._lawyer_tax_id"
+        ],
+        "partita_iva_studio": [
+          "studio_timbro.partita_iva",
+          "studio.partita_iva"
+        ],
+        "client_or_sender": [
+          "parti.assistito_principale.nome_completo",
+          "cliente.nome_completo",
+          "legacy.client_or_sender"
+        ],
+        "counterparty_or_recipient": [
+          "parti.controparte_principale.nome_completo",
+          "fascicolo.controparte",
+          "legacy.counterparty_or_recipient"
+        ],
+        "lawyer": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.lawyer"
+        ],
+        "recipient_or_court": [
+          "fascicolo.tribunale",
+          "fascicolo.ufficio_giudiziario",
+          "legacy.recipient_or_court"
+        ],
+        "case_reference_display": [
+          "fascicolo.rg_completo",
+          "fascicolo.numero_rg",
+          "fascicolo.numero",
+          "legacy.case_reference_display"
+        ],
+        "matter": [
+          "fascicolo.tipo.value",
+          "fascicolo.materia",
+          "legacy.matter"
+        ],
+        "subject": [
+          "fascicolo.oggetto",
+          "fascicolo.titolo",
+          "legacy.subject"
+        ],
+        "facts": [
+          "fascicolo.note",
+          "legacy.facts"
+        ],
+        "document_date": [
+          "today",
+          "legacy.document_date"
+        ],
+        "signature": [
+          "utente.nome_completo",
+          "studio.avvocato_nome",
+          "legacy.signature"
+        ],
+        "attachments_list": [
+          "documenti.nomi",
+          "legacy.attachments_list"
+        ],
+        "place": [
+          "studio.indirizzo",
+          "studio_timbro.indirizzo_riga",
+          "legacy.place"
+        ],
+        "_lawyer_pec": [
+          "studio_timbro.pec",
+          "studio.pec",
+          "legacy._lawyer_pec"
+        ],
+        "_lawyer_tax_id": [
+          "studio_timbro.codice_fiscale",
+          "studio.codice_fiscale",
+          "legacy._lawyer_tax_id"
+        ],
+        "_studio_address": [
+          "studio_timbro.indirizzo_riga",
+          "studio.indirizzo",
+          "legacy._studio_address"
+        ],
+        "timbro_studio": [
+          "studio_timbro.studio_nome"
+        ],
+        "preventivo": [
+          "fascicolo.preventivo",
+          "legacy.preventivo"
+        ],
+        "conferimento": [
+          "fascicolo.conferimento",
+          "legacy.conferimento"
+        ]
+      },
+      "required_prefill_fields": [
+        "cliente",
+        "difensore",
+        "oggetto",
+        "timbro_studio"
+      ],
+      "optional_prefill_fields": [
+        "controparte",
+        "ufficio_giudiziario",
+        "rg",
+        "pec_studio",
+        "codice_fiscale_studio",
+        "partita_iva_studio"
+      ],
+      "cartabia_required_fields": [
+        "preventivo",
+        "conferimento",
+        "procura",
+        "privacy",
+        "incarico",
+        "firme necessarie"
+      ],
+      "deposit_required_fields": [
+        "timbro studio",
+        "firme necessarie"
+      ],
+      "link_compilatore_code": "STR_COM_001"
     }
+  ],
+  "schema_obbligatorio": [
+    "id",
+    "slug",
+    "titolo",
+    "famiglia",
+    "area",
+    "macro_area",
+    "sottobranca",
+    "procedimento",
+    "fase",
+    "autorita",
+    "rito",
+    "canale_telematico",
+    "depositabile",
+    "tags",
+    "campi_precompila",
+    "blocchi_guidati",
+    "varianti",
+    "allegati_essenziali",
+    "checklist_conformita",
+    "note_operative",
+    "versione",
+    "stato",
+    "ordinamento",
+    "cartabia_profile",
+    "processo_area",
+    "normativa_riferimento",
+    "condizioni_procedibilita",
+    "termini_processuali_rilevanti",
+    "dati_obbligatori_cartabia",
+    "controlli_cartabia",
+    "controlli_deposito",
+    "avvisi_redazionali",
+    "richiede_verifica_avvocato",
+    "stato_conformita",
+    "data_ultimo_aggiornamento_normativo",
+    "versione_regole",
+    "fonte_regole",
+    "prefill_bindings",
+    "required_prefill_fields",
+    "optional_prefill_fields",
+    "cartabia_required_fields",
+    "deposit_required_fields",
+    "link_compilatore_code"
   ]
 }

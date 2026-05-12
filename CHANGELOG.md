@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.218.0 - 2026-05-12
+
+- Introdotto il timbro studio dinamico tenant-aware per Template Atti, con renderer testo/HTML/DOCX/PDF, endpoint React `/api/v1/ui/studio/timbro` e iniezione centrale nel compilatore e nei template.
+- Aggiornato il catalogo master Template Atti a `v1.2.0`: 420 template con profilo Cartabia, stato di revisione, campi prefill dichiarativi, controlli deposito e binding compilatore.
+- Aggiunto il resolver di precompilazione con provenienza, confidenza, alternative e motivi dei dati mancanti, riusato dal compilatore e dai template master.
+- Estesi API, filtri e pagina React del catalogo con stato Cartabia, precompilabilita', verifica avvocato e anteprima del timbro studio, senza badge di conformita' assoluta.
+- Aggiunti script di arricchimento/validazione split, report di copertura, documentazione e test mirati su catalogo, timbro, prefill, endpoint e controlli per famiglia, ADR e deposito.
+
 ## 2.217.2 - 2026-05-12
 
 - Aggiunto il centro notifiche persistente tenant-aware/user-aware con dedupe, stato letto persistente, preferenze minime e subscription Web Push per dispositivo.

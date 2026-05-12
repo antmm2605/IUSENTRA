@@ -446,7 +446,14 @@ class GestioneTemplateAtti:
             raise ValueError(f"Template '{id_template}' non trovato.")
         env = Environment(undefined=Undefined)
         tmpl = env.from_string(t.corpo)
-        return tmpl.render(**variabili)
+        rendered = tmpl.render(**variabili)
+        try:
+            from pct.studio_timbro import inject_timbro_text
+
+            timbro = variabili.get("studio_timbro") or variabili.get("studio_timbro_payload")
+            return inject_timbro_text(rendered, timbro)
+        except Exception:
+            return rendered
 
 
 class GestionePreferenzeTemplateAtti:

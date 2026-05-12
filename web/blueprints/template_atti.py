@@ -20,6 +20,30 @@ from web.helpers import get_clienti, get_fascicoli, get_soggetti, get_utenti
 template_atti = Blueprint("template_atti", __name__, url_prefix="/template-atti")
 
 
+_UI_LABEL_REPLACEMENTS: tuple[tuple[str, str], ...] = (
+    (r"\bdemo\b", "di prova"),
+    (r"\bsample\b", "di prova"),
+    (r"\brepository\b", "archivio"),
+    (r"\bbackend\b", "servizio applicativo"),
+    (r"\bfrontend\b", "interfaccia"),
+    (r"\blegacy\b", "percorso precedente"),
+    (r"\bpayload\b", "dati"),
+    (r"\bruntime\b", "ambiente"),
+    (r"\bjson_api\b", "servizio dati"),
+    (r"\bprovider\b", "canale"),
+    (r"\bwebhook\b", "notifica automatica"),
+)
+
+
+@template_atti.app_template_filter("template_atti_ui_label")
+def template_atti_ui_label(value) -> str:
+    """Rende sicure per la UI etichette provenienti da dati storici dello studio."""
+    text = str(value or "")
+    for pattern, replacement in _UI_LABEL_REPLACEMENTS:
+        text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
+    return text
+
+
 def _cfg_path(key: str, default: str = "") -> str:
     paths = getattr(g, "data_paths", {}) or {}
     if key in paths:
@@ -63,6 +87,31 @@ def _get_assistente_redazionale():
     )
 
 
+def _get_config_studio_manager():
+    core_runtime = current_app.extensions.get("core_runtime", {}) or {}
+    loader = core_runtime.get("get_config_studio")
+    if callable(loader):
+        return loader()
+    from pct.config_studio import GestioneConfigStudio
+
+    return GestioneConfigStudio(config_path=_cfg_path("CONFIG_STUDIO_DB", "./config/studio.json"))
+
+
+def _get_studio_timbro():
+    from pct.studio_timbro import build_studio_timbro
+
+    try:
+        config_manager = _get_config_studio_manager()
+        config_studio = getattr(config_manager, "config", None)
+    except Exception:
+        config_studio = None
+    return build_studio_timbro(
+        db_path=_cfg_path("STUDIO_TIMBRO_DB", "./config/studio_timbro.db"),
+        config_studio=config_studio,
+        app_config=current_app.config,
+    )
+
+
 @template_atti.context_processor
 def _inject_editor_preferences():
     from pct.template_atti import DEFAULT_EDITOR_LAYOUT, catalogo_font_editor
@@ -85,12 +134,18 @@ def _richiedi_login(f):
 
 
 def _variabili_base(config):
+    timbro = _get_studio_timbro()
     return {
         "data_oggi":         date.today().strftime("%d/%m/%Y"),
         "studio_nome":       config.get("STUDIO_NOME", "IUSENTRA"),
         "studio_indirizzo":  config.get("STUDIO_INDIRIZZO", ""),
         "studio_iban":       config.get("STUDIO_IBAN", ""),
         "avvocato_nome":     config.get("STUDIO_AVVOCATO", config.get("STUDIO_NOME", "Avvocato")),
+        "studio_timbro":     timbro,
+        "studio_timbro_payload": timbro.to_payload(),
+        "studio_timbro_lines": timbro.to_lines(),
+        "studio_timbro_text": timbro.to_text(),
+        "studio_timbro_html": timbro.to_html(),
     }
 
 
@@ -231,6 +286,36 @@ def _prefill_template_fields(template, *, cliente=None, fascicolo=None, parti=No
         "durata_anni": "5",
         "tribunale_competente": getattr(fascicolo, "tribunale", "") or "",
     }
+    try:
+        from pct.template_atti_prefill import resolve_template_prefill
+
+        field_specs = list(getattr(template, "campi_guidati", []) or [])
+        legacy_campi = [
+            str(field.get("label") or field.get("name") or "")
+            for field in field_specs
+            if isinstance(field, dict)
+        ]
+        resolution = resolve_template_prefill(
+            model_code=getattr(template, "link_compilatore_code", "") or getattr(template, "codice", ""),
+            legacy_campi=legacy_campi,
+            fascicolo=fascicolo,
+            cliente=cliente,
+            utente=g.get("utente_corrente"),
+            config=current_app.config,
+            studio_timbro=_get_studio_timbro(),
+            parti=parti,
+            legacy_payload=values,
+        )
+        for key, result in resolution.get("fields", {}).items():
+            mapped_key = f"dato_{key}"
+            value = result.get("value")
+            if value and mapped_key not in values:
+                values[mapped_key] = _valore_form(value)
+            if value and key not in values:
+                values[key] = _valore_form(value)
+        values["_prefill_resolution"] = resolution
+    except Exception:
+        pass
     return values
 
 
@@ -259,6 +344,16 @@ def _contesto_compilatore(model_code: str, *, payload: dict, selected_cliente=No
                 model=model,
             )
     form_values = {key: _valore_form(value) for key, value in payload.items()}
+    prefill_resolution = payload.get("_prefill_resolution") if isinstance(payload.get("_prefill_resolution"), dict) else {}
+    try:
+        timbro = _get_studio_timbro()
+        studio_timbro_preview = {
+            "lines": timbro.to_lines(),
+            "html": timbro.to_html(),
+            "text": timbro.to_text(),
+        }
+    except Exception:
+        studio_timbro_preview = {"lines": [], "html": "", "text": ""}
     return {
         "model": model,
         "clienti": clienti,
@@ -279,6 +374,8 @@ def _contesto_compilatore(model_code: str, *, payload: dict, selected_cliente=No
         "sections": schema["sections"],
         "renderer_name": schema["renderer"],
         "prefill_map": schema["prefill_map"],
+        "prefill_resolution": prefill_resolution,
+        "studio_timbro_preview": studio_timbro_preview,
         "assistant_analysis": assistant_analysis or {},
         "correction_context": correction_context or {},
     }
@@ -318,6 +415,7 @@ def _resolve_compiler_context(model_code: str):
     if selected_fascicolo and not selected_cliente and getattr(selected_fascicolo, "id_cliente", ""):
         selected_cliente = clienti_repo.get(selected_fascicolo.id_cliente)
         id_cliente = getattr(selected_cliente, "id", "") if selected_cliente else id_cliente
+    _, parti_prefill = _build_parti_template_context(id_fascicolo)
 
     initial_payload = prefill_payload(
         model_code,
@@ -325,6 +423,8 @@ def _resolve_compiler_context(model_code: str):
         cliente=selected_cliente,
         utente=g.get("utente_corrente"),
         config=current_app.config,
+        studio_timbro=_get_studio_timbro(),
+        parti=parti_prefill,
     )
     payload = initial_payload
     if request.method == "POST":
@@ -513,6 +613,10 @@ def catalogo():
         area_groups=area_groups,
         catalogo_flat=catalogo_flat,
         wizard_tipologie=wizard_tipologie,
+        studio_timbro_preview={
+            "lines": _get_studio_timbro().to_lines(),
+            "text": _get_studio_timbro().to_text(),
+        },
         **catalog_context,
         oggi=date.today(),
     )
@@ -559,6 +663,9 @@ def template_compliance(codice: str):
             "canale_deposito": item["canale_deposito"],
             "portale_deposito": item["portale_deposito"],
             "ruleset_version": item["compliance_summary"]["ruleset_version"],
+            "cartabia_ruleset_version": item.get("cartabia_ruleset_version"),
+            "cartabia": item.get("cartabia_verifica"),
+            "stato_conformita": item.get("stato_conformita"),
             "controlli": item["controlli_conformita_dettaglio"],
         }
     )
@@ -956,7 +1063,7 @@ def pdf(id_template: str):
     testo = request.form.get("testo_generato", "")
     titolo = t.titolo
     layout = _parse_editor_layout(request.form.get("testo_generato__editor_layout"))
-    buf = _genera_pdf(titolo, testo, current_app.config, layout=layout)
+    buf = _genera_pdf(titolo, testo, current_app.config, layout=layout, timbro=_get_studio_timbro())
     nome_file = titolo.lower().replace(" ", "_").replace("/", "-") + ".pdf"
     return send_file(buf, mimetype="application/pdf",
                      as_attachment=False, download_name=nome_file)
@@ -972,7 +1079,7 @@ def compila_pdf(model_code: str):
     testo = request.form.get("testo_generato", "")
     titolo = request.form.get("title", "") or model["name"]
     layout = _parse_editor_layout(request.form.get("testo_generato__editor_layout"))
-    buf = _genera_pdf(titolo, testo, current_app.config, layout=layout)
+    buf = _genera_pdf(titolo, testo, current_app.config, layout=layout, timbro=_get_studio_timbro())
     nome_file = titolo.lower().replace(" ", "_").replace("/", "-") + ".pdf"
     return send_file(buf, mimetype="application/pdf",
                      as_attachment=False, download_name=nome_file)
@@ -1097,8 +1204,12 @@ def _is_upper_heading(line: str) -> bool:
     return stripped == stripped.upper()
 
 
-def _fallback_pdf_from_text(titolo: str, testo: str, config: dict) -> io.BytesIO:
+def _fallback_pdf_from_text(titolo: str, testo: str, config: dict, timbro=None) -> io.BytesIO:
     safe_text = testo or ""
+    if timbro is not None and hasattr(timbro, "to_text"):
+        timbro_text = timbro.to_text()
+        if timbro_text and safe_text.strip().startswith(timbro_text.splitlines()[0]):
+            safe_text = safe_text.strip()[len(timbro_text):].lstrip()
     safe_text = re.sub(r"(?i)<br\s*/?>", "\n", safe_text)
     safe_text = re.sub(r"(?i)</(p|div|h1|h2|h3|h4|blockquote)>", "\n", safe_text)
     safe_text = re.sub(r"(?i)<li[^>]*>", "- ", safe_text)
@@ -1129,6 +1240,8 @@ def _fallback_pdf_from_text(titolo: str, testo: str, config: dict) -> io.BytesIO
                                      textColor=PRIMARY,
                                      alignment=TA_CENTER)
         story = []
+        if timbro is not None and hasattr(timbro, "to_pdf_flowable"):
+            story.extend(timbro.to_pdf_flowable(styles))
         story.append(Paragraph(titolo.upper(), style_title))
         story.append(Spacer(1, 6*mm))
         story.append(HRFlowable(width="100%", thickness=1.5, color=PRIMARY))
@@ -1155,7 +1268,7 @@ def _fallback_pdf_from_text(titolo: str, testo: str, config: dict) -> io.BytesIO
         return buf
 
 
-def _genera_pdf(titolo: str, testo: str, config: dict, layout: dict | None = None) -> io.BytesIO:
+def _genera_pdf(titolo: str, testo: str, config: dict, layout: dict | None = None, timbro=None) -> io.BytesIO:
     html = _to_editor_html(testo)
     try:
         from pct.editor import html_to_pdf
@@ -1166,4 +1279,4 @@ def _genera_pdf(titolo: str, testo: str, config: dict, layout: dict | None = Non
         return buf
     except Exception as exc:
         current_app.logger.exception("Errore generazione PDF HTML template atti: %s", exc)
-        return _fallback_pdf_from_text(titolo, testo, config)
+        return _fallback_pdf_from_text(titolo, testo, config, timbro=timbro)

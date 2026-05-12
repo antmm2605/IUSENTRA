@@ -1,0 +1,15 @@
+{
+  "versione": "1.2.0",
+  "template_totali": 420,
+  "template_con_cartabia_profile": 420,
+  "template_con_prefill_bindings": 420,
+  "template_con_timbro_automatico": 420,
+  "template_cartabia_ready": 0,
+  "template_cartabia_review_required": 343,
+  "split": {
+    "core": 122,
+    "advanced": 186,
+    "specialist": 92,
+    "studio_interno": 20
+  }
+}

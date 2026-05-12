@@ -1,12 +1,28 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-12, notifiche legali sicure e bozze relata 2.217.1.
+Aggiornato: 2026-05-12, Template Atti Cartabia / prefill / timbro studio 2.218.0.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Template Atti Cartabia / prefill / timbro studio 2.218.0
+
+| Verifica | Esito | Nota |
+| --- | --- | --- |
+| `python scripts\template_atti\apply_cartabia_schema.py` | OK | Catalogo master e split arricchiti con schema Cartabia 1.2.0; report generato in `artifacts/template-atti/cartabia-catalog-coverage.*`. |
+| `python scripts\template_atti\validate_cartabia_catalog.py` | OK | Validati 420 template master, split coerenti 122/186/92/20 e totale 420 senza ID duplicati o perdita di link compilatore. |
+| `python -m py_compile pct\studio_timbro.py pct\template_atti_prefill.py pct\template_cartabia_rules.py pct\template_atti.py pct\compilatore_atti.py pct\template_atti_master_catalog.py pct\template_catalog_service.py web\blueprints\template_atti.py web\blueprints\api_v1_react.py web\services\react_template_atti_bridge.py` | OK | Sintassi confermata per timbro tenant-aware, prefill resolver, regole Cartabia, catalogo, compilatore, API e bridge React. |
+| `python -m pytest tests\test_template_atti_master_catalog.py tests\test_template_atti_cartabia_prefill_timbro.py -q` | OK | 13/13 passati: schema master, split, link compilatore, timbro dinamico, assenza dati Montagnese hardcoded, ordine timbro prima titolo, prefill, filtro testi vietati da dati storici e endpoint timbro/API. |
+| `npm --prefix frontend run typecheck` | OK | TypeScript confermato per dati Template Atti, filtri Cartabia/prefill e preview timbro. |
+| `npm --prefix frontend run test` | OK | Contratti React confermati dopo spostamento degli stili timbro su CSS governato. |
+| `npm --prefix frontend run build:vite` | OK | Build Vite completata in 7.39s; chunk lazy `TemplateAttiPage-DBGLHnhR.js` 16.58 kB / 4.92 kB gzip e CSS `TemplateAttiPage-C0WmBbpQ.css` 8.96 kB / 1.71 kB gzip. |
+| `python tools\sync_packaging_files.py --check` | OK | Packaging sincronizzato dopo bump 2.218.0. |
+| `python -m pytest -q tests\test_packaging_consistency.py tests\test_release_readiness.py --tb=short` | OK | 8/8 passati: coerenza packaging e readiness release confermate per 2.218.0. |
+| Docker locale `docker compose build --no-cache app scheduler-worker ocr-worker` + `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx` | OK | Immagini finali 2.218.0 ricostruite dopo micro-patch UI; app, scheduler, OCR e Redis healthy, Nginx attivo, `/api/pronto` 200 con versione `2.218.0`. |
+| Browser Chrome headless su `/template-atti/catalogo` e `/template-atti/compila/CIV_CIT_001` | OK | Catalogo desktop/tablet/mobile: Cartabia, timbro e prefill visibili, DOMContentLoaded caldo 291/254/287 ms; compilatore desktop 791 ms; nessun errore console, nessun overflow orizzontale e nessun testo tecnico vietato. Primo accesso post-rebuild ha mostrato warm-up tenant gia' registrato. |
 
 ### Notifiche legali sicure / bozze relata / comunicazioni cliente 2.217.1
 

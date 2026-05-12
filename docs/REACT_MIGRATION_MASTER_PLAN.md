@@ -1,5 +1,31 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-12 - Template Atti Cartabia / prefill / timbro studio 2.218.0
+
+`/template-atti`, `/template-atti/catalogo` e il compilatore atti sono stati
+allineati a un presidio governato: il catalogo master mantiene 420 template e
+i 192 modelli operativi collegati, ma ogni voce ora espone profilo Cartabia,
+area processuale, stato di revisione, controlli dichiarativi, campi di
+precompilazione e binding compilatore. Non viene mostrato alcun badge
+ingannevole di conformita' piena: le superfici distinguono dati disponibili,
+dati mancanti, controlli bloccanti, controlli consigliati e revisione
+professionale dell'avvocato.
+
+Il nuovo `Timbro Studio` e' tenant-aware e viene iniettato centralmente nei
+render testuali, HTML e PDF/DOCX dove disponibili, prima del titolo dell'atto.
+I dati derivano dalla configurazione studio o dalla tabella/configurazione
+dedicata, senza dati hardcoded di esempi grafici. Il resolver prefill compila
+automaticamente i campi disponibili da studio, fascicolo, cliente, soggetti,
+utente e timbro, restituendo sempre provenienza, attendibilita', alternative,
+avvisi e motivi dei dati mancanti.
+
+Script e gate mirati confermati: arricchimento/validazione catalogo, pytest
+master e timbro/prefill, typecheck, contratti React, build Vite, packaging e
+readiness release. Docker locale 2.218.0 e smoke Chrome headless su catalogo
+desktop/tablet/mobile e compilatore desktop sono verdi; i passaggi caldi del
+catalogo restano sotto 300 ms a DOMContentLoaded e non mostrano overflow,
+errori console o termini tecnici vietati.
+
 ## Stato tranche 2026-05-12 - PWA/Web Push notifiche dispositivo 2.217.2
 
 La sezione `Impostazioni -> Notifiche` affianca ora al canale WhatsApp un

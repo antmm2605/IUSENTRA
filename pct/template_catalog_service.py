@@ -11,6 +11,12 @@ from typing import Any
 from pct.compilatore_atti import AREA_LABELS, AREA_ORDINE, MODELS, get_essential_docs
 from pct.template_atti_compiler_bindings import compiler_binding_map_by_title
 from pct.template_atti_master_catalog import catalogo_master_stats, load_catalogo_master, load_split_catalogs
+from pct.template_cartabia_rules import (
+    CARTABIA_RULESET_VERSION,
+    cartabia_profile_for_template,
+    ensure_cartabia_metadata,
+    verifica_cartabia_template,
+)
 from pct.template_deposit_rules import compliance_template_summary, normalizza_canale, portale_deposito_label
 
 
@@ -39,6 +45,9 @@ QUICK_FILTERS = [
     ("Preventivi e Incarichi", "query", "preventivo"),
     ("Incarichi", "query", "incarico"),
     ("Deposito telematico", "depositabile", "true"),
+    ("Cartabia da revisionare", "stato_conformita", "cartabia_review_required"),
+    ("Precompilabile", "prefill_completeness", "precompilabile"),
+    ("Verifica avvocato", "richiede_verifica_avvocato", "true"),
     ("Firma obbligatoria", "richiede_firma_digitale", "true"),
     ("PDF/A obbligatorio", "richiede_pdfa", "true"),
 ]
@@ -184,6 +193,67 @@ def _first_compiler_code(*candidates: str) -> str:
         if code in available:
             return code
     return "CIV_MEM_001"
+
+
+def _unique_strings(values: list[Any]) -> list[str]:
+    result: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        text = _clean(value)
+        if text and text not in seen:
+            result.append(text)
+            seen.add(text)
+    return result
+
+
+def _prefill_source_labels(bindings: dict[str, Any]) -> list[str]:
+    labels = {
+        "studio_timbro": "timbro studio",
+        "studio": "dati studio",
+        "utente": "utente corrente",
+        "cliente": "cliente",
+        "fascicolo": "fascicolo",
+        "parti": "parti fascicolo",
+        "documenti": "documenti",
+        "today": "data odierna",
+        "legacy": "dati gia disponibili",
+    }
+    sources: list[str] = []
+    seen: set[str] = set()
+    for candidates in bindings.values():
+        for candidate in candidates if isinstance(candidates, list) else [candidates]:
+            source = "today" if candidate == "today" else _clean(candidate).split(".", 1)[0]
+            label = labels.get(source, source.replace("_", " "))
+            if label and label not in seen:
+                sources.append(label)
+                seen.add(label)
+    return sources
+
+
+def _enrich_cartabia_row(row: dict[str, Any]) -> dict[str, Any]:
+    enriched = ensure_cartabia_metadata(row)
+    bindings = enriched.get("prefill_bindings") if isinstance(enriched.get("prefill_bindings"), dict) else {}
+    enriched["dati_obbligatori"] = _unique_strings(
+        list(enriched.get("dati_obbligatori") or [])
+        + list(enriched.get("required_prefill_fields") or [])
+    )
+    enriched["prefill_completeness"] = "precompilabile" if bindings else "da completare"
+    enriched["fonti_prefill"] = _prefill_source_labels(bindings)
+    enriched["cartabia_verifica"] = verifica_cartabia_template(enriched)
+    enriched["cartabia_ruleset_version"] = enriched.get("versione_regole", CARTABIA_RULESET_VERSION)
+    enriched["search_text"] = " ".join(
+        _clean(value).lower()
+        for value in [
+            enriched.get("search_text"),
+            enriched.get("processo_area"),
+            enriched.get("stato_conformita"),
+            enriched.get("cartabia_profile"),
+            enriched.get("prefill_completeness"),
+            *_prefill_source_labels(bindings),
+        ]
+        if _clean(value)
+    )
+    return enriched
 
 
 def _contains_any(text: str, *tokens: str) -> bool:
@@ -489,7 +559,7 @@ def _compiler_catalog_items() -> list[dict[str, Any]]:
                 "link_compilatore_code": code,
             }
         )
-    return sorted(items, key=lambda row: (row["priorita"], row["codice"]))
+    return sorted((_enrich_cartabia_row(item) for item in items), key=lambda row: (row["priorita"], row["codice"]))
 
 
 def build_template_catalog_items() -> list[dict[str, Any]]:
@@ -599,7 +669,7 @@ def build_template_catalog_items() -> list[dict[str, Any]]:
                 "link_compilatore_tipo": "binding" if binding else "fallback",
             }
         )
-    return sorted(items, key=lambda row: (row["priorita"], row["codice"]))
+    return sorted((_enrich_cartabia_row(item) for item in items), key=lambda row: (row["priorita"], row["codice"]))
 
 
 def _filter_values(items: list[dict[str, Any]], key: str) -> list[str]:
@@ -620,6 +690,10 @@ def build_template_catalog_filters(items: list[dict[str, Any]]) -> dict[str, lis
         "canale_deposito": _filter_values(items, "canale_deposito"),
         "portale_deposito": _filter_values(items, "portale_deposito"),
         "stato": _filter_values(items, "stato"),
+        "stato_conformita": _filter_values(items, "stato_conformita"),
+        "processo_area": _filter_values(items, "processo_area"),
+        "cartabia_profile": _filter_values(items, "cartabia_profile"),
+        "prefill_completeness": _filter_values(items, "prefill_completeness"),
         "natura_atto": _filter_values(items, "natura_atto"),
         "fonte_catalogo": _filter_values(items, "fonte_catalogo"),
     }
@@ -631,6 +705,7 @@ def build_suite_summary(items: list[dict[str, Any]]) -> dict[str, Any]:
     compiler_items = [item for item in items if item.get("fonte_catalogo") == "compilatore"]
     canali = Counter(item["canale_deposito"] for item in master_items)
     groups = Counter(item["categoria_suite_label"] for item in master_items)
+    cartabia = Counter(item.get("stato_conformita") for item in master_items if item.get("stato_conformita"))
     return {
         "titolo": "Suite professionale completa",
         "versione": f"v{stats.get('versione')}",
@@ -642,11 +717,16 @@ def build_suite_summary(items: list[dict[str, Any]]) -> dict[str, Any]:
         "canali_governati": len(canali),
         "canali": dict(sorted(canali.items())),
         "categorie": dict(sorted(groups.items())),
+        "template_con_cartabia_profile": sum(1 for item in master_items if item.get("cartabia_profile")),
+        "template_con_prefill_bindings": sum(1 for item in master_items if item.get("prefill_bindings")),
+        "template_con_timbro_automatico": len(master_items),
+        "cartabia_ready": int(cartabia.get("cartabia_ready", 0)),
+        "cartabia_review_required": int(cartabia.get("cartabia_review_required", 0)),
         "badges": [
             "Redazione guidata",
             "Controlli deposito",
-            "Normativa vigente",
-            "Pre-verifica conformità",
+            "Regole Cartabia versionate",
+            "Pre-verifica governata",
         ],
     }
 
@@ -698,18 +778,21 @@ def verifica_deposito_template(codice: str, payload: dict[str, Any] | None = Non
         if attachment and not _clean(payload.get("allegati", {}).get(attachment) if isinstance(payload.get("allegati"), dict) else "")
     ]
     blocking_rules = [rule for rule in item["controlli_conformita_dettaglio"] if rule.get("blocca_deposito")]
+    cartabia = verifica_cartabia_template(item, payload=payload.get("dati") if isinstance(payload.get("dati"), dict) else {})
     return {
-        "ok": not missing_data and not missing_attachments,
+        "ok": not missing_data and not missing_attachments and not cartabia.get("controlli_bloccanti"),
         "codice": item["codice"],
         "titolo": item["titolo"],
         "canale_deposito": item["canale_deposito"],
         "portale_deposito": item["portale_deposito"],
         "ruleset_version": item["compliance_summary"]["ruleset_version"],
+        "cartabia_ruleset_version": cartabia.get("ruleset_version"),
+        "cartabia": cartabia,
         "controlli": item["controlli_conformita_dettaglio"],
         "bloccanti_configurati": len(blocking_rules),
         "dati_mancanti": missing_data,
         "allegati_mancanti": missing_attachments,
-        "messaggio": "Verifica superata." if not missing_data and not missing_attachments else "Completare dati e allegati prima del deposito.",
+        "messaggio": "Verifica superata." if not missing_data and not missing_attachments and not cartabia.get("controlli_bloccanti") else "Completare dati, allegati e controlli prima del deposito.",
     }
 
 

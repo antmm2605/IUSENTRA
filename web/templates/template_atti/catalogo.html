@@ -54,6 +54,18 @@
     </div>
   </section>
 
+  {% if studio_timbro_preview.lines %}
+  <section class="cat-suite-groups" aria-label="Anteprima timbro studio">
+    <article class="cat-suite-group-card" style="text-align:center;">
+      <div class="cat-suite-group-count">Timbro studio</div>
+      {% for line in studio_timbro_preview.lines %}
+      <div style="font-size:{{ line.size }}pt; font-weight:{{ '700' if line.bold else '400' }};">{{ line.text }}</div>
+      {% endfor %}
+      <p class="small text-muted mt-2 mb-0">Intestazione inserita automaticamente prima del titolo dell'atto.</p>
+    </article>
+  </section>
+  {% endif %}
+
   <section class="cat-suite-groups" aria-label="Sezioni suite professionale">
     {% for group in suite_groups %}
     <article class="cat-suite-group-card" data-suite-jump="{{ group.label }}">
@@ -104,6 +116,9 @@
         'tipo_atto': 'Tipologia atto',
         'natura_atto': 'Natura atto',
         'stato': 'Stato modello',
+        'stato_conformita': 'Stato Cartabia',
+        'processo_area': 'Area processuale',
+        'prefill_completeness': 'Dati disponibili',
         'fonte_catalogo': 'Sorgente'
       } %}
       {% for key, label in filter_labels.items() %}
@@ -203,6 +218,9 @@
         data-canale_deposito="{{ t.canale_deposito }}"
         data-portale_deposito="{{ t.portale_deposito }}"
         data-stato="{{ t.stato }}"
+        data-stato_conformita="{{ t.stato_conformita }}"
+        data-processo_area="{{ t.processo_area }}"
+        data-prefill_completeness="{{ t.prefill_completeness }}"
         data-natura_atto="{{ t.natura_atto }}"
         data-fonte_catalogo="{{ t.fonte_catalogo }}"
         data-depositabile="{{ 'true' if t.depositabile else 'false' }}"
@@ -241,12 +259,21 @@
           {% if t.fonte_catalogo == 'compilatore' %}
           <span class="cat-card-area-badge">Modello operativo</span>
           {% else %}
-          <span class="cat-card-area-badge">Catalogo professionale v1.1.0</span>
+          <span class="cat-card-area-badge">Catalogo professionale {{ suite_summary.versione }}</span>
           {% endif %}
           <span class="cat-card-area-badge">{{ t.categoria_suite_label }}</span>
           <span class="cat-card-area-badge">{{ t.materia }}</span>
           <span class="cat-card-area-badge">{{ t.rito }}</span>
           <span class="cat-card-area-badge">{{ t.portale_deposito }}</span>
+          {% if t.stato_conformita %}
+          <span class="cat-card-area-badge">{{ t.stato_conformita|replace('_', ' ')|title }}</span>
+          {% endif %}
+          {% if t.prefill_completeness %}
+          <span class="cat-card-area-badge">Precompilabile</span>
+          {% endif %}
+          {% if t.richiede_verifica_avvocato %}
+          <span class="cat-card-area-badge">Richiede verifica avvocato</span>
+          {% endif %}
         </div>
 
         <dl class="cat-template-meta">

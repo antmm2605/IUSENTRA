@@ -43,6 +43,26 @@ REQUIRED_TEMPLATE_FIELDS = (
     "allegati_essenziali",
     "checklist_conformita",
     "note_operative",
+    "cartabia_profile",
+    "processo_area",
+    "normativa_riferimento",
+    "condizioni_procedibilita",
+    "termini_processuali_rilevanti",
+    "dati_obbligatori_cartabia",
+    "controlli_cartabia",
+    "controlli_deposito",
+    "avvisi_redazionali",
+    "richiede_verifica_avvocato",
+    "stato_conformita",
+    "data_ultimo_aggiornamento_normativo",
+    "versione_regole",
+    "fonte_regole",
+    "prefill_bindings",
+    "required_prefill_fields",
+    "optional_prefill_fields",
+    "cartabia_required_fields",
+    "deposit_required_fields",
+    "link_compilatore_code",
     "versione",
     "stato",
     "ordinamento",
@@ -167,7 +187,7 @@ def _field_for_block(block_name: str) -> dict[str, Any]:
 def _master_fields(item: dict[str, Any]) -> list[dict[str, Any]]:
     fields: list[dict[str, Any]] = []
     seen: set[str] = set()
-    for raw in list(item.get("campi_precompila") or []):
+    for raw in list(item.get("required_prefill_fields") or []) + list(item.get("campi_precompila") or []):
         field = _field_for_prefill(str(raw))
         if field["name"] not in seen:
             fields.append(field)
@@ -290,7 +310,7 @@ def build_master_builtin_templates(*, order_offset: int = 10000) -> list[dict[st
                 "parole_chiave": _keywords(item),
                 "campi_guidati": _master_fields(item),
                 "varianti": list(item.get("varianti") or []),
-                "link_compilatore_code": binding["compiler_code"] if binding else "",
+                "link_compilatore_code": binding["compiler_code"] if binding else str(item.get("link_compilatore_code") or ""),
                 "ordine": order_offset + index,
                 "builtin": True,
             }

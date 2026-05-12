@@ -24,6 +24,7 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 | `docker compose build --no-cache app scheduler-worker ocr-worker` | OK | Immagini locali ricostruite da zero con wheel `pct-studio-legale==2.216.7`. |
 | `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx` / `docker compose ps` / `GET http://127.0.0.1:8080/api/pronto` | OK | Container locali healthy e readiness `versione=2.216.7`. |
 | Browser reale `http://127.0.0.1:8080/notifiche-legali` desktop/tablet/mobile | OK | Workflow `Notifica ex L. 53/1994`, `Deposito prova notifica` e `Comunica al cliente` visibili; oggetto obbligatorio, form RAC/RdAC e comunicazione cliente presenti; nessun errore console e nessun testo tecnico vietato rilevato. |
+| Deploy Hetzner CPX42 `deploy/hetzner` / `GET https://app.iusentra.it/api/pronto` | OK | Backup preventivo eseguito, repository server sul branch `Codex/legal-electronic-filing-kIxcV`, container `app`, `redis`, `scheduler-worker`, `ocr-worker`, `caddy` e `ollama` healthy/up; readiness pubblica `versione=2.216.7`. |
 
 ### Fascicolo Veloce guidato / apertura deposito 2.216.5
 

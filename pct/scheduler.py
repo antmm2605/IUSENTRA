@@ -340,6 +340,37 @@ def start_scheduler(app):
                 logger.warning("[scheduler] Calendar sync multi-tenant non disponibile: %s", e)
         yield "default", app.config["AGENDA_DB"], app.config.get("CALENDAR_SYNC_DB", "./agenda/calendar_sync.json")
 
+    def _calendar_engine_targets():
+        if app.config.get("MULTI_TENANT"):
+            try:
+                from pct.tenant import GestioneTenant, StatoTenant
+
+                tm = GestioneTenant(registry_path=app.config["TENANTS_REGISTRY"])
+                found = False
+                for studio in tm.lista():
+                    if studio.stato == StatoTenant.SOSPESO:
+                        continue
+                    paths = tm.percorsi_dati(studio.slug)
+                    found = True
+                    yield {
+                        "label": studio.slug,
+                        "tenant_id": studio.slug,
+                        "agenda_db": paths["AGENDA_DB"],
+                        "scadenziario_db": paths["SCADENZIARIO_DB"],
+                        "calendar_sync_db": paths["CALENDAR_SYNC_DB"],
+                    }
+                if found:
+                    return
+            except Exception as e:
+                logger.warning("[scheduler] Calendar engine multi-tenant non disponibile: %s", e)
+        yield {
+            "label": "default",
+            "tenant_id": "default",
+            "agenda_db": app.config["AGENDA_DB"],
+            "scadenziario_db": app.config["SCADENZIARIO_DB"],
+            "calendar_sync_db": app.config.get("CALENDAR_SYNC_DB", "./agenda/calendar_sync.json"),
+        }
+
     def _workspace_intelligence_targets():
         if app.config.get("MULTI_TENANT"):
             try:
@@ -457,6 +488,100 @@ def start_scheduler(app):
                     )
             except Exception as e:
                 logger.error("[scheduler] Calendar sync fallito: %s", e)
+
+    @scheduler.scheduled_job(CronTrigger(minute="*/10"), id="calendar_sync_engine_polling")
+    def _calendar_sync_engine_polling():
+        with app.app_context():
+            try:
+                from pct.calendar_sync_engine import CalendarSyncEngine
+
+                processed_targets = 0
+                processed_accounts = 0
+                for target in _calendar_engine_targets():
+                    engine = CalendarSyncEngine.from_paths(
+                        agenda_db=target["agenda_db"],
+                        scadenziario_db=target["scadenziario_db"],
+                        sync_db=target["calendar_sync_db"],
+                        tenant_id=target["tenant_id"],
+                    )
+                    accounts = engine.repository.list_accounts(target["tenant_id"])
+                    if not accounts:
+                        continue
+                    processed_targets += 1
+                    for account in accounts:
+                        provider = str(account.get("provider") or "")
+                        if provider in {"webcal", "ics"}:
+                            continue
+                        try:
+                            report = engine.sync_account(str(account.get("id") or ""))
+                            processed_accounts += 1
+                            logger.info(
+                                "[scheduler] Calendar engine %s/%s: pull=%d push=%d conflitti=%d",
+                                target["label"],
+                                provider,
+                                report.get("pulled", 0),
+                                report.get("pushed", 0),
+                                report.get("conflicts", 0),
+                            )
+                        except Exception as account_error:
+                            logger.warning(
+                                "[scheduler] Calendar engine %s/%s non completato: %s",
+                                target["label"],
+                                provider,
+                                account_error,
+                            )
+                if processed_targets:
+                    logger.info("[scheduler] Calendar engine completato per %d account", processed_accounts)
+            except Exception as e:
+                logger.error("[scheduler] Calendar engine fallito: %s", e)
+
+    @scheduler.scheduled_job(CronTrigger(minute=42), id="calendar_sync_engine_webcal")
+    def _calendar_sync_engine_webcal():
+        with app.app_context():
+            try:
+                from pct.calendar_sync_engine import CalendarSyncEngine
+
+                processed_accounts = 0
+                for target in _calendar_engine_targets():
+                    engine = CalendarSyncEngine.from_paths(
+                        agenda_db=target["agenda_db"],
+                        scadenziario_db=target["scadenziario_db"],
+                        sync_db=target["calendar_sync_db"],
+                        tenant_id=target["tenant_id"],
+                    )
+                    for account in engine.repository.list_accounts(target["tenant_id"]):
+                        if str(account.get("provider") or "") not in {"webcal", "ics"}:
+                            continue
+                        try:
+                            engine.sync_account(str(account.get("id") or ""))
+                            processed_accounts += 1
+                        except Exception as account_error:
+                            logger.warning("[scheduler] Calendar WebCal %s non completato: %s", target["label"], account_error)
+                if processed_accounts:
+                    logger.info("[scheduler] Calendar WebCal engine completato per %d account", processed_accounts)
+            except Exception as e:
+                logger.error("[scheduler] Calendar WebCal engine fallito: %s", e)
+
+    @scheduler.scheduled_job(CronTrigger(minute="*/5"), id="calendar_sync_engine_retry")
+    def _calendar_sync_engine_retry():
+        with app.app_context():
+            try:
+                from pct.calendar_sync_engine import CalendarSyncEngine
+
+                processed = 0
+                for target in _calendar_engine_targets():
+                    engine = CalendarSyncEngine.from_paths(
+                        agenda_db=target["agenda_db"],
+                        scadenziario_db=target["scadenziario_db"],
+                        sync_db=target["calendar_sync_db"],
+                        tenant_id=target["tenant_id"],
+                    )
+                    report = engine.sync_due_jobs()
+                    processed += int(report.get("processed") or 0)
+                if processed:
+                    logger.info("[scheduler] Calendar retry completato: %d job", processed)
+            except Exception as e:
+                logger.error("[scheduler] Calendar retry fallito: %s", e)
 
     @scheduler.scheduled_job(CronTrigger(minute="*/15"), id="mailbox_sync_runtime")
     def _mailbox_sync_runtime():

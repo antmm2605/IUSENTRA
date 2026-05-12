@@ -29,6 +29,7 @@ from web.helpers import (
     get_indice,
     pagina,
 )
+from web.services.react_impostazioni_calendar import calendar_webhook_received
 
 api_v1 = Blueprint("api_v1", __name__, url_prefix="/api/v1")
 
@@ -115,6 +116,18 @@ def info():
             "cerca":     "/api/v1/cerca",
         },
     })
+
+
+@api_v1.route("/calendar/webhooks/google", methods=["POST"])
+@_richiedi_auth
+def calendar_webhook_google():
+    return jsonify(calendar_webhook_received("google", dict(request.headers))), 200
+
+
+@api_v1.route("/calendar/webhooks/microsoft", methods=["POST"])
+@_richiedi_auth
+def calendar_webhook_microsoft():
+    return jsonify(calendar_webhook_received("microsoft", dict(request.headers))), 200
 
 
 # ================================================================ CLIENTI

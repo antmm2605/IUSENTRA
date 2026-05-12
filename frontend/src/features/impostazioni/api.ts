@@ -158,3 +158,43 @@ export function deleteCalendarProfile(id: string): Promise<CalendarActionPayload
 export function regenerateCalendarLinks(): Promise<CalendarActionPayload> {
   return apiPostJson<CalendarActionPayload>('/api/v1/ui/impostazioni/calendari/rigenera-link', {}, emptyCalendarAction)
 }
+
+export function refreshCalendarAccounts(): Promise<CalendarActionPayload> {
+  return apiJson<CalendarActionPayload>('/api/v1/ui/calendari/accounts', emptyCalendarAction)
+}
+
+export function connectCalendarProof(): Promise<CalendarActionPayload> {
+  return apiPostJson<CalendarActionPayload>('/api/v1/ui/calendari/demo/connect', {}, emptyCalendarAction)
+}
+
+export function connectGoogleCalendar(): Promise<CalendarActionPayload> {
+  return apiPostJson<CalendarActionPayload>('/api/v1/ui/calendari/google/connect', {}, emptyCalendarAction)
+}
+
+export function connectMicrosoftCalendar(): Promise<CalendarActionPayload> {
+  return apiPostJson<CalendarActionPayload>('/api/v1/ui/calendari/microsoft/connect', {}, emptyCalendarAction)
+}
+
+export function connectAppleCalendar(values: Record<string, unknown>): Promise<CalendarActionPayload> {
+  return apiPostJson<CalendarActionPayload>('/api/v1/ui/calendari/apple/connect', values, emptyCalendarAction)
+}
+
+export function connectWebcalCalendar(values: Record<string, unknown>): Promise<CalendarActionPayload> {
+  return apiPostJson<CalendarActionPayload>('/api/v1/ui/calendari/webcal/connect', values, emptyCalendarAction)
+}
+
+export function syncCalendarAccount(id: string): Promise<CalendarActionPayload> {
+  return apiPostJson<CalendarActionPayload>(`/api/v1/ui/calendari/accounts/${encodeURIComponent(id)}/sync`, {}, emptyCalendarAction)
+}
+
+export function disconnectCalendarAccount(id: string): Promise<CalendarActionPayload> {
+  return apiPostJson<CalendarActionPayload>(`/api/v1/ui/calendari/accounts/${encodeURIComponent(id)}/disconnect`, {}, emptyCalendarAction)
+}
+
+export function toggleLinkedCalendar(id: string): Promise<CalendarActionPayload> {
+  return apiPostJson<CalendarActionPayload>(`/api/v1/ui/calendari/calendars/${encodeURIComponent(id)}/toggle`, {}, emptyCalendarAction)
+}
+
+export function resolveCalendarConflict(id: string, strategy: string): Promise<CalendarActionPayload> {
+  return apiPostJson<CalendarActionPayload>(`/api/v1/ui/calendari/conflicts/${encodeURIComponent(id)}/resolve`, { strategy }, emptyCalendarAction)
+}

@@ -2,6 +2,12 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-12T22:05:00+02:00: `Impostazioni -> Calendari`
+resta nel perimetro React operativo e aggiunge collegamento account,
+calendari, conflitti e sync manuale tramite API JSON Flask. Nessun token o
+password viene esposto al frontend; il pannello non usa form POST HTML,
+`LegacyPostForm` o chiamate dirette ai servizi calendario esterni.
+
 Aggiornamento 2026-05-12T20:30:00+02:00: `/notifiche-legali` resta
 `react_operational_full` e aggiunge anteprima modello, catalogo modelli
 navigabile, editor modelli personalizzati, endpoint JSON dedicato

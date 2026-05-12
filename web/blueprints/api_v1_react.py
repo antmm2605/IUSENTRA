@@ -160,11 +160,22 @@ from web.services.react_impostazioni_notifications import (
     send_promemoria_domani,
 )
 from web.services.react_impostazioni_calendar import (
+    calendar_oauth_callback,
+    calendar_oauth_connect,
+    connect_apple_calendar_account,
+    connect_demo_calendar_account,
+    connect_webcal_calendar_account,
     create_calendar_profile,
     delete_calendar_profile,
+    disconnect_calendar_account,
+    list_calendar_accounts_payload,
+    list_calendar_conflicts_payload,
     regenerate_calendar_token,
+    resolve_calendar_conflict,
+    sync_calendar_account,
     sync_calendar_profile,
     toggle_calendar_profile,
+    toggle_linked_calendar,
 )
 from web.services.react_amministrazione_bridge import (
     build_react_amministrazione_error_payload,
@@ -3815,6 +3826,135 @@ def impostazioni_calendari_rigenera_link():
     if not _puo_configurare_impostazioni():
         return jsonify({"ok": False, "message": "Permesso impostazioni richiesto.", "errors": {"permission": "Permesso insufficiente."}}), 403
     result = regenerate_calendar_token()
+    return jsonify(result), 200 if result.get("ok") else 400
+
+
+@api_v1_react.get("/calendari/accounts")
+@_richiedi_auth
+def calendari_accounts():
+    if not _puo_configurare_impostazioni():
+        return jsonify({"ok": False, "message": "Permesso impostazioni richiesto.", "errors": {"permission": "Permesso insufficiente."}}), 403
+    result = list_calendar_accounts_payload()
+    return jsonify(result), 200
+
+
+@api_v1_react.post("/calendari/demo/connect")
+@_richiedi_auth
+def calendari_demo_connect():
+    if not _puo_configurare_impostazioni():
+        return jsonify({"ok": False, "message": "Permesso impostazioni richiesto.", "errors": {"permission": "Permesso insufficiente."}}), 403
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    result = connect_demo_calendar_account(payload or {})
+    return jsonify(result), 200 if result.get("ok") else 400
+
+
+@api_v1_react.post("/calendari/google/connect")
+@_richiedi_auth
+def calendari_google_connect():
+    if not _puo_configurare_impostazioni():
+        return jsonify({"ok": False, "message": "Permesso impostazioni richiesto.", "errors": {"permission": "Permesso insufficiente."}}), 403
+    result = calendar_oauth_connect("google")
+    return jsonify(result), 200 if result.get("ok") else 400
+
+
+@api_v1_react.get("/calendari/google/callback")
+@_richiedi_auth
+def calendari_google_callback():
+    if not _puo_configurare_impostazioni():
+        return jsonify({"ok": False, "message": "Permesso impostazioni richiesto.", "errors": {"permission": "Permesso insufficiente."}}), 403
+    result = calendar_oauth_callback("google", request.args)
+    return jsonify(result), 200 if result.get("ok") else 400
+
+
+@api_v1_react.post("/calendari/microsoft/connect")
+@_richiedi_auth
+def calendari_microsoft_connect():
+    if not _puo_configurare_impostazioni():
+        return jsonify({"ok": False, "message": "Permesso impostazioni richiesto.", "errors": {"permission": "Permesso insufficiente."}}), 403
+    result = calendar_oauth_connect("microsoft")
+    return jsonify(result), 200 if result.get("ok") else 400
+
+
+@api_v1_react.get("/calendari/microsoft/callback")
+@_richiedi_auth
+def calendari_microsoft_callback():
+    if not _puo_configurare_impostazioni():
+        return jsonify({"ok": False, "message": "Permesso impostazioni richiesto.", "errors": {"permission": "Permesso insufficiente."}}), 403
+    result = calendar_oauth_callback("microsoft", request.args)
+    return jsonify(result), 200 if result.get("ok") else 400
+
+
+@api_v1_react.post("/calendari/apple/connect")
+@_richiedi_auth
+def calendari_apple_connect():
+    if not _puo_configurare_impostazioni():
+        return jsonify({"ok": False, "message": "Permesso impostazioni richiesto.", "errors": {"permission": "Permesso insufficiente."}}), 403
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    result = connect_apple_calendar_account(payload or {})
+    return jsonify(result), 200 if result.get("ok") else 400
+
+
+@api_v1_react.post("/calendari/webcal/connect")
+@_richiedi_auth
+def calendari_webcal_connect():
+    if not _puo_configurare_impostazioni():
+        return jsonify({"ok": False, "message": "Permesso impostazioni richiesto.", "errors": {"permission": "Permesso insufficiente."}}), 403
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    result = connect_webcal_calendar_account(payload=payload or {}, get_calendar_sync=get_calendar_sync)
+    return jsonify(result), 200 if result.get("ok") else 400
+
+
+@api_v1_react.post("/calendari/accounts/<account_id>/sync")
+@_richiedi_auth
+def calendari_account_sync(account_id: str):
+    if not _puo_configurare_impostazioni():
+        return jsonify({"ok": False, "message": "Permesso impostazioni richiesto.", "errors": {"permission": "Permesso insufficiente."}}), 403
+    result = sync_calendar_account(account_id)
+    return jsonify(result), 200 if result.get("ok") else 400
+
+
+@api_v1_react.post("/calendari/accounts/<account_id>/disconnect")
+@_richiedi_auth
+def calendari_account_disconnect(account_id: str):
+    if not _puo_configurare_impostazioni():
+        return jsonify({"ok": False, "message": "Permesso impostazioni richiesto.", "errors": {"permission": "Permesso insufficiente."}}), 403
+    result = disconnect_calendar_account(account_id)
+    return jsonify(result), 200 if result.get("ok") else 400
+
+
+@api_v1_react.post("/calendari/calendars/<calendar_id>/toggle")
+@_richiedi_auth
+def calendari_calendar_toggle(calendar_id: str):
+    if not _puo_configurare_impostazioni():
+        return jsonify({"ok": False, "message": "Permesso impostazioni richiesto.", "errors": {"permission": "Permesso insufficiente."}}), 403
+    result = toggle_linked_calendar(calendar_id)
+    return jsonify(result), 200 if result.get("ok") else 400
+
+
+@api_v1_react.get("/calendari/conflicts")
+@_richiedi_auth
+def calendari_conflicts():
+    if not _puo_configurare_impostazioni():
+        return jsonify({"ok": False, "message": "Permesso impostazioni richiesto.", "errors": {"permission": "Permesso insufficiente."}}), 403
+    result = list_calendar_conflicts_payload()
+    return jsonify(result), 200
+
+
+@api_v1_react.post("/calendari/conflicts/<conflict_id>/resolve")
+@_richiedi_auth
+def calendari_conflict_resolve(conflict_id: str):
+    if not _puo_configurare_impostazioni():
+        return jsonify({"ok": False, "message": "Permesso impostazioni richiesto.", "errors": {"permission": "Permesso insufficiente."}}), 403
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    result = resolve_calendar_conflict(conflict_id, str((payload or {}).get("strategy") or "ignore"))
     return jsonify(result), 200 if result.get("ok") else 400
 
 

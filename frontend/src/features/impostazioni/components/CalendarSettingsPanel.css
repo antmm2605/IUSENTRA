@@ -51,6 +51,8 @@
 .iu-calendar-settings__box header,
 .iu-calendar-settings__feeds article,
 .iu-calendar-settings__profiles article,
+.iu-calendar-settings__linked article,
+.iu-calendar-settings__conflicts article,
 .iu-calendar-settings__actions,
 .iu-calendar-settings__row-actions {
   display: flex;
@@ -58,7 +60,8 @@
   gap: 9px;
 }
 
-.iu-calendar-settings__box header svg {
+.iu-calendar-settings__box header svg,
+.iu-calendar-settings__mini-form h4 svg {
   width: 18px;
   height: 18px;
   color: var(--iu-blue-600, #2563eb);
@@ -76,13 +79,65 @@
   font-weight: 750;
 }
 
+.iu-calendar-settings__connectors,
+.iu-calendar-settings__compact-grid,
+.iu-calendar-settings__split {
+  display: grid;
+  gap: 10px;
+}
+
+.iu-calendar-settings__connectors {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.iu-calendar-settings__split {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.iu-calendar-settings__mini-form {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.iu-calendar-settings__mini-form h4 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--ius-text);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.iu-calendar-settings__mini-form label,
+.iu-calendar-settings__compact-grid label {
+  display: grid;
+  gap: 6px;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.iu-calendar-settings__compact-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .iu-calendar-settings__feeds,
-.iu-calendar-settings__profiles {
+.iu-calendar-settings__profiles,
+.iu-calendar-settings__linked,
+.iu-calendar-settings__conflicts {
   display: grid;
 }
 
 .iu-calendar-settings__feeds article,
-.iu-calendar-settings__profiles article {
+.iu-calendar-settings__profiles article,
+.iu-calendar-settings__linked article,
+.iu-calendar-settings__conflicts article {
   justify-content: space-between;
   min-width: 0;
   padding: 10px 0;
@@ -90,19 +145,25 @@
 }
 
 .iu-calendar-settings__feeds article:first-child,
-.iu-calendar-settings__profiles article:first-child {
+.iu-calendar-settings__profiles article:first-child,
+.iu-calendar-settings__linked article:first-child,
+.iu-calendar-settings__conflicts article:first-child {
   border-top: 0;
 }
 
 .iu-calendar-settings__feeds div,
-.iu-calendar-settings__profiles article > div:first-child {
+.iu-calendar-settings__profiles article > div:first-child,
+.iu-calendar-settings__linked-main,
+.iu-calendar-settings__conflicts article > div:first-child {
   display: grid;
-  gap: 2px;
+  gap: 3px;
   min-width: 0;
 }
 
 .iu-calendar-settings__feeds b,
-.iu-calendar-settings__profiles b {
+.iu-calendar-settings__profiles b,
+.iu-calendar-settings__linked b,
+.iu-calendar-settings__conflicts b {
   color: var(--ius-text);
   font-size: 13px;
   font-weight: 900;
@@ -110,13 +171,25 @@
 
 .iu-calendar-settings__feeds span,
 .iu-calendar-settings__profiles span,
-.iu-calendar-settings__profiles p {
+.iu-calendar-settings__linked span,
+.iu-calendar-settings__linked small,
+.iu-calendar-settings__conflicts span,
+.iu-calendar-settings__profiles p,
+.iu-calendar-settings__linked p,
+.iu-calendar-settings__conflicts p {
   overflow: hidden;
   color: var(--ius-muted);
   font-size: 12px;
   font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.iu-calendar-settings__linked em {
+  color: #92400e;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
 }
 
 .iu-calendar-settings__actions {
@@ -131,24 +204,6 @@
   text-decoration: none;
 }
 
-.iu-calendar-settings__grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.iu-calendar-settings__grid label {
-  display: grid;
-  gap: 6px;
-  color: #334155;
-  font-size: 12px;
-  font-weight: 850;
-}
-
-.iu-calendar-settings__grid .is-wide {
-  grid-column: span 2;
-}
-
 .iu-calendar-settings__row-actions {
   flex-wrap: wrap;
   justify-content: flex-end;
@@ -159,19 +214,23 @@
   height: 16px;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 980px) {
   .iu-calendar-settings__metrics,
-  .iu-calendar-settings__grid {
+  .iu-calendar-settings__connectors,
+  .iu-calendar-settings__split,
+  .iu-calendar-settings__compact-grid {
     grid-template-columns: 1fr;
   }
 
-  .iu-calendar-settings__grid .is-wide {
-    grid-column: auto;
-  }
-
   .iu-calendar-settings__feeds article,
-  .iu-calendar-settings__profiles article {
+  .iu-calendar-settings__profiles article,
+  .iu-calendar-settings__linked article,
+  .iu-calendar-settings__conflicts article {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .iu-calendar-settings__row-actions {
+    justify-content: flex-start;
   }
 }

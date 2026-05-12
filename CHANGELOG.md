@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.217.0 - 2026-05-12
+
+- Introdotto il Calendar Sync Engine server-side per Agenda e Scadenziario: account calendario, calendari collegati, binding eventi, job sync e conflitti sono persistenti e tenant-aware.
+- Aggiunti provider Google Calendar, Outlook/Microsoft 365, Apple iCloud/CalDAV, WebCal/ICS e provider locale persistente per prove bidirezionali complete senza credenziali esterne.
+- Le credenziali calendario vengono cifrate con `cryptography/Fernet` e non sono esposte dai payload API; Google/Microsoft usano OAuth server-side, Apple usa credenziali CalDAV cifrate e WebCal riusa la base ICS esistente.
+- La UI Impostazioni Calendari mostra collegamento account, calendari abilitati, direzione, riservatezza export, stato allineamento, sincronizzazione manuale, disconnessione e conflitti risolvibili.
+- Aggiunti scheduler mirati, demo `python tools/demo_calendar_sync.py`, documentazione `docs/CALENDAR_SYNC_ENGINE.md` e test su cifratura, provider locale, motore bidirezionale, conflitti, scadenze perentorie, privacy export e API.
+
 ## 2.216.9 - 2026-05-12
 
 - La pagina `/notifiche-legali` mostra ora l'anteprima leggibile del modello relata selezionato prima del controllo, con catalogo laterale navigabile per scegliere rapidamente tra tutti i modelli disponibili.

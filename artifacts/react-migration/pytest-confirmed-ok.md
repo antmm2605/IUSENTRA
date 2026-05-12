@@ -1,12 +1,29 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-12, notifiche legali L. 53 / comunicazioni cliente.
+Aggiornato: 2026-05-12, sincronizzazione calendari bidirezionale.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Sincronizzazione calendari bidirezionale 2.217.0
+
+| Verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct/calendar_providers/base.py pct/calendar_providers/__init__.py pct/calendar_credentials.py pct/calendar_bindings.py pct/calendar_conflicts.py pct/calendar_providers/demo.py pct/calendar_providers/webcal.py pct/calendar_providers/google.py pct/calendar_providers/microsoft.py pct/calendar_providers/apple_caldav.py pct/calendar_sync_engine.py web/services/react_impostazioni_calendar.py web/blueprints/api_v1_react.py web/blueprints/api_v1.py pct/scheduler.py tools/demo_calendar_sync.py` | OK | Sintassi confermata per provider, repository, motore, API, scheduler e demo. |
+| `python -m pytest tests/test_calendar_sync.py` | OK | 2/2 passati: compatibilita' WebCal/ICS esistente preservata. |
+| `python -m pytest tests/test_calendar_sync_engine.py` | OK | 6/6 passati: push/pull demo, update, conflitto, scadenza perentoria protetta e privacy export. |
+| `python -m pytest tests/test_calendar_credentials.py` | OK | 1/1 passato: token salvato cifrato, valore in chiaro assente dal file. |
+| `python -m pytest tests/test_calendar_demo_provider.py` | OK | 1/1 passato: provider locale persistente con cursor, update, delete e reload da disco. |
+| `python -m pytest tests/test_calendar_api.py` | OK | 1/1 passato: collegamento ambiente prova locale, sync account e payload senza credenziali esposte. |
+| `python tools/demo_calendar_sync.py` | OK | Demo persistente completata: account, calendario, appuntamento, push, binding, pull, conflitto, scadenza perentoria e privacy `busy_only`. |
+| `npm --prefix frontend run typecheck` | OK | TypeScript confermato per il pannello Impostazioni Calendari e nuovi client API. |
+| `npm --prefix frontend run test` | OK | Contratti React confermati dopo aggiunta account/calendari/conflitti. |
+| `npm --prefix frontend run build` | OK | Build Vite 2.217.0 finale completata in 5.95s; asset React rigenerati in `web/static/react` con fix overflow mobile topbar/sidebar. |
+| Browser Chrome headless su `Impostazioni -> Calendari` desktop/tablet/mobile | OK | Sezioni `Collega account`, `Calendari collegati` e `Conflitti calendario` visibili; nessun errore console, nessun overflow documentale e nessun testo tecnico vietato. |
+| Docker locale `docker compose build --no-cache app scheduler-worker ocr-worker` + `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx` | OK | Immagini finali 2.217.0 ricostruite dopo asset CSS; app, scheduler, OCR e Redis healthy, Nginx attivo, `/api/pronto` 200 con versione `2.217.0`. |
 
 ### Notifiche legali parametriche / precompilazione IUSENTRA 2.216.8
 

@@ -75,6 +75,15 @@ _CSRF_PROTECTED_ENDPOINTS = {
     "api_v1_react.impostazioni_calendari_stato",
     "api_v1_react.impostazioni_calendari_elimina",
     "api_v1_react.impostazioni_calendari_rigenera_link",
+    "api_v1_react.calendari_demo_connect",
+    "api_v1_react.calendari_google_connect",
+    "api_v1_react.calendari_microsoft_connect",
+    "api_v1_react.calendari_apple_connect",
+    "api_v1_react.calendari_webcal_connect",
+    "api_v1_react.calendari_account_sync",
+    "api_v1_react.calendari_account_disconnect",
+    "api_v1_react.calendari_calendar_toggle",
+    "api_v1_react.calendari_conflict_resolve",
     }
 
 _UNSAFE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}

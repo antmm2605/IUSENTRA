@@ -1,5 +1,29 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-12 - Sincronizzazione calendari bidirezionale 2.217.0
+
+La sezione `Impostazioni -> Sincronizzazione Calendari` non si limita piu' ai
+link di sottoscrizione: espone account collegati, calendari attivi, direzione
+di allineamento, riservatezza export, ultimo allineamento, azioni di sync
+manuale, disconnessione e conflitti. Il frontend resta solo pannello operativo:
+non parla direttamente con Google, Microsoft o Apple e non riceve token o
+password.
+
+Il backend introduce `CalendarSyncEngine` con provider Google Calendar,
+Outlook/Microsoft 365, Apple iCloud/CalDAV, WebCal/ICS e provider locale
+persistente. Account, calendari collegati, binding eventi, job e conflitti
+vivono in repository tenant-aware accanto al calendario sync; le credenziali
+sono cifrate con Fernet e la demo locale usa le stesse classi del runtime.
+
+Sono coperti push IUSENTRA -> calendario esterno, pull calendario esterno ->
+IUSENTRA, update, delete, cursor incrementale, privacy export, conflitto
+locale/remoto e protezione delle scadenze perentorie da cancellazioni o
+spostamenti esterni automatici. La prova `python tools/demo_calendar_sync.py`
+ha completato tutti i passaggi richiesti con output `[OK]`.
+Build Vite 2.217.0 finale e smoke Chrome desktop/tablet/mobile hanno confermato
+il pannello Calendari senza errori console, overflow documentale o testi tecnici
+vietati.
+
 ## Stato tranche 2026-05-12 - Modelli relata visibili e personalizzabili 2.216.9
 
 La route `/notifiche-legali` completa il passaggio da catalogo parametrico a

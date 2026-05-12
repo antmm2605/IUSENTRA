@@ -2,6 +2,13 @@
 
 Generato: 2026-05-08T10:03:02.066Z
 
+Aggiornamento 2026-05-12: `Impostazioni -> Calendari` 2.217.0 diventa un
+pannello operativo per collegare Google, Outlook/Microsoft 365, iCloud/CalDAV,
+WebCal/ICS e ambiente di prova locale. La UI usa sezioni compatte, icone
+Lucide, stati e azioni reali per allineamento, pausa, scollegamento e conflitti;
+non mostra token, password o lessico da sviluppatore. Smoke Chrome
+desktop/tablet/mobile confermato senza overflow documentale o errori console.
+
 Aggiornamento 2026-05-12: `/notifiche-legali` 2.216.8 aggiunge la
 compilazione assistita da IUSENTRA. Il blocco iniziale propone pratica,
 destinatario e documento letti da fascicoli, soggetti e documenti reali, con

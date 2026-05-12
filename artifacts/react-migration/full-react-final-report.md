@@ -2,6 +2,19 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-12T22:05:00+02:00: tranche 2.217.0 su
+`Impostazioni -> Sincronizzazione Calendari`. La tab Calendari espone ora
+account collegabili, calendari con direzione bidirezionale/in sola entrata/in
+sola uscita, riservatezza export, ultimo allineamento, azione `Allinea ora`,
+pausa/disconnessione e conflitti risolvibili. Il frontend resta senza logica
+provider e senza segreti: Google, Microsoft, Apple/iCloud, WebCal/ICS e il
+provider locale persistente passano da API Flask e dal nuovo
+`CalendarSyncEngine`. La demo locale ha verificato push, pull, update,
+conflitto e protezione scadenza perentoria.
+Smoke Chrome headless desktop/tablet/mobile confermato sul pannello: account,
+calendari collegati e conflitti sono visibili, senza errori console, overflow
+documentale o testi tecnici vietati.
+
 Aggiornamento 2026-05-12T20:30:00+02:00: tranche 2.216.9 su
 `/notifiche-legali`. Il modello relata selezionato e' ora visibile in anteprima
 prima della verifica, il catalogo laterale permette scelta rapida e l'avvocato

@@ -406,14 +406,18 @@ def test_pwa_routes_and_error_handlers_restano_registrati(tmp_path: Path):
             follow_redirects=False,
         )
         service_worker = client.get("/sw.js")
+        manifest = client.get("/manifest.webmanifest")
         offline = client.get("/offline")
         missing = client.get("/percorso-inesistente")
 
     assert service_worker.status_code == 200
     assert "javascript" in service_worker.content_type
     service_worker_js = service_worker.get_data(as_text=True)
-    assert "IUSENTRA_SW_RESET" in service_worker_js
-    assert "self.registration.unregister()" in service_worker_js
+    assert "self.addEventListener('push'" in service_worker_js
+    assert "registration.showNotification" in service_worker_js
+    assert "notificationclick" in service_worker_js
+    assert manifest.status_code == 200
+    assert "manifest+json" in manifest.content_type
     assert offline.status_code == 200
     assert missing.status_code == 404
 

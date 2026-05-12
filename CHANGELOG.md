@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.217.2 - 2026-05-12
+
+- Aggiunto il centro notifiche persistente tenant-aware/user-aware con dedupe, stato letto persistente, preferenze minime e subscription Web Push per dispositivo.
+- Integrata la top bar esistente con il nuovo repository senza cambiare il payload storico di `/api/notifications`, `/api/notifications/<id>/read` e `/api/notifications/read-all`.
+- Introdotte API `/api/push/public-key`, `/api/push/subscribe`, `/api/push/test`, Service Worker root, manifest PWA e UI in `Impostazioni > Notifiche` per attivazione, disattivazione e test dal dispositivo.
+- Aggiunto invio Web Push con `pywebpush`, VAPID da variabili ambiente e payload sempre generico, senza dati sensibili di clienti, fascicoli, PEC, RG o importi.
+- Documentati requisiti HTTPS, consenso utente, limiti iOS/iPadOS, troubleshooting, deploy Hetzner e fallback futuri email/WhatsApp/SMS.
+
 ## 2.217.1 - 2026-05-12
 
 - Rafforzata `/notifiche-legali`: i modelli relata personalizzati accettano solo i token ammessi, bloccano istruzioni Jinja, filtri, chiamate e accessi riservati prima del render.

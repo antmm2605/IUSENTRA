@@ -1,32 +1,73 @@
-/* IUSENTRA service worker reset.
+/* IUSENTRA service worker per PWA e notifiche dispositivo.
  *
- * Le route operative non devono restare bloccate su shell React o asset
- * precedenti dopo il ripristino dei moduli storici. Questo service worker
- * prende controllo una sola volta, pulisce le cache applicative e si
- * deregistra, lasciando il browser servito direttamente dal backend Flask.
+ * Non memorizza dati operativi in cache e non contiene informazioni sensibili.
  */
 
-self.addEventListener('install', (event) => {
+const DEFAULT_HREF = '/app-v2';
+
+function safeHref(value) {
+  const href = typeof value === 'string' ? value.trim() : '';
+  if (!href || !href.startsWith('/') || href.startsWith('//')) return DEFAULT_HREF;
+  if (/javascript:|data:|\r|\n/i.test(href)) return DEFAULT_HREF;
+  return href;
+}
+
+function parsePushPayload(event) {
+  if (!event.data) return {};
+  try {
+    return event.data.json();
+  } catch (_) {
+    try {
+      return JSON.parse(event.data.text());
+    } catch (_) {
+      return {};
+    }
+  }
+}
+
+self.addEventListener('install', () => {
   self.skipWaiting();
-  event.waitUntil(Promise.resolve());
 });
 
 self.addEventListener('activate', (event) => {
+  event.waitUntil(self.clients.claim());
+});
+
+self.addEventListener('push', (event) => {
+  const payload = parsePushPayload(event);
+  const title = typeof payload.title === 'string' && payload.title.trim() ? payload.title : 'IUSENTRA';
+  const body = typeof payload.body === 'string' && payload.body.trim()
+    ? payload.body
+    : 'Hai una nuova notifica nel gestionale.';
+  const href = safeHref(payload.href);
+  const priority = typeof payload.priority === 'string' ? payload.priority : 'normal';
+  const notificationId = typeof payload.notificationId === 'string' ? payload.notificationId : '';
+
+  event.waitUntil(self.registration.showNotification(title, {
+    body,
+    icon: '/static/icons/icon.svg',
+    badge: '/static/icons/icon.svg',
+    tag: notificationId || `iusentra-${priority}`,
+    data: { href, notificationId },
+    requireInteraction: priority === 'urgent',
+  }));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const href = safeHref(event.notification && event.notification.data && event.notification.data.href);
   event.waitUntil((async () => {
-    const keys = await caches.keys();
-    await Promise.all(keys.map((key) => caches.delete(key)));
-    await self.clients.claim();
-    await self.registration.unregister();
-    const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-    for (const client of clients) {
-      client.postMessage({
-        type: 'IUSENTRA_SW_RESET',
-        message: 'Cache applicativa svuotata: le pagine operative vengono caricate dal server.',
-      });
+    const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    const targetUrl = new URL(href, self.location.origin).href;
+    for (const client of windows) {
+      const clientUrl = new URL(client.url);
+      if (clientUrl.origin === self.location.origin) {
+        if ('navigate' in client) await client.navigate(targetUrl);
+        if ('focus' in client) return client.focus();
+      }
     }
+    return self.clients.openWindow(targetUrl);
   })());
 });
 
-self.addEventListener('fetch', () => {
-  return undefined;
-});
+self.addEventListener('fetch', () => undefined);

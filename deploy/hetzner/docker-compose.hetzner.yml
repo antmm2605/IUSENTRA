@@ -40,6 +40,7 @@ x-iusentra-env: &iusentra-env
   PCT_SCADENZIARIO_DB: /data/scadenziario/scadenze.json
   PCT_TIMESHEET_DB: /data/timesheet/entries.json
   PCT_TIME_TRACKING_DB: /data/timesheet/time_tracking.json
+  PCT_NOTIFICATIONS_DB: /data/notifications/notifications.db
   PCT_SEARCH_INDEX: /data/search/index.db
   PCT_OCR_QUEUE_DB: /data/search/ocr_jobs.db
   PCT_PRIVACY_DB: /data/privacy/registro.json
@@ -62,6 +63,10 @@ x-iusentra-env: &iusentra-env
   PCT_UFFICI_DB: /data/uffici/uffici_giudiziari.json
   PCT_TENANTS_REGISTRY: /data/tenants.json
   PCT_STUDIO_CONFIG: /data/config/studio.json
+  IUSENTRA_WEB_PUSH_ENABLED: ${IUSENTRA_WEB_PUSH_ENABLED:-0}
+  IUSENTRA_VAPID_PUBLIC_KEY: ${IUSENTRA_VAPID_PUBLIC_KEY:-}
+  IUSENTRA_VAPID_PRIVATE_KEY: ${IUSENTRA_VAPID_PRIVATE_KEY:-}
+  IUSENTRA_VAPID_SUBJECT: ${IUSENTRA_VAPID_SUBJECT:-mailto:admin@example.com}
 
 services:
   # ── Core: Redis ─────────────────────────────────────────────────────────────

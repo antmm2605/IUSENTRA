@@ -92,6 +92,40 @@
   gap: 8px;
 }
 
+.iu-notify-device {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.iu-notify-device-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.iu-notify-device-grid p {
+  display: grid;
+  gap: 4px;
+  min-height: 72px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.iu-notify-device-grid b {
+  color: var(--ius-text);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.iu-notify-device-grid span {
+  color: var(--ius-muted);
+  font-size: 12px;
+  line-height: 1.4;
+  font-weight: 700;
+}
+
 .iu-notify-quick button {
   max-width: 100%;
   white-space: normal;
@@ -161,6 +195,10 @@
   .iu-notify-actions > *,
   .iu-notify-quick > * {
     width: 100%;
+  }
+
+  .iu-notify-device-grid {
+    grid-template-columns: 1fr;
   }
 
   .iu-notify-compose header {

@@ -1,5 +1,26 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-12 - PWA/Web Push notifiche dispositivo 2.217.2
+
+La sezione `Impostazioni -> Notifiche` affianca ora al canale WhatsApp un
+pannello non invasivo per le notifiche su dispositivo. La UI verifica supporto
+browser, configurazione VAPID, stato subscription e permesso notifiche, ma
+chiede il consenso solo dopo click esplicito su `Attiva notifiche su questo
+dispositivo`. Sono disponibili anche disattivazione locale e notifica di test.
+
+Il centro notifiche operativo della top bar resta compatibile nella shape
+storica (`ok`, `unreadCount`, `items[]`) ma ora persiste notifiche e stato letto
+in `NOTIFICATIONS_DB`, con isolamento tenant/utente e dedupe. Le stesse
+notifiche alimentano il canale Web Push solo per eventi ammessi dalle
+preferenze e solo se la subscription del dispositivo e' attiva.
+
+Il Service Worker root `/sw.js` ascolta `push`, mostra una notifica generica e
+privacy-safe e, al click, apre o focalizza IUSENTRA su `/app-v2` o sull'href
+operativo sicuro. Il manifest PWA e' servito da `/manifest.webmanifest`.
+Senza chiavi VAPID il sistema non interrompe il gestionale: le API comunicano
+che il canale dispositivo non e' configurato e il centro notifiche interno
+continua a funzionare.
+
 ## Stato tranche 2026-05-12 - Notifiche legali sicure e bozze relata 2.217.1
 
 La route `/notifiche-legali` mantiene separati i tre percorsi operativi:

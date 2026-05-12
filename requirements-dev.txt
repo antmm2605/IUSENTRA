@@ -24,6 +24,7 @@ python-docx>=1.1.0
 reportlab>=4.0.0
 stripe>=7.0.0
 twilio>=8.0.0
+pywebpush>=2.0.0
 zeep>=4.2.1
 psycopg2-binary==2.9.11
 PyMySQL>=1.1.0

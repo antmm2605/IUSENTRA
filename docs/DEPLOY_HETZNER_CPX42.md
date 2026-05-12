@@ -70,6 +70,15 @@ Variabili minime da valorizzare:
 - `FERNET_PRIMARY_KEY`
 - `AUDIT_HMAC_KEY`
 
+Variabili PWA/Web Push opzionali:
+
+- `IUSENTRA_WEB_PUSH_ENABLED=0`
+- `IUSENTRA_VAPID_PUBLIC_KEY=`
+- `IUSENTRA_VAPID_PRIVATE_KEY=`
+- `IUSENTRA_VAPID_SUBJECT=mailto:admin@example.com`
+
+Impostare `IUSENTRA_WEB_PUSH_ENABLED=1` solo dopo aver configurato chiavi VAPID reali in `/opt/iusentra/.env.hetzner`.
+
 Non salvare chiavi reali nel repository.
 
 ## Deploy

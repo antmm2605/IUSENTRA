@@ -1,4 +1,4 @@
-#  version: 2.217.1
+#  version: 2.217.2
 #  IUSENTRA | Dockerfile produzione
 
 #  Build multi-stage:
@@ -75,7 +75,7 @@ RUN mkdir -p /out && /tmp/dart-sass/sass --no-source-map --style=compressed \
 FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="IUSENTRA" \
-      org.opencontainers.image.version="2.217.1" \
+      org.opencontainers.image.version="2.217.2" \
       org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
       org.opencontainers.image.created="2026-03-18"
 
@@ -152,6 +152,7 @@ ENV PCT_AGENDA_DB=/data/agenda/appuntamenti.json \
     PCT_SCADENZIARIO_DB=/data/scadenziario/scadenze.json \
     PCT_TIMESHEET_DB=/data/timesheet/entries.json \
     PCT_TIME_TRACKING_DB=/data/timesheet/time_tracking.json \
+    PCT_NOTIFICATIONS_DB=/data/notifications/notifications.db \
     PCT_SEARCH_INDEX=/data/search/index.db \
     PCT_PRIVACY_DB=/data/privacy/registro.json \
     PCT_PORTALE_DB=/data/portale/portali.json \
@@ -174,6 +175,10 @@ ENV PCT_AGENDA_DB=/data/agenda/appuntamenti.json \
     PCT_UFFICI_TTL_GIORNI=7 \
     PCT_TENANTS_REGISTRY=/data/tenants.json \
     PCT_STUDIO_CONFIG=/data/config/studio.json \
+    IUSENTRA_WEB_PUSH_ENABLED=0 \
+    IUSENTRA_VAPID_PUBLIC_KEY="" \
+    IUSENTRA_VAPID_PRIVATE_KEY="" \
+    IUSENTRA_VAPID_SUBJECT="mailto:admin@example.com" \
     PCT_MULTI_TENANT=1 \
     PCT_HTTPS=true \
     PCT_STUDIO_NOME="IUSENTRA"

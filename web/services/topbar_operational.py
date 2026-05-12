@@ -16,6 +16,12 @@ from pct.fatturazione import StatoParcella
 from pct.global_search.repository import GlobalSearchRepository
 from pct.global_search.service import GlobalSearchService, default_global_search_db_path
 from pct.scadenziario import PrioritaTermine, StatoTermine
+from pct.notifications import NotificationRecord, NotificationServiceError
+from web.services.notifications_runtime import (
+    build_notification_service,
+    current_tenant_id as _notification_tenant_id,
+    current_user_id as _notification_user_id,
+)
 from web.helpers import (
     get_agenda,
     get_clienti,
@@ -520,6 +526,43 @@ def quick_deadlines_payload(user: Any) -> dict[str, Any]:
 
 
 def notifications_payload(user: Any) -> dict[str, Any]:
+    items = _persistent_notification_items(user)
+    unread_count = sum(1 for item in items if not item["read"])
+    return {"ok": True, "unreadCount": unread_count, "items": items[:30]}
+
+
+def mark_notification_read(notification_id: str, user: Any) -> dict[str, Any]:
+    safe_id = _clean_text(notification_id, limit=200)
+    try:
+        service = build_notification_service()
+        service.mark_read(_notification_tenant_id(), _notification_user_id(user), safe_id)
+        return notifications_payload(user)
+    except NotificationServiceError as exc:
+        raise TopbarApiError(str(exc), exc.status_code) from exc
+    except Exception:
+        current_app.logger.info("Top bar notifiche: repository persistente non disponibile", exc_info=True)
+        known = {item["id"] for item in _notification_items(user)}
+        if safe_id not in known:
+            raise TopbarApiError("Notifica non trovata.", 404)
+        read_ids = _read_notification_ids()
+        read_ids.add(safe_id)
+        _save_notification_ids(read_ids)
+        return _session_notifications_payload(user)
+
+
+def mark_all_notifications_read(user: Any) -> dict[str, Any]:
+    try:
+        service = build_notification_service()
+        service.mark_all_read(_notification_tenant_id(), _notification_user_id(user))
+        return notifications_payload(user)
+    except Exception:
+        current_app.logger.info("Top bar notifiche: lettura massiva su sessione per fallback", exc_info=True)
+        ids = {item["id"] for item in _notification_items(user)}
+        _save_notification_ids(_read_notification_ids() | ids)
+        return _session_notifications_payload(user)
+
+
+def _session_notifications_payload(user: Any) -> dict[str, Any]:
     read_ids = _read_notification_ids()
     items = _notification_items(user)
     for item in items:
@@ -528,21 +571,39 @@ def notifications_payload(user: Any) -> dict[str, Any]:
     return {"ok": True, "unreadCount": unread_count, "items": items[:30]}
 
 
-def mark_notification_read(notification_id: str, user: Any) -> dict[str, Any]:
-    known = {item["id"] for item in _notification_items(user)}
-    safe_id = _clean_text(notification_id, limit=200)
-    if safe_id not in known:
-        raise TopbarApiError("Notifica non trovata.", 404)
-    read_ids = _read_notification_ids()
-    read_ids.add(safe_id)
-    _save_notification_ids(read_ids)
-    return notifications_payload(user)
+def _persistent_notification_items(user: Any) -> list[dict[str, Any]]:
+    generated = _notification_items(user)
+    try:
+        tenant_id = _notification_tenant_id()
+        user_id = _notification_user_id(user)
+        if not user_id:
+            return generated
+        service = build_notification_service()
+        records = service.sync_operational_items(tenant_id=tenant_id, user_id=user_id, items=generated)
+        return [_record_to_topbar_item(record) for record in records]
+    except Exception:
+        current_app.logger.info("Top bar notifiche: uso fallback in sessione", exc_info=True)
+        read_ids = _read_notification_ids()
+        for item in generated:
+            item["read"] = item["id"] in read_ids
+        return generated
 
 
-def mark_all_notifications_read(user: Any) -> dict[str, Any]:
-    ids = {item["id"] for item in _notification_items(user)}
-    _save_notification_ids(_read_notification_ids() | ids)
-    return notifications_payload(user)
+def _record_to_topbar_item(record: NotificationRecord) -> dict[str, Any]:
+    payload = record.payload_json if isinstance(record.payload_json, dict) else {}
+    message = _clean_text(record.body)
+    return {
+        "id": record.id,
+        "type": record.type,
+        "title": record.title or "Notifica operativa",
+        "message": message,
+        "body": message,
+        "createdAt": payload.get("createdAt") or record.created_at,
+        "priority": record.priority,
+        "read": bool(record.read_at),
+        "href": record.href or None,
+        "actionLabel": payload.get("actionLabel") or None,
+    }
 
 
 def _read_notification_ids() -> set[str]:
@@ -728,6 +789,7 @@ def _notification(
         "type": item_type,
         "title": title or "Notifica operativa",
         "message": message,
+        "body": message,
         "createdAt": created_at,
         "priority": priority if priority in {"normal", "important", "urgent"} else "normal",
         "read": False,

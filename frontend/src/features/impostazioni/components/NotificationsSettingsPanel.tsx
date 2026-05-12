@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Bell, ExternalLink, MessageCircle, RefreshCw, Send } from 'lucide-react'
+import { Bell, BellRing, ExternalLink, MessageCircle, RefreshCw, Send, Smartphone } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import {
@@ -11,6 +11,14 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { IusStatusBadge } from '@/components/iusentra'
+import {
+  activatePushNotifications,
+  deactivatePushNotifications,
+  getPushDeviceStatus,
+  sendPushTest,
+  type PushActionResult,
+  type PushDeviceStatus,
+} from '@/lib/pushNotifications'
 import { prepareNotificationLink, sendNotification, sendTomorrowReminders } from '../api'
 import type { NotificationActionPayload, SettingsPayload, SettingsSection } from '../types'
 import './NotificationsSettingsPanel.css'
@@ -34,6 +42,27 @@ function firstClientId(list: Values[]): string {
   return text(list[0]?.id)
 }
 
+const initialPushStatus: PushDeviceStatus = {
+  supported: false,
+  configured: false,
+  active: false,
+  permission: 'unsupported',
+  message: 'Verifica notifiche in corso.',
+}
+
+function pushTone(status: PushDeviceStatus): 'success' | 'warning' | 'neutral' | 'info' {
+  if (status.active) return 'success'
+  if (!status.supported || !status.configured || status.permission === 'denied') return 'warning'
+  return 'info'
+}
+
+function pushLabel(status: PushDeviceStatus): string {
+  if (!status.supported) return 'Non supportato'
+  if (!status.configured) return 'Da configurare'
+  if (status.permission === 'denied') return 'Bloccato dal dispositivo'
+  return status.active ? 'Attivo' : 'Disattivo'
+}
+
 export function NotificationsSettingsPanel({
   data,
   onReload,
@@ -54,10 +83,22 @@ export function NotificationsSettingsPanel({
   const [link, setLink] = useState('')
   const [result, setResult] = useState<NotificationActionPayload | null>(null)
   const [busy, setBusy] = useState('')
+  const [pushStatus, setPushStatus] = useState<PushDeviceStatus>(initialPushStatus)
+  const [pushBusy, setPushBusy] = useState('')
+  const [pushResult, setPushResult] = useState<PushActionResult | null>(null)
 
   useEffect(() => {
     if (!clientId && clients.length) setClientId(firstClientId(clients))
   }, [clientId, clients])
+
+  async function refreshPushStatus() {
+    const status = await getPushDeviceStatus()
+    setPushStatus(status)
+  }
+
+  useEffect(() => {
+    void refreshPushStatus()
+  }, [])
 
   const selected = useMemo(() => clients.find((client) => text(client.id) === clientId), [clientId, clients])
   const actionPayload = { id_cliente: clientId, numero: selected?.numero || '', testo: message }
@@ -76,6 +117,19 @@ export function NotificationsSettingsPanel({
     if (response.ok && action !== 'link') onReload()
   }
 
+  async function runPush(action: 'activate' | 'deactivate' | 'test') {
+    setPushBusy(action)
+    setPushResult(null)
+    const response = action === 'activate'
+      ? await activatePushNotifications()
+      : action === 'deactivate'
+        ? await deactivatePushNotifications()
+        : await sendPushTest()
+    setPushBusy('')
+    setPushResult(response)
+    await refreshPushStatus()
+  }
+
   return (
     <div className="iu-notify-panel">
       <div className="iu-notify-metrics">
@@ -83,6 +137,56 @@ export function NotificationsSettingsPanel({
         <span><strong>{text(raw.appuntamenti_inviabili || 0)}</strong> promemoria pronti</span>
         <span><strong>{text(raw.registro_totale || 0)}</strong> messaggi nel registro</span>
       </div>
+
+      <section className="iu-notify-compose iu-notify-device">
+        <header>
+          <Smartphone aria-hidden="true" />
+          <div>
+            <strong>Notifiche su questo dispositivo</strong>
+            <span>Ricevi avvisi importanti anche quando il gestionale non e' aperto.</span>
+          </div>
+          <IusStatusBadge tone={pushTone(pushStatus)}>{pushLabel(pushStatus)}</IusStatusBadge>
+        </header>
+        <div className="iu-notify-device-grid">
+          <p>
+            <b>Stato dispositivo</b>
+            <span>{pushStatus.message}</span>
+          </p>
+          <p>
+            <b>iPhone e iPad</b>
+            <span>Potrebbe essere necessario aggiungere IUSENTRA alla schermata Home e usare un sistema aggiornato.</span>
+          </p>
+        </div>
+        <div className="iu-notify-actions">
+          <Button
+            type="button"
+            disabled={!pushStatus.supported || !pushStatus.configured || pushStatus.active || pushBusy === 'activate'}
+            onClick={() => void runPush('activate')}
+          >
+            <BellRing data-icon="inline-start" />
+            {pushBusy === 'activate' ? 'Attivazione...' : 'Attiva notifiche su questo dispositivo'}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!pushStatus.active || pushBusy === 'deactivate'}
+            onClick={() => void runPush('deactivate')}
+          >
+            <Bell data-icon="inline-start" />
+            {pushBusy === 'deactivate' ? 'Disattivazione...' : 'Disattiva notifiche su questo dispositivo'}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!pushStatus.active || pushBusy === 'test'}
+            onClick={() => void runPush('test')}
+          >
+            <Send data-icon="inline-start" />
+            {pushBusy === 'test' ? 'Invio test...' : 'Invia notifica di test'}
+          </Button>
+        </div>
+        {pushResult ? <p className={pushResult.ok ? 'iu-notify-result is-ok' : 'iu-notify-result is-ko'}>{pushResult.message}</p> : null}
+      </section>
 
       <section className="iu-notify-compose">
         <header>

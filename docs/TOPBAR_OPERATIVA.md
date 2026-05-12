@@ -7,7 +7,7 @@ La top bar desktop React e' il centro rapido trasversale della shell IUSENTRA. U
 - `Ctrl+K` / `Cmd+K`: apre la command palette con ricerca globale debounced, risultati raggruppati, frecce, `Enter` ed `Esc`.
 - `+ Nuovo`: menu contestuale globale, fascicolo o cliente, con sole route applicative reali.
 - `Oggi`: riepilogo compatto di udienze, scadenze, attivita, PEC importanti e urgenze entro 7 giorni.
-- `Notifiche`: elementi operativi derivati da scadenze, udienze, PEC, depositi, documenti e fatture; supporta segna letta e segna tutte come lette.
+- `Notifiche`: elementi operativi persistenti derivati da scadenze, udienze, PEC, depositi, documenti e fatture; supporta segna letta e segna tutte come lette.
 - `Scadenze`: contatori oggi/domani/7 giorni/urgenti/scadute e lista rapida.
 - `Recenti`: riusa il tracking sessione esistente ed evita duplicati.
 - `Timer attivita`: persiste il timer lato backend e allo stop crea una voce timesheet reale.
@@ -20,9 +20,9 @@ Tutte le API richiedono utente autenticato, applicano i permessi gia' disponibil
 | --- | --- | --- |
 | `GET` | `/api/search/global?q=<query>&limit=<n>` | Ricerca fascicoli, clienti, pratiche, scadenze, udienze, documenti, attivita, comunicazioni e fatture indicizzate |
 | `GET` | `/api/dashboard/today?date=YYYY-MM-DD` | Pannello Oggi con timezone `Europe/Rome` |
-| `GET` | `/api/notifications` | Notifiche operative derivate dai repository |
-| `PATCH` | `/api/notifications/<id>/read` | Marca una notifica letta nella sessione utente |
-| `PATCH` | `/api/notifications/read-all` | Marca lette le notifiche correnti |
+| `GET` | `/api/notifications` | Notifiche operative persistenti derivate dai repository |
+| `PATCH` | `/api/notifications/<id>/read` | Marca una notifica letta per l'utente corrente |
+| `PATCH` | `/api/notifications/read-all` | Marca lette le notifiche correnti per l'utente corrente |
 | `GET` | `/api/deadlines/quick-summary` | Riepilogo scadenze rapido |
 | `GET` | `/api/recent` | Ultimi elementi aperti dalla sessione |
 | `POST` | `/api/recent` | Registra un elemento recente reale `{ "entityType": "case|client|document|matter", "entityId": "..." }` |
@@ -36,7 +36,7 @@ Tutte le API richiedono utente autenticato, applicano i permessi gia' disponibil
 
 La ricerca restituisce `items[]` con `id`, `type`, `title`, `subtitle`, `description`, `href`, `priority` e `metadata`.
 
-Le notifiche restituiscono `unreadCount` e `items[]` con `type`, `title`, `message`, `createdAt`, `priority`, `read`, `href` e `actionLabel`.
+Le notifiche restituiscono `unreadCount` e `items[]` con `id`, `type`, `title`, `message`, `body`, `createdAt`, `priority`, `read`, `href` e `actionLabel`.
 
 Il timer restituisce `timer` con `id`, `caseId`, `clientId`, `activityType`, `description`, `startedAt`, `pausedAt`, `endedAt`, `elapsedSeconds` e `status`.
 
@@ -48,6 +48,13 @@ Il timer usa `GestioneTimeTracking` con JSON tenant-aware (`TIME_TRACKING_DB`, d
 - `pct/sql/20260505_topbar_time_tracking_postgres.sql`
 
 Il vincolo applicativo impedisce piu' timer running/paused per lo stesso utente; gli schemi SQL aggiungono anche indice unico parziale dove supportato.
+
+Il centro notifiche usa `NOTIFICATIONS_DB` tenant-aware, default `notifications/notifications.db`, con schema SQLite/PostgreSQL in:
+
+- `pct/sql/20260512_notifications.sql`
+- `pct/sql/20260512_notifications_postgres.sql`
+
+La top bar conserva la shape storica delle API, ma le notifiche e lo stato letto sono ora persistenti per utente. In parallelo, il canale PWA/Web Push puo' inviare un richiamo generico e non sensibile al dispositivo se l'utente ha attivato le notifiche in `Impostazioni > Notifiche`.
 
 ## Limiti dichiarati
 

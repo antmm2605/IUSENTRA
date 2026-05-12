@@ -1,6 +1,6 @@
 # Pytest issue aperte e risoluzioni
 
-Aggiornato: 2026-05-12, notifiche legali sicure e bozze relata 2.217.1.
+Aggiornato: 2026-05-12, PWA/Web Push notifiche dispositivo 2.217.2.
 
 ## Regola operativa
 
@@ -10,6 +10,7 @@ Questo file e' la coda di lavoro. Prima di rilanciare test gia' passati, control
 
 | Area | Test / comando | Stato | Problema rilevato | Risoluzione |
 | --- | --- | --- | --- | --- |
+| PWA/Web Push notifiche dispositivo 2.217.2 | Gate richiesti dal prompt | Nessuna issue aperta | Il primo typecheck ha segnalato solo il tipo della chiave VAPID in `applicationServerKey`, perche' `Uint8Array<ArrayBufferLike>` non era accettato dal DOM lib corrente. | Convertita esplicitamente la chiave pubblica in `ArrayBuffer`; typecheck, build, test backend mirati, packaging e readiness sono verdi. Nessuna chiamata di rete reale verso servizi push. |
 | Notifiche legali sicure 2.217.1 | Gate richiesti dal prompt | Nessuna issue aperta | Durante il primo smoke visuale il catalogo cliente esponeva `clienti-2026.05.12`, versione distinta ma troppo simile alla versione relata vietata nel tab cliente. | Rinominata la versione cliente in `comunicazioni-cliente-1.0`; test mirati, typecheck, contratti, build, packaging, Docker no-cache e smoke browser caldo desktop/tablet/mobile tutti verdi. |
 | Calendar Sync demo persistente | `python tools/demo_calendar_sync.py` ripetuto su dati gia' presenti | Risolto e verificato in 2.217.0 | La prima versione della demo poteva creare un appuntamento sullo stesso slot usato da una prova precedente e incorrere nella guardia sovrapposizioni dell'Agenda. | La demo cerca automaticamente il primo slot libero a step di 75 minuti, preservando la persistenza locale e restando ripetibile; comando rilanciato e completato con tutti gli `[OK]`. |
 | React contratti Calendari | `npm --prefix frontend run test` | Risolto e verificato in 2.217.0 | Il contratto statico storico cercava ancora il marker `createCalendarProfile` nel pannello calendario, mentre il nuovo flusso WebCal passa dal motore bidirezionale. | Mantenuto il presidio compatibile nel componente e rilanciati `npm --prefix frontend run test` e `npm --prefix frontend run typecheck`, entrambi verdi. |

@@ -225,6 +225,32 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
             _data_peer_path(app.config["CLIENTI_DB"], "notifiche", "log.json"),
         ),
     )
+    app.config["NOTIFICATIONS_DB"] = cfg.get(
+        "NOTIFICATIONS_DB",
+        os.getenv(
+            "PCT_NOTIFICATIONS_DB",
+            os.getenv(
+                "NOTIFICATIONS_DB",
+                _data_peer_path(app.config["CLIENTI_DB"], "notifications", "notifications.db"),
+            ),
+        ),
+    )
+    app.config["IUSENTRA_WEB_PUSH_ENABLED"] = cfg.get(
+        "IUSENTRA_WEB_PUSH_ENABLED",
+        os.getenv("IUSENTRA_WEB_PUSH_ENABLED", "0"),
+    )
+    app.config["IUSENTRA_VAPID_PUBLIC_KEY"] = cfg.get(
+        "IUSENTRA_VAPID_PUBLIC_KEY",
+        os.getenv("IUSENTRA_VAPID_PUBLIC_KEY", ""),
+    )
+    app.config["IUSENTRA_VAPID_PRIVATE_KEY"] = cfg.get(
+        "IUSENTRA_VAPID_PRIVATE_KEY",
+        os.getenv("IUSENTRA_VAPID_PRIVATE_KEY", ""),
+    )
+    app.config["IUSENTRA_VAPID_SUBJECT"] = cfg.get(
+        "IUSENTRA_VAPID_SUBJECT",
+        os.getenv("IUSENTRA_VAPID_SUBJECT", "mailto:admin@example.com"),
+    )
     app.config["SOGGETTI_DB"] = cfg.get(
         "SOGGETTI_DB",
         os.getenv(
@@ -319,6 +345,20 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
             _data_peer_path(app.config["TEMPLATE_ATTI_DB"], "template_atti", "editor_layout.json"),
         ),
     )
+    app.config["STUDIO_TIMBRO_DB"] = cfg.get(
+        "STUDIO_TIMBRO_DB",
+        os.getenv(
+            "PCT_STUDIO_TIMBRO_DB",
+            _data_peer_path(
+                cfg.get(
+                    "CONFIG_STUDIO_DB",
+                    os.getenv("PCT_CONFIG_STUDIO_DB", cfg.get("STUDIO_CONFIG", os.getenv("PCT_STUDIO_CONFIG", "./config/studio.json"))),
+                ),
+                "config",
+                "studio_timbro.db",
+            ),
+        ),
+    )
     app.config["REDACTION_ASSISTANT_DB"] = cfg.get(
         "REDACTION_ASSISTANT_DB",
         os.getenv(
@@ -378,6 +418,7 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
             "time_tracking": _cfg_data_path("TIME_TRACKING_DB"),
             "messaggi": _cfg_data_path("MESSAGGI_DB"),
             "notifiche": _cfg_data_path("NOTIFICHE_LOG"),
+            "notifications": _cfg_data_path("NOTIFICATIONS_DB"),
             "email_casella": _cfg_data_path("EMAIL_CASELLA_DB"),
             "email_ordinaria": _cfg_data_path("EMAIL_ORDINARIA_DB"),
             "utenti": _cfg_data_path("AUTH_DB"),
@@ -398,6 +439,7 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
             "validation_runs": _cfg_data_path("VALIDATION_RUNS_DB"),
             "template_atti": _cfg_data_path("TEMPLATE_ATTI_DB"),
             "template_atti_prefs": _cfg_data_path("TEMPLATE_ATTI_PREFS_DB"),
+            "studio_timbro": _cfg_data_path("STUDIO_TIMBRO_DB"),
             "redaction_assistant": _cfg_data_path("REDACTION_ASSISTANT_DB"),
             "search_index": _cfg_data_path("SEARCH_INDEX"),
             "telematico": _cfg_data_path("TELEMATICO_DB"),

@@ -84,6 +84,9 @@ _CSRF_PROTECTED_ENDPOINTS = {
     "api_v1_react.calendari_account_disconnect",
     "api_v1_react.calendari_calendar_toggle",
     "api_v1_react.calendari_conflict_resolve",
+    "api_push_notifications.subscribe",
+    "api_push_notifications.unsubscribe",
+    "api_push_notifications.test_push",
     }
 
 _UNSAFE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}

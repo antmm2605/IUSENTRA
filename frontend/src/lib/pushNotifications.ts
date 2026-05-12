@@ -1,0 +1,149 @@
+import { apiJson, apiPostJson } from '@/lib/apiClient'
+
+export type PushPermission = NotificationPermission | 'unsupported'
+
+export type PushDeviceStatus = {
+  supported: boolean
+  configured: boolean
+  active: boolean
+  permission: PushPermission
+  message: string
+}
+
+export type PushActionResult = {
+  ok: boolean
+  message: string
+  active?: boolean
+  sent?: number
+}
+
+type PublicKeyPayload = {
+  ok: boolean
+  configured?: boolean
+  publicKey?: string
+  message?: string
+}
+
+const fallbackPublicKey: PublicKeyPayload = {
+  ok: false,
+  configured: false,
+  message: 'Notifiche su dispositivo non disponibili.',
+}
+
+const fallbackAction: PushActionResult = {
+  ok: false,
+  message: 'Operazione non completata.',
+}
+
+export function browserSupportsPush(): boolean {
+  return typeof window !== 'undefined'
+    && 'serviceWorker' in navigator
+    && 'PushManager' in window
+    && 'Notification' in window
+}
+
+function currentPermission(): PushPermission {
+  if (!browserSupportsPush()) return 'unsupported'
+  return Notification.permission
+}
+
+function urlBase64ToArrayBuffer(value: string): ArrayBuffer {
+  const padding = '='.repeat((4 - value.length % 4) % 4)
+  const base64 = `${value}${padding}`.replace(/-/g, '+').replace(/_/g, '/')
+  const rawData = window.atob(base64)
+  const buffer = new ArrayBuffer(rawData.length)
+  const output = new Uint8Array(buffer)
+  for (let index = 0; index < rawData.length; index += 1) {
+    output[index] = rawData.charCodeAt(index)
+  }
+  return buffer
+}
+
+async function publicKey(): Promise<PublicKeyPayload> {
+  return apiJson<PublicKeyPayload>('/api/push/public-key', fallbackPublicKey)
+}
+
+async function existingRegistration(): Promise<ServiceWorkerRegistration | undefined> {
+  if (!browserSupportsPush()) return undefined
+  return navigator.serviceWorker.getRegistration('/')
+}
+
+async function ensureRegistration(): Promise<ServiceWorkerRegistration> {
+  return navigator.serviceWorker.register('/sw.js', { scope: '/' })
+}
+
+function subscriptionPayload(subscription: PushSubscription): Record<string, unknown> {
+  const payload = subscription.toJSON()
+  return {
+    endpoint: payload.endpoint,
+    keys: payload.keys,
+    deviceLabel: navigator.platform || '',
+  }
+}
+
+export async function getPushDeviceStatus(): Promise<PushDeviceStatus> {
+  if (!browserSupportsPush()) {
+    return {
+      supported: false,
+      configured: false,
+      active: false,
+      permission: 'unsupported',
+      message: 'Questo dispositivo non supporta le notifiche del gestionale.',
+    }
+  }
+  const key = await publicKey()
+  const registration = await existingRegistration()
+  const subscription = registration ? await registration.pushManager.getSubscription() : null
+  return {
+    supported: true,
+    configured: Boolean(key.ok && key.configured && key.publicKey),
+    active: Boolean(subscription),
+    permission: currentPermission(),
+    message: key.ok ? 'Notifiche configurate.' : key.message || fallbackPublicKey.message || '',
+  }
+}
+
+export async function activatePushNotifications(): Promise<PushActionResult> {
+  if (!browserSupportsPush()) {
+    return { ok: false, message: 'Questo dispositivo non supporta le notifiche del gestionale.' }
+  }
+  const key = await publicKey()
+  if (!key.ok || !key.publicKey) {
+    return { ok: false, message: key.message || 'Notifiche su dispositivo non configurate nel sistema.' }
+  }
+  const permission = await Notification.requestPermission()
+  if (permission !== 'granted') {
+    return { ok: false, message: 'Autorizzazione notifiche non concessa.' }
+  }
+  const registration = await ensureRegistration()
+  let subscription = await registration.pushManager.getSubscription()
+  if (!subscription) {
+    subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToArrayBuffer(key.publicKey),
+    })
+  }
+  return apiPostJson<PushActionResult>(
+    '/api/push/subscribe',
+    subscriptionPayload(subscription),
+    fallbackAction,
+  )
+}
+
+export async function deactivatePushNotifications(): Promise<PushActionResult> {
+  if (!browserSupportsPush()) return { ok: false, message: 'Notifiche non supportate su questo dispositivo.' }
+  const registration = await existingRegistration()
+  const subscription = registration ? await registration.pushManager.getSubscription() : null
+  const response = await apiPostJson<PushActionResult>(
+    '/api/push/subscribe',
+    { endpoint: subscription?.endpoint || '' },
+    fallbackAction,
+    { method: 'DELETE' },
+  )
+  if (subscription) await subscription.unsubscribe()
+  return response
+}
+
+export function sendPushTest(): Promise<PushActionResult> {
+  return apiPostJson<PushActionResult>('/api/push/test', {}, fallbackAction)
+}

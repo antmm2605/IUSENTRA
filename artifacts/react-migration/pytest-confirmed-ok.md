@@ -801,3 +801,19 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `Invoke-WebRequest -UseBasicParsing -Uri http://127.0.0.1:8080/api/pronto -TimeoutSec 30` | OK | Readiness locale: `{"ok":true,"stato":"pronto","versione":"2.216.9"}`. |
 | `docker exec iusentra-app python -c "import pct; print(pct.__version__)"` | OK | Versione runtime container locale: `2.216.9`. |
 | Browser Chrome reale su `http://127.0.0.1:8080/notifiche-legali`, desktop 1440x1000 e mobile 390x844 | OK | Anteprima modello, nuovo modello su misura, inserimento campo `Avvocato notificante`, `Deposito prova notifica` e `Comunica al cliente` verificati; nessun overflow, nessun errore console e nessun testo tecnico vietato visibile. |
+
+## PWA/Web Push notifiche dispositivo 2.217.2 - 2026-05-12
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct\notifications\models.py pct\notifications\repository.py pct\notifications\service.py pct\notifications\web_push.py web\services\notifications_runtime.py web\blueprints\push_notifications.py web\services\topbar_operational.py` | OK | Sintassi confermata per dominio notifiche, runtime Flask, API push e integrazione topbar persistente. |
+| `python -m pytest -q tests/test_push_notifications.py tests/test_web_bootstrap.py::test_pwa_routes_and_error_handlers_restano_registrati --tb=short` | OK | 9/9 passati: repository, dedupe, subscription, revoca, public key senza config, subscribe valido/invalido, push mockato, endpoint scaduto e Service Worker/manifest root. |
+| `python -m pytest -q tests/test_topbar_operational_api.py --tb=short` | OK | 2/2 passati: top bar e shape notifiche operative compatibili dopo persistenza. |
+| `npm --prefix frontend run typecheck` | OK | TypeScript confermato per utility PWA/Web Push e UI `Impostazioni > Notifiche`. |
+| `npm --prefix frontend run build` | OK | Build Vite completata e asset React rigenerati con pannello dispositivo e manifest PWA. |
+| `python tools\sync_packaging_files.py --check` | OK | Packaging sincronizzato dopo aggiunta `pywebpush` e bump `2.217.2`. |
+| `python -m pytest -q tests/test_packaging_consistency.py tests/test_release_readiness.py tests/test_web_bootstrap.py::test_docker_compose_hetzner_allinea_email_ordinaria_e_ai_locale --tb=short` | OK | 9/9 passati: requisiti, versione, readiness e compose Hetzner restano coerenti. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker` | OK | Immagini locali ricostruite da zero con package `pct-studio-legale==2.217.2` e `pywebpush==2.3.0` installato. |
+| `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx` | OK | Servizi locali riavviati senza backup; app, scheduler, OCR e Redis healthy, Nginx attivo. |
+| `docker compose ps`; `Invoke-WebRequest http://127.0.0.1:8080/api/pronto`; `docker exec iusentra-app python -c "import pct; print(pct.__version__)"` | OK | Docker locale healthy; readiness `versione=2.217.2` e runtime container `2.217.2`. |
+| Browser Playwright headless autenticato/impersonato su `http://127.0.0.1:8080/notifiche`, desktop/tablet/mobile | OK | Pannello `Notifiche su questo dispositivo`, nota iPhone/iPad e pulsanti attiva/disattiva/test visibili; `ServiceWorker`, `PushManager` e `Notification` presenti; nessun overflow e nessun termine tecnico vietato visibile. |

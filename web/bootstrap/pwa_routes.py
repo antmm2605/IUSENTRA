@@ -17,9 +17,19 @@ def register_pwa_routes(app: Flask) -> None:
 
     @app.route("/sw.js")
     def service_worker():
-        return send_file(
+        response = send_file(
             app.root_path + "/static/sw.js",
             mimetype="application/javascript",
+        )
+        response.headers["Service-Worker-Allowed"] = "/"
+        response.headers["Cache-Control"] = "no-cache"
+        return response
+
+    @app.route("/manifest.webmanifest")
+    def web_manifest():
+        return send_file(
+            app.root_path + "/static/manifest.webmanifest",
+            mimetype="application/manifest+json",
         )
 
     @app.route("/offline")

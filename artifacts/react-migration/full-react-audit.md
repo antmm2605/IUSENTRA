@@ -2,6 +2,13 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-12T18:05:00+02:00: `Impostazioni > Notifiche` mantiene
+il perimetro React operativo e aggiunge controlli PWA/Web Push reali: nessuna
+richiesta permesso al caricamento, pulsanti espliciti per attivare, disattivare
+e testare il dispositivo, utility `frontend/src/lib/pushNotifications.ts` con
+registrazione `/sw.js` e API Flask tenant-aware. Il testo visibile resta
+orientato allo studio e non espone endpoint, chiavi o dettagli tecnici.
+
 Aggiornamento 2026-05-12T17:50:00+02:00: `/notifiche-legali` resta
 `react_operational_full` e aggiunge API JSON dedicate per anteprima relata
 compilata e salvataggio bozza relata. Le bozze sono tenant-aware e non vengono
@@ -29,7 +36,6 @@ Aggiornamento 2026-05-12T11:25:00+02:00: `/notifiche-legali` censita come
 legacy dedicato. La route non usa `LegacyPostForm`, non contiene form POST HTML
 e non offre CTA primaria `?_legacy=1`; le azioni sono endpoint JSON governati
 per notifica L. 53, comunicazione cliente e prova deposito.
-
 Aggiornamento 2026-05-11T17:30:00+02:00: `/fascicoli/nuovo` resta
 `react_operational_full` e rafforza il flusso principale senza fallback legacy:
 API JSON reale con clienti, soggetti e autorita' giudiziarie, validazioni

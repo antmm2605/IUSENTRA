@@ -58,6 +58,15 @@ Valori obbligatori per il deploy:
 - `AUDIT_HMAC_KEY`
 - `PCT_DOC_KEY` se i documenti cifrati sono attivi
 
+Variabili opzionali per PWA/Web Push:
+
+- `IUSENTRA_WEB_PUSH_ENABLED=0` o `1`
+- `IUSENTRA_VAPID_PUBLIC_KEY`
+- `IUSENTRA_VAPID_PRIVATE_KEY`
+- `IUSENTRA_VAPID_SUBJECT=mailto:admin@example.com`
+
+Lasciare il canale disattivo finche' le chiavi VAPID reali non sono state generate e inserite solo nell'ambiente del server.
+
 Generazione chiavi:
 
 ```bash

@@ -2,6 +2,13 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-12T18:05:00+02:00: tranche 2.217.2 PWA/Web Push.
+`Impostazioni > Notifiche` aggiunge il pannello dispositivo con consenso
+esplicito, attivazione/disattivazione subscription e test. Il centro notifiche
+topbar resta compatibile ma ora persiste notifiche e letture in `NOTIFICATIONS_DB`.
+Service Worker e manifest sono serviti da root; senza VAPID configurato la UI
+mostra stato chiaro e il gestionale continua a usare le notifiche interne.
+
 Aggiornamento 2026-05-12T17:50:00+02:00: tranche 2.217.1 su
 `/notifiche-legali`. I modelli relata personalizzati sono ora renderizzati con
 motore ristretto: solo token whitelistati, niente blocchi Jinja, filtri,

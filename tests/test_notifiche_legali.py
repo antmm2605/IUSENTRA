@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from types import SimpleNamespace
 
 from pct.notifiche_legali import (
     LEGAL_NOTIFICATION_SUBJECT,
@@ -10,6 +11,7 @@ from pct.notifiche_legali import (
 )
 from tests.test_web_bootstrap import _cfg_web, _write_studio_config
 from web.app import create_app
+from web.services.react_notifiche_legali_bridge import build_react_notifiche_legali_payload
 
 
 def _app(tmp_path: Path):
@@ -77,8 +79,18 @@ def test_notifica_l53_blocca_cliente_e_attestazione_mancante():
 
     assert result.ok is False
     assert any("Comunicazione al cliente" in item for item in result.blockers)
-    assert any("serve attestazione" in item for item in result.blockers)
     assert result.relata_text == ""
+
+
+def test_notifica_l53_compila_attestazione_da_origine_documento():
+    payload = _legal_payload()
+    payload["documenti"] = [{"nome_file": "scansione.pdf", "descrizione": "Provvedimento", "origine": "scansione"}]
+    payload["attestazione_conformita"] = ""
+
+    result = validate_legal_notification(payload)
+
+    assert result.ok is True
+    assert "copia informatica per immagine conforme all'originale analogico" in result.relata_text
 
 
 def test_comunicazione_cliente_non_usa_relata_o_oggetto_l53():
@@ -163,3 +175,74 @@ def test_api_react_notifiche_legali_espone_workflow_separati(tmp_path: Path):
     assert client_response.status_code == 200
     assert client_payload["ok"] is True
     assert client_payload["relataText"] == ""
+
+
+def test_payload_react_notifiche_legali_precompila_da_dati_iusentra():
+    cliente = SimpleNamespace(
+        id="cliente-1",
+        nome_completo="Cliente S.r.l.",
+        identificativo_fiscale="01234567890",
+        recapiti=SimpleNamespace(pec="cliente@example.pec.it"),
+    )
+    documento = SimpleNamespace(
+        id="doc-1",
+        nome_originale="ordinanza_rg_1234_2026.pdf",
+        nome_portale="",
+        nome="ordinanza.pdf",
+        percorso="ordinanza.pdf",
+        tipo_atto_portale="ordinanza emessa dal Tribunale di Roma",
+        classificazione_portale="",
+        note="",
+        fonte_documento="PORTALE_TELEMATICO",
+        hash_sha256="abc123",
+        data_documento="2026-05-10",
+        data_deposito_portale="",
+        id_documento_portale="pst-doc-1",
+        tags=[],
+    )
+    fascicolo = SimpleNamespace(
+        id="fascicolo-1",
+        numero="2026/001",
+        titolo="Cliente S.r.l. / Alfa S.p.A.",
+        id_cliente="cliente-1",
+        nome_cliente="Cliente S.r.l.",
+        controparte="Alfa S.p.A.",
+        cf_controparte="09876543210",
+        tribunale="Tribunale di Roma",
+        sezione="III Civile",
+        numero_rg="1234",
+        anno_rg=2026,
+        giudice="Dott. Verdi",
+        tipo_procedimento="civile ordinario",
+        documenti=[documento],
+    )
+    soggetto = SimpleNamespace(
+        id="soggetto-1",
+        tipo=SimpleNamespace(value="PERSONA_GIURIDICA"),
+        nome_completo="Alfa S.p.A.",
+        ragione_sociale="Alfa S.p.A.",
+        identificativo="09876543210",
+        recapiti=SimpleNamespace(pec="alfa@example.pec.it"),
+        qualifica="",
+    )
+    parte = SimpleNamespace(ruolo=SimpleNamespace(value="CONTROPARTE"), note="")
+
+    payload = build_react_notifiche_legali_payload(
+        get_clienti=lambda: SimpleNamespace(tutti=lambda: [cliente]),
+        get_fascicoli=lambda: SimpleNamespace(tutti=lambda archiviati=False: [fascicolo]),
+        get_soggetti=lambda: SimpleNamespace(
+            tutti=lambda: [soggetto],
+            parti_fascicolo=lambda id_fascicolo: [(parte, soggetto)],
+        ),
+    )
+
+    pratica = payload["precompilazione"]["pratiche"][0]
+    destinatario = pratica["destinatari"][0]
+    documento_payload = pratica["documenti"][0]
+
+    assert pratica["assistitoNome"] == "Cliente S.r.l."
+    assert pratica["procedimento"]["ufficio"] == "Tribunale di Roma"
+    assert destinatario["pec"] == "alfa@example.pec.it"
+    assert destinatario["fontePecSuggerita"] == "ini_pec"
+    assert documento_payload["origine"] == "copia_fascicolo_informatico"
+    assert documento_payload["necessitaAttestazione"] is True

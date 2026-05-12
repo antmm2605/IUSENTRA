@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.216.8 - 2026-05-12
+
+- Estesa `/notifiche-legali` con motore parametrico di modelli: catalogo JSON versionato, template L. 53/1994, attestazioni automatiche per fascicolo informatico, comunicazione di cancelleria e scansione analogica, checklist, log e scheda esito.
+- La pagina React ora precompila i dati disponibili da IUSENTRA: pratica, assistito, procedimento, destinatari/PEC, fonte pubblica suggerita, documenti del fascicolo, origine documento e hash quando presenti.
+- Aggiunta compilazione assistita con selettori rapidi per pratica, destinatario e documento, senza inventare dati mancanti: data/ora verifica PEC e conferma finale restano sotto controllo dell'avvocato.
+- Il bridge `/api/v1/ui/notifiche-legali` espone catalogo modelli, versioni e precompilazione dai repository reali di clienti, fascicoli e soggetti, con limiti prudenziali per mantenere rapido il caricamento.
+- Aggiornati dominio, UI, tipi TypeScript, test backend e build React per presidiare generazione automatica, attestazioni standard e assenza di testi tecnici visibili.
+
 ## 2.216.7 - 2026-05-12
 
 - Introdotta la route React `/notifiche-legali` con tre workflow separati: `Notifica ex L. 53/1994`, `Deposito prova notifica` e `Comunica al cliente`.

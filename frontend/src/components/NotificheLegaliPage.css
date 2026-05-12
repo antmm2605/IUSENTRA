@@ -145,6 +145,60 @@
   gap: 12px;
 }
 
+.iu-legal-auto-box {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 14px;
+  border: 1px solid rgba(31, 93, 153, .24);
+  border-radius: 9px;
+  background: rgba(235, 244, 255, .58);
+}
+
+.iu-legal-auto-box__title {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.iu-legal-auto-box__title svg {
+  color: var(--iu-blue-700, #173a67);
+  margin-top: 2px;
+}
+
+.iu-legal-auto-box__title div {
+  display: grid;
+  gap: 3px;
+}
+
+.iu-legal-auto-box__title strong {
+  color: var(--iu-slate-950, #101827);
+  font-size: .96rem;
+}
+
+.iu-legal-auto-box__title span,
+.iu-legal-auto-notes span {
+  color: var(--iu-slate-600, #526173);
+  font-size: .84rem;
+  line-height: 1.45;
+}
+
+.iu-legal-auto-notes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.iu-legal-auto-notes span {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 8px 9px;
+  border: 1px solid rgba(216, 222, 232, .72);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .72);
+}
+
 .iu-legal-field {
   display: flex;
   flex-direction: column;
@@ -182,6 +236,23 @@
 .iu-legal-field textarea {
   min-height: 104px;
   resize: vertical;
+}
+
+.iu-legal-inline-action {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.iu-legal-inline-action button {
+  min-height: 42px;
+  border: 1px solid rgba(31, 93, 153, .32);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--iu-blue-700, #173a67);
+  font-weight: 750;
+  padding: 0 12px;
+  cursor: pointer;
 }
 
 .iu-legal-field input[readonly] {
@@ -345,7 +416,8 @@
   }
 
   .iu-legal-flows,
-  .iu-legal-form-grid {
+  .iu-legal-form-grid,
+  .iu-legal-auto-notes {
     grid-template-columns: 1fr;
   }
 

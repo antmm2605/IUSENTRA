@@ -1,5 +1,32 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-12 - Notifiche legali parametriche 2.216.8
+
+La route `/notifiche-legali` evolve da procedura guidata a motore
+parametrico alimentato dai dati reali gia' presenti in IUSENTRA. Il catalogo
+`pct/data/notifiche_legali_templates.json` contiene tutti i modelli richiesti:
+relate 01-26, documenti di controllo 27-31, comunicazione cliente 32, nota di
+mancata consegna 33 e workflow PST 34, piu' le varianti operative 01A-01E per
+procedimento, attestazioni e destinatario societa'/impresa.
+
+L'API `/api/v1/ui/notifiche-legali` precompila la pagina da clienti,
+fascicoli, soggetti/parti e documenti del fascicolo:
+
+- pratica, assistito, codice fiscale/P. IVA e procedimento vengono letti dal
+  fascicolo selezionato;
+- destinatari, PEC, ruolo processuale, parte rappresentata e fonte PEC
+  suggerita derivano da soggetti e parti gia' censiti;
+- documenti, nome file, descrizione, origine, hash e necessita' di
+  attestazione derivano dal fascicolo e dalle metadatazioni portale quando
+  presenti;
+- la selezione del modello resta automatica ma governata: l'avvocato puo'
+  confermare o cambiare modello prima di firma e invio.
+
+Il sistema non inventa i dati mancanti: verifica PEC, data/ora controllo,
+firma digitale e conferma finale restano passaggi consapevoli dell'avvocato.
+La UI mantiene la logica "velocita' e automazione assistita" senza trasformare
+la notifica in un invio completamente automatico.
+
 ## Stato tranche 2026-05-12 - Notifiche legali L. 53 / comunicazioni cliente 2.216.7
 
 La nuova route `/notifiche-legali` entra nel perimetro

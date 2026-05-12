@@ -2,6 +2,13 @@
 
 Generato: 2026-05-08T10:03:02.066Z
 
+Aggiornamento 2026-05-12: `/notifiche-legali` 2.216.8 aggiunge la
+compilazione assistita da IUSENTRA. Il blocco iniziale propone pratica,
+destinatario e documento letti da fascicoli, soggetti e documenti reali, con
+icone Lucide e selettori compatti. I dati non disponibili restano vuoti o da
+verificare, mentre l'interfaccia evita termini tecnici e conserva il controllo
+professionale su PEC, attestazioni, firma e invio.
+
 Aggiornamento 2026-05-12: `/notifiche-legali` 2.216.7 introduce una pagina
 operativa compatta per separare notifica ex L. 53/1994, deposito prova e
 comunicazione cliente. La UI usa card azionabili, icone Lucide, oggetto PEC

@@ -4,6 +4,77 @@ export type LegalOption = {
   needsAttestazione?: boolean
 }
 
+export type LegalTemplateField = {
+  name: string
+  label: string
+}
+
+export type LegalTemplateOption = {
+  value: string
+  code: string
+  label: string
+  description: string
+  requiresProceeding: boolean
+  privacyDescription: boolean
+  fields: LegalTemplateField[]
+}
+
+export type LegalDocumentSuggestion = {
+  id: string
+  label: string
+  nomeFile: string
+  descrizione: string
+  origine: string
+  hashSha256: string
+  dataDocumento: string
+  fonte: string
+  necessitaAttestazione: boolean
+}
+
+export type LegalRecipientSuggestion = {
+  id: string
+  label: string
+  nome: string
+  codiceFiscalePiva: string
+  pec: string
+  ruolo: string
+  ruoloPratica: string
+  fontePecSuggerita: string
+  parteRappresentata: string
+  verificaRichiesta: boolean
+}
+
+export type LegalPracticeSuggestion = {
+  id: string
+  label: string
+  numero: string
+  titolo: string
+  assistitoNome: string
+  assistitoCf: string
+  clienteId: string
+  controparte: string
+  controparteCf: string
+  procedimento: {
+    presente: boolean
+    ufficio: string
+    sezione: string
+    numeroRg: string
+    annoRg: string
+    giudice: string
+    tipoProcedimento: string
+  }
+  destinatari: LegalRecipientSuggestion[]
+  documenti: LegalDocumentSuggestion[]
+  modelloSuggerito: string
+}
+
+export type LegalClientSuggestion = {
+  id: string
+  nome: string
+  codiceFiscalePiva: string
+  pec: string
+}
+
 export type LegalWorkflowResult = {
   ok: boolean
   blockers: string[]
@@ -12,6 +83,13 @@ export type LegalWorkflowResult = {
   body: string
   relataText: string
   nextActions: string[]
+  templateId: string
+  templateLabel: string
+  templateVersion: string
+  selectedBlocks: string[]
+  checklistText: string
+  logJson: Record<string, unknown>
+  outputPlan: Record<string, unknown>
   message?: string
 }
 
@@ -22,7 +100,9 @@ export type NotificheLegaliData = {
     separateLegalNotification: boolean
     clientCommunicationWithoutRelata: boolean
     depositProofWithOriginalReceipts: boolean
+    parametricTemplateEngine: boolean
   }
+  templateCatalogVersion: string
   mandatorySubject: string
   defaults: {
     studioNome: string
@@ -37,6 +117,14 @@ export type NotificheLegaliData = {
   registriPec: LegalOption[]
   ruoliDestinatario: LegalOption[]
   originiDocumento: LegalOption[]
+  modelliRelata: LegalTemplateOption[]
+  modelliControllo: LegalTemplateOption[]
+  precompilazione: {
+    pratiche: LegalPracticeSuggestion[]
+    clienti: LegalClientSuggestion[]
+    destinatari: LegalRecipientSuggestion[]
+    note: string[]
+  }
   azioni: {
     notifica: string
     comunicazioneCliente: string
@@ -57,6 +145,13 @@ const emptyResult: LegalWorkflowResult = {
   body: '',
   relataText: '',
   nextActions: [],
+  templateId: '',
+  templateLabel: '',
+  templateVersion: '',
+  selectedBlocks: [],
+  checklistText: '',
+  logJson: {},
+  outputPlan: {},
 }
 
 export const emptyNotificheLegaliData: NotificheLegaliData = {
@@ -66,7 +161,9 @@ export const emptyNotificheLegaliData: NotificheLegaliData = {
     separateLegalNotification: true,
     clientCommunicationWithoutRelata: true,
     depositProofWithOriginalReceipts: true,
+    parametricTemplateEngine: true,
   },
+  templateCatalogVersion: '',
   mandatorySubject: 'notificazione ai sensi della legge n. 53 del 1994',
   defaults: {
     studioNome: '',
@@ -81,6 +178,14 @@ export const emptyNotificheLegaliData: NotificheLegaliData = {
   registriPec: [],
   ruoliDestinatario: [],
   originiDocumento: [],
+  modelliRelata: [],
+  modelliControllo: [],
+  precompilazione: {
+    pratiche: [],
+    clienti: [],
+    destinatari: [],
+    note: [],
+  },
   azioni: {
     notifica: '/api/v1/ui/notifiche-legali/notifica',
     comunicazioneCliente: '/api/v1/ui/notifiche-legali/comunicazione-cliente',
@@ -117,6 +222,107 @@ function options(value: unknown): LegalOption[] {
   }).filter((item) => item.value && item.label)
 }
 
+function templateOptions(value: unknown): LegalTemplateOption[] {
+  if (!Array.isArray(value)) return []
+  return value.map((item) => {
+    const row = isRecord(item) ? item : {}
+    const rawFields = Array.isArray(row.fields) ? row.fields : []
+    return {
+      value: text(row.value),
+      code: text(row.code),
+      label: text(row.label, text(row.value)),
+      description: text(row.description),
+      requiresProceeding: bool(row.requiresProceeding),
+      privacyDescription: bool(row.privacyDescription),
+      fields: rawFields.map((field) => {
+        const fieldRow = isRecord(field) ? field : {}
+        return { name: text(fieldRow.name), label: text(fieldRow.label, text(fieldRow.name)) }
+      }).filter((field) => field.name && field.label),
+    }
+  }).filter((item) => item.value && item.label)
+}
+
+function documentSuggestions(value: unknown): LegalDocumentSuggestion[] {
+  if (!Array.isArray(value)) return []
+  return value.map((item) => {
+    const row = isRecord(item) ? item : {}
+    return {
+      id: text(row.id),
+      label: text(row.label, text(row.nomeFile)),
+      nomeFile: text(row.nomeFile),
+      descrizione: text(row.descrizione),
+      origine: text(row.origine, 'originale_informatico'),
+      hashSha256: text(row.hashSha256),
+      dataDocumento: text(row.dataDocumento),
+      fonte: text(row.fonte),
+      necessitaAttestazione: bool(row.necessitaAttestazione),
+    }
+  }).filter((item) => item.id && item.label)
+}
+
+function recipientSuggestions(value: unknown): LegalRecipientSuggestion[] {
+  if (!Array.isArray(value)) return []
+  return value.map((item) => {
+    const row = isRecord(item) ? item : {}
+    return {
+      id: text(row.id),
+      label: text(row.label, text(row.nome)),
+      nome: text(row.nome),
+      codiceFiscalePiva: text(row.codiceFiscalePiva),
+      pec: text(row.pec),
+      ruolo: text(row.ruolo, 'terzo'),
+      ruoloPratica: text(row.ruoloPratica),
+      fontePecSuggerita: text(row.fontePecSuggerita, 'inad'),
+      parteRappresentata: text(row.parteRappresentata),
+      verificaRichiesta: bool(row.verificaRichiesta),
+    }
+  }).filter((item) => item.id && item.label)
+}
+
+function practiceSuggestions(value: unknown): LegalPracticeSuggestion[] {
+  if (!Array.isArray(value)) return []
+  return value.map((item) => {
+    const row = isRecord(item) ? item : {}
+    const procedimento = isRecord(row.procedimento) ? row.procedimento : {}
+    return {
+      id: text(row.id),
+      label: text(row.label, text(row.titolo)),
+      numero: text(row.numero),
+      titolo: text(row.titolo),
+      assistitoNome: text(row.assistitoNome),
+      assistitoCf: text(row.assistitoCf),
+      clienteId: text(row.clienteId),
+      controparte: text(row.controparte),
+      controparteCf: text(row.controparteCf),
+      procedimento: {
+        presente: bool(procedimento.presente),
+        ufficio: text(procedimento.ufficio),
+        sezione: text(procedimento.sezione),
+        numeroRg: text(procedimento.numeroRg),
+        annoRg: text(procedimento.annoRg),
+        giudice: text(procedimento.giudice),
+        tipoProcedimento: text(procedimento.tipoProcedimento),
+      },
+      destinatari: recipientSuggestions(row.destinatari),
+      documenti: documentSuggestions(row.documenti),
+      modelloSuggerito: text(row.modelloSuggerito, 'relata_pec_base_l53'),
+    }
+  }).filter((item) => item.id && item.label)
+}
+
+function clientSuggestions(value: unknown): LegalClientSuggestion[] {
+  if (!Array.isArray(value)) return []
+  return value.map((item) => {
+    const row = isRecord(item) ? item : {}
+    return {
+      id: text(row.id),
+      nome: text(row.nome),
+      codiceFiscalePiva: text(row.codiceFiscalePiva),
+      pec: text(row.pec),
+    }
+  }).filter((item) => item.id && item.nome)
+}
+
 function resultFromPayload(payload: unknown): LegalWorkflowResult {
   if (!isRecord(payload)) return emptyResult
   return {
@@ -127,6 +333,13 @@ function resultFromPayload(payload: unknown): LegalWorkflowResult {
     body: text(payload.body),
     relataText: text(payload.relataText),
     nextActions: Array.isArray(payload.nextActions) ? payload.nextActions.map((item) => text(item)).filter(Boolean) : [],
+    templateId: text(payload.templateId),
+    templateLabel: text(payload.templateLabel),
+    templateVersion: text(payload.templateVersion),
+    selectedBlocks: Array.isArray(payload.selectedBlocks) ? payload.selectedBlocks.map((item) => text(item)).filter(Boolean) : [],
+    checklistText: text(payload.checklistText),
+    logJson: isRecord(payload.logJson) ? payload.logJson : {},
+    outputPlan: isRecord(payload.outputPlan) ? payload.outputPlan : {},
     message: text(payload.message),
   }
 }
@@ -136,6 +349,7 @@ function normalisePayload(payload: unknown): NotificheLegaliData {
   const defaults = isRecord(payload.defaults) ? payload.defaults : {}
   const contracts = isRecord(payload.contracts) ? payload.contracts : {}
   const azioni = isRecord(payload.azioni) ? payload.azioni : {}
+  const precompilazione = isRecord(payload.precompilazione) ? payload.precompilazione : {}
   return {
     source: text(payload.source, 'configurazione_studio'),
     generatedAt: text(payload.generatedAt),
@@ -143,7 +357,9 @@ function normalisePayload(payload: unknown): NotificheLegaliData {
       separateLegalNotification: bool(contracts.separateLegalNotification),
       clientCommunicationWithoutRelata: bool(contracts.clientCommunicationWithoutRelata),
       depositProofWithOriginalReceipts: bool(contracts.depositProofWithOriginalReceipts),
+      parametricTemplateEngine: bool(contracts.parametricTemplateEngine),
     },
+    templateCatalogVersion: text(payload.templateCatalogVersion),
     mandatorySubject: text(payload.mandatorySubject, emptyNotificheLegaliData.mandatorySubject),
     defaults: {
       studioNome: text(defaults.studioNome),
@@ -158,6 +374,14 @@ function normalisePayload(payload: unknown): NotificheLegaliData {
     registriPec: options(payload.registriPec),
     ruoliDestinatario: options(payload.ruoliDestinatario),
     originiDocumento: options(payload.originiDocumento),
+    modelliRelata: templateOptions(payload.modelliRelata),
+    modelliControllo: templateOptions(payload.modelliControllo),
+    precompilazione: {
+      pratiche: practiceSuggestions(precompilazione.pratiche),
+      clienti: clientSuggestions(precompilazione.clienti),
+      destinatari: recipientSuggestions(precompilazione.destinatari),
+      note: Array.isArray(precompilazione.note) ? precompilazione.note.map((item) => text(item)).filter(Boolean) : [],
+    },
     azioni: {
       notifica: text(azioni.notifica, emptyNotificheLegaliData.azioni.notifica),
       comunicazioneCliente: text(azioni.comunicazioneCliente, emptyNotificheLegaliData.azioni.comunicazioneCliente),

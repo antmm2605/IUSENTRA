@@ -8,6 +8,25 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 
 ## Frontend e gate React
 
+### Notifiche legali parametriche / precompilazione IUSENTRA 2.216.8
+
+| Verifica | Esito | Nota |
+| --- | --- | --- |
+| Controllo catalogo `pct/data/notifiche_legali_templates.json` | OK | Catalogo versione `2026.05.12` con 39 voci: tutti i modelli 01-34 richiesti piu' varianti operative 01A-01E. |
+| `python -m py_compile pct/notifiche_legali.py web/services/react_notifiche_legali_bridge.py web/blueprints/api_v1_react.py` | OK | Sintassi confermata per motore parametrico, bridge precompilazione e API React. |
+| `python -m pytest -q tests/test_notifiche_legali.py --tb=short` | OK | 7/7 passati: generazione L. 53, comunicazione cliente, prova deposito, attestazioni automatiche e precompilazione da dati IUSENTRA. |
+| `npm --prefix frontend run typecheck` | OK | TypeScript confermato per nuovi tipi pratica/destinatario/documento e UI assistita. |
+| `npm --prefix frontend run test` | OK | Contratti React confermati per `/notifiche-legali`, endpoint e workflow separati. |
+| `node scripts/react-migration/check-route-gate.mjs` | OK | Route gate coerente: `/notifiche-legali` resta `react_operational_full`. |
+| `node scripts/react-migration/check-full-react-route-contract.mjs` | OK | Contratto full React e no-fake confermati dopo la precompilazione. |
+| `python tools/sync_packaging_files.py --check` | OK | Packaging sincronizzato dopo bump 2.216.8. |
+| `python -m pytest -q tests/test_packaging_consistency.py tests/test_release_readiness.py --tb=short` | OK | 8/8 passati: coerenza packaging e readiness release confermate per 2.216.8. |
+| `npm --prefix frontend run build` | OK | Build Vite 2.216.8 completata in 5.95s; `NotificheLegaliPage-MxCCwTqZ.js` resta lazy-loaded e il bundle iniziale resta sostanzialmente invariato. |
+| `docker compose build app scheduler-worker ocr-worker` | OK | Immagini locali costruite con wheel `pct-studio-legale==2.216.8`, senza creare backup. |
+| `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx` / `docker compose ps` / `GET http://127.0.0.1:8080/api/pronto` | OK | Container locali healthy; readiness `versione=2.216.8`; runtime container `pct.__version__=2.216.8`. |
+| Browser reale Docker locale `http://127.0.0.1:8080/notifiche-legali` desktop/mobile | OK | Blocco `Compilazione assistita da IUSENTRA` visibile; desktop 539 ms e mobile 516 ms a contenuto visibile dopo warm-up; nessun overflow orizzontale, nessun errore console e nessun testo tecnico vietato. |
+| Deploy Hetzner CPX42 manuale senza backup / `GET https://app.iusentra.it/api/pronto` | OK | Repository server e branch remoti allineati sul commit finale 2.216.8; container `app`, `redis`, `scheduler-worker`, `ocr-worker`, `caddy` e `ollama` healthy/up; readiness pubblica `versione=2.216.8`. |
+
 ### Notifiche legali L. 53 / comunicazioni cliente 2.216.7
 
 | Verifica | Esito | Nota |

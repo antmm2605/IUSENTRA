@@ -2,6 +2,16 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-12T18:40:00+02:00: tranche 2.216.8 su
+`/notifiche-legali`. Il percorso e' ora un motore di modelli parametrico:
+catalogo JSON versionato con 39 voci complessive, tutti i modelli 01-34
+richiesti e varianti 01A-01E per procedimento, attestazioni e destinatari
+impresa/societa'. Il bridge React compila automaticamente pratica, assistito,
+procedimento, destinatari, PEC, fonte pubblica suggerita, documenti, origine e
+hash dai repository reali IUSENTRA. La pagina espone selezione assistita di
+pratica, destinatario e documento, senza creare dati fittizi e mantenendo
+verifica PEC, firma e invio come conferme esplicite dell'avvocato.
+
 Aggiornamento 2026-05-12T11:25:00+02:00: tranche 2.216.7 su
 `/notifiche-legali`. La shell React espone tre percorsi separati: notifica ex
 L. 53/1994 con relata e blocchi, deposito prova notifica con RAC/RdAC originali

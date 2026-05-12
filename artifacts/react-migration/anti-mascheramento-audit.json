@@ -1,6 +1,6 @@
 {
   "summary": {
-    "generatedAt": "2026-05-11T11:17:05.835Z",
+    "generatedAt": "2026-05-12T11:26:44.065Z",
     "scannedFiles": [
       "frontend/src/adminDatabaseData.ts",
       "frontend/src/agendaData.ts",
@@ -92,6 +92,7 @@
       "frontend/src/components/layout/TopBarTodayMenu.tsx",
       "frontend/src/components/LegalIntelligencePage.tsx",
       "frontend/src/components/MessaggiPage.tsx",
+      "frontend/src/components/NotificheLegaliPage.tsx",
       "frontend/src/components/NuovaScadenzaPage.tsx",
       "frontend/src/components/NuovoAppuntamentoPage.tsx",
       "frontend/src/components/NuovoClientePage.tsx",
@@ -248,6 +249,7 @@
       "frontend/src/lib/utils.ts",
       "frontend/src/main.tsx",
       "frontend/src/messaggiData.ts",
+      "frontend/src/notificheLegaliData.ts",
       "frontend/src/preventiviData.ts",
       "frontend/src/preventivoWizardData.ts",
       "frontend/src/preventivoWizardUtils.ts",
@@ -356,6 +358,7 @@
       "web/services/react_incassi_pagamenti_bridge.py",
       "web/services/react_legal_intelligence_bridge.py",
       "web/services/react_messaggi_bridge.py",
+      "web/services/react_notifiche_legali_bridge.py",
       "web/services/react_practice_engine_bridge.py",
       "web/services/react_preventivi_bridge.py",
       "web/services/react_preventivo_wizard_bridge.py",
@@ -378,7 +381,7 @@
       "web/services/react_wizard_pro_bridge.py"
     ],
     "totals": {
-      "routes": 86,
+      "routes": 87,
       "legacyLinks": 84,
       "legacyPostForms": 0,
       "reactPostForms": 0,
@@ -387,7 +390,7 @@
       "missingWriteApi": 2
     },
     "levels": {
-      "react_operational_full": 66,
+      "react_operational_full": 67,
       "legacy_operational": 19,
       "react_operational_partial": 1
     }
@@ -763,6 +766,28 @@
       "legacyPostForms": 0,
       "reactPostForms": 0,
       "jsonWrites": false,
+      "jsonReads": true,
+      "bridgeWritesLegacy": false,
+      "blockingLegacyLinks": 0,
+      "technicalRollback": false,
+      "missingWriteApi": false,
+      "missingErrorHandling": false,
+      "missingSuccessHandling": false,
+      "problems": [],
+      "realLevel": "react_operational_full"
+    },
+    {
+      "route": "/notifiche-legali",
+      "component": "frontend/src/components/NotificheLegaliPage.tsx",
+      "dataClient": "frontend/src/notificheLegaliData.ts",
+      "bridge": "web/services/react_notifiche_legali_bridge.py",
+      "manifestStatus": "react_operational_full",
+      "unlockFromGate": true,
+      "legacyLinks": 0,
+      "legacyButtons": 0,
+      "legacyPostForms": 0,
+      "reactPostForms": 0,
+      "jsonWrites": true,
       "jsonReads": true,
       "bridgeWritesLegacy": false,
       "blockingLegacyLinks": 0,

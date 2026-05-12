@@ -1,6 +1,6 @@
 # Audit anti-mascheramento React
 
-Generato: 2026-05-11T11:17:05.835Z
+Generato: 2026-05-12T11:26:44.065Z
 
 ## Regole operative Parte 12A
 
@@ -12,7 +12,7 @@ Generato: 2026-05-11T11:17:05.835Z
 
 ## Sintesi
 
-- Route censite: 86
+- Route censite: 87
 - Link `?_legacy=1`: 84
 - LegacyPostForm: 0
 - Form POST HTML React: 0
@@ -41,6 +41,7 @@ Generato: 2026-05-11T11:17:05.835Z
 | /deposito/checklist | frontend/src/components/TelematicoSurfacePage.tsx | frontend/src/telematicoSurfacesData.ts | web/services/react_telematico_bridge.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
 | /email | frontend/src/components/EmailPecPage.tsx | frontend/src/emailData.ts | web/services/react_email_bridge.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
 | /email-ordinaria | frontend/src/components/EmailPecPage.tsx | frontend/src/emailData.ts | web/services/react_email_bridge.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
+| /notifiche-legali | frontend/src/components/NotificheLegaliPage.tsx | frontend/src/notificheLegaliData.ts | web/services/react_notifiche_legali_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
 | /fascicoli | frontend/src/components/FascicoliPage.tsx | frontend/src/fascicoliData.ts | web/services/react_fascicoli_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
 | /fascicoli/archivio | frontend/src/components/FascicoliPage.tsx | frontend/src/fascicoliData.ts | web/services/react_fascicoli_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
 | /fascicoli/nuovo | frontend/src/components/FascicoliPage.tsx | frontend/src/fascicoliData.ts | web/services/react_fascicoli_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |

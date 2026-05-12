@@ -1660,7 +1660,12 @@ def _notifiche_legali_result_response(result: Any, *, success_message: str):
 def notifiche_legali_payload():
     config_loader = _core_runtime_func("get_config_studio")
     config_studio = config_loader() if callable(config_loader) else None
-    return jsonify(build_react_notifiche_legali_payload(config_studio=config_studio))
+    return jsonify(build_react_notifiche_legali_payload(
+        config_studio=config_studio,
+        get_clienti=get_clienti,
+        get_fascicoli=get_fascicoli,
+        get_soggetti=get_soggetti,
+    ))
 
 
 @api_v1_react.post("/notifiche-legali/notifica")

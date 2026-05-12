@@ -1,0 +1,584 @@
+{
+  "catalog_version": "2026.05.12",
+  "legal_basis": [
+    "L. 21 gennaio 1994, n. 53, art. 3-bis",
+    "PST Ministero della Giustizia, scheda notificazioni via PEC degli avvocati"
+  ],
+  "mandatory_subject": "notificazione ai sensi della legge n. 53 del 1994",
+  "templates": [
+    {
+      "id": "relata_pec_base_l53",
+      "code": "01",
+      "kind": "relata",
+      "label": "Relata PEC base",
+      "description": "Modello base per notifica a mezzo PEC ex L. 53/1994.",
+      "required_fields": [],
+      "fields": [],
+      "purpose_lines": []
+    },
+    {
+      "id": "relata_pec_in_corso_di_causa",
+      "code": "01A",
+      "kind": "relata",
+      "label": "In corso di causa",
+      "description": "Relata base con blocco procedimento obbligatorio.",
+      "requires_proceeding": true,
+      "required_fields": [],
+      "fields": [],
+      "purpose_lines": [
+        "La notifica viene eseguita in corso di causa, con riferimento al procedimento indicato."
+      ]
+    },
+    {
+      "id": "relata_pec_con_attestazione_fascicolo",
+      "code": "01B",
+      "kind": "relata",
+      "label": "Con attestazione da fascicolo",
+      "description": "Relata per copie informatiche estratte dal fascicolo informatico.",
+      "requires_proceeding": true,
+      "required_fields": [],
+      "fields": [],
+      "purpose_lines": [
+        "Il modello include l'attestazione automatica dei documenti estratti dal fascicolo informatico."
+      ]
+    },
+    {
+      "id": "relata_pec_con_attestazione_scansione_analogica",
+      "code": "01C",
+      "kind": "relata",
+      "label": "Con attestazione da scansione",
+      "description": "Relata per copia informatica per immagine da originale analogico.",
+      "required_fields": [],
+      "fields": [],
+      "purpose_lines": [
+        "Il modello include l'attestazione automatica per le copie per immagine da originale analogico."
+      ]
+    },
+    {
+      "id": "relata_pec_provvedimento_da_fascicolo",
+      "code": "01D",
+      "kind": "relata",
+      "label": "Provvedimento da fascicolo",
+      "description": "Relata per provvedimenti estratti dal fascicolo o ricevuti telematicamente.",
+      "requires_proceeding": true,
+      "required_fields": [],
+      "fields": [
+        {"name": "provvedimento_data", "label": "Data provvedimento"}
+      ],
+      "purpose_lines": [
+        "La notifica riguarda provvedimento presente nel fascicolo informatico o ricevuto in via telematica."
+      ]
+    },
+    {
+      "id": "relata_pec_a_societa_impresa",
+      "code": "01E",
+      "kind": "relata",
+      "label": "A societa' o impresa",
+      "description": "Alias operativo per notifica a societa' o impresa.",
+      "recipient_roles": ["impresa"],
+      "required_fields": ["destinatario.codice_fiscale_piva"],
+      "fields": [
+        {"name": "destinatario_codice_fiscale_piva", "label": "C.F. / P. IVA destinatario"}
+      ],
+      "purpose_lines": [
+        "La notificazione e' rivolta a societa' o impresa all'indirizzo PEC risultante dal pubblico elenco dichiarato."
+      ]
+    },
+    {
+      "id": "relata_pec_a_difensore_costituito",
+      "code": "02",
+      "kind": "relata",
+      "label": "A difensore costituito",
+      "description": "Notifica verso il difensore della controparte gia' costituito.",
+      "recipient_roles": ["difensore"],
+      "required_fields": ["destinatario.parte_rappresentata"],
+      "fields": [
+        {"name": "destinatario_parte_rappresentata", "label": "Parte rappresentata"}
+      ],
+      "purpose_lines": [
+        "{% if destinatario.parte_rappresentata %}Il destinatario e' indicato quale difensore di {{ destinatario.parte_rappresentata }}.{% endif %}"
+      ]
+    },
+    {
+      "id": "relata_pec_a_controparte_personalmente",
+      "code": "03",
+      "kind": "relata",
+      "label": "A controparte personalmente",
+      "description": "Notifica alla controparte in proprio quando ricorrono i presupposti.",
+      "recipient_roles": ["controparte"],
+      "required_fields": [],
+      "fields": [],
+      "purpose_lines": [
+        "La notificazione e' eseguita nei confronti del destinatario personalmente, all'indirizzo risultante dal pubblico elenco indicato."
+      ]
+    },
+    {
+      "id": "relata_pec_a_impresa_societa",
+      "code": "04",
+      "kind": "relata",
+      "label": "A impresa o societa'",
+      "description": "Notifica a impresa o societa' con PEC tratta da Registro Imprese o INI-PEC.",
+      "recipient_roles": ["impresa"],
+      "required_fields": ["destinatario.codice_fiscale_piva"],
+      "fields": [
+        {"name": "destinatario_codice_fiscale_piva", "label": "C.F. / P. IVA destinatario"}
+      ],
+      "purpose_lines": [
+        "La notificazione e' rivolta a impresa o societa' all'indirizzo PEC risultante dal pubblico elenco dichiarato."
+      ]
+    },
+    {
+      "id": "relata_pec_a_professionista_inipec",
+      "code": "05",
+      "kind": "relata",
+      "label": "A professionista INI-PEC",
+      "description": "Notifica a professionista con domicilio digitale da INI-PEC o albo.",
+      "recipient_roles": ["professionista"],
+      "required_fields": [],
+      "fields": [],
+      "purpose_lines": [
+        "La notificazione e' rivolta a professionista presso il domicilio digitale risultante dal pubblico elenco indicato."
+      ]
+    },
+    {
+      "id": "relata_pec_a_pubblica_amministrazione",
+      "code": "06",
+      "kind": "relata",
+      "label": "A pubblica amministrazione",
+      "description": "Notifica a pubblica amministrazione presso registro pubblico ammesso.",
+      "recipient_roles": ["pa"],
+      "required_fields": [],
+      "fields": [],
+      "purpose_lines": [
+        "La notificazione e' rivolta a pubblica amministrazione presso l'indirizzo risultante dal registro pubblico indicato."
+      ]
+    },
+    {
+      "id": "relata_pec_a_curatore_commissario_liquidatore",
+      "code": "07",
+      "kind": "relata",
+      "label": "A curatore, commissario o liquidatore",
+      "description": "Notifica a organo di procedura concorsuale o liquidatoria.",
+      "required_fields": ["destinatario.qualifica"],
+      "fields": [
+        {"name": "destinatario_qualifica", "label": "Qualifica destinatario"}
+      ],
+      "purpose_lines": [
+        "{% if destinatario.qualifica %}Il destinatario riceve la notifica in qualita' di {{ destinatario.qualifica }}.{% endif %}"
+      ]
+    },
+    {
+      "id": "relata_provvedimento_giudice",
+      "code": "08",
+      "kind": "relata",
+      "label": "Provvedimento del giudice",
+      "description": "Notifica di provvedimento giudiziale estratto o ricevuto in via telematica.",
+      "required_fields": ["procedimento.ufficio", "procedimento.numero_rg", "procedimento.anno_rg", "provvedimento.data"],
+      "fields": [
+        {"name": "provvedimento_data", "label": "Data provvedimento"}
+      ],
+      "purpose_lines": [
+        "La notificazione ha ad oggetto provvedimento emesso da {{ procedimento.ufficio }} in data {{ provvedimento.data }}."
+      ]
+    },
+    {
+      "id": "relata_sentenza_termine_breve",
+      "code": "09",
+      "kind": "relata",
+      "label": "Sentenza e termine breve",
+      "description": "Notifica di sentenza o provvedimento ai fini dei termini di impugnazione.",
+      "required_fields": ["provvedimento.tipo", "provvedimento.numero", "provvedimento.anno", "provvedimento.data_deposito"],
+      "fields": [
+        {"name": "provvedimento_tipo", "label": "Tipo provvedimento"},
+        {"name": "provvedimento_numero", "label": "Numero provvedimento"},
+        {"name": "provvedimento_anno", "label": "Anno provvedimento"},
+        {"name": "provvedimento_data_deposito", "label": "Data deposito / pubblicazione"}
+      ],
+      "purpose_lines": [
+        "La notificazione e' eseguita ai fini della decorrenza dei termini di legge relativi a {{ provvedimento.tipo }} n. {{ provvedimento.numero }}/{{ provvedimento.anno }}, depositato o pubblicato in data {{ provvedimento.data_deposito }}."
+      ]
+    },
+    {
+      "id": "relata_decreto_ingiuntivo",
+      "code": "10",
+      "kind": "relata",
+      "label": "Decreto ingiuntivo",
+      "description": "Notifica di decreto ingiuntivo e atti collegati.",
+      "required_fields": ["provvedimento.numero", "provvedimento.anno", "provvedimento.ufficio_origine"],
+      "fields": [
+        {"name": "provvedimento_numero", "label": "Numero decreto"},
+        {"name": "provvedimento_anno", "label": "Anno decreto"},
+        {"name": "provvedimento_ufficio_origine", "label": "Ufficio che ha emesso il decreto"}
+      ],
+      "purpose_lines": [
+        "La notificazione ha ad oggetto decreto ingiuntivo n. {{ provvedimento.numero }}/{{ provvedimento.anno }}, emesso da {{ provvedimento.ufficio_origine }}."
+      ]
+    },
+    {
+      "id": "relata_titolo_esecutivo_precetto",
+      "code": "11",
+      "kind": "relata",
+      "label": "Titolo esecutivo e precetto",
+      "description": "Notifica di titolo, formula esecutiva, precetto o atti propedeutici.",
+      "required_fields": [],
+      "fields": [],
+      "purpose_lines": [
+        "La notificazione riguarda titolo esecutivo, precetto o atti collegati come indicati nei documenti allegati."
+      ]
+    },
+    {
+      "id": "relata_atto_stragiudiziale",
+      "code": "12",
+      "kind": "relata",
+      "label": "Atto stragiudiziale",
+      "description": "Notifica di diffida, accordo o atto stragiudiziale quando ammesso.",
+      "required_fields": [],
+      "fields": [],
+      "purpose_lines": [
+        "La presente notificazione viene eseguita quale notificazione di atto stragiudiziale nell'interesse di {{ cliente.nome_denominazione }}."
+      ]
+    },
+    {
+      "id": "relata_rinnovo_notifica",
+      "code": "13",
+      "kind": "relata",
+      "label": "Rinnovo notificazione",
+      "description": "Rinnovo ordinato dal giudice o nuovo invio dopo notifica non perfezionata.",
+      "requires_proceeding": true,
+      "required_fields": ["procedimento.numero_rg", "procedimento.anno_rg"],
+      "fields": [
+        {"name": "notifica_precedente_data", "label": "Data notifica precedente"},
+        {"name": "notifica_precedente_esito", "label": "Esito precedente"},
+        {"name": "provvedimento_rinnovo_data", "label": "Data provvedimento di rinnovo"}
+      ],
+      "purpose_lines": [
+        "La presente notificazione viene eseguita quale rinnovo della precedente notifica{% if notifica_precedente.data %} effettuata o tentata in data {{ notifica_precedente.data }}{% endif %}{% if notifica_precedente.esito %}, con esito {{ notifica_precedente.esito }}{% endif %}.",
+        "{% if provvedimento_rinnovo.data %}Il rinnovo e' eseguito in conformita' al provvedimento del {{ provvedimento_rinnovo.data }}.{% endif %}"
+      ]
+    },
+    {
+      "id": "relata_integrazione_contraddittorio",
+      "code": "14",
+      "kind": "relata",
+      "label": "Integrazione del contraddittorio",
+      "description": "Notifica per integrare il contraddittorio verso litisconsorte o altro soggetto.",
+      "requires_proceeding": true,
+      "required_fields": ["provvedimento.data"],
+      "fields": [
+        {"name": "provvedimento_data", "label": "Data provvedimento"}
+      ],
+      "purpose_lines": [
+        "La presente notificazione viene eseguita ai fini dell'integrazione del contraddittorio nel procedimento indicato, in esecuzione del provvedimento del {{ provvedimento.data }}."
+      ]
+    },
+    {
+      "id": "relata_chiamata_terzo",
+      "code": "15",
+      "kind": "relata",
+      "label": "Chiamata in causa del terzo",
+      "description": "Notifica per chiamata di terzo autorizzata o disposta.",
+      "requires_proceeding": true,
+      "required_fields": ["provvedimento.data"],
+      "fields": [
+        {"name": "provvedimento_data", "label": "Data autorizzazione / provvedimento"}
+      ],
+      "purpose_lines": [
+        "La presente notificazione viene eseguita ai fini della chiamata in causa del terzo, come da autorizzazione o provvedimento del {{ provvedimento.data }}, ove presente tra gli allegati."
+      ]
+    },
+    {
+      "id": "relata_riassunzione",
+      "code": "16",
+      "kind": "relata",
+      "label": "Riassunzione",
+      "description": "Notifica di atto di riassunzione dopo evento processuale.",
+      "requires_proceeding": true,
+      "required_fields": ["riassunzione.causa"],
+      "fields": [
+        {"name": "riassunzione_causa", "label": "Causa riassunzione"}
+      ],
+      "purpose_lines": [
+        "La presente notificazione e' relativa ad atto di riassunzione a seguito di {{ riassunzione.causa }}, come indicato nell'atto notificato."
+      ]
+    },
+    {
+      "id": "relata_appello_impugnazione",
+      "code": "17",
+      "kind": "relata",
+      "label": "Appello o impugnazione",
+      "description": "Notifica di appello, reclamo, opposizione o altra impugnazione.",
+      "required_fields": ["provvedimento.tipo", "provvedimento.numero", "provvedimento.anno", "provvedimento.ufficio_origine", "provvedimento.data_deposito"],
+      "fields": [
+        {"name": "provvedimento_tipo", "label": "Tipo provvedimento impugnato"},
+        {"name": "provvedimento_numero", "label": "Numero provvedimento"},
+        {"name": "provvedimento_anno", "label": "Anno provvedimento"},
+        {"name": "provvedimento_ufficio_origine", "label": "Ufficio di origine"},
+        {"name": "provvedimento_data_deposito", "label": "Data deposito / pubblicazione"}
+      ],
+      "purpose_lines": [
+        "La notificazione ha ad oggetto atto di impugnazione o appello avverso {{ provvedimento.tipo }} n. {{ provvedimento.numero }}/{{ provvedimento.anno }}, emesso da {{ provvedimento.ufficio_origine }}, depositato o pubblicato in data {{ provvedimento.data_deposito }}."
+      ]
+    },
+    {
+      "id": "relata_reclamo_cautelare",
+      "code": "18",
+      "kind": "relata",
+      "label": "Reclamo cautelare",
+      "description": "Notifica di reclamo contro ordinanza cautelare o provvedimento urgente.",
+      "requires_proceeding": true,
+      "required_fields": ["provvedimento.data"],
+      "fields": [
+        {"name": "provvedimento_data", "label": "Data provvedimento cautelare"}
+      ],
+      "purpose_lines": [
+        "La notificazione viene eseguita in relazione al reclamo cautelare avverso il provvedimento emesso da {{ procedimento.ufficio }} in data {{ provvedimento.data }}."
+      ]
+    },
+    {
+      "id": "relata_sfratto_convalida",
+      "code": "19",
+      "kind": "relata",
+      "label": "Sfratto e convalida",
+      "description": "Notifica in procedimento di sfratto, licenza o convalida.",
+      "required_fields": ["sfratto.tipo_procedimento", "sfratto.immobile_indirizzo"],
+      "fields": [
+        {"name": "sfratto_tipo_procedimento", "label": "Tipo procedimento"},
+        {"name": "sfratto_immobile_indirizzo", "label": "Indirizzo immobile"}
+      ],
+      "purpose_lines": [
+        "La notificazione viene eseguita nell'ambito del procedimento di {{ sfratto.tipo_procedimento }}, relativo all'immobile sito in {{ sfratto.immobile_indirizzo }}, come meglio indicato nell'atto notificato."
+      ]
+    },
+    {
+      "id": "relata_pignoramento_presso_terzi",
+      "code": "20",
+      "kind": "relata",
+      "label": "Pignoramento presso terzi",
+      "description": "Notifica di atti esecutivi collegati al pignoramento presso terzi.",
+      "required_fields": ["esecuzione.debitore", "esecuzione.terzo_pignorato"],
+      "fields": [
+        {"name": "destinatario_qualifica", "label": "Qualifica destinatario"},
+        {"name": "esecuzione_debitore", "label": "Debitore esecutato"},
+        {"name": "esecuzione_terzo_pignorato", "label": "Terzo pignorato"}
+      ],
+      "purpose_lines": [
+        "La notificazione viene eseguita nell'ambito della procedura esecutiva presso terzi promossa da {{ cliente.nome_denominazione }} nei confronti di {{ esecuzione.debitore }}, con terzo pignorato {{ esecuzione.terzo_pignorato }}, come indicato negli atti allegati."
+      ]
+    },
+    {
+      "id": "relata_intervento_esecuzione",
+      "code": "21",
+      "kind": "relata",
+      "label": "Intervento in esecuzione",
+      "description": "Notifica di intervento in procedura esecutiva.",
+      "requires_proceeding": true,
+      "required_fields": [],
+      "fields": [],
+      "purpose_lines": [
+        "La notificazione viene eseguita in relazione alla procedura esecutiva nella quale {{ cliente.nome_denominazione }} interviene quale creditore."
+      ]
+    },
+    {
+      "id": "relata_opposizione_decreto_ingiuntivo",
+      "code": "22",
+      "kind": "relata",
+      "label": "Opposizione a decreto ingiuntivo",
+      "description": "Notifica di opposizione a decreto ingiuntivo.",
+      "required_fields": ["provvedimento.numero", "provvedimento.anno", "provvedimento.ufficio_origine"],
+      "fields": [
+        {"name": "provvedimento_numero", "label": "Numero decreto"},
+        {"name": "provvedimento_anno", "label": "Anno decreto"},
+        {"name": "provvedimento_ufficio_origine", "label": "Ufficio decreto"}
+      ],
+      "purpose_lines": [
+        "La presente notificazione ha ad oggetto atto di opposizione avverso il decreto ingiuntivo n. {{ provvedimento.numero }}/{{ provvedimento.anno }}, emesso da {{ provvedimento.ufficio_origine }}."
+      ]
+    },
+    {
+      "id": "relata_opposizione_esecutiva",
+      "code": "23",
+      "kind": "relata",
+      "label": "Opposizione esecutiva",
+      "description": "Notifica di opposizione all'esecuzione, agli atti esecutivi o istanza collegata.",
+      "requires_proceeding": true,
+      "required_fields": ["opposizione.tipo"],
+      "fields": [
+        {"name": "opposizione_tipo", "label": "Tipo opposizione"}
+      ],
+      "purpose_lines": [
+        "La presente notificazione viene eseguita in relazione a {{ opposizione.tipo }}, nell'ambito della procedura esecutiva indicata."
+      ]
+    },
+    {
+      "id": "relata_famiglia_persone_minori",
+      "code": "24",
+      "kind": "relata",
+      "label": "Famiglia, persone e minori",
+      "description": "Notifica in materia di famiglia, persone e minori con descrizioni rispettose della riservatezza.",
+      "requires_proceeding": true,
+      "privacy_description": true,
+      "required_fields": [],
+      "fields": [],
+      "purpose_lines": [
+        "La notificazione viene eseguita nell'ambito del procedimento in materia di famiglia, persone e minori indicato."
+      ]
+    },
+    {
+      "id": "relata_provvedimento_urgente",
+      "code": "25",
+      "kind": "relata",
+      "label": "Provvedimento urgente o cautelare",
+      "description": "Notifica urgente di provvedimento cautelare.",
+      "requires_proceeding": true,
+      "required_fields": ["provvedimento.data"],
+      "fields": [
+        {"name": "provvedimento_data", "label": "Data provvedimento"}
+      ],
+      "purpose_lines": [
+        "La notificazione riguarda il provvedimento urgente o cautelare emesso da {{ procedimento.ufficio }} in data {{ provvedimento.data }}, unitamente agli eventuali allegati."
+      ]
+    },
+    {
+      "id": "relata_accordo_transazione_stragiudiziale",
+      "code": "26",
+      "kind": "relata",
+      "label": "Accordo o transazione stragiudiziale",
+      "description": "Notifica di accordo, transazione, scrittura privata o diffida collegata.",
+      "required_fields": [],
+      "fields": [],
+      "purpose_lines": [
+        "La presente notificazione viene eseguita quale notificazione di atto stragiudiziale, accordo o scrittura privata nell'interesse di {{ cliente.nome_denominazione }}."
+      ]
+    },
+    {
+      "id": "corpo_pec_standard",
+      "code": "27",
+      "kind": "control_document",
+      "label": "Corpo PEC standard",
+      "description": "Corpo minimo del messaggio PEC.",
+      "content_lines": [
+        "Si trasmettono in allegato i documenti oggetto di notificazione a mezzo PEC, unitamente alla relazione di notificazione sottoscritta digitalmente.",
+        "",
+        "La presente PEC e' inviata con oggetto:",
+        "{{ notifica.oggetto_pec }}",
+        "",
+        "Avv. {{ avvocato.nome }} {{ avvocato.cognome }}"
+      ]
+    },
+    {
+      "id": "checklist_pre_invio",
+      "code": "28",
+      "kind": "control_document",
+      "label": "Checklist pre-invio",
+      "description": "Controllo operativo prima di firma e invio.",
+      "content_lines": [
+        "CHECKLIST PRE-INVIO NOTIFICA PEC EX L. 53/1994",
+        "",
+        "Pratica: {{ pratica.codice }}",
+        "Procedimento: {{ procedimento.ufficio }} - R.G. {{ procedimento.numero_rg }}/{{ procedimento.anno_rg }}",
+        "",
+        "Avvocato notificante: {{ avvocato.nome }} {{ avvocato.cognome }}",
+        "PEC: {{ avvocato.pec }}",
+        "",
+        "Destinatario: {{ destinatario.nome_denominazione }}",
+        "PEC: {{ destinatario.pec }}",
+        "Fonte PEC: {{ destinatario.fonte_pec }}",
+        "Data verifica: {{ destinatario.data_verifica_pec }} {{ destinatario.ora_verifica_pec }}",
+        "",
+        "Controlli:",
+        "[ ] PEC mittente verificata",
+        "[ ] PEC destinatario estratta da pubblico elenco",
+        "[ ] Relata generata",
+        "[ ] Relata firmata digitalmente",
+        "[ ] Attestazione presente se necessaria",
+        "[ ] Oggetto PEC corretto",
+        "[ ] Ricevuta completa richiesta",
+        "[ ] Allegati controllati",
+        "[ ] Avvocato ha verificato e autorizzato l'invio"
+      ]
+    },
+    {
+      "id": "log_generazione_relata",
+      "code": "29",
+      "kind": "audit_document",
+      "label": "Log generazione relata",
+      "description": "Schema di log immutabile collegato alla relata.",
+      "content_lines": []
+    },
+    {
+      "id": "scheda_esito_notifica",
+      "code": "30",
+      "kind": "control_document",
+      "label": "Scheda esito notifica",
+      "description": "Scheda riepilogativa dopo RAC e RdAC.",
+      "content_lines": [
+        "SCHEDA ESITO NOTIFICA PEC",
+        "",
+        "Pratica: {{ pratica.codice }}",
+        "Procedimento: {{ procedimento.ufficio }} - R.G. {{ procedimento.numero_rg }}/{{ procedimento.anno_rg }}",
+        "",
+        "Avvocato notificante: {{ avvocato.nome }} {{ avvocato.cognome }}",
+        "Destinatario: {{ destinatario.nome_denominazione }}",
+        "PEC: {{ destinatario.pec }}",
+        "Fonte PEC: {{ destinatario.fonte_pec }}",
+        "",
+        "Oggetto PEC:",
+        "{{ notifica.oggetto_pec }}",
+        "",
+        "Esito: {{ notifica.esito }}",
+        "Note: {{ notifica.note }}"
+      ]
+    },
+    {
+      "id": "distinta_prova_notifica",
+      "code": "31",
+      "kind": "control_document",
+      "label": "Distinta prova notifica",
+      "description": "Distinta degli allegati probatori da depositare.",
+      "content_lines": [
+        "DISTINTA PROVA NOTIFICA",
+        "",
+        "Allegati richiesti:",
+        "- Atto notificato",
+        "- Relata firmata digitalmente",
+        "- Messaggio PEC inviato",
+        "- Ricevuta di accettazione originale",
+        "- Ricevuta di avvenuta consegna originale completa"
+      ]
+    },
+    {
+      "id": "comunicazione_cliente_non_notifica",
+      "code": "32",
+      "kind": "communication",
+      "label": "Comunicazione cliente",
+      "description": "Messaggio informativo al cliente, senza relata e senza oggetto L. 53.",
+      "content_lines": []
+    },
+    {
+      "id": "nota_mancata_consegna",
+      "code": "33",
+      "kind": "control_document",
+      "label": "Nota mancata consegna",
+      "description": "Nota interna quando la PEC non va a buon fine.",
+      "content_lines": [
+        "NOTA MANCATA CONSEGNA",
+        "",
+        "La notifica non risulta perfezionata nei confronti del destinatario indicato.",
+        "Verificare causa, ricevute, pubblico elenco e percorso di deposito o rinnovo applicabile prima di procedere."
+      ]
+    },
+    {
+      "id": "workflow_deposito_area_web_pst",
+      "code": "34",
+      "kind": "workflow",
+      "label": "Deposito area web PST",
+      "description": "Percorso separato per notifiche non andate a buon fine per causa imputabile al destinatario.",
+      "content_lines": [
+        "PERCORSO AREA WEB PST",
+        "",
+        "Usare solo quando la notifica non e' andata a buon fine per causa imputabile al destinatario e ricorrono i presupposti del percorso ministeriale dedicato.",
+        "Il caso non va chiuso come consegna ordinaria: conservare ricevute, esito e prova del deposito nell'area dedicata."
+      ]
+    }
+  ]
+}

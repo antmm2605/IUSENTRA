@@ -92,4 +92,5 @@ Questo file e' la coda di lavoro. Prima di rilanciare test gia' passati, control
 
 | Area | Gate | Stato | Nota |
 | --- | --- | --- | --- |
+| Notifiche legali parametriche 2.216.8 | Test mirati, contratti React, packaging, build e browser su bundle 2.216.8 registrati in `pytest-confirmed-ok.md` | Nessuna issue aperta | Tutti i modelli richiesti sono nel catalogo JSON; la precompilazione usa dati reali IUSENTRA e lascia vuoti i dati non certi invece di inventarli. |
 | Fascicoli / preventivi / wizard PST | Test mirati e browser reale registrati in `pytest-confirmed-ok.md` | Nessuna issue aperta | Il codice `014001` digitato nel catalogo o nell'oggetto viene ora risolto dal catalogo PST ufficiale e arriva fino al fascicolo guidato con redirect a deposito assistito. |

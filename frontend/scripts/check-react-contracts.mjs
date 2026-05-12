@@ -108,6 +108,9 @@ const search = read('src/components/RicercaStudioPage.tsx')
 const searchData = read('src/searchData.ts')
 const email = read('src/components/EmailPecPage.tsx')
 const emailData = read('src/emailData.ts')
+const notificheLegali = read('src/components/NotificheLegaliPage.tsx')
+const notificheLegaliData = read('src/notificheLegaliData.ts')
+const notificheLegaliBridge = read('../web/services/react_notifiche_legali_bridge.py')
 const messaggi = read('src/components/MessaggiPage.tsx')
 const messaggiData = read('src/messaggiData.ts')
 const fascicoli = read('src/components/FascicoliPage.tsx')
@@ -420,7 +423,7 @@ assertContains(tranche8aOpenDesignReport, 'Token creati', 'report Open Design 8A
 if (routeManifest.policy?.currentReleaseUnlocksRoutes !== true) {
   throw new Error('route manifest: currentReleaseUnlocksRoutes deve essere true nelle tranche di promozione')
 }
-const allowedGovernedUnlocks = new Set(['/', '/admin/database', '/agenda', '/agenda/nuovo', '/amministrazione', '/audit', '/backup', '/cartelle-condivise', '/clienti', '/clienti/nuovo', '/compensi-forensi', '/deposito/checklist', '/documenti', '/email', '/email-ordinaria', '/fascicoli', '/fascicoli/archivio', '/fascicoli/nuovo', '/fatturazione', '/fatturazione/nuova', '/giurisprudenza', '/global-search', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/incassi-pagamenti', '/legal-intelligence', '/legal-intelligence/mediazione', '/legal-intelligence/news', '/messaggi', '/messaggi/nuovo', '/notifiche', '/notifiche-whatsapp', '/preventivi', '/preventivi/conferimento/:id', '/preventivi/conferimento/nuovo', '/preventivi/nuovo', '/preventivi/wizard', '/privacy/registro', '/privacy/registro/nuovo', '/profili', '/redazione-atti', '/regia-operativa', '/registro-attivita', '/registro-gdpr', '/ricerca-legale', '/ricerca-studio', '/scadenziario', '/scadenziario/nuova', '/sincronizzazione-calendari', '/sito-studio', '/sito-studio/contatti', '/soggetti', '/soggetti/nuovo', '/statistiche', '/strumenti-legali', '/strumenti-operativi', '/studio', '/tariffario', '/template-atti', '/template-atti/catalogo', '/timesheet', '/utenti', '/utenti/nuovo', '/wizard-pro', '/workspace-intelligente'])
+const allowedGovernedUnlocks = new Set(['/', '/admin/database', '/agenda', '/agenda/nuovo', '/amministrazione', '/audit', '/backup', '/cartelle-condivise', '/clienti', '/clienti/nuovo', '/compensi-forensi', '/deposito/checklist', '/documenti', '/email', '/email-ordinaria', '/notifiche-legali', '/fascicoli', '/fascicoli/archivio', '/fascicoli/nuovo', '/fatturazione', '/fatturazione/nuova', '/giurisprudenza', '/global-search', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/incassi-pagamenti', '/legal-intelligence', '/legal-intelligence/mediazione', '/legal-intelligence/news', '/messaggi', '/messaggi/nuovo', '/notifiche', '/notifiche-whatsapp', '/preventivi', '/preventivi/conferimento/:id', '/preventivi/conferimento/nuovo', '/preventivi/nuovo', '/preventivi/wizard', '/privacy/registro', '/privacy/registro/nuovo', '/profili', '/redazione-atti', '/regia-operativa', '/registro-attivita', '/registro-gdpr', '/ricerca-legale', '/ricerca-studio', '/scadenziario', '/scadenziario/nuova', '/sincronizzazione-calendari', '/sito-studio', '/sito-studio/contatti', '/soggetti', '/soggetti/nuovo', '/statistiche', '/strumenti-legali', '/strumenti-operativi', '/studio', '/tariffario', '/template-atti', '/template-atti/catalogo', '/timesheet', '/utenti', '/utenti/nuovo', '/wizard-pro', '/workspace-intelligente'])
 const governedExpectedStatuses = new Map([
   ['/', 'react_operational_full'],
   ['/admin/database', 'react_operational_full'],
@@ -437,6 +440,7 @@ const governedExpectedStatuses = new Map([
   ['/documenti', 'react_operational_full'],
   ['/email', 'react_operational_full'],
   ['/email-ordinaria', 'react_operational_full'],
+  ['/notifiche-legali', 'react_operational_full'],
   ['/fascicoli', 'react_operational_full'],
   ['/fascicoli/archivio', 'react_operational_full'],
   ['/fascicoli/nuovo', 'react_operational_full'],
@@ -531,6 +535,7 @@ for (const [route, status] of [
   ['/impostazioni-studio', 'react_operational_full'],
   ['/impostazioni/calendario', 'react_operational_full'],
   ['/impostazioni/pagamenti', 'react_operational_full'],
+  ['/notifiche-legali', 'react_operational_full'],
   ['/notifiche', 'react_operational_full'],
   ['/notifiche-whatsapp', 'react_operational_full'],
   ['/sincronizzazione-calendari', 'react_operational_full'],
@@ -564,7 +569,7 @@ for (const route of ['/fatturazione/*', '/preventivi/*', '/compensi-forensi/*', 
     throw new Error(`route manifest: ${route} deve restare legacy_operational con unlockFromGate=false`)
   }
 }
-for (const route of ['/utenti', '/profili', '/audit', '/registro-attivita', '/studio', '/amministrazione', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/notifiche', '/notifiche-whatsapp', '/sincronizzazione-calendari', '/backup', '/sito-studio', '/sito-studio/contatti', '/sito-studio/builder', '/statistiche', '/fatturazione', '/fatturazione/nuova', '/fatturazione/*', '/incassi-pagamenti', '/preventivi', '/preventivi/nuovo', '/preventivi/conferimento/nuovo', '/preventivi/*', '/preventivi/wizard', '/compensi-forensi', '/compensi-forensi/*', '/tariffario', '/tariffario/*', '/documenti', '/template-atti', '/template-atti/catalogo', '/template-atti/nuovo', '/template-atti/*', '/redazione-atti', '/redazione-atti/*', '/checklist', '/giurisprudenza', '/giurisprudenza/nuova', '/giurisprudenza/*', '/legal-intelligence', '/legal-intelligence/news', '/legal-intelligence/mediazione', '/legal-intelligence/*', '/ricerca-legale', '/ricerca-legale/*', '/deposito/checklist', '/strumenti-legali', '/strumenti-operativi', '/polisWeb', '/pdp', '/pat', '/sigit', '/sigp', '/portali/*']) {
+for (const route of ['/utenti', '/profili', '/audit', '/registro-attivita', '/studio', '/amministrazione', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/notifiche-legali', '/notifiche', '/notifiche-whatsapp', '/sincronizzazione-calendari', '/backup', '/sito-studio', '/sito-studio/contatti', '/sito-studio/builder', '/statistiche', '/fatturazione', '/fatturazione/nuova', '/fatturazione/*', '/incassi-pagamenti', '/preventivi', '/preventivi/nuovo', '/preventivi/conferimento/nuovo', '/preventivi/*', '/preventivi/wizard', '/compensi-forensi', '/compensi-forensi/*', '/tariffario', '/tariffario/*', '/documenti', '/template-atti', '/template-atti/catalogo', '/template-atti/nuovo', '/template-atti/*', '/redazione-atti', '/redazione-atti/*', '/checklist', '/giurisprudenza', '/giurisprudenza/nuova', '/giurisprudenza/*', '/legal-intelligence', '/legal-intelligence/news', '/legal-intelligence/mediazione', '/legal-intelligence/*', '/ricerca-legale', '/ricerca-legale/*', '/deposito/checklist', '/strumenti-legali', '/strumenti-operativi', '/polisWeb', '/pdp', '/pat', '/sigit', '/sigp', '/portali/*']) {
   if (!(routeManifest.routes ?? []).some((entry) => entry.route === route)) {
     throw new Error(`route manifest: manca ${route}`)
   }
@@ -595,6 +600,7 @@ assertContains(app, '/agenda', 'nav agenda')
 assertContains(app, '/agenda/nuovo', 'nav nuovo appuntamento')
 assertContains(app, '/workspace-intelligente', 'nav regia operativa')
 assertContains(app, "/email/", 'nav email pec')
+assertContains(app, "/notifiche-legali", 'nav notifiche legali')
 assertContains(app, "/messaggi", 'nav messaggi')
 assertContains(app, "/messaggi/nuovo", 'nav nuovo messaggio')
 assertContains(app, "/scadenziario", 'nav scadenziario')
@@ -608,6 +614,7 @@ assertContains(app, "CartelleCondivisePage", 'route cartelle condivise react')
 assertContains(app, "WizardProStepPage", 'route step wizard pro react')
 assertContains(app, "WizardProCompletePage", 'route completo wizard pro react')
 assertContains(app, "TelematicoPage", 'route telematico')
+assertContains(app, "NotificheLegaliPage", 'route notifiche legali react')
 assertContains(app, "StudioModulePage", 'route blocco finale studio')
 assertContains(app, "isStudioModulePage?<StudioModulePage/>", 'render blocco finale studio')
 assertContains(app, "AdminDatabasePage", 'route database amministrativo')
@@ -653,6 +660,7 @@ assertContains(app, "isBackupPage?<BackupPage/>", 'render backup prima dello stu
 assertContains(app, "isSitoStudioPage?<SitoStudioPage/>", 'render sito studio prima dello studio module')
 assertContains(app, "isStudioPage?<StudioPage/>", 'render studio prima dello studio module')
 assertContains(app, "isAmministrazionePage?<AmministrazionePage/>", 'render amministrazione prima dello studio module')
+assertContains(app, "isNotificheLegaliPage?<NotificheLegaliPage/>", 'render notifiche legali prima delle email')
 assertContains(app, "isFatturazionePage?<FatturazionePage/>", 'render fatturazione prima dello studio module')
 assertContains(app, "isIncassiPagamentiPage?<IncassiPagamentiPage/>", 'render incassi prima dello studio module')
 assertContains(app, "isPreventivoWizardPage?<PreventivoWizardPage/>", 'render preventivo guidato prima della lista preventivi')
@@ -672,6 +680,21 @@ assertContains(calendarSettingsPanel, 'createCalendarProfile', 'scheda Calendari
 assertContains(calendarSettingsPanel, 'regenerateCalendarLinks', 'scheda Calendari rigenera link riservati')
 assertContains(sitoStudioPage, 'getSitoStudioPage', 'SitoStudioPage usa getSitoStudioPage')
 assertContains(sitoStudioPage, 'getSitoStudioContattiPage', 'SitoStudioPage usa getSitoStudioContattiPage')
+assertContains(notificheLegali, 'Notifica ex L. 53/1994', 'NotificheLegaliPage separa notifica legale')
+assertContains(notificheLegali, 'Deposito prova notifica', 'NotificheLegaliPage separa prova deposito')
+assertContains(notificheLegali, 'Comunica al cliente', 'NotificheLegaliPage separa comunicazione cliente')
+assertContains(notificheLegali, 'data.mandatorySubject', 'NotificheLegaliPage blocca oggetto L53 via payload')
+assertContains(notificheLegali, 'Ricevuta completa', 'NotificheLegaliPage presidia ricevuta completa')
+assertContains(notificheLegali, 'Relata firmata', 'NotificheLegaliPage presidia relata firmata')
+assertContains(notificheLegaliData, '/api/v1/ui/notifiche-legali/notifica', 'NotificheLegaliData endpoint notifica')
+assertContains(notificheLegaliData, '/api/v1/ui/notifiche-legali/comunicazione-cliente', 'NotificheLegaliData endpoint comunicazione cliente')
+assertContains(notificheLegaliData, '/api/v1/ui/notifiche-legali/prova-deposito', 'NotificheLegaliData endpoint prova deposito')
+assertContains(notificheLegaliBridge, 'LEGAL_NOTIFICATION_SUBJECT', 'bridge notifiche legali oggetto obbligatorio')
+assertContains(notificheLegaliBridge, 'depositProofWithOriginalReceipts', 'bridge notifiche legali prova deposito')
+assertContains(apiBridge, '@api_v1_react.get("/notifiche-legali")', 'API notifiche legali payload React')
+assertContains(apiBridge, '@api_v1_react.post("/notifiche-legali/notifica")', 'API notifiche legali notifica')
+assertContains(apiBridge, '@api_v1_react.post("/notifiche-legali/comunicazione-cliente")', 'API notifiche legali comunicazione cliente')
+assertContains(apiBridge, '@api_v1_react.post("/notifiche-legali/prova-deposito")', 'API notifiche legali prova deposito')
 assertContains(studioPage, 'getStudioPage', 'StudioPage usa getStudioPage')
 assertContains(amministrazionePage, 'getAmministrazionePage', 'AmministrazionePage usa getAmministrazionePage')
 assertContains(fatturazionePage, 'getFatturazionePage', 'FatturazionePage usa getFatturazionePage')

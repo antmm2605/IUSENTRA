@@ -1,0 +1,16 @@
+{
+  "route": "/notifiche-legali",
+  "capturedAt": "2026-05-12",
+  "status": "react_operational_full",
+  "source": "workflow notifiche L. 53/1994 richiesto dall'utente",
+  "preserve": [
+    "notifica ex L. 53/1994 separata dalla comunicazione al cliente",
+    "relata separata e firma digitale prima dell'invio",
+    "PEC mittente e destinatario da pubblico elenco",
+    "richiesta ricevuta completa",
+    "deposito prova con RAC e RdAC originali",
+    "blocco dell'oggetto L. 53 nei canali email ordinari"
+  ],
+  "uiPolicy": "docs/UI_DESIGN_SYSTEM.md",
+  "regressionGuard": "nessun invio automatico, nessuna relata per comunicazioni cliente, nessun fallback demo"
+}

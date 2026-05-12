@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.216.7 - 2026-05-12
+
+- Introdotta la route React `/notifiche-legali` con tre workflow separati: `Notifica ex L. 53/1994`, `Deposito prova notifica` e `Comunica al cliente`.
+- Aggiunto il dominio `pct.notifiche_legali` per validare oggetto obbligatorio, PEC da pubblico elenco, dati della relata, attestazione di conformita', ricevuta completa, firma digitale e prova deposito con RAC/RdAC originali.
+- Le email PEC/ordinarie bloccano l'uso diretto dell'oggetto L. 53 e rimandano al percorso guidato, evitando che una notifica legale venga trattata come semplice comunicazione.
+- Aggiornati manifest, route gate, shell React, contratti statici e test mirati per presidiare la separazione tra notifica alla controparte, prova deposito e comunicazione cliente.
+
 ## 2.216.6 - 2026-05-11
 
 - Corretto il flusso `CodiceOggettoPst` su apertura fascicolo: digitando un codice ufficiale come `014001` il catalogo React lo seleziona subito e il valore nascosto viene inviato al backend.

@@ -1,5 +1,24 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-12 - Notifiche legali L. 53 / comunicazioni cliente 2.216.7
+
+La nuova route `/notifiche-legali` entra nel perimetro
+`react_operational_full` e separa i tre percorsi che non vanno confusi:
+
+- `Notifica ex L. 53/1994` per controparte, difensori, PA, imprese,
+  professionisti e terzi, con oggetto PEC obbligatorio, fonte PEC da pubblico
+  elenco, relata separata, attestazione quando richiesta, ricevuta completa,
+  firma e approvazione finale dell'avvocato;
+- `Deposito prova notifica` per raccogliere atto notificato, relata firmata,
+  RAC e RdAC originali `.eml/.msg` e riferimenti da portare in `DatiAtto.xml`;
+- `Comunica al cliente` per il messaggio informativo, senza relata e senza
+  oggetto L. 53/1994.
+
+Le route di composizione PEC/email bloccano l'uso diretto dell'oggetto L. 53 e
+indirizzano al workflow controllato. Manifest, route gate, shell React,
+contratti statici e test mirati sono aggiornati per impedire regressioni verso
+un invio email generico.
+
 ## Stato tranche 2026-05-11 - Fascicolo Veloce guidato / apertura deposito 2.216.5
 
 La pagina `/fascicoli/nuovo` mantiene la shell React operativa e rende il

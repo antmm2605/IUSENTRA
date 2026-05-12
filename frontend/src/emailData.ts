@@ -61,6 +61,7 @@ export type EmailPecPageData = {
     autoEsiti: string
     operationalInbox: string
     localPecTest: string
+    legalNotice: string
     lex: string
   }
 }
@@ -140,6 +141,7 @@ export const emptyEmailPecPage: EmailPecPageData = {
     autoEsiti: '/email/auto-esiti',
     operationalInbox: '/email/',
     localPecTest: '/email/impostazioni',
+    legalNotice: '/notifiche-legali',
     lex: '#lex',
   },
 }
@@ -163,6 +165,7 @@ export const emptyEmailOrdinariaPage: EmailPecPageData = {
     autoEsiti: '',
     operationalInbox: '/email-ordinaria/',
     localPecTest: '/impostazioni?tab=smtp',
+    legalNotice: '/notifiche-legali',
     lex: '#lex',
   },
 }
@@ -309,6 +312,7 @@ function normalisePayload(payload: unknown, fallback = emptyEmailPecPage): Email
       autoEsiti: text(actions.autoEsiti ?? actions.auto_esiti, fallback.actions.autoEsiti),
       operationalInbox: text(actions.operationalInbox ?? actions.operational_inbox, fallback.actions.operationalInbox),
       localPecTest: text(actions.localPecTest ?? actions.local_pec_test, fallback.actions.localPecTest),
+      legalNotice: text(actions.legalNotice ?? actions.legal_notice, fallback.actions.legalNotice),
       lex: text(actions.lex, fallback.actions.lex),
     },
   }

@@ -27,6 +27,7 @@ from flask import (
     url_for,
 )
 
+from pct.notifiche_legali import is_legal_notification_subject as _is_legal_notification_subject
 from web.blueprints.react_shell import render_react_shell_response
 from web.services.mailbox_sync_runtime import run_ordinary_mailbox_sync
 from web.services.tenant_paths import TenantDataPathError, tenant_data_path
@@ -46,6 +47,13 @@ def _login_required(func):
 
 def _legacy_requested() -> bool:
     return request.args.get("_legacy") == "1"
+
+
+def _wants_json_response() -> bool:
+    return (
+        request.headers.get("X-Requested-With") == "XMLHttpRequest"
+        or "application/json" in (request.headers.get("Accept") or "")
+    )
 
 
 def _cfg_path(key: str, default: str = "", *aliases: str) -> str:
@@ -191,6 +199,15 @@ def scrivi():
     if not destinatario or not oggetto:
         flash("Compilare almeno destinatario e oggetto.", "danger")
         return redirect(url_for("email_ordinaria.scrivi", a=destinatario, oggetto=oggetto))
+    if _is_legal_notification_subject(oggetto):
+        message = (
+            "Questo e' un oggetto riservato alla notifica ex L. 53/1994. "
+            "Per il cliente usa Comunicazione al cliente, senza relata e senza oggetto di notifica."
+        )
+        if _wants_json_response():
+            return jsonify({"ok": False, "message": message, "redirect": "/notifiche-legali"}), 400
+        flash(message, "warning")
+        return redirect("/notifiche-legali")
 
     try:
         from pct.messaggi import StatoMessaggio, GestioneMessaggi

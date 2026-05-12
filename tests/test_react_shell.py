@@ -971,9 +971,11 @@ def test_react_comunicazioni_email_messaggi_collegate_nav_e_shell():
 
     assert "{ label: 'Email PEC', icon: Mail, href: '/email/', badge: 'PEC' }" in app_source
     assert "{ label: 'Email ordinaria', icon: Mail, href: '/email-ordinaria/', badge: 'SMTP' }" in app_source
+    assert "{ label: 'Notifiche legali', icon: ShieldCheck, href: '/notifiche-legali', badge: 'L.53' }" in app_source
     assert "{ label: 'Messaggi', icon: MessageCircle, href: '/messaggi' }" in app_source
     assert "{ label: 'Nuovo SMS/WA', icon: Send, href: '/messaggi/nuovo' }" in app_source
     assert "isEmailOrdinariaPage?<EmailOrdinariaPage/>" in app_source
+    assert "isNotificheLegaliPage?<NotificheLegaliPage/>" in app_source
     assert "isEmailPage?<EmailPecPage/>" in app_source
     assert "isNewMessagePage?<NuovoMessaggioPage/>" in app_source
     assert "isMessagesPage?<MessaggiPage/>" in app_source
@@ -985,6 +987,7 @@ def test_react_comunicazioni_email_messaggi_collegate_nav_e_shell():
     assert "getEmailOrdinariaPage" in email_data
     assert "/api/v1/ui/email" in email_data
     assert "/api/v1/ui/email-ordinaria" in email_data
+    assert "/notifiche-legali" in email_data
     assert ("/lex" + "?context=email-pec") not in email_page
     assert ("/lex" + "?context=email-ordinaria") not in email_page
     assert ("/lex" + "?context=email-pec") not in email_data
@@ -1006,6 +1009,7 @@ def test_react_comunicazioni_email_messaggi_collegate_nav_e_shell():
     assert "/api/v1/ui/messaggi" in messaggi_data
     assert '@api_v1_react.get("/email")' in api_source
     assert '@api_v1_react.get("/email-ordinaria")' in api_source
+    assert '@api_v1_react.get("/notifiche-legali")' in api_source
     assert 'response.headers["Cache-Control"] = "no-store, max-age=0"' in api_source
     assert '@api_v1_react.get("/messaggi")' in api_source
     assert '@api_v1_react.get("/messaggi/nuovo")' in api_source
@@ -1018,7 +1022,7 @@ def test_route_ufficiali_email_messaggi_servono_react_con_vista_classica_tecnica
     with app.test_client() as client:
         _login(client)
 
-        for path in ("/email/", "/email-ordinaria/", "/messaggi", "/messaggi/nuovo"):
+        for path in ("/email/", "/email-ordinaria/", "/notifiche-legali", "/messaggi", "/messaggi/nuovo"):
             response = client.get(path)
             html = response.get_data(as_text=True)
             assert response.status_code == 200, path

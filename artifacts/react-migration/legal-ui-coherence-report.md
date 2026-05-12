@@ -2,6 +2,12 @@
 
 Generato: 2026-05-08T10:03:02.066Z
 
+Aggiornamento 2026-05-12: `/notifiche-legali` 2.216.7 introduce una pagina
+operativa compatta per separare notifica ex L. 53/1994, deposito prova e
+comunicazione cliente. La UI usa card azionabili, icone Lucide, oggetto PEC
+bloccato, campi di controllo per pubblico elenco/firma/ricevuta completa e
+pannello laterale con esiti, senza usare lessico da sviluppatore o dati demo.
+
 Aggiornamento 2026-05-10: per la tranche 2.214.0 sono stati verificati in
 browser Docker locale Redazione Atti, Template Atti, Statistiche, Ricerca
 Legale, News, Archivio Giurisprudenza, Strumenti Forensi, Strumenti Operativi,

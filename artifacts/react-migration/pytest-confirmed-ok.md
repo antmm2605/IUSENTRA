@@ -1,12 +1,29 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-11, sessione React Full / shard backend.
+Aggiornato: 2026-05-12, notifiche legali L. 53 / comunicazioni cliente.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Notifiche legali L. 53 / comunicazioni cliente 2.216.7
+
+| Verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m compileall pct/notifiche_legali.py web/services/react_notifiche_legali_bridge.py web/blueprints/api_v1_react.py web/blueprints/email_client.py web/blueprints/email_ordinaria.py tests/test_notifiche_legali.py tests/test_react_shell.py -q` | OK | Sintassi confermata per dominio notifiche, bridge React, blocchi email e test collegati. |
+| `npm --prefix frontend run typecheck` | OK | TypeScript confermato dopo `NotificheLegaliPage`, data client e link dalla pagina PEC. |
+| `node frontend/scripts/check-react-contracts.mjs` | OK | Contratti React aggiornati per route `/notifiche-legali`, endpoint dedicati e workflow separati. |
+| `node scripts/react-migration/check-route-gate.mjs` | OK | Route gate e manifest coerenti: `/notifiche-legali` e' sbloccata come `react_operational_full`. |
+| `python -m pytest -q tests/test_notifiche_legali.py` | OK | 5/5 passati: notifica L. 53, cliente senza relata, prova deposito RAC/RdAC e API React. |
+| `python -m pytest -q tests/test_react_shell.py::test_react_comunicazioni_email_messaggi_collegate_nav_e_shell tests/test_react_shell.py::test_route_ufficiali_email_messaggi_servono_react_con_vista_classica_tecnica` | OK | 2/2 passati: nav Comunicazioni, route ufficiali React e shell confermate. |
+| `python tools/sync_packaging_files.py --check` | OK | Packaging sincronizzato dopo bump 2.216.7. |
+| `python -m pytest -q tests/test_packaging_consistency.py tests/test_release_readiness.py --tb=short` | OK | 8/8 passati: coerenza packaging e readiness release confermate per 2.216.7. |
+| `npm --prefix frontend run build` | OK | Build Vite 2.216.7 completata in 6.39s; generati chunk lazy `NotificheLegaliPage-BUG2q9Nt.js` e CSS dedicato. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker` | OK | Immagini locali ricostruite da zero con wheel `pct-studio-legale==2.216.7`. |
+| `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx` / `docker compose ps` / `GET http://127.0.0.1:8080/api/pronto` | OK | Container locali healthy e readiness `versione=2.216.7`. |
+| Browser reale `http://127.0.0.1:8080/notifiche-legali` desktop/tablet/mobile | OK | Workflow `Notifica ex L. 53/1994`, `Deposito prova notifica` e `Comunica al cliente` visibili; oggetto obbligatorio, form RAC/RdAC e comunicazione cliente presenti; nessun errore console e nessun testo tecnico vietato rilevato. |
 
 ### Fascicolo Veloce guidato / apertura deposito 2.216.5
 

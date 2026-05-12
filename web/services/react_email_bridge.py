@@ -341,6 +341,7 @@ def build_react_email_payload(
             "autoEsiti": auto_esiti_path if include_telematic else "",
             "operationalInbox": f"{base}/",
             "localPecTest": local_test_path,
+            "legalNotice": "/notifiche-legali",
             "lex": "#lex",
         },
     }

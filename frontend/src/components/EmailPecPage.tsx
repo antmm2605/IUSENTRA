@@ -7,6 +7,7 @@ import {
   Download,
   Eye,
   FileCheck2,
+  FileSignature,
   Inbox,
   Mail,
   MailCheck,
@@ -451,6 +452,7 @@ function PecInspector({ data, rows }: { data: EmailPecPageData; rows: EmailPecRo
       <Panel title="Azioni rapide" icon={<Sparkles size={17} />}>
         <div className="iu-mail-quick-actions">
           <a href={data.actions.compose}><Send size={15} /> Nuova PEC</a>
+          <a href={data.actions.legalNotice}><FileSignature size={15} /> Notifica ex L. 53</a>
           <a href={data.actions.settings}><Settings2 size={15} /> Parametri PEC</a>
           <a href={data.actions.localPecTest}><Wrench size={15} /> Test SMTP dal PC</a>
         </div>

@@ -2,6 +2,14 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-12T11:25:00+02:00: tranche 2.216.7 su
+`/notifiche-legali`. La shell React espone tre percorsi separati: notifica ex
+L. 53/1994 con relata e blocchi, deposito prova notifica con RAC/RdAC originali
+e comunicazione al cliente senza relata. Le API `/api/v1/ui/notifiche-legali/*`
+validano oggetto obbligatorio, fonte PEC, attestazione, ricevuta completa,
+firma e approvazione avvocato; i canali PEC/email ordinari bloccano l'uso
+diretto dell'oggetto L. 53 e rimandano alla procedura guidata.
+
 Aggiornamento 2026-05-11T17:30:00+02:00: tranche 2.216.5 su
 `/fascicoli/nuovo`. Il Fascicolo Veloce ora carica autorita' giudiziarie dal
 registro uffici IUSENTRA, mostra clienti e soggetti reali in selettori guidati,

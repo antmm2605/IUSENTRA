@@ -21,6 +21,11 @@ from pct.auth import RuoloUtente
 from pct.email_client import CartellaEmail, GestioneEmailRicevute, StatoEmail
 from pct.fatturazione import StatoParcella
 from pct.messaggi import CanaleMsggio, ConfigMessaggistica, GestioneMessaggi, Messaggio, StatoMessaggio
+from pct.notifiche_legali import (
+    build_client_communication,
+    validate_deposit_notification_proof,
+    validate_legal_notification,
+)
 from pct.preventivi import StatoPreventivo
 from pct.practice_engine.deposit_orchestrator import prepare_deposit, send_deposit
 from pct.practice_engine.deposit_readiness import run_predeposit_check
@@ -76,6 +81,7 @@ from web.services.react_fascicoli_bridge import (
     build_react_fascicolo_form_payload,
 )
 from web.services.react_messaggi_bridge import build_react_messaggi_nuovo_payload, build_react_messaggi_payload
+from web.services.react_notifiche_legali_bridge import build_react_notifiche_legali_payload
 from web.services.react_practice_engine_bridge import build_react_practice_engine_payload
 from web.services.react_privacy_bridge import build_react_privacy_registro_payload
 from web.services.react_scadenziario_bridge import (
@@ -1638,6 +1644,52 @@ def email_ordinaria_react_bulk_action():
         db_key="EMAIL_ORDINARIA_DB",
         default_db_path="./email/ordinaria.json",
         resource_prefix="email_ordinaria",
+    )
+
+
+def _notifiche_legali_result_response(result: Any, *, success_message: str):
+    payload = result.to_dict()
+    payload["message"] = success_message if result.ok else "Controlla i punti bloccanti prima di proseguire."
+    if result.ok:
+        _audit_event("notifiche_legali.preview", "notifica_legale", "", success_message)
+    return jsonify(payload), 200 if result.ok else 400
+
+
+@api_v1_react.get("/notifiche-legali")
+@_richiedi_auth
+def notifiche_legali_payload():
+    config_loader = _core_runtime_func("get_config_studio")
+    config_studio = config_loader() if callable(config_loader) else None
+    return jsonify(build_react_notifiche_legali_payload(config_studio=config_studio))
+
+
+@api_v1_react.post("/notifiche-legali/notifica")
+@_richiedi_auth
+def notifiche_legali_preview():
+    result = validate_legal_notification(_request_payload())
+    return _notifiche_legali_result_response(
+        result,
+        success_message="Relata e controlli L. 53/1994 pronti per la revisione dell'avvocato.",
+    )
+
+
+@api_v1_react.post("/notifiche-legali/comunicazione-cliente")
+@_richiedi_auth
+def notifiche_legali_comunicazione_cliente():
+    result = build_client_communication(_request_payload())
+    return _notifiche_legali_result_response(
+        result,
+        success_message="Comunicazione cliente preparata senza relata.",
+    )
+
+
+@api_v1_react.post("/notifiche-legali/prova-deposito")
+@_richiedi_auth
+def notifiche_legali_prova_deposito():
+    result = validate_deposit_notification_proof(_request_payload())
+    return _notifiche_legali_result_response(
+        result,
+        success_message="Prova della notifica pronta per il controllo busta.",
     )
 
 

@@ -350,6 +350,26 @@
       ]
     },
     {
+      "workspaceTarget": "/app/notifiche-legali",
+      "route": "/notifiche-legali",
+      "family": "comunicazioni",
+      "status": "react_operational_full",
+      "risk": "critical",
+      "targetComponent": "frontend/src/components/NotificheLegaliPage.tsx",
+      "targetData": "frontend/src/notificheLegaliData.ts",
+      "targetBridge": "web/services/react_notifiche_legali_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/notifiche-legali.json",
+      "unlockFromGate": true,
+      "mustPreserve": [
+        "notifica ex L. 53 separata dalla comunicazione cliente",
+        "oggetto PEC obbligatorio non confuso con email ordinaria",
+        "relata separata e firma digitale governata",
+        "PEC da pubblico elenco con timestamp verifica",
+        "prova deposito con RAC e RdAC originali",
+        "nessun invio automatico senza approvazione avvocato"
+      ]
+    },
+    {
       "workspaceTarget": "/app/fascicoli",
       "route": "/fascicoli",
       "family": "fascicoli",

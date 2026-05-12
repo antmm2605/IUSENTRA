@@ -2,6 +2,13 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-12T11:25:00+02:00: `/notifiche-legali` censita come
+`react_operational_full`, con componente `NotificheLegaliPage`, data client
+`notificheLegaliData`, bridge `react_notifiche_legali_bridge.py` e contratto
+legacy dedicato. La route non usa `LegacyPostForm`, non contiene form POST HTML
+e non offre CTA primaria `?_legacy=1`; le azioni sono endpoint JSON governati
+per notifica L. 53, comunicazione cliente e prova deposito.
+
 Aggiornamento 2026-05-11T17:30:00+02:00: `/fascicoli/nuovo` resta
 `react_operational_full` e rafforza il flusso principale senza fallback legacy:
 API JSON reale con clienti, soggetti e autorita' giudiziarie, validazioni
@@ -57,6 +64,7 @@ overflow orizzontale.
 | `/strumenti-legali` | legacy_operational | react_operational_full | Strumenti Forensi in `StudioModulePage`, API reale `/api/v1/ui/studio-modules/strumenti-forensi`, azioni operative senza form POST HTML |
 | `/strumenti-operativi` | legacy_operational | react_operational_full | Strumenti Operativi in `StudioModulePage`, API reale `/api/v1/ui/studio-modules/strumenti-operativi`, azioni operative senza form POST HTML |
 | `/documenti` | assente / 404 | react_operational_full | Documenti in `StudioModulePage`, API reale `/api/v1/ui/studio-modules/documenti`, azioni verso fascicoli, catalogo atti, redazione e ricerca documentale |
+| `/notifiche-legali` | assente | react_operational_full | Workflow dedicato in `NotificheLegaliPage`, API reale `/api/v1/ui/notifiche-legali`, separazione notifica L. 53 / prova deposito / comunicazione cliente |
 
 ## Route Non Promosse
 

@@ -26,6 +26,7 @@ from flask import (
     redirect, render_template, request, send_file, url_for, Response,
 )
 from pct.config_studio import _SMTPv4, _SMTP_SSLv4
+from pct.notifiche_legali import is_legal_notification_subject as _is_legal_notification_subject
 from web.blueprints.react_shell import render_react_shell_response
 from web.services.mailbox_sync_runtime import run_pec_mailbox_sync
 from web.services.tenant_paths import TenantDataPathError, tenant_data_path
@@ -46,6 +47,13 @@ def _login_required(f):
 
 def _richiede_vista_classica() -> bool:
     return request.args.get("_legacy") == "1"
+
+
+def _wants_json_response() -> bool:
+    return (
+        request.headers.get("X-Requested-With") == "XMLHttpRequest"
+        or "application/json" in (request.headers.get("Accept") or "")
+    )
 
 
 def _cfg_path(key: str, default: str = "", *aliases: str) -> str:
@@ -293,6 +301,15 @@ def scrivi():
     if not destinatario or not oggetto:
         flash("Compilare almeno destinatario e oggetto.", "danger")
         return redirect(url_for("email_client.scrivi"))
+    if (f.get("tipo_invio", "").strip() == "notifica_l53") or _is_legal_notification_subject(oggetto):
+        message = (
+            "Per notifiche ex L. 53/1994 usa il percorso guidato Notifica ex L. 53/1994: "
+            "servono relata separata, firma digitale, PEC da pubblico elenco e ricevuta completa."
+        )
+        if _wants_json_response():
+            return jsonify({"ok": False, "message": message, "redirect": "/notifiche-legali"}), 400
+        flash(message, "warning")
+        return redirect("/notifiche-legali")
 
     try:
         from pct.messaggi import GestioneMessaggi

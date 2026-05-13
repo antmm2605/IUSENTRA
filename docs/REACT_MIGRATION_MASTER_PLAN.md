@@ -1,5 +1,27 @@
 # Migrazione progressiva Flask + React
 
+## Stato fase react 2 - 2026-05-13 - Registro pagine App V2 2.223.0
+
+La seconda fase del piano `fasereact` trasforma la migrazione in un registro
+ripetibile e verificabile. `docs/app-v2-page-registry.md` e' generato da
+`scripts/react-migration/generate_app_v2_page_registry.py` e censisce le 98
+route del manifest governato con URL legacy, target React/App V2, componenti,
+API, storage, stato migrazione, feature flag, RBAC, rischio tenant/PII, test
+presenti, test mancanti, priorita e stato finale.
+
+`docs/frontend-app-v2-pages.md` riassume la shell App V2, gli alias legacy e il
+backlog P0/P1/P2/P3. Le route non `react_operational_full` restano dichiarate
+come backlog o partial: la fase 2 non promuove pagine senza API reali,
+permessi, tenant isolation, test e browser verification.
+
+Aggiunto anche `scripts/smoke_app_v2_pages.py`: senza credenziali puo'
+elencare target e stato manifest; con `IUSENTRA_BASE_URL`,
+`IUSENTRA_SMOKE_USERNAME` e `IUSENTRA_SMOKE_PASSWORD` puo' eseguire smoke
+autenticati post-deploy senza salvare segreti nel repository.
+
+Gate mirati verdi: `py_compile` dei nuovi script/test, generatore `--check`,
+smoke `--list` e `tests/test_app_v2_page_registry.py`.
+
 ## Stato fase react 1 - 2026-05-13 - Governance default-off App V2 2.222.0
 
 Avviata la prima fase del piano `fasereact` con perimetro di preparazione,

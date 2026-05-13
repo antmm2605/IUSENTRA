@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.223.0 - 2026-05-13
+
+- Completata la fase 2 `fasereact` come censimento governato: aggiunto `docs/app-v2-page-registry.md` con 98 route manifest, stato React/legacy, feature flag, RBAC, rischio tenant/PII, test presenti/mancanti, priorita e stato finale.
+- Aggiunto `docs/frontend-app-v2-pages.md` con shell App V2, alias legacy verso App V2 e backlog P0/P1/P2/P3 delle route non ancora full React.
+- Introdotto `scripts/react-migration/generate_app_v2_page_registry.py` per rigenerare e verificare il registro in modo deterministico.
+- Introdotto `scripts/smoke_app_v2_pages.py` per smoke parametrico post-deploy, con credenziali solo da variabili ambiente e modalita `--list` senza chiamate HTTP.
+- Aggiunti test `tests/test_app_v2_page_registry.py` per impedire registro non aggiornato, route manifest mancanti e smoke script non eseguibile.
+
 ## 2.222.0 - 2026-05-13
 
 - Avviata la fase 1 `fasereact`: audit iniziale migrazione React/App V2, documentazione feature flag, sicurezza RBAC/tenant, contratti API e rollout.

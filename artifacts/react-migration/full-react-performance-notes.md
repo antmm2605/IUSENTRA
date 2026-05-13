@@ -45,6 +45,8 @@ Generato: 2026-05-08T09:10:14.073Z
 
 - 2026-05-13: build Vite 2.222.0 completata in 6.52s dopo fase react 1 feature flag. Bundle principale `index-ofyf7WIs.js` 431.37 kB (128.58 kB gzip), CSS principale `index-Bafxecf8.css` 121.77 kB (22.33 kB gzip), chunk `ImpostazioniPage-DsEUf-al.js` 126.91 kB (36.73 kB gzip). L'aumento e' minimo e deriva dal helper flag e dai guard Web Push; nessuna nuova dipendenza frontend.
 - 2026-05-13: Docker locale 2.222.0 ricostruito no-cache; app, scheduler, OCR e Redis healthy, `/api/pronto` 200 con versione `2.222.0`. Browser Chrome autenticato caldo: `/app-v2/documenti` flag-off 403 controllato in 219/369/247 ms su desktop/tablet/mobile; `/notifiche` 200 in 1873/2125/1921 ms, senza overflow orizzontale, errori console o termini tecnici vietati. Il primo accesso autenticato post-rebuild ha pagato il warm-up tenant gia' registrato come rischio preesistente.
+- 2026-05-13: fase react 2 2.223.0 aggiunge solo tooling/documentazione/test per registro pagine e smoke App V2. Build Vite finale completata in 5.35s; asset principali invariati rispetto al baseline fase 1 (`index-ofyf7WIs.js` 431.37 kB / 128.58 kB gzip, CSS `index-Bafxecf8.css` 121.77 kB / 22.33 kB gzip). Nessun nuovo bundle runtime o dipendenza frontend.
+- 2026-05-13: Docker locale 2.223.0 ricostruito no-cache e riavviato; app, scheduler, OCR, Redis e servizi audit healthy/running. `/api/pronto` locale 200 con `versione=2.223.0`; smoke App V2 senza credenziali eseguito in modalita inventario.
 
 ## Rischi residui
 

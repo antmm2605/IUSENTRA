@@ -1,6 +1,6 @@
 # Pytest issue aperte e risoluzioni
 
-Aggiornato: 2026-05-13, fase react 1 feature flag App V2 2.222.0.
+Aggiornato: 2026-05-13, fase react 2 registro App V2 2.223.0.
 
 ## Regola operativa
 
@@ -10,6 +10,7 @@ Questo file e' la coda di lavoro. Prima di rilanciare test gia' passati, control
 
 | Area | Test / comando | Stato | Problema rilevato | Risoluzione |
 | --- | --- | --- | --- | --- |
+| Fase react 2 / registro App V2 | Generatore registro, smoke `--list`, pytest dedicato | Nessuna issue aperta sul codice | La fase richiedeva censimento completo e priorita senza dichiarare full route non ancora parificate. | Aggiunti registro generato, riepilogo App V2, smoke parametrico e test deterministici. Le route non full restano backlog intenzionale, non failure: saranno trattate nelle fasi successive con API reali, feature flag, RBAC, tenant isolation e browser verification. |
 | Fase react 1 / feature flag App V2 | Pytest feature flag, Web Push, typecheck, contratti, build e route gate | Nessuna issue aperta sul codice | La fase richiedeva governance default-off prima della migrazione completa, evitando che superfici sperimentali App V2 o Web Push fossero attive senza rollout esplicito. | Aggiunto resolver centrale flag, endpoint JSON, bootstrap React, blocco `/app-v2/*` sperimentale e guard Web Push client/server. Gate mirati verdi e registrati in `pytest-confirmed-ok.md`. |
 | PST / prompt PIN ripetuti in acquisizione React | Shard React/Local Signer/PST e build Vite | Nessuna issue aperta sul codice | Dopo la correzione 2.216.3-2.216.4 il flusso poteva perdere la sessione `view` se lo stato React in memoria non era allineato al payload gia' ricevuto da ricerca/anteprima; il download poteva quindi aprire una nuova sessione e aumentare le richieste PIN. | `TelematicoSurfacePage` recupera la sessione PST anche da `selection.raw.pst_session` e `preview.pst_session`, la conserva nello storage sessione e invia lo stesso `pst_session_id` a `/pst/download-documenti-batch`. Il wizard accetta anche `fascicolo_id`/`target_fascicolo_id`. Gate mirati e build registrati in `pytest-confirmed-ok.md`. |
 | Audit probatorio WORM 2.221.0 | Test audit mirati, packaging e build React | Nessuna issue aperta sul codice | I giri iniziali hanno evidenziato problemi mirati: helper test non importabile come package, aspettativa di ordine emissione nello stesso secondo, ordinamento catena ambiguo con timestamp al secondo + UUID v4, snapshot job inizialmente tenant-esplicito, adapter CAdES da rendere operativo verso Local Signer, fallback tenant `default` da rimuovere su route/hook e guardia esplicita sull'assenza API delete WORM. | Aggiunto `tests/__init__.py`, import helper come `tests.audit_test_utils`, confronto per insieme di kind, timestamp evento a microsecondi e UUIDv7 quando disponibile, discovery tenant con eventi aperti, client CAdES HTTP configurabile, route e hook fail-closed senza tenant e test anti-delete; test audit 30/30, compileall, packaging/readiness, contratti React, typecheck e build Vite verdi. |

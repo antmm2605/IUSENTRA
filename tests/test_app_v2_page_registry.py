@@ -1,0 +1,75 @@
+from __future__ import annotations
+
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+REGISTRY_PATH = REPO_ROOT / "docs" / "app-v2-page-registry.md"
+FRONTEND_PAGES_PATH = REPO_ROOT / "docs" / "frontend-app-v2-pages.md"
+GENERATOR = REPO_ROOT / "scripts" / "react-migration" / "generate_app_v2_page_registry.py"
+SMOKE = REPO_ROOT / "scripts" / "smoke_app_v2_pages.py"
+MANIFEST = REPO_ROOT / "tools" / "react-migration" / "route-manifest.json"
+
+
+def _manifest_routes() -> list[dict[str, object]]:
+    return json.loads(MANIFEST.read_text(encoding="utf-8"))["routes"]
+
+
+def test_app_v2_registry_docs_are_generated_and_complete():
+    registry = REGISTRY_PATH.read_text(encoding="utf-8")
+    frontend = FRONTEND_PAGES_PATH.read_text(encoding="utf-8")
+
+    assert "Registro ufficiale pagine" in registry
+    assert "Backlog per priorita" in frontend
+    assert "routes.appV2.docsPanel" in registry
+    assert "routes.appV2.commsDeposits" in registry
+    assert "routes.appV2.agenda" in registry
+
+    for route in _manifest_routes():
+        assert f"| {route['route']} |" in registry
+        assert route["status"] in {"legacy_operational", "react_operational_partial", "react_operational_full"}
+
+
+def test_app_v2_registry_generator_is_deterministic():
+    result = subprocess.run(
+        [sys.executable, str(GENERATOR), "--check"],
+        cwd=REPO_ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr + result.stdout
+    assert "Registro App V2 aggiornato" in result.stdout
+
+
+def test_app_v2_registry_prioritizes_non_full_routes():
+    registry = REGISTRY_PATH.read_text(encoding="utf-8")
+    pending_routes = [
+        route for route in _manifest_routes()
+        if route["status"] != "react_operational_full"
+    ]
+
+    assert pending_routes
+    for route in pending_routes:
+        needle = f"| {route['route']} |"
+        start = registry.index(needle)
+        line = registry[start: registry.index("\n", start)]
+        assert any(priority in line for priority in ("| P0 |", "| P1 |", "| P2 |", "| P3 |"))
+        assert "non promossa" in line or "parziale" in line
+
+
+def test_app_v2_smoke_script_lists_targets_without_credentials():
+    result = subprocess.run(
+        [sys.executable, str(SMOKE), "--list"],
+        cwd=REPO_ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr + result.stdout
+    assert "Manifest routes:" in result.stdout
+    assert "/api/v1/ui/feature-flags" in result.stdout

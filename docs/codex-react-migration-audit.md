@@ -1,6 +1,22 @@
 # Audit iniziale migrazione React/App V2
 
-Aggiornato: 2026-05-13, fase 1 `fasereact`.
+Aggiornato: 2026-05-13, fase 2 `fasereact`.
+
+## Aggiornamento fase 2
+
+La fase 2 aggiunge il registro ufficiale `docs/app-v2-page-registry.md`,
+generato da `scripts/react-migration/generate_app_v2_page_registry.py`. Il
+registro copre tutte le 98 route del manifest con stato migrazione, feature
+flag, permessi, rischio tenant/PII, test presenti, test mancanti e priorita.
+
+Il riepilogo operativo `docs/frontend-app-v2-pages.md` espone anche le 13 route
+di shell App V2, i 31 alias legacy verso App V2 e il backlog delle route non
+full: 28 P0 e 1 P1. Nessuna di queste route viene dichiarata completa dalla
+fase 2; resta richiesta la parita reale prima della promozione.
+
+Aggiunto `scripts/smoke_app_v2_pages.py` per smoke post-deploy parametrico. Le
+credenziali sono lette solo da variabili ambiente e la modalita `--list`
+consente di verificare manifest e target senza chiamate HTTP.
 
 ## Stato sintetico
 

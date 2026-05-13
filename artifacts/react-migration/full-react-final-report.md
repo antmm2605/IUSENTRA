@@ -2,6 +2,16 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-13T21:20:00+02:00: fase react 2 `fasereact`
+2.223.0. Aggiunto registro ufficiale pagine App V2/React generato da script,
+con 98 route manifest, 13 route shell App V2, 31 alias legacy, feature flag,
+RBAC, rischio tenant/PII, test presenti/mancanti e priorita P0/P1/P2/P3.
+
+La fase 2 non promuove route a full senza parita reale: le route legacy e
+partial restano backlog esplicito in `docs/frontend-app-v2-pages.md`. Aggiunto
+smoke parametrico `scripts/smoke_app_v2_pages.py`, senza credenziali hardcoded,
+e test deterministici `tests/test_app_v2_page_registry.py`.
+
 Aggiornamento 2026-05-13T20:45:00+02:00: fase react 1 `fasereact`
 2.222.0. Introdotta governance default-off per capability App V2 e Web Push:
 route sperimentali `/app-v2/*` protette da feature flag, endpoint autenticato

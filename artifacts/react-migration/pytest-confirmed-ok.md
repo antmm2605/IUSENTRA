@@ -1,6 +1,6 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-13, fase react 1 feature flag App V2 2.222.0.
+Aggiornato: 2026-05-13, fase react 2 registro App V2 2.223.0.
 
 ## Regola operativa
 
@@ -25,6 +25,22 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 | `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx` | OK | Immagini locali 2.222.0 ricostruite; app, scheduler, OCR e Redis healthy. `docker compose ps` richiede variabili audit WORM locali temporanee solo per interpolare i servizi non avviati. |
 | `Invoke-WebRequest http://127.0.0.1:8080/api/pronto`; `docker exec iusentra-app python -c "import pct; print(pct.__version__)"` | OK | Readiness locale HTTP 200 con `versione=2.222.0`; runtime container `2.222.0`. |
 | Browser Playwright Chrome autenticato desktop/tablet/mobile su `/app-v2/documenti` e `/notifiche` | OK | `/app-v2/documenti` torna 403 controllato `Funzione non attiva per questo studio.` con flag off; `/notifiche` torna 200 in 1873/2124/1921 ms, zero overflow, zero errori console e zero termini tecnici vietati. |
+
+### Fase react 2 - registro App V2 2.223.0
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile scripts\react-migration\generate_app_v2_page_registry.py scripts\smoke_app_v2_pages.py tests\test_app_v2_page_registry.py` | OK | Sintassi confermata per generatore registro, smoke App V2 e test dedicati. |
+| `python scripts\react-migration\generate_app_v2_page_registry.py --check` | OK | Registro deterministico aggiornato: `docs/app-v2-page-registry.md` e `docs/frontend-app-v2-pages.md`. |
+| `python scripts\smoke_app_v2_pages.py --list` | OK | Inventario smoke senza credenziali: 98 route manifest, 69 full, 3 partial, 26 legacy e target smoke App V2 elencati. |
+| `python -m pytest -q tests/test_app_v2_page_registry.py --tb=short` | OK | 4/4 passati: documenti generati, route manifest presenti, priorita su backlog e smoke script eseguibile. |
+| `npm --prefix frontend run typecheck`; `npm --prefix frontend run test` | OK | TypeScript e contratti React confermati dopo bump `2.223.0` e registro fase 2. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest -q tests/test_packaging_consistency.py tests/test_release_readiness.py --tb=short` | OK | Packaging sincronizzato e readiness release 8/8 confermata per `2.223.0`. |
+| `npm --prefix frontend run build` | OK | Build Vite completata in 5.35s; asset principali invariati rispetto al baseline 2.222.0. |
+| `git diff --check` | OK | Nessun errore whitespace sui file di fase 2; resta solo warning CRLF su dato runtime non committato. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx` | OK | Immagini locali 2.223.0 ricostruite no-cache; app, scheduler, OCR, Redis e servizi audit healthy/running. |
+| `docker compose ps`; `Invoke-WebRequest http://127.0.0.1:8080/api/pronto`; `docker exec iusentra-app python -c "import pct; print(pct.__version__)"` | OK | Readiness locale HTTP 200 con `versione=2.223.0`; runtime container `2.223.0`. |
+| `python scripts\smoke_app_v2_pages.py --base-url http://127.0.0.1:8080` | OK | Senza credenziali lo smoke non chiama endpoint protetti e cade correttamente su inventario `--list` implicito. |
 
 ### PST Local Signer sessione view/download 2.221.0
 

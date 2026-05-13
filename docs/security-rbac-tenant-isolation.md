@@ -33,6 +33,12 @@ Un denial deve restituire errore controllato senza path, chiavi, stack trace o d
 - `tests/test_feature_flags.py`: default off, toggle audit, API flag e route `/app-v2/documenti` off/on.
 - `tests/test_push_notifications.py`: Web Push resta operativo solo quando `notifications.mobilePush` e' esplicitamente attivo.
 
+## Matrice fase 2
+
+`docs/app-v2-page-registry.md` censisce per ogni route manifest i permessi RBAC
+attesi, il rischio tenant e il rischio PII. Le route P0/P1 non full restano
+bloccate finche' non hanno API JSON, test RBAC/tenant e smoke browser dedicati.
+
 ## Punti da estendere nelle fasi successive
 
 - denial cross-tenant espliciti per ogni endpoint P0/P1;

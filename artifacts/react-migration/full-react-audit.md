@@ -2,6 +2,15 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-13T21:20:00+02:00: fase react 2 `fasereact`
+2.223.0. Il perimetro App V2 e' ora censito in
+`docs/app-v2-page-registry.md`, rigenerabile e verificabile via
+`scripts/react-migration/generate_app_v2_page_registry.py --check`.
+
+Il registro espone anche rischi tenant/PII e permessi attesi per pagina. Le
+route non full non sono state mascherate come complete: restano backlog P0/P1
+con blocchi dichiarati e test mancanti espliciti.
+
 Aggiornamento 2026-05-13T20:45:00+02:00: fase react 1 `fasereact`
 2.222.0. Le capability App V2 non ancora promosse sono ora fail-closed per
 default tramite feature flag documentati e auditabili. Il controllo e' limitato

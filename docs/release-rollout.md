@@ -52,3 +52,18 @@ curl -fsS https://app.iusentra.it/api/v1/ui/feature-flags
 ```
 
 Per Web Push, autenticarsi con sessione tenant e verificare che `/api/push/public-key` non esponga mai private key.
+
+Fase 2 aggiunge lo smoke parametrico senza segreti in repository:
+
+```bash
+IUSENTRA_BASE_URL=https://app.iusentra.it \
+IUSENTRA_SMOKE_USERNAME="$IUSENTRA_SMOKE_USERNAME" \
+IUSENTRA_SMOKE_PASSWORD="$IUSENTRA_SMOKE_PASSWORD" \
+python scripts/smoke_app_v2_pages.py --require-credentials
+```
+
+Senza credenziali e' consentito solo l'inventario:
+
+```bash
+python scripts/smoke_app_v2_pages.py --list
+```

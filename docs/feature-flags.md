@@ -6,7 +6,7 @@ Aggiornato: 2026-05-13.
 
 I flag della migrazione React/App V2 sono default-off. Servono a introdurre capability nuove o sperimentali senza spegnere le superfici React gia' promosse come operative nel manifest.
 
-## Flag attivi nella fase 1
+## Flag attivi nelle fasi 1-2
 
 | Flag | Variabile env | Default | Ambito |
 | --- | --- | --- | --- |
@@ -51,3 +51,11 @@ La shell React riceve gli stessi flag nel bootstrap `iusentra-react-bootstrap`, 
 ## Rollback rapido
 
 Spegnere il flag via env o JSON, riavviare app e worker web. Non serve migrazione dati.
+
+## Registro fase 2
+
+Il mapping pagina/flag e' ora censito in `docs/app-v2-page-registry.md` e
+generato da `scripts/react-migration/generate_app_v2_page_registry.py`. Le
+route sperimentali App V2 con flag restano default-off; le route ufficiali gia'
+`react_operational_full` restano governate dal manifest e dal route gate, non
+da un flag di rollout separato.

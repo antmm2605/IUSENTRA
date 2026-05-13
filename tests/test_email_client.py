@@ -957,7 +957,7 @@ def test_parse_message_salva_allegato_message_rfc822(tmp_path):
 
     part = EmailMessage()
     part.set_type("message/rfc822")
-    part["Content-Disposition"] = 'attachment; filename="postacert.eml"'
+    part.set_param("name", "postacert.eml")
     part.set_payload([inner])
     outer.attach(part)
 
@@ -966,6 +966,7 @@ def test_parse_message_salva_allegato_message_rfc822(tmp_path):
     em = ge._parse_message(parsed, "INBOX:UID:7", "INBOX", email_id="MAIL-RFC822")  # noqa: SLF001
 
     assert em is not None
+    assert part.get("Content-Disposition") is None
     assert em.allegati[0]["nome"] == "postacert.eml"
     assert em.allegati[0]["size"] > 0
     path = ge.percorso_allegato(em, 0)

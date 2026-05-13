@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.218.6 - 2026-05-13
+
+- Rafforzato il parser PEC per salvare `postacert.eml` anche quando la parte `message/rfc822` ha il nome file nel `Content-Type` ma non dichiara `Content-Disposition: attachment`.
+- Verificata la sincronizzazione PEC di produzione sul messaggio segnalato: gli allegati recuperabili vengono salvati, mentre eventuali record non piu' scaricabili dal server restano con messaggio controllato e non con pagina 404.
+
 ## 2.218.5 - 2026-05-13
 
 - Corretto il download degli allegati PEC `message/rfc822`: il parser ora serializza e salva anche `postacert.eml`, cosi' la sincronizzazione puo' riparare i messaggi storici con metadati allegato ma file mancante.

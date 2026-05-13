@@ -996,6 +996,15 @@ class GestioneEmailRicevute:
             return nested.encode("utf-8", errors="replace")
         return b""
 
+    @staticmethod
+    def _is_allegato_part(part: email.message.Message, filename: str) -> bool:
+        content_disposition = str(part.get("Content-Disposition", "") or "").lower()
+        if "attachment" in content_disposition:
+            return True
+        if "inline" in content_disposition and filename:
+            return True
+        return bool(filename and part.get_content_maintype() != "multipart")
+
     def _parse_message(
         self,
         msg: email.message.Message,
@@ -1035,9 +1044,8 @@ class GestioneEmailRicevute:
             if msg.is_multipart():
                 for part in msg.walk():
                     ct = part.get_content_type()
-                    cd = part.get("Content-Disposition", "")
                     fname = self._decode_header_val(part.get_filename() or "")
-                    is_attachment = "attachment" in cd.lower() or ("inline" in cd.lower() and fname)
+                    is_attachment = self._is_allegato_part(part, fname)
                     if is_attachment:
                         payload = self._payload_allegato(part)
                         nome_originale = fname or "allegato.bin"

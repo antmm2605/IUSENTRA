@@ -2,6 +2,26 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-13T22:05:00+02:00: fase react 4 `fasereact`
+2.225.0. Aggiunto il perimetro di routing sicuro legacy -> App V2:
+`web/services/app_v2_routing.py` censisce 69 mapping backend espliciti e
+parametri dinamici ammessi, conserva query innocue, scarta query rischiose e
+fallisce chiuso se il target non e' interno, non e' sotto `/app-v2` o non ha un
+feature flag App V2 noto.
+
+La fase mantiene 0 redirect live: le route legacy restano fallback sicuro finche'
+non viene attivato rollout esplicito per pagina. Il router frontend ora rimuove
+query e hash prima del matching, preservando deep link come
+`/app/fascicoli?drawer=nuovo`. Aggiunti
+`docs/legacy-to-app-v2-routing-map.md`, colonne fase 4 nel registro,
+smoke `scripts/smoke_app_v2_routing.py` e test dedicati contro open redirect,
+query unsafe, mapping statici/dinamici e feature flag spenti/accesi.
+
+Verifica locale finale: test routing/registro 15/15, gate routing+feature flag
+27/27, typecheck, contratti React, build Vite, packaging/readiness, Docker
+no-cache 2.225.0 healthy e smoke Chrome desktop/mobile su percorsi App V2 e
+legacy anonimi, tutti same-origin verso login e senza errori console.
+
 Aggiornamento 2026-05-13T21:20:00+02:00: fase react 2 `fasereact`
 2.223.0. Aggiunto registro ufficiale pagine App V2/React generato da script,
 con 98 route manifest, 13 route shell App V2, 31 alias legacy, feature flag,

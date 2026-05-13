@@ -6,11 +6,15 @@ export type RouterMatch = {
   params: Record<string, string>
 }
 
+function stripRoutingDecorators(pathname: string): string {
+  return pathname.split(/[?#]/)[0].replace(/\/+$/, '') || '/'
+}
+
 function normalise(pathname: string): string {
-  const clean = pathname.replace(/\/+$/, '') || '/'
+  const clean = stripRoutingDecorators(pathname)
   if (clean === '/app-v2') return '/app'
   if (clean.startsWith('/app-v2/')) return `/app${clean.slice('/app-v2'.length)}`
-  return LEGACY_ROUTE_TARGETS[clean] || clean
+  return stripRoutingDecorators(LEGACY_ROUTE_TARGETS[clean] || clean)
 }
 
 function matchPattern(pattern: string, pathname: string): Record<string, string> | null {

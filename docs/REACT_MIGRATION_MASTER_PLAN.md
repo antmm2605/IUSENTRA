@@ -1,5 +1,25 @@
 # Migrazione progressiva Flask + React
 
+## Stato fase react 4 - 2026-05-13 - Routing, fallback e redirect sicuri 2.225.0
+
+La quarta fase del piano `fasereact` governa la cerniera tra Flask/Jinja legacy
+e shell React/App V2 senza attivare redirect globali. Il nuovo
+`web/services/app_v2_routing.py` centralizza mapping legacy -> `/app-v2`,
+validazione target interni, whitelist query, blocco parametri sensibili e
+decisione redirect legata al feature flag pagina.
+
+`docs/legacy-to-app-v2-routing-map.md` e' generato insieme al registro pagine:
+per ogni route manifest documenta URL legacy, template, target App V2, flag,
+redirect strategy, fallback, deep link, query preservate/bloccate, stato test e
+classificazione template. I template legacy restano fallback obbligatorio per
+route parziali, wildcard, download/export e workflow non parificati.
+
+Il router frontend App V2 normalizza query/hash degli alias prima del match,
+cosi' i target con `tab` o `drawer` non producono stati bianchi. I gate mirati
+della fase sono `tests/test_app_v2_routing.py`,
+`tests/test_app_v2_page_registry.py`, `scripts/smoke_app_v2_routing.py`,
+contratti React e build/typecheck.
+
 ## Stato fase react 3 - 2026-05-13 - Feature flag per pagina App V2 2.224.0
 
 La terza fase del piano `fasereact` rende esplicito il rollout App V2: ogni

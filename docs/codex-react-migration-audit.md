@@ -1,6 +1,24 @@
 # Audit iniziale migrazione React/App V2
 
-Aggiornato: 2026-05-13, fase 3 `fasereact`.
+Aggiornato: 2026-05-13, fase 4 `fasereact`.
+
+## Aggiornamento fase 4
+
+La fase 4 completa la governance routing/fallback tra legacy Flask/Jinja e
+React/App V2. Il nuovo `web/services/app_v2_routing.py` accetta solo target
+interni `/app-v2`, richiede mapping esplicito, rimuove query sensibili e
+permette redirect solo quando il feature flag pagina e' acceso.
+
+Il registro generato aggiunge redirect strategy, deep link, query params,
+classificazione template legacy e stato finale fase 4. Il nuovo documento
+`docs/legacy-to-app-v2-routing-map.md` censisce manifest, route App V2 frontend,
+alias legacy e mapping backend sicuri; i redirect live attivati restano 0 per
+evitare regressioni prima delle migrazioni funzionali delle fasi successive.
+
+Nuovi presidi: `scripts/smoke_app_v2_routing.py`,
+`tests/test_app_v2_routing.py`, normalizzazione query/hash in
+`frontend/src/app/router.tsx` e contratti statici in
+`frontend/scripts/check-react-contracts.mjs`.
 
 ## Aggiornamento fase 3
 

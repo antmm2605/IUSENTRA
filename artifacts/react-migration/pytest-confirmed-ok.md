@@ -1,12 +1,27 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-13, fase react 2 registro App V2 2.223.0.
+Aggiornato: 2026-05-13, fase react 4 routing App V2 2.225.0.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Fase react 4 - routing legacy e fallback App V2 2.225.0
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile web\services\app_v2_routing.py scripts\react-migration\generate_app_v2_page_registry.py scripts\smoke_app_v2_routing.py tests\test_app_v2_routing.py tests\test_app_v2_page_registry.py` | OK | Sintassi confermata per helper routing fail-closed, generatore registro, smoke routing e test dedicati. |
+| `python scripts\react-migration\generate_app_v2_page_registry.py --check` | OK | Registro e mappa routing App V2 deterministici: 98 route manifest, 13 route App V2 frontend, 31 alias frontend, 69 mapping backend sicuri, 0 redirect live. |
+| `python scripts\smoke_app_v2_routing.py --list`; `python scripts\smoke_app_v2_routing.py --base-url http://127.0.0.1:8080` | OK | Smoke senza credenziali: `/api/pronto` 200, endpoint flag 401 controllato, legacy/App V2 anonimi verso login same-origin, nessun redirect esterno. |
+| `python -m pytest -q tests\test_app_v2_routing.py tests\test_app_v2_page_registry.py --tb=short` | OK | 15/15 passati: sanificazione query, blocco open redirect, mapping statici/dinamici, fallback case-sensitive, flag off/on e documenti generati. |
+| `python -m pytest -q tests\test_app_v2_routing.py tests\test_app_v2_page_registry.py tests\test_feature_flags.py tests\test_app_v2_feature_flags.py tests\test_react_shell.py::test_react_shell_app_v2_route_protette_da_feature_flags --tb=short` | OK | 27/27 passati sul perimetro routing, feature flag, shell App V2 e registro. |
+| `node frontend\scripts\check-react-contracts.mjs`; `node scripts\react-migration\check-route-gate.mjs` | OK | Contratti React e route gate confermano strip query/hash lato router, helper Python, query whitelist/blacklist e 0 redirect live. |
+| `npm --prefix frontend run typecheck`; `npm --prefix frontend run test`; `npm --prefix frontend run build` | OK | TypeScript, contratti frontend e build Vite 2.225.0 verdi; build 5.49s, bundle principale `index-C-BWXjrL.js` 440.64 kB / 130.82 kB gzip, CSS principale invariato 121.77 kB / 22.33 kB gzip. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest -q tests\test_packaging_consistency.py tests\test_release_readiness.py --tb=short` | OK | Packaging, versione e readiness release confermati dopo bump `2.225.0`. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx`; `GET http://127.0.0.1:8080/api/pronto`; `docker exec iusentra-app python -c "import pct; print(pct.__version__)"` | OK | Build locale no-cache e riavvio completati; app, scheduler, OCR, Redis e nginx healthy/running; readiness locale `versione=2.225.0` e runtime container `2.225.0`. |
+| Chrome Playwright anonimo su `/app-v2?next=https://evil.example`, `/app-v2/documenti`, `/fascicoli?q=smoke` desktop/mobile | OK | Tutti i percorsi restano same-origin e arrivano al login: desktop 339/27/32 ms, mobile 266/28/26 ms; zero errori console e nessun redirect esterno. |
 
 ### Fase react 1 - feature flag App V2 2.222.0
 

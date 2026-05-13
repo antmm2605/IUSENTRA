@@ -69,15 +69,32 @@ La shell React riceve gli stessi flag nel bootstrap `iusentra-react-bootstrap`, 
 - backend: le azioni sensibili protette da flag restituiscono `403` e registrano `policy_denied`;
 - toggle governati: `set_feature_flag(...)` registra `feature_flag_toggled` quando viene fornito il gestore audit.
 
+## Routing fase 4
+
+La fase 4 aggiunge `web/services/app_v2_routing.py`: un redirect legacy -> App
+V2 puo' essere considerato solo se il target e' interno a `/app-v2`, il mapping
+e' esplicito, la query e' whitelistata e il flag pagina e' acceso. In assenza
+di flag attivo la decisione resta fail-closed e il template/route legacy resta
+fallback.
+
+Query preservate: `page`, `q`, `search`, `filter`, `sort`, `tab`, `view`,
+`from`, `to`, `status`, `drawer`, `section`, `focus`.
+
+Query sempre bloccate: `next`, `return`, `return_url`, `redirect`,
+`redirect_url`, `callback`, `url`, `target`, `tenant_id`, `studio_id`,
+`user_id`, `role`, `permission`, `is_admin`, `debug`, `token`.
+
 ## Rollback rapido
 
 Spegnere il flag via env o JSON, riavviare app e worker web. Non serve migrazione dati.
 
-## Registro fase 3
+## Registro fase 4
 
-Il mapping pagina/flag e' ora censito in `docs/app-v2-page-registry.md` e
+Il mapping pagina/flag/routing e' ora censito in `docs/app-v2-page-registry.md`,
+`docs/frontend-app-v2-pages.md` e `docs/legacy-to-app-v2-routing-map.md`, tutti
 generato da `scripts/react-migration/generate_app_v2_page_registry.py`. Le
 route sperimentali App V2 con flag restano default-off; per ogni riga sono
-documentati fallback flag-off, protezione frontend, protezione backend e test
-on/off. Le route ufficiali gia' `react_operational_full` restano governate dal
-manifest e dal route gate quando non entrano nella shell App V2.
+documentati fallback flag-off, protezione frontend, protezione backend, redirect
+strategy, deep link, query params e test on/off. Le route ufficiali gia'
+`react_operational_full` restano governate dal manifest e dal route gate quando
+non entrano nella shell App V2.

@@ -1,8 +1,8 @@
 # Pagine frontend App V2
 
-Aggiornato: 2026-05-13, fase 3 `fasereact`.
+Aggiornato: 2026-05-13, fase 4 `fasereact`.
 
-Questo documento e' il riepilogo operativo del registro completo in `docs/app-v2-page-registry.md`. Le route sperimentali App V2 restano sotto feature flag default-off; menu, route e fetch frontend rispettano lo stesso flag del backend.
+Questo documento e' il riepilogo operativo del registro completo in `docs/app-v2-page-registry.md`. Le route sperimentali App V2 restano sotto feature flag default-off; menu, route, fetch frontend e mapping routing rispettano lo stesso flag del backend.
 
 ## Shell App V2
 
@@ -107,15 +107,16 @@ Nessuna route pendente in questa priorita.
 
 Nessuna route pendente in questa priorita.
 
-## Smoke e gate fase 3
+## Smoke e gate fase 4
 
-Comandi introdotti o governati dalla fase 3:
+Comandi introdotti o governati dalla fase 4:
 
 ```powershell
 python scripts\react-migration\generate_app_v2_page_registry.py --check
 python scripts\smoke_app_v2_pages.py --list
+python scripts\smoke_app_v2_routing.py --list
 python -m pytest -q tests/test_app_v2_page_registry.py --tb=short
-python -m pytest -q tests/test_feature_flags.py tests/test_app_v2_feature_flags.py --tb=short
+python -m pytest -q tests/test_feature_flags.py tests/test_app_v2_feature_flags.py tests/test_app_v2_routing.py --tb=short
 ```
 
 Per smoke autenticati usare variabili ambiente, senza credenziali nel repository:
@@ -124,9 +125,9 @@ Per smoke autenticati usare variabili ambiente, senza credenziali nel repository
 $env:IUSENTRA_BASE_URL='https://app.iusentra.it'
 $env:IUSENTRA_SMOKE_USERNAME='<utente>'
 $env:IUSENTRA_SMOKE_PASSWORD='<password>'
-python scripts\smoke_app_v2_pages.py --require-credentials
+python scripts\smoke_app_v2_routing.py --require-credentials
 ```
 
-## Stato fase 3
+## Stato fase 4
 
-La fase 3 completa la matrice flag default-off per App V2. Le route non full restano backlog; le route App V2 non caricano dati quando il flag e' spento e possono essere abilitate solo con opt-in esplicito per studio/ambiente.
+La fase 4 completa la mappa routing e il helper no-open-redirect. I redirect legacy -> App V2 non sono attivati globalmente: diventano possibili solo pagina per pagina, con target interno, query whitelist e flag acceso.

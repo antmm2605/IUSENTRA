@@ -76,3 +76,19 @@ Per ora la verifica e' pytest mirata. La fase OpenAPI dovra' aggiungere:
 
 Le credenziali non sono mai hardcoded: usare `IUSENTRA_BASE_URL`,
 `IUSENTRA_SMOKE_USERNAME` e `IUSENTRA_SMOKE_PASSWORD`.
+
+## Routing fase 4
+
+La fase 4 non introduce nuovi endpoint pubblici, ma aggiunge un contratto di
+routing interno:
+
+- `build_app_v2_path(...)` costruisce solo target interni `/app-v2`;
+- `should_redirect_to_app_v2(...)` permette redirect solo se il feature flag
+  pagina e' acceso;
+- `get_legacy_fallback_path(...)` mantiene fallback legacy ripulendo query non
+  sicure.
+
+`scripts/smoke_app_v2_routing.py` verifica mapping, no-open-redirect, route
+legacy accessibili, `/app-v2` flag-off e assenza di redirect esterni. Senza
+credenziali puo' eseguire inventario/static checks; con credenziali da env
+esegue smoke HTTP autenticato.

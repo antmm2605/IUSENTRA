@@ -74,3 +74,26 @@ python scripts/smoke_app_v2_pages.py --list
 La risposta `403` su `/app-v2` o `/app-v2/documenti` e' corretta quando il flag
 del tenant e' spento; la risposta `200` e' corretta solo per tenant/ambienti
 abilitati esplicitamente.
+
+## Redirect legacy -> App V2 fase 4
+
+I redirect non sono attivati globalmente. Per abilitarne uno pagina per pagina:
+
+1. Verificare che la pagina sia in `docs/legacy-to-app-v2-routing-map.md` con
+   stato `App V2 redirect ready`.
+2. Accendere solo il flag `routes.appV2.*` della pagina interessata.
+3. Usare `should_redirect_to_app_v2(...)` nella route legacy specifica, dopo
+   autenticazione e contesto tenant, mai da un catch-all generico.
+4. Preservare solo query whitelistate dal helper; `next`, `redirect`,
+   `return_url`, tenant, user e token restano bloccati.
+5. Eseguire smoke autenticato:
+
+```bash
+IUSENTRA_BASE_URL=https://app.iusentra.it \
+IUSENTRA_SMOKE_USERNAME="$IUSENTRA_SMOKE_USERNAME" \
+IUSENTRA_SMOKE_PASSWORD="$IUSENTRA_SMOKE_PASSWORD" \
+python scripts/smoke_app_v2_routing.py --require-credentials
+```
+
+Rollback entro 2 ore: spegnere il flag pagina, riavviare i worker web e
+verificare che la route legacy torni al template/fallback senza redirect.

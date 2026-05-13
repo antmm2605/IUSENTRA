@@ -98,7 +98,10 @@ function pythonTupleSource(source, name) {
 
 const app = read('src/App.tsx')
 const appRoutes = read('src/app/routes.ts')
+const appRouter = read('src/app/router.tsx')
 const featureFlags = read('src/lib/featureFlags.ts')
+const appV2Routing = read('../web/services/app_v2_routing.py')
+const legacyRoutingMap = read('../docs/legacy-to-app-v2-routing-map.md')
 const packageJson = JSON.parse(read('package.json'))
 const dashboardData = read('src/data.ts')
 const agenda = read('src/components/AgendaPage.tsx')
@@ -1798,6 +1801,14 @@ assertContains(app, 'appV2FlagProtectedPath', 'guard App V2 limitata alla shell 
 assertContains(app, 'effectiveStandalonePage', 'guard App V2 sospende fetch pagina')
 assertContains(app, 'FeatureUnavailablePage', 'stato flag off App V2')
 assertContains(appRoutes, 'MAIN_NAV_ROUTES', 'menu App V2 filtrato per feature flag')
+assertContains(appRouter, 'stripRoutingDecorators', 'router App V2 normalizza query/hash prima del match')
+assertContains(appRouter, 'LEGACY_ROUTE_TARGETS[clean] || clean', 'router App V2 conserva alias legacy espliciti')
+assertContains(appV2Routing, 'SAFE_QUERY_PARAMS', 'routing App V2 whitelist query')
+assertContains(appV2Routing, 'UNSAFE_QUERY_PARAMS', 'routing App V2 blocca query sensibili')
+assertContains(appV2Routing, 'def is_safe_internal_path', 'routing App V2 blocca open redirect')
+assertContains(appV2Routing, 'def should_redirect_to_app_v2', 'routing App V2 flag-gated')
+assertContains(legacyRoutingMap, 'Redirect attivati live in fase 4: 0', 'mappa routing fase 4 senza redirect globali')
+assertContains(legacyRoutingMap, 'Query bloccate', 'mappa routing documenta query bloccate')
 for (const route of [
   '/app',
   '/app/regia',

@@ -14,6 +14,7 @@ MANIFEST_PATH = REPO_ROOT / "tools" / "react-migration" / "route-manifest.json"
 APP_ROUTES_PATH = REPO_ROOT / "frontend" / "src" / "app" / "routes.ts"
 REGISTRY_PATH = REPO_ROOT / "docs" / "app-v2-page-registry.md"
 FRONTEND_PAGES_PATH = REPO_ROOT / "docs" / "frontend-app-v2-pages.md"
+ROUTING_MAP_PATH = REPO_ROOT / "docs" / "legacy-to-app-v2-routing-map.md"
 
 STATUS_LABELS = {
     "legacy_operational": "legacy",
@@ -269,7 +270,7 @@ def _feature_flag(route: dict[str, object]) -> str:
 
     status = str(route.get("status") or "")
     workspace = str(route.get("workspaceTarget") or "")
-    for candidate in (workspace, str(route.get("route") or "")):
+    for candidate in (str(route.get("route") or ""), workspace):
         flag = app_v2_route_flag_for_path(candidate)
         if flag:
             return flag
@@ -311,7 +312,7 @@ def _backend_protection(route: dict[str, object]) -> str:
 def _flag_tests(route: dict[str, object]) -> str:
     flag = _feature_flag(route)
     if flag.startswith("routes.appV2."):
-        return "tests/test_feature_flags.py + tests/test_app_v2_feature_flags.py"
+        return "tests/test_feature_flags.py + tests/test_app_v2_feature_flags.py + tests/test_app_v2_routing.py"
     return "da aggiungere prima della promozione"
 
 
@@ -364,6 +365,76 @@ def _final_state(route: dict[str, object]) -> str:
     return "registrata come legacy/backlog; non promossa senza parita reale"
 
 
+def _app_v2_redirect_target(route: dict[str, object]) -> str:
+    if str(REPO_ROOT) not in sys.path:
+        sys.path.insert(0, str(REPO_ROOT))
+    from web.services.app_v2_routing import build_app_v2_path
+
+    legacy = str(route.get("route") or "")
+    if "*" in legacy or ":" in legacy or "{" in legacy:
+        return "non attivato; deep link parametrico resta fallback legacy finche' non ha pattern dedicato"
+    target = build_app_v2_path(legacy)
+    if target:
+        return target
+    workspace = str(route.get("workspaceTarget") or "")
+    if workspace and workspace.startswith("/app"):
+        return "candidato shell; mapping esplicito da completare"
+    return "nessun target App V2 sicuro"
+
+
+def _redirect_strategy(route: dict[str, object]) -> str:
+    status = str(route.get("status") or "")
+    target = _app_v2_redirect_target(route)
+    if target.startswith("/app-v2") and status == "react_operational_full" and route.get("unlockFromGate") is True:
+        return "ready_when_flag_on; redirect live non attivo in fase 4"
+    if target.startswith("/app-v2") and status == "react_operational_partial":
+        return "test_only; flag on solo per verifica controllata"
+    if target.startswith("/app-v2"):
+        return "no; fallback legacy mantenuto"
+    return "pending; mapping esplicito mancante"
+
+
+def _deep_link_support(route: dict[str, object]) -> str:
+    legacy = str(route.get("route") or "")
+    if "*" in legacy:
+        return "deep link legacy protetto; App V2 richiede pattern dedicato"
+    if ":" in legacy or "{" in legacy:
+        return "path param preservato solo via helper con segmenti validati"
+    return "refresh diretto e query whitelistati; nessun next/return_url"
+
+
+def _query_support() -> str:
+    return "preserva page,q,search,filter,sort,tab,view,from,to,status,drawer,section,focus; blocca next,return_url,redirect,tenant_id,user_id,token"
+
+
+def _template_classification(route: dict[str, object]) -> str:
+    status = str(route.get("status") or "")
+    if status == "react_operational_full":
+        return "keep_fallback; rimozione non prevista in fase 4"
+    if status == "react_operational_partial":
+        return "app_v2_shell_candidate; fallback obbligatorio"
+    return "keep_fallback o blocked secondo rischio"
+
+
+def _routing_test_state(route: dict[str, object]) -> str:
+    flag = _feature_flag(route)
+    if flag.startswith("routes.appV2."):
+        return "routing helper + flag off/on + no open redirect"
+    return "inventario; test prima della promozione"
+
+
+def _phase4_final_state(route: dict[str, object]) -> str:
+    status = str(route.get("status") or "")
+    redirect = _redirect_strategy(route)
+    if status == "react_operational_full" and redirect.startswith("ready_when_flag_on"):
+        return "App V2 redirect ready"
+    if status == "react_operational_partial":
+        return "App V2 gated"
+    if status == "legacy_operational":
+        return "legacy fallback"
+    return "pending"
+
+
 def _md(value: object) -> str:
     text = str(value if value is not None else "").strip()
     text = text.replace("\n", " ").replace("|", "\\|")
@@ -397,6 +468,12 @@ def _registry_rows(routes: list[dict[str, object]], flask_routes: list[FlaskRout
                 _tests_missing(route),
                 _priority(route),
                 _notes(route),
+                _redirect_strategy(route),
+                _deep_link_support(route),
+                _query_support(),
+                _routing_test_state(route),
+                _template_classification(route),
+                _phase4_final_state(route),
                 _final_state(route),
             ]
         )
@@ -443,9 +520,9 @@ def _registry_doc(
     lines = [
         "# Registro pagine App V2 e migrazione React",
         "",
-        "Aggiornato: 2026-05-13, fase 3 `fasereact`.",
+        "Aggiornato: 2026-05-13, fase 4 `fasereact`.",
         "",
-        "Questo registro e' generato da `scripts/react-migration/generate_app_v2_page_registry.py` a partire da manifest React, route App V2, feature flag e discovery Flask. La fase 3 aggiunge flag default-off per ogni pagina App V2 e documenta fallback, protezione frontend/backend e test on/off.",
+        "Questo registro e' generato da `scripts/react-migration/generate_app_v2_page_registry.py` a partire da manifest React, route App V2, feature flag, mapping routing sicuro e discovery Flask. La fase 4 aggiunge redirect strategy, deep link, query whitelist, classificazione template legacy e stato routing finale senza attivare redirect globali non governati.",
         "",
         "## Sintesi discovery",
         "",
@@ -501,7 +578,13 @@ def _registry_doc(
                 "Test mancanti",
                 "Priorita",
                 "Note tecniche",
-                "Stato finale fase 3",
+                "Redirect strategy",
+                "Deep link support",
+                "Query params support",
+                "Stato test routing",
+                "Classificazione template legacy",
+                "Stato finale fase 4",
+                "Nota stato precedente",
             ],
             _registry_rows(routes, flask_routes),
         ),
@@ -515,13 +598,14 @@ def _registry_doc(
             [[route.path, route.methods, route.source, route.templates] for route in flask_get_pages[:160]],
         ),
         "",
-        "## Regola operativa fase 3",
+        "## Regola operativa fase 4",
         "",
         "- P0: route critiche o legacy/parziali ad alto rischio, da chiudere prima del rollout ampio.",
         "- P1: route ad alto rischio gia' React o route legacy/parziali a rischio medio.",
         "- P2: route React complete a rischio medio e backlog governato.",
         "- P3: route a rischio basso o solo di servizio, da trattare dopo le superfici studio principali.",
         "- Ogni flag `routes.appV2.*` resta default-off; se spento la shell mostra uno stato operativo e non esegue chiamate dati della pagina.",
+        "- Ogni redirect legacy -> App V2 deve passare da `web.services.app_v2_routing` e restare spento finche' il flag pagina non e' attivo.",
         "",
     ]
     return "\n".join(lines)
@@ -540,9 +624,9 @@ def _frontend_doc(
     lines = [
         "# Pagine frontend App V2",
         "",
-        "Aggiornato: 2026-05-13, fase 3 `fasereact`.",
+        "Aggiornato: 2026-05-13, fase 4 `fasereact`.",
         "",
-        "Questo documento e' il riepilogo operativo del registro completo in `docs/app-v2-page-registry.md`. Le route sperimentali App V2 restano sotto feature flag default-off; menu, route e fetch frontend rispettano lo stesso flag del backend.",
+        "Questo documento e' il riepilogo operativo del registro completo in `docs/app-v2-page-registry.md`. Le route sperimentali App V2 restano sotto feature flag default-off; menu, route, fetch frontend e mapping routing rispettano lo stesso flag del backend.",
         "",
         "## Shell App V2",
         "",
@@ -585,15 +669,16 @@ def _frontend_doc(
 
     lines.extend(
         [
-            "## Smoke e gate fase 3",
+            "## Smoke e gate fase 4",
             "",
-            "Comandi introdotti o governati dalla fase 3:",
+            "Comandi introdotti o governati dalla fase 4:",
             "",
             "```powershell",
             "python scripts\\react-migration\\generate_app_v2_page_registry.py --check",
             "python scripts\\smoke_app_v2_pages.py --list",
+            "python scripts\\smoke_app_v2_routing.py --list",
             "python -m pytest -q tests/test_app_v2_page_registry.py --tb=short",
-            "python -m pytest -q tests/test_feature_flags.py tests/test_app_v2_feature_flags.py --tb=short",
+            "python -m pytest -q tests/test_feature_flags.py tests/test_app_v2_feature_flags.py tests/test_app_v2_routing.py --tb=short",
             "```",
             "",
             "Per smoke autenticati usare variabili ambiente, senza credenziali nel repository:",
@@ -602,15 +687,120 @@ def _frontend_doc(
             "$env:IUSENTRA_BASE_URL='https://app.iusentra.it'",
             "$env:IUSENTRA_SMOKE_USERNAME='<utente>'",
             "$env:IUSENTRA_SMOKE_PASSWORD='<password>'",
-            "python scripts\\smoke_app_v2_pages.py --require-credentials",
+            "python scripts\\smoke_app_v2_routing.py --require-credentials",
             "```",
             "",
-            "## Stato fase 3",
+            "## Stato fase 4",
             "",
-            "La fase 3 completa la matrice flag default-off per App V2. Le route non full restano backlog; le route App V2 non caricano dati quando il flag e' spento e possono essere abilitate solo con opt-in esplicito per studio/ambiente.",
+            "La fase 4 completa la mappa routing e il helper no-open-redirect. I redirect legacy -> App V2 non sono attivati globalmente: diventano possibili solo pagina per pagina, con target interno, query whitelist e flag acceso.",
             "",
         ]
     )
+    return "\n".join(lines)
+
+
+def _routing_map_doc(
+    routes: list[dict[str, object]],
+    app_routes: list[AppRoute],
+    legacy_targets: dict[str, str],
+    flask_routes: list[FlaskRoute],
+) -> str:
+    if str(REPO_ROOT) not in sys.path:
+        sys.path.insert(0, str(REPO_ROOT))
+    from web.services.app_v2_routing import LEGACY_TO_APP_V2_TARGETS, SAFE_QUERY_PARAMS, UNSAFE_QUERY_PARAMS
+
+    rows = []
+    for route in sorted(routes, key=lambda item: (str(item.get("family") or ""), str(item.get("route") or ""))):
+        legacy = str(route.get("route") or "")
+        rows.append(
+            [
+                _family_label(str(route.get("family") or "")),
+                legacy,
+                _template_for(legacy, flask_routes),
+                _app_v2_redirect_target(route),
+                str(route.get("targetComponent") or "non assegnato"),
+                _feature_flag(route),
+                _redirect_strategy(route),
+                _flag_off_fallback(route),
+                "path params espliciti; wildcard solo legacy" if "*" in legacy else "path diretto",
+                ", ".join(sorted(SAFE_QUERY_PARAMS)),
+                ", ".join(sorted(UNSAFE_QUERY_PARAMS)),
+                _routing_test_state(route),
+                _phase4_final_state(route),
+                _notes(route),
+            ]
+        )
+
+    app_route_rows = [
+        [route.path, route.label, route.family, route.api or "nessuna API dedicata", route.feature_flag or "da assegnare"]
+        for route in app_routes
+    ]
+    legacy_alias_rows = [
+        [legacy, target, LEGACY_TO_APP_V2_TARGETS.get(legacy, "solo normalizzazione frontend")]
+        for legacy, target in sorted(legacy_targets.items())
+    ]
+
+    lines = [
+        "# Mappa routing legacy -> App V2",
+        "",
+        "Aggiornato: 2026-05-13, fase 4 `fasereact`.",
+        "",
+        "La fase 4 prepara redirect e fallback senza attivare redirect globali. Ogni passaggio legacy -> App V2 deve usare `web.services.app_v2_routing`, che accetta solo target interni `/app-v2`, blocca query autorizzative o esterne e richiede feature flag pagina acceso.",
+        "",
+        "## Sintesi",
+        "",
+        f"- Route manifest analizzate: {len(routes)}.",
+        f"- Route App V2 frontend analizzate: {len(app_routes)}.",
+        f"- Alias legacy frontend censiti: {len(legacy_targets)}.",
+        f"- Mapping backend sicuri censiti: {len(LEGACY_TO_APP_V2_TARGETS)}.",
+        "- Redirect attivati live in fase 4: 0.",
+        "- Fallback legacy/template: mantenuti per tutte le route non promosse o non abilitate.",
+        "",
+        "## Query params",
+        "",
+        f"- Preservati: {', '.join(sorted(SAFE_QUERY_PARAMS))}.",
+        f"- Bloccati: {', '.join(sorted(UNSAFE_QUERY_PARAMS))}.",
+        "- I parametri `next`, `return_url`, `redirect`, `tenant_id`, `user_id`, `role`, `permission` e token non vengono mai propagati verso App V2.",
+        "",
+        "## Route App V2 frontend",
+        "",
+        _table(["Path", "Etichetta", "Famiglia", "API", "Feature flag"], app_route_rows),
+        "",
+        "## Alias legacy frontend",
+        "",
+        _table(["Legacy", "Target router frontend", "Target backend sicuro"], legacy_alias_rows),
+        "",
+        "## Mapping completo manifest",
+        "",
+        _table(
+            [
+                "Area",
+                "Legacy URL",
+                "Template",
+                "App V2 URL",
+                "Componente React",
+                "Flag",
+                "Redirect",
+                "Fallback",
+                "Params",
+                "Query preservate",
+                "Query bloccate",
+                "Test",
+                "Stato finale",
+                "Note",
+            ],
+            rows,
+        ),
+        "",
+        "## Attivazione controllata",
+        "",
+        "1. Accendere solo il flag della pagina interessata.",
+        "2. Verificare `should_redirect_to_app_v2(...)` in test con flag off e flag on.",
+        "3. Abilitare il redirect nella route legacy specifica, non nel catch-all.",
+        "4. Eseguire `python scripts\\smoke_app_v2_routing.py --require-credentials` nell'ambiente target.",
+        "5. Spegnere il flag per rollback immediato; il template legacy resta fallback.",
+        "",
+    ]
     return "\n".join(lines)
 
 
@@ -630,6 +820,7 @@ def generate() -> dict[Path, str]:
     return {
         REGISTRY_PATH: _registry_doc(routes, app_routes, legacy_targets, feature_flags, flask_routes),
         FRONTEND_PAGES_PATH: _frontend_doc(routes, app_routes, legacy_targets),
+        ROUTING_MAP_PATH: _routing_map_doc(routes, app_routes, legacy_targets, flask_routes),
     }
 
 

@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.225.0 - 2026-05-13
+
+- Completata la fase 4 `fasereact`: introdotto `web/services/app_v2_routing.py` con mapping legacy -> App V2, whitelist query, blocco query sensibili e decisione redirect legata a feature flag.
+- Creato `docs/legacy-to-app-v2-routing-map.md` e rigenerati registro App V2/frontend con redirect strategy, deep link, query params, fallback e classificazione template legacy.
+- Aggiunto `scripts/smoke_app_v2_routing.py` per smoke post-deploy senza segreti e test statici contro open redirect.
+- Rafforzato il router frontend App V2 per non far fallire il match quando gli alias legacy contengono query/hash controllati.
+- Aggiunti test `tests/test_app_v2_routing.py` e contratti React/documentali per impedire redirect aperti, target non interni, cattura di `/api/*` o mapping App V2 senza flag.
+
 ## 2.224.0 - 2026-05-13
 
 - Completata la fase 3 `fasereact`: introdotti flag canonici `routes.appV2.<area>.<pagina>` default-off per ogni pagina/famiglia App V2, con alias compatibili per i flag delle fasi 1-2.

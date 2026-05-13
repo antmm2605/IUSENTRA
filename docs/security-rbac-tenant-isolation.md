@@ -55,6 +55,24 @@ canonici. I test `tests/test_feature_flags.py` e
 `tests/test_app_v2_feature_flags.py` coprono default-off, alias, mapping route
 dinamiche, isolamento tra configurazioni Flask e guard frontend.
 
+## Matrice fase 4
+
+Il passaggio legacy -> App V2 e' governato da `web/services/app_v2_routing.py`.
+La decisione di redirect resta separata da auth/RBAC/tenant: una route legacy
+deve verificare sessione, tenant e permessi prima di usarla. Il helper aggiunge
+solo i presidi di routing:
+
+- target interno obbligatorio sotto `/app-v2`;
+- mapping esplicito, nessun target generato da input utente libero;
+- query whitelistate e rimozione di `next`, `redirect`, `return_url`,
+  `tenant_id`, `user_id`, ruoli, permessi e token;
+- redirect consentito solo con feature flag pagina acceso;
+- fallback legacy o 403 operativo quando il flag e' spento.
+
+I test `tests/test_app_v2_routing.py` coprono open redirect, query sospette,
+flag off/on, mapping con flag noto e protezione da cattura di `/api/*` e asset
+statici.
+
 ## Punti da estendere nelle fasi successive
 
 - denial cross-tenant espliciti per ogni endpoint P0/P1;

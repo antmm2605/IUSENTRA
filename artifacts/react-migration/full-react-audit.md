@@ -2,6 +2,19 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-13T22:05:00+02:00: fase react 4 `fasereact`
+2.225.0. Il routing legacy -> App V2 e' governato da helper fail-closed,
+feature flag canonici e mappa generata. Nessun redirect automatico e' stato
+attivato in produzione durante questa fase: i template legacy restano fallback
+finche' non esiste parita' verificata e rollout esplicito.
+
+Audit anti-mascheramento routing: target solo interni `/app-v2`, query sicure
+whitelistate, query rischiose scartate, deep link parametrico non promosso se
+non ha regola dedicata, mapping backend censito in
+`docs/legacy-to-app-v2-routing-map.md` e smoke anonimo che distingue login
+same-origin da open redirect reale. I gate dedicati sono registrati verdi in
+`pytest-confirmed-ok.md`.
+
 Aggiornamento 2026-05-13T21:20:00+02:00: fase react 2 `fasereact`
 2.223.0. Il perimetro App V2 e' ora censito in
 `docs/app-v2-page-registry.md`, rigenerabile e verificabile via

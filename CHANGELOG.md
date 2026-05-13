@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.218.9 - 2026-05-13
+
+- Corretto il decoding delle Email ordinarie quando il server dichiara un charset errato: gli accenti italiani non vengono piu' sostituiti con `�` nei campi oggetto e corpo.
+- La sincronizzazione IMAP ripara anche le email gia' salvate con caratteri sostitutivi, rileggendo il messaggio originale quando e' ancora presente sul server.
+- Aggiunti test mirati su `è` e `à` in intestazioni e corpo, inclusa la riparazione dei record storici.
+
 ## 2.218.8 - 2026-05-13
 
 - Corretto il doppione in Email ordinaria tra messaggio inviato locale e copia IMAP della cartella Inviati quando il provider salva la copia con uno scarto di orario.

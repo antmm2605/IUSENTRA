@@ -337,6 +337,49 @@ class GestioneEmailRicevute:
         return max(0, nuovi_salvati - vecchi_salvati)
 
     @staticmethod
+    def _score_testo_decodificato(value: str) -> int:
+        text = str(value or "")
+        controlli = sum(1 for char in text if ord(char) < 32 and char not in "\r\n\t")
+        mojibake = len(re.findall(r"(?:Ã.|Â.|â[€\x80-\xbf]|\ufffd)", text))
+        return (text.count("\ufffd") * 100) + (mojibake * 12) + (controlli * 10)
+
+    @classmethod
+    def _scegli_testo_migliore(cls, current: str, candidate: str) -> tuple[str, bool]:
+        candidate_text = str(candidate or "")
+        current_text = str(current or "")
+        if not candidate_text.strip():
+            return current_text, False
+        if not current_text.strip():
+            return candidate_text, True
+        current_score = cls._score_testo_decodificato(current_text)
+        candidate_score = cls._score_testo_decodificato(candidate_text)
+        if "\ufffd" in current_text and candidate_score < current_score:
+            return candidate_text, True
+        if current_score >= 12 and candidate_score + 12 < current_score:
+            return candidate_text, True
+        return current_text, False
+
+    @classmethod
+    def _email_ha_testo_da_riparare(cls, em: EmailRicevuta) -> bool:
+        return any(
+            "\ufffd" in str(getattr(em, field_name, "") or "")
+            for field_name in ("oggetto", "mittente", "mittente_nome", "destinatari", "corpo_testo", "corpo_html")
+        )
+
+    @classmethod
+    def _merge_testo_migliore(cls, target: EmailRicevuta, parsed: EmailRicevuta) -> bool:
+        changed = False
+        for field_name in ("oggetto", "mittente", "mittente_nome", "destinatari", "corpo_testo", "corpo_html"):
+            best, replace = cls._scegli_testo_migliore(
+                str(getattr(target, field_name, "") or ""),
+                str(getattr(parsed, field_name, "") or ""),
+            )
+            if replace:
+                setattr(target, field_name, best)
+                changed = True
+        return changed
+
+    @staticmethod
     def _message_id_key(value: str) -> str:
         return str(value or "").strip().strip("<>").lower()
 
@@ -837,7 +880,7 @@ class GestioneEmailRicevute:
         Scarica le email più recenti via IMAP e le salva nel database locale.
 
         Returns:
-            {"nuove": int, "errori": int, "pst_trovate": int, "allegati_salvati": int, "cartelle_corrette": int, "errore": str}
+            {"nuove": int, "errori": int, "pst_trovate": int, "allegati_salvati": int, "cartelle_corrette": int, "testi_corretti": int, "errore": str}
         """
         risultato = {
             "nuove": 0,
@@ -845,6 +888,7 @@ class GestioneEmailRicevute:
             "pst_trovate": 0,
             "allegati_salvati": 0,
             "cartelle_corrette": 0,
+            "testi_corretti": 0,
             "errore": "",
         }
         cartelle_imap = cartelle_imap or ["INBOX"]
@@ -897,7 +941,10 @@ class GestioneEmailRicevute:
                         for uid_key, em_storica in email_per_uid.items()
                         if uid_key.startswith(prefix_cartella)
                         and uid_key.rsplit(":", 1)[1] in uid_list_all
-                        and self._email_ha_allegati_da_salvare(em_storica)
+                        and (
+                            self._email_ha_allegati_da_salvare(em_storica)
+                            or self._email_ha_testo_da_riparare(em_storica)
+                        )
                     ]
                     uid_list = list(dict.fromkeys(uid_list + uid_da_riparare))
 
@@ -907,7 +954,10 @@ class GestioneEmailRicevute:
                         ripara_allegati = bool(
                             email_esistente and self._email_ha_allegati_da_salvare(email_esistente)
                         )
-                        if email_esistente and not ripara_allegati:
+                        ripara_testo = bool(
+                            email_esistente and self._email_ha_testo_da_riparare(email_esistente)
+                        )
+                        if email_esistente and not (ripara_allegati or ripara_testo):
                             if self._allinea_cartella_da_imap(email_esistente, cartella_imap):
                                 risultato["cartelle_corrette"] += 1
                             continue
@@ -946,6 +996,8 @@ class GestioneEmailRicevute:
                                         risultato["cartelle_corrette"] += 1
                                     salvati = self._merge_allegati_salvati(email_esistente, em)
                                     risultato["allegati_salvati"] += salvati
+                                    if self._merge_testo_migliore(email_esistente, em):
+                                        risultato["testi_corretti"] += 1
                                 else:
                                     # Auto-rileva risposte PST
                                     self._analizza_pst(em)
@@ -1057,8 +1109,45 @@ class GestioneEmailRicevute:
 
     # ---- Helpers privati ----
 
-    @staticmethod
-    def _decode_header_val(val: str) -> str:
+    @classmethod
+    def _decode_bytes_testo(cls, payload: bytes, charset: str | None = None) -> str:
+        if not payload:
+            return ""
+        candidates: list[str] = []
+        for candidate in (charset, "utf-8", "windows-1252", "iso-8859-1", "latin-1"):
+            if not candidate:
+                continue
+            normalized = str(candidate).strip().lower()
+            if normalized and normalized not in candidates:
+                candidates.append(normalized)
+
+        best_text = ""
+        best_score: int | None = None
+        for encoding in candidates:
+            try:
+                decoded = payload.decode(encoding, errors="replace")
+            except LookupError:
+                continue
+            score = cls._score_testo_decodificato(decoded)
+            if best_score is None or score < best_score:
+                best_text = decoded
+                best_score = score
+                if score == 0:
+                    break
+        return best_text
+
+    @classmethod
+    def _decode_part_text(cls, part: email.message.Message) -> str:
+        payload = part.get_payload(decode=True)
+        if isinstance(payload, bytes):
+            return cls._decode_bytes_testo(payload, part.get_content_charset() or "utf-8")
+        raw_payload = part.get_payload()
+        if isinstance(raw_payload, str):
+            return raw_payload
+        return ""
+
+    @classmethod
+    def _decode_header_val(cls, val: str) -> str:
         """Decodifica un header RFC 2047 in stringa Python."""
         if not val:
             return ""
@@ -1066,10 +1155,7 @@ class GestioneEmailRicevute:
         decoded = []
         for chunk, charset in parts:
             if isinstance(chunk, bytes):
-                try:
-                    decoded.append(chunk.decode(charset or "utf-8", errors="replace"))
-                except Exception:
-                    decoded.append(chunk.decode("latin-1", errors="replace"))
+                decoded.append(cls._decode_bytes_testo(chunk, charset or "utf-8"))
             else:
                 decoded.append(str(chunk))
         return " ".join(decoded).strip()
@@ -1156,18 +1242,12 @@ class GestioneEmailRicevute:
                             att.update(self._salva_allegato(em_id, nome_originale, payload))
                         allegati.append(att)
                     elif ct == "text/plain" and not corpo_testo:
-                        payload = part.get_payload(decode=True)
-                        charset = part.get_content_charset() or "utf-8"
-                        corpo_testo = payload.decode(charset, errors="replace")
+                        corpo_testo = self._decode_part_text(part)
                     elif ct == "text/html" and not corpo_html:
-                        payload = part.get_payload(decode=True)
-                        charset = part.get_content_charset() or "utf-8"
-                        corpo_html = payload.decode(charset, errors="replace")
+                        corpo_html = self._decode_part_text(part)
             else:
-                payload = msg.get_payload(decode=True)
-                charset = msg.get_content_charset() or "utf-8"
-                if payload:
-                    testo = payload.decode(charset, errors="replace")
+                testo = self._decode_part_text(msg)
+                if testo:
                     if msg.get_content_type() == "text/html":
                         corpo_html = testo
                     else:

@@ -974,6 +974,110 @@ def test_parse_message_salva_allegato_message_rfc822(tmp_path):
     assert b"Subject: Messaggio originale" in path.read_bytes()
 
 
+def test_parse_message_recupera_accenti_con_charset_errato(tmp_path):
+    raw = (
+        b"Subject: =?utf-8?Q?massima_sulla_possibilit=E0?=\r\n"
+        b"From: Giuseppe Montagnese <studio@example.it>\r\n"
+        b"To: cliente@example.it\r\n"
+        b"Date: Wed, 13 May 2026 10:17:00 +0200\r\n"
+        b"Message-ID: <accenti@example.test>\r\n"
+        b"MIME-Version: 1.0\r\n"
+        b"Content-Type: text/plain; charset=utf-8\r\n"
+        b"Content-Transfer-Encoding: quoted-printable\r\n"
+        b"\r\n"
+        b"adesso si =E8 resa massima sulla possibilit=E0.\r\n"
+    )
+
+    ge = GestioneEmailRicevute(str(tmp_path / "casella.json"))
+    parsed = email.message_from_bytes(raw)
+    em = ge._parse_message(parsed, "INBOX:UID:8", "INBOX", email_id="MAIL-ACCENTI")  # noqa: SLF001
+
+    assert em is not None
+    assert em.oggetto == "massima sulla possibilità"
+    assert "si è resa" in em.corpo_testo
+    assert "possibilità" in em.corpo_testo
+    assert "\ufffd" not in em.oggetto
+    assert "\ufffd" not in em.corpo_testo
+
+
+def test_sincronizza_imap_ripara_testo_salvato_con_accenti_rotti(tmp_path, monkeypatch):
+    import pct.email_client as email_runtime
+
+    raw = (
+        b"Subject: =?utf-8?Q?massima_sulla_possibilit=E0?=\r\n"
+        b"From: Giuseppe Montagnese <studio@example.it>\r\n"
+        b"To: cliente@example.it\r\n"
+        b"Date: Wed, 13 May 2026 10:17:00 +0200\r\n"
+        b"Message-ID: <accenti@example.test>\r\n"
+        b"MIME-Version: 1.0\r\n"
+        b"Content-Type: text/plain; charset=utf-8\r\n"
+        b"Content-Transfer-Encoding: quoted-printable\r\n"
+        b"\r\n"
+        b"adesso si =E8 resa massima sulla possibilit=E0.\r\n"
+    )
+
+    ge = GestioneEmailRicevute(str(tmp_path / "casella.json"))
+    ge.aggiungi(
+        EmailRicevuta(
+            id="MAIL-ACCENTI-STORICA",
+            cartella=CartellaEmail.INBOX,
+            stato=StatoEmail.LETTA,
+            mittente="studio@example.it",
+            oggetto="massima sulla possibilit\ufffd",
+            data="2026-05-13T10:17:00+02:00",
+            corpo_testo="adesso si \ufffd resa massima sulla possibilit\ufffd.",
+            uid_imap="INBOX:UID:9",
+            message_id="<accenti@example.test>",
+        )
+    )
+
+    class _FakeIMAP:
+        def login(self, username, password):
+            return "OK", []
+
+        def select(self, mailbox, readonly=True):
+            return "OK", [b"1"]
+
+        def uid(self, command, *args):
+            if command == "SEARCH":
+                return "OK", [b"9"]
+            if command == "FETCH":
+                assert args[0] == "9"
+                return "OK", [(b"9 (RFC822)", raw)]
+            return "NO", []
+
+        def search(self, charset, criteria):
+            return "OK", [b"9"]
+
+        def fetch(self, uid, query):
+            return "OK", [(b"9 (RFC822)", raw)]
+
+        def logout(self):
+            return "OK", []
+
+    monkeypatch.setattr(email_runtime.imaplib, "IMAP4_SSL", lambda *a, **k: _FakeIMAP())
+
+    report = ge.sincronizza_imap(
+        imap_host="imap.example.it",
+        imap_port=993,
+        username="studio@example.it",
+        password="segreta",
+        use_ssl=True,
+        cartelle_imap=["INBOX"],
+        limite=1,
+    )
+
+    repaired = GestioneEmailRicevute(str(tmp_path / "casella.json")).get("MAIL-ACCENTI-STORICA")
+
+    assert report["nuove"] == 0
+    assert report["testi_corretti"] == 1
+    assert repaired is not None
+    assert repaired.oggetto == "massima sulla possibilità"
+    assert "si è resa" in repaired.corpo_testo
+    assert "possibilità" in repaired.corpo_testo
+    assert "\ufffd" not in repaired.corpo_testo
+
+
 def test_sincronizza_imap_ripara_allegati_storici_senza_file(tmp_path, monkeypatch):
     import pct.email_client as email_runtime
 

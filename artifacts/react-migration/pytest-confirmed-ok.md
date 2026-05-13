@@ -1,12 +1,26 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-13, Email ordinaria deduplica inviati 2.218.8.
+Aggiornato: 2026-05-13, Email ordinaria accenti e charset 2.218.9.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Email ordinaria accenti e charset 2.218.9
+
+| Verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest -q tests\test_email_client.py::test_parse_message_recupera_accenti_con_charset_errato tests\test_email_client.py::test_sincronizza_imap_ripara_testo_salvato_con_accenti_rotti tests\test_email_client.py::test_sincronizza_inviati_rimuove_doppione_con_orario_server_diverso tests\test_email_client.py::test_sincronizza_inviati_non_fonde_due_invii_locali_simili_senza_message_id --tb=short` | OK | 4/4 passati: accenti recuperati da charset errato, record storici con `�` riparati alla sync e guardie deduplica Email ordinaria preservate. |
+| `python -m py_compile pct\email_client.py web\services\mailbox_sync_runtime.py web\blueprints\email_ordinaria.py web\services\react_email_bridge.py` | OK | Sintassi confermata per parser email, runtime sync e bridge React. |
+| `python tools\sync_packaging_files.py --check` | OK | Packaging sincronizzato dopo bump 2.218.9. |
+| `npm --prefix frontend run typecheck` | OK | TypeScript senza errori dopo bump versione frontend. |
+| `node frontend\scripts\check-react-contracts.mjs` | OK | Contratti React confermati; nessun cambio UI richiesto per il fix backend. |
+| `python -m pytest -q tests\test_packaging_consistency.py tests\test_release_readiness.py --tb=short` | OK | 8/8 passati: packaging e readiness release confermati per 2.218.9. |
+| `npm --prefix frontend run build` | OK | Build Vite 2.218.9 completata in 6.09s; bundle principale invariato `index-Ci4uxUYh.js` 431.15 kB / 128.50 kB gzip; chunk email invariato `EmailPecPage-CAqfMtKE.js` 38.08 kB / 10.69 kB gzip. |
+| Docker locale `docker compose build --no-cache app scheduler-worker ocr-worker` + `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx` | OK | Immagini finali 2.218.9 ricostruite; app, scheduler, OCR e Redis healthy, Nginx attivo, `/api/pronto` 200 con versione `2.218.9`; runtime container `pct.__version__=2.218.9`. |
+| `git diff --check` | OK | Nessun errore whitespace; solo warning CRLF sul file Python toccato. |
 
 ### Email ordinaria deduplica inviati 2.218.8
 

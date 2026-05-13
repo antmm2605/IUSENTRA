@@ -1,5 +1,19 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-13 - Email ordinaria accenti e charset 2.218.9
+
+Email ordinaria usa ora un decoder piu' robusto per intestazioni e corpo:
+quando il server IMAP dichiara un charset non coerente con i byte reali, il
+parser confronta la decodifica dichiarata con `utf-8`, `windows-1252` e
+`latin-1`, scegliendo il testo senza caratteri sostitutivi o mojibake. Il caso
+visibile `possibilit�` viene quindi restituito come `possibilità`.
+
+La sincronizzazione non lascia bloccati i record gia' importati male: se una
+email salvata contiene `�`, viene inclusa nella finestra di riparazione anche se
+non ha allegati mancanti, riletta da IMAP e aggiornata con oggetto, mittente,
+destinatari, corpo testo e corpo HTML migliori quando il messaggio sorgente e'
+ancora disponibile.
+
 ## Stato tranche 2026-05-13 - Email ordinaria deduplica inviati 2.218.8
 
 La sincronizzazione di Email ordinaria rimuove ora in modo centrale i duplicati

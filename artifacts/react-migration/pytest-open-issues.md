@@ -1,6 +1,6 @@
 # Pytest issue aperte e risoluzioni
 
-Aggiornato: 2026-05-13, Template Atti compilatore React STRICT 2.218.2.
+Aggiornato: 2026-05-13, Allegati PEC message/rfc822 2.218.5.
 
 ## Regola operativa
 
@@ -10,6 +10,7 @@ Questo file e' la coda di lavoro. Prima di rilanciare test gia' passati, control
 
 | Area | Test / comando | Stato | Problema rilevato | Risoluzione |
 | --- | --- | --- | --- | --- |
+| Email PEC allegati `postacert.eml` 2.218.5 | URL `/email/messaggio/<id>/allegato/0` e dettaglio React PEC | Nessuna issue aperta | I messaggi PEC storici potevano avere `postacert.eml` registrato come metadato `message/rfc822` senza file fisico, causando 404 sul link diretto e azioni React verso un allegato non recuperato. | Parser IMAP aggiornato per salvare `message/rfc822`, bridge React con azioni solo se il file esiste, route PEC/ordinaria con risposta controllata per metadata-only. Test mirati, py_compile, typecheck, contratti React, build, packaging, readiness, Docker locale e browser desktop/tablet/mobile sono verdi. |
 | Template Atti Cartabia / prefill / timbro studio 2.218.0 | Gate richiesti dal prompt | Nessuna issue aperta | Durante lo sviluppo sono emersi solo tre problemi locali: fixture API timbro con username gia' presente, contratto React che rifiutava stili inline nella preview timbro e un titolo pratica storico con parola `demo` visibile nel compilatore. | Fixture rinominata, preview spostata su classi CSS governate e filtro UI applicato solo alla visualizzazione dei dati storici; script catalogo, py_compile, pytest mirati, typecheck, contratti React, build Vite, Docker locale, smoke browser, packaging e readiness release sono verdi. |
 | PWA/Web Push notifiche dispositivo 2.217.2 | Gate richiesti dal prompt | Nessuna issue aperta | Il primo typecheck ha segnalato solo il tipo della chiave VAPID in `applicationServerKey`, perche' `Uint8Array<ArrayBufferLike>` non era accettato dal DOM lib corrente. | Convertita esplicitamente la chiave pubblica in `ArrayBuffer`; typecheck, build, test backend mirati, packaging e readiness sono verdi. Nessuna chiamata di rete reale verso servizi push. |
 | Notifiche legali sicure 2.217.1 | Gate richiesti dal prompt | Nessuna issue aperta | Durante il primo smoke visuale il catalogo cliente esponeva `clienti-2026.05.12`, versione distinta ma troppo simile alla versione relata vietata nel tab cliente. | Rinominata la versione cliente in `comunicazioni-cliente-1.0`; test mirati, typecheck, contratti, build, packaging, Docker no-cache e smoke browser caldo desktop/tablet/mobile tutti verdi. |

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.218.5 - 2026-05-13
+
+- Corretto il download degli allegati PEC `message/rfc822`: il parser ora serializza e salva anche `postacert.eml`, cosi' la sincronizzazione puo' riparare i messaggi storici con metadati allegato ma file mancante.
+- Il dettaglio React di PEC/email non propone piu' azioni `Apri`, `Visualizza` o `Scarica` per allegati non recuperati fisicamente; mostra invece uno stato operativo di sincronizzazione.
+- Le vecchie URL di allegati presenti solo come metadato restituiscono un messaggio controllato invece della pagina 404 generica, preservando gli allegati gia' disponibili sul loro indice reale.
+- Aggiunti test mirati su dettaglio allegati PEC, route inline/download, parsing `message/rfc822` e riparazione allegati storici.
+
 ## 2.218.4 - 2026-05-13
 
 - Aggiunti generatore e diagnostica Web Push/VAPID: `tools/generate_vapid_keys.py`, modulo `pct.notifications.generate_vapid` e comando `python -m pct.notifications.web_push_diagnostics`, senza scrivere chiavi nel repository.

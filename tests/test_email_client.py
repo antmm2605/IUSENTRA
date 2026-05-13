@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import email
 import os
 import sys
 from datetime import datetime
@@ -833,6 +834,60 @@ def test_email_dettaglio_visualizza_e_scarica_allegato_salvato(tmp_path):
         assert "attachment" in download.headers.get("Content-Disposition", "").lower()
 
 
+def test_email_dettaglio_non_propone_link_per_allegato_non_recuperato(tmp_path):
+    from web.app import create_app
+
+    cfg = _cfg_web(tmp_path)
+    ge = GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"])
+    em = EmailRicevuta(
+        id="MAIL-ATT-MISSING-0",
+        cartella="INBOX",
+        stato=StatoEmail.LETTA,
+        mittente="cancelleria@giustiziapec.it",
+        oggetto="PEC con allegato EML da recuperare",
+        data="2026-05-12T12:29:34+02:00",
+        corpo_testo="Messaggio PEC con un allegato storico non ancora salvato.",
+        allegati=[
+            {"nome": "postacert.eml", "mime": "message/rfc822", "size": 0},
+            {
+                "nome": "EsitoAtto.xml",
+                "mime": "application/octet-stream",
+                "size": 24,
+                "percorso_rel": "MAIL-ATT-MISSING-0/EsitoAtto.xml",
+                "nome_file": "EsitoAtto.xml",
+            },
+        ],
+    )
+    ge.aggiungi(em)
+    allegato_dir = Path(cfg["EMAIL_CASELLA_DB"]).parent / "allegati" / "MAIL-ATT-MISSING-0"
+    allegato_dir.mkdir(parents=True, exist_ok=True)
+    contenuto = b"<EsitoAtto>ok</EsitoAtto>"
+    (allegato_dir / "EsitoAtto.xml").write_bytes(contenuto)
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        _autentica_admin_session(app, client, cfg)
+
+        dettaglio_json = client.get("/api/v1/ui/email/messaggio/MAIL-ATT-MISSING-0")
+        assert dettaglio_json.status_code == 200
+        payload = dettaglio_json.get_json()
+        assert payload["attachments"][0]["name"] == "postacert.eml"
+        assert payload["attachments"][0]["available"] is False
+        assert payload["attachments"][0]["viewHref"] == ""
+        assert payload["attachments"][0]["downloadHref"] == ""
+        assert "sincronizzazione" in payload["attachments"][0]["statusLabel"].lower()
+        assert payload["attachments"][1]["available"] is True
+        assert payload["attachments"][1]["viewHref"] == "/email/messaggio/MAIL-ATT-MISSING-0/allegato/1"
+
+        missing = client.get("/email/messaggio/MAIL-ATT-MISSING-0/allegato/0")
+        assert missing.status_code == 409
+        assert "Sincronizza PEC" in missing.get_data(as_text=True)
+
+        inline = client.get("/email/messaggio/MAIL-ATT-MISSING-0/allegato/1")
+        assert inline.status_code == 200
+        assert inline.data == contenuto
+
+
 def test_email_ordinaria_dettaglio_usa_repository_smtp_e_allegati_ordinari(tmp_path):
     from web.app import create_app
 
@@ -883,6 +938,39 @@ def test_email_ordinaria_dettaglio_usa_repository_smtp_e_allegati_ordinari(tmp_p
         assert inline.status_code == 200
         assert inline.data == contenuto
         assert inline.headers.get("Content-Type", "").lower().startswith("application/pdf")
+
+
+def test_parse_message_salva_allegato_message_rfc822(tmp_path):
+    inner = EmailMessage()
+    inner["Subject"] = "Messaggio originale"
+    inner["From"] = "tribunale@example.test"
+    inner["To"] = "studio@example.pec.it"
+    inner.set_content("Corpo del messaggio originale.")
+
+    outer = EmailMessage()
+    outer["Subject"] = "POSTA CERTIFICATA: ESITO CONTROLLI"
+    outer["From"] = "posta-certificata@example.test"
+    outer["To"] = "studio@example.pec.it"
+    outer["Date"] = "Tue, 12 May 2026 12:29:34 +0200"
+    outer.set_content("Messaggio di posta certificata.")
+    outer.make_mixed()
+
+    part = EmailMessage()
+    part.set_type("message/rfc822")
+    part["Content-Disposition"] = 'attachment; filename="postacert.eml"'
+    part.set_payload([inner])
+    outer.attach(part)
+
+    ge = GestioneEmailRicevute(str(tmp_path / "casella.json"))
+    parsed = email.message_from_bytes(outer.as_bytes())
+    em = ge._parse_message(parsed, "INBOX:UID:7", "INBOX", email_id="MAIL-RFC822")  # noqa: SLF001
+
+    assert em is not None
+    assert em.allegati[0]["nome"] == "postacert.eml"
+    assert em.allegati[0]["size"] > 0
+    path = ge.percorso_allegato(em, 0)
+    assert path is not None
+    assert b"Subject: Messaggio originale" in path.read_bytes()
 
 
 def test_sincronizza_imap_ripara_allegati_storici_senza_file(tmp_path, monkeypatch):

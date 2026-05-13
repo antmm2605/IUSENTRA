@@ -19,6 +19,7 @@ import socket
 import uuid
 import shutil
 import unicodedata
+from email import policy
 from datetime import datetime
 from email.header import decode_header
 from email.utils import parsedate_to_datetime
@@ -975,6 +976,26 @@ class GestioneEmailRicevute:
                 decoded.append(str(chunk))
         return " ".join(decoded).strip()
 
+    @staticmethod
+    def _payload_allegato(part: email.message.Message) -> bytes:
+        payload = part.get_payload(decode=True)
+        if payload:
+            return payload
+        if part.get_content_type() != "message/rfc822":
+            return b""
+        nested = part.get_payload()
+        if isinstance(nested, list):
+            chunks: list[bytes] = []
+            for nested_message in nested:
+                if hasattr(nested_message, "as_bytes"):
+                    chunks.append(nested_message.as_bytes(policy=policy.default))
+                elif nested_message is not None:
+                    chunks.append(str(nested_message).encode("utf-8", errors="replace"))
+            return b"\r\n".join(chunk for chunk in chunks if chunk)
+        if isinstance(nested, str):
+            return nested.encode("utf-8", errors="replace")
+        return b""
+
     def _parse_message(
         self,
         msg: email.message.Message,
@@ -1018,7 +1039,7 @@ class GestioneEmailRicevute:
                     fname = self._decode_header_val(part.get_filename() or "")
                     is_attachment = "attachment" in cd.lower() or ("inline" in cd.lower() and fname)
                     if is_attachment:
-                        payload = part.get_payload(decode=True) or b""
+                        payload = self._payload_allegato(part)
                         nome_originale = fname or "allegato.bin"
                         att = {
                             "nome": nome_originale,

@@ -75,6 +75,7 @@ export type EmailAttachment = {
   previewHref: string
   downloadHref: string
   available: boolean
+  statusLabel: string
 }
 
 export type EmailDetailData = {
@@ -329,6 +330,7 @@ function attachmentFromPayload(value: unknown): EmailAttachment {
     previewHref: text(item.previewHref ?? item.preview_href ?? item.viewHref ?? item.view_href),
     downloadHref: text(item.downloadHref ?? item.download_href),
     available: item.available !== false,
+    statusLabel: text(item.statusLabel ?? item.status_label),
   }
 }
 

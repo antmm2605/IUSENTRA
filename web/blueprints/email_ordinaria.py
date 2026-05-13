@@ -23,6 +23,7 @@ from flask import (
     redirect,
     render_template,
     request,
+    Response,
     send_file,
     url_for,
 )
@@ -265,6 +266,15 @@ def allegato(id_email: str, indice_allegato: int):
         abort(404)
     percorso = gestore.percorso_allegato(email_obj, indice_allegato)
     if not percorso:
+        allegati = list(email_obj.allegati or [])
+        if 0 <= indice_allegato < len(allegati):
+            info = allegati[indice_allegato] or {}
+            nome = info.get("nome") or info.get("nome_file") or "allegato"
+            return Response(
+                f"L'allegato {nome} non e' ancora disponibile. Esegui Sincronizza email e riprova.",
+                status=409,
+                mimetype="text/plain; charset=utf-8",
+            )
         abort(404)
     info = (email_obj.allegati or [])[indice_allegato]
     nome_download = info.get("nome") or info.get("nome_file") or Path(percorso).name

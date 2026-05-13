@@ -1,5 +1,19 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-13 - Allegati PEC message/rfc822 2.218.5
+
+Il dettaglio React PEC/email resta full React ma non propone piu' link verso
+allegati presenti solo come metadato storico. Gli allegati senza file fisico
+sono mostrati come `Da recuperare con la sincronizzazione`, mentre gli allegati
+gia' salvati mantengono il loro indice reale e continuano ad aprirsi/download
+senza reindicizzazione.
+
+Il parser IMAP ora salva anche gli allegati `message/rfc822`, in particolare
+`postacert.eml`, serializzando il messaggio annidato quando il payload binario
+diretto e' vuoto. La sincronizzazione PEC puo' quindi riparare i record storici
+che avevano `postacert.eml` in posizione 0 senza file su disco, evitando URL
+come `/email/messaggio/<id>/allegato/0` verso allegati non recuperati.
+
 ## Stato tranche 2026-05-13 - PWA/Web Push configurazione operativa 2.218.4
 
 La sezione `Impostazioni -> Notifiche` mantiene il pannello Web Push gia'

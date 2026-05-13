@@ -174,7 +174,12 @@ def _size_label(value: Any) -> str:
     return f"{size} B" if size else ""
 
 
-def _attachment_rows(email_obj: Any, *, base_path: str) -> list[dict[str, Any]]:
+def _attachment_rows(
+    email_obj: Any,
+    *,
+    base_path: str,
+    gestore: GestioneEmailRicevute | None = None,
+) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     email_id = quote(str(getattr(email_obj, "id", "") or ""), safe="")
     base = "/" + str(base_path or "/email").strip("/")
@@ -183,16 +188,20 @@ def _attachment_rows(email_obj: Any, *, base_path: str) -> list[dict[str, Any]]:
             info = {}
         name = _safe_text(info.get("nome") or info.get("nome_file") or f"allegato-{index + 1}")
         href = f"{base}/messaggio/{email_id}/allegato/{index}"
+        available = True
+        if gestore is not None:
+            available = gestore.percorso_allegato(email_obj, index) is not None
         rows.append(
             {
                 "index": index,
                 "name": name,
                 "mime": _safe_text(info.get("mime")),
                 "sizeLabel": _size_label(info.get("size") or info.get("dimensione")),
-                "viewHref": href,
-                "previewHref": href,
-                "downloadHref": f"{href}?download=1",
-                "available": True,
+                "viewHref": href if available else "",
+                "previewHref": href if available else "",
+                "downloadHref": f"{href}?download=1" if available else "",
+                "available": available,
+                "statusLabel": "" if available else "Da recuperare con la sincronizzazione",
             }
         )
     return rows
@@ -225,7 +234,7 @@ def build_react_email_detail_payload(
         ),
         "bodyText": str(getattr(email_obj, "corpo_testo", "") or ""),
         "bodyHtml": str(getattr(email_obj, "corpo_html", "") or ""),
-        "attachments": _attachment_rows(email_obj, base_path=base_path),
+        "attachments": _attachment_rows(email_obj, base_path=base_path, gestore=gestore),
         "actions": {
             "inbox": f"{('/' + str(base_path or '/email').strip('/')).rstrip('/')}/",
             "reply": f"{('/' + str(compose_path or '/email/scrivi').strip('/'))}?a={quote(sender, safe='')}&oggetto={quote('Re: ' + subject, safe='')}",

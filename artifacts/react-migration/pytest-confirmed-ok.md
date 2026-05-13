@@ -1,12 +1,27 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-13, Template Atti compilatore React STRICT 2.218.2.
+Aggiornato: 2026-05-13, Allegati PEC message/rfc822 2.218.5.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Allegati PEC message/rfc822 2.218.5
+
+| Verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest -q tests\test_email_client.py::test_email_dettaglio_visualizza_e_scarica_allegato_salvato tests\test_email_client.py::test_email_dettaglio_non_propone_link_per_allegato_non_recuperato tests\test_email_client.py::test_email_ordinaria_dettaglio_usa_repository_smtp_e_allegati_ordinari tests\test_email_client.py::test_parse_message_salva_allegato_message_rfc822 tests\test_email_client.py::test_sincronizza_imap_ripara_allegati_storici_senza_file --tb=short` | OK | 5/5 passati: allegati salvati, allegati metadata-only senza link React, ordinaria separata, parsing `message/rfc822` e riparazione storica PEC. |
+| `python -m py_compile pct\email_client.py web\services\react_email_bridge.py web\blueprints\email_client.py web\blueprints\email_ordinaria.py` | OK | Sintassi confermata per parser, bridge React e route allegati PEC/ordinaria. |
+| `npm --prefix frontend run typecheck` | OK | TypeScript confermato dopo `statusLabel` e azioni allegato condizionali. |
+| `node frontend\scripts\check-react-contracts.mjs` | OK | Contratti React confermati per superfici email. |
+| `npm --prefix frontend run build` | OK | Build Vite 2.218.5 completata in 6.50s; chunk `EmailPecPage-CAqfMtKE.js` 38.08 kB / 10.69 kB gzip, bundle principale `index-Ci4uxUYh.js` 431.15 kB / 128.50 kB gzip. |
+| `python tools\sync_packaging_files.py --check` | OK | Packaging sincronizzato dopo bump 2.218.5. |
+| `python -m pytest -q tests\test_packaging_consistency.py tests\test_release_readiness.py --tb=short` | OK | 8/8 passati: coerenza packaging e readiness release confermate per 2.218.5. |
+| `git diff --check` | OK | Nessun errore whitespace; restano solo warning CRLF su file gia' toccati. |
+| Docker locale `docker compose build --no-cache app scheduler-worker ocr-worker` + `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx` | OK | Immagini finali 2.218.5 ricostruite; app, scheduler, OCR e Redis healthy, Nginx attivo, `/api/pronto` 200 con versione `2.218.5`. |
+| Browser in-app su `/email/messaggio/ade7f2ddbb0643848eb78a380fb70764` e `/email/messaggio/ade7f2ddbb0643848eb78a380fb70764/allegato/0` | OK | Desktop: dettaglio React con `postacert.eml` e `daticert.xml`, nessuna 404, azioni allegato visibili per file recuperati; URL allegato 0 apre `postacert.eml` in 1911 ms. Tablet 820x1180: 3197 ms, nessun errore console. Mobile 390x844: 3365 ms, nessun errore console. |
 
 ### Template Atti Cartabia / prefill / timbro studio 2.218.0
 

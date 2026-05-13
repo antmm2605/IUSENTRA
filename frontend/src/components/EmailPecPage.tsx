@@ -326,9 +326,10 @@ function EmailFullDetail({
                 <strong>{attachment.name}</strong>
                 <span>{attachment.mime || 'file'} {attachment.sizeLabel ? `- ${attachment.sizeLabel}` : ''}</span>
               </div>
-              {attachment.previewHref ? <a href={attachment.previewHref}>Apri</a> : null}
-              {attachment.viewHref ? <a href={attachment.viewHref} target="_blank" rel="noreferrer">Visualizza</a> : null}
-              {attachment.downloadHref ? <a href={attachment.downloadHref}>Scarica</a> : null}
+              {attachment.available && attachment.previewHref ? <a href={attachment.previewHref}>Apri</a> : null}
+              {attachment.available && attachment.viewHref ? <a href={attachment.viewHref} target="_blank" rel="noreferrer">Visualizza</a> : null}
+              {attachment.available && attachment.downloadHref ? <a href={attachment.downloadHref}>Scarica</a> : null}
+              {!attachment.available ? <span>{attachment.statusLabel || 'Da recuperare con la sincronizzazione'}</span> : null}
             </article>
           ))}
         </div>

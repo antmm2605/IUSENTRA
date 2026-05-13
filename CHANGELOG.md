@@ -2,6 +2,7 @@
 
 ## 2.220.0 - 2026-05-13
 
+- Rigenerati i pacchetti IUSENTRA Local Signer 1.6.29 in `tools/dist`, incluso l'installer Windows `SetupLocalSigner-1.6.29.exe` e l'alias `SetupLocalSigner.exe`.
 - Promosse in modo verificato le route `/scadenziario/:id` e `/sito-studio/builder` a `react_operational_full`, mantenendo fuori dal gate export, azioni legacy e sottopercorsi non parificati.
 - Sbloccate come `react_operational_partial` le route `/scadenziario/:id/modifica` e `/sito-studio/redazione-ai`, con manifest, gate, shell, contratti e test allineati.
 - Riallineato il gate React: `/sito-studio/builder` e `/sito-studio/redazione-ai` passano dalla shell, mentre `/sito-studio/*` non verificati restano legacy; `/scadenziario` accetta solo lista, nuovo, dettaglio e modifica.

@@ -27,7 +27,6 @@ export function sanitizeDisplayText(value: string): string {
     .replace(/\brepository\b/gi, 'archivio')
     .replace(/\bauditati\b/gi, 'tracciati')
     .replace(/\bauditate\b/gi, 'tracciate')
-    .replace(/\baudit\b/gi, 'registro')
     .replace(/\brollback\s+tecnico(?:\s+legacy)?\b/gi, 'Percorso di recupero')
     .replace(/\broute\s+Flask\b/gi, 'percorso applicativo')
     .replace(/\broute\b/gi, 'percorso')

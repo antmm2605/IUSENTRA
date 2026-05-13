@@ -1,5 +1,53 @@
 # Migrazione progressiva Flask + React
 
+## Stato hotfix 2026-05-13 - PST Local Signer PIN sessione unica
+
+Corretto il rischio di regressione sul flusso PST/PolisWeb gia' risolto in
+2.216.3-2.216.4: la superficie React di acquisizione non dipende piu' solo
+dallo stato volatile del componente per riusare la sessione Local Signer.
+Quando il download batch parte dopo ricerca/anteprima, la sessione `view`
+viene recuperata anche dal payload del risultato selezionato e dall'anteprima
+gia' caricata, quindi `/pst/download-documenti-batch` riceve lo stesso
+`pst_session_id` e non riapre handshake separati.
+
+Regola operativa confermata: nel percorso PST diretto sono ammessi al massimo
+due inserimenti PIN, uno per visualizzare/interrogare il fascicolo e uno per
+scaricare i documenti ufficiali in batch. Il client React continua a usare
+`/pst/ricerca-snapshot`, `/pst/fascicolo-snapshot` solo quando manca il
+catalogo documenti, e `/pst/download-documenti-batch` con `purpose=view` e
+`preflight_auth=false`; non viene ripristinato il download singolo per ogni
+documento.
+
+Il collegamento dal dettaglio fascicolo al wizard accetta ora anche
+`fascicolo_id` e `target_fascicolo_id`, oltre a `id_fasc`, cosi' l'apertura da
+un fascicolo esistente resta agganciata alla pratica locale e non perde la
+mappatura durante acquisizione/import.
+
+Gate mirati eseguiti: `python -m py_compile
+web\bootstrap\portali_acquisizione_routes.py`, shard pytest React/Local
+Signer/PST sul contratto sessione unica, `npm --prefix frontend run typecheck`
+`npm --prefix frontend run test`, `npm --prefix frontend run build`,
+`python tools\sync_packaging_files.py --check` e readiness release 8/8. Smoke
+locale: il wizard `/portali/pst/acquisizione?fascicolo_id=DC5BF1DB` risponde
+HTTP 200 e `/api/pronto` risponde HTTP 200 con versione `2.221.0`.
+
+## Stato tranche 2026-05-13 - Audit probatorio WORM 2.221.0
+
+La tranche introduce un audit legal-grade distinto dal log applicativo: eventi
+canonici `audit-event-v1`, hash SHA-256 su byte JCS, firma, catena per
+tenant/fascicolo, oggetti S3 WORM con Object Lock, receipt WORM firmata,
+snapshot Merkle giornalieri e verifica offline da bundle. Postgres resta indice
+di consultazione ricostruibile; la prova e' l'envelope firmato in WORM.
+
+La superficie React Fascicoli espone ora la scheda `Audit` nel dettaglio
+fascicolo, con timeline minimale, badge `Firmato`, `WORM`, `In snapshot`,
+`TSA verificata`, copia hash e download prova/bundle. Non vengono mostrati
+payload sensibili: la UI usa solo metadati, hash e stato probatorio.
+
+Gate mirati eseguiti: `python -m pytest tests/test_audit_*.py -q`,
+`python -m compileall -q audit scripts alembic tests/test_audit_*.py`,
+`npm run typecheck` e `npm run build` in `frontend/`.
+
 ## Stato tranche 2026-05-13 - Audit gate React reale 2.220.0
 
 Audit severo su manifest, `react_route_gate.py`, shell React, router frontend,

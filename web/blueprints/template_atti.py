@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import io
 import json
+import os
 import re
 from datetime import date
 from html import escape
@@ -565,6 +566,25 @@ def _importa_compilazione_editor_professionale(
         id_fascicolo,
         f"modello={model_code}; documento={documento.id}",
     )
+    try:
+        from audit.integrations import emit_act_generated
+
+        percorso = get_fascicoli().percorso_documento(id_fascicolo, documento.id)
+        emit_act_generated(
+            fascicolo_id=id_fascicolo,
+            atto_type=str(model.get("category") or model.get("name") or model_code or "ATTO"),
+            template_id=str(model_code or ""),
+            template_version=str(model.get("version") or model.get("updated") or "corrente"),
+            editor_version="iusentra-editor",
+            output_format="html",
+            file_path=percorso,
+            storage_ref=f"dms://fascicoli/{id_fascicolo}/documenti/{documento.id}",
+            idempotency_key=f"ACT_GENERATED:{id_fascicolo}:{documento.id}",
+        )
+    except Exception:
+        if current_app.config.get("AUDIT_ENABLED") or str(os.getenv("AUDIT_ENABLED", "")).lower() in {"1", "true", "yes", "on"}:
+            raise
+        current_app.logger.debug("Audit probatorio ACT_GENERATED non attivo per %s", documento.id, exc_info=True)
     return {"document_id": documento.id, "filename": documento.nome, "open_url": open_url}
 
 

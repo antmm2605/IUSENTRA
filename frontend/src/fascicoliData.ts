@@ -183,6 +183,39 @@ export type FascicoloDeposit = {
   tone: Tone
 }
 
+export type FascicoloAuditEvent = {
+  eventId: string
+  kind: string
+  kindLabel: string
+  eventTsUtc: string
+  eventHash: string
+  eventHashShort: string
+  prevEventHash: string
+  signed: boolean
+  signatureAlg: string
+  worm: boolean
+  snapshotId: string
+  inSnapshot: boolean
+  tsaVerified: boolean
+  tone: Tone
+  proofHref: string
+}
+
+export type FascicoloAuditTrail = {
+  enabled: boolean
+  events: FascicoloAuditEvent[]
+  summary: {
+    total: number
+    signed: number
+    worm: number
+    snapshotted: number
+    tsaVerified: number
+  }
+  actions: {
+    bundle: string
+  }
+}
+
 export type FascicoloParty = { id: string; name: string; role: string; taxCode: string; email: string; pec: string; phone: string; href: string }
 export type FascicoloHistory = { date: string; description: string; from: string; to: string; notes: string; lawyer: string }
 export type FascicoloMoney = { id: string; label: string; value: string; note: string; href: string; tone: Tone }
@@ -304,6 +337,7 @@ export type FascicoloDetailData = {
   telematic: Array<{ label: string; value: string; note: string; href: string; tone: Tone }>
   quality: Array<{ label: string; value: string; ok: boolean; tone: Tone }>
   signature: { visibleSignatureMode: string; visibleSignaturePlace: string; visibleSignatureDatetimeMode: string }
+  auditTrail: FascicoloAuditTrail
   actions: {
     changeState: string
     define: string
@@ -317,6 +351,7 @@ export type FascicoloDetailData = {
     complianceOff: string
     exportPdf: string
     archiveZip: string
+    auditBundle: string
     refreshLexIndex: string
     retryLexIndexErrors: string
   }
@@ -492,7 +527,13 @@ export const emptyFascicoloDetail: FascicoloDetailData = {
   economics: [], workflow: [], telematic: [], quality: [],
   regia: emptyRegiaOperativa,
   signature: { visibleSignatureMode: 'laterale', visibleSignaturePlace: '', visibleSignatureDatetimeMode: 'data_ora' },
-  actions: { changeState: '', define: '', archive: '', restore: '', delete: '', uploadDocument: '', importPortal: '', addActivity: '', complianceOn: '', complianceOff: '', exportPdf: '', archiveZip: '', refreshLexIndex: '', retryLexIndexErrors: '' },
+  auditTrail: {
+    enabled: false,
+    events: [],
+    summary: { total: 0, signed: 0, worm: 0, snapshotted: 0, tsaVerified: 0 },
+    actions: { bundle: '' },
+  },
+  actions: { changeState: '', define: '', archive: '', restore: '', delete: '', uploadDocument: '', importPortal: '', addActivity: '', complianceOn: '', complianceOff: '', exportPdf: '', archiveZip: '', auditBundle: '', refreshLexIndex: '', retryLexIndexErrors: '' },
   options: { states: [], documentTypes: [], activityTypes: [], activityResults: [] },
 }
 
@@ -766,6 +807,45 @@ function normalizeRegia(value: unknown): RegiaOperativaData {
   }
 }
 
+function normalizeAuditTrail(value: unknown): FascicoloAuditTrail {
+  if (!isRecord(value)) return emptyFascicoloDetail.auditTrail
+  const summary = isRecord(value.summary) ? value.summary : {}
+  const actions = isRecord(value.actions) ? value.actions : {}
+  return {
+    enabled: bool(value.enabled),
+    events: asArray(value.events).map((entry, index) => {
+      const row = isRecord(entry) ? entry : {}
+      return {
+        eventId: text(row.eventId ?? row.event_id, `audit-${index}`),
+        kind: text(row.kind),
+        kindLabel: text(row.kindLabel ?? row.kind_label, 'Evento tracciato'),
+        eventTsUtc: text(row.eventTsUtc ?? row.event_ts_utc),
+        eventHash: text(row.eventHash ?? row.event_hash),
+        eventHashShort: text(row.eventHashShort ?? row.event_hash_short ?? row.eventHash ?? row.event_hash),
+        prevEventHash: text(row.prevEventHash ?? row.prev_event_hash),
+        signed: bool(row.signed),
+        signatureAlg: text(row.signatureAlg ?? row.signature_alg),
+        worm: bool(row.worm),
+        snapshotId: text(row.snapshotId ?? row.snapshot_id),
+        inSnapshot: bool(row.inSnapshot ?? row.in_snapshot),
+        tsaVerified: bool(row.tsaVerified ?? row.tsa_verified),
+        tone: text(row.tone, 'primary') as Tone,
+        proofHref: text(row.proofHref ?? row.proof_href),
+      }
+    }),
+    summary: {
+      total: number(summary.total),
+      signed: number(summary.signed),
+      worm: number(summary.worm),
+      snapshotted: number(summary.snapshotted),
+      tsaVerified: number(summary.tsaVerified ?? summary.tsa_verified),
+    },
+    actions: {
+      bundle: text(actions.bundle),
+    },
+  }
+}
+
 function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
   if (!isRecord(payload)) return emptyFascicoloDetail
   const base = normalizeItem(payload.fascicolo ?? {}, 0)
@@ -886,8 +966,9 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
       visibleSignaturePlace: text(payload.signature.visibleSignaturePlace ?? payload.signature.visible_signature_place),
       visibleSignatureDatetimeMode: text(payload.signature.visibleSignatureDatetimeMode ?? payload.signature.visible_signature_datetime_mode, 'data_ora'),
     } : emptyFascicoloDetail.signature,
+    auditTrail: normalizeAuditTrail(payload.auditTrail ?? payload.audit_trail),
     actions: isRecord(payload.actions) ? {
-      changeState: text(payload.actions.changeState), define: text(payload.actions.define), archive: text(payload.actions.archive), restore: text(payload.actions.restore), delete: text(payload.actions.delete), uploadDocument: text(payload.actions.uploadDocument), importPortal: text(payload.actions.importPortal), addActivity: text(payload.actions.addActivity), complianceOn: text(payload.actions.complianceOn), complianceOff: text(payload.actions.complianceOff), exportPdf: text(payload.actions.exportPdf), archiveZip: text(payload.actions.archiveZip), refreshLexIndex: text(payload.actions.refreshLexIndex), retryLexIndexErrors: text(payload.actions.retryLexIndexErrors),
+      changeState: text(payload.actions.changeState), define: text(payload.actions.define), archive: text(payload.actions.archive), restore: text(payload.actions.restore), delete: text(payload.actions.delete), uploadDocument: text(payload.actions.uploadDocument), importPortal: text(payload.actions.importPortal), addActivity: text(payload.actions.addActivity), complianceOn: text(payload.actions.complianceOn), complianceOff: text(payload.actions.complianceOff), exportPdf: text(payload.actions.exportPdf), archiveZip: text(payload.actions.archiveZip), auditBundle: text(payload.actions.auditBundle), refreshLexIndex: text(payload.actions.refreshLexIndex), retryLexIndexErrors: text(payload.actions.retryLexIndexErrors),
     } : emptyFascicoloDetail.actions,
     options: { states: normalizeOptions(options.states), documentTypes: normalizeOptions(options.documentTypes), activityTypes: normalizeOptions(options.activityTypes), activityResults: normalizeOptions(options.activityResults) },
   }

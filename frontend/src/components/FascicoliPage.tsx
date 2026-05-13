@@ -14,6 +14,7 @@ import {
   ChevronUp,
   ClipboardCheck,
   Clock3,
+  Copy,
   Download,
   Edit3,
   Eye,
@@ -21,6 +22,7 @@ import {
   FileCheck2,
   FileDown,
   FileText,
+  Fingerprint,
   Filter,
   FolderOpen,
   FolderPlus,
@@ -29,6 +31,7 @@ import {
   Landmark,
   ListChecks,
   Mail,
+  PackageCheck,
   PencilLine,
   Plus,
   RefreshCw,
@@ -61,6 +64,7 @@ import {
   type FascicoliPageData,
   type FascicoliExportData,
   type FascicoloActivity,
+  type FascicoloAuditTrail,
   type FascicoloDeadline,
   type FascicoloDetailData,
   type FascicoloDeposit,
@@ -1992,6 +1996,61 @@ function DeadlineRow({ deadline }:{deadline:FascicoloDeadline}) {
   return <a className="iu-fas-deadline-row" href={deadline.href}><Badge tone={deadline.tone}>{deadline.priority || deadline.type || 'termine'}</Badge><strong>{deadline.title}</strong><span>{deadline.date}{deadline.peremptory ? ' · perentorio' : ''}</span></a>
 }
 
+function formatAuditDate(value: string) {
+  if (!value) return 'n.d.'
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return value
+  return new Intl.DateTimeFormat('it-IT', { dateStyle: 'short', timeStyle: 'medium', timeZone: 'UTC' }).format(parsed)
+}
+
+function copyAuditHash(value: string) {
+  if (!value || typeof navigator === 'undefined' || !navigator.clipboard) return
+  void navigator.clipboard.writeText(value)
+}
+
+function AuditTrailSection({ audit, bundleHref }:{audit:FascicoloAuditTrail; bundleHref:string}) {
+  const effectiveBundleHref = audit.enabled ? (audit.actions.bundle || bundleHref) : ''
+  return (
+    <DetailSection id="audit" title="Audit" icon={<Fingerprint size={17}/>} count={audit.summary.total} defaultOpen>
+      <div className="iu-fas-audit-summary">
+        <span><Badge tone={audit.summary.signed === audit.summary.total && audit.summary.total ? 'success' : 'warning'}>{audit.summary.signed}</Badge><strong>Firmati</strong></span>
+        <span><Badge tone={audit.summary.worm === audit.summary.total && audit.summary.total ? 'success' : 'warning'}>{audit.summary.worm}</Badge><strong>WORM</strong></span>
+        <span><Badge tone={audit.summary.snapshotted ? 'success' : 'neutral'}>{audit.summary.snapshotted}</Badge><strong>In snapshot</strong></span>
+        <span><Badge tone={audit.summary.tsaVerified ? 'success' : 'neutral'}>{audit.summary.tsaVerified}</Badge><strong>TSA verificata</strong></span>
+      </div>
+      <div className="iu-fas-audit-actions">
+        {effectiveBundleHref ? <a href={effectiveBundleHref}><PackageCheck size={15}/> Scarica bundle fascicolo</a> : null}
+      </div>
+      {!audit.enabled ? <p className="iu-empty">Presidio probatorio non attivo per questo studio.</p> : null}
+      {audit.enabled && !audit.events.length ? <p className="iu-empty">Nessuna evidenza audit registrata per questo fascicolo.</p> : null}
+      <div className="iu-fas-audit-list">
+        {audit.events.map((event) => (
+          <article className="iu-fas-audit-row" key={event.eventId}>
+            <div>
+              <Badge tone={event.tone}>{event.kindLabel}</Badge>
+              <time>{formatAuditDate(event.eventTsUtc)} UTC</time>
+            </div>
+            <div>
+              <strong>{event.eventHashShort || event.eventHash || 'hash non disponibile'}</strong>
+              <span>{event.prevEventHash ? 'Concatenato al precedente evento' : 'Primo evento del fascicolo'}</span>
+            </div>
+            <div className="iu-fas-audit-badges">
+              {event.signed ? <Badge tone="success">Firmato</Badge> : <Badge tone="warning">Firma da verificare</Badge>}
+              {event.worm ? <Badge tone="success">WORM</Badge> : <Badge tone="warning">Conservazione da verificare</Badge>}
+              {event.inSnapshot ? <Badge tone="success">In snapshot</Badge> : <Badge tone="neutral">Snapshot in attesa</Badge>}
+              {event.tsaVerified ? <Badge tone="success">TSA verificata</Badge> : null}
+            </div>
+            <div className="iu-fas-actions iu-fas-actions--wrap">
+              {event.eventHash ? <button type="button" title="Copia hash completo" onClick={() => copyAuditHash(event.eventHash)}><Copy size={15}/></button> : null}
+              {event.proofHref ? <a href={event.proofHref} title="Scarica prova"><Download size={15}/></a> : null}
+            </div>
+          </article>
+        ))}
+      </div>
+    </DetailSection>
+  )
+}
+
 function DetailPage({ id }:{id:string}) {
   const [data, setData] = useState<FascicoloDetailData>(emptyFascicoloDetail)
   const [loading, setLoading] = useState(true)
@@ -2071,7 +2130,7 @@ function DetailPage({ id }:{id:string}) {
       </section>
       <section className="iu-fas-case-strip"><strong>{f.ref}</strong><span>Rif. interno {f.internalRef}</span><span>{f.client}</span><span>{f.court}</span><span>{loading ? 'Caricamento...' : 'Dati aggiornati'}</span></section>
       {toast ? <section className={`iu-fas-toast iu-fas-toast--${toast.tone}`}><span>{toast.message}</span><button type="button" onClick={() => setToast(null)}>Chiudi</button></section> : null}
-      <nav className="iu-fas-section-nav" aria-label="Sezioni fascicolo"><a href="#profilo">Profilo <b>{data.quickCounts.profilo || 0}</b></a><a href="#regia-operativa">Regia Operativa <b>{data.regia.documentSlots.length}</b></a><a href="#documenti">Documenti e atti <b>{data.quickCounts.documenti || 0}</b></a><a href="#attivita">Attività <b>{data.quickCounts.attivita || 0}</b></a><a href="#udienze">Udienze / scadenze <b>{data.quickCounts.udienze_scadenze || 0}</b></a><a href="#cancelleria">Comunicazioni / Cancelleria <b>{data.quickCounts.comunicazioni || 0}</b></a><a href="#gestione">Gestione</a><a href="#economia">Contesto economico</a><a href="#conformita">Conformità</a><a href="#soggetti">Soggetti <b>{data.parties.length}</b></a></nav>
+      <nav className="iu-fas-section-nav" aria-label="Sezioni fascicolo"><a href="#profilo">Profilo <b>{data.quickCounts.profilo || 0}</b></a><a href="#regia-operativa">Regia Operativa <b>{data.regia.documentSlots.length}</b></a><a href="#documenti">Documenti e atti <b>{data.quickCounts.documenti || 0}</b></a><a href="#attivita">Attività <b>{data.quickCounts.attivita || 0}</b></a><a href="#udienze">Udienze / scadenze <b>{data.quickCounts.udienze_scadenze || 0}</b></a><a href="#cancelleria">Comunicazioni / Cancelleria <b>{data.quickCounts.comunicazioni || 0}</b></a><a href="#audit">Audit <b>{data.auditTrail.summary.total}</b></a><a href="#gestione">Gestione</a><a href="#economia">Contesto economico</a><a href="#conformita">Conformità</a><a href="#soggetti">Soggetti <b>{data.parties.length}</b></a></nav>
       <section className="iu-fas-ai-board" aria-label="Quadro intelligente AI del fascicolo">
         <div><span><Sparkles size={16}/> Quadro intelligente AI</span><strong>{prossimaAzione}</strong><p>Analisi del fascicolo, documenti, scadenze, attività e prossime azioni usando i dati reali della pratica.</p></div>
         <div className="iu-fas-ai-actions">
@@ -2096,7 +2155,7 @@ function DetailPage({ id }:{id:string}) {
       </section>
       <section className="iu-fas-detail-grid">
         <div className="iu-fas-detail-main">
-          <section className="iu-fas-cockpit"><StatCard icon={<ClipboardCheck size={19}/>} label="Regia" value={`${data.regia.header.completion}%`} note={data.regia.header.operationalState || 'da verificare'} tone={data.regia.validation.ready ? 'success' : data.regia.validation.blockers.length ? 'danger' : 'warning'} href="#regia-operativa" onClick={openSection('regia-operativa', 'regia')}/><StatCard icon={<FileText size={19}/>} label="Documenti" value={data.quickCounts.documenti || 0} note="carica e classifica" tone="primary" href="#documenti" onClick={openSection('documenti', 'documenti')}/><StatCard icon={<CalendarDays size={19}/>} label="Scadenze" value={data.quickCounts.udienze_scadenze || 0} note="gestisci agenda" tone="warning" href="#udienze" onClick={openSection('udienze', 'scadenze')}/><StatCard icon={<ListChecks size={19}/>} label="Attività" value={data.quickCounts.attivita || 0} note="aggiorna timeline" tone="success" href="#attivita" onClick={openSection('attivita', 'attivita')}/><StatCard icon={<WalletCards size={19}/>} label="Contesto economico" value={data.economics.length} note="incarico e incassi" tone="purple" href="#economia" onClick={openSection('economia')}/></section>
+          <section className="iu-fas-cockpit"><StatCard icon={<ClipboardCheck size={19}/>} label="Regia" value={`${data.regia.header.completion}%`} note={data.regia.header.operationalState || 'da verificare'} tone={data.regia.validation.ready ? 'success' : data.regia.validation.blockers.length ? 'danger' : 'warning'} href="#regia-operativa" onClick={openSection('regia-operativa', 'regia')}/><StatCard icon={<FileText size={19}/>} label="Documenti" value={data.quickCounts.documenti || 0} note="carica e classifica" tone="primary" href="#documenti" onClick={openSection('documenti', 'documenti')}/><StatCard icon={<CalendarDays size={19}/>} label="Scadenze" value={data.quickCounts.udienze_scadenze || 0} note="gestisci agenda" tone="warning" href="#udienze" onClick={openSection('udienze', 'scadenze')}/><StatCard icon={<ListChecks size={19}/>} label="Attività" value={data.quickCounts.attivita || 0} note="aggiorna timeline" tone="success" href="#attivita" onClick={openSection('attivita', 'attivita')}/><StatCard icon={<Fingerprint size={19}/>} label="Audit" value={data.auditTrail.summary.total} note={data.auditTrail.summary.snapshotted ? 'prove in snapshot' : 'prove disponibili'} tone={data.auditTrail.summary.total ? 'success' : 'neutral'} href="#audit" onClick={openSection('audit')}/><StatCard icon={<WalletCards size={19}/>} label="Contesto economico" value={data.economics.length} note="incarico e incassi" tone="purple" href="#economia" onClick={openSection('economia')}/></section>
           <DetailSection id="profilo" title="Profilo fascicolo" icon={<BadgeCheck size={17}/>}><KvGrid items={data.profile}/>{f.notes ? <div className="iu-fas-note"><strong>Note</strong><p>{f.notes}</p></div> : null}</DetailSection>
           <RegiaOperativaSection data={data} onDone={refreshDetail} onError={failDetail} onOpen={() => loadLazySection('regia')} loading={lazyStatus.regia === 'loading'}/>
           <DetailSection id="documenti" title="Documenti e atti" icon={<FileText size={17}/>} count={data.quickCounts.documenti || 0} onOpen={() => loadLazySection('documenti')}>
@@ -2170,6 +2229,7 @@ function DetailPage({ id }:{id:string}) {
             </div>
           </DetailSection>
           <DetailSection id="avanzamento" title="Avanzamento pratica" icon={<Clock3 size={17}/>} count={data.history.length}><div className="iu-fas-timeline">{data.history.map((item) => <article key={`${item.date}-${item.description}`}><time>{item.date}</time><strong>{item.description}</strong><span>{item.from} → {item.to}</span><p>{item.notes}</p></article>)}{!data.history.length ? <p className="iu-empty">Nessun avanzamento registrato.</p> : null}</div></DetailSection>
+          <AuditTrailSection audit={data.auditTrail} bundleHref={data.actions.auditBundle}/>
         </div>
         <aside className="iu-fas-detail-side">
           <DetailSection id="gestione" title="Gestione fascicolo" icon={<Gauge size={17}/>}>

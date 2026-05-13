@@ -8,7 +8,8 @@ from __future__ import annotations
 
 import io
 import json
-from datetime import date, timedelta
+import hashlib
+from datetime import date, datetime, timedelta, timezone
 
 from flask import (Blueprint, abort, flash, g, redirect,
                    render_template, request, send_file, url_for, current_app)
@@ -433,6 +434,38 @@ def pdf(id_parcella: str):
     cliente = get_clienti().get(p.id_cliente)
     fascicolo = get_fascicoli().get(p.id_fascicolo) if p.id_fascicolo else None
     buf = _genera_pdf(p, cliente, fascicolo, current_app.config)
+    audit_proof = None
+    try:
+        from audit.integrations import emit_receipt_issued
+
+        base_pdf = buf.getvalue()
+        issued_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+        result = emit_receipt_issued(
+            fascicolo_id=getattr(p, "id_fascicolo", "") or "",
+            receipt_id=str(getattr(p, "id", "") or id_parcella),
+            invoice_id=str(getattr(p, "id", "") or id_parcella),
+            issued_at=issued_at,
+            amount_hash=hashlib.sha256(f"{getattr(p, 'id', id_parcella)}:{getattr(p, 'totale', '')}:{getattr(p, 'stato', '')}".encode("utf-8")).hexdigest(),
+            receipt_sha256=hashlib.sha256(base_pdf).hexdigest(),
+            size_bytes=len(base_pdf),
+            storage_ref=f"invoice://{id_parcella}/pdf-base",
+            idempotency_key=f"RECEIPT_ISSUED:{getattr(p, 'id_fascicolo', '')}:{id_parcella}",
+        )
+        if result:
+            audit_proof = {
+                "event_id": result.event_id,
+                "event_hash": result.event_hash,
+                "event_ts_utc": issued_at,
+                "kind": "RECEIPT_ISSUED",
+                "snapshot_status": "Inclusione snapshot in attesa",
+                "proof_href": f"/audit/proof/{result.event_id}",
+            }
+    except Exception as exc:
+        if current_app.config.get("AUDIT_ENABLED"):
+            raise
+        current_app.logger.debug("Audit probatorio ricevuta non emesso: %s", exc)
+    if audit_proof:
+        buf = _genera_pdf(p, cliente, fascicolo, current_app.config, audit_proof=audit_proof)
     nome_file = f"parcella_{p.numero.replace('/', '-')}.pdf"
     download = (request.args.get("download") or "").strip().lower() in {"1", "true", "yes", "download"}
     return send_file(buf, mimetype="application/pdf",
@@ -490,7 +523,7 @@ def ajax_fascicoli(id_cliente: str):
 
 # ================================================================ Generazione PDF
 
-def _genera_pdf(p, cliente, fascicolo, config) -> io.BytesIO:
+def _genera_pdf(p, cliente, fascicolo, config, audit_proof: dict | None = None) -> io.BytesIO:
     """Genera PDF professionale con ReportLab."""
     try:
         from reportlab.lib.pagesizes import A4
@@ -729,6 +762,19 @@ def _genera_pdf(p, cliente, fascicolo, config) -> io.BytesIO:
             )
         for row in meta_rows:
             story.append(Paragraph(row, style_small))
+        story.append(Spacer(1, 4*mm))
+
+    if audit_proof:
+        story.append(HRFlowable(width="100%", thickness=0.5, color=GRAY_TEXT))
+        story.append(Spacer(1, 3*mm))
+        story.append(Paragraph("Tracciabilità e prove", style_h2))
+        story.append(Paragraph(f"<b>Evento:</b> {audit_proof.get('event_id', '')}", style_small))
+        story.append(Paragraph(f"<b>Hash evento:</b> {audit_proof.get('event_hash', '')}", style_small))
+        story.append(Paragraph(f"<b>Data UTC:</b> {audit_proof.get('event_ts_utc', '')}", style_small))
+        story.append(Paragraph("<b>Tipo evento:</b> ricevuta cliente emessa", style_small))
+        story.append(Paragraph(f"<b>Snapshot:</b> {audit_proof.get('snapshot_status', 'Inclusione snapshot in attesa')}", style_small))
+        if audit_proof.get("proof_href"):
+            story.append(Paragraph(f"<b>Scarica prova:</b> {audit_proof['proof_href']}", style_small))
         story.append(Spacer(1, 4*mm))
 
     # ---- Pagamento

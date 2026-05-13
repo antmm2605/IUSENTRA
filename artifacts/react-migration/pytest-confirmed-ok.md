@@ -1,12 +1,40 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-13, Audit gate React reale 2.220.0.
+Aggiornato: 2026-05-13, Audit probatorio WORM 2.221.0.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### PST Local Signer sessione view/download 2.221.0
+
+| Verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile web\bootstrap\portali_acquisizione_routes.py` | OK | Sintassi confermata dopo alias `fascicolo_id` / `target_fascicolo_id` per il wizard di acquisizione portale. |
+| `python -m pytest -q tests/test_react_shell.py::test_react_wizard_pst_verifica_local_signer_dal_browser tests/test_react_shell.py::test_portale_acquisizione_accetta_alias_fascicolo_id_per_mapping tests/test_local_signer.py::test_wizard_pst_usa_snapshot_e_sessione_unica_anche_per_download tests/test_local_signer.py::test_pst_download_batch_riusa_sessione_view_anche_se_client_chiede_import tests/test_polisweb.py::test_acquisizione_wizard_pst_carica_documenti_local_signer_anche_in_modalita_assistita --tb=short` | OK | 5/5 passati: React recupera la sessione PST da selezione/anteprima, il download resta batch su `purpose=view`, il vecchio wizard continua a usare snapshot e non reintroduce sessioni import separate. |
+| `npm --prefix frontend run typecheck` | OK | TypeScript senza errori dopo helper di recupero sessione PST e mapping fascicolo dal query string. |
+| `npm --prefix frontend run test` | OK | Contratti React confermati dopo la correzione del wizard PST. |
+| `npm --prefix frontend run build` | OK | Build Vite completata in 5.97s; rigenerato chunk `TelematicoSurfacePage` con riuso sessione Local Signer. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest -q tests/test_packaging_consistency.py tests/test_release_readiness.py --tb=short` | OK | Packaging sincronizzato e readiness release 8/8 confermata dopo il fix PST. |
+| `Invoke-WebRequest http://127.0.0.1:8080/portali/pst/acquisizione?fascicolo_id=DC5BF1DB`; `Invoke-WebRequest http://127.0.0.1:8080/api/pronto` | OK | Wizard locale raggiungibile HTTP 200 con alias `fascicolo_id`; readiness locale HTTP 200 con `versione=2.221.0`. |
+
+### Audit probatorio WORM 2.221.0
+
+| Verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest tests/test_audit_canonical.py tests/test_audit_hashing.py tests/test_audit_signing.py tests/test_audit_worm.py tests/test_audit_emit.py tests/test_audit_chain.py tests/test_audit_merkle.py tests/test_audit_snapshot.py tests/test_audit_proof.py tests/test_audit_bundle.py tests/test_audit_routes.py tests/test_audit_integrations.py -q` | OK | 30/30 passati: JCS, hash file, JWS, adapter CAdES esterno, WORM/Object Lock guard, assenza API delete, emit/idempotenza, failure post-WORM, catena, Merkle, snapshot multi-tenant, proof, bundle offline, route e hook dominio fail-closed sul tenant. |
+| `python -m compileall -q audit scripts alembic tests\test_audit_canonical.py tests\test_audit_hashing.py tests\test_audit_signing.py tests\test_audit_worm.py tests\test_audit_emit.py tests\test_audit_chain.py tests\test_audit_merkle.py tests\test_audit_snapshot.py tests\test_audit_proof.py tests\test_audit_bundle.py tests\test_audit_routes.py tests\test_audit_integrations.py` | OK | Sintassi confermata per moduli audit, script forensi, Alembic e test mirati. |
+| `python tools\sync_packaging_files.py --check` | OK | Packaging sincronizzato dopo bump `2.221.0` e nuove dipendenze Alembic/boto3. |
+| `python -m pytest -q tests/test_packaging_consistency.py tests/test_release_readiness.py --tb=short` | OK | 8/8 passati: packaging e readiness release confermate per `2.221.0`. |
+| `alembic -c alembic.ini upgrade head --sql` con `AUDIT_DATABASE_URL=postgresql://audit:audit@localhost:5432/iusentra` | OK | SQL offline generato: tabelle indice eventi/snapshot/failure/reconciliation e versione `20260513_legal_audit_worm`. |
+| `npm run typecheck` in `frontend/` | OK | TypeScript senza errori dopo tab Audit nel dettaglio Fascicoli. |
+| `npm run test` in `frontend/` | OK | Contratti React verificati dopo tab Audit e payload Fascicoli aggiornato. |
+| `npm run build` in `frontend/` | OK | Build Vite completata; asset React rigenerati in `web/static/react`. |
+| `git diff --check` | OK | Nessun errore whitespace; restano solo warning CRLF su file gia' toccati/runtime locali. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker` + `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx` | OK | Immagini locali ricostruite con package e label `2.221.0`; app, scheduler, OCR e Redis healthy. |
+| `Invoke-WebRequest http://127.0.0.1:8080/api/pronto`; `docker exec iusentra-app python -c "import pct; print(pct.__version__)"` | OK | Readiness locale `versione=2.221.0`; runtime container `2.221.0`. |
 
 ### Audit gate React reale 2.220.0
 
@@ -983,6 +1011,17 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | Hetzner CPX42: `bash deploy/hetzner/configure_web_push.sh`; `IUSENTRA_SKIP_BACKUP_CRON=1 bash deploy/hetzner/deploy.sh`; `bash deploy/hetzner/verify_web_push.sh`; `curl -fsS https://app.iusentra.it/api/pronto` | OK | Deploy produzione completato senza eseguire backup e senza aggiornare cron backup; container app, Caddy, worker, Redis e Ollama healthy; `/api/pronto` 200 `versione=2.218.4`; Web Push `backend configured=true`. |
 | Hetzner `/api/push/public-key` autenticato con sessione tenant | OK | Risposta `ok=true`, `configured=true`, `enabled=true`, public key presente; nessun campo `privateKey` e nessuna assegnazione `IUSENTRA_VAPID_PRIVATE_KEY=` nella risposta. |
 | `git diff --check` | OK | Nessun errore whitespace. |
+
+## Audit probatorio WORM 2.221.0 - 2026-05-13
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest tests/test_audit_canonical.py tests/test_audit_hashing.py tests/test_audit_signing.py tests/test_audit_worm.py tests/test_audit_emit.py tests/test_audit_chain.py tests/test_audit_merkle.py tests/test_audit_snapshot.py tests/test_audit_proof.py tests/test_audit_bundle.py tests/test_audit_routes.py tests/test_audit_integrations.py -q` | OK | 31/31 passati: canonicalizzazione JCS, hash, firma JWS/CAdES adapter, WORM/Object Lock double, emit WORM-before-index, catena, Merkle, snapshot, proof, bundle, route `/audit` e alias `/registro`, integrazioni atti/PEC/depositi/ricevute. |
+| `python -m pytest -q tests/test_react_shell.py::test_react_fascicoli_bridge_usa_repository_reali tests/test_react_shell.py::test_react_fascicoli_detail_nav_lessico_e_referente_studio_presidiati tests/test_react_shell.py::test_react_fascicoli_api_suite_usa_repository_reali tests/test_react_shell.py::test_react_fascicoli_bridge_formatta_date_e_referenti_visibili` | OK | 4/4 passati: bridge Fascicoli e dettaglio React restano su dati reali dopo tab Audit e link `/registro/bundle/fascicolo/<id>`. |
+| `python -m compileall -q audit web\services\react_fascicoli_bridge.py` | OK | Sintassi confermata dopo alias Registro e fail-closed tenant nel bridge Fascicoli. |
+| `npm --prefix frontend run typecheck`; `npm --prefix frontend run test`; `npm --prefix frontend run build` | OK | TypeScript, contratti React e build Vite confermati dopo tab Audit nel fascicolo e guardia testo aggiornata. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest -q tests/test_packaging_consistency.py tests/test_release_readiness.py --tb=short` | OK | Packaging, requisiti e readiness release confermati dopo bump `2.221.0` e dipendenze Alembic/boto3. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx`; `/api/pronto` locale | OK | Immagini locali ricostruite da zero con `pct-studio-legale==2.221.0`; app, scheduler, OCR e Redis healthy; readiness locale `versione=2.221.0`. |
 
 ## Multi-studio hardening tenant/API 2.218.3 - 2026-05-13
 

@@ -284,6 +284,48 @@ function isPstSessionActive(session: PstSession | null, tribunale: string, cert:
   return true
 }
 
+function parsePstSessionExpiry(value: unknown, ttlSeconds: unknown): number {
+  const numeric = Number(value ?? 0)
+  if (Number.isFinite(numeric) && numeric > 0) {
+    return numeric < 100000000000 ? numeric * 1000 : numeric
+  }
+  const parsedDate = Date.parse(asText(value))
+  if (Number.isFinite(parsedDate)) return parsedDate
+  const ttl = asNumber(ttlSeconds) || 900
+  return Date.now() + ttl * 1000
+}
+
+function coercePstSessionFromPayload(value: unknown, tribunale: string, cert: PstCertificate): PstSession | null {
+  const record = asRecord(value)
+  const sessionId = asText(
+    record.sessionId
+    || record.session_id
+    || record.pst_session_id
+    || record.view_session_id
+    || record.import_session_id,
+  )
+  if (!sessionId) return null
+  const session: PstSession = {
+    sessionId,
+    tribunale: asText(record.tribunale || record.codice_ufficio || tribunale),
+    certThumbprint: asText(record.certThumbprint || record.cert_thumbprint || record.cert_key || cert.thumbprint),
+    expiresAt: parsePstSessionExpiry(
+      record.expiresAt || record.expires_at || record.view_expires_at || record.import_expires_at,
+      record.pst_session_ttl_seconds,
+    ),
+  }
+  return isPstSessionActive(session, tribunale, cert) ? session : null
+}
+
+function acquisitionInitialFascicoloId(): string {
+  const params = new URLSearchParams(window.location.search)
+  return asText(
+    params.get('id_fasc')
+    || params.get('fascicolo_id')
+    || params.get('target_fascicolo_id'),
+  )
+}
+
 function isPstSessionExpiredError(error: unknown): boolean {
   const text = String(error instanceof Error ? error.message : error || '')
   return text.includes('session_expired') || text.includes('Sessione accesso PST scaduta') || text.includes('riaprire il canale autenticato')
@@ -1027,7 +1069,7 @@ function AcquisitionWizard({
   })
   const [mapping, setMapping] = useState<AcquisitionMapping>({
     mode: 'create_new',
-    target_fascicolo_id: new URLSearchParams(window.location.search).get('id_fasc') || '',
+    target_fascicolo_id: acquisitionInitialFascicoloId(),
     procedimento: '',
     materia: '',
     grado: '',
@@ -1204,11 +1246,28 @@ function AcquisitionWizard({
     storePstSession(null)
   }
 
+  const keepPstSession = (session: PstSession | null): PstSession | null => {
+    if (!session) return null
+    setPstSession(session)
+    storePstSession(session)
+    return session
+  }
+
+  const activePstSessionFor = (tribunale: string, cert: PstCertificate): PstSession | null => {
+    const currentSession = isPstSessionActive(pstSession, tribunale, cert) ? pstSession : null
+    if (currentSession) return currentSession
+    const recoveredSession = (
+      coercePstSessionFromPayload(selection?.raw?.pst_session, tribunale, cert)
+      || coercePstSessionFromPayload(preview.pst_session, tribunale, cert)
+    )
+    return keepPstSession(recoveredSession)
+  }
+
   const ensurePstPortalSession = async (tribunale: string, options?: { force?: boolean }): Promise<{ session: PstSession; cert: PstCertificate }> => {
     const codiceUfficio = asText(tribunale)
     if (!codiceUfficio) throw new Error("Seleziona prima l'ufficio giudiziario.")
     const cert = await ensurePstCertificate()
-    const currentSession = isPstSessionActive(pstSession, codiceUfficio, cert) ? pstSession : null
+    const currentSession = activePstSessionFor(codiceUfficio, cert)
     if (currentSession && !options?.force) return { session: currentSession, cert }
     const payload = await localSignerJson('/pst/preflight-auth', {
       tribunale: codiceUfficio,
@@ -1326,7 +1385,7 @@ function AcquisitionWizard({
         const tribunale = resolvedOfficeCode()
         let signerPayload: JsonRecord | null = null
         let cert = await ensurePstCertificate()
-        let session = isPstSessionActive(pstSession, tribunale, cert) ? pstSession : null
+        let session = activePstSessionFor(tribunale, cert)
         if (canUsePstSearchSnapshot()) {
           try {
             signerPayload = await localSignerJson('/pst/ricerca-snapshot', {
@@ -1510,7 +1569,7 @@ function AcquisitionWizard({
         if (documenti.length) {
           const tribunale = asText(selection.raw.ufficio_codice || resolvedOfficeCode())
           const cert = await ensurePstCertificate()
-          const session = isPstSessionActive(pstSession, tribunale, cert) ? pstSession : null
+          const session = activePstSessionFor(tribunale, cert)
           const signerPayload = await localSignerJson('/pst/download-documenti-batch', {
             tribunale,
             cf_avvocato: asText(status.codice_fiscale_avvocato),

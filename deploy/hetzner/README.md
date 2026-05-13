@@ -56,6 +56,10 @@ Valori obbligatori per il deploy:
 - `SECRET_KEY`
 - `FERNET_PRIMARY_KEY`
 - `AUDIT_HMAC_KEY`
+- `AUDIT_DATABASE_URL` per l'indice query/cache Postgres dell'audit probatorio
+- `AUDIT_WORM_*` verso bucket S3-compatible con versioning e Object Lock
+- `AUDIT_SIGNING_*` e, in modalita CAdES, `AUDIT_CADES_LOCAL_SIGNER_URL` / `AUDIT_CADES_VERIFY_URL`
+- `AUDIT_TSA_URL` se `AUDIT_REQUIRE_TSA_FOR_SNAPSHOT=true`
 - `PCT_DOC_KEY` se i documenti cifrati sono attivi
 
 Variabili opzionali per PWA/Web Push:

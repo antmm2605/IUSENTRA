@@ -410,6 +410,20 @@ a.iu-fas-quadro-mini:hover{transform:translateY(-1px);border-color:rgba(37,99,23
 .iu-fas-quality-list strong{grid-area:title;font-size:12.5px;line-height:1.2}
 .iu-fas-quality-list small{grid-area:value;margin-top:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.25}
 .iu-fas-compliance-toggle button{min-height:52px;padding:8px 10px;border-radius:12px}
+.iu-fas-audit-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:10px}
+.iu-fas-audit-summary span{min-height:56px;display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:8px;padding:9px 10px;border:1px solid var(--iu-border);border-radius:12px;background:#fff}
+.iu-fas-audit-summary strong{font-size:12px;color:#111827}
+.iu-fas-audit-actions{display:flex;justify-content:flex-end;margin-bottom:10px}
+.iu-fas-audit-actions a{min-height:36px;display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid var(--iu-border);border-radius:10px;background:#fff;color:var(--iu-blue-700);font-size:12px;font-weight:900;padding:0 12px}
+.iu-fas-audit-list{display:grid;gap:8px}
+.iu-fas-audit-row{display:grid;grid-template-columns:164px minmax(0,1fr) minmax(190px,auto) auto;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--iu-border);border-radius:12px;background:#fff}
+.iu-fas-audit-row>div:first-child{display:grid;gap:5px;justify-items:start}
+.iu-fas-audit-row time{color:var(--iu-slate-500);font-size:11px;font-weight:850}
+.iu-fas-audit-row strong{display:block;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;color:#111827;word-break:break-all}
+.iu-fas-audit-row span{display:block;margin-top:3px;color:var(--iu-slate-500);font-size:12px;font-weight:760}
+.iu-fas-audit-badges{display:flex;flex-wrap:wrap;gap:5px;justify-content:flex-end}
+.iu-fas-audit-row .iu-fas-actions{justify-content:flex-end}
+.iu-fas-audit-row .iu-fas-actions button,.iu-fas-audit-row .iu-fas-actions a{width:32px;height:32px;display:grid;place-items:center;border:1px solid var(--iu-border);border-radius:9px;background:#fff;color:var(--iu-slate-700)}
 @media(max-width:900px){
   .iu-fas-add-activity{grid-template-columns:repeat(2,minmax(0,1fr))}
   .iu-fas-add-activity textarea{grid-column:1/-1}
@@ -417,6 +431,9 @@ a.iu-fas-quadro-mini:hover{transform:translateY(-1px);border-color:rgba(37,99,23
   .iu-fas-activity-row{grid-template-columns:104px minmax(0,1fr)}
   .iu-fas-activity-actions{grid-column:2;justify-content:flex-start}
   .iu-fas-lex-indexing{grid-template-columns:1fr}
+  .iu-fas-audit-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .iu-fas-audit-row{grid-template-columns:1fr}
+  .iu-fas-audit-badges,.iu-fas-audit-row .iu-fas-actions{justify-content:flex-start}
 }
 @media(max-width:620px){
   .iu-fas-add-activity{grid-template-columns:1fr}
@@ -427,4 +444,6 @@ a.iu-fas-quadro-mini:hover{transform:translateY(-1px);border-color:rgba(37,99,23
   .iu-fas-quality-list>span{grid-template-columns:36px minmax(0,1fr)}
   .iu-fas-quality-list .ius-status-badge{width:28px!important;min-width:28px!important}
   .iu-fas-lex-indexing dl{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .iu-fas-audit-summary{grid-template-columns:1fr}
+  .iu-fas-audit-actions{display:grid}
 }

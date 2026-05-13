@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.221.0 - 2026-05-13
+
+- Corretto il rischio di regressione sul PIN PST/Local Signer: il wizard React riusa la sessione `view` salvata in ricerca/anteprima anche quando lo stato del componente viene perso, e il download resta batch con lo stesso `pst_session_id` invece di aprire handshake separati documento per documento.
+- Il link dal fascicolo al wizard portale mantiene ora la pratica locale anche con query `fascicolo_id` o `target_fascicolo_id`, oltre a `id_fasc`.
+- Introdotto il pacchetto `audit/` per audit probatorio append-only: canonicalizzazione RFC8785-JCS, SHA-256, firma JWS/CAdES-adapter, catena `prev_event_hash` per tenant/fascicolo, storage WORM S3 Object Lock, receipt WORM firmata, snapshot Merkle, TSA RFC3161 e verifica offline.
+- Aggiunte migrazioni Alembic/Postgres e SQL per `audit_events_index`, `audit_snapshots_index`, `audit_emit_failures` e `audit_reconciliation_runs`; l'indice resta cache ricostruibile da WORM con `scripts/rebuild_audit_index.py`.
+- Aggiunti endpoint RBAC `/audit/events`, `/audit/events/<event_id>`, `/audit/proof/<event_id>`, `/audit/bundle/fascicolo/<id>` e `POST /internal/audit/emit` interno only con mTLS/service token, idempotency key e rate limit.
+- Aggiunti bundle probatorio fascicolo e script offline `scripts/verify_audit.py`, piu' smoke `scripts/audit_smoke_test.py`.
+- Collegati atti, ricevute deposito/import, esiti deposito e ricevute cliente al nuovo audit probatorio; il dettaglio React del fascicolo mostra tab Audit con timeline, badge Firma/WORM/Snapshot/TSA e download prova/bundle.
+- Aggiunti test mirati audit su canonicalizzazione, hashing, firma, WORM, emit/idempotenza, catena, Merkle, snapshot, proof, bundle, route e integrazioni.
+
 ## 2.220.0 - 2026-05-13
 
 - Rigenerati i pacchetti IUSENTRA Local Signer 1.6.29 in `tools/dist`, incluso l'installer Windows `SetupLocalSigner-1.6.29.exe` e l'alias `SetupLocalSigner.exe`.

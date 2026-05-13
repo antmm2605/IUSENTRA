@@ -51,7 +51,12 @@ def register_portali_acquisizione_routes(
             flash("Portale non supportato.", "warning")
             return redirect(url_for("dashboard"))
 
-        id_fasc = str(request.args.get("id_fasc") or "").strip()
+        id_fasc = str(
+            request.args.get("id_fasc")
+            or request.args.get("fascicolo_id")
+            or request.args.get("target_fascicolo_id")
+            or ""
+        ).strip()
         wizard_focus = str(request.args.get("focus") or "").strip().lower()
         linked_fascicolo = get_fascicoli().get(id_fasc) if id_fasc else None
         linked_fascicolo_url = (

@@ -123,6 +123,59 @@ def import_receipt(
             session.messages = [DEPOSIT_SENT_NOT_ACQUIRED if status in {DepositStatus.ACCETTATO_PEC.value, DepositStatus.CONSEGNATO.value, DepositStatus.CONTROLLI_OK.value} else receipt.message]
         repository.update_deposit_session(session)
     repository.audit(fascicolo_id, "RECEIPT_IMPORTED", message=f"Ricevuta {receipt_type} importata.", payload={"receipt_id": receipt.id, "deposito_id": deposito_id})
+    try:
+        from audit.integrations import emit_deposit_outcome, emit_pec_receipt_acquired
+
+        mapped_receipt = "ERRORE"
+        if "ACCETTAZ" in receipt_type.upper():
+            mapped_receipt = "ACCETTAZIONE"
+        elif "CONSEG" in receipt_type.upper():
+            mapped_receipt = "CONSEGNA"
+        if receipt.original_path:
+            emit_pec_receipt_acquired(
+                fascicolo_id=fascicolo_id,
+                receipt_type=mapped_receipt,
+                provider_receipt_id=receipt.id,
+                message_id=str(payload.get("message_id") or payload.get("id_messaggio") or deposito_id),
+                receipt_path=receipt.original_path,
+                storage_ref=f"deposit-receipt://{fascicolo_id}/{deposito_id}/{receipt.id}",
+                idempotency_key=f"PEC_RECEIPT:{fascicolo_id}:{deposito_id}:{receipt.id}",
+            )
+        current_session = repository.get_deposit_session(deposito_id)
+        if current_session and current_session.status == DepositStatus.ACQUISITO.value:
+            emit_deposit_outcome(
+                fascicolo_id=fascicolo_id,
+                accepted=True,
+                portal=channel,
+                office=str(payload.get("office") or payload.get("ufficio") or ""),
+                registry=str(payload.get("registry") or payload.get("registro") or ""),
+                response_code=str(payload.get("response_code") or payload.get("codice_esito") or ""),
+                response_hash=receipt.original_hash_sha256,
+                idempotency_key=f"DEPOSIT_ACCEPTED:{fascicolo_id}:{deposito_id}:{receipt.id}",
+            )
+        elif current_session and current_session.status == DepositStatus.RIFIUTATO_CANCELLERIA.value:
+            emit_deposit_outcome(
+                fascicolo_id=fascicolo_id,
+                accepted=False,
+                portal=channel,
+                office=str(payload.get("office") or payload.get("ufficio") or ""),
+                response_hash=receipt.original_hash_sha256,
+                error_code=str(payload.get("error_code") or payload.get("codice_errore") or receipt.status),
+                error_message_hash=_sha256(str(receipt.message or "").encode("utf-8")),
+                idempotency_key=f"DEPOSIT_FAILED:{fascicolo_id}:{deposito_id}:{receipt.id}",
+            )
+    except Exception:
+        import os
+
+        required = str(os.getenv("AUDIT_ENABLED") or "").strip().lower() in {"1", "true", "yes", "on"}
+        try:
+            from flask import current_app, has_app_context
+
+            required = required or bool(has_app_context() and current_app.config.get("AUDIT_ENABLED"))
+        except Exception:
+            pass
+        if required:
+            raise
     return {"receipt": receipt, "session": repository.get_deposit_session(deposito_id)}
 
 

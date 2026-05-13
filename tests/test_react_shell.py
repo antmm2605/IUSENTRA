@@ -1311,6 +1311,20 @@ def test_react_wizard_pst_verifica_local_signer_dal_browser():
     assert "localSignerJson('/pst/fascicolo-snapshot'" in source
     assert "localSignerJson('/pst/download-documenti-batch'" in source
     assert "'/pst/download-documento'" not in source
+    assert "function coercePstSessionFromPayload" in source
+    assert "const session = activePstSessionFor(tribunale, cert)" in source
+    assert "coercePstSessionFromPayload(selection?.raw?.pst_session, tribunale, cert)" in source
+    assert "coercePstSessionFromPayload(preview.pst_session, tribunale, cert)" in source
+    assert "target_fascicolo_id: acquisitionInitialFascicoloId()" in source
+    assert "params.get('fascicolo_id')" in source
+
+
+def test_portale_acquisizione_accetta_alias_fascicolo_id_per_mapping():
+    source = Path("web/bootstrap/portali_acquisizione_routes.py").read_text(encoding="utf-8")
+
+    assert 'request.args.get("id_fasc")' in source
+    assert 'request.args.get("fascicolo_id")' in source
+    assert 'request.args.get("target_fascicolo_id")' in source
 
 
 def test_react_wizard_acquisizione_portale_usa_endpoint_operativi_reali(tmp_path: Path):

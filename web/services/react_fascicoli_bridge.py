@@ -33,6 +33,121 @@ def _safe(label: str, func: Callable[[], Any], fallback: Any) -> Any:
         return fallback
 
 
+def _current_tenant_id() -> str:
+    try:
+        from flask import g
+
+        tenant = getattr(g, "tenant", None)
+        value = (
+            getattr(tenant, "id", "")
+            or getattr(tenant, "slug", "")
+            or getattr(g, "tenant_context_slug", "")
+        )
+        return _text(value)
+    except Exception:
+        return ""
+
+
+def _short_hash(value: str) -> str:
+    text = _text(value)
+    return f"{text[:12]}...{text[-8:]}" if len(text) > 24 else text
+
+
+def _audit_kind_label(kind: str) -> str:
+    labels = {
+        "ACT_GENERATED": "Atto generato",
+        "PEC_SENT": "PEC inviata",
+        "PEC_RECEIPT_ACQUIRED": "Ricevuta PEC acquisita",
+        "DEPOSIT_ATTEMPT": "Tentativo deposito",
+        "DEPOSIT_ACCEPTED": "Deposito accettato",
+        "DEPOSIT_FAILED": "Deposito non riuscito",
+        "DOC_VIEWED": "Documento consultato",
+        "DOC_DOWNLOADED": "Documento scaricato",
+        "INCIDENT_OPENED": "Incidente aperto",
+        "INCIDENT_UPDATED": "Incidente aggiornato",
+        "RECEIPT_ISSUED": "Ricevuta cliente emessa",
+    }
+    return labels.get(_text(kind).upper(), "Evento tracciato")
+
+
+def _audit_kind_tone(kind: str) -> str:
+    value = _text(kind).upper()
+    if value in {"DEPOSIT_FAILED", "INCIDENT_OPENED", "INCIDENT_UPDATED"}:
+        return "danger"
+    if value in {"DEPOSIT_ACCEPTED", "PEC_RECEIPT_ACQUIRED", "RECEIPT_ISSUED"}:
+        return "success"
+    if value in {"DEPOSIT_ATTEMPT", "PEC_SENT"}:
+        return "warning"
+    return "primary"
+
+
+def _audit_trail(fid: str) -> dict[str, Any]:
+    tenant_id = _current_tenant_id()
+    fallback = {
+        "enabled": False,
+        "events": [],
+        "summary": {
+            "total": 0,
+            "signed": 0,
+            "worm": 0,
+            "snapshotted": 0,
+            "tsaVerified": 0,
+        },
+        "actions": {"bundle": ""},
+    }
+    if not tenant_id:
+        return fallback
+    try:
+        from flask import current_app
+        from audit.service import AuditService
+
+        service = current_app.extensions.get("legal_audit_service")
+        if not isinstance(service, AuditService):
+            if not current_app.config.get("AUDIT_ENABLED"):
+                return fallback
+            service = AuditService.from_config(current_app.config)
+            current_app.extensions["legal_audit_service"] = service
+        rows = service.repository.list_events(tenant_id=tenant_id, fascicolo_id=fid, limit=100)
+    except Exception:
+        return fallback
+    events = []
+    for row in sorted(rows, key=lambda item: (str(item.get("event_ts_utc") or ""), str(item.get("event_id") or "")), reverse=True):
+        event_id = _text(row.get("event_id"))
+        event_hash = _text(row.get("event_hash"))
+        snapshot_id = _text(row.get("snapshot_id"))
+        events.append(
+            {
+                "eventId": event_id,
+                "kind": _text(row.get("kind")),
+                "kindLabel": _audit_kind_label(_text(row.get("kind"))),
+                "eventTsUtc": _text(row.get("event_ts_utc")),
+                "eventHash": event_hash,
+                "eventHashShort": _short_hash(event_hash),
+                "prevEventHash": _text(row.get("prev_event_hash")),
+                "signed": bool(_text(row.get("signature_alg")) and _text(row.get("signer_kid"))),
+                "signatureAlg": _text(row.get("signature_alg")),
+                "worm": bool(_text(row.get("worm_bucket")) and _text(row.get("worm_key")) and _text(row.get("worm_version_id"))),
+                "snapshotId": snapshot_id,
+                "inSnapshot": bool(snapshot_id),
+                "tsaVerified": False,
+                "tone": _audit_kind_tone(_text(row.get("kind"))),
+                "proofHref": f"/registro/proof/{event_id}",
+            }
+        )
+    return {
+        "enabled": True,
+        "events": events,
+        "summary": {
+            "total": len(events),
+            "signed": sum(1 for item in events if item["signed"]),
+            "worm": sum(1 for item in events if item["worm"]),
+            "snapshotted": sum(1 for item in events if item["inSnapshot"]),
+            "tsaVerified": sum(1 for item in events if item["tsaVerified"]),
+        },
+        "actions": {"bundle": f"/registro/bundle/fascicolo/{quote(fid)}"},
+    }
+
+
 def _signature_settings(get_config_studio: Callable[[], Any] | None) -> dict[str, str]:
     mode = "laterale"
     place = ""
@@ -1141,6 +1256,7 @@ def _documents(fascicolo: Any) -> list[dict[str, Any]]:
         return {
             "preview": "",
             "download": "",
+            "acquire": "",
             "edit": "",
             "sign": "",
             "pdfa": "",
@@ -1148,6 +1264,28 @@ def _documents(fascicolo: Any) -> list[dict[str, Any]]:
             "metadata": "",
             "delete": "",
         }
+
+    def _portal_acquisition_href(row: dict[str, Any], dep: Any, source: str) -> str:
+        source_text = _text(source).upper()
+        if "PDP" in source_text:
+            base = "/portali/pdp/acquisizione"
+        elif "PAT" in source_text or "SIGA" in source_text:
+            base = "/portali/pat/acquisizione"
+        elif "PTT" in source_text or "SIGIT" in source_text:
+            base = "/portali/ptt/acquisizione"
+        else:
+            base = "/portali/pst/acquisizione"
+        params = [
+            ("id_fasc", fid),
+            ("fascicolo_id", fid),
+            ("mode", "update_existing"),
+            ("id_deposito_pct", _text(getattr(dep, "id", ""))),
+            ("id_deposito", _text(row.get("id_deposito") or getattr(dep, "id_deposito_esterno", ""))),
+            ("id_documento", _text(row.get("id_documento") or row.get("id_cat") or row.get("id_repeatto") or row.get("msg_id"))),
+            ("documento_portale", _text(row.get("nome"))),
+        ]
+        query = "&".join(f"{quote(key)}={quote(value)}" for key, value in params if value)
+        return f"{base}?{query}#acquisizione-portale" if query else f"{base}#acquisizione-portale"
 
     def _portal_ref(field: str, value: Any) -> tuple[str, str] | None:
         text = _text(value)
@@ -1196,6 +1334,7 @@ def _documents(fascicolo: Any) -> list[dict[str, Any]]:
                     "attest": f"/fascicoli/{fid}/documenti/{did}/attestazione",
                     "metadata": f"/fascicoli/{fid}/documenti/{did}/metadati",
                     "delete": f"/fascicoli/{fid}/documenti/{did}/elimina",
+                    "acquire": "",
                 },
             }
         )
@@ -1230,6 +1369,8 @@ def _documents(fascicolo: Any) -> list[dict[str, Any]]:
                 continue
             seen_portal_docs.add(key)
             source = _text(getattr(dep, "fonte_portale", "")) or _text(getattr(dep, "servizio_portale", ""), "Portale")
+            actions = _empty_actions()
+            actions["acquire"] = _portal_acquisition_href(row, dep, source)
             out.append(
                 {
                     "id": f"portale-{dep_id or 'deposito'}-{index}",
@@ -1238,7 +1379,7 @@ def _documents(fascicolo: Any) -> list[dict[str, Any]]:
                     "size": _bytes_label(row.get("dimensione_bytes", 0)),
                     "uploadedAt": "",
                     "documentDate": _date_label(row.get("data_deposito") or row.get("data_documento")),
-                    "notes": "Documento censito dal portale ufficiale. Il file va acquisito tramite sessione autenticata o Local Signer, senza download server autonomo.",
+                    "notes": "Documento censito dal portale ufficiale. Per visualizzarlo va acquisito dal PST con sessione autenticata o Local Signer del PC.",
                     "tags": ["Catalogo portale", source],
                     "signed": False,
                     "statusLabel": "Da acquisire",
@@ -1249,7 +1390,7 @@ def _documents(fascicolo: Any) -> list[dict[str, Any]]:
                     "portalSender": _text(row.get("mittente")),
                     "portalDate": _date_label(row.get("data_deposito") or row.get("data_documento")),
                     "hash": "",
-                    "actions": _empty_actions(),
+                    "actions": actions,
                 }
             )
     return out
@@ -1803,6 +1944,8 @@ def build_react_fascicolo_detail_payload(
         "comunicazioni": len(visible_deposits),
         "istanze": len(visible_requests),
     }
+    audit_trail = _audit_trail(fid)
+    quick_counts["audit"] = int((audit_trail.get("summary") or {}).get("total") or 0)
     lex_indexing = _safe(
         "lex_indexing",
         lambda: _lex_indexing_summary(fid),
@@ -1876,6 +2019,7 @@ def build_react_fascicolo_detail_payload(
         "telematic": _telematic(fascicolo),
         "quality": _quality(fascicolo, cliente, scadenze, parties),
         "signature": _signature_settings(get_config_studio),
+        "auditTrail": audit_trail,
         "actions": {
             "changeState": f"/fascicoli/{fid}/stato",
             "define": f"/fascicoli/{fid}/definisci",
@@ -1889,6 +2033,7 @@ def build_react_fascicolo_detail_payload(
             "complianceOff": f"/fascicoli/{fid}/conformita/controlli?enabled=0",
             "exportPdf": f"/fascicoli/{fid}/pdf",
             "archiveZip": f"/fascicoli/{fid}/archivio/scarica",
+            "auditBundle": f"/registro/bundle/fascicolo/{fid}",
             "refreshLexIndex": f"/api/v1/ui/fascicoli/{fid}/lex-indexing/aggiorna",
             "retryLexIndexErrors": f"/api/v1/ui/fascicoli/{fid}/lex-indexing/riprova-errori",
         },

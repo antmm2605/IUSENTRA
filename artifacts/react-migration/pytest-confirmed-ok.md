@@ -1,12 +1,27 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-13, fase react 7 frontend App V2 2.228.0.
+Aggiornato: 2026-05-13, fase react 8 requisiti area/workflow App V2 2.229.0.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Fase react 8 - requisiti area/workflow App V2 2.229.0
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile scripts\react-migration\generate_app_v2_area_requirements.py scripts\smoke_app_v2_workflows.py tests\test_app_v2_area_requirements_phase8.py` | OK | Sintassi confermata per generatore requisiti area, smoke workflow e test fase 8. |
+| `python scripts\react-migration\generate_app_v2_area_requirements.py --check`; `python scripts\react-migration\generate_app_v2_page_registry.py --check` | OK | Registro requisiti area e registry App V2 deterministici, con sezione fase 8 nel registro e nel riepilogo frontend. |
+| `python scripts\smoke_app_v2_workflows.py --list`; `python scripts\smoke_app_v2_workflows.py --base-url http://127.0.0.1:8080` | OK | Inventario P0/P1 reale elencato; smoke autenticato non eseguito senza env e dichiarato come tale, senza segreti stampati. |
+| `python -m pytest -q tests\test_app_v2_area_requirements_phase8.py tests\test_app_v2_frontend_phase7.py tests\test_app_v2_page_registry.py --tb=short` | OK | 12/12 passati: doc fase 8, stati area, smoke workflow, guard fase 7 e registry preservati. |
+| `npm --prefix frontend run test:app-v2`; `npm --prefix frontend run test`; `npm --prefix frontend run typecheck` | OK | Gate App V2, contratti React e TypeScript verdi su `2.229.0`; P0/P1=63 e P0/P1 full=34 invariati. |
+| `npm --prefix frontend run build` | OK | Build Vite 2.229.0 completata in 6.13s; bundle principale invariato `index-CSdjNGxs.js` 444.72 kB / 131.62 kB gzip, CSS principale `index-Bafxecf8.css` 121.77 kB / 22.33 kB gzip. |
+| `python scripts\validate_openapi.py docs\openapi.yaml`; `python scripts\verify_openapi_provider.py`; `python tools\sync_packaging_files.py --check`; `python -m pytest -q tests\test_packaging_consistency.py tests\test_release_readiness.py --tb=short` | OK | OpenAPI valido, provider verification 182 auth-error / 27 success / 1 backend-security, packaging sincronizzato e readiness 8/8 per `2.229.0`. |
+| `python -m pytest -q tests\test_app_v2_feature_flags.py tests\test_app_v2_routing.py tests\test_react_shell.py::test_react_api_bridge_richiede_autenticazione --tb=short`; `node scripts\react-migration\check-route-gate.mjs`; `git diff --check` | OK | 15/15 passati; route gate OK; `git diff --check` senza errori, solo warning CRLF su file toccati/runtime locali. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx`; `GET http://127.0.0.1:8080/api/pronto`; `docker exec iusentra-app python -c "import pct; print(pct.__version__)"` | OK | Build locale no-cache e riavvio completati; app, scheduler, OCR e Redis healthy; readiness locale `versione=2.229.0`, runtime container e label immagine `2.229.0`. |
+| Browser in-app su `http://127.0.0.1:8080/app-v2/impostazioni` | OK | Login locale di verifica, stato flag-off `Funzione non attiva per questo studio.`, zero errori console e nessun testo tecnico vietato nel DOM snapshot. |
 
 ### Fase react 7 - frontend App V2 governato 2.228.0
 

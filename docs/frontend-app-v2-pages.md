@@ -224,7 +224,10 @@ npm --prefix frontend run typecheck
 npm --prefix frontend run build
 python scripts\smoke_app_v2_pages.py --list
 python scripts\smoke_app_v2_routing.py --list
+python scripts\smoke_app_v2_workflows.py --list
+python scripts\react-migration\generate_app_v2_area_requirements.py --check
 python -m pytest -q tests/test_app_v2_frontend_phase7.py --tb=short
+python -m pytest -q tests/test_app_v2_area_requirements_phase8.py --tb=short
 python -m pytest -q tests/test_app_v2_page_registry.py --tb=short
 python -m pytest -q tests/test_feature_flags.py tests/test_app_v2_feature_flags.py tests/test_app_v2_routing.py --tb=short
 ```
@@ -237,6 +240,10 @@ $env:IUSENTRA_SMOKE_USERNAME='<utente>'
 $env:IUSENTRA_SMOKE_PASSWORD='<password>'
 python scripts\smoke_app_v2_routing.py --require-credentials
 ```
+
+## Requisiti specifici fase 8
+
+Il file `docs/app-v2-area-requirements.md` e' il registro vincolante per workflow, RBAC, tenant isolation, PII e stato finale per area. Lo smoke `scripts/smoke_app_v2_workflows.py` resta in modalita inventario se mancano le credenziali ambiente e non dichiara passati i profili non configurati.
 
 ## Stato fase 7
 

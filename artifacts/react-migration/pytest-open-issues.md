@@ -1,6 +1,6 @@
 # Pytest issue aperte e risoluzioni
 
-Aggiornato: 2026-05-13, fase react 7 frontend App V2 2.228.0.
+Aggiornato: 2026-05-13, fase react 8 requisiti area/workflow App V2 2.229.0.
 
 ## Regola operativa
 
@@ -10,6 +10,7 @@ Questo file e' la coda di lavoro. Prima di rilanciare test gia' passati, control
 
 | Area | Test / comando | Stato | Problema rilevato | Risoluzione |
 | --- | --- | --- | --- | --- |
+| Fase react 8 / requisiti area-workflow App V2 | Generatore requisiti, smoke workflow, gate frontend, Docker e browser | Nessuna issue aperta sul codice | La fase richiede workflow autenticati tenant A/B/readonly, ma l'ambiente locale e di produzione non espone credenziali smoke dedicate nel repository. | Aggiunto `scripts/smoke_app_v2_workflows.py`: senza env esegue solo inventario e lo dichiara, con `--require-credentials` fallisce se le credenziali mancano. Gate deterministici, build, Docker locale e browser flag-off sono verdi e registrati in `pytest-confirmed-ok.md`; non dichiarare eseguito lo smoke autenticato finche' non vengono fornite le env. |
 | Fase react 7 / frontend App V2 | Gate App V2, registry, build, Docker e browser | Nessuna issue aperta sul codice | Il test storico del registro leggeva la prima riga trovata, ma la nuova tabella `Stato frontend fase 7` precede il registro ufficiale e non contiene la colonna priorita. | Test aggiornato per controllare la sezione `Registro ufficiale pagine`; gate mirati, build, Docker locale e browser desktop/tablet/mobile verdi e registrati in `pytest-confirmed-ok.md`. |
 | Fase react 4 / routing legacy e fallback App V2 | Helper routing, smoke anonimo, registro e gate App V2 | Nessuna issue aperta sul codice | Il primo smoke anonimo trattava il redirect a login come anomalia quando la query conteneva un URL esterno codificato dentro il parametro `next` della pagina di autenticazione, pur restando same-origin. | Smoke corretto per distinguere login anonimo same-origin da open redirect reale: le query per il target App V2 restano sanificate, i parametri rischiosi sono rimossi dal redirect App V2 e gli utenti non autenticati possono solo arrivare a `/login`. Gate mirati verdi e registrati in `pytest-confirmed-ok.md`. |
 | Fase react 2 / registro App V2 | Generatore registro, smoke `--list`, pytest dedicato | Nessuna issue aperta sul codice | La fase richiedeva censimento completo e priorita senza dichiarare full route non ancora parificate. | Aggiunti registro generato, riepilogo App V2, smoke parametrico e test deterministici. Le route non full restano backlog intenzionale, non failure: saranno trattate nelle fasi successive con API reali, feature flag, RBAC, tenant isolation e browser verification. |

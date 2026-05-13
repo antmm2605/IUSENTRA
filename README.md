@@ -599,6 +599,17 @@ Suite affidabilita' consigliate dopo modifiche a storage, osservabilita' o modul
 python -m pytest tests/test_observability_runtime.py tests/test_migration_assistant.py tests/test_storage_postgres_migration.py tests/test_operational_surfaces.py tests/test_legal_coverage_surface.py tests/test_legal_updates_pipeline.py -q
 ```
 
+Gate App V2 e requisiti area/workflow:
+
+```bash
+python scripts/react-migration/generate_app_v2_area_requirements.py --check
+python scripts/smoke_app_v2_workflows.py --list
+python -m pytest -q tests/test_app_v2_area_requirements_phase8.py --tb=short
+npm --prefix frontend run test
+npm --prefix frontend run typecheck
+npm --prefix frontend run build
+```
+
 Test telematici di riferimento:
 
 ```bash

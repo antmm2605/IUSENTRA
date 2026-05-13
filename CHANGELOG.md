@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.229.0 - 2026-05-13
+
+- Completata la fase 8 `fasereact`: creato `docs/app-v2-area-requirements.md` come registro generato dei requisiti specifici per area, workflow, RBAC, tenant isolation, PII, test richiesti e stato finale.
+- Aggiunto `scripts/react-migration/generate_app_v2_area_requirements.py` con gate deterministico `--check` e guardia contro aree marcate `complete_tested` quando contengono route legacy o parziali.
+- Aggiunto `scripts/smoke_app_v2_workflows.py` per inventario e smoke autenticati dei workflow P0/P1 reali, con credenziali solo da variabili ambiente e nessun segreto stampato.
+- Aggiornati registry App V2, riepilogo frontend, CI e gate `check-app-v2-frontend` per includere la fase 8 e bloccare regressioni su workflow area non governati.
+- Aggiunti test mirati `tests/test_app_v2_area_requirements_phase8.py` per documento generato, stati area, smoke workflow e credenziali mancanti.
+
 ## 2.228.0 - 2026-05-13
 
 - Completata la fase 7 `fasereact`: rafforzata la shell frontend App V2 con 404 sicura per percorsi non censiti, navigazione filtrata da feature flag e RBAC UI, e bootstrap React con permessi effettivi dell'utente.

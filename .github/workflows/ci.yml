@@ -62,6 +62,9 @@ jobs:
 
       - name: Frontend App V2 gates
         run: |
+          python scripts/react-migration/generate_app_v2_area_requirements.py --check
+          python scripts/smoke_app_v2_workflows.py --list
+          python -m pytest -q tests/test_app_v2_area_requirements_phase8.py --tb=short
           npm ci --prefix frontend
           npm --prefix frontend run test
           npm --prefix frontend run typecheck

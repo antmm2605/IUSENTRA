@@ -116,6 +116,22 @@ client e conferma 401 reale su tutti gli endpoint contrattualizzati, 200
 autenticato su un campione P0/P1 rappresentativo e 400
 `backend_security_control_param` quando il client prova a inviare `tenant_id`.
 
+## Fase 8 Requisiti specifici per area
+
+La fase 8 aggiunge `docs/app-v2-area-requirements.md` come registro generato
+dei requisiti per workflow reali. Ogni area presente nel manifest dichiara
+workflow principali, RBAC, PII, endpoint, feature flag, test richiesti e stato
+finale. Un'area non puo' essere `complete_tested` se contiene route legacy o
+parziali: il gate `tests/test_app_v2_area_requirements_phase8.py` lo verifica
+direttamente sul manifest.
+
+Lo smoke `scripts/smoke_app_v2_workflows.py` copre l'inventario P0/P1
+dashboard, fascicoli, documenti, comunicazioni, scadenze, agenda, ricerca,
+admin, impostazioni e controlli atti. L'esecuzione autenticata usa solo
+credenziali da ambiente (`IUSENTRA_ADMIN_*`, `IUSENTRA_TENANT_A_*`,
+`IUSENTRA_TENANT_B_*`, `IUSENTRA_READONLY_*`) e non dichiara passati i profili
+non configurati.
+
 ## Punti da estendere nelle fasi successive
 
 - smoke cross-tenant autenticati con credenziali tenant A/B da env;

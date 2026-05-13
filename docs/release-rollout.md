@@ -133,6 +133,46 @@ dashboard o chiamate dati laterali. Le route `partial` o `pending` registrate in
 `docs/frontend-app-v2-pages.md` non sono promosse finche' API, mutazioni,
 stati UI, browser smoke e RBAC non sono parificati.
 
+## Requisiti e workflow fase 8
+
+Ogni rollout App V2 deve consultare `docs/app-v2-area-requirements.md` prima
+di accendere flag area per area. Monitorare per ciascuna area:
+
+- error rate 4xx/5xx sugli endpoint indicati nel registro;
+- 403/404 anomali rispetto al ruolo utente atteso;
+- eventi `policy_denied` e `cross_tenant_denied`;
+- tempi di primo contenuto React e latenza API dell'area;
+- assenza di PII, segreti o path interni nei payload e nella UI.
+
+Gate post-deploy fase 8:
+
+```bash
+python scripts/react-migration/generate_app_v2_area_requirements.py --check
+python scripts/smoke_app_v2_workflows.py --list
+python -m pytest -q tests/test_app_v2_area_requirements_phase8.py --tb=short
+```
+
+Con credenziali di ambiente:
+
+```bash
+IUSENTRA_BASE_URL=https://app.iusentra.it \
+IUSENTRA_ADMIN_USER="$IUSENTRA_ADMIN_USER" \
+IUSENTRA_ADMIN_PASSWORD="$IUSENTRA_ADMIN_PASSWORD" \
+IUSENTRA_TENANT_A_USER="$IUSENTRA_TENANT_A_USER" \
+IUSENTRA_TENANT_A_PASSWORD="$IUSENTRA_TENANT_A_PASSWORD" \
+IUSENTRA_TENANT_B_USER="$IUSENTRA_TENANT_B_USER" \
+IUSENTRA_TENANT_B_PASSWORD="$IUSENTRA_TENANT_B_PASSWORD" \
+IUSENTRA_READONLY_USER="$IUSENTRA_READONLY_USER" \
+IUSENTRA_READONLY_PASSWORD="$IUSENTRA_READONLY_PASSWORD" \
+python scripts/smoke_app_v2_workflows.py --require-credentials
+```
+
+Rollback entro 2 ore: spegnere solo i flag `routes.appV2.*` dell'area
+coinvolta, riavviare app/worker, verificare `/api/v1/ui/feature-flags`,
+rieseguire lo smoke workflow in inventario e confermare che il fallback legacy
+resti accessibile. Se il difetto non e' isolabile da flag, revertire il commit
+della fase e ridistribuire.
+
 ## Redirect legacy -> App V2 fase 4
 
 I redirect non sono attivati globalmente. Per abilitarne uno pagina per pagina:

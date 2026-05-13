@@ -2,6 +2,18 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-13T23:59:00+02:00: fase react 8 `fasereact`
+2.229.0. Il registro requisiti per area/workflow App V2 e' ora generato in
+`docs/app-v2-area-requirements.md` e collega ogni area alle route censite, ai
+P0/P1/P2/P3, ai permessi, ai rischi tenant/PII e ai gate minimi.
+
+Audit anti-mascheramento: un'area puo' essere `complete_tested` solo se tutte
+le route collegate sono `react_operational_full` e ha workflow P0/P1 censiti;
+Telematico resta `blocked` per i workflow ministeriali non parificati. Lo smoke
+`scripts/smoke_app_v2_workflows.py` non usa segreti hardcoded: senza variabili
+ambiente elenca i workflow e registra che l'esecuzione autenticata non e'
+avvenuta, evitando dichiarazioni verdi non supportate.
+
 Aggiornamento 2026-05-13T23:55:00+02:00: fase react 7 `fasereact`
 2.228.0. L'audit App V2 registra ora un presidio frontend fail-closed:
 permessi effettivi nel bootstrap, menu sperimentale filtrato da flag/RBAC,

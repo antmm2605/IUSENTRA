@@ -1,5 +1,26 @@
 # Migrazione progressiva Flask + React
 
+## Stato fase react 8 - 2026-05-13 - Requisiti area/workflow App V2 2.229.0
+
+L'ottava fase del piano `fasereact` sposta il governo dalla singola pagina al
+workflow reale per area. Il nuovo registro generato
+`docs/app-v2-area-requirements.md` collega le aree presenti nel manifest a
+pagine legacy/App V2, feature flag, endpoint, RBAC, PII, workflow principali,
+test richiesti, test presenti e stato finale (`complete_tested`,
+`complete_unverified`, `partial`, `pending`, `blocked`).
+
+La fase non promuove superfici non parificate: documenti, mandato, economico,
+amministrazione, studio/scadenze miste e servizi telematici restano
+`partial`/`blocked` dove esistono route legacy o workflow non ricostruiti. Le
+aree segnate `complete_tested` non possono contenere route legacy o parziali,
+come verificato da `tests/test_app_v2_area_requirements_phase8.py`.
+
+Nuovi gate: `scripts/react-migration/generate_app_v2_area_requirements.py
+--check`, `scripts/smoke_app_v2_workflows.py --list`,
+`tests/test_app_v2_area_requirements_phase8.py`, integrazione CI e controllo
+`frontend/scripts/check-app-v2-frontend.mjs`. Lo smoke autenticato richiede
+credenziali via env e non dichiara passati profili mancanti.
+
 ## Stato fase react 7 - 2026-05-13 - Frontend App V2 governato 2.228.0
 
 La settima fase del piano `fasereact` rafforza il livello frontend comune

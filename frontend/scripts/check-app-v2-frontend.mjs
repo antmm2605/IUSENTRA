@@ -25,6 +25,7 @@ const featureFlags = read('frontend/src/lib/featureFlags.ts')
 const reactShell = read('web/blueprints/react_shell.py')
 const frontendDoc = read('docs/frontend-app-v2-pages.md')
 const registryDoc = read('docs/app-v2-page-registry.md')
+const areaRequirementsDoc = read('docs/app-v2-area-requirements.md')
 const openApi = read('docs/openapi.yaml')
 const manifest = JSON.parse(read('tools/react-migration/route-manifest.json'))
 
@@ -71,6 +72,12 @@ for (const column of [
 
 assertContains(registryDoc, 'Stato frontend fase 7', 'registry fase 7')
 assertContains(registryDoc, '404 sicura App V2', 'registry 404 App V2')
+assertContains(frontendDoc, 'Requisiti specifici fase 8', 'docs/frontend-app-v2-pages.md fase 8')
+assertContains(registryDoc, 'Requisiti specifici fase 8', 'registry fase 8')
+assertContains(areaRequirementsDoc, 'fase 8 `fasereact`', 'docs/app-v2-area-requirements.md fase 8')
+assertContains(areaRequirementsDoc, 'Servizi telematici', 'docs/app-v2-area-requirements.md telematico')
+assertContains(areaRequirementsDoc, 'blocked', 'docs/app-v2-area-requirements.md stato blocked')
+assertContains(areaRequirementsDoc, 'scripts/smoke_app_v2_workflows.py --list', 'docs/app-v2-area-requirements.md smoke workflow')
 
 function priority(route) {
   const status = String(route.status || '')

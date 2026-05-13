@@ -2,6 +2,24 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-13T23:59:00+02:00: fase react 8 `fasereact`
+2.229.0. Aggiunto il registro generato dei requisiti specifici per area in
+`docs/app-v2-area-requirements.md`: ogni area ora dichiara pagine, URL App V2,
+feature flag, endpoint API, RBAC, PII, workflow principali, test richiesti,
+test presenti e stato finale. Le aree con route legacy/parziali restano
+`partial` o `blocked` e non vengono mascherate come complete.
+
+La fase introduce `scripts/smoke_app_v2_workflows.py` per inventario e smoke
+autenticati dei workflow P0/P1 reali. Senza credenziali ambiente lo script non
+dichiara eseguiti i profili admin/tenant/readonly; con `--require-credentials`
+fallisce in modo esplicito.
+
+Verifica locale finale: py_compile, generatori `--check`, smoke workflow
+inventario, pytest fase 8/fase 7/registry 12/12, feature/routing/shell 15/15,
+npm test/typecheck/build, OpenAPI, provider verification, packaging/readiness,
+Docker no-cache 2.229.0 healthy e browser in-app su `/app-v2/impostazioni`
+flag-off con zero errori console e nessun testo tecnico vietato.
+
 Aggiornamento 2026-05-13T23:55:00+02:00: fase react 7 `fasereact`
 2.228.0. Rafforzato il livello frontend comune App V2: il bootstrap React
 espone i permessi effettivi dell'utente, la navigazione sperimentale filtra

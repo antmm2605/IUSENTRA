@@ -15,6 +15,7 @@ APP_ROUTES_PATH = REPO_ROOT / "frontend" / "src" / "app" / "routes.ts"
 REGISTRY_PATH = REPO_ROOT / "docs" / "app-v2-page-registry.md"
 FRONTEND_PAGES_PATH = REPO_ROOT / "docs" / "frontend-app-v2-pages.md"
 ROUTING_MAP_PATH = REPO_ROOT / "docs" / "legacy-to-app-v2-routing-map.md"
+AREA_REQUIREMENTS_PATH = REPO_ROOT / "docs" / "app-v2-area-requirements.md"
 
 STATUS_LABELS = {
     "legacy_operational": "legacy",
@@ -633,6 +634,10 @@ def _registry_doc(
             _phase7_rows(routes),
         ),
         "",
+        "## Requisiti specifici fase 8",
+        "",
+        "Il registro area/workflow e' generato separatamente in `docs/app-v2-area-requirements.md`. La fase 8 usa quello stato per distinguere aree `complete_tested`, `partial`, `pending` e `blocked`, senza promuovere route legacy/parziali solo perche' il gate frontend comune e' verde.",
+        "",
         "## Feature flag censiti",
         "",
         _table(
@@ -777,7 +782,10 @@ def _frontend_doc(
             "npm --prefix frontend run build",
             "python scripts\\smoke_app_v2_pages.py --list",
             "python scripts\\smoke_app_v2_routing.py --list",
+            "python scripts\\smoke_app_v2_workflows.py --list",
+            "python scripts\\react-migration\\generate_app_v2_area_requirements.py --check",
             "python -m pytest -q tests/test_app_v2_frontend_phase7.py --tb=short",
+            "python -m pytest -q tests/test_app_v2_area_requirements_phase8.py --tb=short",
             "python -m pytest -q tests/test_app_v2_page_registry.py --tb=short",
             "python -m pytest -q tests/test_feature_flags.py tests/test_app_v2_feature_flags.py tests/test_app_v2_routing.py --tb=short",
             "```",
@@ -790,6 +798,10 @@ def _frontend_doc(
             "$env:IUSENTRA_SMOKE_PASSWORD='<password>'",
             "python scripts\\smoke_app_v2_routing.py --require-credentials",
             "```",
+            "",
+            "## Requisiti specifici fase 8",
+            "",
+            "Il file `docs/app-v2-area-requirements.md` e' il registro vincolante per workflow, RBAC, tenant isolation, PII e stato finale per area. Lo smoke `scripts/smoke_app_v2_workflows.py` resta in modalita inventario se mancano le credenziali ambiente e non dichiara passati i profili non configurati.",
             "",
             "## Stato fase 7",
             "",

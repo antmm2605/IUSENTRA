@@ -156,6 +156,10 @@ Questo registro e' generato da `scripts/react-migration/generate_app_v2_page_reg
 | studio | /strumenti-operativi | /app/studio | /strumenti-operativi | frontend/src/components/StudioModulePage.tsx | routes.appV2.studio.modules | /api/v1/ui/studio*, /api/v1/ui/studio-modules/*, /api/v1/ui/sito-studio* | docs/openapi.yaml | studio.leggi / studio.scrivi per configurazioni | loading, empty, error, forbidden, not-found, flag-off, readonly/RBAC, success se mutazione | gate statici presenti; smoke browser e VRT da estendere | complete_unverified |
 | studio | /studio | /app/impostazioni | /studio | frontend/src/components/StudioPage.tsx | routes.appV2.studio.home | /api/v1/ui/studio*, /api/v1/ui/studio-modules/*, /api/v1/ui/sito-studio* | docs/openapi.yaml | studio.leggi / studio.scrivi per configurazioni | loading, empty, error, forbidden, not-found, flag-off, readonly/RBAC, success se mutazione | gate statici presenti; smoke browser e VRT da estendere | complete_unverified |
 
+## Requisiti specifici fase 8
+
+Il registro area/workflow e' generato separatamente in `docs/app-v2-area-requirements.md`. La fase 8 usa quello stato per distinguere aree `complete_tested`, `partial`, `pending` e `blocked`, senza promuovere route legacy/parziali solo perche' il gate frontend comune e' verde.
+
 ## Feature flag censiti
 
 | Flag | Variabile | Descrizione | Default |

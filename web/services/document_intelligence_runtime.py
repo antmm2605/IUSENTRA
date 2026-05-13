@@ -11,9 +11,20 @@ from pct.document_intelligence import DocumentAIRepository, DocumentAIService, L
 from pct.document_intelligence.sources import DocumentAISource, collect_fascicolo_document_sources
 from web.helpers import get_fascicoli
 from web.services.storage_runtime import get_request_studio_db, get_request_storage_runtime
+from web.services.tenant_paths import tenant_data_path
 
 
 def fascicoli_db_path() -> str:
+    if has_request_context():
+        return tenant_data_path(
+            "FASCICOLI_DB",
+            str(
+                current_app.config.get("FASCICOLI_DB")
+                or current_app.config.get("FASCICOLI_DB_PATH")
+                or Path(current_app.instance_path) / "fascicoli" / "fascicoli.json"
+            ),
+            require_tenant=bool(current_app.config.get("MULTI_TENANT") or getattr(g, "multi_tenant_enabled", False)),
+        )
     if has_app_context():
         return str(
             current_app.config.get("FASCICOLI_DB")

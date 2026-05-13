@@ -51,6 +51,7 @@ TENANT_FILE_SEED_PATHS: tuple[str, ...] = (
     "intelligence/workspace_intelligence.json",
     "messaggi/storico.json",
     "notifiche/log.json",
+    "penale/pdp_penale.db",
     "portale/portali.json",
     "preventivi/conferimenti.json",
     "preventivi/preventivi.json",
@@ -62,6 +63,7 @@ TENANT_FILE_SEED_PATHS: tuple[str, ...] = (
     "studio.db",
     "template_atti/editor_layout.json",
     "template_atti/templates.json",
+    "telematico/workflow.db",
     "timesheet/entries.json",
     "wizard_pro/sessioni.json",
 )
@@ -1158,6 +1160,7 @@ class GestioneTenant:
             "fascicoli/practice_engine/evidence_packs",
             "agenda", "scadenziario", "timesheet", "fatturazione", "messaggi", "backup",
             "notifiche", "pagamenti", "portale", "portale/uploads",
+            "penale", "telematico",
             "privacy", "condivisioni", "template_atti", "wizard_pro",
             "intelligence", "search", "config",
             # directory aggiuntive per moduli preventivi, email e soggetti
@@ -1318,6 +1321,8 @@ class GestioneTenant:
             "NORMATIVE_TABLES_DB": f"{base}/intelligence/tabelle_normative.json",
             "GIURISPRUDENZA_DB": f"{base}/intelligence/giurisprudenza.json",
             "WORKSPACE_INTELLIGENCE_DB": f"{base}/intelligence/workspace_intelligence.json",
+            "PDP_PENALE_DB": f"{base}/penale/pdp_penale.db",
+            "TELEMATICO_DB": f"{base}/telematico/workflow.db",
             "LOCAL_AI_DB": f"{base}/intelligence/local_ai.db",
             "LOCAL_AI_MODELS_DIR": f"{base}/intelligence/models",
             "VALIDATION_RUNS_DB": f"{base}/intelligence/validation_runs.json",

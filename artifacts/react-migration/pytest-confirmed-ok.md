@@ -892,3 +892,17 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `npm --prefix frontend run build` | OK | Build Vite completata per `iusentra-react-token-ui@2.218.2`; asset React rigenerati in `web/static/react`. |
 | Browser Playwright su `http://127.0.0.1:8099/template-atti/compila/AMM_RIC_001?id_cliente=0AD3517D&id_fascicolo=68756850` | OK | UI React visibile, vecchio compilatore assente, note mancanti in italiano, colore giallo leggibile (`rgb(74, 58, 0)` su `rgb(255, 248, 214)`), pannello Cartabia senza oggetti tecnici, CTA `Crea bozza e apri editor`, nessun errore console. Screenshot: `artifacts/react-migration/template-atti-compila-react.png`. |
 | Hetzner `iusentra-hetzner`, branch `Codex/legal-electronic-filing-kIxcV` | OK | Deploy completato e riverificato sul branch finale: app, scheduler, OCR, Redis e Ollama healthy; `https://app.iusentra.it/api/pronto` risponde `versione=2.218.2`. Il primo backup e' stato rilanciato per file email cambiato durante `tar`; il secondo backup si e' completato prima del deploy. |
+
+## Multi-studio hardening tenant/API 2.218.3 - 2026-05-13
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest tests/test_tenant_isolation_runtime.py -q` | OK | 9/9 passati: compatibilita single-tenant `PCT_API_KEY`, blocco API key globale in multi-tenant, chiave studio coerente, mismatch cross-studio, sessioni incoerenti e path fuori root tenant. |
+| `python -m pytest tests/test_storage_strategy.py::test_login_route_assigns_single_active_tenant_to_legacy_global_admin tests/test_storage_strategy.py::test_login_route_bootstraps_legacy_root_data_for_single_tenant_install tests/test_tenant_admin_legacy.py::test_superadmin_globale_ignora_ruolo_stale_nel_sql_locale -q` | OK | Regressioni auth legacy/multi-tenant corrette: fallback single-tenant esplicito preservato e riallineamento SUPERADMIN mantenuto solo per multi-tenant auto-rilevato. |
+| `python -m pytest tests/test_fascicoli_pagination.py::test_fascicoli_frontend_contratto_query_params_e_lazy_tab -q` | OK | Contratto statico Fascicoli lazy confermato dopo rimozione preload `regia` dal dettaglio iniziale. |
+| `python -m pytest tests -q -k "auth or tenant or api_v1 or security or clienti or fascicoli or scadenziario or messaggi or email"` | OK | Shard ampio sicurezza/API/domini sensibili completato verde dopo correzione dei tre regressi emersi al primo giro. |
+| `python -m compileall web pct tests` | OK | Sintassi Python confermata su web, pct e tests. |
+| `python -m ruff check web/services/tenant_api_auth.py web/services/tenant_isolation_runtime.py web/blueprints/api_v1.py web/blueprints/api_v1_react.py tests/test_tenant_isolation_runtime.py` | OK | Ruff verde dopo rimozione import inutilizzato in `api_v1_react.py`. |
+| `npm run test --prefix frontend` | OK | Contratti React verificati per versione frontend `2.218.3`. |
+| `npm run typecheck --prefix frontend` | OK | TypeScript confermato. |
+| `npm run build --prefix frontend` | OK | Build Vite completata; asset React rigenerati in `web/static/react`, con dettaglio Fascicoli piu' leggero per caricamento lazy. |

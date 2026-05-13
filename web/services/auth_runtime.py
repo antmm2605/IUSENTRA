@@ -24,6 +24,7 @@ def register_auth_runtime(
     """Register auth middleware and core authentication routes."""
     tenant_runtime_state = app.extensions.setdefault("tenant_runtime_state", {})
     initial_multi_tenant = bool(app.config.get("MULTI_TENANT"))
+    multi_tenant_explicit = bool(app.config.get("MULTI_TENANT_EXPLICIT"))
     registry_explicit = bool(app.config.get("TENANTS_REGISTRY_EXPLICIT"))
 
     public_routes = {
@@ -527,6 +528,11 @@ def register_auth_runtime(
                 auth_tenant_slug = studio_slug
             else:
                 manager = get_utenti()
+                if multi_tenant_enabled and not multi_tenant_explicit:
+                    try:
+                        manager.ensure_platform_superadmin()
+                    except Exception as exc:
+                        app.logger.exception("Errore riallineamento SUPERADMIN in login: %s", exc)
                 utente = manager.autentica(username, password)
                 if utente and multi_tenant_enabled:
                     selected_tenant_slug = str(getattr(utente, "tenant_slug", "") or "")

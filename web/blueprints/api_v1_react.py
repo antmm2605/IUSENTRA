@@ -202,7 +202,6 @@ from web.services.react_tariffario_bridge import (
     build_react_tariffario_detail_payload,
     build_react_tariffario_error_payload,
     build_react_tariffario_payload,
-    build_react_tariffario_run_payload,
     calculate_react_tariffario,
 )
 from web.services.react_preventivi_bridge import (
@@ -262,6 +261,7 @@ from web.services.react_wizard_pro_bridge import (
 )
 from web.services.studio_site_runtime import site_admin_identity_or_403
 from web.services.tenant_paths import TenantDataPathError, tenant_data_path
+from web.services.tenant_api_auth import api_key_valid_for_request
 from web.helpers import (
     get_agenda,
     get_calendar_sync,
@@ -294,8 +294,7 @@ def _tenant_data_path_error(error: TenantDataPathError):
 
 
 def _api_key_valida() -> bool:
-    api_key = str(current_app.config.get("API_KEY", "") or "")
-    return bool(api_key and request.headers.get("X-API-Key") == api_key)
+    return api_key_valid_for_request()
 
 
 def _richiedi_auth(func: Callable[..., Any]) -> Callable[..., Any]:

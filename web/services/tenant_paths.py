@@ -34,6 +34,10 @@ def tenant_data_path(key: str, default: str = "", *aliases: str, require_tenant:
     for candidate in candidates:
         value = paths.get(candidate)
         if value:
+            if _multi_tenant_enabled():
+                from web.services.tenant_isolation_runtime import assert_tenant_data_path
+
+                return assert_tenant_data_path(str(value), key=candidate)
             return str(value)
 
     if has_app_context():

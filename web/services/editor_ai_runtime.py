@@ -12,9 +12,20 @@ from pct.template_atti import GestioneTemplateAtti
 from web.helpers import get_fascicoli
 from web.services.document_intelligence_runtime import build_document_ai_service
 from web.services.storage_runtime import get_request_studio_db, get_request_storage_runtime
+from web.services.tenant_paths import tenant_data_path
 
 
 def editor_ai_fascicoli_db_path() -> str:
+    if has_request_context():
+        return tenant_data_path(
+            "FASCICOLI_DB",
+            str(
+                current_app.config.get("FASCICOLI_DB")
+                or current_app.config.get("FASCICOLI_DB_PATH")
+                or Path(current_app.instance_path) / "fascicoli" / "fascicoli.json"
+            ),
+            require_tenant=bool(current_app.config.get("MULTI_TENANT") or getattr(g, "multi_tenant_enabled", False)),
+        )
     if has_app_context():
         return str(
             current_app.config.get("FASCICOLI_DB")
@@ -50,7 +61,11 @@ def editor_ai_user_context() -> dict[str, Any]:
 
 def build_template_repository() -> GestioneTemplateAtti:
     return GestioneTemplateAtti(
-        db_path=str(current_app.config.get("TEMPLATE_ATTI_DB", "./template_atti/templates.json")),
+        db_path=tenant_data_path(
+            "TEMPLATE_ATTI_DB",
+            "./template_atti/templates.json",
+            require_tenant=bool(current_app.config.get("MULTI_TENANT") or getattr(g, "multi_tenant_enabled", False)),
+        ),
     )
 
 

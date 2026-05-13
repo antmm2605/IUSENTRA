@@ -46,6 +46,10 @@ def _cfg(key: str) -> str:
     """
     paths = getattr(g, "data_paths", {})
     if paths and key in paths:
+        if current_app.config.get("MULTI_TENANT") or getattr(g, "multi_tenant_enabled", False):
+            from web.services.tenant_isolation_runtime import assert_tenant_data_path
+
+            return assert_tenant_data_path(paths[key], key=key)
         return paths[key]
     if getattr(g, "tenant_context_missing", False):
         raise RuntimeError(

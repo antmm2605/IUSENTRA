@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.218.3 - 2026-05-13
+
+- Aggiunto hardening multi-studio fail-closed per API key tenant-aware, contesto studio privato e path dati sensibili, bloccando l'uso della `PCT_API_KEY` globale sui dati di studio in multi-tenant.
+- Estesi i guardrail runtime su clienti, fascicoli, documenti, agenda, scadenziario, messaggi, PEC/email, fatturazione, preventivi, privacy, audit, backup, ricerca, intelligence, template e telematico senza esporre path o segreti nei payload.
+- Aggiunti test dedicati per compatibilita single-tenant, chiavi API per-studio, mismatch cross-studio, sessioni incoerenti e path traversal fuori root tenant.
+- Riallineato il dettaglio Fascicoli al caricamento lazy gia' contrattualizzato, evitando il preload della sezione Regia Operativa al primo caricamento.
+
 ## 2.218.2 - 2026-05-13
 
 - Portata la compilazione `/template-atti/compila/<codice>` nella shell React con selezione reale di cliente e pratica collegata, precompilazione IUSENTRA, pannello Cartabia/deposito e POST finale verso il renderer esistente.

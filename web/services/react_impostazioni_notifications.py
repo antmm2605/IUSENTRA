@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from flask import current_app, g, request
+from web.services.tenant_api_auth import api_key_valid_for_request
 
 
 def _text(value: Any, fallback: str = "") -> str:
@@ -15,8 +16,7 @@ def _text(value: Any, fallback: str = "") -> str:
 
 
 def _api_key_valida() -> bool:
-    api_key = str(current_app.config.get("API_KEY", "") or "")
-    return bool(api_key and request.headers.get("X-API-Key") == api_key)
+    return api_key_valid_for_request()
 
 
 def _can(permission: str) -> bool:

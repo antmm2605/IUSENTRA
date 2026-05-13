@@ -401,7 +401,13 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
                     "Contesto studio non disponibile per la richiesta corrente. "
                     "Accesso ai dati bloccato per evitare letture cross-studio."
                 )
-            return paths.get(key, app.config[key])
+            if paths and key in paths:
+                if app.config.get("MULTI_TENANT") or getattr(g, "multi_tenant_enabled", False):
+                    from web.services.tenant_isolation_runtime import assert_tenant_data_path
+
+                    return assert_tenant_data_path(paths[key], key=key)
+                return paths[key]
+            return app.config[key]
         return app.config[key]
 
     def _database_paths() -> dict[str, str]:

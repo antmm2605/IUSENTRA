@@ -20,14 +20,14 @@ from web.services.document_intelligence_runtime import (
     document_ai_user_context,
     fascicoli_db_path,
 )
+from web.services.tenant_api_auth import api_key_valid_for_request
 
 
 api_v1_documenti_ai = Blueprint("api_v1_documenti_ai", __name__, url_prefix="/api/v1/ui")
 
 
 def _api_key_valida() -> bool:
-    api_key = str(current_app.config.get("API_KEY", "") or "")
-    return bool(api_key and request.headers.get("X-API-Key") == api_key)
+    return api_key_valid_for_request()
 
 
 def _richiedi_auth(func: Callable[..., Any]) -> Callable[..., Any]:

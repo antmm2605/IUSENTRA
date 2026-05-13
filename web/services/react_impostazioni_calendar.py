@@ -15,6 +15,7 @@ from pct.agenda import TipoAppuntamento
 from pct.calendar_bindings import now_iso
 from pct.calendar_credentials import CalendarCredentialError
 from pct.calendar_sync_engine import CalendarSyncEngine, PRIVACY_BUSY, PRIVACY_COMPLETE, PRIVACY_REDUCED
+from web.services.tenant_api_auth import api_key_valid_for_request
 
 
 ALLOWED_CALENDAR_FIELDS = {"nome", "provider", "source_url", "default_tipo", "default_reminder_minuti"}
@@ -75,8 +76,7 @@ def _cfg_path(key: str, fallback: str = "") -> str:
 
 
 def _can(permission: str) -> bool:
-    api_key = str(current_app.config.get("API_KEY", "") or "")
-    if api_key and request.headers.get("X-API-Key") == api_key:
+    if api_key_valid_for_request():
         return True
     user = g.get("utente_corrente")
     checker = getattr(user, "ha_permesso", None)

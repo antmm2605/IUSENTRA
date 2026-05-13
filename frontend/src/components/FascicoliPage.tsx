@@ -2002,10 +2002,9 @@ function DetailPage({ id }:{id:string}) {
     let active = true
     setLoading(true)
     setLazyStatus(emptyLazySections)
-    getFascicoloDetail(id, { include: ['regia'] }).then((payload) => {
+    getFascicoloDetail(id).then((payload) => {
       if (active) {
         setData(payload)
-        setLazyStatus((current) => ({ ...current, regia: 'loaded' }))
       }
     }).finally(() => { if (active) setLoading(false) })
     return () => { active = false }

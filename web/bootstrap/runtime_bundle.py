@@ -19,6 +19,7 @@ from web.services.ocr_runtime import build_ocr_runtime
 from web.services.pdp_penale_runtime import build_pdp_penale_runtime
 from web.services.telematico_runtime import build_telematico_runtime
 from web.services.tenant_legacy_bootstrap import bootstrap_legacy_tenant_runtime_data
+from web.services.tenant_isolation_runtime import register_tenant_isolation_runtime
 
 
 @dataclass(slots=True)
@@ -40,6 +41,7 @@ def build_application_runtime_bundle(
     """Costruisce i runtime del profilo web completo o del worker scheduler."""
 
     core = build_core_runtime(app, cfg)
+    register_tenant_isolation_runtime(app)
     scheduler_only = bool(app.config.get("PCT_SCHEDULER_WORKER"))
     if scheduler_only:
         return ApplicationRuntimeBundle(

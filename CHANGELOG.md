@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.227.0 - 2026-05-13
+
+- Completata la fase 6 `fasereact`: creato `docs/openapi.yaml` dagli endpoint Flask React reali e aggiunta `docs/api-endpoint-contract-map.md` con priorita, pagina, RBAC, feature flag, tenant scope e provider status.
+- Aggiunti `scripts/react-migration/generate_api_contracts.py`, `scripts/validate_openapi.py` e `scripts/verify_openapi_provider.py` per generazione deterministica, validazione OpenAPI e provider verification con Flask test client.
+- Documentati error schema, pagination/filtering, request/response schema, RBAC, tenant scope, PII policy, upload/download e regole per nuovi endpoint in `docs/api-contracts.md`.
+- Rafforzata la risposta 401 delle API React con campi normalizzati `ok`, `error`, `message` e `code`, mantenendo i campi legacy `errore` e `codice`.
+- Aggiunti gate CI e test `tests/test_openapi_contracts_phase6.py` per impedire endpoint P0/P1 senza contratto, estensioni sicurezza mancanti o drift provider/OpenAPI.
+
 ## 2.226.0 - 2026-05-13
 
 - Completata la fase 5 `fasereact`: introdotto `web/services/backend_security.py` e hook centrale sulle API React per bloccare parametri client riservati a tenant, studio, token generici, API key e redirect liberi.

@@ -97,6 +97,22 @@ anonime, 400 `backend_security_control_param` sui tentativi di parametri
 riservati, log `policy_denied.backend_security`, assenza di valori tenant/token
 nelle risposte e nessun aumento dei 500.
 
+## API contracts fase 6
+
+Ogni modifica a endpoint React P0/P1 deve aggiornare OpenAPI, mappa contratti e
+provider verification prima del deploy:
+
+```bash
+python scripts/react-migration/generate_api_contracts.py --check
+python scripts/validate_openapi.py docs/openapi.yaml
+python scripts/verify_openapi_provider.py
+python -m pytest -q tests/test_openapi_contracts_phase6.py --tb=short
+```
+
+Il gate fallisce se un endpoint manca da `docs/openapi.yaml`, se una route P0/P1
+non dichiara RBAC/tenant scope/errori, o se la risposta reale 401/400/200
+campionata non rispetta il contratto documentato.
+
 ## Redirect legacy -> App V2 fase 4
 
 I redirect non sono attivati globalmente. Per abilitarne uno pagina per pagina:

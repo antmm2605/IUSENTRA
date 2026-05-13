@@ -54,6 +54,8 @@ Generato: 2026-05-08T09:10:14.073Z
 - 2026-05-13: Chrome Playwright anonimo su routing fase 4: desktop `/app-v2?next=https://evil.example` 339 ms, `/app-v2/documenti` 27 ms, `/fascicoli?q=smoke` 32 ms fino al login; mobile 266/28/26 ms. Zero errori console, nessun host esterno e nessun caricamento dati operativi con utente non autenticato.
 - 2026-05-13: fase react 5 2.226.0 aggiunge guardrail backend, mappa sicurezza e smoke CLI senza cambiare sorgenti frontend. Build Vite completata in 6.32s; bundle principale invariato `index-C-BWXjrL.js` 440.64 kB (130.82 kB gzip), CSS principale invariato `index-Bafxecf8.css` 121.77 kB (22.33 kB gzip). Nessuna nuova dipendenza frontend e nessun redirect live aggiunto.
 - 2026-05-13: Docker locale 2.226.0 ricostruito no-cache e riavviato; app, scheduler, OCR e Redis healthy, `/api/pronto` 200 con `versione=2.226.0`, runtime container `2.226.0`. Smoke backend security locale: readiness 200, API sensibili anonime 401 controllato, prova cross-tenant autenticata saltata in assenza di `IUSENTRA_SMOKE_API_KEY`.
+- 2026-05-13: fase react 6 2.227.0 aggiunge solo contratti OpenAPI, provider verification e gate CI, senza cambiare sorgenti UI. Build Vite completata in 5.57s; bundle principale invariato `index-C-BWXjrL.js` 440.64 kB (130.82 kB gzip), CSS principale invariato `index-Bafxecf8.css` 121.77 kB (22.33 kB gzip). Nessuna nuova dipendenza frontend e nessun aumento del bundle iniziale.
+- 2026-05-13: Docker locale 2.227.0 ricostruito no-cache e riavviato; app, scheduler, OCR e Redis healthy, `/api/pronto` 200 con `versione=2.227.0`, runtime container `2.227.0`. Provider verification locale ancora verde: 182 auth-error, 27 success sample e 1 guardrail backend security.
 
 ## Rischi residui
 

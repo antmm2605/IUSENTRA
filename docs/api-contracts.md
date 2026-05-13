@@ -119,3 +119,51 @@ Esempio risposta 400:
 La risposta non deve contenere valori ricevuti dal client. Le scritture
 amministrative legittime restano validate dagli endpoint di dominio e dai loro
 permessi, non dal filtro trasversale.
+
+## Fase 6 API Contract Review
+
+Aggiornato: 2026-05-13.
+
+OpenAPI di riferimento: `docs/openapi.yaml`.
+
+Comandi gate:
+
+```powershell
+python scripts\react-migration\generate_api_contracts.py --check
+python scripts\validate_openapi.py docs\openapi.yaml
+python scripts\verify_openapi_provider.py
+python -m pytest -q tests\test_openapi_contracts_phase6.py --tb=short
+```
+
+Risultato di mappatura:
+
+- Endpoint React API contrattualizzati: 182.
+- Endpoint P0/P1 con contratto OpenAPI: 169.
+- Endpoint con provider verification autenticata 200: 28.
+- Endpoint con provider verification 401 reale: 182.
+
+Standard error schema:
+
+- `ErrorResponse` documenta il formato normalizzato (`ok`, `error`, `message`, `code`, `request_id`, `details`) e i campi legacy reali (`errore`, `codice`) per compatibilita.
+- 400, 401, 403, 404, 409, 422, 429 e 500 sono referenziati su ogni operazione; upload aggiunge 413 e 415.
+- Il codice `backend_security_control_param` resta lo standard per parametri client riservati al controllo server.
+
+Standard pagination/filtering:
+
+- Liste GET documentano `page`, `page_size`, `q` e `status` come parametri tenant-safe.
+- Il client non puo' inviare `tenant_id`, `studio_id`, `user_id`, token o redirect liberi.
+
+Regole operative per nuovi endpoint:
+
+1. Aggiungere l'endpoint Flask con autenticazione e permessi dominio.
+2. Eseguire `generate_api_contracts.py` per aggiornare OpenAPI e mappa.
+3. Aggiungere fixture provider verification se l'endpoint e' P0/P1 o gestisce file/segreti.
+4. Eseguire `validate_openapi.py` e `verify_openapi_provider.py`.
+5. Aggiornare documentazione e test collegati prima di promuovere la pagina.
+
+Protezioni sicurezza contrattualizzate:
+
+- RBAC: ogni operazione ha `x-rbac-permission`.
+- Tenant: ogni operazione ha `x-tenant-scope: current_tenant`.
+- Feature flag: le pagine App V2 riportano `x-feature-flag`; gli altri endpoint indicano `n/a` o route collegata.
+- PII/segreti: schemi e descrizioni vietano password hash, token, segreti provider e path filesystem in chiaro.

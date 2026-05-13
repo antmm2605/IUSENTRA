@@ -197,4 +197,10 @@ parametri client per tenant, studio, user, token/API key e redirect liberi. I
 test fase 5 confermano auth su tutte le route API React censite e nessun eco di
 valori sensibili nei denial.
 
+Aggiornamento 2026-05-13 fase react 6: `docs/openapi.yaml` e
+`docs/api-endpoint-contract-map.md` contrattualizzano 182 endpoint React API con
+RBAC, tenant scope, feature flag quando presente, error schema e stato provider.
+La provider verification conferma 401 reale su tutti gli endpoint, 27 risposte
+200 rappresentative P0/P1 e il 400 del guardrail sicurezza backend.
+
 Questo audit sostituisce la tabella storica precedente. Il dettaglio macchina corrente e' in `artifacts/react-migration/anti-mascheramento-audit.json`.

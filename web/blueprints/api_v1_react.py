@@ -307,7 +307,16 @@ def _richiedi_auth(func: Callable[..., Any]) -> Callable[..., Any]:
     def wrapper(*args: Any, **kwargs: Any):
         if g.get("utente_corrente") or _api_key_valida():
             return func(*args, **kwargs)
-        return jsonify({"errore": "Autenticazione richiesta.", "codice": 401}), 401
+        return jsonify(
+            {
+                "ok": False,
+                "error": "unauthorized",
+                "message": "Autenticazione richiesta.",
+                "code": "unauthorized",
+                "errore": "Autenticazione richiesta.",
+                "codice": 401,
+            }
+        ), 401
 
     return wrapper
 

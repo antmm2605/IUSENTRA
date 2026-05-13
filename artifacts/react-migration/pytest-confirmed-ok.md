@@ -1075,6 +1075,22 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `python tools\sync_packaging_files.py --check`; `python -m pytest -q tests/test_packaging_consistency.py tests/test_release_readiness.py --tb=short` | OK | Packaging, requisiti e readiness release confermati dopo bump `2.221.0` e dipendenze Alembic/boto3. |
 | `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx`; `/api/pronto` locale | OK | Immagini locali ricostruite da zero con `pct-studio-legale==2.221.0`; app, scheduler, OCR e Redis healthy; readiness locale `versione=2.221.0`. |
 
+## Fase react 6 - OpenAPI e provider verification 2.227.0 - 2026-05-13
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile scripts\react-migration\generate_api_contracts.py scripts\validate_openapi.py scripts\verify_openapi_provider.py tests\test_openapi_contracts_phase6.py web\blueprints\api_v1_react.py` | OK | Sintassi confermata per generatore contratti, validatore OpenAPI, provider verification, test fase 6 e risposta 401 normalizzata. |
+| `python scripts\react-migration\generate_api_contracts.py --check` | OK | `docs/openapi.yaml`, `docs/api-endpoint-contract-map.md` e `docs/api-contracts.md` allineati e deterministici. |
+| `python scripts\validate_openapi.py docs\openapi.yaml` | OK | OpenAPI 3.0.3 valido: componenti, response/error schema, path param, RBAC, tenant scope e status P0/P1 verificati. |
+| `python scripts\verify_openapi_provider.py` | OK | Provider verification con Flask test client: 182 endpoint auth-error 401 reali, 27 endpoint P0/P1 con 200 autenticato, guardrail `tenant_id` 400 `backend_security_control_param`. |
+| `python -m pytest -q tests\test_openapi_contracts_phase6.py --tb=short` | OK | 5/5 passati: generazione, validazione OpenAPI, copertura P0/P1, provider verification e error schema reale/normalizzato. |
+| `python -m pytest -q tests\test_backend_security_phase5.py tests\test_feature_flags.py tests\test_app_v2_routing.py --tb=short` | OK | 24/24 passati: guardrail fase 5, feature flag e routing App V2 restano compatibili dopo normalizzazione 401 e contratti fase 6. |
+| `python -m pytest -q tests\test_react_shell.py::test_react_api_bridge_richiede_autenticazione tests\test_react_shell.py::test_react_api_utenti_nuovo_crea_utente_json_senza_password tests\test_react_shell.py::test_react_api_utenti_nuovo_valida_campi_e_permesso --tb=short` | OK | 3/3 passati: auth API React e flusso Utenti restano compatibili con il nuovo formato 401. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest -q tests\test_packaging_consistency.py tests\test_release_readiness.py --tb=short` | OK | Packaging, versione e readiness release confermati dopo bump `2.227.0`; 8/8 passati. |
+| `node frontend\scripts\check-react-contracts.mjs`; `node scripts\react-migration\check-route-gate.mjs`; `npm --prefix frontend run typecheck`; `npm --prefix frontend run test`; `npm --prefix frontend run build` | OK | Contratti React, route gate, TypeScript, test frontend e build Vite 2.227.0 verdi; build 5.57s, bundle principale invariato `index-C-BWXjrL.js` 440.64 kB / 130.82 kB gzip. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx`; `/api/pronto` locale | OK | Build locale no-cache e riavvio completati; wheel `pct-studio-legale==2.227.0`, app/scheduler/OCR/Redis healthy, readiness locale `versione=2.227.0` e runtime container `2.227.0`. |
+| `python scripts\smoke_backend_security.py --base-url http://127.0.0.1:8080` | OK | Smoke post-Docker locale: readiness 2.227.0, API sensibili anonime 401 controllato; verifica autenticata `tenant_id` saltata senza `IUSENTRA_SMOKE_API_KEY`. |
+
 ## Fase react 5 - Sicurezza backend endpoint 2.226.0 - 2026-05-13
 
 | Comando / verifica | Esito | Nota |

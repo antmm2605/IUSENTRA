@@ -319,3 +319,16 @@ Utenti/Profili/Impostazioni restano validati dagli endpoint di dominio.
 Mappa aggiornata: `docs/backend-endpoint-security-map.md`. Verifiche mirate:
 py_compile, generatore mappa `--check`, pytest fase 5/tenant/feature/routing
 33/33 e regressioni API Impostazioni, Utenti, Fascicoli, Email 15/15.
+
+## Aggiornamento fase react 6 OpenAPI/provider 2.227.0
+
+La fase 6 introduce `docs/openapi.yaml` come contratto OpenAPI 3.0.3 generato
+dagli endpoint reali `/api/v1/ui`, piu' `docs/api-endpoint-contract-map.md` per
+collegare endpoint, pagina, priorita, RBAC, feature flag, tenant scope e stato
+provider verification.
+
+Gate introdotti: `generate_api_contracts.py --check`, `validate_openapi.py`,
+`verify_openapi_provider.py` e `tests/test_openapi_contracts_phase6.py`. La
+provider verification copre 182 endpoint con 401 reale, 27 endpoint P0/P1 con
+200 autenticato e il 400 `backend_security_control_param` sui parametri tenant
+forzati.

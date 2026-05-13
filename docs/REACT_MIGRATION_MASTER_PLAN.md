@@ -1695,6 +1695,7 @@ Questa distinzione e' coperta da test per evitare regressioni sulla visibilita' 
 ## Gate per ogni pagina
 
 - API con dati reali, nessun mock operativo.
+- Contratto OpenAPI aggiornato per endpoint P0/P1, con `x-rbac-permission`, `x-tenant-scope`, feature flag quando applicabile e provider verification fase 6.
 - Card e CTA non decorative: ogni card React deve puntare a una route servita, a un download esplicito o a un endpoint/form operativo; sono vietati `#`, `_legacy=1` e link a superfici non migrate nella UI utente.
 - UI responsive desktop/tablet/mobile.
 - Azioni di scrittura protette da CSRF/sessione, tenant e RBAC.
@@ -1744,3 +1745,10 @@ python -m pytest tests/test_react_shell.py tests/test_email_client.py tests/test
 - Il submit finale resta sul POST Flask esistente e, se la bozza supera i blocchi redazionali, importa il documento nell'editor professionale per l'impaginazione.
 - La vista Jinja del compilatore e' solo fallback tecnico `_legacy=1`; la UI ordinaria non mostra piu' il vecchio compilatore.
 - Le note dei campi mancanti sono in italiano, leggibili e collegate al campo specifico; non sono ammessi messaggi inglesi o nomi tecnici di campo nella schermata.
+
+## Aggiornamento 2026-05-13: Fase 6 contratti API
+
+- `docs/openapi.yaml` e' il contratto OpenAPI 3.0.3 generato dagli endpoint reali `web/blueprints/api_v1_react.py`.
+- `docs/api-endpoint-contract-map.md` collega endpoint, pagina, priorita, RBAC, feature flag, tenant scope, stato OpenAPI e provider verification.
+- La provider verification usa Flask test client: 401 reale su tutti gli endpoint React API, 200 autenticato su campione P0/P1 rappresentativo e 400 `backend_security_control_param` sul guardrail tenant.
+- Ogni nuova rotta React P0/P1 deve passare `python scripts\react-migration\generate_api_contracts.py --check`, `python scripts\validate_openapi.py docs\openapi.yaml`, `python scripts\verify_openapi_provider.py` e `python -m pytest -q tests\test_openapi_contracts_phase6.py --tb=short`.

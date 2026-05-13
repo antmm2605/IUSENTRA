@@ -131,6 +131,12 @@ Mancanti o da completare nelle fasi successive:
 - visual regression sistematica o alternativa Storybook sostenibile;
 - smoke post-deploy parametrico con credenziali da env.
 
+Aggiornamento fase 6: `docs/openapi.yaml`, `docs/api-endpoint-contract-map.md`
+e i gate `generate_api_contracts.py --check`, `validate_openapi.py`,
+`verify_openapi_provider.py` coprono ora gli endpoint React API. Resta da
+estendere la success-body provider verification completa agli endpoint
+parametrici o distruttivi quando le relative fixture dominio saranno governate.
+
 ## Rischi principali
 
 - `frontend/src/App.tsx` e' ancora monolitico, quindi ogni cambio UI deve essere minimo e testato.

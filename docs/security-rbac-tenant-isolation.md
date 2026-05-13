@@ -105,8 +105,19 @@ verificano 401 anonimo, 400 su `tenant_id`/`studio_id` forzati, filtri leciti
 non bloccati, nessun eco di valori sensibili, auth decorator su tutte le API
 React e documento generato allineato.
 
+## Fase 6 API Security Contracts
+
+La fase 6 rende verificabili i presidi di sicurezza dentro `docs/openapi.yaml`:
+ogni endpoint React API documenta `x-rbac-permission`, `x-tenant-scope`,
+priorita, feature flag quando applicabile, error schema e stato provider.
+
+La provider verification in `scripts/verify_openapi_provider.py` usa Flask test
+client e conferma 401 reale su tutti gli endpoint contrattualizzati, 200
+autenticato su un campione P0/P1 rappresentativo e 400
+`backend_security_control_param` quando il client prova a inviare `tenant_id`.
+
 ## Punti da estendere nelle fasi successive
 
 - smoke cross-tenant autenticati con credenziali tenant A/B da env;
-- provider verification OpenAPI su 401/403/400/404/409/422;
+- provider verification success-body completa su endpoint parametrici, upload e mutazioni distruttive;
 - report finale su permessi mancanti per singola pagina App V2.

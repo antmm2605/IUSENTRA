@@ -47,6 +47,12 @@ jobs:
         run: |
           python tools/sync_packaging_files.py --check
 
+      - name: API contract gates
+        run: |
+          python scripts/react-migration/generate_api_contracts.py --check
+          python scripts/validate_openapi.py docs/openapi.yaml
+          python scripts/verify_openapi_provider.py
+
       - name: Validate Python baseline
         run: |
           python tools/check_python_baseline.py

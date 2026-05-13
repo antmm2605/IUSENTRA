@@ -73,9 +73,40 @@ I test `tests/test_app_v2_routing.py` coprono open redirect, query sospette,
 flag off/on, mapping con flag noto e protezione da cattura di `/api/*` e asset
 statici.
 
+## Fase 5 Backend Security Review
+
+La fase 5 aggiunge un guardrail centrale per le API React in
+`web/services/backend_security.py`, registrato come `before_request` del
+blueprint `/api/v1/ui`. Il controllo scatta solo dopo autenticazione via
+sessione o API key tenant-aware, cosi' una richiesta anonima continua a
+ricevere 401/403 senza rivelare regole interne.
+
+Parametri bloccati in query, JSON e form: `tenant_id`, `tenant_slug`,
+`studio_id`, `studio_slug`, `user_id`, `api_key`, token generici,
+`access_token`, `refresh_token`, `redirect`, `return_url`, `next` e path/root
+di sistema. La risposta e' `400 backend_security_control_param`, non ripete i
+valori ricevuti e scrive denial `policy_denied.backend_security`.
+
+I campi amministrativi validi restano sui controlli dominio: `ruolo`, `role`,
+`extraPermissions`, `deniedPermissions`, password temporanee e chiavi provider
+specifiche come `sumup_api_key` o `twilio_token` non sono intercettati dal
+guardrail centrale per non rompere i salvataggi RBAC/Impostazioni gia'
+autorizzati e auditati.
+
+| Area | Priorita | Presidio fase 5 |
+| --- | --- | --- |
+| Utenti, profili, audit, database, backup, impostazioni | P0 | auth obbligatoria, RBAC dedicato, tenant-aware, blocco mass assignment tenant/token |
+| Fascicoli, email, telematico, fatturazione, preventivi, pagamenti | P0 | API key tenant-aware, repository tenant, denial controllati e test mirati |
+| Clienti, soggetti, agenda, scadenziario, notifiche legali, sito studio | P1 | query operative consentite, campi contesto server bloccati |
+| Shell App V2 sperimentale | P1 | feature flag backend/frontend e redirect fase 4 fail-closed |
+
+La mappa completa e' in `docs/backend-endpoint-security-map.md`. I test fase 5
+verificano 401 anonimo, 400 su `tenant_id`/`studio_id` forzati, filtri leciti
+non bloccati, nessun eco di valori sensibili, auth decorator su tutte le API
+React e documento generato allineato.
+
 ## Punti da estendere nelle fasi successive
 
-- denial cross-tenant espliciti per ogni endpoint P0/P1;
-- provider verification OpenAPI su 401/403/404/409/422;
-- smoke CLI tenant A/B con credenziali da env;
+- smoke cross-tenant autenticati con credenziali tenant A/B da env;
+- provider verification OpenAPI su 401/403/400/404/409/422;
 - report finale su permessi mancanti per singola pagina App V2.

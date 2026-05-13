@@ -1,6 +1,6 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-13, fase react 4 routing App V2 2.225.0.
+Aggiornato: 2026-05-13, fase react 5 sicurezza backend endpoint 2.226.0.
 
 ## Regola operativa
 
@@ -1074,6 +1074,19 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `npm --prefix frontend run typecheck`; `npm --prefix frontend run test`; `npm --prefix frontend run build` | OK | TypeScript, contratti React e build Vite confermati dopo tab Audit nel fascicolo e guardia testo aggiornata. |
 | `python tools\sync_packaging_files.py --check`; `python -m pytest -q tests/test_packaging_consistency.py tests/test_release_readiness.py --tb=short` | OK | Packaging, requisiti e readiness release confermati dopo bump `2.221.0` e dipendenze Alembic/boto3. |
 | `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx`; `/api/pronto` locale | OK | Immagini locali ricostruite da zero con `pct-studio-legale==2.221.0`; app, scheduler, OCR e Redis healthy; readiness locale `versione=2.221.0`. |
+
+## Fase react 5 - Sicurezza backend endpoint 2.226.0 - 2026-05-13
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile web\services\backend_security.py web\blueprints\api_v1_react.py scripts\react-migration\generate_backend_security_map.py scripts\smoke_backend_security.py tests\test_backend_security_phase5.py` | OK | Sintassi confermata per guardrail backend, blueprint API React, generatore mappa, smoke e test fase 5. |
+| `python scripts\react-migration\generate_backend_security_map.py --check` | OK | `docs/backend-endpoint-security-map.md` allineato e deterministico. |
+| `python -m pytest -q tests\test_backend_security_phase5.py tests\test_tenant_isolation_runtime.py tests\test_feature_flags.py tests\test_app_v2_routing.py --tb=short` | OK | 33/33 passati: 401 anonimo, 400 parametri tenant/studio forzati, filtri leciti, auth decorator, isolamento tenant, feature flag e routing fase 4. |
+| `python -m pytest -q tests\test_react_shell.py::test_react_api_bridge_richiede_autenticazione tests\test_react_shell.py::test_react_api_utenti_nuovo_crea_utente_json_senza_password tests\test_react_shell.py::test_react_api_utenti_nuovo_valida_campi_e_permesso tests\test_react_shell.py::test_impostazioni_react_api_redige_segreti_e_salva_configurazioni tests\test_react_shell.py::test_impostazioni_react_ai_status_e_bootstrap_usano_runtime_locale tests\test_react_shell.py::test_react_fascicoli_api_suite_richiede_auth tests\test_react_shell.py::test_react_fascicoli_api_suite_usa_repository_reali tests\test_fascicoli_pagination.py tests\test_email_client.py::test_email_route_ufficiale_serve_react_e_api_distingue_inviati_cestino tests\test_email_client.py::test_email_ordinaria_route_react_api_e_repository_separato_da_pec --tb=short` | OK | 15/15 passati: regressione su Impostazioni, Utenti, Fascicoli, paginazione ed Email PEC/ordinaria dopo il guardrail centrale. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest -q tests\test_packaging_consistency.py tests\test_release_readiness.py --tb=short` | OK | Packaging, versione e readiness release confermati dopo bump `2.226.0`. |
+| `node frontend\scripts\check-react-contracts.mjs`; `node scripts\react-migration\check-route-gate.mjs`; `npm --prefix frontend run typecheck`; `npm --prefix frontend run test`; `npm --prefix frontend run build` | OK | Contratti React, route gate, TypeScript, test frontend e build Vite 2.226.0 verdi; build 6.32s, bundle principale invariato `index-C-BWXjrL.js` 440.64 kB / 130.82 kB gzip, CSS principale invariato 121.77 kB / 22.33 kB gzip. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx`; `/api/pronto` locale | OK | Build locale no-cache e riavvio completati; app, scheduler, OCR e Redis healthy; readiness locale `versione=2.226.0` e runtime container `2.226.0`. |
+| `python scripts\smoke_backend_security.py --base-url http://127.0.0.1:8080` | OK | `/api/pronto` 200 `versione=2.226.0`; le API sensibili anonime rispondono 401 controllato. La prova autenticata di blocco `tenant_id` resta saltata senza `IUSENTRA_SMOKE_API_KEY`, come documentato negli open issues. |
 
 ## Fase react 3 - App V2 feature flag per pagina 2.224.0 - 2026-05-13
 

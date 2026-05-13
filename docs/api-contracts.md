@@ -92,3 +92,30 @@ routing interno:
 legacy accessibili, `/app-v2` flag-off e assenza di redirect esterni. Senza
 credenziali puo' eseguire inventario/static checks; con credenziali da env
 esegue smoke HTTP autenticato.
+
+## Backend security fase 5
+
+Le API React sotto `/api/v1/ui` applicano un guardrail centrale sui parametri
+di controllo server. Dopo autenticazione, query/JSON/form non possono inviare
+tenant/studio/user selezionati dal client, token generici, API key o redirect
+liberi.
+
+Esempio risposta 400:
+
+```json
+{
+  "ok": false,
+  "message": "Richiesta non consentita.",
+  "errors": {
+    "security": "La richiesta contiene parametri riservati al controllo server. Rimuovili e ripeti l'operazione."
+  },
+  "code": "backend_security_control_param",
+  "violations": [
+    {"source": "query", "key": "tenant_id", "path": "tenant_id"}
+  ]
+}
+```
+
+La risposta non deve contenere valori ricevuti dal client. Le scritture
+amministrative legittime restano validate dagli endpoint di dominio e dai loro
+permessi, non dal filtro trasversale.

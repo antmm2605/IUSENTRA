@@ -1,5 +1,26 @@
 # Migrazione progressiva Flask + React
 
+## Stato fase react 5 - 2026-05-13 - Sicurezza backend endpoint 2.226.0
+
+La quinta fase del piano `fasereact` chiude il presidio backend trasversale
+sulle API React prima della fase OpenAPI. Tutte le route `/api/v1/ui` censite
+restano dietro `_richiedi_auth`; in multi-studio l'autorizzazione via API key
+continua a passare da `tenant_api_auth` e dal tenant attivo.
+
+Il nuovo `web/services/backend_security.py` blocca, dopo autenticazione,
+parametri client riservati al controllo server: `tenant_id`, `studio_id`,
+tenant/studio slug, `user_id`, `api_key`, token generici, `redirect`,
+`return_url`, `next` e path/root di sistema. I flussi amministrativi legittimi
+continuano a usare validazioni e RBAC di dominio: `ruolo`, `role`,
+`extraPermissions` e chiavi provider specifiche non vengono filtrati dal
+guardrail centrale.
+
+La mappa generata `docs/backend-endpoint-security-map.md` registra endpoint,
+priorita P0/P1, permessi attesi, dati sensibili e presidi. Gate mirati fase 5:
+`tests/test_backend_security_phase5.py`, tenant isolation, feature flag,
+routing App V2, regressioni API Impostazioni/Utenti/Fascicoli/Email, script
+smoke backend security e build finale.
+
 ## Stato fase react 4 - 2026-05-13 - Routing, fallback e redirect sicuri 2.225.0
 
 La quarta fase del piano `fasereact` governa la cerniera tra Flask/Jinja legacy

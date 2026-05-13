@@ -103,6 +103,11 @@ Endpoint principali:
 - `/api/v1/ui/studio-modules/<module_id>`;
 - `/api/v1/ui/telematico*` per superfici governate.
 
+Fase 5 aggiunge la mappa completa `docs/backend-endpoint-security-map.md` e il
+guardrail `backend_security_control_param` su query/JSON/form: tenant, studio,
+user, API key, token e redirect liberi sono riservati al backend e non possono
+essere selezionati dal client React.
+
 ## Tabelle e storage multi-tenant coinvolti
 
 Le aree sensibili restano tenant-aware: `AUTH_DB`, `AUDIT_DB`, `CLIENTI_DB`, `FASCICOLI_DB`, `FASCICOLI_DOCS`, `AGENDA_DB`, `SCADENZIARIO_DB`, `MESSAGGI_DB`, `EMAIL_CASELLA_DB`, `EMAIL_ORDINARIA_DB`, `NOTIFICATIONS_DB`, `PREVENTIVI_DB`, `FATTURAZIONE_DB`, `TELEMATICO_DB`, `PDP_PENALE_DB`, `TEMPLATE_ATTI_DB`, repository intelligence e audit WORM.
@@ -113,7 +118,7 @@ In multi-studio l'accesso senza `g.data_paths` valido deve fallire chiuso.
 
 RBAC corrente: ruoli e permessi sono in `pct/auth.py`; le API React applicano guardie dedicate o permessi di dominio. Tenant isolation corrente: `web/services/tenant_isolation_runtime.py`, `web/services/tenant_paths.py` e `web/services/tenant_api_auth.py`.
 
-La fase 1 aggiunge `web/services/feature_flags.py`, con default-off, audit `feature_flag_toggled` per toggle governati e log `policy_denied` quando una capability flag-off viene richiesta.
+La fase 1 aggiunge `web/services/feature_flags.py`, con default-off, audit `feature_flag_toggled` per toggle governati e log `policy_denied` quando una capability flag-off viene richiesta. La fase 5 aggiunge `policy_denied.backend_security` per parametri di controllo server inviati dal client.
 
 ## Test presenti e mancanti
 

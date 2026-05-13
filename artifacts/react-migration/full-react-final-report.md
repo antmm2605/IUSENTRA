@@ -2,6 +2,19 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-13T23:05:00+02:00: fase react 5 `fasereact`
+2.226.0. Le API React `/api/v1/ui` hanno un guardrail backend centrale che
+blocca parametri client riservati al server (`tenant_id`, `studio_id`, user,
+API key, token generici e redirect liberi) dopo autenticazione, senza eco dei
+valori ricevuti. La mappa `docs/backend-endpoint-security-map.md` censisce 182
+endpoint con auth, priorita, permessi attesi e dati sensibili.
+
+Verifica locale: py_compile, generatore mappa `--check`, pytest fase
+5/tenant/feature/routing 33/33, regressioni API Impostazioni/Utenti/Fascicoli
+ed Email 15/15, packaging/readiness 8/8, typecheck, contratti React, route gate
+e build Vite 2.226.0. Nessuna nuova dipendenza frontend e bundle principale
+invariato.
+
 Aggiornamento 2026-05-13T22:05:00+02:00: fase react 4 `fasereact`
 2.225.0. Aggiunto il perimetro di routing sicuro legacy -> App V2:
 `web/services/app_v2_routing.py` censisce 69 mapping backend espliciti e
@@ -294,3 +307,15 @@ Browser Playwright 2026-05-13 su `AMM_RIC_001` con cliente e pratica selezionati
 La shell sperimentale App V2 ha ora feature flag canonici per pagina/route, tutti default-off, con alias storici preservati. I flag proteggono solo `/app-v2` e `/app/*`: le route operative gia' in uso nella sidebar ordinaria non vengono filtrate o bloccate.
 
 Verifiche 2026-05-13: pytest mirati feature flag/App V2/registro/shell 16/16, contratti React, route gate, registry `--check`, typecheck, test frontend, build Vite, packaging/readiness e Docker locale 2.224.0 healthy. Browser Chrome CDP su `/` e `/fascicoli` desktop/mobile verde nel passaggio caldo; `/app-v2` e `/app-v2/documenti` restano fail-closed con messaggio operativo quando i flag sono spenti.
+
+## Aggiornamento fase react 5 Backend Security 2.226.0
+
+Le API React `/api/v1/ui` hanno ora un guardrail centrale sui parametri di
+controllo server. Tenant, studio, user, API key, token generici e redirect
+liberi vengono rifiutati con `backend_security_control_param` dopo
+autenticazione, senza eco dei valori ricevuti. I campi legittimi dei flussi
+Utenti/Profili/Impostazioni restano validati dagli endpoint di dominio.
+
+Mappa aggiornata: `docs/backend-endpoint-security-map.md`. Verifiche mirate:
+py_compile, generatore mappa `--check`, pytest fase 5/tenant/feature/routing
+33/33 e regressioni API Impostazioni, Utenti, Fascicoli, Email 15/15.

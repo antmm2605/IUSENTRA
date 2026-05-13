@@ -1,6 +1,6 @@
 # Pytest issue aperte e risoluzioni
 
-Aggiornato: 2026-05-13, fase react 4 routing App V2 2.225.0.
+Aggiornato: 2026-05-13, fase react 5 sicurezza backend endpoint 2.226.0.
 
 ## Regola operativa
 
@@ -130,3 +130,4 @@ Questo file e' la coda di lavoro. Prima di rilanciare test gia' passati, control
 | Template Atti compilatore React 2.218.2 | Pytest mirati, typecheck, build e browser Playwright registrati in `pytest-confirmed-ok.md` | Nessuna issue aperta | La compilazione `/template-atti/compila/<codice>` e' ora servita dalla shell React e non dal vecchio compilatore Jinja, salvo fallback tecnico `_legacy=1`. Le note dei campi sono italiane e leggibili; i blocchi restano sui dati concreti mancanti dell'atto, non sulla disponibilita' preventiva di un fascicolo generico. | Non rilanciare shard gia' verdi salvo modifiche collegate a Template Atti, API React, route gate o asset Vite. |
 | Multi-studio hardening 2.218.3 | `python -m pytest tests -q` | Timeout di suite monolitica | Il comando completo ha superato 15 minuti (`timeout 904s`) senza restituire report finale. Non e' stato dichiarato verde. | Usare i gate mirati registrati in `pytest-confirmed-ok.md`; rilanciare la suite completa solo in CI o con shard/fasi esistenti. |
 | Fase react 3 App V2 feature flag 2.224.0 | Chrome CDP visual/load su Panoramica desktop | Isolato, retry verde | Il primo giro CDP dopo rebuild ha avuto `Page.navigate timeout` su `/` desktop, con schermata vuota. Rilancio caldo immediato della stessa route: 591 ms; report pulito successivo su `/` e `/fascicoli` desktop/mobile tutto verde. | Non dichiarato come regressione funzionale della fase 3; resta nel rischio gia' noto di primo warm-up tenant post-rebuild. Profilare separatamente solo se si ripresenta sui passaggi caldi. |
+| Fase react 5 sicurezza backend 2.226.0 | Smoke cross-tenant autenticato tenant A/B | Aperto per ambiente, non failure | Lo smoke `scripts/smoke_backend_security.py` puo' verificare il 400 su `tenant_id` forzato solo quando viene fornita una API key di studio da env. Non sono stati committati segreti e lo smoke anonimo resta eseguibile. | In produzione usare `IUSENTRA_SMOKE_API_KEY` e `IUSENTRA_SMOKE_TENANT_SLUG` se disponibili; in assenza di segreti documentare solo readiness e 401/403 anonimi. |

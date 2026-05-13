@@ -2,6 +2,18 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-13T23:05:00+02:00: fase react 5 `fasereact`
+2.226.0. Il perimetro backend React e' ora censito in
+`docs/backend-endpoint-security-map.md`. Il guardrail
+`backend_security_control_param` impedisce mass assignment di tenant, studio,
+user, token/API key e redirect liberi, lasciando ai controlli dominio i campi
+amministrativi legittimi come ruoli, permessi e chiavi provider specifiche.
+
+Audit denial: `policy_denied.backend_security`, warning applicativo senza
+valori sensibili e risposta JSON controllata. Gate: auth decorator su tutte le
+API React censite, 400 su tenant/studio forzati, 401 anonimo preservato e filtri
+operativi normali non bloccati.
+
 Aggiornamento 2026-05-13T22:05:00+02:00: fase react 4 `fasereact`
 2.225.0. Il routing legacy -> App V2 e' governato da helper fail-closed,
 feature flag canonici e mappa generata. Nessun redirect automatico e' stato
@@ -178,5 +190,11 @@ overflow orizzontale.
 - `check-full-react-route-contract`: verde.
 
 Aggiornamento 2026-05-13: il compilatore Template Atti e' stato verificato con browser Playwright su `AMM_RIC_001`. La shell React e' visibile, il vecchio compilatore e' assente, le note dei campi mancanti sono italiane e leggibili, e il pannello normativo non espone oggetti tecnici o dizioni da sviluppatore.
+
+Aggiornamento 2026-05-13 fase react 5: `docs/backend-endpoint-security-map.md`
+censisce le API React e il guardrail `backend_security_control_param` impedisce
+parametri client per tenant, studio, user, token/API key e redirect liberi. I
+test fase 5 confermano auth su tutte le route API React censite e nessun eco di
+valori sensibili nei denial.
 
 Questo audit sostituisce la tabella storica precedente. Il dettaglio macchina corrente e' in `artifacts/react-migration/anti-mascheramento-audit.json`.

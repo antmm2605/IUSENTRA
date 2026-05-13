@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.226.0 - 2026-05-13
+
+- Completata la fase 5 `fasereact`: introdotto `web/services/backend_security.py` e hook centrale sulle API React per bloccare parametri client riservati a tenant, studio, token generici, API key e redirect liberi.
+- Aggiunta la mappa `docs/backend-endpoint-security-map.md` con endpoint `/api/v1/ui`, priorita P0/P1, permessi attesi, dati sensibili e presidi auth/RBAC/tenant.
+- Aggiunto `scripts/smoke_backend_security.py` per smoke post-deploy senza segreti: readiness, API sensibili anonime bloccate e, con API key da env, blocco `tenant_id` forzato.
+- Rafforzata la documentazione sicurezza/rollout/API con denial `policy_denied.backend_security` e risposta controllata `backend_security_control_param` senza eco di valori sensibili.
+- Aggiunti test mirati `tests/test_backend_security_phase5.py` e regressioni su Impostazioni, Utenti, Fascicoli, Email, feature flag, tenant isolation e routing App V2.
+
 ## 2.225.0 - 2026-05-13
 
 - Completata la fase 4 `fasereact`: introdotto `web/services/app_v2_routing.py` con mapping legacy -> App V2, whitelist query, blocco query sensibili e decisione redirect legata a feature flag.

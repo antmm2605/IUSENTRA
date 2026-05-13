@@ -263,6 +263,10 @@ from web.services.studio_site_runtime import site_admin_identity_or_403
 from web.services.feature_flags import feature_flags_payload
 from web.services.tenant_paths import TenantDataPathError, tenant_data_path
 from web.services.tenant_api_auth import api_key_valid_for_request
+from web.services.backend_security import (
+    backend_control_violations_for_request,
+    backend_security_error_response,
+)
 from web.helpers import (
     get_agenda,
     get_calendar_sync,
@@ -501,6 +505,29 @@ def _audit_event(action: str, resource_type: str = "", resource_id: str = "", de
     audit = _core_runtime_func("audit")
     if callable(audit):
         audit(action, resource_type, resource_id, details)
+
+
+@api_v1_react.before_request
+def _phase5_backend_security_guard():
+    if not (g.get("utente_corrente") or _api_key_valida()):
+        return None
+    violations = backend_control_violations_for_request(request)
+    if not violations:
+        return None
+    keys = ",".join(sorted({violation.key for violation in violations}))
+    current_app.logger.warning(
+        "policy_denied backend_security_control_param path=%s method=%s keys=%s",
+        request.path,
+        request.method,
+        keys,
+    )
+    _audit_event(
+        "policy_denied.backend_security",
+        "api_react",
+        request.path,
+        f"Parametri riservati bloccati: {keys}.",
+    )
+    return backend_security_error_response(violations)
 
 
 def _sync_event(kind: str, module: str, resource_id: str = "") -> None:

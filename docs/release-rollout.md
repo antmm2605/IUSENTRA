@@ -75,6 +75,28 @@ La risposta `403` su `/app-v2` o `/app-v2/documenti` e' corretta quando il flag
 del tenant e' spento; la risposta `200` e' corretta solo per tenant/ambienti
 abilitati esplicitamente.
 
+## Backend security fase 5
+
+Ogni deploy della fase 5 deve includere lo smoke senza segreti:
+
+```bash
+python scripts/smoke_backend_security.py --base-url https://app.iusentra.it
+```
+
+Con una API key di studio fornita da ambiente, lo smoke verifica anche che una
+richiesta autenticata con `tenant_id` forzato venga bloccata:
+
+```bash
+IUSENTRA_SMOKE_API_KEY="$IUSENTRA_SMOKE_API_KEY" \
+IUSENTRA_SMOKE_TENANT_SLUG="$IUSENTRA_SMOKE_TENANT_SLUG" \
+python scripts/smoke_backend_security.py --base-url https://app.iusentra.it --require-credentials
+```
+
+Metriche da osservare durante il rollout: 401/403 attesi sulle API sensibili
+anonime, 400 `backend_security_control_param` sui tentativi di parametri
+riservati, log `policy_denied.backend_security`, assenza di valori tenant/token
+nelle risposte e nessun aumento dei 500.
+
 ## Redirect legacy -> App V2 fase 4
 
 I redirect non sono attivati globalmente. Per abilitarne uno pagina per pagina:

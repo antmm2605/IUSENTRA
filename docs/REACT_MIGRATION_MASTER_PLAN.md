@@ -1,5 +1,24 @@
 # Migrazione progressiva Flask + React
 
+## Stato fase react 1 - 2026-05-13 - Governance default-off App V2 2.222.0
+
+Avviata la prima fase del piano `fasereact` con perimetro di preparazione,
+feature flag e sicurezza di rollout. Le nuove capability App V2 e Web Push
+sono governate da flag default-off, risolti da configurazione Flask, variabili
+ambiente o JSON `IUSENTRA_FEATURE_FLAGS`, con endpoint autenticato
+`/api/v1/ui/feature-flags` e bootstrap React coerente.
+
+La protezione e' applicata solo alle route sperimentali `/app-v2/*`, senza
+regredire le route ufficiali gia' promosse a React operativo. Le notifiche push
+su dispositivo restano disattivate finche' `notifications.mobilePush` non viene
+abilitato: il frontend evita le chiamate API e il backend rifiuta
+subscribe/test con errore controllato e audit di negazione.
+
+Documentazione aggiunta: audit iniziale migrazione, matrice feature flag,
+sicurezza RBAC/tenant, contratti API e rollout. Gate mirati verdi:
+`py_compile`, pytest feature flag, pytest push notifications, typecheck,
+contratti React, packaging/readiness, build Vite e gate route React.
+
 ## Stato hotfix 2026-05-13 - PST Local Signer PIN sessione unica
 
 Corretto il rischio di regressione sul flusso PST/PolisWeb gia' risolto in
@@ -23,6 +42,12 @@ Il collegamento dal dettaglio fascicolo al wizard accetta ora anche
 un fascicolo esistente resta agganciata alla pratica locale e non perde la
 mappatura durante acquisizione/import.
 
+Generato anche IUSENTRA Local Signer `1.6.30`: sorgente, copia `tools/dist`,
+installer Windows `SetupLocalSigner-1.6.30.exe`, alias `SetupLocalSigner.exe`,
+installer macOS/Linux e note release sono allineati. La nuova release espone
+in modo esplicito il pacchetto da installare dopo il fix sul riuso sessione
+PST view/download.
+
 Gate mirati eseguiti: `python -m py_compile
 web\bootstrap\portali_acquisizione_routes.py`, shard pytest React/Local
 Signer/PST sul contratto sessione unica, `npm --prefix frontend run typecheck`
@@ -30,6 +55,9 @@ Signer/PST sul contratto sessione unica, `npm --prefix frontend run typecheck`
 `python tools\sync_packaging_files.py --check` e readiness release 8/8. Smoke
 locale: il wizard `/portali/pst/acquisizione?fascicolo_id=DC5BF1DB` risponde
 HTTP 200 e `/api/pronto` risponde HTTP 200 con versione `2.221.0`.
+Gate Local Signer `1.6.30`: `python tools\build_dist.py`, `python -m
+py_compile tools\local_signer.py tools\dist\local_signer.py
+tools\build_dist.py` e pytest mirati Local Signer su dist/sessione PST.
 
 ## Stato tranche 2026-05-13 - Audit probatorio WORM 2.221.0
 

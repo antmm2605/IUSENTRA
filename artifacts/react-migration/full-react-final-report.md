@@ -2,6 +2,23 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-13T20:45:00+02:00: fase react 1 `fasereact`
+2.222.0. Introdotta governance default-off per capability App V2 e Web Push:
+route sperimentali `/app-v2/*` protette da feature flag, endpoint autenticato
+`/api/v1/ui/feature-flags`, bootstrap React con stato flag e guard client/server
+per notifiche push su dispositivo.
+
+La fase non modifica il comportamento delle route operative gia' promosse:
+`/documenti`, `/fascicoli`, `/agenda`, `/comunicazioni` e le superfici React
+ufficiali restano servite dalla shell corrente. I flag agiscono solo sul
+perimetro sperimentale App V2 e sulle azioni Web Push finche' non vengono
+abilitate esplicitamente per lo studio.
+
+Verifica locale finale: Docker no-cache 2.222.0 healthy, `/api/pronto` 200,
+browser Chrome autenticato desktop/tablet/mobile con `/app-v2/documenti` 403
+controllato flag-off e `/notifiche` 200 senza overflow, errori console o testi
+tecnici vietati.
+
 Aggiornamento 2026-05-13T13:32:00+02:00: tranche 2.220.0 audit gate React
 reale. Promosse a full reale `/scadenziario/:id` e `/sito-studio/builder`;
 promosse a partial governato `/scadenziario/:id/modifica` e

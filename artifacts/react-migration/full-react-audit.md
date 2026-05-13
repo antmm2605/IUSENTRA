@@ -2,6 +2,17 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-13T20:45:00+02:00: fase react 1 `fasereact`
+2.222.0. Le capability App V2 non ancora promosse sono ora fail-closed per
+default tramite feature flag documentati e auditabili. Il controllo e' limitato
+alle route sperimentali `/app-v2/*`, cosi' i percorsi React ufficiali non
+subiscono regressioni.
+
+Web Push e' governato da `notifications.mobilePush`: quando il flag e' spento
+la UI non invoca subscribe/test e il backend risponde con errore controllato,
+senza esporre dettagli tecnici o chiavi riservate. Il payload flag pubblico e'
+disponibile solo tramite endpoint autenticato e bootstrap shell.
+
 Aggiornamento 2026-05-13T13:32:00+02:00: tranche 2.220.0 audit gate React
 reale. Le route `/scadenziario/:id` e `/sito-studio/builder` sono ora
 `react_operational_full` con GET ordinario servito dalla shell React e fallback

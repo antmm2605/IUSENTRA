@@ -36,6 +36,33 @@ AUDIT_WORM_MODE=COMPLIANCE
 AUDIT_WORM_REQUIRE_OBJECT_LOCK=true
 ```
 
+Per l'ambiente locale Docker e per Hetzner senza provider esterno gia'
+disponibile, IUSENTRA fornisce un profilo `audit-worm` che avvia:
+
+- `audit-worm`: MinIO S3-compatible con Object Lock reale;
+- `audit-worm-init`: inizializzazione bucket con `--with-lock`, versioning e
+  default retention `COMPLIANCE` 10 anni;
+- `audit-postgres`: indice/query cache Postgres dedicato all'audit.
+
+Configurazione locale:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\configure_audit_worm_local.ps1
+docker compose --profile audit-worm up -d --build audit-postgres audit-worm audit-worm-init redis app
+```
+
+Configurazione Hetzner:
+
+```bash
+cd /opt/iusentra/repo
+bash deploy/hetzner/configure_audit_worm.sh
+bash deploy/hetzner/deploy.sh
+```
+
+Gli script generano le credenziali WORM e la chiave JWS fuori repository:
+`data/audit/keys` in locale, `/opt/iusentra/data/audit/keys` su Hetzner. La
+chiave privata non viene committata e non viene stampata nei log.
+
 In produzione il sistema rifiuta:
 
 - retention inferiore a 10 anni;

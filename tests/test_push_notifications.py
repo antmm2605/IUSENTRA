@@ -64,6 +64,13 @@ def _stored_user_id(app, username="operatore") -> str:
     return username
 
 
+def _enable_mobile_push(cfg: dict) -> dict:
+    flags = dict(cfg.get("FEATURE_FLAGS") or {})
+    flags["notifications.mobilePush"] = True
+    cfg["FEATURE_FLAGS"] = flags
+    return cfg
+
+
 def test_generazione_vapid_produce_base64url_senza_padding():
     pair = generate_vapid_key_pair()
 
@@ -178,7 +185,7 @@ def test_repository_subscription_salva_e_revoca_solo_tenant_utente(tmp_path):
 
 
 def test_api_public_key_senza_config_non_rompe_centro_notifiche(tmp_path):
-    cfg = _cfg_web(tmp_path)
+    cfg = _enable_mobile_push(_cfg_web(tmp_path))
     cfg["NOTIFICATIONS_DB"] = str(tmp_path / "notifications" / "notifications.db")
     app = create_app(cfg)
     _create_user(app, "operatore", "Operatore123!", ruolo=RuoloUtente.AMMINISTRATORE)
@@ -208,7 +215,7 @@ def test_api_public_key_richiede_autenticazione(tmp_path):
 
 
 def test_api_public_key_configurata_non_espone_private_key(tmp_path):
-    cfg = _cfg_web(tmp_path)
+    cfg = _enable_mobile_push(_cfg_web(tmp_path))
     cfg.update(
         {
             "NOTIFICATIONS_DB": str(tmp_path / "notifications" / "notifications.db"),
@@ -237,7 +244,7 @@ def test_api_public_key_configurata_non_espone_private_key(tmp_path):
 
 
 def test_api_subscribe_valida_payload_e_persistenza(tmp_path):
-    cfg = _cfg_web(tmp_path)
+    cfg = _enable_mobile_push(_cfg_web(tmp_path))
     cfg["NOTIFICATIONS_DB"] = str(tmp_path / "notifications" / "notifications.db")
     app = create_app(cfg)
     _create_user(app, "operatore", "Operatore123!", ruolo=RuoloUtente.AMMINISTRATORE)
@@ -258,7 +265,7 @@ def test_api_subscribe_valida_payload_e_persistenza(tmp_path):
 
 
 def test_api_revoca_subscription(tmp_path):
-    cfg = _cfg_web(tmp_path)
+    cfg = _enable_mobile_push(_cfg_web(tmp_path))
     cfg["NOTIFICATIONS_DB"] = str(tmp_path / "notifications" / "notifications.db")
     app = create_app(cfg)
     _create_user(app, "operatore", "Operatore123!", ruolo=RuoloUtente.AMMINISTRATORE)
@@ -275,7 +282,7 @@ def test_api_revoca_subscription(tmp_path):
 
 
 def test_api_test_push_mockato_invia_payload_non_sensibile(tmp_path, monkeypatch):
-    cfg = _cfg_web(tmp_path)
+    cfg = _enable_mobile_push(_cfg_web(tmp_path))
     cfg.update(
         {
             "NOTIFICATIONS_DB": str(tmp_path / "notifications" / "notifications.db"),
@@ -311,7 +318,7 @@ def test_api_test_push_mockato_invia_payload_non_sensibile(tmp_path, monkeypatch
 
 
 def test_endpoint_scaduto_viene_disabilitato(tmp_path, monkeypatch):
-    cfg = _cfg_web(tmp_path)
+    cfg = _enable_mobile_push(_cfg_web(tmp_path))
     cfg.update(
         {
             "NOTIFICATIONS_DB": str(tmp_path / "notifications" / "notifications.db"),

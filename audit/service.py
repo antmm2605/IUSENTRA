@@ -76,6 +76,217 @@ def _bool(value: Any, default: bool = False) -> bool:
     return default if not text else text in {"1", "true", "yes", "on"}
 
 
+def _config_value(config: dict[str, Any], name: str, default: str = "") -> str:
+    value = config.get(name) if name in config else os.getenv(name)
+    if value is None:
+        return default
+    return str(value).strip()
+
+
+def audit_config_diagnostics(config: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Return a safe, secret-free readiness report for the forensic audit setup."""
+
+    cfg = dict(config or {})
+
+    def cfg_bool(name: str, default: bool) -> bool:
+        return _bool(cfg.get(name) if name in cfg else os.getenv(name), default)
+
+    missing: list[dict[str, str]] = []
+    blocking: list[dict[str, str]] = []
+    warnings: list[dict[str, str]] = []
+
+    def require(name: str, area: str, reason: str) -> str:
+        value = _config_value(cfg, name)
+        if not value:
+            missing.append({"name": name, "area": area, "reason": reason})
+        return value
+
+    env = _config_value(cfg, "AUDIT_ENV", "development").lower() or "development"
+    enabled = cfg_bool("AUDIT_ENABLED", True)
+    require_worm = cfg_bool("AUDIT_REQUIRE_WORM", True)
+    require_signature = cfg_bool("AUDIT_REQUIRE_SIGNATURE", True)
+    require_tsa = cfg_bool("AUDIT_REQUIRE_TSA_FOR_SNAPSHOT", env == "production")
+    worm_mode = _config_value(cfg, "AUDIT_WORM_MODE", "COMPLIANCE").upper() or "COMPLIANCE"
+    worm_object_lock = cfg_bool("AUDIT_WORM_REQUIRE_OBJECT_LOCK", True)
+    signing_mode = _config_value(cfg, "AUDIT_SIGNING_MODE", "JWS").upper() or "JWS"
+    signing_key_source = _config_value(cfg, "AUDIT_SIGNING_KEY_SOURCE").upper()
+    database_url = _config_value(cfg, "AUDIT_DATABASE_URL")
+    try:
+        retention_years = int(
+            _config_value(cfg, "AUDIT_RETENTION_YEARS")
+            or _config_value(cfg, "AUDIT_WORM_RETENTION_YEARS")
+            or "10"
+        )
+    except ValueError:
+        retention_years = 0
+        blocking.append(
+            {
+                "name": "AUDIT_RETENTION_YEARS",
+                "area": "worm",
+                "reason": "Retention non numerica.",
+            }
+        )
+
+    if not enabled:
+        warnings.append(
+            {
+                "name": "AUDIT_ENABLED",
+                "area": "audit",
+                "reason": "Audit probatorio disabilitato: bundle ed emissioni non disponibili.",
+            }
+        )
+
+    if retention_years < 10:
+        blocking.append(
+            {
+                "name": "AUDIT_RETENTION_YEARS",
+                "area": "worm",
+                "reason": "La retention audit deve essere almeno 10 anni.",
+            }
+        )
+
+    if env == "production" and not database_url.startswith(("postgres://", "postgresql://")):
+        missing.append(
+            {
+                "name": "AUDIT_DATABASE_URL",
+                "area": "index",
+                "reason": "In produzione l'indice audit deve usare PostgreSQL.",
+            }
+        )
+
+    if env == "production" and not require_worm:
+        blocking.append(
+            {
+                "name": "AUDIT_REQUIRE_WORM",
+                "area": "worm",
+                "reason": "In produzione lo storage WORM e' obbligatorio.",
+            }
+        )
+    if env == "production" and not require_signature:
+        blocking.append(
+            {
+                "name": "AUDIT_REQUIRE_SIGNATURE",
+                "area": "firma",
+                "reason": "In produzione ogni evento deve essere firmato.",
+            }
+        )
+
+    if require_worm:
+        require("AUDIT_WORM_ENDPOINT_URL", "worm", "Endpoint S3-compatible con Object Lock.")
+        require("AUDIT_WORM_BUCKET", "worm", "Bucket WORM con versioning e Object Lock attivi.")
+        require("AUDIT_WORM_ACCESS_KEY", "worm", "Credenziale accesso WORM.")
+        require("AUDIT_WORM_SECRET_KEY", "worm", "Segreto accesso WORM.")
+        if worm_mode not in {"COMPLIANCE", "GOVERNANCE"}:
+            blocking.append(
+                {
+                    "name": "AUDIT_WORM_MODE",
+                    "area": "worm",
+                    "reason": "Modalita WORM ammessa: COMPLIANCE o GOVERNANCE.",
+                }
+            )
+        if env == "production" and worm_mode != "COMPLIANCE":
+            blocking.append(
+                {
+                    "name": "AUDIT_WORM_MODE",
+                    "area": "worm",
+                    "reason": "In produzione e' ammessa solo COMPLIANCE.",
+                }
+            )
+        if env == "production" and not worm_object_lock:
+            blocking.append(
+                {
+                    "name": "AUDIT_WORM_REQUIRE_OBJECT_LOCK",
+                    "area": "worm",
+                    "reason": "In produzione Object Lock deve essere richiesto.",
+                }
+            )
+
+    if require_signature:
+        require("AUDIT_SIGNING_KID", "firma", "Identificativo chiave o certificato firmatario.")
+        if signing_mode in {"CADES", "PKCS7", "PKCS#7"}:
+            require("AUDIT_CADES_LOCAL_SIGNER_URL", "firma", "Endpoint signer CAdES/PKCS#7.")
+            require("AUDIT_CADES_VERIFY_URL", "firma", "Endpoint verifica CAdES/PKCS#7.")
+        elif signing_mode == "JWS":
+            if env == "production" and not signing_key_source:
+                missing.append(
+                    {
+                        "name": "AUDIT_SIGNING_KEY_SOURCE",
+                        "area": "firma",
+                        "reason": "In produzione indicare HSM, PKCS11 o KEY_VAULT_FILE.",
+                    }
+                )
+            if signing_key_source in {"HSM", "PKCS11"}:
+                blocking.append(
+                    {
+                        "name": "AUDIT_SIGNING_KEY_SOURCE",
+                        "area": "firma",
+                        "reason": "Adapter JWS HSM/PKCS11 non configurato: usare CAdES o key vault file sigillato.",
+                    }
+                )
+            else:
+                require("AUDIT_SIGNING_PRIVATE_KEY_FILE", "firma", "Chiave privata JWS custodita fuori dal repository.")
+                require("AUDIT_SIGNING_PUBLIC_KEY_FILE", "firma", "Chiave pubblica JWS per verifica offline.")
+                sealed = cfg_bool("AUDIT_SIGNING_KEY_SEALED", False)
+                if env == "production" and signing_key_source == "KEY_VAULT_FILE" and not sealed:
+                    blocking.append(
+                        {
+                            "name": "AUDIT_SIGNING_KEY_SEALED",
+                            "area": "firma",
+                            "reason": "La chiave JWS da key vault file deve essere marcata sigillata.",
+                        }
+                    )
+        else:
+            blocking.append(
+                {
+                    "name": "AUDIT_SIGNING_MODE",
+                    "area": "firma",
+                    "reason": "Modalita firma ammessa: CADES o JWS.",
+                }
+            )
+
+    snapshot_ready = True
+    if require_tsa and not _config_value(cfg, "AUDIT_TSA_URL"):
+        snapshot_ready = False
+        warnings.append(
+            {
+                "name": "AUDIT_TSA_URL",
+                "area": "tsa",
+                "reason": "TSA RFC 3161 mancante: gli snapshot configurati come obbligatori falliranno finche' non viene impostata.",
+            }
+        )
+
+    ready = enabled and not missing and not blocking
+    return {
+        "enabled": enabled,
+        "ready": ready,
+        "env": env,
+        "require_worm": require_worm,
+        "require_signature": require_signature,
+        "require_tsa_for_snapshot": require_tsa,
+        "snapshot_ready": snapshot_ready,
+        "worm": {
+            "mode": worm_mode,
+            "retention_years": retention_years,
+            "object_lock_required": worm_object_lock,
+            "bucket_configured": bool(_config_value(cfg, "AUDIT_WORM_BUCKET")),
+            "endpoint_configured": bool(_config_value(cfg, "AUDIT_WORM_ENDPOINT_URL")),
+        },
+        "signature": {
+            "mode": signing_mode,
+            "kid_configured": bool(_config_value(cfg, "AUDIT_SIGNING_KID")),
+            "key_source": signing_key_source,
+        },
+        "missing": missing,
+        "blocking": blocking,
+        "warnings": warnings,
+        "message": (
+            "Presidio probatorio configurato."
+            if ready
+            else "Presidio probatorio non pronto: completare WORM, firma e TSA richiesti senza inserire segreti nel repository."
+        ),
+    }
+
+
 def _kind_value(kind: AuditKind | str) -> str:
     if isinstance(kind, AuditKind):
         return kind.value

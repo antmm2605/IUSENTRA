@@ -13,6 +13,7 @@ import {
   Sparkles,
   UsersRound,
 } from 'lucide-react'
+import { isFeatureFlagEnabledSync, type FeatureFlagKey } from '@/lib/featureFlags'
 
 export type AppRouteFamily =
   | 'regia'
@@ -33,25 +34,30 @@ export type AppRouteDefinition = {
   family: AppRouteFamily
   icon: LucideIcon
   api?: string
+  featureFlag?: FeatureFlagKey
 }
 
 export const APP_ROUTES: AppRouteDefinition[] = [
   { path: '/app', label: 'Regia', family: 'regia', icon: Sparkles, api: '/api/v1/ui/dashboard' },
   { path: '/app/regia', label: 'Regia', family: 'regia', icon: Sparkles, api: '/api/v1/ui/dashboard' },
-  { path: '/app/fascicoli', label: 'Fascicoli', family: 'fascicoli', icon: FolderOpen, api: '/api/v1/ui/fascicoli' },
-  { path: '/app/fascicoli/:id', label: 'Dettaglio fascicolo', family: 'fascicoli', icon: FolderOpen, api: '/api/v1/ui/fascicoli/:id' },
+  { path: '/app/fascicoli', label: 'Fascicoli', family: 'fascicoli', icon: FolderOpen, api: '/api/v1/ui/fascicoli', featureFlag: 'routes.appV2.caseFiles' },
+  { path: '/app/fascicoli/:id', label: 'Dettaglio fascicolo', family: 'fascicoli', icon: FolderOpen, api: '/api/v1/ui/fascicoli/:id', featureFlag: 'routes.appV2.caseFiles' },
   { path: '/app/anagrafiche', label: 'Clienti', family: 'anagrafiche', icon: UsersRound, api: '/api/v1/ui/clienti' },
-  { path: '/app/agenda', label: 'Agenda', family: 'agenda', icon: CalendarDays, api: '/api/v1/ui/agenda' },
+  { path: '/app/agenda', label: 'Agenda', family: 'agenda', icon: CalendarDays, api: '/api/v1/ui/agenda', featureFlag: 'routes.appV2.agenda' },
   { path: '/app/mandato', label: 'Mandato', family: 'mandato', icon: BriefcaseBusiness, api: '/api/v1/ui/preventivi' },
-  { path: '/app/documenti', label: 'Documenti', family: 'documenti', icon: FileText, api: '/api/v1/ui/template-atti' },
+  { path: '/app/documenti', label: 'Documenti', family: 'documenti', icon: FileText, api: '/api/v1/ui/template-atti', featureFlag: 'routes.appV2.docsPanel' },
   { path: '/app/telematico', label: 'Telematico', family: 'telematico', icon: Landmark, api: '/api/v1/ui/telematico' },
-  { path: '/app/comunicazioni', label: 'Comunicazioni', family: 'comunicazioni', icon: Mail, api: '/api/v1/ui/messaggi' },
+  { path: '/app/comunicazioni', label: 'Comunicazioni', family: 'comunicazioni', icon: Mail, api: '/api/v1/ui/messaggi', featureFlag: 'routes.appV2.commsDeposits' },
   { path: '/app/lex', label: 'Lex', family: 'lex', icon: BookOpen, api: '/api/v1/ui/legal-intelligence' },
   { path: '/app/amministrazione', label: 'Amministrazione', family: 'amministrazione', icon: ShieldCheck, api: '/api/v1/ui/amministrazione' },
   { path: '/app/impostazioni', label: 'Impostazioni', family: 'impostazioni', icon: Settings2 },
 ]
 
-export const MAIN_NAV_ROUTES = APP_ROUTES.filter((route) => !route.path.includes('/:id') && route.path !== '/app')
+export const MAIN_NAV_ROUTES = APP_ROUTES.filter((route) => (
+  !route.path.includes('/:id')
+  && route.path !== '/app'
+  && (!route.featureFlag || isFeatureFlagEnabledSync(route.featureFlag))
+))
 
 export const LEGACY_ROUTE_TARGETS: Record<string, string> = {
   '/workspace-intelligente': '/app/regia',

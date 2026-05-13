@@ -1,12 +1,30 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-13, Audit probatorio WORM 2.221.0.
+Aggiornato: 2026-05-13, fase react 1 feature flag App V2 2.222.0.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Fase react 1 - feature flag App V2 2.222.0
+
+| Verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile web\services\feature_flags.py web\services\core_runtime.py web\blueprints\api_v1_react.py web\blueprints\react_shell.py web\blueprints\push_notifications.py tests\test_feature_flags.py tests\test_push_notifications.py` | OK | Sintassi confermata per resolver flag, bootstrap, endpoint JSON, shell e guard Web Push. |
+| `python -m pytest -q tests/test_feature_flags.py --tb=short` | OK | 4/4 passati: default-off, toggle auditabile, endpoint `/api/v1/ui/feature-flags`, route `/app-v2/documenti` off/on e blocco Web Push flag-off. |
+| `python -m pytest -q tests/test_push_notifications.py --tb=short` | OK | 14/14 passati con `notifications.mobilePush` esplicitamente abilitato nei test esistenti, preservando il comportamento Web Push quando il flag e' attivo. |
+| `npm --prefix frontend run typecheck` | OK | TypeScript senza errori dopo helper `featureFlags.ts`, filtro route App V2 e guard client Web Push. |
+| `npm --prefix frontend run test` | OK | Contratti React verificati. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest -q tests/test_packaging_consistency.py tests/test_release_readiness.py --tb=short` | OK | Packaging sincronizzato e readiness release 8/8 confermata per `2.222.0`. |
+| `python -m pytest -q tests/test_web_bootstrap.py::test_docker_compose_hetzner_allinea_email_ordinaria_e_ai_locale --tb=short` | OK | Contratto compose Hetzner/email ordinaria/AI locale confermato dopo aggiornamento env feature flag. |
+| `npm --prefix frontend run build` | OK | Build Vite completata in 6.52s; bundle principale `index-ofyf7WIs.js` 431.37 kB / 128.58 kB gzip, CSS principale 121.77 kB / 22.33 kB gzip. |
+| `node scripts\react-migration\check-route-gate.mjs`; shard mirati `tests/test_react_shell.py` | OK | Gate route coerente e 3/3 test shell mirati passati dopo bootstrap feature flag. |
+| `git diff --check` | OK | Nessun errore whitespace; soli warning CRLF su file gia' toccati/runtime locali. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx` | OK | Immagini locali 2.222.0 ricostruite; app, scheduler, OCR e Redis healthy. `docker compose ps` richiede variabili audit WORM locali temporanee solo per interpolare i servizi non avviati. |
+| `Invoke-WebRequest http://127.0.0.1:8080/api/pronto`; `docker exec iusentra-app python -c "import pct; print(pct.__version__)"` | OK | Readiness locale HTTP 200 con `versione=2.222.0`; runtime container `2.222.0`. |
+| Browser Playwright Chrome autenticato desktop/tablet/mobile su `/app-v2/documenti` e `/notifiche` | OK | `/app-v2/documenti` torna 403 controllato `Funzione non attiva per questo studio.` con flag off; `/notifiche` torna 200 in 1873/2124/1921 ms, zero overflow, zero errori console e zero termini tecnici vietati. |
 
 ### PST Local Signer sessione view/download 2.221.0
 
@@ -19,6 +37,9 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 | `npm --prefix frontend run build` | OK | Build Vite completata in 5.97s; rigenerato chunk `TelematicoSurfacePage` con riuso sessione Local Signer. |
 | `python tools\sync_packaging_files.py --check`; `python -m pytest -q tests/test_packaging_consistency.py tests/test_release_readiness.py --tb=short` | OK | Packaging sincronizzato e readiness release 8/8 confermata dopo il fix PST. |
 | `Invoke-WebRequest http://127.0.0.1:8080/portali/pst/acquisizione?fascicolo_id=DC5BF1DB`; `Invoke-WebRequest http://127.0.0.1:8080/api/pronto` | OK | Wizard locale raggiungibile HTTP 200 con alias `fascicolo_id`; readiness locale HTTP 200 con `versione=2.221.0`. |
+| `python tools\build_dist.py` | OK | Generati `SetupLocalSigner-1.6.30.exe`, alias `SetupLocalSigner.exe`, `InstallaLocalSigner-1.6.30.command`, `InstallaLocalSigner-1.6.30.run`, PS1 interno e note release con richiamo al riuso sessione PST view/download. |
+| `python -m py_compile tools\local_signer.py tools\dist\local_signer.py tools\build_dist.py` | OK | Sintassi confermata per sorgente Local Signer, copia distribuita e builder. |
+| `python -m pytest -q tests/test_local_signer.py::test_local_signer_dist_allineato_a_sorgente_e_installer_versionati tests/test_local_signer.py::test_wizard_pst_usa_snapshot_e_sessione_unica_anche_per_download tests/test_local_signer.py::test_pst_download_batch_riusa_sessione_view_anche_se_client_chiede_import --tb=short` | OK | 3/3 passati: dist Local Signer `1.6.30` allineata alla sorgente, installer versionati presenti e guardrail sessione PST confermati. |
 
 ### Audit probatorio WORM 2.221.0
 

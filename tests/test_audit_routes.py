@@ -86,7 +86,21 @@ def test_registro_alias_routes_expose_events_and_bundle(tmp_path) -> None:
 def test_registro_bundle_alias_returns_controlled_error_when_worm_not_configured(tmp_path) -> None:
     response = _app_without_audit_config(tmp_path).test_client().get("/registro/bundle/fascicolo/FASC-1")
     assert response.status_code == 503
-    assert response.get_json()["code"] == "audit_config_error"
+    payload = response.get_json()
+    assert payload["code"] == "audit_config_error"
+    assert payload["audit"]["ready"] is False
+    missing = {item["name"] for item in payload["audit"]["missing"]}
+    assert {"AUDIT_WORM_BUCKET", "AUDIT_SIGNING_KID"}.issubset(missing)
+
+
+def test_registro_status_reports_secret_free_audit_readiness(tmp_path) -> None:
+    response = _app_without_audit_config(tmp_path).test_client().get("/registro/status")
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["ok"] is True
+    assert payload["audit"]["ready"] is False
+    assert payload["audit"]["worm"]["bucket_configured"] is False
+    assert all("value" not in item for item in payload["audit"]["missing"])
 
 
 def test_audit_events_route_fails_closed_without_tenant_context(tmp_path) -> None:

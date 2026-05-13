@@ -18,7 +18,7 @@ from .bundle import AuditBundleBuilder
 from .exceptions import AuditConfigError, AuditError, AuditValidationError, AuditWormError
 from .merkle import merkle_proof
 from .schemas import ActorContext, AuditFileRef, SourceContext
-from .service import AuditService
+from .service import AuditService, audit_config_diagnostics
 
 
 audit_blueprint = Blueprint("legal_audit", __name__)
@@ -52,18 +52,23 @@ def _can(permission: str) -> bool:
     return bool(user and getattr(user, "ha_permesso", lambda _perm: False)(permission))
 
 
-def _json_error(message: str, status: int, *, code: str = "audit_error"):
-    return jsonify({"ok": False, "message": message, "code": code}), status
+def _json_error(message: str, status: int, *, code: str = "audit_error", extra: dict[str, Any] | None = None):
+    payload = {"ok": False, "message": message, "code": code}
+    if extra:
+        payload.update(extra)
+    return jsonify(payload), status
 
 
 @audit_blueprint.errorhandler(AuditError)
 def _audit_error_handler(exc: AuditError):
     current_app.logger.warning("legal_audit_route_failed code=%s", getattr(exc, "code", type(exc).__name__))
     if isinstance(exc, (AuditConfigError, AuditWormError)):
+        diagnostics = audit_config_diagnostics(current_app.config)
         return _json_error(
-            "Presidio probatorio non disponibile: verificare configurazione WORM e firma.",
+            diagnostics["message"],
             503,
             code=getattr(exc, "code", "audit_unavailable"),
+            extra={"audit": diagnostics},
         )
     return _json_error("Richiesta audit non valida.", 400, code=getattr(exc, "code", "audit_error"))
 
@@ -149,6 +154,18 @@ def _event_public_row(row: dict[str, Any]) -> dict[str, Any]:
         "worm_retention_until": row.get("worm_retention_until", ""),
         "snapshot_id": row.get("snapshot_id", ""),
     }
+
+
+@audit_blueprint.get("/audit/status")
+@audit_blueprint.get("/registro/status")
+def audit_status():
+    if not _can("audit.leggi"):
+        return _json_error("Permesso audit.leggi richiesto.", 403, code="permission_denied")
+    tenant_id, error = _tenant_or_error()
+    if error is not None:
+        return error
+    diagnostics = audit_config_diagnostics(current_app.config)
+    return jsonify({"ok": True, "tenant_id": tenant_id, "audit": diagnostics})
 
 
 @audit_blueprint.get("/audit/events")

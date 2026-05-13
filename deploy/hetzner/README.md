@@ -62,6 +62,19 @@ Valori obbligatori per il deploy:
 - `AUDIT_TSA_URL` se `AUDIT_REQUIRE_TSA_FOR_SNAPSHOT=true`
 - `PCT_DOC_KEY` se i documenti cifrati sono attivi
 
+Se non e' ancora disponibile un provider WORM esterno, configurare il presidio
+probatorio self-hosted S3-compatible con Object Lock prima del deploy:
+
+```bash
+cd /opt/iusentra/repo
+bash deploy/hetzner/configure_audit_worm.sh
+```
+
+Lo script abilita il profilo `audit-worm`, genera credenziali WORM, Postgres
+audit dedicato e chiave JWS in `/opt/iusentra/data/audit/keys` fuori dal
+repository. Il deploy avvia poi `audit-worm`, `audit-worm-init` e
+`audit-postgres` prima dell'app.
+
 Variabili opzionali per PWA/Web Push:
 
 - `IUSENTRA_WEB_PUSH_ENABLED=0` o `1`

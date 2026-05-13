@@ -83,6 +83,64 @@ services:
       retries: 5
 
   # ── Core: App Flask ──────────────────────────────────────────────────────────
+  audit-worm:
+    profiles: ["audit-worm"]
+    image: quay.io/minio/minio:latest
+    restart: unless-stopped
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${AUDIT_WORM_ACCESS_KEY:?Impostare AUDIT_WORM_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${AUDIT_WORM_SECRET_KEY:?Impostare AUDIT_WORM_SECRET_KEY}
+      MINIO_REGION_NAME: ${AUDIT_WORM_REGION:-eu-central-1}
+      MINIO_API_OBJECT_LOCK: "on"
+    volumes:
+      - ${IUSENTRA_DATA_DIR:-/opt/iusentra/data}/audit-worm:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:9000/minio/health/ready"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  audit-worm-init:
+    profiles: ["audit-worm"]
+    image: quay.io/minio/mc:latest
+    restart: "no"
+    depends_on:
+      audit-worm:
+        condition: service_healthy
+    environment:
+      AUDIT_WORM_ACCESS_KEY: ${AUDIT_WORM_ACCESS_KEY:?Impostare AUDIT_WORM_ACCESS_KEY}
+      AUDIT_WORM_SECRET_KEY: ${AUDIT_WORM_SECRET_KEY:?Impostare AUDIT_WORM_SECRET_KEY}
+      AUDIT_WORM_BUCKET: ${AUDIT_WORM_BUCKET:?Impostare AUDIT_WORM_BUCKET}
+      AUDIT_WORM_MODE: ${AUDIT_WORM_MODE:-COMPLIANCE}
+      AUDIT_WORM_RETENTION_YEARS: ${AUDIT_WORM_RETENTION_YEARS:-10}
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        mc alias set audit-worm http://audit-worm:9000 "$AUDIT_WORM_ACCESS_KEY" "$AUDIT_WORM_SECRET_KEY"
+        mc mb --with-lock --ignore-existing "audit-worm/$AUDIT_WORM_BUCKET"
+        mc version enable "audit-worm/$AUDIT_WORM_BUCKET"
+        mc retention set --default "$AUDIT_WORM_MODE" "${AUDIT_WORM_RETENTION_YEARS}y" "audit-worm/$AUDIT_WORM_BUCKET"
+        mc anonymous set none "audit-worm/$AUDIT_WORM_BUCKET"
+        mc stat "audit-worm/$AUDIT_WORM_BUCKET"
+
+  audit-postgres:
+    profiles: ["audit-worm"]
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${AUDIT_POSTGRES_DB:-iusentra_audit}
+      POSTGRES_USER: ${AUDIT_POSTGRES_USER:-iusentra_audit}
+      POSTGRES_PASSWORD: ${AUDIT_POSTGRES_PASSWORD:?Impostare AUDIT_POSTGRES_PASSWORD}
+    volumes:
+      - ${IUSENTRA_DATA_DIR:-/opt/iusentra/data}/audit-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
   app:
     build:
       context: ../..

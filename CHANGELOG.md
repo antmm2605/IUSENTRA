@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.222.0 - 2026-05-13
+
+- Avviata la fase 1 `fasereact`: audit iniziale migrazione React/App V2, documentazione feature flag, sicurezza RBAC/tenant, contratti API e rollout.
+- Introdotto `web/services/feature_flags.py` con flag default-off per capability App V2 e Web Push, supporto env/JSON, toggle auditabile `feature_flag_toggled` e denial `policy_denied`.
+- Aggiunto endpoint autenticato `GET /api/v1/ui/feature-flags` e bootstrap shell con stato flag pubblico.
+- Protette le route sperimentali `/app-v2/documenti`, `/app-v2/comunicazioni`, `/app-v2/agenda`, `/app-v2/scadenziario` e `/app-v2/fascicoli` quando il flag corrispondente e' spento, senza bloccare le route React operative gia' promosse.
+- Messo `notifications.mobilePush` davanti alle azioni Web Push: il frontend non chiama le API push se il flag e' spento e il backend rifiuta subscription/test con errore controllato.
+- Aggiunti test mirati su default-off, toggle audit, API flag, route App V2 off/on e Web Push flag-off.
+
 ## 2.221.0 - 2026-05-13
 
 - Corretto il rischio di regressione sul PIN PST/Local Signer: il wizard React riusa la sessione `view` salvata in ricerca/anteprima anche quando lo stato del componente viene perso, e il download resta batch con lo stesso `pst_session_id` invece di aprire handshake separati documento per documento.

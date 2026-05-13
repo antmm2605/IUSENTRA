@@ -22,6 +22,7 @@ apt-get install -y --no-install-recommends \
   gnupg \
   jq \
   logrotate \
+  openssl \
   opensc \
   pcscd \
   rsync \

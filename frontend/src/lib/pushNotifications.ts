@@ -1,4 +1,5 @@
 import { apiJson, apiPostJson } from '@/lib/apiClient'
+import { isFeatureFlagEnabled } from '@/lib/featureFlags'
 
 export type PushPermission = NotificationPermission | 'unsupported'
 
@@ -93,6 +94,16 @@ function subscriptionPayload(subscription: PushSubscription): Record<string, unk
 }
 
 export async function getPushDeviceStatus(): Promise<PushDeviceStatus> {
+  const enabled = await isFeatureFlagEnabled('notifications.mobilePush')
+  if (!enabled) {
+    return {
+      supported: browserSupportsPush(),
+      configured: false,
+      active: false,
+      permission: currentPermission(),
+      message: 'Notifiche su dispositivo non attive per questo studio.',
+    }
+  }
   if (!browserSupportsPush()) {
     return {
       supported: false,
@@ -128,6 +139,10 @@ export async function getPushDeviceStatus(): Promise<PushDeviceStatus> {
 }
 
 export async function activatePushNotifications(): Promise<PushActionResult> {
+  const enabled = await isFeatureFlagEnabled('notifications.mobilePush')
+  if (!enabled) {
+    return { ok: false, message: 'Notifiche su dispositivo non attive per questo studio.' }
+  }
   if (!browserSupportsPush()) {
     return { ok: false, message: 'Questo browser/dispositivo non supporta Web Push.' }
   }
@@ -155,6 +170,10 @@ export async function activatePushNotifications(): Promise<PushActionResult> {
 }
 
 export async function deactivatePushNotifications(): Promise<PushActionResult> {
+  const enabled = await isFeatureFlagEnabled('notifications.mobilePush')
+  if (!enabled) {
+    return { ok: false, message: 'Notifiche su dispositivo non attive per questo studio.' }
+  }
   if (!browserSupportsPush()) return { ok: false, message: 'Notifiche non supportate su questo dispositivo.' }
   const registration = await existingRegistration()
   const subscription = registration ? await registration.pushManager.getSubscription() : null
@@ -169,5 +188,8 @@ export async function deactivatePushNotifications(): Promise<PushActionResult> {
 }
 
 export function sendPushTest(): Promise<PushActionResult> {
-  return apiPostJson<PushActionResult>('/api/push/test', {}, fallbackAction)
+  return isFeatureFlagEnabled('notifications.mobilePush').then((enabled) => {
+    if (!enabled) return { ok: false, message: 'Notifiche su dispositivo non attive per questo studio.' }
+    return apiPostJson<PushActionResult>('/api/push/test', {}, fallbackAction)
+  })
 }

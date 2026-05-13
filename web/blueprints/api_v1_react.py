@@ -260,6 +260,7 @@ from web.services.react_wizard_pro_bridge import (
     build_react_wizard_pro_step_payload,
 )
 from web.services.studio_site_runtime import site_admin_identity_or_403
+from web.services.feature_flags import feature_flags_payload
 from web.services.tenant_paths import TenantDataPathError, tenant_data_path
 from web.services.tenant_api_auth import api_key_valid_for_request
 from web.helpers import (
@@ -1340,6 +1341,12 @@ def bootstrap():
             },
         }
     )
+
+
+@api_v1_react.get("/feature-flags")
+@_richiedi_auth
+def feature_flags():
+    return jsonify(feature_flags_payload(current_app.config))
 
 
 @api_v1_react.get("/global-search")

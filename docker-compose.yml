@@ -217,6 +217,70 @@ services:
       timeout: 5s
       retries: 5
 
+  audit-worm:
+    profiles: ["audit-worm"]
+    image: quay.io/minio/minio:latest
+    container_name: iusentra-audit-worm
+    restart: unless-stopped
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${AUDIT_WORM_ACCESS_KEY:?configurare AUDIT_WORM_ACCESS_KEY in .env}
+      MINIO_ROOT_PASSWORD: ${AUDIT_WORM_SECRET_KEY:?configurare AUDIT_WORM_SECRET_KEY in .env}
+      MINIO_REGION_NAME: ${AUDIT_WORM_REGION:-eu-central-1}
+      MINIO_API_OBJECT_LOCK: "on"
+    volumes:
+      - ./data/audit-worm:/data
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:9000/minio/health/ready"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  audit-worm-init:
+    profiles: ["audit-worm"]
+    image: quay.io/minio/mc:latest
+    container_name: iusentra-audit-worm-init
+    restart: "no"
+    depends_on:
+      audit-worm:
+        condition: service_healthy
+    environment:
+      AUDIT_WORM_ACCESS_KEY: ${AUDIT_WORM_ACCESS_KEY:?configurare AUDIT_WORM_ACCESS_KEY in .env}
+      AUDIT_WORM_SECRET_KEY: ${AUDIT_WORM_SECRET_KEY:?configurare AUDIT_WORM_SECRET_KEY in .env}
+      AUDIT_WORM_BUCKET: ${AUDIT_WORM_BUCKET:?configurare AUDIT_WORM_BUCKET in .env}
+      AUDIT_WORM_MODE: ${AUDIT_WORM_MODE:-COMPLIANCE}
+      AUDIT_WORM_RETENTION_YEARS: ${AUDIT_WORM_RETENTION_YEARS:-10}
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        mc alias set audit-worm http://audit-worm:9000 "$AUDIT_WORM_ACCESS_KEY" "$AUDIT_WORM_SECRET_KEY"
+        mc mb --with-lock --ignore-existing "audit-worm/$AUDIT_WORM_BUCKET"
+        mc version enable "audit-worm/$AUDIT_WORM_BUCKET"
+        mc retention set --default "$AUDIT_WORM_MODE" "${AUDIT_WORM_RETENTION_YEARS}y" "audit-worm/$AUDIT_WORM_BUCKET"
+        mc anonymous set none "audit-worm/$AUDIT_WORM_BUCKET"
+        mc stat "audit-worm/$AUDIT_WORM_BUCKET"
+
+  audit-postgres:
+    profiles: ["audit-worm"]
+    image: postgres:16-alpine
+    container_name: iusentra-audit-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${AUDIT_POSTGRES_DB:-iusentra_audit}
+      POSTGRES_USER: ${AUDIT_POSTGRES_USER:-iusentra_audit}
+      POSTGRES_PASSWORD: ${AUDIT_POSTGRES_PASSWORD:?configurare AUDIT_POSTGRES_PASSWORD in .env}
+    volumes:
+      - ./data/audit-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
   rq-worker:
     profiles: ["hardening"]
     build:

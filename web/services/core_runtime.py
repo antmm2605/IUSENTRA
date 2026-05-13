@@ -32,6 +32,7 @@ from pct.tenant import DbMode, normalize_db_mode
 from pct.timesheet import GestioneTimesheet
 from pct.workspace_intelligente import WorkspaceIntelligenteService
 from web.services.auth_runtime import register_auth_runtime
+from web.services.feature_flags import resolve_feature_flags
 from web.services.runtime_settings import apply_runtime_settings
 from web.services.security_runtime import register_security_runtime
 from web.services.storage_runtime import get_request_studio_db
@@ -197,6 +198,7 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
         "API_V1_ALLOWED_ORIGINS",
         os.getenv("PCT_API_V1_ALLOWED_ORIGINS", ""),
     )
+    app.config["FEATURE_FLAGS"] = resolve_feature_flags(cfg)
     app.config["STUDIO_NOME"] = os.getenv("PCT_STUDIO_NOME", "IUSENTRA")
     default_portale_db = os.getenv(
         "PCT_PORTALE_DB",

@@ -85,6 +85,9 @@ def _audit_trail(fid: str) -> dict[str, Any]:
     tenant_id = _current_tenant_id()
     fallback = {
         "enabled": False,
+        "available": False,
+        "status": "not_configured",
+        "message": "Presidio probatorio da configurare: scarico prova non disponibile.",
         "events": [],
         "summary": {
             "total": 0,
@@ -99,8 +102,17 @@ def _audit_trail(fid: str) -> dict[str, Any]:
         return fallback
     try:
         from flask import current_app
-        from audit.service import AuditService
+        from audit.service import AuditService, audit_config_diagnostics
 
+        diagnostics = audit_config_diagnostics(current_app.config)
+        if not diagnostics.get("ready"):
+            return {
+                **fallback,
+                "enabled": bool(diagnostics.get("enabled")),
+                "status": "configuration_required",
+                "message": "Presidio probatorio da configurare: scarico prova non disponibile finche' archiviazione immutabile e firma non sono attive.",
+                "configuration": diagnostics,
+            }
         service = current_app.extensions.get("legal_audit_service")
         if not isinstance(service, AuditService):
             if not current_app.config.get("AUDIT_ENABLED"):
@@ -136,6 +148,9 @@ def _audit_trail(fid: str) -> dict[str, Any]:
         )
     return {
         "enabled": True,
+        "available": True,
+        "status": "ready",
+        "message": "",
         "events": events,
         "summary": {
             "total": len(events),
@@ -1945,6 +1960,7 @@ def build_react_fascicolo_detail_payload(
         "istanze": len(visible_requests),
     }
     audit_trail = _audit_trail(fid)
+    audit_bundle_action = _text((audit_trail.get("actions") or {}).get("bundle"))
     quick_counts["audit"] = int((audit_trail.get("summary") or {}).get("total") or 0)
     lex_indexing = _safe(
         "lex_indexing",
@@ -2033,7 +2049,7 @@ def build_react_fascicolo_detail_payload(
             "complianceOff": f"/fascicoli/{fid}/conformita/controlli?enabled=0",
             "exportPdf": f"/fascicoli/{fid}/pdf",
             "archiveZip": f"/fascicoli/{fid}/archivio/scarica",
-            "auditBundle": f"/registro/bundle/fascicolo/{fid}",
+            "auditBundle": audit_bundle_action,
             "refreshLexIndex": f"/api/v1/ui/fascicoli/{fid}/lex-indexing/aggiorna",
             "retryLexIndexErrors": f"/api/v1/ui/fascicoli/{fid}/lex-indexing/riprova-errori",
         },

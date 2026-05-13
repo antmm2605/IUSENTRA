@@ -13,6 +13,12 @@ from urllib.parse import urlencode
 
 from flask import Blueprint, current_app, g, make_response, redirect, render_template, request, url_for
 
+from web.services.feature_flags import (
+    app_v2_route_flag_for_path,
+    feature_flags_payload,
+    is_feature_enabled,
+)
+
 react_shell = Blueprint("react_shell", __name__)
 
 
@@ -217,6 +223,11 @@ def _vite_entry(current_path: str = "") -> dict[str, Any]:
 def react_app(spa_path: str = ""):
     """Serve la shell SPA React per le superfici migrate."""
 
+    flag_key = app_v2_route_flag_for_path(spa_path)
+    if flag_key and not is_feature_enabled(flag_key, current_app.config):
+        response = make_response("Funzione non attiva per questo studio.", 403)
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        return response
     return render_react_shell_response(spa_path)
 
 
@@ -375,4 +386,5 @@ def _react_bootstrap_payload() -> dict[str, Any]:
             "profile": url_for("profilo"),
             "logout": url_for("logout"),
         },
+        "featureFlags": feature_flags_payload(current_app.config)["flags"],
     }

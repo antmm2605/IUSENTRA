@@ -78,6 +78,17 @@ if [ -n "$PROFILES" ]; then
   done
 fi
 
+profile_enabled() {
+  local wanted="$1"
+  local p
+  IFS=',' read -r -a profile_check_list <<< "${PROFILES:-}"
+  for p in "${profile_check_list[@]}"; do
+    p="$(echo "$p" | xargs)"
+    [ "$p" = "$wanted" ] && return 0
+  done
+  return 1
+}
+
 wait_for_compose_services() {
   local timeout="${IUSENTRA_DEPLOY_HEALTH_TIMEOUT:-180}"
   if ! [[ "$timeout" =~ ^[0-9]+$ ]] || (( timeout < 30 )); then
@@ -138,14 +149,22 @@ wait_for_compose_services() {
 # ---------------------------------------------------------------------------
 # 5. Build e avvio servizi
 # ---------------------------------------------------------------------------
+CORE_BOOT_SERVICES=(redis)
+CORE_HEALTH_SERVICES=(redis app)
+if profile_enabled audit-worm; then
+  CORE_BOOT_SERVICES+=(audit-postgres audit-worm audit-worm-init)
+  CORE_HEALTH_SERVICES+=(audit-postgres audit-worm)
+fi
+CORE_BOOT_SERVICES+=(app)
+
 docker compose \
   --env-file "$ENV_FILE" \
   -f "$COMPOSE_FILE" \
   "${PROFILE_ARGS[@]}" \
-  up -d --build --remove-orphans redis app
+  up -d --build --remove-orphans "${CORE_BOOT_SERVICES[@]}"
 
 echo "Attendo health app..."
-wait_for_compose_services redis app
+wait_for_compose_services "${CORE_HEALTH_SERVICES[@]}"
 
 docker compose \
   --env-file "$ENV_FILE" \

@@ -114,6 +114,11 @@ def _load_json(value: Any) -> Any:
         return {}
 
 
+def _pg_uuid_or_none(value: Any) -> Any:
+    text = str(value or "").strip()
+    return text or None
+
+
 class AuditRepository:
     def __init__(self, sqlite_path: str | Path | None = None, *, postgres_dsn: str = "", connection: Any | None = None) -> None:
         self.sqlite_path = Path(sqlite_path) if sqlite_path else None
@@ -233,6 +238,8 @@ class AuditRepository:
     def insert_event(self, record: AuditEventIndexRecord, *, conn: Any | None = None) -> None:
         payload = asdict(record)
         payload["files_hashes_jsonb"] = _json(payload.get("files_hashes_jsonb"))
+        if self.is_postgres:
+            payload["snapshot_id"] = _pg_uuid_or_none(payload.get("snapshot_id"))
         columns = list(payload.keys())
         placeholders = ",".join("?" for _ in columns)
         sql = f"INSERT INTO audit_events_index ({','.join(columns)}) VALUES ({placeholders})"

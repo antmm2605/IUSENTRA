@@ -6,7 +6,7 @@ import pytest
 
 from audit.exceptions import AuditValidationError
 from audit.schemas import ActorContext, AuditFileRef, AuditKind, SourceContext
-from audit.repository import AuditRepository
+from audit.repository import AuditRepository, _pg_uuid_or_none
 from audit.service import AuditService
 from audit.signing import JwsAuditSigner
 from audit.worm import InMemoryWormStore
@@ -93,3 +93,9 @@ def test_from_config_uses_pct_data_root_for_dev_sqlite_index(tmp_path) -> None:
 
     assert service.repository.sqlite_path == tmp_path / "audit" / "legal_audit_index.db"
     assert service.repository.sqlite_path.exists()
+
+
+def test_postgres_optional_uuid_fields_are_stored_as_null() -> None:
+    assert _pg_uuid_or_none("") is None
+    assert _pg_uuid_or_none(None) is None
+    assert _pg_uuid_or_none("6acaaf76-24fe-4c7c-b754-0bf851c64bd7") == "6acaaf76-24fe-4c7c-b754-0bf851c64bd7"

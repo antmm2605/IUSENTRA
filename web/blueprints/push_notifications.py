@@ -9,6 +9,7 @@ from flask import Blueprint, current_app, g, jsonify, request
 
 from pct.notifications import NotificationServiceError
 from pct.notifications.web_push import load_web_push_config, web_push_config_diagnostics
+from web.services.feature_flags import is_feature_enabled, require_feature_flag
 from web.services.notifications_runtime import (
     build_notification_service,
     current_tenant_id,
@@ -60,6 +61,22 @@ def _context() -> tuple[str, str]:
 def public_key():
     try:
         tenant_id, user_id = _context()
+        if not is_feature_enabled("notifications.mobilePush", current_app.config):
+            return jsonify(
+                {
+                    "ok": False,
+                    "configured": False,
+                    "enabled": False,
+                    "diagnostics": {"enabled": False, "configured": False, "missing": []},
+                    "message": "Notifiche su dispositivo non attive per questo studio.",
+                    "preferences": {
+                        "pushEnabled": False,
+                        "notifyUrgent": True,
+                        "notifyImportant": True,
+                        "notifyNormal": False,
+                    },
+                }
+            )
         config = load_web_push_config(current_app.config)
         diagnostics = web_push_config_diagnostics(config)
         service = build_notification_service()
@@ -104,6 +121,7 @@ def public_key():
 
 @push_notifications.post("/api/push/subscribe")
 @_require_auth
+@require_feature_flag("notifications.mobilePush")
 def subscribe():
     try:
         tenant_id, user_id = _context()
@@ -136,6 +154,7 @@ def subscribe():
 
 @push_notifications.delete("/api/push/subscribe")
 @_require_auth
+@require_feature_flag("notifications.mobilePush")
 def unsubscribe():
     try:
         tenant_id, user_id = _context()
@@ -165,6 +184,7 @@ def unsubscribe():
 
 @push_notifications.post("/api/push/test")
 @_require_auth
+@require_feature_flag("notifications.mobilePush")
 def test_push():
     try:
         tenant_id, user_id = _context()

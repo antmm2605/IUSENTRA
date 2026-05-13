@@ -5,7 +5,7 @@ Base URL: /api/v1/
 
 Autenticazione (una delle due):
   - Cookie di sessione web (stesso browser dell'app)
-  - Header:  X-API-Key: <valore di PCT_API_KEY>
+  - Header tenant-aware: X-API-Key (+ X-Tenant-Slug/X-Studio-Slug in multi-studio)
 
 Formato risposte:
   Successo:    {"data": ..., "meta": {...}}          HTTP 2xx
@@ -20,6 +20,7 @@ from functools import wraps
 
 from flask import Blueprint, g, jsonify, request, current_app
 from pct import __version__ as APP_VERSION
+from web.services.tenant_api_auth import api_key_valid_for_request
 
 from web.helpers import (
     get_agenda,
@@ -42,9 +43,8 @@ def _richiedi_auth(f):
         # 1) Sessione web attiva
         if g.get("utente_corrente"):
             return f(*args, **kwargs)
-        # 2) X-API-Key header
-        api_key = current_app.config.get("API_KEY", "")
-        if api_key and request.headers.get("X-API-Key") == api_key:
+        # 2) X-API-Key tenant-aware header
+        if api_key_valid_for_request():
             return f(*args, **kwargs)
         return _err("Autenticazione richiesta. Usa la sessione web o l'header X-API-Key.", 401)
     return wrapper
@@ -74,7 +74,7 @@ def _err(messaggio: str, status: int = 400):
 @api_v1.after_request
 def _cors(response):
     response.headers["Access-Control-Allow-Origin"]  = "*"
-    response.headers["Access-Control-Allow-Headers"] = "Content-Type, X-API-Key"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type, X-API-Key, X-Tenant-Slug, X-Studio-Slug"
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
     return response
 

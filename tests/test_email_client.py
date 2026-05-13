@@ -1243,6 +1243,15 @@ def test_sincronizza_imap_scopre_cartelle_legalmail_e_corregge_spedite(tmp_path,
     assert by_subject["PEC cestinata Legalmail"].cartella == CartellaEmail.CESTINO
 
 
+def test_imap_mailbox_list_parser_legge_cartelle_legalmail_non_quotate():
+    assert GestioneEmailRicevute._imap_mailbox_from_list_line(  # noqa: SLF001
+        b'(\\HasNoChildren \\UnMarked \\Trash) "." INBOX.Cestino'
+    ) == "INBOX.Cestino"
+    assert GestioneEmailRicevute._imap_mailbox_from_list_line(  # noqa: SLF001
+        b'(\\HasNoChildren \\UnMarked \\Sent) "." INBOX.Inviata'
+    ) == "INBOX.Inviata"
+
+
 def test_sincronizza_imap_usa_uid_stabili_e_non_salta_pec_recenti(tmp_path, monkeypatch):
     import pct.email_client as email_runtime
 

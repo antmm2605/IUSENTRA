@@ -498,6 +498,9 @@ class GestioneEmailRicevute:
         raw = raw.strip()
         if not raw:
             return ""
+        match = re.search(r'\)\s+"[^"]*"\s+(.+)$', raw)
+        if match:
+            return match.group(1).strip().strip('"')
         quoted = re.findall(r'"((?:[^"\\]|\\.)*)"', raw)
         if quoted:
             return quoted[-1].replace(r"\"", '"').strip()

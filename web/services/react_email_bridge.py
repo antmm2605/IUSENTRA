@@ -201,7 +201,11 @@ def _attachment_rows(
                 "previewHref": href if available else "",
                 "downloadHref": f"{href}?download=1" if available else "",
                 "available": available,
-                "statusLabel": "" if available else "Da recuperare con la sincronizzazione",
+                "statusLabel": (
+                    ""
+                    if available
+                    else "Da recuperare con la sincronizzazione; se resta assente, verifica la presenza nella casella."
+                ),
             }
         )
     return rows

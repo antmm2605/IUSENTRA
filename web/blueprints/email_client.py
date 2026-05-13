@@ -230,7 +230,11 @@ def allegato(id_email: str, indice_allegato: int):
             info = allegati[indice_allegato] or {}
             nome = info.get("nome") or info.get("nome_file") or "allegato"
             return Response(
-                f"L'allegato {nome} non e' ancora disponibile. Esegui Sincronizza PEC e riprova.",
+                (
+                    f"L'allegato {nome} non e' disponibile nello storico locale. "
+                    "Esegui Sincronizza PEC; se resta assente, verifica che il messaggio "
+                    "sia ancora presente nella casella PEC."
+                ),
                 status=409,
                 mimetype="text/plain; charset=utf-8",
             )

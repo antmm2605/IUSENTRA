@@ -1,12 +1,13 @@
 # Migrazione progressiva Flask + React
 
-## Stato tranche 2026-05-13 - Allegati PEC message/rfc822 2.218.6
+## Stato tranche 2026-05-13 - Allegati PEC e cartelle Legalmail 2.218.7
 
 Il dettaglio React PEC/email resta full React ma non propone piu' link verso
 allegati presenti solo come metadato storico. Gli allegati senza file fisico
-sono mostrati come `Da recuperare con la sincronizzazione`, mentre gli allegati
-gia' salvati mantengono il loro indice reale e continuano ad aprirsi/download
-senza reindicizzazione.
+sono mostrati come recuperabili tramite sincronizzazione e, se restano assenti,
+la UI invita a verificare che la PEC sorgente sia ancora presente nella casella.
+Gli allegati gia' salvati mantengono il loro indice reale e continuano ad
+aprirsi/download senza reindicizzazione.
 
 Il parser IMAP ora salva anche gli allegati `message/rfc822`, in particolare
 `postacert.eml`, serializzando il messaggio annidato quando il payload binario
@@ -15,6 +16,13 @@ diretto e' vuoto e trattando come allegato anche la parte nominata nel
 quindi riparare i record storici che avevano `postacert.eml` in posizione 0
 senza file su disco, evitando URL come `/email/messaggio/<id>/allegato/0` verso
 allegati non recuperati quando il server IMAP restituisce ancora il messaggio.
+La scoperta cartelle gestisce inoltre le risposte Legalmail non quotate come
+`INBOX.Cestino` e `INBOX.Inviata`, cosi' i messaggi spostati vengono riletti
+quando sono ancora disponibili. Il messaggio segnalato
+`c05849df94244c9a946813566d5a3934` resta metadata-only per `postacert.eml`:
+il vecchio `INBOX:UID:10145` non e' piu' presente nel server e la ricerca nelle
+cartelle Legalmail disponibili non trova quella PEC sorgente, quindi non viene
+generato un file sostitutivo non originale.
 
 ## Stato tranche 2026-05-13 - PWA/Web Push configurazione operativa 2.218.4
 

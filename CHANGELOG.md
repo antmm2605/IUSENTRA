@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.218.7 - 2026-05-13
+
+- Corretto il riconoscimento delle cartelle Legalmail non quotate (`INBOX.Cestino`, `INBOX.Inviata`) durante la sincronizzazione PEC, cosi' i messaggi spostati possono essere riletti e riallineati quando sono ancora presenti sul server.
+- Reso piu' chiaro il messaggio sugli allegati storici non disponibili: dopo la sincronizzazione, se il file resta assente, va verificato che la PEC sorgente sia ancora presente nella casella.
+- Diagnosticato il messaggio segnalato del 12 maggio 2026: il vecchio UID IMAP non e' piu' presente in INBOX e la ricerca nelle cartelle Legalmail disponibili non restituisce quella PEC, quindi `postacert.eml` non puo' essere ricostruito senza una sorgente originale.
+
 ## 2.218.6 - 2026-05-13
 
 - Rafforzato il parser PEC per salvare `postacert.eml` anche quando la parte `message/rfc822` ha il nome file nel `Content-Type` ma non dichiara `Content-Disposition: attachment`.

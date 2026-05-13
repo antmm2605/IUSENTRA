@@ -271,7 +271,11 @@ def allegato(id_email: str, indice_allegato: int):
             info = allegati[indice_allegato] or {}
             nome = info.get("nome") or info.get("nome_file") or "allegato"
             return Response(
-                f"L'allegato {nome} non e' ancora disponibile. Esegui Sincronizza email e riprova.",
+                (
+                    f"L'allegato {nome} non e' disponibile nello storico locale. "
+                    "Esegui Sincronizza email; se resta assente, verifica che il messaggio "
+                    "sia ancora presente nella casella."
+                ),
                 status=409,
                 mimetype="text/plain; charset=utf-8",
             )

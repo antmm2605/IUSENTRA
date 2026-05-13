@@ -22,6 +22,7 @@ from typing import Any, Dict, Iterable, List
 
 from . import __version__ as APP_VERSION
 from .compilatore_atti import (
+    campi_catalogo,
     get_modello,
     professional_guidance_for_model,
     validate_payload,
@@ -88,6 +89,18 @@ def _first_text(*values: Any) -> str:
         if _has_value(value):
             return str(value).strip()
     return ""
+
+
+def _field_label(field_name: str) -> str:
+    try:
+        catalog = campi_catalogo()
+        label = str((catalog.get(field_name) or {}).get("label") or "").strip()
+        if label:
+            return label
+    except Exception:
+        pass
+    cleaned = str(field_name or "").replace("_", " ").strip()
+    return cleaned[:1].upper() + cleaned[1:]
 
 
 def _split_lines(value: Any) -> list[str]:
@@ -822,10 +835,10 @@ class AssistenteRedazionale:
                     service=SERVICE_GIURIDICO,
                     level=LEVEL_BLOCK,
                     code=f"payload_{field_name}",
-                    title=f"Campo redazionale obbligatorio: {field_name}",
+                    title=f"Campo redazionale obbligatorio: {_field_label(field_name)}",
                     detail=error,
                     source="Schema compilatore / modello atto",
-                    suggested_action=f"Completa il campo '{field_name}' prima di generare la bozza finale.",
+                    suggested_action=f"Completa il campo '{_field_label(field_name)}' prima di generare la bozza finale.",
                     field=field_name,
                 )
             )
@@ -847,10 +860,10 @@ class AssistenteRedazionale:
                     service=SERVICE_GIURIDICO,
                     level=LEVEL_BLOCK,
                     code=f"payload_{field_name}",
-                    title=f"Campo redazionale obbligatorio: {field_name}",
+                    title=f"Campo redazionale obbligatorio: {_field_label(field_name)}",
                     detail=error,
                     source="Schema compilatore / modello atto",
-                    suggested_action=f"Completa il campo '{field_name}' prima di generare la bozza finale.",
+                    suggested_action=f"Completa il campo '{_field_label(field_name)}' prima di generare la bozza finale.",
                     field=field_name,
                 )
             )

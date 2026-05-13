@@ -4623,6 +4623,337 @@ def template_atti_catalogo_page():
         ), 200
 
 
+def _react_template_attr(obj: Any, *names: str) -> str:
+    for name in names:
+        value = getattr(obj, name, "") if obj is not None else ""
+        if callable(value):
+            try:
+                value = value()
+            except Exception:
+                value = ""
+        value = str(value or "").strip()
+        if value:
+            return value
+    return ""
+
+
+def _react_template_choice(value: Any, label: Any, **extra: Any) -> dict[str, Any]:
+    item = {
+        "value": str(value or "").strip(),
+        "label": str(label or "").strip(),
+    }
+    item.update({key: val for key, val in extra.items() if val not in {None, ""}})
+    return item
+
+
+def _react_template_field_note(prefill: dict[str, Any]) -> dict[str, str] | None:
+    value = prefill.get("value")
+    if value not in (None, "", [], {}):
+        source = str(prefill.get("source_label") or "dati disponibili").strip()
+        return {"tone": "found", "text": f"Precompilato da {source}."}
+    missing_reason = str(prefill.get("missing_reason") or "").strip()
+    if missing_reason:
+        return {"tone": "missing", "text": missing_reason}
+    return None
+
+
+def _react_template_field_payload(
+    field: dict[str, Any],
+    *,
+    form_values: dict[str, Any],
+    field_options: dict[str, list[Any]],
+    errors: dict[str, str],
+    prefill_fields: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    name = str(field.get("name") or "").strip()
+    options = []
+    for option in field_options.get(name, []) or []:
+        if isinstance(option, (list, tuple)) and len(option) >= 2:
+            options.append(_react_template_choice(option[0], option[1]))
+        elif isinstance(option, dict):
+            options.append(_react_template_choice(option.get("value"), option.get("label") or option.get("text")))
+    prefill = prefill_fields.get(name) if isinstance(prefill_fields.get(name), dict) else {}
+    return {
+        "name": name,
+        "label": str(field.get("label") or name.replace("_", " ").title()).strip(),
+        "type": str(field.get("type") or "text").strip(),
+        "placeholder": str(field.get("placeholder") or "").strip(),
+        "required": bool(field.get("required")),
+        "value": str(form_values.get(name, "") or ""),
+        "options": options,
+        "error": str(errors.get(name) or "").strip(),
+        "note": _react_template_field_note(prefill),
+        "warnings": [str(item) for item in (prefill.get("warnings") or []) if str(item or "").strip()],
+    }
+
+
+def _react_template_compliance_payload(
+    *,
+    model_code: str,
+    prefill_resolution: dict[str, Any],
+    form_values: dict[str, Any],
+    validation_rules: list[dict[str, Any]],
+) -> dict[str, Any]:
+    def _rule_text(item: Any) -> str:
+        if isinstance(item, dict):
+            title = str(
+                item.get("source_title")
+                or item.get("norma_o_documento")
+                or item.get("fonte")
+                or item.get("titolo")
+                or item.get("documento")
+                or ""
+            ).strip()
+            details = []
+            if item.get("articolo_o_sezione"):
+                details.append(str(item.get("articolo_o_sezione")).strip())
+            if item.get("versione"):
+                details.append(f"versione {str(item.get('versione')).strip()}")
+            if item.get("data_documento") or item.get("data_ultimo_aggiornamento"):
+                details.append(f"aggiornato {str(item.get('data_documento') or item.get('data_ultimo_aggiornamento')).strip()}")
+            return " - ".join([part for part in [title, ", ".join(part for part in details if part)] if part])
+        return str(item or "").strip()
+
+    def _rule_list(values: Any, *, replace_underscore: bool = False) -> list[str]:
+        result = []
+        seen: set[str] = set()
+        for item in values or []:
+            text_value = _rule_text(item)
+            if replace_underscore:
+                text_value = text_value.replace("_", " ")
+            key = text_value.casefold()
+            if text_value and key not in seen:
+                seen.add(key)
+                result.append(text_value)
+        return result
+
+    try:
+        from pct.template_atti_unified_catalog import get_unified_template_item
+        from pct.template_cartabia_rules import ensure_cartabia_metadata, verifica_cartabia_template
+
+        item = get_unified_template_item(model_code) or {"codice": model_code, "link_compilatore_code": model_code}
+        enriched = ensure_cartabia_metadata(item)
+        verification = verifica_cartabia_template(
+            enriched,
+            prefill_resolution=prefill_resolution,
+            payload=form_values,
+            strict_data_check=True,
+        )
+        return {
+            "available": True,
+            "state": str(verification.get("stato_conformita") or enriched.get("stato_conformita") or ""),
+            "ready": bool(verification.get("ok")),
+            "requiresReview": bool(verification.get("richiede_verifica_avvocato")),
+            "processArea": str(verification.get("processo_area") or enriched.get("processo_area") or ""),
+            "profile": str(verification.get("cartabia_profile") or enriched.get("cartabia_profile") or ""),
+            "rulesetVersion": str(verification.get("ruleset_version") or enriched.get("versione_regole") or ""),
+            "sourceLabel": str(verification.get("fonte_regole") or enriched.get("fonte_regole") or ""),
+            "evidenceCount": len(verification.get("source_evidence_ids") or enriched.get("source_evidence_ids") or []),
+            "missingFields": [str(item) for item in (verification.get("missing_fields") or []) if str(item or "").strip()],
+            "blocking": [
+                str((item or {}).get("label") or (item or {}).get("codice") or "").strip()
+                for item in (verification.get("controlli_bloccanti") or [])
+                if isinstance(item, dict)
+            ],
+            "recommended": [
+                str((item or {}).get("label") or (item or {}).get("codice") or "").strip()
+                for item in (verification.get("controlli_consigliati") or [])
+                if isinstance(item, dict)
+            ],
+            "normativeReferences": _rule_list(enriched.get("normativa_riferimento")),
+            "procedibility": _rule_list(enriched.get("condizioni_procedibilita")),
+            "deadlines": _rule_list(enriched.get("termini_processuali_rilevanti")),
+            "cartabiaControls": _rule_list(enriched.get("controlli_cartabia"), replace_underscore=True),
+            "editorialControls": _rule_list(enriched.get("controlli_redazionali"), replace_underscore=True),
+            "depositControls": _rule_list(enriched.get("controlli_deposito"), replace_underscore=True),
+            "validationRules": [
+                str(rule.get("message") or rule.get("field") or "").strip()
+                for rule in validation_rules
+                if isinstance(rule, dict) and str(rule.get("message") or rule.get("field") or "").strip()
+            ],
+            "warnings": [
+                str(item).strip()
+                for item in (enriched.get("avvisi_redazionali") or [])
+                if str(item or "").strip()
+            ],
+        }
+    except Exception:
+        current_app.logger.debug("Compliance Cartabia React non disponibile per %s", model_code, exc_info=True)
+        return {
+            "available": False,
+            "state": "needs_review",
+            "ready": False,
+            "requiresReview": True,
+            "processArea": "",
+            "profile": "",
+            "rulesetVersion": "",
+            "sourceLabel": "Fonte normativa da verificare",
+            "evidenceCount": 0,
+            "missingFields": [],
+            "blocking": ["Controlli Cartabia non disponibili per il modello."],
+            "recommended": [],
+            "normativeReferences": [],
+            "procedibility": [],
+            "deadlines": [],
+            "cartabiaControls": [],
+            "editorialControls": [],
+            "depositControls": [],
+            "validationRules": [],
+            "warnings": [],
+        }
+
+
+@api_v1_react.get("/template-atti/compila/<model_code>")
+@_richiedi_auth
+def template_atti_compila_page(model_code: str):
+    utente = g.get("utente_corrente")
+    if not utente:
+        return jsonify({"ok": False, "message": "Sessione utente richiesta.", "fields": []}), 403
+    try:
+        from web.blueprints.template_atti import (
+            _build_assistant_analysis,
+            _contesto_compilatore,
+            _resolve_compiler_context,
+        )
+
+        resolved = _resolve_compiler_context(model_code)
+        assistant_analysis = _build_assistant_analysis(
+            model_code,
+            payload=resolved["payload"],
+            selected_cliente=resolved["selected_cliente"],
+            selected_fascicolo=resolved["selected_fascicolo"],
+        )
+        ctx = _contesto_compilatore(
+            model_code,
+            payload=resolved["payload"],
+            selected_cliente=resolved["selected_cliente"],
+            selected_fascicolo=resolved["selected_fascicolo"],
+            assistant_analysis=assistant_analysis,
+            correction_context=resolved["correction_context"],
+        )
+        model = ctx["model"]
+        form_values = ctx.get("form_values") or {}
+        errors = ctx.get("errors") or {}
+        prefill_resolution = ctx.get("prefill_resolution") if isinstance(ctx.get("prefill_resolution"), dict) else {}
+        prefill_fields = prefill_resolution.get("fields") if isinstance(prefill_resolution.get("fields"), dict) else {}
+        base_fields = [
+            _react_template_field_payload(
+                field,
+                form_values=form_values,
+                field_options=ctx.get("field_options") or {},
+                errors=errors,
+                prefill_fields=prefill_fields,
+            )
+            for field in ctx.get("base_fields", [])
+        ]
+        extra_fields = [
+            _react_template_field_payload(
+                field,
+                form_values=form_values,
+                field_options=ctx.get("field_options") or {},
+                errors=errors,
+                prefill_fields=prefill_fields,
+            )
+            for field in ctx.get("extra_fields", [])
+        ]
+        hidden_names = ["model_code", "area", "act_type", "case_id", "author_user_id", "version", "status"]
+        clienti = [
+            _react_template_choice(
+                _react_template_attr(cliente, "id"),
+                _react_template_attr(cliente, "nome_completo", "ragione_sociale", "nome"),
+            )
+            for cliente in ctx.get("clienti", [])
+        ]
+        fascicoli = []
+        for fascicolo in ctx.get("fascicoli", []):
+            title = _react_template_attr(fascicolo, "titolo", "oggetto") or "Pratica"
+            rg = _react_template_attr(fascicolo, "rg_completo", "numero_rg")
+            fascicoli.append(
+                _react_template_choice(
+                    _react_template_attr(fascicolo, "id"),
+                    f"{title} - {rg}" if rg else title,
+                    clienteId=_react_template_attr(fascicolo, "id_cliente"),
+                )
+            )
+        selected_cliente = ctx.get("selected_cliente")
+        selected_fascicolo = ctx.get("selected_fascicolo")
+        issues = assistant_analysis.get("issues", []) if isinstance(assistant_analysis, dict) else []
+        blocking_issues = [
+            str((issue or {}).get("title") or (issue or {}).get("message") or "").strip()
+            for issue in issues
+            if isinstance(issue, dict) and str(issue.get("level") or "").upper() == "BLOCK"
+        ]
+        recommended_issues = [
+            str((issue or {}).get("title") or (issue or {}).get("message") or "").strip()
+            for issue in issues
+            if isinstance(issue, dict) and str(issue.get("level") or "").upper() != "BLOCK"
+        ]
+        stamp = ctx.get("studio_timbro_preview") or {}
+        guidance = ctx.get("guidance") if isinstance(ctx.get("guidance"), dict) else {}
+        return jsonify(
+            {
+                "ok": True,
+                "model": {
+                    "code": str(model.get("code") or model_code),
+                    "name": str(model.get("name") or model_code),
+                    "area": str(model.get("area") or ""),
+                },
+                "summary": str(guidance.get("summary") or "Compilazione guidata con dati IUSENTRA."),
+                "formAction": url_for("template_atti.compila", model_code=model_code),
+                "catalogHref": url_for("template_atti.catalogo"),
+                "submitLabel": "Crea bozza e apri editor" if selected_fascicolo else "Crea bozza dell'atto",
+                "selectors": {
+                    "clienti": clienti,
+                    "fascicoli": fascicoli,
+                    "selectedClienteId": _react_template_attr(selected_cliente, "id"),
+                    "selectedFascicoloId": _react_template_attr(selected_fascicolo, "id"),
+                    "selectedClienteLabel": _react_template_attr(selected_cliente, "nome_completo", "ragione_sociale", "nome"),
+                    "selectedFascicoloLabel": _react_template_attr(selected_fascicolo, "titolo", "oggetto"),
+                },
+                "hidden": {
+                    name: str(form_values.get(name, "") or "")
+                    for name in hidden_names
+                },
+                "baseFields": base_fields,
+                "extraFields": extra_fields,
+                "stamp": {
+                    "lines": stamp.get("lines") or [],
+                    "text": str(stamp.get("text") or ""),
+                },
+                "compliance": _react_template_compliance_payload(
+                    model_code=model_code,
+                    prefill_resolution=prefill_resolution,
+                    form_values=form_values,
+                    validation_rules=ctx.get("validation_rules") or [],
+                ),
+                "checks": {
+                    "blocking": [item for item in blocking_issues if item],
+                    "recommended": [item for item in recommended_issues if item],
+                },
+                "attachments": [str(item) for item in (ctx.get("suggested_attachments") or []) if str(item or "").strip()],
+                "sections": [
+                    {
+                        "label": str(section.get("label") or section.get("title") or "").strip(),
+                        "state": str(section.get("state") or "").strip(),
+                    }
+                    for section in (assistant_analysis.get("sections", []) if isinstance(assistant_analysis, dict) else [])
+                    if isinstance(section, dict)
+                ],
+            }
+        )
+    except Exception as exc:
+        current_app.logger.exception("Errore compilatore Template Atti React bridge: %s", exc)
+        return jsonify(
+            {
+                "ok": False,
+                "message": "Compilazione template atti non disponibile dal runtime corrente.",
+                "model": {"code": model_code, "name": model_code, "area": ""},
+                "baseFields": [],
+                "extraFields": [],
+            }
+        ), 200
+
+
 @api_v1_react.get("/studio/timbro")
 @_richiedi_auth
 def studio_timbro_page():

@@ -21,9 +21,15 @@ def test_master_templates_hanno_metadati_cartabia_strict_e_fonti():
         assert enriched["controlli_redazionali"]
         assert enriched["prefill_bindings"]
         assert enriched["source_evidence_ids"]
+        assert enriched["richiede_verifica_avvocato"] is False
         assert set(enriched["source_evidence_ids"]) <= {
             evidence_id for values in AREA_EVIDENCE_IDS.values() for evidence_id in values
         }
+        verifica_modello = verifica_cartabia_template(enriched)
+        assert verifica_modello["stato_conformita"] == "cartabia_ready"
+        assert verifica_modello["richiede_verifica_avvocato"] is False
+        assert verifica_modello["missing_fields"] == []
+        assert verifica_modello["controlli_bloccanti"] == []
 
 
 def test_cartabia_ready_vietato_senza_fonte_normativa_documentata():
@@ -45,8 +51,23 @@ def test_cartabia_ready_vietato_senza_fonte_normativa_documentata():
     assert enriched["richiede_verifica_avvocato"] is True
     assert enriched["fonte_regole"] == "fonte ufficiale non documentata"
     assert result["ok"] is False
+    assert result["richiede_verifica_avvocato"] is True
     assert "fonte_normativa" in result["missing_fields"]
     assert any(issue["codice"] == "fonte_normativa_mancante" for issue in result["controlli_bloccanti"])
+
+
+def test_verifica_cartabia_dati_concreti_blocca_solo_in_modalita_compilazione():
+    item = ensure_cartabia_metadata(load_catalogo_master()["template"][0])
+
+    modello = verifica_cartabia_template(item)
+    compilazione = verifica_cartabia_template(item, payload={}, strict_data_check=True)
+
+    assert modello["stato_conformita"] == "cartabia_ready"
+    assert modello["richiede_verifica_avvocato"] is False
+    assert modello["controlli_bloccanti"] == []
+    assert compilazione["stato_conformita"] == "cartabia_ready"
+    assert compilazione["richiede_verifica_avvocato"] is True
+    assert compilazione["controlli_bloccanti"]
 
 
 def test_template_con_copie_fonte_riconciliate_diventa_pronto_come_modello():

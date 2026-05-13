@@ -25,9 +25,9 @@
     {% if error %}<div class="invalid-feedback d-block">{{ error }}</div>{% endif %}
     {% set prefill = prefill_resolution.get('fields', {}).get(field.name) %}
     {% if prefill and prefill.value %}
-      <div class="form-text text-success">Precompilato da {{ prefill.source_label }}.</div>
+      <div class="template-field-note template-field-note--found">Precompilato da {{ prefill.source_label }}.</div>
     {% elif prefill and prefill.missing_reason %}
-      <div class="form-text text-warning">{{ prefill.missing_reason }}</div>
+      <div class="template-field-note template-field-note--missing">{{ prefill.missing_reason }}</div>
     {% endif %}
   </div>
 {% endmacro %}
@@ -75,6 +75,25 @@
   border-radius: 14px;
   border: 1px solid rgba(13, 110, 253, .22);
   pointer-events: none;
+}
+.template-field-note {
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font-size: .79rem;
+  font-weight: 600;
+  line-height: 1.45;
+  margin-top: .42rem;
+  padding: .45rem .6rem;
+}
+.template-field-note--found {
+  background: #ecfdf3;
+  border-color: #bbf7d0;
+  color: #14532d;
+}
+.template-field-note--missing {
+  background: #fff8d6;
+  border-color: #ead47a;
+  color: #4a3a00;
 }
 </style>
 {% endblock %}

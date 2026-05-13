@@ -33,6 +33,8 @@ Se una nuova area o sottoregola non trova fonte ufficiale, il codice imposta:
 - `stato_conformita = cartabia_review_required`;
 - issue bloccante `fonte_normativa_mancante`.
 
+Per i 1320 template canonici con fonte ufficiale e capability complete, `richiede_verifica_avvocato` resta `false`: il cliente o la pratica vengono richiesti solo durante la compilazione e non abbassano lo stato del modello.
+
 ## Fonti non trovate
 
 - CNF: non e' stata usata una pagina CNF non autenticata come fonte primaria per il testo completo aggiornato; e' stata usata la pubblicazione in Gazzetta Ufficiale del Codice deontologico forense.

@@ -92,6 +92,7 @@ overflow orizzontale.
 | `/strumenti-operativi` | legacy_operational | react_operational_full | Strumenti Operativi in `StudioModulePage`, API reale `/api/v1/ui/studio-modules/strumenti-operativi`, azioni operative senza form POST HTML |
 | `/documenti` | assente / 404 | react_operational_full | Documenti in `StudioModulePage`, API reale `/api/v1/ui/studio-modules/documenti`, azioni verso fascicoli, catalogo atti, redazione e ricerca documentale |
 | `/notifiche-legali` | assente | react_operational_full | Workflow dedicato in `NotificheLegaliPage`, API reale `/api/v1/ui/notifiche-legali`, separazione notifica L. 53 / prova deposito / comunicazione cliente |
+| `/template-atti/compila/<codice>` | legacy/Jinja | react_operational_full | Compilatore atti in `TemplateAttiPage`, API reale `/api/v1/ui/template-atti/compila/<codice>`, selezione cliente/pratica, prefill IUSENTRA, presidio Cartabia/deposito e POST finale verso editor professionale |
 
 ## Route Non Promosse
 
@@ -113,5 +114,7 @@ overflow orizzontale.
 - `check-no-primary-legacy-links`: verde.
 - `check-no-mock-data-full-react`: verde.
 - `check-full-react-route-contract`: verde.
+
+Aggiornamento 2026-05-13: il compilatore Template Atti e' stato verificato con browser Playwright su `AMM_RIC_001`. La shell React e' visibile, il vecchio compilatore e' assente, le note dei campi mancanti sono italiane e leggibili, e il pannello normativo non espone oggetti tecnici o dizioni da sviluppatore.
 
 Questo audit sostituisce la tabella storica precedente. Il dettaglio macchina corrente e' in `artifacts/react-migration/anti-mascheramento-audit.json`.

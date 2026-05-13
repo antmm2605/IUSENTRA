@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.218.2 - 2026-05-13
+
+- Portata la compilazione `/template-atti/compila/<codice>` nella shell React con selezione reale di cliente e pratica collegata, precompilazione IUSENTRA, pannello Cartabia/deposito e POST finale verso il renderer esistente.
+- Corrette le note dei campi: testi visibili solo in italiano, colore giallo leggibile per i dati da completare e nessun messaggio inglese o nome tecnico di campo esposto allo studio.
+- La verifica Cartabia resta normativa e non promuove il modello a pronto quando mancano dati concreti dell'atto; il catalogo puo' essere verificato dai controlli IUSENTRA, mentre la bozza viene bloccata solo sui campi obbligatori non risolti.
+- L'autore/difensore continua a provenire da Dati Studio/Avvocato titolare, con fallback governato all'utente corrente solo se il dato studio non esiste.
+- Dopo la generazione valida, la bozza del template resta collegata alla pratica e viene aperta nell'editor professionale per l'impaginazione dell'avvocato.
+- Aggiunti test API/React e smoke browser sul compilatore Template Atti per impedire regressioni al vecchio compilatore Jinja o a testi non italiani.
+
 ## 2.218.1 - 2026-05-12
 
 - Aggiunto inventario STRICT delle fonti Template Atti con report Markdown/JSON: master, split, compilatore, repository JSON, SQLite e tenant vengono ricondotti a 1320 template canonici, mantenendo i record duplicati come evidenze di fonte.

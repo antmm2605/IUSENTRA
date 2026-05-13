@@ -6,7 +6,7 @@
 - Record di fonte ispezionati: **4576**
 - Copie/record duplicati di fonte: **3256**
 - Copertura inventario dichiarabile: **si**
-- Generato: `2026-05-12T23:35:34.979207+00:00`
+- Generato: `2026-05-13T00:37:40.054902+00:00`
 
 ## Breakdown per fonte canonica
 

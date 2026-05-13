@@ -323,7 +323,7 @@ def test_compilatore_mostra_correzione_guidata_e_campi_evidenziati(tmp_path):
             f"&id_fascicolo={fasc.id}&intent=datiatto_xml&focus_field=recipient_or_court"
             "&highlight_fields=case_id,recipient_or_court,subject"
             "&correction_title=Completa%20DatiAtto.xml"
-            "&correction_help=Apri%20il%20wizard%20sul%20blocco%20strutturato",
+            "&correction_help=Apri%20il%20wizard%20sul%20blocco%20strutturato&_legacy=1",
         )
 
     assert response.status_code == 200

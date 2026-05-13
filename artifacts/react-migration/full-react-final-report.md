@@ -199,3 +199,11 @@ Tranche architetturale aggiornata: `/deposito/checklist`, `/strumenti-legali` e 
 - npm --prefix frontend run build: passed - Build Vite 2.216.1 completata in 5.84s; asset React rigenerati.
 - python -m pytest -q tests/test_sigp_sync.py --tb=short: passed - 13/13 sul perimetro SIGP/PST.
 - node scripts/react-migration/check-route-gate.mjs / check-full-react-route-contract.mjs: passed - gate e contratto full React coerenti.
+
+## Aggiornamento Template Atti compilatore React 2.218.2
+
+`GET /template-atti/compila/<codice>` e' ora una superficie React operativa. La route carica la shell React, legge il contesto da `GET /api/v1/ui/template-atti/compila/<codice>`, mostra cliente e pratica collegata come selettori reali e invia la generazione al POST Flask gia' auditato. La vista classica resta disponibile solo con `_legacy=1`.
+
+La pagina espone il presidio normativo Cartabia/deposito senza badge assoluti: quando mancano dati concreti dell'atto, il modello resta compilabile solo dopo completamento dei campi obbligatori. Le note mancanti sono in italiano e con contrasto verificato; non vengono mostrati nomi tecnici di campo o messaggi inglesi.
+
+Browser Playwright 2026-05-13 su `AMM_RIC_001` con cliente e pratica selezionati: compilatore React visibile, vecchio compilatore assente, nessun errore console, pannello normativo senza oggetti tecnici e CTA finale `Crea bozza e apri editor`.

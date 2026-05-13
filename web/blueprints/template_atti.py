@@ -921,7 +921,7 @@ def template_verifica_cartabia(codice: str):
     prefill_payload, _ = _resolve_template_prefill_response(codice, request_payload)
     prefill = prefill_payload.get("prefill") if prefill_payload.get("ok") else {}
     values = request_payload.get("values") if isinstance(request_payload.get("values"), dict) else {}
-    result = verifica_cartabia_template(item, prefill_resolution=prefill, payload=values)
+    result = verifica_cartabia_template(item, prefill_resolution=prefill, payload=values, strict_data_check=True)
     return jsonify({"ok": result.get("ok", False), "codice": item.get("codice") or codice, "cartabia": result})
 
 
@@ -943,7 +943,7 @@ def template_verifica_completa(codice: str):
     prefill = prefill_payload.get("prefill") or {}
     user_values = request_payload.get("values") if isinstance(request_payload.get("values"), dict) else {}
     merge = merge_prefill_values(user_values, prefill.get("values"), prefill.get("fields"))
-    cartabia = verifica_cartabia_template(item, prefill_resolution=prefill, payload=merge.get("values"))
+    cartabia = verifica_cartabia_template(item, prefill_resolution=prefill, payload=merge.get("values"), strict_data_check=True)
     deposito = _verifica_deposito(
         item.get("codice") or codice,
         {
@@ -1219,6 +1219,14 @@ def compila(model_code: str):
         blockers = [issue for issue in assistant_analysis.get("issues", []) if issue.get("level") == "BLOCK"]
         if errors:
             flash("Completa i campi obbligatori evidenziati prima di generare l'atto.", "warning")
+            if request.form.get("_react_return"):
+                return redirect(url_for(
+                    "template_atti.compila",
+                    model_code=model_code,
+                    id_cliente=id_cliente,
+                    id_fascicolo=id_fascicolo,
+                    intent="complete_missing",
+                ))
             ctx = _contesto_compilatore(
                 model_code,
                 payload=payload,
@@ -1238,6 +1246,18 @@ def compila(model_code: str):
                 f"Bozza bloccata: {first.get('title')}. {first.get('suggested_action', '')}".strip(),
                 "warning",
             )
+            if request.form.get("_react_return"):
+                return redirect(url_for(
+                    "template_atti.compila",
+                    model_code=model_code,
+                    id_cliente=id_cliente,
+                    id_fascicolo=id_fascicolo,
+                    intent="complete_missing",
+                    focus_field=first.get("field", ""),
+                    highlight_fields=first.get("field", ""),
+                    correction_title=first.get("title", ""),
+                    correction_help=first.get("suggested_action", ""),
+                ))
             ctx = _contesto_compilatore(
                 model_code,
                 payload=payload,

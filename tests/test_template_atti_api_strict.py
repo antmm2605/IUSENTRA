@@ -58,6 +58,9 @@ def test_api_template_atti_strict_inventory_prefill_cartabia_timbro(tmp_path: Pa
 
     inventory = client.get("/template-atti/inventory/data")
     catalog = client.get("/template-atti/catalogo/data")
+    react_catalog = client.get("/api/v1/ui/template-atti/catalogo")
+    react_compiler_shell = client.get("/template-atti/compila/AMM_RIC_001")
+    react_compiler = client.get("/api/v1/ui/template-atti/compila/AMM_RIC_001")
     filters = client.get("/template-atti/catalogo/filters")
     prefill = client.get("/template-atti/CIV_ORD_001/prefill")
     resolved = client.post("/template-atti/CIV_ORD_001/prefill/resolve", json={"values": {}})
@@ -75,6 +78,40 @@ def test_api_template_atti_strict_inventory_prefill_cartabia_timbro(tmp_path: Pa
     assert inventory.status_code == 200
     assert inventory.get_json()["stats"]["expected_total"] == 1320
     assert catalog.status_code == 200
+    assert react_catalog.status_code == 200
+    assert react_compiler_shell.status_code == 200
+    assert "IUSENTRA - React Shell" in react_compiler_shell.get_data(as_text=True)
+    assert react_compiler.status_code == 200
+    compiler_payload = react_compiler.get_json()
+    assert compiler_payload["ok"] is True
+    assert compiler_payload["compliance"]["available"] is True
+    assert compiler_payload["compliance"]["processArea"]
+    assert compiler_payload["compliance"]["normativeReferences"]
+    assert not any("{" in item or "}" in item for item in compiler_payload["compliance"]["normativeReferences"])
+    assert compiler_payload["baseFields"]
+    assert compiler_payload["extraFields"]
+    assert any(
+        field.get("note", {}).get("tone") == "missing"
+        and "Da completare:" in field.get("note", {}).get("text", "")
+        for field in compiler_payload["baseFields"] + compiler_payload["extraFields"]
+    )
+    assert "Recipient or court" not in str(compiler_payload)
+    assert "Campo redazionale obbligatorio: recipient_or_court" not in str(compiler_payload)
+    react_records = react_catalog.get_json()["records"]
+    assert not any(
+        record.get("complianceLabel") == "Bloccato per dati mancanti"
+        for record in react_records
+        if record.get("cartabiaState") == "cartabia_ready"
+    )
+    assert not any(
+        record.get("requiresLawyerReview")
+        for record in react_records
+        if record.get("cartabiaState") == "cartabia_ready"
+    )
+    amministrativo = next(record for record in react_records if record.get("id") == "AMM_001")
+    assert amministrativo["complianceLabel"] == "Verificato dai controlli IUSENTRA"
+    assert amministrativo["cartabiaState"] == "cartabia_ready"
+    assert amministrativo["prefillStatus"] == "precompilabile"
     assert filters.status_code == 200
     assert "stato_conformita" in filters.get_json()["filters"]
     assert prefill.status_code == 200
@@ -88,8 +125,11 @@ def test_api_template_atti_strict_inventory_prefill_cartabia_timbro(tmp_path: Pa
     assert "client_or_sender" in merged.get_json()["merge"]["preserved_user_inputs"]
     assert compliance.status_code == 200
     assert compliance.get_json()["cartabia"]["source_evidence_ids"]
+    assert compliance.get_json()["cartabia"]["stato_conformita"] == "cartabia_ready"
+    assert compliance.get_json()["cartabia"]["richiede_verifica_avvocato"] is False
     assert cartabia.status_code == 200
     assert "cartabia" in cartabia.get_json()
+    assert cartabia.get_json()["cartabia"]["richiede_verifica_avvocato"] is True
     assert complete.status_code == 200
     assert complete.get_json()["stato"] in {"verificato", "richiede_revisione"}
     assert timbro_get.status_code == 200

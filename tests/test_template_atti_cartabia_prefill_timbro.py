@@ -178,5 +178,6 @@ def test_endpoint_timbro_studio_e_catalogo_cartabia(tmp_path: Path):
     assert catalog_payload["suite"]["template_con_cartabia_profile"] == 420
     assert all("cartabia_profile" in item for item in catalog_payload["templates"] if item["fonte_catalogo"] == "master")
     assert "stato_conformita" in filters_response.get_json()["filters"]
-    assert compliance_response.get_json()["cartabia"]["stato_conformita"] == "cartabia_review_required"
+    assert compliance_response.get_json()["cartabia"]["stato_conformita"] == "cartabia_ready"
+    assert compliance_response.get_json()["cartabia"]["richiede_verifica_avvocato"] is False
     assert verify_response.get_json()["cartabia"]["controlli_bloccanti"]

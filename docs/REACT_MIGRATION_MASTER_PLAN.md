@@ -1,5 +1,14 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-13 - Template Atti compilatore React STRICT 2.218.2
+
+`/template-atti/compila/<codice>` e' ora servita dalla shell React. La pagina
+usa il nuovo endpoint JSON del compilatore, precompila i dati IUSENTRA dopo la
+selezione di cliente e pratica collegata, mostra il presidio Cartabia/deposito
+senza badge di conformita' assoluta e invia la bozza al POST Flask esistente.
+Quando la bozza supera i blocchi redazionali viene importata nell'editor
+professionale. La vista Jinja e' solo fallback tecnico `_legacy=1`.
+
 ## Stato tranche 2026-05-12 - Template Atti Cartabia / prefill / timbro studio 2.218.1
 
 La tranche e' stata rafforzata in modalita STRICT: l'inventario ora scandisce
@@ -1459,3 +1468,11 @@ python -m pytest tests/test_react_shell.py tests/test_email_client.py tests/test
 - Il runtime applicativo deve fallire in modo sicuro se una richiesta autenticata di studio non ha un contesto tenant valido: niente fallback ai path globali, niente letture cross-studio, niente sessioni legacy globali riusate quando esistono piu' studi attivi.
 - `web/services/auth_runtime.py` e i resolver dati condivisi devono bloccare gli account globali non `SUPERADMIN` in ambienti multi-studio, chiedendo sempre un accesso associato allo studio corretto.
 - Il bootstrap automatico root->tenant dei dati legacy e' consentito solo in installazioni davvero mono-studio; con piu' tenant attivi va rifiutato per evitare contaminazioni tra studi.
+
+## Aggiornamento 2026-05-13: Template Atti compilatore React
+
+- `/template-atti/compila/<codice>` e' servita dalla shell React e usa `GET /api/v1/ui/template-atti/compila/<codice>` per caricare metadati, campi, selettori cliente/pratica, timbro, prefill e presidio Cartabia/deposito.
+- La selezione di cliente e pratica collegata resta il punto di ingresso corretto: non si pretende che esista un fascicolo prima del lavoro dell'avvocato, ma quando la pratica viene scelta i campi ricavabili vengono precompilati dai dati IUSENTRA.
+- Il submit finale resta sul POST Flask esistente e, se la bozza supera i blocchi redazionali, importa il documento nell'editor professionale per l'impaginazione.
+- La vista Jinja del compilatore e' solo fallback tecnico `_legacy=1`; la UI ordinaria non mostra piu' il vecchio compilatore.
+- Le note dei campi mancanti sono in italiano, leggibili e collegate al campo specifico; non sono ammessi messaggi inglesi o nomi tecnici di campo nella schermata.

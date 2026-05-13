@@ -778,7 +778,11 @@ def verifica_deposito_template(codice: str, payload: dict[str, Any] | None = Non
         if attachment and not _clean(payload.get("allegati", {}).get(attachment) if isinstance(payload.get("allegati"), dict) else "")
     ]
     blocking_rules = [rule for rule in item["controlli_conformita_dettaglio"] if rule.get("blocca_deposito")]
-    cartabia = verifica_cartabia_template(item, payload=payload.get("dati") if isinstance(payload.get("dati"), dict) else {})
+    cartabia = verifica_cartabia_template(
+        item,
+        payload=payload.get("dati") if isinstance(payload.get("dati"), dict) else {},
+        strict_data_check=True,
+    )
     return {
         "ok": not missing_data and not missing_attachments and not cartabia.get("controlli_bloccanti"),
         "codice": item["codice"],

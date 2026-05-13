@@ -143,7 +143,7 @@ def _compliance_label(
     if cartabia_state == "cartabia_ready":
         return "Verificato dai controlli IUSENTRA"
     if requires_review or cartabia_state == "cartabia_review_required":
-        return "Da completare con dati pratica"
+        return "Bloccato per fonte o regola mancante"
     return "Regole verificabili presenti" if cartabia_state else ""
 
 
@@ -342,7 +342,7 @@ def build_react_template_atti_payload(
             _metric("variabili", "Variabili", with_variables, "Campi richiesti", "warning" if with_variables else "neutral"),
             _metric("cartabia", "Profili Cartabia", with_cartabia, "Regole versionate", "info"),
             _metric("prefill", "Precompilabili", prefillable, "Dati da IUSENTRA", "success" if prefillable else "neutral"),
-            _metric("completare", "Da completare", review_required, "Dati pratica richiesti in compilazione", "warning" if review_required else "success"),
+            _metric("revisione", "Revisioni bloccanti", review_required, "Solo fonti o regole mancanti", "warning" if review_required else "success"),
             _metric("attesi", "Attesi", inventory_stats.get("expected_total", 1320), "Totale richiesto", "info"),
             _metric("scostamento", "Scostamento", inventory_stats.get("delta", 0), "Differenza inventario", "warning" if inventory_stats.get("delta") else "success"),
             _metric("timbro", "Timbro automatico", inventory_stats.get("with_timbro_automatico", 0), "Applicato dal renderer", "success"),

@@ -1,6 +1,6 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-13, Template Atti STRICT prefill autore/editor professionale 2.218.1.
+Aggiornato: 2026-05-13, Template Atti compilatore React STRICT 2.218.2.
 
 ## Regola operativa
 
@@ -876,3 +876,18 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `python -m pytest tests/test_react_shell.py -q -k "fascicoli_suite"` | OK | Suite mirata Fascicoli aggiornata: azioni documenti dentro Quadro intelligente AI, editor separato rimosso dalla UI, Comunicazioni / Cancelleria presenti. |
 | `docker compose build app`; `docker compose up -d --no-build app`; `GET http://127.0.0.1:8080/api/pronto` | OK | Immagine locale ricostruita senza backup; container `iusentra-app` healthy e readiness 200. |
 | Chrome headless autenticato su `http://127.0.0.1:8080/fascicoli/B6A03AE6`, desktop 1440x1100 e mobile 390x1000 | OK | Screenshot preview in `artifacts/react-migration/previews/*v3.png`; `Documenti e atti`, `Compilatore atti`, `Indice Lex`, `Elimina fascicolo` dentro Quadro intelligente AI; `Comunicazioni / Cancelleria` a due colonne; assenti `Catalogo portale`, `Depositi` e titolo separato editor; nessun overflow orizzontale e nessun errore console. |
+
+## Template Atti compilatore React STRICT 2.218.2 - 2026-05-13
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct\template_atti_prefill.py pct\template_cartabia_rules.py pct\assistente_redazionale.py web\blueprints\template_atti.py web\blueprints\api_v1_react.py web\blueprints\react_shell.py web\bootstrap\react_route_gate.py` | OK | Sintassi confermata dopo compilatore React, label italiane, resolver prefill e route gate aggiornato. |
+| `python -m pytest tests/test_template_atti_api_strict.py tests/test_template_atti_prefill_strict.py tests/test_assistente_redazionale.py -q` | OK | 9/9 passati: API catalogo/compilatore, prefill strict, redirect React sugli errori e label redazionali italiane. |
+| `python -m pytest tests/test_template_atti_cartabia_strict.py tests/test_template_atti_cartabia_prefill_timbro.py tests/test_template_atti_unified_catalog.py tests/test_template_atti_sources.py -q` | OK | 16/16 passati: Cartabia strict, fonti ufficiali, timbro, catalogo unificato e regressioni sui 1320 template. |
+| `python -m pytest tests/test_react_shell.py::test_react_blocco_finale_route_reali_e_vista_classica -q` | OK | La route `/template-atti/compila/<codice>` resta governata dalla shell React; la vista Jinja e' solo fallback `_legacy=1`. |
+| `python scripts\template_atti\build_template_inventory.py` | OK | Inventario confermato: 1320 template canonici su 1320 attesi, scostamento 0; 4576 record fonte ispezionati e 3256 copie eccedenti tracciate. |
+| `python tools\sync_packaging_files.py --check` | OK | Packaging sincronizzato dopo bump `2.218.2`. |
+| `python -m pytest tests/test_packaging_consistency.py tests/test_release_readiness.py --tb=short -q` | OK | 8/8 passati: coerenza packaging e readiness release confermate per `2.218.2`. |
+| `npm --prefix frontend run typecheck` | OK | TypeScript confermato dopo tipi e normalizzazione dati del compilatore Template Atti. |
+| `npm --prefix frontend run build` | OK | Build Vite completata per `iusentra-react-token-ui@2.218.2`; asset React rigenerati in `web/static/react`. |
+| Browser Playwright su `http://127.0.0.1:8099/template-atti/compila/AMM_RIC_001?id_cliente=0AD3517D&id_fascicolo=68756850` | OK | UI React visibile, vecchio compilatore assente, note mancanti in italiano, colore giallo leggibile (`rgb(74, 58, 0)` su `rgb(255, 248, 214)`), pannello Cartabia senza oggetti tecnici, CTA `Crea bozza e apri editor`, nessun errore console. Screenshot: `artifacts/react-migration/template-atti-compila-react.png`. |

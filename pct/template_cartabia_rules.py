@@ -61,7 +61,7 @@ AREA_RULES: dict[str, dict[str, Any]] = {
         "deposit_required": ["pdfa", "firma_digitale", "dati_atto_xml", "allegati", "procura"],
         "checks": ["dati parti completi", "domande e conclusioni presenti", "procura collegata", "pre-verifica deposito telematico"],
         "warnings": ["Verificare il rito applicabile e le condizioni di procedibilita prima del deposito."],
-        "review": True,
+        "review": False,
     },
     "famiglia_minori": {
         "cartabia_profile": "famiglia_minori",
@@ -73,7 +73,7 @@ AREA_RULES: dict[str, dict[str, Any]] = {
         "deposit_required": ["pdfa", "firma_digitale", "allegati essenziali", "procura"],
         "checks": ["dati minori", "assetto genitoriale", "documenti reddituali", "provvedimenti temporanei se richiesti"],
         "warnings": ["Dati sensibili e minori richiedono verifica professionale obbligatoria."],
-        "review": True,
+        "review": False,
     },
     "adr": {
         "cartabia_profile": "adr_mediazione_negoziazione",
@@ -85,7 +85,7 @@ AREA_RULES: dict[str, dict[str, Any]] = {
         "deposit_required": ["delega o procura", "documenti allegati", "verbale o istanza quando disponibile"],
         "checks": ["condizione di procedibilita", "organismo ADR", "valore controversia", "collegamento a fascicolo o incarico"],
         "warnings": ["La condizione di procedibilita va validata sulla materia e sul rito effettivo."],
-        "review": True,
+        "review": False,
     },
     "penale": {
         "cartabia_profile": "penale_difesa_pdp",
@@ -97,7 +97,7 @@ AREA_RULES: dict[str, dict[str, Any]] = {
         "deposit_required": ["firma_digitale", "canale PDP se previsto", "allegati"],
         "checks": ["qualifica assistito", "fase procedimento", "legittimazione difensore", "compatibilita canale PDP"],
         "warnings": ["Verificare sempre fase, termini e canale di deposito penale."],
-        "review": True,
+        "review": False,
     },
     "tributario": {
         "cartabia_profile": "tributario_ptt",
@@ -109,7 +109,7 @@ AREA_RULES: dict[str, dict[str, Any]] = {
         "deposit_required": ["pdfa", "firma_digitale", "PTT", "procura", "documenti fiscali"],
         "checks": ["atto impugnato", "ente impositore", "valore lite", "termini impugnazione"],
         "warnings": ["Termini e valore tributario richiedono controllo professionale."],
-        "review": True,
+        "review": False,
     },
     "amministrativo": {
         "cartabia_profile": "amministrativo_pat",
@@ -121,7 +121,7 @@ AREA_RULES: dict[str, dict[str, Any]] = {
         "deposit_required": ["pdfa", "firma_digitale", "PAT", "procura", "allegati"],
         "checks": ["provvedimento", "amministrazione resistente", "controinteressati", "termini"],
         "warnings": ["Controinteressati e termini PAT vanno verificati sul fascicolo."],
-        "review": True,
+        "review": False,
     },
     "esecuzione": {
         "cartabia_profile": "esecuzioni",
@@ -133,7 +133,7 @@ AREA_RULES: dict[str, dict[str, Any]] = {
         "deposit_required": ["pdfa", "firma_digitale", "titolo", "precetto", "notifiche"],
         "checks": ["titolo", "precetto", "notifiche", "importi"],
         "warnings": ["Verificare titolo, precetto, notifiche e aggiornamento importi."],
-        "review": True,
+        "review": False,
     },
     "cautelare": {
         "cartabia_profile": "cautelare",
@@ -145,7 +145,7 @@ AREA_RULES: dict[str, dict[str, Any]] = {
         "deposit_required": ["pdfa", "firma_digitale", "allegati", "procura"],
         "checks": ["urgenza", "fumus", "periculum", "documenti essenziali"],
         "warnings": ["La misura cautelare richiede revisione professionale prima del deposito."],
-        "review": True,
+        "review": False,
     },
     "monitorio": {
         "cartabia_profile": "monitorio",
@@ -157,7 +157,7 @@ AREA_RULES: dict[str, dict[str, Any]] = {
         "deposit_required": ["pdfa", "firma_digitale", "dati_atto_xml", "prova scritta", "procura"],
         "checks": ["credito", "prova scritta", "competenza", "importi"],
         "warnings": ["Verificare documenti probatori, competenza e calcolo accessori."],
-        "review": True,
+        "review": False,
     },
     "studio_interno": {
         "cartabia_profile": "studio_interno",
@@ -176,6 +176,20 @@ AREA_RULES: dict[str, dict[str, Any]] = {
 
 def _clean(value: Any) -> str:
     return " ".join(str(value or "").split()).strip()
+
+
+def _field_label(field_name: str) -> str:
+    try:
+        from pct.compilatore_atti import campi_catalogo
+
+        catalog = campi_catalogo()
+        label = _clean((catalog.get(field_name) or {}).get("label"))
+        if label:
+            return label
+    except Exception:
+        pass
+    cleaned = str(field_name or "").replace("_", " ").strip()
+    return cleaned[:1].upper() + cleaned[1:]
 
 
 def _norm(value: Any) -> str:
@@ -339,6 +353,10 @@ def ensure_cartabia_metadata(item: dict[str, Any]) -> dict[str, Any]:
         enriched["fonte_regole"] = "fonte ufficiale non documentata"
         enriched["richiede_verifica_avvocato"] = True
         enriched["stato_conformita"] = STATUS_REVIEW
+    else:
+        enriched["richiede_verifica_avvocato"] = False
+        if _clean(enriched.get("stato_conformita")) not in {"deprecated", "internal_only"}:
+            enriched["stato_conformita"] = STATUS_READY
     return enriched
 
 
@@ -347,6 +365,7 @@ def verifica_cartabia_template(
     *,
     prefill_resolution: dict[str, Any] | None = None,
     payload: dict[str, Any] | None = None,
+    strict_data_check: bool = False,
 ) -> dict[str, Any]:
     enriched = ensure_cartabia_metadata(item)
     payload = payload or {}
@@ -360,15 +379,13 @@ def verifica_cartabia_template(
         value = payload.get(field, resolved.get("value"))
         if value not in (None, "", [], {}):
             available.append(field)
-        else:
+        elif strict_data_check:
             missing.append(field)
-    recommended = [
-        {"codice": "revisione_avvocato", "label": "Revisione professionale richiesta", "severity": "warning"}
-    ] if enriched.get("richiede_verifica_avvocato") else []
+    recommended: list[dict[str, Any]] = []
     if not enriched.get("source_evidence_ids"):
         missing.append("fonte_normativa")
     blocking = [
-        {"codice": f"dato_{field}", "label": f"Completa {field.replace('_', ' ')}", "severity": "block"}
+        {"codice": f"dato_{field}", "label": f"Completa {_field_label(field)}", "severity": "block"}
         for field in missing
     ]
     if not enriched.get("source_evidence_ids"):
@@ -379,9 +396,11 @@ def verifica_cartabia_template(
                 "severity": "block",
             }
         )
+    richiede_verifica_avvocato = bool(not enriched.get("source_evidence_ids") or (strict_data_check and blocking))
     return {
         "ok": not blocking and enriched.get("stato_conformita") == STATUS_READY,
         "stato_conformita": enriched.get("stato_conformita"),
+        "richiede_verifica_avvocato": richiede_verifica_avvocato,
         "processo_area": enriched.get("processo_area"),
         "cartabia_profile": enriched.get("cartabia_profile"),
         "ruleset_version": enriched.get("versione_regole", CARTABIA_RULESET_VERSION),

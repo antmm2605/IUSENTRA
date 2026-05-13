@@ -60,6 +60,84 @@ export type TemplateAttiPageData = {
   warnings: AdminWarning[]
 }
 
+export type TemplateCompilerOption = {
+  value: string
+  label: string
+  clienteId?: string
+}
+
+export type TemplateCompilerNote = {
+  tone: 'found' | 'missing' | 'error'
+  text: string
+}
+
+export type TemplateCompilerField = {
+  name: string
+  label: string
+  type: string
+  placeholder: string
+  required: boolean
+  value: string
+  options: TemplateCompilerOption[]
+  error: string
+  note?: TemplateCompilerNote
+  warnings: string[]
+}
+
+export type TemplateCompilerData = {
+  ok: boolean
+  message: string
+  model: {
+    code: string
+    name: string
+    area: string
+  }
+  summary: string
+  formAction: string
+  catalogHref: string
+  submitLabel: string
+  selectors: {
+    clienti: TemplateCompilerOption[]
+    fascicoli: TemplateCompilerOption[]
+    selectedClienteId: string
+    selectedFascicoloId: string
+    selectedClienteLabel: string
+    selectedFascicoloLabel: string
+  }
+  hidden: Record<string, string>
+  baseFields: TemplateCompilerField[]
+  extraFields: TemplateCompilerField[]
+  stamp: StudioStampPreview
+  compliance: {
+    available: boolean
+    state: string
+    ready: boolean
+    requiresReview: boolean
+    processArea: string
+    profile: string
+    rulesetVersion: string
+    sourceLabel: string
+    evidenceCount: number
+    missingFields: string[]
+    blocking: string[]
+    recommended: string[]
+    normativeReferences: string[]
+    procedibility: string[]
+    deadlines: string[]
+    cartabiaControls: string[]
+    editorialControls: string[]
+    depositControls: string[]
+    validationRules: string[]
+    warnings: string[]
+  }
+  checks: {
+    blocking: string[]
+    recommended: string[]
+  }
+  attachments: string[]
+  sections: Array<{ label: string; state: string }>
+}
+
 export const emptyTemplateAttiPage: TemplateAttiPageData = {
   source: '',
   generated_at: '',
@@ -75,6 +153,53 @@ export const emptyTemplateAttiPage: TemplateAttiPageData = {
   actions: [],
   forms: [],
   warnings: [],
+}
+
+export const emptyTemplateCompilerPage: TemplateCompilerData = {
+  ok: false,
+  message: '',
+  model: { code: '', name: '', area: '' },
+  summary: '',
+  formAction: '',
+  catalogHref: '/template-atti/catalogo',
+  submitLabel: "Crea bozza dell'atto",
+  selectors: {
+    clienti: [],
+    fascicoli: [],
+    selectedClienteId: '',
+    selectedFascicoloId: '',
+    selectedClienteLabel: '',
+    selectedFascicoloLabel: '',
+  },
+  hidden: {},
+  baseFields: [],
+  extraFields: [],
+  stamp: { lines: [], text: '', scope: {} },
+  compliance: {
+    available: false,
+    state: '',
+    ready: false,
+    requiresReview: true,
+    processArea: '',
+    profile: '',
+    rulesetVersion: '',
+    sourceLabel: '',
+    evidenceCount: 0,
+    missingFields: [],
+    blocking: [],
+    recommended: [],
+    normativeReferences: [],
+    procedibility: [],
+    deadlines: [],
+    cartabiaControls: [],
+    editorialControls: [],
+    depositControls: [],
+    validationRules: [],
+    warnings: [],
+  },
+  checks: { blocking: [], recommended: [] },
+  attachments: [],
+  sections: [],
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -218,6 +343,108 @@ function normaliseStudioStamp(input: unknown): StudioStampPreview {
   }
 }
 
+function normaliseCompilerOption(input: unknown): TemplateCompilerOption {
+  const item = asRecord(input)
+  return {
+    value: text(item.value),
+    label: text(item.label) || text(item.value),
+    clienteId: text(item.clienteId),
+  }
+}
+
+function normaliseCompilerNote(input: unknown): TemplateCompilerNote | undefined {
+  const item = asRecord(input)
+  const noteText = text(item.text)
+  if (!noteText) return undefined
+  const noteTone = ['found', 'missing', 'error'].includes(String(item.tone)) ? String(item.tone) as TemplateCompilerNote['tone'] : 'missing'
+  return { tone: noteTone, text: noteText }
+}
+
+function normaliseCompilerField(input: unknown): TemplateCompilerField {
+  const item = asRecord(input)
+  return {
+    name: text(item.name),
+    label: text(item.label) || text(item.name) || 'Campo',
+    type: text(item.type) || 'text',
+    placeholder: text(item.placeholder),
+    required: item.required === true,
+    value: text(item.value),
+    options: list(item.options).map(normaliseCompilerOption).filter((option) => option.value || option.label),
+    error: text(item.error),
+    note: normaliseCompilerNote(item.note),
+    warnings: list(item.warnings).map((value) => text(value)).filter(Boolean),
+  }
+}
+
+function normaliseCompilerPage(input: unknown): TemplateCompilerData {
+  const page = asRecord(input)
+  const model = asRecord(page.model)
+  const selectors = asRecord(page.selectors)
+  const checks = asRecord(page.checks)
+  const compliance = asRecord(page.compliance)
+  const hiddenInput = asRecord(page.hidden)
+  const hidden: Record<string, string> = {}
+  Object.entries(hiddenInput).forEach(([key, value]) => {
+    hidden[key] = text(value)
+  })
+  return {
+    ok: page.ok !== false,
+    message: text(page.message),
+    model: {
+      code: text(model.code),
+      name: text(model.name) || text(model.code) || 'Template atto',
+      area: text(model.area),
+    },
+    summary: text(page.summary),
+    formAction: safeHref(page.formAction, ''),
+    catalogHref: safeHref(page.catalogHref, '/template-atti/catalogo'),
+    submitLabel: text(page.submitLabel) || "Crea bozza dell'atto",
+    selectors: {
+      clienti: list(selectors.clienti).map(normaliseCompilerOption).filter((option) => option.value || option.label),
+      fascicoli: list(selectors.fascicoli).map(normaliseCompilerOption).filter((option) => option.value || option.label),
+      selectedClienteId: text(selectors.selectedClienteId),
+      selectedFascicoloId: text(selectors.selectedFascicoloId),
+      selectedClienteLabel: text(selectors.selectedClienteLabel),
+      selectedFascicoloLabel: text(selectors.selectedFascicoloLabel),
+    },
+    hidden,
+    baseFields: list(page.baseFields).map(normaliseCompilerField).filter((field) => field.name),
+    extraFields: list(page.extraFields).map(normaliseCompilerField).filter((field) => field.name),
+    stamp: normaliseStudioStamp(page.stamp),
+    compliance: {
+      available: compliance.available === true,
+      state: text(compliance.state),
+      ready: compliance.ready === true,
+      requiresReview: compliance.requiresReview === true,
+      processArea: text(compliance.processArea),
+      profile: text(compliance.profile),
+      rulesetVersion: text(compliance.rulesetVersion),
+      sourceLabel: text(compliance.sourceLabel),
+      evidenceCount: Number(compliance.evidenceCount || 0),
+      missingFields: list(compliance.missingFields).map((value) => text(value)).filter(Boolean),
+      blocking: list(compliance.blocking).map((value) => text(value)).filter(Boolean),
+      recommended: list(compliance.recommended).map((value) => text(value)).filter(Boolean),
+      normativeReferences: list(compliance.normativeReferences).map((value) => text(value)).filter(Boolean),
+      procedibility: list(compliance.procedibility).map((value) => text(value)).filter(Boolean),
+      deadlines: list(compliance.deadlines).map((value) => text(value)).filter(Boolean),
+      cartabiaControls: list(compliance.cartabiaControls).map((value) => text(value)).filter(Boolean),
+      editorialControls: list(compliance.editorialControls).map((value) => text(value)).filter(Boolean),
+      depositControls: list(compliance.depositControls).map((value) => text(value)).filter(Boolean),
+      validationRules: list(compliance.validationRules).map((value) => text(value)).filter(Boolean),
+      warnings: list(compliance.warnings).map((value) => text(value)).filter(Boolean),
+    },
+    checks: {
+      blocking: list(checks.blocking).map((value) => text(value)).filter(Boolean),
+      recommended: list(checks.recommended).map((value) => text(value)).filter(Boolean),
+    },
+    attachments: list(page.attachments).map((value) => text(value)).filter(Boolean),
+    sections: list(page.sections).map((value) => {
+      const item = asRecord(value)
+      return { label: text(item.label), state: text(item.state) }
+    }).filter((section) => section.label),
+  }
+}
+
 function normalisePage(input: unknown): TemplateAttiPageData {
   const page = asRecord(input)
   const contracts = asRecord(page.contracts)
@@ -248,4 +475,13 @@ export async function getTemplateAttiPage(): Promise<TemplateAttiPageData> {
 export async function getTemplateAttiCatalogoPage(): Promise<TemplateAttiPageData> {
   const payload = await apiJson<unknown>('/api/v1/ui/template-atti/catalogo', emptyTemplateAttiPage)
   return normalisePage(payload)
+}
+
+export async function getTemplateAttiCompilerPage(modelCode: string): Promise<TemplateCompilerData> {
+  const search = window.location.search || ''
+  const payload = await apiJson<unknown>(
+    `/api/v1/ui/template-atti/compila/${encodeURIComponent(modelCode)}${search}`,
+    emptyTemplateCompilerPage,
+  )
+  return normaliseCompilerPage(payload)
 }

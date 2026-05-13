@@ -27,6 +27,8 @@ Fonti ufficiali usate: Normattiva, Gazzetta Ufficiale, PST/DGSIA, PDP, Giustizia
 
 Se una fonte ufficiale o una capability di modello manca davvero, il template resta `cartabia_review_required`. Le copie JSON/SQLite/tenant con metadati diversi ma risolvibili vengono riconciliate usando la fonte canonica e restano tracciate nei report.
 
+`richiede_verifica_avvocato` non e' una bandiera generale dei modelli pronti. Rimane `false` sui template `cartabia_ready` e passa a `true` solo quando manca una fonte/regola ufficiale oppure quando una verifica concreta di compilazione trova dati realmente bloccanti.
+
 ## Aree coperte
 
 - Civile ordinario e semplificato.

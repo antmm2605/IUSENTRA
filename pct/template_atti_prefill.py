@@ -30,7 +30,54 @@ SOURCE_LABELS = {
     "parti": "parti del fascicolo",
     "documenti": "documenti fascicolo",
     "today": "data odierna",
-    "legacy": "precompilazione esistente",
+    "legacy": "dati gia' presenti",
+}
+
+FIELD_LABELS = {
+    "recipient_or_court": "Destinatario / ufficio giudiziario",
+    "destinatario_ufficio_giudiziario": "Destinatario / ufficio giudiziario",
+    "client_or_sender": "Cliente / mittente",
+    "cliente_mittente": "Cliente / mittente",
+    "counterparty_or_recipient": "Controparte / destinatario",
+    "controparte": "Controparte",
+    "lawyer": "Difensore",
+    "difensore": "Difensore",
+    "author_user_id": "Autore",
+    "autore": "Autore",
+    "case_reference_display": "Riferimento pratica",
+    "case_id": "Pratica collegata",
+    "pratica_collegata": "Pratica collegata",
+    "matter": "Materia",
+    "title": "Titolo atto",
+    "subject": "Oggetto",
+    "oggetto": "Oggetto",
+    "facts": "Esposizione dei fatti",
+    "attachments_list": "Allegati",
+    "documents_offered": "Documenti offerti",
+    "supporting_documents": "Documenti a supporto",
+    "case_value": "Valore causa",
+    "dispute_value": "Valore controversia",
+    "court_name": "Ufficio giudiziario",
+    "competent_court": "Ufficio giudiziario competente",
+    "competent_tar": "TAR competente",
+    "competent_tax_court": "Corte di Giustizia Tributaria competente",
+    "proceeding_authority": "Autorita procedente",
+    "competent_authority": "Autorita competente",
+    "plaintiff": "Parte ricorrente",
+    "claimant": "Parte istante",
+    "applicant": "Parte richiedente",
+    "assisted_person": "Assistito",
+    "defendant": "Resistente / convenuto",
+    "debtor": "Debitore",
+    "respondent": "Resistente",
+    "tax_authority_or_resistant_party": "Ente impositore / resistente",
+    "respondent_administration": "Amministrazione resistente",
+    "document_date": "Data atto",
+    "signature": "Firma",
+    "place": "Luogo",
+    "_lawyer_pec": "PEC difensore",
+    "_lawyer_tax_id": "Codice fiscale difensore",
+    "_studio_address": "Indirizzo studio",
 }
 
 DEFAULT_PREFILL_BINDINGS: dict[str, list[str]] = {
@@ -134,6 +181,25 @@ def _clean(value: Any) -> str:
     if isinstance(value, list):
         return "\n".join(_clean(item) for item in value if _clean(item))
     return " ".join(str(value or "").split()).strip()
+
+
+def _field_label(name: str) -> str:
+    key = str(name or "").strip()
+    if not key:
+        return "Dato richiesto"
+    try:
+        from pct.compilatore_atti import campi_catalogo
+
+        catalog_label = _clean((campi_catalogo().get(key) or {}).get("label"))
+        if catalog_label:
+            return catalog_label
+    except Exception:
+        pass
+    direct = FIELD_LABELS.get(key) or FIELD_LABELS.get(key.lower())
+    if direct:
+        return direct
+    cleaned = key.replace("_", " ").replace("-", " ").strip()
+    return cleaned[:1].upper() + cleaned[1:]
 
 
 def _is_empty(value: Any) -> bool:
@@ -311,7 +377,7 @@ def resolve_field(name: str, candidates: list[str], context: dict[str, Any], *, 
         confidence=CONFIDENCE_LOW,
         editable=True,
         required=required,
-        missing_reason=f"{name.replace('_', ' ').strip().capitalize()} non presente negli archivi della pratica selezionata.",
+        missing_reason=f"Da completare: {_field_label(name)} non e' presente nei dati gia' disponibili.",
         warnings=[],
         alternatives=[],
         conflict=False,

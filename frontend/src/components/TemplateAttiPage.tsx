@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, BookOpen, CheckCircle2, ExternalLink, Filter, RefreshCw, Search, ShieldCheck, Tags } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, BookOpen, BriefcaseBusiness, CheckCircle2, ExternalLink, FileText, Filter, RefreshCw, Save, Search, ShieldCheck, Tags, UserRound } from 'lucide-react'
 import { Badge } from '../ui/Badge'
 import { Button, ButtonLink } from '../ui/Button'
 import { EmptyState } from '../ui/EmptyState'
@@ -10,8 +10,12 @@ import { Panel } from '../ui/Panel'
 import { openDesignContract } from '../ui/openDesign'
 import {
   emptyTemplateAttiPage,
+  emptyTemplateCompilerPage,
+  getTemplateAttiCompilerPage,
   getTemplateAttiCatalogoPage,
   getTemplateAttiPage,
+  type TemplateCompilerData,
+  type TemplateCompilerField,
   type TemplateAttiPageData,
   type TemplateAttiRecord,
 } from '../templateAttiData'
@@ -20,6 +24,22 @@ import './TemplateAttiPage.css'
 
 function isCatalogoRoute() {
   return (window.location.pathname.replace(/\/+$/, '') || '/').toLowerCase() === '/template-atti/catalogo'
+}
+
+function compilerCodeFromRoute() {
+  const match = (window.location.pathname.replace(/\/+$/, '') || '').match(/^\/template-atti\/compila\/([^/]+)$/i)
+  return match ? decodeURIComponent(match[1]) : ''
+}
+
+function queryHiddenInputs() {
+  const params = new URLSearchParams(window.location.search)
+  const hidden: Array<{ name: string; value: string }> = []
+  params.forEach((value, name) => {
+    if (!['id_cliente', 'id_fascicolo', 'case_id'].includes(name)) {
+      hidden.push({ name, value })
+    }
+  })
+  return hidden
 }
 
 function ContractStrip({ data }: { data: TemplateAttiPageData }) {
@@ -37,7 +57,7 @@ function ContractStrip({ data }: { data: TemplateAttiPageData }) {
 function cartabiaStateLabel(state: string) {
   const normalised = state.toLowerCase()
   if (normalised === 'cartabia_ready') return 'Verificato dai controlli IUSENTRA'
-  if (normalised === 'cartabia_review_required') return 'Da completare con dati pratica'
+  if (normalised === 'cartabia_review_required') return 'Bloccato per fonte o regola mancante'
   if (normalised === 'needs_review') return 'Da completare'
   if (normalised === 'draft_professionale') return 'Bozza professionale'
   if (normalised === 'deprecated') return 'Non utilizzabile'
@@ -173,7 +193,7 @@ function TemplateCard({ record, onOpen }: { record: TemplateAttiRecord; onOpen: 
       <div className="iu-template-badges">
         {record.cartabiaState ? <Badge tone={record.requiresLawyerReview ? 'warning' : 'success'}>{cartabiaStateLabel(record.cartabiaState)}</Badge> : null}
         {record.prefillStatus === 'precompilabile' ? <Badge tone="success">Precompilabile</Badge> : null}
-        {record.requiresLawyerReview ? <Badge tone="warning">Dati pratica richiesti</Badge> : null}
+        {record.requiresLawyerReview ? <Badge tone="warning">Verifica bloccante</Badge> : null}
       </div>
       {record.requiredVariables.length ? (
         <div className="iu-template-vars">
@@ -336,7 +356,321 @@ function CatalogFilters({
   )
 }
 
-export function TemplateAttiPage() {
+function CompilerField({ field }: { field: TemplateCompilerField }) {
+  const noteClass = field.note ? `iu-template-compiler-note iu-template-compiler-note--${field.note.tone}` : ''
+  const className = field.type === 'richtext' || field.type === 'textarea' || field.type === 'multiselect' || field.type === 'repeater'
+    ? 'iu-template-compiler-field iu-template-compiler-field--wide'
+    : 'iu-template-compiler-field'
+  return (
+    <div className={className}>
+      <label htmlFor={`compiler-${field.name}`}>
+        {field.label}
+        {field.required ? <span aria-hidden="true"> *</span> : null}
+      </label>
+      {field.type === 'select' ? (
+        <select id={`compiler-${field.name}`} name={field.name} defaultValue={field.value} required={field.required} aria-invalid={field.error ? 'true' : 'false'}>
+          <option value="">{field.placeholder || 'Seleziona'}</option>
+          {field.options.map((option) => (
+            <option key={`${field.name}-${option.value}`} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      ) : field.type === 'richtext' || field.type === 'textarea' || field.type === 'multiselect' || field.type === 'repeater' ? (
+        <textarea
+          id={`compiler-${field.name}`}
+          name={field.name}
+          defaultValue={field.value}
+          placeholder={field.placeholder}
+          required={field.required}
+          rows={field.type === 'richtext' ? 7 : 5}
+          aria-invalid={field.error ? 'true' : 'false'}
+        />
+      ) : (
+        <input
+          id={`compiler-${field.name}`}
+          name={field.name}
+          type={field.type === 'number' || field.type === 'date' ? field.type : 'text'}
+          defaultValue={field.value}
+          placeholder={field.placeholder}
+          required={field.required}
+          aria-invalid={field.error ? 'true' : 'false'}
+        />
+      )}
+      {field.error ? <p className="iu-template-compiler-error">{field.error}</p> : null}
+      {field.note ? <p className={noteClass}>{field.note.text}</p> : null}
+      {field.warnings.map((warning) => (
+        <p className="iu-template-compiler-note iu-template-compiler-note--warning" key={`${field.name}-${warning}`}>
+          {warning}
+        </p>
+      ))}
+    </div>
+  )
+}
+
+function CompliancePanel({ data }: { data: TemplateCompilerData }) {
+  const compliance = data.compliance
+  const primaryControls = [
+    ...compliance.cartabiaControls.slice(0, 4),
+    ...compliance.depositControls.slice(0, 4),
+  ].filter(Boolean)
+  return (
+    <section className="iu-template-compiler-panel iu-template-compliance-panel">
+      <header>
+        <div>
+          <p className="iu-template-eyebrow">Presidio normativo</p>
+          <h3>Cartabia, deposito e regole dell'atto</h3>
+        </div>
+        <Badge tone={compliance.ready ? 'success' : 'warning'}>
+          {compliance.ready ? 'Controlli superati' : 'Dati atto da completare'}
+        </Badge>
+      </header>
+      <dl className="iu-template-compliance-meta">
+        <div>
+          <dt>Area</dt>
+          <dd>{compliance.processArea || data.model.area || 'Da verificare'}</dd>
+        </div>
+        <div>
+          <dt>Stato</dt>
+          <dd>{compliance.state ? cartabiaStateLabel(compliance.state) : 'Da verificare'}</dd>
+        </div>
+        <div>
+          <dt>Fonti</dt>
+          <dd>{compliance.evidenceCount ? `${compliance.evidenceCount} fonti ufficiali documentate` : 'Fonte da documentare'}</dd>
+        </div>
+        <div>
+          <dt>Regole</dt>
+          <dd>{compliance.rulesetVersion || 'Versione non indicata'}</dd>
+        </div>
+      </dl>
+      {compliance.normativeReferences.length ? (
+        <div className="iu-template-compliance-list">
+          <strong>Riferimenti applicati</strong>
+          {compliance.normativeReferences.slice(0, 4).map((item) => <p key={item}>{item}</p>)}
+        </div>
+      ) : null}
+      {primaryControls.length ? (
+        <div className="iu-template-compiler-badges">
+          {primaryControls.map((item) => <Badge tone="info" key={item}>{item}</Badge>)}
+        </div>
+      ) : null}
+      {compliance.blocking.length ? (
+        <div className="iu-template-compiler-checks iu-template-compiler-checks--block">
+          {compliance.blocking.slice(0, 5).map((item) => <p key={item}>{item}</p>)}
+        </div>
+      ) : null}
+      {compliance.procedibility.length || compliance.deadlines.length ? (
+        <div className="iu-template-compliance-list">
+          <strong>Procedibilita e termini</strong>
+          {[...compliance.procedibility, ...compliance.deadlines].slice(0, 5).map((item) => <p key={item}>{item}</p>)}
+        </div>
+      ) : null}
+      {compliance.warnings.length ? (
+        <div className="iu-template-compliance-list">
+          <strong>Avvisi redazionali</strong>
+          {compliance.warnings.slice(0, 5).map((item) => <p key={item}>{item}</p>)}
+        </div>
+      ) : null}
+    </section>
+  )
+}
+
+function CompilerSidePanel({ data }: { data: TemplateCompilerData }) {
+  const missing = [...data.baseFields, ...data.extraFields].filter((field) => field.note?.tone === 'missing').length
+  const found = [...data.baseFields, ...data.extraFields].filter((field) => field.note?.tone === 'found').length
+  return (
+    <aside className="iu-template-compiler-aside">
+      {data.stamp.lines.length ? (
+        <section className="iu-template-compiler-panel iu-template-compiler-stamp" aria-label="Anteprima timbro studio">
+          <h3>Timbro studio</h3>
+          <div>
+            {data.stamp.lines.map((line, index) => (
+              <span key={`${line.text}-${index}`} className={line.bold ? 'iu-template-compiler-stamp__bold' : ''}>
+                {line.text}
+              </span>
+            ))}
+          </div>
+        </section>
+      ) : null}
+      <section className="iu-template-compiler-panel">
+        <h3>Dati IUSENTRA</h3>
+        <div className="iu-template-compiler-badges">
+          <Badge tone="success">Trovati {found}</Badge>
+          {missing ? <Badge tone="warning">Da completare {missing}</Badge> : <Badge tone="success">Completi</Badge>}
+        </div>
+        <p>
+          {data.selectors.selectedClienteLabel || data.selectors.selectedFascicoloLabel
+            ? [data.selectors.selectedClienteLabel, data.selectors.selectedFascicoloLabel].filter(Boolean).join(' - ')
+            : 'Seleziona cliente e pratica quando disponibili.'}
+        </p>
+      </section>
+      {data.checks.blocking.length || data.checks.recommended.length ? (
+        <section className="iu-template-compiler-panel">
+          <h3>Controlli redazionali</h3>
+          {data.checks.blocking.length ? (
+            <div className="iu-template-compiler-checks iu-template-compiler-checks--block">
+              {data.checks.blocking.slice(0, 6).map((item) => <p key={item}>{item}</p>)}
+            </div>
+          ) : null}
+          {data.checks.recommended.length ? (
+            <div className="iu-template-compiler-checks">
+              {data.checks.recommended.slice(0, 6).map((item) => <p key={item}>{item}</p>)}
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+      {data.attachments.length ? (
+        <section className="iu-template-compiler-panel">
+          <h3>Allegati suggeriti</h3>
+          <ul>
+            {data.attachments.map((item) => <li key={item}>{item}</li>)}
+          </ul>
+        </section>
+      ) : null}
+      {data.sections.length ? (
+        <section className="iu-template-compiler-panel">
+          <h3>Sezioni dell'atto</h3>
+          <div className="iu-template-compiler-badges">
+            {data.sections.map((section) => <Badge tone="neutral" key={section.label}>{section.label}</Badge>)}
+          </div>
+        </section>
+      ) : null}
+    </aside>
+  )
+}
+
+function TemplateCompilerView({ modelCode }: { modelCode: string }) {
+  const [data, setData] = useState<TemplateCompilerData>(emptyTemplateCompilerPage)
+  const [loading, setLoading] = useState(true)
+  const hiddenQuery = useMemo(queryHiddenInputs, [])
+
+  function load() {
+    setLoading(true)
+    getTemplateAttiCompilerPage(modelCode)
+      .then(setData)
+      .finally(() => setLoading(false))
+  }
+
+  useEffect(() => {
+    load()
+  }, [modelCode])
+
+  if (loading) {
+    return <LoadingState title="Caricamento compilazione" message="Recupero campi, dati disponibili e controlli del modello." />
+  }
+
+  return (
+    <Page
+      title="Compila template atto"
+      subtitle={`${data.model.name} - ${data.model.code}${data.model.area ? ` - ${data.model.area}` : ''}`}
+      actions={
+        <>
+          <ButtonLink href={data.catalogHref} tone="neutral">
+            <ArrowLeft size={16} aria-hidden="true" />
+            Catalogo
+          </ButtonLink>
+          <Button type="button" tone="neutral" onClick={load}>
+            <RefreshCw size={16} aria-hidden="true" />
+            Aggiorna
+          </Button>
+        </>
+      }
+    >
+      <div className="iu-template-compiler-page">
+        <section className="iu-template-compiler-hero iu-od-surface">
+          <div>
+            <p className="iu-template-eyebrow">Redazione guidata</p>
+            <h2>{data.model.name}</h2>
+            <p>{data.summary || 'Compila il modello con i dati presenti in IUSENTRA e completa solo cio che manca.'}</p>
+          </div>
+          <Badge tone="info">{data.model.code}</Badge>
+        </section>
+
+        <div className="iu-template-compiler-layout">
+          <main className="iu-template-compiler-main">
+            <form method="get" action={data.formAction} className="iu-template-context-form iu-od-card">
+              {hiddenQuery.map((item) => <input type="hidden" name={item.name} value={item.value} key={`${item.name}-${item.value}`} />)}
+              <input type="hidden" name="model_code" value={data.model.code} />
+              <header>
+                <span className="iu-template-step">1</span>
+                <div>
+                  <h3>Precompila dalla pratica</h3>
+                  <p>Cliente e pratica collegano il template ai dati gia' disponibili nello studio.</p>
+                </div>
+              </header>
+              <div className="iu-template-context-grid">
+                <label>
+                  <span><UserRound size={15} aria-hidden="true" /> Cliente</span>
+                  <select name="id_cliente" defaultValue={data.selectors.selectedClienteId}>
+                    <option value="">Nessun cliente</option>
+                    {data.selectors.clienti.map((cliente) => <option value={cliente.value} key={cliente.value}>{cliente.label}</option>)}
+                  </select>
+                </label>
+                <label>
+                  <span><BriefcaseBusiness size={15} aria-hidden="true" /> Pratica collegata</span>
+                  <select name="id_fascicolo" defaultValue={data.selectors.selectedFascicoloId}>
+                    <option value="">Nessuna pratica</option>
+                    {data.selectors.fascicoli.map((fascicolo) => <option value={fascicolo.value} key={fascicolo.value}>{fascicolo.label}</option>)}
+                  </select>
+                </label>
+              </div>
+              <div className="iu-od-action-row">
+                <Button type="submit" tone="neutral">
+                  <RefreshCw size={16} aria-hidden="true" />
+                  Precompila dati
+                </Button>
+                <Button type="submit" tone="neutral" name="intent" value="complete_missing">
+                  <FileText size={16} aria-hidden="true" />
+                  Completa dati mancanti
+                </Button>
+              </div>
+            </form>
+
+            <form method="post" action={data.formAction} className="iu-template-compiler-form iu-od-card">
+              <input type="hidden" name="_react_return" value="1" />
+              <input type="hidden" name="id_cliente" value={data.selectors.selectedClienteId} />
+              <input type="hidden" name="id_fascicolo" value={data.selectors.selectedFascicoloId} />
+              {Object.entries(data.hidden).map(([name, value]) => <input type="hidden" name={name} value={value} key={name} />)}
+              <section>
+                <header>
+                  <span className="iu-template-step iu-template-step--green">2</span>
+                  <h3>Dati base dell'atto</h3>
+                </header>
+                <div className="iu-template-compiler-grid">
+                  {data.baseFields.map((field) => <CompilerField field={field} key={field.name} />)}
+                </div>
+              </section>
+              {data.extraFields.length ? (
+                <section>
+                  <header>
+                    <span className="iu-template-step iu-template-step--yellow">3</span>
+                    <h3>Campi specifici del modello</h3>
+                  </header>
+                  <div className="iu-template-compiler-grid">
+                    {data.extraFields.map((field) => <CompilerField field={field} key={field.name} />)}
+                  </div>
+                </section>
+              ) : null}
+              <footer className="iu-template-compiler-actions">
+                <Button type="submit" tone="primary" disabled={!data.selectors.selectedFascicoloId} title={!data.selectors.selectedFascicoloId ? 'Seleziona prima una pratica collegata.' : undefined}>
+                  <Save size={17} aria-hidden="true" />
+                  {data.selectors.selectedFascicoloId ? data.submitLabel : 'Seleziona pratica collegata'}
+                </Button>
+                <ButtonLink href={data.catalogHref} tone="neutral">Annulla</ButtonLink>
+              </footer>
+            </form>
+          </main>
+          <div className="iu-template-compiler-aside-stack">
+            <CompliancePanel data={data} />
+            <CompilerSidePanel data={data} />
+          </div>
+        </div>
+      </div>
+    </Page>
+  )
+}
+
+function TemplateCatalogView() {
   const catalogo = isCatalogoRoute()
   const [data, setData] = useState<TemplateAttiPageData>(emptyTemplateAttiPage)
   const [loading, setLoading] = useState(true)
@@ -488,4 +822,12 @@ export function TemplateAttiPage() {
       </div>
     </Page>
   )
+}
+
+export function TemplateAttiPage() {
+  const compilerCode = compilerCodeFromRoute()
+  if (compilerCode) {
+    return <TemplateCompilerView modelCode={compilerCode} />
+  }
+  return <TemplateCatalogView />
 }

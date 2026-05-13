@@ -52,6 +52,53 @@ IUSENTRA_VAPID_SUBJECT=mailto:admin@example.com
 
 Le chiavi reali non vanno mai salvate nel repository.
 
+Generare una coppia VAPID fuori dal repository dei segreti:
+
+```bash
+python tools/generate_vapid_keys.py --subject mailto:admin@example.com
+```
+
+Il comando stampa righe ambiente compatibili con `pywebpush`:
+
+```bash
+IUSENTRA_WEB_PUSH_ENABLED=1
+IUSENTRA_VAPID_PUBLIC_KEY=...
+IUSENTRA_VAPID_PRIVATE_KEY=...
+IUSENTRA_VAPID_SUBJECT=mailto:admin@example.com
+```
+
+`IUSENTRA_VAPID_PRIVATE_KEY` e' un segreto: va copiato solo nell'ambiente del server o nel secret manager operativo, mai in commit, ticket o screenshot condivisi.
+
+Per verificare la configurazione senza stampare la chiave privata:
+
+```bash
+python -m pct.notifications.web_push_diagnostics
+```
+
+## Configurazione Hetzner
+
+Sul server CPX42 usare gli script del profilo `deploy/hetzner`:
+
+```bash
+cd /opt/iusentra/repo
+bash deploy/hetzner/configure_web_push.sh
+IUSENTRA_SKIP_BACKUP_CRON=1 bash deploy/hetzner/deploy.sh
+bash deploy/hetzner/verify_web_push.sh
+```
+
+`configure_web_push.sh` legge `/opt/iusentra/.env.hetzner`, crea il file dal template se manca, genera chiavi VAPID se non presenti, abilita `IUSENTRA_WEB_PUSH_ENABLED=1` e imposta un subject sicuro. Nei log normali non stampa mai la chiave privata; `--print-secrets` va usato solo in debug manuale e con console protetta.
+`IUSENTRA_SKIP_BACKUP_CRON=1` evita di aggiornare la pianificazione backup durante questo deploy operativo; rimuovere la variabile quando si vuole mantenere la procedura standard.
+
+`verify_web_push.sh` controlla le variabili ambiente e, se il container app e' raggiungibile, esegue anche la diagnostica backend con `load_web_push_config`.
+
+Opzioni utili:
+
+```bash
+bash deploy/hetzner/configure_web_push.sh --force
+bash deploy/hetzner/configure_web_push.sh --env-file /percorso/.env
+bash deploy/hetzner/verify_web_push.sh --env-file /percorso/.env
+```
+
 ## API
 
 Tutte le API richiedono autenticazione:
@@ -125,18 +172,21 @@ I dettagli restano disponibili solo dopo login dentro IUSENTRA.
 
 1. Configurare le variabili VAPID e avviare IUSENTRA su HTTPS.
 2. Accedere con un utente reale.
-3. Aprire `Impostazioni > Notifiche`.
-4. Verificare lo stato del dispositivo.
-5. Premere `Attiva notifiche su questo dispositivo`.
-6. Confermare il permesso del browser.
-7. Premere `Invia notifica di test`.
-8. Chiudere la scheda o mettere il browser in background.
-9. Generare un evento importante o urgente, oppure ripetere il test.
-10. Cliccare la notifica e verificare che IUSENTRA apra o focalizzi `/app-v2` o la route operativa indicata.
+3. Da utente loggato aprire `https://DOMINIO/api/push/public-key`.
+4. Verificare che risponda con `ok: true`, `configured: true` e `publicKey` valorizzata. La risposta non deve contenere mai la chiave privata.
+5. Aprire `Impostazioni > Notifiche`.
+6. Verificare lo stato del dispositivo.
+7. Premere `Attiva notifiche su questo dispositivo`.
+8. Confermare il permesso del browser.
+9. Premere `Invia notifica di test`.
+10. Chiudere la scheda o mettere il browser in background.
+11. Generare un evento importante o urgente, oppure ripetere il test.
+12. Cliccare la notifica e verificare che IUSENTRA apra o focalizzi `/app-v2` o la route operativa indicata.
 
 ## Troubleshooting
 
-- `Notifiche su dispositivo non configurate`: verificare `IUSENTRA_WEB_PUSH_ENABLED=1` e chiavi VAPID.
+- `Da configurare` o `Sistema notifiche non ancora configurato sul server`: eseguire `bash deploy/hetzner/configure_web_push.sh`, poi `IUSENTRA_SKIP_BACKUP_CRON=1 bash deploy/hetzner/deploy.sh` e `bash deploy/hetzner/verify_web_push.sh`.
+- `/api/push/public-key` restituisce `configured: false`: leggere `diagnostics.missing` per individuare se manca abilitazione, public key, private key o subject.
 - Il pulsante di attivazione e' disabilitato: browser non supportato, canale non configurato o permesso bloccato.
 - Permesso bloccato: riabilitare le notifiche dalle impostazioni del browser o del sistema operativo.
 - Test non ricevuto ma notifica interna creata: controllare subscription attiva, HTTPS, Service Worker e log applicativi.

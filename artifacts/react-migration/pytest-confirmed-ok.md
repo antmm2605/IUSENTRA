@@ -893,6 +893,27 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | Browser Playwright su `http://127.0.0.1:8099/template-atti/compila/AMM_RIC_001?id_cliente=0AD3517D&id_fascicolo=68756850` | OK | UI React visibile, vecchio compilatore assente, note mancanti in italiano, colore giallo leggibile (`rgb(74, 58, 0)` su `rgb(255, 248, 214)`), pannello Cartabia senza oggetti tecnici, CTA `Crea bozza e apri editor`, nessun errore console. Screenshot: `artifacts/react-migration/template-atti-compila-react.png`. |
 | Hetzner `iusentra-hetzner`, branch `Codex/legal-electronic-filing-kIxcV` | OK | Deploy completato e riverificato sul branch finale: app, scheduler, OCR, Redis e Ollama healthy; `https://app.iusentra.it/api/pronto` risponde `versione=2.218.2`. Il primo backup e' stato rilanciato per file email cambiato durante `tar`; il secondo backup si e' completato prima del deploy. |
 
+## PWA/Web Push configurazione operativa 2.218.4 - 2026-05-13
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct\notifications\web_push.py pct\notifications\generate_vapid.py pct\notifications\web_push_diagnostics.py web\blueprints\push_notifications.py tests\test_push_notifications.py tools\generate_vapid_keys.py` | OK | Sintassi confermata per diagnostica, generatore VAPID, endpoint push, test e CLI. |
+| `bash -n deploy/hetzner/configure_web_push.sh`; `bash -n deploy/hetzner/verify_web_push.sh`; `bash -n deploy/hetzner/deploy.sh` | OK | Sintassi shell confermata, incluso opt-out `IUSENTRA_SKIP_BACKUP_CRON=1` per non aggiornare la pianificazione backup. |
+| `python tools/generate_vapid_keys.py --subject mailto:admin@example.com`; `python tools/generate_vapid_keys.py --json` | OK | Generatore VAPID EC P-256 verificato: stampa solo stdout e non scrive file nel repository. Le chiavi generate durante il test non sono state salvate o committate. |
+| `python -m pct.notifications.web_push_diagnostics` | OK diagnostico | Con ambiente non configurato esce con codice 1 e segnala variabili mancanti senza stampare private key; con variabili fittizie segnala `configured=true`. |
+| `bash deploy/hetzner/configure_web_push.sh --env-file <temp>`; `bash deploy/hetzner/verify_web_push.sh --env-file <temp>` | OK | Smoke su file temporaneo fuori repository: abilita Web Push, non stampa private key, non crea backup e verifica host. File temporaneo rimosso. |
+| `python -m pytest -q tests/test_push_notifications.py --tb=short` | OK | 14/14 passati: generazione chiavi, config/diagnostica, endpoint autenticato/non configurato/configurato, privacy private key, subscribe/test/revoca e script statici. |
+| `npm --prefix frontend run test` | OK | Contratti React verificati dopo microcopy Notifiche. |
+| `npm --prefix frontend run typecheck` | OK | TypeScript confermato per `pushNotifications.ts` e pannello Notifiche. |
+| `npm --prefix frontend run build` | OK | Build Vite 2.218.4 completata e asset React rigenerati. |
+| `python tools/sync_packaging_files.py --check` | OK | Packaging sincronizzato dopo bump `2.218.4`. |
+| `python -m pytest -q tests/test_packaging_consistency.py tests/test_release_readiness.py tests/test_web_bootstrap.py::test_docker_compose_hetzner_allinea_email_ordinaria_e_ai_locale --tb=short` | OK | 9/9 passati: packaging, readiness release e compose Hetzner confermati. |
+| `docker compose up -d --build --remove-orphans redis app scheduler-worker ocr-worker nginx`; `curl.exe -fsS http://127.0.0.1:8080/api/pronto` | OK | Docker locale ricostruito senza backup; app, scheduler, OCR, Redis e nginx attivi; `/api/pronto` risponde `versione=2.218.4`. |
+| Chrome CDP headless su `http://127.0.0.1:8080/notifiche` con sessione tenant | OK | Desktop 2113 ms e mobile 2801 ms: shell React `Impostazioni` visibile, nessuna failure, nessun overflow e pannello Notifiche raggiungibile. |
+| Hetzner CPX42: `bash deploy/hetzner/configure_web_push.sh`; `IUSENTRA_SKIP_BACKUP_CRON=1 bash deploy/hetzner/deploy.sh`; `bash deploy/hetzner/verify_web_push.sh`; `curl -fsS https://app.iusentra.it/api/pronto` | OK | Deploy produzione completato senza eseguire backup e senza aggiornare cron backup; container app, Caddy, worker, Redis e Ollama healthy; `/api/pronto` 200 `versione=2.218.4`; Web Push `backend configured=true`. |
+| Hetzner `/api/push/public-key` autenticato con sessione tenant | OK | Risposta `ok=true`, `configured=true`, `enabled=true`, public key presente; nessun campo `privateKey` e nessuna assegnazione `IUSENTRA_VAPID_PRIVATE_KEY=` nella risposta. |
+| `git diff --check` | OK | Nessun errore whitespace. |
+
 ## Multi-studio hardening tenant/API 2.218.3 - 2026-05-13
 
 | Comando / verifica | Esito | Nota |

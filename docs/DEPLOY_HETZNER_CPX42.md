@@ -81,6 +81,25 @@ Impostare `IUSENTRA_WEB_PUSH_ENABLED=1` solo dopo aver configurato chiavi VAPID 
 
 Non salvare chiavi reali nel repository.
 
+Procedura Web Push sul server:
+
+```bash
+cd /opt/iusentra/repo
+bash deploy/hetzner/configure_web_push.sh
+IUSENTRA_SKIP_BACKUP_CRON=1 bash deploy/hetzner/deploy.sh
+bash deploy/hetzner/verify_web_push.sh
+```
+
+Per questa procedura Web Push l'opt-out `IUSENTRA_SKIP_BACKUP_CRON=1` evita di aggiornare la pianificazione backup; ometterlo quando si vuole seguire la procedura standard completa.
+
+Lo script di configurazione genera chiavi EC P-256 compatibili con `pywebpush`, aggiorna `/opt/iusentra/.env.hetzner`, imposta permessi `600` e non stampa la chiave privata nei log normali. Per rigenerare chiavi gia' presenti:
+
+```bash
+bash deploy/hetzner/configure_web_push.sh --force
+```
+
+Da utente autenticato, `https://<dominio>/api/push/public-key` deve restituire `ok: true`, `configured: true` e `publicKey` valorizzata. Se resta `configured: false`, leggere `diagnostics.missing` nella risposta o lanciare `bash deploy/hetzner/verify_web_push.sh`.
+
 ## Deploy
 
 Prima di un deploy Hetzner che deriva da modifiche Codex, MetaHarness, autoresearch-lite o Open Design support, eseguire il gate di supporto dalla root locale della repository:

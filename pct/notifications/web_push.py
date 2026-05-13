@@ -15,6 +15,13 @@ except Exception:  # pragma: no cover
 from .models import NotificationRecord, PushSubscriptionRecord
 
 
+WEB_PUSH_ENV_VARS = {
+    "enabled": "IUSENTRA_WEB_PUSH_ENABLED",
+    "public_key": "IUSENTRA_VAPID_PUBLIC_KEY",
+    "private_key": "IUSENTRA_VAPID_PRIVATE_KEY",
+    "subject": "IUSENTRA_VAPID_SUBJECT",
+}
+
 SAFE_BODIES = {
     "urgent": "IUSENTRA: evento urgente da verificare.",
     "important": "Hai una nuova notifica importante nel gestionale.",
@@ -67,6 +74,44 @@ def load_web_push_config(config: dict[str, Any] | None = None) -> WebPushConfig:
             or "mailto:admin@example.com"
         ).strip(),
     )
+
+
+def web_push_config_diagnostics(
+    config: WebPushConfig | dict[str, Any] | None = None,
+    *,
+    include_subject: bool = False,
+) -> dict[str, Any]:
+    cfg = config if isinstance(config, WebPushConfig) else load_web_push_config(config)
+    missing: list[str] = []
+    if not cfg.enabled:
+        missing.append(WEB_PUSH_ENV_VARS["enabled"])
+    if not cfg.public_key:
+        missing.append(WEB_PUSH_ENV_VARS["public_key"])
+    if not cfg.private_key:
+        missing.append(WEB_PUSH_ENV_VARS["private_key"])
+    if not cfg.subject:
+        missing.append(WEB_PUSH_ENV_VARS["subject"])
+    diagnostics: dict[str, Any] = {
+        "enabled": bool(cfg.enabled),
+        "configured": bool(cfg.configured),
+        "hasPublicKey": bool(cfg.public_key),
+        "hasPrivateKey": bool(cfg.private_key),
+        "hasSubject": bool(cfg.subject),
+        "missing": missing,
+        "pywebpushInstalled": pywebpush is not None,
+    }
+    if include_subject:
+        diagnostics["subject"] = cfg.subject
+    return diagnostics
+
+
+def web_push_recommendation(config: WebPushConfig | dict[str, Any] | None = None) -> str:
+    diagnostics = web_push_config_diagnostics(config)
+    if diagnostics["configured"] and diagnostics["pywebpushInstalled"]:
+        return "Web Push configurato: verificare il consenso dal pannello Notifiche."
+    if diagnostics["configured"] and not diagnostics["pywebpushInstalled"]:
+        return "Configurazione presente, ma pywebpush non e' installato nel runtime."
+    return "Eseguire deploy/hetzner/configure_web_push.sh sul server e poi riavviare IUSENTRA."
 
 
 def safe_href(value: str | None) -> str:

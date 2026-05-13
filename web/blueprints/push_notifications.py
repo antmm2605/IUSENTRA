@@ -8,7 +8,7 @@ from typing import Any
 from flask import Blueprint, current_app, g, jsonify, request
 
 from pct.notifications import NotificationServiceError
-from pct.notifications.web_push import load_web_push_config
+from pct.notifications.web_push import load_web_push_config, web_push_config_diagnostics
 from web.services.notifications_runtime import (
     build_notification_service,
     current_tenant_id,
@@ -61,6 +61,7 @@ def public_key():
     try:
         tenant_id, user_id = _context()
         config = load_web_push_config(current_app.config)
+        diagnostics = web_push_config_diagnostics(config)
         service = build_notification_service()
         preferences = service.preferences(tenant_id, user_id)
         if not config.configured:
@@ -69,6 +70,7 @@ def public_key():
                     "ok": False,
                     "configured": False,
                     "enabled": bool(config.enabled),
+                    "diagnostics": diagnostics,
                     "message": "Notifiche su dispositivo non configurate nel sistema.",
                     "preferences": {
                         "pushEnabled": preferences.push_enabled,
@@ -83,6 +85,7 @@ def public_key():
                 "ok": True,
                 "configured": True,
                 "enabled": True,
+                "diagnostics": diagnostics,
                 "publicKey": config.public_key,
                 "preferences": {
                     "pushEnabled": preferences.push_enabled,

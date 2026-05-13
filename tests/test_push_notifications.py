@@ -1,11 +1,22 @@
 import json
+import re
 from types import SimpleNamespace
+from pathlib import Path
 
 from pct.auth import GestioneUtenti, RuoloUtente
 from pct.notifications import NotificationRecord, NotificationRepository, NotificationService
-from pct.notifications.web_push import safe_web_push_payload
+from pct.notifications.generate_vapid import generate_vapid_key_pair
+from pct.notifications.web_push import load_web_push_config, safe_web_push_payload, web_push_config_diagnostics
 from tests.test_topbar_operational_api import _cfg_web, _create_user, _login
 from web.app import create_app
+
+
+WEB_PUSH_ENV = (
+    "IUSENTRA_WEB_PUSH_ENABLED",
+    "IUSENTRA_VAPID_PUBLIC_KEY",
+    "IUSENTRA_VAPID_PRIVATE_KEY",
+    "IUSENTRA_VAPID_SUBJECT",
+)
 
 
 def _repo(tmp_path) -> NotificationRepository:
@@ -51,6 +62,72 @@ def _stored_user_id(app, username="operatore") -> str:
         if user.username == username:
             return str(user.id or user.username)
     return username
+
+
+def test_generazione_vapid_produce_base64url_senza_padding():
+    pair = generate_vapid_key_pair()
+
+    assert pair.public_key
+    assert pair.private_key
+    assert "=" not in pair.public_key
+    assert "=" not in pair.private_key
+    assert re.fullmatch(r"[A-Za-z0-9_-]+", pair.public_key)
+    assert re.fullmatch(r"[A-Za-z0-9_-]+", pair.private_key)
+    assert len(pair.public_key) >= 80
+    assert len(pair.private_key) >= 40
+
+
+def test_load_web_push_config_configurazione_e_diagnostica(monkeypatch):
+    for key in WEB_PUSH_ENV:
+        monkeypatch.delenv(key, raising=False)
+
+    assert load_web_push_config({}).configured is False
+    assert load_web_push_config({"IUSENTRA_WEB_PUSH_ENABLED": "1"}).configured is False
+    assert (
+        load_web_push_config(
+            {
+                "IUSENTRA_WEB_PUSH_ENABLED": "1",
+                "IUSENTRA_VAPID_PUBLIC_KEY": "public-key",
+            }
+        ).configured
+        is False
+    )
+    config = load_web_push_config(
+        {
+            "IUSENTRA_WEB_PUSH_ENABLED": "1",
+            "IUSENTRA_VAPID_PUBLIC_KEY": "public-key",
+            "IUSENTRA_VAPID_PRIVATE_KEY": "private-key",
+            "IUSENTRA_VAPID_SUBJECT": "mailto:admin@example.com",
+        }
+    )
+    diagnostics = web_push_config_diagnostics(config, include_subject=True)
+
+    assert config.configured is True
+    assert diagnostics["configured"] is True
+    assert diagnostics["missing"] == []
+    assert diagnostics["hasPrivateKey"] is True
+    assert "private-key" not in json.dumps(diagnostics)
+
+
+def test_diagnostica_segnala_variabili_mancanti_senza_segreti(monkeypatch):
+    for key in WEB_PUSH_ENV:
+        monkeypatch.delenv(key, raising=False)
+
+    diagnostics = web_push_config_diagnostics(
+        {
+            "IUSENTRA_WEB_PUSH_ENABLED": "0",
+            "IUSENTRA_VAPID_PUBLIC_KEY": "",
+            "IUSENTRA_VAPID_PRIVATE_KEY": "secret-private",
+            "IUSENTRA_VAPID_SUBJECT": "mailto:admin@example.com",
+        }
+    )
+
+    assert diagnostics["enabled"] is False
+    assert diagnostics["hasPrivateKey"] is True
+    assert "IUSENTRA_WEB_PUSH_ENABLED" in diagnostics["missing"]
+    assert "IUSENTRA_VAPID_PUBLIC_KEY" in diagnostics["missing"]
+    assert "IUSENTRA_VAPID_PRIVATE_KEY" not in diagnostics["missing"]
+    assert "secret-private" not in json.dumps(diagnostics)
 
 
 def test_repository_notifiche_crea_deduplica_e_marca_letta(tmp_path):
@@ -114,7 +191,49 @@ def test_api_public_key_senza_config_non_rompe_centro_notifiche(tmp_path):
     assert response.status_code == 200
     assert payload["ok"] is False
     assert payload["configured"] is False
+    assert payload["diagnostics"]["hasPublicKey"] is False
+    assert "IUSENTRA_VAPID_PUBLIC_KEY" in payload["diagnostics"]["missing"]
     assert "non configurate" in payload["message"]
+
+
+def test_api_public_key_richiede_autenticazione(tmp_path):
+    cfg = _cfg_web(tmp_path)
+    cfg["NOTIFICATIONS_DB"] = str(tmp_path / "notifications" / "notifications.db")
+    app = create_app(cfg)
+
+    with app.test_client() as client:
+        response = client.get("/api/push/public-key")
+
+    assert response.status_code == 401
+
+
+def test_api_public_key_configurata_non_espone_private_key(tmp_path):
+    cfg = _cfg_web(tmp_path)
+    cfg.update(
+        {
+            "NOTIFICATIONS_DB": str(tmp_path / "notifications" / "notifications.db"),
+            "IUSENTRA_WEB_PUSH_ENABLED": "1",
+            "IUSENTRA_VAPID_PUBLIC_KEY": "public-key",
+            "IUSENTRA_VAPID_PRIVATE_KEY": "private-key-secret",
+            "IUSENTRA_VAPID_SUBJECT": "mailto:admin@example.com",
+        }
+    )
+    app = create_app(cfg)
+    _create_user(app, "operatore", "Operatore123!", ruolo=RuoloUtente.AMMINISTRATORE)
+
+    with app.test_client() as client:
+        _login(client)
+        response = client.get("/api/push/public-key")
+        payload = response.get_json()
+
+    serialized = json.dumps(payload)
+    assert response.status_code == 200
+    assert payload["ok"] is True
+    assert payload["configured"] is True
+    assert payload["publicKey"] == "public-key"
+    assert payload["diagnostics"]["hasPrivateKey"] is True
+    assert "private-key-secret" not in serialized
+    assert "IUSENTRA_VAPID_PRIVATE_KEY" not in serialized
 
 
 def test_api_subscribe_valida_payload_e_persistenza(tmp_path):
@@ -238,3 +357,14 @@ def test_payload_push_privacy_non_include_dati_sensibili():
     assert payload["body"] == "IUSENTRA: evento urgente da verificare."
     for forbidden in ("Mario Rossi", "RSSMRA80A01H501U", "RG 123/2026", "EUR 1.000,00"):
         assert forbidden not in serialized
+
+
+def test_script_configure_web_push_non_stampa_private_key_di_default():
+    script = Path("deploy/hetzner/configure_web_push.sh").read_text(encoding="utf-8")
+    verify = Path("deploy/hetzner/verify_web_push.sh").read_text(encoding="utf-8")
+
+    assert "--print-secrets" in script
+    assert "Private key non stampata" in script
+    assert not re.search(r"echo .*IUSENTRA_VAPID_PRIVATE_KEY", script)
+    assert "private key: present" in verify
+    assert "IUSENTRA_VAPID_PRIVATE_KEY={private_key}" not in verify

@@ -2,6 +2,20 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-13T18:20:00+02:00: tranche 2.218.4 PWA/Web Push.
+`Impostazioni > Notifiche` mantiene l'esperienza React e sostituisce lo stato
+generico `Da configurare` con messaggi operativi: server da configurare,
+browser/dispositivo non supportato, permesso bloccato, dispositivo pronto o
+notifiche attive. Gli amministratori vedono il comando server
+`bash deploy/hetzner/configure_web_push.sh`; gli utenti ordinari vedono che
+l'amministratore deve abilitare il canale. Il consenso browser resta solo su
+click esplicito.
+
+Backend e deploy ora includono diagnostica sicura di `/api/push/public-key`,
+generatore VAPID, verifica CLI e script Hetzner di configurazione/verifica senza
+stampa della chiave privata. Nessuna chiave reale e' stata salvata nel
+repository.
+
 Aggiornamento 2026-05-12T19:50:00+02:00: tranche 2.218.0 su
 `/template-atti`, `/template-atti/catalogo` e compilatore atti. Il catalogo
 mantiene 420 template master e 192 modelli operativi collegati, con schema

@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.218.4 - 2026-05-13
+
+- Aggiunti generatore e diagnostica Web Push/VAPID: `tools/generate_vapid_keys.py`, modulo `pct.notifications.generate_vapid` e comando `python -m pct.notifications.web_push_diagnostics`, senza scrivere chiavi nel repository.
+- Aggiunti script Hetzner `configure_web_push.sh` e `verify_web_push.sh` per configurare `/opt/iusentra/.env.hetzner`, abilitare Web Push, verificare le variabili e non stampare la chiave privata nei log normali.
+- Aggiunto opt-out `IUSENTRA_SKIP_BACKUP_CRON=1` in `deploy/hetzner/deploy.sh` per deploy operativi senza aggiornare la pianificazione backup.
+- Rafforzato `/api/push/public-key`: quando Web Push non e' configurato restituisce diagnostica sicura con variabili mancanti, senza esporre mai la private key; la public key resta visibile solo con configurazione completa.
+- Migliorata la UI `Impostazioni > Notifiche`: distingue server da configurare, browser non supportato, permesso bloccato, dispositivo attivo e istruzioni amministrative, senza chiedere permessi al caricamento.
+- Aggiornata la documentazione PWA/Hetzner con procedura server, verifica da browser e troubleshooting del messaggio `Da configurare`.
+
 ## 2.218.3 - 2026-05-13
 
 - Aggiunto hardening multi-studio fail-closed per API key tenant-aware, contesto studio privato e path dati sensibili, bloccando l'uso della `PCT_API_KEY` globale sui dati di studio in multi-tenant.

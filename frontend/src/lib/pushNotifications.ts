@@ -8,6 +8,7 @@ export type PushDeviceStatus = {
   active: boolean
   permission: PushPermission
   message: string
+  diagnostics?: PushConfigDiagnostics
 }
 
 export type PushActionResult = {
@@ -22,6 +23,16 @@ type PublicKeyPayload = {
   configured?: boolean
   publicKey?: string
   message?: string
+  diagnostics?: PushConfigDiagnostics
+}
+
+export type PushConfigDiagnostics = {
+  enabled?: boolean
+  configured?: boolean
+  hasPublicKey?: boolean
+  hasPrivateKey?: boolean
+  hasSubject?: boolean
+  missing?: string[]
 }
 
 const fallbackPublicKey: PublicKeyPayload = {
@@ -88,24 +99,37 @@ export async function getPushDeviceStatus(): Promise<PushDeviceStatus> {
       configured: false,
       active: false,
       permission: 'unsupported',
-      message: 'Questo dispositivo non supporta le notifiche del gestionale.',
+      message: 'Questo browser/dispositivo non supporta Web Push.',
     }
   }
   const key = await publicKey()
   const registration = await existingRegistration()
   const subscription = registration ? await registration.pushManager.getSubscription() : null
+  const configured = Boolean(key.ok && key.configured && key.publicKey)
+  const permission = currentPermission()
+  let message = key.message || fallbackPublicKey.message || ''
+  if (!configured) {
+    message = 'Sistema notifiche non ancora configurato sul server.'
+  } else if (subscription) {
+    message = 'Notifiche attive su questo dispositivo.'
+  } else if (permission === 'denied') {
+    message = 'Le notifiche sono bloccate nelle impostazioni del browser o del dispositivo.'
+  } else {
+    message = 'Notifiche pronte: puoi attivarle su questo dispositivo.'
+  }
   return {
     supported: true,
-    configured: Boolean(key.ok && key.configured && key.publicKey),
+    configured,
     active: Boolean(subscription),
-    permission: currentPermission(),
-    message: key.ok ? 'Notifiche configurate.' : key.message || fallbackPublicKey.message || '',
+    permission,
+    message,
+    diagnostics: key.diagnostics,
   }
 }
 
 export async function activatePushNotifications(): Promise<PushActionResult> {
   if (!browserSupportsPush()) {
-    return { ok: false, message: 'Questo dispositivo non supporta le notifiche del gestionale.' }
+    return { ok: false, message: 'Questo browser/dispositivo non supporta Web Push.' }
   }
   const key = await publicKey()
   if (!key.ok || !key.publicKey) {

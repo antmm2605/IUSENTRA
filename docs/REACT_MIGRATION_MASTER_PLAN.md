@@ -1,5 +1,19 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-13 - PWA/Web Push configurazione operativa 2.218.4
+
+La sezione `Impostazioni -> Notifiche` mantiene il pannello Web Push gia'
+React e lo rende operativamente configurabile: quando il server non ha VAPID
+completo la UI distingue amministratori e utenti ordinari, mostra una causa
+chiara e non chiede mai permessi browser al caricamento. `/api/push/public-key`
+ora restituisce diagnostica sicura (`enabled`, presenza public/private key,
+subject e variabili mancanti) senza esporre mai la chiave privata; la public key
+viene restituita solo a configurazione completa.
+
+Sono stati aggiunti generatore VAPID, comando diagnostico e script Hetzner per
+configurazione/verifica, con documentazione aggiornata e test mirati. Per
+richiesta operativa corrente non vengono creati backup dallo script Web Push.
+
 ## Stato tranche 2026-05-13 - Template Atti compilatore React STRICT 2.218.2
 
 `/template-atti/compila/<codice>` e' ora servita dalla shell React. La pagina

@@ -2,6 +2,14 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-13T18:20:00+02:00: `Impostazioni > Notifiche` resta nel
+perimetro React operativo e rafforza la diagnosi Web Push senza introdurre form
+POST HTML, `LegacyPostForm` o dati dimostrativi. Il pannello distingue server
+non configurato, utente non amministratore, browser non supportato, permesso
+bloccato e subscription attiva. I dettagli tecnici sensibili restano nel
+payload diagnostico autenticato e nei comandi server; la chiave privata non
+viene mai inviata al frontend.
+
 Aggiornamento 2026-05-12T18:05:00+02:00: `Impostazioni > Notifiche` mantiene
 il perimetro React operativo e aggiunge controlli PWA/Web Push reali: nessuna
 richiesta permesso al caricamento, pulsanti espliciti per attivare, disattivare

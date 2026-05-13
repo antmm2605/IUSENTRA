@@ -67,6 +67,19 @@ Variabili opzionali per PWA/Web Push:
 
 Lasciare il canale disattivo finche' le chiavi VAPID reali non sono state generate e inserite solo nell'ambiente del server.
 
+Configurazione guidata sul server:
+
+```bash
+cd /opt/iusentra/repo
+bash deploy/hetzner/configure_web_push.sh
+IUSENTRA_SKIP_BACKUP_CRON=1 bash deploy/hetzner/deploy.sh
+bash deploy/hetzner/verify_web_push.sh
+```
+
+`IUSENTRA_SKIP_BACKUP_CRON=1` evita di aggiornare il cron backup durante questa configurazione operativa. Ometterlo per il deploy standard.
+
+Lo script genera chiavi VAPID EC P-256 se mancanti, abilita il canale, aggiorna `/opt/iusentra/.env.hetzner` con permessi `600` e non stampa la chiave privata nei log normali. Usare `--force` solo quando si vuole rigenerare la coppia di chiavi.
+
 Generazione chiavi:
 
 ```bash

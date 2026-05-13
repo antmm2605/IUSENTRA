@@ -187,13 +187,17 @@ docker compose \
   ps || true
 
 # ---------------------------------------------------------------------------
-# 8. Cron backup automatico (aggiornato ad ogni deploy)
+# 8. Cron backup automatico (aggiornato ad ogni deploy, salvo opt-out)
 # ---------------------------------------------------------------------------
-CRON_SCHEDULE="${IUSENTRA_BACKUP_CRON_SCHEDULE:-15 2 * * *}"
-CRON_CMD="${CRON_SCHEDULE} bash ${REPO_DIR}/deploy/hetzner/backup.sh >> /var/log/iusentra/backup.log 2>&1"
-CRONTAB_MARKER="# iusentra-backup"
-( crontab -l 2>/dev/null | grep -v "$CRONTAB_MARKER" || true; echo "${CRON_CMD}  ${CRONTAB_MARKER}" ) | crontab -
-echo "Cron backup: ${CRON_SCHEDULE}"
+if [[ "${IUSENTRA_SKIP_BACKUP_CRON:-0}" =~ ^(1|true|yes|on)$ ]]; then
+  echo "Cron backup: non aggiornato (IUSENTRA_SKIP_BACKUP_CRON=1)"
+else
+  CRON_SCHEDULE="${IUSENTRA_BACKUP_CRON_SCHEDULE:-15 2 * * *}"
+  CRON_CMD="${CRON_SCHEDULE} bash ${REPO_DIR}/deploy/hetzner/backup.sh >> /var/log/iusentra/backup.log 2>&1"
+  CRONTAB_MARKER="# iusentra-backup"
+  ( crontab -l 2>/dev/null | grep -v "$CRONTAB_MARKER" || true; echo "${CRON_CMD}  ${CRONTAB_MARKER}" ) | crontab -
+  echo "Cron backup: ${CRON_SCHEDULE}"
+fi
 
 echo ""
 echo "Deploy completato: commit=${DEPLOYED_COMMIT}  branch=${BRANCH}"

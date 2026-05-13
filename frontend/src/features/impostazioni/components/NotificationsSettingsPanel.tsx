@@ -58,7 +58,7 @@ function pushTone(status: PushDeviceStatus): 'success' | 'warning' | 'neutral' |
 
 function pushLabel(status: PushDeviceStatus): string {
   if (!status.supported) return 'Non supportato'
-  if (!status.configured) return 'Da configurare'
+  if (!status.configured) return 'Server da configurare'
   if (status.permission === 'denied') return 'Bloccato dal dispositivo'
   return status.active ? 'Attivo' : 'Disattivo'
 }
@@ -78,6 +78,7 @@ export function NotificationsSettingsPanel({
   const log = rows(raw.registro)
   const channel = asRecord(raw.channel)
   const canSend = Boolean(raw.can_send || data.permissions.can_send_notifications || data.permissions.can_update)
+  const canConfigureServer = Boolean(data.permissions.can_update)
   const [clientId, setClientId] = useState(() => firstClientId(clients))
   const [message, setMessage] = useState('')
   const [link, setLink] = useState('')
@@ -102,6 +103,12 @@ export function NotificationsSettingsPanel({
 
   const selected = useMemo(() => clients.find((client) => text(client.id) === clientId), [clientId, clients])
   const actionPayload = { id_cliente: clientId, numero: selected?.numero || '', testo: message }
+  const serverNotConfigured = pushStatus.supported && !pushStatus.configured
+  const pushDeviceMessage = serverNotConfigured
+    ? canConfigureServer
+      ? 'Sistema notifiche non ancora configurato sul server.'
+      : "Le notifiche su dispositivo non sono ancora state abilitate dall'amministratore."
+    : pushStatus.message
 
   async function run(action: 'link' | 'send' | 'reminders') {
     setBusy(action)
@@ -150,13 +157,20 @@ export function NotificationsSettingsPanel({
         <div className="iu-notify-device-grid">
           <p>
             <b>Stato dispositivo</b>
-            <span>{pushStatus.message}</span>
+            <span>{pushDeviceMessage}</span>
           </p>
           <p>
             <b>iPhone e iPad</b>
-            <span>Potrebbe essere necessario aggiungere IUSENTRA alla schermata Home e usare un sistema aggiornato.</span>
+            <span>Su iPhone/iPad puo' essere necessario aggiungere IUSENTRA alla schermata Home e aprirla dall'icona installata.</span>
           </p>
         </div>
+        {serverNotConfigured && canConfigureServer ? (
+          <div className="iu-notify-admin-note" role="note">
+            <strong>Configurazione server richiesta</strong>
+            <span>Sul server eseguire: <code>bash deploy/hetzner/configure_web_push.sh</code></span>
+            <span>Poi eseguire deploy/riavvio e verificare lo stato Web Push.</span>
+          </div>
+        ) : null}
         <div className="iu-notify-actions">
           <Button
             type="button"

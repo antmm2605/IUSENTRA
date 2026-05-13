@@ -126,6 +126,32 @@
   font-weight: 700;
 }
 
+.iu-notify-admin-note {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid rgba(180, 83, 9, 0.22);
+  border-radius: 10px;
+  background: rgba(245, 158, 11, 0.08);
+  color: #78350f;
+  font-size: 12px;
+  line-height: 1.4;
+  font-weight: 750;
+}
+
+.iu-notify-admin-note strong {
+  color: #713f12;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.iu-notify-admin-note code {
+  overflow-wrap: anywhere;
+  color: #3f2d12;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 12px;
+}
+
 .iu-notify-quick button {
   max-width: 100%;
   white-space: normal;

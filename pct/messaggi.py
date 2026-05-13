@@ -30,6 +30,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
+from email.utils import make_msgid
 
 
 # ------------------------------------------------------------------ Enums
@@ -452,6 +453,7 @@ class GestioneMessaggi:
             )
             mime["To"] = destinatario
             mime["Subject"] = oggetto
+            mime["Message-ID"] = make_msgid()
             if self.config.email.reply_to:
                 mime["Reply-To"] = self.config.email.reply_to
 

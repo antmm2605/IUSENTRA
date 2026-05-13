@@ -1,5 +1,20 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-13 - Email ordinaria deduplica inviati 2.218.8
+
+La sincronizzazione di Email ordinaria rimuove ora in modo centrale i duplicati
+tra copia locale inviata dall'app e copia IMAP salvata dal provider nella
+cartella Inviati, anche quando il server registra il messaggio con uno scarto di
+orario. Il confronto resta prudente: si applica solo alla coppia locale/IMAP e
+richiede oggetto, destinatari normalizzati, corpo e orario vicino coerenti, cosi'
+due invii locali simili non vengono fusi tra loro.
+
+Gli invii SMTP generano sempre un `Message-ID` prima della trasmissione e lo
+salvano nello storico messaggi. Le sincronizzazioni future possono quindi usare
+una chiave stabile; le righe gia' duplicate vengono normalizzate al successivo
+passaggio di sincronizzazione ordinaria senza richiedere controlli manuali per
+singolo studio.
+
 ## Stato tranche 2026-05-13 - Allegati PEC e cartelle Legalmail 2.218.7
 
 Il dettaglio React PEC/email resta full React ma non propone piu' link verso

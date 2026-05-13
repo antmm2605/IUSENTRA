@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.218.8 - 2026-05-13
+
+- Corretto il doppione in Email ordinaria tra messaggio inviato locale e copia IMAP della cartella Inviati quando il provider salva la copia con uno scarto di orario.
+- Gli invii email SMTP generano sempre un `Message-ID`, cosi' le sincronizzazioni successive hanno una chiave stabile e non dipendono dal secondo esatto registrato dal server.
+- Aggiunti test mirati per deduplica con orario server diverso e per evitare fusioni indebite tra due invii locali simili.
+
 ## 2.218.7 - 2026-05-13
 
 - Corretto il riconoscimento delle cartelle Legalmail non quotate (`INBOX.Cestino`, `INBOX.Inviata`) durante la sincronizzazione PEC, cosi' i messaggi spostati possono essere riletti e riallineati quando sono ancora presenti sul server.

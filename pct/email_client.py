@@ -20,9 +20,9 @@ import uuid
 import shutil
 import unicodedata
 from email import policy
-from datetime import datetime
+from datetime import datetime, timezone
 from email.header import decode_header
-from email.utils import parsedate_to_datetime
+from email.utils import getaddresses, parsedate_to_datetime
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 from dataclasses import dataclass, field, asdict
@@ -370,13 +370,106 @@ class GestioneEmailRicevute:
         return " ".join(str(value or "").split()).strip().lower()
 
     @classmethod
+    def _normalizza_indirizzi_confronto(cls, value: str) -> str:
+        indirizzi = sorted(
+            address.strip().lower()
+            for _name, address in getaddresses([str(value or "")])
+            if address and address.strip()
+        )
+        if indirizzi:
+            return ",".join(indirizzi)
+        return cls._normalizza_testo_confronto(value)
+
+    @classmethod
+    def _corpo_inviata_confronto(cls, email_obj: EmailRicevuta) -> str:
+        return cls._normalizza_testo_confronto(
+            getattr(email_obj, "corpo_testo", "") or getattr(email_obj, "corpo_html", "")
+        )[:240]
+
+    @staticmethod
+    def _timestamp_confronto(value: str) -> float | None:
+        raw = str(value or "").strip()
+        if not raw:
+            return None
+        candidates = [raw, raw[:19]]
+        for candidate in candidates:
+            try:
+                dt = datetime.fromisoformat(candidate.replace("Z", "+00:00"))
+            except ValueError:
+                continue
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            return dt.timestamp()
+        try:
+            dt = parsedate_to_datetime(raw)
+        except (TypeError, ValueError, IndexError, OverflowError):
+            return None
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.timestamp()
+
+    @classmethod
+    def _timestamp_email_confronto(cls, email_obj: EmailRicevuta) -> float | None:
+        return cls._timestamp_confronto(
+            getattr(email_obj, "data", "") or getattr(email_obj, "ricevuta_il", "") or ""
+        )
+
+    @classmethod
+    def _origine_record_locale_inviata(cls, email_obj: EmailRicevuta) -> bool:
+        origin = str(getattr(email_obj, "origine", "") or "").strip().upper()
+        record_id = str(getattr(email_obj, "id", "") or "")
+        return origin == "INVIATA" or record_id.startswith("INVIATA:")
+
+    @classmethod
+    def _origine_record_imap_inviata(cls, email_obj: EmailRicevuta) -> bool:
+        origin = str(getattr(email_obj, "origine", "") or "").strip().upper()
+        uid_imap = str(getattr(email_obj, "uid_imap", "") or "")
+        return origin in {"IMAP", CartellaEmail.INVIATI} or cls._uid_imap_stabile(uid_imap)
+
+    @classmethod
+    def _coppia_locale_imap_inviata(
+        cls,
+        candidate: EmailRicevuta,
+        existing: EmailRicevuta,
+    ) -> bool:
+        return (
+            cls._origine_record_locale_inviata(candidate)
+            and cls._origine_record_imap_inviata(existing)
+        ) or (
+            cls._origine_record_locale_inviata(existing)
+            and cls._origine_record_imap_inviata(candidate)
+        )
+
+    @classmethod
     def _fingerprint_inviata(cls, email_obj: EmailRicevuta) -> tuple[str, str, str, str]:
         return (
             cls._normalizza_testo_confronto(getattr(email_obj, "oggetto", "")),
-            cls._normalizza_testo_confronto(getattr(email_obj, "destinatari", "")),
+            cls._normalizza_indirizzi_confronto(getattr(email_obj, "destinatari", "")),
             str(getattr(email_obj, "data", "") or getattr(email_obj, "ricevuta_il", "") or "")[:19],
-            cls._normalizza_testo_confronto(getattr(email_obj, "corpo_testo", "") or getattr(email_obj, "corpo_html", ""))[:240],
+            cls._corpo_inviata_confronto(email_obj),
         )
+
+    @classmethod
+    def _email_inviata_equivalente_con_scarto_orario(
+        cls,
+        candidate: EmailRicevuta,
+        existing: EmailRicevuta,
+    ) -> bool:
+        if not cls._coppia_locale_imap_inviata(candidate, existing):
+            return False
+        candidate_subject, candidate_recipients, _candidate_date, candidate_body = cls._fingerprint_inviata(candidate)
+        existing_subject, existing_recipients, _existing_date, existing_body = cls._fingerprint_inviata(existing)
+        if not candidate_subject or candidate_subject != existing_subject:
+            return False
+        if not candidate_recipients or candidate_recipients != existing_recipients:
+            return False
+        if not candidate_body or candidate_body != existing_body:
+            return False
+        candidate_timestamp = cls._timestamp_email_confronto(candidate)
+        existing_timestamp = cls._timestamp_email_confronto(existing)
+        if candidate_timestamp is None or existing_timestamp is None:
+            return False
+        return abs(candidate_timestamp - existing_timestamp) <= 15 * 60
 
     @classmethod
     def _email_inviata_equivalente(
@@ -393,7 +486,9 @@ class GestioneEmailRicevute:
         fingerprint = cls._fingerprint_inviata(candidate)
         if not all(fingerprint[:3]):
             return False
-        return fingerprint == cls._fingerprint_inviata(existing)
+        if fingerprint == cls._fingerprint_inviata(existing):
+            return True
+        return cls._email_inviata_equivalente_con_scarto_orario(candidate, existing)
 
     @classmethod
     def _preferisci_record_inviato_canonico(

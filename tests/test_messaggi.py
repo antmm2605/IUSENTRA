@@ -79,6 +79,38 @@ def test_invia_email_mock(gm):
     assert msg.stato in (StatoMessaggio.INVIATO, StatoMessaggio.FALLITO)
 
 
+def test_invia_email_imposta_message_id_per_deduplica_inviati(gm):
+    sent = {}
+
+    class FakeSMTP:
+        def __init__(self, *args, **kwargs):
+            sent["init"] = (args, kwargs)
+
+        def starttls(self, context=None):
+            sent["starttls"] = context
+
+        def login(self, username, password):
+            sent["login"] = (username, password)
+
+        def send_message(self, mime):
+            sent["mime"] = mime
+
+        def quit(self):
+            sent["quit"] = True
+
+    with patch("pct.messaggi._SMTPv4", FakeSMTP):
+        msg = gm.invia_email(
+            destinatario="cliente@example.com",
+            oggetto="Test",
+            corpo_testo="Testo di prova",
+        )
+
+    assert msg.stato == StatoMessaggio.INVIATO
+    assert msg.sid_esterno.startswith("<")
+    assert msg.sid_esterno.endswith(">")
+    assert sent["mime"]["Message-ID"] == msg.sid_esterno
+
+
 def test_email_salvata_in_db(tmp_path, cfg):
     """Un messaggio email è persistito nel DB."""
     db = str(tmp_path / "msg.json")

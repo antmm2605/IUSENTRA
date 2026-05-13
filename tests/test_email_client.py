@@ -1524,6 +1524,79 @@ def test_sincronizza_inviati_rimuove_doppione_quando_esiste_gia_copia_imap_invia
     assert rows["MAIL-IMAP-SENT-1"].uid_imap == "Sent Items:UID:44"
 
 
+def test_sincronizza_inviati_rimuove_doppione_con_orario_server_diverso(tmp_path):
+    ge = GestioneEmailRicevute(str(tmp_path / "casella.json"))
+    ge.aggiungi(
+        EmailRicevuta(
+            id="MAIL-IMAP-SENT-DRIFT",
+            cartella=CartellaEmail.INVIATI,
+            stato=StatoEmail.LETTA,
+            mittente="Giuseppe Montagnese <studio@example.it>",
+            destinatari='"antonella_santoro.as" <cliente@example.it>',
+            oggetto="Re: Ricorso Carta docente",
+            data="2026-05-13T10:17:03",
+            corpo_testo="Buongiorno prof.ssa Santoro, faccio seguito alla mia comunicazione.",
+            uid_imap="Sent Items:UID:77",
+            message_id="",
+            origine="IMAP",
+        )
+    )
+
+    msg = SimpleNamespace(
+        id="MSG-DRIFT",
+        email_destinatario="cliente@example.it",
+        oggetto="Re: Ricorso Carta docente",
+        corpo="Buongiorno prof.ssa Santoro, faccio seguito alla mia comunicazione.",
+        corpo_html="",
+        inviato_il="2026-05-13T10:16:28",
+        creato_il="2026-05-13T10:16:10",
+        sid_esterno="",
+    )
+
+    aggiunti = ge.sincronizza_inviati([msg])
+    rows = GestioneEmailRicevute(str(tmp_path / "casella.json"))._carica()
+
+    assert aggiunti == 0
+    assert len(rows) == 1
+    assert "MAIL-IMAP-SENT-DRIFT" in rows
+    assert "INVIATA:MSG-DRIFT" not in rows
+    assert rows["MAIL-IMAP-SENT-DRIFT"].uid_imap == "Sent Items:UID:77"
+
+
+def test_sincronizza_inviati_non_fonde_due_invii_locali_simili_senza_message_id(tmp_path):
+    ge = GestioneEmailRicevute(str(tmp_path / "casella.json"))
+    ge.aggiungi(
+        EmailRicevuta(
+            id="INVIATA:MSG-OLD",
+            cartella=CartellaEmail.INVIATI,
+            stato=StatoEmail.LETTA,
+            destinatari="cliente@example.it",
+            oggetto="Promemoria udienza",
+            data="2026-05-13T10:00:00",
+            corpo_testo="Ricordo l'udienza di domani.",
+            message_id="",
+            origine="INVIATA",
+        )
+    )
+
+    msg = SimpleNamespace(
+        id="MSG-NEW",
+        email_destinatario="cliente@example.it",
+        oggetto="Promemoria udienza",
+        corpo="Ricordo l'udienza di domani.",
+        corpo_html="",
+        inviato_il="2026-05-13T10:01:00",
+        creato_il="2026-05-13T10:00:59",
+        sid_esterno="",
+    )
+
+    aggiunti = ge.sincronizza_inviati([msg])
+    rows = GestioneEmailRicevute(str(tmp_path / "casella.json"))._carica()
+
+    assert aggiunti == 1
+    assert set(rows) == {"INVIATA:MSG-OLD", "INVIATA:MSG-NEW"}
+
+
 def test_email_dettaglio_visualizza_anche_xml_ed_eml(tmp_path):
     from web.app import create_app
 

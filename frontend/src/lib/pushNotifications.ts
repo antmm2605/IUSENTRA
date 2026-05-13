@@ -94,7 +94,7 @@ function subscriptionPayload(subscription: PushSubscription): Record<string, unk
 }
 
 export async function getPushDeviceStatus(): Promise<PushDeviceStatus> {
-  const enabled = await isFeatureFlagEnabled('notifications.mobilePush')
+  const enabled = await isFeatureFlagEnabled('routes.appV2.notifications.mobilePush')
   if (!enabled) {
     return {
       supported: browserSupportsPush(),
@@ -139,7 +139,7 @@ export async function getPushDeviceStatus(): Promise<PushDeviceStatus> {
 }
 
 export async function activatePushNotifications(): Promise<PushActionResult> {
-  const enabled = await isFeatureFlagEnabled('notifications.mobilePush')
+  const enabled = await isFeatureFlagEnabled('routes.appV2.notifications.mobilePush')
   if (!enabled) {
     return { ok: false, message: 'Notifiche su dispositivo non attive per questo studio.' }
   }
@@ -170,7 +170,7 @@ export async function activatePushNotifications(): Promise<PushActionResult> {
 }
 
 export async function deactivatePushNotifications(): Promise<PushActionResult> {
-  const enabled = await isFeatureFlagEnabled('notifications.mobilePush')
+  const enabled = await isFeatureFlagEnabled('routes.appV2.notifications.mobilePush')
   if (!enabled) {
     return { ok: false, message: 'Notifiche su dispositivo non attive per questo studio.' }
   }
@@ -188,7 +188,7 @@ export async function deactivatePushNotifications(): Promise<PushActionResult> {
 }
 
 export function sendPushTest(): Promise<PushActionResult> {
-  return isFeatureFlagEnabled('notifications.mobilePush').then((enabled) => {
+  return isFeatureFlagEnabled('routes.appV2.notifications.mobilePush').then((enabled) => {
     if (!enabled) return { ok: false, message: 'Notifiche su dispositivo non attive per questo studio.' }
     return apiPostJson<PushActionResult>('/api/push/test', {}, fallbackAction)
   })

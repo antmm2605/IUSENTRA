@@ -97,6 +97,8 @@ function pythonTupleSource(source, name) {
 }
 
 const app = read('src/App.tsx')
+const appRoutes = read('src/app/routes.ts')
+const featureFlags = read('src/lib/featureFlags.ts')
 const packageJson = JSON.parse(read('package.json'))
 const dashboardData = read('src/data.ts')
 const agenda = read('src/components/AgendaPage.tsx')
@@ -1783,6 +1785,36 @@ function assertManifestRoute(route, status, unlockFromGate) {
   const entry = manifestRoute(route)
   if (!entry || entry.status !== status || entry.unlockFromGate !== unlockFromGate) {
     throw new Error(`route manifest 10A: ${route} deve essere ${status} con unlockFromGate=${unlockFromGate}`)
+  }
+}
+
+assertContains(featureFlags, 'appV2RouteFlagRules', 'feature flag App V2 con mappa percorsi')
+assertContains(featureFlags, 'appV2FeatureFlagForPath', 'helper frontend flag App V2')
+assertContains(featureFlags, "'routes.appV2.documents.list'", 'flag canonico documenti')
+assertContains(featureFlags, "'routes.appV2.dashboard.home'", 'flag canonico panoramica')
+assertContains(featureFlags, "'routes.appV2.notifications.mobilePush'", 'flag canonico notifiche dispositivo')
+assertContains(app, 'appV2FeatureFlagForPath(routeKey)', 'guard App V2 in App.tsx')
+assertContains(app, 'appV2FlagProtectedPath', 'guard App V2 limitata alla shell sperimentale')
+assertContains(app, 'effectiveStandalonePage', 'guard App V2 sospende fetch pagina')
+assertContains(app, 'FeatureUnavailablePage', 'stato flag off App V2')
+assertContains(appRoutes, 'MAIN_NAV_ROUTES', 'menu App V2 filtrato per feature flag')
+for (const route of [
+  '/app',
+  '/app/regia',
+  '/app/fascicoli',
+  '/app/anagrafiche',
+  '/app/agenda',
+  '/app/mandato',
+  '/app/documenti',
+  '/app/telematico',
+  '/app/comunicazioni',
+  '/app/lex',
+  '/app/amministrazione',
+  '/app/impostazioni',
+]) {
+  const pattern = new RegExp(`path:\\s*'${route.replace(/\//g, '\\/')}'[^\\n]*featureFlag:\\s*'routes\\.appV2\\.`)
+  if (!pattern.test(appRoutes)) {
+    throw new Error(`App Routes: ${route} deve avere featureFlag canonico routes.appV2.*`)
   }
 }
 

@@ -28,7 +28,7 @@ class SmokeTarget:
 DEFAULT_TARGETS = (
     SmokeTarget("feature flag pubblici", "/api/v1/ui/feature-flags", (200,)),
     SmokeTarget("App V2 documenti flag-off", "/app-v2/documenti", (403, 200)),
-    SmokeTarget("Regia App V2", "/app-v2", (200,)),
+    SmokeTarget("App V2 panoramica flag-off", "/app-v2", (403, 200)),
 )
 
 

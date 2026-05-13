@@ -4,7 +4,10 @@ Aggiornato: 2026-05-13.
 
 ## Strategia
 
-Le nuove capability App V2 partono con flag spento. Ogni rollout richiede metriche di salute, smoke mirato e possibilita di spegnimento entro 2 ore.
+Le nuove capability App V2 partono con flag spento. Dalla fase 3 il flag e'
+per pagina/famiglia (`routes.appV2.<area>.<pagina>`): backend, menu frontend e
+fetch usano lo stesso valore. Ogni rollout richiede metriche di salute, smoke
+mirato e possibilita di spegnimento entro 2 ore.
 
 ## Percentuali
 
@@ -53,7 +56,7 @@ curl -fsS https://app.iusentra.it/api/v1/ui/feature-flags
 
 Per Web Push, autenticarsi con sessione tenant e verificare che `/api/push/public-key` non esponga mai private key.
 
-Fase 2 aggiunge lo smoke parametrico senza segreti in repository:
+Fase 3 usa lo smoke parametrico senza segreti in repository:
 
 ```bash
 IUSENTRA_BASE_URL=https://app.iusentra.it \
@@ -67,3 +70,7 @@ Senza credenziali e' consentito solo l'inventario:
 ```bash
 python scripts/smoke_app_v2_pages.py --list
 ```
+
+La risposta `403` su `/app-v2` o `/app-v2/documenti` e' corretta quando il flag
+del tenant e' spento; la risposta `200` e' corretta solo per tenant/ambienti
+abilitati esplicitamente.

@@ -1,5 +1,27 @@
 # Migrazione progressiva Flask + React
 
+## Stato fase react 3 - 2026-05-13 - Feature flag per pagina App V2 2.224.0
+
+La terza fase del piano `fasereact` rende esplicito il rollout App V2: ogni
+pagina o famiglia della shell sperimentale ha un flag canonico
+`routes.appV2.<area>.<pagina>`, default-off, con alias compatibili per i flag
+introdotti nelle fasi 1-2.
+
+`web/services/feature_flags.py` ora risolve alias e flag canonici nello stesso
+stato, mappa percorsi statici/dinamici di `/app-v2` e blocca anche la root
+quando `routes.appV2.dashboard.home` e' spento. La shell sperimentale usa la
+stessa mappa in `frontend/src/lib/featureFlags.ts`: menu App V2 nascosti, stato
+operativo "Modulo non attivo" e nessun fetch pagina quando il flag e' off. Le
+route operative storiche gia' promosse React restano disponibili e governate
+dal manifest.
+
+Aggiornati `docs/app-v2-page-registry.md` e
+`docs/frontend-app-v2-pages.md` con default, fallback flag-off, protezione
+frontend/backend e test on/off. I gate mirati della fase sono
+`tests/test_feature_flags.py`, `tests/test_app_v2_feature_flags.py`,
+`tests/test_app_v2_page_registry.py`, typecheck/test/build frontend e smoke
+App V2.
+
 ## Stato fase react 2 - 2026-05-13 - Registro pagine App V2 2.223.0
 
 La seconda fase del piano `fasereact` trasforma la migrazione in un registro

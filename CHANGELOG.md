@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.224.0 - 2026-05-13
+
+- Completata la fase 3 `fasereact`: introdotti flag canonici `routes.appV2.<area>.<pagina>` default-off per ogni pagina/famiglia App V2, con alias compatibili per i flag delle fasi 1-2.
+- Rafforzata la protezione `/app-v2`: root e percorsi dinamici vengono mappati al flag corretto, con blocco 403 quando il modulo non e' abilitato per lo studio.
+- Allineato il frontend: mappa flag in `featureFlags.ts`, menu App V2 filtrato, stato operativo "Modulo non attivo" e fetch sospesi quando il flag e' off nella shell sperimentale.
+- Rigenerati `docs/app-v2-page-registry.md` e `docs/frontend-app-v2-pages.md` con default, fallback flag-off, protezione frontend/backend e test on/off.
+- Aggiunti test mirati `tests/test_app_v2_feature_flags.py` ed estesi `tests/test_feature_flags.py`, `tests/test_react_shell.py`, `check-react-contracts` e `check-route-gate` per impedire regressioni di governance.
+
 ## 2.223.0 - 2026-05-13
 
 - Completata la fase 2 `fasereact` come censimento governato: aggiunto `docs/app-v2-page-registry.md` con 98 route manifest, stato React/legacy, feature flag, RBAC, rischio tenant/PII, test presenti/mancanti, priorita e stato finale.

@@ -25,41 +25,106 @@ class FeatureFlagDefinition:
     default: bool = False
 
 
+def _env_var(flag_key: str) -> str:
+    return "IUSENTRA_FF_" + re.sub(r"[^A-Z0-9]+", "_", flag_key.upper()).strip("_")
+
+
+def _flag(key: str, description: str) -> FeatureFlagDefinition:
+    return FeatureFlagDefinition(key, _env_var(key), description)
+
+
 FEATURE_FLAG_DEFINITIONS: tuple[FeatureFlagDefinition, ...] = (
+    _flag("routes.appV2.dashboard.home", "Panoramica nella shell App V2 sperimentale."),
+    _flag("routes.appV2.dashboard.regia", "Regia operativa nella shell App V2 sperimentale."),
+    _flag("routes.appV2.search.global", "Ricerca globale nella shell App V2 sperimentale."),
+    _flag("routes.appV2.cases.list", "Fascicoli nella shell App V2 sperimentale."),
+    _flag("routes.appV2.cases.detail", "Dettaglio fascicolo nella shell App V2 sperimentale."),
+    _flag("routes.appV2.cases.create", "Creazione fascicolo nella shell App V2 sperimentale."),
+    _flag("routes.appV2.clients.list", "Clienti nella shell App V2 sperimentale."),
+    _flag("routes.appV2.clients.create", "Nuovo cliente nella shell App V2 sperimentale."),
+    _flag("routes.appV2.clients.detail", "Cartella cliente nella shell App V2 sperimentale."),
+    _flag("routes.appV2.contacts.list", "Soggetti e parti nella shell App V2 sperimentale."),
+    _flag("routes.appV2.contacts.create", "Nuovo soggetto nella shell App V2 sperimentale."),
+    _flag("routes.appV2.comms.deposits", "Workspace comunicazioni e depositi nella shell App V2 sperimentale."),
+    _flag("routes.appV2.comms.pec", "Email PEC nella shell App V2 sperimentale."),
+    _flag("routes.appV2.comms.ordinaryMail", "Email ordinaria nella shell App V2 sperimentale."),
+    _flag("routes.appV2.comms.messages", "Messaggi nella shell App V2 sperimentale."),
+    _flag("routes.appV2.comms.newMessage", "Nuovo messaggio nella shell App V2 sperimentale."),
+    _flag("routes.appV2.agenda.calendar", "Agenda nella shell App V2 sperimentale."),
+    _flag("routes.appV2.agenda.create", "Nuovo appuntamento nella shell App V2 sperimentale."),
+    _flag("routes.appV2.agenda.timesheet", "Timesheet nella shell App V2 sperimentale."),
+    _flag("routes.appV2.deadlines.list", "Scadenziario nella shell App V2 sperimentale."),
+    _flag("routes.appV2.deadlines.create", "Nuova scadenza nella shell App V2 sperimentale."),
+    _flag("routes.appV2.deadlines.detail", "Dettaglio scadenza nella shell App V2 sperimentale."),
+    _flag("routes.appV2.deadlines.hearingWizard", "Preparazione udienza guidata nella shell App V2 sperimentale."),
+    _flag("routes.appV2.documents.list", "Documenti nella shell App V2 sperimentale."),
+    _flag("routes.appV2.documents.templates", "Template atti nella shell App V2 sperimentale."),
+    _flag("routes.appV2.documents.templateEditor", "Editor template atti nella shell App V2 sperimentale."),
+    _flag("routes.appV2.documents.drafting", "Redazione atti nella shell App V2 sperimentale."),
+    _flag("routes.appV2.documents.editor", "Editor documento fascicolo nella shell App V2 sperimentale."),
+    _flag("routes.appV2.documents.uploadClassification", "Upload multiplo e classificazione documenti nella shell App V2."),
+    _flag("routes.appV2.documents.checklist", "Controlli atti nella shell App V2 sperimentale."),
+    _flag("routes.appV2.legalResearch.home", "Ricerca legale nella shell App V2 sperimentale."),
+    _flag("routes.appV2.legalResearch.giurisprudenza", "Archivio giurisprudenza nella shell App V2 sperimentale."),
+    _flag("routes.appV2.telematico.center", "Centro telematico nella shell App V2 sperimentale."),
+    _flag("routes.appV2.telematico.surface", "Superfici telematiche assistite nella shell App V2 sperimentale."),
+    _flag("routes.appV2.studio.home", "Studio nella shell App V2 sperimentale."),
+    _flag("routes.appV2.studio.statistics", "Statistiche nella shell App V2 sperimentale."),
+    _flag("routes.appV2.studio.modules", "Moduli studio nella shell App V2 sperimentale."),
+    _flag("routes.appV2.studio.site", "Sito Studio nella shell App V2 sperimentale."),
+    _flag("routes.appV2.studio.siteBuilder", "Builder Sito Studio nella shell App V2 sperimentale."),
+    _flag("routes.appV2.studio.siteDrafting", "Redazione Sito Studio nella shell App V2 sperimentale."),
+    _flag("routes.appV2.admin.home", "Amministrazione nella shell App V2 sperimentale."),
+    _flag("routes.appV2.admin.users", "Utenti nella shell App V2 sperimentale."),
+    _flag("routes.appV2.admin.roles", "Profili e permessi nella shell App V2 sperimentale."),
+    _flag("routes.appV2.admin.auditLogs", "Registro attivita nella shell App V2 sperimentale."),
+    _flag("routes.appV2.admin.database", "Database nella shell App V2 sperimentale."),
+    _flag("routes.appV2.admin.privacyRegistry", "Registro GDPR nella shell App V2 sperimentale."),
+    _flag("routes.appV2.settings.studio", "Impostazioni studio nella shell App V2 sperimentale."),
+    _flag("routes.appV2.settings.payments", "Pagamenti nelle impostazioni App V2 sperimentale."),
+    _flag("routes.appV2.settings.notifications", "Notifiche nelle impostazioni App V2 sperimentale."),
+    _flag("routes.appV2.settings.backup", "Backup nelle impostazioni App V2 sperimentale."),
+    _flag("routes.appV2.settings.calendarSync", "Sincronizzazione calendari nella shell App V2 sperimentale."),
+    _flag("routes.appV2.billing.invoices", "Parcelle e fatture nella shell App V2 sperimentale."),
+    _flag("routes.appV2.billing.payments", "Incassi e pagamenti nella shell App V2 sperimentale."),
+    _flag("routes.appV2.billing.quotes", "Preventivi e incarichi nella shell App V2 sperimentale."),
+    _flag("routes.appV2.billing.compensi", "Compensi forensi nella shell App V2 sperimentale."),
+    _flag("routes.appV2.billing.tariffario", "Tariffario nella shell App V2 sperimentale."),
+    _flag("routes.appV2.notifications.mobilePush", "Notifiche Web Push su dispositivo mobile/tablet."),
     FeatureFlagDefinition(
         "routes.appV2.docsPanel",
         "IUSENTRA_FF_ROUTES_APPV2_DOCS_PANEL",
-        "Pannello documenti fascicolo nella shell App V2 sperimentale.",
+        "Alias compatibilita fase 1 per routes.appV2.documents.list.",
     ),
     FeatureFlagDefinition(
         "routes.appV2.commsDeposits",
         "IUSENTRA_FF_ROUTES_APPV2_COMMS_DEPOSITS",
-        "Workspace comunicazioni e depositi nella shell App V2 sperimentale.",
+        "Alias compatibilita fase 1 per routes.appV2.comms.deposits.",
     ),
     FeatureFlagDefinition(
         "routes.appV2.uploadClassification",
         "IUSENTRA_FF_ROUTES_APPV2_UPLOAD_CLASSIFICATION",
-        "Upload multiplo e classificazione documenti nella shell App V2.",
+        "Alias compatibilita fase 1 per routes.appV2.documents.uploadClassification.",
     ),
     FeatureFlagDefinition(
         "routes.appV2.deadlines",
         "IUSENTRA_FF_ROUTES_APPV2_DEADLINES",
-        "Scadenze e termini nella shell App V2 sperimentale.",
+        "Alias compatibilita fase 1 per routes.appV2.deadlines.list.",
     ),
     FeatureFlagDefinition(
         "routes.appV2.agenda",
         "IUSENTRA_FF_ROUTES_APPV2_AGENDA",
-        "Agenda nella shell App V2 sperimentale.",
+        "Alias compatibilita fase 1 per routes.appV2.agenda.calendar.",
     ),
     FeatureFlagDefinition(
         "routes.appV2.caseFiles",
         "IUSENTRA_FF_ROUTES_APPV2_CASE_FILES",
-        "Fascicoli e pratiche nella shell App V2 sperimentale.",
+        "Alias compatibilita fase 1 per routes.appV2.cases.list.",
     ),
     FeatureFlagDefinition(
         "notifications.mobilePush",
         "IUSENTRA_FF_NOTIFICATIONS_MOBILE_PUSH",
-        "Notifiche Web Push su dispositivo mobile/tablet.",
+        "Alias compatibilita fase 1 per routes.appV2.notifications.mobilePush.",
     ),
 )
 
@@ -67,12 +132,115 @@ FEATURE_FLAG_KEYS = frozenset(definition.key for definition in FEATURE_FLAG_DEFI
 FEATURE_FLAGS_BY_KEY = {definition.key: definition for definition in FEATURE_FLAG_DEFINITIONS}
 FEATURE_FLAGS_BY_ENV = {definition.env_var: definition for definition in FEATURE_FLAG_DEFINITIONS}
 
+FEATURE_FLAG_ALIASES: dict[str, tuple[str, ...]] = {
+    "routes.appV2.documents.list": ("routes.appV2.docsPanel",),
+    "routes.appV2.comms.deposits": ("routes.appV2.commsDeposits",),
+    "routes.appV2.documents.uploadClassification": ("routes.appV2.uploadClassification",),
+    "routes.appV2.deadlines.list": ("routes.appV2.deadlines",),
+    "routes.appV2.agenda.calendar": ("routes.appV2.agenda",),
+    "routes.appV2.cases.list": ("routes.appV2.caseFiles",),
+    "routes.appV2.notifications.mobilePush": ("notifications.mobilePush",),
+}
+
+FEATURE_FLAG_CANONICAL_BY_ALIAS = {
+    alias: canonical
+    for canonical, aliases in FEATURE_FLAG_ALIASES.items()
+    for alias in aliases
+}
+
 APP_V2_ROUTE_FLAGS: tuple[tuple[str, str], ...] = (
-    ("documenti", "routes.appV2.docsPanel"),
-    ("comunicazioni", "routes.appV2.commsDeposits"),
-    ("agenda", "routes.appV2.agenda"),
-    ("scadenziario", "routes.appV2.deadlines"),
-    ("fascicoli", "routes.appV2.caseFiles"),
+    ("/fascicoli/{id}/documenti/{id_doc}/editor", "routes.appV2.documents.editor"),
+    ("/fascicoli/*/documenti/*/editor", "routes.appV2.documents.editor"),
+    ("/fascicoli/nuovo", "routes.appV2.cases.create"),
+    ("/fascicoli/archivio", "routes.appV2.cases.list"),
+    ("/fascicoli/", "routes.appV2.cases.detail"),
+    ("/fascicoli", "routes.appV2.cases.list"),
+    ("/clienti/nuovo", "routes.appV2.clients.create"),
+    ("/clienti/*/modifica", "routes.appV2.clients.create"),
+    ("/clienti/", "routes.appV2.clients.detail"),
+    ("/clienti", "routes.appV2.clients.list"),
+    ("/soggetti/nuovo", "routes.appV2.contacts.create"),
+    ("/soggetti/*/modifica", "routes.appV2.contacts.create"),
+    ("/soggetti", "routes.appV2.contacts.list"),
+    ("/cartelle-condivise", "routes.appV2.clients.detail"),
+    ("/email-ordinaria/scrivi", "routes.appV2.comms.ordinaryMail"),
+    ("/email-ordinaria", "routes.appV2.comms.ordinaryMail"),
+    ("/email/scrivi", "routes.appV2.comms.pec"),
+    ("/email", "routes.appV2.comms.pec"),
+    ("/notifiche-legali", "routes.appV2.comms.pec"),
+    ("/messaggi/nuovo", "routes.appV2.comms.newMessage"),
+    ("/messaggi", "routes.appV2.comms.messages"),
+    ("/comunicazioni", "routes.appV2.comms.deposits"),
+    ("/agenda/nuovo", "routes.appV2.agenda.create"),
+    ("/agenda/", "routes.appV2.agenda.calendar"),
+    ("/agenda", "routes.appV2.agenda.calendar"),
+    ("/timesheet", "routes.appV2.agenda.timesheet"),
+    ("/scadenziario/nuova", "routes.appV2.deadlines.create"),
+    ("/scadenziario/*/modifica", "routes.appV2.deadlines.detail"),
+    ("/scadenziario/", "routes.appV2.deadlines.detail"),
+    ("/scadenziario", "routes.appV2.deadlines.list"),
+    ("/wizard-pro", "routes.appV2.deadlines.hearingWizard"),
+    ("/documenti", "routes.appV2.documents.list"),
+    ("/template-atti/nuovo", "routes.appV2.documents.templateEditor"),
+    ("/template-atti/", "routes.appV2.documents.templates"),
+    ("/template-atti", "routes.appV2.documents.templates"),
+    ("/redazione-atti", "routes.appV2.documents.drafting"),
+    ("/checklist", "routes.appV2.documents.checklist"),
+    ("/deposito/checklist", "routes.appV2.documents.checklist"),
+    ("/giurisprudenza", "routes.appV2.legalResearch.giurisprudenza"),
+    ("/legal-intelligence", "routes.appV2.legalResearch.home"),
+    ("/ricerca-legale", "routes.appV2.legalResearch.home"),
+    ("/global-search", "routes.appV2.search.global"),
+    ("/ricerca-studio", "routes.appV2.search.global"),
+    ("/cerca", "routes.appV2.search.global"),
+    ("/telematico", "routes.appV2.telematico.center"),
+    ("/servizi-telematici", "routes.appV2.telematico.center"),
+    ("/polisweb", "routes.appV2.telematico.surface"),
+    ("/pst", "routes.appV2.telematico.surface"),
+    ("/pdp", "routes.appV2.telematico.surface"),
+    ("/pat", "routes.appV2.telematico.surface"),
+    ("/ptt", "routes.appV2.telematico.surface"),
+    ("/sigit", "routes.appV2.telematico.surface"),
+    ("/sigp", "routes.appV2.telematico.surface"),
+    ("/sigp-sync", "routes.appV2.telematico.surface"),
+    ("/tribunali", "routes.appV2.telematico.surface"),
+    ("/guida/firma-digitale", "routes.appV2.telematico.surface"),
+    ("/portali", "routes.appV2.telematico.surface"),
+    ("/studio", "routes.appV2.studio.home"),
+    ("/statistiche", "routes.appV2.studio.statistics"),
+    ("/strumenti-legali", "routes.appV2.studio.modules"),
+    ("/strumenti-operativi", "routes.appV2.studio.modules"),
+    ("/applicazioni", "routes.appV2.studio.modules"),
+    ("/sito-studio/builder", "routes.appV2.studio.siteBuilder"),
+    ("/sito-studio/redazione-ai", "routes.appV2.studio.siteDrafting"),
+    ("/sito-studio", "routes.appV2.studio.site"),
+    ("/amministrazione", "routes.appV2.admin.home"),
+    ("/utenti", "routes.appV2.admin.users"),
+    ("/profili", "routes.appV2.admin.roles"),
+    ("/audit", "routes.appV2.admin.auditLogs"),
+    ("/registro-attivita", "routes.appV2.admin.auditLogs"),
+    ("/admin/database", "routes.appV2.admin.database"),
+    ("/database", "routes.appV2.admin.database"),
+    ("/privacy/registro", "routes.appV2.admin.privacyRegistry"),
+    ("/registro-gdpr", "routes.appV2.admin.privacyRegistry"),
+    ("/impostazioni/pagamenti", "routes.appV2.settings.payments"),
+    ("/notifiche-whatsapp", "routes.appV2.settings.notifications"),
+    ("/notifiche", "routes.appV2.settings.notifications"),
+    ("/backup", "routes.appV2.settings.backup"),
+    ("/impostazioni/calendario", "routes.appV2.settings.calendarSync"),
+    ("/sincronizzazione-calendari", "routes.appV2.settings.calendarSync"),
+    ("/impostazioni", "routes.appV2.settings.studio"),
+    ("/impostazioni-studio", "routes.appV2.settings.studio"),
+    ("/fatturazione", "routes.appV2.billing.invoices"),
+    ("/incassi-pagamenti", "routes.appV2.billing.payments"),
+    ("/preventivi/wizard", "routes.appV2.billing.quotes"),
+    ("/preventivi", "routes.appV2.billing.quotes"),
+    ("/compensi-forensi", "routes.appV2.billing.compensi"),
+    ("/tariffario", "routes.appV2.billing.tariffario"),
+    ("/workspace-intelligente", "routes.appV2.dashboard.regia"),
+    ("/regia-operativa", "routes.appV2.dashboard.regia"),
+    ("/app", "routes.appV2.dashboard.home"),
+    ("/", "routes.appV2.dashboard.home"),
 )
 
 TRUE_VALUES = {"1", "true", "yes", "y", "on", "si", "s"}
@@ -109,6 +277,17 @@ def _mapping_from_raw(value: Any) -> dict[str, Any]:
     return {}
 
 
+def _propagate_feature_flag_aliases(resolved: dict[str, bool]) -> dict[str, bool]:
+    """Mantiene equivalenti i flag fase 1 e i nuovi flag canonici."""
+
+    for canonical, aliases in FEATURE_FLAG_ALIASES.items():
+        active = bool(resolved.get(canonical, False) or any(resolved.get(alias, False) for alias in aliases))
+        resolved[canonical] = active
+        for alias in aliases:
+            resolved[alias] = active
+    return resolved
+
+
 def resolve_feature_flags(config: Mapping[str, Any] | None = None) -> dict[str, bool]:
     """Risolve tutti i flag noti, mantenendo default-off in assenza di opt-in."""
 
@@ -133,7 +312,7 @@ def resolve_feature_flags(config: Mapping[str, Any] | None = None) -> dict[str, 
         ):
             if raw_value is not None:
                 resolved[definition.key] = _coerce_bool(raw_value, default=definition.default)
-    return resolved
+    return _propagate_feature_flag_aliases(resolved)
 
 
 def feature_flags_payload(config: Mapping[str, Any] | None = None) -> dict[str, Any]:
@@ -146,16 +325,54 @@ def feature_flags_payload(config: Mapping[str, Any] | None = None) -> dict[str, 
 
 
 def is_feature_enabled(flag_key: str, config: Mapping[str, Any] | None = None) -> bool:
-    if flag_key not in FEATURE_FLAG_KEYS:
+    canonical = FEATURE_FLAG_CANONICAL_BY_ALIAS.get(flag_key, flag_key)
+    if canonical not in FEATURE_FLAG_KEYS:
         return False
-    return bool(resolve_feature_flags(config).get(flag_key, False))
+    return bool(resolve_feature_flags(config).get(canonical, False))
+
+
+def _normalise_app_v2_path(path: str) -> str:
+    clean = str(path or "").split("?", 1)[0].split("#", 1)[0].strip()
+    if not clean:
+        return "/"
+    clean = "/" + clean.strip("/")
+    lower = clean.lower()
+    if lower == "/app-v2":
+        return "/"
+    if lower.startswith("/app-v2/"):
+        return lower.removeprefix("/app-v2").rstrip("/") or "/"
+    return lower.rstrip("/") or "/"
+
+
+def _app_v2_route_rule_matches(rule: str, path: str) -> bool:
+    raw_rule = str(rule or "/").strip().lower()
+    prefix_only = raw_rule.endswith("/") and raw_rule.strip("/") != ""
+    normalised_rule = "/" + raw_rule.strip("/")
+    if normalised_rule == "//":
+        normalised_rule = "/"
+    if prefix_only:
+        prefix = normalised_rule.rstrip("/")
+        return path.startswith(prefix + "/")
+    if "*" in normalised_rule or "{" in normalised_rule or ":" in normalised_rule:
+        rule_parts = [part for part in normalised_rule.strip("/").split("/") if part]
+        path_parts = [part for part in path.strip("/").split("/") if part]
+        if len(rule_parts) != len(path_parts):
+            return False
+        for rule_part, path_part in zip(rule_parts, path_parts):
+            if rule_part == "*" or rule_part.startswith("{") or rule_part.startswith(":"):
+                continue
+            if rule_part != path_part:
+                return False
+        return True
+    if normalised_rule == "/":
+        return path == "/"
+    return path == normalised_rule or path.startswith(normalised_rule + "/")
 
 
 def app_v2_route_flag_for_path(path: str) -> str:
-    clean = str(path or "").strip("/")
-    first = clean.split("/", 1)[0].lower()
-    for segment, flag_key in APP_V2_ROUTE_FLAGS:
-        if first == segment:
+    clean = _normalise_app_v2_path(path)
+    for rule, flag_key in APP_V2_ROUTE_FLAGS:
+        if _app_v2_route_rule_matches(rule, clean):
             return flag_key
     return ""
 
@@ -173,7 +390,10 @@ def set_feature_flag(
     if flag_key not in FEATURE_FLAG_KEYS:
         raise ValueError(f"Feature flag non riconosciuto: {flag_key}")
     current = dict(resolve_feature_flags(config))
-    current[flag_key] = bool(enabled)
+    canonical = FEATURE_FLAG_CANONICAL_BY_ALIAS.get(flag_key, flag_key)
+    current[canonical] = bool(enabled)
+    for alias in FEATURE_FLAG_ALIASES.get(canonical, ()):
+        current[alias] = bool(enabled)
     config["FEATURE_FLAGS"] = current
     if callable(audit):
         details = f"{actor or 'sistema'} ha impostato il flag a {'attivo' if enabled else 'spento'}."

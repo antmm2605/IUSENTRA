@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import ast
 import json
 import re
 import sys
@@ -13,7 +12,6 @@ from typing import Iterable
 REPO_ROOT = Path(__file__).resolve().parents[2]
 MANIFEST_PATH = REPO_ROOT / "tools" / "react-migration" / "route-manifest.json"
 APP_ROUTES_PATH = REPO_ROOT / "frontend" / "src" / "app" / "routes.ts"
-FEATURE_FLAGS_PATH = REPO_ROOT / "web" / "services" / "feature_flags.py"
 REGISTRY_PATH = REPO_ROOT / "docs" / "app-v2-page-registry.md"
 FRONTEND_PAGES_PATH = REPO_ROOT / "docs" / "frontend-app-v2-pages.md"
 
@@ -92,15 +90,6 @@ PII_FAMILIES = {
     "impostazioni",
 }
 
-APP_V2_AREA_FLAGS = {
-    "documenti": "routes.appV2.docsPanel",
-    "comunicazioni": "routes.appV2.commsDeposits",
-    "agenda": "routes.appV2.agenda",
-    "scadenziario": "routes.appV2.deadlines",
-    "fascicoli": "routes.appV2.caseFiles",
-}
-
-
 @dataclass(frozen=True)
 class AppRoute:
     path: str
@@ -162,19 +151,19 @@ def _parse_app_routes() -> tuple[list[AppRoute], dict[str, str]]:
 
 
 def _parse_feature_flags() -> list[dict[str, str]]:
-    tree = ast.parse(_read_text(FEATURE_FLAGS_PATH))
-    definitions: list[dict[str, str]] = []
-    for node in ast.walk(tree):
-        if not isinstance(node, ast.Call):
-            continue
-        name = getattr(node.func, "id", "")
-        if name != "FeatureFlagDefinition" or len(node.args) < 3:
-            continue
-        values = []
-        for arg in node.args[:3]:
-            values.append(arg.value if isinstance(arg, ast.Constant) and isinstance(arg.value, str) else "")
-        definitions.append({"key": values[0], "env": values[1], "description": values[2]})
-    return definitions
+    if str(REPO_ROOT) not in sys.path:
+        sys.path.insert(0, str(REPO_ROOT))
+    from web.services.feature_flags import FEATURE_FLAG_DEFINITIONS
+
+    return [
+        {
+            "key": definition.key,
+            "env": definition.env_var,
+            "description": definition.description,
+            "default": "on" if definition.default else "off",
+        }
+        for definition in FEATURE_FLAG_DEFINITIONS
+    ]
 
 
 def _quote_route(path: str) -> str:
@@ -274,16 +263,56 @@ def _pii_risk(route: dict[str, object]) -> str:
 
 
 def _feature_flag(route: dict[str, object]) -> str:
+    if str(REPO_ROOT) not in sys.path:
+        sys.path.insert(0, str(REPO_ROOT))
+    from web.services.feature_flags import app_v2_route_flag_for_path
+
     status = str(route.get("status") or "")
     workspace = str(route.get("workspaceTarget") or "")
-    if workspace.startswith("/app-v2/"):
-        segment = workspace.removeprefix("/app-v2/").split("/", 1)[0].split("?", 1)[0]
-        return APP_V2_AREA_FLAGS.get(segment, "da assegnare prima del rollout")
+    for candidate in (workspace, str(route.get("route") or "")):
+        flag = app_v2_route_flag_for_path(candidate)
+        if flag:
+            return flag
     if status == "react_operational_full" and route.get("unlockFromGate") is True:
-        return "manifest gate: unlockFromGate=true"
+        return "da assegnare se entra nella shell App V2"
     if status == "react_operational_partial":
         return "da assegnare prima della promozione a full"
     return "legacy protetto; flag richiesto se promosso in App V2"
+
+
+def _feature_flag_default(route: dict[str, object]) -> str:
+    flag = _feature_flag(route)
+    if flag.startswith("routes.appV2."):
+        return "off"
+    return "non applicabile"
+
+
+def _flag_off_fallback(route: dict[str, object]) -> str:
+    flag = _feature_flag(route)
+    if flag.startswith("routes.appV2."):
+        return "pagina bloccata con messaggio operativo; nessuna lettura dati"
+    return "resta nel percorso governato dal manifest o nel backlog"
+
+
+def _frontend_protection(route: dict[str, object]) -> str:
+    flag = _feature_flag(route)
+    if flag.startswith("routes.appV2."):
+        return "appV2FeatureFlagForPath + menu nascosto + fetch sospesi"
+    return "route non esposta nella shell sperimentale"
+
+
+def _backend_protection(route: dict[str, object]) -> str:
+    flag = _feature_flag(route)
+    if flag.startswith("routes.appV2."):
+        return "react_shell.app_v2_route_flag_for_path fail-closed"
+    return "route gate/contratto legacy conservativo"
+
+
+def _flag_tests(route: dict[str, object]) -> str:
+    flag = _feature_flag(route)
+    if flag.startswith("routes.appV2."):
+        return "tests/test_feature_flags.py + tests/test_app_v2_feature_flags.py"
+    return "da aggiungere prima della promozione"
 
 
 def _template_for(route_path: str, flask_routes: list[FlaskRoute]) -> str:
@@ -329,7 +358,7 @@ def _notes(route: dict[str, object]) -> str:
 def _final_state(route: dict[str, object]) -> str:
     status = str(route.get("status") or "")
     if status == "react_operational_full":
-        return "mantenuta React completa nella fase 2; nessuna regressione ammessa"
+        return "mantenuta React completa nella fase 3; flag e gate non devono regredire"
     if status == "react_operational_partial":
         return "registrata come parziale e bloccata fino a copertura API/test"
     return "registrata come legacy/backlog; non promossa senza parita reale"
@@ -356,6 +385,11 @@ def _registry_rows(routes: list[dict[str, object]], flask_routes: list[FlaskRout
                 FAMILY_STORAGE.get(family, "da censire"),
                 STATUS_LABELS.get(str(route.get("status") or ""), str(route.get("status") or "")),
                 _feature_flag(route),
+                _feature_flag_default(route),
+                _flag_off_fallback(route),
+                _frontend_protection(route),
+                _backend_protection(route),
+                _flag_tests(route),
                 FAMILY_RBAC.get(family, "sessione studio valida"),
                 _tenant_risk(route),
                 _pii_risk(route),
@@ -409,9 +443,9 @@ def _registry_doc(
     lines = [
         "# Registro pagine App V2 e migrazione React",
         "",
-        "Aggiornato: 2026-05-13, fase 2 `fasereact`.",
+        "Aggiornato: 2026-05-13, fase 3 `fasereact`.",
         "",
-        "Questo registro e' generato da `scripts/react-migration/generate_app_v2_page_registry.py` a partire da manifest React, route App V2, feature flag e discovery Flask. Non dichiara migrata una pagina che il manifest non considera gia' `react_operational_full`.",
+        "Questo registro e' generato da `scripts/react-migration/generate_app_v2_page_registry.py` a partire da manifest React, route App V2, feature flag e discovery Flask. La fase 3 aggiunge flag default-off per ogni pagina App V2 e documenta fallback, protezione frontend/backend e test on/off.",
         "",
         "## Sintesi discovery",
         "",
@@ -439,7 +473,7 @@ def _registry_doc(
         "",
         _table(
             ["Flag", "Variabile", "Descrizione", "Default"],
-            [[flag["key"], flag["env"], flag["description"], "off"] for flag in feature_flags],
+            [[flag["key"], flag["env"], flag["description"], flag["default"]] for flag in feature_flags],
         ),
         "",
         "## Registro ufficiale pagine",
@@ -455,6 +489,11 @@ def _registry_doc(
                 "Tabelle/modelli backend",
                 "Stato migrazione",
                 "Feature flag",
+                "Default flag",
+                "Fallback flag off",
+                "Protezione frontend",
+                "Protezione backend",
+                "Test flag on/off",
                 "Permessi RBAC",
                 "Rischio tenant",
                 "Rischio PII",
@@ -462,26 +501,27 @@ def _registry_doc(
                 "Test mancanti",
                 "Priorita",
                 "Note tecniche",
-                "Stato finale fase 2",
+                "Stato finale fase 3",
             ],
             _registry_rows(routes, flask_routes),
         ),
         "",
         "## Route Flask candidate fuori manifest",
         "",
-        "Queste route non vengono promosse dalla fase 2. Sono censite per impedire che restino invisibili nelle prossime fasi: vanno confermate come pagina utente, API/azione tecnica o fallback classico prima di qualsiasi promozione.",
+        "Queste route non vengono promosse dalla fase 3. Sono censite per impedire che restino invisibili nelle prossime fasi: vanno confermate come pagina utente, API/azione tecnica o fallback classico prima di qualsiasi promozione.",
         "",
         _table(
             ["URL", "Metodi", "File", "Template rilevati"],
             [[route.path, route.methods, route.source, route.templates] for route in flask_get_pages[:160]],
         ),
         "",
-        "## Regola operativa fase 2",
+        "## Regola operativa fase 3",
         "",
         "- P0: route critiche o legacy/parziali ad alto rischio, da chiudere prima del rollout ampio.",
         "- P1: route ad alto rischio gia' React o route legacy/parziali a rischio medio.",
         "- P2: route React complete a rischio medio e backlog governato.",
         "- P3: route a rischio basso o solo di servizio, da trattare dopo le superfici studio principali.",
+        "- Ogni flag `routes.appV2.*` resta default-off; se spento la shell mostra uno stato operativo e non esegue chiamate dati della pagina.",
         "",
     ]
     return "\n".join(lines)
@@ -500,15 +540,15 @@ def _frontend_doc(
     lines = [
         "# Pagine frontend App V2",
         "",
-        "Aggiornato: 2026-05-13, fase 2 `fasereact`.",
+        "Aggiornato: 2026-05-13, fase 3 `fasereact`.",
         "",
-        "Questo documento e' il riepilogo operativo del registro completo in `docs/app-v2-page-registry.md`. Le route sperimentali App V2 restano sotto feature flag default-off; le route ufficiali gia' React restano governate dal manifest e dal route gate.",
+        "Questo documento e' il riepilogo operativo del registro completo in `docs/app-v2-page-registry.md`. Le route sperimentali App V2 restano sotto feature flag default-off; menu, route e fetch frontend rispettano lo stesso flag del backend.",
         "",
         "## Shell App V2",
         "",
         _table(
             ["Path", "Etichetta", "Famiglia", "API", "Feature flag"],
-            [[route.path, route.label, route.family, route.api or "nessuna API dedicata", route.feature_flag or "nessuno"] for route in app_routes],
+            [[route.path, route.label, route.family, route.api or "nessuna API dedicata", route.feature_flag or "da assegnare"] for route in app_routes],
         ),
         "",
         "## Alias legacy verso App V2",
@@ -545,14 +585,15 @@ def _frontend_doc(
 
     lines.extend(
         [
-            "## Smoke e gate fase 2",
+            "## Smoke e gate fase 3",
             "",
-            "Comandi introdotti o governati dalla fase 2:",
+            "Comandi introdotti o governati dalla fase 3:",
             "",
             "```powershell",
             "python scripts\\react-migration\\generate_app_v2_page_registry.py --check",
             "python scripts\\smoke_app_v2_pages.py --list",
             "python -m pytest -q tests/test_app_v2_page_registry.py --tb=short",
+            "python -m pytest -q tests/test_feature_flags.py tests/test_app_v2_feature_flags.py --tb=short",
             "```",
             "",
             "Per smoke autenticati usare variabili ambiente, senza credenziali nel repository:",
@@ -564,9 +605,9 @@ def _frontend_doc(
             "python scripts\\smoke_app_v2_pages.py --require-credentials",
             "```",
             "",
-            "## Stato fase 2",
+            "## Stato fase 3",
             "",
-            "La fase 2 completa il censimento, la priorizzazione e i gate documentali/smoke. Le route non full restano esplicitamente backlog: non vengono dichiarate complete e saranno trattate nelle fasi successive solo dopo API reali, RBAC, tenant isolation, test e browser verification.",
+            "La fase 3 completa la matrice flag default-off per App V2. Le route non full restano backlog; le route App V2 non caricano dati quando il flag e' spento e possono essere abilitate solo con opt-in esplicito per studio/ambiente.",
             "",
         ]
     )

@@ -1,26 +1,26 @@
 # Pagine frontend App V2
 
-Aggiornato: 2026-05-13, fase 2 `fasereact`.
+Aggiornato: 2026-05-13, fase 3 `fasereact`.
 
-Questo documento e' il riepilogo operativo del registro completo in `docs/app-v2-page-registry.md`. Le route sperimentali App V2 restano sotto feature flag default-off; le route ufficiali gia' React restano governate dal manifest e dal route gate.
+Questo documento e' il riepilogo operativo del registro completo in `docs/app-v2-page-registry.md`. Le route sperimentali App V2 restano sotto feature flag default-off; menu, route e fetch frontend rispettano lo stesso flag del backend.
 
 ## Shell App V2
 
 | Path | Etichetta | Famiglia | API | Feature flag |
 | --- | --- | --- | --- | --- |
-| /app | Regia | regia | /api/v1/ui/dashboard | nessuno |
-| /app/regia | Regia | regia | /api/v1/ui/dashboard | nessuno |
-| /app/fascicoli | Fascicoli | fascicoli | /api/v1/ui/fascicoli | routes.appV2.caseFiles |
-| /app/fascicoli/:id | Dettaglio fascicolo | fascicoli | /api/v1/ui/fascicoli/:id | routes.appV2.caseFiles |
-| /app/anagrafiche | Clienti | anagrafiche | /api/v1/ui/clienti | nessuno |
-| /app/agenda | Agenda | agenda | /api/v1/ui/agenda | routes.appV2.agenda |
-| /app/mandato | Mandato | mandato | /api/v1/ui/preventivi | nessuno |
-| /app/documenti | Documenti | documenti | /api/v1/ui/template-atti | routes.appV2.docsPanel |
-| /app/telematico | Telematico | telematico | /api/v1/ui/telematico | nessuno |
-| /app/comunicazioni | Comunicazioni | comunicazioni | /api/v1/ui/messaggi | routes.appV2.commsDeposits |
-| /app/lex | Lex | lex | /api/v1/ui/legal-intelligence | nessuno |
-| /app/amministrazione | Amministrazione | amministrazione | /api/v1/ui/amministrazione | nessuno |
-| /app/impostazioni | Impostazioni | impostazioni | nessuna API dedicata | nessuno |
+| /app | Regia | regia | /api/v1/ui/dashboard | routes.appV2.dashboard.home |
+| /app/regia | Regia | regia | /api/v1/ui/dashboard | routes.appV2.dashboard.regia |
+| /app/fascicoli | Fascicoli | fascicoli | /api/v1/ui/fascicoli | routes.appV2.cases.list |
+| /app/fascicoli/:id | Dettaglio fascicolo | fascicoli | /api/v1/ui/fascicoli/:id | routes.appV2.cases.detail |
+| /app/anagrafiche | Clienti | anagrafiche | /api/v1/ui/clienti | routes.appV2.clients.list |
+| /app/agenda | Agenda | agenda | /api/v1/ui/agenda | routes.appV2.agenda.calendar |
+| /app/mandato | Mandato | mandato | /api/v1/ui/preventivi | routes.appV2.billing.quotes |
+| /app/documenti | Documenti | documenti | /api/v1/ui/template-atti | routes.appV2.documents.list |
+| /app/telematico | Telematico | telematico | /api/v1/ui/telematico | routes.appV2.telematico.center |
+| /app/comunicazioni | Comunicazioni | comunicazioni | /api/v1/ui/messaggi | routes.appV2.comms.deposits |
+| /app/lex | Lex | lex | /api/v1/ui/legal-intelligence | routes.appV2.legalResearch.home |
+| /app/amministrazione | Amministrazione | amministrazione | /api/v1/ui/amministrazione | routes.appV2.admin.home |
+| /app/impostazioni | Impostazioni | impostazioni | nessuna API dedicata | routes.appV2.settings.studio |
 
 ## Alias legacy verso App V2
 
@@ -107,14 +107,15 @@ Nessuna route pendente in questa priorita.
 
 Nessuna route pendente in questa priorita.
 
-## Smoke e gate fase 2
+## Smoke e gate fase 3
 
-Comandi introdotti o governati dalla fase 2:
+Comandi introdotti o governati dalla fase 3:
 
 ```powershell
 python scripts\react-migration\generate_app_v2_page_registry.py --check
 python scripts\smoke_app_v2_pages.py --list
 python -m pytest -q tests/test_app_v2_page_registry.py --tb=short
+python -m pytest -q tests/test_feature_flags.py tests/test_app_v2_feature_flags.py --tb=short
 ```
 
 Per smoke autenticati usare variabili ambiente, senza credenziali nel repository:
@@ -126,6 +127,6 @@ $env:IUSENTRA_SMOKE_PASSWORD='<password>'
 python scripts\smoke_app_v2_pages.py --require-credentials
 ```
 
-## Stato fase 2
+## Stato fase 3
 
-La fase 2 completa il censimento, la priorizzazione e i gate documentali/smoke. Le route non full restano esplicitamente backlog: non vengono dichiarate complete e saranno trattate nelle fasi successive solo dopo API reali, RBAC, tenant isolation, test e browser verification.
+La fase 3 completa la matrice flag default-off per App V2. Le route non full restano backlog; le route App V2 non caricano dati quando il flag e' spento e possono essere abilitate solo con opt-in esplicito per studio/ambiente.

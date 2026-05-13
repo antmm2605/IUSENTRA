@@ -1,6 +1,23 @@
 # Audit iniziale migrazione React/App V2
 
-Aggiornato: 2026-05-13, fase 2 `fasereact`.
+Aggiornato: 2026-05-13, fase 3 `fasereact`.
+
+## Aggiornamento fase 3
+
+La fase 3 completa il mapping feature flag per pagina App V2. I nuovi flag
+canonici seguono `routes.appV2.<area>.<pagina>`, restano default-off e sono
+applicati sia dal backend `/app-v2` sia dal frontend React prima dei fetch.
+
+Il registro `docs/app-v2-page-registry.md` ora documenta per ogni riga:
+feature flag, default, fallback flag-off, protezione frontend, protezione
+backend e test on/off. Gli alias fase 1 (`routes.appV2.docsPanel`,
+`routes.appV2.caseFiles`, `notifications.mobilePush`, ecc.) restano compatibili
+ma vengono ricondotti ai flag canonici.
+
+Nuovi presidi: `frontend/src/lib/featureFlags.ts` con mappa percorsi, guard
+`FeatureUnavailablePage` in `frontend/src/App.tsx` limitata a `/app-v2` e
+`/app`, menu App V2 filtrato e test statici in
+`tests/test_app_v2_feature_flags.py`.
 
 ## Aggiornamento fase 2
 
@@ -112,6 +129,17 @@ Mancanti o da completare nelle fasi successive:
 10. Test completi, CI, runbook, smoke e Go/No-Go.
 
 ## Feature flag introdotti
+
+Fase 3, canonici per pagina/famiglia:
+
+- `routes.appV2.dashboard.home`, `routes.appV2.dashboard.regia`, `routes.appV2.search.global`;
+- `routes.appV2.cases.*`, `routes.appV2.clients.*`, `routes.appV2.contacts.*`;
+- `routes.appV2.comms.*`, `routes.appV2.agenda.*`, `routes.appV2.deadlines.*`;
+- `routes.appV2.documents.*`, `routes.appV2.legalResearch.*`, `routes.appV2.telematico.*`;
+- `routes.appV2.studio.*`, `routes.appV2.admin.*`, `routes.appV2.settings.*`;
+- `routes.appV2.billing.*`, `routes.appV2.notifications.mobilePush`.
+
+Alias compatibilita fasi 1-2:
 
 - `routes.appV2.docsPanel`;
 - `routes.appV2.commsDeposits`;

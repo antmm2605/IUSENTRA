@@ -38,19 +38,19 @@ export type AppRouteDefinition = {
 }
 
 export const APP_ROUTES: AppRouteDefinition[] = [
-  { path: '/app', label: 'Regia', family: 'regia', icon: Sparkles, api: '/api/v1/ui/dashboard' },
-  { path: '/app/regia', label: 'Regia', family: 'regia', icon: Sparkles, api: '/api/v1/ui/dashboard' },
-  { path: '/app/fascicoli', label: 'Fascicoli', family: 'fascicoli', icon: FolderOpen, api: '/api/v1/ui/fascicoli', featureFlag: 'routes.appV2.caseFiles' },
-  { path: '/app/fascicoli/:id', label: 'Dettaglio fascicolo', family: 'fascicoli', icon: FolderOpen, api: '/api/v1/ui/fascicoli/:id', featureFlag: 'routes.appV2.caseFiles' },
-  { path: '/app/anagrafiche', label: 'Clienti', family: 'anagrafiche', icon: UsersRound, api: '/api/v1/ui/clienti' },
-  { path: '/app/agenda', label: 'Agenda', family: 'agenda', icon: CalendarDays, api: '/api/v1/ui/agenda', featureFlag: 'routes.appV2.agenda' },
-  { path: '/app/mandato', label: 'Mandato', family: 'mandato', icon: BriefcaseBusiness, api: '/api/v1/ui/preventivi' },
-  { path: '/app/documenti', label: 'Documenti', family: 'documenti', icon: FileText, api: '/api/v1/ui/template-atti', featureFlag: 'routes.appV2.docsPanel' },
-  { path: '/app/telematico', label: 'Telematico', family: 'telematico', icon: Landmark, api: '/api/v1/ui/telematico' },
-  { path: '/app/comunicazioni', label: 'Comunicazioni', family: 'comunicazioni', icon: Mail, api: '/api/v1/ui/messaggi', featureFlag: 'routes.appV2.commsDeposits' },
-  { path: '/app/lex', label: 'Lex', family: 'lex', icon: BookOpen, api: '/api/v1/ui/legal-intelligence' },
-  { path: '/app/amministrazione', label: 'Amministrazione', family: 'amministrazione', icon: ShieldCheck, api: '/api/v1/ui/amministrazione' },
-  { path: '/app/impostazioni', label: 'Impostazioni', family: 'impostazioni', icon: Settings2 },
+  { path: '/app', label: 'Regia', family: 'regia', icon: Sparkles, api: '/api/v1/ui/dashboard', featureFlag: 'routes.appV2.dashboard.home' },
+  { path: '/app/regia', label: 'Regia', family: 'regia', icon: Sparkles, api: '/api/v1/ui/dashboard', featureFlag: 'routes.appV2.dashboard.regia' },
+  { path: '/app/fascicoli', label: 'Fascicoli', family: 'fascicoli', icon: FolderOpen, api: '/api/v1/ui/fascicoli', featureFlag: 'routes.appV2.cases.list' },
+  { path: '/app/fascicoli/:id', label: 'Dettaglio fascicolo', family: 'fascicoli', icon: FolderOpen, api: '/api/v1/ui/fascicoli/:id', featureFlag: 'routes.appV2.cases.detail' },
+  { path: '/app/anagrafiche', label: 'Clienti', family: 'anagrafiche', icon: UsersRound, api: '/api/v1/ui/clienti', featureFlag: 'routes.appV2.clients.list' },
+  { path: '/app/agenda', label: 'Agenda', family: 'agenda', icon: CalendarDays, api: '/api/v1/ui/agenda', featureFlag: 'routes.appV2.agenda.calendar' },
+  { path: '/app/mandato', label: 'Mandato', family: 'mandato', icon: BriefcaseBusiness, api: '/api/v1/ui/preventivi', featureFlag: 'routes.appV2.billing.quotes' },
+  { path: '/app/documenti', label: 'Documenti', family: 'documenti', icon: FileText, api: '/api/v1/ui/template-atti', featureFlag: 'routes.appV2.documents.list' },
+  { path: '/app/telematico', label: 'Telematico', family: 'telematico', icon: Landmark, api: '/api/v1/ui/telematico', featureFlag: 'routes.appV2.telematico.center' },
+  { path: '/app/comunicazioni', label: 'Comunicazioni', family: 'comunicazioni', icon: Mail, api: '/api/v1/ui/messaggi', featureFlag: 'routes.appV2.comms.deposits' },
+  { path: '/app/lex', label: 'Lex', family: 'lex', icon: BookOpen, api: '/api/v1/ui/legal-intelligence', featureFlag: 'routes.appV2.legalResearch.home' },
+  { path: '/app/amministrazione', label: 'Amministrazione', family: 'amministrazione', icon: ShieldCheck, api: '/api/v1/ui/amministrazione', featureFlag: 'routes.appV2.admin.home' },
+  { path: '/app/impostazioni', label: 'Impostazioni', family: 'impostazioni', icon: Settings2, featureFlag: 'routes.appV2.settings.studio' },
 ]
 
 export const MAIN_NAV_ROUTES = APP_ROUTES.filter((route) => (

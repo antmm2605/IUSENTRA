@@ -73,6 +73,9 @@ function isBlockedBySpecialRule(path) {
 
 const gate = read('web/bootstrap/react_route_gate.py')
 const reactShell = read('web/blueprints/react_shell.py')
+const backendFeatureFlags = read('web/services/feature_flags.py')
+const frontendFeatureFlags = read('frontend/src/lib/featureFlags.ts')
+const frontendAppRoutes = read('frontend/src/app/routes.ts')
 const checkReactContracts = read('frontend/scripts/check-react-contracts.mjs')
 const manifest = JSON.parse(read('tools/react-migration/route-manifest.json'))
 
@@ -226,6 +229,51 @@ for (const route of legacyRoutes) {
   const entry = (manifest.routes ?? []).find((item) => item.route === route)
   if (!entry || entry.status !== 'legacy_operational' || entry.unlockFromGate !== false) {
     violations.push(`${route}: deve restare legacy_operational con unlockFromGate=false`)
+  }
+}
+
+for (const snippet of [
+  'FEATURE_FLAG_ALIASES',
+  'APP_V2_ROUTE_FLAGS',
+  'routes.appV2.dashboard.home',
+  'routes.appV2.documents.list',
+  'routes.appV2.notifications.mobilePush',
+  'def app_v2_route_flag_for_path',
+]) {
+  if (!backendFeatureFlags.includes(snippet)) {
+    violations.push(`feature_flags.py: manca governance fase 3 ${snippet}`)
+  }
+}
+
+for (const snippet of [
+  'appV2RouteFlagRules',
+  'appV2FeatureFlagForPath',
+  'routes.appV2.dashboard.home',
+  'routes.appV2.documents.list',
+  'routes.appV2.notifications.mobilePush',
+]) {
+  if (!frontendFeatureFlags.includes(snippet)) {
+    violations.push(`featureFlags.ts: manca governance fase 3 ${snippet}`)
+  }
+}
+
+for (const route of [
+  '/app',
+  '/app/regia',
+  '/app/fascicoli',
+  '/app/anagrafiche',
+  '/app/agenda',
+  '/app/mandato',
+  '/app/documenti',
+  '/app/telematico',
+  '/app/comunicazioni',
+  '/app/lex',
+  '/app/amministrazione',
+  '/app/impostazioni',
+]) {
+  const pattern = new RegExp(`path:\\s*'${route.replace(/\//g, '\\/')}'[^\\n]*featureFlag:\\s*'routes\\.appV2\\.`)
+  if (!pattern.test(frontendAppRoutes)) {
+    violations.push(`frontend routes: ${route} deve avere featureFlag routes.appV2.*`)
   }
 }
 

@@ -23,9 +23,14 @@ def test_app_v2_registry_docs_are_generated_and_complete():
 
     assert "Registro ufficiale pagine" in registry
     assert "Backlog per priorita" in frontend
-    assert "routes.appV2.docsPanel" in registry
-    assert "routes.appV2.commsDeposits" in registry
-    assert "routes.appV2.agenda" in registry
+    assert "routes.appV2.documents.list" in registry
+    assert "routes.appV2.comms.deposits" in registry
+    assert "routes.appV2.agenda.calendar" in registry
+    assert "Fallback flag off" in registry
+    assert "Protezione frontend" in registry
+    assert "Protezione backend" in registry
+    assert "Test flag on/off" in registry
+    assert "routes.appV2.dashboard.home" in frontend
 
     for route in _manifest_routes():
         assert f"| {route['route']} |" in registry

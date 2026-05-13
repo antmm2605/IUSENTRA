@@ -1060,6 +1060,19 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `python tools\sync_packaging_files.py --check`; `python -m pytest -q tests/test_packaging_consistency.py tests/test_release_readiness.py --tb=short` | OK | Packaging, requisiti e readiness release confermati dopo bump `2.221.0` e dipendenze Alembic/boto3. |
 | `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx`; `/api/pronto` locale | OK | Immagini locali ricostruite da zero con `pct-studio-legale==2.221.0`; app, scheduler, OCR e Redis healthy; readiness locale `versione=2.221.0`. |
 
+## Fase react 3 - App V2 feature flag per pagina 2.224.0 - 2026-05-13
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest -q tests/test_feature_flags.py tests/test_app_v2_feature_flags.py tests/test_app_v2_page_registry.py tests/test_react_shell.py::test_react_shell_app_v2_route_protette_da_feature_flags --tb=short` | OK | 16/16 passati: flag canonici default-off, alias storici, mapping route statiche/dinamiche e protezione shell App V2. |
+| `node frontend\scripts\check-react-contracts.mjs`; `node scripts\react-migration\check-route-gate.mjs` | OK | Contratti React e route gate confermano che solo `/app-v2` e `/app/*` sono protetti dai flag sperimentali; la navigazione operativa normale resta disponibile. |
+| `python scripts\react-migration\generate_app_v2_page_registry.py --check`; `python scripts\smoke_app_v2_pages.py --base-url http://127.0.0.1:8080` | OK | Registro pagine App V2 allineato; smoke senza credenziali eseguito in modalita inventario con target flag-off attesi. |
+| `npm --prefix frontend run typecheck`; `npm --prefix frontend run test`; `npm --prefix frontend run build` | OK | TypeScript, contratti frontend e build Vite 2.224.0 verdi; asset React rigenerati in `web/static/react`. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest -q tests/test_packaging_consistency.py tests/test_release_readiness.py --tb=short` | OK | Packaging, versione e readiness release confermati dopo bump `2.224.0`. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx`; `GET http://127.0.0.1:8080/api/pronto`; `docker exec iusentra-app python -c "import pct; print(pct.__version__)"` | OK | Build locale no-cache e riavvio completati; app, scheduler, OCR e Redis healthy; readiness locale `versione=2.224.0` e runtime container `2.224.0`. |
+| Chrome CDP su `http://127.0.0.1:8080/` e `/fascicoli` con sessione tenant | OK | Desktop/mobile: Panoramica 471/1451 ms, Fascicoli 3500/4445 ms a contenuto React visibile; nessun overflow orizzontale o errore console nel report pulito. |
+| Chrome CDP su `/app-v2` e `/app-v2/documenti` con flag spenti | OK | Entrambe le route rispondono fail-closed mostrando solo `Funzione non attiva per questo studio.`; nessun dato operativo viene caricato. |
+
 ## Multi-studio hardening tenant/API 2.218.3 - 2026-05-13
 
 | Comando / verifica | Esito | Nota |

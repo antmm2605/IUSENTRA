@@ -39,6 +39,22 @@ Un denial deve restituire errore controllato senza path, chiavi, stack trace o d
 attesi, il rischio tenant e il rischio PII. Le route P0/P1 non full restano
 bloccate finche' non hanno API JSON, test RBAC/tenant e smoke browser dedicati.
 
+## Matrice fase 3
+
+Ogni pagina App V2 ha un flag canonico `routes.appV2.<area>.<pagina>`
+default-off. Il backend applica il controllo in `web/blueprints/react_shell.py`
+tramite `app_v2_route_flag_for_path(...)`; il frontend usa la stessa mappa per
+la shell sperimentale `/app-v2`/`/app`, nasconde il menu App V2 e rende lo stato
+"Modulo non attivo" senza avviare fetch o lazy page della superficie protetta.
+Le route operative storiche gia' full React non vengono spente da questi flag.
+
+Alias fase 1 come `routes.appV2.docsPanel`, `routes.appV2.caseFiles` e
+`notifications.mobilePush` restano equivalenti ai nuovi flag canonici per non
+rompere ambienti gia' configurati, ma il registro ufficiale usa i nomi
+canonici. I test `tests/test_feature_flags.py` e
+`tests/test_app_v2_feature_flags.py` coprono default-off, alias, mapping route
+dinamiche, isolamento tra configurazioni Flask e guard frontend.
+
 ## Punti da estendere nelle fasi successive
 
 - denial cross-tenant espliciti per ogni endpoint P0/P1;

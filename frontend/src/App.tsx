@@ -54,6 +54,7 @@ import { IusAppSidebar } from './components/iusentra'
 import { JsonPostForm } from './components/JsonPostForm'
 import { TopBar } from './components/layout/TopBar'
 import { sanitizeDisplayText } from './displayText'
+import { appV2FeatureFlagForPath, isFeatureFlagEnabledSync } from './lib/featureFlags'
 import { findStudioModule, isStudioModuleRoute } from './studioModuleData'
 import './index.css'
 import './components/layout/TopBar.css'
@@ -849,6 +850,31 @@ function PageLoading() {
   )
 }
 
+function FeatureUnavailablePage() {
+  return (
+    <main className="iu-content" role="status">
+      <div className="iu-page-heading">
+        <div>
+          <h1>Modulo non attivo per questo studio</h1>
+          <p>L'accesso a questa area e' stato sospeso nelle impostazioni dello studio. I dati restano invariati.</p>
+        </div>
+        <ShieldCheck size={24}/>
+      </div>
+      <section className="iu-panel">
+        <div className="iu-panel__title">
+          <span><Settings2 size={17}/> Attivazione richiesta</span>
+          <Badge tone="warning">Da attivare</Badge>
+        </div>
+        <p className="iu-empty">Chiedi a un profilo abilitato di attivare il modulo dalle impostazioni. Fino ad allora non vengono caricate informazioni riservate.</p>
+        <div className="iu-actions">
+          <a className="iu-btn primary" href="/impostazioni">Apri impostazioni</a>
+          <a className="iu-btn" href="/">Torna alla panoramica</a>
+        </div>
+      </section>
+    </main>
+  )
+}
+
 function List({ rows, avatar=false, href='/' }:{rows:Row[]; avatar?:boolean; href?:string}) {
   if (!rows.length) return <Empty/>
   return <div className="iu-list">{rows.map(r=><a className="iu-row" href={r.href||href} key={r.id}>{avatar?<Avatar label={r.avatar||r.title}/>:<i className={r.unread?'is-on':''}/>}<div><strong>{r.title}</strong><span>{r.subtitle}</span></div><time>{r.time}</time>{r.badge&&!avatar?<b className="iu-red-dot">{r.badge}</b>:null}</a>)}</div>
@@ -960,6 +986,9 @@ export default function App() {
   const activePath = window.location.pathname.replace(/\/+$/, '') || '/'
   const routePath = normaliseRoutePath(activePath)
   const routeKey = routePath.toLowerCase()
+  const appV2FlagProtectedPath = activePath.toLowerCase().startsWith('/app-v2') || routeKey === '/app' || routeKey.startsWith('/app/')
+  const appV2RequiredFlag = appV2FlagProtectedPath ? appV2FeatureFlagForPath(routeKey) : null
+  const appV2FlagDenied = appV2RequiredFlag ? !isFeatureFlagEnabledSync(appV2RequiredFlag) : false
   const forcedLegacyHref = legacyOperationalRedirectHref(activePath)
   if (forcedLegacyHref) {
     window.location.replace(forcedLegacyHref)
@@ -1035,18 +1064,22 @@ export default function App() {
   const isStudioModulePage = !isStudioPage && !isAmministrazionePage && !isFatturazionePage && !isIncassiPagamentiPage && !isPreventivoWizardPage && !isPreventiviPage && !isCompensiForensiPage && !isTariffarioPage && !isTemplateAttiPage && !isRedazioneAttiPage && !isGiurisprudenzaPage && !isLegalIntelligencePage && !isAdminDatabasePage && !isStatistichePage && !isImpostazioniPage && !isAuditPage && !isRegistroAttivitaPage && !isUtentiPage && !isProfiliPage && !isBackupPage && !isSitoStudioBuilderPage && !isSitoStudioRedazioneAiPage && !isSitoStudioPage && !isTimesheetPage && !isCartelleCondivisePage && !isWizardProPage && isStudioModuleRoute(routeKey)
   const isDashboardPage = !isSearchPage && !isAgendaPage && !isNewAppointmentPage && !isAppointmentEditPage && !isRegiaPage && !isDocumentEditorPage && !isFascicoliPage && !isClientiPage && !isClientFolderPage && !isClientEditPage && !isNewClientPage && !isSoggettiPage && !isNewSubjectPage && !isSubjectEditPage && !isEmailComposePage && !isEmailOrdinariaComposePage && !isNotificheLegaliPage && !isEmailPage && !isEmailOrdinariaPage && !isMessagesPage && !isNewMessagePage && !isScadenziarioPage && !isNewDeadlinePage && !isDeadlineEditPage && !isTimesheetPage && !isCartelleCondivisePage && !isWizardProPage && !isTelematicoPage && !isTelematicoSurfacePage && !isPrivacyRegistroPage && !isAdminDatabasePage && !isStatistichePage && !isImpostazioniPage && !isAuditPage && !isRegistroAttivitaPage && !isUtentiPage && !isProfiliPage && !isBackupPage && !isSitoStudioBuilderPage && !isSitoStudioRedazioneAiPage && !isSitoStudioPage && !isStudioPage && !isAmministrazionePage && !isFatturazionePage && !isIncassiPagamentiPage && !isPreventivoWizardPage && !isPreventiviPage && !isCompensiForensiPage && !isTariffarioPage && !isTemplateAttiPage && !isRedazioneAttiPage && !isGiurisprudenzaPage && !isLegalIntelligencePage && !isStudioModulePage
   const isStandalonePage = isSearchPage || isAgendaPage || isNewAppointmentPage || isAppointmentEditPage || isDocumentEditorPage || isFascicoliPage || isClientiPage || isClientFolderPage || isClientEditPage || isNewClientPage || isSoggettiPage || isNewSubjectPage || isSubjectEditPage || isEmailComposePage || isEmailOrdinariaComposePage || isNotificheLegaliPage || isEmailPage || isEmailOrdinariaPage || isMessagesPage || isNewMessagePage || isScadenziarioPage || isNewDeadlinePage || isDeadlineEditPage || isTimesheetPage || isCartelleCondivisePage || isWizardProPage || isTelematicoPage || isTelematicoSurfacePage || isPrivacyRegistroPage || isAdminDatabasePage || isStatistichePage || isImpostazioniPage || isAuditPage || isRegistroAttivitaPage || isUtentiPage || isProfiliPage || isBackupPage || isSitoStudioBuilderPage || isSitoStudioRedazioneAiPage || isSitoStudioPage || isStudioPage || isAmministrazionePage || isFatturazionePage || isIncassiPagamentiPage || isPreventivoWizardPage || isPreventiviPage || isCompensiForensiPage || isTariffarioPage || isTemplateAttiPage || isRedazioneAttiPage || isGiurisprudenzaPage || isLegalIntelligencePage || isStudioModulePage
+  const effectiveStandalonePage = isStandalonePage || appV2FlagDenied
   const initialSearchQuery = new URLSearchParams(window.location.search).get('q') ?? ''
   const lexConfig = resolveLexPageContext(routeKey)
   const needsShellLexContext = !routePublishesLexContext(routeKey)
   const shellBootstrap = readShellBootstrap()
   const [data,setData]=useState<DashboardData>(emptyDashboard)
-  const [loading,setLoading]=useState(!isStandalonePage)
+  const [loading,setLoading]=useState(!effectiveStandalonePage)
   const [mailSyncing,setMailSyncing]=useState(false)
   const [sidebarCollapsed,setSidebarCollapsed]=useState(false)
   const [mobileMenuOpen,setMobileMenuOpen]=useState(false)
   const [mobileNavCollapsed,setMobileNavCollapsed]=useState(false)
   useEffect(()=>{
-    if(isStandalonePage)return
+    if(effectiveStandalonePage){
+      setLoading(false)
+      return
+    }
     let ok=true
     getDashboard()
       .then(d=>{
@@ -1064,7 +1097,7 @@ export default function App() {
       })
       .finally(()=>{if(ok)setLoading(false)})
     return()=>{ok=false}
-  },[isDashboardPage,isStandalonePage])
+  },[isDashboardPage,effectiveStandalonePage])
   return (
     <AppErrorBoundary>
       <div className={`iu-shell ${sidebarCollapsed?'iu-shell--collapsed':''}`}>
@@ -1073,7 +1106,7 @@ export default function App() {
         <div className="iu-main">
           <TopBar onOpenMenu={()=>setMobileMenuOpen(true)} activePath={routeKey}/>
           <Suspense fallback={<PageLoading/>}>
-            {isSearchPage?<RicercaStudioPage initialQuery={initialSearchQuery}/>:isNewAppointmentPage||isAppointmentEditPage?<NuovoAppuntamentoPage/>:isAgendaPage?<AgendaPage/>:isRegiaPage?<RegiaOperativaPage data={data} loading={loading}/>:isDocumentEditorPage?<DocumentEditorPage/>:isFascicoliPage?<FascicoliPage/>:isNewClientPage||isNewSubjectPage||isClientEditPage||isSubjectEditPage?<NuovoClientePage/>:isClientFolderPage?<CartellaClientePage/>:isClientiPage?<AnagraficaClientiPage/>:isSoggettiPage?<SoggettiPage/>:isNotificheLegaliPage?<NotificheLegaliPage/>:isEmailOrdinariaComposePage?<EmailComposePage mode="ordinaria"/>:isEmailComposePage?<EmailComposePage mode="pec"/>:isEmailOrdinariaPage?<EmailOrdinariaPage/>:isEmailPage?<EmailPecPage/>:isNewMessagePage?<NuovoMessaggioPage/>:isMessagesPage?<MessaggiPage/>:isNewDeadlinePage||isDeadlineEditPage?<NuovaScadenzaPage/>:isScadenziarioPage?<ScadenziarioPage/>:isTimesheetPage?<TimesheetPage/>:isCartelleCondivisePage?<CartelleCondivisePage/>:isWizardProStep?<WizardProStepPage/>:isWizardProComplete?<WizardProCompletePage/>:isWizardProDashboard?<WizardProPage/>:isTelematicoPage?<TelematicoPage/>:isTelematicoSurfacePage?<TelematicoSurfacePage/>:isPrivacyRegistroPage?<PrivacyRegistroPage/>:isAdminDatabasePage?<AdminDatabasePage/>:isStatistichePage?<StatistichePage/>:isImpostazioniPage?<ImpostazioniPage/>:isAuditPage||isRegistroAttivitaPage?<AuditPage/>:isUtentiPage?<UtentiPage/>:isProfiliPage?<ProfiliPage/>:isBackupPage?<BackupPage/>:isSitoStudioRedazioneAiPage?<SitoStudioRedazioneAiPage/>:isSitoStudioBuilderPage?<SitoStudioBuilderPage/>:isSitoStudioPage?<SitoStudioPage/>:isStudioPage?<StudioPage/>:isAmministrazionePage?<AmministrazionePage/>:isFatturazionePage?<FatturazionePage/>:isIncassiPagamentiPage?<IncassiPagamentiPage/>:isPreventivoWizardPage?<PreventivoWizardPage/>:isPreventiviPage?<PreventiviPage/>:isCompensiForensiPage?<CompensiForensiPage/>:isTariffarioPage?<TariffarioPage/>:isTemplateAttiPage?<TemplateAttiPage/>:isRedazioneAttiPage?<RedazioneAttiPage/>:isGiurisprudenzaPage?<GiurisprudenzaPage/>:isLegalIntelligencePage?<LegalIntelligencePage/>:isStudioModulePage?<StudioModulePage/>:<DashboardPage data={data} loading={loading} mailSyncing={mailSyncing}/>}
+            {appV2FlagDenied?<FeatureUnavailablePage/>:isSearchPage?<RicercaStudioPage initialQuery={initialSearchQuery}/>:isNewAppointmentPage||isAppointmentEditPage?<NuovoAppuntamentoPage/>:isAgendaPage?<AgendaPage/>:isRegiaPage?<RegiaOperativaPage data={data} loading={loading}/>:isDocumentEditorPage?<DocumentEditorPage/>:isFascicoliPage?<FascicoliPage/>:isNewClientPage||isNewSubjectPage||isClientEditPage||isSubjectEditPage?<NuovoClientePage/>:isClientFolderPage?<CartellaClientePage/>:isClientiPage?<AnagraficaClientiPage/>:isSoggettiPage?<SoggettiPage/>:isNotificheLegaliPage?<NotificheLegaliPage/>:isEmailOrdinariaComposePage?<EmailComposePage mode="ordinaria"/>:isEmailComposePage?<EmailComposePage mode="pec"/>:isEmailOrdinariaPage?<EmailOrdinariaPage/>:isEmailPage?<EmailPecPage/>:isNewMessagePage?<NuovoMessaggioPage/>:isMessagesPage?<MessaggiPage/>:isNewDeadlinePage||isDeadlineEditPage?<NuovaScadenzaPage/>:isScadenziarioPage?<ScadenziarioPage/>:isTimesheetPage?<TimesheetPage/>:isCartelleCondivisePage?<CartelleCondivisePage/>:isWizardProStep?<WizardProStepPage/>:isWizardProComplete?<WizardProCompletePage/>:isWizardProDashboard?<WizardProPage/>:isTelematicoPage?<TelematicoPage/>:isTelematicoSurfacePage?<TelematicoSurfacePage/>:isPrivacyRegistroPage?<PrivacyRegistroPage/>:isAdminDatabasePage?<AdminDatabasePage/>:isStatistichePage?<StatistichePage/>:isImpostazioniPage?<ImpostazioniPage/>:isAuditPage||isRegistroAttivitaPage?<AuditPage/>:isUtentiPage?<UtentiPage/>:isProfiliPage?<ProfiliPage/>:isBackupPage?<BackupPage/>:isSitoStudioRedazioneAiPage?<SitoStudioRedazioneAiPage/>:isSitoStudioBuilderPage?<SitoStudioBuilderPage/>:isSitoStudioPage?<SitoStudioPage/>:isStudioPage?<StudioPage/>:isAmministrazionePage?<AmministrazionePage/>:isFatturazionePage?<FatturazionePage/>:isIncassiPagamentiPage?<IncassiPagamentiPage/>:isPreventivoWizardPage?<PreventivoWizardPage/>:isPreventiviPage?<PreventiviPage/>:isCompensiForensiPage?<CompensiForensiPage/>:isTariffarioPage?<TariffarioPage/>:isTemplateAttiPage?<TemplateAttiPage/>:isRedazioneAttiPage?<RedazioneAttiPage/>:isGiurisprudenzaPage?<GiurisprudenzaPage/>:isLegalIntelligencePage?<LegalIntelligencePage/>:isStudioModulePage?<StudioModulePage/>:<DashboardPage data={data} loading={loading} mailSyncing={mailSyncing}/>}
           </Suspense>
         </div>
         <nav className={`iu-mobile ${mobileNavCollapsed?'is-collapsed':''}`} aria-label="Navigazione mobile">

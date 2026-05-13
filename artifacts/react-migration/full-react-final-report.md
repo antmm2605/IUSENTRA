@@ -268,3 +268,9 @@ Tranche architetturale aggiornata: `/deposito/checklist`, `/strumenti-legali` e 
 La pagina espone il presidio normativo Cartabia/deposito senza badge assoluti: quando mancano dati concreti dell'atto, il modello resta compilabile solo dopo completamento dei campi obbligatori. Le note mancanti sono in italiano e con contrasto verificato; non vengono mostrati nomi tecnici di campo o messaggi inglesi.
 
 Browser Playwright 2026-05-13 su `AMM_RIC_001` con cliente e pratica selezionati: compilatore React visibile, vecchio compilatore assente, nessun errore console, pannello normativo senza oggetti tecnici e CTA finale `Crea bozza e apri editor`.
+
+## Aggiornamento fase react 3 App V2 2.224.0
+
+La shell sperimentale App V2 ha ora feature flag canonici per pagina/route, tutti default-off, con alias storici preservati. I flag proteggono solo `/app-v2` e `/app/*`: le route operative gia' in uso nella sidebar ordinaria non vengono filtrate o bloccate.
+
+Verifiche 2026-05-13: pytest mirati feature flag/App V2/registro/shell 16/16, contratti React, route gate, registry `--check`, typecheck, test frontend, build Vite, packaging/readiness e Docker locale 2.224.0 healthy. Browser Chrome CDP su `/` e `/fascicoli` desktop/mobile verde nel passaggio caldo; `/app-v2` e `/app-v2/documenti` restano fail-closed con messaggio operativo quando i flag sono spenti.

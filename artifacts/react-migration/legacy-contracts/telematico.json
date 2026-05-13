@@ -1,0 +1,11 @@
+{
+  "route": "/telematico",
+  "legacyUrl": "/telematico?_legacy=1",
+  "reason": "Centro servizi telematici lasciato legacy-first finche' tutti i workflow sono parificati.",
+  "preserve": [
+    "flussi ministeriali",
+    "Local Signer",
+    "download e ricevute",
+    "audit"
+  ]
+}

@@ -917,6 +917,158 @@
       ]
     },
     {
+      "workspaceTarget": "/app/telematico",
+      "route": "/telematico",
+      "family": "telematico",
+      "status": "legacy_operational",
+      "risk": "critical",
+      "targetComponent": "frontend/src/components/TelematicoPage.tsx",
+      "targetData": "frontend/src/telematicoData.ts",
+      "targetBridge": "web/services/react_telematico_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/telematico.json",
+      "unlockFromGate": false,
+      "mustPreserve": [
+        "centro servizi telematici non ancora parificato",
+        "flussi ministeriali",
+        "download e ricevute",
+        "Local Signer",
+        "audit"
+      ]
+    },
+    {
+      "workspaceTarget": "/app/telematico",
+      "route": "/servizi-telematici",
+      "family": "telematico",
+      "status": "legacy_operational",
+      "risk": "critical",
+      "targetComponent": "frontend/src/components/TelematicoPage.tsx",
+      "targetData": "frontend/src/telematicoData.ts",
+      "targetBridge": "web/services/react_telematico_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/servizi-telematici.json",
+      "unlockFromGate": false,
+      "mustPreserve": [
+        "hub telematico legacy",
+        "permessi e audit",
+        "accesso portali ufficiali",
+        "fallback tecnico",
+        "nessuna promozione cosmetica"
+      ]
+    },
+    {
+      "workspaceTarget": "/app/telematico",
+      "route": "/sigp-sync",
+      "family": "telematico",
+      "status": "legacy_operational",
+      "risk": "critical",
+      "targetComponent": "frontend/src/components/TelematicoSurfacePage.tsx",
+      "targetData": "frontend/src/telematicoSurfacesData.ts",
+      "targetBridge": "web/services/react_telematico_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/sigp-sync.json",
+      "unlockFromGate": false,
+      "mustPreserve": [
+        "sincronizzazione SIGP",
+        "operazioni sensibili",
+        "download ricevute",
+        "sessioni locali",
+        "audit"
+      ]
+    },
+    {
+      "workspaceTarget": "/app/telematico",
+      "route": "/tribunali",
+      "family": "telematico",
+      "status": "legacy_operational",
+      "risk": "critical",
+      "targetComponent": "frontend/src/components/TelematicoSurfacePage.tsx",
+      "targetData": "frontend/src/telematicoSurfacesData.ts",
+      "targetBridge": "web/services/react_telematico_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/tribunali.json",
+      "unlockFromGate": false,
+      "mustPreserve": [
+        "configurazioni uffici",
+        "PEC e canali ministeriali",
+        "export/download",
+        "validazioni backend",
+        "audit"
+      ]
+    },
+    {
+      "workspaceTarget": "/app/telematico",
+      "route": "/guida/firma-digitale",
+      "family": "telematico",
+      "status": "legacy_operational",
+      "risk": "critical",
+      "targetComponent": "frontend/src/components/TelematicoSurfacePage.tsx",
+      "targetData": "frontend/src/telematicoSurfacesData.ts",
+      "targetBridge": "web/services/react_telematico_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/guida__firma-digitale.json",
+      "unlockFromGate": false,
+      "mustPreserve": [
+        "guida firma digitale",
+        "Local Signer",
+        "CNS e token",
+        "download allegati",
+        "fallback tecnico"
+      ]
+    },
+    {
+      "workspaceTarget": "/app/amministrazione",
+      "route": "/admin/osservabilita",
+      "family": "amministrazione",
+      "status": "legacy_operational",
+      "risk": "high",
+      "targetComponent": "frontend/src/components/StudioModulePage.tsx",
+      "targetData": "frontend/src/studioModuleData.ts",
+      "targetBridge": "web/services/react_studio_module_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/admin__osservabilita.json",
+      "unlockFromGate": false,
+      "mustPreserve": [
+        "metriche runtime",
+        "diagnostica operativa",
+        "dati sensibili",
+        "permessi amministratore",
+        "nessun mock"
+      ]
+    },
+    {
+      "workspaceTarget": "/app/amministrazione",
+      "route": "/database",
+      "family": "amministrazione",
+      "status": "legacy_operational",
+      "risk": "high",
+      "targetComponent": "frontend/src/components/AdminDatabasePage.tsx",
+      "targetData": "frontend/src/adminDatabaseData.ts",
+      "targetBridge": "web/services/react_admin_database_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/database.json",
+      "unlockFromGate": false,
+      "mustPreserve": [
+        "alias database legacy",
+        "operazioni manutenzione",
+        "permessi amministratore",
+        "backup prima di riparazioni",
+        "audit"
+      ]
+    },
+    {
+      "workspaceTarget": "/app/amministrazione",
+      "route": "/applicazioni",
+      "family": "amministrazione",
+      "status": "legacy_operational",
+      "risk": "medium",
+      "targetComponent": "frontend/src/components/StudioModulePage.tsx",
+      "targetData": "frontend/src/studioModuleData.ts",
+      "targetBridge": "web/services/react_studio_module_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/applicazioni.json",
+      "unlockFromGate": false,
+      "mustPreserve": [
+        "moduli applicativi",
+        "azioni non parificate",
+        "permessi",
+        "audit",
+        "fallback tecnico"
+      ]
+    },
+    {
       "workspaceTarget": "/app/mandato?tab=preventivi",
       "route": "/preventivi",
       "family": "mandato",
@@ -1306,6 +1458,42 @@
       ]
     },
     {
+      "workspaceTarget": "/app/scadenziario/:id",
+      "route": "/scadenziario/:id",
+      "family": "scadenze",
+      "status": "react_operational_full",
+      "risk": "medium",
+      "targetComponent": "frontend/src/components/ScadenziarioPage.tsx",
+      "targetData": "frontend/src/scadenziarioData.ts",
+      "targetBridge": "web/services/react_scadenziario_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/scadenziario__dettaglio.json",
+      "unlockFromGate": true,
+      "mustPreserve": [
+        "dettaglio scadenza in pagina",
+        "dati scadenziario reali",
+        "focus card senza uscita legacy primaria",
+        "export e download esclusi dal gate"
+      ]
+    },
+    {
+      "workspaceTarget": "/app/scadenziario/:id/modifica",
+      "route": "/scadenziario/:id/modifica",
+      "family": "scadenze",
+      "status": "react_operational_partial",
+      "risk": "high",
+      "targetComponent": "frontend/src/components/NuovaScadenzaPage.tsx",
+      "targetData": "frontend/src/scadenziarioData.ts",
+      "targetBridge": "web/services/react_scadenziario_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/scadenziario__modifica.json",
+      "unlockFromGate": true,
+      "mustPreserve": [
+        "modifica scadenza in React",
+        "prefill da repository reale",
+        "salvataggio JSON controllato",
+        "fallback _legacy=1 solo tecnico"
+      ]
+    },
+    {
       "workspaceTarget": "/app/telematico",
       "route": "/sigit",
       "family": "telematico",
@@ -1387,19 +1575,38 @@
       "workspaceTarget": "/app/amministrazione?tab=studio",
       "route": "/sito-studio/builder",
       "family": "studio",
-      "status": "legacy_operational",
+      "status": "react_operational_full",
       "risk": "high",
-      "targetComponent": "frontend/src/components/SitoStudioPage.tsx",
-      "targetData": "frontend/src/sitoStudioData.ts",
-      "targetBridge": "web/services/react_sito_studio_bridge.py",
+      "targetComponent": "frontend/src/components/SitoStudioBuilderPage.tsx",
+      "targetData": "frontend/src/sitoStudioBuilderData.ts",
+      "targetBridge": "web/services/react_sito_studio_builder_bridge.py",
       "legacyContract": "artifacts/react-migration/legacy-contracts/sito-studio__builder.json",
-      "unlockFromGate": false,
+      "unlockFromGate": true,
       "mustPreserve": [
-        "editor contenuti",
+        "editor sito React reale",
+        "pagine e blocchi da repository",
+        "salvataggi JSON auditati",
         "pubblicazione controllata",
-        "anteprima",
-        "POST legacy auditati",
+        "upload asset sicuro",
         "nessun contenuto demo"
+      ]
+    },
+    {
+      "workspaceTarget": "/app/amministrazione?tab=studio-redazione-ai",
+      "route": "/sito-studio/redazione-ai",
+      "family": "studio",
+      "status": "react_operational_partial",
+      "risk": "high",
+      "targetComponent": "frontend/src/components/SitoStudioRedazioneAiPage.tsx",
+      "targetData": "frontend/src/sitoStudioAiData.ts",
+      "targetBridge": "web/services/react_sito_studio_ai_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/sito-studio__redazione-ai.json",
+      "unlockFromGate": true,
+      "mustPreserve": [
+        "redazione sito React con API reali",
+        "generazione e pubblicazione governate",
+        "stati errore e successo visibili",
+        "modifica articolo legacy solo come passaggio secondario motivato"
       ]
     },
     {

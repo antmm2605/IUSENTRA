@@ -1,0 +1,11 @@
+{
+  "route": "/tribunali",
+  "legacyUrl": "/tribunali?_legacy=1",
+  "reason": "Configurazioni uffici e canali PEC non ancora parificate in React.",
+  "preserve": [
+    "configurazioni uffici",
+    "canali PEC",
+    "export/download",
+    "audit"
+  ]
+}

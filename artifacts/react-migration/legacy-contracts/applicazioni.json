@@ -1,0 +1,11 @@
+{
+  "route": "/applicazioni",
+  "legacyUrl": "/applicazioni?_legacy=1",
+  "reason": "Area applicazioni con azioni operative non ancora coperte da contratti JSON sicuri.",
+  "preserve": [
+    "permessi",
+    "azioni modulo",
+    "audit",
+    "fallback tecnico"
+  ]
+}

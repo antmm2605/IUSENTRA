@@ -1,0 +1,14 @@
+{
+  "route": "/scadenziario/:id/modifica",
+  "capturedAt": "2026-05-13",
+  "status": "react_operational_partial",
+  "source": "audit route gate: modifica servita dalla shell React con prefill reale",
+  "preserve": [
+    "prefill da repository scadenziario",
+    "validazioni visibili",
+    "salvataggio JSON controllato",
+    "fallback _legacy=1 solo tecnico"
+  ],
+  "uiPolicy": "docs/UI_DESIGN_SYSTEM.md",
+  "regressionGuard": "non dichiarare full finche il contratto scrittura non viene spostato interamente sotto API React"
+}

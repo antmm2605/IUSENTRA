@@ -1,0 +1,11 @@
+{
+  "route": "/servizi-telematici",
+  "legacyUrl": "/servizi-telematici?_legacy=1",
+  "reason": "Hub telematico ad alto rischio mantenuto legacy fino a copertura React completa dei flussi ministeriali.",
+  "preserve": [
+    "permessi",
+    "audit",
+    "Local Signer",
+    "ricevute e download ufficiali"
+  ]
+}

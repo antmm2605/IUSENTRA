@@ -1,12 +1,28 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-13, Portali non-PST assistiti fail-closed 2.219.0.
+Aggiornato: 2026-05-13, Audit gate React reale 2.220.0.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Audit gate React reale 2.220.0
+
+| Verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile web/bootstrap/react_route_gate.py web/blueprints/api_v1_react.py web/blueprints/react_shell.py` | OK | Sintassi confermata dopo allowlist chirurgica per `/scadenziario` e `/sito-studio`. |
+| `python -m pytest tests/test_react_shell.py -q --tb=short` | OK | 81/81 passati: shell React, fallback `_legacy=1`, route profonde, manifest/gate e API principali coerenti. |
+| `npm --prefix frontend run typecheck` | OK | TypeScript senza errori dopo promozione builder/scadenziario e conversione form Template Atti. |
+| `npm --prefix frontend run build` | OK | Build Vite completata per `iusentra-react-token-ui@2.220.0`; asset React rigenerati in `web/static/react`. |
+| `npm --prefix frontend run test` | OK | Contratti React verificati con script frontend. |
+| `node scripts/react-migration/check-route-gate.mjs` | OK | Gate/manifest coerenti: le route sbloccate non restano bloccate da `_excluded()` o legacy-first. |
+| `node scripts/react-migration/check-full-react-route-contract.mjs` | OK | Audit anti-mascheramento aggiornato a 98 route; nessun full con form HTML o mock. |
+| `node scripts/react-migration/check-no-mock-data-full-react.mjs` | OK | Nessun dato mock/demo rilevato sulle superfici full React. |
+| Browser Playwright Python con Chrome locale, login reale, desktop `/sito-studio/builder`, `/scadenziario/<id>`, `/scadenziario/<id>/modifica` e mobile `/sito-studio/redazione-ai` | OK | Shell operativa presente, testi attesi visibili, nessun errore console, nessun overflow orizzontale e nessun termine tecnico vietato nel testo visibile. |
+| `python tools\sync_packaging_files.py --check` | OK | Packaging sincronizzato dopo bump `2.220.0`. |
+| `python -m pytest tests/test_packaging_consistency.py tests/test_release_readiness.py -q` | OK | 8/8 passati: packaging e readiness release confermate per `2.220.0`. |
 
 ### Email ordinaria accenti e charset 2.218.9
 

@@ -1,0 +1,16 @@
+{
+  "route": "/sito-studio/redazione-ai",
+  "capturedAt": "2026-05-13",
+  "status": "react_operational_partial",
+  "source": "audit route gate: pagina Redazione AI servita dalla shell React con API JSON reali",
+  "preserve": [
+    "generazione articolo governata",
+    "creazione bozza",
+    "generazione immagine",
+    "pubblicazione controllata",
+    "nessun contenuto demo",
+    "modifica articolo legacy solo come passaggio secondario"
+  ],
+  "uiPolicy": "docs/UI_DESIGN_SYSTEM.md",
+  "regressionGuard": "GET ordinario deve passare dal gate React; non promuovere a full finche la modifica articolo non e' React"
+}

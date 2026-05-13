@@ -1,0 +1,11 @@
+{
+  "route": "/sigp-sync",
+  "legacyUrl": "/sigp-sync?_legacy=1",
+  "reason": "Sincronizzazione SIGP sensibile non ancora coperta da API JSON React sicure.",
+  "preserve": [
+    "sessione locale",
+    "download ricevute",
+    "validazioni backend",
+    "audit"
+  ]
+}

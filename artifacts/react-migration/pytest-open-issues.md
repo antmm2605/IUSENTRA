@@ -1,6 +1,6 @@
 # Pytest issue aperte e risoluzioni
 
-Aggiornato: 2026-05-13, Portali non-PST assistiti fail-closed 2.219.0.
+Aggiornato: 2026-05-13, Audit gate React reale 2.220.0.
 
 ## Regola operativa
 
@@ -10,6 +10,7 @@ Questo file e' la coda di lavoro. Prima di rilanciare test gia' passati, control
 
 | Area | Test / comando | Stato | Problema rilevato | Risoluzione |
 | --- | --- | --- | --- | --- |
+| Audit gate React reale 2.220.0 | Gate React, audit anti-mascheramento, `tests/test_react_shell.py` | Nessuna issue aperta sul codice | I gate hanno evidenziato contraddizioni reali: `/sito-studio/builder` era nel manifest ma bloccato dal gate, lo scadenziario profondo non era protetto chirurgicamente, `Template Atti` conteneva form HTML nel componente full e la dashboard esponeva un nome fallback con `mock`. | Allineati gate/shell/manifest/script, convertiti i controlli Template Atti a submit React JSON, rinominato fallback dashboard, aggiunti contratti legacy per route ad alto rischio lasciate legacy-first. Tutti i gate richiesti sono verdi e registrati in `pytest-confirmed-ok.md`. |
 | Portali non-PST assistiti 2.219.0 | `tests/test_portali_payload_import_ui.py`, `tests/test_pdp_penale_web.py`, `tests/test_deposito_guidato.py` | Nessuna issue aperta sul codice | Durante la verifica mirata sono emersi solo due riallineamenti: la microcopy storica PDP era nascosta dal nuovo pannello assistito e il test PDP con data 2026-05-13 usciva dalla finestra PEC di 30 giorni. | Ripristinata la microcopy del workflow PDP dentro il pannello assistito e allargata la finestra di associazione PEC PDP a 60 giorni; py_compile e shard mirati verdi. |
 
 | Area | Test / comando | Stato | Problema rilevato | Risoluzione |

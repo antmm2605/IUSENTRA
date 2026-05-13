@@ -1,5 +1,29 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-13 - Audit gate React reale 2.220.0
+
+Audit severo su manifest, `react_route_gate.py`, shell React, router frontend,
+bridge e script di guardia. Risolte contraddizioni operative dove route
+dichiarate React erano ancora bloccate dal gate: `/scadenziario/:id` e
+`/sito-studio/builder` sono ora `react_operational_full`; `/scadenziario/:id/modifica`
+e `/sito-studio/redazione-ai` sono `react_operational_partial` perche' conservano
+azioni sensibili non ancora completamente parificate.
+
+Il gate resta chirurgico: `/scadenziario` passa solo per lista, nuovo,
+dettaglio e modifica; export, PDF, completamento, eliminazione e bulk restano
+fuori dalla shell. `/sito-studio` passa solo per root, contatti, builder e
+redazione assistita; sottopercorsi articoli/modifica e altri dettagli restano
+legacy-first. Le route telematiche, amministrative sensibili e applicazioni
+non coperte da API JSON sicure sono state registrate nel manifest come
+`legacy_operational` con contratti legacy espliciti.
+
+I gate anti-mascheramento hanno inoltre corretto falsi full preesistenti:
+`Template Atti` non espone piu' form HTML nel componente dichiarato full e la
+dashboard non usa piu' nomi `mock` nel fallback vuoto. Test/gate verdi:
+`py_compile`, `tests/test_react_shell.py`, `npm typecheck`, `npm build`,
+`npm test`, `check-route-gate`, `check-full-react-route-contract` e
+`check-no-mock-data-full-react`.
+
 ## Stato tranche 2026-05-13 - Portali non-PST assistiti fail-closed 2.219.0
 
 La policy prodotto dei portali telematici e' centralizzata: PST / PolisWeb resta

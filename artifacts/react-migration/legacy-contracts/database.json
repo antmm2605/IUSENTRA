@@ -1,0 +1,11 @@
+{
+  "route": "/database",
+  "legacyUrl": "/database?_legacy=1",
+  "reason": "Alias manutenzione database mantenuto legacy; /admin/database resta la superficie React governata.",
+  "preserve": [
+    "backup prima delle riparazioni",
+    "permessi amministratore",
+    "operazioni manutenzione",
+    "audit"
+  ]
+}

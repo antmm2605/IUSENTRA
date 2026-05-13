@@ -423,7 +423,7 @@ assertContains(tranche8aOpenDesignReport, 'Token creati', 'report Open Design 8A
 if (routeManifest.policy?.currentReleaseUnlocksRoutes !== true) {
   throw new Error('route manifest: currentReleaseUnlocksRoutes deve essere true nelle tranche di promozione')
 }
-const allowedGovernedUnlocks = new Set(['/', '/admin/database', '/agenda', '/agenda/nuovo', '/amministrazione', '/audit', '/backup', '/cartelle-condivise', '/clienti', '/clienti/nuovo', '/compensi-forensi', '/deposito/checklist', '/documenti', '/email', '/email-ordinaria', '/notifiche-legali', '/fascicoli', '/fascicoli/archivio', '/fascicoli/nuovo', '/fatturazione', '/fatturazione/nuova', '/giurisprudenza', '/global-search', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/incassi-pagamenti', '/legal-intelligence', '/legal-intelligence/mediazione', '/legal-intelligence/news', '/messaggi', '/messaggi/nuovo', '/notifiche', '/notifiche-whatsapp', '/preventivi', '/preventivi/conferimento/:id', '/preventivi/conferimento/nuovo', '/preventivi/nuovo', '/preventivi/wizard', '/privacy/registro', '/privacy/registro/nuovo', '/profili', '/redazione-atti', '/regia-operativa', '/registro-attivita', '/registro-gdpr', '/ricerca-legale', '/ricerca-studio', '/scadenziario', '/scadenziario/nuova', '/sincronizzazione-calendari', '/sito-studio', '/sito-studio/contatti', '/soggetti', '/soggetti/nuovo', '/statistiche', '/strumenti-legali', '/strumenti-operativi', '/studio', '/tariffario', '/template-atti', '/template-atti/catalogo', '/timesheet', '/utenti', '/utenti/nuovo', '/wizard-pro', '/workspace-intelligente'])
+const allowedGovernedUnlocks = new Set(['/', '/admin/database', '/agenda', '/agenda/nuovo', '/amministrazione', '/audit', '/backup', '/cartelle-condivise', '/clienti', '/clienti/nuovo', '/compensi-forensi', '/deposito/checklist', '/documenti', '/email', '/email-ordinaria', '/notifiche-legali', '/fascicoli', '/fascicoli/archivio', '/fascicoli/nuovo', '/fatturazione', '/fatturazione/nuova', '/giurisprudenza', '/global-search', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/incassi-pagamenti', '/legal-intelligence', '/legal-intelligence/mediazione', '/legal-intelligence/news', '/messaggi', '/messaggi/nuovo', '/notifiche', '/notifiche-whatsapp', '/preventivi', '/preventivi/conferimento/:id', '/preventivi/conferimento/nuovo', '/preventivi/nuovo', '/preventivi/wizard', '/privacy/registro', '/privacy/registro/nuovo', '/profili', '/redazione-atti', '/regia-operativa', '/registro-attivita', '/registro-gdpr', '/ricerca-legale', '/ricerca-studio', '/scadenziario', '/scadenziario/nuova', '/scadenziario/:id', '/scadenziario/:id/modifica', '/sincronizzazione-calendari', '/sito-studio', '/sito-studio/builder', '/sito-studio/contatti', '/sito-studio/redazione-ai', '/soggetti', '/soggetti/nuovo', '/statistiche', '/strumenti-legali', '/strumenti-operativi', '/studio', '/tariffario', '/template-atti', '/template-atti/catalogo', '/timesheet', '/utenti', '/utenti/nuovo', '/wizard-pro', '/workspace-intelligente'])
 const governedExpectedStatuses = new Map([
   ['/', 'react_operational_full'],
   ['/admin/database', 'react_operational_full'],
@@ -476,9 +476,13 @@ const governedExpectedStatuses = new Map([
   ['/ricerca-studio', 'react_operational_full'],
   ['/scadenziario', 'react_operational_full'],
   ['/scadenziario/nuova', 'react_operational_full'],
+  ['/scadenziario/:id', 'react_operational_full'],
+  ['/scadenziario/:id/modifica', 'react_operational_partial'],
   ['/sincronizzazione-calendari', 'react_operational_full'],
   ['/sito-studio', 'react_operational_full'],
+  ['/sito-studio/builder', 'react_operational_full'],
   ['/sito-studio/contatti', 'react_operational_full'],
+  ['/sito-studio/redazione-ai', 'react_operational_partial'],
   ['/soggetti', 'react_operational_full'],
   ['/soggetti/nuovo', 'react_operational_full'],
   ['/statistiche', 'react_operational_full'],
@@ -522,7 +526,9 @@ for (const [route, status] of [
   ['/studio', 'react_operational_full'],
   ['/amministrazione', 'react_operational_full'],
   ['/sito-studio', 'react_operational_full'],
+  ['/sito-studio/builder', 'react_operational_full'],
   ['/sito-studio/contatti', 'react_operational_full'],
+  ['/sito-studio/redazione-ai', 'react_operational_partial'],
   ['/fatturazione/nuova', 'react_operational_full'],
   ['/preventivi/wizard', 'react_operational_partial'],
   ['/tariffario', 'react_operational_full'],
@@ -557,19 +563,13 @@ for (const [route, status] of governedExpectedStatuses) {
   }
 }
 
-for (const route of ['/sito-studio/builder']) {
-  const entry = (routeManifest.routes ?? []).find((item) => item.route === route)
-  if (!entry || entry.status !== 'legacy_operational' || entry.unlockFromGate !== false) {
-    throw new Error(`route manifest: ${route} deve restare legacy_operational con unlockFromGate=false`)
-  }
-}
 for (const route of ['/fatturazione/*', '/preventivi/*', '/compensi-forensi/*', '/tariffario/*', '/template-atti/nuovo', '/template-atti/*', '/redazione-atti/*', '/giurisprudenza/nuova', '/giurisprudenza/*', '/legal-intelligence/*', '/ricerca-legale/*']) {
   const entry = (routeManifest.routes ?? []).find((item) => item.route === route)
   if (!entry || entry.status !== 'legacy_operational' || entry.unlockFromGate !== false) {
     throw new Error(`route manifest: ${route} deve restare legacy_operational con unlockFromGate=false`)
   }
 }
-for (const route of ['/utenti', '/profili', '/audit', '/registro-attivita', '/studio', '/amministrazione', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/notifiche-legali', '/notifiche', '/notifiche-whatsapp', '/sincronizzazione-calendari', '/backup', '/sito-studio', '/sito-studio/contatti', '/sito-studio/builder', '/statistiche', '/fatturazione', '/fatturazione/nuova', '/fatturazione/*', '/incassi-pagamenti', '/preventivi', '/preventivi/nuovo', '/preventivi/conferimento/nuovo', '/preventivi/*', '/preventivi/wizard', '/compensi-forensi', '/compensi-forensi/*', '/tariffario', '/tariffario/*', '/documenti', '/template-atti', '/template-atti/catalogo', '/template-atti/nuovo', '/template-atti/*', '/redazione-atti', '/redazione-atti/*', '/checklist', '/giurisprudenza', '/giurisprudenza/nuova', '/giurisprudenza/*', '/legal-intelligence', '/legal-intelligence/news', '/legal-intelligence/mediazione', '/legal-intelligence/*', '/ricerca-legale', '/ricerca-legale/*', '/deposito/checklist', '/strumenti-legali', '/strumenti-operativi', '/polisWeb', '/pdp', '/pat', '/sigit', '/sigp', '/portali/*']) {
+for (const route of ['/utenti', '/profili', '/audit', '/registro-attivita', '/studio', '/amministrazione', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/notifiche-legali', '/notifiche', '/notifiche-whatsapp', '/sincronizzazione-calendari', '/backup', '/sito-studio', '/sito-studio/contatti', '/sito-studio/builder', '/sito-studio/redazione-ai', '/statistiche', '/fatturazione', '/fatturazione/nuova', '/fatturazione/*', '/incassi-pagamenti', '/preventivi', '/preventivi/nuovo', '/preventivi/conferimento/nuovo', '/preventivi/*', '/preventivi/wizard', '/compensi-forensi', '/compensi-forensi/*', '/tariffario', '/tariffario/*', '/documenti', '/template-atti', '/template-atti/catalogo', '/template-atti/nuovo', '/template-atti/*', '/redazione-atti', '/redazione-atti/*', '/checklist', '/giurisprudenza', '/giurisprudenza/nuova', '/giurisprudenza/*', '/legal-intelligence', '/legal-intelligence/news', '/legal-intelligence/mediazione', '/legal-intelligence/*', '/ricerca-legale', '/ricerca-legale/*', '/deposito/checklist', '/strumenti-legali', '/strumenti-operativi', '/polisWeb', '/pdp', '/pat', '/sigit', '/sigp', '/portali/*']) {
   if (!(routeManifest.routes ?? []).some((entry) => entry.route === route)) {
     throw new Error(`route manifest: manca ${route}`)
   }
@@ -962,7 +962,9 @@ assertNotContains(legacyOperationalTuple, '"/ricerca-legale"', 'gate legacy senz
 assertContains(reactRouteGate, 'lower.startswith("/utenti/") and lower != "/utenti/nuovo"', 'gate protegge nested utenti non migrati')
 assertContains(reactRouteGate, 'lower.startswith("/profili/")', 'gate protegge nested profili non migrati')
 assertContains(reactRouteGate, 'lower.startswith("/backup/")', 'gate protegge subpath backup legacy')
-assertContains(reactRouteGate, 'lower.startswith("/sito-studio/") and lower not in {"/sito-studio/contatti"}', 'gate protegge subpath sito studio non migrati')
+assertContains(reactRouteGate, '_SITO_STUDIO_REACT_SUBPATHS', 'gate usa allowlist sito studio migrata')
+assertContains(reactRouteGate, '"/sito-studio/builder"', 'gate consente builder sito studio React')
+assertContains(reactRouteGate, '"/sito-studio/redazione-ai"', 'gate consente redazione AI sito studio React parziale')
 assertContains(reactRouteGate, 'lower.startswith("/studio/")', 'gate protegge subpath studio legacy')
 assertContains(reactRouteGate, 'lower.startswith("/amministrazione/")', 'gate protegge subpath amministrazione legacy')
 assertContains(reactRouteGate, 'lower.startswith("/fatturazione/") and lower != "/fatturazione/nuova"', 'gate protegge subpath fatturazione legacy')
@@ -1023,7 +1025,9 @@ assertNotContains(shellLegacyFirstTuple, '"/ricerca-legale"', 'shell legacy-firs
 assertContains(reactShellBlueprint, 'lower.startswith("/utenti/") and lower != "/utenti/nuovo"', 'shell protegge nested utenti non migrati')
 assertContains(reactShellBlueprint, 'lower.startswith("/profili/")', 'shell protegge nested profili non migrati')
 assertContains(reactShellBlueprint, 'lower.startswith("/backup/")', 'shell protegge subpath backup legacy')
-assertContains(reactShellBlueprint, 'lower.startswith("/sito-studio/") and lower not in {"/sito-studio/contatti"}', 'shell protegge subpath sito studio non migrati')
+assertContains(reactShellBlueprint, '_SITO_STUDIO_REACT_SUBPATHS', 'shell usa allowlist sito studio migrata')
+assertContains(reactShellBlueprint, '"/sito-studio/builder"', 'shell consente builder sito studio React')
+assertContains(reactShellBlueprint, '"/sito-studio/redazione-ai"', 'shell consente redazione AI sito studio React parziale')
 assertContains(reactShellBlueprint, 'lower.startswith("/studio/")', 'shell protegge subpath studio legacy')
 assertContains(reactShellBlueprint, 'lower.startswith("/amministrazione/")', 'shell protegge subpath amministrazione legacy')
 assertContains(reactShellBlueprint, 'lower.startswith("/fatturazione/") and lower != "/fatturazione/nuova"', 'shell protegge subpath fatturazione legacy')
@@ -1594,6 +1598,7 @@ for (const route of [
   '/sito-studio',
   '/sito-studio/builder',
   '/sito-studio/contatti',
+  '/sito-studio/redazione-ai',
   '/notifiche',
   '/notifiche-whatsapp',
   '/incassi-pagamenti',

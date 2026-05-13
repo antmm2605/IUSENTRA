@@ -1,0 +1,14 @@
+{
+  "route": "/scadenziario/:id",
+  "capturedAt": "2026-05-13",
+  "status": "react_operational_full",
+  "source": "audit route gate: dettaglio servito dalla shell React con focus in pagina",
+  "preserve": [
+    "lettura scadenze reali",
+    "focus sul dettaglio selezionato",
+    "azioni operative controllate",
+    "fallback _legacy=1 solo tecnico"
+  ],
+  "uiPolicy": "docs/UI_DESIGN_SYSTEM.md",
+  "regressionGuard": "GET ordinario deve passare dal gate React; download/export restano esclusi"
+}

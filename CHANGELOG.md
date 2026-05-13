@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.220.0 - 2026-05-13
+
+- Promosse in modo verificato le route `/scadenziario/:id` e `/sito-studio/builder` a `react_operational_full`, mantenendo fuori dal gate export, azioni legacy e sottopercorsi non parificati.
+- Sbloccate come `react_operational_partial` le route `/scadenziario/:id/modifica` e `/sito-studio/redazione-ai`, con manifest, gate, shell, contratti e test allineati.
+- Riallineato il gate React: `/sito-studio/builder` e `/sito-studio/redazione-ai` passano dalla shell, mentre `/sito-studio/*` non verificati restano legacy; `/scadenziario` accetta solo lista, nuovo, dettaglio e modifica.
+- Eliminati i falsi full emersi dai gate: `Template Atti` non contiene piu' form HTML nel componente full e il fallback dashboard non usa piu' nomi mock.
+- Aggiunti contratti legacy espliciti per route ad alto rischio lasciate legacy-first, tra cui telematico, servizi telematici, SIGP sync, tribunali, guida firma digitale, osservabilita, database alias e applicazioni.
+
 ## 2.219.0 - 2026-05-13
 
 - Introdotta la policy centrale dei portali: PST / PolisWeb resta `direct_internal`, mentre PTT/SIGIT, PAT e PDP restano `official_portal_assisted` salvo manifest diretto verificato, completo, non scaduto e con test reali passati.

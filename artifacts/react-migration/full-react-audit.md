@@ -2,6 +2,27 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-13T13:32:00+02:00: tranche 2.220.0 audit gate React
+reale. Le route `/scadenziario/:id` e `/sito-studio/builder` sono ora
+`react_operational_full` con GET ordinario servito dalla shell React e fallback
+`?_legacy=1` preservato. `/scadenziario/:id/modifica` e
+`/sito-studio/redazione-ai` sono `react_operational_partial` perche' conservano
+azioni operative da completare prima della piena parificazione.
+
+Il gate e' stato reso fail-closed per sottopercorsi: scadenziario accetta solo
+lista, nuovo, dettaglio e modifica, lasciando fuori export, PDF, eliminazione,
+completamento e bulk; sito studio accetta solo root, contatti, builder e
+redazione assistita. `Template Atti` e' stato ripulito dai form HTML nel
+componente full e l'audit anti-mascheramento conta 98 route, zero
+`LegacyPostForm`, zero form POST HTML React e zero status `react_full`
+deprecati.
+
+Verifica browser reale aggiunta il 2026-05-13: Playwright Python con Chrome
+locale, login utente reale e viewport desktop/mobile conferma shell operativa
+su `/sito-studio/builder`, `/scadenziario/<id>`,
+`/scadenziario/<id>/modifica` e `/sito-studio/redazione-ai`; nessun errore
+console, nessun overflow orizzontale e nessun termine tecnico vietato visibile.
+
 Aggiornamento 2026-05-13T18:20:00+02:00: `Impostazioni > Notifiche` resta nel
 perimetro React operativo e rafforza la diagnosi Web Push senza introdurre form
 POST HTML, `LegacyPostForm` o dati dimostrativi. Il pannello distingue server

@@ -60,17 +60,6 @@ function routeRow(route) {
   return rows.find((row) => row.route === route)
 }
 
-function assertLegacyProtected(route) {
-  const row = routeRow(route)
-  if (row?.manifestStatus !== 'legacy_operational' || row?.unlockFromGate !== false) {
-    violations.push(`${route}: deve restare legacy_operational con unlockFromGate false.`)
-  }
-}
-
-for (const route of ['/sito-studio/builder']) {
-  assertLegacyProtected(route)
-}
-
 for (const route of ['/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/sincronizzazione-calendari', '/backup']) {
   const row = routeRow(route)
   if (row?.manifestStatus !== 'react_operational_full' || row?.unlockFromGate !== true) {

@@ -1,0 +1,11 @@
+{
+  "route": "/guida/firma-digitale",
+  "legacyUrl": "/guida/firma-digitale?_legacy=1",
+  "reason": "Flusso guida firma digitale collegato a Local Signer e token non ancora parificato in React.",
+  "preserve": [
+    "Local Signer",
+    "CNS e token",
+    "download allegati",
+    "fallback tecnico"
+  ]
+}

@@ -34,6 +34,21 @@ _LEGACY_FIRST_PREFIXES = (
     "/tribunali",
 )
 
+_SITO_STUDIO_REACT_SUBPATHS = {
+    "/sito-studio/contatti",
+    "/sito-studio/builder",
+    "/sito-studio/redazione-ai",
+}
+
+_SCADENZIARIO_LEGACY_ACTIONS = {
+    "bulk-completa",
+    "calcola-termine",
+    "completa",
+    "elimina",
+    "export",
+    "pdf",
+}
+
 
 def _react_static_dir() -> Path:
     return Path(current_app.static_folder or "web/static") / "react"
@@ -105,6 +120,19 @@ def _route_component_key(path: str) -> str:
         if lower == prefix or lower.startswith(f"{prefix}/"):
             return component
     return "src/components/StudioModulePage.tsx"
+
+
+def _scadenziario_react_allowed(lower: str) -> bool:
+    if lower in {"/scadenziario", "/scadenziario/nuova"}:
+        return True
+    parts = [part for part in lower.strip("/").split("/") if part]
+    if len(parts) == 2 and parts[0] == "scadenziario":
+        ident = parts[1]
+        return "." not in ident and ident not in _SCADENZIARIO_LEGACY_ACTIONS
+    if len(parts) == 3 and parts[0] == "scadenziario" and parts[2] == "modifica":
+        ident = parts[1]
+        return "." not in ident and ident not in _SCADENZIARIO_LEGACY_ACTIONS
+    return False
 
 
 def _collect_manifest_assets(manifest: dict[str, Any], key: str) -> dict[str, list[str]]:
@@ -265,7 +293,10 @@ def _deve_mantenere_vista_classica() -> bool:
         return True
     if lower.startswith("/backup/"):
         return True
-    if lower.startswith("/sito-studio/") and lower not in {"/sito-studio/contatti"}:
+    if lower == "/scadenziario" or lower.startswith("/scadenziario/"):
+        if not _scadenziario_react_allowed(lower):
+            return True
+    if lower.startswith("/sito-studio/") and lower not in _SITO_STUDIO_REACT_SUBPATHS:
         return True
     if lower.startswith("/studio/"):
         return True

@@ -378,7 +378,7 @@ export const studioModules: StudioModuleConfig[] = [
   },
   {
     id: 'sito-studio',
-    routes: ['/sito-studio', '/sito-studio/builder', '/sito-studio/contatti'],
+    routes: ['/sito-studio', '/sito-studio/builder', '/sito-studio/redazione-ai', '/sito-studio/contatti'],
     title: 'Sito Studio',
     section: 'Presenza digitale',
     subtitle: 'Pannello operativo per sito pubblico, contenuti, servizi, professionisti, sedi, richieste e prenotazioni.',
@@ -392,6 +392,7 @@ export const studioModules: StudioModuleConfig[] = [
     cards: [
       { title: 'Cruscotto sito', body: 'Apri controllo contenuti, richieste, prenotazioni e stato pubblicazione.', href: '/sito-studio/', action: 'Apri cruscotto', icon: 'earth', tone: 'primary', meta: 'Contenuti' },
       { title: 'Editor sito', body: 'Modifica blocchi, struttura e contenuti avanzati del sito.', href: '/sito-studio/builder', action: 'Apri editor', icon: 'wrench', tone: 'purple', meta: 'Impaginazione' },
+      { title: 'Assistente contenuti', body: 'Prepara bozze, immagini e pubblicazione degli articoli con controlli redazionali.', href: '/sito-studio/redazione-ai', action: 'Apri assistente', icon: 'spark', tone: 'warning', meta: 'Articoli' },
       { title: 'Richieste contatto', body: 'Valuta contatti arrivati dal sito e crea anagrafiche clienti.', href: '/sito-studio/contatti', action: 'Apri contatti', icon: 'mail', tone: 'success', meta: 'Lead' },
     ],
     workflow: ['Aggiorna contenuti', 'Pubblica anteprima', 'Gestisci richieste', 'Converti lead in cliente'],

@@ -1,0 +1,11 @@
+{
+  "route": "/admin/osservabilita",
+  "legacyUrl": "/admin/osservabilita?_legacy=1",
+  "reason": "Dashboard osservabilita amministrativa non ancora parificata end-to-end in React.",
+  "preserve": [
+    "permessi amministratore",
+    "metriche runtime reali",
+    "diagnostica sensibile",
+    "audit"
+  ]
+}

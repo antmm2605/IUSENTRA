@@ -2,6 +2,26 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-13T13:32:00+02:00: tranche 2.220.0 audit gate React
+reale. Promosse a full reale `/scadenziario/:id` e `/sito-studio/builder`;
+promosse a partial governato `/scadenziario/:id/modifica` e
+`/sito-studio/redazione-ai`. I sottopercorsi ad alto rischio restano
+legacy-first con contratti espliciti: telematico, servizi telematici, SIGP
+sync, tribunali, guida firma digitale, osservabilita, alias database e
+applicazioni.
+
+La verifica ha corretto anche falsi full preesistenti: il componente
+`Template Atti` non usa piu' form HTML e il fallback dashboard non contiene piu'
+marcatori mock. Gate registrati verdi in `pytest-confirmed-ok.md`: py_compile,
+`tests/test_react_shell.py`, typecheck, build, test frontend e i tre script
+React di route-gate/full/no-mock.
+
+Verifica browser reale 2026-05-13: Chrome headless via Playwright Python,
+login autenticato, desktop su builder e scadenziario dettaglio/modifica,
+mobile su redazione assistita Sito Studio. Esito: shell operativa presente,
+testi attesi visibili, zero errori console, zero overflow orizzontale e nessun
+termine tecnico vietato nel testo visibile.
+
 Aggiornamento 2026-05-13T18:20:00+02:00: tranche 2.218.4 PWA/Web Push.
 `Impostazioni > Notifiche` mantiene l'esperienza React e sostituisce lo stato
 generico `Da configurare` con messaggi operativi: server da configurare,

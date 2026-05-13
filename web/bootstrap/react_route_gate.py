@@ -73,19 +73,15 @@ _REACT_PREFIXES = (
 
 _REACT_EXACT = {
     "/admin/database",
-    "/admin/osservabilita",
-    "/admin/osservabilita",
     "/amministrazione",
     "/audit",
     "/backup",
     "/cerca",
     "/compensi-forensi",
-    "/database",
     "/documenti",
     "/fatturazione",
     "/fatturazione/nuova",
     "/giurisprudenza",
-    "/giurisprudenza/nuova",
     "/impostazioni/pagamenti",
     "/impostazioni",
     "/impostazioni-studio",
@@ -105,7 +101,6 @@ _REACT_EXACT = {
     "/redazione-atti",
     "/registro-attivita",
     "/ricerca-legale",
-    "/servizi-telematici",
     "/sito-studio",
     "/sito-studio/builder",
     "/sito-studio/contatti",
@@ -116,7 +111,6 @@ _REACT_EXACT = {
     "/strumenti-operativi",
     "/template-atti",
     "/template-atti/catalogo",
-    "/template-atti/nuovo",
     "/utenti",
     "/utenti/nuovo",
 }
@@ -190,6 +184,21 @@ _CANONICAL_ALIAS_PATHS = {
     "/ricerca-studio",
 }
 
+_SITO_STUDIO_REACT_SUBPATHS = {
+    "/sito-studio/contatti",
+    "/sito-studio/builder",
+    "/sito-studio/redazione-ai",
+}
+
+_SCADENZIARIO_LEGACY_ACTIONS = {
+    "bulk-completa",
+    "calcola-termine",
+    "completa",
+    "elimina",
+    "export",
+    "pdf",
+}
+
 
 def _legacy_requested() -> bool:
     return (request.args.get("_legacy") or "").strip().lower() in {"1", "true", "si", "yes", "on"}
@@ -205,15 +214,31 @@ def _normalise_path(path: str) -> str:
     return clean
 
 
+def _scadenziario_react_allowed(lower: str) -> bool:
+    if lower in {"/scadenziario", "/scadenziario/nuova"}:
+        return True
+    parts = [part for part in lower.strip("/").split("/") if part]
+    if len(parts) == 2 and parts[0] == "scadenziario":
+        ident = parts[1]
+        return "." not in ident and ident not in _SCADENZIARIO_LEGACY_ACTIONS
+    if len(parts) == 3 and parts[0] == "scadenziario" and parts[2] == "modifica":
+        ident = parts[1]
+        return "." not in ident and ident not in _SCADENZIARIO_LEGACY_ACTIONS
+    return False
+
+
 def _excluded(path: str) -> bool:
     lower = path.lower()
+    if lower == "/scadenziario" or lower.startswith("/scadenziario/"):
+        if not _scadenziario_react_allowed(lower):
+            return True
     if lower.startswith("/utenti/") and lower != "/utenti/nuovo":
         return True
     if lower.startswith("/profili/"):
         return True
     if lower.startswith("/backup/"):
         return True
-    if lower.startswith("/sito-studio/") and lower not in {"/sito-studio/contatti"}:
+    if lower.startswith("/sito-studio/") and lower not in _SITO_STUDIO_REACT_SUBPATHS:
         return True
     if lower.startswith("/studio/"):
         return True
@@ -337,10 +362,8 @@ def register_react_route_gate(app: Flask) -> None:
         raw_lower = (request.path or "/").lower()
         if raw_lower.rstrip("/") in _CANONICAL_ALIAS_PATHS:
             return None
-        if raw_lower == "/scadenziario" or raw_lower.startswith("/scadenziario/"):
-            return None
         sito_path = raw_lower.rstrip("/") or "/"
-        if raw_lower.startswith("/sito-studio/") and sito_path not in {"/sito-studio", "/sito-studio/contatti"}:
+        if raw_lower.startswith("/sito-studio/") and sito_path not in {"/sito-studio"} | _SITO_STUDIO_REACT_SUBPATHS:
             return None
         path = _normalise_path(request.path)
         if _excluded(path) or not _is_react_route(path):

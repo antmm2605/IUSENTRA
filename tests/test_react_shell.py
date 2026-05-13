@@ -131,8 +131,9 @@ def test_react_sidebar_contiene_navigazione_enterprise_completa():
     legacy_css = Path("web/static/scss/app.scss").read_text(encoding="utf-8")
     assert "#sidebar .sb-scroll {\n  overflow-x: hidden;" in legacy_css
     assert "#sidebar .sb-link,\n#sidebar .sb-link:hover {\n  transform: none;" in legacy_css
-    assert "useState<Record<string,boolean>>({})" in source
-    assert "openSections[section.id] === true" in source
+    assert "useState<string | null>(activeSectionId)" in source
+    assert "openSectionId === section.id" in source
+    assert "setOpenSectionId(current=>current===id?null:id)" in source
     assert "onCloseMobile" in source
     assert "onNavigate={onCloseMobile}" in source
     assert "mobileOpen ? 'Chiudi menu'" in source
@@ -378,7 +379,7 @@ def test_react_firma_documento_profonda_non_degrada_a_dettaglio_generico():
     assert "Attenzione: documento già firmato." in source
     assert "confirm_resign" in source
     assert "alreadySigned && !confirmResign" in source
-    assert "method=\"post\" action={firmaUrl} encType=\"multipart/form-data\"" in source
+    assert '<JsonPostForm className="iu-fas-signature-form" action={firmaUrl} encType="multipart/form-data">' in source
     assert "/api/fascicoli/${encodedId}/documenti/${encodedDocId}/info-firma" in source
     assert 'methods=["GET", "POST"]' in signature_routes
     assert "requires_confirm_resign" in signature_routes
@@ -415,6 +416,7 @@ def test_react_blocco_finale_route_reali_e_vista_classica(tmp_path: Path):
             ("/strumenti-operativi", "Strumenti Operativi", True),
             ("/sito-studio/", "Sito Studio", False),
             ("/sito-studio/builder", "Sito Studio", False),
+            ("/sito-studio/redazione-ai", "Sito Studio", False),
             ("/notifiche-whatsapp", "WhatsApp", True),
             ("/incassi-pagamenti", "Incassi", True),
             ("/impostazioni-studio", "Impostazioni", True),
@@ -464,6 +466,7 @@ def test_react_blocco_finale_route_reali_e_vista_classica(tmp_path: Path):
             "/giurisprudenza/nuova?_legacy=1",
             "/sito-studio/builder?_legacy=1",
             "/sito-studio/contatti?_legacy=1",
+            "/sito-studio/redazione-ai?_legacy=1",
             "/template-atti/catalogo?_legacy=1",
             "/template-atti/nuovo?_legacy=1",
             "/notifiche/?_legacy=1",
@@ -642,7 +645,7 @@ def test_react_nuovo_appuntamento_pagina_separata_con_backend_operativo():
     assert "{ label: 'Nuovo Appuntamento', icon: CirclePlus, href: '/agenda/nuovo' }" in app_source
     assert "const isEditMode = Boolean(editId)" in appointment_page
     assert "const formAction = isEditMode ? `/agenda/${encodeURIComponent(editId)}/modifica` : '/agenda/nuovo'" in appointment_page
-    assert "action={formAction}" in appointment_page
+    assert "submitFormJson(formAction" in appointment_page
     assert "Salva modifiche" in appointment_page
     assert "params.get('ora')" in appointment_page
     assert "/api/clienti" in appointment_page
@@ -1252,7 +1255,7 @@ def test_react_superfici_telematiche_api_payload_reale(tmp_path: Path):
     assert polisweb_payload["links"][1]["href"] == "/portali/pst/acquisizione"
     assert polisweb_payload["channel"]["quickActions"][0]["label"] == "Importa pratica da PST"
     assert polisweb_payload["channel"]["quickActions"][0]["href"] == "/portali/pst/acquisizione"
-    assert polisweb_payload["channel"]["quickActions"][1]["label"] == "Apri superficie"
+    assert polisweb_payload["channel"]["quickActions"][1]["label"] == "Apri pagina"
     assert polisweb_payload["localSigner"]["browserUrl"] == "http://127.0.0.1:27272"
     assert polisweb_payload["localSigner"]["latestVersion"]
     assert polisweb_payload["localSigner"]["windowsUrl"].endswith("/setup/windows")
@@ -1476,7 +1479,6 @@ def test_react_route_gate_copre_rotte_profonde_e_preserva_contratti_operativi(tm
             f"/clienti/{cliente.id}/cartella",
             f"/clienti/{cliente.id}/faldone",
             f"/clienti/{cliente.id}/portale",
-            f"/fascicoli/{fascicolo.id}/copertina",
             f"/fascicoli/{fascicolo.id}/quadro",
             f"/scadenziario/{scadenza.id}",
             f"/scadenziario/{scadenza.id}/modifica",
@@ -1505,12 +1507,16 @@ def test_react_route_gate_copre_rotte_profonde_e_preserva_contratti_operativi(tm
 
         for path in (
             f"/fascicoli/{fascicolo.id}/deposito/prepara",
+            f"/fascicoli/{fascicolo.id}/copertina",
             f"/fascicoli/{fascicolo_penale.id}/penale/pdp",
             "/checklist/test-template",
             "/applicazioni/fascicoli",
             "/servizi-telematici",
             "/tribunali",
             "/guida/firma-digitale",
+            "/scadenziario/export.ics",
+            f"/scadenziario/{scadenza.id}/completa",
+            "/sito-studio/articoli/art-1/modifica",
             "/sigp/",
             "/sigp-sync/",
             "/portali/pat/acquisizione",
@@ -1585,6 +1591,12 @@ def test_route_gate_non_promuove_moduli_studio_telematico_admin_incompleti():
         "/privacy/registro",
         "/privacy/registro/nuovo",
         "/sito-studio",
+        "/sito-studio/builder",
+        "/sito-studio/redazione-ai",
+        "/scadenziario",
+        "/scadenziario/nuova",
+        "/scadenziario/scad-react",
+        "/scadenziario/scad-react/modifica",
         "/statistiche",
         "/impostazioni",
         "/impostazioni-studio",
@@ -1613,6 +1625,10 @@ def test_route_gate_non_promuove_moduli_studio_telematico_admin_incompleti():
         assert not _excluded(_normalise_path(raw)), raw
     assert _excluded(_normalise_path("/deposito/checklist/download"))
     assert _excluded(_normalise_path("/privacy/registro/ABC123/elimina"))
+    assert _excluded(_normalise_path("/scadenziario/export.ics"))
+    assert _excluded(_normalise_path("/scadenziario/bulk-completa"))
+    assert _excluded(_normalise_path("/scadenziario/scad-react/completa"))
+    assert _excluded(_normalise_path("/sito-studio/articoli/art-1/modifica"))
 
 
 def test_impostazioni_react_api_redige_segreti_e_salva_configurazioni(tmp_path: Path):
@@ -1859,8 +1875,8 @@ def test_react_privacy_registro_operativo_secondo_pattern_oss(tmp_path: Path):
     assert "isPrivacyRegistroPage?<PrivacyRegistroPage/>" in app_source
     assert "/api/v1/ui/privacy/registro" in data_source
     assert "mock_fallback" in data_source
-    assert "method=\"post\" action={data.actions.create}" in page_source
-    assert "action={item.deleteAction}" in page_source
+    assert "submitFormJson(data.actions.create" in page_source
+    assert "submitFormJson(item.deleteAction" in page_source
     assert "window.confirm" in page_source
     assert "_legacy=1" not in page_source
     assert ".iu-privacy-page" in css_source
@@ -1943,7 +1959,7 @@ def test_react_admin_database_operativo_secondo_pattern_oss(tmp_path: Path):
     assert "Governance" not in page_source
     assert "Salute sistema" not in page_source
     assert "'X-CSRF-Token': csrfToken()" in page_source
-    assert "method=\"post\" action={logoutAction}" in app_source
+    assert "<JsonPostForm action={logoutAction}>" in app_source
     assert ".iu-db-page" in css_source
     assert "@media(max-width:900px)" in css_source
     assert "build_react_admin_database_payload" in bridge_source
@@ -2387,6 +2403,7 @@ def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: P
         "Dettaglio Cliente": f"/clienti/{cliente.id}/cartella",
         "Dettaglio Soggetto": f"/soggetti/{soggetto.id}",
         "Dettaglio Scadenza": f"/scadenziario/{scadenza.id}",
+        "Modifica Scadenza": f"/scadenziario/{scadenza.id}/modifica",
     }
     telematico_routes = {
         "Servizi Telematici": "/telematico",
@@ -2423,6 +2440,8 @@ def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: P
         "Backup": "/backup",
         "Sincronizzazione Calendari": "/impostazioni/calendario",
         "Sito Studio": "/sito-studio/",
+        "Builder Sito Studio": "/sito-studio/builder",
+        "Redazione AI Sito Studio": "/sito-studio/redazione-ai",
         "Impostazioni Studio": "/impostazioni-studio",
         "Utenti": "/utenti",
         "Profili e Permessi": "/profili",
@@ -2463,6 +2482,8 @@ def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: P
             "Nuovo SMS/WA": "/api/v1/ui/messaggi/nuovo",
             "Scadenziario": "/api/v1/ui/scadenziario",
             "Nuova Scadenza": "/api/v1/ui/scadenziario/nuova",
+            "Builder Sito Studio": "/api/v1/ui/sito-studio/builder",
+            "Redazione AI Sito Studio": "/api/v1/ui/sito-studio/redazione-ai",
             "Preparazione Udienza Guidata": "/api/v1/ui/wizard-pro",
             "Controlli Atti": "/api/v1/ui/telematico/surface/checklist",
             "Centro Servizi Telematici": "/api/v1/ui/telematico",
@@ -3070,10 +3091,6 @@ def test_react_fascicolo_documenti_ajax_non_ricarica_e_cancella_senza_confirm_na
             f"/fascicoli/{fascicolo.id}/documenti/{documento.id}/elimina",
             headers=headers,
         )
-        delete_fascicolo = client.post(
-            f"/fascicoli/{fascicolo.id}/elimina",
-            headers=headers,
-        )
 
     assert upload.status_code == 200
     assert upload.is_json
@@ -3100,6 +3117,12 @@ def test_react_fascicolo_documenti_ajax_non_ricarica_e_cancella_senza_confirm_na
     assert delete_doc.status_code == 200
     assert delete_doc.is_json
     assert delete_doc.get_json()["ok"] is True
+    with app.test_client() as client:
+        _login(client)
+        delete_fascicolo = client.post(
+            f"/fascicoli/{fascicolo.id}/elimina",
+            headers=headers,
+        )
     assert delete_fascicolo.status_code == 200
     assert delete_fascicolo.is_json
     assert delete_fascicolo.get_json()["ok"] is True
@@ -3838,7 +3861,7 @@ def test_react_wizard_pro_nav_route_api_e_card_operative(tmp_path: Path):
     assert "render_react_shell_response(\"wizard-pro\")" in route_source
     assert "Vista classica" not in page_source
     assert "_legacy=1" not in page_source
-    assert 'method="post"' in page_source
+    assert "JsonPostForm action={item.startHref}" in page_source
     assert "item.startHref" in page_source
     assert "Termini collegati" in page_source
     assert "data.actions.lex" in page_source

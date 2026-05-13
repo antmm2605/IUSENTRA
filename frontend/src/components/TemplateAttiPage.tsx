@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { AlertTriangle, ArrowLeft, BookOpen, BriefcaseBusiness, CheckCircle2, ExternalLink, FileText, Filter, RefreshCw, Save, Search, ShieldCheck, Tags, UserRound } from 'lucide-react'
 import { Badge } from '../ui/Badge'
 import { Button, ButtonLink } from '../ui/Button'
@@ -20,6 +20,7 @@ import {
   type TemplateAttiRecord,
 } from '../templateAttiData'
 import { displaySourceLabel } from '../displayText'
+import { submitFormJson } from '../formSubmit'
 import './TemplateAttiPage.css'
 
 function isCatalogoRoute() {
@@ -40,6 +41,17 @@ function queryHiddenInputs() {
     }
   })
   return hidden
+}
+
+function collectControlData(root: HTMLElement | null) {
+  const formData = new FormData()
+  if (!root) return formData
+  root.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>('input, select, textarea').forEach((control) => {
+    if (!control.name || control.disabled) return
+    if (control instanceof HTMLInputElement && ['checkbox', 'radio'].includes(control.type) && !control.checked) return
+    formData.append(control.name, control.value)
+  })
+  return formData
 }
 
 function ContractStrip({ data }: { data: TemplateAttiPageData }) {
@@ -542,6 +554,11 @@ function CompilerSidePanel({ data }: { data: TemplateCompilerData }) {
 function TemplateCompilerView({ modelCode }: { modelCode: string }) {
   const [data, setData] = useState<TemplateCompilerData>(emptyTemplateCompilerPage)
   const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+  const [submitMessage, setSubmitMessage] = useState('')
+  const [submitError, setSubmitError] = useState('')
+  const contextRef = useRef<HTMLDivElement>(null)
+  const compilerRef = useRef<HTMLDivElement>(null)
   const hiddenQuery = useMemo(queryHiddenInputs, [])
 
   function load() {
@@ -554,6 +571,36 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
   useEffect(() => {
     load()
   }, [modelCode])
+
+  const applyContext = (intent = '') => {
+    const params = new URLSearchParams(window.location.search)
+    const formData = collectControlData(contextRef.current)
+    formData.forEach((value, name) => {
+      const textValue = String(value || '').trim()
+      if (textValue) params.set(name, textValue)
+      else params.delete(name)
+    })
+    if (intent) params.set('intent', intent)
+    else params.delete('intent')
+    const suffix = params.toString()
+    window.location.assign(`${window.location.pathname}${suffix ? `?${suffix}` : ''}`)
+  }
+
+  const submitCompiler = () => {
+    if (!data.selectors.selectedFascicoloId || submitting) return
+    setSubmitting(true)
+    setSubmitError('')
+    setSubmitMessage('')
+    submitFormJson(data.formAction, collectControlData(compilerRef.current))
+      .then((result) => {
+        setSubmitMessage(result.message || 'Bozza creata. Apertura del documento in corso.')
+        if (result.redirect) {
+          window.setTimeout(() => window.location.assign(result.redirect || data.catalogHref), 300)
+        }
+      })
+      .catch((error) => setSubmitError(error instanceof Error ? error.message : 'Non ho potuto creare la bozza. Controlla i campi richiesti.'))
+      .finally(() => setSubmitting(false))
+  }
 
   if (loading) {
     return <LoadingState title="Caricamento compilazione" message="Recupero campi, dati disponibili e controlli del modello." />
@@ -588,7 +635,7 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
 
         <div className="iu-template-compiler-layout">
           <main className="iu-template-compiler-main">
-            <form method="get" action={data.formAction} className="iu-template-context-form iu-od-card">
+            <div className="iu-template-context-form iu-od-card" ref={contextRef}>
               {hiddenQuery.map((item) => <input type="hidden" name={item.name} value={item.value} key={`${item.name}-${item.value}`} />)}
               <input type="hidden" name="model_code" value={data.model.code} />
               <header>
@@ -615,18 +662,18 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
                 </label>
               </div>
               <div className="iu-od-action-row">
-                <Button type="submit" tone="neutral">
+                <Button type="button" tone="neutral" onClick={() => applyContext()}>
                   <RefreshCw size={16} aria-hidden="true" />
                   Precompila dati
                 </Button>
-                <Button type="submit" tone="neutral" name="intent" value="complete_missing">
+                <Button type="button" tone="neutral" onClick={() => applyContext('complete_missing')}>
                   <FileText size={16} aria-hidden="true" />
                   Completa dati mancanti
                 </Button>
               </div>
-            </form>
+            </div>
 
-            <form method="post" action={data.formAction} className="iu-template-compiler-form iu-od-card">
+            <div className="iu-template-compiler-form iu-od-card" ref={compilerRef}>
               <input type="hidden" name="_react_return" value="1" />
               <input type="hidden" name="id_cliente" value={data.selectors.selectedClienteId} />
               <input type="hidden" name="id_fascicolo" value={data.selectors.selectedFascicoloId} />
@@ -651,14 +698,16 @@ function TemplateCompilerView({ modelCode }: { modelCode: string }) {
                   </div>
                 </section>
               ) : null}
+              {submitError ? <p className="iu-template-compiler-error" role="alert">{submitError}</p> : null}
+              {submitMessage ? <p className="iu-template-compiler-note iu-template-compiler-note--found" role="status">{submitMessage}</p> : null}
               <footer className="iu-template-compiler-actions">
-                <Button type="submit" tone="primary" disabled={!data.selectors.selectedFascicoloId} title={!data.selectors.selectedFascicoloId ? 'Seleziona prima una pratica collegata.' : undefined}>
+                <Button type="button" tone="primary" disabled={!data.selectors.selectedFascicoloId || submitting} title={!data.selectors.selectedFascicoloId ? 'Seleziona prima una pratica collegata.' : undefined} onClick={submitCompiler}>
                   <Save size={17} aria-hidden="true" />
-                  {data.selectors.selectedFascicoloId ? data.submitLabel : 'Seleziona pratica collegata'}
+                  {submitting ? 'Creazione in corso...' : data.selectors.selectedFascicoloId ? data.submitLabel : 'Seleziona pratica collegata'}
                 </Button>
                 <ButtonLink href={data.catalogHref} tone="neutral">Annulla</ButtonLink>
               </footer>
-            </form>
+            </div>
           </main>
           <div className="iu-template-compiler-aside-stack">
             <CompliancePanel data={data} />

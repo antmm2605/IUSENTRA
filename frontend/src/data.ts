@@ -55,7 +55,7 @@ export const emptyDashboard: DashboardData = {
   sources: []
 }
 
-export const mockDashboard = emptyDashboard
+export const dashboardFallback = emptyDashboard
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === 'object' && !Array.isArray(value))

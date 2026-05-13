@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.228.0 - 2026-05-13
+
+- Completata la fase 7 `fasereact`: rafforzata la shell frontend App V2 con 404 sicura per percorsi non censiti, navigazione filtrata da feature flag e RBAC UI, e bootstrap React con permessi effettivi dell'utente.
+- Aggiunto il gate `frontend/scripts/check-app-v2-frontend.mjs`, collegato a `npm test`, CI, documentazione generata e OpenAPI, per bloccare regressioni su no-fetch flag-off, menu non autorizzati e stati `complete_tested`/`partial`/`pending`.
+- Rigenerati `docs/app-v2-page-registry.md` e `docs/frontend-app-v2-pages.md` con stato frontend fase 7 pagina per pagina, mantenendo esplicitamente pendenti le route legacy o parziali non parificate.
+- Aggiunti test mirati `tests/test_app_v2_frontend_phase7.py` per guard sorgente, permessi reali nel bootstrap e report App V2 aggiornati.
+
 ## 2.227.0 - 2026-05-13
 
 - Completata la fase 6 `fasereact`: creato `docs/openapi.yaml` dagli endpoint Flask React reali e aggiunta `docs/api-endpoint-contract-map.md` con priorita, pagina, RBAC, feature flag, tenant scope e provider status.

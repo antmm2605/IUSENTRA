@@ -1,12 +1,26 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-13, fase react 5 sicurezza backend endpoint 2.226.0.
+Aggiornato: 2026-05-13, fase react 7 frontend App V2 2.228.0.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Fase react 7 - frontend App V2 governato 2.228.0
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile scripts\react-migration\generate_app_v2_page_registry.py tests\test_app_v2_frontend_phase7.py web\blueprints\react_shell.py` | OK | Sintassi confermata per generatore registro, test fase 7 e bootstrap React con permessi effettivi. |
+| `python scripts\react-migration\generate_app_v2_page_registry.py --check` | OK | Registro App V2 e riepilogo frontend deterministici con sezione `Stato frontend fase 7`. |
+| `npm --prefix frontend run test:app-v2`; `npm --prefix frontend run test`; `npm --prefix frontend run typecheck` | OK | Gate App V2, contratti React e TypeScript verdi; il gate fase 7 verifica 63 route P0/P1 e 34 route P0/P1 full. |
+| `python -m pytest -q tests\test_app_v2_frontend_phase7.py tests\test_app_v2_page_registry.py tests\test_app_v2_feature_flags.py tests\test_app_v2_routing.py tests\test_react_shell.py::test_react_api_bridge_richiede_autenticazione --tb=short` | OK | 23/23 passati: 404 sicura App V2, RBAC bootstrap, registry, feature flag, routing e auth API preservati. |
+| `python scripts\validate_openapi.py docs\openapi.yaml`; `python tools\sync_packaging_files.py --check`; `python -m pytest -q tests\test_packaging_consistency.py tests\test_release_readiness.py --tb=short` | OK | OpenAPI valido, packaging sincronizzato e readiness release 8/8 per `2.228.0`. |
+| `npm --prefix frontend run build` | OK | Build Vite 2.228.0 completata in 6.50s; bundle principale `index-CSdjNGxs.js` 444.72 kB / 131.62 kB gzip, CSS principale invariato `index-Bafxecf8.css` 121.77 kB / 22.33 kB gzip. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx`; `GET http://127.0.0.1:8080/api/pronto`; `docker exec iusentra-app python -c "import pct; print(pct.__version__)"` | OK | Build locale no-cache e riavvio completati; app, scheduler, OCR e Redis healthy; readiness locale `versione=2.228.0`, runtime container e label immagine `2.228.0`. |
+| `python scripts\smoke_backend_security.py --base-url http://127.0.0.1:8080` | OK | Readiness 200, API sensibili anonime 401 controllato, prova tenant forzato saltata per assenza di API key smoke. |
+| Browser in-app + Playwright Chrome su `/app-v2/area-non-censita` desktop/tablet/mobile | OK | Login locale di verifica, 404 sicura visibile, nessun caricamento dashboard, nessuna richiesta `/api/v1/ui/dashboard`, zero errori console, zero overflow. DOMContentLoaded desktop/tablet/mobile 532.7/453.6/532.1 ms. |
 
 ### Fase react 4 - routing legacy e fallback App V2 2.225.0
 

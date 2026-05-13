@@ -113,6 +113,26 @@ Il gate fallisce se un endpoint manca da `docs/openapi.yaml`, se una route P0/P1
 non dichiara RBAC/tenant scope/errori, o se la risposta reale 401/400/200
 campionata non rispetta il contratto documentato.
 
+## Frontend App V2 fase 7
+
+Ogni modifica alla shell App V2, al menu, alle route frontend o al bootstrap
+utente deve eseguire il gate comune:
+
+```bash
+npm --prefix frontend run test:app-v2
+npm --prefix frontend run test
+npm --prefix frontend run typecheck
+npm --prefix frontend run build
+python -m pytest -q tests/test_app_v2_frontend_phase7.py --tb=short
+```
+
+Il rollout resta default-off: una pagina appare nella navigazione App V2 solo
+se il flag e' acceso e l'utente ha almeno un permesso coerente con l'area. I
+percorsi App V2 non censiti devono mostrare 404 sicura e non devono caricare la
+dashboard o chiamate dati laterali. Le route `partial` o `pending` registrate in
+`docs/frontend-app-v2-pages.md` non sono promosse finche' API, mutazioni,
+stati UI, browser smoke e RBAC non sono parificati.
+
 ## Redirect legacy -> App V2 fase 4
 
 I redirect non sono attivati globalmente. Per abilitarne uno pagina per pagina:

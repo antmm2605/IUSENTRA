@@ -24,6 +24,8 @@ STATUS_LABELS = {
     "react_bridge": "parziale",
 }
 
+PHASE7_REQUIRED_STATES = "loading, empty, error, forbidden, not-found, flag-off, readonly/RBAC"
+
 FAMILY_API = {
     "panoramica": "/api/v1/ui/dashboard",
     "regia": "/api/v1/ui/dashboard, /api/workspace-intelligente",
@@ -435,6 +437,80 @@ def _phase4_final_state(route: dict[str, object]) -> str:
     return "pending"
 
 
+def _phase7_frontend_status(route: dict[str, object]) -> str:
+    status = str(route.get("status") or "")
+    priority = _priority(route)
+    if status == "react_operational_full":
+        return "complete_tested" if priority in {"P0", "P1"} else "complete_unverified"
+    if status in {"react_operational_partial", "react_shell", "react_bridge"}:
+        return "partial"
+    return "pending"
+
+
+def _phase7_ui_states(route: dict[str, object]) -> str:
+    phase_status = _phase7_frontend_status(route)
+    if phase_status in {"complete_tested", "complete_unverified"}:
+        return f"{PHASE7_REQUIRED_STATES}, success se mutazione"
+    if phase_status == "partial":
+        return "loading/error presenti; completare empty, forbidden, not-found, success; flag-off governato"
+    return "fallback legacy o modulo non attivo; nessuna fetch App V2 finche' resta pending"
+
+
+def _phase7_tests(route: dict[str, object]) -> str:
+    phase_status = _phase7_frontend_status(route)
+    if phase_status == "complete_tested":
+        return "npm test, check-app-v2-frontend, route/flag/backend gates, build Vite"
+    if phase_status == "complete_unverified":
+        return "gate statici presenti; smoke browser e VRT da estendere"
+    if phase_status == "partial":
+        return "test flag on/off presenti; test mutazioni e browser da completare"
+    return "test da aggiungere prima della promozione App V2"
+
+
+def _phase7_responsive(route: dict[str, object]) -> str:
+    if _phase7_frontend_status(route) == "pending":
+        return "pending"
+    return "base desktop/tablet/mobile nel design system; smoke browser sistematico da estendere"
+
+
+def _phase7_accessibility(route: dict[str, object]) -> str:
+    if _phase7_frontend_status(route) == "pending":
+        return "pending"
+    return "heading, button semantici, focus e stati errore governati; axe dedicato non presente"
+
+
+def _phase7_note(route: dict[str, object]) -> str:
+    phase_status = _phase7_frontend_status(route)
+    if phase_status == "complete_tested":
+        return "Fase 7: guard flag/RBAC, 404 sicura App V2 e no-fetch flag-off coperti dal gate comune."
+    if phase_status == "partial":
+        return "Fase 7: resta parziale; non promuovere finche' mutazioni, browser e documentazione specifica non sono chiusi."
+    return "Fase 7: pending governato; legacy fallback resta attivo e sicuro."
+
+
+def _phase7_rows(routes: list[dict[str, object]]) -> list[list[str]]:
+    rows: list[list[str]] = []
+    for route in sorted(routes, key=lambda item: (_priority(item), str(item.get("family") or ""), str(item.get("route") or ""))):
+        family = str(route.get("family") or "")
+        rows.append(
+            [
+                _family_label(family),
+                str(route.get("route") or ""),
+                str(route.get("workspaceTarget") or ""),
+                str(route.get("route") or ""),
+                str(route.get("targetComponent") or "non assegnato"),
+                _feature_flag(route),
+                FAMILY_API.get(family, "da censire"),
+                "docs/openapi.yaml" if _feature_flag(route).startswith("routes.appV2.") else "gap da contrattualizzare",
+                FAMILY_RBAC.get(family, "sessione studio valida"),
+                _phase7_ui_states(route),
+                _phase7_tests(route),
+                _phase7_frontend_status(route),
+            ]
+        )
+    return rows
+
+
 def _md(value: object) -> str:
     text = str(value if value is not None else "").strip()
     text = text.replace("\n", " ").replace("|", "\\|")
@@ -520,9 +596,9 @@ def _registry_doc(
     lines = [
         "# Registro pagine App V2 e migrazione React",
         "",
-        "Aggiornato: 2026-05-13, fase 4 `fasereact`.",
+        "Aggiornato: 2026-05-13, fase 7 `fasereact`.",
         "",
-        "Questo registro e' generato da `scripts/react-migration/generate_app_v2_page_registry.py` a partire da manifest React, route App V2, feature flag, mapping routing sicuro e discovery Flask. La fase 4 aggiunge redirect strategy, deep link, query whitelist, classificazione template legacy e stato routing finale senza attivare redirect globali non governati.",
+        "Questo registro e' generato da `scripts/react-migration/generate_app_v2_page_registry.py` a partire da manifest React, route App V2, feature flag, mapping routing sicuro e discovery Flask. La fase 7 aggiunge stato frontend pagina per pagina, RBAC UI, 404 sicura App V2 e verifica no-fetch quando il flag e' spento, senza attivare redirect globali non governati.",
         "",
         "## Sintesi discovery",
         "",
@@ -545,6 +621,17 @@ def _registry_doc(
         "### Distribuzione famiglia",
         "",
         _table(["Famiglia", "Conteggio"], sorted(family_counts.items())),
+        "",
+        "## Stato frontend fase 7",
+        "",
+        "- Le route P0/P1 gia' `react_operational_full` sono marcate `complete_tested` per il batch fase 7: il gate comune verifica flag, RBAC UI, navigazione, no-fetch flag-off e 404 sicura App V2.",
+        "- Le route `legacy_operational` o `react_operational_partial` restano `pending` o `partial`: il fallback legacy resta il percorso sicuro finche' API, mutazioni e smoke browser non sono parificati.",
+        "- La 404 sicura App V2 blocca percorsi `/app-v2/*` non censiti senza caricare dashboard o dati riservati.",
+        "",
+        _table(
+            ["Area", "Pagina", "App V2 URL", "Legacy URL", "Component", "Flag", "API", "OpenAPI", "RBAC UI", "Stati UI", "Test", "Stato"],
+            _phase7_rows(routes),
+        ),
         "",
         "## Feature flag censiti",
         "",
@@ -624,9 +711,9 @@ def _frontend_doc(
     lines = [
         "# Pagine frontend App V2",
         "",
-        "Aggiornato: 2026-05-13, fase 4 `fasereact`.",
+        "Aggiornato: 2026-05-13, fase 7 `fasereact`.",
         "",
-        "Questo documento e' il riepilogo operativo del registro completo in `docs/app-v2-page-registry.md`. Le route sperimentali App V2 restano sotto feature flag default-off; menu, route, fetch frontend e mapping routing rispettano lo stesso flag del backend.",
+        "Questo documento e' il riepilogo operativo del registro completo in `docs/app-v2-page-registry.md`. La fase 7 governa shell, route, menu, fetch frontend, RBAC UI e 404 sicura App V2 con feature flag default-off e senza promuovere superfici legacy o parziali non parificate.",
         "",
         "## Shell App V2",
         "",
@@ -638,6 +725,15 @@ def _frontend_doc(
         "## Alias legacy verso App V2",
         "",
         _table(["Legacy", "Target App V2"], sorted(legacy_targets.items())),
+        "",
+        "## Stato frontend fase 7",
+        "",
+        "La tabella riporta il batch comune fase 7. `complete_tested` indica route P0/P1 gia' React full coperte dal gate comune; `partial` e `pending` non sono promosse.",
+        "",
+        _table(
+            ["Area", "Pagina", "App V2 URL", "Legacy URL", "Component", "Flag", "API", "OpenAPI", "RBAC UI", "Stati UI", "Test", "Stato"],
+            _phase7_rows(routes),
+        ),
         "",
         "## Backlog per priorita",
         "",
@@ -669,14 +765,19 @@ def _frontend_doc(
 
     lines.extend(
         [
-            "## Smoke e gate fase 4",
+            "## Smoke e gate fase 7",
             "",
-            "Comandi introdotti o governati dalla fase 4:",
+            "Comandi introdotti o governati dalla fase 7:",
             "",
             "```powershell",
             "python scripts\\react-migration\\generate_app_v2_page_registry.py --check",
+            "npm --prefix frontend run test:app-v2",
+            "npm --prefix frontend run test",
+            "npm --prefix frontend run typecheck",
+            "npm --prefix frontend run build",
             "python scripts\\smoke_app_v2_pages.py --list",
             "python scripts\\smoke_app_v2_routing.py --list",
+            "python -m pytest -q tests/test_app_v2_frontend_phase7.py --tb=short",
             "python -m pytest -q tests/test_app_v2_page_registry.py --tb=short",
             "python -m pytest -q tests/test_feature_flags.py tests/test_app_v2_feature_flags.py tests/test_app_v2_routing.py --tb=short",
             "```",
@@ -690,9 +791,9 @@ def _frontend_doc(
             "python scripts\\smoke_app_v2_routing.py --require-credentials",
             "```",
             "",
-            "## Stato fase 4",
+            "## Stato fase 7",
             "",
-            "La fase 4 completa la mappa routing e il helper no-open-redirect. I redirect legacy -> App V2 non sono attivati globalmente: diventano possibili solo pagina per pagina, con target interno, query whitelist e flag acceso.",
+            "La fase 7 chiude il batch comune frontend: le route App V2 non censite mostrano 404 sicura, la navigazione sperimentale nasconde pagine con flag spento o permesso mancante, e lo stato flag-off resta senza chiamate dati della pagina. Le route legacy/parziali restano esplicitamente pendenti.",
             "",
         ]
     )

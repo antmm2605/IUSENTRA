@@ -1,5 +1,30 @@
 # Migrazione progressiva Flask + React
 
+## Stato fase react 7 - 2026-05-13 - Frontend App V2 governato 2.228.0
+
+La settima fase del piano `fasereact` rafforza il livello frontend comune
+prima della migrazione pagina per pagina: la shell App V2 espone i permessi
+effettivi dell'utente nel bootstrap, filtra la navigazione sperimentale con
+feature flag e RBAC UI, e mostra una 404 sicura per percorsi App V2 non censiti
+senza caricare dashboard o dati riservati.
+
+`docs/app-v2-page-registry.md` e `docs/frontend-app-v2-pages.md` ora includono
+lo stato frontend fase 7 pagina per pagina. Le route P0/P1 gia'
+`react_operational_full` sono `complete_tested`; le route legacy o parziali
+restano `pending` o `partial` e non vengono promosse. Il nuovo gate
+`frontend/scripts/check-app-v2-frontend.mjs`, collegato a CI e `npm test`,
+verifica guard, no-fetch flag-off, RBAC UI, OpenAPI e documentazione.
+
+## Stato fase react 6 - 2026-05-13 - Contratti OpenAPI endpoint React 2.227.0
+
+La sesta fase del piano `fasereact` ha introdotto il contratto API generato per
+le superfici React: `docs/openapi.yaml` e
+`docs/api-endpoint-contract-map.md` censiscono endpoint `/api/v1/ui`, priorita,
+pagina, feature flag, RBAC, tenant scope, PII, errori, paginazione e provider
+status. I gate `scripts/validate_openapi.py` e
+`scripts/verify_openapi_provider.py` impediscono drift tra documentazione e
+provider Flask.
+
 ## Stato fase react 5 - 2026-05-13 - Sicurezza backend endpoint 2.226.0
 
 La quinta fase del piano `fasereact` chiude il presidio backend trasversale

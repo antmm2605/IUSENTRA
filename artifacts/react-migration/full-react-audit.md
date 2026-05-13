@@ -2,6 +2,17 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-13T23:55:00+02:00: fase react 7 `fasereact`
+2.228.0. L'audit App V2 registra ora un presidio frontend fail-closed:
+permessi effettivi nel bootstrap, menu sperimentale filtrato da flag/RBAC,
+stato flag-off senza fetch pagina e 404 sicura per percorsi non censiti. Il
+gate `check-app-v2-frontend` confronta sorgenti, documenti, manifest e OpenAPI
+prima della build.
+
+Le route legacy o `react_operational_partial` restano esplicitamente
+`pending`/`partial` nel registro fase 7; nessuna pagina viene mascherata come
+full React senza API, stati UI, RBAC, browser smoke e test parificati.
+
 Aggiornamento 2026-05-13T23:05:00+02:00: fase react 5 `fasereact`
 2.226.0. Il perimetro backend React e' ora censito in
 `docs/backend-endpoint-security-map.md`. Il guardrail

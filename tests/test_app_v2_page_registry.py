@@ -64,6 +64,7 @@ def test_app_v2_registry_generator_is_deterministic():
 
 def test_app_v2_registry_prioritizes_non_full_routes():
     registry = REGISTRY_PATH.read_text(encoding="utf-8")
+    official_registry = registry[registry.index("## Registro ufficiale pagine") :]
     pending_routes = [
         route for route in _manifest_routes()
         if route["status"] != "react_operational_full"
@@ -72,8 +73,8 @@ def test_app_v2_registry_prioritizes_non_full_routes():
     assert pending_routes
     for route in pending_routes:
         needle = f"| {route['route']} |"
-        start = registry.index(needle)
-        line = registry[start: registry.index("\n", start)]
+        start = official_registry.index(needle)
+        line = official_registry[start: official_registry.index("\n", start)]
         assert any(priority in line for priority in ("| P0 |", "| P1 |", "| P2 |", "| P3 |"))
         assert "non promossa" in line or "parziale" in line
 

@@ -2,6 +2,23 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-13T23:55:00+02:00: fase react 7 `fasereact`
+2.228.0. Rafforzato il livello frontend comune App V2: il bootstrap React
+espone i permessi effettivi dell'utente, la navigazione sperimentale filtra
+pagine con feature flag spento o permesso mancante, e le route App V2 non
+censite mostrano una 404 sicura senza caricare la dashboard.
+
+Il registro pagine e il riepilogo frontend ora riportano lo stato fase 7
+(`complete_tested`, `partial`, `pending`) su ogni route. Le route P0/P1 gia'
+full React sono coperte dal gate comune; le superfici legacy o parziali restano
+pendenti e non vengono dichiarate completate.
+
+Verifica locale finale: py_compile, generatore registry `--check`, npm
+test/typecheck/build, pytest fase 7/registry/flag/routing 23/23, OpenAPI,
+packaging/readiness, Docker no-cache 2.228.0 healthy e browser
+desktop/tablet/mobile su `/app-v2/area-non-censita` con zero errori console,
+zero overflow e nessuna richiesta dashboard.
+
 Aggiornamento 2026-05-13T23:05:00+02:00: fase react 5 `fasereact`
 2.226.0. Le API React `/api/v1/ui` hanno un guardrail backend centrale che
 blocca parametri client riservati al server (`tenant_id`, `studio_id`, user,

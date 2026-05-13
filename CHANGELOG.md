@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.219.0 - 2026-05-13
+
+- Introdotta la policy centrale dei portali: PST / PolisWeb resta `direct_internal`, mentre PTT/SIGIT, PAT e PDP restano `official_portal_assisted` salvo manifest diretto verificato, completo, non scaduto e con test reali passati.
+- Aggiunto guard fail-closed sui client produttivi PTT/PAT/PDP (`ricerca_fascicoli`, `consulta_documenti`, `deposita_atto`) senza bloccare demo/offline o import da payload autorizzati.
+- Aggiunti endpoint comuni per sessione assistita e deposito assistito PTT/PAT/PDP, con Local Signer / Local Connector, raccolta download sicuri, import ricevute/esiti in Comunicazioni/Cancelleria, timeline ed evidence pack.
+- Aggiornato il wizard portali: PTT/PAT/PDP mostrano il flusso di Portale ufficiale assistito e non promettono integrazione diretta tipo PST.
+- Esteso Local Signer 1.6.29 con endpoint `/portal-assistant/session/*` e default fail-closed sui WSDL diretti non-PST.
+- Aggiunti test mirati su policy, guard, sessione assistita, finalizzazione senza evidenza ufficiale, import ricevute e wizard PST/non-PST.
+
 ## 2.218.9 - 2026-05-13
 
 - Corretto il decoding delle Email ordinarie quando il server dichiara un charset errato: gli accenti italiani non vengono piu' sostituiti con `�` nei campi oggetto e corpo.

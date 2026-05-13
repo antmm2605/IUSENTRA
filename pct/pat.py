@@ -21,6 +21,8 @@ from dataclasses import dataclass, field
 from datetime import date, datetime
 from typing import Any, Dict, List, Optional
 
+from pct.portal_direct_guard import ensure_direct_portal_verified
+
 # ---------------------------------------------------------------- PAT / SIGA endpoints
 _PAT_BASE           = os.getenv("PCT_PAT_BASE_URL", "https://pac.giustizia-amministrativa.it/pac")
 _WSDL_RICERCA_AMM   = f"{_PAT_BASE}/RicercaRicorsiService?wsdl"
@@ -124,6 +126,7 @@ class ClientPAT:
             materia:         Materia del ricorso (APPALTI, URBANISTICA, ecc.).
             max_risultati:   Numero massimo di risultati.
         """
+        ensure_direct_portal_verified("pat")
         client = self._get_client(_WSDL_RICERCA_AMM)
         req: Dict[str, Any] = {
             "codiceFiscaleAvvocato": self.cf_avvocato,
@@ -149,6 +152,7 @@ class ClientPAT:
         anno: int,
     ) -> List[DocumentoPAT]:
         """Recupera l'elenco dei documenti del fascicolo amministrativo."""
+        ensure_direct_portal_verified("pat")
         client = self._get_client(_WSDL_CONSULTA_AMM)
         try:
             risposta = client.service.consultazioneDocumenti(
@@ -282,6 +286,7 @@ class ClientPAT:
         Returns:
             dict con codiceEsito, idDeposito, dataDeposito, stato, messaggio
         """
+        ensure_direct_portal_verified("pat")
         import uuid
         from pathlib import Path
 

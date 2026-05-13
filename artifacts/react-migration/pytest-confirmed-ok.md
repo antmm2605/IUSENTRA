@@ -1,6 +1,6 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-13, Email ordinaria accenti e charset 2.218.9.
+Aggiornato: 2026-05-13, Portali non-PST assistiti fail-closed 2.219.0.
 
 ## Regola operativa
 
@@ -889,6 +889,18 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | Comando / verifica | Esito | Nota |
 | --- | --- | --- |
 | `python -m py_compile pct\notifications\models.py pct\notifications\repository.py pct\notifications\service.py pct\notifications\web_push.py web\services\notifications_runtime.py web\blueprints\push_notifications.py web\services\topbar_operational.py` | OK | Sintassi confermata per dominio notifiche, runtime Flask, API push e integrazione topbar persistente. |
+## Portali non-PST assistiti fail-closed 2.219.0 - 2026-05-13
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile web\services\portal_integration_policy.py pct\portal_direct_guard.py pct\sigit.py pct\pat.py pct\pdp.py web\services\telematico_runtime.py web\services\pdp_penale_runtime.py web\bootstrap\portali_acquisizione_routes.py web\bootstrap\telematico_surface_wiring.py tools\local_signer.py tests\test_portali_payload_import_ui.py` | OK | Sintassi confermata per policy, guard, client produttivi, runtime assistito, route Flask, Local Signer e test. |
+| `python -m pytest tests/test_portali_payload_import_ui.py -q` | OK | 27/27 passati: payload autorizzati PDP/PAT/PTT, policy fail-closed, manifest direct verified, guard client diretti, sessione assistita, deposito senza evidenza, import ricevute in Comunicazioni/Cancelleria, timeline/evidence pack e wizard PST/non-PST. |
+| `python -m pytest tests/test_pdp_penale_web.py tests/test_deposito_guidato.py -q` | OK | 14/14 passati: workflow PDP esistente preservato, deposito guidato e parser PEC PDP riallineato alla finestra 60 giorni per test con data 2026-05-13. |
+| `python tools\sync_packaging_files.py --check` | OK | Packaging sincronizzato dopo bump `2.219.0`. |
+| `python -m pytest tests/test_packaging_consistency.py tests/test_release_readiness.py -q` | OK | 8/8 passati: packaging e readiness release confermate per `2.219.0`. |
+| `npm --prefix frontend run typecheck` | OK | TypeScript confermato per frontend `2.219.0`. |
+| `npm --prefix frontend run build` | OK | Build Vite completata per `iusentra-react-token-ui@2.219.0`; asset React rigenerati in `web/static/react`. |
+
 | `python -m pytest -q tests/test_push_notifications.py tests/test_web_bootstrap.py::test_pwa_routes_and_error_handlers_restano_registrati --tb=short` | OK | 9/9 passati: repository, dedupe, subscription, revoca, public key senza config, subscribe valido/invalido, push mockato, endpoint scaduto e Service Worker/manifest root. |
 | `python -m pytest -q tests/test_topbar_operational_api.py --tb=short` | OK | 2/2 passati: top bar e shape notifiche operative compatibili dopo persistenza. |
 | `npm --prefix frontend run typecheck` | OK | TypeScript confermato per utility PWA/Web Push e UI `Impostazioni > Notifiche`. |

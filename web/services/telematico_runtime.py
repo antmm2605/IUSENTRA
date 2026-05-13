@@ -6,13 +6,18 @@ import json
 import os
 import re
 import hashlib
+import uuid
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Optional
+from urllib import error as urllib_error
+from urllib import request as urllib_request
 
 from flask import Flask, g, url_for
 
 from pct.fascicoli import Fascicolo, TipoAttivita, stato_fascicolo_da_descrizione_portale
+from pct.practice_engine import DepositReceipt, EvidencePack
+from pct.practice_engine.models import new_id
 from pct.pst_servizi_catalogo import (
     SERVIZIO_PST_COMUNICAZIONE_CANCELLERIA,
     SERVIZIO_PST_DETTAGLIO_ISTANZE,
@@ -20,6 +25,13 @@ from pct.pst_servizi_catalogo import (
     SERVIZIO_PST_RICERCA_SCADENZE,
 )
 from pct.scadenziario import TipoTermine
+from web.services.portal_integration_policy import (
+    MODE_DIRECT_INTERNAL,
+    MODE_DIRECT_VERIFIED,
+    MODE_OFFICIAL_PORTAL_ASSISTED,
+    PortalIntegrationPolicy,
+    get_portal_integration_policy,
+)
 from web.services.portale_payload_normalizer import normalize_authorized_portale_payload
 from web.services.telematico_resilience import (
     describe_portale_runtime_error,
@@ -130,27 +142,29 @@ def build_telematico_runtime(
         """True solo se non esiste alcun canale reale configurato (né P12/PEM né token PKCS#11)."""
         return _polis_auth_mode() == "demo"
 
+    def _portal_integration_policy(portale: str) -> PortalIntegrationPolicy:
+        return get_portal_integration_policy(portale, app.config)
+
     def _portale_usa_local_signer(portale: str) -> bool:
-        return (portale or "").strip().lower() in {"pst", "pdp", "pat", "ptt"} and _polis_auth_mode() == "pkcs11"
+        portale_norm = (portale or "").strip().lower()
+        if portale_norm == "pst":
+            return _polis_auth_mode() == "pkcs11"
+        return portale_norm in {"pdp", "pat", "ptt"} and _portal_integration_policy(portale_norm).assistant_required
 
     def _portale_browser_channel_required(portale: str) -> bool:
-        """PAT/PTT sono sempre browser-guided; PDP lo diventa quando manca un backend server reale."""
+        """I portali non-PST usano il canale assistito salvo manifest diretto verificato."""
         portale_norm = (portale or "").strip().lower()
-        if portale_norm not in {"pdp", "pat", "ptt"}:
+        policy = _portal_integration_policy(portale_norm)
+        if policy.mode == MODE_DIRECT_INTERNAL:
             return False
-        if portale_norm in {"pat", "ptt"}:
-            return True
-        truthy = {"1", "true", "yes", "on"}
-        if (
-            str(os.getenv("PCT_PORTALI_BROWSER_ONLY", "") or "").strip().lower() in truthy
-            or str(os.getenv(f"PCT_{portale_norm.upper()}_BROWSER_ONLY", "") or "").strip().lower() in truthy
-        ):
-            return True
-        return _polis_auth_mode() == "demo"
+        return bool(policy.assistant_required)
 
     def _portale_demo_mode(portale: str) -> bool:
-        """I portali browser-guided non devono ricadere nel banner demo del PST."""
-        if _portale_browser_channel_required(portale):
+        """I portali assistiti non devono ricadere nel banner demo del PST."""
+        policy = _portal_integration_policy(portale)
+        if policy.assistant_required:
+            return False
+        if policy.mode == MODE_DIRECT_VERIFIED:
             return False
         return _polis_demo_mode()
 
@@ -202,18 +216,26 @@ def build_telematico_runtime(
             "home_endpoint": "polisWeb_home",
             "source_label": "Portale Servizi Telematici",
             "requires_local_signer": True,
+            "official_url": "https://pst.giustizia.it/PST/",
+            "assistant_label": "",
+            "assistant_disclaimer": "",
+            "deposit_assistant_enabled": False,
             "quick_filters": ["civile", "lavoro", "famiglia", "esecuzioni", "volontaria", "recenti"],
         },
         "pdp": {
             "id": "pdp",
-            "label": "PDP Penale",
-            "title": "Importa pratica da PDP Penale",
-            "subtitle": "Ricerca, verifica e integrazione guidata del fascicolo penale",
+            "label": "PDP assistito",
+            "title": "Fascicolo penale interno da PDP",
+            "subtitle": "Portale ufficiale assistito, import automatico di file, ricevute ed esiti",
             "color": "danger",
             "icon": "bi-shield-exclamation",
             "home_endpoint": "pdp_home",
             "source_label": "Portale Deposito Atti Penale",
             "requires_local_signer": True,
+            "official_url": "https://pst.giustizia.it/PST/it/pst_2_6_1.wp",
+            "assistant_label": "Portale ufficiale assistito",
+            "assistant_disclaimer": "IUSENTRA apre una sessione assistita locale: l'utente si autentica e opera nel PDP, poi il software importa file, ricevute ed esiti nel fascicolo interno.",
+            "deposit_assistant_enabled": True,
             "quick_filters": ["dibattimento", "gip", "gup", "esecuzioni", "attivi", "recenti"],
             "search_ui": {
                 "assistito_label": "Imputato / indagato",
@@ -225,35 +247,53 @@ def build_telematico_runtime(
         },
         "pat": {
             "id": "pat",
-            "label": "PAT Amministrativo",
-            "title": "Importa pratica da PAT",
-            "subtitle": "Acquisizione guidata del fascicolo amministrativo con verifica conflitti",
+            "label": "PAT assistito",
+            "title": "Fascicolo amministrativo interno da PAT",
+            "subtitle": "Portale ufficiale assistito, import automatico di file, ricevute ed esiti",
             "color": "success",
             "icon": "bi-building-check",
             "home_endpoint": "pat_home",
             "source_label": "Processo Amministrativo Telematico",
             "requires_local_signer": True,
+            "official_url": "https://www.giustizia-amministrativa.it/portale-avvocato",
+            "assistant_label": "Portale ufficiale assistito",
+            "assistant_disclaimer": "IUSENTRA apre una sessione assistita locale: l'utente si autentica e opera nel PAT, poi il software importa file, ricevute ed esiti nel fascicolo interno.",
+            "deposit_assistant_enabled": True,
             "quick_filters": ["appalti", "urbanistica", "personale", "tributi", "attivi", "recenti"],
         },
         "ptt": {
             "id": "ptt",
-            "label": "PTT Tributario",
-            "title": "Importa pratica da PTT",
-            "subtitle": "Acquisizione guidata del fascicolo tributario con controllo dati e scadenze",
+            "label": "PTT / SIGIT assistito",
+            "title": "Fascicolo tributario interno da PTT / SIGIT",
+            "subtitle": "Portale ufficiale assistito, import automatico di fascicolo, ricevute ed esiti",
             "color": "warning",
             "icon": "bi-receipt-cutoff",
             "home_endpoint": "sigit_home",
             "source_label": "Processo Tributario Telematico",
             "requires_local_signer": True,
+            "official_url": "https://sigit.giustiziatributaria.gov.it/Sigit/index.do",
+            "assistant_label": "Portale ufficiale assistito",
+            "assistant_disclaimer": "IUSENTRA apre una sessione assistita locale: l'utente si autentica e opera nel PTT/SIGIT, poi il software importa fascicolo, ricevute ed esiti nel fascicolo tributario interno.",
+            "deposit_assistant_enabled": True,
             "quick_filters": ["iva", "irpef", "imu", "registro", "attivi", "recenti"],
         },
     }
 
     def _spec_portale_acquisizione(portale: str) -> dict[str, Any]:
-        spec = _PORTALE_ACQUISIZIONE_SPECS.get((portale or "").strip().lower())
+        portale_norm = (portale or "").strip().lower()
+        spec = _PORTALE_ACQUISIZIONE_SPECS.get(portale_norm)
         if not spec:
             raise KeyError(f"Portale non supportato: {portale}")
-        return spec
+        policy = _portal_integration_policy(portale_norm)
+        payload = dict(spec)
+        payload.update(
+            {
+                "integration_mode": policy.mode,
+                "direct_allowed": policy.direct_allowed,
+                "assistant_required": policy.assistant_required,
+            }
+        )
+        return payload
 
     def _portale_import_log_path() -> Path:
         return Path(_cfg_data_path("PORTALE_IMPORT_LOG_DB"))
@@ -401,22 +441,21 @@ def build_telematico_runtime(
         label = labels.get((portale or "").strip().lower(), (portale or "").upper())
         if (portale or "").strip().lower() == "pat":
             return (
-                "Per PAT la consultazione pratica passa dal Portale dell'Avvocato ufficiale. "
-                "Usa l'acquisizione guidata, poi importa nel fascicolo interno documenti, ricevute ed esiti "
-                "gia consultati o scaricati dal portale."
+                "Per PAT si usa il portale ufficiale assistito. "
+                "IUSENTRA apre una sessione locale, l'utente si autentica e opera nel PAT, "
+                "poi il software importa nel fascicolo interno file, ricevute ed esiti."
             )
         if (portale or "").strip().lower() == "ptt":
             return (
-                "Per PTT / SIGIT IUSENTRA non promette una sincronizzazione live del fascicolo ministeriale. "
-                "Usa l'acquisizione guidata, apri il portale ufficiale o Telecontenzioso nel browser, "
-                "consulta o scarica il fascicolo processuale e poi importa nel fascicolo tributario interno "
-                "documenti, ricevute, provvedimenti ed esiti."
+                "Per PTT / SIGIT si usa il portale ufficiale assistito. "
+                "IUSENTRA apre una sessione locale, l'utente si autentica e opera nel PTT/SIGIT, "
+                "poi il software importa nel fascicolo tributario interno fascicolo, ricevute ed esiti."
             )
         if (portale or "").strip().lower() == "pdp":
             return (
-                "Per PDP Penale il fascicolo si consulta dal canale ufficiale MinGiust con le stesse credenziali "
-                "CNS del PCT civile. Usa l'acquisizione guidata, completa il download nel browser e poi importa in "
-                "IUSENTRA i file gia scaricati nel workflow PDP."
+                "Per PDP si usa il portale ufficiale assistito salvo manifest diretto verificato. "
+                "IUSENTRA apre una sessione locale, l'utente si autentica e opera nel PDP, "
+                "poi il software importa file, ricevute ed esiti nel fascicolo interno."
             )
         return (
             f"L'endpoint ufficiale di {label} non è raggiungibile dal backend server. "
@@ -2425,20 +2464,24 @@ def build_telematico_runtime(
         cfg = get_config_studio().config
         firma_cfg = cfg.firma
         auth_mode = _polis_auth_mode()
+        policy = _portal_integration_policy(portale)
         browser_channel_required = _portale_browser_channel_required(portale)
         demo_mode = _portale_demo_mode(portale)
         pkcs11_mode = _portale_usa_local_signer(portale) and not demo_mode
         ultimo_log = _last_portale_import_log(portale)
-        if browser_channel_required:
+        if policy.assistant_required:
             if portale == "pat":
-                status_text = "Consultazione via Portale dell'Avvocato"
+                status_text = "Portale ufficiale assistito PAT"
             elif portale == "pdp":
-                status_text = "Consultazione via PDP Penale ufficiale"
+                status_text = "Portale ufficiale assistito PDP"
             elif portale == "ptt":
-                status_text = "Consultazione via PTT / SIGIT"
+                status_text = "Portale ufficiale assistito PTT / SIGIT"
             else:
                 status_text = "Consultazione via browser ufficiale"
-            environment_label = "Produzione guidata assistita"
+            environment_label = "Sessione assistita locale"
+        elif policy.mode == MODE_DIRECT_VERIFIED:
+            status_text = "Canale diretto verificato"
+            environment_label = "Produzione verificata"
         elif demo_mode:
             status_text = "Modalita demo / fallback"
             environment_label = "Simulazione / compatibilita"
@@ -2455,6 +2498,19 @@ def build_telematico_runtime(
             "codice_fiscale_avvocato": str(getattr(firma_cfg, "cf_avvocato", "") or getattr(cfg.studio, "codice_fiscale_avvocato", "") or "").strip().upper(),
             "backend_firma": str(getattr(firma_cfg, "backend_firma_operativo_safe", "nessuno") or "").strip(),
             "auth_mode": auth_mode,
+            "integration_policy": {
+                "mode": policy.mode,
+                "direct_allowed": policy.direct_allowed,
+                "assistant_required": policy.assistant_required,
+                "reason": policy.reason,
+                "validation_errors": list(policy.validation_errors),
+            },
+            "integration_mode": policy.mode,
+            "direct_allowed": policy.direct_allowed,
+            "assistant_required": policy.assistant_required,
+            "assistant_label": str(spec.get("assistant_label") or "").strip(),
+            "assistant_disclaimer": str(spec.get("assistant_disclaimer") or "").strip(),
+            "deposit_assistant_enabled": bool(spec.get("deposit_assistant_enabled")),
             "demo_mode": demo_mode,
             "pkcs11_mode": pkcs11_mode,
             "browser_channel_required": browser_channel_required,
@@ -2485,25 +2541,10 @@ def build_telematico_runtime(
                 "Canale PST locale non inizializzato nel browser. "
                 "Verifica che Local Signer sia attivo su questo PC e ripeti la ricerca."
             )
-        if portale == "pdp" and _portale_browser_channel_required(portale):
+        if portale in {"pdp", "pat", "ptt"} and _portale_browser_channel_required(portale):
             raise ValueError(_portale_browser_guided_message(portale))
-        if portale == "pdp" and _portale_usa_local_signer(portale):
-            raise ValueError(
-                "Canale PDP locale non inizializzato nel browser. "
-                "Verifica Local Signer sul PC e ripeti la ricerca."
-            )
-        if portale == "pat":
-            raise ValueError(
-                "Per PAT l'acquisizione guidata non promette una ricerca live diretta da SIGA. "
-                "Apri il Portale dell'Avvocato ufficiale dal browser e usa IUSENTRA per il fascicolo interno, "
-                "le ricevute e l'import guidato dei file gia scaricati."
-            )
-        if portale not in {"pst", "pdp"}:
-            raise ValueError(
-                "Per PTT / SIGIT l'acquisizione guidata non promette una ricerca live diretta del fascicolo. "
-                "Apri il portale ufficiale o Telecontenzioso nel browser, consulta il fascicolo processuale e "
-                "poi usa IUSENTRA per il fascicolo tributario interno e per l'import guidato dei file gia scaricati."
-            )
+        if portale not in {"pst", "pdp", "pat", "ptt"}:
+            raise ValueError("Portale non supportato per la ricerca guidata.")
 
         try:
             def _perform_search():
@@ -2537,6 +2578,26 @@ def build_telematico_runtime(
                         nome_imputato=assistito,
                         tipo_registro=str(query.get("registro") or "").strip() or None,
                     )
+                if portale == "pat":
+                    from pct.pat import crea_client_pat
+
+                    return crea_client_pat(demo=False).ricerca_fascicoli(
+                        ufficio=str(query.get("ufficio_codice") or query.get("ufficio") or "").strip(),
+                        numero_ricorso=numero,
+                        anno=anno,
+                        nome_ricorrente=assistito or controparte,
+                        materia=str(query.get("materia") or "").strip() or None,
+                    )
+                if portale == "ptt":
+                    from pct.sigit import crea_client_sigit
+
+                    return crea_client_sigit(demo=False).ricerca_fascicoli(
+                        commissione=str(query.get("ufficio_codice") or query.get("ufficio") or "").strip(),
+                        numero_rgt=numero,
+                        anno_rgt=anno,
+                        nome_ricorrente=assistito or controparte,
+                        tipo=str(query.get("tipo") or "").strip() or None,
+                    )
                 return []
 
             fascicoli = run_portale_runtime_operation(
@@ -2569,22 +2630,10 @@ def build_telematico_runtime(
         # errore ripetuto del runtime server: evita falsi "sospeso 60s".
         if portale == "pst" and _portale_local_channel_enabled(portale):
             raise ValueError("Anteprima documenti PST via Local Signer del browser richiesta.")
-        if portale == "pdp" and _portale_browser_channel_required(portale):
+        if portale in {"pdp", "pat", "ptt"} and _portale_browser_channel_required(portale):
             raise ValueError(_portale_browser_guided_message(portale))
-        if portale == "pdp" and _portale_usa_local_signer(portale):
-            raise ValueError("Anteprima documenti PDP via Local Signer del browser richiesta.")
-        if portale == "pat":
-            raise ValueError(
-                "Per PAT la consultazione del fascicolo si completa nel Portale dell'Avvocato ufficiale. "
-                "In IUSENTRA puoi continuare con il fascicolo PAT interno e con l'import guidato di documenti, "
-                "provvedimenti e ricevute gia scaricati dal portale."
-            )
-        if portale not in {"pst", "pdp"}:
-            raise ValueError(
-                "Per PTT / SIGIT la consultazione del fascicolo si completa nel portale ufficiale e nei servizi "
-                "collegati, come Telecontenzioso. In IUSENTRA prosegui con il fascicolo tributario interno e con "
-                "l'import guidato di documenti, ricevute, provvedimenti ed esiti gia scaricati."
-            )
+        if portale not in {"pst", "pdp", "pat", "ptt"}:
+            raise ValueError("Portale non supportato per l'anteprima guidata.")
 
         try:
             def _perform_preview():
@@ -2604,6 +2653,22 @@ def build_telematico_runtime(
                         str(selection.get("numero") or "").strip(),
                         int(selection.get("anno") or 0),
                     )
+                if portale == "pat":
+                    from pct.pat import crea_client_pat
+
+                    return crea_client_pat(demo=False).consulta_documenti(
+                        str(selection.get("ufficio_codice") or selection.get("ufficio") or "").strip(),
+                        str(selection.get("numero") or "").strip(),
+                        int(selection.get("anno") or 0),
+                    )
+                if portale == "ptt":
+                    from pct.sigit import crea_client_sigit
+
+                    return crea_client_sigit(demo=False).consulta_documenti(
+                        str(selection.get("ufficio_codice") or selection.get("ufficio") or "").strip(),
+                        str(selection.get("numero") or "").strip(),
+                        int(selection.get("anno") or 0),
+                    )
                 return []
 
             docs = run_portale_runtime_operation(
@@ -2616,6 +2681,615 @@ def build_telematico_runtime(
                 raise ValueError(_portale_browser_guided_message(portale)) from e
             raise ValueError(describe_portale_runtime_error(portale, operation="preview", exc=e)) from e
         return [dict(vars(doc)) for doc in docs]
+
+    _ASSISTED_PORTALS = {"ptt", "pat", "pdp"}
+    _SAFE_ASSISTANT_EXTENSIONS = {".zip", ".pdf", ".p7m", ".xml", ".json", ".eml", ".msg", ".txt", ".html", ".htm"}
+    _DEPOSIT_PROFILE_BY_PORTAL = {
+        "ptt": "ptt_sigit",
+        "pat": "pat_siga",
+        "pdp": "pdp_penale",
+    }
+
+    def _require_assisted_portal(portale: str) -> str:
+        portale_norm = (portale or "").strip().lower()
+        if portale_norm == "pst":
+            raise ValueError("PST usa il canale diretto interno e non appartiene al portale ufficiale assistito.")
+        if portale_norm not in _ASSISTED_PORTALS:
+            raise ValueError("Portale non supportato per la sessione assistita.")
+        return portale_norm
+
+    def _portal_official_url(portale: str) -> str:
+        return str(_spec_portale_acquisizione(portale).get("official_url") or "").strip()
+
+    def _portal_assistant_sessions_path() -> Path:
+        return Path(_cfg_data_path("PORTALE_IMPORT_LOG_DB")).parent / "portal_assistant_sessions.json"
+
+    def _read_json_dict(path: Path) -> dict[str, Any]:
+        if not path.exists():
+            return {}
+        try:
+            raw = json.loads(path.read_text(encoding="utf-8") or "{}")
+        except Exception:
+            return {}
+        return raw if isinstance(raw, dict) else {}
+
+    def _write_json_dict(path: Path, payload: dict[str, Any]) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    def _load_assisted_sessions() -> dict[str, Any]:
+        return _read_json_dict(_portal_assistant_sessions_path())
+
+    def _save_assisted_session(session: dict[str, Any]) -> dict[str, Any]:
+        rows = _load_assisted_sessions()
+        rows[str(session["session_id"])] = session
+        _write_json_dict(_portal_assistant_sessions_path(), rows)
+        return session
+
+    def _get_assisted_session(session_id: str) -> dict[str, Any]:
+        session = _load_assisted_sessions().get(str(session_id or "").strip())
+        if not isinstance(session, dict):
+            raise ValueError("Sessione assistita non trovata.")
+        return dict(session)
+
+    def _local_connector_call(path: str, *, method: str = "POST", payload: dict[str, Any] | None = None, timeout: float = 2.0) -> dict[str, Any]:
+        url = f"http://127.0.0.1:27272{path}"
+        data = None if method.upper() == "GET" else json.dumps(payload or {}).encode("utf-8")
+        req = urllib_request.Request(
+            url,
+            data=data,
+            method=method.upper(),
+            headers={"Content-Type": "application/json", "Accept": "application/json"},
+        )
+        with urllib_request.urlopen(req, timeout=timeout) as resp:
+            raw = resp.read().decode("utf-8", errors="replace")
+        parsed = json.loads(raw or "{}")
+        return parsed if isinstance(parsed, dict) else {"ok": False, "raw": parsed}
+
+    def _public_assisted_session(session: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "session_id": session.get("session_id", ""),
+            "portale": session.get("portale", ""),
+            "official_url": session.get("official_url", ""),
+            "mode": session.get("mode", MODE_OFFICIAL_PORTAL_ASSISTED),
+            "fascicolo_id": session.get("fascicolo_id", ""),
+            "deposito_id": session.get("deposito_id", ""),
+            "purpose": session.get("purpose", "acquisizione"),
+            "status": session.get("status", ""),
+            "local_connector_available": bool(session.get("local_connector_available")),
+            "downloaded_files": list(session.get("downloaded_files") or []),
+            "message": session.get("message", ""),
+        }
+
+    def _portal_assistant_start(portale: str, payload: dict[str, Any] | None = None, *, purpose: str = "acquisizione") -> dict[str, Any]:
+        portale_norm = _require_assisted_portal(portale)
+        body = dict(payload or {})
+        policy = _portal_integration_policy(portale_norm)
+        official_url = _portal_official_url(portale_norm)
+        session_id = f"assist_{uuid.uuid4().hex[:16]}"
+        session = {
+            "session_id": session_id,
+            "portale": portale_norm,
+            "official_url": official_url,
+            "mode": policy.mode,
+            "fascicolo_id": str(body.get("fascicolo_id") or body.get("id_fasc") or "").strip(),
+            "deposito_id": str(body.get("deposito_id") or "").strip(),
+            "purpose": purpose,
+            "status": "local_connector_required",
+            "local_connector_available": False,
+            "local_session_id": "",
+            "downloaded_files": [],
+            "created_at": datetime.now().isoformat(),
+            "updated_at": datetime.now().isoformat(),
+            "message": "Avvia Local Signer / Local Connector su questo PC per aprire la sessione assistita.",
+        }
+        try:
+            local = _local_connector_call(
+                "/portal-assistant/session/start",
+                payload={
+                    "session_id": session_id,
+                    "portale": portale_norm,
+                    "official_url": official_url,
+                    "fascicolo_id": session["fascicolo_id"],
+                    "deposito_id": session["deposito_id"],
+                    "purpose": purpose,
+                },
+            )
+            if local.get("ok") is True:
+                session["local_connector_available"] = True
+                session["local_session_id"] = str(local.get("session_id") or session_id)
+                session["status"] = str(local.get("status") or "sessione_assistita_pronta")
+                session["message"] = "Sessione assistita locale pronta."
+            else:
+                session["message"] = str(local.get("errore") or local.get("message") or session["message"])
+        except (OSError, urllib_error.URLError, TimeoutError, json.JSONDecodeError) as exc:
+            session["message"] = (
+                "Local Connector non raggiungibile. Avvia Local Signer su questo PC: "
+                "la sessione assistita resta dentro IUSENTRA e non usa link esterni ordinari."
+            )
+            session["local_error"] = str(exc)
+        _save_assisted_session(session)
+        return _public_assisted_session(session)
+
+    def _portal_assistant_open(portale: str, session_id: str) -> dict[str, Any]:
+        portale_norm = _require_assisted_portal(portale)
+        session = _get_assisted_session(session_id)
+        if session.get("portale") != portale_norm:
+            raise ValueError("Sessione assistita non coerente con il portale.")
+        if not session.get("local_connector_available"):
+            return _public_assisted_session(session)
+        try:
+            local = _local_connector_call(
+                f"/portal-assistant/session/{session.get('local_session_id') or session_id}/open",
+                payload={"official_url": session.get("official_url", "")},
+            )
+            if local.get("ok") is True:
+                session["status"] = str(local.get("status") or "portale_ufficiale_assistito_aperto")
+                session["message"] = "Portale ufficiale aperto nella sessione assistita locale."
+        except Exception as exc:
+            session["status"] = "local_connector_required"
+            session["message"] = "Local Connector non raggiungibile. Avvialo e riprova."
+            session["local_error"] = str(exc)
+        session["updated_at"] = datetime.now().isoformat()
+        _save_assisted_session(session)
+        return _public_assisted_session(session)
+
+    def _portal_assistant_status(portale: str, session_id: str) -> dict[str, Any]:
+        portale_norm = _require_assisted_portal(portale)
+        session = _get_assisted_session(session_id)
+        if session.get("portale") != portale_norm:
+            raise ValueError("Sessione assistita non coerente con il portale.")
+        if session.get("local_connector_available"):
+            try:
+                local = _local_connector_call(
+                    f"/portal-assistant/session/{session.get('local_session_id') or session_id}/status",
+                    method="GET",
+                    timeout=1.5,
+                )
+                if local.get("ok") is True:
+                    session["status"] = str(local.get("status") or session.get("status") or "")
+                    session["downloaded_files"] = list(local.get("files") or session.get("downloaded_files") or [])
+                    session["message"] = str(local.get("message") or session.get("message") or "")
+                    session["updated_at"] = datetime.now().isoformat()
+                    _save_assisted_session(session)
+            except Exception:
+                pass
+        return _public_assisted_session(session)
+
+    def _normalize_assisted_file(item: dict[str, Any]) -> dict[str, Any] | None:
+        filename = Path(str(item.get("filename") or item.get("name") or "")).name
+        if not filename:
+            return None
+        ext = Path(filename).suffix.lower()
+        if ext not in _SAFE_ASSISTANT_EXTENSIONS:
+            return None
+        content_b64 = str(item.get("content_base64") or item.get("base64") or "").strip()
+        sha = str(item.get("sha256") or "").strip().lower()
+        size = int(item.get("size") or 0)
+        if content_b64:
+            try:
+                raw = __import__("base64").b64decode(content_b64, validate=True)
+                computed = hashlib.sha256(raw).hexdigest()
+                if sha and sha != computed:
+                    return None
+                sha = computed
+                size = len(raw)
+            except Exception:
+                return None
+        if not re.fullmatch(r"[0-9a-f]{64}", sha):
+            return None
+        return {
+            "filename": filename,
+            "size": size,
+            "sha256": sha,
+            "detected_at": str(item.get("detected_at") or datetime.now().isoformat()),
+            "local_temp_ref": str(item.get("local_temp_ref") or "").strip(),
+            "content_base64": content_b64,
+            "source": MODE_OFFICIAL_PORTAL_ASSISTED,
+        }
+
+    def _merge_assisted_files(existing: list[dict[str, Any]], incoming: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        merged: list[dict[str, Any]] = []
+        seen: set[tuple[str, str]] = set()
+        for item in [*existing, *incoming]:
+            row = _normalize_assisted_file(dict(item or {}))
+            if not row:
+                continue
+            key = (row["sha256"], row["filename"].lower())
+            if key in seen:
+                continue
+            seen.add(key)
+            merged.append(row)
+        return merged
+
+    def _portal_assistant_collect(portale: str, session_id: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+        portale_norm = _require_assisted_portal(portale)
+        session = _get_assisted_session(session_id)
+        if session.get("portale") != portale_norm:
+            raise ValueError("Sessione assistita non coerente con il portale.")
+        body = dict(payload or {})
+        incoming = body.get("files") if isinstance(body.get("files"), list) else []
+        if session.get("local_connector_available"):
+            try:
+                local = _local_connector_call(
+                    f"/portal-assistant/session/{session.get('local_session_id') or session_id}/collect",
+                    payload={"portale": portale_norm},
+                    timeout=8.0,
+                )
+                if local.get("ok") is True and isinstance(local.get("files"), list):
+                    incoming = [*incoming, *local.get("files")]
+                else:
+                    session["message"] = str(local.get("errore") or local.get("message") or session.get("message") or "")
+            except Exception as exc:
+                session["status"] = "local_connector_required"
+                session["message"] = "Local Connector non raggiungibile per la raccolta file."
+                session["local_error"] = str(exc)
+        session["downloaded_files"] = _merge_assisted_files(list(session.get("downloaded_files") or []), incoming)
+        session["status"] = "file_ufficiali_raccolti" if session["downloaded_files"] else session.get("status") or "local_connector_required"
+        session["updated_at"] = datetime.now().isoformat()
+        _save_assisted_session(session)
+        return _public_assisted_session(session)
+
+    def _portal_assistant_close(portale: str, session_id: str, *, cancel: bool = False) -> dict[str, Any]:
+        portale_norm = _require_assisted_portal(portale)
+        session = _get_assisted_session(session_id)
+        if session.get("portale") != portale_norm:
+            raise ValueError("Sessione assistita non coerente con il portale.")
+        if session.get("local_connector_available"):
+            local_path = "cancel" if cancel else "close"
+            try:
+                _local_connector_call(
+                    f"/portal-assistant/session/{session.get('local_session_id') or session_id}/{local_path}",
+                    payload={"portale": portale_norm},
+                    timeout=4.0,
+                )
+            except Exception:
+                pass
+        session["status"] = "sessione_annullata" if cancel else "sessione_chiusa"
+        session["updated_at"] = datetime.now().isoformat()
+        if cancel:
+            session["downloaded_files"] = []
+            session["message"] = "Sessione assistita annullata. Nessun file importato."
+        else:
+            session["message"] = "Sessione assistita chiusa."
+        _save_assisted_session(session)
+        return _public_assisted_session(session)
+
+    def _practice_engine_repo():
+        from pct.practice_engine import PracticeEngineRepository
+
+        return PracticeEngineRepository(str(_cfg_data_path("PRACTICE_ENGINE_DB")))
+
+    def _deposito_precheck_assistito(portale: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+        portale_norm = _require_assisted_portal(portale)
+        body = dict(payload or {})
+        fascicolo_id = str(body.get("fascicolo_id") or body.get("id_fasc") or "").strip()
+        tipo_atto = str(body.get("tipo_atto") or "").strip()
+        atto_principale_id = str(body.get("atto_principale_id") or body.get("atto_id") or "").strip()
+        allegati = [str(x).strip() for x in (body.get("allegati_ids") or body.get("allegati") or []) if str(x).strip()]
+        blockers: list[str] = []
+        warnings: list[str] = []
+        hashes: list[dict[str, Any]] = []
+        fascicolo = get_fascicoli().get(fascicolo_id) if fascicolo_id else None
+        if not fascicolo:
+            blockers.append("Seleziona il fascicolo interno di destinazione.")
+        if not tipo_atto:
+            blockers.append("Indica il tipo di atto da depositare.")
+        if not atto_principale_id:
+            blockers.append("Seleziona l'atto principale.")
+        documenti = {str(getattr(doc, "id", "")): doc for doc in getattr(fascicolo, "documenti", [])} if fascicolo else {}
+        if atto_principale_id and atto_principale_id not in documenti:
+            blockers.append("Atto principale non trovato nel fascicolo.")
+        for doc_id in [atto_principale_id, *allegati]:
+            if not doc_id or doc_id not in documenti:
+                continue
+            try:
+                path = get_fascicoli().percorso_documento(fascicolo_id, doc_id)
+                hashes.append(
+                    {
+                        "documento_id": doc_id,
+                        "filename": Path(path).name,
+                        "sha256": hashlib.sha256(Path(path).read_bytes()).hexdigest(),
+                    }
+                )
+            except Exception:
+                hashes.append({"documento_id": doc_id, "sha256": "", "warning": "Hash non calcolabile."})
+        if body.get("procura_richiesta") and not body.get("procura_id"):
+            blockers.append("Collega la procura richiesta.")
+        if body.get("prova_notifica_richiesta") and not body.get("prova_notifica_id"):
+            blockers.append("Collega la prova di notifica richiesta.")
+        if body.get("pagamento_richiesto") and not body.get("pagamento_id"):
+            blockers.append("Collega il contributo o pagamento richiesto.")
+        if body.get("firma_digitale_richiesta") and atto_principale_id in documenti:
+            doc = documenti[atto_principale_id]
+            if not bool(getattr(doc, "firmato_digitalmente", False)):
+                warnings.append("Verifica la firma digitale prima di completare il deposito sul portale ufficiale.")
+        for field_name, label in (("ufficio", "ufficio"), ("registro", "registro"), ("numero", "numero"), ("anno", "anno")):
+            if not str(body.get(field_name) or "").strip():
+                warnings.append(f"Completa il dato {label} se richiesto dal portale ufficiale.")
+        ok = not blockers
+        return {
+            "ok": ok,
+            "portale": portale_norm,
+            "status": "precheck_superato" if ok else "precheck_in_corso",
+            "blockers": blockers,
+            "warnings": warnings,
+            "document_hashes": hashes,
+        }
+
+    def _deposito_prepara_assistito(portale: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+        portale_norm = _require_assisted_portal(portale)
+        body = dict(payload or {})
+        precheck = _deposito_precheck_assistito(portale_norm, body)
+        if not precheck.get("ok"):
+            return {**precheck, "status": "precheck_in_corso"}
+        fascicolo_id = str(body.get("fascicolo_id") or body.get("id_fasc") or "").strip()
+        repo = _practice_engine_repo()
+        session = repo.create_deposit_session(
+            fascicolo_id,
+            _DEPOSIT_PROFILE_BY_PORTAL[portale_norm],
+            portale_norm.upper(),
+            status="pronto_per_portale",
+            transport_mode=MODE_OFFICIAL_PORTAL_ASSISTED,
+            messages=["Pacchetto interno pronto: il deposito si completa sul portale ufficiale assistito."],
+        )
+        repo.audit(
+            fascicolo_id,
+            "ASSISTED_PORTAL_DEPOSIT_PREPARED",
+            message="Pacchetto deposito assistito preparato.",
+            payload={"portale": portale_norm, "deposito_id": session.id, "document_hashes": precheck.get("document_hashes", [])},
+        )
+        return {
+            "ok": True,
+            "portale": portale_norm,
+            "status": "pronto_per_portale",
+            "deposito_id": session.id,
+            "fascicolo_id": fascicolo_id,
+            "official_url": _portal_official_url(portale_norm),
+            "precheck": precheck,
+        }
+
+    def _deposito_assistant_start(portale: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+        result = _portal_assistant_start(portale, payload, purpose="deposito")
+        if result.get("status") != "local_connector_required":
+            result["status"] = "portale_ufficiale_assistito_aperto"
+        return result
+
+    def _classifica_ricevuta_deposito(item: dict[str, Any]) -> str:
+        explicit = str(item.get("classificazione") or item.get("receipt_type") or "").strip().lower()
+        if explicit in {
+            "ricevuta_accettazione_deposito",
+            "esito_controlli_automatici",
+            "esito_segreteria_cancelleria",
+            "rifiuto_deposito",
+            "anomalia_deposito",
+        }:
+            return explicit
+        text = " ".join(
+            str(item.get(key) or "").lower()
+            for key in ("filename", "oggetto", "subject", "tipo", "message")
+        )
+        if "rifiut" in text:
+            return "rifiuto_deposito"
+        if "anomalia" in text or "errore" in text:
+            return "anomalia_deposito"
+        if "controll" in text:
+            return "esito_controlli_automatici"
+        if "segreteria" in text or "cancelleria" in text or "esito" in text:
+            return "esito_segreteria_cancelleria"
+        return "ricevuta_accettazione_deposito"
+
+    def _status_from_receipt_class(classificazione: str) -> str:
+        return {
+            "ricevuta_accettazione_deposito": "ricevuta_accettazione_importata",
+            "esito_controlli_automatici": "esito_controlli_importato",
+            "esito_segreteria_cancelleria": "accettato_da_segreteria",
+            "rifiuto_deposito": "rifiutato",
+            "anomalia_deposito": "anomalia_da_verificare",
+        }.get(classificazione, "anomalia_da_verificare")
+
+    def _pct_state_from_receipt_class(classificazione: str) -> str:
+        return {
+            "esito_segreteria_cancelleria": "ACCETTATO_CANCELLERIA",
+            "rifiuto_deposito": "RIFIUTATO_CANCELLERIA",
+            "anomalia_deposito": "ERRORE",
+        }.get(classificazione, "IMPORTATO_DA_PORTALE")
+
+    def _ensure_deposit_session_for_receipts(portale: str, fascicolo_id: str, deposito_id: str = ""):
+        repo = _practice_engine_repo()
+        existing = repo.get_deposit_session(deposito_id) if deposito_id else None
+        if existing:
+            return repo, existing
+        session = repo.create_deposit_session(
+            fascicolo_id,
+            _DEPOSIT_PROFILE_BY_PORTAL[portale],
+            portale.upper(),
+            status="deposito_eseguito_sul_portale_da_confermare",
+            transport_mode=MODE_OFFICIAL_PORTAL_ASSISTED,
+            messages=["Ricevute ufficiali in importazione dal portale assistito."],
+        )
+        return repo, session
+
+    def _write_evidence_pack(repo, fascicolo_id: str, deposito_id: str, rows: list[dict[str, Any]]) -> EvidencePack:
+        evidence_dir = Path(repo.evidence_dir)
+        evidence_dir.mkdir(parents=True, exist_ok=True)
+        body = json.dumps({"fascicolo_id": fascicolo_id, "deposito_id": deposito_id, "receipts": rows}, ensure_ascii=False, sort_keys=True, indent=2)
+        sha = hashlib.sha256(body.encode("utf-8")).hexdigest()
+        path = evidence_dir / f"{deposito_id}-official-portal-assisted.json"
+        path.write_text(body, encoding="utf-8")
+        pack = EvidencePack(
+            id=new_id("ep"),
+            fascicolo_id=fascicolo_id,
+            deposit_session_id=deposito_id,
+            path=str(path),
+            hash_sha256=sha,
+        )
+        return repo.save_evidence_pack(pack)
+
+    def _deposito_importa_ricevute_assistito(portale: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+        portale_norm = _require_assisted_portal(portale)
+        body = dict(payload or {})
+        fascicolo_id = str(body.get("fascicolo_id") or body.get("id_fasc") or "").strip()
+        if not fascicolo_id or not get_fascicoli().get(fascicolo_id):
+            raise ValueError("Fascicolo interno non trovato.")
+        deposito_id = str(body.get("deposito_id") or "").strip()
+        receipts_raw = body.get("receipts") or body.get("files") or []
+        if not isinstance(receipts_raw, list):
+            receipts_raw = []
+        session_id = str(body.get("assistant_session_id") or body.get("session_id") or "").strip()
+        if session_id:
+            try:
+                assisted = _portal_assistant_collect(portale_norm, session_id, body)
+                receipts_raw = [*receipts_raw, *assisted.get("downloaded_files", [])]
+            except Exception:
+                pass
+        repo, dep_session = _ensure_deposit_session_for_receipts(portale_norm, fascicolo_id, deposito_id)
+        imported: list[dict[str, Any]] = []
+        for item_raw in receipts_raw:
+            item = dict(item_raw or {})
+            normalized_file = _normalize_assisted_file(item) or {}
+            filename = normalized_file.get("filename") or Path(str(item.get("filename") or item.get("name") or "ricevuta_portale")).name
+            sha = normalized_file.get("sha256") or str(item.get("sha256") or "").strip().lower()
+            if not re.fullmatch(r"[0-9a-f]{64}", sha):
+                content = str(item.get("content") or item.get("testo") or filename).encode("utf-8", errors="ignore")
+                sha = hashlib.sha256(content).hexdigest()
+            classificazione = _classifica_ricevuta_deposito({**item, **normalized_file})
+            status = _status_from_receipt_class(classificazione)
+            official_id = str(item.get("id_deposito_ufficiale") or item.get("id_deposito") or body.get("id_deposito_ufficiale") or "").strip()
+            esterno = official_id or f"{portale_norm.upper()}-{dep_session.id}-{sha[:12]}"
+            oggetto = str(item.get("oggetto") or item.get("subject") or f"Ricevuta deposito {portale_norm.upper()}").strip()
+            documenti_portale = [
+                {
+                    "id_documento": sha[:16],
+                    "msg_id": str(item.get("message_id") or item.get("messageId") or "").strip(),
+                    "nome": filename,
+                    "tipo": classificazione,
+                    "data_deposito": str(item.get("data_ufficiale") or item.get("detected_at") or date.today().isoformat())[:10],
+                    "mittente": str(item.get("mittente") or "").strip(),
+                    "dimensione_bytes": int(item.get("size") or normalized_file.get("size") or 0),
+                    "disponibile": True,
+                    "id_deposito": esterno,
+                    "tipo_atto": classificazione,
+                }
+            ]
+            dep = get_fascicoli().sincronizza_deposito_portale(
+                fascicolo_id,
+                fonte=f"{portale_norm.upper()} assistito",
+                id_deposito_esterno=esterno,
+                tipo_atto=classificazione,
+                data_deposito=str(item.get("data_ufficiale") or date.today().isoformat())[:10],
+                mittente=str(item.get("mittente") or "").strip(),
+                documenti_portale=documenti_portale,
+                registrato_da=str(getattr(g, "user_email", "") or getattr(getattr(g, "utente_corrente", None), "username", "") or "IUSENTRA"),
+                note=(
+                    f"{oggetto} | filename={filename} | sha256={sha} | "
+                    f"origine=portale ufficiale assistito | portale={portale_norm.upper()}"
+                ),
+                stato=_pct_state_from_receipt_class(classificazione),
+                servizio_portale=SERVIZIO_PST_COMUNICAZIONE_CANCELLERIA,
+            )
+            receipt = DepositReceipt(
+                id=new_id("rcpt"),
+                deposit_session_id=dep_session.id,
+                fascicolo_id=fascicolo_id,
+                receipt_type=classificazione,
+                status=status,
+                positive=classificazione not in {"rifiuto_deposito", "anomalia_deposito"},
+                source=MODE_OFFICIAL_PORTAL_ASSISTED,
+                original_name=filename,
+                original_hash_sha256=sha,
+                payload={
+                    "oggetto": oggetto,
+                    "mittente": str(item.get("mittente") or "").strip(),
+                    "destinatario": str(item.get("destinatario") or "").strip(),
+                    "data_ufficiale": str(item.get("data_ufficiale") or "").strip(),
+                    "message_id": str(item.get("message_id") or item.get("messageId") or "").strip(),
+                    "filename": filename,
+                    "sha256": sha,
+                    "portale": portale_norm,
+                    "id_deposito_ufficiale": official_id,
+                    "source": MODE_OFFICIAL_PORTAL_ASSISTED,
+                    "fascicolo_deposito_pct_id": getattr(dep, "id", ""),
+                },
+                message=f"{oggetto} importata nella sezione Comunicazioni/Cancelleria.",
+            )
+            repo.add_receipt(receipt)
+            imported.append({**receipt.payload, "id": receipt.id, "classificazione": classificazione, "status": status})
+        if imported:
+            dep_session.status = imported[-1].get("status") or dep_session.status
+            dep_session.final_receipt_id = imported[-1].get("id") or dep_session.final_receipt_id
+            repo.update_deposit_session(dep_session)
+            pack = _write_evidence_pack(repo, fascicolo_id, dep_session.id, imported)
+            repo.add_timeline_event(
+                dep_session.id,
+                fascicolo_id,
+                "OFFICIAL_PORTAL_RECEIPTS_IMPORTED",
+                dep_session.status,
+                "Ricevute ed esiti ufficiali importati dal portale assistito.",
+                evidence_ref=pack.id,
+            )
+        return {
+            "ok": True,
+            "portale": portale_norm,
+            "deposito_id": dep_session.id,
+            "status": dep_session.status,
+            "imported": imported,
+            "evidence_pack": repo.get_evidence_pack(dep_session.id).__dict__ if repo.get_evidence_pack(dep_session.id) else {},
+        }
+
+    def _deposito_finalizza_assistito(portale: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+        portale_norm = _require_assisted_portal(portale)
+        body = dict(payload or {})
+        fascicolo_id = str(body.get("fascicolo_id") or body.get("id_fasc") or "").strip()
+        deposito_id = str(body.get("deposito_id") or "").strip()
+        repo = _practice_engine_repo()
+        session = repo.get_deposit_session(deposito_id) if deposito_id else None
+        receipts = repo.list_receipts(deposito_id) if deposito_id else []
+        has_official = bool(
+            str(body.get("ricevuta_ufficiale_sha256") or "").strip()
+            or str(body.get("esito_ufficiale_sha256") or "").strip()
+            or str(body.get("id_deposito_ufficiale") or "").strip()
+            or any(str(r.original_hash_sha256 or "").strip() for r in receipts)
+        )
+        if not has_official:
+            if session:
+                session.status = "anomalia_da_verificare"
+                repo.update_deposit_session(session)
+                repo.add_timeline_event(
+                    session.id,
+                    session.fascicolo_id,
+                    "ASSISTED_DEPOSIT_FINALIZATION_BLOCKED",
+                    session.status,
+                    "Finalizzazione bloccata: manca ricevuta o esito ufficiale.",
+                )
+            return {
+                "ok": False,
+                "portale": portale_norm,
+                "status": "anomalia_da_verificare",
+                "message": "Non posso finalizzare senza ricevuta, esito ufficiale o identificativo ufficiale verificato.",
+            }
+        if not session:
+            if not fascicolo_id:
+                raise ValueError("Indica il fascicolo interno per finalizzare il deposito.")
+            _, session = _ensure_deposit_session_for_receipts(portale_norm, fascicolo_id, "")
+        session.status = "acquisito_nel_fascicolo_interno"
+        session.acquired_at = datetime.now().isoformat()
+        if receipts and not session.final_receipt_id:
+            session.final_receipt_id = receipts[-1].id
+        repo.update_deposit_session(session)
+        repo.add_timeline_event(
+            session.id,
+            session.fascicolo_id,
+            "ASSISTED_DEPOSIT_FINALIZED",
+            session.status,
+            "Deposito acquisito nel fascicolo interno con evidenza ufficiale.",
+        )
+        return {
+            "ok": True,
+            "portale": portale_norm,
+            "deposito_id": session.id,
+            "status": session.status,
+        }
 
     def _local_signer_tools_dir() -> Path:
         return Path(__file__).resolve().parents[2] / "tools"
@@ -3142,6 +3816,16 @@ read -r -p "Premi Invio per chiudere..." _
         "analyze_portale_import": _analyze_portale_import,
         "normalize_authorized_portale_payload": _normalize_authorized_portale_payload,
         "importa_o_collega_fascicolo_portale": _importa_o_collega_fascicolo_portale,
+        "portal_assistant_start": _portal_assistant_start,
+        "portal_assistant_open": _portal_assistant_open,
+        "portal_assistant_status": _portal_assistant_status,
+        "portal_assistant_collect": _portal_assistant_collect,
+        "portal_assistant_close": _portal_assistant_close,
+        "deposito_precheck_assistito": _deposito_precheck_assistito,
+        "deposito_prepara_assistito": _deposito_prepara_assistito,
+        "deposito_assistant_start": _deposito_assistant_start,
+        "deposito_importa_ricevute_assistito": _deposito_importa_ricevute_assistito,
+        "deposito_finalizza_assistito": _deposito_finalizza_assistito,
         "backfill_telematico_from_existing_fascicoli": _backfill_telematico_from_existing_fascicoli,
         "telematico_dashboard_warning_message": _telematico_dashboard_warning_message,
         "local_signer_python_name": _local_signer_python_name,

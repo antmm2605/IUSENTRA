@@ -24,6 +24,8 @@ from dataclasses import dataclass, field
 from datetime import date, datetime
 from typing import Any, Dict, List, Optional
 
+from pct.portal_direct_guard import ensure_direct_portal_verified
+
 # ---------------------------------------------------------------- SIGIT / PTT endpoints
 _SIGIT_BASE             = os.getenv("PCT_SIGIT_BASE_URL", "https://sigit.finanze.it/ptt")
 _WSDL_RICERCA_TRIB      = f"{_SIGIT_BASE}/RicercaFascicoliTributarioService?wsdl"
@@ -129,6 +131,7 @@ class ClientSIGIT:
             tipo:           RICORSO | APPELLO | OPPOSIZIONE | OTTEMPERANZA (None = tutti).
             max_risultati:  Numero massimo di risultati.
         """
+        ensure_direct_portal_verified("ptt")
         client = self._get_client(_WSDL_RICERCA_TRIB)
         req: Dict[str, Any] = {
             "codiceFiscaleAvvocato": self.cf_avvocato,
@@ -154,6 +157,7 @@ class ClientSIGIT:
         anno_rgt: int,
     ) -> List[DocumentoSIGIT]:
         """Recupera l'elenco dei documenti del fascicolo tributario."""
+        ensure_direct_portal_verified("ptt")
         client = self._get_client(_WSDL_CONSULTA_TRIB)
         try:
             risposta = client.service.consultaDocumentiTributari(
@@ -299,6 +303,7 @@ class ClientSIGIT:
             numero_rgt, anno_rgt: Riferimento procedimento (opz. per nuovi ricorsi)
             oggetto: Descrizione sintetica dell'atto
         """
+        ensure_direct_portal_verified("ptt")
         import uuid
         from pathlib import Path
 

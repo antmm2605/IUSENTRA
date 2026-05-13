@@ -21,6 +21,8 @@ from dataclasses import dataclass, field
 from datetime import date, datetime
 from typing import Any, Dict, List, Optional
 
+from pct.portal_direct_guard import ensure_direct_portal_verified
+
 # ---------------------------------------------------------------- PDP endpoints
 _PDP_BASE             = os.getenv("PCT_PDP_BASE_URL", "https://appweb.giustizia.it/snt")
 _WSDL_RICERCA_PENALE  = f"{_PDP_BASE}/RicercaFascicoliPenaleService?wsdl"
@@ -123,6 +125,7 @@ class ClientPDP:
             tipo_registro: RGNR | RG | GIP | GUP | DIBATTIMENTO (None = tutti).
             max_risultati: Numero massimo di risultati.
         """
+        ensure_direct_portal_verified("pdp")
         client = self._get_client(_WSDL_RICERCA_PENALE)
         req: Dict[str, Any] = {
             "codiceFiscaleAvvocato": self.cf_avvocato,
@@ -148,6 +151,7 @@ class ClientPDP:
         anno_rg: int,
     ) -> List[DocumentoPDP]:
         """Recupera l'elenco dei documenti del fascicolo penale."""
+        ensure_direct_portal_verified("pdp")
         client = self._get_client(_WSDL_CONSULTA_PENALE)
         try:
             risposta = client.service.consultaDocumentiPenale(
@@ -281,6 +285,7 @@ class ClientPDP:
         Returns:
             dict con codiceEsito, idDeposito, dataDeposito, stato, messaggio
         """
+        ensure_direct_portal_verified("pdp")
         import uuid
         from datetime import datetime
         from pathlib import Path

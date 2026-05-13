@@ -1,12 +1,16 @@
 # Pytest issue aperte e risoluzioni
 
-Aggiornato: 2026-05-13, Email ordinaria accenti e charset 2.218.9.
+Aggiornato: 2026-05-13, Portali non-PST assistiti fail-closed 2.219.0.
 
 ## Regola operativa
 
 Questo file e' la coda di lavoro. Prima di rilanciare test gia' passati, controllare qui: si lavora solo sugli item aperti, poi si spostano nel report `pytest-confirmed-ok.md` quando il test o lo shard passa.
 
 ## Issue aperte
+
+| Area | Test / comando | Stato | Problema rilevato | Risoluzione |
+| --- | --- | --- | --- | --- |
+| Portali non-PST assistiti 2.219.0 | `tests/test_portali_payload_import_ui.py`, `tests/test_pdp_penale_web.py`, `tests/test_deposito_guidato.py` | Nessuna issue aperta sul codice | Durante la verifica mirata sono emersi solo due riallineamenti: la microcopy storica PDP era nascosta dal nuovo pannello assistito e il test PDP con data 2026-05-13 usciva dalla finestra PEC di 30 giorni. | Ripristinata la microcopy del workflow PDP dentro il pannello assistito e allargata la finestra di associazione PEC PDP a 60 giorni; py_compile e shard mirati verdi. |
 
 | Area | Test / comando | Stato | Problema rilevato | Risoluzione |
 | --- | --- | --- | --- | --- |

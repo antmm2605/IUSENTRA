@@ -1,5 +1,21 @@
 # Migrazione progressiva Flask + React
 
+## Stato tranche 2026-05-13 - Portali non-PST assistiti fail-closed 2.219.0
+
+La policy prodotto dei portali telematici e' centralizzata: PST / PolisWeb resta
+`direct_internal`, mentre PTT/SIGIT, PAT e PDP restano `official_portal_assisted`
+salvo manifest diretto verificato, completo, non scaduto e con test reali
+passati. I client produttivi PTT/PAT/PDP sono protetti da guard fail-closed,
+senza bloccare classi demo/offline e senza promuovere codice client o WSDL
+ipotizzati a canale diretto.
+
+Il wizard `/portali/<portale>/acquisizione` mostra per PTT/PAT/PDP il flusso
+di Portale ufficiale assistito con Local Signer / Local Connector, raccolta
+download sicuri e import nel fascicolo interno. Sono stati aggiunti endpoint
+comuni per sessione assistita, deposito assistito, import ricevute/esiti in
+Comunicazioni/Cancelleria, timeline ed evidence pack, con divieto di scraping
+HTML, salvataggio credenziali o finalizzazione senza evidenza ufficiale.
+
 ## Stato tranche 2026-05-13 - Email ordinaria accenti e charset 2.218.9
 
 Email ordinaria usa ora un decoder piu' robusto per intestazioni e corpo:

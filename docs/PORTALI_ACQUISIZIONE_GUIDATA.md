@@ -4,14 +4,52 @@ Questa release consolida il flusso comune per PST/SIGP, PDP, PAT e PTT/SIGIT.
 
 ## Regola operativa
 
-IUSENTRA non esegue scraping HTML dei portali ministeriali. Quando un portale non espone un canale tecnico utilizzabile dal backend, il gestionale accompagna l'utente al portale ufficiale, mantiene il contesto del fascicolo e importa poi file, ZIP, cartelle o payload JSON autorizzati prodotti da Local Connector, PdA o Model Office.
+IUSENTRA non esegue scraping HTML dei portali ministeriali e non salva PIN, password, credenziali SPID/CIE/CNS, cookie o token di sessione del portale. L'utente resta dentro l'esperienza IUSENTRA: quando il portale non e' PST, il gestionale apre una sessione assistita locale tramite Local Signer / Local Connector, mantiene il contesto del fascicolo e importa poi file, ricevute, esiti, ZIP, cartelle o payload JSON autorizzati.
+
+Nessun deposito viene segnato come depositato, acquisito o finalizzato senza ricevuta/esito ufficiale importato o identificativo ufficiale verificato.
 
 ## Canali ufficiali
 
-- PST / PolisWeb e SIGP: acquisizione con Local Signer o import file gia scaricati; la copia di consultazione con annotazioni ministeriali resta il default.
-- PDP Penale: apertura guidata su `https://appweb.giustizia.it/snt`, import nel fascicolo penale interno, workflow PDP e catalogo documentale.
-- PAT Amministrativo: apertura guidata sul Portale dell'Avvocato, import manuale dei file e payload autorizzati nel fascicolo amministrativo interno.
-- PTT / SIGIT: apertura guidata su SIGIT / Telecontenzioso, import nel fascicolo tributario interno.
+- PST / PolisWeb: integrazione diretta interna tramite canali tecnici autorizzati e Local Signer. Mantiene ricerca, preview, download e acquisizione interna dove gia governati.
+- PTT / SIGIT: portale ufficiale assistito; import automatico fascicolo, ricevute ed esiti nel fascicolo tributario interno.
+- PAT: portale ufficiale assistito; import automatico file, ricevute ed esiti nel fascicolo amministrativo interno.
+- PDP: portale ufficiale assistito di default; canale diretto solo con manifest verificato, completo, non scaduto e con test reali passati.
+
+## Regola fail-closed
+
+PAT, PTT e PDP non vengono mai promossi a integrazione diretta solo perché esiste codice client, endpoint prototipale, WSDL ipotizzato o demo offline. Serve un manifest verificato, con fonte ufficiale, hash evidenze, test reali passati e scadenza valida.
+
+Il manifest diretto deve indicare almeno `allow_direct=true`, stato `verified`, fonte ufficiale HTTPS, hash SHA-256 dell'evidenza, data di verifica, scadenza non superata, test integrazione reali passati, tipo canale autorizzato e soggetto verificatore. In assenza anche di un solo requisito, IUSENTRA resta su `official_portal_assisted`.
+
+## Sessione assistita
+
+Endpoint comuni:
+
+```text
+POST /api/portali/<ptt|pat|pdp>/assistant/start
+GET  /api/portali/<ptt|pat|pdp>/assistant/<session_id>/status
+POST /api/portali/<ptt|pat|pdp>/assistant/<session_id>/collect
+POST /api/portali/<ptt|pat|pdp>/assistant/<session_id>/close
+POST /api/portali/<ptt|pat|pdp>/assistant/<session_id>/cancel
+```
+
+`pst` viene rifiutato da questo flusso perché resta direct internal. Se Local Connector non e' raggiungibile, lo stato resta `local_connector_required`: il flusso principale non degrada a un semplice link esterno.
+
+## Deposito assistito PTT/PAT/PDP
+
+Endpoint comuni:
+
+```text
+POST /api/portali/<ptt|pat|pdp>/deposito/precheck
+POST /api/portali/<ptt|pat|pdp>/deposito/prepara
+POST /api/portali/<ptt|pat|pdp>/deposito/assistant/start
+POST /api/portali/<ptt|pat|pdp>/deposito/importa-ricevute
+POST /api/portali/<ptt|pat|pdp>/deposito/finalizza
+```
+
+Il precheck verifica fascicolo target, tipo atto, atto principale, allegati, procura/notifica/pagamento quando richiesti, firma digitale dove richiesta, hash documenti e coerenza minima di ufficio/registro/numero/anno. `prepara` crea solo un pacchetto interno; l'utente completa il deposito sul portale ufficiale assistito. `finalizza` porta allo stato finale solo se esiste ricevuta ufficiale SHA-256, esito ufficiale SHA-256 o identificativo deposito ufficiale verificato.
+
+Le ricevute e gli esiti importati vengono collegati al deposito assistito, alla timeline/evidence pack e alla sezione Comunicazioni/Cancelleria del fascicolo con classificazione operativa: ricevuta accettazione deposito, esito controlli automatici, esito segreteria/cancelleria, rifiuto deposito o anomalia deposito.
 
 ## Smistamento nella UI fascicolo
 
@@ -38,3 +76,4 @@ Il JSON puo contenere `fascicolo`, `parti`, `eventi`, `udienze`, `documenti`, `c
 - I documenti dei portali PAT/PDP/PTT non vengono piu classificati come servizio `PAT`, `PDP` o `PTT`: nel catalogo del fascicolo restano `DocumentiFascicolo`.
 - Il wizard accetta file `.json` autorizzati oltre a ZIP, PDF, P7M, EML, MSG, XML e cartelle scaricate.
 - I test `tests/test_portali_payload_import_ui.py` verificano che PDP, PAT e PTT arrivino realmente nella UI fascicolo con documenti, attivita, udienze, comunicazioni e istanze.
+- I test verificano inoltre policy fail-closed, guard dei client diretti, endpoint di sessione assistita, finalizzazione deposito senza evidenza ufficiale e import ricevute in Comunicazioni/Cancelleria con timeline/evidence pack.

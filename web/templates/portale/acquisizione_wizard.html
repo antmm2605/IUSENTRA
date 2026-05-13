@@ -62,72 +62,54 @@
 </div>
 {% endif %}
 
-{% if wizard_portale == 'pdp' and linked_fascicolo %}
+{% if spec.assistant_required %}
+<div class="alert alert-{{ spec.color }}-subtle border border-{{ spec.color }}-subtle rounded-4 mb-4">
+  <div class="d-flex flex-column flex-xl-row justify-content-between align-items-start gap-3">
+    <div class="flex-grow-1">
+      <div class="fw-semibold mb-1"><i class="bi bi-window-sidebar me-1"></i>Portale ufficiale assistito</div>
+      {% if wizard_portale == 'pdp' and linked_fascicolo %}
+      <div class="small mb-2">
+        <strong>Acquisizione guidata dentro il workflow PDP.</strong>
+        Stai lavorando sul fascicolo <strong>{{ linked_fascicolo.titolo }}</strong>
+        {% if linked_fascicolo.rg_completo %}({{ linked_fascicolo.rg_completo }}){% endif %}: al termine rientri nel workflow della stessa pratica.
+      </div>
+      {% endif %}
+      {% if wizard_portale == 'ptt' %}
+      <div class="small">
+        Fascicolo tributario interno con PTT / SIGIT assistito.
+        IUSENTRA non sostituisce il portale ufficiale. Il software apre una sessione assistita locale, l'utente si autentica e opera nel PTT/SIGIT, scarica fascicolo, ricevute, provvedimenti ed esiti, e IUSENTRA li importa automaticamente nel fascicolo tributario interno. PIN, credenziali e sessioni del portale non vengono salvati.
+      </div>
+      {% else %}
+      <div class="small">
+        IUSENTRA non sostituisce il portale ufficiale. Il software apre una sessione assistita locale, l'utente si autentica e opera nel portale, scarica fascicolo, ricevute, provvedimenti ed esiti, e IUSENTRA li importa automaticamente nel fascicolo interno. PIN, credenziali e sessioni del portale non vengono salvati.
+      </div>
+      {% endif %}
+      <div class="small mt-2">
+        Il deposito si completa sul portale ufficiale assistito. IUSENTRA prepara il deposito, controlla documenti e allegati, guida l'utente nel portale, poi importa ricevute di accettazione, esiti e comunicazioni nel fascicolo interno.
+      </div>
+      <div class="small mt-2 text-muted" id="awAssistantStatus">Sessione assistita non ancora avviata.</div>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <button type="button" class="btn btn-{{ spec.color }} btn-sm" id="awAssistantStart"><i class="bi bi-play-circle me-1"></i>Avvia sessione assistita</button>
+      <button type="button" class="btn btn-outline-{{ spec.color }} btn-sm" id="awAssistantOpen"><i class="bi bi-window me-1"></i>Apri portale ufficiale assistito</button>
+      <button type="button" class="btn btn-outline-secondary btn-sm" id="awAssistantCollect"><i class="bi bi-folder-symlink me-1"></i>Raccogli file scaricati</button>
+      <button type="button" class="btn btn-outline-secondary btn-sm" id="awAssistantImport"><i class="bi bi-box-arrow-in-down me-1"></i>Importa nel fascicolo interno</button>
+      <button type="button" class="btn btn-outline-secondary btn-sm" id="awAssistantClose"><i class="bi bi-x-circle me-1"></i>Chiudi sessione assistita</button>
+      {% if linked_fascicolo_url %}
+      <a href="{{ linked_fascicolo_url }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-folder2-open me-1"></i>Apri fascicolo interno
+      </a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% elif wizard_portale == 'pdp' and linked_fascicolo %}
 <div class="alert alert-danger-subtle border border-danger-subtle rounded-4 mb-4">
   <div class="fw-semibold mb-1"><i class="bi bi-diagram-3 me-1"></i>Acquisizione guidata dentro il workflow PDP</div>
   <div class="small">
     Stai lavorando sul fascicolo <strong>{{ linked_fascicolo.titolo }}</strong>
     {% if linked_fascicolo.rg_completo %}({{ linked_fascicolo.rg_completo }}){% endif %}.
     Questa pagina e la fase iniziale del workflow PDP della stessa pratica: alla fine rientri nel workflow senza creare un nuovo fascicolo.
-  </div>
-</div>
-{% elif wizard_portale == 'pdp' %}
-<div class="alert alert-light border rounded-4 mb-4">
-  <div class="fw-semibold mb-1"><i class="bi bi-signpost-2 me-1 text-danger"></i>Prima acquisizione, poi workflow PDP</div>
-  <div class="small text-muted">
-    Qui cerchi e importi il fascicolo dal canale ufficiale. Appena confermi l'importazione, il gestionale apre il workflow PDP della pratica creata o aggiornata.
-  </div>
-</div>
-{% elif wizard_portale == 'pat' %}
-<div class="alert alert-success-subtle border border-success-subtle rounded-4 mb-4">
-  <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start gap-3">
-    <div>
-      <div class="fw-semibold mb-1"><i class="bi bi-signpost-2 me-1 text-success"></i>Fascicolo PAT interno, consultazione ufficiale sul portale</div>
-      <div class="small">
-        Il wizard PAT prepara il fascicolo interno di studio e non promette una lettura live diretta da SIGA.
-        Deposito e consultazione restano nel <strong>Portale dell'Avvocato ufficiale</strong>; IUSENTRA importa poi
-        file, ricevute, provvedimenti ed esiti gia scaricati dal browser.
-      </div>
-    </div>
-    <div class="d-flex gap-2 flex-wrap">
-      <a href="https://www.giustizia-amministrativa.it/portale-avvocato" target="_blank" rel="noopener" class="btn btn-outline-success btn-sm">
-        <i class="bi bi-box-arrow-up-right me-1"></i>Apri Portale Avvocato
-      </a>
-      <a href="https://www.giustizia-amministrativa.it/portale-avvocato" target="_blank" rel="noopener" class="btn btn-outline-secondary btn-sm">
-        <i class="bi bi-send-check me-1"></i>Nuovo deposito Form Web
-      </a>
-      {% if linked_fascicolo_url %}
-      <a href="{{ linked_fascicolo_url }}" class="btn btn-outline-secondary btn-sm">
-        <i class="bi bi-folder2-open me-1"></i>Apri fascicolo interno
-      </a>
-      {% endif %}
-    </div>
-  </div>
-</div>
-{% elif wizard_portale == 'ptt' %}
-<div class="alert alert-warning-subtle border border-warning-subtle rounded-4 mb-4">
-  <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start gap-3">
-    <div>
-      <div class="fw-semibold mb-1"><i class="bi bi-signpost-2 me-1 text-warning"></i>Fascicolo tributario interno, consultazione nel portale ufficiale</div>
-      <div class="small">
-        Il wizard PTT non promette una lettura live diretta da SIGIT. IUSENTRA prepara la pratica interna,
-        poi ti accompagna su <strong>PTT / SIGIT</strong> e <strong>Telecontenzioso</strong> per consultare,
-        scaricare e importare nel gestionale fascicolo, ricevute, provvedimenti ed esiti.
-      </div>
-    </div>
-    <div class="d-flex gap-2 flex-wrap">
-      <a href="https://sigit.giustiziatributaria.gov.it/Sigit/index.do" target="_blank" rel="noopener" class="btn btn-outline-warning btn-sm">
-        <i class="bi bi-box-arrow-up-right me-1"></i>Apri PTT / SIGIT
-      </a>
-      <a href="https://sigit.giustiziatributaria.gov.it/Sigit/index.do" target="_blank" rel="noopener" class="btn btn-outline-secondary btn-sm">
-        <i class="bi bi-search me-1"></i>Apri Telecontenzioso
-      </a>
-      {% if linked_fascicolo_url %}
-      <a href="{{ linked_fascicolo_url }}" class="btn btn-outline-secondary btn-sm">
-        <i class="bi bi-folder2-open me-1"></i>Apri fascicolo interno
-      </a>
-      {% endif %}
-    </div>
   </div>
 </div>
 {% endif %}
@@ -318,6 +300,11 @@ const AW_BOOT = {{ {
   "analyzeUrl": url_for('api_portale_acquisizione_analyze', portale=wizard_portale),
   "importUrl": url_for('api_portale_acquisizione_import', portale=wizard_portale),
   "importPayloadUrl": url_for('api_portale_acquisizione_importa_payload', portale=wizard_portale),
+  "assistantStartUrl": url_for('api_portale_assistant_start', portale=wizard_portale),
+  "assistantStatusUrlTemplate": url_for('api_portale_assistant_status', portale=wizard_portale, session_id='__SESSION__'),
+  "assistantOpenUrlTemplate": url_for('api_portale_assistant_open', portale=wizard_portale, session_id='__SESSION__'),
+  "assistantCollectUrlTemplate": url_for('api_portale_assistant_collect', portale=wizard_portale, session_id='__SESSION__'),
+  "assistantCloseUrlTemplate": url_for('api_portale_assistant_close', portale=wizard_portale, session_id='__SESSION__'),
   "linkedFascicolo": ({
     "id": linked_fascicolo.id,
     "numero": linked_fascicolo.numero or linked_fascicolo.numero_rg or linked_fascicolo.rg_completo or linked_fascicolo.id,
@@ -347,6 +334,7 @@ const AW_STATE = {
   downloadCacheKey:'',
   downloadWarning:null,
   pstSnapshot:null,
+  assistantSession:null,
 };
 let AW_PST_CERT = null;
 let AW_PST_SESSION = null;
@@ -373,6 +361,58 @@ const AW_PST_SESSION_KEY = `hacs-aw-pst-session-${AW_BOOT.portale}`;
 const AW_PST_IMPORT_SESSION_KEY = `hacs-aw-pst-import-session-${AW_BOOT.portale}`;
 function awJson(url, options = {}) {
   return fetch(url, { headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }, ...options }).then(r => r.json());
+}
+function awAssistantUrl(template) {
+  const sessionId = AW_STATE.assistantSession?.session_id || '';
+  return String(template || '').replace('__SESSION__', encodeURIComponent(sessionId));
+}
+function awAssistantStatus(message, tone = 'muted') {
+  const node = document.getElementById('awAssistantStatus');
+  if (!node) return;
+  node.className = `small mt-2 text-${tone}`;
+  node.textContent = message;
+}
+async function awAssistantStart() {
+  if (!AW_BOOT.spec?.assistant_required) return null;
+  const data = await awJson(AW_BOOT.assistantStartUrl, {
+    method: 'POST',
+    body: JSON.stringify({
+      fascicolo_id: AW_BOOT.linkedFascicolo?.id || AW_STATE.selection?.fascicolo_locale_id || AW_BOOT.initialMapping?.target_fascicolo_id || '',
+    }),
+  });
+  if (!data.ok) throw new Error(data.errore || 'Sessione assistita non avviata.');
+  AW_STATE.assistantSession = data;
+  awAssistantStatus(data.message || `Stato sessione: ${data.status || 'pronta'}`, data.status === 'local_connector_required' ? 'warning' : 'success');
+  return data;
+}
+async function awAssistantEnsureSession() {
+  return AW_STATE.assistantSession?.session_id ? AW_STATE.assistantSession : awAssistantStart();
+}
+async function awAssistantOpen() {
+  const session = await awAssistantEnsureSession();
+  if (!session?.session_id) return;
+  const data = await awJson(awAssistantUrl(AW_BOOT.assistantOpenUrlTemplate), { method: 'POST', body: JSON.stringify({}) });
+  if (!data.ok) throw new Error(data.errore || 'Portale ufficiale assistito non aperto.');
+  AW_STATE.assistantSession = data;
+  awAssistantStatus(data.message || `Stato sessione: ${data.status || 'aperta'}`, data.status === 'local_connector_required' ? 'warning' : 'success');
+}
+async function awAssistantCollect() {
+  const session = await awAssistantEnsureSession();
+  if (!session?.session_id) return;
+  const data = await awJson(awAssistantUrl(AW_BOOT.assistantCollectUrlTemplate), { method: 'POST', body: JSON.stringify({}) });
+  if (!data.ok) throw new Error(data.errore || 'Raccolta file non riuscita.');
+  AW_STATE.assistantSession = data;
+  if (Array.isArray(data.downloaded_files)) AW_STATE.downloadedFiles = data.downloaded_files;
+  const count = Array.isArray(data.downloaded_files) ? data.downloaded_files.length : 0;
+  awAssistantStatus(count ? `${count} file ufficiali raccolti dalla sessione assistita.` : (data.message || 'Nessun file ufficiale raccolto.'), count ? 'success' : 'warning');
+}
+async function awAssistantClose() {
+  const session = AW_STATE.assistantSession;
+  if (!session?.session_id) return;
+  const data = await awJson(awAssistantUrl(AW_BOOT.assistantCloseUrlTemplate), { method: 'POST', body: JSON.stringify({}) });
+  if (!data.ok) throw new Error(data.errore || 'Chiusura sessione non riuscita.');
+  AW_STATE.assistantSession = data;
+  awAssistantStatus(data.message || 'Sessione assistita chiusa.', 'muted');
 }
 function awEscape(v) { return String(v ?? '').replace(/[&<>"]/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[s])); }
 function awToneCls(tone) { return tone === 'danger' ? 'aw-issue aw-danger' : tone === 'warning' ? 'aw-issue aw-warning' : 'aw-issue aw-success'; }
@@ -953,7 +993,7 @@ function awManualNoticeHtml() {
     <div class="alert alert-warning rounded-4 mb-3">
       <div class="fw-semibold">Acquisizione assistita via browser ufficiale</div>
       <div class="small mt-1">${body}</div>
-      ${portaleUrl ? `<div class="small mt-2"><a href="${awEscape(portaleUrl)}" target="_blank" rel="noopener">Apri portale ufficiale</a></div>` : ''}
+      ${AW_BOOT.spec?.assistant_required ? '<div class="small mt-2">Usa i comandi della sessione assistita in alto: IUSENTRA apre il portale tramite Local Connector e raccoglie i file scaricati.</div>' : (portaleUrl ? `<div class="small mt-2"><a href="${awEscape(portaleUrl)}" target="_blank" rel="noopener">Apri portale ufficiale</a></div>` : '')}
       ${pstDocumentAction}
       ${reason ? `<div class="small text-muted mt-2">${awEscape(reason)}</div>` : ''}
     </div>`;
@@ -979,7 +1019,7 @@ function awRenderManualSearchFallback(query, err) {
       <div class="small text-muted mb-3">IUSENTRA puo' creare una pratica assistita usando i dati gia' indicati e lasciare al browser ufficiale il completamento di documenti ed eventi.</div>
       <div class="d-flex flex-wrap gap-2">
         ${canManual ? `<button type="button" class="btn btn-${AW_BOOT.spec.color}" id="awManualContinue">Prosegui con inserimento manuale</button>` : `<span class="badge text-bg-light border">Servono ufficio, numero e anno</span>`}
-        ${portaleUrl ? `<a class="btn btn-outline-${AW_BOOT.spec.color}" href="${awEscape(portaleUrl)}" target="_blank" rel="noopener">Apri portale ufficiale</a>` : ''}
+        ${AW_BOOT.spec?.assistant_required ? `<button type="button" class="btn btn-outline-${AW_BOOT.spec.color}" id="awFallbackAssistantOpen">Apri portale ufficiale assistito</button>` : (portaleUrl ? `<a class="btn btn-outline-${AW_BOOT.spec.color}" href="${awEscape(portaleUrl)}" target="_blank" rel="noopener">Apri portale ufficiale</a>` : '')}
       </div>
     </div>`;
   if (canManual) {
@@ -994,6 +1034,9 @@ function awRenderManualSearchFallback(query, err) {
       await awSelectResult(0, true, { skipLocalPreview: true, documenti: [] });
     });
   }
+  document.getElementById('awFallbackAssistantOpen')?.addEventListener('click', async () => {
+    try { await awAssistantOpen(); } catch (err) { awAssistantStatus(err.message || String(err), 'danger'); }
+  });
 }
 async function awRefreshStatus({ force = false, probeSigner = false, light = true } = {}) {
   if (!force && AW_STATUS_REFRESH_PROMISE) return AW_STATUS_REFRESH_PROMISE;
@@ -2838,6 +2881,19 @@ function awInitOfficeAutocomplete() {
 function awBindActions() {
   if (AW_ACTIONS_BOUND) return;
   AW_ACTIONS_BOUND = true;
+  document.getElementById('awAssistantStart')?.addEventListener('click', async () => {
+    try { await awAssistantStart(); } catch (err) { awAssistantStatus(err.message || String(err), 'danger'); }
+  });
+  document.getElementById('awAssistantOpen')?.addEventListener('click', async () => {
+    try { await awAssistantOpen(); } catch (err) { awAssistantStatus(err.message || String(err), 'danger'); }
+  });
+  document.getElementById('awAssistantCollect')?.addEventListener('click', async () => {
+    try { await awAssistantCollect(); awRenderSelectionOptions(); awRenderSidebar(); } catch (err) { awAssistantStatus(err.message || String(err), 'danger'); }
+  });
+  document.getElementById('awAssistantImport')?.addEventListener('click', () => awGoStep(7));
+  document.getElementById('awAssistantClose')?.addEventListener('click', async () => {
+    try { await awAssistantClose(); } catch (err) { awAssistantStatus(err.message || String(err), 'danger'); }
+  });
 document.getElementById('awTest').addEventListener('click', async () => {
     if (AW_ACCESS_BUSY) return;
     awSetAccessBusy(true);

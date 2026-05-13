@@ -665,7 +665,7 @@ def build_pdp_penale_runtime(
                 cartelle_imap=["INBOX"],
                 limite=80,
             )
-        emails = ge.tutte(cartella="INBOX", data_da=(date.today() - timedelta(days=30)).isoformat())
+        emails = ge.tutte(cartella="INBOX", data_da=(date.today() - timedelta(days=60)).isoformat())
         existing_pec = repo.list_pec_messages(str(case_row.get("id") or ""))
         existing_headers = {
             str(row.get("message_id_header") or "").strip()

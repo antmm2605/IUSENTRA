@@ -1,12 +1,25 @@
 from __future__ import annotations
 
 from pathlib import Path
+import base64
+import hashlib
 
 import pytest
 
 from pct.auth import GestioneUtenti, RuoloUtente
-from pct.fascicoli import GestioneFascicoli
+from pct.fascicoli import GestioneFascicoli, TipoFascicolo
 from pct.fascicolo_workspace import build_fascicolo_workspace
+from pct.pat import ClientPAT
+from pct.pdp import ClientPDP
+from pct.portal_direct_guard import UnverifiedDirectPortalError
+from pct.sigit import ClientSIGIT
+from pct.pst_servizi_catalogo import SERVIZIO_PST_COMUNICAZIONE_CANCELLERIA
+from web.services.portal_integration_policy import (
+    MODE_DIRECT_INTERNAL,
+    MODE_DIRECT_VERIFIED,
+    MODE_OFFICIAL_PORTAL_ASSISTED,
+    get_portal_integration_policy,
+)
 from web.app import create_app
 
 
@@ -14,6 +27,7 @@ def _cfg_web(tmp_path: Path) -> dict:
     return {
         "TESTING": True,
         "SECRET_KEY": "test",
+        "API_KEY": "react-test-key",
         "MULTI_TENANT": False,
         "STORAGE_MODE_DEFAULT": "json",
         "AUTH_DB": str(tmp_path / "utenti.json"),
@@ -26,11 +40,14 @@ def _cfg_web(tmp_path: Path) -> dict:
         "AGENDA_DB": str(tmp_path / "agenda.json"),
         "SCADENZIARIO_DB": str(tmp_path / "scadenze.json"),
         "MESSAGGI_DB": str(tmp_path / "messaggi.json"),
+        "EMAIL_CASELLA_DB": str(tmp_path / "email" / "casella.json"),
+        "EMAIL_ORDINARIA_DB": str(tmp_path / "email" / "ordinaria.json"),
         "SEARCH_INDEX": str(tmp_path / "search.db"),
         "SOGGETTI_DB": str(tmp_path / "soggetti.json"),
         "SOGGETTI_PARTI_DB": str(tmp_path / "parti.json"),
         "PST_IMPORT_DIR": str(tmp_path / "pst_import"),
         "PORTALE_IMPORT_LOG_DB": str(tmp_path / "portale" / "import_log.json"),
+        "PRACTICE_ENGINE_DB": str(tmp_path / "practice_engine" / "practice_engine.json"),
         "VALIDATION_RUNS_DB": str(tmp_path / "validation_runs.json"),
         "STUDIO_CONFIG": str(tmp_path / "config" / "studio.json"),
         "PDP_PENALE_DB": str(tmp_path / "penale" / "pdp_penale.db"),
@@ -50,6 +67,22 @@ def _seed_user(cfg: dict) -> None:
         ruolo=RuoloUtente.AMMINISTRATORE,
         email="admin@example.com",
     )
+
+
+def _direct_manifest(**overrides) -> dict:
+    manifest = {
+        "allow_direct": True,
+        "status": "verified",
+        "official_source_url": "https://example.gov.it/canale-ufficiale",
+        "evidence_sha256": "a" * 64,
+        "verified_at": "2026-05-13T10:00:00Z",
+        "expires_at": "2030-01-01T00:00:00Z",
+        "integration_tests_passed": True,
+        "channel_kind": "official_api",
+        "verified_by": "Responsabile integrazioni",
+    }
+    manifest.update(overrides)
+    return manifest
 
 
 def _payload(portale: str) -> dict:
@@ -176,6 +209,7 @@ def test_payload_autorizzato_portali_arriva_nella_ui_fascicolo(tmp_path: Path, p
     cfg = _cfg_web(tmp_path)
     _seed_user(cfg)
     app = create_app(cfg)
+    app.config["API_KEY"] = "react-test-key"
 
     with app.test_client() as client:
         login = client.post(
@@ -265,3 +299,248 @@ def test_wizard_portali_espone_upload_payload_json_e_portali_ufficiali(tmp_path:
             assert ".json" in html
             assert "payload JSON autorizzato" in html
             assert "/acquisizione/importa-payload" in html
+
+
+def test_pst_e_direct_internal():
+    policy = get_portal_integration_policy("pst")
+
+    assert policy.mode == MODE_DIRECT_INTERNAL
+    assert policy.direct_allowed is True
+    assert policy.assistant_required is False
+
+
+@pytest.mark.parametrize("portale", ["ptt", "pat", "pdp"])
+def test_ptt_pat_pdp_e_assistito_senza_manifest(portale: str):
+    policy = get_portal_integration_policy(portale, config={})
+
+    assert policy.mode == MODE_OFFICIAL_PORTAL_ASSISTED
+    assert policy.direct_allowed is False
+    assert policy.assistant_required is True
+
+
+def test_ptt_e_assistito_senza_manifest():
+    assert get_portal_integration_policy("ptt", config={}).mode == MODE_OFFICIAL_PORTAL_ASSISTED
+
+
+def test_pat_e_assistito_senza_manifest():
+    assert get_portal_integration_policy("pat", config={}).mode == MODE_OFFICIAL_PORTAL_ASSISTED
+
+
+def test_pdp_e_assistito_senza_manifest():
+    assert get_portal_integration_policy("pdp", config={}).mode == MODE_OFFICIAL_PORTAL_ASSISTED
+
+
+@pytest.mark.parametrize("portale", ["ptt", "pat", "pdp"])
+def test_ptt_pat_pdp_fail_closed_se_manifest_incompleto(portale: str):
+    policy = get_portal_integration_policy(
+        portale,
+        config={"PORTAL_DIRECT_CHANNELS": {portale: _direct_manifest(evidence_sha256="abc")}},
+    )
+
+    assert policy.mode == MODE_OFFICIAL_PORTAL_ASSISTED
+    assert policy.direct_allowed is False
+    assert "evidence_sha256" in policy.validation_errors
+
+
+def test_pdp_diventa_direct_verified_solo_con_manifest_completo():
+    policy = get_portal_integration_policy(
+        "pdp",
+        config={"PORTAL_DIRECT_CHANNELS": {"pdp": _direct_manifest()}},
+    )
+
+    assert policy.mode == MODE_DIRECT_VERIFIED
+    assert policy.direct_allowed is True
+    assert policy.assistant_required is False
+
+
+def test_guard_blocca_client_diretto_ptt_senza_manifest():
+    with pytest.raises(UnverifiedDirectPortalError):
+        ClientSIGIT(codice_fiscale_avvocato="RSSMRA80A01H501U").ricerca_fascicoli("PTT_RC")
+
+
+def test_guard_blocca_client_diretto_pat_senza_manifest():
+    with pytest.raises(UnverifiedDirectPortalError):
+        ClientPAT(codice_fiscale_avvocato="RSSMRA80A01H501U").consulta_documenti("PAT_RC", "77", 2026)
+
+
+def test_guard_blocca_client_diretto_pdp_senza_manifest():
+    with pytest.raises(UnverifiedDirectPortalError):
+        ClientPDP(codice_fiscale_avvocato="RSSMRA80A01H501U").deposita_atto("PDP_PA", "Memoria", "missing.pdf")
+
+
+def test_assistant_start_rifiuta_pst(tmp_path: Path):
+    cfg = _cfg_web(tmp_path)
+    _seed_user(cfg)
+    app = create_app(cfg)
+
+    with app.test_client() as client:
+        client.post("/login", data={"username": "admin-portali", "password": "Admin1234!"})
+        response = client.post("/api/portali/pst/assistant/start", json={})
+
+    data = response.get_json()
+    assert response.status_code == 400
+    assert data["ok"] is False
+    assert "PST usa il canale diretto interno" in data["errore"]
+
+
+@pytest.mark.parametrize("portale", ["ptt", "pat", "pdp"])
+def test_assistant_start_accetta_ptt_pat_pdp(tmp_path: Path, portale: str):
+    cfg = _cfg_web(tmp_path)
+    _seed_user(cfg)
+    app = create_app(cfg)
+
+    with app.test_client() as client:
+        client.post("/login", data={"username": "admin-portali", "password": "Admin1234!"})
+        response = client.post(f"/api/portali/{portale}/assistant/start", json={"fascicolo_id": ""})
+
+    data = response.get_json()
+    assert response.status_code == 200
+    assert data["ok"] is True
+    assert data["portale"] == portale
+    assert data["mode"] == MODE_OFFICIAL_PORTAL_ASSISTED
+    assert data["session_id"]
+    assert data["official_url"].startswith("https://")
+
+
+def test_deposito_non_finalizza_senza_ricevuta_ufficiale(tmp_path: Path):
+    cfg = _cfg_web(tmp_path)
+    _seed_user(cfg)
+    app = create_app(cfg)
+
+    with app.test_client() as client:
+        client.post("/login", data={"username": "admin-portali", "password": "Admin1234!"})
+        response = client.post("/api/portali/ptt/deposito/finalizza", json={"fascicolo_id": "F1"})
+
+    data = response.get_json()
+    assert response.status_code == 200
+    assert data["ok"] is False
+    assert data["status"] == "anomalia_da_verificare"
+    assert "senza ricevuta" in data["message"]
+
+
+def _seed_fascicolo(cfg: dict, tipo: TipoFascicolo = TipoFascicolo.TRIBUTARIO):
+    gf = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    )
+    return gf.nuovo(titolo="Studio c/ Agenzia", tipo=tipo)
+
+
+def test_import_ricevuta_deposito_crea_comunicazione_cancelleria(tmp_path: Path):
+    cfg = _cfg_web(tmp_path)
+    _seed_user(cfg)
+    fascicolo = _seed_fascicolo(cfg)
+    app = create_app(cfg)
+    payload = b"Ricevuta ufficiale deposito PTT"
+    sha = hashlib.sha256(payload).hexdigest()
+
+    with app.test_client() as client:
+        client.post("/login", data={"username": "admin-portali", "password": "Admin1234!"})
+        response = client.post(
+            "/api/portali/ptt/deposito/importa-ricevute",
+            json={
+                "fascicolo_id": fascicolo.id,
+                "receipts": [
+                    {
+                        "filename": "ricevuta_accettazione.eml",
+                        "content_base64": base64.b64encode(payload).decode("ascii"),
+                        "sha256": sha,
+                        "oggetto": "Ricevuta accettazione deposito",
+                        "mittente": "segreteria@giustiziatributaria.gov.it",
+                        "destinatario": "studio@example.com",
+                        "data_ufficiale": "2026-05-13",
+                        "message_id": "<ptt-acc@example.gov>",
+                        "id_deposito_ufficiale": "PTT-DEP-1",
+                    }
+                ],
+            },
+        )
+
+    data = response.get_json()
+    assert response.status_code == 200
+    assert data["ok"] is True
+    assert data["imported"][0]["classificazione"] == "ricevuta_accettazione_deposito"
+
+    reloaded = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    ).get(fascicolo.id)
+    assert reloaded is not None
+    assert any(dep.servizio_portale == SERVIZIO_PST_COMUNICAZIONE_CANCELLERIA for dep in reloaded.depositi_pct)
+    assert any("sha256=" + sha in dep.note for dep in reloaded.depositi_pct)
+
+
+def test_import_ricevuta_deposito_collega_timeline_evidence_pack(tmp_path: Path):
+    cfg = _cfg_web(tmp_path)
+    _seed_user(cfg)
+    fascicolo = _seed_fascicolo(cfg, TipoFascicolo.AMMINISTRATIVO)
+    app = create_app(cfg)
+    payload = b"Esito ufficiale PAT"
+    sha = hashlib.sha256(payload).hexdigest()
+
+    with app.test_client() as client:
+        client.post("/login", data={"username": "admin-portali", "password": "Admin1234!"})
+        response = client.post(
+            "/api/portali/pat/deposito/importa-ricevute",
+            json={
+                "fascicolo_id": fascicolo.id,
+                "receipts": [
+                    {
+                        "filename": "esito_cancelleria.pdf",
+                        "content_base64": base64.b64encode(payload).decode("ascii"),
+                        "sha256": sha,
+                        "oggetto": "Esito segreteria cancelleria",
+                        "data_ufficiale": "2026-05-13",
+                    }
+                ],
+            },
+        )
+
+    data = response.get_json()
+    assert response.status_code == 200
+    assert data["ok"] is True
+    assert data["deposito_id"]
+    assert data["evidence_pack"]["hash_sha256"]
+
+    practice_engine = Path(cfg["PRACTICE_ENGINE_DB"])
+    raw = practice_engine.read_text(encoding="utf-8")
+    assert "OFFICIAL_PORTAL_RECEIPTS_IMPORTED" in raw
+    assert "official_portal_assisted" in raw
+
+
+def test_wizard_ptt_mostra_portale_ufficiale_assistito(tmp_path: Path):
+    cfg = _cfg_web(tmp_path)
+    _seed_user(cfg)
+    app = create_app(cfg)
+
+    with app.test_client() as client:
+        client.post("/login", data={"username": "admin-portali", "password": "Admin1234!"})
+        page = client.get("/portali/ptt/acquisizione", follow_redirects=True)
+
+    html = page.get_data(as_text=True)
+    assert page.status_code == 200
+    assert "Portale ufficiale assistito" in html
+    assert "Fascicolo tributario interno con PTT / SIGIT assistito" in html
+    assert "Avvia sessione assistita" in html
+    assert "Apri portale ufficiale assistito" in html
+    assert "Raccogli file scaricati" in html
+    assert "Importa nel fascicolo interno" in html
+    assert "Chiudi sessione assistita" in html
+    assert "Apri link esterno" not in html
+
+
+def test_wizard_pst_non_mostra_portale_ufficiale_assistito_come_flusso_principale(tmp_path: Path):
+    cfg = _cfg_web(tmp_path)
+    _seed_user(cfg)
+    app = create_app(cfg)
+
+    with app.test_client() as client:
+        client.post("/login", data={"username": "admin-portali", "password": "Admin1234!"})
+        page = client.get("/portali/pst/acquisizione", follow_redirects=True)
+
+    html = page.get_data(as_text=True)
+    assert page.status_code == 200
+    assert 'id="awAssistantStart"' not in html
+    assert "Fascicolo tributario interno con PTT / SIGIT assistito" not in html

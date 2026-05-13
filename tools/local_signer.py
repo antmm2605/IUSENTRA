@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IUSENTRA Local Signer - v1.6.28
+IUSENTRA Local Signer - v1.6.29
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -64,6 +64,7 @@ import sys
 import tempfile
 import threading
 import unicodedata
+import webbrowser
 import xml.etree.ElementTree as ET
 from email import policy
 from email.parser import BytesParser
@@ -110,7 +111,7 @@ from local_signer_mod.server_bootstrap import print_startup_banner  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.28"
+VERSION = "1.6.29"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -2753,6 +2754,8 @@ def _portale_wsdl_diretto_abilitato(portale: str) -> bool:
     portale_norm = str(portale or "").strip().lower()
     if portale_norm not in {"pdp", "pat", "ptt"}:
         return True
+    if not _env_flag_enabled(f"HACS_SIGNER_PORTAL_DIRECT_VERIFIED_{portale_norm.upper()}"):
+        return False
     if _env_flag_enabled("HACS_SIGNER_FORCE_BROWSER_ASSIST") or _env_flag_enabled("PCT_FORCE_BROWSER_ASSIST"):
         return False
     return not (
@@ -2797,6 +2800,146 @@ def _portale_browser_assist_payload(portale: str, phase: str) -> dict[str, Any]:
         ),
         "portale_url": _portale_browser_url(portale),
     }
+
+
+_PORTAL_ASSISTANT_ALLOWED_EXTENSIONS = {".zip", ".pdf", ".p7m", ".xml", ".json", ".eml", ".msg", ".txt", ".html", ".htm"}
+_portal_assistant_lock = threading.Lock()
+_portal_assistant_sessions: dict[str, dict[str, Any]] = {}
+
+
+def _portal_assistant_base_dir() -> Path:
+    base = Path(os.getenv("HACS_SIGNER_PORTAL_ASSISTANT_DIR") or Path(tempfile.gettempdir()) / "iusentra_portal_assistant")
+    base.mkdir(parents=True, exist_ok=True)
+    return base
+
+
+def _portal_assistant_public(session: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "session_id": session.get("session_id", ""),
+        "portale": session.get("portale", ""),
+        "official_url": session.get("official_url", ""),
+        "status": session.get("status", ""),
+        "fascicolo_id": session.get("fascicolo_id", ""),
+        "deposito_id": session.get("deposito_id", ""),
+        "purpose": session.get("purpose", "acquisizione"),
+        "downloads_dir": session.get("downloads_dir", ""),
+        "files": list(session.get("files") or []),
+        "message": session.get("message", ""),
+    }
+
+
+def _portal_assistant_get(session_id: str) -> dict[str, Any]:
+    key = str(session_id or "").strip()
+    with _portal_assistant_lock:
+        session = _portal_assistant_sessions.get(key)
+        if not session:
+            raise RuntimeError("Sessione assistita non trovata.")
+        return dict(session)
+
+
+def _portal_assistant_save(session: dict[str, Any]) -> dict[str, Any]:
+    session["updated_at"] = datetime.now(UTC).isoformat()
+    with _portal_assistant_lock:
+        _portal_assistant_sessions[str(session["session_id"])] = dict(session)
+    return session
+
+
+def _portal_assistant_start_local(data: dict[str, Any]) -> dict[str, Any]:
+    portale = str(data.get("portale") or "").strip().lower()
+    if portale not in {"ptt", "pat", "pdp"}:
+        raise RuntimeError("Portale non supportato per la sessione assistita.")
+    session_id = str(data.get("session_id") or secrets.token_urlsafe(18)).strip()
+    session_dir = _portal_assistant_base_dir() / session_id
+    session_dir.mkdir(parents=True, exist_ok=True)
+    session = {
+        "session_id": session_id,
+        "portale": portale,
+        "official_url": str(data.get("official_url") or _portale_browser_url(portale)).strip(),
+        "fascicolo_id": str(data.get("fascicolo_id") or "").strip(),
+        "deposito_id": str(data.get("deposito_id") or "").strip(),
+        "purpose": str(data.get("purpose") or "acquisizione").strip() or "acquisizione",
+        "status": "sessione_assistita_pronta",
+        "downloads_dir": str(session_dir),
+        "created_at": datetime.now(UTC),
+        "updated_at": datetime.now(UTC),
+        "files": [],
+        "message": "Sessione assistita locale pronta.",
+    }
+    _portal_assistant_save(session)
+    return _portal_assistant_public(session)
+
+
+def _portal_assistant_download_roots(session: dict[str, Any]) -> list[Path]:
+    roots: list[Path] = []
+    for raw in [
+        session.get("downloads_dir", ""),
+        os.getenv("HACS_SIGNER_DOWNLOADS_DIR", ""),
+        str(Path.home() / "Downloads"),
+        str(Path(os.environ.get("USERPROFILE", "")) / "Downloads") if os.environ.get("USERPROFILE") else "",
+        str(Path(os.environ.get("OneDrive", "")) / "Downloads") if os.environ.get("OneDrive") else "",
+    ]:
+        text = str(raw or "").strip()
+        if not text:
+            continue
+        path = Path(text).expanduser()
+        if path.exists() and path.is_dir() and path not in roots:
+            roots.append(path)
+    return roots
+
+
+def _portal_assistant_manifest_for_file(path: Path, *, max_inline_bytes: int = 8 * 1024 * 1024) -> dict[str, Any] | None:
+    if not path.is_file() or path.suffix.lower() not in _PORTAL_ASSISTANT_ALLOWED_EXTENSIONS:
+        return None
+    if path.name.lower() in {".ds_store", "thumbs.db"} or path.suffix.lower() in {".crdownload", ".part", ".tmp"}:
+        return None
+    try:
+        payload = path.read_bytes()
+        stat = path.stat()
+    except OSError:
+        return None
+    if not payload:
+        return None
+    row = {
+        "filename": path.name,
+        "size": len(payload),
+        "sha256": hashlib.sha256(payload).hexdigest(),
+        "detected_at": datetime.fromtimestamp(stat.st_mtime, UTC).isoformat(),
+        "local_temp_ref": str(path),
+    }
+    if len(payload) <= max_inline_bytes:
+        row["content_base64"] = base64.b64encode(payload).decode("ascii")
+    return row
+
+
+def _portal_assistant_collect_local(session_id: str, *, limit: int = 50, max_age_hours: int = 24) -> dict[str, Any]:
+    session = _portal_assistant_get(session_id)
+    created_at = session.get("created_at")
+    if isinstance(created_at, datetime):
+        cutoff = created_at - timedelta(minutes=5)
+    else:
+        cutoff = datetime.now(UTC) - timedelta(hours=max(1, int(max_age_hours or 24)))
+    files: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for root in _portal_assistant_download_roots(session):
+        for path in root.rglob("*"):
+            if len(files) >= limit:
+                break
+            try:
+                modified_at = datetime.fromtimestamp(path.stat().st_mtime, UTC)
+            except OSError:
+                continue
+            if modified_at < cutoff:
+                continue
+            row = _portal_assistant_manifest_for_file(path)
+            if not row or row["sha256"] in seen:
+                continue
+            seen.add(row["sha256"])
+            files.append(row)
+    session["files"] = files
+    session["status"] = "file_ufficiali_raccolti" if files else session.get("status") or "sessione_assistita_pronta"
+    session["message"] = "File ufficiali raccolti." if files else "Nessun file recente compatibile trovato."
+    _portal_assistant_save(session)
+    return _portal_assistant_public(session)
 
 
 def _messaggio_endpoint_browser_guidato(portale: str, error: Exception | str) -> str:
@@ -5844,6 +5987,8 @@ class _Handler(BaseHTTPRequestHandler):
             self._seleziona_certificato()
         elif path == "/pst/status":
             self._pst_status()
+        elif re.fullmatch(r"/portal-assistant/session/[^/]+/status", path):
+            self._portal_assistant_status(path)
         else:
             self._send_json({"errore": "Not found"}, 404)
 
@@ -5874,6 +6019,7 @@ class _Handler(BaseHTTPRequestHandler):
             "/ptt/documenti",
             "/pec/smtp/test",
             "/pec/send",
+            "/portal-assistant/session/start",
         }:
             log.info("HTTP POST %s", path)
         if path == "/ai/bootstrap":
@@ -5922,6 +6068,10 @@ class _Handler(BaseHTTPRequestHandler):
             self._pst_download_documenti_batch()
         elif path == "/downloads/raccogli":
             self._downloads_raccogli()
+        elif path == "/portal-assistant/session/start":
+            self._portal_assistant_start()
+        elif re.fullmatch(r"/portal-assistant/session/[^/]+/(open|watch-downloads|collect|close|cancel)", path):
+            self._portal_assistant_action(path)
         elif path == "/pec/smtp/test":
             self._pec_smtp_test()
         elif path == "/pec/send":
@@ -7807,6 +7957,75 @@ class _Handler(BaseHTTPRequestHandler):
         except Exception as e:
             log.error("Errore PST download batch documenti: %s", e)
             self._send_json({"ok": False, "errore": str(e)}, 500)
+
+    def _portal_assistant_start(self):
+        try:
+            session = _portal_assistant_start_local(self._read_json())
+            self._send_json({"ok": True, **session})
+        except Exception as e:
+            log.error("Errore avvio sessione assistita portale: %s", e)
+            self._send_json({"ok": False, "errore": str(e)}, 400)
+
+    def _portal_assistant_status(self, path: str):
+        try:
+            match = re.fullmatch(r"/portal-assistant/session/([^/]+)/status", path)
+            if not match:
+                raise RuntimeError("Sessione assistita non valida.")
+            session = _portal_assistant_get(match.group(1))
+            self._send_json({"ok": True, **_portal_assistant_public(session)})
+        except Exception as e:
+            self._send_json({"ok": False, "errore": str(e)}, 404)
+
+    def _portal_assistant_action(self, path: str):
+        try:
+            match = re.fullmatch(r"/portal-assistant/session/([^/]+)/(open|watch-downloads|collect|close|cancel)", path)
+            if not match:
+                raise RuntimeError("Azione sessione assistita non valida.")
+            session_id, action = match.group(1), match.group(2)
+            data = self._read_json()
+            session = _portal_assistant_get(session_id)
+            if action == "open":
+                official_url = str(data.get("official_url") or session.get("official_url") or "").strip()
+                if not official_url:
+                    raise RuntimeError("URL ufficiale mancante.")
+                webbrowser.open(official_url, new=1, autoraise=True)
+                session["status"] = "portale_ufficiale_assistito_aperto"
+                session["message"] = "Portale ufficiale aperto nella sessione assistita locale."
+                _portal_assistant_save(session)
+                self._send_json({"ok": True, **_portal_assistant_public(session)})
+                return
+            if action == "watch-downloads":
+                session["status"] = "monitor_download_attivo"
+                session["message"] = "Monitor download della sessione assistita attivo."
+                _portal_assistant_save(session)
+                self._send_json({"ok": True, **_portal_assistant_public(session)})
+                return
+            if action == "collect":
+                collected = _portal_assistant_collect_local(
+                    session_id,
+                    limit=int(data.get("limit") or 50),
+                    max_age_hours=int(data.get("max_age_hours") or 24),
+                )
+                self._send_json({"ok": True, **collected})
+                return
+            if action == "cancel":
+                session["status"] = "sessione_annullata"
+                session["files"] = []
+                session["message"] = "Sessione assistita annullata. Nessun file verra' importato."
+                try:
+                    shutil.rmtree(str(session.get("downloads_dir") or ""), ignore_errors=True)
+                except Exception:
+                    pass
+                _portal_assistant_save(session)
+                self._send_json({"ok": True, **_portal_assistant_public(session)})
+                return
+            session["status"] = "sessione_chiusa"
+            session["message"] = "Sessione assistita chiusa."
+            _portal_assistant_save(session)
+            self._send_json({"ok": True, **_portal_assistant_public(session)})
+        except Exception as e:
+            log.error("Errore azione sessione assistita portale: %s", e)
+            self._send_json({"ok": False, "errore": str(e)}, 400)
 
     def _downloads_raccogli(self):
         """

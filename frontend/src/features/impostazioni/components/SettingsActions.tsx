@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Bot, CheckCircle2, Cpu, Download, HardDrive, Play, RefreshCw, ShieldCheck } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -104,6 +104,26 @@ export function SettingsActions({
   const [localAiResult, setLocalAiResult] = useState<LocalAiLocalResult | null>(null)
   const [aiChecking, setAiChecking] = useState(false)
   const [aiPreparing, setAiPreparing] = useState(false)
+  const aiAutoCheckKey = useMemo(
+    () => `${data.local_signer.base_url}|${data.local_signer.restart_protocol}|${String(values.ollama_url || values.base_url || '')}`,
+    [data.local_signer.base_url, data.local_signer.restart_protocol, values],
+  )
+  const aiAutoChecked = useRef('')
+
+  useEffect(() => {
+    if (section !== 'ai' || localAiResult || aiChecking) return
+    if (!data.local_signer.base_url || aiAutoChecked.current === aiAutoCheckKey) return
+    aiAutoChecked.current = aiAutoCheckKey
+    setAiChecking(true)
+    checkLocalAiViaLocalSigner(
+      data.local_signer.base_url,
+      data.local_signer.restart_protocol,
+      values,
+    )
+      .then(setLocalAiResult)
+      .catch(() => undefined)
+      .finally(() => setAiChecking(false))
+  }, [aiAutoCheckKey, aiChecking, data.local_signer.base_url, data.local_signer.restart_protocol, localAiResult, section, values])
 
   if (section === 'studio' || section === 'scheduler') {
     return (

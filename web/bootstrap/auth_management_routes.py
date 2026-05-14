@@ -17,6 +17,7 @@ from pct.auth import (
     totp_uri,
     verifica_totp,
 )
+from web.blueprints.react_shell import render_react_shell_response
 from web.services.audit_surface import build_audit_view
 
 
@@ -54,6 +55,15 @@ def register_auth_management_routes(
             )
         return ruolo
 
+    def _richiede_vista_legacy() -> bool:
+        return (request.args.get("_legacy") or "").strip().lower() in {"1", "true", "si", "yes", "on"}
+
+    def _wants_json_response() -> bool:
+        return (
+            request.headers.get("X-Requested-With") == "XMLHttpRequest"
+            or "application/json" in (request.headers.get("Accept") or "")
+        )
+
     @app.route("/profilo", methods=["GET", "POST"])
     def profilo():
         u = g.utente_corrente
@@ -62,11 +72,15 @@ def register_auth_management_routes(
             password_obbligatoria = bool(getattr(u, "must_change_password", False))
             gu = _auth_manager()
             if password_obbligatoria and azione != "password":
-                flash(
-                    "Per motivi di sicurezza devi prima impostare una nuova password.",
-                    "warning",
-                )
+                message = "Per motivi di sicurezza devi prima impostare una nuova password."
+                if _wants_json_response():
+                    return jsonify({"ok": False, "message": message, "redirect": url_for("profilo", password_obbligatoria=1)}), 400
+                flash(message, "warning")
                 return redirect(url_for("profilo", password_obbligatoria=1))
+            ok = True
+            status_code = 200
+            category = "success"
+            message = "Profilo aggiornato."
             if azione == "aggiorna":
                 try:
                     gu.aggiorna(
@@ -74,34 +88,38 @@ def register_auth_management_routes(
                         nome_completo=request.form.get("nome_completo", ""),
                         email=request.form.get("email", ""),
                     )
-                    flash("Profilo aggiornato.", "success")
+                    message = "Profilo aggiornato."
                 except ValueError as e:
-                    flash(str(e), "danger")
+                    ok = False
+                    status_code = 400
+                    category = "danger"
+                    message = str(e)
             elif azione == "password":
                 pwd_old = request.form.get("password_old", "")
                 pwd_new = request.form.get("password_new", "")
                 if not gu.autentica(u.username, pwd_old):
-                    flash("Password attuale non corretta.", "danger")
+                    ok = False
+                    status_code = 400
+                    category = "danger"
+                    message = "Password attuale non corretta."
                 elif len(pwd_new) < 8:
-                    flash("La nuova password deve avere almeno 8 caratteri.", "danger")
+                    ok = False
+                    status_code = 400
+                    category = "danger"
+                    message = "La nuova password deve avere almeno 8 caratteri."
                 else:
                     gu.cambia_password(u.id, pwd_new)
                     session["must_change_password"] = False
                     audit("auth.cambia_password")
                     if password_obbligatoria:
-                        flash(
-                            "Password aggiornata correttamente. Ora puoi continuare a usare il gestionale.",
-                            "success",
-                        )
+                        message = "Password aggiornata correttamente. Ora puoi continuare a usare il gestionale."
                     else:
-                        flash("Password aggiornata.", "success")
+                        message = "Password aggiornata."
             elif azione == "2fa_genera":
                 segreto = genera_totp_secret()
                 session["totp_temp_secret"] = segreto
-                flash(
-                    "Configurazione avviata. Scansiona il QR code con la tua app di autenticazione e inserisci il codice per confermare.",
-                    "info",
-                )
+                category = "info"
+                message = "Configurazione avviata. Inserisci il codice dell'app di autenticazione per confermare."
             elif azione == "2fa_conferma":
                 segreto = session.get("totp_temp_secret", "")
                 codice = request.form.get("codice_2fa", "").strip()
@@ -109,22 +127,35 @@ def register_auth_management_routes(
                     gu.aggiorna(u.id, totp_secret=segreto, totp_attivato=True)
                     session.pop("totp_temp_secret", None)
                     audit("auth.2fa_attivato")
-                    flash("Verifica in due passaggi attivata con successo.", "success")
+                    message = "Verifica in due passaggi attivata con successo."
                 else:
-                    flash(
-                        "Codice non valido. Prova a scansionare di nuovo il QR code con l'app.",
-                        "danger",
-                    )
+                    ok = False
+                    status_code = 400
+                    category = "danger"
+                    message = "Codice non valido. Prova a generare di nuovo la configurazione."
             elif azione == "2fa_disattiva":
                 pwd = request.form.get("pwd_disattiva", "")
                 if gu.autentica(u.username, pwd):
                     gu.aggiorna(u.id, totp_secret="", totp_attivato=False)
                     session.pop("totp_temp_secret", None)
                     audit("auth.2fa_disattivato")
-                    flash("Verifica in due passaggi disattivata.", "success")
+                    message = "Verifica in due passaggi disattivata."
                 else:
-                    flash("Password non corretta.", "danger")
+                    ok = False
+                    status_code = 400
+                    category = "danger"
+                    message = "Password non corretta."
+            else:
+                ok = False
+                status_code = 400
+                category = "danger"
+                message = "Azione profilo non riconosciuta."
+            if _wants_json_response():
+                return jsonify({"ok": ok, "message": message, "redirect": url_for("profilo")}), status_code
+            flash(message, category)
             return redirect(url_for("profilo"))
+        if not _richiede_vista_legacy():
+            return render_react_shell_response("profilo")
         totp_temp = session.get("totp_temp_secret", "")
         uri_qr = totp_uri(totp_temp, u.username) if totp_temp else ""
         return render_template(

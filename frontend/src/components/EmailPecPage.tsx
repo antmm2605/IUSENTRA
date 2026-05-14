@@ -142,6 +142,64 @@ function sourceLabel(source: string, fallback: string): string {
   return source || fallback
 }
 
+type ComposeClient = {
+  id: string
+  name: string
+  email: string
+  pec: string
+  fiscalId: string
+}
+
+function text(value: unknown): string {
+  return typeof value === 'string' || typeof value === 'number' ? String(value).trim() : ''
+}
+
+function record(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
+}
+
+function firstText(recordValue: Record<string, unknown>, keys: string[]): string {
+  for (const key of keys) {
+    const value = text(recordValue[key])
+    if (value) return value
+  }
+  return ''
+}
+
+function composeClientName(item: Record<string, unknown>): string {
+  return firstText(item, ['nome_completo', 'nomeCompleto', 'denominazione', 'ragione_sociale', 'label', 'name']) ||
+    [text(item.nome), text(item.cognome)].filter(Boolean).join(' ').trim()
+}
+
+function composeClientsFromPayload(payload: unknown): ComposeClient[] {
+  const source = Array.isArray(payload)
+    ? payload
+    : Array.isArray(record(payload).data)
+      ? record(payload).data as unknown[]
+      : Array.isArray(record(payload).items)
+        ? record(payload).items as unknown[]
+        : []
+  return source.map((raw) => {
+    const item = record(raw)
+    const recapiti = record(item.recapiti)
+    return {
+      id: firstText(item, ['id', 'id_cliente', 'uuid']),
+      name: composeClientName(item),
+      email: firstText(item, ['email', 'mail']) || firstText(recapiti, ['email', 'mail']),
+      pec: firstText(item, ['pec']) || firstText(recapiti, ['pec']),
+      fiscalId: firstText(item, ['codice_fiscale', 'codiceFiscale', 'partita_iva', 'partitaIva']),
+    }
+  }).filter((item) => item.id && item.name).slice(0, 8)
+}
+
+function appendAddress(current: string, next: string): string {
+  const address = next.trim()
+  if (!address) return current
+  const parts = current.split(/[;,]/).map((item) => item.trim()).filter(Boolean)
+  if (parts.some((item) => item.toLowerCase() === address.toLowerCase())) return current
+  return [...parts, address].join(', ')
+}
+
 function StatCard({ icon, label, value, note, tone = 'primary' }: { icon: ReactNode; label: string; value: number | string; note: string; tone?: EmailPecRow['tone'] }) {
   return (
     <article className={`iu-mail-stat iu-mail-stat--${tone}`}>
@@ -842,6 +900,50 @@ export function EmailComposePage({ mode }: { mode: MailboxMode }) {
   const [recipient, setRecipient] = useState(params.get('a') || '')
   const [subject, setSubject] = useState(params.get('oggetto') || '')
   const [body, setBody] = useState('')
+  const [clientQuery, setClientQuery] = useState('')
+  const [clientMatches, setClientMatches] = useState<ComposeClient[]>([])
+  const [clientLoading, setClientLoading] = useState(false)
+  const [selectedClientIds, setSelectedClientIds] = useState<string[]>([])
+  const [attachmentNames, setAttachmentNames] = useState<string[]>([])
+
+  useEffect(() => {
+    const query = clientQuery.trim()
+    if (query.length < 2) {
+      setClientMatches([])
+      return
+    }
+    let active = true
+    const timer = window.setTimeout(() => {
+      setClientLoading(true)
+      const search = new URLSearchParams({ q: query, autocomplete: '1', limit: '8' })
+      fetch(`/api/clienti?${search.toString()}`, {
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' },
+      })
+        .then((response) => response.ok ? response.json() : [])
+        .then((payload) => {
+          if (active) setClientMatches(composeClientsFromPayload(payload))
+        })
+        .catch(() => {
+          if (active) setClientMatches([])
+        })
+        .finally(() => {
+          if (active) setClientLoading(false)
+        })
+    }, 180)
+    return () => {
+      active = false
+      window.clearTimeout(timer)
+    }
+  }, [clientQuery])
+
+  const selectClient = (client: ComposeClient) => {
+    const address = isOrdinary ? client.email || client.pec : client.pec || client.email
+    setRecipient((current) => appendAddress(current, address))
+    setSelectedClientIds((current) => current.includes(client.id) ? current : [...current, client.id])
+    setClientQuery('')
+    setClientMatches([])
+  }
 
   return (
     <main className="iu-content iu-mail-compose-page">
@@ -862,20 +964,44 @@ export function EmailComposePage({ mode }: { mode: MailboxMode }) {
       </section>
 
       <section className="iu-mail-compose-grid">
-        <JsonPostForm className="iu-mail-compose-form" action={action}>
+        <JsonPostForm className="iu-mail-compose-form" action={action} encType="multipart/form-data">
           <label>
             <span>Destinatario</span>
             <input
-              type="email"
+              type="text"
               name="a"
               value={recipient}
               onChange={(event) => setRecipient(event.target.value)}
-              placeholder="cliente@example.it"
+              placeholder={isOrdinary ? 'email cliente o destinatari separati da virgola' : 'PEC cliente o destinatari separati da virgola'}
               autoComplete="email"
               required
             />
           </label>
-          <input type="hidden" name="id_cliente" value="" />
+          <label>
+            <span>Cliente</span>
+            <input
+              type="text"
+              value={clientQuery}
+              onChange={(event) => setClientQuery(event.target.value)}
+              placeholder="Cerca cliente per compilare il destinatario"
+            />
+          </label>
+          {clientQuery.trim().length >= 2 || clientMatches.length ? (
+            <div className="iu-mail-compose-clients" aria-live="polite">
+              {clientLoading ? <span>Ricerca clienti in corso...</span> : null}
+              {!clientLoading && !clientMatches.length ? <span>Nessun cliente trovato con recapito disponibile.</span> : null}
+              {clientMatches.map((client) => {
+                const address = isOrdinary ? client.email || client.pec : client.pec || client.email
+                return (
+                  <button type="button" onClick={() => selectClient(client)} disabled={!address} key={client.id}>
+                    <strong>{client.name}</strong>
+                    <span>{address || 'Recapito email assente'}{client.fiscalId ? ` · ${client.fiscalId}` : ''}</span>
+                  </button>
+                )
+              })}
+            </div>
+          ) : null}
+          <input type="hidden" name="id_cliente" value={selectedClientIds[0] || ''} />
           <label>
             <span>Oggetto</span>
             <input
@@ -897,6 +1023,15 @@ export function EmailComposePage({ mode }: { mode: MailboxMode }) {
               placeholder="Scrivi il messaggio..."
             />
           </label>
+          <label className="iu-mail-compose-file">
+            <span>Allegati</span>
+            <input
+              type="file"
+              name="allegati"
+              multiple
+              onChange={(event) => setAttachmentNames(Array.from(event.currentTarget.files || []).map((file) => file.name))}
+            />
+          </label>
           <footer>
             <button type="submit"><Send size={16} /> Invia</button>
             <a href={backHref}>Annulla</a>
@@ -907,6 +1042,7 @@ export function EmailComposePage({ mode }: { mode: MailboxMode }) {
           <Panel title={isOrdinary ? 'Canale ordinario' : 'Canale PEC'} subtitle="Controllo operativo" icon={isOrdinary ? <Mail size={17} /> : <ShieldCheck size={17} />}>
             <div className="iu-mail-compose-checks">
               <span><CheckCircle2 size={16} /> Invio collegato alla casella selezionata.</span>
+              <span><Paperclip size={16} /> Puoi aggiungere uno o piu allegati prima dell'invio.</span>
               <span><CheckCircle2 size={16} /> Rientro automatico in <strong>{isOrdinary ? 'Email ordinaria' : 'Email PEC'}</strong>.</span>
               <span><Settings2 size={16} /> Configurazione da <a href={settingsHref}>{isOrdinary ? 'SMTP/IMAP ordinario' : 'PEC'}</a>.</span>
             </div>
@@ -917,6 +1053,8 @@ export function EmailComposePage({ mode }: { mode: MailboxMode }) {
               <strong>{recipient || 'Destinatario non indicato'}</strong>
               <span>Oggetto</span>
               <strong>{subject || 'Oggetto non indicato'}</strong>
+              <span>Allegati</span>
+              <strong>{attachmentNames.length ? attachmentNames.join(', ') : 'Nessun allegato selezionato'}</strong>
               <p>{body || 'Il testo comparirà qui mentre componi il messaggio.'}</p>
             </div>
           </Panel>

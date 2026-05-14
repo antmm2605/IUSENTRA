@@ -1,0 +1,15 @@
+{
+  "route": "/profilo",
+  "capturedAt": "2026-05-14",
+  "status": "react_operational_full",
+  "source": "fix richiesto utente: profilo personale servito da React",
+  "preserve": [
+    "dati utente da sessione",
+    "aggiornamento nome ed email",
+    "cambio password",
+    "verifica in due passaggi",
+    "risposte JSON per i salvataggi React"
+  ],
+  "uiPolicy": "docs/UI_DESIGN_SYSTEM.md",
+  "regressionGuard": "nessun dato demo e nessuna informazione tecnica visibile nella pagina profilo"
+}

@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.236.3 - 2026-05-14
+
+- Promossa `/profilo` alla shell React con dati profilo reali, cambio password e gestione 2FA via submit JSON tracciato.
+- Resa operativa `/agenda/importa` in React e corretto `/agenda/nuovo`: la ricerca cliente non apre piu' la pagina di errore, precompila codice fiscale, procedimento, ufficio e avvocato responsabile quando i dati sono presenti.
+- Aggiunta la barra di scorrimento orizzontale superiore nelle tabelle React di clienti, soggetti e fascicoli.
+- Aggiunti link secondari `Portale ufficiale` nelle superfici PDP, PAT e SIGIT, anche nell'area dati aggiornati del percorso assistito.
+- Esteso il compose PEC e SMTP ordinario con selezione cliente, destinatario precompilato e allegati singoli/multipli tenant-aware.
+- Corretto lo scadenziario React: le card filtrano davvero, `repository_reali` non compare piu' nella UI e `Apri dettaglio` apre il dettaglio operativo con azioni.
+- Migliorata la scheda AI locale di Impostazioni: all'apertura del tab viene rilanciata la verifica stato e, quando disponibile, il controllo via Local Signer.
+
 ## 2.236.2 - 2026-05-14
 
 - Semplificata la prova notifica: un unico selettore permette di scegliere insieme atto, relata firmata, PEC inviata, RAC e RdAC; IUSENTRA riconosce i file dal nome, calcola automaticamente gli SHA-256 e prepara i riferimenti ricevute per DatiAtto.xml.

@@ -102,6 +102,11 @@ export function useImpostazioni() {
     return result
   }, [])
 
+  useEffect(() => {
+    if (activeSection !== 'ai' || aiStatus) return
+    void refreshAi().catch(() => undefined)
+  }, [activeSection, aiStatus, refreshAi])
+
   const prepareAi = useCallback(async (force = false) => {
     const result = await bootstrapAi(force)
     setAiStatus(result)

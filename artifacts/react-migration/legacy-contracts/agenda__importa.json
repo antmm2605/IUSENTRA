@@ -1,0 +1,15 @@
+{
+  "route": "/agenda/importa",
+  "capturedAt": "2026-05-14",
+  "status": "react_operational_full",
+  "source": "fix richiesto utente: import calendario operativo in React",
+  "preserve": [
+    "pagina React dedicata",
+    "file ICS",
+    "URL calendario remoto",
+    "anteprima prima del salvataggio",
+    "collegamento alle impostazioni calendario"
+  ],
+  "uiPolicy": "docs/UI_DESIGN_SYSTEM.md",
+  "regressionGuard": "la route non deve ricadere sulla pagina agenda generica e deve mostrare controlli operativi reali"
+}

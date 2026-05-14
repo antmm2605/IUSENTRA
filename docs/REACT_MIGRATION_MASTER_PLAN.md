@@ -2096,3 +2096,14 @@ python -m pytest tests/test_react_shell.py tests/test_email_client.py tests/test
 - I payload autorizzati JSON continuano a usare `importa-payload` e non richiedono piu' selezione/anteprima fittizia nel frontend prima della chiamata.
 - Il bridge React non espone `officialHref` come link esterno per PDP/PAT/PTT; le card e i link secondari puntano alla sessione assistita IUSENTRA.
 - Verifiche registrate: py_compile backend/bridge, `npm --prefix frontend run typecheck`, `npm --prefix frontend run build`, `tests/test_portali_payload_import_ui.py`, due shard React shell mirati e browser reale autenticato su PDP/PAT/PTT.
+
+## Aggiornamento 2026-05-14: Profilo, agenda, comunicazioni e scadenziario 2.236.3
+
+- `/profilo` e `/agenda/importa` sono ora route React operative, servite dalla shell senza CTA primaria legacy e con contratti dedicati nel manifest.
+- `/agenda/nuovo` usa autocomplete cliente sicuro: la digitazione non riusa l'evento React dopo l'update di stato, l'avvocato responsabile arriva dal profilo sessione e la scelta cliente precompila codice fiscale, procedimento e ufficio quando disponibili nei fascicoli reali.
+- Le viste elenco `/clienti`, `/soggetti` e `/fascicoli` mantengono la tabella esistente ma aggiungono una scrollbar superiore sincronizzata su desktop, utile quando le colonne sono molte.
+- PDP, PAT e SIGIT mostrano `Portale ufficiale` come link secondario nelle superfici assistite, mantenendo il percorso IUSENTRA come workflow principale.
+- Le pagine `/email/scrivi` e `/email-ordinaria/scrivi` supportano allegati multipli, selezione cliente da anagrafica e invio JSON con salvataggio allegati sotto storage runtime tenant-aware.
+- Lo scadenziario React traduce la fonte tecnica in `dati dello studio`, rende operative le card filtro, usa `Apri dettaglio` verso il dettaglio React e mantiene le azioni completa/elimina via POST JSON.
+- La scheda `Impostazioni -> AI locale` rilancia lo stato all'apertura del tab e prova il controllo Local Signer quando configurato.
+- Verifiche registrate: py_compile backend, contratti React, route gate, typecheck, test frontend leggero, build Vite, pytest mirati profilo/agenda/email/scadenziario/telematico, packaging/readiness, Docker locale no-cache 2.236.3 e smoke Playwright/CDP autenticato sui percorsi segnalati.

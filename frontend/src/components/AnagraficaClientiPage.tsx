@@ -24,6 +24,7 @@ import {
 } from 'lucide-react'
 import { Badge, Button, Panel } from './dashboard'
 import { FloatingLex } from './FloatingLex'
+import { SyncedTopScrollbar } from './SyncedTopScrollbar'
 import {
   emptyClientiPage,
   deleteCliente,
@@ -215,7 +216,7 @@ function ClientiTable({
         <strong>{items.length} clienti</strong>
         <label><span>25 per pagina</span><ChevronDown size={14}/></label>
       </div>
-      <div className="iu-cli-table-wrap">
+      <SyncedTopScrollbar className="iu-cli-table-wrap">
         <table className="iu-cli-table">
           <thead>
             <tr>
@@ -248,7 +249,7 @@ function ClientiTable({
             ))}
           </tbody>
         </table>
-      </div>
+      </SyncedTopScrollbar>
       <div className="iu-cli-mobile-list">
         {items.map((item) => (
           <ClienteMobileCard

@@ -17,9 +17,68 @@ def _text(value: Any) -> str:
     return str(value or "").strip()
 
 
-def _cliente_autocomplete_dict(cliente: Any) -> dict[str, str]:
-    recapiti = getattr(cliente, "recapiti", None)
+def _procedimento_label(numero: Any, anno: Any) -> str:
+    numero_testo = _text(numero)
+    anno_testo = _text(anno)
+    if numero_testo and anno_testo:
+        return f"RG {numero_testo}/{anno_testo}"
+    return numero_testo or anno_testo
+
+
+def _fascicoli_cliente(fascicoli: list[Any] | None, id_cliente: str) -> list[Any]:
+    if not fascicoli or not id_cliente:
+        return []
+    return [
+        fascicolo
+        for fascicolo in fascicoli
+        if _text(getattr(fascicolo, "id_cliente", "")) == id_cliente
+    ]
+
+
+def _procedimento_cliente(cliente: Any, fascicoli: list[Any] | None = None) -> dict[str, str]:
+    procedimenti = list(getattr(cliente, "procedimenti_attivi", []) or getattr(cliente, "procedimenti", []) or [])
+    if procedimenti:
+        procedimento = procedimenti[0]
+        return {
+            "procedimento": _procedimento_label(
+                getattr(procedimento, "numero_rg", ""),
+                getattr(procedimento, "anno", ""),
+            ),
+            "numero_procedimento": _procedimento_label(
+                getattr(procedimento, "numero_rg", ""),
+                getattr(procedimento, "anno", ""),
+            ),
+            "tribunale": _text(getattr(procedimento, "tribunale", "")),
+            "avvocato": _text(getattr(cliente, "avvocato_referente", "")),
+        }
+    collegati = _fascicoli_cliente(fascicoli, _text(getattr(cliente, "id", "")))
+    if collegati:
+        fascicolo = sorted(
+            collegati,
+            key=lambda item: _text(getattr(item, "modificato_il", "")) or _text(getattr(item, "creato_il", "")),
+            reverse=True,
+        )[0]
+        rg = _text(getattr(fascicolo, "rg_completo", "")) or _procedimento_label(
+            getattr(fascicolo, "numero_rg", ""),
+            getattr(fascicolo, "anno_rg", ""),
+        )
+        return {
+            "procedimento": rg,
+            "numero_procedimento": rg,
+            "tribunale": _text(getattr(fascicolo, "tribunale", "")),
+            "avvocato": _text(getattr(cliente, "avvocato_referente", "")) or _text(getattr(fascicolo, "avvocato_referente", "")),
+        }
     return {
+        "procedimento": "",
+        "numero_procedimento": "",
+        "tribunale": "",
+        "avvocato": _text(getattr(cliente, "avvocato_referente", "")),
+    }
+
+
+def _cliente_autocomplete_dict(cliente: Any, fascicoli: list[Any] | None = None) -> dict[str, str]:
+    recapiti = getattr(cliente, "recapiti", None)
+    payload = {
         "id": _text(getattr(cliente, "id", "")),
         "nome": _text(getattr(cliente, "nome", "")),
         "cognome": _text(getattr(cliente, "cognome", "")),
@@ -31,7 +90,10 @@ def _cliente_autocomplete_dict(cliente: Any) -> dict[str, str]:
             or getattr(cliente, "identificativo_fiscale", "")
         ),
         "email": _text(getattr(recapiti, "email", "")),
+        "pec": _text(getattr(recapiti, "pec", "")),
     }
+    payload.update(_procedimento_cliente(cliente, fascicoli))
+    return payload
 
 
 def _richiede_vista_legacy() -> bool:
@@ -361,7 +423,8 @@ def register_clienti_routes(
                     limit = max(1, min(int(request.args.get("limit", 8)), 20))
                 except (TypeError, ValueError):
                     limit = 8
-                return jsonify([_cliente_autocomplete_dict(cliente) for cliente in clienti[:limit]])
+                fascicoli = get_fascicoli().tutti()
+                return jsonify([_cliente_autocomplete_dict(cliente, fascicoli) for cliente in clienti[:limit]])
             return jsonify([cliente.to_dict() for cliente in clienti])
         except Exception as exc:
             app.logger.exception("Errore api_clienti: %s", exc)
@@ -373,7 +436,9 @@ def register_clienti_routes(
             cliente = get_clienti().get(id_cliente)
             if not cliente:
                 return jsonify({"errore": "Non trovato"}), 404
-            return jsonify(cliente.to_dict())
+            payload = cliente.to_dict()
+            payload.update(_cliente_autocomplete_dict(cliente, get_fascicoli().tutti()))
+            return jsonify(payload)
         except Exception as exc:
             app.logger.exception("Errore api_cliente: %s", exc)
             return jsonify({"errore": str(exc)})

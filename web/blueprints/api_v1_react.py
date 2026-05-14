@@ -15,11 +15,11 @@ from functools import wraps
 from pathlib import Path
 from typing import Any, Callable, Iterable
 
-from flask import Blueprint, current_app, g, jsonify, request, send_file, url_for
+from flask import Blueprint, current_app, g, jsonify, request, send_file, session, url_for
 from werkzeug.exceptions import HTTPException
 
 from pct import __version__ as APP_VERSION
-from pct.auth import RuoloUtente
+from pct.auth import RuoloUtente, totp_uri
 from pct.email_client import CartellaEmail, GestioneEmailRicevute, StatoEmail
 from pct.fatturazione import StatoParcella
 from pct.messaggi import CanaleMsggio, ConfigMessaggistica, GestioneMessaggi, Messaggio, StatoMessaggio
@@ -341,6 +341,37 @@ def _puo_leggere_utenti() -> bool:
         return True
     utente = g.get("utente_corrente")
     return bool(utente and getattr(utente, "ha_permesso", lambda _permesso: False)("utenti.leggi"))
+
+
+@api_v1_react.get("/profilo")
+@_richiedi_auth
+def profilo_react_page():
+    utente = g.get("utente_corrente")
+    if not utente:
+        return jsonify({"ok": False, "message": "Sessione utente richiesta."}), 403
+    ruolo = getattr(utente, "ruolo", "")
+    role_value = getattr(ruolo, "value", str(ruolo or ""))
+    temp_secret = str(session.get("totp_temp_secret", "") or "")
+    username = str(getattr(utente, "username", "") or "")
+    return jsonify(
+        {
+            "ok": True,
+            "user": {
+                "id": str(getattr(utente, "id", "") or ""),
+                "username": username,
+                "email": str(getattr(utente, "email", "") or ""),
+                "nome_completo": str(getattr(utente, "nome_completo", "") or ""),
+                "ruolo": role_value,
+                "ultimo_accesso": str(getattr(utente, "ultimo_accesso", "") or ""),
+            },
+            "security": {
+                "twoFactorEnabled": bool(getattr(utente, "totp_attivato", False)),
+                "setupSecret": temp_secret,
+                "setupUri": totp_uri(temp_secret, username) if temp_secret and username else "",
+            },
+            "passwordRequired": bool(getattr(utente, "must_change_password", False)),
+        }
+    )
 
 
 def _puo_scrivere_utenti() -> bool:
@@ -5855,3 +5886,17 @@ def agenda():
         selected_id=request.args.get("selected_id", "").strip(),
     )
     return jsonify(payload)
+
+
+@api_v1_react.get("/agenda/nuovo/defaults")
+@_richiedi_auth
+def agenda_nuovo_defaults():
+    utente = g.get("utente_corrente")
+    nome = str(getattr(utente, "nome_completo", "") or "").strip()
+    username = str(getattr(utente, "username", "") or "").strip()
+    return jsonify(
+        {
+            "ok": True,
+            "avvocato": nome or username,
+        }
+    )

@@ -86,7 +86,7 @@ const excludedPrefixes = extractTuple(gate, '_EXCLUDED_PREFIXES')
 const shellLegacyFirstPrefixes = extractTuple(reactShell, '_LEGACY_FIRST_PREFIXES')
 const allowedStatuses = new Set(['legacy_operational', 'react_shell', 'react_bridge', 'react_operational_partial', 'react_operational_full'])
 const allowedUnlockStatuses = new Set(['react_bridge', 'react_operational_partial', 'react_operational_full'])
-const allowedReactUnlocks = new Set(['/', '/admin/database', '/agenda', '/agenda/nuovo', '/amministrazione', '/audit', '/backup', '/cartelle-condivise', '/clienti', '/clienti/nuovo', '/compensi-forensi', '/deposito/checklist', '/documenti', '/email', '/email-ordinaria', '/notifiche-legali', '/fascicoli', '/fascicoli/archivio', '/fascicoli/nuovo', '/fatturazione', '/fatturazione/nuova', '/giurisprudenza', '/global-search', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/incassi-pagamenti', '/legal-intelligence', '/legal-intelligence/mediazione', '/legal-intelligence/news', '/messaggi', '/messaggi/nuovo', '/notifiche', '/notifiche-whatsapp', '/preventivi', '/preventivi/conferimento/:id', '/preventivi/conferimento/nuovo', '/preventivi/nuovo', '/preventivi/wizard', '/privacy/registro', '/privacy/registro/nuovo', '/profili', '/redazione-atti', '/regia-operativa', '/registro-attivita', '/registro-gdpr', '/ricerca-legale', '/ricerca-studio', '/scadenziario', '/scadenziario/nuova', '/scadenziario/:id', '/scadenziario/:id/modifica', '/sincronizzazione-calendari', '/sito-studio', '/sito-studio/builder', '/sito-studio/contatti', '/sito-studio/redazione-ai', '/soggetti', '/soggetti/nuovo', '/statistiche', '/strumenti-legali', '/strumenti-operativi', '/studio', '/tariffario', '/template-atti', '/template-atti/catalogo', '/timesheet', '/utenti', '/utenti/nuovo', '/wizard-pro', '/workspace-intelligente'])
+const allowedReactUnlocks = new Set(['/', '/admin/database', '/agenda', '/agenda/importa', '/agenda/nuovo', '/amministrazione', '/audit', '/backup', '/cartelle-condivise', '/clienti', '/clienti/nuovo', '/compensi-forensi', '/deposito/checklist', '/documenti', '/email', '/email-ordinaria', '/notifiche-legali', '/fascicoli', '/fascicoli/archivio', '/fascicoli/nuovo', '/fatturazione', '/fatturazione/nuova', '/giurisprudenza', '/global-search', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/incassi-pagamenti', '/legal-intelligence', '/legal-intelligence/mediazione', '/legal-intelligence/news', '/messaggi', '/messaggi/nuovo', '/notifiche', '/notifiche-whatsapp', '/preventivi', '/preventivi/conferimento/:id', '/preventivi/conferimento/nuovo', '/preventivi/nuovo', '/preventivi/wizard', '/privacy/registro', '/privacy/registro/nuovo', '/profilo', '/profili', '/redazione-atti', '/regia-operativa', '/registro-attivita', '/registro-gdpr', '/ricerca-legale', '/ricerca-studio', '/scadenziario', '/scadenziario/nuova', '/scadenziario/:id', '/scadenziario/:id/modifica', '/sincronizzazione-calendari', '/sito-studio', '/sito-studio/builder', '/sito-studio/contatti', '/sito-studio/redazione-ai', '/soggetti', '/soggetti/nuovo', '/statistiche', '/strumenti-legali', '/strumenti-operativi', '/studio', '/tariffario', '/template-atti', '/template-atti/catalogo', '/timesheet', '/utenti', '/utenti/nuovo', '/wizard-pro', '/workspace-intelligente'])
 const reactTelematicoGraphicalPaths = new Set(['/telematico', '/servizi-telematici', '/polisweb', '/pdp', '/pat', '/sigit', '/tribunali', '/guida/firma-digitale'])
 const reactTelematicoAcquisitionPaths = new Set(['/portali/pst/acquisizione', '/portali/pdp/acquisizione', '/portali/pat/acquisizione', '/portali/ptt/acquisizione', '/portali/sigit/acquisizione'])
 for (const route of reactTelematicoGraphicalPaths) allowedReactUnlocks.add(route)
@@ -95,6 +95,7 @@ const expectedStatuses = new Map([
   ['/', 'react_operational_full'],
   ['/admin/database', 'react_operational_full'],
   ['/agenda', 'react_operational_full'],
+  ['/agenda/importa', 'react_operational_full'],
   ['/agenda/nuovo', 'react_operational_full'],
   ['/amministrazione', 'react_operational_full'],
   ['/audit', 'react_operational_full'],
@@ -134,6 +135,7 @@ const expectedStatuses = new Map([
   ['/preventivi/wizard', 'react_operational_partial'],
   ['/privacy/registro', 'react_operational_full'],
   ['/privacy/registro/nuovo', 'react_operational_full'],
+  ['/profilo', 'react_operational_full'],
   ['/profili', 'react_operational_full'],
   ['/redazione-atti', 'react_operational_full'],
   ['/regia-operativa', 'react_operational_full'],

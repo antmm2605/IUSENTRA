@@ -1926,7 +1926,8 @@ function AcquisitionWizard({
             <button type="button" disabled={busy === 'assistant'} onClick={startAssistantSession}>
               <ExternalLink size={14}/> Sessione IUSENTRA
             </button>
-          ) : official ? <a href={official} target="_blank" rel="noreferrer"><ExternalLink size={14}/> Portale ufficiale</a> : null}
+          ) : null}
+          {official ? <a href={official} target="_blank" rel="noreferrer"><ExternalLink size={14}/> Portale ufficiale</a> : null}
         </aside>
       </header>
 

@@ -53,6 +53,10 @@ type ClientSuggestion = {
   nome_completo?: string
   codice_fiscale?: string
   email?: string
+  procedimento?: string
+  numero_procedimento?: string
+  tribunale?: string
+  avvocato?: string
 }
 
 const textKeys = [
@@ -252,6 +256,14 @@ function normaliseClientSuggestion(value: unknown): ClientSuggestion | null {
   const cliente = isRecord(value.cliente) ? value.cliente : value
   const recapiti = nestedRecord(cliente, 'recapiti')
   const contatti = nestedRecord(cliente, 'contatti')
+  const procedimenti = Array.isArray(cliente.procedimenti) ? cliente.procedimenti.filter(isRecord) : []
+  const primoProcedimento = procedimenti.find((item) => firstText(item, ['numero_rg', 'numeroRg', 'numero_procedimento', 'procedimento', 'rg'])) || {}
+  const numeroProcedimento = firstText(cliente, ['numero_procedimento', 'numeroProcedimento', 'procedimento', 'rg']) ||
+    firstText(primoProcedimento, ['numero_procedimento', 'numeroProcedimento', 'procedimento', 'numero_rg', 'numeroRg', 'rg'])
+  const annoProcedimento = firstText(primoProcedimento, ['anno', 'anno_rg', 'annoRg'])
+  const procedimento = numeroProcedimento && annoProcedimento && !numeroProcedimento.includes('/')
+    ? `RG ${numeroProcedimento}/${annoProcedimento}`
+    : numeroProcedimento
   const suggestion: ClientSuggestion = {
     id: firstText(cliente, ['id', 'uuid', 'pk', 'id_cliente', 'idCliente']),
     nome: firstText(cliente, ['nome', 'first_name', 'firstName']),
@@ -260,6 +272,10 @@ function normaliseClientSuggestion(value: unknown): ClientSuggestion | null {
     nome_completo: firstText(cliente, ['nome_completo', 'nomeCompleto', 'display_name', 'displayName', 'label', 'name']),
     codice_fiscale: firstText(cliente, ['codice_fiscale', 'codiceFiscale', 'cf_cliente', 'partita_iva', 'partitaIva', 'identificativo_fiscale']),
     email: firstText(cliente, ['email', 'mail']) || firstText(recapiti, ['email', 'mail']) || firstText(contatti, ['email', 'mail']),
+    procedimento,
+    numero_procedimento: firstText(cliente, ['numero_procedimento', 'numeroProcedimento']) || procedimento,
+    tribunale: firstText(cliente, ['tribunale', 'ufficio', 'court']) || firstText(primoProcedimento, ['tribunale', 'ufficio', 'court']),
+    avvocato: firstText(cliente, ['avvocato', 'avvocato_referente', 'responsabile']) || firstText(primoProcedimento, ['avvocato', 'avvocato_referente', 'responsabile']),
   }
   return clientName(suggestion) || suggestion.id ? suggestion : null
 }
@@ -530,13 +546,9 @@ export function NuovoAppuntamentoPage() {
     })
   }, [dayEvents, form.data, form.durata, form.ora])
 
-  const safeClientMatches = useMemo(
-    () => clientSuggestionsFromPayload(clientMatches),
-    [clientMatches],
-  )
-
   const canSubmit = requiredOk && conflicts.length === 0
   const cancelHref = form.from_cliente || form.id_cliente ? `/clienti/${form.from_cliente || form.id_cliente}` : '/agenda'
+  const safeClientMatches = useMemo(() => clientMatches, [clientMatches])
 
   const update = (field: keyof AppointmentForm, value: string) => {
     setForm((current) => ({ ...current, [field]: value }))
@@ -562,6 +574,26 @@ export function NuovoAppuntamentoPage() {
   }, [editId])
 
   useEffect(() => {
+    if (editId) return
+    let alive = true
+    fetch('/api/v1/ui/agenda/nuovo/defaults', {
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json' },
+    })
+      .then((response) => response.ok ? safeJson(response) : null)
+      .then((payload) => {
+        if (!alive || !isRecord(payload)) return
+        const avvocato = firstText(payload, ['avvocato', 'responsabile'])
+        if (!avvocato) return
+        setForm((current) => current.avvocato ? current : { ...current, avvocato })
+      })
+      .catch(() => undefined)
+    return () => {
+      alive = false
+    }
+  }, [editId])
+
+  useEffect(() => {
     if (!form.id_cliente) return
     let alive = true
     fetch(`/api/clienti/${encodeURIComponent(form.id_cliente)}`, {
@@ -576,6 +608,9 @@ export function NuovoAppuntamentoPage() {
           ...current,
           cliente: clientName(client) || current.cliente,
           cf_cliente: (client.codice_fiscale || current.cf_cliente || '').toUpperCase(),
+          procedimento: client.procedimento || client.numero_procedimento || current.procedimento,
+          tribunale: client.tribunale || current.tribunale,
+          avvocato: client.avvocato || current.avvocato,
         }))
       })
       .catch(() => undefined)
@@ -660,6 +695,9 @@ export function NuovoAppuntamentoPage() {
       cliente: name || current.cliente,
       id_cliente: safeClient.id || current.id_cliente,
       cf_cliente: (safeClient.codice_fiscale || current.cf_cliente || '').toUpperCase(),
+      procedimento: safeClient.procedimento || safeClient.numero_procedimento || current.procedimento,
+      tribunale: safeClient.tribunale || current.tribunale,
+      avvocato: safeClient.avvocato || current.avvocato,
     }))
     setClientDropdownOpen(false)
   }
@@ -851,7 +889,17 @@ export function NuovoAppuntamentoPage() {
                       if (form.cliente.trim().length > 1) setClientDropdownOpen(true)
                     }}
                     onBlur={() => window.setTimeout(() => setClientDropdownOpen(false), 160)}
-                    onChange={(event) => setForm((current) => ({ ...current, cliente: event.currentTarget.value, id_cliente: '' }))}
+                    onChange={(event) => {
+                      const value = event.currentTarget.value
+                      setForm((current) => ({
+                        ...current,
+                        cliente: value,
+                        id_cliente: '',
+                        cf_cliente: '',
+                        procedimento: '',
+                        tribunale: '',
+                      }))
+                    }}
                     placeholder="Digita per cercare..."
                     autoComplete="off"
                   />
@@ -860,7 +908,14 @@ export function NuovoAppuntamentoPage() {
                       type="button"
                       aria-label="Svuota cliente"
                       onMouseDown={(event) => event.preventDefault()}
-                      onClick={() => setForm((current) => ({ ...current, cliente: '', cf_cliente: '', id_cliente: '' }))}
+                      onClick={() => setForm((current) => ({
+                        ...current,
+                        cliente: '',
+                        cf_cliente: '',
+                        id_cliente: '',
+                        procedimento: '',
+                        tribunale: '',
+                      }))}
                     >
                       <X size={14} />
                     </button>

@@ -259,7 +259,7 @@ def _row(scadenza: Any, *, gestione_fascicoli: Any, gestione_utenti: Any) -> dic
         "sourceEventLabel": _format_date(getattr(scadenza, "source_event_at", "") or getattr(scadenza, "data_decorrenza", "")),
         "officeLabel": str(getattr(scadenza, "judicial_office_name", "") or getattr(fascicolo, "tribunale", "") or ""),
         "traceCount": _trace_count(scadenza),
-        "href": f"/scadenziario/{item_id}",
+        "href": f"/scadenziario/{item_id}?vista=tutte",
         "editHref": f"/scadenziario/{item_id}/modifica",
         "completeHref": f"/scadenziario/{item_id}/completa",
         "deleteHref": f"/scadenziario/{item_id}/elimina",

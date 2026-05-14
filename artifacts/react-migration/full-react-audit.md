@@ -319,3 +319,18 @@ Risultato finale locale: GO WITH WARNINGS, nessuna failure critica residua.
 Warning residui: smoke autenticati senza profili dedicati, VRT/Storybook
 assenti, `gitleaks` locale non installato e GitHub Actions remote da confermare
 dopo push.
+
+## Aggiornamento 2.236.3 - 2026-05-14
+
+Nuove superfici confermate React operative: `/profilo` e `/agenda/importa`.
+Superfici gia' React corrette senza regressione di status: `/agenda/nuovo`,
+`/clienti`, `/soggetti`, `/fascicoli`, `/email/scrivi`,
+`/email-ordinaria/scrivi`, `/scadenziario`, `/impostazioni?tab=ai`,
+`/portali/pdp/acquisizione`, `/pat` e `/sigit`.
+
+Controlli anti-mascheramento: nessun link primario `_legacy=1`, nessun form POST
+HTML nel flusso principale React toccato, dati cliente/fascicolo da API reali,
+storage allegati email sotto path tenant-aware, testo visibile ripulito da
+`repository_reali` e termini tecnici vietati nel perimetro verificato. Il
+dettaglio scadenziario resta nella stessa esperienza React e mostra azioni
+operative dopo URL `/scadenziario/<id>?vista=tutte`.

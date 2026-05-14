@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 import { Badge, Panel } from './dashboard'
 import { FloatingLex } from './FloatingLex'
+import { SyncedTopScrollbar } from './SyncedTopScrollbar'
 import {
   deleteSoggetti,
   deleteSoggetto,
@@ -154,7 +155,7 @@ function SoggettiTable({
         <strong>{items.length} soggetti</strong>
         <span>Dettaglio e modifica aprono la scheda aggiornata, con operazioni tracciate</span>
       </div>
-      <div className="iu-sogg-table-wrap">
+      <SyncedTopScrollbar className="iu-sogg-table-wrap">
         <table className="iu-sogg-table">
           <thead>
             <tr>
@@ -187,7 +188,7 @@ function SoggettiTable({
             ))}
           </tbody>
         </table>
-      </div>
+      </SyncedTopScrollbar>
     </section>
   )
 }
@@ -464,7 +465,7 @@ export function SoggettiPage() {
         </aside>
       </section>
 
-      <span className={`iu-sogg-sync ${loading ? '' : 'ok'}`}>{loading ? 'Caricamento soggetti...' : `${data.source} - dati reali`}</span>
+      <span className={`iu-sogg-sync ${loading ? '' : 'ok'}`}>{loading ? 'Caricamento soggetti...' : 'dati dello studio aggiornati'}</span>
 
       <FloatingLex
         context="soggetti"

@@ -95,6 +95,7 @@ _REACT_EXACT = {
     "/preventivi",
     "/preventivi/nuovo",
     "/preventivi/conferimento/nuovo",
+    "/profilo",
     "/profili",
     "/redazione-atti",
     "/registro-attivita",

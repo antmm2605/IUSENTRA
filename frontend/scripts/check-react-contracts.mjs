@@ -428,7 +428,7 @@ assertContains(tranche8aOpenDesignReport, 'Token creati', 'report Open Design 8A
 if (routeManifest.policy?.currentReleaseUnlocksRoutes !== true) {
   throw new Error('route manifest: currentReleaseUnlocksRoutes deve essere true nelle tranche di promozione')
 }
-const allowedGovernedUnlocks = new Set(['/', '/admin/database', '/agenda', '/agenda/nuovo', '/amministrazione', '/audit', '/backup', '/cartelle-condivise', '/clienti', '/clienti/nuovo', '/compensi-forensi', '/deposito/checklist', '/documenti', '/email', '/email-ordinaria', '/notifiche-legali', '/fascicoli', '/fascicoli/archivio', '/fascicoli/nuovo', '/fatturazione', '/fatturazione/nuova', '/giurisprudenza', '/global-search', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/incassi-pagamenti', '/legal-intelligence', '/legal-intelligence/mediazione', '/legal-intelligence/news', '/messaggi', '/messaggi/nuovo', '/notifiche', '/notifiche-whatsapp', '/preventivi', '/preventivi/conferimento/:id', '/preventivi/conferimento/nuovo', '/preventivi/nuovo', '/preventivi/wizard', '/privacy/registro', '/privacy/registro/nuovo', '/profili', '/redazione-atti', '/regia-operativa', '/registro-attivita', '/registro-gdpr', '/ricerca-legale', '/ricerca-studio', '/scadenziario', '/scadenziario/nuova', '/scadenziario/:id', '/scadenziario/:id/modifica', '/sincronizzazione-calendari', '/sito-studio', '/sito-studio/builder', '/sito-studio/contatti', '/sito-studio/redazione-ai', '/soggetti', '/soggetti/nuovo', '/statistiche', '/strumenti-legali', '/strumenti-operativi', '/studio', '/tariffario', '/template-atti', '/template-atti/catalogo', '/timesheet', '/utenti', '/utenti/nuovo', '/wizard-pro', '/workspace-intelligente'])
+const allowedGovernedUnlocks = new Set(['/', '/admin/database', '/agenda', '/agenda/importa', '/agenda/nuovo', '/amministrazione', '/audit', '/backup', '/cartelle-condivise', '/clienti', '/clienti/nuovo', '/compensi-forensi', '/deposito/checklist', '/documenti', '/email', '/email-ordinaria', '/notifiche-legali', '/fascicoli', '/fascicoli/archivio', '/fascicoli/nuovo', '/fatturazione', '/fatturazione/nuova', '/giurisprudenza', '/global-search', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/incassi-pagamenti', '/legal-intelligence', '/legal-intelligence/mediazione', '/legal-intelligence/news', '/messaggi', '/messaggi/nuovo', '/notifiche', '/notifiche-whatsapp', '/preventivi', '/preventivi/conferimento/:id', '/preventivi/conferimento/nuovo', '/preventivi/nuovo', '/preventivi/wizard', '/privacy/registro', '/privacy/registro/nuovo', '/profilo', '/profili', '/redazione-atti', '/regia-operativa', '/registro-attivita', '/registro-gdpr', '/ricerca-legale', '/ricerca-studio', '/scadenziario', '/scadenziario/nuova', '/scadenziario/:id', '/scadenziario/:id/modifica', '/sincronizzazione-calendari', '/sito-studio', '/sito-studio/builder', '/sito-studio/contatti', '/sito-studio/redazione-ai', '/soggetti', '/soggetti/nuovo', '/statistiche', '/strumenti-legali', '/strumenti-operativi', '/studio', '/tariffario', '/template-atti', '/template-atti/catalogo', '/timesheet', '/utenti', '/utenti/nuovo', '/wizard-pro', '/workspace-intelligente'])
 const governedTelematicoGraphicalRoutes = ['/telematico', '/servizi-telematici', '/polisWeb', '/pdp', '/pat', '/sigit', '/tribunali', '/guida/firma-digitale']
 const governedTelematicoAcquisitionRoutes = ['/portali/pst/acquisizione', '/portali/pdp/acquisizione', '/portali/pat/acquisizione', '/portali/ptt/acquisizione', '/portali/sigit/acquisizione']
 for (const route of governedTelematicoGraphicalRoutes) allowedGovernedUnlocks.add(route)
@@ -437,6 +437,7 @@ const governedExpectedStatuses = new Map([
   ['/', 'react_operational_full'],
   ['/admin/database', 'react_operational_full'],
   ['/agenda', 'react_operational_full'],
+  ['/agenda/importa', 'react_operational_full'],
   ['/agenda/nuovo', 'react_operational_full'],
   ['/amministrazione', 'react_operational_full'],
   ['/audit', 'react_operational_full'],
@@ -476,6 +477,7 @@ const governedExpectedStatuses = new Map([
   ['/preventivi/wizard', 'react_operational_partial'],
   ['/privacy/registro', 'react_operational_full'],
   ['/privacy/registro/nuovo', 'react_operational_full'],
+  ['/profilo', 'react_operational_full'],
   ['/profili', 'react_operational_full'],
   ['/redazione-atti', 'react_operational_full'],
   ['/regia-operativa', 'react_operational_full'],
@@ -529,9 +531,11 @@ for (const entry of routeManifest.routes ?? []) {
   }
 }
 for (const [route, status] of [
+  ['/agenda/importa', 'react_operational_full'],
   ['/statistiche', 'react_operational_full'],
   ['/utenti/nuovo', 'react_operational_full'],
   ['/utenti', 'react_operational_full'],
+  ['/profilo', 'react_operational_full'],
   ['/profili', 'react_operational_full'],
   ['/backup', 'react_operational_full'],
   ['/studio', 'react_operational_full'],
@@ -593,7 +597,7 @@ for (const route of ['/fatturazione/*', '/preventivi/*', '/compensi-forensi/*', 
     throw new Error(`route manifest: ${route} deve restare legacy_operational con unlockFromGate=false`)
   }
 }
-for (const route of ['/utenti', '/profili', '/audit', '/registro-attivita', '/studio', '/amministrazione', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/notifiche-legali', '/notifiche', '/notifiche-whatsapp', '/sincronizzazione-calendari', '/backup', '/sito-studio', '/sito-studio/contatti', '/sito-studio/builder', '/sito-studio/redazione-ai', '/statistiche', '/fatturazione', '/fatturazione/nuova', '/fatturazione/*', '/incassi-pagamenti', '/preventivi', '/preventivi/nuovo', '/preventivi/conferimento/nuovo', '/preventivi/*', '/preventivi/wizard', '/compensi-forensi', '/compensi-forensi/*', '/tariffario', '/tariffario/*', '/documenti', '/template-atti', '/template-atti/catalogo', '/template-atti/nuovo', '/template-atti/*', '/redazione-atti', '/redazione-atti/*', '/checklist', '/giurisprudenza', '/giurisprudenza/nuova', '/giurisprudenza/*', '/legal-intelligence', '/legal-intelligence/news', '/legal-intelligence/mediazione', '/legal-intelligence/*', '/ricerca-legale', '/ricerca-legale/*', '/deposito/checklist', '/strumenti-legali', '/strumenti-operativi', '/telematico', '/servizi-telematici', '/polisWeb', '/pdp', '/pat', '/sigit', '/sigp', '/tribunali', '/guida/firma-digitale', '/portali/pst/acquisizione', '/portali/*']) {
+for (const route of ['/utenti', '/profilo', '/profili', '/audit', '/registro-attivita', '/studio', '/amministrazione', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/notifiche-legali', '/notifiche', '/notifiche-whatsapp', '/sincronizzazione-calendari', '/backup', '/sito-studio', '/sito-studio/contatti', '/sito-studio/builder', '/sito-studio/redazione-ai', '/statistiche', '/fatturazione', '/fatturazione/nuova', '/fatturazione/*', '/incassi-pagamenti', '/preventivi', '/preventivi/nuovo', '/preventivi/conferimento/nuovo', '/preventivi/*', '/preventivi/wizard', '/compensi-forensi', '/compensi-forensi/*', '/tariffario', '/tariffario/*', '/documenti', '/template-atti', '/template-atti/catalogo', '/template-atti/nuovo', '/template-atti/*', '/redazione-atti', '/redazione-atti/*', '/checklist', '/giurisprudenza', '/giurisprudenza/nuova', '/giurisprudenza/*', '/legal-intelligence', '/legal-intelligence/news', '/legal-intelligence/mediazione', '/legal-intelligence/*', '/ricerca-legale', '/ricerca-legale/*', '/deposito/checklist', '/strumenti-legali', '/strumenti-operativi', '/telematico', '/servizi-telematici', '/polisWeb', '/pdp', '/pat', '/sigit', '/sigp', '/tribunali', '/guida/firma-digitale', '/portali/pst/acquisizione', '/portali/*']) {
   if (!(routeManifest.routes ?? []).some((entry) => entry.route === route)) {
     throw new Error(`route manifest: manca ${route}`)
   }
@@ -626,6 +630,7 @@ assertContains(uiLayout, '.iu-layout-stack', 'theme layout presente')
 
 assertContains(app, '/global-search', 'nav ricerca studio')
 assertContains(app, '/agenda', 'nav agenda')
+assertContains(app, 'AgendaImportPage', 'route import agenda react')
 assertContains(app, '/agenda/nuovo', 'nav nuovo appuntamento')
 assertContains(app, '/workspace-intelligente', 'nav regia operativa')
 assertContains(app, "/email/", 'nav email pec')
@@ -639,6 +644,7 @@ assertContains(app, "CartellaClientePage", 'route cartella cliente')
 assertContains(app, "ScadenziarioPage", 'route scadenziario')
 assertContains(app, "NuovaScadenzaPage", 'route nuova scadenza')
 assertContains(app, "TimesheetPage", 'route timesheet react')
+assertContains(app, "ProfiloPage", 'route profilo react')
 assertContains(app, "CartelleCondivisePage", 'route cartelle condivise react')
 assertContains(app, "WizardProStepPage", 'route step wizard pro react')
 assertContains(app, "WizardProCompletePage", 'route completo wizard pro react')
@@ -1461,6 +1467,11 @@ assertContains(appointment, 'normaliseClientSuggestion', 'normalizzazione risult
 assertContains(appointment, 'clientSuggestionsFromPayload', 'supporto wrapper api clienti')
 assertContains(appointment, 'firstText', 'estrazione testo difensiva clienti')
 assertContains(appointment, 'safeClientMatches', 'render autocomplete clienti sanitizzato')
+assertContains(appointment, 'const value = event.currentTarget.value', 'autocomplete cliente senza SyntheticEvent riusato')
+assertContains(appointment, "cf_cliente: '',", 'cambio cliente pulisce codice fiscale derivato')
+assertContains(appointment, "procedimento: '',", 'cambio cliente pulisce procedimento derivato')
+assertContains(appointment, "tribunale: '',", 'cambio cliente pulisce ufficio derivato')
+assertContains(appointment, '/api/v1/ui/agenda/nuovo/defaults', 'avvocato responsabile precompilato')
 assertContains(appointment, "Array.isArray(payload)", 'supporto array api clienti')
 assertContains(appointment, "Array.isArray(payload.data)", 'supporto payload data api clienti')
 assertContains(appointment, 'agendaItemsFromPayload', 'normalizzazione agenda per sovrapposizioni')

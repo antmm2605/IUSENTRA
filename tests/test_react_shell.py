@@ -103,6 +103,27 @@ def test_react_shell_sidebar_usa_profilo_reale_sessione(tmp_path: Path):
     assert api_payload["user"]["role"] == "AMMINISTRATORE"
 
 
+def test_profilo_e_import_agenda_sono_route_react_operativa(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+
+    with app.test_client() as client:
+        _login(client)
+        profilo = client.get("/profilo")
+        profilo_api = client.get("/api/v1/ui/profilo")
+        import_agenda = client.get("/agenda/importa")
+
+    assert profilo.status_code == 200
+    assert '<html lang="it" class="react-shell-document">' in profilo.get_data(as_text=True)
+    assert profilo_api.status_code == 200
+    assert profilo_api.get_json()["user"]["username"] == "operatore"
+    assert import_agenda.status_code == 200
+    assert '<html lang="it" class="react-shell-document">' in import_agenda.get_data(as_text=True)
+    app_source = Path("frontend/src/App.tsx").read_text(encoding="utf-8")
+    assert "ProfiloPage" in app_source
+    assert "AgendaImportPage" in app_source
+
+
 def test_react_shell_mobile_sblocca_scroll_e_compatta_card():
     template = Path("web/templates/react_shell.html").read_text(encoding="utf-8")
     css = Path("frontend/src/index.css").read_text(encoding="utf-8")
@@ -859,6 +880,11 @@ def test_react_autocomplete_clienti_usa_payload_minimale_sicuro(tmp_path: Path):
             "nome_completo": "Rossi Mario",
             "codice_fiscale": "RSSMRA80A01H501Z",
             "email": "",
+            "pec": "",
+            "procedimento": "",
+            "numero_procedimento": "",
+            "tribunale": "",
+            "avvocato": "",
         }
     ]
 

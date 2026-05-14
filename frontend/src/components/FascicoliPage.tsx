@@ -48,6 +48,7 @@ import {
 } from 'lucide-react'
 import { Badge, Button, Panel } from './dashboard'
 import { FloatingLex } from './FloatingLex'
+import { SyncedTopScrollbar } from './SyncedTopScrollbar'
 import {
   emptyFascicoliPage,
   emptyFascicoloDetail,
@@ -418,7 +419,7 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
           </label>
         ) : null}
       </div>
-      <div className="iu-fas-table-wrap">
+      <SyncedTopScrollbar className="iu-fas-table-wrap">
         <table className="iu-fas-table">
           <thead>
             <tr>
@@ -451,7 +452,7 @@ function FascicoliTable({ items, selected, onToggle, onToggleAll, archive = fals
             ))}
           </tbody>
         </table>
-      </div>
+      </SyncedTopScrollbar>
       <div className="iu-fas-mobile-list">
         {items.map((item) => <DossierMobileCard item={item} checked={selected.has(item.id)} onToggle={() => onToggle(item.id)} archive={archive} onDeleted={onDeleted} onError={onError} key={item.id}/>) }
       </div>

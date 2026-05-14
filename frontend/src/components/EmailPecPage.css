@@ -820,6 +820,48 @@
   box-shadow:0 0 0 4px rgba(47,128,237,.14);
   background:#fff;
 }
+.iu-mail-compose-clients{
+  display:grid;
+  gap:8px;
+  padding:10px;
+  border:1px solid var(--iu-slate-200);
+  border-radius:14px;
+  background:#f8fafc;
+}
+.iu-mail-compose-clients>span{
+  color:var(--iu-slate-500);
+  font-size:12px;
+  font-weight:800;
+}
+.iu-mail-compose-clients button{
+  display:grid;
+  gap:3px;
+  width:100%;
+  padding:10px 11px;
+  border:1px solid var(--iu-slate-200);
+  border-radius:12px;
+  background:#fff;
+  color:#0f172a;
+  text-align:left;
+  cursor:pointer;
+}
+.iu-mail-compose-clients button:disabled{
+  opacity:.55;
+  cursor:not-allowed;
+}
+.iu-mail-compose-clients button strong{
+  font-size:13px;
+}
+.iu-mail-compose-clients button span{
+  color:var(--iu-slate-500);
+  font-size:12px;
+  font-weight:760;
+  text-transform:none;
+  letter-spacing:0;
+}
+.iu-mail-compose-file input{
+  padding:11px 14px;
+}
 .iu-mail-compose-form footer{
   display:flex;
   align-items:center;

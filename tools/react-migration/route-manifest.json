@@ -89,6 +89,25 @@
       ]
     },
     {
+      "workspaceTarget": "/app/agenda/importa",
+      "route": "/agenda/importa",
+      "family": "agenda",
+      "status": "react_operational_full",
+      "risk": "medium",
+      "targetComponent": "frontend/src/components/AgendaImportPage.tsx",
+      "targetData": "frontend/src/agendaData.ts",
+      "targetBridge": "web/bootstrap/dashboard_routes.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/agenda__importa.json",
+      "unlockFromGate": true,
+      "mustPreserve": [
+        "import calendario React",
+        "file ICS e URL remoto",
+        "anteprima prima del salvataggio",
+        "nessun dato demo",
+        "collegamento impostazioni calendario"
+      ]
+    },
+    {
       "workspaceTarget": "/app/amministrazione",
       "route": "/amministrazione",
       "family": "amministrazione",
@@ -1340,6 +1359,25 @@
         "salvataggio JSON",
         "form nella stessa pagina",
         "audit privacy"
+      ]
+    },
+    {
+      "workspaceTarget": "/app/profilo",
+      "route": "/profilo",
+      "family": "amministrazione",
+      "status": "react_operational_full",
+      "risk": "medium",
+      "targetComponent": "frontend/src/components/ProfiloPage.tsx",
+      "targetData": "web/blueprints/api_v1_react.py",
+      "targetBridge": "web/bootstrap/auth_management_routes.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/profilo.json",
+      "unlockFromGate": true,
+      "mustPreserve": [
+        "profilo utente reale",
+        "aggiornamento dati JSON",
+        "cambio password JSON",
+        "2FA operativa",
+        "nessun dato demo"
       ]
     },
     {

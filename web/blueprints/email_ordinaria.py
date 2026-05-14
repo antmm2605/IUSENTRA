@@ -12,6 +12,7 @@ import os
 from datetime import date
 from functools import wraps
 from pathlib import Path
+from uuid import uuid4
 
 from flask import (
     Blueprint,
@@ -32,6 +33,7 @@ from pct.notifiche_legali import is_legal_notification_subject as _is_legal_noti
 from web.blueprints.react_shell import render_react_shell_response
 from web.services.mailbox_sync_runtime import run_ordinary_mailbox_sync
 from web.services.tenant_paths import TenantDataPathError, tenant_data_path
+from werkzeug.utils import secure_filename
 
 email_ordinaria = Blueprint("email_ordinaria", __name__, url_prefix="/email-ordinaria")
 
@@ -63,6 +65,27 @@ def _cfg_path(key: str, default: str = "", *aliases: str) -> str:
 
 def _studio_config_path() -> str:
     return _cfg_path("STUDIO_CONFIG", "./config/studio.json", "CONFIG_STUDIO_DB")
+
+
+def _save_compose_attachments() -> list[str]:
+    uploads = [upload for upload in request.files.getlist("allegati") if upload and upload.filename]
+    if not uploads:
+        return []
+    base = Path(_cfg_path("MESSAGGI_DB", "./messaggi/storico.json")).parent / "allegati_invio" / uuid4().hex
+    base.mkdir(parents=True, exist_ok=True)
+    saved: list[str] = []
+    for index, upload in enumerate(uploads, start=1):
+        filename = secure_filename(upload.filename or "") or f"allegato-{index}"
+        target = base / filename
+        stem = target.stem
+        suffix = target.suffix
+        counter = 2
+        while target.exists():
+            target = base / f"{stem}-{counter}{suffix}"
+            counter += 1
+        upload.save(target)
+        saved.append(str(target))
+    return saved
 
 
 def _get_gestore():
@@ -198,6 +221,8 @@ def scrivi():
     id_cliente = form.get("id_cliente", "").strip()
 
     if not destinatario or not oggetto:
+        if _wants_json_response():
+            return jsonify({"ok": False, "message": "Compila destinatario e oggetto."}), 400
         flash("Compilare almeno destinatario e oggetto.", "danger")
         return redirect(url_for("email_ordinaria.scrivi", a=destinatario, oggetto=oggetto))
     if _is_legal_notification_subject(oggetto):
@@ -217,11 +242,13 @@ def scrivi():
             config=_messaggi_config_da_smtp(),
             db_path=_cfg_path("MESSAGGI_DB", "./messaggi/storico.json"),
         )
+        allegati = _save_compose_attachments()
         msg = messaggi.invia_email(
             destinatario=destinatario,
             oggetto=oggetto,
             corpo_testo=corpo_testo,
             id_cliente=id_cliente,
+            allegati=allegati,
         )
         if getattr(msg, "stato", None) == StatoMessaggio.FALLITO:
             raise RuntimeError(getattr(msg, "errore", "") or "invio non completato")
@@ -229,8 +256,12 @@ def scrivi():
         _sync_inviati(gestore)
         flash("Email ordinaria inviata con successo.", "success")
         _audit("email_ordinaria.inviata", f"A: {destinatario} | Ogg: {oggetto[:60]}")
+        if _wants_json_response():
+            return jsonify({"ok": True, "message": "Email ordinaria inviata con successo.", "redirect": url_for("email_ordinaria.casella", cartella="INVIATI")})
         return redirect(url_for("email_ordinaria.casella", cartella="INVIATI"))
     except Exception as exc:
+        if _wants_json_response():
+            return jsonify({"ok": False, "message": f"Invio email ordinaria non riuscito: {exc}"}), 400
         flash(f"Errore invio email ordinaria: {exc}", "danger")
         return redirect(url_for("email_ordinaria.scrivi", a=destinatario, oggetto=oggetto))
 

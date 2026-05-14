@@ -799,7 +799,7 @@ def build_react_telematico_surface_payload(
             "portal": portal,
             "appHref": _surface_href(surface_id),
             "legacyHref": PORTAL_HOME_FALLBACKS.get(portal, ""),
-            "officialHref": "" if portal in ASSISTED_OFFICIAL_PORTALS else PORTAL_OFFICIAL_URLS.get(portal, ""),
+            "officialHref": PORTAL_OFFICIAL_URLS.get(portal, ""),
         },
         "summary": summary,
         "channel": channel,

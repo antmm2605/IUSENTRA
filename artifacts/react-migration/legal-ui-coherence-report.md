@@ -138,3 +138,10 @@ Card operative: ActionCard, CompactCard, KpiCard esistente, DetailPanel, Summary
 - frontend/src/App.tsx resta monolitico e va spezzato in tranche successive
 - alcune route restano legacy_operational per scelta del manifest e per workflow profondi/documentali/telematici ancora non ricostruiti
 - verifica browser visuale eseguita il 2026-05-09 sulle route promosse `/deposito/checklist`, `/strumenti-legali` e `/strumenti-operativi` in desktop/tablet/mobile; nessun testo tecnico visibile tra `payload`, `backend`, `frontend`, `runtime`, `json_api`, `undefined`, `null`, `todo`, `sample`
+
+## Aggiornamento 2.236.3 - 2026-05-14
+
+- `/profilo`, `/agenda/importa`, `/agenda/nuovo`, compose PEC/SMTP, portali PDP/PAT/SIGIT e scadenziario usano testi italiani operativi, icone Lucide e card/azioni coerenti con il design system IUSENTRA.
+- I campi derivati in Agenda sono mostrati come dati professionali dello studio: codice fiscale, procedimento, ufficio e avvocato responsabile; nessun fallback demo o mock.
+- Scadenziario sostituisce `repository_reali` con `dati dello studio` e mantiene azioni leggibili: filtra, completa, elimina, apri dettaglio, export e Lex.
+- Le liste Clienti/Soggetti/Fascicoli conservano densita' tabellare ma aggiungono scrollbar superiore per l'uso desktop senza cambiare la disposizione mobile.

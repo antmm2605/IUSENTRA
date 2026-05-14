@@ -599,3 +599,20 @@ su runtime isolato con due documenti, Docker locale no-cache, smoke locale e
 smoke produzione. Deploy Hetzner completato sul commit corrente del branch
 `Codex/legal-electronic-filing-kIxcV` con `IUSENTRA_SKIP_BACKUP_CRON=1`:
 nessun backup eseguito e cron backup non aggiornato.
+
+## Hotfix operativo UI 2.236.3
+
+Il perimetro segnalato dall'utente e' stato chiuso senza nuove dipendenze
+frontend: `/profilo` e `/agenda/importa` passano alla shell React; `/agenda/nuovo`
+precompila avvocato, codice fiscale, procedimento e ufficio dalla selezione
+cliente; clienti, soggetti e fascicoli hanno la scrollbar superiore; PDP, PAT e
+SIGIT mostrano `Portale ufficiale` come link secondario; PEC e SMTP ordinario
+supportano cliente e allegati multipli; lo scadenziario non espone piu' la fonte
+tecnica e apre il dettaglio operativo; Impostazioni AI locale rilancia la
+verifica stato all'apertura del tab.
+
+Gate finali locali: py_compile, contratti React, route gate, typecheck, test
+frontend leggero, build Vite, pytest mirati, packaging/readiness, Docker locale
+no-cache 2.236.3 e Playwright/CDP autenticato sulle route richieste. Restano
+aperti solo limiti strumentali documentati in `pytest-open-issues.md`:
+contratto storico `/sigp/` 308 e falsi rossi da script/browser in-app.

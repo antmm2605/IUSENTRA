@@ -98,6 +98,12 @@ function normaliseText(value: string): string {
   return value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 }
 
+function sourceLabel(source: string): string {
+  if (source === 'repository_reali') return 'dati dello studio'
+  if (source === 'errore_controllato') return 'dati parziali'
+  return source || 'dati aggiornati'
+}
+
 function isInsideQuery(item: ScadenziarioRow, query: string): boolean {
   const needle = normaliseText(query.trim())
   if (!needle) return true
@@ -658,8 +664,16 @@ export function ScadenziarioPage() {
       .catch((error) => setStatusLine(error instanceof Error ? error.message : 'Completamento massivo non riuscito'))
   }
 
+  const changeView = (nextView: ScadenziarioView) => {
+    setView(nextView)
+    setSelectedIds([])
+    const url = new URL(window.location.href)
+    url.searchParams.set('vista', nextView)
+    window.history.replaceState({}, '', `${url.pathname}?${url.searchParams.toString()}`)
+  }
+
   const resetFilters = () => {
-    setView('aperte')
+    changeView('aperte')
     setQuery('')
     setType('')
     setPriority('')
@@ -722,19 +736,19 @@ export function ScadenziarioPage() {
             <strong>{data.summary.overdue} scadenze scadute non ancora completate.</strong>
             <p>{data.overduePreview.slice(0, 3).map((item) => `${item.title} — ${item.dateLabel}`).join(' · ')}</p>
           </div>
-          <button type="button" onClick={() => setView('scadute')}>Apri scadute</button>
+          <button type="button" onClick={() => changeView('scadute')}>Apri scadute</button>
         </section>
       ) : null}
 
       <section className="iu-scad-stats" aria-label="Indicatori scadenziario">
-        <StatCard icon={<CalendarDays size={19}/>} label="Aperte" value={data.summary.open} note="da lavorare" tone="primary" active={view === 'aperte'} onClick={() => setView('aperte')}/>
-        <StatCard icon={<AlertTriangle size={19}/>} label="Critiche" value={data.summary.critical} note="massima priorità" tone={data.summary.critical ? 'danger' : 'neutral'} active={view === 'critiche'} onClick={() => setView('critiche')}/>
-        <StatCard icon={<ShieldCheck size={19}/>} label="Alta priorità" value={data.summary.high} note="da presidiare" tone={data.summary.high ? 'warning' : 'neutral'} active={view === 'alte'} onClick={() => setView('alte')}/>
-        <StatCard icon={<CheckCircle2 size={19}/>} label="Completate" value={data.summary.completed} note="chiuse" tone="success" active={view === 'completate'} onClick={() => setView('completate')}/>
-        <StatCard icon={<TimerReset size={19}/>} label="Scadute" value={data.summary.overdue} note="non completate" tone={data.summary.overdue ? 'danger' : 'neutral'} active={view === 'scadute'} onClick={() => setView('scadute')}/>
-        <StatCard icon={<Clock3 size={19}/>} label="Entro 7 gg" value={data.summary.within7} note="orizzonte breve" tone={data.summary.within7 ? 'orange' : 'neutral'} active={view === 'imminenti'} onClick={() => setView('imminenti')}/>
-        <StatCard icon={<Wand2 size={19}/>} label="Avanzate" value={data.summary.advanced} note="calcolo legale" tone="purple" active={view === 'avanzate'} onClick={() => setView('avanzate')}/>
-        <StatCard icon={<ListChecks size={19}/>} label="Operative" value={data.summary.operative} note="anticipo studio" tone="info" active={view === 'operative'} onClick={() => setView('operative')}/>
+        <StatCard icon={<CalendarDays size={19}/>} label="Aperte" value={data.summary.open} note="da lavorare" tone="primary" active={view === 'aperte'} onClick={() => changeView('aperte')}/>
+        <StatCard icon={<AlertTriangle size={19}/>} label="Critiche" value={data.summary.critical} note="massima priorità" tone={data.summary.critical ? 'danger' : 'neutral'} active={view === 'critiche'} onClick={() => changeView('critiche')}/>
+        <StatCard icon={<ShieldCheck size={19}/>} label="Alta priorità" value={data.summary.high} note="da presidiare" tone={data.summary.high ? 'warning' : 'neutral'} active={view === 'alte'} onClick={() => changeView('alte')}/>
+        <StatCard icon={<CheckCircle2 size={19}/>} label="Completate" value={data.summary.completed} note="chiuse" tone="success" active={view === 'completate'} onClick={() => changeView('completate')}/>
+        <StatCard icon={<TimerReset size={19}/>} label="Scadute" value={data.summary.overdue} note="non completate" tone={data.summary.overdue ? 'danger' : 'neutral'} active={view === 'scadute'} onClick={() => changeView('scadute')}/>
+        <StatCard icon={<Clock3 size={19}/>} label="Entro 7 gg" value={data.summary.within7} note="orizzonte breve" tone={data.summary.within7 ? 'orange' : 'neutral'} active={view === 'imminenti'} onClick={() => changeView('imminenti')}/>
+        <StatCard icon={<Wand2 size={19}/>} label="Avanzate" value={data.summary.advanced} note="calcolo legale" tone="purple" active={view === 'avanzate'} onClick={() => changeView('avanzate')}/>
+        <StatCard icon={<ListChecks size={19}/>} label="Operative" value={data.summary.operative} note="anticipo studio" tone="info" active={view === 'operative'} onClick={() => changeView('operative')}/>
       </section>
 
       <section className="iu-scad-toolbar" aria-label="Filtri scadenziario">
@@ -757,7 +771,7 @@ export function ScadenziarioPage() {
         </section>
       ) : null}
 
-      <OperativeCards cards={data.operativeCards} selectedCount={selectedIds.length} onFilter={setView} onBulkComplete={runBulkComplete}/>
+      <OperativeCards cards={data.operativeCards} selectedCount={selectedIds.length} onFilter={changeView} onBulkComplete={runBulkComplete}/>
 
       <ProcessDeadlineCalculator
         templates={data.calculator.templates}
@@ -809,7 +823,7 @@ export function ScadenziarioPage() {
       <section className="iu-scad-layout">
         <div className="iu-scad-table-card">
           <header>
-            <div><strong>{visibleRows.length} scadenze</strong><span>{data.facets.views.find((facet) => facet.value === view)?.label || 'Vista corrente'} · {data.source}</span></div>
+            <div><strong>{visibleRows.length} scadenze</strong><span>{data.facets.views.find((facet) => facet.value === view)?.label || 'Vista corrente'} · {sourceLabel(data.source)}</span></div>
             <div>
               <Badge tone={data.summary.overdue ? 'danger' : 'success'}>{data.summary.overdue ? `${data.summary.overdue} scadute` : 'presidiata'}</Badge>
               <a href={data.actions.exportCsv}><Download size={15}/> Esporta</a>
@@ -833,7 +847,7 @@ export function ScadenziarioPage() {
       </section>
 
       <section className="iu-scad-lower-grid">
-        <Panel title="Qualità scadenziario" subtitle="Cosa ho integrato oltre alla pagina storica" icon={<ShieldCheck size={17}/>}>
+        <Panel title="Qualità scadenziario" subtitle="Controlli disponibili nella pagina" icon={<ShieldCheck size={17}/>}>
           <div className="iu-scad-checklist">
             <span><CheckCircle2 size={16}/> Card operative con azioni associate: filtra, completa selezionate, esporta, apri Lex.</span>
             <span><TimerReset size={16}/> Separazione tra scadenza legale e scadenza operativa interna quando il calcolo avanzato è presente.</span>

@@ -134,6 +134,8 @@ def test_notifica_l53_riporta_piu_documenti_nell_elenco_allegati():
 
 def test_notifica_l53_modello_personalizzato_usa_campi_iusentra_e_note_avvocato():
     payload = _legal_payload()
+    payload["luogo"] = "TAURIANOVA RC"
+    payload["data_relata"] = "2026-05-14"
     payload["template_id"] = "relata_personalizzata_prova"
     payload["template_personalizzato"] = {
         "id": "relata_personalizzata_prova",
@@ -160,6 +162,8 @@ def test_notifica_l53_modello_personalizzato_usa_campi_iusentra_e_note_avvocato(
     assert "R.G. n. 1234/2026" in result.relata_text
     assert "INTEGRAZIONE DELL'AVVOCATO" in result.relata_text
     assert "Precisazione finale aggiunta dall'avvocato." in result.relata_text
+    assert "TAURIANOVA RC, 14/05/2026" in result.relata_text
+    assert "TAURIANOVA RC, 2026-05-14" not in result.relata_text
 
 
 def test_modello_personalizzato_blocca_token_sconosciuto():
@@ -353,6 +357,27 @@ def test_prova_deposito_accetta_piu_atti_notificati_con_hash():
     items = result.output_plan["evidencePack"]["items"]
     assert any(item["kind"] == "atto" and "pst:JPW_SIGP:2182464" in item["filename"] for item in items)
     assert any(item["kind"] == "allegato_2" and item["filename"] == "procura.pdf" for item in items)
+
+
+def test_prova_deposito_blocca_hash_non_sha256_e_dati_atto_mancanti():
+    result = validate_deposit_notification_proof({
+        "atto_notificato": "ricorso.pdf",
+        "atto_sha256": "abc",
+        "relata_firmata": "relata_notifica.pdf.p7m",
+        "relata_sha256": "b" * 64,
+        "pec_inviata": "pec_inviata.eml",
+        "pec_inviata_sha256": "c" * 64,
+        "destinatario_nome": "Controparte",
+        "rac_file": "accettazione.eml",
+        "rac_sha256": "d" * 64,
+        "rdac_file": "consegna.eml",
+        "rdac_sha256": "e" * 64,
+        "ricevuta_completa": True,
+    })
+
+    assert result.ok is False
+    assert any("HASH_SHA256_INVALID" in item and "Atto notificato" in item for item in result.blockers)
+    assert any("DATI_ATTO_RICEVUTE_REQUIRED" in item for item in result.blockers)
 
 
 def test_api_react_notifiche_legali_espone_workflow_separati(tmp_path: Path):

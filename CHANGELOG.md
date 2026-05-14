@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.236.2 - 2026-05-14
+
+- Semplificata la prova notifica: un unico selettore permette di scegliere insieme atto, relata firmata, PEC inviata, RAC e RdAC; IUSENTRA riconosce i file dal nome, calcola automaticamente gli SHA-256 e prepara i riferimenti ricevute per DatiAtto.xml.
+- Le impronte SHA-256 del pacchetto prova sono ora validate come 64 caratteri esadecimali; valori mancanti o non validi bloccano il controllo.
+- Le date delle relate e dei modelli parametrici vengono rese in formato italiano, ad esempio `TAURIANOVA RC, 14/05/2026`.
+
 ## 2.236.1 - 2026-05-14
 
 - Migliorata la prova notifica: la scheda `Deposito prova notifica` permette di selezionare piu' documenti dalla pratica, mostra l'elenco automatico con riferimento portale e hash SHA-256, e invia al motore `atti_notificati` separati per evidence pack.

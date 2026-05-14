@@ -2,6 +2,18 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-14T23:55:00+02:00: prova notifica automatica 2.236.2.
+La scheda `Deposito prova notifica` e' stata semplificata: l'utente sceglie
+insieme atto, relata firmata, PEC inviata, RAC e RdAC; IUSENTRA riconosce i
+file dal nome, calcola automaticamente gli SHA-256 nel browser e compila il
+riepilogo prova con riferimenti DatiAtto.xml. I campi manuali restano in un
+pannello secondario di correzione. Le date delle relate vengono rese in formato
+italiano, ad esempio `TAURIANOVA RC, 14/05/2026`. Gate mirati verdi:
+notifiche/registry/deposito 46/46, typecheck, contratti React, UI coverage,
+packaging/readiness 8/8 e build Vite `2.236.2`. Verifica browser: i riferimenti
+`DatiAtto.xml` si aggiornano anche se l'utente sceglie prima i file e inserisce
+dopo il destinatario.
+
 Aggiornamento 2026-05-14T23:35:00+02:00: hotfix prova notifica 2.236.1.
 La scheda `Deposito prova notifica` permette ora di selezionare uno o piu'
 documenti dalla pratica anche per il deposito della prova, non solo per la

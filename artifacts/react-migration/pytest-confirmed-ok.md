@@ -1,12 +1,25 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-14, modulo notifiche legali e registry telematico 2.236.1.
+Aggiornato: 2026-05-14, prova notifica automatica 2.236.2.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Prova notifica automatica 2.236.2 - 2026-05-14
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m ruff check pct/notifiche_legali.py tests/test_notifiche_legali.py` | OK | Ruff verde dopo calcolo automatico SHA-256 lato browser, validazione hash e date italiane in relata. |
+| `python -m pytest tests/test_notifiche_legali.py -q` | OK | 26/26 passati: hash non SHA-256 e riferimenti DatiAtto mancanti bloccano; le date ISO vengono rese in formato italiano nella relata. |
+| `npm --prefix frontend run typecheck` | OK | TypeScript verde dopo maschera deposito semplificata con selezione file multipla e riepilogo automatico atto/relata/PEC/RAC/RdAC. |
+| `python -m pytest tests/test_notifiche_legali.py tests/test_telematic_registry_fail_closed.py tests/legal_deposit/test_penal_deposit_rules.py -q` | OK | 46/46 passati sul perimetro notifiche legali, registry procedimenti, deposito e fail-closed; nessuna regressione su PCT/SICID/SIECIC/SIGP/UNEP/PAT/PTT/PDP. |
+| `python -m compileall -q legal_deposit pct web/blueprints/api_v1_react.py web/services/react_notifiche_legali_bridge.py`; `node scripts/react-migration/check-route-gate.mjs` | OK | Bytecode Python e route gate React coerenti dopo il fix del deposito prova. |
+| `python tools/sync_packaging_files.py --check`; `python -m pytest tests/test_packaging_consistency.py tests/test_release_readiness.py -q`; `node frontend/scripts/check-react-contracts.mjs`; `npm --prefix frontend test`; `npm --prefix frontend run build` | OK | Packaging/readiness 8/8, contratti React, UI coverage e build Vite `2.236.2` verdi; chunk notifiche `NotificheLegaliPage-DKDTCQJS.js` 63.69 kB / 14.89 kB gzip e CSS `NotificheLegaliPage-JwzkYe5n.css` 15.58 kB / 2.91 kB gzip. |
+| Browser Chromium headless su runtime isolato `http://127.0.0.1:8093/notifiche-legali` | OK | Login operatore, scheda `Deposito prova notifica`, upload multiplo di `ricorso.pdf`, `relata_notifica.pdf.p7m`, `pec_inviata.eml`, `accettazione.eml`, `consegna.eml`: riepilogo compilato con SHA-256 calcolati, `DatiAtto.xml` precompilato con destinatario/PEC/RAC/RdAC anche scegliendo prima i file e poi inserendo il destinatario, `Controlla prova deposito` superato, console error 0, mobile 390px senza overflow. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx`; `GET http://127.0.0.1:8080/api/pronto`; smoke App V2 locale | OK | Immagini locali ricostruite da zero con wheel `pct-studio-legale==2.236.2`; app, scheduler, OCR, Redis e Nginx avviati; readiness locale 200 con `versione=2.236.2`; smoke health PASS=2 FAIL=0 e notifications PASS=3 FAIL=0 SKIP=1. Nessun backup eseguito. |
 
 ### Prova notifica multi-documento 2.236.1 - 2026-05-14
 

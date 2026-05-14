@@ -61,6 +61,8 @@ type EvidenceDocumentPayload = {
   file_originale: string
 }
 
+type DepositEvidenceKind = 'atto' | 'relata' | 'pec' | 'rac' | 'rdac'
+
 const emptyResult: LegalWorkflowResult = {
   ok: false,
   blockers: [],
@@ -111,6 +113,124 @@ function Field({
       {children}
       {hint ? <small>{hint}</small> : null}
     </label>
+  )
+}
+
+const SHA256_HEX_PATTERN = /^[a-f0-9]{64}$/i
+
+function normalizeSha256Input(value: string) {
+  return value.replace(/\s+/g, '').toLowerCase().replace(/[^a-f0-9]/g, '').slice(0, 64)
+}
+
+async function calculateSha256(file: File): Promise<string> {
+  if (!window.crypto?.subtle) {
+    throw new Error('sha256-unavailable')
+  }
+  const buffer = await file.arrayBuffer()
+  const digest = await window.crypto.subtle.digest('SHA-256', buffer)
+  return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, '0')).join('')
+}
+
+function DepositFileField({
+  label,
+  fileName,
+  shaValue,
+  filePlaceholder,
+  accept,
+  hint,
+  onFileNameChange,
+  onShaChange,
+  onFileComputed,
+}: {
+  label: string
+  fileName: string
+  shaValue: string
+  filePlaceholder: string
+  accept: string
+  hint: string
+  onFileNameChange: (value: string) => void
+  onShaChange: (value: string) => void
+  onFileComputed: (fileName: string, sha256: string) => void
+}) {
+  const [status, setStatus] = useState('')
+  const hasInvalidSha = Boolean(shaValue) && !SHA256_HEX_PATTERN.test(shaValue)
+
+  const handleFile = async (file: File | undefined) => {
+    if (!file) return
+    setStatus('Calcolo impronta SHA-256...')
+    try {
+      const digest = await calculateSha256(file)
+      onFileComputed(file.name, digest)
+      setStatus(`Impronta calcolata: ${digest.slice(0, 12)}...`)
+    } catch {
+      onFileNameChange(file.name)
+      setStatus('Calcolo automatico non disponibile: incolla una impronta SHA-256 valida.')
+    }
+  }
+
+  return (
+    <div className="iu-legal-evidence-field">
+      <div className="iu-legal-evidence-field__header">
+        <strong>{label}</strong>
+        <span>{hint}</span>
+      </div>
+      <div className="iu-legal-file-row">
+        <input value={fileName} onChange={(event) => onFileNameChange(event.currentTarget.value)} placeholder={filePlaceholder} />
+        <label className="iu-legal-file-button">
+          <UploadCloud size={15} />
+          Scegli file
+          <input type="file" accept={accept} onChange={(event) => void handleFile(event.currentTarget.files?.[0])} />
+        </label>
+      </div>
+      <div className="iu-legal-hash-row">
+        <input
+          value={shaValue}
+          onChange={(event) => onShaChange(normalizeSha256Input(event.currentTarget.value))}
+          placeholder="SHA-256 calcolato dal file"
+          aria-invalid={hasInvalidSha}
+          maxLength={64}
+        />
+        <small className={hasInvalidSha ? 'is-error' : ''}>
+          {hasInvalidSha ? 'L\'impronta SHA-256 deve avere 64 caratteri esadecimali.' : status || 'Scegli il file: IUSENTRA calcola l\'impronta automaticamente.'}
+        </small>
+      </div>
+    </div>
+  )
+}
+
+function classifyDepositFile(fileName: string): DepositEvidenceKind {
+  const lower = fileName.toLowerCase()
+  if (lower.includes('rac') || lower.includes('accettazione')) return 'rac'
+  if ((lower.includes('rdac') || lower.includes('consegna') || lower.includes('avvenuta')) && !lower.includes('mancata')) return 'rdac'
+  if (lower.includes('relata')) return 'relata'
+  if (lower.includes('pec') || lower.includes('postacert') || lower.includes('inviata') || lower.endsWith('.eml') || lower.endsWith('.msg')) return 'pec'
+  return 'atto'
+}
+
+function depositReference(values: {
+  destinatario_nome: string
+  pec_inviata: string
+  rac_file: string
+  rdac_file: string
+}) {
+  const rows = [
+    values.destinatario_nome ? `Destinatario: ${values.destinatario_nome}` : '',
+    values.pec_inviata ? `PEC inviata: ${values.pec_inviata}` : '',
+    values.rac_file ? `RAC: ${values.rac_file}` : '',
+    values.rdac_file ? `RdAC completa: ${values.rdac_file}` : '',
+  ].filter(Boolean)
+  return rows.join('; ')
+}
+
+function EvidenceSummaryRow({ label, fileName, shaValue }: { label: string; fileName: string; shaValue: string }) {
+  const ready = Boolean(fileName && SHA256_HEX_PATTERN.test(shaValue))
+  return (
+    <span className={ready ? 'is-ready' : ''}>
+      {ready ? <CheckCircle2 size={15} /> : <AlertTriangle size={15} />}
+      <strong>{label}</strong>
+      <em>{fileName || 'Da associare'}</em>
+      <small>{shaValue ? `SHA-256 ${shaValue.slice(0, 12)}...` : 'Impronta non calcolata'}</small>
+    </span>
   )
 }
 
@@ -304,9 +424,10 @@ export function NotificheLegaliPage() {
     rac_sha256: '',
     rdac_file: '',
     rdac_sha256: '',
-    ricevuta_completa: true,
+    ricevuta_completa: false,
     dati_atto_ricevute: '',
   })
+  const [depositAutoMessage, setDepositAutoMessage] = useState('')
 
   const [cliente, setCliente] = useState({
     template_id: 'aggiornamento_pratica',
@@ -771,7 +892,60 @@ export function NotificheLegaliPage() {
   }
 
   const changeNotifica = (key: keyof typeof notifica, value: string | boolean) => setNotifica((current) => ({ ...current, [key]: value }))
-  const changeDeposito = (key: keyof typeof deposito, value: string | boolean) => setDeposito((current) => ({ ...current, [key]: value }))
+  const refreshDepositReference = (current: typeof deposito, next: typeof deposito) => {
+    const previousReference = depositReference(current)
+    const reference = depositReference(next)
+    if (reference && (!next.dati_atto_ricevute || next.dati_atto_ricevute === previousReference || next.dati_atto_ricevute.startsWith('Destinatario:'))) {
+      next.dati_atto_ricevute = reference
+    }
+    return next
+  }
+  const changeDeposito = (key: keyof typeof deposito, value: string | boolean) => setDeposito((current) => {
+    const next = { ...current, [key]: value }
+    if (key === 'destinatario_nome' || key === 'pec_inviata' || key === 'rac_file' || key === 'rdac_file') {
+      return refreshDepositReference(current, next)
+    }
+    return next
+  })
+  const updateDepositoFile = (fileKey: keyof typeof deposito, shaKey: keyof typeof deposito, fileName: string, sha256: string) => {
+    setDeposito((current) => refreshDepositReference(current, { ...current, [fileKey]: fileName, [shaKey]: sha256 }))
+  }
+  const applyDepositFile = (current: typeof deposito, kind: DepositEvidenceKind, fileName: string, sha256: string): typeof deposito => {
+    const next = { ...current }
+    if (kind === 'atto') {
+      next.atto_notificato = current.atto_notificato || fileName
+      next.atto_sha256 = sha256
+    } else if (kind === 'relata') {
+      next.relata_firmata = fileName
+      next.relata_sha256 = sha256
+    } else if (kind === 'pec') {
+      next.pec_inviata = fileName
+      next.pec_inviata_sha256 = sha256
+    } else if (kind === 'rac') {
+      next.rac_file = fileName
+      next.rac_sha256 = sha256
+    } else if (kind === 'rdac') {
+      next.rdac_file = fileName
+      next.rdac_sha256 = sha256
+    }
+    return refreshDepositReference(current, next)
+  }
+  const handleDepositEvidenceFiles = async (files: FileList | null) => {
+    const selected = Array.from(files || [])
+    if (!selected.length) return
+    setDepositAutoMessage('Calcolo impronte SHA-256 in corso...')
+    const calculated: Array<{ fileName: string; sha256: string; kind: DepositEvidenceKind }> = []
+    for (const file of selected) {
+      try {
+        calculated.push({ fileName: file.name, sha256: await calculateSha256(file), kind: classifyDepositFile(file.name) })
+      } catch {
+        calculated.push({ fileName: file.name, sha256: '', kind: classifyDepositFile(file.name) })
+      }
+    }
+    setDeposito((current) => calculated.reduce((draft, item) => applyDepositFile(draft, item.kind, item.fileName, item.sha256), current))
+    const incomplete = calculated.filter((item) => !item.sha256)
+    setDepositAutoMessage(incomplete.length ? 'Alcune impronte non sono state calcolate: riprova o inseriscile manualmente.' : 'File riconosciuti e impronte SHA-256 calcolate.')
+  }
   const changeCliente = (key: keyof typeof cliente, value: string) => setCliente((current) => ({ ...current, [key]: value }))
   const changeModelField = (key: string, value: string) => setModelFields((current) => ({ ...current, [key]: value }))
 
@@ -1200,21 +1374,99 @@ export function NotificheLegaliPage() {
                   <span><Inbox size={15} /> RAC e RdAC restano originali digitali da associare.</span>
                 </div>
               </div>
-              <div className="iu-legal-form-grid">
-                <Field label="Atto notificato"><input value={deposito.atto_notificato} onChange={(event) => changeDeposito('atto_notificato', event.currentTarget.value)} placeholder="ricorso.pdf" /></Field>
-                <Field label="SHA-256 atto"><input value={deposito.atto_sha256} onChange={(event) => changeDeposito('atto_sha256', event.currentTarget.value)} /></Field>
-                <Field label="Relata firmata"><input value={deposito.relata_firmata} onChange={(event) => changeDeposito('relata_firmata', event.currentTarget.value)} placeholder="relata_notifica.pdf.p7m" /></Field>
-                <Field label="SHA-256 relata"><input value={deposito.relata_sha256} onChange={(event) => changeDeposito('relata_sha256', event.currentTarget.value)} /></Field>
-                <Field label="PEC inviata"><input value={deposito.pec_inviata} onChange={(event) => changeDeposito('pec_inviata', event.currentTarget.value)} placeholder="pec_inviata.eml" /></Field>
-                <Field label="SHA-256 PEC"><input value={deposito.pec_inviata_sha256} onChange={(event) => changeDeposito('pec_inviata_sha256', event.currentTarget.value)} /></Field>
-                <Field label="Destinatario"><input value={deposito.destinatario_nome} onChange={(event) => changeDeposito('destinatario_nome', event.currentTarget.value)} /></Field>
-                <Field label="RAC originale"><input value={deposito.rac_file} onChange={(event) => changeDeposito('rac_file', event.currentTarget.value)} placeholder="accettazione.eml" /></Field>
-                <Field label="SHA-256 RAC"><input value={deposito.rac_sha256} onChange={(event) => changeDeposito('rac_sha256', event.currentTarget.value)} /></Field>
-                <Field label="RdAC originale"><input value={deposito.rdac_file} onChange={(event) => changeDeposito('rdac_file', event.currentTarget.value)} placeholder="consegna.eml" /></Field>
-                <Field label="SHA-256 RdAC"><input value={deposito.rdac_sha256} onChange={(event) => changeDeposito('rdac_sha256', event.currentTarget.value)} /></Field>
-                <label className="iu-legal-check"><input type="checkbox" checked={Boolean(deposito.ricevuta_completa)} onChange={(event) => changeDeposito('ricevuta_completa', event.currentTarget.checked)} /><span>RdAC completa</span></label>
-                <Field label="Riferimenti ricevute in DatiAtto.xml" wide><input value={deposito.dati_atto_ricevute} onChange={(event) => changeDeposito('dati_atto_ricevute', event.currentTarget.value)} /></Field>
+              <div className="iu-legal-evidence-uploader">
+                <div className="iu-legal-evidence-uploader__text">
+                  <strong>Allega i file della prova</strong>
+                  <span>Scegli insieme atto, relata firmata, PEC inviata, RAC e RdAC: IUSENTRA li riconosce dal nome e calcola automaticamente tutte le impronte SHA-256.</span>
+                  {depositAutoMessage ? <small>{depositAutoMessage}</small> : null}
+                </div>
+                <label className="iu-legal-evidence-uploader__button">
+                  <UploadCloud size={17} />
+                  Scegli file prova
+                  <input
+                    type="file"
+                    multiple
+                    accept=".pdf,.p7m,.eml,.msg"
+                    onChange={(event) => void handleDepositEvidenceFiles(event.currentTarget.files)}
+                  />
+                </label>
               </div>
+              <div className="iu-legal-evidence-summary">
+                <EvidenceSummaryRow label="Atto" fileName={deposito.atto_notificato} shaValue={deposito.atto_sha256} />
+                <EvidenceSummaryRow label="Relata firmata" fileName={deposito.relata_firmata} shaValue={deposito.relata_sha256} />
+                <EvidenceSummaryRow label="PEC inviata" fileName={deposito.pec_inviata} shaValue={deposito.pec_inviata_sha256} />
+                <EvidenceSummaryRow label="RAC" fileName={deposito.rac_file} shaValue={deposito.rac_sha256} />
+                <EvidenceSummaryRow label="RdAC" fileName={deposito.rdac_file} shaValue={deposito.rdac_sha256} />
+              </div>
+              <div className="iu-legal-form-grid iu-legal-form-grid--compact">
+                <Field label="Destinatario" hint="Il nominativo puo' arrivare dalla pratica o essere inserito manualmente.">
+                  <input value={deposito.destinatario_nome} onChange={(event) => changeDeposito('destinatario_nome', event.currentTarget.value)} />
+                </Field>
+                <label className="iu-legal-check"><input type="checkbox" checked={Boolean(deposito.ricevuta_completa)} onChange={(event) => changeDeposito('ricevuta_completa', event.currentTarget.checked)} /><span>Confermo che la RdAC selezionata e' completa</span></label>
+                <Field label="Riferimenti ricevute in DatiAtto.xml" wide hint="I riferimenti vengono preparati dai file scelti; puoi integrarli prima del controllo.">
+                  <textarea value={deposito.dati_atto_ricevute} rows={3} onChange={(event) => changeDeposito('dati_atto_ricevute', event.currentTarget.value)} placeholder="RAC e RdAC associate al destinatario..." />
+                </Field>
+              </div>
+              <details className="iu-legal-manual-evidence">
+                <summary>Correggi manualmente i dati riconosciuti</summary>
+                <div className="iu-legal-form-grid">
+                  <DepositFileField
+                    label="Atto notificato"
+                    fileName={deposito.atto_notificato}
+                    shaValue={deposito.atto_sha256}
+                    filePlaceholder="ricorso.pdf"
+                    accept=".pdf,.p7m,.eml,.msg"
+                    hint="Usa questo campo solo se il riconoscimento automatico non ha associato il file corretto."
+                    onFileNameChange={(value) => changeDeposito('atto_notificato', value)}
+                    onShaChange={(value) => changeDeposito('atto_sha256', value)}
+                    onFileComputed={(fileName, sha256) => updateDepositoFile('atto_notificato', 'atto_sha256', fileName, sha256)}
+                  />
+                  <DepositFileField
+                    label="Relata firmata"
+                    fileName={deposito.relata_firmata}
+                    shaValue={deposito.relata_sha256}
+                    filePlaceholder="relata_notifica.pdf.p7m"
+                    accept=".p7m,.pdf"
+                    hint="Correzione manuale della relata firmata."
+                    onFileNameChange={(value) => changeDeposito('relata_firmata', value)}
+                    onShaChange={(value) => changeDeposito('relata_sha256', value)}
+                    onFileComputed={(fileName, sha256) => updateDepositoFile('relata_firmata', 'relata_sha256', fileName, sha256)}
+                  />
+                  <DepositFileField
+                    label="PEC inviata"
+                    fileName={deposito.pec_inviata}
+                    shaValue={deposito.pec_inviata_sha256}
+                    filePlaceholder="pec_inviata.eml"
+                    accept=".eml,.msg"
+                    hint="Correzione manuale del messaggio PEC inviato."
+                    onFileNameChange={(value) => changeDeposito('pec_inviata', value)}
+                    onShaChange={(value) => changeDeposito('pec_inviata_sha256', value)}
+                    onFileComputed={(fileName, sha256) => updateDepositoFile('pec_inviata', 'pec_inviata_sha256', fileName, sha256)}
+                  />
+                  <DepositFileField
+                    label="RAC originale"
+                    fileName={deposito.rac_file}
+                    shaValue={deposito.rac_sha256}
+                    filePlaceholder="accettazione.eml"
+                    accept=".eml,.msg"
+                    hint="Correzione manuale della ricevuta di accettazione."
+                    onFileNameChange={(value) => changeDeposito('rac_file', value)}
+                    onShaChange={(value) => changeDeposito('rac_sha256', value)}
+                    onFileComputed={(fileName, sha256) => updateDepositoFile('rac_file', 'rac_sha256', fileName, sha256)}
+                  />
+                  <DepositFileField
+                    label="RdAC originale"
+                    fileName={deposito.rdac_file}
+                    shaValue={deposito.rdac_sha256}
+                    filePlaceholder="consegna.eml"
+                    accept=".eml,.msg"
+                    hint="Correzione manuale della ricevuta completa."
+                    onFileNameChange={(value) => changeDeposito('rdac_file', value)}
+                    onShaChange={(value) => changeDeposito('rdac_sha256', value)}
+                    onFileComputed={(fileName, sha256) => updateDepositoFile('rdac_file', 'rdac_sha256', fileName, sha256)}
+                  />
+                </div>
+              </details>
               <button className="iu-legal-submit" type="button" disabled={working} onClick={() => run('deposito')}><UploadCloud size={16} /> {working ? 'Controllo...' : 'Controlla prova deposito'}</button>
             </Panel>
           ) : null}

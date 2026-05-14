@@ -29,6 +29,7 @@ LEGAL_NOTIFICATION_OPERATION = "notifica_pec_l53"
 CLIENT_COMMUNICATION_OPERATION = "comunicazione_cliente_non_notifica"
 TEMPLATE_CATALOG_PATH = Path(__file__).with_name("data") / "notifiche_legali_templates.json"
 CLIENT_COMMUNICATION_CATALOG_PATH = Path(__file__).with_name("data") / "comunicazioni_cliente_templates.json"
+SHA256_HEX_RE = re.compile(r"^[a-fA-F0-9]{64}$")
 
 PUBLIC_PEC_REGISTERS: dict[str, str] = {
     "reginde": "ReGIndE",
@@ -524,15 +525,28 @@ def _first_bool(payload: dict[str, Any], *paths: str, fallback: bool = False) ->
     return fallback
 
 
+def _format_italian_date(value: Any, fallback: str = "") -> str:
+    raw = text(value, fallback)
+    if not raw:
+        return ""
+    date_part = raw.split("T", 1)[0].rsplit(" ", 1)[0]
+    for pattern in ("%Y-%m-%d", "%Y/%m/%d", "%d/%m/%Y", "%d-%m-%Y"):
+        try:
+            return datetime.strptime(date_part, pattern).strftime("%d/%m/%Y")
+        except ValueError:
+            continue
+    return raw
+
+
 def _split_datetime(value: Any) -> tuple[str, str]:
     raw = text(value)
     if "T" in raw:
         date, hour = raw.split("T", 1)
-        return date, hour[:5]
+        return _format_italian_date(date), hour[:5]
     if " " in raw:
         date, hour = raw.rsplit(" ", 1)
-        return date, hour[:5]
-    return raw, ""
+        return _format_italian_date(date), hour[:5]
+    return _format_italian_date(raw), ""
 
 
 def _documents(payload: dict[str, Any]) -> list[dict[str, Any]]:
@@ -571,7 +585,7 @@ def _documents(payload: dict[str, Any]) -> list[dict[str, Any]]:
             "hash_sha256": text(item.get("hash_sha256")),
             "attestazione_conformita": multiline_text(item.get("attestazione_conformita")),
             "attestazione_conformita_presente": boolish(item.get("attestazione_conformita_presente") or item.get("attestazione_presente")),
-            "data_comunicazione_cancelleria": text(
+            "data_comunicazione_cancelleria": _format_italian_date(
                 item.get("data_comunicazione_cancelleria"),
                 text(payload.get("data_comunicazione_cancelleria")),
             ),
@@ -582,7 +596,7 @@ def _documents(payload: dict[str, Any]) -> list[dict[str, Any]]:
 def _build_context(payload: dict[str, Any], *, template: dict[str, Any] | None = None) -> dict[str, Any]:
     data_verifica, ora_verifica = _split_datetime(_first(payload, "destinatario.data_verifica_pec", "data_verifica_pec"))
     studio_citta = text(_first(payload, "avvocato.studio_citta", "studio_citta", fallback=""))
-    notifica_data = text(_first(payload, "notifica.data", "data_relata", fallback=datetime.now().strftime("%d/%m/%Y")))
+    notifica_data = _format_italian_date(_first(payload, "notifica.data", "data_relata", fallback=datetime.now().strftime("%d/%m/%Y")))
     notifica_luogo = text(_first(payload, "notifica.luogo", "luogo", fallback=studio_citta))
     role = normalise_role(_first(payload, "destinatario.tipo", "ruolo_destinatario"))
     source_key = normalise_public_register(_first(payload, "destinatario.fonte_pec", "fonte_pec_destinatario"))
@@ -652,16 +666,16 @@ def _build_context(payload: dict[str, Any], *, template: dict[str, Any] | None =
             "numero": text(_first(payload, "provvedimento.numero", "provvedimento_numero")),
             "anno": text(_first(payload, "provvedimento.anno", "provvedimento_anno")),
             "ufficio_origine": text(_first(payload, "provvedimento.ufficio_origine", "provvedimento_ufficio_origine")),
-            "data": text(_first(payload, "provvedimento.data", "provvedimento_data")),
-            "data_deposito": text(_first(payload, "provvedimento.data_deposito", "provvedimento_data_deposito")),
+            "data": _format_italian_date(_first(payload, "provvedimento.data", "provvedimento_data")),
+            "data_deposito": _format_italian_date(_first(payload, "provvedimento.data_deposito", "provvedimento_data_deposito")),
         },
         "notifica_precedente": {
-            "data": text(_first(payload, "notifica_precedente.data", "notifica_precedente_data")),
+            "data": _format_italian_date(_first(payload, "notifica_precedente.data", "notifica_precedente_data")),
             "esito": text(_first(payload, "notifica_precedente.esito", "notifica_precedente_esito")),
         },
         "provvedimento_rinnovo": {
             "presente": _first_bool(payload, "provvedimento_rinnovo.presente", "provvedimento_rinnovo_presente"),
-            "data": text(_first(payload, "provvedimento_rinnovo.data", "provvedimento_rinnovo_data")),
+            "data": _format_italian_date(_first(payload, "provvedimento_rinnovo.data", "provvedimento_rinnovo_data")),
             "nome_file": text(_first(payload, "provvedimento_rinnovo.nome_file", "provvedimento_rinnovo_nome_file")),
         },
         "riassunzione": {
@@ -1600,6 +1614,7 @@ def build_notification_evidence_pack(payload: dict[str, Any]) -> dict[str, Any]:
     ])
 
     missing: list[str] = []
+    invalid_hashes: list[str] = []
     for item in items:
         if not item["required"]:
             continue
@@ -1607,9 +1622,12 @@ def build_notification_evidence_pack(payload: dict[str, Any]) -> dict[str, Any]:
             missing.append(f"{item['label']}: file mancante.")
         if not item["sha256"]:
             missing.append(f"{item['label']}: hash SHA-256 mancante.")
+        elif not SHA256_HEX_RE.fullmatch(str(item["sha256"])):
+            invalid_hashes.append(f"{item['label']}: hash SHA-256 non valido.")
     return {
         "items": items,
         "missing": missing,
+        "invalid_hashes": invalid_hashes,
         "hashes": {item["kind"]: item["sha256"] for item in items if item["sha256"]},
     }
 
@@ -1634,6 +1652,7 @@ def prepare_pst_failed_notification_workflow(payload: dict[str, Any]) -> LegalWo
         if missing_notice:
             blockers.append(block("AVVISO_MANCATA_CONSEGNA_REQUIRED", "Allega l'avviso di mancata consegna."))
         blockers.extend(block("EVIDENCE_PACK_REQUIRED", item) for item in evidence_pack["missing"])
+        blockers.extend(block("HASH_SHA256_INVALID", item) for item in evidence_pack.get("invalid_hashes", []))
 
     ok = not blockers
     return LegalWorkflowResult(
@@ -1705,9 +1724,10 @@ def validate_deposit_notification_proof(payload: dict[str, Any]) -> LegalWorkflo
 
     evidence_pack = build_notification_evidence_pack(payload)
     blockers.extend(block("EVIDENCE_PACK_REQUIRED", item) for item in evidence_pack["missing"])
+    blockers.extend(block("HASH_SHA256_INVALID", item) for item in evidence_pack.get("invalid_hashes", []))
 
     if not text(payload.get("dati_atto_ricevute")):
-        warnings.append("Prepara l'indicizzazione delle ricevute in DatiAtto.xml prima della busta.")
+        blockers.append(block("DATI_ATTO_RICEVUTE_REQUIRED", "Indica i riferimenti delle ricevute in DatiAtto.xml."))
 
     body = (
         "Prova notifica pronta per il controllo: atto notificato, relata firmata, "

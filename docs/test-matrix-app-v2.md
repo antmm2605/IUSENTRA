@@ -1,6 +1,6 @@
 # Matrice test App V2
 
-Aggiornato: 2026-05-14, fase 10 `fasereact`.
+Aggiornato: 2026-05-14, fase 13 `fasereact`.
 
 La matrice incrocia pagine, ruoli, tenant, feature flag e tipi test. `tested` indica copertura con gate reali comuni e route gia' `react_operational_full`; `partial`, `pending` e `blocked` non sono verdi completi.
 

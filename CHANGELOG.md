@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.234.0 - 2026-05-14
+
+- Completata la fase 13 `fasereact`: promosso `scripts/smoke_app_v2_all.py` a orchestrator operativo con suite `health`, `auth`, `flags`, `rbac`, `tenant`, `routing`, `api`, `pages`, `workflows`, `documents`, `admin`, `search`, `notifications` e `post-deploy`.
+- Aggiunto `scripts/smoke_lib.py` con HTTP client, redaction segreti, result model, severity policy, summary e JSON report senza token/password/API key.
+- Aggiunti test unitari `tests/scripts/test_smoke_lib.py` e `tests/scripts/test_smoke_app_v2_all.py` per redaction, JSON report, alias `--subset`, missing env e policy failure.
+- Creati `docs/smoke-tests.md` e `docs/release-readiness-checklist.md`; aggiornati README, CI/CD gates, piano test, rollout e troubleshooting con comandi reali fase 13.
+- Aggiornato `.github/workflows/smoke-staging.yml` per usare `--suite post-deploy --read-only` e caricare report JSON sanitizzati.
+
 ## 2.233.0 - 2026-05-14
 
 - Completata la fase 12 `fasereact`: creata documentazione finale di handover per architettura, App V2, sicurezza, osservabilita, database/migrazioni, troubleshooting, risk register, release notes e prossime PR.

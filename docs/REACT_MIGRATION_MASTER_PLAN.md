@@ -1,5 +1,29 @@
 # Migrazione progressiva Flask + React
 
+## Stato fase react 13 - 2026-05-14 - Smoke operativi e post-deploy readiness 2.234.0
+
+La tredicesima fase del piano `fasereact` consolida gli smoke operativi finali
+senza introdurre workflow distruttivi. `scripts/smoke_app_v2_all.py` e' ora
+l'orchestrator unico con suite `health`, `auth`, `flags`, `rbac`, `tenant`,
+`routing`, `api`, `pages`, `workflows`, `documents`, `admin`, `search`,
+`notifications` e `post-deploy`, piu' compatibilita con gli alias storici
+`--subset`. La libreria `scripts/smoke_lib.py` governa HTTP, redaction, JSON
+report, summary, severita ed exit code.
+
+Gli smoke sono read-only di default in staging/produzione, non inviano PEC,
+push o notifiche reali, non stampano segreti e marcano come `BLOCKED` i controlli
+autenticati privi di env dedicate invece di dichiararli verdi. Aggiunti
+`docs/smoke-tests.md` e `docs/release-readiness-checklist.md`, aggiornati
+README, piano test, CI/CD gates, rollout, troubleshooting e workflow manuale
+`smoke-staging.yml` con report JSON sanitizzato.
+
+Verifiche fase 13 locali: py_compile, test unitari smoke, help/inventory,
+generatori App V2, validator documentali, OpenAPI/provider, npm
+test/typecheck/build, packaging/readiness, Docker locale no-cache e smoke
+post-deploy read-only risultano verdi. Restano da registrare commit/push
+gemelli, igiene repository e deploy Hetzner sul commit finale prima della
+chiusura della fase.
+
 ## Stato fase react 12 - 2026-05-14 - Documentazione, handover e release playbook 2.233.0
 
 La dodicesima fase del piano `fasereact` consolida la documentazione finale

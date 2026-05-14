@@ -1,6 +1,6 @@
 # Piano test App V2
 
-Aggiornato: 2026-05-14, fase 11 `fasereact`.
+Aggiornato: 2026-05-14, fase 13 `fasereact`.
 
 ## Strategia
 
@@ -18,7 +18,7 @@ La fase 10 consolida i test esistenti senza dichiarare passati comandi non esegu
 - Route manifest: 98.
 - Route P0/P1: 63.
 - Route P0/P1 con stato `tested`: 34.
-- File test/smoke censiti: 318.
+- File test/smoke censiti: 321.
 - Stati matrice: blocked=11, partial=38, pending=15, tested=34.
 
 ## Comandi principali
@@ -56,6 +56,20 @@ Contratti verificati con `docs/openapi.yaml`, `scripts/validate_openapi.py`, `sc
 ## E2E e smoke
 
 E2E Python presenti in `tests/e2e/` e golden path. Non esiste Playwright/Cypress dedicato. Lo smoke unificato fase 10 e' `scripts/smoke_app_v2_all.py`; se mancano credenziali, esegue readiness/inventari e dichiara i profili autenticati mancanti senza marcarli passati.
+
+## Smoke operativi fase 13
+
+La fase 13 promuove `scripts/smoke_app_v2_all.py` a orchestrator operativo. Suite disponibili: `health`, `auth`, `flags`, `rbac`, `tenant`, `routing`, `api`, `pages`, `workflows`, `documents`, `admin`, `search`, `notifications` e `post-deploy`. Il runner supporta `--read-only`, `--json-output`, `--fail-on-warning`, `--require-credentials` e mantiene gli alias storici `--subset inventory|contracts|routing|workflows`.
+
+Comandi:
+
+```powershell
+python scripts\smoke_app_v2_all.py --suite all --read-only
+python scripts\smoke_app_v2_all.py --suite post-deploy --read-only --base-url https://app.iusentra.it
+python scripts\smoke_app_v2_all.py --suite health --read-only --json-output smoke-report.json
+```
+
+`BLOCKED` indica env o ID test mancanti; non e' un verde. Con `--require-credentials`, profili smoke mancanti fanno fallire il comando.
 
 ## Flaky tests
 

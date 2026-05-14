@@ -14,6 +14,7 @@ Per un nuovo contributore la mappa ufficiale e' [docs/index.md](docs/index.md). 
 - [docs/security-rbac-tenant-isolation.md](docs/security-rbac-tenant-isolation.md) e [SECURITY.md](SECURITY.md) per RBAC, tenant isolation, PII e segreti;
 - [docs/api-contracts.md](docs/api-contracts.md) per OpenAPI e provider verification;
 - [docs/test-plan-app-v2.md](docs/test-plan-app-v2.md) e [docs/ci-cd-gates.md](docs/ci-cd-gates.md) per gate reali;
+- [docs/smoke-tests.md](docs/smoke-tests.md) per smoke operativi, JSON report, env e post-deploy;
 - [docs/release-rollout.md](docs/release-rollout.md) per deploy, smoke e rollback;
 - [docs/troubleshooting.md](docs/troubleshooting.md) per diagnosi rapida.
 
@@ -34,6 +35,16 @@ npm --prefix frontend run build
 ```
 
 I smoke autenticati non usano credenziali hardcoded: richiedono variabili ambiente dedicate (`IUSENTRA_ADMIN_*`, `IUSENTRA_TENANT_A_*`, `IUSENTRA_TENANT_B_*`, `IUSENTRA_READONLY_*`). Storybook, VRT e Playwright/Cypress non sono comandi presenti nel repository e non vanno dichiarati verdi.
+
+Smoke operativi fase 13:
+
+```powershell
+python scripts\smoke_app_v2_all.py --suite all --read-only
+python scripts\smoke_app_v2_all.py --suite post-deploy --read-only --base-url https://app.iusentra.it
+python scripts\smoke_app_v2_all.py --suite rbac --read-only
+python scripts\smoke_app_v2_all.py --suite tenant --read-only
+python scripts\smoke_app_v2_all.py --suite health --read-only --json-output smoke-report.json
+```
 
 ## Cosa fa oggi
 

@@ -2,6 +2,19 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-14T10:05:00+02:00: fase react 13 `fasereact`
+2.234.0. L'audit smoke distingue ora controlli passati, falliti, saltati e
+bloccati. L'orchestrator fase 13 non maschera l'assenza di credenziali: auth,
+RBAC, tenant e download documento test restano `BLOCKED` quando mancano env o
+ID sintetici. I report JSON redigono password, token e API key; lo staging
+workflow carica artifact sanitizzati e usa `--suite post-deploy --read-only`.
+
+Audit anti-mascheramento: nessuna suite autenticata viene dichiarata completa
+senza profili smoke; nessuna PEC, push, upload o modifica ruolo viene eseguita
+nel post-deploy read-only. Le failure critiche restano `FAIL` e causano exit
+non-zero. Docker locale 2.234.0 conferma immagine, runtime e readiness senza
+committare dati runtime rigenerati dai container.
+
 Aggiornamento 2026-05-14T09:30:00+02:00: fase react 12 `fasereact`
 2.233.0. L'audit documentale ha chiuso i vuoti di handover: indice ufficiale,
 architettura corrente, App V2, troubleshooting, risk register, osservabilita,

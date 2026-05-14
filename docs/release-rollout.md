@@ -75,6 +75,16 @@ La risposta `403` su `/app-v2` o `/app-v2/documenti` e' corretta quando il flag
 del tenant e' spento; la risposta `200` e' corretta solo per tenant/ambienti
 abilitati esplicitamente.
 
+Fase 13 consolida il comando post-deploy unico:
+
+```powershell
+python scripts\smoke_app_v2_all.py --suite post-deploy --read-only --base-url https://app.iusentra.it --json-output artifacts\smoke\post-deploy.json
+```
+
+Il comando deve restituire exit `0` senza `FAIL`. Eventuali `BLOCKED` vanno
+letti come blocchi reali di ambiente, ad esempio credenziali smoke o ID
+documento test mancanti, e non come controlli passati.
+
 ## Runbook Hetzner fase 12
 
 Pre-release minima:
@@ -324,3 +334,27 @@ python scripts/smoke_app_v2_routing.py --require-credentials
 
 Rollback entro 2 ore: spegnere il flag pagina, riavviare i worker web e
 verificare che la route legacy torni al template/fallback senza redirect.
+
+## Rollback decision based on smoke failure
+
+Stop rollout o rollback immediato se `smoke_app_v2_all.py` segnala `FAIL` su:
+
+- autenticazione non funzionante;
+- RBAC bypass o admin escalation;
+- tenant isolation bypass o download cross-tenant consentito;
+- secret leakage;
+- open redirect critico;
+- API P0 con 500;
+- pagina App V2 P0 irraggiungibile con flag attivo;
+- fallback flag-off rotto;
+- provider/API contract P0 incoerente in modo critico.
+
+Mitigazione rapida:
+
+1. spegnere il feature flag `routes.appV2.*` coinvolto;
+2. disabilitare redirect App V2 della pagina interessata;
+3. tornare alla route legacy governata;
+4. riavviare app/worker se il runtime usa env flag;
+5. rieseguire `python scripts\smoke_app_v2_all.py --suite post-deploy --read-only`;
+6. monitorare `/api/pronto`, error rate, `policy_denied` e `cross_tenant_denied`;
+7. aprire incident con log redatti e revertire il commit se il flag non isola il difetto.

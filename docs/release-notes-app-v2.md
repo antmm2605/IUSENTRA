@@ -1,10 +1,10 @@
 # Release notes tecniche App V2
 
-Aggiornato: 2026-05-14, fase 12 `fasereact`.
+Aggiornato: 2026-05-14, fase 13 `fasereact`.
 
 ## Sintesi
 
-Le fasi `fasereact` 1-12 hanno consolidato la governance App V2: registro pagine, priorita, feature flag default-off, routing sicuro, backend security, OpenAPI/provider verification, frontend gates, requisiti area, UI regression leggera, test plan, CI/CD gates e documentazione handover.
+Le fasi `fasereact` 1-13 hanno consolidato la governance App V2: registro pagine, priorita, feature flag default-off, routing sicuro, backend security, OpenAPI/provider verification, frontend gates, requisiti area, UI regression leggera, test plan, CI/CD gates, documentazione handover e smoke operativi post-deploy.
 
 ## Aree impattate
 
@@ -12,7 +12,16 @@ Le fasi `fasereact` 1-12 hanno consolidato la governance App V2: registro pagine
 - API `/api/v1/ui/*` e contratti OpenAPI.
 - Feature flag `routes.appV2.*`.
 - CI GitHub Actions e smoke manuali.
+- Orchestrator smoke fase 13 e report JSON redatti.
 - Documentazione operativa, sicurezza e release.
+
+## Smoke readiness 2.234.0
+
+- `scripts/smoke_app_v2_all.py` supporta `--suite post-deploy --read-only`,
+  output JSON, exit code affidabile e alias storici `--subset`.
+- `scripts/smoke_lib.py` centralizza HTTP, redaction, severity e summary.
+- `.github/workflows/smoke-staging.yml` produce artifact `smoke-report.json`.
+- `docs/smoke-tests.md` e `docs/release-readiness-checklist.md` sono le fonti operative.
 
 ## Feature flag
 

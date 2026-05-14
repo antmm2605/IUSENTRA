@@ -1,6 +1,6 @@
 # Pytest issue aperte e risoluzioni
 
-Aggiornato: 2026-05-14, fase react 12 documentazione App V2 2.233.0.
+Aggiornato: 2026-05-14, fase react 13 smoke operativi App V2 2.234.0.
 
 ## Regola operativa
 
@@ -10,6 +10,7 @@ Questo file e' la coda di lavoro. Prima di rilanciare test gia' passati, control
 
 | Area | Test / comando | Stato | Problema rilevato | Risoluzione |
 | --- | --- | --- | --- | --- |
+| Fase react 13 / smoke operativi | Orchestrator `smoke_app_v2_all.py`, post-deploy read-only e workflow staging | Nessuna issue aperta sul codice | Gli smoke autenticati admin/tenant A/tenant B/readonly, il controllo RBAC readonly e il download/cross-tenant con ID documento restano `BLOCKED` quando mancano env/secrets dedicate; questo e' un blocco ambiente, non una failure codice. | Aggiunti `scripts/smoke_lib.py`, suite fase 13, JSON report, redaction, docs e test. Post-deploy pubblico read-only: PASS=76, FAIL=0, SKIP=1, BLOCKED=6. Configurare account smoke e ID sintetici per sbloccare i controlli autenticati. |
 | Fase react 12 / deploy Hetzner | Verifica pubblica immediata post-recreate | Nessuna issue aperta sul codice | Il primo giro pubblico subito dopo il deploy ha ricevuto 503 mentre il proxy si riagganciava ai container appena ricreati; i container erano gia' healthy sul server e `/api/pronto` interno all'app registrava 200 nei log. | Attesi 15 secondi, readiness pubblica tornata 200 `versione=2.233.0`; smoke produzione security/routing/workflows rilanciati e verdi. |
 | Fase react 12 / documentazione handover App V2 | Docs finali, validator documentali, generatori, OpenAPI, frontend build | Nessuna issue aperta sul codice | Il primo `generate_api_contracts.py --check` ha intercettato una modifica manuale a `docs/api-contracts.md`, che e' un documento parzialmente generato. Smoke autenticati, Storybook e VRT restano gap reali per assenza di secrets/runner, non failure. | Aggiornata la fonte `scripts/react-migration/generate_api_contracts.py`, rigenerati OpenAPI/mappa/API contracts con data fase 12 e rilanciati i gate: validator docs, generatori, OpenAPI/provider, npm, packaging e pytest mirati verdi in `pytest-confirmed-ok.md`. |
 | Fase react 11 / CI-CD App V2 | Workflow, gate bloccanti, security audit, smoke staging, Docker | Nessuna issue aperta sul codice | GitHub Actions reali vanno verificate dopo push; smoke autenticati restano bloccati da assenza di credenziali env/secrets dedicate. Il primo tentativo locale su `/api/pronto` e' partito mentre i container erano ancora `health: starting` ed e' stato ripetuto dopo health. | Aggiunti gate in CI, `smoke-staging.yml`, `docs/ci-cd-gates.md` e test fase 11. Localmente YAML, generatori, pytest, provider, npm, pip-audit, coverage-critical, e2e-smoke, Docker no-cache e smoke anonimi sono verdi e registrati in `pytest-confirmed-ok.md`. |

@@ -1,12 +1,29 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-14, fase react 12 documentazione App V2 2.233.0.
+Aggiornato: 2026-05-14, fase react 13 smoke operativi App V2 2.234.0.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Fase react 13 - smoke operativi e post-deploy readiness 2.234.0
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile scripts\smoke_lib.py scripts\smoke_app_v2_all.py` | OK | Sintassi confermata per libreria smoke comune e orchestrator fase 13. |
+| `python scripts\smoke_app_v2_all.py --help`; `python scripts\smoke_app_v2_all.py --subset inventory` | OK | CLI fase 13 disponibile; alias storico fase 10 preservato e inventario pagine/routing/workflow eseguito senza credenziali. |
+| `python -m pytest -q tests\scripts\test_smoke_lib.py tests\scripts\test_smoke_app_v2_all.py --tb=short` | OK | 7/7 passati: redaction segreti, URL safe, JSON report, policy failure, alias `--subset`, inventory JSON e missing env. |
+| `python scripts\react-migration\generate_app_v2_test_docs.py --check`; `python -m pytest -q tests\scripts\test_smoke_lib.py tests\scripts\test_smoke_app_v2_all.py tests\test_app_v2_test_plan_phase10.py tests\test_ci_cd_gates_phase11.py --tb=short` | OK | Documenti test App V2 deterministici dopo l'inserimento della fase 13; 15/15 passati su smoke, test-plan e CI/CD. |
+| `python scripts\validate_docs_links.py`; `python scripts\validate_docs_commands.py` | OK | Link documentali 148 verificati; 154 comandi/path documentati controllati dopo l'aggiunta di `docs/smoke-tests.md` e release readiness. |
+| `python scripts\smoke_app_v2_all.py --suite health --read-only --base-url https://app.iusentra.it --json-output ...` | OK | Readiness pubblica 200 `versione=2.233.0` prima del bump, shell base 302 controllato e report JSON prodotto senza segreti. |
+| `python scripts\smoke_app_v2_all.py --suite post-deploy --read-only --staging --base-url https://app.iusentra.it --json-output %TEMP%\iusentra-smoke-phase13-postdeploy.json` | OK | Post-deploy produzione read-only: PASS=76, FAIL=0, SKIP=1, BLOCKED=6, WARNING=0. Bloccati solo controlli autenticati/ID test per env mancanti; non dichiarati verdi. |
+| `python tools\sync_packaging_files.py --check`; `python -c "import pct; print(pct.__version__)"` | OK | Packaging sincronizzato e versione sorgente `2.234.0` confermata dopo bump fase 13. |
+| `python scripts\validate_openapi.py docs\openapi.yaml`; `python scripts\verify_openapi_provider.py`; `python scripts\smoke_app_v2_all.py --suite flags --read-only --base-url https://app.iusentra.it` | OK | OpenAPI valido; provider verification: 182 auth-error, 27 success e 1 backend-security; smoke feature flag produzione 4 PASS, 0 FAIL. |
+| `npm --prefix frontend run test`; `npm --prefix frontend run typecheck`; `npm --prefix frontend run build` | OK | Contratti React, gate App V2, UI coverage, TypeScript e build Vite 2.234.0 verdi; build completata in 5.86s con asset principali invariati `index-CSdjNGxs.js` 444.72 kB / 131.62 kB gzip e `index-Bafxecf8.css` 121.77 kB / 22.33 kB gzip. |
+| `python -m pytest -q tests\test_packaging_consistency.py tests\test_release_readiness.py tests\test_openapi_contracts_phase6.py --tb=short` | OK | 13/13 passati su packaging, readiness release e contratti OpenAPI dopo il consolidamento smoke fase 13. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx`; smoke post-deploy locale | OK | Build locale no-cache 2.234.0 completata; app, scheduler, OCR e Redis healthy, nginx running; `/api/pronto` locale 200 `versione=2.234.0`, runtime container e label immagine `2.234.0`; smoke post-deploy locale read-only: PASS=76, FAIL=0, SKIP=1, BLOCKED=6, WARNING=0. |
 
 ### Fase react 12 - documentazione, handover e release playbook 2.233.0
 

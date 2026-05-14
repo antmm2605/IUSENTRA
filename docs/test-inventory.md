@@ -1,26 +1,26 @@
 # Inventario test IUSENTRA
 
-Aggiornato: 2026-05-14, fase 10 `fasereact`.
+Aggiornato: 2026-05-14, fase 13 `fasereact`.
 
 Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. Non sostituisce l'esecuzione dei test: classifica i file presenti e rende visibili gap, aree e stato.
 
 ## Sintesi
 
-- File pytest censiti: 312.
-- Smoke/script censiti: 5.
+- File pytest censiti: 314.
+- Smoke/script censiti: 6.
 - Runner frontend component/VRT rilevati: nessuno; copertura UI tramite gate statici fase 9.
 
 | Tipo test | Conteggio |
 | --- | --- |
-| API contract | 55 |
+| API contract | 56 |
 | Backend | 37 |
 | E2E | 6 |
 | Frontend static gate | 1 |
 | Frontend/UI | 87 |
 | RBAC | 33 |
 | Security | 26 |
-| Smoke CLI | 5 |
-| Tenant isolation | 68 |
+| Smoke CLI | 6 |
+| Tenant isolation | 69 |
 
 ## Fasi pytest governate
 
@@ -35,7 +35,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | 06-telematico | PCT, PEC, portali telematici, SIGP, buste, Local Signer e deposito. | 26 |
 | 07-lex-ai | Lex, assistenti, fonti ufficiali, legal intelligence, coverage AI e ricerca. | 88 |
 | 08-e2e | Flussi end-to-end e golden path ufficiali. | 6 |
-| 09-misc | Test non classificati dalle fasi principali | 41 |
+| 09-misc | Test non classificati dalle fasi principali | 43 |
 
 ## Suite CI aggiuntive
 
@@ -61,6 +61,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Agenda | API contract | tests/test_calendar_sync_engine.py | tenant | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Agenda | Backend | tests/test_agenda.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Agenda | Frontend/UI | tests/test_calendar_api.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
+| App V2 | API contract | tests/scripts/test_smoke_app_v2_all.py | happy/edge path dominio | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | App V2 | API contract | tests/test_app_v2_frontend_phase7.py | 403/RBAC, tenant, feature flag, contratto | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | App V2 | API contract | tests/test_app_v2_test_plan_phase10.py | tenant, feature flag | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | App V2 | Frontend/UI | tests/test_app_v2_page_registry.py | feature flag | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
@@ -174,6 +175,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Backend domain | Security | tests/test_rate_limit.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Security | tests/test_scheduler.py | feature flag | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Security | tests/test_secrets_manager.py | happy/edge path dominio | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Backend domain | Tenant isolation | tests/scripts/test_smoke_lib.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_checklist_atti.py | 403/RBAC, tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_dashboard_mailbox_sync.py | tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | Tenant isolation | tests/test_docker_entrypoint.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
@@ -347,6 +349,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Smoke | Smoke CLI | scripts/smoke_app_v2_routing.py | readiness, route, workflow o sicurezza runtime | autenticazione completa solo con env smoke dedicate | censito |
 | Smoke | Smoke CLI | scripts/smoke_app_v2_workflows.py | readiness, route, workflow o sicurezza runtime | autenticazione completa solo con env smoke dedicate | censito |
 | Smoke | Smoke CLI | scripts/smoke_backend_security.py | readiness, route, workflow o sicurezza runtime | autenticazione completa solo con env smoke dedicate | censito |
+| Smoke | Smoke CLI | scripts/smoke_lib.py | readiness, route, workflow o sicurezza runtime | autenticazione completa solo con env smoke dedicate | censito |
 | Telematico | Backend | tests/test_pst_services.py | contratto | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Telematico | Frontend/UI | tests/test_codici_oggetto_pst_catalog.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |
 | Telematico | Frontend/UI | tests/test_conformita_pst.py | happy/edge path dominio | nessun runner component/VRT dedicato; copertura via gate statici e browser smoke | censito |

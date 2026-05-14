@@ -1,6 +1,6 @@
 # CI/CD gates IUSENTRA
 
-Aggiornato: 2026-05-14, fase 11 `fasereact`.
+Aggiornato: 2026-05-14, fase 13 `fasereact`.
 
 ## Obiettivo
 
@@ -33,7 +33,7 @@ ambiente esterno o credenziali smoke.
 | `.github/workflows/security-supply-chain.yml` | pull_request, workflow_dispatch, schedule | `Generate SBOM` | `anchore/sbom-action@v0` | si | required | Artifact SBOM SPDX. |
 | `.github/workflows/e2e-nightly.yml` | schedule, workflow_dispatch | `E2E full suite` | `run_pytest_phases.py --suite e2e-nightly` | no PR | nightly/manual | Verifica ampia non sostitutiva. |
 | `.github/workflows/performance-nightly.yml` | schedule, workflow_dispatch | `Benchmark runtime leggero` | `tools/performance_smoke.py --strict` | no PR | nightly/manual | Artifact performance JSON. |
-| `.github/workflows/smoke-staging.yml` | workflow_dispatch | `Smoke ambiente` | `smoke_backend_security.py`, `smoke_app_v2_all.py` su ambiente indicato | manuale/post-deploy | optional/manual | Usa environment `staging`; credenziali solo da secrets se richieste. |
+| `.github/workflows/smoke-staging.yml` | workflow_dispatch | `Smoke ambiente` | `smoke_app_v2_all.py --suite post-deploy --read-only --json-output artifacts/smoke/smoke-report.json` su ambiente indicato | manuale/post-deploy | optional/manual | Usa environment `staging`; credenziali solo da secrets se richieste; artifact JSON redatto. |
 | `.github/workflows/sync-claude-to-codex.yml` | push branch gemelli, workflow_dispatch | `sync-peer-branch` | `git push origin HEAD:<branch-gemello> --force` | operativo | required repo hygiene | Solo mirror branch ammessi, non quality gate. |
 
 ## Gate bloccanti
@@ -49,7 +49,7 @@ ambiente esterno o credenziali smoke.
 ## Gate informativi, manuali e nightly
 
 - `CI Release Overlay`: manuale, da usare prima di release o deploy operativo.
-- `Smoke Staging`: manuale/post-deploy, richiede environment protetto e, per profili autenticati, secrets dedicati.
+- `Smoke Staging`: manuale/post-deploy, usa l'orchestrator fase 13 in modalita read-only; richiede environment protetto e, per profili autenticati, secrets dedicati.
 - `E2E Nightly`: nightly/manuale, copre flussi piu' lunghi.
 - `Performance Nightly`: nightly/manuale, produce baseline runtime.
 - Storybook/VRT: non attivi. Non esiste comando reale nel repo, quindi non sono dichiarati gate.
@@ -63,7 +63,7 @@ ambiente esterno o credenziali smoke.
 | `frontend-npm-audit-report` | `security-supply-chain.yml` | report JSON audit npm production deps | 14 giorni | Nessun segreto. |
 | `sbom` | `security-supply-chain.yml` | SBOM SPDX JSON | default GitHub | Inventario dipendenze, non contiene credenziali. |
 | `performance-smoke` | `performance-nightly.yml` | tempi benchmark runtime leggero | default GitHub | Nessun dato cliente. |
-| `smoke-staging-reports` | `smoke-staging.yml` | log sanitizzati smoke ambiente | 14 giorni | Non stampare password/token; scripts usano env e non echo. |
+| `smoke-staging-reports` | `smoke-staging.yml` | log sanitizzati e `smoke-report.json` ambiente | 14 giorni | Password/token redatti da `smoke_lib.py`; nessun contenuto documento o payload completo. |
 
 ## Required Secrets and Environment Variables
 
@@ -159,3 +159,21 @@ python scripts\validate_docs_commands.py
 ```
 
 Questi comandi non sostituiscono CI, OpenAPI, provider verification o test: verificano solo che i link locali e i comandi/script citati nei documenti handover puntino a file reali e npm scripts esistenti. Possono essere aggiunti a CI in una PR successiva se il rumore resta basso.
+
+## Fase 13 - Smoke operativo
+
+L'orchestrator operativo e' `scripts/smoke_app_v2_all.py`. Le suite principali
+sono `health`, `auth`, `flags`, `rbac`, `tenant`, `routing`, `api`, `pages`,
+`workflows`, `documents`, `admin`, `search`, `notifications` e `post-deploy`.
+I vecchi `--subset inventory|contracts|routing|workflows` restano alias
+compatibili.
+
+Comando manuale consigliato:
+
+```powershell
+python scripts\smoke_app_v2_all.py --suite post-deploy --read-only --base-url https://app.iusentra.it --json-output artifacts\smoke\smoke-report.json
+```
+
+`BLOCKED` e `SKIP` non sono successi mascherati: indicano env o ID test assenti
+e vanno riportati nella release. Con `--require-credentials` le suite bloccate
+da credenziali mancanti falliscono.

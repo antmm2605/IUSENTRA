@@ -1,6 +1,6 @@
 # Troubleshooting IUSENTRA
 
-Aggiornato: 2026-05-14, fase 12 `fasereact`.
+Aggiornato: 2026-05-14, fase 13 `fasereact`.
 
 Usare questo documento per diagnosi rapida. Non dichiarare verde un comando non eseguito.
 
@@ -24,11 +24,32 @@ Usare questo documento per diagnosi rapida. Non dichiarare verde un comando non 
 | Database test non inizializzato | Errori file/SQLite/PostgreSQL | Data root o DSN mancante. | Usare data root temporaneo nei test; non scrivere runtime in repo. | [database](database-and-migrations.md) |
 | Docker readiness lenta | Primo `/api/pronto` fallisce mentre health e' starting | Container in warm-up. | Attendere health e rilanciare readiness; non diagnosticare `email/ordinaria.json` senza verificare env. | [release rollout](release-rollout.md) |
 
+## Smoke tests
+
+| Sintomo | Causa probabile | Comando diagnostico | Fix | Rollback |
+| --- | --- | --- | --- | --- |
+| `BASE_URL` non raggiungibile | DNS/proxy/container non pronto | `python scripts\smoke_app_v2_all.py --suite health --base-url <url>` | Verificare `/api/pronto`, `docker compose ps`, Caddy/Nginx e certificati. | Stop rollout se readiness resta KO. |
+| Login smoke fallisce | Account smoke assente, CSRF/form cambiato o password errata | `python scripts\smoke_app_v2_all.py --suite auth --require-credentials` | Rigenerare account smoke dedicati e controllare form login senza stampare password. | Stop rollout se login utenti reali e smoke falliscono. |
+| 403 inatteso | Flag spento, permesso mancante o tenant errato | `python scripts\smoke_app_v2_all.py --suite flags --read-only` | Verificare flag canonico, ruolo e tenant sessione. | Spegnere flag pagina se 403 colpisce ruoli ammessi. |
+| Tenant isolation smoke fallisce | Parametro client accettato o repository non tenant-aware | `python scripts\smoke_app_v2_all.py --suite tenant --require-credentials` | Bloccare `tenant_id` client-side/server-side, usare tenant corrente e aggiungere test. | Rollback immediato. |
+| Feature Flag smoke fallisce | Flag documentato ma non registrato o default non off | `python scripts\smoke_app_v2_all.py --suite flags` | Allineare `web/services/feature_flags.py`, frontend route e docs. | Spegnere flag o revertire mapping. |
+| Open redirect smoke fallisce | Query `next/redirect/return_url` non sanificata | `python scripts\smoke_app_v2_all.py --suite routing` | Usare whitelist query e bloccare host esterni. | Rollback immediato se redirect esterno e' possibile. |
+| Documento test mancante | ID sintetico non configurato | `python scripts\smoke_app_v2_all.py --suite documents --read-only` | Impostare `IUSENTRA_TEST_DOCUMENT_ID` o ID tenant A/B non sensibili. | Nessun rollback se solo BLOCKED; rollback se download cross-tenant passa. |
+| Env mancanti | `BLOCKED` su auth/RBAC/tenant/workflow | `python scripts\smoke_app_v2_all.py --suite post-deploy --read-only` | Configurare secrets environment protetto, non nel repository. | Non promuovere rollout completo finche' gli smoke autenticati restano blocked. |
+| Mutating smoke bloccato | `IUSENTRA_ENABLE_MUTATING_SMOKE` spento | `python scripts\smoke_app_v2_all.py --suite rbac --read-only` | Abilitarlo solo in ambiente test con cleanup. | Nessun rollback: blocco intenzionale. |
+| JSON report non scritto | Directory assente o permessi | `python scripts\smoke_app_v2_all.py --suite health --json-output artifacts\smoke\health.json` | Creare directory scrivibile o usare `%TEMP%`. | Non blocca se stdout e exit code sono raccolti. |
+| Timeout | Warm-up tenant o endpoint lento | `python scripts\smoke_app_v2_all.py --suite post-deploy --timeout 480` | Raccogliere endpoint lento e confrontare baseline performance. | Stop rollout se p95 o P0 peggiora oltre soglia. |
+| TLS locale | Certificato locale non fidato | `python scripts\smoke_app_v2_all.py --suite health --base-url http://127.0.0.1:8080` | Usare HTTP locale o certificato fidato; non disabilitare TLS in staging/prod. | Nessuno se solo locale. |
+| Staging secrets mancanti | Workflow `smoke-staging` con credenziali richieste fallisce | Controllare environment `staging` e secrets GitHub | Configurare `IUSENTRA_ADMIN_*`, tenant A/B, readonly e API key smoke. | Non promuovere rollout autenticato. |
+| API 500 | Regressione backend o bootstrap dati | `python scripts\smoke_app_v2_all.py --suite api --read-only` | Leggere log redatti, test endpoint e rollback se P0. | Rollback immediato su P0. |
+| Frontend shell non raggiungibile | routing/proxy/static asset rotto | `python scripts\smoke_app_v2_all.py --suite pages --read-only` | Verificare build Vite, shell React, Caddy/Nginx e login redirect. | Spegnere flag/redirect o revertire. |
+
 ## Comandi diagnostici rapidi
 
 ```powershell
 python scripts\validate_docs_links.py
 python scripts\validate_docs_commands.py
+python scripts\smoke_app_v2_all.py --suite post-deploy --read-only
 python scripts\react-migration\generate_app_v2_page_registry.py --check
 python scripts\react-migration\generate_app_v2_area_requirements.py --check
 python scripts\react-migration\generate_app_v2_test_docs.py --check

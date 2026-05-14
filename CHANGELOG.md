@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.235.0 - 2026-05-14
+
+- Chiusura fase 14 `fasereact`: report finale tecnico, release readiness checklist, GO/NO-GO e prossima PR consigliata.
+- Riesecuzione dei gate finali documentali, App V2, OpenAPI/provider, backend/frontend, sicurezza, coverage e smoke senza introdurre nuove funzionalita applicative.
+- Tracciati i gap non critici rimasti: credenziali smoke autenticate, VRT/Storybook e GitHub Actions remote da confermare sui runner.
+- Refactor finale di governance per separare creazione fascicolo e helper documenti in moduli bootstrap dedicati, piu' pattern anti-mojibake email espresso con escape Unicode.
+
 ## 2.234.0 - 2026-05-14
 
 - Completata la fase 13 `fasereact`: promosso `scripts/smoke_app_v2_all.py` a orchestrator operativo con suite `health`, `auth`, `flags`, `rbac`, `tenant`, `routing`, `api`, `pages`, `workflows`, `documents`, `admin`, `search`, `notifications` e `post-deploy`.

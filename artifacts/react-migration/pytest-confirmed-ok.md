@@ -1174,6 +1174,27 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | Hetzner `/api/push/public-key` autenticato con sessione tenant | OK | Risposta `ok=true`, `configured=true`, `enabled=true`, public key presente; nessun campo `privateKey` e nessuna assegnazione `IUSENTRA_VAPID_PRIVATE_KEY=` nella risposta. |
 | `git diff --check` | OK | Nessun errore whitespace. |
 
+## Fase react 14 - release finale 2.235.0 - 2026-05-14
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python tools\sync_packaging_files.py --check`; `python -c "import pct; print(pct.__version__)"` | OK | Packaging sincronizzato e runtime locale `2.235.0`. |
+| `python scripts\validate_docs_links.py`; `python scripts\validate_docs_commands.py` | OK | Link docs e comandi/path documentati validati. |
+| `python scripts\react-migration\generate_app_v2_page_registry.py --check`; `generate_app_v2_area_requirements.py --check`; `generate_app_v2_test_docs.py --check` | OK | Registry, requisiti area e test docs allineati. |
+| `python scripts\validate_ui_coverage.py`; `node scripts\react-migration\check-route-gate.mjs`; `node frontend\scripts\check-app-v2-frontend.mjs`; `node frontend\scripts\check-react-contracts.mjs` | OK | Gate App V2/React: P0/P1=63, full UI tested=34, contratti verdi. |
+| `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml`; `python scripts\verify_openapi_provider.py` | OK | OpenAPI valido; provider verification 182 auth-error, 27 success sample, 1 guardrail. |
+| `python -m pytest -q tests\scripts\test_smoke_lib.py tests\scripts\test_smoke_app_v2_all.py tests\test_app_v2_test_plan_phase10.py tests\test_ci_cd_gates_phase11.py tests\test_openapi_contracts_phase6.py tests\test_packaging_consistency.py tests\test_release_readiness.py --tb=short` | OK | 28/28 passati. |
+| `python -m pytest -q tests\test_auth.py tests\test_backend_security_phase5.py tests\test_tenant_isolation_runtime.py tests\test_app_v2_feature_flags.py tests\test_app_v2_routing.py --tb=short` | OK | 70/70 passati su auth, backend security, tenant, feature flag e routing. |
+| `npm --prefix frontend run test`; `npm --prefix frontend run typecheck`; `npm --prefix frontend run build` | OK | Test frontend, TypeScript e build Vite verdi; bundle principale invariato. |
+| `python scripts\run_pytest_phases.py --suite release-readiness --timeout-minutes 10`; `--suite quality-overlay`; `--suite e2e-smoke`; `--suite coverage-critical` | OK | Shard CI locali verdi; coverage-critical pytest 313 test. |
+| `python scripts\run_pytest_phases.py --suite coverage-critical --timeout-minutes 20 -- --cov=lex --cov=pct.auth --cov=pct.storage --cov=pct.storage_postgres --cov=pct.telematico_repository --cov=pct.telematico_workflow --cov-config=config/coverage-critical.ini --cov-report=term-missing --cov-fail-under=71` | OK | Coverage critica 71.61%, soglia 71 raggiunta; ResourceWarning SQLite non bloccanti. |
+| `python -m pip_audit -r requirements.txt --format json --output %TEMP%\pip-audit-phase14.json`; `npm --prefix frontend audit --audit-level=critical --omit=dev --json` | OK | Nessuna vulnerabilita nota. |
+| Secret scan high-confidence | OK | 5213 file esaminati, 0 finding. |
+| `python tools\check_python_baseline.py`; `python tools\check_repo_governance.py`; Ruff; Ruff governed; mypy governed; flake8 | OK | Governance verde dopo estrazione moduli Fascicoli/Documenti e pattern mojibake Unicode-escaped. |
+| `python -m pytest -q tests\test_web_bootstrap.py::test_file_critici_non_contengono_marker_di_mojibake ... tests\test_fascicolo_detail_ux.py --tb=short`; `python -m pytest -q tests\test_polisweb.py::test_route_importa_documenti_portale_salva_documenti_e_deposito ... --tb=short` | OK | 12/12 e 6/6 passati sul refactor finale. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx`; `/api/pronto`; runtime/label immagine | OK | Docker locale finale post-refactor healthy; readiness `2.235.0`, container runtime e label `2.235.0`. |
+| `python scripts\smoke_app_v2_all.py --subset contracts --read-only --base-url http://127.0.0.1:8080`; `python scripts\smoke_app_v2_all.py --suite post-deploy --read-only --base-url http://127.0.0.1:8080` | OK | Contracts PASS=7 FAIL=0; post-deploy PASS=76 FAIL=0 SKIP=1 BLOCKED=6. |
+
 ## Audit probatorio WORM 2.221.0 - 2026-05-13
 
 | Comando / verifica | Esito | Nota |

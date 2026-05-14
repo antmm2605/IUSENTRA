@@ -18,125 +18,15 @@ from web.services.signed_document_runtime import (
 )
 
 
-def _estrai_pdf_da_raw(data: bytes) -> bytes | None:
-    """Cerca il contenuto PDF embedded nei byte raw."""
-    idx = data.find(b"%PDF")
-    if idx < 0:
-        return None
-    eof_idx = data.rfind(b"%%EOF")
-    if eof_idx > idx:
-        return data[idx : eof_idx + 5]
-    return data[idx:]
-
-
-def _wants_json_response() -> bool:
-    return (
-        request.headers.get("X-Requested-With") == "XMLHttpRequest"
-        or "application/json" in request.headers.get("Accept", "")
-    )
-
-
-def _preview_unavailable_html(nome_documento: str, scarica_url: str) -> tuple[str, int, dict[str, str]]:
-    html = (
-        '<!DOCTYPE html><html><head><meta charset="utf-8">'
-        '<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">'
-        '<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">'
-        '</head><body class="bg-light d-flex align-items-center justify-content-center" style="min-height:100vh">'
-        '<div class="text-center p-4">'
-        '<i class="bi bi-file-earmark-lock2 text-secondary" style="font-size:3rem"></i>'
-        f'<h6 class="mt-3 mb-2">{nome_documento}</h6>'
-        '<p class="text-muted small mb-3">Anteprima non disponibile per questo formato.<br>'
-        "Scarica il file per visualizzarlo con il programma appropriato.</p>"
-        f'<a href="{scarica_url}" class="btn btn-primary btn-sm">'
-        '<i class="bi bi-download me-1"></i>Scarica documento</a>'
-        "</div></body></html>"
-    )
-    return html, 200, {"Content-Type": "text/html; charset=utf-8"}
-
-
-def _preview_error_html(scarica_url: str) -> tuple[str, int, dict[str, str]]:
-    html = (
-        '<!DOCTYPE html><html><head><meta charset="utf-8">'
-        '<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">'
-        '<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">'
-        '</head><body class="bg-light d-flex align-items-center justify-content-center" style="min-height:100vh">'
-        '<div class="text-center p-4">'
-        '<i class="bi bi-exclamation-triangle text-warning" style="font-size:3rem"></i>'
-        '<h6 class="mt-3 mb-2">Impossibile visualizzare il documento</h6>'
-        '<p class="text-muted small mb-3">Si è verificato un errore durante il caricamento.<br>'
-        "Scarica il file per visualizzarlo con il programma appropriato.</p>"
-        f'<a href="{scarica_url}" class="btn btn-primary btn-sm">'
-        '<i class="bi bi-download me-1"></i>Scarica documento</a>'
-        "</div></body></html>"
-    )
-    return html, 200, {"Content-Type": "text/html; charset=utf-8"}
-
-
-# Ridefinizione esplicita per garantire testo UTF-8 corretto anche se una copia legacy
-# del file contiene stringhe salvate con encoding errato.
-def _preview_error_html(scarica_url: str) -> tuple[str, int, dict[str, str]]:
-    html = (
-        '<!DOCTYPE html><html><head><meta charset="utf-8">'
-        '<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">'
-        '<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">'
-        '</head><body class="bg-light d-flex align-items-center justify-content-center" style="min-height:100vh">'
-        '<div class="text-center p-4">'
-        '<i class="bi bi-exclamation-triangle text-warning" style="font-size:3rem"></i>'
-        '<h6 class="mt-3 mb-2">Impossibile visualizzare il documento</h6>'
-        '<p class="text-muted small mb-3">Si è verificato un errore durante il caricamento.<br>'
-        "Scarica il file per visualizzarlo con il programma appropriato.</p>"
-        f'<a href="{scarica_url}" class="btn btn-primary btn-sm">'
-        '<i class="bi bi-download me-1"></i>Scarica documento</a>'
-        "</div></body></html>"
-    )
-    return html, 200, {"Content-Type": "text/html; charset=utf-8"}
-
-
-def _payload_bool(value: Any, default: bool = False) -> bool:
-    if value is None:
-        return default
-    if isinstance(value, bool):
-        return value
-    return str(value or "").strip().lower() in {"1", "true", "yes", "si", "s", "on"}
-
-
-def _classifica_tipo_documento(nome_file: str) -> TipoDocumento:
-    nome = str(nome_file or "").casefold()
-    rules: list[tuple[tuple[str, ...], TipoDocumento]] = [
-        (("procura", "mandato"), TipoDocumento.PROCURA),
-        (("ricorso",), TipoDocumento.RICORSO),
-        (("citazione",), TipoDocumento.CITAZIONE),
-        (("comparsa",), TipoDocumento.COMPARSA),
-        (("memoria", "note autorizzate", "conclusionale", "replica"), TipoDocumento.MEMORIA),
-        (("sentenza",), TipoDocumento.SENTENZA),
-        (("ordinanza",), TipoDocumento.ORDINANZA),
-        (("decreto",), TipoDocumento.DECRETO),
-        (("notifica", "relata"), TipoDocumento.NOTIFICA),
-        (("verbale", "udienza"), TipoDocumento.VERBALE),
-        (("parcella", "fattura", "proforma", "nota spese"), TipoDocumento.PARCELLA),
-        (("contratto", "accordo", "scrittura privata"), TipoDocumento.CONTRATTO),
-        (("deposito", "busta", "rdac", "rac", "esito"), TipoDocumento.DEPOSITO_PCT),
-        (("pec", "comunicazione", "cancelleria"), TipoDocumento.COMUNICAZIONE),
-        (("allegato", "doc", "documento", "immagine", "foto", "pdf"), TipoDocumento.ALLEGATO),
-    ]
-    for tokens, tipo in rules:
-        if any(token in nome for token in tokens):
-            return tipo
-    return TipoDocumento.ALTRO
-
-
-def _applica_modalita_portale(items: list[dict[str, Any]], *, scarica_originale: bool) -> list[dict[str, Any]]:
-    modalita = "originale" if scarica_originale else "copia"
-    patched: list[dict[str, Any]] = []
-    for item in items:
-        row = dict(item)
-        if not str(row.get("modalita_documento_portale") or "").strip():
-            row["modalita_documento_portale"] = modalita
-        if row.get("original_documento_portale") is None:
-            row["original_documento_portale"] = bool(scarica_originale)
-        patched.append(row)
-    return patched
-
+from web.bootstrap.fascicoli_document_helpers import (
+    applica_modalita_portale,
+    classifica_tipo_documento,
+    estrai_pdf_da_raw,
+    payload_bool,
+    preview_error_html,
+    preview_unavailable_html,
+    wants_json_response,
+)
 
 def register_fascicoli_document_routes(
     app: Flask,
@@ -225,7 +115,7 @@ def register_fascicoli_document_routes(
             if storage and storage.filename
         ]
         if not files:
-            if _wants_json_response():
+            if wants_json_response():
                 return jsonify({"ok": False, "messaggio": "Nessun file selezionato."}), 400
             flash("Nessun file selezionato.", "warning")
             return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
@@ -251,7 +141,7 @@ def register_fascicoli_document_routes(
                     except ValueError as exc:
                         raise ValueError("Tipo documento non valido.") from exc
                 else:
-                    tipo_doc = _classifica_tipo_documento(storage.filename)
+                    tipo_doc = classifica_tipo_documento(storage.filename)
                 documento = salva_documento_fascicolo(
                     gf=gestore_fascicoli,
                     id_fasc=id_fasc,
@@ -285,7 +175,7 @@ def register_fascicoli_document_routes(
             msg = f"Caricato {count} documento." if count == 1 else f"Caricati {count} documenti."
             flash(msg, "success")
             audit("fascicoli.documento.carica", "fascicolo", id_fasc, dettagli=f"{count} file")
-            if _wants_json_response():
+            if wants_json_response():
                 return jsonify(
                     {
                         "ok": True,
@@ -297,7 +187,7 @@ def register_fascicoli_document_routes(
                     }
                 )
         except (ValueError, KeyError) as exc:
-            if _wants_json_response():
+            if wants_json_response():
                 return jsonify({"ok": False, "messaggio": str(exc)}), 400
             flash(str(exc), "danger")
         return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
@@ -335,15 +225,15 @@ def register_fascicoli_document_routes(
         gestore_fascicoli = get_fascicoli()
         fascicolo = gestore_fascicoli.get(id_fasc)
         if not fascicolo:
-            if _wants_json_response():
+            if wants_json_response():
                 return jsonify({"ok": False, "messaggio": "Fascicolo non trovato."}), 404
             flash("Fascicolo non trovato.", "warning")
             return redirect(url_for("lista_fascicoli"))
 
         fonte = portale_ufficiale_label(fascicolo)
         note_importazione = (request.form.get("note_importazione", "") or "").strip()
-        mantieni_albero_originale = _payload_bool(request.form.get("mantieni_albero_originale"), False)
-        scarica_originale_portale = _payload_bool(request.form.get("scarica_originale_portale"), False)
+        mantieni_albero_originale = payload_bool(request.form.get("mantieni_albero_originale"), False)
+        scarica_originale_portale = payload_bool(request.form.get("scarica_originale_portale"), False)
         uploaded_items: list[dict[str, Any]] = []
 
         for storage in request.files.getlist("files"):
@@ -367,12 +257,12 @@ def register_fascicoli_document_routes(
         if usa_staging:
             staging_items, staging_dir = leggi_staging_documenti_portale(fascicolo)
 
-        items = _applica_modalita_portale(
+        items = applica_modalita_portale(
             uploaded_items or staging_items,
             scarica_originale=scarica_originale_portale,
         )
         if not items:
-            if _wants_json_response():
+            if wants_json_response():
                 return jsonify(
                     {
                         "ok": False,
@@ -417,7 +307,7 @@ def register_fascicoli_document_routes(
             if albero_originale_salvato:
                 msg += " Albero tecnico originale archiviato."
             flash(msg, "success")
-            if _wants_json_response():
+            if wants_json_response():
                 return jsonify(
                     {
                         "ok": True,
@@ -428,12 +318,12 @@ def register_fascicoli_document_routes(
                     }
                 )
         except (ValueError, KeyError) as exc:
-            if _wants_json_response():
+            if wants_json_response():
                 return jsonify({"ok": False, "messaggio": str(exc)}), 400
             flash(str(exc), "danger")
         except Exception as exc:
             app.logger.exception("Errore importa_documenti_portale %s: %s", id_fasc, exc)
-            if _wants_json_response():
+            if wants_json_response():
                 return jsonify({"ok": False, "messaggio": str(exc)}), 500
             flash(f"Errore importazione file ufficiali: {exc}", "danger")
         return redirect(url_for("dettaglio_fascicolo", id_fasc=id_fasc))
@@ -449,8 +339,8 @@ def register_fascicoli_document_routes(
             data = request.get_json(silent=True) or {}
             note_importazione = (data.get("note_importazione", "") or "").strip()
             mantieni_albero_originale = bool(data.get("mantieni_albero_originale"))
-            scarica_originale_portale = _payload_bool(data.get("scarica_originale_portale"), False)
-            items = _applica_modalita_portale(
+            scarica_originale_portale = payload_bool(data.get("scarica_originale_portale"), False)
+            items = applica_modalita_portale(
                 decode_portale_downloaded_items(data.get("files") or []),
                 scarica_originale=scarica_originale_portale,
             )
@@ -534,7 +424,7 @@ def register_fascicoli_document_routes(
                         preview_payload = data
                         preview_name = nome_preview
                     else:
-                        pdf_raw = _estrai_pdf_da_raw(firma_payload)
+                        pdf_raw = estrai_pdf_da_raw(firma_payload)
                         if pdf_raw and pdf_raw.startswith(b"%PDF"):
                             preview_payload = pdf_raw
                             preview_name = nome_preview
@@ -546,7 +436,7 @@ def register_fascicoli_document_routes(
 
             preview = mime_preview_documento(preview_name, preview_payload)
             if not preview:
-                pdf_raw = _estrai_pdf_da_raw(data) or _estrai_pdf_da_raw(firma_payload)
+                pdf_raw = estrai_pdf_da_raw(data) or estrai_pdf_da_raw(firma_payload)
                 if pdf_raw:
                     preview_payload = pdf_raw
                     preview_name = nome_preview_documento(documento.nome) or "documento.pdf"
@@ -554,7 +444,7 @@ def register_fascicoli_document_routes(
 
             if not preview:
                 scarica_url = url_for("scarica_documento", id_fasc=id_fasc, id_doc=id_doc)
-                return _preview_unavailable_html(documento.nome, scarica_url)
+                return preview_unavailable_html(documento.nome, scarica_url)
 
             if documento.nome.lower().endswith(".p7m") and preview_payload.startswith(b"%PDF"):
                 try:
@@ -579,7 +469,7 @@ def register_fascicoli_document_routes(
                 scarica_url = url_for("scarica_documento", id_fasc=id_fasc, id_doc=id_doc)
             except Exception:
                 scarica_url = "#"
-            return _preview_error_html(scarica_url)
+            return preview_error_html(scarica_url)
 
     @app.route("/api/fascicoli/<id_fasc>/documenti/<id_doc>/info-firma")
     def api_info_firma_documento(id_fasc, id_doc):
@@ -626,7 +516,7 @@ def register_fascicoli_document_routes(
             get_fascicoli().rimuovi_documento(id_fasc, id_doc)
             msg = "Documento eliminato dal fascicolo."
             flash(msg, "success")
-            if _wants_json_response():
+            if wants_json_response():
                 return jsonify(
                     {
                         "ok": True,
@@ -635,7 +525,7 @@ def register_fascicoli_document_routes(
                     }
                 )
         except KeyError as exc:
-            if _wants_json_response():
+            if wants_json_response():
                 return jsonify({"ok": False, "messaggio": str(exc)}), 404
             flash(str(exc), "danger")
         return _redirect_to_documenti_section(id_fasc)

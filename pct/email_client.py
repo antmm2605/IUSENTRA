@@ -340,7 +340,7 @@ class GestioneEmailRicevute:
     def _score_testo_decodificato(value: str) -> int:
         text = str(value or "")
         controlli = sum(1 for char in text if ord(char) < 32 and char not in "\r\n\t")
-        mojibake = len(re.findall(r"(?:Ã.|Â.|â[€\x80-\xbf]|\ufffd)", text))
+        mojibake = len(re.findall("(?:\\u00c3.|\\u00c2.|\\u00e2[\\u20ac\\x80-\\xbf]|\\ufffd)", text))
         return (text.count("\ufffd") * 100) + (mojibake * 12) + (controlli * 10)
 
     @classmethod

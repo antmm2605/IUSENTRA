@@ -1,6 +1,6 @@
 # Indice documentazione IUSENTRA
 
-Aggiornato: 2026-05-14, fase 13 `fasereact`.
+Aggiornato: 2026-05-14, fase 14 `fasereact`.
 
 Questo indice e' il punto di ingresso operativo per sviluppatori, maintainer e release manager. I documenti generati devono essere aggiornati tramite gli script indicati, non a mano, salvo correzioni esplicitamente documentate.
 
@@ -50,6 +50,7 @@ Questo indice e' il punto di ingresso operativo per sviluppatori, maintainer e r
 | Smoke test | [smoke-tests](smoke-tests.md) | Orchestrator fase 13, suite, env, JSON report, exit code e post-deploy. |
 | CI/CD gates | [ci-cd-gates](ci-cd-gates.md) | Workflow reali, required checks, artifact e secrets. |
 | Release readiness | [release-readiness-checklist](release-readiness-checklist.md) | Checklist operativa pre-release, rollout progressivo e rollback. |
+| Final release report | [final-release-report](final-release-report.md) | Report tecnico conclusivo fase 14, GO/NO-GO, comandi eseguiti e rischi residui. |
 | Release rollout | [release-rollout](release-rollout.md) | Pre-release, rollout, smoke, rollback e monitoraggio. |
 | Release notes App V2 | [release-notes-app-v2](release-notes-app-v2.md) | Sintesi tecnica, known issues e pending items. |
 | Troubleshooting | [troubleshooting](troubleshooting.md) | Diagnosi rapida per test, build, API, flag, smoke e CI. |

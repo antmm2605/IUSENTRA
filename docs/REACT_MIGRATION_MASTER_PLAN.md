@@ -1933,3 +1933,10 @@ python -m pytest tests/test_react_shell.py tests/test_email_client.py tests/test
 - `docs/api-endpoint-contract-map.md` collega endpoint, pagina, priorita, RBAC, feature flag, tenant scope, stato OpenAPI e provider verification.
 - La provider verification usa Flask test client: 401 reale su tutti gli endpoint React API, 200 autenticato su campione P0/P1 rappresentativo e 400 `backend_security_control_param` sul guardrail tenant.
 - Ogni nuova rotta React P0/P1 deve passare `python scripts\react-migration\generate_api_contracts.py --check`, `python scripts\validate_openapi.py docs\openapi.yaml`, `python scripts\verify_openapi_provider.py` e `python -m pytest -q tests\test_openapi_contracts_phase6.py --tb=short`.
+
+## Aggiornamento 2026-05-14: Fase 14 release finale
+
+- Versione finale locale `2.235.0`; decisione GO WITH WARNINGS in `docs/final-release-report.md`.
+- Gate finali eseguiti: documentazione, registry, feature flag, routing, OpenAPI/provider, backend security/RBAC/tenant, frontend test/typecheck/build, governance, lint/static checks, coverage-critical e Docker locale.
+- Fix finale leggero: `web/bootstrap/fascicoli_create_routes.py` e `web/bootstrap/fascicoli_document_helpers.py` separano flussi gia esistenti per far passare il budget governance senza cambiare URL o comportamento utente.
+- Smoke Docker locale finale: `--subset contracts` PASS=7 FAIL=0; `--suite post-deploy` PASS=76 FAIL=0 SKIP=1 BLOCKED=6. I blocchi richiedono credenziali smoke dedicate e non sono verdi dichiarati.

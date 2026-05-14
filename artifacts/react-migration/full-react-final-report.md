@@ -459,3 +459,16 @@ Gate introdotti: `generate_api_contracts.py --check`, `validate_openapi.py`,
 provider verification copre 182 endpoint con 401 reale, 27 endpoint P0/P1 con
 200 autenticato e il 400 `backend_security_control_param` sui parametri tenant
 forzati.
+
+## Aggiornamento fase react 14 release finale 2.235.0
+
+La chiusura fase 14 non introduce nuove migrazioni React. Conferma lo stato
+full/partial/legacy del manifest, aggiorna `docs/final-release-report.md` e
+riesegue i gate finali su documentazione, registry, feature flag, routing,
+OpenAPI/provider verification, backend, frontend, security, coverage-critical e
+Docker locale.
+
+Fix finale applicato e ritestato: estrazione di `fascicoli_create_routes.py` e
+`fascicoli_document_helpers.py` per riportare i moduli bootstrap nei budget
+governance, senza cambiare URL legacy o shell React. Smoke Docker locale finale:
+contracts PASS=7 FAIL=0; post-deploy PASS=76 FAIL=0 SKIP=1 BLOCKED=6.

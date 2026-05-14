@@ -295,3 +295,17 @@ La provider verification conferma 401 reale su tutti gli endpoint, 27 risposte
 200 rappresentative P0/P1 e il 400 del guardrail sicurezza backend.
 
 Questo audit sostituisce la tabella storica precedente. Il dettaglio macchina corrente e' in `artifacts/react-migration/anti-mascheramento-audit.json`.
+
+## Aggiornamento fase 14 - 2026-05-14
+
+La fase 14 ha rieseguito i gate anti-regressione di chiusura senza promuovere
+nuove route. `tools/check_repo_governance.py` inizialmente segnalava due moduli
+bootstrap Fascicoli oltre budget e un marker mojibake letterale in
+`pct/email_client.py`; i problemi sono stati corretti con estrazioni modulari e
+escape Unicode, poi ritestati con governance, py_compile, Ruff, flake8, test
+mirati Fascicoli/Documenti/PolisWeb e smoke Docker locale.
+
+Risultato finale locale: GO WITH WARNINGS, nessuna failure critica residua.
+Warning residui: smoke autenticati senza profili dedicati, VRT/Storybook
+assenti, `gitleaks` locale non installato e GitHub Actions remote da confermare
+dopo push.

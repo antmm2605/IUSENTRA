@@ -1,6 +1,6 @@
 # Inventario test IUSENTRA
 
-Aggiornato: 2026-05-14, fase 13 `fasereact`.
+Aggiornato: 2026-05-14, fase 14 `fasereact`.
 
 Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. Non sostituisce l'esecuzione dei test: classifica i file presenti e rende visibili gap, aree e stato.
 

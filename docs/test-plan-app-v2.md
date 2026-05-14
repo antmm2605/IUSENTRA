@@ -37,6 +37,16 @@ La fase 10 consolida i test esistenti senza dichiarare passati comandi non esegu
 
 Coverage Python disponibile tramite `pytest-cov` gia' presente in `requirements/dev.txt`. La CI mantiene il gate critico su Lex/auth/storage/telematico con `config/coverage-critical.ini` e soglia 71; questa fase non abbassa soglie. Il comando locale di baseline mirato e' documentato nella tabella comandi e va registrato in `artifacts/react-migration/pytest-confirmed-ok.md` dopo l'esecuzione.
 
+### Coverage fase 14
+
+Eseguito il gate critico reale:
+
+```powershell
+python scripts\run_pytest_phases.py --suite coverage-critical --timeout-minutes 20 -- --cov=lex --cov=pct.auth --cov=pct.storage --cov=pct.storage_postgres --cov=pct.telematico_repository --cov=pct.telematico_workflow --cov-config=config/coverage-critical.ini --cov-report=term-missing --cov-fail-under=71
+```
+
+Esito: PASS, 313 test, coverage totale 71.61%, soglia 71 raggiunta. Sono comparsi `ResourceWarning` su connessioni SQLite nei test, senza fallimento del gate.
+
 ## Frontend coverage
 
 Non esistono Vitest/Jest/React Testing Library coverage o Playwright/Cypress component test. La copertura frontend reale in questa fase e' statica/contrattuale: `check-react-contracts.mjs`, `check-app-v2-frontend.mjs`, `validate_ui_coverage.py`, typecheck e build. Percentuali frontend non disponibili e non dichiarate.
@@ -77,7 +87,7 @@ Rischio noto: primo accesso tenant autenticato dopo restart puo' essere lento pe
 
 ## Tests non eseguiti o bloccati
 
-- Smoke autenticati tenant A/B/readonly: richiedono env `IUSENTRA_*_USER/PASSWORD`.
+- Smoke autenticati tenant A/B/readonly: richiedono env `IUSENTRA_*_USER/PASSWORD`, `IUSENTRA_SMOKE_API_KEY` e ID documento sintetico.
 - Frontend component coverage e VRT: tool non presenti nel repo.
 - E2E browser Playwright/Cypress: tool non presenti; presenti E2E Python/test client.
 

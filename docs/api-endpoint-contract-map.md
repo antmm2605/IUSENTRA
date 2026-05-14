@@ -1,6 +1,6 @@
 # API Endpoint Contract Map
 
-Aggiornato: 2026-05-13.
+Aggiornato: 2026-05-14.
 
 ## Fase 6 API Contract Review
 

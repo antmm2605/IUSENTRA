@@ -2,6 +2,19 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-14T09:30:00+02:00: fase react 12 `fasereact`
+2.233.0. L'audit documentale ha chiuso i vuoti di handover: indice ufficiale,
+architettura corrente, App V2, troubleshooting, risk register, osservabilita,
+database/migrazioni, release notes e prossime PR. La policy sicurezza e la
+contribuzione ora richiamano RBAC backend autoritativo, isolamento tenant
+fail-closed, no PII/segreti, branch ammessi e deploy/smoke governati.
+
+Audit anti-mascheramento: i documenti ribadiscono che Storybook/VRT non sono
+presenti, che gli smoke autenticati richiedono secrets dedicate e che le aree
+`partial`, `blocked` o `complete_unverified` non possono essere dichiarate
+complete. Il drift su `docs/api-contracts.md` e' stato risolto aggiornando il
+generatore invece di mantenere una modifica manuale.
+
 Aggiornamento 2026-05-14T07:10:00+02:00: fase react 11 `fasereact`
 2.232.0. L'audit CI/CD App V2 e' ora verificabile in `docs/ci-cd-gates.md`:
 ogni workflow ha trigger, job, comando, classificazione bloccante/manuale,

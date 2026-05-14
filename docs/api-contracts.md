@@ -1,16 +1,21 @@
 # Contratti API App V2
 
-Aggiornato: 2026-05-13.
+Aggiornato: 2026-05-14, fase 12 `fasereact`.
 
 ## Stato
 
-La fase 1 aggiunge il contratto leggero `GET /api/v1/ui/feature-flags`. La fase
-2 censisce le API gia' collegate alle route in
-`docs/app-v2-page-registry.md`. La fase 3 estende quel contratto con flag
-canonici `routes.appV2.<area>.<pagina>` default-off, usati sia dal backend
-`/app-v2` sia dalla shell frontend per bloccare menu, pagina e chiamate dati.
-La specifica OpenAPI completa verra' estesa nelle fasi dedicate, senza
-inventare endpoint non presenti.
+I contratti API App V2 sono ora governati da OpenAPI, mappa endpoint e provider
+verification. La fase 1 ha introdotto `GET /api/v1/ui/feature-flags`; le fasi
+successive hanno collegato route, flag, RBAC, tenant scope, error schema,
+provider verification e CI gate. La fonte runtime resta il codice Flask reale:
+non si inventano endpoint non presenti.
+
+Documenti collegati:
+
+- [openapi.yaml](openapi.yaml)
+- [api-endpoint-contract-map](api-endpoint-contract-map.md)
+- [backend-endpoint-security-map](backend-endpoint-security-map.md)
+- [ci-cd-gates](ci-cd-gates.md)
 
 ## Endpoint fase 1
 
@@ -122,7 +127,7 @@ permessi, non dal filtro trasversale.
 
 ## Fase 6 API Contract Review
 
-Aggiornato: 2026-05-13.
+Aggiornato: 2026-05-14.
 
 OpenAPI di riferimento: `docs/openapi.yaml`.
 
@@ -139,7 +144,7 @@ Risultato di mappatura:
 
 - Endpoint React API contrattualizzati: 182.
 - Endpoint P0/P1 con contratto OpenAPI: 169.
-- Endpoint con provider verification autenticata 200: 28.
+- Endpoint con provider verification rappresentativa non-auth-error: 28 totali, includendo success-body autenticati e il controllo backend-security.
 - Endpoint con provider verification 401 reale: 182.
 
 Standard error schema:
@@ -167,3 +172,15 @@ Protezioni sicurezza contrattualizzate:
 - Tenant: ogni operazione ha `x-tenant-scope: current_tenant`.
 - Feature flag: le pagine App V2 riportano `x-feature-flag`; gli altri endpoint indicano `n/a` o route collegata.
 - PII/segreti: schemi e descrizioni vietano password hash, token, segreti provider e path filesystem in chiaro.
+
+## Checklist nuovo endpoint
+
+- [ ] Auth sessione/API key tenant-aware.
+- [ ] Permesso RBAC dominio.
+- [ ] Tenant context server-side, fail-closed in multi-studio.
+- [ ] Input validation e blocco parametri server-controlled.
+- [ ] Response schema e `ErrorResponse`.
+- [ ] OpenAPI e mappa endpoint aggiornate.
+- [ ] Provider verification o limite documentato per endpoint parametrico/upload.
+- [ ] Test 401/403/400/422/success path.
+- [ ] PII review e audit se legge/scrive dati sensibili.

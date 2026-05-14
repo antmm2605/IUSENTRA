@@ -1,5 +1,33 @@
 # Migrazione progressiva Flask + React
 
+## Stato fase react 12 - 2026-05-14 - Documentazione, handover e release playbook 2.233.0
+
+La dodicesima fase del piano `fasereact` consolida la documentazione finale
+senza introdurre feature applicative nuove. Sono stati creati l'indice ufficiale
+`docs/index.md`, l'audit documentale `docs/documentation-audit.md`, il
+handover architetturale `docs/architecture.md`, il runbook App V2
+`docs/app-v2.md`, troubleshooting, risk register, osservabilita/log, database e
+migrazioni, release notes tecniche App V2 e prossime PR.
+
+`README.md`, `SECURITY.md` e `CONTRIBUTING.md` sono stati riallineati a
+branch, sicurezza, feature flag, PII, RBAC, tenant isolation, test, CI e deploy
+reali. La documentazione evita di dichiarare Storybook/VRT o smoke autenticati
+come verdi quando nel repository mancano runner o secrets dedicate. Aggiunti i
+validatori leggeri `scripts/validate_docs_links.py` e
+`scripts/validate_docs_commands.py`.
+
+Verifiche fase 12: py_compile dei nuovi script e del generatore API, link docs
+145/145, comandi documentati 131/131, registry/area/test-docs App V2 `--check`,
+OpenAPI generato/validato, provider verification 182 auth-error, 27 success e 1
+backend-security, smoke inventory/contracts, npm test/typecheck/build Vite
+2.233.0, packaging/readiness, test OpenAPI e test CI/test-plan mirati. Il primo
+check API ha intercettato correttamente una modifica manuale a documento
+generato: la fonte `generate_api_contracts.py` e' stata aggiornata e il gate e'
+tornato verde. Docker locale no-cache 2.233.0 e' stato avviato con
+app/scheduler/OCR/Redis healthy, `/api/pronto` 200, runtime e label immagine
+2.233.0; smoke security/routing/workflows locali verdi in modalita senza
+credenziali dedicate.
+
 ## Stato fase react 11 - 2026-05-14 - CI/CD e release safety 2.232.0
 
 L'undicesima fase del piano `fasereact` trasforma il piano test della fase 10

@@ -75,6 +75,43 @@ La risposta `403` su `/app-v2` o `/app-v2/documenti` e' corretta quando il flag
 del tenant e' spento; la risposta `200` e' corretta solo per tenant/ambienti
 abilitati esplicitamente.
 
+## Runbook Hetzner fase 12
+
+Pre-release minima:
+
+```powershell
+python tools\sync_packaging_files.py --check
+python scripts\validate_docs_links.py
+python scripts\validate_docs_commands.py
+python scripts\react-migration\generate_app_v2_page_registry.py --check
+python scripts\react-migration\generate_app_v2_area_requirements.py --check
+python scripts\react-migration\generate_app_v2_test_docs.py --check
+python scripts\validate_openapi.py docs\openapi.yaml
+python scripts\verify_openapi_provider.py
+npm --prefix frontend run test
+npm --prefix frontend run typecheck
+npm --prefix frontend run build
+```
+
+Deploy operativo senza aggiornare cron backup:
+
+```bash
+cd /opt/iusentra/repo
+IUSENTRA_SKIP_BACKUP_CRON=1 bash deploy/hetzner/deploy.sh
+```
+
+Smoke post-deploy:
+
+```powershell
+python scripts\smoke_backend_security.py --base-url https://app.iusentra.it
+python scripts\smoke_app_v2_all.py --base-url https://app.iusentra.it --subset routing
+python scripts\smoke_app_v2_all.py --base-url https://app.iusentra.it --subset workflows
+```
+
+Verifiche obbligatorie: commit server uguale al commit pushato, container app/scheduler/OCR/Redis/audit/Ollama healthy o up secondo servizio, `/api/pronto` 200 con versione attesa.
+
+Escalation: raccogliere commit SHA, output deploy, `docker compose ps`, risposta `/api/pronto`, subset smoke fallito, request id/log redatti, stato feature flag e tenant impattato in forma redatta.
+
 ## Backend security fase 5
 
 Ogni deploy della fase 5 deve includere lo smoke senza segreti:

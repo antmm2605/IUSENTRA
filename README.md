@@ -4,6 +4,37 @@ IUSENTRA è una web app Flask per studi legali italiani, con focus su gestione o
 
 La repo oggi non è più solo un tool CLI per il Processo Civile Telematico: contiene un gestionale web ampio, modulare e multi-dominio, con layer separati per bootstrap Flask, servizi UI/runtime e logica di dominio.
 
+## Percorso rapido sviluppatore
+
+Per un nuovo contributore la mappa ufficiale e' [docs/index.md](docs/index.md). I punti minimi da leggere prima di una modifica App V2 sono:
+
+- [docs/architecture.md](docs/architecture.md) per stack, runtime e flusso richiesta;
+- [docs/app-v2.md](docs/app-v2.md) per regole App V2, checklist pagina/rotta/componente e stato reale;
+- [docs/feature-flags.md](docs/feature-flags.md) per flag default-off, env e rollback;
+- [docs/security-rbac-tenant-isolation.md](docs/security-rbac-tenant-isolation.md) e [SECURITY.md](SECURITY.md) per RBAC, tenant isolation, PII e segreti;
+- [docs/api-contracts.md](docs/api-contracts.md) per OpenAPI e provider verification;
+- [docs/test-plan-app-v2.md](docs/test-plan-app-v2.md) e [docs/ci-cd-gates.md](docs/ci-cd-gates.md) per gate reali;
+- [docs/release-rollout.md](docs/release-rollout.md) per deploy, smoke e rollback;
+- [docs/troubleshooting.md](docs/troubleshooting.md) per diagnosi rapida.
+
+Comandi locali principali:
+
+```powershell
+python tools\sync_packaging_files.py --check
+python scripts\validate_docs_links.py
+python scripts\validate_docs_commands.py
+python scripts\react-migration\generate_app_v2_page_registry.py --check
+python scripts\react-migration\generate_app_v2_area_requirements.py --check
+python scripts\react-migration\generate_app_v2_test_docs.py --check
+python scripts\validate_openapi.py docs\openapi.yaml
+python scripts\verify_openapi_provider.py
+npm --prefix frontend run test
+npm --prefix frontend run typecheck
+npm --prefix frontend run build
+```
+
+I smoke autenticati non usano credenziali hardcoded: richiedono variabili ambiente dedicate (`IUSENTRA_ADMIN_*`, `IUSENTRA_TENANT_A_*`, `IUSENTRA_TENANT_B_*`, `IUSENTRA_READONLY_*`). Storybook, VRT e Playwright/Cypress non sono comandi presenti nel repository e non vanno dichiarati verdi.
+
 ## Cosa fa oggi
 
 - Gestione fascicoli, clienti, soggetti, agenda e scadenziario.

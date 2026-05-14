@@ -1,12 +1,25 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-14, fase react 11 CI/CD App V2 2.232.0.
+Aggiornato: 2026-05-14, fase react 12 documentazione App V2 2.233.0.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Fase react 12 - documentazione, handover e release playbook 2.233.0
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile scripts\validate_docs_links.py scripts\validate_docs_commands.py scripts\react-migration\generate_api_contracts.py` | OK | Sintassi confermata per i nuovi validator documentali e il generatore API aggiornato. |
+| `python scripts\validate_docs_links.py`; `python scripts\validate_docs_commands.py` | OK | 21 documenti e 145 link locali verificati; 131 comandi/path documentati controllati contro script, workflow e npm scripts reali. |
+| `python scripts\react-migration\generate_app_v2_page_registry.py --check`; `python scripts\react-migration\generate_app_v2_area_requirements.py --check`; `python scripts\react-migration\generate_app_v2_test_docs.py --check` | OK | Registry, requisiti area e documenti test App V2 allineati. |
+| `python scripts\react-migration\generate_api_contracts.py`; `python scripts\react-migration\generate_api_contracts.py --check`; `python scripts\validate_openapi.py docs\openapi.yaml`; `python scripts\verify_openapi_provider.py` | OK | OpenAPI/mappa contratti rigenerate con data fase 12 e allineate; OpenAPI valido; provider verification: 182 auth-error, 27 success e 1 backend-security. |
+| `python scripts\smoke_app_v2_all.py --subset inventory`; `python scripts\smoke_app_v2_all.py --subset contracts` | OK | Inventario App V2 e contratti/smoke OpenAPI eseguiti senza credenziali, con profili autenticati non dichiarati verdi. |
+| `npm --prefix frontend run test`; `npm --prefix frontend run typecheck`; `npm --prefix frontend run build` | OK | Contratti React, App V2 frontend, UI coverage, TypeScript e build Vite 2.233.0 verdi; build 6.73s, main JS `index-CSdjNGxs.js` 444.72 kB / 131.62 kB gzip e CSS `index-Bafxecf8.css` 121.77 kB / 22.33 kB gzip invariati. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest -q tests\test_packaging_consistency.py tests\test_release_readiness.py --tb=short`; `python -m pytest -q tests\test_openapi_contracts_phase6.py --tb=short`; `python -m pytest -q tests\test_ci_cd_gates_phase11.py tests\test_app_v2_test_plan_phase10.py --tb=short` | OK | Packaging/readiness 8/8, contratti OpenAPI 5/5 e regressioni CI/test-plan 8/8 passati dopo bump `2.233.0`. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx`; smoke locali security/routing/workflows | OK | Build locale no-cache 2.233.0 completata; app, scheduler, OCR e Redis healthy, nginx running; `/api/pronto` 200 `versione=2.233.0`, runtime container e label immagine `2.233.0`; smoke security/routing/workflows verdi, con profili autenticati saltati per assenza env dedicate. |
 
 ### Fase react 11 - CI/CD App V2 2.232.0
 

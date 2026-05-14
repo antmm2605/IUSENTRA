@@ -655,7 +655,7 @@ Risultato di mappatura:
 
 - Endpoint React API contrattualizzati: {len(rows)}.
 - Endpoint P0/P1 con contratto OpenAPI: {p0_p1}.
-- Endpoint con provider verification autenticata 200: {verified}.
+- Endpoint con provider verification rappresentativa non-auth-error: {verified} totali, includendo success-body autenticati e il controllo backend-security.
 - Endpoint con provider verification 401 reale: {len(rows)}.
 
 Standard error schema:
@@ -683,6 +683,18 @@ Protezioni sicurezza contrattualizzate:
 - Tenant: ogni operazione ha `x-tenant-scope: current_tenant`.
 - Feature flag: le pagine App V2 riportano `x-feature-flag`; gli altri endpoint indicano `n/a` o route collegata.
 - PII/segreti: schemi e descrizioni vietano password hash, token, segreti provider e path filesystem in chiaro.
+
+## Checklist nuovo endpoint
+
+- [ ] Auth sessione/API key tenant-aware.
+- [ ] Permesso RBAC dominio.
+- [ ] Tenant context server-side, fail-closed in multi-studio.
+- [ ] Input validation e blocco parametri server-controlled.
+- [ ] Response schema e `ErrorResponse`.
+- [ ] OpenAPI e mappa endpoint aggiornate.
+- [ ] Provider verification o limite documentato per endpoint parametrico/upload.
+- [ ] Test 401/403/400/422/success path.
+- [ ] PII review e audit se legge/scrive dati sensibili.
 """
 
 

@@ -1,6 +1,6 @@
 # Feature flag IUSENTRA
 
-Aggiornato: 2026-05-13.
+Aggiornato: 2026-05-14, fase 12 `fasereact`.
 
 ## Principio
 
@@ -83,6 +83,38 @@ Query preservate: `page`, `q`, `search`, `filter`, `sort`, `tab`, `view`,
 Query sempre bloccate: `next`, `return`, `return_url`, `redirect`,
 `redirect_url`, `callback`, `url`, `target`, `tenant_id`, `studio_id`,
 `user_id`, `role`, `permission`, `is_admin`, `debug`, `token`.
+
+## Registro operativo fase 12
+
+La fonte eseguibile resta `web/services/feature_flags.py`; la fonte frontend compatibile e' `frontend/src/lib/featureFlags.ts`. La tabella completa pagina/flag/fallback/test e' generata in `docs/app-v2-page-registry.md`. Tutti i flag sotto restano `off` di default.
+
+| Area | Flag | Backend protected | Fallback | Test |
+| --- | --- | --- | --- | --- |
+| Dashboard | `routes.appV2.dashboard.home`, `routes.appV2.dashboard.regia`, `routes.appV2.search.global` | si, route App V2 e API collegate | legacy/stato modulo non attivo | `tests/test_feature_flags.py`, `tests/test_app_v2_feature_flags.py`, `tests/test_app_v2_routing.py` |
+| Fascicoli | `routes.appV2.cases.list`, `routes.appV2.cases.detail`, `routes.appV2.cases.create` | si | legacy/stato modulo non attivo | stessi gate flag/routing |
+| Clienti/soggetti | `routes.appV2.clients.list`, `routes.appV2.clients.create`, `routes.appV2.clients.detail`, `routes.appV2.contacts.list`, `routes.appV2.contacts.create` | si | legacy/stato modulo non attivo | stessi gate flag/routing |
+| Comunicazioni | `routes.appV2.comms.deposits`, `routes.appV2.comms.pec`, `routes.appV2.comms.ordinaryMail`, `routes.appV2.comms.messages`, `routes.appV2.comms.newMessage` | si | legacy/stato modulo non attivo | stessi gate flag/routing |
+| Agenda/scadenze | `routes.appV2.agenda.calendar`, `routes.appV2.agenda.create`, `routes.appV2.agenda.timesheet`, `routes.appV2.deadlines.list`, `routes.appV2.deadlines.create`, `routes.appV2.deadlines.detail`, `routes.appV2.deadlines.hearingWizard` | si | legacy/stato modulo non attivo | stessi gate flag/routing |
+| Documenti | `routes.appV2.documents.list`, `routes.appV2.documents.templates`, `routes.appV2.documents.templateEditor`, `routes.appV2.documents.drafting`, `routes.appV2.documents.editor`, `routes.appV2.documents.uploadClassification`, `routes.appV2.documents.checklist` | si | legacy/stato modulo non attivo | stessi gate flag/routing |
+| Ricerca legale | `routes.appV2.legalResearch.home`, `routes.appV2.legalResearch.giurisprudenza` | si | legacy/stato modulo non attivo | stessi gate flag/routing |
+| Telematico | `routes.appV2.telematico.center`, `routes.appV2.telematico.surface` | si, fail-closed sui workflow non parificati | legacy/protetto | stessi gate flag/routing + test telematici mirati |
+| Studio | `routes.appV2.studio.home`, `routes.appV2.studio.statistics`, `routes.appV2.studio.modules`, `routes.appV2.studio.site`, `routes.appV2.studio.siteBuilder`, `routes.appV2.studio.siteDrafting` | si | legacy/stato modulo non attivo | stessi gate flag/routing |
+| Admin | `routes.appV2.admin.home`, `routes.appV2.admin.users`, `routes.appV2.admin.roles`, `routes.appV2.admin.auditLogs`, `routes.appV2.admin.database`, `routes.appV2.admin.privacyRegistry` | si | legacy/stato modulo non attivo | stessi gate flag/routing + RBAC |
+| Impostazioni | `routes.appV2.settings.studio`, `routes.appV2.settings.payments`, `routes.appV2.settings.notifications`, `routes.appV2.settings.backup`, `routes.appV2.settings.calendarSync` | si | legacy/stato modulo non attivo | stessi gate flag/routing + test impostazioni |
+| Mandato/economico | `routes.appV2.billing.invoices`, `routes.appV2.billing.payments`, `routes.appV2.billing.quotes`, `routes.appV2.billing.compensi`, `routes.appV2.billing.tariffario` | si | legacy/stato modulo non attivo | stessi gate flag/routing + test dominio |
+| Notifiche dispositivo | `routes.appV2.notifications.mobilePush` | si, API push | canale non attivo | `tests/test_push_notifications.py` |
+| Alias compatibilita | `routes.appV2.docsPanel`, `routes.appV2.commsDeposits`, `routes.appV2.uploadClassification`, `routes.appV2.deadlines`, `routes.appV2.agenda`, `routes.appV2.caseFiles`, `notifications.mobilePush` | risolti verso canonico | come flag canonico | `tests/test_feature_flags.py` |
+
+## Come aggiungere un nuovo Feature Flag
+
+1. Definire il flag in `web/services/feature_flags.py` con default `False`.
+2. Aggiungere alias solo se serve compatibilita esplicita.
+3. Aggiornare `frontend/src/lib/featureFlags.ts`.
+4. Collegare route/menu/sidebar e no-fetch flag-off.
+5. Applicare enforcement backend se la route o l'endpoint sono sensibili.
+6. Aggiungere test flag off/on.
+7. Rigenerare registry e documenti.
+8. Documentare rollout e rollback.
 
 ## Rollback rapido
 

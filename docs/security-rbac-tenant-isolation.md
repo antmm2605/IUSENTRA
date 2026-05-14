@@ -1,6 +1,6 @@
 # Sicurezza RBAC e isolamento tenant
 
-Aggiornato: 2026-05-13.
+Aggiornato: 2026-05-14, fase 12 `fasereact`.
 
 ## Regola operativa
 
@@ -131,6 +131,23 @@ admin, impostazioni e controlli atti. L'esecuzione autenticata usa solo
 credenziali da ambiente (`IUSENTRA_ADMIN_*`, `IUSENTRA_TENANT_A_*`,
 `IUSENTRA_TENANT_B_*`, `IUSENTRA_READONLY_*`) e non dichiara passati i profili
 non configurati.
+
+## Handover fase 12
+
+Policy aggiuntive:
+
+- PII: dati cliente, documenti, PEC/email, dati fiscali e segreti integrazione non devono comparire nei log o negli errori visibili.
+- File/documenti: upload, preview, download, export e allegati devono passare da route backend tenant-safe e non accettare path client.
+- Admin/settings: salvataggi di segreti devono redigere valori in risposta e auditare solo metadati.
+- Report/export: generazione e download richiedono permesso dominio e repository tenant.
+- Error handling: 401/403/404/422 devono essere controllati, in italiano per UI, senza stack trace.
+
+Test minimi quando si tocca sicurezza/App V2:
+
+```powershell
+python -m pytest -q tests/test_auth.py tests/test_backend_security_phase5.py tests/test_tenant_isolation_runtime.py tests/test_app_v2_feature_flags.py tests/test_app_v2_routing.py --tb=short
+python scripts\smoke_backend_security.py --base-url http://127.0.0.1:8080
+```
 
 ## Punti da estendere nelle fasi successive
 

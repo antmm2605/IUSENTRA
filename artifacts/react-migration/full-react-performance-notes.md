@@ -4,6 +4,7 @@ Generato: 2026-05-08T09:10:14.073Z
 
 ## Interventi e stato
 
+- 2026-05-14: fase react 12 2.233.0 e' documentazione/tooling leggero. Build Vite completata in 6.73s; bundle principale invariato `index-CSdjNGxs.js` 444.72 kB (131.62 kB gzip) e CSS principale invariato `index-Bafxecf8.css` 121.77 kB (22.33 kB gzip). Nessuna nuova dipendenza frontend e nessuna modifica runtime UI. Docker locale no-cache 2.233.0 healthy con `/api/pronto` 200 e smoke security/routing/workflows eseguiti in modalita senza credenziali.
 - Workspace esistenti caricati con `React.lazy` nella shell corrente.
 - Nuovo `frontend/src/app/routes.ts` centralizza le macro-route senza introdurre bundle pesanti.
 - Client API unico supporta `AbortSignal` e mantiene credenziali same-origin/CSRF per scritture.

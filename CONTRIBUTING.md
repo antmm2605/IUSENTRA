@@ -1,96 +1,122 @@
 # Contributing
 
-## Obiettivo
+Aggiornato: 2026-05-14, fase 12 `fasereact`.
 
-Questo repository evolve come prodotto applicativo professionale. Ogni modifica deve privilegiare:
+## Principio
 
-- prevedibilità;
-- tracciabilità;
-- sicurezza;
-- coerenza tra dominio, storage, UI e documentazione.
+Ogni modifica deve preservare comportamento corretto, sicurezza, isolamento tenant, reattivita e documentazione. Non usare dati demo o segreti reali. Non dichiarare test o tool come verdi se non eseguiti.
 
-## Regole di contribuzione
+## Branch operativi
 
-- testo UI sempre in italiano;
-- date e ore visibili sempre in formato italiano;
-- niente fallback nascosti o comportamento non spiegabile;
-- ogni nuova feature deve chiudere dominio, storage, route, UI, permessi, test e documentazione;
-- ogni bugfix deve includere almeno un controllo riproducibile o un test, quando sostenibile.
+Nel contesto operativo corrente i soli branch ammessi sono:
 
-## Strategia branch
+- `Codex/legal-electronic-filing-kIxcV`
+- `claude/legal-electronic-filing-kIxcV`
 
-- usare branch descrittivi e orientati al cambiamento;
-- evitare branch temporanei inutili;
-- mantenere piccole PR coerenti per dominio;
-- non mescolare refactor, fix e feature senza necessità reale.
+Non creare branch temporanei locali/remoti per task ordinari. A fine lavoro i due branch devono puntare allo stesso commit e `scripts/repo_hygiene.ps1` deve passare.
 
-Esempi branch:
+## Checklist PR minima
 
-- `feat/lex-citations-hardening`
-- `fix/pst-session-reuse`
-- `chore/packaging-alignment`
-- `docs/security-policy-refresh`
+- [ ] Feature flag default-off se la modifica entra in App V2 sperimentale.
+- [ ] Route guard e fallback documentati.
+- [ ] Backend auth/RBAC/tenant isolation.
+- [ ] Nessun `tenant_id`, `studio_id`, token o path accettato dal client.
+- [ ] OpenAPI aggiornata se cambia API.
+- [ ] Provider verification o limite documentato.
+- [ ] Test backend mirati.
+- [ ] Test frontend/typecheck/build se tocca React.
+- [ ] Test feature flag on/off se tocca flag.
+- [ ] Test RBAC e tenant isolation se tocca dati o permessi.
+- [ ] Nessuna PII o secret leakage.
+- [ ] Docs aggiornate.
+- [ ] CI/gate locali equivalenti verdi.
+- [ ] Rollback chiaro.
 
-## Packaging governato
+## Nuova pagina App V2
 
-Le dipendenze non si aggiornano a mano in più punti.
+Seguire [docs/app-v2.md](docs/app-v2.md). In breve:
 
-Sorgenti principali:
+- censire route/manifest;
+- usare flag `routes.appV2.*` default-off;
+- nascondere menu se flag spento o permesso mancante;
+- usare API JSON reali o stato vuoto se dati non disponibili;
+- implementare loading, empty, error, forbidden, flag-off, readonly e success;
+- aggiornare registry/generatori;
+- eseguire test frontend/backend e browser smoke se user-facing.
 
-- runtime: `requirements/base.txt`
-- dev: `requirements/dev.txt`
-- extra package: `requirements/pdf.txt`, `requirements/pades.txt`, `requirements/pkcs11.txt`
+## Nuovo endpoint
 
-File derivati:
+- Auth obbligatoria.
+- RBAC dominio.
+- Tenant corrente server-side.
+- Validazione input e schema errore.
+- OpenAPI + provider verification.
+- Audit se legge/scrive dati sensibili o modifica stato.
+- Nessun dato sensibile nei log o payload di errore.
 
-- `requirements.txt`
-- `requirements-dev.txt`
+## Feature flag
 
-Per sincronizzare:
+Naming: `routes.appV2.<area>.<pagina>` per App V2; alias legacy solo se serve compatibilita esplicita.
 
-```bash
-python tools/sync_packaging_files.py
+Comandi:
+
+```powershell
+python -m pytest -q tests/test_feature_flags.py tests/test_app_v2_feature_flags.py tests/test_app_v2_routing.py --tb=short
 ```
 
-Per verificare senza scrivere:
+## Packaging
 
-```bash
-python tools/sync_packaging_files.py --check
+Sorgenti:
+
+- runtime: `requirements/base.txt`;
+- dev: `requirements/dev.txt`;
+- extra: `requirements/pdf.txt`, `requirements/pades.txt`, `requirements/pkcs11.txt`;
+- versione: `pct/__init__.py`.
+
+Verifica:
+
+```powershell
+python tools\sync_packaging_files.py --check
+python -m pytest -q tests/test_packaging_consistency.py tests/test_release_readiness.py --tb=short
 ```
 
-## Quality gate minimi prima del push
+## Gate locali consigliati
 
-```bash
-python tools/check_repo_governance.py
-python tools/check_python_baseline.py
-python -m pytest -q tests/test_packaging_consistency.py
-python -m pytest -q
-docker compose build --no-cache
-docker compose up -d --force-recreate
-docker compose ps
+Eseguire solo i gate collegati al perimetro toccato; non rilanciare shard gia' documentati verdi senza motivo.
+
+```powershell
+python scripts\validate_docs_links.py
+python scripts\validate_docs_commands.py
+python scripts\react-migration\generate_app_v2_page_registry.py --check
+python scripts\react-migration\generate_app_v2_area_requirements.py --check
+python scripts\react-migration\generate_app_v2_test_docs.py --check
+python scripts\validate_openapi.py docs\openapi.yaml
+python scripts\verify_openapi_provider.py
+npm --prefix frontend run test
+npm --prefix frontend run typecheck
+npm --prefix frontend run build
 ```
 
-## Definition of done
+## UI
 
-Una modifica è considerata chiusa solo se:
+- Testo visibile in italiano.
+- Nessun termine tecnico da sviluppatore nelle schermate utente.
+- Nessun dato demo/hardcoded come reale.
+- Componenti IUSENTRA/shadcn e icone `lucide-react` dove applicabile.
+- Verifica desktop/tablet/mobile per pagine user-facing importanti.
 
-- il comportamento è verificabile;
-- i file di packaging restano coerenti;
-- la documentazione minima è aggiornata;
-- la CI passa;
-- non introduce segreti, debug residuo o config ambigue.
+## PII e segreti
 
-## Release
+Non committare:
 
-- la versione sorgente vive in `pct/__init__.py`;
-- `setup.py`, `Dockerfile`, `railway.toml` e gli altri entrypoint di deploy devono restare allineati;
-- ogni release deve avere changelog tecnico sintetico;
-- prima del tag verificare bootstrap, storage persistente, login, healthcheck e smoke Flask.
+- password, token, API key, private key, PIN;
+- PEC o email reali;
+- dati cliente reali;
+- documenti o allegati reali;
+- path runtime generati.
 
-## Cosa evitare
+Usare fixture neutre e tenant sintetici.
 
-- percorsi locali hardcoded;
-- branch policy dipendenti da una singola macchina;
-- fix rapidi senza test minimo o scenario riproducibile;
-- dipendenze aggiunte senza reale necessità;
-- modifica manuale dei file generati se esiste già una sorgente governata.
+## Release e deploy
+
+Ogni aggiornamento completato deve essere pushato sui due branch ammessi e deployato su Hetzner con procedura governata, senza dichiarare concluso finche' `/api/pronto` e container non sono verificati. Runbook: [docs/release-rollout.md](docs/release-rollout.md).

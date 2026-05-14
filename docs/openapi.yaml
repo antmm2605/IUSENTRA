@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: IUSENTRA API Contracts
   version: 2.227.0
-  description: 'Contratti API fase 6 generati da endpoint Flask reali. Aggiornato: 2026-05-13.'
+  description: 'Contratti API fase 6 generati da endpoint Flask reali. Aggiornato: 2026-05-14.'
 servers:
 - url: https://app.iusentra.it
   description: Produzione Hetzner

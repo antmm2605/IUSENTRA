@@ -148,3 +148,14 @@ coverage-critical e dependency critical.
 3. Branch protection non e' codificata come IaC nel repository; i required checks vanno impostati in GitHub.
 4. `pip-audit` non ha baseline legacy: il job e' bloccante su stato corrente e puo' richiedere triage se emergono CVE transitive.
 5. Deploy produzione resta manuale/operativo: non viene introdotto CD automatico distruttivo.
+
+## Fase 12 - Documentazione e handover
+
+La fase 12 aggiunge due gate locali leggeri per evitare drift documentale:
+
+```powershell
+python scripts\validate_docs_links.py
+python scripts\validate_docs_commands.py
+```
+
+Questi comandi non sostituiscono CI, OpenAPI, provider verification o test: verificano solo che i link locali e i comandi/script citati nei documenti handover puntino a file reali e npm scripts esistenti. Possono essere aggiunti a CI in una PR successiva se il rumore resta basso.

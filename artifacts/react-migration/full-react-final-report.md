@@ -2,6 +2,21 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-14T09:30:00+02:00: fase react 12 `fasereact`
+2.233.0. La documentazione finale App V2 e' ora indicizzata in
+`docs/index.md` e copre architettura, App V2, feature flag, routing,
+sicurezza/RBAC/tenant, API contracts, test, CI/CD, rollout, rollback,
+troubleshooting, osservabilita, database/migrazioni, risk register, release
+notes e handover prossime PR. `README.md`, `SECURITY.md` e `CONTRIBUTING.md`
+sono stati riallineati ai comandi, branch, gate e limiti reali.
+
+Audit documentale: Storybook/VRT e smoke autenticati restano gap espliciti,
+non stati verdi; i documenti generati restano governati dai generatori. Aggiunti
+`scripts/validate_docs_links.py` e `scripts/validate_docs_commands.py`.
+Verifica locale: link docs 145/145, comandi/path 131/131, generatori App V2,
+OpenAPI/provider verification, smoke inventory/contracts, npm
+test/typecheck/build, packaging/readiness e pytest mirati verdi.
+
 Aggiornamento 2026-05-14T07:10:00+02:00: fase react 11 `fasereact`
 2.232.0. La CI/CD App V2 ora ha gate bloccanti espliciti nel workflow
 principale: provider verification/OpenAPI, smoke contratti, registro e piano

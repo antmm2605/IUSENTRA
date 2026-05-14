@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.233.0 - 2026-05-14
+
+- Completata la fase 12 `fasereact`: creata documentazione finale di handover per architettura, App V2, sicurezza, osservabilita, database/migrazioni, troubleshooting, risk register, release notes e prossime PR.
+- Aggiunto `docs/index.md` come indice ufficiale e `docs/documentation-audit.md` per tracciare contraddizioni risolte, gap reali e fonti generate.
+- Aggiornati `README.md`, `SECURITY.md`, `CONTRIBUTING.md`, feature flag, API contracts, RBAC/tenant isolation, CI/CD gates e release rollout con comandi reali e rollback operativo.
+- Aggiunti `scripts/validate_docs_links.py` e `scripts/validate_docs_commands.py` per verificare link locali, script/workflow/npm scripts citati nei documenti.
+- Ribaditi i gap reali: Storybook/VRT e smoke autenticati non sono dichiarati verdi finche' mancano runner o secrets dedicate.
+
 ## 2.232.0 - 2026-05-14
 
 - Completata la fase 11 `fasereact`: rafforzati i workflow CI/CD con gate bloccanti per App V2, contratti API, provider verification, RBAC, tenant isolation, feature flag, registry, frontend e coverage critica.

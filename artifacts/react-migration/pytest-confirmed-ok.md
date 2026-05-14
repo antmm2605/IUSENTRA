@@ -19,6 +19,7 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 | `python -m pytest tests/test_packaging_consistency.py tests/test_release_readiness.py -q` | OK | 8/8 passati dopo bump versione `2.236.1`. |
 | `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx`; `GET http://127.0.0.1:8080/api/pronto` | OK | Immagini locali ricostruite da zero con wheel `pct-studio-legale==2.236.1`; app, scheduler, OCR, Redis e Nginx avviati; readiness locale 200 con `versione=2.236.1`. Nessun backup eseguito. |
 | `python scripts/smoke_app_v2_all.py --suite health --read-only --base-url http://127.0.0.1:8080 --timeout 20`; `python scripts/smoke_app_v2_all.py --suite notifications --read-only --base-url http://127.0.0.1:8080 --timeout 20` | OK | Health locale PASS=2 FAIL=0; notifiche locale PASS=3 FAIL=0 SKIP=1, con invio reale saltato per modalita sola lettura. |
+| Deploy Hetzner `IUSENTRA_SKIP_BACKUP_CRON=1 BRANCH=Codex/legal-electronic-filing-kIxcV bash deploy/hetzner/deploy.sh`; `GET https://app.iusentra.it/api/pronto`; smoke App V2 produzione | OK | Deploy completato sul commit corrente del branch; log `Cron backup: non aggiornato`; container app, scheduler, OCR, Redis, audit-postgres, audit-worm e Caddy healthy; readiness pubblica 200 con `versione=2.236.1`; smoke produzione health PASS=2 FAIL=0 e notifiche PASS=3 FAIL=0 SKIP=1. Nessun backup eseguito. |
 
 ### Modulo notifiche legali e registry telematico 2.236.0 - 2026-05-14
 

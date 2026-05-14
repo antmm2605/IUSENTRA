@@ -12,6 +12,9 @@ separati, cosi' l'evidence pack distingue atto principale e allegati notificati.
 Gate mirati verdi: ruff, pytest notifiche 25/25, typecheck, contratti React,
 test frontend, build Vite, route gate, packaging/readiness 8/8 e browser Chrome
 headless su runtime isolato.
+Docker locale e deploy Hetzner verificati sul commit corrente del branch con
+`IUSENTRA_SKIP_BACKUP_CRON=1`: app `2.236.1`, container healthy, readiness
+pubblica e smoke `health`/`notifications` verdi senza eseguire backup.
 
 Aggiornamento 2026-05-14T23:10:00+02:00: modulo notifiche legali 2.236.0.
 La pagina `/notifiche-legali` mantiene la shell React operativa e rende esplicita

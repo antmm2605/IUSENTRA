@@ -26,6 +26,12 @@ suite CI `coverage-critical`, `release-readiness`, `quality-overlay`,
 `e2e-smoke`, Docker locale no-cache 2.232.0 healthy e smoke App V2 locale
 security/pages/routing/workflows.
 
+Deploy fase 11 verificato su Hetzner CPX42 senza aggiornare il cron backup:
+server sul commit `023f18ba7b5be9bebdcf57c508e900e7a2f003c7`, container
+operativi healthy/up, runtime `2.232.0`, `/api/pronto` pubblico 200 e smoke
+produzione security/routing/workflows completati in modalita anonima/inventory
+per assenza di credenziali smoke dedicate.
+
 ## Stato fase react 10 - 2026-05-14 - Test completi App V2 2.231.0
 
 La decima fase del piano `fasereact` consolida la strategia test App V2 senza

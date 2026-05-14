@@ -1,4 +1,4 @@
-"""Route Flask per il modulo SIGP - Giudice di Pace."""
+"""Route storiche SIGP non registrate nell'app principale."""
 
 from __future__ import annotations
 

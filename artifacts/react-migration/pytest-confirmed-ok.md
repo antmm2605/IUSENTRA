@@ -1322,6 +1322,14 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `npm --prefix frontend run build` | OK | Build Vite completata; rigenerati asset React, incluso `TelematicoSurfacePage-D7MePmJF.js` e `TelematicoSurfacePage-fOf1Ew_N.css`. |
 | Browser reale su server test autenticato `127.0.0.1:8093` per `/portali/pdp/acquisizione`, `/portali/pat/acquisizione`, `/portali/ptt/acquisizione` | OK | PDP/PAT/PTT partono da `Step 1/7`, mostrano `Sessione IUSENTRA`, `Apri sessione IUSENTRA` e `Raccogli file nel software`; non mostrano `Portale ufficiale` come CTA primaria ne' `Endpoint browser`. |
 
+## Percorso PST unico e ingressi SIGP storici - 2026-05-14
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `npm --prefix frontend run typecheck` | OK | TypeScript confermato dopo rimozione degli ingressi separati SIGP e testi visibili riallineati al percorso PST unico. |
+| `python -m pytest -q tests/test_polisweb.py::test_acquisizione_wizard_pst_preview_error_usa_fallback_assistito tests/test_sigp_integration.py --tb=short` | OK | 8/8 passati: wizard PST classico senza ritorno a `PST/SIGP` e contratto modulo storico SIGP aggiornato a `Percorso PST unico`. |
+| `npm --prefix frontend run build` | OK | Build Vite completata con manifest e asset React coerenti dopo l'ultima rigenerazione. |
+
 ## Fase react 3 - App V2 feature flag per pagina 2.224.0 - 2026-05-13
 
 | Comando / verifica | Esito | Nota |

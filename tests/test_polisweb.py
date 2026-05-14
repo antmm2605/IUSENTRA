@@ -3396,7 +3396,7 @@ def test_acquisizione_wizard_pst_preview_error_usa_fallback_assistito():
     assert "temporaneamente sospeso" in template
     assert "awPortaleBrowserOnlyError(err) || awPstRecoverablePreviewError(err)" in template
     assert "awBuildManualSelection(query, reason, portaleUrl)" in template
-    assert "PST/SIGP" in template
+    assert "PST/PolisWeb" in template
 
 
 def test_acquisizione_wizard_pst_carica_documenti_local_signer_anche_in_modalita_assistita():

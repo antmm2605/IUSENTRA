@@ -1,12 +1,12 @@
 {% extends "base.html" %}
-{% block title %}SIGP - Fascicolo Giudice di Pace{% endblock %}
+{% block title %}Percorso PST unico{% endblock %}
 {% block content %}
 <div class="sigp-shell"
      data-api-base="{{ url_for('sigp_sync.index')[:-1] if url_for('sigp_sync.index').endswith('/') else url_for('sigp_sync.index') }}"
      data-fascicolo-base-url="/fascicoli/">
   <div class="sigp-hero">
     <div>
-      <p class="sigp-kicker">SIGP - Giudice di Pace</p>
+      <p class="sigp-kicker">Percorso PST unico</p>
       <h1>Scarica e importa il fascicolo in un'unica pagina</h1>
       <p>Seleziona la pratica, acquisisci catalogo e documenti dal canale autorizzato, poi apri il fascicolo IUSENTRA gia' aggiornato.</p>
     </div>
@@ -17,7 +17,7 @@
     </div>
   </div>
 
-  <div class="sigp-flow" aria-label="Flusso guidato SIGP">
+  <div class="sigp-flow" aria-label="Flusso guidato PST">
     <article>
       <strong>1. Collega</strong>
       <span>Local Signer/Connector sul PC dello studio.</span>
@@ -58,13 +58,13 @@
     <main class="sigp-panel sigp-detail">
       <section id="emptyState" class="sigp-empty">
         <h2>Seleziona una pratica</h2>
-        <p>Da qui lavori tutto il fascicolo SIGP in una sola schermata: catalogo, documenti, eventi, udienze e apertura finale nel gestionale.</p>
+        <p>Da qui lavori il fascicolo dal percorso PST unico: catalogo, documenti, eventi, udienze e apertura finale nel gestionale.</p>
       </section>
 
       <section id="caseDetail" hidden>
         <div class="sigp-detail-head">
           <div>
-            <p class="sigp-kicker">SIGP - Giudice di Pace</p>
+            <p class="sigp-kicker">Percorso PST unico</p>
             <h2 id="detailTitle">-</h2>
             <p id="detailSubtitle" class="sigp-muted">-</p>
           </div>

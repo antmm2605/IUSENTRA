@@ -3,6 +3,8 @@
 ## 2.235.5 - 2026-05-14
 
 - Corretto il ritorno delle richieste PIN multiple nel flusso PST React: la UI non chiama piu' il preflight `/pst/preflight-auth` prima di ricerca, anteprima o download, e il Local Signer usa la chiamata operativa come unico punto di autenticazione.
+- Esteso lo stesso blocco anti-regressione ai template PolisWeb classici, al wizard `/portali/pst/acquisizione`, al dettaglio fascicolo e al vecchio client SIGP: nessun percorso operativo chiama piu' `/pst/preflight-auth` prima di visualizzare il fascicolo o scaricare il lotto completo.
+- Rimossi dalla navigazione e dalla registrazione applicativa gli ingressi separati SIGP; `/sigp` e `/sigp-sync` rimandano al wizard unico `/portali/pst/acquisizione`.
 - Rafforzato IUSENTRA Local Signer `1.6.34`: selezione automatica del certificato quando resta un solo certificato coerente con il codice fiscale, curl di sistema su Windows e `--ssl-no-revoke` applicato internamente senza chiedere all'utente di aggiungerlo.
 - Normalizzati i link telematici visibili senza prefisso `/app-v2`, incluso `Apri pagina` da `/telematico` verso `/polisWeb`, e corretto lo scroll con offset della barra superiore su centro e superfici telematiche.
 - Reso reale il flusso assistito PDP/PAT/PTT dentro IUSENTRA: la React parte da `Sessione IUSENTRA`, non mostra il link esterno come azione primaria e importa file, ricevute ed esiti raccolti nel fascicolo interno.

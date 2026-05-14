@@ -11,6 +11,14 @@ la chiamata operativa reale, preservando la regola utente: un PIN per
 visualizzare il fascicolo e un PIN per scaricare l'intero fascicolo, salvo
 scadenza reale lato portale/token.
 
+Il fix e' stato esteso anche ai percorsi classici che potevano aggirare la
+superficie React: `web/templates/polisWeb.html`, `web/polisWeb.html`,
+`web/templates/portale/acquisizione_wizard.html`, dettaglio fascicolo e client
+SIGP non invocano piu' `/pst/preflight-auth` nei flussi operativi. Gli ingressi
+separati `/sigp` e `/sigp-sync` sono stati tolti da menu/gate e registrazione
+applicativa; chi li richiama viene rimandato al percorso unico
+`/portali/pst/acquisizione`.
+
 Il Local Signer `1.6.34` preferisce il curl di sistema Windows, applica
 internamente `--ssl-no-revoke` su Schannel e non mostra piu' istruzioni
 all'utente per aggiungere manualmente quell'opzione. La selezione certificato

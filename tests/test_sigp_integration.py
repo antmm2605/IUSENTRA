@@ -97,7 +97,7 @@ def test_sigp_blueprint_api_prepara_deposito():
 
     status_response = client.get("/sigp/status")
     assert status_response.status_code == 200
-    assert status_response.get_json()["status"]["module_name"] == "Integrazione SIGP - Giudice di Pace"
+    assert status_response.get_json()["status"]["module_name"] == "Percorso PST unico"
 
     response = client.post("/sigp/depositi/prepara", json=_valid_payload())
     payload = response.get_json()

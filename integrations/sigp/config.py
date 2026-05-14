@@ -1,4 +1,4 @@
-"""Configurazione modulo SIGP - Giudice di Pace."""
+"""Configurazione storica SIGP usata solo dai componenti non esposti."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ BASE_DIR = Path(__file__).resolve().parent
 SIGP_DEFAULT_SCHEMA_VERSION = "2024-08-27"
 SIGP_SCHEMAS_DIR = BASE_DIR / "schemas"
 
-SIGP_MODULE_NAME = "Integrazione SIGP - Giudice di Pace"
+SIGP_MODULE_NAME = "Percorso PST unico"
 SIGP_MODULE_SUBTITLE = (
     "Redazione, validazione XSD, predeposito e gestione dei depositi "
     "telematici presso gli Uffici del Giudice di Pace."

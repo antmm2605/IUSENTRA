@@ -1061,10 +1061,10 @@
       "legacyContract": "artifacts/react-migration/legacy-contracts/sigp-sync.json",
       "unlockFromGate": false,
       "mustPreserve": [
-        "sincronizzazione SIGP",
-        "operazioni sensibili",
-        "download ricevute",
-        "sessioni locali",
+        "vecchio ingresso reindirizzato a /portali/pst/acquisizione",
+        "nessuna pagina separata in menu",
+        "nessun preflight PIN fuori dall'operazione reale",
+        "sessioni locali riusate solo dal percorso PST unico",
         "audit"
       ]
     },
@@ -1619,10 +1619,10 @@
       "legacyContract": "artifacts/react-migration/legacy-contracts/sigp.json",
       "unlockFromGate": false,
       "mustPreserve": [
-        "sincronizzazione fascicolo telematico",
-        "servizi consultazione fascicolo",
-        "Local Connector",
-        "normalizzazione documenti",
+        "vecchio ingresso reindirizzato a /portali/pst/acquisizione",
+        "nessuna pagina separata in menu",
+        "consultazione fascicolo solo dal percorso PST unico",
+        "download documenti solo dal percorso PST unico",
         "divieto scraping HTML"
       ]
     },

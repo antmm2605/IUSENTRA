@@ -70,21 +70,21 @@ def test_app_v2_redirect_path_preserves_dynamic_ids_without_unsafe_query():
     assert app_v2_route_flag_for_path(target) == "routes.appV2.documents.editor"
 
 
-def test_app_v2_redirect_decision_is_flag_gated(tmp_path: Path):
+def test_app_v2_redirect_decision_is_enabled_by_default_and_still_flag_gated(tmp_path: Path):
     app = _app(tmp_path)
-    off = should_redirect_to_app_v2("/documenti", {"tab": "template"}, config=app.config)
+    on = should_redirect_to_app_v2("/documenti", {"tab": "template"}, config=app.config)
+
+    assert on.allowed is True
+    assert on.target == "/app-v2/documenti?tab=template"
+    assert on.flag_key == "routes.appV2.documents.list"
+
+    disabled = _app(tmp_path / "disabled", flags={"routes.appV2.documents.list": False})
+    off = should_redirect_to_app_v2("/documenti", {"tab": "template"}, config=disabled.config)
 
     assert off.allowed is False
     assert off.target == "/app-v2/documenti?tab=template"
     assert off.flag_key == "routes.appV2.documents.list"
     assert off.reason == "feature flag spento"
-
-    enabled = _app(tmp_path / "enabled", flags={"routes.appV2.documents.list": True})
-    on = should_redirect_to_app_v2("/documenti", {"tab": "template"}, config=enabled.config)
-
-    assert on.allowed is True
-    assert on.target == "/app-v2/documenti?tab=template"
-    assert on.flag_key == "routes.appV2.documents.list"
 
 
 def test_app_v2_redirect_decision_unknown_routes_fail_closed(tmp_path: Path):

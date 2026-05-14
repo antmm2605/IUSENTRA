@@ -472,3 +472,21 @@ Fix finale applicato e ritestato: estrazione di `fascicoli_create_routes.py` e
 `fascicoli_document_helpers.py` per riportare i moduli bootstrap nei budget
 governance, senza cambiare URL legacy o shell React. Smoke Docker locale finale:
 contracts PASS=7 FAIL=0; post-deploy PASS=76 FAIL=0 SKIP=1 BLOCKED=6.
+
+## Hotfix App V2 rollout 2.235.1
+
+Corretto il blocco per cui le pagine operative sotto `/app-v2` restavano spente
+quando lo studio non aveva flag manuali configurati. Le superfici gia'
+promosse operative sono ora attive di default e spegnibili per rollback
+esplicito; `routes.appV2.telematico.center`,
+`routes.appV2.telematico.surface` e `routes.appV2.notifications.mobilePush`
+restano default-off e fail-closed.
+
+Verifiche mirate: `/app-v2/messaggi/nuovo`, `/app-v2/messaggi` e
+`/app-v2/documenti` rispondono 200 con shell React autenticata; `/app-v2/telematico`
+resta 403. Test feature flag/routing/shell/packaging/readiness 30/30 passati.
+Build Vite 2.235.1 verde in 5.83s senza aumento degli asset principali.
+Docker locale no-cache healthy con readiness `2.235.1`; smoke contracts
+PASS=7 FAIL=0 e post-deploy PASS=76 FAIL=0 SKIP=1 BLOCKED=6. Browser reale
+desktop/mobile su `/app-v2/messaggi/nuovo`: nessun messaggio "Funzione non
+attiva", redirect login corretto per utente anonimo e zero errori console.

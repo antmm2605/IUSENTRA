@@ -55,7 +55,7 @@ Documenti collegati:
 
 ## Feature flag
 
-I flag App V2 sono default-off e definiti in `web/services/feature_flags.py`. Il frontend usa la mappa compatibile in `frontend/src/lib/featureFlags.ts`. I flag servono a rollout controllato della shell `/app` e `/app-v2`; non spengono le route operative React gia' promosse nel manifest.
+I flag App V2 sono definiti in `web/services/feature_flags.py`. Il frontend usa la mappa compatibile in `frontend/src/lib/featureFlags.ts`. I flag servono a rollout controllato e rollback della shell `/app` e `/app-v2`: le route operative React gia' promosse sono attive di default, mentre telematico non parificato e Web Push restano default-off.
 
 ## Routing legacy/App V2
 

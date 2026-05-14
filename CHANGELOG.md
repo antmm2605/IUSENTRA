@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.235.1 - 2026-05-14
+
+- Hotfix App V2 rollout: le superfici gia' promosse operative sono attive di default anche sotto `/app-v2`, evitando il blocco regressivo "Funzione non attiva per questo studio" su pagine come `/app-v2/messaggi/nuovo`.
+- Mantenuti default-off e fail-closed per `Servizi telematici` non parificati e Web Push, con rollback esplicito ancora disponibile via feature flag.
+- Aggiornati test, smoke e documentazione per distinguere rollout operativo da capability protette.
+
 ## 2.235.0 - 2026-05-14
 
 - Chiusura fase 14 `fasereact`: report finale tecnico, release readiness checklist, GO/NO-GO e prossima PR consigliata.

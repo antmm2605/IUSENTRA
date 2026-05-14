@@ -2,7 +2,7 @@
 
 Aggiornato: 2026-05-14, fase 12 `fasereact`.
 
-App V2 e' la shell React progressiva di IUSENTRA. Convive con le route Flask storiche e usa API Flask reali, feature flag default-off, RBAC e isolamento tenant lato backend.
+App V2 e' la shell React progressiva di IUSENTRA. Convive con le route Flask storiche e usa API Flask reali, feature flag per rollout/rollback, RBAC e isolamento tenant lato backend.
 
 ## Stato reale
 
@@ -21,8 +21,8 @@ Sintesi corrente dai registri generati:
 
 ## Regole App V2
 
-1. Una pagina App V2 sperimentale parte con flag `routes.appV2.*` default-off.
-2. Il frontend non carica dati della pagina quando il flag e' spento.
+1. Una pagina App V2 gia' operativa parte attiva di default ed e' spegnibile con flag `routes.appV2.*` per rollback.
+2. Una capability non parificata o sensibile parte default-off; il frontend non carica dati della pagina quando il flag e' spento.
 3. Il backend resta fonte autoritativa per auth, RBAC, tenant e validazioni.
 4. Il fallback legacy resta solo se governato e non deve diventare CTA primaria.
 5. Una pagina `partial`, `pending`, `blocked` o `complete_unverified` non va descritta come completa.
@@ -53,7 +53,7 @@ Rollback rapido: spegnere il flag, riavviare app/worker, verificare `/api/v1/ui/
 ## Checklist nuova pagina
 
 - [ ] Route censita in `tools/react-migration/route-manifest.json`.
-- [ ] Feature flag `routes.appV2.<area>.<pagina>` default-off se entra nella shell sperimentale.
+- [ ] Feature flag `routes.appV2.<area>.<pagina>` default-off finche' la superficie non e' verificata come operativa.
 - [ ] Menu/sidebar nascosti se flag spento o permesso mancante.
 - [ ] API JSON reale o esplicita assenza API per superficie read-only.
 - [ ] Backend auth, RBAC e tenant isolation.

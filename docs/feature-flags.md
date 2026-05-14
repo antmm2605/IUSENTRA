@@ -4,24 +4,27 @@ Aggiornato: 2026-05-14, fase 12 `fasereact`.
 
 ## Principio
 
-I flag della migrazione React/App V2 sono default-off. Servono a introdurre capability nuove o sperimentali senza spegnere le superfici React gia' promosse come operative nel manifest.
+I flag della migrazione React/App V2 restano il meccanismo di rollback e protezione. Le superfici gia' promosse operative nel manifest sono attive di default, mentre i workflow non parificati o sensibili restano default-off e fail-closed.
 
 ## Flag canonici fase 3
 
 La fase 3 introduce un flag canonico per ogni pagina o famiglia App V2, con
-nome `routes.appV2.<area>.<pagina>`. Tutti i flag sono `off` di default; se un
-flag e' spento la shell mostra uno stato operativo e non carica i dati della
-pagina. Il mapping completo pagina/flag/default/fallback e' generato in
+nome `routes.appV2.<area>.<pagina>`. I flag delle pagine operative sono `on`
+di default e possono essere spenti esplicitamente per rollback; i flag
+telematici non parificati e Web Push restano `off`. Se un flag e' spento la
+shell mostra uno stato operativo e non carica i dati della pagina. Il mapping
+completo pagina/flag/default/fallback e' generato in
 `docs/app-v2-page-registry.md`.
 
 | Area | Esempi di flag canonici | Default | Protezione |
 | --- | --- | --- | --- |
-| Panoramica e regia | `routes.appV2.dashboard.home`, `routes.appV2.dashboard.regia`, `routes.appV2.search.global` | off | backend `/app-v2`, frontend menu/fetch |
-| Fascicoli e anagrafiche | `routes.appV2.cases.list`, `routes.appV2.cases.detail`, `routes.appV2.clients.list`, `routes.appV2.contacts.list` | off | route dinamiche e tenant sessione |
-| Comunicazioni | `routes.appV2.comms.pec`, `routes.appV2.comms.ordinaryMail`, `routes.appV2.comms.messages` | off | nessuna chiamata mail se spento |
-| Agenda e scadenze | `routes.appV2.agenda.calendar`, `routes.appV2.deadlines.list`, `routes.appV2.deadlines.hearingWizard` | off | route e drawer bloccati |
-| Documenti e redazione | `routes.appV2.documents.list`, `routes.appV2.documents.templates`, `routes.appV2.documents.drafting`, `routes.appV2.documents.checklist` | off | editor e checklist fail-closed |
-| Studio, mandato e amministrazione | `routes.appV2.studio.statistics`, `routes.appV2.billing.quotes`, `routes.appV2.admin.users`, `routes.appV2.settings.studio` | off | menu nascosto e shell bloccata |
+| Panoramica e regia | `routes.appV2.dashboard.home`, `routes.appV2.dashboard.regia`, `routes.appV2.search.global` | on | backend `/app-v2`, frontend menu/fetch |
+| Fascicoli e anagrafiche | `routes.appV2.cases.list`, `routes.appV2.cases.detail`, `routes.appV2.clients.list`, `routes.appV2.contacts.list` | on | route dinamiche e tenant sessione |
+| Comunicazioni | `routes.appV2.comms.pec`, `routes.appV2.comms.ordinaryMail`, `routes.appV2.comms.messages`, `routes.appV2.comms.newMessage` | on | nessuna chiamata mail se spento |
+| Agenda e scadenze | `routes.appV2.agenda.calendar`, `routes.appV2.deadlines.list`, `routes.appV2.deadlines.hearingWizard` | on | route e drawer bloccati se spenti |
+| Documenti e redazione | `routes.appV2.documents.list`, `routes.appV2.documents.templates`, `routes.appV2.documents.drafting`, `routes.appV2.documents.checklist` | on | editor e checklist spegnibili |
+| Studio, mandato e amministrazione | `routes.appV2.studio.statistics`, `routes.appV2.billing.quotes`, `routes.appV2.admin.users`, `routes.appV2.settings.studio` | on | menu nascosto e shell bloccata se spenti |
+| Servizi telematici non parificati | `routes.appV2.telematico.center`, `routes.appV2.telematico.surface` | off | workflow ministeriali fail-closed |
 | Notifiche dispositivo | `routes.appV2.notifications.mobilePush` | off | frontend evita Web Push, backend rifiuta subscribe/test |
 
 ## Alias compatibilita fasi 1-2
@@ -41,16 +44,17 @@ vengono risolti verso i flag canonici equivalenti.
 
 ## Configurazione
 
-Si puo' usare una variabile per singolo flag:
+Si puo' usare una variabile per singolo flag. Per rollback si imposta `0` sul
+flag della pagina; per attivare una capability protetta si imposta `1`.
 
 ```bash
-IUSENTRA_FF_NOTIFICATIONS_MOBILE_PUSH=1
+IUSENTRA_FF_ROUTES_APPV2_COMMS_NEWMESSAGE=0
 ```
 
 Oppure un JSON unico:
 
 ```bash
-IUSENTRA_FEATURE_FLAGS='{"routes.appV2.documents.list":true,"routes.appV2.notifications.mobilePush":true}'
+IUSENTRA_FEATURE_FLAGS='{"routes.appV2.comms.newMessage":false,"routes.appV2.notifications.mobilePush":true}'
 ```
 
 Valori accettati per `true`: `1`, `true`, `yes`, `on`, `si`.
@@ -64,7 +68,7 @@ La shell React riceve gli stessi flag nel bootstrap `iusentra-react-bootstrap`, 
 
 ## Comportamento flag-off
 
-- route sperimentali `/app-v2/<area>`: HTTP 403 con messaggio operativo;
+- route App V2 con flag spento: HTTP 403 con messaggio operativo;
 - Web Push: il frontend mostra che il canale non e' attivo e non chiama `/api/push/public-key`, `/api/push/subscribe` o `/api/push/test`;
 - backend: le azioni sensibili protette da flag restituiscono `403` e registrano `policy_denied`;
 - toggle governati: `set_feature_flag(...)` registra `feature_flag_toggled` quando viene fornito il gestore audit.
@@ -86,7 +90,7 @@ Query sempre bloccate: `next`, `return`, `return_url`, `redirect`,
 
 ## Registro operativo fase 12
 
-La fonte eseguibile resta `web/services/feature_flags.py`; la fonte frontend compatibile e' `frontend/src/lib/featureFlags.ts`. La tabella completa pagina/flag/fallback/test e' generata in `docs/app-v2-page-registry.md`. Tutti i flag sotto restano `off` di default.
+La fonte eseguibile resta `web/services/feature_flags.py`; la fonte frontend compatibile e' `frontend/src/lib/featureFlags.ts`. La tabella completa pagina/flag/fallback/test e' generata in `docs/app-v2-page-registry.md`. Le aree operative sotto sono `on` di default; telematico non parificato e Web Push restano `off`.
 
 | Area | Flag | Backend protected | Fallback | Test |
 | --- | --- | --- | --- | --- |
@@ -107,7 +111,7 @@ La fonte eseguibile resta `web/services/feature_flags.py`; la fonte frontend com
 
 ## Come aggiungere un nuovo Feature Flag
 
-1. Definire il flag in `web/services/feature_flags.py` con default `False`.
+1. Definire il flag in `web/services/feature_flags.py`; usare default `False` finche' la superficie non e' verificata come operativa.
 2. Aggiungere alias solo se serve compatibilita esplicita.
 3. Aggiornare `frontend/src/lib/featureFlags.ts`.
 4. Collegare route/menu/sidebar e no-fetch flag-off.
@@ -125,8 +129,8 @@ Spegnere il flag via env o JSON, riavviare app e worker web. Non serve migrazion
 Il mapping pagina/flag/routing e' ora censito in `docs/app-v2-page-registry.md`,
 `docs/frontend-app-v2-pages.md` e `docs/legacy-to-app-v2-routing-map.md`, tutti
 generato da `scripts/react-migration/generate_app_v2_page_registry.py`. Le
-route sperimentali App V2 con flag restano default-off; per ogni riga sono
-documentati fallback flag-off, protezione frontend, protezione backend, redirect
+route App V2 mantengono fallback flag-off documentato e default coerente con lo
+stato operativo; per ogni riga sono documentati protezione frontend, backend, redirect
 strategy, deep link, query params e test on/off. Le route ufficiali gia'
 `react_operational_full` restano governate dal manifest e dal route gate quando
 non entrano nella shell App V2.

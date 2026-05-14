@@ -451,7 +451,7 @@ def _test_plan_doc(routes: list[dict[str, object]], inventory_rows: list[TestInv
             "",
             "## Feature flag e routing",
             "",
-            "Copertura presente tramite `tests/test_feature_flags.py`, `tests/test_app_v2_feature_flags.py`, `tests/test_app_v2_routing.py`, `scripts/smoke_app_v2_routing.py`, registry e gate frontend. Tutte le route App V2 sperimentali restano default-off finche' non abilitate.",
+            "Copertura presente tramite `tests/test_feature_flags.py`, `tests/test_app_v2_feature_flags.py`, `tests/test_app_v2_routing.py`, `scripts/smoke_app_v2_routing.py`, registry e gate frontend. Le route App V2 operative sono attive di default e spegnibili per rollback; le capability non parificate restano default-off.",
             "",
             "## API contract coverage",
             "",

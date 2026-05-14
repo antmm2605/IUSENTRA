@@ -27,8 +27,8 @@ class SmokeTarget:
 
 DEFAULT_TARGETS = (
     SmokeTarget("feature flag pubblici", "/api/v1/ui/feature-flags", (200,)),
-    SmokeTarget("App V2 documenti flag-off", "/app-v2/documenti", (403, 200)),
-    SmokeTarget("App V2 panoramica flag-off", "/app-v2", (403, 200)),
+    SmokeTarget("App V2 documenti", "/app-v2/documenti", (200, 403)),
+    SmokeTarget("App V2 panoramica", "/app-v2", (200, 403)),
 )
 
 
@@ -92,9 +92,9 @@ def _run_http_smoke(base_url: str, username: str, password: str, *, require_cred
         if target.path.endswith("/feature-flags") and response.status_code == 200:
             payload = response.json()
             flags = payload.get("flags", {})
-            unsafe_enabled = [key for key, value in flags.items() if key.startswith("routes.appV2.") and value is True]
-            if unsafe_enabled:
-                print("Flag App V2 attivi nello smoke: " + ", ".join(sorted(unsafe_enabled)))
+            enabled = [key for key, value in flags.items() if key.startswith("routes.appV2.") and value is True]
+            if enabled:
+                print("Flag App V2 attivi nello smoke: " + ", ".join(sorted(enabled)))
     if failed:
         print("Smoke App V2 fallito:\n- " + "\n- ".join(failed), file=sys.stderr)
         return 1

@@ -4,6 +4,8 @@ from tests.test_applicazioni import _crea_operatore, _login
 from tests.test_web_bootstrap import _cfg_web, _write_studio_config
 from web.app import create_app
 from web.services.feature_flags import (
+    APP_V2_DEFAULT_OFF_FLAGS,
+    APP_V2_DEFAULT_ON_FLAGS,
     FEATURE_FLAG_KEYS,
     app_v2_route_flag_for_path,
     is_feature_enabled,
@@ -20,23 +22,29 @@ def _app(tmp_path: Path, *, flags: dict[str, bool] | None = None):
     return create_app(cfg)
 
 
-def test_feature_flags_default_off(tmp_path: Path):
+def test_feature_flags_default_rollout_scope(tmp_path: Path):
     app = _app(tmp_path)
 
     resolved = resolve_feature_flags(app.config)
 
     assert set(resolved) == set(FEATURE_FLAG_KEYS)
-    assert all(value is False for value in resolved.values())
-    assert is_feature_enabled("routes.appV2.docsPanel", app.config) is False
-    assert is_feature_enabled("routes.appV2.documents.list", app.config) is False
+    assert all(resolved[key] is True for key in APP_V2_DEFAULT_ON_FLAGS)
+    assert all(resolved[key] is False for key in APP_V2_DEFAULT_OFF_FLAGS)
+    assert is_feature_enabled("routes.appV2.docsPanel", app.config) is True
+    assert is_feature_enabled("routes.appV2.documents.list", app.config) is True
+    assert is_feature_enabled("routes.appV2.telematico.center", app.config) is False
 
 
 def test_feature_flag_bulk_config_and_toggle_audit(tmp_path: Path):
-    app = _app(tmp_path, flags={"routes.appV2.docsPanel": True})
+    app = _app(tmp_path)
     events: list[tuple[str, str, str, str]] = []
 
     assert is_feature_enabled("routes.appV2.docsPanel", app.config) is True
     assert is_feature_enabled("routes.appV2.documents.list", app.config) is True
+
+    alias_disabled = _app(tmp_path / "alias-disabled", flags={"routes.appV2.docsPanel": False})
+    assert is_feature_enabled("routes.appV2.docsPanel", alias_disabled.config) is False
+    assert is_feature_enabled("routes.appV2.documents.list", alias_disabled.config) is False
 
     updated = set_feature_flag(
         app.config,
@@ -65,20 +73,20 @@ def test_feature_flags_api_e_app_v2_route_off_on(tmp_path: Path):
     with app.test_client() as client:
         _login(client)
         payload = client.get("/api/v1/ui/feature-flags").get_json()
-        blocked = client.get("/app-v2/documenti")
+        active = client.get("/app-v2/documenti")
 
-    assert payload["flags"]["routes.appV2.docsPanel"] is False
-    assert payload["flags"]["routes.appV2.documents.list"] is False
-    assert blocked.status_code == 403
-    assert "Funzione non attiva" in blocked.get_data(as_text=True)
+    assert payload["flags"]["routes.appV2.docsPanel"] is True
+    assert payload["flags"]["routes.appV2.documents.list"] is True
+    assert active.status_code == 200
 
-    app_enabled = _app(tmp_path / "enabled", flags={"routes.appV2.docsPanel": True})
-    _crea_operatore(app_enabled)
-    with app_enabled.test_client() as client:
+    app_disabled = _app(tmp_path / "disabled", flags={"routes.appV2.documents.list": False})
+    _crea_operatore(app_disabled)
+    with app_disabled.test_client() as client:
         _login(client)
         response = client.get("/app-v2/documenti")
 
-    assert response.status_code == 200
+    assert response.status_code == 403
+    assert "Funzione non attiva" in response.get_data(as_text=True)
 
 
 def test_app_v2_route_flags_cover_dynamic_and_root_paths():
@@ -92,7 +100,7 @@ def test_app_v2_route_flags_cover_dynamic_and_root_paths():
     assert app_v2_route_flag_for_path("/impostazioni/calendario") == "routes.appV2.settings.calendarSync"
 
 
-def test_app_v2_route_default_off_and_canonical_on(tmp_path: Path):
+def test_app_v2_route_defaults_on_and_canonical_off(tmp_path: Path):
     app = _app(tmp_path)
     _crea_operatore(app)
 
@@ -101,26 +109,26 @@ def test_app_v2_route_default_off_and_canonical_on(tmp_path: Path):
         root = client.get("/app-v2")
         documents = client.get("/app-v2/documenti")
 
-    assert root.status_code == 403
-    assert documents.status_code == 403
+    assert root.status_code == 200
+    assert documents.status_code == 200
 
-    enabled = _app(
-        tmp_path / "canonical",
+    disabled = _app(
+        tmp_path / "disabled",
         flags={
-            "routes.appV2.dashboard.home": True,
-            "routes.appV2.documents.list": True,
+            "routes.appV2.dashboard.home": False,
+            "routes.appV2.documents.list": False,
         },
     )
-    _crea_operatore(enabled)
-    with enabled.test_client() as client:
+    _crea_operatore(disabled)
+    with disabled.test_client() as client:
         _login(client)
-        assert client.get("/app-v2").status_code == 200
-        assert client.get("/app-v2/documenti").status_code == 200
+        assert client.get("/app-v2").status_code == 403
+        assert client.get("/app-v2/documenti").status_code == 403
 
 
 def test_feature_flags_do_not_cross_app_configs(tmp_path: Path):
-    enabled = _app(tmp_path / "enabled", flags={"routes.appV2.documents.list": True})
-    blocked = _app(tmp_path / "blocked")
+    enabled = _app(tmp_path / "enabled")
+    blocked = _app(tmp_path / "blocked", flags={"routes.appV2.documents.list": False})
     _crea_operatore(enabled)
     _crea_operatore(blocked)
 

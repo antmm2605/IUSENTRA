@@ -4,14 +4,15 @@ Aggiornato: 2026-05-14, fase 14 `fasereact`.
 
 ## Sintesi
 
-Le fasi `fasereact` 1-14 hanno consolidato la governance App V2: registro pagine, priorita, feature flag default-off, routing sicuro, backend security, OpenAPI/provider verification, frontend gates, requisiti area, UI regression leggera, test plan, CI/CD gates, documentazione handover, smoke operativi post-deploy e report conclusivo GO/NO-GO.
+Le fasi `fasereact` 1-14 hanno consolidato la governance App V2: registro pagine, priorita, feature flag per rollout/rollback, routing sicuro, backend security, OpenAPI/provider verification, frontend gates, requisiti area, UI regression leggera, test plan, CI/CD gates, documentazione handover, smoke operativi post-deploy e report conclusivo GO/NO-GO.
 
-## Final release readiness 2.235.0
+## Final release readiness 2.235.1
 
 - Decisione fase 14: GO WITH WARNINGS.
 - Gate critici locali verdi: documentazione, registry, feature flag, routing, OpenAPI, provider verification, backend, frontend, security audit, governance, lint/static checks, coverage-critical e Docker locale.
 - Fix finale: bootstrap Fascicoli e Documenti riportati nei budget governance con moduli dedicati; pattern anti-mojibake email reso Unicode-escaped.
-- Smoke locale finale su Docker 2.235.0: contracts PASS=7 FAIL=0; post-deploy PASS=76 FAIL=0 SKIP=1 BLOCKED=6.
+- Hotfix rollout App V2: superfici operative attive di default sotto `/app-v2`, rollback via flag e telematico non parificato ancora protetto.
+- Smoke locale finale su Docker 2.235.1: contracts PASS=7 FAIL=0; post-deploy PASS=76 FAIL=0 SKIP=1 BLOCKED=6.
 - Gap non critici: credenziali smoke autenticate, Storybook/VRT, `gitleaks` locale e GitHub Actions remote post-push.
 
 ## Aree impattate
@@ -33,7 +34,7 @@ Le fasi `fasereact` 1-14 hanno consolidato la governance App V2: registro pagine
 
 ## Feature flag
 
-Tutti i flag App V2 sperimentali restano default-off. L'accensione avviene per ambiente/tenant controllato, con rollback spegnendo il flag e riavviando app/worker.
+Le superfici App V2 gia' promosse operative sono attive di default. Le capability non parificate, come servizi telematici sperimentali e Web Push, restano default-off; il rollback di una pagina operativa avviene spegnendo il flag e riavviando app/worker.
 
 ## Sicurezza
 

@@ -3,12 +3,12 @@
 Data esecuzione: 2026-05-14
 Branch: `claude/legal-electronic-filing-kIxcV`
 Baseline commit prima della fase 14: `30cfd01c326a7ce65318f77039e1a0ea3bf60229`
-Versione finale: `2.235.0`
+Versione finale: `2.235.1`
 Decisione: GO WITH WARNINGS
 
 ## 1. Executive summary tecnico
 
-La fase 14 chiude il percorso `fasereact` con verifica finale di repository, documentazione, registry, feature flag, OpenAPI, provider verification, backend, frontend, sicurezza, coverage critica, Docker locale e smoke App V2. Non sono state introdotte nuove migrazioni funzionali; l'unico codice applicativo toccato oltre al bump versione e' un refactor di governance sui bootstrap Fascicoli e Documenti, piu' la rimozione di un marker mojibake letterale nel rilevatore email.
+La fase 14 chiude il percorso `fasereact` con verifica finale di repository, documentazione, registry, feature flag, OpenAPI, provider verification, backend, frontend, sicurezza, coverage critica, Docker locale e smoke App V2. Il successivo hotfix 2.235.1 corregge il rollout App V2: le superfici operative gia' promosse sono attive di default anche sotto `/app-v2`, con rollback esplicito via flag e telematico non parificato ancora fail-closed.
 
 Non risultano failure critiche aperte. Restano warning/gap non bloccanti: smoke autenticati senza credenziali dedicate, VRT/Storybook non presenti nel repo, `gitleaks` non installato in locale, GitHub Actions remote da confermare dopo push.
 
@@ -24,7 +24,7 @@ Non risultano failure critiche aperte. Restano warning/gap non bloccanti: smoke 
 ## 3. File modificati
 
 - Versione e release: `pct/__init__.py`, `setup.py`, `Dockerfile`, `railway.toml`, `frontend/package.json`, `frontend/package-lock.json`, `CHANGELOG.md`.
-- Governance/fix finale: `web/bootstrap/fascicoli_core_routes.py`, `web/bootstrap/fascicoli_create_routes.py`, `web/bootstrap/fascicoli_document_routes.py`, `web/bootstrap/fascicoli_document_helpers.py`, `pct/email_client.py`.
+- Governance/fix finale: `web/services/feature_flags.py`, `scripts/smoke_app_v2_all.py`, `scripts/smoke_app_v2_routing.py`, `scripts/smoke_app_v2_pages.py`, `web/bootstrap/fascicoli_core_routes.py`, `web/bootstrap/fascicoli_create_routes.py`, `web/bootstrap/fascicoli_document_routes.py`, `web/bootstrap/fascicoli_document_helpers.py`, `pct/email_client.py`.
 - Documentazione finale: `docs/final-release-report.md`, `docs/release-readiness-checklist.md`, `docs/handover-next-prs.md`, `docs/test-plan-app-v2.md`, `docs/release-notes-app-v2.md`, `docs/REACT_MIGRATION_MASTER_PLAN.md`, report in `artifacts/react-migration/*`.
 
 ## 4. Stato pagine App V2
@@ -33,7 +33,7 @@ Registro generato/validato: 98 route manifest; 69 `react_operational_full`, 3 pa
 
 ## 5. Stato Feature Flag
 
-PASS. I flag App V2 sono default-off, registrati e risolti fail-closed. Verificati con `validate_ui_coverage.py`, `check-app-v2-frontend.mjs`, `check-route-gate.mjs`, `check-react-contracts.mjs`, smoke post-deploy e test App V2.
+PASS. I flag App V2 hanno default di rollout coerenti: superfici operative attive, telematico non parificato e Web Push fail-closed, rollback esplicito verificato. Verificati con `validate_ui_coverage.py`, `check-app-v2-frontend.mjs`, `check-route-gate.mjs`, `check-react-contracts.mjs`, smoke post-deploy e test App V2.
 
 ## 6. Stato routing/fallback legacy
 
@@ -65,7 +65,7 @@ PASS. Provider verification locale: 182 endpoint con auth-error coerente, 27 sam
 
 ## 13. Stato frontend/build/UI
 
-PASS. `npm --prefix frontend run test`, `typecheck` e `build` passati. Build Vite: 7.42s; asset principali `index-CSdjNGxs.js` 444.72 kB / 131.62 kB gzip e `index-Bafxecf8.css` 121.77 kB / 22.33 kB gzip. Nessuna nuova dipendenza frontend.
+PASS. `npm --prefix frontend run test`, `typecheck` e `build` passati. Build Vite hotfix 2.235.1: 5.83s; asset principali invariati `index-CSdjNGxs.js` 444.72 kB / 131.62 kB gzip e `index-Bafxecf8.css` 121.77 kB / 22.33 kB gzip. Nessuna nuova dipendenza frontend.
 
 ## 14. Stato Storybook/VRT/accessibilita
 
@@ -88,7 +88,7 @@ PASS. `npm --prefix frontend run test`, `typecheck`, `build` passati.
 
 ## 17. Stato E2E/smoke
 
-PASS con blocchi non critici documentati. Docker locale no-cache finale: app, scheduler, OCR, Redis e nginx healthy; `/api/pronto` 200 `versione=2.235.0`; container runtime e label immagine `2.235.0`.
+PASS con blocchi non critici documentati. Docker locale no-cache finale: app, scheduler, OCR, Redis e nginx healthy; `/api/pronto` 200 `versione=2.235.1`; container runtime e label immagine `2.235.1`.
 
 Smoke post-deploy locale finale: PASS=76, FAIL=0, SKIP=1, BLOCKED=6, WARNING=0. I BLOCKED dipendono da credenziali smoke dedicate e ID documento test non configurati.
 
@@ -111,8 +111,8 @@ Backend critical coverage PASS: `coverage-critical` con `pytest-cov` su Lex/auth
 | `git status --short`; `git diff --stat`; `git diff --name-only`; `git log --oneline -n 3` | `D:\legale\IUSENTRA` | PASS | Worktree analizzata, runtime puliti, ultimi commit fase 13 confermati. |
 | Workflow YAML parse `.github/workflows/*.yml` | repo | PASS | Tutti i workflow YAML parsati. |
 | Secret scan ad alta confidenza | repo | PASS | 5213 file, 0 finding. |
-| `python tools\sync_packaging_files.py --check` | repo | PASS | Packaging sincronizzato; versione `2.235.0`. |
-| `python scripts\validate_docs_links.py`; `python scripts\validate_docs_commands.py` | repo | PASS | 21 documenti/148 link; 154 comandi/path. |
+| `python tools\sync_packaging_files.py --check` | repo | PASS | Packaging sincronizzato; versione `2.235.1`. |
+| `python scripts\validate_docs_links.py`; `python scripts\validate_docs_commands.py` | repo | PASS | 21 documenti/149 link; 155 comandi/path. |
 | Registry/test docs generated checks | repo | PASS | Registry, requisiti area e test docs allineati. |
 | `python scripts\validate_ui_coverage.py`; route/frontend/react contracts | repo | PASS | P0/P1=63, full ui_tested=34, contratti React verdi. |
 | `python scripts\react-migration\generate_api_contracts.py --check`; `validate_openapi.py`; `verify_openapi_provider.py` | repo | PASS | OpenAPI valido; provider 182/27/1. |
@@ -130,10 +130,11 @@ Backend critical coverage PASS: `coverage-critical` con `pytest-cov` su Lex/auth
 | `python tools\check_repo_governance.py` | repo | PASS dopo fix | Bootstrap nei budget, mojibake assente. |
 | Ruff/Ruff governed/mypy/flake8 | repo | PASS | Static checks verdi. |
 | Pytest mirati Fascicoli/Documenti/PolisWeb | repo | PASS | 12/12 e 6/6 dopo refactor. |
-| `docker compose build --no-cache app scheduler-worker ocr-worker` | repo | PASS | Immagini finali 2.235.0 costruite. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker` | repo | PASS | Immagini finali 2.235.1 costruite. |
 | `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx` | repo | PASS | Stack locale healthy. |
 | `python scripts\smoke_app_v2_all.py --subset contracts --read-only --base-url http://127.0.0.1:8080` | repo | PASS | PASS=7, FAIL=0. |
 | `python scripts\smoke_app_v2_all.py --suite post-deploy --read-only --base-url http://127.0.0.1:8080` | repo | PASS | PASS=76, FAIL=0, SKIP=1, BLOCKED=6. |
+| Browser reale su `/app-v2/messaggi/nuovo` desktop/mobile | repo | PASS | Nessun messaggio `Funzione non attiva`; redirect login corretto per utente anonimo; zero errori console. |
 
 ## 22. Comandi non eseguiti
 

@@ -7,7 +7,7 @@ release deve copiarla nel ticket/release note e spuntarla con esiti reali.
 
 ## Esito fase 14 - 2026-05-14
 
-Decisione: GO WITH WARNINGS per `2.235.0`.
+Decisione: GO WITH WARNINGS per `2.235.1`.
 
 | Voce | Stato | Evidenza |
 | --- | --- | --- |
@@ -19,9 +19,10 @@ Decisione: GO WITH WARNINGS per `2.235.0`.
 | Provider verification | PASS | 182 auth-error, 27 success sample, 1 guardrail backend security. |
 | RBAC tests | PASS | Pytest locali pass; smoke readonly autenticato BLOCKED per credenziali mancanti. |
 | Tenant isolation tests | PASS | Pytest locali pass; cross-tenant smoke autenticato BLOCKED per assenza API key/profili. |
-| Feature Flag tests | PASS | Flag App V2 default-off e route flag registrati. |
+| Feature Flag tests | PASS | Flag App V2 con default rollout operativo, route flag registrati e rollback esplicito. |
 | Routing tests | PASS | No open redirect negli smoke; fallback coerenti. |
 | Smoke scripts | PASS | Help/py_compile, contracts locale PASS=7, post-deploy locale PASS=76 FAIL=0. |
+| Browser reale | PASS | Desktop/mobile su `/app-v2/messaggi/nuovo`: nessun blocco "Funzione non attiva", redirect login corretto, console pulita. |
 | SAST/security | PASS/BLOCKED | `pip-audit`, `npm audit` e secret scan high-confidence PASS; `gitleaks` non installato localmente. |
 | Storybook/UI/VRT | PASS/BLOCKED | UI coverage leggera PASS; Storybook/VRT non presenti e non dichiarati passati. |
 | Docs validation | PASS | Link e comandi docs validati. |
@@ -44,7 +45,7 @@ Decisione: GO WITH WARNINGS per `2.235.0`.
 - [ ] Storybook/UI tests pass se presenti; se assenti, gap dichiarato.
 - [ ] Smoke local pass o blocchi documentati.
 - [ ] Smoke staging pass prima rollout.
-- [ ] Feature Flag default off verificato.
+- [ ] Feature Flag rollout/rollback verificato.
 - [ ] Rollback verificato.
 - [ ] Docs aggiornate.
 

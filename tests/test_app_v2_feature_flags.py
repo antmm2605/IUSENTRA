@@ -4,8 +4,11 @@ import re
 from pathlib import Path
 
 from web.services.feature_flags import (
+    APP_V2_DEFAULT_OFF_FLAGS,
+    APP_V2_DEFAULT_ON_FLAGS,
     FEATURE_FLAG_DEFINITIONS,
     FEATURE_FLAG_KEYS,
+    FEATURE_FLAG_CANONICAL_BY_ALIAS,
     APP_V2_ROUTE_FLAGS,
     app_v2_route_flag_for_path,
 )
@@ -28,19 +31,24 @@ def _frontend(path: str) -> str:
     return (REPO_ROOT / path).read_text(encoding="utf-8")
 
 
-def test_app_v2_canonical_flags_are_default_off_and_page_scoped():
+def test_app_v2_canonical_flags_have_explicit_rollout_defaults_and_page_scope():
     canonical = [
         definition.key
         for definition in FEATURE_FLAG_DEFINITIONS
-        if definition.key.startswith("routes.appV2.") and definition.key not in LEGACY_ALIASES
+        if definition.key.startswith("routes.appV2.") and definition.key not in FEATURE_FLAG_CANONICAL_BY_ALIAS
     ]
+    defaults = {definition.key: definition.default for definition in FEATURE_FLAG_DEFINITIONS}
 
     assert len(canonical) >= 45
-    assert all(definition.default is False for definition in FEATURE_FLAG_DEFINITIONS)
+    assert set(canonical) == APP_V2_DEFAULT_ON_FLAGS | APP_V2_DEFAULT_OFF_FLAGS
+    assert all(defaults[key] is True for key in APP_V2_DEFAULT_ON_FLAGS)
+    assert all(defaults[key] is False for key in APP_V2_DEFAULT_OFF_FLAGS)
+    assert all(defaults[key] is False for key in LEGACY_ALIASES)
     assert all(re.fullmatch(r"routes\.appV2\.[A-Za-z0-9]+\.[A-Za-z0-9]+", key) for key in canonical)
     assert "routes.appV2.documents.list" in canonical
     assert "routes.appV2.settings.calendarSync" in canonical
     assert "routes.appV2.notifications.mobilePush" in canonical
+    assert "routes.appV2.telematico.center" in APP_V2_DEFAULT_OFF_FLAGS
 
 
 def test_app_v2_route_rules_only_reference_known_flags():

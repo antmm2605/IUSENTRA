@@ -1,12 +1,28 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-14, fase react 13 smoke operativi App V2 2.234.0.
+Aggiornato: 2026-05-14, hotfix App V2 rollout 2.235.1.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Hotfix App V2 rollout 2.235.1 - 2026-05-14
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest -q tests/test_feature_flags.py tests/test_app_v2_feature_flags.py tests/test_app_v2_routing.py tests/test_react_shell.py::test_react_shell_app_v2_route_operativa_e_spegnibile_da_feature_flag --tb=short` | OK | 22/22 passati: le superfici App V2 operative sono attive di default, il rollback esplicito per flag resta 403 e telematico/Web Push restano protetti. |
+| `python -m pytest -q tests/test_feature_flags.py tests/test_app_v2_feature_flags.py tests/test_app_v2_routing.py tests/test_react_shell.py::test_react_shell_app_v2_route_operativa_e_spegnibile_da_feature_flag tests/test_packaging_consistency.py tests/test_release_readiness.py --tb=short` | OK | 30/30 passati dopo il fix alias esplicito: flag, routing App V2, shell React, packaging e readiness release confermati su `2.235.1`. |
+| `python -m pytest -q tests/test_feature_flags.py tests/test_app_v2_feature_flags.py tests/test_app_v2_routing.py tests/test_react_shell.py::test_react_shell_app_v2_route_operativa_e_spegnibile_da_feature_flag tests/test_app_v2_page_registry.py tests/test_packaging_consistency.py tests/test_release_readiness.py --tb=short` | OK | 35/35 passati come gate finale locale dopo rigenerazione registro e cleanup runtime. |
+| `python -m compileall -q web\services\feature_flags.py scripts\smoke_app_v2_all.py scripts\smoke_app_v2_routing.py scripts\smoke_app_v2_pages.py` | OK | Sintassi confermata per resolver flag e smoke aggiornati. |
+| `python tools\sync_packaging_files.py --check`; `python scripts\react-migration\generate_app_v2_page_registry.py --check`; `python scripts\react-migration\generate_app_v2_test_docs.py --check`; `python scripts\validate_docs_links.py`; `python scripts\validate_docs_commands.py` | OK | Packaging, registro App V2 e documentazione deterministici; link/comandi docs validati dopo l'aggiornamento del rollout e del default flag nel registro. |
+| `python -m compileall -q scripts\react-migration\generate_app_v2_page_registry.py`; `python -m pytest -q tests/test_app_v2_page_registry.py --tb=short` | OK | Generatore registro App V2 confermato dopo l'allineamento della colonna `Default flag`; 5/5 passati. |
+| `npm --prefix frontend run test`; `npm --prefix frontend run typecheck`; `npm --prefix frontend run build` | OK | Test frontend, TypeScript e build Vite `iusentra-react-token-ui@2.235.1` verdi; build 5.83s, asset principali invariati `index-CSdjNGxs.js` 444.72 kB / 131.62 kB gzip e `index-Bafxecf8.css` 121.77 kB / 22.33 kB gzip. |
+| Flask test client autenticato su `/app-v2/messaggi/nuovo`, `/app-v2/messaggi`, `/app-v2/documenti`, `/app-v2/telematico` | OK | Le prime tre route rispondono 200 con shell React; `/app-v2/telematico` resta 403 perche' nel perimetro non parificato. La cartella runtime temporanea `tmp_smoke_app_v2_message` e' stata rimossa. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx`; `GET http://127.0.0.1:8080/api/pronto`; runtime/label immagine | OK | Immagini locali ricostruite da zero con wheel `pct-studio-legale==2.235.1`; app, scheduler, OCR e Redis healthy; readiness locale `versione=2.235.1`, runtime e label immagine `2.235.1`. |
+| `python scripts\smoke_app_v2_all.py --subset contracts --read-only --base-url http://127.0.0.1:8080`; `python scripts\smoke_app_v2_all.py --suite post-deploy --read-only --base-url http://127.0.0.1:8080` | OK | Contracts PASS=7 FAIL=0; post-deploy PASS=76 FAIL=0 SKIP=1 BLOCKED=6. I blocchi sono solo credenziali smoke dedicate e ID documento test assenti. |
+| Browser reale su `http://127.0.0.1:8080/app-v2/messaggi/nuovo` desktop e mobile | OK | La route anonima non mostra piu' `Funzione non attiva per questo studio`, ma il redirect corretto a `/login?next=/app-v2/messaggi/nuovo`; pagina non vuota, nessun overlay framework, nessun errore/warning console, form login interagibile. |
 
 ### Fase react 13 - smoke operativi e post-deploy readiness 2.234.0
 

@@ -50,23 +50,23 @@ def test_react_shell_primo_blocco_richiede_login(tmp_path: Path):
     assert "/login" in response.headers["Location"]
 
 
-def test_react_shell_app_v2_route_protette_da_feature_flags(tmp_path: Path):
+def test_react_shell_app_v2_route_operativa_e_spegnibile_da_feature_flag(tmp_path: Path):
     app = _app(tmp_path)
     _crea_operatore(app)
 
     with app.test_client() as client:
         _login(client)
-        assert client.get("/app-v2").status_code == 403
-        assert client.get("/app-v2/documenti").status_code == 403
+        assert client.get("/app-v2").status_code == 200
+        assert client.get("/app-v2/documenti").status_code == 200
 
     app.config["FEATURE_FLAGS"] = {
-        "routes.appV2.dashboard.home": True,
-        "routes.appV2.documents.list": True,
+        "routes.appV2.dashboard.home": False,
+        "routes.appV2.documents.list": False,
     }
     with app.test_client() as client:
         _login(client)
-        assert client.get("/app-v2").status_code == 200
-        assert client.get("/app-v2/documenti").status_code == 200
+        assert client.get("/app-v2").status_code == 403
+        assert client.get("/app-v2/documenti").status_code == 403
 
 
 def test_react_shell_sidebar_usa_profilo_reale_sessione(tmp_path: Path):

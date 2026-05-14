@@ -1,7 +1,9 @@
 """Feature flag governati per la migrazione React/App V2.
 
-I flag qui definiti sono default-off e servono a introdurre nuove capability
-senza spegnere le superfici React gia' promosse come operative.
+Le superfici App V2 gia' promosse come operative sono attive di default e
+restano spegnibili via config/env per rollback controllato. Le capability non
+parificate, come i workflow telematici ancora protetti e Web Push, restano
+default-off e fail-closed.
 """
 
 from __future__ import annotations
@@ -25,12 +27,80 @@ class FeatureFlagDefinition:
     default: bool = False
 
 
+APP_V2_DEFAULT_OFF_FLAGS = frozenset(
+    {
+        "routes.appV2.telematico.center",
+        "routes.appV2.telematico.surface",
+        "routes.appV2.notifications.mobilePush",
+    }
+)
+
+APP_V2_DEFAULT_ON_FLAGS = frozenset(
+    {
+        "routes.appV2.dashboard.home",
+        "routes.appV2.dashboard.regia",
+        "routes.appV2.search.global",
+        "routes.appV2.cases.list",
+        "routes.appV2.cases.detail",
+        "routes.appV2.cases.create",
+        "routes.appV2.clients.list",
+        "routes.appV2.clients.create",
+        "routes.appV2.clients.detail",
+        "routes.appV2.contacts.list",
+        "routes.appV2.contacts.create",
+        "routes.appV2.comms.deposits",
+        "routes.appV2.comms.pec",
+        "routes.appV2.comms.ordinaryMail",
+        "routes.appV2.comms.messages",
+        "routes.appV2.comms.newMessage",
+        "routes.appV2.agenda.calendar",
+        "routes.appV2.agenda.create",
+        "routes.appV2.agenda.timesheet",
+        "routes.appV2.deadlines.list",
+        "routes.appV2.deadlines.create",
+        "routes.appV2.deadlines.detail",
+        "routes.appV2.deadlines.hearingWizard",
+        "routes.appV2.documents.list",
+        "routes.appV2.documents.templates",
+        "routes.appV2.documents.templateEditor",
+        "routes.appV2.documents.drafting",
+        "routes.appV2.documents.editor",
+        "routes.appV2.documents.uploadClassification",
+        "routes.appV2.documents.checklist",
+        "routes.appV2.legalResearch.home",
+        "routes.appV2.legalResearch.giurisprudenza",
+        "routes.appV2.studio.home",
+        "routes.appV2.studio.statistics",
+        "routes.appV2.studio.modules",
+        "routes.appV2.studio.site",
+        "routes.appV2.studio.siteBuilder",
+        "routes.appV2.studio.siteDrafting",
+        "routes.appV2.admin.home",
+        "routes.appV2.admin.users",
+        "routes.appV2.admin.roles",
+        "routes.appV2.admin.auditLogs",
+        "routes.appV2.admin.database",
+        "routes.appV2.admin.privacyRegistry",
+        "routes.appV2.settings.studio",
+        "routes.appV2.settings.payments",
+        "routes.appV2.settings.notifications",
+        "routes.appV2.settings.backup",
+        "routes.appV2.settings.calendarSync",
+        "routes.appV2.billing.invoices",
+        "routes.appV2.billing.payments",
+        "routes.appV2.billing.quotes",
+        "routes.appV2.billing.compensi",
+        "routes.appV2.billing.tariffario",
+    }
+)
+
+
 def _env_var(flag_key: str) -> str:
     return "IUSENTRA_FF_" + re.sub(r"[^A-Z0-9]+", "_", flag_key.upper()).strip("_")
 
 
 def _flag(key: str, description: str) -> FeatureFlagDefinition:
-    return FeatureFlagDefinition(key, _env_var(key), description)
+    return FeatureFlagDefinition(key, _env_var(key), description, default=key in APP_V2_DEFAULT_ON_FLAGS)
 
 
 FEATURE_FLAG_DEFINITIONS: tuple[FeatureFlagDefinition, ...] = (
@@ -277,11 +347,23 @@ def _mapping_from_raw(value: Any) -> dict[str, Any]:
     return {}
 
 
-def _propagate_feature_flag_aliases(resolved: dict[str, bool]) -> dict[str, bool]:
+def _propagate_feature_flag_aliases(
+    resolved: dict[str, bool],
+    explicit: Mapping[str, bool] | None = None,
+) -> dict[str, bool]:
     """Mantiene equivalenti i flag fase 1 e i nuovi flag canonici."""
 
+    explicit = explicit or {}
     for canonical, aliases in FEATURE_FLAG_ALIASES.items():
-        active = bool(resolved.get(canonical, False) or any(resolved.get(alias, False) for alias in aliases))
+        explicit_values = [
+            bool(explicit[key])
+            for key in (canonical, *aliases)
+            if key in explicit
+        ]
+        if explicit_values:
+            active = any(explicit_values)
+        else:
+            active = bool(resolved.get(canonical, False) or any(resolved.get(alias, False) for alias in aliases))
         resolved[canonical] = active
         for alias in aliases:
             resolved[alias] = active
@@ -289,10 +371,11 @@ def _propagate_feature_flag_aliases(resolved: dict[str, bool]) -> dict[str, bool
 
 
 def resolve_feature_flags(config: Mapping[str, Any] | None = None) -> dict[str, bool]:
-    """Risolve tutti i flag noti, mantenendo default-off in assenza di opt-in."""
+    """Risolve tutti i flag noti, applicando rollout operativo e rollback."""
 
     source = config if config is not None else getattr(current_app, "config", {})
     resolved = {definition.key: bool(definition.default) for definition in FEATURE_FLAG_DEFINITIONS}
+    explicit: dict[str, bool] = {}
     bulk_sources = (
         _mapping_from_raw(source.get("FEATURE_FLAGS") if source else None),
         _mapping_from_raw(os.getenv("IUSENTRA_FEATURE_FLAGS", "")),
@@ -301,7 +384,9 @@ def resolve_feature_flags(config: Mapping[str, Any] | None = None) -> dict[str, 
         for raw_key, raw_value in raw_flags.items():
             definition = FEATURE_FLAGS_BY_KEY.get(raw_key) or FEATURE_FLAGS_BY_ENV.get(raw_key)
             if definition:
-                resolved[definition.key] = _coerce_bool(raw_value, default=definition.default)
+                value = _coerce_bool(raw_value, default=definition.default)
+                resolved[definition.key] = value
+                explicit[definition.key] = value
 
     for definition in FEATURE_FLAG_DEFINITIONS:
         config_key = _config_key(definition.key)
@@ -311,8 +396,10 @@ def resolve_feature_flags(config: Mapping[str, Any] | None = None) -> dict[str, 
             os.getenv(definition.env_var),
         ):
             if raw_value is not None:
-                resolved[definition.key] = _coerce_bool(raw_value, default=definition.default)
-    return _propagate_feature_flag_aliases(resolved)
+                value = _coerce_bool(raw_value, default=definition.default)
+                resolved[definition.key] = value
+                explicit[definition.key] = value
+    return _propagate_feature_flag_aliases(resolved, explicit)
 
 
 def feature_flags_payload(config: Mapping[str, Any] | None = None) -> dict[str, Any]:

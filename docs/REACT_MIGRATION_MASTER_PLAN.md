@@ -1,5 +1,11 @@
 # Migrazione progressiva Flask + React
 
+## Hotfix App V2 rollout - 2026-05-14 - 2.235.1
+
+Corretto il blocco regressivo che rendeva non raggiungibili le pagine operative sotto `/app-v2` quando lo studio non aveva flag manuali configurati. Le superfici gia' promosse operative nel manifest sono ora attive di default e restano spegnibili per rollback esplicito; `routes.appV2.telematico.center`, `routes.appV2.telematico.surface` e `routes.appV2.notifications.mobilePush` restano default-off e fail-closed.
+
+Verifica mirata: `/app-v2/messaggi/nuovo`, `/app-v2/messaggi` e `/app-v2/documenti` rispondono 200 con shell React autenticata; `/app-v2/telematico` resta 403 perche' nel perimetro telematico non parificato. Docker locale no-cache `2.235.1` healthy, smoke post-deploy locale PASS=76 FAIL=0, browser reale desktop/mobile sulla route segnalata senza messaggio "Funzione non attiva".
+
 ## Stato fase react 13 - 2026-05-14 - Smoke operativi e post-deploy readiness 2.234.0
 
 La tredicesima fase del piano `fasereact` consolida gli smoke operativi finali
@@ -1936,7 +1942,8 @@ python -m pytest tests/test_react_shell.py tests/test_email_client.py tests/test
 
 ## Aggiornamento 2026-05-14: Fase 14 release finale
 
-- Versione finale locale `2.235.0`; decisione GO WITH WARNINGS in `docs/final-release-report.md`.
+- Versione finale locale `2.235.1`; decisione GO WITH WARNINGS in `docs/final-release-report.md`.
 - Gate finali eseguiti: documentazione, registry, feature flag, routing, OpenAPI/provider, backend security/RBAC/tenant, frontend test/typecheck/build, governance, lint/static checks, coverage-critical e Docker locale.
 - Fix finale leggero: `web/bootstrap/fascicoli_create_routes.py` e `web/bootstrap/fascicoli_document_helpers.py` separano flussi gia esistenti per far passare il budget governance senza cambiare URL o comportamento utente.
 - Smoke Docker locale finale: `--subset contracts` PASS=7 FAIL=0; `--suite post-deploy` PASS=76 FAIL=0 SKIP=1 BLOCKED=6. I blocchi richiedono credenziali smoke dedicate e non sono verdi dichiarati.
+- Hotfix successivo 2.235.1: superfici operative App V2 attive di default sotto `/app-v2`, rollback esplicito via flag, telematico non parificato e Web Push ancora protetti.

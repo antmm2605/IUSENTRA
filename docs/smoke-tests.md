@@ -23,7 +23,7 @@ python scripts\smoke_app_v2_all.py --suite post-deploy --read-only --base-url ht
 | `scripts/smoke_lib.py` | Libreria comune per HTTP, redaction, risultato, summary e JSON report. | nessuna | si | si | no | usata dal runner | ready |
 | `scripts/smoke_backend_security.py` | Readiness, API sensibili anonime bloccate e `tenant_id` forzato con API key smoke se disponibile. | opzionali `IUSENTRA_SMOKE_API_KEY`, `IUSENTRA_SMOKE_TENANT_SLUG` | si | si | no | non-zero su KO | ready |
 | `scripts/smoke_app_v2_pages.py` | Inventario manifest e smoke pagine App V2 storico. | opzionali `IUSENTRA_SMOKE_USERNAME`, `IUSENTRA_SMOKE_PASSWORD` | si | si | no | non-zero su KO | consolidated |
-| `scripts/smoke_app_v2_routing.py` | Routing, whitelist query, open redirect e flag-off storico. | opzionali `IUSENTRA_SMOKE_USERNAME`, `IUSENTRA_SMOKE_PASSWORD` | si | si | no | non-zero su KO | consolidated |
+| `scripts/smoke_app_v2_routing.py` | Routing, whitelist query, open redirect e rollback flag-off esplicito. | opzionali `IUSENTRA_SMOKE_USERNAME`, `IUSENTRA_SMOKE_PASSWORD` | si | si | no | non-zero su KO | consolidated |
 | `scripts/smoke_app_v2_workflows.py` | Inventario e smoke P0/P1 per profili configurati. | `IUSENTRA_ADMIN_*`, `IUSENTRA_TENANT_A_*`, `IUSENTRA_TENANT_B_*`, `IUSENTRA_READONLY_*` per auth completo | si | si | no | non-zero su KO | consolidated |
 | `scripts/validate_docs_links.py` | Link locali documentazione. | nessuna | si | si | no | non-zero su link rotto | ready |
 | `scripts/validate_docs_commands.py` | Comandi/path documentati contro file reali e npm scripts. | nessuna | si | si | no | non-zero su comando non valido | ready |
@@ -38,7 +38,7 @@ python scripts\smoke_app_v2_all.py --suite post-deploy --read-only --base-url ht
 | --- | --- | --- | --- | --- |
 | `health` | `/api/pronto`, shell base, assenza 500/stack trace. | app non raggiungibile | `IUSENTRA_BASE_URL` | ready |
 | `auth` | anonimo negato, credenziali invalide, login profili se env presenti. | bypass auth | profili `IUSENTRA_*_USER/PASSWORD` opzionali | ready, auth completo blocked senza env |
-| `flags` | default-off da sorgente, route flag registrate, endpoint flag protetto. | flag off bypass o flag mancante | opzionale `IUSENTRA_FEATURE_FLAGS_EXPECTED` | ready |
+| `flags` | default rollout da sorgente, route flag registrate, endpoint flag protetto. | default incoerente, flag off bypass o flag mancante | opzionale `IUSENTRA_FEATURE_FLAGS_EXPECTED` | ready |
 | `rbac` | readonly negato su admin se profilo disponibile, mutating smoke saltato in read-only. | admin/RBAC bypass | `IUSENTRA_READONLY_*` per check auth | ready, blocked senza env |
 | `tenant` | anonimo bloccato, `tenant_id` forzato con API key se disponibile. | leakage cross-tenant | opzionali `IUSENTRA_SMOKE_API_KEY`, `IUSENTRA_SMOKE_TENANT_SLUG` | ready, auth cross-tenant blocked senza env |
 | `routing` | whitelist query, flag-off fail-closed, redirect esterni negati. | open redirect | `IUSENTRA_BASE_URL` | ready |

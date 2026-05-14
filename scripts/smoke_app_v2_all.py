@@ -40,7 +40,14 @@ from scripts.smoke_lib import (  # noqa: E402
 
 from scripts.smoke_app_v2_workflows import WORKFLOWS  # noqa: E402
 from web.services.app_v2_routing import build_app_v2_path, should_redirect_to_app_v2  # noqa: E402
-from web.services.feature_flags import APP_V2_ROUTE_FLAGS, FEATURE_FLAG_DEFINITIONS, resolve_feature_flags  # noqa: E402
+from web.services.feature_flags import (  # noqa: E402
+    APP_V2_DEFAULT_OFF_FLAGS,
+    APP_V2_DEFAULT_ON_FLAGS,
+    APP_V2_ROUTE_FLAGS,
+    FEATURE_FLAG_CANONICAL_BY_ALIAS,
+    FEATURE_FLAG_DEFINITIONS,
+    resolve_feature_flags,
+)
 
 HEALTH_PATHS = (
     ("readiness", "/api/pronto", (200,), SEVERITY_CRITICAL),
@@ -59,7 +66,7 @@ ROUTING_TARGETS = (
     ("api-pronta", "/api/pronto", (200,), SEVERITY_CRITICAL),
     ("feature-flags", "/api/v1/ui/feature-flags", (200, 302, 303, 401, 403), SEVERITY_HIGH),
     ("legacy-fascicoli", "/fascicoli?q=smoke", (200, 302, 303), SEVERITY_HIGH),
-    ("app-v2-flag-off", "/app-v2/documenti", (200, 302, 303, 403), SEVERITY_HIGH),
+    ("app-v2-documenti", "/app-v2/documenti", (200, 302, 303, 403), SEVERITY_HIGH),
     ("open-redirect", "/app-v2?next=https://evil.example", (200, 302, 303, 403), SEVERITY_CRITICAL),
 )
 
@@ -245,15 +252,33 @@ class Runner:
 
     def suite_flags(self) -> list[SmokeCheck]:
         checks: list[SmokeCheck] = []
-        app_v2_defs = [definition for definition in FEATURE_FLAG_DEFINITIONS if definition.key.startswith("routes.appV2.")]
-        non_default_off = [definition.key for definition in app_v2_defs if definition.default is not False]
+        app_v2_defs = [
+            definition
+            for definition in FEATURE_FLAG_DEFINITIONS
+            if definition.key.startswith("routes.appV2.") and definition.key not in FEATURE_FLAG_CANONICAL_BY_ALIAS
+        ]
+        defaults = {definition.key: bool(definition.default) for definition in FEATURE_FLAG_DEFINITIONS}
+        unknown_policy = sorted(
+            definition.key
+            for definition in app_v2_defs
+            if definition.key not in APP_V2_DEFAULT_ON_FLAGS and definition.key not in APP_V2_DEFAULT_OFF_FLAGS
+        )
+        default_drift = sorted(
+            [key for key in APP_V2_DEFAULT_ON_FLAGS if defaults.get(key) is not True]
+            + [key for key in APP_V2_DEFAULT_OFF_FLAGS if defaults.get(key) is not False]
+        )
         checks.append(
             make_check(
                 "flags",
-                "default-off-source",
-                STATUS_FAIL if non_default_off else STATUS_PASS,
+                "rollout-defaults-source",
+                STATUS_FAIL if unknown_policy or default_drift else STATUS_PASS,
                 SEVERITY_CRITICAL,
-                "Flag non default-off: " + ", ".join(non_default_off) if non_default_off else f"{len(app_v2_defs)} flag App V2 default-off da sorgente.",
+                "Policy flag non coerente: " + ", ".join(unknown_policy + default_drift)
+                if unknown_policy or default_drift
+                else (
+                    f"{len(APP_V2_DEFAULT_ON_FLAGS)} flag App V2 operativi attivi di default; "
+                    f"{len(APP_V2_DEFAULT_OFF_FLAGS)} flag protetti restano spenti."
+                ),
             )
         )
         known = {definition.key for definition in FEATURE_FLAG_DEFINITIONS}
@@ -268,14 +293,19 @@ class Runner:
             )
         )
         resolved = resolve_feature_flags({})
-        enabled_by_default = sorted(key for key, value in resolved.items() if key.startswith("routes.appV2.") and value)
+        rollout_drift = sorted(
+            [key for key in APP_V2_DEFAULT_ON_FLAGS if resolved.get(key) is not True]
+            + [key for key in APP_V2_DEFAULT_OFF_FLAGS if resolved.get(key) is not False]
+        )
         checks.append(
             make_check(
                 "flags",
-                "resolver-default-off",
-                STATUS_FAIL if enabled_by_default else STATUS_PASS,
+                "resolver-rollout-defaults",
+                STATUS_FAIL if rollout_drift else STATUS_PASS,
                 SEVERITY_CRITICAL,
-                "Flag attivi senza config: " + ", ".join(enabled_by_default) if enabled_by_default else "Resolver senza config mantiene App V2 spento.",
+                "Resolver flag non coerente: " + ", ".join(rollout_drift)
+                if rollout_drift
+                else "Resolver senza config apre le superfici operative e mantiene protette quelle non parificate.",
             )
         )
 
@@ -430,7 +460,11 @@ class Runner:
                 f"Query sanificata: {safe}",
             )
         )
-        decision = should_redirect_to_app_v2("/documenti", {"tab": "template"}, config={})
+        decision = should_redirect_to_app_v2(
+            "/documenti",
+            {"tab": "template"},
+            config={"FEATURE_FLAGS": {"routes.appV2.documents.list": False}},
+        )
         checks.append(
             make_check(
                 "routing",

@@ -35,7 +35,7 @@ DEFAULT_TARGETS = (
     RoutingSmokeTarget("API pronta", "/api/pronto", (200,), False),
     RoutingSmokeTarget("API feature flag", "/api/v1/ui/feature-flags", (200, 302, 303, 401)),
     RoutingSmokeTarget("Legacy fascicoli", "/fascicoli?q=smoke", (200, 302, 303)),
-    RoutingSmokeTarget("App V2 flag-off", "/app-v2/documenti", (403, 200, 302, 303)),
+    RoutingSmokeTarget("App V2 documenti", "/app-v2/documenti", (200, 302, 303, 403)),
     RoutingSmokeTarget("Open redirect bloccato", "/app-v2?next=https://evil.example", (403, 200, 302, 303)),
 )
 
@@ -90,7 +90,11 @@ def _run_static_checks() -> list[str]:
     )
     if safe != "/app-v2/fascicoli?q=Rossi":
         errors.append(f"Query whitelist non coerente: {safe}")
-    decision = should_redirect_to_app_v2("/documenti", {"tab": "template"}, config={})
+    decision = should_redirect_to_app_v2(
+        "/documenti",
+        {"tab": "template"},
+        config={"FEATURE_FLAGS": {"routes.appV2.documents.list": False}},
+    )
     if decision.allowed or decision.flag_key != "routes.appV2.documents.list":
         errors.append("Decisione flag-off non fail-closed per /documenti")
     return errors

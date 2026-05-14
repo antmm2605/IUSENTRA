@@ -294,7 +294,12 @@ def _feature_flag(route: dict[str, object]) -> str:
 def _feature_flag_default(route: dict[str, object]) -> str:
     flag = _feature_flag(route)
     if flag.startswith("routes.appV2."):
-        return "off"
+        if str(REPO_ROOT) not in sys.path:
+            sys.path.insert(0, str(REPO_ROOT))
+        from web.services.feature_flags import FEATURE_FLAGS_BY_KEY
+
+        definition = FEATURE_FLAGS_BY_KEY.get(flag)
+        return "on" if definition and definition.default else "off"
     return "non applicabile"
 
 
@@ -842,7 +847,7 @@ def _registry_doc(
         "- P1: route ad alto rischio gia' React o route legacy/parziali a rischio medio.",
         "- P2: route React complete a rischio medio e backlog governato.",
         "- P3: route a rischio basso o solo di servizio, da trattare dopo le superfici studio principali.",
-        "- Ogni flag `routes.appV2.*` resta default-off; se spento la shell mostra uno stato operativo e non esegue chiamate dati della pagina.",
+        "- I flag `routes.appV2.*` delle superfici operative restano attivi di default e spegnibili per rollback; quelli non parificati restano default-off. Se spento, la shell mostra uno stato operativo e non esegue chiamate dati della pagina.",
         "- Ogni redirect legacy -> App V2 deve passare da `web.services.app_v2_routing` e restare spento finche' il flag pagina non e' attivo.",
         "",
     ]

@@ -44,6 +44,7 @@ export type LegalDocumentSuggestion = {
   hashSha256: string
   dataDocumento: string
   fonte: string
+  riferimentoPortale: string
   necessitaAttestazione: boolean
 }
 
@@ -328,6 +329,7 @@ function documentSuggestions(value: unknown): LegalDocumentSuggestion[] {
       hashSha256: text(row.hashSha256),
       dataDocumento: text(row.dataDocumento),
       fonte: text(row.fonte),
+      riferimentoPortale: text(row.riferimentoPortale),
       necessitaAttestazione: bool(row.necessitaAttestazione),
     }
   }).filter((item) => item.id && item.label)

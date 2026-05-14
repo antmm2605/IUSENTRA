@@ -1,12 +1,24 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-14, modulo notifiche legali e registry telematico 2.236.0.
+Aggiornato: 2026-05-14, modulo notifiche legali e registry telematico 2.236.1.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Prova notifica multi-documento 2.236.1 - 2026-05-14
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m ruff check pct/notifiche_legali.py web/services/react_notifiche_legali_bridge.py tests/test_notifiche_legali.py` | OK | Ruff verde dopo `atti_notificati`, riferimento portale documento e test prova deposito multi-documento. |
+| `python -m pytest tests/test_notifiche_legali.py -q` | OK | 25/25 passati: la prova deposito accetta piu' atti notificati con hash e mantiene RAC/RdAC originali obbligatorie. |
+| `npm --prefix frontend run typecheck`; `node frontend/scripts/check-react-contracts.mjs`; `npm --prefix frontend test`; `npm --prefix frontend run build`; `node scripts/react-migration/check-route-gate.mjs` | OK | TypeScript, contratti, UI coverage, build Vite e route gate verdi dopo la selezione documenti della prova deposito; chunk `NotificheLegaliPage-DTWnOHO8.js` 58.16 kB / 13.16 kB gzip. |
+| Browser Chrome headless su runtime isolato `http://127.0.0.1:8092/notifiche-legali` | OK | Login operatore, scheda `Deposito prova notifica`, pratica con `pst:JPW_SIGP:2182464` e `procura.pdf`: 2 checkbox, elenco automatico con entrambi i documenti e SHA-256, campo `Atto notificato` compilato come `pst:JPW_SIGP:2182464 - ricorso.pdf; procura.pdf`, zero errori console e nessun testo tecnico vietato. |
+| `python -m pytest tests/test_packaging_consistency.py tests/test_release_readiness.py -q` | OK | 8/8 passati dopo bump versione `2.236.1`. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx`; `GET http://127.0.0.1:8080/api/pronto` | OK | Immagini locali ricostruite da zero con wheel `pct-studio-legale==2.236.1`; app, scheduler, OCR, Redis e Nginx avviati; readiness locale 200 con `versione=2.236.1`. Nessun backup eseguito. |
+| `python scripts/smoke_app_v2_all.py --suite health --read-only --base-url http://127.0.0.1:8080 --timeout 20`; `python scripts/smoke_app_v2_all.py --suite notifications --read-only --base-url http://127.0.0.1:8080 --timeout 20` | OK | Health locale PASS=2 FAIL=0; notifiche locale PASS=3 FAIL=0 SKIP=1, con invio reale saltato per modalita sola lettura. |
 
 ### Modulo notifiche legali e registry telematico 2.236.0 - 2026-05-14
 

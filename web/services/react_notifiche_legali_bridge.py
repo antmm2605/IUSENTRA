@@ -142,6 +142,7 @@ def _document_from_fascicolo(documento: Any) -> dict[str, Any]:
     origin = normalise_document_origin(_infer_document_origin(documento))
     name = _first_attr(documento, "nome_originale", "nome_portale", "nome", "percorso")
     description = _first_attr(documento, "tipo_atto_portale", "classificazione_portale", "note") or name
+    portal_ref = _first_attr(documento, "id_documento_portale", "id_portale", "codice_portale", "riferimento_portale")
     return {
         "id": _text(getattr(documento, "id", "")) or name,
         "label": _document_label(documento) or _display_text(name),
@@ -151,6 +152,7 @@ def _document_from_fascicolo(documento: Any) -> dict[str, Any]:
         "hashSha256": _text(getattr(documento, "hash_sha256", "")),
         "dataDocumento": _text(getattr(documento, "data_documento", "")) or _text(getattr(documento, "data_deposito_portale", "")),
         "fonte": _text(getattr(documento, "fonte_documento", "")),
+        "riferimentoPortale": _text(portal_ref),
         "necessitaAttestazione": origin in {"copia_fascicolo_informatico", "comunicazione_cancelleria", "scansione_analogico"},
     }
 

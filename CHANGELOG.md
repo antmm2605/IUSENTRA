@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.236.1 - 2026-05-14
+
+- Migliorata la prova notifica: la scheda `Deposito prova notifica` permette di selezionare piu' documenti dalla pratica, mostra l'elenco automatico con riferimento portale e hash SHA-256, e invia al motore `atti_notificati` separati per evidence pack.
+- Il bridge React espone il riferimento portale del documento, ad esempio `pst:JPW_SIGP:2182464`, cosi' l'atto notificato puo' essere riportato senza riscriverlo a mano.
+
 ## 2.236.0 - 2026-05-14
 
 - Reso fail-closed il modulo notifiche legali: la notifica PEC L. 53/1994 richiede operazione `notifica_pec_l53`, avvocato abilitato, PEC mittente validata, fonte pubblica, verifica PEC con data e ora, oggetto esatto, relata separata firmata, ricevuta completa, documenti classificati e attestazioni quando dovute.

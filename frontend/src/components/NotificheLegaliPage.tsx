@@ -52,6 +52,15 @@ type NotificaDocumentPayload = {
   attestazione_conformita_presente?: boolean
 }
 
+type EvidenceDocumentPayload = {
+  nome_file: string
+  descrizione: string
+  origine: string
+  hash_sha256: string
+  riferimento_portale: string
+  file_originale: string
+}
+
 const emptyResult: LegalWorkflowResult = {
   ok: false,
   blockers: [],
@@ -263,6 +272,7 @@ export function NotificheLegaliPage() {
   const [selectedRecipientId, setSelectedRecipientId] = useState('')
   const [selectedDocumentId, setSelectedDocumentId] = useState('')
   const [selectedNotificationDocumentIds, setSelectedNotificationDocumentIds] = useState<string[]>([])
+  const [selectedDepositDocumentIds, setSelectedDepositDocumentIds] = useState<string[]>([])
   const [selectedClientId, setSelectedClientId] = useState('')
   const [templateCatalogExpanded, setTemplateCatalogExpanded] = useState(false)
   const [templateEditorOpen, setTemplateEditorOpen] = useState(false)
@@ -356,6 +366,12 @@ export function NotificheLegaliPage() {
       .map((id) => documentSuggestions.find((item) => item.id === id))
       .filter((item): item is LegalDocumentSuggestion => Boolean(item)),
     [documentSuggestions, selectedNotificationDocumentIds],
+  )
+  const selectedDepositDocuments = useMemo(
+    () => selectedDepositDocumentIds
+      .map((id) => documentSuggestions.find((item) => item.id === id))
+      .filter((item): item is LegalDocumentSuggestion => Boolean(item)),
+    [documentSuggestions, selectedDepositDocumentIds],
   )
   const selectedOrigin = useMemo(() => data.originiDocumento.find((item) => item.value === notifica.origine_documento), [data.originiDocumento, notifica.origine_documento])
   const notificationNeedsAttestazione = Boolean(selectedOrigin?.needsAttestazione || selectedNotificationDocuments.some((item) => item.necessitaAttestazione))
@@ -479,8 +495,34 @@ export function NotificheLegaliPage() {
     }))
   }
 
+  const documentEvidenceName = (documento: LegalDocumentSuggestion) => {
+    if (documento.riferimentoPortale && documento.nomeFile) return `${documento.riferimentoPortale} - ${documento.nomeFile}`
+    return documento.riferimentoPortale || documento.nomeFile || documento.label
+  }
+
+  const depositDocumentPayload = (documento: LegalDocumentSuggestion): EvidenceDocumentPayload => ({
+    nome_file: documentEvidenceName(documento),
+    descrizione: documento.descrizione || documento.label,
+    origine: documento.origine || 'nativo_digitale',
+    hash_sha256: documento.hashSha256,
+    riferimento_portale: documento.riferimentoPortale,
+    file_originale: documento.nomeFile,
+  })
+
+  const syncDepositoFromDocuments = (ids: string[]) => {
+    const rows = ids
+      .map((id) => documentSuggestions.find((item) => item.id === id))
+      .filter((item): item is LegalDocumentSuggestion => Boolean(item))
+    setDeposito((current) => ({
+      ...current,
+      atto_notificato: rows.length ? rows.map(documentEvidenceName).join('; ') : current.atto_notificato,
+      atto_sha256: rows.length === 1 ? rows[0].hashSha256 || current.atto_sha256 : current.atto_sha256,
+    }))
+  }
+
   const applyDocument = (documento: LegalDocumentSuggestion) => {
     setSelectedDocumentId(documento.id)
+    setSelectedDepositDocumentIds([documento.id])
     setNotifica((current) => ({
       ...current,
       nome_file: documento.nomeFile || current.nome_file,
@@ -496,7 +538,8 @@ export function NotificheLegaliPage() {
     }))
     setDeposito((current) => ({
       ...current,
-      atto_notificato: documento.nomeFile || current.atto_notificato,
+      atto_notificato: documentEvidenceName(documento) || current.atto_notificato,
+      atto_sha256: documento.hashSha256 || current.atto_sha256,
     }))
     setCliente((current) => ({
       ...current,
@@ -562,6 +605,17 @@ export function NotificheLegaliPage() {
     }
   }
 
+  const toggleDepositDocument = (documento: LegalDocumentSuggestion, checked: boolean) => {
+    setSelectedDepositDocumentIds((current) => {
+      const next = checked
+        ? Array.from(new Set([...current, documento.id]))
+        : current.filter((id) => id !== documento.id)
+      syncDepositoFromDocuments(next)
+      if (checked && next.length === 1) setSelectedDocumentId(documento.id)
+      return next
+    })
+  }
+
   const applyPractice = (practice: LegalPracticeSuggestion) => {
     setSelectedPracticeId(practice.id)
     const unicoDestinatario = practice.destinatari.length === 1 ? practice.destinatari[0] : null
@@ -569,6 +623,7 @@ export function NotificheLegaliPage() {
     setSelectedRecipientId(unicoDestinatario?.id || '')
     setSelectedDocumentId(unicoDocumento?.id || '')
     setSelectedNotificationDocumentIds(unicoDocumento?.id ? [unicoDocumento.id] : [])
+    setSelectedDepositDocumentIds(unicoDocumento?.id ? [unicoDocumento.id] : [])
     setSelectedClientId(practice.clienteId || '')
     setNotifica((current) => ({
       ...current,
@@ -608,7 +663,8 @@ export function NotificheLegaliPage() {
     }))
     setDeposito((current) => ({
       ...current,
-      atto_notificato: unicoDocumento?.nomeFile || current.atto_notificato,
+      atto_notificato: unicoDocumento ? documentEvidenceName(unicoDocumento) : current.atto_notificato,
+      atto_sha256: unicoDocumento?.hashSha256 || current.atto_sha256,
       destinatario_nome: unicoDestinatario?.nome || current.destinatario_nome,
     }))
   }
@@ -668,6 +724,17 @@ export function NotificheLegaliPage() {
     return () => window.clearTimeout(handle)
   }, [previewPayloadKey, loading, tab])
 
+  const buildDepositoPayload = (): Record<string, unknown> => {
+    const atti = selectedDepositDocuments.map(depositDocumentPayload)
+    const payload: Record<string, unknown> = { ...deposito }
+    if (atti.length) {
+      payload.atti_notificati = atti
+      payload.atto_notificato = atti.map((item) => item.nome_file).join('; ')
+      if (atti.length === 1 && atti[0].hash_sha256) payload.atto_sha256 = atti[0].hash_sha256
+    }
+    return payload
+  }
+
   const run = async (key: TabKey) => {
     setWorking(true)
     setResult({ ...emptyResult, message: 'Controllo in corso...' })
@@ -675,7 +742,7 @@ export function NotificheLegaliPage() {
     const payload = key === 'notifica'
       ? buildNotificaPayload(true)
       : key === 'deposito'
-        ? deposito
+        ? buildDepositoPayload()
         : {
             ...cliente,
             operazione: 'comunicazione_cliente_non_notifica',
@@ -699,6 +766,7 @@ export function NotificheLegaliPage() {
     setSelectedRecipientId('')
     setSelectedDocumentId('')
     setSelectedNotificationDocumentIds([])
+    setSelectedDepositDocumentIds([])
     setSelectedClientId('')
   }
 
@@ -1085,6 +1153,33 @@ export function NotificheLegaliPage() {
                       {documentSuggestions.map((item) => <option value={item.id} key={`deposito-doc-${item.id}`}>{item.label}</option>)}
                     </select>
                   </Field>
+                  {documentSuggestions.length ? (
+                    <div className="iu-legal-document-picker iu-legal-field--wide">
+                      <strong>Documenti da inserire nella prova</strong>
+                      <div className="iu-legal-document-picker__grid">
+                        {documentSuggestions.map((item) => (
+                          <label className="iu-legal-check" key={`deposito-multi-${item.id}`}>
+                            <input
+                              type="checkbox"
+                              checked={selectedDepositDocumentIds.includes(item.id)}
+                              onChange={(event) => toggleDepositDocument(item, event.currentTarget.checked)}
+                            />
+                            <span>{item.riferimentoPortale ? `${item.riferimentoPortale} - ${item.label}` : item.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                      {selectedDepositDocuments.length ? (
+                        <div className="iu-legal-selected-documents">
+                          {selectedDepositDocuments.map((item) => (
+                            <span key={`deposito-selected-${item.id}`}>
+                              <FileCheck2 size={15} />
+                              {documentEvidenceName(item)}{item.hashSha256 ? ` - SHA-256 ${item.hashSha256.slice(0, 12)}...` : ''}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
                   <Field label="Destinatario della prova" hint={recipientSuggestions.length ? 'Il nominativo viene proposto dai soggetti collegati.' : 'Seleziona o compila manualmente il destinatario.'}>
                     <select
                       value={selectedRecipientId}

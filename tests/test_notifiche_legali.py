@@ -330,6 +330,31 @@ def test_prova_deposito_richiede_rac_rdac_originali():
     assert ok.ok is True
 
 
+def test_prova_deposito_accetta_piu_atti_notificati_con_hash():
+    result = validate_deposit_notification_proof({
+        "atti_notificati": [
+            {"nome_file": "pst:JPW_SIGP:2182464 - ricorso.pdf", "hash_sha256": "a" * 64},
+            {"nome_file": "procura.pdf", "hash_sha256": "f" * 64},
+        ],
+        "relata_firmata": "relata_notifica.pdf.p7m",
+        "relata_sha256": "b" * 64,
+        "pec_inviata": "pec_inviata.eml",
+        "pec_inviata_sha256": "c" * 64,
+        "destinatario_nome": "Controparte",
+        "rac_file": "accettazione.eml",
+        "rac_sha256": "d" * 64,
+        "rdac_file": "consegna.eml",
+        "rdac_sha256": "e" * 64,
+        "ricevuta_completa": True,
+        "dati_atto_ricevute": "RAC e RdAC indicizzate",
+    })
+
+    assert result.ok is True
+    items = result.output_plan["evidencePack"]["items"]
+    assert any(item["kind"] == "atto" and "pst:JPW_SIGP:2182464" in item["filename"] for item in items)
+    assert any(item["kind"] == "allegato_2" and item["filename"] == "procura.pdf" for item in items)
+
+
 def test_api_react_notifiche_legali_espone_workflow_separati(tmp_path: Path):
     app = _app(tmp_path)
     client = app.test_client()
@@ -616,4 +641,5 @@ def test_payload_react_notifiche_legali_precompila_da_dati_iusentra():
     assert destinatario["pec"] == "alfa@example.pec.it"
     assert destinatario["fontePecSuggerita"] == "ini_pec"
     assert documento_payload["origine"] == "copia_fascicolo_informatico"
+    assert documento_payload["riferimentoPortale"] == "pst-doc-1"
     assert documento_payload["necessitaAttestazione"] is True

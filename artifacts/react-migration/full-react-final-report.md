@@ -2,6 +2,17 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-14T23:35:00+02:00: hotfix prova notifica 2.236.1.
+La scheda `Deposito prova notifica` permette ora di selezionare uno o piu'
+documenti dalla pratica anche per il deposito della prova, non solo per la
+relata. I riferimenti portale, ad esempio `pst:JPW_SIGP:2182464`, entrano nel
+campo `Atto notificato` e nell'elenco automatico insieme al nome file e allo
+SHA-256 disponibile. Il payload inviato al backend contiene `atti_notificati`
+separati, cosi' l'evidence pack distingue atto principale e allegati notificati.
+Gate mirati verdi: ruff, pytest notifiche 25/25, typecheck, contratti React,
+test frontend, build Vite, route gate, packaging/readiness 8/8 e browser Chrome
+headless su runtime isolato.
+
 Aggiornamento 2026-05-14T23:10:00+02:00: modulo notifiche legali 2.236.0.
 La pagina `/notifiche-legali` mantiene la shell React operativa e rende esplicita
 la fase successiva ai tre pulsanti segnalati: controllo relata, controllo prova

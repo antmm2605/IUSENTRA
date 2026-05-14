@@ -1486,13 +1486,26 @@ def _evidence_item(
 def build_notification_evidence_pack(payload: dict[str, Any]) -> dict[str, Any]:
     """Build the notification/deposit evidence inventory with SHA-256 checks."""
 
-    items: list[dict[str, Any]] = [
-        _evidence_item(
+    items: list[dict[str, Any]] = []
+    notified_documents = payload.get("atti_notificati")
+    if isinstance(notified_documents, list) and notified_documents:
+        for index, document in enumerate(notified_documents, start=1):
+            row = document if isinstance(document, dict) else {"nome_file": document}
+            items.append(_evidence_item(
+                kind="atto" if index == 1 else f"allegato_{index}",
+                label="Atto notificato" if index == 1 else f"Allegato notificato {index}",
+                filename=row.get("nome_file") or row.get("filename") or row.get("file") or row.get("riferimento_portale"),
+                sha256=text(row.get("hash_sha256") or row.get("sha256")),
+            ))
+    else:
+        items.append(_evidence_item(
             kind="atto",
             label="Atto notificato",
             filename=payload.get("atto_notificato"),
             sha256=_payload_hash(payload, "atto_sha256", "atto_notificato_sha256"),
-        ),
+        ))
+
+    items.extend([
         _evidence_item(
             kind="relata_firmata",
             label="Relata firmata",
@@ -1505,7 +1518,7 @@ def build_notification_evidence_pack(payload: dict[str, Any]) -> dict[str, Any]:
             filename=payload.get("pec_inviata") or payload.get("pec_inviata_file"),
             sha256=_payload_hash(payload, "pec_inviata_sha256", "pec_sha256"),
         ),
-    ]
+    ])
 
     recipients = payload.get("destinatari")
     if not isinstance(recipients, list):
@@ -1654,7 +1667,9 @@ def validate_deposit_notification_proof(payload: dict[str, Any]) -> LegalWorkflo
 
     blockers: list[str] = []
     warnings: list[str] = []
-    if not text(payload.get("atto_notificato")):
+    notified_documents = payload.get("atti_notificati")
+    has_notified_documents = isinstance(notified_documents, list) and bool(notified_documents)
+    if not has_notified_documents and not text(payload.get("atto_notificato")):
         blockers.append("Inserisci l'atto notificato da depositare come prova.")
     if not text(payload.get("relata_firmata")):
         blockers.append("Allega la relata firmata digitalmente.")

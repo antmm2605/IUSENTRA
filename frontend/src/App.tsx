@@ -386,7 +386,6 @@ const navSections: NavSection[] = [
     items: [
       { label: 'Centro Servizi Telematici', icon: BriefcaseBusiness, href: '/telematico' },
       { label: 'PolisWeb / PST', icon: CloudUpload, href: '/polisWeb' },
-      { label: 'Panoramica PST', icon: FileText, href: '/polisWeb' },
       { label: 'SIGP - Giudice di Pace', icon: Landmark, href: '/sigp/' },
       { label: 'PDP Penale', icon: ShieldCheck, href: '/pdp' },
       { label: 'PAT Amministrativo', icon: FileText, href: '/pat' },
@@ -558,6 +557,11 @@ const legacyOperationalPrefixes = [
   '/telematico',
   '/telematici',
   '/polisweb',
+  '/portali/pst/acquisizione',
+  '/portali/pdp/acquisizione',
+  '/portali/pat/acquisizione',
+  '/portali/ptt/acquisizione',
+  '/portali/sigit/acquisizione',
   '/pst',
   '/sigp',
   '/sigp-sync',
@@ -569,12 +573,31 @@ const legacyOperationalPrefixes = [
   '/guida/firma-digitale',
 ]
 
+const reactTelematicoGraphicalRoutes = new Set([
+  '/guida/firma-digitale',
+  '/pat',
+  '/pdp',
+  '/polisweb',
+  '/pst',
+  '/servizi-telematici',
+  '/sigit',
+  '/telematico',
+  '/telematici',
+  '/tribunali',
+  '/portali/pst/acquisizione',
+  '/portali/pdp/acquisizione',
+  '/portali/pat/acquisizione',
+  '/portali/ptt/acquisizione',
+  '/portali/sigit/acquisizione',
+])
+
 function legacyOperationalRedirectHref(activePath: string): string | null {
   const raw = activePath || '/'
   const lowerRaw = raw.toLowerCase()
   if (lowerRaw !== '/app-v2' && !lowerRaw.startsWith('/app-v2/')) return null
   const route = normaliseRoutePath(raw)
   const routeLower = route.toLowerCase()
+  if (reactTelematicoGraphicalRoutes.has(routeLower)) return null
   const mustLeaveReact = legacyOperationalPrefixes.some((prefix) => routeLower === prefix || routeLower.startsWith(`${prefix}/`))
   if (!mustLeaveReact) return null
   return `${route}${window.location.search || ''}${window.location.hash || ''}`

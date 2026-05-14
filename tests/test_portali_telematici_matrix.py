@@ -102,7 +102,7 @@ def test_pst_resolver_matrix_uffici_chiave():
 def test_portali_browser_assist_matrix_url_ufficiali():
     module = _load_local_signer()
     expected = {
-        "pdp": "https://appweb.giustizia.it/snt",
+        "pdp": "https://servizipst.giustizia.it/PST/authentication/it/pst_ar.wp",
         "pat": "https://www.giustizia-amministrativa.it/portale-avvocato",
         "ptt": "https://sigit.giustiziatributaria.gov.it/Sigit/index.do",
     }

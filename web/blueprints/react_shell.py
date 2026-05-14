@@ -41,10 +41,24 @@ _LEGACY_FIRST_PREFIXES = (
 )
 
 _REACT_TELEMATICO_ACQUISITION_PATHS = {
+    "/portali/pst/acquisizione",
     "/portali/pdp/acquisizione",
     "/portali/pat/acquisizione",
     "/portali/ptt/acquisizione",
     "/portali/sigit/acquisizione",
+}
+
+_REACT_TELEMATICO_GRAPHICAL_PATHS = {
+    "/guida/firma-digitale",
+    "/pat",
+    "/pdp",
+    "/polisweb",
+    "/pst",
+    "/servizi-telematici",
+    "/sigit",
+    "/telematico",
+    "/telematici",
+    "/tribunali",
 }
 
 _SITO_STUDIO_REACT_SUBPATHS = {
@@ -87,6 +101,18 @@ _ROUTE_COMPONENTS: tuple[tuple[str, str], ...] = (
     ("/scadenziario/nuova", "src/components/NuovaScadenzaPage.tsx"),
     ("/scadenziario", "src/components/ScadenziarioPage.tsx"),
     ("/wizard-pro", "src/components/WizardProPage.tsx"),
+    ("/telematico", "src/components/TelematicoPage.tsx"),
+    ("/servizi-telematici", "src/components/TelematicoPage.tsx"),
+    ("/telematici", "src/components/TelematicoPage.tsx"),
+    ("/polisweb", "src/components/TelematicoSurfacePage.tsx"),
+    ("/pst", "src/components/TelematicoSurfacePage.tsx"),
+    ("/pdp", "src/components/TelematicoSurfacePage.tsx"),
+    ("/pat", "src/components/TelematicoSurfacePage.tsx"),
+    ("/sigit", "src/components/TelematicoSurfacePage.tsx"),
+    ("/ptt", "src/components/TelematicoSurfacePage.tsx"),
+    ("/tribunali", "src/components/TelematicoSurfacePage.tsx"),
+    ("/guida/firma-digitale", "src/components/TelematicoSurfacePage.tsx"),
+    ("/portali/pst/acquisizione", "src/components/TelematicoSurfacePage.tsx"),
     ("/portali/pdp/acquisizione", "src/components/TelematicoSurfacePage.tsx"),
     ("/portali/pat/acquisizione", "src/components/TelematicoSurfacePage.tsx"),
     ("/portali/ptt/acquisizione", "src/components/TelematicoSurfacePage.tsx"),
@@ -366,6 +392,8 @@ def _deve_mantenere_vista_classica() -> bool:
         return True
     if lower.startswith("/ricerca-legale/"):
         return True
+    if lower in _REACT_TELEMATICO_GRAPHICAL_PATHS:
+        return False
     if lower in _REACT_TELEMATICO_ACQUISITION_PATHS:
         return False
     return any(lower == prefix or lower.startswith(f"{prefix}/") for prefix in _LEGACY_FIRST_PREFIXES)

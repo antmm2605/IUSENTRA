@@ -844,57 +844,76 @@
       "workspaceTarget": "/app/telematico",
       "route": "/pat",
       "family": "telematico",
-      "status": "legacy_operational",
+      "status": "react_operational_full",
       "risk": "critical",
-      "targetComponent": "frontend/src/components/PatPage.tsx",
-      "targetData": "frontend/src/patData.ts",
+      "targetComponent": "frontend/src/components/TelematicoSurfacePage.tsx",
+      "targetData": "frontend/src/telematicoSurfacesData.ts",
       "targetBridge": "web/services/react_telematico_bridge.py",
       "legacyContract": "artifacts/react-migration/legacy-contracts/pat.json",
-      "unlockFromGate": false,
+      "unlockFromGate": true,
       "mustPreserve": [
-        "workflow amministrativo",
-        "upload guidato",
-        "documenti a buste",
-        "accesso portale ufficiale",
-        "nessun download autonomo"
+        "grafica React PAT / SIGA",
+        "sessione assistita locale",
+        "import file/payload autorizzati",
+        "nessun salvataggio PIN",
+        "fallback tecnico solo con _legacy=1"
       ]
     },
     {
       "workspaceTarget": "/app/telematico",
       "route": "/pdp",
       "family": "telematico",
-      "status": "legacy_operational",
+      "status": "react_operational_full",
       "risk": "critical",
-      "targetComponent": "frontend/src/components/PdpPage.tsx",
-      "targetData": "frontend/src/pdpData.ts",
+      "targetComponent": "frontend/src/components/TelematicoSurfacePage.tsx",
+      "targetData": "frontend/src/telematicoSurfacesData.ts",
       "targetBridge": "web/services/react_telematico_bridge.py",
       "legacyContract": "artifacts/react-migration/legacy-contracts/pdp.json",
-      "unlockFromGate": false,
+      "unlockFromGate": true,
       "mustPreserve": [
-        "workflow penale",
-        "CNS/CIE tramite canale autorizzato",
-        "payload import autorizzato",
-        "documenti per deposito",
-        "audit"
+        "grafica React PDP Penale",
+        "portale ufficiale PST autenticato",
+        "monitor download assistito",
+        "import file/payload autorizzati",
+        "nessun salvataggio PIN"
       ]
     },
     {
       "workspaceTarget": "/app/telematico",
       "route": "/polisWeb",
       "family": "telematico",
-      "status": "legacy_operational",
+      "status": "react_operational_full",
       "risk": "critical",
-      "targetComponent": "frontend/src/components/PolisWebPage.tsx",
-      "targetData": "frontend/src/polisWebData.ts",
+      "targetComponent": "frontend/src/components/TelematicoSurfacePage.tsx",
+      "targetData": "frontend/src/telematicoSurfacesData.ts",
       "targetBridge": "web/services/react_telematico_bridge.py",
       "legacyContract": "artifacts/react-migration/legacy-contracts/polisWeb.json",
-      "unlockFromGate": false,
+      "unlockFromGate": true,
       "mustPreserve": [
-        "consultazione autorizzata",
+        "grafica React PolisWeb / PST",
         "no scraping HTML",
-        "vista documenti a buste",
-        "copia consultazione default",
-        "import file utente"
+        "copia consultazione come default",
+        "import file utente",
+        "fallback tecnico solo con _legacy=1"
+      ]
+    },
+    {
+      "workspaceTarget": "/app/telematico",
+      "route": "/portali/pst/acquisizione",
+      "family": "telematico",
+      "status": "react_operational_full",
+      "risk": "critical",
+      "targetComponent": "frontend/src/components/TelematicoSurfacePage.tsx",
+      "targetData": "frontend/src/telematicoSurfacesData.ts",
+      "targetBridge": "web/services/react_telematico_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/portali.json",
+      "unlockFromGate": true,
+      "mustPreserve": [
+        "PST / PolisWeb React",
+        "import pratica guidato",
+        "Local Signer su PC",
+        "nessun salvataggio PIN",
+        "fallback tecnico solo con _legacy=1"
       ]
     },
     {
@@ -996,37 +1015,37 @@
       "workspaceTarget": "/app/telematico",
       "route": "/telematico",
       "family": "telematico",
-      "status": "legacy_operational",
+      "status": "react_operational_full",
       "risk": "critical",
       "targetComponent": "frontend/src/components/TelematicoPage.tsx",
       "targetData": "frontend/src/telematicoData.ts",
       "targetBridge": "web/services/react_telematico_bridge.py",
       "legacyContract": "artifacts/react-migration/legacy-contracts/telematico.json",
-      "unlockFromGate": false,
+      "unlockFromGate": true,
       "mustPreserve": [
-        "centro servizi telematici non ancora parificato",
+        "centro servizi telematici React",
         "flussi ministeriali",
         "download e ricevute",
         "Local Signer",
-        "audit"
+        "fallback tecnico solo con _legacy=1"
       ]
     },
     {
       "workspaceTarget": "/app/telematico",
       "route": "/servizi-telematici",
       "family": "telematico",
-      "status": "legacy_operational",
+      "status": "react_operational_full",
       "risk": "critical",
       "targetComponent": "frontend/src/components/TelematicoPage.tsx",
       "targetData": "frontend/src/telematicoData.ts",
       "targetBridge": "web/services/react_telematico_bridge.py",
       "legacyContract": "artifacts/react-migration/legacy-contracts/servizi-telematici.json",
-      "unlockFromGate": false,
+      "unlockFromGate": true,
       "mustPreserve": [
-        "hub telematico legacy",
+        "hub telematico React",
         "permessi e audit",
         "accesso portali ufficiali",
-        "fallback tecnico",
+        "fallback tecnico solo con _legacy=1",
         "nessuna promozione cosmetica"
       ]
     },
@@ -1053,38 +1072,38 @@
       "workspaceTarget": "/app/telematico",
       "route": "/tribunali",
       "family": "telematico",
-      "status": "legacy_operational",
+      "status": "react_operational_full",
       "risk": "critical",
       "targetComponent": "frontend/src/components/TelematicoSurfacePage.tsx",
       "targetData": "frontend/src/telematicoSurfacesData.ts",
       "targetBridge": "web/services/react_telematico_bridge.py",
       "legacyContract": "artifacts/react-migration/legacy-contracts/tribunali.json",
-      "unlockFromGate": false,
+      "unlockFromGate": true,
       "mustPreserve": [
         "configurazioni uffici",
         "PEC e canali ministeriali",
-        "export/download",
+        "grafica React uffici e PEC",
         "validazioni backend",
-        "audit"
+        "fallback tecnico solo con _legacy=1"
       ]
     },
     {
       "workspaceTarget": "/app/telematico",
       "route": "/guida/firma-digitale",
       "family": "telematico",
-      "status": "legacy_operational",
+      "status": "react_operational_full",
       "risk": "critical",
       "targetComponent": "frontend/src/components/TelematicoSurfacePage.tsx",
       "targetData": "frontend/src/telematicoSurfacesData.ts",
       "targetBridge": "web/services/react_telematico_bridge.py",
       "legacyContract": "artifacts/react-migration/legacy-contracts/guida__firma-digitale.json",
-      "unlockFromGate": false,
+      "unlockFromGate": true,
       "mustPreserve": [
-        "guida firma digitale",
+        "guida firma digitale React",
         "Local Signer",
         "CNS e token",
-        "download allegati",
-        "fallback tecnico"
+        "download allegati governati",
+        "fallback tecnico solo con _legacy=1"
       ]
     },
     {
@@ -1573,19 +1592,19 @@
       "workspaceTarget": "/app/telematico",
       "route": "/sigit",
       "family": "telematico",
-      "status": "legacy_operational",
+      "status": "react_operational_full",
       "risk": "critical",
-      "targetComponent": "frontend/src/components/SigitPage.tsx",
-      "targetData": "frontend/src/sigitData.ts",
+      "targetComponent": "frontend/src/components/TelematicoSurfacePage.tsx",
+      "targetData": "frontend/src/telematicoSurfacesData.ts",
       "targetBridge": "web/services/react_telematico_bridge.py",
       "legacyContract": "artifacts/react-migration/legacy-contracts/sigit.json",
-      "unlockFromGate": false,
+      "unlockFromGate": true,
       "mustPreserve": [
-        "workflow tributario",
-        "upload guidato",
+        "grafica React PTT / SIGIT",
+        "sessione assistita locale",
         "import autorizzato",
         "stato buste",
-        "audit"
+        "fallback tecnico solo con _legacy=1"
       ]
     },
     {

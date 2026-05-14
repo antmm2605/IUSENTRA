@@ -56,6 +56,7 @@ export const emptyDashboard: DashboardData = {
 }
 
 export const dashboardFallback = emptyDashboard
+const DASHBOARD_MAILBOX_SYNC_TIMEOUT_MS = 18000
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === 'object' && !Array.isArray(value))
@@ -208,14 +209,19 @@ export async function getDashboard(options: { refresh?: boolean } = {}): Promise
 }
 
 export async function syncDashboardMailboxes(): Promise<boolean> {
+  const controller = new AbortController()
+  const timeout = window.setTimeout(() => controller.abort(), DASHBOARD_MAILBOX_SYNC_TIMEOUT_MS)
   try {
     const res = await fetch('/api/v1/ui/dashboard/sync-mailboxes', {
       method: 'POST',
       credentials: 'same-origin',
       headers: { Accept: 'application/json' },
+      signal: controller.signal,
     })
     return res.ok
   } catch {
     return false
+  } finally {
+    window.clearTimeout(timeout)
   }
 }

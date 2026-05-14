@@ -174,7 +174,6 @@ def test_nav_legacy_allineata_react_senza_nascondere_sidebar():
         "Servizi Telematici",
         "Centro Servizi Telematici",
         "PolisWeb / PST",
-        "Panoramica PST",
         "SIGP - Giudice di Pace",
         "PDP Penale",
         "PAT Amministrativo",
@@ -540,7 +539,7 @@ def test_statistiche_react_full_non_espone_fallback_legacy(tmp_path: Path):
 
 
 def test_blocco_telematico_studio_admin_resta_legacy_first():
-    """Le aree operative non migrate integralmente restano legacy-first."""
+    """Restano legacy-first solo aree non parificate o sottopercorsi sensibili."""
 
     gate_source = Path("web/bootstrap/react_route_gate.py").read_text(encoding="utf-8").lower()
     shell_source = Path("web/blueprints/react_shell.py").read_text(encoding="utf-8").lower()
@@ -551,23 +550,29 @@ def test_blocco_telematico_studio_admin_resta_legacy_first():
         "/applicazioni",
         "/checklist",
         "/database",
-        "/guida/firma-digitale",
-        "/pat",
-        "/pdp",
-        "/polisweb",
         "/portali",
-        "/servizi-telematici",
-        "/sigit",
         "/sigp",
         "/sigp-sync",
-        "/telematico",
-        "/tribunali",
     )
 
     for prefix in legacy_first_prefixes:
         quoted = f'"{prefix}"'
         assert quoted in gate_source, prefix
         assert quoted in shell_source, prefix
+
+    for source in (gate_source, shell_source):
+        assert "_react_telematico_graphical_paths" in source
+        for exact in (
+            "/telematico",
+            "/servizi-telematici",
+            "/polisweb",
+            "/pdp",
+            "/pat",
+            "/sigit",
+            "/tribunali",
+            "/guida/firma-digitale",
+        ):
+            assert f'"{exact}"' in source, exact
 
     assert "FINAL_REACT_ROUTES: dict[str, str] = {\n" in final_routes_source
     assert "render_react_shell_response" not in final_routes_source
@@ -976,11 +981,11 @@ def test_react_api_bootstrap_espone_flag_primo_blocco_ufficiale(tmp_path: Path):
     assert payload["route_flags"]["replace_soggetti"] is True
     assert payload["route_flags"]["replace_email"] is True
     assert payload["route_flags"]["replace_messaggi"] is True
-    assert payload["route_flags"]["replace_telematico"] is False
-    assert payload["route_flags"]["replace_telematico_surfaces"] is False
-    assert payload["route_flags"]["replace_tribunali_pec"] is False
-    assert payload["route_flags"]["replace_checklist_deposito"] is False
-    assert payload["route_flags"]["replace_guida_firma_digitale"] is False
+    assert payload["route_flags"]["replace_telematico"] is True
+    assert payload["route_flags"]["replace_telematico_surfaces"] is True
+    assert payload["route_flags"]["replace_tribunali_pec"] is True
+    assert payload["route_flags"]["replace_checklist_deposito"] is True
+    assert payload["route_flags"]["replace_guida_firma_digitale"] is True
 
 
 def test_react_comunicazioni_email_messaggi_collegate_nav_e_shell():
@@ -1085,7 +1090,7 @@ def test_react_telematico_collegato_nav_api_e_lex():
     assert "@media(max-width:760px)" in css
 
 
-def test_route_telematico_resta_vista_operativa_classica(tmp_path: Path):
+def test_route_telematico_ufficiale_serve_shell_react_con_vista_classica_tecnica(tmp_path: Path):
     app = _app(tmp_path)
     _crea_operatore(app)
 
@@ -1096,8 +1101,8 @@ def test_route_telematico_resta_vista_operativa_classica(tmp_path: Path):
         classic = client.get("/telematico?_legacy=1")
 
     assert response.status_code == 200
-    assert '<html lang="it" class="react-shell-document">' not in html
-    assert 'id="root"' not in html
+    assert '<html lang="it" class="react-shell-document">' in html
+    assert 'id="root"' in html
     assert classic.status_code == 200
     assert 'id="root"' not in classic.get_data(as_text=True)
 
@@ -1139,7 +1144,7 @@ def test_react_superfici_telematiche_collegate_nav_api_css():
     assert "route.startsWith('/portali/pdp')" in app_source
     assert "{ label: 'Centro Servizi Telematici', icon: BriefcaseBusiness, href: '/telematico' }" in app_source
     assert "{ label: 'PolisWeb / PST', icon: CloudUpload, href: '/polisWeb' }" in app_source
-    assert "{ label: 'Panoramica PST', icon: FileText, href: '/polisWeb' }" in app_source
+    assert "Panoramica PST" not in app_source
     assert "{ label: 'SIGP - Giudice di Pace', icon: Landmark, href: '/sigp/' }" in app_source
     assert "{ label: 'PDP Penale', icon: ShieldCheck, href: '/pdp' }" in app_source
     assert "{ label: 'PAT Amministrativo', icon: FileText, href: '/pat' }" in app_source
@@ -1204,7 +1209,7 @@ def test_react_superfici_telematiche_collegate_nav_api_css():
     assert "@media(max-width:860px)" in css
 
 
-def test_route_ufficiali_superfici_telematiche_restano_legacy_ma_acquisizioni_assistite_react(tmp_path: Path):
+def test_route_ufficiali_superfici_telematiche_esatte_servono_react_con_vista_classica_tecnica(tmp_path: Path):
     app = _app(tmp_path)
     _crea_operatore(app)
 
@@ -1218,16 +1223,14 @@ def test_route_ufficiali_superfici_telematiche_restano_legacy_ma_acquisizioni_as
             "/pdp",
             "/pat",
             "/sigit",
-            "/sigp/",
-            "/sigp-sync/",
             "/tribunali",
             "/guida/firma-digitale",
         ):
             response = client.get(path, follow_redirects=True)
             html = response.get_data(as_text=True)
             assert response.status_code == 200, path
-            assert '<html lang="it" class="react-shell-document">' not in html
-            assert 'id="root"' not in html
+            assert '<html lang="it" class="react-shell-document">' in html
+            assert 'id="root"' in html
 
         for path in (
             "/portali/pdp/acquisizione",
@@ -1242,6 +1245,13 @@ def test_route_ufficiali_superfici_telematiche_restano_legacy_ma_acquisizioni_as
             assert 'id="root"' in html
             assert "Portale ufficiale assistito" not in html
             assert "Local Connector non raggiungibile" not in html
+
+        for path in ("/sigp/", "/sigp-sync/"):
+            response = client.get(path, follow_redirects=True)
+            html = response.get_data(as_text=True)
+            assert response.status_code == 200, path
+            assert '<html lang="it" class="react-shell-document">' not in html
+            assert 'id="root"' not in html
 
         checklist = client.get("/deposito/checklist", follow_redirects=True)
         checklist_html = checklist.get_data(as_text=True)
@@ -1411,9 +1421,9 @@ def test_route_importa_pratica_pst_resta_raggiungibile_dalla_nav(tmp_path: Path)
 
     html = response.get_data(as_text=True)
     assert response.status_code == 200
-    assert "IUSENTRA - React Shell" not in html
-    assert "/api/portali/pst/acquisizione/search" in html
-    assert "Importa pratica da PST" in html
+    assert "IUSENTRA - React Shell" in html
+    assert '<html lang="it" class="react-shell-document">' in html
+    assert 'id="root"' in html
     assert "Importa pratica da PST" in Path("frontend/src/studioModuleData.ts").read_text(encoding="utf-8")
     legacy_html = legacy.get_data(as_text=True)
     assert legacy.status_code == 200
@@ -1557,9 +1567,6 @@ def test_react_route_gate_copre_rotte_profonde_e_preserva_contratti_operativi(tm
             f"/fascicoli/{fascicolo_penale.id}/penale/pdp",
             "/checklist/test-template",
             "/applicazioni/fascicoli",
-            "/servizi-telematici",
-            "/tribunali",
-            "/guida/firma-digitale",
             "/scadenziario/export.ics",
             f"/scadenziario/{scadenza.id}/completa",
             "/sito-studio/articoli/art-1/modifica",
@@ -1617,17 +1624,8 @@ def test_route_gate_non_promuove_moduli_studio_telematico_admin_incompleti():
         "/applicazioni",
         "/checklist",
         "/database",
-        "/guida/firma-digitale",
-        "/pat",
-        "/pdp",
-        "/polisWeb",
-        "/portali/pst/acquisizione",
-        "/servizi-telematici",
-        "/sigit",
         "/sigp",
         "/sigp-sync",
-        "/telematico",
-        "/tribunali",
     }
 
     for raw in sorted(legacy_first_routes):
@@ -1639,6 +1637,15 @@ def test_route_gate_non_promuove_moduli_studio_telematico_admin_incompleti():
         "/portali/pat/acquisizione",
         "/portali/ptt/acquisizione",
         "/portali/sigit/acquisizione",
+        "/portali/pst/acquisizione",
+        "/guida/firma-digitale",
+        "/pat",
+        "/pdp",
+        "/polisWeb",
+        "/servizi-telematici",
+        "/sigit",
+        "/telematico",
+        "/tribunali",
     ):
         path = _normalise_path(raw)
         assert not _excluded(path), path
@@ -2378,7 +2385,6 @@ def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: P
         "Controlli Atti",
         "Centro Servizi Telematici",
         "PolisWeb / PST",
-        "Panoramica PST",
         "SIGP - Giudice di Pace",
         "PDP Penale",
         "PAT Amministrativo",
@@ -2474,8 +2480,6 @@ def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: P
         "Servizi Telematici": "/telematico",
         "Centro Servizi Telematici": "/telematico",
         "PolisWeb / PST": "/polisWeb",
-        "Panoramica PST": "/polisWeb",
-        "SIGP - Giudice di Pace": "/sigp/",
         "PDP Penale": "/pdp",
         "PAT Amministrativo": "/pat",
         "PTT Tributario": "/sigit",
@@ -2526,9 +2530,11 @@ def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: P
             _assert_react_shell(client, label, path)
 
         for label, path in telematico_routes.items():
-            response = client.get(path, follow_redirects=True)
-            assert response.status_code == 200, label
-            assert "IUSENTRA - React Shell" not in response.get_data(as_text=True)
+            _assert_react_shell(client, label, path)
+
+        response = client.get("/sigp/", follow_redirects=True)
+        assert response.status_code == 200, "SIGP - Giudice di Pace"
+        assert "IUSENTRA - React Shell" not in response.get_data(as_text=True)
 
         for label, path in {
             "Panoramica": "/api/v1/ui/dashboard",

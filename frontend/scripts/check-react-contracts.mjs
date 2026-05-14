@@ -429,7 +429,9 @@ if (routeManifest.policy?.currentReleaseUnlocksRoutes !== true) {
   throw new Error('route manifest: currentReleaseUnlocksRoutes deve essere true nelle tranche di promozione')
 }
 const allowedGovernedUnlocks = new Set(['/', '/admin/database', '/agenda', '/agenda/nuovo', '/amministrazione', '/audit', '/backup', '/cartelle-condivise', '/clienti', '/clienti/nuovo', '/compensi-forensi', '/deposito/checklist', '/documenti', '/email', '/email-ordinaria', '/notifiche-legali', '/fascicoli', '/fascicoli/archivio', '/fascicoli/nuovo', '/fatturazione', '/fatturazione/nuova', '/giurisprudenza', '/global-search', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/incassi-pagamenti', '/legal-intelligence', '/legal-intelligence/mediazione', '/legal-intelligence/news', '/messaggi', '/messaggi/nuovo', '/notifiche', '/notifiche-whatsapp', '/preventivi', '/preventivi/conferimento/:id', '/preventivi/conferimento/nuovo', '/preventivi/nuovo', '/preventivi/wizard', '/privacy/registro', '/privacy/registro/nuovo', '/profili', '/redazione-atti', '/regia-operativa', '/registro-attivita', '/registro-gdpr', '/ricerca-legale', '/ricerca-studio', '/scadenziario', '/scadenziario/nuova', '/scadenziario/:id', '/scadenziario/:id/modifica', '/sincronizzazione-calendari', '/sito-studio', '/sito-studio/builder', '/sito-studio/contatti', '/sito-studio/redazione-ai', '/soggetti', '/soggetti/nuovo', '/statistiche', '/strumenti-legali', '/strumenti-operativi', '/studio', '/tariffario', '/template-atti', '/template-atti/catalogo', '/timesheet', '/utenti', '/utenti/nuovo', '/wizard-pro', '/workspace-intelligente'])
-const governedTelematicoAcquisitionRoutes = ['/portali/pdp/acquisizione', '/portali/pat/acquisizione', '/portali/ptt/acquisizione', '/portali/sigit/acquisizione']
+const governedTelematicoGraphicalRoutes = ['/telematico', '/servizi-telematici', '/polisWeb', '/pdp', '/pat', '/sigit', '/tribunali', '/guida/firma-digitale']
+const governedTelematicoAcquisitionRoutes = ['/portali/pst/acquisizione', '/portali/pdp/acquisizione', '/portali/pat/acquisizione', '/portali/ptt/acquisizione', '/portali/sigit/acquisizione']
+for (const route of governedTelematicoGraphicalRoutes) allowedGovernedUnlocks.add(route)
 for (const route of governedTelematicoAcquisitionRoutes) allowedGovernedUnlocks.add(route)
 const governedExpectedStatuses = new Map([
   ['/', 'react_operational_full'],
@@ -506,6 +508,7 @@ const governedExpectedStatuses = new Map([
   ['/workspace-intelligente', 'react_operational_full'],
 ])
 for (const route of governedTelematicoAcquisitionRoutes) governedExpectedStatuses.set(route, 'react_operational_full')
+for (const route of governedTelematicoGraphicalRoutes) governedExpectedStatuses.set(route, 'react_operational_full')
 const allowedManifestStatuses = new Set(['legacy_operational', 'react_shell', 'react_bridge', 'react_operational_partial', 'react_operational_full'])
 const unlockStatuses = new Set(['react_bridge', 'react_operational_partial', 'react_operational_full'])
 for (const entry of routeManifest.routes ?? []) {
@@ -555,6 +558,15 @@ for (const [route, status] of [
   ['/sincronizzazione-calendari', 'react_operational_full'],
   ['/documenti', 'react_operational_full'],
   ['/deposito/checklist', 'react_operational_full'],
+  ['/telematico', 'react_operational_full'],
+  ['/servizi-telematici', 'react_operational_full'],
+  ['/polisWeb', 'react_operational_full'],
+  ['/pdp', 'react_operational_full'],
+  ['/pat', 'react_operational_full'],
+  ['/sigit', 'react_operational_full'],
+  ['/tribunali', 'react_operational_full'],
+  ['/guida/firma-digitale', 'react_operational_full'],
+  ['/portali/pst/acquisizione', 'react_operational_full'],
   ['/portali/pdp/acquisizione', 'react_operational_full'],
   ['/portali/pat/acquisizione', 'react_operational_full'],
   ['/portali/ptt/acquisizione', 'react_operational_full'],
@@ -581,7 +593,7 @@ for (const route of ['/fatturazione/*', '/preventivi/*', '/compensi-forensi/*', 
     throw new Error(`route manifest: ${route} deve restare legacy_operational con unlockFromGate=false`)
   }
 }
-for (const route of ['/utenti', '/profili', '/audit', '/registro-attivita', '/studio', '/amministrazione', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/notifiche-legali', '/notifiche', '/notifiche-whatsapp', '/sincronizzazione-calendari', '/backup', '/sito-studio', '/sito-studio/contatti', '/sito-studio/builder', '/sito-studio/redazione-ai', '/statistiche', '/fatturazione', '/fatturazione/nuova', '/fatturazione/*', '/incassi-pagamenti', '/preventivi', '/preventivi/nuovo', '/preventivi/conferimento/nuovo', '/preventivi/*', '/preventivi/wizard', '/compensi-forensi', '/compensi-forensi/*', '/tariffario', '/tariffario/*', '/documenti', '/template-atti', '/template-atti/catalogo', '/template-atti/nuovo', '/template-atti/*', '/redazione-atti', '/redazione-atti/*', '/checklist', '/giurisprudenza', '/giurisprudenza/nuova', '/giurisprudenza/*', '/legal-intelligence', '/legal-intelligence/news', '/legal-intelligence/mediazione', '/legal-intelligence/*', '/ricerca-legale', '/ricerca-legale/*', '/deposito/checklist', '/strumenti-legali', '/strumenti-operativi', '/polisWeb', '/pdp', '/pat', '/sigit', '/sigp', '/portali/*']) {
+for (const route of ['/utenti', '/profili', '/audit', '/registro-attivita', '/studio', '/amministrazione', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/notifiche-legali', '/notifiche', '/notifiche-whatsapp', '/sincronizzazione-calendari', '/backup', '/sito-studio', '/sito-studio/contatti', '/sito-studio/builder', '/sito-studio/redazione-ai', '/statistiche', '/fatturazione', '/fatturazione/nuova', '/fatturazione/*', '/incassi-pagamenti', '/preventivi', '/preventivi/nuovo', '/preventivi/conferimento/nuovo', '/preventivi/*', '/preventivi/wizard', '/compensi-forensi', '/compensi-forensi/*', '/tariffario', '/tariffario/*', '/documenti', '/template-atti', '/template-atti/catalogo', '/template-atti/nuovo', '/template-atti/*', '/redazione-atti', '/redazione-atti/*', '/checklist', '/giurisprudenza', '/giurisprudenza/nuova', '/giurisprudenza/*', '/legal-intelligence', '/legal-intelligence/news', '/legal-intelligence/mediazione', '/legal-intelligence/*', '/ricerca-legale', '/ricerca-legale/*', '/deposito/checklist', '/strumenti-legali', '/strumenti-operativi', '/telematico', '/servizi-telematici', '/polisWeb', '/pdp', '/pat', '/sigit', '/sigp', '/tribunali', '/guida/firma-digitale', '/portali/pst/acquisizione', '/portali/*']) {
   if (!(routeManifest.routes ?? []).some((entry) => entry.route === route)) {
     throw new Error(`route manifest: manca ${route}`)
   }

@@ -201,7 +201,7 @@ export const studioModules: StudioModuleConfig[] = [
       { title: 'Centro telematico', body: 'Rientra nel quadro generale di PST, PDP, PAT e PTT.', href: '/telematico', action: 'Apri centro', icon: 'send', tone: 'purple', meta: 'Portali' },
     ],
     workflow: ['Verifica accesso locale', 'Seleziona fascicolo PST', 'Riconcilia documenti', 'Importa e controlla registro'],
-    links: [{ label: 'Panoramica PST', href: '/polisWeb' }, { label: 'Centro telematico', href: '/telematico' }, { label: 'Acquisizione guidata', href: '/portali/pst/acquisizione' }],
+    links: [{ label: 'PolisWeb / PST', href: '/polisWeb' }, { label: 'Centro telematico', href: '/telematico' }, { label: 'Acquisizione guidata', href: '/portali/pst/acquisizione' }],
   },
   {
     id: 'statistiche',

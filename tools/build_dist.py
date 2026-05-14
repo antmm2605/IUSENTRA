@@ -3,7 +3,7 @@
 IUSENTRA Local Signer — Build cross-platform da Linux/macOS/Windows.
 
 Genera in tools/dist/:
-  - SetupLocalSigner-<versione>.exe        Windows offline (IExpress stub + CAB MSZIP)
+  - SetupLocalSigner-<versione>.exe        Windows piccolo con builder IExpress storico
   - InstallaLocalSigner-<versione>.command macOS  online  (download dal server)
   - InstallaLocalSigner-<versione>.run     Linux  online  (download dal server)
   - LocalSigner-<versione>.txt             release note
@@ -12,10 +12,9 @@ Uso:
   python3 tools/build_dist.py
   python3 tools/build_dist.py --base-url https://mio-server.example.com
 
-L'EXE Windows e' un IExpress self-extracting offline self-contained:
-lo stub PE (iexpress_stub.bin) + un CAB TYPE_NONE (dati raw) con struttura
-IExpress-compatibile (flags=0x0004, reserved area 6144 byte).
-Non richiede internet, non richiede Execution Policy, funziona con doppio clic.
+L'EXE Windows usa il builder IExpress nativo, la stessa famiglia tecnica dei
+pacchetti piccoli gia' funzionanti. Lo script installato disinstalla la vecchia
+versione locale e installa quella corrente.
 """
 
 from __future__ import annotations
@@ -231,41 +230,15 @@ def _build_cab(files: list[tuple[str, bytes]]) -> bytes:
 
 # ── Generatori ─────────────────────────────────────────────────────────────────
 
-def build_windows_exe(version: str) -> bytes:
+def build_windows_exe(version: str, base_url: str = BASE_URL_DEFAULT) -> bytes:
     """
-    Genera un installer Windows EXE offline self-contained.
-    Formato: IExpress stub (iexpress_stub.bin) + CAB MSZIP con i file embedded.
-    Lancia powershell.exe -ExecutionPolicy Bypass -File installa_local_signer_locale.ps1.
-    Funziona con doppio clic, non richiede internet ne' permessi speciali.
+    Genera l'installer Windows piccolo con il builder IExpress storico.
+
+    Il parametro base_url resta per compatibilita' con i chiamanti esistenti:
+    il builder PowerShell storico usa la URL ufficiale di produzione.
     """
-    stub = IEXPRESS_STUB.read_bytes()
-
-    # PS1 con line endings CRLF per Windows
-    ps1_crlf = INSTALL_PS1.read_bytes().replace(b"\r\n", b"\n").replace(b"\n", b"\r\n")
-
-    # Release note embedded nel CAB
-    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-    release_txt = (
-        f"IUSENTRA Local Signer\r\n"
-        f"Versione: {version}\r\n"
-        f"Generato: {now}\r\n"
-        f"Punto ufficiale download: {DOWNLOAD_PAGE}\r\n"
-    ).encode("utf-8")
-
-    files = [
-        ("installa_local_signer_locale.ps1", ps1_crlf),
-        ("local_signer.py",                  LS_PY.read_bytes()),
-        ("local_ai_host_bridge.py",          AI_BRIDGE_PY.read_bytes()),
-        ("lex_document_context.py",          LEX_CONTEXT_PY.read_bytes()),
-        ("visible_signature.py",             VISIBLE_SIGNATURE_PY.read_bytes()),
-        ("requirements_local_signer.txt",    REQS_TXT.read_bytes()),
-        ("uffici_ministero.json",            UFFICI_JSON.read_bytes()),
-        ("local_signer_release.txt",         release_txt),
-    ]
-    files.extend(_local_signer_mod_cab_files())
-
-    cab = _build_cab(files)
-    return stub + cab
+    _ = base_url
+    return build_windows_exe_native(version)
 
 
 def build_windows_exe_native(version: str) -> bytes:
@@ -447,7 +420,7 @@ def build_release_note(version: str) -> str:
         f"IUSENTRA Local Signer\n"
         f"Versione: {version}\n"
         f"Generato: {now}\n"
-        f"Piattaforme: Windows (EXE offline), macOS (.command), Linux (.run)\n"
+        f"Piattaforme: Windows (EXE piccolo IExpress), macOS (.command), Linux (.run)\n"
         f"Ponte PEC locale: test SMTP e invio dal PC dello studio\n"
         f"Ricerca diretta via signer di default: PDP, PAT, PTT/SIGIT\n"
         f"Raccolta file browser ufficiale: PDP, PAT, PTT/SIGIT dai download locali\n"
@@ -500,7 +473,14 @@ def main() -> None:
     parser.add_argument(
         "--no-windows",
         action="store_true",
-        help="Salta la generazione del pacchetto Windows (EXE offline)",
+        help="Salta la generazione del pacchetto Windows (EXE)",
+    )
+    parser.add_argument(
+        "--native-windows",
+        action="store_true",
+        help=(
+            "Forza il builder Windows IExpress nativo. E' gia' il default su Windows."
+        ),
     )
     args = parser.parse_args()
 
@@ -508,10 +488,6 @@ def main() -> None:
         if not path.exists():
             print(f"ERRORE: file sorgente non trovato: {path}", file=sys.stderr)
             sys.exit(1)
-
-    if not args.no_windows and os.name != "nt" and not IEXPRESS_STUB.exists():
-        print(f"ERRORE: stub IExpress non trovato: {IEXPRESS_STUB}", file=sys.stderr)
-        sys.exit(1)
 
     version = _version()
     base_url = args.base_url.rstrip("/")
@@ -534,20 +510,25 @@ def main() -> None:
     linux_path.chmod(0o755)
     print(f"  [OK] Linux   : {linux_path.name}")
 
-    # Windows EXE (IExpress stub + CAB MSZIP offline)
+    # Windows EXE piccolo con builder IExpress storico
     if not args.no_windows:
+        if os.name != "nt":
+            print(
+                "ERRORE: il pacchetto Windows va generato da Windows con IExpress. "
+                "Usare --no-windows su altri sistemi.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
         win_path = DIST_DIR / f"SetupLocalSigner-{version}.exe"
         alias_path = DIST_DIR / "SetupLocalSigner.exe"
         ps1_path = DIST_DIR / f"InstallaLocalSigner-{version}.ps1"
-        if os.name == "nt" and WINDOWS_NATIVE_BUILDER.exists():
-            print("  Genero Windows EXE offline con IExpress nativo...")
-            exe_data = build_windows_exe_native(version)
-        else:
-            total_kb = (LS_PY.stat().st_size + UFFICI_JSON.stat().st_size) // 1024
-            print(f"  Genero Windows EXE offline (stub + CAB MSZIP, ~{total_kb}KB payload)...")
-            exe_data = build_windows_exe(version)
-            win_path.write_bytes(exe_data)
-            alias_path.write_bytes(exe_data)
+        if not WINDOWS_NATIVE_BUILDER.exists():
+            print(f"ERRORE: builder Windows nativo non trovato: {WINDOWS_NATIVE_BUILDER}", file=sys.stderr)
+            sys.exit(1)
+        print("  Genero Windows EXE piccolo con IExpress storico...")
+        exe_data = build_windows_exe(version, base_url)
+        win_path.write_bytes(exe_data)
+        alias_path.write_bytes(exe_data)
         ps1_path.write_text(build_windows_ps1(version), encoding="utf-8")
         support_files = write_windows_support_files(DIST_DIR)
         print(f"  [OK] Windows : {win_path.name}  ({win_path.stat().st_size // 1024}KB)")

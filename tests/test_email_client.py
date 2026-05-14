@@ -1347,6 +1347,28 @@ def test_sincronizza_imap_scopre_cartelle_legalmail_e_corregge_spedite(tmp_path,
     assert by_subject["PEC cestinata Legalmail"].cartella == CartellaEmail.CESTINO
 
 
+def test_cartelle_imap_effettive_non_scopre_archivi_equivalenti():
+    class _FakeIMAP:
+        def list(self):
+            return "OK", [
+                b'(\\HasNoChildren) "/" "INBOX"',
+                b'(\\HasNoChildren) "/" "[Gmail]/Tutti i messaggi"',
+                b'(\\HasNoChildren) "/" "Archivio"',
+                b'(\\HasNoChildren) "/" "Clienti"',
+                b'(\\HasNoChildren) "/" "Sent"',
+                b'(\\HasNoChildren) "/" "Trash"',
+            ]
+
+    folders = GestioneEmailRicevute._cartelle_imap_effettive(_FakeIMAP(), ["INBOX"])  # noqa: SLF001
+
+    assert "INBOX" in folders
+    assert "Sent" in folders
+    assert "Trash" in folders
+    assert "[Gmail]/Tutti i messaggi" not in folders
+    assert "Archivio" not in folders
+    assert "Clienti" not in folders
+
+
 def test_imap_mailbox_list_parser_legge_cartelle_legalmail_non_quotate():
     assert GestioneEmailRicevute._imap_mailbox_from_list_line(  # noqa: SLF001
         b'(\\HasNoChildren \\UnMarked \\Trash) "." INBOX.Cestino'
@@ -1574,6 +1596,69 @@ def test_sincronizza_imap_non_fonde_uid_stabili_con_stesso_message_id(tmp_path, 
     assert len(rows) == 2
     assert {"INBOX:UID:10", "INBOX:UID:11"} == uids
     assert "CONSEGNA: secondo duplicato Legalmail" in subjects
+
+
+def test_sincronizza_imap_recupera_timeout_socket_durante_fetch(tmp_path, monkeypatch):
+    import pct.email_client as email_runtime
+
+    msg = EmailMessage()
+    msg["Subject"] = "Email recuperata dopo timeout"
+    msg["From"] = "cliente@example.it"
+    msg["To"] = "studio@example.it"
+    msg["Date"] = "Thu, 14 May 2026 12:10:00 +0200"
+    msg["Message-ID"] = "<timeout-retry@example.test>"
+    msg.set_content("Messaggio importato dopo riconnessione IMAP.")
+    raw_message = msg.as_bytes()
+    created: list["_FakeIMAP"] = []
+
+    class _FakeIMAP:
+        def __init__(self):
+            self.index = len(created)
+            created.append(self)
+
+        def login(self, username, password):
+            return "OK", []
+
+        def list(self):
+            return "OK", [b'(\\HasNoChildren) "/" "INBOX"']
+
+        def select(self, mailbox, readonly=True):
+            return "OK", [b"1"]
+
+        def uid(self, command, *args):
+            if command == "SEARCH":
+                return "OK", [b"7"]
+            if command == "FETCH":
+                if self.index == 0:
+                    raise OSError("cannot read from timed out object")
+                return "OK", [(b"7 (RFC822)", raw_message)]
+            return "NO", []
+
+        def logout(self):
+            if self.index == 0:
+                raise OSError("cannot read from timed out object")
+            return "OK", []
+
+    monkeypatch.setattr(email_runtime.imaplib, "IMAP4_SSL", lambda *a, **k: _FakeIMAP())
+
+    ge = GestioneEmailRicevute(str(tmp_path / "casella.json"))
+    report = ge.sincronizza_imap(
+        imap_host="imap.example.it",
+        imap_port=993,
+        username="studio@example.it",
+        password="segreta",
+        use_ssl=True,
+        cartelle_imap=["INBOX"],
+        limite=10,
+    )
+    rows = GestioneEmailRicevute(str(tmp_path / "casella.json"))._carica()
+
+    assert report["errore"] == ""
+    assert report["errori"] == 0
+    assert report["riconnessioni_imap"] == 1
+    assert report["nuove"] == 1
+    assert len(created) == 2
+    assert any(email.oggetto == "Email recuperata dopo timeout" for email in rows.values())
 
 
 def test_email_ordinaria_deduplica_triplicati_da_cartelle_imap_equivalenti(tmp_path):

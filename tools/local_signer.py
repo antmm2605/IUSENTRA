@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IUSENTRA Local Signer - v1.6.31
+IUSENTRA Local Signer - v1.6.32
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -111,7 +111,7 @@ from local_signer_mod.server_bootstrap import print_startup_banner  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.31"
+VERSION = "1.6.32"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -160,6 +160,7 @@ _PST_QBUILDER_NAMESPACES = {
     "JPW_CASSPE": "urn:CONS-CASSPE",
 }
 _PDP_BASE = os.getenv("PCT_PDP_BASE_URL", "https://appweb.giustizia.it/snt").rstrip("/")
+_PDP_OFFICIAL_BROWSER_URL = "https://servizipst.giustizia.it/PST/authentication/it/pst_ar.wp"
 _WSDL_RICERCA_PENALE = f"{_PDP_BASE}/RicercaFascicoliPenaleService?wsdl"
 _WSDL_CONSULTA_PENALE = f"{_PDP_BASE}/ConsultazioneDocumentiPenaleService?wsdl"
 _PAT_BASE = os.getenv("PCT_PAT_BASE_URL", "https://pac.giustizia-amministrativa.it/pac").rstrip("/")
@@ -2742,7 +2743,7 @@ def _messaggio_dns_endpoint_portale(url: str) -> str:
 def _portale_browser_url(portale: str) -> str:
     portale_norm = str(portale or "").strip().lower()
     if portale_norm == "pdp":
-        return "https://appweb.giustizia.it/snt"
+        return _PDP_OFFICIAL_BROWSER_URL
     if portale_norm == "pat":
         return "https://www.giustizia-amministrativa.it/portale-avvocato"
     if portale_norm == "ptt":

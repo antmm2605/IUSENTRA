@@ -4,6 +4,7 @@ import base64
 import io
 import importlib.util
 import os
+import subprocess
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -289,7 +290,7 @@ def _local_signer_version():
     return _load_local_signer().VERSION
 
 
-def test_local_signer_dist_allineato_a_sorgente_e_installer_versionati():
+def test_local_signer_dist_allineato_a_sorgente_e_installer_versionati(tmp_path):
     root = Path(__file__).resolve().parents[1]
     version = _local_signer_version()
     source = root / "tools" / "local_signer.py"
@@ -310,7 +311,20 @@ def test_local_signer_dist_allineato_a_sorgente_e_installer_versionati():
     assert (dist / f"SetupLocalSigner-{version}.exe").read_bytes() == (
         dist / "SetupLocalSigner.exe"
     ).read_bytes()
-    assert (dist / "SetupLocalSigner.exe").read_bytes().startswith(b"MZ")
+    exe_path = dist / "SetupLocalSigner.exe"
+    assert exe_path.read_bytes().startswith(b"MZ")
+    assert exe_path.stat().st_size < 400_000
+    if os.name == "nt":
+        target = tmp_path / "iexpress-probe"
+        target.mkdir()
+        probe = subprocess.run(
+            [str(exe_path), "/Q", f"/T:{target}", "/C:cmd /c exit 0"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=True,
+        )
+        assert probe.returncode == 0
     assert f"Versione: {version}" in (dist / f"LocalSigner-{version}.txt").read_text(
         encoding="utf-8"
     )
@@ -2400,6 +2414,35 @@ def test_download_moduli_local_signer_e_pubblico(tmp_path):
     assert forbidden.status_code == 404
 
 
+def test_download_requirements_local_signer_e_pubblico(tmp_path):
+    from web.app import create_app
+
+    app = create_app(_cfg_web(tmp_path))
+    with app.test_client() as c:
+        r = c.get("/polisWeb/local-signer/download/requirements")
+
+    assert r.status_code == 200
+    assert "attachment" in r.headers.get("Content-Disposition", "")
+    assert "requirements_local_signer.txt" in r.headers.get("Content-Disposition", "")
+    assert "cryptography" in r.data.decode("utf-8")
+
+
+def test_installer_local_signer_windows_ps1_bootstrap_e_pubblico(tmp_path):
+    from web.app import create_app
+
+    version = _local_signer_version()
+    app = create_app(_cfg_web(tmp_path))
+    with app.test_client() as c:
+        r = c.get("/polisWeb/local-signer/setup/windows-ps1")
+
+    assert r.status_code == 200
+    assert "attachment" in r.headers.get("Content-Disposition", "")
+    assert f"InstallaLocalSigner-{version}.ps1" in r.headers.get("Content-Disposition", "")
+    body = r.data.decode("utf-8")
+    assert "Uninstall-ExistingLocalSigner" in body
+    assert "Disinstallo la vecchia versione locale prima di installare quella nuova" in body
+
+
 def test_installer_local_signer_windows_setup_route_e_pubblica(tmp_path):
     from web.app import create_app
 
@@ -4181,7 +4224,7 @@ def test_pdp_ricerca_local_signer_dns_restituisce_manual_required():
     assert captured["payload"]["manual_required"] is True
     assert captured["payload"]["manual_phase"] == "ricerca"
     assert captured["payload"]["manual_title"] == "Consultazione via browser ufficiale"
-    assert captured["payload"]["portale_url"] == "https://appweb.giustizia.it/snt"
+    assert captured["payload"]["portale_url"] == "https://servizipst.giustizia.it/PST/authentication/it/pst_ar.wp"
 
 
 def test_pdp_ricerca_local_signer_browser_assistito_se_wsdl_disabilitato():
@@ -4218,7 +4261,7 @@ def test_pdp_ricerca_local_signer_browser_assistito_se_wsdl_disabilitato():
     assert captured["payload"]["manual_required"] is True
     assert captured["payload"]["manual_title"] == "Consultazione via browser ufficiale"
     assert "Consultazione via browser ufficiale" in captured["payload"]["errore"]
-    assert captured["payload"]["portale_url"] == "https://appweb.giustizia.it/snt"
+    assert captured["payload"]["portale_url"] == "https://servizipst.giustizia.it/PST/authentication/it/pst_ar.wp"
 
 
 def test_pat_documenti_local_signer_restituisce_documenti_parsati():

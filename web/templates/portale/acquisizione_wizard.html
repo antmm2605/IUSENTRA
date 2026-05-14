@@ -303,6 +303,7 @@ const AW_BOOT = {{ {
   "assistantStartUrl": url_for('api_portale_assistant_start', portale=wizard_portale),
   "assistantStatusUrlTemplate": url_for('api_portale_assistant_status', portale=wizard_portale, session_id='__SESSION__'),
   "assistantOpenUrlTemplate": url_for('api_portale_assistant_open', portale=wizard_portale, session_id='__SESSION__'),
+  "assistantWatchUrlTemplate": url_for('api_portale_assistant_watch_downloads', portale=wizard_portale, session_id='__SESSION__'),
   "assistantCollectUrlTemplate": url_for('api_portale_assistant_collect', portale=wizard_portale, session_id='__SESSION__'),
   "assistantCloseUrlTemplate": url_for('api_portale_assistant_close', portale=wizard_portale, session_id='__SESSION__'),
   "linkedFascicolo": ({
@@ -346,6 +347,8 @@ let AW_PST_IMPORT_SESSION_PROMISE = null;
 let AW_PST_SNAPSHOT_PROMISE = null;
 let AW_ACCESS_BUSY = false;
 let AW_ACTIONS_BOUND = false;
+let AW_ASSISTANT_MONITOR_TIMER = null;
+let AW_ASSISTANT_AUTO_IMPORT_RUNNING = false;
 const AW_STEPS = [
   {id:1,t:'Accesso',s:'Sorgente e connessione'},
   {id:2,t:'Ricerca',s:'Trova il fascicolo'},
@@ -383,20 +386,53 @@ async function awAssistantStart() {
   if (!data.ok) throw new Error(data.errore || 'Sessione assistita non avviata.');
   AW_STATE.assistantSession = data;
   awAssistantStatus(data.message || `Stato sessione: ${data.status || 'pronta'}`, data.status === 'local_connector_required' ? 'warning' : 'success');
+  if (data.local_connector_available) {
+    await awAssistantOpen({ startMonitor: true });
+  }
   return data;
 }
 async function awAssistantEnsureSession() {
   return AW_STATE.assistantSession?.session_id ? AW_STATE.assistantSession : awAssistantStart();
 }
-async function awAssistantOpen() {
+async function awAssistantOpen({ startMonitor = true } = {}) {
   const session = await awAssistantEnsureSession();
   if (!session?.session_id) return;
   const data = await awJson(awAssistantUrl(AW_BOOT.assistantOpenUrlTemplate), { method: 'POST', body: JSON.stringify({}) });
   if (!data.ok) throw new Error(data.errore || 'Portale ufficiale assistito non aperto.');
   AW_STATE.assistantSession = data;
   awAssistantStatus(data.message || `Stato sessione: ${data.status || 'aperta'}`, data.status === 'local_connector_required' ? 'warning' : 'success');
+  if (startMonitor && data.local_connector_available) awAssistantBeginMonitor();
 }
-async function awAssistantCollect() {
+async function awAssistantWatchDownloads() {
+  const session = await awAssistantEnsureSession();
+  if (!session?.session_id || !session.local_connector_available) return;
+  const data = await awJson(awAssistantUrl(AW_BOOT.assistantWatchUrlTemplate), { method: 'POST', body: JSON.stringify({}) });
+  if (!data.ok) throw new Error(data.errore || 'Monitor download non avviato.');
+  AW_STATE.assistantSession = data;
+  awAssistantStatus(data.message || 'Monitor download della sessione assistita attivo.', data.status === 'local_connector_required' ? 'warning' : 'success');
+}
+function awAssistantStopMonitor() {
+  if (AW_ASSISTANT_MONITOR_TIMER) {
+    window.clearInterval(AW_ASSISTANT_MONITOR_TIMER);
+    AW_ASSISTANT_MONITOR_TIMER = null;
+  }
+}
+async function awAssistantMaybeAutoImport(count) {
+  if (!count || AW_ASSISTANT_AUTO_IMPORT_RUNNING) return;
+  if (!AW_STATE.selection || !AW_STATE.preview || (AW_STATE.analysis?.blockers || []).length) {
+    awAssistantStatus(`${count} file ufficiali raccolti. Completa verifica e importazione finale per registrarli nel fascicolo interno.`, 'success');
+    return;
+  }
+  AW_ASSISTANT_AUTO_IMPORT_RUNNING = true;
+  try {
+    awAssistantStatus(`${count} file ufficiali raccolti. Importazione nel fascicolo interno in corso...`, 'success');
+    awGoStep(7);
+    await awStartImport();
+  } finally {
+    AW_ASSISTANT_AUTO_IMPORT_RUNNING = false;
+  }
+}
+async function awAssistantCollect({ silent = false } = {}) {
   const session = await awAssistantEnsureSession();
   if (!session?.session_id) return;
   const data = await awJson(awAssistantUrl(AW_BOOT.assistantCollectUrlTemplate), { method: 'POST', body: JSON.stringify({}) });
@@ -404,9 +440,25 @@ async function awAssistantCollect() {
   AW_STATE.assistantSession = data;
   if (Array.isArray(data.downloaded_files)) AW_STATE.downloadedFiles = data.downloaded_files;
   const count = Array.isArray(data.downloaded_files) ? data.downloaded_files.length : 0;
-  awAssistantStatus(count ? `${count} file ufficiali raccolti dalla sessione assistita.` : (data.message || 'Nessun file ufficiale raccolto.'), count ? 'success' : 'warning');
+  if (!silent || count) {
+    awAssistantStatus(count ? `${count} file ufficiali raccolti dalla sessione assistita.` : (data.message || 'Nessun file ufficiale raccolto.'), count ? 'success' : 'warning');
+  }
+  if (count) {
+    awAssistantStopMonitor();
+    awRenderSelectionOptions();
+    awRenderSidebar();
+    await awAssistantMaybeAutoImport(count);
+  }
+}
+function awAssistantBeginMonitor() {
+  awAssistantStopMonitor();
+  awAssistantWatchDownloads().catch(err => awAssistantStatus(err.message || String(err), 'warning'));
+  AW_ASSISTANT_MONITOR_TIMER = window.setInterval(() => {
+    awAssistantCollect({ silent: true }).catch(err => awAssistantStatus(err.message || String(err), 'warning'));
+  }, 5000);
 }
 async function awAssistantClose() {
+  awAssistantStopMonitor();
   const session = AW_STATE.assistantSession;
   if (!session?.session_id) return;
   const data = await awJson(awAssistantUrl(AW_BOOT.assistantCloseUrlTemplate), { method: 'POST', body: JSON.stringify({}) });
@@ -673,7 +725,7 @@ function awCurrentQuery() {
 function awOfficialPortalUrl() {
   const urls = {
     pst: 'https://pst.giustizia.it/PST/it/services.page',
-    pdp: 'https://appweb.giustizia.it/snt',
+    pdp: 'https://servizipst.giustizia.it/PST/authentication/it/pst_ar.wp',
     pat: 'https://www.giustizia-amministrativa.it/portale-avvocato',
     ptt: 'https://sigit.giustiziatributaria.gov.it/Sigit/index.do',
   };

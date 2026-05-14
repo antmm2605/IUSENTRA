@@ -26,6 +26,7 @@ def register_portali_acquisizione_routes(
     _importa_o_collega_fascicolo_portale: Callable[..., dict[str, Any]],
     _portal_assistant_start: Callable[[str, dict[str, Any]], dict[str, Any]],
     _portal_assistant_open: Callable[[str, str], dict[str, Any]],
+    _portal_assistant_watch_downloads: Callable[[str, str], dict[str, Any]],
     _portal_assistant_status: Callable[[str, str], dict[str, Any]],
     _portal_assistant_collect: Callable[[str, str, dict[str, Any]], dict[str, Any]],
     _portal_assistant_close: Callable[..., dict[str, Any]],
@@ -251,6 +252,15 @@ def register_portali_acquisizione_routes(
             return jsonify({"ok": True, **result})
         except Exception as e:
             app.logger.exception("Errore api_portale_assistant_open(%s): %s", portale, e)
+            return jsonify({"ok": False, "errore": str(e)}), 400
+
+    @app.route("/api/portali/<portale>/assistant/<session_id>/watch-downloads", methods=["POST"])
+    def api_portale_assistant_watch_downloads(portale: str, session_id: str):
+        try:
+            result = _portal_assistant_watch_downloads(portale, session_id)
+            return jsonify({"ok": True, **result})
+        except Exception as e:
+            app.logger.exception("Errore api_portale_assistant_watch_downloads(%s): %s", portale, e)
             return jsonify({"ok": False, "errore": str(e)}), 400
 
     @app.route("/api/portali/<portale>/assistant/<session_id>/collect", methods=["POST"])

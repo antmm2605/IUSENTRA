@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ChangeEvent, type MouseEvent, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type MouseEvent, type ReactNode } from 'react'
 import {
   AlertTriangle,
   ArrowRight,
@@ -139,6 +139,16 @@ type BrowserLocalSignerStatus = {
   unsupported: boolean
   version: string
   tokenLabel: string
+  message: string
+}
+
+type AssistantSession = {
+  session_id: string
+  portale: string
+  official_url: string
+  status: string
+  local_connector_available: boolean
+  downloaded_files: JsonRecord[]
   message: string
 }
 
@@ -803,7 +813,7 @@ function requestLocalSignerStart() {
 function officialPortalHref(portal: string): string {
   const urls: Record<string, string> = {
     pst: 'https://pst.giustizia.it/PST/it/services.page',
-    pdp: 'https://appweb.giustizia.it/snt',
+    pdp: 'https://servizipst.giustizia.it/PST/authentication/it/pst_ar.wp',
     pat: 'https://www.giustizia-amministrativa.it/portale-avvocato',
     ptt: 'https://sigit.giustiziatributaria.gov.it/Sigit/index.do',
   }
@@ -1018,6 +1028,45 @@ async function collectAcquisitionFiles(files: FileList | null, originalMode: boo
   return collected
 }
 
+function assistantFilesToAcquisitionFiles(rows: unknown[], originalMode: boolean): AcquisitionFile[] {
+  const collected: AcquisitionFile[] = []
+  for (const value of rows) {
+    const row = asRecord(value)
+    const filename = asText(row.filename || row.name || row.nome)
+    const content = asText(row.content_base64 || row.base64 || row.contenuto_b64)
+    if (!filename || !content) continue
+    collected.push({
+      nome: filename,
+      nome_file_originale: filename,
+      contenuto_b64: content,
+      payload_json: null,
+      origine: asText(row.source || row.local_temp_ref, `sessione-assistita:${filename}`),
+      data_documento: asText(row.detected_at).slice(0, 10),
+      content_type: asText(row.content_type),
+      id_documento_portale: asText(row.id_documento_portale || row.id_documento),
+      id_deposito_esterno: asText(row.id_deposito_esterno || row.id_deposito),
+      id_deposito_pct: asText(row.id_deposito_pct),
+      tipo_atto: asText(row.tipo_atto),
+      tipo: asText(row.tipo),
+      original_documento_portale: originalMode,
+      modalita_documento_portale: originalMode ? 'originale' : 'copia',
+    })
+  }
+  return collected
+}
+
+function mergeAcquisitionFiles(current: AcquisitionFile[], incoming: AcquisitionFile[]): AcquisitionFile[] {
+  const merged = [...current]
+  const seen = new Set(current.map((file) => `${file.nome_file_originale.toLowerCase()}::${file.contenuto_b64.slice(0, 48)}`))
+  for (const file of incoming) {
+    const key = `${file.nome_file_originale.toLowerCase()}::${file.contenuto_b64.slice(0, 48)}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    merged.push(file)
+  }
+  return merged
+}
+
 function authorisedPayload(files: AcquisitionFile[]): JsonRecord | null {
   for (const file of files) {
     const payload = file.payload_json
@@ -1091,6 +1140,9 @@ function AcquisitionWizard({
   })
   const [pstCert, setPstCert] = useState<PstCertificate | null>(() => loadPstCertificate())
   const [pstSession, setPstSession] = useState<PstSession | null>(() => loadPstSession())
+  const [assistantSession, setAssistantSession] = useState<AssistantSession | null>(null)
+  const [assistantMonitoring, setAssistantMonitoring] = useState(false)
+  const assistantTimerRef = useRef<number | null>(null)
 
   useEffect(() => {
     if (!visible || !portal) return
@@ -1298,6 +1350,7 @@ function AcquisitionWizard({
   const updateOption = (key: keyof AcquisitionOptions, value: boolean) => setOptions((current) => ({ ...current, [key]: value }))
   const updateMapping = (key: keyof AcquisitionMapping, value: string) => setMapping((current) => ({ ...current, [key]: value }))
   const portalNeedsLocalSigner = ['pst', 'pdp', 'pat', 'ptt'].includes(portal)
+  const portalUsesOfficialAssistant = ['pdp', 'pat', 'ptt'].includes(portal)
   const requiresBrowserLocalSigner = portalNeedsLocalSigner && localSignerDesktopSupported
 
   const officeTypes = useMemo(() => ['tutti', ...Array.from(new Set(data.offices.map((office) => office.tipo).filter(Boolean))).sort()], [data.offices])
@@ -1553,15 +1606,16 @@ function AcquisitionWizard({
     }
   }
 
-  const runImport = async () => {
+  const runImport = async (overrideFiles?: AcquisitionFile[]) => {
     if (!selection || !Object.keys(preview).length) {
       setMessage('Import bloccato: selezione e anteprima sono obbligatorie.')
       return
     }
     setBusy('import')
     try {
-      const payloadJson = authorisedPayload(files)
-      const downloadedFiles: unknown[] = files.filter((file) => !file.payload_json)
+      const activeFiles = overrideFiles || files
+      const payloadJson = authorisedPayload(activeFiles)
+      const downloadedFiles: unknown[] = activeFiles.filter((file) => !file.payload_json)
       let activeSelection = selection.raw
       if (!payloadJson && portal === 'pst' && options.importa_documenti && !downloadedFiles.length) {
         const documenti = pstPreviewDocuments(preview)
@@ -1623,6 +1677,118 @@ function AcquisitionWizard({
       setBusy('')
     }
   }
+
+  const stopAssistantMonitor = () => {
+    if (assistantTimerRef.current !== null) {
+      window.clearInterval(assistantTimerRef.current)
+      assistantTimerRef.current = null
+    }
+    setAssistantMonitoring(false)
+  }
+
+  const assistantJson = async (path: string, body?: JsonRecord, method: 'GET' | 'POST' = 'POST'): Promise<JsonRecord> => {
+    const response = await fetch(`/api/portali/${encodeURIComponent(portal)}/assistant${path}`, {
+      method,
+      credentials: 'same-origin',
+      headers: method === 'POST' ? { Accept: 'application/json', 'Content-Type': 'application/json' } : { Accept: 'application/json' },
+      body: method === 'POST' ? JSON.stringify(body || {}) : undefined,
+    })
+    const payload = asRecord(await response.json().catch(() => ({ ok: false, errore: 'Risposta non valida.' })))
+    if (!response.ok || payload.ok === false) {
+      throw new Error(asText(payload.errore || payload.message, 'Sessione assistita non disponibile.'))
+    }
+    return payload
+  }
+
+  const rememberAssistantSession = (payload: JsonRecord): AssistantSession => {
+    const session = {
+      session_id: asText(payload.session_id),
+      portale: asText(payload.portale || portal),
+      official_url: asText(payload.official_url),
+      status: asText(payload.status),
+      local_connector_available: Boolean(payload.local_connector_available),
+      downloaded_files: asList(payload.downloaded_files).map(asRecord),
+      message: asText(payload.message),
+    }
+    setAssistantSession(session)
+    return session
+  }
+
+  const collectAssistantDownloads = async (silent = false, forcedSessionId = '') => {
+    const sessionId = forcedSessionId || assistantSession?.session_id
+    if (!portalUsesOfficialAssistant || !sessionId) return
+    const payload = await assistantJson(`/${encodeURIComponent(sessionId)}/collect`)
+    const session = rememberAssistantSession(payload)
+    const collected = assistantFilesToAcquisitionFiles(session.downloaded_files, options.scarica_originale_portale)
+    if (!collected.length) {
+      if (!silent) setMessage(session.message || 'Nessun file ufficiale raccolto dalla sessione assistita.')
+      return
+    }
+    const merged = mergeAcquisitionFiles(files, collected)
+    setFiles(merged)
+    stopAssistantMonitor()
+    const canImportNow = Boolean(selection && Object.keys(preview).length && !asList(analysis.blockers).length)
+    if (canImportNow) {
+      setMessage(`${collected.length} file ufficiali raccolti. Importazione nel fascicolo interno in corso...`)
+      await runImport(merged)
+    } else {
+      setMessage(`${collected.length} file ufficiali raccolti. Completa verifica e importazione finale per registrarli nel fascicolo interno.`)
+    }
+  }
+
+  const startAssistantMonitor = async (sessionId: string) => {
+    stopAssistantMonitor()
+    await assistantJson(`/${encodeURIComponent(sessionId)}/watch-downloads`)
+    setAssistantMonitoring(true)
+    assistantTimerRef.current = window.setInterval(() => {
+      collectAssistantDownloads(true, sessionId).catch((error: unknown) => {
+        setMessage(asText(error instanceof Error ? error.message : error, 'Monitor download non disponibile.'))
+      })
+    }, 5000)
+  }
+
+  const startAssistantSession = async () => {
+    if (!portalUsesOfficialAssistant) return
+    setBusy('assistant')
+    try {
+      const started = rememberAssistantSession(await assistantJson('/start', {
+        fascicolo_id: mapping.target_fascicolo_id || acquisitionInitialFascicoloId(),
+      }))
+      if (!started.local_connector_available) {
+        setMessage(started.message || 'Avvia Local Signer su questo PC e riprova la sessione assistita.')
+        return
+      }
+      const opened = rememberAssistantSession(await assistantJson(`/${encodeURIComponent(started.session_id)}/open`))
+      await startAssistantMonitor(opened.session_id)
+      setMessage(opened.message || 'Portale ufficiale aperto. Il monitor raccogliera i file scaricati dal browser.')
+    } catch (error: unknown) {
+      setMessage(asText(error instanceof Error ? error.message : error, 'Sessione assistita non avviata.'))
+    } finally {
+      setBusy('')
+    }
+  }
+
+  const closeAssistantSession = async () => {
+    const sessionId = assistantSession?.session_id
+    if (!sessionId) return
+    stopAssistantMonitor()
+    setBusy('assistant')
+    try {
+      const closed = rememberAssistantSession(await assistantJson(`/${encodeURIComponent(sessionId)}/close`))
+      setMessage(closed.message || 'Sessione assistita chiusa.')
+    } catch (error: unknown) {
+      setMessage(asText(error instanceof Error ? error.message : error, 'Chiusura sessione non riuscita.'))
+    } finally {
+      setBusy('')
+    }
+  }
+
+  useEffect(() => () => {
+    if (assistantTimerRef.current !== null) {
+      window.clearInterval(assistantTimerRef.current)
+      assistantTimerRef.current = null
+    }
+  }, [])
 
   if (!visible || !portal) return null
 
@@ -1706,6 +1872,21 @@ function AcquisitionWizard({
                 {localSigner.unsupported ? null : <a href={localSignerInstallHref(data)}><Download size={15}/> Installa o aggiorna</a>}
                 <button type="button" disabled={!localSigner.ok} onClick={() => setStep(2)}><ArrowRight size={15}/> Vai alla ricerca</button>
               </div>
+              {portalUsesOfficialAssistant ? (
+                <div className={`iu-tel-local-signer-card ${assistantSession?.local_connector_available ? 'is-ok' : 'is-missing'}`}>
+                  <MonitorCheck size={18}/>
+                  <div>
+                    <strong>{assistantMonitoring ? 'Monitor download attivo' : assistantSession ? 'Sessione assistita pronta' : 'Sessione assistita portale'}</strong>
+                    <span>{assistantSession?.message || 'IUSENTRA apre il portale ufficiale dal Local Signer, monitora i download e importa i file raccolti nel fascicolo interno.'}</span>
+                    <small>{assistantSession?.downloaded_files?.length ? `${assistantSession.downloaded_files.length} file raccolti` : 'Nessun file ufficiale ancora raccolto'}</small>
+                  </div>
+                  <div className="iu-tel-acq-actions">
+                    <button type="button" disabled={busy === 'assistant'} onClick={startAssistantSession}><ExternalLink size={15}/> Avvia sessione assistita</button>
+                    <button type="button" disabled={!assistantSession?.session_id || busy === 'assistant'} onClick={() => collectAssistantDownloads(false)}><Download size={15}/> Raccogli file scaricati</button>
+                    <button type="button" disabled={!assistantSession?.session_id || busy === 'assistant'} onClick={closeAssistantSession}><CheckCircle2 size={15}/> Chiudi sessione</button>
+                  </div>
+                </div>
+              ) : null}
             </Panel>
           ) : null}
 
@@ -1881,7 +2062,7 @@ function AcquisitionWizard({
             <Panel title="Step 7 - Importazione finale" subtitle="Registrazione controllata nel gestionale" icon={<UploadCloud size={17}/>}>
               <p className="iu-tel-acq-note">L'importazione non scarica dati dai portali in modo nascosto: usa dati autorizzati, file selezionati dall'utente o canale Local Signer quando disponibile.</p>
               <div className="iu-tel-acq-actions">
-                <button type="button" disabled={busy === 'import'} onClick={runImport}><UploadCloud size={15}/> Importa nel gestionale</button>
+                <button type="button" disabled={busy === 'import'} onClick={() => runImport()}><UploadCloud size={15}/> Importa nel gestionale</button>
               </div>
               {Object.keys(importResult).length ? (
                 <div className="iu-tel-acq-import-result">

@@ -94,6 +94,17 @@ _STATI_PCT_ORDINE = {
 _SENT_FOLDER_HINTS = ("sent", "inviat", "spedit", "posta inviata", "sent items")
 _TRASH_FOLDER_HINTS = ("trash", "deleted", "eliminat", "cestin")
 _DRAFT_FOLDER_HINTS = ("draft", "bozz")
+_NON_SYNC_DISCOVERY_FOLDER_HINTS = (
+    "all mail",
+    "tutti i messaggi",
+    "archive",
+    "archivio",
+    "archiviati",
+    "spam",
+    "junk",
+    "indesiderat",
+)
+_IMAP_TIMEOUT_ERROR_HINTS = ("cannot read from timed out object", "timed out", "timeout")
 
 
 def cartelle_imap_standard() -> list[str]:
@@ -715,6 +726,13 @@ class GestioneEmailRicevute:
         except ValueError:
             return 0, str(token)
 
+    @staticmethod
+    def _imap_exception_is_timeout(exc: BaseException) -> bool:
+        if isinstance(exc, (socket.timeout, TimeoutError)):
+            return True
+        message = str(exc or "").strip().lower()
+        return any(hint in message for hint in _IMAP_TIMEOUT_ERROR_HINTS)
+
     def _imap_search_all(self, mail) -> tuple[List[str], bool]:
         try:
             status, data = mail.uid("SEARCH", None, "ALL")
@@ -764,6 +782,21 @@ class GestioneEmailRicevute:
             return quoted[-1].replace(r"\"", '"').strip()
         return raw.rsplit(" ", 1)[-1].strip().strip('"')
 
+    @staticmethod
+    def _imap_mailbox_list_entry_is_operativa(line: Any, mailbox: str) -> bool:
+        name = str(mailbox or "").strip().strip('"')
+        if not name:
+            return False
+        raw_line = line.decode(errors="ignore") if isinstance(line, bytes) else str(line or "")
+        lowered = f"{raw_line} {name}".lower()
+        if name.upper() == "INBOX":
+            return True
+        if any(hint in lowered for hint in (*_SENT_FOLDER_HINTS, *_TRASH_FOLDER_HINTS, *_DRAFT_FOLDER_HINTS)):
+            return True
+        if any(hint in lowered for hint in _NON_SYNC_DISCOVERY_FOLDER_HINTS):
+            return False
+        return False
+
     @classmethod
     def _cartelle_imap_effettive(cls, mail: Any, richieste: List[str]) -> List[str]:
         cartelle: list[str] = []
@@ -778,7 +811,7 @@ class GestioneEmailRicevute:
 
         try:
             status, data = mail.list()
-        except (AttributeError, imaplib.IMAP4.error, TypeError):
+        except (AttributeError, imaplib.IMAP4.error, OSError, socket.timeout, TimeoutError, TypeError):
             return cartelle
         if status != "OK":
             return cartelle
@@ -787,8 +820,7 @@ class GestioneEmailRicevute:
             mailbox = cls._imap_mailbox_from_list_line(line)
             if not mailbox:
                 continue
-            folder = _cartella_interna_da_imap(mailbox)
-            if folder in {CartellaEmail.INBOX, CartellaEmail.INVIATI, CartellaEmail.CESTINO}:
+            if cls._imap_mailbox_list_entry_is_operativa(line, mailbox):
                 _add(mailbox)
         return cartelle
 
@@ -1014,6 +1046,7 @@ class GestioneEmailRicevute:
             "cartelle_corrette": 0,
             "testi_corretti": 0,
             "duplicati_rimossi": 0,
+            "riconnessioni_imap": 0,
             "errore": "",
         }
         cartelle_imap = cartelle_imap or ["INBOX"]
@@ -1037,6 +1070,79 @@ class GestioneEmailRicevute:
             risultato["errore"] = describe_imap_connection_error(e, timeout_seconds=timeout_s)
             return risultato
 
+        def _logout_quietly(client: Any) -> None:
+            try:
+                client.logout()
+            except Exception:
+                pass
+
+        def _reconnect_mail() -> bool:
+            nonlocal mail
+            _logout_quietly(mail)
+            try:
+                mail = run_imap_runtime_operation(_connect_mail)
+                risultato["riconnessioni_imap"] += 1
+                return True
+            except (imaplib.IMAP4.error, OSError, socket.timeout, TimeoutError) as exc:
+                risultato["errore"] = describe_imap_connection_error(exc, timeout_seconds=timeout_s)
+                return False
+            except Exception as exc:
+                risultato["errore"] = describe_imap_connection_error(exc, timeout_seconds=timeout_s)
+                return False
+
+        def _select_folder_with_retry(cartella_imap: str):
+            try:
+                return self._imap_select_folder(mail, cartella_imap)
+            except imaplib.IMAP4.error:
+                return "NO", []
+            except Exception as exc:
+                if not self._imap_exception_is_timeout(exc):
+                    raise
+                if not _reconnect_mail():
+                    return "NO", []
+                try:
+                    return self._imap_select_folder(mail, cartella_imap)
+                except imaplib.IMAP4.error:
+                    return "NO", []
+
+        def _search_all_with_retry(cartella_imap: str) -> tuple[List[str], bool]:
+            try:
+                return self._imap_search_all(mail)
+            except Exception as exc:
+                if not self._imap_exception_is_timeout(exc):
+                    raise
+                if not _reconnect_mail():
+                    return [], True
+                status, _ = _select_folder_with_retry(cartella_imap)
+                if status != "OK":
+                    return [], True
+                try:
+                    return self._imap_search_all(mail)
+                except Exception as retry_exc:
+                    if self._imap_exception_is_timeout(retry_exc):
+                        risultato["errori"] += 1
+                        return [], True
+                    raise
+
+        def _fetch_message_with_retry(cartella_imap: str, uid: str, *, use_uid: bool):
+            try:
+                return self._imap_fetch_message(mail, uid, use_uid=use_uid)
+            except Exception as exc:
+                if not self._imap_exception_is_timeout(exc):
+                    raise
+                if not _reconnect_mail():
+                    return None
+                status, _ = _select_folder_with_retry(cartella_imap)
+                if status != "OK":
+                    return None
+                try:
+                    return self._imap_fetch_message(mail, uid, use_uid=use_uid)
+                except Exception as retry_exc:
+                    if self._imap_exception_is_timeout(retry_exc):
+                        risultato["errori"] += 1
+                        return None
+                    raise
+
         db = self._carica()
         dedup_iniziale = self._deduplica_db_in_memoria(db)
         risultato["duplicati_rimossi"] += dedup_iniziale
@@ -1044,15 +1150,14 @@ class GestioneEmailRicevute:
 
         try:
             for cartella_imap in self._cartelle_imap_effettive(mail, cartelle_imap):
+                if risultato["errore"]:
+                    break
                 try:
-                    try:
-                        status, _ = self._imap_select_folder(mail, cartella_imap)
-                    except imaplib.IMAP4.error:
-                        continue
+                    status, _ = _select_folder_with_retry(cartella_imap)
                     if status != "OK":
                         continue
 
-                    uid_list_all, usa_uid_stabile = self._imap_search_all(mail)
+                    uid_list_all, usa_uid_stabile = _search_all_with_retry(cartella_imap)
                     if not uid_list_all:
                         continue
 
@@ -1076,6 +1181,8 @@ class GestioneEmailRicevute:
                     uid_list = list(dict.fromkeys(uid_list + uid_da_riparare))
 
                     for uid in reversed(uid_list):
+                        if risultato["errore"]:
+                            break
                         uid_str = f"{cartella_imap}:UID:{uid}" if usa_uid_stabile else f"{cartella_imap}:{uid}"
                         email_esistente = email_per_uid.get(uid_str)
                         ripara_allegati = bool(
@@ -1090,7 +1197,12 @@ class GestioneEmailRicevute:
                             continue
 
                         try:
-                            _, msg_data = self._imap_fetch_message(mail, uid, use_uid=usa_uid_stabile)
+                            fetched = _fetch_message_with_retry(cartella_imap, uid, use_uid=usa_uid_stabile)
+                            if fetched is None:
+                                if risultato["errore"]:
+                                    break
+                                continue
+                            _, msg_data = fetched
                             if not msg_data or not msg_data[0]:
                                 continue
 
@@ -1141,10 +1253,18 @@ class GestioneEmailRicevute:
 
             risultato["duplicati_rimossi"] += self._deduplica_db_in_memoria(db)
             self._salva()
-            mail.logout()
+            _logout_quietly(mail)
 
         except Exception as e:
-            risultato["errore"] = str(e)
+            if self._imap_exception_is_timeout(e):
+                risultato["errore"] = describe_imap_connection_error(e, timeout_seconds=timeout_s)
+            else:
+                risultato["errore"] = str(e)
+            try:
+                self._salva()
+            except Exception:
+                pass
+            _logout_quietly(mail)
 
         return risultato
 

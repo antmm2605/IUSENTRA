@@ -287,6 +287,42 @@ function Stop-LocalSignerProcesses {
     }
 }
 
+function Uninstall-ExistingLocalSigner {
+    Write-InstallerLog "Avvio disinstallazione controllata della vecchia installazione"
+
+    Stop-LocalSignerProcesses
+    Unregister-ScheduledTask -TaskName $taskName -Confirm:$false -ErrorAction SilentlyContinue | Out-Null
+
+    $startupDir = [Environment]::GetFolderPath("Startup")
+    if ($startupDir) {
+        $shortcutPath = Join-Path $startupDir "IUSENTRA Local Signer.lnk"
+        Remove-Item -LiteralPath $shortcutPath -Force -ErrorAction SilentlyContinue
+    }
+
+    foreach ($protocolName in @("iusentra-local-signer", ("ha" + "cs-local-signer"))) {
+        Remove-Item -Path "HKCU:\Software\Classes\$protocolName" -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    $resolvedTarget = [System.IO.Path]::GetFullPath($targetDir)
+    $resolvedAppData = [System.IO.Path]::GetFullPath((Join-Path $env:APPDATA "IUSENTRA"))
+    if (-not $resolvedTarget.StartsWith($resolvedAppData, [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw "Percorso Local Signer non sicuro per la disinstallazione: $resolvedTarget"
+    }
+
+    if (-not (Test-Path $targetDir)) {
+        return
+    }
+
+    $preserve = @("data", "installer.log", "local_signer.out.log", "local_signer.err.log")
+    Get-ChildItem -LiteralPath $targetDir -Force -ErrorAction SilentlyContinue |
+        Where-Object { $preserve -notcontains $_.Name } |
+        ForEach-Object {
+            Remove-Item -LiteralPath $_.FullName -Recurse -Force -ErrorAction SilentlyContinue
+        }
+
+    Write-InstallerLog "Vecchia installazione rimossa; dati locali e log preservati"
+}
+
 function Copy-LocalSignerModule {
     $moduleSourceDir = Join-Path $toolsDir "local_signer_mod"
     New-Item -ItemType Directory -Force -Path $moduleDir | Out-Null
@@ -440,6 +476,9 @@ Write-Host ""
 Write-Host "IUSENTRA Local Signer - Installazione Windows" -ForegroundColor Green
 Write-Host ""
 Write-InstallerLog "Avvio installazione Local Signer"
+
+Write-Step "Disinstallo la vecchia versione locale prima di installare quella nuova..."
+Uninstall-ExistingLocalSigner
 
 # ── Rilevamento Python ────────────────────────────────────────────
 # Priorita': 1) Python di sistema  2) Python portatile gia' installato  3) Download automatico

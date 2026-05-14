@@ -287,11 +287,11 @@ def test_wizard_portali_espone_upload_payload_json_e_portali_ufficiali(tmp_path:
             follow_redirects=True,
         )
         for portale, expected in (
-            ("pdp", "https://appweb.giustizia.it/snt"),
+            ("pdp", "https://servizipst.giustizia.it/PST/authentication/it/pst_ar.wp"),
             ("pat", "https://www.giustizia-amministrativa.it/portale-avvocato"),
             ("ptt", "https://sigit.giustiziatributaria.gov.it/Sigit/index.do"),
         ):
-            page = client.get(f"/portali/{portale}/acquisizione", follow_redirects=True)
+            page = client.get(f"/portali/{portale}/acquisizione?_legacy=1", follow_redirects=True)
             html = page.get_data(as_text=True)
 
             assert page.status_code == 200
@@ -517,7 +517,7 @@ def test_wizard_ptt_mostra_portale_ufficiale_assistito(tmp_path: Path):
 
     with app.test_client() as client:
         client.post("/login", data={"username": "admin-portali", "password": "Admin1234!"})
-        page = client.get("/portali/ptt/acquisizione", follow_redirects=True)
+        page = client.get("/portali/ptt/acquisizione?_legacy=1", follow_redirects=True)
 
     html = page.get_data(as_text=True)
     assert page.status_code == 200
@@ -538,7 +538,7 @@ def test_wizard_pst_non_mostra_portale_ufficiale_assistito_come_flusso_principal
 
     with app.test_client() as client:
         client.post("/login", data={"username": "admin-portali", "password": "Admin1234!"})
-        page = client.get("/portali/pst/acquisizione", follow_redirects=True)
+        page = client.get("/portali/pst/acquisizione?_legacy=1", follow_redirects=True)
 
     html = page.get_data(as_text=True)
     assert page.status_code == 200

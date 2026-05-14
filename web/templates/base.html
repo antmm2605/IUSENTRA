@@ -243,10 +243,6 @@
          class="nav-link sb-link {% if request.endpoint in ('polisWeb_home','polisWeb_ricerca','polisWeb_documenti','polisWeb_importa') %}active{% endif %}">
         <i class="bi bi-building-fill-check"></i><span class="sb-txt">PolisWeb / PST</span>
       </a>
-      <a href="{{ url_for('polisWeb_home') }}"
-         class="nav-link sb-link {% if request.endpoint in ('polisWeb_home','polisWeb_ricerca','polisWeb_documenti','polisWeb_importa') %}active{% endif %}">
-        <i class="bi bi-columns-gap"></i><span class="sb-txt">Panoramica PST</span>
-      </a>
       <a href="{{ url_for('sigp_sync.index') }}"
          class="nav-link sb-link {% if request.endpoint == 'sigp_sync.index' %}active{% endif %}">
         <i class="bi bi-bank2"></i><span class="sb-txt">SIGP - Giudice di Pace</span>

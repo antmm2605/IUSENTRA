@@ -232,7 +232,7 @@ def build_telematico_runtime(
             "home_endpoint": "pdp_home",
             "source_label": "Portale Deposito Atti Penale",
             "requires_local_signer": True,
-            "official_url": "https://pst.giustizia.it/PST/it/pst_2_6_1.wp",
+            "official_url": "https://servizipst.giustizia.it/PST/authentication/it/pst_ar.wp",
             "assistant_label": "Portale ufficiale assistito",
             "assistant_disclaimer": "IUSENTRA apre una sessione assistita locale: l'utente si autentica e opera nel PDP, poi il software importa file, ricevute ed esiti nel fascicolo interno.",
             "deposit_assistant_enabled": True,
@@ -2834,6 +2834,30 @@ def build_telematico_runtime(
         _save_assisted_session(session)
         return _public_assisted_session(session)
 
+    def _portal_assistant_watch_downloads(portale: str, session_id: str) -> dict[str, Any]:
+        portale_norm = _require_assisted_portal(portale)
+        session = _get_assisted_session(session_id)
+        if session.get("portale") != portale_norm:
+            raise ValueError("Sessione assistita non coerente con il portale.")
+        if not session.get("local_connector_available"):
+            return _public_assisted_session(session)
+        try:
+            local = _local_connector_call(
+                f"/portal-assistant/session/{session.get('local_session_id') or session_id}/watch-downloads",
+                payload={"portale": portale_norm},
+                timeout=4.0,
+            )
+            if local.get("ok") is True:
+                session["status"] = str(local.get("status") or "monitor_download_attivo")
+                session["message"] = "Monitor download della sessione assistita attivo."
+        except Exception as exc:
+            session["status"] = "local_connector_required"
+            session["message"] = "Local Connector non raggiungibile per il monitor download."
+            session["local_error"] = str(exc)
+        session["updated_at"] = datetime.now().isoformat()
+        _save_assisted_session(session)
+        return _public_assisted_session(session)
+
     def _portal_assistant_status(portale: str, session_id: str) -> dict[str, Any]:
         portale_norm = _require_assisted_portal(portale)
         session = _get_assisted_session(session_id)
@@ -2880,12 +2904,17 @@ def build_telematico_runtime(
             return None
         return {
             "filename": filename,
+            "nome": filename,
+            "nome_file_originale": filename,
             "size": size,
+            "dimensione_bytes": size,
             "sha256": sha,
             "detected_at": str(item.get("detected_at") or datetime.now().isoformat()),
             "local_temp_ref": str(item.get("local_temp_ref") or "").strip(),
             "content_base64": content_b64,
+            "contenuto_b64": content_b64,
             "source": MODE_OFFICIAL_PORTAL_ASSISTED,
+            "origine": MODE_OFFICIAL_PORTAL_ASSISTED,
         }
 
     def _merge_assisted_files(existing: list[dict[str, Any]], incoming: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -3330,7 +3359,7 @@ def build_telematico_runtime(
 
     def _local_signer_windows_offline_ps1_name() -> str:
         """PS1 offline self-contained (generato da build_dist.py) — alternativa all'EXE."""
-        return f"SetupLocalSigner-{_local_signer_version()}.ps1"
+        return _local_signer_windows_ps1_name()
 
     def _local_signer_windows_offline_ps1_path() -> Path:
         return _local_signer_dist_dir() / _local_signer_windows_offline_ps1_name()
@@ -3818,6 +3847,7 @@ read -r -p "Premi Invio per chiudere..." _
         "importa_o_collega_fascicolo_portale": _importa_o_collega_fascicolo_portale,
         "portal_assistant_start": _portal_assistant_start,
         "portal_assistant_open": _portal_assistant_open,
+        "portal_assistant_watch_downloads": _portal_assistant_watch_downloads,
         "portal_assistant_status": _portal_assistant_status,
         "portal_assistant_collect": _portal_assistant_collect,
         "portal_assistant_close": _portal_assistant_close,

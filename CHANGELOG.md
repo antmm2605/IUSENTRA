@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.235.4 - 2026-05-14
+
+- Corretto il blocco della sincronizzazione Email ordinaria dopo la deduplica: la scoperta IMAP non include piu' archivi/etichette equivalenti come `Tutti i messaggi`, `Archivio` o cartelle personali, evitando letture duplicate e timeout.
+- La sincronizzazione IMAP recupera il caso `cannot read from timed out object` durante il recupero di un messaggio riaprendo la connessione e riprovando il singolo messaggio senza perdere la deduplica.
+- La Panoramica React non resta piu' bloccata su `Sincronizzazione comunicazioni...`: la sync di background ha un timeout lato client e chiude sempre lo stato di caricamento.
+
 ## 2.235.3 - 2026-05-14
 
 - Corretto il rosso CI `Local Signer e PKCS#11`: PDP, PAT e PTT mantengono il canale WSDL diretto attivo di default e passano alla consultazione browser-assistita solo con flag espliciti di forzatura/disabilitazione.

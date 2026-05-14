@@ -180,10 +180,24 @@ _LEGACY_OPERATIONAL_PREFIXES = (
 )
 
 _REACT_TELEMATICO_ACQUISITION_PATHS = {
+    "/portali/pst/acquisizione",
     "/portali/pdp/acquisizione",
     "/portali/pat/acquisizione",
     "/portali/ptt/acquisizione",
     "/portali/sigit/acquisizione",
+}
+
+_REACT_TELEMATICO_GRAPHICAL_PATHS = {
+    "/guida/firma-digitale",
+    "/pat",
+    "/pdp",
+    "/polisweb",
+    "/pst",
+    "/servizi-telematici",
+    "/sigit",
+    "/telematico",
+    "/telematici",
+    "/tribunali",
 }
 
 _CANONICAL_ALIAS_PATHS = {
@@ -282,6 +296,8 @@ def _excluded(path: str) -> bool:
         return True
     if lower.startswith("/ricerca-legale/"):
         return True
+    if lower in _REACT_TELEMATICO_GRAPHICAL_PATHS:
+        return False
     if lower in _REACT_TELEMATICO_ACQUISITION_PATHS:
         return False
     if any(lower == prefix or lower.startswith(f"{prefix}/") for prefix in _LEGACY_OPERATIONAL_PREFIXES):

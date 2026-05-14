@@ -1,12 +1,26 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-14, hotfix Local Signer CI 2.235.3.
+Aggiornato: 2026-05-14, hotfix Email ordinaria/Panoramica 2.235.4.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Hotfix Email ordinaria e Panoramica 2.235.4 - 2026-05-14
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct\email_client.py` | OK | Sintassi confermata dopo il retry IMAP su timeout e la scoperta cartelle piu' conservativa. |
+| `python -m pytest -q tests\test_email_client.py::test_cartelle_imap_effettive_non_scopre_archivi_equivalenti tests\test_email_client.py::test_sincronizza_imap_recupera_timeout_socket_durante_fetch tests\test_email_client.py::test_email_ordinaria_deduplica_triplicati_da_cartelle_imap_equivalenti tests\test_email_client.py::test_sincronizza_imap_non_fonde_uid_stabili_con_stesso_message_id --tb=short` | OK | 4/4 passati: niente sync su archivi equivalenti, retry su `cannot read from timed out object`, deduplica ordinaria preservata e UID PEC/Legalmail stabili non fusi. |
+| `python -m pytest -q tests\test_email_client.py --tb=short` | OK | 50/50 passati: sync PEC/ordinaria, allegati, cartelle, timeout, deduplica e invii restano verdi. |
+| `python -m pytest -q tests\test_dashboard_mailbox_sync.py --tb=short` | OK | 5/5 passati: runtime manuale/automatico conserva lock, cooldown e separazione PEC/ordinaria. |
+| `python -m ruff check pct\email_client.py tests\test_email_client.py` | OK | Lint mirato verde per il perimetro email. |
+| `npm --prefix frontend run test`; `npm --prefix frontend run typecheck`; `npm --prefix frontend run build` | OK | Contratti React/App V2/UI coverage, TypeScript e build Vite `iusentra-react-token-ui@2.235.4` verdi; build 6.70s, main JS `index-BoNCz9Gi.js` 445.23 kB / 131.75 kB gzip e CSS `index-Bafxecf8.css` 121.77 kB / 22.33 kB gzip. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest -q tests\test_packaging_consistency.py tests\test_release_readiness.py --tb=short` | OK | Packaging sincronizzato e readiness/packaging 8/8 su versione sorgente `2.235.4`. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx`; `GET http://127.0.0.1:8080/api/pronto`; runtime container | OK | Immagini locali ricostruite da zero con wheel `pct-studio-legale==2.235.4`; app, scheduler, OCR e Redis healthy; readiness locale `versione=2.235.4` e runtime container `2.235.4`. |
+| `python scripts\smoke_app_v2_all.py --subset contracts --read-only --base-url http://127.0.0.1:8080`; `python scripts\smoke_app_v2_all.py --suite post-deploy --read-only --base-url http://127.0.0.1:8080` | OK | Contracts offline PASS=2 FAIL=0 SKIP=1; post-deploy locale PASS=76 FAIL=0 SKIP=1 BLOCKED=6 su `2.235.4`. I blocchi restano credenziali smoke dedicate e ID documento sintetico assenti, non failure codice. |
 
 ### Hotfix Local Signer CI 2.235.3 - 2026-05-14
 

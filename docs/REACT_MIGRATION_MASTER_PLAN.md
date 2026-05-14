@@ -1,5 +1,28 @@
 # Migrazione progressiva Flask + React
 
+## Hotfix Email ordinaria e Panoramica - 2026-05-14 - 2.235.4
+
+La release 2.235.4 corregge la regressione introdotta dal fix anti-duplicati:
+la sincronizzazione email ordinaria torna a completare anche quando il server
+IMAP interrompe una lettura con `cannot read from timed out object`.
+Il client IMAP non espande piu' automaticamente la sync verso archivi o
+etichette equivalenti (`Tutti i messaggi`, `Archivio`, cartelle personali,
+spam/indesiderata) scoperti da `LIST`: restano sincronizzate le cartelle
+operative esplicite, INBOX, Inviati, Cestino e Bozze. Questo mantiene la
+deduplica dei triplicati senza rileggere copie archiviate della stessa email.
+
+Durante un timeout sul singolo `FETCH`, il runtime chiude in modo silenzioso il
+socket guasto, riapre la connessione, riseleziona la cartella e riprova quel
+messaggio. Il logout di una connessione gia' in timeout non trasforma piu' il
+risultato in errore grezzo visibile all'utente. La Panoramica React ha inoltre
+un timeout client sulla sync comunicazioni in background, cosi' lo stato
+`Sincronizzazione comunicazioni...` non resta appeso.
+
+Verifiche locali confermate: `tests/test_email_client.py` completo 50/50,
+`tests/test_dashboard_mailbox_sync.py` 5/5, Ruff mirato su email, `npm test`,
+typecheck, build Vite `2.235.4`, packaging/readiness 8/8, Docker locale
+no-cache healthy e smoke locale post-deploy PASS=76 FAIL=0 SKIP=1 BLOCKED=6.
+
 ## Hotfix Local Signer CI - 2026-05-14 - 2.235.3
 
 La release 2.235.3 corregge il rosso remoto `CI / Local Signer e PKCS#11`

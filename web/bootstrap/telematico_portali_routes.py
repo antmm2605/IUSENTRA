@@ -44,7 +44,7 @@ def register_telematico_portali_routes(
             oggi=date.today(),
             fascicolo=fascicolo_ctx,
             id_fasc=id_fasc,
-            official_portal_url="https://appweb.giustizia.it/snt",
+            official_portal_url="https://servizipst.giustizia.it/PST/authentication/it/pst_ar.wp",
         )
 
     @app.route("/pdp/ricerca", methods=["POST"])

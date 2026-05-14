@@ -32,6 +32,62 @@ def test_build_windows_exe_native_usa_builder_powershell_e_legge_l_exe(monkeypat
     assert exe_path.read_bytes() == contenuto
 
 
+def test_main_windows_default_usa_iexpress_storico_e_aggiorna_alias(monkeypatch, tmp_path):
+    versione = "1.6.32"
+    dist_dir = tmp_path / "dist"
+    ls_py = tmp_path / "local_signer.py"
+    reqs = tmp_path / "requirements_local_signer.txt"
+    install = tmp_path / "installa_local_signer_locale.ps1"
+    uffici = tmp_path / "uffici_ministero.json"
+    visible_signature = tmp_path / "visible_signature.py"
+    module_dir = tmp_path / "local_signer_mod"
+    module_dir.mkdir()
+    for name in [
+        "__init__.py",
+        "ai_cache.py",
+        "ai_handlers.py",
+        "pec_bridge.py",
+        "security.py",
+        "server_bootstrap.py",
+    ]:
+        (module_dir / name).write_text("# ok\n", encoding="utf-8")
+    ls_py.write_text(f'VERSION = "{versione}"\n', encoding="utf-8")
+    reqs.write_text("cryptography\n", encoding="utf-8")
+    install.write_text("Write-Host setup\n", encoding="utf-8")
+    uffici.write_text('{"uffici":[]}', encoding="utf-8")
+    visible_signature.write_text("def apply_visible_signature_stamp(data): return data\n", encoding="utf-8")
+
+    monkeypatch.setattr(build_dist.os, "name", "nt")
+    monkeypatch.setattr(build_dist.sys, "argv", ["build_dist.py"])
+    monkeypatch.setattr(build_dist, "DIST_DIR", dist_dir)
+    monkeypatch.setattr(build_dist, "LS_PY", ls_py)
+    monkeypatch.setattr(build_dist, "REQS_TXT", reqs)
+    monkeypatch.setattr(build_dist, "INSTALL_PS1", install)
+    monkeypatch.setattr(build_dist, "UFFICI_JSON", uffici)
+    monkeypatch.setattr(build_dist, "VISIBLE_SIGNATURE_PY", visible_signature)
+    monkeypatch.setattr(build_dist, "LOCAL_SIGNER_MOD_DIR", module_dir)
+    monkeypatch.setattr(
+        build_dist,
+        "build_windows_exe",
+        lambda version, base_url=build_dist.BASE_URL_DEFAULT: b"MZiexpress-storico-piccolo",
+    )
+    monkeypatch.setattr(
+        build_dist,
+        "build_windows_exe_native",
+        lambda version: (_ for _ in ()).throw(AssertionError("builder nativo non deve partire di default")),
+    )
+    monkeypatch.setattr(build_dist, "build_macos_command", lambda version, base_url: "# mac\n")
+    monkeypatch.setattr(build_dist, "build_linux_run", lambda version, base_url: "# linux\n")
+    monkeypatch.setattr(build_dist, "build_windows_ps1", lambda version: "# ps1\n")
+    monkeypatch.setattr(build_dist, "write_windows_support_files", lambda dist: [])
+    monkeypatch.setattr(build_dist, "build_release_note", lambda version: "note\n")
+
+    build_dist.main()
+
+    assert (dist_dir / f"SetupLocalSigner-{versione}.exe").read_bytes() == b"MZiexpress-storico-piccolo"
+    assert (dist_dir / "SetupLocalSigner.exe").read_bytes() == b"MZiexpress-storico-piccolo"
+
+
 def test_build_windows_ps1_include_versione_e_script_originale():
     versione = "1.5.12"
 
@@ -45,6 +101,10 @@ def test_build_windows_ps1_include_versione_e_script_originale():
     assert "/polisWeb/local-signer/download/local-signer-mod/" in contenuto
     assert "reportlab" in contenuto
     assert "Get-NetTCPConnection -LocalAddress 127.0.0.1 -LocalPort 27272" in contenuto
+    assert "Uninstall-ExistingLocalSigner" in contenuto
+    assert "Disinstallo la vecchia versione locale prima di installare quella nuova" in contenuto
+    assert "Unregister-ScheduledTask -TaskName $taskName" in contenuto
+    assert '$preserve = @("data", "installer.log", "local_signer.out.log", "local_signer.err.log")' in contenuto
 
 
 def test_write_windows_support_files_copia_i_file_necessari(monkeypatch, tmp_path):

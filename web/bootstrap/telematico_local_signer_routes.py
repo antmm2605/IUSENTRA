@@ -120,6 +120,21 @@ def register_telematico_local_signer_routes(
         except Exception as exc:
             return str(exc), 500
 
+    @app.route("/polisWeb/local-signer/download/requirements")
+    def polis_local_signer_requirements_download():
+        try:
+            requirements_path = Path(__file__).resolve().parents[2] / "tools" / "requirements_local_signer.txt"
+            if not requirements_path.exists():
+                return "File requisiti non trovato", 404
+            return send_file(
+                requirements_path,
+                as_attachment=True,
+                download_name="requirements_local_signer.txt",
+                mimetype="text/plain; charset=utf-8",
+            )
+        except Exception as exc:
+            return str(exc), 500
+
     @app.route("/polisWeb/local-signer/download/local-signer-mod/<path:filename>")
     def polis_local_signer_mod_download(filename: str):
         try:
@@ -166,6 +181,28 @@ def register_telematico_local_signer_routes(
         try:
             return _send_windows_exe()
         except Exception as exc:
+            return str(exc), 500
+
+    @app.route("/polisWeb/local-signer/setup/windows-ps1")
+    def polis_local_signer_setup_windows_ps1():
+        try:
+            ps1_path = local_signer_windows_offline_ps1_path()
+            if not ps1_path.exists():
+                ps1_path = local_signer_windows_exe_path().parent / local_signer_windows_ps1_name()
+            if ps1_path.exists():
+                return send_file(
+                    ps1_path,
+                    as_attachment=True,
+                    download_name=local_signer_windows_ps1_name(),
+                    mimetype="text/plain; charset=utf-8",
+                )
+            return Response(
+                render_local_signer_windows_ps1(get_base_url()),
+                mimetype="text/plain; charset=utf-8",
+                headers={"Content-Disposition": f'attachment; filename="{local_signer_windows_ps1_name()}"'},
+            )
+        except Exception as exc:
+            app.logger.exception("Errore generazione installer Windows PowerShell: %s", exc)
             return str(exc), 500
 
     @app.route("/polisWeb/local-signer/setup/windows")

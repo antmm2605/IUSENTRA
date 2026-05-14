@@ -1358,6 +1358,21 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `python -m pytest -q tests/test_polisweb.py::test_acquisizione_wizard_pst_preview_error_usa_fallback_assistito tests/test_sigp_integration.py --tb=short` | OK | 8/8 passati: wizard PST classico senza ritorno a `PST/SIGP` e contratto modulo storico SIGP aggiornato a `Percorso PST unico`. |
 | `npm --prefix frontend run build` | OK | Build Vite completata con manifest e asset React coerenti dopo l'ultima rigenerazione. |
 
+## Notifiche legali L53 e registry procedimenti 2.236.0 - 2026-05-14
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m ruff check legal_deposit pct/notifica.py pct/notifiche_legali.py web/blueprints/api_v1_react.py web/services/react_notifiche_legali_bridge.py tests/test_notifiche_legali.py tests/test_telematic_registry_fail_closed.py tests/legal_deposit/test_penal_deposit_rules.py` | OK | Ruff verde sui moduli modificati per notifiche PEC L53, registry procedimenti, policy deposito e test. |
+| `python -m compileall -q legal_deposit pct web/blueprints/api_v1_react.py web/services/react_notifiche_legali_bridge.py` | OK | Sintassi Python confermata dopo fail-closed canali/procedimenti, modulo legacy `pct/notifica.py` disattivato e workflow PST area web. |
+| `python -m pytest tests/test_notifiche_legali.py tests/test_telematic_registry_fail_closed.py tests/legal_deposit/test_penal_deposit_rules.py -q` | OK | 44/44 passati: oggetto L53, ricevuta completa, attestazioni, cliente non-notifica, PTT 10MB/50MB/50 file/100 caratteri, SICID/SIECIC/SIGP/UNEP/PAT/PTT/PDP e evidence pack. |
+| `python -m pytest tests/test_packaging_consistency.py tests/test_release_readiness.py -q` | OK | 8/8 passati dopo bump versione `2.236.0`. |
+| `npm --prefix frontend run typecheck`; `node frontend/scripts/check-react-contracts.mjs`; `npm --prefix frontend test`; `npm --prefix frontend run build`; `node scripts/react-migration/check-route-gate.mjs` | OK | TypeScript, contratti React, test frontend, build Vite e route gate verdi; `NotificheLegaliPage` ora seleziona piu' documenti e li riporta automaticamente nell'elenco. |
+| Browser reale su runtime Flask isolato `127.0.0.1:8091/notifiche-legali` | OK | Pratica con due documenti: multi-selezione visibile, entrambi i documenti selezionati appaiono nell'elenco allegati, nessun testo tecnico vietato. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx`; `GET http://127.0.0.1:8080/api/pronto` | OK | Docker locale no-cache healthy; readiness locale `versione=2.236.0`. |
+| `python scripts/smoke_app_v2_all.py --suite health --read-only --base-url http://127.0.0.1:8080 --timeout 20`; `python scripts/smoke_app_v2_all.py --suite notifications --read-only --base-url http://127.0.0.1:8080 --timeout 20` | OK | Smoke locale read-only: health PASS=2; notifications PASS=3 SKIP=1 per invio reale escluso. |
+| `ssh iusentra-hetzner "cd /opt/iusentra/repo && IUSENTRA_SKIP_BACKUP_CRON=1 BRANCH=Codex/legal-electronic-filing-kIxcV bash deploy/hetzner/deploy.sh"` | OK | Deploy Hetzner sul commit `da2e70816aafe3405a3162fe707fddda37e8d14c`; backup non eseguito e cron backup non aggiornato per richiesta utente `no backup`. |
+| `GET https://app.iusentra.it/api/pronto`; `python scripts/smoke_app_v2_all.py --suite health --read-only --base-url https://app.iusentra.it --timeout 20`; `python scripts/smoke_app_v2_all.py --suite notifications --read-only --base-url https://app.iusentra.it --timeout 20` | OK | Produzione healthy: `/api/pronto` 200 `versione=2.236.0`; smoke health PASS=2; smoke notifications PASS=3 SKIP=1. |
+
 ## Fase react 3 - App V2 feature flag per pagina 2.224.0 - 2026-05-13
 
 | Comando / verifica | Esito | Nota |

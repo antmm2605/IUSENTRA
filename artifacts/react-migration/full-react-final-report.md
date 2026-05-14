@@ -552,3 +552,22 @@ Docker locale no-cache healthy con readiness `2.235.1`; smoke contracts
 PASS=7 FAIL=0 e post-deploy PASS=76 FAIL=0 SKIP=1 BLOCKED=6. Browser reale
 desktop/mobile su `/app-v2/messaggi/nuovo`: nessun messaggio "Funzione non
 attiva", redirect login corretto per utente anonimo e zero errori console.
+
+## Aggiornamento notifiche legali e telematico 2.236.0
+
+Completato il perimetro operativo per notifiche PEC L. 53/1994, relazioni
+parametriche, prova deposito, registry procedimenti telematici e workflow PST
+area web. La UI `Notifiche Legali` permette ora di selezionare uno o piu'
+documenti dalla pratica e li riporta automaticamente nell'elenco allegati prima
+di `Controlla relata`, `Controlla prova deposito` e `Prepara comunicazione`.
+
+Il backend fallisce chiuso su canali o procedimenti ignoti, disattiva il modulo
+legacy `pct/notifica.py`, impone oggetto L53 esatto, relata separata e firmata,
+ricevuta completa, fonte/verifica PEC, attestazioni quando richieste, PDF/A
+bloccante/manual review e limiti PTT/SIGIT 10MB/50MB/50 file/100 caratteri.
+
+Verifiche: ruff, compileall, pytest mirati 44/44, packaging/readiness 8/8,
+typecheck, contratti React, test frontend, build Vite, route gate, browser reale
+su runtime isolato con due documenti, Docker locale no-cache, smoke locale e
+smoke produzione. Deploy Hetzner completato sul commit `da2e70816aafe3405a3162fe707fddda37e8d14c`
+con `IUSENTRA_SKIP_BACKUP_CRON=1`: nessun backup eseguito e cron backup non aggiornato.

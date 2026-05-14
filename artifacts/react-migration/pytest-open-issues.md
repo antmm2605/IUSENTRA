@@ -1,6 +1,6 @@
 # Pytest issue aperte e risoluzioni
 
-Aggiornato: 2026-05-14, fase react 11 CI/CD App V2 2.232.0.
+Aggiornato: 2026-05-14, fase react 12 documentazione App V2 2.233.0.
 
 ## Regola operativa
 
@@ -10,6 +10,7 @@ Questo file e' la coda di lavoro. Prima di rilanciare test gia' passati, control
 
 | Area | Test / comando | Stato | Problema rilevato | Risoluzione |
 | --- | --- | --- | --- | --- |
+| Fase react 12 / deploy Hetzner | Verifica pubblica immediata post-recreate | Nessuna issue aperta sul codice | Il primo giro pubblico subito dopo il deploy ha ricevuto 503 mentre il proxy si riagganciava ai container appena ricreati; i container erano gia' healthy sul server e `/api/pronto` interno all'app registrava 200 nei log. | Attesi 15 secondi, readiness pubblica tornata 200 `versione=2.233.0`; smoke produzione security/routing/workflows rilanciati e verdi. |
 | Fase react 12 / documentazione handover App V2 | Docs finali, validator documentali, generatori, OpenAPI, frontend build | Nessuna issue aperta sul codice | Il primo `generate_api_contracts.py --check` ha intercettato una modifica manuale a `docs/api-contracts.md`, che e' un documento parzialmente generato. Smoke autenticati, Storybook e VRT restano gap reali per assenza di secrets/runner, non failure. | Aggiornata la fonte `scripts/react-migration/generate_api_contracts.py`, rigenerati OpenAPI/mappa/API contracts con data fase 12 e rilanciati i gate: validator docs, generatori, OpenAPI/provider, npm, packaging e pytest mirati verdi in `pytest-confirmed-ok.md`. |
 | Fase react 11 / CI-CD App V2 | Workflow, gate bloccanti, security audit, smoke staging, Docker | Nessuna issue aperta sul codice | GitHub Actions reali vanno verificate dopo push; smoke autenticati restano bloccati da assenza di credenziali env/secrets dedicate. Il primo tentativo locale su `/api/pronto` e' partito mentre i container erano ancora `health: starting` ed e' stato ripetuto dopo health. | Aggiunti gate in CI, `smoke-staging.yml`, `docs/ci-cd-gates.md` e test fase 11. Localmente YAML, generatori, pytest, provider, npm, pip-audit, coverage-critical, e2e-smoke, Docker no-cache e smoke anonimi sono verdi e registrati in `pytest-confirmed-ok.md`. |
 | Fase react 10 / test completi App V2 | Piano, inventario, matrice, smoke orchestrator, coverage e CI suite | Nessuna issue aperta sul codice | La repository non contiene Vitest/Jest/RTL, Playwright/Cypress o VRT; gli smoke autenticati tenant A/B/readonly richiedono credenziali env non presenti nel repository. Il coverage mirato auth/storage/telematico ha prodotto ResourceWarning sqlite preesistenti ma exit 0. | Aggiunti documenti fase 10 e `scripts/smoke_app_v2_all.py`; i runner assenti sono dichiarati come gap, gli smoke senza env restano inventory/anonimi e non vengono marcati passati. Gate dedicati, npm, OpenAPI/provider, coverage-critical, release-readiness, quality-overlay ed e2e-smoke verdi e registrati in `pytest-confirmed-ok.md`. |

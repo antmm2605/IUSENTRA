@@ -28,6 +28,13 @@ app/scheduler/OCR/Redis healthy, `/api/pronto` 200, runtime e label immagine
 2.233.0; smoke security/routing/workflows locali verdi in modalita senza
 credenziali dedicate.
 
+Deploy fase 12 verificato su Hetzner CPX42 senza aggiornare il cron backup:
+server sul commit `a33794605f8fb2e7356981f4907d2e755d8da09a`, container
+operativi healthy/up, runtime `2.233.0`, `/api/pronto` pubblico 200 e smoke
+produzione security/routing/workflows completati. Un 503 iniziale nella finestra
+di riaggancio del proxy post-recreate e' stato registrato come osservazione
+chiusa e non dichiarato verde finche' la readiness pubblica non e' tornata 200.
+
 ## Stato fase react 11 - 2026-05-14 - CI/CD e release safety 2.232.0
 
 L'undicesima fase del piano `fasereact` trasforma il piano test della fase 10

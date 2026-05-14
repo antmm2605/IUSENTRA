@@ -27,6 +27,14 @@ in React senza `Funzione non attiva per questo studio`; PDP/PAT/PTT/SIGIT
 assistiti senza vecchia card `Portale ufficiale assistito` o `Local Connector
 non raggiungibile` e senza errori console.
 
+CI remota: il primo push ha intercettato correttamente la mappa sicurezza
+backend non rigenerata dopo l'aumento del manifest da 98 a 102 route. La mappa
+e' stata riallineata e il gate locale RBAC/tenant/App V2/OpenAPI e' tornato
+verde 75/75. Produzione Hetzner aggiornata a 2.235.2 sul commit del hotfix:
+container app, scheduler, OCR, Redis, audit-postgres, audit-worm e Ollama
+healthy; `/api/pronto` pubblico 200 e smoke post-deploy pubblico PASS=76
+FAIL=0 SKIP=1 BLOCKED=6.
+
 Aggiornamento 2026-05-14T10:05:00+02:00: fase react 13 `fasereact`
 2.234.0. Gli smoke operativi App V2 sono stati consolidati in
 `scripts/smoke_app_v2_all.py` con suite `health`, `auth`, `flags`, `rbac`,

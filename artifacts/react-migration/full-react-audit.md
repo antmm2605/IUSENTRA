@@ -2,6 +2,18 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-14T02:35:00+02:00: fase react 10 `fasereact`
+2.231.0. L'audit test App V2 ora espone piano, inventario e matrice per route,
+ruoli, tenant, feature flag, backend, frontend, RBAC, contratti e smoke. Le
+righe `tested` sono riservate alle route P0/P1 gia' `react_operational_full`;
+`partial`, `pending` e `blocked` restano stati non conclusivi.
+
+Audit anti-mascheramento: `scripts/smoke_app_v2_all.py` non stampa segreti e
+non trasforma credenziali mancanti in esito verde. Il piano dichiara
+esplicitamente che non esistono runner component/VRT frontend nel repo e che la
+copertura UI resta quella governata dai gate statici e browser smoke
+documentati.
+
 Aggiornamento 2026-05-14T00:15:00+02:00: fase react 9 `fasereact`
 2.230.0. L'audit UI regression App V2 e' ora esplicito e verificabile:
 Storybook non viene introdotto perche' la repository non ha infrastruttura

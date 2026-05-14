@@ -27,6 +27,12 @@ STATUS_LABELS = {
 
 PHASE7_REQUIRED_STATES = "loading, empty, error, forbidden, not-found, flag-off, readonly/RBAC"
 PHASE9_REQUIRED_STATES = "default, loading, empty, error, forbidden, flag-off, readonly, desktop/tablet/mobile"
+PHASE10_TEST_COMMANDS = (
+    r"python scripts\react-migration\generate_app_v2_test_docs.py --check",
+    r"python scripts\smoke_app_v2_all.py --subset inventory",
+    r"python scripts\smoke_app_v2_all.py --subset contracts",
+    r"python -m pytest -q tests/test_app_v2_test_plan_phase10.py --tb=short",
+)
 
 FAMILY_API = {
     "panoramica": "/api/v1/ui/dashboard",
@@ -581,6 +587,59 @@ def _phase9_rows(routes: list[dict[str, object]]) -> list[list[str]]:
     return rows
 
 
+def _phase10_test_state(route: dict[str, object]) -> str:
+    status = str(route.get("status") or "")
+    if status == "react_operational_full" and _priority(route) in {"P0", "P1"}:
+        return "tested"
+    if status in {"react_operational_full", "react_operational_partial"}:
+        return "partial"
+    if str(route.get("family") or "") == "telematico":
+        return "blocked"
+    return "pending"
+
+
+def _phase10_cell(route: dict[str, object], kind: str) -> str:
+    state = _phase10_test_state(route)
+    if state == "tested":
+        values = {
+            "backend": "yes: pytest/API + security comuni",
+            "frontend": "yes: npm test, typecheck, build e UI coverage",
+            "rbac": "yes: permessi e readonly governati",
+            "tenant": "yes: tenant isolation comune",
+            "flag": "yes: flag off/on e no-fetch flag-off",
+            "contract": "yes: OpenAPI/provider map",
+            "smoke": "yes: smoke inventory; browser/HTTP se credenziali presenti",
+        }
+        return values[kind]
+    if state == "partial":
+        return "partial: gate comuni presenti, casi pagina da estendere"
+    if state == "blocked":
+        return "blocked: workflow o credenziali esterne non parificati"
+    return "pending: test pagina richiesto prima della promozione"
+
+
+def _phase10_rows(routes: list[dict[str, object]]) -> list[list[str]]:
+    rows: list[list[str]] = []
+    for route in sorted(routes, key=lambda item: (_priority(item), str(item.get("family") or ""), str(item.get("route") or ""))):
+        family = str(route.get("family") or "")
+        rows.append(
+            [
+                _family_label(family),
+                str(route.get("route") or ""),
+                _priority(route),
+                _phase10_cell(route, "backend"),
+                _phase10_cell(route, "frontend"),
+                _phase10_cell(route, "rbac"),
+                _phase10_cell(route, "tenant"),
+                _phase10_cell(route, "flag"),
+                _phase10_cell(route, "contract"),
+                _phase10_cell(route, "smoke"),
+                _phase10_test_state(route),
+            ]
+        )
+    return rows
+
+
 def _md(value: object) -> str:
     text = str(value if value is not None else "").strip()
     text = text.replace("\n", " ").replace("|", "\\|")
@@ -666,9 +725,9 @@ def _registry_doc(
     lines = [
         "# Registro pagine App V2 e migrazione React",
         "",
-        "Aggiornato: 2026-05-13, fase 9 `fasereact`.",
+        "Aggiornato: 2026-05-14, fase 10 `fasereact`.",
         "",
-        "Questo registro e' generato da `scripts/react-migration/generate_app_v2_page_registry.py` a partire da manifest React, route App V2, feature flag, mapping routing sicuro e discovery Flask. La fase 9 aggiunge copertura UI/regressione pagina per pagina, senza dichiarare Storybook o VRT attivi quando nel repo non sono presenti.",
+        "Questo registro e' generato da `scripts/react-migration/generate_app_v2_page_registry.py` a partire da manifest React, route App V2, feature flag, mapping routing sicuro e discovery Flask. La fase 10 collega il registro alla matrice test end-to-end, mantenendo la copertura UI fase 9 senza dichiarare Storybook o VRT attivi quando nel repo non sono presenti.",
         "",
         "## Sintesi discovery",
         "",
@@ -714,6 +773,15 @@ def _registry_doc(
         _table(
             ["Area", "Pagina", "Priorita", "Component", "Storybook story", "Component test", "VRT", "Stati coperti", "Responsive", "A11y", "Stato finale"],
             _phase9_rows(routes),
+        ),
+        "",
+        "## Matrice test fase 10",
+        "",
+        "`docs/test-plan-app-v2.md`, `docs/test-inventory.md` e `docs/test-matrix-app-v2.md` sono generati da `scripts/react-migration/generate_app_v2_test_docs.py`. Lo smoke unico e' `scripts/smoke_app_v2_all.py`; senza credenziali resta inventario o controlli anonimi e non dichiara passati profili autenticati mancanti.",
+        "",
+        _table(
+            ["Area", "Pagina", "Priorita", "Backend", "Frontend", "RBAC", "Tenant", "Feature flag", "Contract", "E2E/Smoke", "Stato test"],
+            _phase10_rows(routes),
         ),
         "",
         "## Feature flag censiti",
@@ -794,9 +862,9 @@ def _frontend_doc(
     lines = [
         "# Pagine frontend App V2",
         "",
-        "Aggiornato: 2026-05-13, fase 9 `fasereact`.",
+        "Aggiornato: 2026-05-14, fase 10 `fasereact`.",
         "",
-        "Questo documento e' il riepilogo operativo del registro completo in `docs/app-v2-page-registry.md`. La fase 9 aggiunge copertura UI/regressione sostenibile: Storybook non viene introdotto perche' assente dal repo, mentre fixture sicure, gate statici e test di copertura impediscono di marcare pagine non verificate come `ui_tested`.",
+        "Questo documento e' il riepilogo operativo del registro completo in `docs/app-v2-page-registry.md`. La fase 10 aggiunge piano, inventario, matrice test e smoke orchestrato; la copertura UI fase 9 resta sostenibile con fixture sicure, gate statici e nessuna dichiarazione falsa di Storybook o VRT.",
         "",
         "## Shell App V2",
         "",
@@ -825,6 +893,15 @@ def _frontend_doc(
         _table(
             ["Area", "Pagina", "Priorita", "Component", "Storybook story", "Component test", "VRT", "Stati coperti", "Responsive", "A11y", "Stato finale"],
             _phase9_rows(routes),
+        ),
+        "",
+        "## Matrice test fase 10",
+        "",
+        "Piano, inventario e matrice sono in `docs/test-plan-app-v2.md`, `docs/test-inventory.md` e `docs/test-matrix-app-v2.md`. Il comando `python scripts\\smoke_app_v2_all.py --subset inventory` resta eseguibile senza credenziali; i profili autenticati non configurati non sono marcati verdi.",
+        "",
+        _table(
+            ["Area", "Pagina", "Priorita", "Backend", "Frontend", "RBAC", "Tenant", "Feature flag", "Contract", "E2E/Smoke", "Stato test"],
+            _phase10_rows(routes),
         ),
         "",
         "## Backlog per priorita",
@@ -871,10 +948,14 @@ def _frontend_doc(
             "python scripts\\smoke_app_v2_routing.py --list",
             "python scripts\\smoke_app_v2_workflows.py --list",
             "python scripts\\validate_ui_coverage.py",
+            "python scripts\\react-migration\\generate_app_v2_test_docs.py --check",
+            "python scripts\\smoke_app_v2_all.py --subset inventory",
+            "python scripts\\smoke_app_v2_all.py --subset contracts",
             "python scripts\\react-migration\\generate_app_v2_area_requirements.py --check",
             "python -m pytest -q tests/test_app_v2_frontend_phase7.py --tb=short",
             "python -m pytest -q tests/test_app_v2_area_requirements_phase8.py --tb=short",
             "python -m pytest -q tests/test_ui_coverage_phase9.py --tb=short",
+            "python -m pytest -q tests/test_app_v2_test_plan_phase10.py --tb=short",
             "python -m pytest -q tests/test_app_v2_page_registry.py --tb=short",
             "python -m pytest -q tests/test_feature_flags.py tests/test_app_v2_feature_flags.py tests/test_app_v2_routing.py --tb=short",
             "```",
@@ -895,6 +976,10 @@ def _frontend_doc(
             "## Copertura UI fase 9",
             "",
             "`docs/ui-regression-and-storybook.md` documenta stato Storybook, test UI, fixture sicure, VRT, accessibilita e gap residui. Storybook e VRT non sono dichiarati attivi: il gate minimo e' `python scripts\\validate_ui_coverage.py`, integrato in `npm --prefix frontend run test` e nella CI App V2.",
+            "",
+            "## Piano test fase 10",
+            "",
+            "La fase 10 rende espliciti inventario, matrice e piano test con `docs/test-plan-app-v2.md`, `docs/test-inventory.md`, `docs/test-matrix-app-v2.md` e `scripts/smoke_app_v2_all.py`. Le righe `tested` indicano gate reali gia' presenti; `partial`, `pending` e `blocked` restano vincoli aperti.",
             "",
             "## Stato fase 7",
             "",

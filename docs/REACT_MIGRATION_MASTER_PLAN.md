@@ -1,5 +1,31 @@
 # Migrazione progressiva Flask + React
 
+## Stato fase react 10 - 2026-05-14 - Test completi App V2 2.231.0
+
+La decima fase del piano `fasereact` consolida la strategia test App V2 senza
+gonfiare segnali non esistenti. Sono stati aggiunti il piano test
+`docs/test-plan-app-v2.md`, l'inventario `docs/test-inventory.md` e la matrice
+`docs/test-matrix-app-v2.md`, generati da
+`scripts/react-migration/generate_app_v2_test_docs.py`. La matrice incrocia
+route, ruoli, tenant, feature flag, backend, frontend, RBAC, contract e smoke,
+marcando `tested`, `partial`, `pending` o `blocked` senza promuovere pagine
+legacy/parziali.
+
+Lo smoke unificato `scripts/smoke_app_v2_all.py` orchestra inventory, security,
+pagine, routing, workflow e contratti. Senza credenziali espone inventari e
+controlli anonimi; con `--require-credentials` fallisce se mancano gli env, cosi'
+non vengono dichiarati verdi profili admin/tenant/readonly non eseguiti. I
+registri App V2 e il registro requisiti area collegano ora la fase 10 ai gate
+fasi 7-9.
+
+Verifiche locali fase 10: py_compile, generatori `--check`, smoke inventory,
+smoke contracts/OpenAPI/provider verification, pytest dedicato fase 10,
+pytest fasi 7/8/9/registry 15/15, backend security/tenant/flag/routing/OpenAPI
+75/75, npm test/test:app-v2/typecheck/build, suite CI `coverage-critical`,
+suite `release-readiness`, `quality-overlay`, `e2e-smoke` e coverage mirata
+auth/storage/telematico al 78%. Il pytest monolitico resta non usato come unico
+segnale per evitare timeout opachi.
+
 ## Stato fase react 9 - 2026-05-13 - UI regression App V2 2.230.0
 
 La nona fase del piano `fasereact` rende verificabile la qualita UI App V2

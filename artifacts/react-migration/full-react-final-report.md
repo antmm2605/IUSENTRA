@@ -2,6 +2,26 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-14T02:35:00+02:00: fase react 10 `fasereact`
+2.231.0. Aggiunti piano test, inventario e matrice App V2:
+`docs/test-plan-app-v2.md`, `docs/test-inventory.md` e
+`docs/test-matrix-app-v2.md`, generati in modo deterministico da
+`scripts/react-migration/generate_app_v2_test_docs.py`. Il nuovo orchestratore
+`scripts/smoke_app_v2_all.py` coordina inventory, security, pagine, routing,
+workflow e contratti senza segreti hardcoded.
+
+La fase non dichiara copertura frontend o VRT che il repo non possiede:
+Vitest/Jest/RTL, Playwright/Cypress e Storybook restano gap documentati. Gli
+smoke autenticati richiedono env espliciti e, in loro assenza, restano
+inventario o controlli anonimi.
+
+Verifica locale: py_compile, generatori `--check`, smoke inventory/contracts,
+pytest fase 10 3/3, gate fasi 7/8/9/registry 15/15, backend security/tenant/
+flag/routing/OpenAPI 75/75, npm test/typecheck/build, suite CI
+coverage-critical, release-readiness, quality-overlay, e2e-smoke, coverage
+mirata auth/storage/telematico al 78%, Docker no-cache 2.231.0 healthy e smoke
+App V2 locale security/pages/routing/workflows.
+
 Aggiornamento 2026-05-14T00:15:00+02:00: fase react 9 `fasereact`
 2.230.0. Aggiunta la disciplina UI regression App V2 senza mascherare
 Storybook o VRT come presenti: `docs/ui-regression-and-storybook.md` documenta

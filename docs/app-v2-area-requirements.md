@@ -1,6 +1,6 @@
 # Requisiti specifici App V2 per area
 
-Aggiornato: 2026-05-13, fase 8 `fasereact` con collegamento fase 9.
+Aggiornato: 2026-05-13, fase 8 `fasereact` con collegamento fase 9 e fase 10.
 
 Questo registro e' generato da `scripts/react-migration/generate_app_v2_area_requirements.py` a partire dal manifest React e dai gate di sicurezza/API gia' censiti. Serve a impedire promozioni generiche: ogni area deve dichiarare workflow, RBAC, tenant isolation, PII, test presenti e test mancanti prima di passare alle fasi visuali successive.
 
@@ -285,6 +285,18 @@ Gate fase 9:
 python scripts\validate_ui_coverage.py
 python -m pytest -q tests/test_ui_coverage_phase9.py --tb=short
 npm --prefix frontend run test
+```
+
+## Collegamento test plan fase 10
+
+La fase 10 collega ogni area al piano test App V2 senza promuovere automaticamente pagine incomplete. La matrice di dettaglio e' in `docs/test-matrix-app-v2.md`, l'inventario in `docs/test-inventory.md` e il piano operativo in `docs/test-plan-app-v2.md`.
+
+Gate fase 10:
+
+```powershell
+python scripts\react-migration\generate_app_v2_test_docs.py --check
+python scripts\smoke_app_v2_all.py --subset inventory
+python -m pytest -q tests/test_app_v2_test_plan_phase10.py --tb=short
 ```
 
 ## Smoke workflow fase 8

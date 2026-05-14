@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.231.0 - 2026-05-14
+
+- Completata la fase 10 `fasereact`: aggiunti piano test App V2, inventario test e matrice pagina/ruolo/tenant/flag in `docs/test-plan-app-v2.md`, `docs/test-inventory.md` e `docs/test-matrix-app-v2.md`.
+- Aggiunto `scripts/react-migration/generate_app_v2_test_docs.py` con gate deterministico `--check` e collegamento ai registri App V2/fase 8-9.
+- Aggiunto `scripts/smoke_app_v2_all.py` come orchestratore smoke per inventory, security, pagine, routing, workflow e contratti, senza segreti hardcoded e con profili autenticati solo via env.
+- Aggiunto `tests/test_app_v2_test_plan_phase10.py` per bloccare drift documentale, false dichiarazioni di coverage frontend/E2E e regressioni dello smoke inventory.
+- Eseguiti gate mirati backend/frontend/contract/smoke/coverage: coverage-critical CI, e2e-smoke, npm test/typecheck/build, OpenAPI/provider verification e coverage baseline auth/storage/telematico al 78%.
+
 ## 2.230.0 - 2026-05-13
 
 - Completata la fase 9 `fasereact`: aggiunta governance UI regression App V2 con `docs/ui-regression-and-storybook.md`, fixture sicure isolate e stato pagina per pagina nei registri generati.

@@ -1,12 +1,28 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-14, fase react 9 UI regression App V2 2.230.0.
+Aggiornato: 2026-05-14, fase react 10 test completi App V2 2.231.0.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Fase react 10 - test completi App V2 2.231.0
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile scripts\react-migration\generate_app_v2_test_docs.py scripts\smoke_app_v2_all.py tests\test_app_v2_test_plan_phase10.py` | OK | Sintassi confermata per generatore piano/inventario/matrice, smoke orchestrator e test dedicato fase 10. |
+| `python scripts\react-migration\generate_app_v2_test_docs.py --check`; `python scripts\react-migration\generate_app_v2_page_registry.py --check`; `python scripts\react-migration\generate_app_v2_area_requirements.py --check` | OK | Documenti fase 10, registry App V2 e requisiti area deterministici. |
+| `python scripts\smoke_app_v2_all.py --subset inventory`; `python scripts\smoke_app_v2_all.py --subset contracts` | OK | Inventory senza credenziali completato; OpenAPI valido e provider verification verde con 182 auth-error, 27 success e 1 backend-security. |
+| `python -m pytest -q tests\test_app_v2_test_plan_phase10.py --tb=short` | OK | 3/3 passati: doc deterministici, P0/P1 full marcati `tested`, smoke inventory senza segreti. |
+| `python -m pytest -q tests\test_ui_coverage_phase9.py tests\test_app_v2_area_requirements_phase8.py tests\test_app_v2_frontend_phase7.py tests\test_app_v2_page_registry.py --tb=short` | OK | 15/15 passati: guard fasi 7/8/9 e registry preservati dopo collegamento fase 10. |
+| `npm --prefix frontend run test`; `npm --prefix frontend run test:app-v2`; `npm --prefix frontend run typecheck`; `npm --prefix frontend run build` | OK | Contratti React, gate App V2, UI coverage, TypeScript e build Vite 2.231.0 verdi; build completata in 5.98s con asset principali invariati. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest -q tests\test_packaging_consistency.py tests\test_release_readiness.py tests\test_app_v2_test_plan_phase10.py --tb=short` | OK | Packaging sincronizzato, readiness/packaging e test fase 10 verdi dopo bump 2.231.0. |
+| `python -m pytest -q tests\test_auth.py tests\test_backend_security_phase5.py tests\test_tenant_isolation_runtime.py tests\test_app_v2_feature_flags.py tests\test_app_v2_routing.py tests\test_openapi_contracts_phase6.py --tb=short` | OK | 75/75 passati sul perimetro auth, security, tenant isolation, feature flag, routing e contratti OpenAPI. |
+| `python scripts\run_pytest_phases.py --suite release-readiness`; `python scripts\run_pytest_phases.py --suite quality-overlay`; `python scripts\run_pytest_phases.py --suite coverage-critical --timeout-minutes 10`; `python scripts\run_pytest_phases.py --suite e2e-smoke --timeout-minutes 10` | OK | Suite CI governate verdi: release readiness 1/1, quality overlay 5/5, coverage-critical 313 item, e2e-smoke 1/1. |
+| `python -m pytest -q tests\test_auth.py tests\test_storage_strategy.py tests\test_telematico_repository.py --cov=pct.auth --cov=pct.storage --cov=pct.telematico_repository --cov-report=term-missing --tb=short` | OK | Baseline coverage mirata 78% totale; ResourceWarning sqlite gia' osservati come warning, non failure. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx`; `GET http://127.0.0.1:8080/api/pronto`; runtime/label Docker; smoke App V2 local | OK | Build locale no-cache 2.231.0 completata; app, scheduler, OCR e Redis healthy; readiness locale `versione=2.231.0`, runtime container `2.231.0`, label immagine `2.231.0`; smoke security/pages/routing/workflows completati, con profili autenticati dichiarati mancanti per assenza env. |
 
 ### Fase react 9 - UI regression App V2 2.230.0
 

@@ -1,6 +1,6 @@
 # Release rollout App V2
 
-Aggiornato: 2026-05-13.
+Aggiornato: 2026-05-14.
 
 ## Strategia
 
@@ -197,6 +197,36 @@ Checklist visuale pre-release:
   devono restare documentati per desktop/tablet/mobile;
 - se compare una regressione UI, spegnere il flag pagina, verificare lo stato
   flag-off e aprire correzione prima di aggiornare eventuali baseline future.
+
+## Piano test fase 10
+
+Prima del deploy App V2 eseguire o consultare il piano test generato:
+
+```bash
+python scripts/react-migration/generate_app_v2_test_docs.py --check
+python scripts/smoke_app_v2_all.py --subset inventory
+python scripts/smoke_app_v2_all.py --subset contracts
+python -m pytest -q tests/test_app_v2_test_plan_phase10.py --tb=short
+```
+
+Per smoke completi autenticati usare solo credenziali da ambiente:
+
+```bash
+IUSENTRA_BASE_URL=https://app.iusentra.it \
+IUSENTRA_ADMIN_USER="$IUSENTRA_ADMIN_USER" \
+IUSENTRA_ADMIN_PASSWORD="$IUSENTRA_ADMIN_PASSWORD" \
+IUSENTRA_TENANT_A_USER="$IUSENTRA_TENANT_A_USER" \
+IUSENTRA_TENANT_A_PASSWORD="$IUSENTRA_TENANT_A_PASSWORD" \
+IUSENTRA_TENANT_B_USER="$IUSENTRA_TENANT_B_USER" \
+IUSENTRA_TENANT_B_PASSWORD="$IUSENTRA_TENANT_B_PASSWORD" \
+IUSENTRA_READONLY_USER="$IUSENTRA_READONLY_USER" \
+IUSENTRA_READONLY_PASSWORD="$IUSENTRA_READONLY_PASSWORD" \
+python scripts/smoke_app_v2_all.py --require-credentials
+```
+
+`docs/test-plan-app-v2.md`, `docs/test-inventory.md` e
+`docs/test-matrix-app-v2.md` sono la fonte operativa per distinguere test
+eseguiti, gap dichiarati e smoke bloccati da credenziali mancanti.
 
 ## Redirect legacy -> App V2 fase 4
 

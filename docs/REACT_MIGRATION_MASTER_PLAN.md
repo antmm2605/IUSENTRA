@@ -22,6 +22,10 @@ Verifiche locali confermate: `tests/test_email_client.py` completo 50/50,
 `tests/test_dashboard_mailbox_sync.py` 5/5, Ruff mirato su email, `npm test`,
 typecheck, build Vite `2.235.4`, packaging/readiness 8/8, Docker locale
 no-cache healthy e smoke locale post-deploy PASS=76 FAIL=0 SKIP=1 BLOCKED=6.
+Deploy Hetzner eseguito senza backup (`IUSENTRA_SKIP_BACKUP_CRON=1`, nessun
+`backup.sh`): container healthy, `/api/pronto` pubblico `ok=true` su `2.235.4`,
+smoke produzione read-only PASS=76 FAIL=0 SKIP=1 BLOCKED=6 e nessun
+`email/ordinaria.json` nel repository del server.
 
 ## Hotfix Local Signer CI - 2026-05-14 - 2.235.3
 

@@ -569,5 +569,6 @@ bloccante/manual review e limiti PTT/SIGIT 10MB/50MB/50 file/100 caratteri.
 Verifiche: ruff, compileall, pytest mirati 44/44, packaging/readiness 8/8,
 typecheck, contratti React, test frontend, build Vite, route gate, browser reale
 su runtime isolato con due documenti, Docker locale no-cache, smoke locale e
-smoke produzione. Deploy Hetzner completato sul commit `da2e70816aafe3405a3162fe707fddda37e8d14c`
-con `IUSENTRA_SKIP_BACKUP_CRON=1`: nessun backup eseguito e cron backup non aggiornato.
+smoke produzione. Deploy Hetzner completato sul commit corrente del branch
+`Codex/legal-electronic-filing-kIxcV` con `IUSENTRA_SKIP_BACKUP_CRON=1`:
+nessun backup eseguito e cron backup non aggiornato.

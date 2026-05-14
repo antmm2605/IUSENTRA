@@ -2,6 +2,23 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-14T19:05:00+02:00: hotfix 2.235.3. Il rosso remoto
+`CI / Local Signer e PKCS#11` e' stato riprodotto localmente e corretto:
+PDP/PAT/PTT restano WSDL diretti di default nel Local Signer, mentre la
+modalita browser-assistita entra solo con flag espliciti di forzatura o
+disabilitazione. Rigenerato Local Signer `1.6.31` e i pacchetti `tools/dist`,
+incluso `SetupLocalSigner.exe`, per allineare anche il download pubblico.
+
+Verifica locale 2.235.3: lo shard CI esatto `signer` 4/4 e' verde 39/39 e
+tutti gli shard Local Signer locali sono verdi: 40/40, 40/40, 39/39 e 39/39.
+Dist allineato alla sorgente, ruff, packaging/readiness 8/8, `npm test`,
+typecheck e build Vite verdi. Docker locale no-cache ricostruito con wheel
+`pct-studio-legale==2.235.3`, servizi app/scheduler/OCR/Redis healthy,
+readiness locale 200 `versione=2.235.3`, smoke contracts PASS=2 FAIL=0 SKIP=1
+e post-deploy locale PASS=76 FAIL=0 SKIP=1 BLOCKED=6. La regola PST resta
+vincolante: un PIN per visualizzare e un PIN per scaricare, salvo scadenza
+reale della sessione lato portale o token.
+
 Aggiornamento 2026-05-14T18:20:00+02:00: hotfix 2.235.2. Le route
 assistite non-PST `/portali/pdp/acquisizione`, `/portali/pat/acquisizione`,
 `/portali/ptt/acquisizione` e `/portali/sigit/acquisizione` sono promosse come

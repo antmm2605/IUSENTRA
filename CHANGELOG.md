@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.235.3 - 2026-05-14
+
+- Corretto il rosso CI `Local Signer e PKCS#11`: PDP, PAT e PTT mantengono il canale WSDL diretto attivo di default e passano alla consultazione browser-assistita solo con flag espliciti di forzatura/disabilitazione.
+- Rigenerato IUSENTRA Local Signer `1.6.31` e i pacchetti `tools/dist`, incluso `SetupLocalSigner.exe`, per distribuire il comportamento corretto anche dai download pubblici.
+- Confermata la regola PST/PIN gia' fissata: una sessione per visualizzare e una per scaricare, senza reintrodurre prompt multipli salvo scadenza reale lato portale/token.
+
 ## 2.235.2 - 2026-05-14
 
 - Corretto il gate CI `contracts`: ora esegue solo controlli OpenAPI/provider offline e non tenta piu' chiamate HTTP a `127.0.0.1:8080` quando il server non e' avviato.

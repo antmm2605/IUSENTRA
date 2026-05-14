@@ -1,12 +1,25 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-14, hotfix CI/portali/email 2.235.2.
+Aggiornato: 2026-05-14, hotfix Local Signer CI 2.235.3.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Hotfix Local Signer CI 2.235.3 - 2026-05-14
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest -q tests\test_local_signer.py::test_portale_wsdl_diretto_abilitato_default_attivo tests\test_local_signer.py::test_local_signer_dist_allineato_a_sorgente_e_installer_versionati --tb=short` | OK | 2/2 passati: WSDL diretto PDP/PAT/PTT attivo di default e `tools/dist/local_signer.py` allineato alla sorgente. |
+| `python scripts\run_pytest_phases.py --suite signer --suite-shard 4 --suite-total-shards 4 --suite-subdivide-items --timeout-minutes 5` | OK | Shard CI esatto che era rosso su GitHub: 39/39 passati dopo Local Signer `1.6.31`. |
+| `python scripts\run_pytest_phases.py --suite signer --suite-shard 1..4 --suite-total-shards 4 --suite-subdivide-items --timeout-minutes 5` | OK | Tutti gli shard Local Signer locali passati: shard 1 40/40, shard 2 40/40, shard 3 39/39, shard 4 39/39. |
+| `python -m ruff check tools\local_signer.py tests\test_local_signer.py`; `python -m compileall -q tools\local_signer.py pct\__init__.py` | OK | Sintassi e lint mirati verdi per il fix Local Signer e il bump versione applicativa. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest -q tests\test_packaging_consistency.py tests\test_release_readiness.py --tb=short` | OK | Packaging sincronizzato e readiness/packaging 8/8 su versione sorgente `2.235.3`. |
+| `npm --prefix frontend run test`; `npm --prefix frontend run typecheck`; `npm --prefix frontend run build` | OK | Contratti React, App V2 frontend, UI coverage, TypeScript e build Vite `iusentra-react-token-ui@2.235.3` verdi; build 7.14s, main JS `index-BANtr1vZ.js` 444.72 kB / 131.64 kB gzip e CSS `index-Bafxecf8.css` 121.77 kB / 22.33 kB gzip. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx`; `docker compose ps`; `GET http://127.0.0.1:8080/api/pronto`; runtime container | OK | Immagini locali ricostruite da zero con wheel `pct-studio-legale==2.235.3`; app, scheduler, OCR e Redis healthy; readiness locale `versione=2.235.3` e runtime container `2.235.3`. |
+| `python scripts\smoke_app_v2_all.py --subset contracts --read-only --base-url http://127.0.0.1:8080`; `python scripts\smoke_app_v2_all.py --suite post-deploy --read-only --base-url http://127.0.0.1:8080` | OK | Contracts offline PASS=2 FAIL=0 SKIP=1; post-deploy locale PASS=76 FAIL=0 SKIP=1 BLOCKED=6 su `2.235.3`. I blocchi restano credenziali smoke dedicate e ID documento sintetico assenti. |
 
 ### Hotfix CI/portali/email 2.235.2 - 2026-05-14
 

@@ -1,5 +1,25 @@
 # Migrazione progressiva Flask + React
 
+## Hotfix Local Signer CI - 2026-05-14 - 2.235.3
+
+La release 2.235.3 corregge il rosso remoto `CI / Local Signer e PKCS#11`
+emerso dopo il deploy 2.235.2: il WSDL diretto PDP/PAT/PTT torna attivo di
+default, come previsto dal guardrail storico.
+Il browser assistito per PDP/PAT/PTT entra solo quando lo studio o il runtime
+impostano flag espliciti di forzatura/disabilitazione (`HACS_SIGNER_*` o
+`PCT_*`), evitando il ritorno silenzioso alla modalita assistita come default.
+
+E' stato rigenerato IUSENTRA Local Signer `1.6.31`, inclusi sorgente
+distribuito e pacchetti `tools/dist`, cosi' il download pubblico serve lo
+stesso comportamento verificato nei test. La regola PST/PIN resta invariata e
+vincolante: un PIN per visualizzare il fascicolo e un PIN per scaricarlo, salvo
+scadenza reale della sessione lato portale o token.
+
+Verifiche locali gia' confermate prima del push: shard CI esatto signer 4/4
+verde 39/39; `test_portale_wsdl_diretto_abilitato_default_attivo`,
+`test_local_signer_dist_allineato_a_sorgente_e_installer_versionati`, ruff,
+packaging/readiness, `npm test`, typecheck e build Vite `2.235.3` verdi.
+
 ## Hotfix CI, acquisizioni telematiche e deduplica email - 2026-05-14 - 2.235.2
 
 La release 2.235.2 chiude tre regressioni segnalate dall'utente:

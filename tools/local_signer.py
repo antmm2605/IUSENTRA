@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IUSENTRA Local Signer - v1.6.30
+IUSENTRA Local Signer - v1.6.31
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -111,7 +111,7 @@ from local_signer_mod.server_bootstrap import print_startup_banner  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.30"
+VERSION = "1.6.31"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -2754,8 +2754,6 @@ def _portale_wsdl_diretto_abilitato(portale: str) -> bool:
     portale_norm = str(portale or "").strip().lower()
     if portale_norm not in {"pdp", "pat", "ptt"}:
         return True
-    if not _env_flag_enabled(f"HACS_SIGNER_PORTAL_DIRECT_VERIFIED_{portale_norm.upper()}"):
-        return False
     if _env_flag_enabled("HACS_SIGNER_FORCE_BROWSER_ASSIST") or _env_flag_enabled("PCT_FORCE_BROWSER_ASSIST"):
         return False
     return not (
@@ -2795,7 +2793,7 @@ def _portale_browser_assist_payload(portale: str, phase: str) -> dict[str, Any]:
         "manual_phase": phase_norm,
         "manual_title": "Consultazione via browser ufficiale",
         "manual_reason": (
-            f"Local Signer {VERSION} usa di default la modalita browser-assistita per {portale_norm.upper()}. "
+            f"Local Signer {VERSION} sta usando la modalita browser-assistita per {portale_norm.upper()}. "
             "Il portale ufficiale resta la fonte per consultazione e documenti."
         ),
         "portale_url": _portale_browser_url(portale),

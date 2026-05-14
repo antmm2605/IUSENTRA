@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IUSENTRA Local Signer - v1.6.34
+IUSENTRA Local Signer - v1.6.35
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -111,7 +111,7 @@ from local_signer_mod.server_bootstrap import print_startup_banner  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.34"
+VERSION = "1.6.35"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -4952,6 +4952,30 @@ def _documento_da_profilo_sigp(profilo: dict, id_doc: str) -> dict:
     }
 
 
+def _sigp_documenti_minimi_da_ids(ids: list[str]) -> list[dict]:
+    documenti: list[dict] = []
+    for id_doc_raw in ids or []:
+        id_doc = str(id_doc_raw or "").strip()
+        if not id_doc:
+            continue
+        documento = _documento_da_profilo_sigp(
+            {
+                "id_documento": id_doc,
+                "id_cat": id_doc,
+                "id_repeatto": id_doc,
+                "tipo": "Atto",
+            },
+            id_doc,
+        )
+        documento["fonte_catalogo"] = "sigp_ricerca_atti_batch"
+        documenti.append(documento)
+    return documenti
+
+
+def _sigp_documenti_minimi_da_ricerca_atti_xml(xml_str: str) -> list[dict]:
+    return _sigp_documenti_minimi_da_ids(_parse_sigp_ricerca_atti_ids(xml_str))
+
+
 def _pst_effective_id_cat(item: Optional[dict], id_documento: str = "") -> str:
     raw = dict(item or {})
     explicit = str(raw.get("id_cat") or "").strip()
@@ -7067,6 +7091,16 @@ class _Handler(BaseHTTPRequestHandler):
                     "soap_action": "",
                     "cookie_file": cookie_file,
                 })
+                sigp_atti_index = None
+                if _pst_servizio_sigp(base_url):
+                    sigp_atti_index = len(batch_requests)
+                    batch_requests.append({
+                        "url": url_documenti,
+                        "soap_body": _soap_sigp_ricerca_atti_body(codice_pst, numero_rg, anno_rg),
+                        "extra_headers": extra_headers,
+                        "soap_action": "ricercaAtti",
+                        "cookie_file": cookie_file,
+                    })
                 batch_results = _soap_call_pst_session_batch_raw(
                     batch_requests,
                     cert_thumbprint=cert_thumbprint,
@@ -7085,15 +7119,26 @@ class _Handler(BaseHTTPRequestHandler):
                 if len(batch_results) > documenti_index
                 else ""
             )
+            xml_sigp_atti = (
+                batch_results[sigp_atti_index][0].decode("utf-8", "replace")
+                if sigp_atti_index is not None and len(batch_results) > sigp_atti_index
+                else ""
+            )
             fault = _estrai_fault_soap(xml_ricerca)
             if fault:
                 raise RuntimeError(f"Il PST ha restituito una SOAP Fault: {fault}")
             fault = _estrai_fault_soap(xml_profilo)
-            if fault:
+            if fault and not _pst_servizio_sigp(base_url):
                 raise RuntimeError(f"Il PST ha restituito una SOAP Fault: {fault}")
+            if fault and _pst_servizio_sigp(base_url):
+                log.warning("Profilo fascicolo SIGP in snapshot non disponibile: %s", fault)
+                xml_profilo = ""
             fault = _estrai_fault_soap(xml_documenti)
-            if fault:
+            if fault and not _pst_servizio_sigp(base_url):
                 raise RuntimeError(f"Il PST ha restituito una SOAP Fault: {fault}")
+            if fault and _pst_servizio_sigp(base_url):
+                log.warning("Catalogo documenti SIGP qbuilder in snapshot non disponibile: %s", fault)
+                xml_documenti = ""
 
             fallback_motivo = ""
             try:
@@ -7128,6 +7173,15 @@ class _Handler(BaseHTTPRequestHandler):
                     fascicoli = [profilo]
 
             documenti = _parse_documenti_xml(xml_documenti)
+            if xml_sigp_atti:
+                sigp_fault = _estrai_fault_soap(xml_sigp_atti)
+                if sigp_fault:
+                    log.warning("SIGP ricercaAtti in snapshot non disponibile: %s", sigp_fault)
+                else:
+                    documenti = _sigp_merge_documenti_con_profili(
+                        documenti,
+                        _sigp_documenti_minimi_da_ricerca_atti_xml(xml_sigp_atti),
+                    )
             if not fascicoli and documenti:
                 ufficio = _risolvi_ufficio_da_snapshot(codice_pst) or {}
                 fascicoli = [
@@ -7275,33 +7329,58 @@ class _Handler(BaseHTTPRequestHandler):
                 sub_procedimento=str(data.get("sub_procedimento") or data.get("subpro") or "").strip(),
             )
             extra_headers = [f"X-WASP-User: {cf_avvocato}"] if _pst_namespace_qbuilder(base_url) else []
-            xml_resp = _soap_call_pst_session(
-                url=url_documenti,
-                soap_body=soap,
-                cert_thumbprint=cert_thumbprint,
-                extra_headers=extra_headers,
-                cookie_file=cookie_file,
-                prefer_cookie_only=prefer_cookie_only,
-            )
+            is_sigp = _pst_servizio_sigp(base_url)
+            xml_sigp_atti = ""
+            if is_sigp:
+                batch_results = _soap_call_pst_session_batch_raw(
+                    [
+                        {
+                            "url": url_documenti,
+                            "soap_body": soap,
+                            "extra_headers": extra_headers,
+                            "soap_action": "",
+                            "cookie_file": cookie_file,
+                        },
+                        {
+                            "url": url_documenti,
+                            "soap_body": _soap_sigp_ricerca_atti_body(codice_pst, rg, anno),
+                            "extra_headers": extra_headers,
+                            "soap_action": "ricercaAtti",
+                            "cookie_file": cookie_file,
+                        },
+                    ],
+                    cert_thumbprint=cert_thumbprint,
+                    cookie_file=cookie_file,
+                    prefer_cookie_only=prefer_cookie_only,
+                )
+                xml_resp = batch_results[0][0].decode("utf-8", "replace") if batch_results else ""
+                xml_sigp_atti = batch_results[1][0].decode("utf-8", "replace") if len(batch_results) > 1 else ""
+            else:
+                xml_resp = _soap_call_pst_session(
+                    url=url_documenti,
+                    soap_body=soap,
+                    cert_thumbprint=cert_thumbprint,
+                    extra_headers=extra_headers,
+                    cookie_file=cookie_file,
+                    prefer_cookie_only=prefer_cookie_only,
+                )
             fault = _estrai_fault_soap(xml_resp)
-            if fault:
+            if fault and not is_sigp:
                 raise RuntimeError(f"Il PST ha restituito una SOAP Fault: {fault}")
-            documenti = _parse_documenti_xml(xml_resp)
-            if _pst_servizio_sigp(base_url):
-                try:
-                    profili_sigp = _sigp_documenti_da_ricerca_atti(
-                        base_url=base_url,
-                        codice_ufficio=codice_pst,
-                        numero_rg=rg,
-                        anno_rg=anno,
-                        cf_avvocato=cf_avvocato,
-                        cert_thumbprint=cert_thumbprint,
-                        cookie_file=cookie_file,
-                        prefer_cookie_only=prefer_cookie_only,
+            if fault and is_sigp:
+                log.warning("Catalogo documenti SIGP qbuilder non disponibile: %s", fault)
+                documenti = []
+            else:
+                documenti = _parse_documenti_xml(xml_resp)
+            if is_sigp and xml_sigp_atti:
+                sigp_fault = _estrai_fault_soap(xml_sigp_atti)
+                if sigp_fault:
+                    log.warning("SIGP ricercaAtti nel catalogo documenti non disponibile: %s", sigp_fault)
+                else:
+                    documenti = _sigp_merge_documenti_con_profili(
+                        documenti,
+                        _sigp_documenti_minimi_da_ricerca_atti_xml(xml_sigp_atti),
                     )
-                    documenti = _sigp_merge_documenti_con_profili(documenti, profili_sigp)
-                except Exception as sigp_error:
-                    log.warning("Arricchimento documenti SIGP ricercaAtti fallito: %s", sigp_error)
             if session_entry:
                 _update_pst_session(
                     session_entry["session_id"],
@@ -7395,33 +7474,58 @@ class _Handler(BaseHTTPRequestHandler):
                     ).strip(),
                 )
                 extra_headers = [f"X-WASP-User: {cf_avvocato}"] if _pst_namespace_qbuilder(base_url) else []
-                xml_resp = _soap_call_pst_session(
-                    url=url_documenti,
-                    soap_body=soap,
-                    cert_thumbprint=cert_thumbprint,
-                    extra_headers=extra_headers,
-                    cookie_file=cookie_file,
-                    prefer_cookie_only=prefer_cookie_only,
-                )
+                is_sigp = _pst_servizio_sigp(base_url)
+                xml_sigp_atti = ""
+                if is_sigp:
+                    batch_results = _soap_call_pst_session_batch_raw(
+                        [
+                            {
+                                "url": url_documenti,
+                                "soap_body": soap,
+                                "extra_headers": extra_headers,
+                                "soap_action": "",
+                                "cookie_file": cookie_file,
+                            },
+                            {
+                                "url": url_documenti,
+                                "soap_body": _soap_sigp_ricerca_atti_body(codice_pst, rg, anno),
+                                "extra_headers": extra_headers,
+                                "soap_action": "ricercaAtti",
+                                "cookie_file": cookie_file,
+                            },
+                        ],
+                        cert_thumbprint=cert_thumbprint,
+                        cookie_file=cookie_file,
+                        prefer_cookie_only=prefer_cookie_only,
+                    )
+                    xml_resp = batch_results[0][0].decode("utf-8", "replace") if batch_results else ""
+                    xml_sigp_atti = batch_results[1][0].decode("utf-8", "replace") if len(batch_results) > 1 else ""
+                else:
+                    xml_resp = _soap_call_pst_session(
+                        url=url_documenti,
+                        soap_body=soap,
+                        cert_thumbprint=cert_thumbprint,
+                        extra_headers=extra_headers,
+                        cookie_file=cookie_file,
+                        prefer_cookie_only=prefer_cookie_only,
+                    )
                 fault = _estrai_fault_soap(xml_resp)
-                if fault:
+                if fault and not is_sigp:
                     raise RuntimeError(f"Il PST ha restituito una SOAP Fault: {fault}")
-                documenti = _parse_documenti_xml(xml_resp)
-                if _pst_servizio_sigp(base_url):
-                    try:
-                        profili_sigp = _sigp_documenti_da_ricerca_atti(
-                            base_url=base_url,
-                            codice_ufficio=codice_pst,
-                            numero_rg=rg,
-                            anno_rg=anno,
-                            cf_avvocato=cf_avvocato,
-                            cert_thumbprint=cert_thumbprint,
-                            cookie_file=cookie_file,
-                            prefer_cookie_only=prefer_cookie_only,
+                if fault and is_sigp:
+                    log.warning("Catalogo snapshot SIGP qbuilder non disponibile: %s", fault)
+                    documenti = []
+                else:
+                    documenti = _parse_documenti_xml(xml_resp)
+                if is_sigp and xml_sigp_atti:
+                    sigp_fault = _estrai_fault_soap(xml_sigp_atti)
+                    if sigp_fault:
+                        log.warning("SIGP ricercaAtti nello snapshot non disponibile: %s", sigp_fault)
+                    else:
+                        documenti = _sigp_merge_documenti_con_profili(
+                            documenti,
+                            _sigp_documenti_minimi_da_ricerca_atti_xml(xml_sigp_atti),
                         )
-                        documenti = _sigp_merge_documenti_con_profili(documenti, profili_sigp)
-                    except Exception as sigp_error:
-                        log.warning("Arricchimento snapshot SIGP ricercaAtti fallito: %s", sigp_error)
 
             if session_entry:
                 _update_pst_session(

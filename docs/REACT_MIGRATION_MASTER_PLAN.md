@@ -1,5 +1,33 @@
 # Migrazione progressiva Flask + React
 
+## Hotfix PST Step 4 e SIGP/Giudice di Pace - 2026-05-14 - 2.235.6
+
+La release 2.235.6 ripristina il comportamento gia' tracciato per il wizard
+PST: quando l'acquisizione arriva da una pratica locale, oppure l'URL contiene
+`fascicolo_id`, `target_fascicolo_id`, `id_fasc` o `mode=update_existing`, il
+wizard React parte con `Aggiorna pratica esistente` gia' impostato. Lo stesso
+controllo e' visibile anche nello Step 4, prima della verifica, cosi' l'analisi
+lavora sulla pratica corretta e non apre un flusso di creazione non voluto.
+La stessa regola e' stata applicata al template classico
+`web/templates/portale/acquisizione_wizard.html`, perche' alcune postazioni o
+flag possono ancora aprire `/portali/pst/acquisizione?_legacy=1`: anche li'
+Step 4 mostra `Pratica da aggiornare`, il radio `Aggiorna pratica esistente` e
+il campo `Fascicolo locale da aggiornare`.
+
+Per Giudice di Pace/SIGP il Local Signer `1.6.35` non apre piu' una chiamata
+aggiuntiva di profilo documento durante la visualizzazione: nel batch di
+consultazione vengono inclusi catalogo documenti e `ricercaAtti`, e dagli ID
+ufficiali vengono creati i riferimenti minimi necessari per anteprima e download.
+Il download dell'intero fascicolo resta un secondo batch dedicato. La regola
+operativa torna quindi a essere: un PIN per visualizzare, un PIN per scaricare
+tutto, salvo scadenza reale della sessione lato portale/token.
+
+Verifiche mirate aggiunte: test React/template sul mapping iniziale e sullo
+Step 4, test Local Signer che bloccano chiamate SIGP fuori batch per
+visualizzazione e catalogo documenti. Docker locale, smoke read-only e browser
+reale sul percorso classico sono registrati nei report di sessione; il deploy
+Hetzner resta il gate finale dopo push.
+
 ## Hotfix PST, Local Signer e navigazione telematica - 2026-05-14 - 2.235.5
 
 La release 2.235.5 chiude la regressione segnalata sul PIN PST: il wizard

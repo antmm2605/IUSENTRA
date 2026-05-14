@@ -1405,7 +1405,7 @@ def test_react_wizard_pst_verifica_local_signer_dal_browser():
     assert "Local Signer non pronto sul PC" not in source
     assert "const checkedSigner = await checkLocalSigner(false)" in source
     assert "ok: reachable" in source
-    assert "disabled={busy === 'search' || (portalNeedsLocalSigner && !localSignerDesktopSupported)}" in source
+    assert "disabled={busy === 'search' || portalUsesOfficialAssistant || (portalNeedsLocalSigner && !localSignerDesktopSupported)}" in source
     assert "REACT_PST_SESSION_KEY" in source
     assert "localSignerJson('/pst/preflight-auth'" not in source
     assert "localSignerJson('/pst/ricerca-snapshot'" in source
@@ -1420,16 +1420,66 @@ def test_react_wizard_pst_verifica_local_signer_dal_browser():
     assert "const session = activePstSessionFor(tribunale, cert)" in source
     assert "coercePstSessionFromPayload(selection?.raw?.pst_session, tribunale, cert)" in source
     assert "coercePstSessionFromPayload(preview.pst_session, tribunale, cert)" in source
-    assert "target_fascicolo_id: acquisitionInitialFascicoloId()" in source
+    assert "function acquisitionInitialMappingMode" in source
+    assert "mode: acquisitionInitialMappingMode(initialTargetFascicoloId)" in source
+    assert "target_fascicolo_id: initialTargetFascicoloId" in source
+    assert "params.get('mode')" in source
     assert "params.get('fascicolo_id')" in source
+    assert "Step 4 - Selezione" in source
+    assert "Aggiorna pratica esistente" in source
+    assert "Fascicolo locale da aggiornare" in source
 
 
 def test_portale_acquisizione_accetta_alias_fascicolo_id_per_mapping():
     source = Path("web/bootstrap/portali_acquisizione_routes.py").read_text(encoding="utf-8")
+    template = Path("web/templates/portale/acquisizione_wizard.html").read_text(encoding="utf-8")
 
     assert 'request.args.get("id_fasc")' in source
     assert 'request.args.get("fascicolo_id")' in source
     assert 'request.args.get("target_fascicolo_id")' in source
+    assert 'request.args.get("mode")' in source
+    assert '"update_existing" if linked_fascicolo else "create_new"' in source
+    assert "Pratica da aggiornare" in template
+    assert "Fascicolo locale da aggiornare" in template
+    assert 'name="awMapMode" value="update_existing"' in template
+    assert "function awSyncMappingModeFromTarget" in template
+
+
+def test_portale_acquisizione_legacy_step4_preseleziona_aggiorna_pratica(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+
+    cliente_repo = GestioneClienti(db_path=app.config["CLIENTI_DB"])
+    cliente = cliente_repo.nuovo(TipoCliente.PERSONA_FISICA, nome="Mario", cognome="Rossi")
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicolo = fascicoli.nuovo(
+        "Pratica PST da aggiornare",
+        TipoFascicolo.CIVILE,
+        id_cliente=cliente.id,
+        nome_cliente=cliente.nome_completo,
+        tribunale="Tribunale di Milano",
+        numero_rg="466",
+        anno_rg=date.today().year,
+    )
+
+    with app.test_client() as client:
+        _login(client)
+        response = client.get(
+            f"/portali/pst/acquisizione?_legacy=1&fascicolo_id={fascicolo.id}&mode=update_existing"
+        )
+
+    html = response.get_data(as_text=True)
+    assert response.status_code == 200
+    assert "Step 4 — Scelta contenuti da importare" in html
+    assert "Pratica da aggiornare" in html
+    assert "Aggiorna pratica esistente" in html
+    assert "Fascicolo locale da aggiornare" in html
+    assert f'data-initial-target="{fascicolo.id}"' in html
+    assert 'name="awMapMode" value="update_existing" checked' in html
 
 
 def test_react_wizard_acquisizione_portale_usa_endpoint_operativi_reali(tmp_path: Path):

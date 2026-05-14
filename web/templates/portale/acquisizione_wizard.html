@@ -155,15 +155,29 @@
     <section class="aw-pane" data-step="4"><div class="card shadow-sm border-0"><div class="card-body p-4">
       <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3"><div><h2 class="h5 mb-1">Step 4 — Scelta contenuti da importare</h2><p class="text-muted mb-0">Seleziona cosa importare e con quali regole di sicurezza.</p></div><button class="btn btn-{{ spec.color }}" type="button" id="awGoMapping">Continua</button></div>
       <div class="row g-3" id="awSelectionGrid"></div>
+      <div class="aw-box bg-light-subtle mt-3">
+        <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3">
+          <div>
+            <div class="fw-semibold mb-1">Pratica da aggiornare</div>
+            <div class="small text-muted">Scegli qui se creare una nuova pratica, collegarla oppure aggiornare il fascicolo locale gia aperto.</div>
+          </div>
+          {% if linked_fascicolo %}
+          <span class="badge text-bg-{{ spec.color }}">Fascicolo gia collegato</span>
+          {% endif %}
+        </div>
+        <div class="row g-3">
+          <div class="col-lg-4"><label class="aw-box h-100 d-block"><div class="form-check mb-2"><input class="form-check-input" type="radio" name="awMapMode" value="create_new" {{ 'checked' if linked_mode == 'create_new' else '' }}><span class="form-check-label fw-semibold">Crea nuova pratica</span></div><div class="small text-muted">Precompila area, procedimento, RG e parti dal portale.</div></label></div>
+          <div class="col-lg-4"><label class="aw-box h-100 d-block"><div class="form-check mb-2"><input class="form-check-input" type="radio" name="awMapMode" value="attach_existing" {{ 'checked' if linked_mode == 'attach_existing' else '' }}><span class="form-check-label fw-semibold">Collega a pratica esistente</span></div><div class="small text-muted">Mantieni il fascicolo locale come primario e collega l'origine telematica.</div></label></div>
+          <div class="col-lg-4"><label class="aw-box h-100 d-block"><div class="form-check mb-2"><input class="form-check-input" type="radio" name="awMapMode" value="update_existing" {{ 'checked' if linked_mode == 'update_existing' else '' }}><span class="form-check-label fw-semibold">Aggiorna pratica esistente</span></div><div class="small text-muted">Aggiorna dati, eventi e sincronizzazione sul fascicolo locale.</div></label></div>
+          <div class="col-lg-7"><label class="form-label fw-semibold">Fascicolo locale da aggiornare</label><select class="form-select" id="awTarget" data-initial-target="{{ linked_target_id }}"></select><div class="form-text">{% if linked_fascicolo %}Il fascicolo del workflow corrente e gia precollegato: il sistema lo propone come target principale.{% else %}Il sistema propone i fascicoli compatibili per RG, ufficio e parti.{% endif %}</div></div>
+        </div>
+      </div>
     </div></div></section>
 
     <section class="aw-pane" data-step="5"><div class="card shadow-sm border-0"><div class="card-body p-4">
-      <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3"><div><h2 class="h5 mb-1">Step 5 — Mappatura nel gestionale</h2><p class="text-muted mb-0">Decidi se creare, collegare o aggiornare una pratica esistente.</p></div><button class="btn btn-{{ spec.color }}" type="button" id="awAnalyze">Analizza conflitti</button></div>
+      <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3"><div><h2 class="h5 mb-1">Step 5 — Mappatura nel gestionale</h2><p class="text-muted mb-0">Completa procedimento, materia e grado prima della verifica.</p></div><button class="btn btn-{{ spec.color }}" type="button" id="awAnalyze">Analizza conflitti</button></div>
+      <div class="alert alert-light border rounded-4 small" id="awMappingChoiceSummary"></div>
       <div class="row g-3">
-        <div class="col-lg-4"><label class="aw-box h-100 d-block"><div class="form-check mb-2"><input class="form-check-input" type="radio" name="awMapMode" value="create_new" {{ 'checked' if linked_mode == 'create_new' else '' }}><span class="form-check-label fw-semibold">Crea nuova pratica</span></div><div class="small text-muted">Precompila area, procedimento, RG e parti dal portale.</div></label></div>
-        <div class="col-lg-4"><label class="aw-box h-100 d-block"><div class="form-check mb-2"><input class="form-check-input" type="radio" name="awMapMode" value="attach_existing" {{ 'checked' if linked_mode == 'attach_existing' else '' }}><span class="form-check-label fw-semibold">Collega a pratica esistente</span></div><div class="small text-muted">Mantieni il fascicolo locale come primario e collega l'origine telematica.</div></label></div>
-        <div class="col-lg-4"><label class="aw-box h-100 d-block"><div class="form-check mb-2"><input class="form-check-input" type="radio" name="awMapMode" value="update_existing" {{ 'checked' if linked_mode == 'update_existing' else '' }}><span class="form-check-label fw-semibold">Aggiorna pratica esistente</span></div><div class="small text-muted">Aggiorna dati, eventi e sincronizzazione sul fascicolo locale.</div></label></div>
-        <div class="col-lg-7"><label class="form-label fw-semibold">Fascicolo locale target</label><select class="form-select" id="awTarget" data-initial-target="{{ linked_target_id }}"></select><div class="form-text">{% if linked_fascicolo %}Il fascicolo del workflow corrente e gia precollegato: il sistema lo propone come target principale.{% else %}Il sistema propone i fascicoli compatibili per RG, ufficio e parti.{% endif %}</div></div>
         <div class="col-md-4"><label class="form-label fw-semibold">Procedimento</label><input class="form-control" id="awProc"></div>
         <div class="col-md-4"><label class="form-label fw-semibold">Materia</label><input class="form-control" id="awMateria"></div>
         <div class="col-md-4"><label class="form-label fw-semibold">Grado</label><input class="form-control" id="awGrado"></div>
@@ -2466,9 +2480,11 @@ function awCurrentOptions() {
 }
 function awCurrentMapping() {
   const initialMapping = AW_BOOT.initialMapping || {};
+  const selectedMode = document.querySelector('input[name="awMapMode"]:checked')?.value || initialMapping.mode || 'create_new';
+  const targetId = document.getElementById('awTarget')?.value || initialMapping.target_fascicolo_id || '';
   return {
-    mode: document.querySelector('input[name="awMapMode"]:checked')?.value || initialMapping.mode || 'create_new',
-    target_fascicolo_id: document.getElementById('awTarget')?.value || initialMapping.target_fascicolo_id || '',
+    mode: targetId && selectedMode === 'create_new' ? 'update_existing' : selectedMode,
+    target_fascicolo_id: targetId,
     procedimento: document.getElementById('awProc')?.value.trim() || '',
     materia: document.getElementById('awMateria')?.value.trim() || '',
     grado: document.getElementById('awGrado')?.value.trim() || '',
@@ -2505,21 +2521,57 @@ function awRenderMappingMatches() {
   if (linked && !matches.some(match => String(match.id) === String(linked.id))) {
     matches.unshift(linked);
   }
+  const initialTarget = target.dataset.initialTarget || AW_BOOT.initialMapping?.target_fascicolo_id || '';
+  if (initialTarget && !matches.some(match => String(match.id) === String(initialTarget))) {
+    matches.unshift({
+      id: String(initialTarget),
+      numero: linked?.numero || 'Fascicolo selezionato',
+      titolo: linked?.titolo || 'Pratica locale da aggiornare',
+      rg_completo: linked?.rg_completo || '',
+      source: linked?.source || 'IUSENTRA',
+    });
+  }
   target.innerHTML = `<option value="">${matches.length ? 'Seleziona fascicolo compatibile' : 'Nessun fascicolo compatibile rilevato'}</option>` +
     matches.map(match => `<option value="${awEscape(match.id)}">${awEscape(match.numero)} - ${awEscape(match.titolo)} ${match.rg_completo ? `(${awEscape(match.rg_completo)})` : ''}</option>`).join('');
   if (matches.some(match => String(match.id) === String(current))) {
     target.value = current;
   } else {
-    const initialTarget = target.dataset.initialTarget || AW_BOOT.initialMapping?.target_fascicolo_id || '';
     if (initialTarget && awCurrentMapping().mode !== 'create_new' && matches.some(match => String(match.id) === String(initialTarget))) {
       target.value = String(initialTarget);
     }
   }
   target.disabled = awCurrentMapping().mode === 'create_new';
   const box = document.getElementById('awMatches');
-  box.innerHTML = matches.length
-    ? `${linked ? '<div class="small text-muted mb-2">Il fascicolo del workflow corrente e gia precollegato come target preferito.</div>' : ''}<div class="fw-semibold mb-2">Pratiche locali compatibili</div>${matches.map(match => `<div class="small border-top pt-2 mt-2"><strong>${awEscape(match.numero)}</strong> - ${awEscape(match.titolo)}<br><span class="text-muted">${awEscape(match.rg_completo || '')} ${match.source ? `- Origine ${awEscape(match.source)}` : ''}</span></div>`).join('')}`
-    : '<div class="small text-muted">Nessun fascicolo locale compatibile rilevato: creare una nuova pratica e il flusso più pulito.</div>';
+  if (box) {
+    box.innerHTML = matches.length
+      ? `${linked ? '<div class="small text-muted mb-2">Il fascicolo del workflow corrente e gia precollegato come target preferito.</div>' : ''}<div class="fw-semibold mb-2">Pratiche locali compatibili</div>${matches.map(match => `<div class="small border-top pt-2 mt-2"><strong>${awEscape(match.numero)}</strong> - ${awEscape(match.titolo)}<br><span class="text-muted">${awEscape(match.rg_completo || '')} ${match.source ? `- Origine ${awEscape(match.source)}` : ''}</span></div>`).join('')}`
+      : '<div class="small text-muted">Nessun fascicolo locale compatibile rilevato: creare una nuova pratica e il flusso piu pulito.</div>';
+  }
+  awRenderMappingSummary();
+}
+function awRenderMappingSummary() {
+  const node = document.getElementById('awMappingChoiceSummary');
+  if (!node) return;
+  const mapping = awCurrentMapping();
+  const modeLabel = {
+    create_new: 'Crea nuova pratica',
+    attach_existing: 'Collega a pratica esistente',
+    update_existing: 'Aggiorna pratica esistente',
+  }[mapping.mode] || 'Crea nuova pratica';
+  const target = document.getElementById('awTarget');
+  const targetText = target?.selectedOptions?.[0]?.textContent?.trim() || '';
+  node.textContent = mapping.target_fascicolo_id
+    ? `${modeLabel}: ${targetText || mapping.target_fascicolo_id}.`
+    : `${modeLabel}: nessun fascicolo locale selezionato.`;
+}
+function awSyncMappingModeFromTarget() {
+  const target = document.getElementById('awTarget');
+  const currentMode = document.querySelector('input[name="awMapMode"]:checked')?.value || '';
+  if (target?.value && currentMode === 'create_new') {
+    const updateRadio = document.querySelector('input[name="awMapMode"][value="update_existing"]');
+    if (updateRadio) updateRadio.checked = true;
+  }
+  awRenderMappingMatches();
 }
 async function awWarmAnalysis() {
   if (!AW_STATE.selection || !AW_STATE.preview) return;
@@ -2949,9 +3001,11 @@ document.getElementById('awTest').addEventListener('click', async () => {
       }
     });
   });
-  document.getElementById('awGoSelection').addEventListener('click', () => {
+  document.getElementById('awGoSelection').addEventListener('click', async () => {
     if (!AW_STATE.preview) return alert('Apri prima l’anteprima del fascicolo corretto.');
     awGoStep(4);
+    awRenderMappingMatches();
+    await awWarmAnalysis();
   });
   document.getElementById('awLoadDocuments').addEventListener('click', awLoadDocumentsFromLocalSigner);
   document.addEventListener('click', event => {
@@ -2962,14 +3016,22 @@ document.getElementById('awTest').addEventListener('click', async () => {
   });
   document.getElementById('awGoMapping').addEventListener('click', async () => {
     if (!AW_STATE.preview) return alert('Apri prima l’anteprima del fascicolo corretto.');
+    awRenderMappingMatches();
     awGoStep(5);
     await awWarmAnalysis();
   });
   document.querySelectorAll('input[name="awMapMode"]').forEach(radio => radio.addEventListener('change', () => {
+    if (radio.value === 'create_new' && radio.checked) {
+      const target = document.getElementById('awTarget');
+      if (target) target.value = '';
+    }
     awRenderMappingMatches();
     awWarmAnalysis();
   }));
-  document.getElementById('awTarget').addEventListener('change', awWarmAnalysis);
+  document.getElementById('awTarget').addEventListener('change', () => {
+    awSyncMappingModeFromTarget();
+    awWarmAnalysis();
+  });
   document.getElementById('awProc').addEventListener('change', awWarmAnalysis);
   document.getElementById('awMateria').addEventListener('change', awWarmAnalysis);
   document.getElementById('awGrado').addEventListener('change', awWarmAnalysis);
@@ -2997,6 +3059,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     awRenderAccess();
     awRenderResults();
     awRenderPreview();
+    awRenderMappingMatches();
     awPostProcessPreviewDom();
     awRenderSelectionOptions();
     awRenderAnalysis();

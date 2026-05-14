@@ -131,6 +131,12 @@ type AcquisitionMapping = {
   grado: string
 }
 
+const acquisitionMappingModes: Array<[AcquisitionMapping['mode'], string, string]> = [
+  ['create_new', 'Crea nuova pratica', 'Precompila area, procedimento, RG e parti dal portale.'],
+  ['attach_existing', 'Collega a pratica esistente', "Mantieni il fascicolo locale come primario e collega l'origine telematica."],
+  ['update_existing', 'Aggiorna pratica esistente', 'Aggiorna dati, eventi e sincronizzazione sul fascicolo locale.'],
+]
+
 type BrowserLocalSignerStatus = {
   checked: boolean
   checking: boolean
@@ -332,6 +338,14 @@ function acquisitionInitialFascicoloId(): string {
     || params.get('fascicolo_id')
     || params.get('target_fascicolo_id'),
   )
+}
+
+function acquisitionInitialMappingMode(targetFascicoloId = acquisitionInitialFascicoloId()): AcquisitionMapping['mode'] {
+  const params = new URLSearchParams(window.location.search)
+  const requestedMode = asText(params.get('mode')).toLowerCase()
+  if (requestedMode === 'attach_existing' || requestedMode === 'update_existing') return requestedMode
+  if (requestedMode === 'create_new' && !targetFascicoloId) return 'create_new'
+  return targetFascicoloId ? 'update_existing' : 'create_new'
 }
 
 function isPstSessionExpiredError(error: unknown): boolean {
@@ -1134,9 +1148,10 @@ function AcquisitionWizard({
     importa_eventi: true,
     importa_parti: true,
   })
+  const initialTargetFascicoloId = useMemo(() => acquisitionInitialFascicoloId(), [])
   const [mapping, setMapping] = useState<AcquisitionMapping>({
-    mode: 'create_new',
-    target_fascicolo_id: acquisitionInitialFascicoloId(),
+    mode: acquisitionInitialMappingMode(initialTargetFascicoloId),
+    target_fascicolo_id: initialTargetFascicoloId,
     procedimento: '',
     materia: '',
     grado: '',
@@ -1355,7 +1370,16 @@ function AcquisitionWizard({
 
   const updateQuery = (key: keyof AcquisitionQuery, value: string) => setQuery((current) => ({ ...current, [key]: value }))
   const updateOption = (key: keyof AcquisitionOptions, value: boolean) => setOptions((current) => ({ ...current, [key]: value }))
-  const updateMapping = (key: keyof AcquisitionMapping, value: string) => setMapping((current) => ({ ...current, [key]: value }))
+  const updateMapping = (key: keyof AcquisitionMapping, value: string) => setMapping((current) => {
+    const next = { ...current, [key]: value } as AcquisitionMapping
+    if (key === 'target_fascicolo_id' && value && current.mode === 'create_new') {
+      next.mode = 'update_existing'
+    }
+    if (key === 'mode' && value === 'create_new') {
+      next.target_fascicolo_id = ''
+    }
+    return next
+  })
   const portalNeedsLocalSigner = ['pst', 'pdp', 'pat', 'ptt'].includes(portal)
   const requiresBrowserLocalSigner = portalNeedsLocalSigner && localSignerDesktopSupported
 
@@ -2086,6 +2110,21 @@ function AcquisitionWizard({
                 <label><input type="checkbox" checked={options.mantieni_albero_originale} onChange={(event) => updateOption('mantieni_albero_originale', event.currentTarget.checked)}/> Mantieni struttura originale</label>
               </div>
               {portal === 'pst' ? <p className="iu-tel-acq-note">Default PST: copia di consultazione con annotazioni ministeriali. L'originale si usa solo se selezionato espressamente.</p> : null}
+              <div className="iu-tel-acq-mapping-mode" aria-label="Destinazione pratica">
+                {acquisitionMappingModes.map(([value, label, help]) => (
+                  <label key={value} className={mapping.mode === value ? 'is-selected' : ''}>
+                    <input type="radio" checked={mapping.mode === value} onChange={() => updateMapping('mode', value)} />
+                    <strong>{label}</strong>
+                    <span>{help}</span>
+                  </label>
+                ))}
+              </div>
+              <div className="iu-tel-acq-form iu-tel-acq-form--mapping">
+                <label><span>Fascicolo locale da aggiornare</span><select value={mapping.target_fascicolo_id} onChange={(event) => updateMapping('target_fascicolo_id', event.currentTarget.value)}>
+                  <option value="">Seleziona se necessario</option>
+                  {data.recentCases.map((item) => <option value={item.id} key={item.id}>{item.title}</option>)}
+                </select></label>
+              </div>
               <label className="iu-tel-acq-file">
                 <span>File, ZIP o dati autorizzati</span>
                 <input type="file" multiple accept=".zip,.pdf,.p7m,.eml,.msg,.xml,.json,.html,.htm,.txt" onChange={onFiles}/>
@@ -2102,11 +2141,7 @@ function AcquisitionWizard({
           {step === 5 ? (
             <Panel title="Step 5 - Mappatura nel gestionale" subtitle="Decidi se creare, collegare o aggiornare una pratica esistente" icon={<FolderOpen size={17}/>}>
               <div className="iu-tel-acq-mapping-mode">
-                {[
-                  ['create_new', 'Crea nuova pratica', 'Precompila area, procedimento, RG e parti dal portale.'],
-                  ['attach_existing', 'Collega a pratica esistente', "Mantieni il fascicolo locale come primario e collega l'origine telematica."],
-                  ['update_existing', 'Aggiorna pratica esistente', 'Aggiorna dati, eventi e sincronizzazione sul fascicolo locale.'],
-                ].map(([value, label, help]) => (
+                {acquisitionMappingModes.map(([value, label, help]) => (
                   <label key={value} className={mapping.mode === value ? 'is-selected' : ''}>
                     <input type="radio" checked={mapping.mode === value} onChange={() => updateMapping('mode', value)} />
                     <strong>{label}</strong>

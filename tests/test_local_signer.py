@@ -4119,6 +4119,202 @@ def test_pst_ricerca_snapshot_batcha_ricerca_e_documenti_senza_preflight():
     assert captured["batch"]["kwargs"]["prefer_cookie_only"] is False
 
 
+def test_pst_ricerca_snapshot_sigp_include_ricerca_atti_nel_batch_visualizzazione():
+    module = _load_local_signer()
+
+    originals = {
+        "_curl_disponibile": module._curl_disponibile,
+        "_risolvi_base_pst_runtime": module._risolvi_base_pst_runtime,
+        "_pst_url_ricerca": module._pst_url_ricerca,
+        "_pst_url_documenti": module._pst_url_documenti,
+        "_risolvi_codice_ufficio_pst": module._risolvi_codice_ufficio_pst,
+        "_require_certificato_pst": module._require_certificato_pst,
+        "_cf_avvocato_pst": module._cf_avvocato_pst,
+        "_pst_namespace_qbuilder": module._pst_namespace_qbuilder,
+        "_pst_servizio_sigp": module._pst_servizio_sigp,
+        "_ensure_pst_session_entry": module._ensure_pst_session_entry,
+        "_soap_call_pst_session_batch_raw": module._soap_call_pst_session_batch_raw,
+        "_sigp_documenti_da_ricerca_atti": module._sigp_documenti_da_ricerca_atti,
+        "_estrai_fault_soap": module._estrai_fault_soap,
+        "_parse_fascicoli_xml": module._parse_fascicoli_xml,
+        "_parse_documenti_xml": module._parse_documenti_xml,
+        "_sigp_fascicolo_fallback": module._sigp_fascicolo_fallback,
+        "_risolvi_ufficio_da_snapshot": module._risolvi_ufficio_da_snapshot,
+        "_update_pst_session": module._update_pst_session,
+        "_get_pst_session": module._get_pst_session,
+    }
+    captured = {"batch": None}
+
+    class _FakeHandler:
+        def _read_json(self):
+            return {
+                "tribunale": "0800570152",
+                "numero_rg": "466",
+                "anno_rg": "2023",
+                "cert_thumbprint": "AABBCC11",
+                "cf_avvocato": "RSSMRA80A01H501Z",
+            }
+
+        def _send_json(self, payload, status=200):
+            captured["payload"] = payload
+            captured["status"] = status
+
+    ricerca_atti_xml = """<?xml version='1.0' encoding='UTF-8'?>
+<Envelope><Body><ricercaAttiResponse><return><item>3080731</item><item>3073476</item></return></ricercaAttiResponse></Body></Envelope>"""
+
+    try:
+        module._curl_disponibile = lambda: True
+        module._risolvi_base_pst_runtime = lambda tribunale: "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIGP"
+        module._pst_url_ricerca = lambda base_url: base_url.rstrip("/")
+        module._pst_url_documenti = lambda base_url: base_url.rstrip("/") + "/doc"
+        module._risolvi_codice_ufficio_pst = lambda tribunale: "0800570152"
+        module._require_certificato_pst = lambda thumbprint: "AABBCC11"
+        module._cf_avvocato_pst = lambda cf, thumbprint: "RSSMRA80A01H501Z"
+        module._pst_namespace_qbuilder = lambda base_url: "urn:CONS-SIGP-BE"
+        module._pst_servizio_sigp = lambda base_url: True
+        module._ensure_pst_session_entry = lambda *args, **kwargs: (
+            {
+                "session_id": "SID-SIGP-VIEW",
+                "cookie_file": "C:\\temp\\pst.cookies",
+                "auth_ready": False,
+                "cf_avvocato": "RSSMRA80A01H501Z",
+            },
+            True,
+        )
+
+        def _fake_batch(requests, **kwargs):
+            captured["batch"] = {"requests": list(requests), "kwargs": kwargs}
+            return [
+                (b"<search/>", "HTTP/1.1 200 OK\r\n"),
+                (b"<profile/>", "HTTP/1.1 200 OK\r\n"),
+                (b"<documents/>", "HTTP/1.1 200 OK\r\n"),
+                (ricerca_atti_xml.encode("utf-8"), "HTTP/1.1 200 OK\r\n"),
+            ]
+
+        def _unexpected_sigp_profile_roundtrip(*args, **kwargs):
+            raise AssertionError("La visualizzazione SIGP non deve aprire chiamate profilo fuori batch")
+
+        module._soap_call_pst_session_batch_raw = _fake_batch
+        module._sigp_documenti_da_ricerca_atti = _unexpected_sigp_profile_roundtrip
+        module._estrai_fault_soap = lambda xml: None
+        module._parse_fascicoli_xml = lambda xml: []
+        module._parse_documenti_xml = lambda xml: []
+        module._sigp_fascicolo_fallback = lambda **kwargs: {
+            "numero_rg": "466",
+            "anno_rg": 2023,
+            "codice_ufficio": "0800570152",
+            "nome_ufficio": "Giudice di Pace di Palmi",
+            "parti": [],
+        }
+        module._risolvi_ufficio_da_snapshot = lambda codice: {"nome": "Giudice di Pace di Palmi"}
+        module._update_pst_session = lambda *args, **kwargs: None
+        module._get_pst_session = lambda *args, **kwargs: None
+
+        module._Handler._pst_ricerca_snapshot(_FakeHandler())
+    finally:
+        for name, value in originals.items():
+            setattr(module, name, value)
+
+    assert captured["status"] == 200
+    assert captured["payload"]["ok"] is True
+    assert [doc["id_repeatto"] for doc in captured["payload"]["documenti"]] == ["3080731", "3073476"]
+    assert len(captured["batch"]["requests"]) == 4
+    assert captured["batch"]["requests"][3]["soap_action"] == "ricercaAtti"
+    assert "ricercaAtti" in captured["batch"]["requests"][3]["soap_body"]
+    assert not any("estraiProfiloDocumento" in req["soap_body"] for req in captured["batch"]["requests"])
+
+
+def test_pst_documenti_sigp_batcha_documenti_e_ricerca_atti_senza_chiamate_extra():
+    module = _load_local_signer()
+
+    originals = {
+        "_curl_disponibile": module._curl_disponibile,
+        "_risolvi_base_pst_runtime": module._risolvi_base_pst_runtime,
+        "_pst_url_documenti": module._pst_url_documenti,
+        "_risolvi_codice_ufficio_pst": module._risolvi_codice_ufficio_pst,
+        "_require_certificato_pst": module._require_certificato_pst,
+        "_cf_avvocato_pst": module._cf_avvocato_pst,
+        "_pst_namespace_qbuilder": module._pst_namespace_qbuilder,
+        "_pst_servizio_sigp": module._pst_servizio_sigp,
+        "_ensure_pst_session_entry": module._ensure_pst_session_entry,
+        "_soap_call_pst_session": module._soap_call_pst_session,
+        "_soap_call_pst_session_batch_raw": module._soap_call_pst_session_batch_raw,
+        "_sigp_documenti_da_ricerca_atti": module._sigp_documenti_da_ricerca_atti,
+        "_estrai_fault_soap": module._estrai_fault_soap,
+        "_parse_documenti_xml": module._parse_documenti_xml,
+        "_update_pst_session": module._update_pst_session,
+    }
+    captured = {"batch": None}
+
+    class _FakeHandler:
+        def _read_json(self):
+            return {
+                "codice_ufficio": "0800570152",
+                "numero_rg": "466",
+                "anno_rg": "2023",
+                "cert_thumbprint": "AABBCC11",
+                "cf_avvocato": "RSSMRA80A01H501Z",
+            }
+
+        def _send_json(self, payload, status=200):
+            captured["payload"] = payload
+            captured["status"] = status
+
+    ricerca_atti_xml = """<?xml version='1.0' encoding='UTF-8'?>
+<Envelope><Body><ricercaAttiResponse><return><item>3080731</item></return></ricercaAttiResponse></Body></Envelope>"""
+
+    try:
+        module._curl_disponibile = lambda: True
+        module._risolvi_base_pst_runtime = lambda codice: "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SIGP"
+        module._pst_url_documenti = lambda base_url: base_url.rstrip("/") + "/doc"
+        module._risolvi_codice_ufficio_pst = lambda codice: "0800570152"
+        module._require_certificato_pst = lambda thumbprint: "AABBCC11"
+        module._cf_avvocato_pst = lambda cf, thumbprint: "RSSMRA80A01H501Z"
+        module._pst_namespace_qbuilder = lambda base_url: "urn:CONS-SIGP-BE"
+        module._pst_servizio_sigp = lambda base_url: True
+        module._ensure_pst_session_entry = lambda *args, **kwargs: (
+            {
+                "session_id": "SID-SIGP-VIEW",
+                "cookie_file": "C:\\temp\\pst.cookies",
+                "auth_ready": False,
+                "cf_avvocato": "RSSMRA80A01H501Z",
+            },
+            True,
+        )
+        module._soap_call_pst_session = lambda **kwargs: (_ for _ in ()).throw(
+            AssertionError("Il catalogo SIGP deve usare il batch unico di visualizzazione")
+        )
+
+        def _fake_batch(requests, **kwargs):
+            captured["batch"] = {"requests": list(requests), "kwargs": kwargs}
+            return [
+                (b"<documents/>", "HTTP/1.1 200 OK\r\n"),
+                (ricerca_atti_xml.encode("utf-8"), "HTTP/1.1 200 OK\r\n"),
+            ]
+
+        def _unexpected_sigp_profile_roundtrip(*args, **kwargs):
+            raise AssertionError("Il catalogo SIGP non deve aprire profili documento separati")
+
+        module._soap_call_pst_session_batch_raw = _fake_batch
+        module._sigp_documenti_da_ricerca_atti = _unexpected_sigp_profile_roundtrip
+        module._estrai_fault_soap = lambda xml: None
+        module._parse_documenti_xml = lambda xml: []
+        module._update_pst_session = lambda *args, **kwargs: None
+
+        module._Handler._pst_documenti(_FakeHandler())
+    finally:
+        for name, value in originals.items():
+            setattr(module, name, value)
+
+    assert captured["status"] == 200
+    assert captured["payload"]["ok"] is True
+    assert captured["payload"]["documenti"][0]["id_repeatto"] == "3080731"
+    assert len(captured["batch"]["requests"]) == 2
+    assert captured["batch"]["requests"][1]["soap_action"] == "ricercaAtti"
+    assert "ricercaAtti" in captured["batch"]["requests"][1]["soap_body"]
+    assert not any("estraiProfiloDocumento" in req["soap_body"] for req in captured["batch"]["requests"])
+
+
 def test_pst_ricerca_esatta_arricchisce_profilo_se_mancano_campi_identita():
     module = _load_local_signer()
 

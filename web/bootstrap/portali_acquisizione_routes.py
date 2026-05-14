@@ -59,6 +59,9 @@ def register_portali_acquisizione_routes(
             or request.args.get("target_fascicolo_id")
             or ""
         ).strip()
+        requested_mode = str(request.args.get("mode") or "").strip().lower()
+        if requested_mode not in {"create_new", "attach_existing", "update_existing"}:
+            requested_mode = ""
         wizard_focus = str(request.args.get("focus") or "").strip().lower()
         linked_fascicolo = get_fascicoli().get(id_fasc) if id_fasc else None
         linked_fascicolo_url = (
@@ -69,10 +72,14 @@ def register_portali_acquisizione_routes(
             linked_workflow_url = _pdp_penale_workspace_url_for_fascicolo(linked_fascicolo.id)
         wizard_return_url = linked_fascicolo_url or url_for(spec["home_endpoint"])
         wizard_return_label = "Torna al fascicolo" if linked_fascicolo else "Torna al portale"
+        initial_target_id = linked_fascicolo.id if linked_fascicolo else id_fasc
+        initial_mode = requested_mode or ("update_existing" if linked_fascicolo else "create_new")
+        if initial_mode == "create_new":
+            initial_target_id = ""
+        elif initial_target_id:
+            initial_mode = "update_existing" if initial_mode == "update_existing" else "attach_existing"
         wizard_initial_mapping = (
-            {"mode": "update_existing", "target_fascicolo_id": linked_fascicolo.id}
-            if linked_fascicolo
-            else {"mode": "create_new", "target_fascicolo_id": ""}
+            {"mode": initial_mode, "target_fascicolo_id": initial_target_id}
         )
         return render_template(
             "portale/acquisizione_wizard.html",

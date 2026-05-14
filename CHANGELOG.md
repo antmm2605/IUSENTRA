@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.235.6 - 2026-05-14
+
+- Ripristinato nello Step 4 del wizard PST React e classico il controllo "Aggiorna pratica esistente": quando il percorso arriva da un fascicolo o da URL con `mode=update_existing`, `fascicolo_id` o `target_fascicolo_id`, il wizard parte gia' sulla pratica locale corretta e la verifica non ricade sulla creazione di una nuova pratica.
+- Corretto il flusso Giudice di Pace/SIGP: ricerca esatta, catalogo documenti e `ricercaAtti` vengono raccolti nel batch di visualizzazione, senza chiamate profilo separate che potevano riaprire prompt PIN multipli; il download dell'intero fascicolo resta un batch separato.
+- Rigenerato IUSENTRA Local Signer `1.6.35` e rafforzati i test anti-regressione sulla regola utente: un PIN per visualizzare e un PIN per scaricare tutto, salvo scadenza reale della sessione lato portale/token.
+
 ## 2.235.5 - 2026-05-14
 
 - Corretto il ritorno delle richieste PIN multiple nel flusso PST React: la UI non chiama piu' il preflight `/pst/preflight-auth` prima di ricerca, anteprima o download, e il Local Signer usa la chiamata operativa come unico punto di autenticazione.

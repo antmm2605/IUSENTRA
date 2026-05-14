@@ -39,6 +39,7 @@ Questo indice e' il punto di ingresso operativo per sviluppatori, maintainer e r
 | Multi-studio | [MULTI_STUDIO_SECURITY](MULTI_STUDIO_SECURITY.md) | Regole multi-studio e fail-closed. |
 | Storage | [STORAGE_MATRIX](STORAGE_MATRIX.md) | Matrice repository/path/tenant. |
 | Database e migrazioni | [database-and-migrations](database-and-migrations.md) | Stato SQLite/PostgreSQL, migrazioni e rollback dati. |
+| Notifiche e procedimenti telematici | [LEGAL_NOTIFICATIONS_AND_TELEMATIC_REGISTRY](LEGAL_NOTIFICATIONS_AND_TELEMATIC_REGISTRY.md) | L. 53/1994, relata, prova notifica, fail-closed e registry PCT/SIGP/UNEP/PAT/PTT/PDP. |
 
 ## Test, CI e release
 

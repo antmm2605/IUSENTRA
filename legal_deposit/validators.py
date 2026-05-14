@@ -23,6 +23,14 @@ class DocumentPreflightValidator:
         results: list[PreflightResult] = []
         if profile.requires_main_act and not any(str(doc.role).upper() == "MAIN_ACT" for doc in documents):
             results.append(_error("MAIN_ACT_MISSING", "Atto principale assente.", "Seleziona un atto principale."))
+        if profile.max_files and len(documents) > profile.max_files:
+            results.append(
+                _error(
+                    "MAX_FILES_EXCEEDED",
+                    f"Numero file superiore al limite del canale: massimo {profile.max_files}.",
+                    "Riduci il numero di allegati o prepara un deposito distinto.",
+                )
+            )
 
         total_size = 0
         seen_hashes: set[str] = set()
@@ -79,6 +87,14 @@ class DocumentPreflightValidator:
                     "Comprimi il PDF o dividi gli allegati.",
                 )
             )
+        if len(filename) > profile.max_filename_length:
+            results.append(
+                _error(
+                    "FILENAME_TOO_LONG",
+                    f"Nome file troppo lungo per {filename}.",
+                    f"Usa un nome file entro {profile.max_filename_length} caratteri.",
+                )
+            )
         if not _SAFE_NAME_RE.match(filename):
             results.append(
                 _warning(
@@ -101,6 +117,15 @@ class DocumentPreflightValidator:
                 results.append(PreflightResult(PreflightStatus.OK, "PADES_OK", "Firma PAdES/PDF rilevata o dichiarata."))
         if is_p7m:
             doc.signature_format = doc.signature_format or "CADES_BES"
+            if profile.requires_pdfa and not bool(doc.metadata.get("pdfa_verified")):
+                results.append(
+                    _warning(
+                        "PDFA_NOT_VERIFIABLE_MANUAL_REVIEW",
+                        f"PDF/A non verificabile automaticamente nel file firmato {filename}.",
+                        "Verifica il PDF/A prima della firma oppure acquisisci conferma manuale tracciata.",
+                        manual_review=True,
+                    )
+                )
             rule = resolve_office_rule(office_name)
             if str(rule.get("pdp_signature_preference") or "") == "pades":
                 results.append(
@@ -141,8 +166,18 @@ def _validate_pdf(path: Path, profile: ChannelProfile) -> list[PreflightResult]:
         results.append(_error("PDF_PASSWORD", f"PDF protetto da password: {path.name}.", "Rimuovi password/protezioni."))
     if b"/JavaScript" in head or b"/OpenAction" in head:
         results.append(_error("PDF_SCRIPT", f"PDF con azioni/script: {path.name}.", "Rigenera un PDF pulito."))
-    if profile.requires_pdfa and b"pdfaid:" not in head.lower():
-        results.append(_warning("PDFA_NOT_VERIFIED", f"PDF/A non verificato per {path.name}.", "Verifica o converti in PDF/A se richiesto dal canale."))
+    if profile.requires_pdfa:
+        pdfa = _pdfa_flavour(head)
+        if not pdfa:
+            results.append(_error("PDFA_REQUIRED", f"PDF/A obbligatorio per {path.name}.", "Converti o rigenera il documento in PDF/A."))
+        elif profile.accepted_pdfa and pdfa not in profile.accepted_pdfa:
+            results.append(
+                _error(
+                    "PDFA_VERSION_NOT_ALLOWED",
+                    f"Formato {pdfa} non ammesso per {path.name}.",
+                    f"Usa {' o '.join(profile.accepted_pdfa)}.",
+                )
+            )
     try:
         from pypdf import PdfReader
 
@@ -170,6 +205,18 @@ def _validate_pdf(path: Path, profile: ChannelProfile) -> list[PreflightResult]:
     return results
 
 
+def _pdfa_flavour(head: bytes) -> str:
+    lowered = head.lower()
+    if b"pdfaid:" not in lowered:
+        return ""
+    text_head = lowered.decode("latin-1", errors="ignore")
+    part_match = re.search(r"pdfaid:part[^0-9]*([123])", text_head)
+    conf_match = re.search(r"pdfaid:conformance[^a-z]*([ab])", text_head)
+    part = part_match.group(1) if part_match else "1"
+    conformance = (conf_match.group(1) if conf_match else "b").upper()
+    return f"PDF/A-{part}{conformance}"
+
+
 def _sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as fh:
@@ -182,11 +229,12 @@ def _error(code: str, message: str, suggested_fix: str) -> PreflightResult:
     return PreflightResult(PreflightStatus.ERROR, code, message, suggested_fix=suggested_fix)
 
 
-def _warning(code: str, message: str, suggested_fix: str, *, auto_fix: bool = False) -> PreflightResult:
+def _warning(code: str, message: str, suggested_fix: str, *, auto_fix: bool = False, manual_review: bool = False) -> PreflightResult:
     return PreflightResult(
         PreflightStatus.WARNING,
         code,
         message,
         suggested_fix=suggested_fix,
         auto_fix_available=auto_fix,
+        manual_review_required=manual_review,
     )

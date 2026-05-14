@@ -1,12 +1,25 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-14, hotfix PST Step 4 e SIGP/Giudice di Pace 2.235.6.
+Aggiornato: 2026-05-14, modulo notifiche legali e registry telematico 2.236.0.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Modulo notifiche legali e registry telematico 2.236.0 - 2026-05-14
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest tests/test_notifiche_legali.py tests/test_telematic_registry_fail_closed.py tests/legal_deposit/test_penal_deposit_rules.py -q` | OK | 44/44 passati: notifica PEC L. 53/1994 fail-closed, cliente non-notifica, multi-selezione documenti riportata nella relata, attestazioni, evidence pack, legacy `pct/notifica.py`, registry procedimenti, profili canale, PTT/SIGIT 10MB/50MB/50 file/100 caratteri e PDF/A governato. |
+| `npm --prefix frontend run typecheck`; `npm --prefix frontend run build`; `node frontend/scripts/check-react-contracts.mjs` | OK | TypeScript, build Vite `2.236.0` e contratti React verdi dopo la UI multi-documento; chunk Notifiche Legali `NotificheLegaliPage-Q_BF-der.js` 56.32 kB / 12.75 kB gzip. |
+| `python -m ruff check legal_deposit pct/notifica.py pct/notifiche_legali.py web/blueprints/api_v1_react.py web/services/react_notifiche_legali_bridge.py tests/test_notifiche_legali.py tests/test_telematic_registry_fail_closed.py tests/legal_deposit/test_penal_deposit_rules.py`; `python -m compileall -q legal_deposit pct web/blueprints/api_v1_react.py web/services/react_notifiche_legali_bridge.py`; `python tools/sync_packaging_files.py --check`; `git diff --check` | OK | Ruff, bytecode, packaging e whitespace verdi sul perimetro modificato; i file runtime `data/` restano fuori dallo stage. |
+| `python -m pytest tests/test_packaging_consistency.py tests/test_release_readiness.py -q`; `npm --prefix frontend test`; `node scripts/react-migration/check-route-gate.mjs` | OK | Packaging/readiness 8/8, contratti React/App V2/UI coverage e route gate verdi. |
+| `python scripts/validate_docs_links.py docs/LEGAL_NOTIFICATIONS_AND_TELEMATIC_REGISTRY.md docs/DEPOSIT_CHANNEL_PROFILES.md docs/LEGAL_DEPOSIT_ARCHITECTURE.md docs/index.md docs/REACT_MIGRATION_MASTER_PLAN.md` | OK | Link documentali locali verificati: 21 documenti, 150 link. |
+| Browser in-app su runtime isolato `http://127.0.0.1:8091/notifiche-legali` | OK | Login admin di test su data root temporaneo, pratica con 2 documenti: selezione multipla presente, 2 checkbox, elenco allegati aggiornato con `atto-principale.pdf` e `allegato-fascicolo.pdf`; `Controlla prova deposito` e `Prepara comunicazione` visibili nei rispettivi percorsi; nessun testo tecnico vietato. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx`; `docker compose ps`; `GET http://127.0.0.1:8080/api/pronto` | OK | Immagini locali ricostruite da zero con wheel `pct-studio-legale==2.236.0`; app, scheduler, OCR e Redis healthy; readiness locale 200 `versione=2.236.0`. Nessun backup eseguito. |
+| `python scripts/smoke_app_v2_all.py --suite health --read-only --base-url http://127.0.0.1:8080 --timeout 20`; `python scripts/smoke_app_v2_all.py --suite notifications --read-only --base-url http://127.0.0.1:8080 --timeout 20` | OK | Health locale PASS=2 FAIL=0; notifiche locale PASS=3 FAIL=0 SKIP=1, con invio reale saltato per modalita sola lettura. |
 
 ### Hotfix PST Step 4 e SIGP/Giudice di Pace 2.235.6 - 2026-05-14
 

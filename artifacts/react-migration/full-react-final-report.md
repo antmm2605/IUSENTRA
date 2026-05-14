@@ -2,6 +2,18 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-14T23:10:00+02:00: modulo notifiche legali 2.236.0.
+La pagina `/notifiche-legali` mantiene la shell React operativa e rende esplicita
+la fase successiva ai tre pulsanti segnalati: controllo relata, controllo prova
+deposito e preparazione comunicazione cliente producono esito visibile, file
+previsti, testo generato e pacchetto prova quando disponibile. Il backend ora
+blocca notifiche L. 53/1994 incomplete, canali/procedimenti sconosciuti,
+oggetti PEC errati, ricevute non complete, attestazioni mancanti e PDF/A non
+ammesso. La selezione documenti consente uno o piu' documenti della pratica e
+li riporta automaticamente nell'elenco allegati alla relata. Gate mirato verde:
+44/44; Docker locale `2.236.0`, smoke read-only e browser isolato verificati
+senza eseguire backup.
+
 Aggiornamento 2026-05-14T19:05:00+02:00: hotfix 2.235.3. Il rosso remoto
 `CI / Local Signer e PKCS#11` e' stato riprodotto localmente e corretto:
 PDP/PAT/PTT restano WSDL diretti di default nel Local Signer, mentre la

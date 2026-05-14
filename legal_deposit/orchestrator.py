@@ -7,6 +7,7 @@ from .busta.manifest import build_manifest
 from .busta.package_builder import ChannelPackageBuilder
 from .models import DepositDocument, DepositPreparation, DepositState, DepositTransition, PreflightStatus
 from .policies import channel_profile_for
+from .procedure_registry import validate_procedure_profile
 from .validators import DocumentPreflightValidator
 
 
@@ -35,6 +36,20 @@ class DepositOrchestrator:
         output_root: str | None = None,
     ) -> DepositPreparation:
         profile = channel_profile_for(channel)
+        metadata = dict(metadata or {})
+        procedure_id = str(metadata.get("procedure_id") or metadata.get("procedure") or "").strip()
+        if procedure_id:
+            procedure = validate_procedure_profile(
+                procedure_id,
+                portal=str(metadata.get("portal") or ""),
+                registry=str(metadata.get("registry") or ""),
+                deposit_engine=profile.id,
+            )
+            metadata["procedure_id"] = procedure.id
+            metadata["procedure_registry"] = procedure.registry
+            metadata["procedure_portal"] = procedure.portal
+        elif metadata.get("require_procedure_registry"):
+            raise ValueError("Procedimento telematico obbligatorio per il deposito selezionato.")
         job_id = f"DEP-{uuid.uuid4().hex[:12].upper()}"
         transitions = [
             DepositTransition(

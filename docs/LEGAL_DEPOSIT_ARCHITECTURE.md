@@ -18,16 +18,23 @@ L'avvocato deve sempre visualizzare il riepilogo e confermare consapevolmente pr
 
 I profili sono definiti in `legal_deposit.policies` e distinguono regole tecniche e limiti:
 
-- `pct_pst`: PCT/PST civile, busta e PEC di deposito.
+- `pct_sicid`: PCT civile SICID, busta e PEC di deposito.
+- `pct_siecic`: PCT SIECIC, busta e PEC per esecuzioni e concorsuali.
+- `sigp_gdp`: Giudice di Pace/SIGP, upload guidato.
+- `unep`: richieste UNEP, upload guidato e ricevute dedicate.
 - `pec_stragiudiziale`: invio PEC ordinario con ricevute.
 - `notifiche_pec`: notifiche via PEC, separate dalla PEC stragiudiziale.
 - `pat_siga`: amministrativo, preparazione/upload guidato.
 - `ptt_sigit`: tributario, preparazione/upload guidato.
 - `pdp_penale`: Processo Penale Telematico tramite PDP/PST.
 - `upload_manuale_guidato`: pacchetto e checklist per upload non automatizzabile.
-- `portal_upload`: profilo generico di fallback per portali.
+- `portal_upload`: profilo generico manuale, non usato come fallback automatico.
 
 Ogni profilo dichiara: firma richiesta, formato firma, XML/metadati, PDF/A, dimensioni, ricevute attese e se l'upload finale resta manuale.
+
+Il vecchio profilo generico `pct_pst` e' deprecato per i flussi produttivi: il registro SICID, SIECIC, SIGP o UNEP va selezionato in modo esplicito. Canali e procedimenti sconosciuti falliscono chiusi, senza conversione silenziosa a `portal_upload`.
+
+Il registry ufficiale dei procedimenti e' in `legal_deposit.procedure_registry`; la guida funzionale e' in `docs/LEGAL_NOTIFICATIONS_AND_TELEMATIC_REGISTRY.md`.
 
 ## Palmi e PDP penale
 

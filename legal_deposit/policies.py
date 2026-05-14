@@ -26,38 +26,114 @@ class ChannelProfile:
     requires_encryption: bool = False
     max_total_size_mb: int = 500
     max_single_file_size_mb: int = 50
+    max_files: int = 0
+    max_filename_length: int = 255
     allows_direct_pec: bool = False
     allows_portal_upload: bool = False
     requires_manual_final_upload: bool = False
     package_kind: str = "folder"
     xml_filename: str = ""
+    accepted_pdfa: tuple[str, ...] = ()
     accepted_signature_formats: tuple[str, ...] = ()
     receipt_types: tuple[str, ...] = ()
     validation_rules: tuple[str, ...] = ()
     signature_policy: SignaturePolicy = field(default_factory=SignaturePolicy)
     defender_channel_note: str = ""
     internal_office_system_note: str = ""
+    unknown_behavior: str = "fail_closed"
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
+class UnknownChannelError(ValueError):
+    """Raised when a deposit channel is not explicitly registered."""
+
+
+class AmbiguousChannelError(UnknownChannelError):
+    """Raised when a generic channel would hide the actual legal registry."""
+
+
 _PROFILES: dict[str, ChannelProfile] = {
-    "pct_pst": ChannelProfile(
-        id="pct_pst",
-        name="PCT/PST civile",
+    "pct_sicid": ChannelProfile(
+        id="pct_sicid",
+        name="PCT SICID civile",
         requires_xml=True,
         xml_schema_name="DatiAtto.xml",
         requires_pdfa=True,
         requires_cades=True,
         max_total_size_mb=30,
         max_single_file_size_mb=30,
+        max_filename_length=100,
         allows_direct_pec=True,
         package_kind="pct_busta_enc",
         xml_filename="DatiAtto.xml",
+        accepted_pdfa=("PDF/A-1A", "PDF/A-1B"),
         accepted_signature_formats=("CADES_BES",),
         receipt_types=("accettazione", "consegna", "controlli", "cancelleria"),
-        validation_rules=("pdf_readable", "pdfa", "signed", "safe_filename"),
+        validation_rules=("pdf_readable", "pdfa", "procedure_registry", "signed", "safe_filename"),
         signature_policy=SignaturePolicy(target="MAIN_ACT", format="CADES_BES"),
-        defender_channel_note="Il deposito civile avviene tramite PST/PCT e canale PEC previsto dal profilo.",
+        defender_channel_note="Profilo PCT civile SICID: non usare per esecuzioni SIECIC o Giudice di Pace.",
+        metadata={"portal": "PCT_PST", "registry": "SICID", "deposit_engine": "pct_sicid"},
+    ),
+    "pct_siecic": ChannelProfile(
+        id="pct_siecic",
+        name="PCT SIECIC esecuzioni e concorsuali",
+        requires_xml=True,
+        xml_schema_name="DatiAtto.xml",
+        requires_pdfa=True,
+        requires_cades=True,
+        max_total_size_mb=30,
+        max_single_file_size_mb=30,
+        max_filename_length=100,
+        allows_direct_pec=True,
+        package_kind="pct_busta_enc",
+        xml_filename="DatiAtto.xml",
+        accepted_pdfa=("PDF/A-1A", "PDF/A-1B"),
+        accepted_signature_formats=("CADES_BES",),
+        receipt_types=("accettazione", "consegna", "controlli", "cancelleria"),
+        validation_rules=("pdf_readable", "pdfa", "procedure_registry", "signed", "safe_filename"),
+        signature_policy=SignaturePolicy(target="MAIN_ACT", format="CADES_BES"),
+        defender_channel_note="Profilo PCT SIECIC: esecuzioni, pignoramenti e procedure concorsuali non usano SICID.",
+        metadata={"portal": "PCT_PST", "registry": "SIECIC", "deposit_engine": "pct_siecic"},
+    ),
+    "sigp_gdp": ChannelProfile(
+        id="sigp_gdp",
+        name="SIGP Giudice di Pace",
+        requires_xml=True,
+        xml_schema_name="SIGP",
+        requires_pdfa=True,
+        requires_cades=True,
+        max_total_size_mb=30,
+        max_single_file_size_mb=30,
+        max_filename_length=100,
+        allows_portal_upload=True,
+        requires_manual_final_upload=True,
+        package_kind="sigp_upload",
+        xml_filename="metadati_sigp.xml",
+        accepted_pdfa=("PDF/A-1A", "PDF/A-1B"),
+        accepted_signature_formats=("CADES_BES", "PADES"),
+        receipt_types=("protocollo", "ricevuta_portale", "esito_cancelleria"),
+        validation_rules=("pdf_readable", "pdfa", "procedure_registry", "signed", "safe_filename"),
+        signature_policy=SignaturePolicy(target="MAIN_ACT", format="CHANNEL_POLICY"),
+        defender_channel_note="SIGP/GDP e' un profilo autonomo: non usare il PCT civile generico.",
+        metadata={"portal": "SIGP", "registry": "GDP", "deposit_engine": "sigp_gdp"},
+    ),
+    "unep": ChannelProfile(
+        id="unep",
+        name="UNEP richieste notifiche ed esecuzioni",
+        requires_pdfa=True,
+        max_total_size_mb=100,
+        max_single_file_size_mb=30,
+        max_filename_length=100,
+        allows_portal_upload=True,
+        requires_manual_final_upload=True,
+        package_kind="unep_request",
+        accepted_pdfa=("PDF/A-1A", "PDF/A-1B"),
+        accepted_signature_formats=("PADES", "CADES_BES"),
+        receipt_types=("ricevuta_portale", "presa_in_carico", "esito_unep"),
+        validation_rules=("pdf_readable", "pdfa", "procedure_registry", "signed", "safe_filename"),
+        signature_policy=SignaturePolicy(target="MAIN_ACT", format="CHANNEL_POLICY"),
+        defender_channel_note="UNEP prepara richiesta o istanza: non genera automaticamente una relata L. 53/1994.",
+        metadata={"portal": "UNEP", "registry": "UNEP", "deposit_engine": "unep"},
     ),
     "pdp_penale": ChannelProfile(
         id="pdp_penale",
@@ -68,15 +144,20 @@ _PROFILES: dict[str, ChannelProfile] = {
         requires_pades=False,
         max_total_size_mb=500,
         max_single_file_size_mb=50,
+        max_filename_length=100,
         allows_portal_upload=True,
         package_kind="pdp_upload",
+        accepted_pdfa=("PDF/A-1A", "PDF/A-1B"),
         accepted_signature_formats=("PADES", "CADES_BES"),
         receipt_types=("INVIATO", "IN_TRANSITO", "IN_FASE_DI_VERIFICA", "ACCOLTO", "RIGETTATO", "ERRORE_TECNICO"),
-        validation_rules=("pdf_readable", "pdfa", "native_digital", "signed", "no_password", "safe_filename"),
+        validation_rules=("pdf_readable", "pdfa", "procedure_registry", "native_digital", "signed", "no_password", "safe_filename"),
         signature_policy=SignaturePolicy(target="MAIN_ACT", format="CHANNEL_POLICY"),
         defender_channel_note="PDP/PST e' il canale del difensore per il deposito penale telematico.",
         internal_office_system_note="APP e' sistema interno degli uffici giudiziari: non va presentato come canale di deposito del difensore.",
         metadata={
+            "portal": "PDP",
+            "registry": "PENALE",
+            "deposit_engine": "pdp_penale",
             "channel_note": "PDP e PST sono canali del difensore; APP e' sistema interno degli uffici giudiziari.",
         },
     ),
@@ -86,6 +167,7 @@ _PROFILES: dict[str, ChannelProfile] = {
         requires_pdfa=False,
         max_total_size_mb=100,
         max_single_file_size_mb=50,
+        max_filename_length=100,
         allows_direct_pec=True,
         package_kind="pec_message",
         accepted_signature_formats=("PADES", "CADES_BES", "NONE"),
@@ -100,6 +182,7 @@ _PROFILES: dict[str, ChannelProfile] = {
         requires_pdfa=False,
         max_total_size_mb=100,
         max_single_file_size_mb=50,
+        max_filename_length=100,
         allows_direct_pec=True,
         package_kind="pec_notification",
         accepted_signature_formats=("PADES", "CADES_BES"),
@@ -118,15 +201,18 @@ _PROFILES: dict[str, ChannelProfile] = {
         requires_pades=False,
         max_total_size_mb=500,
         max_single_file_size_mb=50,
+        max_filename_length=100,
         allows_portal_upload=True,
         requires_manual_final_upload=True,
         package_kind="portal_upload",
         xml_filename="metadati_pat.xml",
+        accepted_pdfa=("PDF/A-1A", "PDF/A-1B"),
         accepted_signature_formats=("PADES", "CADES_BES"),
         receipt_types=("protocollo", "ricevuta_portale", "esito_segreteria"),
-        validation_rules=("pdf_readable", "pdfa", "signed", "safe_filename"),
+        validation_rules=("pdf_readable", "pdfa", "procedure_registry", "signed", "safe_filename"),
         signature_policy=SignaturePolicy(target="MAIN_ACT", format="CHANNEL_POLICY"),
         defender_channel_note="PAT/SIGA richiede profilo dedicato: il gestionale prepara e guida, senza fingere automazione non disponibile.",
+        metadata={"portal": "PAT", "registry": "PAT", "deposit_engine": "pat_siga"},
     ),
     "ptt_sigit": ChannelProfile(
         id="ptt_sigit",
@@ -134,17 +220,21 @@ _PROFILES: dict[str, ChannelProfile] = {
         requires_xml=True,
         xml_schema_name="PTT/SIGIT",
         requires_pdfa=True,
-        max_total_size_mb=500,
-        max_single_file_size_mb=50,
+        max_total_size_mb=50,
+        max_single_file_size_mb=10,
+        max_files=50,
+        max_filename_length=100,
         allows_portal_upload=True,
         requires_manual_final_upload=True,
         package_kind="portal_upload",
         xml_filename="metadati_ptt.xml",
+        accepted_pdfa=("PDF/A-1A", "PDF/A-1B"),
         accepted_signature_formats=("PADES", "CADES_BES"),
         receipt_types=("protocollo", "ricevuta_portale", "esito_segreteria"),
-        validation_rules=("pdf_readable", "pdfa", "signed", "safe_filename"),
+        validation_rules=("pdf_readable", "pdfa", "procedure_registry", "signed", "safe_filename", "ptt_limits"),
         signature_policy=SignaturePolicy(target="MAIN_ACT", format="CHANNEL_POLICY"),
         defender_channel_note="PTT/SIGIT e' trattato come canale tributario autonomo con upload guidato e riconciliazione ricevute.",
+        metadata={"portal": "PTT", "registry": "SIGIT", "deposit_engine": "ptt_sigit"},
     ),
     "upload_manuale_guidato": ChannelProfile(
         id="upload_manuale_guidato",
@@ -153,6 +243,7 @@ _PROFILES: dict[str, ChannelProfile] = {
         allows_portal_upload=True,
         max_total_size_mb=500,
         max_single_file_size_mb=50,
+        max_filename_length=100,
         package_kind="manual_upload",
         accepted_signature_formats=("PADES", "CADES_BES", "NONE"),
         receipt_types=("protocollo", "ricevuta_portale", "esito_manuale"),
@@ -167,18 +258,26 @@ _PROFILES: dict[str, ChannelProfile] = {
         allows_portal_upload=True,
         max_total_size_mb=500,
         max_single_file_size_mb=50,
+        max_filename_length=100,
         package_kind="portal_upload",
         accepted_signature_formats=("PADES", "CADES_BES", "NONE"),
         receipt_types=("protocollo", "ricevuta_portale"),
         validation_rules=("safe_filename", "file_exists", "hash"),
         signature_policy=SignaturePolicy(target="CUSTOM", format="CHANNEL_POLICY", required=False),
-        defender_channel_note="Profilo generico per portali non pienamente automatizzabili: preparazione locale, upload manuale, riconciliazione ricevuta.",
+        defender_channel_note="Profilo generico ammesso solo se richiesto e confermato manualmente.",
+        metadata={"manual_confirmation_required": True},
     ),
 }
 
 _ALIASES = {
-    "pct": "pct_pst",
-    "pst": "pct_pst",
+    "sicid": "pct_sicid",
+    "pct_sicid": "pct_sicid",
+    "siecic": "pct_siecic",
+    "pct_siecic": "pct_siecic",
+    "sigp": "sigp_gdp",
+    "gdp": "sigp_gdp",
+    "giudice_di_pace": "sigp_gdp",
+    "ufficiale_giudiziario": "unep",
     "pdp": "pdp_penale",
     "penale": "pdp_penale",
     "pec": "pec_stragiudiziale",
@@ -191,11 +290,21 @@ _ALIASES = {
     "manual_upload": "upload_manuale_guidato",
 }
 
+_AMBIGUOUS_CHANNELS = {"", "pct", "pst", "pct_pst", "pct_civile", "pct_telematico", "portale", "portale_telematico"}
+
 
 def channel_profile_for(channel: str) -> ChannelProfile:
     key = str(channel or "").strip().lower()
+    if key in _AMBIGUOUS_CHANNELS:
+        raise AmbiguousChannelError(
+            "Canale telematico non determinato: scegli un profilo esplicito tra "
+            "pct_sicid, pct_siecic, sigp_gdp, unep, pat_siga, ptt_sigit o pdp_penale."
+        )
     key = _ALIASES.get(key, key)
-    return _PROFILES.get(key) or _PROFILES["portal_upload"]
+    profile = _PROFILES.get(key)
+    if profile is None:
+        raise UnknownChannelError(f"Canale telematico non registrato: {channel}.")
+    return profile
 
 
 def get_channel_profile(channel: str) -> ChannelProfile:

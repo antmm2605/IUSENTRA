@@ -28,6 +28,7 @@ def _app(tmp_path: Path):
 
 def _legal_payload() -> dict[str, object]:
     return {
+        "operazione": "notifica_pec_l53",
         "oggetto_pec": LEGAL_NOTIFICATION_SUBJECT,
         "avvocato_nome": "Mario Rossi",
         "avvocato_cf": "RSSMRA80A01H501U",
@@ -37,12 +38,15 @@ def _legal_payload() -> dict[str, object]:
         "mittente_pec": "studio@example.pec.it",
         "fonte_pec_mittente": "ReGIndE",
         "mittente_pec_pubblico_elenco": True,
+        "mittente_avvocato_abilitato": True,
+        "mittente_pec_validata": True,
         "assistito_nome": "Cliente S.r.l.",
         "assistito_cf": "01234567890",
         "ruolo_destinatario": "controparte",
         "destinatario_nome": "Controparte S.p.A.",
         "destinatario_pec": "controparte@example.pec.it",
         "fonte_pec_destinatario": "registro_imprese",
+        "destinatario_pec_pubblico_elenco": True,
         "data_verifica_pec": "2026-05-12T10:30",
         "procedimento_pendente": True,
         "ufficio_giudiziario": "Tribunale di Roma",
@@ -51,6 +55,7 @@ def _legal_payload() -> dict[str, object]:
         "anno_rg": "2026",
         "ricevuta_completa": True,
         "relata_firmata": True,
+        "relata_documento_separato": True,
         "approvazione_avvocato": True,
         "documenti": [
             {
@@ -87,15 +92,44 @@ def test_notifica_l53_blocca_cliente_e_attestazione_mancante():
     assert result.relata_text == ""
 
 
-def test_notifica_l53_compila_attestazione_da_origine_documento():
+def test_notifica_l53_blocca_attestazione_mancante_da_origine_documento():
     payload = _legal_payload()
     payload["documenti"] = [{"nome_file": "scansione.pdf", "descrizione": "Provvedimento", "origine": "scansione"}]
     payload["attestazione_conformita"] = ""
 
     result = validate_legal_notification(payload)
 
+    assert result.ok is False
+    assert any("ATTESTAZIONE_REQUIRED" in item for item in result.blockers)
+    assert result.relata_text == ""
+
+
+def test_notifica_l53_documento_nativo_digitale_non_richiede_attestazione():
+    payload = _legal_payload()
+    payload["documenti"] = [{"nome_file": "atto.pdf", "descrizione": "Atto nativo", "origine": "nativo_digitale"}]
+    payload["attestazione_conformita"] = ""
+
+    result = validate_legal_notification(payload)
+
     assert result.ok is True
-    assert "copia informatica per immagine conforme all'originale analogico" in result.relata_text
+    assert "ATTESTAZIONE DI CONFORMITA" not in result.relata_text
+
+
+def test_notifica_l53_riporta_piu_documenti_nell_elenco_allegati():
+    payload = _legal_payload()
+    payload["documenti"] = [
+        {"nome_file": "ricorso.pdf", "descrizione": "Ricorso", "origine": "nativo_digitale"},
+        {"nome_file": "procura.pdf", "descrizione": "Procura alle liti", "origine": "firmato_digitalmente"},
+        {"nome_file": "provvedimento.pdf", "descrizione": "Provvedimento", "origine": "copia_fascicolo_informatico"},
+    ]
+    payload["attestazione_conformita"] = "Attesto la conformita' del provvedimento estratto dal fascicolo informatico."
+
+    result = validate_legal_notification(payload)
+
+    assert result.ok is True
+    assert "1. ricorso.pdf - Ricorso" in result.relata_text
+    assert "2. procura.pdf - Procura alle liti" in result.relata_text
+    assert "3. provvedimento.pdf - Provvedimento" in result.relata_text
 
 
 def test_notifica_l53_modello_personalizzato_usa_campi_iusentra_e_note_avvocato():
@@ -207,11 +241,13 @@ def test_anteprima_modelli_standard_catalogo_non_bloccata():
 
 def test_comunicazione_cliente_non_usa_relata_o_oggetto_l53():
     blocked = build_client_communication({
+        "operazione": "comunicazione_cliente_non_notifica",
         "cliente_nome": "Cliente",
         "oggetto": LEGAL_NOTIFICATION_SUBJECT,
         "genera_relata": True,
     })
     ok = build_client_communication({
+        "operazione": "comunicazione_cliente_non_notifica",
         "cliente_nome": "Cliente",
         "ufficio_giudiziario": "Tribunale di Roma",
         "numero_rg": "1234",
@@ -231,6 +267,7 @@ def test_comunicazione_cliente_non_usa_relata_o_oggetto_l53():
 def test_comunicazione_cliente_usa_modelli_separati():
     templates = list_client_communication_templates()
     result = build_client_communication({
+        "operazione": "comunicazione_cliente_non_notifica",
         "template_id": "richiesta_documenti",
         "cliente_nome": "Cliente",
         "pratica_codice": "2026/001",
@@ -247,6 +284,7 @@ def test_comunicazione_cliente_usa_modelli_separati():
 
 def test_comunicazione_cliente_blocca_catalogo_relata_l53():
     result = build_client_communication({
+        "operazione": "comunicazione_cliente_non_notifica",
         "template_id": "relata_pec_base_l53",
         "cliente_nome": "Cliente",
         "provvedimento_descrizione": "Provvedimento",
@@ -259,17 +297,31 @@ def test_comunicazione_cliente_blocca_catalogo_relata_l53():
 def test_prova_deposito_richiede_rac_rdac_originali():
     blocked = validate_deposit_notification_proof({
         "atto_notificato": "ricorso.pdf",
+        "atto_sha256": "a" * 64,
         "relata_firmata": "relata.pdf.p7m",
+        "relata_sha256": "b" * 64,
+        "pec_inviata": "pec_inviata.eml",
+        "pec_inviata_sha256": "c" * 64,
         "destinatario_nome": "Controparte",
         "rac_file": "accettazione.pdf",
+        "rac_sha256": "d" * 64,
         "rdac_file": "consegna.eml",
+        "rdac_sha256": "e" * 64,
+        "ricevuta_completa": True,
     })
     ok = validate_deposit_notification_proof({
         "atto_notificato": "ricorso.pdf",
+        "atto_sha256": "a" * 64,
         "relata_firmata": "relata.pdf.p7m",
+        "relata_sha256": "b" * 64,
+        "pec_inviata": "pec_inviata.eml",
+        "pec_inviata_sha256": "c" * 64,
         "destinatario_nome": "Controparte",
         "rac_file": "accettazione.eml",
+        "rac_sha256": "d" * 64,
         "rdac_file": "consegna.eml",
+        "rdac_sha256": "e" * 64,
+        "ricevuta_completa": True,
         "dati_atto_ricevute": "RAC e RdAC indicizzate",
     })
 
@@ -296,7 +348,7 @@ def test_api_react_notifiche_legali_espone_workflow_separati(tmp_path: Path):
     )
     client_response = client.post(
         "/api/v1/ui/notifiche-legali/comunicazione-cliente",
-        json={"cliente_nome": "Cliente", "provvedimento_descrizione": "Provvedimento depositato"},
+        json={"operazione": "comunicazione_cliente_non_notifica", "cliente_nome": "Cliente", "provvedimento_descrizione": "Provvedimento depositato"},
         headers=headers,
     )
 
@@ -467,6 +519,7 @@ def test_api_react_notifiche_legali_modelli_cliente_separati(tmp_path: Path):
     communication_response = client.post(
         "/api/v1/ui/notifiche-legali/comunicazione-cliente",
         json={
+            "operazione": "comunicazione_cliente_non_notifica",
             "template_id": "invio_provvedimento",
             "cliente_nome": "Cliente",
             "ufficio_giudiziario": "Tribunale di Roma",

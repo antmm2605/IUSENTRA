@@ -1,5 +1,13 @@
 # Migrazione progressiva Flask + React
 
+## Modulo notifiche legali e registry telematico - 2026-05-14 - 2.236.0
+
+La pagina React Notifiche legali ora espone fasi operative reali dopo i pulsanti `Controlla relata`, `Controlla prova deposito` e `Prepara comunicazione`: l'esito mostra blocchi, testo generato, file previsti e pacchetto prova quando disponibile. La scelta dei documenti dal fascicolo e' multipla e alimenta automaticamente l'elenco allegati della relata.
+
+Il backend applica contratti fail-closed per notifica PEC L. 53/1994, comunicazione cliente non-notifica, deposito prova, area web PST per notifica non consegnata, registry procedimenti e profili deposito separati SICID/SIECIC/SIGP/UNEP/PAT/PTT/PDP. Il modulo legacy `pct/notifica.py` e' disattivato per impedire oggetti PEC generici.
+
+Gate mirato finale: `python -m pytest tests/test_notifiche_legali.py tests/test_telematic_registry_fail_closed.py tests/legal_deposit/test_penal_deposit_rules.py -q` -> 44/44 passati. Docker locale no-cache, smoke read-only e browser isolato su `/notifiche-legali` confermano la selezione multipla dei documenti e il riporto automatico nell'elenco allegati. Nessun backup eseguito in questa tranche.
+
 ## Hotfix PST Step 4 e SIGP/Giudice di Pace - 2026-05-14 - 2.235.6
 
 La release 2.235.6 ripristina il comportamento gia' tracciato per il wizard

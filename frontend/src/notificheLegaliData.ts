@@ -167,6 +167,7 @@ export type NotificheLegaliData = {
     bozzaRelata: string
     comunicazioneCliente: string
     provaDeposito: string
+    areaWebPst: string
     pecCompose: string
     clientCompose: string
     fascicoli: string
@@ -233,6 +234,7 @@ export const emptyNotificheLegaliData: NotificheLegaliData = {
     bozzaRelata: '/api/v1/ui/notifiche-legali/bozze-relata',
     comunicazioneCliente: '/api/v1/ui/notifiche-legali/comunicazione-cliente',
     provaDeposito: '/api/v1/ui/notifiche-legali/prova-deposito',
+    areaWebPst: '/api/v1/ui/notifiche-legali/area-web-pst',
     pecCompose: '/email/scrivi?tipo=notifica_l53',
     clientCompose: '/email-ordinaria/scrivi?tipo=comunicazione_cliente',
     fascicoli: '/fascicoli',
@@ -477,6 +479,7 @@ function normalisePayload(payload: unknown): NotificheLegaliData {
       bozzaRelata: text(azioni.bozzaRelata, emptyNotificheLegaliData.azioni.bozzaRelata),
       comunicazioneCliente: text(azioni.comunicazioneCliente, emptyNotificheLegaliData.azioni.comunicazioneCliente),
       provaDeposito: text(azioni.provaDeposito, emptyNotificheLegaliData.azioni.provaDeposito),
+      areaWebPst: text(azioni.areaWebPst, emptyNotificheLegaliData.azioni.areaWebPst),
       pecCompose: text(azioni.pecCompose, emptyNotificheLegaliData.azioni.pecCompose),
       clientCompose: text(azioni.clientCompose, emptyNotificheLegaliData.azioni.clientCompose),
       fascicoli: text(azioni.fascicoli, emptyNotificheLegaliData.azioni.fascicoli),

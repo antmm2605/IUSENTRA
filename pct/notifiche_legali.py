@@ -25,6 +25,8 @@ from jinja2 import ChainableUndefined, Environment
 
 
 LEGAL_NOTIFICATION_SUBJECT = "notificazione ai sensi della legge n. 53 del 1994"
+LEGAL_NOTIFICATION_OPERATION = "notifica_pec_l53"
+CLIENT_COMMUNICATION_OPERATION = "comunicazione_cliente_non_notifica"
 TEMPLATE_CATALOG_PATH = Path(__file__).with_name("data") / "notifiche_legali_templates.json"
 CLIENT_COMMUNICATION_CATALOG_PATH = Path(__file__).with_name("data") / "comunicazioni_cliente_templates.json"
 
@@ -50,6 +52,8 @@ LEGAL_RECIPIENT_ROLES = {
 CLIENT_RECIPIENT_ROLES = {"cliente", "assistito"}
 
 DOCUMENT_ORIGIN_LABELS: dict[str, str] = {
+    "nativo_digitale": "documento nativo digitale",
+    "firmato_digitalmente": "documento firmato digitalmente",
     "originale_informatico": "originale informatico",
     "duplicato_informatico": "duplicato informatico",
     "copia_fascicolo_informatico": "copia informatica estratta dal fascicolo",
@@ -58,6 +62,12 @@ DOCUMENT_ORIGIN_LABELS: dict[str, str] = {
 }
 
 DOCUMENT_ORIGIN_ALIASES: dict[str, str] = {
+    "nativo": "nativo_digitale",
+    "nativo_digitale": "nativo_digitale",
+    "documento_nativo_digitale": "nativo_digitale",
+    "firmato": "firmato_digitalmente",
+    "firmato_digitalmente": "firmato_digitalmente",
+    "documento_firmato": "firmato_digitalmente",
     "originale": "originale_informatico",
     "originale_informatico": "originale_informatico",
     "documento_originale_informatico": "originale_informatico",
@@ -238,6 +248,25 @@ def normalise_document_origin(value: Any) -> str:
 
 def needs_attestazione(origin: Any) -> bool:
     return normalise_document_origin(origin) in ORIGINS_REQUIRING_ATTESTATION
+
+
+def block(code: str, message: str) -> str:
+    return f"{code}: {message}"
+
+
+def _document_attestation_declared(document: dict[str, Any], payload: dict[str, Any]) -> bool:
+    return boolish(document.get("attestazione_presente")) or boolish(document.get("attestazione_conformita_presente")) or boolish(
+        payload.get("attestazione_conformita_presente")
+    ) or boolish(payload.get("attestazione_presente")) or boolish(payload.get("attestazione_multipla"))
+
+
+def _document_attestation_text_present(document: dict[str, Any], payload: dict[str, Any]) -> bool:
+    return bool(
+        multiline_text(document.get("attestazione_conformita"))
+        or multiline_text(payload.get("attestazione_conformita"))
+        or multiline_text(payload.get("attestazione_multipla_testo"))
+        or _document_attestation_declared(document, payload)
+    )
 
 
 @lru_cache(maxsize=1)
@@ -520,6 +549,8 @@ def _documents(payload: dict[str, Any]) -> list[dict[str, Any]]:
             "origine": payload.get("origine_documento") or payload.get("origine"),
             "hash_sha256": payload.get("hash_sha256"),
             "data_comunicazione_cancelleria": payload.get("data_comunicazione_cancelleria"),
+            "attestazione_conformita": payload.get("attestazione_conformita"),
+            "attestazione_conformita_presente": payload.get("attestazione_conformita_presente"),
         }
         if any(text(value) for value in single.values()):
             source = [single]
@@ -538,6 +569,8 @@ def _documents(payload: dict[str, Any]) -> list[dict[str, Any]]:
             "origine_label": DOCUMENT_ORIGIN_LABELS.get(origin, text(item.get("origine"))),
             "necessita_attestazione": boolish(item.get("necessita_attestazione")) or origin in ORIGINS_REQUIRING_ATTESTATION,
             "hash_sha256": text(item.get("hash_sha256")),
+            "attestazione_conformita": multiline_text(item.get("attestazione_conformita")),
+            "attestazione_conformita_presente": boolish(item.get("attestazione_conformita_presente") or item.get("attestazione_presente")),
             "data_comunicazione_cancelleria": text(
                 item.get("data_comunicazione_cancelleria"),
                 text(payload.get("data_comunicazione_cancelleria")),
@@ -951,12 +984,15 @@ def validate_legal_notification(payload: dict[str, Any]) -> LegalWorkflowResult:
     subject = LEGAL_NOTIFICATION_SUBJECT
     subject_input = text(payload.get("oggetto_pec") or payload.get("subject") or _deep_get(payload, "notifica.oggetto_pec"))
 
-    if subject_input and subject_input.lower() != LEGAL_NOTIFICATION_SUBJECT:
-        blockers.append("L'oggetto PEC deve restare: notificazione ai sensi della legge n. 53 del 1994.")
+    operation = text(payload.get("operazione") or _deep_get(payload, "notifica.operazione"))
+    if operation != LEGAL_NOTIFICATION_OPERATION:
+        blockers.append(block("OPERATION_REQUIRED", "Il percorso deve essere notifica_pec_l53."))
+    if not subject_input or subject_input.lower() != LEGAL_NOTIFICATION_SUBJECT:
+        blockers.append(block("L53_SUBJECT_REQUIRED", "L'oggetto PEC deve essere esattamente: notificazione ai sensi della legge n. 53 del 1994."))
     if not role:
         blockers.append("Seleziona il ruolo del destinatario della notifica.")
     if role in CLIENT_RECIPIENT_ROLES:
-        blockers.append("Il cliente non va trattato come destinatario ordinario di una notifica: usa Comunicazione al cliente.")
+        blockers.append(block("CLIENTE_NON_NOTIFICA", "Il cliente non va trattato come destinatario ordinario di una notifica: usa Comunicazione al cliente."))
     if role and role not in LEGAL_RECIPIENT_ROLES and role not in CLIENT_RECIPIENT_ROLES:
         warnings.append("Ruolo destinatario non ricondotto automaticamente: verifica che sia un soggetto notificabile.")
 
@@ -977,13 +1013,25 @@ def validate_legal_notification(payload: dict[str, Any]) -> LegalWorkflowResult:
             blockers.append(message)
 
     if not boolish(payload.get("mittente_pec_pubblico_elenco")) and not text(_first(payload, "avvocato.fonte_pec", "fonte_pec_mittente")):
-        blockers.append("La PEC del notificante deve risultare da un pubblico elenco.")
+        blockers.append(block("PEC_MITTENTE_FONTE_REQUIRED", "La PEC del notificante deve risultare da un pubblico elenco."))
+    if not boolish(_first(payload, "avvocato.abilitato_notifiche", "mittente_avvocato_abilitato", "avvocato_abilitato")):
+        blockers.append(block("AVVOCATO_ABILITATO_REQUIRED", "Il mittente deve essere avvocato abilitato alla notifica in proprio."))
+    if not boolish(_first(payload, "avvocato.pec_validata", "mittente_pec_validata", "pec_mittente_validata")):
+        blockers.append(block("PEC_MITTENTE_VALIDATA_REQUIRED", "La PEC del notificante deve essere presente e validata."))
 
     source_key = context["destinatario"]["fonte_pec_key"]
     if source_key not in PUBLIC_PEC_REGISTERS:
-        blockers.append("La PEC del destinatario deve avere una fonte da pubblico elenco.")
-    if not context["destinatario"]["data_verifica_pec"]:
-        blockers.append("Registra data e ora della verifica PEC del destinatario.")
+        blockers.append(block("PEC_DESTINATARIO_FONTE_REQUIRED", "La PEC del destinatario deve avere una fonte da pubblico elenco."))
+    if not context["destinatario"]["data_verifica_pec"] or not context["destinatario"]["ora_verifica_pec"]:
+        blockers.append(block("PEC_DESTINATARIO_VERIFICA_REQUIRED", "Registra data e ora della verifica PEC del destinatario."))
+    if not boolish(_first(payload, "destinatario.pec_pubblico_elenco", "destinatario_pec_pubblico_elenco", fallback=True)):
+        blockers.append(block("PEC_DESTINATARIO_PUBBLICO_ELENCO_REQUIRED", "La PEC destinatario deve essere estratta da pubblico elenco."))
+    if not boolish(_first(payload, "notifica.relata_documento_separato", "relata_documento_separato")):
+        blockers.append(block("RELATA_SEPARATA_REQUIRED", "La relata deve essere generata come documento separato."))
+    if not boolish(_first(payload, "notifica.relata_firmata", "relata_firmata")):
+        blockers.append(block("RELATA_FIRMATA_REQUIRED", "La relata deve essere firmata digitalmente."))
+    if not boolish(payload.get("ricevuta_completa")) or text(payload.get("ricevuta_tipo")).lower() in {"breve", "sintetica", "assente"}:
+        blockers.append(block("RICEVUTA_COMPLETA_REQUIRED", "La notifica PEC L. 53/1994 richiede ricevuta di avvenuta consegna completa."))
 
     if not documents:
         blockers.append("Seleziona almeno un documento da notificare.")
@@ -1005,6 +1053,8 @@ def validate_legal_notification(payload: dict[str, Any]) -> LegalWorkflowResult:
             _validate_proceeding(context, blockers)
             if not document["data_comunicazione_cancelleria"]:
                 blockers.append(f"Documento {document['index']}: indica la data della comunicazione di cancelleria.")
+        if document["necessita_attestazione"] and not _document_attestation_text_present(document, payload):
+            blockers.append(block("ATTESTAZIONE_REQUIRED", f"Documento {document['index']}: attestazione di conformita' obbligatoria per l'origine indicata."))
 
     if context["procedimento"]["presente"] or template.get("requires_proceeding"):
         context["procedimento"]["presente"] = True
@@ -1013,10 +1063,6 @@ def validate_legal_notification(payload: dict[str, Any]) -> LegalWorkflowResult:
     _validate_required_context(template, context, blockers)
 
     if boolish(payload.get("invio_finale")):
-        if not boolish(payload.get("relata_firmata")):
-            blockers.append("Prima dell'invio la relata deve essere firmata digitalmente.")
-        if not boolish(payload.get("ricevuta_completa")):
-            blockers.append("Prima dell'invio va richiesta la ricevuta di avvenuta consegna completa.")
         if boolish(payload.get("destinatari_multipli")) and not boolish(payload.get("conferma_destinatari_multipli")):
             blockers.append("Per piu' destinatari nella stessa PEC serve una conferma esplicita.")
         if not boolish(payload.get("approvazione_avvocato")):
@@ -1220,8 +1266,10 @@ def build_output_plan(payload: dict[str, Any]) -> dict[str, Any]:
         "pec_inviata.eml",
         "ricevuta_accettazione.eml",
         "ricevuta_consegna_completa.eml",
+        "eventuali_avvisi_errore.eml",
         "log_notifica.json",
         "distinta_prova_notifica.pdf",
+        "scheda_esito_notifica.pdf",
     ]
     return {"folder": folder, "files": files}
 
@@ -1339,6 +1387,9 @@ def build_client_communication(payload: dict[str, Any]) -> LegalWorkflowResult:
 
     blockers: list[str] = []
     warnings: list[str] = []
+    operation = text(payload.get("operazione") or _deep_get(payload, "comunicazione.operazione"))
+    if operation != CLIENT_COMMUNICATION_OPERATION:
+        blockers.append(block("CLIENT_COMMUNICATION_OPERATION_REQUIRED", "La comunicazione al cliente deve usare il percorso comunicazione_cliente_non_notifica."))
     if not text(payload.get("cliente_nome") or _deep_get(payload, "cliente.nome_denominazione")):
         blockers.append("Seleziona il cliente destinatario della comunicazione.")
     if is_legal_notification_subject(payload.get("oggetto")):
@@ -1381,6 +1432,223 @@ def build_client_communication(payload: dict[str, Any]) -> LegalWorkflowResult:
     )
 
 
+def _hash_text(value: str) -> str:
+    import hashlib
+
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+def _hash_file_if_available(path_value: Any) -> str:
+    import hashlib
+
+    raw = text(path_value)
+    if not raw:
+        return ""
+    path = Path(raw)
+    if not path.exists() or not path.is_file():
+        return ""
+    digest = hashlib.sha256()
+    with path.open("rb") as fh:
+        for chunk in iter(lambda: fh.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _payload_hash(payload: dict[str, Any], *keys: str) -> str:
+    for key in keys:
+        value = text(payload.get(key))
+        if value:
+            return value
+    return ""
+
+
+def _evidence_item(
+    *,
+    kind: str,
+    label: str,
+    filename: Any,
+    sha256: str = "",
+    required: bool = True,
+    generated: bool = False,
+) -> dict[str, Any]:
+    file_text = text(filename)
+    digest = text(sha256) or _hash_file_if_available(file_text)
+    return {
+        "kind": kind,
+        "label": label,
+        "filename": file_text,
+        "sha256": digest,
+        "required": required,
+        "generated": generated,
+    }
+
+
+def build_notification_evidence_pack(payload: dict[str, Any]) -> dict[str, Any]:
+    """Build the notification/deposit evidence inventory with SHA-256 checks."""
+
+    items: list[dict[str, Any]] = [
+        _evidence_item(
+            kind="atto",
+            label="Atto notificato",
+            filename=payload.get("atto_notificato"),
+            sha256=_payload_hash(payload, "atto_sha256", "atto_notificato_sha256"),
+        ),
+        _evidence_item(
+            kind="relata_firmata",
+            label="Relata firmata",
+            filename=payload.get("relata_firmata"),
+            sha256=_payload_hash(payload, "relata_sha256", "relata_firmata_sha256"),
+        ),
+        _evidence_item(
+            kind="pec_inviata",
+            label="PEC inviata",
+            filename=payload.get("pec_inviata") or payload.get("pec_inviata_file"),
+            sha256=_payload_hash(payload, "pec_inviata_sha256", "pec_sha256"),
+        ),
+    ]
+
+    recipients = payload.get("destinatari")
+    if not isinstance(recipients, list):
+        recipients = [{
+            "nome": payload.get("destinatario_nome"),
+            "rac_file": payload.get("rac_file"),
+            "rac_sha256": payload.get("rac_sha256"),
+            "rdac_file": payload.get("rdac_file"),
+            "rdac_sha256": payload.get("rdac_sha256"),
+        }]
+    for index, recipient in enumerate(recipients, start=1):
+        row = recipient if isinstance(recipient, dict) else {}
+        label = text(row.get("nome"), f"destinatario {index}")
+        items.append(_evidence_item(
+            kind="rac",
+            label=f"RAC {label}",
+            filename=row.get("rac_file"),
+            sha256=text(row.get("rac_sha256")),
+        ))
+        items.append(_evidence_item(
+            kind="rdac_completa",
+            label=f"RdAC completa {label}",
+            filename=row.get("rdac_file"),
+            sha256=text(row.get("rdac_sha256")),
+        ))
+
+    warnings = payload.get("avvisi_errore")
+    if isinstance(warnings, list):
+        for index, warning in enumerate(warnings, start=1):
+            row = warning if isinstance(warning, dict) else {"file": warning}
+            items.append(_evidence_item(
+                kind="avviso_errore",
+                label=f"Avviso errore {index}",
+                filename=row.get("file") or row.get("filename"),
+                sha256=text(row.get("sha256")),
+                required=False,
+            ))
+    elif text(payload.get("avviso_mancata_consegna")):
+        items.append(_evidence_item(
+            kind="avviso_errore",
+            label="Avviso mancata consegna",
+            filename=payload.get("avviso_mancata_consegna"),
+            sha256=_payload_hash(payload, "avviso_mancata_consegna_sha256", "avviso_sha256"),
+            required=False,
+        ))
+
+    generated_log = json.dumps(
+        {
+            "evento": "evidence_pack_notifica",
+            "data_generazione": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+            "atto_notificato": text(payload.get("atto_notificato")),
+            "destinatario": text(payload.get("destinatario_nome")),
+        },
+        ensure_ascii=False,
+        sort_keys=True,
+    )
+    items.extend([
+        _evidence_item(
+            kind="log_json",
+            label="Log JSON",
+            filename=text(payload.get("log_json_file"), "log_notifica.json"),
+            sha256=_payload_hash(payload, "log_json_sha256") or _hash_text(generated_log),
+            generated=True,
+        ),
+        _evidence_item(
+            kind="distinta_prova_notifica",
+            label="Distinta prova notifica",
+            filename=text(payload.get("distinta_prova_notifica"), "distinta_prova_notifica.pdf"),
+            sha256=_payload_hash(payload, "distinta_sha256") or _hash_text("distinta_prova_notifica"),
+            generated=True,
+        ),
+        _evidence_item(
+            kind="scheda_esito",
+            label="Scheda esito",
+            filename=text(payload.get("scheda_esito"), "scheda_esito_notifica.pdf"),
+            sha256=_payload_hash(payload, "scheda_esito_sha256") or _hash_text("scheda_esito_notifica"),
+            generated=True,
+        ),
+    ])
+
+    missing: list[str] = []
+    for item in items:
+        if not item["required"]:
+            continue
+        if not item["filename"]:
+            missing.append(f"{item['label']}: file mancante.")
+        if not item["sha256"]:
+            missing.append(f"{item['label']}: hash SHA-256 mancante.")
+    return {
+        "items": items,
+        "missing": missing,
+        "hashes": {item["kind"]: item["sha256"] for item in items if item["sha256"]},
+    }
+
+
+def prepare_pst_failed_notification_workflow(payload: dict[str, Any]) -> LegalWorkflowResult:
+    """Prepare the PST area web workflow after failed PEC delivery."""
+
+    blockers: list[str] = []
+    warnings: list[str] = []
+    if not boolish(payload.get("pec_non_consegnata")):
+        blockers.append(block("PEC_FAILED_REQUIRED", "Il workflow PST area web richiede una PEC non consegnata."))
+    assessment = text(payload.get("valutazione_avvocato") or payload.get("causa_mancata_consegna"))
+    if not assessment:
+        blockers.append(block("LAWYER_ASSESSMENT_REQUIRED", "Serve la valutazione dell'avvocato sulla causa della mancata consegna."))
+    attributable = boolish(payload.get("causa_imputabile_destinatario"))
+    if assessment and not attributable:
+        warnings.append("La causa non risulta imputabile al destinatario: prepara un canale alternativo e non dichiarare perfezionata la notifica.")
+
+    evidence_pack = build_notification_evidence_pack(payload)
+    if attributable:
+        missing_notice = not text(payload.get("avviso_mancata_consegna"))
+        if missing_notice:
+            blockers.append(block("AVVISO_MANCATA_CONSEGNA_REQUIRED", "Allega l'avviso di mancata consegna."))
+        blockers.extend(block("EVIDENCE_PACK_REQUIRED", item) for item in evidence_pack["missing"])
+
+    ok = not blockers
+    return LegalWorkflowResult(
+        ok=ok,
+        blockers=list(dict.fromkeys(blockers)),
+        warnings=warnings,
+        subject="Workflow area web PST" if attributable else "Valutazione canale alternativo",
+        body=(
+            "Prepara deposito area web PST con atto, relata, RAC e avviso di mancata consegna."
+            if attributable and ok
+            else "Non dichiarare perfezionata la notifica; valuta nuovo invio o canale alternativo."
+        ),
+        template_id="workflow_deposito_area_web_pst" if attributable else "nota_mancata_consegna",
+        template_label="Workflow deposito area web PST" if attributable else "Nota mancata consegna",
+        template_version=template_catalog_version(),
+        next_actions=(
+            "Verifica la causa con l'avvocato responsabile.",
+            "Prepara evidence pack per area web PST.",
+            "Procedi solo con conferma manuale sul portale PST.",
+        ) if attributable else (
+            "Non considerare perfezionata la notifica.",
+            "Scegli un canale alternativo o rinnova la notifica.",
+        ),
+        output_plan={"evidencePack": evidence_pack},
+        log_json={"workflow": "pst_area_web_notifica_fallita", "evidencePack": evidence_pack},
+    )
+
+
 def validate_deposit_notification_proof(payload: dict[str, Any]) -> LegalWorkflowResult:
     """Validate the evidence pack before deposit of notification proof."""
 
@@ -1390,6 +1658,10 @@ def validate_deposit_notification_proof(payload: dict[str, Any]) -> LegalWorkflo
         blockers.append("Inserisci l'atto notificato da depositare come prova.")
     if not text(payload.get("relata_firmata")):
         blockers.append("Allega la relata firmata digitalmente.")
+    if not text(payload.get("pec_inviata") or payload.get("pec_inviata_file")):
+        blockers.append("Allega il messaggio PEC inviato in originale digitale.")
+    if not boolish(payload.get("ricevuta_completa")) and text(payload.get("rdac_tipo")).lower() != "completa":
+        blockers.append(block("RICEVUTA_COMPLETA_REQUIRED", "La prova deposito richiede RdAC completa."))
 
     recipients = payload.get("destinatari")
     if not isinstance(recipients, list):
@@ -1397,6 +1669,8 @@ def validate_deposit_notification_proof(payload: dict[str, Any]) -> LegalWorkflo
             "nome": payload.get("destinatario_nome"),
             "rac_file": payload.get("rac_file"),
             "rdac_file": payload.get("rdac_file"),
+            "rac_sha256": payload.get("rac_sha256"),
+            "rdac_sha256": payload.get("rdac_sha256"),
         }]
     if not recipients:
         blockers.append("Indica almeno un destinatario della notifica.")
@@ -1406,13 +1680,16 @@ def validate_deposit_notification_proof(payload: dict[str, Any]) -> LegalWorkflo
             blockers.append(f"Destinatario {index}: dati ricevute non leggibili.")
             continue
         label = text(recipient.get("nome"), f"destinatario {index}")
-        for field, human in (("rac_file", "ricevuta di accettazione"), ("rdac_file", "ricevuta di avvenuta consegna")):
+        for field, human in (("rac_file", "ricevuta di accettazione"), ("rdac_file", "ricevuta di avvenuta consegna completa")):
             filename = text(recipient.get(field))
             if not filename:
                 blockers.append(f"{label}: manca la {human}.")
                 continue
             if Path(filename).suffix.lower() not in {".eml", ".msg"}:
                 blockers.append(f"{label}: conserva la {human} in originale digitale .eml o .msg.")
+
+    evidence_pack = build_notification_evidence_pack(payload)
+    blockers.extend(block("EVIDENCE_PACK_REQUIRED", item) for item in evidence_pack["missing"])
 
     if not text(payload.get("dati_atto_ricevute")):
         warnings.append("Prepara l'indicizzazione delle ricevute in DatiAtto.xml prima della busta.")
@@ -1435,4 +1712,6 @@ def validate_deposit_notification_proof(payload: dict[str, Any]) -> LegalWorkflo
             "Controlla che RAC e RdAC restino in originale digitale.",
             "Verifica i riferimenti ricevute in DatiAtto.xml.",
         ),
+        output_plan={"evidencePack": evidence_pack},
+        log_json={"evento": "controllo_prova_notifica", "evidencePack": evidence_pack},
     )

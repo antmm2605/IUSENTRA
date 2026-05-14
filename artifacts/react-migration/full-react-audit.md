@@ -2,6 +2,16 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-14T23:10:00+02:00: modulo notifiche legali 2.236.0.
+Audit anti-mascheramento esteso a notifiche e deposito prova: il vecchio
+`pct/notifica.py` non puo' piu' inviare PEC con oggetto generico; il profilo
+deposito non ricade su `portal_upload`; il registry procedimenti distingue
+SICID, SIECIC, SIGP, UNEP, PAT, PTT/SIGIT e PDP; PTT applica 10 MB/50 MB/50
+file/100 caratteri. La UI React mostra esiti e pacchetto prova invece di
+lasciare il click senza fase operativa; la selezione multipla dei documenti
+della pratica alimenta automaticamente l'elenco allegati della relata. Verifica
+browser isolata e Docker locale 2.236.0 completati senza eseguire backup.
+
 Aggiornamento 2026-05-14T10:05:00+02:00: fase react 13 `fasereact`
 2.234.0. L'audit smoke distingue ora controlli passati, falliti, saltati e
 bloccati. L'orchestrator fase 13 non maschera l'assenza di credenziali: auth,

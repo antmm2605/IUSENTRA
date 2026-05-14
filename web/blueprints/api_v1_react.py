@@ -26,6 +26,7 @@ from pct.messaggi import CanaleMsggio, ConfigMessaggistica, GestioneMessaggi, Me
 from pct.notifiche_legali import (
     build_client_communication,
     normalise_custom_template,
+    prepare_pst_failed_notification_workflow,
     preview_legal_relata,
     validate_custom_template_body,
     template_preview_text,
@@ -2031,6 +2032,20 @@ def notifiche_legali_prova_deposito():
     return _notifiche_legali_result_response(
         result,
         success_message="Prova della notifica pronta per il controllo busta.",
+    )
+
+
+@api_v1_react.post("/notifiche-legali/area-web-pst")
+@_richiedi_auth
+def notifiche_legali_area_web_pst():
+    payload, error = _json_payload_or_error()
+    if error is not None:
+        return error
+    assert payload is not None
+    result = prepare_pst_failed_notification_workflow(payload)
+    return _notifiche_legali_result_response(
+        result,
+        success_message="Workflow area web PST preparato per revisione manuale.",
     )
 
 

@@ -2,6 +2,14 @@
 
 Generato: 2026-05-08T10:03:02.066Z
 
+Aggiornamento 2026-05-14: `/notifiche-legali` 2.236.0 rende visibile la fase
+operativa dopo `Controlla relata`, `Controlla prova deposito` e `Prepara
+comunicazione`. Il pannello esito mostra blocchi, file previsti, pacchetto
+prova con SHA-256 e testo generato; la selezione documenti dal fascicolo e'
+multi-scelta e alimenta automaticamente l'elenco allegati della relata. I nuovi
+campi obbligatori restano presentati in linguaggio da studio legale, senza
+termini da sviluppatore.
+
 Aggiornamento 2026-05-12: `Template Atti` 2.218.0 espone catalogo e
 compilatore come superfici operative governate: filtri per stato Cartabia,
 area processuale, dati completi/incompleti e canale, chip di precompilazione,

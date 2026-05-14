@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.236.0 - 2026-05-14
+
+- Reso fail-closed il modulo notifiche legali: la notifica PEC L. 53/1994 richiede operazione `notifica_pec_l53`, avvocato abilitato, PEC mittente validata, fonte pubblica, verifica PEC con data e ora, oggetto esatto, relata separata firmata, ricevuta completa, documenti classificati e attestazioni quando dovute.
+- Disattivato il vecchio `pct/notifica.py`: nessun percorso produttivo puo' piu' inviare una notifica L. 53/1994 con oggetto generico tipo "Notifica telematica".
+- Aggiunto registry ufficiale dei procedimenti telematici per PCT SICID/SIECIC, SIGP, UNEP, PAT, PTT/SIGIT, PDP, area web PST e portali speciali, con blocco su canale/procedimento sconosciuto o incoerente.
+- Corretti i limiti PTT/SIGIT a 10 MB per file, 50 file, 50 MB totali, nome file massimo 100 caratteri e PDF/A-1a/1b obbligatorio quando previsto.
+- Estesi evidence pack, prova deposito e workflow area web PST per notifiche non consegnate, con valutazione avvocato e SHA-256 per gli elementi essenziali.
+- Aggiornata la pagina React Notifiche legali: `Controlla relata`, `Controlla prova deposito` e `Prepara comunicazione` mostrano una fase di esito operativa con file, pacchetto prova e testo generato; la notifica puo' selezionare piu' documenti dal fascicolo e riportarli automaticamente nell'elenco allegati.
+
 ## 2.235.6 - 2026-05-14
 
 - Ripristinato nello Step 4 del wizard PST React e classico il controllo "Aggiorna pratica esistente": quando il percorso arriva da un fascicolo o da URL con `mode=update_existing`, `fascicolo_id` o `target_fascicolo_id`, il wizard parte gia' sulla pratica locale corretta e la verifica non ricade sulla creazione di una nuova pratica.

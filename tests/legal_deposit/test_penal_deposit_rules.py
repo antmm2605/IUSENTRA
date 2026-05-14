@@ -18,6 +18,7 @@ from legal_deposit.validators import DocumentPreflightValidator
 def _pdf(path: Path) -> Path:
     path.write_bytes(
         b"%PDF-1.4\n"
+        b"%pdfaid:part 1 pdfaid:conformance B\n"
         b"1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n"
         b"2 0 obj<</Type/Pages/Count 0>>endobj\n"
         b"trailer<</Root 1 0 R>>\n%%EOF\n"
@@ -28,7 +29,10 @@ def _pdf(path: Path) -> Path:
 def test_channel_profiles_cover_required_channels() -> None:
     codes = {profile.id for profile in list_channel_profiles()}
     assert {
-        "pct_pst",
+        "pct_sicid",
+        "pct_siecic",
+        "sigp_gdp",
+        "unep",
         "pec_stragiudiziale",
         "notifiche_pec",
         "pat_siga",

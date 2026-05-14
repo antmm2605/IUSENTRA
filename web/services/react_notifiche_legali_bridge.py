@@ -339,6 +339,7 @@ def build_react_notifiche_legali_payload(
             "bozzaRelata": "/api/v1/ui/notifiche-legali/bozze-relata",
             "comunicazioneCliente": "/api/v1/ui/notifiche-legali/comunicazione-cliente",
             "provaDeposito": "/api/v1/ui/notifiche-legali/prova-deposito",
+            "areaWebPst": "/api/v1/ui/notifiche-legali/area-web-pst",
             "pecCompose": "/email/scrivi?tipo=notifica_l53",
             "clientCompose": "/email-ordinaria/scrivi?tipo=comunicazione_cliente",
             "fascicoli": "/fascicoli",

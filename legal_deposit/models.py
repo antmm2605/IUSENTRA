@@ -40,6 +40,7 @@ class PreflightResult:
     detail: str = ""
     suggested_fix: str = ""
     auto_fix_available: bool = False
+    manual_review_required: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -49,6 +50,7 @@ class PreflightResult:
             "detail": self.detail,
             "suggested_fix": self.suggested_fix,
             "auto_fix_available": self.auto_fix_available,
+            "manual_review_required": self.manual_review_required,
         }
 
 

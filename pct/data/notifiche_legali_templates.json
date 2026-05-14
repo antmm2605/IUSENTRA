@@ -14,7 +14,41 @@
       "description": "Modello base per notifica a mezzo PEC ex L. 53/1994.",
       "required_fields": [],
       "fields": [],
-      "purpose_lines": []
+      "purpose_lines": [],
+      "category": "relata_l53",
+      "conditional_blocks": [
+        "attestazione_conformita"
+      ],
+      "validation_rules": [
+        "operazione_notifica_pec_l53",
+        "oggetto_l53_obbligatorio",
+        "ricevuta_completa_required",
+        "relata_separata_firmata",
+        "attestazione_required"
+      ],
+      "human_review_required": true,
+      "expected_output": "relata_pdf_separata_da_firmare_digitalmente",
+      "compatibility": {
+        "recipient_roles": [
+          "controparte",
+          "difensore",
+          "pa",
+          "impresa",
+          "professionista",
+          "terzo"
+        ],
+        "document_origins": [
+          "nativo_digitale",
+          "firmato_digitalmente",
+          "originale_informatico",
+          "duplicato_informatico",
+          "copia_fascicolo_informatico",
+          "comunicazione_cancelleria",
+          "scansione_analogico"
+        ],
+        "supports_l53_notification": true,
+        "client_communication_only": false
+      }
     },
     {
       "id": "relata_pec_in_corso_di_causa",
@@ -27,7 +61,42 @@
       "fields": [],
       "purpose_lines": [
         "La notifica viene eseguita in corso di causa, con riferimento al procedimento indicato."
-      ]
+      ],
+      "category": "relata_l53",
+      "conditional_blocks": [
+        "procedimento",
+        "attestazione_conformita"
+      ],
+      "validation_rules": [
+        "operazione_notifica_pec_l53",
+        "oggetto_l53_obbligatorio",
+        "ricevuta_completa_required",
+        "relata_separata_firmata",
+        "attestazione_required"
+      ],
+      "human_review_required": true,
+      "expected_output": "relata_pdf_separata_da_firmare_digitalmente",
+      "compatibility": {
+        "recipient_roles": [
+          "controparte",
+          "difensore",
+          "pa",
+          "impresa",
+          "professionista",
+          "terzo"
+        ],
+        "document_origins": [
+          "nativo_digitale",
+          "firmato_digitalmente",
+          "originale_informatico",
+          "duplicato_informatico",
+          "copia_fascicolo_informatico",
+          "comunicazione_cancelleria",
+          "scansione_analogico"
+        ],
+        "supports_l53_notification": true,
+        "client_communication_only": false
+      }
     },
     {
       "id": "relata_pec_con_attestazione_fascicolo",
@@ -40,7 +109,37 @@
       "fields": [],
       "purpose_lines": [
         "Il modello include l'attestazione automatica dei documenti estratti dal fascicolo informatico."
-      ]
+      ],
+      "category": "relata_l53",
+      "conditional_blocks": [
+        "procedimento",
+        "attestazione_conformita"
+      ],
+      "validation_rules": [
+        "operazione_notifica_pec_l53",
+        "oggetto_l53_obbligatorio",
+        "ricevuta_completa_required",
+        "relata_separata_firmata",
+        "attestazione_required"
+      ],
+      "human_review_required": true,
+      "expected_output": "relata_pdf_separata_da_firmare_digitalmente",
+      "compatibility": {
+        "recipient_roles": [
+          "controparte",
+          "difensore",
+          "pa",
+          "impresa",
+          "professionista",
+          "terzo"
+        ],
+        "document_origins": [
+          "copia_fascicolo_informatico",
+          "comunicazione_cancelleria"
+        ],
+        "supports_l53_notification": true,
+        "client_communication_only": false
+      }
     },
     {
       "id": "relata_pec_con_attestazione_scansione_analogica",
@@ -52,7 +151,35 @@
       "fields": [],
       "purpose_lines": [
         "Il modello include l'attestazione automatica per le copie per immagine da originale analogico."
-      ]
+      ],
+      "category": "relata_l53",
+      "conditional_blocks": [
+        "attestazione_conformita"
+      ],
+      "validation_rules": [
+        "operazione_notifica_pec_l53",
+        "oggetto_l53_obbligatorio",
+        "ricevuta_completa_required",
+        "relata_separata_firmata",
+        "attestazione_required"
+      ],
+      "human_review_required": true,
+      "expected_output": "relata_pdf_separata_da_firmare_digitalmente",
+      "compatibility": {
+        "recipient_roles": [
+          "controparte",
+          "difensore",
+          "pa",
+          "impresa",
+          "professionista",
+          "terzo"
+        ],
+        "document_origins": [
+          "scansione_analogico"
+        ],
+        "supports_l53_notification": true,
+        "client_communication_only": false
+      }
     },
     {
       "id": "relata_pec_provvedimento_da_fascicolo",
@@ -63,11 +190,44 @@
       "requires_proceeding": true,
       "required_fields": [],
       "fields": [
-        {"name": "provvedimento_data", "label": "Data provvedimento"}
+        {
+          "name": "provvedimento_data",
+          "label": "Data provvedimento"
+        }
       ],
       "purpose_lines": [
         "La notifica riguarda provvedimento presente nel fascicolo informatico o ricevuto in via telematica."
-      ]
+      ],
+      "category": "relata_l53",
+      "conditional_blocks": [
+        "procedimento",
+        "attestazione_conformita"
+      ],
+      "validation_rules": [
+        "operazione_notifica_pec_l53",
+        "oggetto_l53_obbligatorio",
+        "ricevuta_completa_required",
+        "relata_separata_firmata",
+        "attestazione_required"
+      ],
+      "human_review_required": true,
+      "expected_output": "relata_pdf_separata_da_firmare_digitalmente",
+      "compatibility": {
+        "recipient_roles": [
+          "controparte",
+          "difensore",
+          "pa",
+          "impresa",
+          "professionista",
+          "terzo"
+        ],
+        "document_origins": [
+          "copia_fascicolo_informatico",
+          "comunicazione_cancelleria"
+        ],
+        "supports_l53_notification": true,
+        "client_communication_only": false
+      }
     },
     {
       "id": "relata_pec_a_societa_impresa",
@@ -75,14 +235,50 @@
       "kind": "relata",
       "label": "A societa' o impresa",
       "description": "Alias operativo per notifica a societa' o impresa.",
-      "recipient_roles": ["impresa"],
-      "required_fields": ["destinatario.codice_fiscale_piva"],
+      "recipient_roles": [
+        "impresa"
+      ],
+      "required_fields": [
+        "destinatario.codice_fiscale_piva"
+      ],
       "fields": [
-        {"name": "destinatario_codice_fiscale_piva", "label": "C.F. / P. IVA destinatario"}
+        {
+          "name": "destinatario_codice_fiscale_piva",
+          "label": "C.F. / P. IVA destinatario"
+        }
       ],
       "purpose_lines": [
         "La notificazione e' rivolta a societa' o impresa all'indirizzo PEC risultante dal pubblico elenco dichiarato."
-      ]
+      ],
+      "category": "relata_l53",
+      "conditional_blocks": [
+        "attestazione_conformita"
+      ],
+      "validation_rules": [
+        "operazione_notifica_pec_l53",
+        "oggetto_l53_obbligatorio",
+        "ricevuta_completa_required",
+        "relata_separata_firmata",
+        "attestazione_required"
+      ],
+      "human_review_required": true,
+      "expected_output": "relata_pdf_separata_da_firmare_digitalmente",
+      "compatibility": {
+        "recipient_roles": [
+          "impresa"
+        ],
+        "document_origins": [
+          "nativo_digitale",
+          "firmato_digitalmente",
+          "originale_informatico",
+          "duplicato_informatico",
+          "copia_fascicolo_informatico",
+          "comunicazione_cancelleria",
+          "scansione_analogico"
+        ],
+        "supports_l53_notification": true,
+        "client_communication_only": false
+      }
     },
     {
       "id": "relata_pec_a_difensore_costituito",
@@ -90,14 +286,50 @@
       "kind": "relata",
       "label": "A difensore costituito",
       "description": "Notifica verso il difensore della controparte gia' costituito.",
-      "recipient_roles": ["difensore"],
-      "required_fields": ["destinatario.parte_rappresentata"],
+      "recipient_roles": [
+        "difensore"
+      ],
+      "required_fields": [
+        "destinatario.parte_rappresentata"
+      ],
       "fields": [
-        {"name": "destinatario_parte_rappresentata", "label": "Parte rappresentata"}
+        {
+          "name": "destinatario_parte_rappresentata",
+          "label": "Parte rappresentata"
+        }
       ],
       "purpose_lines": [
         "{% if destinatario.parte_rappresentata %}Il destinatario e' indicato quale difensore di {{ destinatario.parte_rappresentata }}.{% endif %}"
-      ]
+      ],
+      "category": "relata_l53",
+      "conditional_blocks": [
+        "attestazione_conformita"
+      ],
+      "validation_rules": [
+        "operazione_notifica_pec_l53",
+        "oggetto_l53_obbligatorio",
+        "ricevuta_completa_required",
+        "relata_separata_firmata",
+        "attestazione_required"
+      ],
+      "human_review_required": true,
+      "expected_output": "relata_pdf_separata_da_firmare_digitalmente",
+      "compatibility": {
+        "recipient_roles": [
+          "difensore"
+        ],
+        "document_origins": [
+          "nativo_digitale",
+          "firmato_digitalmente",
+          "originale_informatico",
+          "duplicato_informatico",
+          "copia_fascicolo_informatico",
+          "comunicazione_cancelleria",
+          "scansione_analogico"
+        ],
+        "supports_l53_notification": true,
+        "client_communication_only": false
+      }
     },
     {
       "id": "relata_pec_a_controparte_personalmente",
@@ -105,12 +337,48 @@
       "kind": "relata",
       "label": "A controparte personalmente",
       "description": "Notifica alla controparte in proprio quando ricorrono i presupposti.",
-      "recipient_roles": ["controparte"],
+      "recipient_roles": [
+        "controparte"
+      ],
       "required_fields": [],
       "fields": [],
       "purpose_lines": [
         "La notificazione e' eseguita nei confronti del destinatario personalmente, all'indirizzo risultante dal pubblico elenco indicato."
-      ]
+      ],
+      "category": "relata_l53",
+      "conditional_blocks": [
+        "attestazione_conformita"
+      ],
+      "validation_rules": [
+        "operazione_notifica_pec_l53",
+        "oggetto_l53_obbligatorio",
+        "ricevuta_completa_required",
+        "relata_separata_firmata",
+        "attestazione_required"
+      ],
+      "human_review_required": true,
+      "expected_output": "relata_pdf_separata_da_firmare_digitalmente",
+      "compatibility": {
+        "recipient_roles": [
+          "controparte",
+          "difensore",
+          "pa",
+          "impresa",
+          "professionista",
+          "terzo"
+        ],
+        "document_origins": [
+          "nativo_digitale",
+          "firmato_digitalmente",
+          "originale_informatico",
+          "duplicato_informatico",
+          "copia_fascicolo_informatico",
+          "comunicazione_cancelleria",
+          "scansione_analogico"
+        ],
+        "supports_l53_notification": true,
+        "client_communication_only": false
+      }
     },
     {
       "id": "relata_pec_a_impresa_societa",
@@ -118,14 +386,50 @@
       "kind": "relata",
       "label": "A impresa o societa'",
       "description": "Notifica a impresa o societa' con PEC tratta da Registro Imprese o INI-PEC.",
-      "recipient_roles": ["impresa"],
-      "required_fields": ["destinatario.codice_fiscale_piva"],
+      "recipient_roles": [
+        "impresa"
+      ],
+      "required_fields": [
+        "destinatario.codice_fiscale_piva"
+      ],
       "fields": [
-        {"name": "destinatario_codice_fiscale_piva", "label": "C.F. / P. IVA destinatario"}
+        {
+          "name": "destinatario_codice_fiscale_piva",
+          "label": "C.F. / P. IVA destinatario"
+        }
       ],
       "purpose_lines": [
         "La notificazione e' rivolta a impresa o societa' all'indirizzo PEC risultante dal pubblico elenco dichiarato."
-      ]
+      ],
+      "category": "relata_l53",
+      "conditional_blocks": [
+        "attestazione_conformita"
+      ],
+      "validation_rules": [
+        "operazione_notifica_pec_l53",
+        "oggetto_l53_obbligatorio",
+        "ricevuta_completa_required",
+        "relata_separata_firmata",
+        "attestazione_required"
+      ],
+      "human_review_required": true,
+      "expected_output": "relata_pdf_separata_da_firmare_digitalmente",
+      "compatibility": {
+        "recipient_roles": [
+          "impresa"
+        ],
+        "document_origins": [
+          "nativo_digitale",
+          "firmato_digitalmente",
+          "originale_informatico",
+          "duplicato_informatico",
+          "copia_fascicolo_informatico",
+          "comunicazione_cancelleria",
+          "scansione_analogico"
+        ],
+        "supports_l53_notification": true,
+        "client_communication_only": false
+      }
     },
     {
       "id": "relata_pec_a_professionista_inipec",
@@ -133,12 +437,43 @@
       "kind": "relata",
       "label": "A professionista INI-PEC",
       "description": "Notifica a professionista con domicilio digitale da INI-PEC o albo.",
-      "recipient_roles": ["professionista"],
+      "recipient_roles": [
+        "professionista"
+      ],
       "required_fields": [],
       "fields": [],
       "purpose_lines": [
         "La notificazione e' rivolta a professionista presso il domicilio digitale risultante dal pubblico elenco indicato."
-      ]
+      ],
+      "category": "relata_l53",
+      "conditional_blocks": [
+        "attestazione_conformita"
+      ],
+      "validation_rules": [
+        "operazione_notifica_pec_l53",
+        "oggetto_l53_obbligatorio",
+        "ricevuta_completa_required",
+        "relata_separata_firmata",
+        "attestazione_required"
+      ],
+      "human_review_required": true,
+      "expected_output": "relata_pdf_separata_da_firmare_digitalmente",
+      "compatibility": {
+        "recipient_roles": [
+          "professionista"
+        ],
+        "document_origins": [
+          "nativo_digitale",
+          "firmato_digitalmente",
+          "originale_informatico",
+          "duplicato_informatico",
+          "copia_fascicolo_informatico",
+          "comunicazione_cancelleria",
+          "scansione_analogico"
+        ],
+        "supports_l53_notification": true,
+        "client_communication_only": false
+      }
     },
     {
       "id": "relata_pec_a_pubblica_amministrazione",
@@ -146,12 +481,43 @@
       "kind": "relata",
       "label": "A pubblica amministrazione",
       "description": "Notifica a pubblica amministrazione presso registro pubblico ammesso.",
-      "recipient_roles": ["pa"],
+      "recipient_roles": [
+        "pa"
+      ],
       "required_fields": [],
       "fields": [],
       "purpose_lines": [
         "La notificazione e' rivolta a pubblica amministrazione presso l'indirizzo risultante dal registro pubblico indicato."
-      ]
+      ],
+      "category": "relata_l53",
+      "conditional_blocks": [
+        "attestazione_conformita"
+      ],
+      "validation_rules": [
+        "operazione_notifica_pec_l53",
+        "oggetto_l53_obbligatorio",
+        "ricevuta_completa_required",
+        "relata_separata_firmata",
+        "attestazione_required"
+      ],
+      "human_review_required": true,
+      "expected_output": "relata_pdf_separata_da_firmare_digitalmente",
+      "compatibility": {
+        "recipient_roles": [
+          "pa"
+        ],
+        "document_origins": [
+          "nativo_digitale",
+          "firmato_digitalmente",
+          "originale_informatico",
+          "duplicato_informatico",
+          "copia_fascicolo_informatico",
+          "comunicazione_cancelleria",
+          "scansione_analogico"
+        ],
+        "supports_l53_notification": true,
+        "client_communication_only": false
+      }
     },
     {
       "id": "relata_pec_a_curatore_commissario_liquidatore",
@@ -159,13 +525,52 @@
       "kind": "relata",
       "label": "A curatore, commissario o liquidatore",
       "description": "Notifica a organo di procedura concorsuale o liquidatoria.",
-      "required_fields": ["destinatario.qualifica"],
+      "required_fields": [
+        "destinatario.qualifica"
+      ],
       "fields": [
-        {"name": "destinatario_qualifica", "label": "Qualifica destinatario"}
+        {
+          "name": "destinatario_qualifica",
+          "label": "Qualifica destinatario"
+        }
       ],
       "purpose_lines": [
         "{% if destinatario.qualifica %}Il destinatario riceve la notifica in qualita' di {{ destinatario.qualifica }}.{% endif %}"
-      ]
+      ],
+      "category": "relata_l53",
+      "conditional_blocks": [
+        "attestazione_conformita"
+      ],
+      "validation_rules": [
+        "operazione_notifica_pec_l53",
+        "oggetto_l53_obbligatorio",
+        "ricevuta_completa_required",
+        "relata_separata_firmata",
+        "attestazione_required"
+      ],
+      "human_review_required": true,
+      "expected_output": "relata_pdf_separata_da_firmare_digitalmente",
+      "compatibility": {
+        "recipient_roles": [
+          "controparte",
+          "difensore",
+          "pa",
+          "impresa",
+          "professionista",
+          "terzo"
+        ],
+        "document_origins": [
+          "nativo_digitale",
+          "firmato_digitalmente",
+          "originale_informatico",
+          "duplicato_informatico",
+          "copia_fascicolo_informatico",
+          "comunicazione_cancelleria",
+          "scansione_analogico"
+        ],
+        "supports_l53_notification": true,
+        "client_communication_only": false
+      }
     },
     {
       "id": "relata_provvedimento_giudice",
@@ -173,13 +578,50 @@
       "kind": "relata",
       "label": "Provvedimento del giudice",
       "description": "Notifica di provvedimento giudiziale estratto o ricevuto in via telematica.",
-      "required_fields": ["procedimento.ufficio", "procedimento.numero_rg", "procedimento.anno_rg", "provvedimento.data"],
+      "required_fields": [
+        "procedimento.ufficio",
+        "procedimento.numero_rg",
+        "procedimento.anno_rg",
+        "provvedimento.data"
+      ],
       "fields": [
-        {"name": "provvedimento_data", "label": "Data provvedimento"}
+        {
+          "name": "provvedimento_data",
+          "label": "Data provvedimento"
+        }
       ],
       "purpose_lines": [
         "La notificazione ha ad oggetto provvedimento emesso da {{ procedimento.ufficio }} in data {{ provvedimento.data }}."
-      ]
+      ],
+      "category": "relata_l53",
+      "conditional_blocks": [
+        "attestazione_conformita"
+      ],
+      "validation_rules": [
+        "operazione_notifica_pec_l53",
+        "oggetto_l53_obbligatorio",
+        "ricevuta_completa_required",
+        "relata_separata_firmata",
+        "attestazione_required"
+      ],
+      "human_review_required": true,
+      "expected_output": "relata_pdf_separata_da_firmare_digitalmente",
+      "compatibility": {
+        "recipient_roles": [
+          "controparte",
+          "difensore",
+          "pa",
+          "impresa",
+          "professionista",
+          "terzo"
+        ],
+        "document_origins": [
+          "copia_fascicolo_informatico",
+          "comunicazione_cancelleria"
+        ],
+        "supports_l53_notification": true,
+        "client_communication_only": false
+      }
     },
     {
       "id": "relata_sentenza_termine_breve",
@@ -187,16 +629,67 @@
       "kind": "relata",
       "label": "Sentenza e termine breve",
       "description": "Notifica di sentenza o provvedimento ai fini dei termini di impugnazione.",
-      "required_fields": ["provvedimento.tipo", "provvedimento.numero", "provvedimento.anno", "provvedimento.data_deposito"],
+      "required_fields": [
+        "provvedimento.tipo",
+        "provvedimento.numero",
+        "provvedimento.anno",
+        "provvedimento.data_deposito"
+      ],
       "fields": [
-        {"name": "provvedimento_tipo", "label": "Tipo provvedimento"},
-        {"name": "provvedimento_numero", "label": "Numero provvedimento"},
-        {"name": "provvedimento_anno", "label": "Anno provvedimento"},
-        {"name": "provvedimento_data_deposito", "label": "Data deposito / pubblicazione"}
+        {
+          "name": "provvedimento_tipo",
+          "label": "Tipo provvedimento"
+        },
+        {
+          "name": "provvedimento_numero",
+          "label": "Numero provvedimento"
+        },
+        {
+          "name": "provvedimento_anno",
+          "label": "Anno provvedimento"
+        },
+        {
+          "name": "provvedimento_data_deposito",
+          "label": "Data deposito / pubblicazione"
+        }
       ],
       "purpose_lines": [
         "La notificazione e' eseguita ai fini della decorrenza dei termini di legge relativi a {{ provvedimento.tipo }} n. {{ provvedimento.numero }}/{{ provvedimento.anno }}, depositato o pubblicato in data {{ provvedimento.data_deposito }}."
-      ]
+      ],
+      "category": "relata_l53",
+      "conditional_blocks": [
+        "attestazione_conformita"
+      ],
+      "validation_rules": [
+        "operazione_notifica_pec_l53",
+        "oggetto_l53_obbligatorio",
+        "ricevuta_completa_required",
+        "relata_separata_firmata",
+        "attestazione_required"
+      ],
+      "human_review_required": true,
+      "expected_output": "relata_pdf_separata_da_firmare_digitalmente",
+      "compatibility": {
+        "recipient_roles": [
+          "controparte",
+          "difensore",
+          "pa",
+          "impresa",
+          "professionista",
+          "terzo"
+        ],
+        "document_origins": [
+          "nativo_digitale",
+          "firmato_digitalmente",
+          "originale_informatico",
+          "duplicato_informatico",
+          "copia_fascicolo_informatico",
+          "comunicazione_cancelleria",
+          "scansione_analogico"
+        ],
+        "supports_l53_notification": true,
+        "client_communication_only": false
+      }
     },
     {
       "id": "relata_decreto_ingiuntivo",
@@ -204,15 +697,62 @@
       "kind": "relata",
       "label": "Decreto ingiuntivo",
       "description": "Notifica di decreto ingiuntivo e atti collegati.",
-      "required_fields": ["provvedimento.numero", "provvedimento.anno", "provvedimento.ufficio_origine"],
+      "required_fields": [
+        "provvedimento.numero",
+        "provvedimento.anno",
+        "provvedimento.ufficio_origine"
+      ],
       "fields": [
-        {"name": "provvedimento_numero", "label": "Numero decreto"},
-        {"name": "provvedimento_anno", "label": "Anno decreto"},
-        {"name": "provvedimento_ufficio_origine", "label": "Ufficio che ha emesso il decreto"}
+        {
+          "name": "provvedimento_numero",
+          "label": "Numero decreto"
+        },
+        {
+          "name": "provvedimento_anno",
+          "label": "Anno decreto"
+        },
+        {
+          "name": "provvedimento_ufficio_origine",
+          "label": "Ufficio che ha emesso il decreto"
+        }
       ],
       "purpose_lines": [
         "La notificazione ha ad oggetto decreto ingiuntivo n. {{ provvedimento.numero }}/{{ provvedimento.anno }}, emesso da {{ provvedimento.ufficio_origine }}."
-      ]
+      ],
+      "category": "relata_l53",
+      "conditional_blocks": [
+        "attestazione_conformita"
+      ],
+      "validation_rules": [
+        "operazione_notifica_pec_l53",
+        "oggetto_l53_obbligatorio",
+        "ricevuta_completa_required",
+        "relata_separata_firmata",
+        "attestazione_required"
+      ],
+      "human_review_required": true,
+      "expected_output": "relata_pdf_separata_da_firmare_digitalmente",
+      "compatibility": {
+        "recipient_roles": [
+          "controparte",
+          "difensore",
+          "pa",
+          "impresa",
+          "professionista",
+          "terzo"
+        ],
+        "document_origins": [
+          "nativo_digitale",
+          "firmato_digitalmente",
+          "originale_informatico",
+          "duplicato_informatico",
+          "copia_fascicolo_informatico",
+          "comunicazione_cancelleria",
+          "scansione_analogico"
+        ],
+        "supports_l53_notification": true,
+        "client_communication_only": false
+      }
     },
     {
       "id": "relata_titolo_esecutivo_precetto",
@@ -224,7 +764,41 @@
       "fields": [],
       "purpose_lines": [
         "La notificazione riguarda titolo esecutivo, precetto o atti collegati come indicati nei documenti allegati."
-      ]
+      ],
+      "category": "relata_l53",
+      "conditional_blocks": [
+        "attestazione_conformita"
+      ],
+      "validation_rules": [
+        "operazione_notifica_pec_l53",
+        "oggetto_l53_obbligatorio",
+        "ricevuta_completa_required",
+        "relata_separata_firmata",
+        "attestazione_required"
+      ],
+      "human_review_required": true,
+      "expected_output": "relata_pdf_separata_da_firmare_digitalmente",
+      "compatibility": {
+        "recipient_roles": [
+          "controparte",
+          "difensore",
+          "pa",
+          "impresa",
+          "professionista",
+          "terzo"
+        ],
+        "document_origins": [
+          "nativo_digitale",
+          "firmato_digitalmente",
+          "originale_informatico",
+          "duplicato_informatico",
+          "copia_fascicolo_informatico",
+          "comunicazione_cancelleria",
+          "scansione_analogico"
+        ],
+        "supports_l53_notification": true,
+        "client_communication_only": false
+      }
     },
     {
       "id": "relata_atto_stragiudiziale",
@@ -236,7 +810,41 @@
       "fields": [],
       "purpose_lines": [
         "La presente notificazione viene eseguita quale notificazione di atto stragiudiziale nell'interesse di {{ cliente.nome_denominazione }}."
-      ]
+      ],
+      "category": "relata_l53",
+      "conditional_blocks": [
+        "attestazione_conformita"
+      ],
+      "validation_rules": [
+        "operazione_notifica_pec_l53",
+        "oggetto_l53_obbligatorio",
+        "ricevuta_completa_required",
+        "relata_separata_firmata",
+        "attestazione_required"
+      ],
+      "human_review_required": true,
+      "expected_output": "relata_pdf_separata_da_firmare_digitalmente",
+      "compatibility": {
+        "recipient_roles": [
+          "controparte",
+          "difensore",
+          "pa",
+          "impresa",
+          "professionista",
+          "terzo"
+        ],
+        "document_origins": [
+          "nativo_digitale",
+          "firmato_digitalmente",
+          "originale_informatico",
+          "duplicato_informatico",
+          "copia_fascicolo_informatico",
+          "comunicazione_cancelleria",
+          "scansione_analogico"
+        ],
+        "supports_l53_notification": true,
+        "client_communication_only": false
+      }
     },
     {
       "id": "relata_rinnovo_notifica",
@@ -245,16 +853,63 @@
       "label": "Rinnovo notificazione",
       "description": "Rinnovo ordinato dal giudice o nuovo invio dopo notifica non perfezionata.",
       "requires_proceeding": true,
-      "required_fields": ["procedimento.numero_rg", "procedimento.anno_rg"],
+      "required_fields": [
+        "procedimento.numero_rg",
+        "procedimento.anno_rg"
+      ],
       "fields": [
-        {"name": "notifica_precedente_data", "label": "Data notifica precedente"},
-        {"name": "notifica_precedente_esito", "label": "Esito precedente"},
-        {"name": "provvedimento_rinnovo_data", "label": "Data provvedimento di rinnovo"}
+        {
+          "name": "notifica_precedente_data",
+          "label": "Data notifica precedente"
+        },
+        {
+          "name": "notifica_precedente_esito",
+          "label": "Esito precedente"
+        },
+        {
+          "name": "provvedimento_rinnovo_data",
+          "label": "Data provvedimento di rinnovo"
+        }
       ],
       "purpose_lines": [
         "La presente notificazione viene eseguita quale rinnovo della precedente notifica{% if notifica_precedente.data %} effettuata o tentata in data {{ notifica_precedente.data }}{% endif %}{% if notifica_precedente.esito %}, con esito {{ notifica_precedente.esito }}{% endif %}.",
         "{% if provvedimento_rinnovo.data %}Il rinnovo e' eseguito in conformita' al provvedimento del {{ provvedimento_rinnovo.data }}.{% endif %}"
-      ]
+      ],
+      "category": "relata_l53",
+      "conditional_blocks": [
+        "procedimento",
+        "attestazione_conformita"
+      ],
+      "validation_rules": [
+        "operazione_notifica_pec_l53",
+        "oggetto_l53_obbligatorio",
+        "ricevuta_completa_required",
+        "relata_separata_firmata",
+        "attestazione_required"
+      ],
+      "human_review_required": true,
+      "expected_output": "relata_pdf_separata_da_firmare_digitalmente",
+      "compatibility": {
+        "recipient_roles": [
+          "controparte",
+          "difensore",
+          "pa",
+          "impresa",
+          "professionista",
+          "terzo"
+        ],
+        "document_origins": [
+          "nativo_digitale",
+          "firmato_digitalmente",
+          "originale_informatico",
+          "duplicato_informatico",
+          "copia_fascicolo_informatico",
+          "comunicazione_cancelleria",
+          "scansione_analogico"
+        ],
+        "supports_l53_notification": true,
+        "client_communication_only": false
+      }
     },
     {
       "id": "relata_integrazione_contraddittorio",
@@ -263,13 +918,53 @@
       "label": "Integrazione del contraddittorio",
       "description": "Notifica per integrare il contraddittorio verso litisconsorte o altro soggetto.",
       "requires_proceeding": true,
-      "required_fields": ["provvedimento.data"],
+      "required_fields": [
+        "provvedimento.data"
+      ],
       "fields": [
-        {"name": "provvedimento_data", "label": "Data provvedimento"}
+        {
+          "name": "provvedimento_data",
+          "label": "Data provvedimento"
+        }
       ],
       "purpose_lines": [
         "La presente notificazione viene eseguita ai fini dell'integrazione del contraddittorio nel procedimento indicato, in esecuzione del provvedimento del {{ provvedimento.data }}."
-      ]
+      ],
+      "category": "relata_l53",
+      "conditional_blocks": [
+        "procedimento",
+        "attestazione_conformita"
+      ],
+      "validation_rules": [
+        "operazione_notifica_pec_l53",
+        "oggetto_l53_obbligatorio",
+        "ricevuta_completa_required",
+        "relata_separata_firmata",
+        "attestazione_required"
+      ],
+      "human_review_required": true,
+      "expected_output": "relata_pdf_separata_da_firmare_digitalmente",
+      "compatibility": {
+        "recipient_roles": [
+          "controparte",
+          "difensore",
+          "pa",
+          "impresa",
+          "professionista",
+          "terzo"
+        ],
+        "document_origins": [
+          "nativo_digitale",
+          "firmato_digitalmente",
+          "originale_informatico",
+          "duplicato_informatico",
+          "copia_fascicolo_informatico",
+          "comunicazione_cancelleria",
+          "scansione_analogico"
+        ],
+        "supports_l53_notification": true,
+        "client_communication_only": false
+      }
     },
     {
       "id": "relata_chiamata_terzo",
@@ -278,13 +973,53 @@
       "label": "Chiamata in causa del terzo",
       "description": "Notifica per chiamata di terzo autorizzata o disposta.",
       "requires_proceeding": true,
-      "required_fields": ["provvedimento.data"],
+      "required_fields": [
+        "provvedimento.data"
+      ],
       "fields": [
-        {"name": "provvedimento_data", "label": "Data autorizzazione / provvedimento"}
+        {
+          "name": "provvedimento_data",
+          "label": "Data autorizzazione / provvedimento"
+        }
       ],
       "purpose_lines": [
         "La presente notificazione viene eseguita ai fini della chiamata in causa del terzo, come da autorizzazione o provvedimento del {{ provvedimento.data }}, ove presente tra gli allegati."
-      ]
+      ],
+      "category": "relata_l53",
+      "conditional_blocks": [
+        "procedimento",
+        "attestazione_conformita"
+      ],
+      "validation_rules": [
+        "operazione_notifica_pec_l53",
+        "oggetto_l53_obbligatorio",
+        "ricevuta_completa_required",
+        "relata_separata_firmata",
+        "attestazione_required"
+      ],
+      "human_review_required": true,
+      "expected_output": "relata_pdf_separata_da_firmare_digitalmente",
+      "compatibility": {
+        "recipient_roles": [
+          "controparte",
+          "difensore",
+          "pa",
+          "impresa",
+          "professionista",
+          "terzo"
+        ],
+        "document_origins": [
+          "nativo_digitale",
+          "firmato_digitalmente",
+          "originale_informatico",
+          "duplicato_informatico",
+          "copia_fascicolo_informatico",
+          "comunicazione_cancelleria",
+          "scansione_analogico"
+        ],
+        "supports_l53_notification": true,
+        "client_communication_only": false
+      }
     },
     {
       "id": "relata_riassunzione",
@@ -293,13 +1028,53 @@
       "label": "Riassunzione",
       "description": "Notifica di atto di riassunzione dopo evento processuale.",
       "requires_proceeding": true,
-      "required_fields": ["riassunzione.causa"],
+      "required_fields": [
+        "riassunzione.causa"
+      ],
       "fields": [
-        {"name": "riassunzione_causa", "label": "Causa riassunzione"}
+        {
+          "name": "riassunzione_causa",
+          "label": "Causa riassunzione"
+        }
       ],
       "purpose_lines": [
         "La presente notificazione e' relativa ad atto di riassunzione a seguito di {{ riassunzione.causa }}, come indicato nell'atto notificato."
-      ]
+      ],
+      "category": "relata_l53",
+      "conditional_blocks": [
+        "procedimento",
+        "attestazione_conformita"
+      ],
+      "validation_rules": [
+        "operazione_notifica_pec_l53",
+        "oggetto_l53_obbligatorio",
+        "ricevuta_completa_required",
+        "relata_separata_firmata",
+        "attestazione_required"
+      ],
+      "human_review_required": true,
+      "expected_output": "relata_pdf_separata_da_firmare_digitalmente",
+      "compatibility": {
+        "recipient_roles": [
+          "controparte",
+          "difensore",
+          "pa",
+          "impresa",
+          "professionista",
+          "terzo"
+        ],
+        "document_origins": [
+          "nativo_digitale",
+          "firmato_digitalmente",
+          "originale_informatico",
+          "duplicato_informatico",
+          "copia_fascicolo_informatico",
+          "comunicazione_cancelleria",
+          "scansione_analogico"
+        ],
+        "supports_l53_notification": true,
+        "client_communication_only": false
+      }
     },
     {
       "id": "relata_appello_impugnazione",
@@ -307,17 +1082,72 @@
       "kind": "relata",
       "label": "Appello o impugnazione",
       "description": "Notifica di appello, reclamo, opposizione o altra impugnazione.",
-      "required_fields": ["provvedimento.tipo", "provvedimento.numero", "provvedimento.anno", "provvedimento.ufficio_origine", "provvedimento.data_deposito"],
+      "required_fields": [
+        "provvedimento.tipo",
+        "provvedimento.numero",
+        "provvedimento.anno",
+        "provvedimento.ufficio_origine",
+        "provvedimento.data_deposito"
+      ],
       "fields": [
-        {"name": "provvedimento_tipo", "label": "Tipo provvedimento impugnato"},
-        {"name": "provvedimento_numero", "label": "Numero provvedimento"},
-        {"name": "provvedimento_anno", "label": "Anno provvedimento"},
-        {"name": "provvedimento_ufficio_origine", "label": "Ufficio di origine"},
-        {"name": "provvedimento_data_deposito", "label": "Data deposito / pubblicazione"}
+        {
+          "name": "provvedimento_tipo",
+          "label": "Tipo provvedimento impugnato"
+        },
+        {
+          "name": "provvedimento_numero",
+          "label": "Numero provvedimento"
+        },
+        {
+          "name": "provvedimento_anno",
+          "label": "Anno provvedimento"
+        },
+        {
+          "name": "provvedimento_ufficio_origine",
+          "label": "Ufficio di origine"
+        },
+        {
+          "name": "provvedimento_data_deposito",
+          "label": "Data deposito / pubblicazione"
+        }
       ],
       "purpose_lines": [
         "La notificazione ha ad oggetto atto di impugnazione o appello avverso {{ provvedimento.tipo }} n. {{ provvedimento.numero }}/{{ provvedimento.anno }}, emesso da {{ provvedimento.ufficio_origine }}, depositato o pubblicato in data {{ provvedimento.data_deposito }}."
-      ]
+      ],
+      "category": "relata_l53",
+      "conditional_blocks": [
+        "attestazione_conformita"
+      ],
+      "validation_rules": [
+        "operazione_notifica_pec_l53",
+        "oggetto_l53_obbligatorio",
+        "ricevuta_completa_required",
+        "relata_separata_firmata",
+        "attestazione_required"
+      ],
+      "human_review_required": true,
+      "expected_output": "relata_pdf_separata_da_firmare_digitalmente",
+      "compatibility": {
+        "recipient_roles": [
+          "controparte",
+          "difensore",
+          "pa",
+          "impresa",
+          "professionista",
+          "terzo"
+        ],
+        "document_origins": [
+          "nativo_digitale",
+          "firmato_digitalmente",
+          "originale_informatico",
+          "duplicato_informatico",
+          "copia_fascicolo_informatico",
+          "comunicazione_cancelleria",
+          "scansione_analogico"
+        ],
+        "supports_l53_notification": true,
+        "client_communication_only": false
+      }
     },
     {
       "id": "relata_reclamo_cautelare",
@@ -326,13 +1156,53 @@
       "label": "Reclamo cautelare",
       "description": "Notifica di reclamo contro ordinanza cautelare o provvedimento urgente.",
       "requires_proceeding": true,
-      "required_fields": ["provvedimento.data"],
+      "required_fields": [
+        "provvedimento.data"
+      ],
       "fields": [
-        {"name": "provvedimento_data", "label": "Data provvedimento cautelare"}
+        {
+          "name": "provvedimento_data",
+          "label": "Data provvedimento cautelare"
+        }
       ],
       "purpose_lines": [
         "La notificazione viene eseguita in relazione al reclamo cautelare avverso il provvedimento emesso da {{ procedimento.ufficio }} in data {{ provvedimento.data }}."
-      ]
+      ],
+      "category": "relata_l53",
+      "conditional_blocks": [
+        "procedimento",
+        "attestazione_conformita"
+      ],
+      "validation_rules": [
+        "operazione_notifica_pec_l53",
+        "oggetto_l53_obbligatorio",
+        "ricevuta_completa_required",
+        "relata_separata_firmata",
+        "attestazione_required"
+      ],
+      "human_review_required": true,
+      "expected_output": "relata_pdf_separata_da_firmare_digitalmente",
+      "compatibility": {
+        "recipient_roles": [
+          "controparte",
+          "difensore",
+          "pa",
+          "impresa",
+          "professionista",
+          "terzo"
+        ],
+        "document_origins": [
+          "nativo_digitale",
+          "firmato_digitalmente",
+          "originale_informatico",
+          "duplicato_informatico",
+          "copia_fascicolo_informatico",
+          "comunicazione_cancelleria",
+          "scansione_analogico"
+        ],
+        "supports_l53_notification": true,
+        "client_communication_only": false
+      }
     },
     {
       "id": "relata_sfratto_convalida",
@@ -340,14 +1210,57 @@
       "kind": "relata",
       "label": "Sfratto e convalida",
       "description": "Notifica in procedimento di sfratto, licenza o convalida.",
-      "required_fields": ["sfratto.tipo_procedimento", "sfratto.immobile_indirizzo"],
+      "required_fields": [
+        "sfratto.tipo_procedimento",
+        "sfratto.immobile_indirizzo"
+      ],
       "fields": [
-        {"name": "sfratto_tipo_procedimento", "label": "Tipo procedimento"},
-        {"name": "sfratto_immobile_indirizzo", "label": "Indirizzo immobile"}
+        {
+          "name": "sfratto_tipo_procedimento",
+          "label": "Tipo procedimento"
+        },
+        {
+          "name": "sfratto_immobile_indirizzo",
+          "label": "Indirizzo immobile"
+        }
       ],
       "purpose_lines": [
         "La notificazione viene eseguita nell'ambito del procedimento di {{ sfratto.tipo_procedimento }}, relativo all'immobile sito in {{ sfratto.immobile_indirizzo }}, come meglio indicato nell'atto notificato."
-      ]
+      ],
+      "category": "relata_l53",
+      "conditional_blocks": [
+        "attestazione_conformita"
+      ],
+      "validation_rules": [
+        "operazione_notifica_pec_l53",
+        "oggetto_l53_obbligatorio",
+        "ricevuta_completa_required",
+        "relata_separata_firmata",
+        "attestazione_required"
+      ],
+      "human_review_required": true,
+      "expected_output": "relata_pdf_separata_da_firmare_digitalmente",
+      "compatibility": {
+        "recipient_roles": [
+          "controparte",
+          "difensore",
+          "pa",
+          "impresa",
+          "professionista",
+          "terzo"
+        ],
+        "document_origins": [
+          "nativo_digitale",
+          "firmato_digitalmente",
+          "originale_informatico",
+          "duplicato_informatico",
+          "copia_fascicolo_informatico",
+          "comunicazione_cancelleria",
+          "scansione_analogico"
+        ],
+        "supports_l53_notification": true,
+        "client_communication_only": false
+      }
     },
     {
       "id": "relata_pignoramento_presso_terzi",
@@ -355,15 +1268,61 @@
       "kind": "relata",
       "label": "Pignoramento presso terzi",
       "description": "Notifica di atti esecutivi collegati al pignoramento presso terzi.",
-      "required_fields": ["esecuzione.debitore", "esecuzione.terzo_pignorato"],
+      "required_fields": [
+        "esecuzione.debitore",
+        "esecuzione.terzo_pignorato"
+      ],
       "fields": [
-        {"name": "destinatario_qualifica", "label": "Qualifica destinatario"},
-        {"name": "esecuzione_debitore", "label": "Debitore esecutato"},
-        {"name": "esecuzione_terzo_pignorato", "label": "Terzo pignorato"}
+        {
+          "name": "destinatario_qualifica",
+          "label": "Qualifica destinatario"
+        },
+        {
+          "name": "esecuzione_debitore",
+          "label": "Debitore esecutato"
+        },
+        {
+          "name": "esecuzione_terzo_pignorato",
+          "label": "Terzo pignorato"
+        }
       ],
       "purpose_lines": [
         "La notificazione viene eseguita nell'ambito della procedura esecutiva presso terzi promossa da {{ cliente.nome_denominazione }} nei confronti di {{ esecuzione.debitore }}, con terzo pignorato {{ esecuzione.terzo_pignorato }}, come indicato negli atti allegati."
-      ]
+      ],
+      "category": "relata_l53",
+      "conditional_blocks": [
+        "attestazione_conformita"
+      ],
+      "validation_rules": [
+        "operazione_notifica_pec_l53",
+        "oggetto_l53_obbligatorio",
+        "ricevuta_completa_required",
+        "relata_separata_firmata",
+        "attestazione_required"
+      ],
+      "human_review_required": true,
+      "expected_output": "relata_pdf_separata_da_firmare_digitalmente",
+      "compatibility": {
+        "recipient_roles": [
+          "controparte",
+          "difensore",
+          "pa",
+          "impresa",
+          "professionista",
+          "terzo"
+        ],
+        "document_origins": [
+          "nativo_digitale",
+          "firmato_digitalmente",
+          "originale_informatico",
+          "duplicato_informatico",
+          "copia_fascicolo_informatico",
+          "comunicazione_cancelleria",
+          "scansione_analogico"
+        ],
+        "supports_l53_notification": true,
+        "client_communication_only": false
+      }
     },
     {
       "id": "relata_intervento_esecuzione",
@@ -376,7 +1335,42 @@
       "fields": [],
       "purpose_lines": [
         "La notificazione viene eseguita in relazione alla procedura esecutiva nella quale {{ cliente.nome_denominazione }} interviene quale creditore."
-      ]
+      ],
+      "category": "relata_l53",
+      "conditional_blocks": [
+        "procedimento",
+        "attestazione_conformita"
+      ],
+      "validation_rules": [
+        "operazione_notifica_pec_l53",
+        "oggetto_l53_obbligatorio",
+        "ricevuta_completa_required",
+        "relata_separata_firmata",
+        "attestazione_required"
+      ],
+      "human_review_required": true,
+      "expected_output": "relata_pdf_separata_da_firmare_digitalmente",
+      "compatibility": {
+        "recipient_roles": [
+          "controparte",
+          "difensore",
+          "pa",
+          "impresa",
+          "professionista",
+          "terzo"
+        ],
+        "document_origins": [
+          "nativo_digitale",
+          "firmato_digitalmente",
+          "originale_informatico",
+          "duplicato_informatico",
+          "copia_fascicolo_informatico",
+          "comunicazione_cancelleria",
+          "scansione_analogico"
+        ],
+        "supports_l53_notification": true,
+        "client_communication_only": false
+      }
     },
     {
       "id": "relata_opposizione_decreto_ingiuntivo",
@@ -384,15 +1378,62 @@
       "kind": "relata",
       "label": "Opposizione a decreto ingiuntivo",
       "description": "Notifica di opposizione a decreto ingiuntivo.",
-      "required_fields": ["provvedimento.numero", "provvedimento.anno", "provvedimento.ufficio_origine"],
+      "required_fields": [
+        "provvedimento.numero",
+        "provvedimento.anno",
+        "provvedimento.ufficio_origine"
+      ],
       "fields": [
-        {"name": "provvedimento_numero", "label": "Numero decreto"},
-        {"name": "provvedimento_anno", "label": "Anno decreto"},
-        {"name": "provvedimento_ufficio_origine", "label": "Ufficio decreto"}
+        {
+          "name": "provvedimento_numero",
+          "label": "Numero decreto"
+        },
+        {
+          "name": "provvedimento_anno",
+          "label": "Anno decreto"
+        },
+        {
+          "name": "provvedimento_ufficio_origine",
+          "label": "Ufficio decreto"
+        }
       ],
       "purpose_lines": [
         "La presente notificazione ha ad oggetto atto di opposizione avverso il decreto ingiuntivo n. {{ provvedimento.numero }}/{{ provvedimento.anno }}, emesso da {{ provvedimento.ufficio_origine }}."
-      ]
+      ],
+      "category": "relata_l53",
+      "conditional_blocks": [
+        "attestazione_conformita"
+      ],
+      "validation_rules": [
+        "operazione_notifica_pec_l53",
+        "oggetto_l53_obbligatorio",
+        "ricevuta_completa_required",
+        "relata_separata_firmata",
+        "attestazione_required"
+      ],
+      "human_review_required": true,
+      "expected_output": "relata_pdf_separata_da_firmare_digitalmente",
+      "compatibility": {
+        "recipient_roles": [
+          "controparte",
+          "difensore",
+          "pa",
+          "impresa",
+          "professionista",
+          "terzo"
+        ],
+        "document_origins": [
+          "nativo_digitale",
+          "firmato_digitalmente",
+          "originale_informatico",
+          "duplicato_informatico",
+          "copia_fascicolo_informatico",
+          "comunicazione_cancelleria",
+          "scansione_analogico"
+        ],
+        "supports_l53_notification": true,
+        "client_communication_only": false
+      }
     },
     {
       "id": "relata_opposizione_esecutiva",
@@ -401,13 +1442,53 @@
       "label": "Opposizione esecutiva",
       "description": "Notifica di opposizione all'esecuzione, agli atti esecutivi o istanza collegata.",
       "requires_proceeding": true,
-      "required_fields": ["opposizione.tipo"],
+      "required_fields": [
+        "opposizione.tipo"
+      ],
       "fields": [
-        {"name": "opposizione_tipo", "label": "Tipo opposizione"}
+        {
+          "name": "opposizione_tipo",
+          "label": "Tipo opposizione"
+        }
       ],
       "purpose_lines": [
         "La presente notificazione viene eseguita in relazione a {{ opposizione.tipo }}, nell'ambito della procedura esecutiva indicata."
-      ]
+      ],
+      "category": "relata_l53",
+      "conditional_blocks": [
+        "procedimento",
+        "attestazione_conformita"
+      ],
+      "validation_rules": [
+        "operazione_notifica_pec_l53",
+        "oggetto_l53_obbligatorio",
+        "ricevuta_completa_required",
+        "relata_separata_firmata",
+        "attestazione_required"
+      ],
+      "human_review_required": true,
+      "expected_output": "relata_pdf_separata_da_firmare_digitalmente",
+      "compatibility": {
+        "recipient_roles": [
+          "controparte",
+          "difensore",
+          "pa",
+          "impresa",
+          "professionista",
+          "terzo"
+        ],
+        "document_origins": [
+          "nativo_digitale",
+          "firmato_digitalmente",
+          "originale_informatico",
+          "duplicato_informatico",
+          "copia_fascicolo_informatico",
+          "comunicazione_cancelleria",
+          "scansione_analogico"
+        ],
+        "supports_l53_notification": true,
+        "client_communication_only": false
+      }
     },
     {
       "id": "relata_famiglia_persone_minori",
@@ -421,7 +1502,42 @@
       "fields": [],
       "purpose_lines": [
         "La notificazione viene eseguita nell'ambito del procedimento in materia di famiglia, persone e minori indicato."
-      ]
+      ],
+      "category": "relata_l53",
+      "conditional_blocks": [
+        "procedimento",
+        "attestazione_conformita"
+      ],
+      "validation_rules": [
+        "operazione_notifica_pec_l53",
+        "oggetto_l53_obbligatorio",
+        "ricevuta_completa_required",
+        "relata_separata_firmata",
+        "attestazione_required"
+      ],
+      "human_review_required": true,
+      "expected_output": "relata_pdf_separata_da_firmare_digitalmente",
+      "compatibility": {
+        "recipient_roles": [
+          "controparte",
+          "difensore",
+          "pa",
+          "impresa",
+          "professionista",
+          "terzo"
+        ],
+        "document_origins": [
+          "nativo_digitale",
+          "firmato_digitalmente",
+          "originale_informatico",
+          "duplicato_informatico",
+          "copia_fascicolo_informatico",
+          "comunicazione_cancelleria",
+          "scansione_analogico"
+        ],
+        "supports_l53_notification": true,
+        "client_communication_only": false
+      }
     },
     {
       "id": "relata_provvedimento_urgente",
@@ -430,13 +1546,48 @@
       "label": "Provvedimento urgente o cautelare",
       "description": "Notifica urgente di provvedimento cautelare.",
       "requires_proceeding": true,
-      "required_fields": ["provvedimento.data"],
+      "required_fields": [
+        "provvedimento.data"
+      ],
       "fields": [
-        {"name": "provvedimento_data", "label": "Data provvedimento"}
+        {
+          "name": "provvedimento_data",
+          "label": "Data provvedimento"
+        }
       ],
       "purpose_lines": [
         "La notificazione riguarda il provvedimento urgente o cautelare emesso da {{ procedimento.ufficio }} in data {{ provvedimento.data }}, unitamente agli eventuali allegati."
-      ]
+      ],
+      "category": "relata_l53",
+      "conditional_blocks": [
+        "procedimento",
+        "attestazione_conformita"
+      ],
+      "validation_rules": [
+        "operazione_notifica_pec_l53",
+        "oggetto_l53_obbligatorio",
+        "ricevuta_completa_required",
+        "relata_separata_firmata",
+        "attestazione_required"
+      ],
+      "human_review_required": true,
+      "expected_output": "relata_pdf_separata_da_firmare_digitalmente",
+      "compatibility": {
+        "recipient_roles": [
+          "controparte",
+          "difensore",
+          "pa",
+          "impresa",
+          "professionista",
+          "terzo"
+        ],
+        "document_origins": [
+          "copia_fascicolo_informatico",
+          "comunicazione_cancelleria"
+        ],
+        "supports_l53_notification": true,
+        "client_communication_only": false
+      }
     },
     {
       "id": "relata_accordo_transazione_stragiudiziale",
@@ -448,7 +1599,41 @@
       "fields": [],
       "purpose_lines": [
         "La presente notificazione viene eseguita quale notificazione di atto stragiudiziale, accordo o scrittura privata nell'interesse di {{ cliente.nome_denominazione }}."
-      ]
+      ],
+      "category": "relata_l53",
+      "conditional_blocks": [
+        "attestazione_conformita"
+      ],
+      "validation_rules": [
+        "operazione_notifica_pec_l53",
+        "oggetto_l53_obbligatorio",
+        "ricevuta_completa_required",
+        "relata_separata_firmata",
+        "attestazione_required"
+      ],
+      "human_review_required": true,
+      "expected_output": "relata_pdf_separata_da_firmare_digitalmente",
+      "compatibility": {
+        "recipient_roles": [
+          "controparte",
+          "difensore",
+          "pa",
+          "impresa",
+          "professionista",
+          "terzo"
+        ],
+        "document_origins": [
+          "nativo_digitale",
+          "firmato_digitalmente",
+          "originale_informatico",
+          "duplicato_informatico",
+          "copia_fascicolo_informatico",
+          "comunicazione_cancelleria",
+          "scansione_analogico"
+        ],
+        "supports_l53_notification": true,
+        "client_communication_only": false
+      }
     },
     {
       "id": "corpo_pec_standard",
@@ -463,7 +1648,42 @@
         "{{ notifica.oggetto_pec }}",
         "",
         "Avv. {{ avvocato.nome }} {{ avvocato.cognome }}"
-      ]
+      ],
+      "category": "controllo_prova",
+      "required_fields": [],
+      "conditional_blocks": [
+        "attestazione_conformita"
+      ],
+      "validation_rules": [
+        "operazione_notifica_pec_l53",
+        "oggetto_l53_obbligatorio",
+        "ricevuta_completa_required",
+        "relata_separata_firmata",
+        "attestazione_required"
+      ],
+      "human_review_required": true,
+      "expected_output": "documento_controllo_pre_invio",
+      "compatibility": {
+        "recipient_roles": [
+          "controparte",
+          "difensore",
+          "pa",
+          "impresa",
+          "professionista",
+          "terzo"
+        ],
+        "document_origins": [
+          "nativo_digitale",
+          "firmato_digitalmente",
+          "originale_informatico",
+          "duplicato_informatico",
+          "copia_fascicolo_informatico",
+          "comunicazione_cancelleria",
+          "scansione_analogico"
+        ],
+        "supports_l53_notification": true,
+        "client_communication_only": false
+      }
     },
     {
       "id": "checklist_pre_invio",
@@ -495,7 +1715,42 @@
         "[ ] Ricevuta completa richiesta",
         "[ ] Allegati controllati",
         "[ ] Avvocato ha verificato e autorizzato l'invio"
-      ]
+      ],
+      "category": "controllo_prova",
+      "required_fields": [],
+      "conditional_blocks": [
+        "attestazione_conformita"
+      ],
+      "validation_rules": [
+        "operazione_notifica_pec_l53",
+        "oggetto_l53_obbligatorio",
+        "ricevuta_completa_required",
+        "relata_separata_firmata",
+        "attestazione_required"
+      ],
+      "human_review_required": true,
+      "expected_output": "documento_controllo_pre_invio",
+      "compatibility": {
+        "recipient_roles": [
+          "controparte",
+          "difensore",
+          "pa",
+          "impresa",
+          "professionista",
+          "terzo"
+        ],
+        "document_origins": [
+          "nativo_digitale",
+          "firmato_digitalmente",
+          "originale_informatico",
+          "duplicato_informatico",
+          "copia_fascicolo_informatico",
+          "comunicazione_cancelleria",
+          "scansione_analogico"
+        ],
+        "supports_l53_notification": true,
+        "client_communication_only": false
+      }
     },
     {
       "id": "log_generazione_relata",
@@ -503,7 +1758,42 @@
       "kind": "audit_document",
       "label": "Log generazione relata",
       "description": "Schema di log immutabile collegato alla relata.",
-      "content_lines": []
+      "content_lines": [],
+      "category": "controllo_prova",
+      "required_fields": [],
+      "conditional_blocks": [
+        "attestazione_conformita"
+      ],
+      "validation_rules": [
+        "operazione_notifica_pec_l53",
+        "oggetto_l53_obbligatorio",
+        "ricevuta_completa_required",
+        "relata_separata_firmata",
+        "attestazione_required"
+      ],
+      "human_review_required": true,
+      "expected_output": "log_o_scheda_audit",
+      "compatibility": {
+        "recipient_roles": [
+          "controparte",
+          "difensore",
+          "pa",
+          "impresa",
+          "professionista",
+          "terzo"
+        ],
+        "document_origins": [
+          "nativo_digitale",
+          "firmato_digitalmente",
+          "originale_informatico",
+          "duplicato_informatico",
+          "copia_fascicolo_informatico",
+          "comunicazione_cancelleria",
+          "scansione_analogico"
+        ],
+        "supports_l53_notification": true,
+        "client_communication_only": false
+      }
     },
     {
       "id": "scheda_esito_notifica",
@@ -527,7 +1817,42 @@
         "",
         "Esito: {{ notifica.esito }}",
         "Note: {{ notifica.note }}"
-      ]
+      ],
+      "category": "controllo_prova",
+      "required_fields": [],
+      "conditional_blocks": [
+        "attestazione_conformita"
+      ],
+      "validation_rules": [
+        "operazione_notifica_pec_l53",
+        "oggetto_l53_obbligatorio",
+        "ricevuta_completa_required",
+        "relata_separata_firmata",
+        "attestazione_required"
+      ],
+      "human_review_required": true,
+      "expected_output": "scheda_esito_notifica",
+      "compatibility": {
+        "recipient_roles": [
+          "controparte",
+          "difensore",
+          "pa",
+          "impresa",
+          "professionista",
+          "terzo"
+        ],
+        "document_origins": [
+          "nativo_digitale",
+          "firmato_digitalmente",
+          "originale_informatico",
+          "duplicato_informatico",
+          "copia_fascicolo_informatico",
+          "comunicazione_cancelleria",
+          "scansione_analogico"
+        ],
+        "supports_l53_notification": true,
+        "client_communication_only": false
+      }
     },
     {
       "id": "distinta_prova_notifica",
@@ -544,7 +1869,42 @@
         "- Messaggio PEC inviato",
         "- Ricevuta di accettazione originale",
         "- Ricevuta di avvenuta consegna originale completa"
-      ]
+      ],
+      "category": "controllo_prova",
+      "required_fields": [],
+      "conditional_blocks": [
+        "attestazione_conformita"
+      ],
+      "validation_rules": [
+        "operazione_notifica_pec_l53",
+        "oggetto_l53_obbligatorio",
+        "ricevuta_completa_required",
+        "relata_separata_firmata",
+        "attestazione_required"
+      ],
+      "human_review_required": true,
+      "expected_output": "distinta_prova_notifica_pdf",
+      "compatibility": {
+        "recipient_roles": [
+          "controparte",
+          "difensore",
+          "pa",
+          "impresa",
+          "professionista",
+          "terzo"
+        ],
+        "document_origins": [
+          "nativo_digitale",
+          "firmato_digitalmente",
+          "originale_informatico",
+          "duplicato_informatico",
+          "copia_fascicolo_informatico",
+          "comunicazione_cancelleria",
+          "scansione_analogico"
+        ],
+        "supports_l53_notification": true,
+        "client_communication_only": false
+      }
     },
     {
       "id": "comunicazione_cliente_non_notifica",
@@ -552,7 +1912,36 @@
       "kind": "communication",
       "label": "Comunicazione cliente",
       "description": "Messaggio informativo al cliente, senza relata e senza oggetto L. 53.",
-      "content_lines": []
+      "content_lines": [],
+      "category": "comunicazione_cliente",
+      "required_fields": [],
+      "conditional_blocks": [
+        "attestazione_conformita"
+      ],
+      "validation_rules": [
+        "cliente_non_notifica",
+        "no_relata",
+        "no_oggetto_l53"
+      ],
+      "human_review_required": true,
+      "expected_output": "email_cliente_informativa_senza_relata",
+      "compatibility": {
+        "recipient_roles": [
+          "cliente",
+          "assistito"
+        ],
+        "document_origins": [
+          "nativo_digitale",
+          "firmato_digitalmente",
+          "originale_informatico",
+          "duplicato_informatico",
+          "copia_fascicolo_informatico",
+          "comunicazione_cancelleria",
+          "scansione_analogico"
+        ],
+        "supports_l53_notification": false,
+        "client_communication_only": true
+      }
     },
     {
       "id": "nota_mancata_consegna",
@@ -565,7 +1954,42 @@
         "",
         "La notifica non risulta perfezionata nei confronti del destinatario indicato.",
         "Verificare causa, ricevute, pubblico elenco e percorso di deposito o rinnovo applicabile prima di procedere."
-      ]
+      ],
+      "category": "controllo_prova",
+      "required_fields": [],
+      "conditional_blocks": [
+        "attestazione_conformita"
+      ],
+      "validation_rules": [
+        "operazione_notifica_pec_l53",
+        "oggetto_l53_obbligatorio",
+        "ricevuta_completa_required",
+        "relata_separata_firmata",
+        "attestazione_required"
+      ],
+      "human_review_required": true,
+      "expected_output": "documento_controllo_pre_invio",
+      "compatibility": {
+        "recipient_roles": [
+          "controparte",
+          "difensore",
+          "pa",
+          "impresa",
+          "professionista",
+          "terzo"
+        ],
+        "document_origins": [
+          "nativo_digitale",
+          "firmato_digitalmente",
+          "originale_informatico",
+          "duplicato_informatico",
+          "copia_fascicolo_informatico",
+          "comunicazione_cancelleria",
+          "scansione_analogico"
+        ],
+        "supports_l53_notification": true,
+        "client_communication_only": false
+      }
     },
     {
       "id": "workflow_deposito_area_web_pst",
@@ -578,7 +2002,40 @@
         "",
         "Usare solo quando la notifica non e' andata a buon fine per causa imputabile al destinatario e ricorrono i presupposti del percorso ministeriale dedicato.",
         "Il caso non va chiuso come consegna ordinaria: conservare ricevute, esito e prova del deposito nell'area dedicata."
-      ]
+      ],
+      "category": "workflow_pst",
+      "required_fields": [],
+      "conditional_blocks": [
+        "attestazione_conformita"
+      ],
+      "validation_rules": [
+        "lawyer_assessment_required",
+        "evidence_pack_required",
+        "manual_final_upload"
+      ],
+      "human_review_required": true,
+      "expected_output": "workflow_area_web_pst_con_evidence_pack",
+      "compatibility": {
+        "recipient_roles": [
+          "controparte",
+          "difensore",
+          "pa",
+          "impresa",
+          "professionista",
+          "terzo"
+        ],
+        "document_origins": [
+          "nativo_digitale",
+          "firmato_digitalmente",
+          "originale_informatico",
+          "duplicato_informatico",
+          "copia_fascicolo_informatico",
+          "comunicazione_cancelleria",
+          "scansione_analogico"
+        ],
+        "supports_l53_notification": true,
+        "client_communication_only": false
+      }
     }
   ]
 }

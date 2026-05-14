@@ -429,12 +429,22 @@
   display:grid;
   gap:6px;
 }
-.iu-tel-acquisition__head aside a{
+.iu-tel-acquisition__head aside a,
+.iu-tel-acquisition__head aside button{
   display:inline-flex;
   gap:6px;
   align-items:center;
+  border:0;
+  background:transparent;
+  padding:0;
   color:var(--iu-blue-700);
   font-weight:900;
+  cursor:pointer;
+  text-align:left;
+}
+.iu-tel-acquisition__head aside button:disabled{
+  opacity:.58;
+  cursor:not-allowed;
 }
 .iu-tel-acquisition__steps{
   display:grid;

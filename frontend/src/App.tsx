@@ -386,7 +386,6 @@ const navSections: NavSection[] = [
     items: [
       { label: 'Centro Servizi Telematici', icon: BriefcaseBusiness, href: '/telematico' },
       { label: 'PolisWeb / PST', icon: CloudUpload, href: '/polisWeb' },
-      { label: 'SIGP - Giudice di Pace', icon: Landmark, href: '/sigp/' },
       { label: 'PDP Penale', icon: ShieldCheck, href: '/pdp' },
       { label: 'PAT Amministrativo', icon: FileText, href: '/pat' },
       { label: 'PTT Tributario', icon: FileText, href: '/sigit' },
@@ -483,7 +482,7 @@ function requiredPermissionsForHref(href: string): string[] {
   if (route.startsWith('/scadenziario/nuova')) return ['scadenziario.scrivi']
   if (route.startsWith('/scadenziario') || route.startsWith('/wizard-pro')) return ['scadenziario.leggi']
   if (route.startsWith('/deposito/checklist')) return ['telematico.leggi', 'fascicoli.leggi']
-  if (route.startsWith('/telematico') || route.startsWith('/servizi-telematici') || route.startsWith('/polisweb') || route.startsWith('/pst') || route.startsWith('/sigp') || route.startsWith('/sigp-sync') || route.startsWith('/pdp') || route.startsWith('/pat') || route.startsWith('/ptt') || route.startsWith('/sigit') || route.startsWith('/tribunali') || route.startsWith('/guida/firma-digitale') || route.startsWith('/portali')) return ['telematico.leggi']
+  if (route.startsWith('/telematico') || route.startsWith('/servizi-telematici') || route.startsWith('/polisweb') || route.startsWith('/pst') || route.startsWith('/pdp') || route.startsWith('/pat') || route.startsWith('/ptt') || route.startsWith('/sigit') || route.startsWith('/tribunali') || route.startsWith('/guida/firma-digitale') || route.startsWith('/portali')) return ['telematico.leggi']
   if (route.startsWith('/fatturazione') || route.startsWith('/preventivi') || route.startsWith('/compensi-forensi') || route.startsWith('/tariffario') || route.startsWith('/incassi-pagamenti')) return ['fatturazione.leggi']
   if (route.startsWith('/documenti') || route.startsWith('/template-atti') || route.startsWith('/redazione-atti') || route.startsWith('/giurisprudenza') || route.startsWith('/legal-intelligence') || route.startsWith('/ricerca-legale')) return ['ai.usa', 'fascicoli.leggi']
   if (route.startsWith('/sito-studio') || route.startsWith('/studio') || route.startsWith('/statistiche') || route.startsWith('/strumenti-legali') || route.startsWith('/strumenti-operativi') || route.startsWith('/applicazioni')) return ['admin.leggi', 'fascicoli.leggi']
@@ -526,10 +525,6 @@ function isTelematicoSurfaceRoute(path: string): boolean {
     route === '/pst' ||
     route.startsWith('/polisweb/') ||
     route.startsWith('/pst/') ||
-    route === '/sigp' ||
-    route.startsWith('/sigp/') ||
-    route === '/sigp-sync' ||
-    route.startsWith('/sigp-sync/') ||
     route === '/pdp' ||
     route.startsWith('/pdp/') ||
     route === '/pat' ||
@@ -563,8 +558,6 @@ const legacyOperationalPrefixes = [
   '/portali/ptt/acquisizione',
   '/portali/sigit/acquisizione',
   '/pst',
-  '/sigp',
-  '/sigp-sync',
   '/pdp',
   '/pat',
   '/ptt',

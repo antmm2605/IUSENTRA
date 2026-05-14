@@ -758,24 +758,23 @@
             <div class="flex-grow-1">
               <h6 class="fw-bold mb-1">Seleziona il certificato e conferma il PIN</h6>
               <p class="small text-muted mb-3">
-                IUSENTRA guida adesso tutti i passaggi necessari prima della ricerca PST:
-                selezione del certificato, richiesta del PIN da parte di Windows e
-                verifica dell'autenticazione verso il servizio ministeriale.
-                Il PIN verrà richiesto da Windows durante la connessione al PST.
+                IUSENTRA prepara il certificato di autenticazione web della CNS/CIE.
+                Il PIN viene richiesto da Windows solo quando parte la connessione reale
+                al PST per visualizzare il fascicolo.
               </p>
 
               {# Pulsante seleziona — principale #}
               <ol class="small text-muted ps-3 mb-3">
                 <li>Clicca <strong>Seleziona certificato</strong>.</li>
                 <li>Scegli il certificato di autenticazione web della tua CNS/CIE.</li>
-                <li>Quando Windows mostra la finestra del dispositivo, inserisci il <strong>PIN</strong> e conferma.</li>
+                <li>Avvia la ricerca: Windows chiederà il <strong>PIN</strong> nella connessione al PST.</li>
               </ol>
 
               <div class="alert alert-warning small py-2 mb-3">
                 <i class="bi bi-info-circle me-1"></i>
                 <strong>Il PIN non si inserisce in questa schermata.</strong>
-                Dopo la selezione del certificato IUSENTRA apre la richiesta PIN di Windows.
-                Se non la vedi subito, controlla la barra delle applicazioni o una finestra del middleware aperta dietro al browser.
+                Dopo la selezione del certificato IUSENTRA non apre una richiesta separata:
+                il PIN comparirà solo sulla prima operazione reale verso il PST.
               </div>
 
               <div id="wiz-cert-btn-area" class="mb-3">
@@ -808,17 +807,16 @@
                 <div class="d-flex align-items-start gap-2">
                   <div class="spinner-border spinner-border-sm mt-1 flex-shrink-0"></div>
                   <div>
-                    <strong>Richiesta PIN in corso</strong><br>
-                    Se Windows mostra la finestra del dispositivo, inserisci adesso il PIN
-                    della smart card o del token CNS/CIE e attendi la conferma.
-                    Se non compare nulla davanti al browser, controlla la barra di Windows.
+                    <strong>Preparazione certificato in corso</strong><br>
+                    Sto preparando il certificato scelto. La richiesta PIN arriverà
+                    dalla finestra Windows durante la connessione reale al PST.
                   </div>
                 </div>
               </div>
 
               <div id="wiz-pin-ok" class="alert alert-success small mb-3" style="display:none">
                 <i class="bi bi-shield-check me-1"></i>
-                Certificato verificato e PIN confermato. Puoi proseguire con la ricerca PST.
+                Certificato pronto. Puoi proseguire con la ricerca PST.
               </div>
 
               <div id="wiz-pin-error" class="alert alert-danger small mb-3" style="display:none">
@@ -2028,11 +2026,10 @@ async function _cercaPstViaLocalSigner(tribunale, rg, anno, nomeParte, cf) {
     const cert = await _lsAssicuraCertificato();
 
     if (btn) {
-      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Richiesta PIN...';
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Connessione PST...';
     }
 
-    const preflight = await _lsPreflightAuthPst(tribunale, cert);
-    let sessionId = _lsGetKnownPstSessionId(tribunale, cert) || preflight?.pst_session_id || '';
+    let sessionId = _lsGetKnownPstSessionId(tribunale, cert) || '';
 
     if (btn) {
       btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Ricerca in corso...';
@@ -2042,8 +2039,7 @@ async function _cercaPstViaLocalSigner(tribunale, rg, anno, nomeParte, cf) {
 
     if (!data?.ok && sessionId && _lsLooksLikeExpiredPstSession(data?.errore)) {
       _lsClearPstSession('Sessione scaduta durante la ricerca PST');
-      const preflight2 = await _lsPreflightAuthPst(tribunale, cert, { forceNew: true });
-      sessionId = _lsGetKnownPstSessionId(tribunale, cert) || preflight2?.pst_session_id || '';
+      sessionId = '';
       data = await doSearch(cert, sessionId);
     }
 
@@ -2529,47 +2525,6 @@ function _wizSetPinStatus(stato, msg = '') {
   }
 }
 
-async function _lsPreflightAuthPst(tribunale, cert, options = {}) {
-  const office = String(tribunale || '').trim();
-  if (!office) throw new Error('Ufficio PST mancante.');
-  if (!cert) throw new Error('Certificato mancante.');
-
-  const forceNew = !!options.forceNew;
-  if (forceNew) _lsClearPstSession('Preflight forzato');
-
-  const knownSessionId = forceNew ? '' : _lsGetKnownPstSessionId(office, cert);
-
-  const resp = await fetch(_LS_BASE_PW + '/pst/preflight-auth', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      tribunale: office,
-      cert_thumbprint: cert?.thumbprint || null,
-      slot_id: cert?.token_slot ?? null,
-      pst_session_id: knownSessionId || null,
-      force_auth: forceNew ? true : false,
-    }),
-    signal: AbortSignal.timeout(100000),
-  });
-
-  const data = await resp.json();
-
-  if (data?.ok) {
-    _lsRememberPstSession(data, office, cert);
-    return data;
-  }
-
-  const msg = data?.errore || data?.nota || 'Impossibile verificare certificato e PIN';
-
-  if (knownSessionId && !forceNew && _lsLooksLikeExpiredPstSession(msg)) {
-    _lsClearPstSession('Sessione PST scaduta in preflight');
-    return await _lsPreflightAuthPst(office, cert, { forceNew: true });
-  }
-
-  throw new Error(msg);
-}
-
-
 async function wizVerificaCertificatoPst() {
   const tribunale = document.getElementById('wiz-ufficio-value')?.value || '';
   const btnSel  = document.getElementById('btn-wiz-seleziona');
@@ -2581,12 +2536,11 @@ async function wizVerificaCertificatoPst() {
   if (btnSel) btnSel.disabled = true;
   if (btnAv) {
     btnAv.disabled = true;
-    btnAv.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Attendo PIN Windows...';
+    btnAv.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Preparo certificato...';
   }
 
   try {
-    const preflight = await _lsPreflightAuthPst(tribunale, _wizCertSel);
-    _wizPstSessionId = String(preflight?.pst_session_id || _lsGetKnownPstSessionId(tribunale, _wizCertSel) || '');
+    _wizPstSessionId = String(_lsGetKnownPstSessionId(tribunale, _wizCertSel) || '');
     _wizPinConfermato = true;
     _wizSetPinStatus('ok');
     _wizMostraCertCard(_wizCertSel);
@@ -2602,7 +2556,7 @@ async function wizVerificaCertificatoPst() {
       btnAv.disabled = !_wizPinConfermato && !!_wizCertSel;
       btnAv.innerHTML = _wizPinConfermato
         ? 'Avanti <i class="bi bi-arrow-right ms-1"></i>'
-        : 'Apri PIN Windows <i class="bi bi-box-arrow-up-right ms-1"></i>';
+        : 'Prepara certificato <i class="bi bi-box-arrow-up-right ms-1"></i>';
     }
   }
 }
@@ -2766,7 +2720,7 @@ function _wizMostraCertCard(cert) {
       btnAv.disabled = !_wizPinConfermato;
       btnAv.innerHTML = _wizPinConfermato
         ? 'Avanti <i class="bi bi-arrow-right ms-1"></i>'
-        : 'Apri PIN Windows <i class="bi bi-box-arrow-up-right ms-1"></i>';
+        : 'Prepara certificato <i class="bi bi-box-arrow-up-right ms-1"></i>';
     }
     // Elimina modalità demo: il certificato è presente
     const bannerDemo = document.getElementById('banner-demo');
@@ -2855,8 +2809,8 @@ async function wizApriPicker() {
     _wizSetPinStatus(null);
     _wizMostraCertCard(_wizCertSel);
 
-    // NON fare subito il preflight qui.
-    // Il PIN parte solo quando l'utente preme Avanti.
+    // Non aprire un'autenticazione separata qui.
+    // Il PIN parte solo sulla prima connessione reale al PST.
     return true;
   } catch (err) {
     if (loading) loading.style.display = 'none';
@@ -2921,8 +2875,7 @@ async function wizEseguiRicerca() {
 
     if (!d?.ok && sessionId && _lsLooksLikeExpiredPstSession(d?.errore)) {
       _lsClearPstSession('Sessione scaduta durante ricerca wizard');
-      const preflight2 = await _lsPreflightAuthPst(tribunale, _wizCertSel, { forceNew: true });
-      sessionId = _lsGetKnownPstSessionId(tribunale, _wizCertSel) || preflight2?.pst_session_id || '';
+      sessionId = '';
       d = await doSearch(sessionId);
     }
 
@@ -3113,18 +3066,14 @@ async function _lsDocumentiPerImportazione(fascicolo, cert) {
     return await resp.json();
   };
 
-  // Prima prova: riusa la sessione PST già aperta, senza nuovo preflight
+  // Prima prova: riusa la sessione PST già aperta; se manca, la chiamata
+  // reale ai documenti apre il canale e Windows chiede il PIN una sola volta.
   let sessionId = _lsGetKnownPstSessionId(tribunale, cert) || '';
   let data = await doFetch(sessionId);
 
-  // Se non avevamo una sessione, oppure il PST la rifiuta, fai un solo preflight
-  if (!data?.ok && (!sessionId || _lsLooksLikeExpiredPstSession(data?.errore))) {
-    if (sessionId) {
-      _lsClearPstSession('Sessione scaduta durante acquisizione documenti');
-    }
-
-    const preflight = await _lsPreflightAuthPst(tribunale, cert, { forceNew: !sessionId });
-    sessionId = _lsGetKnownPstSessionId(tribunale, cert) || preflight?.pst_session_id || '';
+  if (!data?.ok && sessionId && _lsLooksLikeExpiredPstSession(data?.errore)) {
+    _lsClearPstSession('Sessione scaduta durante acquisizione documenti');
+    sessionId = '';
     data = await doFetch(sessionId);
   }
 

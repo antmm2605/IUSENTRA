@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-IUSENTRA Local Signer - v1.6.32
+IUSENTRA Local Signer - v1.6.34
 
 Servizio HTTP locale (localhost:27272) che firma documenti con smart card e token CNS/CIE
 (o qualsiasi token PKCS#11) e consente l'accesso autenticato al PST.
@@ -111,7 +111,7 @@ from local_signer_mod.server_bootstrap import print_startup_banner  # noqa: E402
 
 # ── Configurazione ─────────────────────────────────────────────────────────────
 PORT = int(os.getenv("HACS_SIGNER_PORT", "27272"))
-VERSION = "1.6.32"
+VERSION = "1.6.34"
 LOG_LEVEL = os.getenv("HACS_SIGNER_LOG", "INFO")
 PST_SOAP_MAX_TIME = int(os.getenv("HACS_SIGNER_PST_MAX_TIME", "90"))
 PST_SOAP_CONNECT_TIMEOUT = int(os.getenv("HACS_SIGNER_PST_CONNECT_TIMEOUT", "15"))
@@ -1506,6 +1506,8 @@ def _pick_preferred_windows_cert(
         if not matching_cf:
             return None
         lista = matching_cf
+        if len(lista) == 1:
+            return lista[0]
 
     issuer_keywords = _cert_match_keywords(prefer_issuer)
     subject_keywords = _cert_match_keywords(prefer_subject)
@@ -1597,6 +1599,8 @@ def _pick_preferred_windows_cert(
         if not matching_cf:
             return None
         lista = matching_cf
+        if len(lista) == 1:
+            return lista[0]
 
     issuer_keywords = _cert_match_keywords(prefer_issuer)
     subject_keywords = _cert_match_keywords(prefer_subject)
@@ -2632,7 +2636,7 @@ def _curl_disponibile() -> bool:
     """Verifica che curl sia disponibile nel PATH."""
     try:
         r = subprocess.run(
-            ["curl", "--version"], capture_output=True, timeout=5
+            [_curl_command(), "--version"], capture_output=True, timeout=5
         )
         return r.returncode == 0
     except (FileNotFoundError, subprocess.TimeoutExpired):
@@ -2668,8 +2672,10 @@ _CURL_EXIT_CODES = {
         "Verificare che il certificato del dispositivo sia correttamente selezionato."
     ),
     60: (
-        "Il certificato del server PST non è verificabile.\n"
-        "Aggiungere --ssl-no-revoke oppure verificare la catena CA del MinGiust."
+        "La connessione sicura al PST non e' stata accettata dalla postazione locale.\n"
+        "Il Local Signer usa automaticamente il canale Windows corretto; riprova dopo "
+        "aver riavviato Local Signer e il browser. Se resta, verificare proxy/antivirus "
+        "o certificati del Ministero installati sul PC."
     ),
     77: (
         "Permesso negato alla lettura del certificato.\n"
@@ -3088,6 +3094,18 @@ def _format_windows_cert_spec(cert_thumbprint: Optional[str]) -> str:
     return f"CurrentUser\\MY\\{thumbprint}"
 
 
+def _curl_command() -> str:
+    configured = os.getenv("HACS_SIGNER_CURL_PATH", "").strip()
+    if configured:
+        return configured
+    if sys.platform == "win32":
+        system_root = os.getenv("SystemRoot", r"C:\Windows").strip() or r"C:\Windows"
+        system_curl = Path(system_root) / "System32" / "curl.exe"
+        if system_curl.exists():
+            return str(system_curl)
+    return "curl"
+
+
 def _curl_config_escape(value: str) -> str:
     """
     Escape minimo per i valori quotati nel file config di curl (-K).
@@ -3099,6 +3117,14 @@ def _curl_config_escape(value: str) -> str:
     """
     text = str(value or "")
     return text.replace("\\", "\\\\").replace('"', '\\"')
+
+
+def _curl_windows_ssl_revoke_args() -> list[str]:
+    return ["--ssl-no-revoke"] if sys.platform == "win32" else []
+
+
+def _curl_windows_ssl_revoke_config_lines() -> list[str]:
+    return ["ssl-no-revoke"] if sys.platform == "win32" else []
 
 
 def _http_status_from_headers(header_text: str) -> Optional[int]:
@@ -3423,7 +3449,7 @@ def _soap_call_curl_raw(url: str, soap_body: str,
 
     try:
         cmd = [
-            "curl", "-s", "-S",
+            _curl_command(), "-s", "-S",
             "--max-time", str(effective_max_time),
             "--connect-timeout", str(effective_connect_timeout),
             "--location",
@@ -3445,8 +3471,8 @@ def _soap_call_curl_raw(url: str, soap_body: str,
             # curl richiede il path CurrentUser\MY\<thumbprint>
             if cert_thumbprint:
                 cmd.extend(["--cert", _format_windows_cert_spec(cert_thumbprint)])
-            # --ssl-no-revoke per evitare problemi con CRL offline
-            cmd.append("--ssl-no-revoke")
+            # Evita blocchi quando la revoca Schannel/CRL ministeriale non e' raggiungibile.
+            cmd.extend(_curl_windows_ssl_revoke_args())
         elif pkcs11_uri:
             # Linux: curl con PKCS#11 engine
             cmd.extend([
@@ -3610,7 +3636,7 @@ def _soap_call_curl_batch_raw(
                     # CurrentUser\\MY\\<thumbprint>, altrimenti Schannel non
                     # riesce a risolvere il certificato dal Windows Store.
                     cfg_lines.append(f'cert = "{_curl_config_escape(cert_spec)}"')
-                cfg_lines.append("ssl-no-revoke")
+                cfg_lines.extend(_curl_windows_ssl_revoke_config_lines())
             elif pkcs11_uri:
                 cfg_lines += [
                     "engine = pkcs11",
@@ -3630,7 +3656,7 @@ def _soap_call_curl_batch_raw(
 
         log.debug("curl batch: %d richieste SOAP in un solo processo", len(transfers))
         result = subprocess.run(
-            ["curl", "-s", "-S", "-K", cfg_file],
+            [_curl_command(), "-s", "-S", "-K", cfg_file],
             capture_output=True,
             timeout=sum((int(t["max_time"]) + 10) for t in transfers),
         )
@@ -3791,7 +3817,7 @@ def _soap_call_curl_batch_raw_best_effort(
             if sys.platform == "win32":
                 if cert_spec:
                     cfg_lines.append(f'cert = "{_curl_config_escape(cert_spec)}"')
-                cfg_lines.append("ssl-no-revoke")
+                cfg_lines.extend(_curl_windows_ssl_revoke_config_lines())
             elif pkcs11_uri:
                 cfg_lines += [
                     "engine = pkcs11",
@@ -3810,7 +3836,7 @@ def _soap_call_curl_batch_raw_best_effort(
         tmp_files.append(cfg_file)
 
         result = subprocess.run(
-            ["curl", "-s", "-S", "-K", cfg_file],
+            [_curl_command(), "-s", "-S", "-K", cfg_file],
             capture_output=True,
             timeout=sum((int(t["max_time"]) + 10) for t in transfers),
         )
@@ -4192,7 +4218,7 @@ def _pst_preflight_auth_curl(url: str,
 
     try:
         cmd = [
-            "curl", "-s", "-S",
+            _curl_command(), "-s", "-S",
             "--max-time", str(PST_PREFLIGHT_MAX_TIME),
             "--connect-timeout", str(PST_PREFLIGHT_CONNECT_TIMEOUT),
             "--location",
@@ -4207,7 +4233,7 @@ def _pst_preflight_auth_curl(url: str,
         if sys.platform == "win32":
             if cert_thumbprint:
                 cmd.extend(["--cert", _format_windows_cert_spec(cert_thumbprint)])
-            cmd.append("--ssl-no-revoke")
+            cmd.extend(_curl_windows_ssl_revoke_args())
         elif pkcs11_uri:
             cmd.extend([
                 "--engine", "pkcs11",
@@ -6430,7 +6456,7 @@ class _Handler(BaseHTTPRequestHandler):
         ]:
             try:
                 r = subprocess.run(
-                    ["curl", "-s", "-o", null_dev,
+                    [_curl_command(), "-s", "-o", null_dev,
                      "-w", "%{http_code}",
                      "--max-time", "10",
                      "--connect-timeout", "8",
@@ -6797,7 +6823,7 @@ class _Handler(BaseHTTPRequestHandler):
                 "cert_preferences": data.get("cert_preferences") if isinstance(data.get("cert_preferences"), dict) else None,
             }
             try:
-                session_entry, session_created = _ensure_pst_session_entry(
+                session_entry, _session_created = _ensure_pst_session_entry(
                     requested_session_id,
                     **session_kwargs,
                 )
@@ -6808,22 +6834,15 @@ class _Handler(BaseHTTPRequestHandler):
                     "PST ricerca: sessione %s non piu' presente, apertura con nuova sessione",
                     requested_session_id,
                 )
-                session_entry, session_created = _ensure_pst_session_entry(
+                session_entry, _session_created = _ensure_pst_session_entry(
                     "",
                     **session_kwargs,
                 )
             if session_entry and not cf_avvocato:
                 cf_avvocato = str(session_entry.get("cf_avvocato") or "").strip()
             with _pst_session_lock_for(session_entry):
-                session_entry, prefer_cookie_only = _pst_prepare_authenticated_session(
-                    session_entry,
-                    tribunale=tribunale,
-                    base_url=base_url,
-                    cf_avvocato=cf_avvocato,
-                    cert_thumbprint=cert_thumbprint,
-                    force=session_created,
-                )
-            cookie_file = str((session_entry or {}).get("cookie_file") or "")
+                cookie_file = str((session_entry or {}).get("cookie_file") or "")
+                prefer_cookie_only = False
             soap = _soap_ricerca_fascicoli_body(
                 base_url=base_url,
                 codice_ufficio=codice_pst,
@@ -7232,7 +7251,7 @@ class _Handler(BaseHTTPRequestHandler):
                     "Impossibile determinare il codice fiscale dell'avvocato dal certificato selezionato.\n"
                     "Riselezionare il certificato CNS/CIE oppure indicare esplicitamente il codice fiscale."
                 )
-            session_entry, session_created = _ensure_pst_session_entry(
+            session_entry, _session_created = _ensure_pst_session_entry(
                 requested_session_id,
                 tribunale=codice,
                 base_url=base_url,
@@ -7245,15 +7264,8 @@ class _Handler(BaseHTTPRequestHandler):
             if session_entry and not cf_avvocato:
                 cf_avvocato = str(session_entry.get("cf_avvocato") or "").strip()
             with _pst_session_lock_for(session_entry):
-                session_entry, prefer_cookie_only = _pst_prepare_authenticated_session(
-                    session_entry,
-                    tribunale=codice,
-                    base_url=base_url,
-                    cf_avvocato=cf_avvocato,
-                    cert_thumbprint=cert_thumbprint,
-                    force=session_created,
-                )
-            cookie_file = str((session_entry or {}).get("cookie_file") or "")
+                cookie_file = str((session_entry or {}).get("cookie_file") or "")
+                prefer_cookie_only = False
             soap = _soap_documenti_body(
                 base_url=base_url,
                 codice_ufficio=codice_pst,
@@ -7353,7 +7365,7 @@ class _Handler(BaseHTTPRequestHandler):
                     "Impossibile determinare il codice fiscale dell'avvocato dal certificato selezionato.\n"
                     "Riselezionare il certificato CNS/CIE oppure indicare esplicitamente il codice fiscale."
                 )
-            session_entry, session_created = _ensure_pst_session_entry(
+            session_entry, _session_created = _ensure_pst_session_entry(
                 requested_session_id,
                 tribunale=codice,
                 base_url=base_url,
@@ -7367,15 +7379,8 @@ class _Handler(BaseHTTPRequestHandler):
                 cf_avvocato = str(session_entry.get("cf_avvocato") or "").strip()
 
             with _pst_session_lock_for(session_entry):
-                session_entry, prefer_cookie_only = _pst_prepare_authenticated_session(
-                    session_entry,
-                    tribunale=codice,
-                    base_url=base_url,
-                    cf_avvocato=cf_avvocato,
-                    cert_thumbprint=cert_thumbprint,
-                    force=session_created,
-                )
                 cookie_file = str((session_entry or {}).get("cookie_file") or "")
+                prefer_cookie_only = False
                 soap = _soap_documenti_body(
                     base_url=base_url,
                     codice_ufficio=codice_pst,
@@ -7783,7 +7788,7 @@ class _Handler(BaseHTTPRequestHandler):
                 data.get("cert_thumbprint")
             )
             cf_avvocato = _cf_avvocato_pst(data.get("cf_avvocato", ""), cert_thumbprint)
-            session_entry, session_created = _ensure_pst_session_entry(
+            session_entry, _session_created = _ensure_pst_session_entry(
                 requested_session_id,
                 tribunale=tribunale,
                 base_url=base_url,
@@ -7796,15 +7801,12 @@ class _Handler(BaseHTTPRequestHandler):
             if session_entry and not cf_avvocato:
                 cf_avvocato = str(session_entry.get("cf_avvocato") or "").strip()
             with _pst_session_lock_for(session_entry):
-                session_entry, prefer_cookie_only = _pst_prepare_authenticated_session(
-                    session_entry,
-                    tribunale=tribunale,
-                    base_url=base_url,
-                    cf_avvocato=cf_avvocato,
-                    cert_thumbprint=cert_thumbprint,
-                    force=session_created,
-                )
-            cookie_file = str((session_entry or {}).get("cookie_file") or "")
+                cookie_file = str((session_entry or {}).get("cookie_file") or "")
+                prefer_cookie_only = False
+                host = _pst_host(_pst_url_documenti(base_url))
+                if host:
+                    with _mTLS_required_lock:
+                        _mTLS_required_hosts.add(host)
             file_payload = _pst_download_documento_payload(
                 base_url=base_url,
                 codice_ufficio=codice_pst,

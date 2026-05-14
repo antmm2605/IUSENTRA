@@ -657,40 +657,10 @@ function awIsPstSessionExpiredError(err) {
   const text = String(err || '');
   return text.includes('session_expired') || text.includes('Sessione accesso PST scaduta') || text.includes('riaprire il canale autenticato');
 }
-async function awEnsurePstPortalSession(tribunale, { force = false, purpose = 'view' } = {}) {
+function awGetActivePstSession(tribunale, purpose = 'view') {
   const ufficio = String(tribunale || '').trim();
-  if (!ufficio) throw new Error('Seleziona prima l’ufficio giudiziario del fascicolo.');
-  if (!AW_PST_CERT) await awEnsurePstCertReady();
-  const normalizedPurpose = 'view';
-  const currentSession = awGetPstSessionByPurpose(normalizedPurpose);
-  if (!force && awHasActivePstSession(ufficio, normalizedPurpose)) return currentSession;
-  const activePromise = AW_PST_SESSION_PROMISE;
-  if (!force && activePromise) return activePromise;
-  const promise = (async () => {
-    const data = await awJson(`${AW_PST_LS_BASE}/pst/preflight-auth`, {
-      method: 'POST',
-      body: JSON.stringify({
-        tribunale: ufficio,
-        cf_avvocato: AW_STATE.status.codice_fiscale_avvocato || '',
-        cert_thumbprint: AW_PST_CERT?.thumbprint || null,
-        cert_key: AW_PST_CERT?.thumbprint || '',
-        purpose: normalizedPurpose,
-        pst_session_id: !force && currentSession?.session_id ? currentSession.session_id : '',
-        force_auth: !!force,
-        force_new: !!force,
-      }),
-    });
-    if (!data.ok) throw new Error(data.errore || 'Apertura sessione PST non riuscita');
-    return awRememberPstSession(data, ufficio, normalizedPurpose) || awGetPstSessionByPurpose(normalizedPurpose);
-  })();
-  AW_PST_SESSION_PROMISE = promise;
-  AW_PST_IMPORT_SESSION_PROMISE = promise;
-  try {
-    return await promise;
-  } finally {
-    AW_PST_SESSION_PROMISE = null;
-    AW_PST_IMPORT_SESSION_PROMISE = null;
-  }
+  if (!ufficio) return null;
+  return awHasActivePstSession(ufficio, purpose) ? awGetPstSessionByPurpose(purpose) : null;
 }
 function awGoStep(step) {
   AW_STATE.step = step;
@@ -746,7 +716,7 @@ function awGuidedBrowserAssistInfo(query = null) {
   if (AW_BOOT.portale === 'pdp') {
     info.reason = "Il Portale Deposito atti Penali usa l'area riservata PST nel browser ufficiale." + commonSuffix;
   } else if (AW_BOOT.portale === 'pst') {
-    info.reason = "PST / PolisWeb e SIGP Giudice di Pace richiedono una sessione autenticata locale. IUSENTRA usa il Local Signer quando disponibile e, se l'anteprima non risponde, continua senza bloccare l'acquisizione." + commonSuffix;
+    info.reason = "PST / PolisWeb richiede una sessione autenticata locale. IUSENTRA usa il Local Signer quando disponibile e, se l'anteprima non risponde, continua senza bloccare l'acquisizione." + commonSuffix;
     info.metaReady = 'PST / PolisWeb: puoi proseguire con acquisizione assistita e completare documenti/eventi dal portale ufficiale.';
     info.metaMissing = 'Compila ufficio, numero e anno per continuare con acquisizione PST assistita.';
   } else if (AW_BOOT.portale === 'pat') {
@@ -954,7 +924,7 @@ function awBuildManualSelection(query, reason = '', portaleUrl = '') {
       anno_rg: base.anno,
       ruolo: procedimento,
       registro_portale: registro,
-      canale_telematico: registro === 'GDP' ? 'PST/SIGP' : 'PST/PolisWeb',
+      canale_telematico: 'PST/PolisWeb',
       stato: base.stato,
       oggetto: query.oggetto || '',
       sezione: '',
@@ -1039,7 +1009,7 @@ function awManualNoticeHtml() {
     : (AW_BOOT.portale === 'ptt'
       ? "IUSENTRA continua con i dati di RG, ufficio e parti gia' inseriti. Consultazione del fascicolo, Telecontenzioso, accesso temporaneo e download del fascicolo processuale si completano nel portale ufficiale PTT / SIGIT; poi importi nel gestionale file, ricevute, provvedimenti ed esiti."
       : (AW_BOOT.portale === 'pst'
-        ? "IUSENTRA continua con i dati di RG, ufficio e parti gia' inseriti. Se la preview PST/SIGP non risponde, puoi importare subito la pratica e poi completare documenti, eventi e catalogo depositi dai file scaricati o dal Local Signer."
+        ? "IUSENTRA continua con i dati di RG, ufficio e parti gia' inseriti. Se la preview PST non risponde, puoi importare subito la pratica e poi completare documenti, eventi e catalogo depositi dai file scaricati o dal Local Signer."
         : "IUSENTRA continua con i dati di RG, ufficio e parti gia' inseriti. Documenti, eventi e catalogo di deposito possono essere completati dal portale ufficiale dopo l'importazione."));
   return `
     <div class="alert alert-warning rounded-4 mb-3">
@@ -1237,6 +1207,7 @@ async function awPstSearchViaLocalSigner(query, retry = true) {
   const tribunale = String(query.ufficio_codice || '').trim();
   if (awCanUsePstSearchSnapshot(query)) {
     await awEnsurePstCertReady();
+    const activeSession = awGetActivePstSession(tribunale, 'view');
     try {
       const data = await awJson(`${AW_PST_LS_BASE}/pst/ricerca-snapshot`, {
         method: 'POST',
@@ -1252,7 +1223,7 @@ async function awPstSearchViaLocalSigner(query, retry = true) {
           cert_thumbprint: AW_PST_CERT?.thumbprint || null,
           cert_key: AW_PST_CERT?.thumbprint || '',
           purpose: 'view',
-          pst_session_id: AW_PST_SESSION?.session_id || '',
+          pst_session_id: activeSession?.session_id || '',
         }),
       });
       if (!data.ok) {
@@ -1272,7 +1243,8 @@ async function awPstSearchViaLocalSigner(query, retry = true) {
       if (!/not found/i.test(awErrorMessage(err))) throw err;
     }
   }
-  await awEnsurePstPortalSession(tribunale, { purpose: 'view' });
+  await awEnsurePstCertReady();
+  const activeSession = awGetActivePstSession(tribunale, 'view');
   try {
     const data = await awJson(`${AW_PST_LS_BASE}/pst/ricerca`, {
       method: 'POST',
@@ -1286,7 +1258,7 @@ async function awPstSearchViaLocalSigner(query, retry = true) {
         cert_thumbprint: AW_PST_CERT?.thumbprint || null,
         cert_key: AW_PST_CERT?.thumbprint || '',
         purpose: 'view',
-        pst_session_id: AW_PST_SESSION?.session_id || '',
+        pst_session_id: activeSession?.session_id || '',
       }),
     });
     if (!data.ok) throw new Error(data.errore || 'Ricerca PST non riuscita');
@@ -1304,7 +1276,8 @@ async function awPstPreviewViaLocalSigner(selection, retry = true) {
   const tribunale = String(selection?.ufficio_codice || '').trim();
   if (AW_PST_SNAPSHOT_PROMISE) return AW_PST_SNAPSHOT_PROMISE;
   if (AW_STATE.pstSnapshot?.documenti?.length) return AW_STATE.pstSnapshot.documenti;
-  await awEnsurePstPortalSession(tribunale, { purpose: 'view' });
+  await awEnsurePstCertReady();
+  const activeSession = awGetActivePstSession(tribunale, 'view');
   try {
     AW_PST_SNAPSHOT_PROMISE = (async () => {
       const data = await awJson(`${AW_PST_LS_BASE}/pst/fascicolo-snapshot`, {
@@ -1320,7 +1293,7 @@ async function awPstPreviewViaLocalSigner(selection, retry = true) {
           cert_thumbprint: AW_PST_CERT?.thumbprint || null,
           cert_key: AW_PST_CERT?.thumbprint || '',
           purpose: 'view',
-          pst_session_id: AW_PST_SESSION?.session_id || '',
+          pst_session_id: activeSession?.session_id || '',
         }),
       });
       if (!data.ok) throw new Error(data.errore || 'Anteprima documenti PST non riuscita');
@@ -2314,7 +2287,7 @@ function awRenderPreview() {
 }
 async function awApplyLocalSignerDocumentsToPreview(documenti, { tab = 'documenti', refreshAnalysis = true } = {}) {
   const selection = AW_STATE.selection;
-  if (!selection) throw new Error('Seleziona prima un fascicolo PST/SIGP.');
+  if (!selection) throw new Error('Seleziona prima un fascicolo PST.');
   const currentIndex = AW_STATE.results.findIndex(row => row.external_id === selection.external_id);
   let cleanSelection = selection;
   const safeDocuments = Array.isArray(documenti) ? documenti : [];
@@ -2365,7 +2338,7 @@ async function awLoadDocumentsFromLocalSigner() {
   const btn = document.getElementById('awLoadDocuments');
   const selection = AW_STATE.selection;
   if (!awCanPreviewPstViaBrowser(selection)) {
-    alert('Seleziona prima un fascicolo PST/SIGP con ufficio, numero e anno.');
+    alert('Seleziona prima un fascicolo PST con ufficio, numero e anno.');
     return;
   }
   const oldHtml = btn?.innerHTML || '';
@@ -2390,7 +2363,7 @@ async function awLoadDocumentsFromLocalSigner() {
     if (!Array.isArray(documenti) || !documenti.length) {
       document.getElementById('awPreview').insertAdjacentHTML(
         'afterbegin',
-        '<div class="alert alert-warning rounded-4 mb-3">Il Local Signer ha risposto, ma non ha restituito documenti per questo fascicolo. Verifica la sessione PST/SIGP nel browser ufficiale e riprova.</div>',
+        '<div class="alert alert-warning rounded-4 mb-3">Il Local Signer ha risposto, ma non ha restituito documenti per questo fascicolo. Verifica la sessione PST nel browser ufficiale e riprova.</div>',
       );
     }
   } catch (err) {

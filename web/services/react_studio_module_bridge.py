@@ -376,7 +376,6 @@ def _build_preventivi(
     clienti = _safe("clienti", lambda: get_clienti().tutti(), [])
     fascicoli = _safe("fascicoli", lambda: get_fascicoli().tutti(), [])
     clienti_by_id = {str(getattr(cliente, "id", "")): cliente for cliente in clienti}
-    fascicoli_by_id = {str(getattr(fascicolo, "id", "")): fascicolo for fascicolo in fascicoli}
     studio = _studio_forense(config, get_config_studio)
 
     id_preventivo = _query_value(query, "id_preventivo")
@@ -740,7 +739,7 @@ _GENERIC_OPERATION_CATALOG: dict[str, list[tuple[str, str, str, list[tuple[str, 
         ("acquisizione-pst", "Acquisizione PST", "Apre il percorso guidato per import autorizzato da PST.", [("Apri acquisizione", "/portali/pst/acquisizione", "GET")]),
         ("checklist-import-pst", "Checklist import PST", "Porta ai prerequisiti operativi del flusso PST.", [("Verifica flusso", "/portali/pst/acquisizione#checklist-operativa", "GET")]),
         ("fascicoli", "Fascicoli", "Controlla o crea la pratica locale prima dell'import.", [("Apri fascicoli", "/fascicoli", "GET")]),
-        ("centro-telematico", "Centro telematico", "Rientra nel quadro unico dei servizi telematici.", [("Apri centro", "/app-v2/telematico", "GET")]),
+        ("centro-telematico", "Centro telematico", "Rientra nel quadro unico dei servizi telematici.", [("Apri centro", "/telematico", "GET")]),
     ],
     "statistiche": [
         ("cruscotto-grafici", "Cruscotto grafici", "Apre indicatori, grafici e riepiloghi direzionali.", [("Apri cruscotto", "/statistiche", "GET")]),

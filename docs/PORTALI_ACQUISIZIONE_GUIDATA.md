@@ -31,9 +31,12 @@ GET  /api/portali/<ptt|pat|pdp>/assistant/<session_id>/status
 POST /api/portali/<ptt|pat|pdp>/assistant/<session_id>/collect
 POST /api/portali/<ptt|pat|pdp>/assistant/<session_id>/close
 POST /api/portali/<ptt|pat|pdp>/assistant/<session_id>/cancel
+POST /api/portali/<ptt|pat|pdp>/acquisizione/importa-file
 ```
 
 `pst` viene rifiutato da questo flusso perché resta direct internal. Se Local Connector non e' raggiungibile, lo stato resta `local_connector_required`: il flusso principale non degrada a un semplice link esterno.
+
+La UI React di PDP/PAT/PTT non espone il portale ufficiale come CTA primaria: parte da `Sessione IUSENTRA`, apre la sessione locale assistita, raccoglie i file nel software e li importa nel fascicolo scelto. `importa-file` salva i binari in `Documenti fascicolo`, collega ricevute/esiti a depositi, timeline ed evidence pack quando riconoscibili, e aggiorna audit/metadati del fascicolo. Il payload JSON autorizzato resta su `importa-payload` e non richiede selezione/anteprima fittizia.
 
 ## Deposito assistito PTT/PAT/PDP
 
@@ -75,5 +78,5 @@ Il JSON puo contenere `fascicolo`, `parti`, `eventi`, `udienze`, `documenti`, `c
 
 - I documenti dei portali PAT/PDP/PTT non vengono piu classificati come servizio `PAT`, `PDP` o `PTT`: nel catalogo del fascicolo restano `DocumentiFascicolo`.
 - Il wizard accetta file `.json` autorizzati oltre a ZIP, PDF, P7M, EML, MSG, XML e cartelle scaricate.
-- I test `tests/test_portali_payload_import_ui.py` verificano che PDP, PAT e PTT arrivino realmente nella UI fascicolo con documenti, attivita, udienze, comunicazioni e istanze.
+- I test `tests/test_portali_payload_import_ui.py` verificano che PDP, PAT e PTT arrivino realmente nella UI fascicolo con documenti, attivita, udienze, comunicazioni e istanze, e che `importa-file` smisti file/ricevute nel fascicolo interno senza uscire dal flusso IUSENTRA.
 - I test verificano inoltre policy fail-closed, guard dei client diretti, endpoint di sessione assistita, finalizzazione deposito senza evidenza ufficiale e import ricevute in Comunicazioni/Cancelleria con timeline/evidence pack.

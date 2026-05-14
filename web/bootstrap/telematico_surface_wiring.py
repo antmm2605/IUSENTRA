@@ -35,6 +35,7 @@ def register_telematico_surfaces(
         _analyze_portale_import=telematico["analyze_portale_import"],
         _normalize_authorized_portale_payload=telematico["normalize_authorized_portale_payload"],
         _importa_o_collega_fascicolo_portale=telematico["importa_o_collega_fascicolo_portale"],
+        _importa_file_assistiti_portale=telematico["importa_file_assistiti_portale"],
         _portal_assistant_start=telematico["portal_assistant_start"],
         _portal_assistant_open=telematico["portal_assistant_open"],
         _portal_assistant_watch_downloads=telematico["portal_assistant_watch_downloads"],

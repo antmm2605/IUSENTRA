@@ -334,7 +334,7 @@ def build_react_messaggi_payload(
             "status": _text(query.get("stato") or query.get("status")).upper(),
         },
         "actions": {
-            "newMessage": "/app-v2/messaggi/nuovo",
+            "newMessage": "/messaggi/nuovo",
             "sendEndpoint": "/messaggi/nuovo",
             "settings": "/impostazioni",
             "emailSettings": "/email/impostazioni",
@@ -375,7 +375,7 @@ def build_react_messaggi_nuovo_payload(
             "fromCliente": _text(query.get("from_cliente") or query.get("fromCliente")),
         },
         "actions": {
-            "messagesList": "/app-v2/messaggi",
+            "messagesList": "/messaggi",
             "sendEndpoint": "/messaggi/nuovo",
             "clientFolder": f"/clienti/{id_cliente}/cartella" if id_cliente else "",
         },

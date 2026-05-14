@@ -52,8 +52,6 @@ _REACT_PREFIXES = (
     "/scadenziario",
     "/servizi-telematici",
     "/sigit",
-    "/sigp",
-    "/sigp-sync",
     "/sincronizzazione-calendari",
     "/soggetti",
     "/sito-studio",
@@ -173,8 +171,6 @@ _LEGACY_OPERATIONAL_PREFIXES = (
     "/portali",
     "/servizi-telematici",
     "/sigit",
-    "/sigp",
-    "/sigp-sync",
     "/telematico",
     "/tribunali",
 )

@@ -24,6 +24,7 @@ def register_portali_acquisizione_routes(
     _analyze_portale_import: Callable[[str, dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any]], dict[str, Any]],
     _normalize_authorized_portale_payload: Callable[[str, dict[str, Any]], dict[str, Any]],
     _importa_o_collega_fascicolo_portale: Callable[..., dict[str, Any]],
+    _importa_file_assistiti_portale: Callable[[str, dict[str, Any]], dict[str, Any]],
     _portal_assistant_start: Callable[[str, dict[str, Any]], dict[str, Any]],
     _portal_assistant_open: Callable[[str, str], dict[str, Any]],
     _portal_assistant_watch_downloads: Callable[[str, str], dict[str, Any]],
@@ -224,6 +225,17 @@ def register_portali_acquisizione_routes(
             return jsonify({"ok": True, "normalized": normalized, "result": result, **result})
         except Exception as e:
             app.logger.exception("Errore api_portale_acquisizione_importa_payload(%s): %s", portale, e)
+            return jsonify({"ok": False, "errore": str(e)}), 200
+
+    @app.route("/api/portali/<portale>/acquisizione/importa-file", methods=["POST"])
+    def api_portale_acquisizione_importa_file(portale: str):
+        try:
+            _spec_portale_acquisizione(portale)
+            data = request.get_json(silent=True) or {}
+            result = _importa_file_assistiti_portale(portale, data)
+            return jsonify({"ok": True, "result": result, **result})
+        except Exception as e:
+            app.logger.exception("Errore api_portale_acquisizione_importa_file(%s): %s", portale, e)
             return jsonify({"ok": False, "errore": str(e)}), 200
 
     @app.route("/api/portali/<portale>/assistant/start", methods=["POST"])

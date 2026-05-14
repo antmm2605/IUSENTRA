@@ -114,7 +114,7 @@ const channelDefaults: Record<TelematicoChannelId, Omit<TelematicoChannel, 'case
     id: 'pst',
     label: 'PST / PolisWeb',
     title: 'PST / PolisWeb',
-    description: 'Consultazione civile, SIGP e import autorizzato dei fascicoli già scaricati.',
+    description: 'Consultazione civile e import autorizzato dei fascicoli già scaricati.',
     tone: 'primary',
     homeHref: '/polisWeb',
     importHref: '/portali/pst/acquisizione',
@@ -146,7 +146,7 @@ const channelDefaults: Record<TelematicoChannelId, Omit<TelematicoChannel, 'case
     title: 'PTT Tributario',
     description: 'Telecontenzioso, SIGIT, fascicoli tributari e ricevute importate.',
     tone: 'warning',
-    homeHref: '/app-v2/ptt',
+    homeHref: '/sigit',
     importHref: '/portali/ptt/acquisizione',
     presideHref: '/telematico?focus=ptt',
   },
@@ -218,6 +218,13 @@ function text(value: unknown, fallback = ''): string {
   return String(value ?? fallback).trim()
 }
 
+function canonicalHref(value: unknown, fallback = ''): string {
+  const raw = text(value, fallback)
+  if (!raw.startsWith('/app-v2')) return raw
+  if (raw === '/app-v2') return '/'
+  return raw.replace(/^\/app-v2(?=\/|$)/, '') || '/'
+}
+
 function display(value: unknown, fallback = ''): string {
   return sanitizeDisplayText(text(value, fallback))
 }
@@ -269,7 +276,7 @@ function normaliseAction(value: unknown, fallback: { label: string; href: string
   const item = isRecord(value) ? value : {}
   return {
     label: display(item.label, fallback.label),
-    href: text(item.href, fallback.href),
+    href: canonicalHref(item.href, fallback.href),
     tone: tone(item.tone, fallback.tone || 'neutral'),
   }
 }
@@ -286,9 +293,9 @@ function normaliseChannel(value: unknown, index: number): TelematicoChannel {
       { label: 'Presidia', href: defaults.presideHref, tone: 'warning' as Tone },
     ][actionIndex] || { label: 'Apri', href: defaults.presideHref }))
     : [
-      { label: 'Apri portale', href: text(item.homeHref ?? item.home_url, defaults.homeHref), tone: defaults.tone },
-      { label: 'Importa da portale', href: text(item.importHref ?? item.acquisizione_url, defaults.importHref), tone: 'primary' as Tone },
-      { label: 'Presidia', href: text(item.presideHref ?? item.preside_href, defaults.presideHref), tone: 'warning' as Tone },
+      { label: 'Apri portale', href: canonicalHref(item.homeHref ?? item.home_url, defaults.homeHref), tone: defaults.tone },
+      { label: 'Importa da portale', href: canonicalHref(item.importHref ?? item.acquisizione_url, defaults.importHref), tone: 'primary' as Tone },
+      { label: 'Presidia', href: canonicalHref(item.presideHref ?? item.preside_href, defaults.presideHref), tone: 'warning' as Tone },
     ]
   return {
     ...defaults,
@@ -302,9 +309,9 @@ function normaliseChannel(value: unknown, index: number): TelematicoChannel {
     importCompleted: number(item.importCompleted ?? item.import_completed),
     attentionNeeded: number(item.attentionNeeded ?? item.attention_needed),
     lastSyncAt: text(item.lastSyncAt ?? item.last_sync_at),
-    homeHref: text(item.homeHref ?? item.home_url, defaults.homeHref),
-    importHref: text(item.importHref ?? item.acquisizione_url, defaults.importHref),
-    presideHref: text(item.presideHref ?? item.preside_href, defaults.presideHref),
+    homeHref: canonicalHref(item.homeHref ?? item.home_url, defaults.homeHref),
+    importHref: canonicalHref(item.importHref ?? item.acquisizione_url, defaults.importHref),
+    presideHref: canonicalHref(item.presideHref ?? item.preside_href, defaults.presideHref),
     browserChannelRequired: bool(item.browserChannelRequired ?? item.browser_channel_required),
     demoMode: bool(item.demoMode ?? item.demo_mode),
     pkcs11Mode: bool(item.pkcs11Mode ?? item.pkcs11_mode),
@@ -328,7 +335,7 @@ function normaliseCase(value: unknown, index: number): TelematicoCase {
     documentsCount: number(item.documentsCount ?? item.documents_count ?? item.documents),
     openTasks: number(item.openTasks ?? item.open_tasks ?? item.task_aperti),
     syncedAt: text(item.syncedAt ?? item.synced_at ?? item.last_sync_at),
-    href: text(item.href, '/telematico'),
+    href: canonicalHref(item.href, '/telematico'),
     tone: tone(item.tone, 'neutral'),
     badges: textArray(item.badges),
   }
@@ -342,7 +349,7 @@ function normaliseEvent(value: unknown, index: number): TelematicoEvent {
     title: display(item.title, 'Attivita telematica'),
     subtitle: display(item.subtitle ?? item.description, ''),
     timestamp: text(item.timestamp ?? item.created_at ?? item.time),
-    href: text(item.href, '/telematico'),
+    href: canonicalHref(item.href, '/telematico'),
     tone: tone(item.tone, 'primary'),
     badge: display(item.badge, ''),
   }
@@ -355,7 +362,7 @@ function normaliseControlItem(value: unknown, index: number, fallbackBadge: stri
     portal: optionalChannelId(item.portal ?? item.portale ?? item.service_code),
     title: display(item.title, 'Elemento da presidiare'),
     subtitle: display(item.subtitle ?? item.description, ''),
-    href: text(item.href, '/telematico'),
+    href: canonicalHref(item.href, '/telematico'),
     tone: tone(item.tone, fallbackBadge === 'bloccato' ? 'danger' : 'warning'),
     badge: display(item.badge, fallbackBadge),
   }
@@ -414,12 +421,12 @@ function normalisePayload(payload: unknown): TelematicoPageData {
       return { tone: tone(item.tone, 'warning'), title: display(item.title, 'Avviso operativo'), body: display(item.body) }
     }).filter((item) => item.body || item.title) : [],
     actions: {
-      checklistHref: text(actions.checklistHref ?? actions.checklist_href, emptyTelematicoPage.actions.checklistHref),
-      firmaDigitaleHref: text(actions.firmaDigitaleHref ?? actions.firma_digitale_href, emptyTelematicoPage.actions.firmaDigitaleHref),
-      localSignerHref: text(actions.localSignerHref ?? actions.local_signer_href, emptyTelematicoPage.actions.localSignerHref),
-      connectionStatusHref: text(actions.connectionStatusHref ?? actions.connection_status_href, emptyTelematicoPage.actions.connectionStatusHref),
-      lexHref: text(actions.lexHref ?? actions.lex_href, emptyTelematicoPage.actions.lexHref),
-      emailHref: text(actions.emailHref ?? actions.email_href, emptyTelematicoPage.actions.emailHref),
+      checklistHref: canonicalHref(actions.checklistHref ?? actions.checklist_href, emptyTelematicoPage.actions.checklistHref),
+      firmaDigitaleHref: canonicalHref(actions.firmaDigitaleHref ?? actions.firma_digitale_href, emptyTelematicoPage.actions.firmaDigitaleHref),
+      localSignerHref: canonicalHref(actions.localSignerHref ?? actions.local_signer_href, emptyTelematicoPage.actions.localSignerHref),
+      connectionStatusHref: canonicalHref(actions.connectionStatusHref ?? actions.connection_status_href, emptyTelematicoPage.actions.connectionStatusHref),
+      lexHref: canonicalHref(actions.lexHref ?? actions.lex_href, emptyTelematicoPage.actions.lexHref),
+      emailHref: canonicalHref(actions.emailHref ?? actions.email_href, emptyTelematicoPage.actions.emailHref),
     },
     lexSuggestions: asList(payload.lexSuggestions ?? payload.lex_suggestions).map((item) => display(item)).filter(Boolean),
   }

@@ -114,14 +114,18 @@ def test_local_connector_payload_riusa_sessione_pst_salvata_nel_raw_fascicolo():
     assert payload["pst_session_id"] == "SESSIONE-PST-REALE"
 
 
-def test_sigp_sync_visibile_nel_menu_e_apre_primo_fascicolo_importato():
+def test_sigp_sync_non_esposto_in_menu_e_download_senza_preflight_pin():
     root = Path(__file__).resolve().parents[1]
     base = (root / "web" / "templates" / "base.html").read_text(encoding="utf-8")
+    registry = (root / "web" / "bootstrap" / "blueprint_registry.py").read_text(encoding="utf-8")
     js = (root / "integrations" / "sigp_sync" / "static" / "sigp_sync.js").read_text(encoding="utf-8")
 
-    assert "url_for('sigp_sync.index')" in base
-    assert "SIGP - Giudice di Pace" in base
+    assert "url_for('sigp_sync.index')" not in base
+    assert "SIGP - Giudice di Pace" not in base
     assert "Attività Studio" in base
+    assert "integrations.sigp.routes" not in registry
+    assert "integrations.sigp_sync.routes" not in registry
+    assert "web.blueprints.sigp_redirects" in registry
     assert "autoOpenFirst: true" in js
     template = (root / "integrations" / "sigp_sync" / "templates" / "sigp_sync.html").read_text(encoding="utf-8")
     assert "Scarica e importa il fascicolo in un'unica pagina" in template
@@ -133,8 +137,9 @@ def test_sigp_sync_visibile_nel_menu_e_apre_primo_fascicolo_importato():
     assert "downloadDocuments('selected', true)" in js
     assert "original: Boolean(original)" in js
     assert "localSignerApi('/ping', null" in js
-    assert "ensurePstPortalSession()" in js
-    assert "localSignerApi('/pst/preflight-auth'" in js
+    assert "ensurePstPortalSession()" not in js
+    assert "localSignerApi('/pst/preflight-auth'" not in js
+    assert "preflight_auth: false" in js
     assert "localSignerApi('/pst/download-documenti-batch'" in js
     assert "localSignerApi('/pst/download-documento'" not in js
     assert "salva-download-browser" in js

@@ -51,8 +51,8 @@ python scripts\smoke_app_v2_all.py --suite health --read-only --json-output smok
 - Gestione fascicoli, clienti, soggetti, agenda e scadenziario.
 - Lo `/scadenziario` include un calcolatore termini processuali spiegabile con template versionati, sospensione feriale parametrica, sabato configurabile, audit SHA-256, import calendario ufficiale e creazione di scadenze con promemoria PEC pianificabili.
 - Deposito telematico civile, penale e dashboard servizi telematici.
-- Modulo separato `Integrazione SIGP - Giudice di Pace` per generazione XML, predeposito, validazione XSD ufficiale e UI `/sigp-sync/` di sincronizzazione fascicolo telematico tramite soli canali autorizzati PST/PdA/Model Office o Local Connector, senza scraping HTML.
-- Acquisizione guidata dei portali PST/SIGP, PDP, PAT e PTT/SIGIT: se il canale tecnico non consente lettura diretta, IUSENTRA accompagna l'utente al portale ufficiale, importa file/ZIP/cartelle o payload JSON autorizzati e smista tutto nelle sezioni reali del fascicolo (`Documenti`, `Attivita`, `Udienze`, `Comunicazioni`, `Istanze`).
+- Gli ingressi separati SIGP sono disattivati: `/sigp` e `/sigp-sync` rimandano al percorso unico `/portali/pst/acquisizione`, cosi' fascicoli e documenti passano dallo stesso wizard PST.
+- Acquisizione guidata dei portali PST/PolisWeb, PDP, PAT e PTT/SIGIT: se il canale tecnico non consente lettura diretta, IUSENTRA accompagna l'utente al portale ufficiale, importa file/ZIP/cartelle o payload JSON autorizzati e smista tutto nelle sezioni reali del fascicolo (`Documenti`, `Attivita`, `Udienze`, `Comunicazioni`, `Istanze`).
 - Workflow completo `cliente -> preventivo -> conferimento -> fascicolo -> attivita' -> parcella -> incasso`.
 - Regia Operativa Fascicolo / Practice Engine: dal preventivo e conferimento apre un fascicolo gia' operativo, applica il profilo pratica dal catalogo, genera checklist e slot documentali, esegue predeposito, governa deposito/ricevute/timeline/evidence pack e impedisce `ACQUISITO` senza esito finale ufficiale. Il runtime usa sempre il percorso tenant-aware `fascicoli/practice_engine/practice_engine.json` sotto il data root scrivibile dello studio.
 - Wizard preventivi e console tariffaria ora usano davvero il tariffario corretto per fase: `D.M. 55/2014` per i giudiziali, `Tabella A25` per lo stragiudiziale e `Tabella A27` per mediazione / negoziazione assistita, con checkbox fiscali che incidono davvero sul totale.
@@ -149,7 +149,7 @@ Per la `Ricerca Studio` globale vedi [docs/RICERCA_STUDIO.md](docs/RICERCA_STUDI
 Per la top bar operativa React vedi [docs/TOPBAR_OPERATIVA.md](docs/TOPBAR_OPERATIVA.md).
 Per il catalogo master dei template atti vedi [docs/TEMPLATE_ATTI_CATALOGO_MASTER.md](docs/TEMPLATE_ATTI_CATALOGO_MASTER.md).
 Per la Suite professionale integrata nel catalogo template atti vedi [docs/template_atti_catalogo_professionale.md](docs/template_atti_catalogo_professionale.md).
-Per il modulo SIGP Giudice di Pace vedi [docs/SIGP_GIUDICE_DI_PACE.md](docs/SIGP_GIUDICE_DI_PACE.md).
+Per i vecchi ingressi SIGP usare il percorso unico [docs/PORTALI_ACQUISIZIONE_GUIDATA.md](docs/PORTALI_ACQUISIZIONE_GUIDATA.md): `/sigp` e `/sigp-sync` rimandano a `/portali/pst/acquisizione`.
 Per l'acquisizione guidata dei portali vedi [docs/PORTALI_ACQUISIZIONE_GUIDATA.md](docs/PORTALI_ACQUISIZIONE_GUIDATA.md).
 Per il registro `Tribunali / PEC` vedi [docs/UFFICI_GIUDIZIARI_PEC.md](docs/UFFICI_GIUDIZIARI_PEC.md).
 Per il calcolatore termini processuali vedi [docs/TERMINI_PROCESSUALI_SCADENZIARIO.md](docs/TERMINI_PROCESSUALI_SCADENZIARIO.md).

@@ -129,7 +129,6 @@ def test_react_sidebar_contiene_navigazione_enterprise_completa():
         "Nuovo SMS/WA",
         "Preparazione Udienza Guidata",
         "Centro Servizi Telematici",
-        "SIGP - Giudice di Pace",
         "Guida firma digitale",
         "Parcelle e Fatture",
         "Preventivi e Incarichi",
@@ -174,7 +173,6 @@ def test_nav_legacy_allineata_react_senza_nascondere_sidebar():
         "Servizi Telematici",
         "Centro Servizi Telematici",
         "PolisWeb / PST",
-        "SIGP - Giudice di Pace",
         "PDP Penale",
         "PAT Amministrativo",
         "PTT Tributario",
@@ -551,8 +549,6 @@ def test_blocco_telematico_studio_admin_resta_legacy_first():
         "/checklist",
         "/database",
         "/portali",
-        "/sigp",
-        "/sigp-sync",
     )
 
     for prefix in legacy_first_prefixes:
@@ -1145,7 +1141,8 @@ def test_react_superfici_telematiche_collegate_nav_api_css():
     assert "{ label: 'Centro Servizi Telematici', icon: BriefcaseBusiness, href: '/telematico' }" in app_source
     assert "{ label: 'PolisWeb / PST', icon: CloudUpload, href: '/polisWeb' }" in app_source
     assert "Panoramica PST" not in app_source
-    assert "{ label: 'SIGP - Giudice di Pace', icon: Landmark, href: '/sigp/' }" in app_source
+    assert "SIGP - Giudice di Pace" not in app_source
+    assert "href: '/sigp/'" not in app_source
     assert "{ label: 'PDP Penale', icon: ShieldCheck, href: '/pdp' }" in app_source
     assert "{ label: 'PAT Amministrativo', icon: FileText, href: '/pat' }" in app_source
     assert "{ label: 'PTT Tributario', icon: FileText, href: '/sigit' }" in app_source
@@ -1163,6 +1160,9 @@ def test_react_superfici_telematiche_collegate_nav_api_css():
     assert "portalJson(portal, 'analyze'" in page_source
     assert "portalJson(portal, 'import'" in page_source
     assert "portalJson(portal, 'importa-payload'" in page_source
+    assert "portalJson(portal, 'importa-file'" in page_source
+    assert "Sessione IUSENTRA" in page_source
+    assert "Endpoint browser:" not in page_source
     assert "collectAcquisitionFiles" in page_source
     assert "downloaded_files" in page_source
     assert "Local Signer" in page_source
@@ -1247,11 +1247,9 @@ def test_route_ufficiali_superfici_telematiche_esatte_servono_react_con_vista_cl
             assert "Local Connector non raggiungibile" not in html
 
         for path in ("/sigp/", "/sigp-sync/"):
-            response = client.get(path, follow_redirects=True)
-            html = response.get_data(as_text=True)
-            assert response.status_code == 200, path
-            assert '<html lang="it" class="react-shell-document">' not in html
-            assert 'id="root"' not in html
+            response = client.get(path)
+            assert response.status_code in {302, 303}, path
+            assert response.headers["Location"].endswith("/portali/pst/acquisizione")
 
         checklist = client.get("/deposito/checklist", follow_redirects=True)
         checklist_html = checklist.get_data(as_text=True)
@@ -1268,6 +1266,17 @@ def test_route_ufficiali_superfici_telematiche_esatte_servono_react_con_vista_cl
 def test_react_superfici_telematiche_api_payload_reale(tmp_path: Path):
     app = _app(tmp_path)
     client = app.test_client()
+
+    def collect_hrefs(value):
+        if isinstance(value, dict):
+            for key, item in value.items():
+                if key == "href" and isinstance(item, str):
+                    yield item
+                else:
+                    yield from collect_hrefs(item)
+        elif isinstance(value, list):
+            for item in value:
+                yield from collect_hrefs(item)
 
     checklist = client.get("/api/v1/ui/telematico/surface/checklist", headers={"X-API-Key": "react-test-key"})
     firma = client.get("/api/v1/ui/telematico/surface/firma", headers={"X-API-Key": "react-test-key"})
@@ -1298,13 +1307,15 @@ def test_react_superfici_telematiche_api_payload_reale(tmp_path: Path):
     assert polisweb_payload["channel"]["quickActions"][0]["label"] == "Importa pratica da PST"
     assert polisweb_payload["channel"]["quickActions"][0]["href"] == "/portali/pst/acquisizione"
     assert polisweb_payload["channel"]["quickActions"][1]["label"] == "Apri pagina"
+    assert polisweb_payload["channel"]["quickActions"][1]["href"] == "/polisWeb"
+    assert polisweb_payload["operationCards"][1]["actions"][0]["href"] == "/polisWeb"
     assert polisweb_payload["localSigner"]["browserUrl"] == "http://127.0.0.1:27272"
     assert polisweb_payload["localSigner"]["latestVersion"]
     assert polisweb_payload["localSigner"]["windowsUrl"].endswith("/setup/windows")
-    for surface, expected_href in (
-        ("pdp", "/portali/pdp/acquisizione"),
-        ("pat", "/portali/pat/acquisizione"),
-        ("ptt", "/portali/ptt/acquisizione"),
+    for surface, expected_href, expected_home in (
+        ("pdp", "/portali/pdp/acquisizione", "/pdp"),
+        ("pat", "/portali/pat/acquisizione", "/pat"),
+        ("ptt", "/portali/ptt/acquisizione", "/sigit"),
     ):
         payload = client.get(
             f"/api/v1/ui/telematico/surface/{surface}",
@@ -1312,12 +1323,57 @@ def test_react_superfici_telematiche_api_payload_reale(tmp_path: Path):
         ).get_json()
         assert payload["operationCards"][0]["actions"][0]["href"] == expected_href
         assert payload["channel"]["quickActions"][0]["href"] == expected_href
+        assert payload["channel"]["quickActions"][1]["href"] == expected_home
+        assert not any(href.startswith("/app-v2/") for href in collect_hrefs(payload)), surface
+    assert not any(href.startswith("/app-v2/") for href in collect_hrefs(polisweb_payload))
+    telematico_payload = client.get("/api/v1/ui/telematico", headers={"X-API-Key": "react-test-key"}).get_json()
+    assert not any(href.startswith("/app-v2/") for href in collect_hrefs(telematico_payload))
     assert tribunali.status_code == 200
     assert tribunali_payload["surface"]["id"] == "tribunali"
+    assert not any(href.startswith("/app-v2/") for href in collect_hrefs(tribunali_payload))
     assert tribunali_payload["officeSummary"]["perType"] is not None
     assert tribunali_payload["officeSummary"]["sources"]
     assert "PEC di deposito" in tribunali_payload["officeSummary"]["policy"]
     assert any(row["indirizziTelematici"] for row in tribunali_payload["offices"] if row["pec"])
+
+
+def test_react_user_facing_links_non_espongono_app_v2_prefix():
+    pattern = re.compile(
+        r"""(?:href|homeHref|importHref|presideHref|appHref|primaryHref|secondaryHref)\s*[:=]\s*["']\/app-v2(?:\/|["'])"""
+    )
+    roots = [Path("frontend/src"), Path("web/services")]
+    allowed = {
+        Path("web/services/app_v2_routing.py"),
+        Path("web/services/feature_flags.py"),
+        Path("frontend/src/app/router.tsx"),
+        Path("frontend/src/lib/featureFlags.ts"),
+        Path("frontend/src/wizardProData.ts"),
+        Path("frontend/src/studioModuleData.ts"),
+    }
+    offenders = []
+    for root in roots:
+        for path in root.rglob("*"):
+            if path.suffix not in {".py", ".ts", ".tsx"} or path in allowed:
+                continue
+            text = path.read_text(encoding="utf-8", errors="replace")
+            if pattern.search(text):
+                offenders.append(str(path))
+    assert offenders == []
+
+
+def test_react_telematico_scroll_usa_offset_topbar_non_scroll_into_view():
+    source = Path("frontend/src/components/TelematicoPage.tsx").read_text(encoding="utf-8")
+    assert "function scrollToActiveChannel()" in source
+    assert "window.scrollTo({ top, behavior: reducedMotion ? 'auto' : 'smooth' })" in source
+    assert "document.querySelector<HTMLElement>('.iu-topbar')" in source
+    assert "scrollIntoView" not in source
+    assert "focusedChannelFromLocation()" in source
+
+    surface_source = Path("frontend/src/components/TelematicoSurfacePage.tsx").read_text(encoding="utf-8")
+    assert "function scrollToSurfaceTarget(targetId: string)" in surface_source
+    assert "document.querySelector<HTMLElement>('.iu-topbar')" in surface_source
+    assert "window.scrollTo({ top, behavior: reducedMotion ? 'auto' : 'smooth' })" in surface_source
+    assert "scrollIntoView" not in surface_source
 
 
 def test_react_wizard_pst_ricerca_ufficio_non_usa_evento_react_pooled():
@@ -1346,13 +1402,20 @@ def test_react_wizard_pst_verifica_local_signer_dal_browser():
     assert "Da mobile o tablet il controllo non viene eseguito" in source
     assert "Local Signer non rilevato su questo PC" in source
     assert "disabled={localSigner.checking || localSigner.unsupported}" in source
+    assert "Local Signer non pronto sul PC" not in source
+    assert "const checkedSigner = await checkLocalSigner(false)" in source
+    assert "ok: reachable" in source
+    assert "disabled={busy === 'search' || (portalNeedsLocalSigner && !localSignerDesktopSupported)}" in source
     assert "REACT_PST_SESSION_KEY" in source
-    assert "localSignerJson('/pst/preflight-auth'" in source
+    assert "localSignerJson('/pst/preflight-auth'" not in source
     assert "localSignerJson('/pst/ricerca-snapshot'" in source
     assert "localSignerJson('/pst/ricerca'" in source
     assert "localSignerJson('/pst/fascicolo-snapshot'" in source
     assert "localSignerJson('/pst/download-documenti-batch'" in source
     assert "'/pst/download-documento'" not in source
+    assert "const prepared = await ensurePstPortalSession(tribunale)" not in source
+    assert "ensurePstPortalSession" not in source
+    assert "pst_session_id: session?.sessionId || ''" in source
     assert "function coercePstSessionFromPayload" in source
     assert "const session = activePstSessionFor(tribunale, cert)" in source
     assert "coercePstSessionFromPayload(selection?.raw?.pst_session, tribunale, cert)" in source
@@ -1570,8 +1633,6 @@ def test_react_route_gate_copre_rotte_profonde_e_preserva_contratti_operativi(tm
             "/scadenziario/export.ics",
             f"/scadenziario/{scadenza.id}/completa",
             "/sito-studio/articoli/art-1/modifica",
-            "/sigp/",
-            "/sigp-sync/",
         ):
             response = client.get(path, follow_redirects=True)
             html = response.get_data(as_text=True)
@@ -1621,12 +1682,10 @@ def test_route_gate_non_promuove_moduli_studio_telematico_admin_incompleti():
 
     legacy_first_routes = {
         "/admin/osservabilita",
-        "/applicazioni",
-        "/checklist",
-        "/database",
-        "/sigp",
-        "/sigp-sync",
-    }
+            "/applicazioni",
+            "/checklist",
+            "/database",
+        }
 
     for raw in sorted(legacy_first_routes):
         path = _normalise_path(raw)
@@ -2385,7 +2444,6 @@ def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: P
         "Controlli Atti",
         "Centro Servizi Telematici",
         "PolisWeb / PST",
-        "SIGP - Giudice di Pace",
         "PDP Penale",
         "PAT Amministrativo",
         "PTT Tributario",
@@ -2532,9 +2590,9 @@ def test_react_migration_matrice_completa_route_api_e_card_operative(tmp_path: P
         for label, path in telematico_routes.items():
             _assert_react_shell(client, label, path)
 
-        response = client.get("/sigp/", follow_redirects=True)
-        assert response.status_code == 200, "SIGP - Giudice di Pace"
-        assert "IUSENTRA - React Shell" not in response.get_data(as_text=True)
+        response = client.get("/sigp/")
+        assert response.status_code in {302, 303}, "SIGP redirect"
+        assert response.headers["Location"].endswith("/portali/pst/acquisizione")
 
         for label, path in {
             "Panoramica": "/api/v1/ui/dashboard",

@@ -12,6 +12,7 @@ from flask import url_for
 from web.services.telematico_control_tower import build_telematico_control_tower
 
 PORTALS = ("pst", "pdp", "pat", "ptt")
+ASSISTED_OFFICIAL_PORTALS = {"pdp", "pat", "ptt"}
 SERVICE_MAP = {
     "pst": "polisweb_consultazione",
     "pdp": "pdp_penale",
@@ -31,15 +32,25 @@ PORTAL_TITLES = {
     "ptt": "PTT Tributario",
 }
 PORTAL_DESCRIPTIONS = {
-    "pst": "Consultazione civile, SIGP e import autorizzato dei fascicoli già scaricati.",
+    "pst": "Consultazione civile e import autorizzato dei fascicoli già scaricati.",
     "pdp": "Percorso penale, esiti, documenti collegati e controllo dell'avvocato.",
     "pat": "Portale avvocato, fascicolo amministrativo e import guidato documenti.",
     "ptt": "Telecontenzioso, SIGIT, fascicoli tributari e ricevute importate.",
 }
 PORTAL_TONES = {"pst": "primary", "pdp": "danger", "pat": "success", "ptt": "warning"}
 PORTAL_HOME_ENDPOINTS = {"pst": "polisWeb_home", "pdp": "pdp_home", "pat": "pat_home", "ptt": "sigit_home"}
-PORTAL_HOME_FALLBACKS = {"pst": "/polisWeb", "pdp": "/pdp", "pat": "/pat", "ptt": "/app-v2/ptt"}
+PORTAL_HOME_FALLBACKS = {"pst": "/polisWeb", "pdp": "/pdp", "pat": "/pat", "ptt": "/sigit"}
 PORTAL_SURFACE_IDS = {"pst": "polisweb", "pdp": "pdp", "pat": "pat", "ptt": "ptt"}
+SURFACE_CANONICAL_HREFS = {
+    "polisweb": "/polisWeb",
+    "pdp": "/pdp",
+    "pat": "/pat",
+    "ptt": "/sigit",
+    "tribunali": "/tribunali",
+    "checklist": "/deposito/checklist",
+    "firma": "/guida/firma-digitale",
+    "telematico": "/telematico",
+}
 PORTAL_IMPORT_FALLBACKS = {
     "pst": "/portali/pst/acquisizione",
     "pdp": "/portali/pdp/acquisizione",
@@ -90,7 +101,7 @@ SURFACE_SPECS = {
         "id": "polisweb",
         "portal": "pst",
         "title": "PolisWeb / PST",
-        "eyebrow": "Consultazione civile e SIGP",
+        "eyebrow": "Consultazione civile",
         "subtitle": (
             "Ricerca fascicoli, acquisizione guidata e import autorizzato dal Portale "
             "Servizi Telematici, senza accessi non autorizzati e senza credenziali salvate fuori dallo studio."
@@ -235,14 +246,14 @@ def _channel_badges(payload: dict[str, Any]) -> list[str]:
     return badges
 
 
-def _app_v2_href(path: str) -> str:
-    clean = "/" + str(path or "").strip().lstrip("/")
-    return f"/app-v2{clean}"
+def _surface_href(surface_id: str, fragment: str = "") -> str:
+    clean_id = _surface_id(surface_id)
+    return f"{SURFACE_CANONICAL_HREFS.get(clean_id, f'/{clean_id}')}{fragment}"
 
 
 def _portal_surface_href(portal: str, fragment: str = "") -> str:
     surface_id = PORTAL_SURFACE_IDS.get(portal, portal)
-    return f"{_app_v2_href(surface_id)}{fragment}"
+    return _surface_href(surface_id, fragment)
 
 
 def _surface_id(value: str) -> str:
@@ -445,6 +456,17 @@ def _portal_operation_cards(surface_id: str, portal: str, channel: dict[str, Any
         portal,
         "Avvia il percorso operativo per acquisire nel fascicolo interno dati, file o cataloghi ottenuti da canali autorizzati.",
     )
+    assisted_action = _surface_action(
+        "assisted-session",
+        "Sessione assistita IUSENTRA",
+        f"{import_href}#wizard-acquisizione",
+        tone=tone,
+    )
+    official_action = (
+        assisted_action
+        if portal in ASSISTED_OFFICIAL_PORTALS
+        else _surface_action("official", "Portale ufficiale", official_href, tone=tone, external=True)
+    )
     return [
         _surface_card(
             "importa-pratica",
@@ -454,7 +476,7 @@ def _portal_operation_cards(surface_id: str, portal: str, channel: dict[str, Any
             icon="download",
             actions=[
                 _surface_action("import", import_label, import_href, tone="primary"),
-                _surface_action("fascicoli", "Fascicoli collegati", "/app-v2/fascicoli", tone="secondary"),
+                _surface_action("fascicoli", "Fascicoli collegati", "/fascicoli", tone="secondary"),
             ],
         ),
         _surface_card(
@@ -464,8 +486,8 @@ def _portal_operation_cards(surface_id: str, portal: str, channel: dict[str, Any
             tone=tone,
             icon="monitor",
             actions=[
-                _surface_action("open-react", "Apri pagina", _app_v2_href(surface_id), tone=tone),
-                _surface_action("open-center", "Centro telematico", "/app-v2/telematico", tone="secondary"),
+                _surface_action("open-react", "Apri pagina", _surface_href(surface_id), tone=tone),
+                _surface_action("open-center", "Centro telematico", "/telematico", tone="secondary"),
             ],
             metrics=[
                 {"label": "Pratiche", "value": channel.get("cases", 0)},
@@ -476,12 +498,16 @@ def _portal_operation_cards(surface_id: str, portal: str, channel: dict[str, Any
         _surface_card(
             "presidio-react",
             "Presidio operativo",
-            "Lavora su checklist, stato canale e portale ufficiale senza uscire dalla pagina.",
+            (
+                "Lavora su checklist, stato canale e sessione assistita IUSENTRA senza uscire dalla pagina."
+                if portal in ASSISTED_OFFICIAL_PORTALS
+                else "Lavora su checklist, stato canale e portale ufficiale senza uscire dalla pagina."
+            ),
             tone="neutral",
             icon="external",
             actions=[
                 _surface_action("surface", "Apri pagina", home_href, tone="neutral"),
-                _surface_action("official", "Portale ufficiale", official_href, tone=tone, external=True),
+                official_action,
             ],
         ),
         _surface_card(
@@ -492,7 +518,7 @@ def _portal_operation_cards(surface_id: str, portal: str, channel: dict[str, Any
             icon="shield",
             actions=[
                 _surface_action("status", "Stato connessioni", "/api/telematico/connection-status", tone="warning"),
-                _surface_action("checklist", "Checklist deposito", "/app-v2/deposito/checklist", tone="purple"),
+                _surface_action("checklist", "Checklist deposito", "/deposito/checklist", tone="purple"),
             ],
         ),
     ]
@@ -570,7 +596,7 @@ def _deposit_checklist_groups() -> list[dict[str, Any]]:
             "title": "PDP, PAT e PTT",
             "items": [
                 {"id": "canale", "label": "Canale corretto per il rito", "description": "Penale su PDP, amministrativo su PAT/SIGA, tributario su PTT/SIGIT.", "critical": True},
-                {"id": "portale", "label": "Portale ufficiale aperto dall'utente", "description": "La consultazione avviene nel browser ufficiale o via Local Signer autorizzato.", "critical": True},
+                {"id": "portale", "label": "Sessione o canale ufficiale presidiato", "description": "La consultazione avviene dalla procedura IUSENTRA con Local Signer quando richiesto.", "critical": True},
                 {"id": "import", "label": "File importati nel fascicolo", "description": "Ricevute, provvedimenti ed esiti vanno collegati al fascicolo interno.", "critical": False},
             ],
         },
@@ -628,14 +654,17 @@ def _surface_controls(base_control: dict[str, Any], portal: str) -> dict[str, An
 
 def _surface_links(surface_id: str, portal: str = "") -> list[dict[str, Any]]:
     links = [
-        {"label": "Centro Servizi Telematici", "href": "/app-v2/telematico", "kind": "react"},
-        {"label": "Checklist deposito", "href": "/app-v2/deposito/checklist", "kind": "react"},
-        {"label": "Guida firma digitale", "href": "/app-v2/guida/firma-digitale", "kind": "react"},
-        {"label": "Tribunali / PEC", "href": "/app-v2/tribunali", "kind": "react"},
+        {"label": "Centro Servizi Telematici", "href": "/telematico", "kind": "react"},
+        {"label": "Checklist deposito", "href": "/deposito/checklist", "kind": "react"},
+        {"label": "Guida firma digitale", "href": "/guida/firma-digitale", "kind": "react"},
+        {"label": "Tribunali / PEC", "href": "/tribunali", "kind": "react"},
     ]
     if portal:
         links.insert(1, {"label": PORTAL_IMPORT_LABELS[portal], "href": PORTAL_IMPORT_FALLBACKS[portal], "kind": "operativo"})
-        links.append({"label": "Portale ufficiale", "href": PORTAL_OFFICIAL_URLS[portal], "kind": "esterno"})
+        if portal in ASSISTED_OFFICIAL_PORTALS:
+            links.append({"label": "Sessione assistita IUSENTRA", "href": f"{PORTAL_IMPORT_FALLBACKS[portal]}#wizard-acquisizione", "kind": "operativo"})
+        else:
+            links.append({"label": "Portale ufficiale", "href": PORTAL_OFFICIAL_URLS[portal], "kind": "esterno"})
     if surface_id == "firma":
         links.extend(
             [
@@ -684,7 +713,7 @@ def build_react_telematico_surface_payload(
                 "Torna alla cabina che aggrega PST, PDP, PAT, PTT, esiti e import.",
                 tone="primary",
                 icon="monitor",
-                actions=[_surface_action("centro", "Apri centro", "/app-v2/telematico", tone="primary")],
+                actions=[_surface_action("centro", "Apri centro", "/telematico", tone="primary")],
             ),
             _surface_card(
                 "fascicoli",
@@ -692,7 +721,7 @@ def build_react_telematico_surface_payload(
                 "Usa i fascicoli collegati per preparare atti, documenti, scadenze e depositi.",
                 tone="success",
                 icon="folder",
-                actions=[_surface_action("fascicoli", "Apri fascicoli", "/app-v2/fascicoli", tone="success")],
+                actions=[_surface_action("fascicoli", "Apri fascicoli", "/fascicoli", tone="success")],
             ),
         ]
     )
@@ -705,7 +734,7 @@ def build_react_telematico_surface_payload(
                     "Controlla Local Signer, token e certificato prima di proseguire.",
                     tone="info",
                     icon="shield",
-                    actions=[_surface_action("firma", "Apri guida", "/app-v2/guida/firma-digitale", tone="info")],
+                    actions=[_surface_action("firma", "Apri guida", "/guida/firma-digitale", tone="info")],
                 ),
                 _surface_card(
                     "pec",
@@ -713,7 +742,7 @@ def build_react_telematico_surface_payload(
                     "Leggi ricevute e comunicazioni collegate al deposito.",
                     tone="warning",
                     icon="mail",
-                    actions=[_surface_action("pec", "Apri PEC", "/app-v2/email", tone="warning")],
+                    actions=[_surface_action("pec", "Apri PEC", "/email/", tone="warning")],
                 ),
             ]
         )
@@ -768,9 +797,9 @@ def build_react_telematico_surface_payload(
         "surface": {
             **spec,
             "portal": portal,
-            "appHref": _app_v2_href(surface_id),
+            "appHref": _surface_href(surface_id),
             "legacyHref": PORTAL_HOME_FALLBACKS.get(portal, ""),
-            "officialHref": PORTAL_OFFICIAL_URLS.get(portal, ""),
+            "officialHref": "" if portal in ASSISTED_OFFICIAL_PORTALS else PORTAL_OFFICIAL_URLS.get(portal, ""),
         },
         "summary": summary,
         "channel": channel,
@@ -910,7 +939,7 @@ def build_react_tribunali_payload() -> dict[str, Any]:
             "eyebrow": "Uffici giudiziari e indirizzi",
             "subtitle": "Ricerca uffici, PEC, codici e stato dell'elenco collegato a ReGINdE/PST.",
             "tone": "primary",
-            "appHref": "/app-v2/tribunali",
+            "appHref": "/tribunali",
             "legacyHref": "/tribunali",
             "officialHref": "https://pst.giustizia.it/PST/it/services.page",
         },
@@ -959,7 +988,7 @@ def build_react_tribunali_payload() -> dict[str, Any]:
                 "Rientra nella cabina che coordina PST, PDP, PAT, PTT, controlli e firma digitale.",
                 tone="neutral",
                 icon="external",
-                actions=[_surface_action("centro", "Apri centro", "/app-v2/telematico", tone="neutral")],
+                actions=[_surface_action("centro", "Apri centro", "/telematico", tone="neutral")],
             ),
         ],
         "checklistGroups": [],
@@ -975,8 +1004,8 @@ def build_react_tribunali_payload() -> dict[str, Any]:
         "links": [
             {"label": "Ricerca uffici", "href": "/api/uffici", "kind": "azione"},
             {"label": "Stato elenco", "href": "/api/uffici/stato", "kind": "azione"},
-            {"label": "Centro telematico", "href": "/app-v2/telematico", "kind": "react"},
-            {"label": "Checklist deposito", "href": "/app-v2/deposito/checklist", "kind": "react"},
+            {"label": "Centro telematico", "href": "/telematico", "kind": "react"},
+            {"label": "Checklist deposito", "href": "/deposito/checklist", "kind": "react"},
         ],
         "notices": [
             {

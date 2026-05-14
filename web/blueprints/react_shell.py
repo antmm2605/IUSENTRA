@@ -34,8 +34,6 @@ _LEGACY_FIRST_PREFIXES = (
     "/portali",
     "/servizi-telematici",
     "/sigit",
-    "/sigp",
-    "/sigp-sync",
     "/telematico",
     "/tribunali",
 )

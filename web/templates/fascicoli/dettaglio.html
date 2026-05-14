@@ -5431,7 +5431,7 @@ window._PST_PRESERVE_TREE = {{ 'true' if preserve_pst_tree else 'false' }};
         anno_rg: _PST_FASCICOLO_CONTEXT.anno_rg,
         purpose: 'view',
         pst_session_id: getPstFascSessionId(),
-        preflight_auth: !getPstFascSessionId(),
+        preflight_auth: false,
         original: scaricaDuplicatoOriginale(),
         documents: (items || []).map(function (item) {
           return {

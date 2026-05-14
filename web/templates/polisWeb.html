@@ -763,26 +763,25 @@
             </div>
 
             <div class="flex-grow-1">
-              <h6 class="fw-bold mb-1">Seleziona il certificato e conferma il PIN</h6>
+              <h6 class="fw-bold mb-1">Seleziona il certificato</h6>
               <p class="small text-muted mb-3">
-                IUSENTRA guida adesso tutti i passaggi necessari prima della ricerca PST:
-                selezione del certificato, richiesta del PIN da parte di Windows e
-                verifica dell'autenticazione verso il servizio ministeriale.
-                Il PIN verrà richiesto da Windows durante la connessione al PST.
+                IUSENTRA prepara il certificato di autenticazione web della CNS/CIE.
+                Il PIN viene richiesto da Windows solo quando parte la connessione reale
+                al PST per visualizzare il fascicolo.
               </p>
 
               {# Pulsante seleziona — principale #}
               <ol class="small text-muted ps-3 mb-3">
                 <li>Clicca <strong>Seleziona certificato</strong>.</li>
                 <li>Scegli il certificato di autenticazione web della tua CNS/CIE.</li>
-                <li>Quando Windows mostra la finestra del dispositivo, inserisci il <strong>PIN</strong> e conferma.</li>
+                <li>Avvia la ricerca: Windows chiederà il <strong>PIN</strong> nella connessione al PST.</li>
               </ol>
 
               <div class="alert alert-warning small py-2 mb-3">
                 <i class="bi bi-info-circle me-1"></i>
                 <strong>Il PIN non si inserisce in questa schermata.</strong>
-                Dopo la selezione del certificato IUSENTRA apre la richiesta PIN di Windows.
-                Se non la vedi subito, controlla la barra delle applicazioni o una finestra del middleware aperta dietro al browser.
+                Dopo la selezione del certificato IUSENTRA non apre una richiesta separata:
+                il PIN comparirà solo sulla prima operazione reale verso il PST.
               </div>
 
               <div id="wiz-cert-btn-area" class="mb-3">
@@ -815,17 +814,16 @@
                 <div class="d-flex align-items-start gap-2">
                   <div class="spinner-border spinner-border-sm mt-1 flex-shrink-0"></div>
                   <div>
-                    <strong>Richiesta PIN in corso</strong><br>
-                    Se Windows mostra la finestra del dispositivo, inserisci adesso il PIN
-                    della smart card o del token CNS/CIE e attendi la conferma.
-                    Se non compare nulla davanti al browser, controlla la barra di Windows.
+                    <strong>Preparazione certificato in corso</strong><br>
+                    Sto preparando il certificato scelto. La richiesta PIN arriverà
+                    dalla finestra Windows durante la connessione reale al PST.
                   </div>
                 </div>
               </div>
 
               <div id="wiz-pin-ok" class="alert alert-success small mb-3" style="display:none">
                 <i class="bi bi-shield-check me-1"></i>
-                Certificato verificato e PIN confermato. Puoi proseguire con la ricerca PST.
+                Certificato pronto. Puoi proseguire con la ricerca PST.
               </div>
 
               <div id="wiz-pin-error" class="alert alert-danger small mb-3" style="display:none">
@@ -864,8 +862,8 @@
               {# Info: il PIN è gestito da Windows #}
               <div class="alert alert-light border small py-2 mt-2">
                 <i class="bi bi-shield-lock text-success me-1"></i>
-                Il PIN non viene mai inviato al server. Windows chiederà il PIN
-                direttamente quando si connette al PST con il certificato selezionato.
+                Il PIN non viene mai inviato al server. Windows lo chiederà
+                direttamente durante la connessione al PST con il certificato selezionato.
               </div>
             </div>
           </div>
@@ -1969,15 +1967,15 @@ async function _cercaPstViaLocalSigner(tribunale, rg, anno, nomeParte, cf) {
   try {
     const cert = await _lsAssicuraCertificato();
     if (btn) {
-      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Richiesta PIN...';
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Connessione PST...';
     }
-    const pfData = await _lsPreflightAuthPst(tribunale, cert);
-    const pstSessionId = pfData?.pst_session_id || '';
+    let pstSessionId = _lsGetKnownPstSessionId(tribunale, cert);
     if (btn) {
       btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Ricerca in corso...';
     }
 
-    const resp = await fetch(_LS_BASE_PW + '/pst/ricerca', {
+    const runSearch = async (sessionId) => {
+      const resp = await fetch(_LS_BASE_PW + '/pst/ricerca', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -1988,12 +1986,20 @@ async function _cercaPstViaLocalSigner(tribunale, rg, anno, nomeParte, cf) {
         cf_parte: cf || null,
         cert_thumbprint: cert?.thumbprint || null,
         slot_id: cert?.token_slot ?? null,
-        pst_session_id: pstSessionId,
+        pst_session_id: sessionId || '',
       }),
       signal: AbortSignal.timeout(100000),
-    });
-    const data = await resp.json();
+      });
+      return await resp.json();
+    };
+    let data = await runSearch(pstSessionId);
+    if (!data?.ok && pstSessionId && _lsLooksLikeExpiredPstSession(data?.errore)) {
+      _lsClearPstSession();
+      pstSessionId = '';
+      data = await runSearch('');
+    }
     if (data.ok && data.fascicoli) {
+      _lsRememberPstSession(data, tribunale, cert);
       _mostraRisultatiLocalSigner(data.fascicoli);
     } else {
       _mostraErroreLocalSigner(data.errore || 'Nessun risultato dal PST');
@@ -2169,10 +2175,10 @@ function verificaLocalSignerLegacy() {
 let _wizStep = 1;     // step corrente: 0=setup, 1=params, 2=cert, 3=risultati, 4=acquisizione
 let _wizCertSel = null;  // certificato selezionato
 let _wizPinConfermato = false;
-let _wizPstSessionId = '';  // session id PST restituito dal preflight, riusato per la ricerca
+let _wizPstSessionId = '';  // session id PST restituito dalle operazioni reali e riusato nella pagina
 let _wizUltimiFascicoli = [];
 // Session id PST usata nel path legacy (cerca diretta, senza wizard) per evitare
-// PIN ripetuti: dopo il primo preflight-auth il session_id viene riusato nelle
+// PIN ripetuti: dopo la prima operazione reale il session_id viene riusato nelle
 // chiamate successive, così Windows non chiede il PIN una seconda volta.
 let _lsPstSessionId = '';
 
@@ -2216,10 +2222,65 @@ function _wizClearSavedAuth() {
   try { sessionStorage.removeItem(_WIZ_SESSION_KEY); } catch(e) {}
 }
 
+function _pstSessionStorageKey() {
+  return 'hacs-aw-pst-session-pst';
+}
+
+function _lsRememberPstSession(data, tribunale = '', cert = null) {
+  const sessionId = String(data?.pst_session_id || '').trim();
+  if (!sessionId) return '';
+  _lsPstSessionId = sessionId;
+  _wizPstSessionId = sessionId;
+  try {
+    const ttl = Number(data?.pst_session_ttl_seconds || 900);
+    sessionStorage.setItem(_pstSessionStorageKey(), JSON.stringify({
+      session_id: sessionId,
+      tribunale: String(tribunale || data?.tribunale || '').trim(),
+      cert_thumbprint: String(cert?.thumbprint || '').trim(),
+      expires_at: Date.now() + (ttl * 1000),
+    }));
+  } catch(_) {}
+  return sessionId;
+}
+
+function _lsGetKnownPstSessionId(tribunale = '', cert = null) {
+  if (_lsPstSessionId || _wizPstSessionId) return _lsPstSessionId || _wizPstSessionId;
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(_pstSessionStorageKey()) || 'null');
+    if (!saved?.session_id) return '';
+    if (saved.expires_at && Number(saved.expires_at) < Date.now()) {
+      sessionStorage.removeItem(_pstSessionStorageKey());
+      return '';
+    }
+    const wantedTribunale = String(tribunale || '').trim();
+    const savedTribunale = String(saved.tribunale || '').trim();
+    if (wantedTribunale && savedTribunale && wantedTribunale !== savedTribunale) return '';
+    const wantedThumb = String(cert?.thumbprint || '').toUpperCase();
+    const savedThumb = String(saved.cert_thumbprint || '').toUpperCase();
+    if (wantedThumb && savedThumb && wantedThumb !== savedThumb) return '';
+    _lsPstSessionId = String(saved.session_id || '').trim();
+    _wizPstSessionId = _lsPstSessionId;
+    return _lsPstSessionId;
+  } catch(_) {
+    return '';
+  }
+}
+
+function _lsClearPstSession() {
+  _lsPstSessionId = '';
+  _wizPstSessionId = '';
+  try { sessionStorage.removeItem(_pstSessionStorageKey()); } catch(_) {}
+}
+
+function _lsLooksLikeExpiredPstSession(message) {
+  const text = String(message || '').toLowerCase();
+  return text.includes('session_expired') || text.includes('sessione') && text.includes('scad');
+}
+
 const _WIZ_STEPS = {
   0: { title: 'Configurazione',      sub: 'Avvia o installa il Local Signer', dot: null },
   1: { title: 'Passaggio 1',         sub: 'Parametri di ricerca',            dot: 1 },
-  2: { title: 'Passaggio 2',         sub: 'Selezione certificato e PIN',     dot: 2 },
+  2: { title: 'Passaggio 2',         sub: 'Selezione certificato',           dot: 2 },
   3: { title: 'Passaggio 3',         sub: 'Risultati',                       dot: 3 },
   4: { title: 'Acquisizione',        sub: 'Scaricamento allegati PST',       dot: 4 },
 };
@@ -2559,49 +2620,6 @@ function _wizSetPinStatus(stato, msg = '') {
   }
 }
 
-async function _lsPreflightAuthPst(tribunale, cert) {
-  // Passa il session_id già noto (se presente) così il Local Signer può
-  // restituire la sessione cached senza fare un nuovo handshake TLS →
-  // Windows non chiede il PIN una seconda volta.
-  const resp = await fetch(_LS_BASE_PW + '/pst/preflight-auth', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      tribunale: tribunale,
-      cert_thumbprint: cert?.thumbprint || null,
-      slot_id: cert?.token_slot ?? null,
-      pst_session_id: _lsPstSessionId || _wizPstSessionId || '',
-    }),
-    signal: AbortSignal.timeout(100000),
-  });
-  const data = await resp.json();
-  if (!data.ok) {
-    // Se la sessione salvata era scaduta, azzerala e ritenta senza session_id
-    if (_lsPstSessionId || _wizPstSessionId) {
-      _lsPstSessionId = '';
-      const resp2 = await fetch(_LS_BASE_PW + '/pst/preflight-auth', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tribunale: tribunale,
-          cert_thumbprint: cert?.thumbprint || null,
-          slot_id: cert?.token_slot ?? null,
-          pst_session_id: '',
-        }),
-        signal: AbortSignal.timeout(100000),
-      });
-      const data2 = await resp2.json();
-      if (!data2.ok) throw new Error(data2.errore || 'Impossibile verificare certificato e PIN');
-      if (data2.pst_session_id) _lsPstSessionId = data2.pst_session_id;
-      return data2;
-    }
-    throw new Error(data.errore || 'Impossibile verificare certificato e PIN');
-  }
-  // Aggiorna la sessione cached per le prossime chiamate
-  if (data.pst_session_id) _lsPstSessionId = data.pst_session_id;
-  return data;
-}
-
 async function wizVerificaCertificatoPst() {
   const tribunale = document.getElementById('wiz-ufficio-value')?.value || '';
   const btnSel  = document.getElementById('btn-wiz-seleziona');
@@ -2613,12 +2631,11 @@ async function wizVerificaCertificatoPst() {
   if (btnSel) btnSel.disabled = true;
   if (btnAv) {
     btnAv.disabled = true;
-    btnAv.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Attendo PIN Windows...';
+    btnAv.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Preparo certificato...';
   }
 
   try {
-    const pfData = await _lsPreflightAuthPst(tribunale, _wizCertSel);
-    _wizPstSessionId = pfData?.pst_session_id || '';
+    _wizPstSessionId = _lsGetKnownPstSessionId(tribunale, _wizCertSel) || '';
     _wizPinConfermato = true;
     _wizSaveAuth(_wizCertSel);  // memorizza per tutta la sessione browser
     _wizSetPinStatus('ok');
@@ -2636,7 +2653,7 @@ async function wizVerificaCertificatoPst() {
       btnAv.disabled = !_wizPinConfermato && !!_wizCertSel;
       btnAv.innerHTML = _wizPinConfermato
         ? 'Avanti <i class="bi bi-arrow-right ms-1"></i>'
-        : 'Apri PIN Windows <i class="bi bi-box-arrow-up-right ms-1"></i>';
+        : 'Prepara certificato <i class="bi bi-box-arrow-up-right ms-1"></i>';
     }
   }
 }
@@ -2799,7 +2816,7 @@ function _wizMostraCertCard(cert) {
       btnAv.disabled = !_wizPinConfermato;
       btnAv.innerHTML = _wizPinConfermato
         ? 'Avanti <i class="bi bi-arrow-right ms-1"></i>'
-        : 'Apri PIN Windows <i class="bi bi-box-arrow-up-right ms-1"></i>';
+        : 'Prepara certificato <i class="bi bi-box-arrow-up-right ms-1"></i>';
     }
     // Elimina modalità demo: il certificato è presente
     const bannerDemo = document.getElementById('banner-demo');
@@ -2951,6 +2968,8 @@ async function wizEseguiRicerca() {
       return;
     }
     const fascicoli = d.fascicoli || [];
+    _lsRememberPstSession(d, tribunale, _wizCertSel);
+    _wizPstSessionId = String(d?.pst_session_id || _lsPstSessionId || '');
     document.getElementById('wiz-count').textContent = fascicoli.length;
     _wizUltimiFascicoli = Array.isArray(fascicoli) ? fascicoli : [];
     if (!fascicoli.length) { if (empty) empty.style.display = 'block'; return; }
@@ -3083,12 +3102,15 @@ function _restoreImportButtonLoading(button) {
 }
 
 async function _lsDocumentiPerImportazione(fascicolo, cert) {
+  const tribunale = fascicolo.codice_ufficio || '';
+  const sessionId = _lsGetKnownPstSessionId(tribunale, cert) || '';
   const payload = {
-    codice_ufficio: fascicolo.codice_ufficio || '',
+    codice_ufficio: tribunale,
     numero_rg: fascicolo.numero_rg || '',
     anno_rg: fascicolo.anno_rg ? parseInt(fascicolo.anno_rg, 10) : null,
     cert_thumbprint: cert?.thumbprint || null,
     slot_id: cert?.token_slot ?? null,
+    pst_session_id: sessionId,
   };
   const resp = await fetch(_LS_BASE_PW + '/pst/documenti', {
     method: 'POST',
@@ -3100,6 +3122,7 @@ async function _lsDocumentiPerImportazione(fascicolo, cert) {
   if (!data.ok) {
     throw new Error(data.errore || 'Impossibile acquisire i documenti del fascicolo dal PST');
   }
+  _lsRememberPstSession(data, tribunale, cert);
   return Array.isArray(data.documenti) ? data.documenti : [];
 }
 
@@ -3252,43 +3275,11 @@ async function _wizAcquisisciConProgress(form, fascicolo) {
     let documenti = [];
     let _pstSessionIdFromDocumenti = '';
     try {
-      // Prima preflight-auth per creare la sessione PST (un solo PIN).
-      // Riusa la sessione già presente (_lsPstSessionId / _wizPstSessionId) se valida,
-      // così Windows non chiede il PIN una seconda volta.
-      let pstSessionId = '';
+      // Riusa una sessione PST già aperta; se manca, la chiamata reale ai
+      // documenti aprirà il canale e Windows chiederà il PIN una sola volta.
+      let pstSessionId = _lsGetKnownPstSessionId(fascicolo.codice_ufficio || '', cert);
       const tribunale = fascicolo.codice_ufficio || '';
-      try {
-        const pfResp = await fetch(_LS_BASE_PW + '/pst/preflight-auth', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            tribunale,
-            cert_thumbprint: cert?.thumbprint || null,
-            pst_session_id: _lsPstSessionId || _wizPstSessionId || '',
-          }),
-          signal: AbortSignal.timeout(45000),
-        });
-        const pfData = await pfResp.json();
-        if (pfData.ok) {
-          pstSessionId = pfData.pst_session_id || '';
-          _pstSessionIdFromDocumenti = pstSessionId;
-          // Aggiorna la sessione globale per evitare PIN ripetuti nelle
-          // operazioni successive (ricerca, acquisizione, documenti).
-          if (pstSessionId) _lsPstSessionId = pstSessionId;
-          // Salva la sessione PST in sessionStorage nel formato di acquisizione_wizard
-          if (pstSessionId) {
-            try {
-              const ttl = Number(pfData.pst_session_ttl_seconds || 900);
-              sessionStorage.setItem('hacs-aw-pst-session-pst', JSON.stringify({
-                session_id: pstSessionId,
-                tribunale: tribunale,
-                cert_thumbprint: String(cert?.thumbprint || '').trim(),
-                expires_at: Date.now() + (ttl * 1000),
-              }));
-            } catch(_) {}
-          }
-        }
-      } catch(_pfErr) { /* preflight non bloccante */ }
+      if (pstSessionId) _pstSessionIdFromDocumenti = pstSessionId;
 
       setProgress(20, 100, 'Recupero lista documenti dal PST…');
       const payload = {
@@ -3309,19 +3300,9 @@ async function _wizAcquisisciConProgress(form, fascicolo) {
       if (data.ok && Array.isArray(data.documenti)) {
         documenti = data.documenti;
         // Aggiorna il pst_session_id se il server ne ha creato/restituito uno
-        if (data.pst_session_id && !_pstSessionIdFromDocumenti) {
+        if (data.pst_session_id) {
           _pstSessionIdFromDocumenti = data.pst_session_id;
-          try {
-            const existing = JSON.parse(sessionStorage.getItem('hacs-aw-pst-session-pst') || 'null');
-            if (!existing?.session_id) {
-              sessionStorage.setItem('hacs-aw-pst-session-pst', JSON.stringify({
-                session_id: _pstSessionIdFromDocumenti,
-                tribunale: fascicolo.codice_ufficio || '',
-                cert_thumbprint: String(cert?.thumbprint || '').trim(),
-                expires_at: Date.now() + 900000,
-              }));
-            }
-          } catch(_) {}
+          _lsRememberPstSession(data, tribunale, cert);
         }
       } else if (!data.ok) {
         throw new Error(data.errore || 'Errore recupero documenti PST');

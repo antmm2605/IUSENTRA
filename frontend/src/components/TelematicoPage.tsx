@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type MouseEvent, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react'
 import {
   AlertTriangle,
   ArrowRight,
@@ -77,6 +77,23 @@ function sameTelematicoPage(href: string): boolean {
   } catch {
     return false
   }
+}
+
+function focusedChannelFromLocation(): { id: TelematicoChannelId; actionIndex: number } {
+  const params = new URLSearchParams(window.location.search)
+  const raw = (params.get('focus') || window.location.hash.replace(/^#/, '') || '').toLowerCase()
+  if (raw === 'pdp' || raw === 'pat' || raw === 'ptt') return { id: raw, actionIndex: 0 }
+  return { id: 'pst', actionIndex: 0 }
+}
+
+function scrollToActiveChannel() {
+  const target = document.getElementById('canale-attivo')
+  if (!target) return
+  const topbar = document.querySelector<HTMLElement>('.iu-topbar')
+  const offset = (topbar?.getBoundingClientRect().height || 76) + 18
+  const top = Math.max(0, target.getBoundingClientRect().top + window.scrollY - offset)
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  window.scrollTo({ top, behavior: reducedMotion ? 'auto' : 'smooth' })
 }
 
 function ChannelCard({
@@ -259,7 +276,8 @@ export function TelematicoPage() {
   const [data, setData] = useState<TelematicoPageData>(emptyTelematicoPage)
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
-  const [activeChannel, setActiveChannel] = useState<{ id:TelematicoChannelId; actionIndex:number }>({ id: 'pst', actionIndex: 0 })
+  const [activeChannel, setActiveChannel] = useState<{ id:TelematicoChannelId; actionIndex:number }>(() => focusedChannelFromLocation())
+  const initialFocusApplied = useRef(false)
 
   const load = () => {
     setLoading(true)
@@ -276,6 +294,13 @@ export function TelematicoPage() {
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false }
   }, [])
+
+  useEffect(() => {
+    const hasFocusTarget = window.location.search.includes('focus=') || Boolean(window.location.hash)
+    if (initialFocusApplied.current || loading || !hasFocusTarget) return
+    initialFocusApplied.current = true
+    window.requestAnimationFrame(scrollToActiveChannel)
+  }, [loading, data.channels.length])
 
   const filteredCases = useMemo(() => {
     const needle = normaliseSearch(query.trim())
@@ -299,9 +324,7 @@ export function TelematicoPage() {
 
   const selectChannel = (channel: TelematicoChannel, actionIndex = 0) => {
     setActiveChannel({ id: channel.id, actionIndex })
-    window.requestAnimationFrame(() => {
-      document.getElementById('canale-attivo')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    })
+    window.requestAnimationFrame(scrollToActiveChannel)
   }
 
   const handleChannelAction = (event: MouseEvent<HTMLAnchorElement>, channel: TelematicoChannel, actionIndex: number) => {
@@ -323,7 +346,7 @@ export function TelematicoPage() {
         <div>
           <span className="iu-tel-eyebrow"><ShieldCheck size={16}/> Un presidio unico per i portali telematici</span>
           <h1>Centro Servizi Telematici</h1>
-          <p>PST/PolisWeb, SIGP, PDP Penale, PAT/SIGA e PTT/SIGIT in una regia operativa: accessi, acquisizioni, fascicoli importati, controlli e prossime attività.</p>
+          <p>PST/PolisWeb, PDP Penale, PAT/SIGA e PTT/SIGIT in una regia operativa: accessi, acquisizioni, fascicoli importati, controlli e prossime attività.</p>
           <div className="iu-tel-hero__chips">
             <Badge tone="primary">no scraping</Badge>
             <Badge tone="success">Local Signer</Badge>

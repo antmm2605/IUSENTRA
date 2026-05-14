@@ -271,8 +271,6 @@ APP_V2_ROUTE_FLAGS: tuple[tuple[str, str], ...] = (
     ("/pat", "routes.appV2.telematico.surface"),
     ("/ptt", "routes.appV2.telematico.surface"),
     ("/sigit", "routes.appV2.telematico.surface"),
-    ("/sigp", "routes.appV2.telematico.surface"),
-    ("/sigp-sync", "routes.appV2.telematico.surface"),
     ("/tribunali", "routes.appV2.telematico.surface"),
     ("/guida/firma-digitale", "routes.appV2.telematico.surface"),
     ("/portali", "routes.appV2.telematico.surface"),

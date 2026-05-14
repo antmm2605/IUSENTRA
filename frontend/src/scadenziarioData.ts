@@ -278,7 +278,7 @@ export const emptyScadenziarioPage: ScadenziarioPageData = {
     exportCsv: '/scadenziario/export.csv',
     exportPdf: '/scadenziario/pdf',
     exportIcs: '/scadenziario/export.ics',
-    agenda: '/app-v2/agenda',
+    agenda: '/agenda',
     calendarSettings: '/impostazioni/calendario',
     lex: '#lex',
     bulkComplete: '/scadenziario/bulk-completa',

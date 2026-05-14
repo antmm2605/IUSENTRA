@@ -142,7 +142,7 @@ export const emptyTelematicoSurface: TelematicoSurfaceData = {
     eyebrow: 'Servizi telematici',
     subtitle: 'Pagina operativa in caricamento.',
     tone: 'primary',
-    appHref: '/app-v2/polisweb',
+    appHref: '/polisWeb',
     legacyHref: '/polisWeb',
     officialHref: '',
   },
@@ -174,6 +174,13 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function text(value: unknown, fallback = ''): string {
   return String(value ?? fallback).trim()
+}
+
+function canonicalHref(value: unknown, fallback = ''): string {
+  const raw = text(value, fallback)
+  if (!raw.startsWith('/app-v2')) return raw
+  if (raw === '/app-v2') return '/'
+  return raw.replace(/^\/app-v2(?=\/|$)/, '') || '/'
 }
 
 function display(value: unknown, fallback = ''): string {
@@ -218,7 +225,7 @@ function normaliseAction(value: unknown, index: number): SurfaceAction {
   return {
     id: text(item.id, `azione-${index}`),
     label: display(item.label, 'Apri'),
-    href: text(item.href, '#'),
+    href: canonicalHref(item.href, '#'),
     tone: tone(item.tone, 'primary'),
     method: method(item.method),
     external: bool(item.external),
@@ -299,7 +306,7 @@ function normaliseControlItem(value: unknown, index: number, fallbackBadge: stri
     portal: text(item.portal) as 'pst' | 'pdp' | 'pat' | 'ptt' | 'altro',
     title: display(item.title, 'Elemento da presidiare'),
     subtitle: display(item.subtitle ?? item.description),
-    href: text(item.href, '/app-v2/telematico'),
+    href: canonicalHref(item.href, '/telematico'),
     tone: tone(item.tone, 'warning'),
     badge: display(item.badge, fallbackBadge),
   }
@@ -329,7 +336,7 @@ function normaliseCase(value: unknown, index: number): TelematicoCase {
     documentsCount: number(item.documentsCount),
     openTasks: number(item.openTasks),
     syncedAt: text(item.syncedAt),
-    href: text(item.href, '/app-v2/telematico'),
+    href: canonicalHref(item.href, '/telematico'),
     tone: tone(item.tone, 'neutral'),
     badges: asList(item.badges).map((badge) => display(badge)).filter(Boolean),
   }
@@ -343,7 +350,7 @@ function normaliseEvent(value: unknown, index: number): TelematicoEvent {
     title: display(item.title, 'Attivita telematica'),
     subtitle: display(item.subtitle, ''),
     timestamp: text(item.timestamp),
-    href: text(item.href, '/app-v2/telematico'),
+    href: canonicalHref(item.href, '/telematico'),
     tone: tone(item.tone, 'primary'),
     badge: display(item.badge),
   }
@@ -372,8 +379,8 @@ function normaliseSurfacePayload(payload: unknown): TelematicoSurfaceData {
       eyebrow: display(surface.eyebrow, 'IUSENTRA'),
       subtitle: display(surface.subtitle),
       tone: tone(surface.tone, 'primary'),
-      appHref: text(surface.appHref, '/app-v2/telematico'),
-      legacyHref: text(surface.legacyHref),
+      appHref: canonicalHref(surface.appHref, '/telematico'),
+      legacyHref: canonicalHref(surface.legacyHref),
       officialHref: text(surface.officialHref),
     },
     summary: {
@@ -391,7 +398,7 @@ function normaliseSurfacePayload(payload: unknown): TelematicoSurfaceData {
     recentEvents: asList(payload.recentEvents).map(normaliseEvent),
     links: asList(payload.links).map((link) => {
       const item = isRecord(link) ? link : {}
-      return { label: display(item.label, 'Link'), href: text(item.href, '#'), kind: display(item.kind, 'link') }
+      return { label: display(item.label, 'Link'), href: canonicalHref(item.href, '#'), kind: display(item.kind, 'link') }
     }),
     notices: asList(payload.notices).map((notice) => {
       const item = isRecord(notice) ? notice : {}

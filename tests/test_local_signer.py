@@ -120,14 +120,16 @@ def test_wizard_pst_usa_snapshot_e_sessione_unica_anche_per_download():
     assert "purpose: 'view'" in template
     assert "purpose: 'import'" not in template
     assert "AW_PST_IMPORT_SESSION?.session_id" not in template
-    assert "pst_session_id: AW_PST_SESSION?.session_id || ''" in template
+    assert "function awGetActivePstSession" in template
+    assert "pst_session_id: activeSession?.session_id || ''" in template
+    assert "`${AW_PST_LS_BASE}/pst/preflight-auth`" not in template
     assert "`${AW_PST_LS_BASE}/pst/documenti`" not in template
     preview_fn = template[
         template.index("async function awPstPreviewViaLocalSigner"):
         template.index("function awMapLocalSignerSearchRows")
     ]
     assert preview_fn.index("AW_STATE.pstSnapshot?.documenti?.length") < preview_fn.index(
-        "awEnsurePstPortalSession"
+        "awEnsurePstCertReady"
     )
 
 
@@ -1598,6 +1600,36 @@ def test_pick_preferred_windows_cert_filtra_per_codice_fiscale_e_prefere_authent
 
     assert picked is not None
     assert picked["thumbprint"] == "AUTH-ROBERTO"
+
+
+def test_pick_preferred_windows_cert_usa_certificato_unico_filtrato_per_cf():
+    module = _load_local_signer()
+
+    certs = [
+        {
+            "thumbprint": "QUAL-ROBERTO",
+            "soggetto": "ROBERTO MONTAGNESE",
+            "soggetto_completo": "CN=ROBERTO MONTAGNESE,SERIALNUMBER=CF:MNTRRT64L01L063H",
+            "codice_fiscale": "MNTRRT64L01L063H",
+            "emittente": "ArubaPEC EU Qualified Certificates CA G1",
+        },
+        {
+            "thumbprint": "QUAL-OTHER",
+            "soggetto": "ALTRO PROFESSIONISTA",
+            "soggetto_completo": "CN=ALTRO PROFESSIONISTA,SERIALNUMBER=CF:AAAAAA00A00A000A",
+            "codice_fiscale": "AAAAAA00A00A000A",
+            "emittente": "ArubaPEC EU Qualified Certificates CA G1",
+        },
+    ]
+
+    picked = module._pick_preferred_windows_cert(
+        certs,
+        prefer_cf="MNTRRT64L01L063H",
+        auto=True,
+    )
+
+    assert picked is not None
+    assert picked["thumbprint"] == "QUAL-ROBERTO"
 
 
 def test_costruisce_body_qbuilder_ricerca_per_tipo():
@@ -3578,6 +3610,108 @@ def test_soap_call_curl_batch_raw_windows_preserva_cert_store_spec():
     assert len(result) == 2
     assert 'cert = "CurrentUser\\\\MY\\\\AABBCC11"' in captured["cfg"]
     assert 'cert = "CurrentUser/MY/AABBCC11"' not in captured["cfg"]
+    assert "ssl-no-revoke" in captured["cfg"]
+
+
+def test_soap_call_curl_raw_windows_applica_ssl_no_revoke():
+    module = _load_local_signer()
+
+    orig_platform = module.sys.platform
+    orig_run = module.subprocess.run
+    captured = {}
+
+    try:
+        def _fake_run(cmd, capture_output, timeout):
+            captured["cmd"] = cmd
+            header_path = Path(cmd[cmd.index("--dump-header") + 1])
+            header_path.write_text("HTTP/1.1 200 OK\r\nContent-Type: text/xml\r\n\r\n", encoding="utf-8")
+            return SimpleNamespace(returncode=0, stdout=b"<ok/>", stderr=b"")
+
+        module.sys.platform = "win32"
+        module.subprocess.run = _fake_run
+
+        body, _headers = module._soap_call_curl_raw(
+            url="https://pst.example.test/service",
+            soap_body="<xml/>",
+            cert_thumbprint="AABBCC11",
+        )
+    finally:
+        module.sys.platform = orig_platform
+        module.subprocess.run = orig_run
+
+    assert body == b"<ok/>"
+    assert "--ssl-no-revoke" in captured["cmd"]
+    assert ["--cert", "CurrentUser\\MY\\AABBCC11"] == captured["cmd"][
+        captured["cmd"].index("--cert"):captured["cmd"].index("--cert") + 2
+    ]
+
+
+def test_pst_preflight_windows_applica_ssl_no_revoke():
+    module = _load_local_signer()
+
+    orig_platform = module.sys.platform
+    orig_run = module.subprocess.run
+    captured = {}
+
+    try:
+        def _fake_run(cmd, capture_output, text, timeout, encoding, errors):
+            captured["cmd"] = cmd
+            header_path = Path(cmd[cmd.index("--dump-header") + 1])
+            body_path = Path(cmd[cmd.index("-o") + 1])
+            header_path.write_text("HTTP/1.1 405 Method Not Allowed\r\nContent-Type: text/plain\r\n\r\n", encoding="utf-8")
+            body_path.write_text("ok", encoding="utf-8")
+            return SimpleNamespace(returncode=0, stderr="")
+
+        module.sys.platform = "win32"
+        module.subprocess.run = _fake_run
+
+        result = module._pst_preflight_auth_curl(
+            "https://pst.example.test/service",
+            cert_thumbprint="AABBCC11",
+        )
+    finally:
+        module.sys.platform = orig_platform
+        module.subprocess.run = orig_run
+
+    assert result["ok"] is True
+    assert "--ssl-no-revoke" in captured["cmd"]
+
+
+def test_errore_certificato_server_pst_non_chiede_di_aggiungere_ssl_no_revoke():
+    module = _load_local_signer()
+
+    message = module._curl_errore_leggibile(
+        60,
+        "SSL certificate problem: unable to get local issuer certificate",
+        "https://ext.processotelematico.giustizia.it/pda/pycons/GLRC/JPW_SICID",
+        timeout_sec=30,
+    )
+
+    assert "connessione sicura al PST" in message
+    assert "Aggiungere --ssl-no-revoke" not in message
+
+
+def test_curl_command_windows_preferisce_curl_di_sistema(monkeypatch):
+    module = _load_local_signer()
+
+    class _FakePath:
+        def __init__(self, *parts):
+            self.value = "\\".join(str(part).strip("\\/") for part in parts if str(part))
+
+        def __truediv__(self, other):
+            return _FakePath(self.value, other)
+
+        def exists(self):
+            return self.value.endswith("System32\\curl.exe")
+
+        def __str__(self):
+            return self.value
+
+    monkeypatch.setattr(module.sys, "platform", "win32")
+    monkeypatch.setenv("SystemRoot", r"C:\Windows")
+    monkeypatch.setattr(module, "Path", _FakePath)
+
+    assert module._curl_command().endswith(r"System32\curl.exe")
 
 
 def test_soap_call_pst_session_riprova_con_certificato_dopo_cookie_only():
@@ -4040,9 +4174,16 @@ def test_pst_ricerca_esatta_arricchisce_profilo_se_mancano_campi_identita():
             },
             False,
         )
-        module._pst_prepare_authenticated_session = lambda session_entry, **kwargs: (session_entry, True)
+        def _unexpected_prepare(*args, **kwargs):
+            raise AssertionError("La ricerca PST non deve fare preflight separato prima della chiamata operativa")
+
+        module._pst_prepare_authenticated_session = _unexpected_prepare
         module._soap_ricerca_fascicoli_body = lambda **kwargs: "<xml/>"
-        module._soap_call_pst_session = lambda **kwargs: "<Envelope/>"
+        def _fake_call_pst_session(**kwargs):
+            captured["soap_kwargs"] = kwargs
+            return "<Envelope/>"
+
+        module._soap_call_pst_session = _fake_call_pst_session
         module._estrai_fault_soap = lambda xml: None
         module._parse_fascicoli_xml = lambda xml: [
             {
@@ -4068,6 +4209,7 @@ def test_pst_ricerca_esatta_arricchisce_profilo_se_mancano_campi_identita():
     assert captured["status"] == 200
     assert captured["payload"]["ok"] is True
     assert len(captured["payload"]["fascicoli"]) == 1
+    assert captured["soap_kwargs"]["prefer_cookie_only"] is False
     assert calls["arricchisci"] == 1
 
 

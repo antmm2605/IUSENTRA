@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import base64
 import hashlib
 import uuid
 from datetime import date, datetime
@@ -3266,6 +3267,317 @@ def build_telematico_runtime(
             "evidence_pack": repo.get_evidence_pack(dep_session.id).__dict__ if repo.get_evidence_pack(dep_session.id) else {},
         }
 
+    def _strip_assisted_base64(value: Any) -> str:
+        text = str(value or "").strip()
+        if text.lower().startswith("data:") and "," in text:
+            return text.split(",", 1)[1].strip()
+        return text
+
+    def _decode_assisted_base64(value: Any) -> bytes:
+        content_b64 = _strip_assisted_base64(value)
+        if not content_b64:
+            return b""
+        return base64.b64decode(content_b64, validate=False)
+
+    def _normalize_assisted_import_file(item: dict[str, Any]) -> dict[str, Any] | None:
+        row = dict(item or {})
+        filename = Path(
+            str(
+                row.get("nome")
+                or row.get("filename")
+                or row.get("name")
+                or row.get("nome_file_originale")
+                or "documento_portale"
+            )
+        ).name
+        if not filename:
+            return None
+        if Path(filename).suffix.lower() not in _SAFE_ASSISTANT_EXTENSIONS:
+            return None
+        content_b64 = _strip_assisted_base64(
+            row.get("contenuto_b64") or row.get("content_base64") or row.get("base64")
+        )
+        if not content_b64:
+            return None
+        try:
+            raw = _decode_assisted_base64(content_b64)
+        except Exception:
+            return None
+        if not raw:
+            return None
+        sha = str(row.get("sha256") or "").strip().lower()
+        computed = hashlib.sha256(raw).hexdigest()
+        if sha and sha != computed:
+            return None
+        normalized = {
+            "filename": filename,
+            "name": filename,
+            "nome": filename,
+            "nome_file_originale": str(row.get("nome_file_originale") or filename).strip(),
+            "contenuto_b64": content_b64,
+            "content_base64": content_b64,
+            "sha256": computed,
+            "size": len(raw),
+            "dimensione_bytes": len(raw),
+            "data_documento": str(row.get("data_documento") or row.get("data_deposito") or date.today().isoformat())[:10],
+            "detected_at": str(row.get("detected_at") or datetime.now().isoformat()),
+            "origine": str(row.get("origine") or row.get("source") or row.get("local_temp_ref") or MODE_OFFICIAL_PORTAL_ASSISTED).strip(),
+            "source": MODE_OFFICIAL_PORTAL_ASSISTED,
+            "content_type": str(row.get("content_type") or "").strip(),
+            "id_documento_portale": str(row.get("id_documento_portale") or row.get("id_documento") or "").strip(),
+            "id_deposito_esterno": str(row.get("id_deposito_esterno") or row.get("id_deposito") or "").strip(),
+            "id_deposito_pct": str(row.get("id_deposito_pct") or "").strip(),
+            "tipo_atto": str(row.get("tipo_atto") or "").strip(),
+            "tipo": str(row.get("tipo") or "").strip(),
+            "mittente": str(row.get("mittente") or "").strip(),
+            "servizio_portale": str(row.get("servizio_portale") or "").strip(),
+            "id_cat": str(row.get("id_cat") or "").strip(),
+            "id_repeatto": str(row.get("id_repeatto") or "").strip(),
+            "msg_id": str(row.get("msg_id") or row.get("message_id") or row.get("messageId") or "").strip(),
+            "oggetto": str(row.get("oggetto") or row.get("subject") or "").strip(),
+            "classificazione": str(row.get("classificazione") or row.get("receipt_type") or "").strip(),
+            "id_deposito_ufficiale": str(row.get("id_deposito_ufficiale") or "").strip(),
+            "data_ufficiale": str(row.get("data_ufficiale") or row.get("data_documento") or "").strip(),
+            "message_id": str(row.get("message_id") or row.get("messageId") or "").strip(),
+            "original_documento_portale": bool(row.get("original_documento_portale", True)),
+            "modalita_documento_portale": str(row.get("modalita_documento_portale") or "originale").strip(),
+        }
+        return normalized
+
+    def _assisted_file_is_receipt(item: dict[str, Any]) -> bool:
+        text = " ".join(
+            str(item.get(key) or "").lower()
+            for key in (
+                "filename",
+                "nome",
+                "oggetto",
+                "subject",
+                "tipo",
+                "tipo_atto",
+                "classificazione",
+                "receipt_type",
+            )
+        )
+        return any(
+            token in text
+            for token in (
+                "ricevuta",
+                "accettazione",
+                "consegna",
+                "esito",
+                "segreteria",
+                "cancelleria",
+                "rifiuto",
+                "anomalia",
+            )
+        )
+
+    def _selection_from_assisted_target(portale: str, fasc: Fascicolo) -> dict[str, Any]:
+        numero = str(getattr(fasc, "numero_rg", "") or "").strip()
+        anno = int(getattr(fasc, "anno_rg", 0) or 0)
+        ufficio = str(getattr(fasc, "tribunale", "") or "").strip()
+        procedimento = str(
+            getattr(fasc, "tipo_procedimento", "")
+            or getattr(getattr(fasc, "tipo", None), "value", "")
+            or ""
+        ).strip()
+        oggetto = str(getattr(fasc, "oggetto", "") or getattr(fasc, "titolo", "") or "").strip()
+        payload: dict[str, Any] = {
+            "numero_rg": numero,
+            "anno_rg": anno,
+            "numero": numero,
+            "anno": anno,
+            "nome_ufficio": ufficio,
+            "codice_ufficio": "",
+            "tipo": procedimento,
+            "oggetto": oggetto,
+            "stato": str(getattr(getattr(fasc, "stato", None), "value", "") or "").strip(),
+        }
+        if portale == "pdp":
+            payload.update({"tipo_registro": procedimento, "reato": oggetto})
+        elif portale == "pat":
+            payload.update({"numero_ricorso": numero, "materia": oggetto})
+        elif portale == "ptt":
+            payload.update({"numero_rgt": numero, "anno_rgt": anno, "oggetto_controversia": oggetto})
+        return {
+            "external_id": str(getattr(fasc, "source_external_id", "") or "").strip() or f"{portale.upper()}:{fasc.id}",
+            "numero": numero,
+            "anno": anno,
+            "ufficio_codice": "",
+            "ufficio_nome": ufficio,
+            "procedimento": procedimento,
+            "sezione": str(getattr(fasc, "sezione", "") or "").strip(),
+            "stato": str(getattr(fasc, "sync_status", "") or "").strip(),
+            "oggetto": oggetto,
+            "parti": [str(getattr(fasc, "nome_cliente", "") or "").strip()]
+            if str(getattr(fasc, "nome_cliente", "") or "").strip()
+            else [],
+            "controparti": [str(getattr(fasc, "controparte", "") or "").strip()]
+            if str(getattr(fasc, "controparte", "") or "").strip()
+            else [],
+            "ultima_attivita": datetime.now().isoformat(),
+            "payload": payload,
+        }
+
+    def _preview_documents_from_assisted_items(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        rows: list[dict[str, Any]] = []
+        for index, item in enumerate(items, start=1):
+            rows.append(
+                {
+                    "id_documento": str(item.get("id_documento_portale") or item.get("sha256") or f"DOC-{index}")[:32],
+                    "id_deposito": str(item.get("id_deposito_esterno") or item.get("id_deposito_pct") or "").strip(),
+                    "nome": str(item.get("nome") or item.get("filename") or f"documento_{index}").strip(),
+                    "tipo": str(item.get("tipo") or item.get("tipo_atto") or "Documento").strip(),
+                    "tipo_atto": str(item.get("tipo_atto") or item.get("tipo") or "Documento").strip(),
+                    "data_deposito": str(item.get("data_documento") or item.get("data_ufficiale") or date.today().isoformat())[:10],
+                    "mittente": str(item.get("mittente") or "").strip(),
+                    "dimensione_bytes": int(item.get("dimensione_bytes") or item.get("size") or 0),
+                    "disponibile": True,
+                    "servizio_portale": str(item.get("servizio_portale") or "").strip(),
+                }
+            )
+        return rows
+
+    def _importa_file_assistiti_portale(portale: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+        portale_norm = _require_assisted_portal(portale)
+        body = dict(payload or {})
+        mapping_body = body.get("mapping") if isinstance(body.get("mapping"), dict) else {}
+        options_body = body.get("options") if isinstance(body.get("options"), dict) else {}
+        fascicolo_id = str(
+            body.get("fascicolo_id")
+            or body.get("id_fasc")
+            or body.get("fascicolo_locale_id")
+            or mapping_body.get("target_fascicolo_id")
+            or ""
+        ).strip()
+        gf = get_fascicoli()
+        fasc = gf.get(fascicolo_id) if fascicolo_id else None
+        if not fasc:
+            raise ValueError("Seleziona il fascicolo interno in cui importare file, ricevute ed esiti.")
+
+        files_raw = body.get("downloaded_files") or body.get("files") or []
+        if not isinstance(files_raw, list):
+            files_raw = []
+        session_id = str(body.get("assistant_session_id") or body.get("session_id") or "").strip()
+        if session_id:
+            assisted = _portal_assistant_collect(portale_norm, session_id, {})
+            files_raw = [*files_raw, *assisted.get("downloaded_files", [])]
+
+        normalized_files: list[dict[str, Any]] = []
+        seen_files: set[tuple[str, str]] = set()
+        for item in files_raw:
+            normalized = _normalize_assisted_import_file(dict(item or {}))
+            if not normalized:
+                continue
+            key = (str(normalized.get("sha256") or ""), str(normalized.get("nome") or "").lower())
+            if key in seen_files:
+                continue
+            seen_files.add(key)
+            normalized_files.append(normalized)
+        if not normalized_files:
+            raise ValueError("La sessione assistita non ha consegnato file importabili al fascicolo.")
+
+        decoded_items = _decode_portale_downloaded_items(normalized_files)
+        if not decoded_items:
+            raise ValueError("I file raccolti non contengono documenti leggibili da importare.")
+
+        user_name = getattr(getattr(g, "utente_corrente", None), "username", "") or ""
+        selection = _selection_from_assisted_target(portale_norm, fasc)
+        preview = _build_portale_preview(
+            portale_norm,
+            selection,
+            _preview_documents_from_assisted_items(decoded_items),
+        )
+        document_result = _importa_documenti_portale_items(
+            gf=gf,
+            fasc=fasc,
+            items=decoded_items,
+            note_importazione=f"Sessione assistita IUSENTRA da {_portale_source_name(portale_norm)}",
+        )
+
+        receipt_files = [row for row in normalized_files if _assisted_file_is_receipt(row)]
+        receipt_result: dict[str, Any] = {"imported": []}
+        receipt_warning = ""
+        if receipt_files:
+            try:
+                receipt_result = _deposito_importa_ricevute_assistito(
+                    portale_norm,
+                    {
+                        "fascicolo_id": fascicolo_id,
+                        "receipts": receipt_files,
+                        "assistant_session_id": "",
+                    },
+                )
+            except Exception as exc:
+                receipt_warning = str(exc)
+
+        log_id = _append_portale_import_log(
+            {
+                "portale": _portale_source_name(portale_norm),
+                "selection": selection,
+                "preview_counts": preview.get("counts") or {},
+                "options": {"sessione_assistita_iusentra": True, **options_body},
+                "mapping": {"mode": "update_existing", "target_fascicolo_id": fascicolo_id, **mapping_body},
+                "analysis": {"warnings": [receipt_warning] if receipt_warning else []},
+                "download": {
+                    "file_raccolti": len(normalized_files),
+                    "documenti_decodificati": len(decoded_items),
+                    "ricevute_rilevate": len(receipt_files),
+                },
+                "utente": user_name,
+            }
+        )
+
+        _update_fascicolo_sync_metadata(
+            fascicolo_id,
+            portale=portale_norm,
+            selection=selection,
+            import_log_id=log_id,
+            has_conflicts=bool(receipt_warning),
+            document_sync_enabled=True,
+            events_sync_enabled=False,
+            sync_status="SINCRONIZZATO",
+        )
+        _sync_telematico_case_from_portale(
+            portale_norm,
+            id_fasc=fascicolo_id,
+            selection=selection,
+            preview=preview,
+            import_log_id=log_id,
+            sync_status="SINCRONIZZATO",
+            document_sync_enabled=True,
+            workflow_url="",
+            user_name=user_name,
+        )
+
+        detail_url = url_for("dettaglio_fascicolo", id_fasc=fascicolo_id)
+        imported_receipts = list(receipt_result.get("imported") or [])
+        summary = {
+            "fascicolo_id": fascicolo_id,
+            "numero_pratica": str(getattr(fasc, "numero", "") or ""),
+            "titolo": str(getattr(fasc, "titolo", "") or ""),
+            "documenti": int(document_result.get("documenti_importati", 0) or 0),
+            "file_raccolti": len(normalized_files),
+            "ricevute": len(imported_receipts),
+            "depositi": len(document_result.get("depositi_agganciati") or []) + len(imported_receipts),
+            "fascicolo_url": detail_url,
+            "message": "File, ricevute ed esiti acquisiti nel fascicolo interno.",
+        }
+        if receipt_warning:
+            summary["avviso_ricevute"] = receipt_warning
+        return {
+            "id_fascicolo": fascicolo_id,
+            "created": False,
+            "resolved_mode": "update_existing",
+            "import_log_id": log_id,
+            "dettaglio_url": detail_url,
+            "documenti_url": detail_url + "#sezione-documenti-fascicolo",
+            "timeline_url": detail_url + "#sezione-attivita-processuali",
+            "summary": summary,
+            "documenti": document_result,
+            "ricevute": receipt_result,
+        }
+
     def _deposito_finalizza_assistito(portale: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
         portale_norm = _require_assisted_portal(portale)
         body = dict(payload or {})
@@ -3845,6 +4157,7 @@ read -r -p "Premi Invio per chiudere..." _
         "analyze_portale_import": _analyze_portale_import,
         "normalize_authorized_portale_payload": _normalize_authorized_portale_payload,
         "importa_o_collega_fascicolo_portale": _importa_o_collega_fascicolo_portale,
+        "importa_file_assistiti_portale": _importa_file_assistiti_portale,
         "portal_assistant_start": _portal_assistant_start,
         "portal_assistant_open": _portal_assistant_open,
         "portal_assistant_watch_downloads": _portal_assistant_watch_downloads,

@@ -84,7 +84,7 @@ class SigpLocalConnectorClient:
             "documents": normalized_documents,
             "original": bool(original),
             "purpose": "view",
-            "preflight_auth": not bool(normalized_case.get("pst_session_id")),
+            "preflight_auth": False,
         }
         response = self._request("POST", "/pst/download-documenti-batch", request_payload)
         if not response.ok and not response.payload.get("files"):

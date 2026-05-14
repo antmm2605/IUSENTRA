@@ -1,5 +1,34 @@
 # Migrazione progressiva Flask + React
 
+## Hotfix PST, Local Signer e navigazione telematica - 2026-05-14 - 2.235.5
+
+La release 2.235.5 chiude la regressione segnalata sul PIN PST: il wizard
+React di acquisizione non apre piu' una sessione preparatoria tramite
+`/pst/preflight-auth` prima della ricerca, dell'anteprima o del download.
+Ricerca snapshot, fallback di ricerca, anteprima fascicolo e download batch
+inviano solo l'eventuale `pst_session_id` gia' noto e lasciano al Local Signer
+la chiamata operativa reale, preservando la regola utente: un PIN per
+visualizzare il fascicolo e un PIN per scaricare l'intero fascicolo, salvo
+scadenza reale lato portale/token.
+
+Il Local Signer `1.6.34` preferisce il curl di sistema Windows, applica
+internamente `--ssl-no-revoke` su Schannel e non mostra piu' istruzioni
+all'utente per aggiungere manualmente quell'opzione. La selezione certificato
+accetta automaticamente l'unico certificato coerente con il codice fiscale
+anche quando l'emittente non rientra nella preferenza storica, evitando dialoghi
+manuali inutili.
+
+Il centro `/telematico` e le superfici collegate usano link visibili canonici
+senza prefisso `/app-v2` (`/polisWeb`, `/pdp`, `/pat`, `/sigit`, ecc.) e lo
+scroll non usa piu' `scrollIntoView` sulle aree telematiche: calcola l'offset
+della topbar e porta il pannello operativo nella posizione corretta.
+
+Verifiche locali confermate finora: shard Local Signer/PST 11/11, shard React
+telematico 6/6, test scroll/Local Signer React 2/2, Ruff mirato, typecheck,
+build Vite `2.235.5`, build pacchetti Local Signer `1.6.34` e packaging /
+readiness 14/14. Restano da registrare in questa sezione Docker locale,
+browser reale e deploy Hetzner dopo il commit finale.
+
 ## Hotfix Email ordinaria e Panoramica - 2026-05-14 - 2.235.4
 
 La release 2.235.4 corregge la regressione introdotta dal fix anti-duplicati:
@@ -2015,3 +2044,11 @@ python -m pytest tests/test_react_shell.py tests/test_email_client.py tests/test
 - Fix finale leggero: `web/bootstrap/fascicoli_create_routes.py` e `web/bootstrap/fascicoli_document_helpers.py` separano flussi gia esistenti per far passare il budget governance senza cambiare URL o comportamento utente.
 - Smoke Docker locale finale: `--subset contracts` PASS=7 FAIL=0; `--suite post-deploy` PASS=76 FAIL=0 SKIP=1 BLOCKED=6. I blocchi richiedono credenziali smoke dedicate e non sono verdi dichiarati.
 - Hotfix successivo 2.235.1: superfici operative App V2 attive di default sotto `/app-v2`, rollback esplicito via flag, telematico non parificato e Web Push ancora protetti.
+
+## Aggiornamento 2026-05-14: Portali assistiti dentro IUSENTRA
+
+- `/portali/pdp/acquisizione`, `/portali/pat/acquisizione` e `/portali/ptt/acquisizione` non devono piu' presentare un semplice link esterno come azione primaria: la shell React parte dallo Step 1 con `Sessione IUSENTRA`, avvio della sessione locale assistita, raccolta file nel software e import finale nel fascicolo interno.
+- Aggiunto `POST /api/portali/<portale>/acquisizione/importa-file` per PDP/PAT/PTT: riceve file raccolti dalla sessione assistita o selezionati dall'utente, importa i binari nei documenti del fascicolo, registra ricevute/esiti nella timeline/deposito quando riconoscibili e aggiorna metadati/audit del fascicolo.
+- I payload autorizzati JSON continuano a usare `importa-payload` e non richiedono piu' selezione/anteprima fittizia nel frontend prima della chiamata.
+- Il bridge React non espone `officialHref` come link esterno per PDP/PAT/PTT; le card e i link secondari puntano alla sessione assistita IUSENTRA.
+- Verifiche registrate: py_compile backend/bridge, `npm --prefix frontend run typecheck`, `npm --prefix frontend run build`, `tests/test_portali_payload_import_ui.py`, due shard React shell mirati e browser reale autenticato su PDP/PAT/PTT.

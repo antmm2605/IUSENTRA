@@ -59,13 +59,13 @@ const surfaceFallbacks: Record<TelematicoSurfaceId, { title: string; context: st
 }
 
 const surfaceAppPaths: Record<TelematicoSurfaceId, string> = {
-  polisweb: '/app-v2/polisweb',
-  pdp: '/app-v2/pdp',
-  pat: '/app-v2/pat',
-  ptt: '/app-v2/ptt',
-  tribunali: '/app-v2/tribunali',
-  checklist: '/app-v2/deposito/checklist',
-  firma: '/app-v2/guida/firma-digitale',
+  polisweb: '/polisWeb',
+  pdp: '/pdp',
+  pat: '/pat',
+  ptt: '/sigit',
+  tribunali: '/tribunali',
+  checklist: '/deposito/checklist',
+  firma: '/guida/firma-digitale',
 }
 
 const surfacePortals: Partial<Record<TelematicoSurfaceId, 'pst' | 'pdp' | 'pat' | 'ptt'>> = {
@@ -183,8 +183,6 @@ function surfaceFromCurrentPath(): TelematicoSurfaceId {
   if (
     route.startsWith('/polisweb') ||
     route.startsWith('/pst') ||
-    route.startsWith('/sigp') ||
-    route.startsWith('/sigp-sync') ||
     route.startsWith('/portali/pst')
   ) return 'polisweb'
   return 'polisweb'
@@ -419,6 +417,16 @@ function isSameSurfaceAction(surfaceId: TelematicoSurfaceId, action: SurfaceActi
   return actionPath === currentSurfacePath || Boolean(aliases[surfaceId]?.some((alias) => actionPath === alias || actionPath.startsWith(`${alias}/`)))
 }
 
+function scrollToSurfaceTarget(targetId: string) {
+  const target = document.getElementById(targetId)
+  if (!target) return
+  const topbar = document.querySelector<HTMLElement>('.iu-topbar')
+  const offset = (topbar?.getBoundingClientRect().height || 76) + 18
+  const top = Math.max(0, target.getBoundingClientRect().top + window.scrollY - offset)
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  window.scrollTo({ top, behavior: reducedMotion ? 'auto' : 'smooth' })
+}
+
 function statToneClass(tone: Tone) {
   return `iu-tel-surface-stat iu-tel-surface-stat--${tone}`
 }
@@ -530,7 +538,7 @@ function ActiveOperationPanel({
         </dl>
       </div>
       <div className="iu-tel-active-op__actions">
-        <a href="/app-v2/fascicoli">Scegli fascicolo</a>
+        <a href="/fascicoli">Scegli fascicolo</a>
         <a href={checklistHref}>Controlli</a>
         <button type="button" onClick={onLex}>Chiedi a Lex</button>
       </div>
@@ -820,6 +828,10 @@ function officialPortalHref(portal: string): string {
   return urls[portal] || ''
 }
 
+function isOfficialAssistantPortal(portal: string): boolean {
+  return ['pdp', 'pat', 'ptt'].includes(portal)
+}
+
 async function portalJson(portal: string, endpoint: string, body?: JsonRecord): Promise<JsonRecord> {
   const response = await fetch(`/api/portali/${encodeURIComponent(portal)}/acquisizione/${endpoint}`, {
     method: body ? 'POST' : 'GET',
@@ -968,7 +980,11 @@ function issueRows(analysis: JsonRecord, key: string): JsonRecord[] {
 }
 
 function importSummary(result: JsonRecord): JsonRecord {
-  return asRecord(result.summary || result.result || result)
+  const summary = asRecord(result.summary)
+  if (Object.keys(summary).length) return summary
+  const nested = asRecord(asRecord(result.result).summary)
+  if (Object.keys(nested).length) return nested
+  return asRecord(result.result || result)
 }
 
 function fileDate(value: number): string {
@@ -1089,7 +1105,8 @@ function AcquisitionWizard({
 }) {
   const portal = portalFromSurface(surfaceId, data)
   const visible = isAcquisitionPath(portal)
-  const [step, setStep] = useState(2)
+  const portalUsesOfficialAssistant = isOfficialAssistantPortal(portal)
+  const [step, setStep] = useState(() => (portalUsesOfficialAssistant ? 1 : 2))
   const [busy, setBusy] = useState('')
   const [message, setMessage] = useState('')
   const [status, setStatus] = useState<JsonRecord>({})
@@ -1146,6 +1163,11 @@ function AcquisitionWizard({
 
   useEffect(() => {
     if (!visible || !portal) return
+    setStep(portalUsesOfficialAssistant ? 1 : 2)
+  }, [portal, portalUsesOfficialAssistant, visible])
+
+  useEffect(() => {
+    if (!visible || !portal) return
     let active = true
     portalJson(portal, 'status')
       .then((payload) => {
@@ -1158,9 +1180,9 @@ function AcquisitionWizard({
     return () => { active = false }
   }, [portal, visible])
 
-  const checkLocalSigner = async (tryStart = false) => {
+  const checkLocalSigner = async (tryStart = false): Promise<BrowserLocalSignerStatus> => {
     if (!localSignerDesktopSupported) {
-      setLocalSigner({
+      const next = {
         checked: true,
         checking: false,
         ok: false,
@@ -1169,8 +1191,9 @@ function AcquisitionWizard({
         version: '',
         tokenLabel: '',
         message: 'Local Signer disponibile solo su PC desktop Windows, macOS o Linux. Da mobile o tablet il controllo non viene eseguito.',
-      })
-      return
+      }
+      setLocalSigner(next)
+      return next
     }
     if (tryStart) requestLocalSignerStart()
     setLocalSigner((current) => ({
@@ -1193,22 +1216,25 @@ function AcquisitionWizard({
       const firstToken = asRecord(tokenList[0])
       const tokenLabel = asText(firstToken.label || firstToken.manufacturer || firstToken.subject)
       const outdated = Boolean(data.localSigner.latestVersion && version && compareVersions(version, data.localSigner.latestVersion) < 0)
-      setLocalSigner({
+      const reachable = response.ok && Boolean(payload.ok !== false)
+      const next = {
         checked: true,
         checking: false,
-        ok: response.ok && Boolean(payload.ok !== false) && !outdated,
+        ok: reachable,
         outdated,
         unsupported: false,
         version,
         tokenLabel,
-        message: outdated
-          ? `Local Signer da aggiornare: rilevata versione ${version || 'non indicata'}, richiesta ${data.localSigner.latestVersion}.`
-          : response.ok && payload.ok !== false
+        message: outdated && reachable
+          ? `Local Signer rilevato su questo PC. Aggiornamento consigliato alla versione ${data.localSigner.latestVersion}, ma puoi proseguire con la ricerca.`
+          : reachable
             ? 'Local Signer rilevato su questo PC. La ricerca puo usare il canale locale autorizzato.'
             : asText(payload.messaggio || payload.error, 'Local Signer raggiunto ma non pronto.'),
-      })
+      }
+      setLocalSigner(next)
+      return next
     } catch {
-      setLocalSigner({
+      const next = {
         checked: true,
         checking: false,
         ok: false,
@@ -1217,7 +1243,9 @@ function AcquisitionWizard({
         version: '',
         tokenLabel: '',
         message: 'Local Signer non rilevato su questo PC. Avvialo o installa il pacchetto aggiornato, poi ripeti la verifica.',
-      })
+      }
+      setLocalSigner(next)
+      return next
     } finally {
       window.clearTimeout(timer)
     }
@@ -1316,27 +1344,6 @@ function AcquisitionWizard({
     return keepPstSession(recoveredSession)
   }
 
-  const ensurePstPortalSession = async (tribunale: string, options?: { force?: boolean }): Promise<{ session: PstSession; cert: PstCertificate }> => {
-    const codiceUfficio = asText(tribunale)
-    if (!codiceUfficio) throw new Error("Seleziona prima l'ufficio giudiziario.")
-    const cert = await ensurePstCertificate()
-    const currentSession = activePstSessionFor(codiceUfficio, cert)
-    if (currentSession && !options?.force) return { session: currentSession, cert }
-    const payload = await localSignerJson('/pst/preflight-auth', {
-      tribunale: codiceUfficio,
-      cf_avvocato: asText(status.codice_fiscale_avvocato),
-      cert_thumbprint: cert.thumbprint || null,
-      cert_key: cert.thumbprint || '',
-      purpose: REACT_PST_SESSION_PURPOSE,
-      pst_session_id: currentSession?.sessionId || '',
-      force_auth: Boolean(options?.force),
-      force_new: Boolean(options?.force),
-    }, 120000)
-    const session = rememberPstSession(payload, codiceUfficio, cert) || currentSession
-    if (!session) throw new Error('Sessione PST non inizializzata dal Local Signer.')
-    return { session, cert }
-  }
-
   const pstSessionForServer = (session: PstSession, cert: PstCertificate): JsonRecord => ({
     session_id: session.sessionId,
     pst_session_id: session.sessionId,
@@ -1350,7 +1357,6 @@ function AcquisitionWizard({
   const updateOption = (key: keyof AcquisitionOptions, value: boolean) => setOptions((current) => ({ ...current, [key]: value }))
   const updateMapping = (key: keyof AcquisitionMapping, value: string) => setMapping((current) => ({ ...current, [key]: value }))
   const portalNeedsLocalSigner = ['pst', 'pdp', 'pat', 'ptt'].includes(portal)
-  const portalUsesOfficialAssistant = ['pdp', 'pat', 'ptt'].includes(portal)
   const requiresBrowserLocalSigner = portalNeedsLocalSigner && localSignerDesktopSupported
 
   const officeTypes = useMemo(() => ['tutti', ...Array.from(new Set(data.offices.map((office) => office.tipo).filter(Boolean))).sort()], [data.offices])
@@ -1419,6 +1425,11 @@ function AcquisitionWizard({
   })
 
   const runSearch = async () => {
+    if (portalUsesOfficialAssistant) {
+      setStep(1)
+      setMessage('Per questo canale la ricerca e la consultazione avvengono nella sessione assistita IUSENTRA. Raccogli file o dati autorizzati e poi importali nel fascicolo interno.')
+      return
+    }
     if (portalNeedsLocalSigner && !localSignerDesktopSupported) {
       setStep(1)
       setMessage('Il canale Local Signer è disponibile solo da PC desktop Windows, macOS o Linux. Da mobile o tablet il controllo non viene eseguito.')
@@ -1426,9 +1437,13 @@ function AcquisitionWizard({
     }
     if (requiresBrowserLocalSigner && !localSigner.ok) {
       setStep(1)
-      setMessage('Local Signer non pronto sul PC: avvialo o aggiornalo, poi premi di nuovo Cerca fascicolo.')
-      await checkLocalSigner(false)
-      return
+      setMessage('Verifico Local Signer sul PC e proseguo appena il servizio locale risponde.')
+      const checkedSigner = await checkLocalSigner(false)
+      if (!checkedSigner.ok) {
+        setMessage('Local Signer non raggiungibile sul PC. Avvialo dal pacchetto installato e ripeti la ricerca.')
+        return
+      }
+      setStep(2)
     }
     setBusy('search')
     setMessage('')
@@ -1462,9 +1477,8 @@ function AcquisitionWizard({
           }
         }
         if (!signerPayload) {
-          const prepared = await ensurePstPortalSession(tribunale)
-          session = prepared.session
-          cert = prepared.cert
+          cert = await ensurePstCertificate()
+          session = activePstSessionFor(tribunale, cert)
           signerPayload = await localSignerJson('/pst/ricerca', {
             tribunale,
             numero_rg: query.numero,
@@ -1475,7 +1489,7 @@ function AcquisitionWizard({
             cert_thumbprint: cert.thumbprint || null,
             cert_key: cert.thumbprint || '',
             purpose: REACT_PST_SESSION_PURPOSE,
-            pst_session_id: session.sessionId,
+            pst_session_id: session?.sessionId || '',
           }, 120000)
         }
         const nextSession = rememberPstSession(signerPayload, tribunale, cert) || session
@@ -1523,7 +1537,8 @@ function AcquisitionWizard({
         let documenti = asList(snapshot.documenti).map(asRecord)
         let pstSessionPayload = asRecord(selection.raw.pst_session)
         if (!documenti.length) {
-          const { session, cert } = await ensurePstPortalSession(tribunale)
+          const cert = await ensurePstCertificate()
+          const session = activePstSessionFor(tribunale, cert)
           const signerPayload = await localSignerJson('/pst/fascicolo-snapshot', {
             selection: selection.raw,
             codice_ufficio: tribunale,
@@ -1535,9 +1550,10 @@ function AcquisitionWizard({
             cert_thumbprint: cert.thumbprint || null,
             cert_key: cert.thumbprint || '',
             purpose: REACT_PST_SESSION_PURPOSE,
-            pst_session_id: session.sessionId,
+            pst_session_id: session?.sessionId || '',
           }, 120000)
           const nextSession = rememberPstSession(signerPayload, tribunale, cert) || session
+          if (!nextSession) throw new Error('Sessione PST non inizializzata dal Local Signer.')
           snapshot = asRecord(signerPayload.snapshot)
           documenti = asList(snapshot.documenti || signerPayload.documenti).map(asRecord)
           pstSessionPayload = pstSessionForServer(nextSession, cert)
@@ -1568,6 +1584,28 @@ function AcquisitionWizard({
   }
 
   const runAnalysis = async () => {
+    if (portalUsesOfficialAssistant && (!selection || !Object.keys(preview).length)) {
+      const hasFiles = Boolean(files.length || assistantSession?.downloaded_files?.length)
+      const localBlockers: JsonRecord[] = []
+      if (!mapping.target_fascicolo_id) {
+        localBlockers.push({ code: 'Fascicolo interno', message: 'Seleziona il fascicolo interno in cui importare file, ricevute ed esiti.' })
+      }
+      if (!hasFiles) {
+        localBlockers.push({ code: 'File ufficiali', message: 'Raccogli file dalla sessione assistita o seleziona dati autorizzati.' })
+      }
+      setAnalysis({
+        status: localBlockers.length ? 'block' : 'ok',
+        score: localBlockers.length ? 40 : 100,
+        blockers: localBlockers,
+        warnings: [],
+        ok: localBlockers.length ? [] : [
+          { code: 'Sessione IUSENTRA', message: 'Importazione pronta nel fascicolo interno selezionato.' },
+        ],
+      })
+      setStep(6)
+      setMessage(localBlockers.length ? 'Completa fascicolo interno e file raccolti prima di importare.' : 'Verifica completata: puoi importare nel fascicolo interno.')
+      return
+    }
     if (!selection || !Object.keys(preview).length) {
       setMessage("Carica prima l'anteprima del fascicolo.")
       return
@@ -1607,24 +1645,40 @@ function AcquisitionWizard({
   }
 
   const runImport = async (overrideFiles?: AcquisitionFile[]) => {
-    if (!selection || !Object.keys(preview).length) {
+    let activeFiles = overrideFiles || files
+    if (portalUsesOfficialAssistant && assistantSession?.downloaded_files?.length) {
+      activeFiles = mergeAcquisitionFiles(
+        activeFiles,
+        assistantFilesToAcquisitionFiles(assistantSession.downloaded_files, options.scarica_originale_portale),
+      )
+    }
+    const payloadJson = authorisedPayload(activeFiles)
+    const downloadedFiles: unknown[] = activeFiles.filter((file) => !file.payload_json)
+    if (!payloadJson && portalUsesOfficialAssistant && downloadedFiles.length && !mapping.target_fascicolo_id) {
+      setMessage('Seleziona il fascicolo interno in cui importare file, ricevute ed esiti.')
+      setStep(5)
+      return
+    }
+    if (!payloadJson && !portalUsesOfficialAssistant && (!selection || !Object.keys(preview).length)) {
       setMessage('Import bloccato: selezione e anteprima sono obbligatorie.')
+      return
+    }
+    if (!payloadJson && portalUsesOfficialAssistant && !downloadedFiles.length && (!selection || !Object.keys(preview).length)) {
+      setMessage('Raccogli file dalla sessione assistita o seleziona dati autorizzati prima di importare.')
+      setStep(4)
       return
     }
     setBusy('import')
     try {
-      const activeFiles = overrideFiles || files
-      const payloadJson = authorisedPayload(activeFiles)
-      const downloadedFiles: unknown[] = activeFiles.filter((file) => !file.payload_json)
-      let activeSelection = selection.raw
+      let activeSelection: JsonRecord = selection?.raw || {}
       if (!payloadJson && portal === 'pst' && options.importa_documenti && !downloadedFiles.length) {
         const documenti = pstPreviewDocuments(preview)
           .map((item) => pstDownloadDocumentPayload(item, options.scarica_originale_portale))
           .filter((item) => pstDocumentIdentifierValues(item).length)
         if (documenti.length) {
-          const tribunale = asText(selection.raw.ufficio_codice || resolvedOfficeCode())
+          const tribunale = asText(activeSelection.ufficio_codice || resolvedOfficeCode())
           const cert = await ensurePstCertificate()
-          const session = activePstSessionFor(tribunale, cert)
+          let session = activePstSessionFor(tribunale, cert)
           const signerPayload = await localSignerJson('/pst/download-documenti-batch', {
             tribunale,
             cf_avvocato: asText(status.codice_fiscale_avvocato),
@@ -1650,15 +1704,31 @@ function AcquisitionWizard({
           }
         }
       }
-      const payload = payloadJson
-        ? await portalJson(portal, 'importa-payload', {
+      let payload: JsonRecord
+      if (payloadJson) {
+        payload = await portalJson(portal, 'importa-payload', {
             payload: payloadJson,
             options,
             mapping,
             fascicolo_locale_id: mapping.target_fascicolo_id,
             downloaded_files: downloadedFiles,
           })
-        : await portalJson(portal, 'import', {
+      } else if (portalUsesOfficialAssistant && downloadedFiles.length) {
+        payload = await portalJson(portal, 'importa-file', {
+          fascicolo_id: mapping.target_fascicolo_id,
+          assistant_session_id: assistantSession?.session_id || '',
+          downloaded_files: downloadedFiles,
+          options,
+          mapping: {
+            ...mapping,
+            mode: mapping.mode === 'create_new' ? 'update_existing' : mapping.mode,
+          },
+        })
+      } else {
+        if (!selection || !Object.keys(preview).length) {
+          throw new Error('Selezione e anteprima sono obbligatorie per questo canale.')
+        }
+        payload = await portalJson(portal, 'import', {
             selection: activeSelection,
             preview,
             options,
@@ -1666,8 +1736,10 @@ function AcquisitionWizard({
             downloaded_files: downloadedFiles,
             pst_session: isRecord(activeSelection.pst_session) ? activeSelection.pst_session : {},
           })
+      }
       if (payload.ok === false) throw new Error(asText(payload.errore, 'Importazione non completata.'))
       setImportResult(payload)
+      setFiles(activeFiles)
       setStep(7)
       setMessage('Importazione completata o presa in carico dal gestionale operativo.')
     } catch (error: unknown) {
@@ -1727,10 +1799,16 @@ function AcquisitionWizard({
     const merged = mergeAcquisitionFiles(files, collected)
     setFiles(merged)
     stopAssistantMonitor()
-    const canImportNow = Boolean(selection && Object.keys(preview).length && !asList(analysis.blockers).length)
+    const canImportNow = Boolean(
+      (selection && Object.keys(preview).length && !asList(analysis.blockers).length)
+      || (portalUsesOfficialAssistant && mapping.target_fascicolo_id),
+    )
     if (canImportNow) {
       setMessage(`${collected.length} file ufficiali raccolti. Importazione nel fascicolo interno in corso...`)
       await runImport(merged)
+    } else if (portalUsesOfficialAssistant && !mapping.target_fascicolo_id) {
+      setMessage(`${collected.length} file ufficiali raccolti. Seleziona il fascicolo interno e conferma l'importazione finale.`)
+      setStep(5)
     } else {
       setMessage(`${collected.length} file ufficiali raccolti. Completa verifica e importazione finale per registrarli nel fascicolo interno.`)
     }
@@ -1760,7 +1838,7 @@ function AcquisitionWizard({
       }
       const opened = rememberAssistantSession(await assistantJson(`/${encodeURIComponent(started.session_id)}/open`))
       await startAssistantMonitor(opened.session_id)
-      setMessage(opened.message || 'Portale ufficiale aperto. Il monitor raccogliera i file scaricati dal browser.')
+      setMessage(opened.message || 'Sessione locale aperta. Resta in IUSENTRA: i file raccolti verranno importati nel fascicolo scelto.')
     } catch (error: unknown) {
       setMessage(asText(error instanceof Error ? error.message : error, 'Sessione assistita non avviata.'))
     } finally {
@@ -1820,7 +1898,11 @@ function AcquisitionWizard({
         <aside>
           <strong>Step {step}/7</strong>
           <span>{busy ? 'Operazione in corso...' : currentStep.help}</span>
-          {official ? <a href={official} target="_blank" rel="noreferrer"><ExternalLink size={14}/> Portale ufficiale</a> : null}
+          {portalUsesOfficialAssistant ? (
+            <button type="button" disabled={busy === 'assistant'} onClick={startAssistantSession}>
+              <ExternalLink size={14}/> Sessione IUSENTRA
+            </button>
+          ) : official ? <a href={official} target="_blank" rel="noreferrer"><ExternalLink size={14}/> Portale ufficiale</a> : null}
         </aside>
       </header>
 
@@ -1860,7 +1942,7 @@ function AcquisitionWizard({
                   <strong>{localSigner.unsupported ? 'Disponibile solo su desktop' : localSigner.ok ? 'Local Signer pronto' : localSigner.outdated ? 'Aggiornamento richiesto' : 'Controllo locale richiesto'}</strong>
                   <span>{localSigner.message}</span>
                   <small>
-                    Endpoint browser: {data.localSigner.browserUrl}
+                    Servizio locale IUSENTRA sul PC in uso
                     {data.localSigner.latestVersion ? ` - ultima versione ${data.localSigner.latestVersion}` : ''}
                     {localSigner.version ? ` - rilevata ${localSigner.version}` : ''}
                     {localSigner.tokenLabel ? ` - token ${localSigner.tokenLabel}` : ''}
@@ -1870,19 +1952,19 @@ function AcquisitionWizard({
               <div className="iu-tel-acq-actions">
                 <button type="button" disabled={localSigner.unsupported} onClick={() => checkLocalSigner(true)}><RefreshCw size={15}/> Avvia e verifica</button>
                 {localSigner.unsupported ? null : <a href={localSignerInstallHref(data)}><Download size={15}/> Installa o aggiorna</a>}
-                <button type="button" disabled={!localSigner.ok} onClick={() => setStep(2)}><ArrowRight size={15}/> Vai alla ricerca</button>
+                <button type="button" disabled={localSigner.unsupported} onClick={() => setStep(2)}><ArrowRight size={15}/> Vai alla ricerca</button>
               </div>
               {portalUsesOfficialAssistant ? (
                 <div className={`iu-tel-local-signer-card ${assistantSession?.local_connector_available ? 'is-ok' : 'is-missing'}`}>
                   <MonitorCheck size={18}/>
                   <div>
                     <strong>{assistantMonitoring ? 'Monitor download attivo' : assistantSession ? 'Sessione assistita pronta' : 'Sessione assistita portale'}</strong>
-                    <span>{assistantSession?.message || 'IUSENTRA apre il portale ufficiale dal Local Signer, monitora i download e importa i file raccolti nel fascicolo interno.'}</span>
+                    <span>{assistantSession?.message || 'IUSENTRA apre una sessione locale assistita, raccoglie i file ufficiali e li importa nel fascicolo interno scelto.'}</span>
                     <small>{assistantSession?.downloaded_files?.length ? `${assistantSession.downloaded_files.length} file raccolti` : 'Nessun file ufficiale ancora raccolto'}</small>
                   </div>
                   <div className="iu-tel-acq-actions">
-                    <button type="button" disabled={busy === 'assistant'} onClick={startAssistantSession}><ExternalLink size={15}/> Avvia sessione assistita</button>
-                    <button type="button" disabled={!assistantSession?.session_id || busy === 'assistant'} onClick={() => collectAssistantDownloads(false)}><Download size={15}/> Raccogli file scaricati</button>
+                    <button type="button" disabled={busy === 'assistant'} onClick={startAssistantSession}><ExternalLink size={15}/> Apri sessione IUSENTRA</button>
+                    <button type="button" disabled={!assistantSession?.session_id || busy === 'assistant'} onClick={() => collectAssistantDownloads(false)}><Download size={15}/> Raccogli file nel software</button>
                     <button type="button" disabled={!assistantSession?.session_id || busy === 'assistant'} onClick={closeAssistantSession}><CheckCircle2 size={15}/> Chiudi sessione</button>
                   </div>
                 </div>
@@ -1891,16 +1973,27 @@ function AcquisitionWizard({
           ) : null}
 
           {step === 2 ? (
-            <Panel title="Step 2 - Ricerca fascicolo" subtitle="Cerca l'ufficio mentre scrivi e usa i filtri del portale" icon={<Search size={17}/>}>
+            <Panel
+              title={portalUsesOfficialAssistant ? 'Step 2 - Dati di riferimento' : 'Step 2 - Ricerca fascicolo'}
+              subtitle={portalUsesOfficialAssistant ? 'La ricerca resta nella sessione assistita IUSENTRA' : "Cerca l'ufficio mentre scrivi e usa i filtri del portale"}
+              icon={<Search size={17}/>}
+            >
+              {portalUsesOfficialAssistant ? (
+                <div className="iu-tel-local-signer-inline">
+                  <MonitorCheck size={16}/>
+                  <span>Per questo canale la consultazione avviene nella sessione locale assistita. Qui puoi completare i dati utili, poi importare file o dati autorizzati nel fascicolo interno.</span>
+                  <button type="button" disabled={busy === 'assistant'} onClick={startAssistantSession}>Apri sessione IUSENTRA</button>
+                </div>
+              ) : null}
               {portalNeedsLocalSigner && !localSignerDesktopSupported ? (
                 <div className="iu-tel-local-signer-inline">
                   <ShieldCheck size={16}/>
                   <span>Local Signer è disponibile solo da PC desktop Windows, macOS o Linux. Da mobile o tablet il controllo non viene eseguito.</span>
                 </div>
-              ) : requiresBrowserLocalSigner && !localSigner.ok ? (
+              ) : requiresBrowserLocalSigner && localSigner.checked && !localSigner.ok ? (
                 <div className="iu-tel-local-signer-inline">
                   <ShieldCheck size={16}/>
-                  <span>Local Signer non pronto sul PC. Avvialo o aggiornalo, poi ripeti la ricerca.</span>
+                  <span>Local Signer non raggiungibile sul PC. Avvialo dal pacchetto installato e ripeti la ricerca.</span>
                   <button type="button" disabled={localSigner.checking} onClick={() => checkLocalSigner(true)}>
                     {localSigner.checking ? 'Verifica...' : 'Avvia e verifica'}
                   </button>
@@ -1951,8 +2044,9 @@ function AcquisitionWizard({
                 <label className="iu-tel-acq-form__wide"><span>Oggetto / materia</span><input value={query.oggetto} onChange={(event) => updateQuery('oggetto', event.currentTarget.value)} placeholder="Oggetto, materia, reato, rito..."/></label>
               </div>
               <div className="iu-tel-acq-actions">
-                <button type="button" disabled={busy === 'search' || (portalNeedsLocalSigner && (!localSignerDesktopSupported || !localSigner.ok))} onClick={runSearch}><Search size={15}/> Cerca fascicolo</button>
-                <button type="button" disabled={!selection || busy === 'preview'} onClick={runPreview}><FileText size={15}/> Carica anteprima</button>
+                <button type="button" disabled={busy === 'search' || portalUsesOfficialAssistant || (portalNeedsLocalSigner && !localSignerDesktopSupported)} onClick={runSearch}><Search size={15}/> {portalUsesOfficialAssistant ? 'Ricerca nella sessione assistita' : 'Cerca fascicolo'}</button>
+                <button type="button" disabled={!selection || busy === 'preview' || portalUsesOfficialAssistant} onClick={runPreview}><FileText size={15}/> Carica anteprima</button>
+                {portalUsesOfficialAssistant ? <button type="button" onClick={() => setStep(4)}><ArrowRight size={15}/> Vai ai file raccolti</button> : null}
               </div>
               <div className="iu-tel-acq-results">
                 {results.map((result) => (
@@ -2030,7 +2124,7 @@ function AcquisitionWizard({
                 <label><span>Grado</span><input value={mapping.grado} onChange={(event) => updateMapping('grado', event.currentTarget.value)}/></label>
               </div>
               <div className="iu-tel-acq-actions">
-                <button type="button" disabled={busy === 'analysis'} onClick={runAnalysis}><ShieldCheck size={15}/> Analizza conflitti</button>
+                <button type="button" disabled={busy === 'analysis'} onClick={runAnalysis}><ShieldCheck size={15}/> {portalUsesOfficialAssistant ? 'Verifica importazione' : 'Analizza conflitti'}</button>
               </div>
             </Panel>
           ) : null}
@@ -2060,7 +2154,7 @@ function AcquisitionWizard({
 
           {step === 7 ? (
             <Panel title="Step 7 - Importazione finale" subtitle="Registrazione controllata nel gestionale" icon={<UploadCloud size={17}/>}>
-              <p className="iu-tel-acq-note">L'importazione non scarica dati dai portali in modo nascosto: usa dati autorizzati, file selezionati dall'utente o canale Local Signer quando disponibile.</p>
+              <p className="iu-tel-acq-note">{portalUsesOfficialAssistant ? 'IUSENTRA importa nel fascicolo interno i file raccolti dalla sessione locale assistita o i dati autorizzati selezionati.' : "L'importazione non scarica dati dai portali in modo nascosto: usa dati autorizzati, file selezionati dall'utente o canale Local Signer quando disponibile."}</p>
               <div className="iu-tel-acq-actions">
                 <button type="button" disabled={busy === 'import'} onClick={() => runImport()}><UploadCloud size={15}/> Importa nel gestionale</button>
               </div>
@@ -2113,9 +2207,7 @@ export function TelematicoSurfacePage() {
   useEffect(() => {
     if (loading || !window.location.hash) return
     const targetId = decodeURIComponent(window.location.hash.slice(1))
-    window.requestAnimationFrame(() => {
-      document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    })
+    window.requestAnimationFrame(() => scrollToSurfaceTarget(targetId))
   }, [data.surface.id, loading])
 
   useEffect(() => {
@@ -2183,9 +2275,7 @@ export function TelematicoSurfacePage() {
         window.history.pushState({ telematicoSurface: surfaceId, card: card.id, action: action.id }, '', nextUrl)
       }
     }
-    window.requestAnimationFrame(() => {
-      document.getElementById('operazione-attiva')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    })
+    window.requestAnimationFrame(() => scrollToSurfaceTarget('operazione-attiva'))
   }
 
   return (
@@ -2285,7 +2375,7 @@ export function TelematicoSurfacePage() {
         body="Posso aiutarti a leggere stato canale, checklist, uffici, documenti, ricevute e prossima azione senza uscire dalla nuova UI."
         primaryHref="#lex"
         primaryLabel="Apri Lex"
-        secondaryHref="/app-v2/telematico"
+        secondaryHref="/telematico"
         secondaryLabel="Centro telematico"
       />
     </main>

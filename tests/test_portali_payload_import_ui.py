@@ -427,6 +427,69 @@ def _seed_fascicolo(cfg: dict, tipo: TipoFascicolo = TipoFascicolo.TRIBUTARIO):
     return gf.nuovo(titolo="Studio c/ Agenzia", tipo=tipo)
 
 
+@pytest.mark.parametrize(
+    ("portale", "tipo"),
+    [
+        ("pdp", TipoFascicolo.PENALE),
+        ("pat", TipoFascicolo.AMMINISTRATIVO),
+        ("ptt", TipoFascicolo.TRIBUTARIO),
+    ],
+)
+def test_api_importa_file_assistiti_smista_nel_fascicolo_interno(tmp_path: Path, portale: str, tipo: TipoFascicolo):
+    cfg = _cfg_web(tmp_path)
+    _seed_user(cfg)
+    fascicolo = _seed_fascicolo(cfg, tipo)
+    app = create_app(cfg)
+    atto = f"Atto ufficiale {portale.upper()}".encode("utf-8")
+    ricevuta = f"Ricevuta accettazione {portale.upper()}".encode("utf-8")
+
+    with app.test_client() as client:
+        client.post("/login", data={"username": "admin-portali", "password": "Admin1234!"})
+        response = client.post(
+            f"/api/portali/{portale}/acquisizione/importa-file",
+            json={
+                "fascicolo_id": fascicolo.id,
+                "downloaded_files": [
+                    {
+                        "nome": f"{portale}_provvedimento.txt",
+                        "contenuto_b64": base64.b64encode(atto).decode("ascii"),
+                        "tipo_atto": "Provvedimento",
+                        "id_documento_portale": f"{portale}-DOC-1",
+                        "id_deposito_esterno": f"{portale}-DEP-1",
+                    },
+                    {
+                        "nome": "ricevuta_accettazione.eml",
+                        "contenuto_b64": base64.b64encode(ricevuta).decode("ascii"),
+                        "sha256": hashlib.sha256(ricevuta).hexdigest(),
+                        "oggetto": "Ricevuta accettazione deposito",
+                        "data_ufficiale": "2026-05-13",
+                        "id_deposito_ufficiale": f"{portale}-DEP-RCPT",
+                    },
+                ],
+                "mapping": {"mode": "update_existing", "target_fascicolo_id": fascicolo.id},
+            },
+        )
+
+    data = response.get_json()
+    assert response.status_code == 200
+    assert data["ok"] is True
+    assert data["id_fascicolo"] == fascicolo.id
+    assert data["summary"]["documenti"] >= 2
+    assert data["summary"]["ricevute"] == 1
+    assert data["summary"]["fascicolo_url"].endswith(f"/fascicoli/{fascicolo.id}")
+
+    reloaded = GestioneFascicoli(
+        db_path=cfg["FASCICOLI_DB"],
+        documents_dir=cfg["FASCICOLI_DOCS"],
+        archive_dir=cfg["FASCICOLI_ARCH"],
+    ).get(fascicolo.id)
+    assert reloaded is not None
+    assert reloaded.source == portale.upper()
+    assert any(doc.nome == f"{portale}_provvedimento.txt" for doc in reloaded.documenti)
+    assert any(doc.nome == "ricevuta_accettazione.eml" for doc in reloaded.documenti)
+    assert any(dep.servizio_portale == SERVIZIO_PST_COMUNICAZIONE_CANCELLERIA for dep in reloaded.depositi_pct)
+
+
 def test_import_ricevuta_deposito_crea_comunicazione_cancelleria(tmp_path: Path):
     cfg = _cfg_web(tmp_path)
     _seed_user(cfg)

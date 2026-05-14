@@ -3415,6 +3415,10 @@ def test_acquisizione_wizard_pst_carica_documenti_local_signer_anche_in_modalita
     assert "/pst/ricerca-snapshot" in template
     assert "function awCanUsePstSearchSnapshot" in template
     assert "/pst/download-documenti-batch" in template
+    assert "`${AW_PST_LS_BASE}/pst/preflight-auth`" not in template
+    assert "function awEnsurePstPortalSession" not in template
+    assert "function awGetActivePstSession" in template
+    assert "preflight_auth: false" in template
     assert "purpose: 'view'" in template
     assert "purpose: 'import'" not in template
     assert "AW_PST_IMPORT_SESSION?.session_id" not in template
@@ -3428,6 +3432,20 @@ def test_acquisizione_wizard_pst_carica_documenti_local_signer_anche_in_modalita
     assert "Importa tutto" in template
     assert "awFormatDate(identity.data_iscrizione)" in template
     assert "awEscape(dep.data_deposito || 'n.d.')" not in template
+
+
+def test_polisweb_classico_non_chiede_preflight_pin_prima_delle_operazioni_reali():
+    root = Path(__file__).resolve().parents[1]
+    for template_path in (root / "web" / "templates" / "polisWeb.html", root / "web" / "polisWeb.html"):
+        source = template_path.read_text(encoding="utf-8")
+        assert "/pst/preflight-auth" not in source
+        assert "_lsPreflightAuthPst" not in source
+        assert "Apri PIN Windows" not in source
+        assert "Richiesta PIN" not in source
+        assert "_lsGetKnownPstSessionId" in source
+        assert "_lsRememberPstSession" in source
+        assert "/pst/ricerca" in source
+        assert "/pst/documenti" in source
 
 
 def test_api_acquisizione_status_pat_forza_browser_ufficiale(tmp_path):

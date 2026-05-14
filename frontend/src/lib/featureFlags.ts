@@ -123,7 +123,7 @@ const appV2RouteFlagRules: Array<[RegExp, FeatureFlagKey]> = [
   [/^\/(?:legal-intelligence|ricerca-legale)(?:\/|$)/, 'routes.appV2.legalResearch.home'],
   [/^\/(?:global-search|ricerca-studio|cerca)(?:\/|$)/, 'routes.appV2.search.global'],
   [/^\/(?:telematico|servizi-telematici)(?:\/|$)/, 'routes.appV2.telematico.center'],
-  [/^\/(?:polisweb|pst|pdp|pat|ptt|sigit|sigp|sigp-sync|tribunali|guida\/firma-digitale|portali)(?:\/|$)/, 'routes.appV2.telematico.surface'],
+  [/^\/(?:polisweb|pst|pdp|pat|ptt|sigit|tribunali|guida\/firma-digitale|portali)(?:\/|$)/, 'routes.appV2.telematico.surface'],
   [/^\/studio(?:\/|$)/, 'routes.appV2.studio.home'],
   [/^\/statistiche(?:\/|$)/, 'routes.appV2.studio.statistics'],
   [/^\/(?:strumenti-legali|strumenti-operativi|applicazioni)(?:\/|$)/, 'routes.appV2.studio.modules'],

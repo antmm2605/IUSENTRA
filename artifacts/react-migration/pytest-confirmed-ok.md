@@ -1,12 +1,24 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-14, hotfix Email ordinaria/Panoramica 2.235.4.
+Aggiornato: 2026-05-14, hotfix PST/Local Signer/Telematico 2.235.5.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Hotfix PST, Local Signer e Telematico 2.235.5 - 2026-05-14
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest -q tests/test_local_signer.py::test_pick_preferred_windows_cert_filtra_per_codice_fiscale_e_prefere_authentica tests/test_local_signer.py::test_pick_preferred_windows_cert_usa_certificato_unico_filtrato_per_cf tests/test_local_signer.py::test_soap_call_curl_batch_raw_windows_preserva_cert_store_spec tests/test_local_signer.py::test_soap_call_curl_raw_windows_applica_ssl_no_revoke tests/test_local_signer.py::test_pst_preflight_windows_applica_ssl_no_revoke tests/test_local_signer.py::test_errore_certificato_server_pst_non_chiede_di_aggiungere_ssl_no_revoke tests/test_local_signer.py::test_curl_command_windows_preferisce_curl_di_sistema tests/test_local_signer.py::test_wizard_pst_usa_snapshot_e_sessione_unica_anche_per_download tests/test_local_signer.py::test_pst_download_batch_riusa_sessione_view_anche_se_client_chiede_import tests/test_local_signer.py::test_pst_ricerca_snapshot_batcha_ricerca_e_documenti_senza_preflight tests/test_local_signer.py::test_pst_ricerca_esatta_arricchisce_profilo_se_mancano_campi_identita --tb=short` | OK | 11/11 passati: selezione certificato auto con CF unico, curl Windows con `--ssl-no-revoke`, messaggio PST senza istruzioni manuali `--ssl-no-revoke`, ricerca/snapshot senza preflight e download batch sulla sessione `view`. |
+| `python -m pytest -q tests/test_react_shell.py::test_react_superfici_telematiche_api_payload_reale tests/test_react_shell.py::test_react_user_facing_links_non_espongono_app_v2_prefix tests/test_react_shell.py::test_react_telematico_scroll_usa_offset_topbar_non_scroll_into_view tests/test_react_shell.py::test_react_wizard_pst_verifica_local_signer_dal_browser tests/test_react_shell.py::test_portale_acquisizione_accetta_alias_fascicolo_id_per_mapping tests/test_polisweb.py::test_acquisizione_wizard_pst_carica_documenti_local_signer_anche_in_modalita_assistita --tb=short` | OK | 6/6 passati: link visibili telematici senza `/app-v2`, scroll con offset topbar, wizard PST senza preflight React e con sessione propagata. |
+| `python -m pytest -q tests/test_react_shell.py::test_react_wizard_pst_verifica_local_signer_dal_browser tests/test_react_shell.py::test_react_telematico_scroll_usa_offset_topbar_non_scroll_into_view --tb=short` | OK | 2/2 passati dopo il fix TypeScript: la UI non contiene piu' `ensurePstPortalSession` ne' `localSignerJson('/pst/preflight-auth')`, e le superfici telematiche non usano `scrollIntoView`. |
+| `npm --prefix frontend run typecheck`; `npm --prefix frontend run build` | OK | TypeScript verde; build Vite `iusentra-react-token-ui@2.235.5` verde in 6.12s con asset principali `index-Bd532Fmq.js` 445.23 kB / 131.74 kB gzip, `TelematicoPage-DsmJk5eO.js` 23.65 kB / 7.26 kB gzip e `TelematicoSurfacePage-CuO12ww3.js` 65.31 kB / 19.33 kB gzip. |
+| `python -m ruff check tools/local_signer.py tests/test_local_signer.py tests/test_react_shell.py web/services/react_telematico_bridge.py web/services/react_fascicoli_bridge.py web/services/react_messaggi_bridge.py web/services/react_scadenziario_bridge.py web/services/react_studio_module_bridge.py` | OK | Ruff mirato verde sul perimetro PST/telematico. |
+| `python tools\build_dist.py`; `python -m pytest -q tests/test_packaging_consistency.py tests/test_release_readiness.py tests/test_build_dist.py tests/test_local_signer.py::test_local_signer_dist_allineato_a_sorgente_e_installer_versionati --tb=short` | OK | Local Signer `1.6.34` rigenerato (`SetupLocalSigner.exe`, pacchetti Windows/macOS/Linux, note e sorgente dist) e packaging/readiness/dist 14/14 verdi. |
+| `rg -n -F "localSignerJson('/pst/preflight-auth'" frontend\src web\static\react tests\test_react_shell.py`; `rg -n -F "Local Signer non pronto sul PC" frontend\src web\static\react tests\test_react_shell.py`; `rg -n -F "/app-v2/polisweb" frontend\src web\services web\static\react tests\test_react_shell.py` | OK | Nessun match applicativo nei sorgenti o asset build; restano solo le asserzioni negative dei test dove previste. |
 
 ### Hotfix Email ordinaria e Panoramica 2.235.4 - 2026-05-14
 
@@ -1298,6 +1310,17 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `node frontend\scripts\check-react-contracts.mjs`; `node scripts\react-migration\check-route-gate.mjs`; `npm --prefix frontend run typecheck`; `npm --prefix frontend run test`; `npm --prefix frontend run build` | OK | Contratti React, route gate, TypeScript, test frontend e build Vite 2.226.0 verdi; build 6.32s, bundle principale invariato `index-C-BWXjrL.js` 440.64 kB / 130.82 kB gzip, CSS principale invariato 121.77 kB / 22.33 kB gzip. |
 | `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx`; `/api/pronto` locale | OK | Build locale no-cache e riavvio completati; app, scheduler, OCR e Redis healthy; readiness locale `versione=2.226.0` e runtime container `2.226.0`. |
 | `python scripts\smoke_backend_security.py --base-url http://127.0.0.1:8080` | OK | `/api/pronto` 200 `versione=2.226.0`; le API sensibili anonime rispondono 401 controllato. La prova autenticata di blocco `tenant_id` resta saltata senza `IUSENTRA_SMOKE_API_KEY`, come documentato negli open issues. |
+
+## Portali assistiti PDP/PAT/PTT dentro IUSENTRA - 2026-05-14
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile web/bootstrap/portali_acquisizione_routes.py web/bootstrap/telematico_surface_wiring.py web/services/telematico_runtime.py web/services/react_telematico_bridge.py` | OK | Sintassi confermata dopo nuovo endpoint `importa-file` per i canali assistiti e bridge React senza link esterno primario. |
+| `npm --prefix frontend run typecheck` | OK | TypeScript confermato dopo il wizard React PDP/PAT/PTT avviato da Step 1 e import assistito senza anteprima fittizia. |
+| `python -m pytest -q tests/test_portali_payload_import_ui.py --tb=short` | OK | 30/30 passati: payload autorizzati invariati, sessioni assistite e nuovo import file/ricevute nel fascicolo interno per PDP, PAT e PTT. |
+| `python -m pytest -q tests/test_react_shell.py::test_route_ufficiali_superfici_telematiche_esatte_servono_react_con_vista_classica_tecnica tests/test_react_shell.py::test_react_superfici_telematiche_api_payload_reale --tb=short` | OK | 2/2 passati: route ufficiali React e payload API reale restano coerenti; `officialHref` non viene esposto come link esterno per PDP/PAT/PTT. |
+| `npm --prefix frontend run build` | OK | Build Vite completata; rigenerati asset React, incluso `TelematicoSurfacePage-D7MePmJF.js` e `TelematicoSurfacePage-fOf1Ew_N.css`. |
+| Browser reale su server test autenticato `127.0.0.1:8093` per `/portali/pdp/acquisizione`, `/portali/pat/acquisizione`, `/portali/ptt/acquisizione` | OK | PDP/PAT/PTT partono da `Step 1/7`, mostrano `Sessione IUSENTRA`, `Apri sessione IUSENTRA` e `Raccogli file nel software`; non mostrano `Portale ufficiale` come CTA primaria ne' `Endpoint browser`. |
 
 ## Fase react 3 - App V2 feature flag per pagina 2.224.0 - 2026-05-13
 

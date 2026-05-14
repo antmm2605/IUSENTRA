@@ -707,7 +707,7 @@ export function ScadenziarioPage() {
           <p>Termini, udienze, depositi, calcoli avanzati e priorità operative dello studio in una cabina professionale.</p>
         </div>
         <div className="iu-scad-hero__actions">
-          <Button href="/app-v2/regia-operativa"><Sparkles size={15}/> Cabina</Button>
+          <Button href="/workspace-intelligente"><Sparkles size={15}/> Cabina</Button>
           <Button href={data.actions.exportCsv}><Download size={15}/> CSV</Button>
           <Button href={data.actions.exportPdf}><FileDown size={15}/> PDF</Button>
           <Button href={data.actions.exportIcs}><ChevronDown size={15}/> iCal</Button>
@@ -843,7 +843,7 @@ export function ScadenziarioPage() {
         <Panel title="Integrazioni" subtitle="Agenda, fascicoli, deposito e calendario" icon={<CalendarDays size={17}/>}>
           <div className="iu-scad-integrations">
             <a href={data.actions.agenda}>Agenda</a>
-            <a href="/app-v2/fascicoli">Fascicoli</a>
+            <a href="/fascicoli">Fascicoli</a>
             <a href="/deposito/checklist">Checklist deposito</a>
             <a href={data.actions.calendarSettings}>Calendari</a>
           </div>
@@ -856,7 +856,7 @@ export function ScadenziarioPage() {
         body="Posso preparare il briefing dei termini, spiegare il calcolo, suggerire priorità operative e collegare scadenze, agenda e fascicoli."
         primaryHref={data.actions.lex}
         primaryLabel="Apri Lex sulle scadenze"
-        secondaryHref="/app-v2/regia-operativa"
+        secondaryHref="/workspace-intelligente"
         secondaryLabel="Regia operativa"
       />
     </main>

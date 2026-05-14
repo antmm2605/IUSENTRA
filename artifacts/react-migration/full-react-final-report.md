@@ -12,7 +12,8 @@ italiano, ad esempio `TAURIANOVA RC, 14/05/2026`. Gate mirati verdi:
 notifiche/registry/deposito 46/46, typecheck, contratti React, UI coverage,
 packaging/readiness 8/8 e build Vite `2.236.2`. Verifica browser: i riferimenti
 `DatiAtto.xml` si aggiornano anche se l'utente sceglie prima i file e inserisce
-dopo il destinatario.
+dopo il destinatario. Deploy Hetzner completato senza backup con readiness
+pubblica `2.236.2` e smoke produzione health/notifiche verdi.
 
 Aggiornamento 2026-05-14T23:35:00+02:00: hotfix prova notifica 2.236.1.
 La scheda `Deposito prova notifica` permette ora di selezionare uno o piu'

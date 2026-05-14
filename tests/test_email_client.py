@@ -1576,6 +1576,44 @@ def test_sincronizza_imap_non_fonde_uid_stabili_con_stesso_message_id(tmp_path, 
     assert "CONSEGNA: secondo duplicato Legalmail" in subjects
 
 
+def test_email_ordinaria_deduplica_triplicati_da_cartelle_imap_equivalenti(tmp_path):
+    ge = GestioneEmailRicevute(str(tmp_path / "ordinaria.json"))
+    for index, uid in enumerate(
+        (
+            "INBOX:UID:10",
+            "[Gmail]/Tutti i messaggi:UID:77",
+            "Archivio:UID:88",
+        ),
+        start=1,
+    ):
+        ge.aggiungi(
+            EmailRicevuta(
+                id=f"MAIL-DUP-{index}",
+                cartella=CartellaEmail.INBOX,
+                stato=StatoEmail.NON_LETTA if index == 2 else StatoEmail.LETTA,
+                mittente="Corsi di Laurea AG Universita <prenotazioni@example.it>",
+                mittente_nome="Corsi di Laurea AG Universita",
+                destinatari="studio@example.it",
+                oggetto="APERTURA PRENOTAZIONI SESTA SESSIONE 2026",
+                data="2026-05-14T07:32:15+02:00",
+                corpo_testo="Gentilissimi, si comunica che le date degli appelli della sesta sessione sono disponibili.",
+                uid_imap=uid,
+                origine="IMAP",
+            )
+        )
+
+    inbox = ge.tutte(cartella=CartellaEmail.INBOX)
+    stats = ge.statistiche()
+    rows = GestioneEmailRicevute(str(tmp_path / "ordinaria.json"))._carica()
+
+    assert len(inbox) == 1
+    assert stats["totale"] == 1
+    assert stats["inbox"] == 1
+    assert stats["non_lette"] == 1
+    assert list(rows) == ["MAIL-DUP-1"]
+    assert rows["MAIL-DUP-1"].stato == StatoEmail.NON_LETTA
+
+
 def test_sincronizza_inviati_rimuove_doppione_quando_esiste_gia_copia_imap_inviata(tmp_path):
     ge = GestioneEmailRicevute(str(tmp_path / "casella.json"))
     ge.aggiungi(

@@ -87,6 +87,8 @@ const shellLegacyFirstPrefixes = extractTuple(reactShell, '_LEGACY_FIRST_PREFIXE
 const allowedStatuses = new Set(['legacy_operational', 'react_shell', 'react_bridge', 'react_operational_partial', 'react_operational_full'])
 const allowedUnlockStatuses = new Set(['react_bridge', 'react_operational_partial', 'react_operational_full'])
 const allowedReactUnlocks = new Set(['/', '/admin/database', '/agenda', '/agenda/nuovo', '/amministrazione', '/audit', '/backup', '/cartelle-condivise', '/clienti', '/clienti/nuovo', '/compensi-forensi', '/deposito/checklist', '/documenti', '/email', '/email-ordinaria', '/notifiche-legali', '/fascicoli', '/fascicoli/archivio', '/fascicoli/nuovo', '/fatturazione', '/fatturazione/nuova', '/giurisprudenza', '/global-search', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/incassi-pagamenti', '/legal-intelligence', '/legal-intelligence/mediazione', '/legal-intelligence/news', '/messaggi', '/messaggi/nuovo', '/notifiche', '/notifiche-whatsapp', '/preventivi', '/preventivi/conferimento/:id', '/preventivi/conferimento/nuovo', '/preventivi/nuovo', '/preventivi/wizard', '/privacy/registro', '/privacy/registro/nuovo', '/profili', '/redazione-atti', '/regia-operativa', '/registro-attivita', '/registro-gdpr', '/ricerca-legale', '/ricerca-studio', '/scadenziario', '/scadenziario/nuova', '/scadenziario/:id', '/scadenziario/:id/modifica', '/sincronizzazione-calendari', '/sito-studio', '/sito-studio/builder', '/sito-studio/contatti', '/sito-studio/redazione-ai', '/soggetti', '/soggetti/nuovo', '/statistiche', '/strumenti-legali', '/strumenti-operativi', '/studio', '/tariffario', '/template-atti', '/template-atti/catalogo', '/timesheet', '/utenti', '/utenti/nuovo', '/wizard-pro', '/workspace-intelligente'])
+const reactTelematicoAcquisitionPaths = new Set(['/portali/pdp/acquisizione', '/portali/pat/acquisizione', '/portali/ptt/acquisizione', '/portali/sigit/acquisizione'])
+for (const route of reactTelematicoAcquisitionPaths) allowedReactUnlocks.add(route)
 const expectedStatuses = new Map([
   ['/', 'react_operational_full'],
   ['/admin/database', 'react_operational_full'],
@@ -161,6 +163,7 @@ const expectedStatuses = new Map([
   ['/wizard-pro', 'react_operational_full'],
   ['/workspace-intelligente', 'react_operational_full'],
 ])
+for (const route of reactTelematicoAcquisitionPaths) expectedStatuses.set(route, 'react_operational_full')
 
 const legacyRoutes = [
   '/fatturazione/*',
@@ -181,8 +184,9 @@ const violations = []
 for (const entry of manifest.routes ?? []) {
   const route = normaliseRoute(entry.route)
   const routeIsReact = isReactRoute(route, reactExact, reactPrefixes)
-  const blocked = isBlockedBySpecialRule(route) || legacyOperationalPrefixes.some((prefix) => isPrefixMatch(route, prefix)) || excludedPrefixes.some((prefix) => isPrefixMatch(route, prefix))
-  const blockedByShell = isBlockedBySpecialRule(route) || shellLegacyFirstPrefixes.some((prefix) => isPrefixMatch(route, prefix))
+  const telematicoAcquisitionReact = reactTelematicoAcquisitionPaths.has(route)
+  const blocked = !telematicoAcquisitionReact && (isBlockedBySpecialRule(route) || legacyOperationalPrefixes.some((prefix) => isPrefixMatch(route, prefix)) || excludedPrefixes.some((prefix) => isPrefixMatch(route, prefix)))
+  const blockedByShell = !telematicoAcquisitionReact && (isBlockedBySpecialRule(route) || shellLegacyFirstPrefixes.some((prefix) => isPrefixMatch(route, prefix)))
 
   if (!allowedStatuses.has(entry.status)) {
     violations.push(`${entry.route}: status non ammesso (${entry.status})`)
@@ -300,6 +304,8 @@ for (const snippet of [
   'lower.startswith("/redazione-atti/")',
   'lower == "/checklist" or lower.startswith("/checklist/")',
   'lower.startswith("/deposito/checklist/")',
+  '_REACT_TELEMATICO_ACQUISITION_PATHS',
+  'lower in _REACT_TELEMATICO_ACQUISITION_PATHS',
   'lower.startswith("/giurisprudenza/")',
   'lower.startswith("/legal-intelligence/") and lower not in {',
   '"/legal-intelligence/news",',

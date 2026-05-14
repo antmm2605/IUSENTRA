@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.235.2 - 2026-05-14
+
+- Corretto il gate CI `contracts`: ora esegue solo controlli OpenAPI/provider offline e non tenta piu' chiamate HTTP a `127.0.0.1:8080` quando il server non e' avviato.
+- Promosse in React le acquisizioni assistite esatte PDP, PAT e PTT/SIGIT su `/portali/pdp/acquisizione`, `/portali/pat/acquisizione`, `/portali/ptt/acquisizione` e `/portali/sigit/acquisizione`, mantenendo protetti i moduli telematici non parificati.
+- Rafforzata la deduplica Email ordinaria: triplicati provenienti da cartelle IMAP equivalenti vengono riparati in lettura e non vengono ricreati in sync, senza fondere PEC diverse con UID stabili.
+
 ## 2.235.1 - 2026-05-14
 
 - Hotfix App V2 rollout: le superfici gia' promosse operative sono attive di default anche sotto `/app-v2`, evitando il blocco regressivo "Funzione non attiva per questo studio" su pagine come `/app-v2/messaggi/nuovo`.

@@ -429,6 +429,8 @@ if (routeManifest.policy?.currentReleaseUnlocksRoutes !== true) {
   throw new Error('route manifest: currentReleaseUnlocksRoutes deve essere true nelle tranche di promozione')
 }
 const allowedGovernedUnlocks = new Set(['/', '/admin/database', '/agenda', '/agenda/nuovo', '/amministrazione', '/audit', '/backup', '/cartelle-condivise', '/clienti', '/clienti/nuovo', '/compensi-forensi', '/deposito/checklist', '/documenti', '/email', '/email-ordinaria', '/notifiche-legali', '/fascicoli', '/fascicoli/archivio', '/fascicoli/nuovo', '/fatturazione', '/fatturazione/nuova', '/giurisprudenza', '/global-search', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/incassi-pagamenti', '/legal-intelligence', '/legal-intelligence/mediazione', '/legal-intelligence/news', '/messaggi', '/messaggi/nuovo', '/notifiche', '/notifiche-whatsapp', '/preventivi', '/preventivi/conferimento/:id', '/preventivi/conferimento/nuovo', '/preventivi/nuovo', '/preventivi/wizard', '/privacy/registro', '/privacy/registro/nuovo', '/profili', '/redazione-atti', '/regia-operativa', '/registro-attivita', '/registro-gdpr', '/ricerca-legale', '/ricerca-studio', '/scadenziario', '/scadenziario/nuova', '/scadenziario/:id', '/scadenziario/:id/modifica', '/sincronizzazione-calendari', '/sito-studio', '/sito-studio/builder', '/sito-studio/contatti', '/sito-studio/redazione-ai', '/soggetti', '/soggetti/nuovo', '/statistiche', '/strumenti-legali', '/strumenti-operativi', '/studio', '/tariffario', '/template-atti', '/template-atti/catalogo', '/timesheet', '/utenti', '/utenti/nuovo', '/wizard-pro', '/workspace-intelligente'])
+const governedTelematicoAcquisitionRoutes = ['/portali/pdp/acquisizione', '/portali/pat/acquisizione', '/portali/ptt/acquisizione', '/portali/sigit/acquisizione']
+for (const route of governedTelematicoAcquisitionRoutes) allowedGovernedUnlocks.add(route)
 const governedExpectedStatuses = new Map([
   ['/', 'react_operational_full'],
   ['/admin/database', 'react_operational_full'],
@@ -503,6 +505,7 @@ const governedExpectedStatuses = new Map([
   ['/wizard-pro', 'react_operational_full'],
   ['/workspace-intelligente', 'react_operational_full'],
 ])
+for (const route of governedTelematicoAcquisitionRoutes) governedExpectedStatuses.set(route, 'react_operational_full')
 const allowedManifestStatuses = new Set(['legacy_operational', 'react_shell', 'react_bridge', 'react_operational_partial', 'react_operational_full'])
 const unlockStatuses = new Set(['react_bridge', 'react_operational_partial', 'react_operational_full'])
 for (const entry of routeManifest.routes ?? []) {
@@ -552,6 +555,10 @@ for (const [route, status] of [
   ['/sincronizzazione-calendari', 'react_operational_full'],
   ['/documenti', 'react_operational_full'],
   ['/deposito/checklist', 'react_operational_full'],
+  ['/portali/pdp/acquisizione', 'react_operational_full'],
+  ['/portali/pat/acquisizione', 'react_operational_full'],
+  ['/portali/ptt/acquisizione', 'react_operational_full'],
+  ['/portali/sigit/acquisizione', 'react_operational_full'],
   ['/strumenti-legali', 'react_operational_full'],
   ['/strumenti-operativi', 'react_operational_full'],
 ]) {
@@ -575,6 +582,11 @@ for (const route of ['/fatturazione/*', '/preventivi/*', '/compensi-forensi/*', 
   }
 }
 for (const route of ['/utenti', '/profili', '/audit', '/registro-attivita', '/studio', '/amministrazione', '/impostazioni', '/impostazioni-studio', '/impostazioni/calendario', '/impostazioni/pagamenti', '/notifiche-legali', '/notifiche', '/notifiche-whatsapp', '/sincronizzazione-calendari', '/backup', '/sito-studio', '/sito-studio/contatti', '/sito-studio/builder', '/sito-studio/redazione-ai', '/statistiche', '/fatturazione', '/fatturazione/nuova', '/fatturazione/*', '/incassi-pagamenti', '/preventivi', '/preventivi/nuovo', '/preventivi/conferimento/nuovo', '/preventivi/*', '/preventivi/wizard', '/compensi-forensi', '/compensi-forensi/*', '/tariffario', '/tariffario/*', '/documenti', '/template-atti', '/template-atti/catalogo', '/template-atti/nuovo', '/template-atti/*', '/redazione-atti', '/redazione-atti/*', '/checklist', '/giurisprudenza', '/giurisprudenza/nuova', '/giurisprudenza/*', '/legal-intelligence', '/legal-intelligence/news', '/legal-intelligence/mediazione', '/legal-intelligence/*', '/ricerca-legale', '/ricerca-legale/*', '/deposito/checklist', '/strumenti-legali', '/strumenti-operativi', '/polisWeb', '/pdp', '/pat', '/sigit', '/sigp', '/portali/*']) {
+  if (!(routeManifest.routes ?? []).some((entry) => entry.route === route)) {
+    throw new Error(`route manifest: manca ${route}`)
+  }
+}
+for (const route of governedTelematicoAcquisitionRoutes) {
   if (!(routeManifest.routes ?? []).some((entry) => entry.route === route)) {
     throw new Error(`route manifest: manca ${route}`)
   }
@@ -996,6 +1008,8 @@ assertContains(reactRouteGate, 'lower.startswith("/redazione-atti/")', 'gate pro
 assertContains(reactRouteGate, 'lower == "/checklist" or lower.startswith("/checklist/")', 'gate protegge checklist legacy')
 assertContains(reactRouteGate, 'lower.startswith("/deposito/checklist/")', 'gate protegge sottopercorsi deposito checklist legacy')
 assertNotContains(reactRouteGate, 'lower == "/deposito/checklist" or lower.startswith("/deposito/checklist/")', 'gate non blocca deposito checklist exact')
+assertContains(reactRouteGate, '_REACT_TELEMATICO_ACQUISITION_PATHS', 'gate allowlist acquisizioni telematiche React')
+assertContains(reactRouteGate, 'lower in _REACT_TELEMATICO_ACQUISITION_PATHS', 'gate sblocca acquisizioni PDP PAT PTT SIGIT exact')
 assertContains(reactRouteGate, 'lower.startswith("/giurisprudenza/")', 'gate protegge nested giurisprudenza legacy')
 assertContains(reactRouteGate, 'lower.startswith("/legal-intelligence/") and lower not in {', 'gate protegge nested legal intelligence legacy')
 assertContains(reactRouteGate, '"/legal-intelligence/news"', 'gate consente legal intelligence news')
@@ -1022,6 +1036,8 @@ assertNotContains(shellLegacyFirstTuple, '"/impostazioni"', 'shell legacy-first 
 assertNotContains(shellLegacyFirstTuple, '"/impostazioni-studio"', 'shell legacy-first senza impostazioni studio full React')
 assertNotContains(shellLegacyFirstTuple, '"/sincronizzazione-calendari"', 'shell legacy-first senza sincronizzazione calendari exact')
 assertNotContains(shellLegacyFirstTuple, '"/deposito/checklist"', 'shell legacy-first senza deposito checklist full React')
+assertContains(reactShellBlueprint, '_REACT_TELEMATICO_ACQUISITION_PATHS', 'shell allowlist acquisizioni telematiche React')
+assertContains(reactShellBlueprint, 'lower in _REACT_TELEMATICO_ACQUISITION_PATHS', 'shell sblocca acquisizioni PDP PAT PTT SIGIT exact')
 assertNotContains(shellLegacyFirstTuple, '"/strumenti-legali"', 'shell legacy-first senza strumenti forensi full React')
 assertNotContains(shellLegacyFirstTuple, '"/strumenti-operativi"', 'shell legacy-first senza strumenti operativi full React')
 assertNotContains(shellLegacyFirstTuple, '"/giurisprudenza"', 'shell legacy-first senza giurisprudenza exact')

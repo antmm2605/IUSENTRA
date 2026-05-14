@@ -351,6 +351,7 @@ function portalFromSurface(surfaceId: TelematicoSurfaceId, data: TelematicoSurfa
 function isAcquisitionPath(portal: string): boolean {
   if (!portal) return false
   const route = normalizeAppPath(window.location.pathname)
+  if (portal === 'ptt' && (route === '/portali/sigit/acquisizione' || route.startsWith('/portali/sigit/acquisizione/'))) return true
   return route === `/portali/${portal}/acquisizione` || route.startsWith(`/portali/${portal}/acquisizione/`)
 }
 
@@ -403,7 +404,7 @@ function isSameSurfaceAction(surfaceId: TelematicoSurfaceId, action: SurfaceActi
     polisweb: ['/polisweb', '/pst', '/portali/pst', '/portali/pst/acquisizione'],
     pdp: ['/pdp', '/portali/pdp', '/portali/pdp/acquisizione'],
     pat: ['/pat', '/portali/pat', '/portali/pat/acquisizione'],
-    ptt: ['/ptt', '/sigit', '/portali/ptt', '/portali/sigit', '/portali/ptt/acquisizione'],
+    ptt: ['/ptt', '/sigit', '/portali/ptt', '/portali/sigit', '/portali/ptt/acquisizione', '/portali/sigit/acquisizione'],
   }
   return actionPath === currentSurfacePath || Boolean(aliases[surfaceId]?.some((alias) => actionPath === alias || actionPath.startsWith(`${alias}/`)))
 }

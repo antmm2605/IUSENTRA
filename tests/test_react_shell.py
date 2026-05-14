@@ -1204,7 +1204,7 @@ def test_react_superfici_telematiche_collegate_nav_api_css():
     assert "@media(max-width:860px)" in css
 
 
-def test_route_ufficiali_superfici_telematiche_restano_moduli_operativi_legacy_e_checklist_react(tmp_path: Path):
+def test_route_ufficiali_superfici_telematiche_restano_legacy_ma_acquisizioni_assistite_react(tmp_path: Path):
     app = _app(tmp_path)
     _crea_operatore(app)
 
@@ -1216,7 +1216,6 @@ def test_route_ufficiali_superfici_telematiche_restano_moduli_operativi_legacy_e
             "/polisWeb",
             "/portali/pst/acquisizione",
             "/pdp",
-            "/portali/pdp/acquisizione",
             "/pat",
             "/sigit",
             "/sigp/",
@@ -1229,6 +1228,20 @@ def test_route_ufficiali_superfici_telematiche_restano_moduli_operativi_legacy_e
             assert response.status_code == 200, path
             assert '<html lang="it" class="react-shell-document">' not in html
             assert 'id="root"' not in html
+
+        for path in (
+            "/portali/pdp/acquisizione",
+            "/portali/pat/acquisizione",
+            "/portali/ptt/acquisizione",
+            "/portali/sigit/acquisizione",
+        ):
+            response = client.get(path, follow_redirects=True)
+            html = response.get_data(as_text=True)
+            assert response.status_code == 200, path
+            assert '<html lang="it" class="react-shell-document">' in html
+            assert 'id="root"' in html
+            assert "Portale ufficiale assistito" not in html
+            assert "Local Connector non raggiungibile" not in html
 
         checklist = client.get("/deposito/checklist", follow_redirects=True)
         checklist_html = checklist.get_data(as_text=True)
@@ -1552,12 +1565,22 @@ def test_react_route_gate_copre_rotte_profonde_e_preserva_contratti_operativi(tm
             "/sito-studio/articoli/art-1/modifica",
             "/sigp/",
             "/sigp-sync/",
-            "/portali/pat/acquisizione",
         ):
             response = client.get(path, follow_redirects=True)
             html = response.get_data(as_text=True)
             assert "IUSENTRA - React Shell" not in html, path
             assert '<html lang="it" class="react-shell-document">' not in html, path
+
+        for path in (
+            "/portali/pdp/acquisizione",
+            "/portali/pat/acquisizione",
+            "/portali/ptt/acquisizione",
+            "/portali/sigit/acquisizione",
+        ):
+            response = client.get(path, follow_redirects=True)
+            html = response.get_data(as_text=True)
+            assert "IUSENTRA - React Shell" in html, path
+            assert '<html lang="it" class="react-shell-document">' in html, path
 
         legacy = client.get("/impostazioni?tab=pec&_legacy=1")
         firma_operativa = client.get("/impostazioni?tab=firma")
@@ -1610,6 +1633,15 @@ def test_route_gate_non_promuove_moduli_studio_telematico_admin_incompleti():
     for raw in sorted(legacy_first_routes):
         path = _normalise_path(raw)
         assert _excluded(path), path
+
+    for raw in (
+        "/portali/pdp/acquisizione",
+        "/portali/pat/acquisizione",
+        "/portali/ptt/acquisizione",
+        "/portali/sigit/acquisizione",
+    ):
+        path = _normalise_path(raw)
+        assert not _excluded(path), path
 
     for raw in (
         "/studio",

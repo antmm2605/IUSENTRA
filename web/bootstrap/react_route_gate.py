@@ -179,6 +179,13 @@ _LEGACY_OPERATIONAL_PREFIXES = (
     "/tribunali",
 )
 
+_REACT_TELEMATICO_ACQUISITION_PATHS = {
+    "/portali/pdp/acquisizione",
+    "/portali/pat/acquisizione",
+    "/portali/ptt/acquisizione",
+    "/portali/sigit/acquisizione",
+}
+
 _CANONICAL_ALIAS_PATHS = {
     "/regia-operativa",
     "/ricerca-studio",
@@ -275,6 +282,8 @@ def _excluded(path: str) -> bool:
         return True
     if lower.startswith("/ricerca-legale/"):
         return True
+    if lower in _REACT_TELEMATICO_ACQUISITION_PATHS:
+        return False
     if any(lower == prefix or lower.startswith(f"{prefix}/") for prefix in _LEGACY_OPERATIONAL_PREFIXES):
         return True
     is_conferimento_detail = lower.startswith("/preventivi/conferimento/") and lower.count("/") == 3

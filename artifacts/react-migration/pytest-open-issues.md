@@ -1,6 +1,6 @@
 # Pytest issue aperte e risoluzioni
 
-Aggiornato: 2026-05-14, hotfix App V2 rollout 2.235.1.
+Aggiornato: 2026-05-14, hotfix CI/portali/email 2.235.2.
 
 ## Regola operativa
 
@@ -10,6 +10,7 @@ Questo file e' la coda di lavoro. Prima di rilanciare test gia' passati, control
 
 | Area | Test / comando | Stato | Problema rilevato | Risoluzione |
 | --- | --- | --- | --- | --- |
+| Hotfix CI/portali/email 2.235.2 | CI `contracts`, route assistite PDP/PAT/PTT/SIGIT, Email ordinaria | Risolto e verificato localmente | La CI falliva perche' `--subset contracts` provava HTTP su `127.0.0.1:8080` senza server; le acquisizioni PDP/PAT/PTT/SIGIT erano ancora bloccate dal prefisso legacy `/portali`; Email ordinaria mostrava triplicati da cartelle IMAP equivalenti. | `contracts` ora e' offline; le quattro route assistite esatte sono React e censite nel manifest/gate; `GestioneEmailRicevute` deduplica e ripara triplicati in lettura/sync senza fondere PEC diverse con UID stabili. Gate mirati, Docker locale, smoke post-deploy locale e browser autenticato sono registrati in `pytest-confirmed-ok.md`; restano da completare push, deploy Hetzner e verifica CI remota sul nuovo commit. |
 | Hotfix App V2 rollout 2.235.1 | `/app-v2/messaggi/nuovo` e superfici operative App V2 | Risolto e verificato | Le pagine App V2 operative restavano default-off se lo studio non aveva flag manuali configurati, quindi la shell rispondeva `Funzione non attiva per questo studio` prima di caricare React. | `web/services/feature_flags.py` ora attiva di default le superfici operative e mantiene default-off solo telematico non parificato e Web Push. Test mirati 30/30, compileall, build frontend, Docker locale, smoke post-deploy locale e browser reale sulla route segnalata sono registrati in `pytest-confirmed-ok.md`. |
 | Fase react 13 / smoke operativi | Orchestrator `smoke_app_v2_all.py`, post-deploy read-only e workflow staging | Nessuna issue aperta sul codice | Gli smoke autenticati admin/tenant A/tenant B/readonly, il controllo RBAC readonly e il download/cross-tenant con ID documento restano `BLOCKED` quando mancano env/secrets dedicate; questo e' un blocco ambiente, non una failure codice. | Aggiunti `scripts/smoke_lib.py`, suite fase 13, JSON report, redaction, docs e test. Docker locale e produzione Hetzner post-deploy read-only: PASS=76, FAIL=0, SKIP=1, BLOCKED=6; `/api/pronto` pubblico `2.234.0` sul commit `85d7617549c0695ffd3f41447d0b2c86524766aa`. Configurare account smoke e ID sintetici per sbloccare i controlli autenticati. |
 | Fase react 12 / deploy Hetzner | Verifica pubblica immediata post-recreate | Nessuna issue aperta sul codice | Il primo giro pubblico subito dopo il deploy ha ricevuto 503 mentre il proxy si riagganciava ai container appena ricreati; i container erano gia' healthy sul server e `/api/pronto` interno all'app registrava 200 nei log. | Attesi 15 secondi, readiness pubblica tornata 200 `versione=2.233.0`; smoke produzione security/routing/workflows rilanciati e verdi. |

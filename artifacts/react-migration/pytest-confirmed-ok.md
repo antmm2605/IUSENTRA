@@ -1,12 +1,30 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-14, hotfix App V2 rollout 2.235.1.
+Aggiornato: 2026-05-14, hotfix CI/portali/email 2.235.2.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Hotfix CI/portali/email 2.235.2 - 2026-05-14
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python scripts\smoke_app_v2_all.py --subset contracts` | OK | PASS=2 FAIL=0 SKIP=1: OpenAPI e provider verification offline verdi; il controllo HTTP live viene dichiarato SKIP e resta nelle suite `api`/`post-deploy`. |
+| `python -m pytest -q tests\scripts\test_smoke_app_v2_all.py tests\test_email_client.py::test_email_ordinaria_deduplica_triplicati_da_cartelle_imap_equivalenti tests\test_email_client.py::test_sincronizza_imap_non_fonde_uid_stabili_con_stesso_message_id --tb=short` | OK | 6/6 passati: alias `contracts` offline, repair triplicati ordinari e guardia anti-fusione PEC/Legalmail con UID stabili. |
+| `python -m pytest -q tests\test_react_shell.py::test_route_ufficiali_superfici_telematiche_restano_legacy_ma_acquisizioni_assistite_react tests\test_react_shell.py::test_route_gate_non_promuove_moduli_studio_telematico_admin_incompleti --tb=short` | OK | 2/2 passati: PDP/PAT/PTT/SIGIT assistiti esatti servono shell React; superfici telematiche non parificate restano legacy-first. |
+| `node frontend\scripts\check-react-contracts.mjs`; `node scripts\react-migration\check-route-gate.mjs`; `python -m pytest -q tests\test_react_shell.py::test_react_superfici_telematiche_api_payload_reale tests\test_react_shell.py::test_react_wizard_acquisizione_portale_usa_endpoint_operativi_reali tests\test_react_shell.py::test_route_importa_pratica_pst_resta_raggiungibile_dalla_nav --tb=short` | OK | Contratti React e route gate coerenti; API telematiche reali e acquisizione PST legacy ancora raggiungibili. |
+| `python -m pytest -q tests\test_email_client.py --tb=short` | OK | 48/48 passati: il client PEC/ordinaria mantiene sync, allegati, stati, deduplica inviati e nuova riparazione triplicati ordinari. |
+| `python -m pytest -q tests\test_app_v2_page_registry.py tests\test_app_v2_area_requirements_phase8.py tests\test_app_v2_test_plan_phase10.py --tb=short` | OK | 12/12 passati dopo rigenerazione registry, requisiti area, matrice e piano test con le nuove route assistite. |
+| `python scripts\react-migration\generate_app_v2_page_registry.py --check`; `python scripts\react-migration\generate_app_v2_area_requirements.py --check`; `python scripts\react-migration\generate_app_v2_test_docs.py --check` | OK | Documenti App V2 generati e deterministici su manifest 2.235.2. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest -q tests\test_packaging_consistency.py tests\test_release_readiness.py --tb=short`; `python -c "import pct; print(pct.__version__)"` | OK | Packaging sincronizzato, readiness/packaging 8/8 e versione source `2.235.2`. |
+| `npm --prefix frontend run test`; `npm --prefix frontend run typecheck`; `npm --prefix frontend run build` | OK | Contratti React, App V2 frontend, UI coverage, TypeScript e build Vite `iusentra-react-token-ui@2.235.2` verdi; build 6.54s, main JS `index-BANtr1vZ.js` 444.72 kB / 131.64 kB gzip e CSS `index-Bafxecf8.css` 121.77 kB / 22.33 kB gzip. |
+| `python -m compileall -q pct\email_client.py web\bootstrap\react_route_gate.py web\blueprints\react_shell.py scripts\smoke_app_v2_all.py`; `python -m ruff check pct\email_client.py scripts\smoke_app_v2_all.py web\bootstrap\react_route_gate.py web\blueprints\react_shell.py tests\test_email_client.py tests\test_react_shell.py tests\scripts\test_smoke_app_v2_all.py`; `git diff --check` | OK | Sintassi confermata, Ruff mirato verde e diff senza whitespace error; solo warning CRLF su file gia' tracciati. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx`; `docker compose ps`; `GET http://127.0.0.1:8080/api/pronto`; runtime container | OK | Immagini locali ricostruite da zero con wheel `pct-studio-legale==2.235.2`; app, scheduler, OCR e Redis healthy; readiness locale `versione=2.235.2` e runtime container `2.235.2`. |
+| `python scripts\smoke_app_v2_all.py --subset contracts --read-only --base-url http://127.0.0.1:8080`; `python scripts\smoke_app_v2_all.py --suite post-deploy --read-only --base-url http://127.0.0.1:8080` | OK | Contracts offline PASS=2 FAIL=0 SKIP=1; post-deploy locale PASS=76 FAIL=0 SKIP=1 BLOCKED=6. I blocchi restano solo credenziali smoke dedicate e ID documento sintetico assenti. |
+| Browser in-app autenticato su `/app-v2/messaggi/nuovo`, `/portali/pdp/acquisizione`, `/portali/pat/acquisizione`, `/portali/ptt/acquisizione`, `/portali/sigit/acquisizione` | OK | `/app-v2/messaggi/nuovo` mostra la pagina React `Nuovo messaggio` e non `Funzione non attiva per questo studio`; le quattro acquisizioni assistite servono la shell React senza vecchi testi `Portale ufficiale assistito` o `Local Connector non raggiungibile`, con zero errori console. |
 
 ### Hotfix App V2 rollout 2.235.1 - 2026-05-14
 

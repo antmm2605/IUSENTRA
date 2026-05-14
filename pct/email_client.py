@@ -393,6 +393,10 @@ class GestioneEmailRicevute:
         )
 
     @staticmethod
+    def _cartella_confronto(email_obj: EmailRicevuta) -> str:
+        return str(getattr(email_obj, "cartella", "") or "").strip().upper()
+
+    @staticmethod
     def _uid_imap_stabile(uid_imap: str) -> bool:
         return ":UID:" in str(uid_imap or "").upper()
 
@@ -428,6 +432,134 @@ class GestioneEmailRicevute:
         return cls._normalizza_testo_confronto(
             getattr(email_obj, "corpo_testo", "") or getattr(email_obj, "corpo_html", "")
         )[:240]
+
+    @classmethod
+    def _data_minuto_confronto(cls, email_obj: EmailRicevuta) -> str:
+        timestamp = cls._timestamp_email_confronto(email_obj)
+        if timestamp is None:
+            return str(getattr(email_obj, "data", "") or getattr(email_obj, "ricevuta_il", "") or "")[:16]
+        return datetime.fromtimestamp(timestamp, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M")
+
+    @classmethod
+    def _fingerprint_operativo_inbox(
+        cls,
+        email_obj: EmailRicevuta,
+        *,
+        require_body: bool = True,
+    ) -> tuple[str, str, str, str, str, str]:
+        body = cls._corpo_inviata_confronto(email_obj)
+        if require_body and not body:
+            return ("", "", "", "", "", "")
+        return (
+            cls._cartella_confronto(email_obj),
+            cls._normalizza_testo_confronto(getattr(email_obj, "oggetto", "")),
+            cls._normalizza_indirizzi_confronto(
+                getattr(email_obj, "mittente", "") or getattr(email_obj, "mittente_nome", "")
+            ),
+            cls._normalizza_indirizzi_confronto(getattr(email_obj, "destinatari", "")),
+            cls._data_minuto_confronto(email_obj),
+            body,
+        )
+
+    @classmethod
+    def _chiave_duplicato_email(cls, email_obj: EmailRicevuta) -> tuple[str, ...]:
+        message_id = cls._message_id_key(getattr(email_obj, "message_id", ""))
+        if message_id:
+            fingerprint = cls._fingerprint_operativo_inbox(email_obj, require_body=False)
+            if all(fingerprint[:5]):
+                return ("message-id", message_id, *fingerprint)
+        fingerprint = cls._fingerprint_operativo_inbox(email_obj, require_body=True)
+        if all(fingerprint):
+            return ("semantic", *fingerprint)
+        return ()
+
+    @classmethod
+    def _email_operativa_equivalente(
+        cls,
+        candidate: EmailRicevuta,
+        parsed: EmailRicevuta,
+        uid_str: str,
+    ) -> bool:
+        if cls._cartella_confronto(candidate) != cls._cartella_confronto(parsed):
+            return False
+        candidate_msg = cls._message_id_key(getattr(candidate, "message_id", ""))
+        parsed_msg = cls._message_id_key(getattr(parsed, "message_id", ""))
+        same_message_id = bool(candidate_msg and parsed_msg and candidate_msg == parsed_msg)
+        same_strong_key = bool(cls._chiave_duplicato_email(candidate) and cls._chiave_duplicato_email(candidate) == cls._chiave_duplicato_email(parsed))
+        if same_message_id and not cls._uid_stabile_diverso(candidate, uid_str):
+            return True
+        return same_strong_key
+
+    @classmethod
+    def _merge_duplicato_email(cls, target: EmailRicevuta, duplicate: EmailRicevuta) -> bool:
+        changed = False
+        for field_name in (
+            "mittente",
+            "mittente_nome",
+            "destinatari",
+            "oggetto",
+            "data",
+            "corpo_testo",
+            "corpo_html",
+            "message_id",
+            "ricevuta_il",
+            "uid_imap",
+            "origine",
+            "stato_pct",
+        ):
+            if not str(getattr(target, field_name, "") or "").strip() and str(getattr(duplicate, field_name, "") or "").strip():
+                setattr(target, field_name, getattr(duplicate, field_name))
+                changed = True
+        if duplicate.stato == StatoEmail.NON_LETTA and target.stato != StatoEmail.NON_LETTA:
+            target.stato = StatoEmail.NON_LETTA
+            changed = True
+        if not target.allegati and duplicate.allegati:
+            target.allegati = list(duplicate.allegati)
+            changed = True
+        elif target.allegati and duplicate.allegati:
+            existing = {
+                (
+                    str(item.get("nome", "")),
+                    str(item.get("sha256", "")),
+                    str(item.get("percorso_rel", "")),
+                )
+                for item in target.allegati
+                if isinstance(item, dict)
+            }
+            for item in duplicate.allegati:
+                if not isinstance(item, dict):
+                    continue
+                key = (
+                    str(item.get("nome", "")),
+                    str(item.get("sha256", "")),
+                    str(item.get("percorso_rel", "")),
+                )
+                if key not in existing:
+                    target.allegati.append(item)
+                    existing.add(key)
+                    changed = True
+        return changed
+
+    @classmethod
+    def _deduplica_db_in_memoria(cls, db: Dict[str, EmailRicevuta]) -> int:
+        seen: dict[tuple[str, ...], str] = {}
+        removed = 0
+        for email_id, email_obj in list(db.items()):
+            key = cls._chiave_duplicato_email(email_obj)
+            if not key:
+                continue
+            canonical_id = seen.get(key)
+            if not canonical_id:
+                seen[key] = email_id
+                continue
+            canonical = db.get(canonical_id)
+            if canonical is None:
+                seen[key] = email_id
+                continue
+            cls._merge_duplicato_email(canonical, email_obj)
+            db.pop(email_id, None)
+            removed += 1
+        return removed
 
     @staticmethod
     def _timestamp_confronto(value: str) -> float | None:
@@ -562,21 +694,9 @@ class GestioneEmailRicevute:
         if exact:
             return exact
 
-        msg_key = self._message_id_key(parsed.message_id)
-        if msg_key:
-            for candidate in db.values():
-                if self._uid_stabile_diverso(candidate, uid_str):
-                    continue
-                if self._message_id_key(candidate.message_id) == msg_key:
-                    return candidate
-
-        fingerprint = self._fingerprint_email(parsed)
-        if all(fingerprint):
-            for candidate in db.values():
-                if self._uid_stabile_diverso(candidate, uid_str):
-                    continue
-                if self._fingerprint_email(candidate) == fingerprint:
-                    return candidate
+        for candidate in db.values():
+            if self._email_operativa_equivalente(candidate, parsed, uid_str):
+                return candidate
         return None
 
     @staticmethod
@@ -703,6 +823,8 @@ class GestioneEmailRicevute:
         data_a: str = "",
     ) -> List[EmailRicevuta]:
         db = self._carica()
+        if self._deduplica_db_in_memoria(db):
+            self._salva()
         emails = list(db.values())
         if cartella:
             emails = [e for e in emails if e.cartella == cartella]
@@ -742,6 +864,8 @@ class GestioneEmailRicevute:
 
     def statistiche(self) -> dict:
         db = self._carica()
+        if self._deduplica_db_in_memoria(db):
+            self._salva()
         emails = list(db.values())
         return {
             "totale":     len(emails),
@@ -889,6 +1013,7 @@ class GestioneEmailRicevute:
             "allegati_salvati": 0,
             "cartelle_corrette": 0,
             "testi_corretti": 0,
+            "duplicati_rimossi": 0,
             "errore": "",
         }
         cartelle_imap = cartelle_imap or ["INBOX"]
@@ -913,6 +1038,8 @@ class GestioneEmailRicevute:
             return risultato
 
         db = self._carica()
+        dedup_iniziale = self._deduplica_db_in_memoria(db)
+        risultato["duplicati_rimossi"] += dedup_iniziale
         email_per_uid = {e.uid_imap: e for e in db.values() if e.uid_imap}
 
         try:
@@ -1012,6 +1139,7 @@ class GestioneEmailRicevute:
                 except Exception:
                     risultato["errori"] += 1
 
+            risultato["duplicati_rimossi"] += self._deduplica_db_in_memoria(db)
             self._salva()
             mail.logout()
 

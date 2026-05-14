@@ -6,7 +6,6 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import Callable
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
@@ -22,7 +21,6 @@ from scripts.smoke_lib import (  # noqa: E402
     STATUS_FAIL,
     STATUS_PASS,
     STATUS_SKIP,
-    STATUS_WARNING,
     SmokeCheck,
     SmokeHttpClient,
     SmokeReport,
@@ -138,7 +136,7 @@ POST_DEPLOY_ORDER = (
 LEGACY_SUBSETS = {
     "inventory": "inventory",
     "security": "auth",
-    "contracts": "api",
+    "contracts": "contracts",
 }
 
 
@@ -487,6 +485,19 @@ class Runner:
             checks.append(self._get_check("api", f"api-protetta:{path}", path, (401, 403), SEVERITY_CRITICAL))
         return checks
 
+    def suite_contracts(self) -> list[SmokeCheck]:
+        return [
+            run_python_command(["scripts/validate_openapi.py", "docs/openapi.yaml"], cwd=REPO_ROOT, timeout=self.timeout),
+            run_python_command(["scripts/verify_openapi_provider.py"], cwd=REPO_ROOT, timeout=self.timeout),
+            make_check(
+                "contracts",
+                "runtime-api-live",
+                STATUS_SKIP,
+                SEVERITY_LOW,
+                "Controlli HTTP live non eseguiti nello smoke contratti offline; usare --suite api --base-url <url> quando il server e' avviato.",
+            ),
+        ]
+
     def suite_pages(self) -> list[SmokeCheck]:
         return [self._get_check("pages", name, path, expected, severity) for name, path, expected, severity in PAGE_TARGETS]
 
@@ -599,6 +610,7 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
             "admin",
             "search",
             "notifications",
+            "contracts",
             "post-deploy",
             "inventory",
         ),

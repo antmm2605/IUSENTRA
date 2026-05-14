@@ -1,5 +1,26 @@
 # Migrazione progressiva Flask + React
 
+## Hotfix CI, acquisizioni telematiche e deduplica email - 2026-05-14 - 2.235.2
+
+La release 2.235.2 chiude tre regressioni segnalate dall'utente:
+
+- il gate CI `contracts` torna offline e deterministico: valida OpenAPI e provider senza richiedere un server locale su `127.0.0.1:8080`; il controllo HTTP live resta nella suite `api` o `post-deploy`;
+- le acquisizioni assistite PDP, PAT e PTT/SIGIT sono sbloccate come route React esatte su `/portali/pdp/acquisizione`, `/portali/pat/acquisizione`, `/portali/ptt/acquisizione` e `/portali/sigit/acquisizione`; i moduli telematici non parificati restano protetti;
+- Email ordinaria deduplica e ripara i triplicati da cartelle IMAP equivalenti, preservando la guardia che non fonde messaggi PEC/Legalmail diversi con UID stabili.
+
+Regola PST/PIN da mantenere in ogni tranche: il flusso deve riusare la sessione assistita gia' aperta e non deve tornare a chiedere PIN multipli. Il comportamento accettato resta un PIN per visualizzare il fascicolo e un PIN per scaricarlo, salvo scadenza reale della sessione lato portale o token.
+
+### Fasi per chiudere tutta l'applicazione in React full
+
+1. Stabilizzazione anti-regressione: ogni rotta promossa deve avere manifest, gate route/shell, contratto legacy, API JSON, test mirati, documentazione e smoke. Le regressioni App V2, portali e email diventano test bloccanti.
+2. Promozione route gia' parificate: portare a `react_operational_full` solo route con dati reali, permessi, audit, stati UI e azioni JSON gia' dimostrati. Nessuna pagina viene promossa solo perche' esiste una card React.
+3. Parita CRUD e workflow: per ogni area residua sostituire form POST HTML, redirect opachi e fallback legacy primari con API Flask JSON tenant-aware, validazioni backend e feedback React.
+4. Telematico assistito: completare prima le acquisizioni assistite e i wizard locali, poi passare ai flussi ministeriali sensibili solo quando sono coperti da Local Signer, evidenze ufficiali, no scraping e sessioni PIN governate.
+5. Documenti, download ed export: migrare le superfici di governo in React, mantenendo i download e gli allegati su route backend sicure finche' non esiste parita completa e auditata.
+6. Amministrazione e sicurezza: completare sottopercorsi admin, permessi, backup, tenant, audit e privacy con fail-closed multi-studio e smoke autenticati quando saranno disponibili credenziali dedicate.
+7. Rimozione fallback Jinja: solo dopo parita verificata, togliere i prefissi legacy da gate/shell, eliminare CTA `_legacy=1` visibili e aggiornare i contratti affinche' la regressione a Jinja fallisca in CI.
+8. Verifica finale prodotto: desktop, tablet e mobile reali su pagine rappresentative, tempi di caricamento, console/network, assenza testi tecnici, bundle Vite, Docker locale, branch gemelli, igiene repo e deploy Hetzner.
+
 ## Hotfix App V2 rollout - 2026-05-14 - 2.235.1
 
 Corretto il blocco regressivo che rendeva non raggiungibili le pagine operative sotto `/app-v2` quando lo studio non aveva flag manuali configurati. Le superfici gia' promosse operative nel manifest sono ora attive di default e restano spegnibili per rollback esplicito; `routes.appV2.telematico.center`, `routes.appV2.telematico.surface` e `routes.appV2.notifications.mobilePush` restano default-off e fail-closed.

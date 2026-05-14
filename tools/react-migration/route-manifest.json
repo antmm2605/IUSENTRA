@@ -899,6 +899,82 @@
     },
     {
       "workspaceTarget": "/app/telematico",
+      "route": "/portali/pdp/acquisizione",
+      "family": "telematico",
+      "status": "react_operational_full",
+      "risk": "critical",
+      "targetComponent": "frontend/src/components/TelematicoSurfacePage.tsx",
+      "targetData": "frontend/src/telematicoSurfacesData.ts",
+      "targetBridge": "web/services/react_telematico_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/portali.json",
+      "unlockFromGate": true,
+      "mustPreserve": [
+        "PDP assistito",
+        "sessione locale assistita",
+        "import file/payload autorizzati",
+        "nessun salvataggio PIN",
+        "nessun link esterno ordinario come fallback primario"
+      ]
+    },
+    {
+      "workspaceTarget": "/app/telematico",
+      "route": "/portali/pat/acquisizione",
+      "family": "telematico",
+      "status": "react_operational_full",
+      "risk": "critical",
+      "targetComponent": "frontend/src/components/TelematicoSurfacePage.tsx",
+      "targetData": "frontend/src/telematicoSurfacesData.ts",
+      "targetBridge": "web/services/react_telematico_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/portali.json",
+      "unlockFromGate": true,
+      "mustPreserve": [
+        "PAT assistito",
+        "sessione locale assistita",
+        "import file/payload autorizzati",
+        "nessun salvataggio PIN",
+        "nessun link esterno ordinario come fallback primario"
+      ]
+    },
+    {
+      "workspaceTarget": "/app/telematico",
+      "route": "/portali/ptt/acquisizione",
+      "family": "telematico",
+      "status": "react_operational_full",
+      "risk": "critical",
+      "targetComponent": "frontend/src/components/TelematicoSurfacePage.tsx",
+      "targetData": "frontend/src/telematicoSurfacesData.ts",
+      "targetBridge": "web/services/react_telematico_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/portali.json",
+      "unlockFromGate": true,
+      "mustPreserve": [
+        "PTT / SIGIT assistito",
+        "sessione locale assistita",
+        "import file/payload autorizzati",
+        "nessun salvataggio PIN",
+        "nessun link esterno ordinario come fallback primario"
+      ]
+    },
+    {
+      "workspaceTarget": "/app/telematico",
+      "route": "/portali/sigit/acquisizione",
+      "family": "telematico",
+      "status": "react_operational_full",
+      "risk": "critical",
+      "targetComponent": "frontend/src/components/TelematicoSurfacePage.tsx",
+      "targetData": "frontend/src/telematicoSurfacesData.ts",
+      "targetBridge": "web/services/react_telematico_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/portali.json",
+      "unlockFromGate": true,
+      "mustPreserve": [
+        "alias SIGIT del PTT assistito",
+        "sessione locale assistita",
+        "import file/payload autorizzati",
+        "nessun salvataggio PIN",
+        "nessun link esterno ordinario come fallback primario"
+      ]
+    },
+    {
+      "workspaceTarget": "/app/telematico",
       "route": "/portali/*",
       "family": "telematico",
       "status": "legacy_operational",

@@ -31,7 +31,7 @@ def _run(*args: str, timeout: int = 120) -> subprocess.CompletedProcess[str]:
 
 def test_subset_aliases_restano_compatibili() -> None:
     assert _suite_names("security") == ("auth",)
-    assert _suite_names("contracts") == ("api",)
+    assert _suite_names("contracts") == ("contracts",)
     assert _suite_names("post-deploy")[0] == "health"
 
 
@@ -46,6 +46,16 @@ def test_inventory_json_output_non_richiede_credenziali(tmp_path: Path) -> None:
     assert payload["summary"]["pass"] >= 3
     assert payload["summary"]["fail"] == 0
     assert payload["checks"]
+
+
+def test_subset_contracts_offline_non_richiede_server_locale() -> None:
+    result = _run("--subset", "contracts", timeout=180)
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    output = result.stdout + result.stderr
+    assert "runtime-api-live" in output
+    assert "endpoint non raggiungibile" not in output.lower()
+    assert "Smoke App V2 fase 13 completato" in output
 
 
 def test_require_credentials_fallisce_se_mancano_env() -> None:

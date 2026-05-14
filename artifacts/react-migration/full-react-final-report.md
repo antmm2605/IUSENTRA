@@ -2,6 +2,31 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-14T18:20:00+02:00: hotfix 2.235.2. Le route
+assistite non-PST `/portali/pdp/acquisizione`, `/portali/pat/acquisizione`,
+`/portali/ptt/acquisizione` e `/portali/sigit/acquisizione` sono promosse come
+React operative esatte con `TelematicoSurfacePage`, manifest sbloccato,
+route-gate e shell React allineati. Restano legacy-first i moduli telematici
+piu' ampi non parificati e l'acquisizione PST storica, per non confondere
+integrazione diretta PST e portali assistiti.
+
+Lo smoke CI `contracts` e' ora offline: OpenAPI e provider verification girano
+senza server locale, mentre i controlli HTTP live restano nelle suite `api` e
+`post-deploy`. Email ordinaria ripara i triplicati IMAP equivalenti in lettura
+e durante la sync, mantenendo separati messaggi PEC/Legalmail diversi anche se
+il provider ricicla lo stesso `Message-ID`. Il piano React full aggiorna le
+fasi residue e conserva la regola operativa PST: un PIN per visualizzare e un
+PIN per scaricare, salvo scadenza reale della sessione.
+
+Verifica locale 2.235.2: test mirati email/route/CI, contratti React,
+route-gate, registry App V2, packaging/readiness, `npm test`, typecheck e build
+Vite verdi. Docker locale no-cache healthy con readiness `versione=2.235.2`;
+smoke `contracts` PASS=2 FAIL=0 SKIP=1 e `post-deploy` PASS=76 FAIL=0
+SKIP=1 BLOCKED=6. Browser in-app autenticato: `/app-v2/messaggi/nuovo` attivo
+in React senza `Funzione non attiva per questo studio`; PDP/PAT/PTT/SIGIT
+assistiti senza vecchia card `Portale ufficiale assistito` o `Local Connector
+non raggiungibile` e senza errori console.
+
 Aggiornamento 2026-05-14T10:05:00+02:00: fase react 13 `fasereact`
 2.234.0. Gli smoke operativi App V2 sono stati consolidati in
 `scripts/smoke_app_v2_all.py` con suite `health`, `auth`, `flags`, `rbac`,

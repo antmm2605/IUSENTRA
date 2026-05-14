@@ -40,6 +40,13 @@ _LEGACY_FIRST_PREFIXES = (
     "/tribunali",
 )
 
+_REACT_TELEMATICO_ACQUISITION_PATHS = {
+    "/portali/pdp/acquisizione",
+    "/portali/pat/acquisizione",
+    "/portali/ptt/acquisizione",
+    "/portali/sigit/acquisizione",
+}
+
 _SITO_STUDIO_REACT_SUBPATHS = {
     "/sito-studio/contatti",
     "/sito-studio/builder",
@@ -80,6 +87,10 @@ _ROUTE_COMPONENTS: tuple[tuple[str, str], ...] = (
     ("/scadenziario/nuova", "src/components/NuovaScadenzaPage.tsx"),
     ("/scadenziario", "src/components/ScadenziarioPage.tsx"),
     ("/wizard-pro", "src/components/WizardProPage.tsx"),
+    ("/portali/pdp/acquisizione", "src/components/TelematicoSurfacePage.tsx"),
+    ("/portali/pat/acquisizione", "src/components/TelematicoSurfacePage.tsx"),
+    ("/portali/ptt/acquisizione", "src/components/TelematicoSurfacePage.tsx"),
+    ("/portali/sigit/acquisizione", "src/components/TelematicoSurfacePage.tsx"),
     ("/deposito/checklist", "src/components/TelematicoSurfacePage.tsx"),
     ("/studio", "src/components/StudioPage.tsx"),
     ("/fatturazione", "src/components/FatturazionePage.tsx"),
@@ -355,6 +366,8 @@ def _deve_mantenere_vista_classica() -> bool:
         return True
     if lower.startswith("/ricerca-legale/"):
         return True
+    if lower in _REACT_TELEMATICO_ACQUISITION_PATHS:
+        return False
     return any(lower == prefix or lower.startswith(f"{prefix}/") for prefix in _LEGACY_FIRST_PREFIXES)
 
 

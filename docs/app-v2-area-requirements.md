@@ -7,8 +7,8 @@ Questo registro e' generato da `scripts/react-migration/generate_app_v2_area_req
 ## Sintesi
 
 - Aree rilevate o governate: 15.
-- Route nel manifest: 98.
-- Priorita route: P0=30; P1=33; P2=35.
+- Route nel manifest: 102.
+- Priorita route: P0=34; P1=33; P2=35.
 - Stato aree: blocked=1; complete_tested=4; complete_unverified=4; partial=6.
 - `complete_tested` non viene assegnato a un'area con route legacy/parziali o senza gate fase 8.
 - Le aree non parificate restano `partial`, `pending` o `blocked` e non devono essere esposte come complete nella shell App V2.
@@ -31,7 +31,7 @@ Questo registro e' generato da `scripts/react-migration/generate_app_v2_area_req
 | Ricerca studio e Lex | /global-search; /ricerca-studio | /app/global-search; /app/ricerca-studio | routes.appV2.search.global | ricerca.leggi; fonti e citazioni governate | query, fonti, risultati e cronologia ricerca | ricerca globale; ricerca legale; giurisprudenza | query vuota; query senza risultati; tenant B zero risultati; filtro invalido gestito | tests/test_app_v2_area_requirements_phase8.py; scripts/smoke_app_v2_workflows.py --list; gate statici; smoke browser dedicato da estendere | P2 | complete_unverified |
 | Scadenze e termini | /scadenziario/:id/modifica; /scadenziario/nuova; /scadenziario; /scadenziario/:id; /wizard-pro | /app/scadenziario/:id/modifica; /app/scadenziario/nuova; /app/scadenziario; /app/scadenziario/:id; /app/wizard-pro | routes.appV2.deadlines.create; routes.appV2.deadlines.detail; routes.appV2.deadlines.hearingWizard; routes.appV2.deadlines.list | scadenze.leggi / scadenze.scrivi | termini, reminder e collegamenti a fascicolo | scadenziario; nuova scadenza; termini guidati | lista tenant A; scadenza tenant B negata; filtro invalido gestito; readonly non muta | tests/test_app_v2_area_requirements_phase8.py; scripts/smoke_app_v2_workflows.py --list; test specifici da completare prima della promozione | P0; P1; P2 | partial |
 | Studio e sito studio | /sito-studio/redazione-ai; /sito-studio/builder; /strumenti-legali; /sito-studio; /sito-studio/contatti; /statistiche; /strumenti-operativi | /app/amministrazione?tab=studio-redazione-ai; /app/amministrazione?tab=studio; /app/studio; /app/amministrazione?tab=studio; /app/amministrazione?tab=studio; /app/regia?tab=statistiche; +1 altre | routes.appV2.studio.modules; routes.appV2.studio.site; routes.appV2.studio.siteBuilder; routes.appV2.studio.siteDrafting; routes.appV2.studio.statistics | studio.leggi / studio.scrivi; admin.configura per sito e pubblicazione | configurazioni, contenuti pubblici, richieste contatto e prenotazioni | studio; statistiche; sito studio; builder; redazione AI | builder con dati/empty; asset upload senza permesso 403; contatti tenant-safe; mobile senza overflow | tests/test_app_v2_area_requirements_phase8.py; scripts/smoke_app_v2_workflows.py --list; test specifici da completare prima della promozione | P0; P1; P2 | partial |
-| Servizi telematici | /deposito/checklist; /guida/firma-digitale; /pat; /pdp; /polisWeb; /portali/*; /servizi-telematici; /sigit; +4 altre | /app/telematico; /app/telematico; /app/telematico; /app/telematico; /app/telematico; /app/telematico; +6 altre | routes.appV2.documents.checklist; routes.appV2.telematico.center; routes.appV2.telematico.surface | telematico.leggi / telematico.scrivi; Local Signer e portali fail-closed | buste, ricevute, allegati, dati ministeriali e Local Signer | controlli atti; centro telematico; PST/PDP/PAT/PTT/SIGP/POLISWEB dove presenti | controlli atti React; portali non parificati pending; download senza permesso 403; flag off senza API dati | tests/test_app_v2_area_requirements_phase8.py; scripts/smoke_app_v2_workflows.py --list; controlli atti React; workflow ministeriali non parificati marcati blocked | P0 | blocked |
+| Servizi telematici | /deposito/checklist; /guida/firma-digitale; /pat; /pdp; /polisWeb; /portali/*; /portali/pat/acquisizione; /portali/pdp/acquisizione; +8 altre | /app/telematico; /app/telematico; /app/telematico; /app/telematico; /app/telematico; /app/telematico; +10 altre | routes.appV2.documents.checklist; routes.appV2.telematico.center; routes.appV2.telematico.surface | telematico.leggi / telematico.scrivi; Local Signer e portali fail-closed | buste, ricevute, allegati, dati ministeriali e Local Signer | controlli atti; centro telematico; PST/PDP/PAT/PTT/SIGP/POLISWEB dove presenti | controlli atti React; portali non parificati pending; download senza permesso 403; flag off senza API dati | tests/test_app_v2_area_requirements_phase8.py; scripts/smoke_app_v2_workflows.py --list; controlli atti React; workflow ministeriali non parificati marcati blocked | P0 | blocked |
 
 ## Dettaglio aree
 
@@ -262,9 +262,9 @@ Questo registro e' generato da `scripts/react-migration/generate_app_v2_area_req
 ### Servizi telematici
 
 - Stato: `blocked` (presente ma bloccata da workflow non parificati o rimandati esplicitamente).
-- Route censite: 12; priorita: P0; migrazione: legacy_operational=11; react_operational_full=1.
-- URL legacy principali: /deposito/checklist; /guida/firma-digitale; /pat; /pdp; /polisWeb; /portali/*; /servizi-telematici; /sigit; /sigp; /sigp-sync; /telematico; /tribunali.
-- URL App V2: /app/telematico; /app/telematico; /app/telematico; /app/telematico; /app/telematico; /app/telematico; /app/telematico; /app/telematico; /app/telematico; /app/telematico; /app/telematico; /app/telematico.
+- Route censite: 16; priorita: P0; migrazione: legacy_operational=11; react_operational_full=5.
+- URL legacy principali: /deposito/checklist; /guida/firma-digitale; /pat; /pdp; /polisWeb; /portali/*; /portali/pat/acquisizione; /portali/pdp/acquisizione; /portali/ptt/acquisizione; /portali/sigit/acquisizione; /servizi-telematici; /sigit; +4 altre.
+- URL App V2: /app/telematico; /app/telematico; /app/telematico; /app/telematico; /app/telematico; /app/telematico; /app/telematico; /app/telematico; /app/telematico; /app/telematico; /app/telematico; /app/telematico; +4 altre.
 - Endpoint API: /api/v1/ui/telematico*, /api/v1/ui/local-signer*.
 - Feature flag: routes.appV2.documents.checklist; routes.appV2.telematico.center; routes.appV2.telematico.surface.
 - RBAC: telematico.leggi / telematico.scrivi; Local Signer e portali fail-closed.

@@ -406,10 +406,12 @@ Ai workflow applicativi si affiancano ora controlli DevSecOps dedicati:
 
 - `CodeQL` per code scanning statico
 - `Dependency Review` sulle pull request
-- `Security Supply Chain` con `pip-audit` e generazione SBOM
+- `Security Supply Chain` con `pip-audit`, `npm audit --audit-level=critical`, report artifact e generazione SBOM
 - `Performance Nightly` per benchmark leggero e regressioni di runtime
+- `Smoke Staging` manuale per verifiche ambiente/post-deploy senza deploy automatico e con credenziali solo da secrets
 
 I workflow vivono in `.github/workflows/`.
+Il registro dei gate bloccanti, manuali e nightly e' [docs/ci-cd-gates.md](docs/ci-cd-gates.md).
 La vista live del workflow e' [Actions / CI](https://github.com/antmm2605/IUSENTRA/actions/workflows/ci.yml).
 Le dipendenze di sviluppo della pipeline sono raccolte in `requirements-dev.txt`.
 Le dipendenze oggi sono organizzate anche sotto `requirements/` con separazione tra runtime base e sviluppo.
@@ -602,9 +604,15 @@ python -m pytest tests/test_observability_runtime.py tests/test_migration_assist
 Gate App V2 e requisiti area/workflow:
 
 ```bash
+python scripts/react-migration/generate_app_v2_test_docs.py --check
+python scripts/react-migration/generate_app_v2_page_registry.py --check
 python scripts/react-migration/generate_app_v2_area_requirements.py --check
+python scripts/smoke_app_v2_all.py --subset inventory
+python scripts/smoke_app_v2_all.py --subset contracts
 python scripts/smoke_app_v2_workflows.py --list
 python scripts/validate_ui_coverage.py
+python -m pytest -q tests/test_ci_cd_gates_phase11.py --tb=short
+python -m pytest -q tests/test_app_v2_test_plan_phase10.py --tb=short
 python -m pytest -q tests/test_app_v2_area_requirements_phase8.py --tb=short
 python -m pytest -q tests/test_ui_coverage_phase9.py --tb=short
 npm --prefix frontend run test

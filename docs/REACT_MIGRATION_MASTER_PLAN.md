@@ -1,5 +1,31 @@
 # Migrazione progressiva Flask + React
 
+## Stato fase react 11 - 2026-05-14 - CI/CD e release safety 2.232.0
+
+L'undicesima fase del piano `fasereact` trasforma il piano test della fase 10
+in gate CI/CD espliciti e bloccanti. Il workflow principale `.github/workflows/ci.yml`
+ora include provider verification/OpenAPI, smoke contratti, registro e piano
+test App V2, smoke inventory senza credenziali, test RBAC/tenant/feature
+flag/routing, frontend test/typecheck/build, shard pytest, coverage critica ed
+E2E smoke. Il nuovo workflow manuale `.github/workflows/smoke-staging.yml`
+copre smoke ambiente/post-deploy con environment `staging`, secrets GitHub
+solo se richieste credenziali e artifact sanitizzati.
+
+`docs/ci-cd-gates.md` e' il registro operativo di workflow, job, comandi,
+required checks, segreti/env, artifact, rollout safety, rollback e gap residui.
+`Security Supply Chain` ora produce report `pip-audit` e `npm audit` bloccando
+dipendenze critiche senza hardcodare segreti. `tests/test_ci_cd_gates_phase11.py`
+impedisce regressioni sul wiring dei gate e sulla documentazione.
+
+Verifiche locali fase 11: YAML workflow parseabile, py_compile, generatori
+`--check`, smoke inventory/contracts, pytest dedicato fase 11 5/5, contratti
+OpenAPI + fase 11 10/10, registry/test-plan/fase 11 13/13, backend
+security/tenant/flag/routing/OpenAPI 75/75, `pip-audit` senza vulnerabilita
+note, `npm audit` critical a zero vulnerabilita, npm test/typecheck/build,
+suite CI `coverage-critical`, `release-readiness`, `quality-overlay`,
+`e2e-smoke`, Docker locale no-cache 2.232.0 healthy e smoke App V2 locale
+security/pages/routing/workflows.
+
 ## Stato fase react 10 - 2026-05-14 - Test completi App V2 2.231.0
 
 La decima fase del piano `fasereact` consolida la strategia test App V2 senza

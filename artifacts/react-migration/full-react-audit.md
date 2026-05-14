@@ -2,6 +2,19 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-14T07:10:00+02:00: fase react 11 `fasereact`
+2.232.0. L'audit CI/CD App V2 e' ora verificabile in `docs/ci-cd-gates.md`:
+ogni workflow ha trigger, job, comando, classificazione bloccante/manuale,
+artifact, secrets richiesti, required checks consigliati e gap residui.
+`tests/test_ci_cd_gates_phase11.py` blocca regressioni su main CI, smoke
+staging, security supply chain e documentazione test plan.
+
+Audit anti-mascheramento: Storybook/VRT restano non dichiarati perche' non
+esiste comando reale; smoke autenticati restano manuali e falliscono se si
+richiedono credenziali mancanti; GitHub Actions non vengono dichiarate verdi
+prima dell'esecuzione remota dopo push. Nessun segreto e' stato aggiunto ai
+workflow.
+
 Aggiornamento 2026-05-14T02:35:00+02:00: fase react 10 `fasereact`
 2.231.0. L'audit test App V2 ora espone piano, inventario e matrice per route,
 ruoli, tenant, feature flag, backend, frontend, RBAC, contratti e smoke. Le

@@ -1,6 +1,6 @@
 # Pytest issue aperte e risoluzioni
 
-Aggiornato: 2026-05-14, fase react 10 test completi App V2 2.231.0.
+Aggiornato: 2026-05-14, fase react 11 CI/CD App V2 2.232.0.
 
 ## Regola operativa
 
@@ -10,6 +10,7 @@ Questo file e' la coda di lavoro. Prima di rilanciare test gia' passati, control
 
 | Area | Test / comando | Stato | Problema rilevato | Risoluzione |
 | --- | --- | --- | --- | --- |
+| Fase react 11 / CI-CD App V2 | Workflow, gate bloccanti, security audit, smoke staging, Docker | Nessuna issue aperta sul codice | GitHub Actions reali vanno verificate dopo push; smoke autenticati restano bloccati da assenza di credenziali env/secrets dedicate. Il primo tentativo locale su `/api/pronto` e' partito mentre i container erano ancora `health: starting` ed e' stato ripetuto dopo health. | Aggiunti gate in CI, `smoke-staging.yml`, `docs/ci-cd-gates.md` e test fase 11. Localmente YAML, generatori, pytest, provider, npm, pip-audit, coverage-critical, e2e-smoke, Docker no-cache e smoke anonimi sono verdi e registrati in `pytest-confirmed-ok.md`. |
 | Fase react 10 / test completi App V2 | Piano, inventario, matrice, smoke orchestrator, coverage e CI suite | Nessuna issue aperta sul codice | La repository non contiene Vitest/Jest/RTL, Playwright/Cypress o VRT; gli smoke autenticati tenant A/B/readonly richiedono credenziali env non presenti nel repository. Il coverage mirato auth/storage/telematico ha prodotto ResourceWarning sqlite preesistenti ma exit 0. | Aggiunti documenti fase 10 e `scripts/smoke_app_v2_all.py`; i runner assenti sono dichiarati come gap, gli smoke senza env restano inventory/anonimi e non vengono marcati passati. Gate dedicati, npm, OpenAPI/provider, coverage-critical, release-readiness, quality-overlay ed e2e-smoke verdi e registrati in `pytest-confirmed-ok.md`. |
 | Fase react 9 / UI regression App V2 | Storybook, fixture UI, copertura stati, VRT, Docker e browser | Nessuna issue aperta sul codice | La repository non contiene Storybook, runner componenti React o infrastruttura VRT sostenibile da attivare senza introdurre molte dipendenze durante la migrazione. | Scelta alternativa governata: fixture sicure in `frontend/src/test/fixtures/app-v2-ui-fixtures.json`, validatore `scripts/validate_ui_coverage.py`, doc `docs/ui-regression-and-storybook.md`, gate npm/CI e pytest dedicato. Storybook e VRT restano gap dichiarati, non stati verdi simulati. |
 | Fase react 8 / requisiti area-workflow App V2 | Generatore requisiti, smoke workflow, gate frontend, Docker e browser | Nessuna issue aperta sul codice | La fase richiede workflow autenticati tenant A/B/readonly, ma l'ambiente locale e di produzione non espone credenziali smoke dedicate nel repository. | Aggiunto `scripts/smoke_app_v2_workflows.py`: senza env esegue solo inventario e lo dichiara, con `--require-credentials` fallisce se le credenziali mancano. Gate deterministici, build, Docker locale e browser flag-off sono verdi e registrati in `pytest-confirmed-ok.md`; non dichiarare eseguito lo smoke autenticato finche' non vengono fornite le env. |

@@ -2,6 +2,23 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-14T07:10:00+02:00: fase react 11 `fasereact`
+2.232.0. La CI/CD App V2 ora ha gate bloccanti espliciti nel workflow
+principale: provider verification/OpenAPI, smoke contratti, registro e piano
+test App V2, smoke inventory, RBAC/tenant isolation, feature flag, routing,
+frontend test/typecheck/build, coverage critica ed E2E smoke. Aggiunto
+`docs/ci-cd-gates.md` come inventario operativo e `.github/workflows/smoke-staging.yml`
+come smoke manuale ambiente/post-deploy con secrets solo da GitHub.
+
+La security supply chain produce report `pip-audit` e `npm audit` senza
+segreti hardcoded; i required checks consigliati e il rollout 1/10/50/100 sono
+documentati. Verifica locale: YAML workflow, generatori `--check`, pytest fase
+11 5/5, contratti/fase 11 10/10, registry/test-plan/fase 11 13/13, backend
+security/tenant/flag/routing/OpenAPI 75/75, npm audit critical zero, pip-audit
+senza vulnerabilita note, npm test/typecheck/build, coverage-critical,
+release-readiness, quality-overlay, e2e-smoke, Docker no-cache 2.232.0 healthy
+e smoke App V2 locale.
+
 Aggiornamento 2026-05-14T02:35:00+02:00: fase react 10 `fasereact`
 2.231.0. Aggiunti piano test, inventario e matrice App V2:
 `docs/test-plan-app-v2.md`, `docs/test-inventory.md` e

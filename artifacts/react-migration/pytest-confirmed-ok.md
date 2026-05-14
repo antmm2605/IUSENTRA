@@ -1,12 +1,30 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-14, fase react 10 test completi App V2 2.231.0.
+Aggiornato: 2026-05-14, fase react 11 CI/CD App V2 2.232.0.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Fase react 11 - CI/CD App V2 2.232.0
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile scripts\react-migration\generate_app_v2_test_docs.py tests\test_ci_cd_gates_phase11.py` | OK | Sintassi confermata per generatore test plan aggiornato e regressioni CI/CD fase 11. |
+| `python -c "import pathlib, yaml; [yaml.safe_load(...)]"` | OK | Tutti i workflow `.github/workflows/*.yml` parseabili dopo l'aggiunta di `smoke-staging.yml`. |
+| `python scripts\react-migration\generate_app_v2_test_docs.py --check`; `python scripts\react-migration\generate_app_v2_page_registry.py --check`; `python scripts\react-migration\generate_app_v2_area_requirements.py --check` | OK | Piano test CI/CD, registry App V2 e requisiti area deterministici. |
+| `python scripts\smoke_app_v2_all.py --subset inventory`; `python scripts\smoke_app_v2_all.py --subset contracts` | OK | Inventory senza credenziali e OpenAPI/provider verification verdi; provider: 182 auth-error, 27 success e 1 backend-security. |
+| `python -m pytest -q tests\test_ci_cd_gates_phase11.py --tb=short` | OK | 5/5 passati: documentazione CI/CD, workflow main, smoke staging manuale e audit supply-chain verificati. |
+| `python -m pytest -q tests\test_openapi_contracts_phase6.py tests\test_ci_cd_gates_phase11.py --tb=short` | OK | 10/10 passati su contratti API e gate CI/CD fase 11. |
+| `python -m pytest -q tests\test_app_v2_page_registry.py tests\test_app_v2_test_plan_phase10.py tests\test_ci_cd_gates_phase11.py --tb=short` | OK | 13/13 passati su registry, piano test e CI/CD. |
+| `python -m pytest -q tests\test_auth.py tests\test_backend_security_phase5.py tests\test_tenant_isolation_runtime.py tests\test_app_v2_feature_flags.py tests\test_app_v2_routing.py tests\test_openapi_contracts_phase6.py --tb=short` | OK | 75/75 passati sul gate RBAC, tenant isolation, feature flag, routing e contratti. |
+| `python -m pip install pip-audit`; `python -m pip_audit -r requirements.txt --format json --output %TEMP%\pip-audit-phase11.json`; `npm --prefix frontend audit --audit-level=critical --omit=dev --json` | OK | Audit dipendenze locali: Python senza vulnerabilita note; npm production critical a zero vulnerabilita. |
+| `npm --prefix frontend run test`; `npm --prefix frontend run typecheck`; `npm --prefix frontend run build` | OK | Contratti React, gate App V2, UI coverage, TypeScript e build Vite 2.232.0 verdi; build completata in 6.36s con asset principali invariati. |
+| `python scripts\run_pytest_phases.py --suite release-readiness --timeout-minutes 10`; `python scripts\run_pytest_phases.py --suite quality-overlay --timeout-minutes 10`; `python scripts\run_pytest_phases.py --suite e2e-smoke --timeout-minutes 10`; `python scripts\run_pytest_phases.py --suite coverage-critical --timeout-minutes 10` | OK | Suite CI governate verdi: release readiness 1/1, quality overlay 5/5, e2e-smoke 1/1, coverage-critical 313 item. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest -q tests\test_packaging_consistency.py tests\test_release_readiness.py tests\test_ci_cd_gates_phase11.py --tb=short`; `python -c "import pct; print(pct.__version__)"` | OK | Packaging sincronizzato, readiness/packaging/fase 11 13/13 e versione source `2.232.0`. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx`; `GET http://127.0.0.1:8080/api/pronto`; runtime/label Docker; smoke App V2 local | OK | Build locale no-cache 2.232.0 completata; app, scheduler, OCR, Redis, audit-postgres e audit-worm healthy; readiness locale `versione=2.232.0`, runtime container `2.232.0`, label immagine `2.232.0`; smoke security/pages/routing/workflows completati, con profili autenticati dichiarati mancanti per assenza env. |
 
 ### Fase react 10 - test completi App V2 2.231.0
 

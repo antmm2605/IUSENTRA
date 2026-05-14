@@ -6,13 +6,13 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 ## Sintesi
 
-- File pytest censiti: 311.
+- File pytest censiti: 312.
 - Smoke/script censiti: 5.
 - Runner frontend component/VRT rilevati: nessuno; copertura UI tramite gate statici fase 9.
 
 | Tipo test | Conteggio |
 | --- | --- |
-| API contract | 54 |
+| API contract | 55 |
 | Backend | 37 |
 | E2E | 6 |
 | Frontend static gate | 1 |
@@ -26,7 +26,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 | Fase | Descrizione | File censiti |
 | --- | --- | --- |
-| 00-ci-contracts | Contratti CI, packaging, sicurezza minima e guardrail tecnici rapidi. | 18 |
+| 00-ci-contracts | Contratti CI, packaging, sicurezza minima e guardrail tecnici rapidi. | 19 |
 | 01-flask-core | Bootstrap Flask, autenticazione, sicurezza web, osservabilita' e superfici operative. | 17 |
 | 02-react-ui | Contratti React, regia, topbar, layout mobile e coerenza design system. | 22 |
 | 03-core-business | Domini gestionali: clienti, fascicoli, agenda, preventivi, tariffario e workflow economico. | 44 |
@@ -83,6 +83,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Auth/RBAC | RBAC | tests/test_auth_management_routes.py | 403/RBAC | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Auth/RBAC | RBAC | tests/test_profili.py | 403/RBAC, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Auth/RBAC | Tenant isolation | tests/test_auth.py | 403/RBAC, tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
+| Backend domain | API contract | tests/test_ci_cd_gates_phase11.py | tenant, feature flag, contratto, file, audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Backend domain | API contract | tests/test_legal_updates_pipeline.py | tenant, file, audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Backend domain | API contract | tests/test_observability_runtime.py | tenant | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Backend domain | Backend | tests/test_busta.py | audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |

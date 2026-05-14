@@ -1,10 +1,10 @@
 # Piano test App V2
 
-Aggiornato: 2026-05-14, fase 10 `fasereact`.
+Aggiornato: 2026-05-14, fase 11 `fasereact`.
 
 ## Strategia
 
-La fase 10 consolida i test esistenti senza dichiarare passati comandi non eseguiti. Il piano usa una piramide con unit/domain test Python, test Flask/API, gate statici React, contratti OpenAPI, smoke HTTP e E2E solo dove esistono file reali. Il monolitico `python -m pytest -q` resta disponibile ma non va usato come unico segnale locale perche' storicamente puo' superare i budget; il runner governato `scripts/run_pytest_phases.py` consente shard documentati.
+La fase 10 consolida i test esistenti senza dichiarare passati comandi non eseguiti. La fase 11 collega quei comandi ai workflow CI/CD reali: i gate critici restano bloccanti su pull request e push, mentre smoke autenticati e controlli ambiente restano manuali o nightly quando richiedono credenziali. Il monolitico `python -m pytest -q` resta disponibile ma non va usato come unico segnale locale perche' storicamente puo' superare i budget; il runner governato `scripts/run_pytest_phases.py` consente shard documentati.
 
 ## Test pyramid
 
@@ -18,7 +18,7 @@ La fase 10 consolida i test esistenti senza dichiarare passati comandi non esegu
 - Route manifest: 98.
 - Route P0/P1: 63.
 - Route P0/P1 con stato `tested`: 34.
-- File test/smoke censiti: 317.
+- File test/smoke censiti: 318.
 - Stati matrice: blocked=11, partial=38, pending=15, tested=34.
 
 ## Comandi principali
@@ -69,7 +69,7 @@ Rischio noto: primo accesso tenant autenticato dopo restart puo' essere lento pe
 
 ## Commands recommended for CI
 
-La fase 11 dovra' decidere dove inserirli. Comandi candidati:
+La fase 11 ha inserito i comandi candidati nei workflow reali, mantenendo bloccanti build, contratti, RBAC, tenant isolation, feature flag, registry e frontend App V2:
 
 | Priorita | Comando | Motivo |
 | --- | --- | --- |
@@ -79,6 +79,21 @@ La fase 11 dovra' decidere dove inserirli. Comandi candidati:
 | P0 | npm --prefix frontend run test && npm --prefix frontend run typecheck && npm --prefix frontend run build | frontend App V2 |
 | P1 | python scripts\run_pytest_phases.py --phase 00-ci-contracts,01-flask-core,04-storage,06-telematico --timeout-minutes 15 --batch-size 8 | backend/security/tenant sharded |
 | P1 | python scripts\run_pytest_phases.py --suite coverage-critical --suite-shard <n> --suite-total-shards 12 | coverage critica esistente |
+
+## CI/CD fase 11
+
+`docs/ci-cd-gates.md` e' il registro operativo dei workflow. Il workflow principale `.github/workflows/ci.yml` esegue i gate App V2 bloccanti su push, pull request e manuale: API contract/provider verification, registry e piano test generati, smoke inventory senza credenziali, test RBAC/tenant/feature flag/routing, frontend test/typecheck/build, shard pytest, coverage critica ed E2E smoke Python.
+
+Le esecuzioni GitHub Actions restano da verificare dopo ogni push: localmente si validano i comandi equivalenti, mentre GitHub conferma runner, cache, artifact e protezioni branch. `.github/workflows/security-supply-chain.yml` mantiene CodeQL/dependency review separati e aggiunge audit dipendenze Python/frontend con artifact. `.github/workflows/smoke-staging.yml` resta manuale, usa environment `staging`, non gira su pull request e richiede secrets solo quando viene selezionato `require_credentials`.
+
+| Workflow | Gate | Bloccante | Nota |
+| --- | --- | --- | --- |
+| .github/workflows/ci.yml | backend, frontend, contracts, registry, coverage-critical, e2e-smoke | si | Gate PR/push principali |
+| .github/workflows/frontend-ci.yml | frontend test/typecheck/build per path frontend | si | Shard rapido dedicato al frontend |
+| .github/workflows/security-supply-chain.yml | pip-audit, npm audit critical, SBOM | si per audit; artifact sempre | Nessun segreto richiesto |
+| .github/workflows/codeql.yml | CodeQL Python | si | Code scanning GitHub |
+| .github/workflows/e2e-nightly.yml | E2E full suite | nightly/manual | Non sostituisce i gate PR |
+| .github/workflows/smoke-staging.yml | smoke ambiente e autenticati da secrets | manuale/post-deploy | Usare prima di rollout oltre pilota |
 
 ## Criteri di accettazione fase 10
 

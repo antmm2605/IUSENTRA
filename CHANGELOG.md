@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.232.0 - 2026-05-14
+
+- Completata la fase 11 `fasereact`: rafforzati i workflow CI/CD con gate bloccanti per App V2, contratti API, provider verification, RBAC, tenant isolation, feature flag, registry, frontend e coverage critica.
+- Aggiunto workflow manuale `.github/workflows/smoke-staging.yml` per smoke ambiente/post-deploy con environment `staging`, secrets solo da GitHub e nessun deploy automatico produzione.
+- Rafforzato `Security Supply Chain` con `pip-audit` JSON artifact, `npm audit --audit-level=critical --omit=dev` e report dedicati.
+- Creato `docs/ci-cd-gates.md` con inventario workflow, required checks consigliati, segreti/env, artifact, rollout safety e gap residui; aggiornati piano test, release rollout e README.
+- Aggiunto `tests/test_ci_cd_gates_phase11.py` per bloccare regressioni sui gate fase 11 e sulla documentazione CI/CD.
+
 ## 2.231.0 - 2026-05-14
 
 - Completata la fase 10 `fasereact`: aggiunti piano test App V2, inventario test e matrice pagina/ruolo/tenant/flag in `docs/test-plan-app-v2.md`, `docs/test-inventory.md` e `docs/test-matrix-app-v2.md`.

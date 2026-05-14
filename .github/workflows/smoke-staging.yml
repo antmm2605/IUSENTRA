@@ -1,0 +1,89 @@
+name: Smoke Staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: Base URL ambiente da verificare
+        required: true
+        default: https://app.iusentra.it
+      require_credentials:
+        description: Richiedi credenziali smoke da secrets
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+env:
+  PYTHONUNBUFFERED: "1"
+  PYTHONUTF8: "1"
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  IUSENTRA_BASE_URL: ${{ inputs.base_url }}
+
+jobs:
+  smoke-staging:
+    name: Smoke ambiente
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install runtime deps
+        run: |
+          python -m pip install --upgrade pip wheel setuptools
+          pip install -c requirements/constraints.txt -r requirements.txt
+
+      - name: Install dev deps
+        run: |
+          pip install -c requirements/constraints.txt -r requirements-dev.txt
+
+      - name: Run unauthenticated smoke gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/smoke
+          python scripts/smoke_backend_security.py --base-url "$IUSENTRA_BASE_URL" 2>&1 | tee artifacts/smoke/backend-security.log
+          python scripts/smoke_app_v2_all.py --base-url "$IUSENTRA_BASE_URL" --subset security 2>&1 | tee artifacts/smoke/app-v2-security.log
+          python scripts/smoke_app_v2_all.py --base-url "$IUSENTRA_BASE_URL" --subset routing 2>&1 | tee artifacts/smoke/app-v2-routing.log
+          python scripts/smoke_app_v2_all.py --base-url "$IUSENTRA_BASE_URL" --subset workflows 2>&1 | tee artifacts/smoke/app-v2-workflows.log
+
+      - name: Run credentialed smoke gates
+        if: ${{ inputs.require_credentials }}
+        env:
+          IUSENTRA_ADMIN_USER: ${{ secrets.IUSENTRA_ADMIN_USER }}
+          IUSENTRA_ADMIN_PASSWORD: ${{ secrets.IUSENTRA_ADMIN_PASSWORD }}
+          IUSENTRA_TENANT_A_USER: ${{ secrets.IUSENTRA_TENANT_A_USER }}
+          IUSENTRA_TENANT_A_PASSWORD: ${{ secrets.IUSENTRA_TENANT_A_PASSWORD }}
+          IUSENTRA_TENANT_B_USER: ${{ secrets.IUSENTRA_TENANT_B_USER }}
+          IUSENTRA_TENANT_B_PASSWORD: ${{ secrets.IUSENTRA_TENANT_B_PASSWORD }}
+          IUSENTRA_READONLY_USER: ${{ secrets.IUSENTRA_READONLY_USER }}
+          IUSENTRA_READONLY_PASSWORD: ${{ secrets.IUSENTRA_READONLY_PASSWORD }}
+          IUSENTRA_SMOKE_API_KEY: ${{ secrets.IUSENTRA_SMOKE_API_KEY }}
+          IUSENTRA_SMOKE_TENANT_SLUG: ${{ secrets.IUSENTRA_SMOKE_TENANT_SLUG }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/smoke
+          python scripts/smoke_backend_security.py --base-url "$IUSENTRA_BASE_URL" --require-credentials 2>&1 | tee artifacts/smoke/backend-security-auth.log
+          python scripts/smoke_app_v2_all.py --base-url "$IUSENTRA_BASE_URL" --require-credentials 2>&1 | tee artifacts/smoke/app-v2-authenticated.log
+
+      - name: Upload smoke reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-staging-reports
+          path: artifacts/smoke
+          if-no-files-found: warn
+          retention-days: 14

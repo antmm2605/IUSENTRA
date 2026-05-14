@@ -228,6 +228,43 @@ python scripts/smoke_app_v2_all.py --require-credentials
 `docs/test-matrix-app-v2.md` sono la fonte operativa per distinguere test
 eseguiti, gap dichiarati e smoke bloccati da credenziali mancanti.
 
+## CI/CD e rollout safety fase 11
+
+Prima di promuovere una release App V2 devono essere verdi i gate GitHub
+documentati in `docs/ci-cd-gates.md`: `CI`, `Frontend React CI`,
+`Security Supply Chain`, `CodeQL` e `Dependency Review` sulle pull request,
+piu' `CI Release Overlay` quando si prepara un tag o deploy operativo.
+
+Gate pre-release minimi:
+
+```bash
+python scripts/react-migration/generate_app_v2_test_docs.py --check
+python scripts/react-migration/generate_app_v2_page_registry.py --check
+python scripts/smoke_app_v2_all.py --subset inventory
+python scripts/smoke_app_v2_all.py --subset contracts
+python -m pytest -q tests/test_ci_cd_gates_phase11.py --tb=short
+npm --prefix frontend run test
+npm --prefix frontend run typecheck
+npm --prefix frontend run build
+```
+
+Lo smoke ambiente vive in `.github/workflows/smoke-staging.yml` ed e' solo
+manuale: usa `workflow_dispatch`, environment `staging`, artifact sanitizzati e
+secrets GitHub solo quando viene selezionato `require_credentials`. Non
+esegue deploy produzione e non legge segreti da pull request.
+
+Rollout dopo deploy:
+
+1. verificare `/api/pronto`, commit e versione container;
+2. eseguire smoke anonimi `security`, `routing` e `workflows`;
+3. se presenti credenziali smoke dedicate, eseguire il workflow manuale con
+   `require_credentials=true`;
+4. abilitare flag `routes.appV2.*` a 1%, poi 10%, 50%, 100%;
+5. osservare 401/403 attesi, `policy_denied`, `cross_tenant_denied`, p95 route
+   calde e assenza di testi tecnici visibili;
+6. in caso di regressione spegnere il flag interessato entro 2 ore, riavviare
+   app/worker e rieseguire smoke.
+
 ## Redirect legacy -> App V2 fase 4
 
 I redirect non sono attivati globalmente. Per abilitarne uno pagina per pagina:

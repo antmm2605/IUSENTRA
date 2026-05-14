@@ -26,6 +26,8 @@ const reactShell = read('web/blueprints/react_shell.py')
 const frontendDoc = read('docs/frontend-app-v2-pages.md')
 const registryDoc = read('docs/app-v2-page-registry.md')
 const areaRequirementsDoc = read('docs/app-v2-area-requirements.md')
+const uiRegressionDoc = read('docs/ui-regression-and-storybook.md')
+const uiFixtures = read('frontend/src/test/fixtures/app-v2-ui-fixtures.json')
 const openApi = read('docs/openapi.yaml')
 const manifest = JSON.parse(read('tools/react-migration/route-manifest.json'))
 
@@ -78,6 +80,15 @@ assertContains(areaRequirementsDoc, 'fase 8 `fasereact`', 'docs/app-v2-area-requ
 assertContains(areaRequirementsDoc, 'Servizi telematici', 'docs/app-v2-area-requirements.md telematico')
 assertContains(areaRequirementsDoc, 'blocked', 'docs/app-v2-area-requirements.md stato blocked')
 assertContains(areaRequirementsDoc, 'scripts/smoke_app_v2_workflows.py --list', 'docs/app-v2-area-requirements.md smoke workflow')
+assertContains(frontendDoc, 'Copertura UI fase 9', 'docs/frontend-app-v2-pages.md fase 9')
+assertContains(registryDoc, 'Copertura UI fase 9', 'registry fase 9')
+assertContains(uiRegressionDoc, 'Storybook: non introdotto', 'docs/ui-regression-and-storybook.md Storybook')
+assertContains(uiRegressionDoc, 'VRT: non attivo', 'docs/ui-regression-and-storybook.md VRT')
+assertContains(uiRegressionDoc, 'python scripts\\validate_ui_coverage.py', 'docs/ui-regression-and-storybook.md gate')
+assertContains(uiFixtures, '"phase": "9"', 'fixture UI fase 9')
+assertContains(uiFixtures, '@example.invalid', 'fixture UI email fittizie')
+assertNotContains(uiRegressionDoc, 'storybook_ready', 'docs/ui-regression-and-storybook.md non dichiara Storybook pronto')
+assertNotContains(uiRegressionDoc, 'vrt_ready', 'docs/ui-regression-and-storybook.md non dichiara VRT pronta')
 
 function priority(route) {
   const status = String(route.status || '')
@@ -120,4 +131,4 @@ for (const endpoint of [
   assertContains(openApi, endpoint, `OpenAPI endpoint fase 7 ${endpoint}`)
 }
 
-console.log(`App V2 frontend fase 7 verificato: P0/P1=${p0p1.length}, P0/P1 full=${p0p1Full.length}.`)
+console.log(`App V2 frontend fase 9 verificato: P0/P1=${p0p1.length}, P0/P1 full=${p0p1Full.length}.`)

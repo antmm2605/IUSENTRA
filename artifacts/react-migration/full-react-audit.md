@@ -2,6 +2,21 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-14T00:15:00+02:00: fase react 9 `fasereact`
+2.230.0. L'audit UI regression App V2 e' ora esplicito e verificabile:
+Storybook non viene introdotto perche' la repository non ha infrastruttura
+esistente; VRT non viene dichiarata attiva. Entrambi i gap sono documentati in
+`docs/ui-regression-and-storybook.md` e bloccati dal gate
+`scripts/validate_ui_coverage.py` se venissero presentati come pronti senza
+asset reali.
+
+Audit anti-mascheramento: fixture sicure solo con domini `example.invalid`,
+segreti mascherati e nessun IP/chiave reale; ogni route P0/P1
+`react_operational_full` deve avere copertura `ui_tested`, stati `default`,
+`loading`, `empty`, `error`, `forbidden`, `flag-off`, `readonly`, riferimento
+al componente e ai gate. Le superfici non full restano escluse dal verde UI
+completo.
+
 Aggiornamento 2026-05-13T23:59:00+02:00: fase react 8 `fasereact`
 2.229.0. Il registro requisiti per area/workflow App V2 e' ora generato in
 `docs/app-v2-area-requirements.md` e collega ogni area alle route censite, ai

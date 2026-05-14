@@ -26,6 +26,7 @@ STATUS_LABELS = {
 }
 
 PHASE7_REQUIRED_STATES = "loading, empty, error, forbidden, not-found, flag-off, readonly/RBAC"
+PHASE9_REQUIRED_STATES = "default, loading, empty, error, forbidden, flag-off, readonly, desktop/tablet/mobile"
 
 FAMILY_API = {
     "panoramica": "/api/v1/ui/dashboard",
@@ -512,6 +513,74 @@ def _phase7_rows(routes: list[dict[str, object]]) -> list[list[str]]:
     return rows
 
 
+def _phase9_storybook_state(route: dict[str, object]) -> str:
+    if str(route.get("status") or "") == "react_operational_full" and _priority(route) in {"P0", "P1"}:
+        return "no: Storybook non presente; alternativa leggera validata"
+    return "no: non applicabile finche' la pagina resta pending/partial"
+
+
+def _phase9_component_test(route: dict[str, object]) -> str:
+    status = str(route.get("status") or "")
+    priority = _priority(route)
+    if status == "react_operational_full" and priority in {"P0", "P1"}:
+        return "si: validate_ui_coverage + check-app-v2-frontend"
+    if status == "react_operational_full":
+        return "parziale: gate statici; estendere prima della priorita P0/P1"
+    return "no: test UI prima della promozione"
+
+
+def _phase9_vrt_state(route: dict[str, object]) -> str:
+    if str(route.get("status") or "") == "react_operational_full" and _priority(route) in {"P0", "P1"}:
+        return "no: VRT non attivo; gap documentato"
+    return "no: pending"
+
+
+def _phase9_a11y_state(route: dict[str, object]) -> str:
+    status = str(route.get("status") or "")
+    priority = _priority(route)
+    if status == "react_operational_full" and priority in {"P0", "P1"}:
+        return "contratto minimo: heading, bottoni nominati, label input, errori sicuri"
+    if status == "react_operational_full":
+        return "da estendere se promossa P0/P1"
+    return "pending"
+
+
+def _phase9_final_state(route: dict[str, object]) -> str:
+    status = str(route.get("status") or "")
+    priority = _priority(route)
+    if status == "react_operational_full" and priority in {"P0", "P1"}:
+        return "ui_tested"
+    if status == "react_operational_full":
+        return "partial"
+    if status == "react_operational_partial":
+        return "partial"
+    if str(route.get("family") or "") == "telematico":
+        return "blocked"
+    return "pending"
+
+
+def _phase9_rows(routes: list[dict[str, object]]) -> list[list[str]]:
+    rows: list[list[str]] = []
+    for route in sorted(routes, key=lambda item: (_priority(item), str(item.get("family") or ""), str(item.get("route") or ""))):
+        family = str(route.get("family") or "")
+        rows.append(
+            [
+                _family_label(family),
+                str(route.get("route") or ""),
+                _priority(route),
+                str(route.get("targetComponent") or "non assegnato"),
+                _phase9_storybook_state(route),
+                _phase9_component_test(route),
+                _phase9_vrt_state(route),
+                PHASE9_REQUIRED_STATES if _phase9_final_state(route) == "ui_tested" else "pending",
+                "desktop, tablet, mobile documentati; browser smoke da estendere" if _phase9_final_state(route) == "ui_tested" else "pending",
+                _phase9_a11y_state(route),
+                _phase9_final_state(route),
+            ]
+        )
+    return rows
+
+
 def _md(value: object) -> str:
     text = str(value if value is not None else "").strip()
     text = text.replace("\n", " ").replace("|", "\\|")
@@ -597,9 +666,9 @@ def _registry_doc(
     lines = [
         "# Registro pagine App V2 e migrazione React",
         "",
-        "Aggiornato: 2026-05-13, fase 7 `fasereact`.",
+        "Aggiornato: 2026-05-13, fase 9 `fasereact`.",
         "",
-        "Questo registro e' generato da `scripts/react-migration/generate_app_v2_page_registry.py` a partire da manifest React, route App V2, feature flag, mapping routing sicuro e discovery Flask. La fase 7 aggiunge stato frontend pagina per pagina, RBAC UI, 404 sicura App V2 e verifica no-fetch quando il flag e' spento, senza attivare redirect globali non governati.",
+        "Questo registro e' generato da `scripts/react-migration/generate_app_v2_page_registry.py` a partire da manifest React, route App V2, feature flag, mapping routing sicuro e discovery Flask. La fase 9 aggiunge copertura UI/regressione pagina per pagina, senza dichiarare Storybook o VRT attivi quando nel repo non sono presenti.",
         "",
         "## Sintesi discovery",
         "",
@@ -637,6 +706,15 @@ def _registry_doc(
         "## Requisiti specifici fase 8",
         "",
         "Il registro area/workflow e' generato separatamente in `docs/app-v2-area-requirements.md`. La fase 8 usa quello stato per distinguere aree `complete_tested`, `partial`, `pending` e `blocked`, senza promuovere route legacy/parziali solo perche' il gate frontend comune e' verde.",
+        "",
+        "## Copertura UI fase 9",
+        "",
+        "Storybook non e' presente nel frontend e non viene introdotto in questa fase per evitare una dipendenza pesante non gia' governata dal repo. La copertura minima fase 9 usa fixture sicure isolate, `scripts/validate_ui_coverage.py`, `npm --prefix frontend run test` e la build Vite. VRT resta gap documentato: nessuna riga viene marcata pronta per regressione visuale senza un comando reale eseguito.",
+        "",
+        _table(
+            ["Area", "Pagina", "Priorita", "Component", "Storybook story", "Component test", "VRT", "Stati coperti", "Responsive", "A11y", "Stato finale"],
+            _phase9_rows(routes),
+        ),
         "",
         "## Feature flag censiti",
         "",
@@ -716,9 +794,9 @@ def _frontend_doc(
     lines = [
         "# Pagine frontend App V2",
         "",
-        "Aggiornato: 2026-05-13, fase 7 `fasereact`.",
+        "Aggiornato: 2026-05-13, fase 9 `fasereact`.",
         "",
-        "Questo documento e' il riepilogo operativo del registro completo in `docs/app-v2-page-registry.md`. La fase 7 governa shell, route, menu, fetch frontend, RBAC UI e 404 sicura App V2 con feature flag default-off e senza promuovere superfici legacy o parziali non parificate.",
+        "Questo documento e' il riepilogo operativo del registro completo in `docs/app-v2-page-registry.md`. La fase 9 aggiunge copertura UI/regressione sostenibile: Storybook non viene introdotto perche' assente dal repo, mentre fixture sicure, gate statici e test di copertura impediscono di marcare pagine non verificate come `ui_tested`.",
         "",
         "## Shell App V2",
         "",
@@ -738,6 +816,15 @@ def _frontend_doc(
         _table(
             ["Area", "Pagina", "App V2 URL", "Legacy URL", "Component", "Flag", "API", "OpenAPI", "RBAC UI", "Stati UI", "Test", "Stato"],
             _phase7_rows(routes),
+        ),
+        "",
+        "## Copertura UI fase 9",
+        "",
+        "La tabella espone Storybook, test UI, VRT, responsive e accessibilita per ogni route. `ui_tested` e' ammesso solo per P0/P1 gia' `react_operational_full` e coperti dal gate `scripts/validate_ui_coverage.py`; VRT resta `no` finche' non esiste un comando reale eseguito.",
+        "",
+        _table(
+            ["Area", "Pagina", "Priorita", "Component", "Storybook story", "Component test", "VRT", "Stati coperti", "Responsive", "A11y", "Stato finale"],
+            _phase9_rows(routes),
         ),
         "",
         "## Backlog per priorita",
@@ -783,9 +870,11 @@ def _frontend_doc(
             "python scripts\\smoke_app_v2_pages.py --list",
             "python scripts\\smoke_app_v2_routing.py --list",
             "python scripts\\smoke_app_v2_workflows.py --list",
+            "python scripts\\validate_ui_coverage.py",
             "python scripts\\react-migration\\generate_app_v2_area_requirements.py --check",
             "python -m pytest -q tests/test_app_v2_frontend_phase7.py --tb=short",
             "python -m pytest -q tests/test_app_v2_area_requirements_phase8.py --tb=short",
+            "python -m pytest -q tests/test_ui_coverage_phase9.py --tb=short",
             "python -m pytest -q tests/test_app_v2_page_registry.py --tb=short",
             "python -m pytest -q tests/test_feature_flags.py tests/test_app_v2_feature_flags.py tests/test_app_v2_routing.py --tb=short",
             "```",
@@ -802,6 +891,10 @@ def _frontend_doc(
             "## Requisiti specifici fase 8",
             "",
             "Il file `docs/app-v2-area-requirements.md` e' il registro vincolante per workflow, RBAC, tenant isolation, PII e stato finale per area. Lo smoke `scripts/smoke_app_v2_workflows.py` resta in modalita inventario se mancano le credenziali ambiente e non dichiara passati i profili non configurati.",
+            "",
+            "## Copertura UI fase 9",
+            "",
+            "`docs/ui-regression-and-storybook.md` documenta stato Storybook, test UI, fixture sicure, VRT, accessibilita e gap residui. Storybook e VRT non sono dichiarati attivi: il gate minimo e' `python scripts\\validate_ui_coverage.py`, integrato in `npm --prefix frontend run test` e nella CI App V2.",
             "",
             "## Stato fase 7",
             "",

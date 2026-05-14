@@ -173,6 +173,31 @@ rieseguire lo smoke workflow in inventario e confermare che il fallback legacy
 resti accessibile. Se il difetto non e' isolabile da flag, revertire il commit
 della fase e ridistribuire.
 
+## UI regression fase 9
+
+Prima di attivare un flag App V2 su P0/P1 verificare anche la copertura UI:
+
+```bash
+python scripts/validate_ui_coverage.py
+python -m pytest -q tests/test_ui_coverage_phase9.py --tb=short
+npm --prefix frontend run test
+npm --prefix frontend run typecheck
+npm --prefix frontend run build
+```
+
+Checklist visuale pre-release:
+
+- la riga in `docs/frontend-app-v2-pages.md` deve essere `ui_tested` solo se la
+  route e' gia' `react_operational_full`;
+- Storybook resta `non introdotto` e VRT resta `non attivo` finche' non esiste
+  un comando reale eseguito;
+- fixture e mock devono usare solo dati fittizi sotto `example.invalid`,
+  segreti mascherati e tenant non reali;
+- gli stati loading, empty, error, forbidden, flag-off, readonly e responsive
+  devono restare documentati per desktop/tablet/mobile;
+- se compare una regressione UI, spegnere il flag pagina, verificare lo stato
+  flag-off e aprire correzione prima di aggiornare eventuali baseline future.
+
 ## Redirect legacy -> App V2 fase 4
 
 I redirect non sono attivati globalmente. Per abilitarne uno pagina per pagina:

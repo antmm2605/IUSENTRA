@@ -2,6 +2,27 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-14T00:15:00+02:00: fase react 9 `fasereact`
+2.230.0. Aggiunta la disciplina UI regression App V2 senza mascherare
+Storybook o VRT come presenti: `docs/ui-regression-and-storybook.md` documenta
+scelta, gap, fixture, stati UI, RBAC, feature flag, accessibilita e responsive;
+`frontend/src/test/fixtures/app-v2-ui-fixtures.json` contiene dati sintetici
+sicuri; `scripts/validate_ui_coverage.py` blocca P0/P1 full privi di riga
+`ui_tested` e stati minimi.
+
+Il registro pagine e il riepilogo frontend generati hanno ora la sezione
+`Copertura UI fase 9`. Le route P0/P1 full React sono marcate `ui_tested`; le
+route parziali, legacy o telematiche non parificate restano `partial`,
+`pending` o `blocked`, cosi' la fase non dichiara completate superfici che non
+hanno ancora parita reale.
+
+Verifica locale finale: py_compile, generatori `--check`, validatore UI
+coverage, npm test/typecheck/build, pytest fase 9/fase 8/fase 7/registry
+15/15, OpenAPI, packaging/readiness, Docker no-cache 2.230.0 healthy, smoke
+security, smoke workflow in modalita inventario e browser in-app su App V2
+flag-off piu' pagina Impostazioni React senza errori console o testi tecnici
+vietati.
+
 Aggiornamento 2026-05-13T23:59:00+02:00: fase react 8 `fasereact`
 2.229.0. Aggiunto il registro generato dei requisiti specifici per area in
 `docs/app-v2-area-requirements.md`: ogni area ora dichiara pagine, URL App V2,

@@ -1,5 +1,21 @@
 # Migrazione progressiva Flask + React
 
+## Stato fase react 9 - 2026-05-13 - UI regression App V2 2.230.0
+
+La nona fase del piano `fasereact` rende verificabile la qualita UI App V2
+senza introdurre Storybook o VRT fittizi. Il frontend non aveva Storybook,
+storie, runner component o VRT configurati; la fase documenta questa scelta in
+`docs/ui-regression-and-storybook.md` e aggiunge un'alternativa concreta:
+fixture sicure isolate, gate `scripts/validate_ui_coverage.py`, pytest dedicato
+e sezione `Copertura UI fase 9` nei registri generati.
+
+Le route P0/P1 possono essere marcate `ui_tested` solo se gia'
+`react_operational_full`, hanno componente React reale, stati
+default/loading/empty/error/forbidden/flag-off/readonly documentati, copertura
+responsive desktop/tablet/mobile e passano i gate fase 7/9. Le route parziali,
+legacy o bloccate restano `partial`, `pending` o `blocked`; VRT e Storybook
+restano gap espliciti finche' non esiste un comando reale eseguito.
+
 ## Stato fase react 8 - 2026-05-13 - Requisiti area/workflow App V2 2.229.0
 
 L'ottava fase del piano `fasereact` sposta il governo dalla singola pagina al

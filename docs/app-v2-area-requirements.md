@@ -1,6 +1,6 @@
 # Requisiti specifici App V2 per area
 
-Aggiornato: 2026-05-13, fase 8 `fasereact`.
+Aggiornato: 2026-05-13, fase 8 `fasereact` con collegamento fase 9.
 
 Questo registro e' generato da `scripts/react-migration/generate_app_v2_area_requirements.py` a partire dal manifest React e dai gate di sicurezza/API gia' censiti. Serve a impedire promozioni generiche: ogni area deve dichiarare workflow, RBAC, tenant isolation, PII, test presenti e test mancanti prima di passare alle fasi visuali successive.
 
@@ -274,6 +274,18 @@ Questo registro e' generato da `scripts/react-migration/generate_app_v2_area_req
 - Test richiesti: controlli atti React; portali non parificati pending; download senza permesso 403; flag off senza API dati.
 - Test presenti fase 8: tests/test_app_v2_area_requirements_phase8.py; scripts/smoke_app_v2_workflows.py --list; controlli atti React; workflow ministeriali non parificati marcati blocked.
 - Rischio residuo: nessuna promozione ulteriore senza smoke autenticato area-specifico.
+
+## Collegamento UI regression fase 9
+
+La copertura visuale e di regressione e' documentata in `docs/ui-regression-and-storybook.md` e nella sezione `Copertura UI fase 9` di `docs/frontend-app-v2-pages.md` e `docs/app-v2-page-registry.md`. Storybook e VRT restano non attivi finche' non esiste un comando reale; le aree con route `partial`, `pending` o `blocked` non possono essere promosse a `ui_tested`.
+
+Gate fase 9:
+
+```powershell
+python scripts\validate_ui_coverage.py
+python -m pytest -q tests/test_ui_coverage_phase9.py --tb=short
+npm --prefix frontend run test
+```
 
 ## Smoke workflow fase 8
 

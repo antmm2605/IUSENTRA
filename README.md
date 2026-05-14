@@ -604,11 +604,18 @@ Gate App V2 e requisiti area/workflow:
 ```bash
 python scripts/react-migration/generate_app_v2_area_requirements.py --check
 python scripts/smoke_app_v2_workflows.py --list
+python scripts/validate_ui_coverage.py
 python -m pytest -q tests/test_app_v2_area_requirements_phase8.py --tb=short
+python -m pytest -q tests/test_ui_coverage_phase9.py --tb=short
 npm --prefix frontend run test
 npm --prefix frontend run typecheck
 npm --prefix frontend run build
 ```
+
+La copertura UI/regressione App V2 e' documentata in
+`docs/ui-regression-and-storybook.md`: Storybook e VRT non sono dichiarati
+attivi finche' non esiste un comando reale, mentre le fixture sicure vivono in
+`frontend/src/test/fixtures/app-v2-ui-fixtures.json`.
 
 Test telematici di riferimento:
 

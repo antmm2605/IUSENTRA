@@ -1,0 +1,147 @@
+{
+  "schemaVersion": 1,
+  "phase": "9",
+  "purpose": "Fixture UI isolate per test, Storybook futuro e validazione regressione App V2. I dati sono fittizi e non devono essere usati in produzione.",
+  "users": {
+    "admin": {
+      "id": "utente-admin-mock",
+      "displayName": "Avvocato responsabile",
+      "email": "admin@example.invalid",
+      "role": "admin",
+      "permissions": ["admin.configura", "fascicoli.leggi", "fascicoli.scrivi", "impostazioni.scrivi", "comunicazioni.scrivi"]
+    },
+    "avvocato": {
+      "id": "utente-avvocato-mock",
+      "displayName": "Avvocato operativo",
+      "email": "avvocato@example.invalid",
+      "role": "avvocato",
+      "permissions": ["fascicoli.leggi", "agenda.leggi", "documenti.leggi", "comunicazioni.leggi"]
+    },
+    "collaboratore": {
+      "id": "utente-collaboratore-mock",
+      "displayName": "Collaboratore di studio",
+      "email": "collaboratore@example.invalid",
+      "role": "collaboratore",
+      "permissions": ["fascicoli.leggi", "agenda.leggi"]
+    },
+    "readonly": {
+      "id": "utente-sola-lettura-mock",
+      "displayName": "Consultazione studio",
+      "email": "readonly@example.invalid",
+      "role": "readonly",
+      "permissions": ["fascicoli.leggi"]
+    }
+  },
+  "tenants": {
+    "tenantA": {
+      "id": "tenant-alpha-mock",
+      "name": "Studio Alfa fittizio",
+      "slug": "studio-alpha-mock"
+    },
+    "tenantB": {
+      "id": "tenant-beta-mock",
+      "name": "Studio Beta fittizio",
+      "slug": "studio-beta-mock"
+    }
+  },
+  "featureFlags": {
+    "on": {
+      "routes.appV2.cases.list": true,
+      "routes.appV2.documents.list": true,
+      "routes.appV2.comms.pec": true,
+      "routes.appV2.settings.studio": true
+    },
+    "off": {
+      "routes.appV2.cases.list": false,
+      "routes.appV2.documents.list": false,
+      "routes.appV2.comms.pec": false,
+      "routes.appV2.settings.studio": false
+    }
+  },
+  "resources": {
+    "fascicolo": {
+      "id": "FASC-MOCK-001",
+      "tenantId": "tenant-alpha-mock",
+      "titolo": "Opposizione a decreto ingiuntivo fittizia",
+      "stato": "attivo",
+      "parti": ["Cliente fittizio", "Controparte fittizia"]
+    },
+    "documento": {
+      "id": "DOC-MOCK-001",
+      "tenantId": "tenant-alpha-mock",
+      "nome": "memoria-difensiva-mock.pdf",
+      "tipo": "atto",
+      "classificazione": "Da verificare",
+      "downloadAvailable": true
+    },
+    "documentoUpload": {
+      "id": "UPLOAD-MOCK-001",
+      "fileName": "allegato-lungo-nome-fittizio-per-test-responsive.pdf",
+      "progress": 64,
+      "status": "in_caricamento"
+    },
+    "comunicazione": {
+      "id": "PEC-MOCK-001",
+      "tenantId": "tenant-alpha-mock",
+      "mittente": "studio@pec.example.invalid",
+      "destinatario": "destinatario@pec.example.invalid",
+      "oggetto": "Comunicazione fittizia per test UI",
+      "allegati": 2,
+      "stato": "ricevuta"
+    },
+    "deposito": {
+      "id": "DEP-MOCK-001",
+      "tenantId": "tenant-alpha-mock",
+      "fase": "controllo_atti",
+      "esito": "da_completare"
+    },
+    "scadenza": {
+      "id": "SCA-MOCK-001",
+      "tenantId": "tenant-alpha-mock",
+      "titolo": "Termine istruttorio fittizio",
+      "data": "2026-06-15",
+      "stato": "aperta"
+    },
+    "eventoAgenda": {
+      "id": "EVT-MOCK-001",
+      "tenantId": "tenant-alpha-mock",
+      "titolo": "Udienza fittizia",
+      "inizio": "2026-06-18T10:30:00+02:00",
+      "fine": "2026-06-18T11:00:00+02:00"
+    },
+    "cliente": {
+      "id": "CLI-MOCK-001",
+      "tenantId": "tenant-alpha-mock",
+      "nome": "Cliente fittizio",
+      "recapito": "non comunicato",
+      "codiceFiscale": "dato mascherato"
+    },
+    "notifica": {
+      "id": "NOT-MOCK-001",
+      "tenantId": "tenant-alpha-mock",
+      "titolo": "Promemoria fittizio",
+      "letta": false
+    },
+    "auditLog": {
+      "id": "AUD-MOCK-001",
+      "tenantId": "tenant-alpha-mock",
+      "azione": "consultazione",
+      "esito": "consentita"
+    },
+    "settingsMascherati": {
+      "pecAddress": "studio@pec.example.invalid",
+      "smtpAddress": "studio@example.invalid",
+      "passwordEmail": "********",
+      "providerSecret": "********",
+      "backupLocation": "percorso mascherato"
+    }
+  },
+  "states": {
+    "loading": "Scheletro o stato di caricamento senza spinner bloccante.",
+    "empty": "Stato vuoto operativo senza dati fittizi.",
+    "error": "Errore sicuro in italiano senza dettagli tecnici.",
+    "forbidden": "Accesso non consentito con azioni nascoste.",
+    "flagOff": "Funzione non attiva senza chiamate API dati.",
+    "readonly": "Azioni di scrittura non visibili."
+  }
+}

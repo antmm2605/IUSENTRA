@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.230.0 - 2026-05-13
+
+- Completata la fase 9 `fasereact`: aggiunta governance UI regression App V2 con `docs/ui-regression-and-storybook.md`, fixture sicure isolate e stato pagina per pagina nei registri generati.
+- Aggiunto `scripts/validate_ui_coverage.py` per impedire che P0/P1 non full React vengano marcate `ui_tested`, verificare fixture senza PII/segreti e documentare Storybook/VRT senza dichiararli pronti.
+- Collegato il gate fase 9 a `npm --prefix frontend run test`, CI App V2 e `tests/test_ui_coverage_phase9.py`.
+- Rigenerati `docs/app-v2-page-registry.md` e `docs/frontend-app-v2-pages.md` con la sezione `Copertura UI fase 9`, mantenendo VRT e Storybook come gap espliciti.
+
 ## 2.229.0 - 2026-05-13
 
 - Completata la fase 8 `fasereact`: creato `docs/app-v2-area-requirements.md` come registro generato dei requisiti specifici per area, workflow, RBAC, tenant isolation, PII, test richiesti e stato finale.

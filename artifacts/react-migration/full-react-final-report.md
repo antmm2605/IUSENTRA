@@ -616,3 +616,8 @@ frontend leggero, build Vite, pytest mirati, packaging/readiness, Docker locale
 no-cache 2.236.3 e Playwright/CDP autenticato sulle route richieste. Restano
 aperti solo limiti strumentali documentati in `pytest-open-issues.md`:
 contratto storico `/sigp/` 308 e falsi rossi da script/browser in-app.
+
+Deploy Hetzner CPX42 eseguito sul branch `Codex/legal-electronic-filing-kIxcV`
+con runtime `2.236.3`: repository server aggiornato, app/scheduler/OCR/Redis,
+Caddy e Ollama healthy/running, `/api/pronto` pubblico 200 e container app con
+`pct.__version__ == 2.236.3`.

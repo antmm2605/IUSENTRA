@@ -13,7 +13,9 @@ Audit anti-mascheramento: nessuna suite autenticata viene dichiarata completa
 senza profili smoke; nessuna PEC, push, upload o modifica ruolo viene eseguita
 nel post-deploy read-only. Le failure critiche restano `FAIL` e causano exit
 non-zero. Docker locale 2.234.0 conferma immagine, runtime e readiness senza
-committare dati runtime rigenerati dai container.
+committare dati runtime rigenerati dai container. Il deploy Hetzner del commit
+`85d7617549c0695ffd3f41447d0b2c86524766aa` ha confermato la stessa versione
+runtime e gli stessi esiti smoke read-only in produzione.
 
 Aggiornamento 2026-05-14T09:30:00+02:00: fase react 12 `fasereact`
 2.233.0. L'audit documentale ha chiuso i vuoti di handover: indice ufficiale,

@@ -15,9 +15,11 @@ Verifica fase 13: py_compile, help, inventory compatibile fase 10, test unitari
 7/7, gate documentali, OpenAPI/provider, npm test/typecheck/build, packaging,
 readiness e Docker locale no-cache verdi. Il run post-deploy locale su
 `http://127.0.0.1:8080` ha prodotto PASS=76, FAIL=0, SKIP=1, BLOCKED=6,
-WARNING=0 con runtime e label immagine `2.234.0`; il run pubblico pre-bump su
-`https://app.iusentra.it` ha prodotto lo stesso esito. I blocchi riguardano
-solo profili smoke/ID documento non configurati.
+WARNING=0 con runtime e label immagine `2.234.0`; il run pubblico post-deploy su
+`https://app.iusentra.it` al commit
+`85d7617549c0695ffd3f41447d0b2c86524766aa` ha prodotto lo stesso esito, con
+`/api/pronto` 200 `versione=2.234.0` e container Hetzner healthy/up. I blocchi
+riguardano solo profili smoke/ID documento non configurati.
 
 Aggiornamento 2026-05-14T09:30:00+02:00: fase react 12 `fasereact`
 2.233.0. La documentazione finale App V2 e' ora indicizzata in

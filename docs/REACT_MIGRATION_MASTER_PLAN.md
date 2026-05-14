@@ -17,12 +17,14 @@ autenticati privi di env dedicate invece di dichiararli verdi. Aggiunti
 README, piano test, CI/CD gates, rollout, troubleshooting e workflow manuale
 `smoke-staging.yml` con report JSON sanitizzato.
 
-Verifiche fase 13 locali: py_compile, test unitari smoke, help/inventory,
+Verifiche fase 13 concluse: py_compile, test unitari smoke, help/inventory,
 generatori App V2, validator documentali, OpenAPI/provider, npm
 test/typecheck/build, packaging/readiness, Docker locale no-cache e smoke
-post-deploy read-only risultano verdi. Restano da registrare commit/push
-gemelli, igiene repository e deploy Hetzner sul commit finale prima della
-chiusura della fase.
+post-deploy read-only risultano verdi. Deploy Hetzner CPX42 eseguito senza
+aggiornare il cron backup sul commit
+`85d7617549c0695ffd3f41447d0b2c86524766aa`: container healthy/up, runtime
+`2.234.0`, `/api/pronto` pubblico 200 e smoke produzione post-deploy read-only
+PASS=76, FAIL=0, SKIP=1, BLOCKED=6.
 
 ## Stato fase react 12 - 2026-05-14 - Documentazione, handover e release playbook 2.233.0
 

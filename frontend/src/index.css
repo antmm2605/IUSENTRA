@@ -1115,3 +1115,45 @@ body.react-shell-page #root{
     @apply bg-background text-foreground;}
   html {
     @apply font-sans;}}
+
+.iu-page-heading h1,
+.iu-money strong {
+  letter-spacing: 0;
+}
+
+.iu-row strong,
+.iu-compact-row strong,
+.iu-agenda-row strong,
+.iu-op strong,
+.iu-search-result__topline strong {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.iu-row span,
+.iu-compact-row span,
+.iu-agenda-row span,
+.iu-op span,
+.iu-ag-event small,
+.iu-ag-month-event strong {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.iu-op a {
+  min-height: 44px;
+  height: auto;
+  padding: 0 12px;
+}
+
+.iu-mobile a {
+  min-height: 44px;
+  height: auto;
+  white-space: normal;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+  font-size: 10px;
+}

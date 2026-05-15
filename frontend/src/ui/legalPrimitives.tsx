@@ -5,6 +5,7 @@ import type {
   SelectHTMLAttributes,
   TextareaHTMLAttributes,
 } from 'react'
+import { useEffect, useId, useRef } from 'react'
 import { AlertTriangle, CheckCircle2, Filter, Search, X } from 'lucide-react'
 import {
   IusActionCard,
@@ -23,6 +24,65 @@ export type CommonProps = {
 
 function cx(...parts: Array<string | false | null | undefined>): string {
   return parts.filter(Boolean).join(' ')
+}
+
+function getFocusableElements(root: HTMLElement | null): HTMLElement[] {
+  if (!root) return []
+  return Array.from(
+    root.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    ),
+  ).filter((node) => !node.hasAttribute('disabled') && node.getAttribute('aria-hidden') !== 'true')
+}
+
+function useManagedDialog<TElement extends HTMLElement>(open: boolean, onClose: () => void) {
+  const panelRef = useRef<TElement | null>(null)
+  const previousFocusRef = useRef<HTMLElement | null>(null)
+
+  useEffect(() => {
+    if (!open) return undefined
+    previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    const originalOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    const focusTimer = window.setTimeout(() => {
+      const [first] = getFocusableElements(panelRef.current)
+      first?.focus()
+    }, 0)
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        onClose()
+        return
+      }
+      if (event.key !== 'Tab') return
+      const focusable = getFocusableElements(panelRef.current)
+      if (!focusable.length) {
+        event.preventDefault()
+        return
+      }
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.clearTimeout(focusTimer)
+      document.removeEventListener('keydown', handleKeyDown)
+      document.body.style.overflow = originalOverflow
+      previousFocusRef.current?.focus()
+    }
+  }, [onClose, open])
+
+  return panelRef
 }
 
 export function Card({ children, className = '' }: CommonProps) {
@@ -150,12 +210,16 @@ export function Drawer({ title, open, children, onClose }: {
   children: ReactNode
   onClose: () => void
 }) {
+  const titleId = useId()
+  const panelRef = useManagedDialog<HTMLDivElement>(open, onClose)
   if (!open) return null
   return (
-    <div className="iu-drawer" role="dialog" aria-modal="true" aria-labelledby="iu-drawer-title">
-      <div className="iu-drawer__panel">
+    <div className="iu-drawer" role="dialog" aria-modal="true" aria-labelledby={titleId} onMouseDown={(event) => {
+      if (event.target === event.currentTarget) onClose()
+    }}>
+      <div className="iu-drawer__panel" ref={panelRef}>
         <header>
-          <h2 id="iu-drawer-title">{title}</h2>
+          <h2 id={titleId}>{title}</h2>
           <IconButton label="Chiudi" onClick={onClose}><X size={18} /></IconButton>
         </header>
         <div>{children}</div>
@@ -170,12 +234,16 @@ export function Modal({ title, open, children, onClose }: {
   children: ReactNode
   onClose: () => void
 }) {
+  const titleId = useId()
+  const panelRef = useManagedDialog<HTMLElement>(open, onClose)
   if (!open) return null
   return (
-    <div className="iu-modal" role="dialog" aria-modal="true" aria-labelledby="iu-modal-title">
-      <section className="iu-modal__panel">
+    <div className="iu-modal" role="dialog" aria-modal="true" aria-labelledby={titleId} onMouseDown={(event) => {
+      if (event.target === event.currentTarget) onClose()
+    }}>
+      <section className="iu-modal__panel" ref={panelRef}>
         <header>
-          <h2 id="iu-modal-title">{title}</h2>
+          <h2 id={titleId}>{title}</h2>
           <IconButton label="Chiudi" onClick={onClose}><X size={18} /></IconButton>
         </header>
         {children}

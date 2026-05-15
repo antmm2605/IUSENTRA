@@ -5888,6 +5888,42 @@ def agenda():
     return jsonify(payload)
 
 
+@api_v1_react.get("/agenda/importa")
+@_richiedi_auth
+def agenda_importa_defaults():
+    return jsonify(
+        {
+            "ok": True,
+            "source": "api",
+            "modalita": [
+                {"id": "file", "label": "File ICS"},
+                {"id": "url", "label": "URL calendario"},
+            ],
+            "sorgenti": [
+                {"id": "generico", "label": "Calendario esterno"},
+                {"id": "google", "label": "Google Calendar"},
+                {"id": "outlook", "label": "Outlook / Microsoft 365"},
+                {"id": "apple", "label": "Apple Calendar"},
+                {"id": "webcal", "label": "Webcal"},
+            ],
+            "tipi": [
+                {"id": "UDIENZA", "label": "Udienza"},
+                {"id": "CONSULTAZIONE", "label": "Consultazione"},
+                {"id": "RIUNIONE", "label": "Riunione"},
+                {"id": "DEPOSITO", "label": "Deposito"},
+                {"id": "SCADENZA", "label": "Scadenza"},
+                {"id": "ALTRO", "label": "Altro"},
+            ],
+            "promemoria": [
+                {"id": "15", "label": "15 minuti prima"},
+                {"id": "30", "label": "30 minuti prima"},
+                {"id": "60", "label": "1 ora prima"},
+                {"id": "1440", "label": "1 giorno prima"},
+            ],
+        }
+    )
+
+
 @api_v1_react.get("/agenda/nuovo/defaults")
 @_richiedi_auth
 def agenda_nuovo_defaults():

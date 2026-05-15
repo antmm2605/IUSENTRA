@@ -2107,3 +2107,13 @@ python -m pytest tests/test_react_shell.py tests/test_email_client.py tests/test
 - Lo scadenziario React traduce la fonte tecnica in `dati dello studio`, rende operative le card filtro, usa `Apri dettaglio` verso il dettaglio React e mantiene le azioni completa/elimina via POST JSON.
 - La scheda `Impostazioni -> AI locale` rilancia lo stato all'apertura del tab e prova il controllo Local Signer quando configurato.
 - Verifiche registrate: py_compile backend, contratti React, route gate, typecheck, test frontend leggero, build Vite, pytest mirati profilo/agenda/email/scadenziario/telematico, packaging/readiness, Docker locale no-cache 2.236.3 e smoke Playwright/CDP autenticato sui percorsi segnalati.
+
+## Aggiornamento 2026-05-15: audit UI/UX severo 2.236.4
+
+- Hardening globale UI applicato dopo revisione severa di card, testi, bottoni, finestre, layout, colori, tabelle, responsive e accessibilita' di base.
+- Il pannello amministrativo studi non esegue piu' riconciliazioni o scansioni archivio durante il rendering: dettaglio studio e API spazio archivio usano lettura canonica leggera, con conteggio lazy time-boxed.
+- `/agenda/importa` non contiene piu' form POST HTML nella superficie React: submit JSON con stato caricamento, errore e successo, mantenendo il flusso di anteprima esistente.
+- Dialog e drawer condivisi hanno gestione focus, Escape, Tab trap, ripristino focus e blocco scroll; bottoni icona e menu principali hanno label accessibili e feedback visibile.
+- Tabelle IUSENTRA degradano a card mobile con `data-label`; testi lunghi, nomi utente lunghi, bottoni e action row usano wrapping/clamp per evitare tagli a 125%, 150% e mobile landscape.
+- Ripuliti testi visibili residui in AI locale, assistente Lex, admin studio e compensi: niente termini tecnici rivolti all'avvocato, date admin con formato italiano e messaggi errore professionali.
+- Verifica browser Chrome CDP autenticata su 46 route x desktop/mobile: 92/92 controlli OK, zero redirect login, zero form POST HTML nel perimetro React verificato, zero testo tecnico vietato, zero overflow orizzontale. Report: `artifacts/react-migration/visual-2.236.4/visual-load-audit.md`.

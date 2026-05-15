@@ -6,7 +6,8 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const host = process.env.IUSENTRA_AUDIT_HOST || 'http://localhost:8080'
 const cdpHost = process.env.IUSENTRA_CDP_HOST || 'http://127.0.0.1:9224'
 const cookie = process.env.IUSENTRA_SESSION_COOKIE || ''
-const outDir = resolve(root, 'artifacts/react-migration/visual-2.213.0')
+const auditLabel = process.env.IUSENTRA_AUDIT_LABEL || '2.213.0'
+const outDir = resolve(root, `artifacts/react-migration/visual-${auditLabel}`)
 mkdirSync(outDir, { recursive: true })
 
 const allRoutes = [
@@ -388,7 +389,7 @@ const report = {
 writeFileSync(resolve(outDir, 'visual-load-audit.json'), JSON.stringify(report, null, 2))
 
 const markdown = [
-  '# Visual load audit 2.213.0',
+  `# Visual load audit ${auditLabel}`,
   '',
   `Host: ${host}`,
   `Route verificate: ${routes.length}`,

@@ -161,8 +161,8 @@
       </nav>
     </div>
     <div class="admin-topbar-actions">
-      <button class="btn btn-sm btn-outline-secondary" id="themeToggle" title="Cambia tema">
-        <i class="bi bi-moon-stars-fill" id="themeIcon"></i>
+      <button class="btn btn-sm btn-outline-secondary" id="themeToggle" title="Cambia tema" aria-label="Cambia tema">
+        <i class="bi bi-moon-stars-fill" id="themeIcon" aria-hidden="true"></i>
       </button>
       <a href="{{ url_for('dashboard') if session.get('superadmin_user_id') else url_for('admin.dashboard') }}"
          class="btn btn-sm btn-outline-primary"
@@ -206,6 +206,9 @@
   });
   const curTheme = document.documentElement.getAttribute('data-bs-theme') || 'light';
   icon.className = curTheme === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-stars-fill';
+  document.querySelectorAll('i.bi:not([aria-hidden])').forEach((item) => {
+    item.setAttribute('aria-hidden', 'true');
+  });
 
   const body = document.body;
   const sidebarToggle = document.getElementById('adminSidebarToggle');

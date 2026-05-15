@@ -1463,12 +1463,12 @@ class GestioneTenant:
         )
         return payload
 
-    def storage_manifest(self, slug: str) -> Dict[str, Any]:
+    def storage_manifest(self, slug: str, *, reconcile_aliases: bool = True) -> Dict[str, Any]:
         studio = self.get(slug)
         if not studio:
             return {}
         db = studio.database
-        paths = self.percorsi_dati(slug)
+        paths = self.percorsi_dati(slug, reconcile_aliases=reconcile_aliases)
         info = DB_MODE_INFO.get(db.normalized_mode, {})
         activation_state = "active"
         if db.normalized_mode == DbMode.POSTGRESQL:

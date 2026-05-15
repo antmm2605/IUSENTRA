@@ -621,3 +621,22 @@ Deploy Hetzner CPX42 eseguito sul branch `Codex/legal-electronic-filing-kIxcV`
 con runtime `2.236.3`: repository server aggiornato, app/scheduler/OCR/Redis,
 Caddy e Ollama healthy/running, `/api/pronto` pubblico 200 e container app con
 `pct.__version__ == 2.236.3`.
+
+## Audit UI/UX severo 2.236.4
+
+Completato hardening visivo e di usabilita' su superfici React e pannelli
+admin collegati: testi italiani professionali, date admin in formato italiano,
+bottoni icona etichettati, focus trap per drawer/modali, tabelle mobile a card,
+wrapping per testi lunghi e correzioni su stati loading/error/success.
+
+Il blocco piu' severo era prestazionale: il dettaglio admin studio poteva
+mandare in timeout il worker per riconciliazione archivio durante una lettura.
+Ora il rendering usa percorsi canonici senza reconcile, il conteggio spazio e'
+lazy/time-boxed e la configurazione database resta consultabile senza scansioni
+pesanti.
+
+Gate locali: py_compile, node --check, typecheck, contratti React, route gate,
+full React contract, build Vite, pytest mirati admin/storage/agenda, packaging,
+Docker locale no-cache e Chrome CDP autenticato. Report visuale:
+`artifacts/react-migration/visual-2.236.4/visual-load-audit.md`, 46 route,
+92 controlli desktop/mobile, 0 failure.

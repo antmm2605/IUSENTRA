@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.236.4 - 2026-05-15
+
+- Rafforzata la UI React condivisa: modali e pannelli laterali gestiscono focus, Esc, sfondo e z-index senza coprire contenuti o perdere la navigazione da tastiera.
+- Migliorata la resa responsive di tabelle, card, bottoni e navigazione mobile: testi lunghi vanno a capo, stati vuoti occupano meno spazio e le tabelle diventano schede leggibili su mobile.
+- Ripuliti testi visibili tecnici in Impostazioni AI, Lex e superfici amministrative, con date in formato italiano e messaggi operativi per lo studio legale.
+- Reso il dettaglio studio piu' reattivo: il conteggio dello spazio archivio viene calcolato in modo asincrono e con limite temporale, evitando blocchi della pagina.
+- Convertito `/agenda/importa` a submit gestito da React con stati caricamento, successo ed errore visibili e aggiunto il contratto GET JSON dedicato.
+- Aggiornato il gate full React per riconoscere gli alias telematici che usano l'endpoint JSON condiviso `/api/v1/ui/telematico/surface/<surface>`.
+
 ## 2.236.3 - 2026-05-14
 
 - Promossa `/profilo` alla shell React con dati profilo reali, cambio password e gestione 2FA via submit JSON tracciato.

@@ -1660,7 +1660,7 @@
         });
       }
       if (!response.body) {
-        throw new Error('Il browser non supporta lo streaming della risposta.');
+        throw new Error('La risposta progressiva non e supportata da questa sessione.');
       }
 
       var reader = response.body.getReader();
@@ -1757,8 +1757,8 @@
 
   function sendViaCompanion(text) {
     if (!browserBridge() || !bridgeConfig) {
-      setBubbleContent(state.currentBubble, 'Il bridge AI locale non e\' disponibile su questo browser.');
-      finalizeRequest('Bridge AI locale non disponibile.');
+      setBubbleContent(state.currentBubble, 'AI locale non disponibile in questa sessione.');
+      finalizeRequest('AI locale non disponibile.');
       return;
     }
 
@@ -1983,8 +1983,8 @@
 
   function checkRemoteStatus() {
     if (!browserBridge() || !bridgeConfig) {
-      updateBadge(false, 'Bridge assente');
-      setStatus('Bridge AI locale non disponibile sul browser corrente.');
+      updateBadge(false, 'AI locale assente');
+      setStatus('AI locale non disponibile in questa sessione.');
       return;
     }
 
@@ -2010,7 +2010,7 @@
           })
           .catch(function () {
             updateBadge(false, 'Servizio locale offline');
-            setStatus('Il browser non riesce a raggiungere il servizio locale di questo dispositivo.');
+            setStatus('Il servizio locale non risponde su questo dispositivo.');
           });
       });
   }
@@ -2319,7 +2319,7 @@
         window.setTimeout(function () {
           state.suppressFabClick = false;
         }, 350);
-        setStatus('Icona Lex spostata sul browser corrente.');
+        setStatus('Icona Lex spostata.');
       } else {
         saveLayout(Object.assign({
           left: parseFloat(widget.style.left || '0'),
@@ -2331,7 +2331,7 @@
             state.suppressFabClick = false;
           }, 350);
         }
-        setStatus('Posizione aggiornata sul browser corrente.');
+        setStatus('Posizione aggiornata.');
       }
     }
     if (dragKind !== 'fab') {
@@ -2465,7 +2465,7 @@
         left: parseFloat(widget.style.left || '0') || undefined,
         top: parseFloat(widget.style.top || '0') || undefined,
       }, currentFabPositionFromWidget()));
-      setStatus('Dimensioni di Lex aggiornate sul browser corrente.');
+      setStatus('Dimensioni di Lex aggiornate.');
     }
     window.removeEventListener('pointermove', handleResizeMove);
     window.removeEventListener('pointerup', endResize);
@@ -2676,7 +2676,7 @@
       micButton.addEventListener('click', function () {
         var voice = voiceHelper();
         if (!voice || !voice.supportsRecognition || !voice.supportsRecognition()) {
-          setStatus('Dettatura vocale non disponibile su questo browser.');
+          setStatus('Dettatura vocale non disponibile in questa sessione.');
           return;
         }
         if (state.listening) {

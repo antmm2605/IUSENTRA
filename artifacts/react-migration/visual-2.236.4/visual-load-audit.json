@@ -1,0 +1,5453 @@
+{
+  "startedAt": "2026-05-14T23:59:49.870Z",
+  "finishedAt": "2026-05-15T00:04:52.532Z",
+  "host": "http://127.0.0.1:8080",
+  "cdpHost": "http://127.0.0.1:9225",
+  "browser": "Chrome CDP",
+  "reuseTab": false,
+  "routeCount": 46,
+  "totalChecks": 92,
+  "failures": [],
+  "results": [
+    {
+      "routeName": "Panoramica",
+      "route": "/",
+      "viewport": "desktop",
+      "elapsedMs": 677,
+      "url": "http://127.0.0.1:8080/",
+      "title": "IUSENTRA",
+      "h1": "Panoramica",
+      "h2": "",
+      "textLength": 2034,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 52,
+      "cards": 57,
+      "links": [
+        {
+          "text": "Azioni urgenti\n0\nVai alle azioni",
+          "href": "/workspace-intelligente"
+        },
+        {
+          "text": "PEC da leggere\n0\nApri PEC",
+          "href": "/email/"
+        },
+        {
+          "text": "Messaggi clienti\n0\nVai ai messaggi",
+          "href": "/messaggi"
+        },
+        {
+          "text": "Preventivi in scadenza\n0\nApri preventivi",
+          "href": "/preventivi"
+        },
+        {
+          "text": "Conferimenti mancanti\n0\nCompleta ora",
+          "href": "/preventivi"
+        },
+        {
+          "text": "Vai alla casella PEC ->",
+          "href": "/email/"
+        },
+        {
+          "text": "Vai alle email ordinarie ->",
+          "href": "/email-ordinaria/"
+        },
+        {
+          "text": "Vai ai messaggi ->",
+          "href": "/messaggi"
+        },
+        {
+          "text": "Vai all'agenda completa ->",
+          "href": "/agenda"
+        },
+        {
+          "text": "Vai alle anagrafiche ->",
+          "href": "/clienti"
+        },
+        {
+          "text": "Vai ->",
+          "href": "/preventivi"
+        },
+        {
+          "text": "Vai ->",
+          "href": "/fascicoli"
+        },
+        {
+          "text": "Vai a Scadenze e Termini ->",
+          "href": "/scadenziario"
+        },
+        {
+          "text": "Vai al controllo economico ->",
+          "href": "/fatturazione"
+        },
+        {
+          "text": "Apri Lex AI ->",
+          "href": "#lex"
+        },
+        {
+          "text": "Apri tutti i fascicoli ->",
+          "href": "/fascicoli"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 1860,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "desktop-load-panoramica.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Panoramica",
+      "route": "/",
+      "viewport": "mobile",
+      "elapsedMs": 3038,
+      "url": "http://127.0.0.1:8080/",
+      "title": "IUSENTRA",
+      "h1": "Panoramica",
+      "h2": "",
+      "textLength": 1633,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 52,
+      "cards": 57,
+      "links": [
+        {
+          "text": "Azioni urgenti\n0\nVai alle azioni",
+          "href": "/workspace-intelligente"
+        },
+        {
+          "text": "PEC da leggere\n0\nApri PEC",
+          "href": "/email/"
+        },
+        {
+          "text": "Messaggi clienti\n0\nVai ai messaggi",
+          "href": "/messaggi"
+        },
+        {
+          "text": "Preventivi in scadenza\n0\nApri preventivi",
+          "href": "/preventivi"
+        },
+        {
+          "text": "Conferimenti mancanti\n0\nCompleta ora",
+          "href": "/preventivi"
+        },
+        {
+          "text": "Vai alla casella PEC ->",
+          "href": "/email/"
+        },
+        {
+          "text": "Vai alle email ordinarie ->",
+          "href": "/email-ordinaria/"
+        },
+        {
+          "text": "Vai ai messaggi ->",
+          "href": "/messaggi"
+        },
+        {
+          "text": "Vai all'agenda completa ->",
+          "href": "/agenda"
+        },
+        {
+          "text": "Vai alle anagrafiche ->",
+          "href": "/clienti"
+        },
+        {
+          "text": "Vai ->",
+          "href": "/preventivi"
+        },
+        {
+          "text": "Vai ->",
+          "href": "/fascicoli"
+        },
+        {
+          "text": "Vai a Scadenze e Termini ->",
+          "href": "/scadenziario"
+        },
+        {
+          "text": "Vai al controllo economico ->",
+          "href": "/fatturazione"
+        },
+        {
+          "text": "Apri Lex AI ->",
+          "href": "#lex"
+        },
+        {
+          "text": "Apri tutti i fascicoli ->",
+          "href": "/fascicoli"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 2871,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-panoramica.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Regia Operativa",
+      "route": "/workspace-intelligente",
+      "viewport": "desktop",
+      "elapsedMs": 2811,
+      "url": "http://127.0.0.1:8080/workspace-intelligente",
+      "title": "IUSENTRA",
+      "h1": "Regia Operativa",
+      "h2": "",
+      "textLength": 960,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 45,
+      "cards": 31,
+      "links": [
+        {
+          "text": "Sincronizzazione dati...",
+          "href": "/workspace-intelligente"
+        },
+        {
+          "text": "Azioni urgenti\n0\nVai alle azioni",
+          "href": "/workspace-intelligente"
+        },
+        {
+          "text": "PEC da leggere\n0\nApri PEC",
+          "href": "/email/"
+        },
+        {
+          "text": "Messaggi clienti\n0\nVai ai messaggi",
+          "href": "/messaggi"
+        },
+        {
+          "text": "Vai alla regia completa ->",
+          "href": "/workspace-intelligente"
+        },
+        {
+          "text": "Apri agenda ->",
+          "href": "/agenda"
+        },
+        {
+          "text": "Vai ai fascicoli ->",
+          "href": "/fascicoli"
+        },
+        {
+          "text": "Vai ai messaggi ->",
+          "href": "/messaggi"
+        },
+        {
+          "text": "Apri Lex AI ->",
+          "href": "#lex"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 980,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "desktop-load-regia-operativa.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Regia Operativa",
+      "route": "/workspace-intelligente",
+      "viewport": "mobile",
+      "elapsedMs": 699,
+      "url": "http://127.0.0.1:8080/workspace-intelligente",
+      "title": "IUSENTRA",
+      "h1": "Regia Operativa",
+      "h2": "",
+      "textLength": 687,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 45,
+      "cards": 31,
+      "links": [
+        {
+          "text": "Sincronizzazione dati...",
+          "href": "/workspace-intelligente"
+        },
+        {
+          "text": "Azioni urgenti\n0\nVai alle azioni",
+          "href": "/workspace-intelligente"
+        },
+        {
+          "text": "PEC da leggere\n0\nApri PEC",
+          "href": "/email/"
+        },
+        {
+          "text": "Messaggi clienti\n0\nVai ai messaggi",
+          "href": "/messaggi"
+        },
+        {
+          "text": "Vai alla regia completa ->",
+          "href": "/workspace-intelligente"
+        },
+        {
+          "text": "Apri agenda ->",
+          "href": "/agenda"
+        },
+        {
+          "text": "Vai ai fascicoli ->",
+          "href": "/fascicoli"
+        },
+        {
+          "text": "Vai ai messaggi ->",
+          "href": "/messaggi"
+        },
+        {
+          "text": "Apri Lex AI ->",
+          "href": "#lex"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 1302,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-regia-operativa.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Ricerca Studio",
+      "route": "/global-search",
+      "viewport": "desktop",
+      "elapsedMs": 1354,
+      "url": "http://127.0.0.1:8080/global-search",
+      "title": "IUSENTRA",
+      "h1": "Trova tutto ciò che serve allo studio",
+      "h2": "Inizia da una parola chiave",
+      "textLength": 1268,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 51,
+      "cards": 4,
+      "links": [
+        {
+          "text": "Chiedi a Lex",
+          "href": "#lex"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 980,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "desktop-load-ricerca-studio.png",
+      "warnings": [
+        "collegamenti_pagina_da_arricchire"
+      ],
+      "failures": []
+    },
+    {
+      "routeName": "Ricerca Studio",
+      "route": "/global-search",
+      "viewport": "mobile",
+      "elapsedMs": 1178,
+      "url": "http://127.0.0.1:8080/global-search",
+      "title": "IUSENTRA",
+      "h1": "Trova tutto ciò che serve allo studio",
+      "h2": "Inizia da una parola chiave",
+      "textLength": 1013,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 51,
+      "cards": 4,
+      "links": [
+        {
+          "text": "Chiedi a Lex",
+          "href": "#lex"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 1426,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-ricerca-studio.png",
+      "warnings": [
+        "collegamenti_pagina_da_arricchire"
+      ],
+      "failures": []
+    },
+    {
+      "routeName": "Agenda / Calendario",
+      "route": "/agenda",
+      "viewport": "desktop",
+      "elapsedMs": 1061,
+      "url": "http://127.0.0.1:8080/agenda",
+      "title": "IUSENTRA",
+      "h1": "Agenda",
+      "h2": "",
+      "textLength": 2367,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 231,
+      "cards": 14,
+      "links": [
+        {
+          "text": "Regia",
+          "href": "/workspace-intelligente"
+        },
+        {
+          "text": "Calendari",
+          "href": "/impostazioni/calendario"
+        },
+        {
+          "text": "Nuovo appuntamento",
+          "href": "/agenda/nuovo"
+        },
+        {
+          "text": "",
+          "href": "/agenda/export.ics"
+        },
+        {
+          "text": "",
+          "href": "/agenda/importa"
+        },
+        {
+          "text": "Preferenze",
+          "href": "/impostazioni/calendario"
+        },
+        {
+          "text": "Nuovo",
+          "href": "/agenda/nuovo"
+        },
+        {
+          "text": "Calendari",
+          "href": "/impostazioni/calendario"
+        },
+        {
+          "text": "Configura calendari ->",
+          "href": "/impostazioni/calendario"
+        },
+        {
+          "text": "Promemoria cliente",
+          "href": "/messaggi/nuovo?from=agenda&oggetto=Promemoria+agenda"
+        },
+        {
+          "text": "Genera scadenza collegata",
+          "href": "/scadenziario/nuova"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 1776,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "desktop-load-agenda-calendario.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Agenda / Calendario",
+      "route": "/agenda",
+      "viewport": "mobile",
+      "elapsedMs": 1064,
+      "url": "http://127.0.0.1:8080/agenda",
+      "title": "IUSENTRA",
+      "h1": "Agenda",
+      "h2": "",
+      "textLength": 1974,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 231,
+      "cards": 14,
+      "links": [
+        {
+          "text": "Regia",
+          "href": "/workspace-intelligente"
+        },
+        {
+          "text": "Calendari",
+          "href": "/impostazioni/calendario"
+        },
+        {
+          "text": "Nuovo appuntamento",
+          "href": "/agenda/nuovo"
+        },
+        {
+          "text": "",
+          "href": "/agenda/export.ics"
+        },
+        {
+          "text": "",
+          "href": "/agenda/importa"
+        },
+        {
+          "text": "Preferenze",
+          "href": "/impostazioni/calendario"
+        },
+        {
+          "text": "Nuovo",
+          "href": "/agenda/nuovo"
+        },
+        {
+          "text": "Calendari",
+          "href": "/impostazioni/calendario"
+        },
+        {
+          "text": "Configura calendari ->",
+          "href": "/impostazioni/calendario"
+        },
+        {
+          "text": "Promemoria cliente",
+          "href": "/messaggi/nuovo?from=agenda&oggetto=Promemoria+agenda"
+        },
+        {
+          "text": "Genera scadenza collegata",
+          "href": "/scadenziario/nuova"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 2945,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-agenda-calendario.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Nuovo Appuntamento",
+      "route": "/agenda/nuovo",
+      "viewport": "desktop",
+      "elapsedMs": 756,
+      "url": "http://127.0.0.1:8080/agenda/nuovo",
+      "title": "IUSENTRA",
+      "h1": "Nuovo appuntamento",
+      "h2": "Udienza",
+      "textLength": 2420,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 60,
+      "cards": 8,
+      "links": [
+        {
+          "text": "Agenda",
+          "href": "/agenda"
+        },
+        {
+          "text": "Sincronizza calendari",
+          "href": "/impostazioni/calendario"
+        },
+        {
+          "text": "Annulla",
+          "href": "/agenda"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 1578,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "desktop-load-nuovo-appuntamento.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Nuovo Appuntamento",
+      "route": "/agenda/nuovo",
+      "viewport": "mobile",
+      "elapsedMs": 1333,
+      "url": "http://127.0.0.1:8080/agenda/nuovo",
+      "title": "IUSENTRA",
+      "h1": "Nuovo appuntamento",
+      "h2": "Udienza",
+      "textLength": 2132,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 60,
+      "cards": 8,
+      "links": [
+        {
+          "text": "Agenda",
+          "href": "/agenda"
+        },
+        {
+          "text": "Sincronizza calendari",
+          "href": "/impostazioni/calendario"
+        },
+        {
+          "text": "Annulla",
+          "href": "/agenda"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 3879,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-nuovo-appuntamento.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Timesheet",
+      "route": "/timesheet",
+      "viewport": "desktop",
+      "elapsedMs": 1294,
+      "url": "http://127.0.0.1:8080/timesheet",
+      "title": "IUSENTRA",
+      "h1": "Timesheet",
+      "h2": "Registra tempo",
+      "textLength": 2883,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 44,
+      "cards": 7,
+      "links": [
+        {
+          "text": "Agenda",
+          "href": "/agenda"
+        },
+        {
+          "text": "Produttivita",
+          "href": "/statistiche/?view=produttivita"
+        },
+        {
+          "text": "Clienti",
+          "href": "/clienti"
+        },
+        {
+          "text": "Fascicoli",
+          "href": "/fascicoli"
+        },
+        {
+          "text": "Azzera",
+          "href": "/timesheet"
+        },
+        {
+          "text": "Apri fatturazione",
+          "href": "/fatturazione/"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 1723,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "desktop-load-timesheet.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Timesheet",
+      "route": "/timesheet",
+      "viewport": "mobile",
+      "elapsedMs": 1790,
+      "url": "http://127.0.0.1:8080/timesheet",
+      "title": "IUSENTRA",
+      "h1": "Timesheet",
+      "h2": "Registra tempo",
+      "textLength": 2595,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 44,
+      "cards": 7,
+      "links": [
+        {
+          "text": "Agenda",
+          "href": "/agenda"
+        },
+        {
+          "text": "Produttivita",
+          "href": "/statistiche/?view=produttivita"
+        },
+        {
+          "text": "Clienti",
+          "href": "/clienti"
+        },
+        {
+          "text": "Fascicoli",
+          "href": "/fascicoli"
+        },
+        {
+          "text": "Azzera",
+          "href": "/timesheet"
+        },
+        {
+          "text": "Apri fatturazione",
+          "href": "/fatturazione/"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 3720,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-timesheet.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Fascicoli",
+      "route": "/fascicoli",
+      "viewport": "desktop",
+      "elapsedMs": 775,
+      "url": "http://127.0.0.1:8080/fascicoli",
+      "title": "IUSENTRA",
+      "h1": "Fascicoli",
+      "h2": "",
+      "textLength": 1832,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 51,
+      "cards": 14,
+      "links": [
+        {
+          "text": "Esporta",
+          "href": "/fascicoli/esporta"
+        },
+        {
+          "text": "Archivio",
+          "href": "/fascicoli/archivio"
+        },
+        {
+          "text": "Nuovo fascicolo",
+          "href": "/fascicoli/nuovo"
+        },
+        {
+          "text": "Nuovo fascicolo",
+          "href": "/fascicoli/nuovo"
+        },
+        {
+          "text": "Nuova scadenza",
+          "href": "/scadenziario/nuova"
+        },
+        {
+          "text": "Redazione atti",
+          "href": "/redazione-atti"
+        },
+        {
+          "text": "Archivio",
+          "href": "/fascicoli/archivio"
+        },
+        {
+          "text": "PolisWeb / PST",
+          "href": "/polisWeb"
+        },
+        {
+          "text": "PDP Penale",
+          "href": "/pdp"
+        },
+        {
+          "text": "PAT Amministrativo",
+          "href": "/pat"
+        },
+        {
+          "text": "PTT Tributario",
+          "href": "/sigit"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 1428,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "desktop-load-fascicoli.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Fascicoli",
+      "route": "/fascicoli",
+      "viewport": "mobile",
+      "elapsedMs": 1310,
+      "url": "http://127.0.0.1:8080/fascicoli",
+      "title": "IUSENTRA",
+      "h1": "Fascicoli",
+      "h2": "",
+      "textLength": 1325,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 51,
+      "cards": 14,
+      "links": [
+        {
+          "text": "Esporta",
+          "href": "/fascicoli/esporta"
+        },
+        {
+          "text": "Archivio",
+          "href": "/fascicoli/archivio"
+        },
+        {
+          "text": "Nuovo fascicolo",
+          "href": "/fascicoli/nuovo"
+        },
+        {
+          "text": "Nuovo fascicolo",
+          "href": "/fascicoli/nuovo"
+        },
+        {
+          "text": "Nuova scadenza",
+          "href": "/scadenziario/nuova"
+        },
+        {
+          "text": "Redazione atti",
+          "href": "/redazione-atti"
+        },
+        {
+          "text": "Archivio",
+          "href": "/fascicoli/archivio"
+        },
+        {
+          "text": "PolisWeb / PST",
+          "href": "/polisWeb"
+        },
+        {
+          "text": "PDP Penale",
+          "href": "/pdp"
+        },
+        {
+          "text": "PAT Amministrativo",
+          "href": "/pat"
+        },
+        {
+          "text": "PTT Tributario",
+          "href": "/sigit"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 2383,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-fascicoli.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Nuovo Fascicolo",
+      "route": "/fascicoli/nuovo",
+      "viewport": "desktop",
+      "elapsedMs": 1420,
+      "url": "http://127.0.0.1:8080/fascicoli/nuovo",
+      "title": "IUSENTRA",
+      "h1": "Apertura nuovo fascicolo",
+      "h2": "",
+      "textLength": 2666,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 41,
+      "cards": 40,
+      "links": [
+        {
+          "text": "Fascicoli",
+          "href": "/fascicoli"
+        },
+        {
+          "text": "Nuovo cliente",
+          "href": "/clienti/nuovo"
+        },
+        {
+          "text": "Nuovo soggetto",
+          "href": "/soggetti/nuovo"
+        },
+        {
+          "text": "Annulla",
+          "href": "/fascicoli"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 2673,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "desktop-load-nuovo-fascicolo.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Nuovo Fascicolo",
+      "route": "/fascicoli/nuovo",
+      "viewport": "mobile",
+      "elapsedMs": 1021,
+      "url": "http://127.0.0.1:8080/fascicoli/nuovo",
+      "title": "IUSENTRA",
+      "h1": "Apertura nuovo fascicolo",
+      "h2": "",
+      "textLength": 2375,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 41,
+      "cards": 40,
+      "links": [
+        {
+          "text": "Fascicoli",
+          "href": "/fascicoli"
+        },
+        {
+          "text": "Nuovo cliente",
+          "href": "/clienti/nuovo"
+        },
+        {
+          "text": "Nuovo soggetto",
+          "href": "/soggetti/nuovo"
+        },
+        {
+          "text": "Annulla",
+          "href": "/fascicoli"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 4349,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-nuovo-fascicolo.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Archivio Fascicoli",
+      "route": "/fascicoli/archivio",
+      "viewport": "desktop",
+      "elapsedMs": 1020,
+      "url": "http://127.0.0.1:8080/fascicoli/archivio",
+      "title": "IUSENTRA",
+      "h1": "Archivio Fascicoli",
+      "h2": "",
+      "textLength": 844,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 38,
+      "cards": 4,
+      "links": [
+        {
+          "text": "Fascicoli attivi",
+          "href": "/fascicoli"
+        },
+        {
+          "text": "Esporta",
+          "href": "/fascicoli/esporta"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 980,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "desktop-load-archivio-fascicoli.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Archivio Fascicoli",
+      "route": "/fascicoli/archivio",
+      "viewport": "mobile",
+      "elapsedMs": 976,
+      "url": "http://127.0.0.1:8080/fascicoli/archivio",
+      "title": "IUSENTRA",
+      "h1": "Archivio Fascicoli",
+      "h2": "",
+      "textLength": 451,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 38,
+      "cards": 4,
+      "links": [
+        {
+          "text": "Fascicoli attivi",
+          "href": "/fascicoli"
+        },
+        {
+          "text": "Esporta",
+          "href": "/fascicoli/esporta"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 844,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-archivio-fascicoli.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Clienti e Anagrafiche",
+      "route": "/clienti",
+      "viewport": "desktop",
+      "elapsedMs": 742,
+      "url": "http://127.0.0.1:8080/clienti",
+      "title": "IUSENTRA",
+      "h1": "Anagrafica Clienti",
+      "h2": "",
+      "textLength": 2092,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 49,
+      "cards": 14,
+      "links": [
+        {
+          "text": "Esporta",
+          "href": "/clienti/esporta"
+        },
+        {
+          "text": "Archivio clienti",
+          "href": "/clienti?stato=ARCHIVIATO"
+        },
+        {
+          "text": "Nuovo cliente",
+          "href": "/clienti/nuovo"
+        },
+        {
+          "text": "Nuovo cliente",
+          "href": "/clienti/nuovo"
+        },
+        {
+          "text": "Nuovo soggetto",
+          "href": "/soggetti/nuovo"
+        },
+        {
+          "text": "Preventivi e incarichi",
+          "href": "/preventivi/"
+        },
+        {
+          "text": "Chiedi a Lex",
+          "href": "#lex"
+        },
+        {
+          "text": "Nuovo cliente",
+          "href": "/clienti/nuovo"
+        },
+        {
+          "text": "Nuovo soggetto",
+          "href": "/soggetti/nuovo"
+        },
+        {
+          "text": "Preventivo",
+          "href": "/preventivi/"
+        },
+        {
+          "text": "Fascicolo",
+          "href": "/fascicoli/nuovo"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 1578,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "desktop-load-clienti-e-anagrafiche.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Clienti e Anagrafiche",
+      "route": "/clienti",
+      "viewport": "mobile",
+      "elapsedMs": 1472,
+      "url": "http://127.0.0.1:8080/clienti",
+      "title": "IUSENTRA",
+      "h1": "Anagrafica Clienti",
+      "h2": "",
+      "textLength": 1533,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 49,
+      "cards": 14,
+      "links": [
+        {
+          "text": "Esporta",
+          "href": "/clienti/esporta"
+        },
+        {
+          "text": "Archivio clienti",
+          "href": "/clienti?stato=ARCHIVIATO"
+        },
+        {
+          "text": "Nuovo cliente",
+          "href": "/clienti/nuovo"
+        },
+        {
+          "text": "Nuovo cliente",
+          "href": "/clienti/nuovo"
+        },
+        {
+          "text": "Nuovo soggetto",
+          "href": "/soggetti/nuovo"
+        },
+        {
+          "text": "Preventivi e incarichi",
+          "href": "/preventivi/"
+        },
+        {
+          "text": "Chiedi a Lex",
+          "href": "#lex"
+        },
+        {
+          "text": "Nuovo cliente",
+          "href": "/clienti/nuovo"
+        },
+        {
+          "text": "Nuovo soggetto",
+          "href": "/soggetti/nuovo"
+        },
+        {
+          "text": "Preventivo",
+          "href": "/preventivi/"
+        },
+        {
+          "text": "Fascicolo",
+          "href": "/fascicoli/nuovo"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 2888,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-clienti-e-anagrafiche.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Nuovo Cliente",
+      "route": "/clienti/nuovo",
+      "viewport": "desktop",
+      "elapsedMs": 718,
+      "url": "http://127.0.0.1:8080/clienti/nuovo",
+      "title": "IUSENTRA",
+      "h1": "Nuovo Cliente",
+      "h2": "",
+      "textLength": 2229,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 48,
+      "cards": 25,
+      "links": [
+        {
+          "text": "Torna all'anagrafica",
+          "href": "/clienti"
+        },
+        {
+          "text": "Anagrafiche",
+          "href": "/clienti"
+        },
+        {
+          "text": "Soggetti e parti",
+          "href": "/soggetti"
+        },
+        {
+          "text": "Annulla",
+          "href": "/clienti"
+        },
+        {
+          "text": "Anagrafica clienti",
+          "href": "/clienti"
+        },
+        {
+          "text": "Soggetti e parti",
+          "href": "/soggetti"
+        },
+        {
+          "text": "Cerca duplicati",
+          "href": "/global-search?tipo=clienti"
+        },
+        {
+          "text": "Preventivi e incarichi",
+          "href": "/preventivi/"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 2440,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "desktop-load-nuovo-cliente.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Nuovo Cliente",
+      "route": "/clienti/nuovo",
+      "viewport": "mobile",
+      "elapsedMs": 1472,
+      "url": "http://127.0.0.1:8080/clienti/nuovo",
+      "title": "IUSENTRA",
+      "h1": "Nuovo Cliente",
+      "h2": "",
+      "textLength": 1917,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 48,
+      "cards": 25,
+      "links": [
+        {
+          "text": "Torna all'anagrafica",
+          "href": "/clienti"
+        },
+        {
+          "text": "Anagrafiche",
+          "href": "/clienti"
+        },
+        {
+          "text": "Soggetti e parti",
+          "href": "/soggetti"
+        },
+        {
+          "text": "Annulla",
+          "href": "/clienti"
+        },
+        {
+          "text": "Anagrafica clienti",
+          "href": "/clienti"
+        },
+        {
+          "text": "Soggetti e parti",
+          "href": "/soggetti"
+        },
+        {
+          "text": "Cerca duplicati",
+          "href": "/global-search?tipo=clienti"
+        },
+        {
+          "text": "Preventivi e incarichi",
+          "href": "/preventivi/"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 5662,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-nuovo-cliente.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Cartelle Condivise",
+      "route": "/cartelle-condivise",
+      "viewport": "desktop",
+      "elapsedMs": 1290,
+      "url": "http://127.0.0.1:8080/cartelle-condivise",
+      "title": "IUSENTRA",
+      "h1": "Cartelle condivise",
+      "h2": "Cartelle gestite",
+      "textLength": 994,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 40,
+      "cards": 3,
+      "links": [
+        {
+          "text": "Clienti",
+          "href": "/clienti"
+        },
+        {
+          "text": "Registro attivita",
+          "href": "/audit"
+        },
+        {
+          "text": "Registro GDPR",
+          "href": "/privacy/registro"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 980,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "desktop-load-cartelle-condivise.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Cartelle Condivise",
+      "route": "/cartelle-condivise",
+      "viewport": "mobile",
+      "elapsedMs": 1787,
+      "url": "http://127.0.0.1:8080/cartelle-condivise",
+      "title": "IUSENTRA",
+      "h1": "Cartelle condivise",
+      "h2": "Cartelle gestite",
+      "textLength": 702,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 40,
+      "cards": 3,
+      "links": [
+        {
+          "text": "Clienti",
+          "href": "/clienti"
+        },
+        {
+          "text": "Registro attivita",
+          "href": "/audit"
+        },
+        {
+          "text": "Registro GDPR",
+          "href": "/privacy/registro"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 1820,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-cartelle-condivise.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Soggetti e Parti",
+      "route": "/soggetti",
+      "viewport": "desktop",
+      "elapsedMs": 723,
+      "url": "http://127.0.0.1:8080/soggetti",
+      "title": "IUSENTRA",
+      "h1": "Anagrafica soggetti",
+      "h2": "Nessun soggetto trovato",
+      "textLength": 1229,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 43,
+      "cards": 7,
+      "links": [
+        {
+          "text": "Nuovo Soggetto",
+          "href": "/soggetti/nuovo"
+        },
+        {
+          "text": "Clienti e anagrafiche",
+          "href": "/clienti"
+        },
+        {
+          "text": "Nuovo Soggetto",
+          "href": "/soggetti/nuovo"
+        },
+        {
+          "text": "Nuovo soggetto",
+          "href": "/soggetti/nuovo"
+        },
+        {
+          "text": "Form unificato",
+          "href": "/clienti/nuovo?tab=soggetto"
+        },
+        {
+          "text": "Clienti e anagrafiche",
+          "href": "/clienti"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 1107,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "desktop-load-soggetti-e-parti.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Soggetti e Parti",
+      "route": "/soggetti",
+      "viewport": "mobile",
+      "elapsedMs": 1061,
+      "url": "http://127.0.0.1:8080/soggetti",
+      "title": "IUSENTRA",
+      "h1": "Anagrafica soggetti",
+      "h2": "Nessun soggetto trovato",
+      "textLength": 955,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 43,
+      "cards": 7,
+      "links": [
+        {
+          "text": "Nuovo Soggetto",
+          "href": "/soggetti/nuovo"
+        },
+        {
+          "text": "Clienti e anagrafiche",
+          "href": "/clienti"
+        },
+        {
+          "text": "Nuovo Soggetto",
+          "href": "/soggetti/nuovo"
+        },
+        {
+          "text": "Nuovo soggetto",
+          "href": "/soggetti/nuovo"
+        },
+        {
+          "text": "Form unificato",
+          "href": "/clienti/nuovo?tab=soggetto"
+        },
+        {
+          "text": "Clienti e anagrafiche",
+          "href": "/clienti"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 2242,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-soggetti-e-parti.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Nuovo Soggetto",
+      "route": "/soggetti/nuovo",
+      "viewport": "desktop",
+      "elapsedMs": 726,
+      "url": "http://127.0.0.1:8080/soggetti/nuovo",
+      "title": "IUSENTRA",
+      "h1": "Nuovo Soggetto",
+      "h2": "",
+      "textLength": 2145,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 48,
+      "cards": 25,
+      "links": [
+        {
+          "text": "Torna all'anagrafica",
+          "href": "/soggetti"
+        },
+        {
+          "text": "Anagrafiche",
+          "href": "/clienti"
+        },
+        {
+          "text": "Soggetti e parti",
+          "href": "/soggetti"
+        },
+        {
+          "text": "Annulla",
+          "href": "/soggetti"
+        },
+        {
+          "text": "Anagrafica clienti",
+          "href": "/clienti"
+        },
+        {
+          "text": "Soggetti e parti",
+          "href": "/soggetti"
+        },
+        {
+          "text": "Cerca duplicati",
+          "href": "/global-search?tipo=clienti"
+        },
+        {
+          "text": "Preventivi e incarichi",
+          "href": "/preventivi/"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 2838,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "desktop-load-nuovo-soggetto.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Nuovo Soggetto",
+      "route": "/soggetti/nuovo",
+      "viewport": "mobile",
+      "elapsedMs": 1077,
+      "url": "http://127.0.0.1:8080/soggetti/nuovo",
+      "title": "IUSENTRA",
+      "h1": "Nuovo Soggetto",
+      "h2": "",
+      "textLength": 1851,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 48,
+      "cards": 25,
+      "links": [
+        {
+          "text": "Torna all'anagrafica",
+          "href": "/soggetti"
+        },
+        {
+          "text": "Anagrafiche",
+          "href": "/clienti"
+        },
+        {
+          "text": "Soggetti e parti",
+          "href": "/soggetti"
+        },
+        {
+          "text": "Annulla",
+          "href": "/soggetti"
+        },
+        {
+          "text": "Anagrafica clienti",
+          "href": "/clienti"
+        },
+        {
+          "text": "Soggetti e parti",
+          "href": "/soggetti"
+        },
+        {
+          "text": "Cerca duplicati",
+          "href": "/global-search?tipo=clienti"
+        },
+        {
+          "text": "Preventivi e incarichi",
+          "href": "/preventivi/"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 7091,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-nuovo-soggetto.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Email PEC",
+      "route": "/email",
+      "viewport": "desktop",
+      "elapsedMs": 796,
+      "url": "http://127.0.0.1:8080/email",
+      "title": "IUSENTRA",
+      "h1": "Casella PEC dello studio",
+      "h2": "Seleziona una PEC",
+      "textLength": 2040,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 54,
+      "cards": 17,
+      "links": [
+        {
+          "text": "Apri casella",
+          "href": "/email/"
+        },
+        {
+          "text": "Impostazioni",
+          "href": "/email/impostazioni"
+        },
+        {
+          "text": "Componi PEC",
+          "href": "/email/scrivi"
+        },
+        {
+          "text": "Apri cartella",
+          "href": "/email/?cartella=INBOX"
+        },
+        {
+          "text": "Nuova PEC",
+          "href": "/email/scrivi"
+        },
+        {
+          "text": "Notifica ex L. 53",
+          "href": "/notifiche-legali"
+        },
+        {
+          "text": "Parametri PEC",
+          "href": "/email/impostazioni"
+        },
+        {
+          "text": "Test SMTP dal PC",
+          "href": "/email/impostazioni"
+        },
+        {
+          "text": "Fascicoli",
+          "href": "/fascicoli"
+        },
+        {
+          "text": "Servizi telematici",
+          "href": "/telematico"
+        },
+        {
+          "text": "Checklist deposito",
+          "href": "/deposito/checklist"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 1761,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "desktop-load-email-pec.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Email PEC",
+      "route": "/email",
+      "viewport": "mobile",
+      "elapsedMs": 1267,
+      "url": "http://127.0.0.1:8080/email",
+      "title": "IUSENTRA",
+      "h1": "Casella PEC dello studio",
+      "h2": "Seleziona una PEC",
+      "textLength": 1600,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 54,
+      "cards": 17,
+      "links": [
+        {
+          "text": "Apri casella",
+          "href": "/email/"
+        },
+        {
+          "text": "Impostazioni",
+          "href": "/email/impostazioni"
+        },
+        {
+          "text": "Componi PEC",
+          "href": "/email/scrivi"
+        },
+        {
+          "text": "Apri cartella",
+          "href": "/email/?cartella=INBOX"
+        },
+        {
+          "text": "Nuova PEC",
+          "href": "/email/scrivi"
+        },
+        {
+          "text": "Notifica ex L. 53",
+          "href": "/notifiche-legali"
+        },
+        {
+          "text": "Parametri PEC",
+          "href": "/email/impostazioni"
+        },
+        {
+          "text": "Test SMTP dal PC",
+          "href": "/email/impostazioni"
+        },
+        {
+          "text": "Fascicoli",
+          "href": "/fascicoli"
+        },
+        {
+          "text": "Servizi telematici",
+          "href": "/telematico"
+        },
+        {
+          "text": "Checklist deposito",
+          "href": "/deposito/checklist"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 2959,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-email-pec.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Email ordinaria SMTP",
+      "route": "/email-ordinaria",
+      "viewport": "desktop",
+      "elapsedMs": 1903,
+      "url": "http://127.0.0.1:8080/email-ordinaria",
+      "title": "IUSENTRA",
+      "h1": "Casella email ordinaria dello studio",
+      "h2": "Seleziona una email",
+      "textLength": 1976,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 52,
+      "cards": 17,
+      "links": [
+        {
+          "text": "Apri email",
+          "href": "/email-ordinaria/"
+        },
+        {
+          "text": "Impostazioni",
+          "href": "/impostazioni?tab=smtp"
+        },
+        {
+          "text": "Componi email",
+          "href": "/email-ordinaria/scrivi"
+        },
+        {
+          "text": "Apri cartella",
+          "href": "/email-ordinaria/?cartella=INBOX"
+        },
+        {
+          "text": "Nuova email",
+          "href": "/email-ordinaria/scrivi"
+        },
+        {
+          "text": "Parametri SMTP/IMAP",
+          "href": "/impostazioni?tab=smtp"
+        },
+        {
+          "text": "Aggiorna casella",
+          "href": "/email-ordinaria/sincronizza"
+        },
+        {
+          "text": "Fascicoli",
+          "href": "/fascicoli"
+        },
+        {
+          "text": "Messaggi",
+          "href": "/messaggi"
+        },
+        {
+          "text": "Clienti",
+          "href": "/clienti"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 1732,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "desktop-load-email-ordinaria-smtp.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Email ordinaria SMTP",
+      "route": "/email-ordinaria",
+      "viewport": "mobile",
+      "elapsedMs": 4337,
+      "url": "http://127.0.0.1:8080/email-ordinaria",
+      "title": "IUSENTRA",
+      "h1": "Casella email ordinaria dello studio",
+      "h2": "Seleziona una email",
+      "textLength": 1536,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 52,
+      "cards": 17,
+      "links": [
+        {
+          "text": "Apri email",
+          "href": "/email-ordinaria/"
+        },
+        {
+          "text": "Impostazioni",
+          "href": "/impostazioni?tab=smtp"
+        },
+        {
+          "text": "Componi email",
+          "href": "/email-ordinaria/scrivi"
+        },
+        {
+          "text": "Apri cartella",
+          "href": "/email-ordinaria/?cartella=INBOX"
+        },
+        {
+          "text": "Nuova email",
+          "href": "/email-ordinaria/scrivi"
+        },
+        {
+          "text": "Parametri SMTP/IMAP",
+          "href": "/impostazioni?tab=smtp"
+        },
+        {
+          "text": "Aggiorna casella",
+          "href": "/email-ordinaria/sincronizza"
+        },
+        {
+          "text": "Fascicoli",
+          "href": "/fascicoli"
+        },
+        {
+          "text": "Messaggi",
+          "href": "/messaggi"
+        },
+        {
+          "text": "Clienti",
+          "href": "/clienti"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 2756,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-email-ordinaria-smtp.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Messaggi",
+      "route": "/messaggi",
+      "viewport": "desktop",
+      "elapsedMs": 4025,
+      "url": "http://127.0.0.1:8080/messaggi",
+      "title": "IUSENTRA",
+      "h1": "Messaggi",
+      "h2": "",
+      "textLength": 1372,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 40,
+      "cards": 11,
+      "links": [
+        {
+          "text": "Email studio",
+          "href": "/email/"
+        },
+        {
+          "text": "Nuovo messaggio",
+          "href": "/messaggi/nuovo"
+        },
+        {
+          "text": "Nuovo",
+          "href": "/messaggi/nuovo"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 1100,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "desktop-load-messaggi.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Messaggi",
+      "route": "/messaggi",
+      "viewport": "mobile",
+      "elapsedMs": 1837,
+      "url": "http://127.0.0.1:8080/messaggi",
+      "title": "IUSENTRA",
+      "h1": "Messaggi",
+      "h2": "",
+      "textLength": 959,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 40,
+      "cards": 11,
+      "links": [
+        {
+          "text": "Email studio",
+          "href": "/email/"
+        },
+        {
+          "text": "Nuovo messaggio",
+          "href": "/messaggi/nuovo"
+        },
+        {
+          "text": "Nuovo",
+          "href": "/messaggi/nuovo"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 2178,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-messaggi.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Nuovo SMS/WA",
+      "route": "/messaggi/nuovo",
+      "viewport": "desktop",
+      "elapsedMs": 799,
+      "url": "http://127.0.0.1:8080/messaggi/nuovo",
+      "title": "IUSENTRA",
+      "h1": "Nuovo messaggio",
+      "h2": "",
+      "textLength": 1617,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 44,
+      "cards": 17,
+      "links": [
+        {
+          "text": "Messaggi",
+          "href": "/messaggi"
+        },
+        {
+          "text": "Storico",
+          "href": "/messaggi"
+        },
+        {
+          "text": "Configura canali",
+          "href": "/impostazioni"
+        },
+        {
+          "text": "Annulla",
+          "href": "/messaggi"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 1406,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "desktop-load-nuovo-sms-wa.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Nuovo SMS/WA",
+      "route": "/messaggi/nuovo",
+      "viewport": "mobile",
+      "elapsedMs": 1866,
+      "url": "http://127.0.0.1:8080/messaggi/nuovo",
+      "title": "IUSENTRA",
+      "h1": "Nuovo messaggio",
+      "h2": "",
+      "textLength": 1159,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 44,
+      "cards": 17,
+      "links": [
+        {
+          "text": "Messaggi",
+          "href": "/messaggi"
+        },
+        {
+          "text": "Storico",
+          "href": "/messaggi"
+        },
+        {
+          "text": "Configura canali",
+          "href": "/impostazioni"
+        },
+        {
+          "text": "Annulla",
+          "href": "/messaggi"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 2891,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-nuovo-sms-wa.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Scadenziario",
+      "route": "/scadenziario",
+      "viewport": "desktop",
+      "elapsedMs": 1843,
+      "url": "http://127.0.0.1:8080/scadenziario",
+      "title": "IUSENTRA",
+      "h1": "Scadenziario Legale",
+      "h2": "Calcolo spiegabile con audit",
+      "textLength": 2512,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 66,
+      "cards": 16,
+      "links": [
+        {
+          "text": "Cabina",
+          "href": "/workspace-intelligente"
+        },
+        {
+          "text": "CSV",
+          "href": "/scadenziario/export.csv"
+        },
+        {
+          "text": "PDF",
+          "href": "/scadenziario/pdf"
+        },
+        {
+          "text": "iCal",
+          "href": "/scadenziario/export.ics"
+        },
+        {
+          "text": "Nuova scadenza",
+          "href": "/scadenziario/nuova"
+        },
+        {
+          "text": "Esporta",
+          "href": "/scadenziario/export.csv"
+        },
+        {
+          "text": "Nuova scadenza",
+          "href": "/scadenziario/nuova"
+        },
+        {
+          "text": "Chiedi a Lex",
+          "href": "#lex"
+        },
+        {
+          "text": "Agenda",
+          "href": "/agenda"
+        },
+        {
+          "text": "Nuova scadenza",
+          "href": "/scadenziario/nuova"
+        },
+        {
+          "text": "iCal scadenze",
+          "href": "/scadenziario/export.ics"
+        },
+        {
+          "text": "Sincronizzazione",
+          "href": "/impostazioni/calendario"
+        },
+        {
+          "text": "Checklist deposito",
+          "href": "/deposito/checklist"
+        },
+        {
+          "text": "Agenda",
+          "href": "/agenda"
+        },
+        {
+          "text": "Fascicoli",
+          "href": "/fascicoli"
+        },
+        {
+          "text": "Checklist deposito",
+          "href": "/deposito/checklist"
+        },
+        {
+          "text": "Calendari",
+          "href": "/impostazioni/calendario"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 2352,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "desktop-load-scadenziario.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Scadenziario",
+      "route": "/scadenziario",
+      "viewport": "mobile",
+      "elapsedMs": 1989,
+      "url": "http://127.0.0.1:8080/scadenziario",
+      "title": "IUSENTRA",
+      "h1": "Scadenziario Legale",
+      "h2": "Calcolo spiegabile con audit",
+      "textLength": 2077,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 66,
+      "cards": 16,
+      "links": [
+        {
+          "text": "Cabina",
+          "href": "/workspace-intelligente"
+        },
+        {
+          "text": "CSV",
+          "href": "/scadenziario/export.csv"
+        },
+        {
+          "text": "PDF",
+          "href": "/scadenziario/pdf"
+        },
+        {
+          "text": "iCal",
+          "href": "/scadenziario/export.ics"
+        },
+        {
+          "text": "Nuova scadenza",
+          "href": "/scadenziario/nuova"
+        },
+        {
+          "text": "Esporta",
+          "href": "/scadenziario/export.csv"
+        },
+        {
+          "text": "Nuova scadenza",
+          "href": "/scadenziario/nuova"
+        },
+        {
+          "text": "Chiedi a Lex",
+          "href": "#lex"
+        },
+        {
+          "text": "Agenda",
+          "href": "/agenda"
+        },
+        {
+          "text": "Nuova scadenza",
+          "href": "/scadenziario/nuova"
+        },
+        {
+          "text": "iCal scadenze",
+          "href": "/scadenziario/export.ics"
+        },
+        {
+          "text": "Sincronizzazione",
+          "href": "/impostazioni/calendario"
+        },
+        {
+          "text": "Checklist deposito",
+          "href": "/deposito/checklist"
+        },
+        {
+          "text": "Agenda",
+          "href": "/agenda"
+        },
+        {
+          "text": "Fascicoli",
+          "href": "/fascicoli"
+        },
+        {
+          "text": "Checklist deposito",
+          "href": "/deposito/checklist"
+        },
+        {
+          "text": "Calendari",
+          "href": "/impostazioni/calendario"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 3953,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-scadenziario.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Nuova Scadenza",
+      "route": "/scadenziario/nuova",
+      "viewport": "desktop",
+      "elapsedMs": 1762,
+      "url": "http://127.0.0.1:8080/scadenziario/nuova",
+      "title": "IUSENTRA",
+      "h1": "Nuova scadenza",
+      "h2": "",
+      "textLength": 3454,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 62,
+      "cards": 19,
+      "links": [
+        {
+          "text": "Scadenziario",
+          "href": "/scadenziario"
+        },
+        {
+          "text": "Agenda",
+          "href": "/agenda"
+        },
+        {
+          "text": "Annulla",
+          "href": "/scadenziario"
+        },
+        {
+          "text": "Agenda operativa\nCrea appuntamento collegato alla data operativa o legale",
+          "href": "/agenda/nuovo"
+        },
+        {
+          "text": "Esporta calendario\nFeed iCal scadenziario per calendari esterni",
+          "href": "/scadenziario/export.ics"
+        },
+        {
+          "text": "Controlli atti\nChecklist deposito e controlli preliminari",
+          "href": "/deposito/checklist"
+        },
+        {
+          "text": "Chiedi a Lex\nAnalisi operativa della scadenza e prossima azione",
+          "href": "#lex"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 2320,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "desktop-load-nuova-scadenza.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Nuova Scadenza",
+      "route": "/scadenziario/nuova",
+      "viewport": "mobile",
+      "elapsedMs": 1822,
+      "url": "http://127.0.0.1:8080/scadenziario/nuova",
+      "title": "IUSENTRA",
+      "h1": "Nuova scadenza",
+      "h2": "",
+      "textLength": 3134,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 62,
+      "cards": 19,
+      "links": [
+        {
+          "text": "Scadenziario",
+          "href": "/scadenziario"
+        },
+        {
+          "text": "Agenda",
+          "href": "/agenda"
+        },
+        {
+          "text": "Annulla",
+          "href": "/scadenziario"
+        },
+        {
+          "text": "Agenda operativa\nCrea appuntamento collegato alla data operativa o legale",
+          "href": "/agenda/nuovo"
+        },
+        {
+          "text": "Esporta calendario\nFeed iCal scadenziario per calendari esterni",
+          "href": "/scadenziario/export.ics"
+        },
+        {
+          "text": "Controlli atti\nChecklist deposito e controlli preliminari",
+          "href": "/deposito/checklist"
+        },
+        {
+          "text": "Chiedi a Lex\nAnalisi operativa della scadenza e prossima azione",
+          "href": "#lex"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 5533,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-nuova-scadenza.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Preparazione Udienza Guidata",
+      "route": "/wizard-pro",
+      "viewport": "desktop",
+      "elapsedMs": 2318,
+      "url": "http://127.0.0.1:8080/wizard-pro",
+      "title": "IUSENTRA",
+      "h1": "Preparazione Udienza Guidata",
+      "h2": "RG 12345/2026 — Procedimento penale da verificare",
+      "textLength": 2296,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 63,
+      "cards": 3,
+      "links": [
+        {
+          "text": "Nuova udienza",
+          "href": "/agenda/nuovo"
+        },
+        {
+          "text": "Nuova scadenza",
+          "href": "/scadenziario/nuova"
+        },
+        {
+          "text": "Fascicolo",
+          "href": "/fascicoli/17A38FB6"
+        },
+        {
+          "text": "Fascicolo",
+          "href": "/fascicoli/B6A03AE6"
+        },
+        {
+          "text": "Fascicolo",
+          "href": "/fascicoli/ECC8DDD7"
+        },
+        {
+          "text": "Fascicolo",
+          "href": "/fascicoli/2DE106E6"
+        },
+        {
+          "text": "Fascicolo",
+          "href": "/fascicoli/8804C177"
+        },
+        {
+          "text": "Fascicolo",
+          "href": "/fascicoli/DC5BF1DB"
+        },
+        {
+          "text": "Fascicolo",
+          "href": "/fascicoli/7D70262C"
+        },
+        {
+          "text": "Apri udienza",
+          "href": "/agenda"
+        },
+        {
+          "text": "Termini collegati",
+          "href": "/scadenziario?fascicolo=17A38FB6"
+        },
+        {
+          "text": "Chiedi a Lex",
+          "href": "#lex"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 2198,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "desktop-load-preparazione-udienza-guidata.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Preparazione Udienza Guidata",
+      "route": "/wizard-pro",
+      "viewport": "mobile",
+      "elapsedMs": 2612,
+      "url": "http://127.0.0.1:8080/wizard-pro",
+      "title": "IUSENTRA",
+      "h1": "Preparazione Udienza Guidata",
+      "h2": "RG 12345/2026 — Procedimento penale da verificare",
+      "textLength": 1976,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 63,
+      "cards": 3,
+      "links": [
+        {
+          "text": "Nuova udienza",
+          "href": "/agenda/nuovo"
+        },
+        {
+          "text": "Nuova scadenza",
+          "href": "/scadenziario/nuova"
+        },
+        {
+          "text": "Fascicolo",
+          "href": "/fascicoli/17A38FB6"
+        },
+        {
+          "text": "Fascicolo",
+          "href": "/fascicoli/B6A03AE6"
+        },
+        {
+          "text": "Fascicolo",
+          "href": "/fascicoli/ECC8DDD7"
+        },
+        {
+          "text": "Fascicolo",
+          "href": "/fascicoli/2DE106E6"
+        },
+        {
+          "text": "Fascicolo",
+          "href": "/fascicoli/8804C177"
+        },
+        {
+          "text": "Fascicolo",
+          "href": "/fascicoli/DC5BF1DB"
+        },
+        {
+          "text": "Fascicolo",
+          "href": "/fascicoli/7D70262C"
+        },
+        {
+          "text": "Apri udienza",
+          "href": "/agenda"
+        },
+        {
+          "text": "Termini collegati",
+          "href": "/scadenziario?fascicolo=17A38FB6"
+        },
+        {
+          "text": "Chiedi a Lex",
+          "href": "#lex"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 4075,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-preparazione-udienza-guidata.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Controlli Atti",
+      "route": "/deposito/checklist",
+      "viewport": "desktop",
+      "elapsedMs": 924,
+      "url": "http://127.0.0.1:8080/deposito/checklist",
+      "title": "IUSENTRA",
+      "h1": "PolisWeb / PST",
+      "h2": "",
+      "textLength": 1095,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 36,
+      "cards": 17,
+      "links": [],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 1068,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "desktop-load-controlli-atti.png",
+      "warnings": [
+        "collegamenti_pagina_da_arricchire"
+      ],
+      "failures": []
+    },
+    {
+      "routeName": "Controlli Atti",
+      "route": "/deposito/checklist",
+      "viewport": "mobile",
+      "elapsedMs": 2346,
+      "url": "http://127.0.0.1:8080/deposito/checklist",
+      "title": "IUSENTRA",
+      "h1": "PolisWeb / PST",
+      "h2": "",
+      "textLength": 714,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 36,
+      "cards": 17,
+      "links": [],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 1898,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-controlli-atti.png",
+      "warnings": [
+        "collegamenti_pagina_da_arricchire"
+      ],
+      "failures": []
+    },
+    {
+      "routeName": "Studio",
+      "route": "/studio",
+      "viewport": "desktop",
+      "elapsedMs": 1369,
+      "url": "http://127.0.0.1:8080/studio",
+      "title": "IUSENTRA",
+      "h1": "Antonella Mammola",
+      "h2": "Avvisi",
+      "textLength": 4062,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 69,
+      "cards": 57,
+      "links": [
+        {
+          "text": "Apri backup",
+          "href": "/backup"
+        },
+        {
+          "text": "Contatti sito",
+          "href": "/sito-studio/contatti"
+        },
+        {
+          "text": "Apri",
+          "href": "/utenti"
+        },
+        {
+          "text": "Apri",
+          "href": "/utenti/nuovo"
+        },
+        {
+          "text": "Apri",
+          "href": "/profili"
+        },
+        {
+          "text": "Apri",
+          "href": "/audit"
+        },
+        {
+          "text": "Apri",
+          "href": "/registro-attivita"
+        },
+        {
+          "text": "Apri",
+          "href": "/backup"
+        },
+        {
+          "text": "Apri",
+          "href": "/fatturazione"
+        },
+        {
+          "text": "Apri",
+          "href": "/fatturazione/nuova"
+        },
+        {
+          "text": "Apri",
+          "href": "/incassi-pagamenti"
+        },
+        {
+          "text": "Apri",
+          "href": "/preventivi"
+        },
+        {
+          "text": "Apri",
+          "href": "/preventivi/nuovo"
+        },
+        {
+          "text": "Apri",
+          "href": "/preventivi/conferimento/nuovo"
+        },
+        {
+          "text": "Apri",
+          "href": "/compensi-forensi"
+        },
+        {
+          "text": "Apri",
+          "href": "/tariffario"
+        },
+        {
+          "text": "Apri",
+          "href": "/sito-studio"
+        },
+        {
+          "text": "Apri",
+          "href": "/sito-studio/contatti"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 4265,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "desktop-load-studio.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Studio",
+      "route": "/studio",
+      "viewport": "mobile",
+      "elapsedMs": 1245,
+      "url": "http://127.0.0.1:8080/studio",
+      "title": "IUSENTRA",
+      "h1": "Antonella Mammola",
+      "h2": "Avvisi",
+      "textLength": 3631,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 69,
+      "cards": 57,
+      "links": [
+        {
+          "text": "Apri backup",
+          "href": "/backup"
+        },
+        {
+          "text": "Contatti sito",
+          "href": "/sito-studio/contatti"
+        },
+        {
+          "text": "Apri",
+          "href": "/utenti"
+        },
+        {
+          "text": "Apri",
+          "href": "/utenti/nuovo"
+        },
+        {
+          "text": "Apri",
+          "href": "/profili"
+        },
+        {
+          "text": "Apri",
+          "href": "/audit"
+        },
+        {
+          "text": "Apri",
+          "href": "/registro-attivita"
+        },
+        {
+          "text": "Apri",
+          "href": "/backup"
+        },
+        {
+          "text": "Apri",
+          "href": "/fatturazione"
+        },
+        {
+          "text": "Apri",
+          "href": "/fatturazione/nuova"
+        },
+        {
+          "text": "Apri",
+          "href": "/incassi-pagamenti"
+        },
+        {
+          "text": "Apri",
+          "href": "/preventivi"
+        },
+        {
+          "text": "Apri",
+          "href": "/preventivi/nuovo"
+        },
+        {
+          "text": "Apri",
+          "href": "/preventivi/conferimento/nuovo"
+        },
+        {
+          "text": "Apri",
+          "href": "/compensi-forensi"
+        },
+        {
+          "text": "Apri",
+          "href": "/tariffario"
+        },
+        {
+          "text": "Apri",
+          "href": "/sito-studio"
+        },
+        {
+          "text": "Apri",
+          "href": "/sito-studio/contatti"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 8570,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-studio.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Parcelle e Fatture",
+      "route": "/fatturazione",
+      "viewport": "desktop",
+      "elapsedMs": 1019,
+      "url": "http://127.0.0.1:8080/fatturazione",
+      "title": "IUSENTRA",
+      "h1": "Fatturazione",
+      "h2": "Avvisi economici",
+      "textLength": 2302,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 40,
+      "cards": 43,
+      "links": [
+        {
+          "text": "Nuova parcella",
+          "href": "/fatturazione/nuova"
+        },
+        {
+          "text": "Esporta CSV",
+          "href": "/export/fatturazione.csv"
+        },
+        {
+          "text": "Nuova parcella",
+          "href": "/fatturazione/nuova"
+        },
+        {
+          "text": "Apri percorso di recupero",
+          "href": "/fatturazione/nuova?_legacy=1"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 2258,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "desktop-load-parcelle-e-fatture.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Parcelle e Fatture",
+      "route": "/fatturazione",
+      "viewport": "mobile",
+      "elapsedMs": 1765,
+      "url": "http://127.0.0.1:8080/fatturazione",
+      "title": "IUSENTRA",
+      "h1": "Fatturazione",
+      "h2": "Avvisi economici",
+      "textLength": 1874,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 40,
+      "cards": 43,
+      "links": [
+        {
+          "text": "Nuova parcella",
+          "href": "/fatturazione/nuova"
+        },
+        {
+          "text": "Esporta CSV",
+          "href": "/export/fatturazione.csv"
+        },
+        {
+          "text": "Nuova parcella",
+          "href": "/fatturazione/nuova"
+        },
+        {
+          "text": "Apri percorso di recupero",
+          "href": "/fatturazione/nuova?_legacy=1"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 3821,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-parcelle-e-fatture.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Preventivi e Incarichi",
+      "route": "/preventivi",
+      "viewport": "desktop",
+      "elapsedMs": 1235,
+      "url": "http://127.0.0.1:8080/preventivi",
+      "title": "IUSENTRA",
+      "h1": "Preventivi e incarichi",
+      "h2": "Avvisi mandato",
+      "textLength": 2843,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 48,
+      "cards": 43,
+      "links": [
+        {
+          "text": "Archivio",
+          "href": "/preventivi"
+        },
+        {
+          "text": "Preventivo guidato",
+          "href": "/preventivi/wizard"
+        },
+        {
+          "text": "Nuovo preventivo",
+          "href": "/preventivi/nuovo"
+        },
+        {
+          "text": "Nuovo conferimento",
+          "href": "/preventivi/conferimento/nuovo"
+        },
+        {
+          "text": "Preventivo guidato",
+          "href": "/preventivi/wizard"
+        },
+        {
+          "text": "Preventivo guidato",
+          "href": "/preventivi/wizard"
+        },
+        {
+          "text": "Nuovo preventivo",
+          "href": "/preventivi/nuovo"
+        },
+        {
+          "text": "Conferimento",
+          "href": "/preventivi/conferimento/nuovo?id_preventivo=545fb89f-d80f-44db-b321-cb5e4b9cbcf9"
+        },
+        {
+          "text": "Dettaglio",
+          "href": "/preventivi/conferimento/f613a379-326a-42b8-8465-777d8998b624"
+        },
+        {
+          "text": "Apri template storico",
+          "href": "/preventivi?_legacy=1"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 3424,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "desktop-load-preventivi-e-incarichi.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Preventivi e Incarichi",
+      "route": "/preventivi",
+      "viewport": "mobile",
+      "elapsedMs": 1391,
+      "url": "http://127.0.0.1:8080/preventivi",
+      "title": "IUSENTRA",
+      "h1": "Preventivi e incarichi",
+      "h2": "Avvisi mandato",
+      "textLength": 2412,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 48,
+      "cards": 43,
+      "links": [
+        {
+          "text": "Archivio",
+          "href": "/preventivi"
+        },
+        {
+          "text": "Preventivo guidato",
+          "href": "/preventivi/wizard"
+        },
+        {
+          "text": "Nuovo preventivo",
+          "href": "/preventivi/nuovo"
+        },
+        {
+          "text": "Nuovo conferimento",
+          "href": "/preventivi/conferimento/nuovo"
+        },
+        {
+          "text": "Preventivo guidato",
+          "href": "/preventivi/wizard"
+        },
+        {
+          "text": "Preventivo guidato",
+          "href": "/preventivi/wizard"
+        },
+        {
+          "text": "Nuovo preventivo",
+          "href": "/preventivi/nuovo"
+        },
+        {
+          "text": "Conferimento",
+          "href": "/preventivi/conferimento/nuovo?id_preventivo=545fb89f-d80f-44db-b321-cb5e4b9cbcf9"
+        },
+        {
+          "text": "Dettaglio",
+          "href": "/preventivi/conferimento/f613a379-326a-42b8-8465-777d8998b624"
+        },
+        {
+          "text": "Apri template storico",
+          "href": "/preventivi?_legacy=1"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 5557,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-preventivi-e-incarichi.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Nuovo Preventivo",
+      "route": "/preventivi/nuovo",
+      "viewport": "desktop",
+      "elapsedMs": 1379,
+      "url": "http://127.0.0.1:8080/preventivi/nuovo",
+      "title": "IUSENTRA",
+      "h1": "Nuovo preventivo",
+      "h2": "Avvisi mandato",
+      "textLength": 2626,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 44,
+      "cards": 15,
+      "links": [
+        {
+          "text": "Archivio",
+          "href": "/preventivi"
+        },
+        {
+          "text": "Preventivo guidato",
+          "href": "/preventivi/wizard"
+        },
+        {
+          "text": "Nuovo conferimento",
+          "href": "/preventivi/conferimento/nuovo"
+        },
+        {
+          "text": "Archivio",
+          "href": "/preventivi"
+        },
+        {
+          "text": "Apri template storico",
+          "href": "/preventivi/nuovo?_legacy=1"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 2107,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "desktop-load-nuovo-preventivo.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Nuovo Preventivo",
+      "route": "/preventivi/nuovo",
+      "viewport": "mobile",
+      "elapsedMs": 2664,
+      "url": "http://127.0.0.1:8080/preventivi/nuovo",
+      "title": "IUSENTRA",
+      "h1": "Nuovo preventivo",
+      "h2": "Avvisi mandato",
+      "textLength": 2198,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 44,
+      "cards": 15,
+      "links": [
+        {
+          "text": "Archivio",
+          "href": "/preventivi"
+        },
+        {
+          "text": "Preventivo guidato",
+          "href": "/preventivi/wizard"
+        },
+        {
+          "text": "Nuovo conferimento",
+          "href": "/preventivi/conferimento/nuovo"
+        },
+        {
+          "text": "Archivio",
+          "href": "/preventivi"
+        },
+        {
+          "text": "Apri template storico",
+          "href": "/preventivi/nuovo?_legacy=1"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 3611,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-nuovo-preventivo.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Nuovo Conferimento",
+      "route": "/preventivi/conferimento/nuovo",
+      "viewport": "desktop",
+      "elapsedMs": 1365,
+      "url": "http://127.0.0.1:8080/preventivi/conferimento/nuovo",
+      "title": "IUSENTRA",
+      "h1": "Nuovo conferimento incarico",
+      "h2": "Avvisi mandato",
+      "textLength": 2755,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 42,
+      "cards": 15,
+      "links": [
+        {
+          "text": "Archivio",
+          "href": "/preventivi"
+        },
+        {
+          "text": "Preventivo guidato",
+          "href": "/preventivi/wizard"
+        },
+        {
+          "text": "Nuovo preventivo",
+          "href": "/preventivi/nuovo"
+        },
+        {
+          "text": "Archivio",
+          "href": "/preventivi"
+        },
+        {
+          "text": "Apri template storico",
+          "href": "/preventivi/conferimento/nuovo?_legacy=1"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 1928,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "desktop-load-nuovo-conferimento.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Nuovo Conferimento",
+      "route": "/preventivi/conferimento/nuovo",
+      "viewport": "mobile",
+      "elapsedMs": 1290,
+      "url": "http://127.0.0.1:8080/preventivi/conferimento/nuovo",
+      "title": "IUSENTRA",
+      "h1": "Nuovo conferimento incarico",
+      "h2": "Avvisi mandato",
+      "textLength": 2327,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 42,
+      "cards": 15,
+      "links": [
+        {
+          "text": "Archivio",
+          "href": "/preventivi"
+        },
+        {
+          "text": "Preventivo guidato",
+          "href": "/preventivi/wizard"
+        },
+        {
+          "text": "Nuovo preventivo",
+          "href": "/preventivi/nuovo"
+        },
+        {
+          "text": "Archivio",
+          "href": "/preventivi"
+        },
+        {
+          "text": "Apri template storico",
+          "href": "/preventivi/conferimento/nuovo?_legacy=1"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 3451,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-nuovo-conferimento.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Dettaglio Conferimento",
+      "route": "/preventivi/conferimento/f613a379-326a-42b8-8465-777d8998b624",
+      "viewport": "desktop",
+      "elapsedMs": 1325,
+      "url": "http://127.0.0.1:8080/preventivi/conferimento/f613a379-326a-42b8-8465-777d8998b624",
+      "title": "IUSENTRA",
+      "h1": "Conferimento incarico",
+      "h2": "Quadro incarico",
+      "textLength": 2427,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 45,
+      "cards": 19,
+      "links": [
+        {
+          "text": "Archivio",
+          "href": "/preventivi"
+        },
+        {
+          "text": "Preventivo guidato",
+          "href": "/preventivi/wizard"
+        },
+        {
+          "text": "Nuovo preventivo",
+          "href": "/preventivi/nuovo"
+        },
+        {
+          "text": "Nuovo conferimento",
+          "href": "/preventivi/conferimento/nuovo"
+        },
+        {
+          "text": "PDF conferimento",
+          "href": "/preventivi/conferimento/f613a379-326a-42b8-8465-777d8998b624/pdf"
+        },
+        {
+          "text": "Apri cliente",
+          "href": "/clienti/8E26A7EC"
+        },
+        {
+          "text": "Apri fascicolo",
+          "href": "/fascicoli/8804C177"
+        },
+        {
+          "text": "Archivio preventivi",
+          "href": "/preventivi"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 1925,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "desktop-load-dettaglio-conferimento.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Dettaglio Conferimento",
+      "route": "/preventivi/conferimento/f613a379-326a-42b8-8465-777d8998b624",
+      "viewport": "mobile",
+      "elapsedMs": 1305,
+      "url": "http://127.0.0.1:8080/preventivi/conferimento/f613a379-326a-42b8-8465-777d8998b624",
+      "title": "IUSENTRA",
+      "h1": "Conferimento incarico",
+      "h2": "Quadro incarico",
+      "textLength": 1999,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 45,
+      "cards": 19,
+      "links": [
+        {
+          "text": "Archivio",
+          "href": "/preventivi"
+        },
+        {
+          "text": "Preventivo guidato",
+          "href": "/preventivi/wizard"
+        },
+        {
+          "text": "Nuovo preventivo",
+          "href": "/preventivi/nuovo"
+        },
+        {
+          "text": "Nuovo conferimento",
+          "href": "/preventivi/conferimento/nuovo"
+        },
+        {
+          "text": "PDF conferimento",
+          "href": "/preventivi/conferimento/f613a379-326a-42b8-8465-777d8998b624/pdf"
+        },
+        {
+          "text": "Apri cliente",
+          "href": "/clienti/8E26A7EC"
+        },
+        {
+          "text": "Apri fascicolo",
+          "href": "/fascicoli/8804C177"
+        },
+        {
+          "text": "Archivio preventivi",
+          "href": "/preventivi"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 3621,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-dettaglio-conferimento.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Compensi Forensi",
+      "route": "/compensi-forensi",
+      "viewport": "desktop",
+      "elapsedMs": 2302,
+      "url": "http://127.0.0.1:8080/compensi-forensi",
+      "title": "IUSENTRA",
+      "h1": "Compensi forensi",
+      "h2": "Parametri di calcolo",
+      "textLength": 2596,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 42,
+      "cards": 39,
+      "links": [
+        {
+          "text": "Tariffario",
+          "href": "/tariffario"
+        },
+        {
+          "text": "Apri tariffario",
+          "href": "/tariffario"
+        },
+        {
+          "text": "Archivio preventivi",
+          "href": "/preventivi"
+        },
+        {
+          "text": "Percorso di recupero",
+          "href": "/compensi-forensi?_legacy=1"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 1981,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "desktop-load-compensi-forensi.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Compensi Forensi",
+      "route": "/compensi-forensi",
+      "viewport": "mobile",
+      "elapsedMs": 2342,
+      "url": "http://127.0.0.1:8080/compensi-forensi",
+      "title": "IUSENTRA",
+      "h1": "Compensi forensi",
+      "h2": "Parametri di calcolo",
+      "textLength": 2165,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 42,
+      "cards": 39,
+      "links": [
+        {
+          "text": "Tariffario",
+          "href": "/tariffario"
+        },
+        {
+          "text": "Apri tariffario",
+          "href": "/tariffario"
+        },
+        {
+          "text": "Archivio preventivi",
+          "href": "/preventivi"
+        },
+        {
+          "text": "Percorso di recupero",
+          "href": "/compensi-forensi?_legacy=1"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 3603,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-compensi-forensi.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Redazione Atti",
+      "route": "/redazione-atti",
+      "viewport": "desktop",
+      "elapsedMs": 3065,
+      "url": "http://127.0.0.1:8080/redazione-atti",
+      "title": "IUSENTRA",
+      "h1": "Redazione atti",
+      "h2": "Ingresso governato alla redazione",
+      "textLength": 4062,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 64,
+      "cards": 40,
+      "links": [
+        {
+          "text": "Catalogo template",
+          "href": "/template-atti/catalogo"
+        },
+        {
+          "text": "Documenti",
+          "href": "/documenti"
+        },
+        {
+          "text": "Catalogo template",
+          "href": "/template-atti/catalogo"
+        },
+        {
+          "text": "Fascicoli",
+          "href": "/fascicoli"
+        },
+        {
+          "text": "Preventivi",
+          "href": "/preventivi"
+        },
+        {
+          "text": "Ricerca legale",
+          "href": "/legal-intelligence"
+        },
+        {
+          "text": "Catalogo template\nPunto di ingresso operativo\n18 template e 10 modelli produttivi\nIn pagina",
+          "href": "/template-atti/catalogo"
+        },
+        {
+          "text": "Produzione atti\nCompilazione e anteprima immediata\nModelli reali del compilatore integrati nella pagina\nIn pagina",
+          "href": "/redazione-atti"
+        },
+        {
+          "text": "Invito alla mediazione\nstandard\nADR\nInformazioni",
+          "href": "/template-atti/catalogo"
+        },
+        {
+          "text": "Istanza di mediazione\nstandard\nADR\nInformazioni",
+          "href": "/template-atti/catalogo"
+        },
+        {
+          "text": "Adesione alla mediazione\nstandard\nADR\nInformazioni",
+          "href": "/template-atti/catalogo"
+        },
+        {
+          "text": "Verbale di accordo\nstandard\nADR\nInformazioni",
+          "href": "/template-atti/catalogo"
+        },
+        {
+          "text": "Verbale di mancato accordo\nstandard\nADR\nInformazioni",
+          "href": "/template-atti/catalogo"
+        },
+        {
+          "text": "Invito a negoziazione assistita\nstandard\nADR\nInformazioni",
+          "href": "/template-atti/catalogo"
+        },
+        {
+          "text": "Accordo di negoziazione assistita\nstandard\nADR\nInformazioni",
+          "href": "/template-atti/catalogo"
+        },
+        {
+          "text": "Diniego a negoziazione\nstandard\nADR\nInformazioni",
+          "href": "/template-atti/catalogo"
+        },
+        {
+          "text": "Clausola compromissoria standard\nstandard\nADR\nInformazioni",
+          "href": "/template-atti/catalogo"
+        },
+        {
+          "text": "Domanda di arbitrato\nstandard\nADR\nInformazioni",
+          "href": "/template-atti/catalogo"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 4459,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "desktop-load-redazione-atti.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Redazione Atti",
+      "route": "/redazione-atti",
+      "viewport": "mobile",
+      "elapsedMs": 1805,
+      "url": "http://127.0.0.1:8080/redazione-atti",
+      "title": "IUSENTRA",
+      "h1": "Redazione atti",
+      "h2": "Ingresso governato alla redazione",
+      "textLength": 3631,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 64,
+      "cards": 40,
+      "links": [
+        {
+          "text": "Catalogo template",
+          "href": "/template-atti/catalogo"
+        },
+        {
+          "text": "Documenti",
+          "href": "/documenti"
+        },
+        {
+          "text": "Catalogo template",
+          "href": "/template-atti/catalogo"
+        },
+        {
+          "text": "Fascicoli",
+          "href": "/fascicoli"
+        },
+        {
+          "text": "Preventivi",
+          "href": "/preventivi"
+        },
+        {
+          "text": "Ricerca legale",
+          "href": "/legal-intelligence"
+        },
+        {
+          "text": "Catalogo template\nPunto di ingresso operativo\n18 template e 10 modelli produttivi\nIn pagina",
+          "href": "/template-atti/catalogo"
+        },
+        {
+          "text": "Produzione atti\nCompilazione e anteprima immediata\nModelli reali del compilatore integrati nella pagina\nIn pagina",
+          "href": "/redazione-atti"
+        },
+        {
+          "text": "Invito alla mediazione\nstandard\nADR\nInformazioni",
+          "href": "/template-atti/catalogo"
+        },
+        {
+          "text": "Istanza di mediazione\nstandard\nADR\nInformazioni",
+          "href": "/template-atti/catalogo"
+        },
+        {
+          "text": "Adesione alla mediazione\nstandard\nADR\nInformazioni",
+          "href": "/template-atti/catalogo"
+        },
+        {
+          "text": "Verbale di accordo\nstandard\nADR\nInformazioni",
+          "href": "/template-atti/catalogo"
+        },
+        {
+          "text": "Verbale di mancato accordo\nstandard\nADR\nInformazioni",
+          "href": "/template-atti/catalogo"
+        },
+        {
+          "text": "Invito a negoziazione assistita\nstandard\nADR\nInformazioni",
+          "href": "/template-atti/catalogo"
+        },
+        {
+          "text": "Accordo di negoziazione assistita\nstandard\nADR\nInformazioni",
+          "href": "/template-atti/catalogo"
+        },
+        {
+          "text": "Diniego a negoziazione\nstandard\nADR\nInformazioni",
+          "href": "/template-atti/catalogo"
+        },
+        {
+          "text": "Clausola compromissoria standard\nstandard\nADR\nInformazioni",
+          "href": "/template-atti/catalogo"
+        },
+        {
+          "text": "Domanda di arbitrato\nstandard\nADR\nInformazioni",
+          "href": "/template-atti/catalogo"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 8128,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-redazione-atti.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Statistiche",
+      "route": "/statistiche",
+      "viewport": "desktop",
+      "elapsedMs": 3574,
+      "url": "http://127.0.0.1:8080/statistiche",
+      "title": "IUSENTRA",
+      "h1": "Statistiche",
+      "h2": "Fascicoli per tipo",
+      "textLength": 2633,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 51,
+      "cards": 81,
+      "links": [
+        {
+          "text": "Aggiorna",
+          "href": "/statistiche"
+        },
+        {
+          "text": "Esporta clienti",
+          "href": "/export/clienti.csv"
+        },
+        {
+          "text": "Esporta fascicoli",
+          "href": "/export/fascicoli.csv"
+        },
+        {
+          "text": "Clienti registrati\n23\nAnagrafica clienti",
+          "href": "/clienti"
+        },
+        {
+          "text": "Fascicoli totali\n7\nArchivio fascicoli",
+          "href": "/fascicoli"
+        },
+        {
+          "text": "Parcelle\n0\nFatturazione",
+          "href": "/fatturazione"
+        },
+        {
+          "text": "Scadenze\n5\nScadenziario",
+          "href": "/scadenziario"
+        },
+        {
+          "text": "PEC\n573\nCasella PEC",
+          "href": "/email/"
+        },
+        {
+          "text": "Email ordinarie\n2376\nPosta ordinaria",
+          "href": "/email-ordinaria/"
+        },
+        {
+          "text": "Messaggi clienti\n3\nComunicazioni",
+          "href": "/messaggi"
+        },
+        {
+          "text": "Preventivi\n1\nPreventivi e incarichi",
+          "href": "/preventivi"
+        },
+        {
+          "text": "Incarichi\n1\nConferimenti incarico",
+          "href": "/preventivi"
+        },
+        {
+          "text": "Voci timesheet\n0\nTempo e produttivita",
+          "href": "/timesheet"
+        },
+        {
+          "text": "Durata media fascicoli\n0\nGiorni",
+          "href": "/fascicoli"
+        },
+        {
+          "text": "Tasso chiusura fascicoli\n14%\nChiusi: 1",
+          "href": "/fascicoli"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 4188,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "desktop-load-statistiche.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Statistiche",
+      "route": "/statistiche",
+      "viewport": "mobile",
+      "elapsedMs": 4421,
+      "url": "http://127.0.0.1:8080/statistiche",
+      "title": "IUSENTRA",
+      "h1": "Statistiche",
+      "h2": "Fascicoli per tipo",
+      "textLength": 2202,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 51,
+      "cards": 81,
+      "links": [
+        {
+          "text": "Aggiorna",
+          "href": "/statistiche"
+        },
+        {
+          "text": "Esporta clienti",
+          "href": "/export/clienti.csv"
+        },
+        {
+          "text": "Esporta fascicoli",
+          "href": "/export/fascicoli.csv"
+        },
+        {
+          "text": "Clienti registrati\n23\nAnagrafica clienti",
+          "href": "/clienti"
+        },
+        {
+          "text": "Fascicoli totali\n7\nArchivio fascicoli",
+          "href": "/fascicoli"
+        },
+        {
+          "text": "Parcelle\n0\nFatturazione",
+          "href": "/fatturazione"
+        },
+        {
+          "text": "Scadenze\n5\nScadenziario",
+          "href": "/scadenziario"
+        },
+        {
+          "text": "PEC\n573\nCasella PEC",
+          "href": "/email/"
+        },
+        {
+          "text": "Email ordinarie\n2376\nPosta ordinaria",
+          "href": "/email-ordinaria/"
+        },
+        {
+          "text": "Messaggi clienti\n3\nComunicazioni",
+          "href": "/messaggi"
+        },
+        {
+          "text": "Preventivi\n1\nPreventivi e incarichi",
+          "href": "/preventivi"
+        },
+        {
+          "text": "Incarichi\n1\nConferimenti incarico",
+          "href": "/preventivi"
+        },
+        {
+          "text": "Voci timesheet\n0\nTempo e produttivita",
+          "href": "/timesheet"
+        },
+        {
+          "text": "Durata media fascicoli\n0\nGiorni",
+          "href": "/fascicoli"
+        },
+        {
+          "text": "Tasso chiusura fascicoli\n14%\nChiusi: 1",
+          "href": "/fascicoli"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 9673,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-statistiche.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Ricerca Legale",
+      "route": "/ricerca-legale",
+      "viewport": "desktop",
+      "elapsedMs": 3470,
+      "url": "http://127.0.0.1:8080/ricerca-legale",
+      "title": "IUSENTRA",
+      "h1": "Ricerca Legale",
+      "h2": "Stato fonti",
+      "textLength": 8360,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 61,
+      "cards": 65,
+      "links": [
+        {
+          "text": "Archivio giurisprudenza",
+          "href": "/giurisprudenza"
+        },
+        {
+          "text": "Apri fonte",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/03/27/26G00056/sg"
+        },
+        {
+          "text": "Archivio giurisprudenza",
+          "href": "/giurisprudenza"
+        },
+        {
+          "text": "Fonte",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/03/27/26G00056/sg"
+        },
+        {
+          "text": "Fonte",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/03/27/26G00054/sg"
+        },
+        {
+          "text": "Fonte",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/03/25/T-260032/s1"
+        },
+        {
+          "text": "Fonte",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/03/25/26G00053/sg"
+        },
+        {
+          "text": "Fonte",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/04/02/26G00058/sg"
+        },
+        {
+          "text": "Fonte",
+          "href": "https://www.gazzettaufficiale.it/showNewsDetail?id=8226&provenienza=home"
+        },
+        {
+          "text": "Fonte",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/04/03/26G00059/sg"
+        },
+        {
+          "text": "Fonte",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/04/03/26G00060/sg"
+        },
+        {
+          "text": "Fonte",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/04/03/26G00061/sg"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 10470,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "desktop-load-ricerca-legale.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Ricerca Legale",
+      "route": "/ricerca-legale",
+      "viewport": "mobile",
+      "elapsedMs": 1880,
+      "url": "http://127.0.0.1:8080/ricerca-legale",
+      "title": "IUSENTRA",
+      "h1": "Ricerca Legale",
+      "h2": "Stato fonti",
+      "textLength": 7929,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 61,
+      "cards": 65,
+      "links": [
+        {
+          "text": "Archivio giurisprudenza",
+          "href": "/giurisprudenza"
+        },
+        {
+          "text": "Apri fonte",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/03/27/26G00056/sg"
+        },
+        {
+          "text": "Archivio giurisprudenza",
+          "href": "/giurisprudenza"
+        },
+        {
+          "text": "Fonte",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/03/27/26G00056/sg"
+        },
+        {
+          "text": "Fonte",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/03/27/26G00054/sg"
+        },
+        {
+          "text": "Fonte",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/03/25/T-260032/s1"
+        },
+        {
+          "text": "Fonte",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/03/25/26G00053/sg"
+        },
+        {
+          "text": "Fonte",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/04/02/26G00058/sg"
+        },
+        {
+          "text": "Fonte",
+          "href": "https://www.gazzettaufficiale.it/showNewsDetail?id=8226&provenienza=home"
+        },
+        {
+          "text": "Fonte",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/04/03/26G00059/sg"
+        },
+        {
+          "text": "Fonte",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/04/03/26G00060/sg"
+        },
+        {
+          "text": "Fonte",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/04/03/26G00061/sg"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 16623,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-ricerca-legale.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Archivio Giurisprudenza",
+      "route": "/giurisprudenza",
+      "viewport": "desktop",
+      "elapsedMs": 1221,
+      "url": "http://127.0.0.1:8080/giurisprudenza",
+      "title": "IUSENTRA",
+      "h1": "Archivio Giurisprudenza",
+      "h2": "Fonti disponibili",
+      "textLength": 6067,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 59,
+      "cards": 62,
+      "links": [
+        {
+          "text": "Ricerca legale",
+          "href": "/legal-intelligence"
+        },
+        {
+          "text": "Apri fonte",
+          "href": "https://openga.giustizia-amministrativa.it/"
+        },
+        {
+          "text": "Apri fonte",
+          "href": "https://www.cortedicassazione.it/"
+        },
+        {
+          "text": "Apri fonte",
+          "href": "https://pst.giustizia.it/PST/"
+        },
+        {
+          "text": "Apri fonte",
+          "href": "https://www.cortecostituzionale.it/"
+        },
+        {
+          "text": "Apri fonte",
+          "href": "https://www.giustizia-amministrativa.it/"
+        },
+        {
+          "text": "Apri fonte",
+          "href": "https://www.giustiziatributaria.gov.it/"
+        },
+        {
+          "text": "Apri fonte",
+          "href": "https://curia.europa.eu/jcms/jcms/j_6/it/"
+        },
+        {
+          "text": "Apri fonte",
+          "href": "https://hudoc.echr.coe.int/"
+        },
+        {
+          "text": "Apri fonte",
+          "href": "https://www.corteconti.it/"
+        },
+        {
+          "text": "Apri fonte",
+          "href": "https://simpliciter.ai/ricerca/"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 6750,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "desktop-load-archivio-giurisprudenza.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Archivio Giurisprudenza",
+      "route": "/giurisprudenza",
+      "viewport": "mobile",
+      "elapsedMs": 1250,
+      "url": "http://127.0.0.1:8080/giurisprudenza",
+      "title": "IUSENTRA",
+      "h1": "Archivio Giurisprudenza",
+      "h2": "Fonti disponibili",
+      "textLength": 5639,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 59,
+      "cards": 62,
+      "links": [
+        {
+          "text": "Ricerca legale",
+          "href": "/legal-intelligence"
+        },
+        {
+          "text": "Apri fonte",
+          "href": "https://openga.giustizia-amministrativa.it/"
+        },
+        {
+          "text": "Apri fonte",
+          "href": "https://www.cortedicassazione.it/"
+        },
+        {
+          "text": "Apri fonte",
+          "href": "https://pst.giustizia.it/PST/"
+        },
+        {
+          "text": "Apri fonte",
+          "href": "https://www.cortecostituzionale.it/"
+        },
+        {
+          "text": "Apri fonte",
+          "href": "https://www.giustizia-amministrativa.it/"
+        },
+        {
+          "text": "Apri fonte",
+          "href": "https://www.giustiziatributaria.gov.it/"
+        },
+        {
+          "text": "Apri fonte",
+          "href": "https://curia.europa.eu/jcms/jcms/j_6/it/"
+        },
+        {
+          "text": "Apri fonte",
+          "href": "https://hudoc.echr.coe.int/"
+        },
+        {
+          "text": "Apri fonte",
+          "href": "https://www.corteconti.it/"
+        },
+        {
+          "text": "Apri fonte",
+          "href": "https://simpliciter.ai/ricerca/"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 14217,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-archivio-giurisprudenza.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Strumenti Forensi",
+      "route": "/strumenti-legali",
+      "viewport": "desktop",
+      "elapsedMs": 712,
+      "url": "http://127.0.0.1:8080/strumenti-legali",
+      "title": "IUSENTRA",
+      "h1": "Strumenti Forensi",
+      "h2": "Funzioni operative",
+      "textLength": 2977,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 56,
+      "cards": 81,
+      "links": [
+        {
+          "text": "Apri suite",
+          "href": "/strumenti-legali/"
+        },
+        {
+          "text": "CALCOLO\nSuite strumenti\nApri contributo unificato, interessi, onorari, TFR, usura e altri calcoli.\nApri suite",
+          "href": "/strumenti-legali/"
+        },
+        {
+          "text": "DM 55\nOnorari forensi\nCalcola fasi, valore controversia e parametri collegabili a preventivi.\nCalcola onorari",
+          "href": "/strumenti-legali/?tool=onorari_forensi"
+        },
+        {
+          "text": "DEPOSITO\nContributo unificato\nDetermina importi e controlli collegati al deposito.\nCalcola CU",
+          "href": "/strumenti-legali/?tool=contributo_unificato"
+        },
+        {
+          "text": "CREDITI\nInteressi legali e mora\nCalcola interessi per capitale, periodo e tasso applicabile.\nCalcola interessi",
+          "href": "/strumenti-legali/?tool=interessi"
+        },
+        {
+          "text": "INDICI\nRivalutazione ISTAT\nAggiorna importi e indici per conteggi documentabili.\nRivaluta importo",
+          "href": "/strumenti-legali/?tool=rivalutazione_istat"
+        },
+        {
+          "text": "BANCHE\nVerifica usura\nControlla soglie e dati del finanziamento prima del deposito in fascicolo.\nVerifica usura",
+          "href": "/strumenti-legali/?tool=usura"
+        },
+        {
+          "text": "MUTUI\nPiano ammortamento\nPrepara rate, interessi e residuo per mutui e finanziamenti.\nCrea piano",
+          "href": "/strumenti-legali/?tool=piano_ammortamento"
+        },
+        {
+          "text": "RISARCIMENTO\nDanno biologico\nStima il danno con eta, invalidita e personalizzazione.\nCalcola danno",
+          "href": "/strumenti-legali/?tool=danno_biologico"
+        },
+        {
+          "text": "PENALE\nPrescrizione reati\nValuta termini e sospensioni con una scheda riepilogativa.\nCalcola termine",
+          "href": "/strumenti-legali/?tool=prescrizione_penale"
+        },
+        {
+          "text": "FAMIGLIA\nSuccessione legittima\nRipartisci quote ereditarie in base ai soggetti indicati.\nCalcola quote",
+          "href": "/strumenti-legali/?tool=successione_legittima"
+        },
+        {
+          "text": "LOCAZIONI\nCedolare secca\nConfronta canoni e imposta dovuta per locazioni.\nCalcola imposta",
+          "href": "/strumenti-legali/?tool=cedolare_secca"
+        },
+        {
+          "text": "LAVORO\nTrattamento di fine rapporto\nCalcola quote, rivalutazione e riepilogo del rapporto.\nCalcola TFR",
+          "href": "/strumenti-legali/?tool=tfr"
+        },
+        {
+          "text": "CONSULENZE\nCompenso CTU\nPredisponi compenso e spese per consulenze tecniche.\nCalcola CTU",
+          "href": "/strumenti-legali/?tool=ctu"
+        },
+        {
+          "text": "ADR\nMediazione\nApri registro e riferimenti utili per costi e organismi.\nApri mediazione",
+          "href": "/legal-intelligence/mediazione"
+        },
+        {
+          "text": "INCARICHI\nPreventivo da calcolo\nPorta il risultato nel flusso guidato per preventivi e incarichi.\nCrea preventivo",
+          "href": "/preventivi/wizard"
+        },
+        {
+          "text": "Compensi Forensi",
+          "href": "/compensi-forensi"
+        },
+        {
+          "text": "Fascicoli",
+          "href": "/fascicoli"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 2137,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "desktop-load-strumenti-forensi.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Strumenti Forensi",
+      "route": "/strumenti-legali",
+      "viewport": "mobile",
+      "elapsedMs": 1470,
+      "url": "http://127.0.0.1:8080/strumenti-legali",
+      "title": "IUSENTRA",
+      "h1": "Strumenti Forensi",
+      "h2": "Funzioni operative",
+      "textLength": 2438,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 56,
+      "cards": 81,
+      "links": [
+        {
+          "text": "Apri suite",
+          "href": "/strumenti-legali/"
+        },
+        {
+          "text": "CALCOLO\nSuite strumenti\nApri contributo unificato, interessi, onorari, TFR, usura e altri calcoli.\nApri suite",
+          "href": "/strumenti-legali/"
+        },
+        {
+          "text": "DM 55\nOnorari forensi\nCalcola fasi, valore controversia e parametri collegabili a preventivi.\nCalcola onorari",
+          "href": "/strumenti-legali/?tool=onorari_forensi"
+        },
+        {
+          "text": "DEPOSITO\nContributo unificato\nDetermina importi e controlli collegati al deposito.\nCalcola CU",
+          "href": "/strumenti-legali/?tool=contributo_unificato"
+        },
+        {
+          "text": "CREDITI\nInteressi legali e mora\nCalcola interessi per capitale, periodo e tasso applicabile.\nCalcola interessi",
+          "href": "/strumenti-legali/?tool=interessi"
+        },
+        {
+          "text": "INDICI\nRivalutazione ISTAT\nAggiorna importi e indici per conteggi documentabili.\nRivaluta importo",
+          "href": "/strumenti-legali/?tool=rivalutazione_istat"
+        },
+        {
+          "text": "BANCHE\nVerifica usura\nControlla soglie e dati del finanziamento prima del deposito in fascicolo.\nVerifica usura",
+          "href": "/strumenti-legali/?tool=usura"
+        },
+        {
+          "text": "MUTUI\nPiano ammortamento\nPrepara rate, interessi e residuo per mutui e finanziamenti.\nCrea piano",
+          "href": "/strumenti-legali/?tool=piano_ammortamento"
+        },
+        {
+          "text": "RISARCIMENTO\nDanno biologico\nStima il danno con eta, invalidita e personalizzazione.\nCalcola danno",
+          "href": "/strumenti-legali/?tool=danno_biologico"
+        },
+        {
+          "text": "PENALE\nPrescrizione reati\nValuta termini e sospensioni con una scheda riepilogativa.\nCalcola termine",
+          "href": "/strumenti-legali/?tool=prescrizione_penale"
+        },
+        {
+          "text": "FAMIGLIA\nSuccessione legittima\nRipartisci quote ereditarie in base ai soggetti indicati.\nCalcola quote",
+          "href": "/strumenti-legali/?tool=successione_legittima"
+        },
+        {
+          "text": "LOCAZIONI\nCedolare secca\nConfronta canoni e imposta dovuta per locazioni.\nCalcola imposta",
+          "href": "/strumenti-legali/?tool=cedolare_secca"
+        },
+        {
+          "text": "LAVORO\nTrattamento di fine rapporto\nCalcola quote, rivalutazione e riepilogo del rapporto.\nCalcola TFR",
+          "href": "/strumenti-legali/?tool=tfr"
+        },
+        {
+          "text": "CONSULENZE\nCompenso CTU\nPredisponi compenso e spese per consulenze tecniche.\nCalcola CTU",
+          "href": "/strumenti-legali/?tool=ctu"
+        },
+        {
+          "text": "ADR\nMediazione\nApri registro e riferimenti utili per costi e organismi.\nApri mediazione",
+          "href": "/legal-intelligence/mediazione"
+        },
+        {
+          "text": "INCARICHI\nPreventivo da calcolo\nPorta il risultato nel flusso guidato per preventivi e incarichi.\nCrea preventivo",
+          "href": "/preventivi/wizard"
+        },
+        {
+          "text": "Compensi Forensi",
+          "href": "/compensi-forensi"
+        },
+        {
+          "text": "Fascicoli",
+          "href": "/fascicoli"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 4441,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-strumenti-forensi.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Strumenti Operativi",
+      "route": "/strumenti-operativi",
+      "viewport": "desktop",
+      "elapsedMs": 1160,
+      "url": "http://127.0.0.1:8080/strumenti-operativi",
+      "title": "IUSENTRA",
+      "h1": "Strumenti Operativi",
+      "h2": "Funzioni operative",
+      "textLength": 2922,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 58,
+      "cards": 86,
+      "links": [
+        {
+          "text": "Apri timesheet",
+          "href": "/timesheet"
+        },
+        {
+          "text": "TEMPO\nTimesheet\nRegistra attività e genera parcelle dalle ore lavorate.\nApri timesheet",
+          "href": "/timesheet"
+        },
+        {
+          "text": "CSV\nExport dati\nScarica dati studio per controlli, backup esterni e analisi.\nEsporta",
+          "href": "/export/fatturazione.csv"
+        },
+        {
+          "text": "CLIENTI\nCondivisioni\nGestisci cartelle condivise e accesso documentale dei clienti.\nApri condivisioni",
+          "href": "/cartelle-condivise"
+        },
+        {
+          "text": "PRIORITÀ\nRegia operativa\nTorna alla cabina con priorità e prossime azioni.\nApri regia",
+          "href": "/workspace-intelligente"
+        },
+        {
+          "text": "CALENDARIO\nAgenda\nApri appuntamenti, udienze e calendario dello studio.\nApri agenda",
+          "href": "/agenda"
+        },
+        {
+          "text": "AGENDA\nNuovo appuntamento\nInserisci un impegno collegato a cliente o fascicolo.\nCrea appuntamento",
+          "href": "/agenda/nuovo"
+        },
+        {
+          "text": "RICERCA\nRicerca studio\nTrova rapidamente fascicoli, clienti, scadenze, comunicazioni e documenti.\nCerca",
+          "href": "/global-search"
+        },
+        {
+          "text": "TERMINI\nScadenziario\nControlla termini, stati e prossime azioni da completare.\nApri scadenze",
+          "href": "/scadenziario"
+        },
+        {
+          "text": "COMUNICAZIONI\nMessaggi clienti\nGestisci conversazioni, SMS e WhatsApp collegati allo studio.\nApri messaggi",
+          "href": "/messaggi"
+        },
+        {
+          "text": "EMAIL\nPosta ordinaria\nApri email inviate e ricevute dal canale ordinario dello studio.\nApri posta",
+          "href": "/email-ordinaria/"
+        },
+        {
+          "text": "PEC\nPEC\nControlla casella, allegati e messaggi rilevanti per le pratiche.\nApri PEC",
+          "href": "/email/"
+        },
+        {
+          "text": "ARCHIVI\nDatabase\nVerifica archivi, integrità e manutenzione dei dati dello studio.\nApri database",
+          "href": "/admin/database"
+        },
+        {
+          "text": "CONTINUITÀ\nBackup\nControlla copie, verifica e pianificazione nella scheda impostazioni.\nApri backup",
+          "href": "/impostazioni?tab=backup"
+        },
+        {
+          "text": "SINCRONIZZAZIONE\nCalendari\nGestisci link riservati e sincronizzazione agenda.\nApri calendari",
+          "href": "/impostazioni/calendario"
+        },
+        {
+          "text": "SITO\nContatti sito\nApri richieste e prenotazioni arrivate dal sito dello studio.\nApri contatti",
+          "href": "/sito-studio/contatti"
+        },
+        {
+          "text": "TRACCIAMENTO\nRegistro attività\nConsulta eventi importanti e controlli amministrativi.\nApri registro",
+          "href": "/registro-attivita"
+        },
+        {
+          "text": "Agenda",
+          "href": "/agenda"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 2137,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "desktop-load-strumenti-operativi.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Strumenti Operativi",
+      "route": "/strumenti-operativi",
+      "viewport": "mobile",
+      "elapsedMs": 1005,
+      "url": "http://127.0.0.1:8080/strumenti-operativi",
+      "title": "IUSENTRA",
+      "h1": "Strumenti Operativi",
+      "h2": "Funzioni operative",
+      "textLength": 2406,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 58,
+      "cards": 86,
+      "links": [
+        {
+          "text": "Apri timesheet",
+          "href": "/timesheet"
+        },
+        {
+          "text": "TEMPO\nTimesheet\nRegistra attività e genera parcelle dalle ore lavorate.\nApri timesheet",
+          "href": "/timesheet"
+        },
+        {
+          "text": "CSV\nExport dati\nScarica dati studio per controlli, backup esterni e analisi.\nEsporta",
+          "href": "/export/fatturazione.csv"
+        },
+        {
+          "text": "CLIENTI\nCondivisioni\nGestisci cartelle condivise e accesso documentale dei clienti.\nApri condivisioni",
+          "href": "/cartelle-condivise"
+        },
+        {
+          "text": "PRIORITÀ\nRegia operativa\nTorna alla cabina con priorità e prossime azioni.\nApri regia",
+          "href": "/workspace-intelligente"
+        },
+        {
+          "text": "CALENDARIO\nAgenda\nApri appuntamenti, udienze e calendario dello studio.\nApri agenda",
+          "href": "/agenda"
+        },
+        {
+          "text": "AGENDA\nNuovo appuntamento\nInserisci un impegno collegato a cliente o fascicolo.\nCrea appuntamento",
+          "href": "/agenda/nuovo"
+        },
+        {
+          "text": "RICERCA\nRicerca studio\nTrova rapidamente fascicoli, clienti, scadenze, comunicazioni e documenti.\nCerca",
+          "href": "/global-search"
+        },
+        {
+          "text": "TERMINI\nScadenziario\nControlla termini, stati e prossime azioni da completare.\nApri scadenze",
+          "href": "/scadenziario"
+        },
+        {
+          "text": "COMUNICAZIONI\nMessaggi clienti\nGestisci conversazioni, SMS e WhatsApp collegati allo studio.\nApri messaggi",
+          "href": "/messaggi"
+        },
+        {
+          "text": "EMAIL\nPosta ordinaria\nApri email inviate e ricevute dal canale ordinario dello studio.\nApri posta",
+          "href": "/email-ordinaria/"
+        },
+        {
+          "text": "PEC\nPEC\nControlla casella, allegati e messaggi rilevanti per le pratiche.\nApri PEC",
+          "href": "/email/"
+        },
+        {
+          "text": "ARCHIVI\nDatabase\nVerifica archivi, integrità e manutenzione dei dati dello studio.\nApri database",
+          "href": "/admin/database"
+        },
+        {
+          "text": "CONTINUITÀ\nBackup\nControlla copie, verifica e pianificazione nella scheda impostazioni.\nApri backup",
+          "href": "/impostazioni?tab=backup"
+        },
+        {
+          "text": "SINCRONIZZAZIONE\nCalendari\nGestisci link riservati e sincronizzazione agenda.\nApri calendari",
+          "href": "/impostazioni/calendario"
+        },
+        {
+          "text": "SITO\nContatti sito\nApri richieste e prenotazioni arrivate dal sito dello studio.\nApri contatti",
+          "href": "/sito-studio/contatti"
+        },
+        {
+          "text": "TRACCIAMENTO\nRegistro attività\nConsulta eventi importanti e controlli amministrativi.\nApri registro",
+          "href": "/registro-attivita"
+        },
+        {
+          "text": "Agenda",
+          "href": "/agenda"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 4658,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-strumenti-operativi.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Sito Studio",
+      "route": "/sito-studio",
+      "viewport": "desktop",
+      "elapsedMs": 1553,
+      "url": "http://127.0.0.1:8080/sito-studio",
+      "title": "IUSENTRA",
+      "h1": "Sito Studio",
+      "h2": "Avvisi operativi",
+      "textLength": 2941,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 44,
+      "cards": 56,
+      "links": [
+        {
+          "text": "Contatti sito",
+          "href": "/sito-studio/contatti"
+        },
+        {
+          "text": "Anteprima pubblica",
+          "href": "http://127.0.0.1:8080/web/studio-legale-montagnese/"
+        },
+        {
+          "text": "Apri contatti sito",
+          "href": "/sito-studio/contatti"
+        },
+        {
+          "text": "Apri sito pubblico",
+          "href": "http://127.0.0.1:8080/web/studio-legale-montagnese/"
+        },
+        {
+          "text": "Apri editor sito",
+          "href": "/sito-studio/builder"
+        },
+        {
+          "text": "Apri Redazione AI",
+          "href": "/sito-studio/redazione-ai"
+        },
+        {
+          "text": "Percorso di recupero",
+          "href": "/sito-studio?_legacy=1"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 3499,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "desktop-load-sito-studio.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Sito Studio",
+      "route": "/sito-studio",
+      "viewport": "mobile",
+      "elapsedMs": 1476,
+      "url": "http://127.0.0.1:8080/sito-studio",
+      "title": "IUSENTRA",
+      "h1": "Sito Studio",
+      "h2": "Avvisi operativi",
+      "textLength": 2637,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 44,
+      "cards": 56,
+      "links": [
+        {
+          "text": "Contatti sito",
+          "href": "/sito-studio/contatti"
+        },
+        {
+          "text": "Anteprima pubblica",
+          "href": "http://127.0.0.1:8080/web/studio-legale-montagnese/"
+        },
+        {
+          "text": "Apri contatti sito",
+          "href": "/sito-studio/contatti"
+        },
+        {
+          "text": "Apri sito pubblico",
+          "href": "http://127.0.0.1:8080/web/studio-legale-montagnese/"
+        },
+        {
+          "text": "Apri editor sito",
+          "href": "/sito-studio/builder"
+        },
+        {
+          "text": "Apri Redazione AI",
+          "href": "/sito-studio/redazione-ai"
+        },
+        {
+          "text": "Percorso di recupero",
+          "href": "/sito-studio?_legacy=1"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 5784,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-sito-studio.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Amministrazione",
+      "route": "/amministrazione",
+      "viewport": "desktop",
+      "elapsedMs": 1124,
+      "url": "http://127.0.0.1:8080/amministrazione",
+      "title": "IUSENTRA",
+      "h1": "Amministrazione",
+      "h2": "Avvisi",
+      "textLength": 4343,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 54,
+      "cards": 116,
+      "links": [
+        {
+          "text": "Apri utenti",
+          "href": "/utenti"
+        },
+        {
+          "text": "Apri profili",
+          "href": "/profili"
+        },
+        {
+          "text": "Apri",
+          "href": "/utenti"
+        },
+        {
+          "text": "Apri",
+          "href": "/utenti/nuovo"
+        },
+        {
+          "text": "Apri",
+          "href": "/profili"
+        },
+        {
+          "text": "Apri",
+          "href": "/audit"
+        },
+        {
+          "text": "Apri",
+          "href": "/registro-attivita"
+        },
+        {
+          "text": "Apri",
+          "href": "/backup"
+        },
+        {
+          "text": "Apri",
+          "href": "/impostazioni"
+        },
+        {
+          "text": "Apri",
+          "href": "/impostazioni-studio"
+        },
+        {
+          "text": "Apri",
+          "href": "/impostazioni/calendario"
+        },
+        {
+          "text": "Apri",
+          "href": "/impostazioni/pagamenti"
+        },
+        {
+          "text": "Apri",
+          "href": "/sincronizzazione-calendari"
+        },
+        {
+          "text": "Apri utenti",
+          "href": "/utenti"
+        },
+        {
+          "text": "Apri profili",
+          "href": "/profili"
+        },
+        {
+          "text": "Apri audit",
+          "href": "/audit"
+        },
+        {
+          "text": "Registro attivita",
+          "href": "/registro-attivita"
+        },
+        {
+          "text": "Apri backup",
+          "href": "/backup"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 6520,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "desktop-load-amministrazione.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Amministrazione",
+      "route": "/amministrazione",
+      "viewport": "mobile",
+      "elapsedMs": 1072,
+      "url": "http://127.0.0.1:8080/amministrazione",
+      "title": "IUSENTRA",
+      "h1": "Amministrazione",
+      "h2": "Avvisi",
+      "textLength": 4008,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 54,
+      "cards": 116,
+      "links": [
+        {
+          "text": "Apri utenti",
+          "href": "/utenti"
+        },
+        {
+          "text": "Apri profili",
+          "href": "/profili"
+        },
+        {
+          "text": "Apri",
+          "href": "/utenti"
+        },
+        {
+          "text": "Apri",
+          "href": "/utenti/nuovo"
+        },
+        {
+          "text": "Apri",
+          "href": "/profili"
+        },
+        {
+          "text": "Apri",
+          "href": "/audit"
+        },
+        {
+          "text": "Apri",
+          "href": "/registro-attivita"
+        },
+        {
+          "text": "Apri",
+          "href": "/backup"
+        },
+        {
+          "text": "Apri",
+          "href": "/impostazioni"
+        },
+        {
+          "text": "Apri",
+          "href": "/impostazioni-studio"
+        },
+        {
+          "text": "Apri",
+          "href": "/impostazioni/calendario"
+        },
+        {
+          "text": "Apri",
+          "href": "/impostazioni/pagamenti"
+        },
+        {
+          "text": "Apri",
+          "href": "/sincronizzazione-calendari"
+        },
+        {
+          "text": "Apri utenti",
+          "href": "/utenti"
+        },
+        {
+          "text": "Apri profili",
+          "href": "/profili"
+        },
+        {
+          "text": "Apri audit",
+          "href": "/audit"
+        },
+        {
+          "text": "Registro attivita",
+          "href": "/registro-attivita"
+        },
+        {
+          "text": "Apri backup",
+          "href": "/backup"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 12011,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-amministrazione.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Utenti",
+      "route": "/utenti",
+      "viewport": "desktop",
+      "elapsedMs": 2864,
+      "url": "http://127.0.0.1:8080/utenti",
+      "title": "IUSENTRA",
+      "h1": "Gestione utenti",
+      "h2": "Ricerca e filtri",
+      "textLength": 2961,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 45,
+      "cards": 51,
+      "links": [
+        {
+          "text": "Nuovo utente",
+          "href": "/utenti/nuovo"
+        },
+        {
+          "text": "Profili",
+          "href": "/profili"
+        },
+        {
+          "text": "Percorso di recupero",
+          "href": "/utenti?_legacy=1"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 2402,
+      "loadingContext": [],
+      "console": [
+        "[DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o"
+      ],
+      "screenshot": "desktop-load-utenti.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Utenti",
+      "route": "/utenti",
+      "viewport": "mobile",
+      "elapsedMs": 1192,
+      "url": "http://127.0.0.1:8080/utenti",
+      "title": "IUSENTRA",
+      "h1": "Gestione utenti",
+      "h2": "Ricerca e filtri",
+      "textLength": 2627,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 45,
+      "cards": 51,
+      "links": [
+        {
+          "text": "Nuovo utente",
+          "href": "/utenti/nuovo"
+        },
+        {
+          "text": "Profili",
+          "href": "/profili"
+        },
+        {
+          "text": "Percorso di recupero",
+          "href": "/utenti?_legacy=1"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 4412,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-utenti.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Profili e Permessi",
+      "route": "/profili",
+      "viewport": "desktop",
+      "elapsedMs": 1601,
+      "url": "http://127.0.0.1:8080/profili",
+      "title": "IUSENTRA",
+      "h1": "Profili e permessi",
+      "h2": "Amministratore",
+      "textLength": 7038,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 41,
+      "cards": 67,
+      "links": [
+        {
+          "text": "Utenti",
+          "href": "/utenti"
+        },
+        {
+          "text": "Percorso di recupero",
+          "href": "/profili?_legacy=1"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 9791,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "desktop-load-profili-e-permessi.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Profili e Permessi",
+      "route": "/profili",
+      "viewport": "mobile",
+      "elapsedMs": 1331,
+      "url": "http://127.0.0.1:8080/profili",
+      "title": "IUSENTRA",
+      "h1": "Profili e permessi",
+      "h2": "Amministratore",
+      "textLength": 6722,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 41,
+      "cards": 67,
+      "links": [
+        {
+          "text": "Utenti",
+          "href": "/utenti"
+        },
+        {
+          "text": "Percorso di recupero",
+          "href": "/profili?_legacy=1"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 18453,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-profili-e-permessi.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Registro Attivita",
+      "route": "/audit",
+      "viewport": "desktop",
+      "elapsedMs": 1328,
+      "url": "http://127.0.0.1:8080/audit",
+      "title": "IUSENTRA",
+      "h1": "Registro attivita",
+      "h2": "Filtri",
+      "textLength": 6670,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 83,
+      "cards": 61,
+      "links": [
+        {
+          "text": "Esporta CSV",
+          "href": "/audit/esporta.csv"
+        },
+        {
+          "text": "Apri risorsa",
+          "href": "/fascicoli/7D70262C"
+        },
+        {
+          "text": "Apri risorsa",
+          "href": "/fascicoli/7D70262C"
+        },
+        {
+          "text": "Apri risorsa",
+          "href": "/fascicoli/7D70262C"
+        },
+        {
+          "text": "Apri risorsa",
+          "href": "/fascicoli/7D70262C"
+        },
+        {
+          "text": "Apri risorsa",
+          "href": "/fascicoli/7D70262C"
+        },
+        {
+          "text": "Apri risorsa",
+          "href": "/fascicoli/7D70262C"
+        },
+        {
+          "text": "Apri risorsa",
+          "href": "/fascicoli/7D70262C"
+        },
+        {
+          "text": "Apri risorsa",
+          "href": "/fascicoli/7D70262C"
+        },
+        {
+          "text": "Apri risorsa",
+          "href": "/fascicoli/7D70262C"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 8104,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "desktop-load-registro-attivita.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Registro Attivita",
+      "route": "/audit",
+      "viewport": "mobile",
+      "elapsedMs": 2890,
+      "url": "http://127.0.0.1:8080/audit",
+      "title": "IUSENTRA",
+      "h1": "Registro attivita",
+      "h2": "Filtri",
+      "textLength": 6339,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 83,
+      "cards": 61,
+      "links": [
+        {
+          "text": "Esporta CSV",
+          "href": "/audit/esporta.csv"
+        },
+        {
+          "text": "Apri risorsa",
+          "href": "/fascicoli/7D70262C"
+        },
+        {
+          "text": "Apri risorsa",
+          "href": "/fascicoli/7D70262C"
+        },
+        {
+          "text": "Apri risorsa",
+          "href": "/fascicoli/7D70262C"
+        },
+        {
+          "text": "Apri risorsa",
+          "href": "/fascicoli/7D70262C"
+        },
+        {
+          "text": "Apri risorsa",
+          "href": "/fascicoli/7D70262C"
+        },
+        {
+          "text": "Apri risorsa",
+          "href": "/fascicoli/7D70262C"
+        },
+        {
+          "text": "Apri risorsa",
+          "href": "/fascicoli/7D70262C"
+        },
+        {
+          "text": "Apri risorsa",
+          "href": "/fascicoli/7D70262C"
+        },
+        {
+          "text": "Apri risorsa",
+          "href": "/fascicoli/7D70262C"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 13987,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-registro-attivita.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Database",
+      "route": "/admin/database",
+      "viewport": "desktop",
+      "elapsedMs": 886,
+      "url": "http://127.0.0.1:8080/admin/database",
+      "title": "IUSENTRA",
+      "h1": "Gestione Database",
+      "h2": "",
+      "textLength": 1781,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 44,
+      "cards": 17,
+      "links": [
+        {
+          "text": "Export ZIP",
+          "href": "/admin/database/export"
+        },
+        {
+          "text": "Backup",
+          "href": "/backup"
+        },
+        {
+          "text": "Registro attività",
+          "href": "/audit"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 1136,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "desktop-load-database.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Database",
+      "route": "/admin/database",
+      "viewport": "mobile",
+      "elapsedMs": 3378,
+      "url": "http://127.0.0.1:8080/admin/database",
+      "title": "IUSENTRA",
+      "h1": "Gestione Database",
+      "h2": "",
+      "textLength": 1186,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 44,
+      "cards": 17,
+      "links": [
+        {
+          "text": "Export ZIP",
+          "href": "/admin/database/export"
+        },
+        {
+          "text": "Backup",
+          "href": "/backup"
+        },
+        {
+          "text": "Registro attività",
+          "href": "/audit"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 2198,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-database.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Registro GDPR",
+      "route": "/privacy/registro",
+      "viewport": "desktop",
+      "elapsedMs": 3234,
+      "url": "http://127.0.0.1:8080/privacy/registro",
+      "title": "IUSENTRA",
+      "h1": "Registro dei trattamenti",
+      "h2": "",
+      "textLength": 1375,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 43,
+      "cards": 9,
+      "links": [
+        {
+          "text": "Nuovo trattamento",
+          "href": "/privacy/registro/nuovo"
+        },
+        {
+          "text": "Esporta audit",
+          "href": "/audit/esporta.csv"
+        },
+        {
+          "text": "Nuovo trattamento",
+          "href": "/privacy/registro/nuovo"
+        },
+        {
+          "text": "Clienti e consensi",
+          "href": "/clienti"
+        },
+        {
+          "text": "Registro attività",
+          "href": "/audit"
+        },
+        {
+          "text": "Impostazioni studio",
+          "href": "/impostazioni"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 980,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "desktop-load-registro-gdpr.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Registro GDPR",
+      "route": "/privacy/registro",
+      "viewport": "mobile",
+      "elapsedMs": 1104,
+      "url": "http://127.0.0.1:8080/privacy/registro",
+      "title": "IUSENTRA",
+      "h1": "Registro dei trattamenti",
+      "h2": "",
+      "textLength": 893,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 43,
+      "cards": 9,
+      "links": [
+        {
+          "text": "Nuovo trattamento",
+          "href": "/privacy/registro/nuovo"
+        },
+        {
+          "text": "Esporta audit",
+          "href": "/audit/esporta.csv"
+        },
+        {
+          "text": "Nuovo trattamento",
+          "href": "/privacy/registro/nuovo"
+        },
+        {
+          "text": "Clienti e consensi",
+          "href": "/clienti"
+        },
+        {
+          "text": "Registro attività",
+          "href": "/audit"
+        },
+        {
+          "text": "Impostazioni studio",
+          "href": "/impostazioni"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 1933,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-registro-gdpr.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Impostazioni",
+      "route": "/impostazioni",
+      "viewport": "desktop",
+      "elapsedMs": 3112,
+      "url": "http://127.0.0.1:8080/impostazioni",
+      "title": "IUSENTRA",
+      "h1": "Impostazioni",
+      "h2": "",
+      "textLength": 1506,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 49,
+      "cards": 8,
+      "links": [],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 1138,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "desktop-load-impostazioni.png",
+      "warnings": [
+        "collegamenti_pagina_da_arricchire"
+      ],
+      "failures": []
+    },
+    {
+      "routeName": "Impostazioni",
+      "route": "/impostazioni",
+      "viewport": "mobile",
+      "elapsedMs": 3502,
+      "url": "http://127.0.0.1:8080/impostazioni",
+      "title": "IUSENTRA",
+      "h1": "Impostazioni",
+      "h2": "",
+      "textLength": 1181,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 49,
+      "cards": 8,
+      "links": [],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 2998,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-impostazioni.png",
+      "warnings": [
+        "collegamenti_pagina_da_arricchire"
+      ],
+      "failures": []
+    },
+    {
+      "routeName": "Backup",
+      "route": "/backup",
+      "viewport": "desktop",
+      "elapsedMs": 3180,
+      "url": "http://127.0.0.1:8080/backup",
+      "title": "IUSENTRA",
+      "h1": "Impostazioni",
+      "h2": "",
+      "textLength": 2690,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 58,
+      "cards": 6,
+      "links": [
+        {
+          "text": "Scarica",
+          "href": "/backup/004895f0-6245-4380-a0ba-e9727f6511b3/scarica"
+        },
+        {
+          "text": "Scarica",
+          "href": "/backup/20cdf58a-a2cd-420d-975b-9a4f0558b3ac/scarica"
+        },
+        {
+          "text": "Scarica",
+          "href": "/backup/3152efd7-4227-4c2f-b0de-86dfcba4ff6d/scarica"
+        },
+        {
+          "text": "Scarica",
+          "href": "/backup/484f9618-24f5-45fa-b451-bdd5c796a1c1/scarica"
+        },
+        {
+          "text": "Scarica",
+          "href": "/backup/ee58b3ae-71d9-4914-ad8f-8816ef37defc/scarica"
+        },
+        {
+          "text": "Scarica",
+          "href": "/backup/aefd68f9-8034-4eb5-a3b3-d608ba0ce714/scarica"
+        },
+        {
+          "text": "Scarica",
+          "href": "/backup/e0ec26eb-ccba-448d-bbc4-360db4206b7a/scarica"
+        },
+        {
+          "text": "Scarica",
+          "href": "/backup/8ea25109-b798-40ff-a3d0-d001bb16a73d/scarica"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 1615,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "desktop-load-backup.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Backup",
+      "route": "/backup",
+      "viewport": "mobile",
+      "elapsedMs": 3561,
+      "url": "http://127.0.0.1:8080/backup",
+      "title": "IUSENTRA",
+      "h1": "Impostazioni",
+      "h2": "",
+      "textLength": 2439,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 58,
+      "cards": 6,
+      "links": [
+        {
+          "text": "Scarica",
+          "href": "/backup/004895f0-6245-4380-a0ba-e9727f6511b3/scarica"
+        },
+        {
+          "text": "Scarica",
+          "href": "/backup/20cdf58a-a2cd-420d-975b-9a4f0558b3ac/scarica"
+        },
+        {
+          "text": "Scarica",
+          "href": "/backup/3152efd7-4227-4c2f-b0de-86dfcba4ff6d/scarica"
+        },
+        {
+          "text": "Scarica",
+          "href": "/backup/484f9618-24f5-45fa-b451-bdd5c796a1c1/scarica"
+        },
+        {
+          "text": "Scarica",
+          "href": "/backup/ee58b3ae-71d9-4914-ad8f-8816ef37defc/scarica"
+        },
+        {
+          "text": "Scarica",
+          "href": "/backup/aefd68f9-8034-4eb5-a3b3-d608ba0ce714/scarica"
+        },
+        {
+          "text": "Scarica",
+          "href": "/backup/e0ec26eb-ccba-448d-bbc4-360db4206b7a/scarica"
+        },
+        {
+          "text": "Scarica",
+          "href": "/backup/8ea25109-b798-40ff-a3d0-d001bb16a73d/scarica"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 3394,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-backup.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Notifiche",
+      "route": "/notifiche",
+      "viewport": "desktop",
+      "elapsedMs": 3257,
+      "url": "http://127.0.0.1:8080/notifiche",
+      "title": "IUSENTRA",
+      "h1": "Impostazioni",
+      "h2": "",
+      "textLength": 2335,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 59,
+      "cards": 7,
+      "links": [],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 1527,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "desktop-load-notifiche.png",
+      "warnings": [
+        "collegamenti_pagina_da_arricchire"
+      ],
+      "failures": []
+    },
+    {
+      "routeName": "Notifiche",
+      "route": "/notifiche",
+      "viewport": "mobile",
+      "elapsedMs": 3235,
+      "url": "http://127.0.0.1:8080/notifiche",
+      "title": "IUSENTRA",
+      "h1": "Impostazioni",
+      "h2": "",
+      "textLength": 1898,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 59,
+      "cards": 7,
+      "links": [],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 3216,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-notifiche.png",
+      "warnings": [
+        "collegamenti_pagina_da_arricchire"
+      ],
+      "failures": []
+    },
+    {
+      "routeName": "Calendari",
+      "route": "/impostazioni/calendario",
+      "viewport": "desktop",
+      "elapsedMs": 3222,
+      "url": "http://127.0.0.1:8080/impostazioni/calendario",
+      "title": "IUSENTRA",
+      "h1": "Impostazioni",
+      "h2": "",
+      "textLength": 2252,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 62,
+      "cards": 7,
+      "links": [
+        {
+          "text": "Apri in Google Calendar",
+          "href": "https://calendar.google.com/calendar/r/settings/addbyurl?url=https%3A%2F%2F127.0.0.1%3A8080%2Fcal%2FRj3YOUoY_eJwWvoBsKd90qNf8jXm_2fALpDEZH4e8Q4%2Fcompleto.ics"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 1574,
+      "loadingContext": [],
+      "console": [
+        "[DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o"
+      ],
+      "screenshot": "desktop-load-calendari.png",
+      "warnings": [
+        "collegamenti_pagina_da_arricchire"
+      ],
+      "failures": []
+    },
+    {
+      "routeName": "Calendari",
+      "route": "/impostazioni/calendario",
+      "viewport": "mobile",
+      "elapsedMs": 3248,
+      "url": "http://127.0.0.1:8080/impostazioni/calendario",
+      "title": "IUSENTRA",
+      "h1": "Impostazioni",
+      "h2": "",
+      "textLength": 1927,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 62,
+      "cards": 7,
+      "links": [
+        {
+          "text": "Apri in Google Calendar",
+          "href": "https://calendar.google.com/calendar/r/settings/addbyurl?url=https%3A%2F%2F127.0.0.1%3A8080%2Fcal%2FRj3YOUoY_eJwWvoBsKd90qNf8jXm_2fALpDEZH4e8Q4%2Fcompleto.ics"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 3683,
+      "loadingContext": [],
+      "console": [
+        "[DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o"
+      ],
+      "screenshot": "mobile-load-calendari.png",
+      "warnings": [
+        "collegamenti_pagina_da_arricchire"
+      ],
+      "failures": []
+    }
+  ]
+}

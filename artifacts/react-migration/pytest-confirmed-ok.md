@@ -1415,6 +1415,22 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | Playwright/CDP viewport 834x1112 e 390x844 su `/agenda/nuovo` | OK | Nessun overflow orizzontale, contenuto `Nuovo appuntamento` presente e form responsive dopo le modifiche autocomplete/autofill. |
 | `ssh iusentra-hetzner "cd /opt/iusentra/repo && BRANCH=Codex/legal-electronic-filing-kIxcV bash deploy/hetzner/deploy.sh"`; `GET https://app.iusentra.it/api/pronto`; `docker compose ... ps`; `docker compose ... exec -T app python -c "import pct; print(pct.__version__)"` | OK | Deploy Hetzner CPX42 completato per `2.236.3`; branch server `Codex/legal-electronic-filing-kIxcV`, container app/scheduler/OCR/Redis/Caddy/Ollama healthy o running, `/api/pronto` pubblico 200 `versione=2.236.3`, runtime container `2.236.3`. |
 
+## Audit UI/UX severo 2.236.4 - 2026-05-15
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile web\blueprints\admin.py pct\tenant.py web\blueprints\api_v1_react.py` | OK | Sintassi confermata dopo lazy storage admin, manifest storage opzionale senza reconcile e API JSON `/agenda/importa`. |
+| `node --check web\static\js\impostazioni-ai.js`; `node --check web\static\js\pct-lex-assistant.js`; `node --check scripts\react-migration\visual-load-audit.mjs` | OK | Testi visibili AI/Lex ripuliti da termini tecnici e audit visuale parametrico per label versione. |
+| `npm --prefix frontend run typecheck` | OK | TypeScript confermato dopo dialog focus trap, bottoni icona accessibili, tabella mobile e submit React agenda import. |
+| `npm --prefix frontend run test` | OK | Contratti React, App V2 frontend e UI coverage fase 9 confermati dopo la patch UI. |
+| `node frontend\scripts\check-react-contracts.mjs`; `node scripts\react-migration\check-route-gate.mjs`; `node scripts\react-migration\check-full-react-route-contract.mjs` | OK | Contratti React, route gate, anti-mascheramento e full React contract verdi. |
+| `npm --prefix frontend run build` | OK | Build Vite 2.236.4 completata in 6.52s; main JS `index-o-tks_dT.js` 445.70 kB / 131.88 kB gzip, CSS `index-BMXxk8lG.css` 123.50 kB / 22.64 kB gzip. |
+| `python -m pytest -q tests\test_react_shell.py::test_profilo_e_import_agenda_sono_route_react_operativa tests\test_tenant_admin_legacy.py::test_superadmin_ha_superficie_piattaforma_separata_dagli_utenti_studio tests\test_tenant_admin_legacy.py::test_admin_dettaglio_studio_mostra_storage_root_canonico_e_non_slug_legacy tests\test_storage_strategy.py::test_gestione_tenant_provision_storage_backend_creates_sqlite_and_manifest tests\test_storage_strategy.py::test_storage_manifest_mostra_postgresql_attivo_per_domini_core --tb=short` | OK | 5/5 passati: route profilo/import agenda, superfici admin tenant e manifest storage restano compatibili. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest -q tests\test_packaging_consistency.py tests\test_release_readiness.py --tb=short` | OK | Packaging sincronizzato e readiness release 8/8 dopo bump `2.236.4`. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx`; `GET http://127.0.0.1:8080/api/pronto`; `docker exec iusentra-app python -c "import pct; print(pct.__version__)"` | OK | Docker locale no-cache healthy; app, scheduler, OCR e Redis healthy; readiness locale 47 ms circa con `versione=2.236.4`; runtime container `2.236.4`. |
+| HTTP autenticato admin locale su `/admin/studi/antonella-mammola`, `/admin/api/studi/antonella-mammola/storage`, `/admin/studi/antonella-mammola/database` | OK | Dettaglio studio 48 ms circa, configurazione archivio 30 ms circa, conteggio spazio entro budget parziale di 2s; il timeout worker precedente e' risolto. |
+| Chrome CDP autenticato `artifacts/react-migration/visual-2.236.4/visual-load-audit.md` | OK | 46 route verificate in desktop e mobile, 92/92 controlli OK: zero login redirect, zero loading bloccati, zero form POST HTML nel perimetro React, zero testo tecnico vietato, zero overflow orizzontale. Picco caldo osservato: `/statistiche` mobile 4421 ms. |
+
 ## Fase react 3 - App V2 feature flag per pagina 2.224.0 - 2026-05-13
 
 | Comando / verifica | Esito | Nota |

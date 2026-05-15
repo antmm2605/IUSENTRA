@@ -1,8 +1,64 @@
-import { CalendarCheck, Download, FileUp, Link2, Settings2, UploadCloud } from 'lucide-react'
+import { type FormEvent, useState } from 'react'
+import { AlertTriangle, CalendarCheck, CheckCircle2, Download, FileUp, Link2, Loader2, Settings2, UploadCloud } from 'lucide-react'
 import { Button, Panel } from './dashboard'
+import { csrfToken } from '../formSubmit'
 import './AgendaImportPage.css'
 
 export function AgendaImportPage() {
+  const [status, setStatus] = useState<{ tone: 'idle' | 'loading' | 'success' | 'error'; message: string }>({
+    tone: 'idle',
+    message: '',
+  })
+  const csrf = csrfToken()
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const form = event.currentTarget
+    const data = new FormData(form)
+    if (csrf && !data.has('_csrf_token')) {
+      data.set('_csrf_token', csrf)
+    }
+    setStatus({ tone: 'loading', message: 'Preparazione anteprima in corso.' })
+    try {
+      const response = await fetch('/agenda/importa', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          Accept: 'text/html,application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          ...(csrf ? { 'X-CSRFToken': csrf } : {}),
+        },
+        body: data,
+      })
+      const html = await response.text()
+      if (!response.ok) {
+        throw new Error('Non ho potuto leggere il calendario. Controlla i dati e riprova.')
+      }
+      if (!html.trim()) {
+        throw new Error('Anteprima non disponibile. Controlla file o indirizzo calendario e riprova.')
+      }
+      setStatus({ tone: 'success', message: 'Anteprima pronta. Apertura del controllo eventi.' })
+      window.setTimeout(() => {
+        document.open()
+        document.write(html)
+        document.close()
+      }, 80)
+    } catch (error) {
+      setStatus({
+        tone: 'error',
+        message: error instanceof Error ? error.message : 'Importazione non riuscita. Controlla i campi e riprova.',
+      })
+    }
+  }
+
+  const statusIcon = status.tone === 'loading'
+    ? <Loader2 size={16} aria-hidden="true" />
+    : status.tone === 'success'
+      ? <CheckCircle2 size={16} aria-hidden="true" />
+      : status.tone === 'error'
+        ? <AlertTriangle size={16} aria-hidden="true" />
+        : null
+
   return (
     <main className="iu-content iu-agenda-import-page">
       <section className="iu-agenda-import-hero">
@@ -18,7 +74,8 @@ export function AgendaImportPage() {
       </section>
 
       <section className="iu-agenda-import-grid">
-        <form className="iu-agenda-import-form" action="/agenda/importa" method="post" encType="multipart/form-data">
+        <form className="iu-agenda-import-form" encType="multipart/form-data" onSubmit={handleSubmit}>
+          {csrf ? <input type="hidden" name="_csrf_token" value={csrf} /> : null}
           <input type="hidden" name="fase" value="upload" />
           <header>
             <FileUp size={18} />
@@ -89,8 +146,14 @@ export function AgendaImportPage() {
             <input type="checkbox" name="salva_profilo" value="1" />
             <span>Salva la sorgente remota nelle impostazioni calendario</span>
           </label>
+          {status.tone !== 'idle' ? (
+            <div className={`iu-agenda-import-status is-${status.tone}`} role={status.tone === 'error' ? 'alert' : 'status'}>
+              {statusIcon}
+              <span>{status.message}</span>
+            </div>
+          ) : null}
           <footer>
-            <button type="submit"><Download size={16} /> Carica anteprima</button>
+            <button type="submit" disabled={status.tone === 'loading'}><Download size={16} /> {status.tone === 'loading' ? 'Preparazione...' : 'Carica anteprima'}</button>
             <a href="/agenda">Annulla</a>
           </footer>
         </form>

@@ -145,3 +145,10 @@ Card operative: ActionCard, CompactCard, KpiCard esistente, DetailPanel, Summary
 - I campi derivati in Agenda sono mostrati come dati professionali dello studio: codice fiscale, procedimento, ufficio e avvocato responsabile; nessun fallback demo o mock.
 - Scadenziario sostituisce `repository_reali` con `dati dello studio` e mantiene azioni leggibili: filtra, completa, elimina, apri dettaglio, export e Lex.
 - Le liste Clienti/Soggetti/Fascicoli conservano densita' tabellare ma aggiungono scrollbar superiore per l'uso desktop senza cambiare la disposizione mobile.
+
+## Aggiornamento 2.236.4 - 2026-05-15
+
+- Revisione UI/UX severa completata su 46 route operative con Chrome CDP desktop/mobile: report `artifacts/react-migration/visual-2.236.4/visual-load-audit.md`, 92/92 controlli OK.
+- Corrette incoerenze comuni: testi lunghi in card/menu, bottoni icona senza label, drawer/modali senza focus trap, tabelle non leggibili su mobile e stati di caricamento non sufficientemente governati.
+- Ripuliti testi da sviluppatore in admin, AI locale, Lex assistant e compensi: la UI mostra linguaggio professionale per studio legale, date italiane dove toccate e messaggi errore leggibili.
+- Le correzioni CSS restano nel design system: wrapping/clamp, action row responsivi, data table a card mobile e focus ring visibile; nessuna isola grafica nuova o palette estranea.

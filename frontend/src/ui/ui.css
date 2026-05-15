@@ -666,7 +666,7 @@
 .iu-modal {
   position: fixed;
   inset: 0;
-  z-index: 50;
+  z-index: 130;
   display: grid;
   background: oklch(20% .02 250 / 38%);
 }
@@ -923,6 +923,12 @@
 
   .iu-btn {
     width: 100%;
+    justify-content: center;
+  }
+
+  .iu-modal__actions,
+  .iu-sticky-action-bar {
+    flex-wrap: wrap;
   }
 
   .iu-legacy-form__submit {

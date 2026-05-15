@@ -24,6 +24,18 @@ const apiAliasMarkers = new Map([
   ['/strumenti-legali', ['("/studio-modules/<module_id>")', "('/studio-modules/<module_id>')"]],
   ['/strumenti-operativi', ['("/studio-modules/<module_id>")', "('/studio-modules/<module_id>')"]],
   ['/deposito/checklist', ['("/telematico/surface/<surface>")', "('/telematico/surface/<surface>')"]],
+  ['/polisWeb', ['("/telematico/surface/<surface>")', "('/telematico/surface/<surface>')"]],
+  ['/pdp', ['("/telematico/surface/<surface>")', "('/telematico/surface/<surface>')"]],
+  ['/pat', ['("/telematico/surface/<surface>")', "('/telematico/surface/<surface>')"]],
+  ['/sigit', ['("/telematico/surface/<surface>")', "('/telematico/surface/<surface>')"]],
+  ['/tribunali', ['("/telematico/surface/<surface>")', "('/telematico/surface/<surface>')"]],
+  ['/guida/firma-digitale', ['("/telematico/surface/<surface>")', "('/telematico/surface/<surface>')"]],
+  ['/portali/pst/acquisizione', ['("/telematico/surface/<surface>")', "('/telematico/surface/<surface>')"]],
+  ['/portali/pdp/acquisizione', ['("/telematico/surface/<surface>")', "('/telematico/surface/<surface>')"]],
+  ['/portali/pat/acquisizione', ['("/telematico/surface/<surface>")', "('/telematico/surface/<surface>')"]],
+  ['/portali/ptt/acquisizione', ['("/telematico/surface/<surface>")', "('/telematico/surface/<surface>')"]],
+  ['/portali/sigit/acquisizione', ['("/telematico/surface/<surface>")', "('/telematico/surface/<surface>')"]],
+  ['/servizi-telematici', ['("/telematico")', "('/telematico')"]],
   ['/preventivi/conferimento/:id', ['("/preventivi/conferimento/<id_conferimento>")', "('/preventivi/conferimento/<id_conferimento>')"]],
 ])
 

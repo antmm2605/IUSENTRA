@@ -145,10 +145,10 @@ export function BuilderProperties({
                 <TextField label="Immagine elemento" value={item.image_url} onChange={(image_url) => onUpdateItem(index, { image_url })} />
                 <TextField label="Testo alternativo" value={item.image_alt} onChange={(image_alt) => onUpdateItem(index, { image_alt })} />
                 <div className="iu-builder-mini-actions">
-                  <button type="button" onClick={() => onMoveItem(index, -1)} disabled={index === 0}><ArrowUp size={14} /></button>
-                  <button type="button" onClick={() => onMoveItem(index, 1)} disabled={index === block.items.length - 1}><ArrowDown size={14} /></button>
-                  <button type="button" onClick={() => onDuplicateItem(index)}><Copy size={14} /></button>
-                  <button type="button" onClick={() => onDeleteItem(index)}><Trash2 size={14} /></button>
+                  <button type="button" onClick={() => onMoveItem(index, -1)} disabled={index === 0} aria-label="Sposta elemento in alto" title="Sposta in alto"><ArrowUp size={14} aria-hidden="true" /></button>
+                  <button type="button" onClick={() => onMoveItem(index, 1)} disabled={index === block.items.length - 1} aria-label="Sposta elemento in basso" title="Sposta in basso"><ArrowDown size={14} aria-hidden="true" /></button>
+                  <button type="button" onClick={() => onDuplicateItem(index)} aria-label="Duplica elemento" title="Duplica"><Copy size={14} aria-hidden="true" /></button>
+                  <button type="button" onClick={() => onDeleteItem(index)} aria-label="Elimina elemento" title="Elimina"><Trash2 size={14} aria-hidden="true" /></button>
                 </div>
               </article>
             )) : <p className="iu-builder-muted">Questo blocco non contiene elementi interni.</p>}

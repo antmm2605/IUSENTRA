@@ -10,6 +10,8 @@ Generato: 2026-05-08
 - `IusChannelCard`, `IusMessageList` e `LexPanel` usano testo visibile, badge e label esplicite, non solo colore.
 - 2026-05-09: passaggio browser reale sulle route `/deposito/checklist`, `/strumenti-legali` e `/strumenti-operativi` in desktop/tablet/mobile; titoli, link e pulsanti restano visibili e raggiungibili senza overflow orizzontale.
 - 2026-05-11: `/fascicoli/nuovo` 2.216.0 usa `details`/`summary` nativi per rendere collassabili le sezioni del form, mantenendo titoli visibili, icone di supporto e input file con label testuali per documenti iniziali ed email EML.
+- 2026-05-15: `Drawer` e `Modal` condivisi gestiscono focus iniziale, Tab trap, Escape, backdrop e ripristino focus; bottoni icona in TopBar, builder Sito Studio e admin hanno `aria-label`/`title`; le icone decorative sono escluse dal nome accessibile.
+- 2026-05-15: audit visuale 2.236.4 conferma 92/92 controlli desktop/mobile senza redirect login, form POST HTML nel perimetro React, loading bloccato o overflow orizzontale.
 
 ## Problemi corretti
 

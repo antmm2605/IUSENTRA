@@ -10,6 +10,7 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 import sqlite3
+from time import monotonic
 
 from flask import (
     Blueprint,
@@ -76,7 +77,7 @@ def _utenti_tenant(slug: str) -> GestioneUtenti:
     studio = tm.get(slug)
     if not studio:
         abort(404)
-    percorsi = tm.percorsi_dati(slug)
+    percorsi = tm.percorsi_dati(slug, reconcile_aliases=False)
     studio_db = None
     try:
         studio_db = build_core_storage_backend(
@@ -767,10 +768,9 @@ def dettaglio_studio(slug: str):
     # Conta solo utenti di questo tenant
     utenti_studio = [u for u in utenti if _utente_del_tenant(u, slug)]
 
-    # Uso storage
-    data_dir = tm.data_dir(slug)
-    storage_mb = _calc_storage_mb(data_dir)
-    storage_paths = tm.percorsi_dati(slug)
+    # Solo lettura: evita riconciliazioni di archivio durante il rendering.
+    storage_paths = tm.percorsi_dati(slug, reconcile_aliases=False)
+    data_dir = Path(storage_paths["STUDIO_DB"]).parent
 
     return render_template(
         "admin/studio_dettaglio.html",
@@ -780,10 +780,10 @@ def dettaglio_studio(slug: str):
         piani=PIANI,
         db_mode_info=DB_MODE_INFO,
         db_mode_choices=_db_mode_choices(studio.database.mode),
-        storage_manifest=tm.storage_manifest(slug),
+        storage_manifest=tm.storage_manifest(slug, reconcile_aliases=False),
         storage_paths=storage_paths,
         storage_root_path=str(data_dir),
-        storage_mb=storage_mb,
+        storage_mb=None,
     )
 
 
@@ -892,7 +892,6 @@ def impersona_studio(slug: str):
     session["superadmin_tenant_slug"] = ""
 
     # Imposta contesto tenant
-    percorsi = tm.percorsi_dati(slug)
     session["user_id"]      = admin_studio.id
     session["tenant_slug"]  = slug
     session["auth_scope"]   = "tenant"
@@ -1174,8 +1173,8 @@ def database_studio(slug: str):
         db=studio.database,
         db_mode_info=DB_MODE_INFO,
         db_mode_choices=_db_mode_choices(studio.database.mode),
-        storage_manifest=tm.storage_manifest(slug),
-        storage_paths=tm.percorsi_dati(slug),
+        storage_manifest=tm.storage_manifest(slug, reconcile_aliases=False),
+        storage_paths=tm.percorsi_dati(slug, reconcile_aliases=False),
         DbMode=DbMode,
     )
 
@@ -1211,9 +1210,17 @@ def api_storage_studio(slug: str):
     studio = tm.get(slug)
     if not studio:
         return jsonify({"errore": "Studio non trovato"}), 404
-    data_dir = tm.data_dir(slug)
-    mb = _calc_storage_mb(data_dir)
-    return jsonify({"slug": slug, "storage_mb": mb, "limite_mb": studio.limite_storage_mb})
+    storage_paths = tm.percorsi_dati(slug, reconcile_aliases=False)
+    data_dir = Path(storage_paths["STUDIO_DB"]).parent
+    mb, complete = _calc_storage_mb_budget(data_dir)
+    return jsonify(
+        {
+            "slug": slug,
+            "storage_mb": mb,
+            "limite_mb": studio.limite_storage_mb,
+            "complete": complete,
+        }
+    )
 
 
 @admin_bp.route("/api/governance")
@@ -1229,3 +1236,22 @@ def _calc_storage_mb(path: Path) -> float:
         return 0.0
     total = sum(f.stat().st_size for f in path.rglob("*") if f.is_file())
     return round(total / (1024 * 1024), 2)
+
+
+def _calc_storage_mb_budget(path: Path, *, max_seconds: float = 2.0) -> tuple[float, bool]:
+    if not path.exists():
+        return 0.0, True
+
+    deadline = monotonic() + max_seconds
+    total = 0
+    complete = True
+    for item in path.rglob("*"):
+        if monotonic() > deadline:
+            complete = False
+            break
+        try:
+            if item.is_file():
+                total += item.stat().st_size
+        except OSError:
+            continue
+    return round(total / (1024 * 1024), 2), complete

@@ -241,7 +241,7 @@ export function CompensiForensiPage() {
             ))}
           </div>
         </section>
-        <Panel title="Calcolo compensi" subtitle="Nessuna formula viene eseguita nel browser.">
+        <Panel title="Calcolo compensi" subtitle="Calcolo eseguito dal gestionale con parametri verificati.">
           {data.actions.canCalculate ? (
             <div className="iu-comp-form">
               <label>

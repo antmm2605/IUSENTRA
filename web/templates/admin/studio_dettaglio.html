@@ -20,7 +20,7 @@
       <a href="{{ url_for('admin.database_studio', slug=studio.slug) }}"
          class="badge bg-{{ db_info.colore or 'secondary' }} text-decoration-none"
          title="Configurazione database">
-        <i class="bi {{ db_info.icona or 'bi-database' }} me-1"></i>{{ db_info.nome or db.normalized_mode }}
+        <i class="bi {{ db_info.icona or 'bi-database' }} me-1" aria-hidden="true"></i>{{ db_info.nome or db.normalized_mode }}
         {% if db.normalized_mode == 'POSTGRESQL' %}
           {% if db.connessione_ok %}
           <i class="bi bi-check-circle-fill ms-1 text-white"></i>
@@ -30,7 +30,7 @@
         {% endif %}
       </a>
     </div>
-    <p class="text-muted small mb-0"><code>/{{ studio.slug }}</code></p>
+    <p class="text-muted small mb-0">Identificativo studio: <code>/{{ studio.slug }}</code></p>
   </div>
   <div class="d-flex gap-2 flex-wrap">
     <!-- Impersona -->
@@ -236,16 +236,16 @@
         <div class="small mb-3">
           <div class="d-flex justify-content-between mb-1">
             <span class="text-muted">Creato</span>
-            <strong>{{ studio.data_creazione[:10] if studio.data_creazione else '—' }}</strong>
+            <strong>{{ studio.data_creazione|fmt_data if studio.data_creazione else '—' }}</strong>
           </div>
           <div class="d-flex justify-content-between mb-1">
             <span class="text-muted">Attivato</span>
-            <strong>{{ studio.data_attivazione[:10] if studio.data_attivazione else '—' }}</strong>
+            <strong>{{ studio.data_attivazione|fmt_data if studio.data_attivazione else '—' }}</strong>
           </div>
           <div class="d-flex justify-content-between">
             <span class="text-muted">Scadenza</span>
             <strong class="{{ 'text-danger' if studio.is_scaduto else 'text-success' if studio.giorni_alla_scadenza and studio.giorni_alla_scadenza > 14 else 'text-warning' }}">
-              {{ studio.data_scadenza[:10] if studio.data_scadenza else '—' }}
+              {{ studio.data_scadenza|fmt_data if studio.data_scadenza else '—' }}
               {% if studio.giorni_alla_scadenza is not none %}
               <small>({{ studio.giorni_alla_scadenza }} gg)</small>
               {% endif %}
@@ -262,7 +262,7 @@
               {% endfor %}
             </select>
             <button class="btn btn-warning btn-sm" type="submit">
-              <i class="bi bi-arrow-repeat"></i>
+          <i class="bi bi-arrow-repeat" aria-hidden="true"></i><span class="visually-hidden">Aggiorna piano</span>
             </button>
           </div>
         </form>
@@ -272,7 +272,7 @@
     <!-- Storage -->
     <div class="card mb-3">
       <div class="card-header fw-semibold d-flex align-items-center gap-2">
-        <i class="bi bi-database text-info"></i> Strategia Storage
+        <i class="bi bi-database text-info"></i> Archivio dati
         <a href="{{ url_for('admin.database_studio', slug=studio.slug) }}"
            class="btn btn-sm btn-outline-info ms-auto py-0 px-2">
           <i class="bi bi-gear me-1"></i>Configura
@@ -285,19 +285,13 @@
           <i class="bi {{ db_info.icona or 'bi-database' }} text-{{ db_info.colore or 'secondary' }} fs-5"></i>
           <div>
             <div class="fw-semibold small">{{ db_info.nome or db.normalized_mode }}</div>
-            {% if db.normalized_mode == 'POSTGRESQL' %}
-            <div class="text-muted" style="font-size:.72rem">{{ db.connection_url_safe }}</div>
-            {% elif db.normalized_mode == 'SQLITE' %}
-            <div class="text-muted" style="font-size:.72rem">{{ storage_paths.STUDIO_DB }}</div>
-            {% else %}
-            <div class="text-muted" style="font-size:.72rem">{{ storage_root_path or ('./data/tenants/' ~ studio.slug ~ '/') }}</div>
-            {% endif %}
+            <div class="text-muted" style="font-size:.72rem">Archivio operativo dello studio</div>
           </div>
         </div>
         {% if storage_manifest %}
         <div class="small text-muted mb-2">
-          Backend effettivo moduli core: <strong>{{ storage_manifest.effective_runtime_kind }}</strong>
-          <span class="ms-2">· stato: <strong>{{ storage_manifest.activation_state }}</strong></span>
+          Archivio operativo configurato
+          <span class="ms-2">· stato: <strong>{{ storage_manifest.activation_state|replace('_', ' ')|title }}</strong></span>
         </div>
         {% endif %}
         {% if db.normalized_mode == 'POSTGRESQL' %}
@@ -310,12 +304,12 @@
           <span class="badge bg-secondary">Non testata</span>
           {% endif %}
           {% if db.ultimo_test %}
-          <span class="text-muted">{{ db.ultimo_test[:16].replace('T',' ') }}</span>
+          <span class="text-muted">{{ db.ultimo_test|fmt_dataora }}</span>
           {% endif %}
         </div>
         {% if db.errore_connessione %}
         <div class="mt-1 text-danger" style="font-size:.72rem">
-          <code>{{ db.errore_connessione[:120] }}{% if db.errore_connessione|length > 120 %}…{% endif %}</code>
+          Verifica connessione non riuscita. Apri la configurazione archivio.
         </div>
         {% endif %}
         {% endif %}
@@ -325,22 +319,27 @@
     <!-- Storage -->
     <div class="card mb-3">
       <div class="card-header fw-semibold d-flex align-items-center gap-2">
-        <i class="bi bi-hdd-fill text-secondary"></i> Storage
+        <i class="bi bi-hdd-fill text-secondary"></i> Spazio archivio
       </div>
       <div class="card-body">
-        {% set pct_storage = (storage_mb / studio.limite_storage_mb * 100)|int if studio.limite_storage_mb > 0 else 0 %}
-        <div class="d-flex justify-content-between small mb-1">
-          <span>{{ storage_mb }} MB usati</span>
+        {% set has_storage_value = storage_mb is not none %}
+        {% set pct_storage = (storage_mb / studio.limite_storage_mb * 100)|int if has_storage_value and studio.limite_storage_mb > 0 else 0 %}
+        <div id="studioStorageUsage"
+             data-storage-url="{{ url_for('admin.api_storage_studio', slug=studio.slug) }}"
+             data-limit-mb="{{ studio.limite_storage_mb }}"
+             class="d-flex justify-content-between small mb-1">
+          <span data-role="used">{% if has_storage_value %}{{ storage_mb }} MB usati{% else %}Calcolo in corso...{% endif %}</span>
           <span>{{ studio.limite_storage_mb if studio.limite_storage_mb > 0 else '∞' }} MB</span>
         </div>
         {% if studio.limite_storage_mb > 0 %}
         <div class="progress" style="height:8px">
           <div class="progress-bar {{ 'bg-danger' if pct_storage > 90 else 'bg-warning' if pct_storage > 70 else 'bg-success' }}"
+               data-role="bar"
                style="width:{{ [pct_storage, 100]|min }}%"></div>
         </div>
-        <div class="text-muted" style="font-size:.72rem;margin-top:.25rem">{{ pct_storage }}% utilizzato</div>
+        <div class="text-muted" data-role="percent" style="font-size:.72rem;margin-top:.25rem">{% if has_storage_value %}{{ pct_storage }}% utilizzato{% else %}Calcolo in corso...{% endif %}</div>
         {% else %}
-        <div class="text-success small">Storage illimitato</div>
+        <div class="text-success small">Archivio senza limite</div>
         {% endif %}
       </div>
     </div>
@@ -348,23 +347,23 @@
     <!-- API Key -->
     <div class="card mb-3">
       <div class="card-header fw-semibold d-flex align-items-center gap-2">
-        <i class="bi bi-key-fill text-muted"></i> API Key Studio
+        <i class="bi bi-key-fill text-muted"></i> Chiave riservata studio
       </div>
       <div class="card-body">
         <div class="input-group input-group-sm mb-2">
           <input type="password" id="apiKeyField" class="form-control font-monospace small"
                  value="{{ studio.api_key }}" readonly>
-          <button class="btn btn-outline-secondary" type="button" id="toggleApiKey" title="Mostra/nascondi">
-            <i class="bi bi-eye"></i>
+          <button class="btn btn-outline-secondary" type="button" id="toggleApiKey" title="Mostra o nascondi chiave" aria-label="Mostra o nascondi chiave riservata">
+            <i class="bi bi-eye" aria-hidden="true"></i>
           </button>
-          <button class="btn btn-outline-secondary" type="button" id="copyApiKey" title="Copia">
-            <i class="bi bi-clipboard"></i>
+          <button class="btn btn-outline-secondary" type="button" id="copyApiKey" title="Copia chiave" aria-label="Copia chiave riservata">
+            <i class="bi bi-clipboard" aria-hidden="true"></i>
           </button>
         </div>
         <form method="post" action="{{ url_for('admin.rigenera_api_key', slug=studio.slug) }}"
-              onsubmit="return confirm('Rigenerare la API key? La vecchia chiave sarà invalidata.')">
+              onsubmit="return confirm('Rigenerare la chiave riservata? La chiave precedente sara invalidata.')">
           <button type="submit" class="btn btn-sm btn-outline-danger w-100">
-            <i class="bi bi-arrow-repeat me-1"></i>Rigenera API Key
+            <i class="bi bi-arrow-repeat me-1"></i>Rigenera chiave
           </button>
         </form>
       </div>
@@ -373,13 +372,16 @@
     <!-- Info tecnica -->
     <div class="card">
       <div class="card-header fw-semibold d-flex align-items-center gap-2">
-        <i class="bi bi-info-circle text-muted"></i> Informazioni tecniche
+        <i class="bi bi-info-circle text-muted"></i> Dati per assistenza
       </div>
       <div class="card-body small">
-        <div class="text-muted mb-1">ID</div>
-        <code style="font-size:.7rem;word-break:break-all">{{ studio.id }}</code>
-        <div class="text-muted mt-2 mb-1">Directory dati</div>
-        <code style="font-size:.7rem">{{ storage_root_path or ('./data/tenants/' ~ studio.slug ~ '/') }}</code>
+        <details>
+          <summary class="fw-semibold">Mostra riferimenti di assistenza</summary>
+          <div class="text-muted mt-2 mb-1">Identificativo interno</div>
+          <code style="font-size:.7rem;word-break:break-all">{{ studio.id }}</code>
+          <div class="text-muted mt-2 mb-1">Archivio dati dello studio</div>
+          <code style="font-size:.7rem;word-break:break-all">{{ storage_root_path or ('./data/tenants/' ~ studio.slug ~ '/') }}</code>
+        </details>
       </div>
     </div>
 
@@ -389,6 +391,31 @@
 
 {% block scripts %}
 <script>
+const storageUsage = document.getElementById('studioStorageUsage');
+if (storageUsage) {
+  const used = storageUsage.querySelector('[data-role="used"]');
+  const bar = document.querySelector('[data-role="bar"]');
+  const percent = document.querySelector('[data-role="percent"]');
+  const limitMb = Number(storageUsage.dataset.limitMb || 0);
+  fetch(storageUsage.dataset.storageUrl, { headers: { 'Accept': 'application/json' } })
+    .then(response => response.ok ? response.json() : Promise.reject(new Error('storage')))
+    .then(data => {
+      const mb = Number(data.storage_mb || 0);
+      const pct = limitMb > 0 ? Math.min(Math.round((mb / limitMb) * 100), 100) : 0;
+      if (used) used.textContent = `${mb.toLocaleString('it-IT')} MB usati`;
+      if (bar) bar.style.width = `${pct}%`;
+      if (percent) {
+        percent.textContent = limitMb > 0
+          ? `${pct}% utilizzato${data.complete === false ? ' (conteggio parziale)' : ''}`
+          : 'Archivio senza limite impostato';
+      }
+    })
+    .catch(() => {
+      if (used) used.textContent = 'Conteggio non disponibile';
+      if (percent) percent.textContent = 'Riprova aggiornando la pagina.';
+    });
+}
+
 // Toggle API key visibility
 document.getElementById('toggleApiKey').addEventListener('click', function() {
   const f = document.getElementById('apiKeyField');

@@ -354,12 +354,12 @@
       '<article class="settings-ai-stat">' +
       '<div class="settings-ai-stat__label">Documenti indicizzati</div>' +
       '<div class="settings-ai-stat__value">' + formatNumberIt(counts.documents_total ?? 0) + '</div>' +
-      '<div class="settings-ai-stat__meta">Chunk totali ' + formatNumberIt(counts.chunks_total ?? 0) + '</div>' +
+      '<div class="settings-ai-stat__meta">Sezioni totali ' + formatNumberIt(counts.chunks_total ?? 0) + '</div>' +
       '</article>' +
       '<article class="settings-ai-stat">' +
       '<div class="settings-ai-stat__label">Embeddings pronti</div>' +
       '<div class="settings-ai-stat__value">' + formatNumberIt(counts.chunks_embedded ?? 0) + '</div>' +
-      '<div class="settings-ai-stat__meta">Chunk in coda ' + formatNumberIt(counts.chunks_pending ?? 0) + '</div>' +
+      '<div class="settings-ai-stat__meta">Sezioni in attesa ' + formatNumberIt(counts.chunks_pending ?? 0) + '</div>' +
       '</article>' +
       '<article class="settings-ai-stat">' +
       '<div class="settings-ai-stat__label">Modello operativo</div>' +
@@ -368,29 +368,29 @@
       '</article>' +
       '<article class="settings-ai-stat">' +
       '<div class="settings-ai-stat__label">Motore collegato</div>' +
-      '<div class="settings-ai-stat__value settings-ai-installer__value--mono">' + escapeHtml(effectiveBaseUrl) + '</div>' +
-      '<div class="settings-ai-stat__meta">Host reale ' + escapeHtml(hostPlatform) + ' · Ambiente IUSENTRA ' + escapeHtml(executionLabel) + '</div>' +
+      '<div class="settings-ai-stat__value">' + escapeHtml(runtimeLive ? 'Raggiungibile' : (payload?.settings?.base_url ? 'Configurato' : 'Da completare')) + '</div>' +
+      '<div class="settings-ai-stat__meta">Dispositivo ' + escapeHtml(hostPlatform) + ' · Servizio ' + escapeHtml(executionLabel) + '</div>' +
       '</article>' +
       (runtime.last_error
         ? '<article class="settings-ai-stat settings-ai-stat--danger settings-ai-stat--full">' +
-          '<div class="settings-ai-stat__label">Ultimo errore</div>' +
-          '<div class="settings-ai-stat__meta">' + escapeHtml(runtime.last_error) + '</div>' +
+          '<div class="settings-ai-stat__label">Ultimo controllo non riuscito</div>' +
+          '<div class="settings-ai-stat__meta">Ripeti la verifica o aggiorna la preparazione locale dal pannello.</div>' +
           '</article>'
         : '');
 
     installer.innerHTML =
       '<div class="settings-ai-installer__hero">' +
-      '<div class="settings-ai-installer__title">' + escapeHtml(installerData.summary_title || 'Provisioning locale') + '</div>' +
-      '<div class="settings-ai-installer__body">' + escapeHtml(installerData.summary_body || 'Informazioni di provisioning non disponibili.') + '</div>' +
+      '<div class="settings-ai-installer__title">' + escapeHtml(installerData.summary_title || 'Preparazione locale') + '</div>' +
+      '<div class="settings-ai-installer__body">' + escapeHtml(installerData.summary_body || 'Informazioni di preparazione non disponibili.') + '</div>' +
       '</div>' +
       '<div class="settings-ai-installer__grid">' +
       '<div class="settings-ai-installer__item"><div class="settings-ai-installer__label">Strategia</div><div class="settings-ai-installer__value">' + escapeHtml(installerData.strategy_label || 'n.d.') + '</div></div>' +
       '<div class="settings-ai-installer__item"><div class="settings-ai-installer__label">Versione ufficiale rilevata</div><div class="settings-ai-installer__value">' + escapeHtml(installerData.latest_version || 'n.d.') + '</div><div class="settings-ai-installer__meta">' + formatDateTimeIt(installerData.latest_published_at) + '</div></div>' +
       '<div class="settings-ai-installer__item"><div class="settings-ai-installer__label">' + escapeHtml(installerData.asset_label || 'Pacchetto consigliato') + '</div><div class="settings-ai-installer__value">' + escapeHtml(installerData.asset_name || 'n.d.') + '</div><div class="settings-ai-installer__meta">' + formatBytes(installerData.asset_size_bytes) + '</div></div>' +
-      '<div class="settings-ai-installer__item"><div class="settings-ai-installer__label">Percorso gestito</div><div class="settings-ai-installer__value settings-ai-installer__value--mono">' + escapeHtml(installerData.managed_runtime_dir || 'n.d.') + '</div></div>' +
-      '<div class="settings-ai-installer__item"><div class="settings-ai-installer__label">Host reale</div><div class="settings-ai-installer__value">' + escapeHtml(hostPlatform) + '</div><div class="settings-ai-installer__meta">Architettura ' + escapeHtml(installerData.host_machine || installerData.machine || 'n.d.') + '</div></div>' +
-      '<div class="settings-ai-installer__item"><div class="settings-ai-installer__label">Ambiente IUSENTRA</div><div class="settings-ai-installer__value">' + escapeHtml(executionLabel) + '</div><div class="settings-ai-installer__meta">' + (installerData.containerized ? 'Motore applicativo in container' : 'Motore applicativo nativo') + '</div></div>' +
-      '<div class="settings-ai-installer__item settings-ai-installer__item--full"><div class="settings-ai-installer__label">Eseguibile rilevato</div><div class="settings-ai-installer__value settings-ai-installer__value--mono">' + escapeHtml(detectedExecutable) + '</div></div>' +
+      '<div class="settings-ai-installer__item"><div class="settings-ai-installer__label">Cartella servizio</div><div class="settings-ai-installer__value">' + escapeHtml(installerData.managed_runtime_dir ? 'Gestita dal dispositivo' : 'n.d.') + '</div></div>' +
+      '<div class="settings-ai-installer__item"><div class="settings-ai-installer__label">Dispositivo rilevato</div><div class="settings-ai-installer__value">' + escapeHtml(hostPlatform) + '</div><div class="settings-ai-installer__meta">Tipo macchina ' + escapeHtml(installerData.host_machine || installerData.machine || 'n.d.') + '</div></div>' +
+      '<div class="settings-ai-installer__item"><div class="settings-ai-installer__label">Modalita servizio</div><div class="settings-ai-installer__value">' + escapeHtml(executionLabel) + '</div><div class="settings-ai-installer__meta">' + (installerData.containerized ? 'Servizio applicativo isolato' : 'Servizio applicativo locale') + '</div></div>' +
+      '<div class="settings-ai-installer__item settings-ai-installer__item--full"><div class="settings-ai-installer__label">Servizio rilevato</div><div class="settings-ai-installer__value">' + escapeHtml(detectedExecutable ? 'Presente sul dispositivo' : 'Non rilevato') + '</div></div>' +
       (executableMissing && installerData.asset_download_url
         ? '<div class="settings-ai-installer__item settings-ai-installer__item--full"><div class="settings-ai-installer__label">Installazione richiesta</div><div class="settings-ai-installer__body">Eseguibile non rilevato: <a href="' + escapeHtml(installerData.asset_download_url) + '" target="_blank" rel="noreferrer">scarica installer ufficiale</a>, completa l\'installazione e poi aggiorna lo stato operativo.</div></div>'
         : '') +
@@ -433,8 +433,8 @@
         disk_free_gb: null,
         last_health_check_at: new Date().toISOString(),
         last_error: outdated
-          ? 'Il Local Signer e\' installato ma va aggiornato per supportare il bridge AI locale.'
-          : 'Il browser non riesce a raggiungere il Local Signer su questo dispositivo.',
+          ? 'Il Local Signer e\' installato ma va aggiornato per supportare AI locale.'
+          : 'Il servizio locale non risponde su questo dispositivo.',
       },
       runtime_online: false,
       runtime_version_live: '',
@@ -454,9 +454,9 @@
         strategy_label: 'Servizio locale sul dispositivo cliente',
         summary_title: outdated ? 'Aggiornamento Local Signer richiesto' : 'Servizio locale non rilevato',
         summary_body: outdated
-          ? 'La web app online ha trovato un Local Signer raggiungibile, ma la versione installata non espone ancora il bridge AI locale. Aggiornalo dal pacchetto ufficiale e poi ripeti il controllo.'
-          : 'Quando IUSENTRA e\' online, il browser deve parlare con il Local Signer sul dispositivo cliente. Installa o avvia il servizio locale su questa macchina e poi ripeti il controllo.',
-        distribution_scope: reason || 'Il motore AI resta sul dispositivo cliente e non viene eseguito dal browser.',
+          ? 'IUSENTRA ha trovato un Local Signer raggiungibile, ma la versione installata non abilita ancora AI locale. Aggiornalo dal pacchetto ufficiale e poi ripeti il controllo.'
+          : 'Quando IUSENTRA e online, il servizio locale deve essere attivo sul dispositivo dello studio. Installa o avvia Local Signer e poi ripeti il controllo.',
+        distribution_scope: reason || 'Il motore AI resta sul dispositivo dello studio.',
         host_platform: platformKey,
         host_machine: 'n.d.',
         execution_platform: platformKey,
@@ -525,7 +525,7 @@
     } catch (error) {
       if (config.remoteHosted) {
         const payload = companionUnavailablePayload(
-          'Servizio locale non raggiungibile dal browser su http://127.0.0.1:27272 dopo il tentativo di avvio automatico.',
+          'Servizio locale non raggiungibile su questo dispositivo dopo il tentativo di avvio automatico.',
           Number(error.httpStatus || 0) === 404
         );
         renderLocalAiStatus(payload);
@@ -533,7 +533,7 @@
           'warning',
           Number(error.httpStatus || 0) === 404 ? 'Aggiornamento richiesto' : 'Servizio locale non raggiungibile',
           Number(error.httpStatus || 0) === 404
-            ? 'Il Local Signer risponde ma non supporta ancora il bridge AI locale. Aggiornalo da questo dispositivo e poi ripeti il controllo.'
+            ? 'Il Local Signer risponde ma non abilita ancora AI locale. Aggiornalo da questo dispositivo e poi ripeti il controllo.'
             : 'Ho provato ad avviare automaticamente Local Signer. Se resta non raggiungibile, installa il pacchetto indicato su questo dispositivo e poi ripeti il controllo.'
         );
         return;
@@ -603,13 +603,13 @@
         meta.tone === 'danger' ? 'danger' : meta.tone === 'warning' ? 'warning' : 'success',
         meta.label,
         result.status === 'ready'
-          ? 'Il runtime locale e i modelli richiesti risultano pronti sul dispositivo corrente.'
-          : (result.error || 'La procedura e\' terminata ma il runtime richiede ancora una verifica operativa.')
+          ? 'Il motore locale e i modelli richiesti risultano pronti sul dispositivo corrente.'
+          : (result.error || 'La procedura e terminata ma il motore locale richiede ancora una verifica operativa.')
       );
     } catch (error) {
       if (config.remoteHosted) {
         const payload = companionUnavailablePayload(
-          'Il browser non riesce a raggiungere il Local Signer su questo dispositivo dopo il tentativo di avvio automatico.',
+          'Il servizio locale non risponde su questo dispositivo dopo il tentativo di avvio automatico.',
           Number(error.httpStatus || 0) === 404
         );
         renderLocalAiStatus(payload);
@@ -623,7 +623,7 @@
         showAiFeedback(
           'danger',
           'Preparazione non riuscita',
-          'Non sono riuscito a completare la preparazione del runtime locale. Il gestionale resta operativo e puoi riprovare senza interrompere il lavoro.'
+          'Non sono riuscito a completare la preparazione del motore locale. Il gestionale resta operativo e puoi riprovare senza interrompere il lavoro.'
         );
       }
     } finally {
@@ -639,8 +639,8 @@
     window.open(versionUrl, '_blank', 'noopener,noreferrer');
     showAiFeedback(
       'info',
-      'Controllo endpoint aperto',
-      'Ho aperto il controllo corretto su /api/version. Se la root /api da sola restituisce 404 e /api/version risponde, il runtime Ollama e\' configurato correttamente.'
+      'Controllo servizio aperto',
+      'Ho aperto la pagina di verifica del servizio locale. Se risponde correttamente, il motore AI e configurato.'
     );
   }
 

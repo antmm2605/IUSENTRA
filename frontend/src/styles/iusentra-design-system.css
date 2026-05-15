@@ -258,7 +258,7 @@
 }
 
 .ius-empty-state {
-  min-height: 180px;
+  min-height: clamp(128px, 18vh, 180px);
   display: grid;
   place-items: center;
   gap: 12px;
@@ -299,7 +299,7 @@
 }
 
 .ius-feedback-state {
-  min-height: 178px;
+  min-height: clamp(126px, 18vh, 178px);
   display: grid;
   place-items: center;
   gap: 12px;
@@ -706,6 +706,67 @@
 .ius-data-table-shell td {
   color: var(--ius-text);
   vertical-align: middle;
+}
+
+@media (max-width: 760px) {
+  .ius-data-table-shell {
+    overflow-x: visible;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .ius-data-table-shell [data-slot="table-container"] {
+    overflow-x: visible;
+  }
+
+  .ius-data-table-shell table,
+  .ius-data-table-shell thead,
+  .ius-data-table-shell tbody,
+  .ius-data-table-shell tr,
+  .ius-data-table-shell th,
+  .ius-data-table-shell td {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .ius-data-table-shell thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+
+  .ius-data-table-shell tbody {
+    display: grid;
+    gap: 10px;
+  }
+
+  .ius-data-table-shell tr {
+    border: 1px solid var(--ius-border);
+    border-radius: 12px;
+    background: var(--ius-surface);
+    box-shadow: var(--ius-shadow-soft);
+  }
+
+  .ius-data-table-shell td {
+    display: grid;
+    grid-template-columns: minmax(92px, 38%) minmax(0, 1fr);
+    gap: 10px;
+    padding: 10px 12px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .ius-data-table-shell td::before {
+    content: attr(data-label);
+    color: var(--ius-muted);
+    font-size: 12px;
+    font-weight: 850;
+    text-transform: uppercase;
+  }
 }
 
 .ius-lex-floating-button {

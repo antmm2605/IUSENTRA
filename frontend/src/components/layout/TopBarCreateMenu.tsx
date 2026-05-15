@@ -196,7 +196,7 @@ export function TopBarCreateMenu({
 
   return (
     <div className="iu-topbar-popover" ref={ref}>
-      <button className="iu-new iu-topbar-new" type="button" onClick={onToggle} aria-haspopup="menu" aria-expanded={open}>
+      <button className="iu-new iu-topbar-new" type="button" onClick={onToggle} aria-haspopup="menu" aria-expanded={open} aria-label="Crea nuovo elemento" title="Crea nuovo elemento">
         {icon}
         <span>Nuovo</span>
       </button>

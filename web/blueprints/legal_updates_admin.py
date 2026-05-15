@@ -25,14 +25,12 @@ def _reviewer_name() -> str:
 
 
 def _selected_tenant_slug() -> str:
-    if request.is_json:
-        body = request.get_json(silent=True) or {}
-        return str(body.get("tenant_slug") or "").strip().lower()
-    return str(request.values.get("tenant_slug") or request.args.get("tenant_slug") or "").strip().lower()
+    # Presidio condiviso: questa console non seleziona piu' uno studio.
+    return ""
 
 
 def _redirect_kwargs(tenant_slug: str) -> dict[str, str]:
-    return {"tenant_slug": tenant_slug} if tenant_slug else {}
+    return {}
 
 
 def _request_payload() -> dict[str, Any]:

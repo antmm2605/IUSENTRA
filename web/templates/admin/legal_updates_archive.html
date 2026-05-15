@@ -3,7 +3,7 @@
 {% block title %}Archivio aggiornamenti legali{% endblock %}
 
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{{ url_for('legal_updates_admin.dashboard', tenant_slug=tenant_slug) }}" class="text-decoration-none">Aggiornamenti legali</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('legal_updates_admin.dashboard') }}" class="text-decoration-none">Aggiornamenti legali</a></li>
 <li class="breadcrumb-item active" aria-current="page">Archivio</li>
 {% endblock %}
 
@@ -13,21 +13,14 @@
     <div>
       <h1 class="h3 mb-1">Archivio strutturato</h1>
       <p class="text-muted mb-0">Normative, giurisprudenza, prassi, news e audit del motore di aggiornamento.</p>
-      {% if tenant_slug %}
-      <div class="small text-muted mt-1">
-        Studio attivo: <strong>{{ payload.runtime.tenant_registry_name or payload.runtime.tenant_name or tenant_slug }}</strong>
-        {% if payload.runtime.tenant_name_mismatch and payload.runtime.tenant_configured_name %}
-        · configurazione interna: {{ payload.runtime.tenant_configured_name }}
-        {% endif %}
-      </div>
-      {% endif %}
+      <div class="small text-muted mt-1">Archivio comune: le pubblicazioni sono disponibili per tutti gli studi.</div>
     </div>
-    <a href="{{ url_for('legal_updates_admin.dashboard', tenant_slug=tenant_slug) }}" class="btn btn-outline-secondary">Torna alla dashboard</a>
+    <a href="{{ url_for('legal_updates_admin.dashboard') }}" class="btn btn-outline-secondary">Torna alla dashboard</a>
   </div>
 
   <div class="li-tabstrip">
     {% for tab, label in {'normative':'Normative','jurisprudence':'Giurisprudenza','prassi':'Prassi','news':'News','audit':'Audit'}.items() %}
-    <a href="{{ url_for('legal_updates_admin.archive_page', tab=tab, tenant_slug=tenant_slug) }}" class="btn btn-sm {% if selected_tab == tab %}btn-primary{% else %}btn-outline-secondary{% endif %}">{{ label }}</a>
+    <a href="{{ url_for('legal_updates_admin.archive_page', tab=tab) }}" class="btn btn-sm {% if selected_tab == tab %}btn-primary{% else %}btn-outline-secondary{% endif %}">{{ label }}</a>
     {% endfor %}
   </div>
 

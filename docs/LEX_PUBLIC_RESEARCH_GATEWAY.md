@@ -8,7 +8,7 @@
 
 ## Aggiornamento operativo 2.238.0 - 2026-05-15
 
-La pagina React `/ricerca-legale` usa ora lo stesso principio del gateway Lex: la query viene inviata al backend, cercata prima nell'archivio giuridico tenant-aware `legal_updates.db` e poi, quando le fonti interne non sono sufficienti, inoltrata al Public Legal Research Gateway dopo riscrittura privacy-safe.
+La pagina React `/ricerca-legale` usa ora lo stesso principio del gateway Lex: la query viene inviata al backend, cercata prima nell'archivio giuridico condiviso `legal_updates.db` e poi, quando le fonti interne non sono sufficienti, inoltrata al Public Legal Research Gateway dopo riscrittura privacy-safe.
 
 La UI mostra il contesto della fonte, non solo il nome: titolo, estratto, autorita', data e link consultabile. Il fallback web resta limitato alle fonti ufficiali allowlisted e non riceve dati di fascicolo, cliente o studio.
 

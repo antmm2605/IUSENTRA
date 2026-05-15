@@ -49,7 +49,7 @@ Questo consente al superadmin di capire subito se il cutover e' riuscito o dove 
 - giurisprudenza
 - repository telematico
 - workspace intelligence
-- aggiornamenti legali
+- aggiornamenti legali, su archivio applicativo condiviso e non duplicato per studio
 - coverage AI
 
 ## Regole di attivazione

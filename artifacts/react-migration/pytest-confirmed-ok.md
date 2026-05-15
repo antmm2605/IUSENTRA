@@ -1,12 +1,27 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-15, hotfix Lex chat sentenze 2.238.2.
+Aggiornato: 2026-05-15, hotfix Aggiornamenti legali condivisi 2.238.3.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Hotfix Aggiornamenti legali condivisi 2.238.3 - 2026-05-15
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct\legal_update_pipeline.py web\services\legal_update_surface.py web\helpers.py tests\test_legal_updates_pipeline.py`; `python -m py_compile web\blueprints\legal_updates_admin.py pct\__init__.py` | OK | Sintassi confermata dopo passaggio di Update Intelligence ad archivio applicativo condiviso, blocco del DSN tenant implicito e rimozione selezione studio dalla console admin. |
+| `python -m pytest tests\test_legal_updates_pipeline.py -q --tb=short` | OK | 18/18 passati: pipeline, admin pages/API, pagina Fonti e regressioni multi-studio confermano che `tenant_slug` viene ignorato e il repository resta quello condiviso. |
+| `python -m pytest tests\test_storage_postgres_migration.py::test_copy_legal_updates_to_postgres_migra_news_normativa_e_review -q --tb=short` | OK | Migrazione PostgreSQL esplicita ancora verde: il backend SQL resta disponibile solo quando viene passato un DSN intenzionale, senza ereditarlo dal tenant della request. |
+| `python -m py_compile web\services\assistente_studio_context.py tests\test_assistente_studio_context_giurisprudenza.py`; `python -m pytest tests\test_assistente_studio_context_giurisprudenza.py -q --tb=short` | OK | 2/2 passati: il contesto Lex descrive gli aggiornamenti legali come archivio condiviso e non riporta piu' la vecchia dicitura tenant-aware. |
+| Controllo template `legal_updates_*.html` su `name="tenant_slug"`, `tenant_slug=`, `Studio attivo`, `tenant selezionato`, `archivi globali impliciti` | OK | Nessuna occorrenza: dashboard, Fonti, Acquisizione, Analisi, Archivio, Review e Dettaglio non espongono piu' selezione studio. |
+| `python -m pytest tests\test_react_legal_intelligence_search.py tests\test_assistente_studio_context_giurisprudenza.py -q --tb=short` | OK | 5/5 passati: Ricerca Legale e contesto Lex continuano a leggere `legal_updates.db` dopo il cambio di scope condiviso. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py -q --tb=short` | OK | Packaging sincronizzato e readiness release 8/8 verde su versione `2.238.3`. |
+| `python -m ruff check pct\legal_update_pipeline.py web\services\legal_update_surface.py web\services\assistente_studio_context.py web\blueprints\legal_updates_admin.py web\helpers.py tests\test_legal_updates_pipeline.py tests\test_assistente_studio_context_giurisprudenza.py` | OK | Ruff mirato verde sul perimetro Python modificato. |
+| `python scripts\validate_docs_links.py docs\LEGAL_UPDATE_INTELLIGENCE.md docs\STORAGE_MATRIX.md docs\STORAGE_MIGRATION_PLAN.md docs\LEX_PUBLIC_RESEARCH_GATEWAY.md docs\LEX_PUBLIC_LEGAL_SOURCES.md docs\REACT_MIGRATION_MASTER_PLAN.md`; `python scripts\validate_docs_commands.py`; `git diff --check -- <perimetro aggiornamenti legali condivisi>` | OK | Link documentali validi: 21 documenti, 157 link locali; comandi documentali 155/155. Diff check senza errori, con soli warning CRLF informativi su tre documenti. |
+| `python -m pytest tests\test_legal_updates_pipeline.py tests\test_assistente_studio_context_giurisprudenza.py tests\test_react_legal_intelligence_search.py tests\test_storage_postgres_migration.py::test_copy_legal_updates_to_postgres_migra_news_normativa_e_review tests\test_packaging_consistency.py tests\test_release_readiness.py -q --tb=short`; `python scripts\validate_docs_commands.py`; `git diff --check -- . ':!data/*'` | OK | Gate finale aggregato 32/32 verde; comandi documentali 155/155; diff check senza errori, con soli warning CRLF informativi sui documenti storage/update intelligence. |
 
 ### Hotfix Lex chat sentenze 2.238.2 - 2026-05-15
 

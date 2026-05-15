@@ -1,5 +1,16 @@
 # Migrazione progressiva Flask + React
 
+## Hotfix Aggiornamenti legali condivisi - 2026-05-15 - 2.238.3
+
+La console superadmin `/admin/aggiornamenti-legali` e la pagina `Fonti` non
+sono piu' divise per studio: fonti, acquisizione, analisi, archivio, review,
+pubblicazione e API admin usano l'archivio applicativo condiviso
+`legal_updates.db` derivato dal `LEGAL_INTELLIGENCE_DB` globale.
+
+Questo evita scansioni duplicate quando la piattaforma ospita piu' studi. I
+dati privati dello studio restano tenant-aware negli altri domini; la
+condivisione riguarda solo aggiornamenti giuridici pubblici e fonti comuni.
+
 ## Hotfix Lex chat sentenze e 500 controllato - 2026-05-15 - 2.238.2
 
 Il widget Lex integrato nella shell non mostra piu' il corpo HTML di una pagina

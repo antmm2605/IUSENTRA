@@ -31,7 +31,7 @@ Legenda:
 | Operativita' fascicolo | Documenti AI Fascicolo | R/W | R/W | R/W | schema governato | Wave 3 - workspace professionali | JSON tenant-aware in `fascicoli/documenti_ai/documenti_ai.json` come fallback esplicito; repository persistente SQLite/PostgreSQL attivo con `pct/sql/20260505_documenti_ai*.sql`; file originali e testi estratti su filesystem tenant |
 | Motori legali | Legal intelligence, monitoraggio e audit fonti | R/W | R/W | R/W | parita' completa | Wave 5 - intelligence | JSON tenant-aware come export/recovery, senza fallback invisibili |
 | Motori legali | Giurisprudenza e corpus interno | R/W | R/W | R/W | parita' completa | Wave 5 - intelligence | JSON tenant-aware come export/import storico controllato |
-| Motori legali | Update Intelligence, news e archivio normativo assistito | R/W | R/W | R/W | parita' completa | Wave 5 - intelligence | repository SQL/PostgreSQL dedicato, JSON solo come export amministrativo |
+| Motori legali | Update Intelligence, news e archivio normativo assistito | R/W | R/W | R/W | parita' completa | Wave 5 - intelligence | repository SQL applicativo condiviso da tutti gli studi, JSON solo come export amministrativo |
 | Motori legali | Coverage AI, gap queue, draft v2 e publish SQL | - | R/W | R/W | parita' completa | Wave 5 - intelligence | pipeline SQL reale su `studio.db` o PostgreSQL tenant-aware, senza fallback fittizi |
 | Telematico | PST, PDP, PAT e PTT/SIGIT | R/W | R/W | R/W | parita' completa | Wave 3 - workspace professionali | metadati e repository su SQL/PostgreSQL, file e buste sempre su filesystem tenant |
 | Telematico | Uffici giudiziari e PEC | R/W | R | R | schema governato, runtime cache JSON-first | Wave 3 - workspace professionali | cache JSON esplicita per continuita'; SQL/PostgreSQL predisposti in `pct/sql/20260430_uffici_giudiziari_pec*.sql`, senza fallback invisibile quando verra' attivato il repository tenant-aware |
@@ -55,8 +55,8 @@ Legenda:
 - L'adapter Docling di Lex e' un parser opzionale in-memory attivato da `LEX_DOCLING_ENABLED=1`: produce metadati citabili per evidence pack e, quando si persiste RAG, deve confluire nelle tabelle `rag_documents`/`rag_chunks` del dominio `AI locale` senza creare fallback invisibili o sorgenti parallele.
 - Local Deep Research e' un sidecar opzionale per ricerche pubbliche. I suoi dati applicativi restano nel data root scrivibile e non diventano fonte primaria IUSENTRA: Lex continua a usare retrieval tenant-aware per fascicoli, clienti, atti e documenti interni.
 - i moduli economici condividono lo stesso percorso ufficiale di migrazione `JSON -> SQLite -> PostgreSQL` con report di consistenza; il compenso a tempo ex art. 22-bis D.M. 55/2014 e' persistito su preventivi, conferimenti, log economico e fatturazione con migrazioni SQLite/PostgreSQL dedicate.
-- anche `Update Intelligence` e `Coverage AI` rientrano nello stesso programma ufficiale di migrazione, con repository SQL locale e replica PostgreSQL tenant-aware.
-- Lex AI consuma `Update Intelligence` dal repository SQL/PostgreSQL `legal_updates.db`; `legal_updates_repository.json` e `giurisprudenza.json` non sono sorgenti runtime e restano solo export/mirror espliciti.
+- `Update Intelligence` usa un repository SQL locale condiviso di piattaforma, per evitare scansioni e review duplicate tra studi; `Coverage AI` resta invece sul perimetro tenant-aware dello studio.
+- Lex AI consuma `Update Intelligence` dal repository SQL `legal_updates.db` condiviso; `legal_updates_repository.json` e `giurisprudenza.json` non sono sorgenti runtime e restano solo export/mirror espliciti.
 - l'`Assistenza remota cliente` e' un dominio di piattaforma: sessioni, eventi, consensi ed escalation vivono nel repository SQL dedicato e non degradano su JSON.
 - `Sito Studio` usa un repository SQL dedicato per tenant, mentre immagini e asset restano su filesystem tenant-aware; `strumenti legali`, `applicazioni` e `news giuridiche strutturate` vengono pubblicati solo quando il flag amministrativo del sito e' attivo.
 - `Uffici giudiziari e PEC` resta runtime JSON-first per la cache storica degli uffici, ma ora ha schema SQLite/PostgreSQL esplicito e report di verifica con fonti PST/IPA distinte; il cutover R/W SQL richiede repository tenant-aware e job schedulato dedicato.
@@ -72,6 +72,6 @@ Legenda:
 - appuntamenti, scadenze e riferimenti forti invariati
 - template termini processuali, versioni regole/calendario e audit hashati invariati
 - timesheet, preventivi, conferimenti, parcelle e link pagamento coerenti tra cliente e fascicolo
-- fonti, staging, review queue, news, normative, giurisprudenza e prassi di `Update Intelligence` coerenti tra SQL locale e PostgreSQL
+- fonti, staging, review queue, news, normative, giurisprudenza e prassi di `Update Intelligence` coerenti nell'archivio SQL condiviso di piattaforma
 - snapshot, gap queue, draft e publish history di `Coverage AI` coerenti tra `studio.db` e PostgreSQL tenant-aware
 - report di migrazione persistito sotto `backup/` del tenant

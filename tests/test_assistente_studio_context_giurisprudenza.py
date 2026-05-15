@@ -170,7 +170,7 @@ def test_aggiornamenti_legali_lines_usa_repository_sql_per_lex(monkeypatch):
 
     lines, sources = _aggiornamenti_legali_lines("ultimi aggiornamenti Cassazione")
 
-    assert any("Aggiornamenti legali SQL tenant-aware" in line for line in lines)
+    assert any("Aggiornamenti legali condivisi" in line for line in lines)
     assert any("Lex AI legge gli aggiornamenti da legal_updates.db" in line for line in lines)
     assert any("Cassazione su responsabilita medica" in line for line in lines)
     assert any(source["id"] == "legal-updates:dashboard" for source in sources)

@@ -318,7 +318,7 @@ class LegalUpdatePipeline:
         self.giurisprudenza_db_path = str(giurisprudenza_db_path or "").strip()
         self.ai_base_url = str(ai_base_url or "").strip()
         self.ai_model = str(ai_model or "").strip() or "mistral"
-        self.postgres_dsn = resolve_runtime_postgres_dsn(postgres_dsn)
+        self.postgres_dsn = resolve_runtime_postgres_dsn(postgres_dsn) if str(postgres_dsn or "").strip() else ""
         self.export_json_enabled = bool(export_json_enabled)
         self.mirror_giurisprudenza_json_enabled = bool(mirror_giurisprudenza_json_enabled)
         cfg = LegalUpdateDbConfig.from_anchor(self.intelligence_db_path)

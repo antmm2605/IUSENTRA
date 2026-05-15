@@ -1562,7 +1562,7 @@ def _aggiornamenti_legali_lines(question: str) -> tuple[list[str], list[dict[str
     )
     lines = [
         (
-            "Aggiornamenti legali SQL tenant-aware: "
+            "Aggiornamenti legali condivisi: "
             f"{headline.get('sources', 0)} fonti attive, "
             f"{headline.get('raw_documents', 0)} documenti grezzi, "
             f"{headline.get('analyses', 0)} analisi AI, "

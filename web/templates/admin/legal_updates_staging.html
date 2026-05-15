@@ -3,7 +3,7 @@
 {% block title %}Acquisizione aggiornamenti legali{% endblock %}
 
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{{ url_for('legal_updates_admin.dashboard', tenant_slug=tenant_slug) }}" class="text-decoration-none">Aggiornamenti legali</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('legal_updates_admin.dashboard') }}" class="text-decoration-none">Aggiornamenti legali</a></li>
 <li class="breadcrumb-item active" aria-current="page">Acquisizione</li>
 {% endblock %}
 
@@ -13,31 +13,25 @@
     <div>
       <h1 class="h3 mb-1">Area di acquisizione documenti</h1>
       <p class="text-muted mb-0">Vedi i contenuti acquisiti, lo stato di analisi e il passaggio in coda revisioni.</p>
-      {% if tenant_slug %}
       <div class="small text-muted mt-1">
-        Studio attivo: <strong>{{ payload.runtime.tenant_registry_name or payload.runtime.tenant_name or tenant_slug }}</strong>
-        {% if payload.runtime.tenant_name_mismatch and payload.runtime.tenant_configured_name %}
-        · configurazione interna: {{ payload.runtime.tenant_configured_name }}
-        {% endif %}
+        Acquisizione condivisa: una sola coda alimenta tutti gli studi.
       </div>
-      {% endif %}
     </div>
     <div class="d-flex flex-wrap gap-2">
-      <a href="{{ url_for('legal_updates_admin.sources_page', tenant_slug=tenant_slug) }}" class="btn btn-outline-secondary">Fonti</a>
-      <a href="{{ url_for('legal_updates_admin.analysis_page', tenant_slug=tenant_slug) }}" class="btn btn-outline-primary">Analisi</a>
+      <a href="{{ url_for('legal_updates_admin.sources_page') }}" class="btn btn-outline-secondary">Fonti</a>
+      <a href="{{ url_for('legal_updates_admin.analysis_page') }}" class="btn btn-outline-primary">Analisi</a>
     </div>
   </div>
 
   <div class="li-card">
     <div class="li-card__body">
       <form method="get" class="row g-2">
-        {% if tenant_slug %}<input type="hidden" name="tenant_slug" value="{{ tenant_slug }}">{% endif %}
         <div class="col-md-3"><input class="form-control" name="source" value="{{ source_filter }}" placeholder="Codice fonte"></div>
         <div class="col-md-3"><input class="form-control" name="classification" value="{{ classification_filter }}" placeholder="Classificazione"></div>
         <div class="col-md-3"><input class="form-control" name="status" value="{{ status_filter }}" placeholder="Stato review"></div>
         <div class="col-md-3 d-flex gap-2">
           <button class="btn btn-primary">Filtra</button>
-          <a href="{{ url_for('legal_updates_admin.staging_page', tenant_slug=tenant_slug) }}" class="btn btn-outline-secondary">Azzera</a>
+          <a href="{{ url_for('legal_updates_admin.staging_page') }}" class="btn btn-outline-secondary">Azzera</a>
         </div>
       </form>
     </div>
@@ -59,10 +53,9 @@
             {% if item.body_short %}<div class="small mt-2">{{ item.body_short }}</div>{% endif %}
           </div>
           <div class="d-flex flex-wrap gap-2 align-items-start">
-            <a href="{{ url_for('legal_updates_admin.staging_detail_page', raw_document_id=item.id, tenant_slug=tenant_slug) }}" class="btn btn-sm btn-outline-primary">Dettaglio</a>
+            <a href="{{ url_for('legal_updates_admin.staging_detail_page', raw_document_id=item.id) }}" class="btn btn-sm btn-outline-primary">Dettaglio</a>
             <form method="post" action="{{ url_for('legal_updates_admin.analyze_staging_document', raw_document_id=item.id) }}">
               <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
-              {% if tenant_slug %}<input type="hidden" name="tenant_slug" value="{{ tenant_slug }}">{% endif %}
               <button class="btn btn-sm btn-outline-dark" type="submit">Rianalizza</button>
             </form>
           </div>
@@ -75,7 +68,6 @@
   </div>
 </div>
 {% endblock %}
-
 
 
 

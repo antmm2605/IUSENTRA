@@ -68,12 +68,17 @@ Policy operative:
 
 ## Storage e moduli
 
-Il motore usa un archivio SQLite dedicato, derivato da `LEGAL_INTELLIGENCE_DB`:
+Il motore usa un archivio SQLite dedicato e condiviso di piattaforma, derivato
+dal `LEGAL_INTELLIGENCE_DB` applicativo:
 
 - database operativo: `legal_updates.db`
 - export amministrativo opzionale: `legal_updates_repository.json`
 
-`legal_updates.db` e' la sorgente di verita' per fonti, documenti raw, analisi AI, review, news, normativa, giurisprudenza, prassi e audit. Lex AI legge questo repository SQL tramite `LegalUpdatesSource` e tramite la sezione di contesto `Aggiornamenti legali`; non usa `legal_updates_repository.json` come sorgente runtime.
+`legal_updates.db` e' la sorgente di verita' condivisa per fonti, documenti
+raw, analisi AI, review, news, normativa, giurisprudenza, prassi e audit. Lex
+AI legge questo repository SQL tramite `LegalUpdatesSource` e tramite la sezione
+di contesto `Aggiornamenti legali`; non usa `legal_updates_repository.json` come
+sorgente runtime.
 
 Il JSON resta solo un export manuale/diagnostico abilitabile esplicitamente. Anche il mirror legacy `giurisprudenza.json` e' disattivato di default: le pubblicazioni giurisprudenziali prodotte dal motore restano nella tabella SQL `jurisprudence` e vengono recuperate da Lex da li'.
 
@@ -150,17 +155,17 @@ La UI admin rende visibili tutti i blocchi della pipeline:
 - `archivio` -> normative, giurisprudenza, prassi, news e audit
 - `review` -> approvazione, rifiuto, modifica e pubblicazione
 
-## Governance multi-tenant
+## Governance multi-studio
 
 Nel modello professionale di piattaforma:
 
 - il `SUPERADMIN` e' unico e governa gli studi dalla console piattaforma
 - il `SUPERADMIN` ha una superficie dedicata `admin/utenti-piattaforma` e non appartiene a nessun tenant
 - gli studi non possono creare utenti `SUPERADMIN`
-- il `SUPERADMIN` usa la persistenza auth di piattaforma anche quando lo studio selezionato gira su SQL locale o PostgreSQL tenant-aware
-- la console `Aggiornamenti legali` non usa un archivio globale implicito: il superadmin seleziona uno studio e fetch, review, archive e publish operano su quel tenant
-- se esistono dati legacy nella root storica, il bootstrap li porta nel repository tenant-aware dello studio selezionato prima di usare la console operativa
-- nelle superfici superadmin il nome di riferimento dello studio resta quello del tenant registrato in piattaforma; un nome diverso nel `config/studio.json` viene mostrato solo come configurazione interna per evitare falsi "nuovi studi"
+- il `SUPERADMIN` usa la persistenza auth di piattaforma anche quando gli studi girano su SQL locale o PostgreSQL tenant-aware
+- la console `Aggiornamenti legali` non seleziona piu' uno studio: fetch, review, archive e publish operano sull'archivio legale condiviso da tutti gli studi
+- la pagina `/admin/aggiornamenti-legali/fonti` governa una sola lista fonti per tutta la piattaforma, evitando scansioni duplicate per ogni studio
+- i dati privati di studio restano tenant-aware negli altri domini; solo fonti e aggiornamenti legali pubblici sono condivisi
 
 ## Compilazione corretta delle fonti
 

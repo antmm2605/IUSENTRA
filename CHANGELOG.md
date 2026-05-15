@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.238.3 - 2026-05-15
+
+- Resa condivisa la console `Aggiornamenti legali`: dashboard, fonti, acquisizione, analisi, archivio, review e API admin usano l'archivio applicativo unico derivato da `LEGAL_INTELLIGENCE_DB`, senza selezione tenant e senza duplicare scansioni per studio.
+- La pagina `Fonti aggiornamenti legali` governa una sola lista fonti per tutta la piattaforma; una scansione aggiorna tutti gli studi.
+- Allineati Lex/Ricerca Legale, pagina utenti piattaforma e documentazione storage al principio: gli aggiornamenti giuridici pubblici sono condivisi, mentre i dati privati dello studio restano tenant-aware negli altri domini.
+- Bloccata l'eredita' implicita del DSN PostgreSQL del tenant per gli aggiornamenti legali: il backend SQL resta disponibile solo quando configurato esplicitamente per il presidio condiviso.
+- Aggiornati test di regressione per bloccare il ritorno alla selezione studio su `/admin/aggiornamenti-legali`.
+
 ## 2.238.2 - 2026-05-15
 
 - Corretto il crash di Lex sulle richieste di sentenza specifica con numero e data di deposito: il metadata `SourceScope` espone di nuovo un motivo sintetico e il workflow `giurisprudenza_specifica` non cade piu' con `AttributeError`.

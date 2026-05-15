@@ -305,7 +305,7 @@ def test_legal_update_pipeline_non_scrive_export_json_di_default(tmp_path: Path)
     assert not Path(pipeline.repository.json_path).exists()
 
 
-def test_lex_legal_updates_source_legge_database_sql_tenant_aware(tmp_path: Path):
+def test_lex_legal_updates_source_legge_database_sql_condiviso(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg_web(tmp_path))
 
@@ -714,7 +714,7 @@ def test_form_fetch_e_rianalisi_attivano_il_popolamento(tmp_path: Path, monkeypa
     assert calls["analyze"] == [raw_id]
 
 
-def test_update_intelligence_superadmin_lavora_sullo_studio_selezionato_e_bootstrappa_il_repository(tmp_path: Path):
+def test_update_intelligence_usa_archivio_condiviso_anche_con_studio_selezionato(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     cfg = _cfg_web(tmp_path)
     tm = GestioneTenant(cfg["TENANTS_REGISTRY"])
@@ -740,15 +740,16 @@ def test_update_intelligence_superadmin_lavora_sullo_studio_selezionato_e_bootst
         payload = build_legal_update_surface(app, tenant_slug=studio.slug)
         tenant_pipeline = build_legal_update_pipeline_runtime(app, tenant_slug=studio.slug)
 
-    assert payload["runtime"]["tenant_slug"] == studio.slug
-    assert payload["runtime"]["tenant_name"] == "Studio Legale Montagnese"
-    assert payload["runtime"]["db_backend_label"] == "SQL locale tenant-aware"
+    assert payload["runtime"]["tenant_slug"] == ""
+    assert payload["runtime"]["storage_scope"] == "shared_platform"
+    assert payload["runtime"]["db_backend_label"] == "Archivio legale condiviso"
+    assert tenant_pipeline.repository.db_path == root_pipeline.repository.db_path
     assert payload["headline"]["raw_documents"] >= 1
     assert Path(tenant_pipeline.repository.db_path).is_file()
     assert tenant_pipeline.repository.list_raw_documents(limit=5)
 
 
-def test_dashboard_update_intelligence_mostra_il_tenant_attivo_e_non_uno_studio_globale(tmp_path: Path):
+def test_dashboard_update_intelligence_mostra_presidio_condiviso_senza_selezione_studio(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     cfg = _cfg_web(tmp_path)
     tm = GestioneTenant(cfg["TENANTS_REGISTRY"])
@@ -779,11 +780,13 @@ def test_dashboard_update_intelligence_mostra_il_tenant_attivo_e_non_uno_studio_
 
     html = response.get_data(as_text=True)
     assert response.status_code == 200
-    assert "Studio attivo: <strong>Studio Legale Montagnese</strong>" in html
-    assert "Il superadmin governa questo studio senza usare archivi globali impliciti." in html
+    assert "Archivio legale condiviso da tutti gli studi" in html
+    assert "Una sola scansione aggiorna fonti" in html
+    assert 'name="tenant_slug"' not in html
+    assert "Studio attivo:" not in html
 
 
-def test_dashboard_update_intelligence_mostra_nome_tenant_piattaforma_e_nome_interno_se_divergono(tmp_path: Path):
+def test_dashboard_update_intelligence_ignora_nome_tenant_divergente_per_il_presidio_condiviso(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     cfg = _cfg_web(tmp_path)
     tm = GestioneTenant(cfg["TENANTS_REGISTRY"])
@@ -798,10 +801,11 @@ def test_dashboard_update_intelligence_mostra_nome_tenant_piattaforma_e_nome_int
     with app.app_context():
         payload = build_legal_update_surface(app, tenant_slug=studio.slug)
 
-    assert payload["runtime"]["tenant_registry_name"] == "Antonella Mammola"
-    assert payload["runtime"]["tenant_configured_name"] == "Studio Legale Montagnese"
-    assert payload["runtime"]["tenant_name_mismatch"] is True
-    assert payload["runtime"]["tenant_name"] == "Antonella Mammola"
+    assert payload["runtime"]["tenant_registry_name"] == ""
+    assert payload["runtime"]["tenant_configured_name"] == ""
+    assert payload["runtime"]["tenant_name_mismatch"] is False
+    assert payload["runtime"]["tenant_name"] == ""
+    assert payload["runtime"]["tenant_count"] == 1
 
     with app.test_client() as client:
         login = client.post("/login", data={"username": username, "password": password}, follow_redirects=False)
@@ -811,5 +815,6 @@ def test_dashboard_update_intelligence_mostra_nome_tenant_piattaforma_e_nome_int
 
     html = response.get_data(as_text=True)
     assert response.status_code == 200
-    assert "Studio attivo: <strong>Antonella Mammola</strong>" in html
-    assert "Configurazione interna studio: Studio Legale Montagnese" in html
+    assert "Archivio legale condiviso da tutti gli studi" in html
+    assert "Studio attivo:" not in html
+    assert "Configurazione interna studio" not in html

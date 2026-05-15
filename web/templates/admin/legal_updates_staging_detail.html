@@ -3,8 +3,8 @@
 {% block title %}Dettaglio acquisizione{% endblock %}
 
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{{ url_for('legal_updates_admin.dashboard', tenant_slug=tenant_slug) }}" class="text-decoration-none">Aggiornamenti legali</a></li>
-<li class="breadcrumb-item"><a href="{{ url_for('legal_updates_admin.staging_page', tenant_slug=tenant_slug) }}" class="text-decoration-none">Acquisizione</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('legal_updates_admin.dashboard') }}" class="text-decoration-none">Aggiornamenti legali</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('legal_updates_admin.staging_page') }}" class="text-decoration-none">Acquisizione</a></li>
 <li class="breadcrumb-item active" aria-current="page">Dettaglio</li>
 {% endblock %}
 
@@ -14,24 +14,18 @@
     <div>
       <h1 class="h3 mb-1">{{ document.title }}</h1>
       <p class="text-muted mb-0">{{ document.source_name }} · {{ document.published_at|fmt_data if document.published_at else 'data non disponibile' }}</p>
-      {% if tenant_slug %}
       <div class="small text-muted mt-1">
-        Studio attivo: <strong>{{ payload.runtime.tenant_registry_name or payload.runtime.tenant_name or tenant_slug }}</strong>
-        {% if payload.runtime.tenant_name_mismatch and payload.runtime.tenant_configured_name %}
-        · configurazione interna: {{ payload.runtime.tenant_configured_name }}
-        {% endif %}
+        Documento nell'acquisizione condivisa.
       </div>
-      {% endif %}
     </div>
     <div class="d-flex flex-wrap gap-2">
-      <a href="{{ url_for('legal_updates_admin.staging_page', tenant_slug=tenant_slug) }}" class="btn btn-outline-secondary">Torna all'acquisizione</a>
+      <a href="{{ url_for('legal_updates_admin.staging_page') }}" class="btn btn-outline-secondary">Torna all'acquisizione</a>
       <form method="post" action="{{ url_for('legal_updates_admin.analyze_staging_document', raw_document_id=document.id) }}">
         <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
-        {% if tenant_slug %}<input type="hidden" name="tenant_slug" value="{{ tenant_slug }}">{% endif %}
         <button class="btn btn-outline-dark" type="submit">Rianalizza adesso</button>
       </form>
       {% if document.review_id %}
-      <a href="{{ url_for('legal_updates_admin.review_page', tenant_slug=tenant_slug) }}" class="btn btn-outline-primary">Apri coda revisioni</a>
+      <a href="{{ url_for('legal_updates_admin.review_page') }}" class="btn btn-outline-primary">Apri coda revisioni</a>
       {% endif %}
     </div>
   </div>
@@ -82,5 +76,4 @@
   </div>
 </div>
 {% endblock %}
-
 

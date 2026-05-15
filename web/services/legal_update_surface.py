@@ -10,7 +10,6 @@ from flask import current_app, g, has_app_context, has_request_context, request
 
 from pct.legal_update_pipeline import LegalUpdatePipeline, build_legal_update_pipeline
 from pct.legal_update_repository import LegalUpdateDbConfig
-from pct.postgres_runtime_support import resolve_runtime_postgres_dsn
 from pct.tenant import GestioneTenant, normalize_db_mode
 
 
@@ -261,34 +260,17 @@ def build_legal_update_pipeline_runtime(
     tenant_slug: str = "",
 ) -> LegalUpdatePipeline:
     runtime_app, cfg_source = _runtime_app_and_config(app)
-    manager = _tenant_manager(cfg_source)
-    studio = _resolve_runtime_tenant(cfg_source, explicit_tenant_slug=tenant_slug)
-    tenant_paths = (
-        manager.percorsi_dati(str(getattr(studio, "slug", "") or "").strip().lower())
-        if manager is not None and studio is not None
-        else {}
-    )
-    if tenant_paths:
-        _bootstrap_legacy_legal_updates(
-            cfg_source,
-            manager=manager,
-            studio=studio,
-            target_paths=tenant_paths,
-        )
 
+    # Gli aggiornamenti legali sono presidio pubblico di piattaforma: fonti,
+    # acquisizione, review, archivio e news devono essere unici per tutti gli studi.
+    # I dati privati di studio restano tenant-aware negli altri domini.
     intelligence_db = str(
-        tenant_paths.get("LEGAL_INTELLIGENCE_DB")
-        or cfg_source.get("LEGAL_INTELLIGENCE_DB")
+        cfg_source.get("LEGAL_INTELLIGENCE_DB")
         or "./intelligence/motori.json"
     )
     giurisprudenza_db_path = str(
-        tenant_paths.get("GIURISPRUDENZA_DB")
-        or cfg_source.get("GIURISPRUDENZA_DB")
+        cfg_source.get("GIURISPRUDENZA_DB")
         or ""
-    )
-    postgres_dsn = resolve_runtime_postgres_dsn(
-        database=getattr(studio, "database", None),
-        config=cfg_source,
     )
     return build_legal_update_pipeline(
         intelligence_db,
@@ -303,7 +285,6 @@ def build_legal_update_pipeline_runtime(
             or cfg_source.get("OLLAMA_MODEL")
             or "mistral"
         ).strip(),
-        postgres_dsn=postgres_dsn,
         export_json_enabled=_flag_enabled(cfg_source.get("LEGAL_UPDATES_EXPORT_JSON_ENABLED")),
         mirror_giurisprudenza_json_enabled=_flag_enabled(
             cfg_source.get("LEGAL_UPDATES_MIRROR_GIURISPRUDENZA_JSON_ENABLED")
@@ -317,22 +298,15 @@ def build_legal_update_surface(
     tenant_slug: str = "",
 ) -> dict[str, Any]:
     runtime_app, cfg_source = _runtime_app_and_config(app)
-    manager = _tenant_manager(cfg_source)
-    studio = _resolve_runtime_tenant(cfg_source, explicit_tenant_slug=tenant_slug)
-    tenant_name_bundle = _tenant_name_bundle(manager, studio) if studio is not None else {
-        "registry_name": "",
-        "configured_name": "",
-        "display_name": "",
-        "mismatch": False,
-    }
-    pipeline = build_legal_update_pipeline_runtime(runtime_app, tenant_slug=tenant_slug)
+    active_tenants = _active_tenants(cfg_source)
+    pipeline = build_legal_update_pipeline_runtime(runtime_app)
     snapshot = pipeline.dashboard_snapshot()
     snapshot["runtime"] = {
         "db_path": pipeline.repository.db_path,
         "json_path": pipeline.repository.json_path,
         "backend_kind": getattr(pipeline.repository, "backend_kind", "sqlite"),
-        "db_backend_label": _backend_label(cfg_source, studio),
-        "postgres_enabled": bool(getattr(pipeline, "postgres_dsn", "")),
+        "db_backend_label": "Archivio legale condiviso",
+        "postgres_enabled": False,
         "lex_reads_sql": True,
         "json_export_enabled": bool(getattr(pipeline, "export_json_enabled", False)),
         "giurisprudenza_json_mirror_enabled": bool(
@@ -341,15 +315,14 @@ def build_legal_update_surface(
         "ollama_url": pipeline.ai_base_url,
         "ollama_model": pipeline.ai_model,
         "giurisprudenza_db_path": pipeline.giurisprudenza_db_path,
-        "tenant_slug": str(getattr(studio, "slug", "") or _resolve_requested_tenant_slug(tenant_slug)).strip().lower(),
-        "tenant_name": (
-            tenant_name_bundle["display_name"]
-            or ("" if manager is not None else _display_single_studio_name(cfg_source))
-        ),
-        "tenant_registry_name": tenant_name_bundle["registry_name"],
-        "tenant_configured_name": tenant_name_bundle["configured_name"],
-        "tenant_name_mismatch": tenant_name_bundle["mismatch"],
-        "tenant_choices": _tenant_choices_payload(cfg_source),
+        "tenant_slug": "",
+        "tenant_name": "",
+        "tenant_registry_name": "",
+        "tenant_configured_name": "",
+        "tenant_name_mismatch": False,
+        "tenant_choices": [],
+        "tenant_count": len(active_tenants),
+        "storage_scope": "shared_platform",
     }
     return snapshot
 

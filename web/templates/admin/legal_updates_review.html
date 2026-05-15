@@ -3,7 +3,7 @@
 {% block title %}Review Aggiornamenti{% endblock %}
 
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{{ url_for('legal_updates_admin.dashboard', tenant_slug=tenant_slug) }}" class="text-decoration-none">Aggiornamenti legali</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('legal_updates_admin.dashboard') }}" class="text-decoration-none">Aggiornamenti legali</a></li>
 <li class="breadcrumb-item active" aria-current="page">Coda revisioni</li>
 {% endblock %}
 
@@ -15,15 +15,10 @@
       <p class="text-muted mb-0">Approva, rifiuta o pubblica le proposte strutturate prima che entrino negli archivi operativi.</p>
     </div>
     <div class="d-flex flex-column align-items-lg-end gap-2">
-      {% if tenant_slug %}
       <div class="small text-muted">
-        Studio attivo: <strong>{{ payload.runtime.tenant_registry_name or payload.runtime.tenant_name or tenant_slug }}</strong>
-        {% if payload.runtime.tenant_name_mismatch and payload.runtime.tenant_configured_name %}
-        <br>Configurazione interna studio: {{ payload.runtime.tenant_configured_name }}
-        {% endif %}
+        Coda condivisa: una sola revisione vale per tutti gli studi.
       </div>
-      {% endif %}
-      <a href="{{ url_for('legal_updates_admin.dashboard', tenant_slug=tenant_slug) }}" class="btn btn-outline-secondary">
+      <a href="{{ url_for('legal_updates_admin.dashboard') }}" class="btn btn-outline-secondary">
       <i class="bi bi-arrow-left me-2"></i>Torna alla dashboard
       </a>
     </div>
@@ -69,7 +64,6 @@
           <div class="lu-review-actions">
             <form method="post" action="{{ url_for('legal_updates_admin.edit_and_approve', review_id=item.id) }}" class="d-grid gap-2">
               <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
-              {% if tenant_slug %}<input type="hidden" name="tenant_slug" value="{{ tenant_slug }}">{% endif %}
               <input type="text" name="summary_short" class="form-control form-control-sm" value="{{ item.summary_short or '' }}" placeholder="Sintesi breve">
               <textarea name="what_changes" class="form-control form-control-sm" rows="3" placeholder="Cosa cambia"></textarea>
               <input type="text" name="review_notes" class="form-control form-control-sm" placeholder="Note revisore">
@@ -79,7 +73,6 @@
             </form>
             <form method="post" action="{{ url_for('legal_updates_admin.approve', review_id=item.id) }}" class="d-flex gap-2 flex-wrap">
               <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
-              {% if tenant_slug %}<input type="hidden" name="tenant_slug" value="{{ tenant_slug }}">{% endif %}
               <input type="text" name="review_notes" class="form-control form-control-sm" placeholder="Note approvazione">
               <button class="btn btn-sm btn-outline-primary">
                 <i class="bi bi-check2-circle me-1"></i>Approva
@@ -87,7 +80,6 @@
             </form>
             <form method="post" action="{{ url_for('legal_updates_admin.reject', review_id=item.id) }}" class="d-flex gap-2 flex-wrap">
               <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
-              {% if tenant_slug %}<input type="hidden" name="tenant_slug" value="{{ tenant_slug }}">{% endif %}
               <input type="text" name="review_notes" class="form-control form-control-sm" placeholder="Motivo rifiuto">
               <button class="btn btn-sm btn-outline-danger">
                 <i class="bi bi-x-circle me-1"></i>Rifiuta
@@ -95,7 +87,6 @@
             </form>
             <form method="post" action="{{ url_for('legal_updates_admin.publish', review_id=item.id) }}">
               <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
-              {% if tenant_slug %}<input type="hidden" name="tenant_slug" value="{{ tenant_slug }}">{% endif %}
               <button class="btn btn-sm btn-primary" {% if item.status in ('rejected', 'published') %}disabled{% endif %}>
                 <i class="bi bi-upload me-1"></i>Pubblica
               </button>

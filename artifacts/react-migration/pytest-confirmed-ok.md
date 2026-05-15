@@ -1624,6 +1624,7 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build --force-recreate app scheduler-worker ocr-worker nginx`; readiness locale | OK | Docker locale no-cache `2.238.0`: app, scheduler, OCR, Redis e nginx avviati; `/api/pronto` 200 con `versione=2.238.0`; container app `pct.__version__ == 2.238.0`. |
 | Playwright autenticato tramite impersonazione tenant su `/ricerca-legale?q=mediazione` desktop/mobile, report `artifacts/react-migration/visual-2.238.0-ricerca-legale/visual-load-audit.md` | OK | Form ricerca backend visibile, fonte PST `NWS4865` visibile con contesto `22/04/2026`, nessun testo tecnico vietato e nessun overflow orizzontale. |
 | `git restore -- data/auth/audit.json data/auth/utenti.json data/tenant_user_directory.json` | OK | Ripuliti solo artefatti runtime prodotti da login/impersonazione e Docker locale; lasciati intatti i file `data/` gia' sporchi prima della tranche. |
+| Deploy Hetzner CPX42 con `IUSENTRA_SKIP_BACKUP_CRON=1 BRANCH=Codex/legal-electronic-filing-kIxcV bash deploy/hetzner/deploy.sh`; verifiche post-deploy | OK | Server sul branch pushato, `/api/pronto` pubblico 200 con `versione=2.238.0`, container app/scheduler/OCR/Redis/Ollama healthy e cron backup non aggiornato. |
 
 ## Multi-studio hardening tenant/API 2.218.3 - 2026-05-13
 

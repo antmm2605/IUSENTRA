@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.237.7 - 2026-05-15
+
+- Riportato `web/bootstrap/scadenziario_routes.py` sotto il budget di governance bootstrap senza modifiche funzionali, rimuovendo sole righe vuote superflue.
+- Rilanciati i gate mirati su cartella cliente React, packaging/readiness, bootstrap e Lex TTS prima del deploy finale.
+
 ## 2.237.6 - 2026-05-15
 
 - Migliorata la voce Lex TTS: profili piu' lenti e meno metallici, stile Supertonic predefinito `M1.json`, tag lingua ONNX completo e pause applicate al segmento appena concluso.

@@ -160,7 +160,6 @@ def register_scadenziario_routes(
         # Aggiorna prima gli stati scaduti, così contatori e viste sono coerenti.
         tipo_obj = TipoTermine(filtro_tipo) if filtro_tipo else None
         priorita_obj = PrioritaTermine(filtro_priorita) if filtro_priorita else None
-
         scadenze = scadenze_per_vista(
             gs,
             vista=filtro_vista,
@@ -168,7 +167,6 @@ def register_scadenziario_routes(
             priorita=priorita_obj,
             id_fascicolo=id_fascicolo,
         )
-
         if q:
             ql = q.lower()
             scadenze = [
@@ -218,7 +216,6 @@ def register_scadenziario_routes(
     def nuova_scadenza():
         if request.method == "GET" and not richiede_vista_classica():
             return render_react_shell_response("scadenziario/nuova")
-
         if request.method == "POST":
             gs = get_scadenziario()
             form = request.form
@@ -517,13 +514,11 @@ def register_scadenziario_routes(
             return jsonify([])
         try:
             from datetime import timedelta
-
             gs = get_scadenziario()
             agenda = get_agenda()
             alerts = []
             oggi = date.today()
             domani = oggi + timedelta(days=1)
-
             scadute = [
                 s
                 for s in gs.imminenti(entro_giorni=0)
@@ -542,7 +537,6 @@ def register_scadenziario_routes(
                         "priorita": 1,
                     }
                 )
-
             sc_oggi = [s for s in gs.imminenti(entro_giorni=1) if s.giorni_alla_scadenza == 0]
             if sc_oggi:
                 alerts.append(
@@ -557,7 +551,6 @@ def register_scadenziario_routes(
                         "priorita": 2,
                     }
                 )
-
             imminenti = [
                 s
                 for s in gs.imminenti(entro_giorni=3)

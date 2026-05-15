@@ -1,12 +1,22 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-15, hotfix Lex TTS prosodia 2.237.6.
+Aggiornato: 2026-05-15, rientro governance bootstrap 2.237.7.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Rientro governance bootstrap 2.237.7 - 2026-05-15
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile web/bootstrap/scadenziario_routes.py pct/__init__.py` | OK | Sintassi confermata dopo la riduzione non funzionale delle righe vuote nello scadenziario e bump `2.237.7`. |
+| `python -m pytest tests/test_web_bootstrap.py tests/test_react_shell.py::test_react_clienti_cartella_profonda_collegata_route_api_e_card_operative tests/test_react_shell.py::test_react_route_gate_copre_rotte_profonde_e_preserva_contratti_operativi tests/test_packaging_consistency.py tests/test_release_readiness.py -q --tb=short` | OK | Gate bootstrap, cartella cliente React, packaging e release readiness verdi; `scadenziario_routes.py` rientra a 699 righe contro limite 700. |
+| `node --test tests/js/lex_tts_normalizer.test.mjs tests/js/lex_tts_profiles_quality.test.mjs tests/js/lex_tts_supertonic_engine.test.mjs tests/js/lex_tts_voice_contract.test.mjs` | OK | 4/4 passati sul perimetro Lex TTS ereditato dal commit `2.237.6`. |
+| `python tools/sync_packaging_files.py --check`; `npm --prefix frontend run test`; `npm --prefix frontend run build` | OK | Packaging sincronizzato, contratti React/App V2/Legal Skills verdi e build Vite `2.237.7` completata in 6.31s; main `index-DaU5NV_e.js` 451.50 kB / 133.56 kB gzip. |
+| `python scripts/validate_docs_links.py`; `python scripts/validate_docs_commands.py` | OK | Link e comandi documentali ancora validi dopo aggiornamento changelog e report. |
 
 ### Hotfix Lex TTS prosodia 2.237.6 - 2026-05-15
 

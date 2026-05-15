@@ -44,6 +44,21 @@ artifacts/pst-import-traces/*.local.*
 *.rej
 * - Copia.*
 
+# IUSENTRA Legal Source Engine artifacts
+data/legal_sources/
+artifacts/legal_sources/
+indexes/legal_sources/
+data/normattiva/
+artifacts/normattiva/
+indexes/normattiva/
+*.har
+*.sqlite
+*.db
+*.faiss
+*.index
+*.embeddings
+*.jsonl.tmp
+
 # Environment
 .env
 .env.local

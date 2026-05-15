@@ -2,6 +2,8 @@
 
 ## 2.236.6 - 2026-05-15
 
+- Reso operativo in modalita locale controllata il Legal Source Engine per Lex AI: contratti fonte, registry, modello citazionale, answer policy, dogfood, scorecard, report, auto-populate seed e retriever JSONL senza rete o crawling live.
+- Documentato il workflow ispirato a Printing Press come pattern architetturale, senza dipendenza runtime, vendorizzazione o uso del progetto esterno.
 - Ripristinate le funzioni operative di `/strumenti-legali`: la pagina React mostra il catalogo completo degli strumenti forensi e ricollega i moduli ai calcoli reali gia' esistenti.
 - Aggiunto il submit JSON React per gli strumenti legali con risultati in pagina, metriche, tabelle, note e fonti, senza form HTML POST o fallback dimostrativi.
 - Allineato il bridge `Strumenti Forensi` a 70 voci di catalogo e 20 calcolatori eseguibili, inclusi interessi, contributo unificato, onorari, rivalutazione, usura, TFR, CTU, successione, locazioni, lavoro, penale e fiscalita.

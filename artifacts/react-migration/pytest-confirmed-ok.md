@@ -8,6 +8,13 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 
 ## Frontend e gate React
 
+### Legal Source Engine Lex AI 2.236.6 - 2026-05-15
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest tests\test_lex_legal_source_engine.py -q` | OK | 10/10 passati: registry fonti spento di default, rete vietata nei test, contratto `fetch` fail-closed, answer policy con citazioni/versione/prassi, retriever/tool dry-run, dogfood e report sicuri. |
+| `python -m compileall -q lex\legal_sources tests\test_lex_legal_source_engine.py`; `python -m ruff check lex\legal_sources tests\test_lex_legal_source_engine.py` | OK | Sintassi e lint mirati verdi sul nuovo scheletro Legal Source Engine. Nessun backup, nessuna rete, nessun dato cliente e nessun corpus/indice generato. |
+
 ### Prova notifica automatica 2.236.2 - 2026-05-14
 
 | Comando / verifica | Esito | Nota |
@@ -1461,6 +1468,9 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | Browser in-app autenticato Docker locale su `/strumenti-legali/?tool=interessi&app=calcolo_interessi_di_mora` | OK | Catalogo `Strumenti Forensi` visibile, comando `Calcola interessi` esegue il submit e mostra risultato con `Interessi maturati` e `Segmenti di calcolo`; desktop/tablet/mobile confermati, nessun testo tecnico vietato. |
 | Browser in-app baseline caricamento Docker locale su `/strumenti-legali/?tool=interessi&app=calcolo_interessi_di_mora` | OK | 3 run desktop: DOMContentLoaded 1441/1119/1089 ms, form visibile 1720/1394/1401 ms, comando visibile 2681/1662/2748 ms. |
 | `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d app scheduler-worker ocr-worker nginx`; `GET http://127.0.0.1:8080/api/pronto` | OK | Docker locale no-cache 2.236.6 healthy; app/scheduler/OCR healthy e readiness locale 200 `versione=2.236.6`. |
+| `python -m pytest tests\test_lex_legal_source_engine.py -q` | OK | 13/13 passati dopo attivazione operativa locale del Legal Source Engine: registry, policy, auto-populate, retriever JSONL, tool interni e dogfood senza rete. |
+| `python -m compileall -q lex\legal_sources tests\test_lex_legal_source_engine.py`; `python -m ruff check lex\legal_sources tests\test_lex_legal_source_engine.py` | OK | Sintassi e lint verdi per il modulo Legal Source Engine operativo. |
+| `python -m lex.legal_sources.populate --activate --populate --force --json` | OK | Motore attivato localmente senza backup e senza rete: runtime config ignorata, 15 source-card citabili scritte in `indexes/legal_sources/`, report in `artifacts/legal_sources/reports/`. |
 
 ## Fase react 3 - App V2 feature flag per pagina 2.224.0 - 2026-05-13
 

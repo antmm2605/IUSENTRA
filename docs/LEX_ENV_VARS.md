@@ -76,6 +76,52 @@ Il campo `ldr_used` nel debug payload Lex indica se LDR è stato interrogato.
 - `data/fonti_ufficiali/lex_sources.sqlite` — Archivio fonti ufficiali
 - `data/normativa/normattiva.sqlite` — Import Normattiva
 
+### Legal Source Engine nativo
+
+Il motore nativo `lex/legal_sources/` supporta una modalita operativa locale controllata: puo materializzare registro fonti, manoscritti, scorecard e source-card citabili in cartelle ignorate da git. La rete resta vietata di default e l'auto-populate non scarica corpora giuridici.
+
+| Variabile | Default | Descrizione |
+|-----------|---------|-------------|
+| `IUSENTRA_LEX_AI_LEGAL_SOURCES_ENABLED` | `false` | Abilita globalmente il Legal Source Engine. Default: spento. |
+| `IUSENTRA_LEGAL_SOURCES_ALLOW_NETWORK` | `false` | Consente rete per future integrazioni fonte. Default: vietata. |
+| `IUSENTRA_LEGAL_SOURCES_REQUIRE_CITATIONS` | `true` | Impone citazioni strutturate per risposte giuridiche. |
+| `IUSENTRA_LEGAL_SOURCES_DATA_DIR` | `data/legal_sources` | Directory dati futura, ignorata da git. |
+| `IUSENTRA_LEGAL_SOURCES_INDEX_DIR` | `indexes/legal_sources` | Directory indici futura, ignorata da git. |
+| `IUSENTRA_LEGAL_SOURCES_ARTIFACT_DIR` | `artifacts/legal_sources` | Directory report e dry-run, ignorata da git. |
+| `IUSENTRA_LEGAL_SOURCES_RATE_LIMIT_PER_MINUTE` | `30` | Rate limit conservativo per fonte quando la rete sara' abilitata. |
+| `IUSENTRA_LEGAL_SOURCES_AUTO_POPULATE` | `false` | Genera automaticamente indice locale source-card quando il motore e' abilitato. Nessuna rete. |
+| `IUSENTRA_LEGAL_SOURCES_POPULATE_ON_STARTUP` | `false` | Riservato all'avvio applicativo futuro; il codice corrente non aggiunge route pubbliche. |
+| `IUSENTRA_LEGAL_SOURCES_ENABLE_ALL_SOURCES` | `false` | Abilita tutte le fonti registrate solo con opt-in esplicito. |
+| `IUSENTRA_LEGAL_SOURCES_RUNTIME_CONFIG` | `data/legal_sources/runtime_config.json` | Config locale ignorata da git scritta dal comando di attivazione controllata. |
+
+Flag per fonte, tutti `false` di default:
+
+```env
+IUSENTRA_SOURCE_NORMATTIVA_ENABLED=false
+IUSENTRA_SOURCE_GAZZETTA_UFFICIALE_ENABLED=false
+IUSENTRA_SOURCE_CORTE_COSTITUZIONALE_ENABLED=false
+IUSENTRA_SOURCE_CASSAZIONE_ENABLED=false
+IUSENTRA_SOURCE_GIUSTIZIA_AMMINISTRATIVA_ENABLED=false
+IUSENTRA_SOURCE_BANCA_DATI_MERITO_ENABLED=false
+IUSENTRA_SOURCE_EURLEX_ENABLED=false
+IUSENTRA_SOURCE_HUDOC_ENABLED=false
+IUSENTRA_SOURCE_AGENZIA_ENTRATE_ENABLED=false
+IUSENTRA_SOURCE_GARANTE_PRIVACY_ENABLED=false
+IUSENTRA_SOURCE_ANAC_ENABLED=false
+IUSENTRA_SOURCE_AGCM_ENABLED=false
+IUSENTRA_SOURCE_CAMERA_ENABLED=false
+IUSENTRA_SOURCE_SENATO_ENABLED=false
+IUSENTRA_SOURCE_LEGGI_REGIONALI_ENABLED=false
+```
+
+Attivazione locale controllata, senza rete e senza backup:
+
+```powershell
+python -m lex.legal_sources.populate --activate --populate --force --json
+```
+
+Il comando scrive solo in `data/legal_sources/`, `indexes/legal_sources/` e `artifacts/legal_sources/`, tutte cartelle ignorate da git.
+
 ---
 
 ## 6. Memoria e Telemetria

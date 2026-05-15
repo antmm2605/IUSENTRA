@@ -15,8 +15,8 @@ Gli asset non sono inclusi nel repository. Copiarli in un bundle statico same-or
 - `web/static/vendor/supertonic/onnx/vocoder.onnx`
 - `web/static/vendor/supertonic/onnx/tts.json`
 - `web/static/vendor/supertonic/onnx/unicode_indexer.json`
-- `web/static/vendor/supertonic/voice_styles/F1.json`
-- opzionale: `web/static/vendor/supertonic/voice_styles/M1.json`
+- `web/static/vendor/supertonic/voice_styles/M1.json`
+- opzionale: altri voice style Supertonic installati localmente
 - opzionale: `web/static/vendor/supertonic/onnxruntime-web/ort.min.js`
 - opzionale: `web/static/vendor/supertonic/onnxruntime-web/*.wasm`
 
@@ -34,7 +34,7 @@ Usare `web/static/vendor/supertonic/manifest.example.json` come base:
   "onnxRuntimeScript": "/static/vendor/supertonic/onnxruntime-web/ort.min.js",
   "wasmPath": "/static/vendor/supertonic/onnxruntime-web/",
   "voiceStylesPath": "/static/vendor/supertonic/voice_styles",
-  "defaultVoiceStyle": "F1.json",
+  "defaultVoiceStyle": "M1.json",
   "fallbackVoiceStyle": "M1.json"
 }
 ```
@@ -53,7 +53,7 @@ Il motore applica i profili e i preset gia' definiti in:
 - `web/static/js/lex-tts/quality-presets.js`
 - `web/static/js/lex-tts/legal-speech-normalizer.js`
 
-I parametri usati sono `totalStep`, `speed`, `silenceDuration` e `maxChunkChars`. La lingua `it-IT` viene mappata a `it` per l'input ONNX. Il testo viene normalizzato prima della sintesi per pronuncia legale, chunking e riduzione dei dati tecnici o sensibili.
+I parametri usati sono `totalStep`, `speed`, `silenceDuration`, `maxChunkChars`, `pauseMs` e `voiceStyle`. La lingua `it-IT` viene mappata a `it` per l'input ONNX e il testo viene racchiuso nel tag lingua completo richiesto dal modello. Il testo viene normalizzato prima della sintesi per pronuncia legale, numeri, punteggiatura, chunking e riduzione dei dati tecnici o sensibili.
 
 ## Privacy
 
@@ -68,7 +68,8 @@ L'integrazione non include modelli Supertonic e non copia codice sorgente del pr
 1. Senza `manifest.json`, aprire Lex e verificare badge voce browser e lettura funzionante.
 2. Con `manifest.json` disabilitato, confermare che non compaiano errori console e che la voce browser resti attiva.
 3. Con asset e runtime locali, impostare `enabled: true`, aprire Lex e verificare badge `Supertonic WebGPU` o `Supertonic WASM`.
-4. Leggere una frase con `art. 183 c.p.c.` e confermare pronuncia normalizzata.
-5. Leggere una risposta lunga e verificare chunking, pause e UI reattiva.
-6. Interrompere la lettura e verificare che `cancel()` fermi l'audio e liberi l'ObjectURL.
-7. Rimuovere temporaneamente un modello ONNX e confermare fallback browser senza blocchi.
+4. Leggere una frase con `art. 183 c.p.c.`, virgole, domanda ed esclamazione e confermare pronuncia e pause.
+5. Leggere una frase con `\u20ac 1.250,50`, `12,5%` e `14:30` e verificare lettura numerica naturale.
+6. Leggere una risposta lunga e verificare chunking, pause e UI reattiva.
+7. Interrompere la lettura e verificare che `cancel()` fermi l'audio e liberi l'ObjectURL.
+8. Rimuovere temporaneamente un modello ONNX e confermare fallback browser senza blocchi.

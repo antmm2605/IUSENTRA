@@ -70,7 +70,7 @@ for (const script of [
 assert.equal(full.PctLexVoice.supportsSpeech(), true)
 assert.equal(full.PctLexVoice.supportsRecognition(), false)
 assert.equal(full.PctLexVoice.speak('Ai sensi dell\u2019art. 183 c.p.c.', { lang: 'it-IT' }), true)
-assert.ok(full.spoken.some((value) => value.includes('articolo 183 del codice di procedura civile')))
+assert.ok(full.spoken.some((value) => value.includes('articolo centottantatre del codice di procedura civile')))
 assert.doesNotThrow(() => full.PctLexVoice.cancelSpeech())
 
 const fallbackOnly = makeContext()

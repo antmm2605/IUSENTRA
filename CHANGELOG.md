@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.237.6 - 2026-05-15
+
+- Migliorata la voce Lex TTS: profili piu' lenti e meno metallici, stile Supertonic predefinito `M1.json`, tag lingua ONNX completo e pause applicate al segmento appena concluso.
+- Rafforzata la prosodia italiana: virgole, punti, punti interrogativi/esclamativi, percentuali, orari, decimali e importi vengono trasformati in testo piu' leggibile prima della sintesi.
+- Caricata la catena `lex-tts` anche nella shell React, cosi' Lex usa lo stesso motore Supertonic/normalizzatore sulle pagine React e sulle pagine Flask.
+
 ## 2.237.5 - 2026-05-15
 
 - Promossa la cartella cliente profonda `/clienti/<id>/cartella` a esperienza React full anche quando arriva da link storici con `?_legacy=1`: la richiesta viene normalizzata alla URL canonica e non apre piu' il template classico.

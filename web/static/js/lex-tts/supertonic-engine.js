@@ -139,6 +139,12 @@
   function preprocessText(value, lang, indexer) {
     var clean = String(value || '').normalize('NFKD');
     clean = clean
+      .replace(/[\u2013\u2011\u2014]/g, '-')
+      .replace(/[\u201c\u201d]/g, '"')
+      .replace(/[\u2018\u2019\u00b4`]/g, "'")
+      .replace(/\u20ac/g, ' euro ')
+      .replace(/[\u2665\u2606\u2661\u00a9\\]/g, '');
+    clean = clean
       .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]+/gu, '')
       .replace(/[–‑—]/g, '-')
       .replace(/[“”]/g, '"')
@@ -150,7 +156,7 @@
     if (clean && !/[.!?;:,'"')\]}]$/.test(clean)) {
       clean += '.';
     }
-    clean = '<' + lang + '>' + clean;
+    clean = '<' + lang + '>' + clean + '</' + lang + '>';
 
     var ids = [];
     for (var offset = 0; offset < clean.length; offset += 1) {
@@ -351,6 +357,24 @@
     });
   }
 
+  function requestedVoiceStyle(options) {
+    return String((options && options.voiceStyle) || (manifest && manifest.defaultVoiceStyle) || 'M1.json');
+  }
+
+  function loadRequestedVoiceStyle(options) {
+    var styleName = requestedVoiceStyle(options);
+    if (currentStyle && currentStyleName === styleName) {
+      return Promise.resolve(currentStyle);
+    }
+    return loadVoiceStyle(styleName).catch(function () {
+      var fallbackName = String((manifest && manifest.fallbackVoiceStyle) || 'M1.json');
+      return loadVoiceStyle(fallbackName);
+    }).then(function (style) {
+      currentStyle = style;
+      return currentStyle;
+    });
+  }
+
   function loadRuntime() {
     if (root.ort) {
       ortRuntime = root.ort;
@@ -403,7 +427,10 @@
   function preload(options) {
     options = options || {};
     if (pipeline && currentStyle) {
-      return Promise.resolve(getStatus());
+      return loadRequestedVoiceStyle(options).then(function () {
+        setStatus({ reason: 'ready', voiceStyle: currentStyleName });
+        return getStatus();
+      });
     }
     if (loadingPromise) {
       return loadingPromise;
@@ -438,13 +465,8 @@
           }
           return loadPipelineForBackend(secondBackend);
         }).then(function () {
-          var styleName = String(options.voiceStyle || manifest.defaultVoiceStyle || 'F1.json');
-          return loadVoiceStyle(styleName).catch(function () {
-            var fallbackName = String(manifest.fallbackVoiceStyle || 'M1.json');
-            return loadVoiceStyle(fallbackName);
-          });
-        }).then(function (style) {
-          currentStyle = style;
+          return loadRequestedVoiceStyle(options);
+        }).then(function () {
           return setStatus({
             label: status.backend === 'webgpu' ? 'Supertonic WebGPU' : 'Supertonic WASM',
             supported: true,
@@ -526,7 +548,7 @@
     }
     var jobId = activeJob + 1;
     activeJob = jobId;
-    return preload(options).then(function () {
+    return preload(prepared.options).then(function () {
       if (!isReady()) {
         return { ok: false, engine: 'supertonic', reason: status.reason || 'not_ready' };
       }
@@ -538,6 +560,7 @@
       }
       var wavCat = [];
       var chain = Promise.resolve();
+      var previousPauseMs = 0;
       prepared.chunks.forEach(function (chunk, index) {
         chain = chain.then(function () {
           if (jobId !== activeJob) {
@@ -546,7 +569,8 @@
           return inferOne(String(chunk.text || chunk || ''), lang, currentStyle, Object.assign({}, prepared.options, { jobId: jobId }))
             .then(function (result) {
               if (index > 0) {
-                var silenceSamples = Math.floor((Number(chunk.pauseAfterMs) ? Number(chunk.pauseAfterMs) / 1000 : silenceDuration) * pipeline.sampleRate);
+                var pauseMs = previousPauseMs || Math.round(silenceDuration * 1000);
+                var silenceSamples = Math.floor((pauseMs / 1000) * pipeline.sampleRate);
                 for (var i = 0; i < silenceSamples; i += 1) {
                   wavCat.push(0);
                 }
@@ -556,6 +580,7 @@
               for (var sampleIndex = 0; sampleIndex < segment.length; sampleIndex += 1) {
                 wavCat.push(segment[sampleIndex]);
               }
+              previousPauseMs = Number(chunk.pauseAfterMs) || Math.round(silenceDuration * 1000);
             });
         });
       });

@@ -1251,6 +1251,16 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert '{% include "components/pct_ai_widget.html" %}' in base_template
     assert "/static/js/local-ai-browser-bridge.js?v={{ app_version }}" in base_template
     assert "/static/js/pct-lex-assistant-documents.js?v={{ app_version }}" in base_template
+    for script_name in (
+        "quality-presets",
+        "voice-profiles",
+        "legal-speech-normalizer",
+        "browser-speech-engine",
+        "supertonic-engine",
+        "tts-engine-registry",
+    ):
+        assert f"/static/js/lex-tts/{script_name}.js?v={{{{ app_version }}}}" in base_template
+        assert f"/static/js/lex-tts/{script_name}.js?v={{{{ app_version }}}}" in react_shell_template
     assert "/static/js/pct-lex-assistant-voice.js?v={{ app_version }}" in base_template
     assert "/static/js/pct-lex-assistant.js?v={{ app_version }}" in base_template
     assert '{% include "components/pct_ai_widget.html" %}' in react_shell_template
@@ -1300,7 +1310,7 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert "preferFemale" in widget_voice_js
     assert "splitSpeechChunks" in widget_voice_js
     assert "NATURAL_HINTS" in widget_voice_js
-    assert "window.setTimeout(speakNext, 80)" in widget_voice_js
+    assert "Number(item.pauseAfterMs) || 80" in widget_voice_js
     assert "window.localStorage" in widget_js
     assert "window.sessionStorage" in widget_js
     assert "DESKTOP_MEDIA = '(min-width: 1181px)'" in widget_js

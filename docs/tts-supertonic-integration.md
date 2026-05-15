@@ -25,7 +25,8 @@ Gli asset non sono inclusi nel repository. Vanno copiati sotto:
 - `web/static/vendor/supertonic/onnx/vocoder.onnx`
 - `web/static/vendor/supertonic/onnx/tts.json`
 - `web/static/vendor/supertonic/onnx/unicode_indexer.json`
-- `web/static/vendor/supertonic/voice_styles/F1.json`
+- `web/static/vendor/supertonic/voice_styles/M1.json`
+- altri voice style disponibili, se licenza e asset locali lo consentono
 - `web/static/vendor/supertonic/onnxruntime-web/ort.min.js`
 - `web/static/vendor/supertonic/onnxruntime-web/*.wasm`
 
@@ -43,7 +44,7 @@ Il manifest reale deve impostare:
   "onnxRuntimeScript": "/static/vendor/supertonic/onnxruntime-web/ort.min.js",
   "wasmPath": "/static/vendor/supertonic/onnxruntime-web/",
   "voiceStylesPath": "/static/vendor/supertonic/voice_styles",
-  "defaultVoiceStyle": "F1.json",
+  "defaultVoiceStyle": "M1.json",
   "fallbackVoiceStyle": "M1.json"
 }
 ```
@@ -62,7 +63,8 @@ Questa fase non importa codice sorgente Supertonic. L'integrazione e' ispirata a
 
 1. Aprire una pagina autenticata con Lex.
 2. Verificare che il widget si apra e che il badge mostri `Voce browser` o `Voce pronta`.
-3. Fare una domanda con risposta breve contenente `art. 183 c.p.c.` e ascoltare la lettura.
-4. Fare una risposta lunga e verificare che venga letta solo la sintesi iniziale.
-5. Disattivare la voce dal pulsante volume e verificare che la preferenza resti salvata.
-6. Usare il microfono e confermare che la dettatura continui a funzionare.
+3. Fare una domanda con risposta breve contenente `art. 183 c.p.c.`, una virgola e un punto interrogativo, poi ascoltare pause e pronuncia.
+4. Provare importi, percentuali e orari, per esempio `\u20ac 1.250,50`, `12,5%` e `14:30`.
+5. Fare una risposta lunga e verificare che venga letta solo la sintesi iniziale.
+6. Disattivare la voce dal pulsante volume e verificare che la preferenza resti salvata.
+7. Usare il microfono e confermare che la dettatura continui a funzionare.

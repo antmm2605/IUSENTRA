@@ -16,6 +16,9 @@
     'novembre',
     'dicembre',
   ];
+  var UNITS = ['', 'uno', 'due', 'tre', 'quattro', 'cinque', 'sei', 'sette', 'otto', 'nove'];
+  var TEENS = ['dieci', 'undici', 'dodici', 'tredici', 'quattordici', 'quindici', 'sedici', 'diciassette', 'diciotto', 'diciannove'];
+  var TENS = ['', '', 'venti', 'trenta', 'quaranta', 'cinquanta', 'sessanta', 'settanta', 'ottanta', 'novanta'];
 
   function text(value) {
     return String(value == null ? '' : value);
@@ -23,6 +26,10 @@
 
   function cleanSpaces(value) {
     return text(value)
+      .replace(/[\u2013\u2011\u2014]/g, '-')
+      .replace(/[\u201c\u201d]/g, '"')
+      .replace(/[\u2018\u2019\u00b4`]/g, "'")
+      .replace(/\u2026/g, '...')
       .replace(/[ \t\r\f\v]+/g, ' ')
       .replace(/\s+([,.;:!?])/g, '$1')
       .replace(/([,;:!?])([^\s])/g, '$1 $2')
@@ -127,18 +134,121 @@
     });
   }
 
+  function integerToWords(value) {
+    var number = Math.floor(Math.abs(Number(value) || 0));
+    if (number === 0) {
+      return 'zero';
+    }
+    if (number < 10) {
+      return UNITS[number];
+    }
+    if (number < 20) {
+      return TEENS[number - 10];
+    }
+    if (number < 100) {
+      var ten = Math.floor(number / 10);
+      var unit = number % 10;
+      var word = TENS[ten];
+      if (unit === 1 || unit === 8) {
+        word = word.slice(0, -1);
+      }
+      return word + (unit ? UNITS[unit] : '');
+    }
+    if (number < 1000) {
+      var hundreds = Math.floor(number / 100);
+      var rest = number % 100;
+      var prefix = hundreds === 1 ? 'cento' : UNITS[hundreds] + 'cento';
+      if (rest >= 80 && rest < 90) {
+        prefix = prefix.slice(0, -1);
+        return prefix + integerToWords(rest);
+      }
+      return rest ? prefix + ' ' + integerToWords(rest) : prefix;
+    }
+    if (number < 1000000) {
+      var thousands = Math.floor(number / 1000);
+      var tail = number % 1000;
+      var thousandsWord = thousands === 1 ? 'mille' : integerToWords(thousands).replace(/\s+/g, '') + 'mila';
+      return tail ? thousandsWord + ' ' + integerToWords(tail) : thousandsWord;
+    }
+    return String(number);
+  }
+
+  function digitsToWords(value) {
+    return text(value).split('').map(function (digit) {
+      return /\d/.test(digit) ? integerToWords(Number(digit)) : digit;
+    }).join(' ');
+  }
+
+  function parseItalianInteger(value) {
+    var raw = text(value).replace(/\./g, '').replace(/\s/g, '');
+    var number = Number(raw);
+    return isFinite(number) ? number : null;
+  }
+
   function normalizeMoney(value) {
     function render(amount, cents) {
+      var whole = parseItalianInteger(amount);
       var c = cents ? Number(cents) : 0;
-      return amount + ' euro' + (c ? ' e ' + c + ' centesimi' : '');
+      var spokenAmount = whole == null ? amount : integerToWords(whole);
+      return spokenAmount + ' euro' + (c ? ' e ' + integerToWords(c) + ' centesimi' : '');
     }
     var clean = text(value);
+    clean = clean.replace(/\u20ac\s*(\d{1,3}(?:\.\d{3})*|\d+)(?:,\s*(\d{1,2}))?/g, function (_match, amount, cents) {
+      return render(amount, cents);
+    });
+    clean = clean.replace(/\b(\d{1,3}(?:\.\d{3})*|\d+),\s*(\d{2})\s*\u20ac/g, function (_match, amount, cents) {
+      return render(amount, cents);
+    });
     clean = clean.replace(/€\s*(\d{1,3}(?:\.\d{3})*|\d+)(?:,\s*(\d{1,2}))?/g, function (_match, amount, cents) {
       return render(amount, cents);
     });
     clean = clean.replace(/\b(\d{1,3}(?:\.\d{3})*|\d+),\s*(\d{2})\s*€/g, function (_match, amount, cents) {
       return render(amount, cents);
     });
+    return clean;
+  }
+
+  function decimalToWords(whole, decimals) {
+    var parsedWhole = parseItalianInteger(whole);
+    var wholeText = parsedWhole == null ? text(whole) : integerToWords(parsedWhole);
+    return wholeText + ' virgola ' + digitsToWords(text(decimals).replace(/\D/g, ''));
+  }
+
+  function normalizeNumbersForSpeech(value, options) {
+    options = options || {};
+    var clean = text(value);
+    clean = clean.replace(/\b([01]?\d|2[0-3])\s*[:.]\s*(\d{2})\b/g, function (_match, hour, minutes) {
+      var h = Number(hour);
+      var m = Number(minutes);
+      if (m === 0) {
+        return integerToWords(h);
+      }
+      var minutesText = m < 10 ? 'zero ' + integerToWords(m) : integerToWords(m);
+      return integerToWords(h) + ' e ' + minutesText;
+    });
+    clean = clean.replace(/\b(\d{1,3}(?:\.\d{3})*|\d+),\s*(\d+)\s*%/g, function (_match, whole, decimals) {
+      return decimalToWords(whole, decimals) + ' per cento';
+    });
+    clean = clean.replace(/\b(\d{1,3}(?:\.\d{3})*|\d+)\s*%/g, function (_match, whole) {
+      var parsed = parseItalianInteger(whole);
+      return (parsed == null ? whole : integerToWords(parsed)) + ' per cento';
+    });
+    clean = clean.replace(/\b(\d{1,3}(?:\.\d{3})+),\s*(\d+)\b/g, function (_match, whole, decimals) {
+      return decimalToWords(whole, decimals);
+    });
+    clean = clean.replace(/\b(\d+),\s*(\d+)\b/g, function (_match, whole, decimals) {
+      return decimalToWords(whole, decimals);
+    });
+    clean = clean.replace(/\b\d{1,3}(?:\.\d{3})+\b/g, function (match) {
+      var parsed = parseItalianInteger(match);
+      return parsed == null ? match : integerToWords(parsed);
+    });
+    if (options.standalone !== false) {
+      clean = clean.replace(/(^|[^\w\/])(\d{1,6})(?=([^\w\/]|$))/g, function (_match, prefix, number) {
+        var parsed = parseItalianInteger(number);
+        return prefix + (parsed == null ? number : integerToWords(parsed));
+      });
+    }
     return clean;
   }
 
@@ -162,8 +272,10 @@
     clean = reduceSensitiveSequences(clean);
     clean = normalizeDate(clean);
     clean = normalizeMoney(clean);
+    clean = normalizeNumbersForSpeech(clean, { standalone: false });
     if (options.legalNormalization !== false) {
       clean = expandLegalAbbreviations(clean);
+      clean = normalizeNumbersForSpeech(clean);
     }
     if (options.mode === 'citations_light') {
       clean = clean.replace(/\b(fonti|citazioni)\s*:\s*.+$/i, 'Le fonti sono disponibili nella risposta scritta.');
@@ -175,16 +287,49 @@
     return trimLongAnswer(clean, options);
   }
 
-  function splitSentences(paragraph) {
+  function pauseForText(value, pauses) {
+    var clean = text(value).trim();
+    if (/[?]$/.test(clean)) {
+      return Number(pauses.question) || Number(pauses.sentence) || 260;
+    }
+    if (/[!]$/.test(clean)) {
+      return Number(pauses.exclamation) || Number(pauses.sentence) || 240;
+    }
+    if (/[,]$/.test(clean)) {
+      return Number(pauses.comma) || 120;
+    }
+    return Number(pauses.sentence) || 220;
+  }
+
+  function splitSentences(paragraph, pauses, maxChars) {
     var normalized = cleanSpaces(paragraph);
     if (!normalized) {
       return [];
     }
-    return normalized
+    var pieces = [];
+    normalized
       .replace(/([.!?;:])\s+/g, '$1\n')
       .split('\n')
       .map(function (item) { return item.trim(); })
-      .filter(Boolean);
+      .filter(Boolean)
+      .forEach(function (item) {
+        if (item.indexOf(', ') === -1) {
+          pieces.push(item);
+          return;
+        }
+        item.replace(/,\s+/g, ',\n')
+          .split('\n')
+          .map(function (part) { return part.trim(); })
+          .filter(Boolean)
+          .forEach(function (part) { pieces.push(part); });
+      });
+    return pieces.map(function (item) {
+      return {
+        text: item,
+        type: /,$/.test(item) ? 'comma' : 'sentence',
+        pauseAfterMs: pauseForText(item, pauses || {}),
+      };
+    });
   }
 
   function splitOversizedSentence(sentence, maxChars) {
@@ -227,31 +372,19 @@
     }
     var chunks = [];
     paragraphs.forEach(function (paragraph, paragraphIndex) {
-      var current = '';
-      splitSentences(paragraph).forEach(function (sentence) {
-        splitOversizedSentence(sentence, maxChars).forEach(function (piece) {
-          if (!current) {
-            current = piece;
-            return;
-          }
-          if ((current + ' ' + piece).length <= maxChars) {
-            current += ' ' + piece;
-            return;
-          }
+      splitSentences(paragraph, pauses, maxChars).forEach(function (sentence) {
+        var pieces = splitOversizedSentence(sentence.text, maxChars);
+        pieces.forEach(function (piece, pieceIndex) {
           chunks.push({
-            text: current,
-            type: 'sentence',
-            pauseAfterMs: Number(pauses.sentence) || 180,
+            text: piece,
+            type: pieceIndex < pieces.length - 1 ? 'phrase' : sentence.type,
+            pauseAfterMs: pieceIndex < pieces.length - 1 ? (Number(pauses.comma) || 120) : sentence.pauseAfterMs,
           });
-          current = piece;
         });
       });
-      if (current) {
-        chunks.push({
-          text: current,
-          type: paragraphIndex < paragraphs.length - 1 ? 'paragraph' : 'sentence',
-          pauseAfterMs: paragraphIndex < paragraphs.length - 1 ? (Number(pauses.paragraph) || 420) : (Number(pauses.sentence) || 180),
-        });
+      if (paragraphIndex < paragraphs.length - 1 && chunks.length) {
+        chunks[chunks.length - 1].type = 'paragraph';
+        chunks[chunks.length - 1].pauseAfterMs = Number(pauses.paragraph) || 420;
       }
     });
     return chunks;
@@ -263,5 +396,6 @@
     expandLegalAbbreviations: expandLegalAbbreviations,
     reduceSensitiveSequences: reduceSensitiveSequences,
     splitLegalSpeechChunks: splitLegalSpeechChunks,
+    integerToWords: integerToWords,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

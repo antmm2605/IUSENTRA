@@ -1,12 +1,21 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-15, hotfix cartella cliente React full 2.237.5.
+Aggiornato: 2026-05-15, hotfix Lex TTS prosodia 2.237.6.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Hotfix Lex TTS prosodia 2.237.6 - 2026-05-15
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `node --check web/static/js/lex-tts/quality-presets.js`; `node --check web/static/js/lex-tts/voice-profiles.js`; `node --check web/static/js/lex-tts/legal-speech-normalizer.js`; `node --check web/static/js/lex-tts/browser-speech-engine.js`; `node --check web/static/js/lex-tts/supertonic-engine.js`; `node --check web/static/js/lex-tts/tts-engine-registry.js`; `node --check web/static/js/pct-lex-assistant-voice.js`; `node --check web/static/js/pct-lex-assistant.js` | OK | Sintassi confermata dopo profili piu' lenti, normalizzazione numerica/punteggiatura, tag lingua Supertonic completo e caricamento TTS nella shell React. |
+| `node tests/js/lex_tts_normalizer.test.mjs`; `node tests/js/lex_tts_profiles_quality.test.mjs`; `node tests/js/lex_tts_supertonic_engine.test.mjs`; `node tests/js/lex_tts_voice_contract.test.mjs` | OK | Coperti importi, percentuali, orari, pause per virgola/domanda/esclamazione, profilo `M1.json`, cambio voice style Supertonic e fallback browser. |
+| `python -m pytest -q tests/test_web_bootstrap.py::test_lex_assistant_usa_componente_esterno_e_posizione_persistente tests/test_lex_widget_contract.py tests/test_packaging_consistency.py tests/test_release_readiness.py --tb=short` | OK | 18/18 passati: template Flask e React caricano la catena `lex-tts`, contratto widget Lex, packaging e readiness release `2.237.6` confermati. |
+| `python tools/sync_packaging_files.py --check`; `git diff --check -- <perimetro Lex TTS>` | OK | Packaging sincronizzato; whitespace senza errori sui file TTS, template, test, documenti e file versione toccati. |
 
 ### Hotfix cartella cliente React full 2.237.5 - 2026-05-15
 

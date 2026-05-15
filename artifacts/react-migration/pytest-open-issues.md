@@ -1,6 +1,6 @@
 # Pytest issue aperte e risoluzioni
 
-Aggiornato: 2026-05-15, hotfix cartella cliente React full 2.237.5.
+Aggiornato: 2026-05-15, hotfix Lex TTS prosodia 2.237.6.
 
 ## Regola operativa
 
@@ -10,6 +10,8 @@ Questo file e' la coda di lavoro. Prima di rilanciare test gia' passati, control
 
 | Area | Test / comando | Stato | Problema rilevato | Risoluzione |
 | --- | --- | --- | --- | --- |
+| Hotfix Lex TTS prosodia 2.237.6 | `python -m pytest -q tests/test_web_bootstrap.py tests/test_lex_widget_contract.py tests/test_packaging_consistency.py --tb=short` | Issue preesistente fuori perimetro TTS, non chiusa in questa tranche | Il rilancio aggregato di `tests/test_web_bootstrap.py` fallisce solo su `test_i_moduli_bootstrap_restano_governabili`: `scadenziario_routes.py` e' a 706 righe contro limite 700. Nessun file dello scadenziario e' stato toccato dal fix TTS. | Rilanciati e confermati verdi i gate mirati del perimetro voce: `test_lex_assistant_usa_componente_esterno_e_posizione_persistente`, `tests/test_lex_widget_contract.py`, `tests/test_packaging_consistency.py` e tutti i test JS TTS. Aprire una tranche separata per ridurre `scadenziario_routes.py` sotto soglia senza mischiarla al deploy voce. |
+| Hotfix Lex TTS prosodia 2.237.6 | Voce metallica, punteggiatura e numeri Lex | Nessuna issue aperta dopo gate mirati | La lettura Supertonic poteva restare troppo rapida, usare voice style non uniforme, non applicare la pausa del segmento precedente e non caricare la catena TTS completa nella shell React. | Profili rallentati, `M1.json` predefinito, tag lingua ONNX completo, pause dopo virgola/punto/domanda/esclamazione, normalizzazione importi/percentuali/orari/decimali e catena `lex-tts` caricata anche in React. Gate registrati in `pytest-confirmed-ok.md`. |
 | Hotfix cartella cliente React full 2.237.5 | URL profonda `/clienti/<id>/cartella?_legacy=1` | Nessuna issue aperta dopo gate mirati | La pagina poteva essere ancora raggiunta come esperienza classica tramite parametro `_legacy=1`, quindi non rispettava il perimetro full React richiesto dall'utente. | La route normalizza `_legacy=1` alla URL canonica, il componente non espone piu' CTA legacy, manifest/contratti/gate bloccano regressioni e browser Docker locale desktop/mobile conferma shell React senza overflow o testo tecnico. |
 | Docker locale 2.237.5 | Primo `docker compose up` dopo rebuild no-cache | Risolto come warm-up health, non failure codice | I primi healthcheck interni da 5s sono andati in timeout durante il warm-up post-recreate e hanno bloccato inizialmente scheduler/OCR/nginx. L'app ha comunque risposto 200 a `/api/pronto` poco dopo. | Atteso recupero health, verificata readiness locale in circa 79 ms, runtime `2.237.5`, poi rilanciato `docker compose up -d --no-build scheduler-worker ocr-worker nginx`: app, scheduler, OCR e Redis healthy. |
 | Lex TTS Supertonic fase 3 2.237.4 | Engine Supertonic/ONNX locale opzionale e fallback browser | Nessuna issue aperta dopo gate mirati | La fase richiedeva di collegare Supertonic senza cloud e senza rompere `speechSynthesis` quando asset o runtime mancano. | Aggiunto engine locale con manifest same-origin, runtime ONNX locale opzionale, WebGPU con fallback WASM, lifecycle ObjectURL, cancel e fallback registry. Gate JS/Python e packaging registrati in `pytest-confirmed-ok.md`. |

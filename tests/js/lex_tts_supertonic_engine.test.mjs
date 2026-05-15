@@ -75,4 +75,55 @@ assert.match(noRuntimeStatus.reason, /ONNX Runtime/)
 assert.equal(noRuntime.IusentraSupertonicEngine.getBackendLabel(), 'Supertonic non disponibile')
 assert.ok(noRuntime.events.some((event) => event.type === 'iusentra:lex-voice-status'))
 
+const fakeRuntime = makeContext((path) => {
+  if (path === '/static/vendor/supertonic/manifest.json') {
+    return Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve({
+        enabled: true,
+        basePath: '/static/vendor/supertonic',
+        onnxPath: '/static/vendor/supertonic/onnx',
+        voiceStylesPath: '/static/vendor/supertonic/voice_styles',
+        defaultVoiceStyle: 'F1.json',
+        fallbackVoiceStyle: 'M1.json',
+      }),
+    })
+  }
+  if (path.endsWith('/tts.json')) {
+    return Promise.resolve({ ok: true, json: () => Promise.resolve({ ae: { sample_rate: 24000, base_chunk_size: 512 }, ttl: { chunk_compress_factor: 1, latent_dim: 1 } }) })
+  }
+  if (path.endsWith('/unicode_indexer.json')) {
+    return Promise.resolve({ ok: true, json: () => Promise.resolve([0, 1, 2, 3]) })
+  }
+  if (path.endsWith('/F1.json') || path.endsWith('/M1.json')) {
+    return Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve({
+        style_ttl: { dims: [1], data: [1] },
+        style_dp: { dims: [1], data: [1] },
+      }),
+    })
+  }
+  return Promise.resolve({ ok: true, json: () => Promise.resolve({}) })
+})
+fakeRuntime.ort = {
+  Tensor: class Tensor {
+    constructor(type, values, dims) {
+      this.type = type
+      this.values = values
+      this.dims = dims
+    }
+  },
+  InferenceSession: {
+    create: () => Promise.resolve({ run: () => Promise.resolve({}) }),
+  },
+  env: { wasm: {} },
+}
+const f1Status = await fakeRuntime.IusentraSupertonicEngine.preload({ voiceStyle: 'F1.json' })
+assert.equal(f1Status.ready, true)
+assert.equal(f1Status.voiceStyle, 'F1.json')
+const m1Status = await fakeRuntime.IusentraSupertonicEngine.preload({ voiceStyle: 'M1.json' })
+assert.equal(m1Status.ready, true)
+assert.equal(m1Status.voiceStyle, 'M1.json')
+
 console.log('lex_tts_supertonic_engine.test.mjs OK')

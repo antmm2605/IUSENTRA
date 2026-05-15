@@ -5,6 +5,6 @@
   "onnxRuntimeScript": "/static/vendor/supertonic/onnxruntime-web/ort.min.js",
   "wasmPath": "/static/vendor/supertonic/onnxruntime-web/",
   "voiceStylesPath": "/static/vendor/supertonic/voice_styles",
-  "defaultVoiceStyle": "F1.json",
+  "defaultVoiceStyle": "M1.json",
   "fallbackVoiceStyle": "M1.json"
 }

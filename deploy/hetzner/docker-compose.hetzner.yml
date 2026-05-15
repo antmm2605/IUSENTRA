@@ -37,6 +37,7 @@ x-iusentra-env: &iusentra-env
   PCT_AUTH_DB: /data/auth/utenti.json
   PCT_AUDIT_DB: /data/auth/audit.json
   PCT_SUPPORT_DB: /data/support/assistenza_remota.db
+  PCT_SUPPORT_STUN_URLS: ${PCT_SUPPORT_STUN_URLS:-stun:stun.l.google.com:19302}
   PCT_SCADENZIARIO_DB: /data/scadenziario/scadenze.json
   PCT_TIMESHEET_DB: /data/timesheet/entries.json
   PCT_TIME_TRACKING_DB: /data/timesheet/time_tracking.json

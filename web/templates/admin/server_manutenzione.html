@@ -12,7 +12,7 @@
     <p class="text-muted mb-0">Consumi per studio, compattazione dati e manutenzioni sicure per performance e spazio disco.</p>
   </div>
   <a class="btn btn-outline-primary btn-sm" href="{{ url_for('admin.osservabilita') }}">
-    <i class="bi bi-activity"></i> Osservabilità runtime
+    <i class="bi bi-activity"></i> Osservabilità operativa
   </a>
 </div>
 
@@ -48,7 +48,7 @@
       <div class="card-body">
         <div class="text-muted small mb-1">Mirror interni</div>
         <div class="display-6 fw-semibold">{{ payload.summary.backup_mirror_size_label }}</div>
-        <div class="small text-muted">Root analizzate: {{ payload.summary.backup_roots }}</div>
+        <div class="small text-muted">Percorsi analizzati: {{ payload.summary.backup_roots }}</div>
       </div>
     </div>
   </div>
@@ -75,10 +75,10 @@
         <div class="text-muted small mb-1">Memoria sistema</div>
         {% if payload.system_info.available %}
         <div class="display-6 fw-semibold">{{ payload.system_info.mem_percent }}%</div>
-        <div class="small text-muted">{{ payload.system_info.mem_used_label }} / {{ payload.system_info.mem_total_label }} — load {{ payload.system_info.load_1 }} {{ payload.system_info.load_5 }} {{ payload.system_info.load_15 }}</div>
+        <div class="small text-muted">{{ payload.system_info.mem_used_label }} / {{ payload.system_info.mem_total_label }} — carico {{ payload.system_info.load_1 }} {{ payload.system_info.load_5 }} {{ payload.system_info.load_15 }}</div>
         {% else %}
         <div class="display-6 fw-semibold text-muted">N/D</div>
-        <div class="small text-muted">psutil non disponibile</div>
+        <div class="small text-muted">Metriche sistema non disponibili</div>
         {% endif %}
       </div>
     </div>
@@ -88,7 +88,7 @@
 <div class="card shadow-sm mb-4">
   <div class="card-header bg-body-tertiary d-flex flex-wrap justify-content-between gap-2 align-items-center">
     <strong>Manutenzione sicura globale</strong>
-    <span class="badge text-bg-light border">mock_fallback=false</span>
+    <span class="badge text-bg-light border">Dati reali</span>
   </div>
   <div class="card-body">
     <div class="row g-3 align-items-end">
@@ -131,10 +131,10 @@
               <i class="bi bi-cloud-arrow-up"></i> Backup ora
             </button>
           </form>
-          <form method="post" action="{{ url_for('server_maintenance_admin.docker_prune') }}" onsubmit="return confirm('Eseguire docker system prune --volumes? Questa operazione rimuove immagini e volumi non usati.')">
+          <form method="post" action="{{ url_for('server_maintenance_admin.docker_prune') }}" onsubmit="return confirm('Eseguire la pulizia Docker di immagini e volumi non usati?')">
             <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
             <button class="btn btn-outline-danger" type="submit">
-              <i class="bi bi-bucket"></i> Docker prune
+              <i class="bi bi-bucket"></i> Pulizia Docker
             </button>
           </form>
         </div>
@@ -147,17 +147,17 @@
         {% if compaction.tenant_slug %}per {{ compaction.tenant_slug }}{% endif %}
       </div>
       <div class="small">
-        Root: {{ compaction.roots_scanned }} - file analizzati: {{ compaction.files_scanned }} -
+        Percorsi: {{ compaction.roots_scanned }} - file analizzati: {{ compaction.files_scanned }} -
         duplicati identici: {{ compaction.duplicate_files }} -
         da compattare: {{ compaction.physical_duplicate_files }} -
-        gia' compattati: {{ compaction.already_hardlinked_files }} -
+        gia' ottimizzati: {{ compaction.already_hardlinked_files }} -
         compattati ora: {{ compaction.hardlinked_files }} -
         recuperabile: {{ compaction.bytes_reclaimable_label }} -
         recuperato: {{ compaction.bytes_reclaimed_label }}
       </div>
       {% if compaction.duplicate_files and not compaction.physical_duplicate_files and not compaction.bytes_reclaimable %}
       <div class="small mt-1">
-        I duplicati identici indicati sono gia' hardlinkati: restano piu' percorsi applicativi,
+        I duplicati identici indicati sono gia' ottimizzati: restano piu' percorsi applicativi,
         ma non occupano spazio disco aggiuntivo.
       </div>
       {% endif %}
@@ -195,7 +195,7 @@
     {% endif %}
     {% if docker_prune %}
     <div class="alert alert-{{ 'danger' if docker_prune.error else 'success' }} mt-3 mb-0">
-      <div class="fw-semibold">{{ 'Errore Docker prune' if docker_prune.error else 'Docker prune completato' }}</div>
+      <div class="fw-semibold">{{ 'Errore pulizia Docker' if docker_prune.error else 'Pulizia Docker completata' }}</div>
       {% if docker_prune.error %}<div class="small">{{ docker_prune.error }}</div>{% endif %}
       {% if docker_prune.stdout %}<pre class="small mt-1 mb-0" style="white-space:pre-wrap;max-height:160px;overflow-y:auto">{{ docker_prune.stdout }}</pre>{% endif %}
     </div>
@@ -205,18 +205,31 @@
 
 <div class="card shadow-sm mb-4">
   <div class="card-header bg-body-tertiary">
-    <strong>Consumi per studio</strong>
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+      <div>
+        <strong>Consumi per studio</strong>
+        <div class="small text-muted">Categorie, cartelle pesanti, file principali e interventi disponibili per ogni studio.</div>
+      </div>
+      <div class="d-flex flex-wrap gap-2 small">
+        <span class="badge text-bg-light border">Studi: {{ payload.summary.tenant_total_size_label }}</span>
+        <span class="badge text-bg-light border">Posta studi: {{ payload.summary.tenant_email_size_label }}</span>
+        <span class="badge text-bg-light border">Backup studi: {{ payload.summary.tenant_backup_size_label }}</span>
+        {% if payload.summary.scan_truncated %}
+        <span class="badge text-bg-warning">Scansione rapida</span>
+        {% endif %}
+      </div>
+    </div>
   </div>
   <div class="table-responsive">
-    <table class="table align-middle mb-0">
+    <table class="table align-middle mb-0 server-maintenance-table">
       <thead>
         <tr>
           <th>Studio</th>
           <th class="text-end">Totale</th>
-          <th class="text-end">Email</th>
-          <th class="text-end">Backup/mirror</th>
-          <th class="text-end">Database</th>
-          <th>Manutenzione consigliata</th>
+          <th>Area dominante</th>
+          <th>Distribuzione</th>
+          <th>Cartelle piu' pesanti</th>
+          <th>File principali</th>
           <th class="text-end">Azioni</th>
         </tr>
       </thead>
@@ -225,37 +238,99 @@
         <tr>
           <td>
             <div class="fw-semibold">{{ tenant.slug }}</div>
-            <div class="small text-muted text-truncate" style="max-width: 260px">{{ tenant.path }}</div>
+            <div class="small text-muted">File: {{ tenant.file_count }} - cartelle: {{ tenant.directory_count }}</div>
+            {% if tenant.scan_truncated %}
+            <span class="badge text-bg-warning-subtle text-warning-emphasis border border-warning-subtle">Scansione rapida parziale</span>
+            {% endif %}
+            <div class="small text-muted text-break">{{ tenant.path }}</div>
           </td>
           <td class="text-end fw-semibold">{{ tenant.total_label }}</td>
-          <td class="text-end">{{ tenant.email_label }}</td>
-          <td class="text-end">{{ tenant.backup_label }}</td>
-          <td class="text-end">{{ tenant.database_label }}</td>
           <td>
-            <ul class="small mb-0">
-              {% for item in tenant.recommendations %}
-              <li>{{ item }}</li>
+            {% if tenant.dominant_category %}
+            <span class="badge text-bg-primary">{{ tenant.dominant_category.label }}</span>
+            <div class="small text-muted mt-1">{{ tenant.dominant_category.size_label }} - {{ tenant.dominant_category.percent }}%</div>
+            {% else %}
+            <span class="badge text-bg-light border text-muted">Nessun dato</span>
+            {% endif %}
+          </td>
+          <td class="server-maintenance-categories">
+            {% set visible_categories = tenant.categories|selectattr('size_bytes')|list %}
+            {% for category in visible_categories[:5] %}
+            <div class="server-maintenance-meter">
+              <div class="d-flex justify-content-between gap-2 small">
+                <span>{{ category.label }}</span>
+                <strong>{{ category.size_label }}</strong>
+              </div>
+              <div class="progress" role="progressbar" aria-label="{{ category.label }}" aria-valuenow="{{ category.percent }}" aria-valuemin="0" aria-valuemax="100">
+                <div class="progress-bar" style="width: {{ category.percent }}%"></div>
+              </div>
+            </div>
+            {% endfor %}
+            {% if not visible_categories %}
+            <span class="small text-muted">Nessuna area con dati.</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if tenant.top_paths %}
+            <ol class="server-maintenance-list">
+              {% for item in tenant.top_paths[:4] %}
+              <li>
+                <span class="text-break">{{ item.display_path or item.path }}</span>
+                <strong>{{ item.size_label }}</strong>
+              </li>
               {% endfor %}
-            </ul>
+            </ol>
+            {% else %}
+            <span class="small text-muted">Nessuna cartella significativa.</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if tenant.largest_files %}
+            <ol class="server-maintenance-list">
+              {% for item in tenant.largest_files[:4] %}
+              <li>
+                <span class="text-break">{{ item.display_path or item.path }}</span>
+                <strong>{{ item.size_label }}</strong>
+              </li>
+              {% endfor %}
+            </ol>
+            {% else %}
+            <span class="small text-muted">Nessun file rilevante.</span>
+            {% endif %}
           </td>
           <td class="text-end">
             <div class="d-flex flex-wrap gap-2 justify-content-end">
+              <a class="btn btn-sm btn-outline-secondary" href="{{ tenant.links.detail }}">
+                <i class="bi bi-building"></i> Apri
+              </a>
+              <a class="btn btn-sm btn-outline-secondary" href="{{ tenant.links.database }}">
+                <i class="bi bi-database"></i> Archivio
+              </a>
               <form method="post" action="{{ url_for('server_maintenance_admin.analizza_compattazione') }}">
                 <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
                 <input type="hidden" name="tenant_slug" value="{{ tenant.slug }}">
-                <button class="btn btn-sm btn-outline-primary" type="submit">Analizza</button>
+                <button class="btn btn-sm btn-outline-primary" type="submit">
+                  <i class="bi bi-search"></i> Analizza
+                </button>
               </form>
               <form method="post" action="{{ url_for('server_maintenance_admin.compatta') }}">
                 <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
                 <input type="hidden" name="tenant_slug" value="{{ tenant.slug }}">
-                <button class="btn btn-sm btn-success" type="submit">Compatta</button>
+                <button class="btn btn-sm btn-success" type="submit">
+                  <i class="bi bi-hdd-stack"></i> Compatta
+                </button>
               </form>
             </div>
+            <ul class="small text-muted text-start mt-2 mb-0">
+              {% for item in tenant.recommendations[:3] %}
+              <li>{{ item }}</li>
+              {% endfor %}
+            </ul>
           </td>
         </tr>
         {% else %}
         <tr>
-          <td colspan="7" class="text-muted">Nessuno studio tenant rilevato nello storage corrente.</td>
+          <td colspan="7" class="text-muted">Nessuno studio rilevato nello storage corrente.</td>
         </tr>
         {% endfor %}
       </tbody>

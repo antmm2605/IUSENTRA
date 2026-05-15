@@ -41,6 +41,7 @@ _CAMPI_CIFRATI: List[tuple[str, str]] = [
     ("whatsapp",  "twilio_token"),
     ("support_remote", "turn_shared_secret"),
 ]
+DEFAULT_SUPPORT_STUN_URLS: List[str] = ["stun:stun.l.google.com:19302"]
 
 
 def _fernet_instance(secret: str | None = None):
@@ -342,7 +343,7 @@ class ConfigLocalAI:
 
 @dataclass
 class ConfigSupportRemote:
-    stun_urls: List[str] = field(default_factory=list)
+    stun_urls: List[str] = field(default_factory=lambda: list(DEFAULT_SUPPORT_STUN_URLS))
     turn_urls: List[str] = field(default_factory=list)
     turn_shared_secret: str = ""
     turn_ttl_seconds: int = 3600
@@ -495,7 +496,9 @@ class GestioneConfigStudio:
             support_remote=ConfigSupportRemote(
                 stun_urls=[
                     item.strip()
-                    for item in str(os.getenv("PCT_SUPPORT_STUN_URLS", "") or "").replace(";", ",").split(",")
+                    for item in str(
+                        os.getenv("PCT_SUPPORT_STUN_URLS", ",".join(DEFAULT_SUPPORT_STUN_URLS)) or ""
+                    ).replace(";", ",").split(",")
                     if item.strip()
                 ],
                 turn_urls=[

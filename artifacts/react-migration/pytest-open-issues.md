@@ -1,6 +1,6 @@
 # Pytest issue aperte e risoluzioni
 
-Aggiornato: 2026-05-15, hotfix Copertura AI condivisa 2.238.4.
+Aggiornato: 2026-05-15, tranche superadmin operativo 2.239.0.
 
 ## Regola operativa
 
@@ -10,6 +10,7 @@ Questo file e' la coda di lavoro. Prima di rilanciare test gia' passati, control
 
 | Area | Test / comando | Stato | Problema rilevato | Risoluzione |
 | --- | --- | --- | --- | --- |
+| Tranche superadmin operativo 2.239.0 | `/admin/server-manutenzione`, Docker/browser locale | Nessuna issue aperta dopo fix, Docker no-cache e browser reale | La prima versione della mappa storage usava una visita directory troppo grossolana: su storage reale molto grande il render autenticato di `Server e manutenzione` poteva arrivare a circa 37s e mandare in timeout il browser. | La scansione interattiva usa ora uno stack `os.scandir` con limiti per file e tempo, deduplica hardlink solo quando necessario, riepiloga i risultati parziali e rimanda alle azioni mirate per inventario completo. Gate 15/15, Docker no-cache, readiness, tempi autenticati e browser desktop/tablet/mobile sono registrati in `pytest-confirmed-ok.md`. |
 | Hotfix Copertura AI condivisa 2.238.4 | `/admin/copertura-ai` in piattaforma multi-studio | Nessuna issue aperta dopo gate mirati | La console lavorava sul repository del tenant selezionato o sul backend dello studio: con molti studi avrebbe richiesto audit, gap queue, draft, review e publish ripetuti per ogni studio. | `build_repository` usa ora solo `LEGAL_COVERAGE_SQLITE_DB` condiviso o PostgreSQL coverage esplicito; route e API ignorano `tenant_slug`, dashboard/review non mostrano selezione studio, `TENANT_DATABASE_CONFIG`, `g.tenant`, `studio.db` e PostgreSQL legacy dello studio non sono piu' fallback impliciti. Nessun backup eseguito. |
 | Smoke operativo largo fuori perimetro 2.238.4 | `python -m pytest tests\test_operational_surfaces.py tests\test_end_to_end_studio.py -q --tb=short` | Aperto, fuori perimetro Copertura AI | Lo shard largo ha intercettato `test_lex_operativo_e_control_tower_renderizzano`: il test cerca il testo server-side `Regia telematica operativa` nella risposta HTML di `/telematico`, che oggi e' una shell React e non contiene quel testo statico. | La superficie Copertura AI e' stata verificata con `tests\test_operational_surfaces.py::test_superadmin_product_surfaces_renderizzano` e `tests\test_end_to_end_studio.py`, entrambi verdi. Trattare il test `/telematico` in una tranche dedicata ai contratti React/telematico, senza bloccare questo hotfix. |
 | Hotfix Aggiornamenti legali condivisi 2.238.3 | `/admin/aggiornamenti-legali` e `/admin/aggiornamenti-legali/fonti` in piattaforma multi-studio | Nessuna issue aperta dopo gate mirati | La console lavorava sul repository del tenant selezionato: con 10 o 20 studi avrebbe richiesto la stessa scansione/fonti/review per ogni studio. | `build_legal_update_pipeline_runtime` e `get_legal_update_pipeline` usano ora l'archivio applicativo condiviso derivato da `LEGAL_INTELLIGENCE_DB`; le route admin ignorano `tenant_slug`, i template non mostrano piu' selezione studio, il DSN PostgreSQL del tenant non viene piu' ereditato implicitamente e i test 18/18 piu' migrazione SQL esplicita bloccano il ritorno al comportamento per-tenant. Nessun backup eseguito. |
@@ -225,3 +226,10 @@ Questo file e' la coda di lavoro. Prima di rilanciare test gia' passati, control
 | --- | --- | --- | --- | --- |
 | `/legal-skills` flag default | Pytest mirati, gate React, typecheck, build e docs registrati in `pytest-confirmed-ok.md` | Nessuna issue aperta nuova | Il messaggio `Legal Skills non attivo` derivava dal default-off del motore base e dei flag route, non da assenza della shell. Il catalogo e le route operative sono ora default-on. | Non riattivare trust layer, custom skill o agenti schedulati di default: restano opt-in esplicito e fail-closed. |
 | Audit console `/legal-skills` | Primo Chrome CDP 2.238.1 | Risolto | Il primo giro autenticato apriva la pagina ma vedeva 403 su agenti schedulati spenti e 404 sul manifest Supertonic opzionale. | Il catalogo non interroga piu' gli agenti schedulati quando il flag e' spento e `web/static/vendor/supertonic/manifest.json` dichiara il motore locale disabilitato. Rerun `visual-2.238.1-legal-skills` verde desktop/mobile. |
+
+## Note superadmin operativo 2.239.0 - 2026-05-15
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| `Server e manutenzione` storage tenant | Pycompile e pytest mirati registrati in `pytest-confirmed-ok.md` | Nessuna issue aperta nuova | La console ora distingue tenant, posta/backup globali, categorie, cartelle e file principali; i numeri non sommano due volte le aree condivise. | Per modifiche future rilanciare almeno `tests/test_server_maintenance_surface.py` e verificare browser su `/admin/server-manutenzione`. |
+| `Assistenza remota` pronta | Pycompile e pytest mirati registrati in `pytest-confirmed-ok.md` | Nessuna issue aperta nuova | STUN predefinito e ICE server sono disponibili senza variabili manuali; TURN e controllo avanzato esterno sono ottimizzazioni, non blocchi della sessione base. | Per modifiche future rilanciare almeno `tests/test_support_remote.py` e verificare browser su `/admin/supporto-remoto`, link cliente e stanza operatore. |

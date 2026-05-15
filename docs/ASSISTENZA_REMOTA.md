@@ -11,6 +11,12 @@ Il modulo `Assistenza remota` permette al `SUPERADMIN` di piattaforma di aprire 
 - consensi espliciti del cliente
 - aggancio governato a un controllo remoto avanzato esterno
 
+Dal rilascio `2.239.0` la sessione base e' pronta al primo avvio: IUSENTRA
+configura un endpoint STUN predefinito, crea il link cliente firmato, apre la
+stanza operatore e abilita chat/audit senza richiedere variabili manuali.
+TURN e controllo remoto avanzato esterno restano presidi opzionali per reti
+difficili o strumenti di desktop-control gia' scelti dallo studio.
+
 La regola prodotto e' ferrea:
 
 - la sessione nasce sempre da `SUPERADMIN`
@@ -80,7 +86,8 @@ Variabili runtime principali:
 
 ```env
 PCT_SUPPORT_DB=/data/support/assistenza_remota.db
-PCT_SUPPORT_STUN_URLS=stun:turn.tuodominio.it:3478
+# Default gia' operativo se non impostato esplicitamente:
+PCT_SUPPORT_STUN_URLS=stun:stun.l.google.com:19302
 PCT_SUPPORT_TURN_URLS=turn:turn.tuodominio.it:3478?transport=udp,turns:turn.tuodominio.it:5349?transport=tcp
 PCT_SUPPORT_TURN_SHARED_SECRET=<secret-lungo-random>
 PCT_SUPPORT_TURN_TTL_SECONDS=3600
@@ -89,9 +96,11 @@ PCT_SUPPORT_ADVANCED_URL_TEMPLATE=https://support.tuodominio.it/advanced/{public
 
 Dal prodotto queste stesse impostazioni sono gestibili anche in:
 
-- `Piattaforma -> Assistenza remota -> Configurazione realtime`
+- `Piattaforma -> Assistenza remota -> Presidio realtime`
 
-Il salvataggio aggiorna subito il runtime applicativo e persiste i valori nel file config piattaforma.
+Il salvataggio aggiorna subito il runtime applicativo e persiste i valori nel
+file config piattaforma. Se il campo STUN viene lasciato vuoto, il prodotto
+mantiene il default pronto all'uso invece di degradare in stato da configurare.
 
 ## Nginx e WebSocket
 
@@ -114,7 +123,9 @@ La condivisione schermo reale richiede:
 - consenso esplicito del cliente
 - browser moderni con `getDisplayMedia()` e `getUserMedia()`
 
-I data channel WebRTC sono cifrati, ma su reti esterne la riuscita pratica dipende dalla presenza di `TURN`.
+I data channel WebRTC sono cifrati. Il default STUN consente l'avvio della
+sessione nella maggior parte degli scenari; `TURN` resta raccomandato per
+clienti dietro firewall o NAT restrittivi.
 
 ## TURN self-hosted
 
@@ -122,8 +133,8 @@ In produzione e' raccomandato `coturn` con secret condiviso tra backend e relay.
 
 Regola operativa:
 
-- almeno un `STUN` per migliorare la negoziazione
-- `TURN` obbligatorio per reti con NAT o firewall difficili
+- almeno un `STUN` e' sempre presente grazie al default applicativo
+- `TURN` e' raccomandato, non bloccante, per reti con NAT o firewall difficili
 - non distribuire credenziali TURN statiche al browser
 
 ## Audit e consensi
@@ -170,5 +181,6 @@ Il resto del modulo e' gia' separato in modo da poter spostare solo questo layer
 - `docker compose build --no-cache`
 - `docker compose up -d --force-recreate`
 - `/admin/supporto-remoto` raggiungibile da `SUPERADMIN`
+- stato console `Pronta per assistenza immediata`
 - link cliente pubblico funzionante
 - reverse proxy con WebSocket attivo

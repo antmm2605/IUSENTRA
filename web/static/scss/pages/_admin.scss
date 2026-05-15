@@ -286,6 +286,58 @@ body.admin-layout {
   font-size: 1.4rem;
 }
 
+.server-maintenance-table {
+  min-width: 1180px;
+}
+
+.server-maintenance-table th {
+  font-size: .72rem;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: #64748b;
+}
+
+.server-maintenance-table td {
+  vertical-align: top;
+}
+
+.server-maintenance-categories {
+  min-width: 220px;
+}
+
+.server-maintenance-meter {
+  display: grid;
+  gap: .25rem;
+  margin-bottom: .45rem;
+}
+
+.server-maintenance-meter .progress {
+  height: .38rem;
+  border-radius: 999px;
+  background: #e2e8f0;
+}
+
+.server-maintenance-meter .progress-bar {
+  background: linear-gradient(90deg, #1d4ed8, #0ea5e9);
+}
+
+.server-maintenance-list {
+  display: grid;
+  gap: .35rem;
+  margin: 0;
+  padding-left: 1rem;
+  font-size: .78rem;
+}
+
+.server-maintenance-list li {
+  min-width: 0;
+}
+
+.server-maintenance-list strong {
+  display: block;
+  color: #0f172a;
+}
+
 .admin-meta-text {
   font-size: .75rem;
   color: #64748b;

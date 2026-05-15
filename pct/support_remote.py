@@ -24,6 +24,7 @@ SUPPORT_STATUS_LABELS: dict[str, str] = {
     "active": "Attiva",
     "closed": "Chiusa",
 }
+DEFAULT_SUPPORT_STUN_URLS: tuple[str, ...] = ("stun:stun.l.google.com:19302",)
 
 
 def derive_support_repository_db_path(anchor_path: str) -> str:
@@ -80,12 +81,25 @@ def verify_operator_token(public_id: str, token: str) -> dict[str, Any] | None:
     return dict(payload)
 
 
+def normalize_ice_url_list(value: Any) -> list[str]:
+    if isinstance(value, str):
+        raw_items = value.replace(";", ",").replace("\n", ",").split(",")
+    else:
+        raw_items = list(value or [])
+    return [str(item).strip() for item in raw_items if str(item).strip()]
+
+
+def default_support_stun_urls() -> list[str]:
+    return list(DEFAULT_SUPPORT_STUN_URLS)
+
+
 def build_ice_servers(subject: str) -> list[dict[str, Any]]:
     servers: list[dict[str, Any]] = []
-    for stun_url in current_app.config.get("SUPPORT_STUN_URLS", []) or []:
+    stun_urls = normalize_ice_url_list(current_app.config.get("SUPPORT_STUN_URLS", [])) or default_support_stun_urls()
+    for stun_url in stun_urls:
         servers.append({"urls": [str(stun_url)]})
 
-    turn_urls = [str(item) for item in (current_app.config.get("SUPPORT_TURN_URLS", []) or []) if str(item).strip()]
+    turn_urls = normalize_ice_url_list(current_app.config.get("SUPPORT_TURN_URLS", []))
     shared_secret = str(current_app.config.get("SUPPORT_TURN_SHARED_SECRET", "") or "").strip()
     ttl = int(current_app.config.get("SUPPORT_TURN_TTL_SECONDS", 3600) or 3600)
     if turn_urls and shared_secret:

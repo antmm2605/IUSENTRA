@@ -15,11 +15,13 @@ Osservabilita' non significa solo metriche runtime. Nel prodotto devono esistere
 | --- | --- | --- |
 | Metriche runtime HTTP e Lex | `admin/osservabilita` | latenze, p95, bucket endpoint, first token |
 | Storage parity e migrazione | Piattaforma superadmin: `admin/governance` | matrice R/W, fallback, wave di cutover |
+| Storage operativo per studio | `admin/server-manutenzione` | categorie consumo, cartelle pesanti, file principali, scansione rapida con dettaglio parziale dichiarato, azioni analisi/compattazione |
 | Audit accessi e ruoli | Piattaforma superadmin: `admin/governance` | eventi audit, superfici presidiate, ruoli ammessi |
 | Audit probatorio WORM | Fascicolo: tab `Audit`, endpoint `/audit/*`, bundle fascicolo | envelope firmati in WORM, catena hash, snapshot Merkle, proof offline |
 | Capability telematiche | Centro Servizi Telematici / Motori Legali | stato canali, fonti, warning, catalogo capability |
 | Salute sistema | Piattaforma superadmin: `admin/salute-sistema`, `admin/system-health` | backup, OCR, provider locali, readiness deploy |
 | Crash test operativo | `admin/crash-test-operativo` | checklist finale `si/no`, ticket di riparazione, backup blindato, esito per fase |
+| Assistenza remota pronta | `admin/supporto-remoto` | link cliente firmato, stanza operatore, schermo/audio con consenso, chat e audit |
 
 ## Regole
 
@@ -46,6 +48,9 @@ La vista `admin/osservabilita` non deve limitarsi a mostrare numeri:
 - deve mostrare `codice`, `famiglia`, `componente`, `soglia operativa` e `passi di remediation`
 - il `crash test operativo` deve riusare questi segnali e tradurli in ticket di riparazione senza richiedere lettura dei log applicativi
 - i log applicativi devono essere strutturati e mascherare automaticamente CF, email, IBAN, telefoni e altri identificativi sensibili
+- `server-manutenzione` deve spiegare lo spazio per studio senza sommare due volte tenant e aree globali
+- `server-manutenzione` deve proteggere il caricamento con limiti di file/tempo configurabili e segnalare quando il dettaglio iniziale e' parziale; l'analisi completa resta una scelta esplicita sul singolo studio o sull'area da manutenere
+- `supporto-remoto` deve partire senza configurazioni preliminari; relay reti difficili e controllo avanzato esterno sono ottimizzazioni, non blocchi della sessione base
 
 ## Tassonomia minima attesa
 

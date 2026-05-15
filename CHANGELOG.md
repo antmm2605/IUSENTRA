@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.239.0 - 2026-05-15
+
+- Potenziata la console superadmin `Server e manutenzione`: per ogni studio mostra categorie di consumo, cartelle piu' pesanti, file principali, area dominante, conteggio file/cartelle e azioni dirette verso studio, archivio, analisi e compattazione.
+- Separati i consumi tenant da email e backup globali, evitando conteggi sovrapposti e rendendo leggibile dove finisce lo spazio disco anche in ambienti multi-studio.
+- Protetto il caricamento della console storage con scansione rapida configurabile e segnalazione di dettaglio parziale, mantenendo disponibili analisi e compattazione mirate quando serve l'inventario completo di uno studio.
+- Resa `Assistenza remota` pronta all'uso: STUN predefinito, ICE server disponibili anche senza variabili manuali, runtime Docker/Hetzner allineato e console con stato "Pronta per assistenza immediata".
+- Declassati TURN e controllo remoto avanzato esterno a ottimizzazioni opzionali: link cliente firmato, stanza operatore, schermo/audio con consenso, chat e audit restano subito operativi.
+- Aggiunti test di regressione su inventario storage tenant, default WebRTC, console assistenza pronta e salvataggio configurazione senza perdere il default operativo.
+
 ## 2.238.4 - 2026-05-15
 
 - Resa condivisa la console `/admin/copertura-ai`: dashboard, audit, gap queue, generazione bozze, review, publish e API admin ignorano `tenant_slug` e usano un archivio unico di piattaforma.

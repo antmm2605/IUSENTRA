@@ -86,8 +86,10 @@ def test_server_maintenance_surface_mostra_consumi_per_studio(tmp_path: Path):
     tenant_root = tmp_path / "tenants" / "studio-a"
     (tenant_root / "email" / "allegati" / "m1").mkdir(parents=True)
     (tenant_root / "backup" / "mirror" / "cliente" / "studio-a" / "run").mkdir(parents=True)
+    (tenant_root / "preventivi").mkdir(parents=True)
     (tenant_root / "email" / "allegati" / "m1" / "atto.pdf").write_bytes(b"a" * 8192)
     (tenant_root / "backup" / "snapshot.zip").write_bytes(b"b" * 8192)
+    (tenant_root / "preventivi" / "preventivi_repository.json").write_bytes(b"c" * 4096)
 
     backup_dir = tmp_path / "external_backups"
     backup_dir.mkdir()
@@ -103,9 +105,39 @@ def test_server_maintenance_surface_mostra_consumi_per_studio(tmp_path: Path):
     assert payload["tenants"]
     assert payload["tenants"][0]["slug"] == "studio-a"
     assert payload["tenants"][0]["email_bytes"] >= 8192
+    assert payload["tenants"][0]["dominant_category"]["code"] in {"backup", "email"}
+    assert payload["tenants"][0]["top_paths"]
+    assert payload["tenants"][0]["largest_files"]
+    assert all("repository" not in item.get("display_path", "") for item in payload["tenants"][0]["largest_files"])
+    assert {item["code"] for item in payload["tenants"][0]["categories"]} >= {"email", "backup"}
     assert payload["actions"]["apply_compaction"] == "/admin/server-manutenzione/compatta"
     assert payload["summary"]["backup_external_size_label"] == "8.0 KiB"
+    assert payload["summary"]["tenant_email_size_label"] == "8.0 KiB"
+    assert payload["summary"]["tenant_backup_size_label"] == "8.0 KiB"
     assert payload["backup_retention"]["backup_archives_scanned"] == 1
+
+
+def test_server_maintenance_surface_scansione_rapida_non_blocca_studio_grande(tmp_path: Path):
+    tenant_root = tmp_path / "tenants" / "studio-a" / "email" / "allegati"
+    tenant_root.mkdir(parents=True)
+    for index in range(4):
+        (tenant_root / f"allegato-{index}.pdf").write_bytes(bytes([index]) * 1024)
+
+    payload = build_server_maintenance_surface(
+        {
+            "AUTH_DB": str(tmp_path / "auth" / "utenti.json"),
+            "IUSENTRA_BACKUP_DIR": str(tmp_path / "external_backups"),
+            "IUSENTRA_STORAGE_SCAN_MAX_FILES": 2,
+            "IUSENTRA_STORAGE_SCAN_SECONDS": 10,
+        }
+    )
+
+    tenant = payload["tenants"][0]
+    assert tenant["scan_truncated"] is True
+    assert tenant["scan_limit_reason"] == "limite file"
+    assert tenant["file_count"] == 2
+    assert payload["summary"]["scan_truncated"] is True
+    assert any("Scansione rapida" in item for item in tenant["recommendations"])
 
 
 def test_server_maintenance_compatta_singolo_studio(tmp_path: Path):
@@ -153,5 +185,7 @@ def test_superadmin_server_manutenzione_renderizza(tmp_path: Path):
     assert response.status_code == 200
     assert "Server e manutenzione" in html
     assert "Consumi per studio" in html
+    assert "Cartelle piu&#39; pesanti" in html or "Cartelle piu' pesanti" in html
+    assert "File principali" in html
     assert "Compatta" in html
     assert "retention backup" in html

@@ -6,18 +6,56 @@
 <div class="admin-page-header">
   <div>
     <h4 class="admin-page-title">Assistenza remota cliente</h4>
-  <p class="admin-page-subtitle">Cabina piattaforma per sessioni di assistenza, consensi, chat tecnica, audit e collegamento al controllo remoto avanzato.</p>
+  <p class="admin-page-subtitle">Cabina pronta all'uso per aprire sessioni cliente, condividere schermo e audio con consenso, usare chat e audit, senza configurazioni preliminari.</p>
   </div>
 </div>
 
 {% if payload.warnings %}
-<div class="ui-feedback ui-feedback--warning mb-3">
+<div class="ui-feedback ui-feedback--danger mb-3">
   <div class="ui-feedback__icon"><i class="bi bi-exclamation-triangle"></i></div>
   <div class="ui-feedback__content">
-    <div class="ui-feedback__title">Presidio operativo richiesto</div>
+    <div class="ui-feedback__title">Intervento richiesto prima dell'assistenza da remoto</div>
     <div class="ui-feedback__body">
       {% for warning in payload.warnings %}
       <div class="small">{{ warning }}</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="ui-feedback ui-feedback--success mb-3">
+  <div class="ui-feedback__icon"><i class="bi bi-check2-circle"></i></div>
+  <div class="ui-feedback__content">
+    <div class="ui-feedback__title">Pronta per assistenza immediata</div>
+    <div class="ui-feedback__body">
+      Puoi creare una sessione adesso: IUSENTRA genera il link cliente firmato, apre la stanza operatore e registra consensi, chat e audit.
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div class="row g-3 mb-4 support-readiness-grid">
+  {% for capability in payload.capabilities %}
+  <div class="col-12 col-md-6 col-xl-3">
+    <div class="card h-100 support-readiness-card {% if capability.ready %}support-readiness-card--ready{% endif %}">
+      <div class="card-body">
+        <div class="support-readiness-card__icon"><i class="bi {{ capability.icon }}"></i></div>
+        <div class="fw-semibold">{{ capability.label }}</div>
+        <div class="small text-muted">{{ capability.state }}</div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% if payload.advisories %}
+<div class="ui-feedback mb-3">
+  <div class="ui-feedback__icon"><i class="bi bi-info-circle"></i></div>
+  <div class="ui-feedback__content">
+    <div class="ui-feedback__title">Ottimizzazioni disponibili</div>
+    <div class="ui-feedback__body">
+      {% for advisory in payload.advisories %}
+      <div class="small">{{ advisory }}</div>
       {% endfor %}
     </div>
   </div>
@@ -93,11 +131,12 @@
               <i class="bi bi-broadcast-pin me-1"></i>Apri assistenza remota
             </button>
             <div class="small text-muted">{{ payload.operator_rule }}</div>
+            <div class="small text-muted">I campi cliente sono utili per il registro, ma puoi aprire una sessione anche subito e copiare il link.</div>
             <div class="small text-muted">
               {% if payload.advanced_ready %}
               Escalation avanzata pronta: la piattaforma puo' aprire il controllo remoto esterno solo dopo approvazione esplicita del cliente.
               {% else %}
-              Controllo remoto avanzato non ancora configurato: questa cabina copre comunque schermo, audio, chat, audit e consensi.
+              Escalation avanzata opzionale: questa cabina copre gia' schermo, audio, chat, audit e consensi.
               {% endif %}
             </div>
           </div>
@@ -120,51 +159,51 @@
   <div class="col-12 col-xl-4">
     <div class="card h-100">
       <div class="card-header fw-semibold">
-        <i class="bi bi-sliders me-2 text-primary"></i>Configurazione realtime
+        <i class="bi bi-sliders me-2 text-primary"></i>Presidio realtime
       </div>
       <div class="card-body">
         <form method="post" action="{{ payload.config_action }}">
           <div class="mb-3">
-            <label class="form-label">Server STUN</label>
-            <textarea class="form-control" name="stun_urls" rows="3" placeholder="stun:turn.tuodominio.it:3478">{{ payload.runtime_config.stun_urls_text }}</textarea>
-                  <div class="small text-muted mt-1">Un indirizzo per riga. Aiuta ad avviare il collegamento video anche fuori studio.</div>
+            <label class="form-label">Connessione browser gia' operativa</label>
+            <textarea class="form-control" name="stun_urls" rows="3" placeholder="stun:stun.l.google.com:19302">{{ payload.runtime_config.stun_urls_text }}</textarea>
+            <div class="small text-muted mt-1">Presidio predefinito gia' operativo. Usa un indirizzo per riga solo se vuoi sostituirlo con un presidio proprietario.</div>
           </div>
           <div class="mb-3">
-            <label class="form-label">Server TURN</label>
+            <label class="form-label">Relay per reti difficili</label>
             <textarea class="form-control" name="turn_urls" rows="3" placeholder="turn:turn.tuodominio.it:3478?transport=udp&#10;turns:turn.tuodominio.it:5349?transport=tcp">{{ payload.runtime_config.turn_urls_text }}</textarea>
-                  <div class="small text-muted mt-1">Aggiungi gli indirizzi relay reali per studi collegati da reti esterne o piu' restrittive.</div>
+            <div class="small text-muted mt-1">Opzionale: aumenta affidabilita' per clienti con firewall o NAT restrittivi.</div>
           </div>
           <div class="mb-3">
-            <label class="form-label">Secret TURN condiviso</label>
+            <label class="form-label">Chiave relay temporanea</label>
             <input class="form-control" type="password" name="turn_shared_secret" value="" placeholder="{% if payload.runtime_config.turn_shared_secret_present %}Secret gia' salvato - reinserisci solo se vuoi cambiarlo{% else %}Secret lungo e random{% endif %}">
             <div class="small text-muted mt-1">
               {% if payload.runtime_config.turn_shared_secret_present %}
-              Secret gia' presente. Lascia vuoto se non vuoi cambiarlo.
+              Chiave gia' presente. Lascia vuoto se non vuoi cambiarla.
               {% else %}
-              Necessario per credenziali TURN temporanee lato browser.
+              Necessaria solo se colleghi il relay per reti difficili.
               {% endif %}
             </div>
           </div>
           <div class="row g-3">
             <div class="col-sm-6">
-              <label class="form-label">TTL TURN (secondi)</label>
+              <label class="form-label">Durata relay (secondi)</label>
               <input class="form-control" type="number" min="60" step="60" name="turn_ttl_seconds" value="{{ payload.runtime_config.turn_ttl_seconds }}">
             </div>
             <div class="col-sm-6">
-              <label class="form-label">Durata token WS (secondi)</label>
+              <label class="form-label">Durata link operatore (secondi)</label>
               <input class="form-control" type="number" min="300" step="300" name="ws_token_max_age" value="{{ payload.runtime_config.ws_token_max_age }}">
             </div>
           </div>
           <div class="mt-3 mb-3">
             <label class="form-label">URL controllo remoto avanzato</label>
             <input class="form-control" name="advanced_url_template" value="{{ payload.runtime_config.advanced_url_template }}" placeholder="https://support.tuodominio.it/advanced/{public_id}">
-            <div class="small text-muted mt-1">Usa il placeholder <code>{public_id}</code> per agganciare la sessione alla piattaforma esterna.</div>
+            <div class="small text-muted mt-1">Opzionale: collega la sessione a uno strumento esterno solo dopo consenso cliente.</div>
           </div>
           <div class="d-flex gap-2 align-items-center flex-wrap">
             <button class="btn btn-primary" type="submit">
-              <i class="bi bi-save me-1"></i>Salva configurazione
+              <i class="bi bi-save me-1"></i>Salva presidio
             </button>
-                <span class="small text-muted">Percorso configurazione piattaforma: <code>{{ payload.runtime_config.config_path }}</code></span>
+                <span class="small text-muted">Preferenze salvate nel presidio piattaforma.</span>
           </div>
         </form>
       </div>

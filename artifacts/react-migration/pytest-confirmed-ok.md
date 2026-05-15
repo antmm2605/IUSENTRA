@@ -1,12 +1,26 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-15, hotfix Copertura AI condivisa 2.238.4.
+Aggiornato: 2026-05-15, tranche superadmin operativo 2.239.0.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Tranche superadmin operativo 2.239.0 - 2026-05-15
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct\support_remote.py pct\config_studio.py web\services\runtime_settings.py web\services\support_surface.py web\services\server_maintenance_surface.py`; `python -m ruff check pct\support_remote.py pct\config_studio.py web\services\runtime_settings.py web\services\support_surface.py web\services\server_maintenance_surface.py tests\test_support_remote.py tests\test_server_maintenance_surface.py` | OK | Sintassi e Ruff confermati dopo STUN predefinito, preservazione configurazione pronta, console assistenza pronta all'uso, mappa storage per studio e scansione rapida governata. |
+| `python -m pytest tests\test_support_remote.py tests\test_server_maintenance_surface.py -q --tb=short` | OK | 15/15 passati: assistenza remota pronta senza TURN obbligatorio, ICE default disponibile su `/webrtc-config`, salvataggio con STUN vuoto preserva il default, manutenzione server espone categorie, cartelle principali, file pesanti, azioni operative e guardrail anti-scansione lenta. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py -q --tb=short` | OK | Packaging e readiness release verdi su versione `2.239.0`; Dockerfile, `setup.py`, `railway.toml` e `pct/__init__.py` allineati. |
+| `python scripts\validate_docs_links.py docs\ASSISTENZA_REMOTA.md docs\OBSERVABILITY_AUDIT_PRODUCT.md docs\REACT_MIGRATION_MASTER_PLAN.md`; `python scripts\validate_docs_commands.py` | OK | Link documentali 21/157 e comandi documentali 155/155 confermati dopo aggiornamento assistenza remota, osservabilita' prodotto e master plan. |
+| `python -m pytest tests\test_operational_surfaces.py::test_superadmin_product_surfaces_renderizzano -q --tb=short` | OK | Smoke prodotto superadmin confermato dopo le modifiche a `Server e manutenzione` e `Assistenza remota`. |
+| `npm --prefix frontend run build` | OK | Build Vite completata in 7.39s; bundle principale invariato `index-Di4ENQKe.js` 451.51 kB / 133.56 kB gzip. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build --force-recreate redis app scheduler-worker ocr-worker nginx`; `GET http://127.0.0.1:8080/api/pronto`; `docker exec iusentra-app python -c "import pct; print(pct.__version__)"` | OK | Build no-cache ha creato wheel `pct-studio-legale==2.239.0`; app, scheduler, OCR e Redis healthy; readiness locale 200 con `versione=2.239.0`; runtime container `2.239.0`; `PCT_SUPPORT_STUN_URLS=stun:stun.l.google.com:19302`. |
+| Probe autenticato Docker `/admin/supporto-remoto` e `/admin/server-manutenzione`; `build_server_maintenance_surface()` nel container | OK | Login superadmin locale riuscito; assistenza remota 200 in 0.106s con "Pronta per assistenza immediata"; manutenzione server 200 in 2.345s; payload storage 2.339s su due studi, con scansione parziale dichiarata quando scatta il limite operativo. |
+| Chromium headless reale su `http://127.0.0.1:8080/admin/supporto-remoto` e `/admin/server-manutenzione`, desktop/tablet/mobile, report `artifacts/react-migration/visual-2.239.0-superadmin-operativo/visual-load-audit.md` | OK | 6/6 viste OK: assistenza 592-673 ms, manutenzione 2812-2854 ms; nessun overflow orizzontale, nessun errore console, nessun testo tecnico vietato (`backend`, `frontend`, `legacy`, `payload`, `runtime`, `json_api`, `provider`, `webhook`, `undefined`, `null`, `demo`, `sample`, `repository`, `endpoint`, `mock_fallback`, `psutil`). |
 
 ### Hotfix Copertura AI condivisa 2.238.4 - 2026-05-15
 
@@ -1693,3 +1707,10 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `npm run test --prefix frontend` | OK | Contratti React verificati per versione frontend `2.218.3`. |
 | `npm run typecheck --prefix frontend` | OK | TypeScript confermato. |
 | `npm run build --prefix frontend` | OK | Build Vite completata; asset React rigenerati in `web/static/react`, con dettaglio Fascicoli piu' leggero per caricamento lazy. |
+
+## Superadmin storage e assistenza remota pronta 2.239.0 - 2026-05-15
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct\support_remote.py pct\config_studio.py web\services\runtime_settings.py web\services\support_surface.py web\services\server_maintenance_surface.py` | OK | Sintassi confermata dopo default STUN, separazione consumi tenant/globali e scansione storage per categorie. |
+| `python -m pytest tests\test_support_remote.py tests\test_server_maintenance_surface.py -q --tb=short` | OK | 14/14 passati: console assistenza pronta, ICE server predefinito, salvataggio config senza perdere il default, inventario storage tenant, categorie/cartelle/file e render server maintenance. |

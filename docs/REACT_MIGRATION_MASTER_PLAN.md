@@ -1,5 +1,32 @@
 # Migrazione progressiva Flask + React
 
+## Tranche superadmin operativo - 2026-05-15 - 2.239.0
+
+Le pagine superadmin richieste restano nel perimetro di potenziamento prodotto,
+ma questa tranche chiude due blocchi immediatamente critici:
+
+- `Server e manutenzione` ora espone una mappa storage per studio con categorie
+  operative, cartelle piu' pesanti, file principali, area dominante e azioni
+  dirette di analisi/compattazione. I consumi tenant sono separati da email e
+  backup globali per evitare numeri doppi quando la piattaforma ospita piu'
+  studi. La lettura iniziale usa una scansione rapida configurabile e dichiara
+  quando il dettaglio e' parziale, cosi' il pannello resta reattivo anche con
+  storage molto grandi e rimanda alle analisi mirate per l'inventario completo.
+- `Assistenza remota` e' pronta al primo avvio: STUN predefinito, ICE server
+  sempre disponibili, link cliente firmato, stanza operatore, schermo/audio con
+  consenso, chat e audit. TURN e controllo avanzato esterno restano
+  ottimizzazioni opzionali, non prerequisiti che bloccano l'assistenza base.
+
+Gate locali chiusi: `py_compile`, Ruff mirato,
+`pytest tests/test_support_remote.py tests/test_server_maintenance_surface.py`
+con 15/15 test passati, packaging/readiness 8/8, validazione documentale, build
+Vite, Docker locale no-cache, readiness `2.239.0`, tempi autenticati e browser
+reale desktop/tablet/mobile. Nel container Docker la console assistenza risponde
+in circa `0.106s`, la manutenzione server in circa `2.345s` e il payload storage
+su due studi in circa `2.339s`, dichiarando il dettaglio parziale quando scatta
+il limite operativo. Il report visuale finale e' in
+`artifacts/react-migration/visual-2.239.0-superadmin-operativo/visual-load-audit.md`.
+
 ## Hotfix Copertura AI condivisa - 2026-05-15 - 2.238.4
 
 La console superadmin `/admin/copertura-ai` e la review `/admin/copertura-ai/review`

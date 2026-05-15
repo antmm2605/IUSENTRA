@@ -11,6 +11,7 @@ from typing import Any
 from flask import Flask
 
 from pct.local_ai import strip_api_suffix
+from pct.support_remote import default_support_stun_urls
 from web.services.hosted_runtime import apply_hosted_local_ai_safety_overrides
 
 
@@ -146,7 +147,7 @@ def apply_runtime_settings(
         ),
     )
     app.config["SUPPORT_STUN_URLS"] = _list_from_runtime_value(
-        cfg.get("SUPPORT_STUN_URLS", os.getenv("PCT_SUPPORT_STUN_URLS", ""))
+        cfg.get("SUPPORT_STUN_URLS", os.getenv("PCT_SUPPORT_STUN_URLS", ",".join(default_support_stun_urls())))
     )
     app.config["SUPPORT_TURN_URLS"] = _list_from_runtime_value(
         cfg.get("SUPPORT_TURN_URLS", os.getenv("PCT_SUPPORT_TURN_URLS", ""))
@@ -238,13 +239,18 @@ def apply_persistent_studio_overrides(app: Flask) -> None:
 
         support_cfg = getattr(studio_cfg, "support_remote", None)
         if support_cfg is not None:
-            app.config["SUPPORT_STUN_URLS"] = _list_from_runtime_value(
+            persisted_stun_urls = _list_from_runtime_value(
                 getattr(support_cfg, "stun_urls", app.config.get("SUPPORT_STUN_URLS", []))
             )
-            app.config["SUPPORT_TURN_URLS"] = _list_from_runtime_value(
+            app.config["SUPPORT_STUN_URLS"] = persisted_stun_urls or app.config.get(
+                "SUPPORT_STUN_URLS", []
+            ) or default_support_stun_urls()
+            persisted_turn_urls = _list_from_runtime_value(
                 getattr(support_cfg, "turn_urls", app.config.get("SUPPORT_TURN_URLS", []))
             )
-            app.config["SUPPORT_TURN_SHARED_SECRET"] = str(
+            if persisted_turn_urls:
+                app.config["SUPPORT_TURN_URLS"] = persisted_turn_urls
+            persisted_turn_secret = str(
                 getattr(
                     support_cfg,
                     "turn_shared_secret",
@@ -252,6 +258,8 @@ def apply_persistent_studio_overrides(app: Flask) -> None:
                 )
                 or ""
             ).strip()
+            if persisted_turn_secret:
+                app.config["SUPPORT_TURN_SHARED_SECRET"] = persisted_turn_secret
             app.config["SUPPORT_TURN_TTL_SECONDS"] = int(
                 getattr(
                     support_cfg,
@@ -268,7 +276,7 @@ def apply_persistent_studio_overrides(app: Flask) -> None:
                 )
                 or 43200
             )
-            app.config["SUPPORT_ADVANCED_URL_TEMPLATE"] = str(
+            persisted_advanced_template = str(
                 getattr(
                     support_cfg,
                     "advanced_url_template",
@@ -276,6 +284,8 @@ def apply_persistent_studio_overrides(app: Flask) -> None:
                 )
                 or ""
             ).strip()
+            if persisted_advanced_template:
+                app.config["SUPPORT_ADVANCED_URL_TEMPLATE"] = persisted_advanced_template
 
         app.config["SMTP_HOST"] = studio_cfg.smtp.host or os.getenv("PCT_SMTP_HOST", "")
         app.config["SMTP_PORT"] = studio_cfg.smtp.port or int(

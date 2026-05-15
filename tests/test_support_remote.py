@@ -4,6 +4,7 @@ from datetime import datetime
 from pathlib import Path
 
 from pct.auth import GestioneUtenti
+from pct.support_remote import default_support_stun_urls
 from web.app import create_app
 from web.services.support_runtime import support_repository
 from web.services.support_surface import build_support_console_payload
@@ -43,8 +44,19 @@ def test_support_remote_console_and_routes_register_on_runtime(tmp_path: Path):
 
         response = client.get("/admin/supporto-remoto")
 
+    html = response.get_data(as_text=True)
     assert response.status_code == 200
-    assert "Assistenza remota cliente" in response.get_data(as_text=True)
+    assert "Assistenza remota cliente" in html
+    assert "Pronta per assistenza immediata" in html
+    assert "TURN non configurato" not in html
+
+    with app.test_request_context("/admin/supporto-remoto"):
+        payload = build_support_console_payload()
+
+    assert payload["ready_now"] is True
+    assert payload["warnings"] == []
+    assert payload["readiness"]["stun_ready"] is True
+    assert payload["runtime_config"]["stun_urls_text"] == "\n".join(default_support_stun_urls())
 
 
 def test_support_remote_create_session_allows_impersonating_superadmin(tmp_path: Path):
@@ -104,11 +116,14 @@ def test_support_remote_customer_link_and_state_work_without_login(tmp_path: Pat
 
         join_page = client.get(f"/support/join/{client_token}")
         state = client.get(f"/support/api/{public_id}/state?role=client&token={client_token}")
+        webrtc = client.get(f"/support/api/{public_id}/webrtc-config?role=client&token={client_token}")
 
     assert join_page.status_code == 200
     assert "Assistenza remota con consenso esplicito" in join_page.get_data(as_text=True)
     assert state.status_code == 200
     assert state.get_json()["session"]["public_id"] == public_id
+    assert webrtc.status_code == 200
+    assert webrtc.get_json()["rtcConfiguration"]["iceServers"][0]["urls"] == default_support_stun_urls()
 
 
 def test_support_remote_note_update_and_repository_story(tmp_path: Path):
@@ -250,3 +265,36 @@ def test_support_remote_platform_config_can_be_saved_from_console(tmp_path: Path
 
     assert "TURN non configurato" not in " ".join(payload["warnings"])
     assert payload["advanced_ready"] is True
+
+
+def test_support_remote_empty_stun_preserves_ready_default(tmp_path: Path):
+    app, superadmin, _, _ = _seed_runtime(tmp_path)
+
+    with app.test_client() as client:
+        with client.session_transaction() as session_tx:
+            session_tx["user_id"] = superadmin.id
+            session_tx["auth_scope"] = "global"
+            session_tx["auth_tenant_slug"] = ""
+            session_tx["last_activity"] = datetime.now().isoformat()
+
+        response = client.post(
+            "/admin/supporto-remoto/configurazione",
+            data={
+                "stun_urls": "",
+                "turn_urls": "",
+                "turn_shared_secret": "",
+                "turn_ttl_seconds": "3600",
+                "ws_token_max_age": "43200",
+                "advanced_url_template": "",
+            },
+            follow_redirects=True,
+        )
+
+    assert response.status_code == 200
+    assert app.config["SUPPORT_STUN_URLS"] == default_support_stun_urls()
+
+    with app.test_request_context("/admin/supporto-remoto"):
+        payload = build_support_console_payload()
+
+    assert payload["ready_now"] is True
+    assert payload["warnings"] == []

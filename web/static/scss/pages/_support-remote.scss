@@ -9,6 +9,35 @@
   border-color: #173b82;
 }
 
+.support-readiness-grid {
+  margin-top: -.25rem;
+}
+
+.support-readiness-card {
+  border-color: rgba(15, 23, 42, .08);
+}
+
+.support-readiness-card--ready {
+  border-color: rgba(22, 163, 74, .22);
+}
+
+.support-readiness-card__icon {
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: .75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #1d4ed8;
+  background: rgba(37, 99, 235, .08);
+  margin-bottom: .55rem;
+}
+
+.support-readiness-card--ready .support-readiness-card__icon {
+  color: #15803d;
+  background: rgba(22, 163, 74, .1);
+}
+
 .support-session-details dt,
 .support-session-details dd {
   margin-bottom: .55rem;

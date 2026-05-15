@@ -1608,6 +1608,23 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | Chrome CDP su `http://127.0.0.1:8080/` e `/fascicoli` con sessione tenant | OK | Desktop/mobile: Panoramica 471/1451 ms, Fascicoli 3500/4445 ms a contenuto React visibile; nessun overflow orizzontale o errore console nel report pulito. |
 | Chrome CDP su `/app-v2` e `/app-v2/documenti` con flag spenti | OK | Entrambe le route rispondono fail-closed mostrando solo `Funzione non attiva per questo studio.`; nessun dato operativo viene caricato. |
 
+## Ricerca Legale reale e fonte PST 2.238.0 - 2026-05-15
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile web/services/react_legal_intelligence_bridge.py tests/test_react_legal_intelligence_search.py` | OK | Sintassi backend e regressioni dedicate confermate dopo l'innesto ricerca reale `/ricerca-legale`. |
+| `python -m pytest tests/test_react_legal_intelligence_search.py -q --tb=short` | OK | 3/3 passati: ricerca su `legal_updates.db`, fallback ufficiale governato e news PST `NWS4865` in News/Ricerca Legale. |
+| `npm --prefix frontend run typecheck` | OK | TypeScript confermato dopo il form React che invia la query al backend. |
+| `npm --prefix frontend run test` | OK | Contratti React, App V2 frontend, Legal Skills e UI coverage verdi dopo la modifica a `LegalIntelligencePage`. |
+| `npm --prefix frontend run build` | OK | Build Vite `2.238.0` completata; asset React rigenerati con chunk `LegalIntelligencePage-CtbkdlI-.js` e CSS `LegalIntelligencePage-Ccs-Dp3-.css`. |
+| `python tools/sync_packaging_files.py --check`; `python -m pytest tests/test_packaging_consistency.py tests/test_release_readiness.py -q --tb=short` | OK | Packaging sincronizzato e readiness release 8/8 dopo bump `2.238.0`. |
+| `python -m pytest tests/test_react_legal_intelligence_search.py tests/test_legal_updates_pipeline.py::test_legal_update_repository_espone_evidenze_lex_da_sql -q --tb=short` | OK | 4/4 passati: bridge React ricerca legale e repository SQL Lex confermati insieme. |
+| `python -m pytest tests/test_react_shell.py::test_react_blocco_finale_studio_admin_completo tests/test_react_shell.py::test_react_migration_matrice_completa_route_api_e_card_operative -q --tb=short` | OK | 2/2 passati: matrice route/API/card operative e blocco finale studio/admin ancora coerenti. |
+| `python -m pytest tests/test_react_shell.py::test_react_migration_matrice_completa_route_api_e_card_operative tests/test_react_shell.py::test_react_route_gate_copre_rotte_profonde_e_preserva_contratti_operativi -q --tb=short` | OK | 2/2 passati: gate route React e contratti profondi confermati con `/ricerca-legale` full React. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build --force-recreate app scheduler-worker ocr-worker nginx`; readiness locale | OK | Docker locale no-cache `2.238.0`: app, scheduler, OCR, Redis e nginx avviati; `/api/pronto` 200 con `versione=2.238.0`; container app `pct.__version__ == 2.238.0`. |
+| Playwright autenticato tramite impersonazione tenant su `/ricerca-legale?q=mediazione` desktop/mobile, report `artifacts/react-migration/visual-2.238.0-ricerca-legale/visual-load-audit.md` | OK | Form ricerca backend visibile, fonte PST `NWS4865` visibile con contesto `22/04/2026`, nessun testo tecnico vietato e nessun overflow orizzontale. |
+| `git restore -- data/auth/audit.json data/auth/utenti.json data/tenant_user_directory.json` | OK | Ripuliti solo artefatti runtime prodotti da login/impersonazione e Docker locale; lasciati intatti i file `data/` gia' sporchi prima della tranche. |
+
 ## Multi-studio hardening tenant/API 2.218.3 - 2026-05-13
 
 | Comando / verifica | Esito | Nota |

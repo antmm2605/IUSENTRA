@@ -211,7 +211,10 @@ export async function getLegalIntelligenceMediazionePage(): Promise<LegalIntelli
   return normalisePage(payload)
 }
 
-export async function getRicercaLegalePage(): Promise<LegalIntelligencePageData> {
-  const payload = await apiJson<unknown>('/api/v1/ui/ricerca-legale', emptyLegalIntelligencePage)
+export async function getRicercaLegalePage(params: { q?: string } = {}): Promise<LegalIntelligencePageData> {
+  const search = new URLSearchParams()
+  if (params.q?.trim()) search.set('q', params.q.trim())
+  const suffix = search.toString() ? `?${search.toString()}` : ''
+  const payload = await apiJson<unknown>(`/api/v1/ui/ricerca-legale${suffix}`, emptyLegalIntelligencePage)
   return normalisePage(payload)
 }

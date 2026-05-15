@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.238.0 - 2026-05-15
+
+- Trasformata `/ricerca-legale` in ricerca effettiva: il form React invia la query al backend, il bridge interroga `legal_updates.db` e mostra estratti fonte, area, data, autorita' e link consultabile.
+- Aggiunto fallback automatico sulle fonti ufficiali governate quando l'archivio interno non produce fonti ufficiali con contesto sufficiente; la pagina conserva il filtro locale solo per News e Mediazione.
+- Inserita la notizia ufficiale PST `NWS4865` sul ripristino di Registro Organismi di Mediazione, Elenco Enti per la Mediazione ed Elenco Formatori per la Mediazione, con data `2026-05-11` e riferimento al ripristino del `22/04/2026`.
+- Aggiunti test backend dedicati per impedire regressioni verso ricerca solo locale/mascherata e confermare la presenza della fonte PST in News e Ricerca Legale.
+
 ## 2.237.9 - 2026-05-15
 
 - Sbloccato Lex Operational Knowledge come capability attiva di default: clienti, fascicoli, agenda, scadenze, preventivi, conferimenti, fatturazione, messaggi, documenti e template vengono interrogati dal bounded workflow senza opt-in manuale.

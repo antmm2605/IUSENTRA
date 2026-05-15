@@ -4,6 +4,14 @@ Guida tecnica al comportamento di Lex nella ricerca di fonti legali pubbliche: n
 
 ---
 
+## Aggiornamento operativo 2.238.0 - 2026-05-15
+
+`/ricerca-legale` e' ora una ricerca reale: il frontend invia la query a `/api/v1/ui/ricerca-legale`, il backend interroga `legal_updates.db` e, se le evidenze non bastano, attiva il gateway su domini ufficiali allowlisted. I risultati devono includere estratto o contesto fonte quando disponibile.
+
+Tra le fonti PST governate e' registrata la news ufficiale `NWS4865` del 2026-05-11: ripristino dal 22/04/2026 di Registro Organismi di Mediazione, Elenco Enti per la Mediazione ed Elenco Formatori per la Mediazione.
+
+---
+
 ## 1. Principio fondamentale
 
 Lex distingue nettamente due categorie di fonti:

@@ -39,14 +39,18 @@ function pageTitle(view: LegalIntelligenceView) {
 function pageSubtitle(view: LegalIntelligenceView) {
   if (view === 'news') return 'News giuridiche disponibili, con fonte, materia e stato pubblicazione.'
   if (view === 'mediazione') return 'Registro mediazione disponibile per lo studio.'
-  if (view === 'ricerca-legale') return 'Hub di ricerca con fonti, news e schede collegate.'
+  if (view === 'ricerca-legale') return 'Ricerca reale su archivio giuridico, fonti ufficiali e schede collegate.'
   return 'Cruscotto di monitoraggio fonti, news e registri in una vista unica.'
 }
 
-async function loadPage(view: LegalIntelligenceView): Promise<LegalIntelligencePageData> {
+function initialQuery() {
+  return new URLSearchParams(window.location.search).get('q') || ''
+}
+
+async function loadPage(view: LegalIntelligenceView, query = ''): Promise<LegalIntelligencePageData> {
   if (view === 'news') return getLegalIntelligenceNewsPage()
   if (view === 'mediazione') return getLegalIntelligenceMediazionePage()
-  if (view === 'ricerca-legale') return getRicercaLegalePage()
+  if (view === 'ricerca-legale') return getRicercaLegalePage({ q: query })
   return getLegalIntelligencePage()
 }
 
@@ -218,19 +222,57 @@ function RecordDetail({ record }: { record?: LegalIntelligenceRecord }) {
 }
 
 function RecordFilters({
+  view,
   query,
+  submittedQuery,
+  loading,
   onQuery,
+  onSubmit,
+  onReset,
 }: {
+  view: LegalIntelligenceView
   query: string
+  submittedQuery: string
+  loading: boolean
   onQuery: (value: string) => void
+  onSubmit: () => void
+  onReset: () => void
 }) {
+  const isSearch = view === 'ricerca-legale'
   return (
-    <section className="iu-li-filters iu-od-source-card" aria-label="Filtro risultati ricerca legale">
-      <label htmlFor="legal-intelligence-search">
-        <Search size={15} aria-hidden="true" />
-        Cerca
-      </label>
-      <input id="legal-intelligence-search" value={query} onChange={(event) => onQuery(event.target.value)} />
+    <section className="iu-li-filters iu-od-source-card" aria-label={isSearch ? 'Ricerca fonti legali' : 'Filtro risultati ricerca legale'}>
+      <form
+        className="iu-li-search-form"
+        onSubmit={(event) => {
+          event.preventDefault()
+          onSubmit()
+        }}
+      >
+        <label className="iu-li-search-field" htmlFor="legal-intelligence-search">
+          <span>
+            <Search size={15} aria-hidden="true" />
+            {isSearch ? 'Cerca fonti, norme e giurisprudenza' : 'Cerca'}
+          </span>
+          <input
+            id="legal-intelligence-search"
+            value={query}
+            onChange={(event) => onQuery(event.target.value)}
+            placeholder={isSearch ? 'Es. mediazione, Cassazione, prescrizione, decreto' : undefined}
+          />
+        </label>
+        {isSearch ? (
+          <Button type="submit" tone="primary" disabled={loading || !query.trim()}>
+            <Search size={16} aria-hidden="true" />
+            Cerca
+          </Button>
+        ) : null}
+        {(isSearch ? submittedQuery : query) ? (
+          <Button type="button" tone="neutral" onClick={onReset}>
+            Azzera
+          </Button>
+        ) : null}
+      </form>
+      {isSearch && submittedQuery ? <p className="iu-li-search-note">Risultati per "{submittedQuery}".</p> : null}
     </section>
   )
 }
@@ -244,12 +286,14 @@ export function LegalIntelligencePage() {
   const [view] = useState<LegalIntelligenceView>(() => currentView())
   const [data, setData] = useState<LegalIntelligencePageData>(emptyLegalIntelligencePage)
   const [loading, setLoading] = useState(true)
-  const [query, setQuery] = useState('')
+  const [query, setQuery] = useState(() => (currentView() === 'ricerca-legale' ? initialQuery() : ''))
+  const [submittedQuery, setSubmittedQuery] = useState(() => (currentView() === 'ricerca-legale' ? initialQuery() : ''))
   const [selectedId, setSelectedId] = useState(new URLSearchParams(window.location.search).get('scheda') || '')
 
   useEffect(() => {
     let active = true
-    loadPage(view)
+    setLoading(true)
+    loadPage(view, submittedQuery)
       .then((payload) => {
         if (active) setData(payload)
       })
@@ -259,8 +303,9 @@ export function LegalIntelligencePage() {
     return () => {
       active = false
     }
-  }, [view])
+  }, [view, submittedQuery])
 
+  const localFilter = view === 'ricerca-legale' ? '' : query
   const visibleRecords = useMemo(() => data.records.filter((record) => includesText([
     record.title,
     record.subtitle,
@@ -270,11 +315,35 @@ export function LegalIntelligencePage() {
     record.branch,
     record.territory,
     record.registryNumber,
-  ].join(' '), query)), [data.records, query])
+  ].join(' '), localFilter)), [data.records, localFilter])
   const selectedRecord = data.records.find((record) => record.id === selectedId) || visibleRecords[0]
+  const submitSearch = () => {
+    const trimmed = query.trim()
+    setSelectedId('')
+    if (view === 'ricerca-legale') {
+      const params = new URLSearchParams(window.location.search)
+      if (trimmed) params.set('q', trimmed)
+      else params.delete('q')
+      params.delete('scheda')
+      const suffix = params.toString() ? `?${params.toString()}` : ''
+      window.history.replaceState({}, '', `${window.location.pathname}${suffix}`)
+      setSubmittedQuery(trimmed)
+    }
+  }
+  const resetSearch = () => {
+    setQuery('')
+    setSelectedId('')
+    if (view === 'ricerca-legale') {
+      window.history.replaceState({}, '', window.location.pathname)
+      setSubmittedQuery('')
+    }
+  }
   const openRecord = (record: LegalIntelligenceRecord) => {
     setSelectedId(record.id)
-    window.history.replaceState({}, '', `${window.location.pathname}?scheda=${encodeURIComponent(record.id)}`)
+    const params = new URLSearchParams(window.location.search)
+    if (view === 'ricerca-legale' && submittedQuery) params.set('q', submittedQuery)
+    params.set('scheda', record.id)
+    window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`)
     window.requestAnimationFrame(() => document.querySelector('.iu-li-detail')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
   }
 
@@ -294,18 +363,21 @@ export function LegalIntelligencePage() {
         <NavigationTabs view={view} />
         <Metrics data={data} />
         <Sections data={data} view={view} />
-        <RecordFilters query={query} onQuery={setQuery} />
+        <RecordFilters
+          view={view}
+          query={query}
+          submittedQuery={submittedQuery}
+          loading={loading}
+          onQuery={setQuery}
+          onSubmit={submitSearch}
+          onReset={resetSearch}
+        />
         <RecordDetail record={selectedRecord} />
         <Panel
-          title={view === 'mediazione' ? 'Registro mediazione' : view === 'news' ? 'News disponibili' : 'Elementi di monitoraggio'}
-          subtitle={`${visibleRecords.length} elementi visibili su ${data.records.length} schede disponibili.`}
-          actions={
-            query ? (
-              <Button type="button" tone="neutral" onClick={() => setQuery('')}>
-                Azzera filtro
-              </Button>
-            ) : null
-          }
+          title={view === 'mediazione' ? 'Registro mediazione' : view === 'news' ? 'News disponibili' : view === 'ricerca-legale' ? 'Risultati ricerca' : 'Elementi di monitoraggio'}
+          subtitle={view === 'ricerca-legale' && submittedQuery
+            ? `${visibleRecords.length} risultati per "${submittedQuery}".`
+            : `${visibleRecords.length} elementi visibili su ${data.records.length} schede disponibili.`}
         >
           {visibleRecords.length ? (
             <div className={openDesignLegalKnowledgeSurface.legalList}>
@@ -315,8 +387,10 @@ export function LegalIntelligencePage() {
             </div>
           ) : (
             <EmptyState
-              title="Nessun elemento da mostrare"
-              message="Non sono disponibili schede compatibili con questa vista o con il filtro applicato."
+              title={view === 'ricerca-legale' ? 'Nessuna fonte trovata' : 'Nessun elemento da mostrare'}
+              message={view === 'ricerca-legale'
+                ? 'Prova con riferimenti normativi, parole chiave piu precise o una materia giuridica specifica.'
+                : 'Non sono disponibili schede compatibili con questa vista o con il filtro applicato.'}
               action={<ButtonLink href="/giurisprudenza" tone="neutral">Apri giurisprudenza</ButtonLink>}
             />
           )}

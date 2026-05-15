@@ -4,6 +4,14 @@ Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle
 
 ---
 
+## Aggiornamento operativo 2.238.0 - 2026-05-15
+
+`/ricerca-legale` non e' piu' una vista con filtro locale sulle sole schede gia' caricate. La query viene passata a `/api/v1/ui/ricerca-legale?q=...`, cercata nel repository giuridico SQL tenant-aware e arricchita con fallback ufficiale governato quando non ci sono almeno due fonti ufficiali con estratto testuale sufficiente.
+
+La notizia PST `NWS4865` sul ripristino dei registri mediazione e' presente come fonte ufficiale stabile in News e Ricerca Legale, con link al Portale dei Servizi Telematici, data 2026-05-11 e contesto del ripristino dal 22/04/2026.
+
+---
+
 ## Aggiornamento operativo 2.237.9 - 2026-05-15
 
 Lex Operational Knowledge e' ora attivo di default nel bounded workflow: le domande su clienti, fascicoli, agenda, scadenze, preventivi, conferimenti, fatturazione, messaggi, documenti e template passano dal layer deterministico tenant-aware senza richiedere `LEX_OPERATIONAL_KNOWLEDGE_ENABLED=1`.

@@ -6,6 +6,16 @@
 
 ---
 
+## Aggiornamento operativo 2.238.0 - 2026-05-15
+
+La pagina React `/ricerca-legale` usa ora lo stesso principio del gateway Lex: la query viene inviata al backend, cercata prima nell'archivio giuridico tenant-aware `legal_updates.db` e poi, quando le fonti interne non sono sufficienti, inoltrata al Public Legal Research Gateway dopo riscrittura privacy-safe.
+
+La UI mostra il contesto della fonte, non solo il nome: titolo, estratto, autorita', data e link consultabile. Il fallback web resta limitato alle fonti ufficiali allowlisted e non riceve dati di fascicolo, cliente o studio.
+
+E' stata inoltre aggiunta tra le evidenze ufficiali la news PST `NWS4865` del 2026-05-11 sul ripristino, dal 22/04/2026, di Registro Organismi di Mediazione, Elenco Enti per la Mediazione ed Elenco Formatori per la Mediazione.
+
+---
+
 ## 1. Scopo
 
 Il Public Legal Research Gateway coordina tutti i canali di ricerca pubblica disponibili in un unico layer normalizzato. Il suo ruolo è raccogliere evidenze da fonti istituzionali (normattiva.it, gazzettaufficiale.it, giustizia.it e simili), dal web ufficiale allowlisted e da Local Deep Research, normalizzare le evidenze in strutture uniformi, applicare deduplicazione e ranking, e calcolare i gap di copertura da comunicare all'avvocato.

@@ -2,8 +2,28 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import datetime, timezone
-from typing import Any, Callable, Mapping
+from typing import Any, Callable
+from urllib.parse import urlparse
+
+try:
+    from lex.research.privacy_safe_query_rewriter import rewrite_query_for_legal_research as _rewrite_query_for_legal_research
+    from lex.research.public_legal_research_gateway import run_public_legal_research as _run_public_legal_research
+except Exception:  # pragma: no cover - la UI deve degradare senza bloccare la shell
+    _rewrite_query_for_legal_research = None
+    _run_public_legal_research = None
+
+
+_PST_MEDIAZIONE_RECOVERY_URL = (
+    "https://pst.giustizia.it/PST/page/it/"
+    "ripristinati_registro_organismi_di_mediazione_elenco_enti_per_la_mediazione_"
+    "e_elenco_formatori_per_la_mediazione?contentId=NWS4865&modelId=4"
+)
+_PST_MEDIAZIONE_RECOVERY_TITLE = (
+    "Ripristinati Registro Organismi di Mediazione, Elenco Enti per la Mediazione "
+    "e Elenco Formatori per la Mediazione"
+)
 
 
 def _iso_now() -> str:
@@ -21,6 +41,12 @@ def _short(value: Any, limit: int = 220) -> str:
     return text[: limit - 1].rstrip() + "..."
 
 
+def _value(value: Any, key: str, fallback: Any = "") -> Any:
+    if isinstance(value, Mapping):
+        return value.get(key, fallback)
+    return getattr(value, key, fallback)
+
+
 def _list(value: Any) -> list[Any]:
     return value if isinstance(value, list) else []
 
@@ -36,6 +62,42 @@ def _safe_href(value: Any, fallback: str = "") -> str:
     if href.startswith("https://") or href.startswith("http://"):
         return href
     return fallback
+
+
+def _source_label_from_url(url: str) -> str:
+    host = urlparse(url or "").netloc.lower()
+    if "pst.giustizia.it" in host:
+        return "Portale Servizi Telematici"
+    if "giustizia.it" in host:
+        return "Ministero della Giustizia"
+    if "normattiva.it" in host:
+        return "Normattiva"
+    if "gazzettaufficiale.it" in host:
+        return "Gazzetta Ufficiale"
+    if "cortedicassazione.it" in host:
+        return "Corte di Cassazione"
+    if "cortecostituzionale.it" in host:
+        return "Corte costituzionale"
+    if "agenziaentrate.gov.it" in host:
+        return "Agenzia delle Entrate"
+    return host or "Fonte"
+
+
+def _is_official_href(url: str) -> bool:
+    host = urlparse(url or "").netloc.lower()
+    return any(
+        domain in host
+        for domain in (
+            "giustizia.it",
+            "normattiva.it",
+            "gazzettaufficiale.it",
+            "cortedicassazione.it",
+            "cortecostituzionale.it",
+            "giustizia-amministrativa.it",
+            "agenziaentrate.gov.it",
+            "eur-lex.europa.eu",
+        )
+    )
 
 
 def _metric(mid: str, label: str, value: Any, note: str, tone: str = "neutral") -> dict[str, Any]:
@@ -56,6 +118,56 @@ def _action(aid: str, label: str, href: str, tone: str = "neutral") -> dict[str,
 
 def _warning(code: str, message: str) -> dict[str, str]:
     return {"code": code, "message": message}
+
+
+def _search_query(query: Mapping[str, Any] | None) -> str:
+    query = query or {}
+    for key in ("q", "query", "search", "cerca", "testo"):
+        value = query.get(key)
+        if isinstance(value, (list, tuple)):
+            value = value[0] if value else ""
+        text = _text(value)
+        if text:
+            return _short(text, 240)
+    return ""
+
+
+def _matches_query(record: Mapping[str, Any], search_query: str) -> bool:
+    query_text = _text(search_query).lower()
+    if not query_text:
+        return True
+    haystack = " ".join(
+        _text(record.get(key)).lower()
+        for key in (
+            "title",
+            "subtitle",
+            "sourceLabel",
+            "sourceKind",
+            "area",
+            "branch",
+            "territory",
+            "registryNumber",
+            "date",
+        )
+    )
+    tokens = [token for token in query_text.replace("/", " ").replace("-", " ").split() if len(token) >= 3]
+    if not tokens:
+        return query_text in haystack
+    return all(token in haystack for token in tokens[:8]) or any(token in haystack for token in tokens[:3])
+
+
+def _dedupe_records(records: list[dict[str, Any]], *, limit: int | None = None) -> list[dict[str, Any]]:
+    seen: set[str] = set()
+    deduped: list[dict[str, Any]] = []
+    for record in records:
+        key = _text(record.get("sourceHref")) or f"{_text(record.get('kind'))}:{_text(record.get('id'))}"
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(record)
+        if limit is not None and len(deduped) >= limit:
+            break
+    return deduped
 
 
 def _tone(value: Any) -> str:
@@ -195,6 +307,154 @@ def _safe_mediazione_record(row: Mapping[str, Any], index: int) -> dict[str, Any
     }
 
 
+def _pst_mediazione_recovery_news_record() -> dict[str, Any]:
+    return {
+        "id": "pst-nws4865-ripristino-mediazione",
+        "kind": "news",
+        "title": _PST_MEDIAZIONE_RECOVERY_TITLE,
+        "subtitle": (
+            "Il Portale dei Servizi Telematici comunica che dal 22/04/2026 "
+            "sono stati ripristinati Registro Organismi di Mediazione, Elenco "
+            "Enti per la Mediazione ed Elenco Formatori per la Mediazione."
+        ),
+        "sourceLabel": "Portale Servizi Telematici",
+        "sourceKind": "fonte ufficiale",
+        "sourceHref": _PST_MEDIAZIONE_RECOVERY_URL,
+        "date": "2026-05-11",
+        "area": "Mediazione",
+        "branch": "Ministero della Giustizia",
+        "approvalLabel": "pubblicata",
+        "approvalTone": "success",
+        "registryNumber": "NWS4865",
+        "legacyHref": "/legal-intelligence/news?scheda=pst-nws4865-ripristino-mediazione",
+        "evidenceType": "fonte ufficiale",
+    }
+
+
+def _with_pst_recovery_news(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    pst_record = _pst_mediazione_recovery_news_record()
+    for record in records:
+        if _text(record.get("sourceHref")) == _PST_MEDIAZIONE_RECOVERY_URL:
+            return records
+        if _text(record.get("id")) == pst_record["id"]:
+            return records
+    return [pst_record, *records]
+
+
+def _search_type_label(value: Any) -> str:
+    text = _text(value).lower().replace("_", " ")
+    if text in {"normativa", "normative"}:
+        return "normativa"
+    if text in {"giurisprudenza", "jurisprudence"}:
+        return "giurisprudenza"
+    if text in {"prassi", "practice"}:
+        return "prassi"
+    if text in {"news", "notizia", "aggiornamento"}:
+        return "news"
+    if text in {"web ufficiale", "web_ufficiale", "official web"}:
+        return "fonte ufficiale"
+    return text or "fonte"
+
+
+def _safe_search_record(row: Mapping[str, Any], index: int) -> dict[str, Any]:
+    source_href = _safe_href(row.get("official_url") or row.get("source_url") or row.get("url"))
+    source_label = _text(row.get("authority") or row.get("source_name") or row.get("source_code")) or _source_label_from_url(source_href)
+    verified = bool(row.get("verified_reference") or row.get("is_official") or _is_official_href(source_href))
+    kind = _search_type_label(row.get("type") or row.get("entity_type") or row.get("category"))
+    title = _text(row.get("title") or row.get("headline") or row.get("name")) or "Fonte ricerca legale"
+    excerpt = _short(row.get("excerpt") or row.get("content") or row.get("summary") or row.get("short_summary"), 320)
+    matter = _text(row.get("matter_name") or row.get("matter_slug") or row.get("category"))
+    return {
+        "id": _text(row.get("id")) or f"ricerca_{index}",
+        "kind": kind,
+        "title": title,
+        "subtitle": excerpt,
+        "sourceLabel": source_label,
+        "sourceKind": "fonte ufficiale" if verified else "fonte da verificare",
+        "sourceHref": source_href,
+        "date": _text(row.get("published_at") or row.get("publication_date") or row.get("date") or row.get("created_at")),
+        "area": matter,
+        "branch": kind,
+        "approvalLabel": "verificata" if verified else "da verificare",
+        "approvalTone": "success" if verified else "warning",
+        "legacyHref": "/ricerca-legale",
+        "evidenceType": "estratto fonte" if excerpt else "riferimento fonte",
+    }
+
+
+def _safe_public_source_record(source: Any, index: int) -> dict[str, Any]:
+    source_href = _safe_href(_value(source, "url"))
+    source_name = _text(_value(source, "source_name")) or _source_label_from_url(source_href)
+    official = bool(_value(source, "official") or _is_official_href(source_href))
+    excerpt = _short(_value(source, "excerpt"), 320)
+    kind = _search_type_label(_value(source, "source_type"))
+    return {
+        "id": _text(_value(source, "id")) or f"fonte_ufficiale_{index}",
+        "kind": kind,
+        "title": _text(_value(source, "title")) or "Fonte ufficiale",
+        "subtitle": excerpt,
+        "sourceLabel": source_name,
+        "sourceKind": "fonte ufficiale" if official else "fonte pubblica",
+        "sourceHref": source_href,
+        "date": _text(_value(source, "date")),
+        "area": "Ricerca legale",
+        "branch": source_name,
+        "approvalLabel": "verificata" if official else "da verificare",
+        "approvalTone": "success" if official else "warning",
+        "legacyHref": "/ricerca-legale",
+        "evidenceType": "estratto fonte" if excerpt else "riferimento fonte",
+    }
+
+
+def _search_repository_records(pipeline: Any, warnings: list[dict[str, str]], search_query: str) -> list[dict[str, Any]]:
+    if not search_query:
+        return []
+    try:
+        rows = list(pipeline.repository.search_lex_sources(search_query, limit=12))
+    except Exception:
+        warnings.append(_warning("ricerca_archivio_non_disponibile", "Archivio giuridico non disponibile per questa ricerca."))
+        return []
+    return [_safe_search_record(row, index) for index, row in enumerate(rows, start=1) if isinstance(row, Mapping)]
+
+
+def _needs_public_fallback(records: list[dict[str, Any]], search_query: str) -> bool:
+    if not search_query:
+        return False
+    official_context = [
+        record
+        for record in records
+        if "ufficiale" in _text(record.get("sourceKind")).lower()
+        and len(_text(record.get("subtitle"))) >= 80
+    ]
+    return len(official_context) < 2
+
+
+def _public_search_records(search_query: str, warnings: list[dict[str, str]]) -> tuple[list[dict[str, Any]], bool]:
+    if not search_query or _rewrite_query_for_legal_research is None or _run_public_legal_research is None:
+        if search_query:
+            warnings.append(_warning("ricerca_ufficiale_non_disponibile", "Ricerca su fonti ufficiali non disponibile in questo momento."))
+        return [], False
+    try:
+        rewritten = _rewrite_query_for_legal_research(search_query)
+        rewritten.can_use_ldr = False
+        rewritten.local_deep_research_query = ""
+        result = _run_public_legal_research(rewritten, source_mode="balanced", max_results=8)
+    except Exception:
+        warnings.append(_warning("ricerca_ufficiale_non_completata", "Ricerca su fonti ufficiali non completata. Riprova tra poco o apri la fonte indicata."))
+        return [], True
+
+    for message in list(getattr(result, "warnings", []) or [])[:2]:
+        cleaned = _short(str(message).split(":")[0], 160)
+        if cleaned:
+            warnings.append(_warning("ricerca_ufficiale_avviso", cleaned))
+
+    records = [
+        _safe_public_source_record(source, index)
+        for index, source in enumerate(list(getattr(result, "sources", []) or []), start=1)
+    ]
+    return records, True
+
+
 def _source_items(snapshot: Mapping[str, Any], update_snapshot: Mapping[str, Any]) -> list[dict[str, Any]]:
     items: list[dict[str, Any]] = []
     for index, row in enumerate(_list(snapshot.get("source_rows")), start=1):
@@ -281,7 +541,9 @@ def build_react_legal_intelligence_payload(
     update_headline = _dict(update_snapshot.get("headline"))
     mediazione = _mediazione_snapshot(manager, warnings, query)
     news_rows = _news_rows(pipeline, warnings, query)
-    news_records = [_safe_news_record(row, index) for index, row in enumerate(news_rows, start=1) if isinstance(row, dict)]
+    news_records = _with_pst_recovery_news(
+        [_safe_news_record(row, index) for index, row in enumerate(news_rows, start=1) if isinstance(row, dict)]
+    )
     mediazione_records = [
         _safe_mediazione_record(row, index)
         for index, row in enumerate(_list(mediazione.get("rows")), start=1)
@@ -289,6 +551,9 @@ def build_react_legal_intelligence_payload(
     ]
     matters = _matters(pipeline, warnings)
     source_items = _source_items(snapshot, update_snapshot)
+    search_query = _search_query(query)
+    search_records: list[dict[str, Any]] = []
+    official_search_attempted = False
 
     if page == "news":
         records = news_records
@@ -297,11 +562,37 @@ def build_react_legal_intelligence_payload(
         records = mediazione_records
         legacy_contract = "artifacts/react-migration/legacy-contracts/legal-intelligence__mediazione.json"
     elif page == "ricerca-legale":
-        records = news_records + mediazione_records
+        local_matches = [record for record in news_records + mediazione_records if _matches_query(record, search_query)]
+        search_records = _search_repository_records(pipeline, warnings, search_query)
+        combined_search = _dedupe_records(search_records + local_matches)
+        if _needs_public_fallback(combined_search, search_query):
+            public_records, official_search_attempted = _public_search_records(search_query, warnings)
+            combined_search = _dedupe_records(combined_search + public_records, limit=24)
+        records = combined_search if search_query else _dedupe_records(news_records + mediazione_records)
+        if search_query and not records:
+            warnings.append(
+                _warning(
+                    "nessun_risultato_ricerca",
+                    "Nessuna fonte trovata con questa ricerca. Prova con parole piu' specifiche o apri gli archivi collegati.",
+                )
+            )
         legacy_contract = "artifacts/react-migration/legacy-contracts/ricerca-legale.json"
     else:
         records = news_records[:8] + mediazione_records[:8]
         legacy_contract = "artifacts/react-migration/legacy-contracts/legal-intelligence.json"
+
+    search_section = _section(
+        "ricerca",
+        "Ricerca fonti",
+        "informazioni",
+        [
+            _item("query", "Termini cercati", search_query or "nessun termine", "Archivio e fonti collegate", "primary" if search_query else "neutral"),
+            _item("risultati", "Risultati", len(records), "Schede disponibili", "success" if records else "neutral"),
+            _item("archivio", "Archivio studio", len(search_records), "Aggiornamenti giuridici indicizzati", "info" if search_records else "neutral"),
+            _item("fonti_ufficiali", "Fonti ufficiali", len([record for record in records if "ufficiale" in _text(record.get("sourceKind")).lower()]), "Con estratto o riferimento consultabile", "success"),
+        ],
+        "Inserisci una ricerca per consultare archivio e fonti ufficiali.",
+    )
 
     return {
         "source": "repository_reali",
@@ -310,7 +601,7 @@ def build_react_legal_intelligence_payload(
             "mock_fallback": False,
             "writes": "none",
             "route_owner": "react_shell",
-            "external_fetch": False,
+            "external_fetch": official_search_attempted,
             "ai_generation": False,
             "canonical_source": "backend_storico",
             "legacy_contract": legacy_contract,
@@ -323,6 +614,7 @@ def build_react_legal_intelligence_payload(
             _metric("fascicoli", "Fascicoli nel monitor", int(headline.get("fascicoli") or 0), "Informazioni studio", "neutral"),
         ],
         "sections": [
+            *([search_section] if page == "ricerca-legale" else []),
             _section("fonti", "Stato fonti", "fonti", source_items, "Nessuna fonte disponibile."),
             _section(
                 "news",

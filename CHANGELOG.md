@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.237.4 - 2026-05-15
+
+- Fase 3 TTS Lex: collegato il layer voce raffinato a un engine Supertonic/ONNX locale e opzionale, con manifest same-origin, caricamento runtime ONNX locale, WebGPU con fallback WASM e fallback obbligatorio alla voce browser.
+- Aggiunti generazione WAV browser-side, lifecycle ObjectURL, cancel, badge backend, misure numeriche di sintesi senza log del testo e documentazione operativa per asset, privacy, licenze e test manuali.
+
 ## 2.237.3 - 2026-05-15
 
 - Fase 2 TTS Lex: introdotti profili voce italiani, preset qualita `fast/balanced/high`, preferenze locali leggere e badge voce orientato al profilo operativo.

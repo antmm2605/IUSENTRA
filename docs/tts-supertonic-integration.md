@@ -11,7 +11,7 @@ Moduli caricati prima della facciata:
 - `web/static/js/lex-tts/voice-profiles.js`: profili voce italiani per Lex.
 - `web/static/js/lex-tts/legal-speech-normalizer.js`: pulizia testo, privacy, abbreviazioni legali e chunking.
 - `web/static/js/lex-tts/browser-speech-engine.js`: engine `speechSynthesis` nativo.
-- `web/static/js/lex-tts/supertonic-engine.js`: predisposizione same-origin per Supertonic/ONNX.
+- `web/static/js/lex-tts/supertonic-engine.js`: engine Supertonic/ONNX locale e opzionale.
 - `web/static/js/lex-tts/tts-engine-registry.js`: scelta engine e fallback.
 
 ## Asset Supertonic
@@ -26,6 +26,8 @@ Gli asset non sono inclusi nel repository. Vanno copiati sotto:
 - `web/static/vendor/supertonic/onnx/tts.json`
 - `web/static/vendor/supertonic/onnx/unicode_indexer.json`
 - `web/static/vendor/supertonic/voice_styles/F1.json`
+- `web/static/vendor/supertonic/onnxruntime-web/ort.min.js`
+- `web/static/vendor/supertonic/onnxruntime-web/*.wasm`
 
 Usare `web/static/vendor/supertonic/manifest.example.json` come base. Il runtime produttivo non contiene URL esterni hardcoded.
 
@@ -38,6 +40,8 @@ Il manifest reale deve impostare:
   "enabled": true,
   "basePath": "/static/vendor/supertonic",
   "onnxPath": "/static/vendor/supertonic/onnx",
+  "onnxRuntimeScript": "/static/vendor/supertonic/onnxruntime-web/ort.min.js",
+  "wasmPath": "/static/vendor/supertonic/onnxruntime-web/",
   "voiceStylesPath": "/static/vendor/supertonic/voice_styles",
   "defaultVoiceStyle": "F1.json",
   "fallbackVoiceStyle": "M1.json"
@@ -48,7 +52,7 @@ Se il manifest manca o `enabled` e' `false`, Lex usa automaticamente la voce bro
 
 ## Fallback e privacy
 
-Il testo resta nel browser dell'utente e non viene inviato a servizi esterni. Se Supertonic non e' presente, non e' pronto o fallisce, il registro passa a `speechSynthesis` senza bloccare Lex. Il normalizzatore non logga il testo parlato e riduce codici fiscali, IBAN, UUID, hash, token e URL lunghi prima della lettura.
+Il testo resta nel browser dell'utente e non viene inviato a servizi esterni. Se Supertonic non e' presente, non e' pronto o fallisce, il registro passa a `speechSynthesis` senza bloccare Lex. WebGPU viene provato per primo quando disponibile; se fallisce, il motore tenta WASM. Il normalizzatore non logga il testo parlato e riduce codici fiscali, IBAN, UUID, hash, token e URL lunghi prima della lettura. La guida operativa dettagliata e' in `docs/lex-tts-supertonic-engine.md`.
 
 ## Licenza
 

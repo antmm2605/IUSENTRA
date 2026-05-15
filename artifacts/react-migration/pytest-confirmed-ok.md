@@ -1,12 +1,21 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-14, prova notifica automatica 2.236.2.
+Aggiornato: 2026-05-15, Lex TTS Supertonic fase 3 2.237.4.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Lex TTS Supertonic fase 3 2.237.4 - 2026-05-15
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `node --check web/static/js/lex-tts/quality-presets.js`; `node --check web/static/js/lex-tts/voice-profiles.js`; `node --check web/static/js/lex-tts/legal-speech-normalizer.js`; `node --check web/static/js/lex-tts/browser-speech-engine.js`; `node --check web/static/js/lex-tts/supertonic-engine.js`; `node --check web/static/js/lex-tts/tts-engine-registry.js`; `node --check web/static/js/pct-lex-assistant-voice.js`; `node --check web/static/js/pct-lex-assistant.js` | OK | Sintassi confermata per il layer voce Lex, engine Supertonic/ONNX locale, registry e facciata pubblica `window.PctLexVoice`. |
+| `node tests/js/lex_tts_normalizer.test.mjs`; `node tests/js/lex_tts_profiles_quality.test.mjs`; `node tests/js/lex_tts_supertonic_engine.test.mjs`; `node tests/js/lex_tts_voice_contract.test.mjs` | OK | Normalizzazione legale, profili/preset, comportamento Supertonic opzionale senza asset/runtime e fallback browser confermati. |
+| `python -m pytest -q tests/test_lex_widget_contract.py tests/test_packaging_consistency.py --tb=short` | OK | 16/16 passati: contratto widget Lex e allineamento packaging/versione `2.237.4` confermati. |
+| `python tools/sync_packaging_files.py --check`; `git diff --check -- . ':!data/*'` | OK | Packaging sincronizzato; whitespace senza errori sul perimetro tracciato, con solo warning CRLF su `.gitignore`. |
 
 ### Lex Operational Knowledge 2.236.7 - 2026-05-15
 

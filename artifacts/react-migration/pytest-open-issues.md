@@ -1,6 +1,6 @@
 # Pytest issue aperte e risoluzioni
 
-Aggiornato: 2026-05-14, prova notifica automatica 2.236.2.
+Aggiornato: 2026-05-15, Lex TTS Supertonic fase 3 2.237.4.
 
 ## Regola operativa
 
@@ -10,6 +10,7 @@ Questo file e' la coda di lavoro. Prima di rilanciare test gia' passati, control
 
 | Area | Test / comando | Stato | Problema rilevato | Risoluzione |
 | --- | --- | --- | --- | --- |
+| Lex TTS Supertonic fase 3 2.237.4 | Engine Supertonic/ONNX locale opzionale e fallback browser | Nessuna issue aperta dopo gate mirati | La fase richiedeva di collegare Supertonic senza cloud e senza rompere `speechSynthesis` quando asset o runtime mancano. | Aggiunto engine locale con manifest same-origin, runtime ONNX locale opzionale, WebGPU con fallback WASM, lifecycle ObjectURL, cancel e fallback registry. Gate JS/Python e packaging registrati in `pytest-confirmed-ok.md`. |
 | Lex Operational Knowledge 2.236.7 | `python -m pytest tests/test_lex_operational_knowledge.py -q` | Risolto | Il primo giro mirato ha evidenziato query operative troppo letterali: articoli/preposizioni restavano nella ricerca (`la rossi`, `il opposizione`, `nel rossi`), e poi messaggi/template venivano instradati troppo tardi o con parole comando nella query. | Router e tool aggiornati con stopword operative, priorita' comunicazioni prima della scheda cliente, supporto `cliente_id` e fallback deterministico per termini. Rilancio finale 17/17 verde registrato in `pytest-confirmed-ok.md`. |
 | Lex Operational Knowledge 2.236.7 | Generator App V2 `--check` | Risolto come drift documentale generato | Dopo il bump versione e l'aggiunta del test Lex, i generatori App V2 hanno segnalato documenti non aggiornati (`app-v2-page-registry`, `frontend-app-v2-pages`, `legacy-to-app-v2-routing-map`, `app-v2-area-requirements`, `test-inventory`, `test-matrix`, `test-plan`). | Eseguiti i tre generatori senza `--check`, poi rilanciati i tre `--check`: tutti verdi. Non era una failure del layer Lex. |
 | Prova notifica automatica 2.236.2 | Scheda `Deposito prova notifica`, SHA-256 e date relata | Nessuna issue aperta nuova | La compilazione dei file prova era troppo manuale: l'utente non deve produrre a mano SHA-256 di atto, relata, PEC, RAC e RdAC; inoltre la data relata non deve comparire in formato ISO. | Aggiunto selettore file multiplo con calcolo SHA-256 nel browser, riconoscimento automatico file prova, riepilogo atto/relata/PEC/RAC/RdAC, riferimenti DatiAtto.xml precompilati e validazione backend degli hash. Le date relata sono in formato italiano. Gate mirati registrati in `pytest-confirmed-ok.md`. |

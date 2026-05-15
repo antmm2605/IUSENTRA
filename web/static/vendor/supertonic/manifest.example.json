@@ -2,6 +2,8 @@
   "enabled": false,
   "basePath": "/static/vendor/supertonic",
   "onnxPath": "/static/vendor/supertonic/onnx",
+  "onnxRuntimeScript": "/static/vendor/supertonic/onnxruntime-web/ort.min.js",
+  "wasmPath": "/static/vendor/supertonic/onnxruntime-web/",
   "voiceStylesPath": "/static/vendor/supertonic/voice_styles",
   "defaultVoiceStyle": "F1.json",
   "fallbackVoiceStyle": "M1.json"

@@ -61,6 +61,7 @@ indexes/normattiva/
 
 # Optional local Supertonic / ONNX assets for Lex TTS.
 /web/static/vendor/supertonic/onnx/
+/web/static/vendor/supertonic/onnxruntime-web/
 /web/static/vendor/supertonic/voice_styles/
 /web/static/vendor/supertonic/*.onnx
 /web/static/vendor/supertonic/tts.json

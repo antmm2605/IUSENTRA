@@ -16,6 +16,7 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 | `node tests/js/lex_tts_normalizer.test.mjs`; `node tests/js/lex_tts_profiles_quality.test.mjs`; `node tests/js/lex_tts_supertonic_engine.test.mjs`; `node tests/js/lex_tts_voice_contract.test.mjs` | OK | Normalizzazione legale, profili/preset, comportamento Supertonic opzionale senza asset/runtime e fallback browser confermati. |
 | `python -m pytest -q tests/test_lex_widget_contract.py tests/test_packaging_consistency.py --tb=short` | OK | 16/16 passati: contratto widget Lex e allineamento packaging/versione `2.237.4` confermati. |
 | `python tools/sync_packaging_files.py --check`; `git diff --check -- . ':!data/*'` | OK | Packaging sincronizzato; whitespace senza errori sul perimetro tracciato, con solo warning CRLF su `.gitignore`. |
+| `ssh iusentra-hetzner "cd /opt/iusentra/repo && BRANCH=Codex/legal-electronic-filing-kIxcV IUSENTRA_SKIP_BACKUP_CRON=1 bash deploy/hetzner/deploy.sh"`; `GET https://app.iusentra.it/api/pronto`; `docker compose --env-file /opt/iusentra/.env.hetzner -f deploy/hetzner/docker-compose.hetzner.yml ps` | OK | Deploy Hetzner senza backup sul commit finale del branch; app, scheduler, OCR, Redis, audit-postgres, audit-worm, Ollama healthy/up; readiness pubblica 200 con `versione=2.237.4`. |
 
 ### Lex Operational Knowledge 2.236.7 - 2026-05-15
 

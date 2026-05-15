@@ -24,6 +24,7 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 | `git diff --check -- . ':!data/*'` | OK | Nessun errore whitespace sul perimetro tracciato, escludendo i file runtime `data/` gia' sporchi prima della tranche. |
 | `python scripts/validate_docs_links.py`; `python scripts/validate_docs_commands.py` | OK | Link e comandi documentali validi dopo aggiornamento docs Lex e report. |
 | `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build --force-recreate redis app scheduler-worker ocr-worker nginx`; `GET http://127.0.0.1:8080/api/pronto`; `docker exec iusentra-app python -c "import pct; print(pct.__version__)"` | OK | Docker locale no-cache ha costruito wheel `pct-studio-legale==2.237.9`; app, scheduler, OCR e Redis healthy; readiness locale 200 con `versione=2.237.9`; runtime container `2.237.9`. |
+| `ssh iusentra-hetzner "cd /opt/iusentra/repo && IUSENTRA_SKIP_BACKUP_CRON=1 BRANCH=Codex/legal-electronic-filing-kIxcV bash deploy/hetzner/deploy.sh"`; `GET https://app.iusentra.it/api/pronto`; `docker compose --env-file /opt/iusentra/.env.hetzner -f deploy/hetzner/docker-compose.hetzner.yml ps`; `docker exec iusentra-app-1 python -c "import pct; print(pct.__version__)"` | OK | Deploy Hetzner senza backup sul commit finale `2.237.9`; cron backup non aggiornato, container app/scheduler/OCR/Redis/audit healthy, readiness pubblica 200 con `versione=2.237.9` e runtime container `2.237.9`. |
 
 ### Hotfix Lex risposta e accenti 2.237.8 - 2026-05-15
 

@@ -1471,6 +1471,7 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `python -m pytest tests\test_lex_legal_source_engine.py -q` | OK | 13/13 passati dopo attivazione operativa locale del Legal Source Engine: registry, policy, auto-populate, retriever JSONL, tool interni e dogfood senza rete. |
 | `python -m compileall -q lex\legal_sources tests\test_lex_legal_source_engine.py`; `python -m ruff check lex\legal_sources tests\test_lex_legal_source_engine.py` | OK | Sintassi e lint verdi per il modulo Legal Source Engine operativo. |
 | `python -m lex.legal_sources.populate --activate --populate --force --json` | OK | Motore attivato localmente senza backup e senza rete: runtime config ignorata, 15 source-card citabili scritte in `indexes/legal_sources/`, report in `artifacts/legal_sources/reports/`. |
+| `python -m pytest tests\test_lex_legal_source_engine.py -q`; `python -m compileall -q lex\legal_sources tests\test_lex_legal_source_engine.py`; `python -m ruff check lex\legal_sources tests\test_lex_legal_source_engine.py` | OK | Verifiche ripetute dopo risoluzione dei default runtime sotto `PCT_DATA_ROOT` per server/container. |
 
 ## Fase react 3 - App V2 feature flag per pagina 2.224.0 - 2026-05-13
 

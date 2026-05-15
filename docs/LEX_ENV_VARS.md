@@ -121,6 +121,7 @@ python -m lex.legal_sources.populate --activate --populate --force --json
 ```
 
 Il comando scrive solo in `data/legal_sources/`, `indexes/legal_sources/` e `artifacts/legal_sources/`, tutte cartelle ignorate da git.
+Nei container/server con `PCT_DATA_ROOT=/data`, i default runtime vengono risolti sotto `/data/legal_sources`, `/data/indexes/legal_sources` e `/data/artifacts/legal_sources`.
 
 ---
 

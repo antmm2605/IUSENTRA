@@ -86,7 +86,10 @@ class LegalSourceEngineSettings:
         source = os.environ if env is None else env
         read_config = env is None if include_runtime_config is None else include_runtime_config
 
-        data_dir = Path(str(source.get(DATA_DIR_ENV, "data/legal_sources") or "data/legal_sources"))
+        default_data_dir = _default_runtime_path(source, "legal_sources", "data/legal_sources")
+        default_index_dir = _default_runtime_path(source, "indexes/legal_sources", "indexes/legal_sources")
+        default_artifact_dir = _default_runtime_path(source, "artifacts/legal_sources", "artifacts/legal_sources")
+        data_dir = Path(str(source.get(DATA_DIR_ENV, default_data_dir) or default_data_dir))
         runtime_config_path = Path(
             str(source.get(RUNTIME_CONFIG_ENV, data_dir / "runtime_config.json") or data_dir / "runtime_config.json")
         )
@@ -123,8 +126,8 @@ class LegalSourceEngineSettings:
             allow_network=_bool(GLOBAL_NETWORK_ENV, "allow_network", False),
             require_citations=_bool(REQUIRE_CITATIONS_ENV, "require_citations", True),
             data_dir=data_dir,
-            index_dir=_path(INDEX_DIR_ENV, "index_dir", "indexes/legal_sources"),
-            artifact_dir=_path(ARTIFACT_DIR_ENV, "artifact_dir", "artifacts/legal_sources"),
+            index_dir=_path(INDEX_DIR_ENV, "index_dir", str(default_index_dir)),
+            artifact_dir=_path(ARTIFACT_DIR_ENV, "artifact_dir", str(default_artifact_dir)),
             rate_limit_per_minute=rate_limit,
             auto_populate=_bool(AUTO_POPULATE_ENV, "auto_populate", False),
             populate_on_startup=_bool(POPULATE_ON_STARTUP_ENV, "populate_on_startup", False),
@@ -157,6 +160,13 @@ def _source_ids_from_config(config: Mapping[str, Any]) -> list[str]:
     if not isinstance(raw, list | tuple | set):
         return []
     return [str(item).strip() for item in raw if str(item).strip()]
+
+
+def _default_runtime_path(env: Mapping[str, str], suffix: str, fallback: str) -> Path:
+    root = str(env.get("PCT_DATA_ROOT") or env.get("IUSENTRA_DATA_DIR") or "").strip()
+    if root:
+        return Path(root) / suffix
+    return Path(fallback)
 
 
 def save_runtime_config(settings: LegalSourceEngineSettings, path: str | Path | None = None) -> Path:

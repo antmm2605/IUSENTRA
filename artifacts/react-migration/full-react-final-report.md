@@ -656,3 +656,10 @@ autenticato. Audit completo `visual-2.236.5`: 91/92 OK con un timeout CDP
 isolato su `/soggetti/nuovo` mobile; retry mirato `visual-2.236.5-soggetti-nuovo`
 OK in 761 ms. Nessun avviso, overflow orizzontale o testo tecnico vietato nelle
 rotte passate.
+
+Deploy Hetzner CPX42 eseguito senza backup su richiesta esplicita `no backup`:
+non e' stato eseguito `backup.sh` e il cron backup non e' stato aggiornato
+(`IUSENTRA_SKIP_BACKUP_CRON=1`). Produzione verificata: branch
+`Codex/legal-electronic-filing-kIxcV`, container app/scheduler/OCR/Redis healthy,
+`/api/pronto` pubblico 200 `versione=2.236.5`, runtime container
+`pct.__version__ == 2.236.5` e manifest React pubblico con gli asset aggiornati.

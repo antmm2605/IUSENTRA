@@ -1,0 +1,8 @@
+{
+  "enabled": false,
+  "basePath": "/static/vendor/supertonic",
+  "onnxPath": "/static/vendor/supertonic/onnx",
+  "voiceStylesPath": "/static/vendor/supertonic/voice_styles",
+  "defaultVoiceStyle": "F1.json",
+  "fallbackVoiceStyle": "M1.json"
+}

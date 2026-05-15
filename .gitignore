@@ -59,6 +59,13 @@ indexes/normattiva/
 *.embeddings
 *.jsonl.tmp
 
+# Optional local Supertonic / ONNX assets for Lex TTS.
+/web/static/vendor/supertonic/onnx/
+/web/static/vendor/supertonic/voice_styles/
+/web/static/vendor/supertonic/*.onnx
+/web/static/vendor/supertonic/tts.json
+/web/static/vendor/supertonic/unicode_indexer.json
+
 # Environment
 .env
 .env.local

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.237.2 - 2026-05-15
+
+- Fase 1 TTS Lex: aggiunti normalizzatore legale browser-side, registry engine, fallback `speechSynthesis`, predisposizione Supertonic same-origin, manifest esempio e documentazione privacy/fallback senza asset ONNX nel repository.
+- La facciata `window.PctLexVoice` mantiene il contratto pubblico, espone stato/preload opzionali e preserva dettatura e fallback voce browser.
+
 ## 2.237.1 - 2026-05-15
 
 - Completata la rifinitura finale AI Legal fase 2 con pagine React esplicite `PracticeProfilePage`, `ColdStartInterviewPage`, `LegalSkillRunPage`, `SkillRunDetailPage` e `ReviewerQueuePage`, agganciate alla shell Legal Skills.

@@ -30,11 +30,26 @@
   var DEFAULT_SILENCE_MS = 3000;
   var speechJobId = 0;
 
+  function ttsRegistry() {
+    return window.IusentraTtsEngineRegistry || null;
+  }
+
+  function legalNormalizer() {
+    return window.IusentraLegalSpeechNormalizer || null;
+  }
+
   function supportsRecognition() {
     return Boolean(RecognitionCtor);
   }
 
   function supportsSpeech() {
+    var registry = ttsRegistry();
+    if (registry && registry.getStatus) {
+      var status = registry.getStatus() || {};
+      if (status.supported || status.ready) {
+        return true;
+      }
+    }
     return Boolean(synth);
   }
 
@@ -72,7 +87,7 @@
   }
 
   function pickItalianVoice(options) {
-    if (!supportsSpeech()) {
+    if (!synth || !supportsSpeech()) {
       return null;
     }
     var voices = synth.getVoices ? synth.getVoices() : [];
@@ -246,13 +261,29 @@
   }
 
   function cancelSpeech() {
+    speechJobId += 1;
+    var registry = ttsRegistry();
+    if (registry && registry.cancel) {
+      try {
+        registry.cancel();
+      } catch (error) {
+        // no-op
+      }
+    }
     if (supportsSpeech()) {
-      speechJobId += 1;
-      synth.cancel();
+      try {
+        synth.cancel();
+      } catch (error) {
+        // no-op
+      }
     }
   }
 
-  function normalizeSpeechText(value) {
+  function normalizeSpeechText(value, options) {
+    var helper = legalNormalizer();
+    if (helper && helper.normalizeLegalSpeechText && (!options || options.legalNormalization !== false)) {
+      return helper.normalizeLegalSpeechText(value, options || {});
+    }
     return String(value || '')
       .replace(/\s+/g, ' ')
       .replace(/\s+([,.;:!?])/g, '$1')
@@ -260,8 +291,12 @@
       .trim();
   }
 
-  function splitSpeechChunks(text) {
-    var normalized = normalizeSpeechText(text);
+  function splitSpeechChunks(text, options) {
+    var helper = legalNormalizer();
+    if (helper && helper.splitLegalSpeechChunks) {
+      return helper.splitLegalSpeechChunks(text, options || {});
+    }
+    var normalized = normalizeSpeechText(text, options);
     if (!normalized) {
       return [];
     }
@@ -295,15 +330,38 @@
   }
 
   function speak(text, options) {
-    if (!supportsSpeech() || !text) {
+    if (!text) {
       return false;
     }
     cancelSpeech();
-    var chunks = splitSpeechChunks(String(text));
+    var speechOptions = Object.assign({
+      lang: 'it-IT',
+      mode: 'summary',
+      legalNormalization: true,
+      preferFemale: true,
+      maxAutoReadChars: 1800,
+      maxChunkChars: 280,
+    }, options || {});
+    var preparedText = normalizeSpeechText(String(text), speechOptions);
+    if (!preparedText) {
+      return false;
+    }
+    var registry = ttsRegistry();
+    if (registry && registry.speak) {
+      Promise.resolve(registry.speak(preparedText, Object.assign({}, speechOptions, { skipNormalization: true })))
+        .catch(function () {
+          // Il registro gestisce gia' il fallback browser; qui evitiamo errori non gestiti.
+        });
+      return true;
+    }
+    if (!supportsSpeech()) {
+      return false;
+    }
+    var chunks = splitSpeechChunks(preparedText, speechOptions);
     if (!chunks.length) {
       return false;
     }
-    var voice = pickItalianVoice(options || {});
+    var voice = pickItalianVoice(speechOptions || {});
     var jobId = speechJobId;
     var index = 0;
 
@@ -311,18 +369,19 @@
       if (!supportsSpeech() || jobId !== speechJobId || index >= chunks.length) {
         return;
       }
-      var utterance = new SpeechSynthesisUtterance(chunks[index]);
-      utterance.lang = (options && options.lang) || 'it-IT';
-      utterance.rate = (options && options.rate) || 0.93;
-      utterance.pitch = (options && options.pitch) || 1.08;
-      utterance.volume = (options && options.volume) || 0.98;
+      var item = chunks[index] || {};
+      var utterance = new SpeechSynthesisUtterance(String(item.text || item || '').trim());
+      utterance.lang = speechOptions.lang || 'it-IT';
+      utterance.rate = Number(speechOptions.rate) || 0.93;
+      utterance.pitch = Number(speechOptions.pitch) || 1.08;
+      utterance.volume = Number(speechOptions.volume) || 0.98;
       if (voice) {
         utterance.voice = voice;
       }
       utterance.onend = function () {
         index += 1;
         if (index < chunks.length && jobId === speechJobId) {
-          window.setTimeout(speakNext, 80);
+          window.setTimeout(speakNext, Math.max(40, Number(item.pauseAfterMs) || 80));
         }
       };
       utterance.onerror = function () {
@@ -335,7 +394,34 @@
     return true;
   }
 
-  if (supportsSpeech() && synth.onvoiceschanged !== undefined) {
+  function supportsNeuralSpeech() {
+    var registry = ttsRegistry();
+    return Boolean(registry && registry.supportsNeuralSpeech && registry.supportsNeuralSpeech());
+  }
+
+  function preloadSpeechEngine(options) {
+    var registry = ttsRegistry();
+    if (!registry || !registry.preload) {
+      return Promise.resolve(getSpeechEngineStatus());
+    }
+    return registry.preload(options || {});
+  }
+
+  function getSpeechEngineStatus() {
+    var registry = ttsRegistry();
+    if (registry && registry.getStatus) {
+      return registry.getStatus();
+    }
+    return {
+      engine: 'browser',
+      label: supportsSpeech() ? 'Voce browser' : 'Voce non supportata',
+      supported: supportsSpeech(),
+      ready: supportsSpeech(),
+      backend: 'browser',
+    };
+  }
+
+  if (synth && supportsSpeech() && synth.onvoiceschanged !== undefined) {
     synth.onvoiceschanged = function () {
       pickItalianVoice({ preferFemale: true });
     };
@@ -348,5 +434,8 @@
     stopListening: stopListening,
     supportsRecognition: supportsRecognition,
     supportsSpeech: supportsSpeech,
+    supportsNeuralSpeech: supportsNeuralSpeech,
+    preloadSpeechEngine: preloadSpeechEngine,
+    getSpeechEngineStatus: getSpeechEngineStatus,
   };
 })();

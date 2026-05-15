@@ -886,7 +886,9 @@
         voiceBadge.classList.add('is-online');
         voiceBadge.classList.remove('is-offline');
       } else if (speechSupported || recognitionSupported) {
-        voiceBadge.textContent = state.voiceReplyEnabled ? 'Voce attiva' : 'Voce pronta';
+        var speechStatus = voice && voice.getSpeechEngineStatus ? voice.getSpeechEngineStatus() : null;
+        var speechLabel = speechStatus && speechStatus.label ? speechStatus.label : (state.voiceReplyEnabled ? 'Voce attiva' : 'Voce pronta');
+        voiceBadge.textContent = state.voiceReplyEnabled ? speechLabel : 'Voce pronta';
         voiceBadge.classList.toggle('is-online', state.voiceReplyEnabled);
         voiceBadge.classList.toggle('is-offline', !state.voiceReplyEnabled);
       } else {
@@ -922,6 +924,10 @@
       pitch: 1.08,
       volume: 0.98,
       preferFemale: true,
+      mode: clean.length > 1800 ? 'summary' : 'citations_light',
+      legalNormalization: true,
+      maxAutoReadChars: 1800,
+      maxChunkChars: 280,
     });
   }
 
@@ -2319,7 +2325,7 @@
         window.setTimeout(function () {
           state.suppressFabClick = false;
         }, 350);
-        setStatus('Icona Lex spostata.');
+        setStatus('Icona Lex spostata sul browser corrente.');
       } else {
         saveLayout(Object.assign({
           left: parseFloat(widget.style.left || '0'),
@@ -2587,6 +2593,7 @@
     window.addEventListener('iusentra:open-floating-lex', function (event) {
       applyLexPageContext(event && event.detail ? event.detail : readExternalLexContext() || {}, { open: true });
     });
+    window.addEventListener('iusentra:lex-voice-status', updateVoiceUi);
     document.addEventListener('click', openFloatingLexFromLegacyLink);
     sendButton.addEventListener('click', send);
     query('pct-ai-close').addEventListener('click', closeAssistant);
@@ -2809,6 +2816,9 @@
       setStatus('Sessione ripristinata.');
     }
     updateVoiceUi();
+    if (voiceHelper() && voiceHelper().preloadSpeechEngine) {
+      voiceHelper().preloadSpeechEngine().then(updateVoiceUi).catch(updateVoiceUi);
+    }
   }
 
   window.pctAI = {

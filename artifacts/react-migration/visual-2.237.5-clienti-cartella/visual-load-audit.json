@@ -1,0 +1,338 @@
+{
+  "startedAt": "2026-05-15T12:29:24.661Z",
+  "finishedAt": "2026-05-15T12:29:28.495Z",
+  "host": "http://127.0.0.1:8080",
+  "route": "/clienti/2B6E3D22/cartella?_legacy=1",
+  "browser": "Chrome CDP headless",
+  "results": [
+    {
+      "viewport": "desktop",
+      "route": "/clienti/2B6E3D22/cartella?_legacy=1",
+      "finalUrl": "http://127.0.0.1:8080/clienti/2B6E3D22/cartella",
+      "h1": "Alessi Robertino",
+      "h2": "",
+      "visibleMs": 1979,
+      "perf": {
+        "domContentLoaded": 1082,
+        "load": 1165,
+        "responseStart": 842,
+        "transferSize": 13119
+      },
+      "textLength": 3304,
+      "links": [
+        {
+          "text": "Panoramica",
+          "href": "/"
+        },
+        {
+          "text": "Regia Operativa",
+          "href": "/workspace-intelligente"
+        },
+        {
+          "text": "Ricerca Studio",
+          "href": "/global-search"
+        },
+        {
+          "text": "Anagrafica",
+          "href": "/clienti"
+        },
+        {
+          "text": "Nuovo Cliente",
+          "href": "/clienti/nuovo"
+        },
+        {
+          "text": "Cartelle Condivise",
+          "href": "/cartelle-condivise"
+        },
+        {
+          "text": "",
+          "href": "/profilo"
+        },
+        {
+          "text": "",
+          "href": "/impostazioni"
+        },
+        {
+          "text": "Modifica anagrafica",
+          "href": "/clienti/2B6E3D22/modifica"
+        },
+        {
+          "text": "Nuovo fascicolo",
+          "href": "/fascicoli/nuovo?id_cliente=2B6E3D22"
+        },
+        {
+          "text": "Faldone cliente",
+          "href": "/clienti/2B6E3D22/faldone"
+        },
+        {
+          "text": "Nuova scadenza",
+          "href": "/scadenziario/nuova?id_cliente=2B6E3D22&from_cliente=cartella"
+        },
+        {
+          "text": "Nuovo appuntamento",
+          "href": "/agenda/nuovo?id_cliente=2B6E3D22"
+        },
+        {
+          "text": "Nuovo messaggio",
+          "href": "/messaggi/nuovo?id_cliente=2B6E3D22"
+        },
+        {
+          "text": "Nuovo preventivo",
+          "href": "/preventivi/nuovo?id_cliente=2B6E3D22"
+        },
+        {
+          "text": "Esporta cartella",
+          "href": "/clienti/2B6E3D22/esporta"
+        },
+        {
+          "text": "Apri\nDeposito da portale — Documento\nRG 466/2023 — Azioni di competenza del Giudice di Pace in materia di risarcimento danno",
+          "href": "/fascicoli/DC5BF1DB"
+        },
+        {
+          "text": "Apri\nDeposito da portale — Decreto\nRG 466/2023 — Azioni di competenza del Giudice di Pace in materia di risarcimento danno",
+          "href": "/fascicoli/DC5BF1DB"
+        },
+        {
+          "text": "Apri\nDeposito da portale — Documento\nRG 466/2023 — Azioni di competenza del Giudice di Pace in materia di risarcimento danno",
+          "href": "/fascicoli/DC5BF1DB"
+        },
+        {
+          "text": "Apri\nDeposito da portale — Documento\nRG 466/2023 — Azioni di competenza del Giudice di Pace in materia di risarcimento danno",
+          "href": "/fascicoli/DC5BF1DB"
+        },
+        {
+          "text": "Apri\nDeposito da portale — Documento\nRG 466/2023 — Azioni di competenza del Giudice di Pace in materia di risarcimento danno",
+          "href": "/fascicoli/DC5BF1DB"
+        },
+        {
+          "text": "Apri\nDeposito da portale — Ordinanza\nRG 466/2023 — Azioni di competenza del Giudice di Pace in materia di risarcimento danno",
+          "href": "/fascicoli/DC5BF1DB"
+        },
+        {
+          "text": "Apri\nIscrizione a ruolo (importata da PolisWeb)\nRG 466/2023 — Azioni di competenza del Giudice di Pace in materia di risarcimento danno",
+          "href": "/fascicoli/DC5BF1DB"
+        },
+        {
+          "text": "Apri\nIscrizione / deposito originario\nRG 466/2023 — Azioni di competenza del Giudice di Pace in materia di risarcimento danno",
+          "href": "/fascicoli/DC5BF1DB"
+        }
+      ],
+      "buttons": [
+        "Comprimi menu",
+        "AGENDA",
+        "FASCICOLI",
+        "CLIENTI E ANAGRAFICHE",
+        "SOGGETTI E PARTI",
+        "COMUNICAZIONI",
+        "SCADENZE E TERMINI",
+        "SERVIZI TELEMATICI",
+        "STUDIO",
+        "SITO STUDIO",
+        "IMPOSTAZIONI",
+        "AMMINISTRAZIONE",
+        "Esci",
+        "Apri menu",
+        "Cerca fascicolo, cliente, udienza, documento...\nCtrl K",
+        "Timer attivita",
+        "ven 15 mag",
+        "Scadenze rapide",
+        "Ultimi elementi aperti",
+        "Notifiche operative",
+        "Nuovo",
+        "Chiudi",
+        "Apri l'assistente Lex",
+        "Apri Lex a tutto schermo"
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "horizontalOverflow": false,
+      "widths": {
+        "scrollWidth": 1425,
+        "innerWidth": 1440
+      },
+      "scrollHeight": 3096,
+      "slowResources": [],
+      "console": [],
+      "redirects": [
+        {
+          "url": "http://127.0.0.1:8080/clienti/2B6E3D22/cartella?_legacy=1",
+          "status": 302,
+          "location": "/clienti/2B6E3D22/cartella"
+        }
+      ],
+      "documentResponses": [
+        {
+          "url": "http://127.0.0.1:8080/clienti/2B6E3D22/cartella",
+          "status": 200
+        }
+      ],
+      "screenshot": "desktop-clienti-cartella.png",
+      "failures": []
+    },
+    {
+      "viewport": "mobile",
+      "route": "/clienti/2B6E3D22/cartella?_legacy=1",
+      "finalUrl": "http://127.0.0.1:8080/clienti/2B6E3D22/cartella",
+      "h1": "Alessi Robertino",
+      "h2": "",
+      "visibleMs": 1516,
+      "perf": {
+        "domContentLoaded": 604,
+        "load": 617,
+        "responseStart": 437,
+        "transferSize": 13119
+      },
+      "textLength": 2931,
+      "links": [
+        {
+          "text": "Panoramica",
+          "href": "/"
+        },
+        {
+          "text": "Regia Operativa",
+          "href": "/workspace-intelligente"
+        },
+        {
+          "text": "Ricerca Studio",
+          "href": "/global-search"
+        },
+        {
+          "text": "Anagrafica",
+          "href": "/clienti"
+        },
+        {
+          "text": "Nuovo Cliente",
+          "href": "/clienti/nuovo"
+        },
+        {
+          "text": "Cartelle Condivise",
+          "href": "/cartelle-condivise"
+        },
+        {
+          "text": "",
+          "href": "/profilo"
+        },
+        {
+          "text": "",
+          "href": "/impostazioni"
+        },
+        {
+          "text": "Modifica anagrafica",
+          "href": "/clienti/2B6E3D22/modifica"
+        },
+        {
+          "text": "Nuovo fascicolo",
+          "href": "/fascicoli/nuovo?id_cliente=2B6E3D22"
+        },
+        {
+          "text": "Faldone cliente",
+          "href": "/clienti/2B6E3D22/faldone"
+        },
+        {
+          "text": "Nuova scadenza",
+          "href": "/scadenziario/nuova?id_cliente=2B6E3D22&from_cliente=cartella"
+        },
+        {
+          "text": "Nuovo appuntamento",
+          "href": "/agenda/nuovo?id_cliente=2B6E3D22"
+        },
+        {
+          "text": "Nuovo messaggio",
+          "href": "/messaggi/nuovo?id_cliente=2B6E3D22"
+        },
+        {
+          "text": "Nuovo preventivo",
+          "href": "/preventivi/nuovo?id_cliente=2B6E3D22"
+        },
+        {
+          "text": "Esporta cartella",
+          "href": "/clienti/2B6E3D22/esporta"
+        },
+        {
+          "text": "Apri\nDeposito da portale — Documento\nRG 466/2023 — Azioni di competenza del Giudice di Pace in materia di risarcimento danno",
+          "href": "/fascicoli/DC5BF1DB"
+        },
+        {
+          "text": "Apri\nDeposito da portale — Decreto\nRG 466/2023 — Azioni di competenza del Giudice di Pace in materia di risarcimento danno",
+          "href": "/fascicoli/DC5BF1DB"
+        },
+        {
+          "text": "Apri\nDeposito da portale — Documento\nRG 466/2023 — Azioni di competenza del Giudice di Pace in materia di risarcimento danno",
+          "href": "/fascicoli/DC5BF1DB"
+        },
+        {
+          "text": "Apri\nDeposito da portale — Documento\nRG 466/2023 — Azioni di competenza del Giudice di Pace in materia di risarcimento danno",
+          "href": "/fascicoli/DC5BF1DB"
+        },
+        {
+          "text": "Apri\nDeposito da portale — Documento\nRG 466/2023 — Azioni di competenza del Giudice di Pace in materia di risarcimento danno",
+          "href": "/fascicoli/DC5BF1DB"
+        },
+        {
+          "text": "Apri\nDeposito da portale — Ordinanza\nRG 466/2023 — Azioni di competenza del Giudice di Pace in materia di risarcimento danno",
+          "href": "/fascicoli/DC5BF1DB"
+        },
+        {
+          "text": "Apri\nIscrizione a ruolo (importata da PolisWeb)\nRG 466/2023 — Azioni di competenza del Giudice di Pace in materia di risarcimento danno",
+          "href": "/fascicoli/DC5BF1DB"
+        },
+        {
+          "text": "Apri\nIscrizione / deposito originario\nRG 466/2023 — Azioni di competenza del Giudice di Pace in materia di risarcimento danno",
+          "href": "/fascicoli/DC5BF1DB"
+        }
+      ],
+      "buttons": [
+        "Comprimi menu",
+        "Agenda",
+        "Fascicoli",
+        "Clienti e Anagrafiche",
+        "Soggetti e Parti",
+        "Comunicazioni",
+        "Scadenze e Termini",
+        "Servizi Telematici",
+        "Studio",
+        "Sito Studio",
+        "Impostazioni",
+        "Amministrazione",
+        "Esci",
+        "Apri menu",
+        "Cerca fascicolo, cliente, udienza, documento...",
+        "Timer attivita",
+        "ven 15 mag",
+        "Scadenze rapide",
+        "Ultimi elementi aperti",
+        "Notifiche operative",
+        "Nuovo",
+        "Chiudi",
+        "Apri l'assistente Lex",
+        "Apri Lex a tutto schermo"
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "horizontalOverflow": false,
+      "widths": {
+        "scrollWidth": 390,
+        "innerWidth": 390
+      },
+      "scrollHeight": 4999,
+      "slowResources": [],
+      "console": [],
+      "redirects": [
+        {
+          "url": "http://127.0.0.1:8080/clienti/2B6E3D22/cartella?_legacy=1",
+          "status": 302,
+          "location": "/clienti/2B6E3D22/cartella"
+        }
+      ],
+      "documentResponses": [
+        {
+          "url": "http://127.0.0.1:8080/clienti/2B6E3D22/cartella",
+          "status": 200
+        }
+      ],
+      "screenshot": "mobile-clienti-cartella.png",
+      "failures": []
+    }
+  ],
+  "failures": []
+}

@@ -11,6 +11,7 @@ const apiAliasMarkers = new Map([
   ['/regia-operativa', ['("/dashboard")', "('/dashboard')"]],
   ['/ricerca-studio', ['("/global-search")', "('/global-search')"]],
   ['/agenda/nuovo', ['("/agenda")', "('/agenda')"]],
+  ['/clienti/:id/cartella', ['("/clienti/<id_cliente>/cartella")', "('/clienti/<id_cliente>/cartella')"]],
   ['/soggetti/nuovo', ['("/clienti/nuovo")', "('/clienti/nuovo')"]],
   ['/privacy/registro/nuovo', ['("/privacy/registro")', "('/privacy/registro')"]],
   ['/registro-gdpr', ['("/privacy/registro")', "('/privacy/registro')"]],

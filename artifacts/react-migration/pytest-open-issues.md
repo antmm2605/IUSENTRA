@@ -1,6 +1,6 @@
 # Pytest issue aperte e risoluzioni
 
-Aggiornato: 2026-05-15, Lex TTS Supertonic fase 3 2.237.4.
+Aggiornato: 2026-05-15, hotfix cartella cliente React full 2.237.5.
 
 ## Regola operativa
 
@@ -10,6 +10,8 @@ Questo file e' la coda di lavoro. Prima di rilanciare test gia' passati, control
 
 | Area | Test / comando | Stato | Problema rilevato | Risoluzione |
 | --- | --- | --- | --- | --- |
+| Hotfix cartella cliente React full 2.237.5 | URL profonda `/clienti/<id>/cartella?_legacy=1` | Nessuna issue aperta dopo gate mirati | La pagina poteva essere ancora raggiunta come esperienza classica tramite parametro `_legacy=1`, quindi non rispettava il perimetro full React richiesto dall'utente. | La route normalizza `_legacy=1` alla URL canonica, il componente non espone piu' CTA legacy, manifest/contratti/gate bloccano regressioni e browser Docker locale desktop/mobile conferma shell React senza overflow o testo tecnico. |
+| Docker locale 2.237.5 | Primo `docker compose up` dopo rebuild no-cache | Risolto come warm-up health, non failure codice | I primi healthcheck interni da 5s sono andati in timeout durante il warm-up post-recreate e hanno bloccato inizialmente scheduler/OCR/nginx. L'app ha comunque risposto 200 a `/api/pronto` poco dopo. | Atteso recupero health, verificata readiness locale in circa 79 ms, runtime `2.237.5`, poi rilanciato `docker compose up -d --no-build scheduler-worker ocr-worker nginx`: app, scheduler, OCR e Redis healthy. |
 | Lex TTS Supertonic fase 3 2.237.4 | Engine Supertonic/ONNX locale opzionale e fallback browser | Nessuna issue aperta dopo gate mirati | La fase richiedeva di collegare Supertonic senza cloud e senza rompere `speechSynthesis` quando asset o runtime mancano. | Aggiunto engine locale con manifest same-origin, runtime ONNX locale opzionale, WebGPU con fallback WASM, lifecycle ObjectURL, cancel e fallback registry. Gate JS/Python e packaging registrati in `pytest-confirmed-ok.md`. |
 | Lex Operational Knowledge 2.236.7 | `python -m pytest tests/test_lex_operational_knowledge.py -q` | Risolto | Il primo giro mirato ha evidenziato query operative troppo letterali: articoli/preposizioni restavano nella ricerca (`la rossi`, `il opposizione`, `nel rossi`), e poi messaggi/template venivano instradati troppo tardi o con parole comando nella query. | Router e tool aggiornati con stopword operative, priorita' comunicazioni prima della scheda cliente, supporto `cliente_id` e fallback deterministico per termini. Rilancio finale 17/17 verde registrato in `pytest-confirmed-ok.md`. |
 | Lex Operational Knowledge 2.236.7 | Generator App V2 `--check` | Risolto come drift documentale generato | Dopo il bump versione e l'aggiunta del test Lex, i generatori App V2 hanno segnalato documenti non aggiornati (`app-v2-page-registry`, `frontend-app-v2-pages`, `legacy-to-app-v2-routing-map`, `app-v2-area-requirements`, `test-inventory`, `test-matrix`, `test-plan`). | Eseguiti i tre generatori senza `--check`, poi rilanciati i tre `--check`: tutti verdi. Non era una failure del layer Lex. |

@@ -2,6 +2,18 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-15T14:30:00+02:00: hotfix cartella cliente 2.237.5.
+La route `/clienti/<id>/cartella` e' censita come `react_operational_full` e i
+richiami con `?_legacy=1` vengono normalizzati con redirect 302 verso la URL
+canonica prima di servire la shell React. `CartellaClientePage` usa solo azioni
+canoniche di cartella/faldone e non mostra piu' collegamenti `?_legacy=1`.
+Gate verdi: py_compile mirato, pytest React shell mirati, packaging/readiness
+8/8, generatori App V2 `--check`, `npm test`, typecheck, build Vite `2.237.5`,
+`check-full-react-route-contract`, Docker locale no-cache e browser Chrome CDP
+desktop/mobile su URL legacy. Browser locale: desktop contenuto React visibile
+in 1979 ms, mobile in 1516 ms, entrambi senza overflow, console error o testo
+tecnico vietato.
+
 Aggiornamento 2026-05-14T23:55:00+02:00: prova notifica automatica 2.236.2.
 La scheda `Deposito prova notifica` e' stata semplificata: l'utente sceglie
 insieme atto, relata firmata, PEC inviata, RAC e RdAC; IUSENTRA riconosce i

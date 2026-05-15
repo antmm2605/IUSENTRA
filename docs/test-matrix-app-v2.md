@@ -11,7 +11,7 @@ La matrice incrocia pagine, ruoli, tenant, feature flag e tipi test. `tested` in
 | blocked | 3 |
 | partial | 40 |
 | pending | 15 |
-| tested | 47 |
+| tested | 48 |
 
 ## Matrice
 
@@ -55,6 +55,7 @@ La matrice incrocia pagine, ruoli, tenant, feature flag e tipi test. `tested` in
 | agenda | /agenda/nuovo | P1 | admin, avvocato, collaboratore, segreteria, readonly | tenant A, tenant B, denial cross-tenant | routes.appV2.agenda.create | yes: pytest domain/API + backend security | yes: npm test + UI coverage | yes: guard comuni + permessi area | yes: tenant guards comuni | yes: feature flag off/on gate | yes: OpenAPI/provider map | yes: smoke inventario + browser mirato dove disponibile | tested |
 | amministrazione | /applicazioni | P1 | admin, profili autorizzati, readonly negato | tenant A, tenant B, denial cross-tenant | routes.appV2.studio.modules | no: da aggiungere prima della promozione | no: da aggiungere prima della promozione | no: da aggiungere prima della promozione | no: da aggiungere prima della promozione | no: da aggiungere prima della promozione | no: da aggiungere prima della promozione | no: da aggiungere prima della promozione | pending |
 | amministrazione | /privacy/registro/nuovo | P1 | admin, profili autorizzati, readonly negato | tenant A, tenant B, denial cross-tenant | routes.appV2.admin.privacyRegistry | yes: pytest domain/API + backend security | yes: npm test + UI coverage | yes: guard comuni + permessi area | yes: tenant guards comuni | yes: feature flag off/on gate | yes: OpenAPI/provider map | yes: smoke inventario + browser mirato dove disponibile | tested |
+| anagrafiche | /clienti/:id/cartella | P1 | admin, avvocato, collaboratore, segreteria, readonly | tenant A, tenant B, denial cross-tenant | routes.appV2.clients.detail | yes: pytest domain/API + backend security | yes: npm test + UI coverage | yes: guard comuni + permessi area | yes: tenant guards comuni | yes: feature flag off/on gate | yes: OpenAPI/provider map | yes: smoke inventario + browser mirato dove disponibile | tested |
 | anagrafiche | /clienti/nuovo | P1 | admin, avvocato, collaboratore, segreteria, readonly | tenant A, tenant B, denial cross-tenant | routes.appV2.clients.create | yes: pytest domain/API + backend security | yes: npm test + UI coverage | yes: guard comuni + permessi area | yes: tenant guards comuni | yes: feature flag off/on gate | yes: OpenAPI/provider map | yes: smoke inventario + browser mirato dove disponibile | tested |
 | anagrafiche | /soggetti/nuovo | P1 | admin, avvocato, collaboratore, segreteria, readonly | tenant A, tenant B, denial cross-tenant | routes.appV2.contacts.create | yes: pytest domain/API + backend security | yes: npm test + UI coverage | yes: guard comuni + permessi area | yes: tenant guards comuni | yes: feature flag off/on gate | yes: OpenAPI/provider map | yes: smoke inventario + browser mirato dove disponibile | tested |
 | comunicazioni | /messaggi/nuovo | P1 | avvocato/segreteria con permessi comunicazioni | tenant A, tenant B, denial cross-tenant | routes.appV2.comms.newMessage | yes: pytest domain/API + backend security | yes: npm test + UI coverage | yes: guard comuni + permessi area | yes: tenant guards comuni | yes: feature flag off/on gate | yes: OpenAPI/provider map | yes: smoke inventario + browser mirato dove disponibile | tested |

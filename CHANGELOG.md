@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.237.5 - 2026-05-15
+
+- Promossa la cartella cliente profonda `/clienti/<id>/cartella` a esperienza React full anche quando arriva da link storici con `?_legacy=1`: la richiesta viene normalizzata alla URL canonica e non apre piu' il template classico.
+- Aggiunti manifest, contratto legacy, gate statici e test mirati per impedire regressioni verso fallback classico o CTA `?_legacy=1` nella pagina `CartellaClientePage`.
+- Rigenerati asset React, registri App V2 e report anti-mascheramento; Docker locale no-cache e browser Chrome CDP desktop/mobile confermano redirect 302 canonico, shell React, nessun overflow e nessun testo tecnico visibile.
+
 ## 2.237.4 - 2026-05-15
 
 - Fase 3 TTS Lex: collegato il layer voce raffinato a un engine Supertonic/ONNX locale e opzionale, con manifest same-origin, caricamento runtime ONNX locale, WebGPU con fallback WASM e fallback obbligatorio alla voce browser.

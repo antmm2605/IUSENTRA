@@ -1,6 +1,6 @@
 {
   "summary": {
-    "generatedAt": "2026-05-15T09:42:43.180Z",
+    "generatedAt": "2026-05-15T12:13:18.530Z",
     "scannedFiles": [
       "frontend/src/adminDatabaseData.ts",
       "frontend/src/agendaData.ts",
@@ -211,6 +211,24 @@
       "frontend/src/features/impostazioni/localAi.ts",
       "frontend/src/features/impostazioni/localSigner.ts",
       "frontend/src/features/impostazioni/types.ts",
+      "frontend/src/features/legal-skills/api.ts",
+      "frontend/src/features/legal-skills/components/CitationList.tsx",
+      "frontend/src/features/legal-skills/components/EscalationBox.tsx",
+      "frontend/src/features/legal-skills/components/ReviewerNoteBox.tsx",
+      "frontend/src/features/legal-skills/components/SkillFindingTable.tsx",
+      "frontend/src/features/legal-skills/components/SkillRunStatusBadge.tsx",
+      "frontend/src/features/legal-skills/components/TrustCheckReport.tsx",
+      "frontend/src/features/legal-skills/pages/ColdStartInterviewPage.tsx",
+      "frontend/src/features/legal-skills/pages/LegalSkillRunPage.tsx",
+      "frontend/src/features/legal-skills/pages/LegalSkillsCatalogPage.tsx",
+      "frontend/src/features/legal-skills/pages/LegalSkillsProfilePage.tsx",
+      "frontend/src/features/legal-skills/pages/LegalSkillsReviewPage.tsx",
+      "frontend/src/features/legal-skills/pages/LegalSkillsRunPage.tsx",
+      "frontend/src/features/legal-skills/pages/PracticeProfilePage.tsx",
+      "frontend/src/features/legal-skills/pages/ReviewerQueuePage.tsx",
+      "frontend/src/features/legal-skills/pages/SkillRunDetailPage.tsx",
+      "frontend/src/features/legal-skills/permissions.ts",
+      "frontend/src/features/legal-skills/types.ts",
       "frontend/src/features/lex/lexApi.ts",
       "frontend/src/features/lex/LexWorkspace.tsx",
       "frontend/src/features/mandato/CompensiPanel.tsx",
@@ -386,7 +404,7 @@
       "web/services/react_wizard_pro_bridge.py"
     ],
     "totals": {
-      "routes": 105,
+      "routes": 106,
       "legacyLinks": 81,
       "legacyPostForms": 0,
       "reactPostForms": 0,
@@ -395,7 +413,7 @@
       "missingWriteApi": 1
     },
     "levels": {
-      "react_operational_full": 86,
+      "react_operational_full": 87,
       "legacy_operational": 18,
       "react_operational_partial": 1
     }
@@ -635,6 +653,28 @@
       "legacyPostForms": 0,
       "reactPostForms": 0,
       "jsonWrites": true,
+      "jsonReads": true,
+      "bridgeWritesLegacy": false,
+      "blockingLegacyLinks": 0,
+      "technicalRollback": false,
+      "missingWriteApi": false,
+      "missingErrorHandling": false,
+      "missingSuccessHandling": false,
+      "problems": [],
+      "realLevel": "react_operational_full"
+    },
+    {
+      "route": "/clienti/:id/cartella",
+      "component": "frontend/src/components/CartellaClientePage.tsx",
+      "dataClient": "frontend/src/clientiCartellaData.ts",
+      "bridge": "web/services/react_clienti_bridge.py",
+      "manifestStatus": "react_operational_full",
+      "unlockFromGate": true,
+      "legacyLinks": 0,
+      "legacyButtons": 0,
+      "legacyPostForms": 0,
+      "reactPostForms": 0,
+      "jsonWrites": false,
       "jsonReads": true,
       "bridgeWritesLegacy": false,
       "blockingLegacyLinks": 0,

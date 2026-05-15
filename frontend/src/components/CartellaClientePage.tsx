@@ -173,7 +173,7 @@ export function CartellaClientePage() {
         <div className="iu-cart-hero-actions">
           <Button href={data.actions.editClient || data.cliente.editHref} variant="secondary"><PencilLine size={16}/>Modifica anagrafica</Button>
           <Button href={data.actions.newMatter || '/fascicoli/nuovo'}><Plus size={16}/>Nuovo fascicolo</Button>
-          <a href={data.actions.legacy || data.contracts.legacy_route || `${data.cliente.folderHref}?_legacy=1`}>Percorso di recupero</a>
+          <a href={data.actions.dossier || data.actions.folder || data.cliente.folderHref}>Faldone cliente</a>
         </div>
       </div>
 

@@ -229,6 +229,25 @@
       ]
     },
     {
+      "workspaceTarget": "/app/clienti/:id/cartella",
+      "route": "/clienti/:id/cartella",
+      "family": "anagrafiche",
+      "status": "react_operational_full",
+      "risk": "high",
+      "targetComponent": "frontend/src/components/CartellaClientePage.tsx",
+      "targetData": "frontend/src/clientiCartellaData.ts",
+      "targetBridge": "web/services/react_clienti_bridge.py",
+      "legacyContract": "artifacts/react-migration/legacy-contracts/clienti__id__cartella.json",
+      "unlockFromGate": true,
+      "mustPreserve": [
+        "cartella cliente React",
+        "dati cliente reali",
+        "fascicoli e scadenze reali",
+        "azioni operative collegate",
+        "nessuna CTA legacy primaria"
+      ]
+    },
+    {
       "workspaceTarget": "/app/clienti/nuovo",
       "route": "/clienti/nuovo",
       "family": "anagrafiche",

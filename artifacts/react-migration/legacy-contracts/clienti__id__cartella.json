@@ -1,0 +1,14 @@
+{
+  "route": "/clienti/:id/cartella",
+  "capturedAt": "2026-05-15",
+  "status": "react_operational_full",
+  "source": "segnalazione utente: cartella cliente ancora raggiungibile in vista classica con _legacy=1",
+  "preserve": [
+    "dati cliente reali",
+    "fascicoli attivi e archiviati",
+    "scadenze, agenda, comunicazioni, preventivi e parcelle collegate",
+    "azioni operative verso fascicolo, scadenza, appuntamento, messaggio e preventivo"
+  ],
+  "uiPolicy": "docs/UI_DESIGN_SYSTEM.md",
+  "regressionGuard": "l'URL /clienti/<id>/cartella, anche con _legacy=1, deve aprire la shell React o rientrare al percorso canonico senza fallback Jinja visibile"
+}

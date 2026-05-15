@@ -1,6 +1,6 @@
 # Audit anti-mascheramento React
 
-Generato: 2026-05-15T09:42:43.180Z
+Generato: 2026-05-15T12:13:18.530Z
 
 ## Regole operative Parte 12A
 
@@ -12,7 +12,7 @@ Generato: 2026-05-15T09:42:43.180Z
 
 ## Sintesi
 
-- Route censite: 105
+- Route censite: 106
 - Link `?_legacy=1`: 81
 - LegacyPostForm: 0
 - Form POST HTML React: 0
@@ -35,6 +35,7 @@ Generato: 2026-05-15T09:42:43.180Z
 | /cartelle-condivise | frontend/src/components/CartelleCondivisePage.tsx | frontend/src/cartelleCondiviseData.ts | web/services/react_condivisioni_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
 | /checklist | frontend/src/components/ChecklistPage.tsx | frontend/src/checklistData.ts | web/services/react_checklist_bridge.py | legacy_operational | 0 | 0 | no | nessuno | legacy_operational |
 | /clienti | frontend/src/components/AnagraficaClientiPage.tsx | frontend/src/clientiData.ts | web/services/react_clienti_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
+| /clienti/:id/cartella | frontend/src/components/CartellaClientePage.tsx | frontend/src/clientiCartellaData.ts | web/services/react_clienti_bridge.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
 | /clienti/nuovo | frontend/src/components/NuovoClientePage.tsx | frontend/src/clientiNuovoData.ts | web/services/react_clienti_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
 | /compensi-forensi | frontend/src/components/CompensiForensiPage.tsx | frontend/src/compensiForensiData.ts | web/services/react_compensi_forensi_bridge.py | react_operational_full | 2 | 0 | si | fallback legacy tecnico non primario | react_operational_full |
 | /documenti | frontend/src/components/StudioModulePage.tsx | frontend/src/studioModuleData.ts | web/services/react_studio_module_bridge.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |

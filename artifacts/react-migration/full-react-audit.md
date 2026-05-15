@@ -2,6 +2,15 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-15T14:30:00+02:00: hotfix cartella cliente 2.237.5.
+Audit anti-mascheramento esteso alla rotta `/clienti/<id>/cartella`: il
+manifest la dichiara full React, i gate rifiutano regressioni a fallback
+classico e il contratto legacy documenta la normalizzazione di `_legacy=1`.
+La verifica browser su Docker locale ha osservato il redirect 302 da
+`/clienti/2B6E3D22/cartella?_legacy=1` a `/clienti/2B6E3D22/cartella`, shell
+React presente, zero form POST HTML, zero overflow orizzontale e zero termini
+tecnici vietati nel testo visibile.
+
 Aggiornamento 2026-05-14T23:10:00+02:00: modulo notifiche legali 2.236.0.
 Audit anti-mascheramento esteso a notifiche e deposito prova: il vecchio
 `pct/notifica.py` non puo' piu' inviare PEC con oggetto generico; il profilo

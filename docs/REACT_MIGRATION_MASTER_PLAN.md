@@ -1,5 +1,27 @@
 # Migrazione progressiva Flask + React
 
+## Hotfix cartella cliente React full - 2026-05-15 - 2.237.5
+
+La route profonda `/clienti/<id>/cartella` e' ora governata come
+`react_operational_full` nel manifest e nei gate React. I link storici che
+arrivano con `?_legacy=1` non aprono piu' `clienti/cartella.html`: dopo i
+controlli di autenticazione e accesso vengono reindirizzati alla URL canonica
+senza parametro legacy, preservando eventuali altri parametri di query.
+
+La pagina React `CartellaClientePage` non espone piu' CTA `?_legacy=1`; il
+bridge backend fornisce azioni canoniche verso cartella e faldone cliente. Sono
+stati aggiunti il contratto legacy dedicato, gli unlock governati nel route
+gate, gli assert anti-regressione in `check-react-contracts`,
+`check-route-gate`, `check-full-react-route-contract` e in
+`tests/test_react_shell.py`.
+
+Verifiche locali: py_compile mirato, test React shell mirati con readiness
+release, contratti React, gate full React, generatori App V2, typecheck, build
+Vite `2.237.5`, Docker locale no-cache healthy e browser Chrome CDP
+desktop/mobile sulla URL con `_legacy=1`. Il browser conferma redirect 302 alla
+URL canonica, shell React, nessun form POST HTML, nessun overflow orizzontale e
+nessun testo tecnico vietato.
+
 ## Modulo notifiche legali e registry telematico - 2026-05-14 - 2.236.0
 
 La pagina React Notifiche legali ora espone fasi operative reali dopo i pulsanti `Controlla relata`, `Controlla prova deposito` e `Prepara comunicazione`: l'esito mostra blocchi, testo generato, file previsti e pacchetto prova quando disponibile. La scelta dei documenti dal fascicolo e' multipla e alimenta automaticamente l'elenco allegati della relata.

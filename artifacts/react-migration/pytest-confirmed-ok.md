@@ -1,12 +1,25 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-15, Lex TTS Supertonic fase 3 2.237.4.
+Aggiornato: 2026-05-15, hotfix cartella cliente React full 2.237.5.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Hotfix cartella cliente React full 2.237.5 - 2026-05-15
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile web/bootstrap/clienti_workspace_routes.py web/services/react_clienti_bridge.py` | OK | Sintassi confermata dopo redirect canonico `_legacy` e nuove azioni cartella/faldone nel bridge React. |
+| `python -m pytest tests/test_react_shell.py::test_react_clienti_cartella_profonda_collegata_route_api_e_card_operative tests/test_react_shell.py::test_react_route_gate_copre_rotte_profonde_e_preserva_contratti_operativi tests/test_packaging_consistency.py tests/test_release_readiness.py -q --tb=short` | OK | 10/10 passati: route profonda cliente, redirect da `_legacy=1`, contratto React, packaging e readiness release `2.237.5`. |
+| `node frontend/scripts/check-react-contracts.mjs`; `node scripts/react-migration/check-route-gate.mjs`; `node scripts/react-migration/check-full-react-route-contract.mjs` | OK | Contratti React, route gate e anti-mascheramento/no-fake React confermano `/clienti/:id/cartella` come `react_operational_full` e bloccano CTA `?_legacy=1`. |
+| `python scripts/react-migration/generate_app_v2_page_registry.py --check`; `python scripts/react-migration/generate_app_v2_area_requirements.py --check`; `python scripts/react-migration/generate_app_v2_test_docs.py --check` | OK | Documentazione generata App V2 allineata dopo l'aggiunta della route cartella cliente al manifest. |
+| `python tools/sync_packaging_files.py --check`; `npm --prefix frontend run typecheck`; `npm --prefix frontend run test`; `npm --prefix frontend run build` | OK | Packaging sincronizzato, TypeScript e gate frontend verdi; build Vite `2.237.5` in 7.24s con main `index-DaU5NV_e.js` 451.50 kB / 133.56 kB gzip e chunk `CartellaClientePage-DIANK4mp.js` 12.82 kB / 4.20 kB gzip. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build --force-recreate redis app scheduler-worker ocr-worker nginx`; `GET http://127.0.0.1:8080/api/pronto`; `docker exec iusentra-app python -c "import pct; print(pct.__version__)"` | OK | Docker locale no-cache ha costruito wheel `pct-studio-legale==2.237.5`; dopo warm-up iniziale app/scheduler/OCR/Redis healthy, readiness locale circa 79 ms e runtime container `2.237.5`. |
+| Chrome CDP headless autenticato su `/clienti/2B6E3D22/cartella?_legacy=1` desktop e mobile, report `artifacts/react-migration/visual-2.237.5-clienti-cartella/visual-load-audit.md` | OK | Redirect 302 alla URL canonica senza `_legacy`; shell React presente; desktop 1979 ms a contenuto visibile, DOMContentLoaded 1082 ms; mobile 1516 ms, DOMContentLoaded 604 ms; nessun overflow, form POST HTML, console error o testo tecnico vietato. |
+| `git diff --check -- . ':!data/*'`; `python scripts/validate_docs_links.py`; `python scripts/validate_docs_commands.py` | OK | Whitespace senza errori, con soli warning CRLF preesistenti su documento generato e test; link e comandi documentali restano validi. |
 
 ### Lex TTS Supertonic fase 3 2.237.4 - 2026-05-15
 

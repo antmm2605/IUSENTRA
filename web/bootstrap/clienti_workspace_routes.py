@@ -7,22 +7,28 @@ import json
 import tempfile
 import zipfile as _zipfile
 from collections.abc import Callable
-from datetime import date, timedelta
+from datetime import date
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlencode
 
 from flask import Flask, flash, g, jsonify, redirect, render_template, request, send_file, session, url_for
 
-from pct.economic_dashboard import build_cliente_economic_dashboard
-from pct.fascicoli import StatoFascicolo, TipoFascicolo
+from pct.fascicoli import StatoFascicolo
 from pct.reports import faldone_pdf
-from pct.workflow_pipeline import build_cliente_workflow_pipeline
 from web.blueprints.react_shell import render_react_shell_response
 from web.services.clienti_faldone_runtime import carica_note_faldone, salva_note_faldone
 
 
 def _richiede_vista_legacy() -> bool:
     return (request.args.get("_legacy") or "").strip().lower() in {"1", "true", "si", "yes", "on"}
+
+
+def _url_senza_vista_legacy() -> str:
+    query = request.args.to_dict(flat=True)
+    query.pop("_legacy", None)
+    suffix = f"?{urlencode(query)}" if query else ""
+    return f"{request.path}{suffix}"
 
 
 def _get_portale_mgr(app: Flask):
@@ -55,7 +61,6 @@ def register_clienti_workspace_routes(
     @app.route("/clienti/<id_cliente>/cartella")
     def cartella_cliente(id_cliente: str):
         gc = get_clienti()
-        gf = get_fascicoli()
         cliente = gc.get(id_cliente)
         if not cliente:
             flash("Cliente non trovato.", "warning")
@@ -63,95 +68,16 @@ def register_clienti_workspace_routes(
         if not cliente_accessibile(id_cliente):
             flash("Non hai accesso a questa cartella cliente.", "danger")
             return redirect(url_for("lista_clienti"))
-        if not _richiede_vista_legacy():
-            return render_react_shell_response(f"clienti/{id_cliente}/cartella")
-        try:
-            tutti = gf.cerca(id_cliente=id_cliente, archiviati=True)
-            stati_chiusi = {StatoFascicolo.ARCHIVIATO, StatoFascicolo.DEFINITO}
-            fascicoli_attivi = [fascicolo for fascicolo in tutti if fascicolo.stato not in stati_chiusi]
-            fascicoli_archiviati = [fascicolo for fascicolo in tutti if fascicolo.stato in stati_chiusi]
-            fascicoli_archiviati.sort(
-                key=lambda fascicolo: (fascicolo.archivio.data_archiviazione if fascicolo.archivio else ""),
-                reverse=True,
-            )
-            n_documenti = sum(fascicolo.documenti_count for fascicolo in tutti)
-            oggi = date.today()
-            soglia = (oggi + timedelta(days=7)).isoformat()
-            scadenze_imminenti: list[tuple[Any, Any]] = []
-            for fascicolo in fascicoli_attivi:
-                prossima_scadenza = fascicolo.prossima_scadenza
-                if prossima_scadenza and prossima_scadenza.data and prossima_scadenza.data <= soglia:
-                    scadenze_imminenti.append((fascicolo, prossima_scadenza))
-            scadenze_imminenti.sort(key=lambda item: item[1].data)
-
-            timeline: list[tuple[Any, Any]] = []
-            for fascicolo in fascicoli_attivi:
-                for attivita in fascicolo.attivita:
-                    timeline.append((fascicolo, attivita))
-            timeline.sort(key=lambda item: item[1].data if item[1].data else "", reverse=True)
-
-            agenda_obj = get_agenda()
-            appuntamenti_cliente = agenda_obj.per_cliente(id_cliente) or agenda_obj.cerca(cliente=cliente.nome_completo)
-            messaggi_cliente = get_messaggi().per_cliente(id_cliente)
-            gfatt = get_fatturazione()
-            parcelle_cliente = gfatt.per_cliente(id_cliente)
-            gp = get_preventivi()
-            preventivi_cliente = gp.preventivi_per_cliente(id_cliente)
-            conferimenti_cliente = gp.conferimenti_per_cliente(id_cliente)
-            timesheet_summary = get_timesheet().riepilogo_cliente(id_cliente)
-            workflow_pipeline = build_cliente_workflow_pipeline(
-                cliente=cliente,
-                fascicoli=tutti,
-                preventivi=preventivi_cliente,
-                conferimenti=conferimenti_cliente,
-                parcelle=parcelle_cliente,
-                timesheet_entries=get_timesheet().per_cliente(id_cliente),
-            )
-            economic_dashboard = build_cliente_economic_dashboard(
-                cliente=cliente,
-                fascicoli=tutti,
-                parcelle=parcelle_cliente,
-                timesheet_entries=get_timesheet().per_cliente(id_cliente),
-                preventivi=preventivi_cliente,
-                conferimenti=conferimenti_cliente,
-            )
-            preventivi_con_conferimento = {
-                conferimento.id_preventivo
-                for conferimento in conferimenti_cliente
-                if conferimento.id_preventivo
-            }
-
-            track_recente(
-                "cliente",
-                id_cliente,
-                cliente.nome_completo,
-                url_for("cartella_cliente", id_cliente=id_cliente),
-                "bi-folder2-open",
-            )
-            return render_template(
-                "clienti/cartella.html",
-                cliente=cliente,
-                fascicoli_attivi=fascicoli_attivi,
-                fascicoli_archiviati=fascicoli_archiviati,
-                n_documenti=n_documenti,
-                scadenze_imminenti=scadenze_imminenti,
-                timeline=timeline[:30],
-                oggi=oggi,
-                appuntamenti_cliente=appuntamenti_cliente,
-                messaggi_cliente=messaggi_cliente,
-                parcelle_cliente=parcelle_cliente,
-                preventivi_cliente=preventivi_cliente,
-                conferimenti_cliente=conferimenti_cliente,
-                preventivi_con_conferimento=preventivi_con_conferimento,
-                workflow_pipeline=workflow_pipeline,
-                economic_dashboard=economic_dashboard,
-                timesheet_summary=timesheet_summary,
-                tipi_fascicolo=list(TipoFascicolo),
-            )
-        except Exception as exc:
-            app.logger.exception("Errore cartella_cliente %s: %s", id_cliente, exc)
-            flash(f"Errore nel caricamento della cartella: {exc}", "danger")
-            return redirect(url_for("dettaglio_cliente", id_cliente=id_cliente))
+        track_recente(
+            "cliente",
+            id_cliente,
+            cliente.nome_completo,
+            url_for("cartella_cliente", id_cliente=id_cliente),
+            "bi-folder2-open",
+        )
+        if _richiede_vista_legacy():
+            return redirect(_url_senza_vista_legacy(), code=302)
+        return render_react_shell_response(f"clienti/{id_cliente}/cartella")
 
     @app.route("/clienti/<id_cliente>/faldone")
     def faldone_cliente(id_cliente: str):

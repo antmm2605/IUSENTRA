@@ -754,11 +754,14 @@ def test_react_clienti_cartella_profonda_collegata_route_api_e_card_operative():
     assert '@api_v1_react.get("/clienti/<id_cliente>/cartella")' in api_source
     assert '@api_v1_react.get("/clienti/<id_cliente>/modifica")' in api_source
     assert 'render_react_shell_response(f"clienti/{id_cliente}/cartella")' in route_source
+    assert 'redirect(_url_senza_vista_legacy(), code=302)' in route_source
     assert 'render_react_shell_response(f"clienti/{id_cliente}")' in clienti_routes
     assert 'render_react_shell_response(f"clienti/{id_cliente}/modifica")' in clienti_routes
     assert "data.actions.newDeadline" in page_source
     assert "data.actions.newMatter" in page_source
     assert "data.actions.newMessage" in page_source
+    assert "Faldone cliente" in page_source
+    assert "?_legacy=1" not in page_source
     assert "FloatingLex" in page_source
     assert "/api/v1/ui/clienti/${encodeURIComponent(idCliente)}/cartella" in data_source
     assert ".iu-cartella-cliente-page" in css
@@ -1700,6 +1703,9 @@ def test_react_route_gate_copre_rotte_profonde_e_preserva_contratti_operativi(tm
             assert '<html lang="it" class="react-shell-document">' in html, path
             assert 'id="root"' in html, path
 
+        legacy_cartella_redirect = client.get(f"/clienti/{cliente.id}/cartella?_legacy=1&tab=timeline", follow_redirects=False)
+        legacy_cartella = client.get(f"/clienti/{cliente.id}/cartella?_legacy=1&tab=timeline", follow_redirects=True)
+
         for path in (
             f"/fascicoli/{fascicolo.id}/deposito/prepara",
             f"/fascicoli/{fascicolo.id}/copertina",
@@ -1738,6 +1744,13 @@ def test_react_route_gate_copre_rotte_profonde_e_preserva_contratti_operativi(tm
             follow_redirects=False,
         )
 
+    assert legacy_cartella_redirect.status_code in {302, 303}
+    assert legacy_cartella_redirect.headers["Location"] == f"/clienti/{cliente.id}/cartella?tab=timeline"
+    legacy_cartella_html = legacy_cartella.get_data(as_text=True)
+    assert legacy_cartella.status_code == 200
+    assert '<html lang="it" class="react-shell-document">' in legacy_cartella_html
+    assert 'id="root"' in legacy_cartella_html
+    assert "clienti/cartella.html" not in legacy_cartella_html
     assert legacy.status_code == 200
     assert 'id="root"' not in legacy.get_data(as_text=True)
     assert firma_operativa.status_code == 200

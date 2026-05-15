@@ -156,7 +156,7 @@ const appV2RouteFlagRules: Array<[RegExp, FeatureFlagKey]> = [
   [/^\/tariffario(?:\/|$)/, 'routes.appV2.billing.tariffario'],
   [/^\/legal-skills\/profile(?:\/|$)/, 'routes.appV2.legalSkills.profile'],
   [/^\/legal-skills\/(?:run|packs\/[^/]+\/skills\/[^/]+\/run)(?:\/|$)/, 'routes.appV2.legalSkills.run'],
-  [/^\/legal-skills\/(?:runs|review)(?:\/|$)/, 'routes.appV2.legalSkills.reviewQueue'],
+    [/^\/legal-skills\/(?:runs|review|review-queue)(?:\/|$)/, 'routes.appV2.legalSkills.reviewQueue'],
   [/^\/legal-skills(?:\/|$)/, 'routes.appV2.legalSkills.catalog'],
   [/^\/(?:workspace-intelligente|regia-operativa|app\/regia)(?:\/|$)/, 'routes.appV2.dashboard.regia'],
   [/^\/app\/fascicoli(?:\/|$)/, 'routes.appV2.cases.list'],

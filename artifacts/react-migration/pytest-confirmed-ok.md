@@ -1507,6 +1507,19 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build --force-recreate app scheduler-worker ocr-worker nginx`; readiness locale | OK | Docker locale no-cache su `2.237.0`; app/scheduler/OCR/Redis healthy, nginx running, container app `pct.__version__ == 2.237.0`. `/api/pronto` hot 18 ms circa dopo warm-up iniziale. |
 | Chrome CDP autenticato `artifacts/react-migration/visual-2.237.0-legal-skills/visual-load-audit.md` | OK | `/legal-skills` desktop 1736 ms e mobile 2728 ms a contenuto React visibile; zero failure, zero warning, nessun overflow, console error o testo tecnico vietato. |
 
+## AI Legal fase 2 finale 2.237.1 - 2026-05-15
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct\__init__.py tests\test_legal_skills_engine.py`; `python -m pytest tests\test_legal_skills_engine.py -q` | OK | Versione `2.237.1` e test Legal Skills confermati: 8/8 passati. |
+| `node frontend\scripts\check-legal-skills.mjs` | OK | Gate esteso per le pagine richieste da fase 2: `PracticeProfilePage`, `ColdStartInterviewPage`, `LegalSkillRunPage`, `SkillRunDetailPage`, `ReviewerQueuePage`. |
+| `python scripts\validate_openapi.py docs\openapi.yaml`; `python scripts\verify_openapi_provider.py` | OK | OpenAPI valido e provider verification verde: `auth-error=195`, `success=27`, `backend-security=1`. |
+| `python scripts\validate_docs_links.py`; `python scripts\validate_docs_commands.py` | OK | Documentazione ancora coerente: 21 documenti, 157 link, 155 comandi/percorsi. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest -q tests\test_packaging_consistency.py tests\test_release_readiness.py --tb=short` | OK | Packaging sincronizzato e readiness release 8/8 dopo bump `2.237.1`. |
+| `npm --prefix frontend run typecheck`; `npm --prefix frontend run test`; `npm --prefix frontend run build` | OK | TypeScript, contratti React/App V2/Legal Skills e build Vite 2.237.1 verdi; build 6.61s, main JS `index-D8dK_xzI.js` 451.50 kB / 133.57 kB gzip. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build --force-recreate app scheduler-worker ocr-worker nginx` | OK | Docker locale no-cache `2.237.1`; app/scheduler/OCR/Redis healthy, nginx running, container app `pct.__version__ == 2.237.1`. |
+| `curl` locale su `/legal-skills/profile/cold-start`, `/legal-skills/review-queue`, `/legal-skills/run`; `GET http://127.0.0.1:8080/api/pronto` | OK | Le route Legal Skills fase 2 non producono 404 e reindirizzano a login da anonime; readiness locale 200 `versione=2.237.1`, controlli caldi 21.6/19.5 ms. |
+
 ## Fase react 3 - App V2 feature flag per pagina 2.224.0 - 2026-05-13
 
 | Comando / verifica | Esito | Nota |

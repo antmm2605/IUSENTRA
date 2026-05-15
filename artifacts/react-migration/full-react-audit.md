@@ -361,3 +361,15 @@ le API `/api/v1/legal-skills/*` bloccano parametri riservati dal client, i seed
 pack sono read-only e custom skill/scheduled agent restano spenti salvo flag. Il
 browser audit finale su `/legal-skills` desktop/mobile e' verde dopo correzione
 del 404 iniziale.
+
+## Aggiornamento 2.237.1 - 2026-05-15
+
+La fase AI Legal 2 non cambia la semantica del motore, ma rende esplicito il
+contratto delle pagine richieste: profilo pratica, intervista cold-start,
+esecuzione skill, dettaglio run e coda revisore. Tutte le pagine sono route React
+governate dal prefisso `/legal-skills`, protette dai flag esistenti e senza
+payload client con identificativi tenant/studio.
+
+Controlli anti-mascheramento: i wrapper rimandano a componenti operativi gia'
+collegati ad API reali, il gate statico ne verifica presenza e aggancio alla
+shell, e lo smoke HTTP anonimo conferma che le route fase 2 non cadono in 404.

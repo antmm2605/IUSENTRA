@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.237.1 - 2026-05-15
+
+- Completata la rifinitura finale AI Legal fase 2 con pagine React esplicite `PracticeProfilePage`, `ColdStartInterviewPage`, `LegalSkillRunPage`, `SkillRunDetailPage` e `ReviewerQueuePage`, agganciate alla shell Legal Skills.
+- Esteso il gate statico Legal Skills per bloccare regressioni sui file pagina richiesti e sulle route `/legal-skills/profile/cold-start` e `/legal-skills/review-queue`.
+- Allineati feature flag frontend e routing per la coda revisione Legal Skills senza esporre dati demo o identificativi tenant controllati dal client.
+
 ## 2.237.0 - 2026-05-15
 
 - Introdotto Legal Skills Engine per Lex: pack read-only contratti, privacy, contenzioso e regolatorio con parser, registry, profilo studio, workflow governato, trust layer e agenti schedulati default-off.

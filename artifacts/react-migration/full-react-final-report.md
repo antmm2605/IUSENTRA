@@ -704,3 +704,17 @@ Browser Chrome CDP autenticato su `/legal-skills`: desktop 1736 ms, mobile
 2728 ms, zero failure/warning, nessun overflow, console error o testo tecnico
 vietato. Il 404 iniziale della route e' stato corretto aggiornando route gate e
 shell React Flask.
+
+## AI Legal fase 2 finale 2.237.1
+
+La seconda fase ha chiuso il contratto frontend richiesto dal file `ai legal 2`:
+le pagine nominali `PracticeProfilePage`, `ColdStartInterviewPage`,
+`LegalSkillRunPage`, `SkillRunDetailPage` e `ReviewerQueuePage` esistono come
+wrapper agganciati alla shell React, riusano le pagine operative gia' verificate e
+non introducono dati mock o workflow paralleli.
+
+Il check Legal Skills ora blocca regressioni sui file pagina e sulle route
+`/legal-skills/profile/cold-start` e `/legal-skills/review-queue`. Gate finali
+locali: pytest Legal Skills 8/8, OpenAPI/provider, docs, packaging/readiness,
+typecheck, test frontend, build Vite 2.237.1, Docker no-cache e smoke HTTP
+locale sulle route fase 2.

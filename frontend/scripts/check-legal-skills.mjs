@@ -9,6 +9,11 @@ const requiredFiles = [
   'src/features/legal-skills/pages/LegalSkillsProfilePage.tsx',
   'src/features/legal-skills/pages/LegalSkillsRunPage.tsx',
   'src/features/legal-skills/pages/LegalSkillsReviewPage.tsx',
+  'src/features/legal-skills/pages/PracticeProfilePage.tsx',
+  'src/features/legal-skills/pages/ColdStartInterviewPage.tsx',
+  'src/features/legal-skills/pages/LegalSkillRunPage.tsx',
+  'src/features/legal-skills/pages/SkillRunDetailPage.tsx',
+  'src/features/legal-skills/pages/ReviewerQueuePage.tsx',
   'src/features/legal-skills/components/ReviewerNoteBox.tsx',
   'src/features/legal-skills/components/CitationList.tsx',
   'src/features/legal-skills/components/SkillFindingTable.tsx',
@@ -37,10 +42,14 @@ for (const token of [
   if (!flags.includes(token)) throw new Error(`Feature flag Legal Skills non dichiarato: ${token}`)
 }
 
-for (const route of ['/legal-skills', '/legal-skills/profile', '/legal-skills/run', '/legal-skills/runs']) {
+for (const route of ['/legal-skills', '/legal-skills/profile', '/legal-skills/profile/cold-start', '/legal-skills/run', '/legal-skills/review-queue', '/legal-skills/runs']) {
   const direct = app.includes(route) || flags.includes(route)
   const regexGoverned = route === '/legal-skills/runs' && flags.includes('legal-skills') && flags.includes('runs')
   if (!direct && !regexGoverned) throw new Error(`Route Legal Skills non governata: ${route}`)
+}
+
+for (const component of ['PracticeProfilePage', 'ColdStartInterviewPage', 'LegalSkillRunPage', 'SkillRunDetailPage', 'ReviewerQueuePage']) {
+  if (!app.includes(component)) throw new Error(`Pagina Legal Skills non agganciata alla shell: ${component}`)
 }
 
 if (api.includes('tenant_id') || api.includes('studio_id')) {

@@ -2139,3 +2139,9 @@ python -m pytest tests/test_react_shell.py tests/test_email_client.py tests/test
 - Integrati seed pack read-only originali per contratti, privacy, contenzioso e monitoraggio regolatorio; custom skill e agenti schedulati restano default-off e sottoposti a trust layer.
 - Route gate e shell Flask sono stati aggiornati dopo un 404 reale emerso nel browser audit; il controllo finale desktop/mobile su `/legal-skills` e' verde.
 - Verifiche registrate: py_compile, pytest mirati Legal Skills, check statico frontend, typecheck, test frontend, OpenAPI/provider, docs link/commands, packaging/readiness, build Vite, Docker locale no-cache e Chrome CDP autenticato.
+
+## Aggiornamento 2026-05-15: AI Legal fase 2 finale 2.237.1
+
+- Aggiunti gli alias pagina richiesti da `ai legal 2`: `PracticeProfilePage`, `ColdStartInterviewPage`, `LegalSkillRunPage`, `SkillRunDetailPage` e `ReviewerQueuePage`, agganciati alla shell React senza duplicare logica o creare maschere vuote.
+- Esteso il gate statico Legal Skills per verificare file pagina, route `/legal-skills/profile/cold-start` e `/legal-skills/review-queue`, feature flag e divieto di `tenant_id`/`studio_id` client-controlled.
+- Verifiche registrate: pytest Legal Skills, OpenAPI/provider, docs, packaging/readiness, typecheck, test frontend, build Vite, Docker no-cache e smoke HTTP locale sulle route fase 2.

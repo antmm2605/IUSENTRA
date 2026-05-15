@@ -586,7 +586,7 @@ function ChecklistPanel({
 
   return (
     <section id="checklist-operativa" className="iu-tel-anchor-target">
-      <Panel title="Checklist operativa" subtitle="Le spunte restano salvate sul browser della postazione" icon={<ClipboardCheck size={17}/>} count={`${done}/${total}`}>
+      <Panel title="Checklist operativa" subtitle="Le spunte restano salvate sulla postazione in uso" icon={<ClipboardCheck size={17}/>} count={`${done}/${total}`}>
         <div className="iu-tel-checklist">
           {groups.map((group) => (
             <section key={group.id}>
@@ -1956,7 +1956,7 @@ function AcquisitionWizard({
               <div className="iu-tel-acq-status">
                 <span><strong>Canale</strong>{portalLabel(portal)}</span>
                 <span><strong>Stato</strong>{asText(status.status_text || status.label || status.mode, 'Da verificare')}</span>
-                <span><strong>Local Signer</strong>{localSigner.unsupported ? 'Solo desktop' : localSigner.ok ? 'Rilevato sul PC' : localSigner.outdated ? 'Da aggiornare' : 'Da verificare dal browser'}</span>
+                <span><strong>Local Signer</strong>{localSigner.unsupported ? 'Solo desktop' : localSigner.ok ? 'Rilevato sul PC' : localSigner.outdated ? 'Da aggiornare' : 'Da verificare dal PC'}</span>
                 <button type="button" disabled={localSigner.checking || localSigner.unsupported} onClick={() => checkLocalSigner(false)}>
                   <RefreshCw size={15}/> {localSigner.checking ? 'Verifica...' : 'Verifica Local Signer'}
                 </button>

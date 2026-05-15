@@ -305,8 +305,7 @@ async function auditOne(client, routeName, route, viewport) {
   if (consoleEntries.some((line) => /\berror\b|uncaught|failed/i.test(line))) failures.push('console_error')
   const warnings = []
   if (screenshotWarning) warnings.push(screenshotWarning)
-  if ((data.links?.length || 0) < 2 && route !== '/') warnings.push('collegamenti_pagina_da_arricchire')
-  if ((data.actions || 0) < 3 && route !== '/') warnings.push('azioni_pagina_da_arricchire')
+  if ((data.links?.length || 0) < 2 && (data.actions || 0) < 3 && route !== '/') warnings.push('collegamenti_o_azioni_da_arricchire')
   return {
     routeName,
     route,

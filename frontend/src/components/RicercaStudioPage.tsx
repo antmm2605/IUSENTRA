@@ -237,9 +237,9 @@ function Hero({ indexedCount, ftsEnabled, lastIndexedAt }: { indexedCount: numbe
         <h1>Trova tutto ciò che serve allo studio</h1>
         <p>Fascicoli, clienti, scadenze, documenti, comunicazioni, economia e dati telematici in un unico punto.</p>
       </div>
-      <div className="iu-search-hero__badges" aria-label="Stato indicizzazione">
-        <StatusBadge icon={<DatabaseZap size={14} />} label={`${indexedCount} elementi indicizzati`} />
-        <StatusBadge icon={<ShieldCheck size={14} />} label={ftsEnabled ? 'FTS5 attivo' : 'Ricerca compatibile'} />
+      <div className="iu-search-hero__badges" aria-label="Stato ricerca studio">
+        <StatusBadge icon={<DatabaseZap size={14} />} label={`${indexedCount} elementi disponibili`} />
+        <StatusBadge icon={<ShieldCheck size={14} />} label={ftsEnabled ? 'Indice avanzato attivo' : 'Ricerca pronta'} />
         <StatusBadge icon={<CheckCircle2 size={14} />} label={formatLastIndexed(lastIndexedAt)} muted />
       </div>
     </section>
@@ -281,7 +281,7 @@ function SearchBox({
           <X size={16} />
         </button>
       ) : (
-        <kbd>Ctrl K</kbd>
+        <span className="iu-search-box__hint">Cerca</span>
       )}
     </label>
   )
@@ -327,7 +327,7 @@ function SearchMeta({
     <div className="iu-search-meta">
       <div>
         <strong>{hasQuery ? count : 0} risultati</strong>
-        <span>{hasQuery ? ` per "${query.trim()}" in ${Math.max(0, Math.round(tookMs))} ms` : ' in 0 ms'}</span>
+        <span>{hasQuery ? ` per "${query.trim()}"${tookMs > 0 ? ' con risposta aggiornata' : ''}` : ' pronto per la prossima ricerca'}</span>
         {loading ? <Loader2 className="iu-search-spin" size={15} aria-label="Ricerca in corso" /> : null}
       </div>
       <div className="iu-search-meta__actions">
@@ -337,7 +337,7 @@ function SearchMeta({
         </button>
         <button className="iu-search-ghost" type="button" onClick={onReindex} disabled={indexing}>
           <RefreshCw size={15} className={indexing ? 'iu-search-spin' : ''} />
-          {indexing ? 'Indicizzazione...' : 'Reindicizza'}
+          {indexing ? 'Aggiornamento ricerca...' : 'Aggiorna ricerca'}
         </button>
       </div>
     </div>
@@ -371,7 +371,7 @@ function ResultsArea({
           <Star size={15} />
         </div>
         <h2>Inizia da una parola chiave</h2>
-        <p>Cerca in fascicoli, clienti, documenti, scadenze, agenda, economia, comunicazioni e dati telematici indicizzati.</p>
+        <p>Cerca in fascicoli, clienti, documenti, scadenze, agenda, economia, comunicazioni e dati telematici disponibili.</p>
         <div className="iu-search-suggestions" aria-label="Suggerimenti ricerca">
           {suggestions.map((term) => (
             <button key={term} type="button" onClick={() => onSuggestionClick(term)}>
@@ -390,7 +390,7 @@ function ResultsArea({
           <Loader2 className="iu-search-spin" size={34} />
         </div>
         <h2>Ricerca in corso</h2>
-        <p>Sto interrogando l'indice reale dello studio.</p>
+        <p>Sto consultando l'archivio reale dello studio.</p>
       </div>
     )
   }
@@ -555,11 +555,11 @@ function PreviewEnhancements() {
       <ul>
         <li>
           <Command size={14} />
-          Shortcut tastiera e focus rapido
+          Ricerca rapida e focus governato
         </li>
         <li>
           <ShieldCheck size={14} />
-          Stato indice, FTS e ultimo sync
+          Stato ricerca, fonti e ultimo aggiornamento
         </li>
         <li>
           <BookOpen size={14} />

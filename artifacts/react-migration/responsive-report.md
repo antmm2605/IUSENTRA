@@ -19,6 +19,7 @@ Route full/partial principali: amministrazione, studio, backup, sito studio, fat
 - 2026-05-12: smoke Chrome headless Docker locale 2.218.0 su `/template-atti/catalogo` in desktop 1440x950, tablet 834x1112 e mobile 390x844. Cartabia, timbro studio e prefill sono visibili; `scrollWidth` uguale al viewport in tutti i formati, nessun errore console e nessun testo tecnico vietato. Verificato anche `/template-atti/compila/CIV_CIT_001` desktop con timbro e `Completa dati mancanti`.
 - 2026-05-14: smoke Playwright/CDP Docker locale 2.236.3 su `/agenda/nuovo` in desktop 1440x950, tablet 834x1112 e mobile 390x844. Avvocato responsabile precompilato, ricerca cliente senza error boundary e prefill cliente verificati; tablet/mobile senza overflow orizzontale. Su desktop verificate anche le scrollbar superiori sincronizzate di `/clienti`, `/soggetti` e `/fascicoli`.
 - 2026-05-15: audit Chrome CDP 2.236.4 su 46 route x desktop/mobile, con sessione tenant reale. Nessun overflow orizzontale rilevato; tabelle IUSENTRA trasformate in card leggibili su mobile tramite `data-label`; action row, bottoni e topbar supportano wrapping a 125%, 150% e mobile landscape senza taglio del testo.
+- 2026-05-15: rifinitura 2.236.5 verificata con Chrome CDP su 46 route desktop/mobile e retry mirato `/soggetti/nuovo` mobile. La barra Ricerca Studio usa font-size stabile, hint non tecnico e nasconde il suggerimento compatto su mobile; nessun overflow orizzontale o avviso residuo sulle rotte passate.
 
 ## Rischi residui
 

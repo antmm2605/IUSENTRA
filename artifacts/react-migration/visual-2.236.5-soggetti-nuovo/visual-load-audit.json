@@ -1,0 +1,72 @@
+{
+  "startedAt": "2026-05-15T07:25:08.802Z",
+  "finishedAt": "2026-05-15T07:25:09.716Z",
+  "host": "http://127.0.0.1:8080",
+  "cdpHost": "http://127.0.0.1:9226",
+  "browser": "Chrome CDP",
+  "reuseTab": false,
+  "routeCount": 1,
+  "totalChecks": 1,
+  "failures": [],
+  "results": [
+    {
+      "routeName": "Nuovo Soggetto",
+      "route": "/soggetti/nuovo",
+      "viewport": "mobile",
+      "elapsedMs": 761,
+      "url": "http://127.0.0.1:8080/soggetti/nuovo",
+      "title": "IUSENTRA",
+      "h1": "Nuovo Soggetto",
+      "h2": "",
+      "textLength": 1851,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 48,
+      "cards": 25,
+      "links": [
+        {
+          "text": "Torna all'anagrafica",
+          "href": "/soggetti"
+        },
+        {
+          "text": "Anagrafiche",
+          "href": "/clienti"
+        },
+        {
+          "text": "Soggetti e parti",
+          "href": "/soggetti"
+        },
+        {
+          "text": "Annulla",
+          "href": "/soggetti"
+        },
+        {
+          "text": "Anagrafica clienti",
+          "href": "/clienti"
+        },
+        {
+          "text": "Soggetti e parti",
+          "href": "/soggetti"
+        },
+        {
+          "text": "Cerca duplicati",
+          "href": "/global-search?tipo=clienti"
+        },
+        {
+          "text": "Preventivi e incarichi",
+          "href": "/preventivi/"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 7091,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-nuovo-soggetto.png",
+      "warnings": [],
+      "failures": []
+    }
+  ]
+}

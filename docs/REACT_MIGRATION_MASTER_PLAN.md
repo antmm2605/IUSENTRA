@@ -2117,3 +2117,10 @@ python -m pytest tests/test_react_shell.py tests/test_email_client.py tests/test
 - Tabelle IUSENTRA degradano a card mobile con `data-label`; testi lunghi, nomi utente lunghi, bottoni e action row usano wrapping/clamp per evitare tagli a 125%, 150% e mobile landscape.
 - Ripuliti testi visibili residui in AI locale, assistente Lex, admin studio e compensi: niente termini tecnici rivolti all'avvocato, date admin con formato italiano e messaggi errore professionali.
 - Verifica browser Chrome CDP autenticata su 46 route x desktop/mobile: 92/92 controlli OK, zero redirect login, zero form POST HTML nel perimetro React verificato, zero testo tecnico vietato, zero overflow orizzontale. Report: `artifacts/react-migration/visual-2.236.4/visual-load-audit.md`.
+
+## Aggiornamento 2026-05-15: rifinitura audit UI/UX 2.236.5
+
+- Ricerca Studio non espone piu' sigle o tempi tecnici: `FTS5`, `Ctrl K` e millisecondi visibili sono sostituiti da linguaggio operativo per studio legale, mantenendo ricerca rapida e accessibilita' da tastiera.
+- Controlli Atti non parla piu' di browser nei testi utente: checklist e Local Signer usano `postazione` e `PC`, coerenti con il vocabolario professionale.
+- L'audit visuale considera correttamente pulsanti, tab e controlli interni come azioni: le pagine operative ricche di comandi non vengono piu' segnalate solo perche' hanno pochi link testuali.
+- Verifiche registrate: typecheck, test frontend, contratti React, route gate, full React contract, packaging/readiness, build Vite, Docker locale no-cache `2.236.5`, audit Chrome CDP completo 46 route desktop/mobile con recovery mirata `/soggetti/nuovo` mobile.

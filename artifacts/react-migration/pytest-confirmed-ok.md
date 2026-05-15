@@ -1431,6 +1431,18 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | HTTP autenticato admin locale su `/admin/studi/antonella-mammola`, `/admin/api/studi/antonella-mammola/storage`, `/admin/studi/antonella-mammola/database` | OK | Dettaglio studio 48 ms circa, configurazione archivio 30 ms circa, conteggio spazio entro budget parziale di 2s; il timeout worker precedente e' risolto. |
 | Chrome CDP autenticato `artifacts/react-migration/visual-2.236.4/visual-load-audit.md` | OK | 46 route verificate in desktop e mobile, 92/92 controlli OK: zero login redirect, zero loading bloccati, zero form POST HTML nel perimetro React, zero testo tecnico vietato, zero overflow orizzontale. Picco caldo osservato: `/statistiche` mobile 4421 ms. |
 
+## Rifinitura audit UI/UX 2.236.5 - 2026-05-15
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `npm --prefix frontend run typecheck` | OK | TypeScript confermato dopo rifinitura testi Ricerca Studio, Controlli Atti e CSS ricerca. |
+| `node --check scripts\react-migration\visual-load-audit.mjs`; `npm --prefix frontend run test` | OK | Script audit valido; contratti React, App V2 frontend e UI coverage fase 9 verdi dopo la correzione degli avvisi azioni/collegamenti. |
+| `node frontend\scripts\check-react-contracts.mjs`; `node scripts\react-migration\check-route-gate.mjs`; `node scripts\react-migration\check-full-react-route-contract.mjs` | OK | Contratti React, route gate, anti-mascheramento e no-fake React confermati dopo la patch. |
+| `python tools\sync_packaging_files.py --check`; `python -m py_compile pct\__init__.py`; `python -m pytest -q tests\test_packaging_consistency.py tests\test_release_readiness.py --tb=short` | OK | Packaging/versione `2.236.5` sincronizzati; readiness release 8/8 passata. |
+| `npm --prefix frontend run build` | OK | Build Vite 2.236.5 completata in 6.79s; main JS `index-PRcu5jld.js` 445.70 kB / 131.89 kB gzip, CSS `index-vkwJu0dF.css` 123.48 kB / 22.60 kB gzip. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build redis app scheduler-worker ocr-worker nginx`; `GET http://127.0.0.1:8080/api/pronto`; `docker exec iusentra-app python -c "import pct; print(pct.__version__)"` | OK | Docker locale no-cache ricostruito e riavviato; app/scheduler/OCR/Redis healthy; readiness locale 200 `versione=2.236.5`; runtime container `2.236.5`. |
+| Chrome CDP autenticato `artifacts/react-migration/visual-2.236.5/visual-load-audit.md`; retry mirato `artifacts/react-migration/visual-2.236.5-soggetti-nuovo/visual-load-audit.md` | OK | Audit completo: 91/92 controlli OK, zero avvisi, zero overflow e zero testo tecnico vietato; unico timeout CDP isolato su `/soggetti/nuovo` mobile. Retry mirato della stessa route: OK in 761 ms con H1 `Nuovo Soggetto`. |
+
 ## Fase react 3 - App V2 feature flag per pagina 2.224.0 - 2026-05-13
 
 | Comando / verifica | Esito | Nota |

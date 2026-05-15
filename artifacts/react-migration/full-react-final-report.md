@@ -640,3 +640,19 @@ full React contract, build Vite, pytest mirati admin/storage/agenda, packaging,
 Docker locale no-cache e Chrome CDP autenticato. Report visuale:
 `artifacts/react-migration/visual-2.236.4/visual-load-audit.md`, 46 route,
 92 controlli desktop/mobile, 0 failure.
+
+## Rifinitura audit UI/UX 2.236.5
+
+Seconda passata correttiva dopo il report severo: Ricerca Studio usa solo
+linguaggio operativo per lo studio legale, senza sigle tecniche, tempi in
+millisecondi o scorciatoie esposte come testo primario. Controlli Atti sostituisce
+i riferimenti al browser con postazione/PC. Il CSS della barra ricerca usa una
+dimensione testo stabile e l'audit visuale conta correttamente anche pulsanti e
+controlli interni, non solo link.
+
+Gate locali: typecheck, test frontend, contratti React, route gate, full React
+contract, packaging/readiness, build Vite, Docker locale no-cache e Chrome CDP
+autenticato. Audit completo `visual-2.236.5`: 91/92 OK con un timeout CDP
+isolato su `/soggetti/nuovo` mobile; retry mirato `visual-2.236.5-soggetti-nuovo`
+OK in 761 ms. Nessun avviso, overflow orizzontale o testo tecnico vietato nelle
+rotte passate.

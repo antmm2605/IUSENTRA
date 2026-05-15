@@ -152,3 +152,10 @@ Card operative: ActionCard, CompactCard, KpiCard esistente, DetailPanel, Summary
 - Corrette incoerenze comuni: testi lunghi in card/menu, bottoni icona senza label, drawer/modali senza focus trap, tabelle non leggibili su mobile e stati di caricamento non sufficientemente governati.
 - Ripuliti testi da sviluppatore in admin, AI locale, Lex assistant e compensi: la UI mostra linguaggio professionale per studio legale, date italiane dove toccate e messaggi errore leggibili.
 - Le correzioni CSS restano nel design system: wrapping/clamp, action row responsivi, data table a card mobile e focus ring visibile; nessuna isola grafica nuova o palette estranea.
+
+## Aggiornamento 2.236.5 - 2026-05-15
+
+- Ricerca Studio e Controlli Atti hanno microcopy ulteriormente allineato alla regola "avvocato, non sviluppatore": niente sigle tecniche, tempi macchina, scorciatoie esposte o riferimenti al browser.
+- Il badge di stato ricerca, il pulsante di aggiornamento e gli stati vuoti/loading usano espressioni professionali: `Indice avanzato`, `Aggiorna ricerca`, `archivio reale`, `postazione in uso`.
+- L'audit visuale non segnala piu' falsi positivi sulle pagine con molti pulsanti e pochi link testuali; la coerenza viene valutata su azioni reali, non solo su collegamenti.
+- Verifica Chrome CDP 2.236.5: audit completo con 91/92 OK e retry mirato `/soggetti/nuovo` mobile OK; nessun avviso residuo sulle rotte corrette.

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.236.5 - 2026-05-15
+
+- Rifinito il linguaggio visibile di Ricerca Studio: rimossi sigle, tempi tecnici e scorciatoia tastiera esposta, mantenendo ricerca rapida e accessibilita da tastiera.
+- Rifinito il testo dei controlli telematici React eliminando il riferimento al browser nella checklist e nello stato Local Signer.
+- Reso piu preciso il visual audit: le pagine ricche di azioni non vengono piu segnalate come prive di collegamenti solo perche usano pulsanti, tab o controlli interni.
+
 ## 2.236.4 - 2026-05-15
 
 - Rafforzata la UI React condivisa: modali e pannelli laterali gestiscono focus, Esc, sfondo e z-index senza coprire contenuti o perdere la navigazione da tastiera.

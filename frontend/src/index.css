@@ -658,9 +658,9 @@ body.react-shell-page #root{
 .iu-search-box{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;width:100%;min-height:60px;padding:0 16px;border:1px solid var(--iu-slate-300);border-radius:16px;background:#fff;box-shadow:0 1px 0 rgba(15,23,42,.03);transition:border-color .16s ease,box-shadow .16s ease}
 .iu-search-box:focus-within{border-color:rgba(37,99,235,.5);box-shadow:0 0 0 4px rgba(37,99,235,.12)}
 .iu-search-box__icon{color:var(--iu-blue-600)}
-.iu-search-box input{width:100%;min-width:0;border:0;outline:0;color:#111827;background:transparent;font-size:clamp(16px,1.6vw,19px);font-weight:650}
+.iu-search-box input{width:100%;min-width:0;border:0;outline:0;color:#111827;background:transparent;font-size:18px;font-weight:650}
 .iu-search-box input::placeholder{color:#768296;font-weight:650}
-.iu-search-box kbd{display:inline-flex;align-items:center;height:30px;padding:0 8px;border:1px solid var(--iu-border);border-radius:8px;color:var(--iu-slate-500);background:var(--iu-slate-100);box-shadow:inset 0 -1px 0 rgba(15,23,42,.05);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;white-space:nowrap}
+.iu-search-box kbd,.iu-search-box__hint{display:inline-flex;align-items:center;height:30px;padding:0 8px;border:1px solid var(--iu-border);border-radius:8px;color:var(--iu-slate-500);background:var(--iu-slate-100);box-shadow:inset 0 -1px 0 rgba(15,23,42,.05);font-size:12px;font-weight:800;white-space:nowrap}
 .iu-search-box__clear{display:grid;width:30px;height:30px;place-items:center;border:0;border-radius:999px;color:var(--iu-slate-500);background:var(--iu-slate-100)}
 .iu-search-filterbar{display:flex;gap:8px;overflow-x:auto;padding:16px 0 12px;scrollbar-width:none}
 .iu-search-filterbar::-webkit-scrollbar{display:none}
@@ -750,7 +750,7 @@ body.react-shell-page #root{
   .iu-search-status{min-height:32px;padding:0 10px;font-size:11px}
   .iu-search-card,.iu-search-preview{padding:12px;border-radius:16px}
   .iu-search-box{min-height:52px;padding:0 12px}
-  .iu-search-box kbd{display:none}
+  .iu-search-box kbd,.iu-search-box__hint{display:none}
   .iu-search-chip{min-height:36px;padding:0 11px;font-size:12px}
   .iu-search-meta{align-items:flex-start;flex-direction:column;gap:9px}
   .iu-search-meta__actions{width:100%;overflow-x:auto;padding-bottom:2px}

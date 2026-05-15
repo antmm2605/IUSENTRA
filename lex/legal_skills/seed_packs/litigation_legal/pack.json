@@ -1,0 +1,9 @@
+{
+  "pack_id": "litigation_legal",
+  "name": "Contenzioso e udienze",
+  "description": "Skill read-only per cronologie, prove e preparazione udienza.",
+  "area": "contenzioso",
+  "jurisdiction": "IT",
+  "source_mode": "balanced",
+  "version": "1.0.0"
+}

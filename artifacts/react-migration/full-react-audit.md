@@ -347,3 +347,17 @@ Controlli anti-mascheramento: il flusso principale non usa form POST HTML, non
 mostra fallback demo, non espone termini tecnici vietati e restituisce risultati
 realmente calcolati in pagina. Browser reale desktop/tablet/mobile confermato su
 `Calcolo Interessi di Mora` con risultato, metriche e tabella dei segmenti.
+
+## Aggiornamento 2.237.0 - 2026-05-15
+
+`/legal-skills` entra nel perimetro governato React con superficie dedicata,
+lazy route, feature flag default-off e API JSON tenant-aware. La pagina non usa
+form POST HTML, non mostra dati demo e non espone terminologia tecnica; esito,
+citazioni, confidenza, nota revisore e blocco export restano visibili quando
+rilevanti.
+
+Controlli anti-mascheramento: route gate e shell React servono la pagina nuova,
+le API `/api/v1/legal-skills/*` bloccano parametri riservati dal client, i seed
+pack sono read-only e custom skill/scheduled agent restano spenti salvo flag. Il
+browser audit finale su `/legal-skills` desktop/mobile e' verde dopo correzione
+del 404 iniziale.

@@ -156,6 +156,13 @@ TUTTI_PERMESSI: List[Tuple[str, str, str]] = [
     ("AI",           "ai.usa",               "Usa assistenti"),
     ("AI",           "ai.configura",         "Configura runtime"),
     ("AI",           "ai.audit",             "Audit AI"),
+    ("Legal Skills", "legal_skills.leggi",   "Consulta"),
+    ("Legal Skills", "legal_skills.esegui",  "Esegui"),
+    ("Legal Skills", "legal_skills.approva", "Approva"),
+    ("Legal Skills", "legal_skills.esporta", "Esporta"),
+    ("Legal Skills", "legal_skills.profilo.scrivi", "Configura profilo"),
+    ("Legal Skills", "legal_skills.trust_check", "Verifica fiducia"),
+    ("Legal Skills", "legal_skills.scheduled.esegui", "Agenti schedulati"),
     ("Backup",       "backup.leggi",         "Visualizza"),
     ("Backup",       "backup.esegui",        "Esegui"),
     ("Admin",        "admin.leggi",          "Accedi pannelli"),
@@ -183,6 +190,9 @@ PERMESSI: Dict[RuoloUtente, List[str]] = {
         "fatturazione.leggi", "fatturazione.scrivi",
         "telematico.leggi", "telematico.importa", "telematico.valida", "telematico.deposita",
         "ai.usa",
+        "legal_skills.leggi", "legal_skills.esegui", "legal_skills.approva",
+        "legal_skills.esporta", "legal_skills.profilo.scrivi", "legal_skills.trust_check",
+        "legal_skills.scheduled.esegui",
         "backup.leggi",
     ],
 
@@ -195,6 +205,7 @@ PERMESSI: Dict[RuoloUtente, List[str]] = {
         "fatturazione.leggi", "fatturazione.scrivi",
         "telematico.leggi", "telematico.importa", "telematico.valida",
         "ai.usa",
+        "legal_skills.leggi", "legal_skills.esegui",
     ],
 
     RuoloUtente.PRATICANTE: [
@@ -206,6 +217,7 @@ PERMESSI: Dict[RuoloUtente, List[str]] = {
         "fatturazione.leggi",
         "telematico.leggi",
         "ai.usa",
+        "legal_skills.leggi",
     ],
 
     RuoloUtente.SEGRETERIA: [

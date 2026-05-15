@@ -1,0 +1,9 @@
+{
+  "pack_id": "privacy_legal",
+  "name": "Privacy e protezione dati",
+  "description": "Skill read-only per DPIA, DPA e verifiche privacy governate.",
+  "area": "privacy",
+  "jurisdiction": "IT",
+  "source_mode": "strict",
+  "version": "1.0.0"
+}

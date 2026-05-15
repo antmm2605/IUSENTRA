@@ -1,11 +1,11 @@
 {
   "name": "iusentra-react-token-ui",
   "private": true,
-  "version": "2.236.7",
+  "version": "2.237.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 5173",
-    "test": "node scripts/check-react-contracts.mjs && node scripts/check-app-v2-frontend.mjs && python ../scripts/validate_ui_coverage.py",
+    "test": "node scripts/check-react-contracts.mjs && node scripts/check-app-v2-frontend.mjs && node scripts/check-legal-skills.mjs && python ../scripts/validate_ui_coverage.py",
     "test:app-v2": "node scripts/check-app-v2-frontend.mjs",
     "test:ui-coverage": "python ../scripts/validate_ui_coverage.py",
     "typecheck": "tsc --noEmit",

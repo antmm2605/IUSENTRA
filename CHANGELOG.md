@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.237.0 - 2026-05-15
+
+- Introdotto Legal Skills Engine per Lex: pack read-only contratti, privacy, contenzioso e regolatorio con parser, registry, profilo studio, workflow governato, trust layer e agenti schedulati default-off.
+- Aggiunte API `/api/v1/legal-skills/*` con feature flag, RBAC, audit, tenant isolation, blocco parametri riservati, OpenAPI e provider verification.
+- Aggiunta UI React Legal Skills con catalogo, profilo, esecuzione e revisione risultato; note di revisione, citazioni, confidenza e blocco export sono sempre visibili quando rilevanti.
+- Documentati motore, flag, contratti e gate; aggiunti test mirati backend e static check frontend.
+
 ## 2.236.7 - 2026-05-15
 
 - Introdotto il layer Lex Operational Knowledge: registry sorgenti operative, guard tenant/RBAC, router query, tool deterministici, response composer, audit e integrazione nel bounded workflow con feature flag default-off.

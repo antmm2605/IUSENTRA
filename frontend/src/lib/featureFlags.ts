@@ -58,6 +58,14 @@ export type FeatureFlagKey =
   | 'routes.appV2.billing.compensi'
   | 'routes.appV2.billing.tariffario'
   | 'routes.appV2.notifications.mobilePush'
+  | 'lex.legalSkills.enabled'
+  | 'lex.legalSkills.trustLayer'
+  | 'lex.legalSkills.customSkills'
+  | 'lex.legalSkills.scheduledAgents'
+  | 'routes.appV2.legalSkills.catalog'
+  | 'routes.appV2.legalSkills.profile'
+  | 'routes.appV2.legalSkills.run'
+  | 'routes.appV2.legalSkills.reviewQueue'
   | 'routes.appV2.docsPanel'
   | 'routes.appV2.commsDeposits'
   | 'routes.appV2.uploadClassification'
@@ -146,6 +154,10 @@ const appV2RouteFlagRules: Array<[RegExp, FeatureFlagKey]> = [
   [/^\/(?:preventivi|preventivi\/wizard)(?:\/|$)/, 'routes.appV2.billing.quotes'],
   [/^\/compensi-forensi(?:\/|$)/, 'routes.appV2.billing.compensi'],
   [/^\/tariffario(?:\/|$)/, 'routes.appV2.billing.tariffario'],
+  [/^\/legal-skills\/profile(?:\/|$)/, 'routes.appV2.legalSkills.profile'],
+  [/^\/legal-skills\/(?:run|packs\/[^/]+\/skills\/[^/]+\/run)(?:\/|$)/, 'routes.appV2.legalSkills.run'],
+  [/^\/legal-skills\/(?:runs|review)(?:\/|$)/, 'routes.appV2.legalSkills.reviewQueue'],
+  [/^\/legal-skills(?:\/|$)/, 'routes.appV2.legalSkills.catalog'],
   [/^\/(?:workspace-intelligente|regia-operativa|app\/regia)(?:\/|$)/, 'routes.appV2.dashboard.regia'],
   [/^\/app\/fascicoli(?:\/|$)/, 'routes.appV2.cases.list'],
   [/^\/app\/anagrafiche(?:\/|$)/, 'routes.appV2.clients.list'],
@@ -155,6 +167,7 @@ const appV2RouteFlagRules: Array<[RegExp, FeatureFlagKey]> = [
   [/^\/app\/telematico(?:\/|$)/, 'routes.appV2.telematico.center'],
   [/^\/app\/comunicazioni(?:\/|$)/, 'routes.appV2.comms.deposits'],
   [/^\/app\/lex(?:\/|$)/, 'routes.appV2.legalResearch.home'],
+  [/^\/app\/legal-skills(?:\/|$)/, 'routes.appV2.legalSkills.catalog'],
   [/^\/app\/amministrazione(?:\/|$)/, 'routes.appV2.admin.home'],
   [/^\/app\/impostazioni(?:\/|$)/, 'routes.appV2.settings.studio'],
   [/^\/(?:app)?$/, 'routes.appV2.dashboard.home'],

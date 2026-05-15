@@ -684,3 +684,23 @@ desktop/tablet/mobile e Docker locale no-cache 2.236.6. La verifica browser
 autenticata su `/strumenti-legali/?tool=interessi&app=calcolo_interessi_di_mora`
 conferma catalogo, comando `Calcola interessi`, risultato `Interessi maturati`,
 tabella `Segmenti di calcolo` e assenza di testi tecnici vietati.
+
+## Legal Skills Engine 2.237.0
+
+Completata la prima consegna AI Legal con nuova esperienza React `/legal-skills`:
+catalogo pack, profilo studio, esecuzione guidata e revisione risultati restano
+coerenti con il design system IUSENTRA, senza dati dimostrativi e con linguaggio
+operativo per lo studio legale.
+
+Il backend espone `/api/v1/legal-skills/*` con feature flag spenti di default,
+RBAC, audit, tenant isolation, blocco parametri riservati e storage runtime sotto
+il tenant attivo. I seed pack sono read-only e originali IUSENTRA: contratti,
+privacy, contenzioso e regolatorio.
+
+Gate locali: py_compile, `tests/test_legal_skills_engine.py`, check statico
+frontend Legal Skills, typecheck, test frontend, OpenAPI/provider verification,
+documentazione, packaging/readiness, build Vite e Docker locale no-cache 2.237.0.
+Browser Chrome CDP autenticato su `/legal-skills`: desktop 1736 ms, mobile
+2728 ms, zero failure/warning, nessun overflow, console error o testo tecnico
+vietato. Il 404 iniziale della route e' stato corretto aggiornando route gate e
+shell React Flask.

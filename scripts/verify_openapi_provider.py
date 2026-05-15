@@ -102,6 +102,10 @@ def _sample_path(path: str) -> str:
         "test_id": "smtp",
         "id_sessione": "SESSIONE_TEST",
         "n": "1",
+        "pack_id": "commercial_legal",
+        "skill_id": "contract_review",
+        "run_id": "RUN_TEST",
+        "agent_id": "regulatory_monitor",
     }
     result = path
     for name, value in samples.items():

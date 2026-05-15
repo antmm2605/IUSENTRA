@@ -2131,3 +2131,11 @@ python -m pytest tests/test_react_shell.py tests/test_email_client.py tests/test
 - La pagina React supporta submit JSON per i calcolatori, con risultati in pagina, metriche, tabelle, note, fonti e stato errore/successo leggibile per lo studio.
 - Confermate 70 funzioni di catalogo e 20 calcolatori eseguibili, con preset applicativi per interessi legali/mora e campi dinamici per fascicoli, contributo unificato, onorari, usura e altre utility.
 - Verifiche registrate: py_compile backend, typecheck, test frontend, build Vite, gate React, pytest mirati Strumenti Legali/SIGP, browser reale desktop/tablet/mobile, baseline caricamento locale e Docker no-cache `2.236.6`.
+
+## Aggiornamento 2026-05-15: Legal Skills Engine 2.237.0
+
+- Aggiunta la superficie React `/legal-skills`, protetta da feature flag default-off e servita dalla shell React governata, con catalogo pack, profilo studio, esecuzione skill e revisione risultati.
+- Introdotte API JSON tenant-aware `/api/v1/legal-skills/*` con sessione/API key, RBAC, audit, blocco parametri riservati e storage runtime sotto il tenant attivo.
+- Integrati seed pack read-only originali per contratti, privacy, contenzioso e monitoraggio regolatorio; custom skill e agenti schedulati restano default-off e sottoposti a trust layer.
+- Route gate e shell Flask sono stati aggiornati dopo un 404 reale emerso nel browser audit; il controllo finale desktop/mobile su `/legal-skills` e' verde.
+- Verifiche registrate: py_compile, pytest mirati Legal Skills, check statico frontend, typecheck, test frontend, OpenAPI/provider, docs link/commands, packaging/readiness, build Vite, Docker locale no-cache e Chrome CDP autenticato.

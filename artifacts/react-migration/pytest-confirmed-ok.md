@@ -1490,6 +1490,23 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `python -m lex.legal_sources.populate --activate --populate --force --json` | OK | Motore attivato localmente senza backup e senza rete: runtime config ignorata, 15 source-card citabili scritte in `indexes/legal_sources/`, report in `artifacts/legal_sources/reports/`. |
 | `python -m pytest tests\test_lex_legal_source_engine.py -q`; `python -m compileall -q lex\legal_sources tests\test_lex_legal_source_engine.py`; `python -m ruff check lex\legal_sources tests\test_lex_legal_source_engine.py` | OK | Verifiche ripetute dopo risoluzione dei default runtime sotto `PCT_DATA_ROOT` per server/container. |
 
+## Legal Skills Engine 2.237.0 - 2026-05-15
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile lex\legal_skills\models.py lex\legal_skills\parser.py lex\legal_skills\__init__.py tests\test_legal_skills_engine.py` | OK | Sintassi confermata per modelli, parser e test Legal Skills. |
+| `python -m pytest tests\test_legal_skills_engine.py -q` | OK | 8/8 passati: registry seed pack, frontmatter, profilo tenant-aware, esecuzione workflow, trust layer, export/review, API e route React `/legal-skills`. |
+| `node frontend\scripts\check-legal-skills.mjs` | OK | Gate statico frontend Legal Skills verde: route, feature flag, pagine e componenti obbligatori presenti. |
+| `npm --prefix frontend run typecheck` | OK | TypeScript confermato per la nuova superficie React Legal Skills e gli hook API. |
+| `npm --prefix frontend run test` | OK | Contratti React, App V2 frontend, check Legal Skills e UI coverage verdi; P0/P1 68, full 47. |
+| `python scripts\validate_openapi.py docs\openapi.yaml` | OK | OpenAPI valido dopo l'aggiunta degli endpoint `/api/v1/legal-skills/*`. |
+| `python scripts\verify_openapi_provider.py` | OK | Provider verification: `auth-error=195`, `success=27`, `backend-security=1`. |
+| `python scripts\validate_docs_links.py`; `python scripts\validate_docs_commands.py` | OK | Documentazione aggiornata: 21 documenti e 157 link verificati; 155 comandi/percorsi validati. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest -q tests\test_packaging_consistency.py tests\test_release_readiness.py --tb=short` | OK | Packaging sincronizzato e readiness release 8/8 dopo bump `2.237.0`. |
+| `npm --prefix frontend run build` | OK | Build Vite finale completata in 6.47s; main JS `index-D8oQCFWT.js` 450.88 kB / 133.35 kB gzip, CSS `index-U797z5OV.css` 124.48 kB / 22.85 kB gzip; chunk Legal Skills lazy separati. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build --force-recreate app scheduler-worker ocr-worker nginx`; readiness locale | OK | Docker locale no-cache su `2.237.0`; app/scheduler/OCR/Redis healthy, nginx running, container app `pct.__version__ == 2.237.0`. `/api/pronto` hot 18 ms circa dopo warm-up iniziale. |
+| Chrome CDP autenticato `artifacts/react-migration/visual-2.237.0-legal-skills/visual-load-audit.md` | OK | `/legal-skills` desktop 1736 ms e mobile 2728 ms a contenuto React visibile; zero failure, zero warning, nessun overflow, console error o testo tecnico vietato. |
+
 ## Fase react 3 - App V2 feature flag per pagina 2.224.0 - 2026-05-13
 
 | Comando / verifica | Esito | Nota |

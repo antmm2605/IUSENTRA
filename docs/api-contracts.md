@@ -69,6 +69,27 @@ Per ora la verifica e' pytest mirata. La fase OpenAPI dovra' aggiungere:
 - validatore CLI eseguibile;
 - job CI che fallisce su drift tra payload reale e schema.
 
+## Legal Skills Engine
+
+Gli endpoint `/api/v1/legal-skills/*` sono registrati in OpenAPI con tag
+`Legal Skills`, sicurezza sessione/API key, tenant corrente, RBAC e provider
+verification anonima 401. Le API sono dietro `lex.legalSkills.enabled` e
+flag specifici per trust layer, custom skill, agenti schedulati e route React.
+
+Contratti principali:
+
+- `GET /api/v1/legal-skills/packs`
+- `GET /api/v1/legal-skills/profile`
+- `POST /api/v1/legal-skills/profile/cold-start`
+- `POST /api/v1/legal-skills/run`
+- `GET/POST /api/v1/legal-skills/runs/{run_id}/*`
+- `POST /api/v1/legal-skills/trust/check`
+- `GET/POST /api/v1/legal-skills/scheduled*`
+
+Il client non puo inviare `tenant_id`, `studio_id`, token o path. Il risultato
+espone bozza, note di revisione, citazioni, confidenza e blocco export quando
+la base informativa non e' sufficiente.
+
 ## Smoke fase 3
 
 `scripts/smoke_app_v2_pages.py` verifica in modo parametrico:

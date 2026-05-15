@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react'
 import {
   BookOpen,
+  BookOpenCheck,
   BriefcaseBusiness,
   Building2,
   CalendarDays,
@@ -25,6 +26,7 @@ export type AppRouteFamily =
   | 'telematico'
   | 'comunicazioni'
   | 'lex'
+  | 'legal-skills'
   | 'amministrazione'
   | 'impostazioni'
 
@@ -49,6 +51,7 @@ export const APP_ROUTES: AppRouteDefinition[] = [
   { path: '/app/telematico', label: 'Telematico', family: 'telematico', icon: Landmark, api: '/api/v1/ui/telematico', featureFlag: 'routes.appV2.telematico.center' },
   { path: '/app/comunicazioni', label: 'Comunicazioni', family: 'comunicazioni', icon: Mail, api: '/api/v1/ui/messaggi', featureFlag: 'routes.appV2.comms.deposits' },
   { path: '/app/lex', label: 'Lex', family: 'lex', icon: BookOpen, api: '/api/v1/ui/legal-intelligence', featureFlag: 'routes.appV2.legalResearch.home' },
+  { path: '/app/legal-skills', label: 'Legal Skills', family: 'legal-skills', icon: BookOpenCheck, api: '/api/v1/legal-skills/packs', featureFlag: 'routes.appV2.legalSkills.catalog' },
   { path: '/app/amministrazione', label: 'Amministrazione', family: 'amministrazione', icon: ShieldCheck, api: '/api/v1/ui/amministrazione', featureFlag: 'routes.appV2.admin.home' },
   { path: '/app/impostazioni', label: 'Impostazioni', family: 'impostazioni', icon: Settings2, featureFlag: 'routes.appV2.settings.studio' },
 ]
@@ -82,6 +85,7 @@ export const LEGACY_ROUTE_TARGETS: Record<string, string> = {
   '/telematico': '/app/telematico',
   '/messaggi': '/app/comunicazioni?tab=messaggi',
   '/email': '/app/comunicazioni?tab=email',
+  '/legal-skills': '/app/legal-skills',
   '/utenti': '/app/amministrazione?tab=utenti',
   '/profili': '/app/amministrazione?tab=profili',
   '/backup': '/app/impostazioni?tab=backup',

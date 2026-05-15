@@ -280,6 +280,27 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
             _data_peer_path(app.config["CLIENTI_DB"], "intelligence", "motori.json"),
         ),
     )
+    app.config["LEGAL_SKILLS_PROFILE_DB"] = cfg.get(
+        "LEGAL_SKILLS_PROFILE_DB",
+        os.getenv(
+            "PCT_LEGAL_SKILLS_PROFILE_DB",
+            _data_peer_path(app.config["CLIENTI_DB"], "intelligence/legal_skills", "profile.json"),
+        ),
+    )
+    app.config["LEGAL_SKILLS_RUNS_DB"] = cfg.get(
+        "LEGAL_SKILLS_RUNS_DB",
+        os.getenv(
+            "PCT_LEGAL_SKILLS_RUNS_DB",
+            _data_peer_path(app.config["CLIENTI_DB"], "intelligence/legal_skills", "runs.json"),
+        ),
+    )
+    app.config["LEGAL_SKILLS_SCHEDULED_DB"] = cfg.get(
+        "LEGAL_SKILLS_SCHEDULED_DB",
+        os.getenv(
+            "PCT_LEGAL_SKILLS_SCHEDULED_DB",
+            _data_peer_path(app.config["CLIENTI_DB"], "intelligence/legal_skills", "scheduled.json"),
+        ),
+    )
     app.config["NORMATIVE_TABLES_DB"] = cfg.get(
         "NORMATIVE_TABLES_DB",
         os.getenv(

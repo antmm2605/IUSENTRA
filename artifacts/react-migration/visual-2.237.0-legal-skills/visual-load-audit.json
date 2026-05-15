@@ -1,0 +1,139 @@
+{
+  "startedAt": "2026-05-15T10:56:16.100Z",
+  "finishedAt": "2026-05-15T10:56:20.852Z",
+  "host": "http://127.0.0.1:8080",
+  "cdpHost": "http://127.0.0.1:9224",
+  "browser": "Chrome CDP",
+  "reuseTab": false,
+  "routeCount": 1,
+  "totalChecks": 2,
+  "failures": [],
+  "results": [
+    {
+      "routeName": "Legal Skills",
+      "route": "/legal-skills",
+      "viewport": "desktop",
+      "elapsedMs": 1736,
+      "url": "http://127.0.0.1:8080/legal-skills",
+      "title": "IUSENTRA",
+      "h1": "Legal Skills",
+      "h2": "",
+      "textLength": 1453,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 45,
+      "cards": 27,
+      "links": [
+        {
+          "text": "Profilo",
+          "href": "/legal-skills/profile"
+        },
+        {
+          "text": "Apri pack",
+          "href": "/legal-skills/packs/commercial_legal/skills"
+        },
+        {
+          "text": "Esegui",
+          "href": "/legal-skills/run?pack=commercial_legal"
+        },
+        {
+          "text": "Apri pack",
+          "href": "/legal-skills/packs/litigation_legal/skills"
+        },
+        {
+          "text": "Esegui",
+          "href": "/legal-skills/run?pack=litigation_legal"
+        },
+        {
+          "text": "Apri pack",
+          "href": "/legal-skills/packs/privacy_legal/skills"
+        },
+        {
+          "text": "Esegui",
+          "href": "/legal-skills/run?pack=privacy_legal"
+        },
+        {
+          "text": "Apri pack",
+          "href": "/legal-skills/packs/regulatory_legal/skills"
+        },
+        {
+          "text": "Esegui",
+          "href": "/legal-skills/run?pack=regulatory_legal"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 980,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "desktop-load-legal-skills.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Legal Skills",
+      "route": "/legal-skills",
+      "viewport": "mobile",
+      "elapsedMs": 2728,
+      "url": "http://127.0.0.1:8080/legal-skills",
+      "title": "IUSENTRA",
+      "h1": "Legal Skills",
+      "h2": "",
+      "textLength": 1012,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 45,
+      "cards": 27,
+      "links": [
+        {
+          "text": "Profilo",
+          "href": "/legal-skills/profile"
+        },
+        {
+          "text": "Apri pack",
+          "href": "/legal-skills/packs/commercial_legal/skills"
+        },
+        {
+          "text": "Esegui",
+          "href": "/legal-skills/run?pack=commercial_legal"
+        },
+        {
+          "text": "Apri pack",
+          "href": "/legal-skills/packs/litigation_legal/skills"
+        },
+        {
+          "text": "Esegui",
+          "href": "/legal-skills/run?pack=litigation_legal"
+        },
+        {
+          "text": "Apri pack",
+          "href": "/legal-skills/packs/privacy_legal/skills"
+        },
+        {
+          "text": "Esegui",
+          "href": "/legal-skills/run?pack=privacy_legal"
+        },
+        {
+          "text": "Apri pack",
+          "href": "/legal-skills/packs/regulatory_legal/skills"
+        },
+        {
+          "text": "Esegui",
+          "href": "/legal-skills/run?pack=regulatory_legal"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 1794,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-legal-skills.png",
+      "warnings": [],
+      "failures": []
+    }
+  ]
+}

@@ -1,8 +1,8 @@
 openapi: 3.0.3
 info:
   title: IUSENTRA API Contracts
-  version: 2.227.0
-  description: 'Contratti API fase 6 generati da endpoint Flask reali. Aggiornato: 2026-05-14.'
+  version: 2.237.0
+  description: 'Contratti API fase 6 generati da endpoint Flask reali. Aggiornato: 2026-05-15.'
 servers:
 - url: https://app.iusentra.it
   description: Produzione Hetzner
@@ -29,6 +29,8 @@ tags:
   description: Contratti API Fascicoli.
 - name: Lex
   description: Contratti API Lex.
+- name: Legal Skills
+  description: Contratti API Legal Skills Engine.
 - name: Ricerca
   description: Contratti API Ricerca.
 - name: Documenti
@@ -9127,6 +9129,259 @@ paths:
       x-pii-policy: no tenant_id/studio_id, token, secret o path filesystem in chiaro salvo campo funzionale redatto.
       x-provider-verification: auth-error
       x-contract-status: complete
+  /api/v1/legal-skills/packs:
+    get:
+      tags: [Legal Skills]
+      summary: "Legal Skills: catalogo pack"
+      description: "Restituisce i pack Legal Skills integrati per lo studio corrente. Il client non puo forzare tenant o studio."
+      operationId: legalSkills_packs_get
+      security:
+      - cookieSession: []
+      - apiKeyAuth: []
+      responses: &LegalSkillsStandardResponses
+        '200':
+          description: Payload Legal Skills nel tenant corrente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DomainRecord'
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '404': {$ref: '#/components/responses/NotFound'}
+        '409': {$ref: '#/components/responses/Conflict'}
+        '422': {$ref: '#/components/responses/ValidationError'}
+        '429': {$ref: '#/components/responses/RateLimited'}
+        '500': {$ref: '#/components/responses/ServerError'}
+      x-priority: P1
+      x-rbac-permission: legal_skills.leggi
+      x-feature-flag: lex.legalSkills.enabled
+      x-tenant-scope: current_tenant
+      x-pii-policy: nessun tenant_id/studio_id client-side e nessun path filesystem.
+      x-provider-verification: auth-error
+      x-contract-status: verified
+  /api/v1/legal-skills/packs/{pack_id}:
+    get:
+      tags: [Legal Skills]
+      summary: "Legal Skills: dettaglio pack"
+      operationId: legalSkills_pack_get
+      security:
+      - cookieSession: []
+      - apiKeyAuth: []
+      parameters:
+      - {name: pack_id, in: path, required: true, schema: {type: string}}
+      responses: *LegalSkillsStandardResponses
+      x-priority: P1
+      x-rbac-permission: legal_skills.leggi
+      x-feature-flag: lex.legalSkills.enabled
+      x-tenant-scope: current_tenant
+      x-pii-policy: nessun path interno nella risposta.
+      x-provider-verification: auth-error
+      x-contract-status: verified
+  /api/v1/legal-skills/packs/{pack_id}/skills:
+    get:
+      tags: [Legal Skills]
+      summary: "Legal Skills: skill del pack"
+      operationId: legalSkills_pack_skills_get
+      security:
+      - cookieSession: []
+      - apiKeyAuth: []
+      parameters:
+      - {name: pack_id, in: path, required: true, schema: {type: string}}
+      responses: *LegalSkillsStandardResponses
+      x-priority: P1
+      x-rbac-permission: legal_skills.leggi
+      x-feature-flag: lex.legalSkills.enabled
+      x-tenant-scope: current_tenant
+      x-pii-policy: nessun path interno nella risposta.
+      x-provider-verification: auth-error
+      x-contract-status: verified
+  /api/v1/legal-skills/packs/{pack_id}/skills/{skill_id}:
+    get:
+      tags: [Legal Skills]
+      summary: "Legal Skills: dettaglio skill"
+      operationId: legalSkills_skill_get
+      security:
+      - cookieSession: []
+      - apiKeyAuth: []
+      parameters:
+      - {name: pack_id, in: path, required: true, schema: {type: string}}
+      - {name: skill_id, in: path, required: true, schema: {type: string}}
+      responses: *LegalSkillsStandardResponses
+      x-priority: P1
+      x-rbac-permission: legal_skills.leggi
+      x-feature-flag: lex.legalSkills.enabled
+      x-tenant-scope: current_tenant
+      x-pii-policy: nessun path interno nella risposta.
+      x-provider-verification: auth-error
+      x-contract-status: verified
+  /api/v1/legal-skills/profile:
+    get:
+      tags: [Legal Skills]
+      summary: "Legal Skills: profilo studio"
+      operationId: legalSkills_profile_get
+      security:
+      - cookieSession: []
+      - apiKeyAuth: []
+      responses: *LegalSkillsStandardResponses
+      x-priority: P1
+      x-rbac-permission: legal_skills.leggi
+      x-feature-flag: lex.legalSkills.enabled
+      x-tenant-scope: current_tenant
+      x-pii-policy: solo dati profilo operativi, nessun segreto.
+      x-provider-verification: auth-error
+      x-contract-status: verified
+  /api/v1/legal-skills/profile/cold-start:
+    post:
+      tags: [Legal Skills]
+      summary: "Legal Skills: inizializza profilo studio"
+      operationId: legalSkills_profile_coldStart_post
+      security:
+      - cookieSession: []
+      - apiKeyAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/DomainRecord'}
+      responses: *LegalSkillsStandardResponses
+      x-priority: P1
+      x-rbac-permission: legal_skills.profilo.scrivi
+      x-feature-flag: lex.legalSkills.enabled
+      x-tenant-scope: current_tenant
+      x-pii-policy: nessun identificativo studio controllato dal client.
+      x-provider-verification: auth-error
+      x-contract-status: verified
+  /api/v1/legal-skills/run:
+    post:
+      tags: [Legal Skills]
+      summary: "Legal Skills: esegui skill"
+      operationId: legalSkills_run_post
+      security:
+      - cookieSession: []
+      - apiKeyAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/DomainRecord'}
+      responses: *LegalSkillsStandardResponses
+      x-priority: P1
+      x-rbac-permission: legal_skills.esegui
+      x-feature-flag: lex.legalSkills.enabled
+      x-tenant-scope: current_tenant
+      x-pii-policy: documenti e contesto restano nel tenant corrente; niente tenant_id/studio_id client-side.
+      x-provider-verification: auth-error
+      x-contract-status: verified
+  /api/v1/legal-skills/runs/{run_id}:
+    get:
+      tags: [Legal Skills]
+      summary: "Legal Skills: dettaglio risultato"
+      operationId: legalSkills_run_get
+      security:
+      - cookieSession: []
+      - apiKeyAuth: []
+      parameters:
+      - {name: run_id, in: path, required: true, schema: {type: string}}
+      responses: *LegalSkillsStandardResponses
+      x-priority: P1
+      x-rbac-permission: legal_skills.leggi
+      x-feature-flag: lex.legalSkills.enabled
+      x-tenant-scope: current_tenant
+      x-pii-policy: risultato senza path interni o segreti.
+      x-provider-verification: auth-error
+      x-contract-status: verified
+  /api/v1/legal-skills/runs/{run_id}/approve:
+    post:
+      tags: [Legal Skills]
+      summary: "Legal Skills: approva risultato"
+      operationId: legalSkills_run_approve_post
+      security:
+      - cookieSession: []
+      - apiKeyAuth: []
+      parameters:
+      - {name: run_id, in: path, required: true, schema: {type: string}}
+      responses: *LegalSkillsStandardResponses
+      x-priority: P1
+      x-rbac-permission: legal_skills.approva
+      x-feature-flag: lex.legalSkills.enabled
+      x-tenant-scope: current_tenant
+      x-pii-policy: audit operazione senza path interni.
+      x-provider-verification: auth-error
+      x-contract-status: verified
+  /api/v1/legal-skills/runs/{run_id}/export:
+    post:
+      tags: [Legal Skills]
+      summary: "Legal Skills: esporta risultato approvato"
+      operationId: legalSkills_run_export_post
+      security:
+      - cookieSession: []
+      - apiKeyAuth: []
+      parameters:
+      - {name: run_id, in: path, required: true, schema: {type: string}}
+      responses: *LegalSkillsStandardResponses
+      x-priority: P1
+      x-rbac-permission: legal_skills.esporta
+      x-feature-flag: lex.legalSkills.enabled
+      x-tenant-scope: current_tenant
+      x-pii-policy: esportazione bloccata se mancano revisione o fonti.
+      x-provider-verification: auth-error
+      x-contract-status: verified
+  /api/v1/legal-skills/trust/check:
+    post:
+      tags: [Legal Skills]
+      summary: "Legal Skills: controllo fiducia skill"
+      operationId: legalSkills_trust_check_post
+      security:
+      - cookieSession: []
+      - apiKeyAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/DomainRecord'}
+      responses: *LegalSkillsStandardResponses
+      x-priority: P1
+      x-rbac-permission: legal_skills.trust_check
+      x-feature-flag: lex.legalSkills.trustLayer
+      x-tenant-scope: current_tenant
+      x-pii-policy: controllo statico senza esecuzione codice.
+      x-provider-verification: auth-error
+      x-contract-status: verified
+  /api/v1/legal-skills/scheduled:
+    get:
+      tags: [Legal Skills]
+      summary: "Legal Skills: agenti schedulati"
+      operationId: legalSkills_scheduled_get
+      security:
+      - cookieSession: []
+      - apiKeyAuth: []
+      responses: *LegalSkillsStandardResponses
+      x-priority: P1
+      x-rbac-permission: legal_skills.scheduled.esegui
+      x-feature-flag: lex.legalSkills.scheduledAgents
+      x-tenant-scope: current_tenant
+      x-pii-policy: agenti read-only, nessun dato riservato fuori tenant.
+      x-provider-verification: auth-error
+      x-contract-status: verified
+  /api/v1/legal-skills/scheduled/{agent_id}/run-now:
+    post:
+      tags: [Legal Skills]
+      summary: "Legal Skills: esecuzione manuale agente"
+      operationId: legalSkills_scheduled_runNow_post
+      security:
+      - cookieSession: []
+      - apiKeyAuth: []
+      parameters:
+      - {name: agent_id, in: path, required: true, schema: {type: string}}
+      responses: *LegalSkillsStandardResponses
+      x-priority: P1
+      x-rbac-permission: legal_skills.scheduled.esegui
+      x-feature-flag: lex.legalSkills.scheduledAgents
+      x-tenant-scope: current_tenant
+      x-pii-policy: esecuzione read-only e auditata.
+      x-provider-verification: auth-error
+      x-contract-status: verified
 components:
   securitySchemes:
     cookieSession:

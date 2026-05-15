@@ -42,6 +42,7 @@ const allRoutes = [
   ['Compensi Forensi', '/compensi-forensi'],
   ['Redazione Atti', '/redazione-atti'],
   ['Statistiche', '/statistiche'],
+  ['Legal Skills', '/legal-skills'],
   ['Ricerca Legale', '/ricerca-legale'],
   ['Archivio Giurisprudenza', '/giurisprudenza'],
   ['Strumenti Forensi', '/strumenti-legali'],

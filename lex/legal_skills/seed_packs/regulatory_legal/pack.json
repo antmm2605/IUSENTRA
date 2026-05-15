@@ -1,0 +1,9 @@
+{
+  "pack_id": "regulatory_legal",
+  "name": "Regolatorio e policy",
+  "description": "Skill read-only per monitoraggio fonti e gap policy.",
+  "area": "normativa",
+  "jurisdiction": "IT",
+  "source_mode": "strict",
+  "version": "1.0.0"
+}

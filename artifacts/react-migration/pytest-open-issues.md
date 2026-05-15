@@ -191,3 +191,11 @@ Questo file e' la coda di lavoro. Prima di rilanciare test gia' passati, control
 | --- | --- | --- | --- | --- |
 | React Strumenti Forensi | Browser reale, pytest mirati, gate React e Docker locale | Nessuna issue aperta nuova | La pagina `/strumenti-legali` era diventata descrittiva: mostrava card ma non eseguiva i calcoli storici. Il fix ripristina catalogo completo, form dinamici e submit JSON verso i metodi esistenti di `GestioneStrumentiLegali`; il dominio storico `tests/test_strumenti_legali.py` resta verde. | Non rilanciare shard ampi se non si toccano `react_studio_module_bridge.py`, `api_v1_react.py`, `StudioModulePage`, `studioModuleRuntime` o `tests/test_strumenti_legali.py`. |
 | SIGP redirect storico | `tests/test_react_shell.py::test_react_migration_matrice_completa_route_api_e_card_operative` | Risolto | Il gate ampio segnalava `/sigp/` con 308 prima di arrivare al redirect operativo verso PST. La correzione separa il redirect `/sigp*` da `/sigp-sync*` e mantiene 303 controllato. | Il vecchio appunto 2.236.3 su `/sigp/` 308 e' superato da questa correzione; ripetere solo se si modificano i redirect SIGP/PST. |
+
+## Note Legal Skills Engine 2.237.0 - 2026-05-15
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| Route React `/legal-skills` | Chrome CDP autenticato | Risolto | Il primo audit prodotto ha ricevuto 404 Jinja sulla route nuova: il build React era corretto, ma il route gate Flask non serviva ancora la shell per `/legal-skills`. | Corretto in `web/bootstrap/react_route_gate.py` e `web/blueprints/react_shell.py`; audit finale desktop/mobile verde in `visual-2.237.0-legal-skills`. |
+| Cookie/sessione locale CDP | Script temporaneo locale | Strumentale, non prodotto | Un tentativo intermedio ha navigato al login per cookie sessione vuoto dovuto a quoting PowerShell nello script locale temporaneo. | Non registrare come regressione applicativa; usare solo il report finale autenticato. |
+| Docker readiness post-recreate | `/api/pronto` locale | Rischio preesistente da monitorare | Dopo `docker compose up --force-recreate` il primo giro readiness ha pagato warm-up elevato, poi i controlli caldi sono rimasti intorno a 18 ms. | Non ripetere diagnosi generica su readiness; profilare bootstrap tenant solo se il tempo alto si ripete sui controlli caldi. |

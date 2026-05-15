@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.237.8 - 2026-05-15
+
+- Migliorata l'impaginazione delle risposte Lex nel widget flottante: titoli, paragrafi, elenchi, tabelle, citazioni, link e codice inline vengono resi in modo compatto e leggibile invece di finire in blocchi disordinati.
+- Rafforzato il riconoscimento dei caratteri italiani nella voce Lex: il motore Supertonic preserva la normalizzazione Unicode NFC e i test coprono accenti come `à`, `è`, `é`, `ì`, `ò`, `ù`.
+- Aggiunti test JS e contratti bootstrap per impedire regressioni su renderer risposta Lex, escaping HTML, accenti italiani e stili della bolla AI.
+
 ## 2.237.7 - 2026-05-15
 
 - Riportato `web/bootstrap/scadenziario_routes.py` sotto il budget di governance bootstrap senza modifiche funzionali, rimuovendo sole righe vuote superflue.

@@ -1,6 +1,6 @@
 # Pytest issue aperte e risoluzioni
 
-Aggiornato: 2026-05-15, rientro governance bootstrap 2.237.7.
+Aggiornato: 2026-05-15, hotfix Lex risposta e accenti 2.237.8.
 
 ## Regola operativa
 
@@ -10,6 +10,7 @@ Questo file e' la coda di lavoro. Prima di rilanciare test gia' passati, control
 
 | Area | Test / comando | Stato | Problema rilevato | Risoluzione |
 | --- | --- | --- | --- | --- |
+| Hotfix Lex risposta e accenti 2.237.8 | Renderer widget Lex, caratteri italiani e gate voce | Nessuna issue aperta dopo gate mirati | La risposta Lex poteva apparire poco impaginata nel widget e il passaggio Supertonic usava una normalizzazione Unicode troppo decompositiva per il parlato italiano. | Aggiunto renderer governato per titoli, paragrafi, liste, tabelle, citazioni, link e codice inline; CSS della bolla reso piu' leggibile; Supertonic passa a NFC e i test coprono accenti italiani. Gate registrati in `pytest-confirmed-ok.md`. |
 | Rientro governance bootstrap 2.237.7 | `python -m pytest tests/test_web_bootstrap.py tests/test_react_shell.py::test_react_clienti_cartella_profonda_collegata_route_api_e_card_operative tests/test_react_shell.py::test_react_route_gate_copre_rotte_profonde_e_preserva_contratti_operativi tests/test_packaging_consistency.py tests/test_release_readiness.py -q --tb=short` | Risolto | Il rilancio su HEAD 2.237.6 ha intercettato `test_i_moduli_bootstrap_restano_governabili`: `scadenziario_routes.py` era a 706 righe contro limite 700. | Ridotte sole righe vuote superflue nello scadenziario, senza cambiare logica o route; il file rientra a 699 righe e il gate mirato e' verde, registrato in `pytest-confirmed-ok.md`. |
 | Hotfix Lex TTS prosodia 2.237.6 | Voce metallica, punteggiatura e numeri Lex | Nessuna issue aperta dopo gate mirati | La lettura Supertonic poteva restare troppo rapida, usare voice style non uniforme, non applicare la pausa del segmento precedente e non caricare la catena TTS completa nella shell React. | Profili rallentati, `M1.json` predefinito, tag lingua ONNX completo, pause dopo virgola/punto/domanda/esclamazione, normalizzazione importi/percentuali/orari/decimali e catena `lex-tts` caricata anche in React. Gate registrati in `pytest-confirmed-ok.md`. |
 | Hotfix cartella cliente React full 2.237.5 | URL profonda `/clienti/<id>/cartella?_legacy=1` | Nessuna issue aperta dopo gate mirati | La pagina poteva essere ancora raggiunta come esperienza classica tramite parametro `_legacy=1`, quindi non rispettava il perimetro full React richiesto dall'utente. | La route normalizza `_legacy=1` alla URL canonica, il componente non espone piu' CTA legacy, manifest/contratti/gate bloccano regressioni e browser Docker locale desktop/mobile conferma shell React senza overflow o testo tecnico. |

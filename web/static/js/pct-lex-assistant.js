@@ -122,36 +122,197 @@
     );
   }
 
+  function tokenFor(tokens, html) {
+    var key = '{{LEXHTMLTOKEN' + tokens.length + '}}';
+    tokens.push({ key: key, html: html });
+    return key;
+  }
+
+  function restoreTokens(value, tokens) {
+    var html = String(value || '');
+    tokens.forEach(function (token) {
+      html = html.split(token.key).join(token.html);
+    });
+    return html;
+  }
+
+  function renderInlineMarkdown(value) {
+    var tokens = [];
+    var raw = String(value || '').replace(/`([^`\n]+)`/g, function (_match, code) {
+      return tokenFor(tokens, '<code>' + escapeHtml(code) + '</code>');
+    });
+    var html = escapeHtml(raw)
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+      .replace(/__([^_]+)__/g, '<strong>$1</strong>')
+      .replace(/\*([^*\n]+)\*/g, '<em>$1</em>')
+      .replace(/_([^_\n]+)_/g, '<em>$1</em>');
+    html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, function (_match, label, url) {
+      var safeUrl = escapeHtml(url);
+      return '<a href="' + safeUrl + '" target="_blank" rel="noopener noreferrer">' + label + '</a>';
+    });
+    return restoreTokens(html, tokens);
+  }
+
+  function isTableSeparator(line) {
+    return /^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(String(line || ''));
+  }
+
+  function splitTableRow(line) {
+    var value = String(line || '').trim();
+    value = value.replace(/^\|/, '').replace(/\|$/, '');
+    return value.split('|').map(function (cell) { return cell.trim(); });
+  }
+
+  function renderMarkdownTable(rows) {
+    if (!rows || rows.length < 2 || !isTableSeparator(rows[1])) {
+      return '';
+    }
+    var headers = splitTableRow(rows[0]);
+    var bodyRows = rows.slice(2).map(splitTableRow).filter(function (row) { return row.length > 1; });
+    if (!headers.length || !bodyRows.length) {
+      return '';
+    }
+    return (
+      '<div class="pct-ai-answer-table-wrap">' +
+        '<table class="pct-ai-answer-table">' +
+          '<thead><tr>' +
+            headers.map(function (cell) { return '<th>' + renderInlineMarkdown(cell) + '</th>'; }).join('') +
+          '</tr></thead>' +
+          '<tbody>' +
+            bodyRows.map(function (row) {
+              return '<tr>' + headers.map(function (_header, index) {
+                return '<td>' + renderInlineMarkdown(row[index] || '') + '</td>';
+              }).join('') + '</tr>';
+            }).join('') +
+          '</tbody>' +
+        '</table>' +
+      '</div>'
+    );
+  }
+
   function renderMarkdown(text) {
     if (!text) {
       return '';
     }
 
-    var html = String(text)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
+    var lines = String(text).replace(/\r/g, '').split('\n');
+    var html = [];
+    var paragraph = [];
+    var listType = '';
+    var listItems = [];
+    var codeLines = [];
+    var inCode = false;
 
-    html = html.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
-    html = html.replace(/`([^`\n]+)`/g, '<code>$1</code>');
-    html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    html = html.replace(/^([*\-]\s.+)$/gm, '<li>$1</li>');
-    html = html.replace(/^(\d+\.\s.+)$/gm, '<li>$1</li>');
-    html = html.replace(/(<li>[\s\S]*?<\/li>)(\s*<li>[\s\S]*?<\/li>)*/g, '<ul>$&</ul>');
+    function flushParagraph() {
+      if (!paragraph.length) {
+        return;
+      }
+      html.push('<p>' + renderInlineMarkdown(paragraph.join(' ')) + '</p>');
+      paragraph = [];
+    }
 
-    return html
-      .split(/\n\n+/)
-      .map(function (part) {
-        var trimmed = part.trim();
-        if (!trimmed) {
-          return '';
+    function flushList() {
+      if (!listType || !listItems.length) {
+        return;
+      }
+      html.push(
+        '<' + listType + ' class="pct-ai-answer-list">' +
+          listItems.map(function (item) { return '<li>' + renderInlineMarkdown(item) + '</li>'; }).join('') +
+        '</' + listType + '>'
+      );
+      listType = '';
+      listItems = [];
+    }
+
+    function flushCodeBlock() {
+      if (!codeLines.length) {
+        return;
+      }
+      html.push('<pre><code>' + escapeHtml(codeLines.join('\n')) + '</code></pre>');
+      codeLines = [];
+    }
+
+    for (var index = 0; index < lines.length; index += 1) {
+      var line = lines[index] || '';
+      var trimmed = line.trim();
+
+      if (/^```/.test(trimmed)) {
+        if (inCode) {
+          flushCodeBlock();
+          inCode = false;
+        } else {
+          flushParagraph();
+          flushList();
+          inCode = true;
         }
-        if (trimmed.indexOf('<ul>') === 0 || trimmed.indexOf('<pre>') === 0) {
-          return trimmed;
+        continue;
+      }
+      if (inCode) {
+        codeLines.push(line);
+        continue;
+      }
+
+      if (!trimmed) {
+        flushParagraph();
+        flushList();
+        continue;
+      }
+
+      if (trimmed.indexOf('|') >= 0 && lines[index + 1] && isTableSeparator(lines[index + 1])) {
+        var tableRows = [trimmed, lines[index + 1].trim()];
+        index += 2;
+        while (index < lines.length && String(lines[index] || '').indexOf('|') >= 0 && String(lines[index] || '').trim()) {
+          tableRows.push(String(lines[index] || '').trim());
+          index += 1;
         }
-        return '<p>' + trimmed.replace(/\n/g, '<br>') + '</p>';
-      })
-      .join('');
+        index -= 1;
+        flushParagraph();
+        flushList();
+        html.push(renderMarkdownTable(tableRows));
+        continue;
+      }
+
+      var heading = trimmed.match(/^(#{1,4})\s+(.+)$/);
+      if (heading) {
+        flushParagraph();
+        flushList();
+        var level = Math.min(4, Math.max(3, heading[1].length + 2));
+        html.push('<h' + level + ' class="pct-ai-answer-heading">' + renderInlineMarkdown(heading[2]) + '</h' + level + '>');
+        continue;
+      }
+
+      var unordered = trimmed.match(/^[-*+]\s+(.+)$/);
+      var ordered = trimmed.match(/^\d+[.)]\s+(.+)$/);
+      if (unordered || ordered) {
+        flushParagraph();
+        var nextListType = ordered ? 'ol' : 'ul';
+        if (listType && listType !== nextListType) {
+          flushList();
+        }
+        listType = nextListType;
+        listItems.push((ordered || unordered)[1]);
+        continue;
+      }
+
+      var quote = trimmed.match(/^>\s?(.+)$/);
+      if (quote) {
+        flushParagraph();
+        flushList();
+        html.push('<blockquote class="pct-ai-answer-quote">' + renderInlineMarkdown(quote[1]) + '</blockquote>');
+        continue;
+      }
+
+      flushList();
+      paragraph.push(trimmed);
+    }
+
+    if (inCode) {
+      flushCodeBlock();
+    }
+    flushParagraph();
+    flushList();
+
+    return '<div class="pct-ai-answer">' + html.filter(Boolean).join('') + '</div>';
   }
 
   function setStatus(message) {
@@ -1765,7 +1926,7 @@
 
       return readChunk();
     }).catch(function (error) {
-      setBubbleContent(state.currentBubble, 'Errore di connessione: ' + escapeHtml(error.message || 'servizio non raggiungibile'));
+      setBubbleContent(state.currentBubble, 'Errore di connessione: ' + (error.message || 'servizio non raggiungibile'));
       finalizeThinkingFeedback(false);
       finalizeRequest('Connessione a Lex non riuscita.');
     });
@@ -2835,6 +2996,14 @@
     if (voiceHelper() && voiceHelper().preloadSpeechEngine) {
       voiceHelper().preloadSpeechEngine().then(updateVoiceUi).catch(updateVoiceUi);
     }
+  }
+
+  if (window.__IUSENTRA_LEX_TEST_HOOKS__) {
+    window.IusentraLexAssistantTestHooks = {
+      renderMarkdown: renderMarkdown,
+      renderInlineMarkdown: renderInlineMarkdown,
+      buildAnswerHtml: buildAnswerHtml,
+    };
   }
 
   window.pctAI = {

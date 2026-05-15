@@ -1,12 +1,26 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-15, rientro governance bootstrap 2.237.7.
+Aggiornato: 2026-05-15, hotfix Lex risposta e accenti 2.237.8.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Hotfix Lex risposta e accenti 2.237.8 - 2026-05-15
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `npx --yes sass@1.83.0 web/static/scss/app.scss web/static/css/app.css --style=compressed --no-source-map` | OK | Rigenerato CSS statico dopo le regole della bolla risposta Lex, senza cambiare il bundle React. |
+| `node --check web/static/js/pct-lex-assistant.js`; `node --check web/static/js/lex-tts/supertonic-engine.js` | OK | Sintassi confermata per renderer risposta Lex e normalizzazione Supertonic NFC. |
+| `node tests/js/lex_assistant_render.test.mjs`; `node tests/js/lex_tts_normalizer.test.mjs`; `node tests/js/lex_tts_profiles_quality.test.mjs`; `node tests/js/lex_tts_supertonic_engine.test.mjs`; `node tests/js/lex_tts_voice_contract.test.mjs` | OK | Coperti titoli, paragrafi, elenchi, tabelle, citazioni, link sicuri, codice inline, escaping HTML, pause/profili TTS e accenti italiani `à`, `è`, `é`, `ì`, `ò`, `ù`. |
+| `python -m py_compile web/bootstrap/scadenziario_routes.py pct/__init__.py`; `python tools/sync_packaging_files.py --check` | OK | Sintassi e packaging/versione `2.237.8` sincronizzati. |
+| `python -m pytest -q tests/test_web_bootstrap.py tests/test_lex_widget_contract.py tests/test_packaging_consistency.py tests/test_release_readiness.py --tb=short` | OK | 64/64 passati: bootstrap/widget Lex, nuove classi renderer, packaging e release readiness verdi. |
+| `python scripts/validate_docs_links.py`; `python scripts/validate_docs_commands.py` | OK | Link e comandi documentali validi dopo l'aggiornamento delle note Lex. |
+| Chrome headless su HTML temporaneo della bolla Lex con `web/static/css/app.css` | OK | DOM renderizzato con heading, elenco, tabella, citazione e accenti italiani; metriche `w=750`, `h=208`, `txt=true`. |
+| `npm --prefix frontend run build` | OK | TypeScript e build Vite `2.237.8` completati in 6.38s; main `index-DaU5NV_e.js` 451.50 kB / 133.56 kB gzip. |
+| `git diff --check -- <perimetro Lex risposta/TTS/docs/versione>` | OK | Nessun errore whitespace; solo warning CRLF informativo su `web/static/js/pct-lex-assistant.js`. |
 
 ### Rientro governance bootstrap 2.237.7 - 2026-05-15
 

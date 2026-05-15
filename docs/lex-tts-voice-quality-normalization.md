@@ -41,6 +41,7 @@ Il normalizzatore:
 - converte importi sicuri come `\u20ac 1.250,50` in forma parlabile;
 - converte percentuali, decimali e orari comuni, per esempio `12,5%` e `14:30`;
 - spezza il testo per paragrafi, frasi e clausole con virgola, usando pause diverse per punto, domanda, esclamazione e virgola.
+- preserva i caratteri italiani in forma Unicode NFC, quindi accenti come `à`, `è`, `é`, `ì`, `ò`, `ù` restano leggibili anche quando il testo passa al motore Supertonic.
 
 Modalita supportate:
 
@@ -62,6 +63,7 @@ node tests/js/lex_tts_normalizer.test.mjs
 node tests/js/lex_tts_voice_contract.test.mjs
 node tests/js/lex_tts_profiles_quality.test.mjs
 node tests/js/lex_tts_supertonic_engine.test.mjs
+node tests/js/lex_assistant_render.test.mjs
 python -m pytest -q tests/test_lex_widget_contract.py tests/test_web_bootstrap.py tests/test_packaging_consistency.py --tb=short
 ```
 

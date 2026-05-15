@@ -63,4 +63,14 @@ assert.ok(prosodyChunks.some((chunk) => chunk.pauseAfterMs === 360))
 
 assert.equal(normalizer.integerToWords(2181), 'duemila centottantuno')
 
+const accents = normalizer.normalizeLegalSpeechText('Perch\u00e9 l\u2019udienza \u00e8 gi\u00e0 fissata: citt\u00e0, societ\u00e0, pi\u00f9 tardi, cos\u00ec va bene?', {
+  maxAutoReadChars: 2000,
+})
+assert.match(accents, /Perch\u00e9/)
+assert.match(accents, /udienza \u00e8 gi\u00e0 fissata/)
+assert.match(accents, /citt\u00e0/)
+assert.match(accents, /societ\u00e0/)
+assert.match(accents, /pi\u00f9 tardi/)
+assert.match(accents, /cos\u00ec va bene\?/)
+
 console.log('lex_tts_normalizer.test.mjs OK')

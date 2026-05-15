@@ -137,7 +137,7 @@
   }
 
   function preprocessText(value, lang, indexer) {
-    var clean = String(value || '').normalize('NFKD');
+    var clean = String(value || '').normalize('NFC');
     clean = clean
       .replace(/[\u2013\u2011\u2014]/g, '-')
       .replace(/[\u201c\u201d]/g, '"')

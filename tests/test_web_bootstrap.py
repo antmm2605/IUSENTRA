@@ -1350,6 +1350,12 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert "renderReferenceLabel" in widget_js
     assert "renderConfidence" in widget_js
     assert "Affidabilita" in widget_js
+    assert "function renderInlineMarkdown(value)" in widget_js
+    assert "function renderMarkdownTable(rows)" in widget_js
+    assert "IusentraLexAssistantTestHooks" in widget_js
+    assert "pct-ai-answer-table-wrap" in widget_js
+    assert "pct-ai-answer-heading" in widget_js
+    assert "pct-ai-answer-quote" in widget_js
     assert "appendMetaMessage" not in widget_js
     assert "assistantAvatarMarkup" in widget_js
     assert "dataset.lexIconUrl" in widget_js
@@ -1431,6 +1437,10 @@ def test_lex_assistant_usa_componente_esterno_e_posizione_persistente():
     assert ".pct-ai-bubble--meta" in widget_scss
     assert ".pct-ai-status-pill" in widget_scss
     assert ".pct-ai-reference" in widget_scss
+    assert ".pct-ai-answer-heading" in widget_scss
+    assert ".pct-ai-answer-table" in widget_scss
+    assert ".pct-ai-answer-quote" in widget_scss
+    assert "overflow-wrap: anywhere" in widget_scss
     assert "@keyframes pct-lex-thinking-pulse" in widget_scss
     assert "@keyframes pct-lex-soft-blink" in widget_scss
 

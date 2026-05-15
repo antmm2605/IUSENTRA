@@ -14,6 +14,8 @@ Ogni risposta finale viene ora organizzata in sezioni leggibili:
 - `Limiti e verifiche`
 - `Prossime azioni`
 
+Dal 2.237.8 il widget flottante non tratta piu' la risposta come testo quasi grezzo: il renderer governa titoli, paragrafi, elenchi numerati e puntati, tabelle, citazioni, link e codice inline, mantenendo escaping HTML e caratteri italiani accentati. La UI deve restare compatta, con line-height leggibile e senza esporre markup o termini tecnici all'avvocato.
+
 ## Regole operative
 
 - La composizione professionale non inventa fonti: riordina la bozza del provider usando evidenze, citazioni, gap di copertura, rischio e confidenza gia' calcolati.

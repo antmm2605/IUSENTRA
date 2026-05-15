@@ -55,7 +55,12 @@ class OperationalKnowledgeService:
             return answer
 
         results = self._execute_route(route, context, question, metadata)
-        answer = self.composer.compose(question=question, route=route, results=results)
+        answer = self.composer.compose(
+            question=question,
+            route=route,
+            results=results,
+            blocked_reason=_policy_blocked_reason(results),
+        )
         outcome = "ok" if any(result.ok for result in results) else "blocked"
         answer.audit_event_id = self._audit(context, question, route, answer, outcome=outcome)
         return answer
@@ -272,3 +277,11 @@ class OperationalKnowledgeService:
             outcome=outcome,
             blocked_reason=answer.blocked_reason,
         )
+
+
+def _policy_blocked_reason(results: list[OperationalToolResult]) -> str:
+    policy_reasons = {"authentication_required", "tenant_context_required", "tenant_mismatch", "missing_permission"}
+    for result in results:
+        if result.blocked_reason in policy_reasons:
+            return result.blocked_reason
+    return ""

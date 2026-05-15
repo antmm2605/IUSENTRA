@@ -76,6 +76,7 @@ class ProfessionalAnswerComposer:
         official_sources: list[str],
         trusted_sources: list[str],
         considered_sources: list[str],
+        source_context_lines: list[str] | None = None,
         missing_evidence: list[str],
         evidence_sufficient: bool,
         fallback_triggered: bool,
@@ -127,6 +128,7 @@ class ProfessionalAnswerComposer:
             official_sources=official_sources,
             trusted_sources=trusted_sources,
             considered_sources=considered_sources,
+            source_context_lines=list(source_context_lines or []),
             evidence_count=evidence_count,
             fallback_triggered=fallback_triggered,
         )
@@ -285,6 +287,7 @@ class ProfessionalAnswerComposer:
         official_sources: list[str],
         trusted_sources: list[str],
         considered_sources: list[str],
+        source_context_lines: list[str],
         evidence_count: int,
         fallback_triggered: bool,
     ) -> list[str]:
@@ -297,6 +300,10 @@ class ProfessionalAnswerComposer:
             lines.append("Fonti considerate: " + self._join_preview(considered_sources) + ".")
         if evidence_count:
             lines.append(f"Evidenze elaborate: {evidence_count}.")
+        for item in list(source_context_lines or [])[:4]:
+            clean_item = self._clean(str(item))
+            if clean_item:
+                lines.append(clean_item)
         if fallback_triggered:
             lines.append("Fallback controllato attivato verso fonti esterne governate.")
         return self._dedupe(lines)

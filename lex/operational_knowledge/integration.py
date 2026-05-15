@@ -5,11 +5,61 @@ from __future__ import annotations
 from typing import Any
 
 from lex.formatting.ui_payloads import direct_answer_payload
+from lex.research.query_helpers import is_exact_legal_reference_query
 
 from .models import OperationalAnswer
 from .serializers import clean_spaces
 from .service import OperationalKnowledgeService
 from .settings import OperationalKnowledgeSettings
+
+
+_PUBLIC_LEGAL_FOCUS = {
+    "ricerca_legale",
+    "archivio_sentenze",
+    "sentenze_civili",
+    "sentenze_web",
+    "giurisprudenza",
+    "normativa",
+}
+_PUBLIC_LEGAL_INTENTS = {
+    "giurisprudenza",
+    "giurisprudenza_specifica",
+    "normativa",
+    "prassi",
+    "research",
+    "fonti",
+    "pratica_procedura",
+}
+_PUBLIC_LEGAL_TERMS = (
+    "sentenza",
+    "ordinanza",
+    "cassazione",
+    "giurisprudenza",
+    "normativa",
+    "normattiva",
+    "gazzetta ufficiale",
+    "corte costituzionale",
+    "consiglio di stato",
+    "massima",
+)
+_STUDIO_DATA_TERMS = (
+    "agenda",
+    "cartella cliente",
+    "cliente",
+    "clienti",
+    "conferimento",
+    "email",
+    "fascicolo",
+    "fascicoli",
+    "fattur",
+    "messagg",
+    "parcell",
+    "pec",
+    "preventiv",
+    "scadenz",
+    "soggett",
+)
+_SOURCE_OVERVIEW_TERMS = ("quali fonti", "fonti hai usato", "mostra fonti")
 
 
 def build_operational_http_payload(
@@ -24,6 +74,8 @@ def build_operational_http_payload(
     settings = OperationalKnowledgeSettings.from_env()
     if not settings.enabled:
         return None
+    if not _has_operational_permission_context(user):
+        return None
 
     metadata = dict(data or {})
     metadata.update(
@@ -33,6 +85,12 @@ def build_operational_http_payload(
             "request_profile": dict(studio_context.get("request_profile") or {}),
         }
     )
+    if _should_defer_to_public_legal_research(
+        resolved_effective_question,
+        metadata=metadata,
+        studio_context=studio_context,
+    ):
+        return None
     answer = OperationalKnowledgeService(settings=settings).answer(
         question=resolved_effective_question,
         user=user,
@@ -42,12 +100,76 @@ def build_operational_http_payload(
     )
     if answer is None or not answer.handled:
         return None
+    if _should_fall_back_after_operational_answer(answer):
+        return None
     return operational_answer_to_http_payload(
         answer,
         current_user_message=current_user_message,
         resolved_effective_question=resolved_effective_question,
         studio_context=studio_context,
     )
+
+
+def _should_defer_to_public_legal_research(
+    question: str,
+    *,
+    metadata: dict[str, Any],
+    studio_context: dict[str, Any],
+) -> bool:
+    """Keep public legal research out of the operational studio-data layer."""
+
+    text = clean_spaces(question).lower()
+    if not text:
+        return False
+    if any(token in text for token in _SOURCE_OVERVIEW_TERMS):
+        return False
+    if is_exact_legal_reference_query(text):
+        return True
+
+    request_profile = dict(metadata.get("request_profile") or studio_context.get("request_profile") or {})
+    intent = clean_spaces(request_profile.get("intent")).lower()
+    focus_topic = clean_spaces(metadata.get("focus_topic") or studio_context.get("focus_topic")).lower()
+    source_mode = clean_spaces(metadata.get("source_mode") or request_profile.get("source_mode")).lower()
+    if intent in _PUBLIC_LEGAL_INTENTS or focus_topic in _PUBLIC_LEGAL_FOCUS:
+        return True
+    if bool(metadata.get("web_execution_requested") or metadata.get("web_fallback_used")):
+        return True
+    if clean_spaces(metadata.get("external_sources_reason")):
+        return True
+    if source_mode in {"strict", "public", "official"}:
+        return True
+    has_public_term = any(token in text for token in _PUBLIC_LEGAL_TERMS)
+    has_studio_term = any(token in text for token in _STUDIO_DATA_TERMS)
+    return has_public_term and not has_studio_term
+
+
+def _has_operational_permission_context(user: Any) -> bool:
+    if user is None:
+        return False
+    if callable(getattr(user, "ha_permesso", None)):
+        return True
+    effective = getattr(user, "permessi_effettivi", None)
+    if effective is not None:
+        try:
+            return bool(list(effective or []))
+        except Exception:
+            return bool(effective)
+    if isinstance(user, dict):
+        permissions = user.get("permessi_effettivi") or user.get("permissions") or user.get("permessi")
+        return bool(permissions)
+    return False
+
+
+def _should_fall_back_after_operational_answer(answer: OperationalAnswer) -> bool:
+    if answer.blocked_reason:
+        return False
+    if answer.sources or answer.objects:
+        return False
+    gaps = [clean_spaces(gap).lower() for gap in list(answer.coverage_gaps or []) if clean_spaces(gap)]
+    if not gaps:
+        return False
+    unavailable_tokens = ("non disponibile", "non interrogabile", "repository ")
+    return all(any(token in gap for token in unavailable_tokens) for gap in gaps)
 
 
 def operational_answer_to_http_payload(

@@ -3,8 +3,8 @@
 Registro dei 25+ tool disponibili in `lex/tools/legal_studio_tools.py`.
 
 Il registry runtime `lex/tools/registry.py` espone anche il tool governato
-`operational_knowledge`, spento di default tramite
-`LEX_OPERATIONAL_KNOWLEDGE_ENABLED=false`. Questo tool non sostituisce i tool
+`operational_knowledge`, attivo di default e disattivabile solo con
+`LEX_OPERATIONAL_KNOWLEDGE_ENABLED=0`. Questo tool non sostituisce i tool
 storici: li completa con un layer unico tenant-aware, RBAC-aware e auditabile
 per interrogare dati reali dello studio.
 

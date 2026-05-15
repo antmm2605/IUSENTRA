@@ -4,6 +4,16 @@ Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle
 
 ---
 
+## Aggiornamento operativo 2.237.9 - 2026-05-15
+
+Lex Operational Knowledge e' ora attivo di default nel bounded workflow: le domande su clienti, fascicoli, agenda, scadenze, preventivi, conferimenti, fatturazione, messaggi, documenti e template passano dal layer deterministico tenant-aware senza richiedere `LEX_OPERATIONAL_KNOWLEDGE_ENABLED=1`.
+
+La ricerca giuridica pubblica resta separata: richieste su sentenze specifiche, giurisprudenza, normativa, Normattiva, Gazzetta, Cassazione o fonti ufficiali vengono deferite al workflow pubblico/web governato e non sono intercettate dal layer dei dati di studio. Restano sempre attivi RBAC, isolamento tenant, blocco azioni dispositive e protezione dei dati riservati.
+
+Il fallback web legale non viene piu' bloccato dalla sola presenza di contesto interno: per `ricerca_legale`, giurisprudenza, normativa e fonti ufficiali, se il contesto locale non basta a rispondere, il payload Lex abilita `allow_external_research` e richiede fonti ufficiali governate. Le risposte strict includono il contesto testuale delle fonti effettivamente usate; se una fonte e' solo nominata ma non porta un estratto, Lex degrada la risposta a `needs_review`.
+
+---
+
 ## 1. Come Lex decide oggi se usare contesto interno
 
 Il contesto studio viene costruito da `web/services/assistente_studio_context.py` tramite `build_lex_studio_context()`. La decisione avviene in due step:

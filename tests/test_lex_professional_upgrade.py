@@ -403,6 +403,30 @@ def test_caso_18_risposta_grounded_con_fonti():
     response = builder.build_response(request, {}, "normativa", evidence, draft, verdict)
     assert response.answer_mode == "grounded"
     assert response.confidence >= 0.6
+    assert "Contesto fonte - Art. 2043 Codice Civile" in response.answer
+    assert "Qualunque fatto doloso o colposo" in response.answer
+
+
+def test_risposta_strict_con_fonte_senza_estratto_resta_da_verificare():
+    """Una fonte citata senza contesto testuale non deve sembrare una risposta chiusa."""
+    from lex.formatting.answer_builder import AnswerBuilder
+    from types import SimpleNamespace
+
+    builder = AnswerBuilder()
+    evidence = {
+        "items": [{"title": "Fonte ufficiale senza estratto", "content": ""}],
+        "citations": [],
+        "official_sources": ["Fonte ufficiale senza estratto"],
+        "coverage_gaps": [],
+        "evidence_pack": {"sufficient": True},
+    }
+    draft = SimpleNamespace(text="Risposta sintetica da verificare.", metadata={"provider": "mock"})
+    verdict = SimpleNamespace(allowed=True, warnings=[], risk_level="low")
+
+    response = builder.build_response(_make_request(), {}, "normativa", evidence, draft, verdict)
+
+    assert response.answer_mode == "needs_review"
+    assert any("estratto testuale" in item for item in response.missing_evidence)
 
 
 # ---------------------------------------------------------------------------

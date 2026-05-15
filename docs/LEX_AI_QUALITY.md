@@ -10,6 +10,9 @@ modo esplicito e abbassare la confidenza.
 - Risposte legali senza saluti, frasi introduttive vaghe o formule da chatbot.
 - Fonti e citazioni sempre riconoscibili nei workflow `normativa`,
   `giurisprudenza`, `prassi`, `research` e `fonti`.
+- Nei workflow strict non basta nominare una fonte: la risposta deve mostrare
+  anche l'estratto o il contesto testuale usato. Se manca, la risposta resta
+  da verificare e deve dichiarare il gap di evidenza.
 - Distinzione tra dato certo, inferenza prudente e punto da verificare.
 - Confidence cap quando una guardia segnala risposta generica o fonte non
   riconoscibile.

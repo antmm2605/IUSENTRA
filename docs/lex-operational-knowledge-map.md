@@ -4,7 +4,7 @@
 
 Questa mappa descrive le sorgenti operative reali che Lex AI puo' interrogare in IUSENTRA. Il principio di progetto e' semplice: Lex non legge file a caso, non usa dati finti e non deduce dati gestionali dal prompt. Ogni risposta su clienti, fascicoli, scadenze, agenda, preventivi, documenti, messaggi o altri dati riservati deve passare da tool deterministici, tenant corrente, permessi utente e audit.
 
-Il layer operativo deve restare governato da feature flag, fail-closed in multi-studio e compatibile con Flask, App V2/React, JSON, SQLite e PostgreSQL dove gia' previsto.
+Il layer operativo resta governato da feature flag, fail-closed in multi-studio e compatibile con Flask, App V2/React, JSON, SQLite e PostgreSQL dove gia' previsto. Dal 2026-05-15 e' attivo di default nel bounded workflow Lex, con opt-out esplicito per rollback.
 
 ## Regole di accesso
 
@@ -58,19 +58,19 @@ Il layer `lex/operational_knowledge/` e' il punto unico governato per:
 5. Retrieval documentale citabile quando disponibile.
 6. Response composer con fonti, limiti, confidence e coverage gaps.
 7. Audit degli accessi e dei blocchi.
-8. Feature flag default-off.
+8. Feature flag default-on con rollback esplicito.
 
 Integrazioni runtime:
 
-- `lex/http_bounded_bridge.py` prova il layer operativo solo quando non ci sono allegati e `LEX_OPERATIONAL_KNOWLEDGE_ENABLED=1`; in caso di rifiuto o errore controllato ricade sul bounded workflow esistente.
+- `lex/http_bounded_bridge.py` prova il layer operativo solo quando non ci sono allegati e `LEX_OPERATIONAL_KNOWLEDGE_ENABLED` non e' spento esplicitamente; in caso di rifiuto o errore controllato ricade sul bounded workflow esistente.
 - `lex/tools/registry.py` registra `operational_knowledge` come tool interno, senza endpoint pubblico nuovo.
 - Le risposte operative espongono `workflow=operational_knowledge`, `provider=deterministic`, `coverage_gaps`, `permissions_applied`, `operational_objects` e `audit_event_id`.
 - Le domande dispositive come invio PEC, deposito, firma, pagamento o cancellazione vengono bloccate e trasformate in richiesta di consultazione/revisione.
 
 ## Test prioritari
 
-- Feature flag off: Lex non attiva il nuovo layer.
-- Feature flag on: query cliente/fascicolo/scadenze/preventivi usano repository reali.
+- Default on: query cliente/fascicolo/scadenze/preventivi usano repository reali.
+- Opt-out flag off: Lex non attiva il nuovo layer.
 - Tenant A/B: dati non condivisi.
 - RBAC: negato senza `ai.usa` o permesso dominio.
 - Privacy: nessun path, token, password o segreto in output.

@@ -14,6 +14,8 @@ Il gateway non inventa risultati. Se le fonti sono vuote, lo dichiara esplicitam
 
 **Principio fondamentale:** nessun dato personale, nome proprio, numero di RG o riferimento a fascicoli specifici viene trasmesso fuori dal perimetro del tenant.
 
+Quando una domanda di ricerca legale contiene contesto interno ma richiede fonti normative, giurisprudenziali o ufficiali non coperte da quel contesto, il bounded workflow deve abilitare automaticamente la ricerca pubblica governata. La presenza di una scheda, fascicolo o archivio interno parziale non e' sufficiente per impedire il fallback web ufficiale.
+
 ---
 
 ## 2. Flusso in 5 step
@@ -76,6 +78,8 @@ Struttura dati che rappresenta una singola fonte dopo la normalizzazione. Ogni f
 | `source_supports_web_search` | `bool` | True se il dominio della fonte supporta la ricerca web pubblica. |
 
 Il metodo `to_evidence_dict()` converte la struttura nel formato `EvidenceItem` compatibile con l'`EvidencePack` del pipeline Lex.
+
+Le risposte professionali Lex usano `excerpt`/`content` per mostrare all'avvocato il contesto fonte nella sezione "Fonti consultate". Nei workflow strict una fonte priva di estratto non deve rendere la risposta chiusa: il builder aggiunge un gap di evidenza e mantiene la risposta in revisione.
 
 ---
 

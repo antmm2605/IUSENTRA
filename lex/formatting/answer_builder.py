@@ -65,6 +65,10 @@ class AnswerBuilder:
         compared_sources = list((evidence or {}).get("source_comparison") or evidence_pack.get("compared_sources") or [])
         fallback_triggered = bool((evidence or {}).get("fallback_triggered") or evidence_pack.get("fallback_triggered"))
         evidence_sufficient = bool((evidence or {}).get("evidence_sufficient") or evidence_pack.get("sufficient"))
+        source_context_lines = self._source_context_lines(evidence or {})
+        if strict_workflow and considered_sources and not source_context_lines:
+            missing_evidence.append("Le fonti agganciate non contengono un estratto testuale sufficiente.")
+            evidence_sufficient = False
         draft_metadata = dict(getattr(draft, "metadata", {}) or {})
         case_law_warnings = list(draft_metadata.get("case_law_warnings") or [])
         case_law_fallback_used = bool(draft_metadata.get("case_law_fallback_used"))
@@ -171,6 +175,7 @@ class AnswerBuilder:
             official_sources=official_sources,
             trusted_sources=trusted_sources,
             considered_sources=considered_sources,
+            source_context_lines=source_context_lines,
             missing_evidence=missing_evidence,
             evidence_sufficient=evidence_sufficient,
             fallback_triggered=fallback_triggered,
@@ -262,6 +267,7 @@ class AnswerBuilder:
                 "official_sources": official_sources,
                 "trusted_sources": trusted_sources,
                 "coverage_gaps": missing_evidence,
+                "source_context_lines": source_context_lines,
                 "fallback_triggered": fallback_triggered,
                 "fascicolo_first": bool(
                     dict(getattr(request, "metadata", {}) or {}).get("fascicolo_first")
@@ -291,6 +297,33 @@ class AnswerBuilder:
                 "provenance": provenance_envelope,
             },
         )
+
+    def _source_context_lines(self, evidence: dict[str, Any]) -> list[str]:
+        rows: list[str] = []
+        for item in list((evidence or {}).get("items") or [])[:8]:
+            if isinstance(item, dict):
+                title = str(item.get("title") or item.get("source_name") or item.get("authority") or "").strip()
+                text = str(item.get("content") or item.get("excerpt") or item.get("text") or "").strip()
+                url = str(item.get("official_url") or item.get("url") or "").strip()
+            else:
+                title = str(getattr(item, "title", "") or getattr(item, "authority", "") or "").strip()
+                text = str(getattr(item, "content", "") or getattr(item, "excerpt", "") or "").strip()
+                url = str(getattr(item, "official_url", "") or getattr(item, "url", "") or "").strip()
+                metadata = getattr(item, "metadata", None)
+                if not url and isinstance(metadata, dict):
+                    url = str(metadata.get("official_url") or metadata.get("url") or "").strip()
+            title = self._clean_text(title)
+            text = self._clean_text(text)
+            if not title or not text:
+                continue
+            if len(text) > 260:
+                text = text[:257].rstrip() + "..."
+            suffix = f" ({url})" if url else ""
+            rows.append(f"Contesto fonte - {title}{suffix}: {text}")
+        return self._unique_strings(rows)
+
+    def _clean_text(self, value: str) -> str:
+        return " ".join(str(value or "").replace("\r", "\n").split()).strip()
 
     def _build_case_law_specific_response(
         self,

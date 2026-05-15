@@ -480,6 +480,7 @@ def build_bounded_http_payload(
         studio_context.get("web_execution_requested")
         or studio_context.get("web_fallback_used")
         or request_profile.get("needs_external_validation")
+        or external_reason
         or not _has_internal_context(studio_context)
     )
     metadata.update(

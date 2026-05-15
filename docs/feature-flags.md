@@ -73,7 +73,7 @@ Le capability Lex che accedono a dati operativi o fonti giuridiche restano gover
 
 | Capability | Flag/env | Default | Protezione |
 | --- | --- | --- | --- |
-| Lex Operational Knowledge | `LEX_OPERATIONAL_KNOWLEDGE_ENABLED` | off | abilita solo tool deterministici tenant-aware su dati reali dello studio |
+| Lex Operational Knowledge | `LEX_OPERATIONAL_KNOWLEDGE_ENABLED` | on | abilita i tool deterministici tenant-aware su dati reali dello studio; `0` resta rollback esplicito |
 | Audit query operative Lex | `LEX_OPERATIONAL_AUDIT_ENABLED` | off | registra domanda, sorgenti, oggetti letti, permessi applicati ed esito nel registro audit |
 | Strict mode operativo Lex | `LEX_OPERATIONAL_STRICT_MODE_ENABLED` | off | riservato a policy piu' restrittive; le guardie base restano sempre attive |
 | Legal Source Engine nativo | `IUSENTRA_LEX_AI_LEGAL_SOURCES_ENABLED` | off | abilita fonti ufficiali locali, rete sempre off salvo `IUSENTRA_LEGAL_SOURCES_ALLOW_NETWORK=1` |
@@ -81,7 +81,7 @@ Le capability Lex che accedono a dati operativi o fonti giuridiche restano gover
 | Trust layer Legal Skills | `IUSENTRA_FF_LEX_LEGALSKILLS_TRUSTLAYER` / `lex.legalSkills.trustLayer` | off | consente solo controllo statico di skill custom, senza installarle |
 | Agenti schedulati Legal Skills | `IUSENTRA_FF_LEX_LEGALSKILLS_SCHEDULEDAGENTS` / `lex.legalSkills.scheduledAgents` | off | abilita agenti read-only con audit, nessuna scrittura automatica |
 
-Per i dati di clienti, fascicoli, agenda, scadenze, preventivi, documenti e comunicazioni Lex non usa web esterno. Se il flag operativo e' spento, il bounded workflow esistente continua senza interrogare il nuovo layer.
+Per i dati di clienti, fascicoli, agenda, scadenze, preventivi, documenti e comunicazioni Lex non usa web esterno. Il layer operativo e' attivo di default per evitare risposte bloccate su dati reali dello studio; se il flag viene spento esplicitamente, il bounded workflow esistente continua senza interrogare il nuovo layer.
 
 ## Comportamento flag-off
 

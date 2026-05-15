@@ -25,7 +25,7 @@ def env_bool(name: str, *, default: bool = False, env: Mapping[str, str] | None 
 
 @dataclass(frozen=True, slots=True)
 class OperationalKnowledgeSettings:
-    enabled: bool = False
+    enabled: bool = True
     audit_enabled: bool = False
     strict_mode_enabled: bool = False
     max_results: int = 12
@@ -49,7 +49,7 @@ class OperationalKnowledgeSettings:
                 return default
 
         return cls(
-            enabled=_flag("LEX_OPERATIONAL_KNOWLEDGE_ENABLED", False),
+            enabled=_flag("LEX_OPERATIONAL_KNOWLEDGE_ENABLED", True),
             audit_enabled=_flag("LEX_OPERATIONAL_AUDIT_ENABLED", False),
             strict_mode_enabled=_flag("LEX_OPERATIONAL_STRICT_MODE_ENABLED", False),
             max_results=_int("LEX_OPERATIONAL_MAX_RESULTS", 12),

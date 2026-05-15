@@ -125,17 +125,17 @@ Nei container/server con `PCT_DATA_ROOT=/data`, i default runtime vengono risolt
 
 ### Operational Knowledge tenant-aware
 
-Il layer `lex/operational_knowledge/` permette a Lex di interrogare dati reali dello studio con tool deterministici: clienti, soggetti, fascicoli, agenda, scadenziario, preventivi, conferimenti, tariffario, fatturazione, timesheet, documenti fascicolo, messaggi, notifiche, template atti, legal intelligence, update intelligence e fonti ufficiali locali. Non usa web per dati cliente/studio, non legge file arbitrari e resta spento finche' non viene abilitato esplicitamente.
+Il layer `lex/operational_knowledge/` permette a Lex di interrogare dati reali dello studio con tool deterministici: clienti, soggetti, fascicoli, agenda, scadenziario, preventivi, conferimenti, tariffario, fatturazione, timesheet, documenti fascicolo, messaggi, notifiche, template atti, legal intelligence, update intelligence e fonti ufficiali locali. Non usa web per dati cliente/studio, non legge file arbitrari ed e' attivo di default nel bounded workflow Lex; puo' essere spento solo con opt-out esplicito.
 
 | Variabile | Default | Descrizione |
 |-----------|---------|-------------|
-| `LEX_OPERATIONAL_KNOWLEDGE_ENABLED` | `false` | Abilita il layer operativo tenant-aware dentro il bounded workflow Lex. Default: spento. |
+| `LEX_OPERATIONAL_KNOWLEDGE_ENABLED` | `true` | Abilita il layer operativo tenant-aware dentro il bounded workflow Lex. Impostare `0` solo per rollback controllato. |
 | `LEX_OPERATIONAL_AUDIT_ENABLED` | `false` | Registra eventi audit `lex.operational.query` / `lex.operational.blocked` tramite il repository audit dello studio. |
 | `LEX_OPERATIONAL_STRICT_MODE_ENABLED` | `false` | Modalita' prudenziale per future restrizioni aggiuntive. Le guardie RBAC/tenant restano sempre attive. |
 | `LEX_OPERATIONAL_MAX_RESULTS` | `12` | Limite massimo risultati per tool deterministico. |
 | `LEX_OPERATIONAL_MAX_ANSWER_ITEMS` | `6` | Limite di elementi sintetizzati nella risposta naturale. |
 
-Attivazione controllata:
+Configurazione consigliata:
 
 ```env
 LEX_OPERATIONAL_KNOWLEDGE_ENABLED=1
@@ -233,5 +233,6 @@ curl -H "Authorization: Bearer <token>" http://localhost:8080/api/assistente/gat
 | Lex risponde sempre `needs_review` | Ollama non raggiungibile | Verifica `OLLAMA_BASE_URL` e `OLLAMA_ENABLED=1` |
 | LDR blocca tutte le query | Query contiene RG/CF/nomi | Verifica il campo `ldr_blocked_reason` nel debug |
 | Fonti web non trovate | `LEX_EXTERNAL_ALLOWED=0` | Solo le fonti ufficiali allowlist sono disponibili |
+| Lex non consulta clienti, agenda o preventivi | `LEX_OPERATIONAL_KNOWLEDGE_ENABLED=0` oppure permessi/tenant mancanti | Riporta il flag a `1` e verifica `ai.usa` piu' i permessi dominio dell'utente |
 | `confidence` sempre bassa | Nessuna evidenza indicizzata | Indicizza i documenti del fascicolo prima di chiedere |
 | Risposta in lingua non italiana | Guard linguistico attivato | Verifica il campo `italian_response_guard_applied` nel metadata |

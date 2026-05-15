@@ -134,3 +134,43 @@ def test_payload_http_fonti_esterne_hanno_ragione(monkeypatch):
     assert payload["external_sources_used"] is True
     assert payload["external_sources_reason"]
     assert "normativa" in payload["external_sources_reason"]
+
+
+def test_payload_http_ricerca_legale_auto_web_anche_con_contesto_interno(monkeypatch):
+    captured: dict[str, LexRequest] = {}
+
+    class FakeLexService:
+        def ask(self, request: LexRequest):
+            captured["request"] = request
+            return LexResponse(
+                answer="Verifica giurisprudenziale avviata.",
+                metadata={
+                    "workflow": "giurisprudenza",
+                    "external_sources_used": True,
+                    "external_sources_reason": request.metadata.get("external_sources_reason"),
+                },
+                evidence_summary={"evidence_count": 0},
+                answer_mode="needs_review",
+                confidence=0.45,
+            )
+
+    monkeypatch.setattr("lex.http_bounded_bridge._application_lex_service", lambda: FakeLexService())
+    payload = build_bounded_http_payload(
+        user=SimpleNamespace(id="user-1"),
+        studio=SimpleNamespace(slug="tenant-a"),
+        data={"messages": []},
+        current_user_message="Cerca giurisprudenza aggiornata sul licenziamento disciplinare",
+        resolved_effective_question="Cerca giurisprudenza aggiornata sul licenziamento disciplinare",
+        studio_context={
+            "focus_topic": "ricerca_legale",
+            "sources": [{"title": "Archivio interno", "excerpt": "Voce non sufficiente"}],
+            "structured_context": {"legal_intelligence": {"recenti": []}},
+            "request_profile": {"intent": "giurisprudenza", "source_mode": "balanced"},
+        },
+        attachments=[],
+    )
+
+    assert payload is not None
+    assert captured["request"].allow_external_research is True
+    assert captured["request"].require_official_sources is True
+    assert captured["request"].metadata["external_sources_reason"]

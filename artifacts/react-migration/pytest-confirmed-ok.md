@@ -1,12 +1,29 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-15, hotfix Lex risposta e accenti 2.237.8.
+Aggiornato: 2026-05-15, sblocco Lex Operational Knowledge 2.237.9.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Sblocco Lex Operational Knowledge 2.237.9 - 2026-05-15
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest tests/test_lex_operational_knowledge.py -q --tb=short` | OK | 23/23 passati: Operational Knowledge e' default-on, resta spegnibile con `LEX_OPERATIONAL_KNOWLEDGE_ENABLED=0`, il registry espone workflow/provider stabili, il bridge HTTP gestisce dati studio con contesto permessi e lascia proseguire quando il contesto permessi non e' valutabile. |
+| `python -m pytest lex/tests/test_http_bounded_bridge.py lex/tests/test_http_bounded_bridge_governed_only.py tests/test_lex_fascicolo_first_retrieval.py tests/test_lex_giurisprudenza_workflow.py -q --tb=short` | OK | 18/18 passati: il default-on operativo non intercetta i workflow governati generici senza contesto permessi e preserva i flag fascicolo-first/fonti esterne. |
+| `python -m pytest tests/test_lex_operational_knowledge.py tests/test_lex_sentenze_clienti_fix.py tests/test_lex_sources_and_studio_data.py tests/test_lex_legal_source_engine.py lex/tests/unit/test_sentenze_clienti_fix.py lex/tests/test_http_bounded_bridge.py lex/tests/test_http_bounded_bridge_governed_only.py tests/test_lex_fascicolo_first_retrieval.py tests/test_lex_giurisprudenza_workflow.py tests/test_lex_professional_upgrade.py tests/test_lex_drafting_intent.py -q --tb=short` | OK | 173/173 passati: dati studio, clienti, agenda, preventivi, sentenze specifiche, fonti pubbliche, legal source engine, bounded bridge e drafting restano coerenti. |
+| `python -m py_compile lex/http_bounded_bridge.py lex/formatting/answer_builder.py lex/formatting/professional_answer.py tests/test_lex_professional_upgrade.py tests/test_lex_fascicolo_first_retrieval.py` | OK | Sintassi confermata dopo fallback web automatico per ricerca legale con contesto interno parziale e contesto fonte nelle risposte strict. |
+| `python -m pytest tests/test_lex_professional_upgrade.py::test_caso_18_risposta_grounded_con_fonti tests/test_lex_professional_upgrade.py::test_risposta_strict_con_fonte_senza_estratto_resta_da_verificare tests/test_lex_fascicolo_first_retrieval.py::test_payload_http_ricerca_legale_auto_web_anche_con_contesto_interno -q --tb=short` | OK | 3/3 passati: la risposta mostra l'estratto della fonte, degrada a `needs_review` se la fonte non ha contesto testuale e abilita ricerca web ufficiale per `ricerca_legale` anche con fonti interne insufficienti. |
+| Probe manuali Python su `AnswerBuilder` e `build_bounded_http_payload` | OK | Risposta normativa verificata con sezione `Contesto fonte - Art. 2043 Codice Civile`; payload ricerca giurisprudenziale con archivio interno insufficiente verificato con `allow_external_research=True`, `require_official_sources=True` e motivo fonti esterne valorizzato. |
+| `python -m py_compile lex/operational_knowledge/settings.py lex/operational_knowledge/integration.py lex/operational_knowledge/service.py lex/tools/operational_knowledge_tool.py tests/test_lex_operational_knowledge.py` | OK | Sintassi confermata dopo default-on, defer a ricerca pubblica e fallback tecnico su repository non disponibili. |
+| `python tools/sync_packaging_files.py --check` | OK | Packaging/versione sincronizzati su `2.237.9`. |
+| `python -m pytest tests/test_packaging_consistency.py tests/test_release_readiness.py -q --tb=short` | OK | 8/8 passati: packaging e readiness release `2.237.9` confermati. |
+| `git diff --check -- . ':!data/*'` | OK | Nessun errore whitespace sul perimetro tracciato, escludendo i file runtime `data/` gia' sporchi prima della tranche. |
+| `python scripts/validate_docs_links.py`; `python scripts/validate_docs_commands.py` | OK | Link e comandi documentali validi dopo aggiornamento docs Lex e report. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build --force-recreate redis app scheduler-worker ocr-worker nginx`; `GET http://127.0.0.1:8080/api/pronto`; `docker exec iusentra-app python -c "import pct; print(pct.__version__)"` | OK | Docker locale no-cache ha costruito wheel `pct-studio-legale==2.237.9`; app, scheduler, OCR e Redis healthy; readiness locale 200 con `versione=2.237.9`; runtime container `2.237.9`. |
 
 ### Hotfix Lex risposta e accenti 2.237.8 - 2026-05-15
 

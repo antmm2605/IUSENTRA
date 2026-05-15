@@ -182,6 +182,22 @@ def test_operational_knowledge_feature_flag_off_returns_none():
     assert answer is None
 
 
+def test_operational_knowledge_settings_default_on(monkeypatch):
+    monkeypatch.delenv("LEX_OPERATIONAL_KNOWLEDGE_ENABLED", raising=False)
+
+    settings = OperationalKnowledgeSettings.from_env()
+
+    assert settings.enabled is True
+
+
+def test_operational_knowledge_settings_explicit_off(monkeypatch):
+    monkeypatch.setenv("LEX_OPERATIONAL_KNOWLEDGE_ENABLED", "0")
+
+    settings = OperationalKnowledgeSettings.from_env()
+
+    assert settings.enabled is False
+
+
 def test_client_retrieval_uses_real_repositories_and_sources():
     service, user = _service(repositories=_base_repositories())
 
@@ -342,13 +358,105 @@ def test_permission_guard_requires_ai_usa():
     assert "ai.usa" in result.permission.missing_permissions
 
 
-def test_tool_registry_exposes_operational_knowledge_tool_default_off(monkeypatch):
+def test_tool_registry_exposes_operational_knowledge_tool_default_on(monkeypatch):
     monkeypatch.delenv("LEX_OPERATIONAL_KNOWLEDGE_ENABLED", raising=False)
+    registry = LexToolRegistry()
+
+    result = registry.tools["operational_knowledge"].run(
+        question="Mostrami il cliente Rossi",
+        user=_User(_all_permissions()),
+        studio=SimpleNamespace(slug="tenant-a"),
+        tenant_id="tenant-a",
+    )
+
+    assert result["ok"] is True
+    assert result["workflow"] == "operational_knowledge"
+
+
+def test_tool_registry_can_disable_operational_knowledge(monkeypatch):
+    monkeypatch.setenv("LEX_OPERATIONAL_KNOWLEDGE_ENABLED", "0")
     registry = LexToolRegistry()
 
     result = registry.tools["operational_knowledge"].run(question="Mostrami il cliente Rossi")
 
     assert result == {"ok": False, "reason": "feature_flag_disabled"}
+
+
+def test_http_bridge_operational_layer_handles_studio_data_by_default(monkeypatch):
+    monkeypatch.delenv("LEX_OPERATIONAL_KNOWLEDGE_ENABLED", raising=False)
+    from lex.operational_knowledge.integration import build_operational_http_payload
+    from lex.operational_knowledge.models import OperationalAnswer, OperationalRoute, OperationalSourceReference
+
+    class _FakeOperationalKnowledgeService:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def answer(self, **kwargs):
+            return OperationalAnswer(
+                handled=True,
+                answer="Cliente: Mario Rossi.",
+                route=OperationalRoute("client_situation", "client_situation", ("clienti",), "rossi"),
+                sources=[
+                    OperationalSourceReference(
+                        source_id="clienti",
+                        source_name="Clienti",
+                        source_type="studio",
+                        object_type="cliente",
+                        object_id="cli-1",
+                        title="Mario Rossi",
+                        confidence=0.86,
+                    )
+                ],
+                confidence=0.86,
+                metadata={"operational_layer": True},
+            )
+
+    monkeypatch.setattr("lex.operational_knowledge.integration.OperationalKnowledgeService", _FakeOperationalKnowledgeService)
+
+    payload = build_operational_http_payload(
+        user=_User(_all_permissions()),
+        studio=SimpleNamespace(slug="tenant-a"),
+        data={},
+        current_user_message="Mostrami la situazione del cliente Rossi",
+        resolved_effective_question="Mostrami la situazione del cliente Rossi",
+        studio_context={"focus_topic": "clienti", "request_profile": {"intent": "cliente_anagrafica"}},
+    )
+
+    assert payload is not None
+    assert payload["workflow"] == "operational_knowledge"
+    assert payload["provider"] == "deterministic"
+
+
+def test_http_bridge_defers_specific_case_law_to_public_research(monkeypatch):
+    monkeypatch.delenv("LEX_OPERATIONAL_KNOWLEDGE_ENABLED", raising=False)
+    from lex.operational_knowledge.integration import build_operational_http_payload
+
+    payload = build_operational_http_payload(
+        user=_User(_all_permissions()),
+        studio=SimpleNamespace(slug="tenant-a"),
+        data={"external_sources_reason": "riferimento giurisprudenziale esatto"},
+        current_user_message="Mi puoi trovare questa Sentenza n. 7919 del 31/03/2026?",
+        resolved_effective_question="Mi puoi trovare questa Sentenza n. 7919 del 31/03/2026?",
+        studio_context={"focus_topic": "sentenze_web", "request_profile": {"intent": "giurisprudenza_specifica"}},
+    )
+
+    assert payload is None
+
+
+def test_http_bridge_defers_without_permission_context(monkeypatch):
+    monkeypatch.delenv("LEX_OPERATIONAL_KNOWLEDGE_ENABLED", raising=False)
+    from lex.operational_knowledge.integration import build_operational_http_payload
+
+    payload = build_operational_http_payload(
+        user=SimpleNamespace(username="utente-senza-contesto-permessi"),
+        studio=SimpleNamespace(slug="tenant-a"),
+        data={},
+        current_user_message="Che cosa devo fare oggi?",
+        resolved_effective_question="Che cosa devo fare oggi?",
+        studio_context={"request_profile": {"intent": ""}},
+    )
+
+    assert payload is None
 
 
 def test_response_composer_reports_coverage_gap_for_absent_data():

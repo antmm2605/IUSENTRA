@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.237.9 - 2026-05-15
+
+- Sbloccato Lex Operational Knowledge come capability attiva di default: clienti, fascicoli, agenda, scadenze, preventivi, conferimenti, fatturazione, messaggi, documenti e template vengono interrogati dal bounded workflow senza opt-in manuale.
+- Separata la ricerca giuridica pubblica dal layer operativo: richieste su sentenze specifiche, giurisprudenza, normativa e fonti ufficiali restano instradate al workflow pubblico/web governato invece di fermarsi sui dati interni dello studio.
+- Esteso il fallback legale: se la ricerca legale ha solo contesto interno insufficiente, Lex abilita automaticamente la ricerca web ufficiale; le risposte strict mostrano anche l'estratto della fonte usata e restano `needs_review` quando una fonte e' citata senza contesto testuale.
+- Aggiornati contratti, test e documentazione dei flag Lex: resta disponibile l'opt-out `LEX_OPERATIONAL_KNOWLEDGE_ENABLED=0`, mentre RBAC, tenant isolation, blocco azioni dispositive e privacy restano sempre attivi.
+
 ## 2.237.8 - 2026-05-15
 
 - Migliorata l'impaginazione delle risposte Lex nel widget flottante: titoli, paragrafi, elenchi, tabelle, citazioni, link e codice inline vengono resi in modo compatto e leggibile invece di finire in blocchi disordinati.

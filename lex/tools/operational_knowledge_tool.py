@@ -31,4 +31,9 @@ class OperationalKnowledgeTool(BaseLexTool):
             return {"ok": False, "reason": "not_operational_query"}
         payload = answer.to_dict()
         payload["ok"] = True
+        payload.setdefault("workflow", "operational_knowledge")
+        payload.setdefault("provider", "deterministic")
+        payload.setdefault("metadata", {})
+        payload["metadata"].setdefault("workflow", "operational_knowledge")
+        payload["metadata"].setdefault("provider", "deterministic")
         return payload

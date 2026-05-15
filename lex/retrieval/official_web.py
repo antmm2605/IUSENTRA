@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import hashlib
 import os
+import re
 import time
 from collections.abc import Callable
 from typing import Any
-from urllib.parse import parse_qs, unquote, urlparse
+from urllib.parse import parse_qs, unquote, urljoin, urlparse
 
 from lxml import html as lxml_html
 
@@ -24,6 +25,7 @@ DEFAULT_WEB_SOURCE_IDS: tuple[str, ...] = (
 )
 
 _OFFICIAL_SEARCH_URL = "https://html.duckduckgo.com/html/"
+_CASSAZIONE_PENALE_LIST_URL = "https://www.cortedicassazione.it/it/giurisprudenza_penale.page"
 _SEARCH_CACHE_TTL_SECONDS = 900
 _SEARCH_CACHE: dict[str, tuple[float, list[dict[str, Any]]]] = {}
 
@@ -124,6 +126,12 @@ def resolve_official_source_ids_for_query(
         if len(selected) >= limit:
             return selected[:limit]
 
+    question_text = _clean_spaces(question).lower()
+    if re.search(r"\b(?:sentenza|ordinanza|decreto)\s+n[°\.\s]*\d+", question_text) or "cassazione" in question_text:
+        _push("cassazione")
+        if len(selected) >= limit:
+            return selected[:limit]
+
     for source_id in fonti_per_query(question):
         _push(source_id)
         if len(selected) >= limit:
@@ -221,6 +229,139 @@ def _cache_key(question: str, source_ids: list[str], limit_results: int) -> str:
     return hashlib.sha1(fingerprint.encode("utf-8")).hexdigest()
 
 
+def _parse_cassazione_exact_reference(question: str) -> dict[str, str]:
+    try:
+        from lex.research.case_law_reference_parser import parse_case_law_reference
+    except Exception:
+        return {}
+    reference = parse_case_law_reference(question)
+    if not bool(getattr(reference, "is_exact_reference", False)):
+        return {}
+    kind = _clean_spaces(getattr(reference, "kind", "")).lower()
+    number = _clean_spaces(getattr(reference, "number", ""))
+    year = _clean_spaces(getattr(reference, "year", ""))
+    date = _clean_spaces(getattr(reference, "date", ""))
+    if kind not in {"sentenza", "ordinanza", "decreto", "provvedimento"} or not number or not (year or date):
+        return {}
+    return {"kind": kind, "number": number, "year": year, "date": date}
+
+
+def _date_matches(text: str, expected_date: str) -> bool:
+    if not expected_date:
+        return True
+    normalized = re.sub(r"\D+", "", text or "")
+    expected = re.sub(r"\D+", "", expected_date)
+    return bool(expected and expected in normalized)
+
+
+def _is_cassazione_requested(source_ids: list[str], candidate_domains: list[str]) -> bool:
+    if any(str(source_id or "").strip() == "cassazione" for source_id in source_ids):
+        return True
+    return any("cortedicassazione.it" in domain for domain in candidate_domains)
+
+
+def _card_text_for_link(link_node) -> str:
+    cards = link_node.xpath("ancestor::*[contains(concat(' ', normalize-space(@class), ' '), ' card-news ')][1]")
+    if cards:
+        return _clean_spaces(cards[0].text_content())
+    parents = link_node.xpath("ancestor::*[self::div or self::article][1]")
+    if parents:
+        return _clean_spaces(parents[0].text_content())
+    return _clean_spaces(link_node.text_content())
+
+
+def _cassazione_listing_fallback(
+    question: str,
+    *,
+    source_ids: list[str],
+    candidate_domains: list[str],
+    fetch: Callable[..., Any],
+    limit_results: int,
+) -> list[dict[str, Any]]:
+    """Fallback ufficiale stretto per riferimenti esatti presenti nelle pagine Cassazione.
+
+    DuckDuckGo HTML puo' non restituire risultati per query molto puntuali gia'
+    pubblicate nel portale della Corte. In quel caso interroghiamo solo le prime
+    pagine pubbliche della sezione penale e accettiamo il risultato solo se
+    titolo/testo contengono numero e anno/data richiesti.
+    """
+    reference = _parse_cassazione_exact_reference(question)
+    if not reference or not _is_cassazione_requested(source_ids, candidate_domains):
+        return []
+
+    results: list[dict[str, Any]] = []
+    seen_urls: set[str] = set()
+    number = reference["number"]
+    year = reference["year"]
+    expected_date = reference["date"]
+    kind = reference["kind"]
+
+    for page in range(1, 6):
+        try:
+            response = fetch(
+                _CASSAZIONE_PENALE_LIST_URL,
+                params={"frame3_item": page},
+                headers={"User-Agent": USER_AGENT},
+                timeout=5,
+            )
+        except Exception:
+            continue
+        if int(getattr(response, "status_code", 0) or 0) >= 400:
+            continue
+        body = str(getattr(response, "text", "") or "")
+        if not body.strip():
+            continue
+        try:
+            document = lxml_html.fromstring(body)
+        except Exception:
+            continue
+
+        links = document.xpath(
+            "//a[contains(@href, 'penale_dettaglio.page') "
+            "and contains(translate(normalize-space(.), "
+            "'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), $kind)]",
+            kind=kind,
+        )
+        for link in links:
+            title = _clean_spaces(link.text_content())
+            card_text = _card_text_for_link(link)
+            combined = f"{title} {card_text}"
+            if not re.search(rf"\b{re.escape(number)}\b", combined):
+                continue
+            if year and year not in combined:
+                continue
+            if not _date_matches(combined, expected_date):
+                continue
+            url = urljoin("https://www.cortedicassazione.it/", link.get("href") or "")
+            if not _is_allowed_result(url, "cortedicassazione.it") or url in seen_urls:
+                continue
+            seen_urls.add(url)
+            excerpt = card_text.replace(title, "", 1).strip(" -:\n\t")
+            results.append(
+                {
+                    "id": f"cassazione-listing:{hashlib.sha1(url.encode('utf-8')).hexdigest()[:12]}",
+                    "title": title,
+                    "url": url,
+                    "official_url": url,
+                    "domain": _normalize_domain(urlparse(url).netloc),
+                    "source_id": "cassazione",
+                    "source_name": "Corte Suprema di Cassazione",
+                    "kind": "html",
+                    "excerpt": excerpt,
+                    "source_access_status": "public",
+                    "source_access_label": "Pubblica",
+                    "source_category": "giurisprudenza",
+                    "source_priority": "primary",
+                    "source_requires_credentials": False,
+                    "source_restricted": False,
+                    "source_supports_web_search": True,
+                }
+            )
+            if len(results) >= limit_results:
+                return results
+    return results
+
+
 def search_recognized_official_web(
     question: str,
     *,
@@ -263,6 +404,17 @@ def search_recognized_official_web(
             continue
         seen_domains.add(domain)
         candidate_domains.append(domain)
+
+    direct_results = _cassazione_listing_fallback(
+        query,
+        source_ids=selected_source_ids,
+        candidate_domains=candidate_domains,
+        fetch=fetch,
+        limit_results=limit_results,
+    )
+    if direct_results:
+        _SEARCH_CACHE[cache_key] = (now, [dict(item) for item in direct_results])
+        return [dict(item) for item in direct_results]
 
     results: list[dict[str, Any]] = []
     seen_urls: set[str] = set()
@@ -320,7 +472,8 @@ def search_recognized_official_web(
                     "id": f"live-web-search:{hashlib.sha1(url.encode('utf-8')).hexdigest()[:12]}",
                     "title": title or (source.nome if source else (registry_source.label if registry_source else domain)),
                     "url": url,
-                    "official_url": source.official_url if source else (registry_source.base_url if registry_source else url),
+                    "official_url": url,
+                    "source_home_url": source.official_url if source else (registry_source.base_url if registry_source else ""),
                     "domain": _normalize_domain(urlparse(url).netloc),
                     "source_id": matched_source_id or (registry_source.key if registry_source else domain),
                     "source_name": source.nome if source else (registry_source.label if registry_source else domain),

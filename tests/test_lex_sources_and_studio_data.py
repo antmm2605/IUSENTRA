@@ -12,8 +12,6 @@ Verifica che:
 
 from __future__ import annotations
 
-import pytest
-
 
 # ---------------------------------------------------------------------------
 # TC-01: case_law_reference_parser — sentenza con numero e data
@@ -114,6 +112,43 @@ def test_source_scope_exact_sentenza():
     assert scope.exact_legal_reference is True
     assert scope.requires_public_web is True
     assert scope.scope in ("public_legal_source", "mixed_private_public")
+    assert isinstance(scope.reason, str)
+    assert scope.to_dict()["reason"] == scope.reason
+
+
+def test_retrieval_exact_sentenza_metadata_non_cade_su_source_scope_reason():
+    from lex.contracts import LexRequest
+    from lex.retrieval.orchestrator import RetrievalOrchestrator
+
+    request = LexRequest(
+        tenant_id="tenant-test",
+        user_id="utente-test",
+        session_id="sessione-test",
+        query="Sentenza n. 14575 ud. 15/04/2026 - deposito del 21/04/2026",
+        intent="giurisprudenza_specifica",
+        metadata={},
+        allow_external_research=True,
+        require_official_sources=True,
+    )
+    payload = {
+        "items": [],
+        "evidence_pack": {"metadata": {}, "sufficient": False},
+        "evidence_sufficient": False,
+        "official_sources": [],
+    }
+
+    result = RetrievalOrchestrator()._apply_case_law_exact_metadata(
+        payload,
+        request,
+        "giurisprudenza_specifica",
+        public_search_run=False,
+    )
+
+    metadata = result["evidence_pack"]["metadata"]
+    assert metadata["source_scope"] == "public_legal_source"
+    assert metadata["source_scope_reason"]
+    assert metadata["exact_reference_number"] == "14575"
+    assert metadata["exact_reference_date"] == "21/04/2026"
 
 
 # ---------------------------------------------------------------------------

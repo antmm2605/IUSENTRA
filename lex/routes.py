@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Callable
 
-from flask import Blueprint, g, redirect, request, url_for
+from flask import Blueprint, current_app, g, redirect, request, url_for
 
 from .service import LexService
 
@@ -16,6 +16,18 @@ def register_routes(
     login_required: Callable | None = None,
 ) -> None:
     guard = login_required or (lambda fn: fn)
+
+    def lex_api_error_response(endpoint_name: str, exc: Exception):
+        current_app.logger.exception("Errore controllato API Lex su %s", endpoint_name)
+        return (
+            {
+                "ok": False,
+                "code": "LEX_CHAT_UNAVAILABLE",
+                "message": "Lex non ha completato la richiesta. Riprova tra poco; se il problema resta, controlla la salute del sistema.",
+            },
+            500,
+            {"Cache-Control": "no-store"},
+        )
 
     @guard
     def lex_chat_page():
@@ -72,11 +84,14 @@ def register_routes(
 
     @guard
     def assistente_chat():
-        return service.chat(
-            user=g.get("utente_corrente"),
-            studio=g.get("studio_corrente"),
-            data=request.get_json(silent=True) or {},
-        )
+        try:
+            return service.chat(
+                user=g.get("utente_corrente"),
+                studio=g.get("studio_corrente"),
+                data=request.get_json(silent=True) or {},
+            )
+        except Exception as exc:
+            return lex_api_error_response("assistente_chat", exc)
 
     bp.add_url_rule("/lex", view_func=lex_chat_page, methods=["GET"])
     bp.add_url_rule("/api/assistente/stato", view_func=assistente_stato, methods=["GET"])

@@ -2,6 +2,19 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-15T18:20:00+02:00: hotfix Lex chat 2.238.2.
+Il widget Lex nella shell non riversa piu' HTML di errore nella conversazione:
+le risposte non JSON/HTML vengono sostituite da un messaggio operativo breve e
+`/api/assistente/chat` restituisce JSON controllato se fallisce prima dello
+stream. Il crash su sentenze specifiche (`SourceScope.reason` mancante) e'
+coperto da test con `Sentenza n. 14575 ud. 15/04/2026 - deposito del
+21/04/2026`.
+La stessa query trova la scheda ufficiale Cassazione
+`penale_dettaglio.page?contentId=SZP50042` tramite fallback governato sulla
+pagina pubblica Giurisprudenza Penale; dopo l'exact match ufficiale il retrieval
+non rilancia la ricerca pubblica generica lenta. Gate verdi: py_compile,
+node --check, Ruff, test Lex mirati e diff check sul perimetro.
+
 Aggiornamento 2026-05-15T14:30:00+02:00: hotfix cartella cliente 2.237.5.
 La route `/clienti/<id>/cartella` e' censita come `react_operational_full` e i
 richiami con `?_legacy=1` vengono normalizzati con redirect 302 verso la URL

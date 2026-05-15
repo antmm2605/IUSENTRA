@@ -196,6 +196,66 @@ def test_retrieval_orchestrator_espone_gap_su_fonti_partner_non_cercabili_via_we
     assert payload["evidence_pack"]["metadata"]["source_registry_partner"][0]["key"] == "registro_imprese_api"
 
 
+def test_giurisprudenza_specifica_non_ripete_ricerca_pubblica_se_exact_match_ufficiale(monkeypatch):
+    clear_retrieval_cache()
+
+    def fail_public_research(*args, **kwargs):
+        raise AssertionError("La ricerca pubblica generica non deve ripartire dopo l'exact match ufficiale.")
+
+    monkeypatch.setattr("lex.retrieval.orchestrator.run_public_research_for_request", fail_public_research)
+
+    class ExactRouter:
+        def __init__(self) -> None:
+            self.official = type(
+                "OfficialWebSource",
+                (),
+                {
+                    "source_name": "official_web",
+                    "search": lambda _self, queries, request, context: [
+                        EvidenceItem(
+                            source_type="web_ufficiale",
+                            source_id="cassazione-14575",
+                            title="Sentenza n. 14575 ud. 15/04/2026 - deposito del 21/04/2026",
+                            content="Estradizione cautelare passiva - Requisitoria del Procuratore generale.",
+                            score=0.94,
+                            authority="Corte Suprema di Cassazione",
+                            official_url="https://www.cortedicassazione.it/it/penale_dettaglio.page?contentId=SZP50042",
+                            trust_class="A",
+                            source_level=1,
+                            verified_reference=True,
+                            metadata={"authority": "official_web"},
+                        )
+                    ],
+                },
+            )()
+
+        def resolve(self, request, context, workflow):
+            return [EmptyNormativeSource(), self.official]
+
+    orchestrator = RetrievalOrchestrator(
+        query_planner=StaticPlanner(),
+        source_router=ExactRouter(),
+        filters=PassFilters(),
+    )
+    request = LexRequest(
+        tenant_id="tenant-1",
+        user_id="user-1",
+        session_id="session-1",
+        query="Sentenza n. 14575 ud. 15/04/2026 - deposito del 21/04/2026",
+        intent="giurisprudenza_specifica",
+        metadata={"disable_retrieval_cache": True},
+        allow_external_research=True,
+        require_official_sources=True,
+    )
+
+    payload = orchestrator.collect(request, {"studio": {"effective_question": request.query}}, "giurisprudenza_specifica")
+
+    metadata = payload["evidence_pack"]["metadata"]
+    assert metadata["exact_match_found"] is True
+    assert metadata["official_search_run"] is True
+    assert metadata["official_url"].endswith("contentId=SZP50042")
+
+
 def test_source_router_non_trascina_fonti_legali_su_preventivo_operativo():
     router = SourceRouter()
     request = LexRequest(

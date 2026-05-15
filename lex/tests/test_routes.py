@@ -211,3 +211,28 @@ def test_assistente_chat_endpoint_remains_registered_for_post():
     }
 
     assert rules["/api/assistente/chat"] == ["OPTIONS", "POST"]
+
+
+def test_assistente_chat_failure_returns_json_not_html(monkeypatch):
+    app = make_app()
+    client = app.test_client()
+
+    def fail_chat(self, *, user, studio, data):
+        raise AttributeError("'SourceScope' object has no attribute 'reason'")
+
+    monkeypatch.setattr("lex.service.LexService.chat", fail_chat)
+
+    response = client.post(
+        "/api/assistente/chat",
+        json={"messages": [{"role": "user", "content": "Sentenza n. 14575 del 21/04/2026"}]},
+    )
+
+    body = response.get_data(as_text=True)
+    assert response.status_code == 500
+    assert response.is_json
+    assert "<html" not in body.lower()
+    assert "<!doctype" not in body.lower()
+    payload = response.get_json()
+    assert payload["ok"] is False
+    assert payload["code"] == "LEX_CHAT_UNAVAILABLE"
+    assert "Lex non ha completato la richiesta" in payload["message"]

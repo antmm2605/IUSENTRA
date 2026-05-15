@@ -1,5 +1,23 @@
 # Migrazione progressiva Flask + React
 
+## Hotfix Lex chat sentenze e 500 controllato - 2026-05-15 - 2.238.2
+
+Il widget Lex integrato nella shell non mostra piu' il corpo HTML di una pagina
+500 quando `/api/assistente/chat` fallisce prima dello stream. La route restituisce
+JSON controllato, la UI traduce l'errore in messaggio operativo breve e il dettaglio
+resta nei log. Il crash reale segnalato sul workflow `giurisprudenza_specifica`
+era dovuto a `SourceScope.reason` mancante ed e' coperto dalla query
+`Sentenza n. 14575 ud. 15/04/2026 - deposito del 21/04/2026`.
+
+La stessa query ora aggancia anche la scheda ufficiale Cassazione
+`penale_dettaglio.page?contentId=SZP50042` tramite fallback governato sulla
+pagina pubblica Giurisprudenza Penale; se l'exact match ufficiale e' gia' stato
+trovato, Lex non ripete la ricerca pubblica generica.
+
+Gate mirati: py_compile, `node --check` del widget, Ruff mirato, test Lex
+su sentenze/fonti/route/widget/retrieval e `git diff --check` sul perimetro
+modificato.
+
 ## Hotfix cartella cliente React full - 2026-05-15 - 2.237.5
 
 La route profonda `/clienti/<id>/cartella` e' ora governata come

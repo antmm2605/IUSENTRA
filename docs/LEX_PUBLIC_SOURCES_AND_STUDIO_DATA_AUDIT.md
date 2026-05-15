@@ -4,6 +4,16 @@ Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle
 
 ---
 
+## Aggiornamento operativo 2.238.2 - 2026-05-15
+
+Le richieste Lex su sentenze specifiche con numero e date multiple, ad esempio `Sentenza n. 14575 ud. 15/04/2026 - deposito del 21/04/2026`, non cadono piu' sul metadata `SourceScope.reason`: il campo e' compatibile con i payload debug e il workflow `giurisprudenza_specifica` continua a produrre risposta governata.
+
+Per i riferimenti Cassazione esatti, Lex prioritizza `cassazione` tra le fonti ufficiali e, se la ricerca generica non e' necessaria, legge la pagina pubblica `Giurisprudenza Penale` della Corte. La query sopra individua la scheda ufficiale `https://www.cortedicassazione.it/it/penale_dettaglio.page?contentId=SZP50042`; la risposta indica cosa e' certo e resta `needs_review` finche' mancano testo integrale, motivazione e dispositivo.
+
+Il widget Lex non mostra piu' pagine HTML di errore dentro la conversazione. Se `/api/assistente/chat` fallisce prima dello stream, l'endpoint risponde con JSON controllato e la UI mostra un messaggio operativo breve, lasciando il dettaglio tecnico ai log applicativi.
+
+---
+
 ## Aggiornamento operativo 2.238.0 - 2026-05-15
 
 `/ricerca-legale` non e' piu' una vista con filtro locale sulle sole schede gia' caricate. La query viene passata a `/api/v1/ui/ricerca-legale?q=...`, cercata nel repository giuridico SQL tenant-aware e arricchita con fallback ufficiale governato quando non ci sono almeno due fonti ufficiali con estratto testuale sufficiente.

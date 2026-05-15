@@ -1,12 +1,27 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-15, sblocco Lex Operational Knowledge 2.237.9.
+Aggiornato: 2026-05-15, hotfix Lex chat sentenze 2.238.2.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Hotfix Lex chat sentenze 2.238.2 - 2026-05-15
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile lex\research\source_scope_policy.py lex\retrieval\orchestrator.py lex\retrieval\official_web.py lex\routes.py lex\tests\test_routes.py lex\tests\test_official_web.py lex\tests\unit\test_retrieval_orchestrator.py tests\test_lex_sources_and_studio_data.py tests\test_lex_widget_contract.py` | OK | Sintassi confermata dopo ripristino `SourceScope.reason`, fallback Cassazione esatto, skip della seconda ricerca pubblica, JSON controllato su crash chat e guardia widget anti-HTML. |
+| `node --check web\static\js\pct-lex-assistant.js` | OK | Sintassi JS confermata dopo sanitizzazione errori HTTP nel widget Lex. |
+| `python -m pytest tests\test_lex_sources_and_studio_data.py::test_source_scope_exact_sentenza tests\test_lex_sources_and_studio_data.py::test_retrieval_exact_sentenza_metadata_non_cade_su_source_scope_reason lex\tests\test_routes.py::test_assistente_chat_failure_returns_json_not_html tests\test_lex_widget_contract.py::test_widget_posts_chat_payload_to_canonical_route lex\tests\test_official_web.py::test_resolve_official_source_ids_prioritizza_cassazione_per_sentenza_esatta lex\tests\test_official_web.py::test_search_recognized_official_web_fallback_cassazione_lista_pubblica lex\tests\unit\test_retrieval_orchestrator.py::test_giurisprudenza_specifica_non_ripete_ricerca_pubblica_se_exact_match_ufficiale -q --tb=short` | OK | 7/7 passati: sentenza 14575 con data deposito, fallback Cassazione, skip della seconda ricerca pubblica, API chat JSON senza HTML e contratto widget. |
+| `python -m pytest tests\test_lex_sentenze_clienti_fix.py tests\test_lex_sources_and_studio_data.py lex\tests\test_routes.py tests\test_lex_widget_contract.py lex\tests\test_official_web.py lex\tests\unit\test_retrieval_orchestrator.py -q --tb=short` | OK | Shard aggregato passato sul perimetro sentenze specifiche, fonti pubbliche/dati studio, route Lex, widget, ricerca web ufficiale e retrieval exact-match. |
+| Probe bounded Lex locale con query `Sentenza n. 14575 ud. 15/04/2026 - deposito del 21/04/2026` | OK | `build_bounded_http_payload` in circa 3031 ms: risposta `Ho individuato la pronuncia richiesta`, link ufficiale `https://www.cortedicassazione.it/it/penale_dettaglio.page?contentId=SZP50042`, nessun HTML/doctype, `exact_match_count=1`, `needs_review` per testo integrale/motivazione/dispositivo mancanti. |
+| `python -m ruff check lex\research\source_scope_policy.py lex\retrieval\orchestrator.py lex\retrieval\official_web.py lex\routes.py lex\tests\test_routes.py lex\tests\test_official_web.py lex\tests\unit\test_retrieval_orchestrator.py tests\test_lex_sources_and_studio_data.py tests\test_lex_widget_contract.py`; `git diff --check -- . ':!data/*'` | OK | Ruff mirato verde; diff check senza errori, con solo warning CRLF informativo su `web/static/js/pct-lex-assistant.js`. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py -q --tb=short` | OK | Packaging/versione `2.238.2` sincronizzati e readiness release 8/8 verde. |
+| `python scripts\validate_docs_links.py`; `python scripts\validate_docs_commands.py` | OK | Link e comandi documentali validi dopo aggiornamento changelog, audit Lex e report React. |
+| `npm --prefix frontend run build` | OK | TypeScript e build Vite `2.238.2` completati in 7.06s; main `index-Di4ENQKe.js` 451.51 kB / 133.56 kB gzip. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build --force-recreate redis app scheduler-worker ocr-worker nginx`; `GET http://127.0.0.1:8080/api/pronto`; `docker exec iusentra-app python -c "import pct; print(pct.__version__)"`; probe bounded Lex nel container | OK | Build no-cache ha creato wheel `pct-studio-legale==2.238.2`; app/scheduler/OCR/Redis healthy. Primo `/api/pronto` durante warm-up post-recreate in timeout, rilancio a caldo 200 con `versione=2.238.2`; runtime container `2.238.2`; probe container Lex in circa 2012 ms con exact match Cassazione `SZP50042`, nessun HTML. |
 
 ### Sblocco Lex Operational Knowledge 2.237.9 - 2026-05-15
 

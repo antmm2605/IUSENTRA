@@ -84,7 +84,10 @@ def test_widget_posts_chat_payload_to_canonical_route():
     assert "fetch(widget.dataset.chatUrl || '/api/assistente/chat'" in widget_js
     assert "body: JSON.stringify(payload)" in widget_js
     assert "if (!response.ok)" in widget_js
-    assert "finalizeRequest('Connessione a Lex non riuscita.')" in widget_js
+    assert "responseErrorMessage(response, body)" in widget_js
+    assert "looksLikeHtmlDocument" in widget_js
+    assert "Errore di connessione: ' + (error.message" not in widget_js
+    assert "finalizeRequest('Lex non ha completato la richiesta.')" in widget_js
 
 
 def test_legacy_lex_links_open_floating_widget_without_navigation():

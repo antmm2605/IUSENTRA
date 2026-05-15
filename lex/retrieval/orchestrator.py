@@ -392,7 +392,17 @@ class RetrievalOrchestrator:
         user_requested_public_source = bool(request_metadata.get("complete_public_source") or request_metadata.get("public_web_forced"))
         public_research_run = False
         web_blocked_reason = ""
-        if should_run_public_research(
+        official_exact_already_found = False
+        if workflow == "giurisprudenza_specifica" or exact_reference:
+            precheck = check_exact_case_law(
+                list(payload.get("items") or []),
+                exact_number=reference_live.number,
+                exact_year=reference_live.year,
+                exact_date=reference_live.date,
+                exact_court=reference_live.court,
+            )
+            official_exact_already_found = precheck.match_status == "exact_match"
+        if not official_exact_already_found and should_run_public_research(
             workflow,
             sufficient,
             bool(getattr(request, "allow_external_research", True)),
@@ -430,7 +440,7 @@ class RetrievalOrchestrator:
                 payload,
                 request,
                 workflow,
-                public_search_run=public_research_run,
+                public_search_run=bool(public_research_run or external_sources_used or official_exact_already_found),
                 web_blocked_reason=web_blocked_reason,
             )
 

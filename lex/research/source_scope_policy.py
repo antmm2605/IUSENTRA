@@ -167,6 +167,13 @@ class SourceScope:
     def is_mixed(self) -> bool:
         return self.scope == SCOPE_MIXED
 
+    @property
+    def reason(self) -> str:
+        """Motivo sintetico compatibile con i payload debug esistenti."""
+        if self.web_blocked_reason:
+            return self.web_blocked_reason
+        return "; ".join(self.debug_log or [])
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "scope": self.scope,
@@ -178,6 +185,7 @@ class SourceScope:
             "exact_legal_reference": self.exact_legal_reference,
             "studio_entity_hint": self.studio_entity_hint,
             "web_blocked_reason": self.web_blocked_reason,
+            "reason": self.reason,
         }
 
 

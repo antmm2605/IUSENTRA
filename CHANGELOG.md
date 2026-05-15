@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.238.2 - 2026-05-15
+
+- Corretto il crash di Lex sulle richieste di sentenza specifica con numero e data di deposito: il metadata `SourceScope` espone di nuovo un motivo sintetico e il workflow `giurisprudenza_specifica` non cade piu' con `AttributeError`.
+- Aggiunto fallback ufficiale Cassazione per riferimenti esatti: la query `Sentenza n. 14575 ud. 15/04/2026 - deposito del 21/04/2026` individua la scheda pubblica `penale_dettaglio.page?contentId=SZP50042` e la risposta resta `needs_review` finche' non viene acquisito il testo integrale.
+- Evitata la seconda ricerca pubblica lenta quando l'exact match ufficiale e' gia' stato trovato da `OfficialWebSource`.
+- Protetto `/api/assistente/chat`: se un errore inatteso avviene prima dello stream, la route restituisce JSON controllato senza pagina HTML 500.
+- Rafforzato il widget Lex: i corpi HTML o troppo lunghi ricevuti da errori HTTP vengono sostituiti da un messaggio operativo breve, senza riversare la shell dell'app nella conversazione.
+- Aggiunti test di regressione per la query `Sentenza n. 14575 ud. 15/04/2026 - deposito del 21/04/2026`, per il fallback Cassazione, per il 500 JSON dell'endpoint chat e per il contratto del widget.
+
 ## 2.238.1 - 2026-05-15
 
 - Sbloccato Legal Skills per gli studi senza configurazione manuale: `lex.legalSkills.enabled` e le route React `/legal-skills`, profilo, esecuzione e revisione sono ora attive di default.

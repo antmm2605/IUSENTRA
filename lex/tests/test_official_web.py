@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from lex.contracts import LexRequest
-from lex.retrieval.official_web import search_recognized_official_web
+from lex.retrieval.official_web import resolve_official_source_ids_for_query, search_recognized_official_web
 from lex.retrieval.source_router import SourceRouter
 from lex.retrieval.sources.official_web import OfficialWebSource
 
@@ -66,6 +66,56 @@ def test_official_web_source_restituisce_evidenze_quando_la_query_lo_richiede():
     assert items[0].source_type == "web_ufficiale"
     assert items[0].metadata["authority"] == "official_web"
     assert items[0].metadata["url"].endswith(".pdf")
+    assert items[0].official_url.endswith(".pdf")
+
+
+def test_search_recognized_official_web_fallback_cassazione_lista_pubblica():
+    empty_search = "<html><body></body></html>"
+    cassazione_page = """
+    <html>
+      <body>
+        <div class="card-news">
+          <h3>
+            <a href="https://www.cortedicassazione.it/it/penale_dettaglio.page?contentId=SZP50042">
+              Sentenza n. 14575 ud. 15/04/2026 - deposito del 21/04/2026
+            </a>
+          </h3>
+          <p>
+            <span>Estradizione per l'estero</span>:
+            Estradizione cautelare passiva - Requisitoria del Procuratore generale.
+          </p>
+        </div>
+      </body>
+    </html>
+    """
+
+    def fake_get(url, **kwargs):
+        if "duckduckgo" in url:
+            return _FakeResponse(empty_search)
+        if kwargs.get("params", {}).get("frame3_item") == 2:
+            return _FakeResponse(cassazione_page)
+        return _FakeResponse("<html><body></body></html>")
+
+    results = search_recognized_official_web(
+        "Sentenza n. 14575 ud. 15/04/2026 - deposito del 21/04/2026",
+        source_ids=["cassazione"],
+        request_get=fake_get,
+        limit_results=3,
+    )
+
+    assert len(results) == 1
+    assert results[0]["source_id"] == "cassazione"
+    assert results[0]["official_url"].endswith("contentId=SZP50042")
+    assert "14575" in results[0]["title"]
+
+
+def test_resolve_official_source_ids_prioritizza_cassazione_per_sentenza_esatta():
+    source_ids = resolve_official_source_ids_for_query(
+        "Sentenza n. 14575 ud. 15/04/2026 - deposito del 21/04/2026",
+        limit=4,
+    )
+
+    assert source_ids[0] == "cassazione"
 
 
 def test_source_router_aggiunge_official_web_source_su_richiesta_web():

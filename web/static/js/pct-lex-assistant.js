@@ -1766,6 +1766,39 @@
     return ensureStatusCheck(forceStatusRefresh);
   }
 
+  function lexServiceUnavailableMessage() {
+    return 'Lex non ha completato la richiesta. Riprova tra poco; se il problema resta, controlla la salute del sistema.';
+  }
+
+  function looksLikeHtmlDocument(text) {
+    return /<\s*!doctype|<\s*html|<\s*body|<\s*script/i.test(String(text || ''));
+  }
+
+  function compactErrorText(text) {
+    var cleaned = String(text || '').replace(/\s+/g, ' ').trim();
+    if (!cleaned || looksLikeHtmlDocument(cleaned)) {
+      return lexServiceUnavailableMessage();
+    }
+    if (cleaned.length > 260) {
+      return cleaned.slice(0, 257).trim() + '...';
+    }
+    return cleaned;
+  }
+
+  function responseErrorMessage(response, body) {
+    var fallback = lexServiceUnavailableMessage();
+    var parsed = null;
+    try {
+      parsed = JSON.parse(body || '{}');
+    } catch (_error) {
+      parsed = null;
+    }
+    if (parsed && (parsed.message || parsed.errore || parsed.error)) {
+      return compactErrorText(parsed.message || parsed.errore || parsed.error);
+    }
+    return compactErrorText(body || fallback || ('HTTP ' + response.status));
+  }
+
   function primeAssistantContext() {
     var warmupUrl = widget && widget.dataset ? widget.dataset.warmupUrl || '' : '';
     var warmQuestion = '';
@@ -1828,12 +1861,7 @@
     }).then(function (response) {
       if (!response.ok) {
         return response.text().then(function (body) {
-          var message = body || ('HTTP ' + response.status);
-          try {
-            var parsed = JSON.parse(body || '{}');
-            message = parsed.message || parsed.errore || parsed.error || message;
-          } catch (_error) {}
-          throw new Error(message);
+          throw new Error(responseErrorMessage(response, body));
         });
       }
       if (!response.body) {
@@ -1926,9 +1954,9 @@
 
       return readChunk();
     }).catch(function (error) {
-      setBubbleContent(state.currentBubble, 'Errore di connessione: ' + (error.message || 'servizio non raggiungibile'));
+      setBubbleContent(state.currentBubble, compactErrorText(error && error.message || lexServiceUnavailableMessage()));
       finalizeThinkingFeedback(false);
-      finalizeRequest('Connessione a Lex non riuscita.');
+      finalizeRequest('Lex non ha completato la richiesta.');
     });
   }
 

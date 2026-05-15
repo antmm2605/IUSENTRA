@@ -1,12 +1,21 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-15, hotfix Aggiornamenti legali condivisi 2.238.3.
+Aggiornato: 2026-05-15, hotfix Copertura AI condivisa 2.238.4.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Hotfix Copertura AI condivisa 2.238.4 - 2026-05-15
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile web\services\legal_coverage_surface.py web\blueprints\legal_coverage_admin.py web\services\core_runtime.py pct\legal_coverage_sqlite_repository.py pct\storage_migration_full.py tests\test_legal_coverage_surface.py tests\test_repository_sql_parity.py tests\test_web_bootstrap.py pct\__init__.py`; `python -m ruff check web\services\legal_coverage_surface.py web\blueprints\legal_coverage_admin.py web\services\core_runtime.py pct\legal_coverage_sqlite_repository.py pct\storage_migration_full.py tests\test_legal_coverage_surface.py tests\test_repository_sql_parity.py tests\test_web_bootstrap.py` | OK | Sintassi e Ruff confermati dopo passaggio di Copertura AI ad archivio condiviso, rimozione selettore studio, blocco dei backend tenant impliciti e allineamento della migrazione storage sul DB coverage di piattaforma. |
+| `python -m pytest tests\test_legal_coverage_surface.py tests\test_repository_sql_parity.py::test_coverage_surface_ignora_database_tenant_postgresql_come_fallback tests\test_repository_sql_parity.py::test_coverage_surface_ignora_tenant_unico_con_configurazione_postgres_legacy tests\test_repository_sql_parity.py::test_coverage_surface_usa_postgresql_solo_se_configurato_esplicitamente tests\test_ai_coverage_pipeline.py tests\test_web_bootstrap.py::test_template_principali_usano_copy_italiana_e_date_localizzate -q --tb=short` | OK | 12/12 passati: dashboard/review non espongono piu' selezione studio, `tenant_slug` e `g.tenant` vengono ignorati, `studio.db` e PostgreSQL tenant-aware non sono fallback impliciti, PostgreSQL resta valido se configurato esplicitamente per coverage. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest tests\test_legal_coverage_surface.py tests\test_repository_sql_parity.py::test_coverage_surface_ignora_database_tenant_postgresql_come_fallback tests\test_repository_sql_parity.py::test_coverage_surface_ignora_tenant_unico_con_configurazione_postgres_legacy tests\test_repository_sql_parity.py::test_coverage_surface_usa_postgresql_solo_se_configurato_esplicitamente tests\test_ai_coverage_pipeline.py tests\test_web_bootstrap.py::test_template_principali_usano_copy_italiana_e_date_localizzate tests\test_packaging_consistency.py tests\test_release_readiness.py tests\test_end_to_end_studio.py tests\test_operational_surfaces.py::test_superadmin_product_surfaces_renderizzano -q --tb=short` | OK | Packaging sincronizzato e gate mirato finale 22/22 verde su versione `2.238.4`. |
+| `python scripts\validate_docs_links.py README.md docs\LEGAL_COVERAGE_AUTOFILL.md docs\STORAGE_MATRIX.md docs\STORAGE_MIGRATION_PLAN.md docs\REACT_MIGRATION_MASTER_PLAN.md`; `python scripts\validate_docs_commands.py`; `python -m pytest tests\test_end_to_end_studio.py -q --tb=short`; `python -m pytest tests\test_operational_surfaces.py::test_superadmin_product_surfaces_renderizzano -q --tb=short` | OK | Link documentali 21/157 e comandi documentali 155/155 verdi; smoke admin con `/admin/copertura-ai` e review verde; superfici end-to-end admin principali verdi. |
 
 ### Hotfix Aggiornamenti legali condivisi 2.238.3 - 2026-05-15
 

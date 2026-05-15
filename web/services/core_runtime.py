@@ -280,6 +280,16 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
             _data_peer_path(app.config["CLIENTI_DB"], "intelligence", "motori.json"),
         ),
     )
+    app.config["LEGAL_COVERAGE_SQLITE_DB"] = cfg.get(
+        "LEGAL_COVERAGE_SQLITE_DB",
+        os.getenv(
+            "LEGAL_COVERAGE_SQLITE_DB",
+            os.getenv(
+                "PCT_LEGAL_COVERAGE_SQLITE_DB",
+                _data_peer_path(app.config["CLIENTI_DB"], "intelligence", "legal_coverage.db"),
+            ),
+        ),
+    )
     app.config["LEGAL_SKILLS_PROFILE_DB"] = cfg.get(
         "LEGAL_SKILLS_PROFILE_DB",
         os.getenv(
@@ -461,6 +471,7 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
             "soggetti_parti": _cfg_data_path("SOGGETTI_PARTI_DB"),
             "wizard_pro": _cfg_data_path("WIZARD_PRO_DB"),
             "legal_intelligence": _cfg_data_path("LEGAL_INTELLIGENCE_DB"),
+            "legal_coverage": _cfg_data_path("LEGAL_COVERAGE_SQLITE_DB"),
             "normative_tables": _cfg_data_path("NORMATIVE_TABLES_DB"),
             "giurisprudenza": _cfg_data_path("GIURISPRUDENZA_DB"),
             "workspace_intelligence": _cfg_data_path("WORKSPACE_INTELLIGENCE_DB"),

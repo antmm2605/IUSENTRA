@@ -6,6 +6,8 @@ from flask import Flask
 
 from pct.giurisprudenza_repository import GestioneRepositoryGiurisprudenza
 from pct.legal_intelligence_repository import GestioneLegalIntelligenceRepository
+from pct.legal_coverage_repository import PostgresCoverageRepository
+from pct.legal_coverage_sqlite_repository import SQLiteCoverageRepository
 from pct.template_atti_repository import GestioneTemplateRepository
 from pct.tenant import DatabaseConfig, DbMode, GestioneTenant
 from pct.workspace_intelligence_repository import WorkspaceIntelligenceRepository
@@ -77,8 +79,9 @@ def test_workspace_intelligence_repository_salva_snapshot(tmp_path: Path):
     assert repo.storage_stats()["workspace_intelligence_snapshots"] == 1
 
 
-def test_coverage_surface_usa_database_tenant_postgresql_come_fallback():
+def test_coverage_surface_ignora_database_tenant_postgresql_come_fallback(tmp_path: Path):
     app = Flask(__name__)
+    app.config["LEGAL_INTELLIGENCE_DB"] = str(tmp_path / "intelligence" / "motori.json")
     app.config["TENANT_DATABASE_CONFIG"] = DatabaseConfig(
         mode=DbMode.POSTGRESQL,
         host="db.example.test",
@@ -91,13 +94,14 @@ def test_coverage_surface_usa_database_tenant_postgresql_come_fallback():
 
     repository = build_repository(app)
 
-    assert repository.config.configured is True
-    assert repository.config.dsn.startswith("postgresql://")
-    assert "db.example.test" in repository.config.dsn
+    assert isinstance(repository, SQLiteCoverageRepository)
+    assert repository.db_path.name == "legal_coverage.db"
+    assert repository.db_path.parent.name == "intelligence"
 
 
-def test_coverage_surface_usa_tenant_unico_con_configurazione_postgres_legacy(tmp_path: Path):
+def test_coverage_surface_ignora_tenant_unico_con_configurazione_postgres_legacy(tmp_path: Path):
     app = Flask(__name__)
+    app.config["LEGAL_INTELLIGENCE_DB"] = str(tmp_path / "intelligence" / "motori.json")
     registry_path = tmp_path / "tenants-coverage.json"
     app.config["TENANTS_REGISTRY"] = str(registry_path)
     tenant_manager = GestioneTenant(str(registry_path))
@@ -123,6 +127,18 @@ def test_coverage_surface_usa_tenant_unico_con_configurazione_postgres_legacy(tm
 
     repository = build_repository(app)
 
+    assert isinstance(repository, SQLiteCoverageRepository)
+    assert repository.db_path.name == "legal_coverage.db"
+    assert repository.db_path.parent.name == "intelligence"
+
+
+def test_coverage_surface_usa_postgresql_solo_se_configurato_esplicitamente():
+    app = Flask(__name__)
+    app.config["LEGAL_COVERAGE_DB_URL"] = "postgresql://coverage:segreta@db.example.shared:5432/iusentra_coverage"
+
+    repository = build_repository(app)
+
+    assert isinstance(repository, PostgresCoverageRepository)
     assert repository.config.configured is True
     assert repository.config.dsn.startswith("postgresql://")
-    assert "db.example.legacy" in repository.config.dsn
+    assert "db.example.shared" in repository.config.dsn

@@ -18,6 +18,13 @@ TAXONOMY_SCHEMA_SQL = Path(__file__).with_name("sql") / "20260417_legal_taxonomy
 COVERAGE_SCHEMA_SQL = Path(__file__).with_name("sql") / "20260417_legal_coverage_pipeline.sql"
 
 
+def derive_legal_coverage_sqlite_db_path(anchor_path: str) -> str:
+    cleaned = str(anchor_path or "").strip()
+    if cleaned:
+        return str(Path(cleaned).resolve().parent / "legal_coverage.db")
+    return str(Path("intelligence") / "legal_coverage.db")
+
+
 @dataclass(frozen=True)
 class CoverageSqliteConfig:
     path: str
@@ -76,7 +83,7 @@ def _decode_json(value: Any, default: Any) -> Any:
 
 
 class SQLiteCoverageRepository:
-    """Accesso SQLite tenant-aware alla coverage pipeline."""
+    """Accesso SQLite alla coverage pipeline."""
 
     def __init__(self, config: CoverageSqliteConfig):
         self.config = config

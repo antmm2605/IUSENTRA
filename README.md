@@ -75,10 +75,10 @@ python scripts\smoke_app_v2_all.py --suite health --read-only --json-output smok
 - Template atti, Checklist Atti professionale e workspace legali allineati sullo stesso catalogo operativo per aree, branche e sottobranche, con catalogo master versionato da 420 template e split `core`, `advanced`, `specialist`, `studio_interno`.
 - `Applicazioni` e' ora una cabina applicativa vera: moduli economici, telematici, template, lookup, utility e rassegna si aprono nello stesso workspace coerente invece di limitarsi a rinviare a link esterni o schede descrittive.
 - Giurisprudenza, legal intelligence, repository strutturati per Lex.
-- Motore `Update Intelligence` per monitoraggio normativo, giurisprudenziale e di prassi con area di acquisizione, coda revisioni e pagina news giuridiche strutturate; Lex legge il repository SQL tenant-aware `legal_updates.db`, mentre JSON e mirror legacy restano solo export amministrativi espliciti.
-- Pipeline `Coverage AI` per audit tassonomico, gap queue, draft v2, review e publish SQL con retrieval interno, funzionante sia su `SQLite locale` sia su `PostgreSQL tenant-aware`.
+- Motore `Update Intelligence` per monitoraggio normativo, giurisprudenziale e di prassi con area di acquisizione, coda revisioni e pagina news giuridiche strutturate; Lex legge il repository SQL condiviso `legal_updates.db`, mentre JSON e mirror legacy restano solo export amministrativi espliciti.
+- Pipeline `Coverage AI` per audit tassonomico, gap queue, draft v2, review e publish SQL con retrieval interno, funzionante su archivio condiviso SQLite o PostgreSQL esplicito di piattaforma.
 - Review `Coverage AI` con audit forte: motivo decisione, firma reviewer, diff tra spec originale e corrente, storico revisioni e publish SQL tracciato.
-- La console `Copertura AI` aggancia automaticamente il backend SQL reale del tenant selezionato: `studio.db` per gli studi `SQLite` oppure PostgreSQL tenant-aware per gli studi cloud o legacy gia' configurati; le sottobranche con draft gia' in review non vengono riaperte come gap e il publish segnala quando non ci sono bozze approvate.
+- La console `Copertura AI` usa una sola coverage condivisa da tutti gli studi: una scansione aggiorna audit, gap queue, bozze, review e publish per l'intera piattaforma; le sottobranche con draft gia' in review non vengono riaperte come gap e il publish segnala quando non ci sono bozze approvate.
 - `Crash test operativo` con simulazione di una giornata reale di studio, repair loop, ticket di riparazione, checklist finale `si/no`, backup blindato completo + incrementale e report persistiti per tenant.
 - Il preventivo guidato puo' creare subito il cliente minimale come `Cliente potenziale`, gestisce voci area pratica e classificazioni tassonomiche ripetibili come metadati silenziosi del preventivo, le porta nei repository SQL/PostgreSQL e conserva il contesto per preventivo/conferimento; il conferimento resta bloccato finche' il preventivo non e' accettato e l'anagrafica non e' completa.
 - Workspace/applicazioni, portali di acquisizione, privacy e audit.
@@ -300,7 +300,7 @@ La parte importante, adesso, è che lo stato non viene più raccontato in modo g
 - `PCT_SQLITE_MODE=1` resta supportato come compatibilità legacy, ma non è più l’unico punto di verità
 - i moduli economici (`preventivi`, `conferimenti`, `timesheet`, `fatturazione`, `pagamenti`) usano ora lo stesso percorso ufficiale di storage tenant-aware, con parita' reale su SQLite e PostgreSQL
 - anche `template atti`, `legal intelligence`, `giurisprudenza`, `repository telematico` e `workspace intelligence` hanno ora repository SQL/PostgreSQL dedicati, con JSON mantenuto come export o bootstrap controllato
-- l'`Assistente migrazione dati` esegue ormai il cutover completo del tenant: `studio.db`, repository strutturati laterali, `Update Intelligence` e `Coverage AI`, con report persistito sotto `backup/`
+- l'`Assistente migrazione dati` esegue il cutover completo del tenant per i dati riservati e repository strutturati laterali; `Update Intelligence` e `Coverage AI` sono presidi condivisi di piattaforma e non vengono duplicati per studio
 - la pagina `/admin/assistente-migrazione` mostra l'ultima esecuzione reale con domini migrati, diff pre/post, snapshot pre-migrazione, log operativo, failure mode del tenant sporco, rollback guidato e istruzioni operative per la correzione
 
 ## Avvio locale
@@ -539,9 +539,8 @@ IUSENTRA include ora un motore dedicato di aggiornamento normativo e giurisprude
 - confronta il risultato con l'archivio interno
 - apre una coda revisioni amministrativa per i contenuti strutturati
 - pubblica news giuridiche tracciabili nella UI dedicata
-- usa repository SQL locale o PostgreSQL tenant-aware in modo coerente con il backend migrato dello studio
-- in contesto multi-tenant il `SUPERADMIN` seleziona esplicitamente lo studio da governare, mentre archivio, review e publish restano segregati per tenant
-- se il nome configurato nello `studio.json` del tenant differisce dal nome registrato in piattaforma, il pannello superadmin mostra prima il nome del tenant e solo come nota il nome interno configurato
+- usa repository SQL condiviso di piattaforma, senza ripetere scansioni o review per ogni studio
+- in contesto multi-studio il `SUPERADMIN` governa un solo archivio comune per fonti, aggiornamenti, review e publish
 
 Superfici principali:
 

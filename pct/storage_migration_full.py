@@ -32,7 +32,11 @@ from pct.giurisprudenza_repository import (
     derive_giurisprudenza_repository_db_path,
 )
 from pct.legal_coverage_repository import CoverageDbConfig, PostgresCoverageRepository
-from pct.legal_coverage_sqlite_repository import CoverageSqliteConfig, SQLiteCoverageRepository
+from pct.legal_coverage_sqlite_repository import (
+    CoverageSqliteConfig,
+    SQLiteCoverageRepository,
+    derive_legal_coverage_sqlite_db_path,
+)
 from pct.legal_intelligence import GestioneLegalIntelligence
 from pct.legal_intelligence_repository import (
     GestioneLegalIntelligenceRepository,
@@ -812,7 +816,10 @@ def _migrate_sqlite_repository_domains(paths: dict[str, str]) -> dict[str, Any]:
         "sources_seeded": len(legal_updates.list_sources(enabled_only=False)),
     }
 
-    coverage_repo = SQLiteCoverageRepository(CoverageSqliteConfig(path=paths["STUDIO_DB"]))
+    coverage_sqlite_db = paths.get("LEGAL_COVERAGE_SQLITE_DB") or derive_legal_coverage_sqlite_db_path(
+        paths["LEGAL_INTELLIGENCE_DB"]
+    )
+    coverage_repo = SQLiteCoverageRepository(CoverageSqliteConfig(path=coverage_sqlite_db))
     coverage_repo.ensure_schema()
     report["coverage_ai"] = {
         "ok": True,
@@ -983,7 +990,10 @@ def _migrate_postgres_repository_domains(paths: dict[str, str], dsn: str) -> tup
         errors.append(f"aggiornamenti_legali: {exc}")
 
     try:
-        sqlite_coverage = SQLiteCoverageRepository(CoverageSqliteConfig(path=paths["STUDIO_DB"]))
+        coverage_sqlite_db = paths.get("LEGAL_COVERAGE_SQLITE_DB") or derive_legal_coverage_sqlite_db_path(
+            paths["LEGAL_INTELLIGENCE_DB"]
+        )
+        sqlite_coverage = SQLiteCoverageRepository(CoverageSqliteConfig(path=coverage_sqlite_db))
         postgres_coverage = PostgresCoverageRepository(CoverageDbConfig(dsn=dsn, explicit=True))
         postgres_coverage.ensure_schema()
         snapshots = []
@@ -1199,6 +1209,9 @@ def build_full_storage_inventory(
     telematico_sources_json = derive_telematico_sources_json_path(paths["LEGAL_INTELLIGENCE_DB"])
     workspace_repo_db = derive_workspace_intelligence_repository_db_path(paths["WORKSPACE_INTELLIGENCE_DB"])
     legal_updates_cfg = LegalUpdateDbConfig.from_anchor(paths["LEGAL_INTELLIGENCE_DB"])
+    legal_coverage_sqlite_db = paths.get("LEGAL_COVERAGE_SQLITE_DB") or derive_legal_coverage_sqlite_db_path(
+        paths["LEGAL_INTELLIGENCE_DB"]
+    )
     conferimenti_json_path = (
         str(Path(paths["PREVENTIVI_DB"]).with_name("conferimenti.json"))
         if paths.get("PREVENTIVI_DB")
@@ -1385,15 +1398,16 @@ def build_full_storage_inventory(
             "sqlite_count": _sqlite_table_count(legal_updates_cfg.db_path, "sources"),
             "postgres_count": _postgres_table_count(postgres_config, "sources") if postgres_online else 0,
             "storage_kind": "repository",
-            "note": "Repository SQL strutturato con parita' anche su PostgreSQL tenant-aware.",
+            "note": "Repository SQL condiviso di piattaforma.",
         },
         {
             "code": "coverage_ai",
             "title": "Copertura AI",
             "json_count": 0,
-            "sqlite_count": _sqlite_table_count(paths["STUDIO_DB"], "coverage_snapshots"),
+            "sqlite_count": _sqlite_table_count(legal_coverage_sqlite_db, "coverage_snapshots"),
             "postgres_count": _postgres_table_count(postgres_config, "coverage_snapshots") if postgres_online else 0,
             "storage_kind": "sql_pipeline",
+            "note": "Pipeline SQL condivisa di piattaforma.",
         },
     ]
     return {

@@ -39,9 +39,8 @@ def _write_named_tenant_config(path: str, studio_name: str) -> None:
     )
 
 
-def test_admin_copertura_ai_aggancia_il_tenant_unico_con_postgres_legacy(
+def test_admin_copertura_ai_ignora_tenant_postgres_legacy_e_usa_archivio_condiviso(
     tmp_path: Path,
-    monkeypatch,
 ):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg_web(tmp_path))
@@ -72,11 +71,6 @@ def test_admin_copertura_ai_aggancia_il_tenant_unico_con_postgres_legacy(
     )
 
     username, password = _seed_superadmin(app)
-    monkeypatch.setattr(
-        "web.services.legal_coverage_surface.PostgresCoverageRepository.ping",
-        lambda self: False,
-    )
-
     with app.test_client() as client:
         login = client.post(
             "/login",
@@ -90,11 +84,13 @@ def test_admin_copertura_ai_aggancia_il_tenant_unico_con_postgres_legacy(
     assert page.status_code == 200
     html = page.get_data(as_text=True)
     assert "DB configurato: si" in html
-    assert "Studio attivo:" in html
-    assert "Studio Coverage</strong>" in html or "Studio Coverage" in html
-    assert "Configurazione interna studio: Studio Coverage Operativo" in html
-    assert "PostgreSQL tenant-aware" in html
-    assert 'name="tenant_slug"' in html
+    assert "Archivio coverage condiviso da tutti gli studi" in html
+    assert "Una sola esecuzione aggiorna audit, gap queue, bozze, review e publish" in html
+    assert "Studi attivi coperti:" in html
+    assert "Studio attivo:" not in html
+    assert "Studio Coverage Operativo" not in html
+    assert "PostgreSQL tenant-aware" not in html
+    assert 'name="tenant_slug"' not in html
 
 
 def test_review_copertura_ai_spiega_il_flusso_e_mostra_la_coda(tmp_path: Path):
@@ -129,6 +125,7 @@ def test_review_copertura_ai_spiega_il_flusso_e_mostra_la_coda(tmp_path: Path):
     assert "Storico revisioni" in html
     assert "Diff bozza -&gt; versione corrente" in html or "Diff bozza -> versione corrente" in html
     assert "Nessuna bozza selezionata." in html
+    assert "Studio selezionato:" not in html
 
 
 def test_admin_copertura_ai_sqlite_tenant_mostra_database_connesso(tmp_path: Path):
@@ -163,12 +160,13 @@ def test_admin_copertura_ai_sqlite_tenant_mostra_database_connesso(tmp_path: Pat
     assert page.status_code == 200
     html = page.get_data(as_text=True)
     assert "Database coverage connesso" in html
-    assert "SQLite locale" in html
-    assert "Studio SQLite" in html
-    assert "Configurazione interna studio: Studio Coverage SQLite" in html
+    assert "Archivio coverage condiviso" in html
+    assert "Studio SQLite" not in html
+    assert "Configurazione interna studio" not in html
+    assert 'name="tenant_slug"' not in html
 
 
-def test_build_repository_rispetta_il_tenant_slug_esplicito_anche_in_request_context(tmp_path: Path):
+def test_build_repository_ignora_tenant_slug_e_request_context_per_archivio_condiviso(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg_web(tmp_path))
 
@@ -206,9 +204,11 @@ def test_build_repository_rispetta_il_tenant_slug_esplicito_anche_in_request_con
         repository = build_repository(tenant_slug=studio_sqlite.slug)
 
     assert isinstance(repository, SQLiteCoverageRepository)
+    assert repository.db_path.name == "legal_coverage.db"
+    assert repository.db_path.parent.name == "intelligence"
 
 
-def test_build_repository_usa_studio_db_single_studio_quando_non_esiste_un_tenant_attivo(tmp_path: Path):
+def test_build_repository_usa_sqlite_condiviso_anche_in_single_studio(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(
         {
@@ -221,7 +221,8 @@ def test_build_repository_usa_studio_db_single_studio_quando_non_esiste_un_tenan
 
     assert isinstance(repository, SQLiteCoverageRepository)
     assert repository.ping() is True
-    assert str(repository.db_path).endswith("studio.db")
+    assert repository.db_path.name == "legal_coverage.db"
+    assert repository.db_path.parent.name == "intelligence"
 
 
 def test_admin_copertura_ai_single_studio_sqlite_mostra_runtime_connesso(tmp_path: Path):
@@ -248,8 +249,9 @@ def test_admin_copertura_ai_single_studio_sqlite_mostra_runtime_connesso(tmp_pat
     assert page.status_code == 200
     html = page.get_data(as_text=True)
     assert "Database coverage connesso" in html
-    assert "SQLite locale" in html
-    assert "Studio Refactor" in html
+    assert "Archivio coverage condiviso" in html
+    assert "Studio Refactor" not in html
+    assert 'name="tenant_slug"' not in html
 
 
 def test_copertura_ai_single_studio_sqlite_esegue_pipeline_e_publish(tmp_path: Path):

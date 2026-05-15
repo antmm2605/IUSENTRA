@@ -11,48 +11,27 @@
     </p>
   </div>
   <div class="admin-coverage-actions">
-    <a href="{{ url_for('legal_coverage_admin.review_page', tenant_slug=tenant_slug) }}" class="btn btn-primary">
+    <a href="{{ url_for('legal_coverage_admin.review_page') }}" class="btn btn-primary">
       <i class="bi bi-ui-checks-grid me-1"></i>Apri coda revisioni
     </a>
   </div>
 </div>
 
-{% if payload.runtime.tenant_choices %}
 <div class="card mb-4">
   <div class="card-body">
-    <form method="get" class="row g-3 align-items-end">
-      <div class="col-12 col-lg-6">
-        <label class="form-label fw-semibold small">Studio per la coverage</label>
-        <select name="tenant_slug" class="form-select">
-          <option value="">Seleziona uno studio</option>
-          {% for studio in payload.runtime.tenant_choices %}
-          <option value="{{ studio.slug }}" {% if tenant_slug == studio.slug %}selected{% endif %}>
-            {{ studio.nome }} - {{ studio.slug }} - {{ studio.db_mode }}
-          </option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-12 col-lg-3">
-        <button class="btn btn-outline-primary w-100" type="submit">
-          <i class="bi bi-diagram-3 me-1"></i>Apri contesto studio
-        </button>
-      </div>
-      <div class="col-12 col-lg-3">
+    <div class="d-flex flex-wrap justify-content-between gap-3 align-items-start">
+      <div>
+        <div class="fw-semibold">Archivio coverage condiviso da tutti gli studi</div>
         <div class="small text-muted">
-          {% if payload.runtime.tenant_name %}
-            Studio attivo: <strong>{{ payload.runtime.tenant_registry_name or payload.runtime.tenant_name }}</strong>
-            {% if payload.runtime.tenant_name_mismatch and payload.runtime.tenant_configured_name %}
-              <br>Configurazione interna studio: {{ payload.runtime.tenant_configured_name }}
-            {% endif %}
-          {% else %}
-            Seleziona lo studio da usare per audit, revisione e publish.
-          {% endif %}
+          Una sola esecuzione aggiorna audit, gap queue, bozze, review e publish per l'intera piattaforma.
         </div>
       </div>
-    </form>
+      <div class="small text-muted">
+        Studi attivi coperti: <strong>{{ payload.runtime.tenant_count or 0 }}</strong>
+      </div>
+    </div>
   </div>
 </div>
-{% endif %}
 
 {% set runtime_ok = payload.runtime.db_online %}
 <div class="alert alert-{{ 'success' if runtime_ok else 'warning' }} mb-4" role="alert">
@@ -63,21 +42,12 @@
       </div>
       <div class="small">
         {% if runtime_ok %}
-          Studio: {{ payload.runtime.tenant_registry_name or payload.runtime.tenant_name or payload.runtime.tenant_slug or 'n.d.' }} -
-          {% if payload.runtime.tenant_name_mismatch and payload.runtime.tenant_configured_name %}
-            configurazione interna: {{ payload.runtime.tenant_configured_name }} -
-          {% endif %}
-          backend: {{ payload.runtime.db_backend_label or 'n.d.' }} -
-          Ollama: {{ payload.runtime.ollama_model or 'modello non configurato' }} -
-          endpoint {{ payload.runtime.ollama_url or 'n.d.' }}
+          Archivio: {{ payload.runtime.db_backend_label or 'n.d.' }} -
+          modello AI: {{ payload.runtime.ollama_model or 'modello non configurato' }}
         {% elif payload.runtime.db_configured %}
-          {% if payload.runtime.db_backend_label == 'SQLite locale' %}
-            Il backend coverage SQL locale e' configurato ma al momento non risponde. Verifica il file `studio.db` del tenant selezionato e riprova.
-          {% else %}
-            Il backend coverage e' configurato ma al momento non risponde. Verifica la connessione PostgreSQL tenant-aware dello studio selezionato e riprova.
-          {% endif %}
+          L'archivio coverage condiviso e' configurato ma al momento non risponde. Verifica la configurazione di piattaforma e riprova.
         {% else %}
-          Attiva un PostgreSQL tenant-aware oppure configura `LEGAL_COVERAGE_DB_*` / `PCT_LEGAL_COVERAGE_DB_*` per usare pipeline, review e publish reali senza fallback fittizi.
+          Configura l'archivio coverage condiviso per usare pipeline, review e publish reali.
         {% endif %}
       </div>
     </div>
@@ -147,7 +117,6 @@
     <div class="row g-3">
       <div class="col-12 col-lg-3">
         <form method="post" action="{{ url_for('legal_coverage_admin.execute_action', action='audit') }}" class="d-grid">
-          <input type="hidden" name="tenant_slug" value="{{ tenant_slug }}">
           <button class="btn btn-outline-primary" type="submit">
             <i class="bi bi-search me-1"></i>Esegui auditor
           </button>
@@ -155,7 +124,6 @@
       </div>
       <div class="col-12 col-lg-3">
         <form method="post" action="{{ url_for('legal_coverage_admin.execute_action', action='gaps') }}" class="d-grid">
-          <input type="hidden" name="tenant_slug" value="{{ tenant_slug }}">
           <button class="btn btn-outline-primary" type="submit">
             <i class="bi bi-list-task me-1"></i>Rigenera gap queue
           </button>
@@ -163,7 +131,6 @@
       </div>
       <div class="col-12 col-lg-3">
         <form method="post" action="{{ url_for('legal_coverage_admin.execute_action', action='drafts') }}" class="d-grid">
-          <input type="hidden" name="tenant_slug" value="{{ tenant_slug }}">
           <button class="btn btn-outline-primary" type="submit">
             <i class="bi bi-magic me-1"></i>Genera bozze AI
           </button>
@@ -171,7 +138,6 @@
       </div>
       <div class="col-12 col-lg-3">
         <form method="post" action="{{ url_for('legal_coverage_admin.execute_action', action='publish') }}" class="d-grid">
-          <input type="hidden" name="tenant_slug" value="{{ tenant_slug }}">
           <button class="btn btn-primary" type="submit">
             <i class="bi bi-database-check me-1"></i>Pubblica approvati
           </button>
@@ -218,7 +184,7 @@
     <div class="card h-100">
       <div class="card-header d-flex justify-content-between align-items-center gap-2">
         <strong>Draft queue</strong>
-        <a href="{{ url_for('legal_coverage_admin.review_page', tenant_slug=tenant_slug) }}" class="btn btn-sm btn-outline-secondary">Apri revisione</a>
+        <a href="{{ url_for('legal_coverage_admin.review_page') }}" class="btn btn-sm btn-outline-secondary">Apri revisione</a>
       </div>
       <div class="table-responsive">
         <table class="table table-sm align-middle mb-0">

@@ -49,10 +49,8 @@ def _json_error(message: str, *, status: int = 200):
 
 
 def _selected_tenant_slug() -> str:
-    if request.is_json:
-        body = request.get_json(silent=True) or {}
-        return str(body.get("tenant_slug") or "").strip().lower()
-    return str(request.values.get("tenant_slug") or request.args.get("tenant_slug") or "").strip().lower()
+    # Copertura AI e' presidio condiviso: la console non seleziona piu' uno studio.
+    return ""
 
 
 def _review_payload(required_reason: bool = False) -> tuple[dict[str, Any], str, str, str]:
@@ -112,8 +110,7 @@ def execute_action(action: str):
     except Exception as exc:
         current_app.logger.exception("Errore action coverage %s: %s", action, exc)
         flash(f"Errore durante l'azione {action}: {exc}", "danger")
-    redirect_kwargs = {"tenant_slug": tenant_slug} if tenant_slug else {}
-    return redirect(url_for("legal_coverage_admin.dashboard", **redirect_kwargs))
+    return redirect(url_for("legal_coverage_admin.dashboard"))
 
 
 @legal_coverage_admin.get("/review")

@@ -1,5 +1,20 @@
 # Migrazione progressiva Flask + React
 
+## Hotfix Copertura AI condivisa - 2026-05-15 - 2.238.4
+
+La console superadmin `/admin/copertura-ai` e la review `/admin/copertura-ai/review`
+non sono piu' divise per studio: auditor, gap queue, generazione bozze, review,
+publish SQL e API admin usano l'archivio applicativo condiviso
+`LEGAL_COVERAGE_SQLITE_DB`, con fallback governato a
+`intelligence/legal_coverage.db` o a PostgreSQL solo se configurato
+esplicitamente con `LEGAL_COVERAGE_DB_*`.
+
+Questo evita di ripetere la stessa copertura giuridica per ogni studio quando la
+piattaforma cresce. `tenant_slug`, `g.tenant`, `TENANT_DATABASE_CONFIG`,
+`studio.db` del tenant e configurazioni PostgreSQL legacy dello studio non
+vengono piu' usati dalla Copertura AI; i dati riservati degli studi restano
+tenant-aware negli altri domini.
+
 ## Hotfix Aggiornamenti legali condivisi - 2026-05-15 - 2.238.3
 
 La console superadmin `/admin/aggiornamenti-legali` e la pagina `Fonti` non

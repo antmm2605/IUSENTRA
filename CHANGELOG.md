@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.238.4 - 2026-05-15
+
+- Resa condivisa la console `/admin/copertura-ai`: dashboard, audit, gap queue, generazione bozze, review, publish e API admin ignorano `tenant_slug` e usano un archivio unico di piattaforma.
+- Aggiunto il percorso SQLite condiviso `LEGAL_COVERAGE_SQLITE_DB` / `PCT_LEGAL_COVERAGE_SQLITE_DB`, con default sotto `intelligence/legal_coverage.db`; PostgreSQL resta disponibile solo se configurato esplicitamente con `LEGAL_COVERAGE_DB_*`.
+- Rimossi selettore studio, campi nascosti e testi per-tenant dalla dashboard e dalla review `Copertura AI`; la pagina utenti piattaforma ora descrive Aggiornamenti legali e Copertura AI come presidi condivisi.
+- Aggiornati test di regressione per impedire il ritorno a `studio.db`, PostgreSQL tenant-aware implicito o selezione studio sulla Copertura AI.
+
 ## 2.238.3 - 2026-05-15
 
 - Resa condivisa la console `Aggiornamenti legali`: dashboard, fonti, acquisizione, analisi, archivio, review e API admin usano l'archivio applicativo unico derivato da `LEGAL_INTELLIGENCE_DB`, senza selezione tenant e senza duplicare scansioni per studio.

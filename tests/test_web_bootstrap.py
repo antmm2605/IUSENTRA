@@ -721,7 +721,7 @@ def test_template_principali_usano_copy_italiana_e_date_localizzate():
         ],
         "web/templates/admin/legal_coverage_dashboard.html": [
             "Copertura AI e autopubblicazione controllata",
-            "Studio per la coverage",
+            "Archivio coverage condiviso da tutti gli studi",
             "Database coverage",
         ],
         "web/templates/admin/legal_coverage_review.html": [

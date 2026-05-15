@@ -11,7 +11,7 @@ Trasformare la tassonomia procedure da catalogo statico a capability continua:
 - `pct/legal_coverage_repository.py`
   Gestisce schema PostgreSQL, snapshot, gap queue, draft, publish history e learning events.
 - `pct/legal_coverage_sqlite_repository.py`
-  Gestisce lo stesso flusso su `studio.db` del tenant, con schema SQL locale, review e publish reali anche senza PostgreSQL.
+  Gestisce lo stesso flusso sull'archivio SQLite condiviso di piattaforma, con schema SQL locale, review e publish reali anche senza PostgreSQL.
 - `pct/legal_coverage_pipeline.py`
   Orchestration pura del flusso audit -> gap -> draft -> review -> publish.
 - `pct/legal_coverage_ai.py`
@@ -50,6 +50,7 @@ Trasformare la tassonomia procedure da catalogo statico a capability continua:
 
 Variabili supportate:
 
+- `LEGAL_COVERAGE_SQLITE_DB`
 - `LEGAL_COVERAGE_DB_URL`
 - `LEGAL_COVERAGE_DB_HOST`
 - `LEGAL_COVERAGE_DB_PORT`
@@ -59,6 +60,7 @@ Variabili supportate:
 
 Alias con prefisso `PCT_` equivalenti:
 
+- `PCT_LEGAL_COVERAGE_SQLITE_DB`
 - `PCT_LEGAL_COVERAGE_DB_URL`
 - `PCT_LEGAL_COVERAGE_DB_HOST`
 - `PCT_LEGAL_COVERAGE_DB_PORT`
@@ -68,10 +70,9 @@ Alias con prefisso `PCT_` equivalenti:
 
 Per attivare la pipeline reale puoi usare due strade:
 
-- configurazione esplicita con `LEGAL_COVERAGE_DB_*` o `PCT_LEGAL_COVERAGE_DB_*`
-- riuso automatico del PostgreSQL tenant-aware gia' attivo per lo studio, senza dover duplicare la configurazione coverage
-- riuso automatico anche di configurazioni tenant legacy gia' valorizzate con host/database/utente PostgreSQL, quando il registry storico non ha ancora riallineato formalmente il `db_config.mode`
-- riuso automatico del backend `SQLite locale` del tenant quando lo studio usa `studio.db` come storage SQL operativo
+- archivio SQLite condiviso di piattaforma, configurabile con `LEGAL_COVERAGE_SQLITE_DB` / `PCT_LEGAL_COVERAGE_SQLITE_DB` e, di default, sotto `intelligence/legal_coverage.db`
+- configurazione PostgreSQL esplicita di piattaforma con `LEGAL_COVERAGE_DB_*` o `PCT_LEGAL_COVERAGE_DB_*`
+- nessun riuso automatico di `studio.db`, `TENANT_DATABASE_CONFIG`, PostgreSQL tenant-aware o configurazioni legacy del singolo studio
 
 L'AI usa il runtime locale gia' configurato nel gestionale:
 
@@ -83,10 +84,9 @@ L'AI usa il runtime locale gia' configurato nel gestionale:
 - Dashboard: `/admin/copertura-ai`
 - Review queue: `/admin/copertura-ai/review`
 
-Se il tenant usa `SQLite locale`, la dashboard lavora direttamente su `studio.db` e non chiede piu' forzatamente un PostgreSQL esterno solo per audit, review e publish.
-Se il tenant ha gia' PostgreSQL attivo, la dashboard non resta piu' bloccata su "Database coverage non raggiungibile" solo per mancanza delle variabili dedicate: usa il backend studio gia' disponibile e mostra la pipeline reale.
-Se il superadmin opera fuori impersonazione, la dashboard seleziona automaticamente il tenant unico attivo oppure permette di scegliere esplicitamente lo studio dalla UI, propagando lo stesso contesto a review, action forms e API.
-La UI mostra anche il nome studio configurato nel `config/studio.json` del tenant e il backend coverage effettivo (`PostgreSQL tenant-aware`, `SQLite locale`, `JSON locale`), cosi' il contesto operativo non resta ambiguo.
+La dashboard non seleziona piu' uno studio: audit, gap queue, draft, review, publish e API JSON operano sullo stesso archivio condiviso per tutta la piattaforma.
+Questo evita che il superadmin debba ripetere la stessa ricerca o pubblicazione per ogni studio quando gli studi diventano 10, 20 o piu'.
+La UI mostra il numero di studi attivi coperti e il backend condiviso effettivo, senza propagare `tenant_slug` nei form o nella review.
 Quando una sottobranca ha gia' una bozza `generated`, `validated`, `needs_review` o `approved`, la gap queue non la riapre come gap pendente: il lavoro resta nella coda review fino a rifiuto o publish SQL. La generazione draft evita inoltre duplicati su gap storici ancora aperti.
 Il publish da dashboard pubblica solo bozze approvate; se non esistono draft `approved`, la UI mostra un avviso operativo e invita ad aprire la coda revisioni invece di dichiarare un riallineamento SQL non avvenuto.
 La schermata review autoseleziona la prima bozza disponibile, spiega il flusso da seguire e rende visibile il contesto di retrieval usato per generare il draft.

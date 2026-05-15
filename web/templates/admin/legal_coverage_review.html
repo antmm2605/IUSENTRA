@@ -1,7 +1,7 @@
 {% extends "admin/base.html" %}
 {% block title %}Review copertura AI{% endblock %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{{ url_for('legal_coverage_admin.dashboard', tenant_slug=tenant_slug) }}" class="text-decoration-none">Copertura AI</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('legal_coverage_admin.dashboard') }}" class="text-decoration-none">Copertura AI</a></li>
 <li class="breadcrumb-item active">Review</li>
 {% endblock %}
 
@@ -14,12 +14,9 @@
       <p class="review-subtitle mb-0">
         Qui controlli le bozze generate automaticamente prima che vengano trasformate in SQL e pubblicate nel catalogo.
       </p>
-      {% if tenant_slug %}
-      <div class="small text-muted mt-1">Studio selezionato: <strong>{{ tenant_slug }}</strong></div>
-      {% endif %}
     </div>
     <div class="review-header-actions">
-      <a href="{{ url_for('legal_coverage_admin.dashboard', tenant_slug=tenant_slug) }}" class="btn btn-outline-secondary">Torna alla dashboard</a>
+      <a href="{{ url_for('legal_coverage_admin.dashboard') }}" class="btn btn-outline-secondary">Torna alla dashboard</a>
       <button class="btn btn-outline-primary" id="btn-refresh" type="button">Aggiorna</button>
       <button class="btn btn-primary" id="btn-open-sql" type="button">Anteprima SQL</button>
       <button class="btn btn-success" id="btn-approve" type="button">Approva</button>
@@ -249,7 +246,7 @@
 {{ super() }}
 <script>
   window.REVIEW_API_BASE = "/admin/copertura-ai/api";
-  window.REVIEW_TENANT_SLUG = "{{ tenant_slug }}";
+  window.REVIEW_TENANT_SLUG = "";
 </script>
 <script src="{{ url_for('static', filename='js/admin_coverage_review.js') }}?v={{ app_version }}"></script>
 {% endblock %}

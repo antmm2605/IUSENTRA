@@ -50,7 +50,7 @@ Questo consente al superadmin di capire subito se il cutover e' riuscito o dove 
 - repository telematico
 - workspace intelligence
 - aggiornamenti legali, su archivio applicativo condiviso e non duplicato per studio
-- coverage AI
+- coverage AI, su archivio applicativo condiviso e non duplicato per studio
 
 ## Regole di attivazione
 
@@ -65,7 +65,7 @@ Questo consente al superadmin di capire subito se il cutover e' riuscito o dove 
 - SQLite resta backend locale o fallback dichiarato per tenant non ancora cutoverizzati
 - JSON resta compatibilita' legacy o ponte per domini non ancora migrati
 - filesystem tenant resta sorgente primaria per documenti, buste, upload e modelli AI locali
-- il cutover completo del tenant include anche i repository SQL laterali e le pipeline `Coverage AI` / `Update Intelligence`, non solo `studio.db`
+- il cutover completo del tenant include i repository SQL laterali tenant-aware; le pipeline `Coverage AI` e `Update Intelligence` restano presidi applicativi condivisi e non vengono ripetute per ogni studio
 
 ## Cosa rende una migrazione "blindata"
 

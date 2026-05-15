@@ -32,7 +32,7 @@ Legenda:
 | Motori legali | Legal intelligence, monitoraggio e audit fonti | R/W | R/W | R/W | parita' completa | Wave 5 - intelligence | JSON tenant-aware come export/recovery, senza fallback invisibili |
 | Motori legali | Giurisprudenza e corpus interno | R/W | R/W | R/W | parita' completa | Wave 5 - intelligence | JSON tenant-aware come export/import storico controllato |
 | Motori legali | Update Intelligence, news e archivio normativo assistito | R/W | R/W | R/W | parita' completa | Wave 5 - intelligence | repository SQL applicativo condiviso da tutti gli studi, JSON solo come export amministrativo |
-| Motori legali | Coverage AI, gap queue, draft v2 e publish SQL | - | R/W | R/W | parita' completa | Wave 5 - intelligence | pipeline SQL reale su `studio.db` o PostgreSQL tenant-aware, senza fallback fittizi |
+| Motori legali | Coverage AI, gap queue, draft v2 e publish SQL | - | R/W | R/W | parita' completa | Wave 5 - intelligence | pipeline SQL reale su archivio condiviso di piattaforma (`LEGAL_COVERAGE_SQLITE_DB` o PostgreSQL esplicito), senza fallback fittizi per-studio |
 | Telematico | PST, PDP, PAT e PTT/SIGIT | R/W | R/W | R/W | parita' completa | Wave 3 - workspace professionali | metadati e repository su SQL/PostgreSQL, file e buste sempre su filesystem tenant |
 | Telematico | Uffici giudiziari e PEC | R/W | R | R | schema governato, runtime cache JSON-first | Wave 3 - workspace professionali | cache JSON esplicita per continuita'; SQL/PostgreSQL predisposti in `pct/sql/20260430_uffici_giudiziari_pec*.sql`, senza fallback invisibile quando verra' attivato il repository tenant-aware |
 | Telematico | SIGP - Giudice di Pace | - | R/W | R/W | snapshot fascicolo e validazione XSD governati | Wave 3 - workspace professionali | sync autorizzata fascicolo/parti/eventi/udienze/documenti/comunicazioni su SQL; file XSD e future buste su filesystem tenant |
@@ -55,7 +55,7 @@ Legenda:
 - L'adapter Docling di Lex e' un parser opzionale in-memory attivato da `LEX_DOCLING_ENABLED=1`: produce metadati citabili per evidence pack e, quando si persiste RAG, deve confluire nelle tabelle `rag_documents`/`rag_chunks` del dominio `AI locale` senza creare fallback invisibili o sorgenti parallele.
 - Local Deep Research e' un sidecar opzionale per ricerche pubbliche. I suoi dati applicativi restano nel data root scrivibile e non diventano fonte primaria IUSENTRA: Lex continua a usare retrieval tenant-aware per fascicoli, clienti, atti e documenti interni.
 - i moduli economici condividono lo stesso percorso ufficiale di migrazione `JSON -> SQLite -> PostgreSQL` con report di consistenza; il compenso a tempo ex art. 22-bis D.M. 55/2014 e' persistito su preventivi, conferimenti, log economico e fatturazione con migrazioni SQLite/PostgreSQL dedicate.
-- `Update Intelligence` usa un repository SQL locale condiviso di piattaforma, per evitare scansioni e review duplicate tra studi; `Coverage AI` resta invece sul perimetro tenant-aware dello studio.
+- `Update Intelligence` e `Coverage AI` usano repository condivisi di piattaforma, per evitare scansioni, gap queue, review e publish duplicati tra studi.
 - Lex AI consuma `Update Intelligence` dal repository SQL `legal_updates.db` condiviso; `legal_updates_repository.json` e `giurisprudenza.json` non sono sorgenti runtime e restano solo export/mirror espliciti.
 - l'`Assistenza remota cliente` e' un dominio di piattaforma: sessioni, eventi, consensi ed escalation vivono nel repository SQL dedicato e non degradano su JSON.
 - `Sito Studio` usa un repository SQL dedicato per tenant, mentre immagini e asset restano su filesystem tenant-aware; `strumenti legali`, `applicazioni` e `news giuridiche strutturate` vengono pubblicati solo quando il flag amministrativo del sito e' attivo.
@@ -73,5 +73,5 @@ Legenda:
 - template termini processuali, versioni regole/calendario e audit hashati invariati
 - timesheet, preventivi, conferimenti, parcelle e link pagamento coerenti tra cliente e fascicolo
 - fonti, staging, review queue, news, normative, giurisprudenza e prassi di `Update Intelligence` coerenti nell'archivio SQL condiviso di piattaforma
-- snapshot, gap queue, draft e publish history di `Coverage AI` coerenti tra `studio.db` e PostgreSQL tenant-aware
+- snapshot, gap queue, draft e publish history di `Coverage AI` coerenti tra SQLite condiviso e PostgreSQL esplicito di piattaforma
 - report di migrazione persistito sotto `backup/` del tenant

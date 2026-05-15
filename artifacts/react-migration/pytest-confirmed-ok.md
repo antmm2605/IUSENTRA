@@ -8,6 +8,21 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 
 ## Frontend e gate React
 
+### Lex Operational Knowledge 2.236.7 - 2026-05-15
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest tests/test_lex_operational_knowledge.py -q` | OK | 17/17 passati: feature flag off/on, tenant isolation, RBAC, lookup clienti/fascicoli/scadenze/agenda/preventivi/conferimenti/documenti, messaggi PEC/email, template atti, audit, blocco azioni dispositive, no web per dati cliente e tool registry default-off. |
+| `python -m py_compile lex/operational_knowledge/service.py lex/operational_knowledge/query_router.py tests/test_lex_operational_knowledge.py`; `python -m compileall -q lex/operational_knowledge lex/tools/operational_knowledge_tool.py tests/test_lex_operational_knowledge.py` | OK | Sintassi confermata dopo router operativo, supporto `cliente_id`, messaggi/notifiche/template e fallback deterministico per termini. |
+| `python -m ruff check lex/operational_knowledge lex/http_bounded_bridge.py lex/tools/registry.py lex/tools/operational_knowledge_tool.py tests/test_lex_operational_knowledge.py` | OK | Ruff verde sul nuovo layer, tool registry e integrazione bounded bridge. |
+| `python -m pytest tests/test_lex_legal_source_engine.py tests/test_lex_operational_knowledge.py -q` | OK | 30/30 passati: Legal Source Engine locale e Operational Knowledge restano compatibili, senza rete live nei test. |
+| `python -m pytest lex/tests/test_http_bounded_bridge.py lex/tests/test_http_bounded_bridge_governed_only.py tests/test_lex_fascicolo_first_retrieval.py -q` | OK | 12/12 passati: il bounded bridge esistente continua a instradare workflow governati e fascicolo-first dopo l'innesto operativo. |
+| `python tools/sync_packaging_files.py --check`; `python -m pytest tests/test_packaging_consistency.py tests/test_release_readiness.py -q`; `git diff --check` | OK | Packaging/versione `2.236.7` sincronizzati, readiness 8/8 passata; `git diff --check` senza errori, solo warning CRLF su file runtime preesistente e documento generato. |
+| `python scripts/validate_docs_links.py`; `python scripts/validate_docs_commands.py`; `python scripts/validate_openapi.py docs/openapi.yaml`; `python scripts/verify_openapi_provider.py` | OK | Link e comandi documentali verdi, OpenAPI valida, provider verification OK con auth-error=182, success=27, backend-security=1 su data root temporaneo. |
+| `python scripts/react-migration/generate_app_v2_page_registry.py --check`; `python scripts/react-migration/generate_app_v2_area_requirements.py --check`; `python scripts/react-migration/generate_app_v2_test_docs.py --check` | OK | I generatori hanno inizialmente segnalato drift documentale; rigenerati i documenti ufficiali e rilanciati i tre `--check`, tutti verdi. |
+| `npm --prefix frontend run test`; `npm --prefix frontend run typecheck`; `npm --prefix frontend run build` | OK | Contratti React/App V2/UI coverage, TypeScript e build Vite `2.236.7` verdi; main asset `index-B5vl-4wv.js` 447.43 kB / 132.37 kB gzip. |
+| `node frontend/scripts/check-react-contracts.mjs`; `node scripts/react-migration/check-route-gate.mjs`; `node scripts/react-migration/check-full-react-route-contract.mjs` | OK | Contratti React, route gate e anti-mascheramento/no-fake React confermati dopo build e rigenerazione report. |
+
 ### Legal Source Engine Lex AI 2.236.6 - 2026-05-15
 
 | Comando / verifica | Esito | Nota |

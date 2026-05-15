@@ -123,6 +123,28 @@ python -m lex.legal_sources.populate --activate --populate --force --json
 Il comando scrive solo in `data/legal_sources/`, `indexes/legal_sources/` e `artifacts/legal_sources/`, tutte cartelle ignorate da git.
 Nei container/server con `PCT_DATA_ROOT=/data`, i default runtime vengono risolti sotto `/data/legal_sources`, `/data/indexes/legal_sources` e `/data/artifacts/legal_sources`.
 
+### Operational Knowledge tenant-aware
+
+Il layer `lex/operational_knowledge/` permette a Lex di interrogare dati reali dello studio con tool deterministici: clienti, soggetti, fascicoli, agenda, scadenziario, preventivi, conferimenti, tariffario, fatturazione, timesheet, documenti fascicolo, messaggi, notifiche, template atti, legal intelligence, update intelligence e fonti ufficiali locali. Non usa web per dati cliente/studio, non legge file arbitrari e resta spento finche' non viene abilitato esplicitamente.
+
+| Variabile | Default | Descrizione |
+|-----------|---------|-------------|
+| `LEX_OPERATIONAL_KNOWLEDGE_ENABLED` | `false` | Abilita il layer operativo tenant-aware dentro il bounded workflow Lex. Default: spento. |
+| `LEX_OPERATIONAL_AUDIT_ENABLED` | `false` | Registra eventi audit `lex.operational.query` / `lex.operational.blocked` tramite il repository audit dello studio. |
+| `LEX_OPERATIONAL_STRICT_MODE_ENABLED` | `false` | Modalita' prudenziale per future restrizioni aggiuntive. Le guardie RBAC/tenant restano sempre attive. |
+| `LEX_OPERATIONAL_MAX_RESULTS` | `12` | Limite massimo risultati per tool deterministico. |
+| `LEX_OPERATIONAL_MAX_ANSWER_ITEMS` | `6` | Limite di elementi sintetizzati nella risposta naturale. |
+
+Attivazione controllata:
+
+```env
+LEX_OPERATIONAL_KNOWLEDGE_ENABLED=1
+LEX_OPERATIONAL_AUDIT_ENABLED=1
+LEX_OPERATIONAL_STRICT_MODE_ENABLED=1
+```
+
+Ogni risposta operativa espone fonti interne, permessi applicati, confidence, coverage gap e oggetti letti. Se il tenant, l'utente o i permessi non sono disponibili, il layer risponde fail-closed invece di usare fallback globali.
+
 ---
 
 ## 6. Memoria e Telemetria

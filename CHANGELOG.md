@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.236.7 - 2026-05-15
+
+- Introdotto il layer Lex Operational Knowledge: registry sorgenti operative, guard tenant/RBAC, router query, tool deterministici, response composer, audit e integrazione nel bounded workflow con feature flag default-off.
+- Lex puo' interrogare dati reali tenant-aware di clienti, soggetti, fascicoli, agenda, scadenziario, preventivi, conferimenti, tariffario, fatturazione, timesheet, documenti fascicolo, messaggi, notifiche, template atti, legal intelligence, update intelligence e fonti ufficiali locali.
+- Aggiunta la mappa tecnica `docs/lex-operational-knowledge-map.md`, documentati flag di abilitazione e aggiornato il registro tool Lex.
+- Rafforzati i test contro regressioni: niente web per dati cliente/studio, niente dati inventati, blocco azioni dispositive, RBAC, tenant isolation, coverage gap e fonti interne citabili.
+
 ## 2.236.6 - 2026-05-15
 
 - Reso operativo in modalita locale controllata il Legal Source Engine per Lex AI: contratti fonte, registry, modello citazionale, answer policy, dogfood, scorecard, report, auto-populate seed e retriever JSONL senza rete o crawling live.

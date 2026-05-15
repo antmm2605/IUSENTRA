@@ -66,6 +66,19 @@ Valori accettati per `false`: `0`, `false`, `no`, `off`.
 
 La shell React riceve gli stessi flag nel bootstrap `iusentra-react-bootstrap`, cosi' il frontend puo' nascondere le superfici non abilitate senza chiamare API sperimentali.
 
+## Flag Lex e AI
+
+Le capability Lex che accedono a dati operativi o fonti giuridiche restano governate da variabili dedicate e default sicuri. Questi flag non sostituiscono RBAC, tenant isolation o audit: li attivano solo come primo cancello.
+
+| Capability | Flag/env | Default | Protezione |
+| --- | --- | --- | --- |
+| Lex Operational Knowledge | `LEX_OPERATIONAL_KNOWLEDGE_ENABLED` | off | abilita solo tool deterministici tenant-aware su dati reali dello studio |
+| Audit query operative Lex | `LEX_OPERATIONAL_AUDIT_ENABLED` | off | registra domanda, sorgenti, oggetti letti, permessi applicati ed esito nel registro audit |
+| Strict mode operativo Lex | `LEX_OPERATIONAL_STRICT_MODE_ENABLED` | off | riservato a policy piu' restrittive; le guardie base restano sempre attive |
+| Legal Source Engine nativo | `IUSENTRA_LEX_AI_LEGAL_SOURCES_ENABLED` | off | abilita fonti ufficiali locali, rete sempre off salvo `IUSENTRA_LEGAL_SOURCES_ALLOW_NETWORK=1` |
+
+Per i dati di clienti, fascicoli, agenda, scadenze, preventivi, documenti e comunicazioni Lex non usa web esterno. Se il flag operativo e' spento, il bounded workflow esistente continua senza interrogare il nuovo layer.
+
 ## Comportamento flag-off
 
 - route App V2 con flag spento: HTTP 403 con messaggio operativo;

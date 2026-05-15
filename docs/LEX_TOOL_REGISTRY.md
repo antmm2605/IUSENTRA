@@ -2,6 +2,12 @@
 
 Registro dei 25+ tool disponibili in `lex/tools/legal_studio_tools.py`.
 
+Il registry runtime `lex/tools/registry.py` espone anche il tool governato
+`operational_knowledge`, spento di default tramite
+`LEX_OPERATIONAL_KNOWLEDGE_ENABLED=false`. Questo tool non sostituisce i tool
+storici: li completa con un layer unico tenant-aware, RBAC-aware e auditabile
+per interrogare dati reali dello studio.
+
 ## Dispatcher
 
 ```python
@@ -73,6 +79,30 @@ result = dispatch_tool("calculate_tariffario", valore_causa=50000, fasi=["studio
 | `get_agenda_oggi` | — | appuntamenti del giorno |
 | `get_prossime_scadenze` | `giorni` | scadenze nei prossimi N giorni |
 | `get_statistiche_studio` | — | statistiche generali studio |
+
+### Operational Knowledge
+
+| Tool | Parametri | Output |
+|------|-----------|--------|
+| `operational_knowledge` | `question`, `user`, `studio`, `tenant_id`, `metadata` | risposta deterministica con fonti interne, oggetti letti, confidence, coverage gap, permessi applicati e audit event |
+
+Sorgenti operative coperte dal layer:
+
+- clienti, soggetti e fascicoli;
+- agenda e scadenziario;
+- preventivi, conferimenti, tariffario, parcelle/fatturazione e timesheet;
+- documenti fascicolo e document intelligence;
+- messaggi, PEC/email e notifiche;
+- portali/telematico in sola lettura;
+- template atti;
+- legal intelligence, update intelligence e Legal Source Engine.
+
+Regole:
+
+- nessun web per dati cliente/studio;
+- nessun path filesystem, segreto o dato di tenant diverso in output;
+- risposta con fonti e coverage gap;
+- blocco delle azioni dispositive come invio PEC, deposito, firma, pagamento o cancellazione.
 
 ## Scaglioni DM 55/2014
 

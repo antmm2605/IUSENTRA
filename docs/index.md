@@ -41,6 +41,17 @@ Questo indice e' il punto di ingresso operativo per sviluppatori, maintainer e r
 | Database e migrazioni | [database-and-migrations](database-and-migrations.md) | Stato SQLite/PostgreSQL, migrazioni e rollback dati. |
 | Notifiche e procedimenti telematici | [LEGAL_NOTIFICATIONS_AND_TELEMATIC_REGISTRY](LEGAL_NOTIFICATIONS_AND_TELEMATIC_REGISTRY.md) | L. 53/1994, relata, prova notifica, fail-closed e registry PCT/SIGP/UNEP/PAT/PTT/PDP. |
 
+## Lex AI e fonti
+
+| Area | Documento | Quando usarlo |
+| --- | --- | --- |
+| Lex Operational Knowledge | [lex-operational-knowledge-map](lex-operational-knowledge-map.md) | Mappa sorgenti operative reali, tenant key, permessi, rischi e stato integrazione Lex. |
+| Variabili Lex | [LEX_ENV_VARS](LEX_ENV_VARS.md) | Feature flag Lex, AI locale, fonti ufficiali e Operational Knowledge. |
+| Legal Source Engine | [lex_ai_legal_source_engine](lex_ai_legal_source_engine.md) | Architettura nativa per fonti giuridiche ufficiali e citazioni. |
+| Workflow fonti | [lex_ai_legal_source_engine_printing_press_logic](lex_ai_legal_source_engine_printing_press_logic.md) | Pattern di scoperta fonte, manoscritti, scorecard e dogfood senza dipendenza runtime da Printing Press. |
+| Registro tool Lex | [LEX_TOOL_REGISTRY](LEX_TOOL_REGISTRY.md) | Tool Lex disponibili e regole operative per dati strutturati e fonti. |
+| Policy sorgenti Lex | [LEX_SOURCE_POLICY_SYSTEM](LEX_SOURCE_POLICY_SYSTEM.md) | Ranking sorgenti, modalita' strict/balanced/broad e grounding. |
+
 ## Test, CI e release
 
 | Area | Documento | Quando usarlo |

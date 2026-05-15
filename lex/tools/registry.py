@@ -22,6 +22,7 @@ from .fascicolo_documents import (
 from .fascicolo_tool import FascicoloTool
 from .giurisprudenza_tool import GiurisprudenzaTool
 from .legal_intelligence_tool import LegalIntelligenceTool
+from .operational_knowledge_tool import OperationalKnowledgeTool
 from .preventivi_tool import PreventiviTool
 from .scadenziario_tool import ScadenziarioTool
 from .telematico_tool import TelematicoTool
@@ -41,6 +42,7 @@ class LexToolRegistry:
             "scadenziario": ScadenziarioTool(),
             "giurisprudenza": GiurisprudenzaTool(),
             "legal_intelligence": LegalIntelligenceTool(),
+            "operational_knowledge": OperationalKnowledgeTool(),
             "template_atti": TemplateAttiTool(),
             "preventivi": PreventiviTool(),
             "compliance": ComplianceTool(),

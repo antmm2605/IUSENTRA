@@ -514,6 +514,24 @@ def build_bounded_http_payload(
             },
         }
     )
+    if not list(attachments or []):
+        try:
+            from lex.operational_knowledge.integration import build_operational_http_payload
+
+            operational_payload = build_operational_http_payload(
+                user=user,
+                studio=studio,
+                data=metadata,
+                current_user_message=current_user_message,
+                resolved_effective_question=resolved_effective_question,
+                studio_context=studio_context,
+            )
+            if operational_payload:
+                return operational_payload
+        except Exception:
+            # The operational layer is optional and feature-flagged. Fail closed
+            # into the existing governed Lex workflow if its own guard rejects.
+            pass
     request = LexRequest(
         tenant_id=_tenant_id(studio, metadata),
         user_id=_user_id(user),

@@ -38,6 +38,25 @@
     return window.IusentraLegalSpeechNormalizer || null;
   }
 
+  function voiceProfiles() {
+    return window.IusentraVoiceProfiles || null;
+  }
+
+  function resolveSpeechOptions(options) {
+    var profiles = voiceProfiles();
+    if (profiles && profiles.resolveSpeechOptions) {
+      return profiles.resolveSpeechOptions(options || {});
+    }
+    return Object.assign({
+      lang: 'it-IT',
+      mode: 'summary',
+      legalNormalization: true,
+      preferFemale: true,
+      maxAutoReadChars: 1800,
+      maxChunkChars: 280,
+    }, options || {});
+  }
+
   function supportsRecognition() {
     return Boolean(RecognitionCtor);
   }
@@ -334,14 +353,7 @@
       return false;
     }
     cancelSpeech();
-    var speechOptions = Object.assign({
-      lang: 'it-IT',
-      mode: 'summary',
-      legalNormalization: true,
-      preferFemale: true,
-      maxAutoReadChars: 1800,
-      maxChunkChars: 280,
-    }, options || {});
+    var speechOptions = resolveSpeechOptions(options || {});
     var preparedText = normalizeSpeechText(String(text), speechOptions);
     if (!preparedText) {
       return false;
@@ -407,17 +419,24 @@
     return registry.preload(options || {});
   }
 
-  function getSpeechEngineStatus() {
+  function getSpeechEngineStatus(options) {
     var registry = ttsRegistry();
+    var speechOptions = resolveSpeechOptions(options || {});
+    var profileLabel = speechOptions.badgeLabel || speechOptions.profileLabel || '';
     if (registry && registry.getStatus) {
-      return registry.getStatus();
+      var status = registry.getStatus();
+      if (status && status.engine === 'browser' && status.ready && profileLabel) {
+        status = Object.assign({}, status, { label: profileLabel, profileLabel: speechOptions.profileLabel });
+      }
+      return status;
     }
     return {
       engine: 'browser',
-      label: supportsSpeech() ? 'Voce browser' : 'Voce non supportata',
+      label: supportsSpeech() ? (profileLabel || 'Voce browser') : 'Voce non supportata',
       supported: supportsSpeech(),
       ready: supportsSpeech(),
       backend: 'browser',
+      profileLabel: speechOptions.profileLabel,
     };
   }
 

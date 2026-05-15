@@ -11,6 +11,10 @@
     return root.IusentraLegalSpeechNormalizer || null;
   }
 
+  function profileApi() {
+    return root.IusentraVoiceProfiles || null;
+  }
+
   function isSupported() {
     return Boolean(synth && root.SpeechSynthesisUtterance);
   }
@@ -82,7 +86,9 @@
   }
 
   function speak(value, options) {
-    options = options || {};
+    options = profileApi() && profileApi().resolveSpeechOptions
+      ? profileApi().resolveSpeechOptions(options || {})
+      : (options || {});
     if (!isSupported() || !value) {
       return Promise.resolve({ ok: false, engine: 'browser', reason: 'not_supported' });
     }

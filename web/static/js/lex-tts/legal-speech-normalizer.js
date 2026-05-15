@@ -133,10 +133,10 @@
       return amount + ' euro' + (c ? ' e ' + c + ' centesimi' : '');
     }
     var clean = text(value);
-    clean = clean.replace(/€\s*(\d{1,3}(?:\.\d{3})*|\d+)(?:,(\d{1,2}))?/g, function (_match, amount, cents) {
+    clean = clean.replace(/€\s*(\d{1,3}(?:\.\d{3})*|\d+)(?:,\s*(\d{1,2}))?/g, function (_match, amount, cents) {
       return render(amount, cents);
     });
-    clean = clean.replace(/\b(\d{1,3}(?:\.\d{3})*|\d+),(\d{2})\s*€/g, function (_match, amount, cents) {
+    clean = clean.replace(/\b(\d{1,3}(?:\.\d{3})*|\d+),\s*(\d{2})\s*€/g, function (_match, amount, cents) {
       return render(amount, cents);
     });
     return clean;

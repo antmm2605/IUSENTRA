@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.237.3 - 2026-05-15
+
+- Fase 2 TTS Lex: introdotti profili voce italiani, preset qualita `fast/balanced/high`, preferenze locali leggere e badge voce orientato al profilo operativo.
+- Raffinata la normalizzazione legale italiana con test su abbreviazioni, privacy, date, importi, chunking e compatibilita del fallback voce browser.
+
 ## 2.237.2 - 2026-05-15
 
 - Fase 1 TTS Lex: aggiunti normalizzatore legale browser-side, registry engine, fallback `speechSynthesis`, predisposizione Supertonic same-origin, manifest esempio e documentazione privacy/fallback senza asset ONNX nel repository.

@@ -25,6 +25,8 @@
     resize: null,
     listening: false,
     voiceReplyEnabled: true,
+    voiceProfileId: 'lex-it-professional',
+    voiceQuality: 'balanced',
     thinking: null,
     pendingFocus: null,
     runtimeStatusChecked: false,
@@ -854,7 +856,11 @@
     try {
       window.localStorage.setItem(
         voicePreferenceKey(),
-        JSON.stringify({ voiceReplyEnabled: state.voiceReplyEnabled })
+        JSON.stringify({
+          voiceReplyEnabled: state.voiceReplyEnabled,
+          voiceProfileId: state.voiceProfileId,
+          voiceQuality: state.voiceQuality,
+        })
       );
     } catch (error) {
       return;
@@ -886,7 +892,9 @@
         voiceBadge.classList.add('is-online');
         voiceBadge.classList.remove('is-offline');
       } else if (speechSupported || recognitionSupported) {
-        var speechStatus = voice && voice.getSpeechEngineStatus ? voice.getSpeechEngineStatus() : null;
+        var speechStatus = voice && voice.getSpeechEngineStatus
+          ? voice.getSpeechEngineStatus({ profileId: state.voiceProfileId, quality: state.voiceQuality })
+          : null;
         var speechLabel = speechStatus && speechStatus.label ? speechStatus.label : (state.voiceReplyEnabled ? 'Voce attiva' : 'Voce pronta');
         voiceBadge.textContent = state.voiceReplyEnabled ? speechLabel : 'Voce pronta';
         voiceBadge.classList.toggle('is-online', state.voiceReplyEnabled);
@@ -924,6 +932,8 @@
       pitch: 1.08,
       volume: 0.98,
       preferFemale: true,
+      profileId: state.voiceProfileId || 'lex-it-professional',
+      quality: state.voiceQuality || 'balanced',
       mode: clean.length > 1800 ? 'summary' : 'citations_light',
       legalNormalization: true,
       maxAutoReadChars: 1800,
@@ -2798,6 +2808,12 @@
     var prefs = loadVoicePreference();
     if (prefs && typeof prefs.voiceReplyEnabled === 'boolean') {
       state.voiceReplyEnabled = prefs.voiceReplyEnabled;
+    }
+    if (prefs && typeof prefs.voiceProfileId === 'string') {
+      state.voiceProfileId = prefs.voiceProfileId || 'lex-it-professional';
+    }
+    if (prefs && typeof prefs.voiceQuality === 'string') {
+      state.voiceQuality = prefs.voiceQuality || 'balanced';
     }
 
     bindEvents();

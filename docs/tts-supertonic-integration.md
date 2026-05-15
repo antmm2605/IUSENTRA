@@ -7,6 +7,8 @@ Il TTS di Lex resta esposto solo da `window.PctLexVoice`. Il flusso chat non cam
 
 Moduli caricati prima della facciata:
 
+- `web/static/js/lex-tts/quality-presets.js`: preset di latenza/qualita condivisi.
+- `web/static/js/lex-tts/voice-profiles.js`: profili voce italiani per Lex.
 - `web/static/js/lex-tts/legal-speech-normalizer.js`: pulizia testo, privacy, abbreviazioni legali e chunking.
 - `web/static/js/lex-tts/browser-speech-engine.js`: engine `speechSynthesis` nativo.
 - `web/static/js/lex-tts/supertonic-engine.js`: predisposizione same-origin per Supertonic/ONNX.

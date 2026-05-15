@@ -38,4 +38,11 @@ const chunks = normalizer.splitLegalSpeechChunks(longText, { maxChunkChars: 180 
 assert.ok(chunks.length > 1)
 assert.ok(chunks.every((chunk) => chunk.text.length <= 180))
 
+const datesAndMoney = normalizer.normalizeLegalSpeechText('Udienza 15/05/2026. Importo \u20ac 1.250,50. D.Lgs. 231/2001.', {
+  maxAutoReadChars: 2000,
+})
+assert.match(datesAndMoney, /15 maggio 2026/)
+assert.match(datesAndMoney, /1.250 euro e 50 centesimi/)
+assert.match(datesAndMoney, /decreto legislativo 231\/2001/)
+
 console.log('lex_tts_normalizer.test.mjs OK')

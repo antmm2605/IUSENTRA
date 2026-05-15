@@ -56,6 +56,8 @@ function makeContext() {
 
 const full = makeContext()
 for (const script of [
+  'web/static/js/lex-tts/quality-presets.js',
+  'web/static/js/lex-tts/voice-profiles.js',
   'web/static/js/lex-tts/legal-speech-normalizer.js',
   'web/static/js/lex-tts/browser-speech-engine.js',
   'web/static/js/lex-tts/supertonic-engine.js',

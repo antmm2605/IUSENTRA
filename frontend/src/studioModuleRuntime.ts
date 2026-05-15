@@ -25,9 +25,12 @@ export type StudioRuntimeAction = {
 export type StudioRuntimeField = {
   name: string
   label: string
-  type: 'text' | 'email' | 'password' | 'number' | 'date' | 'textarea' | 'select' | 'hidden' | 'checkbox' | 'file'
+  type: 'text' | 'email' | 'password' | 'number' | 'date' | 'textarea' | 'select' | 'hidden' | 'checkbox' | 'file' | 'multiselect'
   required: boolean
-  value: string
+  value: string | string[]
+  step: string
+  min: string
+  max: string
   options: Array<{ value: string; label: string }>
 }
 
@@ -48,6 +51,34 @@ export type StudioRuntimeOperation = {
   actions: StudioRuntimeAction[]
   form: StudioRuntimeForm | null
   warnings: string[]
+  tool: {
+    toolId: string
+    appId: string
+  } | null
+}
+
+export type StudioRuntimeResultTable = {
+  title: string
+  headers: string[]
+  rows: string[][]
+}
+
+export type StudioRuntimeResultSource = {
+  title: string
+  url: string
+}
+
+export type StudioRuntimeResult = {
+  ok: boolean
+  message: string
+  toolId: string
+  title: string
+  metrics: StudioRuntimeMetric[]
+  tables: StudioRuntimeResultTable[]
+  previewText: string
+  notes: string[]
+  warnings: string[]
+  sources: StudioRuntimeResultSource[]
 }
 
 export type StudioModuleRuntime = {
@@ -102,7 +133,7 @@ function normaliseMetric(value: unknown): StudioRuntimeMetric {
   return {
     label: display(item.label, 'Indicatore'),
     value: display(item.value, '0'),
-    note: display(item.note),
+    note: display(item.note || item.subtext),
   }
 }
 
@@ -131,7 +162,7 @@ function normaliseAction(value: unknown): StudioRuntimeAction {
 function normaliseField(value: unknown): StudioRuntimeField {
   const item = isRecord(value) ? value : {}
   const rawType = text(item.type, 'text')
-  const fieldType = ['text', 'email', 'password', 'number', 'date', 'textarea', 'select', 'hidden', 'checkbox', 'file'].includes(rawType)
+  const fieldType = ['text', 'email', 'password', 'number', 'date', 'textarea', 'select', 'hidden', 'checkbox', 'file', 'multiselect'].includes(rawType)
     ? rawType as StudioRuntimeField['type']
     : 'text'
   return {
@@ -139,7 +170,10 @@ function normaliseField(value: unknown): StudioRuntimeField {
     label: display(item.label, 'Campo'),
     type: fieldType,
     required: item.required === true,
-    value: text(item.value),
+    value: Array.isArray(item.value) ? item.value.map((row) => text(row)).filter(Boolean) : text(item.value),
+    step: text(item.step),
+    min: text(item.min),
+    max: text(item.max),
     options: list(item.options).map((option) => {
       const row = isRecord(option) ? option : {}
       return { value: text(row.value), label: display(row.label, text(row.value)) }
@@ -160,6 +194,7 @@ function normaliseForm(value: unknown): StudioRuntimeForm | null {
 
 function normaliseOperation(value: unknown): StudioRuntimeOperation {
   const item = isRecord(value) ? value : {}
+  const tool = isRecord(item.tool) ? item.tool : null
   return {
     id: text(item.id, 'operazione'),
     title: display(item.title, 'Operazione'),
@@ -169,6 +204,40 @@ function normaliseOperation(value: unknown): StudioRuntimeOperation {
     actions: list(item.actions).map(normaliseAction),
     form: normaliseForm(item.form),
     warnings: list(item.warnings).map((warning) => display(warning)).filter(Boolean),
+    tool: tool ? { toolId: text(tool.toolId), appId: text(tool.appId) } : null,
+  }
+}
+
+function normaliseResultTable(value: unknown): StudioRuntimeResultTable {
+  const item = isRecord(value) ? value : {}
+  return {
+    title: display(item.title, 'Dettaglio'),
+    headers: list(item.headers).map((header) => display(header)).filter(Boolean),
+    rows: list(item.rows).map((row) => list(row).map((cell) => display(cell))),
+  }
+}
+
+function normaliseResultSource(value: unknown): StudioRuntimeResultSource {
+  const item = isRecord(value) ? value : {}
+  return {
+    title: display(item.title || item.label || item.name, 'Fonte'),
+    url: text(item.url || item.href),
+  }
+}
+
+export function normaliseStudioRuntimeResult(value: unknown): StudioRuntimeResult {
+  const item = isRecord(value) ? value : {}
+  return {
+    ok: item.ok === true,
+    message: display(item.message, item.ok === true ? 'Calcolo completato.' : 'Verifica non riuscita.'),
+    toolId: text(item.toolId),
+    title: display(item.title, 'Risultato'),
+    metrics: list(item.metrics).map(normaliseMetric),
+    tables: list(item.tables).map(normaliseResultTable),
+    previewText: display(item.previewText || item.preview_text),
+    notes: list(item.notes).map((note) => display(note)).filter(Boolean),
+    warnings: list(item.warnings).map((warning) => display(warning)).filter(Boolean),
+    sources: list(item.sources).map(normaliseResultSource).filter((source) => source.title || source.url),
   }
 }
 

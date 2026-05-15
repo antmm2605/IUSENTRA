@@ -10,6 +10,10 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any, Callable
 
+from pct.applicazioni_catalogo import catalogo_applicazioni
+from pct.applicazioni_runtime import TOOL_PRESET_OVERRIDES, TOOL_SCHEMAS, resolve_runtime
+from pct.strumenti_legali import GestioneStrumentiLegali
+
 
 def _safe(label: str, loader: Callable[[], Any], fallback: Any) -> Any:
     try:
@@ -96,7 +100,10 @@ def _field(
     *,
     required: bool = False,
     options: list[dict[str, str]] | None = None,
-    value: str = "",
+    value: Any = "",
+    step: str = "",
+    min_value: str = "",
+    max_value: str = "",
 ) -> dict[str, Any]:
     return {
         "name": name,
@@ -105,6 +112,9 @@ def _field(
         "required": required,
         "options": options or [],
         "value": value,
+        "step": step,
+        "min": min_value,
+        "max": max_value,
     }
 
 
@@ -118,6 +128,7 @@ def _operation(
     actions: list[dict[str, str]] | None = None,
     form: dict[str, Any] | None = None,
     warnings: list[str] | None = None,
+    tool: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     return {
         "id": operation_id,
@@ -128,6 +139,7 @@ def _operation(
         "actions": actions or [],
         "form": form,
         "warnings": warnings or [],
+        "tool": tool,
     }
 
 
@@ -203,6 +215,258 @@ def _query_value(query: dict[str, Any] | None, key: str, fallback: str = "") -> 
     if isinstance(value, list):
         value = value[0] if value else ""
     return _text(value, fallback)
+
+
+def _slug(value: Any) -> str:
+    import re
+    import unicodedata
+
+    normalized = unicodedata.normalize("NFD", _text(value).lower())
+    ascii_text = "".join(ch for ch in normalized if unicodedata.category(ch) != "Mn")
+    return re.sub(r"(^-+|-+$)", "", re.sub(r"[^a-z0-9]+", "-", ascii_text)) or "operazione"
+
+
+def _strumenti_studio_context(
+    config: dict[str, Any],
+    get_config_studio: Callable[[], Any] | None = None,
+) -> dict[str, str]:
+    studio_forense = _studio_forense(config, get_config_studio)
+    data = {
+        "nome": _text(config.get("STUDIO_NOME"), "IUSENTRA"),
+        "avvocato": studio_forense["avvocato"],
+        "cf": _text(config.get("STUDIO_CF")),
+        "piva": _text(config.get("STUDIO_PIVA")),
+        "indirizzo": _text(config.get("STUDIO_INDIRIZZO")),
+        "pec": _text(config.get("SMTP_FROM") or config.get("PEC_EMAIL")),
+        "fax": _text(config.get("STUDIO_FAX")),
+        "luogo": _text(config.get("STUDIO_LUOGO")),
+    }
+    if callable(get_config_studio):
+        try:
+            studio = getattr(getattr(get_config_studio(), "config", None), "studio", None)
+            data["nome"] = _text(getattr(studio, "nome", ""), data["nome"])
+            data["cf"] = _text(getattr(studio, "codice_fiscale", ""), data["cf"])
+            data["piva"] = _text(getattr(studio, "partita_iva", ""), data["piva"])
+            data["indirizzo"] = _text(getattr(studio, "indirizzo", ""), data["indirizzo"])
+            data["pec"] = _text(getattr(studio, "pec", ""), data["pec"])
+            data["luogo"] = _text(getattr(studio, "luogo", ""), data["luogo"])
+        except Exception:
+            pass
+    return data
+
+
+def _fascicoli_tutti(get_fascicoli: Callable[[], Any]) -> list[Any]:
+    repo = get_fascicoli()
+    try:
+        return list(repo.tutti(archiviati=True))
+    except TypeError:
+        return list(repo.tutti())
+
+
+def _tool_options_map(gestore: GestioneStrumentiLegali) -> dict[str, list[dict[str, str]]]:
+    usura_options = [
+        _option(row.get("category", ""), row.get("label") or row.get("category", ""))
+        for row in gestore.norme.usura_categorie()
+        if row.get("category")
+    ]
+    onorari = gestore.opzioni_onorari_forensi()
+    return {
+        "contributo_unificato": [
+            _option(row.get("value", ""), row.get("label", ""))
+            for row in gestore.opzioni_contributo_unificato()
+        ],
+        "usura": usura_options,
+        "onorari_materie": list(onorari.get("materie", [])),
+        "onorari_gradi": list(onorari.get("gradi", [])),
+        "onorari_complessita": list(onorari.get("complessita", [])),
+        "onorari_fasi": list(onorari.get("fasi", [])),
+    }
+
+
+def _tool_fields(
+    schema: dict[str, Any],
+    defaults: dict[str, Any],
+    options_map: dict[str, list[dict[str, str]]],
+) -> list[dict[str, Any]]:
+    fields: list[dict[str, Any]] = []
+    for source_field in list(schema.get("fields") or []):
+        field = dict(source_field)
+        options_source = field.get("options")
+        options = options_map.get(options_source, []) if isinstance(options_source, str) else list(options_source or [])
+        field_type = _text(field.get("type"), "text")
+        value = defaults.get(field.get("name", ""), [] if field_type == "multiselect" else "")
+        if field_type == "multiselect" and not value:
+            value = ["STUDIO", "INTRODUTTIVA", "ISTRUTTORIA", "DECISIONALE"]
+        fields.append(
+            _field(
+                _text(field.get("name")),
+                _text(field.get("label"), "Campo"),
+                field_type,
+                required=field.get("required") is True,
+                options=[_option(row.get("value", ""), row.get("label", "")) for row in options],
+                value=value,
+                step=_text(field.get("step")),
+                min_value=_text(field.get("min")),
+                max_value=_text(field.get("max")),
+            )
+        )
+    return fields
+
+
+def _tool_catalog_entries() -> list[dict[str, Any]]:
+    entries: list[dict[str, Any]] = []
+    for entry in catalogo_applicazioni():
+        runtime = resolve_runtime(entry)
+        if runtime.get("kind") != "tool":
+            continue
+        entries.append({"entry": entry, "runtime": runtime})
+    return entries
+
+
+def _build_strumenti_forensi(
+    config: dict[str, Any],
+    get_clienti: Callable[[], Any],
+    get_fascicoli: Callable[[], Any],
+    *,
+    get_config_studio: Callable[[], Any] | None = None,
+    query: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    gestore = GestioneStrumentiLegali(
+        normative_db_path=config.get("NORMATIVE_TABLES_DB", "./intelligence/tabelle_normative.json")
+    )
+    clienti = _safe("clienti", lambda: list(get_clienti().tutti()), [])
+    fascicoli = _safe("fascicoli", lambda: _fascicoli_tutti(get_fascicoli), [])
+    clienti_map = {getattr(cliente, "id", ""): cliente for cliente in clienti if getattr(cliente, "id", "")}
+    id_fascicolo = _query_value(query, "id_fascicolo")
+    fascicolo_sel = None
+    cliente_sel = None
+    if id_fascicolo:
+        try:
+            fascicolo_sel = get_fascicoli().get(id_fascicolo)
+            cliente_sel = clienti_map.get(getattr(fascicolo_sel, "id_cliente", ""))
+        except Exception:
+            fascicolo_sel = None
+            cliente_sel = None
+
+    defaults = gestore.build_form_state(
+        gestore.build_prefill(
+            fascicolo=fascicolo_sel,
+            cliente=cliente_sel,
+            studio=_strumenti_studio_context(config, get_config_studio),
+        ),
+        None,
+    )
+    selected_app_id = _query_value(query, "app")
+    selected_tool_id = _query_value(query, "tool")
+    catalog_entries = _tool_catalog_entries()
+    entries_by_tool: dict[str, list[dict[str, Any]]] = {}
+    selected_entry: dict[str, Any] | None = None
+    for item in catalog_entries:
+        tool_id = _text(item["runtime"].get("tool_id"))
+        entries_by_tool.setdefault(tool_id, []).append(item)
+        if item["entry"].get("id") == selected_app_id:
+            selected_entry = item
+            selected_tool_id = tool_id
+    if selected_app_id:
+        defaults.update(dict(TOOL_PRESET_OVERRIDES.get(selected_app_id, {})))
+
+    all_records = [
+        _record(
+            item["entry"].get("id"),
+            item["entry"].get("title"),
+            item["entry"].get("summary") or item["runtime"].get("schema", {}).get("subtitle", ""),
+            badge=item["entry"].get("section_title") or item["entry"].get("workspace_kind_label", ""),
+            href=(
+                "/strumenti-legali/"
+                f"?app={item['entry'].get('id')}&tool={item['runtime'].get('tool_id')}#funzione-operativa"
+            ),
+            meta=item["entry"].get("workspace_kind_label", "Calcolo"),
+        )
+        for item in catalog_entries
+    ]
+    all_records = [record for record in all_records if _is_visible_record(record)]
+    options_map = _tool_options_map(gestore)
+    module_by_tool = {row["id"]: row for row in gestore.catalogo_moduli()}
+
+    operations: list[dict[str, Any]] = [
+        _operation(
+            "suite-strumenti",
+            "Suite strumenti",
+            "Scegli una funzione: la pagina apre il modulo collegato e calcola in questa scheda.",
+            metrics=[
+                _metric("Funzioni catalogate", len(catalog_entries)),
+                _metric("Calcolatori", len(module_by_tool)),
+                _metric("Pratiche collegabili", len(fascicoli)),
+            ],
+            records=all_records,
+            actions=[_action("Compensi forensi", "/compensi-forensi"), _action("Preventivo da calcolo", "/preventivi/wizard")],
+        )
+    ]
+
+    ordered_tool_ids = [row["id"] for row in gestore.catalogo_moduli() if row["id"] in TOOL_SCHEMAS]
+    for tool_id in ordered_tool_ids:
+        schema = dict(TOOL_SCHEMAS[tool_id])
+        tool_entries = entries_by_tool.get(tool_id, [])
+        tool_records = [
+            _record(
+                item["entry"].get("id"),
+                item["entry"].get("title"),
+                item["entry"].get("summary") or schema.get("subtitle", ""),
+                badge=item["entry"].get("section_title", ""),
+                href=(
+                    "/strumenti-legali/"
+                    f"?app={item['entry'].get('id')}&tool={tool_id}#funzione-operativa"
+                ),
+                meta="Pronto",
+            )
+            for item in tool_entries
+        ]
+        entry_for_tool = selected_entry if selected_tool_id == tool_id and selected_entry else (tool_entries[0] if tool_entries else None)
+        title = _text(
+            entry_for_tool["entry"].get("title") if entry_for_tool else "",
+            schema.get("title", module_by_tool[tool_id]["title"]),
+        )
+        subtitle = _text(schema.get("subtitle") or module_by_tool[tool_id].get("subtitle"), "Modulo operativo collegato ai dati inseriti.")
+        form_fields = [
+            _field("tool_id", "Strumento", "hidden", value=tool_id),
+            _field("app_id", "Funzione", "hidden", value=_text(entry_for_tool["entry"].get("id")) if entry_for_tool else tool_id),
+        ]
+        if id_fascicolo:
+            form_fields.append(_field("id_fascicolo", "Pratica", "hidden", value=id_fascicolo))
+        form_fields.extend(_tool_fields(schema, defaults, options_map))
+        operations.append(
+            _operation(
+                _slug(module_by_tool[tool_id]["title"]),
+                title,
+                subtitle,
+                metrics=[_metric("Funzioni disponibili", len(tool_entries) or 1), _metric("Modulo", module_by_tool[tool_id]["categoria"])],
+                records=tool_records,
+                actions=[_action("Preventivo da risultato", "/preventivi/wizard", tone="secondary")],
+                form={
+                    "action": f"/api/v1/ui/strumenti-legali/{tool_id}",
+                    "method": "POST",
+                    "enctype": "multipart/form-data",
+                    "submitLabel": _text(schema.get("submit_label"), "Calcola"),
+                    "fields": form_fields,
+                },
+                warnings=[
+                    "Verifica i dati prima di usare il risultato in atti o comunicazioni."
+                ],
+                tool={
+                    "toolId": tool_id,
+                    "appId": _text(entry_for_tool["entry"].get("id")) if entry_for_tool else tool_id,
+                },
+            )
+        )
+
+    return {
+        "metrics": [
+            _metric("Funzioni", len(catalog_entries), "catalogo operativo"),
+            _metric("Calcolatori", len(module_by_tool), "moduli eseguibili"),
+            _metric("Pratiche", len(fascicoli), "collegabili al calcolo"),
+        ],
+        "operations": operations,
+    }
 
 
 def _compenso_options() -> list[dict[str, str]]:
@@ -929,6 +1193,14 @@ def build_react_studio_module_payload(
         data = _build_gdpr(get_trattamenti)
     elif normalized == "impostazioni-studio":
         data = _build_impostazioni(config)
+    elif normalized == "strumenti-forensi":
+        data = _build_strumenti_forensi(
+            config,
+            get_clienti,
+            get_fascicoli,
+            get_config_studio=get_config_studio,
+            query=query,
+        )
     else:
         data = _build_generic(normalized, get_clienti, get_fascicoli)
     data.setdefault("metrics", [])

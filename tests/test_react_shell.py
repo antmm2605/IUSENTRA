@@ -2413,6 +2413,54 @@ def test_react_studio_module_deep_runtime_preventivi_conferimento_e_timesheet(tm
     assert any(field["name"] == "id_fascicolo" for field in timesheet_form["fields"])
 
 
+def test_react_strumenti_legali_catalogo_form_e_calcolo_json(tmp_path: Path):
+    app = _app(tmp_path)
+    _crea_operatore(app)
+
+    with app.test_client() as client:
+        _login(client)
+        runtime_response = client.get(
+            "/api/v1/ui/studio-modules/strumenti-forensi",
+            query_string={"tool": "interessi", "app": "calcolo_interessi_di_mora"},
+            headers={"X-API-Key": "react-test-key"},
+        )
+        calc_response = client.post(
+            "/api/v1/ui/strumenti-legali/interessi",
+            data={
+                "int_tipo": "legali",
+                "int_capitale": "1000",
+                "int_data_inizio": "2024-01-01",
+                "int_data_fine": "2024-12-31",
+            },
+            headers={"X-API-Key": "react-test-key"},
+        )
+
+    runtime_payload = runtime_response.get_json()
+    calc_payload = calc_response.get_json()
+    suite = next(item for item in runtime_payload["operations"] if item["id"] == "suite-strumenti")
+    interessi = next(item for item in runtime_payload["operations"] if (item.get("tool") or {}).get("toolId") == "interessi")
+    onorari = next(item for item in runtime_payload["operations"] if (item.get("tool") or {}).get("toolId") == "onorari_forensi")
+    interessi_fields = {field["name"]: field for field in interessi["form"]["fields"]}
+    onorari_fields = {field["name"]: field for field in onorari["form"]["fields"]}
+
+    assert runtime_response.status_code == 200
+    assert runtime_payload["source"] == "repository_reali"
+    assert len(suite["records"]) >= 30
+    assert any(record["id"] == "calcolo_interessi_di_mora" for record in suite["records"])
+    assert interessi["title"] == "Calcolo Interessi di Mora"
+    assert interessi["form"]["action"] == "/api/v1/ui/strumenti-legali/interessi"
+    assert interessi_fields["int_capitale"]["type"] == "number"
+    assert interessi_fields["int_tipo"]["value"] == "mora_commerciale"
+    assert onorari_fields["onorari_fasi"]["type"] == "multiselect"
+    assert len(onorari_fields["onorari_fasi"]["options"]) >= 4
+
+    assert calc_response.status_code == 200
+    assert calc_payload["ok"] is True
+    assert calc_payload["toolId"] == "interessi"
+    assert any(metric["label"] == "Interessi maturati" for metric in calc_payload["metrics"])
+    assert calc_payload["tables"][0]["title"] == "Segmenti di calcolo"
+
+
 def test_react_studio_module_frontend_supporta_rotte_profonde_e_form_reali():
     page_source = Path("frontend/src/components/StudioModulePage.tsx").read_text(encoding="utf-8")
     runtime_source = Path("frontend/src/studioModuleRuntime.ts").read_text(encoding="utf-8")
@@ -2421,6 +2469,11 @@ def test_react_studio_module_frontend_supporta_rotte_profonde_e_form_reali():
     assert "field.type === 'hidden'" in page_source
     assert "field.type === 'checkbox'" in page_source
     assert "field.type === 'file'" in page_source
+    assert "field.type === 'multiselect'" in page_source
+    assert "normaliseStudioRuntimeResult" in page_source
+    assert "onSubmitOperation(event, operation)" in page_source
+    assert "fetch(operation.form.action" in page_source
+    assert "toolId: text(tool.toolId)" in runtime_source
     assert "encType={operation.form.enctype || undefined}" in page_source
     assert "params.set('path', window.location.pathname)" in runtime_source
     assert "current.forEach((value, key) => params.append(key, value))" in runtime_source

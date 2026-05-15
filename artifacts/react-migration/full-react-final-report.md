@@ -663,3 +663,24 @@ non e' stato eseguito `backup.sh` e il cron backup non e' stato aggiornato
 `Codex/legal-electronic-filing-kIxcV`, container app/scheduler/OCR/Redis healthy,
 `/api/pronto` pubblico 200 `versione=2.236.5`, runtime container
 `pct.__version__ == 2.236.5` e manifest React pubblico con gli asset aggiornati.
+
+## Strumenti Forensi operativi 2.236.6
+
+Ripristinata la parita' funzionale della pagina `/strumenti-legali`: la shell
+React non si limita piu' a mostrare schede informative, ma espone il catalogo
+completo delle funzioni forensi e invia i form agli endpoint JSON collegati ai
+metodi reali di `GestioneStrumentiLegali`.
+
+Il bridge `Strumenti Forensi` ora pubblica 70 funzioni di catalogo e 20
+calcolatori eseguibili, con campi dinamici, preset applicativi, fascicoli reali
+quando disponibili e risultati in pagina con metriche, tabelle, note, avvisi e
+fonti. Il submit resta nella pagina React, senza form POST HTML nel flusso
+principale e senza dati dimostrativi.
+
+Gate locali: py_compile backend, typecheck, test frontend, build Vite, contratti
+React, route gate, full React contract, pytest mirati Strumenti Legali/SIGP,
+dominio storico `tests/test_strumenti_legali.py`, browser reale
+desktop/tablet/mobile e Docker locale no-cache 2.236.6. La verifica browser
+autenticata su `/strumenti-legali/?tool=interessi&app=calcolo_interessi_di_mora`
+conferma catalogo, comando `Calcola interessi`, risultato `Interessi maturati`,
+tabella `Segmenti di calcolo` e assenza di testi tecnici vietati.

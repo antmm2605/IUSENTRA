@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.236.6 - 2026-05-15
+
+- Ripristinate le funzioni operative di `/strumenti-legali`: la pagina React mostra il catalogo completo degli strumenti forensi e ricollega i moduli ai calcoli reali gia' esistenti.
+- Aggiunto il submit JSON React per gli strumenti legali con risultati in pagina, metriche, tabelle, note e fonti, senza form HTML POST o fallback dimostrativi.
+- Allineato il bridge `Strumenti Forensi` a 70 voci di catalogo e 20 calcolatori eseguibili, inclusi interessi, contributo unificato, onorari, rivalutazione, usura, TFR, CTU, successione, locazioni, lavoro, penale e fiscalita.
+- Corretto il redirect storico `/sigp/`, evitando il 308 canonico che bloccava il gate React mirato.
+
 ## 2.236.5 - 2026-05-15
 
 - Rifinito il linguaggio visibile di Ricerca Studio: rimossi sigle, tempi tecnici e scorciatoia tastiera esposta, mantenendo ricerca rapida e accessibilita da tastiera.

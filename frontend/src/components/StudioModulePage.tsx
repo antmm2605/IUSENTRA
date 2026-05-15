@@ -1,4 +1,4 @@
-import { useEffect, useState, type MouseEvent } from 'react'
+import { useEffect, useState, type FormEvent, type MouseEvent } from 'react'
 import {
   Archive,
   Banknote,
@@ -33,13 +33,22 @@ import { findStudioModule, type StudioModuleCard, type StudioModuleConfig, type 
 import {
   emptyStudioModuleRuntime,
   getStudioModuleRuntime,
+  normaliseStudioRuntimeResult,
   operationIdFromTitle,
   type StudioModuleRuntime,
   type StudioRuntimeField,
   type StudioRuntimeOperation,
+  type StudioRuntimeResult,
 } from '../studioModuleRuntime'
 import { displayWritesLabel } from '../displayText'
+import { csrfToken } from '../formSubmit'
 import './StudioModulePage.css'
+
+type ToolResultState = {
+  loading: boolean
+  result?: StudioRuntimeResult
+  error?: string
+}
 
 function runtimeSourceLabel(source: string): string {
   return source === 'repository_reali' ? 'Dati dello studio' : 'Caricamento'
@@ -162,6 +171,25 @@ function operationForCard(runtime: StudioModuleRuntime, card: StudioModuleCard):
   )
 }
 
+function operationForCurrentRoute(runtime: StudioModuleRuntime, card?: StudioModuleCard): StudioRuntimeOperation | undefined {
+  const params = new URLSearchParams(window.location.search)
+  const appId = params.get('app') || ''
+  const toolId = params.get('tool') || ''
+  if (appId) {
+    const byApp = runtime.operations.find((operation) => operation.tool?.appId === appId)
+    if (byApp) return byApp
+  }
+  if (toolId) {
+    const byTool = runtime.operations.find((operation) => operation.tool?.toolId === toolId)
+    if (byTool) return byTool
+  }
+  return card ? operationForCard(runtime, card) : runtime.operations[0]
+}
+
+function fieldValue(field: StudioRuntimeField): string {
+  return Array.isArray(field.value) ? field.value[0] || '' : field.value
+}
+
 function ModuleCard({
   card,
   selected,
@@ -193,7 +221,7 @@ function ModuleCard({
 
 function RuntimeField({ field }: { field: StudioRuntimeField }) {
   if (field.type === 'hidden') {
-    return <input name={field.name} type="hidden" defaultValue={field.value}/>
+    return <input name={field.name} type="hidden" defaultValue={fieldValue(field)}/>
   }
   if (field.type === 'checkbox') {
     const checkedValues = new Set(['1', 'true', 'si', 'sì', 'yes', 'on'])
@@ -202,7 +230,7 @@ function RuntimeField({ field }: { field: StudioRuntimeField }) {
         name={field.name}
         type="checkbox"
         value="1"
-        defaultChecked={checkedValues.has(field.value.toLowerCase())}
+        defaultChecked={checkedValues.has(fieldValue(field).toLowerCase())}
         required={field.required}
       />
     )
@@ -210,18 +238,109 @@ function RuntimeField({ field }: { field: StudioRuntimeField }) {
   if (field.type === 'file') {
     return <input name={field.name} type="file" required={field.required}/>
   }
+  if (field.type === 'multiselect') {
+    const values = new Set(Array.isArray(field.value) ? field.value : fieldValue(field).split(',').map((value) => value.trim()).filter(Boolean))
+    return (
+      <span className="iu-sm-check-grid">
+        {field.options.map((option) => (
+          <span className="iu-sm-check-option" key={`${field.name}-${option.value}`}>
+            <input
+              name={field.name}
+              type="checkbox"
+              value={option.value}
+              defaultChecked={values.has(option.value)}
+            />
+            <span>{option.label}</span>
+          </span>
+        ))}
+      </span>
+    )
+  }
   if (field.type === 'textarea') {
-    return <textarea name={field.name} required={field.required} defaultValue={field.value} rows={3}/>
+    return <textarea name={field.name} required={field.required} defaultValue={fieldValue(field)} rows={3}/>
   }
   if (field.type === 'select') {
     return (
-      <select name={field.name} required={field.required} defaultValue={field.value}>
+      <select name={field.name} required={field.required} defaultValue={fieldValue(field)}>
         <option value="">Seleziona</option>
         {field.options.map((option) => <option value={option.value} key={`${field.name}-${option.value}`}>{option.label}</option>)}
       </select>
     )
   }
-  return <input name={field.name} required={field.required} defaultValue={field.value} type={field.type}/>
+  return (
+    <input
+      name={field.name}
+      required={field.required}
+      defaultValue={fieldValue(field)}
+      type={field.type}
+      step={field.step || undefined}
+      min={field.min || undefined}
+      max={field.max || undefined}
+    />
+  )
+}
+
+function ToolResultView({ state }: { state?: ToolResultState }) {
+  if (!state) return null
+  if (state.loading) {
+    return <div className="iu-sm-result" role="status">Calcolo in corso...</div>
+  }
+  if (state.error) {
+    return <div className="iu-sm-result iu-sm-result--error" role="alert">{state.error}</div>
+  }
+  const result = state.result
+  if (!result) return null
+  return (
+    <div className="iu-sm-result" role="status">
+      <header>
+        <span>{result.message}</span>
+        <strong>{result.title}</strong>
+      </header>
+      {result.metrics.length ? (
+        <div className="iu-sm-result__metrics">
+          {result.metrics.map((metric) => (
+            <article key={`${result.toolId}-${metric.label}`}>
+              <span>{metric.label}</span>
+              <strong>{metric.value}</strong>
+              {metric.note ? <small>{metric.note}</small> : null}
+            </article>
+          ))}
+        </div>
+      ) : null}
+      {result.tables.map((table) => (
+        <div className="iu-sm-result__table" key={`${result.toolId}-${table.title}`}>
+          <strong>{table.title}</strong>
+          <div>
+            <table>
+              <thead>
+                <tr>{table.headers.map((header) => <th key={header}>{header}</th>)}</tr>
+              </thead>
+              <tbody>
+                {table.rows.map((row, rowIndex) => (
+                  <tr key={`${table.title}-${rowIndex}`}>
+                    {row.map((cell, cellIndex) => <td key={`${table.title}-${rowIndex}-${cellIndex}`}>{cell}</td>)}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ))}
+      {result.previewText ? <pre>{result.previewText}</pre> : null}
+      {result.warnings.length || result.notes.length ? (
+        <div className="iu-sm-result__notes">
+          {[...result.warnings, ...result.notes].slice(0, 6).map((note) => <span key={note}>{note}</span>)}
+        </div>
+      ) : null}
+      {result.sources.length ? (
+        <div className="iu-sm-result__sources">
+          {result.sources.slice(0, 5).map((source) => (
+            <a href={source.url || '#'} key={`${source.title}-${source.url}`} target="_blank" rel="noreferrer">{source.title}</a>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  )
 }
 
 function ActiveFunctionPanel({
@@ -230,16 +349,21 @@ function ActiveFunctionPanel({
   operation,
   runtime,
   loading,
+  resultState,
+  onSubmitOperation,
 }: {
   module: StudioModuleConfig
   card: StudioModuleCard
   operation?: StudioRuntimeOperation
   runtime: StudioModuleRuntime
   loading: boolean
+  resultState?: ToolResultState
+  onSubmitOperation: (event: FormEvent<HTMLFormElement>, operation: StudioRuntimeOperation) => void
 }) {
   const Icon = iconFor(card.icon)
   const actions = operation?.actions?.length ? operation.actions : [{ label: card.action, href: card.href, method: 'GET' as const, tone: card.tone }]
   const metrics = operation?.metrics?.length ? operation.metrics : runtime.metrics
+  const recordLimit = module.id === 'strumenti-forensi' ? 90 : 12
   return (
     <section id="funzione-operativa" className={`iu-sm-focus iu-sm-focus--${card.tone}`}>
       <div className="iu-sm-focus__icon"><Icon size={22}/></div>
@@ -270,7 +394,7 @@ function ActiveFunctionPanel({
         ) : null}
         {operation?.records?.length ? (
           <div className="iu-sm-focus__records">
-            {operation.records.slice(0, 12).map((record) => (
+            {operation.records.slice(0, recordLimit).map((record) => (
               <a href={record.href || card.href} key={record.id}>
                 <div>
                   <strong>{record.title}</strong>
@@ -288,16 +412,18 @@ function ActiveFunctionPanel({
             action={operation.form.action}
             method={operation.form.method.toLowerCase()}
             encType={operation.form.enctype || undefined}
+            onSubmit={operation.tool ? (event) => onSubmitOperation(event, operation) : undefined}
           >
             {operation.form.fields.map((field) => (
-              <label className={field.type === 'hidden' ? 'iu-sm-field--hidden' : ''} key={`${operation.id}-${field.name}`}>
+              <label className={field.type === 'hidden' ? 'iu-sm-field--hidden' : field.type === 'multiselect' ? 'iu-sm-field--wide' : ''} key={`${operation.id}-${field.name}`}>
                 {field.type !== 'hidden' ? <span>{field.label}{field.required ? ' *' : ''}</span> : null}
                 <RuntimeField field={field}/>
               </label>
             ))}
-            <button type="submit">{operation.form.submitLabel}</button>
+            <button type="submit" disabled={resultState?.loading}>{resultState?.loading ? 'Calcolo in corso...' : operation.form.submitLabel}</button>
           </form>
         ) : null}
+        <ToolResultView state={resultState}/>
       </div>
       <div className="iu-sm-focus__actions">
         {actions.map((action) => (
@@ -321,8 +447,11 @@ export function StudioModulePage() {
   const [selectedCardTitle, setSelectedCardTitle] = useState(initialCard?.title || '')
   const [runtime, setRuntime] = useState<StudioModuleRuntime>(emptyStudioModuleRuntime)
   const [runtimeLoading, setRuntimeLoading] = useState(true)
+  const [toolResults, setToolResults] = useState<Record<string, ToolResultState>>({})
   const selectedCard = module.cards.find((card) => card.title === selectedCardTitle) || initialCard || module.cards[0]
-  const selectedOperation = selectedCard ? operationForCard(runtime, selectedCard) : undefined
+  const selectedOperation = operationForCurrentRoute(runtime, selectedCard)
+  const selectedResultKey = selectedOperation?.tool?.toolId || selectedOperation?.id || ''
+  const selectedResultState = selectedResultKey ? toolResults[selectedResultKey] : undefined
 
   useEffect(() => {
     const updateFromLocation = () => setSelectedCardTitle(resolveSelectedCard(module)?.title || module.cards[0]?.title || '')
@@ -362,6 +491,39 @@ export function StudioModulePage() {
     window.requestAnimationFrame(() => {
       document.getElementById('funzione-operativa')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     })
+  }
+
+  const handleOperationSubmit = async (event: FormEvent<HTMLFormElement>, operation: StudioRuntimeOperation) => {
+    if (!operation.form || !operation.tool) return
+    event.preventDefault()
+    const key = operation.tool.toolId || operation.id
+    setToolResults((current) => ({ ...current, [key]: { loading: true } }))
+    try {
+      const token = csrfToken()
+      const response = await fetch(operation.form.action, {
+        method: operation.form.method,
+        credentials: 'same-origin',
+        headers: {
+          Accept: 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          ...(token ? { 'X-CSRFToken': token } : {}),
+        },
+        body: new FormData(event.currentTarget),
+      })
+      const result = normaliseStudioRuntimeResult(await response.json().catch(() => ({})))
+      if (!response.ok || !result.ok) {
+        throw new Error(result.message || 'Verifica non riuscita. Controlla i campi e riprova.')
+      }
+      setToolResults((current) => ({ ...current, [key]: { loading: false, result } }))
+    } catch (error) {
+      setToolResults((current) => ({
+        ...current,
+        [key]: {
+          loading: false,
+          error: error instanceof Error ? error.message : 'Verifica non riuscita. Controlla i campi e riprova.',
+        },
+      }))
+    }
   }
 
   return (
@@ -406,6 +568,8 @@ export function StudioModulePage() {
               operation={selectedOperation}
               runtime={runtime}
               loading={runtimeLoading}
+              resultState={selectedResultState}
+              onSubmitOperation={handleOperationSubmit}
             />
           ) : null}
           <div className="iu-sm-cards">

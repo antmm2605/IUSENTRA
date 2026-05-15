@@ -19,6 +19,7 @@ from flask import Blueprint, current_app, g, jsonify, request, send_file, sessio
 from werkzeug.exceptions import HTTPException
 
 from pct import __version__ as APP_VERSION
+from pct.applicazioni_runtime import TOOL_SCHEMAS, build_tool_result
 from pct.auth import RuoloUtente, totp_uri
 from pct.email_client import CartellaEmail, GestioneEmailRicevute, StatoEmail
 from pct.fatturazione import StatoParcella
@@ -46,6 +47,7 @@ from pct.pratiche_collegate_catalog import (
     resolve_codice_oggetto_pst_payload,
 )
 from pct.scadenziario import PrioritaTermine, TipoTermine
+from pct.strumenti_legali import GestioneStrumentiLegali
 from pct.termini_processuali import (
     DeadlinePracticeRepository,
     LEGAL_SOURCES,
@@ -2406,6 +2408,74 @@ def studio_module_react_payload(module_id: str):
         get_trattamenti=get_trattamenti,
         query=dict(request.args),
     ))
+
+
+def _gestore_strumenti_legali_react() -> GestioneStrumentiLegali:
+    return GestioneStrumentiLegali(
+        normative_db_path=current_app.config.get("NORMATIVE_TABLES_DB", "./intelligence/tabelle_normative.json")
+    )
+
+
+@api_v1_react.post("/strumenti-legali/<tool_id>")
+@_richiedi_auth
+def strumenti_legali_react_calcola(tool_id: str):
+    schema = TOOL_SCHEMAS.get((tool_id or "").strip())
+    if not schema:
+        return jsonify({
+            "ok": False,
+            "message": "Strumento non disponibile.",
+            "warnings": ["Seleziona una funzione presente nel catalogo strumenti."],
+            "metrics": [],
+            "tables": [],
+            "previewText": "",
+            "notes": [],
+            "sources": [],
+        }), 404
+    payload = request.get_json(silent=True) if request.is_json else request.form
+    method_name = str(schema.get("method") or "")
+    try:
+        result = getattr(_gestore_strumenti_legali_react(), method_name)(payload)
+        normalised = build_tool_result(tool_id, result)
+        return jsonify({
+            "ok": True,
+            "message": "Calcolo completato.",
+            "toolId": tool_id,
+            "title": schema.get("title", "Strumento forense"),
+            "metrics": normalised["metrics"],
+            "tables": normalised["tables"],
+            "previewText": normalised["preview_text"],
+            "notes": list(result.get("notes") or []),
+            "warnings": list(result.get("warnings") or []),
+            "sources": list(result.get("sources") or []),
+        })
+    except ValueError as exc:
+        message = str(exc) or "Verifica i dati inseriti e riprova."
+        return jsonify({
+            "ok": False,
+            "message": message,
+            "toolId": tool_id,
+            "title": schema.get("title", "Strumento forense"),
+            "metrics": [],
+            "tables": [],
+            "previewText": "",
+            "notes": [],
+            "warnings": [message],
+            "sources": [],
+        }), 200
+    except Exception as exc:
+        current_app.logger.exception("Errore strumenti legali React %s: %s", tool_id, exc)
+        return jsonify({
+            "ok": False,
+            "message": "Non ho potuto completare il calcolo. Controlla i campi richiesti e riprova.",
+            "toolId": tool_id,
+            "title": schema.get("title", "Strumento forense"),
+            "metrics": [],
+            "tables": [],
+            "previewText": "",
+            "notes": [],
+            "warnings": ["Il calcolo non e' stato completato. Verifica i dati inseriti."],
+            "sources": [],
+        }), 200
 
 
 @api_v1_react.get("/privacy/registro")

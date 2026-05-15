@@ -2124,3 +2124,10 @@ python -m pytest tests/test_react_shell.py tests/test_email_client.py tests/test
 - Controlli Atti non parla piu' di browser nei testi utente: checklist e Local Signer usano `postazione` e `PC`, coerenti con il vocabolario professionale.
 - L'audit visuale considera correttamente pulsanti, tab e controlli interni come azioni: le pagine operative ricche di comandi non vengono piu' segnalate solo perche' hanno pochi link testuali.
 - Verifiche registrate: typecheck, test frontend, contratti React, route gate, full React contract, packaging/readiness, build Vite, Docker locale no-cache `2.236.5`, audit Chrome CDP completo 46 route desktop/mobile con recovery mirata `/soggetti/nuovo` mobile.
+
+## Aggiornamento 2026-05-15: Strumenti Forensi operativi 2.236.6
+
+- `/strumenti-legali` non e' piu' una superficie solo descrittiva: il bridge React espone il catalogo completo degli strumenti forensi e collega i moduli ai metodi reali di `GestioneStrumentiLegali`.
+- La pagina React supporta submit JSON per i calcolatori, con risultati in pagina, metriche, tabelle, note, fonti e stato errore/successo leggibile per lo studio.
+- Confermate 70 funzioni di catalogo e 20 calcolatori eseguibili, con preset applicativi per interessi legali/mora e campi dinamici per fascicoli, contributo unificato, onorari, usura e altre utility.
+- Verifiche registrate: py_compile backend, typecheck, test frontend, build Vite, gate React, pytest mirati Strumenti Legali/SIGP, browser reale desktop/tablet/mobile, baseline caricamento locale e Docker no-cache `2.236.6`.

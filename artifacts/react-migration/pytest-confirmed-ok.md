@@ -1445,6 +1445,23 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `ssh iusentra-hetzner "cd /opt/iusentra/repo && IUSENTRA_SKIP_BACKUP_CRON=1 BRANCH=Codex/legal-electronic-filing-kIxcV bash deploy/hetzner/deploy.sh"` | OK | Deploy Hetzner CPX42 eseguito su richiesta `no backup`: `backup.sh` non eseguito e cron backup non aggiornato. |
 | `GET https://app.iusentra.it/api/pronto`; `docker compose ... ps`; `docker compose ... exec -T app python -c 'import pct; print(pct.__version__)'`; manifest React pubblico | OK | Produzione healthy: `/api/pronto` 200 `versione=2.236.5`, app/scheduler/OCR/Redis healthy, runtime container `2.236.5`, manifest pubblico con asset `index-PRcu5jld.js`, `RicercaStudioPage-Co-rTlBG.js` e `TelematicoSurfacePage-DtdIUca0.js`. |
 
+## Strumenti Forensi operativi 2.236.6 - 2026-05-15
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile web\services\react_studio_module_bridge.py web\blueprints\api_v1_react.py` | OK | Sintassi backend confermata dopo ripristino catalogo strumenti, form dinamici e endpoint JSON `/api/v1/ui/strumenti-legali/<tool_id>`. |
+| `npm --prefix frontend run typecheck` | OK | TypeScript confermato dopo estensione runtime campi, multiselect, submit JSON e risultati in pagina. |
+| `python -m pytest -q tests\test_react_shell.py::test_react_strumenti_legali_catalogo_form_e_calcolo_json tests\test_react_shell.py::test_react_studio_module_frontend_supporta_rotte_profonde_e_form_reali --tb=short` | OK | 2/2 passati: catalogo con oltre 30 funzioni, preset mora commerciale, form reale e risposta JSON con metriche/tabelle. |
+| `python -m pytest -q tests\test_strumenti_legali.py --tb=short` | OK | 21/21 passati: dominio storico degli strumenti legali preservato. |
+| `python -m py_compile web\blueprints\sigp_redirects.py`; `python -m pytest -q tests\test_react_shell.py::test_react_migration_matrice_completa_route_api_e_card_operative tests\test_react_shell.py::test_react_studio_module_card_e_runtime_non_sono_decorativi tests\test_react_shell.py::test_react_studio_module_card_href_interni_raggiungibili --tb=short` | OK | 3/3 passati dopo correzione redirect `/sigp/` senza 308 canonico. |
+| `python -m pytest -q tests\test_react_shell.py::test_react_strumenti_legali_catalogo_form_e_calcolo_json tests\test_sigp_sync.py::test_sigp_sync_non_esposto_in_menu_e_download_senza_preflight_pin --tb=short` | OK | 2/2 passati: regressione strumenti e presidio SIGP confermati insieme. |
+| `node frontend\scripts\check-react-contracts.mjs`; `node scripts\react-migration\check-route-gate.mjs`; `node scripts\react-migration\check-full-react-route-contract.mjs` | OK | Contratti React, route gate, anti-mascheramento e no-fake React verdi dopo promozione funzionale di `/strumenti-legali`. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest -q tests\test_packaging_consistency.py tests\test_release_readiness.py --tb=short` | OK | Packaging sincronizzato e readiness release 8/8 dopo bump `2.236.6`. |
+| `npm --prefix frontend run test`; `npm --prefix frontend run build` | OK | Test frontend e build Vite verdi; asset React rigenerati con `StudioModulePage` aggiornato. |
+| Browser in-app autenticato Docker locale su `/strumenti-legali/?tool=interessi&app=calcolo_interessi_di_mora` | OK | Catalogo `Strumenti Forensi` visibile, comando `Calcola interessi` esegue il submit e mostra risultato con `Interessi maturati` e `Segmenti di calcolo`; desktop/tablet/mobile confermati, nessun testo tecnico vietato. |
+| Browser in-app baseline caricamento Docker locale su `/strumenti-legali/?tool=interessi&app=calcolo_interessi_di_mora` | OK | 3 run desktop: DOMContentLoaded 1441/1119/1089 ms, form visibile 1720/1394/1401 ms, comando visibile 2681/1662/2748 ms. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d app scheduler-worker ocr-worker nginx`; `GET http://127.0.0.1:8080/api/pronto` | OK | Docker locale no-cache 2.236.6 healthy; app/scheduler/OCR healthy e readiness locale 200 `versione=2.236.6`. |
+
 ## Fase react 3 - App V2 feature flag per pagina 2.224.0 - 2026-05-13
 
 | Comando / verifica | Esito | Nota |

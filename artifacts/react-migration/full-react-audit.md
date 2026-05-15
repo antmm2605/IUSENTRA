@@ -334,3 +334,16 @@ storage allegati email sotto path tenant-aware, testo visibile ripulito da
 `repository_reali` e termini tecnici vietati nel perimetro verificato. Il
 dettaglio scadenziario resta nella stessa esperienza React e mostra azioni
 operative dopo URL `/scadenziario/<id>?vista=tutte`.
+
+## Aggiornamento 2.236.6 - 2026-05-15
+
+`/strumenti-legali` resta `react_operational_full` ma il suo contenuto e' stato
+riallineato al contratto prodotto: non solo card, ma catalogo completo e calcoli
+eseguibili in React. Il payload `strumenti-forensi` include 70 funzioni di
+catalogo, 20 moduli calcolabili, campi dinamici e collegamento a
+`/api/v1/ui/strumenti-legali/<tool_id>`.
+
+Controlli anti-mascheramento: il flusso principale non usa form POST HTML, non
+mostra fallback demo, non espone termini tecnici vietati e restituisce risultati
+realmente calcolati in pagina. Browser reale desktop/tablet/mobile confermato su
+`Calcolo Interessi di Mora` con risultato, metriche e tabella dei segmenti.

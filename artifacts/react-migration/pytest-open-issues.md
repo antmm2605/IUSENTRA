@@ -182,3 +182,10 @@ Questo file e' la coda di lavoro. Prima di rilanciare test gia' passati, control
 | Area | Gate | Stato | Nota | Azione |
 | --- | --- | --- | --- | --- |
 | Chrome CDP visual audit | `visual-load-audit.mjs` su 46 route desktop/mobile | Isolato come instabilita' strumento, non failure prodotto | Il giro completo autenticato 2.236.5 ha confermato 91/92 controlli OK e ha avuto un solo `navigazione_timeout` su `/soggetti/nuovo` mobile. La stessa route rilanciata subito dopo con la medesima sessione tenant e viewport mobile e' passata in 761 ms con H1 `Nuovo Soggetto`. | Usare `artifacts/react-migration/visual-2.236.5-soggetti-nuovo/visual-load-audit.md` come recovery mirata; profilare solo se il timeout ricompare in piu' giri consecutivi. |
+
+## Note Strumenti Forensi 2.236.6 - 2026-05-15
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| React Strumenti Forensi | Browser reale, pytest mirati, gate React e Docker locale | Nessuna issue aperta nuova | La pagina `/strumenti-legali` era diventata descrittiva: mostrava card ma non eseguiva i calcoli storici. Il fix ripristina catalogo completo, form dinamici e submit JSON verso i metodi esistenti di `GestioneStrumentiLegali`; il dominio storico `tests/test_strumenti_legali.py` resta verde. | Non rilanciare shard ampi se non si toccano `react_studio_module_bridge.py`, `api_v1_react.py`, `StudioModulePage`, `studioModuleRuntime` o `tests/test_strumenti_legali.py`. |
+| SIGP redirect storico | `tests/test_react_shell.py::test_react_migration_matrice_completa_route_api_e_card_operative` | Risolto | Il gate ampio segnalava `/sigp/` con 308 prima di arrivare al redirect operativo verso PST. La correzione separa il redirect `/sigp*` da `/sigp-sync*` e mantiene 303 controllato. | Il vecchio appunto 2.236.3 su `/sigp/` 308 e' superato da questa correzione; ripetere solo se si modificano i redirect SIGP/PST. |

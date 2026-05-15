@@ -760,3 +760,22 @@ Verifica finale locale: Docker no-cache 2.238.1 healthy, `/api/pronto` 200
 `versione=2.238.1` e Chrome CDP autenticato su `/legal-skills` verde in
 desktop/mobile (2787/1497 ms), senza redirect login, errori console, overflow,
 form POST HTML o testo tecnico vietato.
+
+## Sito Studio Builder Pro 2.239.1
+
+`/sito-studio/builder` e' ora una superficie React full dedicata, senza shell
+ordinaria visibile: topbar scura, pannello verticale stretto e anteprima live
+grande. La struttura segue la Versione B richiesta e mantiene operative le 10 tab
+definitive con dati studio, pagine/menu, blocchi, contenuti, aspetto, media,
+SEO, privacy/conformita', AI e pubblicazione.
+
+La preview renderizza il sito completo con footer, scorre internamente, aggiorna
+colori/font/layout/effetti a ogni modifica e conserva menu tablet/mobile. Il
+pannello parte da 380px ed e' ridimensionabile; media, font, dimensioni,
+formattazione, allineamenti ed effetti sobri/professionali sono coperti da
+controlli reali e persistiti lato backend.
+
+Gate locali: typecheck, build, test frontend, pytest builder/assets 7/7, Ruff
+mirato, gate React, packaging/readiness, Docker no-cache 2.239.1 e Chrome CDP
+autenticato su `/sito-studio/builder` desktop/tablet/mobile. Report visuale:
+`artifacts/react-migration/visual-2.239.1-sito-studio-builder/visual-load-audit.md`.

@@ -36,6 +36,36 @@ FONT_PRESETS: dict[str, dict[str, str]] = {
         "heading": "'Segoe UI Semibold', 'Segoe UI', sans-serif",
         "body": "'Segoe UI', sans-serif",
     },
+    "humanist_sans": {
+        "label": "Humanist Sans",
+        "heading": "'Trebuchet MS', 'Segoe UI', sans-serif",
+        "body": "'Trebuchet MS', 'Segoe UI', sans-serif",
+    },
+    "classic_serif": {
+        "label": "Classic Serif",
+        "heading": "Georgia, 'Times New Roman', serif",
+        "body": "Georgia, 'Times New Roman', serif",
+    },
+    "garamond_legal": {
+        "label": "Garamond Legal",
+        "heading": "Garamond, 'Palatino Linotype', Georgia, serif",
+        "body": "Garamond, 'Palatino Linotype', Georgia, serif",
+    },
+    "geometric_sans": {
+        "label": "Geometric Sans",
+        "heading": "Avenir, Montserrat, 'Segoe UI', sans-serif",
+        "body": "Avenir, Montserrat, 'Segoe UI', sans-serif",
+    },
+    "slab_editorial": {
+        "label": "Slab Editorial",
+        "heading": "Rockwell, 'Roboto Slab', Georgia, serif",
+        "body": "'Segoe UI', sans-serif",
+    },
+    "high_readability": {
+        "label": "High Readability",
+        "heading": "Verdana, Geneva, sans-serif",
+        "body": "Verdana, Geneva, sans-serif",
+    },
 }
 
 DESIGN_TOKEN_DEFAULTS: dict[str, str] = {
@@ -56,6 +86,8 @@ DESIGN_TOKEN_DEFAULTS: dict[str, str] = {
     "font_heading": FONT_PRESETS["system_professional"]["heading"],
     "font_body": FONT_PRESETS["system_professional"]["body"],
     "font_size_base": "16px",
+    "heading_size": "3.8rem",
+    "section_title_size": "2.2rem",
     "line_height": "1.65",
     "container_width": "1180px",
     "section_padding": "5rem",
@@ -297,6 +329,8 @@ CSS_TOKEN_MAP = {
     "font_heading": "--site-font-heading",
     "font_body": "--site-font-body",
     "font_size_base": "--site-font-size-base",
+    "heading_size": "--site-heading-size",
+    "section_title_size": "--site-section-title-size",
     "line_height": "--site-line-height",
     "container_width": "--site-container-width",
     "section_padding": "--site-section-padding",
@@ -359,7 +393,7 @@ def build_design_tokens(template_code: Any, overrides: Any = None, typography: A
     tokens["font_body"] = clean_text(typo.get("font_body")) or FONT_PRESETS[font_preset]["body"]
     for key in ("primary", "secondary", "accent", "bg", "surface", "text", "muted", "border"):
         tokens[key] = normalize_hex_color(tokens.get(key), DESIGN_TOKEN_DEFAULTS[key])
-    for key in ("font_size_base", "line_height", "container_width", "section_padding", "card_padding"):
+    for key in ("font_size_base", "heading_size", "section_title_size", "line_height", "container_width", "section_padding", "card_padding", "button_radius"):
         if clean_text(typo.get(key)):
             tokens[key] = clean_text(typo.get(key))
     return {key: clean_text(value) for key, value in tokens.items()}

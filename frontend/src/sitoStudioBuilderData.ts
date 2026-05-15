@@ -43,6 +43,8 @@ export type BuilderPage = {
   blocksCount: number
   updatedAt: string
   href: string
+  seoTitle: string
+  seoDescription: string
 }
 
 export type BuilderTemplate = { code: string; name: string; description: string; active: boolean }
@@ -73,6 +75,22 @@ export type BuilderSite = {
   themeTemplate: string
   updatedAt: string
   publicUrl: string
+  contactEmail: string
+  contactPhone: string
+  whatsappNumber: string
+  address: string
+  city: string
+  province: string
+  zipCode: string
+  logoUrl: string
+  faviconUrl: string
+  footerText: string
+  privacyUrl: string
+  cookiePolicyUrl: string
+  accessibilityStatementUrl: string
+  legalDisclaimer: string
+  cookieBannerEnabled: boolean
+  analyticsEnabled: boolean
 }
 
 export type SitoStudioBuilderData = {
@@ -140,12 +158,28 @@ export const emptySitoStudioBuilderData: SitoStudioBuilderData = {
     themeTemplate: '',
     updatedAt: '',
     publicUrl: '',
+    contactEmail: '',
+    contactPhone: '',
+    whatsappNumber: '',
+    address: '',
+    city: '',
+    province: '',
+    zipCode: '',
+    logoUrl: '',
+    faviconUrl: '',
+    footerText: '',
+    privacyUrl: '',
+    cookiePolicyUrl: '',
+    accessibilityStatementUrl: '',
+    legalDisclaimer: '',
+    cookieBannerEnabled: false,
+    analyticsEnabled: false,
   },
   theme: { templateCode: '', tokens: {}, typography: {}, layout: {}, effects: {} },
   templates: [],
   blockPresets: [],
   pages: [],
-  activePage: { id: 0, title: '', slug: '', excerpt: '', status: '', statusLabel: '', home: false, showInMenu: false, blocksCount: 0, updatedAt: '', href: '' },
+  activePage: { id: 0, title: '', slug: '', excerpt: '', status: '', statusLabel: '', home: false, showInMenu: false, blocksCount: 0, updatedAt: '', href: '', seoTitle: '', seoDescription: '' },
   activePageId: 0,
   activeBlocks: [],
   assets: [],
@@ -238,6 +272,8 @@ function normalisePage(raw: unknown): BuilderPage {
     blocksCount: number(item.blocksCount),
     updatedAt: text(item.updatedAt),
     href: text(item.href),
+    seoTitle: display(item.seoTitle),
+    seoDescription: display(item.seoDescription),
   }
 }
 
@@ -293,6 +329,48 @@ export function optionLabel(value: string): string {
     modern_sans: 'Sans moderna',
     editorial_legal: 'Editoriale legale',
     compact_business: 'Compatto business',
+    humanist_sans: 'Sans umanistica',
+    classic_serif: 'Serif classica',
+    garamond_legal: 'Garamond legale',
+    geometric_sans: 'Sans geometrica',
+    slab_editorial: 'Slab editoriale',
+    high_readability: 'Alta leggibilita',
+    '14px': 'Compatto',
+    '15px': 'Leggermente compatto',
+    '16px': 'Normale',
+    '17px': 'Comodo',
+    '18px': 'Ampio',
+    '22px': 'Compatto',
+    '24px': 'Normale',
+    '26px': 'Bilanciato',
+    '28px': 'Compatto',
+    '30px': 'Ampio',
+    '32px': 'Normale',
+    '34px': 'Bilanciato',
+    '36px': 'Comodo',
+    '38px': 'Editoriale',
+    '42px': 'Grande',
+    '44px': 'Aria ampia',
+    '48px': 'Hero forte',
+    '1.35': 'Densa',
+    '1.5': 'Normale',
+    '1.65': 'Leggibile',
+    '1.8': 'Molto leggibile',
+    '6px': 'Netto',
+    '10px': 'Sobrio',
+    '999px': 'Pillola',
+    soft: 'Morbida',
+    deep: 'Profonda',
+    layered: 'A livelli',
+    'scale-in': 'Scala discreta',
+    'slide-up': 'Scorrimento breve',
+    transparent: 'Trasparente',
+    true: 'Fisso',
+    'accent-line': 'Linea accento',
+    boxed: 'Riquadro',
+    editorial: 'Editoriale',
+    professional: 'Professionale',
+    justify: 'Giustificato',
   } as Record<string, string>)[value] || value.replace(/[_-]+/g, ' ')
 }
 
@@ -318,6 +396,22 @@ export function normaliseBuilder(raw: unknown): SitoStudioBuilderData {
       themeTemplate: text(site.themeTemplate),
       updatedAt: text(site.updatedAt),
       publicUrl: text(site.publicUrl),
+      contactEmail: display(site.contactEmail),
+      contactPhone: display(site.contactPhone),
+      whatsappNumber: display(site.whatsappNumber),
+      address: display(site.address),
+      city: display(site.city),
+      province: display(site.province),
+      zipCode: display(site.zipCode),
+      logoUrl: text(site.logoUrl),
+      faviconUrl: text(site.faviconUrl),
+      footerText: display(site.footerText),
+      privacyUrl: text(site.privacyUrl),
+      cookiePolicyUrl: text(site.cookiePolicyUrl),
+      accessibilityStatementUrl: text(site.accessibilityStatementUrl),
+      legalDisclaimer: display(site.legalDisclaimer),
+      cookieBannerEnabled: bool(site.cookieBannerEnabled),
+      analyticsEnabled: bool(site.analyticsEnabled),
     },
     theme: {
       templateCode: text(theme.templateCode),
@@ -393,6 +487,15 @@ export function deleteBuilderPage(pageId: number): Promise<BuilderMutation> {
   ).then(normaliseMutation)
 }
 
+export function deleteBuilderAsset(assetId: number): Promise<BuilderMutation> {
+  return apiPostJson<unknown>(
+    `/api/v1/ui/sito-studio/builder/assets/${assetId}`,
+    {},
+    { ok: false, message: 'Rimozione immagine non completata.' },
+    { method: 'DELETE' },
+  ).then(normaliseMutation)
+}
+
 export function saveBuilderBlocks(pageId: number, blocks: BuilderBlock[]): Promise<BuilderMutation> {
   return postBuilderJson(`/api/v1/ui/sito-studio/builder/pages/${pageId}/blocks`, { blocks })
 }
@@ -412,5 +515,15 @@ export function uploadBuilderAsset(file: File, values: { altText: string; title:
     credentials: 'same-origin',
     headers: { Accept: 'application/json', ...csrfHeader() },
     body,
-  }).then((response) => response.json()).then(normaliseMutation)
+  }).then(async (response) => {
+    const raw = await response.json().catch(() => ({
+      ok: false,
+      message: response.ok ? 'Caricamento immagine non completato.' : 'Immagine non accettata. Verifica formato e dimensione.',
+    }))
+    const result = normaliseMutation(raw)
+    if (!response.ok && result.ok) {
+      return { ...result, ok: false, message: result.message || 'Caricamento immagine non completato.' }
+    }
+    return result
+  })
 }

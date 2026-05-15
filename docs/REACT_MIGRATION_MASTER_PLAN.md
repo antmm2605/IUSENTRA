@@ -2244,3 +2244,12 @@ python -m pytest tests/test_react_shell.py tests/test_email_client.py tests/test
 - `/legal-skills` non resta piu' bloccata per gli studi senza override flag: il motore base `lex.legalSkills.enabled` e le route catalogo, profilo, esecuzione e revisione sono attive di default.
 - Trust layer, skill custom e agenti schedulati restano default-off e fail-closed, perche' abilitano superfici piu' sensibili e non servono per consultare il catalogo operativo.
 - Aggiunto un test di regressione che conferma catalogo e profilo disponibili con default standard, e conferma ancora il blocco dei canali sensibili senza opt-in esplicito.
+
+## Aggiornamento 2026-05-15: Sito Studio Builder Pro 2.239.1
+
+- `/sito-studio/builder` adotta la Versione B vincolante: topbar scura, pannello sinistro stretto da 380px con tab verticali e preview live ampia sempre prioritaria.
+- Le tab operative sono Setup, Pagine, Blocchi, Contenuti, Aspetto, Media, SEO, Privacy, AI e Pubblica; il pannello raggruppa le funzioni senza trasformarsi in pagina lunga o pannello largo.
+- La preview live aggiorna ogni modifica, mostra il sito completo con footer, supporta scroll interno e mantiene menu integrato anche nei formati tablet/mobile.
+- Il pannello e' ridimensionabile, il caricamento media assegna l'immagine al blocco selezionato, i colori secondario/accento incidono sul rendering e font/dimensioni/effetti sono persistiti nel tema pubblico.
+- I testi del builder supportano corsivo, sottolineato, apice, pedice e allineamento sinistra/centro/destra/giustificato con sanitizzazione server-side dei soli tag ammessi.
+- Verifiche registrate: typecheck, build, test frontend, pytest builder/assets, Ruff mirato, gate React, packaging/readiness, Docker locale no-cache, readiness locale e audit CDP `visual-2.239.1-sito-studio-builder`.

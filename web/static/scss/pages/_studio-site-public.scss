@@ -42,6 +42,10 @@ $sp-drawer-w:       300px;
     &:hover { filter: brightness(1.08); }
   }
 
+  .btn {
+    border-radius: var(--site-button-radius, 999px);
+  }
+
   // ================================================================
   //  SKIP LINK
   // ================================================================
@@ -247,7 +251,7 @@ $sp-drawer-w:       300px;
 
   .studio-site-hero h1 {
     font-family: var(--site-font-heading, inherit);
-    font-size: clamp(2rem, 4vw, 3.8rem);
+    font-size: clamp(2rem, 4vw, var(--site-heading-size, 3.8rem));
     font-weight: 700;
     line-height: 1.06;
     margin-top: 1rem;
@@ -281,7 +285,7 @@ $sp-drawer-w:       300px;
   }
 
   .studio-site-card,
-  .studio-site-form  { padding: 1.4rem; }
+  .studio-site-form  { padding: var(--site-card-padding, 1.4rem); }
   .studio-site-hero-card { padding: 1.1rem; }
 
   .studio-site-hero-placeholder {
@@ -312,7 +316,11 @@ $sp-drawer-w:       300px;
   .studio-site-section-compact  { padding: 1.4rem 0; }
   .studio-site-section-muted    { background: rgba(255, 255, 255, .55); }
 
-  .studio-site-section h2  { font-size: clamp(1.6rem, 2vw, 2.2rem); margin-bottom: 1rem; }
+  .studio-site-section h2  {
+    font-family: var(--site-font-heading, inherit);
+    font-size: clamp(1.6rem, 2vw, var(--site-section-title-size, 2.2rem));
+    margin-bottom: 1rem;
+  }
   .studio-site-card h3     { font-size: 1.2rem; margin-bottom: .65rem; }
 
   // ================================================================
@@ -454,7 +462,7 @@ $sp-drawer-w:       300px;
   .studio-site-cta {
     align-items: center;
     background: linear-gradient(135deg, var(--studio-site-secondary), var(--studio-site-primary));
-    border-radius: 1.5rem;
+    border-radius: var(--site-button-radius, 1.5rem);
     color: #fff;
     display: flex;
     gap: 1rem;

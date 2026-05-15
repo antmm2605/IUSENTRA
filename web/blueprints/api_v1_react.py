@@ -135,11 +135,14 @@ from web.services.react_sito_studio_builder_bridge import (
     create_react_builder_page,
     delete_react_builder_page,
     delete_react_builder_asset,
+    duplicate_react_builder_page,
     generate_react_builder_site,
     publish_react_builder_blocks,
     restore_react_builder_revision,
     save_react_builder_blocks,
     save_react_builder_design,
+    update_react_builder_page,
+    update_react_builder_site,
     upload_react_builder_asset,
     validate_react_builder,
 )
@@ -3776,6 +3779,23 @@ def sito_studio_builder_valida():
     return jsonify(result), 200 if result.get("ok") else 400
 
 
+@api_v1_react.post("/sito-studio/builder/site")
+@_richiedi_auth
+def sito_studio_builder_site_update():
+    denied = _richiedi_admin_sito_studio_api()
+    if denied is not None:
+        return denied
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    try:
+        result = update_react_builder_site(payload or {})
+    except Exception as exc:
+        current_app.logger.exception("Errore salvataggio dati sito Builder React: %s", exc)
+        result = {"ok": False, "message": "Salvataggio dati sito non riuscito."}
+    return jsonify(result), 200 if result.get("ok") else 400
+
+
 @api_v1_react.post("/sito-studio/builder/pages")
 @_richiedi_auth
 def sito_studio_builder_create_page():
@@ -3790,6 +3810,37 @@ def sito_studio_builder_create_page():
     except Exception as exc:
         current_app.logger.exception("Errore creazione pagina Builder React: %s", exc)
         result = {"ok": False, "message": "Creazione pagina non riuscita."}
+    return jsonify(result), 200 if result.get("ok") else 400
+
+
+@api_v1_react.post("/sito-studio/builder/pages/<int:page_id>/settings")
+@_richiedi_auth
+def sito_studio_builder_page_settings(page_id: int):
+    denied = _richiedi_admin_sito_studio_api()
+    if denied is not None:
+        return denied
+    payload, error_response = _request_json_object()
+    if error_response is not None:
+        return error_response
+    try:
+        result = update_react_builder_page(page_id, payload or {})
+    except Exception as exc:
+        current_app.logger.exception("Errore salvataggio pagina Builder React: %s", exc)
+        result = {"ok": False, "message": "Salvataggio pagina non riuscito."}
+    return jsonify(result), 200 if result.get("ok") else 400
+
+
+@api_v1_react.post("/sito-studio/builder/pages/<int:page_id>/duplicate")
+@_richiedi_auth
+def sito_studio_builder_page_duplicate(page_id: int):
+    denied = _richiedi_admin_sito_studio_api()
+    if denied is not None:
+        return denied
+    try:
+        result = duplicate_react_builder_page(page_id)
+    except Exception as exc:
+        current_app.logger.exception("Errore duplicazione pagina Builder React: %s", exc)
+        result = {"ok": False, "message": "Duplicazione pagina non riuscita."}
     return jsonify(result), 200 if result.get("ok") else 400
 
 

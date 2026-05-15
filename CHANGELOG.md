@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.239.1 - 2026-05-15
+
+- Ricostruito `/sito-studio/builder` come Builder Pro in Versione B: barra superiore scura, pannello sinistro stretto da 380px con tab verticali e anteprima live grande sempre prioritaria, in linea con il riferimento grafico fornito.
+- Aggiunte le 10 tab definitive: Setup, Pagine, Blocchi, Contenuti, Aspetto, Media, SEO, Privacy, AI e Pubblica, con azioni operative su pagine, blocchi, contenuti, media, conformita' e pubblicazione.
+- Reso ridimensionabile il pannello sinistro, mantenendo la preview come area dominante; desktop, tablet e mobile conservano navigazione integrata e controllo del formato anteprima.
+- Corretti caricamento e assegnazione immagini: upload con titolo/alt derivati dal file, assegnazione al blocco selezionato e gestione errori leggibile.
+- La preview live mostra l'intero sito, include sempre il footer pubblico, scorre internamente e aggiorna colori, font, dimensioni, layout, ombre, header, divider, hover, focus ed effetti sobri/professionali.
+- Estesi i controlli tipografici con piu' font, dimensioni titoli/testo, interlinea, allineamento sinistra/centro/destra/giustificato e formattazione corsivo, sottolineato, apice e pedice.
+- Persistiti tema, layout ed effetti nel runtime del sito pubblico; i testi formattati sono filtrati lato server e resi anche nelle pagine pubbliche senza permettere HTML arbitrario.
+- Verificati typecheck, build, test frontend, pytest mirati, Ruff, gate React, packaging/readiness, Docker locale no-cache, readiness locale e audit visuale CDP desktop/tablet/mobile.
+
 ## 2.239.0 - 2026-05-15
 
 - Potenziata la console superadmin `Server e manutenzione`: per ogni studio mostra categorie di consumo, cartelle piu' pesanti, file principali, area dominante, conteggio file/cartelle e azioni dirette verso studio, archivio, analisi e compattazione.

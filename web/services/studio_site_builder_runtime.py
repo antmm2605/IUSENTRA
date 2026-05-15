@@ -7,7 +7,7 @@ from typing import Any
 
 from flask import url_for
 
-from pct.studio_site import clean_text, slugify, truthy
+from pct.studio_site import clean_text, truthy
 from pct.studio_site_blocks import block_presets, normalize_blocks
 from pct.studio_site_theme import (
     DEFAULT_THEME_TEMPLATE,
@@ -139,9 +139,17 @@ def save_design_settings(payload: dict[str, Any]) -> dict[str, Any]:
     typography = {
         "font_preset": clean_text(payload.get("font_preset")) or "system_professional",
         "font_size_base": clean_text(payload.get("font_size_base")) or "16px",
+        "heading_size": clean_text(payload.get("heading_size")) or "3.8rem",
+        "section_title_size": clean_text(payload.get("section_title_size")) or "2.2rem",
         "line_height": clean_text(payload.get("line_height")) or "1.65",
     }
     computed_tokens = build_design_tokens(template_code, tokens, typography)
+    section_spacing = clean_text(payload.get("section_spacing")) or computed_tokens.get("section_padding")
+    card_padding = clean_text(payload.get("card_padding")) or computed_tokens.get("card_padding")
+    button_radius = clean_text(payload.get("button_radius")) or computed_tokens.get("button_radius")
+    computed_tokens["section_padding"] = section_spacing
+    computed_tokens["card_padding"] = card_padding
+    computed_tokens["button_radius"] = button_radius
     repo.save_design_revision(
         site_id,
         label="Prima delle modifiche design",
@@ -161,10 +169,19 @@ def save_design_settings(payload: dict[str, Any]) -> dict[str, Any]:
             "layout_json": {
                 "container": clean_text(payload.get("container_width")) or computed_tokens.get("container_width"),
                 "density": clean_text(payload.get("density") or "standard"),
+                "section_spacing": section_spacing,
+                "card_padding": card_padding,
+                "button_radius": button_radius,
             },
             "effects_json": {
                 "animation": clean_text(payload.get("animation") or "fade-up"),
                 "speed": clean_text(payload.get("animation_speed") or computed_tokens.get("animation_speed")),
+                "card_shadow": clean_text(payload.get("card_shadow") or "none"),
+                "fixed_header": clean_text(payload.get("fixed_header") or "none"),
+                "button_hover": clean_text(payload.get("button_hover") or "none"),
+                "section_divider": clean_text(payload.get("section_divider") or "none"),
+                "image_treatment": clean_text(payload.get("image_treatment") or "none"),
+                "focus_ring": clean_text(payload.get("focus_ring") or "professional"),
             },
             "custom_css": sanitize_custom_css(payload.get("custom_css")),
             "cookie_banner_enabled": truthy(payload.get("cookie_banner_enabled")),

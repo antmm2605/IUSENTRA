@@ -148,6 +148,36 @@ def nl2html(text: str) -> Markup:
     return Markup("").join(paragraphs)
 
 
+_RICH_INLINE_TAG_RE = re.compile(r"(</?(?:em|u|sup|sub)>)", re.IGNORECASE)
+
+
+def rich_inline_text(text: Any) -> Markup:
+    value = str(text or "")
+    if not value:
+        return Markup("")
+    chunks: list[Markup] = []
+    for part in _RICH_INLINE_TAG_RE.split(value):
+        if not part:
+            continue
+        if _RICH_INLINE_TAG_RE.fullmatch(part):
+            tag = part.lower()
+            chunks.append(Markup(tag))
+        else:
+            chunks.append(escape(part))
+    return Markup("").join(chunks)
+
+
+def rich_paragraphs(text: Any) -> Markup:
+    value = str(text or "").strip()
+    if not value:
+        return Markup("")
+    paragraphs: list[Markup] = []
+    for paragraph in value.split("\n\n"):
+        lines = [rich_inline_text(line) for line in paragraph.splitlines()]
+        paragraphs.append(Markup("<p>%s</p>") % Markup("<br>").join(lines))
+    return Markup("").join(paragraphs)
+
+
 def derive_site_studio_repository_db_path(anchor_path: str) -> str:
     target = Path(str(anchor_path or "./data/config/studio.json")).resolve()
     if target.suffix:

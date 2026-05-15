@@ -20,7 +20,11 @@ from web.services.studio_site_builder_runtime import (
     save_page_blocks,
     validate_site_builder,
 )
-from web.services.studio_site_runtime import get_site_for_current_tenant, studio_site_repository
+from web.services.studio_site_runtime import (
+    audit_studio_site_action,
+    get_site_for_current_tenant,
+    studio_site_repository,
+)
 
 
 def _iso_now() -> str:
@@ -80,6 +84,22 @@ def _site(site: dict[str, Any], public_url: str) -> dict[str, Any]:
         "themeTemplate": _text(site.get("theme_template")),
         "updatedAt": _text(site.get("updated_at")),
         "publicUrl": _text(public_url),
+        "contactEmail": _text(site.get("contact_email")),
+        "contactPhone": _text(site.get("contact_phone")),
+        "whatsappNumber": _text(site.get("whatsapp_number")),
+        "address": _text(site.get("address")),
+        "city": _text(site.get("city")),
+        "province": _text(site.get("province")),
+        "zipCode": _text(site.get("zip_code")),
+        "logoUrl": _text(site.get("logo_url")),
+        "faviconUrl": _text(site.get("favicon_url")),
+        "footerText": _text(site.get("footer_text")),
+        "privacyUrl": _text(site.get("privacy_url")),
+        "cookiePolicyUrl": _text(site.get("cookie_policy_url")),
+        "accessibilityStatementUrl": _text(site.get("accessibility_statement_url")),
+        "legalDisclaimer": _text(site.get("legal_disclaimer"), 500),
+        "cookieBannerEnabled": _bool(site.get("cookie_banner_enabled")),
+        "analyticsEnabled": _bool(site.get("analytics_enabled")),
     }
 
 
@@ -98,6 +118,8 @@ def _page(row: dict[str, Any]) -> dict[str, Any]:
         "blocksCount": len(blocks),
         "updatedAt": _text(row.get("updated_at") or row.get("created_at")),
         "href": f"/sito-studio/builder?page_id={page_id}" if page_id else "/sito-studio/builder",
+        "seoTitle": _text(row.get("seo_title")),
+        "seoDescription": _text(row.get("seo_description"), 220),
     }
 
 
@@ -262,6 +284,110 @@ def generate_react_builder_site(payload: dict[str, Any]) -> dict[str, Any]:
 
 def validate_react_builder() -> dict[str, Any]:
     return {"ok": True, "message": "Controlli completati.", "validation": _validation(validate_site_builder())}
+
+
+def update_react_builder_site(payload: dict[str, Any]) -> dict[str, Any]:
+    site = get_site_for_current_tenant()
+    repo = studio_site_repository()
+    site_id = int(site["id"])
+    repo.save_design_revision(
+        site_id,
+        label="Prima dell'aggiornamento dati sito",
+        snapshot=repo.snapshot_site_design(site_id),
+        created_by="IUSENTRA",
+    )
+    updated = repo.save_site(
+        site_id,
+        {
+            "site_name": _text(payload.get("siteName") or payload.get("site_name") or site.get("site_name")),
+            "site_title": _text(payload.get("siteTitle") or payload.get("title") or site.get("site_title")),
+            "site_description": _text(payload.get("siteDescription") or payload.get("description") or site.get("site_description"), 360),
+            "hero_claim": _text(payload.get("claim") or site.get("hero_claim"), 180),
+            "contact_email": _text(payload.get("contactEmail") or payload.get("email") or site.get("contact_email")),
+            "contact_phone": _text(payload.get("contactPhone") or payload.get("phone") or site.get("contact_phone")),
+            "whatsapp_number": _text(payload.get("whatsappNumber") or site.get("whatsapp_number")),
+            "address": _text(payload.get("address") or site.get("address")),
+            "city": _text(payload.get("city") or site.get("city")),
+            "province": _text(payload.get("province") or site.get("province")),
+            "zip_code": _text(payload.get("zipCode") or site.get("zip_code")),
+            "public_slug": slugify(_text(payload.get("publicSlug") or site.get("public_slug"))),
+            "logo_url": _text(payload.get("logoUrl") or site.get("logo_url")),
+            "favicon_url": _text(payload.get("faviconUrl") or site.get("favicon_url")),
+            "footer_text": _text(payload.get("footerText") or site.get("footer_text"), 360),
+            "privacy_url": _text(payload.get("privacyUrl") or site.get("privacy_url")),
+            "cookie_policy_url": _text(payload.get("cookiePolicyUrl") or site.get("cookie_policy_url")),
+            "accessibility_statement_url": _text(
+                payload.get("accessibilityStatementUrl") or site.get("accessibility_statement_url")
+            ),
+            "legal_disclaimer": _text(payload.get("legalDisclaimer") or site.get("legal_disclaimer"), 500),
+            "cookie_banner_enabled": _bool(payload.get("cookieBannerEnabled", site.get("cookie_banner_enabled"))),
+            "analytics_enabled": _bool(payload.get("analyticsEnabled", site.get("analytics_enabled"))),
+        },
+    )
+    audit_studio_site_action("sito_studio.aggiorna_dati_builder", resource_id=str(site_id), details="Dati sito aggiornati dal Builder Pro.")
+    return {"ok": True, "message": "Dati sito salvati.", "site": _site(updated or site, _text((updated or site).get("public_url"))), "payload": _builder_payload()}
+
+
+def update_react_builder_page(page_id: int, payload: dict[str, Any]) -> dict[str, Any]:
+    site = get_site_for_current_tenant()
+    repo = studio_site_repository()
+    site_id = int(site["id"])
+    current = repo.get_page(site_id, int(page_id))
+    if current is None:
+        return {"ok": False, "message": "Pagina non trovata."}
+    repo.save_design_revision(
+        site_id,
+        label="Prima dell'aggiornamento pagina",
+        snapshot=repo.snapshot_site_design(site_id),
+        created_by="IUSENTRA",
+    )
+    page = repo.save_page(
+        site_id,
+        {
+            "title": _text(payload.get("title") or current.get("title")),
+            "slug": slugify(_text(payload.get("slug") or current.get("slug"))),
+            "excerpt": _text(payload.get("excerpt") or current.get("excerpt"), 220),
+            "body_json": current.get("body_json") or [],
+            "status": _text(payload.get("status") or current.get("status") or "draft"),
+            "show_in_menu": _bool(payload.get("showInMenu", current.get("show_in_menu"))),
+            "sort_order": _int(payload.get("sortOrder") or current.get("sort_order")),
+            "is_home": _bool(payload.get("home", current.get("is_home"))),
+            "seo_title": _text(payload.get("seoTitle") or current.get("seo_title") or payload.get("title") or current.get("title")),
+            "seo_description": _text(payload.get("seoDescription") or current.get("seo_description") or payload.get("excerpt") or current.get("excerpt"), 220),
+        },
+        page_id=int(page_id),
+    )
+    audit_studio_site_action("sito_studio.aggiorna_pagina_builder", resource_id=str(page_id), details="Pagina aggiornata dal Builder Pro.")
+    return {"ok": True, "message": "Impostazioni pagina salvate.", "page": _page(page), "payload": _builder_payload(page_id=int(page_id))}
+
+
+def duplicate_react_builder_page(page_id: int) -> dict[str, Any]:
+    site = get_site_for_current_tenant()
+    repo = studio_site_repository()
+    site_id = int(site["id"])
+    current = repo.get_page(site_id, int(page_id))
+    if current is None:
+        return {"ok": False, "message": "Pagina non trovata."}
+    pages = repo.list_pages(site_id)
+    title = f"Copia di {_text(current.get('title') or 'Pagina')}"
+    page = repo.save_page(
+        site_id,
+        {
+            "title": title,
+            "slug": slugify(f"{current.get('slug') or title}-copia"),
+            "excerpt": _text(current.get("excerpt"), 220),
+            "body_json": current.get("body_json") or [],
+            "status": "draft",
+            "show_in_menu": False,
+            "sort_order": len(pages) + 1,
+            "is_home": False,
+            "seo_title": title,
+            "seo_description": _text(current.get("seo_description") or current.get("excerpt"), 220),
+        },
+    )
+    new_id = _int(page.get("id"))
+    audit_studio_site_action("sito_studio.duplica_pagina_builder", resource_id=str(new_id), details="Pagina duplicata dal Builder Pro.")
+    return {"ok": True, "message": "Pagina duplicata in bozza.", "page": _page(page), "payload": _builder_payload(page_id=new_id)}
 
 
 def create_react_builder_page(payload: dict[str, Any]) -> dict[str, Any]:

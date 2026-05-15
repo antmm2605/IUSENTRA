@@ -130,3 +130,12 @@ Generato: 2026-05-15T12:13:18.530Z
 | /utenti/nuovo | frontend/src/components/UtentiPage.tsx | frontend/src/utentiData.ts | web/services/react_utenti_bridge.py | react_operational_full | 1 | 0 | si | fallback legacy tecnico non primario | react_operational_full |
 | /wizard-pro | frontend/src/components/WizardProPage.tsx | frontend/src/wizardProData.ts | web/services/react_wizard_pro_bridge.py | react_operational_full | 0 | 0 | si | nessuno | react_operational_full |
 | /workspace-intelligente | frontend/src/App.tsx | frontend/src/data.ts | web/services/react_dashboard_cache.py | react_operational_full | 0 | 0 | no | nessuno | react_operational_full |
+
+## Aggiornamento 2.239.1 - 2026-05-15
+
+`/sito-studio/builder` resta `react_operational_full` e non maschera fallback
+classici: la pagina usa `SitoStudioBuilderPage.tsx`, `sitoStudioBuilderData.ts`
+e `react_sito_studio_builder_bridge.py` per azioni reali su setup, pagine,
+blocchi, contenuti, media, tema, privacy, AI e pubblicazione. L'audit visuale
+CDP dedicato conferma preview live completa, footer visibile, menu tablet/mobile,
+resize pannello, controlli tipografici, colori ed effetti applicati.

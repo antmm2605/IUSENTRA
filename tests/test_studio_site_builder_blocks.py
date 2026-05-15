@@ -48,9 +48,13 @@ def test_builder_pagina_espone_editor_visuale(tmp_path: Path):
     with app.test_client() as client:
         _login_tenant_admin(client, studio.slug, username=tenant_admin.username)
         response = client.get("/sito-studio/builder")
+        payload_response = client.get("/api/v1/ui/sito-studio/builder")
     assert response.status_code == 200
     html = response.get_data(as_text=True)
-    assert "Sito Studio Builder Pro" in html
-    assert "data-block-editor-list" in html
-    assert "Salva bozza" in html
-    assert "Redazione AI" in html
+    assert '<html lang="it" class="react-shell-document">' in html
+    assert '<div id="root"></div>' in html
+    assert payload_response.status_code == 200
+    payload = payload_response.get_json()
+    assert payload["site"]["siteName"]
+    assert payload["pages"]
+    assert payload["templates"]

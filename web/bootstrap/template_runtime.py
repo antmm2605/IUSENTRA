@@ -24,6 +24,7 @@ from web.services.ui_localization import (
     format_time_only,
 )
 from web.services.local_signer_release import latest_local_signer_release
+from pct.studio_site import rich_inline_text, rich_paragraphs
 
 
 def register_template_runtime(
@@ -74,6 +75,14 @@ def register_template_runtime(
     @app.template_filter("fmt_nota_import")
     def fmt_nota_import(val: Any) -> str:
         return format_portal_import_note(val)
+
+    @app.template_filter("studio_rich")
+    def studio_rich(val: Any):
+        return rich_inline_text(val)
+
+    @app.template_filter("studio_rich_paragraphs")
+    def studio_rich_paragraphs(val: Any):
+        return rich_paragraphs(val)
 
     @app.context_processor
     def inject_globals():

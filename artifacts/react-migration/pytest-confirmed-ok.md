@@ -1,12 +1,24 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-15, tranche superadmin operativo 2.239.0.
+Aggiornato: 2026-05-15, Sito Studio Builder Pro 2.239.1.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Sito Studio Builder Pro 2.239.1 - 2026-05-15
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `npm --prefix frontend run typecheck`; `npm --prefix frontend run build`; `npm --prefix frontend run test` | OK | TypeScript, build Vite e contratti frontend confermati dopo layout B, pannello ridimensionabile, nuove tab, controlli tipografici, colori, effetti, media e preview live completa. |
+| `python -m pytest tests/test_studio_site_builder_api.py tests/test_studio_site_builder_blocks.py tests/test_studio_site_assets.py -q --tb=short` | OK | 7/7 passati: API builder, pagine/blocchi, asset media, persistenza tema/layout/effetti e contratti sito studio restano coerenti. |
+| `python -m ruff check pct/studio_site.py pct/studio_site_theme.py web/bootstrap/template_runtime.py web/services/studio_site_builder_runtime.py web/services/react_sito_studio_builder_bridge.py web/blueprints/api_v1_react.py tests/test_studio_site_builder_api.py tests/test_studio_site_builder_blocks.py` | OK | Ruff mirato verde sul perimetro Python modificato, inclusi filtri rich text controllati e salvataggio design settings esteso. |
+| `node --check scripts/react-migration/verify-sito-studio-builder-pro.mjs`; `node frontend\scripts\check-react-contracts.mjs`; `node scripts\react-migration\check-route-gate.mjs` | OK | Script visuale e gate React confermano builder full React, route governata e nessuna regressione nei contratti di routing. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py -q --tb=short` | OK | Packaging e readiness release verdi su versione `2.239.1`; Dockerfile, `setup.py`, `railway.toml`, `pct/__init__.py` e pacchetto frontend allineati. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build --force-recreate redis app scheduler-worker ocr-worker nginx`; `GET http://127.0.0.1:8080/api/pronto` | OK | Build locale no-cache completata; app, scheduler, OCR, Redis e nginx avviati; readiness locale 200 con `versione=2.239.1`. |
+| `node scripts\react-migration\verify-sito-studio-builder-pro.mjs` | OK | Chrome CDP autenticato su `/sito-studio/builder`: caricamento 1409 ms, pannello 380px, resize 380->480px, preview 1121px, footer live visibile, menu tablet/mobile presente, colori/font/effetti/formattazione/allineamento funzionanti. Report: `artifacts/react-migration/visual-2.239.1-sito-studio-builder/visual-load-audit.md`. |
 
 ### Tranche superadmin operativo 2.239.0 - 2026-05-15
 

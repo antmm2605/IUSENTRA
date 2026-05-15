@@ -400,3 +400,17 @@ Verifica visuale finale: il catalogo non interroga gli agenti schedulati quando
 il relativo flag resta spento, il manifest Supertonic opzionale risponde come
 disabilitato e Chrome CDP autenticato su `/legal-skills` desktop/mobile passa
 senza errori console, redirect login, overflow, form POST HTML o testi tecnici.
+
+## Aggiornamento 2.239.1 - 2026-05-15
+
+Il builder Sito Studio non e' piu' una superficie semplificata: `/sito-studio/builder`
+usa un'esperienza React full con pannello stretto, tab verticali e preview live
+dominante. La pagina non espone dati demo o fallback mascherati; salva e legge
+stato reale tramite le API del builder e del sito pubblico.
+
+Controlli anti-mascheramento: le azioni di pagine, blocchi, media, tema,
+conformita', AI e pubblicazione passano da endpoint esistenti; il sito pubblico
+riceve font, dimensioni, colori, layout ed effetti dal tema salvato; i soli tag
+rich text ammessi sono filtrati dal backend. L'audit CDP conferma footer live,
+menu tablet/mobile, resize pannello, effetti, font, colori, toolbar testo e
+allineamenti funzionanti.

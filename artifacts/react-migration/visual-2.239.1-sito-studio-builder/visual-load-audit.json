@@ -1,0 +1,121 @@
+{
+  "checkedAt": "2026-05-15T22:55:19.578Z",
+  "loadMs": 1409,
+  "base": {
+    "h1": "Sito Studio Builder Pro",
+    "activeTab": "Aspetto",
+    "tabCount": 10,
+    "panel": {
+      "width": 380,
+      "height": 888,
+      "top": 108,
+      "bottom": 996
+    },
+    "rail": {
+      "width": 92,
+      "height": 842,
+      "top": 131,
+      "bottom": 973
+    },
+    "preview": {
+      "width": 1121,
+      "height": 888,
+      "top": 108,
+      "bottom": 996
+    },
+    "resizeHandle": true,
+    "shellSidebarVisible": false,
+    "horizontalOverflow": false,
+    "footerExists": true,
+    "forbidden": []
+  },
+  "footer": {
+    "scrollTop": 697,
+    "scrollHeight": 1271,
+    "footerTop": 745,
+    "footerBottom": 876,
+    "containerTop": 329,
+    "containerBottom": 903,
+    "visible": true
+  },
+  "resize": {
+    "before": 380,
+    "after": 480,
+    "gridColumns": "480px 12px 1021px",
+    "gridWidth": 1537,
+    "title": "Pannello 480px"
+  },
+  "theme": {
+    "fontSelect": "garamond_legal",
+    "headingFont": "Garamond, \"Palatino Linotype\", Georgia, serif",
+    "textSize": "18px",
+    "headingSize": "48px",
+    "sectionTitleSize": "34px",
+    "secondary": "#6d334f",
+    "accent": "#0f9f8f",
+    "classes": "iu-builder-public-page has-soft-animation has-scale-animation has-shadow-layered has-transparent-header has-divider-accent-line",
+    "cardShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px"
+  },
+  "mobileTablet": [
+    {
+      "target": "Tablet",
+      "className": "iu-builder-preview-shell",
+      "menuVisible": true,
+      "navItems": 5,
+      "previewWidth": 1021,
+      "headerHeight": 105
+    },
+    {
+      "target": "Mobile",
+      "className": "iu-builder-preview-shell",
+      "menuVisible": true,
+      "navItems": 5,
+      "previewWidth": 1021,
+      "headerHeight": 116
+    }
+  ],
+  "formatting": {
+    "rows": [
+      {
+        "label": "Titolo",
+        "buttons": [
+          "Corsivo titolo",
+          "Sottolineato titolo",
+          "Apice titolo",
+          "Pedice titolo"
+        ]
+      },
+      {
+        "label": "Sottotitolo",
+        "buttons": [
+          "Corsivo sottotitolo",
+          "Sottolineato sottotitolo",
+          "Apice sottotitolo",
+          "Pedice sottotitolo"
+        ]
+      },
+      {
+        "label": "Corpo",
+        "buttons": [
+          "Corsivo corpo",
+          "Sottolineato corpo",
+          "Apice corpo",
+          "Pedice corpo"
+        ]
+      }
+    ],
+    "alignButtons": [
+      "Sinistra",
+      "Centrato",
+      "Destra",
+      "Giustificato"
+    ]
+  },
+  "media": {
+    "uploadInput": true,
+    "uploadAltRequired": false,
+    "libraryVisible": true
+  },
+  "consoleErrors": [],
+  "failures": []
+}

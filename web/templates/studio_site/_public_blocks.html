@@ -48,8 +48,8 @@
           <div class="row align-items-center g-4 {% if block.type == 'hero_centered' %}justify-content-center text-center{% endif %}">
             <div class="{% if block.type == 'hero_centered' %}col-lg-9{% else %}col-lg-7{% endif %}">
               <span class="studio-site-pill">Studio legale digitale</span>
-              <h1>{{ block.title or payload.site.site_name }}</h1>
-              <p class="lead">{{ block.subtitle or payload.site.hero_claim or payload.site.site_description }}</p>
+              <h1>{{ (block.title or payload.site.site_name)|studio_rich }}</h1>
+              <p class="lead">{{ (block.subtitle or payload.site.hero_claim or payload.site.site_description)|studio_rich }}</p>
               <div class="d-flex flex-wrap gap-2">
                 <a class="btn btn-primary btn-lg" href="{{ hero_primary_url }}">{{ block.button_text or 'Contatta lo studio' }}</a>
                 <a class="btn btn-outline-dark btn-lg" href="{{ url_for('studio_site_public.contacts', public_slug=payload.site.public_slug) }}">Parla con noi</a>
@@ -82,8 +82,8 @@
                   <div class="row align-items-center g-4">
                     <div class="col-lg-7">
                       <span class="studio-site-pill">Studio legale</span>
-                      <h1>{{ item.title or block.title or payload.site.site_name }}</h1>
-                      <p class="lead">{{ item.text or block.subtitle or payload.site.site_description }}</p>
+                      <h1>{{ (item.title or block.title or payload.site.site_name)|studio_rich }}</h1>
+                      <p class="lead">{{ (item.text or block.subtitle or payload.site.site_description)|studio_rich }}</p>
                       <a class="btn btn-primary btn-lg" href="{{ item.button_url or block.button_url or url_for('studio_site_public.contacts', public_slug=payload.site.public_slug) }}">{{ item.button_text or block.button_text or 'Contatta lo studio' }}</a>
                     </div>
                     <div class="col-lg-5">
@@ -110,8 +110,8 @@
       {% set carousel_id = 'image-text-slider-' ~ loop.index %}
       <section class="studio-site-section{{ visibility_class }}">
         <div class="container">
-          {% if block.title %}<h2>{{ block.title }}</h2>{% endif %}
-          {% if block.subtitle %}<p class="text-muted">{{ block.subtitle }}</p>{% endif %}
+          {% if block.title %}<h2>{{ block.title|studio_rich }}</h2>{% endif %}
+          {% if block.subtitle %}<p class="text-muted">{{ block.subtitle|studio_rich }}</p>{% endif %}
           <div id="{{ carousel_id }}" class="carousel slide studio-site-card" data-bs-ride="carousel">
             <div class="carousel-inner">
               {% for item in block.get('items', []) %}
@@ -121,8 +121,8 @@
                       {% if item.image_url %}<img class="studio-site-cover mb-0" src="{{ item.image_url }}" alt="{{ item.image_alt or item.title }}" loading="lazy">{% else %}<div class="studio-site-hero-placeholder"><i class="bi bi-journal-text"></i></div>{% endif %}
                     </div>
                     <div class="col-md-7">
-                      <h3>{{ item.title }}</h3>
-                      <p>{{ item.text }}</p>
+                      <h3>{{ item.title|studio_rich }}</h3>
+                      <p>{{ item.text|studio_rich }}</p>
                     </div>
                   </div>
                 </div>
@@ -138,15 +138,15 @@
     {% elif block.type == 'gallery_grid' %}
       <section class="studio-site-section{{ visibility_class }}">
         <div class="container">
-          <h2>{{ block.title or 'Galleria dello studio' }}</h2>
-          {% if block.subtitle %}<p class="text-muted">{{ block.subtitle }}</p>{% endif %}
+          <h2>{{ (block.title or 'Galleria dello studio')|studio_rich }}</h2>
+          {% if block.subtitle %}<p class="text-muted">{{ block.subtitle|studio_rich }}</p>{% endif %}
           <div class="row g-3">
             {% for item in block.get('items', []) %}
               <div class="col-md-6 col-xl-4">
                 <article class="studio-site-card h-100">
                   {% if item.image_url %}<img class="studio-site-cover" src="{{ item.image_url }}" alt="{{ item.image_alt or item.title }}" loading="lazy">{% endif %}
-                  <h3>{{ item.title }}</h3>
-                  {% if item.text %}<p>{{ item.text }}</p>{% endif %}
+                  <h3>{{ item.title|studio_rich }}</h3>
+                  {% if item.text %}<p>{{ item.text|studio_rich }}</p>{% endif %}
                 </article>
               </div>
             {% endfor %}
@@ -161,9 +161,9 @@
               {% if block.image_url %}<img class="studio-site-cover mb-0" src="{{ block.image_url }}" alt="{{ block.image_alt or block.title }}" loading="lazy">{% else %}<div class="studio-site-hero-placeholder"><i class="bi bi-folder2-open"></i></div>{% endif %}
             </div>
             <div class="col-lg-6">
-              <h2>{{ block.title }}</h2>
-              {% if block.subtitle %}<p class="lead">{{ block.subtitle }}</p>{% endif %}
-              {% if block.text %}<div class="studio-site-copy">{{ block.text|replace('\n\n','</p><p>')|replace('\n','<br>')|safe }}</div>{% endif %}
+              <h2>{{ block.title|studio_rich }}</h2>
+              {% if block.subtitle %}<p class="lead">{{ block.subtitle|studio_rich }}</p>{% endif %}
+              {% if block.text %}<div class="studio-site-copy">{{ block.text|studio_rich_paragraphs }}</div>{% endif %}
               {% if block.button_text %}<a class="btn btn-primary" href="{{ block.button_url or url_for('studio_site_public.contacts', public_slug=payload.site.public_slug) }}">{{ block.button_text }}</a>{% endif %}
             </div>
           </div>
@@ -172,10 +172,10 @@
     {% elif block.type == 'logo_strip' %}
       <section class="studio-site-section studio-site-section-compact{{ visibility_class }}">
         <div class="container">
-          {% if block.title %}<h2 class="h4">{{ block.title }}</h2>{% endif %}
+          {% if block.title %}<h2 class="h4">{{ block.title|studio_rich }}</h2>{% endif %}
           <div class="studio-site-logo-strip">
             {% for item in block.get('items', []) %}
-              <div><strong>{{ item.title }}</strong><span>{{ item.text }}</span></div>
+              <div><strong>{{ item.title|studio_rich }}</strong><span>{{ item.text|studio_rich }}</span></div>
             {% endfor %}
           </div>
         </div>
@@ -184,7 +184,7 @@
       <section class="studio-site-section-compact{{ visibility_class }}">
         <div class="studio-site-ticker" aria-label="{{ block.title or 'Avvisi dello studio' }}">
           <div>
-            {% for item in block.get('items', []) %}<span>{{ item.text or item.title }}</span>{% endfor %}
+            {% for item in block.get('items', []) %}<span>{{ (item.text or item.title)|studio_rich }}</span>{% endfor %}
           </div>
         </div>
       </section>
@@ -192,8 +192,8 @@
       {% set carousel_id = 'service-carousel-' ~ loop.index %}
       <section class="studio-site-section{{ visibility_class }}">
         <div class="container">
-          <h2>{{ block.title or 'Servizi in evidenza' }}</h2>
-          {% if block.subtitle %}<p class="text-muted">{{ block.subtitle }}</p>{% endif %}
+          <h2>{{ (block.title or 'Servizi in evidenza')|studio_rich }}</h2>
+          {% if block.subtitle %}<p class="text-muted">{{ block.subtitle|studio_rich }}</p>{% endif %}
           <div id="{{ carousel_id }}" class="carousel slide" data-bs-ride="carousel">
             <div class="carousel-inner">
               {% for item in payload.services %}
@@ -217,8 +217,8 @@
       {% set carousel_id = 'article-carousel-' ~ loop.index %}
       <section class="studio-site-section{{ visibility_class }}">
         <div class="container">
-          <h2>{{ block.title or 'Articoli in evidenza' }}</h2>
-          {% if block.subtitle %}<p class="text-muted">{{ block.subtitle }}</p>{% endif %}
+          <h2>{{ (block.title or 'Articoli in evidenza')|studio_rich }}</h2>
+          {% if block.subtitle %}<p class="text-muted">{{ block.subtitle|studio_rich }}</p>{% endif %}
           <div id="{{ carousel_id }}" class="carousel slide" data-bs-ride="carousel">
             <div class="carousel-inner">
               {% for item in payload.latest_articles %}
@@ -244,8 +244,8 @@
       <section class="studio-site-section{{ visibility_class }}">
         <div class="container">
           <blockquote class="studio-site-quote-banner">
-            <p>{{ block.text }}</p>
-            {% if block.title %}<footer>{{ block.title }}</footer>{% endif %}
+            <p>{{ block.text|studio_rich }}</p>
+            {% if block.title %}<footer>{{ block.title|studio_rich }}</footer>{% endif %}
           </blockquote>
         </div>
       </section>
@@ -254,8 +254,8 @@
         <div class="container">
           <div class="studio-site-contact-split">
             <div>
-              <h2>{{ block.title }}</h2>
-              <p>{{ block.text }}</p>
+              <h2>{{ block.title|studio_rich }}</h2>
+              <p>{{ block.text|studio_rich }}</p>
               <a class="btn btn-light btn-lg" href="{{ block.button_url or url_for('studio_site_public.contacts', public_slug=payload.site.public_slug) }}">{{ block.button_text or 'Contatta lo studio' }}</a>
             </div>
             {% if block.image_url %}<img src="{{ block.image_url }}" alt="{{ block.image_alt or block.title }}" loading="lazy">{% endif %}
@@ -267,7 +267,7 @@
         <div class="container">
           <div class="studio-site-trust-bar">
             {% for item in block.get('items', []) %}
-              <div><strong>{{ item.title }}</strong><span>{{ item.text }}</span></div>
+              <div><strong>{{ item.title|studio_rich }}</strong><span>{{ item.text|studio_rich }}</span></div>
             {% endfor %}
           </div>
         </div>
@@ -275,8 +275,8 @@
     {% elif block.type == 'rich_text' %}
       <section class="studio-site-section{{ visibility_class }}">
         <div class="container">
-          {% if block.title %}<h2>{{ block.title }}</h2>{% endif %}
-          <div class="studio-site-copy">{{ (block.text or '')|replace('\n\n','</p><p>')|replace('\n','<br>')|safe }}</div>
+          {% if block.title %}<h2>{{ block.title|studio_rich }}</h2>{% endif %}
+          <div class="studio-site-copy">{{ (block.text or '')|studio_rich_paragraphs }}</div>
         </div>
       </section>
     {% elif block.type in ['services', 'practice_areas'] %}
@@ -284,8 +284,8 @@
         <div class="container">
           <div class="d-flex justify-content-between align-items-end gap-3 flex-wrap">
             <div>
-              <h2>{{ block.title or 'Di cosa si occupa lo studio' }}</h2>
-              <p class="text-muted mb-0">{{ block.subtitle or 'Aree operative e servizi presentati in modo chiaro sul sito studio.' }}</p>
+              <h2>{{ (block.title or 'Di cosa si occupa lo studio')|studio_rich }}</h2>
+              <p class="text-muted mb-0">{{ (block.subtitle or 'Aree operative e servizi presentati in modo chiaro sul sito studio.')|studio_rich }}</p>
             </div>
           </div>
           <div class="row g-4 mt-1">
@@ -304,8 +304,8 @@
     {% elif block.type in ['feature_grid', 'process_steps', 'stats', 'document_checklist', 'legal_tools', 'applications'] %}
       <section class="studio-site-section{{ visibility_class }}">
         <div class="container">
-          <h2>{{ block.title }}</h2>
-          {% if block.subtitle %}<p class="text-muted">{{ block.subtitle }}</p>{% endif %}
+          <h2>{{ block.title|studio_rich }}</h2>
+          {% if block.subtitle %}<p class="text-muted">{{ block.subtitle|studio_rich }}</p>{% endif %}
           <div class="row g-4 mt-1">
             {% if block.type == 'legal_tools' and payload.legal_tools %}
               {% for item in payload.legal_tools %}
@@ -319,8 +319,8 @@
               {% for item in block.get('items', []) %}
                 <div class="col-md-6 col-xl-4">
                   <article class="studio-site-card h-100">
-                    <h3>{{ item.title }}</h3>
-                    <p>{{ item.text }}</p>
+                    <h3>{{ item.title|studio_rich }}</h3>
+                    <p>{{ item.text|studio_rich }}</p>
                   </article>
                 </div>
               {% endfor %}
@@ -331,7 +331,7 @@
     {% elif block.type == 'team' %}
       <section class="studio-site-section studio-site-section-muted{{ visibility_class }}">
         <div class="container">
-          <h2>{{ block.title or 'Professionisti' }}</h2>
+          <h2>{{ (block.title or 'Professionisti')|studio_rich }}</h2>
           <div class="row g-4">
             {% for item in payload.professionals %}
               <div class="col-md-6 col-xl-4">
@@ -356,7 +356,7 @@
         <div class="container">
           <div class="d-flex justify-content-between align-items-end flex-wrap gap-3">
             <div>
-              <h2>{{ block.title or 'Ultimi articoli' }}</h2>
+              <h2>{{ (block.title or 'Ultimi articoli')|studio_rich }}</h2>
               <p class="text-muted mb-0">Approfondimenti, orientamenti e contenuti editoriali dello studio.</p>
             </div>
             {% if payload.articles %}
@@ -387,18 +387,18 @@
     {% elif block.type == 'faq' %}
       <section class="studio-site-section studio-site-section-muted{{ visibility_class }}">
         <div class="container">
-          <h2>{{ block.title or 'Domande frequenti' }}</h2>
+          <h2>{{ (block.title or 'Domande frequenti')|studio_rich }}</h2>
           {% set faq_index = loop.index %}
           <div class="accordion studio-site-faq" id="faq-{{ faq_index }}">
             {% for item in block.get('items', []) %}
               <div class="accordion-item">
                 <h3 class="accordion-header">
                   <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq-{{ faq_index }}-{{ loop.index }}">
-                    {{ item.title }}
+                    {{ item.title|studio_rich }}
                   </button>
                 </h3>
                 <div id="faq-{{ faq_index }}-{{ loop.index }}" class="accordion-collapse collapse" data-bs-parent="#faq-{{ faq_index }}">
-                  <div class="accordion-body">{{ item.text }}</div>
+                  <div class="accordion-body">{{ item.text|studio_rich }}</div>
                 </div>
               </div>
             {% endfor %}
@@ -408,14 +408,14 @@
     {% elif block.type == 'contact_form' %}
       <section class="studio-site-section studio-site-section-muted{{ visibility_class }}">
         <div class="container">
-          <h2>{{ block.title or 'Contatta lo studio' }}</h2>
+          <h2>{{ (block.title or 'Contatta lo studio')|studio_rich }}</h2>
           {{ contact_form(payload) }}
         </div>
       </section>
     {% elif block.type == 'office_map' %}
       <section class="studio-site-section{{ visibility_class }}">
         <div class="container">
-          <h2>{{ block.title or 'Dove siamo' }}</h2>
+          <h2>{{ (block.title or 'Dove siamo')|studio_rich }}</h2>
           <div class="row g-4">
             {% for office in payload.offices %}
               <div class="col-md-6">
@@ -440,7 +440,7 @@
     {% elif block.type == 'offices' %}
       <section class="studio-site-section{{ visibility_class }}">
         <div class="container">
-          <h2>{{ block.title or 'Sedi dello studio' }}</h2>
+          <h2>{{ (block.title or 'Sedi dello studio')|studio_rich }}</h2>
           <div class="row g-4">
             {% for office in payload.offices %}
               <div class="col-md-6 col-xl-4"><article class="studio-site-card h-100"><h3>{{ office.name }}</h3><p>{{ office.address }} {{ office.city }}</p><div class="small text-muted">{{ office.phone }} {{ office.email }}</div></article></div>
@@ -453,8 +453,8 @@
         <div class="container">
           <div class="studio-site-cta">
             <div>
-              <h2>{{ block.title or 'Prenota un appuntamento' }}</h2>
-              <p class="mb-0">{{ block.text or 'Agenda appuntamenti clienti con fasce orarie pubbliche e conferma interna dello studio.' }}</p>
+              <h2>{{ (block.title or 'Prenota un appuntamento')|studio_rich }}</h2>
+              <p class="mb-0">{{ (block.text or 'Agenda appuntamenti clienti con fasce orarie pubbliche e conferma interna dello studio.')|studio_rich }}</p>
             </div>
             <a class="btn btn-light btn-lg" href="{{ url_for('studio_site_public.booking', public_slug=payload.site.public_slug) }}">{{ block.button_text or 'Apri agenda' }}</a>
           </div>
@@ -465,8 +465,8 @@
         <div class="container">
           <div class="studio-site-cta">
             <div>
-              <h2>{{ block.title or 'Richiedi supporto allo studio' }}</h2>
-              <p class="mb-0">{{ block.text or payload.site.site_description }}</p>
+              <h2>{{ (block.title or 'Richiedi supporto allo studio')|studio_rich }}</h2>
+              <p class="mb-0">{{ (block.text or payload.site.site_description)|studio_rich }}</p>
             </div>
             <a class="btn btn-light btn-lg" href="{{ block.button_url or url_for('studio_site_public.contacts', public_slug=payload.site.public_slug) }}">{{ block.button_text or 'Contattaci' }}</a>
           </div>
@@ -477,9 +477,9 @@
         <div class="container">
           <article class="studio-site-card">
             <div class="studio-site-small-label">{{ block.type|replace('_', ' ') }}</div>
-            <h2>{{ block.title }}</h2>
-            {% if block.subtitle %}<p class="lead">{{ block.subtitle }}</p>{% endif %}
-            {% if block.text %}<div class="studio-site-copy">{{ block.text|replace('\n\n','</p><p>')|replace('\n','<br>')|safe }}</div>{% endif %}
+            <h2>{{ block.title|studio_rich }}</h2>
+            {% if block.subtitle %}<p class="lead">{{ block.subtitle|studio_rich }}</p>{% endif %}
+            {% if block.text %}<div class="studio-site-copy">{{ block.text|studio_rich_paragraphs }}</div>{% endif %}
           </article>
         </div>
       </section>

@@ -159,3 +159,10 @@ Card operative: ActionCard, CompactCard, KpiCard esistente, DetailPanel, Summary
 - Il badge di stato ricerca, il pulsante di aggiornamento e gli stati vuoti/loading usano espressioni professionali: `Indice avanzato`, `Aggiorna ricerca`, `archivio reale`, `postazione in uso`.
 - L'audit visuale non segnala piu' falsi positivi sulle pagine con molti pulsanti e pochi link testuali; la coerenza viene valutata su azioni reali, non solo su collegamenti.
 - Verifica Chrome CDP 2.236.5: audit completo con 91/92 OK e retry mirato `/soggetti/nuovo` mobile OK; nessun avviso residuo sulle rotte corrette.
+
+## Aggiornamento 2.239.1 - 2026-05-15
+
+- Sito Studio Builder Pro adotta un linguaggio da prodotto professionale: `Setup`, `Pagine`, `Blocchi`, `Contenuti`, `Aspetto`, `Media`, `SEO`, `Privacy`, `AI` e `Pubblica` raggruppano funzioni reali senza trasformare il pannello in una demo.
+- La grafica replica il riferimento B: topbar scura, panel compatto, tab verticali con icone lineari, preview live dominante, card e controlli densi ma leggibili.
+- I controlli avanzati non sono decorativi: font, dimensioni, colori, effetti, allineamenti, formattazione e media modificano realmente la preview e sono persistiti nel tema del sito pubblico.
+- Verifica CDP: nessun overflow, footer live visibile, menu tablet/mobile presente, toolbar testo e resize funzionanti; screenshot in `artifacts/react-migration/visual-2.239.1-sito-studio-builder/`.

@@ -455,14 +455,14 @@ Storybook non e' presente nel frontend e non viene introdotto in questa fase per
 | routes.appV2.billing.compensi | IUSENTRA_FF_ROUTES_APPV2_BILLING_COMPENSI | Compensi forensi nella shell App V2 sperimentale. | on |
 | routes.appV2.billing.tariffario | IUSENTRA_FF_ROUTES_APPV2_BILLING_TARIFFARIO | Tariffario nella shell App V2 sperimentale. | on |
 | routes.appV2.notifications.mobilePush | IUSENTRA_FF_ROUTES_APPV2_NOTIFICATIONS_MOBILEPUSH | Notifiche Web Push su dispositivo mobile/tablet. | off |
-| lex.legalSkills.enabled | IUSENTRA_FF_LEX_LEGALSKILLS_ENABLED | Legal Skills Engine governato per Lex. | off |
+| lex.legalSkills.enabled | IUSENTRA_FF_LEX_LEGALSKILLS_ENABLED | Legal Skills Engine governato per Lex. | on |
 | lex.legalSkills.trustLayer | IUSENTRA_FF_LEX_LEGALSKILLS_TRUSTLAYER | Controllo di fiducia per skill legali custom. | off |
 | lex.legalSkills.customSkills | IUSENTRA_FF_LEX_LEGALSKILLS_CUSTOMSKILLS | Installazione skill Legal Skills custom. | off |
 | lex.legalSkills.scheduledAgents | IUSENTRA_FF_LEX_LEGALSKILLS_SCHEDULEDAGENTS | Agenti Legal Skills schedulati read-only. | off |
-| routes.appV2.legalSkills.catalog | IUSENTRA_FF_ROUTES_APPV2_LEGALSKILLS_CATALOG | Catalogo Legal Skills nella shell App V2. | off |
-| routes.appV2.legalSkills.profile | IUSENTRA_FF_ROUTES_APPV2_LEGALSKILLS_PROFILE | Profilo Legal Skills nella shell App V2. | off |
-| routes.appV2.legalSkills.run | IUSENTRA_FF_ROUTES_APPV2_LEGALSKILLS_RUN | Esecuzione Legal Skills nella shell App V2. | off |
-| routes.appV2.legalSkills.reviewQueue | IUSENTRA_FF_ROUTES_APPV2_LEGALSKILLS_REVIEWQUEUE | Revisione risultati Legal Skills nella shell App V2. | off |
+| routes.appV2.legalSkills.catalog | IUSENTRA_FF_ROUTES_APPV2_LEGALSKILLS_CATALOG | Catalogo Legal Skills nella shell App V2. | on |
+| routes.appV2.legalSkills.profile | IUSENTRA_FF_ROUTES_APPV2_LEGALSKILLS_PROFILE | Profilo Legal Skills nella shell App V2. | on |
+| routes.appV2.legalSkills.run | IUSENTRA_FF_ROUTES_APPV2_LEGALSKILLS_RUN | Esecuzione Legal Skills nella shell App V2. | on |
+| routes.appV2.legalSkills.reviewQueue | IUSENTRA_FF_ROUTES_APPV2_LEGALSKILLS_REVIEWQUEUE | Revisione risultati Legal Skills nella shell App V2. | on |
 | routes.appV2.docsPanel | IUSENTRA_FF_ROUTES_APPV2_DOCS_PANEL | Alias compatibilita fase 1 per routes.appV2.documents.list. | off |
 | routes.appV2.commsDeposits | IUSENTRA_FF_ROUTES_APPV2_COMMS_DEPOSITS | Alias compatibilita fase 1 per routes.appV2.comms.deposits. | off |
 | routes.appV2.uploadClassification | IUSENTRA_FF_ROUTES_APPV2_UPLOAD_CLASSIFICATION | Alias compatibilita fase 1 per routes.appV2.documents.uploadClassification. | off |

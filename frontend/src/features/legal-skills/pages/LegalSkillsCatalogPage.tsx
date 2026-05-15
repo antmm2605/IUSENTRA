@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { IusEmptyState, IusErrorState, IusLoadingState, IusPageShell } from '@/components/iusentra'
+import { isFeatureFlagEnabledSync } from '@/lib/featureFlags'
 import { fetchLegalSkillPacks, fetchLegalSkillsProfile, fetchScheduledLegalSkillAgents } from '../api'
 import type { LegalSkillPack, LegalSkillProfile, ScheduledLegalSkillAgent } from '../types'
 import { EscalationBox } from '../components/EscalationBox'
@@ -17,11 +18,14 @@ export function LegalSkillsCatalogPage() {
 
   useEffect(() => {
     const controller = new AbortController()
+    const scheduledAgentsEnabled = isFeatureFlagEnabledSync('lex.legalSkills.scheduledAgents')
     setLoading(true)
     Promise.all([
       fetchLegalSkillPacks(controller.signal),
       fetchLegalSkillsProfile(controller.signal),
-      fetchScheduledLegalSkillAgents(controller.signal),
+      scheduledAgentsEnabled
+        ? fetchScheduledLegalSkillAgents(controller.signal)
+        : Promise.resolve({ ok: true, agents: [] }),
     ])
       .then(([packsPayload, profilePayload, agentsPayload]) => {
         if (!packsPayload.ok) setError(packsPayload.message || 'Legal Skills non disponibile per questo studio.')

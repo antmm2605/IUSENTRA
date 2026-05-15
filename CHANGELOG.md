@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.238.1 - 2026-05-15
+
+- Sbloccato Legal Skills per gli studi senza configurazione manuale: `lex.legalSkills.enabled` e le route React `/legal-skills`, profilo, esecuzione e revisione sono ora attive di default.
+- Mantenuti spenti di default i presidi piu' sensibili (`trustLayer`, skill custom e agenti schedulati), che restano abilitali solo con flag espliciti.
+- Evitati i falsi errori console nel catalogo: niente chiamata agli agenti schedulati quando il flag e' spento e manifest Supertonic locale esplicitamente disabilitato.
+- Aggiunti test di regressione su flag, API catalogo/profilo e blocco dei canali sensibili, cosi' la pagina non torna allo stato "Legal Skills non attivo" per default.
+
 ## 2.238.0 - 2026-05-15
 
 - Trasformata `/ricerca-legale` in ricerca effettiva: il form React invia la query al backend, il bridge interroga `legal_updates.db` e mostra estratti fonte, area, data, autorita' e link consultabile.

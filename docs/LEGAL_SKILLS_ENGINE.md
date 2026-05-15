@@ -32,16 +32,19 @@ Seed pack integrati:
 
 ## Feature flag
 
-Tutti i flag sono spenti di default:
+Il catalogo operativo e le pagine React Legal Skills sono attivi di default:
 
 - `lex.legalSkills.enabled`
-- `lex.legalSkills.trustLayer`
-- `lex.legalSkills.customSkills`
-- `lex.legalSkills.scheduledAgents`
 - `routes.appV2.legalSkills.catalog`
 - `routes.appV2.legalSkills.profile`
 - `routes.appV2.legalSkills.run`
 - `routes.appV2.legalSkills.reviewQueue`
+
+Restano spenti di default e fail-closed i flag piu' sensibili:
+
+- `lex.legalSkills.trustLayer`
+- `lex.legalSkills.customSkills`
+- `lex.legalSkills.scheduledAgents`
 
 ## API
 

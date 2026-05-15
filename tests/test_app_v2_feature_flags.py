@@ -38,9 +38,11 @@ def test_app_v2_canonical_flags_have_explicit_rollout_defaults_and_page_scope():
         if definition.key.startswith("routes.appV2.") and definition.key not in FEATURE_FLAG_CANONICAL_BY_ALIAS
     ]
     defaults = {definition.key: definition.default for definition in FEATURE_FLAG_DEFINITIONS}
+    route_default_on = {key for key in APP_V2_DEFAULT_ON_FLAGS if key.startswith("routes.appV2.")}
+    route_default_off = {key for key in APP_V2_DEFAULT_OFF_FLAGS if key.startswith("routes.appV2.")}
 
     assert len(canonical) >= 45
-    assert set(canonical) == APP_V2_DEFAULT_ON_FLAGS | APP_V2_DEFAULT_OFF_FLAGS
+    assert set(canonical) == route_default_on | route_default_off
     assert all(defaults[key] is True for key in APP_V2_DEFAULT_ON_FLAGS)
     assert all(defaults[key] is False for key in APP_V2_DEFAULT_OFF_FLAGS)
     assert all(defaults[key] is False for key in LEGACY_ALIASES)

@@ -730,3 +730,20 @@ Il check Legal Skills ora blocca regressioni sui file pagina e sulle route
 locali: pytest Legal Skills 8/8, OpenAPI/provider, docs, packaging/readiness,
 typecheck, test frontend, build Vite 2.237.1, Docker no-cache e smoke HTTP
 locale sulle route fase 2.
+
+## Sblocco Legal Skills 2.238.1
+
+Il catalogo `/legal-skills` e le route collegate non richiedono piu' un override
+manuale dei flag per gli studi ordinari: `lex.legalSkills.enabled` e i flag
+catalogo/profilo/esecuzione/revisione sono attivi di default, con rollback
+esplicito ancora disponibile.
+
+Restano spenti di default trust layer, custom skill e agenti schedulati. Il
+gate mirato conferma quindi il comportamento desiderato: catalogo e profilo sono
+raggiungibili, mentre le superfici sensibili rispondono ancora fail-closed senza
+opt-in.
+
+Verifica finale locale: Docker no-cache 2.238.1 healthy, `/api/pronto` 200
+`versione=2.238.1` e Chrome CDP autenticato su `/legal-skills` verde in
+desktop/mobile (2787/1497 ms), senza redirect login, errori console, overflow,
+form POST HTML o testo tecnico vietato.

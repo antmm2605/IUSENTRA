@@ -382,3 +382,21 @@ payload client con identificativi tenant/studio.
 Controlli anti-mascheramento: i wrapper rimandano a componenti operativi gia'
 collegati ad API reali, il gate statico ne verifica presenza e aggancio alla
 shell, e lo smoke HTTP anonimo conferma che le route fase 2 non cadono in 404.
+
+## Aggiornamento 2.238.1 - 2026-05-15
+
+Lo stato "Legal Skills non attivo" non deve piu' comparire per uno studio senza
+override manuale: i flag base e le route React di Legal Skills sono stati
+promossi a default-on. La protezione resta sul perimetro sensibile: trust layer,
+custom skill e agenti schedulati rimangono default-off e richiedono attivazione
+esplicita.
+
+Controlli anti-mascheramento: le API catalogo continuano a usare pack seed reali
+e RBAC/tenant isolation; il test di regressione conferma catalogo e profilo
+disponibili con default standard e blocco `feature_disabled` per scheduled/trust
+senza opt-in.
+
+Verifica visuale finale: il catalogo non interroga gli agenti schedulati quando
+il relativo flag resta spento, il manifest Supertonic opzionale risponde come
+disabilitato e Chrome CDP autenticato su `/legal-skills` desktop/mobile passa
+senza errori console, redirect login, overflow, form POST HTML o testi tecnici.

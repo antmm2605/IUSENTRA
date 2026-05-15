@@ -6,13 +6,13 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 
 ## Sintesi
 
-- File pytest censiti: 318.
+- File pytest censiti: 319.
 - Smoke/script censiti: 6.
 - Runner frontend component/VRT rilevati: nessuno; copertura UI tramite gate statici fase 9.
 
 | Tipo test | Conteggio |
 | --- | --- |
-| API contract | 58 |
+| API contract | 59 |
 | Backend | 37 |
 | E2E | 6 |
 | Frontend static gate | 1 |
@@ -28,7 +28,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | --- | --- | --- |
 | 00-ci-contracts | Contratti CI, packaging, sicurezza minima e guardrail tecnici rapidi. | 19 |
 | 01-flask-core | Bootstrap Flask, autenticazione, sicurezza web, osservabilita' e superfici operative. | 17 |
-| 02-react-ui | Contratti React, regia, topbar, layout mobile e coerenza design system. | 22 |
+| 02-react-ui | Contratti React, regia, topbar, layout mobile e coerenza design system. | 23 |
 | 03-core-business | Domini gestionali: clienti, fascicoli, agenda, preventivi, tariffario e workflow economico. | 44 |
 | 04-storage | Persistenza, migrazioni, tenant, repository SQL e parita' storage. | 14 |
 | 05-documents | Documenti, template atti, editor, firma visibile e intelligenza documentale. | 35 |
@@ -85,7 +85,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | Auth/RBAC | RBAC | tests/test_profili.py | 403/RBAC, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Auth/RBAC | Tenant isolation | tests/test_auth.py | 403/RBAC, tenant, audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Backend domain | API contract | tests/test_ci_cd_gates_phase11.py | tenant, feature flag, contratto, file, audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
-| Backend domain | API contract | tests/test_legal_skills_engine.py | 401 anonimo, tenant, feature flag | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
+| Backend domain | API contract | tests/test_legal_skills_engine.py | 401 anonimo, 403/RBAC, tenant, feature flag | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Backend domain | API contract | tests/test_legal_updates_pipeline.py | tenant, file, audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Backend domain | API contract | tests/test_observability_runtime.py | tenant | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Backend domain | Backend | tests/test_busta.py | audit | estendere solo se emerge una route/area non coperta dalla matrice | censito |
@@ -248,6 +248,7 @@ Inventario generato da `scripts/react-migration/generate_app_v2_test_docs.py`. N
 | File/document security | Tenant isolation | tests/test_lex_fascicolo_documents_tools.py | tenant | estendere solo se emerge una route/area non coperta dalla matrice | censito |
 | Frontend React | API contract | tests/test_react_condivisioni.py | 403/RBAC | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Frontend React | API contract | tests/test_react_document_editor.py | happy/edge path dominio | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
+| Frontend React | API contract | tests/test_react_legal_intelligence_search.py | happy/edge path dominio | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Frontend React | API contract | tests/test_react_preventivo_wizard_console.py | 401 anonimo, feature flag, audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Frontend React | API contract | tests/test_react_scadenziario_additions.py | audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |
 | Frontend React | API contract | tests/test_react_tariffario_console.py | audit | provider verification copre campione; estendere schema response P0/P1 puntuali | censito |

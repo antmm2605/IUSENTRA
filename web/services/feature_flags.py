@@ -32,19 +32,15 @@ APP_V2_DEFAULT_OFF_FLAGS = frozenset(
         "routes.appV2.telematico.center",
         "routes.appV2.telematico.surface",
         "routes.appV2.notifications.mobilePush",
-        "lex.legalSkills.enabled",
         "lex.legalSkills.trustLayer",
         "lex.legalSkills.customSkills",
         "lex.legalSkills.scheduledAgents",
-        "routes.appV2.legalSkills.catalog",
-        "routes.appV2.legalSkills.profile",
-        "routes.appV2.legalSkills.run",
-        "routes.appV2.legalSkills.reviewQueue",
     }
 )
 
 APP_V2_DEFAULT_ON_FLAGS = frozenset(
     {
+        "lex.legalSkills.enabled",
         "routes.appV2.dashboard.home",
         "routes.appV2.dashboard.regia",
         "routes.appV2.search.global",
@@ -99,6 +95,10 @@ APP_V2_DEFAULT_ON_FLAGS = frozenset(
         "routes.appV2.billing.quotes",
         "routes.appV2.billing.compensi",
         "routes.appV2.billing.tariffario",
+        "routes.appV2.legalSkills.catalog",
+        "routes.appV2.legalSkills.profile",
+        "routes.appV2.legalSkills.run",
+        "routes.appV2.legalSkills.reviewQueue",
     }
 )
 

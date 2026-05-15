@@ -1626,6 +1626,21 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `git restore -- data/auth/audit.json data/auth/utenti.json data/tenant_user_directory.json` | OK | Ripuliti solo artefatti runtime prodotti da login/impersonazione e Docker locale; lasciati intatti i file `data/` gia' sporchi prima della tranche. |
 | Deploy Hetzner CPX42 con `IUSENTRA_SKIP_BACKUP_CRON=1 BRANCH=Codex/legal-electronic-filing-kIxcV bash deploy/hetzner/deploy.sh`; verifiche post-deploy | OK | Server sul branch pushato, `/api/pronto` pubblico 200 con `versione=2.238.0`, container app/scheduler/OCR/Redis/Ollama healthy e cron backup non aggiornato. |
 
+## Sblocco Legal Skills default-on 2.238.1 - 2026-05-15
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile web\services\feature_flags.py web\blueprints\api_v1_legal_skills.py tests\test_feature_flags.py tests\test_app_v2_feature_flags.py tests\test_legal_skills_engine.py` | OK | Sintassi confermata dopo promozione default-on del motore base Legal Skills e dei flag route React. |
+| `python -m pytest tests\test_feature_flags.py tests\test_app_v2_feature_flags.py tests\test_legal_skills_engine.py -q --tb=short` | OK | 20/20 passati: Legal Skills base e route catalogo/profilo/esecuzione/revisione sono default-on; trust layer e agenti schedulati restano default-off e rispondono `feature_disabled`. |
+| `node frontend\scripts\check-legal-skills.mjs`; `node frontend\scripts\check-react-contracts.mjs`; `node scripts\react-migration\check-route-gate.mjs` | OK | Gate statici Legal Skills, contratti React e route gate coerenti con lo sblocco della pagina. |
+| `python scripts\react-migration\generate_app_v2_page_registry.py --check`; `python scripts\react-migration\generate_app_v2_area_requirements.py --check`; `python scripts\react-migration\generate_app_v2_test_docs.py --check` | OK | Registri e documenti App V2 allineati ai nuovi default flag Legal Skills. |
+| `npm --prefix frontend run test`; `npm --prefix frontend run typecheck`; `npm --prefix frontend run build` | OK | Test frontend, TypeScript e build Vite `2.238.1` verdi dopo fix console: main `index-Di4ENQKe.js` 451.51 kB / 133.56 kB gzip, chunk `LegalSkillsCatalogPage-DWJDhbO1.js` 3.65 kB / 1.55 kB gzip. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py -q --tb=short` | OK | Packaging sincronizzato e readiness release 8/8 dopo bump `2.238.1`. |
+| `python scripts\validate_docs_links.py`; `python scripts\validate_docs_commands.py` | OK | Link e comandi documentali validi dopo aggiornamento dei default Legal Skills. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build --force-recreate redis app scheduler-worker ocr-worker nginx`; readiness locale | OK | Docker locale no-cache `2.238.1`: app, scheduler, OCR, Redis healthy e nginx running; `/api/pronto` 200 con `versione=2.238.1`; container app `pct.__version__ == 2.238.1`. |
+| Chrome CDP autenticato `artifacts/react-migration/visual-2.238.1-legal-skills/visual-load-audit.md` | OK | `/legal-skills` desktop 2787 ms e mobile 1497 ms a contenuto React visibile; zero failure, zero warning, nessun redirect login, console error, overflow, form POST HTML o testo tecnico vietato. |
+| `git restore -- data/auth/audit.json data/auth/utenti.json data/tenant_user_directory.json` | OK | Ripuliti solo artefatti runtime prodotti da login/impersonazione e Docker locale; lasciati intatti i file `data/` gia' sporchi prima della tranche. |
+
 ## Multi-studio hardening tenant/API 2.218.3 - 2026-05-13
 
 | Comando / verifica | Esito | Nota |

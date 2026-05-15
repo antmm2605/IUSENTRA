@@ -26,7 +26,7 @@ completo pagina/flag/default/fallback e' generato in
 | Studio, mandato e amministrazione | `routes.appV2.studio.statistics`, `routes.appV2.billing.quotes`, `routes.appV2.admin.users`, `routes.appV2.settings.studio` | on | menu nascosto e shell bloccata se spenti |
 | Servizi telematici non parificati | `routes.appV2.telematico.center`, `routes.appV2.telematico.surface` | off | workflow ministeriali fail-closed |
 | Notifiche dispositivo | `routes.appV2.notifications.mobilePush` | off | frontend evita Web Push, backend rifiuta subscribe/test |
-| Legal Skills | `lex.legalSkills.enabled`, `routes.appV2.legalSkills.*` | off | API e UI restano bloccate finche il profilo studio non e' governato |
+| Legal Skills | `lex.legalSkills.enabled`, `routes.appV2.legalSkills.*` | on | catalogo, profilo, esecuzione e revisione sono attivi; trust layer, custom skill e agenti schedulati restano fail-closed |
 
 ## Alias compatibilita fasi 1-2
 
@@ -77,7 +77,7 @@ Le capability Lex che accedono a dati operativi o fonti giuridiche restano gover
 | Audit query operative Lex | `LEX_OPERATIONAL_AUDIT_ENABLED` | off | registra domanda, sorgenti, oggetti letti, permessi applicati ed esito nel registro audit |
 | Strict mode operativo Lex | `LEX_OPERATIONAL_STRICT_MODE_ENABLED` | off | riservato a policy piu' restrittive; le guardie base restano sempre attive |
 | Legal Source Engine nativo | `IUSENTRA_LEX_AI_LEGAL_SOURCES_ENABLED` | off | abilita fonti ufficiali locali, rete sempre off salvo `IUSENTRA_LEGAL_SOURCES_ALLOW_NETWORK=1` |
-| Legal Skills Engine | `IUSENTRA_FF_LEX_LEGALSKILLS_ENABLED` / `lex.legalSkills.enabled` | off | abilita catalogo, profilo e run Legal Skills; RBAC e tenant isolation restano obbligatori |
+| Legal Skills Engine | `IUSENTRA_FF_LEX_LEGALSKILLS_ENABLED` / `lex.legalSkills.enabled` | on | abilita catalogo, profilo e run Legal Skills; RBAC e tenant isolation restano obbligatori |
 | Trust layer Legal Skills | `IUSENTRA_FF_LEX_LEGALSKILLS_TRUSTLAYER` / `lex.legalSkills.trustLayer` | off | consente solo controllo statico di skill custom, senza installarle |
 | Agenti schedulati Legal Skills | `IUSENTRA_FF_LEX_LEGALSKILLS_SCHEDULEDAGENTS` / `lex.legalSkills.scheduledAgents` | off | abilita agenti read-only con audit, nessuna scrittura automatica |
 
@@ -124,7 +124,7 @@ La fonte eseguibile resta `web/services/feature_flags.py`; la fonte frontend com
 | Impostazioni | `routes.appV2.settings.studio`, `routes.appV2.settings.payments`, `routes.appV2.settings.notifications`, `routes.appV2.settings.backup`, `routes.appV2.settings.calendarSync` | si | legacy/stato modulo non attivo | stessi gate flag/routing + test impostazioni |
 | Mandato/economico | `routes.appV2.billing.invoices`, `routes.appV2.billing.payments`, `routes.appV2.billing.quotes`, `routes.appV2.billing.compensi`, `routes.appV2.billing.tariffario` | si | legacy/stato modulo non attivo | stessi gate flag/routing + test dominio |
 | Notifiche dispositivo | `routes.appV2.notifications.mobilePush` | si, API push | canale non attivo | `tests/test_push_notifications.py` |
-| Legal Skills | `routes.appV2.legalSkills.catalog`, `routes.appV2.legalSkills.profile`, `routes.appV2.legalSkills.run`, `routes.appV2.legalSkills.reviewQueue` | si, API `/api/v1/legal-skills/*` | modulo non attivo | `tests/test_legal_skills_engine.py`, `frontend/scripts/check-legal-skills.mjs` |
+| Legal Skills | `routes.appV2.legalSkills.catalog`, `routes.appV2.legalSkills.profile`, `routes.appV2.legalSkills.run`, `routes.appV2.legalSkills.reviewQueue` | si, API `/api/v1/legal-skills/*` | rollback esplicito via flag | `tests/test_legal_skills_engine.py`, `frontend/scripts/check-legal-skills.mjs` |
 | Alias compatibilita | `routes.appV2.docsPanel`, `routes.appV2.commsDeposits`, `routes.appV2.uploadClassification`, `routes.appV2.deadlines`, `routes.appV2.agenda`, `routes.appV2.caseFiles`, `notifications.mobilePush` | risolti verso canonico | come flag canonico | `tests/test_feature_flags.py` |
 
 ## Come aggiungere un nuovo Feature Flag

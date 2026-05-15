@@ -2167,3 +2167,9 @@ python -m pytest tests/test_react_shell.py tests/test_email_client.py tests/test
 - Aggiunti gli alias pagina richiesti da `ai legal 2`: `PracticeProfilePage`, `ColdStartInterviewPage`, `LegalSkillRunPage`, `SkillRunDetailPage` e `ReviewerQueuePage`, agganciati alla shell React senza duplicare logica o creare maschere vuote.
 - Esteso il gate statico Legal Skills per verificare file pagina, route `/legal-skills/profile/cold-start` e `/legal-skills/review-queue`, feature flag e divieto di `tenant_id`/`studio_id` client-controlled.
 - Verifiche registrate: pytest Legal Skills, OpenAPI/provider, docs, packaging/readiness, typecheck, test frontend, build Vite, Docker no-cache e smoke HTTP locale sulle route fase 2.
+
+## Aggiornamento 2026-05-15: sblocco Legal Skills 2.238.1
+
+- `/legal-skills` non resta piu' bloccata per gli studi senza override flag: il motore base `lex.legalSkills.enabled` e le route catalogo, profilo, esecuzione e revisione sono attive di default.
+- Trust layer, skill custom e agenti schedulati restano default-off e fail-closed, perche' abilitano superfici piu' sensibili e non servono per consultare il catalogo operativo.
+- Aggiunto un test di regressione che conferma catalogo e profilo disponibili con default standard, e conferma ancora il blocco dei canali sensibili senza opt-in esplicito.

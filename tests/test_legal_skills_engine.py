@@ -45,6 +45,14 @@ def _app(tmp_path: Path):
     return app
 
 
+def _app_default_flags(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    cfg = _cfg_web(tmp_path)
+    app = create_app(cfg)
+    app.config["API_KEY"] = "legal-skills-test-key"
+    return app
+
+
 def test_parser_blocca_skill_con_istruzioni_nascoste():
     parsed = parse_skill_markdown(
         """---
@@ -210,6 +218,26 @@ def test_api_legal_skills_auth_flag_security_and_run(tmp_path: Path):
         scheduled = client.get("/api/v1/legal-skills/scheduled", headers=headers)
         assert scheduled.status_code == 200
         assert any(agent["agent_id"] == "regulatory_monitor" for agent in scheduled.get_json()["agents"])
+
+
+def test_api_legal_skills_catalogo_attivo_di_default_senza_agenti_schedulati(tmp_path: Path):
+    app = _app_default_flags(tmp_path)
+    headers = {"X-API-Key": "legal-skills-test-key"}
+
+    with app.test_client() as client:
+        packs = client.get("/api/v1/legal-skills/packs", headers=headers)
+        profile = client.get("/api/v1/legal-skills/profile", headers=headers)
+        scheduled = client.get("/api/v1/legal-skills/scheduled", headers=headers)
+        trust = client.post("/api/v1/legal-skills/trust/check", json={"content": "Test"}, headers=headers)
+
+    assert packs.status_code == 200
+    assert len(packs.get_json()["packs"]) == 4
+    assert profile.status_code == 200
+    assert profile.get_json()["ok"] is True
+    assert scheduled.status_code == 403
+    assert scheduled.get_json()["code"] == "feature_disabled"
+    assert trust.status_code == 403
+    assert trust.get_json()["code"] == "feature_disabled"
 
 
 def test_route_legal_skills_serve_shell_react_autenticata(tmp_path: Path):

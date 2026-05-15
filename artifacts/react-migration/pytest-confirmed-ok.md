@@ -17,6 +17,7 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 | `python -m pytest -q tests/test_lex_widget_contract.py tests/test_packaging_consistency.py --tb=short` | OK | 16/16 passati: contratto widget Lex e allineamento packaging/versione `2.237.4` confermati. |
 | `python tools/sync_packaging_files.py --check`; `git diff --check -- . ':!data/*'` | OK | Packaging sincronizzato; whitespace senza errori sul perimetro tracciato, con solo warning CRLF su `.gitignore`. |
 | `ssh iusentra-hetzner "cd /opt/iusentra/repo && BRANCH=Codex/legal-electronic-filing-kIxcV IUSENTRA_SKIP_BACKUP_CRON=1 bash deploy/hetzner/deploy.sh"`; `GET https://app.iusentra.it/api/pronto`; `docker compose --env-file /opt/iusentra/.env.hetzner -f deploy/hetzner/docker-compose.hetzner.yml ps` | OK | Deploy Hetzner senza backup sul commit finale del branch; app, scheduler, OCR, Redis, audit-postgres, audit-worm, Ollama healthy/up; readiness pubblica 200 con `versione=2.237.4`. |
+| Installazione asset Supertonic 3 su Hetzner; `GET https://app.iusentra.it/static/vendor/supertonic/manifest.json`; `HEAD` pubblici su modelli ONNX, voice style e ONNX Runtime Web; `docker exec iusentra-app-1 ... /app/web/static/vendor/supertonic` | OK | Asset reali Supertonic 3 installati come file locali non tracciati da Git: ONNX e voice styles da `Supertone/supertonic-3`, ONNX Runtime Web `1.26.0`, manifest `enabled=true`; asset presenti nell'immagine Docker e serviti same-origin con HTTP 200. |
 
 ### Lex Operational Knowledge 2.236.7 - 2026-05-15
 

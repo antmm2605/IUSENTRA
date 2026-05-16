@@ -135,7 +135,12 @@ docker compose --env-file /opt/iusentra/.env.hetzner -f deploy/hetzner/docker-co
 git rev-parse --short HEAD
 curl -fsS https://iusentra.tuodominio.it/api/pronto
 curl -I https://iusentra.tuodominio.it/app-v2/agenda/nuovo
+curl -I https://iusentra.tuodominio.it/legal-intelligence/
+curl -I https://iusentra.tuodominio.it/legal-intelligence/ricerca
+curl -I https://iusentra.tuodominio.it/ricerca-legale
 ```
+
+Le ultime tre `curl` confermano che da v2.240.0 in poi `Motori Legali` e `Ricerca legale` sono servite direttamente dai template Flask (con layout a tab e ricerca cross-source) e non più intercettate dalla shell React legacy. `/ricerca-legale` deve rispondere `302` verso `/legal-intelligence/ricerca`.
 
 ## Migrazione dati da Railway
 
@@ -173,6 +178,31 @@ Cron consigliato:
 Il backup produce archivio e checksum in `/opt/iusentra/backups` e verifica subito il checksum generato. Il restore verifica il file `.sha256` quando presente prima di estrarre in `/opt/iusentra/data`.
 La retention e' applicata dallo script: per default conserva al massimo 3 backup applicativi, almeno 2 copie, rimuove quelli piu' vecchi di 14 giorni e mantiene la directory backup entro 8 GiB quando possibile. I valori sono configurabili con `IUSENTRA_BACKUP_RETENTION_COUNT`, `IUSENTRA_BACKUP_RETENTION_MIN_COUNT`, `IUSENTRA_BACKUP_RETENTION_DAYS` e `IUSENTRA_BACKUP_RETENTION_MAX_GIB`.
 I backup `.tar.zst` sono prodotti con zstd ad alta compressione (`IUSENTRA_BACKUP_ZSTD_LEVEL=19`, long window 27) per ridurre l'impatto disco senza cambiare il formato di restore. Ollama, i modelli locali e i download rigenerabili sono esclusi in modo obbligatorio (`./ollama`, `./intelligence/downloads/ollama`, `./tenants/*/intelligence/downloads/ollama`): lo script verifica l'archivio e fallisce se trova ancora un percorso Ollama.
+
+## Ricerca legale e archivio fonti (v2.240.0)
+
+Da v2.240.0 il motore giornaliero `LegalIntelligenceDailyEngine` salva ogni snapshot acquisito nel database SQLite `/opt/iusentra/data/legal_intelligence/daily.sqlite` (tabella `legal_source_snapshots`, campo `normalized_text`). Da quello stesso archivio la UI offre il pulsante "Scarica testo archiviato" su ogni scheda fonte (`/legal-intelligence/fonte/<id>/scarica`).
+
+Per popolare l'archivio dopo il primo deploy:
+
+```bash
+# trigger manuale del controllo giornaliero (autenticato)
+curl -fsS -X POST -H "Cookie: session=<session_id>" \
+  https://iusentra.tuodominio.it/legal-intelligence/daily/esegui -o /dev/null -w "%{http_code}\n"
+```
+
+In alternativa il cron applicativo dello scheduler esegue lo stesso controllo alle 04:30. Lo studio puo' anche cliccare `Esegui controllo ora` dalla tab Fonti del nuovo `Motori Legali`.
+
+Per verificare la persistenza:
+
+```bash
+docker compose --env-file /opt/iusentra/.env.hetzner \
+  -f deploy/hetzner/docker-compose.hetzner.yml \
+  exec app sqlite3 /data/legal_intelligence/daily.sqlite \
+  "SELECT source_id, fetched_at, length(normalized_text) FROM legal_source_snapshots ORDER BY id DESC LIMIT 5"
+```
+
+Il backup automatico (`backup.sh`) include gia' `/opt/iusentra/data/legal_intelligence/` come parte di `/opt/iusentra/data`, quindi gli snapshot sono coperti dalla retention configurata.
 
 ## Note operative
 

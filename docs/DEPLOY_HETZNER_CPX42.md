@@ -1,7 +1,7 @@
 # Deploy Hetzner CPX42
 
-> **Versione corrente:** 2.215.0
-> Guida aggiornata: 10/05/2026
+> **Versione corrente:** 2.240.0
+> Guida aggiornata: 16/05/2026
 
 Questa guida rende esplicito il profilo `deploy/hetzner` come destinazione di produzione o fallback governato rispetto a Railway.
 
@@ -129,9 +129,14 @@ docker compose --env-file /opt/iusentra/.env.hetzner -f deploy/hetzner/docker-co
 git -C /opt/iusentra/repo rev-parse --short HEAD
 curl -fsS https://<dominio>/api/pronto
 curl -I https://<dominio>/app-v2/fascicoli
+curl -I https://<dominio>/legal-intelligence/
+curl -I https://<dominio>/legal-intelligence/ricerca
+curl -I https://<dominio>/ricerca-legale
 ```
 
 Il deploy stampa il commit deployed e l'URL health al termine. Il `git rev-parse` deve corrispondere all'HEAD del branch pushato.
+
+Le ultime tre verifiche servono solo da v2.240.0 in poi: confermano che la nuova UX a tab di **Motori Legali** e la **Ricerca legale unificata** vengano servite direttamente dai template Flask senza essere intercettate dalla shell React legacy.
 
 ## Backup
 
@@ -180,6 +185,62 @@ Se esiste `/opt/iusentra/import/iusentra-data.tar.zst.sha256`, lo script verific
 - Le credenziali PEC e i segreti devono restare cifrati o in variabili ambiente, mai in chiaro nel repository.
 - Prima dello switch definitivo da Railway verificare route principali, worker OCR, scheduler, backup, restore e log Caddy.
 
+## Verifiche post-deploy Ricerca legale (da v2.240.0)
+
+La riscrittura di **Motori Legali** e **Ricerca legale** introduce nuovi endpoint Flask, una tab UI deep-linkabile e il download del testo archiviato di ogni fonte. Dopo ogni deploy controllare che le rotte rispondano e che la shell React non le intercetti più:
+
+```bash
+# pagina principale a tab — deve restituire HTML del template legal_intelligence/index.html
+curl -fsSL -H "Cookie: session=<session_id>" https://<dominio>/legal-intelligence/ | grep -q 'li-tabs' && echo "tab UI OK"
+
+# ricerca unificata cross-source (fonti, normativa, news, organismi, aggiornamenti)
+curl -fsSL -H "Cookie: session=<session_id>" "https://<dominio>/legal-intelligence/ricerca?q=mediazione&formato=json" \
+  | python3 -c "import sys, json; data = json.load(sys.stdin); print('ricerca OK', data['risultati']['totale'])"
+
+# alias /ricerca-legale che ora redirige alla ricerca unificata, non più alla dashboard
+curl -fsSI https://<dominio>/ricerca-legale | grep -i '^location' | grep -q '/legal-intelligence/ricerca' && echo "alias OK"
+```
+
+Verifiche backend, da eseguire dentro il container app:
+
+```bash
+docker compose --env-file /opt/iusentra/.env.hetzner \
+  -f deploy/hetzner/docker-compose.hetzner.yml \
+  exec app python -c "
+from web.services.legal_intelligence_research import build_unified_search
+from legal_intelligence.engine import LegalIntelligenceDailyEngine
+import inspect
+print('research service OK:', 'build_unified_search' in dir())
+engine_methods = {name for name, _ in inspect.getmembers(LegalIntelligenceDailyEngine, predicate=inspect.isfunction)}
+for required in ('get_source_card', 'latest_snapshot'):
+    assert required in engine_methods, f'manca metodo {required}'
+print('engine API OK')
+"
+```
+
+Output atteso:
+
+```
+research service OK: True
+engine API OK
+```
+
+Se le tre verifiche HTTP non rispondono `200`/`302`, controllare in ordine:
+
+1. `web/bootstrap/react_route_gate.py` non deve elencare `/legal-intelligence` o `/ricerca-legale` in `_REACT_PREFIXES` / `_REACT_EXACT` (rimossi in v2.240.0).
+2. Il blueprint `legal_intelligence` deve essere registrato in `web/bootstrap/blueprint_registry.py` con prefisso `/legal-intelligence`.
+3. La directory `/opt/iusentra/data/legal_intelligence/` deve essere scrivibile dal container app per persistere gli snapshot del motore giornaliero.
+
+Test interattivo del download archivio fonte (sostituire `<source_id>` con un id valido — es. `normattiva`, `pst_servizi_web`, `cassazione`):
+
+```bash
+curl -fsSL -H "Cookie: session=<session_id>" \
+  https://<dominio>/legal-intelligence/fonte/<source_id>/scarica -o /tmp/fonte.txt
+head -10 /tmp/fonte.txt
+```
+
+L'header deve contenere le righe `Fonte:`, `URL:`, `Hash SHA-256:`, `Scaricata il:`. Se torna un redirect a `/legal-intelligence/fonte/<id>` con flash "snapshot non disponibile", eseguire prima un controllo dalla scheda **Fonti** (o `POST /legal-intelligence/daily/esegui`) per popolare il primo snapshot.
+
 ## Verifiche post-deploy Lex (da v2.201.0)
 
 Dopo ogni deploy che tocca `lex/`, verificare che i nuovi moduli siano raggiungibili dall'app:
@@ -212,6 +273,7 @@ guard OK: ExactLegalReferenceGuard
 
 | Versione | Commit | Data | Contenuto principale |
 |----------|--------|------|----------------------|
+| 2.240.0 | `be5131e` | 16/05/2026 | Ricerca legale e Motori Legali: `/legal-intelligence/` riscritto come pagina tabbed (Panoramica · Fonti · Aggiornamenti · Normativa · Audit · Console). Nuovo endpoint `/legal-intelligence/ricerca` con search cross-source su fonti, normativa, news, organismi mediazione e aggiornamenti. `/ricerca-legale` ora punta alla ricerca unificata. Nuove rotte `/legal-intelligence/fonte/<id>` (scheda con storico snapshot, metadati e variazioni) e `/legal-intelligence/fonte/<id>/scarica` (download `.txt` del testo archiviato con header URL, SHA-256, ETag). Rimosse `/legal-intelligence` e `/ricerca-legale` dalla shell React legacy: ora servite direttamente dai template Flask. News page ripulita da blocchi superadmin duplicati. Nuovo service `web/services/legal_intelligence_research.py`, estensione `LegalIntelligenceDailyEngine.get_source_card/latest_snapshot` e `LegalIntelligenceStore.source_snapshots/source_updates`. SCSS `.li-tabs`, `.li-search-form`, `.li-news-stack`, `.li-quick-actions`, `.li-empty` con responsive mobile. |
 | 2.215.0 | — | 10/05/2026 | PST acquisizione: PIN chiesto al massimo una volta per visualizzazione e una volta per download. TTL sessione portata a 1800 s. `awEnsurePstPreviewDocumentCatalog` riusa snapshot in memoria senza ri-autenticazione. |
 | 2.202.0 | `a06145c` | 08/05/2026 | Lex: fix CASO 1 (sentenza esatta forza ricerca pubblica, confidence cap ≤ 0.45), fix CASO 2 (studio_data_lookup mostra dati cliente reali). `giurisprudenza_specifica` in `_STRICT_LEGAL_WORKFLOWS`. Handler deterministic `studio_data_lookup`. `user_facing_output_guard`. `case_law_completeness`. `exact_case_law_guard`. Prompt: no "Ciao sono Lex" su query operative. |
 | 2.201.0 | `177ca37` | 08/05/2026 | Lex: distinzione fonti pubbliche vs dati studio. Parser sentenze esatte, ExactLegalReferenceGuard, StudioDataGateway, fix `_should_force_web_fallback`, fix `_clienti_lines` (4→8, CF/email), intent `cliente_anagrafica` → `studio_data_lookup`. |

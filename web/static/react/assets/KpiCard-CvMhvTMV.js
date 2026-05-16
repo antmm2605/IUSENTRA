@@ -1,1 +1,0 @@
-import{j as t,I as o}from"./index-CKGGRdcX.js";/* empty css           */function m({label:r,value:s,note:a,badge:i}){return t.jsx(o,{label:r,value:s,note:a,badge:i,className:"iu-kpi-card"})}export{m as K};

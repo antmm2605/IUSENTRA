@@ -387,6 +387,110 @@
   padding-top: var(--iu-od-space-3);
 }
 
+.iu-li-mediazione-import {
+  display: grid;
+  gap: var(--iu-od-space-3);
+  padding: var(--iu-od-space-4);
+}
+
+.iu-li-mediazione-import__form {
+  display: grid;
+  gap: var(--iu-od-space-3);
+}
+
+.iu-li-mediazione-import__field {
+  display: grid;
+  gap: var(--iu-od-space-2);
+}
+
+.iu-li-mediazione-import__field > span {
+  font-weight: 600;
+  color: var(--iu-od-text);
+  font-size: 0.92rem;
+}
+
+.iu-li-mediazione-import__field input[type="file"],
+.iu-li-mediazione-import__field textarea {
+  font-family: inherit;
+  font-size: 0.92rem;
+  padding: var(--iu-od-space-2) var(--iu-od-space-3);
+  border: 1px solid var(--iu-od-border);
+  border-radius: var(--iu-od-radius-2);
+  background: var(--iu-od-surface);
+  color: var(--iu-od-text);
+}
+
+.iu-li-mediazione-import__field textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.iu-li-mediazione-import__field small {
+  color: var(--iu-od-text-muted);
+  font-size: 0.8rem;
+}
+
+.iu-li-mediazione-import__divider {
+  display: flex;
+  align-items: center;
+  gap: var(--iu-od-space-2);
+  color: var(--iu-od-text-muted);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.iu-li-mediazione-import__divider::before,
+.iu-li-mediazione-import__divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--iu-od-border);
+}
+
+.iu-li-mediazione-import__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--iu-od-space-3);
+}
+
+.iu-li-mediazione-import__official {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--iu-od-link, #1a3a5c);
+  text-decoration: none;
+}
+
+.iu-li-mediazione-import__official:hover {
+  text-decoration: underline;
+}
+
+.iu-li-mediazione-import__quick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--iu-od-space-3);
+  padding: var(--iu-od-space-3);
+  border: 1px solid var(--iu-od-border);
+  border-radius: var(--iu-od-radius-2);
+  background: var(--iu-od-surface-soft, rgba(15, 23, 42, 0.03));
+}
+
+.iu-li-mediazione-import__sync {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.iu-li-mediazione-import__sync small {
+  color: var(--iu-od-text-muted);
+  font-size: 0.8rem;
+}
+
 @media (max-width: 1180px) {
   .iu-li-workbench {
     grid-template-columns: 1fr;

@@ -490,6 +490,69 @@ function RecordFilters({
   )
 }
 
+function MediazioneImportPanel() {
+  // Pannello sempre disponibile per mediazione: il portale ministeriale spesso
+  // richiede Edge in modalita IE per esportare l'elenco. L'avvocato puo':
+  // 1) lanciare la sincronizzazione automatica (se il registro diretto e' raggiungibile),
+  // 2) salvare l'HTML completo della pagina ufficiale e caricarlo qui.
+  return (
+    <section className="iu-li-mediazione-import iu-od-source-card" aria-label="Carica o sincronizza registro mediazione">
+      <header className="iu-li-section-head">
+        <ListChecks size={18} aria-hidden="true" />
+        <div>
+          <h2>Carica tutti gli organismi</h2>
+          <p>Sincronizza il registro ministeriale o carica uno snapshot HTML per popolare l'elenco completo.</p>
+        </div>
+      </header>
+      <div className="iu-li-mediazione-import__quick">
+        <form method="post" action="/ricerca-legale/mediazione/sync" className="iu-li-mediazione-import__sync">
+          <Button type="submit" tone="primary">
+            <Search size={16} aria-hidden="true" />
+            Sincronizza registro ufficiale
+          </Button>
+          <small>Tenta il fetch diretto da mediazione.giustizia.it.</small>
+        </form>
+        <a
+          className="iu-li-mediazione-import__official"
+          href="https://mediazione.giustizia.it/ROM/ALBOORGANISMIMEDIAZIONE.ASPX"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Apri registro ministeriale
+          <ExternalLink size={14} aria-hidden="true" />
+        </a>
+      </div>
+      <div className="iu-li-mediazione-import__divider"><span>oppure carica snapshot HTML</span></div>
+      <form
+        method="post"
+        action="/ricerca-legale/mediazione/import"
+        encType="multipart/form-data"
+        className="iu-li-mediazione-import__form"
+      >
+        <label className="iu-li-mediazione-import__field">
+          <span>File HTML del registro</span>
+          <input type="file" name="snapshot_file" accept=".html,.htm,text/html" />
+          <small>Salva la pagina completa (Ctrl+S → "Pagina Web, solo HTML"). Niente MHTML.</small>
+        </label>
+        <label className="iu-li-mediazione-import__field">
+          <span>Sorgente HTML incollato</span>
+          <textarea
+            name="html_content"
+            rows={5}
+            placeholder="Incolla qui il sorgente HTML della pagina ufficiale salvata dal browser"
+          />
+        </label>
+        <div className="iu-li-mediazione-import__actions">
+          <Button type="submit" tone="neutral">
+            <BookOpen size={16} aria-hidden="true" />
+            Importa snapshot HTML
+          </Button>
+        </div>
+      </form>
+    </section>
+  )
+}
+
 function ResultHeader({
   view,
   visibleCount,
@@ -650,6 +713,7 @@ export function LegalIntelligencePage() {
               onQuickSearch={runSearch}
             />
             <SourceMap data={data} view={view} />
+            {view === 'mediazione' ? <MediazioneImportPanel /> : null}
             <section className="iu-li-results" aria-label="Schede ricerca legale">
               <ResultHeader
                 view={view}

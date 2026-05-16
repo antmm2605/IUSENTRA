@@ -138,7 +138,7 @@ def dettaglio_news(slug: str):
     news_item = pipeline.repository.get_news_by_slug(slug)
     if not news_item:
         flash("News non trovata o non ancora pubblicata.", "warning")
-        return redirect(url_for("legal_intelligence.news"))
+        return redirect(url_for(".news"))
     return render_template(
         "legal_intelligence/news_detail.html",
         news_item=news_item,
@@ -176,7 +176,7 @@ def esegui_monitor():
             f"Monitoraggio completato con criticita: {report.get('failed', 0)} fonti da verificare.",
             "warning",
         )
-    return redirect(url_for("legal_intelligence.index"))
+    return redirect(url_for(".index"))
 
 
 @legal_intelligence.route("/daily/esegui", methods=["POST"])
@@ -195,7 +195,7 @@ def esegui_daily_sync():
     except Exception as exc:
         current_app.logger.exception("Errore controllo giornaliero Legal Intelligence: %s", exc)
         flash(f"Controllo giornaliero non completato: {exc}", "danger")
-    return redirect(url_for("legal_intelligence.index"))
+    return redirect(url_for(".index"))
 
 
 @legal_intelligence.route("/daily/update/<int:update_id>/approva", methods=["POST"])
@@ -207,7 +207,7 @@ def approva_daily_update(update_id: int):
     except Exception as exc:
         current_app.logger.exception("Errore approvazione update Legal Intelligence %s: %s", update_id, exc)
         flash(f"Approvazione non riuscita: {exc}", "danger")
-    return redirect(url_for("legal_intelligence.index"))
+    return redirect(url_for(".index"))
 
 
 @legal_intelligence.route("/daily/update/<int:update_id>/diff", methods=["GET"])
@@ -216,7 +216,7 @@ def diff_daily_update(update_id: int):
     update = _daily_engine().get_update(update_id)
     if not update:
         flash("Aggiornamento non trovato.", "warning")
-        return redirect(url_for("legal_intelligence.index"))
+        return redirect(url_for(".index"))
     return render_template("legal_intelligence/daily_diff.html", update=update, oggi=date.today())
 
 
@@ -227,7 +227,7 @@ def rigenera_indice_ai_daily():
         "Rigenerazione indice AI registrata. Gli aggiornamenti approvati verranno inclusi nella prossima reindicizzazione.",
         "info",
     )
-    return redirect(url_for("legal_intelligence.index"))
+    return redirect(url_for(".index"))
 
 
 @legal_intelligence.route("/sync/esegui", methods=["POST"])
@@ -244,7 +244,7 @@ def esegui_sync_normativo():
             f"Sync completato: {report.get('updated', 0)} tabelle aggiornate e archivio normativo riallineato.",
             "success",
         )
-    return redirect(url_for("legal_intelligence.index"))
+    return redirect(url_for(".index"))
 
 
 @legal_intelligence.route("/mediazione/sync", methods=["POST"])
@@ -270,7 +270,7 @@ def esegui_sync_registro_mediazione():
             + str(mediazione.get("warning") or "Verificare la fonte ministeriale ufficiale."),
             "warning",
         )
-    return redirect(url_for("legal_intelligence.registro_mediazione"))
+    return redirect(url_for(".registro_mediazione"))
 
 
 @legal_intelligence.route("/mediazione/import", methods=["POST"])
@@ -288,7 +288,7 @@ def importa_registro_mediazione():
             "Carica un file HTML del registro oppure incolla il sorgente HTML della pagina ufficiale.",
             "warning",
         )
-        return redirect(url_for("legal_intelligence.registro_mediazione"))
+        return redirect(url_for(".registro_mediazione"))
 
     try:
         report = get_legal_intelligence().import_registro_mediazione_snapshot(
@@ -302,7 +302,7 @@ def importa_registro_mediazione():
     except Exception as exc:
         current_app.logger.exception("Errore import registro mediazione: %s", exc)
         flash(f"Importazione non riuscita: {exc}", "warning")
-    return redirect(url_for("legal_intelligence.registro_mediazione"))
+    return redirect(url_for(".registro_mediazione"))
 
 
 @legal_intelligence.route("/api/snapshot", methods=["GET"])
@@ -352,7 +352,7 @@ def scheda_fonte(source_id: str):
     fonte_row = next((row for row in snapshot.get("source_rows", []) if row.get("id") == source_id), None)
     if not fonte_row:
         flash("Fonte non trovata nel registro Legal Intelligence.", "warning")
-        return redirect(url_for("legal_intelligence.index", tab="fonti"))
+        return redirect(url_for(".index", tab="fonti"))
     snapshot_card = None
     try:
         snapshot_card = _daily_engine().get_source_card(source_id)
@@ -374,14 +374,14 @@ def scarica_fonte(source_id: str):
     except Exception as exc:
         current_app.logger.exception("Errore download fonte %s: %s", source_id, exc)
         flash(f"Impossibile recuperare lo snapshot archiviato: {exc}", "warning")
-        return redirect(url_for("legal_intelligence.scheda_fonte", source_id=source_id))
+        return redirect(url_for(".scheda_fonte", source_id=source_id))
     if not latest or not latest.get("normalized_text"):
         flash(
             "Non e ancora disponibile uno snapshot archiviato per questa fonte. "
             "Esegui prima un controllo giornaliero dalla sezione Fonti.",
             "info",
         )
-        return redirect(url_for("legal_intelligence.scheda_fonte", source_id=source_id))
+        return redirect(url_for(".scheda_fonte", source_id=source_id))
     fetched = latest.get("fetched_at") or datetime.utcnow().isoformat()
     safe_id = "".join(c if c.isalnum() or c in ("-", "_") else "_" for c in source_id)
     safe_when = fetched.replace(":", "").replace("T", "_").split(".")[0]

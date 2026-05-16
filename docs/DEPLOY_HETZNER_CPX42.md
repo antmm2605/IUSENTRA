@@ -1,6 +1,6 @@
 # Deploy Hetzner CPX42
 
-> **Versione corrente:** 2.243.0
+> **Versione corrente:** 2.243.3
 > Guida aggiornata: 16/05/2026
 
 Questa guida rende esplicito il profilo `deploy/hetzner` come destinazione di produzione o fallback governato rispetto a Railway.
@@ -37,7 +37,7 @@ L'immagine production e' costruita in 4 stage indipendenti:
 | `frontend-builder` | node:22-slim | bundle Vite in `/build/web/static/react/` | se cambiano `frontend/package*.json`, `frontend/src/**` o `frontend/vite.config.ts` |
 | runtime | python:3.12-slim | immagine finale | sempre |
 
-Lo stage `frontend-builder` esegue `npm --prefix frontend ci` + `npm --prefix frontend run build:vite`. Il bundle generato sovrascrive `web/static/react/` nello stage runtime, garantendo che il JavaScript servito al browser sia sempre allineato ai sorgenti TSX del commit deployato. Prima di v2.243.0 il bundle era pre-compilato in locale e committato come fonte di verita': adesso il commit puo' contenere un bundle stale, il Dockerfile lo rigenera.
+Lo stage `frontend-builder` esegue `npm --prefix frontend ci --include=dev` + `npm --prefix frontend run build:vite`. Il bundle generato sovrascrive `web/static/react/` nello stage runtime, garantendo che il JavaScript servito al browser sia sempre allineato ai sorgenti TSX del commit deployato. Prima di v2.243.0 il bundle era pre-compilato in locale e committato come fonte di verita': adesso il commit puo' contenere un bundle stale, il Dockerfile lo rigenera.
 
 ## Profili Docker Compose
 
@@ -167,7 +167,7 @@ Cron consigliato:
 
 Lo script applica anche la retention: per default conserva al massimo 3 backup applicativi, almeno 2 copie, rimuove quelli piu' vecchi di 14 giorni e mantiene la directory backup entro 8 GiB quando possibile. In produzione i valori sono governati da `IUSENTRA_BACKUP_RETENTION_COUNT`, `IUSENTRA_BACKUP_RETENTION_MIN_COUNT`, `IUSENTRA_BACKUP_RETENTION_DAYS` e `IUSENTRA_BACKUP_RETENTION_MAX_GIB` in `/opt/iusentra/.env.hetzner`.
 
-I backup `.tar.zst` usano zstd ad alta compressione (`IUSENTRA_BACKUP_ZSTD_LEVEL=19`, `IUSENTRA_BACKUP_ZSTD_LONG_WINDOW=27` di default). Ollama, i modelli locali e i download rigenerabili sono esclusi in modo obbligatorio (`./ollama`, `./intelligence/downloads/ollama`, `./tenants/*/intelligence/downloads/ollama`): lo script verifica l'archivio e fallisce se trova ancora un percorso Ollama. Se una singola copia supera il tetto configurato, lo script conserva comunque il numero minimo di copie e stampa un avviso esplicito invece di cancellare l'ultimo backup valido.
+I backup `.tar.zst` usano zstd ad alta compressione (`IUSENTRA_BACKUP_ZSTD_LEVEL=19`, `IUSENTRA_BACKUP_ZSTD_LONG_WINDOW=27` di default). Ollama, i modelli locali e i download rigenerabili sono esclusi in modo obbligatorio (`./ollama`, `./intelligence/downloads/ollama`, `./tenants/*/intelligence/downloads/ollama`): lo script verifica l'archivio e fallisce se trova ancora un percorso Ollama. Se durante la lettura cambiano file runtime vivi, `tar` puo' restituire un warning non fatale: da v2.243.3 lo script conserva lo snapshot best-effort e blocca solo errori gravi o compressione fallita. Se una singola copia supera il tetto configurato, lo script conserva comunque il numero minimo di copie e stampa un avviso esplicito invece di cancellare l'ultimo backup valido.
 
 Per compattare lo storage live senza cambiare i path applicativi:
 
@@ -382,6 +382,8 @@ guard OK: ExactLegalReferenceGuard
 
 | Versione | Commit | Data | Contenuto principale |
 |----------|--------|------|----------------------|
+| 2.243.3 | — | 16/05/2026 | Backup preventivo Hetzner robusto sui dati runtime vivi: `backup.sh` considera non fatale `tar` exit 1 dovuto a file cambiati durante la lettura, produce comunque lo snapshot best-effort e continua a bloccare errori gravi (`tar > 1`) o fallimenti zstd/gzip. |
+| 2.243.2 | — | 16/05/2026 | Dockerfile frontend reso ripetibile su server: lo stage Vite usa `npm ci --include=dev`, cosi' Tailwind/PostCSS sono disponibili anche con `NODE_ENV=production`; `.dockerignore` esclude `node_modules` per impedire drift fra build locale e build Hetzner. |
 | 2.243.0 | — | 16/05/2026 | Dockerfile: aggiunto stage `frontend-builder` su `node:22-slim` che esegue `npm ci` + `npm run build:vite` durante il build dell'immagine. Lo stage runtime copia il bundle React appena ricompilato sopra `web/static/react/`, eliminando il drift tra sorgenti TSX e bundle JavaScript servito al browser. Lo stage e' indipendente (Node non finisce nell'immagine finale, solo gli artefatti). Layer cache su `package*.json` per ricompilazioni rapide quando cambiano solo i `.tsx`. |
 | 2.242.2 | — | 16/05/2026 | Ricompilato e committato il bundle React in `web/static/react/`: il chunk `LegalIntelligencePage-*.js` include adesso `MediazioneImportPanel` con sync/import. Il Dockerfile non esegue il build Vite, quindi il bundle pre-compilato e' la fonte di verita' in produzione; finche' la build node non sara' aggiunta come stage Docker, ogni modifica a `frontend/src/**` richiede `npm --prefix frontend run build` + commit di `web/static/react/`. |
 | 2.242.1 | — | 16/05/2026 | Ricerca legale React: aggiunto pannello "Carica tutti gli organismi" nella vista mediazione con due flussi paralleli — sincronizzazione registro ministeriale (`POST /ricerca-legale/mediazione/sync`) e import snapshot HTML (`POST /ricerca-legale/mediazione/import`). Componente `MediazioneImportPanel` renderizzato solo per `view === 'mediazione'`. Stili dedicati `.iu-li-mediazione-import*` con divider, layout responsive e azioni primary/neutral. Blueprint Flask `legal_intelligence` ora usa `url_for('.endpoint')` invece di `url_for('legal_intelligence.endpoint')` per rispettare il prefisso effettivo (`/legal-intelligence` o `/ricerca-legale`) della richiesta in corso, evitando doppi hop redirect dopo i POST. |

@@ -1,12 +1,20 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-16, build Docker frontend Hetzner 2.243.2.
+Aggiornato: 2026-05-16, backup preventivo Hetzner 2.243.3.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Backup preventivo Hetzner 2.243.3 - 2026-05-16
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `bash -n deploy/hetzner/backup.sh deploy/hetzner/deploy.sh`; `python -m pytest tests\test_hetzner_backup_retention.py -q`; `python tools\sync_packaging_files.py --check`; `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py -q --tb=short` | OK | Script backup sintatticamente valido, test backup 3/3 e packaging/readiness 8/8 verdi dopo il trattamento warning `tar` non fatale e bump `2.243.3`. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build --force-recreate redis app scheduler-worker ocr-worker nginx`; `GET http://127.0.0.1:8080/api/pronto`; `docker exec iusentra-app python -c "import pct; print(pct.__version__)"`; `git diff --check -- . ':!data/*'` | OK | Docker locale no-cache finale su `2.243.3`: wheel `pct-studio-legale-2.243.3`, app/scheduler/OCR/Redis healthy, readiness locale 200 `versione=2.243.3`, runtime container `2.243.3`, whitespace check pulito. |
+| `python scripts\validate_docs_links.py docs\DEPLOY_HETZNER_CPX42.md deploy\hetzner\README.md`; `python scripts\validate_docs_commands.py` | OK | Documentazione Hetzner aggiornata su `npm ci --include=dev` e backup best-effort; link locali e comandi documentati validi. |
 
 ### Build Docker frontend Hetzner 2.243.2 - 2026-05-16
 

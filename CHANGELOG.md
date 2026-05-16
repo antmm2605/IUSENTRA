@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.243.3 - 2026-05-16
+
+- Reso il backup preventivo Hetzner compatibile con dati runtime vivi: i warning non fatali di `tar` su file cambiati durante la lettura non interrompono piu' il deploy automatico, mentre errori gravi e compressione fallita restano bloccanti.
+
 ## 2.243.2 - 2026-05-16
 
 - Resa ripetibile la build Docker del frontend anche su Hetzner: lo stage Vite installa esplicitamente le devDependencies necessarie alla compilazione Tailwind/PostCSS.

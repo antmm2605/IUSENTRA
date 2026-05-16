@@ -137,6 +137,44 @@ prune_by_total_size() {
   fi
 }
 
+run_tar_zstd_backup() {
+  local tar_status
+  local zstd_status
+
+  set +e
+  tar "${tar_exclude_args[@]}" --warning=no-file-changed -cpf - -C "$DATA_DIR" . \
+    | zstd -T0 "-${ZSTD_LEVEL}" "--long=${ZSTD_LONG_WINDOW}" -o "$OUT"
+  tar_status=${PIPESTATUS[0]}
+  zstd_status=${PIPESTATUS[1]}
+  set -e
+
+  if (( zstd_status != 0 )); then
+    return "$zstd_status"
+  fi
+  if (( tar_status > 1 )); then
+    return "$tar_status"
+  fi
+  if (( tar_status == 1 )); then
+    echo "Attenzione: alcuni file sono cambiati durante il backup; archivio conservato con snapshot best-effort dei dati leggibili." >&2
+  fi
+}
+
+run_tar_gzip_backup() {
+  local tar_status
+
+  set +e
+  tar "${tar_exclude_args[@]}" --warning=no-file-changed -czpf "$OUT" -C "$DATA_DIR" .
+  tar_status=$?
+  set -e
+
+  if (( tar_status > 1 )); then
+    return "$tar_status"
+  fi
+  if (( tar_status == 1 )); then
+    echo "Attenzione: alcuni file sono cambiati durante il backup; archivio conservato con snapshot best-effort dei dati leggibili." >&2
+  fi
+}
+
 if command -v zstd >/dev/null 2>&1; then
   if ! [[ "$ZSTD_LEVEL" =~ ^[0-9]+$ ]] || (( ZSTD_LEVEL < 1 || ZSTD_LEVEL > 19 )); then
     ZSTD_LEVEL=19
@@ -144,11 +182,11 @@ if command -v zstd >/dev/null 2>&1; then
   if ! [[ "$ZSTD_LONG_WINDOW" =~ ^[0-9]+$ ]] || (( ZSTD_LONG_WINDOW < 20 || ZSTD_LONG_WINDOW > 31 )); then
     ZSTD_LONG_WINDOW=27
   fi
-  tar "${tar_exclude_args[@]}" -cpf - -C "$DATA_DIR" . | zstd -T0 "-${ZSTD_LEVEL}" "--long=${ZSTD_LONG_WINDOW}" -o "$OUT"
+  run_tar_zstd_backup
 else
   FINAL_OUT="${BACKUP_DIR}/iusentra-data-${STAMP}.tar.gz"
   OUT="${FINAL_OUT}.tmp"
-  tar "${tar_exclude_args[@]}" -czpf "$OUT" -C "$DATA_DIR" .
+  run_tar_gzip_backup
 fi
 
 mv -f -- "$OUT" "$FINAL_OUT"

@@ -41,6 +41,11 @@ def test_backup_script_applica_tetto_spazio_e_compressione_alta():
     assert "zstd -T0" in script
     assert "--long=" in script
     assert "source \"$ENV_FILE\"" in script
+    assert "run_tar_zstd_backup" in script
+    assert "PIPESTATUS[0]" in script
+    assert "tar_status > 1" in script
+    assert "tar_status == 1" in script
+    assert "snapshot best-effort" in script
 
 
 def test_env_hetzner_documenta_guardrail_backup():

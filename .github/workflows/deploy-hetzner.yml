@@ -1,6 +1,6 @@
 name: Deploy Hetzner CPX42
 
-# Deploy automatico sul server Hetzner CPX42 (Codex/legal-electronic-filing-kIxcV).
+# Deploy automatico sul server Hetzner CPX42 per i due branch operativi ammessi.
 #
 # Requisiti GitHub Secrets:
 #   - HETZNER_SSH_PRIVATE_KEY  chiave SSH privata (OpenSSH PEM, senza passphrase)
@@ -18,6 +18,7 @@ on:
   push:
     branches:
       - Codex/legal-electronic-filing-kIxcV
+      - claude/legal-electronic-filing-kIxcV
   workflow_dispatch:
     inputs:
       skip_backup:
@@ -40,7 +41,7 @@ env:
   HETZNER_HOST: ${{ vars.HETZNER_HOST || '116.203.45.57' }}
   HETZNER_USER: ${{ vars.HETZNER_USER || 'root' }}
   HETZNER_DOMAIN: ${{ vars.HETZNER_DOMAIN }}
-  DEPLOY_BRANCH: ${{ inputs.branch_override || 'Codex/legal-electronic-filing-kIxcV' }}
+  DEPLOY_BRANCH: ${{ inputs.branch_override || (github.event_name == 'push' && github.ref_name) || 'Codex/legal-electronic-filing-kIxcV' }}
 
 jobs:
   deploy:
@@ -90,8 +91,28 @@ jobs:
               "${HETZNER_USER}@${HETZNER_HOST}" \
               'echo "SSH OK $(hostname) $(uname -srm)"'
 
+      - name: Controlla commit gia deployato
+        id: current
+        run: |
+          set -euo pipefail
+          remote_head=$(ssh -i ~/.ssh/id_deploy \
+              -o BatchMode=yes \
+              -o ConnectTimeout=15 \
+              -o StrictHostKeyChecking=yes \
+              -o UserKnownHostsFile=~/.ssh/known_hosts \
+              "${HETZNER_USER}@${HETZNER_HOST}" \
+              'git -C /opt/iusentra/repo rev-parse HEAD 2>/dev/null || true')
+          echo "remote_head=${remote_head}" >> "$GITHUB_OUTPUT"
+          if [ "${remote_head}" = "${GITHUB_SHA}" ]; then
+            echo "already_deployed=true" >> "$GITHUB_OUTPUT"
+            echo "Commit ${GITHUB_SHA::7} gia deployato: salto backup e rebuild."
+          else
+            echo "already_deployed=false" >> "$GITHUB_OUTPUT"
+            echo "Commit remoto attuale: ${remote_head:-n/d}; atteso: ${GITHUB_SHA}."
+          fi
+
       - name: Backup preventivo
-        if: ${{ !inputs.skip_backup }}
+        if: ${{ steps.current.outputs.already_deployed != 'true' && !inputs.skip_backup }}
         run: |
           set -euo pipefail
           ssh -i ~/.ssh/id_deploy \
@@ -106,6 +127,7 @@ jobs:
 
       - name: Esegui deploy
         id: deploy
+        if: ${{ steps.current.outputs.already_deployed != 'true' }}
         run: |
           set -euo pipefail
           ssh -i ~/.ssh/id_deploy \
@@ -164,6 +186,12 @@ jobs:
       - name: Summary deploy
         if: always()
         run: |
+          backup_state="eseguito"
+          if [ '${{ steps.current.outputs.already_deployed }}' = 'true' ]; then
+            backup_state="SALTATO: commit gia deployato"
+          elif [ '${{ inputs.skip_backup }}' = 'true' ]; then
+            backup_state="SALTATO: input skip_backup"
+          fi
           {
             echo "## Deploy Hetzner CPX42"
             echo
@@ -173,7 +201,8 @@ jobs:
             echo "| Branch deployato | \`${DEPLOY_BRANCH}\` |"
             echo "| Commit atteso | \`${GITHUB_SHA::7}\` |"
             echo "| Commit remoto | \`${{ steps.state.outputs.remote_head || 'n/d' }}\` |"
-            echo "| Backup preventivo | $([ '${{ inputs.skip_backup }}' = 'true' ] && echo 'SALTATO' || echo 'eseguito') |"
+            echo "| Gia deployato | \`${{ steps.current.outputs.already_deployed || 'n/d' }}\` |"
+            echo "| Backup preventivo | ${backup_state} |"
             echo "| Esito | ${{ job.status }} |"
             echo
             if [ -n "${HETZNER_DOMAIN:-}" ]; then

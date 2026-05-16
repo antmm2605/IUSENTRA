@@ -117,7 +117,7 @@ docker run --rm iusentra-app python -c "from core.security.secrets_manager impor
 
 Regola operativa obbligatoria: dopo ogni aggiornamento completato, committato e pushato sui branch gemelli, eseguire sempre il deploy su Hetzner CPX42. Il lavoro non e' concluso finche' `/opt/iusentra/repo` non punta al commit pushato, i container non sono healthy e `/api/pronto` non risponde.
 
-**Da v2.241.0 il deploy parte automaticamente** da GitHub Actions quando viene pushato `Codex/legal-electronic-filing-kIxcV`. Workflow: `.github/workflows/deploy-hetzner.yml`. Per setup secrets, rotazione chiavi e rollback vedere `docs/DEPLOY_HETZNER_CPX42.md` sezione "Deploy automatico via GitHub Actions".
+**Da v2.241.1 il deploy parte automaticamente** da GitHub Actions quando viene pushato uno dei due branch ammessi, `Codex/legal-electronic-filing-kIxcV` o `claude/legal-electronic-filing-kIxcV`. Workflow: `.github/workflows/deploy-hetzner.yml`. Per setup secrets, rotazione chiavi e rollback vedere `docs/DEPLOY_HETZNER_CPX42.md` sezione "Deploy automatico via GitHub Actions".
 
 Il comando manuale sotto resta valido per esecuzioni fuori banda (es. test della SSH key, deploy da branch alternativo, recovery rapido senza passare da GitHub):
 

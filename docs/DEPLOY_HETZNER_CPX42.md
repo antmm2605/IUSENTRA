@@ -187,20 +187,20 @@ Se esiste `/opt/iusentra/import/iusentra-data.tar.zst.sha256`, lo script verific
 
 ## Deploy automatico via GitHub Actions (da v2.241.0)
 
-Il workflow `.github/workflows/deploy-hetzner.yml` esegue il deploy sul server Hetzner CPX42 ad ogni push su `Codex/legal-electronic-filing-kIxcV` ed e' invocabile manualmente da GitHub → Actions → "Deploy Hetzner CPX42" → "Run workflow".
+Il workflow `.github/workflows/deploy-hetzner.yml` esegue il deploy sul server Hetzner CPX42 ad ogni push sui due branch operativi ammessi, `Codex/legal-electronic-filing-kIxcV` e `claude/legal-electronic-filing-kIxcV`, ed e' invocabile manualmente da GitHub > Actions > "Deploy Hetzner CPX42" > "Run workflow".
 
 ### Cosa fa il workflow
 
 1. Verifica che i secrets SSH siano configurati e parsabili.
 2. Apre una sessione SSH non interattiva verso `${HETZNER_USER}@${HETZNER_HOST}` con `known_hosts` pinnato (no MITM).
 3. Esegue `bash /opt/iusentra/repo/deploy/hetzner/backup.sh` (saltabile via input booleano `skip_backup`).
-4. Esegue `BRANCH=Codex/legal-electronic-filing-kIxcV bash deploy/hetzner/deploy.sh` sul server.
+4. Esegue `BRANCH=<branch pushato> bash deploy/hetzner/deploy.sh` sul server; nei run manuali senza override usa `Codex/legal-electronic-filing-kIxcV`.
 5. Recupera `git rev-parse --short HEAD` remoto per verifica.
 6. `docker compose ps` e curl pubblici su `/api/pronto`, `/legal-intelligence/`, `/legal-intelligence/ricerca`, `/ricerca-legale`.
 7. Stampa un summary GitHub Actions con commit, host, esito.
 8. Cancella la chiave SSH dal runner (`shred`).
 
-`concurrency: deploy-hetzner-production` con `cancel-in-progress: false` garantisce che due push ravvicinati producano deploy in coda, mai paralleli.
+`concurrency: deploy-hetzner-production` con `cancel-in-progress: false` garantisce che due push ravvicinati producano deploy in coda, mai paralleli. Se il secondo push dei branch gemelli trova gia' lo stesso commit su `/opt/iusentra/repo`, il workflow salta backup e rebuild e mantiene le verifiche post-deploy.
 
 ### Setup una tantum
 
@@ -369,6 +369,7 @@ guard OK: ExactLegalReferenceGuard
 
 | Versione | Commit | Data | Contenuto principale |
 |----------|--------|------|----------------------|
+| 2.241.1 | - | 16/05/2026 | Deploy automatico GitHub Actions esteso ai due branch ammessi (`Codex/legal-electronic-filing-kIxcV` e `claude/legal-electronic-filing-kIxcV`), con branch deployato derivato dal ref pushato e default manuale conservato su `Codex/legal-electronic-filing-kIxcV`. Il secondo push gemello salta backup e rebuild quando trova gia' lo stesso commit sul server, mantenendo le verifiche. Secrets e variables Actions configurati per `app.iusentra.it`, host `116.203.45.57` e utente `root`. |
 | 2.241.0 | — | 16/05/2026 | Deploy automatico via GitHub Actions: nuovo workflow `.github/workflows/deploy-hetzner.yml` triggerato dai push su `Codex/legal-electronic-filing-kIxcV` (e manuale via `workflow_dispatch`). SSH key dedicata in `HETZNER_SSH_PRIVATE_KEY`, host pinning via `HETZNER_SSH_KNOWN_HOSTS`, backup preventivo opt-out, verifiche post-deploy con curl su rotte Ricerca legale + Motori Legali, summary GitHub Actions con commit/host/esito, `concurrency` lock per evitare deploy paralleli, pulizia chiave SSH con `shred` a fine job. Documentazione setup secrets/variables/test/rotazione/rollback aggiunta. |
 | 2.240.0 | `be5131e` | 16/05/2026 | Ricerca legale e Motori Legali: `/legal-intelligence/` riscritto come pagina tabbed (Panoramica · Fonti · Aggiornamenti · Normativa · Audit · Console). Nuovo endpoint `/legal-intelligence/ricerca` con search cross-source su fonti, normativa, news, organismi mediazione e aggiornamenti. `/ricerca-legale` ora punta alla ricerca unificata. Nuove rotte `/legal-intelligence/fonte/<id>` (scheda con storico snapshot, metadati e variazioni) e `/legal-intelligence/fonte/<id>/scarica` (download `.txt` del testo archiviato con header URL, SHA-256, ETag). Rimosse `/legal-intelligence` e `/ricerca-legale` dalla shell React legacy: ora servite direttamente dai template Flask. News page ripulita da blocchi superadmin duplicati. Nuovo service `web/services/legal_intelligence_research.py`, estensione `LegalIntelligenceDailyEngine.get_source_card/latest_snapshot` e `LegalIntelligenceStore.source_snapshots/source_updates`. SCSS `.li-tabs`, `.li-search-form`, `.li-news-stack`, `.li-quick-actions`, `.li-empty` con responsive mobile. |
 | 2.215.0 | — | 10/05/2026 | PST acquisizione: PIN chiesto al massimo una volta per visualizzazione e una volta per download. TTL sessione portata a 1800 s. `awEnsurePstPreviewDocumentCatalog` riusa snapshot in memoria senza ri-autenticazione. |

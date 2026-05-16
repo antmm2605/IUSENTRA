@@ -1,0 +1,190 @@
+name: Deploy Hetzner CPX42
+
+# Deploy automatico sul server Hetzner CPX42 (Codex/legal-electronic-filing-kIxcV).
+#
+# Requisiti GitHub Secrets:
+#   - HETZNER_SSH_PRIVATE_KEY  chiave SSH privata (OpenSSH PEM, senza passphrase)
+#   - HETZNER_SSH_KNOWN_HOSTS  output di "ssh-keyscan -H 116.203.45.57"
+#
+# Requisiti GitHub Variables (opzionali, hanno default):
+#   - HETZNER_HOST     default 116.203.45.57
+#   - HETZNER_USER     default root
+#   - HETZNER_DOMAIN   dominio pubblico per le verifiche post-deploy curl
+#
+# Procedura di setup completa: docs/DEPLOY_HETZNER_CPX42.md sezione
+# "Deploy automatico via GitHub Actions (da v2.241.0)".
+
+on:
+  push:
+    branches:
+      - Codex/legal-electronic-filing-kIxcV
+  workflow_dispatch:
+    inputs:
+      skip_backup:
+        description: Salta il backup preventivo (sconsigliato)
+        type: boolean
+        default: false
+      branch_override:
+        description: Branch da deployare (default Codex/legal-electronic-filing-kIxcV)
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-hetzner-production
+  cancel-in-progress: false
+
+env:
+  HETZNER_HOST: ${{ vars.HETZNER_HOST || '116.203.45.57' }}
+  HETZNER_USER: ${{ vars.HETZNER_USER || 'root' }}
+  HETZNER_DOMAIN: ${{ vars.HETZNER_DOMAIN }}
+  DEPLOY_BRANCH: ${{ inputs.branch_override || 'Codex/legal-electronic-filing-kIxcV' }}
+
+jobs:
+  deploy:
+    name: Deploy su Hetzner CPX42
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Verifica secrets obbligatori
+        env:
+          HETZNER_SSH_PRIVATE_KEY: ${{ secrets.HETZNER_SSH_PRIVATE_KEY }}
+          HETZNER_SSH_KNOWN_HOSTS: ${{ secrets.HETZNER_SSH_KNOWN_HOSTS }}
+        run: |
+          missing=()
+          if [ -z "${HETZNER_SSH_PRIVATE_KEY:-}" ]; then missing+=("HETZNER_SSH_PRIVATE_KEY"); fi
+          if [ -z "${HETZNER_SSH_KNOWN_HOSTS:-}" ]; then missing+=("HETZNER_SSH_KNOWN_HOSTS"); fi
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::Secrets mancanti: ${missing[*]}. Vedere docs/DEPLOY_HETZNER_CPX42.md."
+            exit 1
+          fi
+          echo "Secrets verificati."
+
+      - name: Setup chiave SSH e known_hosts
+        env:
+          HETZNER_SSH_PRIVATE_KEY: ${{ secrets.HETZNER_SSH_PRIVATE_KEY }}
+          HETZNER_SSH_KNOWN_HOSTS: ${{ secrets.HETZNER_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$HETZNER_SSH_PRIVATE_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          printf '%s\n' "$HETZNER_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+          # Sanity check: la chiave deve essere parsabile
+          ssh-keygen -y -f ~/.ssh/id_deploy >/dev/null
+          echo "Chiave SSH e known_hosts pronti."
+
+      - name: Verifica raggiungibilita server
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/id_deploy \
+              -o BatchMode=yes \
+              -o ConnectTimeout=15 \
+              -o StrictHostKeyChecking=yes \
+              -o UserKnownHostsFile=~/.ssh/known_hosts \
+              "${HETZNER_USER}@${HETZNER_HOST}" \
+              'echo "SSH OK $(hostname) $(uname -srm)"'
+
+      - name: Backup preventivo
+        if: ${{ !inputs.skip_backup }}
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/id_deploy \
+              -o BatchMode=yes \
+              -o ConnectTimeout=15 \
+              -o ServerAliveInterval=30 \
+              -o ServerAliveCountMax=20 \
+              -o StrictHostKeyChecking=yes \
+              -o UserKnownHostsFile=~/.ssh/known_hosts \
+              "${HETZNER_USER}@${HETZNER_HOST}" \
+              'bash /opt/iusentra/repo/deploy/hetzner/backup.sh'
+
+      - name: Esegui deploy
+        id: deploy
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/id_deploy \
+              -o BatchMode=yes \
+              -o ConnectTimeout=15 \
+              -o ServerAliveInterval=30 \
+              -o ServerAliveCountMax=40 \
+              -o StrictHostKeyChecking=yes \
+              -o UserKnownHostsFile=~/.ssh/known_hosts \
+              "${HETZNER_USER}@${HETZNER_HOST}" \
+              "cd /opt/iusentra/repo && BRANCH='${DEPLOY_BRANCH}' bash deploy/hetzner/deploy.sh"
+
+      - name: Recupera commit deployato
+        id: state
+        run: |
+          set -euo pipefail
+          remote_head=$(ssh -i ~/.ssh/id_deploy \
+              -o BatchMode=yes \
+              -o ConnectTimeout=15 \
+              -o StrictHostKeyChecking=yes \
+              -o UserKnownHostsFile=~/.ssh/known_hosts \
+              "${HETZNER_USER}@${HETZNER_HOST}" \
+              'git -C /opt/iusentra/repo rev-parse --short HEAD')
+          echo "remote_head=${remote_head}" >> "$GITHUB_OUTPUT"
+          echo "expected=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Verifiche post-deploy (container + health)
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/id_deploy \
+              -o BatchMode=yes \
+              -o ConnectTimeout=15 \
+              -o StrictHostKeyChecking=yes \
+              -o UserKnownHostsFile=~/.ssh/known_hosts \
+              "${HETZNER_USER}@${HETZNER_HOST}" \
+              'docker compose --env-file /opt/iusentra/.env.hetzner -f /opt/iusentra/repo/deploy/hetzner/docker-compose.hetzner.yml ps'
+
+      - name: Verifiche post-deploy (rotte HTTPS pubbliche)
+        if: ${{ env.HETZNER_DOMAIN != '' }}
+        run: |
+          set -euo pipefail
+          DOMAIN="${HETZNER_DOMAIN}"
+          echo "Health endpoint:"
+          curl -fsS --max-time 15 "https://${DOMAIN}/api/pronto" | head -c 400 || true
+          echo
+          echo "Rotte Ricerca legale (v2.240.0):"
+          for path in "/legal-intelligence/" "/legal-intelligence/ricerca" "/ricerca-legale"; do
+            status=$(curl -fsS -o /dev/null -w '%{http_code}' --max-time 15 -I "https://${DOMAIN}${path}" || echo "fail")
+            echo "  ${path} → HTTP ${status}"
+            case "${status}" in
+              200|301|302|303|307|308) ;;
+              *) echo "::error::Rotta ${path} non risponde correttamente (HTTP ${status})"; exit 1 ;;
+            esac
+          done
+
+      - name: Summary deploy
+        if: always()
+        run: |
+          {
+            echo "## Deploy Hetzner CPX42"
+            echo
+            echo "| Voce | Valore |"
+            echo "|---|---|"
+            echo "| Host | \`${HETZNER_HOST}\` |"
+            echo "| Branch deployato | \`${DEPLOY_BRANCH}\` |"
+            echo "| Commit atteso | \`${GITHUB_SHA::7}\` |"
+            echo "| Commit remoto | \`${{ steps.state.outputs.remote_head || 'n/d' }}\` |"
+            echo "| Backup preventivo | $([ '${{ inputs.skip_backup }}' = 'true' ] && echo 'SALTATO' || echo 'eseguito') |"
+            echo "| Esito | ${{ job.status }} |"
+            echo
+            if [ -n "${HETZNER_DOMAIN:-}" ]; then
+              echo "Dominio verificato: https://${HETZNER_DOMAIN}/"
+            else
+              echo "Variabile \`HETZNER_DOMAIN\` non configurata: verifiche HTTPS pubbliche saltate."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Pulizia chiave SSH
+        if: always()
+        run: |
+          shred -u ~/.ssh/id_deploy 2>/dev/null || rm -f ~/.ssh/id_deploy
+          rm -f ~/.ssh/known_hosts

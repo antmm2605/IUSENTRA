@@ -1,6 +1,6 @@
 # Deploy Hetzner CPX42
 
-> **Versione corrente:** 2.240.0
+> **Versione corrente:** 2.241.0
 > Guida aggiornata: 16/05/2026
 
 Questa guida rende esplicito il profilo `deploy/hetzner` come destinazione di produzione o fallback governato rispetto a Railway.
@@ -185,6 +185,102 @@ Se esiste `/opt/iusentra/import/iusentra-data.tar.zst.sha256`, lo script verific
 - Le credenziali PEC e i segreti devono restare cifrati o in variabili ambiente, mai in chiaro nel repository.
 - Prima dello switch definitivo da Railway verificare route principali, worker OCR, scheduler, backup, restore e log Caddy.
 
+## Deploy automatico via GitHub Actions (da v2.241.0)
+
+Il workflow `.github/workflows/deploy-hetzner.yml` esegue il deploy sul server Hetzner CPX42 ad ogni push su `Codex/legal-electronic-filing-kIxcV` ed e' invocabile manualmente da GitHub → Actions → "Deploy Hetzner CPX42" → "Run workflow".
+
+### Cosa fa il workflow
+
+1. Verifica che i secrets SSH siano configurati e parsabili.
+2. Apre una sessione SSH non interattiva verso `${HETZNER_USER}@${HETZNER_HOST}` con `known_hosts` pinnato (no MITM).
+3. Esegue `bash /opt/iusentra/repo/deploy/hetzner/backup.sh` (saltabile via input booleano `skip_backup`).
+4. Esegue `BRANCH=Codex/legal-electronic-filing-kIxcV bash deploy/hetzner/deploy.sh` sul server.
+5. Recupera `git rev-parse --short HEAD` remoto per verifica.
+6. `docker compose ps` e curl pubblici su `/api/pronto`, `/legal-intelligence/`, `/legal-intelligence/ricerca`, `/ricerca-legale`.
+7. Stampa un summary GitHub Actions con commit, host, esito.
+8. Cancella la chiave SSH dal runner (`shred`).
+
+`concurrency: deploy-hetzner-production` con `cancel-in-progress: false` garantisce che due push ravvicinati producano deploy in coda, mai paralleli.
+
+### Setup una tantum
+
+**1. Generare una chiave SSH dedicata al deploy** (NON la chiave root master dell'amministratore):
+
+```bash
+# da una macchina locale sicura
+ssh-keygen -t ed25519 -f iusentra-deploy-key -N "" -C "github-actions-deploy@iusentra"
+```
+
+Produce due file: `iusentra-deploy-key` (privata) e `iusentra-deploy-key.pub` (pubblica).
+
+**2. Autorizzare la chiave pubblica sul server Hetzner**:
+
+```bash
+ssh root@116.203.45.57 'mkdir -p ~/.ssh && chmod 700 ~/.ssh'
+scp iusentra-deploy-key.pub root@116.203.45.57:/tmp/
+ssh root@116.203.45.57 '
+  cat /tmp/iusentra-deploy-key.pub >> ~/.ssh/authorized_keys
+  chmod 600 ~/.ssh/authorized_keys
+  rm /tmp/iusentra-deploy-key.pub
+  # restringi la chiave: solo da GitHub Actions IP range, comando limitato (opzionale ma consigliato)
+  # Esempio nota: aggiungere prefisso command="..." se si vuole limitare i comandi eseguibili
+'
+```
+
+**3. Generare il `known_hosts` pinnato del server**:
+
+```bash
+ssh-keyscan -H 116.203.45.57 > hetzner-known-hosts
+# verifica visiva: l'output deve contenere righe ssh-ed25519 e/o ssh-rsa
+cat hetzner-known-hosts
+```
+
+**4. Configurare i secrets GitHub** in `Settings → Secrets and variables → Actions → New repository secret`:
+
+| Secret | Valore | Note |
+|---|---|---|
+| `HETZNER_SSH_PRIVATE_KEY` | Contenuto completo di `iusentra-deploy-key` (incluso `-----BEGIN OPENSSH PRIVATE KEY-----`) | Senza passphrase |
+| `HETZNER_SSH_KNOWN_HOSTS` | Contenuto completo di `hetzner-known-hosts` | Pinning chiave host |
+
+**5. Configurare le variabili GitHub** (opzionali, hanno default) in `Settings → Secrets and variables → Actions → Variables`:
+
+| Variable | Default | Quando cambiarla |
+|---|---|---|
+| `HETZNER_HOST` | `116.203.45.57` | Se il server cambia IP |
+| `HETZNER_USER` | `root` | Se viene creato un utente deploy dedicato |
+| `HETZNER_DOMAIN` | *(non impostata)* | Impostare al dominio pubblico (es. `app.iusentra.it`) per abilitare le verifiche `curl` HTTPS post-deploy |
+
+**6. Distruggere la copia locale della chiave privata**:
+
+```bash
+shred -u iusentra-deploy-key
+rm iusentra-deploy-key.pub hetzner-known-hosts
+```
+
+La chiave privata vive ora solo nei GitHub Secrets, criptata a riposo.
+
+### Test del setup
+
+Da GitHub Actions, "Deploy Hetzner CPX42" → "Run workflow" con `skip_backup: true` per la prima prova (evita di sprecare uno slot backup mentre si testa SSH). Se i primi 3 step passano (verifica secrets, setup SSH, verifica raggiungibilita), tutto e' configurato.
+
+### Rotazione chiavi
+
+Ogni 12 mesi o dopo ogni cambio di personale con accesso ai repo, ripetere i passi 1-4 e rimuovere la vecchia chiave da `~/.ssh/authorized_keys` sul server.
+
+### Rollback in caso di deploy fallito
+
+Il workflow non esegue rollback automatico. Se le verifiche post-deploy falliscono:
+
+```bash
+ssh root@116.203.45.57
+cd /opt/iusentra/repo
+git log --oneline -5                              # individua il commit precedente
+git checkout <commit_precedente>
+bash deploy/hetzner/deploy.sh                     # riapplica la vecchia versione
+```
+
+Per ripristinare i dati da backup, vedere la sezione **Restore** sopra.
+
 ## Verifiche post-deploy Ricerca legale (da v2.240.0)
 
 La riscrittura di **Motori Legali** e **Ricerca legale** introduce nuovi endpoint Flask, una tab UI deep-linkabile e il download del testo archiviato di ogni fonte. Dopo ogni deploy controllare che le rotte rispondano e che la shell React non le intercetti più:
@@ -273,6 +369,7 @@ guard OK: ExactLegalReferenceGuard
 
 | Versione | Commit | Data | Contenuto principale |
 |----------|--------|------|----------------------|
+| 2.241.0 | — | 16/05/2026 | Deploy automatico via GitHub Actions: nuovo workflow `.github/workflows/deploy-hetzner.yml` triggerato dai push su `Codex/legal-electronic-filing-kIxcV` (e manuale via `workflow_dispatch`). SSH key dedicata in `HETZNER_SSH_PRIVATE_KEY`, host pinning via `HETZNER_SSH_KNOWN_HOSTS`, backup preventivo opt-out, verifiche post-deploy con curl su rotte Ricerca legale + Motori Legali, summary GitHub Actions con commit/host/esito, `concurrency` lock per evitare deploy paralleli, pulizia chiave SSH con `shred` a fine job. Documentazione setup secrets/variables/test/rotazione/rollback aggiunta. |
 | 2.240.0 | `be5131e` | 16/05/2026 | Ricerca legale e Motori Legali: `/legal-intelligence/` riscritto come pagina tabbed (Panoramica · Fonti · Aggiornamenti · Normativa · Audit · Console). Nuovo endpoint `/legal-intelligence/ricerca` con search cross-source su fonti, normativa, news, organismi mediazione e aggiornamenti. `/ricerca-legale` ora punta alla ricerca unificata. Nuove rotte `/legal-intelligence/fonte/<id>` (scheda con storico snapshot, metadati e variazioni) e `/legal-intelligence/fonte/<id>/scarica` (download `.txt` del testo archiviato con header URL, SHA-256, ETag). Rimosse `/legal-intelligence` e `/ricerca-legale` dalla shell React legacy: ora servite direttamente dai template Flask. News page ripulita da blocchi superadmin duplicati. Nuovo service `web/services/legal_intelligence_research.py`, estensione `LegalIntelligenceDailyEngine.get_source_card/latest_snapshot` e `LegalIntelligenceStore.source_snapshots/source_updates`. SCSS `.li-tabs`, `.li-search-form`, `.li-news-stack`, `.li-quick-actions`, `.li-empty` con responsive mobile. |
 | 2.215.0 | — | 10/05/2026 | PST acquisizione: PIN chiesto al massimo una volta per visualizzazione e una volta per download. TTL sessione portata a 1800 s. `awEnsurePstPreviewDocumentCatalog` riusa snapshot in memoria senza ri-autenticazione. |
 | 2.202.0 | `a06145c` | 08/05/2026 | Lex: fix CASO 1 (sentenza esatta forza ricerca pubblica, confidence cap ≤ 0.45), fix CASO 2 (studio_data_lookup mostra dati cliente reali). `giurisprudenza_specifica` in `_STRICT_LEGAL_WORKFLOWS`. Handler deterministic `studio_data_lookup`. `user_facing_output_guard`. `case_law_completeness`. `exact_case_law_guard`. Prompt: no "Ciao sono Lex" su query operative. |

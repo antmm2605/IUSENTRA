@@ -67,7 +67,8 @@ Policy operative:
 - prima di creare una proposta il motore confronta il contenuto con archivio strutturato e news gia' pubblicate
 - sentenze, ordinanze, norme, prassi e news gia' presenti vengono chiuse come duplicato e non ripubblicate
 - i contenuti fuori perimetro professionale dello studio legale vengono chiusi come `OUT_OF_SCOPE`
-- norme, giurisprudenza, prassi e news da fonti ufficiali o istituzionali possono essere pubblicate automaticamente quando la classificazione e' sufficientemente affidabile
+- norme, giurisprudenza, prassi e news da fonti ufficiali o istituzionali possono essere pubblicate automaticamente quando la classificazione e' sufficientemente affidabile e la verifica pubblica governata trova conferme coerenti
+- per le proposte strutturate (`NEW_NORMATIVE`, `UPDATE_NORMATIVE`, `NEW_CASE_LAW`, `NEW_PRASSI`) servono almeno una fonte primaria e una seconda conferma da archivio fonti ufficiali, Normattiva, Gazzetta o ricerca web allowlist
 - ogni aggiornamento normativo crea storico tramite `normative_versions`
 - nessun contenuto editoriale secondario aggiorna da solo l'archivio normativo
 
@@ -98,6 +99,7 @@ Moduli principali:
 - Le fonti HTML non vengono piu' limitate artificialmente a 40 risultati: il fetch segue anche la paginazione dei portali che espongono piu' pagine tramite query string o script lato pagina.
 - Le fonti CKAN JSON di OpenGA vengono lette come catalogo strutturato: IUSENTRA importa pacchetti, risorse e, per le risorse JSON disponibili, un estratto del contenuto utile a Lex e alla ricerca interna.
 - Il seed `dati_normattiva` punta alla pagina ufficiale Normattiva OpenData richiesta, cosi' la fonte resta governata dal canale informativo pubblico corretto.
+- La pubblicazione automatica interroga anche [pct/legal_update_web_verification.py](/D:/legale/IUSENTRA/pct/legal_update_web_verification.py): se le conferme pubbliche non bastano, la proposta resta in revisione con nota leggibile per il revisore.
 - La deduplica usa sia `external_id` di acquisizione sia una chiave canonica di archivio: numero/anno/autorita' per sentenze e ordinanze, tipo/numero/anno/emittente per norme e prassi, URL ufficiale e titolo/data per le news.
 - La console admin espone `Pulisci duplicati`; la stessa pulizia viene eseguita anche prima delle scansioni automatiche e manuali.
 - `Pubblica idonei` non si ferma piu' su uno slug normativo gia' presente: il repository riusa il record esistente quando lo riconosce, genera slug univoci quando serve e registra eventuali elementi saltati senza bloccare l'intero autopublish.
@@ -214,6 +216,5 @@ Regola di coerenza obbligatoria: nome fonte e URL devono riferirsi allo stesso e
 - ogni pubblicazione produce audit
 - le relazioni strutturate non sovrascrivono lo storico
 - la tassonomia materie e' chiusa e governata
-
 
 

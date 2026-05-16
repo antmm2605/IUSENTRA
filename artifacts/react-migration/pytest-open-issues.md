@@ -1,6 +1,6 @@
 # Pytest issue aperte e risoluzioni
 
-Aggiornato: 2026-05-16, registri mediazione interni 2.243.4.
+Aggiornato: 2026-05-16, Update Intelligence verificata 2.243.5.
 
 ## Regola operativa
 
@@ -10,6 +10,9 @@ Questo file e' la coda di lavoro. Prima di rilanciare test gia' passati, control
 
 | Area | Test / comando | Stato | Problema rilevato | Risoluzione |
 | --- | --- | --- | --- | --- |
+| Update Intelligence 2.243.5 | Railway volume fonti ufficiali | Aperto per spazio volume, non failure codice | Railway ha `/data` al 100%: 1.8 GB usati su 1.8 GB, con circa 1.3 GB in `/data/email/allegati`. Non e' sicuro cancellare allegati di studio per ospitare l'indice Normattiva. | Aumentare il volume Railway o migrare allegati/archivio prima di caricare Normattiva completo. Hetzner ha spazio sufficiente ed e' il target primario. |
+| Update Intelligence 2.243.5 | `python tools/normattiva_multi_sync.py --download Codici ...` nel container Hetzner | Risolto con rebuild locale/upload, resta limite fonte-server | Da Hetzner l'API Normattiva restituisce `application/octet-stream` vuoto; dalla macchina locale lo stesso download `Codici` produce ZIP valido. | Rebuild Normattiva completato fuori repository e caricato su `/data/normativa` Hetzner: DB 2.866.860.032 byte, JSONL 1.092.175.389 byte, 638.836 chunk. |
+| Update Intelligence 2.243.5 | `python -m pytest tests\test_web_bootstrap.py::test_template_principali_usano_copy_italiana_e_date_localizzate ...` | Aperto preesistente non collegato | Il test ampio segnala `gia' compattati` atteso in `server_manutenzione.html`, mentre la copy corrente e' `gia' ottimizzati`. Lo shard superadmin mirato sugli aggiornamenti legali passa. | Allineare in una tranche copy admin; non usare questo esito come regressione di Update Intelligence. |
 | Registri mediazione 2.243.4 | API React `/api/v1/ui/ricerca-legale/mediazione` dopo primo sync | Risolto, nessuna issue aperta | Il servizio dati vedeva 3.035 record, ma il bridge React ne mostrava solo tre perche' la deduplica usava l'URL ministeriale come chiave e scartava tutte le righe con lo stesso collegamento ufficiale. | La deduplica usa l'id riga `registro-mediazione-*`; aggiunto test `test_mediazione_importata_non_viene_deduplicata_come_solo_link`. API autenticata ora restituisce 3.038 schede e l'audit visuale 6/6 e' verde. |
 | Registri mediazione 2.243.4 | Primo audit Chrome CDP su `/ricerca-legale/mediazione` e alias | Risolto come limite strumentale, non failure prodotto | Primo giro KO per timeout `Page.navigate` gia' recuperabile e per alias `/legal-intelligence/mediazione` canonizzato a `/ricerca-legale/mediazione`; il DOM mostrava gia' 80 righe, 5 filtri e nessun overflow. | Rilancio con gestione del timeout CDP recuperabile e alias canonico atteso: `visual-2.243.4-mediazione-registry-final` 6/6 OK. |
 | Backup preventivo Hetzner 2.243.3 | GitHub Actions `Deploy Hetzner CPX42`, step `Backup preventivo` | Nessuna issue aperta dopo fix e Docker locale | Il backup preventivo automatico puo' fallire quando `tar` incontra file runtime modificati durante la lettura (`file changed as we read it`), anche se l'archivio viene prodotto. | `backup.sh` ora intercetta lo status del `tar`: exit 1 diventa warning con snapshot best-effort, mentre `tar > 1` e fallimenti zstd/gzip restano errori bloccanti. Verificati `bash -n`, test backup 3/3, packaging/readiness 8/8, Docker no-cache locale e readiness `2.243.3`; risultati registrati in `pytest-confirmed-ok.md`. |

@@ -247,8 +247,18 @@ def test_legal_update_duplicate_non_moltiplica_queue(tmp_path: Path):
     assert len(queue) == 1
 
 
-def test_legal_update_autopubblica_senza_reinserire_contenuti_gia_presenti(tmp_path: Path):
+def test_legal_update_autopubblica_senza_reinserire_contenuti_gia_presenti(tmp_path: Path, monkeypatch):
     pipeline = build_legal_update_pipeline(str(tmp_path / "intelligence" / "motori.json"))
+
+    monkeypatch.setattr(
+        "pct.legal_update_pipeline.verify_legal_update_against_public_sources",
+        lambda review, source, **kwargs: {
+            "ok": True,
+            "reason": "Verifica pubblica completata con fonti coerenti.",
+            "confirmation_count": 2,
+            "official_confirmations": 1,
+        },
+    )
 
     first = pipeline.run_cycle(
         source_codes=["gazzetta_ufficiale"],
@@ -273,6 +283,31 @@ def test_legal_update_autopubblica_senza_reinserire_contenuti_gia_presenti(tmp_p
     assert versions == 1
     assert queue[0]["proposed_action"] == "DUPLICATE"
     assert queue[0]["status"] == "closed"
+
+
+def test_legal_update_autopubblica_attende_conferme_web(tmp_path: Path, monkeypatch):
+    pipeline = build_legal_update_pipeline(str(tmp_path / "intelligence" / "motori.json"))
+
+    monkeypatch.setattr(
+        "pct.legal_update_pipeline.verify_legal_update_against_public_sources",
+        lambda review, source, **kwargs: {
+            "ok": False,
+            "reason": "Seconda conferma non trovata.",
+            "confirmation_count": 1,
+            "official_confirmations": 1,
+        },
+    )
+
+    report = pipeline.run_cycle(
+        source_codes=["gazzetta_ufficiale"],
+        request_get=lambda *args, **kwargs: DummyResponse(_normativa_html(), url="https://www.gazzettaufficiale.it/"),
+        auto_publish=True,
+    )
+    queue = pipeline.repository.list_review_queue(limit=10)
+
+    assert report["autopublished"]["count"] == 0
+    assert queue[0]["status"] == "pending"
+    assert "Verifica fonti insufficiente" in queue[0]["review_notes"]
 
 
 def test_normative_slug_duplicate_non_blocca_pubblicazione(tmp_path: Path):
@@ -792,7 +827,7 @@ def test_admin_surfaces_renderizzano_fonti_staging_analisi_e_archivio(tmp_path: 
             "/admin/aggiornamenti-legali": "Motore di aggiornamento normativo e giurisprudenziale",
             "/admin/aggiornamenti-legali/fonti": "Gestore fonti",
             "/admin/aggiornamenti-legali/staging": "Area di acquisizione documenti",
-            "/admin/aggiornamenti-legali/analisi": "Analisi AI",
+            "/admin/aggiornamenti-legali/analisi": "Analisi automatica",
             "/admin/aggiornamenti-legali/archivio": "Archivio strutturato",
         }
 
@@ -800,6 +835,37 @@ def test_admin_surfaces_renderizzano_fonti_staging_analisi_e_archivio(tmp_path: 
             response = client.get(path)
             assert response.status_code == 200, path
             assert needle in response.get_data(as_text=True)
+
+
+def test_admin_review_mostra_etichette_operative_senza_codici_grezzi(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+    username, password = _seed_platform_superadmin(app)
+
+    with app.app_context():
+        pipeline = build_legal_update_pipeline(
+            app.config["LEGAL_INTELLIGENCE_DB"],
+            giurisprudenza_db_path=app.config["GIURISPRUDENZA_DB"],
+        )
+        pipeline.run_cycle(
+            source_codes=["gazzetta_ufficiale"],
+            request_get=lambda *args, **kwargs: DummyResponse(_normativa_html(), url="https://www.gazzettaufficiale.it/"),
+            auto_publish=False,
+        )
+
+    with app.test_client() as client:
+        login = client.post("/login", data={"username": username, "password": password}, follow_redirects=False)
+        assert login.status_code == 302
+        response = client.get("/admin/aggiornamenti-legali/review")
+
+    html = response.get_data(as_text=True)
+    assert response.status_code == 200
+    assert "Nuova normativa" in html or "Aggiornamento normativo" in html
+    assert "Da valutare" in html or "Pronta alla pubblicazione" in html
+    assert "NEW_NORMATIVE" not in html
+    assert "UPDATE_NORMATIVE" not in html
+    assert "NORMATIVA_AGGIORNAMENTO" not in html
+    assert ">pending<" not in html
 
 
 def test_pagina_fonti_mostra_guida_campi_ed_esempi_pronti(tmp_path: Path):
@@ -885,7 +951,7 @@ def test_form_fetch_e_rianalisi_attivano_il_popolamento(tmp_path: Path, monkeypa
             calls["fetch"].append(source_id)
             return {"documents_found": 1, "processed": 1, "autopublished": {"count": 0}}
 
-        def _fake_analyze(raw_document_id: int):
+        def _fake_analyze(raw_document_id: int, *, auto_publish: bool = True):
             calls["analyze"].append(raw_document_id)
             return {"raw": {"id": raw_document_id}}
 

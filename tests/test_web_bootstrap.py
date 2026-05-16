@@ -734,7 +734,7 @@ def test_template_principali_usano_copy_italiana_e_date_localizzate():
         "web/templates/admin/legal_updates_dashboard.html": [
             "Motore di aggiornamento normativo e giurisprudenziale",
             "Fonti monitorate",
-            "Review pendenti",
+            "Coda revisioni",
         ],
         "web/templates/admin/legal_updates_review.html": [
             "Coda revisioni aggiornamenti",

@@ -1,5 +1,21 @@
 # Migrazione progressiva Flask + React
 
+## Hotfix Update Intelligence verificata - 2026-05-16 - 2.243.5
+
+Le pagine admin `/admin/aggiornamenti-legali/analisi` e
+`/admin/aggiornamenti-legali/review` mantengono la superficie operativa Flask
+governata, ma non mostrano piu' codici tecnici di classificazione o stato. La
+copy distingue l'autopubblicazione verificata dalla revisione umana: le fonti
+affidabili ad alta confidenza vengono pubblicate solo dopo conferme pubbliche
+coerenti; la coda resta per i casi con verifica insufficiente.
+
+Gate mirati eseguiti: py_compile su pipeline/verifica/admin/retriever e
+`python -m pytest tests\test_legal_updates_pipeline.py -q --tb=short`.
+Lo shard prodotto/superadmin e' stato rilanciato con il nome test reale; il
+controllo copy template ampio segnala una discrepanza storica non collegata su
+`server_manutenzione.html` (`gia' compattati` atteso dal test, copy attuale
+`gia' ottimizzati`).
+
 ## Hotfix Registro Mediazione interno - 2026-05-16 - 2.243.4
 
 `/ricerca-legale/mediazione` e l'alias `/legal-intelligence/mediazione`

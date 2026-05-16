@@ -1,12 +1,26 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-16, registri mediazione interni 2.243.4, no backup.
+Aggiornato: 2026-05-16, Update Intelligence verificata 2.243.5, no backup.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Update Intelligence verificata 2.243.5 - 2026-05-16
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct\legal_update_pipeline.py pct\legal_update_web_verification.py web\blueprints\legal_updates_admin.py lex\retrieval\official_sources_retriever.py` | OK | Sintassi confermata dopo verifica pubblica governata e risoluzione path runtime `/data`. |
+| `python -m pytest tests\test_legal_updates_pipeline.py -q --tb=short` | OK | 25/25 passati: autopublish con conferme web, blocco se conferme insufficienti, UI review senza codici grezzi e superfici admin Update Intelligence. |
+| `python -m pytest tests\test_legal_updates_pipeline.py::test_admin_review_mostra_etichette_operative_senza_codici_grezzi tests\test_legal_updates_pipeline.py::test_legal_update_autopubblica_attende_conferme_web -q --tb=short` | OK | 2/2 passati sui due regressi principali richiesti: etichette operative e verifica fonti prima della pubblicazione. |
+| `python -m pytest tests\test_operational_surfaces.py::test_superadmin_product_surfaces_renderizzano -q --tb=short` | OK | Superfici superadmin con Aggiornamenti legali e Coda revisioni renderizzate. |
+| `python -m pytest tests\test_normattiva_client.py tests\test_normattiva_importer.py -q --tb=short` | OK | Percorso client/importer Normattiva confermato dopo skip delle collezioni non servite come ZIP valido. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py -q --tb=short` | OK | Packaging sincronizzato e readiness 8/8 verdi dopo bump `2.243.5` e nuove dipendenze crawler. |
+| Ricostruzione fonti ufficiali Hetzner `/data` | OK | Gazzetta: 28 documenti, 3.911 chunk, DB 32.129.024 byte, JSONL 20.342.735 byte. Normattiva: 18 ZIP, 189.743 documenti univoci, 800.757 articoli, 638.836 chunk, DB 2.866.860.032 byte, JSONL 1.092.175.389 byte. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build --force-recreate redis app scheduler-worker ocr-worker nginx`; readiness locale | OK | Docker locale no-cache `2.243.5`: app/scheduler/OCR/Redis healthy, `/api/pronto` locale 200 con `versione=2.243.5`, `beautifulsoup4` e `feedparser` presenti nel container. |
+| HTTP autenticato locale su `/admin/aggiornamenti-legali/analisi` e `/admin/aggiornamenti-legali/review` | OK | Login superadmin con CSRF, H1 `Analisi automatica` e `Coda revisioni aggiornamenti`, pulsante `Pubblica idonei`, assenti stringhe visibili `NEW_NORMATIVE`, `NEW CASE LAW`, `NORMATIVA_AGGIORNAMENTO` e `>pending<`. |
 
 ### Registri mediazione interni e Lex 2.243.4 - 2026-05-16
 

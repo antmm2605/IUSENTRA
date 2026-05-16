@@ -154,6 +154,7 @@ class NormattivaClient:
         if not first_bytes.startswith(b"PK"):
             # Alcuni errori applicativi possono arrivare come JSON/HTML con status 200.
             preview = tmp_path.read_bytes()[:500].decode("utf-8", errors="replace")
+            tmp_path.unlink(missing_ok=True)
             raise RuntimeError(
                 "Il file scaricato non sembra uno ZIP. "
                 f"content-type={content_type!r}; preview={preview!r}"
@@ -187,14 +188,19 @@ class NormattivaClient:
         results: list[DownloadResult] = []
         for index, name in enumerate(names, start=1):
             print(f"[{index}] download: {name}")
-            result = self.download_collection(
-                name,
-                output_dir=output_dir,
-                formato=formato,
-                vigenza=vigenza,
-                formato_richiesta=formato_richiesta,
-                overwrite=overwrite,
-            )
+            try:
+                result = self.download_collection(
+                    name,
+                    output_dir=output_dir,
+                    formato=formato,
+                    vigenza=vigenza,
+                    formato_richiesta=formato_richiesta,
+                    overwrite=overwrite,
+                )
+            except Exception as exc:
+                print(f"[ERRORE] {name}: {exc}")
+                time.sleep(self.sleep_seconds)
+                continue
             results.append(result)
             time.sleep(self.sleep_seconds)
         return results

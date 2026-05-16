@@ -14,6 +14,7 @@ from lxml import html as lxml_html
 from pct.giurisprudenza import GestioneGiurisprudenza
 from pct.legal_update_ai import analyze_document
 from pct.legal_update_repository import LegalUpdateDbConfig, LegalUpdateRepository
+from pct.legal_update_web_verification import verify_legal_update_against_public_sources
 from pct.postgres_runtime_support import resolve_runtime_postgres_dsn
 
 
@@ -650,7 +651,7 @@ class LegalUpdatePipeline:
 
     def _review_priority(self, source: dict[str, Any], analysis: dict[str, Any], proposed_action: str) -> int:
         priority = 35
-        if source.get("is_official"):
+        if self._is_trusted_update_source(source):
             priority += 15
         if proposed_action in {"UPDATE_NORMATIVE", "NEW_NORMATIVE", "NEW_CASE_LAW"}:
             priority += 20
@@ -658,6 +659,32 @@ class LegalUpdatePipeline:
             priority += 15
         priority += int(float(analysis.get("confidence_score") or 0) * 10)
         return max(10, min(priority, 100))
+
+    def _is_trusted_update_source(self, source: dict[str, Any]) -> bool:
+        trust_class = _clean_spaces(source.get("trust_class")).upper()
+        return bool(source.get("is_official")) or trust_class in {"A", "B"}
+
+    def _auto_publish_threshold(self, proposed_action: str) -> float:
+        action = str(proposed_action or "").upper()
+        if action == "NEWS_ONLY":
+            return 0.82
+        if action in {"NEW_NORMATIVE", "UPDATE_NORMATIVE", "NEW_CASE_LAW", "NEW_PRASSI"}:
+            return 0.82
+        return 1.0
+
+    def _is_auto_publishable_decision(
+        self,
+        source: dict[str, Any],
+        analysis: dict[str, Any],
+        proposed_action: str,
+    ) -> bool:
+        action = str(proposed_action or "").upper()
+        if action not in {"NEWS_ONLY", "NEW_NORMATIVE", "UPDATE_NORMATIVE", "NEW_CASE_LAW", "NEW_PRASSI"}:
+            return False
+        if not self._is_trusted_update_source(source):
+            return False
+        confidence = float(analysis.get("confidence_score") or 0)
+        return confidence >= self._auto_publish_threshold(action)
 
     def _is_useful_for_law_firm(
         self,
@@ -687,7 +714,7 @@ class LegalUpdatePipeline:
         confidence = float(analysis.get("confidence_score") or 0)
         has_norm_key = all(analysis.get(field) for field in ("norm_type", "norm_number", "norm_year"))
         has_judgment_key = all(analysis.get(field) for field in ("court_name", "decision_number", "decision_year"))
-        is_official = bool(source.get("is_official"))
+        is_official = self._is_trusted_update_source(source)
 
         proposed_action = "NEEDS_REVIEW"
         target_entity_type = str(target.get("entity_type") or "")
@@ -722,7 +749,7 @@ class LegalUpdatePipeline:
             proposed_action = "DUPLICATE"
             status = "closed"
 
-        if proposed_action == "NEWS_ONLY" and confidence >= 0.9 and is_official:
+        if self._is_auto_publishable_decision(source, analysis, proposed_action):
             status = "approved"
         if proposed_action in {"NEW_NORMATIVE", "UPDATE_NORMATIVE", "NEW_CASE_LAW", "NEW_PRASSI"} and confidence < 0.8:
             status = "pending"
@@ -838,7 +865,7 @@ class LegalUpdatePipeline:
             "review": review,
         }
 
-    def analyze_raw_document(self, raw_document_id: int) -> dict[str, Any]:
+    def analyze_raw_document(self, raw_document_id: int, *, auto_publish: bool = True) -> dict[str, Any]:
         raw_saved = self.repository.get_raw_document(raw_document_id)
         if not raw_saved:
             raise ValueError("Documento raw non trovato.")
@@ -857,7 +884,9 @@ class LegalUpdatePipeline:
             "fetch_status": raw_saved.get("fetch_status"),
             "http_status": raw_saved.get("http_status"),
         }
-        return self.process_document(source, raw_payload)
+        result = self.process_document(source, raw_payload)
+        result["autopublished"] = self.publish_auto_news(limit=20) if auto_publish else {"count": 0, "items": []}
+        return result
 
     def scan_source(self, source_code: str, *, request_get: RequestGet = requests.get, auto_publish: bool = True) -> dict[str, Any]:
         source = self.repository.get_source_by_code(source_code)
@@ -1223,12 +1252,45 @@ class LegalUpdatePipeline:
             if not row.get("source_code"):
                 continue
             source = self.repository.get_source_by_code(str(row["source_code"]))
-            if not source or not source.get("is_official"):
+            if not source or not self._is_trusted_update_source(source):
                 continue
             confidence = float(row.get("confidence_score") or 0)
-            threshold = 0.82 if proposed_action == "NEWS_ONLY" else 0.70
+            threshold = self._auto_publish_threshold(proposed_action)
             if confidence < threshold:
                 continue
+            review = self.repository.get_review_item(int(row["id"])) or row
+            try:
+                verification = verify_legal_update_against_public_sources(review, source)
+            except Exception as exc:
+                verification = {
+                    "ok": False,
+                    "reason": f"Verifica pubblica non completata: {_truncate(str(exc), 160)}",
+                    "confirmation_count": 0,
+                }
+            if not verification.get("ok"):
+                reason = _truncate(str(verification.get("reason") or "Verifica pubblica insufficiente."), 220)
+                self.repository.set_review_status(
+                    int(row["id"]),
+                    "pending",
+                    reviewer="system",
+                    notes=f"Verifica fonti insufficiente: {reason}",
+                )
+                skipped.append(
+                    {
+                        "id": int(row["id"]),
+                        "reason": "verifica_fonti_insufficiente",
+                        "detail": reason,
+                        "confirmations": int(verification.get("confirmation_count") or 0),
+                    }
+                )
+                continue
+            if str(row.get("status") or "").lower() != "approved":
+                self.repository.set_review_status(
+                    int(row["id"]),
+                    "approved",
+                    reviewer="system",
+                    notes="Verifica fonti completata: pubblicazione automatica autorizzata.",
+                )
             try:
                 self.publish_review(int(row["id"]), reviewer="system")
             except Exception as exc:

@@ -4,6 +4,16 @@ Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle
 
 ---
 
+## Aggiornamento operativo 2.243.5 - 2026-05-16
+
+Update Intelligence non pubblica piu' automaticamente una proposta strutturale solo per confidenza AI: prima dell'autopublish viene eseguita una verifica pubblica governata su archivio fonti ufficiali, Normattiva, Gazzetta e ricerca web allowlist. Per normativa, prassi e giurisprudenza servono almeno una fonte primaria e una seconda conferma coerente; in caso contrario la proposta resta in coda revisioni con una nota operativa.
+
+I path di Normattiva e Gazzetta sono ora collegati ai volumi runtime (`/data/normativa` e `/data/fonti_ufficiali`) tramite variabili ambiente e fallback container-aware, cosi' Lex e il motore aggiornamenti usano gli archivi generati in produzione invece dei soli file smoke locali.
+
+Verifica infrastrutturale del 2026-05-16: i database canonici Normattiva/Gazzetta non erano presenti su Railway ne' su Hetzner. Su Hetzner sono stati ricreati nel volume attivo: Gazzetta (`lex_sources.sqlite` 32.129.024 byte, JSONL 20.342.735 byte, 28 documenti e 3.911 chunk) e Normattiva (`normattiva.sqlite` 2.866.860.032 byte, JSONL 1.092.175.389 byte, 18 ZIP raw per 486.555.697 byte, 638.836 chunk). Normattiva e' stata ricostruita localmente e caricata su Hetzner perche' l'API pubblica restituisce ZIP validi dalla macchina locale ma stream vuoto dal server. Railway ha il volume `/data` al 100% (1.8 GB usati su 1.8 GB, con circa 1.3 GB in allegati email) e non puo' ospitare l'indice Normattiva completo finche' non viene aumentato o liberato spazio senza cancellare dati di studio.
+
+---
+
 ## Aggiornamento operativo 2.243.4 - 2026-05-16
 
 Lex AI legge ora anche il registro mediazione interno popolato dai tre elenchi ufficiali del Ministero della Giustizia: Registro Organismi, Elenco Enti per la Mediazione ed Elenco Formatori per la Mediazione. Le evidenze sono marcate come fonte ufficiale di classe A e includono sezione, numero registro, denominazione o nominativo, stato, natura/tipo docente, territorio, codice fiscale, partita IVA, email e sito quando presenti.

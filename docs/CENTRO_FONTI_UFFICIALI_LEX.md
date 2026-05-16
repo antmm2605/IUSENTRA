@@ -71,6 +71,13 @@ data\normativa\index\normattiva_chunks.jsonl
 data\normativa\reports\normattiva_import_report.json
 ```
 
+In produzione i percorsi canonici sono sotto il volume persistente:
+
+```text
+/data/normativa/normattiva.sqlite
+/data/normativa/index/normattiva_chunks.jsonl
+```
+
 ## Gazzetta Ufficiale
 
 Sincronizzazione dedicata:
@@ -93,6 +100,13 @@ data\fonti_ufficiali\raw
 data\fonti_ufficiali\text
 data\fonti_ufficiali\index\lex_sources_chunks.jsonl
 data\fonti_ufficiali\reports
+```
+
+In produzione i percorsi canonici sono sotto il volume persistente:
+
+```text
+/data/fonti_ufficiali/lex_sources.sqlite
+/data/fonti_ufficiali/index/lex_sources_chunks.jsonl
 ```
 
 ## Registro fonti ufficiali
@@ -134,6 +148,8 @@ Funzioni disponibili:
 - `get_chunk_context(chunk_id)`
 
 Ogni risultato espone fonte, titolo, data, URL o path origine, chunk/articolo, livello di affidabilita' e data acquisizione.
+
+Le funzioni di retrieval risolvono automaticamente i path da variabili ambiente (`PCT_LEX_OFFICIAL_DB`, `PCT_LEX_OFFICIAL_JSONL`, `PCT_NORMATTIVA_DB`, `PCT_NORMATTIVA_JSONL`) e, quando il codice gira in container, dai percorsi `/data/...`.
 
 ## Test
 

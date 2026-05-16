@@ -55,6 +55,10 @@ x-iusentra-env: &iusentra-env
   PCT_WORKSPACE_INTELLIGENCE_DB: /data/intelligence/workspace_intelligence.json
   PCT_LEGAL_INTELLIGENCE_DB: /data/intelligence/motori.json
   PCT_NORMATIVE_TABLES_DB: /data/intelligence/tabelle_normative.json
+  PCT_LEX_OFFICIAL_DB: /data/fonti_ufficiali/lex_sources.sqlite
+  PCT_LEX_OFFICIAL_JSONL: /data/fonti_ufficiali/index/lex_sources_chunks.jsonl
+  PCT_NORMATTIVA_DB: /data/normativa/normattiva.sqlite
+  PCT_NORMATTIVA_JSONL: /data/normativa/index/normattiva_chunks.jsonl
   PCT_VALIDATION_RUNS_DB: /data/intelligence/validation_runs.json
   PCT_REDACTION_ASSISTANT_DB: /data/intelligence/assistente_redazionale.json
   PCT_TELEMATICO_DB: /data/telematico/workflow.db

@@ -1,4 +1,4 @@
-#  version: 2.243.4
+#  version: 2.243.5
 #  IUSENTRA | Dockerfile produzione
 
 #  Build multi-stage:
@@ -102,7 +102,7 @@ RUN npm --prefix frontend run build:vite \
 FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="IUSENTRA" \
-      org.opencontainers.image.version="2.243.4" \
+      org.opencontainers.image.version="2.243.5" \
       org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
       org.opencontainers.image.created="2026-03-18"
 
@@ -201,6 +201,10 @@ ENV PCT_AGENDA_DB=/data/agenda/appuntamenti.json \
     PCT_GIURISPRUDENZA_DB=/data/intelligence/giurisprudenza.json \
     PCT_WORKSPACE_INTELLIGENCE_DB=/data/intelligence/workspace_intelligence.json \
     PCT_NORMATIVE_TABLES_DB=/data/intelligence/tabelle_normative.json \
+    PCT_LEX_OFFICIAL_DB=/data/fonti_ufficiali/lex_sources.sqlite \
+    PCT_LEX_OFFICIAL_JSONL=/data/fonti_ufficiali/index/lex_sources_chunks.jsonl \
+    PCT_NORMATTIVA_DB=/data/normativa/normattiva.sqlite \
+    PCT_NORMATTIVA_JSONL=/data/normativa/index/normattiva_chunks.jsonl \
     PCT_VALIDATION_RUNS_DB=/data/intelligence/validation_runs.json \
     PCT_REDACTION_ASSISTANT_DB=/data/intelligence/assistente_redazionale.json \
     PCT_TELEMATICO_DB=/data/telematico/workflow.db \

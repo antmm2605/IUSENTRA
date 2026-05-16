@@ -46,17 +46,17 @@
           <div class="li-section-title mb-3">Analisi e decisione</div>
           <dl class="row mb-0 small">
             <dt class="col-5 text-muted">Classificazione</dt>
-            <dd class="col-7">{{ document.classification_type or 'non ancora eseguita' }}</dd>
+            <dd class="col-7">{{ (document.classification_type or 'INCERTO')|legal_update_classification_label }}</dd>
             <dt class="col-5 text-muted">Confidenza</dt>
             <dd class="col-7">{{ '%.2f'|format(document.confidence_score or 0) }}</dd>
             <dt class="col-5 text-muted">Azione proposta</dt>
-            <dd class="col-7">{{ document.proposed_action or 'da definire' }}</dd>
+            <dd class="col-7">{{ (document.proposed_action or 'NEEDS_REVIEW')|legal_update_action_label }}</dd>
             <dt class="col-5 text-muted">Materia</dt>
             <dd class="col-7">{{ document.matter_name or 'da assegnare' }}</dd>
             <dt class="col-5 text-muted">Sottomateria</dt>
             <dd class="col-7">{{ document.submatter_name or 'non assegnata' }}</dd>
-            <dt class="col-5 text-muted">Review</dt>
-            <dd class="col-7">{{ document.review_status or 'non ancora in coda' }}</dd>
+            <dt class="col-5 text-muted">Revisione</dt>
+            <dd class="col-7">{{ (document.review_status or 'pending')|legal_update_status_label if document.review_status else 'non ancora in coda' }}</dd>
           </dl>
           {% if document.summary_short %}
           <div class="mt-3">
@@ -76,4 +76,3 @@
   </div>
 </div>
 {% endblock %}
-

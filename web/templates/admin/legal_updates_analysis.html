@@ -1,25 +1,29 @@
 ﻿{% extends "admin/base.html" %}
 
-{% block title %}Analisi AI aggiornamenti{% endblock %}
+{% block title %}Analisi automatica aggiornamenti{% endblock %}
 
 {% block breadcrumb %}
 <li class="breadcrumb-item"><a href="{{ url_for('legal_updates_admin.dashboard') }}" class="text-decoration-none">Aggiornamenti legali</a></li>
-<li class="breadcrumb-item active" aria-current="page">Analisi AI</li>
+<li class="breadcrumb-item active" aria-current="page">Analisi automatica</li>
 {% endblock %}
 
 {% block content %}
 <div class="legal-updates-admin-page">
   <div class="d-flex flex-column flex-lg-row align-items-start align-items-lg-center justify-content-between gap-3 mb-3">
     <div>
-      <h1 class="h3 mb-1">Analisi AI</h1>
-      <p class="text-muted mb-0">Classificazione, materia, confidenza, azione proposta e collegamento alla coda revisioni.</p>
+      <h1 class="h3 mb-1">Analisi automatica</h1>
+      <p class="text-muted mb-0">Classificazione, materia, confidenza e decisione operativa prima dell'archiviazione.</p>
       <div class="small text-muted mt-1">
-        Analisi condivisa: i risultati alimentano lo stesso presidio per tutti gli studi.
+        Le fonti affidabili ad alta confidenza vengono pubblicate automaticamente; in revisione restano solo i casi da controllare.
       </div>
     </div>
     <div class="d-flex flex-wrap gap-2">
+      <form method="post" action="{{ url_for('legal_updates_admin.execute_action', action='autopublish') }}">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+        <button class="btn btn-primary">Pubblica idonei</button>
+      </form>
       <a href="{{ url_for('legal_updates_admin.staging_page') }}" class="btn btn-outline-secondary">Acquisizione</a>
-      <a href="{{ url_for('legal_updates_admin.review_page') }}" class="btn btn-outline-primary">Review</a>
+      <a href="{{ url_for('legal_updates_admin.review_page') }}" class="btn btn-outline-primary">Coda revisioni</a>
     </div>
   </div>
 
@@ -50,9 +54,9 @@
         <div class="d-flex align-items-center justify-content-between gap-3 flex-wrap mb-2">
           <div class="fw-semibold">{{ item.title }}</div>
           <div class="d-flex align-items-center gap-2 flex-wrap">
-            <span class="badge text-bg-secondary">{{ item.classification_type }}</span>
-            <span class="badge text-bg-light">{{ item.proposed_action }}</span>
-            {% if item.review_status %}<span class="badge text-bg-{% if item.review_status == 'pending' %}warning{% elif item.review_status == 'approved' %}primary{% elif item.review_status == 'published' %}success{% else %}secondary{% endif %}">{{ item.review_status }}</span>{% endif %}
+            <span class="badge text-bg-secondary">{{ item.classification_type|legal_update_classification_label }}</span>
+            <span class="badge text-bg-light">{{ item.proposed_action|legal_update_action_label }}</span>
+            {% if item.review_status %}<span class="badge text-bg-{% if item.review_status == 'pending' %}warning{% elif item.review_status == 'approved' %}primary{% elif item.review_status == 'published' %}success{% else %}secondary{% endif %}">{{ item.review_status|legal_update_status_label }}</span>{% endif %}
           </div>
         </div>
         <div class="small text-muted">{{ item.source_name }} · {{ item.matter_name or 'materia da verificare' }} · confidenza {{ '%.2f'|format(item.confidence_score or 0) }}</div>

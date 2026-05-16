@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 from pathlib import Path
 from typing import Any
@@ -9,6 +10,28 @@ DEFAULT_OFFICIAL_DB = Path("data/fonti_ufficiali/lex_sources.sqlite")
 DEFAULT_NORMATTIVA_DB = Path("data/normativa/normattiva.sqlite")
 DEFAULT_OFFICIAL_JSONL = Path("data/fonti_ufficiali/index/lex_sources_chunks.jsonl")
 DEFAULT_NORMATTIVA_JSONL = Path("data/normativa/index/normattiva_chunks.jsonl")
+CONTAINER_OFFICIAL_DB = Path("/data/fonti_ufficiali/lex_sources.sqlite")
+CONTAINER_NORMATTIVA_DB = Path("/data/normativa/normattiva.sqlite")
+CONTAINER_OFFICIAL_JSONL = Path("/data/fonti_ufficiali/index/lex_sources_chunks.jsonl")
+CONTAINER_NORMATTIVA_JSONL = Path("/data/normativa/index/normattiva_chunks.jsonl")
+
+
+def _resolve_runtime_path(
+    explicit: str | Path | None,
+    *,
+    env_names: tuple[str, ...],
+    container_path: Path,
+    repo_path: Path,
+) -> Path:
+    if explicit is not None:
+        return Path(explicit)
+    for env_name in env_names:
+        value = str(os.getenv(env_name, "") or "").strip()
+        if value:
+            return Path(value)
+    if container_path.exists():
+        return container_path
+    return repo_path
 
 
 def search_official_sources(
@@ -17,13 +40,25 @@ def search_official_sources(
     source: str | None = None,
     limit: int = 10,
     *,
-    db_path: str | Path = DEFAULT_OFFICIAL_DB,
-    jsonl_path: str | Path = DEFAULT_OFFICIAL_JSONL,
+    db_path: str | Path | None = None,
+    jsonl_path: str | Path | None = None,
 ) -> list[dict[str, Any]]:
-    db_results = _search_official_db(Path(db_path), query, materia=materia, source=source, limit=limit)
+    db_target = _resolve_runtime_path(
+        db_path,
+        env_names=("PCT_LEX_OFFICIAL_DB", "PCT_OFFICIAL_SOURCES_DB", "PCT_LEX_SOURCES_DB"),
+        container_path=CONTAINER_OFFICIAL_DB,
+        repo_path=DEFAULT_OFFICIAL_DB,
+    )
+    jsonl_target = _resolve_runtime_path(
+        jsonl_path,
+        env_names=("PCT_LEX_OFFICIAL_JSONL", "PCT_OFFICIAL_SOURCES_JSONL", "PCT_LEX_SOURCES_JSONL"),
+        container_path=CONTAINER_OFFICIAL_JSONL,
+        repo_path=DEFAULT_OFFICIAL_JSONL,
+    )
+    db_results = _search_official_db(db_target, query, materia=materia, source=source, limit=limit)
     if db_results:
         return db_results[:limit]
-    return _search_jsonl(Path(jsonl_path), query, materia=materia, source=source, limit=limit, default_source="fonti ufficiali")
+    return _search_jsonl(jsonl_target, query, materia=materia, source=source, limit=limit, default_source="fonti ufficiali")
 
 
 def search_normattiva(
@@ -32,13 +67,25 @@ def search_normattiva(
     vigenza: str | None = None,
     limit: int = 10,
     *,
-    db_path: str | Path = DEFAULT_NORMATTIVA_DB,
-    jsonl_path: str | Path = DEFAULT_NORMATTIVA_JSONL,
+    db_path: str | Path | None = None,
+    jsonl_path: str | Path | None = None,
 ) -> list[dict[str, Any]]:
-    db_results = _search_normattiva_db(Path(db_path), query, materia=materia, vigenza=vigenza, limit=limit)
+    db_target = _resolve_runtime_path(
+        db_path,
+        env_names=("PCT_NORMATTIVA_DB", "PCT_LEX_NORMATTIVA_DB"),
+        container_path=CONTAINER_NORMATTIVA_DB,
+        repo_path=DEFAULT_NORMATTIVA_DB,
+    )
+    jsonl_target = _resolve_runtime_path(
+        jsonl_path,
+        env_names=("PCT_NORMATTIVA_JSONL", "PCT_LEX_NORMATTIVA_JSONL"),
+        container_path=CONTAINER_NORMATTIVA_JSONL,
+        repo_path=DEFAULT_NORMATTIVA_JSONL,
+    )
+    db_results = _search_normattiva_db(db_target, query, materia=materia, vigenza=vigenza, limit=limit)
     if db_results:
         return db_results[:limit]
-    return _search_jsonl(Path(jsonl_path), query, materia=materia, source="Normattiva", limit=limit, default_source="Normattiva")
+    return _search_jsonl(jsonl_target, query, materia=materia, source="Normattiva", limit=limit, default_source="Normattiva")
 
 
 def search_gazzetta(
@@ -46,8 +93,8 @@ def search_gazzetta(
     days: int = 30,
     limit: int = 10,
     *,
-    db_path: str | Path = DEFAULT_OFFICIAL_DB,
-    jsonl_path: str | Path = DEFAULT_OFFICIAL_JSONL,
+    db_path: str | Path | None = None,
+    jsonl_path: str | Path | None = None,
 ) -> list[dict[str, Any]]:
     results = search_official_sources(
         query,
@@ -62,12 +109,23 @@ def search_gazzetta(
 def get_source_document(
     document_id: int | str,
     *,
-    db_path: str | Path = DEFAULT_OFFICIAL_DB,
-    normattiva_db_path: str | Path = DEFAULT_NORMATTIVA_DB,
+    db_path: str | Path | None = None,
+    normattiva_db_path: str | Path | None = None,
 ) -> dict[str, Any] | None:
-    path = Path(db_path)
+    path = _resolve_runtime_path(
+        db_path,
+        env_names=("PCT_LEX_OFFICIAL_DB", "PCT_OFFICIAL_SOURCES_DB", "PCT_LEX_SOURCES_DB"),
+        container_path=CONTAINER_OFFICIAL_DB,
+        repo_path=DEFAULT_OFFICIAL_DB,
+    )
+    normattiva_path = _resolve_runtime_path(
+        normattiva_db_path,
+        env_names=("PCT_NORMATTIVA_DB", "PCT_LEX_NORMATTIVA_DB"),
+        container_path=CONTAINER_NORMATTIVA_DB,
+        repo_path=DEFAULT_NORMATTIVA_DB,
+    )
     if not path.exists():
-        return _get_normattiva_document(document_id, Path(normattiva_db_path))
+        return _get_normattiva_document(document_id, normattiva_path)
     con = sqlite3.connect(path)
     con.row_factory = sqlite3.Row
     try:
@@ -85,18 +143,29 @@ def get_source_document(
             return _row_to_document(row)
     finally:
         con.close()
-    return _get_normattiva_document(document_id, Path(normattiva_db_path))
+    return _get_normattiva_document(document_id, normattiva_path)
 
 
 def get_chunk_context(
     chunk_id: int | str,
     *,
-    db_path: str | Path = DEFAULT_OFFICIAL_DB,
-    normattiva_db_path: str | Path = DEFAULT_NORMATTIVA_DB,
+    db_path: str | Path | None = None,
+    normattiva_db_path: str | Path | None = None,
 ) -> dict[str, Any] | None:
-    path = Path(db_path)
+    path = _resolve_runtime_path(
+        db_path,
+        env_names=("PCT_LEX_OFFICIAL_DB", "PCT_OFFICIAL_SOURCES_DB", "PCT_LEX_SOURCES_DB"),
+        container_path=CONTAINER_OFFICIAL_DB,
+        repo_path=DEFAULT_OFFICIAL_DB,
+    )
+    normattiva_path = _resolve_runtime_path(
+        normattiva_db_path,
+        env_names=("PCT_NORMATTIVA_DB", "PCT_LEX_NORMATTIVA_DB"),
+        container_path=CONTAINER_NORMATTIVA_DB,
+        repo_path=DEFAULT_NORMATTIVA_DB,
+    )
     if not path.exists():
-        return _get_normattiva_chunk(chunk_id, Path(normattiva_db_path))
+        return _get_normattiva_chunk(chunk_id, normattiva_path)
     con = sqlite3.connect(path)
     con.row_factory = sqlite3.Row
     try:
@@ -115,7 +184,7 @@ def get_chunk_context(
             return _row_to_chunk(row)
     finally:
         con.close()
-    return _get_normattiva_chunk(chunk_id, Path(normattiva_db_path))
+    return _get_normattiva_chunk(chunk_id, normattiva_path)
 
 
 def _get_normattiva_document(document_id: int | str, path: Path) -> dict[str, Any] | None:

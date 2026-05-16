@@ -14,9 +14,61 @@ legal_updates_admin = Blueprint(
     url_prefix="/admin/aggiornamenti-legali",
 )
 
+ACTION_LABELS = {
+    "NEWS_ONLY": "Notizia informativa",
+    "NEW_NORMATIVE": "Nuova normativa",
+    "UPDATE_NORMATIVE": "Aggiornamento normativo",
+    "NEW_CASE_LAW": "Nuova giurisprudenza",
+    "NEW_PRASSI": "Nuova prassi",
+    "DUPLICATE": "Già presente in archivio",
+    "OUT_OF_SCOPE": "Fuori perimetro",
+    "NEEDS_REVIEW": "Da valutare",
+}
+
+CLASSIFICATION_LABELS = {
+    "NORMATIVA_NUOVA": "Normativa nuova",
+    "NORMATIVA_AGGIORNAMENTO": "Aggiornamento normativo",
+    "GIURISPRUDENZA": "Giurisprudenza",
+    "PRASSI": "Prassi",
+    "NEWS": "Notizia",
+    "COMMENTO": "Commento",
+    "DUPLICATO": "Duplicato",
+    "INCERTO": "Da classificare",
+}
+
+STATUS_LABELS = {
+    "pending": "Da valutare",
+    "approved": "Pronta alla pubblicazione",
+    "published": "Pubblicata",
+    "rejected": "Rifiutata",
+    "closed": "Chiusa",
+}
+
 
 def _json_error(message: str, *, status: int = 200):
     return jsonify({"ok": False, "errore": message}), status
+
+
+def _clean_label(value: Any) -> str:
+    return " ".join(str(value or "").replace("_", " ").split()).strip()
+
+
+@legal_updates_admin.app_template_filter("legal_update_action_label")
+def legal_update_action_label(value: Any) -> str:
+    key = str(value or "").strip().upper()
+    return ACTION_LABELS.get(key, _clean_label(value).capitalize() or "Da valutare")
+
+
+@legal_updates_admin.app_template_filter("legal_update_classification_label")
+def legal_update_classification_label(value: Any) -> str:
+    key = str(value or "").strip().upper()
+    return CLASSIFICATION_LABELS.get(key, _clean_label(value).capitalize() or "Da classificare")
+
+
+@legal_updates_admin.app_template_filter("legal_update_status_label")
+def legal_update_status_label(value: Any) -> str:
+    key = str(value or "").strip().lower()
+    return STATUS_LABELS.get(key, _clean_label(value).capitalize() or "Da valutare")
 
 
 def _reviewer_name() -> str:
@@ -191,8 +243,15 @@ def staging_detail_page(raw_document_id: int):
 def analyze_staging_document(raw_document_id: int):
     tenant_slug = _selected_tenant_slug()
     try:
-        build_legal_update_pipeline_runtime(tenant_slug=tenant_slug).analyze_raw_document(raw_document_id)
-        flash("Documento rianalizzato correttamente.", "success")
+        result = build_legal_update_pipeline_runtime(tenant_slug=tenant_slug).analyze_raw_document(
+            raw_document_id,
+            auto_publish=True,
+        )
+        auto_count = int(((result.get("autopublished") or {}).get("count")) or 0)
+        if auto_count:
+            flash("Documento analizzato e pubblicato automaticamente negli archivi operativi.", "success")
+        else:
+            flash("Documento analizzato: resta in revisione solo se serve controllo umano.", "success")
     except Exception as exc:
         current_app.logger.exception("Errore analyze_staging_document %s: %s", raw_document_id, exc)
         flash(f"Errore rianalisi documento: {exc}", "danger")
@@ -546,7 +605,10 @@ def api_raw_document_detail(raw_document_id: int):
 @superadmin_required
 def api_analyze_raw_document(raw_document_id: int):
     try:
-        result = build_legal_update_pipeline_runtime(tenant_slug=_selected_tenant_slug()).analyze_raw_document(raw_document_id)
+        result = build_legal_update_pipeline_runtime(tenant_slug=_selected_tenant_slug()).analyze_raw_document(
+            raw_document_id,
+            auto_publish=True,
+        )
         return jsonify({"ok": True, "result": result})
     except Exception as exc:
         current_app.logger.exception("Errore api_analyze_raw_document: %s", exc)

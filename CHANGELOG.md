@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.243.5 - 2026-05-16
+
+- Resa effettiva la pubblicazione automatica degli aggiornamenti legali idonei: analisi e fetch avviano `Pubblica idonei`, le fonti ufficiali/istituzionali ad alta confidenza passano direttamente agli archivi e la coda resta per i soli casi con verifica insufficiente o controllo umano.
+- Aggiunta verifica pubblica governata prima dell'autopublish strutturale: Normattiva, Gazzetta, archivio fonti ufficiali e ricerca web allowlist devono confermare la proposta prima che norme, prassi o giurisprudenza vengano pubblicate automaticamente.
+- Ripulite le schermate admin `/admin/aggiornamenti-legali/analisi`, `/review`, dashboard e acquisizione da codici tecnici visibili come `NEW_NORMATIVE`, `NORMATIVA_AGGIORNAMENTO` e `pending`, sostituendoli con etichette operative italiane.
+- Collegati i percorsi runtime di Normattiva e Gazzetta ai volumi persistenti `/data/normativa` e `/data/fonti_ufficiali`; l'immagine installa anche i crawler ufficiali (`beautifulsoup4`, `feedparser`) necessari a ricreare gli indici.
+- Ricreati su Hetzner i database attivi Gazzetta e Normattiva nel volume montato su `/data`: Gazzetta con 28 documenti e 3.911 chunk; Normattiva con 18 ZIP validi, SQLite da 2.866.860.032 byte, JSONL da 1.092.175.389 byte e 638.836 chunk.
+
 ## 2.243.4 - 2026-05-16
 
 - Importati in IUSENTRA i tre registri ministeriali della mediazione: Registro Organismi, Elenco Enti per la Mediazione ed Elenco Formatori per la Mediazione, con acquisizione paginata ASP.NET dal portale ufficiale, classificazione per sezione, stato, natura, territorio, CF/P.IVA, email e sito.

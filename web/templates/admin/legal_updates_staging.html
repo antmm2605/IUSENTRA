@@ -46,8 +46,8 @@
             <div class="d-flex align-items-center gap-2 flex-wrap mb-2">
               <div class="fw-semibold">{{ item.title }}</div>
               <span class="badge text-bg-light">{{ item.source_name }}</span>
-              {% if item.classification_type %}<span class="badge text-bg-secondary">{{ item.classification_type }}</span>{% endif %}
-              {% if item.review_status %}<span class="badge text-bg-{% if item.review_status == 'pending' %}warning{% elif item.review_status == 'approved' %}primary{% elif item.review_status == 'published' %}success{% else %}secondary{% endif %}">{{ item.review_status }}</span>{% endif %}
+              {% if item.classification_type %}<span class="badge text-bg-secondary">{{ item.classification_type|legal_update_classification_label }}</span>{% endif %}
+              {% if item.review_status %}<span class="badge text-bg-{% if item.review_status == 'pending' %}warning{% elif item.review_status == 'approved' %}primary{% elif item.review_status == 'published' %}success{% else %}secondary{% endif %}">{{ item.review_status|legal_update_status_label }}</span>{% endif %}
             </div>
             <div class="small text-muted">{{ item.published_at|fmt_data if item.published_at else 'data non disponibile' }} · {{ item.source_url }}</div>
             {% if item.body_short %}<div class="small mt-2">{{ item.body_short }}</div>{% endif %}
@@ -68,6 +68,5 @@
   </div>
 </div>
 {% endblock %}
-
 
 

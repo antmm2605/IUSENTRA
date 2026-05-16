@@ -272,10 +272,10 @@
               <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
                 <div class="fw-semibold">{{ item.title }}</div>
                 <span class="badge text-bg-{% if item.status == 'pending' %}warning{% elif item.status == 'published' %}success{% elif item.status == 'approved' %}primary{% else %}secondary{% endif %}">
-                  {{ item.status }}
+                  {{ item.status|legal_update_status_label }}
                 </span>
               </div>
-              <div class="small text-muted">{{ item.classification_type }} · {{ item.source_name }} · confidenza {{ '%.2f'|format(item.confidence_score or 0) }}</div>
+              <div class="small text-muted">{{ item.classification_type|legal_update_classification_label }} · {{ item.source_name }} · confidenza {{ '%.2f'|format(item.confidence_score or 0) }}</div>
             </div>
             {% else %}
             <div class="small text-muted">Nessuna proposta in coda al momento.</div>
@@ -322,10 +322,10 @@
               <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
                 <div class="fw-semibold">{{ item.title }}</div>
                 {% if item.review_status %}
-                <span class="badge text-bg-light">{{ item.review_status }}</span>
+                <span class="badge text-bg-light">{{ item.review_status|legal_update_status_label }}</span>
                 {% endif %}
               </div>
-              <div class="small text-muted">{{ item.source_name }} · {{ item.classification_type or 'da analizzare' }} · {{ item.published_at|fmt_data if item.published_at else 'data non disponibile' }}</div>
+              <div class="small text-muted">{{ item.source_name }} · {{ (item.classification_type or 'INCERTO')|legal_update_classification_label }} · {{ item.published_at|fmt_data if item.published_at else 'data non disponibile' }}</div>
             </div>
             {% else %}
             <div class="small text-muted">Nessun documento acquisito.</div>

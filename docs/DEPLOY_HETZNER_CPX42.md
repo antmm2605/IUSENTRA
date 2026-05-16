@@ -1,6 +1,6 @@
 # Deploy Hetzner CPX42
 
-> **Versione corrente:** 2.242.2
+> **Versione corrente:** 2.243.0
 > Guida aggiornata: 16/05/2026
 
 Questa guida rende esplicito il profilo `deploy/hetzner` come destinazione di produzione o fallback governato rispetto a Railway.
@@ -25,6 +25,19 @@ Railway puo' restare fase transitoria, ambiente di fallback o riferimento durant
 - `deploy/hetzner/deploy.sh`: sincronizza il branch, legge `COMPOSE_PROFILES` da `.env.hetzner`, avvia i servizi con i profili corretti, scarica il modello Ollama solo se il sidecar è attivo, imposta il cron backup.
 - `deploy/hetzner/backup.sh`: crea archivio dati e checksum.
 - `deploy/hetzner/restore_data.sh`: verifica checksum se presente, ferma i servizi e ripristina i dati.
+
+## Build multi-stage del Dockerfile (da v2.243.0)
+
+L'immagine production e' costruita in 4 stage indipendenti:
+
+| Stage | Base image | Output | Quando si ricompila |
+|---|---|---|---|
+| `builder` | python:3.12-slim | venv Python con dipendenze pip | se cambiano `setup.py`/`pyproject.toml`/`requirements/*` |
+| `sass-builder` | debian:bookworm-slim | CSS in `/out/` | se cambiano file in `web/static/scss/` |
+| `frontend-builder` | node:22-slim | bundle Vite in `/build/web/static/react/` | se cambiano `frontend/package*.json`, `frontend/src/**` o `frontend/vite.config.ts` |
+| runtime | python:3.12-slim | immagine finale | sempre |
+
+Lo stage `frontend-builder` esegue `npm --prefix frontend ci` + `npm --prefix frontend run build:vite`. Il bundle generato sovrascrive `web/static/react/` nello stage runtime, garantendo che il JavaScript servito al browser sia sempre allineato ai sorgenti TSX del commit deployato. Prima di v2.243.0 il bundle era pre-compilato in locale e committato come fonte di verita': adesso il commit puo' contenere un bundle stale, il Dockerfile lo rigenera.
 
 ## Profili Docker Compose
 
@@ -369,6 +382,7 @@ guard OK: ExactLegalReferenceGuard
 
 | Versione | Commit | Data | Contenuto principale |
 |----------|--------|------|----------------------|
+| 2.243.0 | — | 16/05/2026 | Dockerfile: aggiunto stage `frontend-builder` su `node:22-slim` che esegue `npm ci` + `npm run build:vite` durante il build dell'immagine. Lo stage runtime copia il bundle React appena ricompilato sopra `web/static/react/`, eliminando il drift tra sorgenti TSX e bundle JavaScript servito al browser. Lo stage e' indipendente (Node non finisce nell'immagine finale, solo gli artefatti). Layer cache su `package*.json` per ricompilazioni rapide quando cambiano solo i `.tsx`. |
 | 2.242.2 | — | 16/05/2026 | Ricompilato e committato il bundle React in `web/static/react/`: il chunk `LegalIntelligencePage-*.js` include adesso `MediazioneImportPanel` con sync/import. Il Dockerfile non esegue il build Vite, quindi il bundle pre-compilato e' la fonte di verita' in produzione; finche' la build node non sara' aggiunta come stage Docker, ogni modifica a `frontend/src/**` richiede `npm --prefix frontend run build` + commit di `web/static/react/`. |
 | 2.242.1 | — | 16/05/2026 | Ricerca legale React: aggiunto pannello "Carica tutti gli organismi" nella vista mediazione con due flussi paralleli — sincronizzazione registro ministeriale (`POST /ricerca-legale/mediazione/sync`) e import snapshot HTML (`POST /ricerca-legale/mediazione/import`). Componente `MediazioneImportPanel` renderizzato solo per `view === 'mediazione'`. Stili dedicati `.iu-li-mediazione-import*` con divider, layout responsive e azioni primary/neutral. Blueprint Flask `legal_intelligence` ora usa `url_for('.endpoint')` invece di `url_for('legal_intelligence.endpoint')` per rispettare il prefisso effettivo (`/legal-intelligence` o `/ricerca-legale`) della richiesta in corso, evitando doppi hop redirect dopo i POST. |
 | 2.242.0 | — | 16/05/2026 | Ricerca legale: ripristino della shell React come UX principale, rename canonico delle rotte a `/ricerca-legale/*` (cruscotto, news, mediazione, ricerca), redirect 301 server-side da `/legal-intelligence/*` → `/ricerca-legale/*` via hook `_legal_intelligence_canonical_redirect`. Blueprint Flask `legal_intelligence` montato anche su `/ricerca-legale` per servire scheda fonte, download `.txt` e diff giornaliero (fallback legacy `?_legacy=1`). Nuovi endpoint API `/api/v1/ui/ricerca-legale[/news|/mediazione|/ricerca]`. Aggiornati `studioModuleData`, `legalIntelligenceData`, `LegalIntelligencePage.tsx`, bridge `react_giurisprudenza/redazione_atti/studio_module/legal_intelligence` per puntare ai nuovi path canonici. Registro mediazione: rimosso il limite hardcoded `filtered[:400]` (ora restituisce tutti gli organismi presenti nella cache). Parser HTML esteso: legge TUTTE le tabelle plausibili dell'HTML importato (non solo la migliore), preservando gli organismi distribuiti su sezioni multiple. |

@@ -1,4 +1,4 @@
-#  version: 2.242.2
+#  version: 2.243.0
 #  IUSENTRA | Dockerfile produzione
 
 #  Build multi-stage:
@@ -70,12 +70,39 @@ RUN mkdir -p /out && /tmp/dart-sass/sass --no-source-map --style=compressed \
 
 
 # -------------------------------------------------------------
-#  Stage 3 - runtime: immagine finale senza gcc ne librerie -dev
+#  Stage 3 - frontend: compila il bundle React con Vite
+#  (Node solo qui; lo stage runtime non porta dietro Node)
+# -------------------------------------------------------------
+FROM node:22-slim AS frontend-builder
+
+WORKDIR /build
+ENV NODE_ENV=production
+
+# Layer cache: ricompila solo se cambiano manifest/lock
+COPY package.json ./
+COPY frontend/package.json frontend/package.json
+COPY frontend/package-lock.json frontend/package-lock.json
+RUN npm --prefix frontend ci --no-audit --no-fund --loglevel=error
+
+# Sorgenti del frontend + alias che puntano fuori da frontend/
+COPY frontend ./frontend
+# Alias '@iusentra-data' → ../pct/data (vedi frontend/vite.config.ts)
+COPY pct/data ./pct/data
+COPY pct/__init__.py ./pct/__init__.py
+
+# Build: vite legge outDir='../web/static/react' (relativo a frontend/),
+# quindi l'output finisce in /build/web/static/react/
+RUN npm --prefix frontend run build:vite \
+    && test -f /build/web/static/react/index.html
+
+
+# -------------------------------------------------------------
+#  Stage 4 - runtime: immagine finale senza gcc ne librerie -dev
 # -------------------------------------------------------------
 FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="IUSENTRA" \
-      org.opencontainers.image.version="2.242.2" \
+      org.opencontainers.image.version="2.243.0" \
       org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
       org.opencontainers.image.created="2026-03-18"
 
@@ -120,6 +147,11 @@ RUN find /app -type d -name '__pycache__' -prune -exec rm -rf {} + \
 
 # Sovrascrive i CSS con quelli compilati da SCSS (dart-sass, stage sass-builder)
 COPY --from=sass-builder /out/ web/static/css/
+
+# Sovrascrive il bundle React con quello appena ricompilato da Vite (stage frontend-builder).
+# Il bundle in /app/web/static/react/ viene ricreato anche se nel repo era vecchio:
+# questo evita drift fra sorgenti TSX e artefatti compilati.
+COPY --from=frontend-builder /build/web/static/react/ web/static/react/
 
 # PYTHONPATH -> pct/ e web/ vengono importati dal sorgente in /app
 # (le dipendenze esterne arrivano dal /venv)

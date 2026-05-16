@@ -427,3 +427,5 @@ governate.
 Controlli anti-mascheramento: nessun dato demo, nessun fetch esterno forzato,
 nessuna CTA `_legacy=1` e nessun termine tecnico visibile introdotto. Test
 mirato `tests/test_react_legal_intelligence_search.py` verde con 4/4 casi.
+Docker locale no-cache e deploy Hetzner CPX42 confermati su versione `2.239.2`,
+con `/api/pronto` pubblico verde e cron backup non aggiornato.

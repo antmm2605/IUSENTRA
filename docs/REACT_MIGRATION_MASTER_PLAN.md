@@ -2259,4 +2259,4 @@ python -m pytest tests/test_react_shell.py tests/test_email_client.py tests/test
 - `/legal-intelligence/mediazione` espone tre schede operative distinte per Registro Organismi di Mediazione, Elenco Enti per la Mediazione ed Elenco Formatori per la Mediazione, con link ministeriali `mediazione.giustizia.it` e stato `ripristinato` dal 22/04/2026.
 - `/ricerca-legale` include gli stessi accessi ufficiali tra le evidenze locali governate quando la query riguarda mediazione, enti o formatori, senza fetch esterno e senza dati privati di studio.
 - La news PST `NWS4865` resta disponibile come evidenza del ripristino, mentre la pagina Mediazione non dipende piu' da una sola scheda-notizia.
-- Verifiche registrate: `python -m pytest tests/test_react_legal_intelligence_search.py -q --tb=short`, `python -m compileall pct web -q`, packaging sync e readiness release.
+- Verifiche registrate: `python -m pytest tests/test_react_legal_intelligence_search.py -q --tb=short`, `python -m compileall pct web -q`, packaging sync, readiness release, Docker locale no-cache e deploy Hetzner CPX42 con cron backup saltato.

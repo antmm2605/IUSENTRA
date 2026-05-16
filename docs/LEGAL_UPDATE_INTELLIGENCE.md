@@ -2,7 +2,7 @@
 
 ## Obiettivo
 
-Il motore di aggiornamento giuridico di IUSENTRA monitora fonti ufficiali e istituzionali, acquisisce contenuti nuovi o aggiornati, li normalizza, li classifica con supporto AI, li confronta con l'archivio interno e li instrada verso review amministrativa o pubblicazione.
+Il motore di aggiornamento giuridico di IUSENTRA monitora fonti ufficiali e istituzionali, acquisisce contenuti nuovi o aggiornati, li normalizza, li classifica con supporto AI, li confronta con l'archivio interno e pubblica automaticamente cio' che e' utile allo studio legale quando supera i controlli di fonte, duplicazione e confidenza.
 
 Il flusso operativo reale e':
 
@@ -11,8 +11,8 @@ Il flusso operativo reale e':
 3. `normalizzazione`
 4. `analisi AI + classificazione`
 5. `matching con archivio interno`
-6. `coda revisioni`
-7. `pubblicazione news / archivio strutturato`
+6. `controllo utilita' per studio legale`
+7. `coda revisioni o pubblicazione automatica`
 8. `audit e storico`
 
 ## Fonti iniziali
@@ -57,12 +57,15 @@ Azioni possibili:
 - `NEW_CASE_LAW`
 - `NEW_PRASSI`
 - `DUPLICATE`
+- `OUT_OF_SCOPE`
 - `NEEDS_REVIEW`
 
 Policy operative:
 
-- le news ufficiali a basso rischio e con confidenza molto alta possono essere autopubblicate
-- normativa, giurisprudenza e prassi strutturate passano in review prima della pubblicazione
+- prima di creare una proposta il motore confronta il contenuto con archivio strutturato e news gia' pubblicate
+- sentenze, ordinanze, norme, prassi e news gia' presenti vengono chiuse come duplicato e non ripubblicate
+- i contenuti fuori perimetro professionale dello studio legale vengono chiusi come `OUT_OF_SCOPE`
+- norme, giurisprudenza, prassi e news da fonti ufficiali o istituzionali possono essere pubblicate automaticamente quando la classificazione e' sufficientemente affidabile
 - ogni aggiornamento normativo crea storico tramite `normative_versions`
 - nessun contenuto editoriale secondario aggiorna da solo l'archivio normativo
 
@@ -91,7 +94,8 @@ Moduli principali:
 ## Note operative importanti
 
 - Le fonti HTML non vengono piu' limitate artificialmente a 40 risultati: il fetch segue anche la paginazione dei portali che espongono piu' pagine tramite query string o script lato pagina.
-- La deduplica resta basata su `external_id`, quindi piu' pagine della stessa fonte possono essere acquisite senza duplicare gli stessi provvedimenti.
+- La deduplica usa sia `external_id` di acquisizione sia una chiave canonica di archivio: numero/anno/autorita' per sentenze e ordinanze, tipo/numero/anno/emittente per norme e prassi, URL ufficiale e titolo/data per le news.
+- La console admin espone `Pulisci duplicati`; la stessa pulizia viene eseguita anche prima delle scansioni automatiche e manuali.
 - [web/blueprints/legal_updates_admin.py](/D:/legale/IUSENTRA/web/blueprints/legal_updates_admin.py)
 - [web/blueprints/legal_intelligence.py](/D:/legale/IUSENTRA/web/blueprints/legal_intelligence.py)
 
@@ -115,6 +119,12 @@ Pubblicazione automatica delle review gia approvate:
 iusentra aggiornamenti-legali --publish-approved
 ```
 
+Pulizia archivio senza nuova scansione:
+
+```bash
+iusentra aggiornamenti-legali --cleanup-only
+```
+
 Export amministrativo opzionale:
 
 ```bash
@@ -131,8 +141,10 @@ iusentra aggiornamenti-legali --mirror-giurisprudenza-json
 
 Job pianificati:
 
-- Gazzetta Ufficiale: ogni ora
-- Batch principale: ore 06:35, 12:35 e 18:35
+- Gazzetta Ufficiale: ogni ora tra le 00:00 e le 05:00
+- Batch principale di tutte le fonti: ore 02:35
+
+La fascia notturna evita carico operativo durante l'uso quotidiano e consente di pubblicare automaticamente i nuovi contenuti idonei prima dell'avvio della giornata di studio.
 
 La UI amministrativa dedicata e' in:
 
@@ -197,7 +209,6 @@ Regola di coerenza obbligatoria: nome fonte e URL devono riferirsi allo stesso e
 - ogni pubblicazione produce audit
 - le relazioni strutturate non sovrascrivono lo storico
 - la tassonomia materie e' chiusa e governata
-
 
 
 

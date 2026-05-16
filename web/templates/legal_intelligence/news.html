@@ -42,6 +42,26 @@
 
   <div class="li-card">
     <div class="li-card__body">
+      <div class="li-section-head">
+        <div class="li-section-title"><i class="bi bi-lightning-charge me-2 text-primary"></i>Ingressi rapidi del motore</div>
+        <span class="badge text-bg-light">solo superadmin</span>
+      </div>
+      <div class="li-quick-actions li-quick-actions--grid">
+        <a href="{{ url_for('legal_updates_admin.sources_page') }}" class="btn btn-outline-secondary">
+          <i class="bi bi-broadcast me-2"></i>Fonti ufficiali
+        </a>
+        <a href="{{ url_for('legal_updates_admin.staging_page') }}" class="btn btn-outline-secondary">
+          <i class="bi bi-inboxes me-2"></i>Acquisizione
+        </a>
+        <a href="{{ url_for('legal_updates_admin.dashboard') }}" class="btn btn-outline-primary">
+          <i class="bi bi-search me-2"></i>Cerca e pubblica
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="li-card">
+    <div class="li-card__body">
       <form method="get" class="row g-2 align-items-end">
         <div class="col-md-4">
           <label class="form-label small text-muted">Materia</label>

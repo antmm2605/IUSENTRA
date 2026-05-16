@@ -270,11 +270,11 @@ def start_scheduler(app):
     def _legal_monitor_pst():
         _run_legal_monitor(["pst_giustizia"], "pst")
 
-    @scheduler.scheduled_job(CronTrigger(minute=20), id="legal_updates_gazzetta")
+    @scheduler.scheduled_job(CronTrigger(hour="0-5", minute=20), id="legal_updates_gazzetta")
     def _legal_updates_gazzetta():
         _run_legal_updates(["gazzetta_ufficiale"], "gazzetta")
 
-    @scheduler.scheduled_job(CronTrigger(hour="6,12,18", minute=35), id="legal_updates_batch")
+    @scheduler.scheduled_job(CronTrigger(hour=2, minute=35), id="legal_updates_batch")
     def _legal_updates_batch():
         _run_legal_updates(
             [

@@ -337,5 +337,7 @@ def run_legal_update_action(
     if action == "scan":
         return pipeline.run_cycle(source_codes=source_codes)
     if action == "autopublish":
-        return pipeline.publish_auto_news(limit=40)
+        return pipeline.publish_auto_news(limit=100)
+    if action == "cleanup":
+        return pipeline.repository.deduplicate_archive(performed_by="superadmin")
     raise ValueError(f"Azione non supportata: {action}")

@@ -255,8 +255,9 @@ def execute_action(action: str):
     try:
         result = run_legal_update_action(action, tenant_slug=tenant_slug)
         labels = {
-            "scan": "Scansione fonti completata correttamente.",
-            "autopublish": "Autopubblicazione news completata.",
+            "scan": "Ricerca completata: archivio controllato, duplicati esclusi e nuovi contenuti pubblicati quando idonei.",
+            "autopublish": "Pubblicazione automatica completata sui contenuti idonei.",
+            "cleanup": "Pulizia archivio completata: i duplicati sono stati rimossi o accorpati.",
         }
         flash(labels.get(action, "Operazione completata."), "success")
         current_app.logger.info("Legal updates action %s -> %s", action, result)

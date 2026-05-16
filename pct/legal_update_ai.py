@@ -25,6 +25,7 @@ PROPOSED_ACTIONS = {
     "NEW_CASE_LAW",
     "NEW_PRASSI",
     "DUPLICATE",
+    "OUT_OF_SCOPE",
     "NEEDS_REVIEW",
 }
 

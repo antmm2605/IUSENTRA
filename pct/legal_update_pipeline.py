@@ -142,6 +142,50 @@ DEFAULT_SOURCE_ROWS: tuple[dict[str, Any], ...] = (
 HTML_DATE_RE = re.compile(r"\b([0-3]?\d/[01]?\d/[12]\d{3})\b")
 PAGER_FRAME_RE = re.compile(r'parametriUrl\("(?P<element>[^"]+)",\s*"(?P<page>[^"]+)"\)')
 
+LEGAL_PRACTICE_KEYWORDS = (
+    "avvocato",
+    "studio legale",
+    "processo",
+    "procedimento",
+    "ricorso",
+    "sentenza",
+    "ordinanza",
+    "cassazione",
+    "tribunale",
+    "tar",
+    "consiglio di stato",
+    "corte costituzionale",
+    "giudice",
+    "decreto",
+    "legge",
+    "circolare",
+    "risoluzione",
+    "interpello",
+    "contratto",
+    "responsabilita",
+    "lavoro",
+    "tribut",
+    "privacy",
+    "appalto",
+    "famiglia",
+    "locazione",
+    "falliment",
+    "crisi d'impresa",
+)
+
+NAVIGATION_NOISE_KEYWORDS = (
+    "cookie",
+    "privacy policy",
+    "mappa del sito",
+    "contatti",
+    "newsletter",
+    "login",
+    "registrati",
+    "seguici",
+    "social",
+    "home page",
+)
+
 
 def _clean_spaces(value: Any) -> str:
     return " ".join(str(value or "").split()).strip()
@@ -302,6 +346,17 @@ def _merge_unique_documents(documents: list[dict[str, Any]]) -> list[dict[str, A
     return list(ordered.values())
 
 
+def _is_navigation_noise(title: str, body_text: str) -> bool:
+    text = _clean_spaces(f"{title} {body_text}").lower()
+    if not text:
+        return True
+    if any(keyword in text for keyword in NAVIGATION_NOISE_KEYWORDS):
+        has_legal_marker = any(keyword in text for keyword in LEGAL_PRACTICE_KEYWORDS)
+        has_numbered_act = bool(re.search(r"\b(?:n\.|numero)\s*[0-9]{1,5}(?:/[0-9]{4})?\b", text))
+        return not (has_legal_marker or has_numbered_act)
+    return False
+
+
 class LegalUpdatePipeline:
     def __init__(
         self,
@@ -452,6 +507,29 @@ class LegalUpdatePipeline:
         priority += int(float(analysis.get("confidence_score") or 0) * 10)
         return max(10, min(priority, 100))
 
+    def _is_useful_for_law_firm(
+        self,
+        source: dict[str, Any],
+        normalized: dict[str, Any],
+        analysis: dict[str, Any],
+    ) -> bool:
+        classification = str(analysis.get("classification_type") or "").upper()
+        if classification == "DUPLICATO":
+            return True
+        if classification == "INCERTO":
+            return False
+        title = _clean_spaces(normalized.get("title"))
+        body_text = _clean_spaces(normalized.get("body_text") or normalized.get("body_short"))
+        if _is_navigation_noise(title, body_text):
+            return False
+        source_category = _clean_spaces(source.get("category")).lower()
+        if bool(source.get("is_official")) and source_category in {"normativa", "giurisprudenza", "prassi", "ue"}:
+            return True
+        text = f"{title} {body_text} {source_category} {_clean_spaces(analysis.get('matter_slug'))}".lower()
+        if any(keyword in text for keyword in LEGAL_PRACTICE_KEYWORDS):
+            return True
+        return float(analysis.get("confidence_score") or 0) >= 0.82 and classification in {"NEWS", "COMMENTO"}
+
     def _decide_proposal(self, source: dict[str, Any], analysis: dict[str, Any], target: dict[str, Any]) -> dict[str, Any]:
         classification = str(analysis.get("classification_type") or "INCERTO")
         confidence = float(analysis.get("confidence_score") or 0)
@@ -480,7 +558,10 @@ class LegalUpdatePipeline:
             elif is_official and analysis.get("norm_number") and analysis.get("norm_year"):
                 proposed_action = "NEW_PRASSI"
         elif classification in {"NORMATIVA_NUOVA", "NORMATIVA_AGGIORNAMENTO"}:
-            if target_entity_id:
+            if target_entity_id and classification == "NORMATIVA_NUOVA":
+                proposed_action = "DUPLICATE"
+                status = "closed"
+            elif target_entity_id:
                 proposed_action = "UPDATE_NORMATIVE"
                 target_entity_type = "normative"
             elif is_official and has_norm_key:
@@ -550,8 +631,32 @@ class LegalUpdatePipeline:
             ai_base_url=self.ai_base_url,
             ai_model=self.ai_model,
         )
-        target = self._match_target(analysis_payload)
-        decision = self._decide_proposal(source, analysis_payload, target)
+        duplicate_target = self.repository.find_published_duplicate(
+            source=source,
+            normalized=normalized_saved,
+            analysis=analysis_payload,
+        )
+        if duplicate_target:
+            target = duplicate_target
+            decision = {
+                "proposed_action": "DUPLICATE",
+                "target_entity_type": str(duplicate_target.get("entity_type") or ""),
+                "target_entity_id": (duplicate_target.get("entity") or {}).get("id"),
+                "review_status": "closed",
+                "priority": self._review_priority(source, analysis_payload, "DUPLICATE"),
+            }
+        elif not self._is_useful_for_law_firm(source, normalized_saved, analysis_payload):
+            target = {"entity_type": "", "entity": None}
+            decision = {
+                "proposed_action": "OUT_OF_SCOPE",
+                "target_entity_type": "",
+                "target_entity_id": None,
+                "review_status": "closed",
+                "priority": 10,
+            }
+        else:
+            target = self._match_target(analysis_payload)
+            decision = self._decide_proposal(source, analysis_payload, target)
         analysis_saved = self.repository.save_analysis(
             int(normalized_saved["id"]),
             {
@@ -606,6 +711,7 @@ class LegalUpdatePipeline:
         source = self.repository.get_source_by_code(source_code)
         if not source:
             raise ValueError(f"Fonte non configurata: {source_code}")
+        cleanup = self.repository.deduplicate_archive(performed_by="system")
         documents = self._fetch_source(source, request_get=request_get)
         processed: list[dict[str, Any]] = []
         for document in documents:
@@ -618,6 +724,7 @@ class LegalUpdatePipeline:
             "source": source_code,
             "documents_found": len(documents),
             "processed": len(processed),
+            "duplicates_removed": int(cleanup.get("removed") or 0),
             "autopublished": autopublished,
         }
 
@@ -635,6 +742,7 @@ class LegalUpdatePipeline:
         auto_publish: bool = True,
     ) -> dict[str, Any]:
         self.repository.upsert_sources(list(DEFAULT_SOURCE_ROWS))
+        cleanup = self.repository.deduplicate_archive(performed_by="system")
         selected = source_codes or [row["code"] for row in self.repository.list_sources(enabled_only=True)]
         reports: list[dict[str, Any]] = []
         for source_code in selected:
@@ -648,6 +756,8 @@ class LegalUpdatePipeline:
             "ok": True,
             "sources": selected,
             "reports": reports,
+            "duplicates_removed": int(cleanup.get("removed") or 0)
+            + sum(int(row.get("duplicates_removed") or 0) for row in reports),
             "autopublished": autopublished,
             "dashboard": self.repository.dashboard_snapshot(),
         }
@@ -783,7 +893,28 @@ class LegalUpdatePipeline:
         classification = str(review.get("classification_type") or "")
         result: dict[str, Any] = {}
 
-        if proposed_action in {"NEWS_ONLY", "DUPLICATE"}:
+        if proposed_action == "DUPLICATE":
+            self.repository.set_review_status(
+                int(review_id),
+                "closed",
+                reviewer=reviewer,
+                notes="Elemento gia presente nell'archivio: nessuna nuova pubblicazione.",
+            )
+            result = {
+                "skipped": True,
+                "reason": "duplicate",
+                "target_entity_type": review.get("target_entity_type"),
+                "target_entity_id": review.get("target_entity_id"),
+            }
+        elif proposed_action == "OUT_OF_SCOPE":
+            self.repository.set_review_status(
+                int(review_id),
+                "closed",
+                reviewer=reviewer,
+                notes="Elemento non coerente con il perimetro informativo dello studio legale.",
+            )
+            result = {"skipped": True, "reason": "out_of_scope"}
+        elif proposed_action == "NEWS_ONLY":
             result = self._publish_news_only(review, reviewer=reviewer)
         elif proposed_action in {"NEW_NORMATIVE", "UPDATE_NORMATIVE"}:
             normative = self.repository.create_or_update_normative(
@@ -928,19 +1059,26 @@ class LegalUpdatePipeline:
     def publish_auto_news(self, *, limit: int = 20) -> dict[str, Any]:
         items = self.repository.list_review_queue(statuses=("approved", "pending"), limit=limit)
         published: list[int] = []
+        skipped: list[dict[str, Any]] = []
         for row in items:
-            if str(row.get("proposed_action") or "") != "NEWS_ONLY":
+            proposed_action = str(row.get("proposed_action") or "").upper()
+            if proposed_action in {"DUPLICATE", "OUT_OF_SCOPE"}:
+                skipped.append({"id": int(row["id"]), "reason": proposed_action.lower()})
+                continue
+            if proposed_action not in {"NEWS_ONLY", "NEW_NORMATIVE", "UPDATE_NORMATIVE", "NEW_CASE_LAW", "NEW_PRASSI"}:
                 continue
             if not row.get("source_code"):
                 continue
             source = self.repository.get_source_by_code(str(row["source_code"]))
             if not source or not source.get("is_official"):
                 continue
-            if float(row.get("confidence_score") or 0) < 0.9:
+            confidence = float(row.get("confidence_score") or 0)
+            threshold = 0.82 if proposed_action == "NEWS_ONLY" else 0.70
+            if confidence < threshold:
                 continue
             self.publish_review(int(row["id"]), reviewer="system")
             published.append(int(row["id"]))
-        return {"count": len(published), "items": published}
+        return {"count": len(published), "items": published, "skipped": skipped}
 
     def dashboard_snapshot(self) -> dict[str, Any]:
         return self.repository.dashboard_snapshot()

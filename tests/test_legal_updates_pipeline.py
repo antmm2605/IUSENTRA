@@ -246,6 +246,147 @@ def test_legal_update_duplicate_non_moltiplica_queue(tmp_path: Path):
     assert len(queue) == 1
 
 
+def test_legal_update_autopubblica_senza_reinserire_contenuti_gia_presenti(tmp_path: Path):
+    pipeline = build_legal_update_pipeline(str(tmp_path / "intelligence" / "motori.json"))
+
+    first = pipeline.run_cycle(
+        source_codes=["gazzetta_ufficiale"],
+        request_get=lambda *args, **kwargs: DummyResponse(_normativa_html(), url="https://www.gazzettaufficiale.it/"),
+        auto_publish=True,
+    )
+    second = pipeline.run_cycle(
+        source_codes=["gazzetta_ufficiale"],
+        request_get=lambda *args, **kwargs: DummyResponse(_normativa_html(), url="https://www.gazzettaufficiale.it/"),
+        auto_publish=True,
+    )
+    snapshot = pipeline.dashboard_snapshot()
+    queue = pipeline.repository.list_review_queue(limit=10)
+
+    with pipeline.repository._connect() as conn:
+        versions = int(conn.execute("SELECT COUNT(*) FROM normative_versions").fetchone()[0])
+
+    assert first["autopublished"]["count"] == 1
+    assert second["autopublished"]["count"] == 0
+    assert snapshot["headline"]["published_normative"] == 1
+    assert snapshot["headline"]["published_news"] == 1
+    assert versions == 1
+    assert queue[0]["proposed_action"] == "DUPLICATE"
+    assert queue[0]["status"] == "closed"
+
+
+def test_legal_update_giurisprudenza_gia_pubblicata_diventa_duplicate(tmp_path: Path):
+    pipeline = build_legal_update_pipeline(str(tmp_path / "intelligence" / "motori.json"))
+    pipeline.repository.upsert_sources(
+        [
+            {
+                "name": "Cassazione Massimario Test",
+                "code": "cassazione_massimario_test",
+                "category": "giurisprudenza",
+                "base_url": "https://www.cortedicassazione.it/",
+                "source_type": "web",
+                "trust_class": "A",
+                "is_official": True,
+                "enabled": True,
+                "polling_minutes": 180,
+                "parser_type": "html",
+                "notes": "",
+            }
+        ]
+    )
+    source = pipeline.repository.get_source_by_code("cassazione_massimario_test")
+    first = pipeline.process_document(
+        source,
+        {
+            "external_id": "cass-9173-a",
+            "source_url": "https://www.cortedicassazione.it/doc/9173",
+            "title": "Sentenza civile n. 9173 del 2026 - Prima Sezione",
+            "published_at": "2026-04-11",
+            "raw_html": "",
+            "raw_text": "Corte di Cassazione sentenza n. 9173/2026 in materia di responsabilita civile.",
+            "content_hash": "hash-9173-a",
+            "fetch_status": "fetched",
+            "http_status": 200,
+        },
+    )
+    pipeline.publish_review(int(first["review"]["id"]), reviewer="system")
+
+    second = pipeline.process_document(
+        source,
+        {
+            "external_id": "cass-9173-b",
+            "source_url": "https://www.cortedicassazione.it/massimario/9173",
+            "title": "Ordinanza della Cassazione n. 9173/2026",
+            "published_at": "2026-04-12",
+            "raw_html": "",
+            "raw_text": "Cassazione ordinanza n. 9173 del 2026 sulla responsabilita civile.",
+            "content_hash": "hash-9173-b",
+            "fetch_status": "fetched",
+            "http_status": 200,
+        },
+    )
+
+    assert pipeline.dashboard_snapshot()["headline"]["published_jurisprudence"] == 1
+    assert second["review"]["proposed_action"] == "DUPLICATE"
+    assert second["review"]["status"] == "closed"
+
+
+def test_legal_update_cleanup_accorpa_duplicati_archivio(tmp_path: Path):
+    pipeline = build_legal_update_pipeline(str(tmp_path / "intelligence" / "motori.json"))
+    with pipeline.repository._connect() as conn:
+        conn.execute(
+            """
+            INSERT INTO jurisprudence (
+                title, slug, court_name, decision_number, decision_year, decision_date,
+                publication_date, summary, full_text, source_url, created_at, updated_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            """,
+            (
+                "Sentenza Cassazione n. 9173/2026",
+                "sentenza-cassazione-9173-2026",
+                "Corte di Cassazione",
+                "9173",
+                "2026",
+                "2026-04-11",
+                "2026-04-11",
+                "Sintesi A",
+                "Testo A",
+                "https://www.cortedicassazione.it/doc/9173",
+            ),
+        )
+        conn.execute(
+            """
+            INSERT INTO jurisprudence (
+                title, slug, court_name, decision_number, decision_year, decision_date,
+                publication_date, summary, full_text, source_url, created_at, updated_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            """,
+            (
+                "Ordinanza Cassazione 9173/2026",
+                "ordinanza-cassazione-9173-2026",
+                "Cassazione",
+                "9173",
+                "2026",
+                "2026-04-11",
+                "2026-04-12",
+                "Sintesi B",
+                "Testo B",
+                "https://www.cortedicassazione.it/massimario/9173",
+            ),
+        )
+        conn.commit()
+
+    before = pipeline.repository.archive_duplicate_summary()
+    cleanup = pipeline.repository.deduplicate_archive(performed_by="test")
+    after = pipeline.repository.archive_duplicate_summary()
+
+    assert before["duplicate_items"] == 1
+    assert cleanup["removed"] == 1
+    assert after["duplicate_items"] == 0
+    assert pipeline.dashboard_snapshot()["headline"]["published_jurisprudence"] == 1
+
+
 def test_legal_update_repository_espone_evidenze_lex_da_sql(tmp_path: Path):
     pipeline = build_legal_update_pipeline(str(tmp_path / "intelligence" / "motori.json"))
     normative = pipeline.repository.create_or_update_normative(
@@ -476,7 +617,7 @@ def test_fetch_html_non_si_ferma_ai_primi_anchor_e_acquisisce_tutti_i_documenti(
     assert len({row["external_id"] for row in documents}) == 60
 
 
-def test_news_page_renderizza_contenuto_pubblicato(tmp_path: Path):
+def test_news_page_storica_redirige_al_canonico_ricerca_legale(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg_web(tmp_path))
     username, password = _seed_platform_superadmin(app)
@@ -499,12 +640,15 @@ def test_news_page_renderizza_contenuto_pubblicato(tmp_path: Path):
         login = client.post("/login", data={"username": username, "password": password}, follow_redirects=False)
         assert login.status_code == 302
 
-        response = client.get("/legal-intelligence/news?_legacy=1")
+        response = client.get("/legal-intelligence/news?_legacy=1", follow_redirects=False)
 
-    html = response.get_data(as_text=True)
-    assert response.status_code == 200
-    assert "News giuridiche strutturate" in html
-    assert "Credito d&#39;imposta per investimenti" in html
+        assert response.status_code == 301
+        assert "/ricerca-legale/news" in response.headers["Location"]
+        canonical = client.get(response.headers["Location"], follow_redirects=True)
+
+    html = canonical.get_data(as_text=True)
+    assert canonical.status_code == 200
+    assert "IUSENTRA" in html
 
 
 def test_superadmin_vede_i_link_del_motore_in_sidebar_e_motori_legali(tmp_path: Path):
@@ -517,26 +661,24 @@ def test_superadmin_vede_i_link_del_motore_in_sidebar_e_motori_legali(tmp_path: 
         assert login.status_code == 302
 
         dashboard = client.get("/")
-        motori = client.get("/legal-intelligence/?_legacy=1")
-        news = client.get("/legal-intelligence/news?_legacy=1")
+        motori = client.get("/legal-intelligence/?_legacy=1", follow_redirects=False)
+        news = client.get("/legal-intelligence/news?_legacy=1", follow_redirects=False)
+        motori_canonico = client.get(motori.headers["Location"], follow_redirects=True)
+        news_canonica = client.get(news.headers["Location"], follow_redirects=True)
 
-    motori_html = motori.get_data(as_text=True)
-    news_html = news.get_data(as_text=True)
+    motori_html = motori_canonico.get_data(as_text=True)
+    news_html = news_canonica.get_data(as_text=True)
 
     assert dashboard.status_code == 200
-    assert motori.status_code == 200
-    assert news.status_code == 200
-    assert "Aggiornamenti legali" in motori_html
-    assert "Apri console aggiornamenti" in motori_html
-    assert "Console operativa aggiornamenti" in motori_html
-    assert "Fonti ufficiali" in motori_html
-    assert "Acquisizione" in motori_html
-    assert "Analisi AI" in motori_html
-    assert "Coda revisioni" in motori_html
-    assert "Archivio strutturato" in motori_html
-    assert "Ingressi rapidi del motore" in news_html
-    assert "Fonti ufficiali" in news_html
-    assert "Acquisizione" in news_html
+    assert motori.status_code == 301
+    assert news.status_code == 301
+    assert "/ricerca-legale" in motori.headers["Location"]
+    assert "/ricerca-legale/news" in news.headers["Location"]
+    assert motori_canonico.status_code == 200
+    assert news_canonica.status_code == 200
+    assert "IUSENTRA" in motori_html
+    assert "IUSENTRA" in news_html
+    assert "IUSENTRA" in dashboard.get_data(as_text=True)
 
 
 def test_admin_surfaces_renderizzano_fonti_staging_analisi_e_archivio(tmp_path: Path):
@@ -781,7 +923,7 @@ def test_dashboard_update_intelligence_mostra_presidio_condiviso_senza_selezione
     html = response.get_data(as_text=True)
     assert response.status_code == 200
     assert "Archivio legale condiviso da tutti gli studi" in html
-    assert "Una sola scansione aggiorna fonti" in html
+    assert "confronta ogni contenuto" in html
     assert 'name="tenant_slug"' not in html
     assert "Studio attivo:" not in html
 

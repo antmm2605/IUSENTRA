@@ -15,7 +15,28 @@
       <p class="text-muted mb-0">Normative, giurisprudenza, prassi, news e audit del motore di aggiornamento.</p>
       <div class="small text-muted mt-1">Archivio comune: le pubblicazioni sono disponibili per tutti gli studi.</div>
     </div>
-    <a href="{{ url_for('legal_updates_admin.dashboard') }}" class="btn btn-outline-secondary">Torna alla dashboard</a>
+    <div class="d-flex flex-wrap gap-2">
+      <form method="post" action="{{ url_for('legal_updates_admin.execute_action', action='cleanup') }}">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+        <button class="btn btn-outline-danger" type="submit">
+          <i class="bi bi-intersect me-2"></i>Pulisci duplicati
+        </button>
+      </form>
+      <a href="{{ url_for('legal_updates_admin.dashboard') }}" class="btn btn-outline-secondary">Torna alla dashboard</a>
+    </div>
+  </div>
+
+  <div class="li-card mb-3">
+    <div class="li-card__body d-flex flex-column flex-lg-row justify-content-between gap-2">
+      <div>
+        <div class="fw-semibold">Controllo archivio attivo</div>
+        <div class="small text-muted">Le nuove ricerche verificano prima quello che e' gia' presente e non ripropongono sentenze, ordinanze, norme o prassi gia' catalogate.</div>
+      </div>
+      <div class="text-lg-end small text-muted">
+        Duplicati rilevati: <strong>{{ payload.quality.duplicates.duplicate_items }}</strong><br>
+        Gruppi da accorpare: <strong>{{ payload.quality.duplicates.groups }}</strong>
+      </div>
+    </div>
   </div>
 
   <div class="li-tabstrip">
@@ -29,7 +50,7 @@
     {% for item in normative %}
     <div class="li-card"><div class="li-card__body">
       <div class="fw-semibold">{{ item.title }}</div>
-      <div class="small text-muted">{{ item.norm_type }} n. {{ item.norm_number }}/{{ item.norm_year }} · {{ item.issuer }}</div>
+      <div class="small text-muted">{{ item.norm_type }} n. {{ item.norm_number }}/{{ item.norm_year }} &middot; {{ item.issuer }}</div>
       <div class="small mt-2">{{ item.summary }}</div>
     </div></div>
     {% else %}<div class="li-card"><div class="li-card__body"><div class="small text-muted">Nessuna normativa pubblicata.</div></div></div>{% endfor %}
@@ -39,7 +60,7 @@
     {% for item in jurisprudence %}
     <div class="li-card"><div class="li-card__body">
       <div class="fw-semibold">{{ item.title }}</div>
-      <div class="small text-muted">{{ item.court_name }} · {{ item.decision_number }}/{{ item.decision_year }}</div>
+      <div class="small text-muted">{{ item.court_name }} &middot; {{ item.decision_number }}/{{ item.decision_year }}</div>
       <div class="small mt-2">{{ item.summary }}</div>
     </div></div>
     {% else %}<div class="li-card"><div class="li-card__body"><div class="small text-muted">Nessuna sentenza pubblicata.</div></div></div>{% endfor %}
@@ -49,7 +70,7 @@
     {% for item in prassi %}
     <div class="li-card"><div class="li-card__body">
       <div class="fw-semibold">{{ item.title }}</div>
-      <div class="small text-muted">{{ item.issuing_body }} · {{ item.act_type }} {{ item.act_number }}/{{ item.act_year }}</div>
+      <div class="small text-muted">{{ item.issuing_body }} &middot; {{ item.act_type }} {{ item.act_number }}/{{ item.act_year }}</div>
       <div class="small mt-2">{{ item.summary }}</div>
     </div></div>
     {% else %}<div class="li-card"><div class="li-card__body"><div class="small text-muted">Nessuna prassi pubblicata.</div></div></div>{% endfor %}
@@ -59,7 +80,7 @@
     {% for item in news %}
     <div class="li-card"><div class="li-card__body">
       <div class="fw-semibold">{{ item.title }}</div>
-      <div class="small text-muted">{{ item.news_type }} · {{ item.matter_name or 'materia da verificare' }} · {{ item.publication_status }}</div>
+      <div class="small text-muted">{{ item.news_type }} &middot; {{ item.matter_name or 'materia da verificare' }} &middot; {{ item.publication_status }}</div>
       <div class="small mt-2">{{ item.short_summary }}</div>
     </div></div>
     {% else %}<div class="li-card"><div class="li-card__body"><div class="small text-muted">Nessuna news disponibile.</div></div></div>{% endfor %}
@@ -68,8 +89,8 @@
   <div class="li-soft-stack">
     {% for item in audit_rows %}
     <div class="li-card"><div class="li-card__body">
-      <div class="fw-semibold">{{ item.entity_type }} · {{ item.action }}</div>
-      <div class="small text-muted">{{ item.performed_by or 'system' }} · {{ item.created_at|fmt_dataora }}</div>
+      <div class="fw-semibold">{{ item.entity_type }} &middot; {{ item.action }}</div>
+      <div class="small text-muted">{{ item.performed_by or 'sistema' }} &middot; {{ item.created_at|fmt_dataora }}</div>
     </div></div>
     {% else %}<div class="li-card"><div class="li-card__body"><div class="small text-muted">Nessun evento audit registrato.</div></div></div>{% endfor %}
   </div>

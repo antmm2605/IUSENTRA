@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.243.1 - 2026-05-16
+
+- Ristrutturata la console `/admin/aggiornamenti-legali/`: dashboard piu' operativa, stato duplicati, finestra notturna 00:00-05:00, pulizia archivio e azioni dirette per cercare, catalogare e pubblicare.
+- Rafforzata la pipeline Update Intelligence: prima di proporre un contenuto confronta l'archivio gia' pubblicato, chiude come duplicati sentenze/ordinanze/norme/prassi/news gia' presenti e scarta contenuti fuori perimetro per lo studio legale.
+- Estesa la pubblicazione automatica ai contenuti ufficiali idonei, non solo alle news, mantenendo audit e impedendo nuove versioni normative identiche.
+- Spostato lo scheduler aggiornamenti legali nella fascia 00:00-05:00 e aggiunta pulizia archivio anche da CLI/admin.
+- Aggiunti test di regressione su autopubblicazione senza reinserimenti, duplicati giurisprudenziali, cleanup archivio e trigger scheduler notturni.
+
 ## 2.239.3 - 2026-05-16
 
 - Trasformate `/legal-intelligence/` e `/ricerca-legale` in un workspace professionale: `Osservatorio Legale` per governare fonti/news/registri e `Ricerca Legale` per costruire schede contestualizzate.

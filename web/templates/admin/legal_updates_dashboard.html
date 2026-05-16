@@ -12,20 +12,26 @@
     <div>
       <h1 class="h3 mb-1">Motore di aggiornamento normativo e giurisprudenziale</h1>
       <p class="text-muted mb-0">
-        Pipeline completa: fonti ufficiali, area di acquisizione, analisi AI, matching, revisione amministrativa, pubblicazione strutturata e audit.
+        Controlla prima l'archivio, scarta le ripetizioni e pubblica automaticamente gli aggiornamenti utili allo studio legale.
       </p>
     </div>
     <div class="d-flex flex-wrap gap-2">
       <form method="post" action="{{ url_for('legal_updates_admin.execute_action', action='scan') }}">
         <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
         <button class="btn btn-primary">
-          <i class="bi bi-arrow-repeat me-2"></i>Esegui scansione
+          <i class="bi bi-search me-2"></i>Cerca e pubblica ora
         </button>
       </form>
       <form method="post" action="{{ url_for('legal_updates_admin.execute_action', action='autopublish') }}">
         <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
         <button class="btn btn-outline-primary">
-          <i class="bi bi-megaphone me-2"></i>Autopubblica news a basso rischio
+          <i class="bi bi-megaphone me-2"></i>Pubblica idonei
+        </button>
+      </form>
+      <form method="post" action="{{ url_for('legal_updates_admin.execute_action', action='cleanup') }}">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+        <button class="btn btn-outline-danger">
+          <i class="bi bi-intersect me-2"></i>Pulisci duplicati
         </button>
       </form>
       <a href="{{ url_for('legal_updates_admin.review_page') }}" class="btn btn-outline-dark">
@@ -38,7 +44,7 @@
         <i class="bi bi-inboxes me-2"></i>Acquisizione
       </a>
       <a href="{{ url_for('legal_updates_admin.analysis_page') }}" class="btn btn-outline-secondary">
-        <i class="bi bi-cpu me-2"></i>Analisi
+        <i class="bi bi-cpu me-2"></i>Catalogazione
       </a>
       <a href="{{ url_for('legal_updates_admin.archive_page') }}" class="btn btn-outline-secondary">
         <i class="bi bi-archive me-2"></i>Archivio
@@ -52,16 +58,13 @@
         <div class="col-12 col-lg-8">
           <div class="fw-semibold">Archivio legale condiviso da tutti gli studi</div>
           <div class="small text-muted">
-            Una sola scansione aggiorna fonti, acquisizione, analisi, coda revisioni, news e archivio strutturato per tutta la piattaforma.
+            La ricerca notturna lavora tra le 00:00 e le 05:00, confronta ogni contenuto con cio' che e' gia' pubblicato e cataloga solo materiale professionale per lo studio.
           </div>
         </div>
         <div class="col-12 col-lg-4">
           <div class="small text-muted text-lg-end">
-            {% if payload.runtime.tenant_count %}
-              Studi serviti: <strong>{{ payload.runtime.tenant_count }}</strong>
-            {% else %}
-              Pronto anche senza studi attivi.
-            {% endif %}
+            Finestra automatica: <strong>{{ payload.quality.auto_publish_window }}</strong><br>
+            Duplicati rilevati: <strong>{{ payload.quality.duplicates.duplicate_items }}</strong>
           </div>
         </div>
       </div>
@@ -74,15 +77,15 @@
       <div class="lu-kpi-value">{{ payload.headline.sources }}</div>
     </div>
     <div class="lu-kpi-card">
-      <div class="lu-kpi-label">Documenti grezzi</div>
+      <div class="lu-kpi-label">Documenti acquisiti</div>
       <div class="lu-kpi-value">{{ payload.headline.raw_documents }}</div>
     </div>
     <div class="lu-kpi-card">
-      <div class="lu-kpi-label">Analisi AI</div>
+      <div class="lu-kpi-label">Catalogazioni</div>
       <div class="lu-kpi-value">{{ payload.headline.analyses }}</div>
     </div>
     <div class="lu-kpi-card">
-      <div class="lu-kpi-label">Review pendenti</div>
+      <div class="lu-kpi-label">Da verificare</div>
       <div class="lu-kpi-value {% if payload.headline.review_pending %}text-warning{% else %}text-success{% endif %}">
         {{ payload.headline.review_pending }}
       </div>
@@ -92,9 +95,66 @@
       <div class="lu-kpi-value text-primary">{{ payload.headline.published_news }}</div>
     </div>
     <div class="lu-kpi-card">
+      <div class="lu-kpi-label">Duplicati da pulire</div>
+      <div class="lu-kpi-value {% if payload.quality.duplicates.duplicate_items %}text-danger{% else %}text-success{% endif %}">
+        {{ payload.quality.duplicates.duplicate_items }}
+      </div>
+    </div>
+    <div class="lu-kpi-card">
       <div class="lu-kpi-label">Archivio strutturato</div>
       <div class="lu-kpi-value">
         {{ payload.headline.published_normative + payload.headline.published_jurisprudence + payload.headline.published_prassi }}
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-3">
+    <div class="col-xl-4">
+      <div class="li-card h-100">
+        <div class="li-card__body">
+          <div class="li-section-title mb-2"><i class="bi bi-intersect me-2 text-primary"></i>Controllo ripetizioni</div>
+          <div class="small text-muted">
+            Prima di creare una proposta il motore confronta titolo, fonte, numero, anno, autorita' e collegamenti ufficiali con l'archivio gia' pubblicato.
+          </div>
+          <div class="li-soft-stack mt-3">
+            <div class="li-soft-card">
+              <div class="small text-muted">Elementi da accorpare</div>
+              <div class="fw-semibold">{{ payload.quality.duplicates.duplicate_items }}</div>
+            </div>
+            <div class="li-soft-card">
+              <div class="small text-muted">Gruppi rilevati</div>
+              <div class="fw-semibold">{{ payload.quality.duplicates.groups }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-4">
+      <div class="li-card h-100">
+        <div class="li-card__body">
+          <div class="li-section-title mb-2"><i class="bi bi-moon-stars me-2 text-primary"></i>Ricerca notturna</div>
+          <div class="small text-muted">
+            La scansione automatica completa resta nella fascia {{ payload.quality.auto_publish_window }} per non pesare sull'uso quotidiano dello studio.
+          </div>
+          <div class="li-soft-card mt-3">
+            <div class="small text-muted">Pubblicazione</div>
+            <div class="fw-semibold">Automatica per fonti ufficiali idonee</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-4">
+      <div class="li-card h-100">
+        <div class="li-card__body">
+          <div class="li-section-title mb-2"><i class="bi bi-funnel me-2 text-primary"></i>Perimetro utile</div>
+          <div class="small text-muted">
+            Entrano in archivio solo norme, pronunce, prassi e notizie istituzionali riconducibili a materie di lavoro dello studio legale.
+          </div>
+          <div class="li-soft-card mt-3">
+            <div class="small text-muted">Regola attiva</div>
+            <div class="fw-semibold">{{ payload.quality.auto_publish_scope }}</div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -142,48 +202,53 @@
       <div class="li-card h-100">
         <div class="li-card__body">
           <div class="li-section-head">
-            <div class="li-section-title"><i class="bi bi-shield-check me-2 text-primary"></i>Runtime</div>
-            <span class="badge text-bg-light">AI + archivio SQL</span>
+            <div class="li-section-title"><i class="bi bi-shield-check me-2 text-primary"></i>Presidio operativo</div>
+            <span class="badge text-bg-light">Pubblicazione automatica</span>
           </div>
           <div class="li-soft-stack">
             <div class="li-soft-card">
-              <div class="small text-muted">Presidio</div>
+              <div class="small text-muted">Perimetro</div>
               <div class="fw-semibold">Condiviso da tutti gli studi</div>
             </div>
             <div class="li-soft-card">
               <div class="small text-muted">Archivio operativo</div>
-              <div class="fw-semibold">{{ payload.runtime.db_backend_label or 'n.d.' }}</div>
+              <div class="fw-semibold">Pronto e condiviso</div>
             </div>
             <div class="li-soft-card">
-              <div class="small text-muted">Database aggiornamenti</div>
-              <div class="fw-semibold text-break">{{ payload.runtime.db_path }}</div>
+              <div class="small text-muted">Archivio aggiornamenti</div>
+              <div class="fw-semibold">Controllo ripetizioni attivo</div>
             </div>
             <div class="li-soft-card">
-              <div class="small text-muted">Lettura Lex AI</div>
+              <div class="small text-muted">Lettura assistente</div>
               <div class="fw-semibold">Attiva sull'archivio legale condiviso</div>
             </div>
             <div class="li-soft-card">
-              <div class="small text-muted">Export JSON amministrativo</div>
+              <div class="small text-muted">Esportazione amministrativa</div>
               <div class="fw-semibold text-break">
                 {% if payload.runtime.json_export_enabled %}
-                  {{ payload.runtime.json_path or 'non configurato' }}
+                  pronta per i report interni
                 {% else %}
                   disattivato nel ciclo operativo
                 {% endif %}
               </div>
             </div>
             <div class="li-soft-card">
-              <div class="small text-muted">Runtime AI locale</div>
-              <div class="fw-semibold">{{ payload.runtime.ollama_model or 'non configurato' }}</div>
-              <div class="small text-muted text-break">{{ payload.runtime.ollama_url or 'Nessun endpoint Ollama configurato' }}</div>
+              <div class="small text-muted">Catalogazione assistita</div>
+              <div class="fw-semibold">
+                {% if payload.runtime.ollama_model %}
+                  servizio locale attivo
+                {% else %}
+                  regole interne attive
+                {% endif %}
+              </div>
             </div>
             <div class="li-soft-card">
-              <div class="small text-muted">Mirror giurisprudenza JSON</div>
+              <div class="small text-muted">Archivio giurisprudenza storico</div>
               <div class="fw-semibold text-break">
                 {% if payload.runtime.giurisprudenza_json_mirror_enabled %}
-                  {{ payload.runtime.giurisprudenza_db_path or 'non configurato' }}
+                  copia di compatibilita' attiva
                 {% else %}
-                  disattivato: le pubblicazioni restano in legal_updates.db
+                  disattivato: le pubblicazioni restano nell'archivio condiviso
                 {% endif %}
               </div>
             </div>
@@ -301,4 +366,3 @@
   </div>
 </div>
 {% endblock %}
-

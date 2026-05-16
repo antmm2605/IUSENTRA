@@ -4,10 +4,12 @@ import hashlib
 import json
 import re
 import sqlite3
+import unicodedata
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Iterable
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from pct.postgres_runtime_support import PostgresRepositoryBackend
 
@@ -89,6 +91,111 @@ def _now_iso() -> str:
 
 def _sha1(value: str) -> str:
     return hashlib.sha1((value or "").encode("utf-8")).hexdigest()
+
+
+def _ascii_fold(value: Any) -> str:
+    return (
+        unicodedata.normalize("NFKD", _clean_spaces(value))
+        .encode("ascii", "ignore")
+        .decode("ascii")
+    )
+
+
+def _canonical_text(value: Any) -> str:
+    text = _ascii_fold(value).casefold()
+    text = re.sub(r"\b(nr|num|numero)\.?\b", " n ", text)
+    text = re.sub(r"\bdel\b", " ", text)
+    text = re.sub(r"[^a-z0-9]+", " ", text)
+    return _clean_spaces(text)
+
+
+def _canonical_authority(value: Any) -> str:
+    text = _canonical_text(value)
+    if "cassazione" in text:
+        return "corte cassazione"
+    if "costituzionale" in text:
+        return "corte costituzionale"
+    if "consiglio stato" in text:
+        return "consiglio stato"
+    if re.search(r"\btar\b", text):
+        return "tar"
+    if "agenzia entrate" in text:
+        return "agenzia entrate"
+    if "gazzetta ufficiale" in text:
+        return "gazzetta ufficiale"
+    return text
+
+
+def _canonical_url(value: Any) -> str:
+    raw = _clean_spaces(value)
+    if not raw:
+        return ""
+    split = urlsplit(raw)
+    netloc = split.netloc.casefold()
+    path = re.sub(r"/+", "/", split.path or "/").rstrip("/")
+    ignored = {"utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "fbclid", "gclid"}
+    query_items = [
+        (key, val)
+        for key, val in parse_qsl(split.query, keep_blank_values=True)
+        if key.casefold() not in ignored
+    ]
+    query = urlencode(sorted(query_items))
+    return urlunsplit((split.scheme.casefold(), netloc, path or "/", query, ""))
+
+
+def _year_from_any(*values: Any) -> str:
+    for value in values:
+        match = re.search(r"\b(20[0-9]{2}|19[0-9]{2})\b", _clean_spaces(value))
+        if match:
+            return match.group(1)
+    return ""
+
+
+def _archive_identity_key(entity_type: str, row: dict[str, Any]) -> str:
+    entity = _normalize_token(entity_type)
+    if entity == "normative":
+        norm_type = _canonical_text(row.get("norm_type"))
+        number = _canonical_text(row.get("norm_number"))
+        year = _canonical_text(row.get("norm_year")) or _year_from_any(row.get("publication_date"), row.get("title"))
+        issuer = _canonical_authority(row.get("issuer"))
+        if norm_type and number and year:
+            return f"normative|{norm_type}|{number}|{year}|{issuer}"
+    elif entity == "jurisprudence":
+        court = _canonical_authority(row.get("court_name"))
+        number = _canonical_text(row.get("decision_number"))
+        year = _canonical_text(row.get("decision_year")) or _year_from_any(row.get("decision_date"), row.get("title"))
+        if number and year:
+            return f"jurisprudence|{court}|{number}|{year}"
+    elif entity == "prassi":
+        body = _canonical_authority(row.get("issuing_body"))
+        act_type = _canonical_text(row.get("act_type"))
+        number = _canonical_text(row.get("act_number"))
+        year = _canonical_text(row.get("act_year")) or _year_from_any(row.get("act_date"), row.get("title"))
+        if body and number and year:
+            return f"prassi|{body}|{act_type}|{number}|{year}"
+    elif entity == "news":
+        related = (
+            row.get("related_normative_id"),
+            row.get("related_jurisprudence_id"),
+            row.get("related_prassi_id"),
+        )
+        for rel_type, rel_id in zip(("normative", "jurisprudence", "prassi"), related):
+            if rel_id:
+                return f"news|{rel_type}|{rel_id}|{_canonical_text(row.get('news_type'))}"
+        url_key = _canonical_url(row.get("source_url"))
+        if url_key:
+            return f"news|url|{url_key}|{_canonical_text(row.get('news_type'))}"
+    url_key = _canonical_url(row.get("source_url"))
+    if url_key:
+        return f"{entity}|url|{url_key}"
+    date_key = _canonical_text(
+        row.get("published_at")
+        or row.get("publication_date")
+        or row.get("decision_date")
+        or row.get("act_date")
+        or row.get("effective_date")
+    )
+    return f"{entity}|title|{_canonical_text(row.get('title'))}|{date_key}"
 
 
 _LEX_SEARCH_STOPWORDS = {
@@ -410,6 +517,179 @@ class LegalUpdateRepository:
         payload["is_official"] = bool(payload.get("is_official"))
         payload["enabled"] = bool(payload.get("enabled"))
         return payload
+
+    def _published_rows(self, conn: Any, entity_type: str) -> list[dict[str, Any]]:
+        table = _normalize_token(entity_type)
+        if table not in {"normative", "jurisprudence", "prassi", "news"}:
+            return []
+        rows = conn.execute(f"SELECT * FROM {table} ORDER BY id ASC").fetchall()
+        return [dict(row) for row in rows]
+
+    def _duplicate_groups_for_rows(self, entity_type: str, rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        buckets: dict[str, list[dict[str, Any]]] = {}
+        for row in rows:
+            key = _archive_identity_key(entity_type, row)
+            if not key or key.endswith("||"):
+                continue
+            buckets.setdefault(key, []).append(row)
+        return [
+            {"entity_type": entity_type, "identity_key": key, "rows": group}
+            for key, group in buckets.items()
+            if len(group) > 1
+        ]
+
+    def archive_duplicate_summary(self) -> dict[str, Any]:
+        with self._connect() as conn:
+            groups: list[dict[str, Any]] = []
+            for entity_type in ("normative", "jurisprudence", "prassi", "news"):
+                groups.extend(
+                    self._duplicate_groups_for_rows(
+                        entity_type,
+                        self._published_rows(conn, entity_type),
+                    )
+                )
+        by_type: dict[str, int] = {"normative": 0, "jurisprudence": 0, "prassi": 0, "news": 0}
+        duplicate_items = 0
+        for group in groups:
+            count = max(0, len(group["rows"]) - 1)
+            by_type[str(group["entity_type"])] = by_type.get(str(group["entity_type"]), 0) + count
+            duplicate_items += count
+        return {
+            "groups": len(groups),
+            "duplicate_items": duplicate_items,
+            "by_type": by_type,
+        }
+
+    def _best_archive_keeper(self, rows: list[dict[str, Any]]) -> dict[str, Any]:
+        def score(row: dict[str, Any]) -> tuple[int, int, int]:
+            richness = sum(
+                1
+                for field in (
+                    "source_url",
+                    "summary",
+                    "short_summary",
+                    "content",
+                    "text_current",
+                    "full_text",
+                    "source_document_id",
+                )
+                if _clean_spaces(row.get(field))
+            )
+            published = 1 if _normalize_token(row.get("publication_status") or "published") == "published" else 0
+            return (published, richness, -int(row.get("id") or 0))
+
+        return sorted(rows, key=score, reverse=True)[0]
+
+    def deduplicate_archive(self, *, performed_by: str = "system") -> dict[str, Any]:
+        report: dict[str, Any] = {
+            "ok": True,
+            "removed": 0,
+            "groups": 0,
+            "by_type": {"normative": 0, "jurisprudence": 0, "prassi": 0, "news": 0},
+            "items": [],
+        }
+        with self._connect() as conn:
+            for entity_type in ("normative", "jurisprudence", "prassi", "news"):
+                groups = self._duplicate_groups_for_rows(entity_type, self._published_rows(conn, entity_type))
+                for group in groups:
+                    keeper = self._best_archive_keeper(group["rows"])
+                    keeper_id = int(keeper["id"])
+                    duplicate_ids = [
+                        int(row["id"])
+                        for row in group["rows"]
+                        if int(row["id"]) != keeper_id
+                    ]
+                    if not duplicate_ids:
+                        continue
+                    report["groups"] += 1
+                    report["removed"] += len(duplicate_ids)
+                    report["by_type"][entity_type] += len(duplicate_ids)
+                    report["items"].append(
+                        {
+                            "entity_type": entity_type,
+                            "kept_id": keeper_id,
+                            "removed_ids": duplicate_ids,
+                            "title": keeper.get("title", ""),
+                        }
+                    )
+                    for duplicate_id in duplicate_ids:
+                        if entity_type == "normative":
+                            conn.execute("UPDATE news SET related_normative_id = ? WHERE related_normative_id = ?", (keeper_id, duplicate_id))
+                            conn.execute("UPDATE jurisprudence SET related_normative_id = ? WHERE related_normative_id = ?", (keeper_id, duplicate_id))
+                            conn.execute("UPDATE normative_versions SET normative_id = ? WHERE normative_id = ?", (keeper_id, duplicate_id))
+                            conn.execute("UPDATE normative_relations SET normative_id = ? WHERE normative_id = ?", (keeper_id, duplicate_id))
+                            conn.execute("UPDATE normative_relations SET related_normative_id = ? WHERE related_normative_id = ?", (keeper_id, duplicate_id))
+                            conn.execute("DELETE FROM normative WHERE id = ?", (duplicate_id,))
+                        elif entity_type == "jurisprudence":
+                            conn.execute("UPDATE news SET related_jurisprudence_id = ? WHERE related_jurisprudence_id = ?", (keeper_id, duplicate_id))
+                            conn.execute("DELETE FROM jurisprudence WHERE id = ?", (duplicate_id,))
+                        elif entity_type == "prassi":
+                            conn.execute("UPDATE news SET related_prassi_id = ? WHERE related_prassi_id = ?", (keeper_id, duplicate_id))
+                            conn.execute("DELETE FROM prassi WHERE id = ?", (duplicate_id,))
+                        elif entity_type == "news":
+                            conn.execute("DELETE FROM news WHERE id = ?", (duplicate_id,))
+            conn.commit()
+        if report["removed"]:
+            self.record_audit("legal_update_archive", None, "deduplicate", {}, report, performed_by)
+        return report
+
+    def find_published_duplicate(
+        self,
+        *,
+        source: dict[str, Any],
+        normalized: dict[str, Any],
+        analysis: dict[str, Any],
+    ) -> dict[str, Any] | None:
+        classification = _normalize_token(analysis.get("classification_type")).upper()
+        candidate_types: tuple[str, ...]
+        if classification.startswith("NORMATIVA"):
+            candidate_types = ("normative",)
+        elif classification == "GIURISPRUDENZA":
+            candidate_types = ("jurisprudence",)
+        elif classification == "PRASSI":
+            candidate_types = ("prassi",)
+        else:
+            candidate_types = ("news",)
+
+        incoming_common = {
+            "title": normalized.get("title"),
+            "source_url": normalized.get("source_url"),
+            "published_at": normalized.get("published_at") or normalized.get("document_date"),
+            "publication_date": normalized.get("document_date") or normalized.get("published_at"),
+            "effective_date": analysis.get("effective_date") or normalized.get("document_date"),
+            "issuer": analysis.get("issuer") or normalized.get("issuer") or source.get("name"),
+            "norm_type": analysis.get("norm_type"),
+            "norm_number": analysis.get("norm_number"),
+            "norm_year": analysis.get("norm_year"),
+            "court_name": analysis.get("court_name"),
+            "decision_number": analysis.get("decision_number"),
+            "decision_year": analysis.get("decision_year"),
+            "decision_date": normalized.get("document_date") or normalized.get("published_at"),
+            "issuing_body": analysis.get("issuer") or source.get("name"),
+            "act_type": analysis.get("norm_type"),
+            "act_number": analysis.get("norm_number"),
+            "act_year": analysis.get("norm_year"),
+            "act_date": normalized.get("document_date") or normalized.get("published_at"),
+            "news_type": _normalize_token(classification or "focus"),
+        }
+        incoming_keys = {
+            _archive_identity_key(candidate_type, incoming_common)
+            for candidate_type in candidate_types
+        }
+        incoming_keys = {key for key in incoming_keys if key}
+        if not incoming_keys:
+            return None
+
+        with self._connect() as conn:
+            for entity_type in candidate_types:
+                for row in self._published_rows(conn, entity_type):
+                    if _archive_identity_key(entity_type, row) in incoming_keys:
+                        return {
+                            "entity_type": entity_type,
+                            "entity": row,
+                            "reason": "already_published",
+                        }
+        return None
 
     def save_raw_document(self, payload: dict[str, Any]) -> dict[str, Any]:
         external_id = _clean_spaces(payload.get("external_id")) or _sha1(
@@ -1079,23 +1359,32 @@ class LegalUpdateRepository:
                 )
                 old_payload = {}
                 action = "create"
-            conn.execute(
-                """
-                INSERT INTO normative_versions (
-                    normative_id, version_label, valid_from, valid_to, text_version, source_url, source_document_id, created_at
-                )
-                VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-                """,
+            existing_version = conn.execute(
+                "SELECT id FROM normative_versions WHERE normative_id = ? AND valid_from = ? AND source_url = ? LIMIT 1",
                 (
                     normative_id,
-                    _clean_spaces(payload.get("version_label") or payload.get("publication_date") or "versione iniziale"),
                     _clean_spaces(payload.get("effective_date") or payload.get("publication_date")),
-                    _clean_spaces(payload.get("valid_to")),
-                    str(payload.get("text_current") or payload.get("text_official") or ""),
                     _clean_spaces(payload.get("source_url")),
-                    source_document_id,
                 ),
-            )
+            ).fetchone()
+            if not existing_version:
+                conn.execute(
+                    """
+                    INSERT INTO normative_versions (
+                        normative_id, version_label, valid_from, valid_to, text_version, source_url, source_document_id, created_at
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                    """,
+                    (
+                        normative_id,
+                        _clean_spaces(payload.get("version_label") or payload.get("publication_date") or "versione iniziale"),
+                        _clean_spaces(payload.get("effective_date") or payload.get("publication_date")),
+                        _clean_spaces(payload.get("valid_to")),
+                        str(payload.get("text_current") or payload.get("text_official") or ""),
+                        _clean_spaces(payload.get("source_url")),
+                        source_document_id,
+                    ),
+                )
             conn.commit()
         created = self.get_normative(normative_id) or {}
         self.record_audit("normative", normative_id, action, old_payload, created, performed_by)
@@ -1258,11 +1547,13 @@ class LegalUpdateRepository:
             existing = conn.execute(
                 """
                 SELECT * FROM news
-                WHERE slug = ? OR (source_document_id = ? AND news_type = ?)
+                WHERE slug = ? OR (source_document_id = ? AND news_type = ?) OR (source_url = ? AND news_type = ?)
                 """,
                 (
                     slug,
                     payload.get("source_document_id"),
+                    _normalize_token(payload.get("news_type") or "focus"),
+                    _clean_spaces(payload.get("source_url")),
                     _normalize_token(payload.get("news_type") or "focus"),
                 ),
             ).fetchone()
@@ -1730,6 +2021,12 @@ class LegalUpdateRepository:
             ).fetchall()
         return {
             "headline": counts,
+            "quality": {
+                "duplicates": self.archive_duplicate_summary(),
+                "auto_publish_window": "00:00-05:00",
+                "auto_publish_scope": "Fonti ufficiali e contenuti utili allo studio legale",
+                "dedupe_policy": "Controllo archivio prima della proposta",
+            },
             "sources": self.list_sources(enabled_only=False),
             "review_queue": self.list_review_queue(limit=20),
             "news": self.list_news(limit=8, include_drafts=False),

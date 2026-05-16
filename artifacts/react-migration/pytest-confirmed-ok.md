@@ -1,12 +1,24 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-15, Sito Studio Builder Pro 2.239.1.
+Aggiornato: 2026-05-16, Aggiornamenti legali deduplica/autopubblicazione 2.243.1.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Aggiornamenti legali deduplica/autopubblicazione 2.243.1 - 2026-05-16
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m compileall pct\legal_update_repository.py pct\legal_update_pipeline.py pct\legal_update_ai.py web\blueprints\legal_updates_admin.py web\services\legal_update_surface.py pct\scheduler.py pct\cli.py` | OK | Sintassi confermata dopo chiave canonica anti-duplicati, cleanup archivio, filtro utilita' studio legale, autopubblicazione contenuti ufficiali idonei, scheduler notturno e azioni admin/CLI. |
+| `python -m pytest tests/test_legal_updates_pipeline.py tests/test_scheduler_worker.py -q` | OK | 23/23 passati: autopubblicazione senza reinserimenti, duplicati giurisprudenziali, cleanup archivio, pagine/API admin Update Intelligence e trigger scheduler 00:00-05:00. |
+| `python -m ruff check pct\legal_update_repository.py pct\legal_update_pipeline.py pct\legal_update_ai.py web\blueprints\legal_updates_admin.py web\services\legal_update_surface.py pct\scheduler.py tests\test_legal_updates_pipeline.py tests\test_scheduler_worker.py` | OK | Ruff mirato verde sui file Python modificati, escluso `pct\cli.py` per lint legacy preesistente non collegato alla tranche; `pct\cli.py` e' stato verificato con compileall e help runtime. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py -q --tb=short` | OK | Packaging e readiness release 8/8 verdi su versione `2.243.1`; `Dockerfile`, `setup.py`, `railway.toml` e `pct/__init__.py` allineati. |
+| `python scripts\validate_docs_links.py docs\LEGAL_UPDATE_INTELLIGENCE.md`; `python scripts\validate_docs_commands.py`; `python -m pct.cli aggiornamenti-legali --help` | OK | Link/comandi documentali validi e nuova opzione CLI `--cleanup-only` esposta correttamente nella console. |
+| Cleanup locale archivi `data\intelligence\legal_updates.db`, `data\tenants\antonella-mammola\intelligence\legal_updates.db`, `data\tenants\tenant-8bf98719c459\intelligence\legal_updates.db` | OK | Rimossi 2 doppioni reali: 1 nel tenant `antonella-mammola` e 1 nel tenant `tenant-8bf98719c459`; dopo il riconto tutti e tre gli archivi hanno `groups=0` e `duplicate_items=0`. I database runtime restano non committati. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build --force-recreate redis app scheduler-worker ocr-worker nginx`; `GET http://127.0.0.1:8080/api/pronto`; `docker exec iusentra-app python -c "import pct; print(pct.__version__)"` | OK | Build locale no-cache finale completata con wheel `pct-studio-legale-2.243.1`, bundle React ricompilato dal Dockerfile, app/scheduler/OCR/Redis healthy, readiness locale 200 con `versione=2.243.1` e runtime container `2.243.1`. |
 
 ### Sito Studio Builder Pro 2.239.1 - 2026-05-15
 

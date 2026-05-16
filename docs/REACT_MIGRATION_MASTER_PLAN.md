@@ -1,5 +1,28 @@
 # Migrazione progressiva Flask + React
 
+## Hotfix Ricerca Legale con contesto fonte - 2026-05-16 - 2.239.3
+
+`/legal-intelligence/` e `/ricerca-legale` restano nel perimetro
+`react_operational_full`, ma la UX non e' piu' una raccolta di collegamenti.
+La dashboard diventa `Osservatorio Legale`, con mappa fonti/news/registri e
+percorso operativo; la ricerca costruisce schede interne con estratto,
+contesto, uso pratico, attendibilita' e query collegata.
+
+Il bridge backend arricchisce ogni record reale con `sourceExcerpt`,
+`sourceContext`, `practicalUse`, `reliabilityNote` e `followUpQuery`; il
+frontend usa questi campi per mostrare il contenuto utile dentro IUSENTRA,
+lasciando la fonte originale come controllo finale. Il flusso mantiene nessun
+POST HTML, nessuna CTA `_legacy=1`, nessun dato dimostrativo e nessun testo da
+sviluppatore visibile.
+
+Gate locali chiusi: typecheck, test frontend, build Vite, contratti React,
+Open Design, pytest mirato `tests/test_react_legal_intelligence_search.py`,
+compileall, packaging/readiness, Docker locale no-cache `2.239.3`, readiness
+locale e audit Chrome CDP desktop/mobile su `/legal-intelligence`,
+`/legal-intelligence/mediazione`, `/ricerca-legale` e
+`/ricerca-legale?q=mediazione`. Report visuale:
+`artifacts/react-migration/visual-2.239.3-legal-intelligence-context/visual-load-audit.md`.
+
 ## Tranche superadmin operativo - 2026-05-15 - 2.239.0
 
 Le pagine superadmin richieste restano nel perimetro di potenziamento prodotto,

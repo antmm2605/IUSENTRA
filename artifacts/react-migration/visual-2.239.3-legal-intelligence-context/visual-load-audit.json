@@ -1,0 +1,647 @@
+{
+  "startedAt": "2026-05-16T09:39:02.564Z",
+  "finishedAt": "2026-05-16T09:41:07.634Z",
+  "host": "http://127.0.0.1:8080",
+  "cdpHost": "http://127.0.0.1:9224",
+  "browser": "Chrome CDP",
+  "reuseTab": false,
+  "routeCount": 4,
+  "totalChecks": 8,
+  "failures": [],
+  "results": [
+    {
+      "routeName": "Legal Intelligence",
+      "route": "/legal-intelligence",
+      "viewport": "desktop",
+      "elapsedMs": 3505,
+      "url": "http://127.0.0.1:8080/legal-intelligence",
+      "title": "IUSENTRA",
+      "h1": "Osservatorio Legale",
+      "h2": "La conoscenza legale entra nel lavoro, non resta fuori dalla pagina.",
+      "textLength": 11270,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 71,
+      "cards": 48,
+      "links": [
+        {
+          "text": "Nuova ricerca",
+          "href": "/ricerca-legale"
+        },
+        {
+          "text": "Archivio giurisprudenza",
+          "href": "/giurisprudenza"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "https://pst.giustizia.it/PST/page/it/ripristinati_registro_organismi_di_mediazione_elenco_enti_per_la_mediazione_e_elenco_formatori_per_la_mediazione?contentId=NWS4865&modelId=4"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/03/27/26G00056/sg"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/03/27/26G00054/sg"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/03/25/T-260032/s1"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/03/25/26G00053/sg"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/04/02/26G00058/sg"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "https://www.gazzettaufficiale.it/showNewsDetail?id=8226&provenienza=home"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/04/03/26G00059/sg"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "https://mediazione.giustizia.it/ROM/ALBOORGANISMIMEDIAZIONE.ASPX"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "https://mediazione.giustizia.it/ROM/AlboEntiFormazione.aspx"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "https://mediazione.giustizia.it/ROM/AlboFormatori.aspx"
+        },
+        {
+          "text": "Apri fonte originale",
+          "href": "https://pst.giustizia.it/PST/page/it/ripristinati_registro_organismi_di_mediazione_elenco_enti_per_la_mediazione_e_elenco_formatori_per_la_mediazione?contentId=NWS4865&modelId=4"
+        },
+        {
+          "text": "Archivio giurisprudenza",
+          "href": "/giurisprudenza"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 7427,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "desktop-load-legal-intelligence.png",
+      "warnings": [
+        "retry_browser_nuovo_dopo: navigazione_timeout"
+      ],
+      "failures": []
+    },
+    {
+      "routeName": "Legal Intelligence Mediazione",
+      "route": "/legal-intelligence/mediazione",
+      "viewport": "desktop",
+      "elapsedMs": 5729,
+      "url": "http://127.0.0.1:8080/legal-intelligence/mediazione",
+      "title": "IUSENTRA",
+      "h1": "Registro Mediazione",
+      "h2": "Registri consultabili con il perché operativo già in pagina.",
+      "textLength": 4616,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 53,
+      "cards": 38,
+      "links": [
+        {
+          "text": "Nuova ricerca",
+          "href": "/ricerca-legale"
+        },
+        {
+          "text": "Archivio giurisprudenza",
+          "href": "/giurisprudenza"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "https://mediazione.giustizia.it/ROM/ALBOORGANISMIMEDIAZIONE.ASPX"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "https://mediazione.giustizia.it/ROM/AlboEntiFormazione.aspx"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "https://mediazione.giustizia.it/ROM/AlboFormatori.aspx"
+        },
+        {
+          "text": "Apri fonte originale",
+          "href": "https://mediazione.giustizia.it/ROM/ALBOORGANISMIMEDIAZIONE.ASPX"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 2924,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "desktop-load-legal-intelligence-mediazione.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Ricerca Legale",
+      "route": "/ricerca-legale",
+      "viewport": "desktop",
+      "elapsedMs": 3449,
+      "url": "http://127.0.0.1:8080/ricerca-legale",
+      "title": "IUSENTRA",
+      "h1": "Ricerca Legale",
+      "h2": "Trova la fonte e valuta subito se serve al fascicolo.",
+      "textLength": 12350,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 75,
+      "cards": 49,
+      "links": [
+        {
+          "text": "Archivio giurisprudenza",
+          "href": "/giurisprudenza"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "https://pst.giustizia.it/PST/page/it/ripristinati_registro_organismi_di_mediazione_elenco_enti_per_la_mediazione_e_elenco_formatori_per_la_mediazione?contentId=NWS4865&modelId=4"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/03/27/26G00056/sg"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/03/27/26G00054/sg"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/03/25/T-260032/s1"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/03/25/26G00053/sg"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/04/02/26G00058/sg"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "https://www.gazzettaufficiale.it/showNewsDetail?id=8226&provenienza=home"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/04/03/26G00059/sg"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/04/03/26G00060/sg"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/04/03/26G00061/sg"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "https://mediazione.giustizia.it/ROM/ALBOORGANISMIMEDIAZIONE.ASPX"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "https://mediazione.giustizia.it/ROM/AlboEntiFormazione.aspx"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "https://mediazione.giustizia.it/ROM/AlboFormatori.aspx"
+        },
+        {
+          "text": "Apri fonte originale",
+          "href": "https://pst.giustizia.it/PST/page/it/ripristinati_registro_organismi_di_mediazione_elenco_enti_per_la_mediazione_e_elenco_formatori_per_la_mediazione?contentId=NWS4865&modelId=4"
+        },
+        {
+          "text": "Archivio giurisprudenza",
+          "href": "/giurisprudenza"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 8377,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "desktop-load-ricerca-legale.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Ricerca Legale Mediazione",
+      "route": "/ricerca-legale?q=mediazione",
+      "viewport": "desktop",
+      "elapsedMs": 4830,
+      "url": "http://127.0.0.1:8080/ricerca-legale?q=mediazione",
+      "title": "IUSENTRA",
+      "h1": "Ricerca Legale",
+      "h2": "Trova la fonte e valuta subito se serve al fascicolo.",
+      "textLength": 16297,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 74,
+      "cards": 48,
+      "links": [
+        {
+          "text": "Archivio giurisprudenza",
+          "href": "/giurisprudenza"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/04/03/26G00060/sg"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/04/02/26G00058/sg"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "https://www.gazzettaufficiale.it/showNewsDetail?id=8226&provenienza=home"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/04/03/26G00059/sg"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/03/25/26G00053/sg"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/03/27/26G00056/sg"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/03/27/26G00054/sg"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/03/25/T-260032/s1"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "https://pst.giustizia.it/PST/page/it/ripristinati_registro_organismi_di_mediazione_elenco_enti_per_la_mediazione_e_elenco_formatori_per_la_mediazione?contentId=NWS4865&modelId=4"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "https://mediazione.giustizia.it/ROM/ALBOORGANISMIMEDIAZIONE.ASPX"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "https://mediazione.giustizia.it/ROM/AlboEntiFormazione.aspx"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "https://mediazione.giustizia.it/ROM/AlboFormatori.aspx"
+        },
+        {
+          "text": "Apri fonte originale",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/04/03/26G00060/sg"
+        },
+        {
+          "text": "Archivio giurisprudenza",
+          "href": "/giurisprudenza"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 8690,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "desktop-load-ricerca-legale-mediazione.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Legal Intelligence",
+      "route": "/legal-intelligence",
+      "viewport": "mobile",
+      "elapsedMs": 3771,
+      "url": "http://127.0.0.1:8080/legal-intelligence",
+      "title": "IUSENTRA",
+      "h1": "Osservatorio Legale",
+      "h2": "La conoscenza legale entra nel lavoro, non resta fuori dalla pagina.",
+      "textLength": 11022,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 71,
+      "cards": 48,
+      "links": [
+        {
+          "text": "Nuova ricerca",
+          "href": "/ricerca-legale"
+        },
+        {
+          "text": "Archivio giurisprudenza",
+          "href": "/giurisprudenza"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "https://pst.giustizia.it/PST/page/it/ripristinati_registro_organismi_di_mediazione_elenco_enti_per_la_mediazione_e_elenco_formatori_per_la_mediazione?contentId=NWS4865&modelId=4"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/03/27/26G00056/sg"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/03/27/26G00054/sg"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/03/25/T-260032/s1"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/03/25/26G00053/sg"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/04/02/26G00058/sg"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "https://www.gazzettaufficiale.it/showNewsDetail?id=8226&provenienza=home"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/04/03/26G00059/sg"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "https://mediazione.giustizia.it/ROM/ALBOORGANISMIMEDIAZIONE.ASPX"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "https://mediazione.giustizia.it/ROM/AlboEntiFormazione.aspx"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "https://mediazione.giustizia.it/ROM/AlboFormatori.aspx"
+        },
+        {
+          "text": "Apri fonte originale",
+          "href": "https://pst.giustizia.it/PST/page/it/ripristinati_registro_organismi_di_mediazione_elenco_enti_per_la_mediazione_e_elenco_formatori_per_la_mediazione?contentId=NWS4865&modelId=4"
+        },
+        {
+          "text": "Archivio giurisprudenza",
+          "href": "/giurisprudenza"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 13472,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-legal-intelligence.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Legal Intelligence Mediazione",
+      "route": "/legal-intelligence/mediazione",
+      "viewport": "mobile",
+      "elapsedMs": 4638,
+      "url": "http://127.0.0.1:8080/legal-intelligence/mediazione",
+      "title": "IUSENTRA",
+      "h1": "Registro Mediazione",
+      "h2": "Registri consultabili con il perché operativo già in pagina.",
+      "textLength": 4365,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 53,
+      "cards": 38,
+      "links": [
+        {
+          "text": "Nuova ricerca",
+          "href": "/ricerca-legale"
+        },
+        {
+          "text": "Archivio giurisprudenza",
+          "href": "/giurisprudenza"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "https://mediazione.giustizia.it/ROM/ALBOORGANISMIMEDIAZIONE.ASPX"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "https://mediazione.giustizia.it/ROM/AlboEntiFormazione.aspx"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "https://mediazione.giustizia.it/ROM/AlboFormatori.aspx"
+        },
+        {
+          "text": "Apri fonte originale",
+          "href": "https://mediazione.giustizia.it/ROM/ALBOORGANISMIMEDIAZIONE.ASPX"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 6312,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-legal-intelligence-mediazione.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Ricerca Legale",
+      "route": "/ricerca-legale",
+      "viewport": "mobile",
+      "elapsedMs": 3552,
+      "url": "http://127.0.0.1:8080/ricerca-legale",
+      "title": "IUSENTRA",
+      "h1": "Ricerca Legale",
+      "h2": "Trova la fonte e valuta subito se serve al fascicolo.",
+      "textLength": 11906,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 75,
+      "cards": 49,
+      "links": [
+        {
+          "text": "Archivio giurisprudenza",
+          "href": "/giurisprudenza"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "https://pst.giustizia.it/PST/page/it/ripristinati_registro_organismi_di_mediazione_elenco_enti_per_la_mediazione_e_elenco_formatori_per_la_mediazione?contentId=NWS4865&modelId=4"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/03/27/26G00056/sg"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/03/27/26G00054/sg"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/03/25/T-260032/s1"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/03/25/26G00053/sg"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/04/02/26G00058/sg"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "https://www.gazzettaufficiale.it/showNewsDetail?id=8226&provenienza=home"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/04/03/26G00059/sg"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/04/03/26G00060/sg"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/04/03/26G00061/sg"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "https://mediazione.giustizia.it/ROM/ALBOORGANISMIMEDIAZIONE.ASPX"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "https://mediazione.giustizia.it/ROM/AlboEntiFormazione.aspx"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "https://mediazione.giustizia.it/ROM/AlboFormatori.aspx"
+        },
+        {
+          "text": "Apri fonte originale",
+          "href": "https://pst.giustizia.it/PST/page/it/ripristinati_registro_organismi_di_mediazione_elenco_enti_per_la_mediazione_e_elenco_formatori_per_la_mediazione?contentId=NWS4865&modelId=4"
+        },
+        {
+          "text": "Archivio giurisprudenza",
+          "href": "/giurisprudenza"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 14339,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-ricerca-legale.png",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "routeName": "Ricerca Legale Mediazione",
+      "route": "/ricerca-legale?q=mediazione",
+      "viewport": "mobile",
+      "elapsedMs": 4257,
+      "url": "http://127.0.0.1:8080/ricerca-legale?q=mediazione",
+      "title": "IUSENTRA",
+      "h1": "Ricerca Legale",
+      "h2": "Trova la fonte e valuta subito se serve al fascicolo.",
+      "textLength": 15853,
+      "hasRoot": true,
+      "hasShell": true,
+      "actions": 74,
+      "cards": 48,
+      "links": [
+        {
+          "text": "Archivio giurisprudenza",
+          "href": "/giurisprudenza"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/04/03/26G00060/sg"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/04/02/26G00058/sg"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "https://www.gazzettaufficiale.it/showNewsDetail?id=8226&provenienza=home"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/04/03/26G00059/sg"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/03/25/26G00053/sg"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/03/27/26G00056/sg"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/03/27/26G00054/sg"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/03/25/T-260032/s1"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "https://pst.giustizia.it/PST/page/it/ripristinati_registro_organismi_di_mediazione_elenco_enti_per_la_mediazione_e_elenco_formatori_per_la_mediazione?contentId=NWS4865&modelId=4"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "https://mediazione.giustizia.it/ROM/ALBOORGANISMIMEDIAZIONE.ASPX"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "https://mediazione.giustizia.it/ROM/AlboEntiFormazione.aspx"
+        },
+        {
+          "text": "Fonte originale",
+          "href": "https://mediazione.giustizia.it/ROM/AlboFormatori.aspx"
+        },
+        {
+          "text": "Apri fonte originale",
+          "href": "http://www.gazzettaufficiale.it/eli/id/2026/04/03/26G00060/sg"
+        },
+        {
+          "text": "Archivio giurisprudenza",
+          "href": "/giurisprudenza"
+        }
+      ],
+      "postForms": [],
+      "forbidden": [],
+      "forbiddenContexts": [],
+      "horizontalOverflow": false,
+      "scrollHeight": 16043,
+      "loadingContext": [],
+      "console": [],
+      "screenshot": "mobile-load-ricerca-legale-mediazione.png",
+      "warnings": [],
+      "failures": []
+    }
+  ]
+}

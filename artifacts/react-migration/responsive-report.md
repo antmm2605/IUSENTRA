@@ -21,6 +21,7 @@ Route full/partial principali: amministrazione, studio, backup, sito studio, fat
 - 2026-05-15: audit Chrome CDP 2.236.4 su 46 route x desktop/mobile, con sessione tenant reale. Nessun overflow orizzontale rilevato; tabelle IUSENTRA trasformate in card leggibili su mobile tramite `data-label`; action row, bottoni e topbar supportano wrapping a 125%, 150% e mobile landscape senza taglio del testo.
 - 2026-05-15: rifinitura 2.236.5 verificata con Chrome CDP su 46 route desktop/mobile e retry mirato `/soggetti/nuovo` mobile. La barra Ricerca Studio usa font-size stabile, hint non tecnico e nasconde il suggerimento compatto su mobile; nessun overflow orizzontale o avviso residuo sulle rotte passate.
 - 2026-05-15: `/sito-studio/builder` 2.239.1 verificato con Chrome CDP desktop 1600x1000, tablet e mobile. Desktop: pannello sinistro 380px, barra icone 92px, preview 1121px e resize a 480px senza overflow. Tablet/mobile: preview mantiene menu integrato e navigazione visibile, il pannello degrada senza maniglia e la pagina resta senza sovrapposizioni.
+- 2026-05-16: `/legal-intelligence`, `/legal-intelligence/mediazione`, `/ricerca-legale` e `/ricerca-legale?q=mediazione` 2.239.3 verificati con Chrome CDP desktop/mobile. La scheda contesto laterale diventa blocco non sticky sotto 1180px, filtri e ricerche guidate collassano a colonna singola, nessun overflow orizzontale.
 
 ## Rischi residui
 

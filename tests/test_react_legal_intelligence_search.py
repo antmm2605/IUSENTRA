@@ -101,6 +101,10 @@ def test_ricerca_legale_interroga_repository_e_mantiene_estratti(monkeypatch):
         "Circolare credito imposta investimenti",
     ]
     assert all(record["subtitle"] for record in payload["records"][:2])
+    assert all(record["sourceExcerpt"] for record in payload["records"][:2])
+    assert all(record["sourceContext"] for record in payload["records"][:2])
+    assert all(record["practicalUse"] for record in payload["records"][:2])
+    assert all(record["reliabilityNote"] for record in payload["records"][:2])
 
 
 def test_ricerca_legale_attiva_fonti_ufficiali_quando_archivio_non_basta(monkeypatch):
@@ -183,6 +187,8 @@ def test_mediazione_espone_accessi_ufficiali_ripristinati():
         assert record["date"] == "22/04/2026"
         assert record["approvalLabel"] == "ripristinato"
         assert record["evidenceType"] == "accesso ufficiale"
+        assert record["sourceContext"]
+        assert "mediazione" in record["practicalUse"].lower()
 
     assert any(
         record["id"] == "mediazione-elenco-formatori"

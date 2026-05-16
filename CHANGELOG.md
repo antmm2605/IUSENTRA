@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.239.3 - 2026-05-16
+
+- Trasformate `/legal-intelligence/` e `/ricerca-legale` in un workspace professionale: `Osservatorio Legale` per governare fonti/news/registri e `Ricerca Legale` per costruire schede contestualizzate.
+- Ogni record fonte porta dentro IUSENTRA estratto, contesto, uso pratico, attendibilita' e ricerca collegata; la fonte originale resta azione di controllo finale, non contenuto principale.
+- Ridisegnata la UI con percorso operativo, ricerca guidata, mappa del contesto, scheda laterale/sticky e card risultati orientate all'avvocato, senza dati demo o testi tecnici visibili.
+- Aggiunti guardrail React e test backend per impedire regressioni verso pagine solo a collegamenti; verificati typecheck, test frontend, build, pytest mirati, Docker locale no-cache e audit Chrome CDP desktop/mobile.
+
 ## 2.239.2 - 2026-05-16
 
 - Integrati nella scheda React `Registro Mediazione` e nella Ricerca Legale i tre accessi ufficiali ripristinati dal 22/04/2026: Registro Organismi di Mediazione, Elenco Enti per la Mediazione ed Elenco Formatori per la Mediazione.

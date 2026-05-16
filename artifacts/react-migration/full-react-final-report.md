@@ -779,3 +779,22 @@ Gate locali: typecheck, build, test frontend, pytest builder/assets 7/7, Ruff
 mirato, gate React, packaging/readiness, Docker no-cache 2.239.1 e Chrome CDP
 autenticato su `/sito-studio/builder` desktop/tablet/mobile. Report visuale:
 `artifacts/react-migration/visual-2.239.1-sito-studio-builder/visual-load-audit.md`.
+
+## Ricerca Legale con contesto fonte 2.239.3
+
+Le pagine `/legal-intelligence/` e `/ricerca-legale` sono state ricostruite come
+workspace professionale per l'avvocato. La prima e' ora `Osservatorio Legale`,
+dedicata a governare fonti, news e registri; la seconda costruisce schede
+consultabili dentro IUSENTRA, evitando la sensazione di raccolta di collegamenti.
+
+Ogni fonte porta in pagina estratto, contesto, provenienza, data, uso pratico,
+attendibilita' e ricerca collegata. Le azioni principali sono `Leggi contesto`,
+`Cerca collegati`, archivio giurisprudenza e fonte originale come verifica
+finale. I registri mediazione ripristinati restano disponibili come fonti
+ufficiali distinte.
+
+Gate locali: typecheck, test frontend, contratti React, Open Design, pytest
+Legal Intelligence 4/4, compileall, packaging/readiness, build Vite 2.239.3,
+Docker locale no-cache e Chrome CDP autenticato desktop/mobile sulle quattro
+route Legal Intelligence. Report visuale:
+`artifacts/react-migration/visual-2.239.3-legal-intelligence-context/visual-load-audit.md`.

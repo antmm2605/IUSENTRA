@@ -166,3 +166,10 @@ Card operative: ActionCard, CompactCard, KpiCard esistente, DetailPanel, Summary
 - La grafica replica il riferimento B: topbar scura, panel compatto, tab verticali con icone lineari, preview live dominante, card e controlli densi ma leggibili.
 - I controlli avanzati non sono decorativi: font, dimensioni, colori, effetti, allineamenti, formattazione e media modificano realmente la preview e sono persistiti nel tema del sito pubblico.
 - Verifica CDP: nessun overflow, footer live visibile, menu tablet/mobile presente, toolbar testo e resize funzionanti; screenshot in `artifacts/react-migration/visual-2.239.1-sito-studio-builder/`.
+
+## Aggiornamento 2.239.3 - 2026-05-16
+
+- `/legal-intelligence/` usa il titolo `Osservatorio Legale` e separa governo fonti/news/registri dalla ricerca puntuale.
+- `/ricerca-legale` presenta una scheda fonte professionale con estratto, contesto, uso pratico e attendibilita', cosi l'avvocato non vede piu' una lista di accessi esterni.
+- Card, mappa del contesto, tab e filtri usano icone Lucide, microcopy italiano e densita' coerente con il design system IUSENTRA.
+- Verifica CDP desktop/mobile: 8/8 controlli OK sulle route Legal Intelligence, nessun testo tecnico vietato, nessun overflow e nessun form POST HTML.

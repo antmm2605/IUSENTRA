@@ -10,6 +10,11 @@ export type LegalIntelligenceRecord = {
   sourceLabel: string
   sourceKind: string
   sourceHref: string
+  sourceExcerpt: string
+  sourceContext: string[]
+  practicalUse: string
+  reliabilityNote: string
+  followUpQuery: string
   date: string
   area: string
   branch: string
@@ -91,6 +96,12 @@ function safeHref(value: unknown, fallback = ''): string {
   return fallback
 }
 
+function textList(value: unknown): string[] {
+  return list(value)
+    .map((item) => display(item))
+    .filter(Boolean)
+}
+
 function normaliseMetric(input: unknown): LegalMetric {
   const item = asRecord(input)
   return {
@@ -151,6 +162,11 @@ function normaliseRecord(input: unknown): LegalIntelligenceRecord {
     sourceLabel: display(item.sourceLabel) || 'Fonte',
     sourceKind: display(item.sourceKind),
     sourceHref: safeHref(item.sourceHref),
+    sourceExcerpt: display(item.sourceExcerpt) || display(item.subtitle),
+    sourceContext: textList(item.sourceContext),
+    practicalUse: display(item.practicalUse),
+    reliabilityNote: display(item.reliabilityNote),
+    followUpQuery: display(item.followUpQuery),
     date: display(item.date),
     area: display(item.area),
     branch: display(item.branch),

@@ -407,19 +407,102 @@ def _search_type_label(value: Any) -> str:
     return text or "fonte"
 
 
+def _record_follow_up_query(record: Mapping[str, Any]) -> str:
+    parts = [
+        _text(record.get("title")),
+        _text(record.get("area")),
+        _text(record.get("branch")),
+        _text(record.get("sourceLabel")),
+    ]
+    return _short(" ".join(part for part in parts if part), 180)
+
+
+def _record_practical_use(record: Mapping[str, Any]) -> str:
+    kind = _text(record.get("kind")).lower()
+    title = _text(record.get("title")).lower()
+    area = _text(record.get("area") or record.get("branch"))
+    if "mediazione" in kind or "mediazione" in title:
+        return "Usa questa scheda per verificare soggetti e requisiti collegati alla mediazione prima di scegliere organismo, ente o formatore."
+    if "news" in kind:
+        return "Usa l'aggiornamento per capire se il fascicolo richiede una verifica normativa, giurisprudenziale o organizzativa."
+    if "giurisprudenza" in kind:
+        return "Usa l'estratto per individuare autorità, data e materia prima del confronto con l'archivio giurisprudenza."
+    if "normativa" in kind:
+        return "Usa la fonte per controllare testo vigente, data di pubblicazione e collegamenti normativi prima dell'atto o del parere."
+    if "prassi" in kind:
+        return "Usa il riferimento per valutare l'indirizzo amministrativo e confrontarlo con il caso concreto."
+    if area:
+        return f"Usa la scheda per valutare pertinenza, fonte e data rispetto all'area {area}."
+    return "Usa la scheda per valutare pertinenza, fonte e data prima di inserirla nel lavoro di studio."
+
+
+def _record_reliability_note(record: Mapping[str, Any]) -> str:
+    source_kind = _text(record.get("sourceKind")).lower()
+    source_href = _text(record.get("sourceHref"))
+    if "ufficiale" in source_kind or _is_official_href(source_href):
+        return "Fonte ufficiale o istituzionale: il testo originale resta disponibile per il controllo finale prima di atti, pareri o depositi."
+    if "verificare" in source_kind:
+        return "Fonte da controllare: usa il contesto come orientamento e verifica il testo originale prima dell'uso professionale."
+    if source_kind:
+        return "Fonte censita nello studio: conserva il contesto utile e richiede controllo professionale prima dell'uso."
+    return "Informazione disponibile nello studio: verifica la fonte prima di usarla in un atto o in un parere."
+
+
+def _record_context_items(record: Mapping[str, Any], excerpt: str) -> list[str]:
+    items: list[str] = []
+    if excerpt:
+        items.append(f"Contenuto: {excerpt}")
+    scope = " / ".join(
+        part
+        for part in (
+            _text(record.get("area")),
+            _text(record.get("branch")),
+            _text(record.get("territory")),
+        )
+        if part
+    )
+    if scope:
+        items.append(f"Ambito: {scope}")
+    if _text(record.get("date")):
+        items.append(f"Aggiornamento: {_text(record.get('date'))}")
+    if _text(record.get("registryNumber")):
+        items.append(f"Registro: {_text(record.get('registryNumber'))}")
+    if _text(record.get("sourceLabel")):
+        items.append(f"Provenienza: {_text(record.get('sourceLabel'))}")
+    return items[:5]
+
+
+def _enrich_record_context(record: Mapping[str, Any]) -> dict[str, Any]:
+    enriched = dict(record)
+    excerpt = _short(
+        enriched.get("sourceExcerpt")
+        or enriched.get("subtitle")
+        or enriched.get("summary")
+        or enriched.get("title"),
+        560,
+    )
+    enriched["sourceExcerpt"] = excerpt
+    enriched["sourceContext"] = _record_context_items(enriched, excerpt)
+    enriched["practicalUse"] = _record_practical_use(enriched)
+    enriched["reliabilityNote"] = _record_reliability_note(enriched)
+    enriched["followUpQuery"] = _record_follow_up_query(enriched)
+    return enriched
+
+
 def _safe_search_record(row: Mapping[str, Any], index: int) -> dict[str, Any]:
     source_href = _safe_href(row.get("official_url") or row.get("source_url") or row.get("url"))
     source_label = _text(row.get("authority") or row.get("source_name") or row.get("source_code")) or _source_label_from_url(source_href)
     verified = bool(row.get("verified_reference") or row.get("is_official") or _is_official_href(source_href))
     kind = _search_type_label(row.get("type") or row.get("entity_type") or row.get("category"))
     title = _text(row.get("title") or row.get("headline") or row.get("name")) or "Fonte ricerca legale"
-    excerpt = _short(row.get("excerpt") or row.get("content") or row.get("summary") or row.get("short_summary"), 320)
+    excerpt = _short(row.get("excerpt") or row.get("content") or row.get("summary") or row.get("short_summary"), 560)
     matter = _text(row.get("matter_name") or row.get("matter_slug") or row.get("category"))
     return {
         "id": _text(row.get("id")) or f"ricerca_{index}",
         "kind": kind,
         "title": title,
         "subtitle": excerpt,
+        "sourceExcerpt": excerpt,
         "sourceLabel": source_label,
         "sourceKind": "fonte ufficiale" if verified else "fonte da verificare",
         "sourceHref": source_href,
@@ -437,13 +520,14 @@ def _safe_public_source_record(source: Any, index: int) -> dict[str, Any]:
     source_href = _safe_href(_value(source, "url"))
     source_name = _text(_value(source, "source_name")) or _source_label_from_url(source_href)
     official = bool(_value(source, "official") or _is_official_href(source_href))
-    excerpt = _short(_value(source, "excerpt"), 320)
+    excerpt = _short(_value(source, "excerpt"), 560)
     kind = _search_type_label(_value(source, "source_type"))
     return {
         "id": _text(_value(source, "id")) or f"fonte_ufficiale_{index}",
         "kind": kind,
         "title": _text(_value(source, "title")) or "Fonte ufficiale",
         "subtitle": excerpt,
+        "sourceExcerpt": excerpt,
         "sourceLabel": source_name,
         "sourceKind": "fonte ufficiale" if official else "fonte pubblica",
         "sourceHref": source_href,
@@ -636,6 +720,8 @@ def build_react_legal_intelligence_payload(
     else:
         records = news_records[:8] + mediazione_official_records[:3] + mediazione_records[:5]
         legacy_contract = "artifacts/react-migration/legacy-contracts/legal-intelligence.json"
+
+    records = [_enrich_record_context(record) for record in records]
 
     search_section = _section(
         "ricerca",

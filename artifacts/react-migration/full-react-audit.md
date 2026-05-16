@@ -429,3 +429,23 @@ nessuna CTA `_legacy=1` e nessun termine tecnico visibile introdotto. Test
 mirato `tests/test_react_legal_intelligence_search.py` verde con 4/4 casi.
 Docker locale no-cache e deploy Hetzner CPX42 confermati su versione `2.239.2`,
 con `/api/pronto` pubblico verde e cron backup non aggiornato.
+
+## Aggiornamento 2.239.3 - 2026-05-16
+
+`/legal-intelligence/` non e' piu' una seconda vista generica di ricerca: diventa
+`Osservatorio Legale`, con mappa fonti/news/registri, percorso operativo e
+schede governate. `/ricerca-legale` costruisce risultati consultabili dentro
+IUSENTRA, con estratto fonte, contesto, uso pratico, attendibilita' e ricerca
+collegata.
+
+Controlli anti-mascheramento: il bridge espone campi contestuali reali
+(`sourceExcerpt`, `sourceContext`, `practicalUse`, `reliabilityNote`,
+`followUpQuery`), la UI usa `Leggi contesto` come azione primaria e la fonte
+originale resta controllo finale. Nessun dato demo, nessun `_legacy=1`, nessun
+form POST HTML e nessun testo tecnico vietato nel perimetro.
+
+Verifica visuale finale: Chrome CDP autenticato desktop/mobile su
+`/legal-intelligence`, `/legal-intelligence/mediazione`, `/ricerca-legale` e
+`/ricerca-legale?q=mediazione`, 8/8 controlli OK senza overflow, redirect login,
+console error o testo tecnico visibile. Report:
+`artifacts/react-migration/visual-2.239.3-legal-intelligence-context/visual-load-audit.md`.

@@ -227,6 +227,12 @@ Questo file e' la coda di lavoro. Prima di rilanciare test gia' passati, control
 | --- | --- | --- | --- | --- |
 | `/legal-intelligence/mediazione` accessi ufficiali | Pytest mirato e compileall registrati in `pytest-confirmed-ok.md` | Nessuna issue aperta nuova | La pagina Mediazione espone Registro Organismi di Mediazione, Elenco Enti per la Mediazione ed Elenco Formatori per la Mediazione come tre schede ufficiali distinte; la Ricerca Legale li trova senza avviare fallback web. | Per modifiche future rilanciare `tests/test_react_legal_intelligence_search.py` e verificare visivamente `/legal-intelligence/mediazione` se si tocca `LegalIntelligencePage` o il CSS. |
 
+## Note Ricerca Legale con contesto fonte 2.239.3 - 2026-05-16
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| `/legal-intelligence/` e `/ricerca-legale` | Gate mirati, build, Docker locale e Chrome CDP registrati in `pytest-confirmed-ok.md` | Nessuna issue aperta nuova | Le fonti non sono piu' rese come semplice elenco di collegamenti: ogni record ha estratto, contesto interno, uso pratico, attendibilita' e ricerca collegata. `/legal-intelligence/` e' ora `Osservatorio Legale`; `/ricerca-legale` costruisce schede interne. | Per modifiche future rilanciare almeno `tests/test_react_legal_intelligence_search.py`, `npm --prefix frontend run typecheck`, `node frontend\scripts\check-react-contracts.mjs`, build Vite e audit visuale sulle quattro route Legal Intelligence. |
+
 ## Note Legal Skills default-on 2.238.1 - 2026-05-15
 
 | Area | Gate | Stato | Nota | Azione |

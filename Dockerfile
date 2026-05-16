@@ -1,4 +1,4 @@
-#  version: 2.243.1
+#  version: 2.243.2
 #  IUSENTRA | Dockerfile produzione
 
 #  Build multi-stage:
@@ -82,7 +82,7 @@ ENV NODE_ENV=production
 COPY package.json ./
 COPY frontend/package.json frontend/package.json
 COPY frontend/package-lock.json frontend/package-lock.json
-RUN npm --prefix frontend ci --no-audit --no-fund --loglevel=error
+RUN npm --prefix frontend ci --include=dev --no-audit --no-fund --loglevel=error
 
 # Sorgenti del frontend + alias che puntano fuori da frontend/
 COPY frontend ./frontend
@@ -102,7 +102,7 @@ RUN npm --prefix frontend run build:vite \
 FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="IUSENTRA" \
-      org.opencontainers.image.version="2.243.1" \
+      org.opencontainers.image.version="2.243.2" \
       org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
       org.opencontainers.image.created="2026-03-18"
 

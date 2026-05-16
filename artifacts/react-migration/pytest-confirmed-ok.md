@@ -1,12 +1,19 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-16, Aggiornamenti legali deduplica/autopubblicazione 2.243.1.
+Aggiornato: 2026-05-16, build Docker frontend Hetzner 2.243.2.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Build Docker frontend Hetzner 2.243.2 - 2026-05-16
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py -q --tb=short`; `npm --prefix frontend run build:vite`; `git diff --check -- . ':!data/*'` | OK | Packaging/readiness 8/8, build Vite e whitespace check verdi dopo bump `2.243.2` e hardening del Dockerfile frontend. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build --force-recreate redis app scheduler-worker ocr-worker nginx`; `GET http://127.0.0.1:8080/api/pronto`; `docker exec iusentra-app python -c "import pct; print(pct.__version__)"` | OK | Build Docker no-cache riprodotta con `node_modules` esclusi dal contesto: lo stage Vite installa Tailwind/PostCSS con `--include=dev`, wheel `pct-studio-legale-2.243.2`, app/scheduler/OCR/Redis healthy, readiness locale 200 `versione=2.243.2` e runtime container `2.243.2`. |
 
 ### Aggiornamenti legali deduplica/autopubblicazione 2.243.1 - 2026-05-16
 

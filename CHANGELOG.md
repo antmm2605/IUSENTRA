@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.243.2 - 2026-05-16
+
+- Resa ripetibile la build Docker del frontend anche su Hetzner: lo stage Vite installa esplicitamente le devDependencies necessarie alla compilazione Tailwind/PostCSS.
+- Esclusi i `node_modules` dal contesto Docker, cosi' la build locale non puo' piu' mascherare dipendenze mancanti sul server.
+
 ## 2.243.1 - 2026-05-16
 
 - Ristrutturata la console `/admin/aggiornamenti-legali/`: dashboard piu' operativa, stato duplicati, finestra notturna 00:00-05:00, pulizia archivio e azioni dirette per cercare, catalogare e pubblicare.

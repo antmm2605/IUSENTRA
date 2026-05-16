@@ -33,6 +33,8 @@ env/
 # Sviluppo e test
 .env
 .env.*
+node_modules/
+**/node_modules/
 tests/
 *.test.*
 

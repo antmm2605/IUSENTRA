@@ -202,7 +202,7 @@ def build_react_redazione_atti_payload(
             _action("catalogo", "Catalogo template", "/template-atti/catalogo", "primary"),
             _action("fascicoli", "Fascicoli", "/fascicoli", "primary"),
             _action("preventivi", "Preventivi", "/preventivi", "neutral"),
-            _action("intelligence", "Ricerca legale", "/legal-intelligence", "neutral"),
+            _action("intelligence", "Ricerca legale", "/ricerca-legale", "neutral"),
         ],
         "forms": [],
         "warnings": warnings,

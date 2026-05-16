@@ -302,7 +302,7 @@ def _safe_news_record(row: Mapping[str, Any], index: int) -> dict[str, Any]:
         "branch": _text(row.get("submatter_name") or row.get("submatter_slug")),
         "approvalLabel": status or "pubblicata",
         "approvalTone": _tone(status or "published"),
-        "legacyHref": f"/legal-intelligence/news?scheda={slug}" if slug else "/legal-intelligence/news",
+        "legacyHref": f"/ricerca-legale/news?scheda={slug}" if slug else "/ricerca-legale/news",
         "evidenceType": "fonte",
     }
 
@@ -325,7 +325,7 @@ def _safe_mediazione_record(row: Mapping[str, Any], index: int) -> dict[str, Any
         "stateLabel": _text(row.get("status") or row.get("state") or "presente"),
         "stateTone": _tone(row.get("status") or row.get("state") or "ok"),
         "registryNumber": registration,
-        "legacyHref": f"/legal-intelligence/mediazione?organismo={registration}" if registration else "/legal-intelligence/mediazione",
+        "legacyHref": f"/ricerca-legale/mediazione?organismo={registration}" if registration else "/ricerca-legale/mediazione",
         "evidenceType": "fonte",
     }
 
@@ -349,7 +349,7 @@ def _pst_mediazione_recovery_news_record() -> dict[str, Any]:
         "approvalLabel": "pubblicata",
         "approvalTone": "success",
         "registryNumber": "NWS4865",
-        "legacyHref": "/legal-intelligence/news?scheda=pst-nws4865-ripristino-mediazione",
+        "legacyHref": "/ricerca-legale/news?scheda=pst-nws4865-ripristino-mediazione",
         "evidenceType": "fonte ufficiale",
     }
 
@@ -375,7 +375,7 @@ def _mediazione_official_registry_records() -> list[dict[str, Any]]:
                 "stateTone": "success",
                 "territory": "Italia",
                 "registryNumber": "",
-                "legacyHref": f"/legal-intelligence/mediazione?scheda={item['id']}",
+                "legacyHref": f"/ricerca-legale/mediazione?scheda={item['id']}",
                 "evidenceType": "accesso ufficiale",
             }
         )
@@ -640,9 +640,9 @@ def _empty_payload(source: str, message: str, legacy_contract: str) -> dict[str,
         "sections": [],
         "records": [],
         "actions": [
-            _action("dashboard", "Ricerca legale", "/legal-intelligence", "primary"),
-            _action("news", "News legali", "/legal-intelligence/news", "neutral"),
-            _action("mediazione", "Registro mediazione", "/legal-intelligence/mediazione", "neutral"),
+            _action("dashboard", "Ricerca legale", "/ricerca-legale", "primary"),
+            _action("news", "News legali", "/ricerca-legale/news", "neutral"),
+            _action("mediazione", "Registro mediazione", "/ricerca-legale/mediazione", "neutral"),
         ],
         "forms": [],
         "warnings": [_warning("legal_intelligence_non_disponibile", message)],
@@ -794,9 +794,9 @@ def build_react_legal_intelligence_payload(
         ],
         "records": records,
         "actions": [
-            _action("dashboard", "Ricerca legale", "/legal-intelligence", "primary"),
-            _action("news", "News legali", "/legal-intelligence/news", "primary"),
-            _action("mediazione", "Registro mediazione", "/legal-intelligence/mediazione", "neutral"),
+            _action("dashboard", "Ricerca legale", "/ricerca-legale", "primary"),
+            _action("news", "News legali", "/ricerca-legale/news", "primary"),
+            _action("mediazione", "Registro mediazione", "/ricerca-legale/mediazione", "neutral"),
             _action("giurisprudenza", "Archivio giurisprudenza", "/giurisprudenza", "neutral"),
         ],
         "forms": [],

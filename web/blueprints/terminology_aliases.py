@@ -58,9 +58,9 @@ def ricerca_studio():
     return _redirect_to("global_search.index")
 
 
-@terminology_aliases.get("/ricerca-legale")
-def ricerca_legale():
-    return _redirect_path("/legal-intelligence/ricerca")
+# /legal-intelligence/* è ridiretto al canonico /ricerca-legale/* dal hook
+# `_legal_intelligence_canonical_redirect` in `web/bootstrap/react_route_gate.py`,
+# che agisce prima di qualsiasi dispatch (compresa la shell React).
 
 
 @terminology_aliases.get("/strumenti-operativi")

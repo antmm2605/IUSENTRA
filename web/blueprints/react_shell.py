@@ -384,12 +384,14 @@ def _deve_mantenere_vista_classica() -> bool:
         return True
     if lower.startswith("/giurisprudenza/"):
         return True
-    if lower.startswith("/legal-intelligence/") and lower not in {
-        "/legal-intelligence/news",
-        "/legal-intelligence/mediazione",
-    }:
+    # /legal-intelligence/fonte/<id>/scarica e /daily/ restano legacy (download file e rendering server-side).
+    if lower.startswith("/legal-intelligence/fonte/") and lower.endswith("/scarica"):
         return True
-    if lower.startswith("/ricerca-legale/"):
+    if lower.startswith("/ricerca-legale/fonte/") and lower.endswith("/scarica"):
+        return True
+    if lower.startswith("/legal-intelligence/daily/"):
+        return True
+    if lower.startswith("/ricerca-legale/daily/"):
         return True
     if lower in _REACT_TELEMATICO_GRAPHICAL_PATHS:
         return False

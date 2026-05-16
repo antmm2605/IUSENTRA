@@ -40,9 +40,12 @@ const quickQueries: Record<LegalIntelligenceView, string[]> = {
 
 function currentView(): LegalIntelligenceView {
   const route = (window.location.pathname.replace(/\/+$/, '') || '/').toLowerCase()
-  if (route === '/legal-intelligence/news') return 'news'
-  if (route === '/legal-intelligence/mediazione') return 'mediazione'
-  if (route === '/ricerca-legale') return 'ricerca-legale'
+  // path canonici (v2.242.0+): /ricerca-legale/* è la home; /legal-intelligence/*
+  // viene ridiretto lato server con HTTP 301.
+  if (route === '/ricerca-legale/news' || route === '/legal-intelligence/news') return 'news'
+  if (route === '/ricerca-legale/mediazione' || route === '/legal-intelligence/mediazione') return 'mediazione'
+  if (route === '/ricerca-legale/ricerca') return 'ricerca-legale'
+  if (route === '/ricerca-legale') return 'dashboard'
   return 'dashboard'
 }
 
@@ -188,11 +191,13 @@ function Metrics({ data }: { data: LegalIntelligencePageData }) {
 }
 
 function NavigationTabs({ view }: { view: LegalIntelligenceView }) {
+  // Path canonici sotto /ricerca-legale (v2.242.0+). Il vecchio /legal-intelligence/*
+  // resta accessibile e viene ridiretto 301 lato server.
   const items: Array<[LegalIntelligenceView, string, string]> = [
-    ['dashboard', 'Cruscotto', '/legal-intelligence'],
-    ['news', 'News', '/legal-intelligence/news'],
-    ['mediazione', 'Mediazione', '/legal-intelligence/mediazione'],
-    ['ricerca-legale', 'Ricerca legale', '/ricerca-legale'],
+    ['dashboard', 'Cruscotto', '/ricerca-legale'],
+    ['news', 'News', '/ricerca-legale/news'],
+    ['mediazione', 'Mediazione', '/ricerca-legale/mediazione'],
+    ['ricerca-legale', 'Ricerca legale', '/ricerca-legale/ricerca'],
   ]
   return (
     <nav className="iu-li-tabs iu-od-source-card" aria-label="Sezioni ricerca legale">

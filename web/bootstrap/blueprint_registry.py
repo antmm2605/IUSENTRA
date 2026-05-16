@@ -52,6 +52,7 @@ BLUEPRINT_REGISTRY: tuple[BlueprintRegistration, ...] = (
     BlueprintRegistration("template_atti", "web.blueprints.template_atti", "template_atti", "/template-atti"),
     BlueprintRegistration("statistiche", "web.blueprints.statistiche", "statistiche", "/statistiche"),
     BlueprintRegistration("legal_intelligence", "web.blueprints.legal_intelligence", "legal_intelligence", "/legal-intelligence"),
+    BlueprintRegistration("ricerca_legale", "web.blueprints.legal_intelligence", "legal_intelligence", "/ricerca-legale"),
     BlueprintRegistration("giurisprudenza", "web.blueprints.giurisprudenza", "giurisprudenza", "/giurisprudenza"),
     BlueprintRegistration("export_csv", "web.blueprints.export_csv", "export_csv", "/export"),
     BlueprintRegistration("pagamenti", "web.blueprints.pagamenti", "pagamenti", "/pagamenti"),

@@ -138,7 +138,7 @@ function normaliseAction(input: unknown): LegalAction {
   return {
     id: text(item.id) || text(item.label) || 'azione',
     label: display(item.label) || 'Apri',
-    href: safeHref(item.href, '/legal-intelligence'),
+    href: safeHref(item.href, '/ricerca-legale'),
     method: 'GET',
     tone: tone(item.tone),
   }
@@ -176,7 +176,7 @@ function normaliseRecord(input: unknown): LegalIntelligenceRecord {
     stateTone: tone(item.stateTone),
     territory: display(item.territory),
     registryNumber: display(item.registryNumber),
-    legacyHref: safeHref(item.legacyHref, '/legal-intelligence'),
+    legacyHref: safeHref(item.legacyHref, '/ricerca-legale'),
     evidenceType: display(item.evidenceType) || 'informazione',
   }
 }

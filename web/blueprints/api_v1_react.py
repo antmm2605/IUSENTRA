@@ -5321,6 +5321,7 @@ def _legal_intelligence_ui_payload(page: str, legacy_contract: str):
 @api_v1_react.get("/legal-intelligence")
 @_richiedi_auth
 def legal_intelligence_page():
+    # Alias storico (v2.242.0+): la home canonica è /ricerca-legale.
     return _legal_intelligence_ui_payload(
         "dashboard",
         "artifacts/react-migration/legacy-contracts/legal-intelligence.json",
@@ -5347,7 +5348,35 @@ def legal_intelligence_mediazione_page():
 
 @api_v1_react.get("/ricerca-legale")
 @_richiedi_auth
-def ricerca_legale_page():
+def ricerca_legale_dashboard_page():
+    # Path canonico (v2.242.0+) per la home Ricerca legale.
+    return _legal_intelligence_ui_payload(
+        "dashboard",
+        "artifacts/react-migration/legacy-contracts/legal-intelligence.json",
+    )
+
+
+@api_v1_react.get("/ricerca-legale/news")
+@_richiedi_auth
+def ricerca_legale_news_page():
+    return _legal_intelligence_ui_payload(
+        "news",
+        "artifacts/react-migration/legacy-contracts/legal-intelligence__news.json",
+    )
+
+
+@api_v1_react.get("/ricerca-legale/mediazione")
+@_richiedi_auth
+def ricerca_legale_mediazione_page():
+    return _legal_intelligence_ui_payload(
+        "mediazione",
+        "artifacts/react-migration/legacy-contracts/legal-intelligence__mediazione.json",
+    )
+
+
+@api_v1_react.get("/ricerca-legale/ricerca")
+@_richiedi_auth
+def ricerca_legale_search_page():
     return _legal_intelligence_ui_payload(
         "ricerca-legale",
         "artifacts/react-migration/legacy-contracts/ricerca-legale.json",

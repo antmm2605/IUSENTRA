@@ -7,7 +7,7 @@ GET HTML di aree migrate, evitando API, download e allegati.
 
 from __future__ import annotations
 
-from flask import Flask, current_app, g, request
+from flask import Flask, current_app, g, redirect, request
 
 from web.blueprints.react_shell import render_react_shell_response
 
@@ -29,7 +29,9 @@ _REACT_PREFIXES = (
     "/guida/firma-digitale",
     "/impostazioni",
     "/legal-skills",
+    "/legal-intelligence",
     "/messaggi",
+    "/ricerca-legale",
     "/notifiche-legali",
     "/notifiche",
     "/pat",
@@ -85,6 +87,10 @@ _REACT_EXACT = {
     "/impostazioni-studio",
     "/incassi-pagamenti",
     "/legal-skills",
+    "/legal-intelligence",
+    "/legal-intelligence/mediazione",
+    "/legal-intelligence/news",
+    "/legal-intelligence/ricerca",
     "/notifiche",
     "/notifiche-legali",
     "/notifiche-whatsapp",
@@ -97,6 +103,10 @@ _REACT_EXACT = {
     "/profili",
     "/redazione-atti",
     "/registro-attivita",
+    "/ricerca-legale",
+    "/ricerca-legale/mediazione",
+    "/ricerca-legale/news",
+    "/ricerca-legale/ricerca",
     "/sito-studio",
     "/sito-studio/builder",
     "/sito-studio/contatti",
@@ -283,18 +293,16 @@ def _excluded(path: str) -> bool:
         return True
     if lower.startswith("/giurisprudenza/"):
         return True
-    if (
-        lower.startswith("/legal-intelligence/")
-        and lower not in {
-            "/legal-intelligence/news",
-            "/legal-intelligence/mediazione",
-            "/legal-intelligence/ricerca",
-        }
-        and not lower.startswith("/legal-intelligence/fonte/")
-        and not lower.startswith("/legal-intelligence/news/")
-    ):
+    # /legal-intelligence/fonte/<id>/scarica resta servito dal blueprint Flask
+    # (download di file binari/testo, fuori dallo scope React shell).
+    if lower.startswith("/legal-intelligence/fonte/") and lower.endswith("/scarica"):
         return True
-    if lower.startswith("/ricerca-legale/"):
+    if lower.startswith("/ricerca-legale/fonte/") and lower.endswith("/scarica"):
+        return True
+    # /legal-intelligence/daily/update/<id>/diff resta legacy (rendering server-side).
+    if lower.startswith("/legal-intelligence/daily/"):
+        return True
+    if lower.startswith("/ricerca-legale/daily/"):
         return True
     if lower in _REACT_TELEMATICO_GRAPHICAL_PATHS:
         return False
@@ -377,6 +385,25 @@ def _preserve_react_route_side_effects(path: str) -> None:
 
 def register_react_route_gate(app: Flask) -> None:
     """Intercetta le GET HTML migrate prima che cadano nei template Jinja."""
+
+    @app.before_request
+    def _legal_intelligence_canonical_redirect():
+        # /legal-intelligence/* è alias storico: redirigi al canonico /ricerca-legale/*.
+        # Si applica anche a POST per non spezzare integrazioni legacy.
+        raw = request.path or "/"
+        lower = raw.lower()
+        if lower == "/legal-intelligence" or lower == "/legal-intelligence/":
+            target = "/ricerca-legale"
+            if request.query_string:
+                target += "?" + request.query_string.decode("utf-8", errors="ignore")
+            return redirect(target, code=301)
+        if lower.startswith("/legal-intelligence/"):
+            tail = raw[len("/legal-intelligence"):]
+            target = "/ricerca-legale" + tail
+            if request.query_string:
+                target += ("&" if "?" in target else "?") + request.query_string.decode("utf-8", errors="ignore")
+            return redirect(target, code=301)
+        return None
 
     @app.before_request
     def _react_route_gate():

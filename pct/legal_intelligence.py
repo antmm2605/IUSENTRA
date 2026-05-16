@@ -1682,9 +1682,22 @@ class GestioneLegalIntelligence:
         return ""
 
     def _pick_registry_table(self, document: Any) -> tuple[List[str], List[Any]]:
-        best_headers: List[str] = []
-        best_rows: List[Any] = []
-        best_score = -1
+        """Compatibilita: restituisce la singola tabella organismi col miglior punteggio."""
+        tables = self._pick_registry_tables(document)
+        if not tables:
+            return [], []
+        headers, rows = tables[0]
+        return headers, rows
+
+    def _pick_registry_tables(self, document: Any) -> List[tuple[List[str], List[Any]]]:
+        """Estrae tutte le tabelle plausibili del registro organismi mediazione.
+
+        Il portale ministeriale (e gli snapshot HTML salvati dal browser) puo' contenere
+        piu' tabelle (paginazione, sezioni, ripetizioni per sede). Ogni tabella con
+        almeno 2 header riconosciuti come ruoli (es. denominazione + iscrizione)
+        viene considerata utile: cosi' nessun organismo va perso al primo match.
+        """
+        results: List[tuple[int, List[str], List[Any]]] = []
         for table in document.xpath("//table"):
             header_nodes = table.xpath(".//tr[th][1]/th")
             if not header_nodes:
@@ -1695,16 +1708,20 @@ class GestioneLegalIntelligence:
             headers = [self._registry_cell_text(node) for node in header_nodes]
             roles = [self._registry_header_role(header) for header in headers]
             score = len([role for role in roles if role])
-            data_rows = [row for row in table.xpath(".//tr[td]") if any(self._registry_cell_text(cell) for cell in row.xpath("./td"))]
+            data_rows = [
+                row
+                for row in table.xpath(".//tr[td]")
+                if any(self._registry_cell_text(cell) for cell in row.xpath("./td"))
+            ]
             if data_rows and headers:
                 first_cells = [self._registry_cell_text(node) for node in data_rows[0].xpath("./td")]
                 if first_cells == headers:
                     data_rows = data_rows[1:]
-            if score > best_score and data_rows:
-                best_score = score
-                best_headers = headers
-                best_rows = data_rows
-        return best_headers, best_rows
+            # accetto qualsiasi tabella con almeno 2 ruoli riconosciuti e dati
+            if score >= 2 and data_rows:
+                results.append((score, headers, data_rows))
+        results.sort(key=lambda item: item[0], reverse=True)
+        return [(headers, rows) for _, headers, rows in results]
 
     def _parse_registro_mediazione_rows(self, html_payload: Any) -> List[Dict[str, Any]]:
         if html_payload is None:
@@ -1719,72 +1736,83 @@ class GestioneLegalIntelligence:
                 return []
             payload = html_text
         document = lxml_html.fromstring(payload)
-        headers, rows = self._pick_registry_table(document)
-        if not headers or not rows:
+        tables = self._pick_registry_tables(document)
+        if not tables:
             return []
-        roles = [self._registry_header_role(header) for header in headers]
         organisms: List[Dict[str, Any]] = []
         seen_ids = set()
-        for row in rows:
-            cells = [self._registry_cell_text(node) for node in row.xpath("./th|./td")]
-            if not cells or len(cells) < 2:
-                continue
-            payload: Dict[str, Any] = {
-                "registration_number": "",
-                "name": "",
-                "type": "",
-                "city": "",
-                "province": "",
-                "address": "",
-                "pec": "",
-                "email": "",
-                "phone": "",
-                "website": "",
-                "registration_date": "",
-            }
-            extra_columns: Dict[str, Any] = {}
-            for index, cell in enumerate(cells):
-                if not cell:
+        for headers, rows in tables:
+            roles = [self._registry_header_role(header) for header in headers]
+            for row in rows:
+                cells = [self._registry_cell_text(node) for node in row.xpath("./th|./td")]
+                if not cells or len(cells) < 2:
                     continue
-                role = roles[index] if index < len(roles) else ""
-                if role:
-                    payload[role] = cell
-                else:
-                    extra_columns[f"column_{index + 1}"] = cell
-            if not payload["name"]:
-                payload["name"] = cells[1] if len(cells) > 1 else cells[0]
-            registration_number = payload["registration_number"]
-            if registration_number:
-                match = re.search(r"\d+", registration_number)
-                payload["registration_number"] = match.group(0) if match else registration_number
-            payload["type"] = _normalize_registry_kind(payload["type"])
-            payload["official_registry_url"] = REGISTRO_MEDIAZIONE_DIRECT_URL
-            payload["official_info_url"] = REGISTRO_MEDIAZIONE_INFO_URL
-            if extra_columns:
-                payload["extra_columns"] = extra_columns
-            record_base = payload["registration_number"] or f"{payload['name']}|{payload['city']}|{payload['pec']}"
-            record_id = hashlib.sha1(record_base.encode("utf-8")).hexdigest()[:16]
-            if record_id in seen_ids:
-                continue
-            seen_ids.add(record_id)
-            payload["record_id"] = record_id
-            payload["search_text"] = _clean_spaces(
-                " ".join(
-                    [
-                        payload["registration_number"],
-                        payload["name"],
-                        payload["type"],
-                        payload["city"],
-                        payload["province"],
-                        payload["address"],
-                        payload["pec"],
-                        payload["email"],
-                    ]
-                )
-            ).lower()
-            organisms.append(payload)
+                organism = self._build_registry_organism(cells, roles, seen_ids)
+                if organism is not None:
+                    organisms.append(organism)
         organisms.sort(key=lambda item: (item.get("name", ""), item.get("city", ""), item.get("registration_number", "")))
         return organisms
+
+    def _build_registry_organism(
+        self,
+        cells: List[str],
+        roles: List[str],
+        seen_ids: set,
+    ) -> Optional[Dict[str, Any]]:
+        payload: Dict[str, Any] = {
+            "registration_number": "",
+            "name": "",
+            "type": "",
+            "city": "",
+            "province": "",
+            "address": "",
+            "pec": "",
+            "email": "",
+            "phone": "",
+            "website": "",
+            "registration_date": "",
+        }
+        extra_columns: Dict[str, Any] = {}
+        for index, cell in enumerate(cells):
+            if not cell:
+                continue
+            role = roles[index] if index < len(roles) else ""
+            if role:
+                payload[role] = cell
+            else:
+                extra_columns[f"column_{index + 1}"] = cell
+        if not payload["name"]:
+            payload["name"] = cells[1] if len(cells) > 1 else cells[0]
+        registration_number = payload["registration_number"]
+        if registration_number:
+            match = re.search(r"\d+", registration_number)
+            payload["registration_number"] = match.group(0) if match else registration_number
+        payload["type"] = _normalize_registry_kind(payload["type"])
+        payload["official_registry_url"] = REGISTRO_MEDIAZIONE_DIRECT_URL
+        payload["official_info_url"] = REGISTRO_MEDIAZIONE_INFO_URL
+        if extra_columns:
+            payload["extra_columns"] = extra_columns
+        record_base = payload["registration_number"] or f"{payload['name']}|{payload['city']}|{payload['pec']}"
+        record_id = hashlib.sha1(record_base.encode("utf-8")).hexdigest()[:16]
+        if record_id in seen_ids:
+            return None
+        seen_ids.add(record_id)
+        payload["record_id"] = record_id
+        payload["search_text"] = _clean_spaces(
+            " ".join(
+                [
+                    payload["registration_number"],
+                    payload["name"],
+                    payload["type"],
+                    payload["city"],
+                    payload["province"],
+                    payload["address"],
+                    payload["pec"],
+                    payload["email"],
+                ]
+            )
+        ).lower()
+        return payload
 
     def _store_registro_mediazione_rows(
         self,
@@ -2472,7 +2500,7 @@ class GestioneLegalIntelligence:
                 "registry_number": registry_number,
                 "organismo_type": organismo_type,
             },
-            "rows": filtered[:400],
+            "rows": filtered,
             "total_rows": len(rows),
             "filtered_rows": len(filtered),
             "type_options": type_options,

@@ -1177,11 +1177,13 @@ export default function App() {
   const isRedazioneAttiPage = routeKey === '/redazione-atti' || routeKey.startsWith('/redazione-atti/')
   const isGiurisprudenzaPage = routeKey === '/giurisprudenza' || routeKey.startsWith('/giurisprudenza/')
   const isLegalIntelligencePage =
-    routeKey === '/legal-intelligence' ||
-    routeKey === '/legal-intelligence/news' ||
-    routeKey === '/legal-intelligence/mediazione' ||
     routeKey === '/ricerca-legale' ||
-    routeKey.startsWith('/ricerca-legale/')
+    routeKey.startsWith('/ricerca-legale/') ||
+    // alias storico: i path /legal-intelligence/* vengono ridiretti 301 a /ricerca-legale/*
+    // dal hook server-side, ma manteniamo il riconoscimento client lato App.tsx
+    // per gestire eventuali bookmark vecchi durante il TTL del browser.
+    routeKey === '/legal-intelligence' ||
+    routeKey.startsWith('/legal-intelligence/')
   const isLegalSkillsCatalogPage = routeKey === '/legal-skills' || routeKey === '/app/legal-skills' || /^\/legal-skills\/packs\/[^/]+\/skills$/.test(routeKey)
   const isLegalSkillsProfilePage = routeKey === '/legal-skills/profile'
   const isColdStartInterviewPage = routeKey === '/legal-skills/profile/cold-start'

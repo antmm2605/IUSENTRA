@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import mimetypes
 import os
+from io import BytesIO
 from datetime import date, datetime
 from functools import wraps
 from pathlib import Path
@@ -248,23 +249,25 @@ def allegato(id_email: str, indice_allegato: int):
     if not em:
         abort(404)
     percorso = ge.percorso_allegato(em, indice_allegato)
+    contenuto_archivio = None if percorso else ge.leggi_allegato(em, indice_allegato)
     if not percorso:
-        allegati = list(em.allegati or [])
-        if 0 <= indice_allegato < len(allegati):
-            info = allegati[indice_allegato] or {}
-            nome = info.get("nome") or info.get("nome_file") or "allegato"
-            return Response(
-                (
-                    f"L'allegato {nome} non e' disponibile nello storico locale. "
-                    "Esegui Sincronizza PEC; se resta assente, verifica che il messaggio "
-                    "sia ancora presente nella casella PEC."
-                ),
-                status=409,
-                mimetype="text/plain; charset=utf-8",
-            )
-        abort(404)
+        if contenuto_archivio is None:
+            allegati = list(em.allegati or [])
+            if 0 <= indice_allegato < len(allegati):
+                info = allegati[indice_allegato] or {}
+                nome = info.get("nome") or info.get("nome_file") or "allegato"
+                return Response(
+                    (
+                        f"L'allegato {nome} non e' disponibile nello storico locale. "
+                        "Esegui Sincronizza PEC; se resta assente, verifica che il messaggio "
+                        "sia ancora presente nella casella PEC."
+                    ),
+                    status=409,
+                    mimetype="text/plain; charset=utf-8",
+                )
+            abort(404)
     info = (em.allegati or [])[indice_allegato]
-    nome_download = info.get("nome") or info.get("nome_file") or percorso.name
+    nome_download = info.get("nome") or info.get("nome_file") or (percorso.name if percorso else "allegato")
     mime_salvato = str(info.get("mime") or "").strip()
     mime_da_nome = mimetypes.guess_type(nome_download)[0] or ""
     if mime_salvato in {"", "application/octet-stream", "binary/octet-stream"} and mime_da_nome:
@@ -273,6 +276,14 @@ def allegato(id_email: str, indice_allegato: int):
         mimetype = mime_salvato or mime_da_nome or "application/octet-stream"
     if request.args.get("download") != "1" and mimetype == "message/rfc822":
         mimetype = "text/plain; charset=utf-8"
+    if contenuto_archivio is not None:
+        return send_file(
+            BytesIO(contenuto_archivio),
+            mimetype=mimetype,
+            as_attachment=request.args.get("download") == "1",
+            download_name=nome_download,
+            conditional=False,
+        )
     return send_file(
         percorso,
         mimetype=mimetype,

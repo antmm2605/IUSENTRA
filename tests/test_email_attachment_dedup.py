@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 
 from pct.email_attachments import deduplicate_attachment_tree, discover_email_attachment_roots
-from pct.email_client import GestioneEmailRicevute
+from pct.email_client import EmailRicevuta, GestioneEmailRicevute
 
 
 def _disk_usage(path: Path) -> int:
@@ -102,3 +102,37 @@ def test_discover_email_attachment_roots_trova_globali_e_tenant(tmp_path: Path) 
 
     assert global_root.resolve() in roots
     assert tenant_root.resolve() in roots
+
+
+def test_comprimi_allegati_conserva_lettura_e_rimuove_file_sciolto(tmp_path: Path) -> None:
+    gestore = GestioneEmailRicevute(str(tmp_path / "email" / "casella.json"))
+    contenuto = b"atto allegato " * 200
+    meta = gestore._salva_allegato("MAIL-ZIP", "atto.pdf", contenuto)
+    gestore.aggiungi(
+        EmailRicevuta(
+            id="MAIL-ZIP",
+            oggetto="Allegato da comprimere",
+            allegati=[{"nome": "atto.pdf", "mime": "application/pdf", **meta}],
+        )
+    )
+    percorso_sciolto = gestore.percorso_allegato(gestore.get("MAIL-ZIP"), 0)
+    assert percorso_sciolto is not None
+    assert percorso_sciolto.exists()
+
+    dry_run = gestore.comprimi_allegati(apply=False)
+    assert dry_run["loose_files"] == 1
+    assert dry_run["applied"] is False
+    assert percorso_sciolto.exists()
+
+    report = gestore.comprimi_allegati(apply=True)
+    assert report["applied"] is True
+    assert report["loose_files"] == 1
+    assert not percorso_sciolto.exists()
+    assert Path(report["archive_path"]).exists()
+
+    ricaricato = GestioneEmailRicevute(str(tmp_path / "email" / "casella.json"))
+    em = ricaricato.get("MAIL-ZIP")
+    assert em is not None
+    assert ricaricato.percorso_allegato(em, 0) is None
+    assert ricaricato.allegato_disponibile(em, 0) is True
+    assert ricaricato.leggi_allegato(em, 0) == contenuto

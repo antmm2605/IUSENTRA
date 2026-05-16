@@ -14,6 +14,8 @@ I path di Normattiva e Gazzetta sono ora collegati ai volumi runtime (`/data/nor
 
 Verifica infrastrutturale del 2026-05-16: i database canonici Normattiva/Gazzetta non erano presenti su Railway ne' su Hetzner. Su Hetzner sono stati ricreati nel volume attivo: Gazzetta (`lex_sources.sqlite` 32.129.024 byte, JSONL 20.342.735 byte, 28 documenti e 3.911 chunk) e Normattiva (`normattiva.sqlite` 2.868.604.928 byte, JSONL 1.093.268.667 byte, 19 ZIP raw validi, 189.851 documenti, 800.757 articoli e 639.273 chunk). Il manifest ufficiale Normattiva letto da `https://dati.normattiva.it/assets/come_fare_per/Normattiva%20OpenData.html` espone 23 collezioni: 19 hanno restituito ZIP validi, mentre `Regolamenti di delegificazione`, `Regolamenti governativi`, `Regolamenti ministeriali` e `Testi Unici` hanno restituito stream vuoto `application/octet-stream` e sono tracciate nel manifest tentativi. Railway ha il volume `/data` al 100% (1.8 GB usati su 1.8 GB, con circa 1.3 GB in allegati email) e non puo' ospitare l'indice Normattiva completo finche' non viene aumentato o liberato spazio senza cancellare dati di studio.
 
+Aggiornamento 2.243.7: il lotto notturno `legal_updates_batch`, la console admin e il comando CLI possono eseguire la scansione massiva come job isolati per fonte/pubblicazione con timeout per elemento (`IUSENTRA_LEGAL_UPDATES_ITEM_TIMEOUT_SECONDS`, default 180s). Le verifiche web esterne restano attive, ma un elemento lento non blocca l'intero processo.
+
 ---
 
 ## Aggiornamento operativo 2.243.4 - 2026-05-16

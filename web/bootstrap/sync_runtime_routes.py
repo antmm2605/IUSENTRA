@@ -8,6 +8,8 @@ from typing import Any
 
 from flask import Flask, Response, abort, flash, g, jsonify, redirect, request, session, url_for
 
+from web.services.tenant_paths import tenant_data_path
+
 
 def register_sync_runtime_routes(
     app: Flask,
@@ -32,16 +34,7 @@ def register_sync_runtime_routes(
             return None
 
     def _cfg_path(key: str, default: str = "", *aliases: str) -> str:
-        paths = getattr(g, "data_paths", {}) or {}
-        for candidate in (key, *aliases):
-            value = paths.get(candidate)
-            if value:
-                return str(value)
-        for candidate in (key, *aliases):
-            value = app.config.get(candidate)
-            if value:
-                return str(value)
-        return str(default or "")
+        return tenant_data_path(key, default, *aliases, require_tenant=True)
 
     @app.route("/api/eventi")
     def api_eventi():

@@ -13,12 +13,14 @@ from __future__ import annotations
 
 import email
 import imaplib
+import os
 import json
 import re
 import socket
 import uuid
 import shutil
 import unicodedata
+import zipfile
 from email import policy
 from datetime import datetime, timezone
 from email.header import decode_header
@@ -231,6 +233,11 @@ class GestioneEmailRicevute:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.attachments_dir = self.db_path.parent / "allegati"
         self.attachments_dir.mkdir(parents=True, exist_ok=True)
+        self.attachment_archive_path = self.attachments_dir / "archivio-allegati.zip"
+        self.archive_storage_enabled = str(
+            os.getenv("IUSENTRA_EMAIL_ATTACHMENT_STORAGE", "")
+            or os.getenv("PCT_EMAIL_ATTACHMENT_STORAGE", "")
+        ).strip().lower() in {"1", "true", "yes", "on", "archive", "zip", "zip-deflate"}
         self._cache: Optional[Dict[str, EmailRicevuta]] = None
 
     # ---- Storage ----
@@ -267,6 +274,9 @@ class GestioneEmailRicevute:
         return nome_pulito or fallback
 
     def _salva_allegato(self, email_id: str, nome: str, contenuto: bytes) -> dict:
+        if self.archive_storage_enabled:
+            return self._salva_allegato_archivio(nome, contenuto)
+
         cartella_email = self.attachments_dir / email_id
         cartella_email.mkdir(parents=True, exist_ok=True)
 
@@ -291,6 +301,63 @@ class GestioneEmailRicevute:
             "percorso_rel": str(target.relative_to(self.attachments_dir)).replace("\\", "/"),
             "nome_file": target.name,
             "sha256": sha256,
+        }
+
+    def _archive_member_for_sha(self, sha256: str) -> str:
+        safe_hash = re.sub(r"[^a-fA-F0-9]", "", str(sha256 or "").lower())
+        if len(safe_hash) < 64:
+            safe_hash = content_sha256(safe_hash.encode("utf-8"))
+        return f"{safe_hash[:2]}/{safe_hash}"
+
+    def _quarantena_archivio_allegati_corrotto(self) -> None:
+        if not self.attachment_archive_path.exists():
+            return
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        quarantine = self.attachment_archive_path.with_name(
+            f"{self.attachment_archive_path.stem}.corrotto-{timestamp}{self.attachment_archive_path.suffix}"
+        )
+        idx = 1
+        while quarantine.exists():
+            quarantine = self.attachment_archive_path.with_name(
+                f"{self.attachment_archive_path.stem}.corrotto-{timestamp}-{idx}{self.attachment_archive_path.suffix}"
+            )
+            idx += 1
+        try:
+            self.attachment_archive_path.replace(quarantine)
+        except OSError:
+            return
+
+    def _archivio_members(self) -> set[str]:
+        if not self.attachment_archive_path.exists():
+            return set()
+        try:
+            with zipfile.ZipFile(self.attachment_archive_path, "r") as archive:
+                return set(archive.namelist())
+        except zipfile.BadZipFile:
+            self._quarantena_archivio_allegati_corrotto()
+            return set()
+
+    def _salva_allegato_archivio(self, nome: str, contenuto: bytes) -> dict:
+        nome_pulito = self._sanifica_nome_allegato(nome)
+        sha256 = content_sha256(contenuto)
+        member = self._archive_member_for_sha(sha256)
+        self.attachment_archive_path.parent.mkdir(parents=True, exist_ok=True)
+        exists = member in self._archivio_members()
+        if not exists:
+            with zipfile.ZipFile(
+                self.attachment_archive_path,
+                "a",
+                compression=zipfile.ZIP_DEFLATED,
+                compresslevel=9,
+            ) as archive:
+                archive.writestr(member, contenuto)
+        return {
+            "archivio_rel": self.attachment_archive_path.relative_to(self.attachments_dir).as_posix(),
+            "archivio_membro": member,
+            "archivio_formato": "zip-deflate",
+            "nome_file": nome_pulito,
+            "sha256": sha256,
+            "size": len(contenuto),
         }
 
     def percorso_allegato(self, em: EmailRicevuta, indice_allegato: int) -> Path | None:
@@ -325,8 +392,142 @@ class GestioneEmailRicevute:
             return None
         return percorso
 
+    def _archivio_allegato_da_info(self, info: dict) -> tuple[Path, str] | None:
+        archivio_rel = str((info or {}).get("archivio_rel", "") or "").strip().replace("\\", "/")
+        member = str((info or {}).get("archivio_membro", "") or "").strip().replace("\\", "/")
+        if not archivio_rel or not member or member.startswith("/") or ".." in Path(member).parts:
+            return None
+        archivio = (self.attachments_dir / Path(archivio_rel)).resolve()
+        root = self.attachments_dir.resolve()
+        try:
+            archivio.relative_to(root)
+        except ValueError:
+            return None
+        if not archivio.exists() or not archivio.is_file() or archivio.suffix.lower() != ".zip":
+            return None
+        return archivio, member
+
+    def _allegato_archiviato(self, info: dict) -> bool:
+        archive_info = self._archivio_allegato_da_info(info)
+        if not archive_info:
+            return False
+        archivio, member = archive_info
+        try:
+            with zipfile.ZipFile(archivio, "r") as archive:
+                archive.getinfo(member)
+            return True
+        except (KeyError, OSError, zipfile.BadZipFile):
+            return False
+
     def _allegato_salvato(self, info: dict) -> bool:
-        return self._percorso_allegato_da_info(info) is not None
+        return self._percorso_allegato_da_info(info) is not None or self._allegato_archiviato(info)
+
+    def allegato_disponibile(self, em: EmailRicevuta, indice_allegato: int) -> bool:
+        allegati = list(getattr(em, "allegati", []) or [])
+        if indice_allegato < 0 or indice_allegato >= len(allegati):
+            return False
+        info = allegati[indice_allegato] or {}
+        return self._allegato_salvato(info)
+
+    def leggi_allegato(self, em: EmailRicevuta, indice_allegato: int) -> bytes | None:
+        allegati = list(getattr(em, "allegati", []) or [])
+        if indice_allegato < 0 or indice_allegato >= len(allegati):
+            return None
+        info = allegati[indice_allegato] or {}
+        percorso = self._percorso_allegato_da_info(info)
+        if percorso:
+            try:
+                return percorso.read_bytes()
+            except OSError:
+                return None
+        archive_info = self._archivio_allegato_da_info(info)
+        if not archive_info:
+            return None
+        archivio, member = archive_info
+        try:
+            with zipfile.ZipFile(archivio, "r") as archive:
+                return archive.read(member)
+        except (KeyError, OSError, zipfile.BadZipFile):
+            return None
+
+    def comprimi_allegati(self, *, apply: bool = False) -> dict[str, Any]:
+        db = self._carica()
+        loose_items: list[tuple[EmailRicevuta, dict, Path, str]] = []
+        loose_bytes = 0
+        for em in db.values():
+            for info in list(getattr(em, "allegati", []) or []):
+                if not isinstance(info, dict):
+                    continue
+                path = self._percorso_allegato_da_info(info)
+                if not path:
+                    continue
+                try:
+                    content_hash = str(info.get("sha256") or "").strip().lower()
+                    if not re.fullmatch(r"[a-f0-9]{64}", content_hash):
+                        content_hash = content_sha256(path.read_bytes())
+                    loose_bytes += path.stat().st_size
+                    loose_items.append((em, info, path, content_hash))
+                except OSError:
+                    continue
+
+        archive_before = self.attachment_archive_path.stat().st_size if self.attachment_archive_path.exists() else 0
+        archived_existing = sum(
+            1
+            for em in db.values()
+            for info in list(getattr(em, "allegati", []) or [])
+            if isinstance(info, dict) and self._allegato_archiviato(info)
+        )
+
+        archive_after = archive_before
+        reclaimed = 0
+        if apply and loose_items:
+            self.attachment_archive_path.parent.mkdir(parents=True, exist_ok=True)
+            known_members = self._archivio_members()
+            with zipfile.ZipFile(
+                self.attachment_archive_path,
+                "a",
+                compression=zipfile.ZIP_DEFLATED,
+                compresslevel=9,
+            ) as archive:
+                for _, info, path, content_hash in loose_items:
+                    member = self._archive_member_for_sha(content_hash)
+                    if member not in known_members:
+                        archive.write(path, member)
+                        known_members.add(member)
+                    info["archivio_rel"] = self.attachment_archive_path.relative_to(self.attachments_dir).as_posix()
+                    info["archivio_membro"] = member
+                    info["archivio_formato"] = "zip-deflate"
+                    info["sha256"] = content_hash
+            for _, _, path, _ in loose_items:
+                try:
+                    size = path.stat().st_size
+                    path.unlink()
+                    reclaimed += size
+                except OSError:
+                    continue
+            for directory in sorted({path.parent for _, _, path, _ in loose_items}, key=lambda p: len(p.parts), reverse=True):
+                try:
+                    directory.rmdir()
+                except OSError:
+                    pass
+            self._salva()
+            archive_after = self.attachment_archive_path.stat().st_size if self.attachment_archive_path.exists() else 0
+
+        archive_growth = max(0, archive_after - archive_before)
+        net_reclaimed = max(0, reclaimed - archive_growth) if apply else 0
+        estimated_reclaimable = max(0, loose_bytes - archive_growth)
+        return {
+            "applied": apply,
+            "mailbox": str(self.db_path),
+            "archive_path": str(self.attachment_archive_path),
+            "loose_files": len(loose_items),
+            "archived_existing": archived_existing,
+            "bytes_input": loose_bytes,
+            "archive_before_bytes": archive_before,
+            "archive_after_bytes": archive_after,
+            "bytes_reclaimable": estimated_reclaimable,
+            "bytes_reclaimed": net_reclaimed,
+        }
 
     def _email_ha_allegati_da_salvare(self, em: EmailRicevuta) -> bool:
         allegati = list(getattr(em, "allegati", []) or [])

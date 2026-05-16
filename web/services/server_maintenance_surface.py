@@ -5,9 +5,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+import json
 import os
 import shutil
 import time
+import uuid
 from typing import Any
 
 from flask import current_app, has_app_context
@@ -19,11 +21,15 @@ DEFAULT_BACKUP_RETENTION_DAYS = 14
 DEFAULT_BACKUP_RETENTION_COUNT = 3
 DEFAULT_BACKUP_RETENTION_MIN_COUNT = 2
 DEFAULT_BACKUP_RETENTION_MAX_GIB = 8
+MAX_BACKUP_RETENTION_COUNT = 3
 DEFAULT_TENANT_STORAGE_SCAN_MAX_FILES = 12_000
 DEFAULT_TENANT_STORAGE_SCAN_SECONDS = 0.9
 DEFAULT_GLOBAL_STORAGE_SCAN_MAX_FILES = 6_000
 DEFAULT_GLOBAL_STORAGE_SCAN_SECONDS = 0.45
+DEFAULT_HOST_STORAGE_SCAN_MAX_FILES = 4_000
+DEFAULT_HOST_STORAGE_SCAN_SECONDS = 0.75
 BACKUP_ARCHIVE_SUFFIXES = (".tar.zst", ".tar.gz")
+DOCKER_SOCKET_PATH = "/var/run/docker.sock"
 
 
 @dataclass(frozen=True)
@@ -108,6 +114,32 @@ def human_bytes(value: int | float) -> str:
     return f"{size:.1f} TiB"
 
 
+def _parse_docker_size(value: Any) -> int:
+    text = str(value or "").strip()
+    if not text:
+        return 0
+    first = text.split()[0].replace(",", ".")
+    number = "".join(ch for ch in first if ch.isdigit() or ch == ".")
+    unit = first[len(number) :].strip() or "B"
+    try:
+        amount = float(number)
+    except ValueError:
+        return 0
+    decimal_units = {
+        "B": 1,
+        "kB": 1000,
+        "KB": 1000,
+        "MB": 1000**2,
+        "GB": 1000**3,
+        "TB": 1000**4,
+        "KiB": 1024,
+        "MiB": 1024**2,
+        "GiB": 1024**3,
+        "TiB": 1024**4,
+    }
+    return int(amount * decimal_units.get(unit, 1))
+
+
 def _sum_report_int(reports: list[dict[str, Any]], key: str) -> int:
     return sum(int(report.get(key, 0) or 0) for report in reports)
 
@@ -190,6 +222,8 @@ def backup_retention_settings(config: dict[str, Any] | None = None) -> dict[str,
         DEFAULT_BACKUP_RETENTION_COUNT,
         legacy_name="BACKUP_RETENTION_COUNT",
     )
+    min_count = min(max(1, min_count), MAX_BACKUP_RETENTION_COUNT)
+    count = min(max(count, min_count), MAX_BACKUP_RETENTION_COUNT)
     return {
         "days": _config_int(
             cfg,
@@ -197,8 +231,8 @@ def backup_retention_settings(config: dict[str, Any] | None = None) -> dict[str,
             DEFAULT_BACKUP_RETENTION_DAYS,
             legacy_name="BACKUP_RETENTION_DAYS",
         ),
-        "count": max(count, min_count),
-        "min_count": max(1, min_count),
+        "count": count,
+        "min_count": min_count,
         "max_gib": _config_int(
             cfg,
             "IUSENTRA_BACKUP_RETENTION_MAX_GIB",
@@ -362,6 +396,266 @@ def resolve_external_backup_dir(config: dict[str, Any] | None = None) -> Path:
             or "/opt/iusentra/backups"
         )
     )
+
+
+def resolve_host_root(config: dict[str, Any] | None = None) -> Path | None:
+    cfg = _runtime_config(config)
+    configured = os.getenv("IUSENTRA_HOST_ROOT") or cfg.get("IUSENTRA_HOST_ROOT")
+    candidates = [configured, "/host"]
+    for candidate in candidates:
+        if not candidate:
+            continue
+        path = Path(str(candidate))
+        if path.exists():
+            return path.resolve()
+    return None
+
+
+def resolve_host_iusentra_dir(config: dict[str, Any] | None = None) -> Path | None:
+    cfg = _runtime_config(config)
+    configured = os.getenv("IUSENTRA_HOST_IUSENTRA_DIR") or cfg.get("IUSENTRA_HOST_IUSENTRA_DIR")
+    if configured and Path(str(configured)).exists():
+        return Path(str(configured)).resolve()
+    host_root = resolve_host_root(cfg)
+    if host_root:
+        candidate = host_root / "opt" / "iusentra"
+        if candidate.exists():
+            return candidate.resolve()
+    production_candidate = Path("/opt/iusentra")
+    if production_candidate.exists():
+        return production_candidate.resolve()
+    return None
+
+
+def _du_size(path: Path, *, timeout_seconds: float = 3.0) -> dict[str, Any]:
+    if not path.exists():
+        return {
+            "size_bytes": 0,
+            "size_label": human_bytes(0),
+            "available": False,
+            "estimated": False,
+            "error": "",
+        }
+    try:
+        import subprocess
+
+        result = subprocess.run(
+            ["du", "-sxB1", str(path)],
+            capture_output=True,
+            text=True,
+            timeout=max(float(timeout_seconds), 0.25),
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            first = result.stdout.strip().split()[0]
+            size = int(first)
+            return {
+                "size_bytes": size,
+                "size_label": human_bytes(size),
+                "available": True,
+                "estimated": False,
+                "error": "",
+            }
+    except Exception:
+        pass
+    scan = _bounded_directory_scan(
+        [path],
+        max_files=DEFAULT_HOST_STORAGE_SCAN_MAX_FILES,
+        time_budget_seconds=DEFAULT_HOST_STORAGE_SCAN_SECONDS,
+    )
+    size = int(scan.get("size_bytes", 0) or 0)
+    return {
+        "size_bytes": size,
+        "size_label": human_bytes(size),
+        "available": True,
+        "estimated": bool(scan.get("truncated")),
+        "error": scan.get("reason", ""),
+    }
+
+
+def _decode_chunked_http_body(payload: bytes) -> bytes:
+    chunks: list[bytes] = []
+    position = 0
+    while position < len(payload):
+        line_end = payload.find(b"\r\n", position)
+        if line_end < 0:
+            break
+        size_text = payload[position:line_end].split(b";", 1)[0].strip()
+        try:
+            size = int(size_text, 16)
+        except ValueError:
+            break
+        position = line_end + 2
+        if size == 0:
+            break
+        chunks.append(payload[position : position + size])
+        position += size + 2
+    return b"".join(chunks)
+
+
+def _docker_api_request(method: str, path: str, *, timeout_seconds: float = 5.0) -> dict[str, Any]:
+    socket_path = Path(os.getenv("IUSENTRA_DOCKER_SOCKET", DOCKER_SOCKET_PATH))
+    if not socket_path.exists():
+        return {"ok": False, "status": 0, "error": "Console container non collegata.", "body": ""}
+    try:
+        import socket
+
+        request = (
+            f"{method.upper()} {path} HTTP/1.1\r\n"
+            "Host: docker\r\n"
+            "Accept: application/json\r\n"
+            "Content-Length: 0\r\n"
+            "Connection: close\r\n\r\n"
+        ).encode("ascii")
+        with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as client:
+            client.settimeout(max(float(timeout_seconds), 0.5))
+            client.connect(str(socket_path))
+            client.sendall(request)
+            chunks: list[bytes] = []
+            while True:
+                try:
+                    chunk = client.recv(65536)
+                except TimeoutError:
+                    break
+                if not chunk:
+                    break
+                chunks.append(chunk)
+        raw = b"".join(chunks)
+        header, _, body = raw.partition(b"\r\n\r\n")
+        header_text = header.decode("iso-8859-1", errors="replace")
+        status_line = header_text.splitlines()[0] if header_text else ""
+        status = int(status_line.split()[1]) if len(status_line.split()) >= 2 else 0
+        if "transfer-encoding: chunked" in header_text.lower():
+            body = _decode_chunked_http_body(body)
+        text = body.decode("utf-8", errors="replace")
+        return {"ok": 200 <= status < 300, "status": status, "error": "", "body": text}
+    except Exception as exc:
+        return {"ok": False, "status": 0, "error": str(exc), "body": ""}
+
+
+def _docker_df_from_api() -> dict[str, Any] | None:
+    response = _docker_api_request("GET", "/system/df", timeout_seconds=5)
+    if not response.get("ok"):
+        return None
+    try:
+        raw = json.loads(str(response.get("body") or "{}"))
+    except json.JSONDecodeError:
+        return None
+    build_items = raw.get("BuildCache") or []
+    images = raw.get("Images") or []
+    containers = raw.get("Containers") or []
+    volumes = raw.get("Volumes") or []
+    build_cache_size = sum(int(item.get("Size", 0) or 0) for item in build_items)
+    build_cache_reclaimable = sum(
+        int(item.get("Size", 0) or 0)
+        for item in build_items
+        if not bool(item.get("InUse"))
+    )
+    image_size = int(raw.get("LayersSize", 0) or 0)
+    container_size = sum(int(item.get("SizeRw", 0) or 0) for item in containers)
+    volume_size = sum(int((item.get("UsageData") or {}).get("Size", 0) or 0) for item in volumes)
+    total_size = image_size + container_size + volume_size + build_cache_size
+    return {
+        "available": True,
+        "source": "engine",
+        "error": "",
+        "images_count": len(images),
+        "containers_count": len(containers),
+        "volumes_count": len(volumes),
+        "build_cache_count": len(build_items),
+        "images_size_bytes": image_size,
+        "containers_size_bytes": container_size,
+        "volumes_size_bytes": volume_size,
+        "build_cache_size_bytes": build_cache_size,
+        "build_cache_reclaimable_bytes": build_cache_reclaimable,
+        "total_size_bytes": total_size,
+        "images_size_label": human_bytes(image_size),
+        "containers_size_label": human_bytes(container_size),
+        "volumes_size_label": human_bytes(volume_size),
+        "build_cache_size_label": human_bytes(build_cache_size),
+        "build_cache_reclaimable_label": human_bytes(build_cache_reclaimable),
+        "total_size_label": human_bytes(total_size),
+    }
+
+
+def _docker_df_from_cli() -> dict[str, Any] | None:
+    try:
+        import subprocess
+
+        result = subprocess.run(
+            ["docker", "system", "df", "--format", "json"],
+            capture_output=True,
+            text=True,
+            timeout=8,
+        )
+    except Exception:
+        return None
+    if result.returncode != 0 or not result.stdout.strip():
+        return None
+    rows = []
+    for line in result.stdout.splitlines():
+        try:
+            rows.append(json.loads(line))
+        except json.JSONDecodeError:
+            continue
+    by_type = {str(row.get("Type", "")).lower(): row for row in rows}
+    images = by_type.get("images") or {}
+    containers = by_type.get("containers") or {}
+    volumes = by_type.get("local volumes") or {}
+    build_cache = by_type.get("build cache") or {}
+    images_size = _parse_docker_size(images.get("Size"))
+    containers_size = _parse_docker_size(containers.get("Size"))
+    volumes_size = _parse_docker_size(volumes.get("Size"))
+    build_size = _parse_docker_size(build_cache.get("Size"))
+    build_reclaimable = _parse_docker_size(build_cache.get("Reclaimable"))
+    total_size = images_size + containers_size + volumes_size + build_size
+    return {
+        "available": True,
+        "source": "cli",
+        "error": "",
+        "images_count": int(images.get("TotalCount", 0) or 0),
+        "containers_count": int(containers.get("TotalCount", 0) or 0),
+        "volumes_count": int(volumes.get("TotalCount", 0) or 0),
+        "build_cache_count": int(build_cache.get("TotalCount", 0) or 0),
+        "images_size_bytes": images_size,
+        "containers_size_bytes": containers_size,
+        "volumes_size_bytes": volumes_size,
+        "build_cache_size_bytes": build_size,
+        "build_cache_reclaimable_bytes": build_reclaimable,
+        "total_size_bytes": total_size,
+        "images_size_label": human_bytes(images_size),
+        "containers_size_label": human_bytes(containers_size),
+        "volumes_size_label": human_bytes(volumes_size),
+        "build_cache_size_label": human_bytes(build_size),
+        "build_cache_reclaimable_label": human_bytes(build_reclaimable),
+        "total_size_label": human_bytes(total_size),
+    }
+
+
+def docker_storage_summary() -> dict[str, Any]:
+    summary = _docker_df_from_api() or _docker_df_from_cli()
+    if summary:
+        return summary
+    return {
+        "available": False,
+        "source": "",
+        "error": "Console container non collegata.",
+        "images_count": 0,
+        "containers_count": 0,
+        "volumes_count": 0,
+        "build_cache_count": 0,
+        "images_size_bytes": 0,
+        "containers_size_bytes": 0,
+        "volumes_size_bytes": 0,
+        "build_cache_size_bytes": 0,
+        "build_cache_reclaimable_bytes": 0,
+        "total_size_bytes": 0,
+        "images_size_label": human_bytes(0),
+        "containers_size_label": human_bytes(0),
+        "volumes_size_label": human_bytes(0),
+        "build_cache_size_label": human_bytes(0),
+        "build_cache_reclaimable_label": human_bytes(0),
+        "total_size_label": human_bytes(0),
+    }
 
 
 def _backup_archives(backup_dir: str | Path) -> list[BackupArchive]:
@@ -867,6 +1161,182 @@ def _system_info() -> dict[str, Any]:
         return {"available": False}
 
 
+def _host_area(code: str, label: str, path: Path | None, note: str) -> dict[str, Any]:
+    if path is None:
+        size = {
+            "size_bytes": 0,
+            "size_label": human_bytes(0),
+            "available": False,
+            "estimated": False,
+            "error": "",
+        }
+        resolved = ""
+    else:
+        size = _du_size(path)
+        resolved = str(path)
+    return {
+        "code": code,
+        "label": label,
+        "path": resolved,
+        "exists": bool(path is not None and path.exists()),
+        "size_bytes": int(size.get("size_bytes", 0) or 0),
+        "size_label": str(size.get("size_label") or human_bytes(0)),
+        "estimated": bool(size.get("estimated")),
+        "note": note,
+    }
+
+
+def build_host_console(
+    *,
+    config: dict[str, Any] | None,
+    data_root: Path,
+    backup_dir: Path,
+    disk: shutil._ntuple_diskusage,
+    tenant_total_size: int,
+    backup_external_size: int,
+) -> dict[str, Any]:
+    cfg = _runtime_config(config)
+    provider_name = str(
+        os.getenv("IUSENTRA_SERVER_PROVIDER_NAME") or cfg.get("IUSENTRA_SERVER_PROVIDER_NAME") or "Hetzner CPX42"
+    )
+    host_root = resolve_host_root(cfg)
+    host_iusentra = resolve_host_iusentra_dir(cfg)
+    docker = docker_storage_summary()
+    disk_path = host_root or (data_root if data_root.exists() else Path("/"))
+    try:
+        host_disk = shutil.disk_usage(disk_path)
+    except OSError:
+        host_disk = disk
+
+    def iusentra_child(name: str) -> Path | None:
+        if host_iusentra is None:
+            return None
+        candidate = host_iusentra / name
+        return candidate if candidate.exists() else None
+
+    areas = [
+        _host_area(
+            "platform_data",
+            "Dati piattaforma",
+            iusentra_child("data") or (data_root if data_root.exists() else None),
+            "Dati operativi, tenant, fonti ufficiali e indici di ricerca.",
+        ),
+        _host_area(
+            "external_backups",
+            "Archivi backup esterni",
+            iusentra_child("backups") or (backup_dir if backup_dir.exists() else None),
+            "Copie gia' presenti fuori dagli studi, governate da retention.",
+        ),
+        _host_area(
+            "temporary_snapshot",
+            "Snapshot temporaneo residuo",
+            iusentra_child("tmp-backup-snapshot"),
+            "Area temporanea da verificare: se non collegata ai container puo' essere rimossa.",
+        ),
+        _host_area(
+            "repository",
+            "Codice applicativo",
+            iusentra_child("repo"),
+            "Sorgenti di deploy e asset compilati.",
+        ),
+        _host_area(
+            "caddy",
+            "Proxy HTTPS",
+            iusentra_child("caddy_data"),
+            "Certificati e dati del proxy pubblico.",
+        ),
+        _host_area(
+            "server_logs",
+            "Log server",
+            (host_root / "var" / "log") if host_root and (host_root / "var" / "log").exists() else None,
+            "Log di sistema e servizi.",
+        ),
+    ]
+    areas.sort(key=lambda item: int(item.get("size_bytes", 0) or 0), reverse=True)
+
+    snapshot = next((area for area in areas if area["code"] == "temporary_snapshot"), None) or {}
+    snapshot_bytes = int(snapshot.get("size_bytes", 0) or 0)
+    docker_reclaimable = int(docker.get("build_cache_reclaimable_bytes", 0) or 0)
+    retention_reclaimable = max(
+        0,
+        int(backup_external_size) - backup_retention_settings(cfg)["max_gib"] * 1024**3,
+    )
+    immediate_reclaimable = docker_reclaimable
+    review_reclaimable = snapshot_bytes + retention_reclaimable
+    outside_tenants = max(0, int(host_disk.used) - int(tenant_total_size))
+    docker_total = int(docker.get("total_size_bytes", 0) or 0)
+    explained_total = docker_total + sum(int(area.get("size_bytes", 0) or 0) for area in areas)
+
+    recovery_items: list[dict[str, Any]] = []
+    if docker_reclaimable:
+        recovery_items.append(
+            {
+                "label": "Cache costruzione servizi",
+                "size_label": human_bytes(docker_reclaimable),
+                "tone": "success",
+                "action": "Pulizia cache servizi",
+                "note": "Recupero sicuro: non tocca dati studio e rende solo piu' lenta la prossima ricostruzione.",
+            }
+        )
+    if snapshot_bytes:
+        recovery_items.append(
+            {
+                "label": "Snapshot temporaneo residuo",
+                "size_label": human_bytes(snapshot_bytes),
+                "tone": "warning",
+                "action": "Verifica residuo",
+                "note": "Da rimuovere solo dopo controllo che non sia montato o usato dai container.",
+            }
+        )
+    if retention_reclaimable:
+        recovery_items.append(
+            {
+                "label": "Backup oltre soglia",
+                "size_label": human_bytes(retention_reclaimable),
+                "tone": "warning",
+                "action": "Retention backup",
+                "note": "Recupero governato dalle copie minime configurate.",
+            }
+        )
+    if not recovery_items:
+        recovery_items.append(
+            {
+                "label": "Nessun recupero immediato rilevato",
+                "size_label": human_bytes(0),
+                "tone": "muted",
+                "action": "Monitoraggio",
+                "note": "La console continuera' a misurare cache, snapshot e archivi esterni.",
+            }
+        )
+
+    return {
+        "provider_name": provider_name,
+        "host_root": str(host_root) if host_root else "",
+        "host_iusentra_dir": str(host_iusentra) if host_iusentra else "",
+        "connected": bool(host_root or docker.get("available")),
+        "disk": {
+            "used_bytes": int(host_disk.used),
+            "free_bytes": int(host_disk.free),
+            "total_bytes": int(host_disk.total),
+            "used_label": human_bytes(host_disk.used),
+            "free_label": human_bytes(host_disk.free),
+            "total_label": human_bytes(host_disk.total),
+            "used_percent": round((host_disk.used / host_disk.total) * 100, 1) if host_disk.total else 0,
+        },
+        "outside_tenants_bytes": outside_tenants,
+        "outside_tenants_label": human_bytes(outside_tenants),
+        "explained_total_bytes": explained_total,
+        "explained_total_label": human_bytes(explained_total),
+        "immediate_reclaimable_bytes": immediate_reclaimable,
+        "immediate_reclaimable_label": human_bytes(immediate_reclaimable),
+        "review_reclaimable_bytes": review_reclaimable,
+        "review_reclaimable_label": human_bytes(review_reclaimable),
+        "areas": areas,
+        "docker": docker,
+        "recovery_items": recovery_items,
+    }
+
+
 def build_server_maintenance_surface(config: dict[str, Any] | None = None) -> dict[str, Any]:
     cfg = _runtime_config(config)
     data_root = resolve_data_root(cfg)
@@ -903,6 +1373,14 @@ def build_server_maintenance_surface(config: dict[str, Any] | None = None) -> di
     backup_external_size = sum(item.size_bytes for item in backup_archives)
     retention_settings = backup_retention_settings(cfg)
     backup_retention = run_backup_retention(apply=False, backup_dir=backup_dir, config=cfg)
+    host_console = build_host_console(
+        config=cfg,
+        data_root=data_root,
+        backup_dir=backup_dir,
+        disk=disk,
+        tenant_total_size=tenant_total_size,
+        backup_external_size=backup_external_size,
+    )
     tenant_scan_summary = {
         "truncated": any(row.get("scan_truncated") for row in tenant_rows),
         "reason": "limite operativo",
@@ -991,7 +1469,15 @@ def build_server_maintenance_surface(config: dict[str, Any] | None = None) -> di
             "Scansione storage rapida: la console resta reattiva e mostra le aree principali; usare le analisi mirate quando serve il dettaglio completo."
         )
     if used_ratio >= 0.8:
-        recommendations.append("Disco oltre l'80%: eseguire backup, compattazione e pulizia cache Docker.")
+        recommendations.append("Disco oltre l'80%: liberare cache servizi, snapshot residui e aree non operative.")
+    if int(host_console["immediate_reclaimable_bytes"]) > 1024**3:
+        recommendations.append(
+            "Cache costruzione servizi molto alta: pulirla libera spazio senza toccare dati di studio."
+        )
+    if int(host_console["review_reclaimable_bytes"]) > 1024**3:
+        recommendations.append(
+            "Sono presenti aree da verificare fuori dagli studi: controllare snapshot temporanei e retention prima di rimuovere."
+        )
     if backup_external_size > retention_settings["max_gib"] * 1024**3:
         recommendations.append("Backup esterni oltre il tetto configurato: applicare retention e compressione alta.")
     if backup_mirror_size > 512 * 1024**2:
@@ -1037,6 +1523,7 @@ def build_server_maintenance_surface(config: dict[str, Any] | None = None) -> di
         "backup_retention": backup_retention,
         "tenants": tenant_rows,
         "areas": [area.__dict__ for area in sorted(areas, key=lambda item: item.size_bytes, reverse=True)],
+        "host_console": host_console,
         "actions": {
             "analyze_compaction": "/admin/server-manutenzione/analizza-compattazione",
             "apply_compaction": "/admin/server-manutenzione/compatta",
@@ -1104,6 +1591,310 @@ def run_storage_compaction(
     }
 
 
+def _iter_studio_archive_files(data_root: Path, *, tenant_slug: str = "") -> list[Path]:
+    roots: list[Path] = []
+    slug = str(tenant_slug or "").strip()
+    tenants_root = data_root / "tenants"
+    if slug:
+        roots = [tenants_root / slug]
+    elif tenants_root.is_dir():
+        roots = [item for item in tenants_root.iterdir() if item.is_dir()]
+    else:
+        roots = [data_root]
+
+    files: list[Path] = []
+    skipped_parts = {"backup", "backups", "dedup_reports", "allegati", "uploads"}
+    for root in roots:
+        if not root.is_dir():
+            continue
+        for path in root.rglob("*"):
+            if not path.is_file() or path.is_symlink():
+                continue
+            lower_parts = {part.lower() for part in path.relative_to(root).parts[:-1]}
+            if lower_parts & skipped_parts:
+                continue
+            if path.suffix.lower() in DB_FILE_SUFFIXES or path.suffix.lower() == ".json":
+                files.append(path)
+    return sorted(files, key=lambda item: str(item))
+
+
+def _optimize_json_file(path: Path, *, apply: bool) -> dict[str, Any]:
+    before = path.stat().st_size
+    try:
+        raw = path.read_text(encoding="utf-8")
+        payload = json.loads(raw)
+    except Exception as exc:
+        return {
+            "path": str(path),
+            "type": "json",
+            "optimized": False,
+            "before_bytes": before,
+            "after_bytes": before,
+            "bytes_reclaimable": 0,
+            "bytes_reclaimed": 0,
+            "error": str(exc),
+        }
+    compact = (json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n").encode("utf-8")
+    reclaimable = max(0, before - len(compact))
+    reclaimed = 0
+    if apply and reclaimable > 0:
+        temp = path.with_name(f".{path.name}.compact-{uuid.uuid4().hex}.tmp")
+        try:
+            temp.write_bytes(compact)
+            os.replace(temp, path)
+            reclaimed = reclaimable
+        finally:
+            try:
+                if temp.exists():
+                    temp.unlink()
+            except OSError:
+                pass
+    return {
+        "path": str(path),
+        "type": "json",
+        "optimized": bool(reclaimable > 0),
+        "before_bytes": before,
+        "after_bytes": before - reclaimed if apply else len(compact),
+        "bytes_reclaimable": reclaimable,
+        "bytes_reclaimed": reclaimed,
+        "error": "",
+    }
+
+
+def _optimize_sqlite_file(path: Path, *, apply: bool) -> dict[str, Any]:
+    import sqlite3
+
+    before = path.stat().st_size
+    try:
+        with path.open("rb") as handle:
+            if handle.read(16) != b"SQLite format 3\x00":
+                return {
+                    "path": str(path),
+                    "type": "sqlite",
+                    "optimized": False,
+                    "before_bytes": before,
+                    "after_bytes": before,
+                    "bytes_reclaimable": 0,
+                    "bytes_reclaimed": 0,
+                    "error": "Formato SQLite non riconosciuto.",
+                }
+    except OSError as exc:
+        return {
+            "path": str(path),
+            "type": "sqlite",
+            "optimized": False,
+            "before_bytes": before,
+            "after_bytes": before,
+            "bytes_reclaimable": 0,
+            "bytes_reclaimed": 0,
+            "error": str(exc),
+        }
+
+    try:
+        if not apply:
+            with sqlite3.connect(str(path), timeout=2, isolation_level=None) as conn:
+                page_size = int(conn.execute("PRAGMA page_size").fetchone()[0] or 0)
+                freelist = int(conn.execute("PRAGMA freelist_count").fetchone()[0] or 0)
+            reclaimable = max(0, page_size * freelist)
+            return {
+                "path": str(path),
+                "type": "sqlite",
+                "optimized": reclaimable > 0,
+                "before_bytes": before,
+                "after_bytes": max(0, before - reclaimable),
+                "bytes_reclaimable": reclaimable,
+                "bytes_reclaimed": 0,
+                "error": "",
+            }
+        with sqlite3.connect(str(path), timeout=5, isolation_level=None) as conn:
+            try:
+                conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+            except sqlite3.Error:
+                pass
+            try:
+                conn.execute("PRAGMA optimize")
+            except sqlite3.Error:
+                pass
+            conn.execute("VACUUM")
+            try:
+                conn.execute("ANALYZE")
+            except sqlite3.Error:
+                pass
+        after = path.stat().st_size
+        reclaimed = max(0, before - after)
+        return {
+            "path": str(path),
+            "type": "sqlite",
+            "optimized": reclaimed > 0,
+            "before_bytes": before,
+            "after_bytes": after,
+            "bytes_reclaimable": reclaimed,
+            "bytes_reclaimed": reclaimed,
+            "error": "",
+        }
+    except sqlite3.Error as exc:
+        return {
+            "path": str(path),
+            "type": "sqlite",
+            "optimized": False,
+            "before_bytes": before,
+            "after_bytes": before,
+            "bytes_reclaimable": 0,
+            "bytes_reclaimed": 0,
+            "error": str(exc),
+        }
+
+
+def run_database_optimization(
+    *,
+    apply: bool = False,
+    data_root: str | Path | None = None,
+    tenant_slug: str = "",
+) -> dict[str, Any]:
+    root = Path(data_root) if data_root else resolve_data_root()
+    files = _iter_studio_archive_files(root, tenant_slug=tenant_slug)
+    results: list[dict[str, Any]] = []
+    for path in files:
+        try:
+            if path.suffix.lower() in DB_FILE_SUFFIXES:
+                result = _optimize_sqlite_file(path, apply=apply)
+            else:
+                result = _optimize_json_file(path, apply=apply)
+            result["display_path"] = _display_storage_path(str(path.relative_to(root)).replace("\\", "/"))
+        except Exception as exc:
+            result = {
+                "path": str(path),
+                "display_path": _display_storage_path(str(path)),
+                "type": path.suffix.lower().lstrip(".") or "file",
+                "optimized": False,
+                "before_bytes": 0,
+                "after_bytes": 0,
+                "bytes_reclaimable": 0,
+                "bytes_reclaimed": 0,
+                "error": str(exc),
+            }
+        results.append(result)
+    reclaimable = sum(int(item.get("bytes_reclaimable", 0) or 0) for item in results)
+    reclaimed = sum(int(item.get("bytes_reclaimed", 0) or 0) for item in results)
+    errors = [item for item in results if item.get("error")]
+    optimized = [item for item in results if item.get("optimized")]
+    return {
+        "mock_fallback": False,
+        "applied": apply,
+        "tenant_slug": str(tenant_slug or "").strip(),
+        "files_scanned": len(files),
+        "optimized_files": len(optimized),
+        "errors_count": len(errors),
+        "bytes_reclaimable": reclaimable,
+        "bytes_reclaimed": reclaimed,
+        "bytes_reclaimable_label": human_bytes(reclaimable),
+        "bytes_reclaimed_label": human_bytes(reclaimed),
+        "results": sorted(results, key=lambda item: int(item.get("bytes_reclaimable", 0) or 0), reverse=True)[:20],
+        "errors": errors[:10],
+    }
+
+
+def _iter_mailbox_databases(data_root: Path, *, tenant_slug: str = "") -> list[Path]:
+    slug = str(tenant_slug or "").strip()
+    roots: list[Path] = []
+    tenants_root = data_root / "tenants"
+    if slug:
+        roots = [tenants_root / slug]
+    elif tenants_root.is_dir():
+        roots = [item for item in tenants_root.iterdir() if item.is_dir()]
+    else:
+        roots = [data_root]
+
+    files: list[Path] = []
+    for root in roots:
+        email_root = root / "email"
+        for name in ("casella.json", "ordinaria.json"):
+            path = email_root / name
+            if path.is_file():
+                files.append(path)
+    return sorted(files, key=lambda item: str(item))
+
+
+def run_mail_attachment_archive_compression(
+    *,
+    apply: bool = False,
+    data_root: str | Path | None = None,
+    tenant_slug: str = "",
+) -> dict[str, Any]:
+    from pct.email_client import GestioneEmailRicevute
+
+    root = Path(data_root) if data_root else resolve_data_root()
+    files = _iter_mailbox_databases(root, tenant_slug=tenant_slug)
+    results: list[dict[str, Any]] = []
+    for path in files:
+        try:
+            gestore = GestioneEmailRicevute(str(path))
+            result = gestore.comprimi_allegati(apply=apply)
+            result["display_path"] = _display_storage_path(str(path.relative_to(root)).replace("\\", "/"))
+        except Exception as exc:
+            result = {
+                "mailbox": str(path),
+                "display_path": _display_storage_path(str(path)),
+                "loose_files": 0,
+                "archived_existing": 0,
+                "bytes_reclaimable": 0,
+                "bytes_reclaimed": 0,
+                "error": str(exc),
+            }
+        results.append(result)
+    reclaimable = sum(int(item.get("bytes_reclaimable", 0) or 0) for item in results)
+    reclaimed = sum(int(item.get("bytes_reclaimed", 0) or 0) for item in results)
+    loose_files = sum(int(item.get("loose_files", 0) or 0) for item in results)
+    return {
+        "mock_fallback": False,
+        "applied": apply,
+        "tenant_slug": str(tenant_slug or "").strip(),
+        "mailboxes_scanned": len(files),
+        "loose_files": loose_files,
+        "archived_existing": sum(int(item.get("archived_existing", 0) or 0) for item in results),
+        "bytes_reclaimable": reclaimable,
+        "bytes_reclaimed": reclaimed,
+        "bytes_reclaimable_label": human_bytes(reclaimable),
+        "bytes_reclaimed_label": human_bytes(reclaimed),
+        "results": sorted(results, key=lambda item: int(item.get("bytes_reclaimable", 0) or 0), reverse=True)[:20],
+        "errors": [item for item in results if item.get("error")][:10],
+    }
+
+
+def run_max_storage_optimization(
+    *,
+    apply: bool = False,
+    data_root: str | Path | None = None,
+    tenant_slug: str = "",
+) -> dict[str, Any]:
+    root = Path(data_root) if data_root else resolve_data_root()
+    compaction = run_storage_compaction(apply=apply, data_root=root, tenant_slug=tenant_slug)
+    mail_archives = run_mail_attachment_archive_compression(apply=apply, data_root=root, tenant_slug=tenant_slug)
+    databases = run_database_optimization(apply=apply, data_root=root, tenant_slug=tenant_slug)
+    reclaimable = int(compaction.get("bytes_reclaimable", 0) or 0) + int(
+        databases.get("bytes_reclaimable", 0) or 0
+    ) + int(
+        mail_archives.get("bytes_reclaimable", 0) or 0
+    )
+    reclaimed = (
+        int(compaction.get("bytes_reclaimed", 0) or 0)
+        + int(mail_archives.get("bytes_reclaimed", 0) or 0)
+        + int(databases.get("bytes_reclaimed", 0) or 0)
+    )
+    return {
+        "mock_fallback": False,
+        "applied": apply,
+        "tenant_slug": str(tenant_slug or "").strip(),
+        "bytes_reclaimable": reclaimable,
+        "bytes_reclaimed": reclaimed,
+        "bytes_reclaimable_label": human_bytes(reclaimable),
+        "bytes_reclaimed_label": human_bytes(reclaimed),
+        "compaction": compaction,
+        "mail_archives": mail_archives,
+        "databases": databases,
+    }
+
+
 def trigger_backup(*, backup_script_path: str | Path | None = None) -> dict[str, Any]:
     """Lancia backup.sh in background e ritorna subito con un ticket."""
     import subprocess
@@ -1133,36 +1924,62 @@ def trigger_backup(*, backup_script_path: str | Path | None = None) -> dict[str,
 
 
 def run_docker_prune(*, dry_run: bool = True) -> dict[str, Any]:
-    """Esegue docker system prune per liberare immagini e layer non usati."""
-    import subprocess
-    try:
-        cmd = ["docker", "system", "df", "--format", "json"]
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
-        df_output = result.stdout.strip() if result.returncode == 0 else ""
-    except Exception:
-        df_output = ""
+    """Pulisce solo la cache di costruzione dei servizi, senza toccare volumi dati."""
+    before = docker_storage_summary()
 
     if dry_run:
         return {
             "applied": False,
             "dry_run": True,
-            "docker_df": df_output,
+            "docker": before,
+            "bytes_reclaimed": 0,
+            "bytes_reclaimed_label": human_bytes(0),
             "error": None,
         }
-    try:
-        prune = subprocess.run(
-            ["docker", "system", "prune", "--volumes", "--force"],
-            capture_output=True, text=True, timeout=120,
-        )
+    response = _docker_api_request("POST", "/build/prune?all=1", timeout_seconds=120)
+    if response.get("ok"):
+        try:
+            payload = json.loads(str(response.get("body") or "{}"))
+        except json.JSONDecodeError:
+            payload = {}
+        reclaimed = int(payload.get("SpaceReclaimed", 0) or 0)
         return {
             "applied": True,
             "dry_run": False,
+            "stdout": "",
+            "error": None,
+            "docker": before,
+            "bytes_reclaimed": reclaimed,
+            "bytes_reclaimed_label": human_bytes(reclaimed),
+        }
+    try:
+        import subprocess
+
+        prune = subprocess.run(
+            ["docker", "builder", "prune", "--all", "--force"],
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+        estimated = int(before.get("build_cache_reclaimable_bytes", 0) or 0) if prune.returncode == 0 else 0
+        return {
+            "applied": prune.returncode == 0,
+            "dry_run": False,
             "stdout": prune.stdout,
             "error": prune.stderr if prune.returncode != 0 else None,
-            "docker_df": df_output,
+            "docker": before,
+            "bytes_reclaimed": estimated,
+            "bytes_reclaimed_label": human_bytes(estimated),
         }
     except Exception as exc:
-        return {"applied": False, "dry_run": False, "docker_df": df_output, "error": str(exc)}
+        return {
+            "applied": False,
+            "dry_run": False,
+            "docker": before,
+            "bytes_reclaimed": 0,
+            "bytes_reclaimed_label": human_bytes(0),
+            "error": str(exc) or str(response.get("error") or ""),
+        }
 
 
 def _last_backup_info(backup_dir: str | Path | None = None) -> dict[str, Any]:

@@ -42,6 +42,14 @@ def _parse_hhmm(value: object, default: str) -> tuple[int, int]:
     return default_hour, default_minute
 
 
+def _parse_positive_int(value: object, default: int) -> int:
+    try:
+        parsed = int(str(value or "").strip())
+        return parsed if parsed > 0 else default
+    except (TypeError, ValueError):
+        return default
+
+
 def start_scheduler(app):
     """
     Avvia lo scheduler APScheduler in background.
@@ -221,25 +229,53 @@ def start_scheduler(app):
     def _run_legal_updates(source_ids, label, *, auto_publish=True):
         with app.app_context():
             try:
-                from pct.legal_update_pipeline import build_legal_update_pipeline
+                from pct.legal_update_batch_runner import LegalUpdateJobConfig, run_legal_update_batch_with_timeouts
 
-                pipeline = build_legal_update_pipeline(
-                    app.config.get("LEGAL_INTELLIGENCE_DB", "./intelligence/legal_intelligence.json"),
-                    giurisprudenza_db_path=app.config.get("GIURISPRUDENZA_DB", "./intelligence/giurisprudenza.json"),
-                    ai_base_url=app.config.get("LOCAL_AI_BASE_URL", "") or app.config.get("PCT_LOCAL_AI_BASE_URL", ""),
-                    ai_model=app.config.get("LOCAL_AI_CHAT_MODEL", "") or app.config.get("OLLAMA_MODEL", "mistral"),
+                timeout_seconds = _parse_positive_int(
+                    app.config.get("LEGAL_UPDATES_ITEM_TIMEOUT_SECONDS")
+                    or os.getenv("IUSENTRA_LEGAL_UPDATES_ITEM_TIMEOUT_SECONDS"),
+                    180,
+                )
+                publish_max_items = _parse_positive_int(
+                    app.config.get("LEGAL_UPDATES_PUBLISH_MAX_ITEMS")
+                    or os.getenv("IUSENTRA_LEGAL_UPDATES_PUBLISH_MAX_ITEMS"),
+                    80,
+                )
+                config = LegalUpdateJobConfig(
+                    intelligence_db=str(
+                        app.config.get("LEGAL_INTELLIGENCE_DB")
+                        or "./intelligence/legal_intelligence.json"
+                    ),
+                    giurisprudenza_db=str(
+                        app.config.get("GIURISPRUDENZA_DB")
+                        or "./intelligence/giurisprudenza.json"
+                    ),
+                    ai_base_url=str(
+                        app.config.get("LOCAL_AI_BASE_URL", "")
+                        or app.config.get("PCT_LOCAL_AI_BASE_URL", "")
+                    ),
+                    ai_model=str(
+                        app.config.get("LOCAL_AI_CHAT_MODEL", "")
+                        or app.config.get("OLLAMA_MODEL", "mistral")
+                    ),
                     export_json_enabled=_flag_enabled(app.config.get("LEGAL_UPDATES_EXPORT_JSON_ENABLED")),
                     mirror_giurisprudenza_json_enabled=_flag_enabled(
                         app.config.get("LEGAL_UPDATES_MIRROR_GIURISPRUDENZA_JSON_ENABLED")
                     ),
                 )
-                report = pipeline.run_cycle(source_codes=source_ids, auto_publish=auto_publish)
+                report = run_legal_update_batch_with_timeouts(
+                    config,
+                    source_codes=source_ids,
+                    auto_publish=auto_publish,
+                    item_timeout_seconds=timeout_seconds,
+                    publish_max_items=publish_max_items,
+                )
                 logger.info(
-                    "[scheduler] Legal updates %s: %d fonti, %d news autopubblicate, %d review pendenti",
+                    "[scheduler] Legal updates %s: %d fonti, %d news autopubblicate, %d timeout per elemento",
                     label,
                     len(report.get("reports") or []),
                     int((report.get("autopublished") or {}).get("count") or 0),
-                    int(((report.get("dashboard") or {}).get("headline") or {}).get("review_pending") or 0),
+                    int(report.get("timeouts") or 0),
                 )
             except Exception as e:
                 logger.error("[scheduler] Legal updates %s fallito: %s", label, e)
@@ -441,11 +477,14 @@ def start_scheduler(app):
                     yield str(studio.slug or "tenant"), paths
                 if found:
                     return
+                logger.info("[scheduler] Mailbox sync multi-tenant: nessuno studio attivo, sync globale non eseguita.")
+                return
             except Exception as e:
                 logger.warning("[scheduler] Mailbox sync multi-tenant non disponibile: %s", e)
+                return
         yield "default", {
             "EMAIL_CASELLA_DB": app.config.get("EMAIL_CASELLA_DB", "./email/casella.json"),
-            "EMAIL_ORDINARIA_DB": app.config.get("EMAIL_ORDINARIA_DB", "./email_ordinaria/casella.json"),
+            "EMAIL_ORDINARIA_DB": app.config.get("EMAIL_ORDINARIA_DB", "./email/ordinaria.json"),
             "STUDIO_CONFIG": app.config.get("STUDIO_CONFIG") or app.config.get("CONFIG_STUDIO_DB", "./config/studio.json"),
             "CONFIG_STUDIO_DB": app.config.get("CONFIG_STUDIO_DB", app.config.get("STUDIO_CONFIG", "./config/studio.json")),
             "FASCICOLI_DB": app.config.get("FASCICOLI_DB", "./fascicoli/fascicoli.json"),

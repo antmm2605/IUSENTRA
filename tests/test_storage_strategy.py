@@ -31,7 +31,7 @@ from web.services.applicazioni_runtime import (
 )
 from web.services.react_impostazioni_calendar import _cal_token_dir
 from web.services.storage_runtime import get_request_storage_runtime, get_request_studio_db
-from web.services.tenant_legacy_bootstrap import bootstrap_legacy_tenant_runtime_data
+from web.services.tenant_legacy_bootstrap import bootstrap_legacy_tenant_runtime_data, legacy_root_data_paths
 from web.services.topbar_operational import _cfg_value as topbar_cfg_value
 from web.template_atti import _get_gp
 
@@ -51,6 +51,20 @@ def _write_studio_config(path: Path) -> None:
         ),
         encoding="utf-8",
     )
+
+
+def test_legacy_bootstrap_non_importa_email_root_automaticamente(tmp_path: Path):
+    cfg = {
+        "CLIENTI_DB": str(tmp_path / "clienti" / "anagrafica.json"),
+        "EMAIL_CASELLA_DB": str(tmp_path / "email" / "casella.json"),
+        "EMAIL_ORDINARIA_DB": str(tmp_path / "email" / "ordinaria.json"),
+    }
+
+    paths = legacy_root_data_paths(cfg)
+
+    assert "CLIENTI_DB" in paths
+    assert "EMAIL_CASELLA_DB" not in paths
+    assert "EMAIL_ORDINARIA_DB" not in paths
 
 
 def _cfg(tmp_path: Path) -> dict:

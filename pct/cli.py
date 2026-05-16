@@ -53,7 +53,7 @@ from .fatturazione import GestioneFatturazione
 from .pagamenti import GestionePagamenti
 from .preventivi import GestionePreventivi
 from .golden_paths import build_golden_path_payload, run_golden_path_suites
-from .legal_update_pipeline import build_legal_update_pipeline
+from .legal_update_pipeline import DEFAULT_SOURCE_ROWS, build_legal_update_pipeline
 from .storage_migration_full import attach_migration_rollback_context
 from .studio_demo import build_studio_demo_snapshot
 from .tenant import DatabaseConfig, DbMode, GestioneTenant
@@ -66,6 +66,14 @@ from .scadenziario import (
     calcola_termine,
 )
 from .timesheet import GestioneTimesheet
+
+
+def _env_int_option(name: str, default: int) -> int:
+    try:
+        value = int(os.getenv(name, str(default)) or default)
+        return value if value >= 0 else default
+    except (TypeError, ValueError):
+        return default
 
 
 def carica_config(config_path: str | None = None) -> dict:
@@ -2676,7 +2684,9 @@ def cmd_demo_check(tenant_slug, registry):
 @click.option("--local-ai-model", default=lambda: os.getenv("LOCAL_AI_CHAT_MODEL", os.getenv("OLLAMA_MODEL", "mistral")), show_default="LOCAL_AI_CHAT_MODEL o OLLAMA_MODEL o mistral", help="Modello locale per arricchimento AI")
 @click.option("--export-json/--no-export-json", default=False, show_default=True, help="Scrive un export JSON amministrativo dopo il ciclo")
 @click.option("--mirror-giurisprudenza-json/--no-mirror-giurisprudenza-json", default=False, show_default=True, help="Replica anche nel vecchio archivio giurisprudenza JSON")
-def cmd_aggiornamenti_legali(intelligence_db, giurisprudenza_db, source_codes, no_auto_publish, publish_approved, cleanup_only, local_ai_url, local_ai_model, export_json, mirror_giurisprudenza_json):
+@click.option("--per-source-timeout", type=int, default=lambda: _env_int_option("IUSENTRA_LEGAL_UPDATES_ITEM_TIMEOUT_SECONDS", 0), show_default="IUSENTRA_LEGAL_UPDATES_ITEM_TIMEOUT_SECONDS o 0", help="Esegue ogni fonte in un job separato con timeout in secondi")
+@click.option("--publish-max-items", type=int, default=lambda: _env_int_option("IUSENTRA_LEGAL_UPDATES_PUBLISH_MAX_ITEMS", 80), show_default="IUSENTRA_LEGAL_UPDATES_PUBLISH_MAX_ITEMS o 80", help="Limite di pubblicazioni automatiche quando si usa il job con timeout")
+def cmd_aggiornamenti_legali(intelligence_db, giurisprudenza_db, source_codes, no_auto_publish, publish_approved, cleanup_only, local_ai_url, local_ai_model, export_json, mirror_giurisprudenza_json, per_source_timeout, publish_max_items):
     """Esegue la pipeline del motore di aggiornamento normativo, giurisprudenziale e di prassi."""
     pipeline = build_legal_update_pipeline(
         intelligence_db,
@@ -2689,10 +2699,34 @@ def cmd_aggiornamenti_legali(intelligence_db, giurisprudenza_db, source_codes, n
     cleanup_report = pipeline.repository.deduplicate_archive(performed_by="cli")
     report = {"ok": True, "sources": [], "reports": [], "autopublished": {"count": 0, "items": []}}
     if not cleanup_only:
-        report = pipeline.run_cycle(
-            source_codes=list(source_codes) or None,
-            auto_publish=not no_auto_publish,
-        )
+        if int(per_source_timeout or 0) > 0:
+            from pct.legal_update_batch_runner import LegalUpdateJobConfig, run_legal_update_batch_with_timeouts
+
+            pipeline.repository.upsert_sources(list(DEFAULT_SOURCE_ROWS))
+            selected_sources = list(source_codes) or [
+                str(row.get("code") or "")
+                for row in pipeline.repository.list_sources(enabled_only=True)
+                if str(row.get("code") or "")
+            ]
+            report = run_legal_update_batch_with_timeouts(
+                LegalUpdateJobConfig(
+                    intelligence_db=intelligence_db,
+                    giurisprudenza_db=giurisprudenza_db,
+                    ai_base_url=local_ai_url,
+                    ai_model=local_ai_model,
+                    export_json_enabled=export_json,
+                    mirror_giurisprudenza_json_enabled=mirror_giurisprudenza_json,
+                ),
+                source_codes=selected_sources,
+                auto_publish=not no_auto_publish,
+                item_timeout_seconds=int(per_source_timeout or 180),
+                publish_max_items=int(publish_max_items or 80),
+            )
+        else:
+            report = pipeline.run_cycle(
+                source_codes=list(source_codes) or None,
+                auto_publish=not no_auto_publish,
+            )
 
     published_after_review = []
     if publish_approved:

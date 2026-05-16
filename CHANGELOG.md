@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.243.7 - 2026-05-16
+
+- Potenziata `/admin/server-manutenzione` con console Hetzner: evidenzia spazio fuori dagli studi, cache ricostruibile dei servizi, snapshot temporanei residui e aree server principali, spiegando lo scarto tra consumi tenant e disco usato.
+- Resa obbligatoria la pulizia della cache build Docker dopo ogni deploy Hetzner con `docker builder prune --all --force`; la regola e' codificata in `AGENTS.md`, `deploy/hetzner/deploy.sh`, guida deploy e checklist release.
+- Limitata la retention backup a massimo 3 copie anche se l'ambiente imposta valori piu' alti; il backup continua a preservare le copie minime e a non toccare volumi applicativi fuori policy.
+- Aggiunta ottimizzazione massima sicura per storage studi: deduplica fisica di allegati PEC/ordinaria e mirror identici, compattazione JSON e `VACUUM/ANALYZE` SQLite senza cambiare i percorsi letti dall'app.
+- Installato il lettore allegati compresso: i nuovi allegati PEC/ordinaria possono essere salvati in `archivio-allegati.zip` con deduplica per hash, mentre anteprime e download leggono in modo trasparente sia file sciolti sia archiviati.
+- Aggiunto script governato `scripts/purge_downloaded_mailboxes.py` per svuotare PEC/email ordinaria scaricate e allegati mantenendo le configurazioni casella; usato su locale e Hetzner senza creare backup.
+- Resa fail-closed la sincronizzazione email in multi-studio: scheduler, route operative e PDP non possono piu' scrivere su `/data/email` o su path globali se manca il contesto tenant; il bootstrap legacy non importa piu' automaticamente gli archivi email root nei tenant.
+- Trasformato il comando massivo Aggiornamenti legali in job a elementi con timeout: scheduler, console admin e CLI possono eseguire ogni fonte e ogni pubblicazione idonea in un processo isolato, evitando che verifiche web esterne lente blocchino il lotto notturno.
+- Pulizia operativa eseguita su Hetzner: cache build Docker azzerata, posta scaricata rimossa, snapshot temporaneo e backup/quarantene legacy cancellati, con disco sceso a circa 41 GiB usati su 301 GiB dopo il recupero.
+
 ## 2.243.6 - 2026-05-16
 
 - Corretto `/admin/aggiornamenti-legali/staging`: la pagina avvia una riconciliazione leggera prima del render e non mostra piu' lo stato grezzo `Da valutare` per documenti gia' classificati.

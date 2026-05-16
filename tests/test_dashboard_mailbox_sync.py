@@ -3,11 +3,14 @@ from __future__ import annotations
 import threading
 from pathlib import Path
 
+import pytest
+
 from pct.config_studio import ConfigSMTP, ConfigStudio, GestioneConfigStudio
 from pct.email_client import GestioneEmailRicevute
 from tests.test_email_client import _autentica_admin_session, _cfg_web
 from web.app import create_app
 from web.services import mailbox_sync_runtime as runtime
+from web.services.tenant_paths import TenantDataPathError
 
 
 def _paths(tmp_path: Path) -> dict[str, str]:
@@ -21,6 +24,7 @@ def _paths(tmp_path: Path) -> dict[str, str]:
         "AUTH_DB": str(tmp_path / "auth" / "utenti.json"),
         "AUDIT_DB": str(tmp_path / "auth" / "audit.json"),
         "MESSAGGI_DB": str(tmp_path / "messaggi" / "storico.json"),
+        "STUDIO_DB": str(tmp_path / "studio.db"),
     }
 
 
@@ -154,3 +158,14 @@ def test_sync_pec_e_ordinaria_usano_database_separati(tmp_path, monkeypatch):
     assert runtime.run_pec_mailbox_sync(ctx)["ok"] is True
     assert runtime.run_ordinary_mailbox_sync(ctx)["ok"] is True
     assert observed == [paths["EMAIL_CASELLA_DB"], paths["EMAIL_ORDINARIA_DB"]]
+
+
+def test_mailbox_sync_multi_tenant_blocca_path_email_globali(tmp_path):
+    app = create_app({**_cfg_web(tmp_path / "root"), "MULTI_TENANT": True})
+    tenant_root = tmp_path / "tenants" / "studio-a"
+    paths = _paths(tenant_root)
+    paths["EMAIL_CASELLA_DB"] = str(tmp_path / "email" / "casella.json")
+
+    with app.app_context(), pytest.raises(TenantDataPathError):
+        ctx = runtime.mailbox_context_from_paths(paths, tenant_label="studio-a")
+        runtime.run_pec_mailbox_sync(ctx)

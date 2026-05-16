@@ -861,7 +861,7 @@ def _ordinary_email_manager() -> GestioneEmailRicevute:
 def _messaggi_manager() -> GestioneMessaggi:
     return GestioneMessaggi(
         ConfigMessaggistica(studio_nome=studio_nome()),
-        db_path=_cfg_value("MESSAGGI_DB", "./messaggi/storico.json"),
+        db_path=_tenant_cfg_value("MESSAGGI_DB", "./messaggi/storico.json"),
     )
 
 
@@ -869,7 +869,7 @@ def _messaggi_tutti() -> list[Messaggio]:
     try:
         return _messaggi_manager().tutti()
     except Exception:
-        path = Path(_cfg_value("MESSAGGI_DB", "./messaggi/storico.json"))
+        path = Path(_tenant_cfg_value("MESSAGGI_DB", "./messaggi/storico.json"))
         if not path.exists():
             return []
         try:

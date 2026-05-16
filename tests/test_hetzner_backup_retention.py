@@ -26,6 +26,7 @@ def test_backup_script_applica_tetto_spazio_e_compressione_alta():
 
     assert "IUSENTRA_BACKUP_RETENTION_MAX_GIB" in script
     assert "IUSENTRA_BACKUP_RETENTION_MIN_COUNT" in script
+    assert "RETENTION_MAX_COUNT=3" in script
     assert "prune_by_total_size" in script
     assert "IUSENTRA_BACKUP_ZSTD_LEVEL" in script
     assert "IUSENTRA_BACKUP_EXCLUDE_PATHS" in script

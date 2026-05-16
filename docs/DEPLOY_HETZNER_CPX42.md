@@ -1,6 +1,6 @@
 # Deploy Hetzner CPX42
 
-> **Versione corrente:** 2.243.3
+> **Versione corrente:** 2.243.7
 > Guida aggiornata: 16/05/2026
 
 Questa guida rende esplicito il profilo `deploy/hetzner` come destinazione di produzione o fallback governato rispetto a Railway.
@@ -165,9 +165,11 @@ Cron consigliato:
 15 2 * * * /opt/iusentra/repo/deploy/hetzner/backup.sh >/var/log/iusentra-backup.log 2>&1
 ```
 
-Lo script applica anche la retention: per default conserva al massimo 3 backup applicativi, almeno 2 copie, rimuove quelli piu' vecchi di 14 giorni e mantiene la directory backup entro 8 GiB quando possibile. In produzione i valori sono governati da `IUSENTRA_BACKUP_RETENTION_COUNT`, `IUSENTRA_BACKUP_RETENTION_MIN_COUNT`, `IUSENTRA_BACKUP_RETENTION_DAYS` e `IUSENTRA_BACKUP_RETENTION_MAX_GIB` in `/opt/iusentra/.env.hetzner`.
+Lo script applica anche la retention: conserva al massimo 3 backup applicativi, almeno 2 copie, rimuove quelli piu' vecchi di 14 giorni e mantiene la directory backup entro 8 GiB quando possibile. Il massimo di 3 copie e' un tetto rigido anche se l'ambiente imposta un valore piu' alto. In produzione i valori sono governati da `IUSENTRA_BACKUP_RETENTION_COUNT`, `IUSENTRA_BACKUP_RETENTION_MIN_COUNT`, `IUSENTRA_BACKUP_RETENTION_DAYS` e `IUSENTRA_BACKUP_RETENTION_MAX_GIB` in `/opt/iusentra/.env.hetzner`. La retention rimuove anche backup legacy/quarantene email non operative (`auth-before-migration-*`, `hetzner-pre-*`, `tenant-email-quarantine-*`).
 
 I backup `.tar.zst` usano zstd ad alta compressione (`IUSENTRA_BACKUP_ZSTD_LEVEL=19`, `IUSENTRA_BACKUP_ZSTD_LONG_WINDOW=27` di default). Ollama, i modelli locali e i download rigenerabili sono esclusi in modo obbligatorio (`./ollama`, `./intelligence/downloads/ollama`, `./tenants/*/intelligence/downloads/ollama`): lo script verifica l'archivio e fallisce se trova ancora un percorso Ollama. Se durante la lettura cambiano file runtime vivi, `tar` puo' restituire un warning non fatale: da v2.243.3 lo script conserva lo snapshot best-effort e blocca solo errori gravi o compressione fallita. Se una singola copia supera il tetto configurato, lo script conserva comunque il numero minimo di copie e stampa un avviso esplicito invece di cancellare l'ultimo backup valido.
+
+Dopo ogni deploy Hetzner il deploy elimina la cache build Docker rigenerabile e l'eventuale `/opt/iusentra/tmp-backup-snapshot` non operativo. In multi-studio la sincronizzazione PEC/email ordinaria deve fallire chiusa se non risolve un path tenant sotto `/data/tenants/<studio>/email`; `/data/email` non va popolato da scheduler o route operative.
 
 Per compattare lo storage live senza cambiare i path applicativi:
 
@@ -177,6 +179,7 @@ python3 /opt/iusentra/repo/scripts/compact_iusentra_storage.py --data-root /opt/
 ```
 
 Il comando usa hardlink per deduplicare allegati email e mirror backup identici nello stesso filesystem; i riferimenti salvati nei JSON restano invariati.
+Da v2.243.7 i nuovi allegati PEC/email possono essere salvati direttamente in `archivio-allegati.zip` con `IUSENTRA_EMAIL_ATTACHMENT_STORAGE=archive`; il lettore applicativo continua ad aprire anche i file sciolti storici, quindi download e anteprime non dipendono dal formato fisico.
 Il pannello Superadmin `Server e manutenzione` mostra dimensioni hardlink-aware: i file gia' compattati restano percorsi distinti per l'applicazione, ma non vengono trattati come spazio ancora recuperabile. Il profilo Docker monta anche `/opt/iusentra/backups` nel container app, cosi' il pannello puo' misurare i backup esterni reali e applicare la retention governata solo sugli archivi `iusentra-data-*.tar.zst`/`.tar.gz`, preservando sempre le copie minime configurate.
 
 ## Restore
@@ -382,6 +385,7 @@ guard OK: ExactLegalReferenceGuard
 
 | Versione | Commit | Data | Contenuto principale |
 |----------|--------|------|----------------------|
+| 2.243.7 | — | 16/05/2026 | Console Hetzner/storage: cache Docker build eliminata dopo deploy, snapshot temporanei rimossi, retention backup rigida massimo 3 copie, posta multi-studio fail-closed sui tenant, allegati PEC/email nuovi in archivio ZIP compatibile con anteprime/download e aggiornamenti legali massivi eseguiti come job per elemento con timeout. |
 | 2.243.3 | — | 16/05/2026 | Backup preventivo Hetzner robusto sui dati runtime vivi: `backup.sh` considera non fatale `tar` exit 1 dovuto a file cambiati durante la lettura, produce comunque lo snapshot best-effort e continua a bloccare errori gravi (`tar > 1`) o fallimenti zstd/gzip. |
 | 2.243.2 | — | 16/05/2026 | Dockerfile frontend reso ripetibile su server: lo stage Vite usa `npm ci --include=dev`, cosi' Tailwind/PostCSS sono disponibili anche con `NODE_ENV=production`; `.dockerignore` esclude `node_modules` per impedire drift fra build locale e build Hetzner. |
 | 2.243.0 | — | 16/05/2026 | Dockerfile: aggiunto stage `frontend-builder` su `node:22-slim` che esegue `npm ci` + `npm run build:vite` durante il build dell'immagine. Lo stage runtime copia il bundle React appena ricompilato sopra `web/static/react/`, eliminando il drift tra sorgenti TSX e bundle JavaScript servito al browser. Lo stage e' indipendente (Node non finisce nell'immagine finale, solo gli artefatti). Layer cache su `package*.json` per ricompilazioni rapide quando cambiano solo i `.tsx`. |

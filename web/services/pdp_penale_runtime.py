@@ -25,6 +25,7 @@ from legal_deposit.penal_rules import (
     pdp_ministry_statuses,
 )
 from legal_deposit.policies import get_channel_profile
+from web.services.tenant_paths import tenant_data_path
 
 
 def build_pdp_penale_runtime(
@@ -642,16 +643,10 @@ def build_pdp_penale_runtime(
 
         repo = get_pdp_penale()
         cfg = get_config_studio().config
-        data_paths = getattr(g, "data_paths", {}) or {}
-        if not data_paths and getattr(g, "tenant_context_missing", False):
-            raise RuntimeError(
-                "Contesto studio non disponibile per la richiesta corrente. "
-                "Accesso ai dati bloccato per evitare letture cross-studio."
-            )
-        email_db = str(
-            data_paths.get("EMAIL_CASELLA_DB")
-            or app.config.get("EMAIL_CASELLA_DB")
-            or os.environ.get("PCT_EMAIL_DB", "./email/casella.json")
+        email_db = tenant_data_path(
+            "EMAIL_CASELLA_DB",
+            os.environ.get("PCT_EMAIL_DB", "./email/casella.json"),
+            require_tenant=True,
         )
         ge = GestioneEmailRicevute(db_path=email_db)
         sync_result = {"nuove": 0, "errore": ""}

@@ -206,7 +206,17 @@ docker compose \
   ps || true
 
 # ---------------------------------------------------------------------------
-# 8. Cron backup automatico (aggiornato ad ogni deploy, salvo opt-out)
+# 8. Pulizia cache build Docker
+# ---------------------------------------------------------------------------
+echo "Pulizia cache build Docker rigenerabile..."
+docker builder prune --all --force || echo "Attenzione: pulizia cache build Docker non completata."
+if [ -d "$IUSENTRA_HOME/tmp-backup-snapshot" ]; then
+  echo "Pulizia snapshot temporaneo non operativo..."
+  rm -rf -- "$IUSENTRA_HOME/tmp-backup-snapshot" || echo "Attenzione: snapshot temporaneo non rimosso."
+fi
+
+# ---------------------------------------------------------------------------
+# 9. Cron backup automatico (aggiornato ad ogni deploy, salvo opt-out)
 # ---------------------------------------------------------------------------
 if [[ "${IUSENTRA_SKIP_BACKUP_CRON:-0}" =~ ^(1|true|yes|on)$ ]]; then
   echo "Cron backup: non aggiornato (IUSENTRA_SKIP_BACKUP_CRON=1)"

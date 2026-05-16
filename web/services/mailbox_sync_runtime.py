@@ -19,6 +19,20 @@ DEFAULT_MAILBOX_SYNC_COOLDOWN_SECONDS = 180.0
 _STATE_LOCK = RLock()
 _RUN_LOCKS: dict[str, Lock] = {}
 _LAST_ATTEMPT: dict[str, float] = {}
+_MAILBOX_TENANT_SENSITIVE_KEYS = frozenset(
+    {
+        "EMAIL_CASELLA_DB",
+        "EMAIL_ORDINARIA_DB",
+        "MESSAGGI_DB",
+        "STUDIO_CONFIG",
+        "CONFIG_STUDIO_DB",
+        "FASCICOLI_DB",
+        "FASCICOLI_DOCS",
+        "FASCICOLI_ARCH",
+        "AUTH_DB",
+        "AUDIT_DB",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -87,6 +101,29 @@ def clear_mailbox_sync_runtime_state() -> None:
         _LAST_ATTEMPT.clear()
 
 
+def _context_multi_tenant(ctx: MailboxRuntimeContext) -> bool:
+    return bool(ctx.config.get("MULTI_TENANT"))
+
+
+def _tenant_root_from_context(ctx: MailboxRuntimeContext) -> Path:
+    studio_db = str(ctx.data_paths.get("STUDIO_DB") or "").strip()
+    if not studio_db:
+        raise TenantDataPathError(CROSS_STUDIO_DATA_MESSAGE)
+    return Path(studio_db).expanduser().resolve().parent
+
+
+def _assert_runtime_path_in_tenant(ctx: MailboxRuntimeContext, key: str, value: str) -> str:
+    resolved = Path(value).expanduser().resolve()
+    if not _context_multi_tenant(ctx) or key not in _MAILBOX_TENANT_SENSITIVE_KEYS:
+        return str(resolved)
+    tenant_root = _tenant_root_from_context(ctx)
+    try:
+        resolved.relative_to(tenant_root)
+    except ValueError as exc:
+        raise TenantDataPathError(CROSS_STUDIO_DATA_MESSAGE) from exc
+    return str(resolved)
+
+
 def _cfg_path(
     ctx: MailboxRuntimeContext,
     key: str,
@@ -97,13 +134,13 @@ def _cfg_path(
     for candidate in (key, *aliases):
         value = ctx.data_paths.get(candidate)
         if value:
-            return str(value)
-    if require_tenant and bool(ctx.config.get("MULTI_TENANT")):
+            return _assert_runtime_path_in_tenant(ctx, candidate, str(value))
+    if _context_multi_tenant(ctx) and (require_tenant or key in _MAILBOX_TENANT_SENSITIVE_KEYS):
         raise TenantDataPathError(CROSS_STUDIO_DATA_MESSAGE)
     for candidate in (key, *aliases):
         value = ctx.config.get(candidate)
         if value:
-            return str(value)
+            return str(Path(str(value)).expanduser().resolve())
     return str(default or "")
 
 

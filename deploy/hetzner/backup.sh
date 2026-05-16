@@ -17,6 +17,7 @@ RETENTION_DAYS="${IUSENTRA_BACKUP_RETENTION_DAYS:-${BACKUP_RETENTION_DAYS:-14}}"
 RETENTION_COUNT="${IUSENTRA_BACKUP_RETENTION_COUNT:-${BACKUP_RETENTION_COUNT:-3}}"
 RETENTION_MIN_COUNT="${IUSENTRA_BACKUP_RETENTION_MIN_COUNT:-${BACKUP_RETENTION_MIN_COUNT:-2}}"
 RETENTION_MAX_GIB="${IUSENTRA_BACKUP_RETENTION_MAX_GIB:-${BACKUP_RETENTION_MAX_GIB:-8}}"
+RETENTION_MAX_COUNT=3
 ZSTD_LEVEL="${IUSENTRA_BACKUP_ZSTD_LEVEL:-${BACKUP_ZSTD_LEVEL:-19}}"
 ZSTD_LONG_WINDOW="${IUSENTRA_BACKUP_ZSTD_LONG_WINDOW:-${BACKUP_ZSTD_LONG_WINDOW:-27}}"
 BACKUP_EXCLUDE_PATHS="${IUSENTRA_BACKUP_EXCLUDE_PATHS:-${BACKUP_EXCLUDE_PATHS:-./ollama}}"
@@ -34,6 +35,22 @@ OUT="${FINAL_OUT}.tmp"
 BACKUP_COMPLETED=0
 
 mkdir -p "$BACKUP_DIR"
+
+if ! [[ "$RETENTION_COUNT" =~ ^[0-9]+$ ]] || (( RETENTION_COUNT < 1 )); then
+  RETENTION_COUNT=3
+fi
+if (( RETENTION_COUNT > RETENTION_MAX_COUNT )); then
+  RETENTION_COUNT="$RETENTION_MAX_COUNT"
+fi
+if ! [[ "$RETENTION_MIN_COUNT" =~ ^[0-9]+$ ]] || (( RETENTION_MIN_COUNT < 1 )); then
+  RETENTION_MIN_COUNT=1
+fi
+if (( RETENTION_MIN_COUNT > RETENTION_MAX_COUNT )); then
+  RETENTION_MIN_COUNT="$RETENTION_MAX_COUNT"
+fi
+if (( RETENTION_MIN_COUNT > RETENTION_COUNT )); then
+  RETENTION_MIN_COUNT="$RETENTION_COUNT"
+fi
 
 cleanup_incomplete_backup() {
   if [[ "$BACKUP_COMPLETED" != "1" ]]; then
@@ -97,6 +114,14 @@ backup_find_args=(
   -type f
   \( -name "iusentra-data-*.tar.zst" -o -name "iusentra-data-*.tar.gz" \)
 )
+
+prune_legacy_backup_items() {
+  find "$BACKUP_DIR" -maxdepth 1 -type f \
+    \( -name "auth-before-migration-*.tgz" -o -name "hetzner-pre-*.tar.gz" -o -name "hetzner-pre-*.tar.gz.sha256" \) \
+    -delete
+  find "$BACKUP_DIR" -maxdepth 1 -type d -name "tenant-email-quarantine-*" \
+    -exec rm -rf -- {} +
+}
 
 prune_by_total_size() {
   if ! [[ "$RETENTION_MAX_GIB" =~ ^[0-9]+$ ]] || (( RETENTION_MAX_GIB <= 0 )); then
@@ -213,6 +238,7 @@ if [[ "$RETENTION_COUNT" =~ ^[0-9]+$ ]] && (( RETENTION_COUNT > 0 )); then
 fi
 
 prune_by_total_size
+prune_legacy_backup_items
 
 echo "Retention backup applicata: giorni=${RETENTION_DAYS}, copie=${RETENTION_COUNT}, minimo=${RETENTION_MIN_COUNT}, spazio_max_gib=${RETENTION_MAX_GIB}"
 if [[ -n "$BACKUP_EXCLUDE_PATHS" ]]; then

@@ -21,6 +21,10 @@ x-iusentra-env: &iusentra-env
   PCT_LOCAL_AI_ENABLED: ${PCT_LOCAL_AI_ENABLED:-1}
   PCT_STUDIO_NOME: ${PCT_STUDIO_NOME:-IUSENTRA}
   IUSENTRA_BACKUP_DIR: /opt/iusentra/backups
+  IUSENTRA_HOST_IUSENTRA_DIR: /host/opt/iusentra
+  IUSENTRA_EMAIL_ATTACHMENT_STORAGE: ${IUSENTRA_EMAIL_ATTACHMENT_STORAGE:-archive}
+  IUSENTRA_LEGAL_UPDATES_ITEM_TIMEOUT_SECONDS: ${IUSENTRA_LEGAL_UPDATES_ITEM_TIMEOUT_SECONDS:-180}
+  IUSENTRA_LEGAL_UPDATES_PUBLISH_MAX_ITEMS: ${IUSENTRA_LEGAL_UPDATES_PUBLISH_MAX_ITEMS:-80}
   PCT_AGENDA_DB: /data/agenda/appuntamenti.json
   PCT_CLIENTI_DB: /data/clienti/anagrafica.json
   PCT_CONDIVISIONI_DB: /data/clienti/condivisioni.json
@@ -158,6 +162,8 @@ services:
     volumes:
       - ${IUSENTRA_DATA_DIR:-/opt/iusentra/data}:/data
       - ${IUSENTRA_BACKUP_DIR:-/opt/iusentra/backups}:/opt/iusentra/backups
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /opt/iusentra:/host/opt/iusentra:ro
       - /run/pcscd:/run/pcscd
     extra_hosts:
       - "host.docker.internal:host-gateway"

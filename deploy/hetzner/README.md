@@ -144,6 +144,14 @@ curl -I https://iusentra.tuodominio.it/legal-intelligence/ricerca
 curl -I https://iusentra.tuodominio.it/ricerca-legale
 ```
 
+Pulizia obbligatoria dopo build/deploy:
+
+```bash
+docker builder prune --all --force
+```
+
+La cache di build Docker e' rigenerabile e non contiene dati degli studi. Dopo ogni deploy Hetzner va eliminata per evitare che il disco del server venga saturato da layer di compilazione non piu' necessari. Non usare comandi che rimuovono volumi o dati applicativi.
+
 Le ultime tre `curl` confermano che da v2.240.0 in poi `Motori Legali` e `Ricerca legale` sono servite direttamente dai template Flask (con layout a tab e ricerca cross-source) e non più intercettate dalla shell React legacy. `/ricerca-legale` deve rispondere `302` verso `/legal-intelligence/ricerca`.
 
 ## Migrazione dati da Railway
@@ -180,8 +188,11 @@ Cron consigliato:
 ```
 
 Il backup produce archivio e checksum in `/opt/iusentra/backups` e verifica subito il checksum generato. Il restore verifica il file `.sha256` quando presente prima di estrarre in `/opt/iusentra/data`.
-La retention e' applicata dallo script: per default conserva al massimo 3 backup applicativi, almeno 2 copie, rimuove quelli piu' vecchi di 14 giorni e mantiene la directory backup entro 8 GiB quando possibile. I valori sono configurabili con `IUSENTRA_BACKUP_RETENTION_COUNT`, `IUSENTRA_BACKUP_RETENTION_MIN_COUNT`, `IUSENTRA_BACKUP_RETENTION_DAYS` e `IUSENTRA_BACKUP_RETENTION_MAX_GIB`.
+La retention e' applicata dallo script: conserva al massimo 3 backup applicativi, almeno 2 copie, rimuove quelli piu' vecchi di 14 giorni e mantiene la directory backup entro 8 GiB quando possibile. Anche se l'ambiente imposta un numero piu' alto, il deploy lo limita a 3 copie. I valori sono configurabili con `IUSENTRA_BACKUP_RETENTION_COUNT`, `IUSENTRA_BACKUP_RETENTION_MIN_COUNT`, `IUSENTRA_BACKUP_RETENTION_DAYS` e `IUSENTRA_BACKUP_RETENTION_MAX_GIB`. Lo script elimina anche backup legacy/quarantene email non operative (`auth-before-migration-*`, `hetzner-pre-*`, `tenant-email-quarantine-*`).
 I backup `.tar.zst` sono prodotti con zstd ad alta compressione (`IUSENTRA_BACKUP_ZSTD_LEVEL=19`, long window 27) per ridurre l'impatto disco senza cambiare il formato di restore. Ollama, i modelli locali e i download rigenerabili sono esclusi in modo obbligatorio (`./ollama`, `./intelligence/downloads/ollama`, `./tenants/*/intelligence/downloads/ollama`): lo script verifica l'archivio e fallisce se trova ancora un percorso Ollama. Su dati runtime vivi un file puo' cambiare durante la lettura: lo script conserva lo snapshot best-effort e blocca solo errori gravi o compressione fallita.
+
+Dopo ogni deploy Hetzner il deploy esegue `docker builder prune --all --force` e rimuove `/opt/iusentra/tmp-backup-snapshot` se presente. La posta multi-studio non deve essere sincronizzata in `/data/email`: scheduler e route devono usare solo `/data/tenants/<studio>/email`.
+Gli allegati PEC/email nuovi usano `IUSENTRA_EMAIL_ATTACHMENT_STORAGE=archive`: vengono compressi in `archivio-allegati.zip` nella cartella della casella, ma il lettore resta compatibile con i file storici sciolti per non rompere download e anteprime.
 
 ## Ricerca legale e archivio fonti (v2.240.0)
 

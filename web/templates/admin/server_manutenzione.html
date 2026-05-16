@@ -86,6 +86,104 @@
 </div>
 
 <div class="card shadow-sm mb-4">
+  <div class="card-header bg-body-tertiary d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <div>
+      <strong>Console {{ payload.host_console.provider_name }}</strong>
+      <div class="small text-muted">Spazio fuori dagli studi, cache dei servizi e aree da verificare sul server.</div>
+    </div>
+    {% if payload.host_console.connected %}
+    <span class="badge text-bg-success">Presidio attivo</span>
+    {% else %}
+    <span class="badge text-bg-warning">Presidio parziale</span>
+    {% endif %}
+  </div>
+  <div class="card-body">
+    <div class="row g-3 mb-3">
+      <div class="col-12 col-md-6 col-xl-3">
+        <div class="border rounded-3 p-3 h-100">
+          <div class="text-muted small mb-1">Fuori dagli studi</div>
+          <div class="h3 fw-semibold mb-1">{{ payload.host_console.outside_tenants_label }}</div>
+          <div class="small text-muted">Differenza tra disco usato e dati degli studi.</div>
+        </div>
+      </div>
+      <div class="col-12 col-md-6 col-xl-3">
+        <div class="border rounded-3 p-3 h-100">
+          <div class="text-muted small mb-1">Recupero immediato</div>
+          <div class="h3 fw-semibold text-success mb-1">{{ payload.host_console.immediate_reclaimable_label }}</div>
+          <div class="small text-muted">Cache ricostruibile, senza toccare dati studio.</div>
+        </div>
+      </div>
+      <div class="col-12 col-md-6 col-xl-3">
+        <div class="border rounded-3 p-3 h-100">
+          <div class="text-muted small mb-1">Da verificare</div>
+          <div class="h3 fw-semibold text-warning mb-1">{{ payload.host_console.review_reclaimable_label }}</div>
+          <div class="small text-muted">Snapshot residui e archivi sopra soglia.</div>
+        </div>
+      </div>
+      <div class="col-12 col-md-6 col-xl-3">
+        <div class="border rounded-3 p-3 h-100">
+          <div class="text-muted small mb-1">Cache servizi</div>
+          <div class="h3 fw-semibold mb-1">{{ payload.host_console.docker.build_cache_size_label }}</div>
+          <div class="small text-muted">Recuperabile: {{ payload.host_console.docker.build_cache_reclaimable_label }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="row g-3">
+      <div class="col-12 col-xl-5">
+        <div class="table-responsive border rounded-3">
+          <table class="table table-sm align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Recupero</th>
+                <th class="text-end">Spazio</th>
+                <th>Azione</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in payload.host_console.recovery_items %}
+              <tr>
+                <td>
+                  <div class="fw-semibold">{{ item.label }}</div>
+                  <div class="small text-muted">{{ item.note }}</div>
+                </td>
+                <td class="text-end fw-semibold">{{ item.size_label }}</td>
+                <td><span class="badge text-bg-light border">{{ item.action }}</span></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="col-12 col-xl-7">
+        <div class="table-responsive border rounded-3">
+          <table class="table table-sm align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Area server</th>
+                <th class="text-end">Dimensione</th>
+                <th>Nota</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for area in payload.host_console.areas %}
+              <tr>
+                <td>
+                  <div class="fw-semibold">{{ area.label }}</div>
+                  {% if area.path %}<div class="small text-muted text-break">{{ area.path }}</div>{% endif %}
+                </td>
+                <td class="text-end">{{ area.size_label }}{% if area.estimated %}<div class="small text-warning">stima rapida</div>{% endif %}</td>
+                <td class="small text-muted">{{ area.note }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card shadow-sm mb-4">
   <div class="card-header bg-body-tertiary d-flex flex-wrap justify-content-between gap-2 align-items-center">
     <strong>Manutenzione sicura globale</strong>
     <span class="badge text-bg-light border">Dati reali</span>
@@ -113,6 +211,18 @@
               <i class="bi bi-hdd-stack"></i> Compatta tutto in sicurezza
             </button>
           </form>
+          <form method="post" action="{{ url_for('server_maintenance_admin.analizza_ottimizzazione_massima') }}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <button class="btn btn-outline-primary" type="submit">
+              <i class="bi bi-speedometer2"></i> Analizza ottimizzazione massima
+            </button>
+          </form>
+          <form method="post" action="{{ url_for('server_maintenance_admin.applica_ottimizzazione_massima') }}" onsubmit="return confirm('Ottimizzare allegati e archivi degli studi mantenendo invariati i percorsi applicativi?')">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <button class="btn btn-success" type="submit">
+              <i class="bi bi-stars"></i> Ottimizza archivi studi
+            </button>
+          </form>
           <form method="post" action="{{ url_for('server_maintenance_admin.analizza_retention_backup') }}">
             <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
             <button class="btn btn-outline-secondary" type="submit">
@@ -125,16 +235,10 @@
               <i class="bi bi-trash3"></i> Applica retention backup
             </button>
           </form>
-          <form method="post" action="{{ url_for('server_maintenance_admin.backup_ora') }}" onsubmit="return confirm('Avviare un backup in background adesso?')">
-            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
-            <button class="btn btn-primary" type="submit">
-              <i class="bi bi-cloud-arrow-up"></i> Backup ora
-            </button>
-          </form>
-          <form method="post" action="{{ url_for('server_maintenance_admin.docker_prune') }}" onsubmit="return confirm('Eseguire la pulizia Docker di immagini e volumi non usati?')">
+          <form method="post" action="{{ url_for('server_maintenance_admin.docker_prune') }}" onsubmit="return confirm('Pulire la cache ricostruibile dei servizi? I dati degli studi non vengono toccati.')">
             <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
             <button class="btn btn-outline-danger" type="submit">
-              <i class="bi bi-bucket"></i> Pulizia Docker
+              <i class="bi bi-bucket"></i> Pulisci cache servizi
             </button>
           </form>
         </div>
@@ -160,6 +264,36 @@
         I duplicati identici indicati sono gia' ottimizzati: restano piu' percorsi applicativi,
         ma non occupano spazio disco aggiuntivo.
       </div>
+      {% endif %}
+    </div>
+    {% endif %}
+    {% if max_optimization %}
+    <div class="alert alert-{{ 'success' if max_optimization.applied else 'info' }} mt-3 mb-0">
+      <div class="fw-semibold">
+        {{ 'Ottimizzazione archivi applicata' if max_optimization.applied else 'Analisi ottimizzazione archivi' }}
+        {% if max_optimization.tenant_slug %}per {{ max_optimization.tenant_slug }}{% endif %}
+      </div>
+      <div class="small">
+        Allegati e mirror: {{ max_optimization.compaction.files_scanned }} file analizzati,
+        {{ max_optimization.compaction.physical_duplicate_files }} duplicati da compattare,
+        recuperabile {{ max_optimization.compaction.bytes_reclaimable_label }},
+        recuperato {{ max_optimization.compaction.bytes_reclaimed_label }}.
+      </div>
+      <div class="small">
+        Archivi studio: {{ max_optimization.databases.files_scanned }} file analizzati,
+        {{ max_optimization.databases.optimized_files }} ottimizzabili,
+        recuperabile {{ max_optimization.databases.bytes_reclaimable_label }},
+        recuperato {{ max_optimization.databases.bytes_reclaimed_label }}.
+      </div>
+      <div class="small fw-semibold mt-1">
+        Totale recuperabile {{ max_optimization.bytes_reclaimable_label }} - recuperato {{ max_optimization.bytes_reclaimed_label }}.
+      </div>
+      {% if max_optimization.databases.results %}
+      <ol class="small mt-2 mb-0">
+        {% for item in max_optimization.databases.results[:5] %}
+        <li>{{ item.display_path }}: {{ item.bytes_reclaimable|filesizeformat(true) }} recuperabili{% if item.error %} - {{ item.error }}{% endif %}</li>
+        {% endfor %}
+      </ol>
       {% endif %}
     </div>
     {% endif %}
@@ -195,8 +329,9 @@
     {% endif %}
     {% if docker_prune %}
     <div class="alert alert-{{ 'danger' if docker_prune.error else 'success' }} mt-3 mb-0">
-      <div class="fw-semibold">{{ 'Errore pulizia Docker' if docker_prune.error else 'Pulizia Docker completata' }}</div>
+      <div class="fw-semibold">{{ 'Errore pulizia cache servizi' if docker_prune.error else 'Pulizia cache servizi completata' }}</div>
       {% if docker_prune.error %}<div class="small">{{ docker_prune.error }}</div>{% endif %}
+      {% if docker_prune.bytes_reclaimed_label %}<div class="small">Spazio recuperato: {{ docker_prune.bytes_reclaimed_label }}</div>{% endif %}
       {% if docker_prune.stdout %}<pre class="small mt-1 mb-0" style="white-space:pre-wrap;max-height:160px;overflow-y:auto">{{ docker_prune.stdout }}</pre>{% endif %}
     </div>
     {% endif %}

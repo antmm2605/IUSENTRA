@@ -1,4 +1,4 @@
-#  version: 2.243.6
+#  version: 2.243.7
 #  IUSENTRA | Dockerfile produzione
 
 #  Build multi-stage:
@@ -102,7 +102,7 @@ RUN npm --prefix frontend run build:vite \
 FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="IUSENTRA" \
-      org.opencontainers.image.version="2.243.6" \
+      org.opencontainers.image.version="2.243.7" \
       org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
       org.opencontainers.image.created="2026-03-18"
 
@@ -215,6 +215,9 @@ ENV PCT_AGENDA_DB=/data/agenda/appuntamenti.json \
     PCT_UFFICI_TTL_GIORNI=7 \
     PCT_TENANTS_REGISTRY=/data/tenants.json \
     PCT_STUDIO_CONFIG=/data/config/studio.json \
+    IUSENTRA_EMAIL_ATTACHMENT_STORAGE=archive \
+    IUSENTRA_LEGAL_UPDATES_ITEM_TIMEOUT_SECONDS=180 \
+    IUSENTRA_LEGAL_UPDATES_PUBLISH_MAX_ITEMS=80 \
     IUSENTRA_WEB_PUSH_ENABLED=0 \
     IUSENTRA_VAPID_PUBLIC_KEY="" \
     IUSENTRA_VAPID_PRIVATE_KEY="" \

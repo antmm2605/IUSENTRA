@@ -9,6 +9,7 @@ from web.services.server_maintenance_surface import (
     build_server_maintenance_surface,
     run_backup_retention,
     run_docker_prune,
+    run_max_storage_optimization,
     run_storage_compaction,
     trigger_backup,
 )
@@ -31,6 +32,7 @@ def dashboard():
         compaction=None,
         backup_retention=None,
         docker_prune=None,
+        max_optimization=None,
     )
 
 
@@ -59,6 +61,7 @@ def analizza_compattazione():
             compaction=compaction,
             backup_retention=None,
             docker_prune=None,
+            max_optimization=None,
         )
     except Exception as exc:
         current_app.logger.exception("Errore analisi compattazione storage: %s", exc)
@@ -85,10 +88,61 @@ def compatta():
             compaction=compaction,
             backup_retention=None,
             docker_prune=None,
+            max_optimization=None,
         )
     except Exception as exc:
         current_app.logger.exception("Errore compattazione storage: %s", exc)
         flash("Errore durante la compattazione storage.", "danger")
+        return redirect(url_for("server_maintenance_admin.dashboard"))
+
+
+@server_maintenance_admin.post("/analizza-ottimizzazione-massima")
+@superadmin_required
+def analizza_ottimizzazione_massima():
+    try:
+        tenant_slug = str(request.form.get("tenant_slug", "") or "").strip()
+        optimization = run_max_storage_optimization(apply=False, tenant_slug=tenant_slug)
+        flash(
+            "Analisi ottimizzazione completata: "
+            f"spazio recuperabile {optimization['bytes_reclaimable_label']}.",
+            "info",
+        )
+        return render_template(
+            "admin/server_manutenzione.html",
+            payload=build_server_maintenance_surface(),
+            compaction=None,
+            backup_retention=None,
+            docker_prune=None,
+            max_optimization=optimization,
+        )
+    except Exception as exc:
+        current_app.logger.exception("Errore analisi ottimizzazione storage: %s", exc)
+        flash("Errore durante l'analisi ottimizzazione storage.", "danger")
+        return redirect(url_for("server_maintenance_admin.dashboard"))
+
+
+@server_maintenance_admin.post("/applica-ottimizzazione-massima")
+@superadmin_required
+def applica_ottimizzazione_massima():
+    try:
+        tenant_slug = str(request.form.get("tenant_slug", "") or "").strip()
+        optimization = run_max_storage_optimization(apply=True, tenant_slug=tenant_slug)
+        flash(
+            "Ottimizzazione completata: "
+            f"recuperati {optimization['bytes_reclaimed_label']}.",
+            "success",
+        )
+        return render_template(
+            "admin/server_manutenzione.html",
+            payload=build_server_maintenance_surface(),
+            compaction=None,
+            backup_retention=None,
+            docker_prune=None,
+            max_optimization=optimization,
+        )
+    except Exception as exc:
+        current_app.logger.exception("Errore ottimizzazione storage: %s", exc)
+        flash("Errore durante l'ottimizzazione storage.", "danger")
         return redirect(url_for("server_maintenance_admin.dashboard"))
 
 
@@ -109,6 +163,7 @@ def analizza_retention_backup():
             compaction=None,
             backup_retention=backup_retention,
             docker_prune=None,
+            max_optimization=None,
         )
     except Exception as exc:
         current_app.logger.exception("Errore analisi retention backup: %s", exc)
@@ -134,6 +189,7 @@ def applica_retention_backup():
             compaction=None,
             backup_retention=backup_retention,
             docker_prune=None,
+            max_optimization=None,
         )
     except Exception as exc:
         current_app.logger.exception("Errore retention backup: %s", exc)
@@ -162,15 +218,16 @@ def docker_prune():
     try:
         result = run_docker_prune(dry_run=False)
         if result.get("error"):
-            flash(f"Docker prune — attenzione: {result['error']}", "warning")
+            flash(f"Pulizia cache servizi non completata: {result['error']}", "warning")
         else:
-            flash("Docker system prune completato.", "success")
+            flash(f"Pulizia cache servizi completata: recuperati {result['bytes_reclaimed_label']}.", "success")
         return render_template(
             "admin/server_manutenzione.html",
             payload=build_server_maintenance_surface(),
             compaction=None,
             backup_retention=None,
             docker_prune=result,
+            max_optimization=None,
         )
     except Exception as exc:
         current_app.logger.exception("Errore docker prune: %s", exc)

@@ -834,6 +834,47 @@ def test_email_dettaglio_visualizza_e_scarica_allegato_salvato(tmp_path):
         assert "attachment" in download.headers.get("Content-Disposition", "").lower()
 
 
+def test_email_dettaglio_scarica_allegato_da_archivio_zip(tmp_path, monkeypatch):
+    from web.app import create_app
+
+    monkeypatch.setenv("IUSENTRA_EMAIL_ATTACHMENT_STORAGE", "archive")
+    cfg = _cfg_web(tmp_path)
+    ge = GestioneEmailRicevute(cfg["EMAIL_CASELLA_DB"])
+    contenuto = b"%PDF-1.4 allegato compresso\n"
+    meta = ge._salva_allegato("MAIL-ATT-ZIP", "ricevuta.pdf", contenuto)
+    assert "archivio_rel" in meta
+    assert "percorso_rel" not in meta
+    em = EmailRicevuta(
+        id="MAIL-ATT-ZIP",
+        cartella="INBOX",
+        stato=StatoEmail.LETTA,
+        mittente="cancelleria@giustiziapec.it",
+        oggetto="PEC con allegato compresso",
+        data="2026-05-16T20:00:00",
+        corpo_testo="Contiene allegato archiviato.",
+        allegati=[{"nome": "ricevuta.pdf", "mime": "application/octet-stream", **meta}],
+    )
+    ge.aggiungi(em)
+    assert ge.percorso_allegato(em, 0) is None
+    assert ge.allegato_disponibile(em, 0) is True
+    assert ge.leggi_allegato(em, 0) == contenuto
+
+    app = create_app(cfg)
+    with app.test_client() as client:
+        _autentica_admin_session(app, client, cfg)
+
+        dettaglio_json = client.get("/api/v1/ui/email/messaggio/MAIL-ATT-ZIP")
+        assert dettaglio_json.status_code == 200
+        payload = dettaglio_json.get_json()
+        assert payload["attachments"][0]["available"] is True
+        assert payload["attachments"][0]["viewHref"] == "/email/messaggio/MAIL-ATT-ZIP/allegato/0"
+
+        inline = client.get("/email/messaggio/MAIL-ATT-ZIP/allegato/0")
+        assert inline.status_code == 200
+        assert inline.data == contenuto
+        assert inline.headers.get("Content-Type", "").lower().startswith("application/pdf")
+
+
 def test_email_dettaglio_non_propone_link_per_allegato_non_recuperato(tmp_path):
     from web.app import create_app
 

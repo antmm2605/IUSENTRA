@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import sqlite3
 from pathlib import Path
@@ -8,7 +9,12 @@ from typing import Any
 
 from flask import current_app, g, has_app_context, has_request_context, request
 
-from pct.legal_update_pipeline import LegalUpdatePipeline, build_legal_update_pipeline
+from pct.legal_update_batch_runner import (
+    LegalUpdateJobConfig,
+    run_legal_update_batch_with_timeouts,
+    run_legal_update_publish_queue_with_timeouts,
+)
+from pct.legal_update_pipeline import DEFAULT_SOURCE_ROWS, LegalUpdatePipeline, build_legal_update_pipeline
 from pct.legal_update_repository import LegalUpdateDbConfig
 from pct.tenant import GestioneTenant, normalize_db_mode
 
@@ -167,6 +173,53 @@ def _backend_label(cfg_source: dict[str, Any], studio: Any = None) -> str:
 
 def _flag_enabled(value: Any) -> bool:
     return str(value or "").strip().lower() in {"1", "true", "yes", "on", "si"}
+
+
+def _parse_positive_int(value: Any, default: int) -> int:
+    try:
+        parsed = int(str(value or "").strip())
+        return parsed if parsed > 0 else default
+    except (TypeError, ValueError):
+        return default
+
+
+def _legal_update_job_config(cfg_source: dict[str, Any]) -> LegalUpdateJobConfig:
+    return LegalUpdateJobConfig(
+        intelligence_db=str(cfg_source.get("LEGAL_INTELLIGENCE_DB") or "./intelligence/motori.json"),
+        giurisprudenza_db=str(cfg_source.get("GIURISPRUDENZA_DB") or ""),
+        ai_base_url=str(
+            cfg_source.get("LOCAL_AI_BASE_URL")
+            or cfg_source.get("PCT_LOCAL_AI_BASE_URL")
+            or ""
+        ).strip(),
+        ai_model=str(
+            cfg_source.get("LOCAL_AI_CHAT_MODEL")
+            or cfg_source.get("OLLAMA_MODEL")
+            or "mistral"
+        ).strip(),
+        export_json_enabled=_flag_enabled(cfg_source.get("LEGAL_UPDATES_EXPORT_JSON_ENABLED")),
+        mirror_giurisprudenza_json_enabled=_flag_enabled(
+            cfg_source.get("LEGAL_UPDATES_MIRROR_GIURISPRUDENZA_JSON_ENABLED")
+        ),
+    )
+
+
+def _legal_updates_item_timeout(cfg_source: dict[str, Any]) -> int:
+    default = _parse_positive_int(os.getenv("IUSENTRA_LEGAL_UPDATES_ITEM_TIMEOUT_SECONDS"), 180)
+    return _parse_positive_int(
+        cfg_source.get("LEGAL_UPDATES_ITEM_TIMEOUT_SECONDS")
+        or cfg_source.get("IUSENTRA_LEGAL_UPDATES_ITEM_TIMEOUT_SECONDS"),
+        default,
+    )
+
+
+def _legal_updates_publish_max_items(cfg_source: dict[str, Any]) -> int:
+    default = _parse_positive_int(os.getenv("IUSENTRA_LEGAL_UPDATES_PUBLISH_MAX_ITEMS"), 80)
+    return _parse_positive_int(
+        cfg_source.get("LEGAL_UPDATES_PUBLISH_MAX_ITEMS")
+        or cfg_source.get("IUSENTRA_LEGAL_UPDATES_PUBLISH_MAX_ITEMS"),
+        default,
+    )
 
 
 def _tenant_choices_payload(cfg_source: dict[str, Any]) -> list[dict[str, Any]]:
@@ -333,11 +386,28 @@ def run_legal_update_action(
     source_codes: list[str] | None = None,
     tenant_slug: str = "",
 ) -> dict[str, Any]:
+    _, cfg_source = _runtime_app_and_config()
     pipeline = build_legal_update_pipeline_runtime(tenant_slug=tenant_slug)
     if action == "scan":
-        return pipeline.run_cycle(source_codes=source_codes)
+        pipeline.repository.upsert_sources(list(DEFAULT_SOURCE_ROWS))
+        selected_sources = source_codes or [
+            str(row.get("code") or "")
+            for row in pipeline.repository.list_sources(enabled_only=True)
+            if str(row.get("code") or "")
+        ]
+        return run_legal_update_batch_with_timeouts(
+            _legal_update_job_config(cfg_source),
+            source_codes=selected_sources,
+            auto_publish=True,
+            item_timeout_seconds=_legal_updates_item_timeout(cfg_source),
+            publish_max_items=_legal_updates_publish_max_items(cfg_source),
+        )
     if action == "autopublish":
-        return pipeline.publish_auto_news(limit=100)
+        return run_legal_update_publish_queue_with_timeouts(
+            _legal_update_job_config(cfg_source),
+            item_timeout_seconds=_legal_updates_item_timeout(cfg_source),
+            max_items=_legal_updates_publish_max_items(cfg_source),
+        )
     if action == "cleanup":
         return pipeline.repository.deduplicate_archive(performed_by="superadmin")
     raise ValueError(f"Azione non supportata: {action}")

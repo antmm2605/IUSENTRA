@@ -190,7 +190,7 @@ def _attachment_rows(
         href = f"{base}/messaggio/{email_id}/allegato/{index}"
         available = True
         if gestore is not None:
-            available = gestore.percorso_allegato(email_obj, index) is not None
+            available = gestore.allegato_disponibile(email_obj, index)
         rows.append(
             {
                 "index": index,

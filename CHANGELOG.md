@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.243.6 - 2026-05-16
+
+- Corretto `/admin/aggiornamenti-legali/staging`: la pagina avvia una riconciliazione leggera prima del render e non mostra piu' lo stato grezzo `Da valutare` per documenti gia' classificati.
+- Corretto il 403 su `/admin/aggiornamenti-legali/review`: la console Update Intelligence ora accetta anche amministratori di studio con permessi admin/AI, oltre al SUPERADMIN piattaforma.
+- I dataset/cataloghi OpenGA e i contenuti tecnici di supporto vengono chiusi automaticamente come acquisizione non pubblicabile, senza intasare la coda revisioni.
+- Le fonti ufficiali utili ma prive di chiave strutturale sufficiente vengono risolte automaticamente come notizie informative pubblicabili, mentre norme/sentenze/prassi strutturate mantengono la verifica multi-fonte prima dell'archivio operativo.
+- Rafforzati i test Update Intelligence su staging, chiusura automatica dei cataloghi open data e risoluzione automatica dei `NEEDS_REVIEW` informativi.
+- Riletto il manifest ufficiale Normattiva Open Data e popolato incrementalmente il database Hetzner: 19 ZIP validi, 189.851 documenti, 800.757 articoli e 639.273 chunk; quattro collezioni esposte dal servizio restano a stream vuoto e sono tracciate nei manifest runtime.
+
 ## 2.243.5 - 2026-05-16
 
 - Resa effettiva la pubblicazione automatica degli aggiornamenti legali idonei: analisi e fetch avviano `Pubblica idonei`, le fonti ufficiali/istituzionali ad alta confidenza passano direttamente agli archivi e la coda resta per i soli casi con verifica insufficiente o controllo umano.

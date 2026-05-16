@@ -667,10 +667,48 @@ class LegalUpdatePipeline:
     def _auto_publish_threshold(self, proposed_action: str) -> float:
         action = str(proposed_action or "").upper()
         if action == "NEWS_ONLY":
-            return 0.82
+            return 0.67
         if action in {"NEW_NORMATIVE", "UPDATE_NORMATIVE", "NEW_CASE_LAW", "NEW_PRASSI"}:
             return 0.82
         return 1.0
+
+    def _has_structured_reference(self, analysis: dict[str, Any]) -> bool:
+        has_norm_key = all(analysis.get(field) for field in ("norm_type", "norm_number", "norm_year"))
+        has_judgment_key = all(analysis.get(field) for field in ("court_name", "decision_number", "decision_year"))
+        has_prassi_key = all(analysis.get(field) for field in ("issuer", "norm_type", "norm_number", "norm_year"))
+        return bool(has_norm_key or has_judgment_key or has_prassi_key)
+
+    def _is_non_actionable_source_metadata(
+        self,
+        source: dict[str, Any],
+        normalized: dict[str, Any],
+        analysis: dict[str, Any],
+    ) -> bool:
+        if self._has_structured_reference(analysis):
+            return False
+        source_code = _clean_spaces(source.get("code")).lower()
+        source_type = _clean_spaces(source.get("source_type")).lower()
+        parser_type = _clean_spaces(source.get("parser_type")).lower()
+        title = _clean_spaces(normalized.get("title"))
+        body_text = _clean_spaces(normalized.get("body_text") or normalized.get("body_short"))
+        text = f"{title} {body_text}".lower()
+        if source_type == "open_data" or parser_type == "ckan_json" or source_code.startswith("openga_"):
+            return True
+        if source_code == "dati_normattiva" and any(
+            marker in text
+            for marker in (
+                "api documentation",
+                "apidog",
+                "open data",
+                "opendata",
+                "come fare",
+                "manuale",
+                "dataset",
+                "catalogo",
+            )
+        ):
+            return True
+        return False
 
     def _is_auto_publishable_decision(
         self,
@@ -701,6 +739,8 @@ class LegalUpdatePipeline:
         body_text = _clean_spaces(normalized.get("body_text") or normalized.get("body_short"))
         if _is_navigation_noise(title, body_text):
             return False
+        if self._is_non_actionable_source_metadata(source, normalized, analysis):
+            return False
         source_category = _clean_spaces(source.get("category")).lower()
         if bool(source.get("is_official")) and source_category in {"normativa", "giurisprudenza", "prassi", "ue"}:
             return True
@@ -730,12 +770,16 @@ class LegalUpdatePipeline:
                 status = "closed"
             elif is_official and has_judgment_key:
                 proposed_action = "NEW_CASE_LAW"
+            elif is_official:
+                proposed_action = "NEWS_ONLY"
         elif classification == "PRASSI":
             if target_entity_id:
                 proposed_action = "DUPLICATE"
                 status = "closed"
             elif is_official and analysis.get("norm_number") and analysis.get("norm_year"):
                 proposed_action = "NEW_PRASSI"
+            elif is_official:
+                proposed_action = "NEWS_ONLY"
         elif classification in {"NORMATIVA_NUOVA", "NORMATIVA_AGGIORNAMENTO"}:
             if target_entity_id and classification == "NORMATIVA_NUOVA":
                 proposed_action = "DUPLICATE"
@@ -745,6 +789,8 @@ class LegalUpdatePipeline:
                 target_entity_type = "normative"
             elif is_official and has_norm_key:
                 proposed_action = "NEW_NORMATIVE"
+            elif is_official:
+                proposed_action = "NEWS_ONLY"
         elif classification == "DUPLICATO":
             proposed_action = "DUPLICATE"
             status = "closed"
@@ -823,6 +869,15 @@ class LegalUpdatePipeline:
                 "target_entity_id": (duplicate_target.get("entity") or {}).get("id"),
                 "review_status": "closed",
                 "priority": self._review_priority(source, analysis_payload, "DUPLICATE"),
+            }
+        elif self._is_non_actionable_source_metadata(source, normalized_saved, analysis_payload):
+            target = {"entity_type": "", "entity": None}
+            decision = {
+                "proposed_action": "OUT_OF_SCOPE",
+                "target_entity_type": "",
+                "target_entity_id": None,
+                "review_status": "closed",
+                "priority": 5,
             }
         elif not self._is_useful_for_law_firm(source, normalized_saved, analysis_payload):
             target = {"entity_type": "", "entity": None}
@@ -1237,8 +1292,111 @@ class LegalUpdatePipeline:
         self._export_repository_json_if_enabled()
         return result
 
+    def reconcile_pending_reviews(self, *, limit: int = 300, reviewer: str = "system") -> dict[str, Any]:
+        items = self.repository.list_review_queue(statuses=("approved", "pending"), limit=limit)
+        report: dict[str, Any] = {
+            "checked": 0,
+            "duplicates_closed": 0,
+            "metadata_closed": 0,
+            "downgraded_to_news": 0,
+            "resolved_actions": 0,
+        }
+        for row in items:
+            review_id = int(row.get("id") or 0)
+            if not review_id:
+                continue
+            review = self.repository.get_review_item(review_id)
+            if not review:
+                continue
+            report["checked"] += 1
+            source = self.repository.get_source_by_code(str(review.get("source_code") or ""))
+            if not source:
+                continue
+            normalized = {
+                "title": review.get("title"),
+                "source_url": review.get("source_url"),
+                "published_at": review.get("published_at"),
+                "document_date": review.get("document_date"),
+                "issuer": review.get("issuer"),
+                "body_text": review.get("body_text"),
+                "body_short": review.get("body_short"),
+            }
+            analysis = {
+                "classification_type": review.get("classification_type"),
+                "confidence_score": review.get("confidence_score"),
+                "issuer": review.get("analysis_issuer") or review.get("issuer"),
+                "norm_type": review.get("norm_type"),
+                "norm_number": review.get("norm_number"),
+                "norm_year": review.get("norm_year"),
+                "decision_number": review.get("decision_number"),
+                "decision_year": review.get("decision_year"),
+                "court_name": review.get("court_name"),
+                "effective_date": review.get("effective_date"),
+            }
+            duplicate = self.repository.find_published_duplicate(
+                source=source,
+                normalized=normalized,
+                analysis=analysis,
+            )
+            if duplicate:
+                self.repository.set_review_status(
+                    review_id,
+                    "closed",
+                    reviewer=reviewer,
+                    notes="Elemento gia' presente nell'archivio operativo: chiusura automatica.",
+                )
+                report["duplicates_closed"] += 1
+                continue
+            if self._is_non_actionable_source_metadata(source, normalized, analysis):
+                self.repository.set_review_status(
+                    review_id,
+                    "closed",
+                    reviewer=reviewer,
+                    notes=(
+                        "Dato tecnico o catalogo open data acquisito per consultazione, "
+                        "non e' un aggiornamento giuridico da pubblicare."
+                    ),
+                )
+                report["metadata_closed"] += 1
+                continue
+
+            proposed_action = str(review.get("proposed_action") or "").upper()
+            confidence = float(review.get("confidence_score") or 0)
+            if proposed_action == "NEEDS_REVIEW":
+                resolved_action, _ = self._resolve_publish_action(review)
+                if resolved_action and resolved_action != "NEEDS_REVIEW":
+                    self.repository.set_review_proposed_action(
+                        review_id,
+                        resolved_action,
+                        reviewer=reviewer,
+                        notes="Azione risolta automaticamente dal motore di classificazione.",
+                    )
+                    report["resolved_actions"] += 1
+                    if resolved_action == "NEWS_ONLY":
+                        report["downgraded_to_news"] += 1
+                continue
+            if (
+                proposed_action in {"NEW_NORMATIVE", "UPDATE_NORMATIVE", "NEW_CASE_LAW", "NEW_PRASSI"}
+                and self._is_trusted_update_source(source)
+                and 0.67 <= confidence < self._auto_publish_threshold(proposed_action)
+            ):
+                self.repository.set_review_proposed_action(
+                    review_id,
+                    "NEWS_ONLY",
+                    target_entity_type="",
+                    target_entity_id=None,
+                    reviewer=reviewer,
+                    notes=(
+                        "Confidenza non sufficiente per aggiornare l'archivio strutturato: "
+                        "pubblicazione informativa automatica."
+                    ),
+                )
+                report["downgraded_to_news"] += 1
+        return report
+
     def publish_auto_news(self, *, limit: int = 20) -> dict[str, Any]:
         cleanup = self.repository.deduplicate_archive(performed_by="system")
+        reconciliation = self.reconcile_pending_reviews(limit=max(limit * 3, 120), reviewer="system")
         items = self.repository.list_review_queue(statuses=("approved", "pending"), limit=limit)
         published: list[int] = []
         skipped: list[dict[str, Any]] = []
@@ -1310,6 +1468,7 @@ class LegalUpdatePipeline:
             "items": published,
             "skipped": skipped,
             "duplicates_removed": int(cleanup.get("removed") or 0),
+            "reconciled": reconciliation,
         }
 
     def dashboard_snapshot(self) -> dict[str, Any]:

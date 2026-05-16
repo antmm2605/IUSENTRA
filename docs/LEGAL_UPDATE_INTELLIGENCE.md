@@ -96,6 +96,7 @@ Moduli principali:
 
 ## Note operative importanti
 
+- La pagina `/admin/aggiornamenti-legali/staging` avvia una riconciliazione automatica prima di mostrare la lista: elementi gia' pubblicati vengono chiusi come duplicati, cataloghi/dataset tecnici non pubblicabili vengono archiviati e contenuti ufficiali utili ma non abbastanza strutturati vengono degradati a notizia informativa pubblicabile.
 - Le fonti HTML non vengono piu' limitate artificialmente a 40 risultati: il fetch segue anche la paginazione dei portali che espongono piu' pagine tramite query string o script lato pagina.
 - Le fonti CKAN JSON di OpenGA vengono lette come catalogo strutturato: IUSENTRA importa pacchetti, risorse e, per le risorse JSON disponibili, un estratto del contenuto utile a Lex e alla ricerca interna.
 - Il seed `dati_normattiva` punta alla pagina ufficiale Normattiva OpenData richiesta, cosi' la fonte resta governata dal canale informativo pubblico corretto.
@@ -216,5 +217,4 @@ Regola di coerenza obbligatoria: nome fonte e URL devono riferirsi allo stesso e
 - ogni pubblicazione produce audit
 - le relazioni strutturate non sovrascrivono lo storico
 - la tassonomia materie e' chiusa e governata
-
 

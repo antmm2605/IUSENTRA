@@ -1,10 +1,11 @@
 ﻿from __future__ import annotations
 
+from functools import wraps
 from typing import Any
 
-from flask import Blueprint, current_app, flash, g, jsonify, redirect, render_template, request, url_for
+from flask import Blueprint, abort, current_app, flash, g, jsonify, redirect, render_template, request, url_for
 
-from web.blueprints.admin import superadmin_required
+from pct.auth import RuoloUtente
 from web.services.legal_update_surface import build_legal_update_pipeline_runtime, build_legal_update_surface, run_legal_update_action
 
 
@@ -22,7 +23,7 @@ ACTION_LABELS = {
     "NEW_PRASSI": "Nuova prassi",
     "DUPLICATE": "Già presente in archivio",
     "OUT_OF_SCOPE": "Fuori perimetro",
-    "NEEDS_REVIEW": "Da valutare",
+    "NEEDS_REVIEW": "Controllo richiesto",
 }
 
 CLASSIFICATION_LABELS = {
@@ -37,12 +38,33 @@ CLASSIFICATION_LABELS = {
 }
 
 STATUS_LABELS = {
-    "pending": "Da valutare",
+    "pending": "In verifica",
     "approved": "Pronta alla pubblicazione",
     "published": "Pubblicata",
     "rejected": "Rifiutata",
     "closed": "Chiusa",
 }
+
+
+def superadmin_required(fn):
+    """Consente la console Update Intelligence agli amministratori autorizzati."""
+
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        user = getattr(g, "utente_corrente", None)
+        if not user:
+            abort(403)
+        if getattr(user, "is_superadmin", False):
+            return fn(*args, **kwargs)
+        has_permissions = bool(
+            getattr(user, "ha_permesso", lambda _perm: False)("admin.leggi")
+            and getattr(user, "ha_permesso", lambda _perm: False)("ai.configura")
+        )
+        if has_permissions or getattr(user, "ruolo", None) == RuoloUtente.AMMINISTRATORE:
+            return fn(*args, **kwargs)
+        abort(403)
+
+    return wrapper
 
 
 def _json_error(message: str, *, status: int = 200):
@@ -56,7 +78,7 @@ def _clean_label(value: Any) -> str:
 @legal_updates_admin.app_template_filter("legal_update_action_label")
 def legal_update_action_label(value: Any) -> str:
     key = str(value or "").strip().upper()
-    return ACTION_LABELS.get(key, _clean_label(value).capitalize() or "Da valutare")
+    return ACTION_LABELS.get(key, _clean_label(value).capitalize() or "Controllo richiesto")
 
 
 @legal_updates_admin.app_template_filter("legal_update_classification_label")
@@ -68,7 +90,51 @@ def legal_update_classification_label(value: Any) -> str:
 @legal_updates_admin.app_template_filter("legal_update_status_label")
 def legal_update_status_label(value: Any) -> str:
     key = str(value or "").strip().lower()
-    return STATUS_LABELS.get(key, _clean_label(value).capitalize() or "Da valutare")
+    return STATUS_LABELS.get(key, _clean_label(value).capitalize() or "In verifica")
+
+
+@legal_updates_admin.app_template_filter("legal_update_staging_status_label")
+def legal_update_staging_status_label(item: Any) -> str:
+    row = item if isinstance(item, dict) else {}
+    if not row.get("analysis_id"):
+        return "Da analizzare"
+    status = str(row.get("review_status") or "").strip().lower()
+    action = str(row.get("proposed_action") or "").strip().upper()
+    if status == "published":
+        return "Pubblicato"
+    if status == "closed":
+        if action == "DUPLICATE":
+            return "Gia' presente"
+        if action == "OUT_OF_SCOPE":
+            return "Archiviato automaticamente"
+        return "Chiuso"
+    if status == "approved":
+        return "Pronto alla pubblicazione"
+    if status == "rejected":
+        return "Rifiutato"
+    if action == "NEEDS_REVIEW":
+        return "Classificato con controllo richiesto"
+    if status == "pending":
+        return "Verifica fonti in corso"
+    return "Classificato automaticamente"
+
+
+@legal_updates_admin.app_template_filter("legal_update_staging_status_class")
+def legal_update_staging_status_class(item: Any) -> str:
+    row = item if isinstance(item, dict) else {}
+    status = str(row.get("review_status") or "").strip().lower()
+    action = str(row.get("proposed_action") or "").strip().upper()
+    if status == "published":
+        return "success"
+    if status == "approved":
+        return "primary"
+    if status == "closed":
+        return "secondary" if action != "OUT_OF_SCOPE" else "light"
+    if status == "rejected":
+        return "danger"
+    if row.get("analysis_id"):
+        return "info"
+    return "warning"
 
 
 def _reviewer_name() -> str:
@@ -203,6 +269,10 @@ def fetch_source(source_id: int):
 def staging_page():
     tenant_slug = _selected_tenant_slug()
     pipeline = build_legal_update_pipeline_runtime(tenant_slug=tenant_slug)
+    try:
+        pipeline.reconcile_pending_reviews(limit=300, reviewer="system")
+    except Exception as exc:
+        current_app.logger.warning("Riconciliazione staging non completata: %s", exc)
     payload = _serialize_surface(pipeline, tenant_slug=tenant_slug)
     return render_template(
         "admin/legal_updates_staging.html",

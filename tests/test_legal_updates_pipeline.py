@@ -134,6 +134,35 @@ def _seed_platform_superadmin(app) -> tuple[str, str]:
     return "admin", password
 
 
+def _seed_tenant_admin_for_updates(app) -> tuple[str, str, str]:
+    username = "studio-update-admin"
+    password = "PasswordSicura!123"
+    with app.app_context():
+        tenants = GestioneTenant(app.config["TENANTS_REGISTRY"])
+        studio = tenants.get("studio-update") or tenants.crea(
+            "Studio Update",
+            "studio-update",
+            db_config={"mode": "SQLITE"},
+        )
+        paths = tenants.percorsi_dati(studio.slug)
+        utenti = GestioneUtenti(
+            db_path=paths["AUTH_DB"],
+            audit_path=paths["AUDIT_DB"],
+            secret_key=app.secret_key,
+            crea_admin_se_vuoto=False,
+            studio_db=None,
+        )
+        if utenti.get_by_username(username) is None:
+            utenti.crea(
+                username,
+                password,
+                RuoloUtente.AMMINISTRATORE,
+                tenant_slug=studio.slug,
+                must_change_password=False,
+            )
+    return studio.slug, username, password
+
+
 def _normativa_html() -> str:
     return """
     <html><body>
@@ -308,6 +337,74 @@ def test_legal_update_autopubblica_attende_conferme_web(tmp_path: Path, monkeypa
     assert report["autopublished"]["count"] == 0
     assert queue[0]["status"] == "pending"
     assert "Verifica fonti insufficiente" in queue[0]["review_notes"]
+
+
+def test_open_data_cataloghi_vengono_archiviati_senza_review_manuale(tmp_path: Path):
+    pipeline = build_legal_update_pipeline(str(tmp_path / "intelligence" / "motori.json"))
+    source = pipeline.repository.get_source_by_code("openga_giustizia_amministrativa")
+
+    processed = pipeline.process_document(
+        source,
+        {
+            "external_id": "openga-stat-2026",
+            "source_url": "https://openga.giustizia-amministrativa.it/dataset/ricorsi-definiti",
+            "title": "TAR Molise - Ricorsi definiti per tipo di decisione - 2026",
+            "published_at": "2026-05-01",
+            "raw_html": "",
+            "raw_text": "Dataset statistico OpenGA con conteggi dei ricorsi definiti per tipo di decisione.",
+            "content_hash": "hash-openga-stat-2026",
+            "fetch_status": "fetched",
+            "http_status": 200,
+        },
+    )
+    review = pipeline.repository.get_review_item(int(processed["review"]["id"]))
+
+    assert review is not None
+    assert review["proposed_action"] == "OUT_OF_SCOPE"
+    assert review["status"] == "closed"
+
+
+def test_autopublish_risolve_needs_review_ufficiale_in_notizia(tmp_path: Path, monkeypatch):
+    pipeline = build_legal_update_pipeline(str(tmp_path / "intelligence" / "motori.json"))
+
+    monkeypatch.setattr(
+        "pct.legal_update_pipeline.verify_legal_update_against_public_sources",
+        lambda review, source, **kwargs: {
+            "ok": True,
+            "reason": "Fonte ufficiale confermata.",
+            "confirmation_count": 1,
+            "official_confirmations": 1,
+        },
+    )
+
+    source = pipeline.repository.get_source_by_code("cassazione_massimario")
+    processed = pipeline.process_document(
+        source,
+        {
+            "external_id": "cassazione-news-2026",
+            "source_url": "https://www.cortedicassazione.it/doc/news-2026",
+            "title": "Aggiornamento della Corte di Cassazione sul massimario civile",
+            "published_at": "2026-05-01",
+            "raw_html": "",
+            "raw_text": "Nota ufficiale sul massimario civile senza numero di sentenza specifico.",
+            "content_hash": "hash-cassazione-news-2026",
+            "fetch_status": "fetched",
+            "http_status": 200,
+        },
+    )
+    review_id = int(processed["review"]["id"])
+    pipeline.repository.set_review_proposed_action(review_id, "NEEDS_REVIEW", reviewer="test")
+    pipeline.repository.set_review_status(review_id, "pending", reviewer="test")
+
+    report = pipeline.publish_auto_news(limit=10)
+    review = pipeline.repository.get_review_item(review_id)
+
+    assert report["reconciled"]["resolved_actions"] >= 1
+    assert report["count"] == 1
+    assert review is not None
+    assert review["proposed_action"] == "NEWS_ONLY"
+    assert review["status"] == "published"
+    assert pipeline.repository.list_news(limit=5, include_drafts=False)
 
 
 def test_normative_slug_duplicate_non_blocca_pubblicazione(tmp_path: Path):
@@ -598,7 +695,7 @@ def test_lex_legal_updates_source_legge_database_sql_condiviso(tmp_path: Path):
     assert evidences[0].official_url == "https://www.garanteprivacy.it/"
 
 
-def test_publish_review_supporta_needs_review_giurisprudenza_con_revisione_umana(tmp_path: Path, monkeypatch):
+def test_publish_review_risolve_giurisprudenza_informativa_senza_revisione_obbligatoria(tmp_path: Path, monkeypatch):
     legacy_mirror_path = tmp_path / "intelligence" / "giurisprudenza.json"
     pipeline = build_legal_update_pipeline(
         str(tmp_path / "intelligence" / "motori.json"),
@@ -667,13 +764,12 @@ def test_publish_review_supporta_needs_review_giurisprudenza_con_revisione_umana
     review = pipeline.repository.get_review_item(int(processed["review"]["id"]))
 
     assert review is not None
-    assert review["proposed_action"] == "NEEDS_REVIEW"
-    assert review["status"] == "pending"
+    assert review["proposed_action"] == "NEWS_ONLY"
+    assert review["status"] == "approved"
 
     result = pipeline.publish_review(int(review["id"]), reviewer="superadmin")
     published_review = pipeline.repository.get_review_item(int(review["id"]))
 
-    assert result["jurisprudence"]["id"] >= 1
     assert result["news"]["id"] >= 1
     assert published_review is not None
     assert published_review["status"] == "published"
@@ -857,15 +953,39 @@ def test_admin_review_mostra_etichette_operative_senza_codici_grezzi(tmp_path: P
         login = client.post("/login", data={"username": username, "password": password}, follow_redirects=False)
         assert login.status_code == 302
         response = client.get("/admin/aggiornamenti-legali/review")
+        staging_response = client.get("/admin/aggiornamenti-legali/staging")
 
     html = response.get_data(as_text=True)
+    staging_html = staging_response.get_data(as_text=True)
     assert response.status_code == 200
+    assert staging_response.status_code == 200
     assert "Nuova normativa" in html or "Aggiornamento normativo" in html
-    assert "Da valutare" in html or "Pronta alla pubblicazione" in html
+    assert "In verifica" in html or "Pronta alla pubblicazione" in html
     assert "NEW_NORMATIVE" not in html
     assert "UPDATE_NORMATIVE" not in html
     assert "NORMATIVA_AGGIORNAMENTO" not in html
     assert ">pending<" not in html
+    assert "Da valutare" not in html
+    assert "Da valutare" not in staging_html
+    assert "Classificato" in staging_html or "Verifica fonti" in staging_html or "Pronto alla pubblicazione" in staging_html
+
+
+def test_admin_studio_accede_review_aggiornamenti_legali_senza_403(tmp_path: Path):
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+    studio_slug, username, password = _seed_tenant_admin_for_updates(app)
+
+    with app.test_client() as client:
+        login = client.post(
+            "/login",
+            data={"username": username, "password": password, "studio_slug": studio_slug},
+            follow_redirects=False,
+        )
+        assert login.status_code == 302
+        response = client.get("/admin/aggiornamenti-legali/review")
+
+    assert response.status_code == 200
+    assert "Coda revisioni aggiornamenti" in response.get_data(as_text=True)
 
 
 def test_pagina_fonti_mostra_guida_campi_ed_esempi_pronti(tmp_path: Path):

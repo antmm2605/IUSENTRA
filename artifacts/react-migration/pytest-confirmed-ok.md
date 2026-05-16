@@ -1,12 +1,25 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-16, Update Intelligence verificata 2.243.5, no backup.
+Aggiornato: 2026-05-16, Update Intelligence verificata 2.243.6, no backup.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Update Intelligence staging automatico 2.243.6 - 2026-05-16
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct\legal_update_pipeline.py pct\legal_update_repository.py web\blueprints\legal_updates_admin.py` | OK | Sintassi confermata dopo riconciliazione staging, chiusura cataloghi open data e nuove etichette operative. |
+| `python -m pytest tests\test_legal_updates_pipeline.py::test_open_data_cataloghi_vengono_archiviati_senza_review_manuale tests\test_legal_updates_pipeline.py::test_autopublish_risolve_needs_review_ufficiale_in_notizia tests\test_legal_updates_pipeline.py::test_admin_review_mostra_etichette_operative_senza_codici_grezzi -q --tb=short` | OK | 3/3 passati sui regressi utente: niente `Da valutare` nello staging, cataloghi open data chiusi, contenuti ufficiali informativi pubblicabili automaticamente. |
+| `python -m pytest tests\test_legal_updates_pipeline.py::test_admin_studio_accede_review_aggiornamenti_legali_senza_403 tests\test_legal_updates_pipeline.py::test_admin_review_mostra_etichette_operative_senza_codici_grezzi -q --tb=short` | OK | 2/2 passati dopo il fix 403: un amministratore di studio con permessi admin/AI apre `/admin/aggiornamenti-legali/review` senza blocco, e le etichette operative restano pulite. |
+| `python -m pytest tests\test_legal_updates_pipeline.py tests\test_normattiva_client.py tests\test_normattiva_importer.py -q --tb=short` | OK | 31/31 passati: pipeline aggiornamenti legali, client Normattiva e importer confermati dopo la modifica e il fix accesso review. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py -q --tb=short` | OK | Packaging e release readiness 8/8 confermati dopo bump `2.243.6`. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker`; rebuild correttivo finale; `docker compose up -d --no-build --force-recreate redis app scheduler-worker ocr-worker nginx` | OK | Docker locale `2.243.6`: app/scheduler/OCR/Redis/nginx healthy; `/api/pronto` locale 200 con `versione=2.243.6`; container app `pct.__version__ == 2.243.6`. |
+| Smoke HTTP autenticato `GET /admin/aggiornamenti-legali/review` e `GET /admin/aggiornamenti-legali/staging` su Docker locale | OK | Review 200 in 0,55 s senza 403; staging 200 in 6,09 s, senza testo `Da valutare`, codici `pending`, `NEW_NORMATIVE` o `NEEDS_REVIEW`; la pagina esegue solo riconciliazione leggera della coda, non import massivo. |
+| Normattiva Open Data Hetzner da documentazione ufficiale | OK | Letto il manifest ufficiale da `dati.normattiva.it`: 23 collezioni elencate, 19 ZIP validi nel volume `/data/normativa/raw`, DB attivo 189.851 documenti, 800.757 articoli, 639.273 chunk; quattro collezioni restano a stream vuoto e sono registrate nel manifest tentativi. |
 
 ### Update Intelligence verificata 2.243.5 - 2026-05-16
 

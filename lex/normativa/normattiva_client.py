@@ -1,7 +1,8 @@
 """
 Client Normattiva Open Data - download multi-collezione.
 
-Endpoint ricavati da capture browser:
+Endpoint allineati alla documentazione ufficiale Normattiva Open Data:
+- https://dati.normattiva.it/assets/come_fare_per/Normattiva%20OpenData.html
 - GET /collections/collection-predefinite
 - GET /collections/download/collection-preconfezionata?nome=...&formato=XML&formatoRichiesta=...
 

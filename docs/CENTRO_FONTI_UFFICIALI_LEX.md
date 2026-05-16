@@ -28,6 +28,12 @@ pip install -r requirements-normattiva-import.txt
 
 ## Normattiva
 
+Riferimento ufficiale per il download Open Data:
+
+```text
+https://dati.normattiva.it/assets/come_fare_per/Normattiva%20OpenData.html
+```
+
 Elenco collezioni disponibili:
 
 ```powershell
@@ -77,6 +83,8 @@ In produzione i percorsi canonici sono sotto il volume persistente:
 /data/normativa/normattiva.sqlite
 /data/normativa/index/normattiva_chunks.jsonl
 ```
+
+Verifica Hetzner 2026-05-16: il manifest ufficiale espone 23 collezioni; 19 ZIP sono validi e popolano il database attivo con 189.851 documenti, 800.757 articoli e 639.273 chunk. Le collezioni `Regolamenti di delegificazione`, `Regolamenti governativi`, `Regolamenti ministeriali` e `Testi Unici` risultano esposte dall'elenco ma scaricate come stream vuoto dal servizio e restano tracciate nel manifest tentativi.
 
 ## Gazzetta Ufficiale
 

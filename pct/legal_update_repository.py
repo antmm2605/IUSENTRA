@@ -1242,6 +1242,61 @@ class LegalUpdateRepository:
             conn.commit()
         return self.get_review_item(review_id)
 
+    def set_review_proposed_action(
+        self,
+        review_id: int,
+        proposed_action: str,
+        *,
+        target_entity_type: str = "",
+        target_entity_id: int | None = None,
+        reviewer: str = "",
+        notes: str = "",
+    ) -> dict[str, Any] | None:
+        action = _normalize_token(proposed_action or "NEWS_ONLY").upper()
+        target_type = _normalize_token(target_entity_type or "")
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT analysis_id FROM review_queue WHERE id = ?",
+                (int(review_id),),
+            ).fetchone()
+            if not row:
+                return None
+            analysis_id = int(row["analysis_id"])
+            conn.execute(
+                """
+                UPDATE review_queue
+                SET proposed_action = ?, target_entity_type = ?, target_entity_id = ?,
+                    reviewed_by = CASE WHEN ? <> '' THEN ? ELSE reviewed_by END,
+                    reviewed_at = CASE WHEN ? <> '' THEN ? ELSE reviewed_at END,
+                    review_notes = CASE WHEN ? <> '' THEN ? ELSE review_notes END,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+                """,
+                (
+                    action,
+                    target_type,
+                    target_entity_id,
+                    _clean_spaces(reviewer),
+                    _clean_spaces(reviewer),
+                    _clean_spaces(reviewer),
+                    _now_iso(),
+                    _clean_spaces(notes),
+                    _clean_spaces(notes),
+                    int(review_id),
+                ),
+            )
+            conn.execute(
+                """
+                UPDATE ai_documents_analysis
+                SET proposed_action = ?, target_entity_type = ?, target_entity_id = ?,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+                """,
+                (action, target_type, target_entity_id, analysis_id),
+            )
+            conn.commit()
+        return self.get_review_item(review_id)
+
     def assign_review(self, review_id: int, *, assigned_to: str) -> dict[str, Any] | None:
         with self._connect() as conn:
             conn.execute(

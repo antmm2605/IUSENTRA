@@ -55,8 +55,8 @@
             <dd class="col-7">{{ document.matter_name or 'da assegnare' }}</dd>
             <dt class="col-5 text-muted">Sottomateria</dt>
             <dd class="col-7">{{ document.submatter_name or 'non assegnata' }}</dd>
-            <dt class="col-5 text-muted">Revisione</dt>
-            <dd class="col-7">{{ (document.review_status or 'pending')|legal_update_status_label if document.review_status else 'non ancora in coda' }}</dd>
+            <dt class="col-5 text-muted">Lavorazione</dt>
+            <dd class="col-7">{{ document|legal_update_staging_status_label }}</dd>
           </dl>
           {% if document.summary_short %}
           <div class="mt-3">

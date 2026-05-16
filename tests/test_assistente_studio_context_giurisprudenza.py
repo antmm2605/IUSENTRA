@@ -1,4 +1,4 @@
-from web.services.assistente_studio_context import _aggiornamenti_legali_lines, _archivio_sentenze_lines
+from web.services.assistente_studio_context import _aggiornamenti_legali_lines, _archivio_sentenze_lines, _ricerca_legale_lines
 
 
 class _DummyGiurisprudenza:
@@ -162,6 +162,60 @@ class _DummyLegalUpdatesPipeline:
         }
 
 
+class _DummyLegalIntelligence:
+    def resolve_lex_legal_route(self, question):
+        return {
+            "reason": "routing mediazione",
+            "engine_ids": ["fonti_ufficiali"],
+            "source_ids": ["registro_mediazione"],
+            "engine_rows": [],
+            "source_rows": [
+                {
+                    "source_id": "registro_mediazione",
+                    "nome": "Registro organismi di mediazione",
+                    "area": "ADR / mediazione civile",
+                    "motore": "fonti_ufficiali",
+                    "capability": "Registro ufficiale organismi.",
+                    "official_url": "https://mediazione.giustizia.it/ROM/ALBOORGANISMIMEDIAZIONE.ASPX",
+                    "monitor_url": "https://mediazione.giustizia.it/ROM/ALBOORGANISMIMEDIAZIONE.ASPX",
+                }
+            ],
+            "monitoring_rows": [],
+            "alert_rows": [],
+        }
+
+    def statistiche_repository(self):
+        return {
+            "legal_sources_repository": 1,
+            "legal_engines_repository": 1,
+            "legal_keyword_to_engine": 1,
+            "legal_keyword_to_source": 1,
+            "legal_operational_repository": 1,
+        }
+
+    def build_dashboard_snapshot(self, **kwargs):
+        return {"headline": {}}
+
+    def lex_mediazione_registry_sources(self, question, limit=4):
+        return [
+            {
+                "type": "registro_mediazione",
+                "id": "registro-mediazione:1",
+                "title": "ADR Center srl",
+                "excerpt": "Organismo ADR Center srl numero registro 1 stato attivo.",
+                "content": "Organismo ADR Center srl numero registro 1 stato attivo.",
+                "score": 0.9,
+                "authority": "Ministero della Giustizia",
+                "official_url": "https://mediazione.giustizia.it/ROM/ALBOORGANISMIMEDIAZIONE.ASPX",
+                "trust_class": "A",
+                "source_level": 1,
+                "verified_reference": True,
+                "registration_number": "1",
+                "registry_status": "attivo",
+            }
+        ]
+
+
 def test_aggiornamenti_legali_lines_usa_repository_sql_per_lex(monkeypatch):
     monkeypatch.setattr(
         "web.services.assistente_studio_context.build_legal_update_pipeline_runtime",
@@ -176,6 +230,22 @@ def test_aggiornamenti_legali_lines_usa_repository_sql_per_lex(monkeypatch):
     assert any(source["id"] == "legal-updates:dashboard" for source in sources)
     assert any(source.get("repository") == "legal_updates_sql" for source in sources)
     assert not any(str(source.get("db_path", "")).endswith(".json") for source in sources)
+
+
+def test_ricerca_legale_lines_espone_registro_mediazione_a_lex(monkeypatch):
+    monkeypatch.setattr(
+        "web.services.assistente_studio_context.get_legal_intelligence",
+        lambda: _DummyLegalIntelligence(),
+    )
+
+    lines, sources = _ricerca_legale_lines("ADR Center registro mediazione")
+
+    assert any("Registro mediazione interno" in line for line in lines)
+    assert any("ADR Center srl" in line for line in lines)
+    assert any(source["id"] == "registro-mediazione:1" for source in sources)
+    registry_source = next(source for source in sources if source["id"] == "registro-mediazione:1")
+    assert registry_source["trust_class"] == "A"
+    assert registry_source["verified_reference"] is True
 
 
 def test_archivio_sentenze_lines_integra_corpus_professionale(monkeypatch):

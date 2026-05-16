@@ -6,6 +6,14 @@ Violazioni: 0
 
 Nessuna route piena risulta mascherata da legacy.
 
+## Aggiornamento 2.243.4 - 2026-05-16
+
+`/ricerca-legale/mediazione` e `/legal-intelligence/mediazione` confermate come
+superfici React operative con dati reali: API autenticata 3.038 schede, 3.035
+righe ministeriali importate, nessun fallback mock/demo. Il test
+`test_mediazione_importata_non_viene_deduplicata_come_solo_link` blocca il
+ritorno alla pagina di soli collegamenti.
+
 ## Aggiornamento 2.239.1 - 2026-05-15
 
 `/sito-studio/builder` confermato come superficie React operativa: le azioni di

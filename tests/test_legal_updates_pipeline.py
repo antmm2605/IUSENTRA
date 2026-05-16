@@ -1,5 +1,6 @@
 ﻿from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from lex.contracts import LexRequest
@@ -272,6 +273,89 @@ def test_legal_update_autopubblica_senza_reinserire_contenuti_gia_presenti(tmp_p
     assert versions == 1
     assert queue[0]["proposed_action"] == "DUPLICATE"
     assert queue[0]["status"] == "closed"
+
+
+def test_normative_slug_duplicate_non_blocca_pubblicazione(tmp_path: Path):
+    pipeline = build_legal_update_pipeline(str(tmp_path / "intelligence" / "motori.json"))
+
+    first = pipeline.repository.create_or_update_normative(
+        {
+            "title": "Aggiornamento normativo",
+            "slug": "Aggiornamento normativo",
+            "norm_type": "",
+            "norm_number": "",
+            "norm_year": "",
+            "issuer": "Fonte ufficiale",
+            "publication_date": "2026-05-01",
+            "source_url": "https://example.test/a",
+            "text_official": "Primo testo.",
+            "summary": "Primo aggiornamento.",
+        },
+        performed_by="test",
+    )
+    second = pipeline.repository.create_or_update_normative(
+        {
+            "title": "Aggiornamento normativo",
+            "slug": "Aggiornamento normativo",
+            "norm_type": "",
+            "norm_number": "",
+            "norm_year": "",
+            "issuer": "Fonte ufficiale",
+            "publication_date": "2026-05-02",
+            "source_url": "https://example.test/b",
+            "text_official": "Secondo testo.",
+            "summary": "Secondo aggiornamento.",
+        },
+        performed_by="test",
+    )
+
+    with pipeline.repository._connect() as conn:
+        count = int(conn.execute("SELECT COUNT(*) FROM normative").fetchone()[0])
+
+    assert first["slug"] == "aggiornamento-normativo"
+    assert second["slug"] == "aggiornamento-normativo"
+    assert count == 1
+
+
+def test_openga_ckan_importa_risorse_json_per_lex(tmp_path: Path):
+    pipeline = build_legal_update_pipeline(str(tmp_path / "intelligence" / "motori.json"))
+    source = pipeline.repository.get_source_by_code("openga_calendario_udienze")
+    assert source is not None
+
+    ckan_payload = {
+        "success": True,
+        "result": {
+            "packages": [
+                {
+                    "id": "pkg-cal-1",
+                    "title": "Calendario udienze TAR Calabria",
+                    "notes": "Dataset ufficiale OpenGA con calendario udienze.",
+                    "metadata_modified": "2026-05-10T10:00:00",
+                    "resources": [
+                        {
+                            "id": "res-json-1",
+                            "name": "calendario-udienze.json",
+                            "format": "JSON",
+                            "url": "https://openga.giustizia-amministrativa.it/dataset/calendario-udienze.json",
+                        }
+                    ],
+                }
+            ]
+        },
+    }
+    resource_payload = {"udienze": [{"sede": "TAR Calabria", "data": "2026-06-01"}]}
+
+    def fake_get(url, **kwargs):
+        if url.endswith(".json"):
+            return DummyResponse(json.dumps(resource_payload), url=url)
+        return DummyResponse(json.dumps(ckan_payload), url=url)
+
+    docs = pipeline._fetch_source(source, request_get=fake_get)
+
+    assert len(docs) == 1
+    assert docs[0]["resource_format"] == "JSON"
+    assert "Contenuto JSON acquisito" in docs[0]["raw_text"]
+    assert "TAR Calabria" in docs[0]["raw_text"]
 
 
 def test_legal_update_giurisprudenza_gia_pubblicata_diventa_duplicate(tmp_path: Path):

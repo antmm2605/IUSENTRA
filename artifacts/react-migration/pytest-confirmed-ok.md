@@ -1,12 +1,27 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-16, backup preventivo Hetzner 2.243.3.
+Aggiornato: 2026-05-16, registri mediazione interni 2.243.4, no backup.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Registri mediazione interni e Lex 2.243.4 - 2026-05-16
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| Sync live Registro Mediazione dal contesto app Docker | OK | Acquisite 3.035 righe ufficiali: 1.149 organismi, 481 enti e 1.405 formatori; 305 pagine ASP.NET lette dai tre elenchi ministeriali. |
+| `python -m py_compile pct\legal_intelligence.py pct\legal_update_pipeline.py pct\legal_update_repository.py web\services\react_legal_intelligence_bridge.py web\services\assistente_studio_context.py lex\retrieval\sources\legal_intelligence.py lex\retrieval\source_router.py web\helpers.py` | OK | Sintassi confermata dopo import registri, bridge Lex e correzione store condiviso per dati pubblici. |
+| `python -m pytest -q tests/test_legal_intelligence.py::test_sync_registro_mediazione_elenco_popola_cache tests/test_legal_intelligence.py::test_sync_registro_mediazione_elenco_legge_gridview_ministeriale_paginata tests/test_assistente_studio_context_giurisprudenza.py::test_ricerca_legale_lines_espone_registro_mediazione_a_lex tests/test_legal_updates_pipeline.py::test_normative_slug_duplicate_non_blocca_pubblicazione tests/test_legal_updates_pipeline.py::test_openga_ckan_importa_risorse_json_per_lex --tb=short` | OK | 5/5: import paginato ministeriale, fonte Lex mediazione, slug normativi duplicati e OpenGA CKAN JSON. |
+| `python -m pytest -q tests/test_legal_intelligence.py tests/test_react_legal_intelligence_search.py tests/test_assistente_studio_context_giurisprudenza.py --tb=short`; `python -m pytest -q tests/test_legal_updates_pipeline.py --tb=short` | OK | 52 test totali passati sui perimetri Ricerca Legale, Lex e Update Intelligence. |
+| `python -m pytest -q tests/test_react_legal_intelligence_search.py::test_mediazione_importata_non_viene_deduplicata_come_solo_link tests/test_react_legal_intelligence_search.py::test_mediazione_espone_accessi_ufficiali_ripristinati --tb=short` | OK | Regressione coperta: i 3.035 record importati non vengono piu' deduplicati come semplici link con lo stesso URL ufficiale. |
+| `npm --prefix frontend run typecheck -- --pretty false`; `npm --prefix frontend run build` | OK | TypeScript e build Vite verdi; chunk `LegalIntelligencePage-DUmVLp81.js` 28.44 kB / 8.29 kB gzip, main `index-DfXeVYex.js` 451.74 kB / 133.61 kB gzip. |
+| `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build --force-recreate redis app scheduler-worker ocr-worker nginx`; `GET http://127.0.0.1:8080/api/pronto` | OK | Docker locale no-cache `2.243.4`: app healthy, scheduler/OCR/Redis healthy, readiness locale 200 con `versione=2.243.4`. |
+| API React autenticata `/api/v1/ui/ricerca-legale/mediazione` | OK | 3.038 schede restituite: 3.035 record importati piu' tre accessi ufficiali; primo record importato `ADR Center srl`, sezione `Organismi di mediazione`. |
+| Chrome CDP autenticato `artifacts/react-migration/visual-2.243.4-mediazione-registry-final/visual-load-audit.md` | OK | 6/6 su `/ricerca-legale/mediazione` e `/legal-intelligence/mediazione`, desktop/tablet/mobile: 80 righe renderizzate, 5 filtri, zero overflow, zero form POST, zero testo tecnico vietato. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest tests/test_packaging_consistency.py tests/test_release_readiness.py -q --tb=short`; `python scripts\validate_docs_links.py docs\LEGAL_UPDATE_INTELLIGENCE.md docs\LEX_PUBLIC_SOURCES_AND_STUDIO_DATA_AUDIT.md docs\REACT_MIGRATION_MASTER_PLAN.md`; `python scripts\validate_docs_commands.py`; `git diff --check -- . ':!data/*'` | OK | Packaging sincronizzato, readiness release 8/8, documentazione validata e whitespace check pulito sul perimetro non-runtime. |
 
 ### Backup preventivo Hetzner 2.243.3 - 2026-05-16
 

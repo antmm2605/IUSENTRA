@@ -2,6 +2,13 @@
 
 Generato: 2026-05-08T10:03:02.066Z
 
+Aggiornamento 2026-05-16: `/ricerca-legale/mediazione` 2.243.4 diventa un
+registro professionale consultabile dentro IUSENTRA. La pagina mostra metriche,
+mappa contesto, 5 filtri, tabella compatta con 80 risultati renderizzati e
+schede fonte con contesto/uso pratico; i link ministeriali restano verifica
+finale, non contenuto principale. Audit desktop/tablet/mobile verde senza
+overflow, form POST HTML o lessico da sviluppatore.
+
 Aggiornamento 2026-05-14: `/notifiche-legali` 2.236.0 rende visibile la fase
 operativa dopo `Controlla relata`, `Controlla prova deposito` e `Prepara
 comunicazione`. Il pannello esito mostra blocchi, file previsti, pacchetto

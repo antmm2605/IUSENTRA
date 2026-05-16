@@ -1275,26 +1275,83 @@ class LegalUpdateRepository:
             )
             conn.commit()
 
+    def _unique_slug(self, conn: Any, table: str, slug: str, *, existing_id: int | None = None) -> str:
+        base = _slugify(slug or "record")
+        candidate = base
+        suffix = 2
+        while True:
+            if existing_id:
+                row = conn.execute(
+                    f"SELECT id FROM {table} WHERE slug = ? AND id <> ? LIMIT 1",
+                    (candidate, int(existing_id)),
+                ).fetchone()
+            else:
+                row = conn.execute(
+                    f"SELECT id FROM {table} WHERE slug = ? LIMIT 1",
+                    (candidate,),
+                ).fetchone()
+            if not row:
+                return candidate
+            candidate = f"{base}-{suffix}"
+            suffix += 1
+
+    def _find_existing_normative(self, conn: Any, payload: dict[str, Any], slug: str) -> Any:
+        norm_type = _normalize_token(payload.get("norm_type"))
+        norm_number = _clean_spaces(payload.get("norm_number"))
+        norm_year = _clean_spaces(payload.get("norm_year"))
+        issuer = _clean_spaces(payload.get("issuer"))
+        if norm_type and norm_number and norm_year:
+            row = conn.execute(
+                """
+                SELECT * FROM normative
+                WHERE norm_type = ? AND norm_number = ? AND norm_year = ? AND issuer = ?
+                LIMIT 1
+                """,
+                (norm_type, norm_number, norm_year, issuer),
+            ).fetchone()
+            if row:
+                return row
+        source_document_id = payload.get("source_document_id")
+        if source_document_id:
+            row = conn.execute(
+                "SELECT * FROM normative WHERE source_document_id = ? LIMIT 1",
+                (source_document_id,),
+            ).fetchone()
+            if row:
+                return row
+        source_url = _clean_spaces(payload.get("source_url"))
+        if source_url:
+            row = conn.execute(
+                "SELECT * FROM normative WHERE source_url = ? LIMIT 1",
+                (source_url,),
+            ).fetchone()
+            if row:
+                return row
+        if slug:
+            row = conn.execute(
+                "SELECT * FROM normative WHERE slug = ? LIMIT 1",
+                (slug,),
+            ).fetchone()
+            if row:
+                return row
+        return None
+
     def create_or_update_normative(self, payload: dict[str, Any], *, performed_by: str) -> dict[str, Any]:
         with self._connect() as conn:
             matter_id = self._matter_id(conn, str(payload.get("matter_slug") or ""))
             submatter_id = self._matter_id(conn, str(payload.get("submatter_slug") or ""))
-            existing = conn.execute(
-                """
-                SELECT * FROM normative
-                WHERE norm_type = ? AND norm_number = ? AND norm_year = ? AND issuer = ?
-                """,
-                (
-                    _normalize_token(payload.get("norm_type")),
-                    _clean_spaces(payload.get("norm_number")),
-                    _clean_spaces(payload.get("norm_year")),
-                    _clean_spaces(payload.get("issuer")),
-                ),
-            ).fetchone()
+            requested_slug = _slugify(str(payload.get("slug") or payload.get("title")))
+            existing = self._find_existing_normative(conn, payload, requested_slug)
             version_group_id = _slugify(
                 f"{payload.get('norm_type')}-{payload.get('norm_number')}-{payload.get('norm_year')}-{payload.get('issuer')}"
             )
             source_document_id = payload.get("source_document_id")
+            slug = self._unique_slug(
+                conn,
+                "normative",
+                requested_slug,
+                existing_id=int(existing["id"]) if existing else None,
+            )
             if existing:
                 old_payload = dict(existing)
                 conn.execute(
@@ -1308,7 +1365,7 @@ class LegalUpdateRepository:
                     """,
                     (
                         _clean_spaces(payload.get("title")),
-                        _slugify(str(payload.get("slug") or payload.get("title"))),
+                        slug,
                         _clean_spaces(payload.get("publication_date")),
                         _clean_spaces(payload.get("effective_date")),
                         _normalize_token(payload.get("status") or "vigente"),
@@ -1338,7 +1395,7 @@ class LegalUpdateRepository:
                     """,
                     (
                         _clean_spaces(payload.get("title")),
-                        _slugify(str(payload.get("slug") or payload.get("title"))),
+                        slug,
                         _normalize_token(payload.get("norm_type")),
                         _clean_spaces(payload.get("norm_number")),
                         _clean_spaces(payload.get("norm_year")),

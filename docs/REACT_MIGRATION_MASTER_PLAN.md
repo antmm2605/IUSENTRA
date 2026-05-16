@@ -1,5 +1,28 @@
 # Migrazione progressiva Flask + React
 
+## Hotfix Registro Mediazione interno - 2026-05-16 - 2.243.4
+
+`/ricerca-legale/mediazione` e l'alias `/legal-intelligence/mediazione`
+restano nel perimetro `react_operational_full`, ma ora mostrano dentro
+IUSENTRA i dati ministeriali acquisiti, non una raccolta di collegamenti. Il
+registro interno comprende Registro Organismi di Mediazione, Elenco Enti per la
+Mediazione ed Elenco Formatori per la Mediazione, con sezione, stato, natura,
+territorio, codice fiscale, partita IVA, email e sito quando presenti.
+
+La UI usa ricerca specifica, cinque filtri operativi e una tabella compatta che
+renderizza i primi 80 risultati mantenendo filtri e ricerca sull'intero archivio
+di 3.035 record. Le tre schede ministeriali restano come verifica finale e non
+come contenuto principale. Il bridge React usa identita' per-riga per impedire
+che i record importati vengano deduplicati per URL ufficiale.
+
+Gate locali chiusi: py_compile mirato, pytest Legal Intelligence/Lex/Update
+Pipeline, typecheck, build Vite, Docker locale no-cache `2.243.4`, sync live dei
+tre registri ministeriali, API React autenticata con 3.038 schede totali e audit
+Chrome CDP desktop/tablet/mobile su `/ricerca-legale/mediazione` e
+`/legal-intelligence/mediazione`. Report visuale:
+`artifacts/react-migration/visual-2.243.4-mediazione-registry-final/visual-load-audit.md`.
+Nessun backup eseguito.
+
 ## Hotfix Ricerca Legale con contesto fonte - 2026-05-16 - 2.239.3
 
 `/legal-intelligence/` e `/ricerca-legale` restano nel perimetro
@@ -2285,3 +2308,12 @@ python -m pytest tests/test_react_shell.py tests/test_email_client.py tests/test
 - `/ricerca-legale` include gli stessi accessi ufficiali tra le evidenze locali governate quando la query riguarda mediazione, enti o formatori, senza fetch esterno e senza dati privati di studio.
 - La news PST `NWS4865` resta disponibile come evidenza del ripristino, mentre la pagina Mediazione non dipende piu' da una sola scheda-notizia.
 - Verifiche registrate: `python -m pytest tests/test_react_legal_intelligence_search.py -q --tb=short`, `python -m compileall pct web -q`, packaging sync, readiness release, Docker locale no-cache e deploy Hetzner CPX42 con cron backup saltato.
+
+## Aggiornamento 2026-05-16: Registro Mediazione importato e consultabile 2.243.4
+
+- `/ricerca-legale/mediazione` non e' piu' una pagina di accessi esterni: legge l'archivio interno `organismi_mediazione_elenco` e mostra una tabella professionale con filtri per sezione, stato, natura, territorio e contatti.
+- Il sync importa in modo automatico e classificato i tre elenchi ufficiali ministeriali: Registro Organismi di Mediazione, Elenco Enti per la Mediazione ed Elenco Formatori per la Mediazione. La paginazione ASP.NET viene seguita tramite campi nascosti e postback, conservando sezione, numero registro, CF, P.IVA, email, sito, stato e data stato.
+- La UI limita il rendering iniziale alle prime righe filtrate per mantenere la pagina reattiva, ma ricerca e filtri lavorano sull'intero archivio acquisito.
+- Lex AI legge lo stesso archivio come fonte ufficiale di classe A tramite `lex_mediazione_registry_sources`, con citazioni interne complete e link ministeriale della sezione corretta.
+- Gli accessi ufficiali e la news PST restano schede di contesto e verifica, non sostituiscono piu' il contenuto importato.
+- Verifiche registrate: pytest mirati Legal Intelligence/Lex/Update Pipeline, typecheck frontend, build Vite, prova live del sync ministeriale con 3.035 record acquisiti su 305 pagine e browser verification locale su desktop/mobile.

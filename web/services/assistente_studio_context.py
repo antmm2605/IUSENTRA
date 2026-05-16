@@ -1437,6 +1437,12 @@ def _ricerca_legale_lines(question: str) -> tuple[list[str], list[dict[str, Any]
     source_rows = list(route.get("source_rows") or [])
     monitoring_rows = list(route.get("monitoring_rows") or [])
     alert_rows = list(route.get("alert_rows") or [])
+    mediazione_rows = []
+    if hasattr(intelligence, "lex_mediazione_registry_sources"):
+        try:
+            mediazione_rows = list(intelligence.lex_mediazione_registry_sources(question, limit=4) or [])
+        except Exception:
+            mediazione_rows = []
     monitoring_by_source = {row.get("source_id"): row for row in monitoring_rows}
     lines = [
         (
@@ -1494,6 +1500,18 @@ def _ricerca_legale_lines(question: str) -> tuple[list[str], list[dict[str, Any]
             + "; ".join(_truncate(row.get("title") or row.get("alert_type"), 110) for row in alert_rows[:3])
             + "."
         )
+    if mediazione_rows:
+        lines.append(
+            "Registro mediazione interno: "
+            + "; ".join(
+                _truncate(
+                    f"{row.get('title')} ({row.get('registration_number') or 'numero n.d.'}; {row.get('registry_status') or 'stato n.d.'})",
+                    115,
+                )
+                for row in mediazione_rows
+            )
+            + "."
+        )
     sources = [
         _source(
             "Repository legale",
@@ -1545,6 +1563,16 @@ def _ricerca_legale_lines(question: str) -> tuple[list[str], list[dict[str, Any]
         source["status"] = monitoring.get("status") or ""
         source["detected_version"] = monitoring.get("detected_version") or ""
         source["warning"] = monitoring.get("warning") or ""
+        sources.append(source)
+    for row in mediazione_rows:
+        source = _source(
+            f"Registro mediazione - {row.get('title')}",
+            row.get("excerpt") or row.get("content") or "",
+            source_id=str(row.get("id") or ""),
+            title=str(row.get("title") or "Organismo di mediazione"),
+        )
+        source.update(row)
+        source["text"] = row.get("excerpt") or row.get("content") or source.get("text") or ""
         sources.append(source)
     return lines, sources
 

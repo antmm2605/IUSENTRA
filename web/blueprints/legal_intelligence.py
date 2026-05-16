@@ -157,6 +157,11 @@ def registro_mediazione():
             city=request.args.get("city", ""),
             registry_number=request.args.get("registry_number", ""),
             organismo_type=request.args.get("organismo_type", ""),
+            status=request.args.get("status", ""),
+            tax_code=request.args.get("tax_code", ""),
+            vat_number=request.args.get("vat_number", ""),
+            has_email=request.args.get("has_email", ""),
+            has_website=request.args.get("has_website", ""),
         ),
         oggi=date.today(),
     )

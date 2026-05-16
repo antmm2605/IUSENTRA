@@ -35,6 +35,10 @@ _LEGAL_RESEARCH_HINTS = (
     "dm 55",
     "d.m. 150",
     "dm 150",
+    "mediazione",
+    "organismo di mediazione",
+    "organismi di mediazione",
+    "registro mediazione",
 )
 _FASCICOLO_FIRST_WORKFLOWS = {"fascicolo", "documento", "udienza"}
 

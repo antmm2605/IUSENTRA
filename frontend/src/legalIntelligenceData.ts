@@ -24,6 +24,15 @@ export type LegalIntelligenceRecord = {
   stateTone: LegalTone
   territory: string
   registryNumber: string
+  taxCode: string
+  vatNumber: string
+  email: string
+  website: string
+  organismoType: string
+  registryKind: string
+  registrySection: string
+  statusDate: string
+  isActive: boolean
   legacyHref: string
   evidenceType: string
 }
@@ -176,6 +185,15 @@ function normaliseRecord(input: unknown): LegalIntelligenceRecord {
     stateTone: tone(item.stateTone),
     territory: display(item.territory),
     registryNumber: display(item.registryNumber),
+    taxCode: display(item.taxCode),
+    vatNumber: display(item.vatNumber),
+    email: display(item.email),
+    website: display(item.website),
+    organismoType: display(item.organismoType),
+    registryKind: display(item.registryKind),
+    registrySection: display(item.registrySection),
+    statusDate: display(item.statusDate),
+    isActive: item.isActive === true,
     legacyHref: safeHref(item.legacyHref, '/ricerca-legale'),
     evidenceType: display(item.evidenceType) || 'informazione',
   }
@@ -223,7 +241,7 @@ export async function getLegalIntelligenceNewsPage(): Promise<LegalIntelligenceP
 }
 
 export async function getLegalIntelligenceMediazionePage(): Promise<LegalIntelligencePageData> {
-  const payload = await apiJson<unknown>('/api/v1/ui/legal-intelligence/mediazione', emptyLegalIntelligencePage)
+  const payload = await apiJson<unknown>('/api/v1/ui/ricerca-legale/mediazione', emptyLegalIntelligencePage)
   return normalisePage(payload)
 }
 

@@ -97,8 +97,12 @@ MAX_ALERTS = 400
 MAX_AUDIT_TRACES = 500
 REGISTRO_MEDIAZIONE_INFO_URL = "https://www.giustizia.it/giustizia/it/mg_3_4_15.page"
 REGISTRO_MEDIAZIONE_DIRECT_URL = "https://mediazione.giustizia.it/ROM/ALBOORGANISMIMEDIAZIONE.ASPX"
+REGISTRO_MEDIAZIONE_ENTI_URL = "https://mediazione.giustizia.it/ROM/AlboEntiFormazione.aspx"
+REGISTRO_MEDIAZIONE_FORMATORI_URL = "https://mediazione.giustizia.it/ROM/AlboFormatori.aspx"
 REGISTRO_MEDIAZIONE_TABLE_ID = "organismi_mediazione_elenco"
 REGISTRO_MEDIAZIONE_IMPORT_MAX_BYTES = 5 * 1024 * 1024
+REGISTRO_MEDIAZIONE_PAGE_SELECT_NAME = "acp_content$gvAlbo$ctl13$ddlPages"
+REGISTRO_MEDIAZIONE_MAX_PAGES = 220
 REGISTRO_MEDIAZIONE_NOTICE = (
     "Il Ministero della Giustizia segnala che la consultazione del registro diretto puo richiedere "
     "Microsoft Edge in modalita compatibilita con Internet Explorer."
@@ -1545,13 +1549,14 @@ class GestioneLegalIntelligence:
                 latest = run
         return latest
 
-    def _fetch_response(self, fetch: Callable[..., Any], url: str) -> tuple[Any, bool]:
+    def _fetch_response(self, fetch: Callable[..., Any], url: str, **request_kwargs: Any) -> tuple[Any, bool]:
         base_kwargs = {
             "headers": {"User-Agent": USER_AGENT},
             "timeout": self.timeout,
             "allow_redirects": True,
             "verify": True,
         }
+        base_kwargs.update(request_kwargs)
 
         def _call(**extra: Any) -> Any:
             kwargs = dict(base_kwargs)
@@ -1593,8 +1598,121 @@ class GestioneLegalIntelligence:
             "protection_page": _detect_protection_page(final_url, content),
         }
 
+    def _fetch_html_post_document(
+        self,
+        url: str,
+        *,
+        request_post: Callable[..., Any],
+        data: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        response, used_tls_fallback = self._fetch_response(request_post, url, data=data)
+        status_code = int(getattr(response, "status_code", 0) or 0)
+        final_url = str(getattr(response, "url", url) or url)
+        content = bytes(getattr(response, "content", b"") or b"")[:MAX_MONITOR_BYTES]
+        content_type = str((getattr(response, "headers", {}) or {}).get("content-type", "") or "")
+        text = content.decode("utf-8", errors="ignore")
+        return {
+            "status_code": status_code,
+            "final_url": final_url,
+            "content_type": content_type,
+            "content": content,
+            "text": text,
+            "used_tls_fallback": used_tls_fallback,
+            "protection_page": _detect_protection_page(final_url, content),
+        }
+
     def _registry_cell_text(self, node: Any) -> str:
         return _clean_spaces(" ".join(node.xpath(".//text()")))
+
+    def _registro_mediazione_document(self, html_payload: Any) -> Optional[Any]:
+        if not html_payload:
+            return None
+        try:
+            if isinstance(html_payload, (bytes, bytearray)):
+                return lxml_html.fromstring(bytes(html_payload))
+            return lxml_html.fromstring(str(html_payload or ""))
+        except Exception:
+            return None
+
+    def _registro_mediazione_hidden_fields(self, html_payload: Any) -> Dict[str, str]:
+        document = self._registro_mediazione_document(html_payload)
+        if document is None:
+            return {}
+        fields: Dict[str, str] = {}
+        for node in document.xpath("//form//input[@type='hidden' and @name] | //input[@type='hidden' and @name]"):
+            name = _clean_spaces(node.attrib.get("name") or "")
+            if not name:
+                continue
+            fields[name] = str(node.attrib.get("value") or "")
+        return fields
+
+    def _registro_mediazione_page_numbers(self, html_payload: Any) -> List[int]:
+        document = self._registro_mediazione_document(html_payload)
+        if document is None:
+            return [1]
+        values: List[int] = []
+        select_nodes = document.xpath(
+            "//select[@name=$name or @id='acp_content_gvAlbo_ctl13_ddlPages' or contains(@name, 'ddlPages')]",
+            name=REGISTRO_MEDIAZIONE_PAGE_SELECT_NAME,
+        )
+        for select in select_nodes:
+            for option in select.xpath(".//option"):
+                text = _clean_spaces(option.attrib.get("value") or option.text_content())
+                if not text.isdigit():
+                    continue
+                value = int(text)
+                if value not in values:
+                    values.append(value)
+        if not values:
+            values = [1]
+        values = sorted(value for value in values if value >= 1)
+        return values[:REGISTRO_MEDIAZIONE_MAX_PAGES] or [1]
+
+    def _registro_mediazione_expected_rows(self, html_payload: Any) -> int:
+        document = self._registro_mediazione_document(html_payload)
+        if document is None:
+            return 0
+        for candidate in document.xpath("//input[@name='acp_content$tot' or @id='acp_content_tot']/@value"):
+            text = _clean_spaces(candidate)
+            if text.isdigit():
+                return int(text)
+        text = _clean_spaces(" ".join(document.xpath("//text()")))
+        match = re.search(r"\b([0-9]{2,6})\s+(?:record|risultati|organismi)\b", text, re.IGNORECASE)
+        return int(match.group(1)) if match else 0
+
+    def _fetch_registro_mediazione_page(
+        self,
+        previous_html: Any,
+        page_number: int,
+        *,
+        request_post: Callable[..., Any],
+        url: str = REGISTRO_MEDIAZIONE_DIRECT_URL,
+    ) -> Dict[str, Any]:
+        payload = self._registro_mediazione_hidden_fields(previous_html)
+        payload["__EVENTTARGET"] = REGISTRO_MEDIAZIONE_PAGE_SELECT_NAME
+        payload["__EVENTARGUMENT"] = ""
+        payload[REGISTRO_MEDIAZIONE_PAGE_SELECT_NAME] = str(page_number)
+        return self._fetch_html_post_document(
+            url,
+            request_post=request_post,
+            data=payload,
+        )
+
+    def _parse_registro_mediazione_documents(self, documents: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        merged: Dict[str, Dict[str, Any]] = {}
+        for document in documents:
+            for row in self._parse_registro_mediazione_rows((document or {}).get("content")):
+                key = str(row.get("record_id") or row.get("registration_number") or row.get("name") or "")
+                if not key:
+                    continue
+                merged[key] = row
+        return sorted(
+            merged.values(),
+            key=lambda item: (
+                str(item.get("registration_number") or "").zfill(8),
+                str(item.get("name") or ""),
+            ),
+        )
 
     def _registro_mediazione_defaults(self) -> Dict[str, Any]:
         table = self.normative_tables.get_table(REGISTRO_MEDIAZIONE_TABLE_ID)
@@ -1657,6 +1775,24 @@ class GestioneLegalIntelligence:
         normalized = _normalize_label(header)
         if not normalized:
             return ""
+        if normalized == "cognome":
+            return "surname"
+        if normalized == "nome":
+            return "first_name"
+        if "data nascita" in normalized:
+            return "birth_date"
+        if "num enti" in normalized or "numero enti" in normalized:
+            return "entity_count"
+        if "tipo docente" in normalized:
+            return "teacher_type"
+        if "codice fiscale" in normalized or normalized == "cf" or normalized.endswith(" c f"):
+            return "tax_code"
+        if "partita iva" in normalized or "p iva" in normalized or normalized == "iva":
+            return "vat_number"
+        if "cancellato" in normalized or "sospeso" in normalized or "sospensione" in normalized:
+            if "data" in normalized:
+                return "status_date"
+            return "status"
         if "pec" in normalized:
             return "pec"
         if "email" in normalized or "e mail" in normalized:
@@ -1771,6 +1907,16 @@ class GestioneLegalIntelligence:
             "phone": "",
             "website": "",
             "registration_date": "",
+            "tax_code": "",
+            "vat_number": "",
+            "status": "",
+            "status_date": "",
+            "is_active": True,
+            "surname": "",
+            "first_name": "",
+            "birth_date": "",
+            "entity_count": "",
+            "teacher_type": "",
         }
         extra_columns: Dict[str, Any] = {}
         for index, cell in enumerate(cells):
@@ -1781,18 +1927,47 @@ class GestioneLegalIntelligence:
                 payload[role] = cell
             else:
                 extra_columns[f"column_{index + 1}"] = cell
+        if payload["surname"] or payload["first_name"]:
+            payload["name"] = _clean_spaces(f"{payload['surname']} {payload['first_name']}")
+        if payload["teacher_type"] and not payload["type"]:
+            payload["type"] = payload["teacher_type"]
         if not payload["name"]:
             payload["name"] = cells[1] if len(cells) > 1 else cells[0]
         registration_number = payload["registration_number"]
         if registration_number:
             match = re.search(r"\d+", registration_number)
             payload["registration_number"] = match.group(0) if match else registration_number
+        if not payload["name"] and not payload["registration_number"]:
+            return None
         payload["type"] = _normalize_registry_kind(payload["type"])
+        status_raw = _clean_spaces(payload.get("status") or "")
+        normalized_status = _normalize_label(status_raw)
+        if normalized_status in {"no", "n", "0"}:
+            payload["status"] = "attivo"
+            payload["is_active"] = True
+        elif normalized_status in {"si", "s", "1", "yes"}:
+            payload["status"] = "cancellato o sospeso"
+            payload["is_active"] = False
+        elif "cancell" in normalized_status or "sospes" in normalized_status:
+            payload["status"] = status_raw
+            payload["is_active"] = False
+        elif status_raw:
+            payload["status"] = status_raw
+            payload["is_active"] = "attiv" in normalized_status
+        else:
+            payload["status"] = "presente"
+            payload["is_active"] = True
+        payload["classification"] = payload["type"] or "Organismo di mediazione"
+        payload["official"] = True
+        payload["source"] = "ministero"
         payload["official_registry_url"] = REGISTRO_MEDIAZIONE_DIRECT_URL
         payload["official_info_url"] = REGISTRO_MEDIAZIONE_INFO_URL
         if extra_columns:
             payload["extra_columns"] = extra_columns
-        record_base = payload["registration_number"] or f"{payload['name']}|{payload['city']}|{payload['pec']}"
+        record_base = payload["registration_number"] or (
+            f"{payload['name']}|{payload['tax_code']}|{payload['vat_number']}|"
+            f"{payload['birth_date']}|{payload['city']}|{payload['pec']}"
+        )
         record_id = hashlib.sha1(record_base.encode("utf-8")).hexdigest()[:16]
         if record_id in seen_ids:
             return None
@@ -1809,6 +1984,15 @@ class GestioneLegalIntelligence:
                     payload["address"],
                     payload["pec"],
                     payload["email"],
+                    payload["website"],
+                    payload["tax_code"],
+                    payload["vat_number"],
+                    payload["status"],
+                    payload["surname"],
+                    payload["first_name"],
+                    payload["birth_date"],
+                    payload["entity_count"],
+                    payload["teacher_type"],
                 ]
             )
         ).lower()
@@ -2329,33 +2513,101 @@ class GestioneLegalIntelligence:
         self,
         *,
         request_get: Optional[Callable[..., Any]] = None,
+        request_post: Optional[Callable[..., Any]] = None,
         now: Optional[datetime] = None,
     ) -> Dict[str, Any]:
         current_time = now or datetime.now()
+        if request_get is None and request_post is None:
+            session = requests.Session()
+            request_get = session.get
+            request_post = session.post
         context = self._fetch_registro_mediazione_context(request_get=request_get)
         defaults = dict(context["defaults"])
         existing_rows = [dict(row) for row in self.normative_tables.rows(REGISTRO_MEDIAZIONE_TABLE_ID)]
         try:
-            document = self._fetch_html_document(
-                REGISTRO_MEDIAZIONE_DIRECT_URL,
-                request_get=request_get,
-            )
-            if document["status_code"] >= 400:
-                raise RuntimeError(f"HTTP {document['status_code']}")
-            if document["protection_page"]:
-                raise RuntimeError("La consultazione diretta del registro e protetta o richiede browser compatibile.")
+            registry_sources = [
+                ("organismo", "Organismi di mediazione", REGISTRO_MEDIAZIONE_DIRECT_URL),
+                ("ente", "Enti per la mediazione", REGISTRO_MEDIAZIONE_ENTI_URL),
+                ("formatore", "Formatori per la mediazione", REGISTRO_MEDIAZIONE_FORMATORI_URL),
+            ]
+            rows: List[Dict[str, Any]] = []
+            first_document: Optional[Dict[str, Any]] = None
+            source_reports: List[Dict[str, Any]] = []
+            total_pages_loaded = 0
+            total_pages_available = 0
+            total_expected_rows = 0
+            for registry_kind, registry_label, registry_url in registry_sources:
+                document = self._fetch_html_document(
+                    registry_url,
+                    request_get=request_get,
+                )
+                if first_document is None:
+                    first_document = document
+                if document["status_code"] >= 400:
+                    raise RuntimeError(f"{registry_label}: HTTP {document['status_code']}")
+                if document["protection_page"]:
+                    raise RuntimeError(f"{registry_label}: consultazione protetta o browser compatibile richiesto.")
 
-            rows = self._parse_registro_mediazione_rows(document["content"])
+                documents = [document]
+                page_numbers = self._registro_mediazione_page_numbers(document["content"])
+                expected_rows = self._registro_mediazione_expected_rows(document["content"])
+                previous_html = document["content"]
+                if request_post and len(page_numbers) > 1:
+                    for page_number in page_numbers[1:]:
+                        page_document = self._fetch_registro_mediazione_page(
+                            previous_html,
+                            page_number,
+                            request_post=request_post,
+                            url=registry_url,
+                        )
+                        if int(page_document.get("status_code") or 0) >= 400:
+                            raise RuntimeError(f"{registry_label}: HTTP {page_document.get('status_code')} durante la pagina {page_number}.")
+                        if page_document.get("protection_page"):
+                            raise RuntimeError(f"{registry_label}: la pagina {page_number} richiede browser compatibile.")
+                        documents.append(page_document)
+                        previous_html = page_document.get("content") or previous_html
+
+                source_rows = self._parse_registro_mediazione_documents(documents)
+                for row in source_rows:
+                    row["registry_kind"] = registry_kind
+                    row["registry_section"] = registry_label
+                    row["official_registry_url"] = registry_url
+                    row["record_id"] = hashlib.sha1(
+                        f"{registry_kind}|{row.get('record_id') or row.get('registration_number') or row.get('name')}".encode("utf-8")
+                    ).hexdigest()[:16]
+                    row["search_text"] = _clean_spaces(
+                        f"{row.get('search_text', '')} {registry_kind} {registry_label}"
+                    ).lower()
+                rows.extend(source_rows)
+                total_pages_loaded += len(documents)
+                total_pages_available += len(page_numbers)
+                total_expected_rows += expected_rows
+                source_reports.append(
+                    {
+                        "kind": registry_kind,
+                        "label": registry_label,
+                        "url": registry_url,
+                        "rows": len(source_rows),
+                        "pages_loaded": len(documents),
+                        "pages_available": len(page_numbers),
+                        "expected_rows": expected_rows,
+                    }
+                )
             if not rows:
                 raise RuntimeError("Il registro diretto non ha restituito un elenco strutturato leggibile.")
+            document = first_document or {}
 
             defaults.update(
                 {
-                    "last_registry_fetch_url": document["final_url"],
-                    "last_registry_hash": _sha256(document["content"]),
+                    "last_registry_fetch_url": document.get("final_url") or REGISTRO_MEDIAZIONE_DIRECT_URL,
+                    "last_registry_hash": _sha256(document.get("content") or b""),
                     "registry_notice": REGISTRO_MEDIAZIONE_NOTICE,
                     "data_origin": "live_registry",
-                    "data_origin_label": "Registro diretto ministeriale",
+                    "data_origin_label": "Registri ministeriali mediazione",
+                    "registry_pages_loaded": total_pages_loaded,
+                    "registry_pages_available": total_pages_available,
+                    "registry_expected_rows": total_expected_rows,
+                    "registry_source_reports": source_reports,
                     "last_successful_sync_at": _now_iso(current_time),
                     "last_successful_origin": "live_registry",
                     "last_successful_row_count": len(rows),
@@ -2371,8 +2623,12 @@ class GestioneLegalIntelligence:
                 warning=warning,
                 origin="live_registry",
             )
-            result["final_url"] = document["final_url"]
+            result["final_url"] = document.get("final_url") or REGISTRO_MEDIAZIONE_DIRECT_URL
             result["live_ok"] = True
+            result["pages_loaded"] = total_pages_loaded
+            result["pages_available"] = total_pages_available
+            result["expected_rows"] = total_expected_rows
+            result["sources"] = source_reports
             return result
         except Exception as exc:
             raw_warning = _truncate(str(exc), 300)
@@ -2446,6 +2702,11 @@ class GestioneLegalIntelligence:
         city: str = "",
         registry_number: str = "",
         organismo_type: str = "",
+        status: str = "",
+        tax_code: str = "",
+        vat_number: str = "",
+        has_email: str = "",
+        has_website: str = "",
     ) -> Dict[str, Any]:
         metadata_rows = self.normative_tables.rows("registro_organismi_mediazione")
         table = self.normative_tables.get_table(REGISTRO_MEDIAZIONE_TABLE_ID)
@@ -2458,6 +2719,11 @@ class GestioneLegalIntelligence:
         city_norm = _normalize_label(city)
         reg_norm = _normalize_label(registry_number)
         type_norm = _normalize_label(organismo_type)
+        status_norm = _normalize_label(status)
+        tax_norm = _normalize_label(tax_code)
+        vat_norm = _normalize_label(vat_number)
+        has_email_norm = _normalize_label(has_email)
+        has_website_norm = _normalize_label(has_website)
 
         filtered: List[Dict[str, Any]] = []
         for row in rows:
@@ -2470,6 +2736,11 @@ class GestioneLegalIntelligence:
                         str(row.get("city", "")),
                         str(row.get("province", "")),
                         str(row.get("pec", "")),
+                        str(row.get("email", "")),
+                        str(row.get("website", "")),
+                        str(row.get("tax_code", "")),
+                        str(row.get("vat_number", "")),
+                        str(row.get("status", "")),
                     ]
                 )
             )
@@ -2481,10 +2752,25 @@ class GestioneLegalIntelligence:
                 continue
             if type_norm and type_norm not in _normalize_label(str(row.get("type", ""))):
                 continue
+            if status_norm and status_norm not in _normalize_label(str(row.get("status", ""))):
+                continue
+            if tax_norm and tax_norm not in _normalize_label(str(row.get("tax_code", ""))):
+                continue
+            if vat_norm and vat_norm not in _normalize_label(str(row.get("vat_number", ""))):
+                continue
+            if has_email_norm in {"1", "true", "vero", "si", "yes"} and not str(row.get("email") or row.get("pec") or "").strip():
+                continue
+            if has_website_norm in {"1", "true", "vero", "si", "yes"} and not str(row.get("website") or "").strip():
+                continue
             filtered.append(row)
 
         type_options = sorted({row.get("type", "") for row in rows if row.get("type")})
         city_options = sorted({row.get("city", "") for row in rows if row.get("city")})[:200]
+        status_options = sorted({row.get("status", "") for row in rows if row.get("status")})
+        active_count = len([row for row in rows if bool(row.get("is_active"))])
+        inactive_count = len([row for row in rows if not bool(row.get("is_active"))])
+        with_email_count = len([row for row in rows if str(row.get("email") or row.get("pec") or "").strip()])
+        with_website_count = len([row for row in rows if str(row.get("website") or "").strip()])
         data_origin = str(metadata.get("data_origin") or defaults.get("data_origin") or "")
         data_origin_label = str(
             metadata.get("data_origin_label")
@@ -2499,12 +2785,24 @@ class GestioneLegalIntelligence:
                 "city": city,
                 "registry_number": registry_number,
                 "organismo_type": organismo_type,
+                "status": status,
+                "tax_code": tax_code,
+                "vat_number": vat_number,
+                "has_email": has_email,
+                "has_website": has_website,
             },
             "rows": filtered,
             "total_rows": len(rows),
             "filtered_rows": len(filtered),
             "type_options": type_options,
             "city_options": city_options,
+            "status_options": status_options,
+            "stats": {
+                "attivi": active_count,
+                "cancellati_o_sospesi": inactive_count,
+                "con_email": with_email_count,
+                "con_sito": with_website_count,
+            },
             "has_cached_rows": bool(rows),
             "official_notice": metadata.get("consultation_mode") or REGISTRO_MEDIAZIONE_NOTICE,
             "technical_notice": metadata.get("technical_notice") or table.get("last_warning") or "",
@@ -2514,6 +2812,70 @@ class GestioneLegalIntelligence:
             "import_filename": metadata.get("import_filename", ""),
             "last_successful_sync_at": metadata.get("last_successful_sync_at", ""),
         }
+
+    def lex_mediazione_registry_sources(self, query: str = "", *, limit: int = 12) -> List[Dict[str, Any]]:
+        snapshot = self.mediazione_registry_snapshot(q=query)
+        rows = list(snapshot.get("rows") or [])
+        if not rows and query:
+            rows = list(self.mediazione_registry_snapshot().get("rows") or [])
+        terms = [_normalize_label(term) for term in re.findall(r"[A-Za-z0-9]+", query or "") if len(term) >= 3]
+        selected: List[Dict[str, Any]] = []
+        for row in rows:
+            haystack = _normalize_label(row.get("search_text", "")) or _normalize_label(
+                " ".join(str(row.get(field, "")) for field in ("registration_number", "name", "type", "city", "province", "tax_code", "vat_number", "status"))
+            )
+            if terms and not any(term in haystack for term in terms):
+                continue
+            selected.append(row)
+            if len(selected) >= max(1, int(limit or 12)):
+                break
+        if not selected and rows:
+            selected = rows[: max(1, int(limit or 12))]
+        sources: List[Dict[str, Any]] = []
+        for row in selected:
+            territory = " ".join(part for part in (row.get("city"), row.get("province")) if part)
+            text = _clean_spaces(
+                " ".join(
+                    str(value or "")
+                    for value in (
+                        f"Organismo {row.get('name')}",
+                        f"Sezione {row.get('registry_section')}",
+                        f"numero registro {row.get('registration_number')}",
+                        row.get("type"),
+                        territory,
+                        f"stato {row.get('status')}",
+                        f"codice fiscale {row.get('tax_code')}",
+                        f"partita IVA {row.get('vat_number')}",
+                        f"sito {row.get('website')}",
+                        f"email {row.get('email') or row.get('pec')}",
+                    )
+                    if value
+                )
+            )
+            sources.append(
+                {
+                    "type": "registro_mediazione",
+                    "id": f"registro-mediazione:{row.get('record_id') or row.get('registration_number')}",
+                    "title": str(row.get("name") or "Organismo di mediazione"),
+                    "excerpt": text,
+                    "content": text,
+                    "score": 0.9,
+                    "authority": "Ministero della Giustizia",
+                    "official_url": row.get("official_registry_url") or REGISTRO_MEDIAZIONE_DIRECT_URL,
+                    "trust_class": "A",
+                    "source_level": 1,
+                    "verified_reference": True,
+                    "published_at": str(snapshot.get("last_successful_sync_at") or ""),
+                    "registration_number": row.get("registration_number") or "",
+                    "registry_status": row.get("status") or "",
+                    "registry_kind": row.get("registry_kind") or "",
+                    "registry_section": row.get("registry_section") or "",
+                    "territory": territory,
+                    "source_policy_tier": "tier_1",
+                    "repository": "normative_tables",
+                }
+            )
+        return sources
 
     def sync_normative_tables(
         self,

@@ -11,9 +11,16 @@ class LegalIntelligenceSource:
     source_name = "legal_intelligence"
 
     def search(self, queries, request, context):
-        route = get_legal_intelligence().resolve_lex_legal_route(queries[0] if queries else request.query)
+        query = queries[0] if queries else request.query
+        intelligence = get_legal_intelligence()
+        route = intelligence.resolve_lex_legal_route(query)
         rows = list(route.get("engine_rows") or [])[:4]
         evidences = []
+        if hasattr(intelligence, "lex_mediazione_registry_sources"):
+            evidences.extend(
+                row_to_evidence(row, "registro_mediazione")
+                for row in intelligence.lex_mediazione_registry_sources(query, limit=8)
+            )
         for row in rows:
             evidences.append(
                 row_to_evidence(

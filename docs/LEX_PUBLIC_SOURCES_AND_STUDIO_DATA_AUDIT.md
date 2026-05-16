@@ -4,6 +4,18 @@ Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle
 
 ---
 
+## Aggiornamento operativo 2.243.4 - 2026-05-16
+
+Lex AI legge ora anche il registro mediazione interno popolato dai tre elenchi ufficiali del Ministero della Giustizia: Registro Organismi, Elenco Enti per la Mediazione ed Elenco Formatori per la Mediazione. Le evidenze sono marcate come fonte ufficiale di classe A e includono sezione, numero registro, denominazione o nominativo, stato, natura/tipo docente, territorio, codice fiscale, partita IVA, email e sito quando presenti.
+
+La pagina `/ricerca-legale/mediazione` usa gli stessi dati acquisiti: non e' piu' un elenco di collegamenti, ma un archivio consultabile in IUSENTRA con ricerca e filtri. Lex riceve il contesto dal repository interno `normative_tables`, mentre il collegamento ministeriale resta riferimento di verifica.
+
+La verifica API autenticata restituisce 3.038 schede: 3.035 record ministeriali piu' i tre accessi ufficiali. Il bridge usa l'identita' della riga importata e non l'URL ministeriale, cosi' i dati non vengono ridotti a una sola scheda per fonte.
+
+OpenGA Giustizia Amministrativa e il gruppo `calendario-udienze` sono stati aggiunti al presidio Update Intelligence come fonti CKAN JSON; le risorse JSON disponibili vengono acquisite come testo consultabile per ricerca e Lex.
+
+---
+
 ## Aggiornamento operativo 2.239.2 - 2026-05-16
 
 La pagina React `Registro Mediazione` non dipende piu' dalla sola notizia di ripristino: espone tre schede di accesso ufficiale separate verso Registro Organismi di Mediazione, Elenco Enti per la Mediazione ed Elenco Formatori per la Mediazione. Le schede sono disponibili anche nella Ricerca Legale per query su mediazione, enti e formatori, senza leggere dati privati dello studio e senza avviare una ricerca esterna.

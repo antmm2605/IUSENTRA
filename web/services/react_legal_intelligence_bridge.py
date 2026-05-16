@@ -170,6 +170,13 @@ def _matches_query(record: Mapping[str, Any], search_query: str) -> bool:
             "branch",
             "territory",
             "registryNumber",
+            "registrySection",
+            "taxCode",
+            "vatNumber",
+            "email",
+            "website",
+            "stateLabel",
+            "sourceExcerpt",
             "date",
         )
     )
@@ -183,7 +190,11 @@ def _dedupe_records(records: list[dict[str, Any]], *, limit: int | None = None) 
     seen: set[str] = set()
     deduped: list[dict[str, Any]] = []
     for record in records:
-        key = _text(record.get("sourceHref")) or f"{_text(record.get('kind'))}:{_text(record.get('id'))}"
+        record_id = _text(record.get("id"))
+        if record_id.startswith("registro-mediazione-"):
+            key = f"mediazione:{record_id}"
+        else:
+            key = _text(record.get("sourceHref")) or f"{_text(record.get('kind'))}:{record_id}"
         if key in seen:
             continue
         seen.add(key)
@@ -271,14 +282,20 @@ def _matters(pipeline: Any, warnings: list[dict[str, str]]) -> list[dict[str, An
 def _mediazione_snapshot(manager: Any, warnings: list[dict[str, str]], query: Mapping[str, Any] | None) -> dict[str, Any]:
     query = query or {}
     try:
-        return _dict(
+        snapshot = _dict(
             manager.mediazione_registry_snapshot(
                 q=_text(query.get("q")),
                 city=_text(query.get("city")),
                 registry_number=_text(query.get("registry_number")),
                 organismo_type=_text(query.get("organismo_type")),
+                status=_text(query.get("status")),
+                tax_code=_text(query.get("tax_code")),
+                vat_number=_text(query.get("vat_number")),
+                has_email=_text(query.get("has_email")),
+                has_website=_text(query.get("has_website")),
             )
         )
+        return snapshot
     except Exception as exc:
         warnings.append(_warning("mediazione_non_disponibile", f"Registro mediazione non disponibile: {type(exc).__name__}."))
         return {}
@@ -308,25 +325,61 @@ def _safe_news_record(row: Mapping[str, Any], index: int) -> dict[str, Any]:
 
 
 def _safe_mediazione_record(row: Mapping[str, Any], index: int) -> dict[str, Any]:
-    registration = _text(row.get("registration_number") or row.get("numero_iscrizione") or index)
+    registration = _text(row.get("registration_number") or row.get("numero_iscrizione"))
+    registry_kind = _text(row.get("registry_kind") or "organismo")
+    registry_section = _text(row.get("registry_section") or "Registro mediazione")
     city = _text(row.get("city") or row.get("comune"))
     province = _text(row.get("province") or row.get("provincia"))
+    email = _text(row.get("email") or row.get("pec"))
+    website = _text(row.get("website"))
+    status = _text(row.get("status") or row.get("state") or "presente")
+    tax_code = _text(row.get("tax_code"))
+    vat_number = _text(row.get("vat_number"))
+    source_excerpt = _short(
+        " - ".join(
+            part
+            for part in (
+                f"N. registro {registration}" if registration else "",
+                registry_section,
+                _text(row.get("type") or row.get("tipologia")),
+                " / ".join(part for part in (city, province) if part),
+                f"Stato {status}" if status else "",
+                f"CF {tax_code}" if tax_code else "",
+                f"P. IVA {vat_number}" if vat_number else "",
+                email,
+                website,
+            )
+            if part
+        ),
+        360,
+    )
     return {
-        "id": registration or f"organismo_{index}",
+        "id": f"registro-mediazione-{registry_kind}-{registration or tax_code or index}",
         "kind": "mediazione",
         "title": _text(row.get("name") or row.get("denominazione")) or "Organismo di mediazione",
-        "subtitle": _short(row.get("type") or row.get("tipologia") or row.get("address"), 180),
-        "sourceLabel": "Registro mediazione",
+        "subtitle": _short(row.get("type") or row.get("tipologia") or row.get("address") or registry_section, 180),
+        "sourceLabel": registry_section,
         "sourceKind": "fonte ufficiale" if row.get("official") or row.get("source") == "ministero" else "contenuto interno",
+        "sourceHref": _safe_href(row.get("official_registry_url") or _MEDIAZIONE_OFFICIAL_REGISTRY_RECORDS[0]["sourceHref"]),
+        "sourceExcerpt": source_excerpt,
         "date": _text(row.get("registration_date") or row.get("updated_at")),
         "area": city,
-        "branch": province,
+        "branch": province or registry_section,
         "territory": " - ".join(part for part in (city, province) if part),
-        "stateLabel": _text(row.get("status") or row.get("state") or "presente"),
-        "stateTone": _tone(row.get("status") or row.get("state") or "ok"),
+        "stateLabel": status,
+        "stateTone": _tone(status or "ok"),
         "registryNumber": registration,
         "legacyHref": f"/ricerca-legale/mediazione?organismo={registration}" if registration else "/ricerca-legale/mediazione",
         "evidenceType": "fonte",
+        "taxCode": tax_code,
+        "vatNumber": vat_number,
+        "email": email,
+        "website": website,
+        "organismoType": _text(row.get("type") or row.get("tipologia")),
+        "registryKind": registry_kind,
+        "registrySection": registry_section,
+        "statusDate": _text(row.get("status_date")),
+        "isActive": bool(row.get("is_active")),
     }
 
 

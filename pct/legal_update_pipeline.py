@@ -50,14 +50,14 @@ DEFAULT_SOURCE_ROWS: tuple[dict[str, Any], ...] = (
         "name": "Dati Normattiva",
         "code": "dati_normattiva",
         "category": "normativa",
-        "base_url": "https://dati.normattiva.it/",
+        "base_url": "https://dati.normattiva.it/assets/come_fare_per/Normattiva%20OpenData.html",
         "source_type": "web",
         "trust_class": "A",
         "is_official": True,
         "enabled": True,
         "polling_minutes": 720,
         "parser_type": "html",
-        "notes": "Canale tecnico/open data per integrazione normativa.",
+        "notes": "Canale tecnico/open data per integrazione normativa e API Normattiva.",
     },
     {
         "name": "Corte Costituzionale",
@@ -97,6 +97,32 @@ DEFAULT_SOURCE_ROWS: tuple[dict[str, Any], ...] = (
         "polling_minutes": 180,
         "parser_type": "html",
         "notes": "Provvedimenti di TAR e Consiglio di Stato.",
+    },
+    {
+        "name": "OpenGA Giustizia Amministrativa",
+        "code": "openga_giustizia_amministrativa",
+        "category": "giurisprudenza",
+        "base_url": "https://openga.giustizia-amministrativa.it/api/3/action/package_search?rows=200",
+        "source_type": "open_data",
+        "trust_class": "A",
+        "is_official": True,
+        "enabled": True,
+        "polling_minutes": 720,
+        "parser_type": "ckan_json",
+        "notes": "Catalogo OpenGA in formato CKAN: dataset e risorse JSON/CSV/XLS/ODS della Giustizia Amministrativa.",
+    },
+    {
+        "name": "OpenGA - Calendario udienze",
+        "code": "openga_calendario_udienze",
+        "category": "giurisprudenza",
+        "base_url": "https://openga.giustizia-amministrativa.it/api/3/action/group_show?id=calendario-udienze&include_datasets=true",
+        "source_type": "open_data",
+        "trust_class": "A",
+        "is_official": True,
+        "enabled": True,
+        "polling_minutes": 720,
+        "parser_type": "ckan_json",
+        "notes": "Gruppo ufficiale OpenGA per calendari udienze, acquisito dai metadati CKAN e dalle risorse JSON disponibili.",
     },
     {
         "name": "EUR-Lex",
@@ -317,6 +343,96 @@ def _extract_html_items(source: dict[str, Any], base_url: str, content: str) -> 
     ]
 
 
+def _ckan_package_rows(payload: Any) -> list[dict[str, Any]]:
+    result = payload.get("result") if isinstance(payload, dict) else {}
+    if not isinstance(result, dict):
+        return []
+    if isinstance(result.get("results"), list):
+        return [row for row in result["results"] if isinstance(row, dict)]
+    if isinstance(result.get("packages"), list):
+        return [row for row in result["packages"] if isinstance(row, dict)]
+    if isinstance(result.get("resources"), list):
+        return [{"title": result.get("title") or result.get("name"), "notes": result.get("notes"), "resources": result.get("resources")}]
+    return []
+
+
+def _extract_ckan_items(source: dict[str, Any], base_url: str, content: str) -> list[dict[str, Any]]:
+    try:
+        payload = json.loads(content or "{}")
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return []
+    packages = _ckan_package_rows(payload)
+    docs: list[dict[str, Any]] = []
+    for package in packages:
+        package_id = _clean_spaces(package.get("id") or package.get("name"))
+        package_title = _clean_spaces(package.get("title") or package.get("name") or package_id)
+        package_notes = _clean_spaces(package.get("notes") or package.get("description"))
+        package_date = _parse_pub_date(
+            package.get("metadata_modified")
+            or package.get("modified")
+            or package.get("created")
+            or package.get("metadata_created")
+        )
+        package_url = _clean_spaces(package.get("url") or "")
+        resources = [row for row in list(package.get("resources") or []) if isinstance(row, dict)]
+        if not resources:
+            docs.append(
+                {
+                    "external_id": _sha256(f"{source.get('code')}|{package_id or package_title}|package"),
+                    "source_url": package_url or base_url,
+                    "title": package_title or source.get("name") or base_url,
+                    "published_at": package_date,
+                    "raw_html": "",
+                    "raw_text": package_notes or package_title,
+                    "body_short": _truncate(package_notes or package_title),
+                    "resource_format": "dataset",
+                    "resource_url": package_url or base_url,
+                }
+            )
+            continue
+        for resource in resources:
+            resource_id = _clean_spaces(resource.get("id") or resource.get("name") or resource.get("url"))
+            resource_name = _clean_spaces(resource.get("name") or resource.get("title") or resource_id)
+            resource_url = _normalize_document_url(_clean_spaces(resource.get("url") or package_url or base_url))
+            resource_format = _clean_spaces(resource.get("format") or resource.get("mimetype") or resource.get("resource_type"))
+            resource_date = _parse_pub_date(
+                resource.get("last_modified")
+                or resource.get("metadata_modified")
+                or resource.get("created")
+                or package_date
+            )
+            title = _clean_spaces(" - ".join(part for part in (package_title, resource_name) if part))
+            body = _clean_spaces(
+                " ".join(
+                    part
+                    for part in (
+                        package_notes,
+                        f"Dataset OpenGA: {package_title}" if package_title else "",
+                        f"Risorsa: {resource_name}" if resource_name else "",
+                        f"Formato: {resource_format}" if resource_format else "",
+                        f"URL: {resource_url}" if resource_url else "",
+                    )
+                    if part
+                )
+            )
+            docs.append(
+                {
+                    "external_id": _sha256(f"{source.get('code')}|{package_id}|{resource_id}|{resource_url}"),
+                    "source_url": resource_url,
+                    "title": title or resource_url or source.get("name") or base_url,
+                    "published_at": resource_date or package_date,
+                    "raw_html": "",
+                    "raw_text": body,
+                    "body_short": _truncate(body or title),
+                    "resource_format": resource_format,
+                    "resource_url": resource_url,
+                    "package_id": package_id,
+                    "package_title": package_title,
+                }
+            )
+    return _merge_unique_documents(docs)
+
+
 def _extract_pager_frames(content: str) -> list[str]:
     pages: list[str] = []
     for match in PAGER_FRAME_RE.finditer(str(content or "")):
@@ -407,7 +523,43 @@ class LegalUpdatePipeline:
             text = str(response.text or "")
         elif hasattr(response, "content"):
             text = bytes(response.content or b"").decode("utf-8", errors="ignore")
-        if _looks_like_feed(text, content_type):
+        parser_type = _clean_spaces(source.get("parser_type")).lower()
+        if parser_type == "ckan_json":
+            docs = _extract_ckan_items(source, source["base_url"], text)
+            enriched_docs: list[dict[str, Any]] = []
+            fetched_resources = 0
+            for row in docs:
+                resource_url = _clean_spaces(row.get("resource_url") or row.get("source_url"))
+                resource_format = _clean_spaces(row.get("resource_format")).lower()
+                if (
+                    resource_url
+                    and fetched_resources < 80
+                    and ("json" in resource_format or resource_url.lower().endswith(".json"))
+                ):
+                    try:
+                        resource_response = request_get(
+                            resource_url,
+                            timeout=25,
+                            headers={"User-Agent": "IUSENTRA-Legal-Updates/1.0"},
+                        )
+                        resource_text = ""
+                        if hasattr(resource_response, "text"):
+                            resource_text = str(resource_response.text or "")
+                        elif hasattr(resource_response, "content"):
+                            resource_text = bytes(resource_response.content or b"").decode("utf-8", errors="ignore")
+                        if resource_text:
+                            row["raw_text"] = _truncate(
+                                f"{row.get('raw_text') or ''} Contenuto JSON acquisito: {resource_text}",
+                                limit=20000,
+                            )
+                            row["body_short"] = _truncate(row.get("raw_text") or row.get("body_short") or "")
+                            row["resource_http_status"] = int(getattr(resource_response, "status_code", 200) or 0)
+                            fetched_resources += 1
+                    except Exception:
+                        row["resource_fetch_warning"] = "Risorsa JSON non raggiungibile durante questa scansione."
+                enriched_docs.append(row)
+            docs = _merge_unique_documents(enriched_docs)
+        elif _looks_like_feed(text, content_type):
             docs = _extract_feed_items(source, source["base_url"], text)
         else:
             docs = _extract_html_items(source, source["base_url"], text)
@@ -1057,6 +1209,7 @@ class LegalUpdatePipeline:
         return result
 
     def publish_auto_news(self, *, limit: int = 20) -> dict[str, Any]:
+        cleanup = self.repository.deduplicate_archive(performed_by="system")
         items = self.repository.list_review_queue(statuses=("approved", "pending"), limit=limit)
         published: list[int] = []
         skipped: list[dict[str, Any]] = []
@@ -1076,9 +1229,26 @@ class LegalUpdatePipeline:
             threshold = 0.82 if proposed_action == "NEWS_ONLY" else 0.70
             if confidence < threshold:
                 continue
-            self.publish_review(int(row["id"]), reviewer="system")
+            try:
+                self.publish_review(int(row["id"]), reviewer="system")
+            except Exception as exc:
+                skipped.append(
+                    {
+                        "id": int(row["id"]),
+                        "reason": "errore_pubblicazione",
+                        "detail": _truncate(str(exc), 180),
+                    }
+                )
+                continue
             published.append(int(row["id"]))
-        return {"count": len(published), "items": published, "skipped": skipped}
+        if published:
+            self.repository.deduplicate_archive(performed_by="system")
+        return {
+            "count": len(published),
+            "items": published,
+            "skipped": skipped,
+            "duplicates_removed": int(cleanup.get("removed") or 0),
+        }
 
     def dashboard_snapshot(self) -> dict[str, Any]:
         return self.repository.dashboard_snapshot()

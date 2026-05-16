@@ -153,8 +153,8 @@ def get_wizard_pro() -> GestioneWizardPro:
 
 def get_legal_intelligence() -> GestioneLegalIntelligence:
     return GestioneLegalIntelligence(
-        db_path=_cfg("LEGAL_INTELLIGENCE_DB"),
-        normative_db_path=_cfg("NORMATIVE_TABLES_DB"),
+        db_path=str(current_app.config.get("LEGAL_INTELLIGENCE_DB") or _cfg("LEGAL_INTELLIGENCE_DB")),
+        normative_db_path=str(current_app.config.get("NORMATIVE_TABLES_DB") or _cfg("NORMATIVE_TABLES_DB")),
     )
 
 
@@ -176,7 +176,9 @@ def get_legal_update_pipeline() -> LegalUpdatePipeline:
 
 
 def get_normative_tables() -> GestioneTabelleNormative:
-    return GestioneTabelleNormative(db_path=_cfg("NORMATIVE_TABLES_DB"))
+    return GestioneTabelleNormative(
+        db_path=str(current_app.config.get("NORMATIVE_TABLES_DB") or _cfg("NORMATIVE_TABLES_DB"))
+    )
 
 
 def get_giurisprudenza() -> GestioneGiurisprudenza:

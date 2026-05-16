@@ -25,6 +25,8 @@ Il seed iniziale include:
 - Corte costituzionale
 - Cassazione Massimario
 - Giustizia Amministrativa
+- OpenGA Giustizia Amministrativa
+- OpenGA - Calendario udienze
 - EUR-Lex
 - Agenzia delle Entrate
 - Ministero del Lavoro
@@ -94,8 +96,11 @@ Moduli principali:
 ## Note operative importanti
 
 - Le fonti HTML non vengono piu' limitate artificialmente a 40 risultati: il fetch segue anche la paginazione dei portali che espongono piu' pagine tramite query string o script lato pagina.
+- Le fonti CKAN JSON di OpenGA vengono lette come catalogo strutturato: IUSENTRA importa pacchetti, risorse e, per le risorse JSON disponibili, un estratto del contenuto utile a Lex e alla ricerca interna.
+- Il seed `dati_normattiva` punta alla pagina ufficiale Normattiva OpenData richiesta, cosi' la fonte resta governata dal canale informativo pubblico corretto.
 - La deduplica usa sia `external_id` di acquisizione sia una chiave canonica di archivio: numero/anno/autorita' per sentenze e ordinanze, tipo/numero/anno/emittente per norme e prassi, URL ufficiale e titolo/data per le news.
 - La console admin espone `Pulisci duplicati`; la stessa pulizia viene eseguita anche prima delle scansioni automatiche e manuali.
+- `Pubblica idonei` non si ferma piu' su uno slug normativo gia' presente: il repository riusa il record esistente quando lo riconosce, genera slug univoci quando serve e registra eventuali elementi saltati senza bloccare l'intero autopublish.
 - [web/blueprints/legal_updates_admin.py](/D:/legale/IUSENTRA/web/blueprints/legal_updates_admin.py)
 - [web/blueprints/legal_intelligence.py](/D:/legale/IUSENTRA/web/blueprints/legal_intelligence.py)
 
@@ -209,7 +214,6 @@ Regola di coerenza obbligatoria: nome fonte e URL devono riferirsi allo stesso e
 - ogni pubblicazione produce audit
 - le relazioni strutturate non sovrascrivono lo storico
 - la tassonomia materie e' chiusa e governata
-
 
 
 

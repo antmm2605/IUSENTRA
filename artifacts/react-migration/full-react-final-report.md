@@ -2,6 +2,24 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-16T17:40:00+02:00: registri mediazione interni 2.243.4.
+La pagina `/ricerca-legale/mediazione` non e' piu' una raccolta di collegamenti:
+porta dentro IUSENTRA Registro Organismi di Mediazione, Elenco Enti per la
+Mediazione ed Elenco Formatori per la Mediazione, con 3.035 righe acquisite dal
+portale ministeriale e classificate per sezione, stato, natura, territorio,
+codice fiscale, partita IVA, email e sito. L'alias
+`/legal-intelligence/mediazione` resta governato e canonizza sulla stessa
+esperienza.
+
+Lex legge gli stessi dati come fonte ufficiale di classe A tramite il repository
+interno condiviso. Il bridge React usa identita' per-riga, cosi' i record
+importati non vengono piu' deduplicati come semplici link ministeriali. Gate
+verdi: py_compile mirato, pytest Legal Intelligence/Lex/Update Intelligence,
+typecheck, build Vite, Docker locale no-cache, sync live 3.035 record, API
+React autenticata con 3.038 schede e Chrome CDP desktop/tablet/mobile 6/6 in
+`artifacts/react-migration/visual-2.243.4-mediazione-registry-final/visual-load-audit.md`.
+Nessun backup eseguito.
+
 Aggiornamento 2026-05-15T18:20:00+02:00: hotfix Lex chat 2.238.2.
 Il widget Lex nella shell non riversa piu' HTML di errore nella conversazione:
 le risposte non JSON/HTML vengono sostituite da un messaggio operativo breve e

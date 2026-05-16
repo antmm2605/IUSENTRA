@@ -357,9 +357,12 @@ def test_sync_registro_mediazione_elenco_popola_cache(tmp_path):
     </body></html>
     """
 
-    result = gestore.sync_registro_mediazione_elenco(
-        request_get=lambda *args, **kwargs: DummyResponse(html, url="https://mediazione.giustizia.it/ROM/ALBOORGANISMIMEDIAZIONE.ASPX"),
-    )
+    def fake_get(url, **kwargs):
+        if "ALBOORGANISMIMEDIAZIONE" in url:
+            return DummyResponse(html, url="https://mediazione.giustizia.it/ROM/ALBOORGANISMIMEDIAZIONE.ASPX")
+        return DummyResponse(b"<html><body>Info registro</body></html>", url=url)
+
+    result = gestore.sync_registro_mediazione_elenco(request_get=fake_get)
     snapshot = gestore.mediazione_registry_snapshot(city="Milano")
 
     assert result["ok"] is True
@@ -368,6 +371,91 @@ def test_sync_registro_mediazione_elenco_popola_cache(tmp_path):
     assert snapshot["filtered_rows"] == 1
     assert snapshot["rows"][0]["name"] == "Organismo Privato Demo"
     assert snapshot["data_origin"] == "live_registry"
+
+
+def test_sync_registro_mediazione_elenco_legge_gridview_ministeriale_paginata(tmp_path):
+    db_path = tmp_path / "intelligence.json"
+    normative_path = tmp_path / "tabelle_normative.json"
+    gestore = GestioneLegalIntelligence(str(db_path), normative_db_path=str(normative_path))
+
+    def page_html(page: int, row: str) -> bytes:
+        selected_1 = " selected=\"selected\"" if page == 1 else ""
+        selected_2 = " selected=\"selected\"" if page == 2 else ""
+        return f"""
+        <html><body>
+          <form id="Form2" method="post">
+            <input type="hidden" name="__VIEWSTATE" value="view-{page}" />
+            <input type="hidden" name="__EVENTVALIDATION" value="validation-{page}" />
+            <input type="hidden" name="acp_content$tot" id="acp_content_tot" value="2" />
+            <table id="acp_content_gvAlbo">
+              <tr>
+                <th></th>
+                <th>Num. Registro</th>
+                <th>Denominazione Organismo</th>
+                <th>Sito Web</th>
+                <th>e-Mail</th>
+                <th>Natura Organismo</th>
+                <th>Codice Fiscale</th>
+                <th>Partita Iva</th>
+                <th>Cancellato/Sospeso</th>
+                <th>Data Cancellazione Sospensione</th>
+              </tr>
+              {row}
+              <tr>
+                <td colspan="10">
+                  <select name="acp_content$gvAlbo$ctl13$ddlPages">
+                    <option value="1"{selected_1}>1</option>
+                    <option value="2"{selected_2}>2</option>
+                  </select>
+                </td>
+              </tr>
+            </table>
+          </form>
+        </body></html>
+        """.encode("utf-8")
+
+    row_1 = """
+      <tr>
+        <td>Sedi PDG</td><td>1</td><td>ADR Center srl</td><td>www.adrcenter.it</td>
+        <td>info@adrcenter.com</td><td>Ente Autonomo</td><td>03535970879</td><td>03535970879</td><td>No</td><td></td>
+      </tr>
+    """
+    row_2 = """
+      <tr>
+        <td>Sedi PDG</td><td>2</td><td>Organismo Sospeso</td><td>www.sospeso.test</td>
+        <td>segreteria@sospeso.test</td><td>Ente Privato</td><td>11111111111</td><td>22222222222</td><td>Si</td><td>10/05/2026</td>
+      </tr>
+    """
+
+    def fake_get(url, **kwargs):
+        if "ALBOORGANISMIMEDIAZIONE" in url:
+            return DummyResponse(page_html(1, row_1), url=url)
+        return DummyResponse(b"<html><body>Info registro</body></html>", url=url)
+
+    def fake_post(url, data=None, **kwargs):
+        assert data["__EVENTTARGET"] == "acp_content$gvAlbo$ctl13$ddlPages"
+        assert data["acp_content$gvAlbo$ctl13$ddlPages"] == "2"
+        return DummyResponse(page_html(2, row_2), url=url)
+
+    result = gestore.sync_registro_mediazione_elenco(request_get=fake_get, request_post=fake_post)
+    snapshot = gestore.mediazione_registry_snapshot(status="attivo", has_email="1")
+    lex_sources = gestore.lex_mediazione_registry_sources("ADR Center", limit=5)
+
+    assert result["ok"] is True
+    assert result["rows"] == 2
+    assert result["sources"][0]["pages_loaded"] == 2
+    assert result["expected_rows"] == 2
+    assert snapshot["filtered_rows"] == 1
+    row = snapshot["rows"][0]
+    assert row["registration_number"] == "1"
+    assert row["name"] == "ADR Center srl"
+    assert row["tax_code"] == "03535970879"
+    assert row["vat_number"] == "03535970879"
+    assert row["status"] == "attivo"
+    assert row["is_active"] is True
+    assert snapshot["stats"]["cancellati_o_sospesi"] == 1
+    assert lex_sources[0]["type"] == "registro_mediazione"
+    assert lex_sources[0]["trust_class"] == "A"
 
 
 def test_sync_normative_tables_include_registro_mediazione_snapshot(tmp_path):

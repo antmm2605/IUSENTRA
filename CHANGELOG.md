@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.243.4 - 2026-05-16
+
+- Importati in IUSENTRA i tre registri ministeriali della mediazione: Registro Organismi, Elenco Enti per la Mediazione ed Elenco Formatori per la Mediazione, con acquisizione paginata ASP.NET dal portale ufficiale, classificazione per sezione, stato, natura, territorio, CF/P.IVA, email e sito.
+- Trasformata `/ricerca-legale/mediazione` in un registro consultabile dentro l'app: filtri intuitivi, tabella compatta professionale, schede fonte con contesto completo e ricerca locale sui dati acquisiti, lasciando il link ministeriale come verifica finale.
+- Corretto il bridge React per non deduplicare le righe ministeriali solo per URL ufficiale: la pagina espone ora 3.035 record importati piu' le tre schede di accesso, non soltanto i collegamenti.
+- Reso Lex AI capace di leggere il registro mediazione interno come fonte ufficiale di classe A, includendo sezione, numero registro, identificativi fiscali, stato, territorio e contatti nelle evidenze.
+- Aggiunti OpenGA Giustizia Amministrativa e gruppo `calendario-udienze` come fonti CKAN JSON, con acquisizione dei metadati e delle risorse JSON disponibili; allineato il seed Normattiva OpenData alla pagina ufficiale indicata.
+- Corretto l'autopublish degli aggiornamenti legali: gli slug normativi duplicati non bloccano piu' `Pubblica idonei`, e gli errori puntuali vengono isolati nella lista saltati invece di fermare l'intera azione.
+
 ## 2.243.3 - 2026-05-16
 
 - Reso il backup preventivo Hetzner compatibile con dati runtime vivi: i warning non fatali di `tar` su file cambiati durante la lettura non interrompono piu' il deploy automatico, mentre errori gravi e compressione fallita restano bloccanti.

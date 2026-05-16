@@ -12,11 +12,15 @@ class _Rows:
 
 
 class _Manager:
+    def __init__(self, *, mediazione_rows=None):
+        self.mediazione_rows = list(mediazione_rows or [])
+
     def build_dashboard_snapshot(self, **kwargs):
         return {"headline": {}, "source_rows": []}
 
     def mediazione_registry_snapshot(self, **kwargs):
-        return {"rows": [], "total_rows": 0, "filtered_rows": 0, "mediazione_registry": {}}
+        rows = list(self.mediazione_rows)
+        return {"rows": rows, "total_rows": len(rows), "filtered_rows": len(rows), "mediazione_registry": {}}
 
 
 class _Repository:
@@ -44,10 +48,10 @@ class _Pipeline:
         return {"headline": {}, "sources": []}
 
 
-def _payload(repository, *, page="ricerca-legale", query=None):
+def _payload(repository, *, page="ricerca-legale", query=None, manager=None):
     pipeline = _Pipeline(repository)
     return bridge.build_react_legal_intelligence_payload(
-        get_legal_intelligence=lambda: _Manager(),
+        get_legal_intelligence=lambda: manager or _Manager(),
         get_legal_update_pipeline=lambda: pipeline,
         get_fascicoli=lambda: _Rows(),
         get_clienti=lambda: _Rows(),
@@ -194,3 +198,40 @@ def test_mediazione_espone_accessi_ufficiali_ripristinati():
         record["id"] == "mediazione-elenco-formatori"
         for record in search_payload["records"]
     )
+
+
+def test_mediazione_importata_non_viene_deduplicata_come_solo_link():
+    official_url = "https://mediazione.giustizia.it/ROM/ALBOORGANISMIMEDIAZIONE.ASPX"
+    manager = _Manager(
+        mediazione_rows=[
+            {
+                "registration_number": "42",
+                "registry_kind": "organismo",
+                "registry_section": "Organismi di mediazione",
+                "name": "ADR Roma",
+                "type": "Organismo privato",
+                "city": "Roma",
+                "province": "RM",
+                "tax_code": "ABCDEF12G34H501Z",
+                "email": "segreteria@example.it",
+                "status": "attivo",
+                "official": True,
+                "source": "ministero",
+                "official_registry_url": official_url,
+            }
+        ]
+    )
+
+    mediazione_payload = _payload(_Repository(), page="mediazione", manager=manager)
+    ricerca_payload = _payload(_Repository(), page="ricerca-legale", query={"q": "ABCDEF12G34H501Z"}, manager=manager)
+
+    mediazione_ids = {record["id"] for record in mediazione_payload["records"]}
+    assert "mediazione-registro-organismi" in mediazione_ids
+    assert "registro-mediazione-organismo-42" in mediazione_ids
+
+    imported = next(record for record in mediazione_payload["records"] if record["id"] == "registro-mediazione-organismo-42")
+    assert imported["sourceHref"] == official_url
+    assert imported["sourceKind"] == "fonte ufficiale"
+    assert imported["taxCode"] == "ABCDEF12G34H501Z"
+    assert imported["email"] == "segreteria@example.it"
+    assert any(record["id"] == "registro-mediazione-organismo-42" for record in ricerca_payload["records"])

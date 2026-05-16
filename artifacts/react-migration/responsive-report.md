@@ -22,6 +22,7 @@ Route full/partial principali: amministrazione, studio, backup, sito studio, fat
 - 2026-05-15: rifinitura 2.236.5 verificata con Chrome CDP su 46 route desktop/mobile e retry mirato `/soggetti/nuovo` mobile. La barra Ricerca Studio usa font-size stabile, hint non tecnico e nasconde il suggerimento compatto su mobile; nessun overflow orizzontale o avviso residuo sulle rotte passate.
 - 2026-05-15: `/sito-studio/builder` 2.239.1 verificato con Chrome CDP desktop 1600x1000, tablet e mobile. Desktop: pannello sinistro 380px, barra icone 92px, preview 1121px e resize a 480px senza overflow. Tablet/mobile: preview mantiene menu integrato e navigazione visibile, il pannello degrada senza maniglia e la pagina resta senza sovrapposizioni.
 - 2026-05-16: `/legal-intelligence`, `/legal-intelligence/mediazione`, `/ricerca-legale` e `/ricerca-legale?q=mediazione` 2.239.3 verificati con Chrome CDP desktop/mobile. La scheda contesto laterale diventa blocco non sticky sotto 1180px, filtri e ricerche guidate collassano a colonna singola, nessun overflow orizzontale.
+- 2026-05-16: `/ricerca-legale/mediazione` e `/legal-intelligence/mediazione` 2.243.4 verificati con Chrome CDP desktop 1440x980, tablet 834x1112 e mobile 390x844. La tabella registro resta contenuta nel wrapper, i 5 filtri degradano a colonna singola, 80 righe visibili e nessun overflow orizzontale.
 
 ## Rischi residui
 

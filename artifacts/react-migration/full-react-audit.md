@@ -2,6 +2,15 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-16T17:40:00+02:00: registri mediazione interni 2.243.4.
+`/ricerca-legale/mediazione` e `/legal-intelligence/mediazione` sono confermate
+come superfici React operative: la pagina espone 3.035 record ministeriali
+importati, non una lista di link. Il contratto anti-mascheramento e' rafforzato
+dal test che impedisce la deduplica delle righe per URL ufficiale; la verifica
+API autenticata restituisce 3.038 schede totali. Browser Chrome CDP su
+desktop/tablet/mobile: 6/6 OK, zero form POST HTML, zero overflow e zero testo
+tecnico vietato.
+
 Aggiornamento 2026-05-15T14:30:00+02:00: hotfix cartella cliente 2.237.5.
 Audit anti-mascheramento esteso alla rotta `/clienti/<id>/cartella`: il
 manifest la dichiara full React, i gate rifiutano regressioni a fallback

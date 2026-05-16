@@ -22,6 +22,8 @@ locale e audit Chrome CDP desktop/mobile su `/legal-intelligence`,
 `/legal-intelligence/mediazione`, `/ricerca-legale` e
 `/ricerca-legale?q=mediazione`. Report visuale:
 `artifacts/react-migration/visual-2.239.3-legal-intelligence-context/visual-load-audit.md`.
+Deploy Hetzner CPX42 eseguito senza backup con server sul commit pushato,
+container applicativi healthy e `/api/pronto` pubblico `2.239.3`.
 
 ## Tranche superadmin operativo - 2026-05-15 - 2.239.0
 

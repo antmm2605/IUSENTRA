@@ -449,3 +449,5 @@ Verifica visuale finale: Chrome CDP autenticato desktop/mobile su
 `/ricerca-legale?q=mediazione`, 8/8 controlli OK senza overflow, redirect login,
 console error o testo tecnico visibile. Report:
 `artifacts/react-migration/visual-2.239.3-legal-intelligence-context/visual-load-audit.md`.
+Deploy Hetzner CPX42 verificato sul commit pushato: cron backup non aggiornato,
+container healthy e `/api/pronto` pubblico pronto su `2.239.3`.

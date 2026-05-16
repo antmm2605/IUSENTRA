@@ -798,3 +798,5 @@ Legal Intelligence 4/4, compileall, packaging/readiness, build Vite 2.239.3,
 Docker locale no-cache e Chrome CDP autenticato desktop/mobile sulle quattro
 route Legal Intelligence. Report visuale:
 `artifacts/react-migration/visual-2.239.3-legal-intelligence-context/visual-load-audit.md`.
+Deploy Hetzner CPX42 completato senza backup con server sul commit pushato,
+container applicativi healthy e readiness pubblica `2.239.3`.

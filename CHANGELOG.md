@@ -6,6 +6,7 @@
 - Ogni record fonte porta dentro IUSENTRA estratto, contesto, uso pratico, attendibilita' e ricerca collegata; la fonte originale resta azione di controllo finale, non contenuto principale.
 - Ridisegnata la UI con percorso operativo, ricerca guidata, mappa del contesto, scheda laterale/sticky e card risultati orientate all'avvocato, senza dati demo o testi tecnici visibili.
 - Aggiunti guardrail React e test backend per impedire regressioni verso pagine solo a collegamenti; verificati typecheck, test frontend, build, pytest mirati, Docker locale no-cache e audit Chrome CDP desktop/mobile.
+- Deploy Hetzner CPX42 eseguito senza backup su `2.239.3`: container applicativi healthy e `/api/pronto` pubblico pronto.
 
 ## 2.239.2 - 2026-05-16
 

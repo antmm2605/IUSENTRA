@@ -1713,6 +1713,7 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `python tools\sync_packaging_files.py --check`; `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py -q --tb=short` | OK | Packaging sincronizzato e readiness release 8/8 dopo bump `2.239.3`. |
 | `docker compose build --no-cache app scheduler-worker ocr-worker`; `docker compose up -d --no-build --force-recreate redis app scheduler-worker ocr-worker nginx`; verifiche locali | OK | Docker locale no-cache `2.239.3`: app, scheduler, OCR e Redis healthy; `/api/pronto` locale 200 con `versione=2.239.3`; container app e pacchetto `pct-studio-legale` su `2.239.3`. |
 | Chrome CDP autenticato, report `artifacts/react-migration/visual-2.239.3-legal-intelligence-context/visual-load-audit.md` | OK | 8/8 controlli desktop/mobile su `/legal-intelligence`, `/legal-intelligence/mediazione`, `/ricerca-legale` e `/ricerca-legale?q=mediazione`: nessun overflow, testo tecnico, form POST HTML, console error o redirect login. |
+| Deploy Hetzner CPX42 con `IUSENTRA_SKIP_BACKUP_CRON=1 BRANCH=Codex/legal-electronic-filing-kIxcV bash deploy/hetzner/deploy.sh`; verifiche post-deploy | OK | Server sul commit pushato, cron backup non aggiornato; app, scheduler, OCR, Redis e Ollama healthy; `/api/pronto` pubblico 200 con `versione=2.239.3`; pacchetto container `pct-studio-legale 2.239.3`. |
 
 ## Sblocco Legal Skills default-on 2.238.1 - 2026-05-15
 

@@ -25,6 +25,33 @@ Regole:
 - Il push su `Codex/legal-electronic-filing-kIxcV` va tentato sempre dopo; se restituisce 403 non bloccarsi
 - Il branch `claude/` è la fonte di verità e viene sincronizzato esternamente su `Codex/`
 
+## Deploy Hetzner automatico — REGOLA OBBLIGATORIA
+
+**Ogni push sui branch ammessi (`claude/legal-electronic-filing-kIxcV` o `Codex/legal-electronic-filing-kIxcV`) deve produrre un deploy su Hetzner CPX42. Il task non e' chiuso finche' il deploy non e' completato con esito verde.**
+
+Il workflow `.github/workflows/deploy-hetzner.yml` parte automaticamente ad ogni push sui due branch ammessi e si occupa di:
+- backup preventivo di `/opt/iusentra/data`
+- `git fetch + checkout` del commit pushato sul server Hetzner
+- rebuild Docker (`--no-cache`) e restart dello stack
+- verifiche `docker compose ps`, `curl /api/pronto`, `curl /legal-intelligence/`, `curl /legal-intelligence/ricerca`, `curl /ricerca-legale`
+- skip automatico se il commit e' gia deployato (no-op idempotente)
+
+Sequenza completa dopo ogni modifica (commit + push + verifica deploy):
+
+1. Esegui la sequenza commit/push standard sopra.
+2. Subito dopo il push, verifica la run del workflow:
+   - apri https://github.com/antmm2605/iusentra/actions/workflows/deploy-hetzner.yml
+   - identifica la run sull'ultimo commit
+   - attendi l'esito (5-15 min): deve essere verde
+3. Se il workflow fallisce, segnalalo all'utente con: step fallito, riga di errore, fix proposto. Non considerare il task chiuso.
+4. Se Github Actions non puo' essere raggiunto (rete bloccata o token mancanti), segnalalo all'utente nel messaggio finale e proponi il fallback manuale (sequenza `ssh root@116.203.45.57 + bash deploy/hetzner/deploy.sh`).
+
+Casi di mancato deploy automatico previsti dal workflow (non sono fallimenti):
+- Commit gia deployato (es. push gemello claude/ → Codex/ subito dopo): lo step "Controlla commit gia deployato" salta backup e rebuild, il job termina in verde.
+- Branch non ammesso: il workflow non si triggera per design.
+
+Non eseguire MAI `bash deploy/hetzner/deploy.sh` o `git push` aggirando il workflow tranne nel fallback esplicito sopra: la pipeline GitHub Actions e' l'unico canale governato di deploy.
+
 ## Igiene repository — Regola obbligatoria
 
 - Sulla macchina locale deve esistere **una sola copia attiva del progetto**: `D:\legale\IUSENTRA`.

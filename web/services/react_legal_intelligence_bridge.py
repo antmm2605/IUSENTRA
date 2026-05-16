@@ -24,6 +24,29 @@ _PST_MEDIAZIONE_RECOVERY_TITLE = (
     "Ripristinati Registro Organismi di Mediazione, Elenco Enti per la Mediazione "
     "e Elenco Formatori per la Mediazione"
 )
+_MEDIAZIONE_OFFICIAL_REGISTRY_RECORDS: tuple[dict[str, str], ...] = (
+    {
+        "id": "mediazione-registro-organismi",
+        "title": "Registro Organismi di Mediazione",
+        "subtitle": "Consultazione ministeriale degli organismi abilitati alla mediazione civile e commerciale.",
+        "sourceHref": "https://mediazione.giustizia.it/ROM/ALBOORGANISMIMEDIAZIONE.ASPX",
+        "branch": "Organismi di mediazione",
+    },
+    {
+        "id": "mediazione-elenco-enti",
+        "title": "Elenco Enti per la Mediazione",
+        "subtitle": "Consultazione ministeriale degli enti accreditati per la formazione in materia di mediazione.",
+        "sourceHref": "https://mediazione.giustizia.it/ROM/AlboEntiFormazione.aspx",
+        "branch": "Enti per la mediazione",
+    },
+    {
+        "id": "mediazione-elenco-formatori",
+        "title": "Elenco Formatori per la Mediazione",
+        "subtitle": "Consultazione ministeriale dei formatori collegati agli enti accreditati per la mediazione.",
+        "sourceHref": "https://mediazione.giustizia.it/ROM/AlboFormatori.aspx",
+        "branch": "Formatori per la mediazione",
+    },
+)
 
 
 def _iso_now() -> str:
@@ -331,6 +354,34 @@ def _pst_mediazione_recovery_news_record() -> dict[str, Any]:
     }
 
 
+def _mediazione_official_registry_records() -> list[dict[str, Any]]:
+    records: list[dict[str, Any]] = []
+    for item in _MEDIAZIONE_OFFICIAL_REGISTRY_RECORDS:
+        records.append(
+            {
+                "id": item["id"],
+                "kind": "mediazione",
+                "title": item["title"],
+                "subtitle": item["subtitle"],
+                "sourceLabel": "Ministero della Giustizia",
+                "sourceKind": "fonte ufficiale",
+                "sourceHref": item["sourceHref"],
+                "date": "22/04/2026",
+                "area": "Mediazione civile e commerciale",
+                "branch": item["branch"],
+                "approvalLabel": "ripristinato",
+                "approvalTone": "success",
+                "stateLabel": "consultabile",
+                "stateTone": "success",
+                "territory": "Italia",
+                "registryNumber": "",
+                "legacyHref": f"/legal-intelligence/mediazione?scheda={item['id']}",
+                "evidenceType": "accesso ufficiale",
+            }
+        )
+    return records
+
+
 def _with_pst_recovery_news(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
     pst_record = _pst_mediazione_recovery_news_record()
     for record in records:
@@ -549,6 +600,7 @@ def build_react_legal_intelligence_payload(
         for index, row in enumerate(_list(mediazione.get("rows")), start=1)
         if isinstance(row, dict)
     ]
+    mediazione_official_records = _mediazione_official_registry_records()
     matters = _matters(pipeline, warnings)
     source_items = _source_items(snapshot, update_snapshot)
     search_query = _search_query(query)
@@ -559,16 +611,20 @@ def build_react_legal_intelligence_payload(
         records = news_records
         legacy_contract = "artifacts/react-migration/legacy-contracts/legal-intelligence__news.json"
     elif page == "mediazione":
-        records = mediazione_records
+        records = _dedupe_records(mediazione_official_records + mediazione_records)
         legacy_contract = "artifacts/react-migration/legacy-contracts/legal-intelligence__mediazione.json"
     elif page == "ricerca-legale":
-        local_matches = [record for record in news_records + mediazione_records if _matches_query(record, search_query)]
+        local_matches = [
+            record
+            for record in news_records + mediazione_official_records + mediazione_records
+            if _matches_query(record, search_query)
+        ]
         search_records = _search_repository_records(pipeline, warnings, search_query)
         combined_search = _dedupe_records(search_records + local_matches)
         if _needs_public_fallback(combined_search, search_query):
             public_records, official_search_attempted = _public_search_records(search_query, warnings)
             combined_search = _dedupe_records(combined_search + public_records, limit=24)
-        records = combined_search if search_query else _dedupe_records(news_records + mediazione_records)
+        records = combined_search if search_query else _dedupe_records(news_records + mediazione_official_records + mediazione_records)
         if search_query and not records:
             warnings.append(
                 _warning(
@@ -578,7 +634,7 @@ def build_react_legal_intelligence_payload(
             )
         legacy_contract = "artifacts/react-migration/legacy-contracts/ricerca-legale.json"
     else:
-        records = news_records[:8] + mediazione_records[:8]
+        records = news_records[:8] + mediazione_official_records[:3] + mediazione_records[:5]
         legacy_contract = "artifacts/react-migration/legacy-contracts/legal-intelligence.json"
 
     search_section = _section(

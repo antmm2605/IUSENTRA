@@ -221,6 +221,12 @@ Questo file e' la coda di lavoro. Prima di rilanciare test gia' passati, control
 | Selezione pytest intermedia | Due comandi con nomi test storici non piu' esistenti | Risolto senza failure prodotto | I nomi `test_lex_legal_updates_repository_search_usa_sql_e_fonti_ufficiali`, `test_tutte_le_rotte_full_react_non_escluse_dal_gate` e `test_react_routes_nav_e_api_operativi` non esistono nel file corrente. | Rilanciati gli shard equivalenti reali: `test_legal_update_repository_espone_evidenze_lex_da_sql`, `test_react_migration_matrice_completa_route_api_e_card_operative` e `test_react_route_gate_copre_rotte_profonde_e_preserva_contratti_operativi`, tutti verdi. |
 | Playwright mobile | Primo selettore testuale ambiguo su `Ricerca Legale` | Risolto | La label esiste anche nella sidebar nascosta mobile, quindi il primo `wait_for_selector` ha atteso un elemento non visibile. | Retry con selettore `h1:has-text("Ricerca Legale")` passato; desktop e mobile registrati in `visual-2.238.0-ricerca-legale`. |
 
+## Note Registri Mediazione 2.239.2 - 2026-05-16
+
+| Area | Gate | Stato | Nota | Azione |
+| --- | --- | --- | --- | --- |
+| `/legal-intelligence/mediazione` accessi ufficiali | Pytest mirato e compileall registrati in `pytest-confirmed-ok.md` | Nessuna issue aperta nuova | La pagina Mediazione espone Registro Organismi di Mediazione, Elenco Enti per la Mediazione ed Elenco Formatori per la Mediazione come tre schede ufficiali distinte; la Ricerca Legale li trova senza avviare fallback web. | Per modifiche future rilanciare `tests/test_react_legal_intelligence_search.py` e verificare visivamente `/legal-intelligence/mediazione` se si tocca `LegalIntelligencePage` o il CSS. |
+
 ## Note Legal Skills default-on 2.238.1 - 2026-05-15
 
 | Area | Gate | Stato | Nota | Azione |

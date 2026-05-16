@@ -1691,6 +1691,14 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | `git restore -- data/auth/audit.json data/auth/utenti.json data/tenant_user_directory.json` | OK | Ripuliti solo artefatti runtime prodotti da login/impersonazione e Docker locale; lasciati intatti i file `data/` gia' sporchi prima della tranche. |
 | Deploy Hetzner CPX42 con `IUSENTRA_SKIP_BACKUP_CRON=1 BRANCH=Codex/legal-electronic-filing-kIxcV bash deploy/hetzner/deploy.sh`; verifiche post-deploy | OK | Server sul branch pushato, `/api/pronto` pubblico 200 con `versione=2.238.0`, container app/scheduler/OCR/Redis/Ollama healthy e cron backup non aggiornato. |
 
+## Registri Mediazione ufficiali 2.239.2 - 2026-05-16
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest tests/test_react_legal_intelligence_search.py -q --tb=short` | OK | 4/4 passati: ricerca reale, fallback ufficiale governato, news PST `NWS4865` e tre accessi ufficiali Mediazione esposti in `/legal-intelligence/mediazione` e `/ricerca-legale`. |
+| `python -m compileall pct web -q` | OK | Sintassi Python confermata dopo aggiornamento bridge Legal Intelligence e bump `2.239.2`. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest tests/test_packaging_consistency.py tests/test_release_readiness.py -q --tb=short` | OK | Packaging sincronizzato e readiness release 8/8 dopo bump `2.239.2`. |
+
 ## Sblocco Legal Skills default-on 2.238.1 - 2026-05-15
 
 | Comando / verifica | Esito | Nota |

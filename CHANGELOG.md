@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.239.2 - 2026-05-16
+
+- Integrati nella scheda React `Registro Mediazione` e nella Ricerca Legale i tre accessi ufficiali ripristinati dal 22/04/2026: Registro Organismi di Mediazione, Elenco Enti per la Mediazione ed Elenco Formatori per la Mediazione.
+- Le schede puntano ai rispettivi servizi ministeriali `mediazione.giustizia.it`, restano marcate come fonte ufficiale e conservano la news PST `NWS4865` come evidenza del ripristino.
+- Aggiunto test di regressione per impedire che la pagina Mediazione torni a mostrare solo la news senza gli accessi ufficiali distinti.
+
 ## 2.239.1 - 2026-05-15
 
 - Ricostruito `/sito-studio/builder` come Builder Pro in Versione B: barra superiore scura, pannello sinistro stretto da 380px con tab verticali e anteprima live grande sempre prioritaria, in linea con il riferimento grafico fornito.

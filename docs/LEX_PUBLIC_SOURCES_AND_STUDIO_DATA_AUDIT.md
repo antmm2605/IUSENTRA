@@ -4,6 +4,12 @@ Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle
 
 ---
 
+## Aggiornamento operativo 2.239.2 - 2026-05-16
+
+La pagina React `Registro Mediazione` non dipende piu' dalla sola notizia di ripristino: espone tre schede di accesso ufficiale separate verso Registro Organismi di Mediazione, Elenco Enti per la Mediazione ed Elenco Formatori per la Mediazione. Le schede sono disponibili anche nella Ricerca Legale per query su mediazione, enti e formatori, senza leggere dati privati dello studio e senza avviare una ricerca esterna.
+
+---
+
 ## Aggiornamento operativo 2.238.2 - 2026-05-15
 
 Le richieste Lex su sentenze specifiche con numero e date multiple, ad esempio `Sentenza n. 14575 ud. 15/04/2026 - deposito del 21/04/2026`, non cadono piu' sul metadata `SourceScope.reason`: il campo e' compatibile con i payload debug e il workflow `giurisprudenza_specifica` continua a produrre risposta governata.

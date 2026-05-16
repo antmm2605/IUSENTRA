@@ -2253,3 +2253,10 @@ python -m pytest tests/test_react_shell.py tests/test_email_client.py tests/test
 - Il pannello e' ridimensionabile, il caricamento media assegna l'immagine al blocco selezionato, i colori secondario/accento incidono sul rendering e font/dimensioni/effetti sono persistiti nel tema pubblico.
 - I testi del builder supportano corsivo, sottolineato, apice, pedice e allineamento sinistra/centro/destra/giustificato con sanitizzazione server-side dei soli tag ammessi.
 - Verifiche registrate: typecheck, build, test frontend, pytest builder/assets, Ruff mirato, gate React, packaging/readiness, Docker locale no-cache, readiness locale e audit CDP `visual-2.239.1-sito-studio-builder`.
+
+## Aggiornamento 2026-05-16: Registri Mediazione ufficiali 2.239.2
+
+- `/legal-intelligence/mediazione` espone tre schede operative distinte per Registro Organismi di Mediazione, Elenco Enti per la Mediazione ed Elenco Formatori per la Mediazione, con link ministeriali `mediazione.giustizia.it` e stato `ripristinato` dal 22/04/2026.
+- `/ricerca-legale` include gli stessi accessi ufficiali tra le evidenze locali governate quando la query riguarda mediazione, enti o formatori, senza fetch esterno e senza dati privati di studio.
+- La news PST `NWS4865` resta disponibile come evidenza del ripristino, mentre la pagina Mediazione non dipende piu' da una sola scheda-notizia.
+- Verifiche registrate: `python -m pytest tests/test_react_legal_intelligence_search.py -q --tb=short`, `python -m compileall pct web -q`, packaging sync e readiness release.

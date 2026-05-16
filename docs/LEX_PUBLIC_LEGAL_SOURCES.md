@@ -4,6 +4,10 @@ Guida tecnica al comportamento di Lex nella ricerca di fonti legali pubbliche: n
 
 ---
 
+## Aggiornamento operativo 2.239.2 - 2026-05-16
+
+La superficie React `/legal-intelligence/mediazione` espone ora anche i tre accessi ufficiali distinti ripristinati dal 22/04/2026: Registro Organismi di Mediazione, Elenco Enti per la Mediazione ed Elenco Formatori per la Mediazione. Le schede sono fonti ufficiali ministeriali e vengono incluse anche in `/ricerca-legale` quando la query riguarda mediazione, enti o formatori.
+
 ## Aggiornamento operativo 2.238.0 - 2026-05-15
 
 `/ricerca-legale` e' ora una ricerca reale: il frontend invia la query a `/api/v1/ui/ricerca-legale`, il backend interroga il `legal_updates.db` condiviso da tutti gli studi e, se le evidenze non bastano, attiva il gateway su domini ufficiali allowlisted. I risultati devono includere estratto o contesto fonte quando disponibile.

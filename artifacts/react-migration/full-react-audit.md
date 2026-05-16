@@ -414,3 +414,16 @@ riceve font, dimensioni, colori, layout ed effetti dal tema salvato; i soli tag
 rich text ammessi sono filtrati dal backend. L'audit CDP conferma footer live,
 menu tablet/mobile, resize pannello, effetti, font, colori, toolbar testo e
 allineamenti funzionanti.
+
+## Aggiornamento 2.239.2 - 2026-05-16
+
+`/legal-intelligence/mediazione` resta React full e ora mostra accessi ufficiali
+distinti per Registro Organismi di Mediazione, Elenco Enti per la Mediazione ed
+Elenco Formatori per la Mediazione. I record sono generati dal bridge backend,
+puntano ai servizi ministeriali `mediazione.giustizia.it`, sono marcati come
+fonte ufficiale e vengono riusati da `/ricerca-legale` come evidenze locali
+governate.
+
+Controlli anti-mascheramento: nessun dato demo, nessun fetch esterno forzato,
+nessuna CTA `_legacy=1` e nessun termine tecnico visibile introdotto. Test
+mirato `tests/test_react_legal_intelligence_search.py` verde con 4/4 casi.

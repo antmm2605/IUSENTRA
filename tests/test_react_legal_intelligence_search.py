@@ -139,9 +139,9 @@ def test_ricerca_legale_attiva_fonti_ufficiali_quando_archivio_non_basta(monkeyp
     monkeypatch.setattr(bridge, "_run_public_legal_research", _public_search)
     repository = _Repository()
 
-    payload = _payload(repository, query={"q": "registro organismi mediazione"})
+    payload = _payload(repository, query={"q": "usura bancaria tasso soglia"})
 
-    assert repository.search_queries == [("registro organismi mediazione", 12)]
+    assert repository.search_queries == [("usura bancaria tasso soglia", 12)]
     assert payload["contracts"]["external_fetch"] is True
     assert any(record["title"] == "Registro organismi di mediazione" for record in payload["records"])
     assert any(record["sourceKind"] == "fonte ufficiale" for record in payload["records"])
@@ -162,3 +162,29 @@ def test_news_pst_mediazione_ripristinata_presente_in_news_e_ricerca():
         assert pst_record["registryNumber"] == "NWS4865"
         assert "22/04/2026" in pst_record["subtitle"]
         assert pst_record["sourceHref"] == bridge._PST_MEDIAZIONE_RECOVERY_URL
+
+
+def test_mediazione_espone_accessi_ufficiali_ripristinati():
+    repository = _Repository()
+
+    mediazione_payload = _payload(repository, page="mediazione")
+    search_payload = _payload(repository, page="ricerca-legale", query={"q": "elenco formatori mediazione"})
+
+    records_by_id = {record["id"]: record for record in mediazione_payload["records"]}
+    expected_links = {
+        "mediazione-registro-organismi": "https://mediazione.giustizia.it/ROM/ALBOORGANISMIMEDIAZIONE.ASPX",
+        "mediazione-elenco-enti": "https://mediazione.giustizia.it/ROM/AlboEntiFormazione.aspx",
+        "mediazione-elenco-formatori": "https://mediazione.giustizia.it/ROM/AlboFormatori.aspx",
+    }
+    for record_id, official_url in expected_links.items():
+        record = records_by_id[record_id]
+        assert record["sourceKind"] == "fonte ufficiale"
+        assert record["sourceHref"] == official_url
+        assert record["date"] == "22/04/2026"
+        assert record["approvalLabel"] == "ripristinato"
+        assert record["evidenceType"] == "accesso ufficiale"
+
+    assert any(
+        record["id"] == "mediazione-elenco-formatori"
+        for record in search_payload["records"]
+    )

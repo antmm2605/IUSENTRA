@@ -6,6 +6,12 @@
 
 ---
 
+## Aggiornamento operativo 2.239.2 - 2026-05-16
+
+Il bridge React di Ricerca Legale aggiunge alle evidenze governate i tre accessi ufficiali su `mediazione.giustizia.it`: Registro Organismi di Mediazione, Elenco Enti per la Mediazione ed Elenco Formatori per la Mediazione. La ricerca locale li tratta come fonti ufficiali stabili e non richiede fetch esterno per mostrarli.
+
+---
+
 ## Aggiornamento operativo 2.238.0 - 2026-05-15
 
 La pagina React `/ricerca-legale` usa ora lo stesso principio del gateway Lex: la query viene inviata al backend, cercata prima nell'archivio giuridico condiviso `legal_updates.db` e poi, quando le fonti interne non sono sufficienti, inoltrata al Public Legal Research Gateway dopo riscrittura privacy-safe.

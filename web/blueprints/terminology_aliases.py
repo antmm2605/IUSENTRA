@@ -60,7 +60,7 @@ def ricerca_studio():
 
 @terminology_aliases.get("/ricerca-legale")
 def ricerca_legale():
-    return _redirect_path("/legal-intelligence/")
+    return _redirect_path("/legal-intelligence/ricerca")
 
 
 @terminology_aliases.get("/strumenti-operativi")

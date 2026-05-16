@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from datetime import date
+import io
+from datetime import date, datetime
 from functools import wraps
 from pathlib import Path
 
-from flask import Blueprint, current_app, flash, g, jsonify, redirect, render_template, request, url_for
+from flask import Blueprint, current_app, flash, g, jsonify, redirect, render_template, request, send_file, url_for
 
 from legal_intelligence.engine import LegalIntelligenceDailyEngine
 from pct.portale import GestionePortale
@@ -87,14 +88,26 @@ def _daily_snapshot() -> dict:
         return {"last_run": None, "sources": [], "updates": [], "counts": {}, "error": str(exc)}
 
 
+def _ultime_news(limit: int = 6):
+    try:
+        return get_legal_update_pipeline().repository.list_news(limit=limit)
+    except Exception:
+        current_app.logger.exception("Errore lettura news per dashboard Legal Intelligence")
+        return []
+
+
 @legal_intelligence.route("/", methods=["GET"])
 @_richiedi_login
 def index():
+    snapshot = _snapshot()
+    daily = _daily_snapshot()
     return render_template(
         "legal_intelligence/index.html",
-        snapshot=_snapshot(),
+        snapshot=snapshot,
         updates_snapshot=get_legal_update_pipeline().dashboard_snapshot(),
-        daily_snapshot=_daily_snapshot(),
+        daily_snapshot=daily,
+        ultime_news=_ultime_news(limit=6),
+        active_tab=request.args.get("tab", "panoramica"),
         oggi=date.today(),
     )
 
@@ -330,3 +343,93 @@ def api_news():
     except Exception as exc:
         current_app.logger.exception("Errore legal_intelligence.api_news: %s", exc)
         return jsonify({"ok": False, "errore": str(exc)}), 200
+
+
+@legal_intelligence.route("/fonte/<string:source_id>", methods=["GET"])
+@_richiedi_login
+def scheda_fonte(source_id: str):
+    snapshot = _snapshot()
+    fonte_row = next((row for row in snapshot.get("source_rows", []) if row.get("id") == source_id), None)
+    if not fonte_row:
+        flash("Fonte non trovata nel registro Legal Intelligence.", "warning")
+        return redirect(url_for("legal_intelligence.index", tab="fonti"))
+    snapshot_card = None
+    try:
+        snapshot_card = _daily_engine().get_source_card(source_id)
+    except Exception:
+        current_app.logger.exception("Errore caricamento scheda fonte %s", source_id)
+    return render_template(
+        "legal_intelligence/fonte_dettaglio.html",
+        fonte=fonte_row,
+        card=snapshot_card or {},
+        oggi=date.today(),
+    )
+
+
+@legal_intelligence.route("/fonte/<string:source_id>/scarica", methods=["GET"])
+@_richiedi_login
+def scarica_fonte(source_id: str):
+    try:
+        latest = _daily_engine().latest_snapshot(source_id)
+    except Exception as exc:
+        current_app.logger.exception("Errore download fonte %s: %s", source_id, exc)
+        flash(f"Impossibile recuperare lo snapshot archiviato: {exc}", "warning")
+        return redirect(url_for("legal_intelligence.scheda_fonte", source_id=source_id))
+    if not latest or not latest.get("normalized_text"):
+        flash(
+            "Non e ancora disponibile uno snapshot archiviato per questa fonte. "
+            "Esegui prima un controllo giornaliero dalla sezione Fonti.",
+            "info",
+        )
+        return redirect(url_for("legal_intelligence.scheda_fonte", source_id=source_id))
+    fetched = latest.get("fetched_at") or datetime.utcnow().isoformat()
+    safe_id = "".join(c if c.isalnum() or c in ("-", "_") else "_" for c in source_id)
+    safe_when = fetched.replace(":", "").replace("T", "_").split(".")[0]
+    filename = f"fonte_{safe_id}_{safe_when}.txt"
+    header_lines = [
+        f"Fonte: {source_id}",
+        f"URL: {latest.get('url') or ''}",
+        f"Hash SHA-256: {latest.get('content_sha256') or ''}",
+        f"Scaricata il: {fetched}",
+        f"ETag: {latest.get('etag') or '-'}",
+        f"Last-Modified: {latest.get('last_modified') or '-'}",
+        "-" * 80,
+        "",
+    ]
+    body = "\n".join(header_lines) + (latest.get("normalized_text") or "")
+    buffer = io.BytesIO(body.encode("utf-8"))
+    buffer.seek(0)
+    return send_file(
+        buffer,
+        mimetype="text/plain; charset=utf-8",
+        as_attachment=True,
+        download_name=filename,
+    )
+
+
+@legal_intelligence.route("/ricerca", methods=["GET"])
+@_richiedi_login
+def ricerca_unificata():
+    from web.services.legal_intelligence_research import build_unified_search
+
+    query = (request.args.get("q") or "").strip()
+    snapshot = _snapshot()
+    pipeline = get_legal_update_pipeline()
+    news_items = pipeline.repository.list_news(limit=120) if query else []
+    mediazione_rows = snapshot.get("mediazione_registry", {}).get("rows", []) if query else []
+    daily_updates = _daily_snapshot().get("updates", []) if query else []
+    risultati = build_unified_search(
+        query=query,
+        snapshot=snapshot,
+        news_items=news_items,
+        mediazione_rows=mediazione_rows,
+        daily_updates=daily_updates,
+    )
+    if request.args.get("formato") == "json":
+        return jsonify({"ok": True, "risultati": risultati})
+    return render_template(
+        "legal_intelligence/ricerca.html",
+        risultati=risultati,
+        snapshot=snapshot,
+        oggi=date.today(),
+    )

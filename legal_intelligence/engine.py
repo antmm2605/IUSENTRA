@@ -114,3 +114,34 @@ class LegalIntelligenceDailyEngine:
 
     def get_update(self, update_id: int) -> dict | None:
         return self.store.get_update(update_id)
+
+    def get_source_card(self, source_id: str) -> dict | None:
+        source_row = self.store.get_source(source_id)
+        registered = next((source for source in self.sources if source.id == source_id), None)
+        if not source_row and not registered:
+            return None
+        snapshot = self.store.latest_snapshot(source_id)
+        history = self.store.source_snapshots(source_id, limit=10)
+        updates = self.store.source_updates(source_id, limit=8)
+        descriptor = {}
+        if registered:
+            descriptor = {
+                "id": registered.id,
+                "name": registered.name,
+                "url": registered.url,
+                "category": registered.category,
+                "official": registered.official,
+                "apply_mode": registered.apply_mode,
+                "impact_areas": list(registered.impact_areas),
+                "user_agent_note": registered.user_agent_note,
+            }
+        return {
+            "descriptor": descriptor,
+            "source": source_row or {},
+            "latest_snapshot": snapshot or {},
+            "history": history,
+            "updates": updates,
+        }
+
+    def latest_snapshot(self, source_id: str) -> dict | None:
+        return self.store.latest_snapshot(source_id)

@@ -29,7 +29,6 @@ _REACT_PREFIXES = (
     "/guida/firma-digitale",
     "/impostazioni",
     "/legal-skills",
-    "/legal-intelligence",
     "/messaggi",
     "/notifiche-legali",
     "/notifiche",
@@ -86,9 +85,6 @@ _REACT_EXACT = {
     "/impostazioni-studio",
     "/incassi-pagamenti",
     "/legal-skills",
-    "/legal-intelligence",
-    "/legal-intelligence/mediazione",
-    "/legal-intelligence/news",
     "/notifiche",
     "/notifiche-legali",
     "/notifiche-whatsapp",
@@ -101,7 +97,6 @@ _REACT_EXACT = {
     "/profili",
     "/redazione-atti",
     "/registro-attivita",
-    "/ricerca-legale",
     "/sito-studio",
     "/sito-studio/builder",
     "/sito-studio/contatti",
@@ -288,10 +283,16 @@ def _excluded(path: str) -> bool:
         return True
     if lower.startswith("/giurisprudenza/"):
         return True
-    if lower.startswith("/legal-intelligence/") and lower not in {
-        "/legal-intelligence/news",
-        "/legal-intelligence/mediazione",
-    }:
+    if (
+        lower.startswith("/legal-intelligence/")
+        and lower not in {
+            "/legal-intelligence/news",
+            "/legal-intelligence/mediazione",
+            "/legal-intelligence/ricerca",
+        }
+        and not lower.startswith("/legal-intelligence/fonte/")
+        and not lower.startswith("/legal-intelligence/news/")
+    ):
         return True
     if lower.startswith("/ricerca-legale/"):
         return True

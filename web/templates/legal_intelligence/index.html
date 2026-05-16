@@ -1,311 +1,324 @@
 {% extends "base.html" %}
-{% block title %}Motori Legali{% endblock %}
+{% block title %}Motori Legali · Ricerca legale{% endblock %}
 
 {% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-  document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function(el) {
-    new bootstrap.Tooltip(el, { trigger: 'hover focus' });
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) {
+      new bootstrap.Tooltip(el, { trigger: 'hover focus' });
+    });
+    var activeTab = {{ active_tab|tojson }};
+    if (activeTab) {
+      var trigger = document.querySelector('#li-tabs button[data-tab-key="' + activeTab + '"]');
+      if (trigger && window.bootstrap && bootstrap.Tab) {
+        bootstrap.Tab.getOrCreateInstance(trigger).show();
+      }
+    }
+    document.querySelectorAll('#li-tabs button[data-bs-toggle="pill"]').forEach(function (button) {
+      button.addEventListener('shown.bs.tab', function (event) {
+        var key = event.target.getAttribute('data-tab-key');
+        if (!key) return;
+        var url = new URL(window.location.href);
+        url.searchParams.set('tab', key);
+        window.history.replaceState({}, '', url.toString());
+      });
+    });
   });
-});
 </script>
 {% endblock %}
 
 {% block content %}
+{% set is_admin = g.utente_corrente and g.utente_corrente.is_superadmin %}
+{% set news_count = ultime_news|length %}
+{% set updates_pending = daily_snapshot.counts.pending|default(0) %}
+{% set fonti_da_rivedere = snapshot.headline.fonti_da_rivedere %}
 <div class="legal-intelligence-page">
   <div class="ds-ph">
-    <div class="ds-ph-icon"><i class="bi bi-diagram-3"></i></div>
+    <div class="ds-ph-icon"><i class="bi bi-search-heart"></i></div>
     <div class="ds-ph-body">
-      <h1 class="ds-ph-title">Motori Legali</h1>
-      <p class="ds-ph-sub">Fonti ufficiali, monitoraggio, audit e vantaggio competitivo integrati nel gestionale.</p>
+      <h1 class="ds-ph-title">Ricerca legale &amp; Motori Legali</h1>
+      <p class="ds-ph-sub">Punto unico per cercare nei contenuti ufficiali, consultare le fonti monitorate, scaricare gli snapshot archiviati e gestire gli aggiornamenti normativi.</p>
     </div>
     <div class="ds-ph-actions li-header-actions">
-      <a href="{{ url_for('giurisprudenza.index') }}" class="btn btn-outline-dark">
-        <i class="bi bi-bank2 me-2"></i>Archivio sentenze
-      </a>
-      <a href="{{ url_for('legal_intelligence.registro_mediazione') }}" class="btn btn-outline-secondary">
-        <i class="bi bi-building-check me-2"></i>Registro mediazione
-      </a>
-      <a href="{{ url_for('legal_intelligence.news') }}" class="btn btn-outline-dark">
-        <i class="bi bi-newspaper me-2"></i>News giuridiche
-      </a>
-      {% if g.utente_corrente and g.utente_corrente.is_superadmin %}
-      <a href="{{ url_for('legal_updates_admin.dashboard') }}" class="btn btn-outline-primary">
-        <i class="bi bi-shield-check me-2"></i>Apri console aggiornamenti
-      </a>
-      {% endif %}
-      <form method="post" action="{{ url_for('legal_intelligence.esegui_sync_normativo') }}">
-        <button class="btn btn-outline-primary">
-          <i class="bi bi-database-gear me-2"></i>Sincronizza tabelle
-        </button>
-      </form>
-      <form method="post" action="{{ url_for('legal_intelligence.esegui_monitor') }}">
-        <button class="btn btn-primary">
-          <i class="bi bi-arrow-repeat me-2"></i>Esegui controllo fonti
-        </button>
+      <form method="get" action="{{ url_for('legal_intelligence.ricerca_unificata') }}" class="li-search-form" role="search">
+        <div class="input-group">
+          <span class="input-group-text bg-white border-end-0"><i class="bi bi-search"></i></span>
+          <input type="search" name="q" class="form-control border-start-0" placeholder="Cerca in fonti, normativa, news, organismi…" aria-label="Ricerca legale">
+          <button class="btn btn-primary" type="submit">Cerca</button>
+        </div>
       </form>
     </div>
   </div>
 
-  <div class="li-kpi-grid">
-    <div class="li-kpi-card">
-      <div class="li-kpi-label">Motori attivi</div>
-      <div class="li-kpi-value">{{ snapshot.headline.motori_attivi }}</div>
-    </div>
-    <div class="li-kpi-card">
-      <div class="li-kpi-label">Fonti aggiornate</div>
-      <div class="li-kpi-value text-success">{{ snapshot.headline.fonti_aggiornate }}</div>
-    </div>
-    <div class="li-kpi-card">
-      <div class="li-kpi-label">Alert aperti</div>
-      <div class="li-kpi-value text-warning">{{ snapshot.headline.alert_totali }}</div>
-    </div>
-    <div class="li-kpi-card">
-      <div class="li-kpi-label">Audit recenti</div>
-      <div class="li-kpi-value text-primary">{{ snapshot.headline.audit_recenti }}</div>
-    </div>
-    <div class="li-kpi-card">
-      <div class="li-kpi-label">Tabelle normative</div>
-      <div class="li-kpi-value">{{ snapshot.headline.tabelle_normative }}</div>
-    </div>
-    <div class="li-kpi-card">
-      <div class="li-kpi-label">Da verificare</div>
-      <div class="li-kpi-value {% if snapshot.headline.tabelle_da_validare %}text-warning{% else %}text-success{% endif %}">
-        {{ snapshot.headline.tabelle_da_validare }}
-      </div>
-    </div>
-    <div class="li-kpi-card">
-      <div class="li-kpi-label">Riferimenti ufficiali</div>
-      <div class="li-kpi-value text-primary">{{ snapshot.headline.riferimenti_normativi }}</div>
-    </div>
-  </div>
+  <ul class="nav nav-pills li-tabs" id="li-tabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" id="tab-panoramica" data-bs-toggle="pill" data-bs-target="#pane-panoramica" type="button" role="tab" data-tab-key="panoramica">
+        <i class="bi bi-grid-1x2 me-1"></i>Panoramica
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="tab-fonti" data-bs-toggle="pill" data-bs-target="#pane-fonti" type="button" role="tab" data-tab-key="fonti">
+        <i class="bi bi-broadcast me-1"></i>Fonti &amp; download
+        <span class="badge text-bg-light ms-1">{{ snapshot.source_rows|length }}</span>
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="tab-aggiornamenti" data-bs-toggle="pill" data-bs-target="#pane-aggiornamenti" type="button" role="tab" data-tab-key="aggiornamenti">
+        <i class="bi bi-bell me-1"></i>Aggiornamenti
+        {% if updates_pending %}<span class="badge text-bg-warning ms-1">{{ updates_pending }}</span>{% endif %}
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="tab-normativa" data-bs-toggle="pill" data-bs-target="#pane-normativa" type="button" role="tab" data-tab-key="normativa">
+        <i class="bi bi-journal-richtext me-1"></i>Catalogo normativo
+        <span class="badge text-bg-light ms-1">{{ snapshot.normative_tables.totali }}</span>
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="tab-audit" data-bs-toggle="pill" data-bs-target="#pane-audit" type="button" role="tab" data-tab-key="audit">
+        <i class="bi bi-shield-check me-1"></i>Audit &amp; alert
+      </button>
+    </li>
+    {% if is_admin %}
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="tab-console" data-bs-toggle="pill" data-bs-target="#pane-console" type="button" role="tab" data-tab-key="console">
+        <i class="bi bi-sliders me-1"></i>Console
+      </button>
+    </li>
+    {% endif %}
+  </ul>
 
-  <div class="li-card">
-    <div class="li-card__body">
-      <div class="li-section-head align-items-start">
-        <div>
-          <div class="li-section-title">
-            <i class="bi bi-calendar2-check me-2 text-primary"></i>Motore giornaliero fonti ufficiali
-          </div>
-          <div class="small li-muted">
-            Controllo reale con memoria, ETag/Last-Modified, hash SHA-256, diff e audit applicativo. Gli aggiornamenti normativi restano in revisione manuale.
-          </div>
-        </div>
-        <div class="d-flex flex-wrap gap-2">
-          <form method="post" action="{{ url_for('legal_intelligence.esegui_daily_sync') }}">
-            <button class="btn btn-primary">
-              <i class="bi bi-arrow-clockwise me-2"></i>Esegui controllo ora
-            </button>
-          </form>
-          <form method="post" action="{{ url_for('legal_intelligence.rigenera_indice_ai_daily') }}">
-            <button class="btn btn-outline-primary">
-              <i class="bi bi-cpu me-2"></i>Rigenera indice AI
-            </button>
-          </form>
-        </div>
-      </div>
+  <div class="tab-content li-tab-content">
 
-      {% if daily_snapshot.error %}
-      <div class="alert alert-warning mt-3 mb-0">
-        Il motore giornaliero non ha restituito lo snapshot: {{ daily_snapshot.error }}
-      </div>
-      {% endif %}
+    <!-- ====================== PANORAMICA ====================== -->
+    <div class="tab-pane fade show active" id="pane-panoramica" role="tabpanel" aria-labelledby="tab-panoramica">
 
-      <div class="li-kpi-grid mt-3">
+      <div class="li-kpi-grid">
         <div class="li-kpi-card">
-          <div class="li-kpi-label">Ultimo controllo reale</div>
-          <div class="li-kpi-value fs-6">
-            {% if daily_snapshot.last_run %}
-              {{ daily_snapshot.last_run.finished_at|fmt_dataora if daily_snapshot.last_run.finished_at else daily_snapshot.last_run.started_at|fmt_dataora }}
-            {% else %}
-              Non ancora eseguito
-            {% endif %}
-          </div>
+          <div class="li-kpi-label">Motori attivi</div>
+          <div class="li-kpi-value">{{ snapshot.headline.motori_attivi }}</div>
+          <div class="li-kpi-foot">moduli di ricerca legale</div>
         </div>
         <div class="li-kpi-card">
-          <div class="li-kpi-label">Fonti governate</div>
-          <div class="li-kpi-value">{{ daily_snapshot.counts.sources|default(0) }}</div>
+          <div class="li-kpi-label">Fonti aggiornate</div>
+          <div class="li-kpi-value text-success">{{ snapshot.headline.fonti_aggiornate }}</div>
+          <div class="li-kpi-foot">su {{ snapshot.headline.fonti_monitorate }} monitorate</div>
         </div>
         <div class="li-kpi-card">
-          <div class="li-kpi-label">Aggiornamenti rilevati</div>
-          <div class="li-kpi-value text-primary">{{ daily_snapshot.counts.updates|default(0) }}</div>
+          <div class="li-kpi-label">Aggiornamenti in revisione</div>
+          <div class="li-kpi-value {% if updates_pending %}text-warning{% else %}text-success{% endif %}">{{ updates_pending }}</div>
+          <div class="li-kpi-foot">applicati: {{ daily_snapshot.counts.applied|default(0) }}</div>
         </div>
         <div class="li-kpi-card">
-          <div class="li-kpi-label">Applicati</div>
-          <div class="li-kpi-value text-success">{{ daily_snapshot.counts.applied|default(0) }}</div>
+          <div class="li-kpi-label">Alert aperti</div>
+          <div class="li-kpi-value {% if snapshot.headline.alert_totali %}text-warning{% else %}text-success{% endif %}">{{ snapshot.headline.alert_totali }}</div>
+          <div class="li-kpi-foot">tra operativi e monitoraggio</div>
         </div>
         <div class="li-kpi-card">
-          <div class="li-kpi-label">In revisione</div>
-          <div class="li-kpi-value text-warning">{{ daily_snapshot.counts.pending|default(0) }}</div>
+          <div class="li-kpi-label">Catalogo normativo</div>
+          <div class="li-kpi-value">{{ snapshot.headline.riferimenti_normativi }}</div>
+          <div class="li-kpi-foot">{{ snapshot.headline.tabelle_normative }} tabelle</div>
         </div>
         <div class="li-kpi-card">
-          <div class="li-kpi-label">Errori fonti</div>
-          <div class="li-kpi-value {% if daily_snapshot.counts.errors|default(0) %}text-danger{% else %}text-success{% endif %}">
-            {{ daily_snapshot.counts.errors|default(0) }}
-          </div>
+          <div class="li-kpi-label">Audit recenti</div>
+          <div class="li-kpi-value text-primary">{{ snapshot.headline.audit_recenti }}</div>
+          <div class="li-kpi-foot">tracce risposta AI</div>
         </div>
       </div>
 
-      <div class="row g-3 mt-1">
-        <div class="col-xl-5">
-          <div class="li-soft-card h-100">
-            <div class="fw-semibold mb-2">Fonti controllate</div>
-            <div class="li-soft-stack">
-              {% for source in daily_snapshot.sources %}
-              <div class="d-flex align-items-start justify-content-between gap-2 border-bottom pb-2 mb-2">
+      <div class="row g-3">
+        <div class="col-lg-7">
+          <div class="li-card h-100">
+            <div class="li-card__body">
+              <div class="li-section-head">
                 <div>
-                  <div class="fw-semibold small">{{ source.name }}</div>
-                  <div class="small li-muted">
-                    {{ source.category }} · {{ source.apply_mode == 'auto' and 'applicazione tecnica controllata' or 'revisione manuale' }}
-                  </div>
-                  {% if source.last_error %}
-                  <div class="small text-danger">{{ source.last_error }}</div>
-                  {% endif %}
+                  <div class="li-section-title"><i class="bi bi-newspaper me-2 text-primary"></i>Ultime news pubblicate</div>
+                  <div class="small li-muted">Output del motore di aggiornamento - sempre con fonte ufficiale e revisione manuale.</div>
                 </div>
-                <span class="badge {% if source.last_status == 'ok' %}text-bg-success{% elif source.last_status == 'errore' %}text-bg-danger{% elif source.last_status == 'invariata' %}text-bg-info{% else %}text-bg-secondary{% endif %}">
-                  {{ source.last_status|replace('_', ' ') }}
-                </span>
+                <a href="{{ url_for('legal_intelligence.news') }}" class="btn btn-sm btn-outline-primary">Tutte le news</a>
+              </div>
+              {% if ultime_news %}
+              <div class="li-news-stack">
+                {% for item in ultime_news %}
+                <article class="li-news-row">
+                  <div class="li-news-row__meta">
+                    <span class="badge text-bg-light">{{ item.news_type|replace('_', ' ') }}</span>
+                    {% if item.matter_name %}<span class="badge text-bg-secondary">{{ item.matter_name }}</span>{% endif %}
+                    <span class="small text-muted">{{ (item.published_at or item.created_at)|fmt_dataora if (item.published_at or item.created_at) else '-' }}</span>
+                  </div>
+                  <h3 class="h6 mb-1">
+                    <a href="{{ url_for('legal_intelligence.dettaglio_news', slug=item.slug) }}" class="text-decoration-none">{{ item.title }}</a>
+                  </h3>
+                  <p class="small text-muted mb-0">{{ item.short_summary }}</p>
+                </article>
+                {% endfor %}
               </div>
               {% else %}
-              <div class="small li-muted">Le fonti verranno inizializzate al primo controllo giornaliero.</div>
-              {% endfor %}
+              <div class="li-empty">Nessuna news pubblicata. Esegui un controllo dalla scheda Aggiornamenti per popolare il flusso.</div>
+              {% endif %}
             </div>
           </div>
         </div>
-        <div class="col-xl-7">
-          <div class="li-soft-card h-100">
-            <div class="fw-semibold mb-2">Variazioni e applicazioni</div>
-            <div class="li-soft-stack">
-              {% for update in daily_snapshot.updates %}
-              <div class="border-bottom pb-2 mb-2">
-                <div class="d-flex align-items-start justify-content-between gap-2">
-                  <div>
-                    <div class="fw-semibold">{{ update.title }}</div>
-                    <div class="small li-muted">{{ update.summary }}</div>
-                    <div class="d-flex flex-wrap gap-1 mt-1">
-                      {% for area in update.impact_areas %}
-                      <span class="badge text-bg-light">{{ area }}</span>
-                      {% endfor %}
+
+        <div class="col-lg-5">
+          <div class="li-card h-100">
+            <div class="li-card__body">
+              <div class="li-section-head">
+                <div>
+                  <div class="li-section-title"><i class="bi bi-lightning-charge me-2 text-primary"></i>Cosa puoi fare ora</div>
+                  <div class="small li-muted">Azioni rapide collegate ai dati visibili.</div>
+                </div>
+              </div>
+              <div class="li-quick-actions">
+                <form method="post" action="{{ url_for('legal_intelligence.esegui_daily_sync') }}">
+                  <button class="btn btn-primary w-100 text-start">
+                    <i class="bi bi-arrow-clockwise me-2"></i>Esegui controllo giornaliero fonti
+                  </button>
+                </form>
+                <form method="post" action="{{ url_for('legal_intelligence.esegui_sync_normativo') }}">
+                  <button class="btn btn-outline-primary w-100 text-start">
+                    <i class="bi bi-database-gear me-2"></i>Sincronizza tabelle normative
+                  </button>
+                </form>
+                <a href="{{ url_for('legal_intelligence.registro_mediazione') }}" class="btn btn-outline-secondary w-100 text-start">
+                  <i class="bi bi-building-check me-2"></i>Apri elenco organismi mediazione
+                </a>
+                <a href="{{ url_for('giurisprudenza.index') }}" class="btn btn-outline-secondary w-100 text-start">
+                  <i class="bi bi-bank2 me-2"></i>Archivio sentenze
+                </a>
+              </div>
+
+              {% if snapshot.competitive_advantages %}
+              <div class="mt-3">
+                <div class="li-section-title small mb-2"><i class="bi bi-stars me-1 text-primary"></i>Indicatori operativi</div>
+                <div class="li-soft-stack">
+                  {% for item in snapshot.competitive_advantages[:3] %}
+                  <div class="li-soft-card li-soft-card--row">
+                    <div class="li-icon-chip"><i class="bi {{ item.icon }}"></i></div>
+                    <div class="flex-grow-1">
+                      <div class="fw-semibold small">{{ item.title }}</div>
+                      <div class="small text-muted">{{ item.description }}</div>
                     </div>
+                    <div class="fw-bold">{{ item.value }}</div>
                   </div>
-                  <span class="badge {% if update.status == 'applied' %}text-bg-success{% elif update.status == 'pending_review' %}text-bg-warning{% else %}text-bg-secondary{% endif %}">
-                    {{ update.status|replace('_', ' ') }}
-                  </span>
-                </div>
-                <div class="d-flex flex-wrap gap-2 mt-2">
-                  <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('legal_intelligence.diff_daily_update', update_id=update.id) }}">
-                    <i class="bi bi-file-diff me-1"></i>Vedi diff
-                  </a>
-                  {% if update.status == 'pending_review' %}
-                  <form method="post" action="{{ url_for('legal_intelligence.approva_daily_update', update_id=update.id) }}">
-                    <button class="btn btn-sm btn-outline-success">
-                      <i class="bi bi-check2-circle me-1"></i>Approva applicazione
-                    </button>
-                  </form>
-                  {% endif %}
+                  {% endfor %}
                 </div>
               </div>
-              {% else %}
-              <div class="small li-muted">Nessuna variazione registrata. Il prossimo controllo manterra traccia di hash, diff e stato fonte.</div>
-              {% endfor %}
+              {% endif %}
             </div>
           </div>
         </div>
       </div>
-    </div>
-  </div>
 
-  <div class="li-card">
-    <div class="li-card__body d-flex flex-column flex-lg-row align-items-start align-items-lg-center justify-content-between gap-3">
-      <div>
-        <div class="li-section-title mb-1"><i class="bi bi-lightning-charge me-2 text-primary"></i>Iusentra Update Intelligence</div>
-        <div class="small li-muted">
-          Pipeline continua per acquisire fonti ufficiali, classificare normativa, giurisprudenza e prassi, proporre aggiornamenti strutturati e pubblicare news giuridiche verificabili.
-        </div>
-        <div class="small mt-2">
-          News pubblicate: <strong>{{ updates_snapshot.headline.published_news }}</strong> -
-          review pendenti: <strong>{{ updates_snapshot.headline.review_pending }}</strong> -
-          normative archiviate: <strong>{{ updates_snapshot.headline.published_normative }}</strong> -
-          sentenze archiviate: <strong>{{ updates_snapshot.headline.published_jurisprudence }}</strong> -
-          prassi archiviate: <strong>{{ updates_snapshot.headline.published_prassi }}</strong>
-        </div>
-      </div>
-      <div class="d-flex flex-wrap gap-2">
-        <a href="{{ url_for('legal_intelligence.news') }}" class="btn btn-primary">
-          <i class="bi bi-newspaper me-2"></i>Apri pagina news
-        </a>
-        {% if g.utente_corrente and g.utente_corrente.is_superadmin %}
-        <a href="{{ url_for('legal_updates_admin.review_page') }}" class="btn btn-outline-secondary">
-          <i class="bi bi-ui-checks-grid me-2"></i>Apri coda revisioni
-        </a>
-        {% endif %}
-      </div>
-    </div>
-  </div>
-
-  {% if g.utente_corrente and g.utente_corrente.is_superadmin %}
-  <div class="li-card">
-    <div class="li-card__body">
-      <div class="li-section-head">
-        <div class="li-section-title"><i class="bi bi-sliders me-2 text-primary"></i>Console operativa aggiornamenti</div>
-        <span class="badge text-bg-light">superadmin</span>
-      </div>
-      <div class="small li-muted mb-3">
-        Qui trovi tutti gli ingressi del motore: fonti, acquisizione documenti, analisi AI, coda revisioni e archivio strutturato.
-      </div>
-      <div class="d-flex flex-wrap gap-2">
-        <a href="{{ url_for('legal_updates_admin.dashboard') }}" class="btn btn-outline-primary">
-          <i class="bi bi-speedometer2 me-2"></i>Dashboard aggiornamenti
-        </a>
-        <a href="{{ url_for('legal_updates_admin.sources_page') }}" class="btn btn-outline-secondary">
-          <i class="bi bi-broadcast me-2"></i>Fonti ufficiali
-        </a>
-        <a href="{{ url_for('legal_updates_admin.staging_page') }}" class="btn btn-outline-secondary">
-          <i class="bi bi-inboxes me-2"></i>Acquisizione
-        </a>
-        <a href="{{ url_for('legal_updates_admin.analysis_page') }}" class="btn btn-outline-secondary">
-          <i class="bi bi-cpu me-2"></i>Analisi AI
-        </a>
-        <a href="{{ url_for('legal_updates_admin.review_page') }}" class="btn btn-outline-secondary">
-          <i class="bi bi-ui-checks-grid me-2"></i>Coda revisioni
-        </a>
-        <a href="{{ url_for('legal_updates_admin.archive_page') }}" class="btn btn-outline-secondary">
-          <i class="bi bi-archive me-2"></i>Archivio strutturato
-        </a>
-      </div>
-    </div>
-  </div>
-  {% endif %}
-
-  <div class="li-card">
-    <div class="li-card__body d-flex flex-column flex-lg-row align-items-start align-items-lg-center justify-content-between gap-3">
-      <div>
-        <div class="li-section-title mb-1"><i class="bi bi-building-check me-2 text-primary"></i>Elenco organismi di mediazione italiani</div>
-        <div class="small li-muted">
-          Registro interno consultabile con fonte ministeriale ufficiale, cache persistente e filtri per organismo, sede e numero iscrizione.
-        </div>
-        <div class="small li-mediazione-meta mt-2">
-          {% if snapshot.mediazione_registry.table.sync_status == 'sincronizzata' %}
-          {{ snapshot.mediazione_registry.total_rows }} organismi in cache | {{ snapshot.mediazione_registry.data_origin_label or 'cache interna' }} | ultima sincronizzazione {{ snapshot.mediazione_registry.table.last_synced_at|fmt_dataora if snapshot.mediazione_registry.table.last_synced_at else 'n/d' }}
-          {% else %}
-          Stato attuale: {{ snapshot.mediazione_registry.table.sync_status|replace('_', ' ') }}{% if snapshot.mediazione_registry.table.last_warning %} | {{ snapshot.mediazione_registry.table.last_warning }}{% endif %}
-          {% endif %}
-        </div>
-      </div>
-      <div class="d-flex gap-2">
-        <a href="{{ url_for('legal_intelligence.registro_mediazione') }}" class="btn btn-primary">
-          <i class="bi bi-search me-2"></i>Apri elenco
-        </a>
-      </div>
-    </div>
-  </div>
-
-  <div class="row g-3">
-    <div class="col-xl-8">
-      <div class="li-card h-100">
+      {% set top_alerts = (snapshot.derived_alerts + snapshot.stored_alerts)[:4] %}
+      {% if top_alerts %}
+      <div class="li-card">
         <div class="li-card__body">
           <div class="li-section-head">
-            <div class="li-section-title"><i class="bi bi-cpu me-2 text-primary"></i>Architettura dei motori</div>
+            <div class="li-section-title"><i class="bi bi-exclamation-diamond me-2 text-primary"></i>Alert prioritari</div>
+            <a href="?tab=audit#pane-audit" class="btn btn-sm btn-outline-secondary" data-bs-toggle="pill" data-bs-target="#pane-audit">Vedi tutti</a>
+          </div>
+          <div class="li-alert-grid">
+            {% for alert in top_alerts %}
+            <div class="li-soft-card">
+              <div class="d-flex align-items-center justify-content-between mb-1 gap-2">
+                <div class="fw-semibold small">{{ alert.title }}</div>
+                <span class="badge {% if alert.severity == 'critica' %}text-bg-danger{% elif alert.severity == 'alta' %}text-bg-warning{% else %}text-bg-secondary{% endif %}">{{ alert.severity }}</span>
+              </div>
+              <div class="small text-muted">{{ alert.details }}</div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- ====================== FONTI ====================== -->
+    <div class="tab-pane fade" id="pane-fonti" role="tabpanel" aria-labelledby="tab-fonti">
+      <div class="li-card">
+        <div class="li-card__body">
+          <div class="li-section-head">
+            <div>
+              <div class="li-section-title"><i class="bi bi-journal-check me-2 text-primary"></i>Fonti ufficiali monitorate</div>
+              <div class="small li-muted">
+                Ogni fonte ha la sua scheda interna con storico controlli e download del testo archiviato nel gestionale.
+                {% if fonti_da_rivedere %}<span class="text-warning fw-semibold">{{ fonti_da_rivedere }} da rivedere.</span>{% endif %}
+              </div>
+            </div>
+            <form method="post" action="{{ url_for('legal_intelligence.esegui_monitor') }}" class="d-inline-flex">
+              <button class="btn btn-primary">
+                <i class="bi bi-arrow-repeat me-2"></i>Esegui controllo ora
+              </button>
+            </form>
+          </div>
+          <div class="table-responsive">
+            <table class="table align-middle li-table">
+              <thead>
+                <tr>
+                  <th>Fonte</th>
+                  <th>Frequenza</th>
+                  <th>Stato</th>
+                  <th>Ultimo check</th>
+                  <th class="text-end">Azioni</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in snapshot.source_rows %}
+                <tr>
+                  <td>
+                    <div class="fw-semibold">{{ row.nome }}</div>
+                    <div class="small text-muted">{{ row.area }} · {{ row.connector_kind }}</div>
+                    {% if row.detected_version or row.detected_reference or row.detected_package or row.detected_status %}
+                    <div class="small text-muted mt-1">
+                      {% if row.detected_version %}Versione: {{ row.detected_version }}{% endif %}
+                      {% if row.detected_reference %}{% if row.detected_version %} · {% endif %}WSDL: {{ row.detected_reference }}{% endif %}
+                      {% if row.detected_package %}{% if row.detected_version or row.detected_reference %} · {% endif %}Pacchetto: {{ row.detected_package }}{% endif %}
+                      {% if row.detected_status %}{% if row.detected_version or row.detected_reference or row.detected_package %} · {% endif %}{{ row.detected_status }}{% endif %}
+                    </div>
+                    {% endif %}
+                  </td>
+                  <td><span class="small text-muted">{{ row.cadence }}</span></td>
+                  <td>
+                    <span class="badge {% if row.freshness == 'aggiornata' %}text-bg-success{% elif row.freshness == 'errore' %}text-bg-danger{% else %}text-bg-warning{% endif %}">{{ row.freshness }}</span>
+                    {% if row.warning %}<div class="small text-muted mt-1">{{ row.warning }}</div>{% endif %}
+                  </td>
+                  <td>
+                    {% if row.last_check %}
+                    <span class="small">{{ row.last_check|fmt_dataora }}</span>
+                    <div class="small text-muted">{{ row.summary }}</div>
+                    {% else %}
+                    <span class="small text-muted">mai eseguito</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-end">
+                    <div class="d-inline-flex flex-wrap gap-1 justify-content-end">
+                      <a href="{{ url_for('legal_intelligence.scheda_fonte', source_id=row.id) }}" class="btn btn-sm btn-outline-primary" title="Scheda della fonte con storico e download">
+                        <i class="bi bi-file-earmark-text me-1"></i>Scheda
+                      </a>
+                      <a href="{{ url_for('legal_intelligence.scarica_fonte', source_id=row.id) }}" class="btn btn-sm btn-outline-secondary" title="Scarica il testo archiviato dal motore">
+                        <i class="bi bi-download"></i>
+                      </a>
+                      <a href="{{ row.official_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-dark" title="Apri fonte ufficiale">
+                        <i class="bi bi-box-arrow-up-right"></i>
+                      </a>
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="li-card">
+        <div class="li-card__body">
+          <div class="li-section-head">
+            <div>
+              <div class="li-section-title"><i class="bi bi-cpu me-2 text-primary"></i>Motori e copertura fonti</div>
+              <div class="small li-muted">Ogni motore dichiara le fonti coperte e quante sono già aggiornate.</div>
+            </div>
             <span class="badge text-bg-light">{{ snapshot.engine_cards|length }} moduli</span>
           </div>
           <div class="li-card-grid">
@@ -313,9 +326,7 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="li-soft-card">
               <div class="d-flex align-items-center justify-content-between mb-2">
                 <div class="fw-semibold">{{ engine.short_name }}</div>
-                <span class="badge {% if engine.badge == 'operativo' %}text-bg-success{% elif engine.badge == 'parziale' %}text-bg-warning{% else %}text-bg-secondary{% endif %}">
-                  {{ engine.badge|replace('_', ' ') }}
-                </span>
+                <span class="badge {% if engine.badge == 'operativo' %}text-bg-success{% elif engine.badge == 'parziale' %}text-bg-warning{% else %}text-bg-secondary{% endif %}">{{ engine.badge|replace('_', ' ') }}</span>
               </div>
               <div class="small text-muted mb-2">{{ engine.descrizione }}</div>
               <div class="small"><strong>Output:</strong> {{ engine.output }}</div>
@@ -327,301 +338,391 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
       </div>
     </div>
-    <div class="col-xl-4">
-      <div class="li-card h-100">
-        <div class="li-card__body">
-          <div class="li-section-title mb-3"><i class="bi bi-stars me-2 text-primary"></i>Vantaggio competitivo</div>
-          <div class="li-soft-stack">
-            {% for item in snapshot.competitive_advantages %}
-            <div class="li-soft-card li-soft-card--row">
-              <div class="li-icon-chip">
-                <i class="bi {{ item.icon }}"></i>
-              </div>
-              <div class="flex-grow-1">
-                <div class="fw-semibold">{{ item.title }}</div>
-                <div class="small text-muted">{{ item.description }}</div>
-              </div>
-              <div class="fw-bold fs-4">{{ item.value }}</div>
-            </div>
-            {% endfor %}
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
 
-  <div class="row g-3">
-    <div class="col-lg-6">
-      <div class="li-card h-100">
+    <!-- ====================== AGGIORNAMENTI ====================== -->
+    <div class="tab-pane fade" id="pane-aggiornamenti" role="tabpanel" aria-labelledby="tab-aggiornamenti">
+      <div class="li-card">
         <div class="li-card__body">
-          <div class="li-section-title mb-3"><i class="bi bi-exclamation-diamond me-2 text-primary"></i>Alert operativi</div>
-          <div class="li-alert-stack">
-            {% for alert in snapshot.derived_alerts %}
-            <div class="li-soft-card">
-              <div class="d-flex align-items-center justify-content-between mb-1">
-                <div class="fw-semibold">{{ alert.title }}</div>
-                <span class="badge {% if alert.severity == 'critica' %}text-bg-danger{% elif alert.severity == 'alta' %}text-bg-warning{% else %}text-bg-secondary{% endif %}">
-                  {{ alert.severity }}
-                </span>
-              </div>
-              <div class="small text-muted">{{ alert.details }}</div>
+          <div class="li-section-head">
+            <div>
+              <div class="li-section-title"><i class="bi bi-calendar2-check me-2 text-primary"></i>Motore giornaliero fonti ufficiali</div>
+              <div class="small li-muted">Controllo con memoria, ETag/Last-Modified, hash SHA-256 e diff applicativo. Gli aggiornamenti restano in revisione manuale.</div>
             </div>
-            {% else %}
-            <div class="small li-muted">Nessun alert operativo derivato al momento.</div>
-            {% endfor %}
+            <div class="d-flex flex-wrap gap-2">
+              <form method="post" action="{{ url_for('legal_intelligence.esegui_daily_sync') }}">
+                <button class="btn btn-primary">
+                  <i class="bi bi-arrow-clockwise me-2"></i>Esegui controllo ora
+                </button>
+              </form>
+              <form method="post" action="{{ url_for('legal_intelligence.rigenera_indice_ai_daily') }}">
+                <button class="btn btn-outline-primary">
+                  <i class="bi bi-cpu me-2"></i>Rigenera indice AI
+                </button>
+              </form>
+            </div>
+          </div>
+
+          {% if daily_snapshot.error %}
+          <div class="alert alert-warning mt-3">Il motore giornaliero non ha restituito lo snapshot: {{ daily_snapshot.error }}</div>
+          {% endif %}
+
+          <div class="li-kpi-grid">
+            <div class="li-kpi-card">
+              <div class="li-kpi-label">Ultimo controllo</div>
+              <div class="li-kpi-value fs-6">
+                {% if daily_snapshot.last_run %}{{ daily_snapshot.last_run.finished_at|fmt_dataora if daily_snapshot.last_run.finished_at else daily_snapshot.last_run.started_at|fmt_dataora }}{% else %}Non ancora eseguito{% endif %}
+              </div>
+            </div>
+            <div class="li-kpi-card">
+              <div class="li-kpi-label">Fonti governate</div>
+              <div class="li-kpi-value">{{ daily_snapshot.counts.sources|default(0) }}</div>
+            </div>
+            <div class="li-kpi-card">
+              <div class="li-kpi-label">Variazioni rilevate</div>
+              <div class="li-kpi-value text-primary">{{ daily_snapshot.counts.updates|default(0) }}</div>
+            </div>
+            <div class="li-kpi-card">
+              <div class="li-kpi-label">Applicate</div>
+              <div class="li-kpi-value text-success">{{ daily_snapshot.counts.applied|default(0) }}</div>
+            </div>
+            <div class="li-kpi-card">
+              <div class="li-kpi-label">In revisione</div>
+              <div class="li-kpi-value text-warning">{{ daily_snapshot.counts.pending|default(0) }}</div>
+            </div>
+            <div class="li-kpi-card">
+              <div class="li-kpi-label">Errori fonti</div>
+              <div class="li-kpi-value {% if daily_snapshot.counts.errors|default(0) %}text-danger{% else %}text-success{% endif %}">{{ daily_snapshot.counts.errors|default(0) }}</div>
+            </div>
+          </div>
+
+          <div class="row g-3 mt-1">
+            <div class="col-xl-5">
+              <div class="li-soft-card h-100">
+                <div class="fw-semibold mb-2">Fonti controllate</div>
+                <div class="li-soft-stack">
+                  {% for source in daily_snapshot.sources %}
+                  <div class="d-flex align-items-start justify-content-between gap-2 border-bottom pb-2 mb-2">
+                    <div>
+                      <div class="fw-semibold small">{{ source.name }}</div>
+                      <div class="small li-muted">{{ source.category }} · {{ source.apply_mode == 'auto' and 'applicazione tecnica' or 'revisione manuale' }}</div>
+                      {% if source.last_error %}<div class="small text-danger">{{ source.last_error }}</div>{% endif %}
+                    </div>
+                    <span class="badge {% if source.last_status == 'ok' %}text-bg-success{% elif source.last_status == 'errore' %}text-bg-danger{% elif source.last_status == 'invariata' %}text-bg-info{% else %}text-bg-secondary{% endif %}">
+                      {{ source.last_status|replace('_', ' ') }}
+                    </span>
+                  </div>
+                  {% else %}
+                  <div class="small li-muted">Le fonti verranno inizializzate al primo controllo giornaliero.</div>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+            <div class="col-xl-7">
+              <div class="li-soft-card h-100">
+                <div class="fw-semibold mb-2">Variazioni e applicazioni</div>
+                <div class="li-soft-stack">
+                  {% for update in daily_snapshot.updates %}
+                  <div class="border-bottom pb-2 mb-2">
+                    <div class="d-flex align-items-start justify-content-between gap-2">
+                      <div>
+                        <div class="fw-semibold">{{ update.title }}</div>
+                        <div class="small li-muted">{{ update.summary }}</div>
+                        <div class="d-flex flex-wrap gap-1 mt-1">
+                          {% for area in update.impact_areas %}
+                          <span class="badge text-bg-light">{{ area }}</span>
+                          {% endfor %}
+                        </div>
+                      </div>
+                      <span class="badge {% if update.status == 'applied' %}text-bg-success{% elif update.status == 'pending_review' %}text-bg-warning{% else %}text-bg-secondary{% endif %}">{{ update.status|replace('_', ' ') }}</span>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2 mt-2">
+                      <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('legal_intelligence.diff_daily_update', update_id=update.id) }}">
+                        <i class="bi bi-file-diff me-1"></i>Vedi diff
+                      </a>
+                      {% if update.status == 'pending_review' %}
+                      <form method="post" action="{{ url_for('legal_intelligence.approva_daily_update', update_id=update.id) }}">
+                        <button class="btn btn-sm btn-outline-success">
+                          <i class="bi bi-check2-circle me-1"></i>Approva applicazione
+                        </button>
+                      </form>
+                      {% endif %}
+                    </div>
+                  </div>
+                  {% else %}
+                  <div class="small li-muted">Nessuna variazione registrata. Il prossimo controllo manterra traccia di hash, diff e stato fonte.</div>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
+
+      <div class="li-card">
+        <div class="li-card__body d-flex flex-column flex-lg-row align-items-start align-items-lg-center justify-content-between gap-3">
+          <div>
+            <div class="li-section-title mb-1"><i class="bi bi-newspaper me-2 text-primary"></i>Iusentra Update Intelligence</div>
+            <div class="small li-muted">Pipeline continua: acquisisce fonti ufficiali, classifica normativa/giurisprudenza/prassi, propone aggiornamenti strutturati e pubblica news verificabili.</div>
+            <div class="small mt-2">
+              News pubblicate: <strong>{{ updates_snapshot.headline.published_news }}</strong> ·
+              review pendenti: <strong>{{ updates_snapshot.headline.review_pending }}</strong> ·
+              normative archiviate: <strong>{{ updates_snapshot.headline.published_normative }}</strong> ·
+              sentenze archiviate: <strong>{{ updates_snapshot.headline.published_jurisprudence }}</strong> ·
+              prassi archiviate: <strong>{{ updates_snapshot.headline.published_prassi }}</strong>
+            </div>
+          </div>
+          <a href="{{ url_for('legal_intelligence.news') }}" class="btn btn-primary">
+            <i class="bi bi-newspaper me-2"></i>Apri archivio news
+          </a>
+        </div>
+      </div>
     </div>
-    <div class="col-lg-6">
-      <div class="li-card h-100">
+
+    <!-- ====================== NORMATIVA ====================== -->
+    <div class="tab-pane fade" id="pane-normativa" role="tabpanel" aria-labelledby="tab-normativa">
+      {% set n_verifica = snapshot.normative_tables.tabelle | selectattr('sync_status', 'equalto', 'verifica_richiesta') | list | length %}
+
+      <div class="li-card">
         <div class="li-card__body">
-          <div class="li-section-title mb-3"><i class="bi bi-broadcast me-2 text-primary"></i>Alert da monitoraggio</div>
-          <div class="li-alert-stack">
-            {% for alert in snapshot.stored_alerts %}
-            <div class="li-soft-card">
-              <div class="d-flex align-items-center justify-content-between mb-1">
-                <div class="fw-semibold">{{ alert.title }}</div>
-                <span class="badge {% if alert.severity == 'critica' %}text-bg-danger{% elif alert.severity == 'alta' %}text-bg-warning{% elif alert.severity == 'media' %}text-bg-primary{% else %}text-bg-secondary{% endif %}">
-                  {{ alert.severity }}
-                </span>
-              </div>
-              <div class="small text-muted mb-2">{{ alert.details }}</div>
-              {% if alert.official_url %}
-              <a href="{{ alert.official_url }}" class="small text-decoration-none" target="_blank" rel="noopener">Apri fonte ufficiale</a>
+          <div class="li-section-head">
+            <div>
+              <div class="li-section-title"><i class="bi bi-database-gear me-2 text-primary"></i>Tabelle normative sincronizzate</div>
+              <div class="small li-muted">{{ snapshot.normative_tables.totali }} tabelle e {{ snapshot.normative_tables.riferimenti_normativi_totali }} riferimenti verificati.</div>
+            </div>
+            <form method="post" action="{{ url_for('legal_intelligence.esegui_sync_normativo') }}" class="d-inline-flex">
+              <button class="btn btn-outline-primary">
+                <i class="bi bi-database-gear me-2"></i>Sincronizza tabelle
+              </button>
+            </form>
+          </div>
+
+          {% if n_verifica > 0 %}
+          <div class="alert alert-warning d-flex align-items-start gap-2 py-2 mb-3 li-explainer">
+            <i class="bi bi-exclamation-triangle-fill flex-shrink-0 mt-1"></i>
+            <div>
+              <strong>{{ n_verifica }} tabella{% if n_verifica > 1 %}e{% endif %} in stato "verifica richiesta"</strong>:
+              il sistema ha rilevato una modifica nella fonte ufficiale rispetto all'ultima acquisizione.
+              I dati in uso sono ancora quelli dell'ultimo seed valido. Premi <em>Sincronizza tabelle</em> per aggiornare e azzerare l'alert.
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="table-responsive">
+            <table class="table align-middle li-table">
+              <thead>
+                <tr>
+                  <th>Tabella</th>
+                  <th>Categoria</th>
+                  <th>Stato</th>
+                  <th>Ultima sincronizzazione</th>
+                  <th>Note</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in snapshot.normative_tables.tabelle %}
+                <tr>
+                  <td>
+                    <div class="fw-semibold">{{ row.title }}</div>
+                    <div class="small text-muted">{{ row.id }}</div>
+                  </td>
+                  <td class="small">{{ row.category|replace('_', ' ') }}</td>
+                  <td>
+                    {% if row.sync_status == 'sincronizzata' %}
+                    <span class="badge text-bg-success"><i class="bi bi-check-circle me-1"></i>sincronizzata</span>
+                    {% elif row.sync_status == 'verifica_richiesta' %}
+                    <span class="badge text-bg-warning" data-bs-toggle="tooltip" title="Fonte ufficiale cambiata. Dati seed ancora validi. Esegui sincronizzazione."><i class="bi bi-exclamation-triangle me-1"></i>verifica richiesta</span>
+                    {% else %}
+                    <span class="badge text-bg-danger" data-bs-toggle="tooltip" title="{{ row.last_warning or 'fonte non raggiungibile' }}"><i class="bi bi-x-circle me-1"></i>{{ row.sync_status|replace('_', ' ') }}</span>
+                    {% endif %}
+                  </td>
+                  <td class="small">{% if row.last_synced_at %}{{ row.last_synced_at|fmt_dataora }}{% else %}<span class="text-muted">mai</span>{% endif %}</td>
+                  <td class="small text-muted">{{ row.last_warning or '-' }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="small text-muted">Nessuna tabella normativa caricata.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="li-card">
+        <div class="li-card__body">
+          <div class="li-section-head">
+            <div class="li-section-title"><i class="bi bi-bookmark-check me-2 text-primary"></i>Catalogo normativo ufficiale</div>
+            <span class="badge text-bg-light">{{ snapshot.normative_tables.riferimenti_normativi_totali }} voci</span>
+          </div>
+          <div class="table-responsive">
+            <table class="table align-middle li-table">
+              <thead>
+                <tr>
+                  <th>Riferimento</th>
+                  <th>Aree</th>
+                  <th>Tipologie</th>
+                  <th class="text-end"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in snapshot.normative_tables.riferimenti_normativi %}
+                <tr>
+                  <td>
+                    <div class="fw-semibold">{{ row.title }}</div>
+                    <div class="small text-muted">{{ row.article or row.reference_code }}</div>
+                  </td>
+                  <td class="small">{{ row.areas|join(', ') or '-' }}</td>
+                  <td class="small">{{ row.tipologie_labels|length }}</td>
+                  <td class="text-end">
+                    {% if row.url %}
+                    <a href="{{ row.url }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary">Fonte</a>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4" class="small text-muted">Nessun riferimento normativo catalogato.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="li-card">
+        <div class="li-card__body d-flex flex-column flex-lg-row align-items-start align-items-lg-center justify-content-between gap-3">
+          <div>
+            <div class="li-section-title mb-1"><i class="bi bi-building-check me-2 text-primary"></i>Elenco organismi di mediazione</div>
+            <div class="small li-muted">Registro interno consultabile con filtri per organismo, sede e numero iscrizione.</div>
+            <div class="small li-mediazione-meta mt-2">
+              {% if snapshot.mediazione_registry.table.sync_status == 'sincronizzata' %}
+              {{ snapshot.mediazione_registry.total_rows }} organismi in cache · {{ snapshot.mediazione_registry.data_origin_label or 'cache interna' }} · ultima sincronizzazione {{ snapshot.mediazione_registry.table.last_synced_at|fmt_dataora if snapshot.mediazione_registry.table.last_synced_at else 'n/d' }}
+              {% else %}
+              Stato attuale: {{ snapshot.mediazione_registry.table.sync_status|replace('_', ' ') }}{% if snapshot.mediazione_registry.table.last_warning %} · {{ snapshot.mediazione_registry.table.last_warning }}{% endif %}
               {% endif %}
             </div>
-            {% else %}
-            <div class="small li-muted">Nessun alert storico registrato.</div>
-            {% endfor %}
+          </div>
+          <a href="{{ url_for('legal_intelligence.registro_mediazione') }}" class="btn btn-primary">
+            <i class="bi bi-search me-2"></i>Apri elenco completo
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================== AUDIT & ALERT ====================== -->
+    <div class="tab-pane fade" id="pane-audit" role="tabpanel" aria-labelledby="tab-audit">
+      <div class="row g-3">
+        <div class="col-lg-6">
+          <div class="li-card h-100">
+            <div class="li-card__body">
+              <div class="li-section-title mb-3"><i class="bi bi-exclamation-diamond me-2 text-primary"></i>Alert operativi dello studio</div>
+              <div class="li-alert-stack">
+                {% for alert in snapshot.derived_alerts %}
+                <div class="li-soft-card">
+                  <div class="d-flex align-items-center justify-content-between mb-1 gap-2">
+                    <div class="fw-semibold">{{ alert.title }}</div>
+                    <span class="badge {% if alert.severity == 'critica' %}text-bg-danger{% elif alert.severity == 'alta' %}text-bg-warning{% else %}text-bg-secondary{% endif %}">{{ alert.severity }}</span>
+                  </div>
+                  <div class="small text-muted">{{ alert.details }}</div>
+                </div>
+                {% else %}
+                <div class="li-empty">Nessun alert operativo derivato dai dati dello studio.</div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-6">
+          <div class="li-card h-100">
+            <div class="li-card__body">
+              <div class="li-section-title mb-3"><i class="bi bi-broadcast me-2 text-primary"></i>Alert da monitoraggio fonti</div>
+              <div class="li-alert-stack">
+                {% for alert in snapshot.stored_alerts %}
+                <div class="li-soft-card">
+                  <div class="d-flex align-items-center justify-content-between mb-1 gap-2">
+                    <div class="fw-semibold">{{ alert.title }}</div>
+                    <span class="badge {% if alert.severity == 'critica' %}text-bg-danger{% elif alert.severity == 'alta' %}text-bg-warning{% elif alert.severity == 'media' %}text-bg-primary{% else %}text-bg-secondary{% endif %}">{{ alert.severity }}</span>
+                  </div>
+                  <div class="small text-muted mb-2">{{ alert.details }}</div>
+                  {% if alert.official_url %}
+                  <a href="{{ alert.official_url }}" class="small text-decoration-none" target="_blank" rel="noopener">Apri fonte ufficiale</a>
+                  {% endif %}
+                </div>
+                {% else %}
+                <div class="li-empty">Nessun alert storico registrato.</div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="li-card">
+        <div class="li-card__body">
+          <div class="li-section-title mb-3"><i class="bi bi-shield-check me-2 text-primary"></i>Audit risposte AI</div>
+          <div class="table-responsive">
+            <table class="table align-middle li-table">
+              <thead>
+                <tr>
+                  <th>Quando</th>
+                  <th>Query</th>
+                  <th>Motori</th>
+                  <th>Modello</th>
+                  <th>Warning</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for trace in snapshot.recent_audits %}
+                <tr>
+                  <td class="small">{{ trace.created_at|fmt_dataora }}</td>
+                  <td class="small">{{ trace.query }}</td>
+                  <td class="small">{{ trace.engine_ids|join(', ') }}</td>
+                  <td class="small">{{ trace.ai_model or 'n/d' }}</td>
+                  <td class="small text-muted">{{ trace.warning or '-' }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="text-muted small">Nessuna traccia audit registrata.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <div class="li-card">
-    <div class="li-card__body">
-      <div class="li-section-title mb-3"><i class="bi bi-journal-check me-2 text-primary"></i>Fonti ufficiali monitorate</div>
-      <div class="table-responsive">
-        <table class="table align-middle li-table">
-          <thead>
-            <tr>
-              <th>Fonte</th>
-              <th>Motore</th>
-              <th>Frequenza</th>
-              <th>Stato</th>
-              <th>Ultimo check</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for row in snapshot.source_rows %}
-            <tr>
-              <td>
-                <div class="fw-semibold">{{ row.nome }}</div>
-                <div class="small text-muted">{{ row.area }}</div>
-                {% if row.detected_version or row.detected_reference or row.detected_package or row.detected_status %}
-                <div class="small text-muted mt-1">
-                  {% if row.detected_version %}Versione rilevata: {{ row.detected_version }}{% endif %}
-                  {% if row.detected_reference %}{% if row.detected_version %} | {% endif %}Catalogo WSDL: {{ row.detected_reference }}{% endif %}
-                  {% if row.detected_package %}{% if row.detected_version or row.detected_reference %} | {% endif %}Pacchetto: {{ row.detected_package }}{% endif %}
-                  {% if row.detected_status %}{% if row.detected_version or row.detected_reference or row.detected_package %} | {% endif %}Stato: {{ row.detected_status }}{% endif %}
-                  {% if row.detected_news_date %}{% if row.detected_version or row.detected_reference or row.detected_package or row.detected_status %} | {% endif %}News: {{ row.detected_news_date|fmt_data }}{% endif %}
-                </div>
-                {% endif %}
-              </td>
-              <td><span class="small text-muted">{{ row.connector_kind }}</span></td>
-              <td>{{ row.cadence }}</td>
-              <td>
-                <span class="badge {% if row.freshness == 'aggiornata' %}text-bg-success{% elif row.freshness == 'errore' %}text-bg-danger{% else %}text-bg-warning{% endif %}">
-                  {{ row.freshness }}
-                </span>
-                {% if row.warning %}
-                <div class="small text-muted mt-1">{{ row.warning }}</div>
-                {% endif %}
-              </td>
-              <td>
-                {% if row.last_check %}
-                <span class="small">{{ row.last_check|fmt_dataora }}</span>
-                <div class="small text-muted">{{ row.summary }}</div>
-                {% else %}
-                <span class="small text-muted">mai</span>
-                {% endif %}
-              </td>
-              <td class="text-end">
-                <div class="d-flex flex-column flex-sm-row gap-2 justify-content-end">
-                  {% if row.detected_document_url %}
-                  <a href="{{ row.detected_document_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">Documento</a>
-                  {% endif %}
-                  <a href="{{ row.official_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary">Fonte</a>
-                </div>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <div class="li-card">
-    <div class="li-card__body">
-      <div class="li-section-head">
-        <div class="li-section-title"><i class="bi bi-database-gear me-2 text-primary"></i>Tabelle normative sincronizzate</div>
-        <span class="badge text-bg-light">{{ snapshot.normative_tables.totali }} tabelle | {{ snapshot.normative_tables.riferimenti_normativi_totali }} riferimenti</span>
-      </div>
-      {% set n_verifica = snapshot.normative_tables.tabelle | selectattr('sync_status', 'equalto', 'verifica_richiesta') | list | length %}
-      {% if n_verifica > 0 %}
-      <div class="alert alert-warning d-flex align-items-start gap-2 py-2 mb-3 li-explainer">
-        <i class="bi bi-exclamation-triangle-fill flex-shrink-0 mt-1"></i>
-        <div>
-          <strong>{{ n_verifica }} tabella{% if n_verifica > 1 %}e{% endif %} in stato "verifica richiesta"</strong> -
-          il sistema ha rilevato una modifica nella fonte ufficiale corrispondente rispetto all'ultima acquisizione.
-          I dati in uso sono quelli dell'ultimo seed valido, senza interruzione operativa.
-          <strong>Cosa fare:</strong> verifica il contenuto aggiornato sulla fonte ufficiale indicata, poi clicca
-          <em>"Esegui sincronizzazione"</em> per aggiornare e azzerare l'alert.
-          La sincronizzazione automatica giornaliera delle 04:30 rieseguira' il controllo ogni notte.
+    <!-- ====================== CONSOLE SUPERADMIN ====================== -->
+    {% if is_admin %}
+    <div class="tab-pane fade" id="pane-console" role="tabpanel" aria-labelledby="tab-console">
+      <div class="li-card">
+        <div class="li-card__body">
+          <div class="li-section-head">
+            <div class="li-section-title"><i class="bi bi-sliders me-2 text-primary"></i>Console operativa aggiornamenti</div>
+            <span class="badge text-bg-light">solo superadmin</span>
+          </div>
+          <div class="small li-muted mb-3">Tutti gli ingressi del motore: fonti, acquisizione documenti, analisi AI, coda revisioni e archivio strutturato.</div>
+          <div class="li-quick-actions li-quick-actions--grid">
+            <a href="{{ url_for('legal_updates_admin.dashboard') }}" class="btn btn-outline-primary">
+              <i class="bi bi-speedometer2 me-2"></i>Dashboard aggiornamenti
+            </a>
+            <a href="{{ url_for('legal_updates_admin.sources_page') }}" class="btn btn-outline-secondary">
+              <i class="bi bi-broadcast me-2"></i>Fonti ufficiali
+            </a>
+            <a href="{{ url_for('legal_updates_admin.staging_page') }}" class="btn btn-outline-secondary">
+              <i class="bi bi-inboxes me-2"></i>Acquisizione
+            </a>
+            <a href="{{ url_for('legal_updates_admin.analysis_page') }}" class="btn btn-outline-secondary">
+              <i class="bi bi-cpu me-2"></i>Analisi AI
+            </a>
+            <a href="{{ url_for('legal_updates_admin.review_page') }}" class="btn btn-outline-secondary">
+              <i class="bi bi-ui-checks-grid me-2"></i>Coda revisioni
+            </a>
+            <a href="{{ url_for('legal_updates_admin.archive_page') }}" class="btn btn-outline-secondary">
+              <i class="bi bi-archive me-2"></i>Archivio strutturato
+            </a>
+          </div>
         </div>
       </div>
-      {% endif %}
-      <div class="table-responsive">
-        <table class="table align-middle li-table">
-          <thead>
-            <tr>
-              <th>Tabella</th>
-              <th>Categoria</th>
-              <th>
-                Stato
-                <i class="bi bi-question-circle text-muted ms-1" data-bs-toggle="tooltip"
-                   title="sincronizzata = aggiornata; verifica richiesta = fonte cambiata, dati seed ancora validi, eseguire sincronizzazione per confermare; errore = fonte non raggiungibile"></i>
-              </th>
-              <th>Ultima sincronizzazione</th>
-              <th>Note / warning</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for row in snapshot.normative_tables.tabelle %}
-            <tr>
-              <td>
-                <div class="fw-semibold">{{ row.title }}</div>
-                <div class="small text-muted">{{ row.id }}</div>
-              </td>
-              <td class="small">{{ row.category|replace('_', ' ') }}</td>
-              <td>
-                {% if row.sync_status == 'sincronizzata' %}
-                <span class="badge text-bg-success">
-                  <i class="bi bi-check-circle me-1"></i>sincronizzata
-                </span>
-                {% elif row.sync_status == 'verifica_richiesta' %}
-                <span class="badge text-bg-warning"
-                      data-bs-toggle="tooltip"
-                      title="La fonte ufficiale e' cambiata dall'ultima acquisizione. I dati seed sono ancora validi. Esegui 'Sincronizzazione normativa' per verificare e aggiornare.">
-                  <i class="bi bi-exclamation-triangle me-1"></i>verifica richiesta
-                </span>
-                {% else %}
-                <span class="badge text-bg-danger"
-                      data-bs-toggle="tooltip"
-                      title="{{ row.sync_status|replace('_', ' ') }}: {{ row.last_warning or 'fonte non raggiungibile' }}">
-                  <i class="bi bi-x-circle me-1"></i>{{ row.sync_status|replace('_', ' ') }}
-                </span>
-                {% endif %}
-              </td>
-              <td class="small">
-                {% if row.last_synced_at %}
-                {{ row.last_synced_at|fmt_dataora }}
-                {% else %}
-                <span class="text-muted">mai</span>
-                {% endif %}
-              </td>
-              <td class="small text-muted">{{ row.last_warning or '-' }}</td>
-            </tr>
-            {% else %}
-            <tr>
-              <td colspan="5" class="small text-muted">Nessuna tabella normativa caricata.</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
     </div>
-  </div>
+    {% endif %}
 
-  <div class="li-card">
-    <div class="li-card__body">
-      <div class="li-section-head">
-        <div class="li-section-title"><i class="bi bi-bookmark-check me-2 text-primary"></i>Catalogo normativo ufficiale</div>
-        <span class="badge text-bg-light">{{ snapshot.normative_tables.riferimenti_normativi_totali }} voci</span>
-      </div>
-      <div class="table-responsive">
-        <table class="table align-middle li-table">
-          <thead>
-            <tr>
-              <th>Riferimento</th>
-              <th>Aree</th>
-              <th>Tipologie</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for row in snapshot.normative_tables.riferimenti_normativi %}
-            <tr>
-              <td>
-                <div class="fw-semibold">{{ row.title }}</div>
-                <div class="small text-muted">{{ row.article or row.reference_code }}</div>
-              </td>
-              <td class="small">{{ row.areas|join(', ') or '-' }}</td>
-              <td class="small">{{ row.tipologie_labels|length }}</td>
-              <td class="text-end">
-                {% if row.url %}
-                <a href="{{ row.url }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary">Fonte</a>
-                {% endif %}
-              </td>
-            </tr>
-            {% else %}
-            <tr>
-              <td colspan="4" class="small text-muted">Nessun riferimento normativo catalogato.</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <div class="li-card">
-    <div class="li-card__body">
-      <div class="li-section-title mb-3"><i class="bi bi-shield-check me-2 text-primary"></i>Audit delle risposte</div>
-      <div class="table-responsive">
-        <table class="table align-middle li-table">
-          <thead>
-            <tr>
-              <th>Quando</th>
-              <th>Query</th>
-              <th>Motori</th>
-              <th>Modello</th>
-              <th>Warning</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for trace in snapshot.recent_audits %}
-            <tr>
-              <td class="small">{{ trace.created_at|fmt_dataora }}</td>
-              <td class="small">{{ trace.query }}</td>
-              <td class="small">{{ trace.engine_ids|join(', ') }}</td>
-              <td class="small">{{ trace.ai_model or 'n/d' }}</td>
-              <td class="small text-muted">{{ trace.warning or '-' }}</td>
-            </tr>
-            {% else %}
-            <tr>
-              <td colspan="5" class="text-muted small">Nessuna traccia audit registrata.</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
   </div>
 </div>
 {% endblock %}
-

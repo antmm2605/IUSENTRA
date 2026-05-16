@@ -303,6 +303,41 @@ class LegalIntelligenceStore:
             return None
         return self._decode_json_fields(dict(row), ("impact_areas_json", "metadata_json"))
 
+    def get_source(self, source_id: str) -> dict[str, Any] | None:
+        with self.connect() as conn:
+            row = conn.execute("SELECT * FROM legal_sources WHERE id=?", (source_id,)).fetchone()
+        if not row:
+            return None
+        return self._decode_json_fields(dict(row), ("impact_areas_json",))
+
+    def source_snapshots(self, source_id: str, *, limit: int = 10) -> list[dict[str, Any]]:
+        with self.connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT id, source_id, fetched_at, url, status_code, etag, last_modified,
+                       content_sha256, length(normalized_text) AS text_bytes
+                FROM legal_source_snapshots
+                WHERE source_id=?
+                ORDER BY fetched_at DESC, id DESC
+                LIMIT ?
+                """,
+                (source_id, int(limit)),
+            ).fetchall()
+        return [dict(row) for row in rows]
+
+    def source_updates(self, source_id: str, *, limit: int = 10) -> list[dict[str, Any]]:
+        with self.connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT * FROM legal_updates
+                WHERE source_id=?
+                ORDER BY detected_at DESC, id DESC
+                LIMIT ?
+                """,
+                (source_id, int(limit)),
+            ).fetchall()
+        return [self._decode_json_fields(dict(row), ("impact_areas_json", "metadata_json")) for row in rows]
+
     @staticmethod
     def _decode_json_fields(row: dict[str, Any], fields: tuple[str, ...]) -> dict[str, Any]:
         for field in fields:

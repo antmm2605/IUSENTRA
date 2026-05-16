@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+{% block title %}{{ fonte.nome }} · Scheda fonte{% endblock %}
+
+{% block content %}
+{% set latest = card.latest_snapshot or {} %}
+{% set descriptor = card.descriptor or {} %}
+{% set history = card.history or [] %}
+{% set updates = card.updates or [] %}
+{% set source_row = card.source or {} %}
+<div class="legal-intelligence-page">
+  <div class="ds-ph">
+    <div class="ds-ph-icon"><i class="bi bi-file-earmark-text"></i></div>
+    <div class="ds-ph-body">
+      <h1 class="ds-ph-title">{{ fonte.nome }}</h1>
+      <p class="ds-ph-sub">
+        {{ fonte.area }} · canale {{ fonte.connector_kind }} · frequenza {{ fonte.cadence }}
+        {% if fonte.warning %} · <span class="text-warning">{{ fonte.warning }}</span>{% endif %}
+      </p>
+    </div>
+    <div class="ds-ph-actions li-header-actions">
+      <a href="{{ url_for('legal_intelligence.index', tab='fonti') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-2"></i>Torna alle fonti
+      </a>
+      {% if latest and latest.normalized_text is not defined %}{# campo virtuale: useremo download sempre #}{% endif %}
+      <a href="{{ url_for('legal_intelligence.scarica_fonte', source_id=fonte.id) }}" class="btn btn-primary">
+        <i class="bi bi-download me-2"></i>Scarica testo archiviato
+      </a>
+      <a href="{{ fonte.official_url }}" target="_blank" rel="noopener" class="btn btn-outline-dark">
+        <i class="bi bi-box-arrow-up-right me-2"></i>Apri fonte ufficiale
+      </a>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-8">
+      <div class="li-card">
+        <div class="li-card__body">
+          <div class="li-section-head">
+            <div class="li-section-title"><i class="bi bi-info-circle me-2 text-primary"></i>Profilo della fonte</div>
+            <span class="badge {% if fonte.freshness == 'aggiornata' %}text-bg-success{% elif fonte.freshness == 'errore' %}text-bg-danger{% else %}text-bg-warning{% endif %}">{{ fonte.freshness }}</span>
+          </div>
+          <dl class="row mb-0 small">
+            <dt class="col-4 col-md-3 text-muted">Identificativo</dt>
+            <dd class="col-8 col-md-9"><code>{{ fonte.id }}</code></dd>
+            <dt class="col-4 col-md-3 text-muted">URL ufficiale</dt>
+            <dd class="col-8 col-md-9"><a href="{{ fonte.official_url }}" target="_blank" rel="noopener">{{ fonte.official_url }}</a></dd>
+            <dt class="col-4 col-md-3 text-muted">URL monitorato</dt>
+            <dd class="col-8 col-md-9"><a href="{{ fonte.monitor_url }}" target="_blank" rel="noopener">{{ fonte.monitor_url }}</a></dd>
+            {% if fonte.formats %}
+            <dt class="col-4 col-md-3 text-muted">Formati gestiti</dt>
+            <dd class="col-8 col-md-9">{{ fonte.formats|join(', ') }}</dd>
+            {% endif %}
+            {% if descriptor.user_agent_note %}
+            <dt class="col-4 col-md-3 text-muted">Nota fetcher</dt>
+            <dd class="col-8 col-md-9">{{ descriptor.user_agent_note }}</dd>
+            {% endif %}
+            {% if descriptor.impact_areas %}
+            <dt class="col-4 col-md-3 text-muted">Aree di impatto</dt>
+            <dd class="col-8 col-md-9">{{ descriptor.impact_areas|join(', ') }}</dd>
+            {% endif %}
+          </dl>
+        </div>
+      </div>
+
+      <div class="li-card">
+        <div class="li-card__body">
+          <div class="li-section-head">
+            <div class="li-section-title"><i class="bi bi-clock-history me-2 text-primary"></i>Storico controlli motore giornaliero</div>
+            <span class="badge text-bg-light">{{ history|length }} snapshot</span>
+          </div>
+          {% if history %}
+          <div class="table-responsive">
+            <table class="table align-middle li-table">
+              <thead>
+                <tr>
+                  <th>Quando</th>
+                  <th>HTTP</th>
+                  <th>Hash SHA-256</th>
+                  <th>Dimensione</th>
+                  <th>ETag / Last-Modified</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for snap in history %}
+                <tr>
+                  <td class="small">{{ snap.fetched_at|fmt_dataora }}</td>
+                  <td><span class="badge text-bg-light">{{ snap.status_code or '-' }}</span></td>
+                  <td><code class="small">{{ (snap.content_sha256 or '')[:16] }}…</code></td>
+                  <td class="small">{{ snap.text_bytes or 0 }} byte</td>
+                  <td class="small text-muted">
+                    {% if snap.etag %}ETag: {{ snap.etag[:24] }}{% endif %}
+                    {% if snap.last_modified %}{% if snap.etag %} · {% endif %}{{ snap.last_modified }}{% endif %}
+                    {% if not snap.etag and not snap.last_modified %}-{% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="li-empty">Nessuno snapshot ancora salvato. Esegui un controllo dalla scheda Fonti.</div>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if updates %}
+      <div class="li-card">
+        <div class="li-card__body">
+          <div class="li-section-head">
+            <div class="li-section-title"><i class="bi bi-file-diff me-2 text-primary"></i>Variazioni rilevate</div>
+            <span class="badge text-bg-light">{{ updates|length }}</span>
+          </div>
+          <div class="li-soft-stack">
+            {% for update in updates %}
+            <div class="li-soft-card">
+              <div class="d-flex align-items-start justify-content-between gap-2">
+                <div>
+                  <div class="fw-semibold">{{ update.title }}</div>
+                  <div class="small text-muted">{{ update.summary }}</div>
+                  <div class="small text-muted mt-1">Rilevata: {{ update.detected_at|fmt_dataora }}</div>
+                </div>
+                <span class="badge {% if update.status == 'applied' %}text-bg-success{% elif update.status == 'pending_review' %}text-bg-warning{% else %}text-bg-secondary{% endif %}">{{ update.status|replace('_', ' ') }}</span>
+              </div>
+              <div class="d-flex flex-wrap gap-2 mt-2">
+                <a href="{{ url_for('legal_intelligence.diff_daily_update', update_id=update.id) }}" class="btn btn-sm btn-outline-secondary">
+                  <i class="bi bi-eye me-1"></i>Vedi diff
+                </a>
+                {% if update.status == 'pending_review' %}
+                <form method="post" action="{{ url_for('legal_intelligence.approva_daily_update', update_id=update.id) }}">
+                  <button class="btn btn-sm btn-outline-success">
+                    <i class="bi bi-check2-circle me-1"></i>Approva
+                  </button>
+                </form>
+                {% endif %}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="col-lg-4">
+      <div class="li-card">
+        <div class="li-card__body">
+          <div class="li-section-title mb-3"><i class="bi bi-cpu me-2 text-primary"></i>Stato monitor</div>
+          <dl class="row mb-0 small">
+            <dt class="col-6 text-muted">Ultimo check</dt>
+            <dd class="col-6">{% if fonte.last_check %}{{ fonte.last_check|fmt_dataora }}{% else %}mai{% endif %}</dd>
+            <dt class="col-6 text-muted">Esito</dt>
+            <dd class="col-6">{{ fonte.status|replace('_', ' ') }}</dd>
+            <dt class="col-6 text-muted">HTTP code</dt>
+            <dd class="col-6">{{ fonte.status_code or '-' }}</dd>
+            <dt class="col-6 text-muted">Cambiato dall'ultimo check</dt>
+            <dd class="col-6">{{ 'Sì' if fonte.changed else 'No' }}</dd>
+            {% if fonte.detected_version %}
+            <dt class="col-6 text-muted">Versione rilevata</dt>
+            <dd class="col-6">{{ fonte.detected_version }}</dd>
+            {% endif %}
+            {% if fonte.detected_reference %}
+            <dt class="col-6 text-muted">Riferimento</dt>
+            <dd class="col-6">{{ fonte.detected_reference }}</dd>
+            {% endif %}
+            {% if fonte.detected_package %}
+            <dt class="col-6 text-muted">Pacchetto</dt>
+            <dd class="col-6">{{ fonte.detected_package }}</dd>
+            {% endif %}
+            {% if fonte.detected_status %}
+            <dt class="col-6 text-muted">Stato pacchetto</dt>
+            <dd class="col-6">{{ fonte.detected_status }}</dd>
+            {% endif %}
+          </dl>
+        </div>
+      </div>
+
+      <div class="li-card">
+        <div class="li-card__body">
+          <div class="li-section-title mb-3"><i class="bi bi-archive me-2 text-primary"></i>Snapshot in archivio</div>
+          {% if latest %}
+          <dl class="row mb-3 small">
+            <dt class="col-5 text-muted">Acquisita</dt>
+            <dd class="col-7">{{ latest.fetched_at|fmt_dataora }}</dd>
+            <dt class="col-5 text-muted">URL effettivo</dt>
+            <dd class="col-7 text-truncate"><a href="{{ latest.url }}" target="_blank" rel="noopener">{{ latest.url }}</a></dd>
+            <dt class="col-5 text-muted">Hash SHA-256</dt>
+            <dd class="col-7"><code class="small">{{ (latest.content_sha256 or '')[:32] }}…</code></dd>
+            <dt class="col-5 text-muted">ETag</dt>
+            <dd class="col-7 text-muted small">{{ latest.etag or '-' }}</dd>
+            <dt class="col-5 text-muted">Last-Modified</dt>
+            <dd class="col-7 text-muted small">{{ latest.last_modified or '-' }}</dd>
+          </dl>
+          <a href="{{ url_for('legal_intelligence.scarica_fonte', source_id=fonte.id) }}" class="btn btn-primary w-100">
+            <i class="bi bi-download me-2"></i>Scarica testo (txt)
+          </a>
+          <div class="small text-muted mt-2">Il file scaricato contiene l'intestazione con URL, hash, data e il testo normalizzato dell'ultimo snapshot acquisito.</div>
+          {% else %}
+          <div class="li-empty">Nessuno snapshot archiviato. Avvia un controllo dalla pagina Fonti per popolare l'archivio.</div>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if source_row.last_error %}
+      <div class="alert alert-warning mt-3 mb-0">
+        <div class="fw-semibold mb-1">Ultimo errore registrato</div>
+        <div class="small">{{ source_row.last_error }}</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

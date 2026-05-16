@@ -15,44 +15,11 @@
       <a href="{{ url_for('legal_intelligence.index') }}" class="btn btn-outline-secondary">
         <i class="bi bi-arrow-left me-2"></i>Motori Legali
       </a>
-      {% if g.utente_corrente and g.utente_corrente.is_superadmin %}
-      <a href="{{ url_for('legal_updates_admin.dashboard') }}" class="btn btn-primary">
-        <i class="bi bi-shield-check me-2"></i>Apri console aggiornamenti
+      <a href="{{ url_for('legal_intelligence.ricerca_unificata') }}" class="btn btn-outline-primary">
+        <i class="bi bi-search me-2"></i>Ricerca legale
       </a>
-      {% endif %}
     </div>
   </div>
-
-  {% if g.utente_corrente and g.utente_corrente.is_superadmin %}
-  <div class="li-card">
-    <div class="li-card__body">
-      <div class="li-section-head">
-        <div class="li-section-title"><i class="bi bi-sliders me-2 text-primary"></i>Ingressi rapidi del motore</div>
-        <span class="badge text-bg-light">superadmin</span>
-      </div>
-      <div class="small li-muted mb-3">
-        Se vuoi vedere dove il sistema cerca, acquisisce, analizza e pubblica, da qui puoi aprire direttamente ogni area operativa.
-      </div>
-      <div class="d-flex flex-wrap gap-2">
-        <a href="{{ url_for('legal_updates_admin.sources_page') }}" class="btn btn-outline-secondary">
-          <i class="bi bi-broadcast me-2"></i>Fonti ufficiali
-        </a>
-        <a href="{{ url_for('legal_updates_admin.staging_page') }}" class="btn btn-outline-secondary">
-          <i class="bi bi-inboxes me-2"></i>Acquisizione
-        </a>
-        <a href="{{ url_for('legal_updates_admin.analysis_page') }}" class="btn btn-outline-secondary">
-          <i class="bi bi-cpu me-2"></i>Analisi AI
-        </a>
-        <a href="{{ url_for('legal_updates_admin.review_page') }}" class="btn btn-outline-secondary">
-          <i class="bi bi-ui-checks-grid me-2"></i>Coda revisioni
-        </a>
-        <a href="{{ url_for('legal_updates_admin.archive_page') }}" class="btn btn-outline-secondary">
-          <i class="bi bi-archive me-2"></i>Archivio strutturato
-        </a>
-      </div>
-    </div>
-  </div>
-  {% endif %}
 
   <div class="lu-kpi-grid">
     <div class="lu-kpi-card">

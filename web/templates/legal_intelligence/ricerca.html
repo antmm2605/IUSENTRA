@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+{% block title %}Ricerca legale{% endblock %}
+
+{% block content %}
+{% set query = risultati.query %}
+{% set totale = risultati.totale %}
+<div class="legal-intelligence-page">
+  <div class="ds-ph">
+    <div class="ds-ph-icon"><i class="bi bi-search-heart"></i></div>
+    <div class="ds-ph-body">
+      <h1 class="ds-ph-title">Ricerca legale</h1>
+      <p class="ds-ph-sub">Una sola query per trovare risultati su fonti monitorate, normativa, news, aggiornamenti e organismi di mediazione.</p>
+    </div>
+    <div class="ds-ph-actions li-header-actions">
+      <a href="{{ url_for('legal_intelligence.index') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-grid-1x2 me-2"></i>Torna ai Motori Legali
+      </a>
+    </div>
+  </div>
+
+  <div class="li-card li-search-card">
+    <div class="li-card__body">
+      <form method="get" action="{{ url_for('legal_intelligence.ricerca_unificata') }}" class="li-search-form" role="search">
+        <div class="input-group input-group-lg">
+          <span class="input-group-text bg-white border-end-0"><i class="bi bi-search"></i></span>
+          <input type="search" name="q" value="{{ query }}" class="form-control border-start-0" placeholder="Esempi: deposito penale, mediazione, fattura forfettaria, sentenza Cassazione 2025…" autofocus>
+          <button class="btn btn-primary" type="submit">Cerca</button>
+        </div>
+        <div class="small text-muted mt-2">
+          La ricerca opera su titolo, contenuto, area e metadati dei record interni. Per la ricerca testuale completa nei testi archiviati apri la singola fonte.
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {% if not query %}
+  <div class="li-card">
+    <div class="li-card__body">
+      <div class="li-section-title mb-2"><i class="bi bi-lightbulb me-2 text-primary"></i>Suggerimenti</div>
+      <div class="small text-muted mb-3">Prova subito con una di queste ricerche per esplorare i contenuti già presenti nel gestionale:</div>
+      <div class="d-flex flex-wrap gap-2">
+        {% for suggestion in ['mediazione', 'deposito penale', 'compensi forensi', 'cassazione', 'pec', 'normattiva', 'pdp'] %}
+        <a href="{{ url_for('legal_intelligence.ricerca_unificata', q=suggestion) }}" class="badge text-bg-light li-search-chip">{{ suggestion }}</a>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="li-card">
+    <div class="li-card__body">
+      <div class="li-section-head">
+        <div>
+          <div class="li-section-title">Risultati per "{{ query }}"</div>
+          <div class="small text-muted">{{ totale }} risultati totali</div>
+        </div>
+        {% if totale == 0 %}
+        <span class="badge text-bg-light">Nessuna corrispondenza</span>
+        {% endif %}
+      </div>
+
+      {% if totale == 0 %}
+      <div class="li-empty">
+        Nessun contenuto interno corrisponde a <strong>"{{ query }}"</strong>.
+        Verifica i termini, oppure <a href="{{ url_for('legal_intelligence.index', tab='fonti') }}">apri direttamente una fonte</a> per cercare nel testo archiviato.
+      </div>
+      {% else %}
+
+      {% if risultati.fonti %}
+      <div class="mb-4">
+        <div class="li-section-title small mb-2"><i class="bi bi-broadcast me-1 text-primary"></i>Fonti ufficiali ({{ risultati.fonti|length }})</div>
+        <div class="li-soft-stack">
+          {% for item in risultati.fonti %}
+          <div class="li-soft-card">
+            <div class="d-flex align-items-start justify-content-between gap-2">
+              <div>
+                <a href="{{ url_for('legal_intelligence.scheda_fonte', source_id=item.id) }}" class="fw-semibold text-decoration-none">{{ item.titolo }}</a>
+                <div class="small text-muted">{{ item.area }} · stato: {{ item.stato }}</div>
+                <div class="small mt-1">{{ item.excerpt }}</div>
+              </div>
+              <div class="d-flex flex-column gap-1">
+                <a href="{{ url_for('legal_intelligence.scheda_fonte', source_id=item.id) }}" class="btn btn-sm btn-outline-primary">Scheda</a>
+                <a href="{{ url_for('legal_intelligence.scarica_fonte', source_id=item.id) }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-download"></i></a>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      {% if risultati.news %}
+      <div class="mb-4">
+        <div class="li-section-title small mb-2"><i class="bi bi-newspaper me-1 text-primary"></i>News ({{ risultati.news|length }})</div>
+        <div class="li-soft-stack">
+          {% for item in risultati.news %}
+          <div class="li-soft-card">
+            <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+              <span class="badge text-bg-light">{{ item.tipo|replace('_', ' ') }}</span>
+              {% if item.materia %}<span class="badge text-bg-secondary">{{ item.materia }}</span>{% endif %}
+              {% if item.data %}<span class="small text-muted">{{ item.data|fmt_dataora }}</span>{% endif %}
+            </div>
+            <a href="{{ url_for('legal_intelligence.dettaglio_news', slug=item.slug) }}" class="fw-semibold text-decoration-none">{{ item.titolo }}</a>
+            <div class="small mt-1">{{ item.excerpt }}</div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      {% if risultati.tabelle %}
+      <div class="mb-4">
+        <div class="li-section-title small mb-2"><i class="bi bi-database me-1 text-primary"></i>Tabelle normative ({{ risultati.tabelle|length }})</div>
+        <div class="li-soft-stack">
+          {% for item in risultati.tabelle %}
+          <div class="li-soft-card">
+            <div class="d-flex align-items-start justify-content-between gap-2">
+              <div>
+                <div class="fw-semibold">{{ item.titolo }}</div>
+                <div class="small text-muted">{{ item.categoria|replace('_', ' ') }} · stato {{ item.stato|replace('_', ' ') }}</div>
+                <div class="small mt-1">{{ item.excerpt }}</div>
+              </div>
+              {% if item.ultimo_sync %}<div class="small text-muted">{{ item.ultimo_sync|fmt_dataora }}</div>{% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      {% if risultati.riferimenti %}
+      <div class="mb-4">
+        <div class="li-section-title small mb-2"><i class="bi bi-bookmark-check me-1 text-primary"></i>Riferimenti normativi ({{ risultati.riferimenti|length }})</div>
+        <div class="li-soft-stack">
+          {% for item in risultati.riferimenti %}
+          <div class="li-soft-card">
+            <div class="d-flex align-items-start justify-content-between gap-2">
+              <div>
+                <div class="fw-semibold">{{ item.titolo }}</div>
+                <div class="small text-muted">{{ item.articolo }} · {{ item.aree|join(', ') or '-' }}</div>
+                <div class="small mt-1">{{ item.excerpt }}</div>
+              </div>
+              {% if item.url %}
+              <a href="{{ item.url }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary">Fonte</a>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      {% if risultati.aggiornamenti %}
+      <div class="mb-4">
+        <div class="li-section-title small mb-2"><i class="bi bi-bell me-1 text-primary"></i>Aggiornamenti motore giornaliero ({{ risultati.aggiornamenti|length }})</div>
+        <div class="li-soft-stack">
+          {% for item in risultati.aggiornamenti %}
+          <div class="li-soft-card">
+            <div class="d-flex align-items-start justify-content-between gap-2">
+              <div>
+                <div class="fw-semibold">{{ item.titolo }}</div>
+                <div class="small text-muted">Aree: {{ item.aree|join(', ') or '-' }}</div>
+                <div class="small mt-1">{{ item.sintesi }}</div>
+              </div>
+              <span class="badge {% if item.stato == 'applied' %}text-bg-success{% elif item.stato == 'pending_review' %}text-bg-warning{% else %}text-bg-secondary{% endif %}">{{ item.stato|replace('_', ' ') }}</span>
+            </div>
+            <a href="{{ url_for('legal_intelligence.diff_daily_update', update_id=item.id) }}" class="btn btn-sm btn-outline-secondary mt-2"><i class="bi bi-file-diff me-1"></i>Vedi diff</a>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      {% if risultati.organismi %}
+      <div class="mb-4">
+        <div class="li-section-title small mb-2"><i class="bi bi-building-check me-1 text-primary"></i>Organismi di mediazione ({{ risultati.organismi|length }})</div>
+        <div class="table-responsive">
+          <table class="table align-middle li-table">
+            <thead>
+              <tr><th>N.</th><th>Organismo</th><th>Sede</th><th>Contatti</th></tr>
+            </thead>
+            <tbody>
+              {% for item in risultati.organismi[:25] %}
+              <tr>
+                <td class="fw-semibold">{{ item.numero or 'n/d' }}</td>
+                <td>
+                  <div class="fw-semibold">{{ item.nome }}</div>
+                  {% if item.tipo %}<span class="badge text-bg-light">{{ item.tipo }}</span>{% endif %}
+                </td>
+                <td class="small">{{ item.citta }}{% if item.provincia %} ({{ item.provincia }}){% endif %}</td>
+                <td class="small">
+                  {% if item.pec %}<div><a href="mailto:{{ item.pec }}">{{ item.pec }}</a></div>{% endif %}
+                  {% if item.email and item.email != item.pec %}<div><a href="mailto:{{ item.email }}">{{ item.email }}</a></div>{% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% if risultati.organismi|length > 25 %}
+        <div class="small text-muted mt-2">Mostro i primi 25 risultati. <a href="{{ url_for('legal_intelligence.registro_mediazione', q=query) }}">Apri filtro completo nel registro mediazione</a>.</div>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

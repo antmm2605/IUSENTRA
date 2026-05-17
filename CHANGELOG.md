@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.245.2 - 2026-05-17
+
+- Gli esiti storici degli agenti fonte salvati come `completed` ma con errori interni nel payload vengono riletti come `Da verificare`, con messaggio operativo e fallback OpenGA per Giustizia Amministrativa.
+- La normalizzazione agisce sia in scrittura sia in lettura, cosi' le console non mostrano piu' fotografie vecchie falsamente completate dopo l'hotfix degli agenti fonte.
+
 ## 2.245.1 - 2026-05-17
 
 - La fonte diretta `Giustizia Amministrativa` e' ora in osservazione: il ciclo automatico non insiste sul canale HTML instabile e usa OpenGA ufficiale come presidio principale per amministrativo.

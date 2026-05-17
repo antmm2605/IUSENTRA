@@ -1,6 +1,6 @@
 # Pytest issue aperte e risoluzioni
 
-Aggiornato: 2026-05-17, agenti fonte legale 2.245.1.
+Aggiornato: 2026-05-17, agenti fonte legale 2.245.2.
 
 ## Regola operativa
 
@@ -10,6 +10,7 @@ Questo file e' la coda di lavoro. Prima di rilanciare test gia' passati, control
 
 | Area | Test / comando | Stato | Problema rilevato | Risoluzione |
 | --- | --- | --- | --- | --- |
+| Agenti fonte storici 2026-05-17 | Ultimo record `source_agent_runs` gia' salvato prima dell'hotfix | Nessuna issue aperta dopo fix 2.245.2 | In produzione era presente un esito vecchio marcato `completed` ma con errore SSL dentro `payload_json.reports[].error`, quindi la console poteva continuare a mostrare una fotografia fuorviante. | Il repository normalizza in lettura e in scrittura: qualunque `completed` con errore interno diventa `failed`/`Da verificare`; per `giustizia_amministrativa` aggiunge la risoluzione OpenGA ufficiale. |
 | Archivio Giurisprudenza / fonti 2026-05-17 | Stati fonte mostrati nella pagina React | Nessuna issue aperta dopo fix 2.245.1 | La UI mostrava codici grezzi come `errore` e `handoff_richiesto`, lasciando l'utente senza soluzione operativa. In particolare il canale HTML diretto della Giustizia Amministrativa falliva nonostante OpenGA fosse disponibile. | Stati convertiti in `Da verificare`, `Aggiornata` e `Recupero assistito`; Giustizia Amministrativa diretta in osservazione con presidio OpenGA; Cassazione, Corte costituzionale, CURIA e HUDOC hanno fallback ufficiali documentati. Gate 37/37, Ruff e typecheck registrati in `pytest-confirmed-ok.md`. |
 | React shell legacy Impostazioni 2026-05-17 | `python -m pytest tests\test_react_shell.py::test_react_route_gate_copre_rotte_profonde_e_preserva_contratti_operativi -q --tb=short` | Aperto preesistente, non collegato a fonti legali | Lo shard storico oggi fallisce per `/impostazioni?tab=pec&_legacy=1` con 404 atteso dal test come 200; il perimetro corretto della modifica fonte legale e' gia' coperto da contratti React, build, pytest mirati e route Legal Intelligence. | Non dichiarare verde questo shard finche' il contratto legacy Impostazioni non viene riallineato in una tranche dedicata. Per il fix fonti usare i gate registrati in `pytest-confirmed-ok.md`. |
 | Job manuale fonti legali 2026-05-17 | Script operativo avviato su Hetzner | Risolto da rilanciare dopo deploy 2.245.0 | Gazzetta retry e import Normattiva sono completati, ma il passaggio finale `pct aggiornamenti-legali` dello script manuale e' fallito con `pct: not found` per PATH non disponibile nel processo `nohup`. | Dopo deploy usare sempre `/venv/bin/pct aggiornamenti-legali ...` oppure `/venv/bin/python -m pct.cli ...`; il nuovo runner 2.245.0 registra inoltre l'esito per ogni fonte in `source_agent_runs`. |

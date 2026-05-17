@@ -6,7 +6,7 @@ Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle
 
 ## Aggiornamento operativo 2.243.5 - 2026-05-16
 
-Aggiornamento 2.245.1: per Giustizia Amministrativa il canale HTML
+Aggiornamento 2.245.2: per Giustizia Amministrativa il canale HTML
 istituzionale diretto e' stato messo in osservazione, perche' puo' fallire in
 modo instabile durante crawler/SSL. Il presidio automatico principale passa a
 OpenGA ufficiale (`openga_giustizia_amministrativa` e cartelle `openga_*`),
@@ -14,6 +14,9 @@ che espone dataset CKAN per sentenze, ordinanze, decreti, pareri,
 provvedimenti, ricorsi e calendario udienze. Gli agenti fonte non marcano piu'
 come completata una scansione che contiene errori interni: l'esito diventa
 `failed`/da verificare e registra anche la soluzione alternativa applicata.
+La stessa normalizzazione vale per gli esiti gia' salvati: un vecchio record
+`completed` con errore dentro `payload_json.reports[].error` viene riletto come
+`Da verificare`, cosi' la console non conserva stati falsamente positivi.
 La pagina React `Archivio Giurisprudenza` traduce gli stati tecnici in esiti
 operativi: `Da verificare`, `Aggiornata` o `Recupero assistito`; per la fonte
 diretta amministrativa espone la nota di risoluzione verso OpenGA invece di

@@ -79,6 +79,45 @@ def _json_load(value: Any, default: Any) -> Any:
         return default
 
 
+def _source_agent_payload_errors(payload: dict[str, Any] | None) -> list[str]:
+    data = payload if isinstance(payload, dict) else {}
+    reports = data.get("reports")
+    if not isinstance(reports, list):
+        report = data.get("report")
+        reports = report.get("reports") if isinstance(report, dict) else []
+    errors: list[str] = []
+    for item in reports or []:
+        if not isinstance(item, dict):
+            continue
+        message = _clean_spaces(item.get("error") or item.get("error_message"))
+        if message:
+            errors.append(message)
+    direct_error = _clean_spaces(data.get("error") or data.get("error_message"))
+    if direct_error:
+        errors.append(direct_error)
+    return errors
+
+
+def _source_agent_resolution_hint(source_code: str, message: str) -> str:
+    code = _normalize_token(source_code)
+    if code == "giustizia_amministrativa" and "openga" not in message.casefold():
+        return (
+            "Risoluzione automatica: fonte HTML diretta in osservazione; "
+            "presidio automatico affidato a OpenGA ufficiale."
+        )
+    return ""
+
+
+def _source_agent_error_message(source_code: str, errors: list[str], existing: Any = "") -> str:
+    parts = [_clean_spaces(existing)]
+    parts.extend(_clean_spaces(error) for error in errors)
+    message = "; ".join(dict.fromkeys(part for part in parts if part))
+    hint = _source_agent_resolution_hint(source_code, message)
+    if hint:
+        message = "; ".join(part for part in (message, hint) if part)
+    return message
+
+
 def _slugify(value: str) -> str:
     text = _normalize_token(value)
     text = re.sub(r"[^a-z0-9]+", "-", text)
@@ -562,11 +601,16 @@ class LegalUpdateRepository:
         code = _normalize_token(source_code)
         if not code:
             raise ValueError("Codice fonte obbligatorio.")
+        payload_data = payload if isinstance(payload, dict) else {}
+        payload_errors = _source_agent_payload_errors(payload_data)
         finished = _clean_spaces(finished_at) or _now_iso()
         started = _clean_spaces(started_at) or finished
         clean_status = _normalize_token(status or "completed")
+        if clean_status == "completed" and payload_errors:
+            clean_status = "failed"
         if clean_status not in {"completed", "failed", "timeout", "running"}:
             clean_status = "failed"
+        clean_error_message = _source_agent_error_message(code, payload_errors, error_message)
         with self._connect() as conn:
             run_id = self._insert_and_get_id(
                 conn,
@@ -592,13 +636,30 @@ class LegalUpdateRepository:
                     max(0, int(processed or 0)),
                     max(0, int(skipped_unchanged or 0)),
                     max(0, int(autopublished_count or 0)),
-                    _clean_spaces(error_message)[:4000],
+                    clean_error_message[:4000],
                     str(stderr_tail or "")[-4000:],
-                    _json_dump(payload or {}),
+                    _json_dump(payload_data),
                 ),
             )
             conn.commit()
         return self.get_source_agent_run(run_id) or {}
+
+    def _decode_source_agent_run(self, row: sqlite3.Row | None) -> dict[str, Any] | None:
+        payload = self._decode_row(row, json_fields=("payload_json",)) if row else None
+        if not payload:
+            return None
+        payload_data = payload.get("payload_json")
+        payload_errors = _source_agent_payload_errors(payload_data if isinstance(payload_data, dict) else {})
+        if payload_errors:
+            status = _normalize_token(payload.get("status"))
+            if status == "completed":
+                payload["status"] = "failed"
+            payload["error_message"] = _source_agent_error_message(
+                str(payload.get("source_code") or ""),
+                payload_errors,
+                payload.get("error_message"),
+            )[:4000]
+        return payload
 
     def get_source_agent_run(self, run_id: int) -> dict[str, Any] | None:
         with self._connect() as conn:
@@ -606,7 +667,7 @@ class LegalUpdateRepository:
                 "SELECT * FROM source_agent_runs WHERE id = ?",
                 (int(run_id),),
             ).fetchone()
-        return self._decode_row(row, json_fields=("payload_json",)) if row else None
+        return self._decode_source_agent_run(row)
 
     def latest_source_agent_runs(self) -> dict[str, dict[str, Any]]:
         with self._connect() as conn:
@@ -623,7 +684,7 @@ class LegalUpdateRepository:
             ).fetchall()
         latest: dict[str, dict[str, Any]] = {}
         for row in rows:
-            payload = self._decode_row(row, json_fields=("payload_json",)) or {}
+            payload = self._decode_source_agent_run(row) or {}
             code = _normalize_token(payload.get("source_code"))
             if code:
                 latest[code] = payload

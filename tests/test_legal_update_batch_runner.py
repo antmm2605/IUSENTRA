@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 import subprocess
 from types import SimpleNamespace
 
@@ -198,6 +199,32 @@ def test_legal_update_batch_marca_fonte_fallita_se_report_interno_ha_errore(tmp_
     assert report["reports"][0]["inner_errors"] == ["Fonte non raggiungibile"]
     assert latest["status"] == "failed"
     assert "Fonte non raggiungibile" in latest["error_message"]
+    assert "OpenGA ufficiale" in latest["error_message"]
+
+
+def test_source_agent_run_storico_completed_con_errore_viene_letto_da_verificare(tmp_path):
+    intelligence_db = tmp_path / "intelligence" / "motori.json"
+    repository = LegalUpdateRepository(**LegalUpdateDbConfig.from_anchor(str(intelligence_db)).__dict__)
+    run = repository.record_source_agent_run(
+        source_code="giustizia_amministrativa",
+        source_name="Giustizia Amministrativa",
+        status="completed",
+        payload={"reports": [{"source": "giustizia_amministrativa", "error": "Errore SSL"}]},
+    )
+    with sqlite3.connect(repository.db_path) as conn:
+        conn.execute(
+            "UPDATE source_agent_runs SET status = 'completed', error_message = '' WHERE id = ?",
+            (run["id"],),
+        )
+        conn.commit()
+
+    recovered = repository.get_source_agent_run(run["id"])
+    latest = repository.latest_source_agent_runs()["giustizia_amministrativa"]
+
+    assert recovered is not None
+    assert recovered["status"] == "failed"
+    assert latest["status"] == "failed"
+    assert "Errore SSL" in latest["error_message"]
     assert "OpenGA ufficiale" in latest["error_message"]
 
 

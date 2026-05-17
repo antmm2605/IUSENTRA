@@ -1,12 +1,20 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-17, agenti fonte legale verificabili 2.245.1, no backup.
+Aggiornato: 2026-05-17, agenti fonte legale verificabili 2.245.2, no backup.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Normalizzazione esiti agenti fonte 2.245.2 - 2026-05-17
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct\legal_update_repository.py tests\test_legal_update_batch_runner.py` | OK | Sintassi confermata dopo normalizzazione in lettura/scrittura degli esiti agenti fonte con payload interno in errore. |
+| `python -m pytest tests\test_legal_update_batch_runner.py -q --tb=short` | OK | 7/7 passati: gli esiti storici `completed` con `reports[].error` vengono riletti come `failed`/`Da verificare` e mantengono il fallback OpenGA per Giustizia Amministrativa. |
+| `python -m pytest tests\test_legal_update_batch_runner.py tests\test_scheduler_registry.py tests\test_scheduler_worker.py tests\test_giurisprudenza.py tests\test_legal_updates_pipeline.py::test_pagina_fonti_mostra_catalogo_professionale_e_ciclo_giornaliero -q --tb=short` | OK | 38/38 passati dopo la normalizzazione degli esiti storici agenti fonte. |
 
 ### Agenti fonte e fallback giurisprudenza 2.245.1 - 2026-05-17
 

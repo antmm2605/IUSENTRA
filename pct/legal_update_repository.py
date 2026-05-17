@@ -1594,6 +1594,9 @@ class LegalUpdateRepository:
         *,
         limit: int = 100,
         source_codes: tuple[str, ...] = (),
+        statuses: tuple[str, ...] | None = ("pending", "approved", "published"),
+        include_closed: bool = False,
+        include_open_data: bool = False,
     ) -> list[dict[str, Any]]:
         clauses = [
             "q.status <> 'rejected'",
@@ -1607,9 +1610,19 @@ class LegalUpdateRepository:
             """,
         ]
         params: list[Any] = []
+        status_values = tuple(_normalize_token(status) for status in (statuses or ()) if _normalize_token(status))
+        if status_values:
+            clauses.append("q.status IN ({})".format(",".join("?" for _ in status_values)))
+            params.extend(status_values)
+        elif not include_closed:
+            clauses.append("q.status <> 'closed'")
         if source_codes:
             clauses.append("s.code IN ({})".format(",".join("?" for _ in source_codes)))
             params.extend(_normalize_token(code) for code in source_codes)
+        if not include_open_data:
+            clauses.append("COALESCE(s.source_type, '') <> 'open_data'")
+            clauses.append("COALESCE(s.parser_type, '') <> 'ckan_json'")
+            clauses.append("s.code NOT LIKE 'openga_%'")
         params.append(int(limit))
         with self._connect() as conn:
             rows = conn.execute(

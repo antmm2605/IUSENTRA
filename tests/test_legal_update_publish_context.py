@@ -409,6 +409,115 @@ def test_backfill_web_verification_evidence_popola_review_esistenti(tmp_path: Pa
     assert evidence_count == 1
 
 
+def test_backfill_web_verification_evidence_lavora_solo_record_azionabili(tmp_path: Path, monkeypatch):
+    pipeline = build_legal_update_pipeline(str(tmp_path / "intelligence" / "motori.json"))
+    actionable_source = pipeline.repository.get_source_by_code("agcom_provvedimenti")
+    open_data_source = pipeline.repository.get_source_by_code("openga_sentenze")
+    assert actionable_source is not None
+    assert open_data_source is not None
+
+    def _review_for(source: dict, *, external_id: str, status: str) -> int:
+        raw = pipeline.repository.save_raw_document(
+            {
+                "source_id": source["id"],
+                "external_id": external_id,
+                "source_url": f"https://example.invalid/{external_id}",
+                "title": f"Documento {external_id}",
+                "published_at": "2026-05-17",
+                "raw_html": "",
+                "raw_text": f"Documento {external_id} da verificare.",
+                "content_hash": f"hash-{external_id}",
+                "fetch_status": "fetched",
+                "http_status": 200,
+            }
+        )
+        normalized = pipeline.repository.save_normalized_document(
+            int(raw["id"]),
+            {
+                "title": f"Documento {external_id}",
+                "body_text": f"Documento {external_id} da verificare.",
+                "body_short": f"Documento {external_id} da verificare.",
+                "language": "it",
+                "issuer": str(source.get("name") or ""),
+                "document_date": "2026-05-17",
+                "document_type_guess": "provvedimento",
+                "attachments_json": [],
+            },
+        )
+        analysis = pipeline.repository.save_analysis(
+            int(normalized["id"]),
+            {
+                "classification_type": "COMMENTO",
+                "confidence_score": 0.52,
+                "impact_level": "medio",
+                "summary_short": f"Documento {external_id} da verificare.",
+                "summary_long": f"Documento {external_id} da verificare.",
+                "what_changes": "",
+                "extracted_entities_json": {},
+                "proposed_action": "NEWS_ONLY",
+                "target_entity_type": "",
+                "target_entity_id": None,
+            },
+        )
+        review = pipeline.repository.upsert_review_item(
+            {
+                "normalized_document_id": int(normalized["id"]),
+                "analysis_id": int(analysis["id"]),
+                "proposal_type": "commento",
+                "proposed_action": "NEWS_ONLY",
+                "target_entity_type": "",
+                "target_entity_id": None,
+                "proposal_payload_json": {},
+                "status": status,
+                "priority": 80,
+            }
+        )
+        return int(review["id"])
+
+    actionable_review_id = _review_for(actionable_source, external_id="agcom-azionabile", status="pending")
+    _review_for(open_data_source, external_id="openga-chiuso", status="closed")
+    calls: list[tuple[str, bool]] = []
+
+    def fake_verify(review, source, **kwargs):
+        calls.append((str(source["code"]), bool(kwargs.get("direct_only"))))
+        return {
+            "ok": True,
+            "reason": "Fonte diretta verificata.",
+            "confirmation_count": 1,
+            "official_confirmations": 1,
+            "confirmations": [
+                {
+                    "origin": "fonte_acquisita",
+                    "source_name": source["name"],
+                    "title": review["title"],
+                    "url": review["source_url"],
+                    "official": True,
+                    "excerpt": "Documento azionabile verificato.",
+                    "content": "Documento azionabile verificato.",
+                    "context_chars": 31,
+                    "matched_terms": ["documento"],
+                    "query": review["title"],
+                }
+            ],
+            "searched": {"web_results": 0, "direct_only": True},
+        }
+
+    monkeypatch.setattr("pct.legal_update_pipeline.verify_legal_update_against_public_sources", fake_verify)
+
+    report = pipeline.backfill_web_verification_evidence(limit=10, max_seconds=30)
+
+    with pipeline.repository._connect() as conn:
+        evidence_rows = conn.execute("SELECT review_id, source_code FROM web_verification_evidence").fetchall()
+
+    assert report["selected"] == 1
+    assert report["checked"] == 1
+    assert report["direct_only"] is True
+    assert calls == [("agcom_provvedimenti", True)]
+    assert [(row["review_id"], row["source_code"]) for row in evidence_rows] == [
+        (actionable_review_id, "agcom_provvedimenti")
+    ]
+
+
 def test_publish_auto_news_salva_diagnosi_quando_web_non_trova_conferme(tmp_path: Path, monkeypatch):
     pipeline = build_legal_update_pipeline(str(tmp_path / "intelligence" / "motori.json"))
     source = pipeline.repository.get_source_by_code("agcom_provvedimenti")

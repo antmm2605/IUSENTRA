@@ -35,6 +35,58 @@ def test_legal_update_job_cli_pubblica_un_solo_elemento(monkeypatch, capsys):
     assert payload["published_count"] == 1
 
 
+def test_legal_update_job_cli_backfill_evidenze_usa_limiti_governati(monkeypatch, capsys):
+    import pct.legal_update_job as job
+
+    calls: list[dict[str, object]] = []
+
+    class _Pipeline:
+        def backfill_web_verification_evidence(self, **kwargs):
+            calls.append(kwargs)
+            return {
+                "ok": True,
+                "checked": 2,
+                "verification_evidence_saved": 2,
+                "dashboard": {"headline": {"web_evidence": 2}},
+            }
+
+        def dashboard_snapshot(self):
+            return {"headline": {"web_evidence": 2}}
+
+    monkeypatch.setattr(job, "build_legal_update_pipeline", lambda *args, **kwargs: _Pipeline())
+
+    rc = job.main(
+        [
+            "--intelligence-db",
+            "legal.json",
+            "--backfill-web-evidence",
+            "--backfill-limit",
+            "7",
+            "--backfill-max-seconds",
+            "15",
+            "--backfill-status",
+            "pending",
+            "--source-code",
+            "agcom_provvedimenti",
+        ]
+    )
+
+    assert rc == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["mode"] == "backfill_web_evidence"
+    assert calls == [
+        {
+            "limit": 7,
+            "source_codes": ["agcom_provvedimenti"],
+            "statuses": ("pending",),
+            "include_closed": False,
+            "include_open_data": False,
+            "direct_only": True,
+            "max_seconds": 15,
+        }
+    ]
+
+
 def test_legal_update_job_command_esegue_fonte_singola_con_timeout_governabile():
     config = LegalUpdateJobConfig(
         intelligence_db="/data/intelligence/motori.json",

@@ -4,6 +4,26 @@ Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle
 
 ---
 
+## Aggiornamento operativo 2.245.13 - 2026-05-17
+
+Il recupero evidenze web è stato ristretto al perimetro che serve davvero allo
+studio: per default vengono trattati solo record `pending`, `approved` e
+`published`, mentre metadati chiusi e dataset open-data massivi restano esclusi
+finché non vengono richiesti esplicitamente.
+
+La modalità predefinita del backfill è ora "fonte diretta": legge la pagina
+ufficiale già collegata al documento e gli allegati pubblici collegati, salva
+URL, testo, PDF/hash quando disponibili e registra `insufficient` con motivo
+esplicito quando la prova non basta. La ricerca web estesa resta disponibile,
+ma deve essere richiesta come secondo passaggio perché è più lenta e va
+governata per fonte.
+
+La CLI accetta `--backfill-max-seconds`, `--backfill-status`,
+`--backfill-include-closed`, `--backfill-include-open-data` e
+`--backfill-full-search`. Questo impedisce job appesi e rende misurabile ogni
+tranche: quanti record sono stati selezionati, controllati, salvati, con
+allegati, fermati dal limite di tempo o lasciati con diagnosi interrogabile.
+
 ## Aggiornamento operativo 2.245.12 - 2026-05-17
 
 Le evidenze web non dipendono piu' dalla sola coda di pubblicazione: ogni

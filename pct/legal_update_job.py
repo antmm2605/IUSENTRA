@@ -19,6 +19,11 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--publish-limit", type=int, default=1)
     parser.add_argument("--backfill-web-evidence", action="store_true")
     parser.add_argument("--backfill-limit", type=int, default=100)
+    parser.add_argument("--backfill-max-seconds", type=int, default=0)
+    parser.add_argument("--backfill-status", action="append", default=[])
+    parser.add_argument("--backfill-include-closed", action="store_true")
+    parser.add_argument("--backfill-include-open-data", action="store_true")
+    parser.add_argument("--backfill-full-search", action="store_true")
     parser.add_argument("--no-auto-publish", action="store_true")
     parser.add_argument("--local-ai-url", default="")
     parser.add_argument("--local-ai-model", default="mistral")
@@ -43,6 +48,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         backfill = pipeline.backfill_web_verification_evidence(
             limit=max(1, int(args.backfill_limit or 1)),
             source_codes=source_codes,
+            statuses=tuple(args.backfill_status or ()) or None,
+            include_closed=bool(args.backfill_include_closed),
+            include_open_data=bool(args.backfill_include_open_data),
+            direct_only=not bool(args.backfill_full_search),
+            max_seconds=max(0, int(args.backfill_max_seconds or 0)),
         )
         payload = {
             "ok": True,

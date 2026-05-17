@@ -1,12 +1,22 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-17, ampliamento fonti legali e motori di supporto, no backup.
+Aggiornato: 2026-05-17, backfill evidenze web legali governato, no backup.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Backfill evidenze web legali governato - 2026-05-17
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct\legal_update_web_verification.py pct\legal_update_pipeline.py pct\legal_update_repository.py pct\legal_update_job.py tests\test_legal_update_publish_context.py tests\test_legal_update_batch_runner.py` | OK | Sintassi confermata dopo backfill diretto, filtri sui record azionabili e CLI con limite tempo/stati. |
+| `python -m pytest -q tests\test_legal_update_publish_context.py tests\test_legal_update_batch_runner.py tests\test_legal_update_web_verification_attachments.py` | OK | 24/24 passati: il backfill salva evidenze solo su record azionabili, esclude chiusi/open-data per default, passa `direct_only=True` e conserva persistenza allegati/evidenze. |
+| `python -m ruff check pct\legal_update_web_verification.py pct\legal_update_pipeline.py pct\legal_update_repository.py pct\legal_update_job.py tests\test_legal_update_publish_context.py tests\test_legal_update_batch_runner.py` | OK | Ruff mirato verde sul perimetro completamento evidenze. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest -q tests\test_packaging_consistency.py tests\test_release_readiness.py` | OK | Packaging sincronizzato e readiness 8/8 dopo bump `2.245.13`. |
+| `python -m pct.cli utf8-integrity --check-only --root ... --json` | OK | Scan UTF-8 mirato su changelog, audit Lex, report e test: `ok=true`, 4 file controllati, 0 artefatti, 0 riparazioni. I file runtime locali creati dal bootstrap del comando sono stati rimossi e non committati. |
 
 ### Ampliamento fonti legali e motori di supporto - 2026-05-17
 

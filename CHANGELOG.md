@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.245.13 - 2026-05-17
+
+- Il backfill delle evidenze web legali lavora per default solo sui record azionabili (pending, approved, published) ed esclude metadati chiusi/open-data, così il recupero non si perde su migliaia di righe non utili allo studio.
+- La verifica di recupero usa prima la fonte ufficiale diretta e gli allegati collegati, salva diagnosi insufficient quando manca una conferma e non dichiara completato un riferimento privo di URL/testo/allegato o motivo esplicito.
+- La CLI pct.legal_update_job --backfill-web-evidence ora accetta limite di tempo, stati, inclusione esplicita di record chiusi/open-data e ricerca estesa opzionale, per completare l'archivio a tranche misurabili senza job appesi.
+
 ## 2.245.12 - 2026-05-17
 
 - Gli aggiornamenti legali salvano evidenze web gia' durante l'acquisizione del documento, senza aspettare che il record entri nella pubblicazione automatica.

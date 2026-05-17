@@ -945,15 +945,54 @@ def _search_and_confirm(
     return rows
 
 
+def _verification_result(
+    *,
+    action: str,
+    query: str,
+    confirmations: list[dict[str, Any]],
+    warnings: list[str],
+    searched: dict[str, Any],
+    direct_only: bool,
+) -> dict[str, Any]:
+    confirmations = _deduplicate_confirmations(confirmations)
+    official_count = sum(1 for row in confirmations if bool(row.get("official")))
+    required_confirmations = 2 if action in STRUCTURED_ACTIONS else 1
+    verified = official_count >= 1 and len(confirmations) >= required_confirmations
+    if verified:
+        reason = "Verifica pubblica completata con fonti coerenti."
+    elif direct_only and confirmations:
+        reason = (
+            "Fonte ufficiale diretta acquisita, ma servono ulteriori conferme "
+            "prima di trattare il riferimento come completato."
+        )
+    elif direct_only:
+        reason = "Fonte diretta non leggibile o non riconosciuta: completamento web esteso ancora da eseguire."
+    elif action in STRUCTURED_ACTIONS:
+        reason = "Servono almeno una fonte primaria e una seconda conferma coerente prima della pubblicazione automatica."
+    else:
+        reason = "Nessuna fonte pubblica coerente trovata per la pubblicazione automatica."
+
+    return {
+        "ok": verified,
+        "status": "verified" if verified else "insufficient",
+        "query": query,
+        "required_confirmations": required_confirmations,
+        "official_confirmations": official_count,
+        "confirmation_count": len(confirmations),
+        "confirmations": confirmations,
+        "warnings": warnings,
+        "searched": searched,
+        "reason": reason,
+    }
+
+
 def verify_legal_update_against_public_sources(
     review: dict[str, Any],
     source: dict[str, Any],
     *,
     limit: int = 5,
+    direct_only: bool = False,
 ) -> dict[str, Any]:
-    from lex.retrieval.official_sources_retriever import search_gazzetta, search_normattiva, search_official_sources
-    from lex.retrieval.official_web import search_recognized_official_web
-
     action = _clean_spaces(review.get("proposed_action")).upper()
     queries = _verification_queries(review)
     query = queries[0] if queries else _verification_query(review)
@@ -965,6 +1004,7 @@ def verify_legal_update_against_public_sources(
         "source_ids": _source_ids_for_review(review, source),
         "web_searches": [],
         "web_context": True,
+        "direct_only": bool(direct_only),
     }
 
     self_match = _self_confirmation(review, source)
@@ -1003,6 +1043,20 @@ def verify_legal_update_against_public_sources(
                 review,
             )
             confirmations.append(enriched_attachment)
+
+    if direct_only:
+        searched["web_results"] = 0
+        return _verification_result(
+            action=action,
+            query=query,
+            confirmations=confirmations,
+            warnings=warnings,
+            searched=searched,
+            direct_only=True,
+        )
+
+    from lex.retrieval.official_sources_retriever import search_gazzetta, search_normattiva, search_official_sources
+    from lex.retrieval.official_web import search_recognized_official_web
 
     web_results_seen = 0
     seen_web_urls: set[str] = set()
@@ -1095,29 +1149,14 @@ def verify_legal_update_against_public_sources(
                 warnings.append(f"Ricerca web governata non completata: {_truncate(exc, 140)}")
     searched["web_results"] = web_results_seen
 
-    confirmations = _deduplicate_confirmations(confirmations)
-    official_count = sum(1 for row in confirmations if bool(row.get("official")))
-    required_confirmations = 2 if action in STRUCTURED_ACTIONS else 1
-    verified = official_count >= 1 and len(confirmations) >= required_confirmations
-    if not verified and action in STRUCTURED_ACTIONS:
-        reason = "Servono almeno una fonte primaria e una seconda conferma coerente prima della pubblicazione automatica."
-    elif not verified:
-        reason = "Nessuna fonte pubblica coerente trovata per la pubblicazione automatica."
-    else:
-        reason = "Verifica pubblica completata con fonti coerenti."
-
-    return {
-        "ok": verified,
-        "status": "verified" if verified else "insufficient",
-        "query": query,
-        "required_confirmations": required_confirmations,
-        "official_confirmations": official_count,
-        "confirmation_count": len(confirmations),
-        "confirmations": confirmations,
-        "warnings": warnings,
-        "searched": searched,
-        "reason": reason,
-    }
+    return _verification_result(
+        action=action,
+        query=query,
+        confirmations=confirmations,
+        warnings=warnings,
+        searched=searched,
+        direct_only=False,
+    )
 
 
 __all__ = ["extract_official_attachment_confirmations", "verify_legal_update_against_public_sources"]

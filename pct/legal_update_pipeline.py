@@ -4,6 +4,7 @@ from email.utils import parsedate_to_datetime
 import hashlib
 import json
 import re
+import time
 from typing import Any, Callable
 from urllib.parse import parse_qsl, urlencode, urljoin, urlsplit, urlunsplit
 import xml.etree.ElementTree as ET
@@ -1655,25 +1656,43 @@ class LegalUpdatePipeline:
         *,
         limit: int = 100,
         source_codes: list[str] | None = None,
+        statuses: tuple[str, ...] | None = None,
+        include_closed: bool = False,
+        include_open_data: bool = False,
+        direct_only: bool = True,
+        max_seconds: int = 0,
     ) -> dict[str, Any]:
         source_code_tuple = tuple(_clean_spaces(code) for code in (source_codes or []) if _clean_spaces(code))
+        status_tuple = (
+            tuple(_clean_spaces(status).lower() for status in statuses if _clean_spaces(status))
+            if statuses is not None
+            else ("pending", "approved", "published")
+        )
         reviews = self.repository.list_reviews_missing_web_evidence(
             limit=max(1, int(limit or 1)),
             source_codes=source_code_tuple,
+            statuses=status_tuple,
+            include_closed=include_closed,
+            include_open_data=include_open_data,
         )
+        started = time.monotonic()
         checked = 0
         skipped = 0
+        stopped_for_time_limit = False
         verification_attempts = 0
         verification_evidence_saved = 0
         verification_attachments_saved = 0
         rows: list[dict[str, Any]] = []
         for review in reviews:
+            if max_seconds and time.monotonic() - started >= max(1, int(max_seconds)):
+                stopped_for_time_limit = True
+                break
             checked += 1
             source = self._source_for_review(review)
             if not source or not self._is_trusted_update_source(source):
                 skipped += 1
                 continue
-            evidence = self._record_ingestion_verification_evidence(review, source)
+            evidence = self._record_ingestion_verification_evidence(review, source, direct_only=direct_only)
             verification_attempts += int(evidence.get("attempted") or 0)
             verification_evidence_saved += int(evidence.get("saved") or 0)
             verification_attachments_saved += int(evidence.get("attachments") or 0)
@@ -1693,6 +1712,13 @@ class LegalUpdatePipeline:
             "ok": True,
             "checked": checked,
             "skipped": skipped,
+            "selected": len(reviews),
+            "duration_seconds": round(time.monotonic() - started, 2),
+            "stopped_for_time_limit": stopped_for_time_limit,
+            "direct_only": bool(direct_only),
+            "include_closed": bool(include_closed),
+            "include_open_data": bool(include_open_data),
+            "statuses": list(status_tuple),
             "web_verification_attempts": verification_attempts,
             "verification_evidence_saved": verification_evidence_saved,
             "verification_attachments_saved": verification_attachments_saved,
@@ -1859,6 +1885,8 @@ class LegalUpdatePipeline:
         self,
         review: dict[str, Any],
         source: dict[str, Any],
+        *,
+        direct_only: bool = True,
     ) -> dict[str, Any]:
         """Registra la prova fonte durante l'acquisizione, prima della pubblicazione."""
 
@@ -1867,7 +1895,7 @@ class LegalUpdatePipeline:
         if not _clean_spaces(review.get("source_url")):
             return {"attempted": 0, "saved": 0, "attachments": 0, "ok": False, "reason": "url fonte assente"}
         try:
-            verification = verify_legal_update_against_public_sources(review, source)
+            verification = verify_legal_update_against_public_sources(review, source, direct_only=direct_only)
         except Exception as exc:
             verification = {
                 "ok": False,

@@ -41,7 +41,7 @@ Il benchmark notturno gira in `.github/workflows/performance-nightly.yml` e usa 
 ### Versione Python locale e CI
 
 La CI applicativa GitHub Actions usa Python `3.12` in tutti i job principali
-(`Lint + syntax`, smoke, `Pytest core`, `Coverage moduli critici`, E2E). Sulla
+(`Lint + syntax`, smoke, `Pytest core`, `Coverage moduli critici parte */12`, E2E). Sulla
 workstation Codex locale di sviluppo puo' essere presente un interprete piu'
 recente, ad esempio Python `3.14`.
 

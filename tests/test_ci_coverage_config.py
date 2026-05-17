@@ -6,7 +6,9 @@ def test_critical_coverage_gate_uses_governed_config():
     assert "tests/test_lex_docling_parser.py" in workflow
     assert "--cov-config=config/coverage-critical.ini" in workflow
     assert "--suite coverage-critical" in workflow
-    assert "--fail-under=71" in workflow
+    assert "name: Coverage moduli critici parte ${{ matrix.shard }}/12" in workflow
+    assert "\n  coverage-critical:\n" not in workflow
+    assert "coverage combine coverage-parts" not in workflow
 
 
 def test_critical_coverage_config_excludes_optional_lex_adapters():

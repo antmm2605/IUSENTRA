@@ -29,15 +29,13 @@ def test_ci_keeps_core_and_coverage_gates() -> None:
         "name: Lint + syntax",
         "name: Governance repo",
         "name: Pytest core",
-        "name: Coverage moduli critici",
+        "name: Coverage moduli critici parte ${{ matrix.shard }}/12",
         "tests/test_lex_docling_parser.py",
         "tests/test_storage_strategy.py",
         "--cov-config=config/coverage-critical.ini",
         "coverage-critical-shards:",
-        "coverage combine coverage-parts",
         "mv .coverage",
         "include-hidden-files: true",
-        "--fail-under=71",
         "name: Gate anti-regressione CI 100%",
     )
     for snippet in required:
@@ -48,12 +46,14 @@ def test_ci_keeps_core_and_coverage_gates() -> None:
     assert thresholds
     assert max(thresholds) >= 100
     assert any(value >= 71 for value in thresholds)
+    assert "\n  coverage-critical:\n" not in workflow
+    assert "coverage combine coverage-parts" not in workflow
 
 
 def test_pytest_core_uses_ten_parallel_shards_without_removing_tests() -> None:
     workflow = _read(".github/workflows/ci.yml")
     shards_section = workflow.split("tests-core-shards:", 1)[1].split("tests-core:", 1)[0]
-    summary_section = workflow.split("tests-core:", 1)[1].split("coverage-critical:", 1)[0]
+    summary_section = workflow.split("tests-core:", 1)[1].split("coverage-critical-shards:", 1)[0]
 
     assert "name: Pytest core fase ${{ matrix.label }}" in shards_section
     assert "fail-fast: false" in shards_section
@@ -194,7 +194,8 @@ def test_agents_documents_ci_no_regression_rule() -> None:
     required = (
         "CI, coverage e anti-regressione definitiva",
         "Pytest core",
-        "Coverage moduli critici",
+        "Coverage moduli critici parte */12",
+        "Il vecchio aggregatore CI `Coverage moduli critici` senza `parte` non deve essere usato per bloccare la PR",
         "Gate anti-regressione al 100%",
         "target richiesto dall'utente per chiudere definitivamente la coverage critica e' **100%**",
         "vietato dichiarare che il problema coverage sia chiuso",

@@ -20,6 +20,8 @@ OPENAPI_OUTPUT = REPO_ROOT / "docs" / "openapi.yaml"
 CONTRACT_MAP_OUTPUT = REPO_ROOT / "docs" / "api-endpoint-contract-map.md"
 API_CONTRACTS_OUTPUT = REPO_ROOT / "docs" / "api-contracts.md"
 DATE_LINE = re.compile(r"^Aggiornato:\s+([0-9]{4}-[0-9]{2}-[0-9]{2})\.", re.MULTILINE)
+OPENAPI_DATE = re.compile(r"Aggiornato:\s+([0-9]{4}-[0-9]{2}-[0-9]{2})\.")
+OPENAPI_VERSION_FALLBACK = "2.227.0"
 
 
 @dataclass(frozen=True)
@@ -550,7 +552,7 @@ def _components() -> dict[str, Any]:
     }
 
 
-def build_openapi(report_date: str) -> dict[str, Any]:
+def build_openapi(report_date: str, api_version: str) -> dict[str, Any]:
     frontend_links = _read_frontend_api_links()
     paths: dict[str, Any] = {}
     tags: dict[str, dict[str, str]] = {}
@@ -563,7 +565,7 @@ def build_openapi(report_date: str) -> dict[str, Any]:
         "openapi": "3.0.3",
         "info": {
             "title": "IUSENTRA API Contracts",
-            "version": "2.227.0",
+            "version": api_version,
             "description": f"Contratti API fase 6 generati da endpoint Flask reali. Aggiornato: {report_date}.",
         },
         "servers": [
@@ -709,10 +711,39 @@ def update_api_contracts_doc(report_date: str, rows: list[Endpoint]) -> str:
     return current.rstrip() + "\n"
 
 
+def _openapi_metadata() -> tuple[str | None, str | None]:
+    if not OPENAPI_OUTPUT.exists():
+        return None, None
+    try:
+        data = yaml.safe_load(OPENAPI_OUTPUT.read_text(encoding="utf-8")) or {}
+    except yaml.YAMLError:
+        return None, None
+    if not isinstance(data, dict):
+        return None, None
+    info = data.get("info")
+    if not isinstance(info, dict):
+        return None, None
+    raw_version = str(info.get("version", "")).strip()
+    raw_description = str(info.get("description", ""))
+    match = OPENAPI_DATE.search(raw_description)
+    return raw_version or None, match.group(1) if match else None
+
+
+def _api_version() -> str:
+    configured = os.getenv("IUSENTRA_API_CONTRACT_VERSION", "").strip()
+    if configured:
+        return configured
+    version, _ = _openapi_metadata()
+    return version or OPENAPI_VERSION_FALLBACK
+
+
 def _report_date(*outputs: Path) -> str:
     configured = os.getenv("IUSENTRA_REPORT_DATE", "").strip()
     if configured:
         return configured
+    _, openapi_date = _openapi_metadata()
+    if openapi_date:
+        return openapi_date
     for output in outputs:
         if output.exists():
             match = DATE_LINE.search(output.read_text(encoding="utf-8"))
@@ -723,7 +754,7 @@ def _report_date(*outputs: Path) -> str:
 
 def render_all(report_date: str) -> dict[Path, str]:
     rows = endpoints()
-    openapi = yaml.safe_dump(build_openapi(report_date), sort_keys=False, allow_unicode=False, width=120)
+    openapi = yaml.safe_dump(build_openapi(report_date, _api_version()), sort_keys=False, allow_unicode=False, width=120)
     return {
         OPENAPI_OUTPUT: openapi,
         CONTRACT_MAP_OUTPUT: render_contract_map(report_date),

@@ -1,6 +1,6 @@
 # API Endpoint Contract Map
 
-Aggiornato: 2026-05-14.
+Aggiornato: 2026-05-15.
 
 ## Fase 6 API Contract Review
 
@@ -8,16 +8,18 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 
 ## Sommario
 
-- Endpoint React API contrattualizzati: 182.
-- Endpoint P0/P1 contrattualizzati: 169.
+- Endpoint React API contrattualizzati: 196.
+- Endpoint P0/P1 contrattualizzati: 181.
 - Endpoint con provider verification 200 rappresentativa: 28.
-- Endpoint con provider verification auth-error: 182.
+- Endpoint con provider verification auth-error: 196.
 - Endpoint P2/P3: mappati e completi per autenticazione/errori; success-body da raffinare quando la pagina passa a priorita superiore.
 
 | Area | Endpoint | Metodo | Pagina | Priorita | OpenAPI | Provider Test | RBAC | Flag | Tenant | Stato |
 |------|----------|--------|--------|----------|---------|---------------|------|------|--------|-------|
 | Amministrazione database | `/api/v1/ui/admin/database` | `GET` | Amministrazione database | P0 | verified | success+auth-error | `utenti.leggi` | `n/a` | current_tenant | verified |
 | Agenda | `/api/v1/ui/agenda` | `GET` | Agenda (/app/agenda) | P1 | verified | success+auth-error | `sessione/API tenant-aware` | `routes.appV2.agenda.calendar` | current_tenant | verified |
+| Agenda | `/api/v1/ui/agenda/importa` | `GET` | Agenda | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| Agenda | `/api/v1/ui/agenda/nuovo/defaults` | `GET` | Agenda | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | API React operativa | `/api/v1/ui/amministrazione` | `GET` | Amministrazione (/app/amministrazione) | P2 | complete | auth-error | `sessione/API tenant-aware` | `routes.appV2.admin.home` | current_tenant | complete-auth-error |
 | Registro attivita | `/api/v1/ui/audit` | `GET` | Registro attivita | P0 | verified | success+auth-error | `audit.leggi` | `n/a` | current_tenant | verified |
 | Registro attivita | `/api/v1/ui/audit/{id_evento}` | `GET` | Registro attivita | P0 | complete | auth-error | `audit.leggi` | `n/a` | current_tenant | complete-auth-error |
@@ -93,6 +95,9 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 | API React operativa | `/api/v1/ui/impostazioni-studio` | `GET` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Impostazioni | `/api/v1/ui/impostazioni/{section}` | `POST` | Impostazioni | P0 | complete | auth-error | `admin.configura` | `n/a` | current_tenant | complete-auth-error |
 | Impostazioni | `/api/v1/ui/impostazioni/ai/bootstrap` | `POST` | Impostazioni | P0 | complete | auth-error | `admin.configura` | `n/a` | current_tenant | complete-auth-error |
+| Impostazioni | `/api/v1/ui/impostazioni/ai/lex-dataset` | `GET` | Impostazioni | P0 | complete | auth-error | `admin.configura` | `n/a` | current_tenant | complete-auth-error |
+| Impostazioni | `/api/v1/ui/impostazioni/ai/lex-dataset/review` | `GET` | Impostazioni | P0 | complete | auth-error | `admin.configura` | `n/a` | current_tenant | complete-auth-error |
+| Impostazioni | `/api/v1/ui/impostazioni/ai/lex-dataset/review/{qa_id}` | `POST` | Impostazioni | P0 | complete | auth-error | `admin.configura` | `n/a` | current_tenant | complete-auth-error |
 | Impostazioni | `/api/v1/ui/impostazioni/ai/status` | `GET` | Impostazioni | P0 | complete | auth-error | `admin.configura` | `n/a` | current_tenant | complete-auth-error |
 | Impostazioni | `/api/v1/ui/impostazioni/calendari/profili` | `POST` | Impostazioni | P0 | complete | auth-error | `admin.configura` | `n/a` | current_tenant | complete-auth-error |
 | Impostazioni | `/api/v1/ui/impostazioni/calendari/profili/{profile_id}/elimina` | `POST` | Impostazioni | P0 | complete | auth-error | `admin.configura` | `n/a` | current_tenant | complete-auth-error |
@@ -115,6 +120,7 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 | Messaggi | `/api/v1/ui/messaggi/nuovo` | `GET` | Messaggi | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Notifiche legali | `/api/v1/ui/notifiche-legali` | `GET` | Notifiche legali | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Notifiche legali | `/api/v1/ui/notifiche-legali/anteprima-relata` | `POST` | Notifiche legali | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| Notifiche legali | `/api/v1/ui/notifiche-legali/area-web-pst` | `POST` | Notifiche legali | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Notifiche legali | `/api/v1/ui/notifiche-legali/bozze-relata` | `POST` | Notifiche legali | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Notifiche legali | `/api/v1/ui/notifiche-legali/comunicazione-cliente` | `POST` | Notifiche legali | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Notifiche legali | `/api/v1/ui/notifiche-legali/modelli-relata` | `POST` | Notifiche legali | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
@@ -137,10 +143,14 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 | Registro GDPR | `/api/v1/ui/privacy/registro` | `GET` | Registro GDPR | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Profili e permessi | `/api/v1/ui/profili` | `GET` | Profili e permessi | P0 | verified | success+auth-error | `utenti.leggi/scrivi` | `n/a` | current_tenant | verified |
 | Profili e permessi | `/api/v1/ui/profili` | `POST` | Profili e permessi | P0 | verified | success+auth-error | `utenti.leggi/scrivi` | `n/a` | current_tenant | verified |
+| API React operativa | `/api/v1/ui/profilo` | `GET` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Redazione atti | `/api/v1/ui/redazione-atti` | `GET` | Redazione atti | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Redazione atti | `/api/v1/ui/redazione-atti/produci` | `POST` | Redazione atti | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Registro attivita | `/api/v1/ui/registro-attivita` | `GET` | Registro attivita | P0 | complete | auth-error | `audit.leggi` | `n/a` | current_tenant | complete-auth-error |
 | Ricerca legale | `/api/v1/ui/ricerca-legale` | `GET` | Ricerca legale | P1 | verified | success+auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | verified |
+| Ricerca legale | `/api/v1/ui/ricerca-legale/mediazione` | `GET` | Ricerca legale | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| Ricerca legale | `/api/v1/ui/ricerca-legale/news` | `GET` | Ricerca legale | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| Ricerca legale | `/api/v1/ui/ricerca-legale/ricerca` | `GET` | Ricerca legale | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Scadenziario | `/api/v1/ui/scadenziario` | `GET` | Scadenziario | P1 | verified | success+auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | verified |
 | Scadenziario | `/api/v1/ui/scadenziario/nuova` | `GET` | Scadenziario | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Scadenziario | `/api/v1/ui/scadenziario/termini/audit` | `GET` | Scadenziario | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
@@ -159,8 +169,11 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 | Sito Studio | `/api/v1/ui/sito-studio/builder/pages` | `POST` | Sito Studio | P1 | complete | auth-error | `admin.configura per scritture` | `n/a` | current_tenant | complete-auth-error |
 | Sito Studio | `/api/v1/ui/sito-studio/builder/pages/{page_id}` | `DELETE` | Sito Studio | P1 | complete | auth-error | `admin.configura per scritture` | `n/a` | current_tenant | complete-auth-error |
 | Sito Studio | `/api/v1/ui/sito-studio/builder/pages/{page_id}/blocks` | `POST` | Sito Studio | P1 | complete | auth-error | `admin.configura per scritture` | `n/a` | current_tenant | complete-auth-error |
+| Sito Studio | `/api/v1/ui/sito-studio/builder/pages/{page_id}/duplicate` | `POST` | Sito Studio | P1 | complete | auth-error | `admin.configura per scritture` | `n/a` | current_tenant | complete-auth-error |
 | Sito Studio | `/api/v1/ui/sito-studio/builder/pages/{page_id}/publish` | `POST` | Sito Studio | P1 | complete | auth-error | `admin.configura per scritture` | `n/a` | current_tenant | complete-auth-error |
+| Sito Studio | `/api/v1/ui/sito-studio/builder/pages/{page_id}/settings` | `POST` | Sito Studio | P1 | complete | auth-error | `admin.configura per scritture` | `n/a` | current_tenant | complete-auth-error |
 | Sito Studio | `/api/v1/ui/sito-studio/builder/revisions/{revision_id}/restore` | `POST` | Sito Studio | P1 | complete | auth-error | `admin.configura per scritture` | `n/a` | current_tenant | complete-auth-error |
+| Sito Studio | `/api/v1/ui/sito-studio/builder/site` | `POST` | Sito Studio | P1 | complete | auth-error | `admin.configura per scritture` | `n/a` | current_tenant | complete-auth-error |
 | Sito Studio | `/api/v1/ui/sito-studio/builder/template` | `POST` | Sito Studio | P1 | complete | auth-error | `admin.configura per scritture` | `n/a` | current_tenant | complete-auth-error |
 | Sito Studio | `/api/v1/ui/sito-studio/builder/valida` | `POST` | Sito Studio | P1 | complete | auth-error | `admin.configura per scritture` | `n/a` | current_tenant | complete-auth-error |
 | Sito Studio | `/api/v1/ui/sito-studio/contatti` | `GET` | Sito Studio | P1 | complete | auth-error | `admin.configura per scritture` | `n/a` | current_tenant | complete-auth-error |
@@ -175,6 +188,7 @@ La mappa collega endpoint Flask reali, pagine App V2 e contratti OpenAPI. Gli en
 | Soggetti e parti | `/api/v1/ui/soggetti/{id_soggetto}/modifica` | `GET` | Soggetti e parti | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | Soggetti e parti | `/api/v1/ui/soggetti/delete` | `POST` | Soggetti e parti | P1 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | API React operativa | `/api/v1/ui/statistiche` | `GET` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
+| API React operativa | `/api/v1/ui/strumenti-legali/{tool_id}` | `POST` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | API React operativa | `/api/v1/ui/studio` | `GET` | API React operativa | P2 | verified | success+auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | verified |
 | API React operativa | `/api/v1/ui/studio-modules/{module_id}` | `GET` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |
 | API React operativa | `/api/v1/ui/studio/timbro` | `GET` | API React operativa | P2 | complete | auth-error | `sessione/API tenant-aware` | `n/a` | current_tenant | complete-auth-error |

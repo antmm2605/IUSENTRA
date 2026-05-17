@@ -297,6 +297,7 @@ _INTENT_CATALOG: tuple[dict[str, Any], ...] = (
         "intent": "cliente_anagrafica",
         "label": "dati anagrafici e recapiti cliente",
         "patterns": (
+            r"\b(?:mi\s+)?(?:dai|dati|dammi|dimmi)\s+(?:i\s+)?dati\s+(?:del|di|della|dell[o'])\s+cliente\b",
             r"\bdati\s+(?:del|di|della|dell[o'])\s+cliente\b",
             r"\banagrafica\s+(?:del|di|della|dell[o'])\b",
             r"\brecapiti\s+(?:del|di|della|dell[o'])\b",
@@ -314,7 +315,7 @@ _INTENT_CATALOG: tuple[dict[str, Any], ...] = (
         ),
         "schema": ("Dati anagrafici", "Recapiti", "Fascicoli attivi", "Note"),
         "risk": "low",
-        "source_mode": "strict",
+        "source_mode": "balanced",
         "internal": True,
         "external": False,
         "drafting": False,

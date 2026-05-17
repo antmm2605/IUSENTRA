@@ -123,6 +123,11 @@ class OperationalKnowledgeService:
             ]
 
         if route.intent == "agenda_overview":
+            lowered = question.lower()
+            if "udienz" in lowered and any(token in lowered for token in ("ultim", "recent", "passat", "precedent")):
+                return [self.tools.search_agenda("udienza", context, limit=30, latest=True)]
+            if "udienz" in lowered:
+                return [self.tools.search_agenda("udienza", context, limit=30)]
             start, end = current_week_range() if "settimana" in question.lower() else (date.today(), date.today() + timedelta(days=14))
             return [self.tools.get_agenda_range(context, start=start, end=end, limit=30)]
 

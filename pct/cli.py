@@ -2772,6 +2772,46 @@ def cmd_ai_avanzata(as_json, fail_if_blocked):
         raise click.ClickException("Una o piu' capacita' avanzate abilitate non sono pronte")
 
 
+@cli.command("utf8-integrity")
+@click.option("--root", "roots", multiple=True, help="Cartella o file da controllare. Ripetibile; se omesso usa i dati runtime.")
+@click.option("--check-only", is_flag=True, default=False, help="Controlla senza modificare i file.")
+@click.option("--max-files", type=int, default=0, help="Limite file da scansionare.")
+@click.option("--max-file-bytes", type=int, default=0, help="Dimensione massima per file testuale.")
+@click.option("--report", "report_path", default="", help="Percorso report JSON.")
+@click.option("--json", "as_json", is_flag=True, default=False, help="Stampa il payload completo in JSON")
+def cmd_utf8_integrity(roots, check_only, max_files, max_file_bytes, report_path, as_json):
+    """Verifica e ripara UTF-8, accenti italiani e mojibake nei dati testuali."""
+    from pct.utf8_integrity import run_utf8_integrity_service
+
+    cfg: dict[str, object] = {}
+    try:
+        from web.app import create_app
+
+        app = create_app()
+        cfg = dict(app.config)
+    except Exception:
+        cfg = {}
+    report = run_utf8_integrity_service(
+        cfg,
+        repair=not check_only,
+        roots=list(roots) or None,
+        max_files=max_files or None,
+        max_file_bytes=max_file_bytes or None,
+        report_path=report_path or None,
+    )
+    if as_json:
+        click.echo(json.dumps(report, ensure_ascii=False, indent=2))
+        return
+    click.echo("Integrità UTF-8 - controllo completato")
+    click.echo(f"File controllati: {report.get('checked_files', 0)}")
+    click.echo(f"File con anomalie: {report.get('files_with_artifacts', 0)}")
+    click.echo(f"File riparati: {report.get('repaired_files', 0)}")
+    if report.get("unresolved_replacement_files"):
+        click.echo(f"Da verificare: {report.get('unresolved_replacement_files')} file con caratteri non recuperabili")
+    if report.get("report_path"):
+        click.echo(f"Report: {report.get('report_path')}")
+
+
 @cli.command("lex-agenti-operativi")
 @click.option("--all", "run_all", is_flag=True, default=False, help="Esegue tutti i micro-agenti operativi Lex")
 @click.option("--agent", "agent_ids", multiple=True, help="Agent id interno da eseguire. Ripetibile")

@@ -190,12 +190,83 @@
     );
   }
 
+  function looksLikeLegalDraft(text) {
+    var clean = String(text || '').replace(/\r/g, '').trim();
+    if (!clean) {
+      return false;
+    }
+    return /\bBOZZA\b[\s\S]{0,120}\b(diffida|messa in mora|lettera|pec|sollecito|contestazione)\b/i.test(clean) ||
+      /\bDIFFIDA E MESSA IN MORA\b/i.test(clean) ||
+      /\bDati da completare prima dell['’]invio\b/i.test(clean);
+  }
+
+  function stripDraftSourceAppendix(answer) {
+    var clean = String(answer || '').replace(/\r/g, '').trim();
+    if (!looksLikeLegalDraft(clean)) {
+      return clean;
+    }
+    clean = clean.replace(/\s+Fonti consultate[\s\S]*$/i, '');
+    clean = clean.replace(/\s+Dato certo[\s\S]*$/i, '');
+    clean = clean.replace(/\s+Qualit[àa] della risposta[\s\S]*$/i, '');
+    return clean.trim();
+  }
+
+  function normalizeLegalDraftLayout(answer) {
+    var clean = stripDraftSourceAppendix(answer);
+    if (!looksLikeLegalDraft(clean)) {
+      return clean;
+    }
+
+    clean = clean
+      .replace(/^Sintesi operativa\s+/i, '')
+      .replace(/^Risposta:\s*/i, '')
+      .replace(/^(BOZZA\s+[^\n]+)(\n|$)/i, '**$1**$2')
+      .replace(/\s*---\s*/g, '\n\n---\n\n');
+
+    var isFlatDraft = clean.split('\n').filter(function (line) { return line.trim(); }).length < 6 && clean.length > 260;
+    if (isFlatDraft) {
+      clean = clean
+        .replace(/\s+(Spett\.le)\s+/i, '\n\n**Spett.le**\n')
+        .replace(/\s+(Oggetto:\s*)/i, '\n\n**Oggetto:** ')
+        .replace(/\s+(Con la presente,)/i, '\n\n$1')
+        .replace(/\s+Fatto\s+/i, '\n\n**Fatto**\n\n')
+        .replace(/\s+Diritto\s+/i, '\n\n**Diritto**\n\n')
+        .replace(/\s+Richiesta formale\s+/i, '\n\n**Richiesta formale**\n\n')
+        .replace(/\s+Si diffida\s+/i, '\n\nSi diffida ')
+        .replace(/\s+(1[.)]\s+)/g, '\n$1')
+        .replace(/\s+(2[.)]\s+)/g, '\n$1')
+        .replace(/\s+(3[.)]\s+)/g, '\n$1')
+        .replace(/\s+Avvertenza\s+/i, '\n\n**Avvertenza**\n\n')
+        .replace(/\s+(Con osservanza,)/i, '\n\n---\n\n$1')
+        .replace(/\s+>\s*Dati da completare/i, '\n\n> **Dati da completare')
+        .replace(/\s+>\s*-\s+/g, '\n> - ');
+    }
+
+    clean = clean
+      .replace(/\n{3,}/g, '\n\n')
+      .replace(/[ \t]+\n/g, '\n')
+      .trim();
+    return clean;
+  }
+
+  function shouldPreserveDocumentLines(lines) {
+    if (!lines || lines.length < 2) {
+      return false;
+    }
+    return lines.every(function (line) {
+      var clean = String(line || '').trim();
+      return clean.length <= 120 || /^(Email|PEC|Tel\.|C\.F\.|P\.IVA|Oggetto:)/i.test(clean);
+    });
+  }
+
   function renderMarkdown(text) {
     if (!text) {
       return '';
     }
 
-    var lines = String(text).replace(/\r/g, '').split('\n');
+    var normalizedText = normalizeLegalDraftLayout(text);
+    var documentMode = looksLikeLegalDraft(normalizedText);
+    var lines = String(normalizedText).replace(/\r/g, '').split('\n');
     var html = [];
     var paragraph = [];
     var listType = '';
@@ -207,7 +278,10 @@
       if (!paragraph.length) {
         return;
       }
-      html.push('<p>' + renderInlineMarkdown(paragraph.join(' ')) + '</p>');
+      var body = shouldPreserveDocumentLines(paragraph)
+        ? paragraph.map(renderInlineMarkdown).join('<br>')
+        : renderInlineMarkdown(paragraph.join(' '));
+      html.push('<p' + (shouldPreserveDocumentLines(paragraph) ? ' class="pct-ai-answer-lines"' : '') + '>' + body + '</p>');
       paragraph = [];
     }
 
@@ -258,6 +332,13 @@
         continue;
       }
 
+      if (/^-{3,}$/.test(trimmed)) {
+        flushParagraph();
+        flushList();
+        html.push('<hr class="pct-ai-answer-rule">');
+        continue;
+      }
+
       if (trimmed.indexOf('|') >= 0 && lines[index + 1] && isTableSeparator(lines[index + 1])) {
         var tableRows = [trimmed, lines[index + 1].trim()];
         index += 2;
@@ -278,6 +359,14 @@
         flushList();
         var level = Math.min(4, Math.max(3, heading[1].length + 2));
         html.push('<h' + level + ' class="pct-ai-answer-heading">' + renderInlineMarkdown(heading[2]) + '</h' + level + '>');
+        continue;
+      }
+
+      var boldSection = documentMode ? trimmed.match(/^\*\*([^*]{2,90})\*\*$/) : null;
+      if (boldSection) {
+        flushParagraph();
+        flushList();
+        html.push('<h4 class="pct-ai-answer-subheading">' + renderInlineMarkdown(boldSection[1]) + '</h4>');
         continue;
       }
 
@@ -312,7 +401,7 @@
     flushParagraph();
     flushList();
 
-    return '<div class="pct-ai-answer">' + html.filter(Boolean).join('') + '</div>';
+    return '<div class="pct-ai-answer' + (documentMode ? ' pct-ai-answer--document' : '') + '">' + html.filter(Boolean).join('') + '</div>';
   }
 
   function setStatus(message) {
@@ -547,6 +636,7 @@
       liveWeb: /ultima|ultime|oggi|aggiornat|recente|sentenza|cassazione|tar|consiglio di stato|norma|normativa|decreto/.test(text),
       documents: /document|allegat|verbale|memoria|ricorso|atto|bozza/.test(text),
       deadlines: /scadenz|termine|udienza|agenda|calendario/.test(text),
+      drafting: /scrivi|redigi|prepara|bozza|diffida|messa in mora|lettera|pec|sollecito|contestazione/.test(text),
     };
   }
 
@@ -744,18 +834,96 @@
 
   function formatReflectionDuration(durationMs) {
     var seconds = Math.max(0, Number(durationMs || 0)) / 1000;
-    return seconds.toLocaleString('it-IT', {
-      minimumFractionDigits: seconds < 10 ? 1 : 0,
-      maximumFractionDigits: seconds < 10 ? 1 : 0,
-    }) + ' s';
+    if (seconds < 1) {
+      return 'meno di 1 secondo';
+    }
+    if (seconds < 10) {
+      return seconds.toLocaleString('it-IT', {
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1,
+      }) + ' secondi';
+    }
+    var roundedSeconds = Math.max(1, Math.round(seconds));
+    if (roundedSeconds < 60) {
+      return roundedSeconds + ' ' + (roundedSeconds === 1 ? 'secondo' : 'secondi');
+    }
+    var minutes = Math.floor(roundedSeconds / 60);
+    var remainingSeconds = roundedSeconds % 60;
+    var minuteLabel = minutes + ' ' + (minutes === 1 ? 'minuto' : 'minuti');
+    if (!remainingSeconds) {
+      return minuteLabel;
+    }
+    return minuteLabel + ' e ' + remainingSeconds + ' ' + (remainingSeconds === 1 ? 'secondo' : 'secondi');
+  }
+
+  function thinkingStageForElapsed(elapsedMs) {
+    var elapsed = Number(elapsedMs || 0);
+    if (elapsed >= 9000) {
+      return 4;
+    }
+    if (elapsed >= 5200) {
+      return 3;
+    }
+    if (elapsed >= 2500) {
+      return 2;
+    }
+    if (elapsed >= 900) {
+      return 1;
+    }
+    return 0;
+  }
+
+  function thinkingStepSet(question) {
+    var profile = queryProfile(question);
+    if (profile.drafting) {
+      return [
+        'Recupero dati studio, cliente e fascicolo autorizzati.',
+        'Imposto intestazione, oggetto, fatto, diritto e richieste.',
+        'Controllo segnaposto, fonti non pertinenti e dati mancanti.',
+        'Impagino la bozza con grassetto, elenchi e separatori leggibili.',
+      ];
+    }
+    if (profile.liveWeb) {
+      return [
+        'Inquadro richiesta e contesto operativo.',
+        'Controllo fonti ufficiali e aggiornamenti disponibili.',
+        'Verifico riferimenti, allegati o schede collegate quando presenti.',
+        'Ordino risposta, limiti e prossima azione.',
+      ];
+    }
+    if (profile.documents) {
+      return [
+        'Leggo contesto del fascicolo e documenti autorizzati.',
+        'Seleziono i passaggi utili alla domanda.',
+        'Distinguo fatti certi, lacune e punti da verificare.',
+        'Preparo una risposta leggibile e pronta da usare.',
+      ];
+    }
+    if (profile.deadlines) {
+      return [
+        'Incrocio agenda, udienze e scadenze.',
+        'Controllo date, clienti e procedimenti collegati.',
+        'Evidenzio priorità e adempimenti aperti.',
+        'Rendo il riepilogo operativo e ordinato.',
+      ];
+    }
+    return [
+      'Capisco la richiesta e il contesto della pagina.',
+      'Cerco dati interni autorizzati e fonti utili.',
+      'Separo dati certi, limiti e passaggi da completare.',
+      'Rifinisco la risposta in italiano chiaro.',
+    ];
   }
 
   function buildThinkingNote(question, stage) {
     var profile = queryProfile(question);
-    if (stage !== 1 && stage !== 2) {
+    if (stage < 1) {
       return '';
     }
     if (stage === 1) {
+      if (profile.drafting) {
+        return 'Sto preparando una bozza ordinata: prima recupero i dati reali dello studio e del cliente, poi costruisco la struttura del documento.';
+      }
       if (profile.liveWeb) {
         return 'Cerco l’aggiornamento più recente su fonti ufficiali e ti porto una risposta concreta con data, giudice e principio.';
       }
@@ -768,6 +936,22 @@
       return 'Sto preparando una risposta concreta, usando solo il contesto utile per non farti perdere tempo.';
     }
 
+    if (stage >= 3) {
+      if (profile.drafting) {
+        return 'Sto dando forma finale al documento: testo principale separato da verifiche, note e punti ancora da completare.';
+      }
+      if (profile.liveWeb) {
+        return 'Sto chiudendo il controllo delle evidenze e preparo una risposta con riferimenti leggibili, senza fonti buttate dentro a caso.';
+      }
+      if (profile.deadlines) {
+        return 'Sto chiudendo il riepilogo con date, priorità e prossimi passaggi separati.';
+      }
+      return 'Sto completando la risposta con un ordine leggibile e senza testo tecnico inutile.';
+    }
+
+    if (profile.drafting) {
+      return 'Sto controllando che la bozza sia leggibile, con sezioni, elenchi e punti da completare separati dal testo principale.';
+    }
     if (profile.liveWeb) {
       return 'Sto verificando i riferimenti più recenti e li sto trasformando in una sintesi utile, con i dettagli che contano davvero.';
     }
@@ -775,6 +959,22 @@
       return 'Sto selezionando solo i passaggi davvero rilevanti e li sto ordinando in una risposta chiara e pronta da usare.';
     }
     return 'Sto rifinendo la risposta per dartela già ordinata, leggibile e subito spendibile.';
+  }
+
+  function renderThinkingSteps(question, stage) {
+    var steps = thinkingStepSet(question);
+    var activeStage = Math.max(0, Math.min(steps.length, Number(stage || 0)));
+    return (
+      '<ol class="pct-ai-thinking-steps">' +
+        steps.map(function (step, index) {
+          var stepNumber = index + 1;
+          var stateClass = stepNumber < activeStage
+            ? ' is-done'
+            : (stepNumber === activeStage ? ' is-active' : '');
+          return '<li class="' + stateClass + '"><span>' + escapeHtml(step) + '</span></li>';
+        }).join('') +
+      '</ol>'
+    );
   }
 
   function buildThinkingBubbleHtmlLegacy(question, stage, elapsed) {
@@ -811,6 +1011,7 @@
           '<span>Sto pensando' + suffix + '</span>' +
         '</span>' +
         (note ? '<div class="pct-ai-thinking-copy">' + escapeHtml(note) + '</div>' : '') +
+        renderThinkingSteps(question, stage) +
       '</div>'
     );
   }
@@ -819,7 +1020,7 @@
     setStatusHtml(
       '<span class="pct-ai-status-reflection">' +
         '<i class="bi bi-hourglass-split"></i>' +
-        '<span>Riflessione - ' + formatReflectionDuration(durationMs) + '</span>' +
+        '<span>Pensiero completato: ' + formatReflectionDuration(durationMs) + '</span>' +
       '</span>',
       'reflection'
     );
@@ -858,12 +1059,18 @@
       return;
     }
 
+    var elapsed = thinkingElapsedMs();
+    var stage = Math.max(
+      Number(state.thinking.stage || 0),
+      thinkingStageForElapsed(elapsed)
+    );
+    state.thinking.stage = stage;
     setBubbleHtml(
       state.currentBubble,
       buildThinkingBubbleHtml(
         state.thinking.question,
-        Number(state.thinking.stage || 0),
-        thinkingElapsedMs()
+        stage,
+        elapsed
       )
     );
     scrollBottom();
@@ -1245,8 +1452,9 @@
     if (!original) {
       return '';
     }
-    var clean = stripArtificialPlaceholders(original);
+    var clean = normalizeLegalDraftLayout(stripArtificialPlaceholders(original));
     clean = stripMetaResponseScaffolding(clean);
+    clean = normalizeLegalDraftLayout(clean);
     clean = stripLexGreeting(clean, options && options.question || '');
     clean = collapseLeadingDuplicateSentence(clean, options && options.openingLine || '');
     clean = replaceUnverifiedCaseLawExamples(clean, options || {});
@@ -3031,6 +3239,11 @@
       renderMarkdown: renderMarkdown,
       renderInlineMarkdown: renderInlineMarkdown,
       buildAnswerHtml: buildAnswerHtml,
+      sanitizeLexAnswer: sanitizeLexAnswer,
+      normalizeLegalDraftLayout: normalizeLegalDraftLayout,
+      looksLikeLegalDraft: looksLikeLegalDraft,
+      formatReflectionDuration: formatReflectionDuration,
+      buildThinkingBubbleHtml: buildThinkingBubbleHtml,
     };
   }
 
@@ -3045,4 +3258,3 @@
 
   document.addEventListener('DOMContentLoaded', init);
 })();
-

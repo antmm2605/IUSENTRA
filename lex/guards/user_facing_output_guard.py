@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import re
 
+from pct.utf8_integrity import repair_text_encoding
+
 _FORBIDDEN_PHRASES = (
     "Risposta deterministica per workflow",
     "Explanation of the JSON",
@@ -50,6 +52,7 @@ def _is_operational_query(question: str) -> bool:
 
 def contains_forbidden_technical_output(text: str) -> bool:
     """Verifica se la risposta contiene frasi tecniche interne vietate."""
+    text = repair_text_encoding(text, drop_unresolved=True)
     for phrase in _FORBIDDEN_PHRASES:
         if phrase in text:
             return True
@@ -62,6 +65,7 @@ def sanitize_user_output(text: str, *, workflow: str = "", question: str = "") -
     Se il testo è interamente JSON, lo sostituisce con un messaggio neutro.
     Se contiene frasi tecniche, le rimuove.
     """
+    text = repair_text_encoding(text, drop_unresolved=True)
     if not text or not text.strip():
         return text
 

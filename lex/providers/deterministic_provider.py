@@ -591,19 +591,19 @@ def build_sollecito_pagamento_template(context: Any) -> str:
     controparte = "[Nome e Cognome / Ragione sociale]"
     importo = "[€ importo]"
     scadenza_originale = "[data originale di scadenza]"
-    avvocato = "[Studio Legale / Avv. Nome Cognome]"
+    letterhead, avvocato = _letterhead_lines(context)
+    cliente = _cliente_from_context(context) or "[Nome del cliente - da completare]"
     if isinstance(context, dict):
         controparte = str(context.get("controparte") or controparte)
         importo = str(context.get("importo") or importo)
         scadenza_originale = str(context.get("scadenza_originale") or scadenza_originale)
         avvocato = str(context.get("avvocato") or avvocato)
+        cliente = str(context.get("cliente") or context.get("cliente_nome") or context.get("nome_cliente") or cliente)
     return f"""**BOZZA — SOLLECITO DI PAGAMENTO**
 
 ---
 
-{avvocato}
-[Via e numero civico dello studio]
-[CAP, Città, Provincia]
+{letterhead}
 
 {oggi}
 
@@ -648,18 +648,20 @@ def build_pec_formale_template(context: Any) -> str:
     destinatario = "[nome@pec.destinatario.it]"
     oggetto_pec = "[Oggetto della PEC]"
     corpo = "[Testo del messaggio PEC — DA COMPLETARE]"
-    avvocato = "[Studio Legale / Avv. Nome Cognome]"
+    letterhead, avvocato = _letterhead_lines(context)
+    cliente = _cliente_from_context(context) or "[Nome del cliente - da completare]"
     if isinstance(context, dict):
         destinatario = str(context.get("destinatario") or destinatario)
         oggetto_pec = str(context.get("oggetto_pec") or oggetto_pec)
         corpo = str(context.get("corpo") or corpo)
         avvocato = str(context.get("avvocato") or avvocato)
+        cliente = str(context.get("cliente") or context.get("cliente_nome") or context.get("nome_cliente") or cliente)
     return f"""**BOZZA — PEC FORMALE**
 
 ---
 
 **A:** {destinatario}
-**Da:** [pec@studiolegale.it]
+**Da:** [PEC dello studio]
 **Data:** {oggi}
 **Oggetto:** {oggetto_pec}
 
@@ -674,8 +676,7 @@ Per qualsiasi comunicazione relativa alla presente, si prega di rispondere esclu
 Distinti saluti,
 
 {avvocato}
-[Indirizzo e recapiti dello studio]
-[PEC: pec@studiolegale.it]
+{letterhead}
 
 ---
 > **Dati da completare prima dell'invio:**
@@ -959,6 +960,116 @@ Distinti saluti,
 > - Eventuali documenti da allegare"""
 
 
+def _clean_context_value(value: Any) -> str:
+    return " ".join(str(value or "").split()).strip()
+
+
+def _load_studio_drafting_data(context: Any) -> dict[str, str]:
+    data: dict[str, str] = {}
+    if isinstance(context, dict):
+        for key in ("studio", "dati_studio", "studio_profile"):
+            section = context.get(key)
+            if isinstance(section, dict):
+                data.update({str(k): _clean_context_value(v) for k, v in section.items() if _clean_context_value(v)})
+    try:
+        from flask import current_app
+
+        cfg = current_app.config
+        for target, key in {
+            "nome": "STUDIO_NOME",
+            "avvocato": "STUDIO_AVVOCATO",
+            "indirizzo": "STUDIO_INDIRIZZO",
+            "piva": "STUDIO_PIVA",
+            "cf": "STUDIO_CF",
+        }.items():
+            value = _clean_context_value(cfg.get(key))
+            if value:
+                data[target] = value
+        config_path = _clean_context_value(cfg.get("STUDIO_CONFIG") or cfg.get("CONFIG_STUDIO_DB"))
+        if config_path:
+            try:
+                from pct.config_studio import GestioneConfigStudio
+
+                loaded = GestioneConfigStudio(config_path=config_path).config
+                studio = getattr(loaded, "studio", None)
+                pec = getattr(loaded, "pec", None)
+                if studio:
+                    for key in ("nome", "avvocato", "indirizzo", "city", "province", "piva", "cf", "telefono", "email"):
+                        value = _clean_context_value(getattr(studio, key, ""))
+                        if value:
+                            data[key] = value
+                pec_addr = _clean_context_value(getattr(pec, "indirizzo", "")) if pec else ""
+                if pec_addr:
+                    data["pec"] = pec_addr
+            except Exception:
+                pass
+    except Exception:
+        pass
+    return data
+
+
+def _letterhead_lines(context: Any) -> tuple[str, str]:
+    data = _load_studio_drafting_data(context)
+    nome = data.get("nome") or "Studio legale"
+    avvocato = data.get("avvocato") or ""
+    firmatario = avvocato or nome
+    lines = [nome]
+    if avvocato and avvocato.lower() not in nome.lower():
+        lines.append(avvocato)
+    address = ", ".join(part for part in [data.get("indirizzo", ""), data.get("city", ""), data.get("province", "")] if part)
+    lines.append(address or "[Indirizzo dello studio da completare]")
+    fiscal = " - ".join(
+        part
+        for part in [
+            f"C.F. {data.get('cf')}" if data.get("cf") else "",
+            f"P.IVA {data.get('piva')}" if data.get("piva") else "",
+        ]
+        if part
+    )
+    lines.append(fiscal or "[C.F. / P.IVA dello studio da completare]")
+    contacts = " - ".join(
+        part
+        for part in [
+            f"Tel. {data.get('telefono')}" if data.get("telefono") else "",
+            f"Email {data.get('email')}" if data.get("email") else "",
+            f"PEC {data.get('pec')}" if data.get("pec") else "",
+        ]
+        if part
+    )
+    lines.append(contacts or "[Tel. - Email - PEC dello studio da completare]")
+    return "\n".join(line for line in lines if line), firmatario
+
+
+def _cliente_from_context(context: Any) -> str:
+    if not isinstance(context, dict):
+        return ""
+    direct = _clean_context_value(
+        context.get("cliente")
+        or context.get("cliente_nome")
+        or context.get("nome_cliente")
+        or context.get("assistito")
+    )
+    if direct:
+        return direct
+    candidates: list[str] = []
+    source_groups = [
+        context.get("sources"),
+        (context.get("studio") or {}).get("sources") if isinstance(context.get("studio"), dict) else None,
+    ]
+    for group in source_groups:
+        for row in list(group or []):
+            if not isinstance(row, dict):
+                continue
+            source_id = _clean_context_value(row.get("id") or row.get("source_id")).lower()
+            if not source_id.startswith("cliente:"):
+                continue
+            title = _clean_context_value(row.get("title") or row.get("citation"))
+            if title:
+                candidates.append(title)
+    unique = list(dict.fromkeys(candidates))
+    return unique[0] if len(unique) == 1 else ""
+
+
 def build_diffida_messa_in_mora_template(context: Any) -> str:
     """Bozza italiana deterministica di diffida e messa in mora.
 
@@ -969,7 +1080,8 @@ def build_diffida_messa_in_mora_template(context: Any) -> str:
     oggi = _format_data_italiana(_date.today().isoformat())
     controparte = "[Nome e Cognome / Ragione sociale della controparte]"
     indirizzo = "[Indirizzo, CAP, Città, Provincia]"
-    avvocato = "[Studio Legale / Avv. Nome Cognome]"
+    letterhead, avvocato = _letterhead_lines(context)
+    cliente = _cliente_from_context(context) or "[Nome del cliente - da completare]"
     oggetto_credito = "[descrizione del credito/obbligo inademputo]"
     importo = "[€ importo]"
     termine = "[X] giorni"
@@ -978,6 +1090,7 @@ def build_diffida_messa_in_mora_template(context: Any) -> str:
         controparte = str(context.get("controparte") or controparte)
         indirizzo = str(context.get("indirizzo_controparte") or indirizzo)
         avvocato = str(context.get("avvocato") or avvocato)
+        cliente = str(context.get("cliente") or context.get("cliente_nome") or context.get("nome_cliente") or cliente)
         oggetto_credito = str(context.get("oggetto") or oggetto_credito)
         importo = str(context.get("importo") or importo)
         termine_giorni = context.get("termine_giorni")
@@ -988,11 +1101,7 @@ def build_diffida_messa_in_mora_template(context: Any) -> str:
 
 ---
 
-{avvocato}
-[Via e numero civico dello studio]
-[CAP, Città, Provincia]
-[C.F. / P.IVA dello studio]
-[Tel. — Email — PEC dello studio]
+{letterhead}
 
 {oggi}
 
@@ -1006,7 +1115,7 @@ def build_diffida_messa_in_mora_template(context: Any) -> str:
 
 ---
 
-Con la presente, il sottoscritto/la sottoscritta {avvocato}, in qualità di legale rappresentante / procuratore di [Nome del cliente — da completare], si invita e diffida formalmente la S.V. / codesta Spettabile Società ad adempiere, entro e non oltre {termine} dal ricevimento della presente, all'obbligo di {oggetto_credito}, per un importo complessivo di {importo}.
+Con la presente, il sottoscritto/la sottoscritta {avvocato}, in qualità di difensore di {cliente}, si invita e diffida formalmente la S.V. / codesta Spettabile Società ad adempiere, entro e non oltre {termine} dal ricevimento della presente, all'obbligo di {oggetto_credito}, per un importo complessivo di {importo}.
 
 **Fatto**
 

@@ -50,6 +50,22 @@ class OperationalResponseComposer:
 
         ok_results = [result for result in results if result.ok]
         if not ok_results:
+            if route.intent in {"deadlines_overview", "agenda_overview"} and results:
+                answer_lines = self._calendar_lines(route, results, gaps)
+                return OperationalAnswer(
+                    handled=True,
+                    answer="\n".join(line for line in answer_lines if clean_spaces(line)),
+                    route=route,
+                    sources=sources,
+                    objects=objects,
+                    confidence=0.55,
+                    coverage_gaps=gaps,
+                    warnings=warnings,
+                    next_actions=["Verifica se l'udienza e' registrata in agenda o importata dal fascicolo telematico."],
+                    permissions_applied=permissions,
+                    blocked_reason=blocked_reason,
+                    metadata={"operational_layer": True, "empty_authorized_lookup": True},
+                )
             return OperationalAnswer(
                 handled=True,
                 answer="Non ho trovato dati reali sufficienti nelle sorgenti operative autorizzate per rispondere.",

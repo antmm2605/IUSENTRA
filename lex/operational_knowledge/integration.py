@@ -42,6 +42,19 @@ _PUBLIC_LEGAL_TERMS = (
     "consiglio di stato",
     "massima",
 )
+_DRAFTING_INTENTS = {
+    "bozza_atto",
+    "bozza_lettera",
+    "pec_comunicazioni",
+}
+_DRAFTING_TERMS = (
+    "bozza",
+    "diffida",
+    "lettera",
+    "messa in mora",
+    "redigi",
+    "scrivi",
+)
 _STUDIO_DATA_TERMS = (
     "agenda",
     "cartella cliente",
@@ -59,6 +72,23 @@ _STUDIO_DATA_TERMS = (
     "scadenz",
     "soggett",
 )
+_STUDIO_DATA_INTENTS = {
+    "cliente_anagrafica",
+    "domanda_generica",
+}
+_STUDIO_DATA_FOCUS = {
+    "agenda",
+    "clienti",
+    "documenti",
+    "economico",
+    "fascicoli",
+    "fatture",
+    "pec_firma",
+    "preventivi",
+    "scadenze",
+    "soggetti",
+    "udienze",
+}
 _SOURCE_OVERVIEW_TERMS = ("quali fonti", "fonti hai usato", "mostra fonti")
 
 
@@ -130,6 +160,13 @@ def _should_defer_to_public_legal_research(
     intent = clean_spaces(request_profile.get("intent")).lower()
     focus_topic = clean_spaces(metadata.get("focus_topic") or studio_context.get("focus_topic")).lower()
     source_mode = clean_spaces(metadata.get("source_mode") or request_profile.get("source_mode")).lower()
+    if intent in _DRAFTING_INTENTS or any(token in text for token in _DRAFTING_TERMS):
+        return True
+    has_studio_term = any(token in text for token in _STUDIO_DATA_TERMS)
+    if intent in _STUDIO_DATA_INTENTS and (focus_topic in _STUDIO_DATA_FOCUS or has_studio_term):
+        return False
+    if focus_topic in _STUDIO_DATA_FOCUS and has_studio_term:
+        return False
     if intent in _PUBLIC_LEGAL_INTENTS or focus_topic in _PUBLIC_LEGAL_FOCUS:
         return True
     if bool(metadata.get("web_execution_requested") or metadata.get("web_fallback_used")):
@@ -139,7 +176,6 @@ def _should_defer_to_public_legal_research(
     if source_mode in {"strict", "public", "official"}:
         return True
     has_public_term = any(token in text for token in _PUBLIC_LEGAL_TERMS)
-    has_studio_term = any(token in text for token in _STUDIO_DATA_TERMS)
     return has_public_term and not has_studio_term
 
 

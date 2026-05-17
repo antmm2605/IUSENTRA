@@ -973,6 +973,22 @@ def start_scheduler(app):
             except Exception as e:
                 logger.error("[scheduler] Agenti Lex notturni falliti: %s", e)
 
+    @scheduler.scheduled_job(CronTrigger(hour=0, minute=35), id="utf8_integrity_nightly")
+    def _utf8_integrity_nightly():
+        with app.app_context():
+            try:
+                from pct.utf8_integrity import run_utf8_integrity_service
+
+                report = run_utf8_integrity_service(app.config, repair=True)
+                logger.info(
+                    "[scheduler] Integrità UTF-8: %d file controllati, %d riparati, %d da verificare",
+                    int(report.get("checked_files") or 0),
+                    int(report.get("repaired_files") or 0),
+                    int(report.get("unresolved_replacement_files") or 0) + int(report.get("error_files") or 0),
+                )
+            except Exception as e:
+                logger.error("[scheduler] Integrità UTF-8 fallita: %s", e)
+
     def _operational_resilience_targets():
         if app.config.get("MULTI_TENANT"):
             try:

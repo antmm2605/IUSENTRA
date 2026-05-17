@@ -237,6 +237,7 @@ def extract_entity_hint(query: str) -> dict[str, str]:
 
 
 _CLIENTE_QUERY_PREFIXES = (
+    r"^\s*(?:mi\s+)?(?:dai|dati|dammi|dimmi)\s+(?:i\s+)?dati\s+(?:del|della|di|dell[o']|per\s+il)?\s*cliente\s+",
     r"^\s*(?:dati|scheda|recapiti|contatti|pec|email|telefono|indirizzo|codice\s+fiscale|cf|partita\s+iva|p\.?\s*iva)\s+(?:del|della|di|dell[o']|per\s+il)?\s*cliente\s+",
     r"^\s*(?:trova|cerca|mostra|apri)\s+(?:il\s+)?cliente\s+",
     r"^\s*cliente\s+",

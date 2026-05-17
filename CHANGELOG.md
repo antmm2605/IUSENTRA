@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.245.8 - 2026-05-17
+
+- Lex AI legge correttamente dati cliente e ultime udienze dal contesto studio autorizzato: richieste come `mi dati i dati del cliente Marco Moscato` e `ultime udienze` non cadono più in risposte generiche di base documentale insufficiente.
+- Le bozze di diffida passano dal flusso redazionale, compilano dati studio/avvocato/cliente quando disponibili e non appendono più fonti agenda non pertinenti alla bozza.
+- Il widget Lex rende le risposte come un piccolo editor: titoli, grassetto, corsivo, separatori, elenchi, tabelle, citazioni e blocco documento per lettere/diffide, con recupero automatico delle bozze arrivate in una sola riga.
+- Il tempo di riflessione è mostrato in italiano naturale (`1 minuto e 10 secondi`) e, durante l'attesa, Lex mostra i passaggi che sta eseguendo: contesto, fonti, dati, verifiche e impaginazione.
+- Aggiunto il presidio `utf8-integrity`: servizio/CLI/job notturno per rilevare e riparare mojibake o caratteri non leggibili nei testi utente, con guardie Lex su output e report.
+
 ## 2.245.7 - 2026-05-17
 
 - Completato `/impostazioni?tab=ai` per telefoni e tablet: IUSENTRA rileva dispositivo, risorse dichiarate e percorso sicuro, aprendo Lex AI mobile quando il dispositivo non puo' preparare un motore locale.
@@ -507,7 +515,7 @@
 
 ## 2.218.9 - 2026-05-13
 
-- Corretto il decoding delle Email ordinarie quando il server dichiara un charset errato: gli accenti italiani non vengono piu' sostituiti con `�` nei campi oggetto e corpo.
+- Corretto il decoding delle Email ordinarie quando il server dichiara un charset errato: gli accenti italiani non vengono piu' sostituiti con caratteri non leggibili nei campi oggetto e corpo.
 - La sincronizzazione IMAP ripara anche le email gia' salvate con caratteri sostitutivi, rileggendo il messaggio originale quando e' ancora presente sul server.
 - Aggiunti test mirati su `è` e `à` in intestazioni e corpo, inclusa la riparazione dei record storici.
 

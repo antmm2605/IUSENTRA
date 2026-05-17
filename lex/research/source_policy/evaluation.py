@@ -28,7 +28,44 @@ _INTERNAL_HIGH_PRIORITY_TYPES = {
     "giurisprudenza",
     "prassi",
 }
-_INTERNAL_CONTEXT_TYPES = {"fascicolo", "documento", "agenda", "scadenza", "scadenziario", "preventivo", "fattura", "telematico"}
+_INTERNAL_CONTEXT_TYPES = {
+    "agenda",
+    "allegato_email",
+    "appuntamento",
+    "attivita",
+    "cliente",
+    "clienti",
+    "conferimento",
+    "documento",
+    "email",
+    "fascicolo",
+    "fattura",
+    "messaggio",
+    "parcella",
+    "preventivo",
+    "scadenza",
+    "scadenziario",
+    "soggetto",
+    "soggetti",
+    "telematico",
+    "udienza",
+}
+_INTERNAL_CONTEXT_PREFIXES = (
+    "agenda:",
+    "cliente:",
+    "conferimento:",
+    "documento:",
+    "email:",
+    "fascicolo:",
+    "fatturazione:",
+    "messaggio:",
+    "parcella:",
+    "preventivo:",
+    "scadenza:",
+    "scadenziario:",
+    "soggetto:",
+    "timesheet:",
+)
 
 
 def calculate_source_score(domain: str, area: str, mode: SourceMode | str = SourceMode.BALANCED) -> float:
@@ -108,7 +145,7 @@ def _internal_score(
         tier = Tier.TIER_1
         base_score = 0.95
         authority_band = "verificata_o_istituzionale"
-    elif source_type in _INTERNAL_CONTEXT_TYPES or source_id.startswith(("fascicolo:", "documento:", "agenda:", "scadenza:", "legal-intelligence:dashboard")):
+    elif source_type in _INTERNAL_CONTEXT_TYPES or source_id.startswith((*_INTERNAL_CONTEXT_PREFIXES, "legal-intelligence:dashboard")):
         tier = Tier.TIER_2
         base_score = 0.82
         authority_band = "contesto_interno"

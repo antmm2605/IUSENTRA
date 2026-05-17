@@ -4,6 +4,29 @@ Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle
 
 ---
 
+## Aggiornamento operativo 2.245.8 - 2026-05-17
+
+Lex non tratta più una richiesta redazionale con cliente, ad esempio
+`scrivi diffida per il cliente Marco Moscato`, come semplice ricerca
+anagrafica. Il profilo `bozza_lettera` forza il workflow redazionale,
+poi il contesto studio autorizzato viene usato per compilare intestazione,
+avvocato e cliente quando disponibili.
+
+Le richieste operative su dati studio sono state verificate con test reali su
+`/api/assistente/context` e `/api/assistente/chat`: dati cliente, recapiti,
+PEC, telefono e ultime udienze vengono letti dagli archivi tenant-aware invece
+di rispondere con base documentale insufficiente.
+
+Le bozze Lex vengono restituite senza appendici `Fonti consultate` non
+pertinenti quando il workflow è una lettera/diffida. Il widget rende la
+risposta come documento leggibile: titoli, grassetto, corsivo, separatori,
+elenchi e blocco documento. Se una bozza arriva già schiacciata in una riga,
+la UI la normalizza prima del rendering.
+
+È stato aggiunto il presidio UTF-8 `utf8-integrity`: CLI, servizio e job
+notturno rilevano mojibake, caratteri sostitutivi e testi con accenti italiani
+rotti. Le guardie Lex riparano l'output prima di mostrarlo all'utente.
+
 ## Aggiornamento operativo 2.245.5 - 2026-05-17
 
 Il presidio creato per fonti, agenti notturni, archivi ufficiali e funzioni AI

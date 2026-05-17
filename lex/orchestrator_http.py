@@ -21,10 +21,34 @@ from .telemetry.audit import audit_trace
 
 
 _TRUE_VALUES = {"1", "true", "vero", "yes", "si", "on", "enabled", "abilitato"}
+_STUDIO_DATA_GUARD_BYPASS_INTENTS = {"cliente_anagrafica"}
+_STUDIO_DATA_GUARD_BYPASS_TOPICS = {
+    "agenda",
+    "clienti",
+    "documenti",
+    "economico",
+    "fascicoli",
+    "fatture",
+    "pec_firma",
+    "preventivi",
+    "scadenze",
+    "soggetti",
+    "udienze",
+}
 
 
 def clean_spaces(value: Any) -> str:
     return " ".join(str(value or "").split()).strip()
+
+
+def _should_bypass_documentary_source_guard(studio_context: dict[str, Any]) -> bool:
+    """Le ricerche sui dati dello studio non sono ricerche da fonte pubblica."""
+    request_profile = dict(studio_context.get("request_profile") or {})
+    intent = clean_spaces(request_profile.get("intent")).lower()
+    focus_topic = clean_spaces(studio_context.get("focus_topic")).lower()
+    if intent in _STUDIO_DATA_GUARD_BYPASS_INTENTS:
+        return True
+    return focus_topic in _STUDIO_DATA_GUARD_BYPASS_TOPICS
 
 
 def _raw_chat_enabled() -> bool:
@@ -253,12 +277,14 @@ def build_context_response(
         mode=mode,
     )
     resolved_effective_question = str(studio_context.get("effective_question") or user_effective_question).strip() or user_effective_question
-    direct_guard_reply = orchestrator.dependencies.build_unverified_pdf_reply(
-        resolved_effective_question,
-        studio_context.get("verified_legal_references") or studio_context.get("sources") or [],
-    )
-    if not direct_guard_reply:
-        direct_guard_reply = clean_spaces(studio_context.get("answer_guardrail_message"))
+    direct_guard_reply = ""
+    if not _should_bypass_documentary_source_guard(studio_context):
+        direct_guard_reply = orchestrator.dependencies.build_unverified_pdf_reply(
+            resolved_effective_question,
+            studio_context.get("verified_legal_references") or studio_context.get("sources") or [],
+        )
+        if not direct_guard_reply:
+            direct_guard_reply = clean_spaces(studio_context.get("answer_guardrail_message"))
     if direct_guard_reply:
         guard_prompt = orchestrator.dependencies.build_prompt(
             question=resolved_effective_question,
@@ -555,12 +581,14 @@ def chat_response(
         mode=mode,
     )
     resolved_effective_question = str(studio_context.get("effective_question") or user_effective_question).strip() or "Richiesta operativa"
-    direct_guard_reply = orchestrator.dependencies.build_unverified_pdf_reply(
-        resolved_effective_question,
-        studio_context.get("verified_legal_references") or studio_context.get("sources") or [],
-    )
-    if not direct_guard_reply:
-        direct_guard_reply = clean_spaces(studio_context.get("answer_guardrail_message"))
+    direct_guard_reply = ""
+    if not _should_bypass_documentary_source_guard(studio_context):
+        direct_guard_reply = orchestrator.dependencies.build_unverified_pdf_reply(
+            resolved_effective_question,
+            studio_context.get("verified_legal_references") or studio_context.get("sources") or [],
+        )
+        if not direct_guard_reply:
+            direct_guard_reply = clean_spaces(studio_context.get("answer_guardrail_message"))
     if direct_guard_reply:
         def generate_direct():
             yield f"data: {json.dumps({'token': direct_guard_reply})}\n\n"

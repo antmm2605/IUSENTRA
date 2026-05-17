@@ -1,5 +1,24 @@
 # Migrazione progressiva Flask + React
 
+## Lex AI risposte studio e impaginazione - 2026-05-17 - 2.245.8
+
+Il widget Lex mantiene una resa da editor leggero per le risposte: Markdown
+governato, titoli, grassetto, corsivo, elenchi, tabelle, citazioni, separatori
+e blocco documento per lettere/diffide. Le bozze arrivate in una sola riga
+vengono normalizzate lato UI prima del rendering e ripulite da appendici fonte
+non pertinenti al documento.
+
+La fase di attesa non mostra più solo secondi grezzi: la durata viene formattata
+in italiano naturale (`1 minuto e 10 secondi`) e la bolla `Sto pensando` espone
+i passaggi in corso, differenziando redazione, fonti web, documenti, agenda e
+risposta generica. Al termine resta visibile il totale del pensiero completato.
+
+Lato Lex, le richieste redazionali con cliente non vengono più intercettate come
+lookup anagrafico: il workflow `bozza_lettera` prevale, recupera contesto
+tenant-aware e compila studio, avvocato e cliente quando disponibili. È stato
+aggiunto il presidio `utf8-integrity` per impedire regressioni su accenti
+italiani e mojibake nei testi rivolti all'utente.
+
 ## Agenti fonte legale - 2026-05-17 - 2.245.0
 
 `/admin/aggiornamenti-legali/fonti` ora espone ogni fonte come agente
@@ -756,10 +775,10 @@ Email ordinaria usa ora un decoder piu' robusto per intestazioni e corpo:
 quando il server IMAP dichiara un charset non coerente con i byte reali, il
 parser confronta la decodifica dichiarata con `utf-8`, `windows-1252` e
 `latin-1`, scegliendo il testo senza caratteri sostitutivi o mojibake. Il caso
-visibile `possibilit�` viene quindi restituito come `possibilità`.
+visibile con carattere sostitutivo al posto dell'accento viene quindi restituito come `possibilità`.
 
 La sincronizzazione non lascia bloccati i record gia' importati male: se una
-email salvata contiene `�`, viene inclusa nella finestra di riparazione anche se
+email salvata contiene caratteri sostitutivi, viene inclusa nella finestra di riparazione anche se
 non ha allegati mancanti, riletta da IMAP e aggiornata con oggetto, mittente,
 destinatari, corpo testo e corpo HTML migliori quando il messaggio sorgente e'
 ancora disponibile.

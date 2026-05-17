@@ -130,6 +130,10 @@ def _has_internal_context(studio_context: dict[str, Any]) -> bool:
 def _resolve_workflow_hint(studio_context: dict[str, Any], request_profile: dict[str, Any]) -> str:
     focus_topic = _clean_spaces(studio_context.get("focus_topic"))
     profile_intent = _clean_spaces(request_profile.get("intent"))
+    if profile_intent == "bozza_lettera":
+        return "drafting_legal_letter"
+    if profile_intent == "bozza_atto":
+        return "atto"
     if profile_intent == "giurisprudenza_specifica":
         return "giurisprudenza_specifica"
     if profile_intent == "cliente_anagrafica" or focus_topic == "clienti":
@@ -220,6 +224,10 @@ def _resolve_intent(question: str, studio_context: dict[str, Any], request_profi
     haystack = _clean_spaces(question).lower()
     focus_topic = _clean_spaces(studio_context.get("focus_topic"))
     profile_intent = _clean_spaces(request_profile.get("intent"))
+    if profile_intent == "bozza_lettera":
+        return "bozza_lettera"
+    if profile_intent == "bozza_atto":
+        return "bozza_atto"
     if profile_intent == "giurisprudenza_specifica":
         return "giurisprudenza_specifica"
     if profile_intent == "cliente_anagrafica" or focus_topic == "clienti":

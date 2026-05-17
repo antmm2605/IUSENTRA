@@ -5,6 +5,8 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from pct.utf8_integrity import repair_text_encoding
+
 
 FORBIDDEN_ENGLISH_FRAGMENTS: tuple[str, ...] = (
     "okay, here's",
@@ -103,7 +105,7 @@ _REPLACEMENTS: tuple[tuple[str, str], ...] = (
 def detect_non_italian_response(text: str) -> bool:
     """Rileva formule inglesi non ammesse fuori dalle citazioni letterali."""
 
-    body = _strip_citations(text)
+    body = _strip_citations(repair_text_encoding(text, drop_unresolved=True))
     lowered = body.lower()
     if any(fragment in lowered for fragment in FORBIDDEN_ENGLISH_FRAGMENTS):
         return True
@@ -126,7 +128,7 @@ def _is_predominantly_english(text: str) -> bool:
 def rewrite_or_reject_non_italian_response(text: str, context: dict[str, Any] | None = None) -> str:
     """Riscrive formule inglesi note; se resta inglese significativo, blocca in italiano."""
 
-    original = str(text or "")
+    original = repair_text_encoding(str(text or ""), drop_unresolved=True)
     if not detect_non_italian_response(original):
         return original
 

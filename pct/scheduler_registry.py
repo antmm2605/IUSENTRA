@@ -439,6 +439,7 @@ def default_scheduler_templates(config: dict[str, Any] | None = None) -> tuple[S
         SchedulerTemplate("workspace_intelligence_snapshot", "Quadro studio", "Lex AI", "Aggiorna inventario operativo dei fascicoli.", "cron", "", "*/20", built_in=True),
         SchedulerTemplate("local_ai_maintenance", "AI locale", "Lex AI", "Mantiene indicizzazione locale e modelli.", "cron", "", "*/30", built_in=True),
         SchedulerTemplate("lex_operational_agents_nightly", "Agenti Lex notturni", "Lex AI", "Aggiorna inventario operativo completo di studio per Lex.", "cron", "1", "20", built_in=True),
+        SchedulerTemplate("utf8_integrity_nightly", "Integrità testo UTF-8", "Manutenzione", "Verifica e ripara mojibake, accenti italiani e caratteri sostitutivi nei dati testuali.", "cron", "0", "35", built_in=True),
         SchedulerTemplate("operational_crash_morning", "Controllo operativo mattina", "Manutenzione", "Esegue controllo operativo con riparazione assistita.", "cron", "7", "0", built_in=True),
         SchedulerTemplate("operational_crash_midday", "Controllo operativo pranzo", "Manutenzione", "Esegue controllo operativo intermedio.", "cron", "13", "30", built_in=True),
         SchedulerTemplate("operational_crash_evening", "Controllo operativo sera", "Manutenzione", "Esegue controllo operativo serale.", "cron", "19", "30", built_in=True),

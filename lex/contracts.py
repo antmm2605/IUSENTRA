@@ -219,13 +219,19 @@ def answer_contract_for(workflow: WorkflowType) -> AnswerContract:  # noqa: C901
         "drafting_legal_letter", "lettera", "bozza_lettera", "atto", "bozza_atto",
         "pec_comunicazioni",
     }:
+        provider_hint: ProviderType = "deterministic" if workflow in {
+            "drafting_legal_letter",
+            "lettera",
+            "bozza_lettera",
+            "pec_comunicazioni",
+        } else "ollama"
         return AnswerContract(
             workflow=workflow,
             sections=["bozza", "punti_da_adattare", "avvertenze"],
             require_citations=False,
             require_official_sources=False,
             allow_abstention=False,
-            provider_hint="ollama",
+            provider_hint=provider_hint,
             target_latency_ms=3500,
             metadata={
                 "italian_only": True,

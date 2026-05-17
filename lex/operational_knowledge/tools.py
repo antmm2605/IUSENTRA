@@ -180,6 +180,40 @@ class OperationalKnowledgeTools:
         rows = sorted(rows, key=lambda row: _row_date(row) or date.max)[:limit]
         return self._rows_result("agenda", context, rows, serialize_generic, "appuntamento", decision)
 
+    def search_agenda(
+        self,
+        query: str,
+        context: OperationalQueryContext,
+        *,
+        limit: int = 30,
+        latest: bool = False,
+    ) -> OperationalToolResult:
+        decision = self._decision("agenda", context)
+        if not decision.allowed:
+            return self._blocked("agenda", decision)
+        manager = self._safe_manager("agenda", lambda: self._manager("agenda", "get_agenda"))
+        if manager is None:
+            return self._unavailable("agenda", "Agenda non disponibile.")
+        try:
+            rows = list(manager.tutti())
+        except Exception as exc:
+            return self._unavailable("agenda", f"Agenda non interrogabile: {exc}")
+
+        text = clean_spaces(query).lower()
+        wants_udienze = "udienz" in text
+        filtered = []
+        for row in rows:
+            payload = serialize_generic(row)
+            row_type = clean_spaces(payload.get("tipo")).lower()
+            haystack = clean_spaces(" ".join(str(value) for value in payload.values())).lower()
+            if wants_udienze and ("udienz" in row_type or "udienz" in haystack):
+                filtered.append(row)
+                continue
+            if not wants_udienze and _row_matches(payload, query):
+                filtered.append(row)
+        filtered.sort(key=lambda row: _row_date(row) or date.min, reverse=latest)
+        return self._rows_result("agenda", context, filtered[:limit], serialize_generic, "appuntamento", decision)
+
     def search_preventivi(self, query: str, context: OperationalQueryContext, *, limit: int = 12) -> OperationalToolResult:
         decision = self._decision("preventivi", context)
         if not decision.allowed:

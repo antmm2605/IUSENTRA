@@ -50,4 +50,31 @@ assert.match(rendered, /Societ\u00e0/)
 assert.match(rendered, /<blockquote class="pct-ai-answer-quote">Nota con accento: \u00e8 utile.<\/blockquote>/)
 assert.doesNotMatch(rendered, /<script/i)
 
+const flatDraft = "Sintesi operativa BOZZA \u2014 DIFFIDA E MESSA IN MORA --- Studio Refactor Avv. Refactor Via Roma 1 17/05/2026 Spett.le Alfa S.r.l. Oggetto: DIFFIDA E MESSA IN MORA \u2014 credito Con la presente, il sottoscritto Avv. Refactor, in qualit\u00e0 di difensore di Moscato Marco, diffida. Fatto rapporto non adempiuto Diritto Ai sensi dell'art. 1219 c.c. Richiesta formale Si diffida la S.V. a: 1. pagare 2. consegnare Avvertenza in difetto si agir\u00e0. Con osservanza, Avv. Refactor Fonti consultate - Contesto fonte - dep Dato certo - irrilevante"
+const normalizedDraft = hooks.sanitizeLexAnswer(flatDraft, { question: 'scrivi diffida' })
+assert.ok(hooks.looksLikeLegalDraft(normalizedDraft))
+assert.match(normalizedDraft, /\*\*BOZZA \u2014 DIFFIDA E MESSA IN MORA\*\*|BOZZA \u2014 DIFFIDA E MESSA IN MORA/)
+assert.match(normalizedDraft, /\n\n---\n\n/)
+assert.match(normalizedDraft, /\*\*Fatto\*\*/)
+assert.match(normalizedDraft, /\n1\. pagare/)
+assert.doesNotMatch(normalizedDraft, /Fonti consultate/)
+assert.doesNotMatch(normalizedDraft, /Contesto fonte/)
+
+const renderedDraft = hooks.renderMarkdown(normalizedDraft)
+assert.match(renderedDraft, /pct-ai-answer--document/)
+assert.match(renderedDraft, /pct-ai-answer-rule/)
+assert.match(renderedDraft, /pct-ai-answer-subheading">Fatto<\/h4>/)
+assert.match(renderedDraft, /<ol class="pct-ai-answer-list">/)
+assert.doesNotMatch(renderedDraft, /Fonti consultate/)
+
+assert.equal(hooks.formatReflectionDuration(70_000), '1 minuto e 10 secondi')
+assert.equal(hooks.formatReflectionDuration(120_000), '2 minuti')
+assert.equal(hooks.formatReflectionDuration(1_200), '1,2 secondi')
+
+const thinkingHtml = hooks.buildThinkingBubbleHtml('scrivi diffida per il cliente marco moscato', 3, 70_000)
+assert.match(thinkingHtml, /Sto pensando - 1 minuto e 10 secondi/)
+assert.match(thinkingHtml, /pct-ai-thinking-steps/)
+assert.match(thinkingHtml, /Recupero dati studio, cliente e fascicolo autorizzati/)
+assert.match(thinkingHtml, /Impagino la bozza con grassetto, elenchi e separatori leggibili/)
+
 console.log('lex_assistant_render.test.mjs OK')

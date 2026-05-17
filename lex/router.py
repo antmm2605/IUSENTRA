@@ -188,6 +188,10 @@ class LexRouter:
     )
     _FONTI_HINTS = ("fonte", "fonti", "riferimento bibliografico", "citazione ufficiale")
     _CLIENTE_ANAGRAFICA_HINTS = (
+        "mi dai i dati del cliente",
+        "mi dati i dati del cliente",
+        "dammi i dati del cliente",
+        "dimmi i dati del cliente",
         "trova cliente",
         "cerca cliente",
         "dati del cliente",
@@ -206,6 +210,7 @@ class LexRouter:
         "contatti del cliente",
     )
     _CLIENTE_ANAGRAFICA_PATTERNS = (
+        r"\b(?:mi\s+)?(?:dai|dati|dammi|dimmi)\s+(?:i\s+)?dati\s+(?:del|di|della|dell[o'])\s+cliente\b",
         r"\bdati\s+(?:del|di|della|dell[o'])\s+cliente\b",
         r"\banagrafica\s+(?:del|di|della|dell[o'])\b",
         r"\brecapiti\s+(?:del|di|della|dell[o'])\b",

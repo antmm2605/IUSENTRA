@@ -16,6 +16,9 @@ from .professional_answer import ProfessionalAnswerComposer
 from .sections import build_sections
 
 
+_DRAFTING_LETTER_WORKFLOWS = {"drafting_legal_letter", "lettera", "bozza_lettera", "pec_comunicazioni"}
+
+
 class AnswerBuilder:
     def build_response(self, request, context, workflow, evidence, draft, verdict) -> WorkflowLexResponse:
         strict_workflow = workflow in {"normativa", "giurisprudenza", "prassi", "research", "fonti", "giurisprudenza_specifica"}
@@ -161,6 +164,14 @@ class AnswerBuilder:
                 draft=draft,
                 verdict=verdict,
                 confidence=confidence,
+            )
+
+        if workflow in _DRAFTING_LETTER_WORKFLOWS:
+            return self._build_drafting_letter_response(
+                request=request,
+                draft=draft,
+                verdict=verdict,
+                confidence=max(confidence, 0.72),
             )
 
         professional = ProfessionalAnswerComposer().compose(
@@ -544,6 +555,46 @@ class AnswerBuilder:
                 "studio_internal_only": True,
                 "external_sources_used": False,
                 **lookup_meta,
+            },
+        )
+
+    def _build_drafting_letter_response(self, *, request, draft, verdict, confidence: float) -> WorkflowLexResponse:
+        answer = str(getattr(draft, "text", "") or "").strip()
+        answer = rewrite_or_reject_non_italian_response(answer, {"workflow": "drafting_legal_letter", "request": request})
+        _, answer = check_output_safety(
+            answer,
+            workflow="drafting_legal_letter",
+            question=str(getattr(request, "query", "") or ""),
+        )
+        confidence = max(0.0, min(0.99, round(float(confidence or 0.72), 4)))
+        return WorkflowLexResponse(
+            answer=answer,
+            citations=[],
+            warnings=list(getattr(verdict, "warnings", []) or []),
+            next_actions=[
+                "Completa i campi mancanti prima dell'invio.",
+                "Verifica allegati, importi, termini e procura o mandato prima della spedizione.",
+            ],
+            risk_level=str(getattr(verdict, "risk_level", "medium") or "medium"),
+            legal_basis=[],
+            considered_sources=[],
+            compared_sources=[],
+            missing_evidence=[],
+            confidence=confidence,
+            answer_mode="draft",
+            evidence_summary={
+                "drafting_template": True,
+                "evidence_sufficient": True,
+                "unrelated_sources_suppressed": True,
+            },
+            metadata={
+                "workflow": "drafting_legal_letter",
+                "provider": str(getattr(draft, "metadata", {}).get("provider") or "deterministic"),
+                "answer_mode": "draft",
+                "confidence": confidence,
+                "confidence_label": self._confidence_label(confidence),
+                "external_sources_used": False,
+                "unrelated_sources_suppressed": True,
             },
         )
 

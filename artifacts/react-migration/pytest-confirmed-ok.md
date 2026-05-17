@@ -1,12 +1,22 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-17, ranking query esatte evidenze web legali, no backup.
+Aggiornato: 2026-05-17, backfill mirato evidenze web legali, no backup.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Backfill mirato evidenze web legali - 2026-05-17
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct\legal_update_repository.py pct\legal_update_pipeline.py pct\legal_update_job.py tests\test_legal_update_publish_context.py tests\test_legal_update_batch_runner.py` | OK | Sintassi confermata dopo filtri `--backfill-query` e `--backfill-review-id`. |
+| `python -m pytest -q tests\test_legal_update_publish_context.py tests\test_legal_update_batch_runner.py tests\test_legal_update_web_verification_attachments.py` | OK | 26/26 passati: il backfill può selezionare il riferimento esatto `Circolare numero 53 del 07-05-2026` senza attendere l'ordine del lotto. |
+| `python -m ruff check pct\legal_update_repository.py pct\legal_update_pipeline.py pct\legal_update_job.py tests\test_legal_update_publish_context.py tests\test_legal_update_batch_runner.py`; `git diff --check -- pct\legal_update_repository.py pct\legal_update_pipeline.py pct\legal_update_job.py tests\test_legal_update_publish_context.py tests\test_legal_update_batch_runner.py` | OK | Ruff e whitespace puliti sul perimetro backfill mirato. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest -q tests\test_packaging_consistency.py tests\test_release_readiness.py` | OK | Packaging sincronizzato e readiness 8/8 dopo bump `2.245.15`. |
+| `python -m pct.cli utf8-integrity --check-only --root ... --json` | OK | Scan UTF-8 mirato su changelog, audit Lex, report e test: `ok=true`, 4 file controllati, 0 artefatti, 0 riparazioni. I file runtime locali creati dal bootstrap del comando sono stati rimossi e non committati. |
 
 ### Ranking query esatte evidenze web legali - 2026-05-17
 

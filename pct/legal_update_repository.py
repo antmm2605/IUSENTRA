@@ -281,6 +281,17 @@ def _lex_search_terms(value: Any) -> list[str]:
     return terms
 
 
+def _review_lookup_terms(value: Any) -> list[str]:
+    terms: list[str] = []
+    seen: set[str] = set()
+    for raw in re.findall(r"[a-zA-Z0-9_]+", _normalize_token(value)):
+        if len(raw) < 2 or raw in _LEX_SEARCH_STOPWORDS or raw in seen:
+            continue
+        seen.add(raw)
+        terms.append(raw)
+    return terms
+
+
 def _limit_value(value: Any, *, default: int = 12, maximum: int = 80) -> int:
     try:
         parsed = int(value)
@@ -1604,6 +1615,8 @@ class LegalUpdateRepository:
         statuses: tuple[str, ...] | None = ("pending", "approved", "published"),
         include_closed: bool = False,
         include_open_data: bool = False,
+        query: str = "",
+        review_ids: tuple[int, ...] = (),
     ) -> list[dict[str, Any]]:
         clauses = [
             "q.status <> 'rejected'",
@@ -1626,6 +1639,25 @@ class LegalUpdateRepository:
         if source_codes:
             clauses.append("s.code IN ({})".format(",".join("?" for _ in source_codes)))
             params.extend(_normalize_token(code) for code in source_codes)
+        review_id_values = tuple(int(value) for value in review_ids if int(value or 0) > 0)
+        if review_id_values:
+            clauses.append("q.id IN ({})".format(",".join("?" for _ in review_id_values)))
+            params.extend(review_id_values)
+        lookup_terms = _review_lookup_terms(query)
+        for term in lookup_terms:
+            like_value = f"%{term}%"
+            clauses.append(
+                """
+                (
+                    LOWER(COALESCE(n.title, '')) LIKE ?
+                    OR LOWER(COALESCE(n.body_text, '')) LIKE ?
+                    OR LOWER(COALESCE(r.title, '')) LIKE ?
+                    OR LOWER(COALESCE(r.source_url, '')) LIKE ?
+                    OR LOWER(COALESCE(a.summary_short, '')) LIKE ?
+                )
+                """
+            )
+            params.extend([like_value, like_value, like_value, like_value, like_value])
         if not include_open_data:
             clauses.append("COALESCE(s.source_type, '') <> 'open_data'")
             clauses.append("COALESCE(s.parser_type, '') <> 'ckan_json'")

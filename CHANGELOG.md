@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.245.15 - 2026-05-17
+
+- Il backfill delle evidenze web legali ora può completare subito un riferimento preciso con `--backfill-query` o `--backfill-review-id`, senza aspettare che il lotto temporizzato raggiunga quel record.
+- La selezione dei riferimenti da completare cerca titolo, testo, URL fonte e sintesi della revisione, inclusi numeri brevi come `53`, `07` e `05`; query come `Circolare numero 53 del 07-05-2026` puntano quindi al documento esatto.
 ## 2.245.14 - 2026-05-17
 
 - La ricerca Lex sulle evidenze web premia titolo, URL, allegato, numeri e frase esatta, così una query puntuale come Messaggio numero 685 del 26-02-2026 non viene superata da circolari più recenti ma generiche.

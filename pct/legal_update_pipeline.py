@@ -1661,6 +1661,8 @@ class LegalUpdatePipeline:
         include_open_data: bool = False,
         direct_only: bool = True,
         max_seconds: int = 0,
+        query: str = "",
+        review_ids: tuple[int, ...] = (),
     ) -> dict[str, Any]:
         source_code_tuple = tuple(_clean_spaces(code) for code in (source_codes or []) if _clean_spaces(code))
         status_tuple = (
@@ -1674,6 +1676,8 @@ class LegalUpdatePipeline:
             statuses=status_tuple,
             include_closed=include_closed,
             include_open_data=include_open_data,
+            query=_clean_spaces(query),
+            review_ids=tuple(int(value) for value in review_ids if int(value or 0) > 0),
         )
         started = time.monotonic()
         checked = 0
@@ -1719,6 +1723,8 @@ class LegalUpdatePipeline:
             "include_closed": bool(include_closed),
             "include_open_data": bool(include_open_data),
             "statuses": list(status_tuple),
+            "query": _clean_spaces(query),
+            "review_ids": [int(value) for value in review_ids if int(value or 0) > 0],
             "web_verification_attempts": verification_attempts,
             "verification_evidence_saved": verification_evidence_saved,
             "verification_attachments_saved": verification_attachments_saved,

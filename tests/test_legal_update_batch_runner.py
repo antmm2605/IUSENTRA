@@ -83,8 +83,27 @@ def test_legal_update_job_cli_backfill_evidenze_usa_limiti_governati(monkeypatch
             "include_open_data": False,
             "direct_only": True,
             "max_seconds": 15,
+            "query": "",
+            "review_ids": (),
         }
     ]
+
+    rc = job.main(
+        [
+            "--intelligence-db",
+            "legal.json",
+            "--backfill-web-evidence",
+            "--backfill-query",
+            "Circolare numero 53 del 07-05-2026",
+            "--backfill-review-id",
+            "8807",
+        ]
+    )
+
+    assert rc == 0
+    json.loads(capsys.readouterr().out)
+    assert calls[-1]["query"] == "Circolare numero 53 del 07-05-2026"
+    assert calls[-1]["review_ids"] == (8807,)
 
 
 def test_legal_update_job_command_esegue_fonte_singola_con_timeout_governabile():

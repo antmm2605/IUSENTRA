@@ -409,6 +409,116 @@ def test_backfill_web_verification_evidence_popola_review_esistenti(tmp_path: Pa
     assert evidence_count == 1
 
 
+def test_backfill_web_verification_evidence_filtra_riferimento_esatto(tmp_path: Path, monkeypatch):
+    pipeline = build_legal_update_pipeline(str(tmp_path / "intelligence" / "motori.json"))
+    source = pipeline.repository.get_source_by_code("inps_circolari")
+    assert source is not None
+
+    def _seed_review(title: str, *, external_id: str) -> int:
+        raw = pipeline.repository.save_raw_document(
+            {
+                "source_id": source["id"],
+                "external_id": external_id,
+                "source_url": f"https://www.inps.it/{external_id}.html",
+                "title": title,
+                "published_at": "2026-05-17",
+                "raw_html": "",
+                "raw_text": f"{title} da completare.",
+                "content_hash": f"hash-{external_id}",
+                "fetch_status": "fetched",
+                "http_status": 200,
+            }
+        )
+        normalized = pipeline.repository.save_normalized_document(
+            int(raw["id"]),
+            {
+                "title": title,
+                "body_text": f"{title} da completare.",
+                "body_short": f"{title} da completare.",
+                "language": "it",
+                "issuer": "INPS",
+                "document_date": "2026-05-17",
+                "document_type_guess": "circolare",
+                "attachments_json": [],
+            },
+        )
+        analysis = pipeline.repository.save_analysis(
+            int(normalized["id"]),
+            {
+                "classification_type": "COMMENTO",
+                "confidence_score": 0.52,
+                "impact_level": "medio",
+                "summary_short": f"{title} da completare.",
+                "summary_long": f"{title} da completare.",
+                "what_changes": "",
+                "extracted_entities_json": {},
+                "proposed_action": "NEWS_ONLY",
+                "target_entity_type": "",
+                "target_entity_id": None,
+            },
+        )
+        review = pipeline.repository.upsert_review_item(
+            {
+                "normalized_document_id": int(normalized["id"]),
+                "analysis_id": int(analysis["id"]),
+                "proposal_type": "commento",
+                "proposed_action": "NEWS_ONLY",
+                "target_entity_type": "",
+                "target_entity_id": None,
+                "proposal_payload_json": {},
+                "status": "approved",
+                "priority": 70,
+            }
+        )
+        return int(review["id"])
+
+    target_review_id = _seed_review("Circolare numero 53 del 07-05-2026", external_id="circolare-numero-53")
+    _seed_review("Circolare numero 25 del 05-03-2026", external_id="circolare-numero-25")
+    calls: list[str] = []
+
+    def fake_verify(review, source, **kwargs):
+        calls.append(str(review["title"]))
+        return {
+            "ok": True,
+            "reason": "Fonte diretta verificata.",
+            "confirmation_count": 1,
+            "official_confirmations": 1,
+            "confirmations": [
+                {
+                    "origin": "fonte_acquisita",
+                    "source_name": source["name"],
+                    "title": review["title"],
+                    "url": review["source_url"],
+                    "official": True,
+                    "excerpt": "Documento INPS verificato.",
+                    "content": "Documento INPS verificato.",
+                    "context_chars": 25,
+                    "matched_terms": ["circolare", "53"],
+                    "query": review["title"],
+                }
+            ],
+            "searched": {"web_results": 0, "direct_only": True},
+        }
+
+    monkeypatch.setattr("pct.legal_update_pipeline.verify_legal_update_against_public_sources", fake_verify)
+
+    report = pipeline.backfill_web_verification_evidence(
+        limit=10,
+        query="Circolare numero 53 del 07-05-2026",
+    )
+
+    with pipeline.repository._connect() as conn:
+        evidence_rows = conn.execute("SELECT review_id, title FROM web_verification_evidence").fetchall()
+
+    assert report["selected"] == 1
+    assert report["checked"] == 1
+    assert report["query"] == "Circolare numero 53 del 07-05-2026"
+    assert calls == ["Circolare numero 53 del 07-05-2026"]
+    assert [(row["review_id"], row["title"]) for row in evidence_rows] == [
+        (target_review_id, "Circolare numero 53 del 07-05-2026")
+    ]
+
+
 def test_backfill_web_verification_evidence_lavora_solo_record_azionabili(tmp_path: Path, monkeypatch):
     pipeline = build_legal_update_pipeline(str(tmp_path / "intelligence" / "motori.json"))
     actionable_source = pipeline.repository.get_source_by_code("agcom_provvedimenti")

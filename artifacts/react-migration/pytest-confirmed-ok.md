@@ -1,12 +1,27 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-17, agenti Lex operativi verificabili 2.245.4, no backup.
+Aggiornato: 2026-05-17, Lex AI mobile e Qwen 3.5 2.245.6, no backup.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Lex AI mobile e Qwen 3.5 2.245.6 - 2026-05-17
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `npm --prefix frontend run typecheck -- --pretty false` | OK | TypeScript confermato dopo pulsante Lex AI mobile nella nav inferiore e opzioni modello Qwen 3.5 in Impostazioni AI Locale. |
+| `python tools\sync_packaging_files.py --check` | OK | File versione/deploy coerenti dopo bump `2.245.6`. |
+| `python -m py_compile pct\local_ai.py tools\local_ai_host_bridge.py` | OK | Sintassi AI locale confermata; Qwen 3.5 resta scelta volontaria nel selettore, senza cambiare il default automatico. |
+| `node frontend\scripts\check-react-contracts.mjs` | OK | Contratti aggiornati: Lex AI non viene piu' nascosto su mobile, il pulsante `Lex AI` e' obbligatorio nella barra mobile e il pannello resta sopra la nav inferiore. |
+| `python -m pytest tests\test_react_shell.py::test_react_agenda_pagina_separata_collegata_nav_e_api -q --tb=short` | OK | 1/1 passato: il contratto shell React blocca regressioni sul nuovo accesso Lex AI mobile. |
+| `npm --prefix frontend run build` | OK | Build Vite completata in 5.77s: main `index-CAAqYaoD.js` 452.41 kB (133.80 kB gzip), CSS `index-B2lPaDH2.css` 125.21 kB (22.99 kB gzip), `ImpostazioniPage-GQyl98kT.js` 122.68 kB (35.78 kB gzip). |
+| Browser Playwright mobile 390x844 su `/` autenticata | OK | Pulsante `Lex AI` visibile (`display:flex`), click apre il widget globale (`pct-ai-widget--open=true`, pannello non nascosto), nessun overflow orizzontale e zero console error/warning. |
+| `python scripts\validate_docs_links.py CHANGELOG.md docs\LEX_MOBILE_AI_QWEN35_EVALUATION.md artifacts\react-migration\pytest-confirmed-ok.md artifacts\react-migration\pytest-open-issues.md artifacts\react-migration\full-react-final-report.md artifacts\react-migration\full-react-performance-notes.md`; `python scripts\validate_docs_commands.py` | OK | Link e comandi documentali validati dopo la nuova valutazione video/Qwen 3.5. |
+| `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py -q --tb=short` | OK | 8/8 passati: packaging, readiness e versione `2.245.6` allineati. |
+| `git diff --check -- . ':!data/*'` | OK | Whitespace pulito sul perimetro toccato, escludendo i dati runtime preesistenti. |
 
 ### Hotfix agenti Lex produzione 2.245.4 - 2026-05-17
 

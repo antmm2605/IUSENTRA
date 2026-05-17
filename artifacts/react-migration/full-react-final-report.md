@@ -2,6 +2,21 @@
 
 Generato: 2026-05-09T17:09:00+02:00
 
+Aggiornamento 2026-05-17T13:35:00+02:00: Lex AI mobile e Qwen 3.5 2.245.6.
+La shell React espone Lex AI anche su telefono e tablet: nella barra mobile
+inferiore compare il pulsante operativo `Lex AI`, che apre il widget contestuale
+globale senza portare dati legali o modelli sul dispositivo. La scelta di
+prodotto dopo la valutazione del video su Qwen 3.5 e' mantenere il telefono come
+client sicuro verso il runtime autorizzato dello studio, mentre i modelli
+`qwen3.5:2b` e `qwen3.5:9b` entrano solo come opzioni volontarie in AI Locale
+per prove misurate su desktop/edge.
+
+Verifica reale mobile 390x844 su `/` autenticata: `Lex AI` visibile, click con
+apertura del widget globale, pannello non nascosto, nessun overflow orizzontale
+e zero errori console. Gate verdi: typecheck, py_compile AI locale, contratti
+React, pytest shell mirato, build Vite e validazione link documentali.
+Valutazione documentata in `docs/LEX_MOBILE_AI_QWEN35_EVALUATION.md`.
+
 Aggiornamento 2026-05-16T17:40:00+02:00: registri mediazione interni 2.243.4.
 La pagina `/ricerca-legale/mediazione` non e' piu' una raccolta di collegamenti:
 porta dentro IUSENTRA Registro Organismi di Mediazione, Elenco Enti per la

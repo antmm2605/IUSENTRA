@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.245.6 - 2026-05-17
+
+- Integrato Lex AI nella navigazione mobile React: la barra inferiore ora espone un'azione diretta `Lex AI` che apre il widget contestuale con il contesto della pagina corrente.
+- Ripristinata la visibilita' dei pannelli Lex contestuali su tablet/mobile, mantenendoli sopra la navigazione inferiore invece di nasconderli sotto 1180px.
+- Aggiunte opzioni Qwen 3.5 nelle impostazioni AI locale come scelta volontaria per desktop/edge, senza cambiare i default automatici gia' governati dal profilo del PC.
+- Documentata la valutazione del video su Qwen 3.5: mobile come PWA sicura collegata al runtime autorizzato, Qwen 3.5 da usare solo dopo benchmark e scelta esplicita.
+
 ## 2.245.5 - 2026-05-17
 
 - Portato il presidio Lex AI direttamente nelle pagine studio `/ricerca-legale` e `/giurisprudenza/`: agenti notturni, archivi ufficiali, funzioni AI avanzate e citazioni verificabili sono ora visibili nel flusso operativo dell'avvocato.

@@ -1,6 +1,6 @@
 # Pytest issue aperte e risoluzioni
 
-Aggiornato: 2026-05-17, Lex AI operativo e agenti notturni 2.245.4.
+Aggiornato: 2026-05-17, Lex AI mobile e Qwen 3.5 2.245.6.
 
 ## Regola operativa
 
@@ -10,6 +10,7 @@ Questo file e' la coda di lavoro. Prima di rilanciare test gia' passati, control
 
 | Area | Test / comando | Stato | Problema rilevato | Risoluzione |
 | --- | --- | --- | --- | --- |
+| Lex AI mobile 2.245.6 | Primo smoke Playwright mobile su `/` autenticata | Risolto nella stessa sessione | Il primo tentativo non trovava `.iu-mobile__lex` perche' gli asset React locali erano stati ripuliti prima della prova e il server temporaneo serviva il bundle tracciato precedente. | Rigenerato il bundle Vite solo per la verifica browser, rilanciato lo smoke mobile e confermato: pulsante `Lex AI` visibile, widget aperto al click, nessun overflow e zero errori console. Gli asset hashati locali vanno ripuliti prima del commit perche' Docker li rigenera in deploy. |
 | Hotfix agenti Lex produzione 2.245.4 | Run produzione `lex-agenti-operativi --all --json` dopo deploy 2.245.4 | Risolto e verificato in produzione | Quattro agenti tornavano `Da verificare` non per assenza dati reali, ma per chiavi non risolte nel runtime Flask (`LEX_OFFICIAL_DB`, `NORMATTIVA_DB`, `PCT_DATA_ROOT`) e per schema PDP Penale tenant non ancora creato. | Runtime allineato alle env `PCT_*`; agente PDP inizializza lo schema SQLite tenant-aware senza fallback globale. Produzione verificata: 16 agenti su 16 `ok`, nessuna chiave mancante. |
 | Lex AI operativo 2.245.3 | `python -m pct.cli lex-agenti-operativi --all --json` | Nessuna issue aperta sul codice; run locale parziale per configurazione | Il run immediato locale ha creato solo artefatti runtime rigenerabili (`email/ordinaria.json`, `intelligence/lex_operational_agents.json`, `intelligence/workspace_intelligence.json`) e alcuni agenti hanno risposto `Da verificare` per archivi/env non configurati nel setup locale. | Artefatti runtime rimossi dalla worktree; il comportamento e' intenzionale: gli agenti non mascherano fonti mancanti come completate. Rilanciare su Hetzner dopo deploy per leggere configurazione e archivi reali del server. |
 | Agenti fonte storici 2026-05-17 | Ultimo record `source_agent_runs` gia' salvato prima dell'hotfix | Nessuna issue aperta dopo fix 2.245.2 | In produzione era presente un esito vecchio marcato `completed` ma con errore SSL dentro `payload_json.reports[].error`, quindi la console poteva continuare a mostrare una fotografia fuorviante. | Il repository normalizza in lettura e in scrittura: qualunque `completed` con errore interno diventa `failed`/`Da verificare`; per `giustizia_amministrativa` aggiunge la risoluzione OpenGA ufficiale. |

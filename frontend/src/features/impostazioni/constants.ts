@@ -128,6 +128,8 @@ export const SETTINGS_FIELDS: Record<SettingsSection, SettingsField[]> = {
       { value: '__auto__', label: 'Automatico (consigliato)' },
       { value: 'gemma3:1b', label: 'Veloce' },
       { value: 'qwen2.5:0.5b', label: 'Molto leggero' },
+      { value: 'qwen3.5:2b', label: 'Qwen 3.5 leggero' },
+      { value: 'qwen3.5:9b', label: 'Qwen 3.5 avanzato' },
       { value: 'mistral', label: 'Piu completo se gia installato' },
     ] },
     { name: 'embed_model', label: 'Ricerca nei documenti', type: 'select', width: 'half', help: 'Lascia Automatico: IUSENTRA prepara il modello adatto alla ricerca locale.', options: [

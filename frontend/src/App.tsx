@@ -1229,6 +1229,17 @@ export default function App() {
       .finally(()=>{if(ok)setLoading(false)})
     return()=>{ok=false}
   },[isDashboardPage,effectiveStandalonePage])
+  const openMobileLex = () => {
+    const detail = {
+      ...lexConfig,
+      context: lexConfig.context || 'mobile',
+      title: lexConfig.title || 'Lex AI mobile',
+      body: lexConfig.body || 'Posso aiutarti da telefono o tablet con fascicoli, scadenze, posta, ricerca legale e prossima azione operativa.',
+      pagePath: window.location.pathname,
+    }
+    window.dispatchEvent(new CustomEvent('iusentra:lex-context', { detail }))
+    window.dispatchEvent(new CustomEvent('iusentra:open-floating-lex', { detail }))
+  }
   return (
     <AppErrorBoundary>
       <div className={`iu-shell ${sidebarCollapsed?'iu-shell--collapsed':''}`}>
@@ -1244,6 +1255,7 @@ export default function App() {
           <div id="iu-mobile-links" className="iu-mobile__rail" hidden={mobileNavCollapsed}>
             <a className={isDashboardPage?'active':''} href="/"><LayoutDashboard size={18}/>Panoramica</a>
             <a className={isSearchPage?'active':''} href="/global-search"><Search size={18}/>Ricerca</a>
+            <button type="button" className="iu-mobile__lex" onClick={openMobileLex} aria-label="Apri Lex AI"><Bot size={18}/>Lex AI</button>
             <a className={isFascicoliPage?'active':''} href="/fascicoli"><BriefcaseBusiness size={18}/>Fascicoli</a>
             <a className={isClientiPage||isClientFolderPage||isClientEditPage||isNewClientPage||isCartelleCondivisePage||isSoggettiPage||isNewSubjectPage||isSubjectEditPage?'active':''} href="/clienti"><UsersRound size={18}/>Clienti</a>
             <a className={isEmailPage||isEmailOrdinariaPage||isNotificheLegaliPage||isMessagesPage||isNewMessagePage?'active':''} href="/email/"><Mail size={18}/>Posta</a>

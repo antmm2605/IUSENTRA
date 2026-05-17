@@ -14,6 +14,17 @@ except Exception:  # pragma: no cover - la UI deve degradare senza bloccare la s
     _rewrite_query_for_legal_research = None
     _run_public_legal_research = None
 
+try:
+    from lex.retrieval.official_sources_retriever import (
+        official_archive_snapshot as _official_archive_snapshot,
+        search_gazzetta as _search_gazzetta,
+        search_normattiva as _search_normattiva,
+    )
+except Exception:  # pragma: no cover - gli archivi ufficiali sono opzionali in test/local
+    _official_archive_snapshot = None
+    _search_gazzetta = None
+    _search_normattiva = None
+
 
 _PST_MEDIAZIONE_RECOVERY_URL = (
     "https://pst.giustizia.it/PST/page/it/"
@@ -243,7 +254,7 @@ def _dashboard_snapshot(
             scadenze=_safe_call(lambda: get_scadenziario().tutte(), warnings, "scadenze_non_disponibili", "Scadenze"),
             portali=[],
         )
-    except Exception as exc:
+    except Exception:
         warnings.append(_warning("snapshot_non_disponibile", "Riepilogo ricerca legale non disponibile."))
         return {}
 
@@ -251,7 +262,7 @@ def _dashboard_snapshot(
 def _pipeline_snapshot(pipeline: Any, warnings: list[dict[str, str]]) -> dict[str, Any]:
     try:
         return _dict(pipeline.dashboard_snapshot())
-    except Exception as exc:
+    except Exception:
         warnings.append(_warning("pipeline_non_disponibile", "Archivio aggiornamenti non disponibile."))
         return {}
 
@@ -594,6 +605,32 @@ def _safe_public_source_record(source: Any, index: int) -> dict[str, Any]:
     }
 
 
+def _safe_official_archive_record(row: Mapping[str, Any], index: int, *, archive: str) -> dict[str, Any]:
+    source_label = _text(row.get("fonte")) or ("Normattiva" if archive == "normattiva" else "Gazzetta Ufficiale")
+    title = _text(row.get("titolo")) or source_label
+    excerpt = _short(row.get("testo") or row.get("excerpt") or row.get("contenuto"), 640)
+    source_href = _safe_href(row.get("url_origine") or row.get("url"))
+    chunk_label = _text(row.get("articolo_o_chunk") or row.get("chunk") or row.get("chunk_id"))
+    return {
+        "id": _text(row.get("chunk_id") or row.get("document_id") or row.get("id")) or f"{archive}_{index}",
+        "kind": "normativa" if archive == "normattiva" else "news",
+        "title": title,
+        "subtitle": excerpt,
+        "sourceExcerpt": excerpt,
+        "sourceLabel": source_label,
+        "sourceKind": "fonte ufficiale",
+        "sourceHref": source_href,
+        "date": _text(row.get("data") or row.get("published_at") or row.get("data_acquisizione")),
+        "area": _text(row.get("materia")) or ("Normativa" if archive == "normattiva" else "Gazzetta Ufficiale"),
+        "branch": "Archivio Normattiva" if archive == "normattiva" else "Archivio Gazzetta Ufficiale",
+        "approvalLabel": "indicizzata",
+        "approvalTone": "success",
+        "registryNumber": chunk_label,
+        "legacyHref": "/ricerca-legale",
+        "evidenceType": "estratto fonte ufficiale" if excerpt else "riferimento fonte ufficiale",
+    }
+
+
 def _search_repository_records(pipeline: Any, warnings: list[dict[str, str]], search_query: str) -> list[dict[str, Any]]:
     if not search_query:
         return []
@@ -603,6 +640,41 @@ def _search_repository_records(pipeline: Any, warnings: list[dict[str, str]], se
         warnings.append(_warning("ricerca_archivio_non_disponibile", "Archivio giuridico non disponibile per questa ricerca."))
         return []
     return [_safe_search_record(row, index) for index, row in enumerate(rows, start=1) if isinstance(row, Mapping)]
+
+
+def _official_archive_records(warnings: list[dict[str, str]], search_query: str) -> list[dict[str, Any]]:
+    if not search_query:
+        return []
+    records: list[dict[str, Any]] = []
+    if _search_normattiva is not None:
+        try:
+            records.extend(
+                _safe_official_archive_record(row, index, archive="normattiva")
+                for index, row in enumerate(_search_normattiva(search_query, limit=8), start=1)
+                if isinstance(row, Mapping)
+            )
+        except Exception:
+            warnings.append(_warning("normattiva_non_disponibile", "Archivio Normattiva non disponibile per questa ricerca."))
+    if _search_gazzetta is not None:
+        try:
+            records.extend(
+                _safe_official_archive_record(row, index, archive="gazzetta")
+                for index, row in enumerate(_search_gazzetta(search_query, limit=6), start=1)
+                if isinstance(row, Mapping)
+            )
+        except Exception:
+            warnings.append(_warning("gazzetta_non_disponibile", "Archivio Gazzetta Ufficiale non disponibile per questa ricerca."))
+    return records
+
+
+def _official_archive_counts(warnings: list[dict[str, str]]) -> dict[str, Any]:
+    if _official_archive_snapshot is None:
+        return {}
+    try:
+        return _dict(_official_archive_snapshot())
+    except Exception:
+        warnings.append(_warning("archivi_ufficiali_non_disponibili", "Archivi ufficiali locali non disponibili."))
+        return {}
 
 
 def _needs_public_fallback(records: list[dict[str, Any]], search_query: str) -> bool:
@@ -658,6 +730,25 @@ def _source_items(snapshot: Mapping[str, Any], update_snapshot: Mapping[str, Any
         state = "ufficiale" if row.get("is_official") else _text(row.get("trust_class") or "interna")
         items.append(_item(f"update_source_{index}", label or "Fonte aggiornamenti", state, _text(row.get("category")), "success" if row.get("is_official") else "neutral"))
     return items
+
+
+def _official_archive_items(normattiva_counts: Mapping[str, Any], gazzetta_counts: Mapping[str, Any]) -> list[dict[str, Any]]:
+    return [
+        _item(
+            "normattiva_locale",
+            "Normattiva",
+            int(normattiva_counts.get("documents") or 0),
+            f"{int(normattiva_counts.get('articles') or 0)} articoli indicizzati",
+            "success" if normattiva_counts.get("available") else "neutral",
+        ),
+        _item(
+            "gazzetta_locale",
+            "Gazzetta Ufficiale",
+            int(gazzetta_counts.get("documents") or 0),
+            f"{int(gazzetta_counts.get('chunks') or 0)} estratti indicizzati",
+            "success" if gazzetta_counts.get("available") else "neutral",
+        ),
+    ]
 
 
 def _mediazione_section(snapshot: Mapping[str, Any]) -> dict[str, Any]:
@@ -740,8 +831,12 @@ def build_react_legal_intelligence_payload(
     mediazione_official_records = _mediazione_official_registry_records()
     matters = _matters(pipeline, warnings)
     source_items = _source_items(snapshot, update_snapshot)
+    official_counts = _official_archive_counts(warnings)
+    normattiva_counts = _dict(official_counts.get("normattiva"))
+    gazzetta_counts = _dict(official_counts.get("gazzetta"))
     search_query = _search_query(query)
     search_records: list[dict[str, Any]] = []
+    official_archive_records: list[dict[str, Any]] = []
     official_search_attempted = False
 
     if page == "news":
@@ -757,7 +852,8 @@ def build_react_legal_intelligence_payload(
             if _matches_query(record, search_query)
         ]
         search_records = _search_repository_records(pipeline, warnings, search_query)
-        combined_search = _dedupe_records(search_records + local_matches)
+        official_archive_records = _official_archive_records(warnings, search_query)
+        combined_search = _dedupe_records(search_records + official_archive_records + local_matches)
         if _needs_public_fallback(combined_search, search_query):
             public_records, official_search_attempted = _public_search_records(search_query, warnings)
             combined_search = _dedupe_records(combined_search + public_records, limit=24)
@@ -784,6 +880,7 @@ def build_react_legal_intelligence_payload(
             _item("query", "Termini cercati", search_query or "nessun termine", "Archivio e fonti collegate", "primary" if search_query else "neutral"),
             _item("risultati", "Risultati", len(records), "Schede disponibili", "success" if records else "neutral"),
             _item("archivio", "Archivio studio", len(search_records), "Aggiornamenti giuridici indicizzati", "info" if search_records else "neutral"),
+            _item("normattiva", "Normattiva", len([record for record in official_archive_records if record.get("sourceLabel") == "Normattiva"]), "Estratti dall'archivio locale ufficiale", "success" if official_archive_records else "neutral"),
             _item("fonti_ufficiali", "Fonti ufficiali", len([record for record in records if "ufficiale" in _text(record.get("sourceKind")).lower()]), "Con estratto o riferimento consultabile", "success"),
         ],
         "Inserisci una ricerca per consultare archivio e fonti ufficiali.",
@@ -805,11 +902,20 @@ def build_react_legal_intelligence_payload(
             _metric("fonti_monitorate", "Fonti monitorate", int(headline.get("fonti_monitorate") or update_headline.get("sources") or 0), "Archivio e monitor governato", "primary"),
             _metric("news_pubblicate", "News pubblicate", int(update_headline.get("published_news") or len(news_records)), "Disponibili nello studio", "info"),
             _metric("review", "In revisione", int(update_headline.get("review_pending") or headline.get("tabelle_da_validare") or 0), "Percorso governato", "warning"),
+            _metric("normattiva", "Normattiva", int(normattiva_counts.get("documents") or 0), f"{int(normattiva_counts.get('articles') or 0)} articoli, {int(normattiva_counts.get('chunks') or 0)} estratti", "success" if normattiva_counts.get("available") else "neutral"),
+            _metric("gazzetta", "Gazzetta", int(gazzetta_counts.get("documents") or 0), f"{int(gazzetta_counts.get('chunks') or 0)} estratti indicizzati", "success" if gazzetta_counts.get("available") else "neutral"),
             _metric("mediazione", "Organismi mediazione", int(mediazione.get("total_rows") or 0), "Registro consultabile", "success" if mediazione.get("total_rows") else "neutral"),
             _metric("fascicoli", "Fascicoli nel monitor", int(headline.get("fascicoli") or 0), "Informazioni studio", "neutral"),
         ],
         "sections": [
             *([search_section] if page == "ricerca-legale" else []),
+            _section(
+                "archivi_ufficiali",
+                "Archivi ufficiali locali",
+                "fonti",
+                _official_archive_items(normattiva_counts, gazzetta_counts),
+                "Archivi ufficiali non disponibili.",
+            ),
             _section("fonti", "Stato fonti", "fonti", source_items, "Nessuna fonte disponibile."),
             _section(
                 "news",

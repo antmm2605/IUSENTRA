@@ -106,6 +106,16 @@
         {{ payload.headline.published_normative + payload.headline.published_jurisprudence + payload.headline.published_prassi }}
       </div>
     </div>
+    <div class="lu-kpi-card">
+      <div class="lu-kpi-label">Normattiva locale</div>
+      <div class="lu-kpi-value text-success">{{ payload.official_archives.normattiva.documents }}</div>
+      <div class="small text-muted">{{ payload.official_archives.normattiva.articles }} articoli</div>
+    </div>
+    <div class="lu-kpi-card">
+      <div class="lu-kpi-label">Gazzetta locale</div>
+      <div class="lu-kpi-value text-success">{{ payload.official_archives.gazzetta.documents }}</div>
+      <div class="small text-muted">{{ payload.official_archives.gazzetta.chunks }} estratti</div>
+    </div>
   </div>
 
   <div class="row g-3 mb-3">
@@ -217,6 +227,14 @@
             <div class="li-soft-card">
               <div class="small text-muted">Archivio aggiornamenti</div>
               <div class="fw-semibold">Controllo ripetizioni attivo</div>
+            </div>
+            <div class="li-soft-card">
+              <div class="small text-muted">Archivio Normattiva</div>
+              <div class="fw-semibold">{{ payload.official_archives.normattiva.documents }} documenti, {{ payload.official_archives.normattiva.chunks }} estratti</div>
+            </div>
+            <div class="li-soft-card">
+              <div class="small text-muted">Archivio Gazzetta</div>
+              <div class="fw-semibold">{{ payload.official_archives.gazzetta.documents }} uscite, {{ payload.official_archives.gazzetta.chunks }} estratti</div>
             </div>
             <div class="li-soft-card">
               <div class="small text-muted">Lettura assistente</div>

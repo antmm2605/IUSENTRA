@@ -53,3 +53,21 @@ def test_normattiva_download_builds_expected_params_and_zip(tmp_path: Path):
     assert kwargs["params"] == {"nome": "Codici", "formato": "XML", "formatoRichiesta": "O"}
     assert Path(result.output_path).exists()
     assert Path(result.output_path).read_bytes().startswith(b"PK")
+
+
+def test_normattiva_download_replace_existing_non_accumula_zip(tmp_path: Path):
+    old = tmp_path / "Codici_XML_ORIGINALE_2026-05-16.zip"
+    old.write_bytes(b"PK\x03\x04old")
+    session = _FakeSession()
+    client = NormattivaClient(session=session, sleep_seconds=0)
+
+    result = client.download_collection(
+        "Codici",
+        output_dir=tmp_path,
+        vigenza="ORIGINALE",
+        replace_existing=True,
+    )
+
+    assert not old.exists()
+    assert Path(result.output_path).exists()
+    assert len(list(tmp_path.glob("Codici_XML_ORIGINALE_*.zip"))) == 1

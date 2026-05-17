@@ -46,6 +46,21 @@ _LEGACY_CATALOG: dict[str, SourceDescriptor] = {
     "agenziaentrate.gov.it": SourceDescriptor("Agenzia delle Entrate", "B", 2, "istituzionale", official=True),
     "www.lavoro.gov.it": SourceDescriptor("Ministero del Lavoro", "B", 2, "istituzionale", official=True),
     "lavoro.gov.it": SourceDescriptor("Ministero del Lavoro", "B", 2, "istituzionale", official=True),
+    "www.inps.it": SourceDescriptor("INPS", "B", 2, "istituzionale", official=True),
+    "inps.it": SourceDescriptor("INPS", "B", 2, "istituzionale", official=True),
+    "www.inail.it": SourceDescriptor("INAIL", "B", 2, "istituzionale", official=True),
+    "inail.it": SourceDescriptor("INAIL", "B", 2, "istituzionale", official=True),
+    "curia.europa.eu": SourceDescriptor("Curia - Corte di giustizia UE", "A", 1, "giurisprudenza", official=True),
+    "www.istat.it": SourceDescriptor("ISTAT", "B", 2, "istituzionale", official=True),
+    "istat.it": SourceDescriptor("ISTAT", "B", 2, "istituzionale", official=True),
+    "www.mimit.gov.it": SourceDescriptor("MIMIT", "B", 2, "istituzionale", official=True),
+    "mimit.gov.it": SourceDescriptor("MIMIT", "B", 2, "istituzionale", official=True),
+    "www.agcm.it": SourceDescriptor("AGCM", "B", 2, "istituzionale", official=True),
+    "agcm.it": SourceDescriptor("AGCM", "B", 2, "istituzionale", official=True),
+    "www.agcom.it": SourceDescriptor("AGCOM", "B", 2, "istituzionale", official=True),
+    "agcom.it": SourceDescriptor("AGCOM", "B", 2, "istituzionale", official=True),
+    "www.bancaditalia.it": SourceDescriptor("Banca d'Italia", "B", 2, "istituzionale", official=True),
+    "bancaditalia.it": SourceDescriptor("Banca d'Italia", "B", 2, "istituzionale", official=True),
 }
 
 

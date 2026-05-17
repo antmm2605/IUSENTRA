@@ -6,7 +6,12 @@ from typing import Any
 from flask import Blueprint, abort, current_app, flash, g, jsonify, redirect, render_template, request, url_for
 
 from pct.auth import RuoloUtente
-from web.services.legal_update_surface import build_legal_update_pipeline_runtime, build_legal_update_surface, run_legal_update_action
+from web.services.legal_update_surface import (
+    build_legal_source_catalog,
+    build_legal_update_pipeline_runtime,
+    build_legal_update_surface,
+    run_legal_update_action,
+)
 
 
 legal_updates_admin = Blueprint(
@@ -211,6 +216,7 @@ def sources_page():
     return render_template(
         "admin/legal_updates_sources.html",
         payload=payload,
+        catalog=build_legal_source_catalog(pipeline),
         sources=pipeline.repository.list_sources(enabled_only=False),
         tenant_slug=payload["runtime"].get("tenant_slug", ""),
     )

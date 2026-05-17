@@ -155,6 +155,63 @@ def test_ricerca_legale_attiva_fonti_ufficiali_quando_archivio_non_basta(monkeyp
     assert any(record["sourceKind"] == "fonte ufficiale" for record in payload["records"])
 
 
+def test_ricerca_legale_legge_archivi_normattiva_e_gazzetta_locali(monkeypatch):
+    monkeypatch.setattr(
+        bridge,
+        "_official_archive_snapshot",
+        lambda: {
+            "normattiva": {"available": True, "documents": 189851, "articles": 800757, "chunks": 639273},
+            "gazzetta": {"available": True, "documents": 28, "chunks": 3911, "sources": 1},
+        },
+    )
+    monkeypatch.setattr(
+        bridge,
+        "_search_normattiva",
+        lambda query, limit=8: [
+            {
+                "chunk_id": "normattiva:1",
+                "document_id": 10,
+                "fonte": "Normattiva",
+                "titolo": "Delega al Governo per l'efficienza del processo civile",
+                "testo": "Estratto ufficiale Normattiva sulla mediazione obbligatoria e sul processo civile.",
+                "data": "2021-11-26",
+                "url_origine": "https://www.normattiva.it/",
+                "materia": "Diritto civile",
+            }
+        ],
+    )
+    monkeypatch.setattr(
+        bridge,
+        "_search_gazzetta",
+        lambda query, limit=6: [
+            {
+                "chunk_id": "gazzetta:1",
+                "document_id": 20,
+                "fonte": "Gazzetta Ufficiale",
+                "titolo": "Gazzetta Ufficiale - Serie Generale",
+                "testo": "Estratto della Gazzetta Ufficiale collegato alla ricerca.",
+                "data": "2026-05-14",
+                "url_origine": "https://www.gazzettaufficiale.it/",
+            }
+        ],
+    )
+    monkeypatch.setattr(
+        bridge,
+        "_run_public_legal_research",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("non serve ricerca web se gli archivi locali bastano")),
+    )
+
+    payload = _payload(_Repository(), page="ricerca-legale", query={"q": "mediazione obbligatoria"})
+
+    titles = [record["title"] for record in payload["records"]]
+    assert "Delega al Governo per l'efficienza del processo civile" in titles
+    assert "Gazzetta Ufficiale - Serie Generale" in titles
+    assert payload["contracts"]["external_fetch"] is False
+    assert any(metric["id"] == "normattiva" and metric["value"] == 189851 for metric in payload["metrics"])
+    archive_section = next(section for section in payload["sections"] if section["id"] == "archivi_ufficiali")
+    assert any(item["label"] == "Normattiva" and item["value"] == 189851 for item in archive_section["items"])
+
+
 def test_news_pst_mediazione_ripristinata_presente_in_news_e_ricerca():
     repository = _Repository()
 

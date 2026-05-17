@@ -1,0 +1,318 @@
+{% extends "admin/base.html" %}
+{% block title %}Pianificazioni{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active" aria-current="page">Pianificazioni</li>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-xl-row align-items-start align-items-xl-center justify-content-between gap-3 mb-4">
+  <div>
+    <h1 class="h3 mb-1">Pianificazioni</h1>
+    <p class="text-muted mb-0">
+      Cronjob applicativi, richieste manuali, esiti di esecuzione e agenti delegati governati da template sicuri.
+    </p>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    <a class="btn btn-outline-primary" href="{{ url_for('scheduler_admin.api_dashboard') }}">
+      <i class="bi bi-braces"></i> Dati console
+    </a>
+    <a class="btn btn-outline-secondary" href="{{ url_for('admin.osservabilita') }}">
+      <i class="bi bi-activity"></i> Osservabilita'
+    </a>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-xl-3">
+    <div class="card h-100 shadow-sm">
+      <div class="card-body">
+        <div class="text-muted small mb-1">Pianificazioni attive</div>
+        <div class="display-6 fw-semibold">{{ payload.totals.jobs_active }}</div>
+        <div class="small text-muted">su {{ payload.totals.jobs_total }} presidiate</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="card h-100 shadow-sm">
+      <div class="card-body">
+        <div class="text-muted small mb-1">Create dalla console</div>
+        <div class="display-6 fw-semibold">{{ payload.totals.jobs_custom }}</div>
+        <div class="small text-muted">solo da template autorizzati</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="card h-100 shadow-sm">
+      <div class="card-body">
+        <div class="text-muted small mb-1">Richieste in coda</div>
+        <div class="display-6 fw-semibold text-warning">{{ payload.totals.runs_requested }}</div>
+        <div class="small text-muted">prese dal worker entro un minuto</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="card h-100 shadow-sm">
+      <div class="card-body">
+        <div class="text-muted small mb-1">Esiti da verificare</div>
+        <div class="display-6 fw-semibold {% if payload.totals.runs_failed %}text-danger{% else %}text-success{% endif %}">
+          {{ payload.totals.runs_failed }}
+        </div>
+        <div class="small text-muted">ultime esecuzioni registrate</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-12 col-xl-5">
+    <div class="card shadow-sm h-100">
+      <div class="card-header bg-body-tertiary">
+        <strong>Crea pianificazione</strong>
+        <div class="small text-muted">Gli agenti delegati lavorano per dominio e devono riportare autoverifica.</div>
+      </div>
+      <div class="card-body">
+        <form method="post" action="{{ url_for('scheduler_admin.create_job') }}" class="row g-3">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+          <input type="hidden" name="enabled" value="1">
+          <div class="col-12">
+            <label class="form-label small text-muted">Agente</label>
+            <select class="form-select" name="template_key" required>
+              {% for template in payload.agent_templates %}
+              <option value="{{ template.key }}">{{ template.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-12">
+            <label class="form-label small text-muted">Nome pianificazione</label>
+            <input class="form-control" name="name" placeholder="Controllo serale clienti e soggetti">
+          </div>
+          <div class="col-6">
+            <label class="form-label small text-muted">Tipo</label>
+            <select class="form-select" name="trigger_kind">
+              <option value="cron">Orario giornaliero</option>
+              <option value="interval">Intervallo</option>
+              <option value="manual">Solo manuale</option>
+            </select>
+          </div>
+          <div class="col-3">
+            <label class="form-label small text-muted">Ora</label>
+            <input class="form-control" name="hour" value="22" inputmode="numeric">
+          </div>
+          <div class="col-3">
+            <label class="form-label small text-muted">Minuto</label>
+            <input class="form-control" name="minute" value="30" inputmode="numeric">
+          </div>
+          <div class="col-12">
+            <label class="form-label small text-muted">Intervallo minuti</label>
+            <input class="form-control" name="interval_minutes" type="number" min="1" value="60">
+          </div>
+          <div class="col-12">
+            <button class="btn btn-primary" type="submit">
+              <i class="bi bi-plus-circle"></i> Crea cronjob
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-xl-7">
+    <div class="card shadow-sm h-100">
+      <div class="card-header bg-body-tertiary d-flex justify-content-between gap-2 align-items-center">
+        <div>
+          <strong>Agenti delegati disponibili</strong>
+          <div class="small text-muted">Ogni agente deve dichiarare cosa ha controllato e perche' non ha completato.</div>
+        </div>
+        <span class="badge text-bg-light border">{{ payload.agent_templates|length }} domini</span>
+      </div>
+      <div class="card-body">
+        <div class="row g-2">
+          {% for agent in payload.agent_templates %}
+          <div class="col-12 col-md-6">
+            <div class="border rounded-3 p-3 h-100">
+              <div class="fw-semibold">{{ agent.name }}</div>
+              <div class="small text-muted mt-1">{{ agent.description }}</div>
+              {% if agent.criteria %}
+              <div class="small mt-2">
+                <span class="badge text-bg-light border">autoverifica</span>
+                <span class="text-muted">{{ agent.criteria[0] }}</span>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+  <div class="card-header bg-body-tertiary d-flex flex-column flex-lg-row justify-content-between gap-2">
+    <div>
+      <strong>Cronjob applicativi</strong>
+      <div class="small text-muted">Modifica orari, metti in pausa o richiedi un'esecuzione senza aprire il server.</div>
+    </div>
+    <span class="small text-muted">Registro: {{ payload.registry_db }}</span>
+  </div>
+  <div class="card-body p-0">
+    {% for family in payload.families %}
+    <div class="border-bottom p-3">
+      <div class="d-flex justify-content-between gap-2 align-items-center mb-2">
+        <h2 class="h6 mb-0">{{ family.name }}</h2>
+        <span class="badge text-bg-light border">{{ family.jobs|length }} pianificazioni</span>
+      </div>
+      <div class="table-responsive border rounded-3">
+        <table class="table table-sm align-middle mb-0">
+          <thead>
+            <tr>
+              <th>Pianificazione</th>
+              <th>Frequenza</th>
+              <th>Stato</th>
+              <th>Ultimo esito</th>
+              <th class="text-end">Azioni</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for job in family.jobs %}
+            <tr>
+              <td>
+                <div class="fw-semibold">{{ job.name }}</div>
+                <div class="small text-muted">{{ job.description }}</div>
+              </td>
+              <td>
+                <div>{{ job.schedule_label }}</div>
+                {% if job.built_in %}
+                <span class="badge text-bg-light border">presidio di sistema</span>
+                {% else %}
+                <span class="badge text-bg-info">agente delegato</span>
+                {% endif %}
+              </td>
+              <td><span class="badge text-bg-{{ job.status['class'] }}">{{ job.status.label }}</span></td>
+              <td>
+                {% if job.latest_run %}
+                <div class="small fw-semibold">{{ job.latest_run.status_label }}</div>
+                <div class="small text-muted">{{ job.latest_run.finished_at or job.latest_run.created_at }}</div>
+                {% if job.latest_run.message %}
+                <div class="small text-muted">{{ job.latest_run.message }}</div>
+                {% endif %}
+                {% else %}
+                <span class="small text-muted">Nessun esito registrato</span>
+                {% endif %}
+              </td>
+              <td class="text-end">
+                <div class="d-flex flex-wrap gap-2 justify-content-end">
+                  <form method="post" action="{{ url_for('scheduler_admin.run_job', job_id=job.job_id) }}">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                    <button class="btn btn-sm btn-outline-primary" type="submit">
+                      <i class="bi bi-play-fill"></i> Esegui
+                    </button>
+                  </form>
+                  {% if job.editable %}
+                  <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#edit-{{ job.job_id }}">
+                    <i class="bi bi-sliders"></i> Modifica
+                  </button>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% if job.editable %}
+            <tr class="collapse" id="edit-{{ job.job_id }}">
+              <td colspan="5" class="bg-body-tertiary">
+                <form method="post" action="{{ url_for('scheduler_admin.save_job', job_id=job.job_id) }}" class="row g-2 align-items-end">
+                  <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                  <div class="col-12 col-lg-3">
+                    <label class="form-label small text-muted">Nome</label>
+                    <input class="form-control form-control-sm" name="name" value="{{ job.name }}">
+                  </div>
+                  <div class="col-12 col-lg-3">
+                    <label class="form-label small text-muted">Descrizione</label>
+                    <input class="form-control form-control-sm" name="description" value="{{ job.description }}">
+                  </div>
+                  <div class="col-6 col-lg-2">
+                    <label class="form-label small text-muted">Tipo</label>
+                    <select class="form-select form-select-sm" name="trigger_kind">
+                      <option value="cron" {% if job.trigger_kind == 'cron' %}selected{% endif %}>Orario</option>
+                      <option value="interval" {% if job.trigger_kind == 'interval' %}selected{% endif %}>Intervallo</option>
+                      <option value="manual" {% if job.trigger_kind == 'manual' %}selected{% endif %}>Manuale</option>
+                    </select>
+                  </div>
+                  <div class="col-3 col-lg-1">
+                    <label class="form-label small text-muted">Ora</label>
+                    <input class="form-control form-control-sm" name="hour" value="{{ job.hour }}">
+                  </div>
+                  <div class="col-3 col-lg-1">
+                    <label class="form-label small text-muted">Minuto</label>
+                    <input class="form-control form-control-sm" name="minute" value="{{ job.minute }}">
+                  </div>
+                  <div class="col-6 col-lg-1">
+                    <label class="form-label small text-muted">Intervallo</label>
+                    <input class="form-control form-control-sm" name="interval_minutes" type="number" min="0" value="{{ job.interval_minutes }}">
+                  </div>
+                  <div class="col-6 col-lg-1">
+                    <label class="form-label small text-muted">Attiva</label>
+                    <select class="form-select form-select-sm" name="enabled">
+                      <option value="1" {% if job.enabled %}selected{% endif %}>Si</option>
+                      <option value="0" {% if not job.enabled %}selected{% endif %}>No</option>
+                    </select>
+                  </div>
+                  <div class="col-12">
+                    <button class="btn btn-sm btn-primary" type="submit">
+                      <i class="bi bi-save"></i> Salva modifica
+                    </button>
+                  </div>
+                </form>
+              </td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-header bg-body-tertiary">
+    <strong>Esecuzioni recenti</strong>
+    <div class="small text-muted">Qui vedi cosa ha fatto il worker, cosa e' in coda e cosa non e' riuscito.</div>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Quando</th>
+            <th>Pianificazione</th>
+            <th>Origine</th>
+            <th>Esito</th>
+            <th>Messaggio</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for run in payload.recent_runs %}
+          <tr>
+            <td class="small text-muted">{{ run.finished_at or run.started_at or run.created_at }}</td>
+            <td>
+              <div class="fw-semibold">{{ run.job_name or run.job_id }}</div>
+              <div class="small text-muted">{{ run.job_family or run.template_key }}</div>
+            </td>
+            <td>{{ run.origin }}</td>
+            <td><span class="badge text-bg-{{ run.status_class }}">{{ run.status_label }}</span></td>
+            <td class="small text-muted">
+              {{ run.message or run.error_message or 'Nessun dettaglio registrato' }}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="5" class="text-center text-muted py-4">Nessuna esecuzione ancora registrata.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

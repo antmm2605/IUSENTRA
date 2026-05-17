@@ -246,8 +246,8 @@ function SourceMap({ data, view }: { data: LegalIntelligencePageData; view: Lega
     : view === 'mediazione'
       ? data.sections.filter((section) => ['mediazione', 'distinzione'].includes(section.id))
       : view === 'ricerca-legale'
-        ? data.sections.filter((section) => ['ricerca', 'fonti', 'distinzione'].includes(section.id))
-        : data.sections.filter((section) => ['fonti', 'news', 'mediazione', 'distinzione'].includes(section.id))
+        ? data.sections.filter((section) => ['ricerca', 'archivi_ufficiali', 'fonti', 'distinzione'].includes(section.id))
+        : data.sections.filter((section) => ['archivi_ufficiali', 'fonti', 'news', 'mediazione', 'distinzione'].includes(section.id))
 
   if (!visible.length) return null
   return (

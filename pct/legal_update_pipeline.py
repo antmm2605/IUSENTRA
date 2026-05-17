@@ -116,7 +116,7 @@ DEFAULT_SOURCE_ROWS: tuple[dict[str, Any], ...] = (
         "name": "OpenGA - Calendario udienze",
         "code": "openga_calendario_udienze",
         "category": "giurisprudenza",
-        "base_url": "https://openga.giustizia-amministrativa.it/api/3/action/group_show?id=calendario-udienze&include_datasets=true",
+        "base_url": "https://openga.giustizia-amministrativa.it/api/3/action/package_search?fq=groups:calendario-udienze&rows=200",
         "source_type": "open_data",
         "trust_class": "A",
         "is_official": True,
@@ -124,6 +124,110 @@ DEFAULT_SOURCE_ROWS: tuple[dict[str, Any], ...] = (
         "polling_minutes": 720,
         "parser_type": "ckan_json",
         "notes": "Gruppo ufficiale OpenGA per calendari udienze, acquisito dai metadati CKAN e dalle risorse JSON disponibili.",
+    },
+    {
+        "name": "OpenGA - Decreti",
+        "code": "openga_decreti",
+        "category": "giurisprudenza",
+        "base_url": "https://openga.giustizia-amministrativa.it/api/3/action/package_search?fq=groups:decreti&rows=200",
+        "source_type": "open_data",
+        "trust_class": "A",
+        "is_official": True,
+        "enabled": True,
+        "polling_minutes": 720,
+        "parser_type": "ckan_json",
+        "notes": "Gruppo ufficiale OpenGA per decreti della giustizia amministrativa, acquisito da dataset e risorse JSON/CSV/ODS.",
+    },
+    {
+        "name": "OpenGA - Ordinanze",
+        "code": "openga_ordinanze",
+        "category": "giurisprudenza",
+        "base_url": "https://openga.giustizia-amministrativa.it/api/3/action/package_search?fq=groups:ordinanze&rows=200",
+        "source_type": "open_data",
+        "trust_class": "A",
+        "is_official": True,
+        "enabled": True,
+        "polling_minutes": 720,
+        "parser_type": "ckan_json",
+        "notes": "Gruppo ufficiale OpenGA per ordinanze della giustizia amministrativa, acquisito da dataset e risorse JSON/CSV/ODS.",
+    },
+    {
+        "name": "OpenGA - Pareri",
+        "code": "openga_pareri",
+        "category": "giurisprudenza",
+        "base_url": "https://openga.giustizia-amministrativa.it/api/3/action/package_search?fq=groups:pareri&rows=200",
+        "source_type": "open_data",
+        "trust_class": "A",
+        "is_official": True,
+        "enabled": True,
+        "polling_minutes": 720,
+        "parser_type": "ckan_json",
+        "notes": "Gruppo ufficiale OpenGA per pareri della giustizia amministrativa, acquisito da dataset e risorse JSON/CSV/ODS.",
+    },
+    {
+        "name": "OpenGA - Provvedimenti pubblicati",
+        "code": "openga_provvedimenti_pubblicati",
+        "category": "giurisprudenza",
+        "base_url": "https://openga.giustizia-amministrativa.it/api/3/action/package_search?fq=groups:provvedimenti-pubblicati&rows=200",
+        "source_type": "open_data",
+        "trust_class": "A",
+        "is_official": True,
+        "enabled": True,
+        "polling_minutes": 720,
+        "parser_type": "ckan_json",
+        "notes": "Gruppo ufficiale OpenGA per provvedimenti pubblicati, acquisito da dataset e risorse JSON/CSV/ODS.",
+    },
+    {
+        "name": "OpenGA - Ricorsi definiti",
+        "code": "openga_ricorsi_definiti",
+        "category": "giurisprudenza",
+        "base_url": "https://openga.giustizia-amministrativa.it/api/3/action/package_search?fq=groups:ricorsi-definiti&rows=200",
+        "source_type": "open_data",
+        "trust_class": "A",
+        "is_official": True,
+        "enabled": True,
+        "polling_minutes": 720,
+        "parser_type": "ckan_json",
+        "notes": "Gruppo ufficiale OpenGA per ricorsi definiti, acquisito da dataset e risorse JSON/CSV/ODS.",
+    },
+    {
+        "name": "OpenGA - Ricorsi pendenti",
+        "code": "openga_ricorsi_pendenti",
+        "category": "giurisprudenza",
+        "base_url": "https://openga.giustizia-amministrativa.it/api/3/action/package_search?fq=groups:ricorsi-pendenti&rows=200",
+        "source_type": "open_data",
+        "trust_class": "A",
+        "is_official": True,
+        "enabled": True,
+        "polling_minutes": 720,
+        "parser_type": "ckan_json",
+        "notes": "Gruppo ufficiale OpenGA per ricorsi pendenti, acquisito da dataset e risorse JSON/CSV/ODS.",
+    },
+    {
+        "name": "OpenGA - Ricorsi pervenuti",
+        "code": "openga_ricorsi_pervenuti",
+        "category": "giurisprudenza",
+        "base_url": "https://openga.giustizia-amministrativa.it/api/3/action/package_search?fq=groups:ricorsi-pervenuti&rows=200",
+        "source_type": "open_data",
+        "trust_class": "A",
+        "is_official": True,
+        "enabled": True,
+        "polling_minutes": 720,
+        "parser_type": "ckan_json",
+        "notes": "Gruppo ufficiale OpenGA per ricorsi pervenuti, acquisito da dataset e risorse JSON/CSV/ODS.",
+    },
+    {
+        "name": "OpenGA - Sentenze",
+        "code": "openga_sentenze",
+        "category": "giurisprudenza",
+        "base_url": "https://openga.giustizia-amministrativa.it/api/3/action/package_search?fq=groups:sentenze&rows=200",
+        "source_type": "open_data",
+        "trust_class": "A",
+        "is_official": True,
+        "enabled": True,
+        "polling_minutes": 720,
+        "parser_type": "ckan_json",
+        "notes": "Gruppo ufficiale OpenGA per sentenze della giustizia amministrativa, acquisito da dataset e risorse JSON/CSV/ODS.",
     },
     {
         "name": "EUR-Lex",
@@ -163,6 +267,188 @@ DEFAULT_SOURCE_ROWS: tuple[dict[str, Any], ...] = (
         "polling_minutes": 240,
         "parser_type": "html",
         "notes": "Prassi, decreti e circolari del lavoro.",
+    },
+    {
+        "name": "Ministero del Lavoro - Interpelli",
+        "code": "ministero_lavoro_interpelli",
+        "category": "prassi",
+        "base_url": "https://www.lavoro.gov.it/documenti-e-norme/interpelli/Pagine/default",
+        "source_type": "web",
+        "trust_class": "B",
+        "is_official": True,
+        "enabled": True,
+        "polling_minutes": 720,
+        "parser_type": "html",
+        "notes": "Interpelli ufficiali lavoro, previdenza e salute/sicurezza utili per consulenza e contenzioso.",
+    },
+    {
+        "name": "Garante Privacy - newsletter e provvedimenti",
+        "code": "garante_privacy",
+        "category": "prassi",
+        "base_url": "https://www.garanteprivacy.it/home/stampa-comunicazione/newsletter",
+        "source_type": "web",
+        "trust_class": "B",
+        "is_official": True,
+        "enabled": True,
+        "polling_minutes": 720,
+        "parser_type": "html",
+        "notes": "Newsletter e provvedimenti del Garante utili per privacy, data breach, marketing, videosorveglianza e lavoro.",
+    },
+    {
+        "name": "ANAC - atti e documenti",
+        "code": "anac_documenti",
+        "category": "prassi",
+        "base_url": "https://www.anticorruzione.it/it/consulta-i-documenti?delta=30&includeDocuments=true&isDocumentSearchPortlet=true",
+        "source_type": "web",
+        "trust_class": "B",
+        "is_official": True,
+        "enabled": True,
+        "polling_minutes": 720,
+        "parser_type": "html",
+        "notes": "Delibere, pareri precontenzioso, linee guida e atti ANAC per appalti, anticorruzione e trasparenza.",
+    },
+    {
+        "name": "INPS - circolari",
+        "code": "inps_circolari",
+        "category": "prassi",
+        "base_url": "https://www.inps.it/it/it.rss.circolari.xml",
+        "source_type": "rss",
+        "trust_class": "B",
+        "is_official": True,
+        "enabled": True,
+        "polling_minutes": 720,
+        "parser_type": "feed",
+        "notes": "Feed ufficiale INPS per circolari su previdenza, lavoro, contributi e prestazioni.",
+    },
+    {
+        "name": "INPS - messaggi",
+        "code": "inps_messaggi",
+        "category": "prassi",
+        "base_url": "https://www.inps.it/it/it.rss.messaggi.xml",
+        "source_type": "rss",
+        "trust_class": "B",
+        "is_official": True,
+        "enabled": True,
+        "polling_minutes": 720,
+        "parser_type": "feed",
+        "notes": "Feed ufficiale INPS per messaggi operativi utili a lavoro, previdenza e contenzioso assistenziale.",
+    },
+    {
+        "name": "INPS - sentenze",
+        "code": "inps_sentenze",
+        "category": "giurisprudenza",
+        "base_url": "https://www.inps.it/it/it.rss.sentenze.xml",
+        "source_type": "rss",
+        "trust_class": "B",
+        "is_official": True,
+        "enabled": True,
+        "polling_minutes": 720,
+        "parser_type": "feed",
+        "notes": "Feed ufficiale INPS per sentenze in materia previdenziale e assistenziale.",
+    },
+    {
+        "name": "Curia - Corte di giustizia UE",
+        "code": "curia_cgue_rss",
+        "category": "ue",
+        "base_url": "https://curia.europa.eu/site/rss.jsp?lang=it&secondLang=en",
+        "source_type": "rss",
+        "trust_class": "A",
+        "is_official": True,
+        "enabled": True,
+        "polling_minutes": 720,
+        "parser_type": "feed",
+        "notes": "Feed ufficiale Curia per pronunce, conclusioni e comunicati della Corte di giustizia dell'Unione europea.",
+    },
+    {
+        "name": "ISTAT - prezzi e rivalutazioni",
+        "code": "istat_prezzi",
+        "category": "prassi",
+        "base_url": "https://www.istat.it/tema/prezzi/feed",
+        "source_type": "rss",
+        "trust_class": "B",
+        "is_official": True,
+        "enabled": True,
+        "polling_minutes": 720,
+        "parser_type": "feed",
+        "notes": "Feed ufficiale ISTAT per prezzi, indici e comunicazioni utili a rivalutazioni e calcoli economici.",
+    },
+    {
+        "name": "MIMIT - incentivi e imprese",
+        "code": "mimit_incentivi",
+        "category": "prassi",
+        "base_url": "https://www.mimit.gov.it/index.php/it/incentivi-aggiornamenti?format=feed&type=rss",
+        "source_type": "rss",
+        "trust_class": "B",
+        "is_official": True,
+        "enabled": True,
+        "polling_minutes": 720,
+        "parser_type": "feed",
+        "notes": "Feed ufficiale MIMIT per incentivi, impresa, mercato e misure economiche rilevanti per consulenza societaria.",
+    },
+    {
+        "name": "AGCM - bollettino settimanale",
+        "code": "agcm_bollettino",
+        "category": "prassi",
+        "base_url": "https://www.agcm.it/pubblicazioni/bollettino-settimanale/",
+        "source_type": "web",
+        "trust_class": "B",
+        "is_official": True,
+        "enabled": True,
+        "polling_minutes": 720,
+        "parser_type": "html",
+        "notes": "Bollettino ufficiale AGCM con provvedimenti su concorrenza, consumatori, pratiche scorrette e segnalazioni.",
+    },
+    {
+        "name": "AGCOM - atti e provvedimenti",
+        "code": "agcom_provvedimenti",
+        "category": "prassi",
+        "base_url": "https://www.agcom.it/provvedimenti",
+        "source_type": "web",
+        "trust_class": "B",
+        "is_official": True,
+        "enabled": True,
+        "polling_minutes": 720,
+        "parser_type": "html",
+        "notes": "Provvedimenti ufficiali AGCOM su comunicazioni elettroniche, media, utenti e diritto d'autore online.",
+    },
+    {
+        "name": "Banca d'Italia - normativa di vigilanza",
+        "code": "banca_italia_normativa",
+        "category": "prassi",
+        "base_url": "https://www.bancaditalia.it/compiti/vigilanza/normativa/archivio-norme/",
+        "source_type": "web",
+        "trust_class": "B",
+        "is_official": True,
+        "enabled": True,
+        "polling_minutes": 720,
+        "parser_type": "html",
+        "notes": "Archivio ufficiale Banca d'Italia per disposizioni di vigilanza bancaria e finanziaria.",
+    },
+    {
+        "name": "INAIL - istruzioni operative",
+        "code": "inail_istruzioni_operative",
+        "category": "prassi",
+        "base_url": "https://www.inail.it/portale/it/atti-e-documenti/note-provvedimenti-e-istruzioni-operative/istruzioni-operative.html",
+        "source_type": "web",
+        "trust_class": "B",
+        "is_official": True,
+        "enabled": False,
+        "polling_minutes": 720,
+        "parser_type": "html",
+        "notes": "Presidio ufficiale INAIL per sicurezza lavoro e premi assicurativi: resta in catalogo, ma non entra nel ciclo notturno finche' il canale non e' acquisibile con stabilita'.",
+    },
+    {
+        "name": "PST Giustizia - download tecnici",
+        "code": "pst_giustizia_download",
+        "category": "telematico",
+        "base_url": "https://pst.giustizia.it/PST/it/download.page",
+        "source_type": "web",
+        "trust_class": "A",
+        "is_official": True,
+        "enabled": True,
+        "polling_minutes": 720,
+        "parser_type": "html",
+        "notes": "File ufficiali del Processo Civile Telematico: schemi, specifiche e pacchetti tecnici da verificare con allegati.",
     },
 )
 
@@ -256,7 +542,13 @@ def _year_from_date_like(value: Any) -> str:
 
 
 def _looks_like_feed(content: str, content_type: str) -> bool:
-    return "xml" in (content_type or "").lower() or content.lstrip().startswith("<rss") or content.lstrip().startswith("<feed")
+    head = content.lstrip()[:400].lower()
+    return (
+        "xml" in (content_type or "").lower()
+        or head.startswith("<rss")
+        or head.startswith("<feed")
+        or (head.startswith("<?xml") and ("<rss" in head or "<feed" in head))
+    )
 
 
 def _extract_feed_items(source: dict[str, Any], base_url: str, content: str) -> list[dict[str, Any]]:
@@ -463,6 +755,25 @@ def _merge_unique_documents(documents: list[dict[str, Any]]) -> list[dict[str, A
     return list(ordered.values())
 
 
+def _verification_note(verification: dict[str, Any], *, prefix: str) -> str:
+    confirmations = [
+        _clean_spaces(row.get("source_name") or row.get("origin") or row.get("domain"))
+        for row in list(verification.get("confirmations") or [])[:4]
+        if isinstance(row, dict)
+    ]
+    searched = verification.get("searched") if isinstance(verification.get("searched"), dict) else {}
+    web_results = int((searched or {}).get("web_results") or 0)
+    detail = []
+    if confirmations:
+        detail.append("fonti: " + ", ".join(confirmations))
+    detail.append(f"conferme: {int(verification.get('confirmation_count') or 0)}")
+    detail.append(f"web: {web_results} risultati")
+    reason = _clean_spaces(verification.get("reason"))
+    if reason:
+        detail.append(reason)
+    return _truncate(f"{prefix} {'; '.join(detail)}", 520)
+
+
 def _is_navigation_noise(title: str, body_text: str) -> bool:
     text = _clean_spaces(f"{title} {body_text}").lower()
     if not text:
@@ -560,7 +871,7 @@ class LegalUpdatePipeline:
                         row["resource_fetch_warning"] = "Risorsa JSON non raggiungibile durante questa scansione."
                 enriched_docs.append(row)
             docs = _merge_unique_documents(enriched_docs)
-        elif _looks_like_feed(text, content_type):
+        elif parser_type in {"feed", "rss", "atom"} or _looks_like_feed(text, content_type):
             docs = _extract_feed_items(source, source["base_url"], text)
         else:
             docs = _extract_html_items(source, source["base_url"], text)
@@ -950,8 +1261,14 @@ class LegalUpdatePipeline:
         cleanup = self.repository.deduplicate_archive(performed_by="system")
         documents = self._fetch_source(source, request_get=request_get)
         processed: list[dict[str, Any]] = []
+        skipped_unchanged = 0
         for document in documents:
+            existing = self.repository.get_raw_document_by_external(int(source["id"]), str(document.get("external_id") or ""))
+            if existing and _clean_spaces(existing.get("content_hash")) == _clean_spaces(document.get("content_hash")):
+                skipped_unchanged += 1
+                continue
             processed.append(self.process_document(source, document))
+        self.repository.mark_source_checked(int(source["id"]))
         autopublished = {"count": 0, "items": []}
         if auto_publish:
             autopublished = self.publish_auto_news(limit=20)
@@ -960,6 +1277,7 @@ class LegalUpdatePipeline:
             "source": source_code,
             "documents_found": len(documents),
             "processed": len(processed),
+            "skipped_unchanged": skipped_unchanged,
             "duplicates_removed": int(cleanup.get("removed") or 0),
             "autopublished": autopublished,
         }
@@ -1431,7 +1749,7 @@ class LegalUpdatePipeline:
                     int(row["id"]),
                     "pending",
                     reviewer="system",
-                    notes=f"Verifica fonti insufficiente: {reason}",
+                    notes=_verification_note(verification, prefix="Verifica fonti insufficiente:"),
                 )
                 skipped.append(
                     {
@@ -1447,7 +1765,10 @@ class LegalUpdatePipeline:
                     int(row["id"]),
                     "approved",
                     reviewer="system",
-                    notes="Verifica fonti completata: pubblicazione automatica autorizzata.",
+                    notes=_verification_note(
+                        verification,
+                        prefix="Verifica fonti completata: pubblicazione automatica autorizzata.",
+                    ),
                 )
             try:
                 self.publish_review(int(row["id"]), reviewer="system")

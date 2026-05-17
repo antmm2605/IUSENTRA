@@ -1,12 +1,48 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-16, Update Intelligence verificata 2.243.6, no backup.
+Aggiornato: 2026-05-17, console pianificazioni 2.244.0, no backup.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Console pianificazioni superadmin 2.244.0 - 2026-05-17
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct\scheduler_registry.py pct\scheduler.py web\services\scheduler_admin_surface.py web\blueprints\scheduler_admin.py web\bootstrap\blueprint_registry.py web\services\auth_runtime.py web\services\tenant_isolation_runtime.py` | OK | Sintassi confermata per registro cronjob, blueprint superadmin, allowlist piattaforma e integrazione scheduler. |
+| `python -m pytest tests\test_scheduler_registry.py tests\test_scheduler_worker.py -q --tb=short` | OK | 6/6 passati: creazione agenti da template autorizzato, blocco template non autorizzati, richieste manuali e job `scheduler_registry_reload`. |
+| `python -m pytest tests\test_scheduler_admin.py -q --tb=short` | OK | 3/3 passati: `/admin/pianificazioni`, alias `/admin/cronjob`, creazione agente e richiesta esecuzione. |
+| `python -m pytest tests\test_operational_surfaces.py::test_superadmin_product_surfaces_renderizzano -q --tb=short` | OK | La superficie superadmin renderizza anche `Pianificazioni` e mostra gli agenti delegati disponibili. |
+| `python -m ruff check pct\scheduler_registry.py pct\scheduler.py web\services\scheduler_admin_surface.py web\blueprints\scheduler_admin.py tests\test_scheduler_registry.py tests\test_scheduler_admin.py tests\test_scheduler_worker.py tests\test_operational_surfaces.py` | OK | Ruff mirato verde sui file della console pianificazioni. |
+| `python -m pytest tests\test_scheduler_registry.py tests\test_scheduler_admin.py tests\test_scheduler_worker.py tests\test_operational_surfaces.py::test_superadmin_product_surfaces_renderizzano tests\test_legal_updates_pipeline.py::test_pagina_fonti_mostra_catalogo_professionale_e_ciclo_giornaliero tests\test_legal_updates_pipeline.py::test_verifica_web_legge_allegati_della_fonte_ufficiale tests\test_react_legal_intelligence_search.py tests\test_normattiva_client.py -q --tb=short` | OK | 21/21 passati sul perimetro integrato pianificazioni, catalogo fonti, verifica allegati web, Ricerca Legale e Normattiva. |
+| `npm --prefix frontend run typecheck -- --pretty false`; `npm --prefix frontend run build` | OK | TypeScript e build Vite verdi; gli asset hashati generati localmente sono stati ripuliti perche' il Dockerfile li rigenera in deploy. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py -q --tb=short`; `python scripts\validate_docs_links.py docs\LEX_PUBLIC_SOURCES_AND_STUDIO_DATA_AUDIT.md docs\REACT_MIGRATION_MASTER_PLAN.md docs\DEPLOY_HETZNER_CPX42.md CHANGELOG.md artifacts\react-migration\pytest-confirmed-ok.md`; `python scripts\validate_docs_commands.py`; `git diff --check -- . ':!data/*'` | OK | Packaging sincronizzato, readiness 8/8, documentazione validata e whitespace pulito dopo bump `2.244.0`. |
+
+### Catalogo fonti legali 2.243.9 - 2026-05-17
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct\legal_update_repository.py pct\legal_update_pipeline.py pct\scheduler.py lex\research\official_sources.py web\services\legal_update_surface.py web\blueprints\legal_updates_admin.py` | OK | Sintassi confermata dopo catalogo fonti, nuove fonti ufficiali e riepiloghi per fonte. |
+| `python -m pytest tests\test_legal_updates_pipeline.py::test_fonti_default_includono_presidi_utili_per_studi_legali tests\test_legal_updates_pipeline.py::test_feed_xml_con_content_type_generico_importa_fonti_ufficiali tests\test_legal_updates_pipeline.py::test_pagina_fonti_mostra_catalogo_professionale_e_ciclo_giornaliero tests\test_legal_updates_pipeline.py::test_admin_surfaces_renderizzano_fonti_staging_analisi_e_archivio -q --tb=short` | OK | 4/4 passati: catalogo professionale, fonti aggiunte da IUSENTRA, RSS Curia con intestazione generica e render admin. |
+| `python -m ruff check pct\legal_update_repository.py pct\legal_update_pipeline.py pct\scheduler.py lex\research\official_sources.py web\services\legal_update_surface.py web\blueprints\legal_updates_admin.py tests\test_legal_updates_pipeline.py` | OK | Ruff mirato verde sui file toccati dal catalogo fonti. |
+
+### Archivi ufficiali visibili 2.243.8 - 2026-05-17
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile lex\retrieval\official_sources_retriever.py web\services\react_legal_intelligence_bridge.py web\services\legal_update_surface.py` | OK | Sintassi confermata dopo aggancio Normattiva/Gazzetta alla Ricerca Legale e alla console Aggiornamenti legali. |
+| `python -m pytest tests\test_react_legal_intelligence_search.py tests\test_legal_update_surface_jobs.py tests\test_official_sources_registry.py tests\test_normattiva_importer.py -q --tb=short` | OK | 11/11 passati: la Ricerca Legale usa gli archivi ufficiali locali prima della ricerca web e mostra i conteggi reali Normattiva/Gazzetta. |
+| `python -m py_compile pct\legal_update_web_verification.py pct\legal_update_pipeline.py` | OK | Sintassi confermata dopo verifica web multi-query, lettura contesto pagina e allegati ufficiali governati. |
+| `python -m pytest tests\test_legal_updates_pipeline.py::test_verifica_normativa_usa_archivi_locali_web_e_contesto tests\test_legal_updates_pipeline.py::test_verifica_web_legge_allegati_della_fonte_ufficiale tests\test_legal_updates_pipeline.py::test_legal_update_autopubblica_senza_reinserire_contenuti_gia_presenti tests\test_legal_updates_pipeline.py::test_legal_update_autopubblica_attende_conferme_web tests\test_react_legal_intelligence_search.py tests\test_legal_update_surface_jobs.py tests\test_official_sources_registry.py tests\test_normattiva_importer.py -q --tb=short` | OK | 15/15 passati: verifica con archivi locali, web esterno e allegati ufficiali, piu' regressioni autopubblicazione governata. |
+| `python -m pytest tests\test_legal_updates_pipeline.py tests\test_normattiva_client.py tests\test_scheduler_worker.py -q --tb=short` | OK | 37/37 passati: scheduler 23:00/23:10/23:15, OpenGA completo, fonti aggiuntive, skip Normattiva invariata e pipeline Update Intelligence. |
+| `python -m ruff check pct\scheduler.py pct\legal_update_pipeline.py pct\legal_update_repository.py pct\legal_update_web_verification.py lex\normativa\normattiva_client.py tools\normattiva_multi_sync.py tools\gazzetta_ufficiale_sync.py tests\test_legal_updates_pipeline.py tests\test_normattiva_client.py tests\test_scheduler_worker.py` | OK | Ruff mirato verde sul ciclo quotidiano fonti ufficiali e downloader Normattiva. |
+| Probe OpenGA API `package_search?fq=groups:<categoria>&rows=200` per Calendario Udienze, Decreti, Ordinanze, Pareri, Provvedimenti pubblicati, Ricorsi definiti, Ricorsi pendenti, Ricorsi pervenuti e Sentenze | OK | Tutte le categorie rispondono 200/success; le categorie da 31 dataset espongono 31 risultati con `rows=200` invece dei 10 default di `group_show`. |
+| `npm --prefix frontend run typecheck -- --pretty false`; `npm --prefix frontend run build` | OK | TypeScript e build Vite verdi; il Dockerfile rigenera il bundle in deploy, gli asset hashati locali non sono stati committati. |
+| `python -m pytest tests\test_react_legal_intelligence_search.py tests\test_legal_update_surface_jobs.py tests\test_official_sources_registry.py tests\test_normattiva_importer.py tests\test_normattiva_client.py tests\test_scheduler_worker.py -q --tb=short` | OK | 16/16 passati su Ricerca Legale, superficie admin, registry fonti, Normattiva e scheduler. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py -q --tb=short`; `python scripts\validate_docs_links.py docs\LEX_PUBLIC_SOURCES_AND_STUDIO_DATA_AUDIT.md docs\REACT_MIGRATION_MASTER_PLAN.md docs\DEPLOY_HETZNER_CPX42.md CHANGELOG.md`; `python scripts\validate_docs_commands.py`; `git diff --check -- . ':!data/*'` | OK | Packaging sincronizzato, readiness 8/8, documentazione validata e whitespace check pulito dopo bump `2.243.8`. |
 
 ### Update Intelligence staging automatico 2.243.6 - 2026-05-16
 

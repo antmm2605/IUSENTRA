@@ -498,6 +498,48 @@ class LegalUpdateRepository:
             result.append(payload)
         return result
 
+    def source_activity_summary(self) -> dict[str, dict[str, Any]]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT
+                    s.code AS source_code,
+                    COUNT(DISTINCT r.id) AS raw_documents,
+                    COUNT(DISTINCT n.id) AS normalized_documents,
+                    COUNT(DISTINCT a.id) AS analyses,
+                    COUNT(DISTINCT CASE WHEN q.status = 'pending' THEN q.id END) AS review_pending,
+                    COUNT(DISTINCT CASE WHEN q.status = 'approved' THEN q.id END) AS review_approved,
+                    COUNT(DISTINCT CASE WHEN q.status = 'published' THEN q.id END) AS review_published,
+                    COUNT(DISTINCT CASE WHEN q.status = 'closed' THEN q.id END) AS review_closed,
+                    MAX(r.updated_at) AS last_document_at,
+                    MAX(CASE WHEN COALESCE(r.published_at, '') <> '' THEN r.published_at ELSE r.created_at END) AS latest_source_date
+                FROM sources s
+                LEFT JOIN source_documents_raw r ON r.source_id = s.id
+                LEFT JOIN source_documents_normalized n ON n.raw_document_id = r.id
+                LEFT JOIN ai_documents_analysis a ON a.normalized_document_id = n.id
+                LEFT JOIN review_queue q ON q.analysis_id = a.id
+                GROUP BY s.code
+                """
+            ).fetchall()
+        summary: dict[str, dict[str, Any]] = {}
+        for row in rows:
+            payload = dict(row)
+            code = _normalize_token(payload.pop("source_code", ""))
+            if not code:
+                continue
+            summary[code] = {
+                "raw_documents": int(payload.get("raw_documents") or 0),
+                "normalized_documents": int(payload.get("normalized_documents") or 0),
+                "analyses": int(payload.get("analyses") or 0),
+                "review_pending": int(payload.get("review_pending") or 0),
+                "review_approved": int(payload.get("review_approved") or 0),
+                "review_published": int(payload.get("review_published") or 0),
+                "review_closed": int(payload.get("review_closed") or 0),
+                "last_document_at": _clean_spaces(payload.get("last_document_at")),
+                "latest_source_date": _clean_spaces(payload.get("latest_source_date")),
+            }
+        return summary
+
     def get_source_by_code(self, code: str) -> dict[str, Any] | None:
         with self._connect() as conn:
             row = conn.execute("SELECT * FROM sources WHERE code = ?", (_normalize_token(code),)).fetchone()
@@ -517,6 +559,14 @@ class LegalUpdateRepository:
         payload["is_official"] = bool(payload.get("is_official"))
         payload["enabled"] = bool(payload.get("enabled"))
         return payload
+
+    def mark_source_checked(self, source_id: int) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                "UPDATE sources SET last_check_at = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                (_now_iso(), int(source_id)),
+            )
+            conn.commit()
 
     def _published_rows(self, conn: Any, entity_type: str) -> list[dict[str, Any]]:
         table = _normalize_token(entity_type)

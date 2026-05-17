@@ -18,6 +18,11 @@ from pct.legal_update_pipeline import DEFAULT_SOURCE_ROWS, LegalUpdatePipeline, 
 from pct.legal_update_repository import LegalUpdateDbConfig
 from pct.tenant import GestioneTenant, normalize_db_mode
 
+try:
+    from lex.retrieval.official_sources_retriever import official_archive_snapshot
+except Exception:  # pragma: no cover - archivi ufficiali opzionali in ambienti minimi
+    official_archive_snapshot = None
+
 
 def _runtime_app_and_config(app: Any | None = None) -> tuple[Any | None, dict[str, Any]]:
     runtime_app = app
@@ -265,6 +270,217 @@ def _repository_data_count(db_path: str) -> int:
         return 0
 
 
+def _official_archives_payload() -> dict[str, Any]:
+    if official_archive_snapshot is None:
+        return {
+            "normattiva": {"available": False, "documents": 0, "articles": 0, "chunks": 0},
+            "gazzetta": {"available": False, "documents": 0, "chunks": 0, "sources": 0},
+        }
+    try:
+        return dict(official_archive_snapshot())
+    except Exception:
+        return {
+            "normattiva": {"available": False, "documents": 0, "articles": 0, "chunks": 0},
+            "gazzetta": {"available": False, "documents": 0, "chunks": 0, "sources": 0},
+        }
+
+
+SOURCE_FAMILY_ORDER: tuple[tuple[str, str, str], ...] = (
+    ("normativa", "Normativa nazionale", "Leggi, decreti, testi vigenti e pubblicazioni ufficiali."),
+    ("giurisprudenza", "Giurisprudenza", "Corti nazionali, amministrative, previdenziali e giustizia UE."),
+    ("prassi", "Prassi e autorita'", "Circolari, interpelli, provvedimenti e presidi istituzionali."),
+    ("telematico", "Processo telematico", "Schemi, specifiche e download ufficiali dei portali giustizia."),
+    ("osservazione", "Fonti in osservazione", "Canali utili non ancora inseriti nel ciclo automatico."),
+)
+
+
+SOURCE_FAMILY_HINTS: dict[str, str] = {
+    "gazzetta_ufficiale": "normativa",
+    "normattiva": "normativa",
+    "dati_normattiva": "normativa",
+    "corte_costituzionale": "giurisprudenza",
+    "cassazione_massimario": "giurisprudenza",
+    "giustizia_amministrativa": "giurisprudenza",
+    "eur_lex": "normativa",
+    "curia_cgue_rss": "giurisprudenza",
+    "inps_sentenze": "giurisprudenza",
+    "pst_giustizia_download": "telematico",
+}
+
+
+SOURCE_CODES_ADDED_BY_CATALOG: tuple[str, ...] = (
+    "inps_circolari",
+    "inps_messaggi",
+    "inps_sentenze",
+    "curia_cgue_rss",
+    "istat_prezzi",
+    "mimit_incentivi",
+    "agcm_bollettino",
+    "agcom_provvedimenti",
+    "banca_italia_normativa",
+    "inail_istruzioni_operative",
+)
+
+
+def _source_family_key(source: dict[str, Any]) -> str:
+    code = str(source.get("code") or "").strip().lower()
+    if not bool(source.get("enabled", True)):
+        return "osservazione"
+    if code.startswith("openga_") or code == "giustizia_amministrativa":
+        return "giurisprudenza"
+    if code in SOURCE_FAMILY_HINTS:
+        return SOURCE_FAMILY_HINTS[code]
+    category = str(source.get("category") or "").strip().lower()
+    if category in {"normativa", "ue"}:
+        return "normativa"
+    if category == "giurisprudenza":
+        return "giurisprudenza"
+    if category == "telematico":
+        return "telematico"
+    return "prassi"
+
+
+def _source_method_label(source: dict[str, Any]) -> str:
+    parser_type = str(source.get("parser_type") or "").strip().lower()
+    source_type = str(source.get("source_type") or "").strip().lower()
+    code = str(source.get("code") or "").strip().lower()
+    if parser_type in {"ckan_json"} or source_type == "open_data" or code.startswith("openga_"):
+        return "Catalogo open data"
+    if parser_type in {"feed", "rss", "atom"} or source_type == "rss":
+        return "Feed ufficiale"
+    if code in {"normattiva", "dati_normattiva"}:
+        return "Archivio e catalogo"
+    return "Pagina ufficiale"
+
+
+def _source_interval_label(minutes: Any) -> str:
+    try:
+        value = int(minutes or 0)
+    except (TypeError, ValueError):
+        value = 0
+    if value <= 0:
+        return "giornaliera"
+    if value < 60:
+        return f"ogni {value} min"
+    if value % 1440 == 0:
+        days = max(1, value // 1440)
+        return "giornaliera" if days == 1 else f"ogni {days} giorni"
+    if value % 60 == 0:
+        hours = max(1, value // 60)
+        return f"ogni {hours} ore"
+    return f"ogni {value} min"
+
+
+def _source_status_label(source: dict[str, Any]) -> str:
+    if not bool(source.get("enabled", True)):
+        return "In osservazione"
+    if bool(source.get("is_official")):
+        return "Attiva e ufficiale"
+    return "Attiva"
+
+
+def _int_value(value: Any) -> int:
+    try:
+        return int(value or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _catalog_source_payload(source: dict[str, Any], activity: dict[str, Any]) -> dict[str, Any]:
+    row = dict(source)
+    row["family_key"] = _source_family_key(row)
+    row["method_label"] = _source_method_label(row)
+    row["interval_label"] = _source_interval_label(row.get("polling_minutes"))
+    row["status_label"] = _source_status_label(row)
+    row["raw_documents"] = _int_value(activity.get("raw_documents"))
+    row["normalized_documents"] = _int_value(activity.get("normalized_documents"))
+    row["analyses"] = _int_value(activity.get("analyses"))
+    row["review_pending"] = _int_value(activity.get("review_pending"))
+    row["review_published"] = _int_value(activity.get("review_published"))
+    row["last_document_at"] = str(activity.get("last_document_at") or "")
+    row["latest_source_date"] = str(activity.get("latest_source_date") or "")
+    row["was_added_by_catalog"] = str(row.get("code") or "") in SOURCE_CODES_ADDED_BY_CATALOG
+    return row
+
+
+def build_legal_source_catalog(
+    pipeline: LegalUpdatePipeline | None = None,
+    app: Any | None = None,
+) -> dict[str, Any]:
+    runtime_app, cfg_source = _runtime_app_and_config(app)
+    runtime_pipeline = pipeline or build_legal_update_pipeline_runtime(runtime_app)
+    sources = runtime_pipeline.repository.list_sources(enabled_only=False)
+    activity = runtime_pipeline.repository.source_activity_summary()
+    default_codes = {str(row.get("code") or "") for row in DEFAULT_SOURCE_ROWS}
+    official_archives = _official_archives_payload()
+    source_rows = [
+        _catalog_source_payload(source, activity.get(str(source.get("code") or ""), {}))
+        for source in sources
+    ]
+    families: list[dict[str, Any]] = []
+    for key, label, description in SOURCE_FAMILY_ORDER:
+        rows = [row for row in source_rows if row.get("family_key") == key]
+        if not rows and key != "osservazione":
+            continue
+        active = [row for row in rows if row.get("enabled")]
+        families.append(
+            {
+                "key": key,
+                "label": label,
+                "description": description,
+                "sources": rows,
+                "active_count": len(active),
+                "official_count": sum(1 for row in rows if row.get("is_official")),
+                "raw_documents": sum(_int_value(row.get("raw_documents")) for row in rows),
+                "review_pending": sum(_int_value(row.get("review_pending")) for row in rows),
+            }
+        )
+    return {
+        "families": families,
+        "sources": source_rows,
+        "totals": {
+            "sources": len(source_rows),
+            "active": sum(1 for row in source_rows if row.get("enabled")),
+            "official": sum(1 for row in source_rows if row.get("is_official")),
+            "catalog_defaults": sum(1 for row in source_rows if str(row.get("code") or "") in default_codes),
+            "added_by_catalog": sum(1 for row in source_rows if row.get("was_added_by_catalog")),
+            "raw_documents": sum(_int_value(row.get("raw_documents")) for row in source_rows),
+            "review_pending": sum(_int_value(row.get("review_pending")) for row in source_rows),
+        },
+        "schedule": [
+            {
+                "time": "23:00",
+                "title": "Archivi ufficiali",
+                "body": "Normattiva e Gazzetta vengono riconciliate con i dati locali prima di scaricare.",
+            },
+            {
+                "time": "23:10",
+                "title": "Gazzetta Ufficiale",
+                "body": "Le nuove uscite vengono lette, deduplicate e inviate alla verifica pubblica.",
+            },
+            {
+                "time": "23:15",
+                "title": "Catalogo completo",
+                "body": "Tutte le fonti attive lavorano a job separati con limite per elemento e pubblicazione governata.",
+            },
+        ],
+        "policy": [
+            "Prima si controllano archivio, catalogo e impronta del contenuto gia' presente.",
+            "Si acquisiscono solo elementi nuovi o cambiati; i duplicati restano fuori dalla coda.",
+            "La verifica pubblica legge pagina ufficiale e allegati collegati quando disponibili.",
+            "Lex usa prima gli archivi locali, poi la ricerca web governata se il contesto non basta.",
+        ],
+        "runtime": {
+            "item_timeout_seconds": _legal_updates_item_timeout(cfg_source),
+            "publish_max_items": _legal_updates_publish_max_items(cfg_source),
+            "attachment_reading": _flag_enabled(
+                os.getenv("IUSENTRA_LEGAL_VERIFICATION_READ_ATTACHMENTS", "1")
+            ),
+        },
+        "official_archives": official_archives,
+    }
+
+
 def _bootstrap_legacy_legal_updates(
     cfg_source: dict[str, Any],
     *,
@@ -354,6 +570,7 @@ def build_legal_update_surface(
     active_tenants = _active_tenants(cfg_source)
     pipeline = build_legal_update_pipeline_runtime(runtime_app)
     snapshot = pipeline.dashboard_snapshot()
+    snapshot["official_archives"] = _official_archives_payload()
     snapshot["runtime"] = {
         "db_path": pipeline.repository.db_path,
         "json_path": pipeline.repository.json_path,

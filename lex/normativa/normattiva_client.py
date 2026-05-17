@@ -88,6 +88,7 @@ class NormattivaClient:
         vigenza: str = "ORIGINALE",
         formato_richiesta: str | None = None,
         overwrite: bool = False,
+        replace_existing: bool = False,
     ) -> DownloadResult:
         vigenza_norm = vigenza.strip().upper()
         formato_richiesta = formato_richiesta or VIGENZA_TO_FORMATO_RICHIESTA.get(vigenza_norm)
@@ -161,6 +162,34 @@ class NormattivaClient:
                 f"content-type={content_type!r}; preview={preview!r}"
             )
 
+        existing_files = sorted(out_dir.glob(f"{safe_name}_{formato.upper()}_{vigenza_norm}_*.zip"))
+        for existing in existing_files:
+            if existing == out_path or not existing.is_file():
+                continue
+            try:
+                if hashlib.sha256(existing.read_bytes()).hexdigest() == sha.hexdigest():
+                    tmp_path.unlink(missing_ok=True)
+                    return DownloadResult(
+                        collection_name=name,
+                        formato=formato.upper(),
+                        vigenza=vigenza_norm,
+                        formato_richiesta=formato_richiesta,
+                        url=response.request.url,
+                        output_path=str(existing),
+                        sha256=sha.hexdigest(),
+                        size_bytes=size,
+                        content_type="existing-sha",
+                        final_url=response.url,
+                    )
+            except OSError:
+                continue
+
+        if replace_existing:
+            for existing in existing_files:
+                if existing == out_path or not existing.is_file():
+                    continue
+                existing.unlink(missing_ok=True)
+
         tmp_path.replace(out_path)
 
         return DownloadResult(
@@ -185,6 +214,7 @@ class NormattivaClient:
         vigenza: str = "ORIGINALE",
         formato_richiesta: str | None = None,
         overwrite: bool = False,
+        replace_existing: bool = False,
     ) -> list[DownloadResult]:
         results: list[DownloadResult] = []
         for index, name in enumerate(names, start=1):
@@ -197,6 +227,7 @@ class NormattivaClient:
                     vigenza=vigenza,
                     formato_richiesta=formato_richiesta,
                     overwrite=overwrite,
+                    replace_existing=replace_existing,
                 )
             except Exception as exc:
                 print(f"[ERRORE] {name}: {exc}")
@@ -258,12 +289,39 @@ def _safe_filename(name: str) -> str:
     return ascii_name[:120] or "normattiva_collection"
 
 
-def write_manifest(results: list[DownloadResult], path: str | Path) -> None:
+def write_manifest(
+    results: list[DownloadResult],
+    path: str | Path,
+    *,
+    previous_items: list[dict[str, Any]] | None = None,
+) -> None:
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
+    result_items = [r.__dict__ for r in results]
+    replaced = {
+        (
+            str(item.get("collection_name") or ""),
+            str(item.get("formato") or ""),
+            str(item.get("vigenza") or ""),
+            str(item.get("formato_richiesta") or ""),
+        )
+        for item in result_items
+    }
+    items = [
+        item
+        for item in list(previous_items or [])
+        if (
+            str(item.get("collection_name") or ""),
+            str(item.get("formato") or ""),
+            str(item.get("vigenza") or ""),
+            str(item.get("formato_richiesta") or ""),
+        )
+        not in replaced
+    ]
+    items.extend(result_items)
     payload = {
         "generated_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
-        "count": len(results),
-        "items": [r.__dict__ for r in results],
+        "count": len(items),
+        "items": items,
     }
     target.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")

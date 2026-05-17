@@ -1,5 +1,56 @@
 # Migrazione progressiva Flask + React
 
+## Console pianificazioni superadmin - 2026-05-17 - 2.244.0
+
+`/admin/pianificazioni` e l'alias `/admin/cronjob` aggiungono una superficie
+superadmin governata per cronjob, richieste manuali ed esiti worker. La console
+usa un registro SQLite persistente (`scheduler_registry.sqlite`) separato dai
+dati studio: i job di sistema vengono censiti, le modifiche vengono applicate
+dal worker entro un minuto e le esecuzioni vengono tracciate con stato,
+messaggio e durata.
+
+Sono stati introdotti agenti delegati da template autorizzati, senza comandi
+liberi: clienti/soggetti, scadenziario/agenda, preventivi/parcelle, email PEC,
+email ordinaria, fascicoli/documenti, aggiornamenti legali, backup/spazio,
+depositi telematici, sito studio, pagamenti/notifiche e privacy/GDPR. Ogni
+agente dichiara autoverifica, controllo supervisore e motivo del mancato
+completamento quando trova archivi mancanti o blocchi di dominio.
+
+## Hotfix catalogo fonti legali - 2026-05-17 - 2.243.9
+
+`/admin/aggiornamenti-legali/fonti` e' stata completata come catalogo
+professionale superadmin: famiglie fonte, stato attivo/in osservazione,
+conteggi reali per canale, ciclo 23:00/23:10/23:15, regole incrementali,
+lettura allegati e azione di acquisizione mirata. Il catalogo include anche
+fonti aggiunte da IUSENTRA oltre alla richiesta utente: INPS, Curia CGUE,
+ISTAT prezzi, MIMIT, AGCM, AGCOM e Banca d'Italia; INAIL resta censita ma non
+automatica finche' il canale non risulta stabile.
+
+## Hotfix archivi ufficiali visibili - 2026-05-17 - 2.243.8
+
+`/ricerca-legale/ricerca` continua a essere una superficie React operativa, ma
+ora non dipende piu' solo dal repository `legal_updates.db`: il bridge legge
+anche gli archivi ufficiali locali Normattiva e Gazzetta tramite
+`lex.retrieval.official_sources_retriever`. La UI espone conteggi reali per
+documenti, articoli ed estratti indicizzati e mostra risultati Normattiva/GU
+prima di attivare la ricerca web governata.
+
+La console Flask governata `/admin/aggiornamenti-legali` e la pagina Archivio
+mostrano gli stessi conteggi, cosi' il database ufficiale importato nel volume
+di produzione resta visibile anche al superadmin. Gate mirati eseguiti:
+py_compile su retriever/bridge/surface e pytest su Ricerca Legale, job Update
+Intelligence, registry fonti ufficiali e importer Normattiva.
+
+La stessa tranche rende operativo il ciclo giornaliero delle fonti: scheduler
+alle 23:00 per archivi ufficiali Normattiva/Gazzetta, poi Update Intelligence
+alle 23:10/23:15 con verifica web completa, inclusa lettura di pagina e
+allegati ufficiali. Il downloader Normattiva confronta catalogo remoto,
+manifest e stato locale prima di scaricare e mantiene una sola copia ZIP
+quando una collezione cambia. OpenGA e' estesa a Calendario Udienze, Decreti,
+Ordinanze, Pareri, Provvedimenti pubblicati, Ricorsi definiti, Ricorsi
+pendenti, Ricorsi pervenuti e Sentenze; la stessa ricerca governata include
+anche interpelli Ministero Lavoro, Garante Privacy, ANAC e PST Giustizia.
+
 ## Hotfix Update Intelligence verificata - 2026-05-16 - 2.243.5
 
 Le pagine admin `/admin/aggiornamenti-legali/analisi` e

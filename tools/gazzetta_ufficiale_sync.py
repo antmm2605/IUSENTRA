@@ -9,9 +9,9 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from lex.sources.db import export_chunks_jsonl, init_db
-from lex.sources.models import SourceConfig
-from lex.sources.runner import run_source
+from lex.sources.db import export_chunks_jsonl, init_db  # noqa: E402
+from lex.sources.models import SourceConfig  # noqa: E402
+from lex.sources.runner import run_source  # noqa: E402
 
 
 def build_source(max_issues: int, min_date: str = "") -> SourceConfig:

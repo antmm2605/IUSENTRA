@@ -1,6 +1,6 @@
 # Pytest issue aperte e risoluzioni
 
-Aggiornato: 2026-05-16, Update Intelligence verificata 2.243.6.
+Aggiornato: 2026-05-17, console pianificazioni 2.244.0.
 
 ## Regola operativa
 
@@ -10,6 +10,7 @@ Questo file e' la coda di lavoro. Prima di rilanciare test gia' passati, control
 
 | Area | Test / comando | Stato | Problema rilevato | Risoluzione |
 | --- | --- | --- | --- | --- |
+| Console pianificazioni 2.244.0 | `docker version` / Docker locale | Bloccato da ambiente locale, non failure codice | Il client Docker e' installato, ma il daemon Docker Desktop non risponde su `npipe:////./pipe/dockerDesktopLinuxEngine`; quindi non e' possibile eseguire un build Docker locale da questa sessione. | Gate Python, TypeScript, build Vite, packaging/readiness, docs e deploy Hetzner restano i verificatori applicativi. Rilanciare Docker locale solo quando Docker Desktop e' avviato. |
 | Update Intelligence 2.243.6 | Primo smoke HTTP autenticato `/admin/aggiornamenti-legali/staging` | Risolto prima del deploy | Il primo innesto chiamava `publish_auto_news(limit=80)` durante il render della pagina e lo smoke locale e' andato in timeout a 90 s. | La pagina ora chiama solo `reconcile_pending_reviews(limit=300)`, quindi riconcilia la coda gia' acquisita senza import massivo. Smoke finale 200 in 8,69 s senza `Da valutare` o codici grezzi. |
 | Update Intelligence 2.243.5 | Railway volume fonti ufficiali | Aperto per spazio volume, non failure codice | Railway ha `/data` al 100%: 1.8 GB usati su 1.8 GB, con circa 1.3 GB in `/data/email/allegati`. Non e' sicuro cancellare allegati di studio per ospitare l'indice Normattiva. | Aumentare il volume Railway o migrare allegati/archivio prima di caricare Normattiva completo. Hetzner ha spazio sufficiente ed e' il target primario. |
 | Update Intelligence 2.243.6 | Normattiva Open Data collezioni esposte ma vuote | Aperto come limite fonte-server, non failure codice | Il manifest ufficiale espone 23 collezioni; 19 hanno restituito ZIP validi. `Regolamenti di delegificazione`, `Regolamenti governativi`, `Regolamenti ministeriali` e `Testi Unici` continuano a restituire stream vuoto `application/octet-stream`. | Database Hetzner popolato con gli ZIP validi: 189.851 documenti, 800.757 articoli, 639.273 chunk; tentativi vuoti tracciati in `/data/normativa/manifests/normattiva_missing_attempt_manifest.json`. |

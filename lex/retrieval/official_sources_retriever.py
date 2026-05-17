@@ -106,6 +106,48 @@ def search_gazzetta(
     return results[:limit]
 
 
+def official_archive_snapshot(
+    *,
+    official_db_path: str | Path | None = None,
+    normattiva_db_path: str | Path | None = None,
+) -> dict[str, Any]:
+    official_path = _resolve_runtime_path(
+        official_db_path,
+        env_names=("PCT_LEX_OFFICIAL_DB", "PCT_OFFICIAL_SOURCES_DB", "PCT_LEX_SOURCES_DB"),
+        container_path=CONTAINER_OFFICIAL_DB,
+        repo_path=DEFAULT_OFFICIAL_DB,
+    )
+    normattiva_path = _resolve_runtime_path(
+        normattiva_db_path,
+        env_names=("PCT_NORMATTIVA_DB", "PCT_LEX_NORMATTIVA_DB"),
+        container_path=CONTAINER_NORMATTIVA_DB,
+        repo_path=DEFAULT_NORMATTIVA_DB,
+    )
+    return {
+        "normattiva": _sqlite_counts(
+            normattiva_path,
+            {
+                "documents": "normative_documents",
+                "articles": "normative_articles",
+                "chunks": "normative_chunks",
+            },
+        ),
+        "gazzetta": _sqlite_counts(
+            official_path,
+            {
+                "documents": "official_documents",
+                "chunks": "official_chunks",
+                "sources": "official_sources",
+            },
+            where={"documents": "source_id = 'gazzetta_ufficiale'", "chunks": "source_id = 'gazzetta_ufficiale'"},
+        ),
+        "paths": {
+            "normattiva_db": str(normattiva_path),
+            "official_db": str(official_path),
+        },
+    }
+
+
 def get_source_document(
     document_id: int | str,
     *,
@@ -352,6 +394,25 @@ def _search_jsonl(path: Path, query: str, materia: str | None, source: str | Non
                 "metadata": metadata,
             })
     return results
+
+
+def _sqlite_counts(path: Path, tables: dict[str, str], *, where: dict[str, str] | None = None) -> dict[str, Any]:
+    payload: dict[str, Any] = {"available": path.exists(), "path": str(path)}
+    if not path.exists():
+        for key in tables:
+            payload[key] = 0
+        return payload
+    con = sqlite3.connect(path)
+    try:
+        for key, table in tables.items():
+            clause = f" WHERE {where[key]}" if where and where.get(key) else ""
+            try:
+                payload[key] = int(con.execute(f"SELECT COUNT(*) FROM {table}{clause}").fetchone()[0] or 0)
+            except sqlite3.Error:
+                payload[key] = 0
+        return payload
+    finally:
+        con.close()
 
 
 def _row_to_document(row: sqlite3.Row) -> dict[str, Any]:

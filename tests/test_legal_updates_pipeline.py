@@ -8,7 +8,7 @@ from lex.retrieval.sources.legal_updates import LegalUpdatesSource
 from web.app import create_app
 
 from pct.auth import GestioneUtenti, RuoloUtente
-from pct.legal_update_pipeline import build_legal_update_pipeline
+from pct.legal_update_pipeline import DEFAULT_SOURCE_ROWS, build_legal_update_pipeline
 from pct.tenant import GestioneTenant
 from web.services.legal_update_surface import (
     build_legal_update_pipeline_runtime,
@@ -23,6 +23,52 @@ class DummyResponse:
         self.status_code = status_code
         self.url = url
         self.headers = {"content-type": "text/html; charset=utf-8"}
+
+    def iter_content(self, chunk_size: int = 65536):
+        yield self.content
+
+
+def test_fonti_default_includono_cartelle_openga_ufficiali():
+    rows_by_code = {str(row["code"]): row for row in DEFAULT_SOURCE_ROWS}
+    expected = {
+        "openga_calendario_udienze",
+        "openga_decreti",
+        "openga_ordinanze",
+        "openga_pareri",
+        "openga_provvedimenti_pubblicati",
+        "openga_ricorsi_definiti",
+        "openga_ricorsi_pendenti",
+        "openga_ricorsi_pervenuti",
+        "openga_sentenze",
+    }
+    assert expected.issubset(rows_by_code)
+    for code in expected:
+        assert "package_search" in str(rows_by_code[code]["base_url"])
+        assert "rows=200" in str(rows_by_code[code]["base_url"])
+
+
+def test_fonti_default_includono_presidi_utili_per_studi_legali():
+    codes = {str(row["code"]) for row in DEFAULT_SOURCE_ROWS}
+    assert {
+        "ministero_lavoro_interpelli",
+        "garante_privacy",
+        "anac_documenti",
+        "inps_circolari",
+        "inps_messaggi",
+        "inps_sentenze",
+        "curia_cgue_rss",
+        "istat_prezzi",
+        "mimit_incentivi",
+        "agcm_bollettino",
+        "agcom_provvedimenti",
+        "banca_italia_normativa",
+        "inail_istruzioni_operative",
+        "pst_giustizia_download",
+    }.issubset(codes)
+    rows_by_code = {str(row["code"]): row for row in DEFAULT_SOURCE_ROWS}
+    assert rows_by_code["inail_istruzioni_operative"]["enabled"] is False
+    for code in ("inps_circolari", "inps_messaggi", "inps_sentenze", "curia_cgue_rss", "istat_prezzi"):
+        assert rows_by_code[code]["parser_type"] == "feed"
 
 
 def _write_studio_config(path: Path) -> None:
@@ -307,11 +353,13 @@ def test_legal_update_autopubblica_senza_reinserire_contenuti_gia_presenti(tmp_p
 
     assert first["autopublished"]["count"] == 1
     assert second["autopublished"]["count"] == 0
+    assert second["reports"][0]["processed"] == 0
+    assert second["reports"][0]["skipped_unchanged"] == 1
     assert snapshot["headline"]["published_normative"] == 1
     assert snapshot["headline"]["published_news"] == 1
     assert versions == 1
-    assert queue[0]["proposed_action"] == "DUPLICATE"
-    assert queue[0]["status"] == "closed"
+    assert len(queue) == 1
+    assert queue[0]["status"] == "published"
 
 
 def test_legal_update_autopubblica_attende_conferme_web(tmp_path: Path, monkeypatch):
@@ -337,6 +385,133 @@ def test_legal_update_autopubblica_attende_conferme_web(tmp_path: Path, monkeypa
     assert report["autopublished"]["count"] == 0
     assert queue[0]["status"] == "pending"
     assert "Verifica fonti insufficiente" in queue[0]["review_notes"]
+
+
+def test_verifica_normativa_usa_archivi_locali_web_e_contesto(monkeypatch):
+    from pct import legal_update_web_verification as verification
+
+    review = {
+        "proposed_action": "NEW_NORMATIVE",
+        "title": "Decreto legislativo n. 55 del 2026 sulla mediazione obbligatoria",
+        "source_url": "https://www.gazzettaufficiale.it/eli/id/2026/05/10/26G00055/sg",
+        "source_name": "Gazzetta Ufficiale",
+        "classification_type": "NORMATIVA_NUOVA",
+        "norm_type": "decreto legislativo",
+        "norm_number": "55",
+        "norm_year": "2026",
+        "summary_short": "La norma aggiorna il quadro della mediazione obbligatoria.",
+        "body_text": "Decreto legislativo n. 55 del 2026 sulla mediazione obbligatoria e il processo civile.",
+    }
+    source = {"name": "Gazzetta Ufficiale", "code": "gazzetta_ufficiale", "category": "normativa", "trust_class": "A", "is_official": True}
+
+    monkeypatch.setattr(
+        "lex.retrieval.official_sources_retriever.search_official_sources",
+        lambda query, limit=5: [],
+    )
+    monkeypatch.setattr(
+        "lex.retrieval.official_sources_retriever.search_normattiva",
+        lambda query, limit=5: [
+            {
+                "titolo": "Decreto legislativo n. 55 del 2026 sulla mediazione obbligatoria",
+                "testo": "Testo Normattiva: decreto legislativo n. 55 del 2026, mediazione obbligatoria e processo civile.",
+                "url_origine": "https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:2026;55",
+                "fonte": "Normattiva",
+            }
+        ] if "55" in query or "mediazione" in query.lower() else [],
+    )
+    monkeypatch.setattr(
+        "lex.retrieval.official_sources_retriever.search_gazzetta",
+        lambda query, limit=5: [],
+    )
+    monkeypatch.setattr(
+        "lex.retrieval.official_web.search_recognized_official_web",
+        lambda query, source_ids=None, limit_results=5: [
+            {
+                "title": "Decreto legislativo n. 55 del 2026",
+                "url": "https://www.gazzettaufficiale.it/eli/id/2026/05/10/26G00055/sg",
+                "source_name": "Gazzetta Ufficiale",
+                "excerpt": "",
+            }
+        ],
+    )
+    monkeypatch.setattr(
+        verification.requests,
+        "get",
+        lambda *args, **kwargs: DummyResponse(
+            "<html><body>Gazzetta Ufficiale decreto legislativo n. 55 del 2026 "
+            "mediazione obbligatoria processo civile testo completo della fonte.</body></html>",
+            url="https://www.gazzettaufficiale.it/eli/id/2026/05/10/26G00055/sg",
+        ),
+    )
+
+    report = verification.verify_legal_update_against_public_sources(review, source, limit=3)
+
+    assert report["ok"] is True
+    assert report["confirmation_count"] >= 2
+    assert report["searched"]["web_results"] >= 1
+    assert len(report["searched"]["queries"]) >= 3
+    assert any(row["origin"] == "archivio_normattiva" for row in report["confirmations"])
+    assert any(row["origin"] == "ricerca_web_governata" and row["context_chars"] > 80 for row in report["confirmations"])
+
+
+def test_verifica_web_legge_allegati_della_fonte_ufficiale(monkeypatch):
+    from pct import legal_update_web_verification as verification
+
+    review = {
+        "proposed_action": "NEW_NORMATIVE",
+        "title": "Decreto legislativo n. 56 del 2026 sulla conciliazione",
+        "source_url": "https://www.gazzettaufficiale.it/eli/id/2026/05/11/26G00056/sg",
+        "source_name": "Gazzetta Ufficiale",
+        "classification_type": "NORMATIVA_NUOVA",
+        "norm_type": "decreto legislativo",
+        "norm_number": "56",
+        "norm_year": "2026",
+        "summary_short": "Aggiorna la conciliazione giudiziale.",
+    }
+    source = {"name": "Gazzetta Ufficiale", "code": "gazzetta_ufficiale", "category": "normativa", "trust_class": "A", "is_official": True}
+
+    monkeypatch.setattr("lex.retrieval.official_sources_retriever.search_official_sources", lambda query, limit=5: [])
+    monkeypatch.setattr("lex.retrieval.official_sources_retriever.search_normattiva", lambda query, limit=5: [])
+    monkeypatch.setattr("lex.retrieval.official_sources_retriever.search_gazzetta", lambda query, limit=5: [])
+    monkeypatch.setattr(
+        "lex.retrieval.official_web.search_recognized_official_web",
+        lambda query, source_ids=None, limit_results=5: [
+            {
+                "title": "Scheda Gazzetta con allegato",
+                "url": "https://www.gazzettaufficiale.it/scheda/26G00056",
+                "source_name": "Gazzetta Ufficiale",
+                "excerpt": "Scheda senza testo completo.",
+            }
+        ],
+    )
+
+    class _Response(DummyResponse):
+        def __init__(self, body: str, *, content_type: str, url: str):
+            super().__init__(body, url=url)
+            self.headers = {"content-type": content_type, "content-length": str(len(self.content))}
+
+    def _get(url, **kwargs):
+        if str(url).endswith("testo.xml"):
+            return _Response(
+                "<atto><titolo>Decreto legislativo n. 56 del 2026 sulla conciliazione</titolo>"
+                "<testo>conciliazione giudiziale e processo civile</testo></atto>",
+                content_type="application/xml",
+                url=str(url),
+            )
+        return _Response(
+            '<html><body>Scheda ufficiale <a href="/allegati/testo.xml">Scarica testo XML</a></body></html>',
+            content_type="text/html; charset=utf-8",
+            url=str(url),
+        )
+
+    monkeypatch.setattr(verification.requests, "get", _get)
+
+    report = verification.verify_legal_update_against_public_sources(review, source, limit=2)
+
+    web_confirmations = [row for row in report["confirmations"] if row["origin"] == "ricerca_web_governata"]
+    assert web_confirmations
+    assert "conciliazione giudiziale" in web_confirmations[0]["excerpt"]
+    assert web_confirmations[0]["context_chars"] > 80
 
 
 def test_open_data_cataloghi_vengono_archiviati_senza_review_manuale(tmp_path: Path):
@@ -488,6 +663,31 @@ def test_openga_ckan_importa_risorse_json_per_lex(tmp_path: Path):
     assert docs[0]["resource_format"] == "JSON"
     assert "Contenuto JSON acquisito" in docs[0]["raw_text"]
     assert "TAR Calabria" in docs[0]["raw_text"]
+
+
+def test_feed_xml_con_content_type_generico_importa_fonti_ufficiali(tmp_path: Path):
+    pipeline = build_legal_update_pipeline(str(tmp_path / "intelligence" / "motori.json"))
+    source = pipeline.repository.get_source_by_code("curia_cgue_rss")
+    assert source is not None
+    response = DummyResponse(
+        """<?xml version="1.0" encoding="UTF-8"?>
+        <rss version="2.0"><channel>
+          <item>
+            <title>Sentenza della Corte nella causa C-10/26</title>
+            <link>https://curia.europa.eu/juris/document/document.jsf?text=&amp;docid=123</link>
+            <pubDate>Fri, 15 May 2026 10:00:00 GMT</pubDate>
+            <description>Decisione ufficiale della Corte di giustizia.</description>
+          </item>
+        </channel></rss>""",
+        url="https://curia.europa.eu/site/rss.jsp?lang=it&secondLang=en",
+    )
+    response.headers = {"content-type": "text/html;charset=UTF-8"}
+
+    docs = pipeline._fetch_source(source, request_get=lambda *args, **kwargs: response)
+
+    assert len(docs) == 1
+    assert docs[0]["title"] == "Sentenza della Corte nella causa C-10/26"
+    assert docs[0]["published_at"] == "2026-05-15"
 
 
 def test_legal_update_giurisprudenza_gia_pubblicata_diventa_duplicate(tmp_path: Path):
@@ -988,7 +1188,7 @@ def test_admin_studio_accede_review_aggiornamenti_legali_senza_403(tmp_path: Pat
     assert "Coda revisioni aggiornamenti" in response.get_data(as_text=True)
 
 
-def test_pagina_fonti_mostra_guida_campi_ed_esempi_pronti(tmp_path: Path):
+def test_pagina_fonti_mostra_catalogo_professionale_e_ciclo_giornaliero(tmp_path: Path):
     _write_studio_config(tmp_path / "config" / "studio.json")
     app = create_app(_cfg_web(tmp_path))
     username, password = _seed_platform_superadmin(app)
@@ -1001,11 +1201,16 @@ def test_pagina_fonti_mostra_guida_campi_ed_esempi_pronti(tmp_path: Path):
 
     html = response.get_data(as_text=True)
     assert response.status_code == 200
-    assert "Come compilare correttamente una fonte" in html
-    assert "devono riferirsi allo stesso ente" in html
-    assert "cassazione_terza_sezione_civile" in html
-    assert "https://www.cortecostituzionale.it/" in html
-    assert "A primaria, B istituzionale, C editoriale" in html
+    assert "Catalogo professionale delle fonti pubbliche" in html
+    assert "Ciclo giornaliero" in html
+    assert "23:00" in html
+    assert "solo elementi nuovi o cambiati" in html
+    assert "OpenGA - Sentenze" in html
+    assert "INPS - circolari" in html
+    assert "Curia - Corte di giustizia UE" in html
+    assert "INAIL - istruzioni operative" in html
+    assert "In osservazione" in html
+    assert "Aggiunte IUSENTRA" in html
 
 
 def test_admin_api_espone_staging_analisi_archivi_e_audit(tmp_path: Path):

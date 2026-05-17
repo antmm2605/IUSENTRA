@@ -1,5 +1,30 @@
 # Changelog
 
+## 2.244.0 - 2026-05-17
+
+- Aggiunta la console superadmin `/admin/pianificazioni` con alias `/admin/cronjob`: mostra cronjob applicativi, stato attivo/pausato, frequenza, ultime esecuzioni, richieste manuali e creazione di nuovi job da template autorizzati.
+- Introdotto il registro persistente `scheduler_registry.sqlite`: il worker registra esiti, errori, salti e richieste manuali, applica modifiche entro un minuto e non espone comandi liberi o shell dalla UI.
+- Aggiunti agenti delegati governati per domini operativi: clienti/soggetti, scadenziario/agenda, preventivi/parcelle, email PEC, email ordinaria, fascicoli/documenti, aggiornamenti legali, backup/spazio, depositi telematici, sito studio, pagamenti/notifiche e GDPR.
+- Ogni agente delegato produce autoverifica e controllo supervisore: se non completa il lavoro deve dichiarare il motivo, gli archivi mancanti e la prossima azione invece di mascherare l'errore.
+
+## 2.243.9 - 2026-05-17
+
+- Completata `/admin/aggiornamenti-legali/fonti` come catalogo professionale: famiglie fonte, stato attivo/in osservazione, ciclo giornaliero 23:00/23:10/23:15, regole anti-duplicato, lettura allegati e conteggi reali per ogni canale.
+- Aggiunte fonti scelte da IUSENTRA oltre a quelle richieste: INPS circolari/messaggi/sentenze, Curia CGUE, ISTAT prezzi, MIMIT incentivi, AGCM bollettino, AGCOM provvedimenti e Banca d'Italia normativa di vigilanza.
+- Inserito INAIL istruzioni operative nel catalogo come fonte in osservazione, senza scansione notturna, finche' il canale pubblico non sara' acquisibile in modo stabile dal lettore automatico.
+- Il lettore feed riconosce anche RSS pubblicati con intestazione generica, cosi' le fonti ufficiali come Curia vengono importate senza cadere nel fallback HTML.
+
+## 2.243.8 - 2026-05-17
+
+- Collegati gli archivi locali ufficiali alla UI: `/ricerca-legale/ricerca`, la dashboard Ricerca Legale e la console admin Aggiornamenti legali mostrano e interrogano anche Normattiva (`/data/normativa/normattiva.sqlite`) e Gazzetta (`/data/fonti_ufficiali/lex_sources.sqlite`), non solo `legal_updates.db`.
+- Aggiunti indicatori leggibili per Normattiva e Gazzetta: documenti, articoli ed estratti indicizzati sono visibili nelle schede operative, cosi' il database Normattiva da piu' GiB non resta nascosto.
+- La ricerca legale usa prima archivio aggiornamenti, Normattiva locale e Gazzetta locale; la ricerca web ufficiale parte solo se le fonti locali non bastano.
+- Aggiornato lo scheduler: alle 23:00 sincronizza archivi ufficiali Normattiva/Gazzetta, alle 23:10/23:15 esegue Update Intelligence con timeout per fonte/pubblicazione e completamento web governato.
+- Normattiva non accumula piu' ZIP duplicati: il downloader confronta catalogo remoto, stato locale e manifest e scarica solo collezioni nuove/cambiate, mantenendo una sola copia per collezione/formato quando richiesto.
+- Esteso OpenGA: oltre al presidio generale e al calendario udienze, sono attive le cartelle Decreti, Ordinanze, Pareri, Provvedimenti pubblicati, Ricorsi definiti, Ricorsi pendenti, Ricorsi pervenuti e Sentenze, con risorse CKAN JSON/CSV/ODS e completamento web per il contesto.
+- Aggiunti presidi ufficiali ulteriori scelti per utilita' professionale: interpelli Ministero Lavoro, newsletter/provvedimenti Garante Privacy, atti ANAC e download tecnici PST Giustizia.
+- La verifica pubblica degli aggiornamenti legge anche pagina fonte e allegati ufficiali collegati (PDF/XML/testo) con limiti di download e timeout per elemento.
+
 ## 2.243.7 - 2026-05-16
 
 - Potenziata `/admin/server-manutenzione` con console Hetzner: evidenzia spazio fuori dagli studi, cache ricostruibile dei servizi, snapshot temporanei residui e aree server principali, spiegando lo scarto tra consumi tenant e disco usato.

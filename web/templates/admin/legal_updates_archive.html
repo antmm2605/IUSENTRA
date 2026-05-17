@@ -39,6 +39,53 @@
     </div>
   </div>
 
+  <div class="row g-3 mb-3">
+    <div class="col-md-6">
+      <div class="li-card h-100">
+        <div class="li-card__body">
+          <div class="fw-semibold"><i class="bi bi-book me-2 text-primary"></i>Normattiva locale</div>
+          <div class="small text-muted">Archivio ufficiale importato nel volume di produzione e usato dalla Ricerca Legale.</div>
+          <div class="li-soft-stack mt-3">
+            <div class="li-soft-card">
+              <div class="small text-muted">Documenti</div>
+              <div class="fw-semibold">{{ payload.official_archives.normattiva.documents }}</div>
+            </div>
+            <div class="li-soft-card">
+              <div class="small text-muted">Articoli</div>
+              <div class="fw-semibold">{{ payload.official_archives.normattiva.articles }}</div>
+            </div>
+            <div class="li-soft-card">
+              <div class="small text-muted">Estratti ricerca</div>
+              <div class="fw-semibold">{{ payload.official_archives.normattiva.chunks }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="li-card h-100">
+        <div class="li-card__body">
+          <div class="fw-semibold"><i class="bi bi-newspaper me-2 text-primary"></i>Gazzetta Ufficiale locale</div>
+          <div class="small text-muted">Uscite e testi indicizzati dalla fonte ufficiale per verifica e confronto.</div>
+          <div class="li-soft-stack mt-3">
+            <div class="li-soft-card">
+              <div class="small text-muted">Uscite</div>
+              <div class="fw-semibold">{{ payload.official_archives.gazzetta.documents }}</div>
+            </div>
+            <div class="li-soft-card">
+              <div class="small text-muted">Estratti ricerca</div>
+              <div class="fw-semibold">{{ payload.official_archives.gazzetta.chunks }}</div>
+            </div>
+            <div class="li-soft-card">
+              <div class="small text-muted">Stato</div>
+              <div class="fw-semibold">{% if payload.official_archives.gazzetta.available %}collegata{% else %}da collegare{% endif %}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="li-tabstrip">
     {% for tab, label in {'normative':'Normative','jurisprudence':'Giurisprudenza','prassi':'Prassi','news':'News','audit':'Audit'}.items() %}
     <a href="{{ url_for('legal_updates_admin.archive_page', tab=tab) }}" class="btn btn-sm {% if selected_tab == tab %}btn-primary{% else %}btn-outline-secondary{% endif %}">{{ label }}</a>

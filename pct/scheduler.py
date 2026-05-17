@@ -14,6 +14,8 @@ from __future__ import annotations
 import logging
 import os
 from pathlib import Path
+import subprocess
+import sys
 
 from pct.runtime_env import is_managed_cloud_runtime
 
@@ -48,6 +50,48 @@ def _parse_positive_int(value: object, default: int) -> int:
         return parsed if parsed > 0 else default
     except (TypeError, ValueError):
         return default
+
+
+def _runtime_path(app, key: str, env_key: str, default: str) -> str:
+    return str(app.config.get(key) or os.getenv(env_key) or default)
+
+
+def _run_scheduler_command(label: str, command: list[str], *, timeout_seconds: int) -> dict[str, object]:
+    try:
+        completed = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            timeout=max(1, int(timeout_seconds or 1)),
+            env=os.environ.copy(),
+        )
+    except subprocess.TimeoutExpired as exc:
+        logger.error("[scheduler] %s timeout dopo %ss", label, timeout_seconds)
+        return {"ok": False, "timeout": True, "label": label, "stderr": str(exc)}
+
+    if completed.returncode != 0:
+        logger.error(
+            "[scheduler] %s fallito rc=%s: %s",
+            label,
+            completed.returncode,
+            (completed.stderr or completed.stdout or "")[-1200:],
+        )
+        return {
+            "ok": False,
+            "timeout": False,
+            "label": label,
+            "returncode": completed.returncode,
+            "stderr": (completed.stderr or "")[-4000:],
+            "stdout": (completed.stdout or "")[-4000:],
+        }
+    logger.info("[scheduler] %s completato: %s", label, (completed.stdout or "").strip()[-800:])
+    return {
+        "ok": True,
+        "timeout": False,
+        "label": label,
+        "returncode": completed.returncode,
+        "stdout": (completed.stdout or "")[-4000:],
+    }
 
 
 def start_scheduler(app):
@@ -280,6 +324,139 @@ def start_scheduler(app):
             except Exception as e:
                 logger.error("[scheduler] Legal updates %s fallito: %s", label, e)
 
+    def _run_official_archives_sync(label: str):
+        with app.app_context():
+            official_db = _runtime_path(
+                app,
+                "LEX_OFFICIAL_DB",
+                "PCT_LEX_OFFICIAL_DB",
+                "/data/fonti_ufficiali/lex_sources.sqlite",
+            )
+            official_raw = _runtime_path(
+                app,
+                "LEX_OFFICIAL_RAW_DIR",
+                "PCT_LEX_OFFICIAL_RAW_DIR",
+                "/data/fonti_ufficiali/raw",
+            )
+            official_text = _runtime_path(
+                app,
+                "LEX_OFFICIAL_TEXT_DIR",
+                "PCT_LEX_OFFICIAL_TEXT_DIR",
+                "/data/fonti_ufficiali/text",
+            )
+            official_jsonl = _runtime_path(
+                app,
+                "LEX_OFFICIAL_JSONL",
+                "PCT_LEX_OFFICIAL_JSONL",
+                "/data/fonti_ufficiali/index/lex_sources_chunks.jsonl",
+            )
+            normativa_raw = _runtime_path(
+                app,
+                "NORMATTIVA_RAW_DIR",
+                "PCT_NORMATTIVA_RAW_DIR",
+                "/data/normativa/raw",
+            )
+            normativa_db = _runtime_path(
+                app,
+                "NORMATTIVA_DB",
+                "PCT_NORMATTIVA_DB",
+                "/data/normativa/normattiva.sqlite",
+            )
+            normativa_jsonl = _runtime_path(
+                app,
+                "NORMATTIVA_JSONL",
+                "PCT_NORMATTIVA_JSONL",
+                "/data/normativa/index/normattiva_chunks.jsonl",
+            )
+            normativa_report = _runtime_path(
+                app,
+                "NORMATTIVA_IMPORT_REPORT",
+                "PCT_NORMATTIVA_IMPORT_REPORT",
+                "/data/normativa/reports/normattiva_import_report.json",
+            )
+            normativa_manifest = _runtime_path(
+                app,
+                "NORMATTIVA_DOWNLOAD_MANIFEST",
+                "PCT_NORMATTIVA_DOWNLOAD_MANIFEST",
+                "/data/normativa/manifests/normattiva_download_manifest.json",
+            )
+            max_issues = _parse_positive_int(
+                app.config.get("LEGAL_UPDATES_GAZZETTA_MAX_ISSUES")
+                or os.getenv("IUSENTRA_GAZZETTA_MAX_ISSUES"),
+                12,
+            )
+            timeout_seconds = _parse_positive_int(
+                app.config.get("LEGAL_OFFICIAL_ARCHIVES_TIMEOUT_SECONDS")
+                or os.getenv("IUSENTRA_LEGAL_OFFICIAL_ARCHIVES_TIMEOUT_SECONDS"),
+                7200,
+            )
+            commands = [
+                (
+                    "gazzetta ufficiale",
+                    [
+                        sys.executable,
+                        "tools/gazzetta_ufficiale_sync.py",
+                        "--db",
+                        official_db,
+                        "--raw-dir",
+                        official_raw,
+                        "--text-dir",
+                        official_text,
+                        "--jsonl",
+                        official_jsonl,
+                        "--max-issues",
+                        str(max_issues),
+                        "--init-db",
+                        "--export-jsonl",
+                    ],
+                ),
+                (
+                    "normattiva download core",
+                    [
+                        sys.executable,
+                        "tools/normattiva_multi_sync.py",
+                        "--download-core",
+                        "--replace-existing",
+                        "--out",
+                        normativa_raw,
+                        "--manifest",
+                        normativa_manifest,
+                        "--sleep",
+                        str(os.getenv("IUSENTRA_NORMATTIVA_DOWNLOAD_SLEEP_SECONDS", "1.0")),
+                    ],
+                ),
+                (
+                    "normattiva import lex",
+                    [
+                        sys.executable,
+                        "tools/normattiva_import.py",
+                        "--raw-dir",
+                        normativa_raw,
+                        "--db",
+                        normativa_db,
+                        "--jsonl",
+                        normativa_jsonl,
+                        "--report",
+                        normativa_report,
+                    ],
+                ),
+            ]
+            results = [
+                _run_scheduler_command(f"{label}: {step_label}", command, timeout_seconds=timeout_seconds)
+                for step_label, command in commands
+            ]
+            logger.info(
+                "[scheduler] Archivi ufficiali %s: %d/%d passaggi completati",
+                label,
+                sum(1 for row in results if row.get("ok")),
+                len(results),
+            )
+            return results
+
+    @scheduler.scheduled_job(CronTrigger(hour=23, minute=0), id="legal_official_archives_daily")
+    def _legal_official_archives_daily():
+        _run_official_archives_sync("daily")
+
     @scheduler.scheduled_job(CronTrigger(hour=5, minute=45), id="legal_monitor_daily")
     def _legal_monitor_daily():
         _run_legal_monitor(
@@ -306,22 +483,46 @@ def start_scheduler(app):
     def _legal_monitor_pst():
         _run_legal_monitor(["pst_giustizia"], "pst")
 
-    @scheduler.scheduled_job(CronTrigger(hour="0-5", minute=20), id="legal_updates_gazzetta")
+    @scheduler.scheduled_job(CronTrigger(hour=23, minute=10), id="legal_updates_gazzetta")
     def _legal_updates_gazzetta():
         _run_legal_updates(["gazzetta_ufficiale"], "gazzetta")
 
-    @scheduler.scheduled_job(CronTrigger(hour=2, minute=35), id="legal_updates_batch")
+    @scheduler.scheduled_job(CronTrigger(hour=23, minute=15), id="legal_updates_batch")
     def _legal_updates_batch():
         _run_legal_updates(
             [
+                "gazzetta_ufficiale",
                 "normattiva",
                 "dati_normattiva",
                 "corte_costituzionale",
                 "cassazione_massimario",
                 "giustizia_amministrativa",
+                "openga_giustizia_amministrativa",
+                "openga_calendario_udienze",
+                "openga_decreti",
+                "openga_ordinanze",
+                "openga_pareri",
+                "openga_provvedimenti_pubblicati",
+                "openga_ricorsi_definiti",
+                "openga_ricorsi_pendenti",
+                "openga_ricorsi_pervenuti",
+                "openga_sentenze",
                 "eur_lex",
                 "agenzia_entrate",
                 "ministero_lavoro",
+                "ministero_lavoro_interpelli",
+                "garante_privacy",
+                "anac_documenti",
+                "inps_circolari",
+                "inps_messaggi",
+                "inps_sentenze",
+                "curia_cgue_rss",
+                "istat_prezzi",
+                "mimit_incentivi",
+                "agcm_bollettino",
+                "agcom_provvedimenti",
+                "banca_italia_normativa",
+                "pst_giustizia_download",
             ],
             "batch",
         )
@@ -951,6 +1152,74 @@ def start_scheduler(app):
                     )
             except Exception as e:
                 logger.error("[scheduler] Poll PEC cancelleria fallito: %s", e)
+
+    try:
+        from apscheduler.events import EVENT_JOB_ERROR, EVENT_JOB_EXECUTED, EVENT_JOB_MISSED
+        from pct.scheduler_registry import (
+            apply_scheduler_registry,
+            dispatch_requested_manual_runs,
+            scheduler_registry_repository,
+        )
+
+        registry_repo = scheduler_registry_repository(app.config)
+        registry_repo.upsert_default_jobs(app.config)
+
+        def _scheduler_registry_tick():
+            with app.app_context():
+                apply_scheduler_registry(scheduler, app, registry_repo)
+                dispatch_requested_manual_runs(scheduler, app, registry_repo)
+
+        scheduler.add_job(
+            _scheduler_registry_tick,
+            CronTrigger(minute="*/1"),
+            id="scheduler_registry_reload",
+            replace_existing=True,
+            max_instances=1,
+            coalesce=True,
+        )
+
+        def _record_scheduler_event(event):
+            job_id = str(getattr(event, "job_id", "") or "")
+            if not job_id or job_id == "scheduler_registry_reload" or job_id.startswith("manual_"):
+                return
+            try:
+                job_row = registry_repo.get_job(job_id)
+                if not job_row or not job_row.get("built_in"):
+                    return
+                scheduled_at = str(getattr(event, "scheduled_run_time", "") or "")
+                if getattr(event, "exception", None):
+                    registry_repo.record_scheduler_event(
+                        job_id,
+                        status="failed",
+                        scheduled_at=scheduled_at,
+                        message="Esecuzione non completata.",
+                        error_message=str(getattr(event, "exception", "")),
+                    )
+                elif getattr(event, "code", None) == EVENT_JOB_MISSED:
+                    registry_repo.record_scheduler_event(
+                        job_id,
+                        status="missed",
+                        scheduled_at=scheduled_at,
+                        message="Esecuzione saltata dal worker.",
+                    )
+                else:
+                    registry_repo.record_scheduler_event(
+                        job_id,
+                        status="completed",
+                        scheduled_at=scheduled_at,
+                        message="Esecuzione completata dal worker.",
+                    )
+            except Exception as exc:  # pragma: no cover - audit best effort
+                logger.debug("[scheduler] Evento pianificazione non registrato: %s", exc)
+
+        scheduler.add_listener(
+            _record_scheduler_event,
+            EVENT_JOB_EXECUTED | EVENT_JOB_ERROR | EVENT_JOB_MISSED,
+        )
+        apply_scheduler_registry(scheduler, app, registry_repo)
+        dispatch_requested_manual_runs(scheduler, app, registry_repo)
+    except Exception as exc:
+        logger.warning("[scheduler] Registro pianificazioni non disponibile: %s", exc)
 
     scheduler.start()
     # Salva il riferimento nell'app per consentire il reschedule dinamico

@@ -6,6 +6,38 @@ Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle
 
 ## Aggiornamento operativo 2.243.5 - 2026-05-16
 
+Aggiornamento 2.243.9: `/admin/aggiornamenti-legali/fonti` espone il
+catalogo professionale delle fonti con famiglie, stato per canale,
+conteggi reali, ciclo giornaliero e regole incrementali. Oltre alle fonti
+richieste sono stati aggiunti presidi ufficiali scelti per gli studi legali:
+INPS circolari/messaggi/sentenze, Curia CGUE, ISTAT prezzi, MIMIT incentivi,
+AGCM, AGCOM e Banca d'Italia. INAIL e' censita come fonte in osservazione ma
+non entra nel ciclo automatico finche' il canale pubblico non sara' leggibile
+con stabilita' dal worker.
+
+Aggiornamento 2.243.8: gli archivi locali ufficiali non restano piu'
+separati dalla UI. La Ricerca Legale e la console admin Aggiornamenti legali
+mostrano i conteggi reali di Normattiva/Gazzetta e, quando l'utente cerca, il
+backend interroga prima `legal_updates.db`, poi `/data/normativa/normattiva.sqlite`
+e `/data/fonti_ufficiali/lex_sources.sqlite`; solo se le evidenze locali non
+bastano viene tentata la ricerca web governata. Questo rende visibili i
+189.851 documenti, 800.757 articoli e 639.273 chunk Normattiva gia' presenti
+sul volume Hetzner.
+
+Lo scheduler 2.243.8 governa il ciclo quotidiano richiesto: alle 23:00 esegue
+sincronizzazione degli archivi ufficiali, alle 23:10/23:15 passa a Update
+Intelligence con timeout per fonte/pubblicazione. La sincronizzazione
+Normattiva confronta il catalogo Open Data remoto con lo stato locale e non
+riscarica ZIP gia' presenti e invariati; quando una collezione cambia mantiene
+una sola copia per collezione/formato/vigenza. OpenGA viene trattata come fonte
+ufficiale CKAN nelle cartelle Calendario Udienze, Decreti, Ordinanze, Pareri,
+Provvedimenti pubblicati, Ricorsi definiti, Ricorsi pendenti, Ricorsi pervenuti
+e Sentenze. La verifica pubblica legge anche contesto pagina e allegati
+ufficiali collegati, cosi' Lex riceve evidenze testuali e non solo link.
+Sono stati aggiunti anche presidi ufficiali ad alto valore per studi legali:
+interpelli del Ministero del Lavoro, newsletter/provvedimenti del Garante
+Privacy, atti ANAC e download tecnici del PST Giustizia.
+
 Update Intelligence non pubblica piu' automaticamente una proposta strutturale solo per confidenza AI: prima dell'autopublish viene eseguita una verifica pubblica governata su archivio fonti ufficiali, Normattiva, Gazzetta e ricerca web allowlist. Per normativa, prassi e giurisprudenza servono almeno una fonte primaria e una seconda conferma coerente; in caso contrario la proposta resta in coda revisioni con una nota operativa.
 
 Aggiornamento 2.243.6: lo staging non usa piu' la coda revisione come stato primario del documento grezzo. All'apertura di `/admin/aggiornamenti-legali/staging` viene tentata la riconciliazione automatica: duplicati chiusi, cataloghi open data archiviati come non pubblicabili, contenuti ufficiali utili ma non strutturali pubblicati come news informativa quando superano la verifica fonte.

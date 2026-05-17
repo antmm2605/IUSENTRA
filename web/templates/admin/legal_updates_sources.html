@@ -1,4 +1,4 @@
-﻿{% extends "admin/base.html" %}
+{% extends "admin/base.html" %}
 
 {% block title %}Fonti aggiornamenti legali{% endblock %}
 
@@ -9,179 +9,169 @@
 
 {% block content %}
 <div class="legal-updates-admin-page">
-  <div class="d-flex flex-column flex-lg-row align-items-start align-items-lg-center justify-content-between gap-3 mb-3">
+  <div class="d-flex flex-column flex-xl-row align-items-start align-items-xl-center justify-content-between gap-3 mb-3">
     <div>
       <h1 class="h3 mb-1">Gestore fonti</h1>
-      <p class="text-muted mb-0">Gestisci fonti ufficiali, frequenze di polling, parser e acquisizioni mirate.</p>
+      <p class="text-muted mb-0">
+        Catalogo professionale delle fonti pubbliche: il ciclo giornaliero controlla prima cio' che abbiamo gia',
+        acquisisce solo novita' o variazioni e avvia la verifica web con allegati quando serve.
+      </p>
     </div>
     <div class="d-flex flex-wrap gap-2">
-      <a href="{{ url_for('legal_updates_admin.dashboard') }}" class="btn btn-outline-secondary">Torna alla dashboard</a>
+      <form method="post" action="{{ url_for('legal_updates_admin.execute_action', action='scan') }}">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+        <button class="btn btn-primary" type="submit"><i class="bi bi-broadcast-pin me-2"></i>Aggiorna fonti attive</button>
+      </form>
       <a href="{{ url_for('legal_updates_admin.staging_page') }}" class="btn btn-outline-primary">Apri acquisizione</a>
+      <a href="{{ url_for('legal_updates_admin.dashboard') }}" class="btn btn-outline-secondary">Torna alla dashboard</a>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-3">
+    <div class="col-6 col-xl-3">
+      <div class="lu-kpi-card h-100">
+        <div class="lu-kpi-label">Fonti attive</div>
+        <div class="lu-kpi-value">{{ catalog.totals.active }}</div>
+        <div class="small text-muted">su {{ catalog.totals.sources }} canali censiti</div>
+      </div>
+    </div>
+    <div class="col-6 col-xl-3">
+      <div class="lu-kpi-card h-100">
+        <div class="lu-kpi-label">Ufficiali</div>
+        <div class="lu-kpi-value">{{ catalog.totals.official }}</div>
+        <div class="small text-muted">fonti primarie o istituzionali</div>
+      </div>
+    </div>
+    <div class="col-6 col-xl-3">
+      <div class="lu-kpi-card h-100">
+        <div class="lu-kpi-label">Documenti letti</div>
+        <div class="lu-kpi-value">{{ catalog.totals.raw_documents }}</div>
+        <div class="small text-muted">deduplicati per fonte</div>
+      </div>
+    </div>
+    <div class="col-6 col-xl-3">
+      <div class="lu-kpi-card h-100">
+        <div class="lu-kpi-label">Aggiunte IUSENTRA</div>
+        <div class="lu-kpi-value">{{ catalog.totals.added_by_catalog }}</div>
+        <div class="small text-muted">presidi scelti per studi legali</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-3">
+    <div class="col-12 col-xl-7">
+      <div class="li-card h-100">
+        <div class="li-card__body">
+          <div class="li-section-head">
+            <div class="li-section-title"><i class="bi bi-calendar-check me-2 text-primary"></i>Ciclo giornaliero</div>
+          </div>
+          <div class="row g-2 mt-1">
+            {% for step in catalog.schedule %}
+            <div class="col-12 col-md-4">
+              <div class="border rounded-3 p-3 h-100 bg-light">
+                <div class="small text-muted">{{ step.time }}</div>
+                <div class="fw-semibold">{{ step.title }}</div>
+                <div class="small text-muted mt-1">{{ step.body }}</div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          <div class="small text-muted mt-3">
+            Ogni elemento ha un limite di {{ catalog.runtime.item_timeout_seconds }} secondi; vengono pubblicati al massimo
+            {{ catalog.runtime.publish_max_items }} aggiornamenti idonei per ciclo.
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-xl-5">
+      <div class="li-card h-100">
+        <div class="li-card__body">
+          <div class="li-section-head">
+            <div class="li-section-title"><i class="bi bi-shield-check me-2 text-success"></i>Regole anti-spreco</div>
+          </div>
+          <ul class="small text-muted mb-0 mt-2">
+            {% for rule in catalog.policy %}
+            <li>{{ rule }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-3">
+    <div class="col-12 col-lg-6">
+      <div class="li-card h-100">
+        <div class="li-card__body d-flex justify-content-between gap-3">
+          <div>
+            <div class="small text-muted">Normattiva locale</div>
+            <div class="fs-4 fw-bold">{{ catalog.official_archives.normattiva.documents|default(0) }}</div>
+            <div class="small text-muted">{{ catalog.official_archives.normattiva.articles|default(0) }} articoli, {{ catalog.official_archives.normattiva.chunks|default(0) }} parti indicizzate</div>
+          </div>
+          <span class="badge text-bg-light align-self-start">archivio già letto da Lex</span>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-lg-6">
+      <div class="li-card h-100">
+        <div class="li-card__body d-flex justify-content-between gap-3">
+          <div>
+            <div class="small text-muted">Gazzetta locale</div>
+            <div class="fs-4 fw-bold">{{ catalog.official_archives.gazzetta.documents|default(0) }}</div>
+            <div class="small text-muted">{{ catalog.official_archives.gazzetta.chunks|default(0) }} parti indicizzate da {{ catalog.official_archives.gazzetta.sources|default(0) }} raccolte</div>
+          </div>
+          <span class="badge text-bg-light align-self-start">solo nuove uscite</span>
+        </div>
+      </div>
     </div>
   </div>
 
   <div class="li-card mb-3">
     <div class="li-card__body">
-      <div class="row g-3 align-items-center">
-        <div class="col-12 col-lg-8">
-          <div class="fw-semibold">Fonti condivise</div>
-          <div class="small text-muted">Le fonti monitorate sono uniche per tutti gli studi: una modifica qui vale per l'intera piattaforma.</div>
-        </div>
-        <div class="col-12 col-lg-4 text-lg-end">
-          <span class="badge text-bg-light">Archivio legale comune</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="li-card">
-    <div class="li-card__body">
       <div class="li-section-head">
-        <div class="li-section-title"><i class="bi bi-journal-check me-2 text-primary"></i>Come compilare correttamente una fonte</div>
+        <div class="li-section-title"><i class="bi bi-plus-circle me-2 text-primary"></i>Aggiungi una fonte</div>
       </div>
-      <div class="lu-source-guide">
-        <div class="lu-source-guide__alert">
-          <strong>Regola base:</strong> nome fonte e URL devono riferirsi allo stesso ente o canale. Se l'URL punta alla Cassazione, non va salvato come Corte Costituzionale.
-        </div>
-        <div class="lu-source-guide__grid">
-          <article class="lu-source-guide__item">
-            <h3>Nome fonte</h3>
-            <p>Etichetta leggibile in interfaccia. Usa il nome reale del portale o della sezione.</p>
-            <code>Cassazione - Terza Sezione Civile</code>
-          </article>
-          <article class="lu-source-guide__item">
-            <h3>Codice</h3>
-            <p>Identificatore tecnico stabile per scheduler, API e matching interno. Solo minuscolo, senza spazi, con underscore.</p>
-            <code>cassazione_terza_sezione_civile</code>
-          </article>
-          <article class="lu-source-guide__item">
-            <h3>Categoria</h3>
-            <p>Tipo prevalente del contenuto monitorato.</p>
-            <div class="lu-source-guide__chips">
-              <span class="badge text-bg-light">normativa</span>
-              <span class="badge text-bg-light">giurisprudenza</span>
-              <span class="badge text-bg-light">prassi</span>
-              <span class="badge text-bg-light">ue</span>
-              <span class="badge text-bg-light">news</span>
-            </div>
-          </article>
-          <article class="lu-source-guide__item">
-            <h3>Base URL</h3>
-            <p>Pagina iniziale o canale ufficiale da cui parte l'acquisizione.</p>
-            <code>https://www.cortedicassazione.it/it/terza_sezione_civile.page</code>
-          </article>
-          <article class="lu-source-guide__item">
-            <h3>Polling minuti</h3>
-            <p>Frequenza di scansione. Più basso per fonti molto dinamiche, più alto per archivi lenti.</p>
-            <div class="lu-source-guide__chips">
-              <span class="badge text-bg-light">60 Gazzetta</span>
-              <span class="badge text-bg-light">120 Corte costituzionale</span>
-              <span class="badge text-bg-light">180 Cassazione</span>
-              <span class="badge text-bg-light">240 Prassi</span>
-            </div>
-          </article>
-          <article class="lu-source-guide__item">
-            <h3>Parser</h3>
-            <p>Nel motore attuale usa quasi sempre <code>html</code>. Mantienilo diverso solo se il canale e' stato progettato apposta.</p>
-          </article>
-          <article class="lu-source-guide__item">
-            <h3>Classe e tipo</h3>
-            <p><code>A</code> per fonte ufficiale primaria, <code>B</code> per fonte istituzionale di prassi, <code>C</code> per supporto editoriale. Il tipo standard e' <code>web</code>.</p>
-          </article>
-          <article class="lu-source-guide__item">
-            <h3>Ufficiale</h3>
-            <p>Attivalo solo per fonti istituzionali o primarie. Le fonti editoriali non devono aggiornare direttamente l'archivio strutturato.</p>
-          </article>
-          <article class="lu-source-guide__item">
-            <h3>Attiva</h3>
-            <p>Se spuntata entra nel ciclo scheduler e nelle acquisizioni batch. Se la togli, la fonte resta salvata ma non viene scandita.</p>
-          </article>
-        </div>
-
-        <div class="lu-source-examples">
-          <article class="lu-source-example">
-            <h3>Corte Costituzionale</h3>
-            <dl>
-              <div><dt>Codice</dt><dd><code>corte_costituzionale</code></dd></div>
-              <div><dt>Categoria</dt><dd>giurisprudenza</dd></div>
-              <div><dt>URL</dt><dd><code>https://www.cortecostituzionale.it/</code></dd></div>
-            </dl>
-          </article>
-          <article class="lu-source-example">
-            <h3>Cassazione Massimario</h3>
-            <dl>
-              <div><dt>Codice</dt><dd><code>cassazione_massimario</code></dd></div>
-              <div><dt>Categoria</dt><dd>giurisprudenza</dd></div>
-              <div><dt>URL</dt><dd><code>https://www.cortedicassazione.it/</code></dd></div>
-            </dl>
-          </article>
-          <article class="lu-source-example">
-            <h3>Cassazione - Terza Sezione Civile</h3>
-            <dl>
-              <div><dt>Codice</dt><dd><code>cassazione_terza_sezione_civile</code></dd></div>
-              <div><dt>Categoria</dt><dd>giurisprudenza</dd></div>
-              <div><dt>URL</dt><dd><code>https://www.cortedicassazione.it/it/terza_sezione_civile.page</code></dd></div>
-            </dl>
-          </article>
-          <article class="lu-source-example">
-            <h3>Giustizia Amministrativa</h3>
-            <dl>
-              <div><dt>Codice</dt><dd><code>giustizia_amministrativa</code></dd></div>
-              <div><dt>Categoria</dt><dd>giurisprudenza</dd></div>
-              <div><dt>URL</dt><dd><code>https://www.giustizia-amministrativa.it/</code></dd></div>
-            </dl>
-          </article>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="li-card">
-    <div class="li-card__body">
-      <div class="li-section-head">
-        <div class="li-section-title"><i class="bi bi-plus-circle me-2 text-primary"></i>Nuova fonte</div>
-      </div>
-      <form method="post" action="{{ url_for('legal_updates_admin.create_source') }}" class="row g-2">
+      <form method="post" action="{{ url_for('legal_updates_admin.create_source') }}" class="row g-2 mt-1">
         <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
         <div class="col-md-3">
-          <input class="form-control" name="name" placeholder="Cassazione - Terza Sezione Civile" required>
-          <div class="form-text">Nome leggibile del canale o della sezione.</div>
+          <label class="form-label small text-muted">Nome</label>
+          <input class="form-control" name="name" placeholder="Ente o sezione ufficiale" required>
         </div>
         <div class="col-md-2">
-          <input class="form-control" name="code" placeholder="cassazione_terza_sezione_civile" required>
-          <div class="form-text">Solo minuscolo, senza spazi, con underscore.</div>
+          <label class="form-label small text-muted">Codice</label>
+          <input class="form-control" name="code" placeholder="fonte_ufficiale" required>
         </div>
         <div class="col-md-2">
-          <input class="form-control" name="category" placeholder="giurisprudenza" value="news">
-          <div class="form-text">Esempi: normativa, giurisprudenza, prassi, ue.</div>
+          <label class="form-label small text-muted">Materia prevalente</label>
+          <input class="form-control" name="category" placeholder="prassi" value="news">
         </div>
         <div class="col-md-3">
-          <input class="form-control" name="base_url" placeholder="https://www.cortedicassazione.it/it/terza_sezione_civile.page" required>
-          <div class="form-text">La pagina deve appartenere davvero all'ente indicato nel nome.</div>
+          <label class="form-label small text-muted">Indirizzo fonte</label>
+          <input class="form-control" name="base_url" placeholder="https://..." required>
         </div>
         <div class="col-md-2">
-          <input class="form-control" name="polling_minutes" type="number" min="5" value="240">
-          <div class="form-text">Frequenza di scansione in minuti.</div>
+          <label class="form-label small text-muted">Frequenza</label>
+          <input class="form-control" name="polling_minutes" type="number" min="5" value="720">
         </div>
         <div class="col-md-2">
+          <label class="form-label small text-muted">Metodo</label>
           <input class="form-control" name="parser_type" placeholder="html" value="html">
-          <div class="form-text">Nel dubbio lascia <code>html</code>.</div>
         </div>
         <div class="col-md-2">
-          <input class="form-control" name="trust_class" placeholder="A" value="C">
-          <div class="form-text">A primaria, B istituzionale, C editoriale.</div>
+          <label class="form-label small text-muted">Affidabilita'</label>
+          <input class="form-control" name="trust_class" placeholder="B" value="B">
         </div>
         <div class="col-md-2">
+          <label class="form-label small text-muted">Canale</label>
           <input class="form-control" name="source_type" placeholder="web" value="web">
-          <div class="form-text">Per ora quasi sempre <code>web</code>.</div>
         </div>
-        <div class="col-md-2 d-flex align-items-center gap-3">
-          <div class="form-check"><input class="form-check-input" type="checkbox" name="is_official" id="srcOfficial"><label class="form-check-label" for="srcOfficial">Ufficiale</label></div>
+        <div class="col-md-2 d-flex align-items-end gap-3">
+          <div class="form-check"><input class="form-check-input" type="checkbox" name="is_official" id="srcOfficial" checked><label class="form-check-label" for="srcOfficial">Ufficiale</label></div>
           <div class="form-check"><input class="form-check-input" type="checkbox" name="enabled" id="srcEnabled" checked><label class="form-check-label" for="srcEnabled">Attiva</label></div>
         </div>
         <div class="col-md-4">
-          <input class="form-control" name="notes" placeholder="Esempio: sezione civile ufficiale della Cassazione">
-          <div class="form-text">Annota scopo, limiti o taglio del canale.</div>
+          <label class="form-label small text-muted">Scopo</label>
+          <input class="form-control" name="notes" placeholder="Cosa deve presidiare per lo studio">
         </div>
         <div class="col-12">
           <button class="btn btn-primary" type="submit"><i class="bi bi-save me-2"></i>Salva fonte</button>
@@ -191,46 +181,102 @@
   </div>
 
   <div class="li-soft-stack">
-    {% for source in sources %}
-    <div class="li-card">
+    {% for family in catalog.families %}
+    <section class="li-card">
       <div class="li-card__body">
-        <div class="d-flex flex-column flex-xl-row justify-content-between gap-3">
-          <div class="flex-grow-1">
-            <div class="d-flex align-items-center gap-2 flex-wrap mb-2">
-              <div class="fw-semibold">{{ source.name }}</div>
-              <span class="badge text-bg-{% if source.trust_class == 'A' %}success{% elif source.trust_class == 'B' %}primary{% else %}secondary{% endif %}">{{ source.trust_class }}</span>
-              {% if source.is_official %}<span class="badge text-bg-light">fonte ufficiale</span>{% endif %}
-              {% if not source.enabled %}<span class="badge text-bg-warning">disattivata</span>{% endif %}
-            </div>
-            <div class="small text-muted mb-2">{{ source.base_url }}</div>
-            <div class="small text-muted">Categoria {{ source.category }} · parser {{ source.parser_type }} · polling {{ source.polling_minutes }} minuti</div>
-            {% if source.notes %}<div class="small mt-2">{{ source.notes }}</div>{% endif %}
+        <div class="d-flex flex-column flex-lg-row justify-content-between gap-3 mb-3">
+          <div>
+            <div class="li-section-title mb-1">{{ family.label }}</div>
+            <div class="small text-muted">{{ family.description }}</div>
           </div>
-          <div class="lu-inline-actions">
-            <form method="post" action="{{ url_for('legal_updates_admin.update_source', source_id=source.id) }}" class="row g-2">
-              <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
-              <div class="col-12 col-md-6"><input class="form-control form-control-sm" name="name" value="{{ source.name }}"></div>
-              <div class="col-12 col-md-6"><input class="form-control form-control-sm" name="base_url" value="{{ source.base_url }}"></div>
-              <div class="col-6 col-md-3"><input class="form-control form-control-sm" name="category" value="{{ source.category }}"></div>
-              <div class="col-6 col-md-3"><input class="form-control form-control-sm" name="parser_type" value="{{ source.parser_type }}"></div>
-              <div class="col-6 col-md-3"><input class="form-control form-control-sm" name="trust_class" value="{{ source.trust_class }}"></div>
-              <div class="col-6 col-md-3"><input class="form-control form-control-sm" name="polling_minutes" type="number" value="{{ source.polling_minutes }}"></div>
-              <div class="col-12 d-flex flex-wrap gap-2">
-                <button class="btn btn-sm btn-outline-primary" type="submit">Aggiorna</button>
-              </div>
-            </form>
-            <form method="post" action="{{ url_for('legal_updates_admin.fetch_source', source_id=source.id) }}">
-              <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
-              <div class="d-flex flex-wrap gap-2">
-                <button class="btn btn-sm btn-outline-dark" type="submit">Acquisisci adesso</button>
-              </div>
-            </form>
+          <div class="d-flex flex-wrap gap-2 align-items-start">
+            <span class="badge text-bg-light">{{ family.active_count }} attive</span>
+            <span class="badge text-bg-light">{{ family.official_count }} ufficiali</span>
+            <span class="badge text-bg-light">{{ family.raw_documents }} documenti</span>
+            {% if family.review_pending %}<span class="badge text-bg-warning">{{ family.review_pending }} in verifica</span>{% endif %}
           </div>
         </div>
+
+        {% if family.sources %}
+        <div class="table-responsive">
+          <table class="table align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Fonte</th>
+                <th>Presidio</th>
+                <th>Stato</th>
+                <th class="text-end">Archivio</th>
+                <th>Ultimo controllo</th>
+                <th class="text-end">Azioni</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for source in family.sources %}
+              <tr>
+                <td class="min-w-0">
+                  <div class="fw-semibold">{{ source.name }}</div>
+                  <div class="small text-muted text-break">{{ source.base_url }}</div>
+                  {% if source.was_added_by_catalog %}
+                  <span class="badge text-bg-info mt-1">aggiunta al catalogo professionale</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <div class="small">{{ source.method_label }}</div>
+                  <div class="small text-muted">{{ source.interval_label }}</div>
+                  <div class="small text-muted">{{ source.category|replace('_', ' ') }}</div>
+                </td>
+                <td>
+                  <span class="badge text-bg-{% if source.enabled %}success{% else %}secondary{% endif %}">{{ source.status_label }}</span>
+                  <div class="small text-muted mt-1">classe {{ source.trust_class }}</div>
+                </td>
+                <td class="text-end">
+                  <div class="fw-semibold">{{ source.raw_documents }}</div>
+                  <div class="small text-muted">{{ source.analyses }} analisi</div>
+                  {% if source.review_pending %}<div class="small text-warning">{{ source.review_pending }} in verifica</div>{% endif %}
+                </td>
+                <td>
+                  <div class="small">{{ source.last_check_at or "Mai eseguito" }}</div>
+                  {% if source.latest_source_date %}<div class="small text-muted">ultimo contenuto {{ source.latest_source_date }}</div>{% endif %}
+                </td>
+                <td class="text-end">
+                  <div class="d-flex flex-column flex-sm-row justify-content-end gap-2">
+                    <form method="post" action="{{ url_for('legal_updates_admin.fetch_source', source_id=source.id) }}">
+                      <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                      <button class="btn btn-sm btn-outline-dark" type="submit" {% if not source.enabled %}disabled{% endif %}>Acquisisci</button>
+                    </form>
+                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#source-edit-{{ source.id }}" aria-expanded="false" aria-controls="source-edit-{{ source.id }}">Modifica</button>
+                  </div>
+                </td>
+              </tr>
+              <tr class="collapse" id="source-edit-{{ source.id }}">
+                <td colspan="6" class="bg-light">
+                  <form method="post" action="{{ url_for('legal_updates_admin.update_source', source_id=source.id) }}" class="row g-2">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                    <input type="hidden" name="code" value="{{ source.code }}">
+                    <div class="col-12 col-md-4"><label class="form-label small text-muted">Nome</label><input class="form-control form-control-sm" name="name" value="{{ source.name }}"></div>
+                    <div class="col-12 col-md-5"><label class="form-label small text-muted">Indirizzo fonte</label><input class="form-control form-control-sm" name="base_url" value="{{ source.base_url }}"></div>
+                    <div class="col-6 col-md-3"><label class="form-label small text-muted">Materia</label><input class="form-control form-control-sm" name="category" value="{{ source.category }}"></div>
+                    <div class="col-6 col-md-2"><label class="form-label small text-muted">Metodo</label><input class="form-control form-control-sm" name="parser_type" value="{{ source.parser_type }}"></div>
+                    <div class="col-6 col-md-2"><label class="form-label small text-muted">Classe</label><input class="form-control form-control-sm" name="trust_class" value="{{ source.trust_class }}"></div>
+                    <div class="col-6 col-md-2"><label class="form-label small text-muted">Frequenza</label><input class="form-control form-control-sm" name="polling_minutes" type="number" value="{{ source.polling_minutes }}"></div>
+                    <div class="col-12 col-md-4"><label class="form-label small text-muted">Scopo</label><input class="form-control form-control-sm" name="notes" value="{{ source.notes }}"></div>
+                    <div class="col-12 d-flex flex-wrap gap-3 align-items-center">
+                      <div class="form-check"><input class="form-check-input" type="checkbox" name="is_official" id="official-{{ source.id }}" {% if source.is_official %}checked{% endif %}><label class="form-check-label" for="official-{{ source.id }}">Ufficiale</label></div>
+                      <div class="form-check"><input class="form-check-input" type="checkbox" name="enabled" id="enabled-{{ source.id }}" {% if source.enabled %}checked{% endif %}><label class="form-check-label" for="enabled-{{ source.id }}">Attiva</label></div>
+                      <button class="btn btn-sm btn-primary" type="submit">Salva modifica</button>
+                    </div>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="small text-muted">Nessuna fonte in questa famiglia.</div>
+        {% endif %}
       </div>
-    </div>
-    {% else %}
-    <div class="li-card"><div class="li-card__body"><div class="small text-muted">Nessuna fonte configurata.</div></div></div>
+    </section>
     {% endfor %}
   </div>
 </div>

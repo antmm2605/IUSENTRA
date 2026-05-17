@@ -29,10 +29,14 @@ def test_start_scheduler_worker_registra_job_core(monkeypatch, tmp_path: Path):
         assert scheduler is not None
         assert scheduler.get_job("backup_giornaliero") is not None
         assert scheduler.get_job("local_ai_maintenance") is not None
+        assert scheduler.get_job("legal_official_archives_daily") is not None
         assert scheduler.get_job("legal_updates_gazzetta") is not None
         assert scheduler.get_job("legal_updates_batch") is not None
-        assert "hour='0-5'" in str(scheduler.get_job("legal_updates_gazzetta").trigger)
-        assert "hour='2'" in str(scheduler.get_job("legal_updates_batch").trigger)
+        assert scheduler.get_job("scheduler_registry_reload") is not None
+        assert "hour='23'" in str(scheduler.get_job("legal_official_archives_daily").trigger)
+        assert "minute='0'" in str(scheduler.get_job("legal_official_archives_daily").trigger)
+        assert "hour='23'" in str(scheduler.get_job("legal_updates_gazzetta").trigger)
+        assert "hour='23'" in str(scheduler.get_job("legal_updates_batch").trigger)
         assert scheduler.get_job("operational_crash_morning") is not None
         assert scheduler.get_job("operational_crash_midday") is not None
         assert scheduler.get_job("operational_crash_evening") is not None

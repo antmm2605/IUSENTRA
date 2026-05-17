@@ -22,6 +22,7 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 | `python scripts\validate_docs_links.py CHANGELOG.md docs\LEX_MOBILE_AI_QWEN35_EVALUATION.md artifacts\react-migration\pytest-confirmed-ok.md artifacts\react-migration\pytest-open-issues.md artifacts\react-migration\full-react-final-report.md artifacts\react-migration\full-react-performance-notes.md`; `python scripts\validate_docs_commands.py` | OK | Link e comandi documentali validati dopo la nuova valutazione video/Qwen 3.5. |
 | `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py -q --tb=short` | OK | 8/8 passati: packaging, readiness e versione `2.245.6` allineati. |
 | `git diff --check -- . ':!data/*'` | OK | Whitespace pulito sul perimetro toccato, escludendo i dati runtime preesistenti. |
+| Deploy Hetzner CPX42 2.245.6; `/api/pronto`; `docker compose ps`; verifica bundle container; `docker builder prune --all --force` | OK | Commit produzione `5f38d5fa67502aec003e90657e8809e2b30e3001`, readiness pubblica `{"ok":true,"stato":"pronto","versione":"2.245.6"}`, app/scheduler/OCR/Redis/Ollama healthy, marker `iu-mobile__lex` e `qwen3.5:2b` presenti nel bundle, cache build `0B` e `/opt/iusentra/tmp-backup-snapshot` assente. |
 
 ### Hotfix agenti Lex produzione 2.245.4 - 2026-05-17
 

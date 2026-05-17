@@ -1,6 +1,6 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-18, Lex dati studio, soggetti/parti, bozze, AI mobile produzione e Documenti AI p7m.
+Aggiornato: 2026-05-18, Lex dati studio, soggetti/parti, bozze, AI mobile produzione e Documenti AI p7m/txt/eml.
 
 ## Regola operativa
 
@@ -8,10 +8,16 @@ Questi comandi o shard sono stati verificati in questa sessione e non vanno rila
 
 ## Frontend e gate React
 
-### Lex dati studio, bozze e Documenti AI p7m - 2026-05-18
+### Lex dati studio, bozze e Documenti AI p7m/txt/eml - 2026-05-18
 
 | Comando / verifica | Esito | Nota |
 | --- | --- | --- |
+| `python -m py_compile pct\document_intelligence\extraction.py pct\document_intelligence\security.py pct\document_intelligence\sources.py tests\test_document_intelligence_extraction.py tests\test_document_intelligence_auto_indexing.py` | OK | Sintassi confermata dopo l'estensione dell'indice Lex a `.txt` e `.eml`. |
+| `python -m ruff check pct\document_intelligence\extraction.py pct\document_intelligence\security.py pct\document_intelligence\sources.py tests\test_document_intelligence_extraction.py tests\test_document_intelligence_auto_indexing.py` | OK | Ruff mirato verde su estrazione testo, sorgenti, validazioni e test dell'indicizzazione fascicolo. |
+| `python -m pytest tests\test_document_intelligence_extraction.py tests\test_document_intelligence_auto_indexing.py -q` | OK | 15/15 passati: `.txt` viene letto come testo, `.eml` viene indicizzato con intestazioni/corpo/allegato `.txt`, e `Aggiorna indice` processa fonti fascicolo `.txt`/`.eml`. |
+| `python -m pytest tests\test_document_intelligence_api.py tests\test_document_intelligence_frontend.py tests\test_document_intelligence_hidden_ui.py tests\test_document_intelligence_auto_indexing.py tests\test_document_intelligence_extraction.py -q` | OK | 28/28 passati: API/UI Documenti AI, stati nascosti, auto-indicizzazione, `.pdf.p7m`, `.txt` ed `.eml` restano coerenti. |
+| `python -m pct.cli utf8-integrity --check-only --root CHANGELOG.md --root docs\DOCUMENTI_AI_FASCICOLO.md --root docs\lex-operational-knowledge-map.md --root artifacts\react-migration\pytest-confirmed-ok.md --root artifacts\react-migration\pytest-open-issues.md --json` | OK | 5 file controllati, `ok=true`, nessun mojibake o carattere sostitutivo dopo la documentazione `.txt`/`.eml`. |
+| `git diff --check -- pct\document_intelligence\extraction.py pct\document_intelligence\security.py pct\document_intelligence\sources.py tests\test_document_intelligence_extraction.py tests\test_document_intelligence_auto_indexing.py CHANGELOG.md docs\DOCUMENTI_AI_FASCICOLO.md docs\lex-operational-knowledge-map.md artifacts\react-migration\pytest-confirmed-ok.md artifacts\react-migration\pytest-open-issues.md` | OK | Whitespace pulito sul perimetro Documenti AI `.txt`/`.eml`. |
 | `python -m pytest tests\test_document_intelligence_api.py tests\test_document_intelligence_frontend.py tests\test_document_intelligence_hidden_ui.py tests\test_document_intelligence_auto_indexing.py tests\test_document_intelligence_extraction.py tests\test_lex_operational_knowledge.py -q` | OK | 58/58 passati: scheda cliente, scheda soggetto, parti fascicolo, ultima PEC, indicizzazione `.pdf.p7m`, payload API e warning UI sui documenti non letti. |
 | `python -m pytest tests\test_editor_ai_renderer.py tests\test_editor_ai_api.py tests\test_lex_drafting_intent.py::TestDiffidaTemplate -q` | OK | 12/12 passati: la bozza piatta di diffida viene reimpaginata, convertita in HTML editor e importata come documento reale del fascicolo con `open_url` verso l'editor professionale. |
 | `python -m pytest tests\test_editor_ai_renderer.py tests\test_editor_ai_api.py tests\test_lex_drafting_intent.py::TestDiffidaTemplate tests\test_impostazioni_ai_locale_react.py -q` | OK | 17/17 passati dopo il riallineamento AI mobile/server di produzione e archivio/revisione Lex. |

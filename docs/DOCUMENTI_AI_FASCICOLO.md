@@ -47,6 +47,7 @@ Componenti introdotti nell'MVP 1:
 - `pct/document_intelligence/sources.py` e `pct/document_intelligence/indexer.py`: adattatori sorgenti reali del fascicolo e indicizzazione automatica per Lex.
 - `pct/document_intelligence/pdf_quality.py`: scoring qualita' testo e riparazione conservativa dei segnaposto PDF `(cid:NN)`.
 - I documenti firmati `.pdf.p7m` vengono trattati come PDF interni quando il contenuto è già leggibile oppure passano dall'estrazione CAdES governata; se un file resta non indicizzato, la pagina fascicolo riceve avvisi per-file invece di mostrare un completamento generico.
+- I file `.txt` vengono indicizzati come testo puro; i file `.eml` vengono letti come email reale con intestazioni, corpo e allegati supportati (`pdf`, `docx`, `doc`, `txt`, `eml`). Gli allegati non leggibili generano avvisi, non completamenti finti.
 - `pct/sql/20260505_documenti_ai.sql`: schema SQLite.
 - `pct/sql/20260505_documenti_ai_postgres.sql`: schema PostgreSQL.
 - `web/blueprints/api_v1_documenti_ai.py`: API v1 UI sotto `/api/v1/ui`, incluse le azioni interne `lex-indexing`.
@@ -73,7 +74,7 @@ La Fase 3 rende il repository persistente su storage strutturato: quando e' atti
       "id": "string",
       "original_filename": "string",
       "safe_filename": "string",
-      "file_type": "pdf|docx|doc",
+      "file_type": "pdf|docx|doc|txt|eml",
       "mime_type": "string|null",
       "size_bytes": 123,
       "sha256": "string",
@@ -139,7 +140,7 @@ Richiesta `multipart/form-data`, campo `file`.
     "id": "string",
     "original_filename": "string",
     "safe_filename": "string",
-    "file_type": "pdf|docx|doc",
+    "file_type": "pdf|docx|doc|txt|eml",
     "mime_type": "string|null",
     "size_bytes": 123,
     "sha256": "string",

@@ -18,6 +18,8 @@ _MIME_BY_EXTENSION = {
     "pdf": "application/pdf",
     "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     "doc": "application/msword",
+    "txt": "text/plain",
+    "eml": "message/rfc822",
 }
 
 

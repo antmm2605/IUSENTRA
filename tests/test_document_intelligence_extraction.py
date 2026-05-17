@@ -1,3 +1,4 @@
+from email.message import EmailMessage
 from io import BytesIO
 from pathlib import Path
 
@@ -103,14 +104,52 @@ def test_document_ai_extraction_p7m_esterno_usa_payload_firmato(tmp_path: Path, 
 
 
 def test_document_ai_extraction_formato_non_supportato_controllata(tmp_path: Path):
-    target = tmp_path / "note.txt"
-    target.write_text("contenuto", encoding="utf-8")
+    target = tmp_path / "programma.exe"
+    target.write_bytes(b"contenuto")
 
-    result = extract_document_text(target, "txt")
+    result = extract_document_text(target, "exe")
 
     assert result.error is not None
     assert result.text == ""
     assert result.extraction_engine == "unsupported"
+
+
+def test_document_ai_extraction_txt_utf8(tmp_path: Path):
+    target = tmp_path / "note-fascicolo.txt"
+    target.write_text("Promemoria fascicolo\nCredito € 1.200", encoding="utf-8")
+
+    result = extract_document_text(target, "txt")
+
+    assert result.error is None
+    assert result.extraction_engine.startswith("text:")
+    assert "Promemoria fascicolo" in result.text
+    assert "Credito € 1.200" in result.text
+
+
+def test_document_ai_extraction_eml_con_corpo_e_allegato_txt(tmp_path: Path):
+    message = EmailMessage()
+    message["Subject"] = "Diffida inviata"
+    message["From"] = "avvocato@example.it"
+    message["To"] = "cliente@example.it"
+    message["Date"] = "Mon, 18 May 2026 10:00:00 +0200"
+    message.set_content("Corpo email con termine per adempiere.")
+    message.add_attachment(
+        "Testo allegato per Lex".encode("utf-8"),
+        maintype="text",
+        subtype="plain",
+        filename="allegato.txt",
+    )
+    target = tmp_path / "messaggio.eml"
+    target.write_bytes(message.as_bytes())
+
+    result = extract_document_text(target, "eml")
+
+    assert result.error is None
+    assert result.extraction_engine == "email.message"
+    assert "Oggetto: Diffida inviata" in result.text
+    assert "Corpo email con termine per adempiere." in result.text
+    assert "[Allegato: allegato.txt]" in result.text
+    assert "Testo allegato per Lex" in result.text
 
 
 def test_document_ai_extraction_doc_legacy_controllata(tmp_path: Path):

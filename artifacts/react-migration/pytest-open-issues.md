@@ -1,6 +1,6 @@
 # Pytest issue aperte e risoluzioni
 
-Aggiornato: 2026-05-18, Lex bozze, editor professionale, AI mobile produzione e dati studio.
+Aggiornato: 2026-05-18, Lex bozze, editor professionale, AI mobile produzione, dati studio e Documenti AI txt/eml.
 
 ## Regola operativa
 
@@ -10,6 +10,7 @@ Questo file e' la coda di lavoro. Prima di rilanciare test gia' passati, control
 
 | Area | Test / comando | Stato | Problema rilevato | Risoluzione |
 | --- | --- | --- | --- | --- |
+| Documenti fascicolo `.txt`/`.eml` 2026-05-18 | `tests\test_document_intelligence_extraction.py`, `tests\test_document_intelligence_auto_indexing.py` | Nessuna issue aperta sul codice | `Indicizzazione Lex` accettava i documenti fascicolo governati ma non includeva note `.txt` ed email `.eml` tra i formati leggibili per Lex. | Estese validazioni, MIME, estrattore testo e percorso `Aggiorna indice`: `.txt` viene letto come testo, `.eml` conserva intestazioni/corpo e allegati supportati con avvisi per allegati non leggibili. Gate registrati in `pytest-confirmed-ok.md`. |
 | AI Locale mobile e archivio Lex 2026-05-18 | `/impostazioni?tab=ai`, `tests/test_impostazioni_ai_locale_react.py`, `npm --prefix frontend run typecheck -- --pretty false` | Nessuna issue aperta sul codice | La UI poteva far pensare che su telefono/tablet si dovesse installare Ollama o che il pannello dataset fosse necessario per far rispondere Lex. | Mobile/tablet ora usano il server di produzione IUSENTRA per language model, embedding e indice documenti; le azioni Ollama restano solo su PC, e `Archivio e revisione Lex` chiarisce che documenti indicizzati/RAG funzionano senza riaddestramento. Gate registrati in `pytest-confirmed-ok.md`. |
 | Lex bozze ed editor professionale 2026-05-18 | Click titolo `BOZZA — DIFFIDA E MESSA IN MORA`, `tests/test_editor_ai_api.py`, `tests/test_editor_ai_renderer.py`, `tests/js/lex_assistant_render.test.mjs` | Nessuna issue aperta sul codice | La bozza generata in chat poteva restare solo testo/download: il titolo in fondo non salvava il documento nel fascicolo e non apriva l'editor professionale. | Aggiunto endpoint `POST /api/v1/ui/fascicoli/<id>/editor-ai/importa-bozza`, conversione Markdown bozza in HTML editor, click su titolo/pulsante `Apri nell'editor` e apertura automatica dell'`open_url`. Gate registrati in `pytest-confirmed-ok.md`. |
 | Lex dati studio cliente/PEC 2026-05-18 | `Dammi la scheda cliente ...`, `Qual è l'ultima PEC?`, `tests/test_lex_operational_knowledge.py` | Nessuna issue aperta sul codice | Le query operative reali potevano essere ripulite male: `scheda cliente` restava dentro la ricerca cliente, `ultima PEC` diventava un filtro testuale inutile sulla casella, e la risposta comunicazioni cadeva su conteggi generici. Se il profilo era `pec_comunicazioni`, il bridge poteva inoltre trattare la lettura come bozza invece che come consultazione. | Stopword operative aggiornate, gateway cliente pulito per `scheda cliente`, PEC ordinate senza filtro spurio, compositore con dettagli di comunicazione, bridge HTTP forzato su `operational_knowledge` per letture PEC. Gate e smoke reale registrati in `pytest-confirmed-ok.md`. |

@@ -1,8 +1,12 @@
-"""Estrazione testo best-effort per PDF, DOCX e DOC legacy."""
+"""Estrazione testo best-effort per documenti leggibili da Lex."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from email import policy
+from email.message import EmailMessage, Message
+from email.parser import BytesParser
+from html.parser import HTMLParser
 from io import BytesIO
 from pathlib import Path
 from shutil import which
@@ -73,6 +77,10 @@ def extract_text_from_document(content: bytes, filename: str, file_type: str) ->
         return _extract_docx(content)
     if ext == "doc":
         return _extract_doc(content)
+    if ext == "txt":
+        return _extract_txt(content)
+    if ext == "eml":
+        return _extract_eml(content)
     return ExtractionResult(
         ok=False,
         text="",
@@ -118,7 +126,7 @@ def _unwrap_p7m_payload(content: bytes, filename: str) -> tuple[bytes, str, list
 
 def _file_type_from_payload(content: bytes, filename: str, *, fallback: str) -> str:
     lower_name = str(filename or "").strip().lower()
-    for extension in ("pdf", "docx", "doc"):
+    for extension in ("pdf", "docx", "doc", "txt", "eml"):
         if lower_name.endswith(f".{extension}"):
             return extension
     if _looks_like_pdf(content):
@@ -130,6 +138,194 @@ def _file_type_from_payload(content: bytes, filename: str, *, fallback: str) -> 
 
 def _looks_like_pdf(content: bytes) -> bool:
     return bytes(content[:16] if content else b"").lstrip().startswith(b"%PDF")
+
+
+def _extract_txt(content: bytes) -> ExtractionResult:
+    text, encoding, warnings = _decode_text_bytes(content)
+    if not text.strip():
+        warnings.append("Il file di testo non contiene contenuto leggibile.")
+    return ExtractionResult(
+        ok=True,
+        text=text,
+        pages=[],
+        extraction_engine=f"text:{encoding}",
+        warnings=warnings,
+    )
+
+
+def _decode_text_bytes(content: bytes) -> tuple[str, str, list[str]]:
+    warnings: list[str] = []
+    for encoding in ("utf-8-sig", "utf-16", "cp1252", "latin-1"):
+        try:
+            text = content.decode(encoding)
+            if "\ufffd" in text:
+                continue
+            if encoding not in {"utf-8-sig", "utf-16"}:
+                warnings.append("Testo decodificato con codifica di compatibilità.")
+            return _clean_text(text), encoding, warnings
+        except UnicodeDecodeError:
+            continue
+    warnings.append("Testo decodificato sostituendo caratteri non leggibili.")
+    return _clean_text(content.decode("utf-8", errors="replace")), "utf-8-replace", warnings
+
+
+def _clean_text(value: str) -> str:
+    return str(value or "").replace("\x00", "").replace("\r\n", "\n").replace("\r", "\n").strip()
+
+
+class _HTMLTextExtractor(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self._chunks: list[str] = []
+
+    def handle_data(self, data: str) -> None:
+        clean = " ".join(str(data or "").split())
+        if clean:
+            self._chunks.append(clean)
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag.lower() in {"p", "br", "div", "li", "tr", "h1", "h2", "h3"}:
+            self._chunks.append("\n")
+
+    def text(self) -> str:
+        return _clean_text(" ".join(self._chunks))
+
+
+def _html_to_text(value: str) -> str:
+    parser = _HTMLTextExtractor()
+    try:
+        parser.feed(value)
+    except Exception:
+        return _clean_text(value)
+    return parser.text()
+
+
+def _extract_eml(content: bytes) -> ExtractionResult:
+    try:
+        message = BytesParser(policy=policy.default).parsebytes(content)
+    except Exception as exc:
+        return ExtractionResult(
+            ok=False,
+            text="",
+            pages=[],
+            extraction_engine="eml_failed",
+            warnings=["L'email non è stata letta."],
+            error_code="eml_extraction_failed",
+            error_message=str(exc),
+        )
+
+    warnings: list[str] = []
+    chunks: list[str] = []
+    headers = _email_header_lines(message)
+    if headers:
+        chunks.append("\n".join(headers))
+
+    plain_parts: list[str] = []
+    html_parts: list[str] = []
+    attachment_chunks: list[str] = []
+
+    for part in message.walk():
+        if part.is_multipart():
+            continue
+        filename = part.get_filename()
+        content_type = str(part.get_content_type() or "").lower()
+        disposition = str(part.get_content_disposition() or "").lower()
+        payload = _email_part_bytes(part)
+        if filename or disposition == "attachment":
+            attachment_text, attachment_warnings = _extract_eml_attachment(filename or "allegato", payload)
+            warnings.extend(attachment_warnings)
+            if attachment_text:
+                attachment_chunks.append(attachment_text)
+            continue
+        if content_type == "text/plain":
+            text = _email_part_text(part, payload)
+            if text.strip():
+                plain_parts.append(text)
+        elif content_type == "text/html":
+            text = _html_to_text(_email_part_text(part, payload))
+            if text.strip():
+                html_parts.append(text)
+
+    body_parts = plain_parts or html_parts
+    if body_parts:
+        chunks.append("Corpo email:\n" + "\n\n".join(body_parts))
+    if attachment_chunks:
+        chunks.append("Allegati leggibili:\n" + "\n\n".join(attachment_chunks))
+    if not body_parts and not attachment_chunks:
+        warnings.append("Email senza corpo testuale o allegati leggibili.")
+    return ExtractionResult(
+        ok=True,
+        text="\n\n".join(chunk for chunk in chunks if chunk.strip()),
+        pages=[],
+        extraction_engine="email.message",
+        warnings=warnings,
+    )
+
+
+def _email_header_lines(message: Message | EmailMessage) -> list[str]:
+    labels = [
+        ("Subject", "Oggetto"),
+        ("From", "Mittente"),
+        ("To", "Destinatari"),
+        ("Cc", "Cc"),
+        ("Date", "Data"),
+    ]
+    lines: list[str] = []
+    for key, label in labels:
+        value = str(message.get(key, "") or "").strip()
+        if value:
+            lines.append(f"{label}: {value}")
+    return lines
+
+
+def _email_part_bytes(part: Message | EmailMessage) -> bytes:
+    payload = part.get_payload(decode=True)
+    if isinstance(payload, bytes):
+        return payload
+    raw = part.get_payload()
+    if isinstance(raw, str):
+        charset = part.get_content_charset() or "utf-8"
+        try:
+            return raw.encode(charset, errors="replace")
+        except LookupError:
+            return raw.encode("utf-8", errors="replace")
+    if isinstance(raw, list):
+        nested: list[bytes] = []
+        for item in raw:
+            if isinstance(item, Message):
+                try:
+                    nested.append(item.as_bytes(policy=policy.default))
+                except Exception:
+                    nested.append(bytes(str(item), "utf-8", errors="replace"))
+        return b"\n".join(nested)
+    return b""
+
+
+def _email_part_text(part: Message | EmailMessage, payload: bytes) -> str:
+    charset = part.get_content_charset() or "utf-8"
+    try:
+        return _clean_text(payload.decode(charset))
+    except Exception:
+        text, _, _warnings = _decode_text_bytes(payload)
+        return text
+
+
+def _extract_eml_attachment(filename: str, payload: bytes) -> tuple[str, list[str]]:
+    clean_name = Path(str(filename or "allegato")).name
+    if not payload:
+        return "", [f"{clean_name}: allegato vuoto o non leggibile."]
+    file_type = _file_type_from_payload(payload, clean_name, fallback=Path(clean_name).suffix.lower().lstrip("."))
+    if file_type not in {"pdf", "docx", "doc", "txt", "eml"}:
+        return "", [f"{clean_name}: allegato non indicizzato perché il formato non è supportato."]
+    result = extract_text_from_document(payload, clean_name, file_type)
+    warnings = [f"{clean_name}: {warning}" for warning in result.warnings]
+    if not result.ok:
+        warnings.append(f"{clean_name}: allegato non letto per Lex.")
+        return "", warnings
+    if not result.text.strip():
+        warnings.append(f"{clean_name}: allegato senza testo estraibile.")
+        return "", warnings
+    return f"[Allegato: {clean_name}]\n{result.text}", warnings
 
 
 def _extract_pdf(content: bytes) -> ExtractionResult:

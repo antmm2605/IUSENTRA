@@ -7,7 +7,7 @@ import re
 import unicodedata
 from pathlib import Path
 
-ALLOWED_DOCUMENT_AI_EXTENSIONS = {"pdf", "docx", "doc"}
+ALLOWED_DOCUMENT_AI_EXTENSIONS = {"pdf", "docx", "doc", "txt", "eml"}
 DEFAULT_MAX_DOCUMENT_AI_BYTES = 25 * 1024 * 1024
 
 

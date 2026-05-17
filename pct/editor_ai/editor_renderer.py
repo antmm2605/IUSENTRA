@@ -49,6 +49,106 @@ def text_to_editor_html(value: str) -> str:
     return "\n".join(blocks) or "<p></p>"
 
 
+def legal_markdown_to_editor_html(value: str) -> str:
+    """Converte una bozza Markdown di Lex in HTML governato dall'editor."""
+
+    raw = str(value or "").replace("\r\n", "\n").replace("\r", "\n").strip()
+    if not raw:
+        return "<p></p>"
+    if _looks_like_html(raw):
+        return sanitize_editor_html(raw)
+
+    blocks: list[str] = []
+    paragraph: list[str] = []
+    list_type: str | None = None
+    list_items: list[str] = []
+
+    def flush_paragraph() -> None:
+        if not paragraph:
+            return
+        body = "<br>".join(_inline_markdown_to_editor_html(line) for line in paragraph)
+        blocks.append(f"<p>{body}</p>")
+        paragraph.clear()
+
+    def flush_list() -> None:
+        nonlocal list_type
+        if not list_type or not list_items:
+            list_type = None
+            list_items.clear()
+            return
+        tag = "ol" if list_type == "ol" else "ul"
+        blocks.append(f"<{tag}>" + "".join(f"<li>{item}</li>" for item in list_items) + f"</{tag}>")
+        list_type = None
+        list_items.clear()
+
+    for line in raw.split("\n"):
+        stripped = line.strip()
+        if not stripped:
+            flush_paragraph()
+            flush_list()
+            continue
+        if stripped == "---":
+            flush_paragraph()
+            flush_list()
+            blocks.append("<hr>")
+            continue
+
+        numbered = re.match(r"^\d+[.)]\s+(.+)$", stripped)
+        bullet = re.match(r"^[-*]\s+(.+)$", stripped)
+        if numbered or bullet:
+            flush_paragraph()
+            target_type = "ol" if numbered else "ul"
+            if list_type and list_type != target_type:
+                flush_list()
+            list_type = target_type
+            list_items.append(_inline_markdown_to_editor_html((numbered or bullet).group(1)))
+            continue
+
+        flush_list()
+
+        if stripped.startswith("### "):
+            flush_paragraph()
+            blocks.append(f"<h3>{_inline_markdown_to_editor_html(stripped[4:])}</h3>")
+            continue
+        if stripped.startswith("## "):
+            flush_paragraph()
+            blocks.append(f"<h2>{_inline_markdown_to_editor_html(stripped[3:])}</h2>")
+            continue
+        if stripped.startswith("# "):
+            flush_paragraph()
+            blocks.append(f"<h1>{_inline_markdown_to_editor_html(stripped[2:])}</h1>")
+            continue
+
+        bold_only = re.match(r"^\*\*([^*]+)\*\*$", stripped)
+        if bold_only:
+            flush_paragraph()
+            heading = _inline_markdown_to_editor_html(bold_only.group(1))
+            tag = "h1" if not any(block.startswith("<h1>") for block in blocks) else "h2"
+            blocks.append(f"<{tag}>{heading}</{tag}>")
+            continue
+
+        paragraph.append(stripped)
+
+    flush_paragraph()
+    flush_list()
+    return sanitize_editor_html("\n".join(blocks) or "<p></p>")
+
+
+def _inline_markdown_to_editor_html(value: str) -> str:
+    clean = html.escape(str(value or "").strip())
+    clean = re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", clean)
+    clean = re.sub(r"`([^`]+)`", r"<code>\1</code>", clean)
+    return clean
+
+
+def _looks_like_html(content: str) -> bool:
+    lowered = (content or "").strip().lower()
+    return any(
+        tag in lowered
+        for tag in ("<p", "<div", "<h1", "<h2", "<h3", "<ul", "<ol", "<li", "<table", "<blockquote", "<br", "<hr")
+    )
+
+
 def ensure_editor_html(content: str, plan: AttoDraftPlan) -> str:
     raw = str(content or "").strip()
     if not raw:

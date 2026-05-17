@@ -54,17 +54,31 @@ def test_ai_locale_mobile_rileva_dispositivo_e_non_finge_installer_ollama():
     assert "MobileAiSetupPanel" in actions
     assert "AI su telefono e tablet" in actions
     assert "Apri Lex AI" in actions
-    assert "Prepara su questo dispositivo" in actions
-    assert "Scarica Ollama ufficiale" in actions
-    assert "installazione locale solo con app mobile compatibile e autorizzata" in local_ai
+    assert "Telefono o tablet rilevato" in actions
+    assert "Ollama resta nell'ambiente di produzione" in actions
+    assert "Language model" in actions
+    assert "gli embedding" in actions
+    assert "Prepara su questo dispositivo" not in actions
+    assert "sempre acceso" in actions
+    assert "ambiente di produzione IUSENTRA" in local_ai
+    assert "Motore AI di produzione" in local_ai
+    assert "AI nell'ambiente di produzione" in actions
+    assert "i controlli locali di Ollama restano disponibili solo sui PC dello studio" in actions
+    assert "mobileAiPlan.isPortable" in actions
+    assert "isPortableAiDevice" in actions
+    assert "isDetectingAiDevice" in actions
     assert "userAgentData" in local_ai
     assert "deviceMemory" in local_ai
     assert "hardwareConcurrency" in local_ai
     assert "navigator.storage?.estimate" in local_ai
     assert "Risorse non dichiarate dal dispositivo" in local_ai
     assert "canPrepareOnThisDevice = !isPortable" in local_ai
+    assert "{!isPortable ? (" in actions
+    assert "Prepara su questo PC" in actions
+    assert "Scarica Ollama ufficiale" in actions
     assert ".iu-settings-mobile-ai" in css
     assert ".iu-settings-mobile-ai__grid" in css
+    assert ".iu-settings-alert.is-info" in css
 
 
 def test_ai_locale_mostra_percorso_dataset_lex_senza_training_automatico():
@@ -74,7 +88,8 @@ def test_ai_locale_mostra_percorso_dataset_lex_senza_training_automatico():
     api = read("web/blueprints/api_v1_react.py")
     status = read("web/services/lex_dataset_training_status.py")
 
-    assert "Percorso dataset Lex" in actions
+    assert "Archivio e revisione Lex" in actions
+    assert "Questo pannello non installa né addestra il language model" in actions
     assert "ogni notte alle" in actions
     assert "Coda revisione domande" in actions
     assert "Salva e approva" in actions
@@ -84,12 +99,13 @@ def test_ai_locale_mostra_percorso_dataset_lex_senza_training_automatico():
     assert "Domande in revisione" in status
     assert "File istruzioni" in status
     assert "File conversazioni" in status
-    assert "Modello locale" in status
+    assert "Addestramento modello" in status
+    assert "Il language model di produzione risponde già con RAG" in status
     assert "non serve riaddestrare il modello" in status
-    assert "Dataset Lex notturno" in status
+    assert "Preparazione archivio Lex" in status
     assert "lex_dataset_nightly" in status
     assert "01:45" in status
-    assert "Nessun dato viene inviato fuori dallo studio" in status
+    assert "ambiente IUSENTRA autorizzato dello studio" in status
     assert "automatic_training\": False" in status
     assert "lex_dataset_status" in bridge
     assert "/impostazioni/ai/lex-dataset" in api

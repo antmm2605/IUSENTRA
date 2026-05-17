@@ -1,6 +1,5 @@
 from pathlib import Path
 
-
 FRONTEND = Path("frontend/src")
 
 
@@ -22,10 +21,13 @@ def test_indicizzazione_lex_integrata_nei_documenti_fascicolo():
     assert "Lex può leggere i documenti del fascicolo." in fascicoli
     assert "Alcuni documenti sono in indicizzazione. Lex li userà appena pronti." in fascicoli
     assert "Alcuni documenti non sono stati indicizzati." in fascicoli
+    assert "Qui sotto trovi quali file richiedono attenzione." in fascicoli
+    assert "Documenti da verificare" in fascicoli
     assert "Aggiorna indice" in fascicoli
     assert "Riprova errori" in fascicoli
     assert "lexIndexing" in data
     assert '"lex_indexing"' in bridge
+    assert '"warnings"' in bridge
 
 
 def test_documenti_ai_upload_non_e_cta_standard():

@@ -31,7 +31,13 @@ def _service(tmp_path: Path) -> DocumentAIService:
     return DocumentAIService(repo, FakeFascicoli())
 
 
-def _source(content: bytes = b"contenuto", *, filename: str = "atto.docx", source_type: str = "documenti_fascicolo"):
+def _source(
+    content: bytes = b"contenuto",
+    *,
+    filename: str = "atto.docx",
+    source_type: str = "documenti_fascicolo",
+    mime_type: str = "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+):
     return source_from_uploaded_document(
         tenant_id="tenant-a",
         fascicolo_id="fas-1",
@@ -39,7 +45,7 @@ def _source(content: bytes = b"contenuto", *, filename: str = "atto.docx", sourc
         filename=filename,
         content=content,
         source_type=source_type,
-        mime_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        mime_type=mime_type,
         metadata={"trigger": source_type},
     )
 
@@ -85,6 +91,34 @@ def test_aggiorna_indice_processa_documenti_pendenti(tmp_path: Path, monkeypatch
     assert result.summary.ready == 1
     assert result.summary.status == "ready"
     assert service.repository.list_documents("tenant-a", "fas-1")[0].status == "ready"
+
+
+def test_aggiorna_indice_processa_pdf_p7m_come_pdf(tmp_path: Path, monkeypatch):
+    calls = []
+
+    def _fake_extraction(content, filename, file_type):
+        calls.append((filename, file_type, bytes(content[:4])))
+        return ExtractionResult(
+            ok=True,
+            text="Testo PDF firmato indicizzato",
+            pages=[DocumentAIPageText(page_number=1, text="Testo PDF firmato indicizzato")],
+            extraction_engine="test-indexer",
+        )
+
+    monkeypatch.setattr("pct.document_intelligence.service.extract_text_from_document", _fake_extraction)
+    service = _service(tmp_path)
+
+    result = DocumentAIIndexer(service).process(
+        tenant_id="tenant-a",
+        fascicolo_id="fas-1",
+        sources=[_source(b"%PDF-1.7\ncontenuto", filename="atto.pdf.p7m", mime_type="application/pdf")],
+        user_context=_context(),
+    )
+
+    assert result.indexed == 1
+    assert result.summary.ready == 1
+    assert calls == [("atto.pdf.p7m", "pdf", b"%PDF")]
+    assert service.repository.list_documents("tenant-a", "fas-1")[0].file_type == "pdf"
 
 
 def test_documento_importato_da_portale_viene_indicizzato(tmp_path: Path, monkeypatch):

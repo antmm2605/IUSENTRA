@@ -146,7 +146,7 @@ Artefatti previsti con scrittura autorizzata:
 ## Job notturno Superadmin
 
 Il job governato `lex_dataset_nightly` compare nella console
-`/admin/pianificazioni` come **Dataset Lex notturno** dentro la famiglia
+`/admin/pianificazioni` come **Preparazione archivio Lex** dentro la famiglia
 **Lex AI**. Gira alle 01:45, dopo gli agenti Lex operativi, e usa
 `lex.dataset.nightly.run_lex_dataset_nightly(...)`.
 
@@ -182,7 +182,7 @@ Le domande non vengono inserite manualmente dall'avvocato partendo da zero.
 IUSENTRA le genera come candidate in `qa_review_queue.json`, usando i
 documenti già letti da Documenti AI e conservando la fonte del fascicolo.
 
-Da **Impostazioni -> AI Locale -> Percorso dataset Lex**, la card
+Da **Impostazioni -> AI Locale -> Archivio e revisione Lex**, la card
 **Domande in revisione** apre una coda operativa:
 
 - la domanda proposta e la risposta proposta sono modificabili prima

@@ -6,12 +6,13 @@ lettura tramite API React, scritture demandate ai servizi Flask già auditati.
 
 from __future__ import annotations
 
-from collections import Counter
-from datetime import date, datetime, timedelta, timezone
 import os
-from pathlib import Path
 import re
-from typing import Any, Callable, Iterable
+from collections import Counter
+from collections.abc import Callable, Iterable
+from datetime import UTC, date, datetime, timedelta
+from pathlib import Path
+from typing import Any
 from urllib.parse import quote
 
 from pct.fascicoli import EsitoAttivita, StatoFascicolo, TipoAttivita, TipoDocumento, TipoFascicolo
@@ -23,7 +24,7 @@ MONTHS_SHORT = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
 def _safe(label: str, func: Callable[[], Any], fallback: Any) -> Any:
@@ -102,6 +103,7 @@ def _audit_trail(fid: str) -> dict[str, Any]:
         return fallback
     try:
         from flask import current_app
+
         from audit.service import AuditService, audit_config_diagnostics
 
         diagnostics = audit_config_diagnostics(current_app.config)
@@ -2068,8 +2070,11 @@ def _lex_indexing_summary(fid: str) -> dict[str, Any]:
         "indexing": int(payload.get("indexing") or 0),
         "errors": int(payload.get("errors") or 0),
         "stale": int(payload.get("stale") or 0),
+        "not_indexed": int(payload.get("not_indexed") or 0),
+        "archived": int(payload.get("archived") or 0),
         "last_indexed_at": payload.get("last_indexed_at") or None,
         "status": str(payload.get("status") or "ready"),
+        "warnings": [str(item) for item in list(payload.get("warnings") or [])[:12]],
     }
 
 

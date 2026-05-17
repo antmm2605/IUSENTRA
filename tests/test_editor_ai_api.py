@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from pct.fascicoli import TipoFascicolo
 from pct.editor_ai.models import (
     AttoAIDraftRequest,
     AttoAIEditProposal,
@@ -16,6 +17,7 @@ from pct.editor_ai.models import (
 )
 from tests.test_applicazioni import _crea_operatore, _login
 from tests.test_react_document_editor import _app
+from web.helpers import get_fascicoli
 
 
 def _record() -> AttoAIRecord:
@@ -175,6 +177,61 @@ def test_genera_ritorna_open_url_e_rispetta_payload(tmp_path: Path, monkeypatch)
     assert payload["open_url"] == "/fascicoli/fas-1/documenti/doc-editor-1/editor"
     assert fake.last_request is not None
     assert fake.last_request.language == "it"
+
+
+def test_importa_bozza_chat_crea_documento_editor_reale(tmp_path: Path, monkeypatch):
+    client, _fake = _client(tmp_path, monkeypatch)
+    app = client.application
+    with app.test_request_context("/"):
+        core_loader = (app.extensions.get("core_runtime") or {}).get("get_fascicoli")
+        fascicoli = core_loader() if callable(core_loader) else get_fascicoli()
+        fascicolo = fascicoli.nuovo(
+            "Diffida pagamento",
+            TipoFascicolo.CIVILE,
+            nome_cliente="Cliente Reale",
+        )
+
+    response = client.post(
+        f"/api/v1/ui/fascicoli/{fascicolo.id}/editor-ai/importa-bozza",
+        json={
+            "title": "BOZZA — DIFFIDA E MESSA IN MORA",
+            "answer": """BOZZA — DIFFIDA E MESSA IN MORA
+
+17/05/2026
+
+Spett.le Mario Rossi
+
+Oggetto: DIFFIDA E MESSA IN MORA — pagamento fattura
+
+Fatto Il debitore non ha adempiuto.
+
+Diritto Ai sensi dell'art. 1219 c.c., la presente costituisce messa in mora.
+
+Richiesta formale Si diffida la S.V. a:
+1. Pagare il dovuto
+2. Consegnare i documenti
+
+Dati da completare prima dell'invio:
+> - Codice fiscale cliente
+> - Indirizzo controparte
+""",
+        },
+    )
+
+    payload = response.get_json()
+    assert response.status_code == 201
+    assert payload["mock_fallback"] is False
+    assert payload["open_url"].endswith(f"/documenti/{payload['document_id']}/editor")
+
+    with app.test_request_context("/"):
+        core_loader = (app.extensions.get("core_runtime") or {}).get("get_fascicoli")
+        fascicoli = core_loader() if callable(core_loader) else get_fascicoli()
+        document_path = fascicoli.percorso_documento(fascicolo.id, payload["document_id"])
+        html = document_path.read_text(encoding="utf-8")
+    assert "<h1>BOZZA — DIFFIDA E MESSA IN MORA</h1>" in html
+    assert "<h2>Diritto</h2>" in html
+    assert "<ol><li>Pagare il dovuto</li><li>Consegnare i documenti</li></ol>" in html
+    assert "<ul><li>Codice fiscale cliente</li><li>Indirizzo controparte</li></ul>" in html
 
 
 def test_modifiche_ed_export_non_espongono_path_assoluti(tmp_path: Path, monkeypatch):

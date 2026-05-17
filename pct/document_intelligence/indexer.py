@@ -10,7 +10,6 @@ from .models import LexIndexingSummary
 from .security import DocumentAIValidationError
 from .sources import DocumentAISource
 
-
 _READY = "ready"
 _ERROR = "error"
 _INDEXING = "indexing"
@@ -98,6 +97,7 @@ def build_lex_indexing_summary(
     total = len(sources)
     last_indexed_at = _last_ready_update(records)
     status = _overall_status(total=total, counts=counts)
+    warnings = _indexing_warnings(sources, records, extra_warnings=extra_warnings)
     return LexIndexingSummary(
         total_documents=total,
         ready=int(counts[_READY]),
@@ -109,7 +109,7 @@ def build_lex_indexing_summary(
         archived=int(counts[_ARCHIVED]),
         last_indexed_at=last_indexed_at,
         status=status,
-        warnings=list(extra_warnings or []),
+        warnings=warnings,
     )
 
 
@@ -168,6 +168,39 @@ def _overall_status(*, total: int, counts: Counter[str]) -> str:
     if counts[_READY] == total:
         return "ready"
     return "partial"
+
+
+def _indexing_warnings(
+    sources: list[DocumentAISource],
+    records: list[Any],
+    *,
+    extra_warnings: list[str] | None = None,
+) -> list[str]:
+    warnings: list[str] = list(extra_warnings or [])
+    for source in sources:
+        state = _state_for_source(source, records)
+        if state == _ERROR and not source.supported:
+            warnings.append(f"{source.filename}: formato non supportato per indicizzazione Lex.")
+        elif state == _ERROR:
+            warnings.append(f"{source.filename}: indicizzazione non completata; riprova o verifica il documento.")
+        elif state == _STALE:
+            warnings.append(f"{source.filename}: documento cambiato dopo l'ultimo indice; aggiorna l'indice.")
+        elif state == "not_indexed":
+            warnings.append(f"{source.filename}: documento non ancora indicizzabile per Lex.")
+    return _unique_warnings(warnings)
+
+
+def _unique_warnings(values: list[str]) -> list[str]:
+    seen: set[str] = set()
+    out: list[str] = []
+    for value in values:
+        clean = str(value or "").strip()
+        key = clean.casefold()
+        if not clean or key in seen:
+            continue
+        seen.add(key)
+        out.append(clean)
+    return out[:12]
 
 
 __all__ = ["DocumentAIIndexer", "DocumentAIIndexingResult", "build_lex_indexing_summary"]

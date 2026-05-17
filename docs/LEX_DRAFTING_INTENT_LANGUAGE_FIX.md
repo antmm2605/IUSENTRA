@@ -6,6 +6,22 @@
 
 ---
 
+## Aggiornamento 2.245.16 - impaginazione bozze
+
+Il flusso `drafting_legal_letter` non deve restituire blocchi di testo
+appiattiti. Le bozze di diffida/messa in mora passano ora da
+`lex.formatting.legal_draft_layout.normalize_legal_draft_layout()` prima della
+risposta JSON: titolo, intestazione, destinatario, oggetto, paragrafi, sezioni
+`Fatto`, `Diritto`, `Richiesta formale`, `Avvertenza`, chiusura e dati da
+completare vengono separati anche quando il modello restituisce una sola riga.
+
+Il widget Lex mantiene lo stesso presidio lato render: se riceve una bozza
+degradata, la normalizza prima di costruire HTML, rimuove appendici
+`Fonti consultate` non pertinenti e trasforma i dati da completare in elenco
+operativo, non in blocco citazione.
+
+---
+
 ## Il Bug
 
 **Input utente:** `"scrivi un diffida professionale se serve utilizza la ricerca web"`

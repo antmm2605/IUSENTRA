@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import date, datetime, timedelta
-from typing import Any, Callable
+from typing import Any
 
 from .models import (
     OperationalObjectReference,
@@ -20,6 +21,7 @@ from .serializers import (
     serialize_email_message,
     serialize_fascicolo,
     serialize_generic,
+    serialize_parte_processuale,
     serialize_soggetto,
 )
 from .source_registry import OperationalSourceRegistry, build_default_registry
@@ -86,6 +88,54 @@ class OperationalKnowledgeTools:
             serializer=serialize_soggetto,
             object_type="soggetto",
         )
+
+    def parti_by_fascicolo(self, fascicolo_id: str, context: OperationalQueryContext) -> OperationalToolResult:
+        decision = self._decision("soggetti", context)
+        if not decision.allowed:
+            return self._blocked("soggetti", decision)
+        manager = self._safe_manager("soggetti", lambda: self._manager("soggetti", "get_soggetti"))
+        if manager is None:
+            return self._unavailable("soggetti", "Repository soggetti e parti non disponibile.")
+        try:
+            rows = list(_call(manager, "parti_fascicolo", fascicolo_id) or [])
+        except Exception as exc:
+            return self._unavailable("soggetti", f"Parti del fascicolo non interrogabili: {exc}")
+        payload = [
+            serialize_parte_processuale({"id_fascicolo": fascicolo_id, "parte": row[0], "soggetto": row[1]})
+            for row in rows
+            if self._party_belongs_to_tenant(context, row)
+        ]
+        result = self._plain_result("soggetti", context, payload, "parte")
+        result.permission = decision
+        if len(payload) < len(rows):
+            result.coverage_gaps.append("Alcune parti sono state escluse per tenant diverso.")
+        if not payload:
+            result.coverage_gaps.append("Nessuna parte processuale reale collegata al fascicolo.")
+        return result
+
+    def parti_by_soggetto(self, soggetto_id: str, context: OperationalQueryContext) -> OperationalToolResult:
+        decision = self._decision("soggetti", context)
+        if not decision.allowed:
+            return self._blocked("soggetti", decision)
+        manager = self._safe_manager("soggetti", lambda: self._manager("soggetti", "get_soggetti"))
+        if manager is None:
+            return self._unavailable("soggetti", "Repository soggetti e parti non disponibile.")
+        try:
+            fascicolo_ids = list(_call(manager, "fascicoli_con_soggetto", soggetto_id) or [])
+            rows: list[dict[str, Any]] = []
+            for fascicolo_id in fascicolo_ids:
+                for parte, soggetto in list(_call(manager, "parti_fascicolo", fascicolo_id) or []):
+                    current_id = clean_spaces(getattr(soggetto, "id", "") or _dict_get(soggetto, "id"))
+                    if current_id == clean_spaces(soggetto_id):
+                        rows.append({"id_fascicolo": fascicolo_id, "parte": parte, "soggetto": soggetto})
+        except Exception as exc:
+            return self._unavailable("soggetti", f"Ruoli del soggetto non interrogabili: {exc}")
+        payload = [serialize_parte_processuale(row) for row in rows if self._party_belongs_to_tenant(context, (row.get("parte"), row.get("soggetto")))]
+        result = self._plain_result("soggetti", context, payload, "parte")
+        result.permission = decision
+        if not payload:
+            result.coverage_gaps.append("Nessun ruolo processuale reale collegato al soggetto.")
+        return result
 
     def search_fascicoli(self, query: str, context: OperationalQueryContext, *, limit: int = 12) -> OperationalToolResult:
         source_id = "fascicoli"
@@ -551,6 +601,7 @@ class OperationalKnowledgeTools:
             return self.repositories[source_id]
         if helper_name == "get_messaggi":
             from flask import current_app
+
             from pct.messaggi import GestioneMessaggi
             from web.services.tenant_paths import tenant_data_path
 
@@ -578,6 +629,7 @@ class OperationalKnowledgeTools:
             return self.repositories["template_atti"]
         try:
             from flask import current_app
+
             from pct.template_atti import GestioneTemplateAtti
             from web.services.tenant_paths import tenant_data_path
 
@@ -611,6 +663,7 @@ class OperationalKnowledgeTools:
         if source_id in self.repositories:
             return self.repositories[source_id]
         from flask import current_app
+
         from pct.email_client import GestioneEmailRicevute
         from web.services.tenant_paths import tenant_data_path
 
@@ -641,7 +694,8 @@ class OperationalKnowledgeTools:
                     q=query,
                     con_allegati=con_allegati,
                 )
-            )[: max(1, int(limit or 20))]
+            )
+            rows = sorted(rows, key=_email_sort_key, reverse=True)[: max(1, int(limit or 20))]
         except Exception as exc:
             return self._unavailable(source_id, f"Casella {source_id} non interrogabile: {exc}")
         return self._rows_result(source_id, context, rows, serialize_email_message, "email", decision)
@@ -656,7 +710,7 @@ class OperationalKnowledgeTools:
         try:
             row = getattr(manager, "get", lambda _id: None)(email_id)
             if row is None:
-                for candidate in list(getattr(manager, "tutte")()):
+                for candidate in list(manager.tutte()):
                     if clean_spaces(getattr(candidate, "id", "") or _dict_get(candidate, "id")) == clean_spaces(email_id):
                         row = candidate
                         break
@@ -683,7 +737,7 @@ class OperationalKnowledgeTools:
         try:
             row = getattr(manager, "get", lambda _id: None)(email_id)
             if row is None:
-                for candidate in list(getattr(manager, "tutte")()):
+                for candidate in list(manager.tutte()):
                     if clean_spaces(getattr(candidate, "id", "") or _dict_get(candidate, "id")) == clean_spaces(email_id):
                         row = candidate
                         break
@@ -856,6 +910,7 @@ class OperationalKnowledgeTools:
     def _document_ai_rows(self, fascicolo_id: str, context: OperationalQueryContext) -> list[dict[str, Any]]:
         try:
             from flask import current_app
+
             from pct.document_intelligence.repository import DocumentAIRepository
             from pct.document_intelligence.service import DocumentAIService
             from web.helpers import get_fascicoli
@@ -868,6 +923,17 @@ class OperationalKnowledgeTools:
             return [serialize_documento(row) for row in rows]
         except Exception:
             return []
+
+    def _party_belongs_to_tenant(self, context: OperationalQueryContext, row: Any) -> bool:
+        if isinstance(row, (tuple, list)):
+            return all(self.guard.record_belongs_to_tenant(context, item) for item in row[:2] if item is not None)
+        if isinstance(row, dict) and ("parte" in row or "soggetto" in row):
+            return all(
+                self.guard.record_belongs_to_tenant(context, item)
+                for item in (row.get("parte"), row.get("soggetto"))
+                if item is not None
+            )
+        return self.guard.record_belongs_to_tenant(context, row)
 
 
 def _call(obj: Any, method_name: str, *args: Any, **kwargs: Any) -> Any:
@@ -891,6 +957,40 @@ def _row_matches(payload: dict[str, Any], query: str) -> bool:
     terms = _terms(query)
     haystack = clean_spaces(" ".join(str(value) for value in payload.values())).lower()
     return not terms or all(term in haystack for term in terms)
+
+
+def _email_sort_key(row: Any) -> tuple[int, float | str]:
+    for key in ("timestamp", "data", "ricevuta_il", "inviato_il", "creato_il"):
+        value = getattr(row, key, "") if not isinstance(row, dict) else row.get(key)
+        text = clean_spaces(value)
+        if not text:
+            continue
+        parsed = _parse_datetime(text)
+        if parsed is not None:
+            return (1, parsed.timestamp())
+        return (0, text)
+    return (0, "")
+
+
+def _parse_datetime(text: str) -> datetime | None:
+    normalized = clean_spaces(text).replace("Z", "+00:00")
+    if not normalized:
+        return None
+    try:
+        return datetime.fromisoformat(normalized)
+    except Exception:
+        pass
+    for pattern, length in (
+        ("%Y-%m-%d %H:%M:%S", 19),
+        ("%Y-%m-%d", 10),
+        ("%d/%m/%Y %H:%M", 16),
+        ("%d/%m/%Y", 10),
+    ):
+        try:
+            return datetime.strptime(normalized[:length], pattern)
+        except Exception:
+            continue
+    return None
 
 
 def _row_date(row: Any) -> date | None:

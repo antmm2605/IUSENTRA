@@ -321,10 +321,11 @@ function CollapsibleFormPanel({
 
 function LexIndexingPanel({ summary, refreshAction, retryAction, onDone, onError }:{summary:LexIndexingSummary; refreshAction:string; retryAction:string; onDone:(message?:string)=>void; onError:(message:string)=>void}) {
   const working = summary.queued + summary.indexing
+  const warnings = summary.warnings.slice(0, 4)
   const tone = summary.status === 'ready' ? 'success' : summary.status === 'error' ? 'danger' : summary.status === 'stale' ? 'warning' : 'info'
   const statusLabel: Record<LexIndexingSummary['status'], string> = { ready: 'Pronto', partial: 'Parziale', working: 'In corso', error: 'Errore', stale: 'Da aggiornare' }
   const message = summary.errors > 0
-    ? 'Alcuni documenti non sono stati indicizzati. Apri i controlli di indice o riprova l’indicizzazione.'
+    ? 'Alcuni documenti non sono stati indicizzati. Qui sotto trovi quali file richiedono attenzione.'
     : working > 0
       ? 'Alcuni documenti sono in indicizzazione. Lex li userà appena pronti.'
       : summary.stale > 0
@@ -347,6 +348,14 @@ function LexIndexingPanel({ summary, refreshAction, retryAction, onDone, onError
         <div><dt>Errori</dt><dd>{summary.errors}</dd></div>
         <div><dt>Da aggiornare</dt><dd>{summary.stale}</dd></div>
       </dl>
+      {warnings.length ? (
+        <div className="iu-fas-lex-indexing__warnings" aria-label="Documenti da verificare per Lex">
+          <strong>Documenti da verificare</strong>
+          <ul>
+            {warnings.map((warning) => <li key={warning}>{warning}</li>)}
+          </ul>
+        </div>
+      ) : null}
       <footer>
         <span>Ultimo indice: {summary.last_indexed_at ? new Intl.DateTimeFormat('it-IT', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(summary.last_indexed_at)) : 'mai'}</span>
         <div>

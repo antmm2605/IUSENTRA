@@ -59,7 +59,7 @@ DEFAULT_SOURCE_DEFINITIONS: tuple[OperationalSourceDefinition, ...] = (
         permissions=("clienti.leggi",),
         repository_module="pct.soggetti.GestioneSoggetti",
         api_surface="web.helpers.get_soggetti",
-        tools=("search_soggetti", "get_soggetto"),
+        tools=("search_soggetti", "get_soggetto", "parti_by_fascicolo", "parti_by_soggetto"),
     ),
     _src(
         "fascicoli",

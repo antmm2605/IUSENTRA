@@ -212,6 +212,60 @@ class TestDiffidaTemplate:
         for phrase in forbidden:
             assert phrase not in result, f"Frase inglese trovata nel template: '{phrase}'"
 
+    def test_template_checklist_non_usa_blocco_citazione(self):
+        from lex.providers.deterministic_provider import build_diffida_messa_in_mora_template
+
+        result = build_diffida_messa_in_mora_template({})
+
+        assert "\n\n**Dati da completare prima dell'invio**\n\n" in result
+        assert "\n- Nome e dati completi del cliente mittente" in result
+        assert "\n> - " not in result
+        assert "> **Dati da completare" not in result
+
+    def test_flat_diffida_viene_impaginata_come_documento(self):
+        from lex.formatting.answer_builder import AnswerBuilder
+
+        flat = (
+            "BOZZA — DIFFIDA E MESSA IN MORA "
+            "Studio Legale Montagnese Avv. Roberto Montagnese Via NINO BIXIO 4, Taurianova, RC "
+            "C.F. MNTRRT64L01063H - P.IVA 01301790802 Tel. +393474940097 - "
+            "Email r.montagnese@tiscali.it - PEC roberto.montagnese@coapalmi.legalmail.it "
+            "17/05/2026 Spett.le [Nome e Cognome / Ragione sociale della controparte] "
+            "[Indirizzo, CAP, Città, Provincia] Oggetto: DIFFIDA E MESSA IN MORA — "
+            "[descrizione del credito/obbligo inademputo] Con la presente, il sottoscritto/la sottoscritta "
+            "Avv. Roberto Montagnese, in qualità di difensore di [Nome del cliente - da completare], "
+            "si invita e diffida formalmente la S.V. / codesta Spettabile Società ad adempiere. "
+            "Fatto [Esporre in modo sintetico e cronologico i fatti rilevanti — DA COMPLETARE] "
+            "Diritto Ai sensi dell'art. 1219 c.c., la presente lettera costituisce formale messa in mora. "
+            "Richiesta formale Si diffida la S.V. a: 1. [Prima richiesta specifica — DA COMPLETARE] "
+            "2. [Eventuale seconda richiesta — DA COMPLETARE] Avvertenza in difetto di riscontro positivo "
+            "nel termine indicato, il sottoscritto si riserva di agire. Con osservanza, Avv. Roberto Montagnese "
+            "Dati da completare prima dell'invio: > - Nome e dati completi del cliente mittente "
+            "> - Dati completi della controparte (CF/PI se società) > - Importo esatto"
+        )
+
+        response = AnswerBuilder()._build_drafting_letter_response(
+            request=_make_request("scrivi diffida"),
+            draft=SimpleNamespace(text=flat, metadata={"provider": "test"}),
+            verdict=SimpleNamespace(warnings=[], risk_level="medium"),
+            confidence=0.72,
+        )
+
+        answer = response.answer
+        assert answer.startswith("**BOZZA — DIFFIDA E MESSA IN MORA**\n\n---\n\n")
+        assert "\n\n**Spett.le**\n" in answer
+        assert "\n[Indirizzo, CAP, Città, Provincia]" in answer
+        assert "\n\n**Oggetto:** DIFFIDA E MESSA IN MORA" in answer
+        assert "\n\n**Fatto**\n\n" in answer
+        assert "\n\n**Diritto**\n\n" in answer
+        assert "\n\n**Richiesta formale**\n\n" in answer
+        assert "\n1. [Prima richiesta specifica" in answer
+        assert "\n2. [Eventuale seconda richiesta" in answer
+        assert "\n\n**Avvertenza**\n\n" in answer
+        assert "\n\n**Dati da completare prima dell'invio**\n\n" in answer
+        assert "\n- Nome e dati completi del cliente mittente" in answer
+        assert "\n> - " not in answer
+
 
 # ---------------------------------------------------------------------------
 # Test 14: Snapshot — il bug originale non può ripresentarsi

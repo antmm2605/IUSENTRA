@@ -46,6 +46,7 @@ Componenti introdotti nell'MVP 1:
 - `pct/document_intelligence/`: dominio Documenti AI Fascicolo, con modelli, repository, service, estrazione, citazioni, audit, sicurezza e versioning.
 - `pct/document_intelligence/sources.py` e `pct/document_intelligence/indexer.py`: adattatori sorgenti reali del fascicolo e indicizzazione automatica per Lex.
 - `pct/document_intelligence/pdf_quality.py`: scoring qualita' testo e riparazione conservativa dei segnaposto PDF `(cid:NN)`.
+- I documenti firmati `.pdf.p7m` vengono trattati come PDF interni quando il contenuto è già leggibile oppure passano dall'estrazione CAdES governata; se un file resta non indicizzato, la pagina fascicolo riceve avvisi per-file invece di mostrare un completamento generico.
 - `pct/sql/20260505_documenti_ai.sql`: schema SQLite.
 - `pct/sql/20260505_documenti_ai_postgres.sql`: schema PostgreSQL.
 - `web/blueprints/api_v1_documenti_ai.py`: API v1 UI sotto `/api/v1/ui`, incluse le azioni interne `lex-indexing`.

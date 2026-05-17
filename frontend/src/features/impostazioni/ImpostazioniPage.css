@@ -546,6 +546,11 @@
   color: #854d0e;
 }
 
+.iu-settings-alert.is-info {
+  background: rgba(37, 99, 235, 0.08);
+  color: #1d4ed8;
+}
+
 .iu-settings-warnings {
   display: grid;
   gap: 8px;

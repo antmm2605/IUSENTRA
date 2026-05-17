@@ -57,6 +57,15 @@ def extract_document_text(file_path: str | Path, file_type: str) -> DocumentAITe
 
 
 def extract_text_from_document(content: bytes, filename: str, file_type: str) -> ExtractionResult:
+    if str(filename or "").strip().lower().endswith(".p7m"):
+        payload, payload_name, unwrap_warnings = _unwrap_p7m_payload(content, filename)
+        payload_type = _file_type_from_payload(payload, payload_name, fallback=file_type)
+        result = extract_text_from_document(payload, payload_name, payload_type)
+        result.warnings[:0] = unwrap_warnings
+        if result.extraction_engine and not result.extraction_engine.startswith("p7m:"):
+            result.extraction_engine = f"p7m:{result.extraction_engine}"
+        return result
+
     ext = str(file_type or "").lower().lstrip(".")
     if ext == "pdf":
         return _extract_pdf(content)
@@ -72,6 +81,55 @@ def extract_text_from_document(content: bytes, filename: str, file_type: str) ->
         error_code="unsupported_format",
         error_message="Formato non supportato per l'estrazione testo.",
     )
+
+
+def _unwrap_p7m_payload(content: bytes, filename: str) -> tuple[bytes, str, list[str]]:
+    inner_name = str(filename or "").strip()
+    if inner_name.lower().endswith(".p7m"):
+        inner_name = inner_name[:-4]
+    if _looks_like_pdf(content) and inner_name.lower().endswith(".pdf"):
+        return content, inner_name, ["Documento PDF con estensione .p7m letto come PDF interno per l'indice Lex."]
+    try:
+        from pct.firme_cades import inspect_signed_document_bytes
+
+        signed = inspect_signed_document_bytes(source_name=filename, source_path="", data=content)
+        if signed.status.payload_available and signed.payload_bytes:
+            payload_name = signed.status.payload_name or inner_name
+            return signed.payload_bytes, payload_name, [signed.status.message]
+    except Exception:
+        pass
+    try:
+        from pct.firme_cades import (
+            extract_signed_payload,
+            payload_extension_from_mime,
+            payload_mime_from_bytes,
+            payload_name_from_source,
+        )
+
+        payload = extract_signed_payload(content)
+        if payload:
+            mime_type = payload_mime_from_bytes(payload, inner_name)
+            payload_name = payload_name_from_source(filename, payload_extension_from_mime(mime_type, inner_name))
+            return payload, payload_name, ["Contenuto del documento firmato estratto per l'indice Lex."]
+    except Exception:
+        pass
+    return content, inner_name, ["Documento .p7m letto tentando il formato del file interno dichiarato."]
+
+
+def _file_type_from_payload(content: bytes, filename: str, *, fallback: str) -> str:
+    lower_name = str(filename or "").strip().lower()
+    for extension in ("pdf", "docx", "doc"):
+        if lower_name.endswith(f".{extension}"):
+            return extension
+    if _looks_like_pdf(content):
+        return "pdf"
+    if content.startswith(b"PK\x03\x04"):
+        return "docx"
+    return str(fallback or "").lower().lstrip(".")
+
+
+def _looks_like_pdf(content: bytes) -> bool:
+    return bytes(content[:16] if content else b"").lstrip().startswith(b"%PDF")
 
 
 def _extract_pdf(content: bytes) -> ExtractionResult:

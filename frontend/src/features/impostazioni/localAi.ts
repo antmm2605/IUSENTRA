@@ -110,10 +110,9 @@ function mobileDeviceLabel(userAgent: string, platform: string, isPortable: bool
 
 function mobileModelLabel(memoryGb: number | undefined, freeGb: number | undefined, isPortable: boolean): string {
   if (!isPortable) return 'Scelta automatica sul PC'
-  if (!memoryGb || (freeGb !== undefined && freeGb < 4)) return 'Motore AI dello studio'
-  if (memoryGb >= 12 && (freeGb === undefined || freeGb >= 10)) return 'Qwen 3.5 leggero'
-  if (memoryGb >= 8 && (freeGb === undefined || freeGb >= 6)) return 'Qwen 3.5 minimo'
-  return 'Motore AI dello studio'
+  void memoryGb
+  void freeGb
+  return 'Motore AI di produzione'
 }
 
 export async function detectMobileAiInstallPlan(): Promise<MobileAiInstallPlan> {
@@ -126,7 +125,8 @@ export async function detectMobileAiInstallPlan(): Promise<MobileAiInstallPlan> 
   const uaMobile = /android|iphone|ipad|ipod|mobile|tablet/i.test(`${userAgent} ${platform}`)
   const touch = (nav.maxTouchPoints || 0) > 1
   const compactScreen = Math.min(window.screen.width || window.innerWidth, window.screen.height || window.innerHeight) <= 820
-  const isPortable = Boolean(nav.userAgentData?.mobile || uaMobile || (touch && compactScreen))
+  const ipadDesktopMode = /mac/i.test(platform) && touch
+  const isPortable = Boolean(nav.userAgentData?.mobile || uaMobile || ipadDesktopMode || (touch && compactScreen))
   const memoryGb = typeof nav.deviceMemory === 'number' ? nav.deviceMemory : undefined
   const cores = typeof nav.hardwareConcurrency === 'number' ? nav.hardwareConcurrency : undefined
   let freeGb: number | undefined
@@ -158,8 +158,8 @@ export async function detectMobileAiInstallPlan(): Promise<MobileAiInstallPlan> 
     canPrepareOnThisDevice,
     missingSignals: resourceParts.length === 0,
     pathLabel: isPortable
-      ? 'Lex usa il motore AI dello studio; installazione locale solo con app mobile compatibile e autorizzata.'
-      : 'Da questo PC IUSENTRA puo preparare Ollama e scaricare il modello.',
+      ? "Su telefono e tablet non si installa Ollama: Lex usa il motore AI nell'ambiente di produzione IUSENTRA."
+      : 'Da questo PC IUSENTRA può preparare Ollama e scaricare il modello.',
   }
 }
 

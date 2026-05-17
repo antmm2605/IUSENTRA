@@ -309,8 +309,11 @@ export type LexIndexingSummary = {
   indexing: number
   errors: number
   stale: number
+  not_indexed: number
+  archived: number
   last_indexed_at: string | null
   status: 'ready' | 'partial' | 'working' | 'error' | 'stale'
+  warnings: string[]
 }
 
 export type FascicoloDetailData = {
@@ -523,7 +526,7 @@ export const emptyFascicoloDetail: FascicoloDetailData = {
     source: '', sourceExternalId: '', lastSyncAt: '', syncStatus: '', importLogId: '', hasConflicts: false, documentSyncEnabled: false,
     eventsSyncEnabled: false, complianceControlsEnabled: true, archiveReady: false,
   },
-  quickCounts: {}, lexIndexing: { total_documents: 0, ready: 0, queued: 0, indexing: 0, errors: 0, stale: 0, last_indexed_at: null, status: 'ready' }, profile: [], documents: [], activities: [], deadlines: [], appointments: [], deposits: [], requests: [], parties: [], history: [],
+  quickCounts: {}, lexIndexing: { total_documents: 0, ready: 0, queued: 0, indexing: 0, errors: 0, stale: 0, not_indexed: 0, archived: 0, last_indexed_at: null, status: 'ready', warnings: [] }, profile: [], documents: [], activities: [], deadlines: [], appointments: [], deposits: [], requests: [], parties: [], history: [],
   economics: [], workflow: [], telematic: [], quality: [],
   regia: emptyRegiaOperativa,
   signature: { visibleSignatureMode: 'laterale', visibleSignaturePlace: '', visibleSignatureDatetimeMode: 'data_ora' },
@@ -918,8 +921,11 @@ function normalizeDetailPayload(payload: unknown): FascicoloDetailData {
       indexing: number(lexIndexingSource.indexing),
       errors: number(lexIndexingSource.errors),
       stale: number(lexIndexingSource.stale),
+      not_indexed: number(lexIndexingSource.not_indexed ?? lexIndexingSource.notIndexed),
+      archived: number(lexIndexingSource.archived),
       last_indexed_at: text(lexIndexingSource.last_indexed_at ?? lexIndexingSource.lastIndexedAt) || null,
       status: text(lexIndexingSource.status, 'ready') as LexIndexingSummary['status'],
+      warnings: asArray(lexIndexingSource.warnings).map((item) => text(item)).filter(Boolean).slice(0, 12),
     },
     profile: normalizeKeyValues(payload.profile),
     documents: asArray(payload.documents).map((entry, index) => {

@@ -15,7 +15,6 @@ from typing import Any
 
 from flask import current_app, g
 
-
 # ---------------------------------------------------------------------------
 # Helpers per tenant e accesso gestori
 # ---------------------------------------------------------------------------
@@ -238,6 +237,7 @@ def extract_entity_hint(query: str) -> dict[str, str]:
 
 _CLIENTE_QUERY_PREFIXES = (
     r"^\s*(?:mi\s+)?(?:dai|dati|dammi|dimmi)\s+(?:i\s+)?dati\s+(?:del|della|di|dell[o']|per\s+il)?\s*cliente\s+",
+    r"^\s*(?:mi\s+)?(?:dai|dammi|dimmi|mostra)\s+(?:la\s+)?(?:scheda|anagrafica|cartella)\s+(?:del|della|di|dell[o']|per\s+il)?\s*cliente\s+",
     r"^\s*(?:dati|scheda|recapiti|contatti|pec|email|telefono|indirizzo|codice\s+fiscale|cf|partita\s+iva|p\.?\s*iva)\s+(?:del|della|di|dell[o']|per\s+il)?\s*cliente\s+",
     r"^\s*(?:trova|cerca|mostra|apri)\s+(?:il\s+)?cliente\s+",
     r"^\s*cliente\s+",
@@ -365,7 +365,8 @@ def get_cliente_details(cliente_id: str, tenant_id: str | None = None) -> dict[s
     """Ritorna i dettagli completi di un cliente per ID."""
     try:
         gestore = _get_clienti()
-        row = gestore.ottieni(cliente_id)
+        getter = getattr(gestore, "ottieni", None) or getattr(gestore, "get", None)
+        row = getter(cliente_id) if callable(getter) else None
         if row is None:
             return {}
         return _cliente_to_result(row, gestore).to_dict()
@@ -382,7 +383,8 @@ def get_cliente_contacts(cliente_id: str, tenant_id: str | None = None) -> dict[
     """Ritorna solo i recapiti di un cliente (email, PEC, telefono, indirizzo)."""
     try:
         gestore = _get_clienti()
-        row = gestore.ottieni(cliente_id)
+        getter = getattr(gestore, "ottieni", None) or getattr(gestore, "get", None)
+        row = getter(cliente_id) if callable(getter) else None
         if row is None:
             return {}
         rec = getattr(row, "recapiti", None)
@@ -438,7 +440,8 @@ def get_fascicolo_details(fascicolo_id: str) -> FascicoloResult | None:
     """Ritorna i dettagli completi di un fascicolo per ID."""
     try:
         gestore = _get_fascicoli()
-        row = gestore.ottieni(fascicolo_id)
+        getter = getattr(gestore, "ottieni", None) or getattr(gestore, "get", None)
+        row = getter(fascicolo_id) if callable(getter) else None
         if row is None:
             return None
         return _fascicolo_to_result(row)

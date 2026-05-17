@@ -51,6 +51,24 @@ class _FascicoliManager(_ListManager):
     pass
 
 
+class _SoggettiManager(_ListManager):
+    def __init__(self, rows, parti_by_fascicolo=None):
+        super().__init__(rows)
+        self._parti_by_fascicolo = dict(parti_by_fascicolo or {})
+
+    def parti_fascicolo(self, fascicolo_id: str):
+        return list(self._parti_by_fascicolo.get(str(fascicolo_id), []))
+
+    def fascicoli_con_soggetto(self, soggetto_id: str):
+        result = []
+        for fascicolo_id, rows in self._parti_by_fascicolo.items():
+            for parte, soggetto in rows:
+                if str(getattr(soggetto, "id", "")) == str(soggetto_id) or str(getattr(parte, "id_soggetto", "")) == str(soggetto_id):
+                    result.append(fascicolo_id)
+                    break
+        return result
+
+
 class _PreventiviManager:
     def __init__(self, preventivi=None, conferimenti=None):
         self.preventivi = list(preventivi or [])
@@ -170,7 +188,32 @@ def _all_permissions() -> set[str]:
 
 
 def _base_repositories():
-    cliente = SimpleNamespace(id="cli-1", nome="Mario", cognome="Rossi", nome_completo="Mario Rossi", email="mario@example.test", tenant_id="tenant-a")
+    cliente = SimpleNamespace(
+        id="cli-1",
+        nome="Mario",
+        cognome="Rossi",
+        nome_completo="Mario Rossi",
+        tipo="PERSONA_FISICA",
+        stato="ATTIVO",
+        codice_fiscale="RSSMRA80A01H501U",
+        data_nascita="1980-01-01",
+        luogo_nascita="Roma",
+        provincia_nascita="RM",
+        nazionalita="Italiana",
+        sesso="M",
+        recapiti={"email": "mario@example.test", "pec": "mario@pec.test", "telefono": "061234"},
+        indirizzo_residenza={"via": "Via Roma", "civico": "10", "cap": "00100", "comune": "Roma", "provincia": "RM", "nazione": "Italia"},
+        documento={"tipo": "CARTA_IDENTITA", "numero": "AA123456", "rilasciato_da": "Comune di Roma", "data_rilascio": "2020-01-01", "data_scadenza": "2030-01-01"},
+        data_prima_acquisizione="2026-01-10",
+        provenienza="passaparola",
+        procedimenti=[{"numero_rg": "10", "anno": 2026, "tribunale": "Roma", "attivo": True}],
+        tag=["privato"],
+        consenso_trattamento=True,
+        data_consenso="2026-01-10",
+        modalita_consenso="digitale",
+        campi_mancanti_per_conferimento=[],
+        tenant_id="tenant-a",
+    )
     fascicolo = SimpleNamespace(
         id="fas-1",
         numero="RG 10/2026",
@@ -184,8 +227,35 @@ def _base_repositories():
         ],
         tenant_id="tenant-a",
     )
+    soggetto = SimpleNamespace(
+        id="sog-1",
+        nome="Luigi",
+        cognome="Bianchi",
+        nome_completo="Luigi Bianchi",
+        tipo="PERSONA_FISICA",
+        codice_fiscale="BNCLGU80A01H501Z",
+        data_nascita="1980-01-01",
+        luogo_nascita="Roma",
+        provincia_nascita="RM",
+        sesso="M",
+        recapiti={"email": "luigi@example.test", "pec": "luigi@pec.test", "telefono": "069999"},
+        indirizzo={"via": "Via Milano", "civico": "20", "cap": "00100", "comune": "Roma", "provincia": "RM", "nazione": "Italia"},
+        qualifica="Controparte",
+        id_cliente="",
+        note="Soggetto importato dal fascicolo telematico.",
+        tag=["controparte"],
+        tenant_id="tenant-a",
+    )
+    parte = SimpleNamespace(
+        id="parte-1",
+        id_soggetto="sog-1",
+        ruolo="CONTROPARTE",
+        note="Resistente nel procedimento.",
+        data_aggiunta="2026-05-01",
+    )
     return {
         "clienti": _ListManager([cliente]),
+        "soggetti": _SoggettiManager([soggetto], {"fas-1": [(parte, soggetto)]}),
         "fascicoli": _FascicoliManager([fascicolo]),
         "scadenziario": _ScadenziarioManager([SimpleNamespace(id="sca-1", titolo="Costituzione", id_fascicolo="fas-1", data_scadenza="2026-05-20")]),
         "agenda": _AgendaManager([SimpleNamespace(id="app-1", titolo="Udienza", id_cliente="cli-1", data_ora="2026-05-21T10:00:00")]),
@@ -262,10 +332,63 @@ def test_client_retrieval_uses_real_repositories_and_sources():
     answer = service.answer(question="Mostrami la situazione del cliente Rossi", user=user, studio=SimpleNamespace(slug="tenant-a"))
 
     assert answer is not None
-    assert "Cliente: Mario Rossi" in answer.answer
+    assert "Scheda cliente: Mario Rossi" in answer.answer
     assert any(source.source_id == "clienti" for source in answer.sources)
     assert any(source.source_id == "fascicoli" for source in answer.sources)
     assert "clienti.leggi" in " ".join(answer.permissions_applied)
+
+
+def test_client_card_question_returns_real_customer_sheet():
+    service, user = _service(repositories=_base_repositories())
+
+    answer = service.answer(question="Dammi la scheda cliente Rossi", user=user, studio=SimpleNamespace(slug="tenant-a"))
+
+    assert answer is not None
+    assert "Scheda cliente: Mario Rossi" in answer.answer
+    assert "Codice fiscale: RSSMRA80A01H501U." in answer.answer
+    assert "Nascita: 1980-01-01 a Roma (RM)." in answer.answer
+    assert "Residenza: Via Roma 10, 00100 Roma (RM)." in answer.answer
+    assert "Recapiti autorizzati: email mario@example.test; PEC mario@pec.test; telefono 061234." in answer.answer
+    assert "Documento: CARTA_IDENTITA, n. AA123456" in answer.answer
+    assert "Privacy: consenso trattamento registrato, data 2026-01-10, modalità digitale." in answer.answer
+    assert "Procedimenti in scheda: 1." in answer.answer
+    assert "Fascicoli collegati: 1" in answer.answer
+    assert "Non ho trovato dati reali sufficienti" not in answer.answer
+
+
+def test_subject_card_question_returns_real_party_sheet():
+    service, user = _service(repositories=_base_repositories())
+
+    answer = service.answer(question="Dammi la scheda soggetto Bianchi", user=user, studio=SimpleNamespace(slug="tenant-a"))
+
+    assert answer is not None
+    assert "Scheda soggetto: Luigi Bianchi." in answer.answer
+    assert "Codice fiscale: BNCLGU80A01H501Z." in answer.answer
+    assert "Nascita: 1980-01-01 a Roma (RM)." in answer.answer
+    assert "Indirizzo: Via Milano 20, 00100 Roma (RM)." in answer.answer
+    assert "Recapiti autorizzati: email luigi@example.test; PEC luigi@pec.test; telefono 069999." in answer.answer
+    assert "Note operative: Soggetto importato dal fascicolo telematico." in answer.answer
+    assert "CONTROPARTE: Luigi Bianchi" in answer.answer
+    assert any(source.source_id == "soggetti" for source in answer.sources)
+    assert "Non ho trovato dati reali sufficienti" not in answer.answer
+
+
+def test_parties_for_current_fascicolo_return_roles():
+    service, user = _service(repositories=_base_repositories())
+
+    answer = service.answer(
+        question="Quali sono le parti del fascicolo?",
+        user=user,
+        studio=SimpleNamespace(slug="tenant-a"),
+        metadata={"fascicolo_id": "fas-1"},
+    )
+
+    assert answer is not None
+    assert "Parti del fascicolo: 1." in answer.answer
+    assert "CONTROPARTE: Luigi Bianchi" in answer.answer
+    assert "CF BNCLGU80A01H501Z" in answer.answer
+    assert "Resistente nel procedimento." in answer.answer
+    assert any(obj.object_type == "parte" for obj in answer.objects)
 
 
 def test_client_context_id_resolves_this_client_without_guessing():
@@ -370,6 +493,19 @@ def test_pec_inventory_uses_dedicated_email_source_without_paths():
     assert any(source.source_id == "email_pec" for source in answer.sources)
     assert "Esito deposito" in str(payload)
     assert "D:/segreto" not in str(payload)
+
+
+def test_latest_pec_question_returns_real_latest_message_details():
+    service, user = _service(repositories=_base_repositories())
+
+    answer = service.answer(question="Qual è l'ultima PEC?", user=user, studio=SimpleNamespace(slug="tenant-a"))
+
+    assert answer is not None
+    assert "Ultima PEC trovata: Esito deposito." in answer.answer
+    assert "Mittente: Cancelleria." in answer.answer
+    assert "Data: 2026-05-17." in answer.answer
+    assert "Allegati: 1." in answer.answer
+    assert "Non ho trovato dati reali sufficienti" not in answer.answer
 
 
 def test_ordinary_email_inventory_has_dedicated_source():
@@ -546,6 +682,51 @@ def test_http_bridge_operational_layer_handles_studio_data_by_default(monkeypatc
     assert payload is not None
     assert payload["workflow"] == "operational_knowledge"
     assert payload["provider"] == "deterministic"
+
+
+def test_http_bridge_routes_pec_lookup_to_operational_layer(monkeypatch):
+    monkeypatch.delenv("LEX_OPERATIONAL_KNOWLEDGE_ENABLED", raising=False)
+    from lex.operational_knowledge.integration import build_operational_http_payload
+    from lex.operational_knowledge.models import OperationalAnswer, OperationalRoute, OperationalSourceReference
+
+    class _FakeOperationalKnowledgeService:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def answer(self, **kwargs):
+            return OperationalAnswer(
+                handled=True,
+                answer="Ultima PEC trovata: Esito deposito.",
+                route=OperationalRoute("communications_lookup", "communications_lookup", ("email_pec",), ""),
+                sources=[
+                    OperationalSourceReference(
+                        source_id="email_pec",
+                        source_name="Email PEC",
+                        source_type="email_pec",
+                        object_type="email",
+                        object_id="pec-1",
+                        title="Esito deposito",
+                        confidence=0.86,
+                    )
+                ],
+                confidence=0.86,
+                metadata={"operational_layer": True},
+            )
+
+    monkeypatch.setattr("lex.operational_knowledge.integration.OperationalKnowledgeService", _FakeOperationalKnowledgeService)
+
+    payload = build_operational_http_payload(
+        user=_User(_all_permissions()),
+        studio=SimpleNamespace(slug="tenant-a"),
+        data={},
+        current_user_message="Qual è l'ultima PEC?",
+        resolved_effective_question="Qual è l'ultima PEC?",
+        studio_context={"focus_topic": "pec_firma", "request_profile": {"intent": "pec_comunicazioni"}},
+    )
+
+    assert payload is not None
+    assert payload["workflow"] == "operational_knowledge"
+    assert payload["answer"] == "Ultima PEC trovata: Esito deposito."
 
 
 def test_http_bridge_defers_specific_case_law_to_public_research(monkeypatch):

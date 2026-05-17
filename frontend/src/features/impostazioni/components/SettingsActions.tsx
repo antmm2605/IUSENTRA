@@ -114,10 +114,11 @@ function MobileAiSetupPanel({
   onPreparePc: () => void
   preparing: boolean
 }) {
+  const isPortable = plan?.isPortable === true
   const rows = plan ? [
     { label: 'Dispositivo', value: plan.deviceLabel, icon: Smartphone },
     { label: 'Risorse rilevate', value: plan.resourceLabel, icon: Cpu },
-    { label: 'Modello consigliato', value: plan.modelLabel, icon: Bot },
+    { label: isPortable ? 'Language model' : 'Modello consigliato', value: plan.modelLabel, icon: Bot },
     { label: 'Percorso sicuro', value: plan.pathLabel, icon: ShieldCheck },
   ] : [
     { label: 'Dispositivo', value: 'Rilevamento in corso', icon: Smartphone },
@@ -129,11 +130,11 @@ function MobileAiSetupPanel({
         <div>
           <strong>AI su telefono e tablet</strong>
           <span>
-            IUSENTRA rileva il dispositivo e sceglie il percorso piu sicuro: modello locale solo quando il sistema lo consente, altrimenti Lex usa il motore AI dello studio.
+            Su telefono e tablet non si installa Ollama: Lex usa il motore AI nell'ambiente di produzione IUSENTRA.
           </span>
         </div>
-        <IusStatusBadge tone={plan?.isPortable ? 'info' : 'success'}>
-          {plan?.isPortable ? 'Mobile rilevato' : 'PC rilevato'}
+        <IusStatusBadge tone={isPortable ? 'info' : 'success'}>
+          {isPortable ? 'Telefono o tablet rilevato' : 'PC rilevato'}
         </IusStatusBadge>
       </div>
       <div className="iu-settings-mobile-ai__grid" aria-live="polite">
@@ -155,7 +156,16 @@ function MobileAiSetupPanel({
           <RefreshCw />
           <AlertTitle>Rilevamento incompleto</AlertTitle>
           <AlertDescription>
-            Questo dispositivo non espone RAM, core o spazio libero. IUSENTRA non forza download pesanti: usa Lex con il motore AI dello studio finche' il dispositivo non e' verificabile.
+            Questo dispositivo non espone RAM, core o spazio libero. IUSENTRA non forza download pesanti: usa Lex con il motore AI dello studio finché il dispositivo non è verificabile.
+          </AlertDescription>
+        </Alert>
+      ) : null}
+      {isPortable ? (
+        <Alert className="iu-settings-alert is-info">
+          <ShieldCheck />
+          <AlertTitle>Ollama resta nell'ambiente di produzione</AlertTitle>
+          <AlertDescription>
+            Il telefono o tablet usa IUSENTRA come interfaccia sicura. Il language model, gli embedding, il download dei modelli e l'indicizzazione restano nell'ambiente di produzione sempre acceso, così Lex continua a funzionare anche quando i PC dello studio sono spenti.
           </AlertDescription>
         </Alert>
       ) : null}
@@ -164,16 +174,20 @@ function MobileAiSetupPanel({
           <Bot data-icon="inline-start" />
           Apri Lex AI
         </Button>
-        <Button type="button" variant="outline" disabled={!plan?.canPrepareOnThisDevice || preparing} onClick={onPreparePc}>
-          <Smartphone data-icon="inline-start" />
-          {preparing ? 'Preparazione in corso' : 'Prepara su questo dispositivo'}
-        </Button>
-        <Button type="button" variant="outline" asChild>
-          <a href={installerHref} target="_blank" rel="noreferrer">
-            <Download data-icon="inline-start" />
-            Scarica Ollama ufficiale
-          </a>
-        </Button>
+        {!isPortable ? (
+          <>
+            <Button type="button" variant="outline" disabled={!plan?.canPrepareOnThisDevice || preparing} onClick={onPreparePc}>
+              <Cpu data-icon="inline-start" />
+              {preparing ? 'Preparazione in corso' : 'Prepara su questo PC'}
+            </Button>
+            <Button type="button" variant="outline" asChild>
+              <a href={installerHref} target="_blank" rel="noreferrer">
+                <Download data-icon="inline-start" />
+                Scarica Ollama ufficiale
+              </a>
+            </Button>
+          </>
+        ) : null}
       </div>
     </div>
   )
@@ -336,12 +350,12 @@ function LexDatasetStatusPanel({ status }: { status: Record<string, unknown> }) 
       void loadReviewQueue()
       return
     }
-    const label = asText(card.label) || 'Percorso Lex'
+    const label = asText(card.label) || 'Archivio Lex'
     window.dispatchEvent(new CustomEvent('iusentra:lex-context', {
       detail: {
-        context: asText(card.action_context) || 'impostazioni-ai-dataset',
+        context: asText(card.action_context) || 'impostazioni-ai-archivio',
         title: `Lex AI - ${label}`,
-        body: asText(card.note) || 'Controllo percorso dataset Lex dello studio.',
+        body: asText(card.note) || 'Controllo archivio e revisione Lex dello studio.',
         pagePath: window.location.pathname,
       },
     }))
@@ -349,12 +363,16 @@ function LexDatasetStatusPanel({ status }: { status: Record<string, unknown> }) 
   }
 
   return (
-    <section className="iu-settings-lex-dataset" aria-label="Percorso dataset Lex">
+    <section className="iu-settings-lex-dataset" aria-label="Archivio e revisione Lex">
       <div className="iu-settings-lex-dataset__head">
         <div>
-          <strong>Percorso dataset Lex</strong>
-          <span>{asText(privacy.message) || 'Il contesto resta nello studio e il dataset richiede revisione.'}</span>
+          <strong>Archivio e revisione Lex</strong>
+          <span>{asText(privacy.message) || "Il contesto resta nell'ambiente IUSENTRA autorizzato e gli esempi richiedono revisione."}</span>
           <span>{asText(schedule.label) ? `${asText(schedule.label)} ogni notte alle ${asText(schedule.time) || '01:45'}` : ''}</span>
+          <span>
+            Questo pannello non installa né addestra il language model: controlla documenti indicizzati,
+            coda di revisione ed export facoltativi.
+          </span>
         </div>
         <IusStatusBadge tone="info">{asText(status.storage_label) || 'Archivio riservato'}</IusStatusBadge>
       </div>
@@ -490,7 +508,7 @@ export function SettingsActions({
   const aiAutoChecked = useRef('')
 
   useEffect(() => {
-    if (section !== 'ai' || localAiResult || aiChecking) return
+    if (section !== 'ai' || !mobileAiPlan || mobileAiPlan.isPortable || localAiResult || aiChecking) return
     if (!data.local_signer.base_url || aiAutoChecked.current === aiAutoCheckKey) return
     aiAutoChecked.current = aiAutoCheckKey
     setAiChecking(true)
@@ -502,7 +520,7 @@ export function SettingsActions({
       .then(setLocalAiResult)
       .catch(() => undefined)
       .finally(() => setAiChecking(false))
-  }, [aiAutoCheckKey, aiChecking, data.local_signer.base_url, data.local_signer.restart_protocol, localAiResult, section, values])
+  }, [aiAutoCheckKey, aiChecking, data.local_signer.base_url, data.local_signer.restart_protocol, localAiResult, mobileAiPlan, section, values])
 
   useEffect(() => {
     if (section !== 'ai') return
@@ -557,6 +575,8 @@ export function SettingsActions({
     const payload = aiPayload(localAiResult, aiStatus)
     const rows = aiDetailRows(payload)
     const installerHref = aiInstallerHref(payload)
+    const isPortableAiDevice = mobileAiPlan?.isPortable === true
+    const isDetectingAiDevice = mobileAiPlan === null
 
     const runAiCheck = async () => {
       setAiChecking(true)
@@ -587,45 +607,64 @@ export function SettingsActions({
 
     return (
       <div className="iu-settings-actions-panel">
-        <div>
-          <strong>AI locale sul PC</strong>
-          <span>
-            IUSENTRA controlla il computer, sceglie i modelli adatti e prepara Ollama se manca.
-            Stato: <IusStatusBadge>{localAiResult?.ok ? 'pronta' : aiStatusLabel(aiStatus)}</IusStatusBadge>
-          </span>
-        </div>
-        <div className="iu-settings-actions-panel__buttons">
-          <Button type="button" variant="outline" disabled={aiChecking} onClick={() => { void runAiCheck() }}>
-            <RefreshCw data-icon="inline-start" />
-            {aiChecking ? 'Controllo in corso' : 'Verifica PC e modelli'}
-          </Button>
-          <Button type="button" variant="outline" disabled={aiPreparing} onClick={() => { void runAiPrepare() }}>
-            <Bot data-icon="inline-start" />
-            {aiPreparing ? 'Preparazione in corso' : 'Prepara AI locale'}
-          </Button>
-          <Button type="button" variant="outline" asChild>
-            <a href={installerHref} target="_blank" rel="noreferrer">
-              <Download data-icon="inline-start" />
-              Scarica Ollama
-            </a>
-          </Button>
-        </div>
-        <ResultAlert result={localAiResult || aiStatus} />
-        {rows.length > 0 && (
-          <div className="iu-settings-ai-grid" aria-live="polite">
-            {rows.map((row) => {
-              const Icon = row.icon
-              return (
-                <article key={row.label}>
-                  <Icon />
-                  <div>
-                    <span>{row.label}</span>
-                    <strong>{row.value}</strong>
-                  </div>
-                </article>
-              )
-            })}
+        {isDetectingAiDevice ? (
+          <div>
+            <strong>Rilevamento dispositivo</strong>
+            <span>IUSENTRA verifica se stai usando PC, telefono o tablet prima di proporre azioni locali.</span>
           </div>
+        ) : isPortableAiDevice ? (
+          <Alert className="iu-settings-alert is-info">
+            <ShieldCheck />
+            <AlertTitle>AI nell'ambiente di produzione</AlertTitle>
+            <AlertDescription>
+              Da telefono e tablet Lex usa il motore AI nell'ambiente di produzione IUSENTRA.
+              Language model, embedding e indice documenti restano in un ambiente sempre acceso;
+              i controlli locali di Ollama restano disponibili solo sui PC dello studio.
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <>
+            <div>
+              <strong>AI locale sul PC</strong>
+              <span>
+                IUSENTRA controlla il computer, sceglie i modelli adatti e prepara Ollama se manca.
+                Stato: <IusStatusBadge>{localAiResult?.ok ? 'pronta' : aiStatusLabel(aiStatus)}</IusStatusBadge>
+              </span>
+            </div>
+            <div className="iu-settings-actions-panel__buttons">
+              <Button type="button" variant="outline" disabled={aiChecking} onClick={() => { void runAiCheck() }}>
+                <RefreshCw data-icon="inline-start" />
+                {aiChecking ? 'Controllo in corso' : 'Verifica PC e modelli'}
+              </Button>
+              <Button type="button" variant="outline" disabled={aiPreparing} onClick={() => { void runAiPrepare() }}>
+                <Bot data-icon="inline-start" />
+                {aiPreparing ? 'Preparazione in corso' : 'Prepara AI locale'}
+              </Button>
+              <Button type="button" variant="outline" asChild>
+                <a href={installerHref} target="_blank" rel="noreferrer">
+                  <Download data-icon="inline-start" />
+                  Scarica Ollama
+                </a>
+              </Button>
+            </div>
+            <ResultAlert result={localAiResult || aiStatus} />
+            {rows.length > 0 && (
+              <div className="iu-settings-ai-grid" aria-live="polite">
+                {rows.map((row) => {
+                  const Icon = row.icon
+                  return (
+                    <article key={row.label}>
+                      <Icon />
+                      <div>
+                        <span>{row.label}</span>
+                        <strong>{row.value}</strong>
+                      </div>
+                    </article>
+                  )
+                })}
+              </div>
+            )}
+          </>
         )}
         <MobileAiSetupPanel
           plan={mobileAiPlan}

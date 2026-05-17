@@ -1,5 +1,24 @@
 # Changelog
 
+## Non rilasciato - 2026-05-17
+
+- Introdotta la fondazione monorepo pnpm workspace + Turborepo mantenendo `frontend` come app Vite/React reale.
+- Aggiunti i package privati `@iusentra/config`, `@iusentra/ui` e `@iusentra/api-client`, senza dati tenant o logica backend.
+- Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
+- Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
+
+## 2.245.16 - 2026-05-18
+
+- Lex AI operativo ora risponde a richieste reali come `Dammi la scheda cliente ...` usando anagrafica, recapiti, fascicoli e quadro economico autorizzati, senza cadere nel messaggio generico di dati insufficienti quando il cliente esiste.
+- Le richieste come `Qual è l'ultima PEC?` interrogano la casella PEC tenant-aware senza filtro spurio e restituiscono oggetto, mittente, destinatari, data, cartella e numero allegati.
+- La stessa lettura operativa è stata estesa a soggetti e parti: Lex ora restituisce scheda soggetto, recapiti, indirizzo, codice fiscale e ruoli processuali del fascicolo, invece di fermarsi a una ricerca anagrafica minimale.
+- L'indicizzazione Lex dei documenti fascicolo riconosce i `.pdf.p7m` leggibili come PDF e prova anche l'estrazione CAdES governata quando il contenitore è firmato davvero; la pagina fascicolo mostra quali documenti non sono stati letti o richiedono reindicizzazione.
+- Le bozze Lex di diffida/messa in mora vengono impaginate come documento: titolo, intestazione, destinatario, oggetto, sezioni `Fatto`, `Diritto`, `Richiesta formale`, `Avvertenza`, chiusura ed elenco dei dati da completare restano separati anche se il modello restituisce testo in una sola riga.
+- Il titolo e il pulsante della bozza Lex in chat salvano ora il testo come documento reale del fascicolo e aprono automaticamente l'editor professionale.
+- Su telefono e tablet `Impostazioni -> AI Locale` non propone più installazione Ollama o download modelli: Lex usa il language model, gli embedding e l'indice documenti sul server di produzione IUSENTRA, mentre il pannello `Archivio e revisione Lex` chiarisce che dataset/export sono facoltativi e non servono per usare il RAG ordinario.
+- Il bridge HTTP non manda più le letture PEC classificate come `pec_comunicazioni` nel flusso bozza/web quando la domanda chiede di consultare la casella; restano invece nel layer operativo deterministico.
+- Rafforzato il gateway dati studio per le varianti `scheda cliente` e per i gestori che espongono `get` invece di `ottieni`.
+
 ## 2.245.15 - 2026-05-17
 
 - Il backfill delle evidenze web legali ora può completare subito un riferimento preciso con `--backfill-query` o `--backfill-review-id`, senza aspettare che il lotto temporizzato raggiunga quel record.
@@ -7,14 +26,14 @@
 
 ## 2.245.14 - 2026-05-17
 
-- La ricerca Lex sulle evidenze web premia titolo, URL, allegato, numeri e frase esatta, così una query puntuale come Messaggio numero 685 del 26-02-2026 non viene superata da circolari più recenti ma generiche.
+- La ricerca Lex sulle evidenze web premia titolo, URL, allegato, numeri e frase esatta, così una query puntuale come `Messaggio numero 685 del 26-02-2026` non viene superata da circolari più recenti ma generiche.
 - Aumentato il bacino dei candidati SQL per le ricerche legali, evitando che evidenze esatte ma meno recenti restino fuori dai risultati prima del ranking.
 
 ## 2.245.13 - 2026-05-17
 
-- Il backfill delle evidenze web legali lavora per default solo sui record azionabili (pending, approved, published) ed esclude metadati chiusi/open-data, così il recupero non si perde su migliaia di righe non utili allo studio.
-- La verifica di recupero usa prima la fonte ufficiale diretta e gli allegati collegati, salva diagnosi insufficient quando manca una conferma e non dichiara completato un riferimento privo di URL/testo/allegato o motivo esplicito.
-- La CLI pct.legal_update_job --backfill-web-evidence ora accetta limite di tempo, stati, inclusione esplicita di record chiusi/open-data e ricerca estesa opzionale, per completare l'archivio a tranche misurabili senza job appesi.
+- Il backfill delle evidenze web legali lavora per default solo sui record azionabili (`pending`, `approved`, `published`) ed esclude metadati chiusi/open-data, così il recupero non si perde su migliaia di righe non utili allo studio.
+- La verifica di recupero usa prima la fonte ufficiale diretta e gli allegati collegati, salva diagnosi `insufficient` quando manca una conferma e non dichiara completato un riferimento privo di URL/testo/allegato o motivo esplicito.
+- La CLI `pct.legal_update_job --backfill-web-evidence` ora accetta limite di tempo, stati, inclusione esplicita di record chiusi/open-data e ricerca estesa opzionale, per completare l'archivio a tranche misurabili senza job appesi.
 
 ## 2.245.12 - 2026-05-17
 

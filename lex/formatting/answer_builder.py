@@ -6,6 +6,7 @@ from typing import Any
 
 from lex.contracts import LexResponse as WorkflowLexResponse
 from lex.domain.confidence import compute_confidence
+from lex.formatting.legal_draft_layout import normalize_legal_draft_layout
 from lex.guards.italian_response_guard import rewrite_or_reject_non_italian_response
 from lex.guards.user_facing_output_guard import check_output_safety
 from lex.research.case_law_exact_search import parse_case_law_reference
@@ -14,7 +15,6 @@ from lex.schemas import LexGroundingResult
 from .citations import build_citations
 from .professional_answer import ProfessionalAnswerComposer
 from .sections import build_sections
-
 
 _DRAFTING_LETTER_WORKFLOWS = {"drafting_legal_letter", "lettera", "bozza_lettera", "pec_comunicazioni"}
 
@@ -561,11 +561,13 @@ class AnswerBuilder:
     def _build_drafting_letter_response(self, *, request, draft, verdict, confidence: float) -> WorkflowLexResponse:
         answer = str(getattr(draft, "text", "") or "").strip()
         answer = rewrite_or_reject_non_italian_response(answer, {"workflow": "drafting_legal_letter", "request": request})
+        answer = normalize_legal_draft_layout(answer)
         _, answer = check_output_safety(
             answer,
             workflow="drafting_legal_letter",
             question=str(getattr(request, "query", "") or ""),
         )
+        answer = normalize_legal_draft_layout(answer)
         confidence = max(0.0, min(0.99, round(float(confidence or 0.72), 4)))
         return WorkflowLexResponse(
             answer=answer,

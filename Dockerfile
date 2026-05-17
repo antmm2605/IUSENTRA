@@ -1,4 +1,4 @@
-#  version: 2.245.15
+#  version: 2.245.16
 #  IUSENTRA | Dockerfile produzione
 
 #  Build multi-stage:
@@ -80,11 +80,19 @@ ENV NODE_ENV=production
 
 # Layer cache: ricompila solo se cambiano manifest/lock
 COPY package.json ./
+COPY pnpm-workspace.yaml ./
+COPY pnpm-lock.yaml ./
+COPY turbo.json ./
 COPY frontend/package.json frontend/package.json
-COPY frontend/package-lock.json frontend/package-lock.json
-RUN npm --prefix frontend ci --include=dev --no-audit --no-fund --loglevel=error
+COPY packages/config/package.json packages/config/package.json
+COPY packages/ui/package.json packages/ui/package.json
+COPY packages/api-client/package.json packages/api-client/package.json
+RUN corepack enable \
+    && corepack prepare pnpm@11.1.2 --activate \
+    && pnpm install --frozen-lockfile
 
 # Sorgenti del frontend + alias che puntano fuori da frontend/
+COPY packages ./packages
 COPY frontend ./frontend
 # Alias '@iusentra-data' → ../pct/data (vedi frontend/vite.config.ts)
 COPY pct/data ./pct/data
@@ -92,7 +100,8 @@ COPY pct/__init__.py ./pct/__init__.py
 
 # Build: vite legge outDir='../web/static/react' (relativo a frontend/),
 # quindi l'output finisce in /build/web/static/react/
-RUN npm --prefix frontend run build:vite \
+RUN corepack enable \
+    && pnpm --filter @iusentra/studio build:vite \
     && test -f /build/web/static/react/index.html
 
 
@@ -102,7 +111,7 @@ RUN npm --prefix frontend run build:vite \
 FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="IUSENTRA" \
-      org.opencontainers.image.version="2.245.15" \
+      org.opencontainers.image.version="2.245.16" \
       org.opencontainers.image.description="Gestionale PCT per studi legali italiani" \
       org.opencontainers.image.created="2026-03-18"
 

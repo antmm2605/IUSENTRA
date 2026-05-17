@@ -12,7 +12,6 @@ from .serializers import clean_spaces
 from .service import OperationalKnowledgeService
 from .settings import OperationalKnowledgeSettings
 
-
 _PUBLIC_LEGAL_FOCUS = {
     "ricerca_legale",
     "archivio_sentenze",
@@ -54,6 +53,22 @@ _DRAFTING_TERMS = (
     "messa in mora",
     "redigi",
     "scrivi",
+)
+_COMMUNICATION_LOOKUP_TERMS = (
+    "ultima pec",
+    "ultime pec",
+    "ultimo messaggio pec",
+    "messaggi pec",
+    "pec ricevut",
+    "pec inviat",
+    "ultima email",
+    "ultime email",
+    "email ricevut",
+    "email inviat",
+    "ultima posta",
+    "posta ordinaria",
+    "casella",
+    "allegati pec",
 )
 _STUDIO_DATA_TERMS = (
     "agenda",
@@ -160,9 +175,11 @@ def _should_defer_to_public_legal_research(
     intent = clean_spaces(request_profile.get("intent")).lower()
     focus_topic = clean_spaces(metadata.get("focus_topic") or studio_context.get("focus_topic")).lower()
     source_mode = clean_spaces(metadata.get("source_mode") or request_profile.get("source_mode")).lower()
+    has_studio_term = any(token in text for token in _STUDIO_DATA_TERMS)
+    if intent == "pec_comunicazioni" and has_studio_term and any(token in text for token in _COMMUNICATION_LOOKUP_TERMS):
+        return False
     if intent in _DRAFTING_INTENTS or any(token in text for token in _DRAFTING_TERMS):
         return True
-    has_studio_term = any(token in text for token in _STUDIO_DATA_TERMS)
     if intent in _STUDIO_DATA_INTENTS and (focus_topic in _STUDIO_DATA_FOCUS or has_studio_term):
         return False
     if focus_topic in _STUDIO_DATA_FOCUS and has_studio_term:

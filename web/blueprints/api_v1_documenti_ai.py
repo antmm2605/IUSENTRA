@@ -2,15 +2,16 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from functools import wraps
-from typing import Any, Callable
+from typing import Any
 
 from flask import Blueprint, current_app, g, jsonify, request
 
 from pct.document_intelligence import DocumentAIRecord
 from pct.document_intelligence.security import (
-    DocumentAIPermissionDenied,
     DocumentAINotFound,
+    DocumentAIPermissionDenied,
     DocumentAIValidationError,
 )
 from web.services.document_intelligence_runtime import (
@@ -21,7 +22,6 @@ from web.services.document_intelligence_runtime import (
     fascicoli_db_path,
 )
 from web.services.tenant_api_auth import api_key_valid_for_request
-
 
 api_v1_documenti_ai = Blueprint("api_v1_documenti_ai", __name__, url_prefix="/api/v1/ui")
 
@@ -119,8 +119,11 @@ def _serialize_lex_indexing(summary: dict[str, Any]) -> dict[str, Any]:
         "indexing": int(summary.get("indexing") or 0),
         "errors": int(summary.get("errors") or 0),
         "stale": int(summary.get("stale") or 0),
+        "not_indexed": int(summary.get("not_indexed") or 0),
+        "archived": int(summary.get("archived") or 0),
         "last_indexed_at": summary.get("last_indexed_at") or None,
         "status": str(summary.get("status") or "ready"),
+        "warnings": [str(item) for item in list(summary.get("warnings") or [])[:12]],
     }
 
 

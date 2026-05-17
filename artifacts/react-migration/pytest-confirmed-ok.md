@@ -1,12 +1,50 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-17, backfill mirato evidenze web legali, no backup.
+Aggiornato: 2026-05-18, Lex dati studio, soggetti/parti, bozze, AI mobile produzione e Documenti AI p7m.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Lex dati studio, bozze e Documenti AI p7m - 2026-05-18
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest tests\test_document_intelligence_api.py tests\test_document_intelligence_frontend.py tests\test_document_intelligence_hidden_ui.py tests\test_document_intelligence_auto_indexing.py tests\test_document_intelligence_extraction.py tests\test_lex_operational_knowledge.py -q` | OK | 58/58 passati: scheda cliente, scheda soggetto, parti fascicolo, ultima PEC, indicizzazione `.pdf.p7m`, payload API e warning UI sui documenti non letti. |
+| `python -m pytest tests\test_editor_ai_renderer.py tests\test_editor_ai_api.py tests\test_lex_drafting_intent.py::TestDiffidaTemplate -q` | OK | 12/12 passati: la bozza piatta di diffida viene reimpaginata, convertita in HTML editor e importata come documento reale del fascicolo con `open_url` verso l'editor professionale. |
+| `python -m pytest tests\test_editor_ai_renderer.py tests\test_editor_ai_api.py tests\test_lex_drafting_intent.py::TestDiffidaTemplate tests\test_impostazioni_ai_locale_react.py -q` | OK | 17/17 passati dopo il riallineamento AI mobile/server di produzione e archivio/revisione Lex. |
+| `node tests\js\lex_assistant_render.test.mjs` | OK | Il widget Lex normalizza l'esempio reale di diffida schiacciata e il titolo/pulsante `Apri nell'editor` invia la bozza all'API di importazione e apre l'URL editor restituito. |
+| `python -m pytest tests\test_impostazioni_ai_locale_react.py -q` | OK | 5/5 passati: su telefono/tablet la UI non propone installazione Ollama o download modelli, usa il server di produzione IUSENTRA per language model/embedding/indice e chiarisce che `Archivio e revisione Lex` non è un requisito per usare il RAG ordinario. |
+| `python -m ruff check web\blueprints\api_v1_editor_ai.py pct\editor_ai\editor_renderer.py lex\formatting\legal_draft_layout.py tests\test_editor_ai_renderer.py tests\test_editor_ai_api.py tests\test_lex_drafting_intent.py` | OK | Ruff mirato verde su import bozza chat, conversione HTML editor, normalizzazione bozze e test collegati. |
+| `python -m ruff check tests\test_impostazioni_ai_locale_react.py web\services\lex_dataset_training_status.py` | OK | Ruff mirato verde su test AI Locale e stato archivio/revisione Lex. |
+| `python -m ruff check pct\document_intelligence\indexer.py pct\document_intelligence\security.py pct\document_intelligence\extraction.py pct\document_intelligence\sources.py web\blueprints\api_v1_documenti_ai.py web\services\react_fascicoli_bridge.py lex\operational_knowledge\query_router.py lex\operational_knowledge\tools.py lex\operational_knowledge\response_composer.py lex\operational_knowledge\service.py lex\operational_knowledge\serializers.py lex\operational_knowledge\source_registry.py lex\formatting\legal_draft_layout.py lex\formatting\answer_builder.py lex\providers\deterministic_provider.py tests\test_document_intelligence_api.py tests\test_document_intelligence_frontend.py tests\test_document_intelligence_hidden_ui.py tests\test_document_intelligence_auto_indexing.py tests\test_document_intelligence_extraction.py tests\test_lex_operational_knowledge.py tests\test_lex_drafting_intent.py` | OK | Ruff mirato verde sul perimetro Lex operativo, Document Intelligence, API/UI fascicolo e impaginazione bozze. |
+| `npm --prefix frontend run typecheck -- --pretty false` | OK | TypeScript verde dopo l'estensione del payload `lex_indexing.warnings`, del pannello `Indicizzazione Lex` e della UI AI Locale mobile/server di produzione. |
+| `npm --prefix frontend run build` | OK | Build Vite verde dopo la modifica a `SettingsActions.tsx`/`localAi.ts`; asset hashati generati solo per verifica locale e poi rimossi dalla worktree perché il Dockerfile li ricompila in deploy. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py -q` | OK | Packaging sincronizzato e readiness 8/8 sul perimetro corrente. |
+| `python -m pct.cli utf8-integrity --check-only --root CHANGELOG.md --root docs\EDITOR_AI_FASCICOLO.md --root docs\DOCUMENTI_AI_FASCICOLO.md --root docs\lex-operational-knowledge-map.md --root artifacts\react-migration\pytest-confirmed-ok.md --root artifacts\react-migration\pytest-open-issues.md --json` | OK | 6 file controllati, `ok=true`, nessun mojibake o carattere sostitutivo; il report runtime generato è rigenerabile e non va committato. |
+| `python -m pct.cli utf8-integrity --check-only --root CHANGELOG.md --root docs\UI_DESIGN_SYSTEM.md --root docs\LEX_STUDIO_LLM_DATASET_PIPELINE.md --root docs\LEX_MOBILE_AI_QWEN35_EVALUATION.md --root docs\EDITOR_AI_FASCICOLO.md --root docs\DOCUMENTI_AI_FASCICOLO.md --root docs\lex-operational-knowledge-map.md --root artifacts\react-migration\pytest-confirmed-ok.md --root artifacts\react-migration\pytest-open-issues.md --json` | OK | 9 file controllati, `ok=true`, nessun mojibake o carattere sostitutivo dopo la copy su AI mobile e archivio/revisione Lex. |
+| Browser reale locale `/impostazioni?tab=ai` desktop + viewport mobile 390x844 | OK | Login test, tab AI Locale visibile, `Archivio e revisione Lex` presente, nessun vecchio `Percorso dataset Lex`, nessun `Prepara su questo dispositivo`, nessun `sul ambiente`, zero errori console e nessun overflow orizzontale mobile. |
+| Smoke reale su `.pdf.p7m` locale | OK | `AttoNonCodificato_33294205.pdf.p7m` estratto con engine `p7m:pdfplumber`, 1 pagina e 2226 caratteri; il fascicolo esatto `0D4A4802` non è presente nei dati locali. |
+| Smoke reale soggetti/parti | OK | Repository `GestioneSoggetti` reale: scheda soggetto risolta e 3 parti processuali lette dal fascicolo locale disponibile. |
+
+### Consolidamento codice per prova Railway - 2026-05-18
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest -q tests\test_document_intelligence_api.py tests\test_document_intelligence_auto_indexing.py tests\test_document_intelligence_extraction.py tests\test_document_intelligence_frontend.py tests\test_document_intelligence_hidden_ui.py tests\test_legal_update_batch_runner.py tests\test_legal_update_publish_context.py tests\test_lex_operational_knowledge.py tests\test_lex_sentenze_clienti_fix.py --tb=short` | OK | Gate mirato su Lex operativo, Document Intelligence, Fascicoli/indice Lex e Legal Update prima del commit per staging Railway. |
+| `python -m ruff check --config pyproject.toml ...`; `python -m py_compile ...` | OK | Ruff e sintassi Python verdi sui moduli toccati. |
+| `pnpm --filter @iusentra/studio typecheck`; `pnpm --filter @iusentra/studio build` | OK | TypeScript e build Vite verdi; gli asset statici generati localmente non sono stati inclusi nel commit perché il Dockerfile ricompila il bundle nello stage `frontend-builder`. |
+| `python -m pct.cli utf8-integrity --check-only --root CHANGELOG.md --root docs\LEX_PUBLIC_SOURCES_AND_STUDIO_DATA_AUDIT.md --root docs\lex-operational-knowledge-map.md --root artifacts\react-migration\pytest-confirmed-ok.md --root artifacts\react-migration\pytest-open-issues.md --json` | OK | 5 file controllati, `ok=true`, nessun mojibake o carattere sostitutivo. I report runtime generati dal comando sono stati rimossi e non committati. |
+
+### Lex dati studio cliente e PEC - 2026-05-18
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest tests/test_lex_operational_knowledge.py tests/test_lex_sentenze_clienti_fix.py tests/test_utf8_integrity.py -q` | OK | 61/61 passati: `Dammi la scheda cliente ...` restituisce scheda cliente reale con recapiti/fascicoli e `Qual è l'ultima PEC?` restituisce oggetto, mittente, destinatari, data, cartella e allegati dalla casella PEC tenant-aware. |
+| `python -m py_compile lex\operational_knowledge\query_router.py lex\operational_knowledge\tools.py lex\operational_knowledge\response_composer.py lex\operational_knowledge\integration.py lex\tools\studio_data_gateway.py` | OK | Sintassi confermata su router, tool email, compositore risposte, bridge HTTP e gateway dati studio. |
+| Smoke locale su tenant `antonella-mammola` con repository reali clienti/fascicoli/email | OK | `Dammi la scheda cliente Marco Moscato` risolve `client_situation` con fonti clienti/fascicoli/preventivi; `Qual e l'ultima PEC?` risolve `communications_lookup` con fonte `email_pec` e dettagli PEC reali. |
 
 ### Backfill mirato evidenze web legali - 2026-05-17
 

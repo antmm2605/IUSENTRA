@@ -220,12 +220,23 @@
     clean = clean
       .replace(/^Sintesi operativa\s+/i, '')
       .replace(/^Risposta:\s*/i, '')
-      .replace(/^(BOZZA\s+[^\n]+)(\n|$)/i, '**$1**$2')
+      .replace(/^\*{0,2}\s*(BOZZA\s*(?:[—–-]\s*)?(?:DIFFIDA E MESSA IN MORA|LETTERA[^\n.]{0,80}|PEC[^\n.]{0,80}|SOLLECITO[^\n.]{0,80}|CONTESTAZIONE[^\n.]{0,80}))\s*\*{0,2}\s*(?:\n{0,2}-{3,})?/i, '**$1**\n\n---\n\n')
       .replace(/\s*---\s*/g, '\n\n---\n\n');
 
-    var isFlatDraft = clean.split('\n').filter(function (line) { return line.trim(); }).length < 6 && clean.length > 260;
+    clean = clean
+      .replace(/\n?>\s*\*\*Dati da completare prima dell['’]invio:\*\*/i, "\n\n**Dati da completare prima dell'invio**")
+      .replace(/\s+Dati da completare prima dell['’]invio:\s*/i, "\n\n**Dati da completare prima dell'invio**\n\n")
+      .replace(/\s+>\s*-\s+/g, '\n- ')
+      .replace(/\n>\s*-\s+/g, '\n- ');
+
+    var nonEmptyLines = clean.split('\n').filter(function (line) { return line.trim(); }).length;
+    var hasFlatDraftMarkers = /Spett\.le[\s\S]{0,260}Oggetto:/i.test(clean) ||
+      /Fatto[\s\S]{0,220}Diritto/i.test(clean) ||
+      /Richiesta formale[\s\S]{0,260}Avvertenza/i.test(clean);
+    var isFlatDraft = (nonEmptyLines < 6 && clean.length > 260) || hasFlatDraftMarkers;
     if (isFlatDraft) {
       clean = clean
+        .replace(/\s+(\d{1,2}\/\d{1,2}\/\d{4})(?=\s+Spett\.le\b)/i, '\n\n$1\n\n')
         .replace(/\s+(Spett\.le)\s+/i, '\n\n**Spett.le**\n')
         .replace(/\s+(Oggetto:\s*)/i, '\n\n**Oggetto:** ')
         .replace(/\s+(Con la presente,)/i, '\n\n$1')
@@ -238,9 +249,16 @@
         .replace(/\s+(3[.)]\s+)/g, '\n$1')
         .replace(/\s+Avvertenza\s+/i, '\n\n**Avvertenza**\n\n')
         .replace(/\s+(Con osservanza,)/i, '\n\n---\n\n$1')
-        .replace(/\s+>\s*Dati da completare/i, '\n\n> **Dati da completare')
-        .replace(/\s+>\s*-\s+/g, '\n> - ');
+        .replace(/(\*\*Spett\.le\*\*\n[^\n]+?)\s+(\[[Ii]ndirizzo[^\]]+\])/i, '$1\n$2')
+        .replace(/(Con osservanza,)\s+(Avv\.[^\n]+)/i, '$1\n\n$2');
     }
+
+    clean = clean
+      .replace(/\n?>\s*\*\*Dati da completare prima dell['’]invio:\*\*/i, "\n\n**Dati da completare prima dell'invio**")
+      .replace(/\s+Dati da completare prima dell['’]invio:\s*/i, "\n\n**Dati da completare prima dell'invio**\n\n")
+      .replace(/\s+>\s*-\s+/g, '\n- ')
+      .replace(/\n>\s*-\s+/g, '\n- ')
+      .replace(/(\*\*Dati da completare prima dell['’]invio\*\*)\n(?=- )/i, '$1\n\n');
 
     clean = clean
       .replace(/\n{3,}/g, '\n\n')
@@ -1169,6 +1187,28 @@
     state.thinking.active = false;
   }
 
+  function currentFascicoloIdForDraft() {
+    var explicit = String(state.fascId || window.pctAiFascicoloId || '').trim();
+    if (explicit) {
+      return explicit;
+    }
+    var path = String(
+      (widget && widget.dataset && widget.dataset.pagePath) ||
+      window.location.pathname ||
+      ''
+    );
+    var match = path.match(/\/fascicoli\/([^/?#]+)/);
+    return match ? decodeURIComponent(match[1]) : '';
+  }
+
+  function editorImportUrlForDraft() {
+    var fascicoloId = currentFascicoloIdForDraft();
+    if (!fascicoloId) {
+      return '';
+    }
+    return '/api/v1/ui/fascicoli/' + encodeURIComponent(fascicoloId) + '/editor-ai/importa-bozza';
+  }
+
   function generatedDocumentPayload(payload) {
     if (!payload || !payload.answer) {
       return null;
@@ -1189,6 +1229,8 @@
       citations: Array.isArray(payload.citations) ? payload.citations.filter(Boolean) : [],
       contextLabel: ctx && !ctx.hidden && ctxLabel ? String(ctxLabel.textContent || '').trim() : '',
       exportUrl: widget && widget.dataset ? widget.dataset.exportDocumentUrl || '' : '',
+      editorImportUrl: editorImportUrlForDraft(),
+      fascicoloId: currentFascicoloIdForDraft(),
     };
   }
 
@@ -3047,14 +3089,29 @@
           send();
           return;
         }
+        var openButton = event.target.closest('[data-generated-open-editor]');
         var button = event.target.closest('[data-generated-download]');
         var docs = documentsHelper();
-        if (!button || !docs) {
+        if ((!openButton && !button) || !docs) {
           return;
         }
-        var bubble = button.closest('.pct-ai-bubble');
+        var bubble = (openButton || button).closest('.pct-ai-bubble');
         var payload = bubble && bubble._generatedDocument;
         if (!payload) {
+          return;
+        }
+        if (openButton && docs.openGeneratedInEditor) {
+          setStatus('Apro la bozza nell\'editor professionale...');
+          docs.openGeneratedInEditor(payload)
+            .then(function () {
+              setStatus('Bozza aperta nell\'editor professionale.');
+            })
+            .catch(function (error) {
+              setStatus('Apertura nell\'editor non riuscita: ' + String((error && error.message) || 'errore sconosciuto'));
+            });
+          return;
+        }
+        if (!button) {
           return;
         }
         var format = String(button.getAttribute('data-generated-download') || '');

@@ -80,7 +80,7 @@ class OperationalKnowledgeService:
             return self._client_route(route, context, entity_query, cliente_id=cliente_id)
 
         if route.intent == "soggetti_lookup":
-            return [self.tools.search_soggetti(entity_query, context, limit=self.settings.max_results)]
+            return self._soggetti_route(context, entity_query, fascicolo_id=fascicolo_id)
 
         if route.intent == "fascicolo_summary":
             return self._fascicolo_route(context, entity_query, fascicolo_id=fascicolo_id)
@@ -231,6 +231,20 @@ class OperationalKnowledgeService:
             self.tools.get_parcelle_by_fascicolo(target, context),
             self.tools.get_attivita_by_fascicolo(target, context),
         ]
+
+    def _soggetti_route(self, context, entity_query: str, *, fascicolo_id: str = "") -> list[OperationalToolResult]:
+        results: list[OperationalToolResult] = []
+        if fascicolo_id:
+            results.append(self.tools.parti_by_fascicolo(fascicolo_id, context))
+            if not entity_query:
+                return results
+        soggetti = self.tools.search_soggetti(entity_query, context, limit=self.settings.max_results)
+        results.append(soggetti)
+        if soggetti.ok and len(soggetti.data or []) == 1:
+            soggetto_id = str((soggetti.data or [{}])[0].get("id") or "")
+            if soggetto_id:
+                results.append(self.tools.parti_by_soggetto(soggetto_id, context))
+        return results
 
     def _communications_route(
         self,

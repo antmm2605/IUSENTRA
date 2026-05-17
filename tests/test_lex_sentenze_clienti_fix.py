@@ -9,8 +9,6 @@ CASO 2: "dati del cliente marco moscato"
 
 from __future__ import annotations
 
-from unittest.mock import patch
-
 
 # ─────────────────────────────────────────────────────────────────
 # TC-01  should_run_public_research — giurisprudenza_specifica
@@ -238,6 +236,12 @@ def test_router_cliente_nome_secco_goes_to_studio_data_lookup():
     )
 
     assert LexRouter().resolve_workflow(request) == "studio_data_lookup"
+
+
+def test_studio_data_gateway_cleans_scheda_cliente_question():
+    from lex.tools.studio_data_gateway import clean_cliente_query
+
+    assert clean_cliente_query("Dammi la scheda cliente Marco Moscato") == "Marco Moscato"
 
 
 def test_http_bridge_preserves_specific_case_law_and_client_workflow():

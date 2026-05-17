@@ -60,6 +60,7 @@ export type GiurisprudenzaSource = {
   lastRunAt: string
   stateLabel: string
   stateTone: LegalTone
+  resolutionNote: string
   count: number
   evidenceType: string
 }
@@ -247,6 +248,7 @@ function normaliseSource(input: unknown): GiurisprudenzaSource {
     lastRunAt: text(item.lastRunAt),
     stateLabel: text(item.stateLabel),
     stateTone: tone(item.stateTone),
+    resolutionNote: text(item.resolutionNote),
     count: integer(item.count),
     evidenceType: text(item.evidenceType) || 'fonte',
   }

@@ -55,6 +55,25 @@ def test_scheduler_registry_crea_agenti_fonte_legale_da_catalogo(tmp_path: Path)
     assert job["trigger_kind"] == "manual"
     assert job["args"]["kind"] == "legal_update_source_scan"
     assert job["args"]["source_code"] == "gazzetta_ufficiale"
+    ga_job = repo.get_job("legal_source_giustizia_amministrativa")
+    assert ga_job is not None
+    assert ga_job["enabled"] is False
+
+
+def test_agente_fonte_in_osservazione_propone_alternativa_ufficiale(tmp_path: Path):
+    class App:
+        config = {"LEGAL_INTELLIGENCE_DB": str(tmp_path / "intelligence" / "motori.json")}
+
+    result = run_delegated_agent_template(
+        "legal_source_scan__giustizia_amministrativa",
+        App(),
+        {"source_code": "giustizia_amministrativa"},
+    )
+
+    assert result["ok"] is False
+    assert "Da verificare" in result["self_check"]
+    assert "OpenGA ufficiale" in result["supervisor_check"]
+    assert result["details"][0]["status"] == "in_osservazione"
 
 
 def test_delegated_agent_autoverifica_percorso_mancante(tmp_path: Path):

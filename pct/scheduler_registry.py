@@ -530,6 +530,7 @@ class SchedulerRegistryRepository:
                         family=excluded.family,
                         description=excluded.description,
                         template_key=excluded.template_key,
+                        enabled=excluded.enabled,
                         args_json=excluded.args_json,
                         editable=excluded.editable
                     """,
@@ -976,6 +977,33 @@ def _run_legal_source_agent(app, args: dict[str, Any]) -> dict[str, Any]:
                 "self_check": "Non superato: la fonte richiesta non e' censita.",
                 "supervisor_check": "Bloccato: non si eseguono fonti non autorizzate.",
                 "details": [{"source_code": source_code, "status": "non_censita"}],
+            }
+        if not bool(source.get("enabled")):
+            alternative = "OpenGA ufficiale"
+            if source_code == "giustizia_amministrativa":
+                alternative = "OpenGA ufficiale (openga_giustizia_amministrativa e cartelle openga_*)"
+            return {
+                "ok": False,
+                "summary": f"{source.get('name')}: fonte diretta in osservazione, presidio spostato su {alternative}.",
+                "self_check": "Da verificare: il canale diretto non viene usato come fonte primaria.",
+                "supervisor_check": (
+                    "Risoluzione applicata: non si insiste sul canale instabile; "
+                    f"il controllo automatico passa da {alternative}."
+                ),
+                "criteria": [
+                    "Fonte censita nel catalogo aggiornamenti legali.",
+                    "Canale diretto disattivato quando non e' stabile.",
+                    "Presidio alternativo ufficiale mantenuto nel ciclo automatico.",
+                ],
+                "details": [
+                    {
+                        "source_code": source_code,
+                        "source_name": source.get("name"),
+                        "status": "in_osservazione",
+                        "alternative": alternative,
+                        "notes": source.get("notes") or "",
+                    }
+                ],
             }
         timeout_seconds = _coerce_int(
             cfg.get("LEGAL_UPDATES_ITEM_TIMEOUT_SECONDS")

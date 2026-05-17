@@ -310,6 +310,40 @@ def test_sync_corte_costituzionale_importa_dataset_open_data(tmp_path: Path):
     assert "illegittimita costituzionale" in record["testo_normalizzato"].lower()
 
 
+def test_sync_corte_costituzionale_usa_zip_diretto_se_pagina_indice_fallisce(tmp_path: Path):
+    gestore = GestioneGiurisprudenza(str(tmp_path / "giurisprudenza.json"))
+    page_url = "https://dati.cortecostituzionale.it/Scarica_i_dati/Scarica_i_dati"
+    zip_url = "https://dati.cortecostituzionale.it/opendata/distribuzione/pronunce/P_json2001_oggi.zip"
+    zip_bytes = _build_corte_cost_zip(
+        [
+            {
+                "numero_pronuncia": "88",
+                "anno_pronuncia": "2026",
+                "data_deposito": "2026-04-12",
+                "epigrafe": "Giudizio in via principale.",
+                "testo": "La Corte decide sul conflitto.",
+                "tipologia_pronuncia": "S",
+                "ecli": "ECLI:IT:COST:2026:88",
+            }
+        ]
+    )
+
+    report = gestore.sync_sources(
+        source_ids=["corte_costituzionale"],
+        request_get=_dummy_get_factory(
+            {
+                page_url: {"content": "errore temporaneo", "status_code": 503},
+                zip_url: {"content": zip_bytes, "content_type": "application/zip"},
+            }
+        ),
+    )
+
+    rows = gestore.cerca(source_system="corte_costituzionale")
+    assert report["ok"] is True
+    assert report["imported_total"] == 1
+    assert rows[0]["ecli"] == "ECLI:IT:COST:2026:88"
+
+
 def test_sync_fonte_pubblica_importa_candidati(tmp_path: Path):
     gestore = GestioneGiurisprudenza(str(tmp_path / "giurisprudenza.json"))
     html = b"""
@@ -413,6 +447,33 @@ def test_sync_fonte_protetta_restituisce_handoff(tmp_path: Path):
     assert report["ok"] is True
     assert report["imported_total"] == 0
     assert report["runs"][0]["status"] == "handoff_richiesto"
+
+
+def test_sync_giustizia_amministrativa_usa_presidio_openga_senza_crawler_html(tmp_path: Path):
+    gestore = GestioneGiurisprudenza(str(tmp_path / "giurisprudenza.json"))
+
+    report = gestore.sync_sources(source_ids=["giustizia_amministrativa"])
+
+    fonte = next(row for row in gestore.catalogo_fonti() if row["id"] == "giustizia_amministrativa")
+    assert report["ok"] is True
+    assert report["runs"][0]["status"] == "da_verificare"
+    assert report["runs"][0]["fallback_source_id"] == "openga"
+    assert fonte["supports_auto_sync"] is False
+    assert fonte["fallback_label"] == "OpenGA ufficiale"
+
+
+def test_react_giurisprudenza_mostra_da_verificare_e_soluzione_alternativa(tmp_path: Path):
+    from web.services.react_giurisprudenza_bridge import build_react_giurisprudenza_payload
+
+    gestore = GestioneGiurisprudenza(str(tmp_path / "giurisprudenza.json"))
+    gestore.sync_sources(source_ids=["giustizia_amministrativa"])
+
+    payload = build_react_giurisprudenza_payload(get_giurisprudenza=lambda: gestore)
+    fonte = next(row for row in payload["sources"] if row["id"] == "giustizia_amministrativa")
+
+    assert fonte["stateLabel"] == "Da verificare"
+    assert fonte["stateTone"] == "warning"
+    assert "OpenGA" in fonte["resolutionNote"]
 
 
 def test_importa_da_url_pubblico_compila_metadati(tmp_path: Path):

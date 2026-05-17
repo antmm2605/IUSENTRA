@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.245.1 - 2026-05-17
+
+- La fonte diretta `Giustizia Amministrativa` e' ora in osservazione: il ciclo automatico non insiste sul canale HTML instabile e usa OpenGA ufficiale come presidio principale per amministrativo.
+- Gli agenti fonte marcano come `failed` i report interni con errore anche quando il subprocess termina a zero, evitando esiti falsamente completati.
+- Il job `legal_source_giustizia_amministrativa` viene generato disattivato e, se avviato manualmente, spiega la soluzione alternativa: OpenGA CKAN e cartelle `openga_*`.
+- L'Archivio Giurisprudenza non mostra piu' codici grezzi come `errore` o `handoff_richiesto`: usa stati operativi `Da verificare`, `Aggiornata` e `Recupero assistito`, con nota di risoluzione quando esiste un presidio alternativo ufficiale.
+- Rafforzate le alternative ufficiali del catalogo giurisprudenza: Cassazione usa la pagina pubblica delle ultime sentenze/ordinanze, Corte costituzionale tenta direttamente lo ZIP open data se l'indice non risponde, CURIA usa il feed RSS ufficiale e HUDOC dichiara il canale RSS come fallback.
+
 ## 2.245.0 - 2026-05-17
 
 - Aggiunti gli agenti per fonte legale: ogni canale del catalogo ha un job governato `legal_source_<codice>` visibile in `/admin/pianificazioni`, avviabile manualmente e modificabile senza esporre comandi shell.

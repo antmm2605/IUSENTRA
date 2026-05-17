@@ -6,6 +6,24 @@ Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle
 
 ## Aggiornamento operativo 2.243.5 - 2026-05-16
 
+Aggiornamento 2.245.1: per Giustizia Amministrativa il canale HTML
+istituzionale diretto e' stato messo in osservazione, perche' puo' fallire in
+modo instabile durante crawler/SSL. Il presidio automatico principale passa a
+OpenGA ufficiale (`openga_giustizia_amministrativa` e cartelle `openga_*`),
+che espone dataset CKAN per sentenze, ordinanze, decreti, pareri,
+provvedimenti, ricorsi e calendario udienze. Gli agenti fonte non marcano piu'
+come completata una scansione che contiene errori interni: l'esito diventa
+`failed`/da verificare e registra anche la soluzione alternativa applicata.
+La pagina React `Archivio Giurisprudenza` traduce gli stati tecnici in esiti
+operativi: `Da verificare`, `Aggiornata` o `Recupero assistito`; per la fonte
+diretta amministrativa espone la nota di risoluzione verso OpenGA invece di
+lasciare un errore non governato.
+Lo stesso criterio e' applicato alle altre fonti giurisprudenziali: Cassazione
+ha come canale automatico la pagina ufficiale delle ultime sentenze e ordinanze,
+Corte costituzionale tenta direttamente lo ZIP open data se la pagina indice
+fallisce, CURIA usa il feed RSS ufficiale e HUDOC espone il fallback RSS per
+ricerche salvate.
+
 Aggiornamento 2.245.0: le fonti legali sono governate anche come agenti
 separati. Il batch con timeout resta il percorso notturno principale, ma ogni
 fonte registra una run autonoma in `source_agent_runs` con stato, durata,

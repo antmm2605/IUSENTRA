@@ -241,7 +241,7 @@ export async function getLegalIntelligenceNewsPage(): Promise<LegalIntelligenceP
 }
 
 export async function getLegalIntelligenceMediazionePage(): Promise<LegalIntelligencePageData> {
-  const payload = await apiJson<unknown>('/api/v1/ui/ricerca-legale/mediazione', emptyLegalIntelligencePage)
+  const payload = await apiJson<unknown>('/api/v1/ui/legal-intelligence/mediazione', emptyLegalIntelligencePage)
   return normalisePage(payload)
 }
 

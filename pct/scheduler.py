@@ -496,7 +496,6 @@ def start_scheduler(app):
                 "dati_normattiva",
                 "corte_costituzionale",
                 "cassazione_massimario",
-                "giustizia_amministrativa",
                 "openga_giustizia_amministrativa",
                 "openga_calendario_udienze",
                 "openga_decreti",

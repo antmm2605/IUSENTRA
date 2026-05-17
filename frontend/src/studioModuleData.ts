@@ -226,7 +226,14 @@ export const studioModules: StudioModuleConfig[] = [
   },
   {
     id: 'ricerca-legale',
-    routes: ['/ricerca-legale', '/ricerca-legale/news', '/ricerca-legale/mediazione', '/ricerca-legale/ricerca'],
+    routes: [
+      '/ricerca-legale',
+      '/ricerca-legale/news',
+      '/ricerca-legale/mediazione',
+      '/ricerca-legale/ricerca',
+      '/legal-intelligence/news',
+      '/legal-intelligence/mediazione',
+    ],
     title: 'Ricerca Legale',
     section: 'Ricerca legale',
     subtitle: 'Monitoraggio normativo, aggiornamenti, news, mediazione e fonti da collegare al lavoro di studio.',

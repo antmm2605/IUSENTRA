@@ -68,6 +68,30 @@ def _tone_from_status(value: Any) -> str:
     return "info"
 
 
+def _source_state(row: Mapping[str, Any], last_status: str) -> tuple[str, str, str]:
+    source_id = _text(row.get("id") or row.get("source_system") or row.get("nome"))
+    raw = _text(last_status).lower()
+    fallback_label = _text(row.get("fallback_label"))
+    fallback_note = _text(row.get("fallback_note"))
+    if raw == "ok":
+        return "Aggiornata", "success", fallback_note
+    if raw in {"vuoto", "mai_eseguito"}:
+        return "Da verificare", "warning", fallback_note or "Fonte censita: il prossimo recupero controllera' nuovi provvedimenti."
+    if raw == "errore" and fallback_label:
+        return "Da verificare", "warning", f"Soluzione alternativa: {fallback_label}. {fallback_note}".strip()
+    if raw == "errore":
+        return "Da verificare", "warning", "L'agente deve rieseguire il controllo e cercare un canale ufficiale alternativo."
+    if raw == "handoff_richiesto":
+        return "Recupero assistito", "warning", "Serve accesso guidato al portale ufficiale o import di materiale legittimamente ottenuto."
+    if raw == "da_verificare":
+        return "Da verificare", "warning", fallback_note
+    if source_id == "manuale_interno":
+        return "Inserimento interno", "info", ""
+    if _text(row.get("access_mode")) in {"materiale_cliente", "manuale"}:
+        return "Import assistito", "warning", "Usare solo materiale fornito o autorizzato dallo studio."
+    return last_status or "Fonte censita", _tone_from_status(last_status), fallback_note
+
+
 def _count_section(sid: str, title: str, kind: str, values: list[str], empty: str) -> dict[str, Any]:
     counter = Counter(value for value in values if value)
     items = [
@@ -80,7 +104,8 @@ def _count_section(sid: str, title: str, kind: str, values: list[str], empty: st
 def _safe_source(row: Mapping[str, Any]) -> dict[str, Any]:
     source_id = _text(row.get("id") or row.get("source_system") or row.get("nome"))
     last_run = row.get("last_run") if isinstance(row.get("last_run"), dict) else {}
-    last_status = _text(last_run.get("status") or row.get("sync_status") or row.get("access_mode"))
+    last_status = _text(last_run.get("status") or row.get("sync_status"))
+    state_label, state_tone, resolution_note = _source_state(row, last_status)
     return {
         "id": source_id,
         "label": _text(row.get("nome") or row.get("name") or source_id) or "Fonte",
@@ -90,8 +115,9 @@ def _safe_source(row: Mapping[str, Any]) -> dict[str, Any]:
         "sourceHref": _safe_href(row.get("official_url") or row.get("search_url")),
         "legacyHref": "",
         "lastRunAt": _text(last_run.get("ended_at") or last_run.get("checked_at") or last_run.get("started_at")),
-        "stateLabel": last_status or "Fonte censita",
-        "stateTone": _tone_from_status(last_status),
+        "stateLabel": state_label,
+        "stateTone": state_tone,
+        "resolutionNote": resolution_note,
         "count": int(row.get("judgment_count") or 0),
         "evidenceType": "fonte",
     }

@@ -62,6 +62,44 @@ def _extract_source_report(result: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _source_payload_errors(result: dict[str, Any]) -> list[str]:
+    payload = result.get("payload") or {}
+    report = payload.get("report") or {}
+    rows = list(report.get("reports") or [])
+    errors = [
+        str(row.get("error") or "").strip()
+        for row in rows
+        if str(row.get("error") or "").strip()
+    ]
+    if str(payload.get("error") or "").strip():
+        errors.append(str(payload.get("error")).strip())
+    return errors
+
+
+def _normalize_source_subprocess_result(result: dict[str, Any]) -> dict[str, Any]:
+    errors = _source_payload_errors(result)
+    if not errors:
+        return result
+    normalized = dict(result)
+    normalized["ok"] = False
+    normalized["inner_errors"] = errors
+    return normalized
+
+
+def _source_error_message(result: dict[str, Any], row_errors: list[str]) -> str:
+    message = str(result.get("stderr") or "")
+    if row_errors:
+        message = row_errors[0]
+    if str(result.get("label") or "") == "giustizia_amministrativa" and row_errors:
+        message = (
+            f"{message} Risoluzione automatica: fonte HTML diretta in osservazione; "
+            "presidio automatico affidato a OpenGA ufficiale."
+        )
+    if result.get("timeout"):
+        message = f"Timeout dopo {int(result.get('seconds') or 0)} secondi."
+    return message
+
+
 def _record_source_agent_run(
     config: LegalUpdateJobConfig,
     result: dict[str, Any],
@@ -80,20 +118,10 @@ def _record_source_agent_run(
         source = repository.get_source_by_code(source_code) or {}
         metrics = _extract_source_report(result)
         timeout = bool(result.get("timeout"))
-        ok = bool(result.get("ok"))
+        row_errors = _source_payload_errors(result)
+        ok = bool(result.get("ok")) and not row_errors
         payload = result.get("payload") or {}
-        report = payload.get("report") or {}
-        rows = list(report.get("reports") or [])
-        row_errors = [
-            str(row.get("error") or "")
-            for row in rows
-            if str(row.get("error") or "").strip()
-        ]
-        error_message = str(result.get("stderr") or "")
-        if row_errors:
-            error_message = row_errors[0]
-        if timeout:
-            error_message = f"Timeout dopo {int(result.get('seconds') or 0)} secondi."
+        error_message = _source_error_message(result, row_errors)
         repository.record_source_agent_run(
             source_code=source_code,
             source_name=source_name or str(source.get("name") or ""),
@@ -227,6 +255,7 @@ def run_legal_update_publish_queue_with_timeouts(
             timeout_seconds=item_timeout_seconds,
             runner=runner,
         )
+        result = _normalize_source_subprocess_result(result)
         reports.append(result)
         if not result.get("ok"):
             break
@@ -264,6 +293,7 @@ def run_legal_update_batch_with_timeouts(
             timeout_seconds=item_timeout_seconds,
             runner=runner,
         )
+        result = _normalize_source_subprocess_result(result)
         reports.append(result)
         if should_record_runs:
             _record_source_agent_run(config, result, trigger_label="batch")

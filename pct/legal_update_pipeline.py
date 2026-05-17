@@ -94,10 +94,14 @@ DEFAULT_SOURCE_ROWS: tuple[dict[str, Any], ...] = (
         "source_type": "web",
         "trust_class": "A",
         "is_official": True,
-        "enabled": True,
+        "enabled": False,
         "polling_minutes": 180,
         "parser_type": "html",
-        "notes": "Provvedimenti di TAR e Consiglio di Stato.",
+        "notes": (
+            "Fonte istituzionale diretta mantenuta in osservazione: il sito HTML "
+            "pubblico puo' essere instabile per crawler e verifiche SSL. Il presidio "
+            "automatico principale usa OpenGA CKAN ufficiale nelle fonti openga_*."
+        ),
     },
     {
         "name": "OpenGA Giustizia Amministrativa",

@@ -1,12 +1,23 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-17, agenti fonte legale 2.245.0, no backup.
+Aggiornato: 2026-05-17, agenti fonte legale verificabili 2.245.1, no backup.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Agenti fonte e fallback giurisprudenza 2.245.1 - 2026-05-17
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct\legal_update_batch_runner.py pct\legal_update_pipeline.py pct\scheduler.py pct\scheduler_registry.py pct\giurisprudenza.py pct\giurisprudenza_repository.py web\services\react_giurisprudenza_bridge.py tests\test_legal_update_batch_runner.py tests\test_scheduler_registry.py tests\test_giurisprudenza.py` | OK | Sintassi confermata dopo agenti fonte `Da verificare`, Giustizia Amministrativa in osservazione, fallback OpenGA e stati operativi Archivio Giurisprudenza. |
+| `python -m pytest tests\test_legal_update_batch_runner.py tests\test_scheduler_registry.py tests\test_scheduler_worker.py tests\test_giurisprudenza.py tests\test_legal_updates_pipeline.py::test_pagina_fonti_mostra_catalogo_professionale_e_ciclo_giornaliero -q --tb=short` | OK | 37/37 passati: runner fonte non maschera errori interni, template fonte disattivano canali in osservazione, Archivio Giurisprudenza mostra `Da verificare` con soluzione alternativa e Corte costituzionale usa lo ZIP diretto se l'indice fallisce. |
+| `python -m ruff check pct\legal_update_batch_runner.py pct\legal_update_pipeline.py pct\scheduler.py pct\scheduler_registry.py pct\giurisprudenza.py pct\giurisprudenza_repository.py web\services\react_giurisprudenza_bridge.py tests\test_legal_update_batch_runner.py tests\test_scheduler_registry.py tests\test_giurisprudenza.py` | OK | Ruff mirato verde sui file agenti fonte e giurisprudenza. |
+| `npm --prefix frontend run typecheck -- --pretty false` | OK | TypeScript confermato dopo aggiunta `resolutionNote` nelle schede fonte React. |
+| `node frontend\scripts\check-react-contracts.mjs`; `npm --prefix frontend run build` | OK | Contratti React e build Vite verdi dopo fallback fonte, protezione rotte profonde Legal Intelligence e alias espliciti Ricerca Legale. Gli asset hashati locali sono stati ripuliti perche' il Dockerfile li rigenera in deploy. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py -q --tb=short`; `python scripts\validate_docs_links.py docs\LEX_PUBLIC_SOURCES_AND_STUDIO_DATA_AUDIT.md docs\REACT_MIGRATION_MASTER_PLAN.md CHANGELOG.md artifacts\react-migration\pytest-confirmed-ok.md artifacts\react-migration\pytest-open-issues.md`; `python scripts\validate_docs_commands.py` | OK | Packaging sincronizzato, readiness 8/8, link e comandi documentali validati dopo bump `2.245.1`. |
 
 ### Agenti fonte legale 2.245.0 - 2026-05-17
 

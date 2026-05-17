@@ -293,11 +293,23 @@ def _excluded(path: str) -> bool:
         return True
     if lower.startswith("/giurisprudenza/"):
         return True
+    if lower.startswith("/legal-intelligence/") and lower not in {
+        "/legal-intelligence/mediazione",
+        "/legal-intelligence/news",
+        "/legal-intelligence/ricerca",
+    }:
+        return True
     # /legal-intelligence/fonte/<id>/scarica resta servito dal blueprint Flask
     # (download di file binari/testo, fuori dallo scope React shell).
     if lower.startswith("/legal-intelligence/fonte/") and lower.endswith("/scarica"):
         return True
     if lower.startswith("/ricerca-legale/fonte/") and lower.endswith("/scarica"):
+        return True
+    if lower.startswith("/ricerca-legale/") and lower not in {
+        "/ricerca-legale/mediazione",
+        "/ricerca-legale/news",
+        "/ricerca-legale/ricerca",
+    }:
         return True
     # /legal-intelligence/daily/update/<id>/diff resta legacy (rendering server-side).
     if lower.startswith("/legal-intelligence/daily/"):

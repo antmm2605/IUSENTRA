@@ -141,6 +141,66 @@ def test_legal_update_batch_registra_esito_agente_per_fonte(tmp_path):
     assert latest["timeout_seconds"] == 30
 
 
+def test_legal_update_batch_marca_fonte_fallita_se_report_interno_ha_errore(tmp_path):
+    intelligence_db = tmp_path / "intelligence" / "motori.json"
+    cfg = LegalUpdateDbConfig.from_anchor(str(intelligence_db))
+    repository = LegalUpdateRepository(cfg.db_path, json_path=cfg.json_path)
+    repository.upsert_sources(
+        [
+            {
+                "name": "Giustizia Amministrativa",
+                "code": "giustizia_amministrativa",
+                "category": "giurisprudenza",
+                "base_url": "https://www.giustizia-amministrativa.it/",
+                "source_type": "web",
+                "trust_class": "A",
+                "is_official": True,
+                "enabled": True,
+                "polling_minutes": 720,
+                "parser_type": "html",
+            }
+        ]
+    )
+
+    def _runner(command, **kwargs):
+        source = command[command.index("--source-code") + 1]
+        stdout = json.dumps(
+            {
+                "ok": True,
+                "mode": "source",
+                "source_code": source,
+                "report": {
+                    "reports": [
+                        {
+                            "source": source,
+                            "documents_found": 0,
+                            "processed": 0,
+                            "error": "Fonte non raggiungibile",
+                        }
+                    ],
+                    "autopublished": {"count": 0},
+                },
+            }
+        )
+        return SimpleNamespace(returncode=0, stdout=stdout, stderr="")
+
+    report = run_legal_update_batch_with_timeouts(
+        LegalUpdateJobConfig(intelligence_db=str(intelligence_db), python_executable="python"),
+        source_codes=["giustizia_amministrativa"],
+        auto_publish=False,
+        item_timeout_seconds=30,
+        runner=_runner,
+        record_agent_runs=True,
+    )
+
+    latest = repository.latest_source_agent_runs()["giustizia_amministrativa"]
+    assert report["ok"] is False
+    assert report["reports"][0]["inner_errors"] == ["Fonte non raggiungibile"]
+    assert latest["status"] == "failed"
+    assert "Fonte non raggiungibile" in latest["error_message"]
+    assert "OpenGA ufficiale" in latest["error_message"]
+
+
 def test_legal_update_publish_queue_pubblica_un_elemento_per_job():
     calls = 0
 

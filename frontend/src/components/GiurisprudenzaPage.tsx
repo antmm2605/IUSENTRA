@@ -88,6 +88,9 @@ function SourceCard({ source }: { source: GiurisprudenzaSource }) {
           <dd>{source.count}</dd>
         </div>
       </dl>
+      {source.resolutionNote ? (
+        <p className="iu-legal-source__resolution">{source.resolutionNote}</p>
+      ) : null}
       <footer className="iu-od-action-row iu-legal-source__actions">
         {source.sourceHref ? (
           <ButtonLink href={source.sourceHref} tone="neutral" target="_blank" rel="noreferrer">

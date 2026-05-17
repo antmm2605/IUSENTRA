@@ -255,6 +255,9 @@ class FonteGiurisprudenziale:
     default_grade: str = ""
     license_note: str = ""
     link_keywords: List[str] = field(default_factory=list)
+    fallback_source_id: str = ""
+    fallback_label: str = ""
+    fallback_note: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -288,10 +291,14 @@ SOURCE_SPECS: List[FonteGiurisprudenziale] = [
         giurisdizione="Ordinaria",
         coverage="Legittimità, sentenze, ordinanze, massimario e principi di diritto.",
         official_url=_source_url("cassazione", "https://www.cortedicassazione.it/"),
-        search_url="https://www.cortedicassazione.it/it/massimario.page",
+        search_url="https://www.cortedicassazione.it/it/ultime_sent_ord_e_questioni.page",
         access_mode="pubblico",
         sync_mode="automatico_leggero",
-        note="Fonte primaria per legittimità civile e penale; utile per principi di diritto e orientamenti consolidati.",
+        note=(
+            "Fonte primaria per legittimità civile e penale. Il recupero automatico usa "
+            "la pagina ufficiale delle ultime sentenze, ordinanze e questioni; il "
+            "Massimario resta fonte di approfondimento."
+        ),
         badge="Fonte primaria",
         icon="bi-building-check",
         search_label="Apri Cassazione",
@@ -299,6 +306,8 @@ SOURCE_SPECS: List[FonteGiurisprudenziale] = [
         default_grade="Cassazione",
         license_note="Consultazione pubblica istituzionale",
         link_keywords=["sentenza", "ordinanza", "massimario", "principio", "diritto"],
+        fallback_label="Pagina ufficiale delle ultime sentenze, ordinanze e questioni",
+        fallback_note="Se il Massimario non risponde, il presidio usa la sezione pubblica aggiornata della Corte di Cassazione.",
     ),
     FonteGiurisprudenziale(
         id="merito_civile_bdp",
@@ -338,6 +347,8 @@ SOURCE_SPECS: List[FonteGiurisprudenziale] = [
         default_area="Costituzionale",
         license_note="CC BY-SA 3.0",
         link_keywords=["sentenza", "ordinanza", "pronuncia", "massima", "deposito"],
+        fallback_label="ZIP open data pronunce Corte costituzionale",
+        fallback_note="Se la pagina di elenco non risponde, il worker tenta direttamente il pacchetto ufficiale P_json2001_oggi.zip.",
     ),
     FonteGiurisprudenziale(
         id="giustizia_amministrativa",
@@ -347,15 +358,21 @@ SOURCE_SPECS: List[FonteGiurisprudenziale] = [
         official_url=_source_url("giustizia_amministrativa", "https://www.giustizia-amministrativa.it/"),
         search_url="https://www.giustizia-amministrativa.it/",
         access_mode="pubblico",
-        sync_mode="automatico_leggero",
-        note="Fonte primaria per TAR, Consiglio di Stato e CGA; utile per cautelari, appalti e processo amministrativo.",
-        badge="Fonte primaria",
+        sync_mode="presidio_openga",
+        note=(
+            "Fonte diretta in osservazione: il sito HTML pubblico resta consultabile, "
+            "ma il recupero automatico usa OpenGA ufficiale come canale stabile."
+        ),
+        badge="In osservazione",
         icon="bi-bank2",
         search_label="Apri Giustizia amministrativa",
-        supports_auto_sync=True,
+        supports_auto_sync=False,
         default_area="Amministrativo",
         license_note="Consultazione pubblica istituzionale",
         link_keywords=["decisione", "sentenza", "ordinanza", "parere", "massima"],
+        fallback_source_id="openga",
+        fallback_label="OpenGA ufficiale",
+        fallback_note="Presidio automatico tramite dataset CKAN OpenGA per sentenze, ordinanze, decreti, pareri e provvedimenti.",
     ),
     FonteGiurisprudenziale(
         id="giustizia_tributaria",
@@ -381,10 +398,10 @@ SOURCE_SPECS: List[FonteGiurisprudenziale] = [
         giurisdizione="UE / CEDU",
         coverage="Corte di Giustizia e Tribunale dell'Unione europea con ricerca giurisprudenziale.",
         official_url="https://curia.europa.eu/jcms/jcms/j_6/it/",
-        search_url="https://curia.europa.eu/site/",
+        search_url="https://curia.europa.eu/site/rss.jsp?lang=it&secondLang=en",
         access_mode="pubblico",
         sync_mode="automatico_leggero",
-        note="Motore ufficiale UE; utile per ECLI, giurisprudenza su appalti, concorrenza, consumatori e fiscalità.",
+        note="Motore ufficiale UE; il presidio automatico usa il feed RSS ufficiale Curia in italiano/inglese.",
         badge="Fonte europea",
         icon="bi-globe-europe-africa",
         search_label="Apri CURIA",
@@ -392,6 +409,8 @@ SOURCE_SPECS: List[FonteGiurisprudenziale] = [
         default_area="UE / CEDU",
         license_note="Consultazione pubblica ufficiale",
         link_keywords=["judgment", "opinion", "order", "curia", "case", "recent judgment"],
+        fallback_label="Feed RSS ufficiale Curia",
+        fallback_note="Il feed RSS ufficiale segnala nuove sentenze, conclusioni e comunicati con link al testo.",
     ),
     FonteGiurisprudenziale(
         id="hudoc",
@@ -410,6 +429,8 @@ SOURCE_SPECS: List[FonteGiurisprudenziale] = [
         default_area="UE / CEDU",
         license_note="Consultazione pubblica ufficiale",
         link_keywords=["judgment", "decision", "article", "italy", "echr", "hudoc"],
+        fallback_label="Feed RSS HUDOC ufficiale",
+        fallback_note="HUDOC consente feed RSS per ricerche salvate; il worker usa quel canale quando la pagina interattiva non e' adatta.",
     ),
     FonteGiurisprudenziale(
         id="corte_conti",
@@ -748,6 +769,9 @@ class GestioneGiurisprudenza:
                 "icon": source.icon,
                 "search_label": source.search_label,
                 "supports_auto_sync": source.supports_auto_sync,
+                "fallback_source_id": source.fallback_source_id,
+                "fallback_label": source.fallback_label,
+                "fallback_note": source.fallback_note,
                 "default_area": source.default_area,
                 "default_grade": source.default_grade,
                 "link_keywords": list(source.link_keywords or []),
@@ -1453,6 +1477,32 @@ class GestioneGiurisprudenza:
         started_at = _now_iso()
         run_id = uuid.uuid4().hex
         if not source.supports_auto_sync:
+            if source.fallback_source_id:
+                run = {
+                    "id": run_id,
+                    "source_id": source.id,
+                    "source_label": source.nome,
+                    "checked_at": started_at,
+                    "started_at": started_at,
+                    "ended_at": started_at,
+                    "status": "da_verificare",
+                    "items_found": 0,
+                    "items_imported": 0,
+                    "items_updated": 0,
+                    "items_skipped": 0,
+                    "imported": 0,
+                    "updated": 0,
+                    "candidates": 0,
+                    "message": (
+                        f"Canale diretto in osservazione. Soluzione alternativa: "
+                        f"{source.fallback_label or source.fallback_source_id}."
+                    ),
+                    "fallback_source_id": source.fallback_source_id,
+                    "fallback_label": source.fallback_label,
+                    "fallback_note": source.fallback_note,
+                }
+                self._append_sync_run(run)
+                return run
             run = {
                 "id": run_id,
                 "source_id": source.id,
@@ -1819,8 +1869,12 @@ class GestioneGiurisprudenza:
         *,
         request_get: Optional[Callable[..., Any]] = None,
     ) -> List[Dict[str, Any]]:
-        page = self._fetch(source.search_url or source.official_url, request_get=request_get)
-        html_text = str(page.get("text") or "")
+        html_text = ""
+        try:
+            page = self._fetch(source.search_url or source.official_url, request_get=request_get)
+            html_text = str(page.get("text") or "")
+        except Exception:
+            html_text = ""
         match = re.search(
             r"https://dati\.cortecostituzionale\.it/opendata/distribuzione/pronunce/P_json2001_oggi\.zip",
             html_text,
@@ -2592,4 +2646,3 @@ __all__ = [
     "TIPI_PROVVEDIMENTO",
     "tassonomia_flat",
 ]
-

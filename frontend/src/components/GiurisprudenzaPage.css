@@ -81,6 +81,17 @@
   padding-top: var(--iu-od-space-3);
 }
 
+.iu-legal-source__resolution {
+  background: var(--iu-od-surface-soft);
+  border: 1px solid var(--iu-od-border);
+  border-radius: var(--iu-od-radius-1);
+  color: var(--iu-od-text);
+  font-size: .9rem;
+  line-height: 1.45;
+  margin: 0;
+  padding: var(--iu-od-space-3);
+}
+
 .iu-legal-meta {
   display: grid;
   gap: var(--iu-od-space-3);

@@ -249,6 +249,9 @@ def build_giurisprudenza_sources_rows(
             "default_area": _clean_spaces(payload.get("default_area")),
             "default_grade": _clean_spaces(payload.get("default_grade")),
             "license_note": _clean_spaces(payload.get("license_note")),
+            "fallback_source_id": _clean_spaces(payload.get("fallback_source_id")),
+            "fallback_label": _clean_spaces(payload.get("fallback_label")),
+            "fallback_note": _clean_spaces(payload.get("fallback_note")),
             "route_bias": _route_bias(
                 payload.get("access_mode"),
                 payload.get("sync_mode"),
@@ -273,6 +276,8 @@ def build_giurisprudenza_sources_rows(
             row.get("default_area"),
             row.get("default_grade"),
             row.get("license_note"),
+            row.get("fallback_label"),
+            row.get("fallback_note"),
             row.get("route_bias"),
             row.get("link_keywords"),
             row.get("last_status"),
@@ -424,6 +429,13 @@ def build_giurisprudenza_sync_rows(catalog_rows: list[dict[str, Any]]) -> list[d
                 else "Nessuna esecuzione registrata."
             )
         )
+        fallback_label = _clean_spaces(row.get("fallback_label") or last_run.get("fallback_label"))
+        fallback_note = _clean_spaces(row.get("fallback_note") or last_run.get("fallback_note"))
+        if last_status == "errore" and fallback_label:
+            last_status = "da_verificare"
+            last_message = f"Fonte diretta da verificare. Soluzione alternativa: {fallback_label}."
+            if fallback_note:
+                last_message = f"{last_message} {fallback_note}"
         handoff_required = (not supports_auto_sync) or last_status == "handoff_richiesto"
         item = {
             "source_id": _clean_spaces(row.get("id")),
@@ -440,6 +452,9 @@ def build_giurisprudenza_sync_rows(catalog_rows: list[dict[str, Any]]) -> list[d
             "updated": int(last_run.get("items_updated") or last_run.get("updated") or 0),
             "candidates": int(last_run.get("items_found") or last_run.get("candidates") or 0),
             "handoff_required": handoff_required,
+            "fallback_source_id": _clean_spaces(row.get("fallback_source_id") or last_run.get("fallback_source_id")),
+            "fallback_label": fallback_label,
+            "fallback_note": fallback_note,
         }
         item["search_text"] = _build_search_text(
             item.get("source_id"),

@@ -44,7 +44,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
-  npm-audit:
+  pnpm-audit:
     name: Audit dipendenze frontend
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -57,21 +57,26 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: "22"
-          cache: "npm"
-          cache-dependency-path: frontend/package-lock.json
+          cache: "pnpm"
+          cache-dependency-path: pnpm-lock.yaml
 
-      - name: Install frontend dependencies
-        run: npm ci --prefix frontend
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.1.2 --activate
 
-      - name: Run npm audit
-        run: npm --prefix frontend audit --audit-level=critical --omit=dev --json > frontend-npm-audit.json
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
 
-      - name: Upload npm audit report
+      - name: Run pnpm audit
+        run: pnpm audit --audit-level critical --prod --json > frontend-pnpm-audit.json
+
+      - name: Upload pnpm audit report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: frontend-npm-audit-report
-          path: frontend-npm-audit.json
+          name: frontend-pnpm-audit-report
+          path: frontend-pnpm-audit.json
           if-no-files-found: warn
           retention-days: 14
 

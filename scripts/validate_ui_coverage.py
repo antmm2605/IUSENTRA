@@ -159,8 +159,8 @@ def validate_docs() -> tuple[int, int]:
             fail(f"{label}: non deve dichiarare Storybook/VRT ready in fase 9")
 
     required_doc_snippets = [
-        "Storybook: non introdotto",
-        "VRT: non attivo",
+        "Storybook: introdotto",
+        "VRT: predisposto tramite Chromatic",
         "frontend/src/test/fixtures/app-v2-ui-fixtures.json",
         "python scripts\\validate_ui_coverage.py",
         "RBAC",
@@ -172,10 +172,10 @@ def validate_docs() -> tuple[int, int]:
         if snippet not in ui_doc:
             fail(f"docs/ui-regression-and-storybook.md: manca '{snippet}'")
 
-    if storybook_present() and "Storybook: non introdotto" in ui_doc:
-        fail("Storybook risulta presente ma il documento lo dichiara non introdotto")
-    if not storybook_present() and "Storybook: non introdotto" not in ui_doc:
-        fail("Storybook assente: il documento deve dichiararlo esplicitamente")
+    if storybook_present() and "Storybook: introdotto" not in ui_doc:
+        fail("Storybook risulta presente ma il documento non lo dichiara")
+    if not storybook_present() and "Storybook: introdotto" in ui_doc:
+        fail("Storybook dichiarato ma configurazione non rilevata")
 
     validate_fixtures(fixtures)
     rows = parse_phase9_rows(frontend_doc)
@@ -216,11 +216,11 @@ def main() -> int:
     except CoverageError as exc:
         print(f"ERRORE | UI coverage fase 9 | {exc}", file=sys.stderr)
         return 1
-    storybook = "presente" if storybook_present() else "non introdotto"
+    storybook = "presente" if storybook_present() else "assente"
     print(
         "OK | UI coverage fase 9 | "
         f"P0/P1={p0p1} | P0/P1 full ui_tested={p0p1_full} | "
-        f"Storybook={storybook} | VRT=non attivo"
+        f"Storybook={storybook} | VRT=predisposto"
     )
     return 0
 

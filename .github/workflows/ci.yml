@@ -38,8 +38,13 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: "22"
-          cache: "npm"
-          cache-dependency-path: frontend/package-lock.json
+          cache: "pnpm"
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.1.2 --activate
 
       - name: Install runtime deps
         run: |
@@ -87,10 +92,11 @@ jobs:
           python scripts/validate_ui_coverage.py
           python -m pytest -q tests/test_app_v2_area_requirements_phase8.py --tb=short
           python -m pytest -q tests/test_ui_coverage_phase9.py --tb=short
-          npm ci --prefix frontend
-          npm --prefix frontend run test
-          npm --prefix frontend run typecheck
-          npm --prefix frontend run build
+          pnpm install --frozen-lockfile
+          pnpm test
+          pnpm typecheck
+          pnpm build
+          pnpm build:storybook
 
       - name: Validate Python baseline
         run: |
@@ -613,6 +619,50 @@ jobs:
             exit 1
           fi
           echo "Tutte le 10 fasi del Pytest core sono verdi."
+
+  visual-regression:
+    name: Storybook visual regression
+    runs-on: ubuntu-latest
+    needs:
+      - quality
+    timeout-minutes: 15
+    env:
+      CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Token non configurato
+        if: ${{ env.CHROMATIC_PROJECT_TOKEN == '' }}
+        run: |
+          echo "Chromatic non eseguito: CHROMATIC_PROJECT_TOKEN non configurato."
+
+      - name: Set up Node
+        if: ${{ env.CHROMATIC_PROJECT_TOKEN != '' }}
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: "pnpm"
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Enable pnpm
+        if: ${{ env.CHROMATIC_PROJECT_TOKEN != '' }}
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.1.2 --activate
+
+      - name: Install workspace
+        if: ${{ env.CHROMATIC_PROJECT_TOKEN != '' }}
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Storybook
+        if: ${{ env.CHROMATIC_PROJECT_TOKEN != '' }}
+        run: pnpm build:storybook
+
+      - name: Run Chromatic
+        if: ${{ env.CHROMATIC_PROJECT_TOKEN != '' }}
+        run: pnpm chromatic:changed
 
   coverage-critical-shards:
     name: Coverage moduli critici parte ${{ matrix.shard }}/12

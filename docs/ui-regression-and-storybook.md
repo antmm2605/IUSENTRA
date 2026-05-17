@@ -1,12 +1,12 @@
 # UI regression, Storybook e gate visuali App V2
 
-Aggiornato: 2026-05-13, fase 9 `fasereact`.
+Aggiornato: 2026-05-17, fondazione monorepo Storybook.
 
 ## Stato sintetico
 
-- Storybook: non introdotto. Il frontend non aveva `.storybook`, storie, test runner o dipendenze dedicate; introdurlo ora avrebbe aggiunto peso infrastrutturale non ancora governato.
+- Storybook: introdotto sul frontend Vite esistente con `frontend/.storybook`, storie colocalizzate e prime storie sicure in `packages/ui`.
 - Test UI: attivi tramite alternativa leggera `scripts/validate_ui_coverage.py`, `frontend/scripts/check-app-v2-frontend.mjs`, typecheck e build Vite.
-- VRT: non attivo. Nessuna baseline visuale viene dichiarata pronta senza un comando reale di screenshot/regressione.
+- VRT: predisposto tramite Chromatic, ma non attivo senza `CHROMATIC_PROJECT_TOKEN`. Nessuna baseline visuale viene dichiarata pronta senza esecuzione reale.
 - Fixture sicure: `frontend/src/test/fixtures/app-v2-ui-fixtures.json`, isolate dal runtime e prive di PII reale, segreti, token, PEC vere o tenant reali.
 - Pagine P0/P1 React full: marcate `ui_tested` solo nei registri generati quando esistono componente React, stati UI, RBAC/flag governati e gate fase 9.
 
@@ -20,9 +20,15 @@ npm --prefix frontend run build
 python -m pytest -q tests/test_ui_coverage_phase9.py --tb=short
 ```
 
-Storybook non ha comandi disponibili in questa fase: `npm run storybook`,
-`npm run build-storybook` e `npm run test-storybook` non vengono dichiarati
-finche' la relativa configurazione non esiste.
+Storybook è disponibile tramite:
+
+```powershell
+pnpm storybook
+pnpm build:storybook
+```
+
+Chromatic è predisposto tramite `pnpm chromatic` e `pnpm chromatic:changed`, con
+token letto solo da `CHROMATIC_PROJECT_TOKEN`.
 
 ## Copertura
 
@@ -126,8 +132,8 @@ La CI App V2 deve eseguire:
 
 ## Gap residui
 
-- Storybook non e' presente e non viene dichiarato pronto.
-- VRT/screenshot regression non e' presente e non viene dichiarato pronto.
+- Storybook è presente; la copertura resta iniziale e centrata sulle primitive `@iusentra/ui`.
+- VRT/screenshot regression è predisposta ma non attiva senza token Chromatic e baseline approvate.
 - Smoke UI autenticato tenant A/B richiede credenziali ambiente dedicate.
 - Test axe automatici richiedono un runner component/browser futuro.
 - Le aree partial o blocked restano escluse da `ui_tested` finche' non diventano React full con gate dedicati.

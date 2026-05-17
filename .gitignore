@@ -6,6 +6,8 @@ __pycache__/
 dist/
 build/
 target/
+.turbo/
+frontend/storybook-static/
 !tools/dist/
 tools/dist/*
 !tools/dist/SetupLocalSigner.exe

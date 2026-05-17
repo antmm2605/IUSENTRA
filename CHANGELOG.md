@@ -1,5 +1,12 @@
 # Changelog
 
+## Non rilasciato - 2026-05-17
+
+- Introdotta la fondazione monorepo pnpm workspace + Turborepo mantenendo `frontend` come app Vite/React reale.
+- Aggiunti i package privati `@iusentra/config`, `@iusentra/ui` e `@iusentra/api-client`, senza dati tenant o logica backend.
+- Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
+- Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
+
 ## 2.245.11 - 2026-05-17
 
 - Esteso il catalogo Lex con Corte dei Conti come fonte ufficiale di classe primaria, includendo portale, sentenze, delibere e banca dati pubblica per responsabilità erariale, giudizi contabili e profili pubblicistici.

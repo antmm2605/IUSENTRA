@@ -76,6 +76,18 @@ def build_observability_payload(app: Flask | None = None) -> dict[str, Any]:
         }
 
     try:
+        from lex.advanced_runtime import build_advanced_ai_capabilities
+
+        payload["providers"]["advanced_ai"] = build_advanced_ai_capabilities()
+    except Exception as exc:
+        payload["ok"] = False
+        payload["providers"]["advanced_ai"] = {
+            "ok": False,
+            "errore": str(exc),
+            "capabilities": {},
+        }
+
+    try:
         from pct.imap_runtime import imap_breaker_snapshot
 
         payload["providers"]["pec_imap"] = {
@@ -172,6 +184,7 @@ def _build_observability_thresholds() -> dict[str, Any]:
         "ocr_queue_backlog": {"label": "Coda OCR in warning da 20 elementi", "limit": 20},
         "ocr_worker_stall": {"label": "Coda OCR > 0 e throughput ultima ora = 0", "limit": 1},
         "local_ai_runtime": {"label": "Runtime AI locale deve risultare online quando e' abilitato", "required": True},
+        "advanced_ai_runtime": {"label": "Capacita' AI avanzate attivate solo se configurate e misurate", "required": True},
         "imap_circuit_open": {"label": "PEC / IMAP non deve restare in circuito aperto dopo errori ripetuti", "limit": 1},
         "portal_circuit_open": {"label": "Ricerca o anteprima portali non deve restare in circuito aperto dopo errori ripetuti", "limit": 1},
         "storage_default_mode": {"label": "Il backend predefinito non deve restare JSON in produzione", "allowed": ("SQLITE", "POSTGRESQL")},
@@ -221,6 +234,38 @@ def _build_error_taxonomy_catalog() -> list[dict[str, str]]:
             "action": "Verifica runtime Ollama, modello configurato e bootstrap AI prima di usare Lex o Coverage AI.",
         },
         {
+            "code": "AI_ACCELERATION_UNMEASURED",
+            "family": "AI",
+            "component": "Serving Lex",
+            "title": "Accelerazione AI da misurare",
+            "explanation": "MTP o decodifica speculativa sono configurati ma richiedono benchmark sul carico reale.",
+            "action": "Esegui prova A/B su primo token, token al secondo, p95, errori e qualita' prima del cutover.",
+        },
+        {
+            "code": "LLM_WIKI_NOT_READY",
+            "family": "AI",
+            "component": "LLM Wiki",
+            "title": "LLM Wiki non pronto",
+            "explanation": "Il livello wiki compilato e' abilitato ma non ha ancora indice o verifica di copertura.",
+            "action": "Compila fonti ufficiali, esegui probe diagnostici e mantieni citazioni verso il dato originale.",
+        },
+        {
+            "code": "GLM_OCR_NOT_READY",
+            "family": "OCR",
+            "component": "GLM-OCR",
+            "title": "GLM-OCR non pronto",
+            "explanation": "Il motore GLM-OCR e' richiesto ma manca endpoint, autorizzazione o benchmark.",
+            "action": "Configura endpoint self-hosted e misura qualita' Markdown, tabelle e tempi su PDF legali.",
+        },
+        {
+            "code": "GEMINI_EMBEDDINGS_NOT_READY",
+            "family": "AI",
+            "component": "Embedding RAG",
+            "title": "Gemini Embedding 2 non pronto",
+            "explanation": "Gemini Embedding 2 e' selezionato ma manca autorizzazione, chiave o reindicizzazione completa.",
+            "action": "Autorizza provider esterni, configura la chiave e reindicizza il corpus senza mischiare vettori.",
+        },
+        {
             "code": "IMAP_CIRCUIT_OPEN",
             "family": "COMUNICAZIONI",
             "component": "PEC / IMAP",
@@ -262,6 +307,10 @@ def _normalized_alert_code(code: str) -> str:
         "OCR_QUEUE_BACKLOG": "OCR_QUEUE_OVERFLOW",
         "OCR_WORKER_STALLED": "OCR_WORKER_STALLED",
         "LOCAL_AI_RUNTIME_DOWN": "AI_MODEL_UNAVAILABLE",
+        "ADVANCED_AI_MTP_UNMEASURED": "AI_ACCELERATION_UNMEASURED",
+        "ADVANCED_AI_LLM_WIKI_NOT_READY": "LLM_WIKI_NOT_READY",
+        "ADVANCED_AI_GLM_OCR_NOT_READY": "GLM_OCR_NOT_READY",
+        "ADVANCED_AI_GEMINI_EMBEDDINGS_NOT_READY": "GEMINI_EMBEDDINGS_NOT_READY",
         "IMAP_CIRCUIT_OPEN": "IMAP_CIRCUIT_OPEN",
         "PORTAL_CIRCUIT_OPEN": "PORTAL_CIRCUIT_OPEN",
         "STORAGE_DEFAULT_JSON": "TENANT_DB_ERROR",
@@ -279,6 +328,71 @@ def _endpoint_bucket() -> str:
             if value:
                 endpoint = endpoint.replace(value, f"<{key}>")
     return endpoint
+
+
+def _append_advanced_ai_alerts(
+    alerts: list[dict[str, Any]],
+    thresholds: dict[str, Any],
+    capabilities: dict[str, Any],
+) -> None:
+    mapping = {
+        "mtp_serving": {
+            "code": "ADVANCED_AI_MTP_UNMEASURED",
+            "family": "AI",
+            "component": "Serving Lex",
+            "title": "Accelerazione Lex da misurare",
+            "blocked_title": "Accelerazione Lex non configurata correttamente",
+        },
+        "llm_wiki": {
+            "code": "ADVANCED_AI_LLM_WIKI_NOT_READY",
+            "family": "AI",
+            "component": "LLM Wiki",
+            "title": "LLM Wiki da validare",
+            "blocked_title": "LLM Wiki non pronto",
+        },
+        "glm_ocr": {
+            "code": "ADVANCED_AI_GLM_OCR_NOT_READY",
+            "family": "OCR",
+            "component": "GLM-OCR",
+            "title": "GLM-OCR da validare",
+            "blocked_title": "GLM-OCR non pronto",
+        },
+        "gemini_embedding_2": {
+            "code": "ADVANCED_AI_GEMINI_EMBEDDINGS_NOT_READY",
+            "family": "AI",
+            "component": "Embedding RAG",
+            "title": "Gemini Embedding 2 da misurare",
+            "blocked_title": "Gemini Embedding 2 non pronto",
+        },
+    }
+    blocked_statuses = {"blocked", "missing_credentials", "missing_endpoint", "missing_index"}
+    for capability_name, descriptor in mapping.items():
+        capability = dict(capabilities.get(capability_name) or {})
+        if not bool(capability.get("enabled")):
+            continue
+        status = str(capability.get("status") or "").strip()
+        measurement_required = bool(capability.get("measurement_required"))
+        if status not in blocked_statuses and not measurement_required:
+            continue
+        blocked = status in blocked_statuses
+        alerts.append(
+            {
+                "severity": "warning",
+                "family": descriptor["family"],
+                "component": descriptor["component"],
+                "code": descriptor["code"],
+                "title": descriptor["blocked_title"] if blocked else descriptor["title"],
+                "detail": str(capability.get("operator_message") or ""),
+                "threshold": str((thresholds.get("advanced_ai_runtime") or {}).get("label") or ""),
+                "operator_message": str(capability.get("operator_message") or ""),
+                "remediation": str(capability.get("next_action") or ""),
+                "remediation_steps": [
+                    "Verifica configurazione e autorizzazioni della capacita' avanzata.",
+                    "Esegui benchmark su campioni reali dello studio prima della promozione.",
+                    "Mantieni fallback RAG/OCR corrente finche' i risultati non sono stabili.",
+                ],
+            }
+        )
 
 
 def _build_observability_alerts(payload: dict[str, Any]) -> list[dict[str, Any]]:
@@ -426,6 +540,10 @@ def _build_observability_alerts(payload: dict[str, Any]) -> list[dict[str, Any]]
                 ],
             }
         )
+
+    advanced_ai = dict((payload.get("providers") or {}).get("advanced_ai") or {})
+    advanced_capabilities = dict(advanced_ai.get("capabilities") or {})
+    _append_advanced_ai_alerts(alerts, thresholds, advanced_capabilities)
 
     imap_runtime = dict((payload.get("providers") or {}).get("pec_imap") or {})
     imap_breaker = dict(imap_runtime.get("circuit_breaker") or {})

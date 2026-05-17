@@ -16,6 +16,8 @@ from .serializers import (
     clean_spaces,
     serialize_cliente,
     serialize_documento,
+    serialize_email_attachment,
+    serialize_email_message,
     serialize_fascicolo,
     serialize_generic,
     serialize_soggetto,
@@ -330,6 +332,54 @@ class OperationalKnowledgeTools:
     def get_messaggi_by_fascicolo(self, fascicolo_id: str, context: OperationalQueryContext) -> OperationalToolResult:
         return self._list_by_method("messaggi", context, "get_messaggi", "per_fascicolo", fascicolo_id, "messaggio")
 
+    def list_pec_messages(
+        self,
+        context: OperationalQueryContext,
+        *,
+        query: str = "",
+        folder: str = "",
+        con_allegati: bool = False,
+        limit: int = 20,
+    ) -> OperationalToolResult:
+        return self._list_email_messages(
+            "email_pec",
+            context,
+            query=query,
+            folder=folder,
+            con_allegati=con_allegati,
+            limit=limit,
+        )
+
+    def get_pec_message(self, email_id: str, context: OperationalQueryContext) -> OperationalToolResult:
+        return self._get_email_message("email_pec", email_id, context)
+
+    def list_pec_attachments(self, email_id: str, context: OperationalQueryContext) -> OperationalToolResult:
+        return self._list_email_attachments("email_pec", email_id, context)
+
+    def list_ordinary_email_messages(
+        self,
+        context: OperationalQueryContext,
+        *,
+        query: str = "",
+        folder: str = "",
+        con_allegati: bool = False,
+        limit: int = 20,
+    ) -> OperationalToolResult:
+        return self._list_email_messages(
+            "email_ordinaria",
+            context,
+            query=query,
+            folder=folder,
+            con_allegati=con_allegati,
+            limit=limit,
+        )
+
+    def get_ordinary_email_message(self, email_id: str, context: OperationalQueryContext) -> OperationalToolResult:
+        return self._get_email_message("email_ordinaria", email_id, context)
+
+    def list_ordinary_email_attachments(self, email_id: str, context: OperationalQueryContext) -> OperationalToolResult:
+        return self._list_email_attachments("email_ordinaria", email_id, context)
+
     def get_notifiche_utente(self, context: OperationalQueryContext, *, limit: int = 20) -> OperationalToolResult:
         decision = self._decision("notifiche", context)
         if not decision.allowed:
@@ -357,6 +407,38 @@ class OperationalKnowledgeTools:
         except Exception as exc:
             return self._unavailable("template_atti", f"Template atti non interrogabili: {exc}")
         return self._filter_text_rows("template_atti", context, rows, query, limit, decision, "template_atto")
+
+    def get_editor_ai_status(self, context: OperationalQueryContext) -> OperationalToolResult:
+        decision = self._decision("editor_ai", context)
+        if not decision.allowed:
+            return self._blocked("editor_ai", decision)
+        row = {
+            "id": "editor_ai",
+            "titolo": "Editor normale e professionale con Lex",
+            "stato": "attivo",
+            "capabilities": [
+                "bootstrap contestuale sul fascicolo",
+                "selezione template reali",
+                "generazione bozza nell'editor professionale",
+                "rilettura documento editor",
+                "proposte di modifica pending",
+                "export governato",
+            ],
+            "tools": [
+                "list_template_atti",
+                "read_template_atto",
+                "collect_fascicolo_context",
+                "generate_editor_draft",
+                "read_editor_document",
+                "propose_editor_edits",
+                "export_editor_document",
+            ],
+            "warnings": [
+                "Lex non deve presentare la bozza come conforme automaticamente.",
+                "Le modifiche restano in attesa finche' l'utente non le accetta o rifiuta.",
+            ],
+        }
+        return self._plain_result("editor_ai", context, [row], "editor_ai")
 
     def get_legal_intelligence_items(self, query: str, context: OperationalQueryContext, *, limit: int = 12) -> OperationalToolResult:
         decision = self._decision("legal_intelligence", context)
@@ -440,6 +522,10 @@ class OperationalKnowledgeTools:
 
             db_path = tenant_data_path("MESSAGGI_DB", current_app.config.get("MESSAGGI_DB", ""), require_tenant=True)
             return GestioneMessaggi(config=None, db_path=db_path)
+        if helper_name == "get_email_pec":
+            return self._email_manager("email_pec")
+        if helper_name == "get_email_ordinaria":
+            return self._email_manager("email_ordinaria")
         from web import helpers
 
         helper = getattr(helpers, helper_name)
@@ -486,6 +572,100 @@ class OperationalKnowledgeTools:
         except Exception as exc:
             return self._unavailable(source_id, f"Sorgente {source_id} non interrogabile: {exc}")
         return self._rows_result(source_id, context, rows, serialize_generic, object_type, decision)
+
+    def _email_manager(self, source_id: str) -> Any:
+        if source_id in self.repositories:
+            return self.repositories[source_id]
+        from flask import current_app
+        from pct.email_client import GestioneEmailRicevute
+        from web.services.tenant_paths import tenant_data_path
+
+        key = "EMAIL_CASELLA_DB" if source_id == "email_pec" else "EMAIL_ORDINARIA_DB"
+        db_path = tenant_data_path(key, current_app.config.get(key, ""), require_tenant=True)
+        return GestioneEmailRicevute(db_path=db_path)
+
+    def _list_email_messages(
+        self,
+        source_id: str,
+        context: OperationalQueryContext,
+        *,
+        query: str = "",
+        folder: str = "",
+        con_allegati: bool = False,
+        limit: int = 20,
+    ) -> OperationalToolResult:
+        decision = self._decision(source_id, context)
+        if not decision.allowed:
+            return self._blocked(source_id, decision)
+        manager = self._safe_manager(source_id, lambda: self._email_manager(source_id))
+        if manager is None:
+            return self._unavailable(source_id, f"Casella {source_id} non disponibile.")
+        try:
+            rows = list(
+                manager.tutte(
+                    cartella=folder or None,
+                    q=query,
+                    con_allegati=con_allegati,
+                )
+            )[: max(1, int(limit or 20))]
+        except Exception as exc:
+            return self._unavailable(source_id, f"Casella {source_id} non interrogabile: {exc}")
+        return self._rows_result(source_id, context, rows, serialize_email_message, "email", decision)
+
+    def _get_email_message(self, source_id: str, email_id: str, context: OperationalQueryContext) -> OperationalToolResult:
+        decision = self._decision(source_id, context)
+        if not decision.allowed:
+            return self._blocked(source_id, decision)
+        manager = self._safe_manager(source_id, lambda: self._email_manager(source_id))
+        if manager is None:
+            return self._unavailable(source_id, f"Casella {source_id} non disponibile.")
+        try:
+            row = getattr(manager, "get", lambda _id: None)(email_id)
+            if row is None:
+                for candidate in list(getattr(manager, "tutte")()):
+                    if clean_spaces(getattr(candidate, "id", "") or _dict_get(candidate, "id")) == clean_spaces(email_id):
+                        row = candidate
+                        break
+        except Exception as exc:
+            return self._unavailable(source_id, f"Casella {source_id} non interrogabile: {exc}")
+        if row is None:
+            return OperationalToolResult(False, source_id, coverage_gaps=["Email non trovata nella casella autorizzata."], permission=decision)
+        return self._rows_result(
+            source_id,
+            context,
+            [row],
+            lambda item: serialize_email_message(item, include_body=True),
+            "email",
+            decision,
+        )
+
+    def _list_email_attachments(self, source_id: str, email_id: str, context: OperationalQueryContext) -> OperationalToolResult:
+        decision = self._decision(source_id, context)
+        if not decision.allowed:
+            return self._blocked(source_id, decision)
+        manager = self._safe_manager(source_id, lambda: self._email_manager(source_id))
+        if manager is None:
+            return self._unavailable(source_id, f"Casella {source_id} non disponibile.")
+        try:
+            row = getattr(manager, "get", lambda _id: None)(email_id)
+            if row is None:
+                for candidate in list(getattr(manager, "tutte")()):
+                    if clean_spaces(getattr(candidate, "id", "") or _dict_get(candidate, "id")) == clean_spaces(email_id):
+                        row = candidate
+                        break
+            if row is None:
+                return OperationalToolResult(False, source_id, coverage_gaps=["Email non trovata nella casella autorizzata."], permission=decision)
+            attachments = []
+            for index, attachment in enumerate(list(getattr(row, "allegati", []) or [])):
+                available = bool(getattr(manager, "allegato_disponibile", lambda *_args: False)(row, index))
+                attachments.append(serialize_email_attachment(attachment, index=index, available=available))
+        except Exception as exc:
+            return self._unavailable(source_id, f"Allegati {source_id} non interrogabili: {exc}")
+        result = self._plain_result(source_id, context, attachments, "allegato_email")
+        result.permission = decision
+        if not attachments:
+            result.coverage_gaps.append("Nessun allegato disponibile per questa email.")
+        return result
 
     def _search(
         self,

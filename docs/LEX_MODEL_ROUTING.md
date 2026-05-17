@@ -1,5 +1,7 @@
 # Lex — Model e Provider Routing Professionale
 
+> Aggiornamento 2026-05-17: MTP/speculative decoding, LLM Wiki, GLM-OCR e Gemini Embedding 2 sono governati da `lex/advanced_runtime.py`, osservabili in `/api/metriche/runtime` e verificabili con `python -m pct.cli ai-avanzata --json`. Le capacita' restano opt-in: MTP richiede serving `vllm` o `sglang`, LLM Wiki resta un livello compilato sopra il RAG, GLM-OCR va preferito self-hosted e Gemini Embedding 2 richiede autorizzazione provider esterni piu' reindicizzazione completa del corpus.
+
 **Modulo:** `lex/providers/registry.py`
 **Versione:** 1.0.0
 **Data:** 2026-05-08

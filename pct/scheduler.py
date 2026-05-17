@@ -951,6 +951,28 @@ def start_scheduler(app):
             except Exception as e:
                 logger.error("[scheduler] Local AI maintenance fallita: %s", e)
 
+    @scheduler.scheduled_job(CronTrigger(hour=1, minute=20), id="lex_operational_agents_nightly")
+    def _lex_operational_agents_nightly():
+        with app.app_context():
+            try:
+                from lex.operational_knowledge.nightly_agents import run_operational_micro_agents
+                from pct.scheduler_registry import delegated_operational_agent_specs
+
+                report = run_operational_micro_agents(
+                    app=app,
+                    agents=delegated_operational_agent_specs(app.config),
+                )
+                results = list(report.get("results") or [])
+                ok_count = sum(1 for row in results if row.get("ok"))
+                verify_count = len(results) - ok_count
+                logger.info(
+                    "[scheduler] Agenti Lex notturni: %d ok, %d da verificare",
+                    ok_count,
+                    verify_count,
+                )
+            except Exception as e:
+                logger.error("[scheduler] Agenti Lex notturni falliti: %s", e)
+
     def _operational_resilience_targets():
         if app.config.get("MULTI_TENANT"):
             try:

@@ -37,6 +37,18 @@
       "notes": "Da usare per data di pubblicazione e controllo dell'atto; non sostituisce il testo vigente consolidato."
     },
     {
+      "id": "codici_normattiva",
+      "name": "Codici fondamentali su Normattiva",
+      "type": "normativa_codici",
+      "official_url": "https://www.normattiva.it/",
+      "scope": "Codice civile, procedura civile, penale, procedura penale, processo amministrativo e codice della strada.",
+      "last_verified_at": "2026-05-17",
+      "version": "testi vigenti Normattiva",
+      "modules": ["Lex AI", "Legal Intelligence", "Redazione Atti", "PCT", "Ricerca Legale"],
+      "status": "active",
+      "notes": "Presidio base per normativa, termini processuali, notifiche, decreto ingiuntivo, circolazione stradale, famiglia e responsabilita."
+    },
+    {
       "id": "ministero_giustizia",
       "name": "Ministero della Giustizia",
       "type": "sito_istituzionale",

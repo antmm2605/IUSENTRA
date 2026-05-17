@@ -24,6 +24,12 @@ sources:
       - atti aggiornati tra due date
       - download collezioni
       - dettaglio atto per articolo
+      - codice civile
+      - codice procedura civile
+      - codice penale
+      - codice procedura penale
+      - codice processo amministrativo
+      - codice della strada
   - key: eurlex
     label: EUR-Lex / CELLAR
     category: normativa_ue

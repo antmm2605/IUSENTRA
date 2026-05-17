@@ -29,6 +29,9 @@ def build_system_health_surface() -> dict:
     lex_first_token = dict((runtime.get("lex") or {}).get("first_token") or {})
     ocr = dict(observability.get("ocr") or {})
     local_ai = dict((observability.get("providers") or {}).get("local_ai") or {})
+    advanced_ai = dict((observability.get("providers") or {}).get("advanced_ai") or {})
+    advanced_enabled = list(advanced_ai.get("enabled") or [])
+    advanced_to_measure = list(advanced_ai.get("to_measure") or [])
 
     cards = [
         {
@@ -52,6 +55,11 @@ def build_system_health_surface() -> dict:
             "detail": str(((local_ai.get("resolved_models") or {}).get("chat") or "modello non risolto")),
         },
         {
+            "label": "AI avanzata",
+            "value": str(len(advanced_enabled)),
+            "detail": f"{len(advanced_to_measure)} capacita' da misurare",
+        },
+        {
             "label": "Spazio dati",
             "value": _fmt_mb(path_size_bytes(_cfg("CLIENTI_DB"))),
             "detail": "stima area dati principale",
@@ -69,6 +77,7 @@ def build_system_health_surface() -> dict:
         "lex_first_token": lex_first_token,
         "ocr": ocr,
         "local_ai": local_ai,
+        "advanced_ai": advanced_ai,
         "scheduler_worker_mode": bool(observability.get("scheduler_worker_mode")),
     }
 

@@ -71,6 +71,27 @@ def test_fonti_default_includono_presidi_utili_per_studi_legali():
         assert rows_by_code[code]["parser_type"] == "feed"
 
 
+def test_fonti_default_includono_codici_fondamentali_e_cassazione_verificata():
+    rows_by_code = {str(row["code"]): row for row in DEFAULT_SOURCE_ROWS}
+    expected = {
+        "codice_civile",
+        "codice_procedura_civile",
+        "codice_penale",
+        "codice_procedura_penale",
+        "codice_processo_amministrativo",
+        "codice_strada",
+        "cassazione_citazioni_verificate",
+    }
+
+    assert expected.issubset(rows_by_code)
+    for code in expected - {"cassazione_citazioni_verificate"}:
+        row = rows_by_code[code]
+        assert row["trust_class"] == "A"
+        assert row["is_official"] is True
+        assert "normattiva.it" in str(row["base_url"])
+    assert "cortedicassazione.it" in str(rows_by_code["cassazione_citazioni_verificate"]["base_url"])
+
+
 def _write_studio_config(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(

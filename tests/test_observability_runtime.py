@@ -25,6 +25,7 @@ def test_runtime_metrics_endpoint_restituisce_payload_strutturato(tmp_path):
     assert payload["runtime"]["http"]["buckets"]
     assert "ocr" in payload
     assert "providers" in payload
+    assert "advanced_ai" in payload["providers"]
     assert "product" in payload
     assert "summary" in payload
     assert "alerts" in payload
@@ -35,6 +36,27 @@ def test_runtime_metrics_endpoint_restituisce_payload_strutturato(tmp_path):
     assert payload["storage"]["default_mode"] == "SQLITE"
     assert payload["summary"]["status"] in {"ok", "degraded"}
     assert isinstance(payload["alerts"], list)
+
+
+def test_runtime_metrics_endpoint_governa_gemini_embedding_non_pronto(tmp_path, monkeypatch):
+    monkeypatch.setenv("IUSENTRA_EMBEDDING_PROVIDER", "gemini")
+    monkeypatch.delenv("LEX_EXTERNAL_ALLOWED", raising=False)
+    monkeypatch.delenv("IUSENTRA_EXTERNAL_EMBEDDINGS_ALLOWED", raising=False)
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("IUSENTRA_GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
+    _write_studio_config(tmp_path / "config" / "studio.json")
+    app = create_app(_cfg_web(tmp_path))
+
+    with app.test_client() as client:
+        response = client.get("/api/metriche/runtime")
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    advanced_ai = payload["providers"]["advanced_ai"]
+    assert advanced_ai["capabilities"]["gemini_embedding_2"]["status"] == "blocked"
+    active_codes = set(payload["error_taxonomy"]["active_codes"])
+    assert "GEMINI_EMBEDDINGS_NOT_READY" in active_codes
 
 
 def test_runtime_metrics_endpoint_segnala_degradi_e_rimedi(tmp_path, monkeypatch):

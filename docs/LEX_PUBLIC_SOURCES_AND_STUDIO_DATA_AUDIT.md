@@ -6,6 +6,24 @@ Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle
 
 ## Aggiornamento operativo 2.243.5 - 2026-05-16
 
+Aggiornamento 2.245.3: IUSENTRA ha ora micro-agenti Lex interni collegati
+alla console pianificazioni e al job notturno `lex_operational_agents_nightly`.
+Gli agenti non sono sub-processi liberi o comandi shell: derivano dai template
+autorizzati, leggono solo archivi tenant-aware e salvano un inventario in
+`lex_operational_agents.json`. La copertura include anagrafiche, fascicoli,
+agenda/scadenze, preventivi/parcelle, PEC, posta ordinaria, documenti,
+editor Lex, Cassazione, PCT, SDI/pagamenti, portale cliente, GDPR/AML, AI
+locale/RAG e integrazioni. Se manca un archivio, un indice o una fonte
+verificabile, l'esito resta `Da verificare` con chiavi mancanti e controllo
+supervisore, invece di essere mostrato come completato.
+
+Lo stesso aggiornamento estende il presidio pubblico: i codici fondamentali
+su Normattiva (civile, procedura civile, penale, procedura penale, processo
+amministrativo e strada) sono censiti come fonti di classe A, insieme al
+presidio Cassazione per citazioni verificabili. Lex non deve pubblicare
+massime, sezione, numero o data se non trova riscontro nel corpus ufficiale o
+in una fonte ufficiale governata.
+
 Aggiornamento 2.245.2: per Giustizia Amministrativa il canale HTML
 istituzionale diretto e' stato messo in osservazione, perche' puo' fallire in
 modo instabile durante crawler/SSL. Il presidio automatico principale passa a

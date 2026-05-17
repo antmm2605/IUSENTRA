@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.245.3 - 2026-05-17
+
+- Aggiunta governance operativa per MTP/speculative decoding, LLM Wiki, GLM-OCR e Gemini Embedding 2: stato in osservabilita', tassonomia errori e comando `ai-avanzata`.
+- Il RAG locale puo' usare Gemini Embedding 2 solo con opt-in esplicito, autorizzazione provider esterni e chiave API; i chunk salvano provider/modello per non mischiare spazi vettoriali.
+- Documentata la matrice di attivazione: MTP solo su serving compatibile e misurato, LLM Wiki come livello compilato sopra il RAG, GLM-OCR preferibilmente self-hosted.
+- I template agenti delegati sono ora collegati a micro-agenti Lex interni: clienti/soggetti, agenda, scadenze, fascicoli, editor, Cassazione, PCT, posta, pagamenti, compliance, AI locale e integrazioni salvano un inventario operativo e tornano `Da verificare` quando manca un archivio.
+- Aggiunto il job notturno `lex_operational_agents_nightly` e il comando `lex-agenti-operativi` per eseguire subito tutti gli agenti senza aspettare la notte.
+- Esteso il catalogo legale con codici fondamentali Normattiva, Cassazione verificata e temi richiesti per editor e ricerca: procedura civile/penale, codice strada, famiglia, notifiche/PEC, termini, risarcimento, condominio, fisco e decreto ingiuntivo.
+
 ## 2.245.2 - 2026-05-17
 
 - Gli esiti storici degli agenti fonte salvati come `completed` ma con errori interni nel payload vengono riletti come `Da verificare`, con messaggio operativo e fallback OpenGA per Giustizia Amministrativa.

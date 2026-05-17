@@ -22,8 +22,10 @@ Il seed iniziale include:
 - Gazzetta Ufficiale
 - Normattiva
 - dati.normattiva.it
+- Codice civile, procedura civile, penale, procedura penale, processo amministrativo e codice della strada tramite Normattiva
 - Corte costituzionale
 - Cassazione Massimario
+- Cassazione - citazioni e principi verificati
 - Giustizia Amministrativa
 - OpenGA Giustizia Amministrativa
 - OpenGA - Calendario udienze
@@ -100,6 +102,8 @@ Moduli principali:
 - Le fonti HTML non vengono piu' limitate artificialmente a 40 risultati: il fetch segue anche la paginazione dei portali che espongono piu' pagine tramite query string o script lato pagina.
 - Le fonti CKAN JSON di OpenGA vengono lette come catalogo strutturato: IUSENTRA importa pacchetti, risorse e, per le risorse JSON disponibili, un estratto del contenuto utile a Lex e alla ricerca interna.
 - Il seed `dati_normattiva` punta alla pagina ufficiale Normattiva OpenData richiesta, cosi' la fonte resta governata dal canale informativo pubblico corretto.
+- I codici fondamentali sono presidiati come fonti Normattiva autonome (`codice_civile`, `codice_procedura_civile`, `codice_penale`, `codice_procedura_penale`, `codice_processo_amministrativo`, `codice_strada`) per coprire ricerche su famiglia, contratti, responsabilita', danno, notifiche/PEC, termini, decreto ingiuntivo, circolazione stradale e processo.
+- Il canale `cassazione_citazioni_verificate` serve a separare citazioni e massime verificabili da semplici news: Lex deve mantenere `Da verificare` quando mancano numero, data, sezione, testo o conferma ufficiale.
 - La pubblicazione automatica interroga anche [pct/legal_update_web_verification.py](/D:/legale/IUSENTRA/pct/legal_update_web_verification.py): se le conferme pubbliche non bastano, la proposta resta in revisione con nota leggibile per il revisore.
 - La deduplica usa sia `external_id` di acquisizione sia una chiave canonica di archivio: numero/anno/autorita' per sentenze e ordinanze, tipo/numero/anno/emittente per norme e prassi, URL ufficiale e titolo/data per le news.
 - La console admin espone `Pulisci duplicati`; la stessa pulizia viene eseguita anche prima delle scansioni automatiche e manuali.
@@ -149,8 +153,10 @@ iusentra aggiornamenti-legali --mirror-giurisprudenza-json
 
 Job pianificati:
 
-- Gazzetta Ufficiale: ogni ora tra le 00:00 e le 05:00
-- Batch principale di tutte le fonti: ore 02:35
+- Archivi Normattiva e Gazzetta: ore 23:00
+- Gazzetta Ufficiale: ore 23:10
+- Batch principale di tutte le fonti con timeout per fonte/pubblicazione: ore 23:15
+- Agenti Lex operativi per inventario studio: ore 01:20
 
 La fascia notturna evita carico operativo durante l'uso quotidiano e consente di pubblicare automaticamente i nuovi contenuti idonei prima dell'avvio della giornata di studio.
 
@@ -217,4 +223,3 @@ Regola di coerenza obbligatoria: nome fonte e URL devono riferirsi allo stesso e
 - ogni pubblicazione produce audit
 - le relazioni strutturate non sovrascrivono lo storico
 - la tassonomia materie e' chiusa e governata
-

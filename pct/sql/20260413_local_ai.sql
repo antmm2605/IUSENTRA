@@ -69,6 +69,8 @@ CREATE TABLE IF NOT EXISTS rag_chunks (
     embedding_state TEXT NOT NULL DEFAULT 'pending',
     embedding_json TEXT,
     embedding_dimensions INTEGER,
+    embedding_provider TEXT,
+    embedding_model TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );

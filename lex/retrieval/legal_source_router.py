@@ -24,6 +24,8 @@ _NORMATIVA_NAZIONALE_TOKENS = frozenset(
     {
         "norma", "normativa", "legge", "decreto", "d.lgs", "d.l.", "d.p.r.", "l. n.",
         "codice civile", "codice penale", "codice di procedura", "c.c.", "c.p.c.",
+        "codice procedura civile", "codice procedura penale", "codice della strada",
+        "codice processo amministrativo", "codice amministrativo", "c.p.", "c.p.p.",
         "articolo", "art.", "comma", "gazzetta ufficiale", "normattiva",
         "testo unico", "testo consolidato", "regio decreto", "r.d.",
         "disposizioni attuative", "regolamento",
@@ -130,6 +132,7 @@ _PENALE_TOKENS = frozenset(
         "riforma cartabia", "recidiva", "prescrizione penale",
         "querela", "denuncia", "estinzione reato", "amnistia",
         "arresti domiciliari", "misura cautelare", "custodia cautelare",
+        "codice penale", "codice procedura penale", "procedura penale",
     }
 )
 
@@ -138,16 +141,19 @@ _CIVILE_TOKENS = frozenset(
         "civile", "responsabilità contrattuale", "inadempimento",
         "risoluzione contratto", "risarcimento danni", "danno emergente",
         "lucro cessante", "prescrizione civile", "interruzione prescrizione",
-        "ingiunzione", "decreto ingiuntivo", "opposizione", "sfratto",
+        "ingiunzione", "decreto ingiuntivo", "opposizione", "opposizione istat", "sfratto",
         "locazione", "condominio", "usufrutto", "successione", "eredità",
+        "procedura civile", "notifica", "notifiche", "pec", "onere della prova",
+        "nullita", "nullità", "termini processuali", "circolazione stradale",
+        "codice della strada", "risarcimento", "responsabilita", "danno",
     }
 )
 
 _FAMIGLIA_TOKENS = frozenset(
     {
         "separazione", "divorzio", "affidamento", "mantenimento figli",
-        "assegno divorzile", "unione civile", "convivente", "adozione",
-        "minori", "volontaria giurisdizione", "tutela", "curatela",
+        "assegno divorzile", "assegno mantenimento", "mantenimento", "unione civile", "convivente", "adozione",
+        "figli", "minori", "volontaria giurisdizione", "tutela", "curatela",
         "amministrazione sostegno",
     }
 )

@@ -55,6 +55,20 @@ DEFAULT_MATTERS: tuple[dict[str, Any], ...] = (
     {"name": "Concordato", "slug": "concordato", "parent_slug": "diritto_fallimentare_crisi_impresa", "level": 2, "sort_order": 340},
     {"name": "Composizione negoziata", "slug": "composizione_negoziata", "parent_slug": "diritto_fallimentare_crisi_impresa", "level": 2, "sort_order": 350},
     {"name": "Esecuzione penale", "slug": "esecuzione_penale", "parent_slug": "diritto_penale", "level": 2, "sort_order": 360},
+    {"name": "Procedura civile", "slug": "procedura_civile", "parent_slug": "diritto_civile", "level": 2, "sort_order": 370},
+    {"name": "Procedura penale", "slug": "procedura_penale", "parent_slug": "diritto_penale", "level": 2, "sort_order": 380},
+    {"name": "Giurisprudenza di merito", "slug": "giurisprudenza_merito", "parent_slug": "diritto_civile", "level": 2, "sort_order": 390},
+    {"name": "Avvocati e professione forense", "slug": "avvocati_professione_forense", "parent_slug": "diritto_civile", "level": 2, "sort_order": 400},
+    {"name": "Notifiche e PEC", "slug": "notifiche_pec", "parent_slug": "diritto_civile", "level": 2, "sort_order": 410},
+    {"name": "Onere della prova", "slug": "onere_della_prova", "parent_slug": "diritto_civile", "level": 2, "sort_order": 420},
+    {"name": "Nullita", "slug": "nullita", "parent_slug": "diritto_civile", "level": 2, "sort_order": 430},
+    {"name": "Termini processuali", "slug": "termini_processuali", "parent_slug": "procedura_civile", "level": 3, "sort_order": 440},
+    {"name": "Separazione e divorzio", "slug": "separazione_divorzio", "parent_slug": "diritto_famiglia", "level": 2, "sort_order": 450},
+    {"name": "Figli e mantenimento", "slug": "figli_mantenimento", "parent_slug": "diritto_famiglia", "level": 2, "sort_order": 460},
+    {"name": "Decreto ingiuntivo e opposizione", "slug": "decreto_ingiuntivo_opposizione", "parent_slug": "procedura_civile", "level": 3, "sort_order": 470},
+    {"name": "Opposizione ISTAT", "slug": "opposizione_istat", "parent_slug": "procedura_civile", "level": 3, "sort_order": 480},
+    {"name": "Circolazione stradale", "slug": "circolazione_stradale", "parent_slug": "diritto_civile", "level": 2, "sort_order": 490},
+    {"name": "Compensi avvocato", "slug": "compensi_avvocato", "parent_slug": "avvocati_professione_forense", "level": 3, "sort_order": 500},
 )
 
 

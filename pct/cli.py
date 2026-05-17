@@ -2750,6 +2750,78 @@ def cmd_aggiornamenti_legali(intelligence_db, giurisprudenza_db, source_codes, n
     ))
 
 
+@cli.command("ai-avanzata")
+@click.option("--json", "as_json", is_flag=True, default=False, help="Stampa il payload completo in JSON")
+@click.option("--fail-if-blocked", is_flag=True, default=False, help="Ritorna errore se una capacita' abilitata non e' pronta")
+def cmd_ai_avanzata(as_json, fail_if_blocked):
+    """Mostra lo stato operativo di MTP, LLM Wiki, GLM-OCR e Gemini Embedding 2."""
+    from lex.advanced_runtime import build_advanced_ai_capabilities
+
+    payload = build_advanced_ai_capabilities()
+    if as_json:
+        click.echo(json.dumps(payload, ensure_ascii=False, indent=2))
+    else:
+        click.echo("AI avanzata - stato operativo")
+        for code, item in (payload.get("capabilities") or {}).items():
+            label = str(item.get("status_label") or item.get("status") or "n.d.")
+            message = str(item.get("operator_message") or "")
+            click.echo(f"- {code}: {label}")
+            if message:
+                click.echo(f"  {message}")
+    if fail_if_blocked and list(payload.get("blocked") or []):
+        raise click.ClickException("Una o piu' capacita' avanzate abilitate non sono pronte")
+
+
+@cli.command("lex-agenti-operativi")
+@click.option("--all", "run_all", is_flag=True, default=False, help="Esegue tutti i micro-agenti operativi Lex")
+@click.option("--agent", "agent_ids", multiple=True, help="Agent id interno da eseguire. Ripetibile")
+@click.option("--json", "as_json", is_flag=True, default=False, help="Stampa il payload completo in JSON")
+def cmd_lex_agenti_operativi(run_all, agent_ids, as_json):
+    """Esegue subito gli agenti operativi che aggiornano l'inventario Lex."""
+    from lex.operational_knowledge.nightly_agents import run_operational_micro_agents
+    from pct.scheduler_registry import delegated_operational_agent_specs
+
+    app = None
+    app_error = ""
+    try:
+        from web.app import create_app
+
+        app = create_app()
+    except Exception as exc:  # pragma: no cover - difesa CLI runtime
+        app_error = str(exc)
+
+    cfg = dict(getattr(app, "config", {}) or {})
+    specs = delegated_operational_agent_specs(cfg)
+    wanted = {str(agent).strip() for agent in agent_ids if str(agent).strip()}
+    if wanted:
+        specs = [spec for spec in specs if str(spec.get("agent_id") or "") in wanted or str(spec.get("template_key") or "") in wanted]
+    elif not run_all:
+        # Senza filtro esplicito esegue comunque tutto: e' il comportamento utile per il controllo "adesso".
+        specs = list(specs)
+
+    if not specs:
+        raise click.ClickException("Nessun agente operativo Lex selezionato.")
+
+    if app is not None:
+        with app.app_context():
+            payload = run_operational_micro_agents(app=app, agents=specs)
+    else:
+        payload = run_operational_micro_agents(config=cfg, agents=specs)
+    payload["selected_agents"] = [str(spec.get("agent_id") or "") for spec in specs]
+    if app_error:
+        payload["app_warning"] = app_error
+
+    if as_json:
+        click.echo(json.dumps(payload, ensure_ascii=False, indent=2))
+        return
+
+    click.echo("Agenti operativi Lex - esecuzione immediata")
+    for result in payload.get("results") or []:
+        click.echo(f"- {result.get('agent_id')}: {result.get('status')} - {result.get('summary')}")
+        if result.get("missing_keys"):
+            click.echo(f"  Da verificare: {', '.join(result.get('missing_keys') or [])}")
+
+
 @cli.command("golden-path")
 @click.option(
     "--run/--no-run",

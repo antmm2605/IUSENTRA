@@ -125,6 +125,54 @@ def get_ollama_circuit_breaker(base_url: str | None = None):
     )
 
 
+def _truthy_env(*names: str) -> bool:
+    for name in names:
+        raw = str(os.getenv(name, "") or "").strip().lower()
+        if raw:
+            return raw in {"1", "true", "yes", "si", "on", "enabled"}
+    return False
+
+
+def _env_first(*names: str, default: str = "") -> str:
+    for name in names:
+        value = str(os.getenv(name, "") or "").strip()
+        if value:
+            return value
+    return default
+
+
+def _embedding_provider_code() -> str:
+    raw = _env_first("IUSENTRA_EMBEDDING_PROVIDER", "PCT_EMBEDDING_PROVIDER", default="local").lower()
+    if raw in {"gemini", "google", "gemini_embedding_2", "gemini-embedding-2"}:
+        return "gemini"
+    return "ollama"
+
+
+def _external_embeddings_allowed() -> bool:
+    return _truthy_env("IUSENTRA_EXTERNAL_EMBEDDINGS_ALLOWED") or _truthy_env("LEX_EXTERNAL_ALLOWED")
+
+
+def _gemini_embedding_model() -> str:
+    return _env_first(
+        "IUSENTRA_GEMINI_EMBEDDING_MODEL",
+        "GEMINI_EMBEDDING_MODEL",
+        default="gemini-embedding-001",
+    )
+
+
+def _gemini_api_key() -> str:
+    return _env_first("IUSENTRA_GEMINI_API_KEY", "GEMINI_API_KEY", "GOOGLE_API_KEY")
+
+
+def _gemini_output_dimensions() -> int:
+    raw = _env_first("IUSENTRA_GEMINI_EMBEDDING_DIMENSIONS", default="768")
+    try:
+        value = int(raw)
+    except ValueError:
+        value = 768
+    return min(max(value, 128), 3072)
+
+
 def _sha256_bytes(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
@@ -476,6 +524,78 @@ class OllamaHttpClient:
         return self._request("POST", "/chat", payload=payload, timeout=timeout)
 
 
+class GeminiEmbeddingHttpClient:
+    """Minimal REST client for the Gemini Embedding family."""
+
+    def __init__(
+        self,
+        *,
+        api_key: str,
+        api_base_url: str = "https://generativelanguage.googleapis.com/v1beta",
+        timeout: float = 90.0,
+        output_dimensionality: int = 768,
+    ) -> None:
+        self.api_key = str(api_key or "").strip()
+        self.api_base_url = str(api_base_url or "https://generativelanguage.googleapis.com/v1beta").strip().rstrip("/")
+        self.timeout = timeout
+        self.output_dimensionality = min(max(int(output_dimensionality or 768), 128), 3072)
+
+    @staticmethod
+    def _clean_model(model_name: str) -> str:
+        raw = str(model_name or "gemini-embedding-001").strip()
+        return raw[len("models/") :] if raw.startswith("models/") else raw
+
+    def _headers(self) -> dict[str, str]:
+        if not self.api_key:
+            raise RuntimeError("Chiave Gemini Embedding 2 non configurata")
+        return {
+            "Content-Type": "application/json",
+            "x-goog-api-key": self.api_key,
+        }
+
+    @staticmethod
+    def _parse_vector(item: Any) -> list[float]:
+        payload = dict(item or {})
+        values = payload.get("values")
+        if values is None and isinstance(payload.get("embedding"), dict):
+            values = payload["embedding"].get("values")
+        return [float(value) for value in list(values or [])]
+
+    def embed_texts(self, model_name: str, inputs: list[str]) -> dict[str, Any]:
+        model = self._clean_model(model_name)
+        texts = [str(item or "") for item in inputs]
+        if not texts:
+            return {"embeddings": []}
+        requests_payload = []
+        for text in texts:
+            requests_payload.append(
+                {
+                    "model": f"models/{model}",
+                    "content": {"parts": [{"text": text}]},
+                    "outputDimensionality": self.output_dimensionality,
+                }
+            )
+        started = time.monotonic()
+        response = requests.post(
+            f"{self.api_base_url}/models/{model}:batchEmbedContents",
+            headers=self._headers(),
+            json={"requests": requests_payload},
+            timeout=self.timeout,
+        )
+        response.raise_for_status()
+        data = response.json()
+        embeddings = [self._parse_vector(item) for item in list(data.get("embeddings") or [])]
+        if len(embeddings) != len(texts) or any(not vector for vector in embeddings):
+            raise ValueError("Risposta Gemini Embedding 2 non coerente con i chunk richiesti")
+        return {
+            "embeddings": embeddings,
+            "total_duration": int((time.monotonic() - started) * 1000),
+            "load_duration": None,
+            "prompt_eval_count": sum(_estimate_tokens(text) for text in texts),
+            "eval_count": None,
+        }
+
+
 class LocalAIService:
     def __init__(
         self,
@@ -540,6 +660,10 @@ class LocalAIService:
                 conn.execute("ALTER TABLE rag_chunks ADD COLUMN embedding_json TEXT")
             if "embedding_dimensions" not in chunk_columns:
                 conn.execute("ALTER TABLE rag_chunks ADD COLUMN embedding_dimensions INTEGER")
+            if "embedding_provider" not in chunk_columns:
+                conn.execute("ALTER TABLE rag_chunks ADD COLUMN embedding_provider TEXT")
+            if "embedding_model" not in chunk_columns:
+                conn.execute("ALTER TABLE rag_chunks ADD COLUMN embedding_model TEXT")
             conn.commit()
 
     def _cache_get(
@@ -674,6 +798,52 @@ class LocalAIService:
     def _ollama_client(self, settings: LocalAiSettings | None = None) -> OllamaHttpClient:
         cfg = settings or self._load_settings()
         return OllamaHttpClient(cfg.base_url)
+
+    def _embedding_provider(self) -> str:
+        return _embedding_provider_code()
+
+    def _embedding_provider_snapshot(self) -> dict[str, Any]:
+        provider = self._embedding_provider()
+        if provider == "gemini":
+            return {
+                "provider": "gemini",
+                "model": _gemini_embedding_model(),
+                "output_dimensions": _gemini_output_dimensions(),
+                "external_allowed": _external_embeddings_allowed(),
+                "api_key_present": bool(_gemini_api_key()),
+                "requires_full_reembedding": True,
+            }
+        return {
+            "provider": "ollama",
+            "model": "",
+            "output_dimensions": None,
+            "external_allowed": False,
+            "api_key_present": False,
+            "requires_full_reembedding": False,
+        }
+
+    def _embedding_model_name(self, settings: LocalAiSettings, fallback: str | None = None) -> str:
+        if self._embedding_provider() == "gemini":
+            return _gemini_embedding_model()
+        return str(fallback or settings.embed_model or self._active_model("embed") or "").strip()
+
+    def _embedding_client(self, settings: LocalAiSettings | None = None):
+        if self._embedding_provider() != "gemini":
+            return self._ollama_client(settings)
+        if not _external_embeddings_allowed():
+            raise RuntimeError("Gemini Embedding 2 richiede autorizzazione esplicita ai provider esterni")
+        api_key = _gemini_api_key()
+        if not api_key:
+            raise RuntimeError("Chiave Gemini Embedding 2 non configurata")
+        return GeminiEmbeddingHttpClient(
+            api_key=api_key,
+            api_base_url=_env_first(
+                "IUSENTRA_GEMINI_API_BASE_URL",
+                "GEMINI_API_BASE_URL",
+                default="https://generativelanguage.googleapis.com/v1beta",
+            ),
+            output_dimensionality=_gemini_output_dimensions(),
+        )
 
     def _candidate_base_urls(self, settings: LocalAiSettings) -> list[str]:
         urls: list[str] = []
@@ -1298,6 +1468,7 @@ class LocalAIService:
                 "chat": model_policy["chat_model"],
                 "embed": model_policy["embed_model"],
             },
+            "embedding_provider": self._embedding_provider_snapshot(),
             "installer": installer,
             "counts": dict(counts or {}),
             "models_path": str(self.models_path),
@@ -1375,6 +1546,7 @@ class LocalAIService:
                 "chat": active_models.get("chat") or settings.chat_model,
                 "embed": active_models.get("embed") or settings.embed_model,
             },
+            "embedding_provider": self._embedding_provider_snapshot(),
             "counts": dict(counts or {}),
             "models_path": str(self.models_path),
             "circuit_breaker": breaker,
@@ -1650,6 +1822,8 @@ class LocalAIService:
                         "embedding_state": "pending",
                         "embedding_json": None,
                         "embedding_dimensions": None,
+                        "embedding_provider": None,
+                        "embedding_model": None,
                         "created_at": _now_iso(),
                         "updated_at": _now_iso(),
                     }
@@ -1741,8 +1915,8 @@ class LocalAIService:
                 INSERT INTO rag_chunks (
                     id, document_id, practice_id, section_type, ordinal, page_from, page_to,
                     token_estimate, text, metadata_json, embedding_state, embedding_json,
-                    embedding_dimensions, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    embedding_dimensions, embedding_provider, embedding_model, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     row["id"],
@@ -1758,6 +1932,8 @@ class LocalAIService:
                     row["embedding_state"],
                     row["embedding_json"],
                     row["embedding_dimensions"],
+                    row.get("embedding_provider"),
+                    row.get("embedding_model"),
                     row["created_at"],
                     row["updated_at"],
                 ),
@@ -1973,14 +2149,20 @@ class LocalAIService:
         practice_id: str | None = None,
         document_id: str | None = None,
     ) -> dict[str, Any]:
-        bootstrap = self.bootstrap_runtime()
-        if bootstrap.get("status") != "ready":
-            return {"status": bootstrap.get("status"), "embedded": 0, "error": bootstrap.get("error")}
-        embed_model = bootstrap.get("embed_model") or self._active_model("embed")
+        provider = self._embedding_provider()
+        settings = self._load_settings()
+        bootstrap: dict[str, Any] = {"status": "ready"}
+        if provider != "gemini":
+            bootstrap = self.bootstrap_runtime()
+            if bootstrap.get("status") != "ready":
+                return {"status": bootstrap.get("status"), "embedded": 0, "error": bootstrap.get("error")}
+        embed_model = self._embedding_model_name(settings, str(bootstrap.get("embed_model") or ""))
         if not embed_model:
             return {"status": "error", "embedded": 0, "error": "Modello embedding non disponibile"}
-        settings = self._load_settings()
-        client = self._ollama_client(settings)
+        try:
+            client = self._embedding_client(settings)
+        except Exception as exc:
+            return {"status": "error", "embedded": 0, "error": str(exc), "embedding_provider": provider}
         with self._connect() as conn:
             conditions = ["embedding_state = 'pending'"]
             params: list[Any] = []
@@ -2010,6 +2192,8 @@ class LocalAIService:
                     "embedded": 0,
                     "vector_dimensions": None,
                     "pending_remaining": 0,
+                    "embedding_provider": provider,
+                    "embedding_model": embed_model,
                 }
             embed_result = client.embed_texts(str(embed_model), [str(row["text"] or "") for row in rows])
             vectors = embed_result.get("embeddings") or []
@@ -2021,10 +2205,15 @@ class LocalAIService:
                 conn.execute(
                     """
                     UPDATE rag_chunks
-                    SET embedding_state = 'embedded', embedding_json = ?, embedding_dimensions = ?, updated_at = ?
+                    SET embedding_state = 'embedded',
+                        embedding_json = ?,
+                        embedding_dimensions = ?,
+                        embedding_provider = ?,
+                        embedding_model = ?,
+                        updated_at = ?
                     WHERE id = ?
                     """,
-                    (json.dumps(vector), len(vector), _now_iso(), row["id"]),
+                    (json.dumps(vector), len(vector), provider, embed_model, _now_iso(), row["id"]),
                 )
                 if row.get("document_id"):
                     touched_documents.add(str(row["document_id"]))
@@ -2042,6 +2231,8 @@ class LocalAIService:
                 "status": "ready",
                 "embedded": len(rows),
                 "vector_dimensions": len(vectors[0]) if vectors else None,
+                "embedding_provider": provider,
+                "embedding_model": embed_model,
                 "pending_remaining": self._pending_chunks_count(
                     conn,
                     practice_id=practice_id,
@@ -2092,6 +2283,8 @@ class LocalAIService:
             "embedded_total": total_embedded,
             "batches": batches,
             "vector_dimensions": vector_dimensions,
+            "embedding_provider": last_payload.get("embedding_provider") or self._embedding_provider(),
+            "embedding_model": last_payload.get("embedding_model"),
             "pending_remaining": int(last_payload.get("pending_remaining") or 0),
         }
 
@@ -2134,9 +2327,30 @@ class LocalAIService:
         params.append(top_k * 3)
         return [dict(row) for row in conn.execute(sql, params).fetchall()]
 
-    def _vector_rows(self, conn: sqlite3.Connection, query_vector: list[float], practice_id: str | None, document_id: str | None, top_k: int) -> list[dict[str, Any]]:
+    def _vector_rows(
+        self,
+        conn: sqlite3.Connection,
+        query_vector: list[float],
+        practice_id: str | None,
+        document_id: str | None,
+        top_k: int,
+        *,
+        embedding_provider: str,
+        embedding_model: str,
+    ) -> list[dict[str, Any]]:
         conditions = ["embedding_state = 'embedded'", "embedding_json IS NOT NULL"]
         params: list[Any] = []
+        if query_vector:
+            conditions.append("embedding_dimensions = ?")
+            params.append(len(query_vector))
+        if embedding_provider == "gemini":
+            conditions.append("embedding_provider = ?")
+            params.append(embedding_provider)
+            conditions.append("embedding_model = ?")
+            params.append(embedding_model)
+        else:
+            conditions.append("(embedding_provider IS NULL OR embedding_provider = ?)")
+            params.append(embedding_provider)
         if practice_id:
             conditions.append("practice_id = ?")
             params.append(practice_id)
@@ -2248,13 +2462,14 @@ class LocalAIService:
         if cached is not None:
             return cached
         settings = self._load_settings()
-        client = self._ollama_client(settings)
-        embed_model = self._active_model("embed")
+        embedding_provider = self._embedding_provider()
+        embed_model = self._embedding_model_name(settings)
         query_vector: list[float] = []
         load_duration = None
         prompt_eval_count = None
         if embed_model:
             try:
+                client = self._embedding_client(settings)
                 embed_result = client.embed_texts(embed_model, [normalized_query])
                 query_vector = list(embed_result.get("embeddings") or [[]])[0]
                 load_duration = embed_result.get("load_duration")
@@ -2263,7 +2478,19 @@ class LocalAIService:
                 query_vector = []
         with self._connect() as conn:
             text_rows = self._fts_rows(conn, normalized_query, practice_id, document_id, top_k)
-            vector_rows = self._vector_rows(conn, query_vector, practice_id, document_id, top_k) if query_vector else []
+            vector_rows = (
+                self._vector_rows(
+                    conn,
+                    query_vector,
+                    practice_id,
+                    document_id,
+                    top_k,
+                    embedding_provider=embedding_provider,
+                    embedding_model=str(embed_model or ""),
+                )
+                if query_vector
+                else []
+            )
             by_id: dict[str, dict[str, Any]] = {}
             for index, row in enumerate(vector_rows):
                 item = by_id.setdefault(str(row["id"]), dict(row))
@@ -2981,4 +3208,3 @@ __all__ = [
     "OllamaHttpClient",
     "strip_api_suffix",
 ]
-

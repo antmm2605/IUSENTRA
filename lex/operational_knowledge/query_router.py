@@ -51,6 +51,7 @@ ENTITY_STOPWORDS = {
     "documenti",
     "domani",
     "email",
+    "editor",
     "economico",
     "fascicolo",
     "fascicoli",
@@ -73,9 +74,11 @@ ENTITY_STOPWORDS = {
     "nello",
     "nei",
     "oggi",
+    "ordinaria",
     "per",
     "pec",
     "posta",
+    "professionale",
     "pratica",
     "prepara",
     "preparami",
@@ -90,6 +93,9 @@ ENTITY_STOPWORDS = {
     "questo",
     "recapiti",
     "riepilogo",
+    "ricevuta",
+    "ricevute",
+    "ricevuti",
     "scadenza",
     "scadenze",
     "settimana",
@@ -126,7 +132,14 @@ class OperationalQueryRouter:
             return OperationalRoute("sources_overview", "sources_overview", ("clienti", "fascicoli", "fonti_ufficiali"), entity_query)
 
         if any(token in text for token in ("messagg", "pec", "email", "posta ordinaria")):
-            return OperationalRoute("communications_lookup", "communications_lookup", ("clienti", "fascicoli", "messaggi"), entity_query)
+            sources = ["clienti", "fascicoli", "messaggi"]
+            if "pec" in text:
+                sources.append("email_pec")
+            if "posta ordinaria" in text or "email ordinaria" in text or "smtp" in text or "imap" in text:
+                sources.append("email_ordinaria")
+            if ("email" in text or "posta" in text) and not {"email_pec", "email_ordinaria"}.intersection(sources):
+                sources.extend(["email_pec", "email_ordinaria"])
+            return OperationalRoute("communications_lookup", "communications_lookup", tuple(dict.fromkeys(sources)), entity_query)
 
         if any(token in text for token in ("cliente", "anagrafica", "recapiti", "situazione di", "situazione del")) or focus_topic == "clienti":
             if "fascicol" in text:
@@ -174,8 +187,8 @@ class OperationalQueryRouter:
         if any(token in text for token in ("fattur", "parcell", "incass", "pagament", "quadro economico")):
             return OperationalRoute("billing_summary", "billing_summary", ("fatturazione", "preventivi", "conferimenti", "timesheet"), entity_query)
 
-        if "template" in text or "modello atto" in text or "modelli atto" in text:
-            return OperationalRoute("template_lookup", "template_lookup", ("template_atti",), entity_query)
+        if any(token in text for token in ("template", "modello atto", "modelli atto", "editor", "redazione", "bozza", "atto professionale")):
+            return OperationalRoute("template_lookup", "template_lookup", ("template_atti", "editor_ai", "fascicoli", "documenti_fascicolo"), entity_query)
 
         if any(token in text for token in ("document", "atto", "atti", "mancano", "riassumi gli ultimi")):
             return OperationalRoute("documenti_fascicolo", "documenti_fascicolo", ("fascicoli", "documenti_fascicolo", "template_atti"), entity_query)

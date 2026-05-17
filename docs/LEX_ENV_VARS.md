@@ -123,6 +123,32 @@ python -m lex.legal_sources.populate --activate --populate --force --json
 Il comando scrive solo in `data/legal_sources/`, `indexes/legal_sources/` e `artifacts/legal_sources/`, tutte cartelle ignorate da git.
 Nei container/server con `PCT_DATA_ROOT=/data`, i default runtime vengono risolti sotto `/data/legal_sources`, `/data/indexes/legal_sources` e `/data/artifacts/legal_sources`.
 
+### Runtime AI avanzato misurabile
+
+MTP, LLM Wiki, GLM-OCR e Gemini Embedding 2 sono governati da `lex/advanced_runtime.py` e visibili in `/api/metriche/runtime` sotto `providers.advanced_ai`. Il comando operativo:
+
+```powershell
+python -m pct.cli ai-avanzata --json
+```
+
+| Variabile | Default | Descrizione |
+|-----------|---------|-------------|
+| `IUSENTRA_AI_SERVING_ENGINE` | `ollama` | Serving LLM dichiarato. MTP viene considerato misurabile solo con `vllm` o `sglang`. |
+| `IUSENTRA_AI_SPECULATIVE_MODE` | `off` | Modalita speculativa: `mtp`, `eagle`, `ngram`, `draft` oppure `off`. |
+| `IUSENTRA_AI_SPECULATIVE_DRAFT_MODEL` | `` | Modello draft se richiesto dal serving. |
+| `IUSENTRA_LLM_WIKI_ENABLED` | `0` | Abilita il presidio LLM Wiki come livello compilato sopra le fonti, non come sostituto del RAG. |
+| `IUSENTRA_LLM_WIKI_ROOT` | `data/intelligence/llm_wiki` | Cartella delle pagine wiki Markdown/JSON compilate. |
+| `IUSENTRA_GLM_OCR_ENABLED` | `0` | Abilita il presidio GLM-OCR. |
+| `IUSENTRA_GLM_OCR_PROVIDER` | `self_hosted` | `self_hosted` oppure `maas`; `maas` richiede policy provider esterni. |
+| `IUSENTRA_GLM_OCR_ENDPOINT` | `` | Endpoint locale o self-hosted GLM-OCR. |
+| `IUSENTRA_EMBEDDING_PROVIDER` | `local` | `local` usa gli embeddings locali; `gemini` usa Gemini Embedding 2 se autorizzato. |
+| `IUSENTRA_EXTERNAL_EMBEDDINGS_ALLOWED` | `0` | Autorizzazione specifica agli embeddings esterni; in alternativa vale `LEX_EXTERNAL_ALLOWED=1`. |
+| `GEMINI_API_KEY` / `IUSENTRA_GEMINI_API_KEY` | `` | Chiave API Gemini. Non viene esposta nei payload di diagnostica. |
+| `IUSENTRA_GEMINI_EMBEDDING_MODEL` | `gemini-embedding-001` | ID tecnico ufficiale Gemini API per il profilo embedding esposto nel prodotto come Gemini Embedding 2. |
+| `IUSENTRA_GEMINI_EMBEDDING_DIMENSIONS` | `768` | Dimensioni vettoriali, vincolate tra 128 e 3072. |
+
+Regola obbligatoria: se `IUSENTRA_EMBEDDING_PROVIDER=gemini`, il corpus deve essere reindicizzato tutto con lo stesso provider e lo stesso modello. Non mischiare vettori locali e Gemini nello stesso confronto.
+
 ### Operational Knowledge tenant-aware
 
 Il layer `lex/operational_knowledge/` permette a Lex di interrogare dati reali dello studio con tool deterministici: clienti, soggetti, fascicoli, agenda, scadenziario, preventivi, conferimenti, tariffario, fatturazione, timesheet, documenti fascicolo, messaggi, notifiche, template atti, legal intelligence, update intelligence e fonti ufficiali locali. Non usa web per dati cliente/studio, non legge file arbitrari ed e' attivo di default nel bounded workflow Lex; puo' essere spento solo con opt-out esplicito.

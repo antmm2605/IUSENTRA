@@ -29,6 +29,7 @@ def test_start_scheduler_worker_registra_job_core(monkeypatch, tmp_path: Path):
         assert scheduler is not None
         assert scheduler.get_job("backup_giornaliero") is not None
         assert scheduler.get_job("local_ai_maintenance") is not None
+        assert scheduler.get_job("lex_operational_agents_nightly") is not None
         assert scheduler.get_job("legal_official_archives_daily") is not None
         assert scheduler.get_job("legal_updates_gazzetta") is not None
         assert scheduler.get_job("legal_updates_batch") is not None

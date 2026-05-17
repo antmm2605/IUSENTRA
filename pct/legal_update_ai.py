@@ -30,11 +30,11 @@ PROPOSED_ACTIONS = {
 }
 
 MATTER_KEYWORDS: tuple[tuple[str, tuple[str, ...]], ...] = (
-    ("diritto_lavoro", ("licenziamento", "lavoro", "inps", "contratto collettivo", "sicurezza sul lavoro")),
-    ("diritto_tributario", ("agenzia delle entrate", "tribut", "iva", "accertamento", "riscossione", "credito d'imposta")),
-    ("diritto_amministrativo", ("tar", "consiglio di stato", "appalto", "pubblica amministrazione", "procedimento amministrativo")),
-    ("diritto_penale", ("reato", "penale", "cassazione penale", "esecuzione penale", "procura")),
-    ("diritto_civile", ("contratto", "responsabilita", "risarcimento", "locazione", "condominio", "successione")),
+    ("diritto_lavoro", ("licenziamento", "lavoro", "inps", "contratto collettivo", "sicurezza sul lavoro", "tfr", "mobbing")),
+    ("diritto_tributario", ("agenzia delle entrate", "tribut", "iva", "accertamento", "riscossione", "credito d'imposta", "fisco", "imposta")),
+    ("diritto_amministrativo", ("tar", "consiglio di stato", "appalto", "pubblica amministrazione", "procedimento amministrativo", "codice processo amministrativo")),
+    ("diritto_penale", ("reato", "penale", "cassazione penale", "esecuzione penale", "procura", "codice penale", "procedura penale")),
+    ("diritto_civile", ("contratto", "responsabilita", "responsabilità", "risarcimento", "locazione", "condominio", "successione", "codice civile", "danno", "nullita", "nullità")),
     ("privacy_protezione_dati", ("privacy", "gdpr", "data breach", "protezione dati", "garante")),
     ("appalti_contratti_pubblici", ("appalti", "contratti pubblici", "gara", "sotto soglia", "sopra soglia")),
     ("diritto_ue", ("regolamento ue", "direttiva", "eur-lex", "unione europea", "commissione europea")),
@@ -63,6 +63,19 @@ SUBMATTER_KEYWORDS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     ("diritto_fallimentare_crisi_impresa", "concordato", ("concordato",)),
     ("diritto_fallimentare_crisi_impresa", "composizione_negoziata", ("composizione negoziata",)),
     ("diritto_penale", "esecuzione_penale", ("esecuzione penale", "misura alternativa")),
+    ("diritto_civile", "procedura_civile", ("procedura civile", "processo civile", "codice di procedura civile", "c.p.c.")),
+    ("diritto_penale", "procedura_penale", ("procedura penale", "processo penale", "codice di procedura penale", "c.p.p.")),
+    ("diritto_civile", "giurisprudenza_merito", ("giurisprudenza di merito", "tribunale", "corte d'appello")),
+    ("diritto_civile", "avvocati_professione_forense", ("avvocato", "avvocati", "professionale forense", "deontologia")),
+    ("diritto_civile", "notifiche_pec", ("pec", "notifica", "notifiche", "domicilio digitale")),
+    ("diritto_civile", "onere_della_prova", ("onere della prova", "prova", "art. 2697", "2697 c.c.")),
+    ("diritto_civile", "nullita", ("nullita", "nullità", "annullabilita", "annullabilità")),
+    ("diritto_civile", "termini_processuali", ("termine processuale", "termini processuali", "decadenza", "rimessione in termini")),
+    ("diritto_famiglia", "separazione_divorzio", ("separazione", "divorzio", "assegno divorzile")),
+    ("diritto_famiglia", "figli_mantenimento", ("figli", "mantenimento", "assegno mantenimento", "minori")),
+    ("diritto_civile", "decreto_ingiuntivo_opposizione", ("decreto ingiuntivo", "opposizione a decreto ingiuntivo", "opposizione istat")),
+    ("diritto_civile", "circolazione_stradale", ("codice della strada", "circolazione stradale", "sinistro stradale", "rc auto")),
+    ("diritto_civile", "compensi_avvocato", ("compenso avvocato", "compensi forensi", "parcella", "d.m. 55")),
 )
 
 NORM_TYPE_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (

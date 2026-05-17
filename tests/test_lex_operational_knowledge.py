@@ -104,6 +104,29 @@ class _MessaggiManager:
         return [row for row in self.rows if getattr(row, "id_fascicolo", "") == fascicolo_id]
 
 
+class _EmailManager:
+    def __init__(self, rows):
+        self.rows = list(rows)
+
+    def tutte(self, cartella=None, q: str = "", con_allegati: bool = False, **kwargs):
+        needle = str(q or "").lower().strip()
+        rows = list(self.rows)
+        if cartella:
+            rows = [row for row in rows if str(getattr(row, "cartella", "") or "") == str(cartella)]
+        if needle:
+            rows = [row for row in rows if needle in _haystack(row) or needle in str(getattr(row, "corpo_testo", "") or "").lower()]
+        if con_allegati:
+            rows = [row for row in rows if list(getattr(row, "allegati", []) or [])]
+        return rows
+
+    def allegato_disponibile(self, email, index: int = 0):
+        allegati = list(getattr(email, "allegati", []) or [])
+        if index < 0 or index >= len(allegati):
+            return False
+        attachment = allegati[index]
+        return bool(attachment.get("archivio_membro") or attachment.get("path") or attachment.get("percorso"))
+
+
 class _TemplateManager(_ListManager):
     def select_best_templates(self, query: str, limit: int = 12):
         return self.cerca(query)[:limit]
@@ -170,6 +193,39 @@ def _base_repositories():
         ),
         "fatturazione": _FatturazioneManager([SimpleNamespace(id="par-1", numero="P-1", id_cliente="cli-1", id_fascicolo="fas-1", totale=500.0)]),
         "messaggi": _MessaggiManager([SimpleNamespace(id="msg-1", oggetto="Aggiornamento pratica", id_cliente="cli-1", id_fascicolo="fas-1", canale="PEC")]),
+        "email_pec": _EmailManager([
+            SimpleNamespace(
+                id="pec-1",
+                cartella="inbox",
+                stato="non_letta",
+                mittente="cancelleria@pec.test",
+                mittente_nome="Cancelleria",
+                destinatari=["studio@pec.test"],
+                oggetto="Esito deposito",
+                data="2026-05-17",
+                corpo_testo="Ricevuta di consegna del deposito telematico.",
+                allegati=[{"nome": "ricevuta.eml", "size": 100, "archivio_membro": "aa/ricevuta.eml", "percorso": "D:/segreto/ricevuta.eml"}],
+                origine="IMAP",
+                stato_pct="ACCETTATO",
+                auto_registrata=True,
+                tenant_id="tenant-a",
+            )
+        ]),
+        "email_ordinaria": _EmailManager([
+            SimpleNamespace(
+                id="mail-1",
+                cartella="inbox",
+                stato="letta",
+                mittente="cliente@example.test",
+                destinatari=["studio@example.test"],
+                oggetto="Documenti contratto",
+                data="2026-05-16",
+                corpo_testo="Invio documenti per il contratto di locazione.",
+                allegati=[{"nome": "contratto.pdf", "size": 200, "archivio_membro": "bb/contratto.pdf", "percorso": "D:/segreto/contratto.pdf"}],
+                origine="IMAP",
+                tenant_id="tenant-a",
+            )
+        ]),
         "template_atti": _TemplateManager([SimpleNamespace(id="tpl-1", titolo="Ricorso opposizione", categoria="atti")]),
     }
 
@@ -302,6 +358,28 @@ def test_message_retrieval_uses_tenant_internal_sources_only():
     assert answer.metadata["operational_layer"] is True
 
 
+def test_pec_inventory_uses_dedicated_email_source_without_paths():
+    service, user = _service(repositories=_base_repositories())
+
+    answer = service.answer(question="Mostrami le PEC ricevute", user=user, studio=SimpleNamespace(slug="tenant-a"))
+
+    assert answer is not None
+    payload = answer.to_dict()
+    assert any(source.source_id == "email_pec" for source in answer.sources)
+    assert "Esito deposito" in str(payload)
+    assert "D:/segreto" not in str(payload)
+
+
+def test_ordinary_email_inventory_has_dedicated_source():
+    service, user = _service(repositories=_base_repositories())
+
+    answer = service.answer(question="Mostrami la posta ordinaria", user=user, studio=SimpleNamespace(slug="tenant-a"))
+
+    assert answer is not None
+    assert any(source.source_id == "email_ordinaria" for source in answer.sources)
+    assert "Documenti contratto" in str(answer.to_dict())
+
+
 def test_template_lookup_is_reported_as_template_source():
     service, user = _service(repositories=_base_repositories())
 
@@ -309,6 +387,47 @@ def test_template_lookup_is_reported_as_template_source():
 
     assert answer is not None
     assert any(source.source_id == "template_atti" for source in answer.sources)
+
+
+def test_editor_professionale_exposes_lex_support():
+    service, user = _service(repositories=_base_repositories())
+
+    answer = service.answer(
+        question="Come mi supporta Lex nell'editor professionale per una bozza?",
+        user=user,
+        studio=SimpleNamespace(slug="tenant-a"),
+        metadata={"fascicolo_id": "fas-1"},
+    )
+
+    assert answer is not None
+    assert any(source.source_id == "editor_ai" for source in answer.sources)
+    assert "Editor Lex" in answer.answer or "Supporto disponibile" in answer.answer
+
+
+def test_operational_agent_registry_copre_tutto_il_perimetro_lex():
+    from lex.operational_knowledge.agents import build_default_agent_registry
+    from lex.operational_knowledge.source_registry import build_default_registry
+
+    agents = {agent.agent_id for agent in build_default_agent_registry().all()}
+    sources = {source.source_id for source in build_default_registry().all()}
+
+    assert {
+        "fascicoli_documenti_timeline",
+        "redazione_atti_editor",
+        "giurisprudenza_cassazione",
+        "pct_depositi_telematici",
+        "ai_locale_rag_runtime",
+    }.issubset(agents)
+    assert {
+        "citazioni_cassazione",
+        "chat_lex_editor",
+        "pdf_manager",
+        "firma_digitale",
+        "fatturazione_elettronica_sdi",
+        "client_portal",
+        "antiriciclaggio",
+        "rest_api_webhooks",
+    }.issubset(sources)
 
 
 def test_legal_action_request_is_blocked():

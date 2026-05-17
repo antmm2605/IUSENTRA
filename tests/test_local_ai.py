@@ -235,6 +235,88 @@ def test_local_ai_index_and_hybrid_search(tmp_path: Path, monkeypatch):
     assert "Atto di opposizione" in results[0]["citation"]
 
 
+def test_local_ai_embedding_provider_gemini_usa_client_autorizzato(tmp_path: Path, monkeypatch):
+    service = _service(tmp_path)
+    document_path = tmp_path / "atto-gemini.txt"
+    document_path.write_text(
+        "TRIBUNALE DI PALERMO\n\nIN DIRITTO\n\nRicorso con prova documentale e allegati.",
+        encoding="utf-8",
+    )
+    indexed = service.index_file(
+        source_type="fascicolo_documento",
+        source_id="DOC-GEMINI",
+        practice_id="P-GEMINI",
+        file_path=str(document_path),
+        title="Ricorso con allegati",
+    )
+    assert indexed["status"] == "indexed"
+
+    class DummyResponse:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {"embeddings": [{"values": [0.1, 0.2, 0.3]}]}
+
+    captured: dict[str, object] = {}
+
+    def fake_post(url, *, headers=None, json=None, timeout=None):
+        captured["url"] = url
+        captured["headers"] = headers
+        captured["json"] = json
+        captured["timeout"] = timeout
+        return DummyResponse()
+
+    monkeypatch.setenv("IUSENTRA_EMBEDDING_PROVIDER", "gemini")
+    monkeypatch.setenv("LEX_EXTERNAL_ALLOWED", "1")
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    monkeypatch.setenv("IUSENTRA_GEMINI_EMBEDDING_DIMENSIONS", "768")
+    monkeypatch.setattr("pct.local_ai.requests.post", fake_post)
+
+    embedded = service.embed_pending_chunks(limit=20)
+
+    assert embedded["status"] == "ready"
+    assert embedded["embedded"] >= 1
+    assert embedded["embedding_provider"] == "gemini"
+    assert embedded["embedding_model"] == "gemini-embedding-001"
+    assert embedded["vector_dimensions"] == 3
+    assert "gemini-embedding-001:batchEmbedContents" in str(captured["url"])
+    assert captured["json"]["requests"][0]["outputDimensionality"] == 768
+    assert (captured["headers"] or {}).get("x-goog-api-key") == "test-key"
+
+    with service._connect() as conn:
+        row = conn.execute(
+            "SELECT embedding_provider, embedding_model, embedding_dimensions FROM rag_chunks WHERE document_id = ?",
+            (indexed["document_id"],),
+        ).fetchone()
+    assert row["embedding_provider"] == "gemini"
+    assert row["embedding_model"] == "gemini-embedding-001"
+    assert row["embedding_dimensions"] == 3
+
+
+def test_local_ai_embedding_provider_gemini_bloccato_senza_autorizzazione(tmp_path: Path, monkeypatch):
+    service = _service(tmp_path)
+    document_path = tmp_path / "atto-gemini-bloccato.txt"
+    document_path.write_text("TRIBUNALE\nDocumento da indicizzare.", encoding="utf-8")
+    service.index_file(
+        source_type="fascicolo_documento",
+        source_id="DOC-GEMINI-BLOCK",
+        practice_id="P-GEMINI",
+        file_path=str(document_path),
+        title="Documento",
+    )
+    monkeypatch.setenv("IUSENTRA_EMBEDDING_PROVIDER", "gemini")
+    monkeypatch.delenv("LEX_EXTERNAL_ALLOWED", raising=False)
+    monkeypatch.delenv("IUSENTRA_EXTERNAL_EMBEDDINGS_ALLOWED", raising=False)
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+
+    embedded = service.embed_pending_chunks(limit=20)
+
+    assert embedded["status"] == "error"
+    assert embedded["embedding_provider"] == "gemini"
+    assert "provider esterni" in embedded["error"]
+
+
 def test_local_ai_embed_all_pending_chunks_elabora_tutto_il_fascicolo(tmp_path: Path, monkeypatch):
     service = _service(tmp_path)
     for index in range(3):
@@ -1456,4 +1538,3 @@ def test_api_local_ai_bootstrap_aggiorna_cache_runtime_chat(tmp_path: Path, monk
     assert response.status_code == 200
     assert response.get_json()["result"]["status"] == "ready"
     assert calls["refresh"] == 1
-

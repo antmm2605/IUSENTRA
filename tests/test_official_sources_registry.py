@@ -16,6 +16,7 @@ def test_official_sources_config_has_required_sources_and_no_tokens():
 
     required = {
         "normattiva",
+        "codici_normattiva",
         "gazzetta_ufficiale",
         "ministero_giustizia",
         "pst_pct",

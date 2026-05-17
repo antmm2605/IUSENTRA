@@ -309,7 +309,102 @@ DELEGATED_AGENT_TEMPLATES: tuple[SchedulerTemplate, ...] = (
         ),
         args={"paths": ["AUDIT_DB", "AUTH_DB"]},
     ),
+    SchedulerTemplate(
+        "agent_redazione_atti_editor",
+        "Agente redazione atti ed editor",
+        "Agenti delegati",
+        "Controlla template, fascicoli, documenti indicizzati e Copilota Lex negli editor.",
+        enabled=False,
+        criteria=(
+            "Verifica che editor normale e professionale possano leggere il documento reale.",
+            "Controlla template, bozza AI, proposte pending e fonti citabili.",
+            "Mantiene Da verificare se mancano fascicolo, template o documenti indicizzati.",
+        ),
+        args={"paths": ["FASCICOLI_DB", "FASCICOLI_DOCS", "TEMPLATE_ATTI_DB", "LOCAL_AI_DB"]},
+    ),
+    SchedulerTemplate(
+        "agent_giurisprudenza_cassazione",
+        "Agente Cassazione e citazioni",
+        "Agenti delegati",
+        "Controlla corpus Cassazione, fonti ufficiali e citazioni verificabili per Lex.",
+        enabled=False,
+        criteria=(
+            "Usa solo corpus verificato o fonte ufficiale per massime e citazioni.",
+            "Non pubblica citazioni senza numero, data, sezione o testo verificabile.",
+            "Richiede ricerca web completa quando manca una conferma ufficiale.",
+        ),
+        args={"paths": ["GIURISPRUDENZA_DB", "LEGAL_INTELLIGENCE_DB", "NORMATTIVA_DB", "LEX_OFFICIAL_DB"]},
+    ),
+    SchedulerTemplate(
+        "agent_ai_locale_rag",
+        "Agente AI locale e RAG",
+        "Agenti delegati",
+        "Controlla Ollama, indicizzazione locale, embedding, LLM Wiki e OCR documentale.",
+        enabled=False,
+        criteria=(
+            "Verifica stato AI locale senza usare fascicoli per training esterno.",
+            "Segnala mismatch embedding o reindicizzazione necessaria.",
+            "Mantiene Da verificare per MTP, LLM Wiki, GLM-OCR o Gemini non pronti.",
+        ),
+        args={"paths": ["LOCAL_AI_DB", "WORKSPACE_INTELLIGENCE_DB", "FASCICOLI_DOCS", "LOCAL_AI_MODELS_DIR"]},
+    ),
+    SchedulerTemplate(
+        "agent_integrazioni_native",
+        "Agente integrazioni native",
+        "Agenti delegati",
+        "Controlla Google, Microsoft, SDI, firma digitale, provider email e webhooks.",
+        enabled=False,
+        criteria=(
+            "Verifica solo configurazioni e stato, senza mostrare segreti.",
+            "Distingue integrazione censita, configurata e realmente operativa.",
+            "Segnala provider firma o SDI ancora da collegare.",
+        ),
+        args={"paths": ["CONFIG_STUDIO_DB", "STUDIO_CONFIG", "CALENDAR_SYNC_DB", "FATTURAZIONE_DB", "PAGAMENTI_DIR"]},
+    ),
 )
+
+
+_DELEGATED_TEMPLATE_AGENT_IDS: dict[str, str] = {
+    "agent_clienti_soggetti": "cliente_soggetti",
+    "agent_scadenze_agenda": "scadenziario_agenda",
+    "agent_preventivi_parcelle": "preventivi_parcelle_tariffario",
+    "agent_email_pec": "email_pec",
+    "agent_email_ordinaria": "email_ordinaria",
+    "agent_fascicoli_documenti": "fascicoli_documenti_timeline",
+    "agent_aggiornamenti_legali": "fonti_legal_update",
+    "agent_backup_storage": "backup_storage_database",
+    "agent_telematico_depositi": "pct_depositi_telematici",
+    "agent_sito_studio": "sito_studio_portale",
+    "agent_pagamenti_notifiche": "fatturazione_pagamenti_sdi",
+    "agent_privacy_gdpr": "portal_compliance_security",
+    "agent_redazione_atti_editor": "redazione_atti_editor",
+    "agent_giurisprudenza_cassazione": "giurisprudenza_cassazione",
+    "agent_ai_locale_rag": "ai_locale_rag_runtime",
+    "agent_integrazioni_native": "integrazioni_native",
+}
+
+
+def delegated_operational_agent_specs(config: dict[str, Any] | None = None) -> list[dict[str, Any]]:
+    """Return the internal Lex micro-agents driven by scheduler templates."""
+
+    specs: list[dict[str, Any]] = []
+    for template in DELEGATED_AGENT_TEMPLATES:
+        agent_id = _DELEGATED_TEMPLATE_AGENT_IDS.get(template.key)
+        if not agent_id:
+            continue
+        args = dict(template.args or {})
+        specs.append(
+            {
+                "template_key": template.key,
+                "agent_id": agent_id,
+                "name": template.name,
+                "family": template.family,
+                "paths": list(args.get("paths") or []),
+                "criteria": list(template.criteria),
+                "enabled": bool(template.enabled),
+            }
+        )
+    return specs
 
 
 LEGAL_SOURCE_TEMPLATE_PREFIX = "legal_source_scan__"
@@ -343,6 +438,7 @@ def default_scheduler_templates(config: dict[str, Any] | None = None) -> tuple[S
         SchedulerTemplate("mailbox_sync_runtime", "Sincronizzazione caselle", "Comunicazioni", "Sincronizza PEC e posta ordinaria tenant-aware.", "cron", "", "*/15", built_in=True),
         SchedulerTemplate("workspace_intelligence_snapshot", "Quadro studio", "Lex AI", "Aggiorna inventario operativo dei fascicoli.", "cron", "", "*/20", built_in=True),
         SchedulerTemplate("local_ai_maintenance", "AI locale", "Lex AI", "Mantiene indicizzazione locale e modelli.", "cron", "", "*/30", built_in=True),
+        SchedulerTemplate("lex_operational_agents_nightly", "Agenti Lex notturni", "Lex AI", "Aggiorna inventario operativo completo di studio per Lex.", "cron", "1", "20", built_in=True),
         SchedulerTemplate("operational_crash_morning", "Controllo operativo mattina", "Manutenzione", "Esegue controllo operativo con riparazione assistita.", "cron", "7", "0", built_in=True),
         SchedulerTemplate("operational_crash_midday", "Controllo operativo pranzo", "Manutenzione", "Esegue controllo operativo intermedio.", "cron", "13", "30", built_in=True),
         SchedulerTemplate("operational_crash_evening", "Controllo operativo sera", "Manutenzione", "Esegue controllo operativo serale.", "cron", "19", "30", built_in=True),
@@ -1092,50 +1188,40 @@ def run_delegated_agent_template(template_key: str, app, args: dict[str, Any] | 
             "supervisor_check": "Bloccato prima dell'esecuzione.",
             "details": [],
         }
-    cfg = app.config if app is not None else {}
-    requested_paths = list((args or template.args or {}).get("paths") or [])
-    details: list[dict[str, Any]] = []
-    missing: list[str] = []
-    existing = 0
-    for key in requested_paths:
-        raw_path = cfg.get(key) or os.getenv(str(key))
-        if not raw_path:
-            missing.append(str(key))
-            details.append({"key": str(key), "status": "non_configurato", "message": "Percorso non configurato."})
-            continue
-        path = Path(str(raw_path))
-        exists = path.exists()
-        if exists:
-            existing += 1
-        else:
-            missing.append(str(key))
-        details.append(
-            {
-                "key": str(key),
-                "path": str(path),
-                "status": "presente" if exists else "da_creare_o_verificare",
-                "message": "Archivio disponibile." if exists else "Archivio non ancora presente.",
+    agent_id = _DELEGATED_TEMPLATE_AGENT_IDS.get(key, "")
+    if agent_id:
+        try:
+            from lex.operational_knowledge.nightly_agents import run_operational_micro_agent
+
+            template_args = dict(template.args or {})
+            if args:
+                template_args.update(args)
+            return run_operational_micro_agent(
+                agent_id=agent_id,
+                app=app,
+                required_path_keys=list(template_args.get("paths") or []),
+                criteria=list(template.criteria),
+            )
+        except Exception as exc:
+            return {
+                "ok": False,
+                "agent_id": agent_id,
+                "status": "errore",
+                "summary": f"{template.name}: agente non completato.",
+                "self_check": f"Da verificare: {exc}",
+                "supervisor_check": "Errore registrato: serve controllo della configurazione dell'agente.",
+                "criteria": list(template.criteria),
+                "details": [{"template_key": key, "agent_id": agent_id, "status": "errore"}],
+                "missing_keys": [],
             }
-        )
-    ok = not missing
-    if ok:
-        self_check = "Superato: archivi richiesti presenti e leggibili per il controllo di dominio."
-        supervisor = "Esito coerente: nessun blocco rilevato nell'autoverifica."
-        summary = f"{template.name}: {existing} archivi verificati."
-    else:
-        self_check = "Da completare: mancano uno o piu' archivi richiesti."
-        supervisor = (
-            "L'agente non forza correzioni sui dati: registra il blocco e richiede sincronizzazione o configurazione."
-        )
-        summary = f"{template.name}: {existing} archivi presenti, {len(missing)} da verificare."
     return {
-        "ok": ok,
-        "summary": summary,
-        "self_check": self_check,
-        "supervisor_check": supervisor,
+        "ok": False,
+        "summary": "Template agente non collegato a un micro-agente Lex.",
+        "self_check": "Da verificare: manca il mapping operativo interno.",
+        "supervisor_check": "Bloccato prima dell'esecuzione per evitare controlli fittizi.",
         "criteria": list(template.criteria),
-        "details": details,
-        "missing_keys": missing,
+        "details": [{"template_key": key, "status": "mapping_mancante"}],
+        "missing_keys": [],
     }
 
 

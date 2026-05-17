@@ -7,6 +7,8 @@ import pytest
 from pct.scheduler_registry import (
     SchedulerRegistryRepository,
     apply_scheduler_registry,
+    default_scheduler_templates,
+    delegated_operational_agent_specs,
     dispatch_requested_manual_runs,
     legal_source_scheduler_templates,
     run_delegated_agent_template,
@@ -84,7 +86,22 @@ def test_delegated_agent_autoverifica_percorso_mancante(tmp_path: Path):
 
     assert result["ok"] is False
     assert "SOGGETTI_DB" in result["missing_keys"]
-    assert "Da completare" in result["self_check"]
+    assert "Da verificare" in result["self_check"]
+
+
+def test_scheduler_registry_include_agenti_lex_notturni_e_perimetro_operativo():
+    templates = {tpl.key for tpl in default_scheduler_templates({})}
+    specs = {spec["agent_id"] for spec in delegated_operational_agent_specs({})}
+
+    assert "lex_operational_agents_nightly" in templates
+    assert {
+        "cliente_soggetti",
+        "fascicoli_documenti_timeline",
+        "redazione_atti_editor",
+        "giurisprudenza_cassazione",
+        "ai_locale_rag_runtime",
+        "integrazioni_native",
+    }.issubset(specs)
 
 
 def test_scheduler_registry_applica_agenti_e_richieste_manuali(monkeypatch, tmp_path: Path):
@@ -153,4 +170,4 @@ def test_scheduler_registry_applica_agenti_e_richieste_manuali(monkeypatch, tmp_
     finished = repo.list_recent_runs(limit=1)[0]
     assert finished["run_id"] == request["run_id"]
     assert finished["status"] == "failed"
-    assert "archivi presenti" in finished["message"]
+    assert "punti da verificare" in finished["message"]

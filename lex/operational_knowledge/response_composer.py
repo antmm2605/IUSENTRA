@@ -98,6 +98,8 @@ class OperationalResponseComposer:
             return self._legal_sources_lines(results, gaps)
         if route.intent == "sources_overview":
             return self._sources_overview(results, gaps)
+        if route.intent == "template_lookup":
+            return self._template_editor_lines(results, gaps)
         return self._generic_lines(results, gaps)
 
     def _client_lines(self, route: OperationalRoute, results: list[OperationalToolResult], gaps: list[str]) -> list[str]:
@@ -214,6 +216,30 @@ class OperationalResponseComposer:
         lines.append("Le fonti pubbliche restano distinte dai dati riservati dello studio.")
         return lines
 
+    def _template_editor_lines(self, results: list[OperationalToolResult], gaps: list[str]) -> list[str]:
+        templates = _data_for(results, "template_atti")
+        editor = _data_for(results, "editor_ai")
+        fascicoli = _data_for(results, "fascicoli")
+        documenti = _data_for(results, "documenti_fascicolo")
+        lines: list[str] = []
+        if templates:
+            lines.append(f"Template atti compatibili: {len(templates)}.")
+            lines.extend(f"- {_label(row)}" for row in templates[:5])
+        if editor:
+            row = editor[0]
+            lines.append(f"Editor Lex: {_label(row)}.")
+            capabilities = list(row.get("capabilities") or [])
+            if capabilities:
+                lines.append("Supporto disponibile: " + "; ".join(str(item) for item in capabilities[:4]) + ".")
+        if fascicoli:
+            lines.append(f"Fascicoli di contesto: {len(fascicoli)}.")
+        if documenti:
+            lines.append(f"Documenti citabili per la bozza: {len(documenti)}.")
+        if gaps:
+            lines.append("Limiti: " + "; ".join(gaps[:3]) + ".")
+        lines.append("Lex deve proporre bozze e modifiche dentro l'editor, con fonti e accettazione umana.")
+        return lines
+
     def _sources_overview(self, results: list[OperationalToolResult], gaps: list[str]) -> list[str]:
         used = [result.source_id for result in results if result.ok]
         lines = ["Per questa risposta posso usare solo sorgenti autorizzate e citabili."]
@@ -224,11 +250,17 @@ class OperationalResponseComposer:
         return lines
 
     def _generic_lines(self, results: list[OperationalToolResult], gaps: list[str]) -> list[str]:
+        labels = {
+            "email_pec": "Email PEC",
+            "email_ordinaria": "Email ordinaria",
+            "editor_ai": "Editor Lex",
+            "template_atti": "Template atti",
+        }
         lines = []
         for result in results:
             rows = list(result.data or []) if isinstance(result.data, list) else ([result.data] if result.data else [])
             if rows:
-                lines.append(f"{result.source_id}: {len(rows)} elementi reali.")
+                lines.append(f"{labels.get(result.source_id, result.source_id)}: {len(rows)} elementi reali.")
         if gaps:
             lines.append("Limiti: " + "; ".join(gaps[:3]) + ".")
         return lines or ["Non ho trovato dati operativi sufficienti."]

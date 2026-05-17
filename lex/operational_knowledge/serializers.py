@@ -182,6 +182,44 @@ def serialize_documento(record: Any) -> dict[str, Any]:
     )
 
 
+def serialize_email_message(record: Any, *, include_body: bool = False) -> dict[str, Any]:
+    data = as_mapping(record)
+    allegati = list(data.get("allegati") or [])
+    payload = {
+        "id": data.get("id"),
+        "cartella": enum_value(data.get("cartella")),
+        "stato": enum_value(data.get("stato")),
+        "mittente": data.get("mittente"),
+        "mittente_nome": data.get("mittente_nome"),
+        "destinatari": data.get("destinatari"),
+        "oggetto": data.get("oggetto"),
+        "data": data.get("data") or data.get("ricevuta_il"),
+        "anteprima": data.get("anteprima") or clean_spaces(data.get("corpo_testo") or "")[:160],
+        "allegati_count": len(allegati),
+        "origine": data.get("origine"),
+        "stato_pct": data.get("stato_pct"),
+        "auto_registrata": data.get("auto_registrata"),
+    }
+    if include_body:
+        payload["corpo_testo"] = clean_spaces(data.get("corpo_testo"))[:6000]
+    return scrub_mapping(payload)
+
+
+def serialize_email_attachment(record: Any, *, index: int = 0, available: bool = False) -> dict[str, Any]:
+    data = as_mapping(record)
+    return scrub_mapping(
+        {
+            "index": index,
+            "nome": data.get("nome") or data.get("nome_file") or f"Allegato {index + 1}",
+            "mime": data.get("mime") or data.get("content_type"),
+            "size": data.get("size") or data.get("dimensione"),
+            "sha256": data.get("sha256"),
+            "archiviato": bool(data.get("archivio_membro")),
+            "disponibile": bool(available),
+        }
+    )
+
+
 def serialize_generic(record: Any, *, max_keys: int = 40) -> dict[str, Any]:
     payload = scrub_mapping(as_mapping(record))
     return dict(list(payload.items())[:max_keys])

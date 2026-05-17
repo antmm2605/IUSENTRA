@@ -44,6 +44,40 @@
       }
     },
     {
+      "id": "codici_normattiva",
+      "name": "Codici fondamentali Normattiva",
+      "enabled": false,
+      "priority": 92,
+      "connector": "normattiva_collection",
+      "type": "normativa_codici",
+      "refresh": "daily",
+      "base_url": "https://www.normattiva.it/",
+      "topics": [
+        "codice civile",
+        "codice procedura civile",
+        "codice penale",
+        "codice procedura penale",
+        "codice processo amministrativo",
+        "codice della strada",
+        "termini processuali",
+        "notifiche",
+        "PEC",
+        "decreto ingiuntivo"
+      ],
+      "settings": {
+        "acts": [
+          "R.D. 16 marzo 1942 n. 262",
+          "R.D. 28 ottobre 1940 n. 1443",
+          "R.D. 19 ottobre 1930 n. 1398",
+          "D.P.R. 22 settembre 1988 n. 447",
+          "D.Lgs. 2 luglio 2010 n. 104",
+          "D.Lgs. 30 aprile 1992 n. 285"
+        ],
+        "download_enabled": false,
+        "note": "Presidio giornaliero dei codici base: attivare download massivo solo con manifest e deduplica."
+      }
+    },
+    {
       "id": "ministero_giustizia",
       "name": "Ministero della Giustizia",
       "enabled": false,

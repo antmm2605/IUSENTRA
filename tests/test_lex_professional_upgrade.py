@@ -718,6 +718,25 @@ def test_source_router_professional_context():
 # Helpers per costruire request mock
 # ---------------------------------------------------------------------------
 
+def test_routing_copre_codici_e_temi_operativi_richiesti():
+    from lex.retrieval.legal_source_router import classify_legal_domain
+
+    checks = {
+        "codice civile onere della prova nullita contratto": "civile",
+        "codice procedura civile decreto ingiuntivo opposizione istat termini processuali": "civile",
+        "codice penale e codice procedura penale": "penale",
+        "codice processo amministrativo ricorso TAR": "telematico_amministrativo",
+        "codice della strada danno da circolazione stradale": "civile",
+        "separazione figli assegno mantenimento divorzio": "famiglia",
+        "PEC notifica telematica domicilio digitale": "pec_domicilio",
+        "fisco diritto tributario avviso accertamento": "tributario",
+    }
+
+    for query, expected in checks.items():
+        cls = classify_legal_domain(query)
+        assert cls.primary_domain == expected, query
+
+
 def _make_request(workflow_hint: str = "normativa"):
     """Costruisce un LexRequest minimale per i test."""
     from lex.contracts import LexRequest

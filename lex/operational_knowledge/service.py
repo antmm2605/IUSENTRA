@@ -158,10 +158,17 @@ class OperationalKnowledgeService:
             ]
 
         if route.intent == "communications_lookup":
-            return self._communications_route(context, entity_query, question, cliente_id=cliente_id, fascicolo_id=fascicolo_id)
+            return self._communications_route(context, route.entity_query, question, cliente_id=cliente_id, fascicolo_id=fascicolo_id)
 
         if route.intent == "template_lookup":
-            return [self.tools.search_template_atti(entity_query or question, context, limit=self.settings.max_results)]
+            results = [
+                self.tools.search_template_atti(entity_query or question, context, limit=self.settings.max_results),
+                self.tools.get_editor_ai_status(context),
+            ]
+            if fascicolo_id:
+                results.append(self.tools.get_fascicolo(fascicolo_id, context))
+                results.append(self.tools.get_documenti_fascicolo(fascicolo_id, context))
+            return results
 
         if route.intent == "unbilled_activity":
             if fascicolo_id:
@@ -229,22 +236,51 @@ class OperationalKnowledgeService:
         cliente_id: str = "",
         fascicolo_id: str = "",
     ) -> list[OperationalToolResult]:
+        lowered = question.lower()
+        wants_pec = "pec" in lowered
+        wants_ordinary = "posta ordinaria" in lowered or "email ordinaria" in lowered or "smtp" in lowered or "imap" in lowered
+        wants_mailbox = wants_pec or wants_ordinary or "email" in lowered or "posta" in lowered
         if fascicolo_id:
-            return [self.tools.get_fascicolo(fascicolo_id, context), self.tools.get_messaggi_by_fascicolo(fascicolo_id, context)]
+            results = [self.tools.get_fascicolo(fascicolo_id, context), self.tools.get_messaggi_by_fascicolo(fascicolo_id, context)]
+            if wants_pec:
+                results.append(self.tools.list_pec_messages(context, query=entity_query, limit=self.settings.max_results))
+            if wants_ordinary:
+                results.append(self.tools.list_ordinary_email_messages(context, query=entity_query, limit=self.settings.max_results))
+            return results
         if cliente_id:
-            return [self.tools.get_cliente_by_id(cliente_id, context), self.tools.get_messaggi_by_cliente(cliente_id, context)]
+            results = [self.tools.get_cliente_by_id(cliente_id, context), self.tools.get_messaggi_by_cliente(cliente_id, context)]
+            if wants_pec:
+                results.append(self.tools.list_pec_messages(context, query=entity_query, limit=self.settings.max_results))
+            if wants_ordinary:
+                results.append(self.tools.list_ordinary_email_messages(context, query=entity_query, limit=self.settings.max_results))
+            return results
+        if wants_mailbox and not ("cliente" in lowered or "fascicolo" in lowered or "pratica" in lowered):
+            results: list[OperationalToolResult] = []
+            if wants_pec or not wants_ordinary:
+                results.append(self.tools.list_pec_messages(context, query=entity_query, limit=self.settings.max_results))
+            if wants_ordinary or not wants_pec:
+                results.append(self.tools.list_ordinary_email_messages(context, query=entity_query, limit=self.settings.max_results))
+            return results
         if "fascicolo" in question.lower() or "pratica" in question.lower():
             fascicoli = self.tools.search_fascicoli(entity_query, context, limit=2)
             results = [fascicoli]
             if fascicoli.ok and len(fascicoli.data or []) == 1:
                 target = str((fascicoli.data or [{}])[0].get("id") or "")
                 results.append(self.tools.get_messaggi_by_fascicolo(target, context))
+                if wants_pec:
+                    results.append(self.tools.list_pec_messages(context, query=entity_query, limit=self.settings.max_results))
+                if wants_ordinary:
+                    results.append(self.tools.list_ordinary_email_messages(context, query=entity_query, limit=self.settings.max_results))
             return results
         clienti = self.tools.search_clienti(entity_query, context, limit=2)
         results = [clienti]
         if clienti.ok and len(clienti.data or []) == 1:
             target = str((clienti.data or [{}])[0].get("id") or "")
             results.append(self.tools.get_messaggi_by_cliente(target, context))
+            if wants_pec:
+                results.append(self.tools.list_pec_messages(context, query=entity_query, limit=self.settings.max_results))
+            if wants_ordinary:
+                results.append(self.tools.list_ordinary_email_messages(context, query=entity_query, limit=self.settings.max_results))
         return results
 
     def _first_fascicolo_id(self, entity_query: str, context) -> str:

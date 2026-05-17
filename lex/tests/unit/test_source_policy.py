@@ -19,6 +19,13 @@ def test_infer_area_riconosce_lavoro():
     assert infer_area("licenziamento ingiustificato e tfr non pagato") == "lavoro"
 
 
+def test_infer_area_riconosce_temi_codici_e_famiglia():
+    assert infer_area("codice procedura civile decreto ingiuntivo termini processuali") == "civile"
+    assert infer_area("codice della strada danno da circolazione stradale") == "civile"
+    assert infer_area("separazione figli assegno mantenimento divorzio") == "famiglia"
+    assert infer_area("diritto tributario fisco avviso accertamento") == "tributario"
+
+
 def test_get_tier_for_domain_classifica_normattiva_come_tier_1():
     assert get_tier_for_domain("normattiva.it", "normativa") == Tier.TIER_1
 

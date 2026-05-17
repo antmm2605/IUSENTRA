@@ -21,12 +21,14 @@ DEFAULT_WEB_SOURCE_IDS: tuple[str, ...] = (
     "pst_giustizia",
     "cassazione",
     "corte_costituzionale",
+    "corte_conti",
     "agenzia_entrate",
 )
 
 _OFFICIAL_SEARCH_URL = "https://html.duckduckgo.com/html/"
 _CASSAZIONE_PENALE_LIST_URL = "https://www.cortedicassazione.it/it/giurisprudenza_penale.page"
 _GAZZETTA_ARCHIVE_URL = "https://www.gazzettaufficiale.it/showArchivioNews"
+_DIRECT_URL_RE = re.compile(r"https?://[^\s<>'\")\]]+")
 _SEARCH_CACHE_TTL_SECONDS = 900
 _SEARCH_CACHE: dict[str, tuple[float, list[dict[str, Any]]]] = {}
 
@@ -39,7 +41,9 @@ _SOURCE_DOMAIN_ALIASES: dict[str, tuple[str, ...]] = {
     "pst_pdp_specifiche": ("pst.giustizia.it",),
     "cassazione": ("cortedicassazione.it",),
     "corte_costituzionale": ("cortecostituzionale.it",),
+    "corte_conti": ("corteconti.it", "banchedati.corteconti.it"),
     "giustizia_amministrativa": ("giustizia-amministrativa.it",),
+    "giustizia_amministrativa_decisioni_pareri": ("giustizia-amministrativa.it",),
     "eur_lex": ("eur-lex.europa.eu",),
     "curia": ("curia.europa.eu",),
     "cedu": ("echr.coe.int", "hudoc.echr.coe.int"),
@@ -57,6 +61,11 @@ _SOURCE_DOMAIN_ALIASES: dict[str, tuple[str, ...]] = {
     "banca_italia_normativa": ("bancaditalia.it",),
     "cnf": ("consiglionazionaleforense.it",),
     "registro_mediazione": ("giustizia.it", "mediazione.giustizia.it"),
+    "studiocataldi_codice_civile": ("studiocataldi.it",),
+    "studiocataldi_codice_penale": ("studiocataldi.it",),
+    "avvocatoandreani_codice_procedura_civile": ("avvocatoandreani.it",),
+    "avvocatoandreani_codice_strada": ("avvocatoandreani.it",),
+    "iussearch": ("iussearch.it",),
 }
 
 
@@ -450,6 +459,60 @@ def _gazzetta_archive_fallback(
     return results
 
 
+def _direct_url_fallback(
+    question: str,
+    *,
+    source_ids: list[str],
+    candidate_domains: list[str],
+    limit_results: int,
+) -> list[dict[str, Any]]:
+    """Return directly provided public source URLs when they match governed domains."""
+    registry = get_source_registry()
+    rows: list[dict[str, Any]] = []
+    seen_urls: set[str] = set()
+    for match in _DIRECT_URL_RE.finditer(str(question or "")):
+        url = _clean_spaces(match.group(0).rstrip(".,;:"))
+        parsed = urlparse(url)
+        domain = _normalize_domain(parsed.netloc)
+        if parsed.scheme not in {"http", "https"} or not domain:
+            continue
+        allowed_domain = next(
+            (candidate for candidate in candidate_domains if _is_allowed_result(url, candidate)),
+            "",
+        )
+        if not allowed_domain or url in seen_urls:
+            continue
+        seen_urls.add(url)
+        matched_source_id = _match_source_id_for_domain(source_ids, allowed_domain)
+        source = FONTI_UFFICIALI.get(matched_source_id)
+        registry_source = registry.get(matched_source_id) or registry.find_by_host(domain)
+        source_name = source.nome if source else (registry_source.label if registry_source else domain)
+        rows.append(
+            {
+                "id": f"direct-source-url:{hashlib.sha1(url.encode('utf-8')).hexdigest()[:12]}",
+                "title": source_name,
+                "url": url,
+                "official_url": url,
+                "source_home_url": source.official_url if source else (registry_source.base_url if registry_source else ""),
+                "domain": domain,
+                "source_id": matched_source_id or (registry_source.key if registry_source else domain),
+                "source_name": source_name,
+                "kind": "pdf" if parsed.path.lower().endswith(".pdf") else "html",
+                "excerpt": "URL indicato direttamente e appartenente a una fonte governata.",
+                "source_access_status": registry_source.status if registry_source else "",
+                "source_access_label": registry_source.access_label if registry_source else "",
+                "source_category": registry_source.category if registry_source else "",
+                "source_priority": "P0" if source else (registry_source.priority if registry_source else ""),
+                "source_requires_credentials": registry_source.requires_credentials if registry_source else False,
+                "source_restricted": registry_source.is_restricted_source if registry_source else False,
+                "source_supports_web_search": registry_source.supports_public_web_search if registry_source else True,
+            }
+        )
+        if len(rows) >= limit_results:
+            break
+    return rows
+
+
 def _card_text_for_link(link_node) -> str:
     cards = link_node.xpath("ancestor::*[contains(concat(' ', normalize-space(@class), ' '), ' card-news ')][1]")
     if cards:
@@ -595,13 +658,20 @@ def search_recognized_official_web(
         seen_domains.add(domain)
         candidate_domains.append(domain)
 
-    direct_results = _gazzetta_archive_fallback(
+    direct_results = _direct_url_fallback(
         query,
         source_ids=selected_source_ids,
         candidate_domains=candidate_domains,
-        fetch=fetch,
         limit_results=limit_results,
     )
+    if not direct_results:
+        direct_results = _gazzetta_archive_fallback(
+            query,
+            source_ids=selected_source_ids,
+            candidate_domains=candidate_domains,
+            fetch=fetch,
+            limit_results=limit_results,
+        )
     if not direct_results:
         direct_results = _cassazione_listing_fallback(
             query,

@@ -49,6 +49,8 @@ OFFICIAL_ATTACHMENT_SOURCE_DOMAINS: tuple[tuple[str, str], ...] = (
     ("gazzettaufficiale.it", "Gazzetta Ufficiale"),
     ("cortedicassazione.it", "Corte Suprema di Cassazione"),
     ("cortecostituzionale.it", "Corte costituzionale"),
+    ("corteconti.it", "Corte dei Conti"),
+    ("banchedati.corteconti.it", "Banca dati Corte dei Conti"),
     ("pst.giustizia.it", "Portale Servizi Telematici"),
     ("giustizia.it", "Ministero della Giustizia"),
     ("curia.europa.eu", "CURIA"),
@@ -78,6 +80,7 @@ OFFICIAL_POLICY_AREAS = (
     "consumatori",
     "digitale_cyber",
     "ue",
+    "contabile",
 )
 
 
@@ -209,6 +212,17 @@ def _source_ids_for_review(review: dict[str, Any], source: dict[str, Any]) -> li
 
     if "cassazione" in text or "giurisprudenza" in text or "case_law" in text:
         _push("cassazione")
+    if any(
+        marker in text
+        for marker in (
+            "corte dei conti",
+            "corte_conti",
+            "responsabilita erariale",
+            "responsabilita' erariale",
+            "contabile",
+        )
+    ):
+        _push("corte_conti")
     if "gazzetta" in text or "normativa" in text or "normative" in text or "decreto" in text or "legge" in text:
         _push("gazzetta_ufficiale")
         _push("normattiva")

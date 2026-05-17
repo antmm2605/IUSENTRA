@@ -90,6 +90,50 @@ sources:
       - ricorsi pervenuti
       - decreti
       - pareri
+  - key: corte_conti
+    label: Corte dei Conti
+    category: giurisprudenza_contabile
+    status: portal_data
+    priority: P0
+    official: true
+    base_url: https://www.corteconti.it
+    entrypoints:
+      portal: https://www.corteconti.it/
+      sentenze: https://www.corteconti.it/Home/Documenti/Sentenze
+      delibere: https://www.corteconti.it/Home/Documenti/DelibereCorte
+      banca_dati: https://banchedati.corteconti.it/
+    formats:
+      - HTML
+      - PDF
+      - portale ricerca
+    auth: none
+    use_cases:
+      - giurisprudenza contabile
+      - responsabilita erariale
+      - controllo e referto
+      - delibere sezioni regionali
+      - appalti pubblici con profili contabili
+  - key: giustizia_amministrativa_decisioni_pareri
+    label: Giustizia Amministrativa - Decisioni e pareri
+    category: giurisprudenza_amministrativa
+    status: portal_data
+    priority: P0
+    official: true
+    base_url: https://www.giustizia-amministrativa.it/dcsnprr
+    entrypoints:
+      decisioni_pareri: https://www.giustizia-amministrativa.it/dcsnprr
+      openga_fallback: https://openga.giustizia-amministrativa.it/dataset/
+    formats:
+      - HTML
+      - PDF
+      - OpenGA JSON/CSV fallback
+    auth: none
+    use_cases:
+      - decisioni TAR
+      - decisioni Consiglio di Stato
+      - pareri
+      - massime amministrative
+      - verifica puntuale provvedimenti
   - key: gazzetta_rss
     label: Gazzetta Ufficiale - RSS e atti pubblicati
     category: pubblicazioni_ufficiali
@@ -109,6 +153,84 @@ sources:
       - monitoraggio nuove pubblicazioni
       - link diretto agli atti
       - pdf ufficiale
+  - key: studiocataldi_codice_civile
+    label: Studio Cataldi - Codice civile
+    category: normativa_secondaria
+    status: portal_data
+    priority: P2
+    official: false
+    base_url: https://www.studiocataldi.it/codicecivile/
+    entrypoints:
+      codice_civile: https://www.studiocataldi.it/codicecivile/
+    formats:
+      - HTML
+    auth: none
+    use_cases:
+      - consultazione rapida codice civile
+      - confronto secondario con Normattiva
+  - key: studiocataldi_codice_penale
+    label: Studio Cataldi - Codice penale
+    category: normativa_secondaria
+    status: portal_data
+    priority: P2
+    official: false
+    base_url: https://www.studiocataldi.it/codicepenale/
+    entrypoints:
+      codice_penale: https://www.studiocataldi.it/codicepenale/
+    formats:
+      - HTML
+    auth: none
+    use_cases:
+      - consultazione rapida codice penale
+      - confronto secondario con Normattiva
+  - key: avvocatoandreani_codice_procedura_civile
+    label: Avvocato Andreani - Codice procedura civile
+    category: normativa_secondaria
+    status: portal_data
+    priority: P2
+    official: false
+    base_url: https://www.avvocatoandreani.it/servizi/codice-procedura-civile.php
+    entrypoints:
+      codice_procedura_civile: https://www.avvocatoandreani.it/servizi/codice-procedura-civile.php
+    formats:
+      - HTML
+    auth: none
+    use_cases:
+      - consultazione rapida procedura civile
+      - confronto secondario con Normattiva
+  - key: avvocatoandreani_codice_strada
+    label: Avvocato Andreani - Codice della strada
+    category: normativa_secondaria
+    status: portal_data
+    priority: P2
+    official: false
+    base_url: https://www.avvocatoandreani.it/servizi/codice-della-strada.php
+    entrypoints:
+      codice_strada: https://www.avvocatoandreani.it/servizi/codice-della-strada.php
+    formats:
+      - HTML
+    auth: none
+    use_cases:
+      - consultazione rapida codice della strada
+      - confronto secondario con Normattiva
+  - key: iussearch
+    label: IusSearch - Motore di ricerca giuridica
+    category: motore_ricerca_legale
+    status: portal_data
+    priority: P2
+    official: false
+    base_url: http://www.iussearch.it/
+    entrypoints:
+      home: http://www.iussearch.it/
+      search: http://www.iussearch.it/search
+    formats:
+      - motore ricerca web
+      - HTML
+    auth: none
+    use_cases:
+      - ricerca esplorativa di riferimenti giuridici
+      - individuazione fonti da verificare
+      - supporto secondario prima della conferma ufficiale
   - key: ipa_open_data
     label: Indice PA - Open Data IPA
     category: anagrafiche_pubbliche

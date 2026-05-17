@@ -1140,15 +1140,17 @@ def _run_legal_source_agent(app, args: dict[str, Any]) -> dict[str, Any]:
                 "details": [{"source_code": source_code, "status": "non_censita"}],
             }
         if not bool(source.get("enabled")):
-            alternative = "OpenGA ufficiale"
-            if source_code == "giustizia_amministrativa":
+            alternative = "canale ufficiale alternativo censito"
+            if source_code in {"giustizia_amministrativa", "giustizia_amministrativa_decisioni_pareri"}:
                 alternative = "OpenGA ufficiale (openga_giustizia_amministrativa e cartelle openga_*)"
+            elif not bool(source.get("is_official")):
+                alternative = "Normattiva e Gazzetta Ufficiale, con la fonte privata solo come confronto secondario"
             return {
                 "ok": False,
-                "summary": f"{source.get('name')}: fonte diretta in osservazione, presidio spostato su {alternative}.",
-                "self_check": "Da verificare: il canale diretto non viene usato come fonte primaria.",
+                "summary": f"{source.get('name')}: fonte non avviata automaticamente; presidio spostato su {alternative}.",
+                "self_check": "Da verificare: il canale non viene usato come fonte primaria automatica.",
                 "supervisor_check": (
-                    "Risoluzione applicata: non si insiste sul canale instabile; "
+                    "Risoluzione applicata: non si insiste sul canale non governato come primario; "
                     f"il controllo automatico passa da {alternative}."
                 ),
                 "criteria": [

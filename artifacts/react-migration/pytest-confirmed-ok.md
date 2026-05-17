@@ -1,12 +1,22 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-17, completamento web archivio legale e allegati fonti ufficiali, no backup.
+Aggiornato: 2026-05-17, ampliamento fonti legali e motori di supporto, no backup.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Ampliamento fonti legali e motori di supporto - 2026-05-17
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile lex\retrieval\official_web.py pct\legal_update_web_verification.py pct\legal_update_pipeline.py pct\scheduler_registry.py tests\test_legal_source_expansion.py` | OK | Sintassi confermata dopo aggiunta Corte dei Conti, Decisioni e pareri GA, fonti secondarie Studio Cataldi/Avvocato Andreani e IusSearch. |
+| `python -m pytest -q tests\test_legal_source_expansion.py tests\test_official_web_gazzetta.py` | OK | 7/7 passati: fonti ufficiali e secondarie classificate correttamente, URL dirette governate, scheduler abilita solo le fonti primarie e lascia le secondarie in osservazione. |
+| `python -m ruff check ...`; `python tools\sync_packaging_files.py --check`; `python -m pytest -q tests\test_scheduler_registry.py tests\test_legal_source_expansion.py tests\test_official_web_gazzetta.py`; `python -m pytest -q tests\test_packaging_consistency.py tests\test_release_readiness.py` | OK | Ruff mirato verde, packaging sincronizzato, 14/14 su registry/fonti/Gazzetta e readiness release 8/8 dopo bump `2.245.11`. |
+| `python -m pct.cli utf8-integrity --root ... --report artifacts\react-migration\utf8-legal-sources-2.245.11.json --json` | OK | Utility UTF-8 eseguita sul perimetro documentale della tranche: `ok=true`, `files_with_artifacts=0`, `repaired_files=0`. I file runtime legacy creati dal bootstrap del comando sono stati rimossi e non committati. |
+| Probe HTTP reale sulle URL richieste | OK | Corte dei Conti 200 con link a sentenze/delibere/banca dati; Giustizia Amministrativa `dcsnprr` 200 solo con verifica certificato aggirata in diagnostica e quindi resta in osservazione; Studio Cataldi e Avvocato Andreani 200 come pagine codice private; IusSearch 200 con form Google custom in `ISO-8859-1`, classificato come motore P2. |
 
 ### Completamento web archivio legale e allegati fonti ufficiali - 2026-05-17
 

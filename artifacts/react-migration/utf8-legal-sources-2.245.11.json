@@ -1,0 +1,21 @@
+{
+  "checked_files": 4,
+  "error_files": 0,
+  "files": [],
+  "files_with_artifacts": 0,
+  "finished_at": "2026-05-17T20:03:51Z",
+  "no_backup_created": true,
+  "ok": true,
+  "repair_enabled": true,
+  "repaired_files": 0,
+  "roots": [
+    "D:\\legale\\IUSENTRA\\CHANGELOG.md",
+    "D:\\legale\\IUSENTRA\\docs\\LEX_PUBLIC_SOURCES_AND_STUDIO_DATA_AUDIT.md",
+    "D:\\legale\\IUSENTRA\\artifacts\\react-migration\\pytest-confirmed-ok.md",
+    "D:\\legale\\IUSENTRA\\artifacts\\react-migration\\utf8-legal-sources-2.245.11.json"
+  ],
+  "schema_version": "iusentra.utf8_integrity.v1",
+  "skipped_large_files": 0,
+  "started_at": "2026-05-17T20:03:51Z",
+  "unresolved_replacement_files": 0
+}

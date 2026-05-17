@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.245.11 - 2026-05-17
+
+- Esteso il catalogo Lex con Corte dei Conti come fonte ufficiale di classe primaria, includendo portale, sentenze, delibere e banca dati pubblica per responsabilità erariale, giudizi contabili e profili pubblicistici.
+- Censita la pagina pubblica `Decisioni e pareri` della Giustizia Amministrativa come fonte ufficiale in osservazione: resta verificabile puntualmente, mentre il ciclo automatico continua a usare OpenGA come canale stabile.
+- Registrate Studio Cataldi, Avvocato Andreani e IusSearch come fonti secondarie o motori di supporto: possono orientare la ricerca, ma non pubblicano testo vigente o archivio legale senza conferma su Normattiva, Gazzetta o fonte ufficiale.
+- La ricerca governata riconosce anche URL dirette appartenenti a fonti censite e le classifica con priorità e natura della fonte, senza trasformare motori o siti privati in fonti primarie.
+
 ## 2.245.10 - 2026-05-17
 
 - L'archivio legale non si limita piu' a registrare riferimenti: le verifiche web salvano evidenze ricercabili, allegati ufficiali, URL, hash, estratti e diagnostica in una tabella dedicata.

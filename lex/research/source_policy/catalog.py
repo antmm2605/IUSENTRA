@@ -5,13 +5,13 @@ from __future__ import annotations
 
 SOURCE_POLICIES: dict[str, dict[str, list[str]]] = {
     "normativa": {
-        "tier_1": ["normattiva.it", "gazzettaufficiale.it", "eur-lex.europa.eu", "giustizia.it", "giustizia-amministrativa.it", "cortecostituzionale.it", "cortedicassazione.it"],
-        "tier_2": ["altalex.com", "brocardi.it", "diritto.it", "federalismi.it", "giustiziainsieme.it", "ilcivilista.it", "ilfamiliarista.it", "quotidianogiuridico.it"],
+        "tier_1": ["normattiva.it", "gazzettaufficiale.it", "eur-lex.europa.eu", "giustizia.it", "giustizia-amministrativa.it", "cortecostituzionale.it", "cortedicassazione.it", "corteconti.it", "banchedati.corteconti.it"],
+        "tier_2": ["altalex.com", "brocardi.it", "diritto.it", "federalismi.it", "giustiziainsieme.it", "ilcivilista.it", "ilfamiliarista.it", "quotidianogiuridico.it", "studiocataldi.it", "avvocatoandreani.it", "iussearch.it"],
         "tier_3": ["wikipedia.org", "studiolegale-*.*", "*.substack.com", "*.medium.com", "*.blogspot.com"],
     },
     "giurisprudenza": {
-        "tier_1": ["cortecostituzionale.it", "cortedicassazione.it", "giustizia-amministrativa.it", "eur-lex.europa.eu", "giustizia.it", "italgiure.giustizia.it"],
-        "tier_2": ["dejure.it", "onelegale.wolterskluwer.it", "ilcaso.it", "giustiziainsieme.it", "federalismi.it", "altalex.com", "quotidianogiuridico.it"],
+        "tier_1": ["cortecostituzionale.it", "cortedicassazione.it", "corteconti.it", "banchedati.corteconti.it", "giustizia-amministrativa.it", "eur-lex.europa.eu", "giustizia.it", "italgiure.giustizia.it"],
+        "tier_2": ["dejure.it", "onelegale.wolterskluwer.it", "ilcaso.it", "giustiziainsieme.it", "federalismi.it", "altalex.com", "quotidianogiuridico.it", "iussearch.it"],
         "tier_3": ["forum.*", "*.blogspot.com", "*.wordpress.com", "*.medium.com"],
     },
     "tributario": {
@@ -55,18 +55,23 @@ SOURCE_POLICIES: dict[str, dict[str, list[str]]] = {
         "tier_3": ["*.blogspot.com", "forum.*"],
     },
     "appalti": {
-        "tier_1": ["anticorruzione.it", "mit.gov.it", "serviziocontrattipubblici.it", "giustizia-amministrativa.it", "eur-lex.europa.eu", "normattiva.it", "gazzettaufficiale.it"],
+        "tier_1": ["anticorruzione.it", "mit.gov.it", "serviziocontrattipubblici.it", "giustizia-amministrativa.it", "corteconti.it", "banchedati.corteconti.it", "eur-lex.europa.eu", "normattiva.it", "gazzettaufficiale.it"],
         "tier_2": ["appaltiecontratti.it", "federalismi.it", "altalex.com", "ntplusdiritto.ilsole24ore.com"],
         "tier_3": ["*.blogspot.com", "forum.*"],
     },
     "penale": {
         "tier_1": ["normattiva.it", "gazzettaufficiale.it", "giustizia.it", "cortedicassazione.it", "cortecostituzionale.it", "eur-lex.europa.eu"],
-        "tier_2": ["sistemapenale.it", "penaledp.it", "archiviopenale.it", "altalex.com", "quotidianogiuridico.it"],
+        "tier_2": ["sistemapenale.it", "penaledp.it", "archiviopenale.it", "altalex.com", "quotidianogiuridico.it", "studiocataldi.it", "iussearch.it"],
         "tier_3": ["*.blogspot.com", "forum.*", "*.youtube.com"],
     },
     "civile": {
         "tier_1": ["normattiva.it", "gazzettaufficiale.it", "giustizia.it", "cortedicassazione.it", "cortecostituzionale.it", "eur-lex.europa.eu"],
-        "tier_2": ["ilcaso.it", "altalex.com", "brocardi.it", "ilcivilista.it", "quotidianogiuridico.it"],
+        "tier_2": ["ilcaso.it", "altalex.com", "brocardi.it", "ilcivilista.it", "quotidianogiuridico.it", "studiocataldi.it", "avvocatoandreani.it", "iussearch.it"],
+        "tier_3": ["*.blogspot.com", "forum.*"],
+    },
+    "contabile": {
+        "tier_1": ["corteconti.it", "banchedati.corteconti.it", "normattiva.it", "gazzettaufficiale.it", "giustizia.it", "cortedicassazione.it"],
+        "tier_2": ["federalismi.it", "giustiziainsieme.it", "altalex.com", "quotidianogiuridico.it"],
         "tier_3": ["*.blogspot.com", "forum.*"],
     },
     "famiglia": {
@@ -100,8 +105,8 @@ SOURCE_POLICIES: dict[str, dict[str, list[str]]] = {
         "tier_3": ["*.medium.com", "*.substack.com", "forum.*"],
     },
     "default": {
-        "tier_1": ["normattiva.it", "gazzettaufficiale.it", "eur-lex.europa.eu", "giustizia.it", "cortecostituzionale.it", "cortedicassazione.it", "giustizia-amministrativa.it"],
-        "tier_2": ["altalex.com", "brocardi.it", "ipsoa.it", "quotidianogiuridico.it", "ntplusdiritto.ilsole24ore.com"],
+        "tier_1": ["normattiva.it", "gazzettaufficiale.it", "eur-lex.europa.eu", "giustizia.it", "cortecostituzionale.it", "cortedicassazione.it", "corteconti.it", "banchedati.corteconti.it", "giustizia-amministrativa.it"],
+        "tier_2": ["altalex.com", "brocardi.it", "ipsoa.it", "quotidianogiuridico.it", "ntplusdiritto.ilsole24ore.com", "studiocataldi.it", "avvocatoandreani.it", "iussearch.it"],
         "tier_3": ["*.blogspot.com", "*.wordpress.com", "*.medium.com", "*.substack.com", "forum.*"],
     },
 }
@@ -118,6 +123,7 @@ AREA_KEYWORDS: dict[str, list[str]] = {
     "assicurativo": ["assicurazione", "polizza", "sinistro", "ivass", "rc auto", "indennizzo", "franchigia", "premio"],
     "amministrativo": ["tar", "consiglio di stato", "provvedimento", "accesso atti", "silenzio assenso", "procedimento amministrativo", "autotutela", "interesse legittimo", "codice processo amministrativo", "procedura amministrativa"],
     "appalti": ["appalto", "gara", "codice appalti", "anac", "aggiudicazione", "contratto pubblico", "cig", "consip", "dgue"],
+    "contabile": ["corte dei conti", "responsabilita erariale", "responsabilità erariale", "giudizio contabile", "danno erariale", "pensione privilegiata", "sezioni riunite controllo"],
     "penale": ["reato", "penale", "imputato", "processo penale", "misure cautelari", "codice penale", "codice procedura penale", "procura", "patteggiamento"],
     "civile": ["responsabilita civile", "responsabilita", "risarcimento", "danno", "contratto", "contratti", "obbligazioni", "proprieta", "codice civile", "codice procedura civile", "procedura civile", "notifica", "pec", "onere della prova", "nullita", "termini processuali", "decreto ingiuntivo", "opposizione istat", "condominio", "codice della strada", "circolazione stradale", "compenso", "usucapione", "successione"],
     "famiglia": ["divorzio", "separazione", "affido", "mantenimento", "assegno mantenimento", "figli", "diritto di famiglia", "matrimonio", "minori", "adozione"],

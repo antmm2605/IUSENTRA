@@ -74,6 +74,22 @@ DEFAULT_SOURCE_ROWS: tuple[dict[str, Any], ...] = (
         "notes": "Sentenze, comunicati e depositi della Corte costituzionale.",
     },
     {
+        "name": "Corte dei Conti",
+        "code": "corte_conti",
+        "category": "giurisprudenza",
+        "base_url": "https://www.corteconti.it/Home/Documenti/Sentenze",
+        "source_type": "web",
+        "trust_class": "A",
+        "is_official": True,
+        "enabled": True,
+        "polling_minutes": 720,
+        "parser_type": "html",
+        "notes": (
+            "Presidio ufficiale per giurisprudenza contabile, responsabilita' "
+            "erariale e collegamento alla banca dati pubblica della Corte dei Conti."
+        ),
+    },
+    {
         "name": "Cassazione Massimario",
         "code": "cassazione_massimario",
         "category": "giurisprudenza",
@@ -115,6 +131,23 @@ DEFAULT_SOURCE_ROWS: tuple[dict[str, Any], ...] = (
         "polling_minutes": 720,
         "parser_type": "ckan_json",
         "notes": "Catalogo OpenGA in formato CKAN: dataset e risorse JSON/CSV/XLS/ODS della Giustizia Amministrativa.",
+    },
+    {
+        "name": "Giustizia Amministrativa - Decisioni e pareri",
+        "code": "giustizia_amministrativa_decisioni_pareri",
+        "category": "giurisprudenza",
+        "base_url": "https://www.giustizia-amministrativa.it/dcsnprr",
+        "source_type": "web",
+        "trust_class": "A",
+        "is_official": True,
+        "enabled": False,
+        "polling_minutes": 720,
+        "parser_type": "html",
+        "notes": (
+            "Pagina pubblica Decisioni e pareri: censita per verifica puntuale, "
+            "ma il ciclo automatico resta su OpenGA finche' il canale HTML diretto "
+            "non e' stabile per certificato, paginazione e allegati."
+        ),
     },
     {
         "name": "OpenGA - Calendario udienze",
@@ -531,6 +564,70 @@ DEFAULT_SOURCE_ROWS: tuple[dict[str, Any], ...] = (
         "polling_minutes": 1440,
         "parser_type": "html",
         "notes": "Presidio Normattiva per circolazione stradale, sanzioni, sinistri e responsabilita' da circolazione.",
+    },
+    {
+        "name": "Studio Cataldi - Codice civile",
+        "code": "studiocataldi_codice_civile",
+        "category": "normativa_secondaria",
+        "base_url": "https://www.studiocataldi.it/codicecivile/",
+        "source_type": "web",
+        "trust_class": "C",
+        "is_official": False,
+        "enabled": False,
+        "polling_minutes": 1440,
+        "parser_type": "html",
+        "notes": (
+            "Fonte privata di consultazione rapida: puo' aiutare a orientare la ricerca, "
+            "ma il testo vigente va verificato su Normattiva o Gazzetta Ufficiale."
+        ),
+    },
+    {
+        "name": "Avvocato Andreani - Codice procedura civile",
+        "code": "avvocatoandreani_codice_procedura_civile",
+        "category": "normativa_secondaria",
+        "base_url": "https://www.avvocatoandreani.it/servizi/codice-procedura-civile.php",
+        "source_type": "web",
+        "trust_class": "C",
+        "is_official": False,
+        "enabled": False,
+        "polling_minutes": 1440,
+        "parser_type": "html",
+        "notes": (
+            "Fonte privata di consultazione rapida: utile come controllo secondario, "
+            "non come archivio ufficiale senza conferma Normattiva/Gazzetta."
+        ),
+    },
+    {
+        "name": "Studio Cataldi - Codice penale",
+        "code": "studiocataldi_codice_penale",
+        "category": "normativa_secondaria",
+        "base_url": "https://www.studiocataldi.it/codicepenale/",
+        "source_type": "web",
+        "trust_class": "C",
+        "is_official": False,
+        "enabled": False,
+        "polling_minutes": 1440,
+        "parser_type": "html",
+        "notes": (
+            "Fonte privata non ufficiale e con pagina rilevata come edizione 2022: "
+            "non pubblica testi vigenti se manca riscontro Normattiva."
+        ),
+    },
+    {
+        "name": "Avvocato Andreani - Codice della strada",
+        "code": "avvocatoandreani_codice_strada",
+        "category": "normativa_secondaria",
+        "base_url": "https://www.avvocatoandreani.it/servizi/codice-della-strada.php",
+        "source_type": "web",
+        "trust_class": "C",
+        "is_official": False,
+        "enabled": False,
+        "polling_minutes": 1440,
+        "parser_type": "html",
+        "notes": (
+            "Fonte privata di consultazione rapida: puo' essere usata solo come "
+            "supporto secondario rispetto al testo Normattiva del codice della strada."
+        ),
     },
     {
         "name": "Cassazione - citazioni e principi verificati",

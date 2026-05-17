@@ -4,6 +4,40 @@ Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle
 
 ---
 
+## Aggiornamento operativo 2.245.11 - 2026-05-17
+
+Sono state aggiunte e classificate le fonti richieste nella verifica manuale:
+Corte dei Conti, Giustizia Amministrativa `Decisioni e pareri`, Studio Cataldi,
+Avvocato Andreani e IusSearch.
+
+La Corte dei Conti entra nel ciclo delle fonti ufficiali come fonte primaria:
+portale istituzionale, pagina sentenze, pagina delibere e banca dati pubblica
+sono registrati per ricerche su responsabilità erariale, giudizi contabili,
+controllo/referto e appalti con profili contabili.
+
+La pagina `https://www.giustizia-amministrativa.it/dcsnprr` è censita come
+fonte ufficiale verificabile, ma non viene usata come canale automatico
+principale finché rimangono instabili certificato, paginazione e recupero
+allegati. Il presidio automatico resta OpenGA ufficiale, che è più adatto al
+lavoro schedulato.
+
+Studio Cataldi e Avvocato Andreani sono registrati solo come fonti secondarie
+di consultazione rapida per codice civile, procedura civile, codice penale e
+codice della strada. Non sono fonti ufficiali: Lex può usarle per orientare la
+ricerca o confrontare il testo, ma non può pubblicare una scheda normativa
+senza riscontro su Normattiva, Gazzetta Ufficiale o altra fonte primaria.
+
+IusSearch è stato censito come motore di ricerca giuridica P2. Il sito risponde
+da `http://www.iussearch.it/` con pagina in `ISO-8859-1` e form Google custom
+su `/search`: può aiutare a trovare piste, non a chiudere una prova. Ogni URL
+trovata tramite quel motore deve essere poi confermata e scaricata dalla fonte
+originaria.
+
+La ricerca web governata accetta ora anche URL dirette appartenenti a fonti
+censite e le classifica con priorità e natura della fonte. Questo consente di
+testare una fonte passando l'indirizzo esatto, senza fingere che un sito privato
+o un motore di ricerca sia un archivio ufficiale.
+
 ## Aggiornamento operativo 2.245.10 - 2026-05-17
 
 Il completamento web degli aggiornamenti legali non si ferma più al primo

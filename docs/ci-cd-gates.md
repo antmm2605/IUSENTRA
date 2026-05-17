@@ -46,6 +46,25 @@ ambiente esterno o credenziali smoke.
 - Coverage: `coverage-critical` sharded con soglia 71 su configurazione esistente.
 - SAST/dependency: CodeQL, dependency review, `pip-audit`, `pnpm audit --audit-level critical --prod`.
 
+## Diagnosi job shardati
+
+I check aggregati `CI / Pytest core`, `CI / Coverage moduli critici` e
+`CI / Local Signer e PKCS#11` riassumono matrici shardate. La diagnosi va fatta
+sui job reali:
+
+- `Pytest core fase ${{ matrix.label }}`;
+- `Coverage moduli critici parte ${{ matrix.shard }}/12`;
+- `Local Signer e PKCS#11 (${{ matrix.os }}) parte ${{ matrix.shard }}/4`.
+
+Quando questi job risultano `Skipped`, non significa che il singolo shard sia
+fallito: di norma un job upstream ha fermato la catena. Controllare prima
+`Lint + syntax`, `Governance repo`, `Smoke test Flask` e
+`Smoke scheduler worker`, correggere il primo errore reale e solo dopo
+riesaminare gli shard.
+Questa regola vale per ogni commit/push che tocca CI, test, monorepo, frontend
+build o workflow: non sostituire gli shard con un pytest monolitico e non
+dichiarare rossi Pytest/Coverage/Signer senza aver letto i log della matrice.
+
 ## Gate informativi, manuali e nightly
 
 - `CI Release Overlay`: manuale, da usare prima di release o deploy operativo.

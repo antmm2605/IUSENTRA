@@ -29,6 +29,7 @@
 
 ## Memoria operativa obbligatoria — test, gate e runtime
 
+- **Regola CI shardata prima di commit/push:** i check aggregati `CI / Pytest core`, `CI / Coverage moduli critici` e `CI / Local Signer e PKCS#11` sono contenitori di esito, non la diagnosi primaria. Le esecuzioni reali sono shardate in `Pytest core fase ${{ matrix.label }}`, `Coverage moduli critici parte ${{ matrix.shard }}/12` e `Local Signer e PKCS#11 (${{ matrix.os }}) parte ${{ matrix.shard }}/4`. Se questi job risultano `Skipped`, prima di parlare di failure Pytest/Coverage/Signer bisogna controllare i job upstream (`Lint + syntax`, `Governance repo`, smoke) e correggere il primo blocco reale. Prima di ogni commit/push che tocca CI, test, monorepo, frontend build o workflow, consultare `.github/workflows/ci.yml`, `docs/ci-cd-gates.md`, `artifacts/react-migration/pytest-confirmed-ok.md` e `artifacts/react-migration/pytest-open-issues.md`; non appiattire o sostituire la matrice shardata con test monolitici.
 - Ogni test, gate, build, diagnosi di failure e relativa risoluzione deve essere riportato nei file di stato pertinenti prima di dichiarare concluso il lavoro. Per la migrazione React usare sempre:
   - `artifacts/react-migration/pytest-confirmed-ok.md` per comandi, shard e gate confermati verdi;
   - `artifacts/react-migration/pytest-open-issues.md` per failure reali, timeout isolati, workaround, fix applicati e verifiche ancora da rilanciare;

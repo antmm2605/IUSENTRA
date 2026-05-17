@@ -15,7 +15,6 @@ from .citations import build_citations
 from .professional_answer import ProfessionalAnswerComposer
 from .sections import build_sections
 
-
 _DRAFTING_LETTER_WORKFLOWS = {"drafting_legal_letter", "lettera", "bozza_lettera", "pec_comunicazioni"}
 
 

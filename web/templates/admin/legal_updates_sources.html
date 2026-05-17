@@ -205,6 +205,7 @@
                 <th>Fonte</th>
                 <th>Presidio</th>
                 <th>Stato</th>
+                <th>Agente</th>
                 <th class="text-end">Archivio</th>
                 <th>Ultimo controllo</th>
                 <th class="text-end">Azioni</th>
@@ -229,6 +230,13 @@
                   <span class="badge text-bg-{% if source.enabled %}success{% else %}secondary{% endif %}">{{ source.status_label }}</span>
                   <div class="small text-muted mt-1">classe {{ source.trust_class }}</div>
                 </td>
+                <td>
+                  <span class="badge text-bg-{{ source.agent.class }}">{{ source.agent.label }}</span>
+                  <div class="small text-muted mt-1">{{ source.agent.message }}</div>
+                  {% if source.agent.finished_at %}
+                  <div class="small text-muted">{{ source.agent.finished_at }}{% if source.agent.duration_label %} - {{ source.agent.duration_label }}{% endif %}</div>
+                  {% endif %}
+                </td>
                 <td class="text-end">
                   <div class="fw-semibold">{{ source.raw_documents }}</div>
                   <div class="small text-muted">{{ source.analyses }} analisi</div>
@@ -240,6 +248,10 @@
                 </td>
                 <td class="text-end">
                   <div class="d-flex flex-column flex-sm-row justify-content-end gap-2">
+                    <form method="post" action="{{ url_for('scheduler_admin.run_job', job_id=source.agent.job_id) }}">
+                      <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                      <button class="btn btn-sm btn-outline-primary" type="submit" {% if not source.enabled %}disabled{% endif %}>Esegui agente</button>
+                    </form>
                     <form method="post" action="{{ url_for('legal_updates_admin.fetch_source', source_id=source.id) }}">
                       <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
                       <button class="btn btn-sm btn-outline-dark" type="submit" {% if not source.enabled %}disabled{% endif %}>Acquisisci</button>
@@ -249,7 +261,7 @@
                 </td>
               </tr>
               <tr class="collapse" id="source-edit-{{ source.id }}">
-                <td colspan="6" class="bg-light">
+                <td colspan="7" class="bg-light">
                   <form method="post" action="{{ url_for('legal_updates_admin.update_source', source_id=source.id) }}" class="row g-2">
                     <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
                     <input type="hidden" name="code" value="{{ source.code }}">

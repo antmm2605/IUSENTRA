@@ -8,6 +8,7 @@ from pct.scheduler_registry import (
     SchedulerRegistryRepository,
     apply_scheduler_registry,
     dispatch_requested_manual_runs,
+    legal_source_scheduler_templates,
     run_delegated_agent_template,
 )
 
@@ -35,6 +36,25 @@ def test_scheduler_registry_blocca_template_non_autorizzati(tmp_path: Path):
 
     with pytest.raises(ValueError, match="Template non autorizzato"):
         repo.create_job_from_template("comando_libero_shell")
+
+    with pytest.raises(ValueError, match="Template non autorizzato"):
+        repo.create_job_from_template("legal_source_scan__evil_shell")
+
+
+def test_scheduler_registry_crea_agenti_fonte_legale_da_catalogo(tmp_path: Path):
+    cfg = {"LEGAL_INTELLIGENCE_DB": str(tmp_path / "intelligence" / "motori.json")}
+    repo = SchedulerRegistryRepository(tmp_path / "scheduler.sqlite")
+
+    repo.upsert_default_jobs(cfg)
+
+    templates = legal_source_scheduler_templates(cfg)
+    assert any(tpl.key == "legal_source_scan__gazzetta_ufficiale" for tpl in templates)
+    job = repo.get_job("legal_source_gazzetta_ufficiale")
+    assert job is not None
+    assert job["family"] == "Agenti fonte legale"
+    assert job["trigger_kind"] == "manual"
+    assert job["args"]["kind"] == "legal_update_source_scan"
+    assert job["args"]["source_code"] == "gazzetta_ufficiale"
 
 
 def test_delegated_agent_autoverifica_percorso_mancante(tmp_path: Path):

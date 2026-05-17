@@ -540,6 +540,95 @@ class LegalUpdateRepository:
             }
         return summary
 
+    def record_source_agent_run(
+        self,
+        *,
+        source_code: str,
+        source_name: str = "",
+        trigger_label: str = "batch",
+        status: str = "completed",
+        timeout_seconds: int = 0,
+        started_at: str = "",
+        finished_at: str = "",
+        duration_ms: int = 0,
+        documents_found: int = 0,
+        processed: int = 0,
+        skipped_unchanged: int = 0,
+        autopublished_count: int = 0,
+        error_message: str = "",
+        stderr_tail: str = "",
+        payload: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        code = _normalize_token(source_code)
+        if not code:
+            raise ValueError("Codice fonte obbligatorio.")
+        finished = _clean_spaces(finished_at) or _now_iso()
+        started = _clean_spaces(started_at) or finished
+        clean_status = _normalize_token(status or "completed")
+        if clean_status not in {"completed", "failed", "timeout", "running"}:
+            clean_status = "failed"
+        with self._connect() as conn:
+            run_id = self._insert_and_get_id(
+                conn,
+                """
+                INSERT INTO source_agent_runs (
+                    source_code, source_name, trigger_label, status, timeout_seconds,
+                    started_at, finished_at, duration_ms, documents_found, processed,
+                    skipped_unchanged, autopublished_count, error_message, stderr_tail,
+                    payload_json, created_at, updated_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                """,
+                (
+                    code,
+                    _clean_spaces(source_name),
+                    _clean_spaces(trigger_label or "batch"),
+                    clean_status,
+                    max(0, int(timeout_seconds or 0)),
+                    started,
+                    finished,
+                    max(0, int(duration_ms or 0)),
+                    max(0, int(documents_found or 0)),
+                    max(0, int(processed or 0)),
+                    max(0, int(skipped_unchanged or 0)),
+                    max(0, int(autopublished_count or 0)),
+                    _clean_spaces(error_message)[:4000],
+                    str(stderr_tail or "")[-4000:],
+                    _json_dump(payload or {}),
+                ),
+            )
+            conn.commit()
+        return self.get_source_agent_run(run_id) or {}
+
+    def get_source_agent_run(self, run_id: int) -> dict[str, Any] | None:
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT * FROM source_agent_runs WHERE id = ?",
+                (int(run_id),),
+            ).fetchone()
+        return self._decode_row(row, json_fields=("payload_json",)) if row else None
+
+    def latest_source_agent_runs(self) -> dict[str, dict[str, Any]]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT r.*
+                FROM source_agent_runs r
+                JOIN (
+                    SELECT source_code, MAX(id) AS max_id
+                    FROM source_agent_runs
+                    GROUP BY source_code
+                ) latest ON latest.max_id = r.id
+                """
+            ).fetchall()
+        latest: dict[str, dict[str, Any]] = {}
+        for row in rows:
+            payload = self._decode_row(row, json_fields=("payload_json",)) or {}
+            code = _normalize_token(payload.get("source_code"))
+            if code:
+                latest[code] = payload
+        return latest
+
     def get_source_by_code(self, code: str) -> dict[str, Any] | None:
         with self._connect() as conn:
             row = conn.execute("SELECT * FROM sources WHERE code = ?", (_normalize_token(code),)).fetchone()

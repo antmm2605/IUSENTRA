@@ -312,6 +312,13 @@ DELEGATED_AGENT_TEMPLATES: tuple[SchedulerTemplate, ...] = (
 )
 
 
+LEGAL_SOURCE_TEMPLATE_PREFIX = "legal_source_scan__"
+
+
+def _legal_source_job_id(source_code: str) -> str:
+    return _slug(f"legal_source_{source_code}", fallback="legal_source")
+
+
 def default_scheduler_templates(config: dict[str, Any] | None = None) -> tuple[SchedulerTemplate, ...]:
     cfg = config or {}
     backup_h, backup_m = _hhmm(cfg.get("BACKUP_ORA") or os.getenv("PCT_BACKUP_ORA"), "02:00")
@@ -347,8 +354,64 @@ def default_scheduler_templates(config: dict[str, Any] | None = None) -> tuple[S
     return builtins
 
 
+def legal_source_scheduler_templates(config: dict[str, Any] | None = None) -> tuple[SchedulerTemplate, ...]:
+    cfg = config or {}
+    rows: list[dict[str, Any]] = []
+    try:
+        from pct.legal_update_pipeline import DEFAULT_SOURCE_ROWS
+        from pct.legal_update_repository import LegalUpdateDbConfig, LegalUpdateRepository
+
+        rows = [dict(row) for row in DEFAULT_SOURCE_ROWS]
+        intelligence_db = str(cfg.get("LEGAL_INTELLIGENCE_DB") or os.getenv("PCT_LEGAL_INTELLIGENCE_DB") or "").strip()
+        if intelligence_db:
+            repo_cfg = LegalUpdateDbConfig.from_anchor(intelligence_db)
+            repository = LegalUpdateRepository(repo_cfg.db_path, json_path=repo_cfg.json_path)
+            repository.upsert_sources(rows)
+            rows = repository.list_sources(enabled_only=False)
+    except Exception:
+        rows = rows or []
+    templates: list[SchedulerTemplate] = []
+    for row in rows:
+        code = _slug(str(row.get("code") or ""), fallback="")
+        if not code:
+            continue
+        name = " ".join(str(row.get("name") or code).split()).strip()
+        category = " ".join(str(row.get("category") or "fonte").replace("_", " ").split()).strip()
+        templates.append(
+            SchedulerTemplate(
+                f"{LEGAL_SOURCE_TEMPLATE_PREFIX}{code}",
+                f"Fonte legale: {name}",
+                "Agenti fonte legale",
+                f"Controlla {name}, registra esito, timeout e documenti letti.",
+                trigger_kind="manual",
+                hour="",
+                minute="0",
+                enabled=bool(row.get("enabled", True)),
+                built_in=False,
+                editable=True,
+                args={
+                    "kind": "legal_update_source_scan",
+                    "source_code": code,
+                    "source_name": name,
+                    "category": category,
+                    "auto_publish": True,
+                },
+                criteria=(
+                    "Esegue una sola fonte con timeout governato.",
+                    "Registra documenti trovati, lavorati e invariati.",
+                    "Non accetta comandi liberi o sorgenti non censite.",
+                ),
+            )
+        )
+    return tuple(templates)
+
+
 def template_catalog(config: dict[str, Any] | None = None) -> tuple[SchedulerTemplate, ...]:
-    return default_scheduler_templates(config) + DELEGATED_AGENT_TEMPLATES
+    return default_scheduler_templates(config) + DELEGATED_AGENT_TEMPLATES + legal_source_scheduler_templates(config)
+
+
+def _truthy(value: Any) -> bool:
+    return str(value or "").strip().lower() in {"1", "true", "yes", "on", "si", "attivo"}
 
 
 class SchedulerRegistryRepository:
@@ -445,6 +508,43 @@ class SchedulerRegistryRepository:
                         template.day_of_week,
                         1 if template.enabled else 0,
                         1,
+                        1 if template.editable else 0,
+                        _json_dumps(template.args or {}),
+                        now,
+                        now,
+                    ),
+                )
+            for template in legal_source_scheduler_templates(config):
+                source_code = str((template.args or {}).get("source_code") or "").strip()
+                job_id = _legal_source_job_id(source_code)
+                conn.execute(
+                    """
+                    INSERT INTO scheduled_jobs (
+                        job_id, name, family, description, template_key, trigger_kind,
+                        hour, minute, interval_minutes, day_of_week, enabled, built_in,
+                        editable, args_json, created_at, updated_at, updated_by
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, 'system')
+                    ON CONFLICT(job_id) DO UPDATE SET
+                        name=excluded.name,
+                        family=excluded.family,
+                        description=excluded.description,
+                        template_key=excluded.template_key,
+                        args_json=excluded.args_json,
+                        editable=excluded.editable
+                    """,
+                    (
+                        job_id,
+                        template.name,
+                        template.family,
+                        template.description,
+                        template.key,
+                        template.trigger_kind,
+                        template.hour,
+                        template.minute,
+                        template.interval_minutes,
+                        template.day_of_week,
+                        1 if template.enabled else 0,
                         1 if template.editable else 0,
                         _json_dumps(template.args or {}),
                         now,
@@ -738,7 +838,7 @@ class SchedulerRegistryRepository:
                 SELECT
                     COUNT(*) AS total,
                     SUM(CASE WHEN enabled=1 THEN 1 ELSE 0 END) AS active,
-                    SUM(CASE WHEN built_in=0 THEN 1 ELSE 0 END) AS custom
+                    SUM(CASE WHEN built_in=0 AND family <> 'Agenti fonte legale' THEN 1 ELSE 0 END) AS custom
                 FROM scheduled_jobs
                 """
             ).fetchone()
@@ -844,9 +944,118 @@ def _job_trigger(job: dict[str, Any]):
     return CronTrigger(**kwargs)
 
 
+def _run_legal_source_agent(app, args: dict[str, Any]) -> dict[str, Any]:
+    cfg = app.config if app is not None else {}
+    source_code = _slug(str(args.get("source_code") or ""), fallback="")
+    if not source_code:
+        return {
+            "ok": False,
+            "summary": "Fonte legale non indicata.",
+            "self_check": "Non superato: manca il codice fonte.",
+            "supervisor_check": "Esecuzione bloccata prima della scansione.",
+            "details": [],
+        }
+    try:
+        from pct.legal_update_batch_runner import LegalUpdateJobConfig, run_legal_update_batch_with_timeouts
+        from pct.legal_update_pipeline import DEFAULT_SOURCE_ROWS
+        from pct.legal_update_repository import LegalUpdateDbConfig, LegalUpdateRepository
+
+        intelligence_db = str(
+            cfg.get("LEGAL_INTELLIGENCE_DB")
+            or os.getenv("PCT_LEGAL_INTELLIGENCE_DB")
+            or "./intelligence/motori.json"
+        )
+        repo_cfg = LegalUpdateDbConfig.from_anchor(intelligence_db)
+        repository = LegalUpdateRepository(repo_cfg.db_path, json_path=repo_cfg.json_path)
+        repository.upsert_sources([dict(row) for row in DEFAULT_SOURCE_ROWS])
+        source = repository.get_source_by_code(source_code)
+        if not source:
+            return {
+                "ok": False,
+                "summary": f"Fonte {source_code} non presente nel catalogo.",
+                "self_check": "Non superato: la fonte richiesta non e' censita.",
+                "supervisor_check": "Bloccato: non si eseguono fonti non autorizzate.",
+                "details": [{"source_code": source_code, "status": "non_censita"}],
+            }
+        timeout_seconds = _coerce_int(
+            cfg.get("LEGAL_UPDATES_ITEM_TIMEOUT_SECONDS")
+            or os.getenv("IUSENTRA_LEGAL_UPDATES_ITEM_TIMEOUT_SECONDS"),
+            180,
+        )
+        publish_max_items = _coerce_int(
+            cfg.get("LEGAL_UPDATES_PUBLISH_MAX_ITEMS")
+            or os.getenv("IUSENTRA_LEGAL_UPDATES_PUBLISH_MAX_ITEMS"),
+            20,
+        )
+        report = run_legal_update_batch_with_timeouts(
+            LegalUpdateJobConfig(
+                intelligence_db=intelligence_db,
+                giurisprudenza_db=str(cfg.get("GIURISPRUDENZA_DB") or os.getenv("PCT_GIURISPRUDENZA_DB") or ""),
+                ai_base_url=str(cfg.get("LOCAL_AI_BASE_URL") or cfg.get("PCT_LOCAL_AI_BASE_URL") or ""),
+                ai_model=str(cfg.get("LOCAL_AI_CHAT_MODEL") or cfg.get("OLLAMA_MODEL") or "mistral"),
+                export_json_enabled=_truthy(cfg.get("LEGAL_UPDATES_EXPORT_JSON_ENABLED")),
+                mirror_giurisprudenza_json_enabled=_truthy(cfg.get("LEGAL_UPDATES_MIRROR_GIURISPRUDENZA_JSON_ENABLED")),
+            ),
+            source_codes=[source_code],
+            auto_publish=_truthy(args.get("auto_publish", True)),
+            item_timeout_seconds=timeout_seconds,
+            publish_max_items=publish_max_items,
+            record_agent_runs=True,
+        )
+        source_report = (report.get("reports") or [{}])[0]
+        payload = source_report.get("payload") or {}
+        inner_report = payload.get("report") or {}
+        inner_rows = inner_report.get("reports") or []
+        documents_found = sum(int(row.get("documents_found") or 0) for row in inner_rows)
+        processed = sum(int(row.get("processed") or 0) for row in inner_rows)
+        skipped = sum(int(row.get("skipped_unchanged") or 0) for row in inner_rows)
+        ok = bool(report.get("ok"))
+        summary = (
+            f"{source.get('name')}: {documents_found} documenti trovati, "
+            f"{processed} lavorati, {skipped} invariati."
+        )
+        if not ok and source_report.get("timeout"):
+            summary = f"{source.get('name')}: timeout dopo {timeout_seconds} secondi."
+        elif not ok:
+            summary = f"{source.get('name')}: controllo non completato."
+        return {
+            "ok": ok,
+            "summary": summary,
+            "self_check": "Superato: fonte censita ed eseguita con timeout dedicato." if ok else "Da verificare: la fonte non ha completato il controllo.",
+            "supervisor_check": "Esito registrato come agente fonte, senza comandi liberi.",
+            "criteria": [
+                "Fonte censita nel catalogo aggiornamenti legali.",
+                "Esecuzione isolata con timeout per fonte.",
+                "Esito registrato per controllo successivo.",
+            ],
+            "details": [
+                {
+                    "source_code": source_code,
+                    "source_name": source.get("name"),
+                    "documents_found": documents_found,
+                    "processed": processed,
+                    "skipped_unchanged": skipped,
+                    "timeout_seconds": timeout_seconds,
+                }
+            ],
+            "report": report,
+        }
+    except Exception as exc:
+        return {
+            "ok": False,
+            "summary": f"Fonte {source_code}: controllo non completato.",
+            "self_check": str(exc),
+            "supervisor_check": "Errore registrato: serve verifica della fonte o della connettivita'.",
+            "details": [{"source_code": source_code, "status": "errore"}],
+        }
+
+
 def run_delegated_agent_template(template_key: str, app, args: dict[str, Any] | None = None) -> dict[str, Any]:
+    key = str(template_key or "").strip()
+    if key.startswith(LEGAL_SOURCE_TEMPLATE_PREFIX):
+        return _run_legal_source_agent(app, args or {})
     templates = {tpl.key: tpl for tpl in DELEGATED_AGENT_TEMPLATES}
-    template = templates.get(str(template_key or "").strip())
+    template = templates.get(key)
     if not template:
         return {
             "ok": False,

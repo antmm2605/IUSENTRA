@@ -1,12 +1,20 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-17, console pianificazioni 2.244.0, no backup.
+Aggiornato: 2026-05-17, agenti fonte legale 2.245.0, no backup.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Agenti fonte legale 2.245.0 - 2026-05-17
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct\legal_update_batch_runner.py pct\legal_update_repository.py pct\scheduler_registry.py web\services\legal_update_surface.py` | OK | Sintassi confermata dopo registro `source_agent_runs`, agenti per fonte e colonna Agente nella pagina Fonti. |
+| `python -m pytest tests\test_legal_update_batch_runner.py tests\test_scheduler_registry.py tests\test_scheduler_admin.py tests\test_legal_update_surface_jobs.py tests\test_legal_updates_pipeline.py::test_pagina_fonti_mostra_catalogo_professionale_e_ciclo_giornaliero -q --tb=short` | OK | 16/16 passati: runner per fonte, persistenza esiti agente, template fonte allowlist, console pianificazioni e pagina fonti. |
+| `python -m ruff check pct\legal_update_batch_runner.py pct\legal_update_repository.py pct\scheduler_registry.py web\services\legal_update_surface.py tests\test_legal_update_batch_runner.py tests\test_scheduler_registry.py tests\test_scheduler_admin.py tests\test_legal_updates_pipeline.py` | OK | Ruff mirato verde sui file toccati dagli agenti fonte. |
 
 ### Console pianificazioni superadmin 2.244.0 - 2026-05-17
 

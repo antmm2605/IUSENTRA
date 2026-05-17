@@ -60,6 +60,27 @@ CREATE TABLE IF NOT EXISTS source_documents_normalized (
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS source_agent_runs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    source_code TEXT NOT NULL,
+    source_name TEXT NOT NULL DEFAULT '',
+    trigger_label TEXT NOT NULL DEFAULT 'batch',
+    status TEXT NOT NULL DEFAULT 'running',
+    timeout_seconds INTEGER NOT NULL DEFAULT 0,
+    started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    finished_at TEXT NOT NULL DEFAULT '',
+    duration_ms INTEGER NOT NULL DEFAULT 0,
+    documents_found INTEGER NOT NULL DEFAULT 0,
+    processed INTEGER NOT NULL DEFAULT 0,
+    skipped_unchanged INTEGER NOT NULL DEFAULT 0,
+    autopublished_count INTEGER NOT NULL DEFAULT 0,
+    error_message TEXT NOT NULL DEFAULT '',
+    stderr_tail TEXT NOT NULL DEFAULT '',
+    payload_json TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS matters (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
@@ -238,6 +259,8 @@ CREATE TABLE IF NOT EXISTS audit_log (
 
 CREATE INDEX IF NOT EXISTS idx_sources_enabled ON sources(enabled, category, code);
 CREATE INDEX IF NOT EXISTS idx_raw_source ON source_documents_raw(source_id, published_at, content_hash);
+CREATE INDEX IF NOT EXISTS idx_source_agent_runs_source ON source_agent_runs(source_code, started_at);
+CREATE INDEX IF NOT EXISTS idx_source_agent_runs_status ON source_agent_runs(status, started_at);
 CREATE INDEX IF NOT EXISTS idx_normalized_hash ON source_documents_normalized(normalized_hash);
 CREATE INDEX IF NOT EXISTS idx_analysis_classification ON ai_documents_analysis(classification_type, confidence_score);
 CREATE INDEX IF NOT EXISTS idx_review_status ON review_queue(status, priority, created_at);

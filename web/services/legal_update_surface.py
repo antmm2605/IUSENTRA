@@ -379,6 +379,53 @@ def _source_status_label(source: dict[str, Any]) -> str:
     return "Attiva"
 
 
+def _agent_status_payload(run: dict[str, Any] | None, *, source_code: str) -> dict[str, Any]:
+    job_id = f"legal_source_{str(source_code or '').strip().lower()}"
+    if not run:
+        return {
+            "job_id": job_id,
+            "label": "Da avviare",
+            "class": "secondary",
+            "message": "Nessun controllo agente registrato",
+            "finished_at": "",
+            "duration_label": "",
+            "timeout_seconds": 0,
+            "documents_found": 0,
+            "processed": 0,
+            "skipped_unchanged": 0,
+            "autopublished_count": 0,
+        }
+    status = str(run.get("status") or "").strip().lower()
+    labels = {
+        "completed": ("Completato", "success"),
+        "failed": ("Da verificare", "danger"),
+        "timeout": ("Timeout", "warning"),
+        "running": ("In corso", "primary"),
+    }
+    label, css_class = labels.get(status, ("Da verificare", "secondary"))
+    duration_ms = _int_value(run.get("duration_ms"))
+    duration_label = f"{duration_ms / 1000:.1f}s" if duration_ms else ""
+    docs = _int_value(run.get("documents_found"))
+    processed = _int_value(run.get("processed"))
+    skipped = _int_value(run.get("skipped_unchanged"))
+    message = str(run.get("error_message") or "").strip()
+    if not message:
+        message = f"{docs} documenti trovati, {processed} lavorati, {skipped} invariati"
+    return {
+        "job_id": job_id,
+        "label": label,
+        "class": css_class,
+        "message": message,
+        "finished_at": str(run.get("finished_at") or run.get("started_at") or ""),
+        "duration_label": duration_label,
+        "timeout_seconds": _int_value(run.get("timeout_seconds")),
+        "documents_found": docs,
+        "processed": processed,
+        "skipped_unchanged": skipped,
+        "autopublished_count": _int_value(run.get("autopublished_count")),
+    }
+
+
 def _int_value(value: Any) -> int:
     try:
         return int(value or 0)
@@ -386,7 +433,7 @@ def _int_value(value: Any) -> int:
         return 0
 
 
-def _catalog_source_payload(source: dict[str, Any], activity: dict[str, Any]) -> dict[str, Any]:
+def _catalog_source_payload(source: dict[str, Any], activity: dict[str, Any], agent_run: dict[str, Any] | None = None) -> dict[str, Any]:
     row = dict(source)
     row["family_key"] = _source_family_key(row)
     row["method_label"] = _source_method_label(row)
@@ -400,6 +447,7 @@ def _catalog_source_payload(source: dict[str, Any], activity: dict[str, Any]) ->
     row["last_document_at"] = str(activity.get("last_document_at") or "")
     row["latest_source_date"] = str(activity.get("latest_source_date") or "")
     row["was_added_by_catalog"] = str(row.get("code") or "") in SOURCE_CODES_ADDED_BY_CATALOG
+    row["agent"] = _agent_status_payload(agent_run, source_code=str(row.get("code") or ""))
     return row
 
 
@@ -411,10 +459,15 @@ def build_legal_source_catalog(
     runtime_pipeline = pipeline or build_legal_update_pipeline_runtime(runtime_app)
     sources = runtime_pipeline.repository.list_sources(enabled_only=False)
     activity = runtime_pipeline.repository.source_activity_summary()
+    agent_runs = runtime_pipeline.repository.latest_source_agent_runs()
     default_codes = {str(row.get("code") or "") for row in DEFAULT_SOURCE_ROWS}
     official_archives = _official_archives_payload()
     source_rows = [
-        _catalog_source_payload(source, activity.get(str(source.get("code") or ""), {}))
+        _catalog_source_payload(
+            source,
+            activity.get(str(source.get("code") or ""), {}),
+            agent_runs.get(str(source.get("code") or "").strip().lower()),
+        )
         for source in sources
     ]
     families: list[dict[str, Any]] = []

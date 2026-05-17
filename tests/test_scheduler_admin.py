@@ -23,6 +23,8 @@ def test_superadmin_puo_aprire_console_pianificazioni(tmp_path: Path):
     html = response.get_data(as_text=True)
     assert "Pianificazioni" in html
     assert "Agenti delegati disponibili" in html
+    assert "Agenti fonte legale" in html
+    assert "Fonte legale: Gazzetta Ufficiale" in html
     assert "Agente clienti e soggetti" in html
     assert "Agente email PEC" in html
     assert alias.status_code == 302

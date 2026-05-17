@@ -4,7 +4,9 @@ import json
 import os
 import subprocess
 import sys
+import time
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Any, Callable, Sequence
 
 
@@ -34,6 +36,83 @@ def _parse_json_stdout(stdout: str) -> dict[str, Any]:
         except json.JSONDecodeError:
             continue
     return {"raw_stdout": text[-4000:]}
+
+
+def _iso_now() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def _extract_source_report(result: dict[str, Any]) -> dict[str, Any]:
+    payload = result.get("payload") or {}
+    report = payload.get("report") or {}
+    rows = list(report.get("reports") or [])
+    documents_found = 0
+    processed = 0
+    skipped_unchanged = 0
+    for row in rows:
+        documents_found += int(row.get("documents_found") or 0)
+        processed += int(row.get("processed") or 0)
+        skipped_unchanged += int(row.get("skipped_unchanged") or 0)
+    autopublished = report.get("autopublished") or {}
+    return {
+        "documents_found": documents_found,
+        "processed": processed,
+        "skipped_unchanged": skipped_unchanged,
+        "autopublished_count": int(autopublished.get("count") or payload.get("published_count") or 0),
+    }
+
+
+def _record_source_agent_run(
+    config: LegalUpdateJobConfig,
+    result: dict[str, Any],
+    *,
+    source_name: str = "",
+    trigger_label: str = "batch",
+) -> None:
+    source_code = str(result.get("label") or "").strip()
+    if not source_code or source_code == "publish":
+        return
+    try:
+        from pct.legal_update_repository import LegalUpdateDbConfig, LegalUpdateRepository
+
+        cfg = LegalUpdateDbConfig.from_anchor(config.intelligence_db)
+        repository = LegalUpdateRepository(cfg.db_path, json_path=cfg.json_path)
+        source = repository.get_source_by_code(source_code) or {}
+        metrics = _extract_source_report(result)
+        timeout = bool(result.get("timeout"))
+        ok = bool(result.get("ok"))
+        payload = result.get("payload") or {}
+        report = payload.get("report") or {}
+        rows = list(report.get("reports") or [])
+        row_errors = [
+            str(row.get("error") or "")
+            for row in rows
+            if str(row.get("error") or "").strip()
+        ]
+        error_message = str(result.get("stderr") or "")
+        if row_errors:
+            error_message = row_errors[0]
+        if timeout:
+            error_message = f"Timeout dopo {int(result.get('seconds') or 0)} secondi."
+        repository.record_source_agent_run(
+            source_code=source_code,
+            source_name=source_name or str(source.get("name") or ""),
+            trigger_label=trigger_label,
+            status="completed" if ok else ("timeout" if timeout else "failed"),
+            timeout_seconds=int(result.get("seconds") or 0),
+            started_at=str(result.get("started_at") or ""),
+            finished_at=str(result.get("finished_at") or ""),
+            duration_ms=int(result.get("duration_ms") or 0),
+            documents_found=metrics["documents_found"],
+            processed=metrics["processed"],
+            skipped_unchanged=metrics["skipped_unchanged"],
+            autopublished_count=metrics["autopublished_count"],
+            error_message=error_message,
+            stderr_tail=str(result.get("stderr") or ""),
+            payload=payload,
+        )
+    except Exception:
+        return
 
 
 def build_legal_update_job_command(
@@ -81,6 +160,8 @@ def run_legal_update_subprocess(
     runner: Runner | None = None,
 ) -> dict[str, Any]:
     runner = runner or subprocess.run
+    started_at = _iso_now()
+    started_monotonic = time.monotonic()
     command = build_legal_update_job_command(
         config,
         source_code=source_code,
@@ -98,14 +179,19 @@ def run_legal_update_subprocess(
             env=os.environ.copy(),
         )
     except subprocess.TimeoutExpired as exc:
+        finished_at = _iso_now()
         return {
             "ok": False,
             "timeout": True,
             "label": label,
             "seconds": max(1, int(timeout_seconds or 1)),
+            "started_at": started_at,
+            "finished_at": finished_at,
+            "duration_ms": int((time.monotonic() - started_monotonic) * 1000),
             "stderr": str(exc),
         }
 
+    finished_at = _iso_now()
     stdout = getattr(completed, "stdout", "") or ""
     stderr = getattr(completed, "stderr", "") or ""
     return_code = int(getattr(completed, "returncode", 1) or 0)
@@ -114,6 +200,10 @@ def run_legal_update_subprocess(
         "timeout": False,
         "label": label,
         "returncode": return_code,
+        "seconds": max(1, int(timeout_seconds or 1)),
+        "started_at": started_at,
+        "finished_at": finished_at,
+        "duration_ms": int((time.monotonic() - started_monotonic) * 1000),
         "payload": _parse_json_stdout(stdout),
         "stderr": stderr[-4000:],
     }
@@ -161,19 +251,22 @@ def run_legal_update_batch_with_timeouts(
     item_timeout_seconds: int = 180,
     publish_max_items: int = 40,
     runner: Runner | None = None,
+    record_agent_runs: bool | None = None,
 ) -> dict[str, Any]:
+    should_record_runs = bool(record_agent_runs) if record_agent_runs is not None else runner is None
     sources = [str(code or "").strip() for code in source_codes if str(code or "").strip()]
     reports: list[dict[str, Any]] = []
     for source_code in sources:
-        reports.append(
-            run_legal_update_subprocess(
-                config,
-                source_code=source_code,
-                auto_publish=False,
-                timeout_seconds=item_timeout_seconds,
-                runner=runner,
-            )
+        result = run_legal_update_subprocess(
+            config,
+            source_code=source_code,
+            auto_publish=False,
+            timeout_seconds=item_timeout_seconds,
+            runner=runner,
         )
+        reports.append(result)
+        if should_record_runs:
+            _record_source_agent_run(config, result, trigger_label="batch")
 
     published = {"published_count": 0, "timeouts": 0, "reports": []}
     if auto_publish:

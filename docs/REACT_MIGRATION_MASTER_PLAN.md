@@ -1,5 +1,18 @@
 # Migrazione progressiva Flask + React
 
+## Agenti fonte legale - 2026-05-17 - 2.245.0
+
+`/admin/aggiornamenti-legali/fonti` ora espone ogni fonte come agente
+controllabile: la colonna `Agente` mostra ultimo esito, messaggio, durata,
+documenti trovati/lavorati/invariati e timeout. Il pulsante `Esegui agente`
+richiede una run manuale governata dalla console pianificazioni.
+
+Il batch notturno continua a eseguire le fonti in processi separati con timeout,
+ma registra anche una riga persistente in `source_agent_runs` per ogni fonte.
+La console `/admin/pianificazioni` crea automaticamente job `legal_source_<codice>`
+per le fonti censite; sono manuali di default e possono essere programmati dal
+superadmin senza campi shell o comandi liberi.
+
 ## Console pianificazioni superadmin - 2026-05-17 - 2.244.0
 
 `/admin/pianificazioni` e l'alias `/admin/cronjob` aggiungono una superficie

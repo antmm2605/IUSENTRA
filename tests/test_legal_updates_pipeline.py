@@ -1211,6 +1211,8 @@ def test_pagina_fonti_mostra_catalogo_professionale_e_ciclo_giornaliero(tmp_path
     assert "INAIL - istruzioni operative" in html
     assert "In osservazione" in html
     assert "Aggiunte IUSENTRA" in html
+    assert "Agente" in html
+    assert "Esegui agente" in html
 
 
 def test_admin_api_espone_staging_analisi_archivi_e_audit(tmp_path: Path):

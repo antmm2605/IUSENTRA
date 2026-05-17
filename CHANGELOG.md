@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.245.0 - 2026-05-17
+
+- Aggiunti gli agenti per fonte legale: ogni canale del catalogo ha un job governato `legal_source_<codice>` visibile in `/admin/pianificazioni`, avviabile manualmente e modificabile senza esporre comandi shell.
+- Il batch Aggiornamenti legali registra ora l'esito per singola fonte: stato, timeout, durata, documenti trovati, lavorati, invariati, pubblicazioni e messaggio di errore restano consultabili anche dopo il ciclo notturno.
+- La pagina `/admin/aggiornamenti-legali/fonti` mostra la colonna Agente con ultimo esito e pulsante `Esegui agente`, cosi' una fonte lenta o fallita non resta nascosta nel job massivo.
+- Il registro degli agenti fonte usa solo fonti censite e argomenti allowlist: niente comandi liberi, niente sorgenti arbitrarie, niente riscarico duplicato fuori dal controllo del catalogo.
+
 ## 2.244.0 - 2026-05-17
 
 - Aggiunta la console superadmin `/admin/pianificazioni` con alias `/admin/cronjob`: mostra cronjob applicativi, stato attivo/pausato, frequenza, ultime esecuzioni, richieste manuali e creazione di nuovi job da template autorizzati.

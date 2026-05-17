@@ -6,6 +6,15 @@ Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle
 
 ## Aggiornamento operativo 2.243.5 - 2026-05-16
 
+Aggiornamento 2.245.0: le fonti legali sono governate anche come agenti
+separati. Il batch con timeout resta il percorso notturno principale, ma ogni
+fonte registra una run autonoma in `source_agent_runs` con stato, durata,
+timeout, documenti trovati, documenti lavorati, invariati e messaggio di
+errore. `/admin/aggiornamenti-legali/fonti` mostra l'ultimo esito agente per
+canale e `/admin/pianificazioni` crea job `legal_source_<codice>` avviabili
+manualmente o schedulabili dal superadmin, sempre da catalogo autorizzato e
+senza comandi shell.
+
 Aggiornamento 2.243.9: `/admin/aggiornamenti-legali/fonti` espone il
 catalogo professionale delle fonti con famiglie, stato per canale,
 conteggi reali, ciclo giornaliero e regole incrementali. Oltre alle fonti

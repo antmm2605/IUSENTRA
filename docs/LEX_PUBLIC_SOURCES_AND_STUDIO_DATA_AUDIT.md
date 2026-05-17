@@ -4,6 +4,68 @@ Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle
 
 ---
 
+## Aggiornamento operativo 2.245.15 - 2026-05-17
+
+Il recupero delle evidenze web non dipende più solo dall'ordine del lotto
+temporizzato. La CLI `python -m pct.legal_update_job --backfill-web-evidence`
+accetta ora `--backfill-query` e `--backfill-review-id`: un riferimento preciso
+già presente nel database, ad esempio `Circolare numero 53 del 07-05-2026`,
+può essere completato subito leggendo la fonte ufficiale e i suoi allegati.
+
+La selezione mirata cerca titolo, testo normalizzato, URL della fonte e sintesi
+della revisione, includendo anche numeri brevi come `53`, `07` e `05`. Questo
+serve a impedire che un record approvato resti fermo solo perché il backfill a
+tempo non lo ha ancora raggiunto.
+
+## Aggiornamento operativo 2.245.14 - 2026-05-17
+
+La ricerca Lex sulle evidenze web non ordina più soltanto per freschezza o
+numero di termini comuni. Il ranking assegna peso maggiore a titolo, URL,
+allegato, numeri identificativi e frase esatta, così una ricerca puntuale come
+`Messaggio numero 685 del 26-02-2026` deve riportare prima l'evidenza
+verificata corrispondente e non un risultato INPS più recente ma generico.
+
+Il bacino SQL dei candidati viene ampliato prima del ranking: questo evita che
+un'evidenza esatta ma meno recente venga scartata troppo presto quando molte
+fonti condividono parole comuni come `circolare`, `messaggio`, `numero` o
+`2026`.
+
+## Aggiornamento operativo 2.245.13 - 2026-05-17
+
+Il recupero evidenze web è stato ristretto al perimetro che serve davvero allo
+studio: per default vengono trattati solo record `pending`, `approved` e
+`published`, mentre metadati chiusi e dataset open-data massivi restano esclusi
+finché non vengono richiesti esplicitamente.
+
+La modalità predefinita del backfill è ora "fonte diretta": legge la pagina
+ufficiale già collegata al documento e gli allegati pubblici collegati, salva
+URL, testo, PDF/hash quando disponibili e registra `insufficient` con motivo
+esplicito quando la prova non basta. La ricerca web estesa resta disponibile,
+ma deve essere richiesta come secondo passaggio perché è più lenta e va
+governata per fonte.
+
+La CLI accetta `--backfill-max-seconds`, `--backfill-status`,
+`--backfill-include-closed`, `--backfill-include-open-data` e
+`--backfill-full-search`. Questo impedisce job appesi e rende misurabile ogni
+tranche: quanti record sono stati selezionati, controllati, salvati, con
+allegati, fermati dal limite di tempo o lasciati con diagnosi interrogabile.
+
+## Aggiornamento operativo 2.245.12 - 2026-05-17
+
+Le evidenze web non dipendono piu' dalla sola coda di pubblicazione: ogni
+documento nuovo o modificato da fonte governata registra subito una verifica
+fonte con URL, testo letto, eventuali allegati ufficiali, hash e stato della
+prova in `web_verification_evidence`.
+
+La verifica parte dalla pagina originaria gia' acquisita, legge il contesto
+ufficiale e gli allegati collegati, poi usa archivi ufficiali e ricerca web
+governata come confronto. In questo modo la metrica delle evidenze misura
+prove archiviate, non solo schede pubblicate.
+
+E' disponibile il backfill operativo
+`python -m pct.legal_update_job --backfill-web-evidence` per recuperare record
+gia' normalizzati ma privi di prova web salvata.
+
 ## Aggiornamento operativo 2.245.11 - 2026-05-17
 
 Sono state aggiunte e classificate le fonti richieste nella verifica manuale:

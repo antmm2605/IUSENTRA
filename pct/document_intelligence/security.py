@@ -7,7 +7,6 @@ import re
 import unicodedata
 from pathlib import Path
 
-
 ALLOWED_DOCUMENT_AI_EXTENSIONS = {"pdf", "docx", "doc"}
 DEFAULT_MAX_DOCUMENT_AI_BYTES = 25 * 1024 * 1024
 
@@ -39,6 +38,9 @@ def _extension(filename: str) -> str:
 
 def detect_file_type(filename: str) -> str:
     safe_name = sanitize_filename(filename)
+    inner_p7m_type = _inner_p7m_document_type(safe_name)
+    if inner_p7m_type:
+        return inner_p7m_type
     file_type = _extension(safe_name)
     if not file_type:
         raise DocumentAIValidationError("Estensione file mancante.")
@@ -49,6 +51,17 @@ def validate_document_file_type(filename: str, mime_type: str | None = None) -> 
     file_type = detect_file_type(filename)
     assert_allowed_document_ai_extension(file_type)
     return file_type
+
+
+def _inner_p7m_document_type(filename: str) -> str:
+    lower_name = str(filename or "").strip().lower()
+    if not lower_name.endswith(".p7m"):
+        return ""
+    inner = lower_name[:-4]
+    for allowed in sorted(ALLOWED_DOCUMENT_AI_EXTENSIONS, key=len, reverse=True):
+        if inner.endswith(f".{allowed}"):
+            return allowed
+    return ""
 
 
 def sanitize_filename(filename: str) -> str:

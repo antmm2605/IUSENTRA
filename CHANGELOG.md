@@ -7,6 +7,37 @@
 - Configurati Storybook React/Vite, Chromatic opzionale tramite `CHROMATIC_PROJECT_TOKEN` e Changesets senza pubblicazione automatica.
 - Aggiornati CI e Docker per usare Corepack/pnpm e sostituire il vecchio lockfile npm del frontend con `pnpm-lock.yaml`.
 
+## 2.245.16 - 2026-05-18
+
+- Lex AI operativo ora risponde a richieste reali come `Dammi la scheda cliente ...` usando anagrafica, recapiti, fascicoli e quadro economico autorizzati, senza cadere nel messaggio generico di dati insufficienti quando il cliente esiste.
+- Le richieste come `Qual è l'ultima PEC?` interrogano la casella PEC tenant-aware senza filtro spurio e restituiscono oggetto, mittente, destinatari, data, cartella e numero allegati.
+- La stessa lettura operativa è stata estesa a soggetti e parti: Lex ora restituisce scheda soggetto, recapiti, indirizzo, codice fiscale e ruoli processuali del fascicolo, invece di fermarsi a una ricerca anagrafica minimale.
+- L'indicizzazione Lex dei documenti fascicolo riconosce i `.pdf.p7m` leggibili come PDF e prova anche l'estrazione CAdES governata quando il contenitore è firmato davvero; la pagina fascicolo mostra quali documenti non sono stati letti o richiedono reindicizzazione.
+- Il bridge HTTP non manda più le letture PEC classificate come `pec_comunicazioni` nel flusso bozza/web quando la domanda chiede di consultare la casella; restano invece nel layer operativo deterministico.
+- Rafforzato il gateway dati studio per le varianti `scheda cliente` e per i gestori che espongono `get` invece di `ottieni`.
+
+## 2.245.15 - 2026-05-17
+
+- Il backfill delle evidenze web legali ora può completare subito un riferimento preciso con `--backfill-query` o `--backfill-review-id`, senza aspettare che il lotto temporizzato raggiunga quel record.
+- La selezione dei riferimenti da completare cerca titolo, testo, URL fonte e sintesi della revisione, inclusi numeri brevi come `53`, `07` e `05`; query come `Circolare numero 53 del 07-05-2026` puntano quindi al documento esatto.
+
+## 2.245.14 - 2026-05-17
+
+- La ricerca Lex sulle evidenze web premia titolo, URL, allegato, numeri e frase esatta, così una query puntuale come `Messaggio numero 685 del 26-02-2026` non viene superata da circolari più recenti ma generiche.
+- Aumentato il bacino dei candidati SQL per le ricerche legali, evitando che evidenze esatte ma meno recenti restino fuori dai risultati prima del ranking.
+
+## 2.245.13 - 2026-05-17
+
+- Il backfill delle evidenze web legali lavora per default solo sui record azionabili (`pending`, `approved`, `published`) ed esclude metadati chiusi/open-data, così il recupero non si perde su migliaia di righe non utili allo studio.
+- La verifica di recupero usa prima la fonte ufficiale diretta e gli allegati collegati, salva diagnosi `insufficient` quando manca una conferma e non dichiara completato un riferimento privo di URL/testo/allegato o motivo esplicito.
+- La CLI `pct.legal_update_job --backfill-web-evidence` ora accetta limite di tempo, stati, inclusione esplicita di record chiusi/open-data e ricerca estesa opzionale, per completare l'archivio a tranche misurabili senza job appesi.
+
+## 2.245.12 - 2026-05-17
+
+- Gli aggiornamenti legali salvano evidenze web gia' durante l'acquisizione del documento, senza aspettare che il record entri nella pubblicazione automatica.
+- La verifica diretta della fonte ufficiale legge la pagina originaria e gli allegati pubblici collegati prima di avviare ricerche estese, cosi' URL, testo, PDF/hash e diagnosi finiscono subito in `web_verification_evidence`.
+- Aggiunto il backfill governato `python -m pct.legal_update_job --backfill-web-evidence` per popolare le evidenze mancanti sui record gia' presenti in archivio e renderle interrogabili da Lex/Ricerca Legale.
+
 ## 2.245.11 - 2026-05-17
 
 - Esteso il catalogo Lex con Corte dei Conti come fonte ufficiale di classe primaria, includendo portale, sentenze, delibere e banca dati pubblica per responsabilità erariale, giudizi contabili e profili pubblicistici.

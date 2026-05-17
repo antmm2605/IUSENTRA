@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-from email.utils import parsedate_to_datetime
 import hashlib
 import json
 import re
-from typing import Any, Callable
-from urllib.parse import parse_qsl, urlencode, urljoin, urlsplit, urlunsplit
+import time
 import xml.etree.ElementTree as ET
+from collections.abc import Callable
+from email.utils import parsedate_to_datetime
+from typing import Any
+from urllib.parse import parse_qsl, urlencode, urljoin, urlsplit, urlunsplit
 
 import requests
 from lxml import html as lxml_html
@@ -16,7 +18,6 @@ from pct.legal_update_ai import analyze_document
 from pct.legal_update_repository import LegalUpdateDbConfig, LegalUpdateRepository
 from pct.legal_update_web_verification import verify_legal_update_against_public_sources
 from pct.postgres_runtime_support import resolve_runtime_postgres_dsn
-
 
 RequestGet = Callable[..., Any]
 
@@ -1541,11 +1542,13 @@ class LegalUpdatePipeline:
                 "priority": decision["priority"],
             }
         )
+        verification_evidence = self._record_ingestion_verification_evidence(review, source)
         return {
             "raw": raw_saved,
             "normalized": normalized_saved,
             "analysis": analysis_saved,
             "review": review,
+            "verification_evidence": verification_evidence,
         }
 
     def analyze_raw_document(self, raw_document_id: int, *, auto_publish: bool = True) -> dict[str, Any]:
@@ -1579,12 +1582,21 @@ class LegalUpdatePipeline:
         documents = self._fetch_source(source, request_get=request_get)
         processed: list[dict[str, Any]] = []
         skipped_unchanged = 0
+        verification_attempts = 0
+        verification_evidence_saved = 0
+        verification_attachments_saved = 0
         for document in documents:
             existing = self.repository.get_raw_document_by_external(int(source["id"]), str(document.get("external_id") or ""))
             if existing and _clean_spaces(existing.get("content_hash")) == _clean_spaces(document.get("content_hash")):
                 skipped_unchanged += 1
                 continue
-            processed.append(self.process_document(source, document))
+            processed_result = self.process_document(source, document)
+            evidence = processed_result.get("verification_evidence") if isinstance(processed_result, dict) else {}
+            if isinstance(evidence, dict):
+                verification_attempts += int(evidence.get("attempted") or 0)
+                verification_evidence_saved += int(evidence.get("saved") or 0)
+                verification_attachments_saved += int(evidence.get("attachments") or 0)
+            processed.append(processed_result)
         self.repository.mark_source_checked(int(source["id"]))
         autopublished = {"count": 0, "items": []}
         if auto_publish:
@@ -1595,6 +1607,9 @@ class LegalUpdatePipeline:
             "documents_found": len(documents),
             "processed": len(processed),
             "skipped_unchanged": skipped_unchanged,
+            "web_verification_attempts": verification_attempts,
+            "verification_evidence_saved": verification_evidence_saved,
+            "verification_attachments_saved": verification_attachments_saved,
             "duplicates_removed": int(cleanup.get("removed") or 0),
             "autopublished": autopublished,
         }
@@ -1627,9 +1642,93 @@ class LegalUpdatePipeline:
             "ok": True,
             "sources": selected,
             "reports": reports,
+            "web_verification_attempts": sum(int(row.get("web_verification_attempts") or 0) for row in reports),
+            "verification_evidence_saved": sum(int(row.get("verification_evidence_saved") or 0) for row in reports),
+            "verification_attachments_saved": sum(int(row.get("verification_attachments_saved") or 0) for row in reports),
             "duplicates_removed": int(cleanup.get("removed") or 0)
             + sum(int(row.get("duplicates_removed") or 0) for row in reports),
             "autopublished": autopublished,
+            "dashboard": self.repository.dashboard_snapshot(),
+        }
+
+    def backfill_web_verification_evidence(
+        self,
+        *,
+        limit: int = 100,
+        source_codes: list[str] | None = None,
+        statuses: tuple[str, ...] | None = None,
+        include_closed: bool = False,
+        include_open_data: bool = False,
+        direct_only: bool = True,
+        max_seconds: int = 0,
+        query: str = "",
+        review_ids: tuple[int, ...] = (),
+    ) -> dict[str, Any]:
+        source_code_tuple = tuple(_clean_spaces(code) for code in (source_codes or []) if _clean_spaces(code))
+        status_tuple = (
+            tuple(_clean_spaces(status).lower() for status in statuses if _clean_spaces(status))
+            if statuses is not None
+            else ("pending", "approved", "published")
+        )
+        reviews = self.repository.list_reviews_missing_web_evidence(
+            limit=max(1, int(limit or 1)),
+            source_codes=source_code_tuple,
+            statuses=status_tuple,
+            include_closed=include_closed,
+            include_open_data=include_open_data,
+            query=_clean_spaces(query),
+            review_ids=tuple(int(value) for value in review_ids if int(value or 0) > 0),
+        )
+        started = time.monotonic()
+        checked = 0
+        skipped = 0
+        stopped_for_time_limit = False
+        verification_attempts = 0
+        verification_evidence_saved = 0
+        verification_attachments_saved = 0
+        rows: list[dict[str, Any]] = []
+        for review in reviews:
+            if max_seconds and time.monotonic() - started >= max(1, int(max_seconds)):
+                stopped_for_time_limit = True
+                break
+            checked += 1
+            source = self._source_for_review(review)
+            if not source or not self._is_trusted_update_source(source):
+                skipped += 1
+                continue
+            evidence = self._record_ingestion_verification_evidence(review, source, direct_only=direct_only)
+            verification_attempts += int(evidence.get("attempted") or 0)
+            verification_evidence_saved += int(evidence.get("saved") or 0)
+            verification_attachments_saved += int(evidence.get("attachments") or 0)
+            rows.append(
+                {
+                    "review_id": int(review.get("id") or 0),
+                    "source_code": _clean_spaces(review.get("source_code")),
+                    "title": _truncate(review.get("title"), 160),
+                    "saved": int(evidence.get("saved") or 0),
+                    "attachments": int(evidence.get("attachments") or 0),
+                    "ok": bool(evidence.get("ok")),
+                    "reason": _truncate(evidence.get("reason") or "", 180),
+                }
+            )
+        self._export_repository_json_if_enabled()
+        return {
+            "ok": True,
+            "checked": checked,
+            "skipped": skipped,
+            "selected": len(reviews),
+            "duration_seconds": round(time.monotonic() - started, 2),
+            "stopped_for_time_limit": stopped_for_time_limit,
+            "direct_only": bool(direct_only),
+            "include_closed": bool(include_closed),
+            "include_open_data": bool(include_open_data),
+            "statuses": list(status_tuple),
+            "query": _clean_spaces(query),
+            "review_ids": [int(value) for value in review_ids if int(value or 0) > 0],
+            "web_verification_attempts": verification_attempts,
+            "verification_evidence_saved": verification_evidence_saved,
+            "verification_attachments_saved": verification_attachments_saved,
+            "items": rows,
             "dashboard": self.repository.dashboard_snapshot(),
         }
 
@@ -1787,6 +1886,51 @@ class LegalUpdatePipeline:
             )
         except Exception:
             return {"saved": 0, "attachments": 0}
+
+    def _record_ingestion_verification_evidence(
+        self,
+        review: dict[str, Any],
+        source: dict[str, Any],
+        *,
+        direct_only: bool = True,
+    ) -> dict[str, Any]:
+        """Registra la prova fonte durante l'acquisizione, prima della pubblicazione."""
+
+        if not review or not source or not self._is_trusted_update_source(source):
+            return {"attempted": 0, "saved": 0, "attachments": 0, "ok": False, "reason": "fonte non governata"}
+        if not _clean_spaces(review.get("source_url")):
+            return {"attempted": 0, "saved": 0, "attachments": 0, "ok": False, "reason": "url fonte assente"}
+        try:
+            verification = verify_legal_update_against_public_sources(review, source, direct_only=direct_only)
+        except Exception as exc:
+            verification = {
+                "ok": False,
+                "status": "insufficient",
+                "reason": f"Verifica pubblica non completata in acquisizione: {_truncate(str(exc), 160)}",
+                "confirmation_count": 0,
+                "official_confirmations": 0,
+                "confirmations": [],
+                "warnings": [],
+                "searched": {
+                    "query": _clean_spaces(review.get("title")),
+                    "queries": [_clean_spaces(review.get("title"))],
+                },
+            }
+        evidence = self._record_verification_evidence(
+            review,
+            source,
+            verification,
+            status="verified" if verification.get("ok") else "insufficient",
+        )
+        return {
+            "attempted": 1,
+            "saved": int(evidence.get("saved") or 0),
+            "attachments": int(evidence.get("attachments") or 0),
+            "ok": bool(verification.get("ok")),
+            "confirmations": int(verification.get("confirmation_count") or 0),
+            "official_confirmations": int(verification.get("official_confirmations") or 0),
+            "reason": _truncate(verification.get("reason") or "", 220),
+        }
 
     def _verification_for_manual_publish(self, review: dict[str, Any]) -> dict[str, Any] | None:
         if not _review_needs_publication_verification(review):

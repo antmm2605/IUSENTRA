@@ -14,7 +14,6 @@ from .security import (
     validate_document_file_type,
 )
 
-
 _MIME_BY_EXTENSION = {
     "pdf": "application/pdf",
     "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -157,6 +156,9 @@ def source_from_fascicolo_document(
     if not sha256 and content:
         sha256 = compute_sha256_bytes(content)
 
+    if supported and filename.lower().endswith(".p7m") and file_type in _MIME_BY_EXTENSION:
+        safe_filename = _safe_inner_p7m_name(safe_filename, file_type)
+
     fonte = str(getattr(document, "fonte_documento", "") or "").strip()
     source_type = "portale_telematico" if fonte == "PORTALE_TELEMATICO" else "documenti_fascicolo"
     metadata = {
@@ -186,6 +188,15 @@ def source_from_fascicolo_document(
         content_bytes=content,
         decrypt=decrypt if content is None else None,
     )
+
+
+def _safe_inner_p7m_name(safe_filename: str, file_type: str) -> str:
+    name = str(safe_filename or "").strip()
+    if name.lower().endswith(".p7m"):
+        name = name[:-4]
+    if not name.lower().endswith(f".{file_type}"):
+        name = f"{name}.{file_type}"
+    return name
 
 
 __all__ = [

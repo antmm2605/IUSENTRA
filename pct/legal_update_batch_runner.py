@@ -5,10 +5,10 @@ import os
 import subprocess
 import sys
 import time
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from datetime import datetime, timezone
-from typing import Any, Callable, Sequence
-
+from datetime import UTC, datetime
+from typing import Any
 
 Runner = Callable[..., subprocess.CompletedProcess[str]]
 
@@ -39,7 +39,7 @@ def _parse_json_stdout(stdout: str) -> dict[str, Any]:
 
 
 def _iso_now() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
 def _extract_source_report(result: dict[str, Any]) -> dict[str, Any]:
@@ -55,9 +55,9 @@ def _extract_source_report(result: dict[str, Any]) -> dict[str, Any]:
         skipped_unchanged += int(row.get("skipped_unchanged") or 0)
     autopublished = report.get("autopublished") or {}
     publish_reports = list(autopublished.get("reports") or [])
-    verification_evidence_saved = 0
-    verification_attachments_saved = 0
-    web_verification_attempts = 0
+    verification_evidence_saved = int(report.get("verification_evidence_saved") or 0)
+    verification_attachments_saved = int(report.get("verification_attachments_saved") or 0)
+    web_verification_attempts = int(report.get("web_verification_attempts") or 0)
     for publish_result in publish_reports:
         published_payload = publish_result.get("payload") if isinstance(publish_result, dict) else {}
         published = published_payload.get("published") if isinstance(published_payload, dict) else {}

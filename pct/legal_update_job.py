@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
-from typing import Sequence
+from collections.abc import Sequence
 
 from pct.legal_update_pipeline import build_legal_update_pipeline
 
@@ -17,6 +17,15 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--source-code", default="")
     parser.add_argument("--publish-only", action="store_true")
     parser.add_argument("--publish-limit", type=int, default=1)
+    parser.add_argument("--backfill-web-evidence", action="store_true")
+    parser.add_argument("--backfill-limit", type=int, default=100)
+    parser.add_argument("--backfill-max-seconds", type=int, default=0)
+    parser.add_argument("--backfill-status", action="append", default=[])
+    parser.add_argument("--backfill-include-closed", action="store_true")
+    parser.add_argument("--backfill-include-open-data", action="store_true")
+    parser.add_argument("--backfill-full-search", action="store_true")
+    parser.add_argument("--backfill-query", default="")
+    parser.add_argument("--backfill-review-id", action="append", type=int, default=[])
     parser.add_argument("--no-auto-publish", action="store_true")
     parser.add_argument("--local-ai-url", default="")
     parser.add_argument("--local-ai-model", default="mistral")
@@ -36,7 +45,26 @@ def main(argv: Sequence[str] | None = None) -> int:
         mirror_giurisprudenza_json_enabled=bool(args.mirror_giurisprudenza_json),
     )
 
-    if args.publish_only:
+    if args.backfill_web_evidence:
+        source_codes = [str(args.source_code or "").strip()] if str(args.source_code or "").strip() else None
+        backfill = pipeline.backfill_web_verification_evidence(
+            limit=max(1, int(args.backfill_limit or 1)),
+            source_codes=source_codes,
+            statuses=tuple(args.backfill_status or ()) or None,
+            include_closed=bool(args.backfill_include_closed),
+            include_open_data=bool(args.backfill_include_open_data),
+            direct_only=not bool(args.backfill_full_search),
+            max_seconds=max(0, int(args.backfill_max_seconds or 0)),
+            query=str(args.backfill_query or "").strip(),
+            review_ids=tuple(int(value) for value in args.backfill_review_id or [] if int(value or 0) > 0),
+        )
+        payload = {
+            "ok": True,
+            "mode": "backfill_web_evidence",
+            "backfill": backfill,
+            "dashboard": backfill.get("dashboard") or pipeline.dashboard_snapshot(),
+        }
+    elif args.publish_only:
         published = pipeline.publish_auto_news(limit=max(1, int(args.publish_limit or 1)))
         payload = {
             "ok": True,

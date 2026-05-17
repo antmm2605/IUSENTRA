@@ -1,6 +1,5 @@
 from pathlib import Path
 
-
 FRONTEND = Path("frontend/src")
 
 
@@ -19,7 +18,9 @@ def test_documenti_ai_frontend_componenti_e_contratti():
     assert 'href="#documenti-ai"' not in fascicoli
     assert "Indicizzazione Lex" in fascicoli
     assert "Lex può leggere i documenti del fascicolo." in fascicoli
+    assert "Documenti da verificare" in fascicoli
     assert "lexIndexing" in fascicoli_data
+    assert "warnings: string[]" in fascicoli_data
 
 
 def test_documenti_ai_frontend_senza_href_placeholder():

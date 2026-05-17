@@ -1,12 +1,59 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-17, ampliamento fonti legali e motori di supporto, no backup.
+Aggiornato: 2026-05-18, Lex dati studio cliente/PEC, no backup.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Consolidamento codice per prova Railway - 2026-05-18
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest -q tests\test_document_intelligence_api.py tests\test_document_intelligence_auto_indexing.py tests\test_document_intelligence_extraction.py tests\test_document_intelligence_frontend.py tests\test_document_intelligence_hidden_ui.py tests\test_legal_update_batch_runner.py tests\test_legal_update_publish_context.py tests\test_lex_operational_knowledge.py tests\test_lex_sentenze_clienti_fix.py --tb=short` | OK | Gate mirato su Lex operativo, Document Intelligence, Fascicoli/indice Lex e Legal Update prima del commit per staging Railway. |
+| `python -m ruff check --config pyproject.toml ...`; `python -m py_compile ...` | OK | Ruff e sintassi Python verdi sui moduli toccati. |
+| `pnpm --filter @iusentra/studio typecheck`; `pnpm --filter @iusentra/studio build` | OK | TypeScript e build Vite verdi; gli asset statici generati localmente non sono stati inclusi nel commit perché il Dockerfile ricompila il bundle nello stage `frontend-builder`. |
+| `python -m pct.cli utf8-integrity --check-only --root CHANGELOG.md --root docs\LEX_PUBLIC_SOURCES_AND_STUDIO_DATA_AUDIT.md --root docs\lex-operational-knowledge-map.md --root artifacts\react-migration\pytest-confirmed-ok.md --root artifacts\react-migration\pytest-open-issues.md --json` | OK | 5 file controllati, `ok=true`, nessun mojibake o carattere sostitutivo. I report runtime generati dal comando sono stati rimossi e non committati. |
+
+### Lex dati studio cliente e PEC - 2026-05-18
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m pytest tests/test_lex_operational_knowledge.py tests/test_lex_sentenze_clienti_fix.py tests/test_utf8_integrity.py -q` | OK | 61/61 passati: `Dammi la scheda cliente ...` restituisce scheda cliente reale con recapiti/fascicoli e `Qual è l'ultima PEC?` restituisce oggetto, mittente, destinatari, data, cartella e allegati dalla casella PEC tenant-aware. |
+| `python -m py_compile lex\operational_knowledge\query_router.py lex\operational_knowledge\tools.py lex\operational_knowledge\response_composer.py lex\operational_knowledge\integration.py lex\tools\studio_data_gateway.py` | OK | Sintassi confermata su router, tool email, compositore risposte, bridge HTTP e gateway dati studio. |
+| Smoke locale su tenant `antonella-mammola` con repository reali clienti/fascicoli/email | OK | `Dammi la scheda cliente Marco Moscato` risolve `client_situation` con fonti clienti/fascicoli/preventivi; `Qual e l'ultima PEC?` risolve `communications_lookup` con fonte `email_pec` e dettagli PEC reali. |
+
+### Backfill mirato evidenze web legali - 2026-05-17
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct\legal_update_repository.py pct\legal_update_pipeline.py pct\legal_update_job.py tests\test_legal_update_publish_context.py tests\test_legal_update_batch_runner.py` | OK | Sintassi confermata dopo filtri `--backfill-query` e `--backfill-review-id`. |
+| `python -m pytest -q tests\test_legal_update_publish_context.py tests\test_legal_update_batch_runner.py tests\test_legal_update_web_verification_attachments.py` | OK | 26/26 passati: il backfill può selezionare il riferimento esatto `Circolare numero 53 del 07-05-2026` senza attendere l'ordine del lotto. |
+| `python -m ruff check pct\legal_update_repository.py pct\legal_update_pipeline.py pct\legal_update_job.py tests\test_legal_update_publish_context.py tests\test_legal_update_batch_runner.py`; `git diff --check -- pct\legal_update_repository.py pct\legal_update_pipeline.py pct\legal_update_job.py tests\test_legal_update_publish_context.py tests\test_legal_update_batch_runner.py` | OK | Ruff e whitespace puliti sul perimetro backfill mirato. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest -q tests\test_packaging_consistency.py tests\test_release_readiness.py` | OK | Packaging sincronizzato e readiness 8/8 dopo bump `2.245.15`. |
+| `python -m pct.cli utf8-integrity --check-only --root ... --json` | OK | Scan UTF-8 mirato su changelog, audit Lex, report e test: `ok=true`, 4 file controllati, 0 artefatti, 0 riparazioni. I file runtime locali creati dal bootstrap del comando sono stati rimossi e non committati. |
+
+### Ranking query esatte evidenze web legali - 2026-05-17
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct\legal_update_repository.py tests\test_legal_update_publish_context.py` | OK | Sintassi confermata dopo ranking con peso su titolo, URL, allegato, numeri e frase esatta. |
+| `python -m pytest -q tests\test_legal_update_publish_context.py tests\test_legal_update_batch_runner.py tests\test_legal_update_web_verification_attachments.py` | OK | 25/25 passati: la query esatta `Messaggio numero 685 del 26-02-2026` supera 70 risultati generici più recenti e resta prima nei risultati Lex. |
+| `python -m ruff check pct\legal_update_repository.py tests\test_legal_update_publish_context.py`; `git diff --check -- pct\legal_update_repository.py tests\test_legal_update_publish_context.py` | OK | Ruff e whitespace puliti sul perimetro ranking ricerca. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest -q tests\test_packaging_consistency.py tests\test_release_readiness.py` | OK | Packaging sincronizzato e readiness 8/8 dopo bump `2.245.14`. |
+| `python -m pct.cli utf8-integrity --check-only --root ... --json` | OK | Scan UTF-8 mirato su changelog, audit Lex, report e test: `ok=true`, 4 file controllati, 0 artefatti, 0 riparazioni. I file runtime locali creati dal bootstrap del comando sono stati rimossi e non committati. |
+
+### Backfill evidenze web legali governato - 2026-05-17
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct\legal_update_web_verification.py pct\legal_update_pipeline.py pct\legal_update_repository.py pct\legal_update_job.py tests\test_legal_update_publish_context.py tests\test_legal_update_batch_runner.py` | OK | Sintassi confermata dopo backfill diretto, filtri sui record azionabili e CLI con limite tempo/stati. |
+| `python -m pytest -q tests\test_legal_update_publish_context.py tests\test_legal_update_batch_runner.py tests\test_legal_update_web_verification_attachments.py` | OK | 24/24 passati: il backfill salva evidenze solo su record azionabili, esclude chiusi/open-data per default, passa `direct_only=True` e conserva persistenza allegati/evidenze. |
+| `python -m ruff check pct\legal_update_web_verification.py pct\legal_update_pipeline.py pct\legal_update_repository.py pct\legal_update_job.py tests\test_legal_update_publish_context.py tests\test_legal_update_batch_runner.py` | OK | Ruff mirato verde sul perimetro completamento evidenze. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest -q tests\test_packaging_consistency.py tests\test_release_readiness.py` | OK | Packaging sincronizzato e readiness 8/8 dopo bump `2.245.13`. |
+| `python -m pct.cli utf8-integrity --check-only --root ... --json` | OK | Scan UTF-8 mirato su changelog, audit Lex, report e test: `ok=true`, 4 file controllati, 0 artefatti, 0 riparazioni. I file runtime locali creati dal bootstrap del comando sono stati rimossi e non committati. |
 
 ### Ampliamento fonti legali e motori di supporto - 2026-05-17
 
@@ -2093,3 +2140,13 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 | Hetzner `docker builder prune --all --force`; `docker system df`; `df -h /`; pulizia `/opt/iusentra/tmp-backup-snapshot` e backup/quarantene legacy | OK | Cache build Docker azzerata (`Build Cache 0B`); disco produzione sceso da circa 233 GiB iniziali a circa 41 GiB usati su 301 GiB dopo pulizia cache, posta scaricata, snapshot temporaneo e backup legacy. |
 | `python3 /tmp/purge_downloaded_mailboxes.py --data-root /opt/iusentra/data --apply` su Hetzner | OK | Recuperati 36.7 GiB cancellando solo PEC/email ordinaria scaricate, allegati e stati di risincronizzazione; configurazioni casella preservate. |
 | `python scripts\purge_downloaded_mailboxes.py --data-root data --apply` locale | OK | Recuperati 30.1 GiB localmente con la stessa procedura governata; non sono stati toccati i file configurazione studio. |
+
+# Aggiornamenti legali evidenze web 2.245.12 - 2026-05-17
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile pct\legal_update_web_verification.py pct\legal_update_pipeline.py pct\legal_update_repository.py pct\legal_update_job.py pct\legal_update_batch_runner.py tests\test_legal_update_publish_context.py` | OK | Sintassi confermata dopo salvataggio evidenze in acquisizione e backfill web evidence. |
+| `python -m pytest -q tests\test_legal_update_publish_context.py tests\test_legal_update_web_verification_attachments.py tests\test_legal_update_batch_runner.py` | OK | 22 test passati: evidenza salvata durante `process_document`, backfill review esistenti, allegati fonte ufficiale e runner con metriche. |
+| `python -m ruff check pct\legal_update_web_verification.py pct\legal_update_pipeline.py pct\legal_update_repository.py pct\legal_update_job.py pct\legal_update_batch_runner.py tests\test_legal_update_publish_context.py` | OK | Ruff verde sul perimetro backend aggiornamenti legali. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest -q tests\test_packaging_consistency.py tests\test_release_readiness.py` | OK | Packaging sincronizzato e readiness 8/8 dopo bump `2.245.12`. |
+| `scan_utf8_integrity` su `CHANGELOG.md`, `docs/LEX_PUBLIC_SOURCES_AND_STUDIO_DATA_AUDIT.md`, `artifacts/react-migration/pytest-confirmed-ok.md` | OK | UTF-8 valido, nessun mojibake o carattere sostitutivo nei testi toccati. |

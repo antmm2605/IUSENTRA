@@ -4,7 +4,7 @@ from pathlib import Path
 from pct.document_intelligence.extraction import ExtractionResult
 from pct.document_intelligence.models import DocumentAIPageText
 from pct.document_intelligence.security import DocumentAIPermissionDenied
-from pct.fascicoli import GestioneFascicoli, TipoFascicolo
+from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
 from tests.test_applicazioni import _cfg_web, _crea_operatore, _login
 from web.app import create_app
 
@@ -77,6 +77,28 @@ def test_document_ai_api_stato_indicizzazione_lex(tmp_path: Path):
     assert payload["mock_fallback"] is False
     assert payload["lex_indexing"]["total_documents"] == 0
     assert payload["lex_indexing"]["status"] == "ready"
+    assert payload["lex_indexing"]["warnings"] == []
+
+
+def test_document_ai_api_stato_indicizzazione_lex_segnala_file_non_letti(tmp_path: Path):
+    app = _app(tmp_path)
+    fascicolo_id = _crea_fascicolo(app)
+    fascicoli = GestioneFascicoli(
+        db_path=app.config["FASCICOLI_DB"],
+        documents_dir=app.config["FASCICOLI_DOCS"],
+        archive_dir=app.config["FASCICOLI_ARCH"],
+    )
+    fascicoli.aggiungi_documento(fascicolo_id, "allegato.exe", TipoDocumento.ALTRO, b"non leggibile da lex")
+
+    with app.test_client() as client:
+        _login(client)
+        response = client.get(f"/api/v1/ui/fascicoli/{fascicolo_id}/lex-indexing")
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["lex_indexing"]["status"] == "error"
+    assert payload["lex_indexing"]["errors"] == 1
+    assert "allegato.exe: formato non supportato per indicizzazione Lex." in payload["lex_indexing"]["warnings"]
 
 
 def test_document_ai_api_upload_validazioni(tmp_path: Path):

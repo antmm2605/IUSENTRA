@@ -14,7 +14,6 @@ from lxml import html as lxml_html
 from lex.research.source_policy.inference import get_tier_for_domain, infer_area, normalize_domain
 from lex.research.source_policy.models import Tier
 
-
 STRUCTURED_ACTIONS = {"NEW_NORMATIVE", "UPDATE_NORMATIVE", "NEW_CASE_LAW", "NEW_PRASSI"}
 ATTACHMENT_EXTENSIONS = (".pdf", ".xml", ".txt", ".html", ".htm", ".docx", ".doc")
 ATTACHMENT_LABELS = ("allegato", "pdf", "xml", "download", "scarica", "testo", "documento")
@@ -945,15 +944,54 @@ def _search_and_confirm(
     return rows
 
 
+def _verification_result(
+    *,
+    action: str,
+    query: str,
+    confirmations: list[dict[str, Any]],
+    warnings: list[str],
+    searched: dict[str, Any],
+    direct_only: bool,
+) -> dict[str, Any]:
+    confirmations = _deduplicate_confirmations(confirmations)
+    official_count = sum(1 for row in confirmations if bool(row.get("official")))
+    required_confirmations = 2 if action in STRUCTURED_ACTIONS else 1
+    verified = official_count >= 1 and len(confirmations) >= required_confirmations
+    if verified:
+        reason = "Verifica pubblica completata con fonti coerenti."
+    elif direct_only and confirmations:
+        reason = (
+            "Fonte ufficiale diretta acquisita, ma servono ulteriori conferme "
+            "prima di trattare il riferimento come completato."
+        )
+    elif direct_only:
+        reason = "Fonte diretta non leggibile o non riconosciuta: completamento web esteso ancora da eseguire."
+    elif action in STRUCTURED_ACTIONS:
+        reason = "Servono almeno una fonte primaria e una seconda conferma coerente prima della pubblicazione automatica."
+    else:
+        reason = "Nessuna fonte pubblica coerente trovata per la pubblicazione automatica."
+
+    return {
+        "ok": verified,
+        "status": "verified" if verified else "insufficient",
+        "query": query,
+        "required_confirmations": required_confirmations,
+        "official_confirmations": official_count,
+        "confirmation_count": len(confirmations),
+        "confirmations": confirmations,
+        "warnings": warnings,
+        "searched": searched,
+        "reason": reason,
+    }
+
+
 def verify_legal_update_against_public_sources(
     review: dict[str, Any],
     source: dict[str, Any],
     *,
     limit: int = 5,
+    direct_only: bool = False,
 ) -> dict[str, Any]:
-    from lex.retrieval.official_sources_retriever import search_gazzetta, search_normattiva, search_official_sources
-    from lex.retrieval.official_web import search_recognized_official_web
-
     action = _clean_spaces(review.get("proposed_action")).upper()
     queries = _verification_queries(review)
     query = queries[0] if queries else _verification_query(review)
@@ -965,11 +1003,59 @@ def verify_legal_update_against_public_sources(
         "source_ids": _source_ids_for_review(review, source),
         "web_searches": [],
         "web_context": True,
+        "direct_only": bool(direct_only),
     }
 
     self_match = _self_confirmation(review, source)
     if self_match:
+        source_url = _clean_spaces(review.get("source_url"))
+        try:
+            direct_context, direct_attachments = _fetch_official_web_context_with_attachments(source_url)
+        except Exception as exc:
+            direct_context = ""
+            direct_attachments = []
+            warnings.append(f"Lettura diretta fonte ufficiale non completata: {_truncate(exc, 140)}")
+        if direct_context:
+            self_match["excerpt"] = _context_excerpt({"full_context": direct_context}, review, limit=420)
+            self_match["content"] = _truncate(direct_context, 12000)
+            self_match["context_chars"] = len(_clean_spaces(direct_context))
+            self_match["matched_terms"] = _matched_terms(
+                {
+                    "title": self_match.get("title"),
+                    "content": direct_context,
+                    "url": source_url,
+                    "source_name": self_match.get("source_name"),
+                },
+                review,
+            )
         confirmations.append(self_match)
+        for attachment_confirmation in direct_attachments:
+            enriched_attachment = dict(attachment_confirmation)
+            enriched_attachment["query"] = _truncate(query, 220)
+            enriched_attachment["matched_terms"] = _matched_terms(
+                {
+                    "title": enriched_attachment.get("title"),
+                    "content": enriched_attachment.get("text_excerpt"),
+                    "url": enriched_attachment.get("attachment_url"),
+                    "source_name": enriched_attachment.get("source_name"),
+                },
+                review,
+            )
+            confirmations.append(enriched_attachment)
+
+    if direct_only:
+        searched["web_results"] = 0
+        return _verification_result(
+            action=action,
+            query=query,
+            confirmations=confirmations,
+            warnings=warnings,
+            searched=searched,
+            direct_only=True,
+        )
+
+    from lex.retrieval.official_sources_retriever import search_gazzetta, search_normattiva, search_official_sources
+    from lex.retrieval.official_web import search_recognized_official_web
 
     web_results_seen = 0
     seen_web_urls: set[str] = set()
@@ -1062,29 +1148,14 @@ def verify_legal_update_against_public_sources(
                 warnings.append(f"Ricerca web governata non completata: {_truncate(exc, 140)}")
     searched["web_results"] = web_results_seen
 
-    confirmations = _deduplicate_confirmations(confirmations)
-    official_count = sum(1 for row in confirmations if bool(row.get("official")))
-    required_confirmations = 2 if action in STRUCTURED_ACTIONS else 1
-    verified = official_count >= 1 and len(confirmations) >= required_confirmations
-    if not verified and action in STRUCTURED_ACTIONS:
-        reason = "Servono almeno una fonte primaria e una seconda conferma coerente prima della pubblicazione automatica."
-    elif not verified:
-        reason = "Nessuna fonte pubblica coerente trovata per la pubblicazione automatica."
-    else:
-        reason = "Verifica pubblica completata con fonti coerenti."
-
-    return {
-        "ok": verified,
-        "status": "verified" if verified else "insufficient",
-        "query": query,
-        "required_confirmations": required_confirmations,
-        "official_confirmations": official_count,
-        "confirmation_count": len(confirmations),
-        "confirmations": confirmations,
-        "warnings": warnings,
-        "searched": searched,
-        "reason": reason,
-    }
+    return _verification_result(
+        action=action,
+        query=query,
+        confirmations=confirmations,
+        warnings=warnings,
+        searched=searched,
+        direct_only=False,
+    )
 
 
 __all__ = ["extract_official_attachment_confirmations", "verify_legal_update_against_public_sources"]

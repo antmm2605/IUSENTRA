@@ -46,6 +46,62 @@ def test_document_ai_extraction_pdf_semplice(tmp_path: Path):
     assert "Testo PDF fascicolo" in result.text
 
 
+def test_document_ai_extraction_pdf_p7m_leggibile_come_pdf(tmp_path: Path):
+    pytest.importorskip("reportlab")
+    from reportlab.pdfgen import canvas
+
+    target = tmp_path / "atto.pdf.p7m"
+    buffer = BytesIO()
+    pdf = canvas.Canvas(buffer)
+    pdf.drawString(72, 720, "Testo PDF firmato leggibile")
+    pdf.showPage()
+    pdf.save()
+    target.write_bytes(buffer.getvalue())
+
+    result = extract_document_text(target, "pdf")
+
+    assert result.error is None
+    assert result.extraction_engine in {"p7m:pdfplumber", "p7m:pypdf"}
+    assert result.page_count == 1
+    assert "Testo PDF firmato leggibile" in result.text
+    assert any("estensione .p7m" in warning for warning in result.warnings)
+
+
+def test_document_ai_extraction_p7m_esterno_usa_payload_firmato(tmp_path: Path, monkeypatch):
+    pytest.importorskip("reportlab")
+    from reportlab.pdfgen import canvas
+
+    buffer = BytesIO()
+    pdf = canvas.Canvas(buffer)
+    pdf.drawString(72, 720, "Testo estratto dal payload firmato")
+    pdf.showPage()
+    pdf.save()
+    pdf_payload = buffer.getvalue()
+
+    class _Status:
+        payload_available = True
+        payload_name = "atto.pdf"
+        message = "Contenuto firmato estratto."
+
+    class _Signed:
+        status = _Status()
+        payload_bytes = pdf_payload
+
+    monkeypatch.setattr(
+        "pct.firme_cades.inspect_signed_document_bytes",
+        lambda **_kwargs: _Signed(),
+    )
+    target = tmp_path / "atto.pdf.p7m"
+    target.write_bytes(b"PKCS7 signed envelope")
+
+    result = extract_document_text(target, "pdf")
+
+    assert result.error is None
+    assert result.extraction_engine in {"p7m:pdfplumber", "p7m:pypdf"}
+    assert "Testo estratto dal payload firmato" in result.text
+    assert "Contenuto firmato estratto." in result.warnings
+
+
 def test_document_ai_extraction_formato_non_supportato_controllata(tmp_path: Path):
     target = tmp_path / "note.txt"
     target.write_text("contenuto", encoding="utf-8")

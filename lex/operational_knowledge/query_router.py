@@ -8,7 +8,6 @@ from typing import Any
 from .models import OperationalRoute
 from .serializers import clean_spaces
 
-
 ACTION_BLOCK_TOKENS = (
     "invia pec",
     "manda pec",
@@ -38,6 +37,8 @@ ENTITY_STOPWORDS = {
     "codice",
     "completo",
     "conferimento",
+    "dai",
+    "dammi",
     "dati",
     "da",
     "de",
@@ -50,6 +51,7 @@ ENTITY_STOPWORDS = {
     "di",
     "documenti",
     "domani",
+    "dimmi",
     "email",
     "editor",
     "economico",
@@ -63,6 +65,10 @@ ENTITY_STOPWORDS = {
     "la",
     "le",
     "lo",
+    "l'ultima",
+    "l'ultime",
+    "l'ultimo",
+    "l'ultimi",
     "mancano",
     "messaggi",
     "mi",
@@ -75,6 +81,8 @@ ENTITY_STOPWORDS = {
     "nei",
     "oggi",
     "ordinaria",
+    "parte",
+    "parti",
     "per",
     "pec",
     "posta",
@@ -96,17 +104,29 @@ ENTITY_STOPWORDS = {
     "ricevuta",
     "ricevute",
     "ricevuti",
+    "scheda",
     "scadenza",
     "scadenze",
     "settimana",
     "situazione",
     "sono",
+    "soggetto",
+    "soggetti",
+    "trovami",
     "template",
     "modello",
     "modelli",
     "un",
     "una",
+    "ultima",
+    "ultime",
+    "ultimo",
+    "ultimi",
     "urgenti",
+    "assistito",
+    "assistiti",
+    "controparte",
+    "controparti",
 }
 
 
@@ -158,7 +178,7 @@ class OperationalQueryRouter:
                 entity_query,
             )
 
-        if "soggett" in text or "parte" in text or "controparte" in text:
+        if any(token in text for token in ("soggett", "parte", "parti", "controparte", "controparti", "assistito")):
             return OperationalRoute("soggetti_lookup", "soggetti_lookup", ("soggetti", "fascicoli"), entity_query)
 
         if any(token in text for token in ("scadenz", "termine", "urgenti", "questa settimana", "oggi", "domani")):

@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import asdict, is_dataclass
 from typing import Any
 
-
 SENSITIVE_KEY_PARTS = (
     "password",
     "token",
@@ -103,27 +102,12 @@ def object_title(record: Any, *keys: str) -> str:
 def serialize_cliente(record: Any) -> dict[str, Any]:
     data = as_mapping(record)
     recapiti = data.get("recapiti") if isinstance(data.get("recapiti"), dict) else {}
-    return scrub_mapping(
-        {
-            "id": data.get("id"),
-            "nome": data.get("nome"),
-            "cognome": data.get("cognome"),
-            "nome_completo": data.get("nome_completo") or clean_spaces(f"{data.get('cognome', '')} {data.get('nome', '')}"),
-            "tipo": enum_value(data.get("tipo")),
-            "stato": enum_value(data.get("stato")),
-            "codice_fiscale": data.get("codice_fiscale") or data.get("identificativo_fiscale"),
-            "partita_iva": data.get("partita_iva"),
-            "email": recapiti.get("email") or data.get("email"),
-            "pec": recapiti.get("pec") or data.get("pec"),
-            "telefono": recapiti.get("telefono") or data.get("telefono"),
-            "procedimenti": data.get("procedimenti") or [],
-        }
-    )
-
-
-def serialize_soggetto(record: Any) -> dict[str, Any]:
-    data = as_mapping(record)
-    recapiti = data.get("recapiti") if isinstance(data.get("recapiti"), dict) else {}
+    documento = data.get("documento") if isinstance(data.get("documento"), dict) else {}
+    indirizzo_residenza = _format_address(data.get("indirizzo_residenza"))
+    indirizzo_domicilio = _format_address(data.get("indirizzo_domicilio"))
+    indirizzo_sede_legale = _format_address(data.get("indirizzo_sede_legale"))
+    campi_mancanti = getattr(record, "campi_mancanti_per_conferimento", None)
+    documento_scaduto = getattr(getattr(record, "documento", None), "scaduto", None)
     return scrub_mapping(
         {
             "id": data.get("id"),
@@ -132,10 +116,153 @@ def serialize_soggetto(record: Any) -> dict[str, Any]:
             "ragione_sociale": data.get("ragione_sociale"),
             "nome_completo": data.get("nome_completo") or clean_spaces(f"{data.get('cognome', '')} {data.get('nome', '')}"),
             "tipo": enum_value(data.get("tipo")),
-            "codice_fiscale": data.get("codice_fiscale"),
+            "stato": enum_value(data.get("stato")),
+            "codice_fiscale": data.get("codice_fiscale") or data.get("identificativo_fiscale"),
             "partita_iva": data.get("partita_iva"),
+            "data_nascita": data.get("data_nascita"),
+            "luogo_nascita": data.get("luogo_nascita"),
+            "provincia_nascita": data.get("provincia_nascita"),
+            "nazionalita": data.get("nazionalita"),
+            "sesso": data.get("sesso"),
+            "forma_giuridica": data.get("forma_giuridica"),
+            "codice_ateco": data.get("codice_ateco"),
+            "data_costituzione": data.get("data_costituzione"),
+            "rappresentante_legale": data.get("rappresentante_legale"),
+            "cf_rappresentante": data.get("cf_rappresentante"),
+            "indirizzo_residenza": indirizzo_residenza,
+            "indirizzo_domicilio": indirizzo_domicilio,
+            "indirizzo_sede_legale": indirizzo_sede_legale,
             "email": recapiti.get("email") or data.get("email"),
             "pec": recapiti.get("pec") or data.get("pec"),
+            "telefono": recapiti.get("telefono") or data.get("telefono"),
+            "cellulare": recapiti.get("cellulare") or data.get("cellulare"),
+            "fax": recapiti.get("fax") or data.get("fax"),
+            "sito_web": recapiti.get("sito_web") or data.get("sito_web"),
+            "documento_tipo": enum_value(documento.get("tipo")),
+            "documento_numero": documento.get("numero"),
+            "documento_rilasciato_da": documento.get("rilasciato_da"),
+            "documento_data_rilascio": documento.get("data_rilascio"),
+            "documento_data_scadenza": documento.get("data_scadenza"),
+            "documento_scaduto": bool(documento_scaduto) if documento_scaduto is not None else None,
+            "avvocato_referente": data.get("avvocato_referente"),
+            "data_prima_acquisizione": data.get("data_prima_acquisizione"),
+            "provenienza": data.get("provenienza"),
+            "note": data.get("note"),
+            "procedimenti": data.get("procedimenti") or [],
+            "tag": data.get("tag") or [],
+            "consenso_trattamento": data.get("consenso_trattamento"),
+            "data_consenso": data.get("data_consenso"),
+            "modalita_consenso": data.get("modalita_consenso"),
+            "campi_mancanti_per_conferimento": list(campi_mancanti or []) if campi_mancanti is not None else [],
+            "creato_il": data.get("creato_il"),
+            "modificato_il": data.get("modificato_il"),
+        }
+    )
+
+
+def _format_address(value: Any) -> str:
+    data = value if isinstance(value, dict) else as_mapping(value)
+    if not data:
+        return ""
+    parts = []
+    street = clean_spaces(f"{data.get('via', '')} {data.get('civico', '')}")
+    city = clean_spaces(" ".join(str(part or "") for part in (data.get("cap"), data.get("comune"))))
+    province = clean_spaces(data.get("provincia"))
+    country = clean_spaces(data.get("nazione"))
+    if street:
+        parts.append(street)
+    if city and province:
+        parts.append(f"{city} ({province})")
+    elif city:
+        parts.append(city)
+    elif province:
+        parts.append(province)
+    if country and country.lower() != "italia":
+        parts.append(country)
+    return ", ".join(parts)
+
+
+def serialize_soggetto(record: Any) -> dict[str, Any]:
+    data = as_mapping(record)
+    recapiti = data.get("recapiti") if isinstance(data.get("recapiti"), dict) else {}
+    indirizzo = _format_address(data.get("indirizzo"))
+    return scrub_mapping(
+        {
+            "record_kind": "soggetto",
+            "id": data.get("id"),
+            "nome": data.get("nome"),
+            "cognome": data.get("cognome"),
+            "ragione_sociale": data.get("ragione_sociale"),
+            "nome_completo": data.get("nome_completo") or clean_spaces(f"{data.get('cognome', '')} {data.get('nome', '')}"),
+            "tipo": enum_value(data.get("tipo")),
+            "codice_fiscale": data.get("codice_fiscale"),
+            "partita_iva": data.get("partita_iva"),
+            "data_nascita": data.get("data_nascita"),
+            "luogo_nascita": data.get("luogo_nascita"),
+            "provincia_nascita": data.get("provincia_nascita"),
+            "sesso": data.get("sesso"),
+            "forma_giuridica": data.get("forma_giuridica"),
+            "rappresentante_legale": data.get("rappresentante_legale"),
+            "qualifica": data.get("qualifica"),
+            "ordine": data.get("ordine"),
+            "numero_iscrizione": data.get("numero_iscrizione"),
+            "indirizzo": indirizzo,
+            "email": recapiti.get("email") or data.get("email"),
+            "pec": recapiti.get("pec") or data.get("pec"),
+            "telefono": recapiti.get("telefono") or data.get("telefono"),
+            "cellulare": recapiti.get("cellulare") or data.get("cellulare"),
+            "fax": recapiti.get("fax") or data.get("fax"),
+            "sito_web": recapiti.get("sito_web") or data.get("sito_web"),
+            "id_cliente": data.get("id_cliente"),
+            "note": data.get("note"),
+            "tag": data.get("tag") or [],
+            "creato_il": data.get("creato_il"),
+            "modificato_il": data.get("modificato_il"),
+        }
+    )
+
+
+def serialize_parte_processuale(record: Any) -> dict[str, Any]:
+    fascicolo_id = ""
+    parte_raw: Any = record
+    soggetto_raw: Any = None
+    if isinstance(record, dict) and ("parte" in record or "soggetto" in record):
+        parte_raw = record.get("parte") or {}
+        soggetto_raw = record.get("soggetto")
+        fascicolo_id = clean_spaces(record.get("id_fascicolo"))
+    elif isinstance(record, (tuple, list)):
+        if record:
+            parte_raw = record[0]
+        if len(record) > 1:
+            soggetto_raw = record[1]
+        if len(record) > 2:
+            fascicolo_id = clean_spaces(record[2])
+
+    parte = as_mapping(parte_raw)
+    soggetto = serialize_soggetto(soggetto_raw) if soggetto_raw is not None else {}
+    return scrub_mapping(
+        {
+            "record_kind": "parte",
+            "id": parte.get("id"),
+            "id_fascicolo": fascicolo_id or parte.get("id_fascicolo"),
+            "id_soggetto": parte.get("id_soggetto") or soggetto.get("id"),
+            "ruolo": enum_value(parte.get("ruolo")),
+            "note_parte": parte.get("note"),
+            "data_aggiunta": parte.get("data_aggiunta"),
+            "soggetto_id": soggetto.get("id"),
+            "nome_completo": soggetto.get("nome_completo") or soggetto.get("ragione_sociale"),
+            "tipo": soggetto.get("tipo"),
+            "codice_fiscale": soggetto.get("codice_fiscale"),
+            "partita_iva": soggetto.get("partita_iva"),
+            "email": soggetto.get("email"),
+            "pec": soggetto.get("pec"),
+            "telefono": soggetto.get("telefono"),
+            "cellulare": soggetto.get("cellulare"),
+            "indirizzo": soggetto.get("indirizzo"),
+            "qualifica": soggetto.get("qualifica"),
+            "ordine": soggetto.get("ordine"),
+            "id_cliente": soggetto.get("id_cliente"),
+            "note_soggetto": soggetto.get("note"),
         }
     )
 

@@ -5,10 +5,11 @@ import json
 import re
 import sqlite3
 import unicodedata
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from pct.postgres_runtime_support import PostgresRepositoryBackend
@@ -232,7 +233,7 @@ def _archive_identity_key(entity_type: str, row: dict[str, Any]) -> str:
             row.get("related_jurisprudence_id"),
             row.get("related_prassi_id"),
         )
-        for rel_type, rel_id in zip(("normative", "jurisprudence", "prassi"), related):
+        for rel_type, rel_id in zip(("normative", "jurisprudence", "prassi"), related, strict=True):
             if rel_id:
                 return f"news|{rel_type}|{rel_id}|{_canonical_text(row.get('news_type'))}"
         url_key = _canonical_url(row.get("source_url"))
@@ -281,6 +282,17 @@ def _lex_search_terms(value: Any) -> list[str]:
     return terms
 
 
+def _review_lookup_terms(value: Any) -> list[str]:
+    terms: list[str] = []
+    seen: set[str] = set()
+    for raw in re.findall(r"[a-zA-Z0-9_]+", _normalize_token(value)):
+        if len(raw) < 2 or raw in _LEX_SEARCH_STOPWORDS or raw in seen:
+            continue
+        seen.add(raw)
+        terms.append(raw)
+    return terms
+
+
 def _limit_value(value: Any, *, default: int = 12, maximum: int = 80) -> int:
     try:
         parsed = int(value)
@@ -304,28 +316,35 @@ def _lex_excerpt(*values: Any, limit: int = 520) -> str:
     return text[: limit - 3].rstrip() + "..."
 
 
-def _lex_candidate_score(row: dict[str, Any], terms: list[str]) -> float:
+def _lex_candidate_score(row: dict[str, Any], terms: list[str], *, query: str = "") -> float:
     base = float(row.get("_base_score") or 0.62)
     if not terms:
         return round(base, 4)
-    haystack = _normalize_token(
-        " ".join(
-            str(row.get(field) or "")
-            for field in (
-                "title",
-                "excerpt",
-                "content",
-                "authority",
-                "matter_name",
-                "submatter_name",
-                "entity_type",
-            )
-        )
+    title_haystack = _normalize_token(
+        " ".join(str(row.get(field) or "") for field in ("title", "official_url", "attachment_url", "source_base_url"))
     )
+    body_haystack = _normalize_token(
+        " ".join(str(row.get(field) or "") for field in ("excerpt", "content", "authority", "matter_name", "submatter_name", "entity_type"))
+    )
+    haystack = f"{title_haystack} {body_haystack}".strip()
     matches = sum(1 for term in terms if term in haystack)
     if matches <= 0:
         return round(max(0.2, base - 0.18), 4)
-    return round(min(0.98, base + (matches * 0.07)), 4)
+    title_matches = sum(1 for term in terms if term in title_haystack)
+    numeric_matches = sum(1 for term in terms if term.isdigit() and term in title_haystack)
+    query_phrase = _normalize_token(query)
+    score = base + (matches * 0.04) + (title_matches * 0.08) + (numeric_matches * 0.12)
+    if query_phrase and query_phrase in title_haystack:
+        score += 0.45
+    elif terms and all(term in title_haystack for term in terms):
+        score += 0.28
+    elif title_matches >= max(2, len(terms) - 1):
+        score += 0.14
+    if _normalize_token(row.get("entity_type")) == "web_evidence":
+        score += 0.05
+    if _normalize_token(row.get("verification_status")) == "verified":
+        score += 0.03
+    return round(min(2.0, score), 4)
 
 
 def _search_clause(fields: tuple[str, ...], terms: list[str], params: list[Any]) -> str:
@@ -356,7 +375,7 @@ class LegalUpdateDbConfig:
     json_path: str
 
     @classmethod
-    def from_anchor(cls, intelligence_db_path: str) -> "LegalUpdateDbConfig":
+    def from_anchor(cls, intelligence_db_path: str) -> LegalUpdateDbConfig:
         return cls(
             db_path=derive_legal_updates_db_path(intelligence_db_path),
             json_path=derive_legal_updates_json_path(intelligence_db_path),
@@ -1589,6 +1608,88 @@ class LegalUpdateRepository:
             ).fetchall()
         return [self._decode_row(row, json_fields=("proposal_payload_json",)) or {} for row in rows]
 
+    def list_reviews_missing_web_evidence(
+        self,
+        *,
+        limit: int = 100,
+        source_codes: tuple[str, ...] = (),
+        statuses: tuple[str, ...] | None = ("pending", "approved", "published"),
+        include_closed: bool = False,
+        include_open_data: bool = False,
+        query: str = "",
+        review_ids: tuple[int, ...] = (),
+    ) -> list[dict[str, Any]]:
+        clauses = [
+            "q.status <> 'rejected'",
+            "r.source_url <> ''",
+            """
+            NOT EXISTS (
+                SELECT 1
+                FROM web_verification_evidence e
+                WHERE e.normalized_document_id = q.normalized_document_id
+            )
+            """,
+        ]
+        params: list[Any] = []
+        status_values = tuple(_normalize_token(status) for status in (statuses or ()) if _normalize_token(status))
+        if status_values:
+            clauses.append("q.status IN ({})".format(",".join("?" for _ in status_values)))
+            params.extend(status_values)
+        elif not include_closed:
+            clauses.append("q.status <> 'closed'")
+        if source_codes:
+            clauses.append("s.code IN ({})".format(",".join("?" for _ in source_codes)))
+            params.extend(_normalize_token(code) for code in source_codes)
+        review_id_values = tuple(int(value) for value in review_ids if int(value or 0) > 0)
+        if review_id_values:
+            clauses.append("q.id IN ({})".format(",".join("?" for _ in review_id_values)))
+            params.extend(review_id_values)
+        lookup_terms = _review_lookup_terms(query)
+        for term in lookup_terms:
+            like_value = f"%{term}%"
+            clauses.append(
+                """
+                (
+                    LOWER(COALESCE(n.title, '')) LIKE ?
+                    OR LOWER(COALESCE(n.body_text, '')) LIKE ?
+                    OR LOWER(COALESCE(r.title, '')) LIKE ?
+                    OR LOWER(COALESCE(r.source_url, '')) LIKE ?
+                    OR LOWER(COALESCE(a.summary_short, '')) LIKE ?
+                )
+                """
+            )
+            params.extend([like_value, like_value, like_value, like_value, like_value])
+        if not include_open_data:
+            clauses.append("COALESCE(s.source_type, '') <> 'open_data'")
+            clauses.append("COALESCE(s.parser_type, '') <> 'ckan_json'")
+            clauses.append("s.code NOT LIKE 'openga_%'")
+        params.append(int(limit))
+        with self._connect() as conn:
+            rows = conn.execute(
+                f"""
+                SELECT q.id
+                FROM review_queue q
+                JOIN ai_documents_analysis a ON a.id = q.analysis_id
+                JOIN source_documents_normalized n ON n.id = q.normalized_document_id
+                JOIN source_documents_raw r ON r.id = n.raw_document_id
+                JOIN sources s ON s.id = r.source_id
+                WHERE {' AND '.join(clauses)}
+                ORDER BY
+                    CASE WHEN q.status IN ('approved', 'pending') THEN 0 ELSE 1 END,
+                    q.priority DESC,
+                    q.updated_at DESC,
+                    q.id DESC
+                LIMIT ?
+                """,
+                tuple(params),
+            ).fetchall()
+        reviews: list[dict[str, Any]] = []
+        for row in rows:
+            item = self.get_review_item(int(row["id"]))
+            if item:
+                reviews.append(item)
+        return reviews
+
     def get_review_item(self, review_id: int) -> dict[str, Any] | None:
         with self._connect() as conn:
             row = conn.execute(
@@ -2445,7 +2546,7 @@ class LegalUpdateRepository:
         )
         return rows
 
-    def _lex_evidence_payload(self, row: dict[str, Any], terms: list[str]) -> dict[str, Any]:
+    def _lex_evidence_payload(self, row: dict[str, Any], terms: list[str], *, query: str = "") -> dict[str, Any]:
         entity_type = _normalize_token(row.get("entity_type"))
         entity_id = _clean_spaces(row.get("entity_id"))
         source_type = _normalize_token(row.get("source_type") or "legal_updates")
@@ -2464,7 +2565,7 @@ class LegalUpdateRepository:
             "title": _first_text(row.get("title"), authority, "Aggiornamento legale"),
             "excerpt": excerpt or content,
             "content": content or excerpt,
-            "score": _lex_candidate_score(row, terms),
+            "score": _lex_candidate_score(row, terms, query=query),
             "authority": authority,
             "official_url": official_url,
             "published_at": _first_text(row.get("published_at"), row.get("created_at")),
@@ -2512,13 +2613,13 @@ class LegalUpdateRepository:
 
     def search_lex_sources(self, query: str, *, limit: int = 12) -> list[dict[str, Any]]:
         result_limit = _limit_value(limit, default=12, maximum=80)
-        candidate_limit = max(result_limit * 6, 40)
+        candidate_limit = max(result_limit * 12, 160)
         terms = _lex_search_terms(query)
         with self._connect() as conn:
             candidates = self._lex_sql_candidates(conn, terms=terms, limit=candidate_limit)
             if terms and not candidates:
                 candidates = self._lex_sql_candidates(conn, terms=[], limit=candidate_limit)
-        payloads = [self._lex_evidence_payload(row, terms) for row in candidates]
+        payloads = [self._lex_evidence_payload(row, terms, query=query) for row in candidates]
         payloads.sort(
             key=lambda row: (
                 float(row.get("score") or 0.0),

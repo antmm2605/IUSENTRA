@@ -23,8 +23,8 @@ def test_ui_coverage_validator_passes() -> None:
     result = run_command("scripts/validate_ui_coverage.py")
     assert result.returncode == 0, result.stdout + result.stderr
     assert "OK | UI coverage fase 9" in result.stdout
-    assert "Storybook=non introdotto" in result.stdout
-    assert "VRT=non attivo" in result.stdout
+    assert "Storybook=presente" in result.stdout
+    assert "VRT=predisposto" in result.stdout
 
 
 def test_ui_fixture_uses_safe_mock_data_only() -> None:
@@ -39,12 +39,13 @@ def test_ui_fixture_uses_safe_mock_data_only() -> None:
     assert "bearer " not in serialized
 
 
-def test_phase9_docs_do_not_claim_storybook_or_vrt_ready() -> None:
+def test_phase9_docs_track_storybook_without_vrt_baseline_claim() -> None:
     ui_doc = (ROOT / "docs/ui-regression-and-storybook.md").read_text(encoding="utf-8")
     frontend_doc = (ROOT / "docs/frontend-app-v2-pages.md").read_text(encoding="utf-8")
     registry_doc = (ROOT / "docs/app-v2-page-registry.md").read_text(encoding="utf-8")
-    assert "Storybook: non introdotto" in ui_doc
-    assert "VRT: non attivo" in ui_doc
+    assert "Storybook: introdotto" in ui_doc
+    assert "VRT: predisposto" in ui_doc
+    assert "pnpm build:storybook" in ui_doc
     assert "Copertura UI fase 9" in frontend_doc
     assert "Copertura UI fase 9" in registry_doc
     forbidden_claims = ("storybook_ready", "vrt_ready")

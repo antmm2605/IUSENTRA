@@ -1,4 +1,4 @@
-# UI regression, Storybook e gate visuali App V2
+﻿# UI regression, Storybook e gate visuali App V2
 
 Aggiornato: 2026-05-17, fondazione monorepo Storybook.
 
@@ -14,9 +14,10 @@ Aggiornato: 2026-05-17, fondazione monorepo Storybook.
 
 ```powershell
 python scripts\validate_ui_coverage.py
-npm --prefix frontend run test
-npm --prefix frontend run typecheck
-npm --prefix frontend run build
+pnpm test
+pnpm typecheck
+pnpm build
+pnpm build:storybook
 python -m pytest -q tests/test_ui_coverage_phase9.py --tb=short
 ```
 
@@ -126,9 +127,10 @@ La CI App V2 deve eseguire:
 - `python scripts/smoke_app_v2_workflows.py --list`;
 - `python scripts/validate_ui_coverage.py`;
 - `python -m pytest -q tests/test_ui_coverage_phase9.py --tb=short`;
-- `npm --prefix frontend run test`;
-- `npm --prefix frontend run typecheck`;
-- `npm --prefix frontend run build`.
+- `pnpm test`;
+- `pnpm typecheck`;
+- `pnpm build`;
+- `pnpm build:storybook`.
 
 ## Gap residui
 

@@ -284,7 +284,7 @@ Gate fase 9:
 ```powershell
 python scripts\validate_ui_coverage.py
 python -m pytest -q tests/test_ui_coverage_phase9.py --tb=short
-npm --prefix frontend run test
+pnpm test
 ```
 
 ## Collegamento test plan fase 10

@@ -22,14 +22,14 @@ ambiente esterno o credenziali smoke.
 | `.github/workflows/ci.yml` | push, pull_request, workflow_dispatch | `Coverage moduli critici` | `run_pytest_phases.py --suite coverage-critical` + `coverage report --fail-under=71` | si | required | Soglia esistente, non abbassata. Artifact coverage shard. |
 | `.github/workflows/ci.yml` | push, pull_request, workflow_dispatch | `E2E smoke` | `python scripts/run_pytest_phases.py --suite e2e-smoke` | si | required | Smoke Python stabile, non browser esterno. |
 | `.github/workflows/ci.yml` | push, pull_request, workflow_dispatch | `Local Signer e PKCS#11` | `run_pytest_phases.py --suite signer` su Linux/Windows/macOS | si | required | Matrice cross-platform. |
-| `.github/workflows/frontend-ci.yml` | push/pull_request su `frontend/**` | `Frontend React contratti/typecheck/build` | `npm ci`, `npm run test`, `npm run typecheck`, `npm run build:vite` | si | required | Shard rapido dedicato al frontend. |
+| `.github/workflows/frontend-ci.yml` | push/pull_request su frontend/packages/workspace | `Frontend React contratti/typecheck/build` | `pnpm install --frozen-lockfile`, `pnpm test`, `pnpm typecheck`, `pnpm build`, `pnpm build:storybook` | si | required | Shard rapido dedicato al frontend e alla libreria UI. |
 | `.github/workflows/ci_quality_overlay.yml` | push, pull_request, workflow_dispatch | `quality-gates` | governance, packaging, python baseline, Local Signer boundaries, Lex gates, performance budget | si | required | Overlay qualita mirato. |
 | `.github/workflows/ci_quality_overlay.yml` | push, pull_request, workflow_dispatch | `targeted-tests` | `run_pytest_phases.py --suite quality-overlay` | si | required | Shard overlay. |
 | `.github/workflows/ci_release_overlay.yml` | workflow_dispatch | `release-readiness` | `tools/check_release_readiness.py`, `run_pytest_phases.py --suite release-readiness` | manuale | optional/manual | Da eseguire prima di tag o deploy operativo. |
 | `.github/workflows/codeql.yml` | push, pull_request, schedule | `Analyze (python)` | CodeQL init/autobuild/analyze | si | required | SAST GitHub, policy High/Critical su code scanning. |
 | `.github/workflows/dependency-review.yml` | pull_request | `Review dipendenze in ingresso` | `actions/dependency-review-action@v4` | si | required | Blocca dependency review configurata da GitHub. |
 | `.github/workflows/security-supply-chain.yml` | pull_request, workflow_dispatch, schedule | `Audit dipendenze Python` | `pip-audit -r requirements.txt --format json --output pip-audit.json` | si | required | Report artifact, nessun segreto. |
-| `.github/workflows/security-supply-chain.yml` | pull_request, workflow_dispatch, schedule | `Audit dipendenze frontend` | `npm --prefix frontend audit --audit-level=critical --omit=dev --json` | si | required | Fallisce su critical production dependency. |
+| `.github/workflows/security-supply-chain.yml` | pull_request, workflow_dispatch, schedule | `Audit dipendenze frontend` | `pnpm audit --audit-level critical --prod --json` | si | required | Fallisce su critical production dependency. |
 | `.github/workflows/security-supply-chain.yml` | pull_request, workflow_dispatch, schedule | `Generate SBOM` | `anchore/sbom-action@v0` | si | required | Artifact SBOM SPDX. |
 | `.github/workflows/e2e-nightly.yml` | schedule, workflow_dispatch | `E2E full suite` | `run_pytest_phases.py --suite e2e-nightly` | no PR | nightly/manual | Verifica ampia non sostitutiva. |
 | `.github/workflows/performance-nightly.yml` | schedule, workflow_dispatch | `Benchmark runtime leggero` | `tools/performance_smoke.py --strict` | no PR | nightly/manual | Artifact performance JSON. |
@@ -41,10 +41,10 @@ ambiente esterno o credenziali smoke.
 - Backend: install ripetibile Python, import/syntax, lint fatal, smoke Flask, scheduler worker, shard core pytest.
 - Sicurezza backend: `tests/test_auth.py`, `tests/test_backend_security_phase5.py`, `tests/test_tenant_isolation_runtime.py`, `tests/test_app_v2_feature_flags.py`, `tests/test_app_v2_routing.py`.
 - Contratti API: `generate_api_contracts.py --check`, `validate_openapi.py`, `verify_openapi_provider.py`, `smoke_app_v2_all.py --subset contracts`, `tests/test_openapi_contracts_phase6.py`.
-- Frontend: `npm ci`, `npm run test`, `npm run typecheck`, `npm run build` o `build:vite`.
+- Frontend: `pnpm install --frozen-lockfile`, `pnpm test`, `pnpm typecheck`, `pnpm build`, `pnpm build:storybook`.
 - Feature flag/registry: `generate_app_v2_page_registry.py --check`, `generate_app_v2_test_docs.py --check`, `generate_app_v2_area_requirements.py --check`, `validate_ui_coverage.py`.
 - Coverage: `coverage-critical` sharded con soglia 71 su configurazione esistente.
-- SAST/dependency: CodeQL, dependency review, `pip-audit`, `npm audit --audit-level=critical`.
+- SAST/dependency: CodeQL, dependency review, `pip-audit`, `pnpm audit --audit-level critical --prod`.
 
 ## Gate informativi, manuali e nightly
 
@@ -52,7 +52,7 @@ ambiente esterno o credenziali smoke.
 - `Smoke Staging`: manuale/post-deploy, usa l'orchestrator fase 13 in modalita read-only; richiede environment protetto e, per profili autenticati, secrets dedicati.
 - `E2E Nightly`: nightly/manuale, copre flussi piu' lunghi.
 - `Performance Nightly`: nightly/manuale, produce baseline runtime.
-- Storybook/VRT: non attivi. Non esiste comando reale nel repo, quindi non sono dichiarati gate.
+- Storybook/VRT: Storybook e' attivo come build locale/CI; Chromatic resta predisposto e non bloccante senza `CHROMATIC_PROJECT_TOKEN`.
 
 ## Artifact
 
@@ -60,7 +60,7 @@ ambiente esterno o credenziali smoke.
 | --- | --- | --- | --- | --- |
 | `coverage-critical-*` | `ci.yml` | frammenti `.coverage` per shard critici | default GitHub | Nessun dato runtime studio. |
 | `pip-audit-report` | `security-supply-chain.yml` | report JSON audit Python | 14 giorni | Nessun segreto. |
-| `frontend-npm-audit-report` | `security-supply-chain.yml` | report JSON audit npm production deps | 14 giorni | Nessun segreto. |
+| `frontend-pnpm-audit-report` | `security-supply-chain.yml` | report JSON audit pnpm production deps | 14 giorni | Nessun segreto. |
 | `sbom` | `security-supply-chain.yml` | SBOM SPDX JSON | default GitHub | Inventario dipendenze, non contiene credenziali. |
 | `performance-smoke` | `performance-nightly.yml` | tempi benchmark runtime leggero | default GitHub | Nessun dato cliente. |
 | `smoke-staging-reports` | `smoke-staging.yml` | log sanitizzati e `smoke-report.json` ambiente | 14 giorni | Password/token redatti da `smoke_lib.py`; nessun contenuto documento o payload completo. |

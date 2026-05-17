@@ -446,10 +446,11 @@ Comandi introdotti o governati dalla fase 7:
 
 ```powershell
 python scripts\react-migration\generate_app_v2_page_registry.py --check
-npm --prefix frontend run test:app-v2
-npm --prefix frontend run test
-npm --prefix frontend run typecheck
-npm --prefix frontend run build
+pnpm --filter @iusentra/studio test:app-v2
+pnpm test
+pnpm typecheck
+pnpm build
+pnpm build:storybook
 python scripts\smoke_app_v2_pages.py --list
 python scripts\smoke_app_v2_routing.py --list
 python scripts\smoke_app_v2_workflows.py --list
@@ -481,7 +482,7 @@ Il file `docs/app-v2-area-requirements.md` e' il registro vincolante per workflo
 
 ## Copertura UI fase 9
 
-`docs/ui-regression-and-storybook.md` documenta stato Storybook, test UI, fixture sicure, VRT, accessibilita e gap residui. Storybook e VRT non sono dichiarati attivi: il gate minimo e' `python scripts\validate_ui_coverage.py`, integrato in `npm --prefix frontend run test` e nella CI App V2.
+`docs/ui-regression-and-storybook.md` documenta stato Storybook, test UI, fixture sicure, VRT, accessibilita e gap residui. Storybook e' governato da `pnpm build:storybook`; VRT resta predisposto finche' Chromatic non viene attivato con `CHROMATIC_PROJECT_TOKEN`. Il gate minimo resta `python scripts\validate_ui_coverage.py`, integrato in `pnpm test` e nella CI App V2.
 
 ## Piano test fase 10
 

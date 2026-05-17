@@ -40,8 +40,9 @@ def test_main_ci_runs_phase11_blocking_gates() -> None:
         "tests/test_app_v2_feature_flags.py",
         "tests/test_app_v2_routing.py",
         "tests/test_openapi_contracts_phase6.py",
-        "npm --prefix frontend run typecheck",
-        "npm --prefix frontend run build",
+        "pnpm typecheck",
+        "pnpm build",
+        "pnpm build:storybook",
     ):
         assert needle in workflow
 
@@ -62,9 +63,9 @@ def test_security_supply_chain_blocks_critical_dependency_regressions() -> None:
     workflow = _read(".github/workflows/security-supply-chain.yml")
 
     assert "pip-audit -r requirements.txt --format json --output pip-audit.json" in workflow
-    assert "npm --prefix frontend audit --audit-level=critical --omit=dev --json" in workflow
+    assert "pnpm audit --audit-level critical --prod --json" in workflow
     assert "pip-audit-report" in workflow
-    assert "frontend-npm-audit-report" in workflow
+    assert "frontend-pnpm-audit-report" in workflow
 
 
 def test_phase11_test_plan_mentions_ci_workflows() -> None:

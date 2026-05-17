@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.245.5 - 2026-05-17
+
+- Portato il presidio Lex AI direttamente nelle pagine studio `/ricerca-legale` e `/giurisprudenza/`: agenti notturni, archivi ufficiali, funzioni AI avanzate e citazioni verificabili sono ora visibili nel flusso operativo dell'avvocato.
+- La pagina Ricerca Legale mostra lo stato di Normattiva/Gazzetta locali, agenti Lex, ricerca completa con allegati pubblici e funzioni MTP/LLM Wiki/GLM-OCR/Gemini come presidi governati.
+- L'Archivio Giurisprudenza espone `Citazioni verificate`, stato Cassazione, agenti Lex giurisprudenza e archivi ufficiali prima dell'uso di una massima in atto.
+- Le fonti giurisprudenziali non mostrano piu' codici di accesso grezzi come `open_data` o `materiale_cliente`, ma etichette operative per lo studio.
+
 ## 2.245.4 - 2026-05-17
 
 - Hotfix agenti Lex produzione: il runtime espone anche `PCT_DATA_ROOT`, archivi ufficiali Lex e Normattiva derivati dalle variabili `PCT_*`, cosi' gli agenti non segnalano fonti mancanti quando gli archivi esistono sul server.

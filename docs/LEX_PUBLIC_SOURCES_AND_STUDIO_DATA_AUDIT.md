@@ -4,6 +4,24 @@ Documento di audit tecnico sul comportamento attuale di Lex nella gestione delle
 
 ---
 
+## Aggiornamento operativo 2.245.5 - 2026-05-17
+
+Il presidio creato per fonti, agenti notturni, archivi ufficiali e funzioni AI
+avanzate e' ora esposto anche nelle pagine usate dallo studio:
+`/ricerca-legale` e `/giurisprudenza/`. Non rimane confinato alle console
+amministrative.
+
+`/ricerca-legale` mostra una sezione `Presidio Lex AI` con agenti controllati,
+ricerca completa su fonti ufficiali e allegati pubblici quando disponibili,
+archivi Normattiva/Gazzetta locali e stato delle funzioni MTP, LLM Wiki,
+GLM-OCR e Gemini Embedding 2 come presidi misurabili o da autorizzare.
+
+`/giurisprudenza/` mostra `Citazioni verificate` e `Presidio Lex
+giurisprudenza`: conteggio delle schede citabili, stato Cassazione, agenti
+collegati, archivi ufficiali e allegati fonte letti se presenti. Le modalita'
+di accesso sono rese in linguaggio operativo per l'avvocato, non con codici
+interni.
+
 ## Aggiornamento operativo 2.243.5 - 2026-05-16
 
 Aggiornamento 2.245.3: IUSENTRA ha ora micro-agenti Lex interni collegati

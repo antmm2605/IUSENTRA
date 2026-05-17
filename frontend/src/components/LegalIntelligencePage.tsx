@@ -2,8 +2,11 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   ArrowRight,
   BookOpen,
+  Bot,
   CheckCircle2,
+  Database,
   ExternalLink,
+  FileCheck2,
   FileSearch,
   Filter,
   Globe2,
@@ -12,6 +15,7 @@ import {
   Mail,
   Newspaper,
   Search,
+  SearchCheck,
   ShieldCheck,
 } from 'lucide-react'
 import { Badge } from '../ui/Badge'
@@ -33,6 +37,7 @@ import {
 import './LegalIntelligencePage.css'
 
 type LegalIntelligenceView = 'dashboard' | 'news' | 'mediazione' | 'ricerca-legale'
+type LegalSection = LegalIntelligencePageData['sections'][number]
 
 const quickQueries: Record<LegalIntelligenceView, string[]> = {
   dashboard: ['mediazione obbligatoria', 'Cassazione prescrizione', 'credito imposta', 'usura bancaria'],
@@ -189,6 +194,67 @@ function Metrics({ data }: { data: LegalIntelligencePageData }) {
           badge={<Badge tone={metric.tone}>{metric.tone === 'neutral' ? 'Dato' : 'Stato'}</Badge>}
         />
       ))}
+    </section>
+  )
+}
+
+function sectionById(data: LegalIntelligencePageData, id: string) {
+  return data.sections.find((section) => section.id === id)
+}
+
+function statusIcon(section: LegalSection) {
+  if (section.id === 'lex_presidio') return <Bot size={18} aria-hidden="true" />
+  if (section.id === 'archivi_ufficiali') return <Database size={18} aria-hidden="true" />
+  if (section.id === 'ai_avanzata') return <SearchCheck size={18} aria-hidden="true" />
+  if (section.id === 'citazioni_verificate') return <FileCheck2 size={18} aria-hidden="true" />
+  return <Globe2 size={18} aria-hidden="true" />
+}
+
+function LexStatusCard({ section }: { section: LegalSection }) {
+  return (
+    <article className="iu-li-lex-card iu-od-source-card">
+      <header className="iu-li-lex-card__header">
+        <span className="iu-li-lex-card__icon">{statusIcon(section)}</span>
+        <div>
+          <span className="iu-od-source-badge">{section.kind}</span>
+          <h3>{section.title}</h3>
+        </div>
+      </header>
+      {section.items.length ? (
+        <div className="iu-li-lex-items">
+          {section.items.slice(0, 6).map((item) => (
+            <span className="iu-li-lex-item" data-tone={item.tone} key={`${section.id}-${item.id}`}>
+              <strong>{item.label}</strong>
+              <span>{item.value === '' ? 'Disponibile' : item.value}</span>
+              {item.note ? <small>{item.note}</small> : null}
+            </span>
+          ))}
+        </div>
+      ) : (
+        <EmptyState title={section.emptyMessage} />
+      )}
+    </article>
+  )
+}
+
+function LexCoveragePanel({ data, view }: { data: LegalIntelligencePageData; view: LegalIntelligenceView }) {
+  const ids = view === 'ricerca-legale'
+    ? ['lex_presidio', 'archivi_ufficiali', 'ai_avanzata']
+    : ['lex_presidio', 'archivi_ufficiali', 'ai_avanzata']
+  const sections = ids.map((id) => sectionById(data, id)).filter(Boolean) as LegalSection[]
+  if (!sections.length) return null
+  return (
+    <section className="iu-li-lex-panel" aria-label="Presidio Lex AI">
+      <header className="iu-li-section-head">
+        <Bot size={18} aria-hidden="true" />
+        <div>
+          <h2>Presidio Lex AI</h2>
+          <p>Archivi ufficiali, agenti notturni e lettura avanzata delle fonti usati da questa ricerca.</p>
+        </div>
+      </header>
+      <div className="iu-li-lex-grid">
+        {sections.map((section) => <LexStatusCard section={section} key={section.id} />)}
+      </div>
     </section>
   )
 }
@@ -905,6 +971,7 @@ export function LegalIntelligencePage() {
         <NavigationTabs view={view} />
         <WorkbenchBrief view={view} />
         <Metrics data={data} />
+        <LexCoveragePanel data={data} view={view} />
         <div className="iu-li-workbench">
           <div className="iu-li-workbench__main">
             <RecordFilters

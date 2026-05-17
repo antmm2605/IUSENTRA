@@ -6,6 +6,15 @@ from collections import Counter
 from datetime import datetime, timezone
 from typing import Any, Callable, Mapping
 
+from web.services.lex_studio_knowledge_status import (
+    GIURISPRUDENZA_AGENT_FOCUS,
+    build_advanced_ai_section,
+    build_lex_agent_metric,
+    build_lex_operational_section,
+    build_official_archive_section,
+    build_verified_citations_section,
+)
+
 
 def _iso_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
@@ -92,6 +101,19 @@ def _source_state(row: Mapping[str, Any], last_status: str) -> tuple[str, str, s
     return last_status or "Fonte censita", _tone_from_status(last_status), fallback_note
 
 
+def _access_mode_label(value: Any) -> str:
+    mode = _text(value).lower()
+    labels = {
+        "open_data": "Open data ufficiale",
+        "pubblico": "Consultazione pubblica",
+        "area_riservata_pst": "Area riservata PST",
+        "portale_ufficiale": "Portale ufficiale",
+        "materiale_cliente": "Materiale autorizzato",
+        "manuale": "Inserimento interno",
+    }
+    return labels.get(mode, _text(value))
+
+
 def _count_section(sid: str, title: str, kind: str, values: list[str], empty: str) -> dict[str, Any]:
     counter = Counter(value for value in values if value)
     items = [
@@ -111,7 +133,7 @@ def _safe_source(row: Mapping[str, Any]) -> dict[str, Any]:
         "label": _text(row.get("nome") or row.get("name") or source_id) or "Fonte",
         "kind": _text(row.get("giurisdizione") or row.get("badge") or row.get("access_mode")),
         "coverage": _text(row.get("coverage")),
-        "accessMode": _text(row.get("access_mode") or row.get("sync_mode")),
+        "accessMode": _access_mode_label(row.get("access_mode") or row.get("sync_mode")),
         "sourceHref": _safe_href(row.get("official_url") or row.get("search_url")),
         "legacyHref": "",
         "lastRunAt": _text(last_run.get("ended_at") or last_run.get("checked_at") or last_run.get("started_at")),
@@ -202,6 +224,7 @@ def build_react_giurisprudenza_payload(
     *,
     get_giurisprudenza: Callable[[], Any],
     query: Mapping[str, Any] | None = None,
+    config: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Costruisce i dati pagina usando solo informazioni gia presenti."""
 
@@ -241,6 +264,15 @@ def build_react_giurisprudenza_payload(
         for index, row in enumerate(_list(manager.recent_sync_runs()), start=1)
         if isinstance(row, dict)
     ]
+    lex_presidio_section = build_lex_operational_section(
+        config=config,
+        focus_agent_ids=GIURISPRUDENZA_AGENT_FOCUS,
+        title="Presidio Lex giurisprudenza",
+    )
+    verified_citations_section = build_verified_citations_section(config=config, records=records)
+    official_archives_section = build_official_archive_section()
+    advanced_ai_section = build_advanced_ai_section()
+    lex_agent_metric = build_lex_agent_metric(config=config, focus_agent_ids=GIURISPRUDENZA_AGENT_FOCUS)
 
     return {
         "source": "repository_reali",
@@ -259,9 +291,14 @@ def build_react_giurisprudenza_payload(
             _metric("fonti", "Fonti censite", int(stats.get("fonti_attive") or len(sources)), "Archivio giurisprudenza", "info"),
             _metric("aree", "Aree coperte", int(stats.get("aree_coperte") or 0), "Classificazione disponibile", "neutral"),
             _metric("da_verificare", "Da verificare", int(stats.get("bozze_da_classificare") or 0), "Gestione governata", "warning"),
+            lex_agent_metric,
             _metric("collegamenti", "Fascicoli collegati", int(stats.get("fascicoli_collegati") or 0), "Informazioni collegate", "success" if stats.get("fascicoli_collegati") else "neutral"),
         ],
         "sections": [
+            verified_citations_section,
+            lex_presidio_section,
+            official_archives_section,
+            advanced_ai_section,
             _section(
                 "fonti",
                 "Fonti disponibili",

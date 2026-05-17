@@ -1846,6 +1846,18 @@ Formula operativa da mantenere nei report: `pytest completo monolitico non è ve
 
 | Deploy Hetzner CPX42 con `IUSENTRA_SKIP_BACKUP_CRON=1 BRANCH=Codex/legal-electronic-filing-kIxcV bash deploy/hetzner/deploy.sh`; verifiche post-deploy | OK | Server sul branch pushato, `/api/pronto` pubblico 200 con `versione=2.238.0`, container app/scheduler/OCR/Redis/Ollama healthy e cron backup non aggiornato. |
 
+## Presidio Lex pagine studio 2.245.5 - 2026-05-17
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile lex/operational_knowledge/nightly_agents.py web/services/lex_studio_knowledge_status.py web/services/react_legal_intelligence_bridge.py web/services/react_giurisprudenza_bridge.py web/blueprints/api_v1_react.py tests/test_react_legal_intelligence_search.py tests/test_giurisprudenza.py` | OK | Sintassi confermata dopo esposizione read-only dell'inventario agenti e nuove sezioni studio. |
+| `python -m pytest tests/test_react_legal_intelligence_search.py::test_ricerca_legale_mostra_presidio_lex_ai_nella_pagina_studio tests/test_react_legal_intelligence_search.py::test_ricerca_legale_legge_archivi_normattiva_e_gazzetta_locali tests/test_giurisprudenza.py::test_react_giurisprudenza_mostra_da_verificare_e_soluzione_alternativa tests/test_giurisprudenza.py::test_react_giurisprudenza_espone_presidio_citazioni_lex -q` | OK | 4/4 passati: Ricerca Legale espone presidio Lex e Giurisprudenza espone citazioni/verifica Cassazione. |
+| `python -m pytest tests/test_react_legal_intelligence_search.py tests/test_giurisprudenza.py::test_react_giurisprudenza_mostra_da_verificare_e_soluzione_alternativa tests/test_giurisprudenza.py::test_react_giurisprudenza_espone_presidio_citazioni_lex -q` | OK | 9/9 passati: regressioni Legal Intelligence e Giurisprudenza mirate confermate. |
+| `npm --prefix frontend run typecheck -- --pretty false`; `npm --prefix frontend run build` | OK | TypeScript e build Vite verdi; chunk studio collegati: `LegalIntelligencePage-DH8fqrq7.js`, `GiurisprudenzaPage-BNrM9rsm.js`, CSS `LegalIntelligencePage-B-1pHO2D.css` e `GiurisprudenzaPage-DzXj07PR.css`. |
+| Browser Chrome headless su `http://127.0.0.1:8092/ricerca-legale` e `/giurisprudenza/` | OK | Screenshot desktop/mobile non vuoti in `artifacts/react-migration/visual-2.245.5-studio-lex/`; API React espongono `lex_presidio`, `archivi_ufficiali`, `ai_avanzata` e `citazioni_verificate`. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest tests/test_packaging_consistency.py tests/test_release_readiness.py -q --tb=short` | OK | Packaging sincronizzato e readiness release 8/8 dopo bump `2.245.5`. |
+| `git diff --check -- . ':!data/*'`; `python scripts\validate_docs_commands.py`; `python scripts\validate_docs_links.py CHANGELOG.md artifacts\react-migration\pytest-confirmed-ok.md artifacts\react-migration\visual-2.245.5-studio-lex\visual-load-audit.md docs\LEX_PUBLIC_SOURCES_AND_STUDIO_DATA_AUDIT.md` | OK | Whitespace diff, comandi documentati e link locali collegati alla tranche confermati. |
+
 ## Registri Mediazione ufficiali 2.239.2 - 2026-05-16
 
 | Comando / verifica | Esito | Nota |

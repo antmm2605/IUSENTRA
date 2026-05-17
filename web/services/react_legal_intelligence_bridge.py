@@ -7,6 +7,13 @@ from datetime import datetime, timezone
 from typing import Any, Callable
 from urllib.parse import urlparse
 
+from web.services.lex_studio_knowledge_status import (
+    LEGAL_AGENT_FOCUS,
+    build_advanced_ai_section,
+    build_lex_agent_metric,
+    build_lex_operational_section,
+)
+
 try:
     from lex.research.privacy_safe_query_rewriter import rewrite_query_for_legal_research as _rewrite_query_for_legal_research
     from lex.research.public_legal_research_gateway import run_public_legal_research as _run_public_legal_research
@@ -803,6 +810,7 @@ def build_react_legal_intelligence_payload(
     get_scadenziario: Callable[[], Any],
     page: str = "dashboard",
     query: Mapping[str, Any] | None = None,
+    config: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     warnings: list[dict[str, str]] = []
     manager = get_legal_intelligence()
@@ -885,6 +893,9 @@ def build_react_legal_intelligence_payload(
         ],
         "Inserisci una ricerca per consultare archivio e fonti ufficiali.",
     )
+    lex_presidio_section = build_lex_operational_section(config=config, focus_agent_ids=LEGAL_AGENT_FOCUS)
+    advanced_ai_section = build_advanced_ai_section()
+    lex_agent_metric = build_lex_agent_metric(config=config, focus_agent_ids=LEGAL_AGENT_FOCUS)
 
     return {
         "source": "repository_reali",
@@ -905,6 +916,7 @@ def build_react_legal_intelligence_payload(
             _metric("normattiva", "Normattiva", int(normattiva_counts.get("documents") or 0), f"{int(normattiva_counts.get('articles') or 0)} articoli, {int(normattiva_counts.get('chunks') or 0)} estratti", "success" if normattiva_counts.get("available") else "neutral"),
             _metric("gazzetta", "Gazzetta", int(gazzetta_counts.get("documents") or 0), f"{int(gazzetta_counts.get('chunks') or 0)} estratti indicizzati", "success" if gazzetta_counts.get("available") else "neutral"),
             _metric("mediazione", "Organismi mediazione", int(mediazione.get("total_rows") or 0), "Registro consultabile", "success" if mediazione.get("total_rows") else "neutral"),
+            lex_agent_metric,
             _metric("fascicoli", "Fascicoli nel monitor", int(headline.get("fascicoli") or 0), "Informazioni studio", "neutral"),
         ],
         "sections": [
@@ -916,6 +928,8 @@ def build_react_legal_intelligence_payload(
                 _official_archive_items(normattiva_counts, gazzetta_counts),
                 "Archivi ufficiali non disponibili.",
             ),
+            lex_presidio_section,
+            advanced_ai_section,
             _section("fonti", "Stato fonti", "fonti", source_items, "Nessuna fonte disponibile."),
             _section(
                 "news",

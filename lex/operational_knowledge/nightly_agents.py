@@ -338,7 +338,22 @@ def run_operational_micro_agents(
     }
 
 
+def load_operational_agents_payload(
+    *,
+    app: Any = None,
+    config: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Legge l'ultimo inventario degli agenti senza avviare controlli."""
+
+    cfg = dict(config or getattr(app, "config", {}) or {})
+    repository = OperationalAgentRunRepository(_db_path(cfg))
+    payload = repository.load()
+    payload["db_path"] = str(repository.db_path)
+    return payload
+
+
 __all__ = [
+    "load_operational_agents_payload",
     "OperationalAgentRunRepository",
     "run_operational_micro_agent",
     "run_operational_micro_agents",

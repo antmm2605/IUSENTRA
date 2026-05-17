@@ -5276,7 +5276,13 @@ def giurisprudenza_page():
     if not utente:
         return jsonify(build_react_giurisprudenza_error_payload("Sessione utente richiesta.")), 403
     try:
-        return jsonify(build_react_giurisprudenza_payload(get_giurisprudenza=get_giurisprudenza, query=dict(request.args)))
+        return jsonify(
+            build_react_giurisprudenza_payload(
+                get_giurisprudenza=get_giurisprudenza,
+                query=dict(request.args),
+                config=dict(current_app.config),
+            )
+        )
     except Exception as exc:
         current_app.logger.exception("Errore Giurisprudenza React bridge: %s", exc)
         return jsonify(
@@ -5306,6 +5312,7 @@ def _legal_intelligence_ui_payload(page: str, legacy_contract: str):
                 get_scadenziario=get_scadenziario,
                 page=page,
                 query=dict(request.args),
+                config=dict(current_app.config),
             )
         )
     except Exception as exc:

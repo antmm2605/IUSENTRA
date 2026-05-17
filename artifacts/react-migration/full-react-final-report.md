@@ -818,3 +818,16 @@ route Legal Intelligence. Report visuale:
 `artifacts/react-migration/visual-2.239.3-legal-intelligence-context/visual-load-audit.md`.
 Deploy Hetzner CPX42 completato senza backup con server sul commit pushato,
 container applicativi healthy e readiness pubblica `2.239.3`.
+
+## Presidio Lex pagine studio 2.245.5
+
+Le pagine `/ricerca-legale` e `/giurisprudenza/` riportano ora in superficie
+studio il lavoro fatto su fonti ufficiali, agenti notturni e funzioni AI
+avanzate. La Ricerca Legale mostra `Presidio Lex AI`, archivi ufficiali locali
+e stato delle funzioni MTP/LLM Wiki/GLM-OCR/Gemini; l'Archivio Giurisprudenza
+mostra `Citazioni verificate`, stato Cassazione, agenti Lex giurisprudenza e
+lettura allegati fonte quando disponibili.
+
+Gate locali: py_compile mirato, pytest Ricerca Legale/Giurisprudenza 9/9,
+typecheck frontend, build Vite e Chrome headless desktop/mobile con screenshot
+non vuoti in `artifacts/react-migration/visual-2.245.5-studio-lex/`.

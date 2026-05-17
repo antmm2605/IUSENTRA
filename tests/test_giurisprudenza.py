@@ -473,7 +473,54 @@ def test_react_giurisprudenza_mostra_da_verificare_e_soluzione_alternativa(tmp_p
 
     assert fonte["stateLabel"] == "Da verificare"
     assert fonte["stateTone"] == "warning"
+    assert fonte["accessMode"] == "Consultazione pubblica"
     assert "OpenGA" in fonte["resolutionNote"]
+
+
+def test_react_giurisprudenza_espone_presidio_citazioni_lex(tmp_path: Path):
+    from lex.operational_knowledge.nightly_agents import OperationalAgentRunRepository
+    from web.services.lex_studio_knowledge_status import GIURISPRUDENZA_AGENT_FOCUS
+    from web.services.react_giurisprudenza_bridge import build_react_giurisprudenza_payload
+
+    gestore = GestioneGiurisprudenza(str(tmp_path / "giurisprudenza.json"))
+    gestore.salva(
+        {
+            "titolo": "Cassazione su prova del danno",
+            "source_system": "cassazione",
+            "numero_provvedimento": "8324/2026",
+            "data_deposito": "2026-04-03",
+            "stato_citabilita": "citabile",
+            "verifica": "verificata",
+            "massima": "La massima resta collegata alla fonte ufficiale.",
+        }
+    )
+    agents_db = tmp_path / "lex_operational_agents.json"
+    repository = OperationalAgentRunRepository(agents_db)
+    for agent_id in GIURISPRUDENZA_AGENT_FOCUS:
+        repository.record(
+            {
+                "agent_id": agent_id,
+                "tenant_slug": "studio-test",
+                "tenant_name": "Studio test",
+                "status": "ok",
+                "generated_at": "2026-05-17T21:10:00Z",
+                "self_check": "Superato: inventario operativo aggiornato.",
+            }
+        )
+
+    payload = build_react_giurisprudenza_payload(
+        get_giurisprudenza=lambda: gestore,
+        config={"LEX_OPERATIONAL_AGENTS_DB": str(agents_db)},
+    )
+
+    sections = {section["id"]: section for section in payload["sections"]}
+    assert "citazioni_verificate" in sections
+    assert "lex_presidio" in sections
+    citations = sections["citazioni_verificate"]
+    assert any(item["label"] == "Schede citabili" and item["value"] >= 1 for item in citations["items"])
+    assert any(item["label"] == "Cassazione e massime" and item["value"] == "Pronto" for item in citations["items"])
+    agent_metric = next(metric for metric in payload["metrics"] if metric["id"] == "agenti_lex")
+    assert agent_metric["value"] == len(GIURISPRUDENZA_AGENT_FOCUS)
 
 
 def test_importa_da_url_pubblico_compila_metadati(tmp_path: Path):

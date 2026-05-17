@@ -460,3 +460,16 @@ console error o testo tecnico visibile. Report:
 `artifacts/react-migration/visual-2.239.3-legal-intelligence-context/visual-load-audit.md`.
 Deploy Hetzner CPX42 verificato sul commit pushato: cron backup non aggiornato,
 container healthy e `/api/pronto` pubblico pronto su `2.239.3`.
+
+## Aggiornamento 2.245.5 - 2026-05-17
+
+Il presidio Lex non resta piu' nascosto nelle pagine admin: `/ricerca-legale`
+e `/giurisprudenza/` espongono sezioni React governate con dati provenienti dal
+backend, senza mock o CTA legacy. La pagina Giurisprudenza traduce anche le
+modalita' di accesso delle fonti in etichette operative come `Consultazione
+pubblica`, `Open data ufficiale`, `Materiale autorizzato`.
+
+Controlli anti-mascheramento: API React verificate per presenza di
+`lex_presidio`, `archivi_ufficiali`, `ai_avanzata` e `citazioni_verificate`;
+test mirati e build Vite verdi; audit visuale Chrome desktop/mobile salvato in
+`artifacts/react-migration/visual-2.245.5-studio-lex/visual-load-audit.md`.

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ExternalLink, FileText, Filter, Landmark, Search, ShieldCheck } from 'lucide-react'
+import { Bot, CheckCircle2, Database, ExternalLink, FileText, Filter, Landmark, Search, ShieldCheck } from 'lucide-react'
 import { Badge } from '../ui/Badge'
 import { Button, ButtonLink } from '../ui/Button'
 import { EmptyState } from '../ui/EmptyState'
@@ -15,16 +15,22 @@ import {
   type GiurisprudenzaRecord,
   type GiurisprudenzaSource,
   type LegalMetric,
+  type LegalSection,
 } from '../giurisprudenzaData'
 import './GiurisprudenzaPage.css'
 
 function ContractStrip({ data }: { data: GiurisprudenzaPageData }) {
+  const citations = data.sections
+    .find((section) => section.id === 'citazioni_verificate')
+    ?.items.find((item) => item.id === 'provvedimenti_citabili')
   return (
     <aside className="iu-legal-contract iu-od-evidence-panel">
       <ShieldCheck size={18} aria-hidden="true" />
       <div>
         <strong>{openDesignContract.system}</strong>
-        <span>Archivio sentenze collegato al lavoro dello studio</span>
+        <span>
+          {citations ? `${citations.value || 0} schede citabili con presidio fonte attivo` : 'Archivio sentenze collegato al lavoro dello studio'}
+        </span>
       </div>
     </aside>
   )
@@ -56,6 +62,65 @@ function Metrics({ metrics }: { metrics: LegalMetric[] }) {
           badge={<Badge tone={metric.tone}>{metric.tone === 'neutral' ? 'Dato' : 'Stato'}</Badge>}
         />
       ))}
+    </section>
+  )
+}
+
+function sectionById(data: GiurisprudenzaPageData, id: string) {
+  return data.sections.find((section) => section.id === id)
+}
+
+function sectionIcon(section: LegalSection) {
+  if (section.id === 'citazioni_verificate') return <CheckCircle2 size={18} aria-hidden="true" />
+  if (section.id === 'lex_presidio') return <Bot size={18} aria-hidden="true" />
+  if (section.id === 'archivi_ufficiali') return <Database size={18} aria-hidden="true" />
+  return <ShieldCheck size={18} aria-hidden="true" />
+}
+
+function KnowledgeStatusCard({ section }: { section: LegalSection }) {
+  return (
+    <article className="iu-legal-knowledge-card iu-od-source-card">
+      <header className="iu-legal-knowledge-card__header">
+        <span className="iu-legal-knowledge-card__icon">{sectionIcon(section)}</span>
+        <div>
+          <span className="iu-od-source-badge">{section.kind}</span>
+          <h3>{section.title}</h3>
+        </div>
+      </header>
+      {section.items.length ? (
+        <div className="iu-legal-knowledge-items">
+          {section.items.slice(0, 6).map((item) => (
+            <span className="iu-legal-knowledge-item" data-tone={item.tone} key={`${section.id}-${item.id}`}>
+              <strong>{item.label}</strong>
+              <span>{item.value === '' ? 'Disponibile' : item.value}</span>
+              {item.note ? <small>{item.note}</small> : null}
+            </span>
+          ))}
+        </div>
+      ) : (
+        <EmptyState title={section.emptyMessage} />
+      )}
+    </article>
+  )
+}
+
+function KnowledgeStatusPanel({ data }: { data: GiurisprudenzaPageData }) {
+  const sections = ['citazioni_verificate', 'lex_presidio', 'archivi_ufficiali', 'ai_avanzata']
+    .map((id) => sectionById(data, id))
+    .filter(Boolean) as LegalSection[]
+  if (!sections.length) return null
+  return (
+    <section className="iu-legal-knowledge-panel" aria-label="Presidio fonti giurisprudenza">
+      <header className="iu-legal-section-head">
+        <ShieldCheck size={18} aria-hidden="true" />
+        <div>
+          <h2>Citazioni e fonti verificate</h2>
+          <p>Cassazione, fonti ufficiali, allegati e agenti Lex sono visibili prima di usare una massima in atto.</p>
+        </div>
+      </header>
+      <div className="iu-legal-knowledge-grid">
+        {sections.map((section) => <KnowledgeStatusCard section={section} key={section.id} />)}
+      </div>
     </section>
   )
 }
@@ -332,12 +397,13 @@ export function GiurisprudenzaPage() {
     <Page
       title="Archivio Giurisprudenza"
       subtitle="Banca dati interna di sentenze e provvedimenti in una pagina unica di ricerca e lettura."
-      actions={<ButtonLink href="/legal-intelligence" tone="primary">Ricerca legale</ButtonLink>}
+      actions={<ButtonLink href="/ricerca-legale" tone="primary">Ricerca legale</ButtonLink>}
     >
       <div className="iu-legal-page">
         <ContractStrip data={data} />
         <WarningList data={data} />
         <Metrics metrics={data.metrics} />
+        <KnowledgeStatusPanel data={data} />
         <SourcesPanel data={data} />
         <RecordDetail record={selectedRecord} />
         <Filters
@@ -375,7 +441,7 @@ export function GiurisprudenzaPage() {
             <EmptyState
               title="Nessun provvedimento da mostrare"
               message="L'archivio non contiene schede compatibili con i filtri applicati."
-              action={<ButtonLink href="/legal-intelligence" tone="neutral">Apri ricerca legale</ButtonLink>}
+              action={<ButtonLink href="/ricerca-legale" tone="neutral">Apri ricerca legale</ButtonLink>}
             />
           )}
         </Panel>

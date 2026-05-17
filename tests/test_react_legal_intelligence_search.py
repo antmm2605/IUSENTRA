@@ -48,7 +48,24 @@ class _Pipeline:
         return {"headline": {}, "sources": []}
 
 
-def _payload(repository, *, page="ricerca-legale", query=None, manager=None):
+def _seed_agent_runs(path, agent_ids):
+    from lex.operational_knowledge.nightly_agents import OperationalAgentRunRepository
+
+    repository = OperationalAgentRunRepository(path)
+    for agent_id in agent_ids:
+        repository.record(
+            {
+                "agent_id": agent_id,
+                "tenant_slug": "studio-test",
+                "tenant_name": "Studio test",
+                "status": "ok",
+                "generated_at": "2026-05-17T21:00:00Z",
+                "self_check": "Superato: inventario operativo aggiornato.",
+            }
+        )
+
+
+def _payload(repository, *, page="ricerca-legale", query=None, manager=None, config=None):
     pipeline = _Pipeline(repository)
     return bridge.build_react_legal_intelligence_payload(
         get_legal_intelligence=lambda: manager or _Manager(),
@@ -59,7 +76,34 @@ def _payload(repository, *, page="ricerca-legale", query=None, manager=None):
         get_scadenziario=lambda: _Rows(),
         page=page,
         query=query or {},
+        config=config or {},
     )
+
+
+def test_ricerca_legale_mostra_presidio_lex_ai_nella_pagina_studio(tmp_path):
+    from web.services.lex_studio_knowledge_status import LEGAL_AGENT_FOCUS
+
+    db_path = tmp_path / "lex_operational_agents.json"
+    _seed_agent_runs(db_path, LEGAL_AGENT_FOCUS)
+
+    payload = _payload(
+        _Repository(),
+        page="dashboard",
+        config={"LEX_OPERATIONAL_AGENTS_DB": str(db_path)},
+    )
+
+    sections = {section["id"]: section for section in payload["sections"]}
+    assert "lex_presidio" in sections
+    assert "ai_avanzata" in sections
+    lex_section = sections["lex_presidio"]
+    assert any(item["label"] == "Ricerca completa" for item in lex_section["items"])
+    assert any(
+        item["label"] == "Citazioni verificate e ricerca giurisprudenziale" and item["value"] == "Pronto"
+        for item in lex_section["items"]
+    )
+    agent_metric = next(metric for metric in payload["metrics"] if metric["id"] == "agenti_lex")
+    assert agent_metric["value"] == len(LEGAL_AGENT_FOCUS)
+    assert "pronti" in agent_metric["note"]
 
 
 def test_ricerca_legale_interroga_repository_e_mantiene_estratti(monkeypatch):

@@ -50,6 +50,13 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
     if legacy_sqlite_raw is None:
         legacy_sqlite_raw = os.getenv("PCT_SQLITE_MODE", "")
     legacy_sqlite_text = str(legacy_sqlite_raw or "").strip().lower()
+    data_root = str(
+        cfg.get("PCT_DATA_ROOT")
+        or os.getenv("PCT_DATA_ROOT")
+        or cfg.get("DATA_DIR")
+        or os.getenv("IUSENTRA_DATA_DIR")
+        or ""
+    ).strip()
 
     app.config["STORAGE_MODE_DEFAULT"] = configured_storage_mode
     app.config["SQLITE_MODE"] = (
@@ -57,6 +64,8 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
         if not legacy_sqlite_text
         else legacy_sqlite_text in ("1", "true", "yes")
     )
+    app.config["PCT_DATA_ROOT"] = data_root
+    app.config["DATA_DIR"] = str(cfg.get("DATA_DIR") or os.getenv("IUSENTRA_DATA_DIR") or data_root).strip()
     app.config["AGENDA_DB"] = cfg.get(
         "AGENDA_DB", os.getenv("PCT_AGENDA_DB", "./agenda/appuntamenti.json")
     )
@@ -79,7 +88,6 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
         return str(root / folder / filename)
 
     def _runtime_data_default(*parts: str, fallback: str) -> str:
-        data_root = str(os.getenv("PCT_DATA_ROOT", "") or "").strip()
         if data_root:
             return str(Path(data_root).joinpath(*parts))
         return fallback
@@ -323,6 +331,52 @@ def build_core_runtime(app: Flask, cfg: dict[str, Any]) -> dict[str, Any]:
         os.getenv(
             "PCT_GIURISPRUDENZA_DB",
             _data_peer_path(app.config["CLIENTI_DB"], "intelligence", "giurisprudenza.json"),
+        ),
+    )
+    app.config["LEX_OFFICIAL_DB"] = cfg.get(
+        "LEX_OFFICIAL_DB",
+        os.getenv(
+            "PCT_LEX_OFFICIAL_DB",
+            os.getenv(
+                "PCT_OFFICIAL_SOURCES_DB",
+                os.getenv(
+                    "PCT_LEX_SOURCES_DB",
+                    _runtime_data_default(
+                        "fonti_ufficiali",
+                        "lex_sources.sqlite",
+                        fallback="./data/fonti_ufficiali/lex_sources.sqlite",
+                    ),
+                ),
+            ),
+        ),
+    )
+    app.config["NORMATTIVA_DB"] = cfg.get(
+        "NORMATTIVA_DB",
+        os.getenv(
+            "PCT_NORMATTIVA_DB",
+            os.getenv(
+                "PCT_LEX_NORMATTIVA_DB",
+                _runtime_data_default(
+                    "normativa",
+                    "normattiva.sqlite",
+                    fallback="./data/normativa/normattiva.sqlite",
+                ),
+            ),
+        ),
+    )
+    app.config["NORMATTIVA_JSONL"] = cfg.get(
+        "NORMATTIVA_JSONL",
+        os.getenv(
+            "PCT_NORMATTIVA_JSONL",
+            os.getenv(
+                "PCT_LEX_NORMATTIVA_JSONL",
+                _runtime_data_default(
+                    "normativa",
+                    "index",
+                    "normattiva_chunks.jsonl",
+                    fallback="./data/normativa/index/normattiva_chunks.jsonl",
+                ),
+            ),
         ),
     )
     app.config["WORKSPACE_INTELLIGENCE_DB"] = cfg.get(

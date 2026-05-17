@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.245.4 - 2026-05-17
+
+- Hotfix agenti Lex produzione: il runtime espone anche `PCT_DATA_ROOT`, archivi ufficiali Lex e Normattiva derivati dalle variabili `PCT_*`, cosi' gli agenti non segnalano fonti mancanti quando gli archivi esistono sul server.
+- L'agente depositi telematici inizializza in modo tenant-aware lo schema PDP Penale vuoto quando l'archivio non e' ancora stato creato, senza usare fallback globali e senza azioni dispositive.
+
 ## 2.245.3 - 2026-05-17
 
 - Aggiunta governance operativa per MTP/speculative decoding, LLM Wiki, GLM-OCR e Gemini Embedding 2: stato in osservabilita', tassonomia errori e comando `ai-avanzata`.

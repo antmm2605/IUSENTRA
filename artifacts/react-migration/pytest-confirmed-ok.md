@@ -1,12 +1,21 @@
 # Pytest shard confermati OK
 
-Aggiornato: 2026-05-17, agenti fonte legale verificabili 2.245.2, no backup.
+Aggiornato: 2026-05-17, agenti Lex operativi verificabili 2.245.4, no backup.
 
 ## Regola operativa
 
 Questi comandi o shard sono stati verificati in questa sessione e non vanno rilanciati a vuoto. Si ripetono solo se viene toccato codice collegato al loro perimetro, oppure come ultimo gate aggregato prima di commit/deploy.
 
 ## Frontend e gate React
+
+### Hotfix agenti Lex produzione 2.245.4 - 2026-05-17
+
+| Comando / verifica | Esito | Nota |
+| --- | --- | --- |
+| `python -m py_compile web\services\core_runtime.py lex\operational_knowledge\nightly_agents.py tests\test_storage_strategy.py tests\test_lex_operational_knowledge.py` | OK | Sintassi confermata dopo risoluzione runtime di `PCT_DATA_ROOT`, `LEX_OFFICIAL_DB`, `NORMATTIVA_DB` e preparazione tenant-aware del DB PDP Penale. |
+| `python -m pytest tests\test_storage_strategy.py::test_core_runtime_espone_archivi_fonti_ufficiali_da_env tests\test_lex_operational_knowledge.py::test_operational_agent_prepara_archivio_pdp_penale_tenant_aware -q` | OK | 2/2 passati: il runtime legge gli archivi ufficiali da env `PCT_*` e l'agente crea solo lo schema PDP Penale tenant-aware quando manca. |
+| `python -m pytest tests\test_scheduler_registry.py tests\test_scheduler_worker.py tests\test_lex_operational_knowledge.py -q` | OK | 37/37 passati: registry, scheduler e conoscenza operativa Lex restano coerenti dopo il fix produzione. |
+| `python tools\sync_packaging_files.py --check`; `python -m pytest tests\test_packaging_consistency.py tests\test_release_readiness.py -q --tb=short`; `git diff --check -- . ':!data/*'`; `python scripts\validate_docs_links.py CHANGELOG.md artifacts\react-migration\pytest-confirmed-ok.md artifacts\react-migration\pytest-open-issues.md`; `python scripts\validate_docs_commands.py` | OK | Packaging sincronizzato, readiness 8/8, whitespace, link e comandi documentali confermati dopo bump `2.245.4`. |
 
 ### Normalizzazione esiti agenti fonte 2.245.2 - 2026-05-17
 

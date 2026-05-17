@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import sqlite3
+from pathlib import Path
 from types import SimpleNamespace
 
 from lex.operational_knowledge.audit import OperationalAuditRecorder
@@ -586,3 +588,32 @@ def test_response_composer_reports_coverage_gap_for_absent_data():
     assert answer is not None
     assert answer.confidence < 0.55
     assert answer.coverage_gaps
+
+
+def test_operational_agent_prepara_archivio_pdp_penale_tenant_aware(tmp_path: Path):
+    from lex.operational_knowledge.nightly_agents import run_operational_micro_agent
+
+    telematico_db = tmp_path / "tenant" / "telematico" / "workflow.db"
+    email_db = tmp_path / "tenant" / "email" / "casella.json"
+    pdp_db = tmp_path / "tenant" / "penale" / "pdp_penale.db"
+    telematico_db.parent.mkdir(parents=True)
+    telematico_db.write_bytes(b"")
+    email_db.parent.mkdir(parents=True)
+    email_db.write_text("{}", encoding="utf-8")
+
+    result = run_operational_micro_agent(
+        agent_id="pct_depositi_telematici",
+        config={
+            "TELEMATICO_DB": str(telematico_db),
+            "EMAIL_CASELLA_DB": str(email_db),
+            "PDP_PENALE_DB": str(pdp_db),
+            "LEX_OPERATIONAL_AGENTS_DB": str(tmp_path / "runs" / "lex_operational_agents.json"),
+        },
+        required_path_keys=["TELEMATICO_DB", "PDP_PENALE_DB", "EMAIL_CASELLA_DB"],
+    )
+
+    assert result["ok"] is True
+    assert pdp_db.exists()
+    with sqlite3.connect(str(pdp_db)) as conn:
+        tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    assert "criminal_cases" in tables

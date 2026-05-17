@@ -89,6 +89,26 @@ def _cfg(tmp_path: Path) -> dict:
     }
 
 
+def test_core_runtime_espone_archivi_fonti_ufficiali_da_env(tmp_path: Path, monkeypatch):
+    data_root = tmp_path / "data-root"
+    lex_db = data_root / "fonti_ufficiali" / "lex_sources.sqlite"
+    normattiva_db = data_root / "normativa" / "normattiva.sqlite"
+    normattiva_jsonl = data_root / "normativa" / "index" / "normattiva_chunks.jsonl"
+    monkeypatch.setenv("PCT_DATA_ROOT", str(data_root))
+    monkeypatch.setenv("PCT_LEX_OFFICIAL_DB", str(lex_db))
+    monkeypatch.setenv("PCT_NORMATTIVA_DB", str(normattiva_db))
+    monkeypatch.setenv("PCT_NORMATTIVA_JSONL", str(normattiva_jsonl))
+
+    app, flask_cfg = create_flask_app(_cfg(tmp_path))
+    build_core_runtime(app, flask_cfg)
+
+    assert app.config["PCT_DATA_ROOT"] == str(data_root)
+    assert app.config["DATA_DIR"] == str(data_root)
+    assert app.config["LEX_OFFICIAL_DB"] == str(lex_db)
+    assert app.config["NORMATTIVA_DB"] == str(normattiva_db)
+    assert app.config["NORMATTIVA_JSONL"] == str(normattiva_jsonl)
+
+
 def _login_superadmin(client, *, username: str, password: str) -> None:
     response = client.post(
         "/login",

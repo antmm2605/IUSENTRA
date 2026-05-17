@@ -1,6 +1,6 @@
 # Pytest issue aperte e risoluzioni
 
-Aggiornato: 2026-05-17, Lex AI operativo e agenti notturni 2.245.3.
+Aggiornato: 2026-05-17, Lex AI operativo e agenti notturni 2.245.4.
 
 ## Regola operativa
 
@@ -10,6 +10,7 @@ Questo file e' la coda di lavoro. Prima di rilanciare test gia' passati, control
 
 | Area | Test / comando | Stato | Problema rilevato | Risoluzione |
 | --- | --- | --- | --- | --- |
+| Hotfix agenti Lex produzione 2.245.4 | Run produzione `lex-agenti-operativi --all --json` dopo deploy 2.245.3 | Risolto nel codice, da confermare dopo nuovo deploy | Quattro agenti tornavano `Da verificare` non per assenza dati reali, ma per chiavi non risolte nel runtime Flask (`LEX_OFFICIAL_DB`, `NORMATTIVA_DB`, `PCT_DATA_ROOT`) e per schema PDP Penale tenant non ancora creato. | Runtime allineato alle env `PCT_*`; agente PDP inizializza lo schema SQLite tenant-aware senza fallback globale. Rilanciare subito dopo deploy 2.245.4 e spostare l'esito in OK se il server rientra. |
 | Lex AI operativo 2.245.3 | `python -m pct.cli lex-agenti-operativi --all --json` | Nessuna issue aperta sul codice; run locale parziale per configurazione | Il run immediato locale ha creato solo artefatti runtime rigenerabili (`email/ordinaria.json`, `intelligence/lex_operational_agents.json`, `intelligence/workspace_intelligence.json`) e alcuni agenti hanno risposto `Da verificare` per archivi/env non configurati nel setup locale. | Artefatti runtime rimossi dalla worktree; il comportamento e' intenzionale: gli agenti non mascherano fonti mancanti come completate. Rilanciare su Hetzner dopo deploy per leggere configurazione e archivi reali del server. |
 | Agenti fonte storici 2026-05-17 | Ultimo record `source_agent_runs` gia' salvato prima dell'hotfix | Nessuna issue aperta dopo fix 2.245.2 | In produzione era presente un esito vecchio marcato `completed` ma con errore SSL dentro `payload_json.reports[].error`, quindi la console poteva continuare a mostrare una fotografia fuorviante. | Il repository normalizza in lettura e in scrittura: qualunque `completed` con errore interno diventa `failed`/`Da verificare`; per `giustizia_amministrativa` aggiunge la risoluzione OpenGA ufficiale. |
 | Archivio Giurisprudenza / fonti 2026-05-17 | Stati fonte mostrati nella pagina React | Nessuna issue aperta dopo fix 2.245.1 | La UI mostrava codici grezzi come `errore` e `handoff_richiesto`, lasciando l'utente senza soluzione operativa. In particolare il canale HTML diretto della Giustizia Amministrativa falliva nonostante OpenGA fosse disponibile. | Stati convertiti in `Da verificare`, `Aggiornata` e `Recupero assistito`; Giustizia Amministrativa diretta in osservazione con presidio OpenGA; Cassazione, Corte costituzionale, CURIA e HUDOC hanno fallback ufficiali documentati. Gate 37/37, Ruff e typecheck registrati in `pytest-confirmed-ok.md`. |

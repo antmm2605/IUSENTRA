@@ -183,6 +183,23 @@ def _path_probe(key: str, raw_path: Any) -> dict[str, Any]:
     return row
 
 
+def _prepare_known_archive(key: str, raw_path: Any) -> None:
+    path_text = _clean(raw_path)
+    if not path_text:
+        return
+    path = Path(path_text)
+    if path.exists():
+        return
+    if key == "PDP_PENALE_DB":
+        try:
+            from pct.pdp_penale_workflow import PDPPenaleWorkflowRepository
+
+            repo = PDPPenaleWorkflowRepository(str(path))
+            repo.close()
+        except Exception:
+            return
+
+
 def _email_attachment_probe(db_path: str) -> dict[str, int]:
     payload = _json_load(Path(db_path), {})
     rows = list(payload.values()) if isinstance(payload, dict) else (payload if isinstance(payload, list) else [])
@@ -224,7 +241,11 @@ def run_operational_micro_agent(
     overall_errors = 0
 
     for target in targets:
-        details = [_path_probe(key, target.paths.get(key) or cfg.get(key)) for key in required_path_keys]
+        details = []
+        for key in required_path_keys:
+            raw_path = target.paths.get(key) or cfg.get(key)
+            _prepare_known_archive(key, raw_path)
+            details.append(_path_probe(key, raw_path))
         for row in details:
             if row["status"] in {"non_configurato", "da_verificare"}:
                 overall_missing += 1

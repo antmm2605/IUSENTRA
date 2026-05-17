@@ -9,12 +9,11 @@ from pct.auth import GestioneUtenti, RuoloUtente
 from pct.fascicoli import GestioneFascicoli, TipoDocumento, TipoFascicolo
 from pct.storage import StudioDB
 from pct.tenant import GestioneTenant
+from web.app import create_app
 from web.bootstrap.blueprint_registry import BLUEPRINT_REGISTRY
 from web.bootstrap.flask_app_factory import create_flask_app
 from web.bootstrap.runtime_bundle import build_application_runtime_bundle
-from web.app import create_app
 from web.services.tenant_legacy_bootstrap import bootstrap_legacy_tenant_runtime_data
-
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 MOJIBAKE_PATTERN = re.compile(
@@ -489,6 +488,7 @@ def test_route_domini_estratti_restano_operativi(tmp_path: Path):
         "/impostazioni/calendario",
         "/privacy/registro",
         "/soggetti",
+        "/ricerca-legale/news",
     )
     platform_paths = (
         "/admin/database",
@@ -534,6 +534,12 @@ def test_route_domini_estratti_restano_operativi(tmp_path: Path):
 
         for path in platform_paths:
             response = platform_client.get(path)
+            if path.startswith("/legal-intelligence/"):
+                assert response.status_code == 301, path
+                assert response.headers["Location"].endswith(
+                    path.replace("/legal-intelligence", "/ricerca-legale", 1)
+                )
+                continue
             assert response.status_code == 200, path
 
 
@@ -717,7 +723,7 @@ def test_template_principali_usano_copy_italiana_e_date_localizzate():
             "Server e manutenzione",
             "Consumi per studio",
             "Compatta tutto in sicurezza",
-            "gia' compattati",
+            "già compattati",
         ],
         "web/templates/admin/legal_coverage_dashboard.html": [
             "Copertura AI e autopubblicazione controllata",

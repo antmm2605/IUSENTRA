@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from io import BytesIO
 import json
 import os
+from io import BytesIO
 from time import monotonic
 from typing import Any
 
@@ -18,7 +18,6 @@ from .formatting.ui_payloads import (
 )
 from .http_bounded_bridge import build_bounded_http_payload
 from .telemetry.audit import audit_trace
-
 
 _TRUE_VALUES = {"1", "true", "vero", "yes", "si", "on", "enabled", "abilitato"}
 _STUDIO_DATA_GUARD_BYPASS_INTENTS = {"cliente_anagrafica"}
@@ -386,6 +385,10 @@ def build_context_response(
         bounded_payload["social_kind"] = routing.social_kind
         bounded_payload["social_prefix"] = str(social_prefix or "").strip()
         bounded_payload["daily_overview_lead"] = opening_line
+        bounded_payload["focus_label"] = str(studio_context.get("focus_label") or "").strip()
+        bounded_payload["focus_topic"] = str(studio_context.get("focus_topic") or "").strip()
+        bounded_payload["competence_labels"] = list(studio_context.get("competence_labels") or [])
+        bounded_payload["execution_policy"] = studio_context.get("execution_policy") or {}
         bounded_payload["structured_context"] = studio_context.get("structured_context") or {}
         bounded_payload["retrieval_sources"] = bounded_payload.get("retrieval_sources") or []
         return bounded_payload, 200

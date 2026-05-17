@@ -1,8 +1,8 @@
 import json
-import pytest
 import sqlite3
 from pathlib import Path
 
+import pytest
 from flask import g
 
 from pct.auth import GestioneUtenti, RuoloUtente
@@ -10,16 +10,17 @@ from pct.core_storage_backend import build_core_storage_backend
 from pct.database import GestioneDatabase
 from pct.storage import StudioDB
 from pct.tenant import DatabaseConfig, DbMode, GestioneTenant
-from web.bootstrap.flask_app_factory import create_flask_app
 from web.app import create_app
 from web.blueprints.api_v1_react import admin_database_react_payload
 from web.blueprints.legal_intelligence import (
     _carica_portali as legal_intelligence_carica_portali,
+)
+from web.blueprints.legal_intelligence import (
     _daily_db_path as legal_intelligence_daily_db_path,
 )
 from web.blueprints.template_atti import _get_gp as template_atti_get_gp
 from web.blueprints.template_atti import _get_gt as template_atti_get_gt
-from web.services.core_runtime import build_core_runtime
+from web.bootstrap.flask_app_factory import create_flask_app
 from web.services.admin_surfaces_shared import (
     get_backup_manager,
     get_clienti_manager,
@@ -27,8 +28,11 @@ from web.services.admin_surfaces_shared import (
 )
 from web.services.applicazioni_runtime import (
     _carica_portali as applicazioni_carica_portali,
+)
+from web.services.applicazioni_runtime import (
     _template_manager as applicazioni_template_manager,
 )
+from web.services.core_runtime import build_core_runtime
 from web.services.react_impostazioni_calendar import _cal_token_dir
 from web.services.storage_runtime import get_request_storage_runtime, get_request_studio_db
 from web.services.tenant_legacy_bootstrap import bootstrap_legacy_tenant_runtime_data, legacy_root_data_paths
@@ -811,14 +815,15 @@ def test_profilo_tenant_cambia_password_anche_se_sqlite_auth_non_e_disponibile(
                 "password_old": "R0berto!Pct2026",
                 "password_new": "NuovaPwd!2026",
             },
-            follow_redirects=True,
+            headers={"X-Requested-With": "XMLHttpRequest"},
+            follow_redirects=False,
         )
 
-    body = changed.get_data(as_text=True)
+    payload = changed.get_json()
 
     assert changed.status_code == 200
-    assert "Password attuale non corretta." not in body
-    assert "Password aggiornata correttamente." in body
+    assert payload["ok"] is True
+    assert payload["message"].startswith("Password aggiornata correttamente.")
 
     tenant_users_after = GestioneUtenti(
         db_path=paths["AUTH_DB"],

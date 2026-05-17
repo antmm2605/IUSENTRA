@@ -3,9 +3,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from web.app import create_app
-
 from tests.test_web_bootstrap import _cfg_web, _write_studio_config
+from web.app import create_app
 
 
 def _extract_csrf_token(html: str) -> str:
@@ -79,7 +78,7 @@ def test_password_temporanea_blocca_navigazione_finche_non_viene_cambiata(tmp_pa
         assert blocked_dashboard.status_code == 302
         assert blocked_dashboard.headers["Location"].endswith("/profilo?password_obbligatoria=1")
 
-        profile_page = client.get("/profilo")
+        profile_page = client.get("/profilo?_legacy=1")
         profile_token = _extract_csrf_token(profile_page.get_data(as_text=True))
 
         changed = client.post(

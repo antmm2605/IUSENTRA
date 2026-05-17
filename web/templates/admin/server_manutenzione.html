@@ -254,14 +254,14 @@
         Percorsi: {{ compaction.roots_scanned }} - file analizzati: {{ compaction.files_scanned }} -
         duplicati identici: {{ compaction.duplicate_files }} -
         da compattare: {{ compaction.physical_duplicate_files }} -
-        gia' ottimizzati: {{ compaction.already_hardlinked_files }} -
+        già compattati: {{ compaction.already_hardlinked_files }} -
         compattati ora: {{ compaction.hardlinked_files }} -
         recuperabile: {{ compaction.bytes_reclaimable_label }} -
         recuperato: {{ compaction.bytes_reclaimed_label }}
       </div>
       {% if compaction.duplicate_files and not compaction.physical_duplicate_files and not compaction.bytes_reclaimable %}
       <div class="small mt-1">
-        I duplicati identici indicati sono gia' ottimizzati: restano piu' percorsi applicativi,
+        I duplicati identici indicati sono già compattati: restano più percorsi applicativi,
         ma non occupano spazio disco aggiuntivo.
       </div>
       {% endif %}
